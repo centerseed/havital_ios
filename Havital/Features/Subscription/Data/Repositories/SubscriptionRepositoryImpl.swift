@@ -1,5 +1,7 @@
 import Foundation
 import RevenueCat
+import StoreKit
+import UIKit
 
 // MARK: - SubscriptionRepositoryImpl
 /// 訂閱 Repository 實作 - Data Layer
@@ -176,17 +178,30 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
         #endif
     }
 
-    func purchase(offeringId: String, packageId: String) async throws -> PurchaseResultEntity {
-        Logger.debug("[SubscriptionRepositoryImpl] purchase: offeringId=\(offeringId) packageId=\(packageId)")
+    func purchase(request: SubscriptionPurchaseRequest) async throws -> PurchaseResultEntity {
+        Logger.debug(
+            "[SubscriptionRepositoryImpl] purchase: offeringId=\(request.offeringId) " +
+            "packageId=\(request.packageId) offerType=\(request.offerType?.rawValue ?? "standard")"
+        )
+        if let offerType = request.offerType, offerType != .introductory {
+            Logger.debug(
+                "[SubscriptionRepositoryImpl] purchase: \(offerType.rawValue) offer detected; " +
+                "falling back to standard RevenueCat package purchase until promotional flow is implemented"
+            )
+        }
         let offerings: Offerings
         if let cached = cachedOfferings {
             offerings = cached
         } else {
             offerings = try await Purchases.shared.offerings()
         }
-        guard let offering = offerings.offering(identifier: offeringId),
-              let package = offering.package(identifier: packageId) else {
-            return .failed(DomainError.unknown("Package not found: \(offeringId)/\(packageId)"))
+        guard let offering = offerings.offering(identifier: request.offeringId),
+              let package = offering.package(identifier: request.packageId) else {
+            return .failed(
+                DomainError.unknown(
+                    "Package not found: \(request.offeringId)/\(request.packageId)"
+                )
+            )
         }
         do {
             guard await AuthenticationViewModel.shared.ensureRevenueCatIdentitySynced() else {
@@ -213,6 +228,28 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
         }
     }
 
+    func redeemOfferCode() async throws -> PurchaseResultEntity {
+        Logger.debug("[SubscriptionRepositoryImpl] redeemOfferCode: presenting Apple redeem sheet")
+
+        guard await AuthenticationViewModel.shared.ensureRevenueCatIdentitySynced() else {
+            return .failed(
+                DomainError.validationFailure(
+                    NSLocalizedString(
+                        "paywall.offer_code_identity_sync_failed",
+                        comment: "Unable to verify subscription identity before redeeming an offer code"
+                    )
+                )
+            )
+        }
+
+        do {
+            try await presentOfferCodeRedeemSheet()
+            return try await waitForBackendAuthorizedStatus()
+        } catch {
+            return .failed(error.toDomainError())
+        }
+    }
+
     func restorePurchases() async throws {
         Logger.debug("[SubscriptionRepositoryImpl] restorePurchases: calling RevenueCat")
         guard await AuthenticationViewModel.shared.ensureRevenueCatIdentitySynced() else {
@@ -236,6 +273,29 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
         localDataSource.saveStatus(dto)
         await SubscriptionStateManager.shared.update(apiEntity)
         return apiEntity
+    }
+
+    @MainActor
+    private func presentOfferCodeRedeemSheet() async throws {
+        guard let scene = activeWindowScene() else {
+            throw DomainError.validationFailure(
+                NSLocalizedString(
+                    "paywall.offer_code_scene_unavailable",
+                    comment: "No active scene available for the Apple offer code sheet"
+                )
+            )
+        }
+
+        try await AppStore.presentOfferCodeRedeemSheet(in: scene)
+    }
+
+    @MainActor
+    private func activeWindowScene() -> UIWindowScene? {
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+
+        return scenes.first(where: { $0.activationState == .foregroundActive })
+            ?? scenes.first(where: { $0.activationState == .foregroundInactive })
+            ?? scenes.first
     }
 
     private func waitForBackendAuthorizedStatus(

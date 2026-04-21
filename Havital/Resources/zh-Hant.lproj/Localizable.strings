@@ -2488,7 +2488,14 @@
 "paywall.purchase_error_title" = "購買失敗";
 "paywall.restore_no_active_subscription" = "找不到可恢復的有效訂閱";
 "paywall.purchase_pending_processing" = "付款正在確認中，請稍後再試一次恢復購買";
+"paywall.redeem_offer_code" = "兌換優惠碼";
+"paywall.offer_code_pending_processing" = "優惠碼正在處理中，請稍後重新開啟 App 確認訂閱狀態。";
+"paywall.offer_code_identity_sync_failed" = "目前無法確認你的訂閱身份，請稍後再試。";
+"paywall.offer_code_scene_unavailable" = "目前無法開啟 Apple 優惠碼兌換視窗，請稍後再試。";
 "paywall.purchase_cancelled_retry" = "已完成 Apple 帳號登入，請再點一次方案完成購買。";
+"profile.subscription.redeem_offer_code" = "兌換優惠碼";
+"profile.subscription.redeem_alert_title" = "優惠碼";
+"profile.subscription.redeem_success" = "已完成優惠碼兌換，訂閱狀態已更新。";
 
 /* Race time reference strings */
 "race_time_ref.5k_elite" = "15-20 分鐘 (精英跑者)";

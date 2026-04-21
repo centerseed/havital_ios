@@ -2462,5 +2462,12 @@
 "paywall.purchase_error_title" = "Purchase Failed";
 "paywall.restore_no_active_subscription" = "No active subscription was found to restore";
 "paywall.purchase_pending_processing" = "Purchase is processing. Please try Restore Purchases again shortly.";
+"paywall.redeem_offer_code" = "Redeem Offer Code";
+"paywall.offer_code_pending_processing" = "Offer code redemption is processing. Please reopen the app in a moment to confirm your subscription.";
+"paywall.offer_code_identity_sync_failed" = "Unable to verify your subscription identity right now. Please try again.";
+"paywall.offer_code_scene_unavailable" = "Unable to open the Apple offer code sheet right now. Please try again.";
 "paywall.purchase_cancelled_retry" = "Apple sign-in completed. Please tap the plan again to finish the purchase.";
+"profile.subscription.redeem_offer_code" = "Redeem Offer Code";
+"profile.subscription.redeem_alert_title" = "Offer Code";
+"profile.subscription.redeem_success" = "Offer code redeemed. Your subscription has been updated.";
 "onboarding.clear_selected_race" = "Switch to manual input";

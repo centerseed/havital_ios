@@ -52,8 +52,13 @@ struct HavitalApp: App {
         }
 
         // 2. 初始化 RevenueCat（Firebase 之後，DI 之前）
-        Purchases.configure(withAPIKey: RevenueCatConfig.apiKey)
-        print("✅ RevenueCat 已初始化")
+        let revenueCatAppUserID = Auth.auth().currentUser?.uid
+        let revenueCatConfiguration = Configuration
+            .builder(withAPIKey: RevenueCatConfig.apiKey)
+            .with(appUserID: revenueCatAppUserID)
+            .build()
+        Purchases.configure(with: revenueCatConfiguration)
+        print("✅ RevenueCat 已初始化 - appUserID: \(revenueCatAppUserID ?? "anonymous")")
 
         #if DEBUG
         // 🧪 StoreKit diagnostic: 僅 DEBUG 檢查本地產品是否可被讀取

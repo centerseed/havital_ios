@@ -327,8 +327,12 @@ private final class UITestTrainingPlanV2GateSubscriptionRepository: Subscription
 
     func fetchOfferings() async throws -> [SubscriptionOfferingEntity] { [] }
 
-    func purchase(offeringId: String, packageId: String) async throws -> PurchaseResultEntity {
+    func purchase(request: SubscriptionPurchaseRequest) async throws -> PurchaseResultEntity {
         .cancelled
+    }
+
+    func redeemOfferCode() async throws -> PurchaseResultEntity {
+        .pendingProcessing
     }
 
     func restorePurchases() async throws {}

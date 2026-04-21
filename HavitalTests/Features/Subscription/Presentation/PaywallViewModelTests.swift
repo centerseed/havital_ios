@@ -176,20 +176,78 @@ final class PaywallViewModelTests: XCTestCase {
         await sut.purchase(offeringId: "default", packageId: "$rc_monthly")
 
         XCTAssertEqual(repository.purchaseCallCount, 1)
+        XCTAssertEqual(repository.lastPurchaseRequest?.offeringId, "default")
+        XCTAssertEqual(repository.lastPurchaseRequest?.packageId, "$rc_monthly")
+        XCTAssertNil(repository.lastPurchaseRequest?.offerType)
         XCTAssertEqual(repository.refreshStatusCallCount, 0)
         XCTAssertEqual(sut.purchaseState, .success)
+    }
+
+    func testPurchaseRequest_WhenOfferTypeProvided_ForwardsOfferTypeToRepository() async {
+        repository.purchaseResult = .cancelled
+
+        await sut.purchase(
+            request: SubscriptionPurchaseRequest(
+                offeringId: "promo_offering",
+                packageId: "$rc_annual",
+                offerType: .promotional
+            )
+        )
+
+        XCTAssertEqual(repository.purchaseCallCount, 1)
+        XCTAssertEqual(repository.lastPurchaseRequest?.offeringId, "promo_offering")
+        XCTAssertEqual(repository.lastPurchaseRequest?.packageId, "$rc_annual")
+        XCTAssertEqual(repository.lastPurchaseRequest?.offerType, .promotional)
+    }
+
+    func testRedeemOfferCode_WhenSuccess_SetsSuccess() async {
+        repository.redeemResult = .success
+
+        await sut.redeemOfferCode()
+
+        XCTAssertEqual(repository.redeemOfferCodeCallCount, 1)
+        XCTAssertEqual(sut.purchaseState, .success)
+    }
+
+    func testRedeemOfferCode_WhenPending_SetsPendingMessage() async {
+        repository.redeemResult = .pendingProcessing
+
+        await sut.redeemOfferCode()
+
+        XCTAssertEqual(repository.redeemOfferCodeCallCount, 1)
+        if case .failed(let message) = sut.purchaseState {
+            XCTAssertEqual(message, NSLocalizedString("paywall.offer_code_pending_processing", comment: ""))
+        } else {
+            XCTFail("Expected pending processing message, got \(sut.purchaseState)")
+        }
+    }
+
+    func testRedeemOfferCode_WhenFailure_SetsFailedMessage() async {
+        repository.redeemResult = .failed(DomainError.validationFailure("bad code"))
+
+        await sut.redeemOfferCode()
+
+        XCTAssertEqual(repository.redeemOfferCodeCallCount, 1)
+        if case .failed(let message) = sut.purchaseState {
+            XCTAssertEqual(message, "bad code")
+        } else {
+            XCTFail("Expected failure message, got \(sut.purchaseState)")
+        }
     }
 }
 
 private final class MockSubscriptionRepository: SubscriptionRepository {
     var statusToReturn = SubscriptionStatusEntity(status: .none)
     var purchaseResult: PurchaseResultEntity = .success
+    var redeemResult: PurchaseResultEntity = .success
     var restoreError: Error?
     var refreshError: Error?
 
     private(set) var refreshStatusCallCount = 0
     private(set) var restorePurchasesCallCount = 0
     private(set) var purchaseCallCount = 0
+    private(set) var redeemOfferCodeCallCount = 0
+    private(set) var lastPurchaseRequest: SubscriptionPurchaseRequest?
 
     func getStatus() async throws -> SubscriptionStatusEntity {
         statusToReturn
@@ -213,9 +271,15 @@ private final class MockSubscriptionRepository: SubscriptionRepository {
         []
     }
 
-    func purchase(offeringId _: String, packageId _: String) async throws -> PurchaseResultEntity {
+    func purchase(request: SubscriptionPurchaseRequest) async throws -> PurchaseResultEntity {
         purchaseCallCount += 1
+        lastPurchaseRequest = request
         return purchaseResult
+    }
+
+    func redeemOfferCode() async throws -> PurchaseResultEntity {
+        redeemOfferCodeCallCount += 1
+        return redeemResult
     }
 
     func restorePurchases() async throws {

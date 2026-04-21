@@ -37,6 +37,19 @@ struct PaywallView: View {
 
                     Spacer(minLength: 28)
 
+                    Button {
+                        Task { await viewModel.redeemOfferCode() }
+                    } label: {
+                        Label(
+                            NSLocalizedString("paywall.redeem_offer_code", comment: "Redeem Offer Code"),
+                            systemImage: "ticket"
+                        )
+                        .font(AppFont.bodySmall())
+                    }
+                    .foregroundColor(.secondary)
+                    .accessibilityIdentifier("Paywall_RedeemOfferCodeButton")
+                    .padding(.bottom, viewModel.shouldShowRestoreButton ? 8 : 24)
+
                     if viewModel.shouldShowRestoreButton {
                         Button(NSLocalizedString("paywall.restore_purchases", comment: "Restore Purchases")) {
                             Task { try? await viewModel.restorePurchases() }
@@ -259,7 +272,15 @@ struct PaywallView: View {
                                isSelected: selectedPackageId == yearly.id,
                                purchaseState: viewModel.purchaseState) {
                         selectedPackageId = yearly.id
-                        Task { await viewModel.purchase(offeringId: yearlyOfferingId, packageId: yearly.id) }
+                        Task {
+                            await viewModel.purchase(
+                                request: SubscriptionPurchaseRequest(
+                                    offeringId: yearlyOfferingId,
+                                    packageId: yearly.id,
+                                    offerType: yearly.officialOffer?.type
+                                )
+                            )
+                        }
                     }
                 }
                 if let monthly,
@@ -270,7 +291,15 @@ struct PaywallView: View {
                                 isSelected: selectedPackageId == monthly.id,
                                 purchaseState: viewModel.purchaseState) {
                         selectedPackageId = monthly.id
-                        Task { await viewModel.purchase(offeringId: monthlyOfferingId, packageId: monthly.id) }
+                        Task {
+                            await viewModel.purchase(
+                                request: SubscriptionPurchaseRequest(
+                                    offeringId: monthlyOfferingId,
+                                    packageId: monthly.id,
+                                    offerType: monthly.officialOffer?.type
+                                )
+                            )
+                        }
                     }
                 }
             }

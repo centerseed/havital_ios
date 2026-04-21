@@ -107,8 +107,8 @@ final class StoreKitTestSubscriptionRepository: SubscriptionRepository {
         )]
     }
 
-    func purchase(offeringId _: String, packageId: String) async throws -> PurchaseResultEntity {
-        let productID = resolveProductID(from: packageId)
+    func purchase(request: SubscriptionPurchaseRequest) async throws -> PurchaseResultEntity {
+        let productID = resolveProductID(from: request.packageId)
         let products = try await Product.products(for: [productID])
 
         guard let product = products.first else {
@@ -177,6 +177,14 @@ final class StoreKitTestSubscriptionRepository: SubscriptionRepository {
             }
             return .failed(error.toDomainError())
         }
+    }
+
+    func redeemOfferCode() async throws -> PurchaseResultEntity {
+        if let refreshed = try? await refreshStatus(),
+           refreshed.status == .active || refreshed.status == .trial || refreshed.status == .cancelled {
+            return .success
+        }
+        return .pendingProcessing
     }
 
     func restorePurchases() async throws {

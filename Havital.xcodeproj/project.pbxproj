@@ -547,6 +547,8 @@
 				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev;
 				PRODUCT_NAME = paceriz_dev;
+				REVENUECAT_API_KEY = appl_goEmxlWDniAtziTzdXeOpmgNkEt;
+				REVENUECAT_PREMIUM_ENTITLEMENT = "Paceriz Premium";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -675,6 +677,8 @@
 				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz;
+				REVENUECAT_API_KEY = appl_goEmxlWDniAtziTzdXeOpmgNkEt;
+				REVENUECAT_PREMIUM_ENTITLEMENT = "Paceriz Premium";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -866,6 +870,8 @@
 				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev;
 				PRODUCT_NAME = paceriz_dev;
+				REVENUECAT_API_KEY = appl_goEmxlWDniAtziTzdXeOpmgNkEt;
+				REVENUECAT_PREMIUM_ENTITLEMENT = "Paceriz Premium";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -902,6 +908,8 @@
 				MARKETING_VERSION = 1.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz;
+				REVENUECAT_API_KEY = appl_goEmxlWDniAtziTzdXeOpmgNkEt;
+				REVENUECAT_PREMIUM_ENTITLEMENT = "Paceriz Premium";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

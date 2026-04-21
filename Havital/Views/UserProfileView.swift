@@ -35,6 +35,8 @@ struct UserProfileView: View {
     @State private var showIAPTestConsole = false
     @State private var showPaceZoneDetail = false
     @State private var paywallTrigger: PaywallTrigger?
+    @State private var offerRedemptionMessage: String?
+    private let offerRedemptionCoordinator = OfferRedemptionCoordinator()
 
     private var appVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
@@ -172,6 +174,19 @@ struct UserProfileView: View {
         }
         .sheet(item: $paywallTrigger) { trigger in
             PaywallView(trigger: trigger)
+        }
+        .alert(
+            NSLocalizedString("profile.subscription.redeem_alert_title", comment: "Offer Code"),
+            isPresented: Binding(
+                get: { offerRedemptionMessage != nil },
+                set: { if !$0 { offerRedemptionMessage = nil } }
+            )
+        ) {
+            Button(NSLocalizedString("common.ok", comment: "OK")) {
+                offerRedemptionMessage = nil
+            }
+        } message: {
+            Text(offerRedemptionMessage ?? "")
         }
         #if DEBUG
         .sheet(isPresented: $showIAPTestConsole) {
@@ -354,6 +369,17 @@ struct UserProfileView: View {
             // 主要按鈕
             subscriptionPrimaryAction
 
+            Button {
+                redeemOfferCode(from: .profile)
+            } label: {
+                Label(
+                    NSLocalizedString("profile.subscription.redeem_offer_code", comment: "Redeem Offer Code"),
+                    systemImage: "ticket"
+                )
+                .foregroundColor(.secondary)
+            }
+            .accessibilityIdentifier("Subscription_RedeemOfferCodeButton")
+
             // 次要按鈕：管理訂閱（跳轉 Apple）
             if shouldShowManageSubscription {
                 Button {
@@ -489,6 +515,28 @@ struct UserProfileView: View {
             return NSLocalizedString("profile.subscription.expired", comment: "Expired")
         case .none:
             return NSLocalizedString("profile.subscription.free", comment: "Free")
+        }
+    }
+
+    private func redeemOfferCode(from entryPoint: OfferEntryPoint) {
+        Task { @MainActor in
+            let result = await offerRedemptionCoordinator.redeem(entryPoint: entryPoint)
+            switch result {
+            case .success:
+                offerRedemptionMessage = NSLocalizedString(
+                    "profile.subscription.redeem_success",
+                    comment: "Offer code redeemed successfully"
+                )
+            case .cancelled:
+                break
+            case .pendingProcessing:
+                offerRedemptionMessage = NSLocalizedString(
+                    "paywall.offer_code_pending_processing",
+                    comment: "Offer code redemption is being processed"
+                )
+            case .failed(let error):
+                offerRedemptionMessage = error.localizedDescription
+            }
         }
     }
 

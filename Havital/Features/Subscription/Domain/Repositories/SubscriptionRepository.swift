@@ -24,8 +24,23 @@ protocol SubscriptionRepository {
     func fetchOfferings() async throws -> [SubscriptionOfferingEntity]
 
     /// 購買指定訂閱方案
-    func purchase(offeringId: String, packageId: String) async throws -> PurchaseResultEntity
+    func purchase(request: SubscriptionPurchaseRequest) async throws -> PurchaseResultEntity
+
+    /// 兌換 Apple Offer Code
+    func redeemOfferCode() async throws -> PurchaseResultEntity
 
     /// 恢復購買記錄
     func restorePurchases() async throws
+}
+
+extension SubscriptionRepository {
+    func purchase(offeringId: String, packageId: String) async throws -> PurchaseResultEntity {
+        try await purchase(
+            request: SubscriptionPurchaseRequest(
+                offeringId: offeringId,
+                packageId: packageId,
+                offerType: nil
+            )
+        )
+    }
 }

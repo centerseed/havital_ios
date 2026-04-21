@@ -75,6 +75,10 @@
 	<string>Paceriz 需要寫入您的運動記錄，以追蹤您的訓練狀況</string>
 	<key>NSUserNotificationUsageDescription</key>
 	<string>Paceriz 需要通知權限以告知您運動數據已成功同步</string>
+	<key>REVENUECAT_API_KEY</key>
+	<string>$(REVENUECAT_API_KEY)</string>
+	<key>REVENUECAT_PREMIUM_ENTITLEMENT</key>
+	<string>$(REVENUECAT_PREMIUM_ENTITLEMENT)</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

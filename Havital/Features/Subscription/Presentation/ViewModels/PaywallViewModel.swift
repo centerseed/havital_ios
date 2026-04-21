@@ -33,17 +33,22 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
 
     private let subscriptionRepository: SubscriptionRepository
     private let analyticsService: AnalyticsService
+    private let offerRedemptionCoordinator: OfferRedemptionCoordinator
 
     // MARK: - Initialization
 
     init(
         trigger: PaywallTrigger,
         subscriptionRepository: SubscriptionRepository? = nil,
-        analyticsService: AnalyticsService? = nil
+        analyticsService: AnalyticsService? = nil,
+        offerRedemptionCoordinator: OfferRedemptionCoordinator? = nil
     ) {
         self.trigger = trigger
-        self.subscriptionRepository = subscriptionRepository ?? DependencyContainer.shared.resolve()
+        let resolvedRepository = subscriptionRepository ?? DependencyContainer.shared.resolve()
+        self.subscriptionRepository = resolvedRepository
         self.analyticsService = analyticsService ?? DependencyContainer.shared.resolve()
+        self.offerRedemptionCoordinator = offerRedemptionCoordinator
+            ?? OfferRedemptionCoordinator(subscriptionRepository: resolvedRepository)
     }
 
     deinit { cancelAllTasks() }
@@ -68,15 +73,15 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
         }
     }
 
-    func purchase(offeringId: String, packageId: String) async {
-        let planType = packageId.lowercased().contains("yearly") || offeringId.lowercased().contains("yearly")
+    func purchase(request: SubscriptionPurchaseRequest) async {
+        let planType = request.packageId.lowercased().contains("yearly") || request.offeringId.lowercased().contains("yearly")
             ? "yearly"
             : "monthly"
         analyticsService.track(.paywallTapSubscribe(planType: planType))
 
         purchaseState = .purchasing
         do {
-            let result = try await subscriptionRepository.purchase(offeringId: offeringId, packageId: packageId)
+            let result = try await subscriptionRepository.purchase(request: request)
             switch result {
             case .success:
                 let unlocked = await refreshStatusWithRetry()
@@ -102,6 +107,37 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
             }
         } catch {
             analyticsService.track(.purchaseFail(errorType: classifyPurchaseError(error)))
+            purchaseState = .failed(error.localizedDescription)
+        }
+    }
+
+    func purchase(offeringId: String, packageId: String) async {
+        await purchase(
+            request: SubscriptionPurchaseRequest(
+                offeringId: offeringId,
+                packageId: packageId,
+                offerType: nil
+            )
+        )
+    }
+
+    func redeemOfferCode() async {
+        purchaseState = .purchasing
+
+        let result = await offerRedemptionCoordinator.redeem(entryPoint: .paywall)
+        switch result {
+        case .success:
+            purchaseState = .success
+        case .cancelled:
+            purchaseState = .idle
+        case .pendingProcessing:
+            purchaseState = .failed(
+                NSLocalizedString(
+                    "paywall.offer_code_pending_processing",
+                    comment: "Offer code redemption is being processed"
+                )
+            )
+        case .failed(let error):
             purchaseState = .failed(error.localizedDescription)
         }
     }
