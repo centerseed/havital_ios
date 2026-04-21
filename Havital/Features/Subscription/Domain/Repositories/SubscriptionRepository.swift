@@ -39,7 +39,8 @@ extension SubscriptionRepository {
             request: SubscriptionPurchaseRequest(
                 offeringId: offeringId,
                 packageId: packageId,
-                offerType: nil
+                offerType: nil,
+                offerIdentifier: nil
             )
         )
     }

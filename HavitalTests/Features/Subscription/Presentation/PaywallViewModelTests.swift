@@ -204,7 +204,8 @@ final class PaywallViewModelTests: XCTestCase {
             request: SubscriptionPurchaseRequest(
                 offeringId: "promo_offering",
                 packageId: "$rc_annual",
-                offerType: .promotional
+                offerType: .promotional,
+                offerIdentifier: "promo_annual_2026"
             )
         )
 
@@ -212,6 +213,7 @@ final class PaywallViewModelTests: XCTestCase {
         XCTAssertEqual(repository.lastPurchaseRequest?.offeringId, "promo_offering")
         XCTAssertEqual(repository.lastPurchaseRequest?.packageId, "$rc_annual")
         XCTAssertEqual(repository.lastPurchaseRequest?.offerType, .promotional)
+        XCTAssertEqual(repository.lastPurchaseRequest?.offerIdentifier, "promo_annual_2026")
         XCTAssertEqual(analyticsService.trackedEvents.count, 1)
         if case .paywallTapSubscribe(let planType, let offerType) = analyticsService.trackedEvents[0] {
             XCTAssertEqual(planType, "yearly")
@@ -228,7 +230,8 @@ final class PaywallViewModelTests: XCTestCase {
             request: SubscriptionPurchaseRequest(
                 offeringId: "winback_offering",
                 packageId: "$rc_monthly",
-                offerType: .winBack
+                offerType: .winBack,
+                offerIdentifier: "winback_monthly_2026"
             )
         )
 

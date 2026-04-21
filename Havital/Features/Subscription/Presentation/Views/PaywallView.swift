@@ -278,7 +278,8 @@ struct PaywallView: View {
                                 request: SubscriptionPurchaseRequest(
                                     offeringId: yearlyOfferingId,
                                     packageId: yearly.id,
-                                    offerType: yearly.officialOffer?.type
+                                    offerType: yearly.officialOffer?.type,
+                                    offerIdentifier: yearly.officialOffer?.offerIdentifier
                                 )
                             )
                         }
@@ -298,7 +299,8 @@ struct PaywallView: View {
                                 request: SubscriptionPurchaseRequest(
                                     offeringId: monthlyOfferingId,
                                     packageId: monthly.id,
-                                    offerType: monthly.officialOffer?.type
+                                    offerType: monthly.officialOffer?.type,
+                                    offerIdentifier: monthly.officialOffer?.offerIdentifier
                                 )
                             )
                         }

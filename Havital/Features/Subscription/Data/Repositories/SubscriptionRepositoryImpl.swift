@@ -181,12 +181,13 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
     func purchase(request: SubscriptionPurchaseRequest) async throws -> PurchaseResultEntity {
         Logger.debug(
             "[SubscriptionRepositoryImpl] purchase: offeringId=\(request.offeringId) " +
-            "packageId=\(request.packageId) offerType=\(request.offerType?.rawValue ?? "standard")"
+            "packageId=\(request.packageId) offerType=\(request.offerType?.rawValue ?? "standard") " +
+            "offerIdentifier=\(request.offerIdentifier ?? "none")"
         )
-        if let offerType = request.offerType, offerType != .introductory {
+        if let offerType = request.offerType, offerType == .winBack {
             Logger.debug(
                 "[SubscriptionRepositoryImpl] purchase: \(offerType.rawValue) offer detected; " +
-                "falling back to standard RevenueCat package purchase until promotional flow is implemented"
+                "falling back to standard RevenueCat package purchase until win-back flow is implemented"
             )
         }
         let offerings: Offerings
@@ -208,7 +209,25 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
                 return .failed(DomainError.validationFailure("Unable to verify subscription identity. Please try again."))
             }
 
-            let (_, customerInfo, userCancelled) = try await Purchases.shared.purchase(package: package)
+            let purchaseResultData: PurchaseResultData
+            if request.offerType == .promotional,
+               let promotionalOffer = await eligiblePromotionalOffer(
+                   for: package.storeProduct,
+                   preferredIdentifier: request.offerIdentifier
+               ) {
+                Logger.debug(
+                    "[SubscriptionRepositoryImpl] purchase: applying promotional offer " +
+                    "\(promotionalOffer.discount.offerIdentifier ?? promotionalOffer.signedData.identifier)"
+                )
+                purchaseResultData = try await Purchases.shared.purchase(
+                    package: package,
+                    promotionalOffer: promotionalOffer
+                )
+            } else {
+                purchaseResultData = try await Purchases.shared.purchase(package: package)
+            }
+
+            let (_, customerInfo, userCancelled) = purchaseResultData
             if userCancelled { return .cancelled }
             if await publishOptimisticStatusIfPossible(from: customerInfo) {
                 Task {
@@ -319,6 +338,27 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
         return .pendingProcessing
     }
 
+    private func eligiblePromotionalOffer(
+        for product: StoreProduct,
+        preferredIdentifier: String?
+    ) async -> PromotionalOffer? {
+        let eligibleOffers = await product.eligiblePromotionalOffers()
+        guard !eligibleOffers.isEmpty else {
+            Logger.debug("[SubscriptionRepositoryImpl] purchase: no eligible promotional offers found")
+            return nil
+        }
+
+        if let preferredIdentifier,
+           let matchingOffer = eligibleOffers.first(where: { offer in
+               offer.discount.offerIdentifier == preferredIdentifier || offer.signedData.identifier == preferredIdentifier
+           }) {
+            return matchingOffer
+        }
+
+        Logger.debug("[SubscriptionRepositoryImpl] purchase: preferred promotional offer not found, using first eligible offer")
+        return eligibleOffers.first
+    }
+
     private func publishOptimisticStatusIfPossible(from customerInfo: CustomerInfo) async -> Bool {
         guard let entitlement = customerInfo.entitlements[RevenueCatConfig.premiumEntitlement],
               entitlement.isActive else {
@@ -373,6 +413,7 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
 
     private func mapOfficialOffer(_ discount: StoreProductDiscount) -> SubscriptionOfficialOffer {
         SubscriptionOfficialOffer(
+            offerIdentifier: discount.offerIdentifier,
             type: mapOfferType(discount.type),
             paymentMode: mapOfferPaymentMode(discount.paymentMode),
             price: discount.price,

@@ -128,7 +128,8 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
             request: SubscriptionPurchaseRequest(
                 offeringId: offeringId,
                 packageId: packageId,
-                offerType: nil
+                offerType: nil,
+                offerIdentifier: nil
             )
         )
     }

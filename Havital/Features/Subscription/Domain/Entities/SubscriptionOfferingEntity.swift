@@ -32,6 +32,7 @@ enum SubscriptionPeriod: String {
 
 // MARK: - SubscriptionOfficialOffer
 struct SubscriptionOfficialOffer {
+    let offerIdentifier: String?
     let type: SubscriptionOfferType
     let paymentMode: SubscriptionOfferPaymentMode
     let price: Decimal
