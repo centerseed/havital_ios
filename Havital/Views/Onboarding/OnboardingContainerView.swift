@@ -84,7 +84,7 @@ struct OnboardingContainerView: View {
         case .raceSetup:
             OnboardingView()
         case .raceEventList:
-            RaceEventListView()
+            RaceEventListView(dataSource: viewModel)
         case .startStage:
             StartStageSelectionView(
                 weeksRemaining: coordinator.weeksRemaining,

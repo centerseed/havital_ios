@@ -4,28 +4,49 @@ import Combine
 struct EditTargetView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var targetModel: EditTargetViewModel
-    
+
     init(target: Target) {
         // 將 Target 轉換為 ViewModel
         _targetModel = StateObject(wrappedValue: EditTargetViewModel(target: target))
     }
-    
+
     var body: some View {
         NavigationView {
             Form {
+                // 從資料庫選擇入口 (AC-TREDIT-01)
+                Section {
+                    NavigationLink {
+                        RaceEventListView(
+                            dataSource: TargetEditRacePickerViewModel(
+                                initialRaceId: targetModel.raceId,
+                                onRaceSelected: { [weak targetModel] race, distance in
+                                    targetModel?.applyRaceSelection(race, distance: distance)
+                                }
+                            )
+                        )
+                    } label: {
+                        HStack {
+                            Image(systemName: "list.bullet.rectangle.portrait")
+                                .foregroundColor(.accentColor)
+                            Text(NSLocalizedString("edit_target.browse_database", comment: "從賽事資料庫選擇"))
+                        }
+                    }
+                    .accessibilityIdentifier("EditTarget_BrowseDatabaseButton")
+                }
+
                 Section(header: Text(L10n.EditTarget.raceInfo.localized)) {
                     TextField(L10n.EditTarget.raceName.localized, text: $targetModel.raceName)
                         .textContentType(.name)
-                    
+
                     DatePicker(L10n.EditTarget.raceDate.localized,
                               selection: $targetModel.raceDate,
                               in: Date()...,
                               displayedComponents: .date)
-                    
+
                     Text(L10n.EditTarget.remainingWeeks.localized(with: targetModel.remainingWeeks))
                         .foregroundColor(.secondary)
                 }
-                
+
                 Section(header: Text(L10n.EditTarget.raceDistance.localized)) {
                     Picker(L10n.EditTarget.selectDistance.localized, selection: $targetModel.selectedDistance) {
                         ForEach(Array(targetModel.availableDistances.keys.sorted()), id: \.self) { key in
@@ -109,14 +130,33 @@ struct EditTargetView: View {
 
 @MainActor
 class EditTargetViewModel: ObservableObject {
-    @Published var raceName = ""
+    @Published var raceName = "" {
+        didSet {
+            if !isApplyingRaceSelection {
+                clearRaceSelection()
+            }
+        }
+    }
     @Published var raceDate = Date()
-    @Published var selectedDistance = "42.195" // 預設全馬
+    @Published var selectedDistance = "42.195" { // 預設全馬
+        didSet {
+            if !isApplyingRaceSelection {
+                clearRaceSelection()
+            }
+        }
+    }
     @Published var targetHours = 4
     @Published var targetMinutes = 0
     @Published var isLoading = false
     @Published var error: String?
+
+    /// race_id from the race database. nil means the target was manually entered.
+    @Published var raceId: String?
+
     private let targetId: String
+
+    /// Flag to suppress auto-clear during programmatic applyRaceSelection calls.
+    private var isApplyingRaceSelection = false
 
     // MARK: - Dependencies (Clean Architecture)
     private let targetRepository: TargetRepository
@@ -125,9 +165,9 @@ class EditTargetViewModel: ObservableObject {
     private let originalDistance: String
     private let originalTargetTime: Int
     private let originalTrainingWeeks: Int
-    private let originalTimezone: String  // 🔧 保存原始時區
+    private let originalTimezone: String  // 保存原始時區
     private let originalRaceDate: Int  // 保存原始賽事日期（Unix timestamp）
-    
+
     // 移動到類別層級的可用距離選項
     var availableDistances: [String: String] {
         [
@@ -151,8 +191,7 @@ class EditTargetViewModel: ObservableObject {
             return calculatedWeeks
         } else {
             // 若計算失敗（理論上 currentDateISO 應該總是有效的），提供一個備用值
-            // 這裡可以加入日誌記錄錯誤
-            print("Error: Could not calculate remaining weeks using TrainingDateUtils. Defaulting to 1.")
+            Logger.warn("[EditTargetVM] Could not calculate remaining weeks using TrainingDateUtils. Defaulting to 1.")
             return 1
         }
     }
@@ -176,21 +215,25 @@ class EditTargetViewModel: ObservableObject {
         // 先初始化原始值
         self.originalTargetTime = target.targetTime
         self.originalTrainingWeeks = target.trainingWeeks
-        self.originalTimezone = target.timezone  // 🔧 保存原始時區
+        self.originalTimezone = target.timezone  // 保存原始時區
         self.originalRaceDate = target.raceDate  // 保存原始賽事日期
 
-        // 🔍 記錄初始化時的原始值
+        // 初始化 raceId（從 target 帶入，後端暫未回傳時為 nil）
+        self.raceId = target.raceId
+
+        // 記錄初始化時的原始值
         Logger.debug("""
-        [🐛 TARGET_UPDATE] 初始化 EditTargetVM:
+        [TARGET_UPDATE] 初始化 EditTargetVM:
           - Target.trainingWeeks: \(target.trainingWeeks)
           - Target.raceDate: \(target.raceDate)
           - Target.name: \(target.name)
+          - Target.raceId: \(target.raceId ?? "nil")
         """)
 
-        // 初始化當前值
+        // 初始化當前值（不觸發 didSet，isApplyingRaceSelection 預設 false 但物件尚未完成初始化）
         self.raceName = target.name
         self.raceDate = Date(timeIntervalSince1970: TimeInterval(target.raceDate))
-        
+
         // 創建臨時的可用距離字典來查找匹配的距離
         let distances: [String: String] = [
             "5": L10n.EditTarget.distance5k.localized,
@@ -198,7 +241,7 @@ class EditTargetViewModel: ObservableObject {
             "21.0975": L10n.EditTarget.distanceHalf.localized,
             "42.195": L10n.EditTarget.distanceFull.localized
         ]
-        
+
         // 設置距離並保存原始距離值
         if let distanceStr = distances.keys.first(where: { Int(Double($0) ?? 0) == target.distanceKm }) {
             self.selectedDistance = distanceStr
@@ -207,16 +250,53 @@ class EditTargetViewModel: ObservableObject {
             self.selectedDistance = "42.195" // 預設值
             self.originalDistance = "42.195" // 預設值
         }
-        
+
         // 設置目標時間
         self.targetHours = target.targetTime / 3600
         self.targetMinutes = (target.targetTime % 3600) / 60
+    }
+
+    // MARK: - Race Database Integration
+
+    /// Apply a race selection from the race picker.
+    /// Sets raceId, raceName, raceDate, selectedDistance without triggering auto-clear.
+    func applyRaceSelection(_ event: RaceEvent, distance: RaceDistance) {
+        isApplyingRaceSelection = true
+        defer { isApplyingRaceSelection = false }
+
+        raceId = event.raceId
+        raceName = event.name
+        raceDate = event.eventDate
+        selectedDistance = normalizeDistanceForPicker(distance.distanceKm)
+
+        Logger.info("[EditTargetVM] Applied race selection: \(event.name), raceId=\(event.raceId), distance=\(distance.name)")
+    }
+
+    /// Clear the race database binding.
+    /// Called automatically when raceName or selectedDistance is manually edited.
+    func clearRaceSelection() {
+        guard raceId != nil else { return }
+        raceId = nil
+        Logger.debug("[EditTargetVM] Cleared raceId (manual edit detected)")
+    }
+
+    // MARK: - Private Helpers
+
+    private func normalizeDistanceForPicker(_ distanceKm: Double) -> String {
+        let intKm = Int(distanceKm)
+        switch intKm {
+        case 5:  return "5"
+        case 10: return "10"
+        case 21: return "21.0975"
+        case 42: return "42.195"
+        default: return String(format: "%.4g", distanceKm)
+        }
     }
     
     func updateTarget() async -> Bool? {
         isLoading = true
         error = nil
-        
+
         do {
             let target = Target(
                 id: targetId,
@@ -228,7 +308,8 @@ class EditTargetViewModel: ObservableObject {
                 raceDate: Int(raceDate.timeIntervalSince1970),
                 isMainRace: true,
                 trainingWeeks: remainingWeeks,
-                timezone: originalTimezone  // 🔧 保持原始時區設定
+                timezone: originalTimezone,  // 保持原始時區設定
+                raceId: raceId              // 帶入 race_id（手動輸入時為 nil）
             )
             
             // 更新目標賽事 (using TargetRepository)
@@ -259,7 +340,7 @@ class EditTargetViewModel: ObservableObject {
             return hasSignificantChange
         } catch {
             self.error = error.localizedDescription
-            print("更新賽事目標失敗: \(error.localizedDescription)")
+            Logger.error("[EditTargetVM] 更新賽事目標失敗: \(error.localizedDescription)")
             isLoading = false
             return nil
         }

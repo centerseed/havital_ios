@@ -2,8 +2,11 @@
 //  RaceEventListView.swift
 //  Havital
 //
-//  賽事列表頁面（Onboarding 賽事選擇流程）
-//  支援搜尋、地區切換、距離篩選、skeleton loading
+//  賽事列表頁面（可重用於 Onboarding 和目標編輯流程）
+//  支援搜尋、地區切換、距離篩選、skeleton loading、預選高亮
+//
+//  DataSource is a generic @ObservedObject conforming to RacePickerDataSource,
+//  removing the hard coupling to OnboardingFeatureViewModel.
 //
 
 import SwiftUI
@@ -56,10 +59,10 @@ private enum DistanceFilter: String, CaseIterable {
 
 // MARK: - RaceEventListView
 
-struct RaceEventListView: View {
+struct RaceEventListView<DataSource: RacePickerDataSource>: View {
 
-    @EnvironmentObject private var viewModel: OnboardingFeatureViewModel
-    @ObservedObject private var coordinator = OnboardingCoordinator.shared
+    @ObservedObject var dataSource: DataSource
+    @Environment(\.dismiss) private var dismiss
 
     @State private var searchText: String = ""
     @State private var debouncedSearchText: String = ""
@@ -70,10 +73,10 @@ struct RaceEventListView: View {
 
     private var filteredRaces: [RaceEvent] {
         let today = Date()
-        let regionFiltered = viewModel.raceEvents.filter { race in
+        let regionFiltered = dataSource.raceEvents.filter { race in
             // 只隱藏過期賽事（eventDate < today），報名截止的仍顯示
             race.eventDate >= Calendar.current.startOfDay(for: today) &&
-            race.region == viewModel.selectedRegion
+            race.region == dataSource.selectedRegion
         }
 
         let distanceFiltered = selectedDistanceFilter == .all
@@ -111,8 +114,10 @@ struct RaceEventListView: View {
             Divider()
 
             // 賽事列表
-            if viewModel.isLoadingRaces {
+            if dataSource.isLoadingRaces {
                 skeletonList
+            } else if !dataSource.isRaceAPIAvailable {
+                apiFailureView
             } else if filteredRaces.isEmpty {
                 emptyStateView
             } else {
@@ -127,20 +132,19 @@ struct RaceEventListView: View {
         )
         .sheet(item: $raceForDistanceSelection) { race in
             RaceDistanceSelectionSheet(race: race) { distance in
-                viewModel.selectRaceEvent(race, distance: distance)
-                coordinator.goBack()
+                dataSource.selectRaceEvent(race, distance: distance)
+                dismiss()
             }
         }
         .task {
-            // 若切換地區後需要重新載入，由地區 Picker onChange 觸發
-            // 首次進入時，viewModel.raceEvents 可能已由 OnboardingView 載入
-            if viewModel.raceEvents.isEmpty {
-                await viewModel.loadCuratedRaces()
+            // 首次進入時，若賽事清單為空則載入
+            if dataSource.raceEvents.isEmpty {
+                await dataSource.loadCuratedRaces()
             }
         }
-        .onChange(of: viewModel.selectedRegion) { _ in
+        .onChange(of: dataSource.selectedRegion) { _ in
             Task {
-                await viewModel.loadCuratedRaces()
+                await dataSource.loadCuratedRaces()
             }
         }
         .onChange(of: searchText) { newValue in
@@ -156,7 +160,7 @@ struct RaceEventListView: View {
     // MARK: - Subviews
 
     private var regionPicker: some View {
-        Picker(NSLocalizedString("onboarding.select_region", comment: "地區"), selection: $viewModel.selectedRegion) {
+        Picker(NSLocalizedString("onboarding.select_region", comment: "地區"), selection: $dataSource.selectedRegion) {
             Text(NSLocalizedString("region.taiwan", comment: "台灣")).tag("tw")
             Text(NSLocalizedString("region.japan", comment: "日本")).tag("jp")
         }
@@ -186,7 +190,13 @@ struct RaceEventListView: View {
         ScrollView {
             LazyVStack(spacing: 0) {
                 ForEach(Array(filteredRaces.enumerated()), id: \.element.id) { index, race in
-                    RaceEventCard(race: race, accessibilityId: "RaceEventCard_\(index)") {
+                    let isSelected = dataSource.preselectedRaceId != nil &&
+                                     dataSource.preselectedRaceId == race.raceId
+                    RaceEventCard(
+                        race: race,
+                        isSelected: isSelected,
+                        accessibilityId: "RaceEventCard_\(index)"
+                    ) {
                         handleRaceSelection(race)
                     }
 
@@ -230,13 +240,44 @@ struct RaceEventListView: View {
         .frame(maxWidth: .infinity)
     }
 
+    private var apiFailureView: some View {
+        VStack(spacing: 16) {
+            Spacer()
+
+            Image(systemName: "wifi.slash")
+                .font(AppFont.systemScaled(size: 48))
+                .foregroundColor(.secondary.opacity(0.4))
+
+            Text(NSLocalizedString("race_picker.api_failure_title", comment: "無法載入賽事資料庫"))
+                .font(AppFont.headline())
+                .foregroundColor(.secondary)
+
+            Text(NSLocalizedString("race_picker.api_failure_hint", comment: "請使用手動輸入，或稍後再試"))
+                .font(AppFont.bodySmall())
+                .foregroundColor(.secondary.opacity(0.7))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
+
+            Button(NSLocalizedString("race_picker.retry", comment: "重試")) {
+                Task {
+                    await dataSource.loadCuratedRaces()
+                }
+            }
+            .buttonStyle(.bordered)
+            .accessibilityIdentifier("RaceEventList_RetryButton")
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+    }
+
     // MARK: - Actions
 
     private func handleRaceSelection(_ race: RaceEvent) {
         if race.distances.count == 1, let onlyDistance = race.distances.first {
-            // 單一距離：直接選中，返回 RaceSetup 頁面
-            viewModel.selectRaceEvent(race, distance: onlyDistance)
-            coordinator.goBack()
+            // 單一距離：直接選中，dismiss 返回上層
+            dataSource.selectRaceEvent(race, distance: onlyDistance)
+            dismiss()
         } else {
             // 多距離：彈出距離選擇 Sheet
             raceForDistanceSelection = race
@@ -274,6 +315,7 @@ private struct DistanceFilterChip: View {
 
 private struct RaceEventCard: View {
     let race: RaceEvent
+    let isSelected: Bool
     let accessibilityId: String
     let onTap: () -> Void
 
@@ -300,13 +342,19 @@ private struct RaceEventCard: View {
         Button(action: onTap) {
             HStack(alignment: .top, spacing: 16) {
                 VStack(alignment: .leading, spacing: 6) {
-                    // 賽事名稱
+                    // 賽事名稱 + 預選標記
                     HStack(spacing: 6) {
                         Text(race.name)
                             .font(AppFont.headline())
                             .foregroundColor(.primary)
                             .lineLimit(2)
                             .multilineTextAlignment(.leading)
+
+                        if isSelected {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundColor(.accentColor)
+                                .accessibilityIdentifier("RaceEventCard_Selected_\(race.raceId)")
+                        }
 
                         if race.entryStatus == "closed" {
                             Text(NSLocalizedString("race_card.entry_closed", comment: "報名截止"))
@@ -371,6 +419,17 @@ private struct RaceEventCard: View {
             .padding(.vertical, 14)
         }
         .buttonStyle(.plain)
+        .background(
+            isSelected
+                ? Color.accentColor.opacity(0.06)
+                : Color.clear
+        )
+        .overlay(
+            isSelected
+                ? RoundedRectangle(cornerRadius: 0)
+                    .stroke(Color.accentColor.opacity(0.3), lineWidth: 1)
+                : nil
+        )
         .accessibilityIdentifier(accessibilityId)
     }
 }
@@ -420,7 +479,6 @@ private struct RaceEventCardSkeleton: View {
 #Preview {
     let viewModel = OnboardingFeatureViewModel()
     NavigationStack {
-        RaceEventListView()
-            .environmentObject(viewModel)
+        RaceEventListView(dataSource: viewModel)
     }
 }

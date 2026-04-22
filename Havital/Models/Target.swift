@@ -11,6 +11,7 @@ struct Target: Codable, Identifiable {
     let isMainRace: Bool
     let trainingWeeks: Int
     let timezone: String  // 新增：賽事時區
+    let raceId: String?   // 賽事資料庫 ID（選填，手動輸入則為 nil）
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -23,12 +24,14 @@ struct Target: Codable, Identifiable {
         case isMainRace = "is_main_race"
         case trainingWeeks = "training_weeks"
         case timezone
+        case raceId = "race_id"
     }
 
-    // 初始化器，預設時區為台北
+    // 初始化器，預設時區為台北，raceId 選填
     init(id: String = "", type: String, name: String, distanceKm: Int,
          targetTime: Int, targetPace: String, raceDate: Int,
-         isMainRace: Bool, trainingWeeks: Int, timezone: String = "Asia/Taipei") {
+         isMainRace: Bool, trainingWeeks: Int, timezone: String = "Asia/Taipei",
+         raceId: String? = nil) {
         self.id = id
         self.type = type
         self.name = name
@@ -39,6 +42,7 @@ struct Target: Codable, Identifiable {
         self.isMainRace = isMainRace
         self.trainingWeeks = trainingWeeks
         self.timezone = timezone
+        self.raceId = raceId
     }
 
     // 從 Decoder 解碼時的處理
@@ -57,6 +61,9 @@ struct Target: Codable, Identifiable {
 
         // 時區欄位是選填的，預設為台北時區
         timezone = try container.decodeIfPresent(String.self, forKey: .timezone) ?? "Asia/Taipei"
+
+        // raceId 選填：後端暫未回傳時容錯
+        raceId = try container.decodeIfPresent(String.self, forKey: .raceId)
     }
 }
 

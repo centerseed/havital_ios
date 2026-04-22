@@ -1,0 +1,92 @@
+appId: com.havital.Havital.dev
+tags:
+  - spec-compliance
+  - target-race-edit
+  - AC-TREDIT-06
+---
+# AC-TREDIT-06: Given race API 回傳錯誤，When 用戶嘗試從資料庫選擇，
+# Then 系統必須顯示錯誤提示並保留「手動輸入」入口，不得讓編輯畫面卡死。
+#
+# ⚠️ Maestro cannot mock network. This AC is fully covered by XCTest:
+#   TargetRaceEditAPIFailureACTests.test_ac_tredit_06_api_failure_sets_unavailable_flag
+#   (verifies isRaceAPIAvailable=false, raceEvents empty, isLoadingRaces=false after throw)
+#
+# This Maestro flow verifies the structural safety: after opening race picker,
+# the user can always go back to manual input form regardless of API state.
+# The actual error UI (apiFailureView) only appears when API truly fails.
+#
+# Preconditions: logged in, has race_run target
+
+# Ensure clean login state with UI test shortcut enabled
+- launchApp:
+    stopApp: true
+    clearState: false
+    arguments:
+      "-ui_testing_reviewer_demo": true
+      "-reviewerAccessPressDuration": "1.0"
+- runFlow: ../../../subflows/reviewer-demo-login.yaml
+- tapOn:
+    text: "明天再提醒我|不再提醒|稍後|Later|關閉|Close|完成|Done|Skip"
+    optional: true
+- tapOn:
+    text: "明天再提醒我|不再提醒|稍後|Later|關閉|Close|完成|Done|Skip"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "ellipsis.circle"
+    timeout: 30000
+
+# Navigate to edit target
+- tapOn:
+    id: "ellipsis.circle"
+    optional: true
+- tapOn:
+    text: "訓練計畫概覽|訓練總覽|Training Plan Overview|トレーニング計画概要"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: "目標資訊|訓練目標|總週數|Target Info|Training Goal|Weeks"
+    timeout: 12000
+
+- tapOn:
+    text: "訓練計畫|Training Plan|トレーニング計画"
+    optional: true
+
+- scrollUntilVisible:
+    element: "目標賽事|Target Race|目標レース|訓練目標|Training Target"
+    direction: DOWN
+    timeout: 10000
+
+- tapOn:
+    text: "pencil"
+    optional: true
+- tapOn:
+    id: "v2.overview.target_name"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: "編輯目標|Edit Race Goal|目標を編集"
+    timeout: 8000
+
+# Open race picker
+- tapOn:
+    id: "EditTarget_BrowseDatabaseButton"
+
+- extendedWaitUntil:
+    visible:
+      text: "選擇賽事|Select Race"
+    timeout: 15000
+
+# Structural safety: user can always go back (dismisses the race picker navigation)
+- back
+
+- extendedWaitUntil:
+    visible:
+      text: "編輯目標|Edit Race Goal|目標を編集"
+    timeout: 5000
+
+# AC-TREDIT-06 core assertion: manual input form is still accessible, not blocked
+- assertVisible:
+    text: "賽事名稱|Race Name|レース名"

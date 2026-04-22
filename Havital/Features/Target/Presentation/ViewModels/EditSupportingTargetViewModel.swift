@@ -17,9 +17,11 @@ class EditSupportingTargetViewModel: BaseSupportingTargetViewModel {
         self.targetRepository = targetRepository
         super.init()
 
-        // 從現有目標中加載數據
+        // 從現有目標中加載數據（使用 isApplyingRaceSelection 避免 didSet 清除 raceId）
+        isApplyingRaceSelection = true
         self.raceName = target.name
         self.raceDate = Date(timeIntervalSince1970: TimeInterval(target.raceDate))
+        self.raceId = target.raceId
 
         // 設置距離
         if let distanceStr = availableDistances.keys.first(where: { Int(Double($0) ?? 0) == target.distanceKm }) {
@@ -29,6 +31,7 @@ class EditSupportingTargetViewModel: BaseSupportingTargetViewModel {
         // 設置目標時間
         self.targetHours = target.targetTime / 3600
         self.targetMinutes = (target.targetTime % 3600) / 60
+        isApplyingRaceSelection = false
     }
 
     func updateTarget() async -> Bool {

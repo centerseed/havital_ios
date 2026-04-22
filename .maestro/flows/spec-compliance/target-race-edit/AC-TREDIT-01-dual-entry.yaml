@@ -1,0 +1,107 @@
+appId: com.havital.Havital.dev
+tags:
+  - spec-compliance
+  - target-race-edit
+  - AC-TREDIT-01
+---
+# AC-TREDIT-01: Given 用戶開啟目標賽事編輯畫面（主目標或支援賽事），
+# When 畫面載入，Then 系統必須同時呈現「從賽事資料庫選擇」和「手動輸入」兩個可操作入口。
+#
+# Preconditions: user logged in, has an active race_run target
+# Navigation path: Main screen → 訓練計畫概覽 → 目標賽事 edit pencil → EditTargetView
+
+# === Ensure clean login state with UI test shortcut enabled ===
+- launchApp:
+    stopApp: true
+    clearState: false
+    arguments:
+      "-ui_testing_reviewer_demo": true
+      "-reviewerAccessPressDuration": "1.0"
+- runFlow: ../../../subflows/reviewer-demo-login.yaml
+- tapOn:
+    text: "明天再提醒我|不再提醒|稍後|Later|關閉|Close|完成|Done|Skip"
+    optional: true
+- tapOn:
+    text: "明天再提醒我|不再提醒|稍後|Later|關閉|Close|完成|Done|Skip"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "ellipsis.circle"
+    timeout: 30000
+
+- tapOn:
+    id: "ellipsis.circle"
+    optional: true
+- tapOn:
+    text: "訓練計畫概覽|訓練總覽|Training Plan Overview|トレーニング計画概要"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: "目標資訊|訓練目標|總週數|Target Info|Training Goal|Weeks"
+    timeout: 12000
+
+# Switch to Training Plan tab in new overview if present
+- tapOn:
+    text: "訓練計畫|Training Plan|トレーニング計画"
+    optional: true
+
+# Scroll to target area — works for both race_run ("目標賽事") and other targets ("訓練目標")
+- scrollUntilVisible:
+    element: "目標賽事|Target Race|目標レース|訓練目標|Training Target"
+    direction: DOWN
+    timeout: 10000
+
+# Tap pencil or target name card to open EditTargetView
+- tapOn:
+    text: "pencil"
+    optional: true
+- tapOn:
+    id: "v2.overview.target_name"
+    optional: true
+
+# Wait for EditTargetView to appear
+- extendedWaitUntil:
+    visible:
+      text: "編輯目標|Edit Race Goal|目標を編集"
+    timeout: 8000
+
+# === AC-TREDIT-01: Assert both entry points visible ===
+
+# 1. "從資料庫選擇" button must be present
+- assertVisible:
+    id: "EditTarget_BrowseDatabaseButton"
+
+# 2. Manual input form fields must still be present
+- assertVisible:
+    text: "賽事名稱|Race Name|レース名"
+
+# === Also verify AddSupportingTargetView has both entry points ===
+- tapOn:
+    text: "取消|Cancel|キャンセル"
+    optional: true
+- tapOn:
+    id: "dismiss"
+    optional: true
+
+# Navigate to AddSupportingTargetView (only visible for race_run targets)
+- scrollUntilVisible:
+    element: "支援賽事|Supporting Races|サポートレース"
+    direction: DOWN
+    timeout: 8000
+    optional: true
+
+- tapOn:
+    id: "add_supporting_race"
+    optional: true
+
+# If we successfully opened AddSupportingTargetView, assert its dual entry points
+- runFlow:
+    when:
+      visible:
+        text: "添加支援賽事|Add Supporting Race|サポートレースを追加"
+    commands:
+      - assertVisible:
+          id: "AddSupportingTarget_BrowseDatabaseButton"
+      - assertVisible:
+          text: "賽事名稱|Race Name|レース名"

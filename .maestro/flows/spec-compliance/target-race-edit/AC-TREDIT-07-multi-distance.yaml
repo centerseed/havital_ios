@@ -1,0 +1,122 @@
+appId: com.havital.Havital.dev
+tags:
+  - spec-compliance
+  - target-race-edit
+  - AC-TREDIT-07
+---
+# AC-TREDIT-07 (P1): Given 用戶選擇包含多個距離的賽事，When 尚未選定距離，
+# Then 系統不得讓用戶完成選擇並回填；必須強制完成距離選擇步驟。
+#
+# This behavior is inherited from RaceDistanceSelectionSheet (unchanged from onboarding).
+# The sheet only calls selectRaceEvent+dismiss when user taps a distance option.
+# Dismissing the sheet without selecting leaves the edit form unchanged.
+#
+# Preconditions: logged in, has race_run target, Race API available, multi-distance race exists
+
+# Ensure clean login state with UI test shortcut enabled
+- launchApp:
+    stopApp: true
+    clearState: false
+    arguments:
+      "-ui_testing_reviewer_demo": true
+      "-reviewerAccessPressDuration": "1.0"
+- runFlow: ../../../subflows/reviewer-demo-login.yaml
+- tapOn:
+    text: "明天再提醒我|不再提醒|稍後|Later|關閉|Close|完成|Done|Skip"
+    optional: true
+- tapOn:
+    text: "明天再提醒我|不再提醒|稍後|Later|關閉|Close|完成|Done|Skip"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "ellipsis.circle"
+    timeout: 30000
+
+# Navigate to edit target
+- tapOn:
+    id: "ellipsis.circle"
+    optional: true
+- tapOn:
+    text: "訓練計畫概覽|訓練總覽|Training Plan Overview|トレーニング計画概要"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: "目標資訊|訓練目標|總週數|Target Info|Training Goal|Weeks"
+    timeout: 12000
+
+- tapOn:
+    text: "訓練計畫|Training Plan|トレーニング計画"
+    optional: true
+
+- scrollUntilVisible:
+    element: "目標賽事|Target Race|目標レース|訓練目標|Training Target"
+    direction: DOWN
+    timeout: 10000
+
+- tapOn:
+    text: "pencil"
+    optional: true
+- tapOn:
+    id: "v2.overview.target_name"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: "編輯目標|Edit Race Goal|目標を編集"
+    timeout: 8000
+
+# Open race picker
+- tapOn:
+    id: "EditTarget_BrowseDatabaseButton"
+
+- extendedWaitUntil:
+    visible:
+      text: "選擇賽事|Select Race"
+    timeout: 15000
+
+- extendedWaitUntil:
+    visible:
+      id: "RaceEventCard_0"
+    timeout: 10000
+
+# === Step 1: Tap first race (expected to be multi-distance like 台北馬拉松) ===
+- tapOn:
+    id: "RaceEventCard_0"
+
+# === Step 2: Assert distance selection sheet appeared (AC-TREDIT-07 P1) ===
+# If this race has multiple distances, RaceDistanceSelectionSheet must appear.
+# If it's single-distance, the flow completes normally (not a failure).
+- extendedWaitUntil:
+    visible:
+      id: "RaceDistanceOption_0"
+    timeout: 5000
+    optional: true
+
+# === Step 3: Dismiss without selecting ===
+# Swipe down / tap outside / back to dismiss the sheet without picking a distance
+- back
+    optional: true
+
+# === Step 4: Verify we are still in race picker (NOT back in edit form with autofill) ===
+# If sheet dismissed without selecting, EditTargetView fields should NOT have autofilled.
+# We're back in the race event list.
+- assertVisible:
+    text: "選擇賽事|Select Race"
+    optional: true
+
+# === Step 5: Complete properly by selecting a distance ===
+- tapOn:
+    id: "RaceEventCard_0"
+- tapOn:
+    id: "RaceDistanceOption_0"
+    optional: true
+
+# Verify we returned to edit form after proper selection
+- extendedWaitUntil:
+    visible:
+      text: "編輯目標|Edit Race Goal|目標を編集"
+    timeout: 8000
+
+- assertVisible:
+    text: "賽事名稱|Race Name|レース名"

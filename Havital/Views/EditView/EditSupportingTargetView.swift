@@ -3,18 +3,39 @@ import SwiftUI
 struct EditSupportingTargetView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: EditSupportingTargetViewModel
-    
+
     init(target: Target) {
         _viewModel = StateObject(wrappedValue: EditSupportingTargetViewModel(target: target))
     }
-    
+
     var body: some View {
         NavigationView {
             Form {
+                // 從資料庫選擇入口 (AC-TREDIT-01)
+                Section {
+                    NavigationLink {
+                        RaceEventListView(
+                            dataSource: TargetEditRacePickerViewModel(
+                                initialRaceId: viewModel.raceId,
+                                onRaceSelected: { [weak viewModel] race, distance in
+                                    viewModel?.applyRaceSelection(race, distance: distance)
+                                }
+                            )
+                        )
+                    } label: {
+                        HStack {
+                            Image(systemName: "list.bullet.rectangle.portrait")
+                                .foregroundColor(.accentColor)
+                            Text(NSLocalizedString("edit_target.browse_database", comment: "從賽事資料庫選擇"))
+                        }
+                    }
+                    .accessibilityIdentifier("EditSupportingTarget_BrowseDatabaseButton")
+                }
+
                 Section(header: Text(L10n.EditTarget.raceInfo.localized)) {
                     TextField(L10n.EditTarget.raceName.localized, text: $viewModel.raceName)
                         .textContentType(.name)
-                    
+
                     DatePicker(L10n.EditTarget.raceDate.localized,
                               selection: $viewModel.raceDate,
                               in: Date()...,

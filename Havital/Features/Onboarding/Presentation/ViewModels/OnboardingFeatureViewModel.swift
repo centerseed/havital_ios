@@ -1199,6 +1199,14 @@ final class OnboardingFeatureViewModel: ObservableObject {
     }
 }
 
+// MARK: - RacePickerDataSource Conformance
+
+/// Pure declaration — all required members already exist on OnboardingFeatureViewModel.
+/// preselectedRaceId returns nil because onboarding has no pre-existing race_id to highlight.
+extension OnboardingFeatureViewModel: RacePickerDataSource {
+    var preselectedRaceId: String? { nil }
+}
+
 // MARK: - DependencyContainer Extension
 extension DependencyContainer {
 
