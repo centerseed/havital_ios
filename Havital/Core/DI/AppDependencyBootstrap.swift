@@ -59,6 +59,9 @@ struct AppDependencyBootstrap {
 
         // 9. Announcement 模組 (獨立模組)
         registerAnnouncementModule()
+
+        // 10. Race 模組 (獨立模組，目標編輯與 onboarding 共用)
+        registerRaceModule()
     }
 
     // MARK: - Individual Module Registration
@@ -194,6 +197,19 @@ struct AppDependencyBootstrap {
 
         DependencyContainer.shared.registerAnnouncementModule()
         Logger.debug("[Bootstrap] ✅ Announcement module registered")
+    }
+
+    /// 註冊 Race 模組
+    /// 包含: RaceRepository, RaceRemoteDataSource
+    /// 目標編輯 (EditTarget/AddSupportingTarget) 與 Onboarding race picker 共用
+    private static func registerRaceModule() {
+        guard !DependencyContainer.shared.isRegistered(RaceRepository.self) else {
+            Logger.debug("[Bootstrap] Race module already registered, skipping")
+            return
+        }
+
+        DependencyContainer.shared.registerRaceModule()
+        Logger.debug("[Bootstrap] ✅ Race module registered")
     }
 
     // MARK: - Testing Support

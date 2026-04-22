@@ -22,7 +22,7 @@ struct AddSupportingTargetView: View {
                         HStack {
                             Image(systemName: "list.bullet.rectangle.portrait")
                                 .foregroundColor(.accentColor)
-                            Text(NSLocalizedString("edit_target.browse_database", comment: "從賽事資料庫選擇"))
+                            Text(L10n.EditTarget.browseDatabase.localized)
                         }
                     }
                     .accessibilityIdentifier("AddSupportingTarget_BrowseDatabaseButton")

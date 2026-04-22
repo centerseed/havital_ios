@@ -110,6 +110,7 @@ enum L10n {
         static let deleteRace = "edit_target.delete_race" // "刪除賽事"
         static let deleteConfirmTitle = "edit_target.delete_confirm_title" // "確認刪除"
         static let deleteConfirmMessage = "edit_target.delete_confirm_message" // "確定要刪除這個支援賽事嗎？此操作無法復原。"
+        static let browseDatabase = "edit_target.browse_database" // "從賽事資料庫選擇"
     }
     
     // MARK: - Weekly Distance Editor View

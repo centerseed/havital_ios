@@ -100,6 +100,7 @@
 "edit_target.delete_race" = "Delete Race";
 "edit_target.delete_confirm_title" = "Confirm Delete";
 "edit_target.delete_confirm_message" = "Are you sure you want to delete this supporting race? This action cannot be undone.";
+"edit_target.browse_database" = "Browse Race Database";
 
 // MARK: - Weekly Distance Editor View
 "weekly_distance_editor.title" = "Edit Weekly Distance";
