@@ -4,35 +4,37 @@ id: TD-ios-analytics-p0
 spec: SPEC-ios-analytics-p0
 status: Draft
 created: 2026-04-15
-updated: 2026-04-15
+updated: 2026-04-22
 ---
 
 # 技術設計：iOS P0 埋點實作
+
+> 這份 TD 現在是 current-state reconciliation 記錄，不是新設計提案。目標是把現有 repo 的 analytics 行為、文件、測試證據對齊。
 
 ## 調查報告
 
 ### 已讀文件（附具體發現）
 
 - `SPEC-analytics-event-tracking.md` — iOS P0 共 10 個事件：onboarding 5 + subscription 3 + retention 2。Backend P0 已完成（GA4AnalyticsService + 6 events on prod）。
-- `SPEC-ios-analytics-p0.md` — 12 條 AC，定義了 AnalyticsService protocol、10 個事件、3 個 user properties。
-- `Havital/Services/Core/FirebaseLoggingService.swift` — 混合 Cloud Logging + Analytics 職責。已有 `Analytics.logEvent()` 呼叫，但用於 error tracking，不是結構化事件追蹤。不應重用——職責不同。
-- `Havital/Core/DI/DependencyContainer.swift` — Service Locator pattern。`register<P, T>(_ instance: T, forProtocol protocolType: P.Type)` + `resolve<T>() -> T`。ViewModel 透過 factory method 建立。
-- `Havital/Features/Onboarding/Presentation/Coordinators/OnboardingCoordinator.swift` — **Shared Singleton**（`static let shared`），不走 DI。16 個步驟。有 `completeOnboarding()` 方法，已 publish `.onboardingCompleted` event。
-- `Havital/Features/Onboarding/Presentation/ViewModels/OnboardingFeatureViewModel.swift` — 透過 `DependencyContainer.shared.makeOnboardingFeatureViewModel()` 建立。持有 5 個 repository protocol。目標選擇在 `loadTargetTypes()` / `selectTarget(_:)` 等方法。
-- `Havital/Features/Subscription/Presentation/ViewModels/PaywallViewModel.swift` — Optional DI：`init(trigger:, subscriptionRepository: nil)` fallback 到 DI resolve。有 `PurchaseState` enum（idle/purchasing/success/failed）。`trigger` 是 `PaywallTrigger` enum。
-- `Havital/Core/Infrastructure/GarminManager.swift` — Shared Singleton。`startConnection()` 開始 OAuth PKCE。`handleCallback(url:)` 處理回調。`isConnected` 狀態。
-- `Havital/Core/Infrastructure/AppStateManager.swift` — Shared Singleton。4 phase init → `.ready`。`subscriptionStatus` published property。
-- `Havital/HavitalApp.swift` — Scene lifecycle：`onChange(of: UIApplication.shared.applicationState)` 偵測前景回歸。`hasLaunched` flag 區分冷啟動 vs 熱啟動。Garmin OAuth callback 透過 `onOpenURL` 路由。
+- `SPEC-ios-analytics-p0.md` — 現在已改成 current-state 驗收文件；重點差異是 `onboarding_start` 只有 `source + campaign_id`，沒有 `ad_group_id`。
+- `Core/Analytics/AnalyticsEvent.swift` / `AnalyticsService.swift` / `FirebaseAnalyticsServiceImpl.swift` — 現有型別安全 analytics pipeline，支援 `offer_type`。
+- `Core/Analytics/AttributionManager.swift` — Apple Search Ads attribution 現況只穩定提供 `source` 與 `campaignId`。
+- `Core/Infrastructure/AppStateManager.swift` — `app_open` 發送點；同時寫入 `subscription_status` / `data_source` user properties。
+- `HavitalApp.swift` — `session_start` 發送點，發生在 app 從背景回到前景後的 `.active` 事件。
+- `Features/Onboarding/Presentation/Coordinators/OnboardingCoordinator.swift` — `onboarding_start` / `onboarding_complete` 發送點。
+- `Features/Onboarding/Presentation/ViewModels/OnboardingFeatureViewModel.swift` — `onboarding_target_set` 發送點。
+- `Features/Subscription/Presentation/ViewModels/PaywallViewModel.swift` — `paywall_view` / `paywall_tap_subscribe` / `purchase_fail` 發送點，後兩者都帶 `offer_type`。
+- `Core/DI/DependencyContainer.swift` + `Core/DI/AppDependencyBootstrap.swift` — analytics 服務已在 app bootstrap 中註冊。
 
 ### 搜尋但未找到
-- `docs/designs/TD-*analytics*` → 無（首次 iOS analytics 設計）
-- `AnalyticsService` protocol → iOS codebase 中不存在
+- `ad_group_id` 的穩定傳遞路徑 → 現有 iOS code 沒有發送這個欄位
+- `selectedTargetTypeId` 的持久化 writer → 本 repo slice 沒看到穩定寫入點，`target_type` 目前屬 best-effort
 
 ### 我不確定的事
-- Garmin 歷史資料同步完成的確切 callback 位置 → 需要 Developer 在實作時確認 `GarminManager` 內部 flow [未確認]
+- 無新的技術不確定點；剩下的是文件對齊與測試證據補強
 
 ### 結論
-可以開始設計。
+可以拿來驗收 current implementation；不需要再開新的 `ad_group_id` 實作路徑。
 
 ---
 
@@ -40,18 +42,18 @@ updated: 2026-04-15
 
 | AC ID | AC 描述 | 實作位置 | 狀態 |
 |-------|--------|---------|------|
-| AC-IOS-ANALYTICS-01 | AnalyticsService 封裝層 | `Core/Analytics/AnalyticsService.swift` + `Core/Analytics/FirebaseAnalyticsServiceImpl.swift` + `Core/Analytics/AnalyticsEvent.swift` | STUB |
-| AC-IOS-ANALYTICS-02 | onboarding_start | `OnboardingCoordinator.swift` init/navigate(to: .intro) | STUB |
-| AC-IOS-ANALYTICS-03 | onboarding_garmin_connect | `GarminManager.handleCallback()` | STUB |
-| AC-IOS-ANALYTICS-04 | onboarding_garmin_complete | `GarminManager` sync completion path | STUB |
-| AC-IOS-ANALYTICS-05 | onboarding_target_set | `OnboardingFeatureViewModel` goal completion | STUB |
-| AC-IOS-ANALYTICS-06 | onboarding_complete | `OnboardingCoordinator.completeOnboarding()` | STUB |
-| AC-IOS-ANALYTICS-07 | paywall_view | `PaywallView.onAppear` 或 `PaywallViewModel.loadOfferings()` | STUB |
-| AC-IOS-ANALYTICS-08 | paywall_tap_subscribe | `PaywallViewModel.purchase()` | STUB |
-| AC-IOS-ANALYTICS-09 | purchase_fail | `PaywallViewModel.purchase()` failure path | STUB |
-| AC-IOS-ANALYTICS-10 | app_open | `AppStateManager` → `.ready` transition | STUB |
-| AC-IOS-ANALYTICS-11 | session_start | `HavitalApp.swift` applicationState `.active` | STUB |
-| AC-IOS-ANALYTICS-12 | GA4 User Properties | `FirebaseAnalyticsServiceImpl` + 各觸發點 | STUB |
+| AC-IOS-ANALYTICS-01 | AnalyticsService 封裝層 | `Core/Analytics/AnalyticsService.swift` + `Core/Analytics/FirebaseAnalyticsServiceImpl.swift` + `Core/Analytics/AnalyticsEvent.swift` | Code-reviewed |
+| AC-IOS-ANALYTICS-02 | onboarding_start | `OnboardingCoordinator.swift` `trackOnboardingStart()` | Verified by test, with limitation |
+| AC-IOS-ANALYTICS-03 | onboarding_garmin_connect | `GarminManager.handleCallback()` | Code-reviewed |
+| AC-IOS-ANALYTICS-04 | onboarding_garmin_complete | `GarminManager` sync completion path | Code-reviewed |
+| AC-IOS-ANALYTICS-05 | onboarding_target_set | `OnboardingFeatureViewModel` goal completion | Verified by test (beginner + race_run path) |
+| AC-IOS-ANALYTICS-06 | onboarding_complete | `OnboardingCoordinator.completeOnboarding()` | Verified by test |
+| AC-IOS-ANALYTICS-07 | paywall_view | `PaywallViewModel.trackPaywallView()` / `PaywallView.onAppear` | Verified by test |
+| AC-IOS-ANALYTICS-08 | paywall_tap_subscribe | `PaywallViewModel.purchase()` | Verified by test (`offer_type` included) |
+| AC-IOS-ANALYTICS-09 | purchase_fail | `PaywallViewModel.purchase()` failure path | Verified by existing tests (`offer_type` included) |
+| AC-IOS-ANALYTICS-10 | app_open | `AppStateManager` → `.ready` transition | Verified by test |
+| AC-IOS-ANALYTICS-11 | session_start | `HavitalApp.swift` applicationState `.active` | Code-reviewed |
+| AC-IOS-ANALYTICS-12 | GA4 User Properties | `AppStateManager` + `FirebaseAnalyticsServiceImpl` + live state sinks | Partially verified (`subscription_status` / `data_source` / `target_type` verified; Garmin-related live updates remain code-reviewed) |
 
 ---
 
@@ -78,7 +80,7 @@ Core/Analytics/                          ← 新建目錄
 ```swift
 enum AnalyticsEvent {
     // Onboarding
-    case onboardingStart(source: String)
+    case onboardingStart(source: String, campaignId: String?)
     case onboardingGarminConnect(success: Bool)
     case onboardingGarminComplete(hasHistory: Bool)
     case onboardingTargetSet(targetType: String, raceId: String?, distanceKm: Double?)
@@ -86,8 +88,8 @@ enum AnalyticsEvent {
 
     // Subscription
     case paywallView(trigger: String, trialRemainingDays: Int?)
-    case paywallTapSubscribe(planType: String)
-    case purchaseFail(errorType: String)
+    case paywallTapSubscribe(planType: String, offerType: String)
+    case purchaseFail(errorType: String, offerType: String)
 
     // Retention
     case appOpen(daysSinceInstall: Int, subscriptionStatus: String)
@@ -158,32 +160,42 @@ init(trigger: PaywallTrigger,
 
 ---
 
-## 任務拆分
+## Current-State Checklist
 
-| # | 任務 | 角色 | Done Criteria |
-|---|------|------|--------------|
-| S01 | AnalyticsService 基礎設施 + 全部 10 事件 + User Properties | Developer | 見下方 |
+| # | 項目 | 狀態 | 說明 |
+|---|------|------|------|
+| C01 | AnalyticsService 基礎設施 | 已落地 | `AnalyticsEvent` / `AnalyticsService` / `FirebaseAnalyticsServiceImpl` 都在 repo |
+| C02 | 10 個事件 | 已落地 | onboarding / subscription / retention 都有對應觸發點 |
+| C03 | User Properties | 部分落地 | `subscription_status`、`data_source` 已在 app open 路徑寫入；`target_type` 為 best-effort |
+| C04 | `ad_group_id` | 未落地 | current code 只發 `source + campaign_id` |
 
-### S01 Done Criteria
+### 驗收重點
 
-1. **新建 3 個檔案**：`AnalyticsEvent.swift`、`AnalyticsService.swift`、`FirebaseAnalyticsServiceImpl.swift`，放在 `Havital/Core/Analytics/`
-2. **DI 註冊**：`DependencyContainer` extension `registerAnalyticsModule()`，在 app init 時呼叫
-3. **10 個事件全部埋入正確位置**（見 Spec Compliance Matrix 的實作位置欄）
-4. **3 個 User Properties** 在 `app_open` 和狀態變更時設定
-5. **4 個 UserDefaults key** 正確初始化和使用
-6. **不阻塞主流程**：所有 `track()` 呼叫都是 fire-and-forget
-7. **不在 Repository 層**發送任何事件
-8. **Clean build 通過**：`xcodebuild clean build -project Havital.xcodeproj -scheme Havital -destination 'platform=iOS Simulator,name=iPhone 17 Pro'`
-9. **用戶主動取消購買（`.cancelled`）不發送 `purchase_fail`**
-10. **AC-IOS-ANALYTICS-01 到 AC-IOS-ANALYTICS-12 全部滿足**
+1. `onboarding_start` 的 current payload 是 `source + campaign_id`，不是 `ad_group_id`
+2. `paywall_tap_subscribe` / `purchase_fail` 都帶 `offer_type`
+3. `app_open` 與 `session_start` 都有清楚的 app-level trigger
+4. 測試要能直接證明 onboarding / paywall / retention 的核心觸發
+
+## Evidence Summary
+
+- Explicit test evidence:
+  - `OnboardingCoordinatorAnalyticsTests` 驗證 `onboarding_start`
+  - `OnboardingCoordinatorAnalyticsTests` 驗證 `onboarding_complete`
+  - `OnboardingFeatureViewModelTests` 驗證 `onboarding_target_set` 的 beginner + race_run path
+  - `PaywallViewModelTests` 驗證 `paywall_view`、`paywall_tap_subscribe`、`purchase_fail`
+  - `AppStateManagerAnalyticsTests` 驗證 `app_open` 與 `subscription_status` / `data_source` / `target_type` user properties
+- Code-review only:
+  - `onboarding_garmin_connect`
+  - `onboarding_garmin_complete`
+  - `session_start`
 
 ---
 
 ## Risk Assessment
 
 ### 1. 不確定的技術點
-- Garmin 歷史資料同步完成的確切 callback 路徑需在實作時確認
-- `onboarding_start` 的 `source` parameter MVP 固定為 `"organic"`，後續需接 Apple Search Ads attribution
+- `target_type` 目前屬 best-effort user property，因為本 repo slice 沒看到穩定寫入點
+- `ad_group_id` 不在 current code path，且本次不再開新實作路徑
 
 ### 2. 替代方案與選擇理由
 - **重用 FirebaseLoggingService** vs **新建 AnalyticsService** → 選新建。理由：FirebaseLoggingService 混合 Cloud Logging + Analytics 職責，且是 actor（async 呼叫）。Analytics 事件應是同步 fire-and-forget，不需要 actor isolation。

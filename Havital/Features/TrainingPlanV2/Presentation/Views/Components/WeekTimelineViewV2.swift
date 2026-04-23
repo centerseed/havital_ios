@@ -174,6 +174,11 @@ struct TimelineItemViewV2: View {
                                     .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).run_type")
                             }
 
+                            if let climateMeta = day.effectiveClimateMeta {
+                                ClimateBadgeView(meta: climateMeta)
+                                    .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_badge")
+                            }
+
                             // 展開/收起圖示
                             if !isToday {
                                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
@@ -205,6 +210,11 @@ struct TimelineItemViewV2: View {
                                 .foregroundColor(.secondary)
                                 .lineLimit(nil)
                                 .fixedSize(horizontal: false, vertical: true)
+                        }
+
+                        if let climateMeta = day.effectiveClimateMeta {
+                            ClimateAdjustmentDetailView(day: day, meta: climateMeta)
+                                .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_detail")
                         }
 
                         // 訓練詳情
@@ -492,7 +502,7 @@ private struct PhaseRow: View {
         } else if let m = segment.distanceM {
             items.append("\(m)m")
         }
-        if let pace = segment.pace {
+        if let pace = segment.effectivePace {
             items.append(pace)
         }
         return items
@@ -510,7 +520,7 @@ private struct SimpleRunBadgesView: View {
 
     private var displayPace: String? {
         guard !shouldHidePace else { return nil }
-        if let pace = activity.pace { return pace }
+        if let pace = activity.effectivePace { return pace }
         let vdot = effectiveVDOT()
         return PaceCalculator.getSuggestedPace(for: activity.runType, vdot: vdot)
     }
@@ -805,7 +815,7 @@ private struct SegmentsView: View {
                                 .foregroundColor(.secondary)
                         }
 
-                        if let pace = seg.pace {
+                        if let pace = seg.effectivePace {
                             Text("·").font(AppFont.caption()).foregroundColor(.secondary)
                             Text(pace)
                                 .font(AppFont.caption())
@@ -846,6 +856,308 @@ private struct SegmentsView: View {
         let fraction = Double(index) / Double(total - 1)
         // 從橘色漸進到紅色
         return fraction < 0.5 ? .orange : .red
+    }
+}
+
+private struct ClimateBadgeView: View {
+    let meta: ClimateMeta
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "thermometer.medium")
+                .font(AppFont.captionSmall())
+            Text(meta.badgeLabel)
+                .font(AppFont.caption())
+                .fontWeight(.semibold)
+                .lineLimit(1)
+        }
+        .foregroundColor(meta.badgeForegroundColor)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .background(meta.badgeBackgroundColor)
+        .clipShape(Capsule())
+    }
+}
+
+private struct ClimateAdjustmentDetailView: View {
+    let day: DayDetail
+    let meta: ClimateMeta
+
+    private var runActivity: RunActivity? {
+        day.primaryRunActivity
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "thermometer.sun.fill")
+                    .font(AppFont.caption())
+                    .foregroundColor(meta.badgeAccentColor)
+                Text(meta.sectionTitle)
+                    .font(AppFont.bodySmall())
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                Spacer()
+            }
+
+            HStack(spacing: 8) {
+                ClimateValueChip(title: meta.levelTitle, value: meta.levelDisplayText)
+                if let temp = meta.feelsLikeTempText {
+                    ClimateValueChip(title: meta.temperatureTitle, value: temp)
+                }
+                if let adjustment = meta.adjustmentText {
+                    ClimateValueChip(title: meta.adjustmentTitle, value: adjustment)
+                }
+            }
+
+            if let basePace = runActivity?.basePace,
+               let adjustedPace = runActivity?.climateAdjustedPace {
+                HStack(spacing: 8) {
+                    ClimateValueChip(title: meta.originalPaceTitle, value: basePace)
+                    ClimateValueChip(title: meta.adjustedPaceTitle, value: adjustedPace)
+                }
+            } else if runActivity?.segments?.contains(where: { $0.climateAdjustedPace != nil }) == true {
+                Text(meta.segmentAdjustmentSummary)
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+            }
+
+            if let reduction = meta.longRunReductionText {
+                Text(reduction)
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+            }
+
+            Text(meta.reasonText)
+                .font(AppFont.caption())
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(10)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(meta.badgeBackgroundColor.opacity(0.22))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(meta.badgeAccentColor.opacity(0.25), lineWidth: 1)
+        )
+    }
+}
+
+private struct ClimateValueChip: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(AppFont.captionSmall())
+                .foregroundColor(.secondary)
+            Text(value)
+                .font(AppFont.caption())
+                .fontWeight(.medium)
+                .foregroundColor(.primary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(Color(.tertiarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+}
+
+@MainActor
+private extension ClimateMeta {
+    var currentLanguage: SupportedLanguage {
+        LanguageManager.shared.currentLanguage
+    }
+
+    var badgeLabel: String {
+        if let adjustmentText {
+            return "\(shortLevelDisplayText) \(adjustmentText)"
+        }
+        return shortLevelDisplayText
+    }
+
+    var badgeAccentColor: Color {
+        switch normalizedHeatPressureLevel {
+        case "mild":
+            return .yellow
+        case "moderate":
+            return .orange
+        case "high":
+            return .red
+        case "danger":
+            return Color(red: 0.55, green: 0.10, blue: 0.12)
+        default:
+            return .gray
+        }
+    }
+
+    var badgeBackgroundColor: Color {
+        badgeAccentColor.opacity(normalizedHeatPressureLevel == "danger" ? 0.18 : 0.15)
+    }
+
+    var badgeForegroundColor: Color {
+        normalizedHeatPressureLevel == "mild" ? .orange : badgeAccentColor
+    }
+
+    var shortLevelDisplayText: String {
+        switch currentLanguage {
+        case .traditionalChinese:
+            switch normalizedHeatPressureLevel {
+            case "mild": return "輕熱"
+            case "moderate": return "中熱"
+            case "high": return "高熱"
+            case "danger": return "危險"
+            default: return "熱調整"
+            }
+        case .english:
+            switch normalizedHeatPressureLevel {
+            case "mild": return "Mild Heat"
+            case "moderate": return "Heat"
+            case "high": return "High Heat"
+            case "danger": return "Danger"
+            default: return "Heat"
+            }
+        case .japanese:
+            switch normalizedHeatPressureLevel {
+            case "mild": return "軽い暑熱"
+            case "moderate": return "暑熱"
+            case "high": return "高暑熱"
+            case "danger": return "危険"
+            default: return "暑熱調整"
+            }
+        }
+    }
+
+    var levelDisplayText: String {
+        switch currentLanguage {
+        case .traditionalChinese:
+            switch normalizedHeatPressureLevel {
+            case "mild": return "輕度熱壓力"
+            case "moderate": return "中度熱壓力"
+            case "high": return "高度熱壓力"
+            case "danger": return "危險熱壓力"
+            default: return "舒適"
+            }
+        case .english:
+            switch normalizedHeatPressureLevel {
+            case "mild": return "Mild heat stress"
+            case "moderate": return "Moderate heat stress"
+            case "high": return "High heat stress"
+            case "danger": return "Danger heat stress"
+            default: return "Comfortable"
+            }
+        case .japanese:
+            switch normalizedHeatPressureLevel {
+            case "mild": return "軽度の暑熱ストレス"
+            case "moderate": return "中度の暑熱ストレス"
+            case "high": return "高度の暑熱ストレス"
+            case "danger": return "危険な暑熱ストレス"
+            default: return "快適"
+            }
+        }
+    }
+
+    var sectionTitle: String {
+        switch currentLanguage {
+        case .traditionalChinese: return "熱適應"
+        case .english: return "Heat Adaptation"
+        case .japanese: return "暑熱順化"
+        }
+    }
+
+    var levelTitle: String {
+        switch currentLanguage {
+        case .traditionalChinese: return "等級"
+        case .english: return "Level"
+        case .japanese: return "レベル"
+        }
+    }
+
+    var temperatureTitle: String {
+        switch currentLanguage {
+        case .traditionalChinese: return "體感"
+        case .english: return "Feels like"
+        case .japanese: return "体感"
+        }
+    }
+
+    var adjustmentTitle: String {
+        switch currentLanguage {
+        case .traditionalChinese: return "調整"
+        case .english: return "Adjustment"
+        case .japanese: return "調整"
+        }
+    }
+
+    var originalPaceTitle: String {
+        switch currentLanguage {
+        case .traditionalChinese: return "原配速"
+        case .english: return "Base Pace"
+        case .japanese: return "元のペース"
+        }
+    }
+
+    var adjustedPaceTitle: String {
+        switch currentLanguage {
+        case .traditionalChinese: return "調整後"
+        case .english: return "Adjusted"
+        case .japanese: return "調整後"
+        }
+    }
+
+    var feelsLikeTempText: String? {
+        guard let feelsLikeTempC else { return nil }
+        return String(format: "%.1f°C", feelsLikeTempC)
+    }
+
+    var adjustmentText: String? {
+        if let paceAdjustmentPct {
+            switch currentLanguage {
+            case .traditionalChinese:
+                return String(format: "配速 +%.0f%%", paceAdjustmentPct)
+            case .english:
+                return String(format: "Pace +%.0f%%", paceAdjustmentPct)
+            case .japanese:
+                return String(format: "ペース +%.0f%%", paceAdjustmentPct)
+            }
+        }
+        if let longRunReductionPct {
+            switch currentLanguage {
+            case .traditionalChinese:
+                return String(format: "縮量 %.0f%%", longRunReductionPct)
+            case .english:
+                return String(format: "Reduce %.0f%%", longRunReductionPct)
+            case .japanese:
+                return String(format: "%.0f%%短縮", longRunReductionPct)
+            }
+        }
+        return nil
+    }
+
+    var longRunReductionText: String? {
+        guard let longRunReductionPct else { return nil }
+        switch currentLanguage {
+        case .traditionalChinese:
+            return String(format: "長跑建議縮減 %.0f%%，優先改期或改室內。", longRunReductionPct)
+        case .english:
+            return String(format: "Long run recommended reduction: %.0f%%. Prefer rescheduling or moving indoors.", longRunReductionPct)
+        case .japanese:
+            return String(format: "ロング走は%.0f%%短縮推奨。日程変更または屋内代替を優先してください。", longRunReductionPct)
+        }
+    }
+
+    var segmentAdjustmentSummary: String {
+        switch currentLanguage {
+        case .traditionalChinese:
+            return "分段配速已依當日熱壓力調整。"
+        case .english:
+            return "Segment paces were adjusted for the day's heat stress."
+        case .japanese:
+            return "各セグメントのペースは当日の暑熱ストレスに合わせて調整済みです。"
+        }
     }
 }
 

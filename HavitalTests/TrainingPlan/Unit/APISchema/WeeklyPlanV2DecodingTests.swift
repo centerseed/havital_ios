@@ -154,6 +154,28 @@ final class WeeklyPlanV2DecodingTests: XCTestCase {
         }
     }
 
+    func test_decode_climateAdjustedWeek_climateFieldsDecodeCorrectly() throws {
+        let dto = try decodeWeeklyPlan(from: "climate_adjusted_week")
+
+        let day1 = dto.days[0]
+        XCTAssertEqual(day1.climateMeta?.heatPressureLevel, "high")
+        XCTAssertEqual(day1.climateMeta?.feelsLikeTempC ?? 0, 33.5, accuracy: 0.01)
+        XCTAssertEqual(day1.climateMeta?.paceAdjustmentPct ?? 0, 6.0, accuracy: 0.01)
+        XCTAssertEqual(day1.climateMeta?.longRunReductionPct ?? 0, 25.0, accuracy: 0.01)
+
+        if case .run(let runActivity) = day1.primary {
+            XCTAssertEqual(runActivity.basePace, "5:00")
+            XCTAssertEqual(runActivity.climateAdjustedPace, "5:18")
+            XCTAssertEqual(runActivity.climateMeta?.reasonText, "High heat stress, slow the pace and shorten recovery.")
+            XCTAssertEqual(runActivity.segments?.count, 2)
+            XCTAssertEqual(runActivity.segments?.first?.basePace, "4:55")
+            XCTAssertEqual(runActivity.segments?.first?.climateAdjustedPace, "5:13")
+            XCTAssertEqual(runActivity.segments?.first?.climateMeta?.heatPressureLevel, "high")
+        } else {
+            XCTFail("Day 1 primary should be .run")
+        }
+    }
+
     // MARK: - Polarized (Imperial Units)
 
     func test_decode_polarizedBuildWeek_imperialUnits() throws {

@@ -1,0 +1,11 @@
+appId: com.havital.Havital.dev
+tags:
+  - debug
+  - onboarding
+  - generate-first-week
+  - strict
+---
+- runFlow: _debug-onboarding-generate-first-week.yaml
+
+- assertVisible:
+    text: "每日訓練|Daily Training|Training Plan|需要產生週回顧|產生週課表|Generate Weekly Plan"

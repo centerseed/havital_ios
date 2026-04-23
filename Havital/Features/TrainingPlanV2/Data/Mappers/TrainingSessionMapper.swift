@@ -5,6 +5,28 @@ import Foundation
 /// 負責 TrainingSession 相關所有 DTO ↔ Entity 雙向轉換
 enum TrainingSessionMapper {
 
+    // MARK: - ClimateMeta
+
+    static func toEntity(from dto: ClimateMetaDTO) -> ClimateMeta {
+        ClimateMeta(
+            feelsLikeTempC: dto.feelsLikeTempC,
+            heatPressureLevel: dto.heatPressureLevel,
+            paceAdjustmentPct: dto.paceAdjustmentPct,
+            reasonText: dto.reasonText,
+            longRunReductionPct: dto.longRunReductionPct
+        )
+    }
+
+    static func toDTO(from entity: ClimateMeta) -> ClimateMetaDTO {
+        ClimateMetaDTO(
+            feelsLikeTempC: entity.feelsLikeTempC,
+            heatPressureLevel: entity.heatPressureLevel,
+            paceAdjustmentPct: entity.paceAdjustmentPct,
+            reasonText: entity.reasonText,
+            longRunReductionPct: entity.longRunReductionPct
+        )
+    }
+
     // MARK: - HeartRateRange
 
     static func toEntity(from dto: HeartRateRangeDTO) -> HeartRateRangeV2 {
@@ -32,6 +54,9 @@ enum TrainingSessionMapper {
             durationMinutes: dto.durationMinutes,
             durationSeconds: dto.durationSeconds,
             pace: dto.pace,
+            basePace: dto.basePace,
+            climateAdjustedPace: dto.climateAdjustedPace,
+            climateMeta: dto.climateMeta.map { toEntity(from: $0) },
             heartRateRange: dto.heartRateRange.map { toEntity(from: $0) },
             intensity: dto.intensity,
             description: dto.description
@@ -47,6 +72,9 @@ enum TrainingSessionMapper {
             durationMinutes: entity.durationMinutes,
             durationSeconds: entity.durationSeconds,
             pace: entity.pace,
+            basePace: entity.basePace,
+            climateAdjustedPace: entity.climateAdjustedPace,
+            climateMeta: entity.climateMeta.map { toDTO(from: $0) },
             heartRateRange: entity.heartRateRange.map { toDTO(from: $0) },
             intensity: entity.intensity,
             description: entity.description
@@ -109,11 +137,14 @@ enum TrainingSessionMapper {
             durationMinutes: dto.durationMinutes,
             durationSeconds: dto.durationSeconds,
             pace: dto.pace,
+            basePace: dto.basePace,
+            climateAdjustedPace: dto.climateAdjustedPace,
             heartRateRange: dto.heartRateRange.map { toEntity(from: $0) },
             interval: dto.interval.map { toEntity(from: $0) },
             segments: dto.segments?.map { toEntity(from: $0) },
             description: dto.description,
-            targetIntensity: dto.targetIntensity
+            targetIntensity: dto.targetIntensity,
+            climateMeta: dto.climateMeta.map { toEntity(from: $0) }
         )
     }
 
@@ -127,11 +158,14 @@ enum TrainingSessionMapper {
             durationMinutes: entity.durationMinutes,
             durationSeconds: entity.durationSeconds,
             pace: entity.pace,
+            basePace: entity.basePace,
+            climateAdjustedPace: entity.climateAdjustedPace,
             heartRateRange: entity.heartRateRange.map { toDTO(from: $0) },
             interval: entity.interval.map { toDTO(from: $0) },
             segments: entity.segments?.map { toDTO(from: $0) },
             description: entity.description,
-            targetIntensity: entity.targetIntensity
+            targetIntensity: entity.targetIntensity,
+            climateMeta: entity.climateMeta.map { toDTO(from: $0) }
         )
     }
 
@@ -298,6 +332,7 @@ enum TrainingSessionMapper {
             reason: dto.reason,
             tips: dto.tips,
             category: dto.category.flatMap { TrainingCategory(rawValue: $0) },  // ✅ 處理可選值
+            climateMeta: dto.climateMeta.map { toEntity(from: $0) },
             session: session
         )
     }
@@ -309,6 +344,7 @@ enum TrainingSessionMapper {
             reason: entity.reason,
             tips: entity.tips,
             category: entity.category?.rawValue,  // ✅ 處理可選值
+            climateMeta: entity.climateMeta.map { toDTO(from: $0) },
             primary: entity.session.map { toDTO(from: $0.primary) },
             warmup: entity.session?.warmup.map { toDTO(from: $0) },
             cooldown: entity.session?.cooldown.map { toDTO(from: $0) },

@@ -3,6 +3,24 @@ import Foundation
 // MARK: - Training Session DTOs (V2.1+)
 /// Data Layer - 與 API JSON 結構一一對應,使用 snake_case 命名
 
+// MARK: - ClimateMetaDTO
+
+struct ClimateMetaDTO: Codable, Equatable {
+    let feelsLikeTempC: Double?
+    let heatPressureLevel: String
+    let paceAdjustmentPct: Double?
+    let reasonText: String
+    let longRunReductionPct: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case feelsLikeTempC = "feels_like_temp_c"
+        case heatPressureLevel = "heat_pressure_level"
+        case paceAdjustmentPct = "pace_adjustment_pct"
+        case reasonText = "reason_text"
+        case longRunReductionPct = "long_run_reduction_pct"
+    }
+}
+
 // MARK: - HeartRateRangeDTO
 
 struct HeartRateRangeDTO: Codable, Equatable {
@@ -25,6 +43,9 @@ struct RunSegmentDTO: Codable, Equatable {
     let durationMinutes: Int?
     let durationSeconds: Int?
     let pace: String?
+    let basePace: String?
+    let climateAdjustedPace: String?
+    let climateMeta: ClimateMetaDTO?
     let heartRateRange: HeartRateRangeDTO?
     let intensity: String?
     let description: String?
@@ -37,6 +58,9 @@ struct RunSegmentDTO: Codable, Equatable {
         case durationMinutes = "duration_minutes"
         case durationSeconds = "duration_seconds"
         case pace
+        case basePace = "base_pace"
+        case climateAdjustedPace = "climate_adjusted_pace"
+        case climateMeta = "climate_meta"
         case heartRateRange = "heart_rate_range"
         case intensity
         case description
@@ -118,11 +142,14 @@ struct RunActivityDTO: Codable, Equatable {
     let durationMinutes: Int?
     let durationSeconds: Int?
     let pace: String?
+    let basePace: String?
+    let climateAdjustedPace: String?
     let heartRateRange: HeartRateRangeDTO?
     let interval: IntervalBlockDTO?
     let segments: [RunSegmentDTO]?
     let description: String?
     let targetIntensity: String?
+    let climateMeta: ClimateMetaDTO?
 
     enum CodingKeys: String, CodingKey {
         case runType = "run_type"
@@ -133,11 +160,14 @@ struct RunActivityDTO: Codable, Equatable {
         case durationMinutes = "duration_minutes"
         case durationSeconds = "duration_seconds"
         case pace
+        case basePace = "base_pace"
+        case climateAdjustedPace = "climate_adjusted_pace"
         case heartRateRange = "heart_rate_range"
         case interval
         case segments
         case description
         case targetIntensity = "target_intensity"
+        case climateMeta = "climate_meta"
     }
 }
 
@@ -328,6 +358,7 @@ struct DayDetailDTO: Codable, Equatable {
     let reason: String
     let tips: String?
     let category: String?
+    let climateMeta: ClimateMetaDTO?
     let primary: PrimaryActivityDTO?
     let warmup: RunSegmentDTO?
     let cooldown: RunSegmentDTO?
@@ -339,6 +370,7 @@ struct DayDetailDTO: Codable, Equatable {
         case reason
         case tips
         case category
+        case climateMeta = "climate_meta"
         case primary
         case session
         case warmup
@@ -353,6 +385,7 @@ struct DayDetailDTO: Codable, Equatable {
         reason = try container.decode(String.self, forKey: .reason)
         tips = try container.decodeIfPresent(String.self, forKey: .tips)
         category = try container.decodeIfPresent(String.self, forKey: .category)
+        climateMeta = try container.decodeIfPresent(ClimateMetaDTO.self, forKey: .climateMeta)
         warmup = try container.decodeIfPresent(RunSegmentDTO.self, forKey: .warmup)
         cooldown = try container.decodeIfPresent(RunSegmentDTO.self, forKey: .cooldown)
         let flatSupplementary = try container.decodeIfPresent([SupplementaryActivityDTO].self, forKey: .supplementary)
@@ -378,18 +411,20 @@ struct DayDetailDTO: Codable, Equatable {
         try container.encode(reason, forKey: .reason)
         try container.encodeIfPresent(tips, forKey: .tips)
         try container.encodeIfPresent(category, forKey: .category)
+        try container.encodeIfPresent(climateMeta, forKey: .climateMeta)
         try container.encodeIfPresent(primary, forKey: .primary)
         try container.encodeIfPresent(warmup, forKey: .warmup)
         try container.encodeIfPresent(cooldown, forKey: .cooldown)
         try container.encodeIfPresent(supplementary, forKey: .supplementary)
     }
 
-    init(dayIndex: Int, dayTarget: String, reason: String, tips: String?, category: String?, primary: PrimaryActivityDTO?, warmup: RunSegmentDTO?, cooldown: RunSegmentDTO?, supplementary: [SupplementaryActivityDTO]?) {
+    init(dayIndex: Int, dayTarget: String, reason: String, tips: String?, category: String?, climateMeta: ClimateMetaDTO?, primary: PrimaryActivityDTO?, warmup: RunSegmentDTO?, cooldown: RunSegmentDTO?, supplementary: [SupplementaryActivityDTO]?) {
         self.dayIndex = dayIndex
         self.dayTarget = dayTarget
         self.reason = reason
         self.tips = tips
         self.category = category
+        self.climateMeta = climateMeta
         self.primary = primary
         self.warmup = warmup
         self.cooldown = cooldown

@@ -1,0 +1,128 @@
+appId: com.havital.Havital.dev
+tags:
+  - debug
+  - onboarding
+  - generate-first-week
+---
+- launchApp:
+    stopApp: true
+    clearState: true
+    arguments:
+      "-ui_testing_onboarding": true
+      "-ui_testing_reviewer_demo": true
+      "-resetOnboarding": true
+      "-skipHealthKitAuth": true
+      "-reviewerAccessPressDuration": "0.5"
+
+- tapOn:
+    text: "不允許|Don't Allow|Don’t Allow|不允许"
+    optional: true
+- tapOn:
+    text: "稍後|Later|後で"
+    optional: true
+- tapOn:
+    text: "關閉|Close|閉じる|完成|Done|完了"
+    optional: true
+
+- runFlow:
+    file: ../subflows/reviewer-demo-login.yaml
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "OnboardingStartButton"
+    timeout: 30000
+    optional: true
+- tapOn:
+    id: "OnboardingStartButton"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "DataSource_Screen"
+    timeout: 15000
+- tapOn:
+    text: "稍後設定|Set Up Later|後で設定"
+
+- tapOn:
+    id: "HeartRateZone_ContinueButton"
+    optional: true
+- tapOn:
+    text: "下一步|Next Step|次のステップ"
+    optional: true
+- tapOn:
+    text: "略過|Skip|スキップ"
+    optional: true
+
+- runFlow:
+    file: ../subflows/pass-pb-step.yaml
+    when:
+      visible:
+        id: "PersonalBest_ContinueButton"
+
+- runFlow:
+    file: ../subflows/pass-weekly-distance.yaml
+    when:
+      visible:
+        id: "WeeklyDistance_ContinueButton"
+
+- tapOn:
+    id: "GoalType_beginner"
+    optional: true
+- tapOn:
+    text: "Build Habit|養成習慣|習慣づくり"
+    optional: true
+- tapOn:
+    id: "GoalType_NextButton"
+    optional: true
+- tapOn:
+    text: "下一步|Next Step|次のステップ"
+    optional: true
+
+- tapOn:
+    id: "TrainingWeeks_NextButton"
+    optional: true
+- tapOn:
+    id: "StartStage_NextButton"
+    optional: true
+- tapOn:
+    text: "繼續|Continue|続行"
+    optional: true
+- tapOn:
+    id: "Methodology_NextButton"
+    optional: true
+- tapOn:
+    text: "下一步|Next Step|次のステップ"
+    optional: true
+
+- assertVisible:
+    id: "TrainingDays_SaveButton"
+- tapOn:
+    id: "TrainingDay_2"
+- tapOn:
+    id: "TrainingDay_6"
+- tapOn:
+    id: "LongRunDay_6"
+- tapOn:
+    id: "TrainingDays_SaveButton"
+
+- extendedWaitUntil:
+    visible:
+      id: "TrainingOverview_Screen"
+    timeout: 60000
+- assertVisible:
+    id: "TrainingOverview_Screen"
+- tapOn:
+    id: "TrainingOverview_GenerateButton"
+
+- extendedWaitUntil:
+    visible:
+      id: "TrainingOverview_ErrorMessage"
+    timeout: 15000
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: "每日訓練|Daily Training|Training Plan|需要產生週回顧|產生週課表|Generate Weekly Plan"
+    timeout: 60000
+    optional: true

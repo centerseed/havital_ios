@@ -1,0 +1,78 @@
+{
+  "plan_id": "overview_climate_7",
+  "overview_id": "overview_climate",
+  "week_of_training": 7,
+  "purpose": "Heat adjusted week",
+  "total_distance_km": 42.0,
+  "design_reason": [
+    "Climate adjustment active"
+  ],
+  "days": [
+    {
+      "day_index": 1,
+      "day_target": "Heat adjusted tempo",
+      "reason": "Protect quality under summer heat",
+      "tips": "Hydrate before the session",
+      "category": "run",
+      "climate_meta": {
+        "feels_like_temp_c": 33.5,
+        "heat_pressure_level": "high",
+        "pace_adjustment_pct": 6.0,
+        "reason_text": "High heat stress, slow the pace and shorten recovery.",
+        "long_run_reduction_pct": 25.0
+      },
+      "primary": {
+        "run_type": "tempo",
+        "distance_km": 10.0,
+        "duration_minutes": 55,
+        "pace": "5:00",
+        "base_pace": "5:00",
+        "climate_adjusted_pace": "5:18",
+        "description": "Tempo run with climate pacing",
+        "target_intensity": "medium",
+        "climate_meta": {
+          "feels_like_temp_c": 33.5,
+          "heat_pressure_level": "high",
+          "pace_adjustment_pct": 6.0,
+          "reason_text": "High heat stress, slow the pace and shorten recovery.",
+          "long_run_reduction_pct": 25.0
+        },
+        "segments": [
+          {
+            "distance_km": 5.0,
+            "pace": "4:55",
+            "base_pace": "4:55",
+            "climate_adjusted_pace": "5:13",
+            "climate_meta": {
+              "feels_like_temp_c": 33.5,
+              "heat_pressure_level": "high",
+              "pace_adjustment_pct": 6.0,
+              "reason_text": "Segment adjusted for heat."
+            },
+            "description": "First block"
+          },
+          {
+            "distance_km": 5.0,
+            "pace": "4:50",
+            "base_pace": "4:50",
+            "climate_adjusted_pace": "5:08",
+            "climate_meta": {
+              "feels_like_temp_c": 33.5,
+              "heat_pressure_level": "high",
+              "pace_adjustment_pct": 6.0,
+              "reason_text": "Segment adjusted for heat."
+            },
+            "description": "Second block"
+          }
+        ]
+      }
+    },
+    {
+      "day_index": 2,
+      "day_target": "Rest",
+      "reason": "Recovery",
+      "category": "rest"
+    }
+  ],
+  "api_version": "2.0"
+}

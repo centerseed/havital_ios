@@ -488,13 +488,13 @@ struct SimplifiedDailyCardV2: View {
         let warmup = RunSegment(
             distanceKm: 2.0, distanceM: nil, distanceDisplay: nil, distanceUnit: nil,
             durationMinutes: nil, durationSeconds: nil,
-            pace: recoveryPace, heartRateRange: nil,
+            pace: recoveryPace, basePace: nil, climateAdjustedPace: nil, climateMeta: nil, heartRateRange: nil,
             intensity: "easy", description: "暖跑"
         )
         let cooldown = RunSegment(
             distanceKm: 1.0, distanceM: nil, distanceDisplay: nil, distanceUnit: nil,
             durationMinutes: nil, durationSeconds: nil,
-            pace: recoveryPace, heartRateRange: nil,
+            pace: recoveryPace, basePace: nil, climateAdjustedPace: nil, climateMeta: nil, heartRateRange: nil,
             intensity: "easy", description: "緩和跑"
         )
         return (warmup, cooldown)

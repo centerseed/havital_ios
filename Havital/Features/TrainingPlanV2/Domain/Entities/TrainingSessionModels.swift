@@ -4,6 +4,20 @@ import Foundation
 /// 新的訓練課程結構 - Domain Layer 業務實體
 /// 根據 API 文件 TRAINING_V2_API_INTEGRATION_GUIDE.md
 
+// MARK: - ClimateMeta
+
+struct ClimateMeta: Codable, Equatable {
+    let feelsLikeTempC: Double?
+    let heatPressureLevel: String
+    let paceAdjustmentPct: Double?
+    let reasonText: String
+    let longRunReductionPct: Double?
+
+    var normalizedHeatPressureLevel: String {
+        heatPressureLevel.lowercased()
+    }
+}
+
 // MARK: - HeartRateRange
 
 /// 心率區間
@@ -32,9 +46,16 @@ struct RunSegment: Codable, Equatable {
     let durationMinutes: Int?
     let durationSeconds: Int?
     let pace: String?
+    let basePace: String?
+    let climateAdjustedPace: String?
+    let climateMeta: ClimateMeta?
     let heartRateRange: HeartRateRangeV2?
     let intensity: String?
     let description: String?
+
+    var effectivePace: String? {
+        climateAdjustedPace ?? pace
+    }
 }
 
 // MARK: - IntervalBlock (間歇訓練)
@@ -71,11 +92,18 @@ struct RunActivity: Codable, Equatable {
     let durationMinutes: Int?
     let durationSeconds: Int?
     let pace: String?
+    let basePace: String?
+    let climateAdjustedPace: String?
     let heartRateRange: HeartRateRangeV2?
     let interval: IntervalBlock?
     let segments: [RunSegment]?
     let description: String?
     let targetIntensity: String?
+    let climateMeta: ClimateMeta?
+
+    var effectivePace: String? {
+        climateAdjustedPace ?? pace
+    }
 }
 
 // MARK: - Exercise (單個動作)
@@ -241,6 +269,7 @@ struct DayDetail: Codable, Identifiable, Equatable {
     let reason: String
     let tips: String?
     let category: TrainingCategory?  // ✅ 改為可選，API 可能返回 null
+    let climateMeta: ClimateMeta?
     let session: TrainingSession?  // rest 日為 nil
 
     var id: Int { dayIndex }
@@ -260,6 +289,18 @@ enum TrainingCategory: String, Codable {
 
 /// DayDetail 的 V1 兼容層,使其可以在現有的 V1 UI 組件中使用
 extension DayDetail {
+    var primaryRunActivity: RunActivity? {
+        guard let session else { return nil }
+        if case .run(let activity) = session.primary {
+            return activity
+        }
+        return nil
+    }
+
+    var effectiveClimateMeta: ClimateMeta? {
+        climateMeta ?? primaryRunActivity?.climateMeta
+    }
+
     /// V1 兼容: dayIndexInt (V2 已經是 Int 類型,直接返回)
     var dayIndexInt: Int {
         return dayIndex
@@ -468,7 +509,7 @@ extension DayDetail {
                 distanceKm: activity.distanceKm,
                 totalDistanceKm: nil,
                 timeMinutes: activity.durationMinutes.map { Double($0) },
-                pace: activity.pace,
+                pace: activity.effectivePace,
                 work: work,
                 recovery: recovery,
                 repeats: interval.repeats,
@@ -486,7 +527,7 @@ extension DayDetail {
             let progressionSegments = segments.map { segment in
                 ProgressionSegment(
                     distanceKm: segment.distanceKm,
-                    pace: segment.pace,
+                    pace: segment.effectivePace,
                     description: segment.description,
                     heartRateRange: segment.heartRateRange.map {
                         HeartRateRange(min: $0.min, max: $0.max)
@@ -504,7 +545,7 @@ extension DayDetail {
                 distanceKm: nil,
                 totalDistanceKm: totalDistance > 0 ? totalDistance : activity.distanceKm,
                 timeMinutes: activity.durationMinutes.map { Double($0) },
-                pace: activity.pace,
+                pace: activity.effectivePace,
                 work: nil,
                 recovery: nil,
                 repeats: nil,
@@ -523,7 +564,7 @@ extension DayDetail {
             distanceKm: activity.distanceKm,
             totalDistanceKm: nil,
             timeMinutes: activity.durationMinutes.map { Double($0) },
-            pace: activity.pace,
+            pace: activity.effectivePace,
             work: nil,
             recovery: nil,
             repeats: nil,

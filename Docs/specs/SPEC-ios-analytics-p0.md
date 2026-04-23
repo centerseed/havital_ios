@@ -4,32 +4,46 @@ id: SPEC-ios-analytics-p0
 status: Draft
 parent: SPEC-analytics-event-tracking
 created: 2026-04-15
-updated: 2026-04-15
+updated: 2026-04-22
 ---
 
 # Feature Spec: iOS P0 埋點實作
 
 ## 背景與動機
 
-SPEC-analytics-event-tracking 定義了 27 個事件，其中 iOS 端 P0 有 10 個事件需要實作。Backend P0 已完成（GA4AnalyticsService + 6 個事件已上 prod）。iOS 端是當前卡點——沒有 iOS 埋點，onboarding 漏斗、paywall 轉換率、留存曲線全部看不到。
-
-六月開漏斗前必須上線。
+SPEC-analytics-event-tracking 定義了 27 個事件，其中 iOS 端 P0 有 10 個事件。Backend P0 已完成（GA4AnalyticsService + 6 個事件已上 prod）。iOS 端目前也已落地 analytics 主線，本文件改為 current-state 驗收與限制收斂，不再是純實作前規格。
 
 ## 目標
 
-在 iOS 端透過 Firebase Analytics SDK 實作 P0 10 個事件，覆蓋三大追蹤場景：
+把 iOS analytics P0 的 current implementation、事件語義與可驗證證據收斂到同一份文件，覆蓋三大追蹤場景：
 1. **Onboarding 漏斗**（5 事件）— 廣告引流後的轉換率
 2. **訂閱生命週期**（3 事件）— paywall 曝光到付費的轉換率
 3. **留存信號**（2 事件）— D1/D7/D30 留存曲線
 
 ## 現有基礎設施
 
-- `FirebaseLoggingService.swift` — 已有 `logEvent(_:parameters:)` 方法，底層呼叫 `Analytics.logEvent()`
-- `Logger.firebaseEvent(_:parameters:)` — 便利方法，fire-and-forget wrapper
-- Firebase Analytics SDK 已整合（`import FirebaseAnalytics`）
-- Firebase UID 已作為 user_id（透過 `AuthenticationService`）
+- `Core/Analytics/AnalyticsEvent.swift` / `AnalyticsService.swift` / `FirebaseAnalyticsServiceImpl.swift` — 型別安全的 analytics pipeline，事件透過 `track(_:)` 送出。
+- `Core/Analytics/AttributionManager.swift` — 目前解析 Apple Search Ads attribution，實際可穩定取得的是 `source` 與可選 `campaignId`。
+- `Core/Infrastructure/AppStateManager.swift` + `HavitalApp.swift` — 已串好 retention 事件：`app_open` 與 `session_start`。
+- Firebase Analytics SDK 已整合（`import FirebaseAnalytics`），user property 由 `AnalyticsService.setUserProperty(_:forName:)` 設定。
 
-**問題**：現有 `FirebaseLoggingService` 混合了 Cloud Logging（Firestore 上傳）和 Analytics（GA4 事件）兩個職責。P0 埋點只需要 Analytics，不需要 Cloud Logging。
+**現況限制**：`onboarding_start` 目前只輸出 `source` + `campaign_id`，沒有 `ad_group_id`；`offer_type` 已經是 paywall analytics 的現有擴充欄位。
+
+## 驗證邊界
+
+- 這份 spec 說明的是 **repo 內 current implementation**。
+- 目前有明確測試證據的事件：
+  - `onboarding_start`
+  - `onboarding_target_set`（beginner + race_run path）
+  - `onboarding_complete`
+  - `paywall_view`
+  - `paywall_tap_subscribe`
+  - `purchase_fail`
+  - `app_open` + `subscription_status` / `data_source` / `target_type` user properties
+- 目前主要以 code review 對齊、尚未有 dedicated test 的事件：
+  - `onboarding_garmin_connect`
+  - `onboarding_garmin_complete`
+  - `session_start`
 
 ## 需求
 
@@ -54,7 +68,8 @@ Then 發送 `onboarding_start` 事件。
 
 | Parameter | Type | Required | 說明 |
 |-----------|------|----------|------|
-| `source` | String | Yes | `"organic"` (MVP 先固定，後續接 Apple Search Ads attribution) |
+| `source` | String | Yes | 目前由 `AttributionManager.shared.source` 提供，常見值為 `"organic"` 或 `"apple_search_ads"` |
+| `campaign_id` | String | No | 目前由 `AttributionManager.shared.campaignId` 提供；`ad_group_id` 不會發送 |
 
 ### AC-IOS-ANALYTICS-03: onboarding_garmin_connect
 
@@ -114,6 +129,7 @@ Then 發送 `paywall_view` 事件。
 | `trial_remaining_days` | Int | No | 試用期剩餘天數（無試用期則不傳） |
 
 **來源**：`PaywallViewModel.trigger`（已有 `PaywallTrigger` enum）和 `trialDaysRemaining`。
+**現況**：`paywall_view` 不帶 `offer_type`；`offer_type` 只出現在購買相關事件。
 
 ### AC-IOS-ANALYTICS-08: paywall_tap_subscribe
 
@@ -124,6 +140,7 @@ Then 發送 `paywall_tap_subscribe` 事件。
 | Parameter | Type | Required | 說明 |
 |-----------|------|----------|------|
 | `plan_type` | String | Yes | `"yearly"` / `"monthly"` |
+| `offer_type` | String | Yes | 目前已在 code 中發送；值如 `"standard"` / `"promotional"` / `"winBack"` |
 
 **觸發點**：`PaywallViewModel.purchase(offeringId:packageId:)` 被呼叫時，在 `purchaseState = .purchasing` 之前。
 
@@ -136,6 +153,7 @@ Then 發送 `purchase_fail` 事件。
 | Parameter | Type | Required | 說明 |
 |-----------|------|----------|------|
 | `error_type` | String | Yes | 錯誤分類：`"payment_declined"` / `"network_error"` / `"store_error"` / `"unknown"` |
+| `offer_type` | String | Yes | 目前已在 code 中發送；與觸發購買時的 offer 保持一致 |
 
 **注意**：用戶主動取消（`.cancelled`）不發送此事件——取消是正常行為，不是失敗。
 
@@ -153,6 +171,7 @@ Then 發送 `app_open` 事件。
 **計算方式**：
 - `days_since_install`：用 `UserDefaults` 記錄首次啟動日期，每次計算差值
 - `subscription_status`：從 `SubscriptionStateManager.currentStatus` 取得
+**現況**：`AppStateManager.initializeApp()` 在進入 `.ready` 後發送此事件，並同步寫入 GA4 user properties。
 
 ### AC-IOS-ANALYTICS-11: session_start
 
@@ -165,6 +184,7 @@ Then 發送 `session_start` 事件。
 | `session_count_today` | Int | Yes | 今日第幾次 session |
 
 **計算方式**：用 `UserDefaults` 記錄今日 session 計數，跨日重置。
+**現況**：`HavitalApp.swift` 在 application state 由背景回到前景時發送；首次啟動不重複發送。
 
 ### AC-IOS-ANALYTICS-12: GA4 User Properties
 
@@ -175,7 +195,7 @@ Then 設定 GA4 user properties，讓所有事件可按這些維度切分。
 | User Property | 值 | 設定時機 |
 |---------------|---|---------|
 | `subscription_status` | `"trial"` / `"active"` / `"expired"` / `"free"` | 每次 app_open + 訂閱狀態變更時 |
-| `target_type` | `"race_run"` / `"maintenance"` / `"beginner"` | Onboarding 完成 + 更換目標時 |
+| `target_type` | `"race_run"` / `"maintenance"` / `"beginner"` | 目前 code 以 `UserDefaults.selectedTargetTypeId` 做 best-effort 讀取；本 repo slice 沒看到穩定寫入點 |
 | `data_source` | `"apple_health"` / `"garmin"` / `"unbound"` | 資料來源連接/變更時 |
 
 ## 明確不包含
@@ -183,7 +203,7 @@ Then 設定 GA4 user properties，讓所有事件可按這些維度切分。
 - **Cloud Logging 整合** — P0 埋點只用 Firebase Analytics，不走 Firestore Cloud Logging
 - **P1/P2 事件** — 本 spec 只涵蓋 P0 的 10 個事件 + user properties
 - **GA4 看板** — 事件上線後另案設計
-- **Apple Search Ads attribution** — `onboarding_start.source` MVP 先固定 `"organic"`，attribution 接入另案
+- **Apple Search Ads attribution 擴充欄位** — `ad_group_id` 在 current repo state 不發送；只有 `source` + `campaign_id`
 - **A/B testing** — 不在本 spec 範圍
 
 ## 技術約束

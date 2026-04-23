@@ -310,4 +310,63 @@ class WeeklyPlanDecodingTests: XCTestCase {
         XCTAssertEqual(day1.trainingDetails?.distanceKm, 8.0)
         XCTAssertEqual(day1.trainingDetails?.pace, "5:45")
     }
+
+    func testV3ClimateFieldsBackwardCompatibility() throws {
+        let json = """
+        {
+          "id": "v3_climate_compat_1", "purpose": "V3 climate test", "week_of_plan": 1, "total_weeks": 4,
+          "total_distance_km": 30, "total_distance_reason": "test", "design_reason": ["test"],
+          "days": [{
+            "day_index": 1,
+            "category": "run",
+            "day_target": "高溫節奏跑",
+            "reason": "氣候調整",
+            "climate_meta": {
+              "feels_like_temp_c": 33.5,
+              "heat_pressure_level": "high",
+              "pace_adjustment_pct": 6.0,
+              "reason_text": "高熱壓力，請放慢配速",
+              "long_run_reduction_pct": 25.0
+            },
+            "warmup": {
+              "distance_km": 2.0,
+              "pace": "6:30",
+              "description": "暖身"
+            },
+            "primary": {
+              "run_type": "tempo",
+              "distance_km": 8.0,
+              "pace": "5:18",
+              "base_pace": "5:00",
+              "climate_adjusted_pace": "5:18",
+              "climate_meta": {
+                "feels_like_temp_c": 33.5,
+                "heat_pressure_level": "high",
+                "pace_adjustment_pct": 6.0,
+                "reason_text": "高熱壓力，請放慢配速"
+              },
+              "description": "主訓練"
+            }
+          },
+          {"day_index": 2, "category": "rest", "day_target": "休息", "reason": "恢復"},
+          {"day_index": 3, "category": "rest", "day_target": "休息", "reason": "恢復"},
+          {"day_index": 4, "category": "rest", "day_target": "休息", "reason": "恢復"},
+          {"day_index": 5, "category": "rest", "day_target": "休息", "reason": "恢復"},
+          {"day_index": 6, "category": "rest", "day_target": "休息", "reason": "恢復"},
+          {"day_index": 7, "category": "rest", "day_target": "休息", "reason": "恢復"}]
+        }
+        """.data(using: .utf8)!
+
+        let plan = try JSONDecoder().decode(WeeklyPlan.self, from: json)
+        let day1 = plan.days[0]
+
+        XCTAssertEqual(day1.trainingType, "tempo")
+        XCTAssertEqual(day1.type, .tempo)
+        XCTAssertEqual(day1.trainingDetails?.distanceKm, 8.0)
+        XCTAssertEqual(day1.trainingDetails?.pace, "5:18")
+        XCTAssertEqual(day1.reason, "氣候調整")
+        XCTAssertEqual(day1.dayTarget, "高溫節奏跑")
+        XCTAssertNotNil(day1.trainingDetails?.warmup)
+        XCTAssertEqual(day1.trainingDetails?.warmup?.pace, "6:30")
+    }
 }

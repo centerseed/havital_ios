@@ -181,7 +181,21 @@ private struct V3WarmupCooldown: Decodable {
     let description: String?
 
     func toRunSegment() -> RunSegmentV2 {
-        return RunSegmentV2(distanceKm: distance_km, distanceM: distance_m, distanceDisplay: nil, distanceUnit: nil, durationMinutes: duration_minutes, durationSeconds: nil, pace: pace, heartRateRange: nil, intensity: nil, description: description)
+        return RunSegmentV2(
+            distanceKm: distance_km,
+            distanceM: distance_m,
+            distanceDisplay: nil,
+            distanceUnit: nil,
+            durationMinutes: duration_minutes,
+            durationSeconds: nil,
+            pace: pace,
+            basePace: nil,
+            climateAdjustedPace: nil,
+            climateMeta: nil,
+            heartRateRange: nil,
+            intensity: nil,
+            description: description
+        )
     }
 }
 

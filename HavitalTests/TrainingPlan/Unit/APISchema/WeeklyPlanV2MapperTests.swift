@@ -155,6 +155,26 @@ final class WeeklyPlanV2MapperTests: XCTestCase {
         XCTAssertEqual(runActivity.interval?.recoveryDistanceKm, 0.4)
     }
 
+    func test_mapper_climateFieldsPreservedAndEffectivePacePrefersAdjusted() throws {
+        let entity = try decodeAndMap(from: "climate_adjusted_week")
+
+        let day1 = entity.days[0]
+        XCTAssertEqual(day1.climateMeta?.heatPressureLevel, "high")
+        XCTAssertEqual(day1.effectiveClimateMeta?.reasonText, "High heat stress, slow the pace and shorten recovery.")
+
+        guard let session = day1.session,
+              case .run(let runActivity) = session.primary else {
+            XCTFail("Day 1 should have run session")
+            return
+        }
+
+        XCTAssertEqual(runActivity.basePace, "5:00")
+        XCTAssertEqual(runActivity.climateAdjustedPace, "5:18")
+        XCTAssertEqual(runActivity.effectivePace, "5:18")
+        XCTAssertEqual(runActivity.climateMeta?.longRunReductionPct ?? 0, 25.0, accuracy: 0.01)
+        XCTAssertEqual(runActivity.segments?.first?.effectivePace, "5:13")
+    }
+
     // MARK: - Imperial Units Preserved
 
     func test_mapper_imperialUnitsPreserved() throws {

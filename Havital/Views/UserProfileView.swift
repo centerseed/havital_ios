@@ -899,7 +899,7 @@ struct UserProfileView: View {
             }) {
                 HStack {
                     Image(systemName: "thermometer.sun")
-                    Text("氣候調整")
+                    Text("熱適應")
                     Spacer()
                     Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)

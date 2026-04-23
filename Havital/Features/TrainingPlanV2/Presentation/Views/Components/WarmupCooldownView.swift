@@ -119,6 +119,9 @@ struct WarmupCooldownView: View {
             durationMinutes: 15,
             durationSeconds: nil,
             pace: "6:30",
+            basePace: nil,
+            climateAdjustedPace: nil,
+            climateMeta: nil,
             heartRateRange: HeartRateRangeV2(min: 120, max: 140),
             intensity: "easy",
             description: "輕鬆熱身"
@@ -138,6 +141,9 @@ struct WarmupCooldownView: View {
             durationMinutes: 8,
             durationSeconds: nil,
             pace: "6:30",
+            basePace: nil,
+            climateAdjustedPace: nil,
+            climateMeta: nil,
             heartRateRange: nil,
             intensity: nil,
             description: "緩和跑"
@@ -157,6 +163,9 @@ struct WarmupCooldownView: View {
             durationMinutes: 6,
             durationSeconds: nil,
             pace: "6:00",
+            basePace: nil,
+            climateAdjustedPace: nil,
+            climateMeta: nil,
             heartRateRange: nil,
             intensity: "moderate",
             description: nil

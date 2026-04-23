@@ -203,6 +203,9 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
                     durationMinutes: w.durationMinutes,
                     durationSeconds: w.durationSeconds,
                     pace: w.pace,
+                    basePace: nil,
+                    climateAdjustedPace: nil,
+                    climateMeta: nil,
                     heartRateRange: nil,
                     intensity: w.intensity,
                     description: w.description
@@ -217,6 +220,9 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
                     durationMinutes: c.durationMinutes,
                     durationSeconds: c.durationSeconds,
                     pace: c.pace,
+                    basePace: nil,
+                    climateAdjustedPace: nil,
+                    climateMeta: nil,
                     heartRateRange: nil,
                     intensity: c.intensity,
                     description: c.description
@@ -233,6 +239,7 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
             reason: day.reason ?? "",
             tips: day.tips,
             category: category,
+            climateMeta: nil,
             primary: primary,
             warmup: warmupDTO,
             cooldown: cooldownDTO,
@@ -288,11 +295,14 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
                 durationMinutes: nil,
                 durationSeconds: nil,
                 pace: nil,
+                basePace: nil,
+                climateAdjustedPace: nil,
                 heartRateRange: nil,
                 interval: nil,
                 segments: nil,
                 description: day.dayTarget,
-                targetIntensity: nil
+                targetIntensity: nil,
+                climateMeta: nil
             )
         }
 
@@ -325,11 +335,14 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
                 durationMinutes: details.timeMinutes.map { Int($0) },
                 durationSeconds: nil,
                 pace: details.pace,
+                basePace: nil,
+                climateAdjustedPace: nil,
                 heartRateRange: nil,
                 interval: intervalDTO,
                 segments: nil,
                 description: details.description ?? day.dayTarget,
-                targetIntensity: nil
+                targetIntensity: nil,
+                climateMeta: nil
             )
         }
 
@@ -344,6 +357,9 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
                     durationMinutes: nil,
                     durationSeconds: nil,
                     pace: seg.pace,
+                    basePace: nil,
+                    climateAdjustedPace: nil,
+                    climateMeta: nil,
                     heartRateRange: nil,
                     intensity: nil,
                     description: seg.description
@@ -358,11 +374,14 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
                 durationMinutes: details.timeMinutes.map { Int($0) },
                 durationSeconds: nil,
                 pace: details.pace,
+                basePace: nil,
+                climateAdjustedPace: nil,
                 heartRateRange: nil,
                 interval: nil,
                 segments: segDTOs,
                 description: details.description ?? day.dayTarget,
-                targetIntensity: nil
+                targetIntensity: nil,
+                climateMeta: nil
             )
         }
 
@@ -376,11 +395,14 @@ final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
             durationMinutes: details.timeMinutes.map { Int($0) },
             durationSeconds: nil,
             pace: details.pace,
+            basePace: nil,
+            climateAdjustedPace: nil,
             heartRateRange: nil,
             interval: nil,
             segments: nil,
             description: details.description ?? day.dayTarget,
-            targetIntensity: nil
+            targetIntensity: nil,
+            climateMeta: nil
         )
     }
 }

@@ -357,6 +357,9 @@ final class TrainingDayEditState: ObservableObject {
                 durationMinutes: nil,
                 durationSeconds: nil,
                 pace: warmupPace.isEmpty ? nil : warmupPace,
+                basePace: nil,
+                climateAdjustedPace: nil,
+                climateMeta: nil,
                 heartRateRange: nil,
                 intensity: "easy",
                 description: "暖跑"
@@ -369,6 +372,9 @@ final class TrainingDayEditState: ObservableObject {
                 durationMinutes: nil,
                 durationSeconds: nil,
                 pace: cooldownPace.isEmpty ? nil : cooldownPace,
+                basePace: nil,
+                climateAdjustedPace: nil,
+                climateMeta: nil,
                 heartRateRange: nil,
                 intensity: "easy",
                 description: "緩和跑"
