@@ -11,6 +11,18 @@ appId: com.havital.Havital.dev
 
 # Dismiss modal-like pages if they are already open.
 - tapOn:
+    id: "AnnouncementPopup_CloseButton"
+    optional: true
+
+- tapOn:
+    text: "關閉|Close|閉じる|完成|Done"
+    optional: true
+
+- tapOn:
+    id: "AnnouncementPopup_CloseButton"
+    optional: true
+
+- tapOn:
     text: "關閉|Close|閉じる|完成|Done"
     optional: true
 
@@ -21,8 +33,8 @@ appId: com.havital.Havital.dev
 
 - extendedWaitUntil:
     visible:
-      text: "每日訓練|Daily Training|Training Plan|日々のトレーニング|トレーニング計画|需要產生週回顧|需要產生週課表"
+      text: "每日訓練|Daily Training|Training Plan|訓練計畫|日々のトレーニング|トレーニング計画|需要產生週回顧|需要產生週課表"
     timeout: 25000
 
 - assertVisible:
-    text: "每日訓練|Daily Training|Training Plan|日々のトレーニング|トレーニング計画|需要產生週回顧|需要產生週課表"
+    text: "每日訓練|Daily Training|Training Plan|訓練計畫|日々のトレーニング|トレーニング計画|需要產生週回顧|需要產生週課表"

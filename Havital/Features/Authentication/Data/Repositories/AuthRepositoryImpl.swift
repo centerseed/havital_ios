@@ -311,6 +311,9 @@ final class AuthRepositoryImpl: AuthRepository {
             // Sign out from Firebase
             try await firebaseAuth.signOut()
 
+            // Demo reviewer login uses a backend token without Firebase session.
+            authSessionRepository.setDemoToken(nil)
+
             // Clear local cache
             authCache.clearCache()
 

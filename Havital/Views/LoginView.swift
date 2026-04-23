@@ -52,6 +52,24 @@ struct LoginView: View {
 
                 // Login Buttons
                 VStack(spacing: 16) {
+                    if ReviewerAccessConfig.isUITestShortcutEnabled {
+                        Button {
+                            presentReviewerAccessSheet()
+                        } label: {
+                            Text("UI Test Demo Access")
+                                .font(AppFont.body())
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                        .foregroundColor(AppTheme.shared.primaryColor)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(AppTheme.shared.primaryColor, lineWidth: 1.5)
+                        )
+                        .accessibilityIdentifier("Login_UITestReviewerAccessButton")
+                    }
+
                     // Google Sign-In Button
                     Button {
                         Task {
@@ -109,6 +127,7 @@ struct LoginView: View {
                             }
                         }
                     )
+
                 }
                 .padding(.horizontal, 32)
                 .padding(.bottom, 48)
@@ -277,6 +296,10 @@ private enum ReviewerAccessConfig {
         #endif
     }
 
+    static var isUITestShortcutEnabled: Bool {
+        launchArgumentExists("-ui_testing_reviewer_demo")
+    }
+
     private static func launchArgumentValue(for flag: String) -> String? {
         let arguments = CommandLine.arguments
         guard let index = arguments.firstIndex(of: flag),
@@ -284,6 +307,10 @@ private enum ReviewerAccessConfig {
             return nil
         }
         return arguments[index + 1]
+    }
+
+    private static func launchArgumentExists(_ flag: String) -> Bool {
+        CommandLine.arguments.contains(flag)
     }
 }
 

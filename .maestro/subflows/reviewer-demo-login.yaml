@@ -3,6 +3,27 @@ appId: com.havital.Havital.dev
 - runFlow:
     when:
       visible:
+        id: "Login_UITestReviewerAccessButton"
+    commands:
+      - tapOn:
+          id: "Login_UITestReviewerAccessButton"
+      - extendedWaitUntil:
+          visible:
+            id: "Login_ReviewerPasscodeField"
+          timeout: 5000
+
+- tapOn:
+    text: "UI Test Demo Access"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "Login_ReviewerPasscodeField"
+    timeout: 3000
+    optional: true
+
+- runFlow:
+    when:
+      visible:
         id: "Login_ReviewerAccessTrigger"
     commands:
       - longPressOn:
@@ -15,6 +36,27 @@ appId: com.havital.Havital.dev
 - runFlow:
     when:
       visible:
+        id: "Login_ReviewerAccessProgress"
+    commands:
+      - longPressOn:
+          id: "Login_ReviewerAccessProgress"
+      - extendedWaitUntil:
+          visible:
+            id: "Login_ReviewerPasscodeField"
+          timeout: 5000
+
+- longPressOn:
+    point: "50%, 32%"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "Login_ReviewerPasscodeField"
+    timeout: 5000
+    optional: true
+
+- runFlow:
+    when:
+      visible:
         id: "Login_ReviewerPasscodeField"
     commands:
       - tapOn:
@@ -22,7 +64,8 @@ appId: com.havital.Havital.dev
       - inputText: ${DEMO_REVIEWER_PASSCODE}
       - tapOn:
           id: "Login_ReviewerActivateButton"
-
-- tapOn:
-    text: "稍後|Later|後で|不再提醒|Not Now|Skip"
-    optional: true
+      - extendedWaitUntil:
+          notVisible:
+            id: "Login_ReviewerPasscodeField"
+          timeout: 15000
+          optional: true

@@ -15,6 +15,9 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
     /// UserDefaults key to track if legacy migration sync has been done
     private static let legacyMigrationSyncedKey = "hasCompletedOnboarding_migrationSynced"
 
+    /// Persist demo auth across app relaunches during reviewer/UI test flows.
+    private static let demoTokenKey = "auth.demo_id_token"
+
     // MARK: - Dependencies
 
     private let firebaseAuth: FirebaseAuthDataSource
@@ -31,6 +34,7 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
         self.firebaseAuth = firebaseAuth
         self.backendAuth = backendAuth
         self.authCache = authCache
+        self.demoToken = UserDefaults.standard.string(forKey: Self.demoTokenKey)
     }
 
     // MARK: - Session State Operations
@@ -59,15 +63,30 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
             // Step 0: Check if we're in demo mode (has demo token)
             Logger.debug("[AuthSession] 🎯 fetchCurrentUser called. SessionRepo ID: \(ObjectIdentifier(self)). DemoToken: \(demoToken != nil ? "set" : "nil")")
 
-            if demoToken != nil {
-                // In demo mode, return cached user (set by demoLogin)
-                if let cachedUser = authCache.getCurrentUser() {
-                    Logger.debug("[AuthSession] ✅ Demo mode: returning cached user \(cachedUser.uid)")
-                    return cachedUser
-                } else {
+            if let demoToken {
+                guard let cachedUser = authCache.getCurrentUser() else {
                     Logger.error("[AuthSession] ❌ Demo mode: no cached user found. SessionRepo ID: \(ObjectIdentifier(self))")
                     throw AuthenticationError.userNotFound
                 }
+
+                Logger.debug("[AuthSession] 🔄 Demo mode: syncing fresh user state for \(cachedUser.uid)")
+
+                let syncRequest = UserSyncRequest(
+                    firebaseUid: cachedUser.uid,
+                    idToken: demoToken,
+                    fcmToken: nil,
+                    deviceInfo: DeviceInfo(
+                        model: UIDevice.current.model,
+                        osVersion: UIDevice.current.systemVersion,
+                        appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+                        locale: Locale.current.identifier
+                    )
+                )
+                let syncResponse = try await backendAuth.syncUserWithBackend(request: syncRequest)
+                let authUser = FirebaseUserMapper.toDomain(syncResponse: syncResponse)
+                authCache.saveUser(authUser)
+                Logger.debug("[AuthSession] ✅ Demo mode: refreshed user state \(authUser.uid), onboarding=\(authUser.hasCompletedOnboarding)")
+                return authUser
             }
 
             // Step 1: Get current Firebase user
@@ -227,6 +246,7 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
     /// Used during sign-out or when cache becomes invalid
     func clearCache() {
         authCache.clearCache()
+        setDemoToken(nil)
         Logger.debug("[AuthSession] Cache cleared")
     }
 
@@ -236,6 +256,11 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
 
     func setDemoToken(_ token: String?) {
         self.demoToken = token
+        if let token {
+            UserDefaults.standard.set(token, forKey: Self.demoTokenKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: Self.demoTokenKey)
+        }
         Logger.debug("[AuthSession] 🎯 Demo token set in SessionRepo ID: \(ObjectIdentifier(self)). Token: \(token != nil ? "set" : "cleared")")
     }
 }

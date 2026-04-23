@@ -1,6 +1,37 @@
 #if DEBUG
 import Foundation
 
+extension RunSegment {
+    init(
+        distanceKm: Double?,
+        distanceM: Int?,
+        distanceDisplay: Double?,
+        distanceUnit: String?,
+        durationMinutes: Int?,
+        durationSeconds: Int?,
+        pace: String?,
+        heartRateRange: HeartRateRangeV2?,
+        intensity: String?,
+        description: String?
+    ) {
+        self.init(
+            distanceKm: distanceKm,
+            distanceM: distanceM,
+            distanceDisplay: distanceDisplay,
+            distanceUnit: distanceUnit,
+            durationMinutes: durationMinutes,
+            durationSeconds: durationSeconds,
+            pace: pace,
+            basePace: nil,
+            climateAdjustedPace: nil,
+            climateMeta: nil,
+            heartRateRange: heartRateRange,
+            intensity: intensity,
+            description: description
+        )
+    }
+}
+
 enum UITestOnboardingHarness {
     static func registerDependencies() {
         DependencyContainer.shared.replace(
@@ -428,6 +459,7 @@ private final class UITestOnboardingTrainingPlanV2Repository: TrainingPlanV2Repo
             reason: reason,
             tips: "Stay relaxed and keep the effort controlled.",
             category: .run,
+            climateMeta: nil,
             session: TrainingSession(
                 warmup: nil,
                 primary: .run(
@@ -440,11 +472,14 @@ private final class UITestOnboardingTrainingPlanV2Repository: TrainingPlanV2Repo
                         durationMinutes: Int((distanceKm * 60.0) / 6.0),
                         durationSeconds: nil,
                         pace: pace,
+                        basePace: nil,
+                        climateAdjustedPace: nil,
                         heartRateRange: nil,
                         interval: nil,
                         segments: nil,
                         description: target,
-                        targetIntensity: targetIntensity
+                        targetIntensity: targetIntensity,
+                        climateMeta: nil
                     )
                 ),
                 cooldown: nil,
@@ -460,6 +495,7 @@ private final class UITestOnboardingTrainingPlanV2Repository: TrainingPlanV2Repo
             reason: reason,
             tips: nil,
             category: .rest,
+            climateMeta: nil,
             session: nil
         )
     }

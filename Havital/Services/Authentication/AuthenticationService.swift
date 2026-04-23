@@ -927,14 +927,8 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
 
         // 如果後端沒有設定數據源，發送通知提示用戶綁定
         if backendDataSource == nil || backendDataSource == "unbound" {
-            print("⚠️ 檢測到未綁定數據源，發送通知提示用戶")
-
-            await MainActor.run {
-                NotificationCenter.default.post(
-                    name: .dataSourceNotBound,
-                    object: nil
-                )
-            }
+            print("⚠️ 檢測到未綁定數據源")
+            print("⏭️ 跳過 AuthenticationService 早期提醒；由主畫面掛載後的 reminder gate 統一處理")
 
             Logger.firebase("檢測到未綁定數據源", level: .warn, labels: [
                 "module": "AuthenticationService",

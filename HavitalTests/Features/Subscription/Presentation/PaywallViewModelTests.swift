@@ -176,6 +176,20 @@ final class PaywallViewModelTests: XCTestCase {
         XCTAssertNil(sut.trialDaysRemaining)
     }
 
+    func testTrackPaywallView_EmitsTriggerWithoutOfferType() {
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none))
+
+        sut.trackPaywallView()
+
+        XCTAssertEqual(analyticsService.trackedEvents.count, 1)
+        if case .paywallView(let trigger, let trialRemainingDays) = analyticsService.trackedEvents[0] {
+            XCTAssertEqual(trigger, "api_gated")
+            XCTAssertNil(trialRemainingDays)
+        } else {
+            XCTFail("Expected paywallView event")
+        }
+    }
+
     func testPurchase_WhenAlreadyOptimisticallyUnlocked_DoesNotForceBackendRefresh() async {
         repository.purchaseResult = .success
         SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active))

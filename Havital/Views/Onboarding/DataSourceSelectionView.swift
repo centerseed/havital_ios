@@ -21,12 +21,14 @@ struct DataSourceSelectionView: View {
             ctaTitle: isProcessing ? L10n.Onboarding.processing.localized : L10n.Onboarding.continueStep.localized,
             ctaEnabled: selectedDataSource != nil && !isProcessing,
             isLoading: isProcessing,
-            skipTitle: nil,
+            skipTitle: L10n.Onboarding.skipForNow.localized,
             ctaAccessibilityId: "OnboardingContinueButton",
             ctaAction: {
                 handleDataSourceSelection()
             },
-            skipAction: nil
+            skipAction: {
+                handleSkipForNow()
+            }
         ) {
             VStack(spacing: 24) {
                 VStack(spacing: 16) {
@@ -196,6 +198,27 @@ struct DataSourceSelectionView: View {
                     coordinator.navigate(to: .heartRateZone)
                 }
 
+            } catch {
+                await MainActor.run {
+                    isProcessing = false
+                    errorMessage = error.localizedDescription
+                    showError = true
+                }
+            }
+        }
+    }
+
+    private func handleSkipForNow() {
+        isProcessing = true
+
+        Task {
+            do {
+                try await viewModel.updateAndSyncDataSource(.unbound)
+
+                await MainActor.run {
+                    isProcessing = false
+                    coordinator.navigate(to: .heartRateZone)
+                }
             } catch {
                 await MainActor.run {
                     isProcessing = false

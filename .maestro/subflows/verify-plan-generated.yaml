@@ -28,10 +28,18 @@ appId: com.havital.Havital.dev
     text: "產生週課表"
     optional: true
 
+- tapOn:
+    id: "AnnouncementPopup_CloseButton"
+    optional: true
+
+- tapOn:
+    text: "關閉|Close|完成|Done"
+    optional: true
+
 # 最終等待進入每日訓練
 - extendedWaitUntil:
     visible:
-      text: "每日訓練|Daily Training|Training Plan"
+      text: "每日訓練|Daily Training|Training Plan|訓練計畫"
     timeout: 60000
 
 - runFlow: assert-weekly-plan-7days.yaml

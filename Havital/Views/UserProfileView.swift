@@ -31,6 +31,7 @@ struct UserProfileView: View {
     @State private var showStravaAlreadyBoundAlert = false
     @State private var showLanguageSettings = false
     @State private var showTimezoneSettings = false
+    @State private var showClimateSettings = false
     @State private var showDebugFailedWorkouts = false
     @State private var showIAPTestConsole = false
     @State private var showPaceZoneDetail = false
@@ -153,6 +154,9 @@ struct UserProfileView: View {
         .sheet(isPresented: $showTimezoneSettings) {
             TimezoneSettingsView(currentTimezone: viewModel.timezonePreference)
         }
+        .sheet(isPresented: $showClimateSettings) {
+            ClimateSettingsView()
+        }
         .sheet(isPresented: $showPaceZoneDetail) {
             NavigationStack {
                 List {
@@ -172,8 +176,10 @@ struct UserProfileView: View {
         .sheet(isPresented: $showDebugFailedWorkouts) {
             DebugFailedWorkoutsView()
         }
-        .sheet(item: $paywallTrigger) { trigger in
-            PaywallView(trigger: trigger)
+        .onChange(of: paywallTrigger) { _, trigger in
+            guard let trigger else { return }
+            _ = InterruptCoordinator.shared.enqueue(.paywall(trigger))
+            paywallTrigger = nil
         }
         .alert(
             NSLocalizedString("profile.subscription.redeem_alert_title", comment: "Offer Code"),
@@ -882,6 +888,19 @@ struct UserProfileView: View {
                             .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(.secondary)
+                        .font(AppFont.caption())
+                }
+            }
+
+            Button(action: {
+                showClimateSettings = true
+            }) {
+                HStack {
+                    Image(systemName: "thermometer.sun")
+                    Text("氣候調整")
+                    Spacer()
                     Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)
                         .font(AppFont.caption())

@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 
 @MainActor
@@ -14,28 +15,33 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
     // 新增數據源未綁定相關的狀態
     @Published var showDataSourceNotBoundAlert = false
 
+    private let dataSourceBindingReminderManager = DataSourceBindingReminderManager.shared
+    private let interruptCoordinator: InterruptCoordinator
+    private var cancellables = Set<AnyCancellable>()
+
     // 跨週檢測：記錄上次 App 活躍時的日曆週一（用戶本地時區）
     private var lastActiveMonday: Date?
 
     // 使用新的狀態管理中心
     private let appStateManager: any AppStateManagerProtocol
     private let workoutRepository: WorkoutRepository
+    private let userProfileRepository: UserProfileRepository
 
     // MARK: - Clean Architecture Dependencies
-    private var userProfileRepository: UserProfileRepository {
-        DependencyContainer.shared.resolve()
-    }
-
     private var subscriptionRepository: SubscriptionRepository {
         DependencyContainer.shared.resolve()
     }
 
     init(
         appStateManager: any AppStateManagerProtocol = AppStateManager.shared,
-        workoutRepository: WorkoutRepository = DependencyContainer.shared.resolve()
+        workoutRepository: WorkoutRepository = DependencyContainer.shared.resolve(),
+        userProfileRepository: UserProfileRepository = DependencyContainer.shared.resolve(),
+        interruptCoordinator: InterruptCoordinator = .shared
     ) {
         self.appStateManager = appStateManager
         self.workoutRepository = workoutRepository
+        self.userProfileRepository = userProfileRepository
+        self.interruptCoordinator = interruptCoordinator
         // 監聽 HealthKit 權限提示通知
         NotificationCenter.default.addObserver(
             forName: NSNotification.Name("ShowHealthKitPermissionAlert"),
@@ -64,9 +70,15 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            print("收到數據源未綁定通知，顯示綁定提示對話框")
-            self?.showDataSourceNotBoundAlert = true
+            self?.handleDataSourceNotBoundNotification()
         }
+
+        interruptCoordinator.$currentItem
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.syncDataSourceReminderVisibility()
+            }
+            .store(in: &cancellables)
     }
     
     deinit {
@@ -131,6 +143,8 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
 
         _ = try? await refreshWorkoutsTask
         _ = try? await refreshSubscriptionTask
+        dataSourceBindingReminderManager.resetSession()
+        await checkDataSourceBindingReminderIfNeeded()
     }
 
     /// 手動刷新數據（下拉刷新等）
@@ -211,4 +225,82 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
         // 3. 刷新數據（這會觸發使用新數據源的加載）
         _ = try? await workoutRepository.refreshWorkouts()
     }
+
+    func handleDataSourceNotBoundNotification() {
+        presentDataSourceNotBoundAlertIfEligible()
+    }
+
+    func checkDataSourceBindingReminderIfNeeded(forceRefresh: Bool = false) async {
+        let localPreference = UserPreferencesManager.shared.dataSourcePreference
+        if localPreference == .unbound {
+            presentDataSourceNotBoundAlertIfEligible()
+            return
+        }
+
+        do {
+            let user = try await loadUserForDataSourceReminder(forceRefresh: forceRefresh)
+            guard user.dataSource == nil || user.dataSource == DataSourceType.unbound.rawValue else {
+                interruptCoordinator.remove(stableID: InterruptItem.dataSourceBindingReminderStableID)
+                syncDataSourceReminderVisibility()
+                return
+            }
+
+            presentDataSourceNotBoundAlertIfEligible()
+        } catch {
+            print("⚠️ 檢查未綁定數據源提醒失敗: \(error.localizedDescription)")
+        }
+    }
+
+    func resetDataSourceBindingReminderSession() {
+        print("🧭 [DSReminder] reset session")
+        dataSourceBindingReminderManager.resetSession()
+    }
+
+    func resetDataSourceBindingReminderForFreshOnboarding() {
+        dataSourceBindingReminderManager.clearReminderHistory()
+        interruptCoordinator.remove(stableID: InterruptItem.dataSourceBindingReminderStableID)
+        syncDataSourceReminderVisibility()
+    }
+
+    private func presentDataSourceNotBoundAlertIfEligible(now: Date = Date()) {
+        guard !interruptCoordinator.contains(stableID: InterruptItem.dataSourceBindingReminderStableID) else {
+            syncDataSourceReminderVisibility()
+            return
+        }
+
+        let canShow = dataSourceBindingReminderManager.canShowReminder(now: now)
+        guard canShow else { return }
+
+        _ = interruptCoordinator.enqueue(
+            .dataSourceBindingReminder { [weak self] reason in
+                guard let self else { return }
+                if reason != .cancelled {
+                    self.dataSourceBindingReminderManager.dismissReminder()
+                }
+                self.syncDataSourceReminderVisibility()
+            }
+        )
+        syncDataSourceReminderVisibility()
+    }
+
+    private func loadUserForDataSourceReminder(forceRefresh: Bool) async throws -> User {
+        guard forceRefresh else {
+            print("🧭 [DSReminder] load user via getUserProfile")
+            return try await userProfileRepository.getUserProfile()
+        }
+
+        do {
+            print("🧭 [DSReminder] load user via refreshUserProfile")
+            return try await userProfileRepository.refreshUserProfile()
+        } catch {
+            print("⚠️ refreshUserProfile 失敗，退回 cached user profile 檢查 reminder: \(error.localizedDescription)")
+            print("🧭 [DSReminder] fallback to getUserProfile after refresh failure")
+            return try await userProfileRepository.getUserProfile()
+        }
+    }
+
+    private func syncDataSourceReminderVisibility() {
+        showDataSourceNotBoundAlert = interruptCoordinator.currentItem?.stableID == InterruptItem.dataSourceBindingReminderStableID
+    }
+
 }

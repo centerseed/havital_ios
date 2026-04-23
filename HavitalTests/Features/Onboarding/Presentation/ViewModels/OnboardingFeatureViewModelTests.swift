@@ -17,6 +17,7 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
     var mockTrainingPlanV2Repository: MockTrainingPlanV2Repository!
     private var mockRaceRepository: MockRaceRepository!
     var mockVersionRouter: MockTrainingVersionRouter!
+    private var analyticsService: MockAnalyticsService!
 
     override func setUp() async throws {
         try await super.setUp()
@@ -28,6 +29,8 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
         mockTrainingPlanV2Repository = MockTrainingPlanV2Repository()
         mockRaceRepository = MockRaceRepository()
         mockVersionRouter = MockTrainingVersionRouter()
+        analyticsService = MockAnalyticsService()
+        DependencyContainer.shared.replace(analyticsService as AnalyticsService, for: AnalyticsService.self)
 
         // Initialize ViewModel with Mocks
         sut = OnboardingFeatureViewModel(
@@ -51,6 +54,7 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
         mockTrainingPlanV2Repository = nil
         mockRaceRepository = nil
         mockVersionRouter = nil
+        analyticsService = nil
         UserDefaults.standard.removeObject(forKey: "onboarding_hasPersonalBest")
         try await super.tearDown()
     }
@@ -248,6 +252,38 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
         XCTAssertTrue(sut.isBeginner)
         XCTAssertNil(sut.error)
         XCTAssertEqual(mockTargetRepository.createTargetCallCount, 1)
+        XCTAssertEqual(analyticsService.trackedEvents.count, 1)
+        if case .onboardingTargetSet(let targetType, let raceId, let distanceKm) = analyticsService.trackedEvents[0] {
+            XCTAssertEqual(targetType, "beginner")
+            XCTAssertNil(raceId)
+            XCTAssertEqual(distanceKm, 5.0)
+        } else {
+            XCTFail("Expected onboardingTargetSet event")
+        }
+    }
+
+    func testCreateRaceTarget_Success_TracksRaceRunAnalyticsPayload() async {
+        sut.raceName = "大阪馬拉松"
+        sut.raceDate = Date().addingTimeInterval(86400 * 120)
+        sut.selectedDistance = "42.195"
+        sut.targetHours = 3
+        sut.targetMinutes = 30
+
+        let result = await sut.createRaceTarget()
+
+        XCTAssertTrue(result)
+        XCTAssertEqual(mockTargetRepository.createTargetCallCount, 1)
+        XCTAssertEqual(analyticsService.trackedEvents.count, 1)
+        if case .onboardingTargetSet(let targetType, let raceId, let distanceKm) = analyticsService.trackedEvents[0] {
+            XCTAssertEqual(targetType, "race_run")
+            XCTAssertEqual(raceId, sut.selectedTargetKey)
+            guard let distanceKm else {
+                return XCTFail("distanceKm should not be nil")
+            }
+            XCTAssertEqual(distanceKm, 42.195, accuracy: 0.001)
+        } else {
+            XCTFail("Expected onboardingTargetSet event")
+        }
     }
 
     // MARK: - Race Setup Tests
@@ -731,4 +767,14 @@ private final class MockRaceRepository: RaceRepository {
         if let error = errorToThrow { throw error }
         return racesToReturn
     }
+}
+
+private final class MockAnalyticsService: AnalyticsService {
+    private(set) var trackedEvents: [AnalyticsEvent] = []
+
+    func track(_ event: AnalyticsEvent) {
+        trackedEvents.append(event)
+    }
+
+    func setUserProperty(_: String, forName _: String) {}
 }

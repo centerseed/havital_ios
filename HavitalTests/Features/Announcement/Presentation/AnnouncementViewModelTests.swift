@@ -5,16 +5,22 @@ import XCTest
 final class AnnouncementViewModelTests: XCTestCase {
     private var repository: AnnouncementRepositorySpy!
     private var sut: AnnouncementViewModel!
+    private var interruptCoordinator: InterruptCoordinator!
 
     override func setUp() {
         super.setUp()
         repository = AnnouncementRepositorySpy()
-        sut = AnnouncementViewModel(repository: repository)
+        interruptCoordinator = InterruptCoordinator()
+        sut = AnnouncementViewModel(
+            repository: repository,
+            interruptCoordinator: interruptCoordinator
+        )
     }
 
     override func tearDown() {
         sut = nil
         repository = nil
+        interruptCoordinator = nil
         super.tearDown()
     }
 

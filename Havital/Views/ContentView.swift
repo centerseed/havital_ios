@@ -3,11 +3,13 @@ import SwiftUI
 
 struct ContentView: View {
     // Clean Architecture: Use AuthenticationViewModel
+    @Environment(\.scenePhase) private var scenePhase
     @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @EnvironmentObject private var appViewModel: AppViewModel
     @ObservedObject private var appStateManager = AppStateManager.shared
     @ObservedObject private var subscriptionState = SubscriptionStateManager.shared
     @ObservedObject private var reminderManager = SubscriptionReminderManager.shared
+    @ObservedObject private var interruptCoordinator = InterruptCoordinator.shared
 
     // 訓練版本路由狀態
     // A-3b: 初始值改為 nil，避免 cold start race 期間誤 render V1 TrainingPlanView。
@@ -17,7 +19,7 @@ struct ContentView: View {
     // A-3b race guard: 每次 checkTrainingVersion() 遞增此 token。
     // Task 完成時只有 token 仍匹配才寫回 state，避免舊 Task 覆寫新結果（re-onboarding / 快速帳號切換 race）。
     @State private var versionCheckToken: Int = 0
-    @State private var reminderPaywallTrigger: PaywallTrigger?
+    @State private var showUserProfileForDataSourceBinding = false
 
     var body: some View {
         // 移除高頻日誌：body 每次重新評估都會觸發
@@ -110,6 +112,10 @@ struct ContentView: View {
 
                         // 檢查訓練版本
                         checkTrainingVersion()
+                        Task {
+                            try? await Task.sleep(nanoseconds: 800_000_000)
+                            await appViewModel.checkDataSourceBindingReminderIfNeeded(forceRefresh: true)
+                        }
                     }
             }
         }
@@ -129,6 +135,17 @@ struct ContentView: View {
             )
             // 完成或重置 onboarding 時自動關閉 modal
             // 移除 fullScreenCover 相關邏輯
+            if newValue && !authViewModel.isReonboardingMode {
+                checkTrainingVersion()
+                Task {
+                    appViewModel.resetDataSourceBindingReminderForFreshOnboarding()
+                    // First onboarding completion can land on main content before
+                    // later lifecycle hooks re-run; defer slightly so the alert host
+                    // is mounted, then force a fresh reminder check.
+                    try? await Task.sleep(nanoseconds: 800_000_000)
+                    await appViewModel.checkDataSourceBindingReminderIfNeeded(forceRefresh: true)
+                }
+            }
         }
         .onChange(of: authViewModel.isReonboardingMode) { newValue in
             Logger.firebase(
@@ -151,33 +168,52 @@ struct ContentView: View {
                 checkTrainingVersion()
             }
         }
+        .task(id: scenePhase) {
+            guard scenePhase == .active else { return }
+            guard authViewModel.isAuthenticated else { return }
+            guard authViewModel.hasCompletedOnboarding else { return }
+            guard !authViewModel.isReonboardingMode else { return }
+
+            try? await Task.sleep(nanoseconds: 800_000_000)
+            appViewModel.resetDataSourceBindingReminderSession()
+            await appViewModel.checkDataSourceBindingReminderIfNeeded(forceRefresh: true)
+        }
     }
 
     // 抽取主應用內容，方便管理
     @ViewBuilder
     private func mainAppContent() -> some View {
         // 從 HavitalApp.swift 遷移過來的 TabView
-        TabView {
-            // 根據訓練版本顯示對應的訓練計劃視圖
-            trainingPlanTab()
-                .tabItem {
-                    Image(systemName: "figure.run")
-                    Text(L10n.Tab.trainingPlan.localized)
+        ZStack {
+            TabView {
+                // 根據訓練版本顯示對應的訓練計劃視圖
+                trainingPlanTab()
+                    .tabItem {
+                        Image(systemName: "figure.run")
+                        Text(L10n.Tab.trainingPlan.localized)
+                    }
+
+                TrainingRecordView()
+                    // .environmentObject(healthKitManager) // healthKitManager 已在 ContentView 層級注入
+                    .tabItem {
+                        Image(systemName: "chart.line.text.clipboard")
+                        Text(L10n.Tab.trainingRecord.localized)
+                    }
+
+                MyAchievementView()
+                    // .environmentObject(healthKitManager) // healthKitManager 已在 ContentView 層級注入
+                    .tabItem {
+                        Image(systemName: "gauge.with.dots.needle.bottom.50percent")
+                        Text(L10n.Tab.performanceData.localized)
+                    }
+            }
+
+            InterruptHostView(
+                coordinator: interruptCoordinator,
+                onGoToDataSourceSettings: {
+                    showUserProfileForDataSourceBinding = true
                 }
-            
-            TrainingRecordView()
-                // .environmentObject(healthKitManager) // healthKitManager 已在 ContentView 層級注入
-                .tabItem {
-                    Image(systemName: "chart.line.text.clipboard")
-                    Text(L10n.Tab.trainingRecord.localized)
-                }
-            
-            MyAchievementView()
-                // .environmentObject(healthKitManager) // healthKitManager 已在 ContentView 層級注入
-                .tabItem {
-                    Image(systemName: "gauge.with.dots.needle.bottom.50percent")
-                    Text(L10n.Tab.performanceData.localized)
-                }
+            )
         }
         .toolbarBackground(Color(UIColor.systemGroupedBackground), for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
@@ -204,16 +240,12 @@ struct ContentView: View {
         } message: {
             Text(NSLocalizedString("alert.garmin_not_connected_message", comment: "Your account is set to use Garmin data, but is not currently connected to your Garmin account. Please choose to reconnect Garmin or switch back to Apple Health."))
         }
-        .alert(L10n.ContentView.dataSourceRequired.localized, isPresented: $appViewModel.showDataSourceNotBoundAlert) {
-            Button(L10n.ContentView.goToSettings.localized) {
-                // TODO: 導航到設定頁面的數據源選擇
-                appViewModel.showDataSourceNotBoundAlert = false
+        .sheet(isPresented: $showUserProfileForDataSourceBinding) {
+            NavigationStack {
+                UserProfileView(isShowing: $showUserProfileForDataSourceBinding)
+                    .environmentObject(authViewModel)
+                    .environmentObject(FeatureFlagManager.shared)
             }
-            Button(L10n.ContentView.later.localized, role: .cancel) {
-                appViewModel.showDataSourceNotBoundAlert = false
-            }
-        } message: {
-            Text(L10n.ContentView.dataSourceRequiredMessage.localized)
         }
         .garminReconnectionAlert() // 添加 Garmin 重新連接警告
         // P0-4: 狀態降級非阻斷通知
@@ -227,65 +259,42 @@ struct ContentView: View {
         // P1-9/P1-10: 訂閱到期提醒
         .onAppear {
             reminderManager.checkAndShowReminder(status: subscriptionState.currentStatus)
+            syncSubscriptionReminderInterrupt()
         }
         .onChange(of: subscriptionState.currentStatus?.status) { _, _ in
             reminderManager.checkAndShowReminder(status: subscriptionState.currentStatus)
+            syncSubscriptionReminderInterrupt()
         }
-        .alert(
-            subscriptionReminderTitle,
-            isPresented: Binding(
-                get: { reminderManager.pendingReminder != nil },
-                set: { if !$0 { reminderManager.dismissReminder() } }
-            )
-        ) {
-            Button(NSLocalizedString("paywall.title", comment: "Upgrade")) {
-                switch reminderManager.pendingReminder {
+        .onChange(of: reminderManager.pendingReminder?.id) { _, _ in
+            syncSubscriptionReminderInterrupt()
+        }
+    }
+
+    private func syncSubscriptionReminderInterrupt() {
+        guard let reminder = reminderManager.pendingReminder else {
+            interruptCoordinator.removeAll(ofType: .subscriptionReminder)
+            return
+        }
+
+        _ = interruptCoordinator.enqueue(
+            .subscriptionReminder(reminder) { reason in
+                guard reason != .cancelled else { return }
+
+                let paywallTrigger: PaywallTrigger
+                switch reminder {
                 case .expired:
-                    reminderPaywallTrigger = .apiGated
+                    paywallTrigger = .apiGated
                 case .trialExpiring:
-                    reminderPaywallTrigger = .trialExpired
-                case nil:
-                    reminderPaywallTrigger = .featureLocked
+                    paywallTrigger = .trialExpired
                 }
+
                 reminderManager.dismissReminder()
+                if reason == .primaryAction {
+                    _ = interruptCoordinator.enqueue(.paywall(paywallTrigger))
+                }
             }
-            Button(NSLocalizedString("common.later", comment: "Later"), role: .cancel) {
-                reminderManager.dismissReminder()
-            }
-        } message: {
-            Text(subscriptionReminderMessage)
-        }
-        .sheet(item: $reminderPaywallTrigger) { trigger in
-            PaywallView(trigger: trigger)
-        }
+        )
     }
-
-    private var subscriptionReminderTitle: String {
-        switch reminderManager.pendingReminder {
-        case .trialExpiring:
-            return NSLocalizedString("reminder.trial_expiring_title", comment: "Trial Expiring Soon")
-        case .expired:
-            return NSLocalizedString("reminder.expired_title", comment: "Subscription Expired")
-        case nil:
-            return ""
-        }
-    }
-
-    private var subscriptionReminderMessage: String {
-        switch reminderManager.pendingReminder {
-        case .trialExpiring(let days, let endsAt):
-            let dateStr = endsAt.map {
-                DateFormatter.localizedString(from: Date(timeIntervalSince1970: $0), dateStyle: .medium, timeStyle: .none)
-            } ?? ""
-            return String(format: NSLocalizedString("reminder.trial_expiring_message", comment: ""), days, dateStr)
-        case .expired:
-            return NSLocalizedString("reminder.expired_message", comment: "")
-        case nil:
-            return ""
-        }
-    }
-
-
 
     // MARK: - Training Version Routing
 

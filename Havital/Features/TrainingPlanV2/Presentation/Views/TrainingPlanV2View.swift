@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import Observation
 
 /// V2 訓練計畫主頁面
@@ -6,6 +7,7 @@ import Observation
 struct TrainingPlanV2View: View {
     @State private var viewModel: TrainingPlanV2ViewModel
     @EnvironmentObject private var authViewModel: AuthenticationViewModel
+    @EnvironmentObject private var appViewModel: AppViewModel
     @Environment(\.scenePhase) private var scenePhase
     @State private var showPlanOverview = false
     @State private var showUserProfile = false
@@ -420,21 +422,28 @@ struct TrainingPlanV2View: View {
                 FeedbackReportView(userEmail: "")
             }
         }
-        .sheet(item: $bindableViewModel.paywallTrigger) { trigger in
-            PaywallView(trigger: trigger)
-        }
-        .sheet(item: $announcementViewModel.currentPopup) { announcement in
-            AnnouncementPopupView(
-                announcement: announcement,
-                onCTA: { announcementViewModel.handlePopupCTA(announcement) },
-                onDismiss: { announcementViewModel.dismissCurrentPopup() }
-            )
+        .onChange(of: bindableViewModel.paywallTrigger) { _, trigger in
+            guard let trigger else { return }
+            _ = InterruptCoordinator.shared.enqueue(.paywall(trigger))
+            bindableViewModel.paywallTrigger = nil
         }
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
             await viewModel.loader.initialize()
             if authViewModel.hasCompletedOnboarding && !authViewModel.isReonboardingMode {
                 announcementViewModel.loadAnnouncementsIfNeeded()
+                try? await Task.sleep(nanoseconds: 800_000_000)
+                appViewModel.resetDataSourceBindingReminderSession()
+                await appViewModel.checkDataSourceBindingReminderIfNeeded(forceRefresh: true)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            Task { @MainActor in
+                guard authViewModel.hasCompletedOnboarding else { return }
+                guard !authViewModel.isReonboardingMode else { return }
+                try? await Task.sleep(nanoseconds: 800_000_000)
+                appViewModel.resetDataSourceBindingReminderSession()
+                await appViewModel.checkDataSourceBindingReminderIfNeeded(forceRefresh: true)
             }
         }
         // 成功訊息 Toast

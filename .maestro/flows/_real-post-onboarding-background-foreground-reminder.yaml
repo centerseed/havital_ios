@@ -1,0 +1,40 @@
+appId: com.havital.Havital.dev
+tags:
+  - debug
+  - onboarding
+  - real-backend
+  - unbound-reminder
+  - background-foreground
+---
+- runFlow:
+    file: ../subflows/ensure-main-training-screen.yaml
+
+- tapOn:
+    id: "AnnouncementPopup_CloseButton"
+    optional: true
+
+- tapOn:
+    text: "關閉|Close|閉じる|完成|Done|完了"
+    optional: true
+
+- pressKey: Home
+
+- launchApp:
+    stopApp: false
+    clearState: false
+
+- tapOn:
+    id: "AnnouncementPopup_CloseButton"
+    optional: true
+
+- tapOn:
+    text: "關閉|Close|閉じる|完成|Done|完了"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: "需要綁定數據源|Data Source Required|データソースの接続が必要です"
+    timeout: 15000
+
+- assertVisible:
+    text: "需要綁定數據源|Data Source Required|データソースの接続が必要です"

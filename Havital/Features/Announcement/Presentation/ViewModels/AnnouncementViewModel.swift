@@ -18,6 +18,7 @@ final class AnnouncementViewModel: ObservableObject, TaskManageable {
     // MARK: - Dependencies
 
     private let repository: AnnouncementRepository
+    private let interruptCoordinator: InterruptCoordinator
 
     // MARK: - Session State
 
@@ -26,8 +27,12 @@ final class AnnouncementViewModel: ObservableObject, TaskManageable {
 
     // MARK: - Init
 
-    init(repository: AnnouncementRepository) {
+    init(
+        repository: AnnouncementRepository,
+        interruptCoordinator: InterruptCoordinator = .shared
+    ) {
         self.repository = repository
+        self.interruptCoordinator = interruptCoordinator
     }
 
     deinit {
@@ -53,7 +58,7 @@ final class AnnouncementViewModel: ObservableObject, TaskManageable {
                     if !self.hasLoadedPopupThisSession, !unread.isEmpty {
                         self.hasLoadedPopupThisSession = true
                         self.buildPopupQueue(from: unread)
-                        self.presentNextPopup()
+                        self.enqueuePopupQueue()
                     }
                 }
             }
@@ -82,13 +87,19 @@ final class AnnouncementViewModel: ObservableObject, TaskManageable {
             .map { $0 }
     }
 
-    func presentNextPopup() {
-        guard currentPopup == nil, !popupQueue.isEmpty else { return }
-        let next = popupQueue.removeFirst()
-        currentPopup = next
+    private func enqueuePopupQueue() {
+        let announcements = popupQueue
+        popupQueue.removeAll()
+        announcements.forEach { announcement in
+            _ = interruptCoordinator.enqueue(makeInterruptItem(for: announcement))
+        }
+    }
+
+    private func markAnnouncementShown(_ announcement: Announcement) {
+        currentPopup = announcement
         unreadCount = max(0, unreadCount - 1)
 
-        let id = next.id
+        let id = announcement.id
         Task { [weak self] in
             guard let self else { return }
             await self.executeTask(id: TaskID("mark_seen_popup_\(id)")) { [weak self] in
@@ -103,17 +114,23 @@ final class AnnouncementViewModel: ObservableObject, TaskManageable {
     }
 
     func dismissCurrentPopup() {
-        currentPopup = nil
-        if !popupQueue.isEmpty {
-            presentNextPopup()
+        if interruptCoordinator.currentItem?.type == .announcement {
+            interruptCoordinator.dismissCurrent(reason: .secondaryAction)
+            return
         }
+        currentPopup = nil
     }
 
     func handlePopupCTA(_ announcement: Announcement) {
+        if interruptCoordinator.currentItem?.type == .announcement {
+            interruptCoordinator.currentItem?.primaryAction?()
+            interruptCoordinator.dismissCurrent(reason: .primaryAction)
+            return
+        }
+
         if let urlString = announcement.ctaUrl, let url = URL(string: urlString) {
             UIApplication.shared.open(url)
         }
-        dismissCurrentPopup()
     }
 
     // MARK: - Message Center
@@ -163,6 +180,29 @@ final class AnnouncementViewModel: ObservableObject, TaskManageable {
                     }
                 }
             }
+        }
+    }
+
+    private func makeInterruptItem(for announcement: Announcement) -> InterruptItem {
+        .announcement(
+            announcement,
+            onPresented: { [weak self] in
+                self?.markAnnouncementShown(announcement)
+            },
+            onCTA: { [weak self] in
+                self?.openCTA(for: announcement)
+            },
+            onDismiss: { [weak self] _ in
+                if self?.currentPopup?.id == announcement.id {
+                    self?.currentPopup = nil
+                }
+            }
+        )
+    }
+
+    private func openCTA(for announcement: Announcement) {
+        if let urlString = announcement.ctaUrl, let url = URL(string: urlString) {
+            UIApplication.shared.open(url)
         }
     }
 }

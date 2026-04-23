@@ -133,8 +133,23 @@ final class AuthenticationViewModel: ObservableObject {
 
         // Load cached user if available
         currentUser = authSessionRepository.getCurrentUser()
+        hasCompletedOnboarding = currentUser?.hasCompletedOnboarding
+            ?? UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
 
-        Logger.debug("[AuthViewModel] Initial auth state: isAuthenticated=\(isAuthenticated), user=\(currentUser?.uid ?? "nil")")
+        Logger.debug("[AuthViewModel] Initial auth state: isAuthenticated=\(isAuthenticated), user=\(currentUser?.uid ?? "nil"), onboarding=\(hasCompletedOnboarding)")
+
+        guard isAuthenticated else { return }
+
+        // Cold start should reconcile cached/demo session state with backend as early as possible.
+        Task { @MainActor [weak self] in
+            guard let self = self else { return }
+            await self.fetchCurrentUserData()
+            if let user = self.currentUser {
+                self.hasCompletedOnboarding = user.hasCompletedOnboarding
+                UserDefaults.standard.set(user.hasCompletedOnboarding, forKey: "hasCompletedOnboarding")
+                Logger.debug("[AuthViewModel] Refreshed initial onboarding status: \(user.hasCompletedOnboarding)")
+            }
+        }
     }
 
     /// Setup Firebase Auth state change listener

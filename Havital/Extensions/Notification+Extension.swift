@@ -42,6 +42,12 @@ extension Notification.Name {
     
     /// 全域數據刷新
     static let globalDataRefresh = Notification.Name("globalDataRefresh")
+
+    /// 公告 popup 已顯示，其他 modal/alert 應延後
+    static let announcementPopupDidPresent = Notification.Name("announcementPopupDidPresent")
+
+    /// 公告 popup queue 已清空，可安全補做後續提醒
+    static let announcementPopupQueueDidDrain = Notification.Name("announcementPopupQueueDidDrain")
 }
 
 // MARK: - Notification UserInfo Keys

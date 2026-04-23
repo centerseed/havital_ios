@@ -1,0 +1,53 @@
+appId: com.havital.Havital.dev
+tags:
+  - debug
+  - post-onboarding
+  - apple-health
+  - no-reminder
+---
+- tapOn:
+    text: "前往設定|Go to Settings|設定へ移動"
+
+- extendedWaitUntil:
+    visible:
+      id: "Profile_Screen"
+    timeout: 15000
+
+- assertVisible:
+    text: "尚未綁定|Not Connected|未接続"
+
+- tapOn:
+    text: "Apple Health"
+
+- tapOn:
+    text: "確認|Confirm|確認する"
+    optional: true
+
+- tapOn:
+    text: "允許|Allow|OK|好|許可"
+    optional: true
+
+- tapOn:
+    id: "Profile_DoneButton"
+    optional: true
+
+- tapOn:
+    text: "完成|Done|完了"
+    optional: true
+
+- pressKey: Home
+
+- launchApp:
+    stopApp: false
+    clearState: false
+
+- tapOn:
+    id: "AnnouncementPopup_CloseButton"
+    optional: true
+
+- tapOn:
+    text: "關閉|Close|閉じる|完成|Done|完了"
+    optional: true
+
+- assertNotVisible:
+    text: "需要綁定數據源|Data Source Required|データソースの接続が必要です"

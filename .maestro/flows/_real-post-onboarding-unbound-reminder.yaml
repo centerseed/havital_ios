@@ -1,0 +1,46 @@
+appId: com.havital.Havital.dev
+tags:
+  - debug
+  - onboarding
+  - real-backend
+  - unbound-reminder
+---
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- runFlow:
+    file: ../subflows/reviewer-demo-login.yaml
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "AnnouncementPopup_CloseButton"
+    timeout: 5000
+    optional: true
+
+- tapOn:
+    id: "AnnouncementPopup_CloseButton"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "AnnouncementPopup_CloseButton"
+    timeout: 3000
+    optional: true
+
+- tapOn:
+    id: "AnnouncementPopup_CloseButton"
+    optional: true
+
+- assertNotVisible:
+    text: "需要綁定數據源|Data Source Required|データソースの接続が必要です"
+
+- assertVisible:
+    text: "訓練計畫|Training Plan|每日訓練|Daily Training|取得週回顧"
+
+- runFlow:
+    file: ../subflows/nav-to-profile.yaml
+
+- assertVisible:
+    text: "尚未綁定|Not Connected|未接続"

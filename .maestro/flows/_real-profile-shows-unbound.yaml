@@ -1,0 +1,12 @@
+appId: com.havital.Havital.dev
+tags:
+  - debug
+  - onboarding
+  - real-backend
+  - profile-unbound
+---
+- runFlow:
+    file: ../subflows/nav-to-profile.yaml
+
+- assertVisible:
+    text: "尚未綁定|Not Connected|未接続"
