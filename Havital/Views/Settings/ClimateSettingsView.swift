@@ -1,5 +1,4 @@
 import SwiftUI
-import FirebaseAuth
 
 private struct ClimateSettingsPayload: Codable {
     let enabled: Bool
@@ -151,6 +150,90 @@ private struct ClimateAdaptationMetricsResponse: Codable {
     }
 }
 
+private struct ClimateSettingsContext {
+    let profile: ClimateProfileResponse
+    let metrics: ClimateAdaptationMetricsResponse
+}
+
+private protocol ClimateSettingsRepository {
+    func fetchSettingsContext() async throws -> ClimateSettingsContext
+    func updateSettings(_ payload: ClimateSettingsPayload) async throws
+}
+
+private final class ClimateSettingsRemoteDataSource {
+    private let httpClient: HTTPClient
+    private let parser: APIParser
+    private let authSessionRepository: AuthSessionRepository
+
+    init(
+        httpClient: HTTPClient = DependencyContainer.shared.resolve(),
+        parser: APIParser = DefaultAPIParser.shared,
+        authSessionRepository: AuthSessionRepository = DependencyContainer.shared.resolve()
+    ) {
+        self.httpClient = httpClient
+        self.parser = parser
+        self.authSessionRepository = authSessionRepository
+    }
+
+    func fetchSettingsContext() async throws -> ClimateSettingsContext {
+        let uid = try await resolveCurrentUid()
+
+        async let profileResponse = request(
+            ClimateProfileResponse.self,
+            path: "/v1/users/\(uid)/climate/profile",
+            method: .GET
+        )
+        async let metricsResponse = request(
+            ClimateAdaptationMetricsResponse.self,
+            path: "/v1/users/\(uid)/climate/adaptation-metrics",
+            method: .GET
+        )
+
+        let (profile, metrics) = try await (profileResponse, metricsResponse)
+        return ClimateSettingsContext(profile: profile, metrics: metrics)
+    }
+
+    func updateSettings(_ payload: ClimateSettingsPayload) async throws {
+        let uid = try await resolveCurrentUid()
+        let body = try JSONEncoder().encode(payload)
+        _ = try await httpClient.request(
+            path: "/v1/users/\(uid)/climate/settings",
+            method: .PUT,
+            body: body
+        )
+    }
+
+    private func request<T: Codable>(_ type: T.Type, path: String, method: HTTPMethod) async throws -> T {
+        let rawData = try await httpClient.request(path: path, method: method, body: nil)
+        return try ResponseProcessor.extractData(type, from: rawData, using: parser)
+    }
+
+    private func resolveCurrentUid() async throws -> String {
+        if let uid = authSessionRepository.getCurrentUser()?.uid {
+            return uid
+        }
+
+        let currentUser = try await authSessionRepository.fetchCurrentUser()
+        return currentUser.uid
+    }
+}
+
+private final class ClimateSettingsRepositoryImpl: ClimateSettingsRepository {
+    private let remoteDataSource: ClimateSettingsRemoteDataSource
+
+    init(remoteDataSource: ClimateSettingsRemoteDataSource = ClimateSettingsRemoteDataSource()) {
+        self.remoteDataSource = remoteDataSource
+    }
+
+    func fetchSettingsContext() async throws -> ClimateSettingsContext {
+        try await remoteDataSource.fetchSettingsContext()
+    }
+
+    func updateSettings(_ payload: ClimateSettingsPayload) async throws {
+        try await remoteDataSource.updateSettings(payload)
+    }
+}
+
 @MainActor
 private final class ClimateSettingsViewModel: ObservableObject {
     @Published var isLoading = false
@@ -163,39 +246,26 @@ private final class ClimateSettingsViewModel: ObservableObject {
     @Published var useManualThreshold = false
     @Published var manualThreshold = 27.0
 
-    func load() async {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            errorMessage = "找不到目前登入使用者。"
-            return
-        }
+    private let repository: ClimateSettingsRepository
 
+    init(repository: ClimateSettingsRepository = ClimateSettingsRepositoryImpl()) {
+        self.repository = repository
+    }
+
+    func load() async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            async let profileResponse = APIClient.shared.request(
-                ClimateProfileResponse.self,
-                path: "/v1/users/\(uid)/climate/profile"
-            )
-            async let metricsResponse = APIClient.shared.request(
-                ClimateAdaptationMetricsResponse.self,
-                path: "/v1/users/\(uid)/climate/adaptation-metrics"
-            )
-
-            let (loadedProfile, loadedMetrics) = try await (profileResponse, metricsResponse)
-            apply(profile: loadedProfile, metrics: loadedMetrics)
+            let context = try await repository.fetchSettingsContext()
+            apply(profile: context.profile, metrics: context.metrics)
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
     func save() async {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            errorMessage = "找不到目前登入使用者。"
-            return
-        }
-
         isSaving = true
         errorMessage = nil
         defer { isSaving = false }
@@ -210,13 +280,7 @@ private final class ClimateSettingsViewModel: ObservableObject {
         )
 
         do {
-            let body = try JSONEncoder().encode(payload)
-            _ = try await APIClient.shared.request(
-                ClimateSettingsPayload.self,
-                path: "/v1/users/\(uid)/climate/settings",
-                method: "PUT",
-                body: body
-            )
+            try await repository.updateSettings(payload)
             await load()
         } catch {
             errorMessage = error.localizedDescription
@@ -306,6 +370,9 @@ struct ClimateSettingsView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("啟用熱適應")
                         .font(.headline)
+                    Text("當天最高體感溫度")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundColor(.secondary)
                     Text(toggleStatusDescription(profile))
                         .font(.footnote)
                         .foregroundColor(.secondary)
@@ -415,9 +482,9 @@ struct ClimateSettingsView: View {
 
     private func toggleStatusDescription(_ profile: ClimateProfileResponse) -> String {
         if viewModel.enabled {
-            return "目前已啟用。系統會在下一次生成課表時，依預報與你的熱適應設定判斷是否要放慢配速或縮短長跑。"
+            return "目前已啟用。系統會在下一次生成課表時，依當天最高體感溫度（含濕度、風）與你的熱適應設定判斷是否放慢配速或縮短長跑。現有課表不會重新調整，設定變更於下週新課表生效。"
         }
-        return "目前已關閉。之後新生成的課表會維持原始配速，不套用熱適應調整。"
+        return "目前已關閉。之後新生成的課表會維持原始配速，不套用熱適應調整。現有課表不會重新調整。"
     }
 
     private func currentStatusPaceText(_ currentStatus: ClimateCurrentStatus) -> String {

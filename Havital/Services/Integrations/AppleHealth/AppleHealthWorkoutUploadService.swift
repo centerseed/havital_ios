@@ -9,7 +9,11 @@ enum AppleHealthWorkoutUploadError: Error {
 // MARK: - Apple Health Workout Upload Service
 class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
     static let shared = AppleHealthWorkoutUploadService()
-    private init() {}
+    private let workoutRepository: WorkoutRepository
+
+    private init(workoutRepository: WorkoutRepository = WorkoutRepositoryImpl.shared) {
+        self.workoutRepository = workoutRepository
+    }
 
     typealias FirebaseLogHandler = (_ message: String, _ level: LogLevel, _ labels: [String: String], _ jsonPayload: [String: Any]?) -> Void
 
@@ -782,12 +786,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         
         do {
             // 先嘗試上傳，如果成功就結束
-            let _: EmptyResponse = try await APIClient.shared.request(
-                EmptyResponse.self,
-                path: "/v2/workouts",
-                method: "POST",
-                body: try JSONEncoder().encode(workoutData)
-            )
+            try await workoutRepository.uploadWorkout(workoutData)
         } catch {
             // 記錄上傳失敗
             let errorDescription = error.localizedDescription
@@ -805,9 +804,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
     
     // MARK: - Summary Helpers (cache)
     func getWorkoutSummary(workoutId: String) async throws -> WorkoutSummary {
-        let path = "/workout/summary/\(workoutId)" // v2 未提供 summary 端點，暫沿用舊端點
-        let response: WorkoutSummaryResponse = try await APIClient.shared.request(WorkoutSummaryResponse.self, path: path, method: "GET")
-        return response.data.workout
+        try await workoutRepository.fetchWorkoutSummary(id: workoutId)
     }
     
     func saveCachedWorkoutSummary(_ summary: WorkoutSummary, for id: String) {
@@ -990,22 +987,11 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         var errorType = "unknown"
         
         // 分析錯誤類型並提取 HTTP 狀態碼
-        if let nsError = error as? NSError {
-            errorDetails["error_domain"] = nsError.domain
-            errorDetails["error_code"] = nsError.code
-            
-            // 檢查是否是 HTTP 錯誤（來自 APIClient）
-            if nsError.domain == "APIClient" {
-                errorType = "http_error"
-                errorDetails["http_status_code"] = nsError.code
-                
-                // 嘗試從 userInfo 獲取回應內容
-                if let errorMessage = nsError.userInfo[NSLocalizedDescriptionKey] as? String {
-                    errorDetails["response_body"] = errorMessage
-                }
-                
-                // 根據 HTTP 狀態碼分類
-                switch nsError.code {
+        if let httpError = error as? HTTPError {
+            errorType = "http_error"
+            if let statusCode = httpError.statusCode {
+                errorDetails["http_status_code"] = statusCode
+                switch statusCode {
                 case 400...499:
                     errorDetails["error_category"] = "client_error"
                 case 500...599:
@@ -1014,6 +1000,12 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                     errorDetails["error_category"] = "unknown_http_error"
                 }
             }
+            if let responseBody = httpError.responseBody {
+                errorDetails["response_body"] = responseBody
+            }
+        } else if let nsError = error as? NSError {
+            errorDetails["error_domain"] = nsError.domain
+            errorDetails["error_code"] = nsError.code
         } else if let urlError = error as? URLError {
             errorType = "network_error"
             errorDetails["url_error_code"] = urlError.code.rawValue

@@ -73,6 +73,17 @@ final class FirebaseAuthDataSource {
         }
     }
 
+    func signInWithEmail(email: String, password: String) async throws -> FirebaseUser {
+        do {
+            let authResult = try await auth.signIn(withEmail: email, password: password)
+            Logger.debug("Firebase email sign-in succeeded: \(authResult.user.uid)")
+            return authResult.user
+        } catch {
+            Logger.error("Firebase email sign-in failed: \(error.localizedDescription)")
+            throw AuthenticationError.firebaseAuthFailed("Email sign-in failed: \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - User State Operations
 
     /// Get currently signed-in Firebase user (synchronous)

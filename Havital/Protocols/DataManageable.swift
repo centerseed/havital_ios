@@ -90,8 +90,6 @@ extension DataManageable where Self: ObservableObject {
 
 // MARK: - 基礎 API 服務協議
 protocol APIServiceProtocol {
-    var apiClient: APIClient { get }
-    
     func handleAPIError(_ error: Error, context: String) -> Error
 }
 

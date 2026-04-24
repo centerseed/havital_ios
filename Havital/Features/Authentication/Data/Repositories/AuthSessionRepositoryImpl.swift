@@ -17,6 +17,7 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
 
     /// Persist demo auth across app relaunches during reviewer/UI test flows.
     private static let demoTokenKey = "auth.demo_id_token"
+    private static let demoUserKey = "auth.demo_user"
 
     // MARK: - Dependencies
 
@@ -64,7 +65,7 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
             Logger.debug("[AuthSession] 🎯 fetchCurrentUser called. SessionRepo ID: \(ObjectIdentifier(self)). DemoToken: \(demoToken != nil ? "set" : "nil")")
 
             if let demoToken {
-                guard let cachedUser = authCache.getCurrentUser() else {
+                guard let cachedUser = authCache.getCurrentUser() ?? getPersistedDemoUser() else {
                     Logger.error("[AuthSession] ❌ Demo mode: no cached user found. SessionRepo ID: \(ObjectIdentifier(self))")
                     throw AuthenticationError.userNotFound
                 }
@@ -247,6 +248,7 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
     func clearCache() {
         authCache.clearCache()
         setDemoToken(nil)
+        setDemoUser(nil)
         Logger.debug("[AuthSession] Cache cleared")
     }
 
@@ -262,5 +264,25 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
             UserDefaults.standard.removeObject(forKey: Self.demoTokenKey)
         }
         Logger.debug("[AuthSession] 🎯 Demo token set in SessionRepo ID: \(ObjectIdentifier(self)). Token: \(token != nil ? "set" : "cleared")")
+    }
+
+    func setDemoUser(_ user: AuthUser?) {
+        if let user, let encoded = try? JSONEncoder().encode(user) {
+            UserDefaults.standard.set(encoded, forKey: Self.demoUserKey)
+            Logger.debug("[AuthSession] 🎯 Demo user persisted: \(user.uid)")
+        } else {
+            UserDefaults.standard.removeObject(forKey: Self.demoUserKey)
+            Logger.debug("[AuthSession] 🎯 Demo user cleared")
+        }
+    }
+
+    private func getPersistedDemoUser() -> AuthUser? {
+        guard let data = UserDefaults.standard.data(forKey: Self.demoUserKey),
+              let user = try? JSONDecoder().decode(AuthUser.self, from: data) else {
+            return nil
+        }
+
+        Logger.debug("[AuthSession] 🎯 Returning persisted demo user: \(user.uid)")
+        return user
     }
 }

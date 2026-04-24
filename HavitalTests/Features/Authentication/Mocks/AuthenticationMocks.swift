@@ -147,10 +147,17 @@ final class MockAuthSessionRepository: AuthSessionRepository {
     // MARK: - Demo Support
     var setDemoTokenForTest: String?
     var setDemoTokenCalled = false
+    var setDemoUserForTest: AuthUser?
+    var setDemoUserCalled = false
 
     func setDemoToken(_ token: String?) {
         setDemoTokenCalled = true
         setDemoTokenForTest = token
+    }
+
+    func setDemoUser(_ user: AuthUser?) {
+        setDemoUserCalled = true
+        setDemoUserForTest = user
     }
 }
 

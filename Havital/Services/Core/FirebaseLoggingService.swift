@@ -228,12 +228,12 @@ actor FirebaseLoggingService {
         encoder.dateEncodingStrategy = .iso8601
         let bodyData = try encoder.encode(logEntry)
 
-        // 假設後端提供 /internal/cloud-logging 端點接收 JSON
-        let path = "/internal/cloud-logging"
-        _ = try await APIClient.shared.request(EmptyResponse.self,
-                                              path: path,
-                                              method: "POST",
-                                              body: bodyData)
+        let httpClient: HTTPClient = DependencyContainer.shared.resolve()
+        _ = try await httpClient.request(
+            path: "/internal/cloud-logging",
+            method: .POST,
+            body: bodyData
+        )
     }
     
     private func logToAnalytics(_ logEntry: LogEntry) async {

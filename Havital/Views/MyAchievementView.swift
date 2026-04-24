@@ -724,7 +724,7 @@ class SharedHealthDataManager: ObservableObject, TaskManageable {
                 self.isRefreshing = false
             }
         } catch {
-            print("APIClient direct call failed: \(error)")
+            print("Direct HTTP call failed: \(error)")
             
             // 回退到原來的方法
             let newHealthData = await healthDataUploadManager.getHealthData(days: 14)
@@ -3015,7 +3015,7 @@ struct TrainingLoadDetailExplanationView: View {
     }
 }
 
-// MARK: - Health Data Models are now in APIClient.swift
+// MARK: - Health Data Models
 
 #Preview {
     MyAchievementView()

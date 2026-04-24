@@ -89,7 +89,7 @@ class WorkoutRemoteDataSource {
     /// - Parameter request: 上傳請求數據
     /// - Returns: 上傳響應
     func uploadWorkout(_ request: UploadWorkoutRequest) async throws -> UploadWorkoutResponse {
-        let path = "/v2/workouts/upload"
+        let path = "/v2/workouts"
 
         Logger.debug("[WorkoutRemoteDataSource] uploadWorkout - provider: \(request.sourceInfo.name)")
 
@@ -100,6 +100,26 @@ class WorkoutRemoteDataSource {
         let response = try ResponseProcessor.extractData(UploadWorkoutResponse.self, from: rawData, using: parser)
 
         return response
+    }
+
+    func uploadWorkout(_ workoutData: WorkoutData) async throws {
+        let path = "/v2/workouts"
+
+        Logger.debug("[WorkoutRemoteDataSource] uploadAppleHealthWorkout - source: \(workoutData.source ?? "unknown")")
+
+        let bodyData = try JSONEncoder().encode(workoutData)
+        _ = try await httpClient.request(path: path, method: .POST, body: bodyData)
+    }
+
+    func fetchWorkoutSummary(id: String) async throws -> WorkoutSummary {
+        let summaryPathPrefix = "/workout/summary/"
+        let path = "\(summaryPathPrefix)\(id)"
+
+        Logger.debug("[WorkoutRemoteDataSource] fetchWorkoutSummary - id: \(id)")
+
+        let rawData = try await httpClient.request(path: path, method: .GET, body: nil)
+        let response = try ResponseProcessor.extractData(WorkoutSummaryResponse.self, from: rawData, using: parser)
+        return response.data.workout
     }
 
     // MARK: - Update

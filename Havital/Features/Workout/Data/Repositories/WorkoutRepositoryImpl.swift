@@ -321,6 +321,18 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         return syncedWorkout
     }
 
+    func uploadWorkout(_ request: UploadWorkoutRequest) async throws -> UploadWorkoutResponse {
+        try await remoteDataSource.uploadWorkout(request)
+    }
+
+    func uploadWorkout(_ workoutData: WorkoutData) async throws {
+        try await remoteDataSource.uploadWorkout(workoutData)
+    }
+
+    func fetchWorkoutSummary(id: String) async throws -> WorkoutSummary {
+        try await remoteDataSource.fetchWorkoutSummary(id: id)
+    }
+
     func updateTrainingNotes(id: String, notes: String) async throws {
         Logger.debug("[WorkoutRepositoryImpl] updateTrainingNotes - id: \(id)")
 

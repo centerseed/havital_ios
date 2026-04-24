@@ -102,6 +102,12 @@ protocol WorkoutRepository {
     /// - Returns: 同步後的訓練實體
     func syncWorkout(_ workout: WorkoutV2) async throws -> WorkoutV2
 
+    func uploadWorkout(_ request: UploadWorkoutRequest) async throws -> UploadWorkoutResponse
+
+    func uploadWorkout(_ workoutData: WorkoutData) async throws
+
+    func fetchWorkoutSummary(id: String) async throws -> WorkoutSummary
+
     /// 更新訓練心得
     /// - Parameters:
     ///   - id: 訓練 ID
@@ -127,6 +133,20 @@ protocol WorkoutRepository {
 
     /// 訓練記錄更新的通知名稱
     var workoutsDidUpdateNotification: Notification.Name { get }
+}
+
+extension WorkoutRepository {
+    func uploadWorkout(_ request: UploadWorkoutRequest) async throws -> UploadWorkoutResponse {
+        throw WorkoutRepositoryError.dataSourceUnavailable
+    }
+
+    func uploadWorkout(_ workoutData: WorkoutData) async throws {
+        throw WorkoutRepositoryError.dataSourceUnavailable
+    }
+
+    func fetchWorkoutSummary(id: String) async throws -> WorkoutSummary {
+        throw WorkoutRepositoryError.dataSourceUnavailable
+    }
 }
 
 // MARK: - Workout Repository Errors

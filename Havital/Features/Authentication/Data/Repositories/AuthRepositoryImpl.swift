@@ -250,10 +250,57 @@ final class AuthRepositoryImpl: AuthRepository {
         }
     }
 
-    /// Sign in with email and password
-    /// Currently not implemented - placeholder for future
     func signInWithEmail(email: String, password: String) async throws -> AuthUser {
-        throw AuthenticationError.invalidCredentials
+        do {
+            Logger.debug("[AuthRepository] Email Sign-In started")
+
+            _ = try await backendAuth.loginEmail(email: email, password: password)
+            let firebaseUser = try await firebaseAuth.signInWithEmail(email: email, password: password)
+            let idToken = try await firebaseAuth.getIdToken()
+
+            let syncRequest = UserSyncRequest(
+                firebaseUid: firebaseUser.uid,
+                idToken: idToken,
+                fcmToken: nil,
+                deviceInfo: DeviceInfo(
+                    model: UIDevice.current.model,
+                    osVersion: UIDevice.current.systemVersion,
+                    appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+                    locale: Locale.current.identifier
+                )
+            )
+            let syncResponse = try await backendAuth.syncUserWithBackend(request: syncRequest)
+
+            if let vc = syncResponse.versionCheck, vc.forceUpdate {
+                throw AuthenticationError.forceUpdateRequired(updateUrl: vc.updateUrl)
+            }
+
+            let authUser = FirebaseUserMapper.toDomain(
+                firebaseUser: firebaseUser,
+                syncResponse: syncResponse
+            )
+            authCache.saveUser(authUser)
+            return authUser
+        } catch let error as AuthError {
+            throw error
+        } catch let error as AuthenticationError {
+            throw error
+        } catch {
+            Logger.error("[AuthRepository] Email Sign-In failed: \(error.localizedDescription)")
+            throw AuthenticationError.firebaseAuthFailed(error.localizedDescription)
+        }
+    }
+
+    func registerEmail(email: String, password: String) async throws -> RegisterData {
+        try await backendAuth.registerEmail(email: email, password: password)
+    }
+
+    func verifyEmail(oobCode: String) async throws -> VerifyData {
+        try await backendAuth.verifyEmail(oobCode: oobCode)
+    }
+
+    func resendEmailVerification(email: String, password: String) async throws -> ResendData {
+        try await backendAuth.resendEmailVerification(email: email, password: password)
     }
 
     /// Demo login for development/testing
@@ -286,6 +333,7 @@ final class AuthRepositoryImpl: AuthRepository {
 
             // Step 4: Cache the user
             authCache.saveUser(authUser)
+            authSessionRepository.setDemoUser(authUser)
             Logger.debug("[AuthRepository] 🎯 User cached with UID: \(authUser.uid)")
 
             Logger.debug("[AuthRepository] Demo login completed successfully")

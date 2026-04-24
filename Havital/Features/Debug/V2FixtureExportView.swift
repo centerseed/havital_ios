@@ -8,7 +8,7 @@ import CryptoKit
 ///
 /// 設計：
 /// - 僅 DEBUG build 編譯（整檔 `#if DEBUG`）
-/// - 不透過 `APIClient.request<T>`，避免走 decode path——直接用 URLSession 打 raw endpoint，保留原始 bytes
+/// - 不透過 typed HTTP decode path，直接用 URLSession 打 raw endpoint，保留原始 bytes
 /// - 三顆按鈕對應三種 target_type（race_run / beginner / maintenance），每顆按鈕抓同一組 endpoint：
 ///     1. GET /v2/plan/overview
 ///     2. GET /v2/plan/status
@@ -288,7 +288,7 @@ enum V2FixtureExportHelpers {
         ]
     }
 
-    /// 打 raw V2 endpoint（bypass APIClient decode）
+    /// 打 raw V2 endpoint（bypass typed decode）
     static func fetchRaw(path: String) async throws -> Data {
         let urlString = APIConfig.baseURL + path
         guard let url = URL(string: urlString) else {

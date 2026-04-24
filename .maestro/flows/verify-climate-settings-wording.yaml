@@ -1,0 +1,32 @@
+appId: com.havital.Havital.dev
+tags:
+  - climate
+  - settings
+  - wording
+---
+# Verifies updated ClimateSettingsView toggle description on the real app
+# (no fixture). Requires demo account with an existing weekly plan.
+
+- runFlow: ../subflows/ensure-main-training-screen.yaml
+
+- runFlow: ../subflows/nav-to-profile.yaml
+
+- scrollUntilVisible:
+    element:
+      text: "熱適應"
+    direction: DOWN
+    timeout: 15000
+    speed: 40
+
+- tapOn:
+    text: "熱適應"
+
+- extendedWaitUntil:
+    visible:
+      text: "啟用熱適應"
+    timeout: 10000
+
+- assertVisible:
+    text: "當天最高體感溫度"
+
+- takeScreenshot: climate_settings_wording

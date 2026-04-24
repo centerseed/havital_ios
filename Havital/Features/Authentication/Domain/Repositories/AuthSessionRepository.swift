@@ -52,4 +52,8 @@ protocol AuthSessionRepository {
     /// Set Demo Token for testing/development
     /// - Parameter token: Valid backend ID token
     func setDemoToken(_ token: String?)
+
+    /// Persist Demo User for reviewer/UI test flows that have no Firebase session
+    /// - Parameter user: Authenticated demo user returned by backend
+    func setDemoUser(_ user: AuthUser?)
 }
