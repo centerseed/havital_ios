@@ -1,5 +1,21 @@
 # CLAUDE.md — Paceriz iOS
 
+## Related Projects (讀這兩份前置 CLAUDE.md)
+
+這個 repo 只負責 iOS App。完整 Paceriz 產品還有另外兩個 repo，改動前必讀對應的 CLAUDE.md：
+
+| Project | Path (from repo root `/Users/wubaizong/havital/`) | Must-read |
+|---------|------|-----------|
+| ⚙️ Backend API service | `cloud/api_service/` | `cloud/api_service/CLAUDE.md` |
+| 🌐 Official website | `web/official_web/` | `web/official_web/README.md` |
+
+跨 repo 工作守則：
+- 呼叫的 API 行為有問題 → 先跑 HTTP call + 看 Firestore 驗證是 backend 還是 App 側問題；讀 `cloud/api_service/CLAUDE.md` 了解 V1/V2/V3 path 陷阱再動手
+- 新增 endpoint 或改 payload → 必須在 `cloud/api_service/` 確認對應 route 存在並符合 iOS 期待，不得假設後端會配合
+- 三個 repo 的 `CLAUDE.md` 互不繼承，每個都是獨立 SSOT——別假設後端也遵守 iOS 的某條規則
+
+Repo root 的 `/Users/wubaizong/havital/CLAUDE.md` 有專案總覽、環境對照、命名慣例；跨 repo 決策需要背景時讀它。
+
 ## Hard Constraints
 
 1. **Never fabricate results.** If you haven't run it, you don't know. Say "unverified" — not "should work" or PASS. Fabricated results cost 10x more to debug than honest unknowns.
