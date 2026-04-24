@@ -13,6 +13,7 @@ struct WeekOverviewCardPreviewView: View {
             workoutRepository: WorkoutRepository,
             loadWeeklyWorkoutsUseCase: LoadWeeklyWorkoutsUseCase,
             aggregateWorkoutMetricsUseCase: AggregateWorkoutMetricsUseCase,
+            versionRouter: TrainingVersionRouting = TrainingPlanViewModelAlwaysV1PreviewRouter(),
             weeklyPlanVM: WeeklyPlanViewModel? = nil,
             summaryVM: WeeklySummaryViewModel? = nil
         ) {
@@ -21,6 +22,7 @@ struct WeekOverviewCardPreviewView: View {
                 workoutRepository: workoutRepository,
                 loadWeeklyWorkoutsUseCase: loadWeeklyWorkoutsUseCase,
                 aggregateWorkoutMetricsUseCase: aggregateWorkoutMetricsUseCase,
+                versionRouter: versionRouter,
                 weeklyPlanVM: weeklyPlanVM,
                 summaryVM: summaryVM
             )
@@ -240,5 +242,11 @@ struct WeekOverviewCardPreviewView_Previews: PreviewProvider {
                 .previewDisplayName("Dark Mode")
         }
     }
+}
+
+private struct TrainingPlanViewModelAlwaysV1PreviewRouter: TrainingVersionRouting {
+    func getTrainingVersion() async -> String { "v1" }
+    func isV2User() async -> Bool { false }
+    func isV1User() async -> Bool { true }
 }
 #endif

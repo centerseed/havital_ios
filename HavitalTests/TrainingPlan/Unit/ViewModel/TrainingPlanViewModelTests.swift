@@ -70,6 +70,31 @@ final class TrainingPlanViewModelTests: XCTestCase {
             XCTFail("Expected planStatus to be .ready")
         }
     }
+
+    func testInitialize_WhenV2User_DoesNotCallV1Repository() async {
+        // Given
+        let router = MockTrainingVersionRouter()
+        router.isV2Result = true
+
+        sut = TrainingPlanViewModel(
+            repository: mockRepository,
+            workoutRepository: mockWorkoutRepository,
+            loadWeeklyWorkoutsUseCase: loadWeeklyWorkoutsUseCase,
+            aggregateWorkoutMetricsUseCase: aggregateWorkoutMetricsUseCase,
+            versionRouter: router
+        )
+
+        // When
+        await sut.initialize()
+
+        // Then
+        XCTAssertEqual(mockRepository.getPlanStatusCallCount, 0)
+        XCTAssertEqual(mockRepository.getOverviewCallCount, 0)
+        XCTAssertEqual(mockRepository.getWeeklyPlanCallCount, 0)
+        XCTAssertEqual(mockWorkoutRepository.refreshWorkoutsCallCount, 0)
+        XCTAssertEqual(router.isV2UserCallCount, 1)
+        XCTAssertEqual(sut.planStatus, .error(DomainError.incorrectVersionRouting(context: "TrainingPlanVM.initialize")))
+    }
     
     func testInitialize_NoStatus_SetsNoPlan() async {
         // Given
