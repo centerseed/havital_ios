@@ -11,8 +11,10 @@ appId: com.havital.Havital.dev
     text: "更多|More|もっと見る"
     optional: true
 - tapOn:
-    text: "🐛 Debug 工具"
-- tapOn: "🗑️ 刪除當前週回顧"
+    point: "90%,45%"
+- waitForAnimationToEnd
+- tapOn:
+    point: "76%,62%"
 
 - extendedWaitUntil:
     visible:
@@ -26,8 +28,10 @@ appId: com.havital.Havital.dev
     text: "更多|More|もっと見る"
     optional: true
 - tapOn:
-    text: "🐛 Debug 工具"
-- tapOn: "🗑️ 刪除當前週課表"
+    point: "90%,45%"
+- waitForAnimationToEnd
+- tapOn:
+    point: "76%,56%"
 
 - extendedWaitUntil:
     visible:

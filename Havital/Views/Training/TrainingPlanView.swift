@@ -625,6 +625,7 @@ struct TrainingPlanView: View {
                     }) {
                         Label(NSLocalizedString("training.overview", comment: "Training Overview"), systemImage: "doc.text.below.ecg")
                     }
+                    .accessibilityIdentifier("TrainingPlan_Menu_PlanOverview")
                     
                     Button(action: {
                         showTrainingProgress = true

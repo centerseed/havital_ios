@@ -19,59 +19,8 @@ tags:
 # ViewModel-level AC-TREDIT-02 is fully covered by XCTest TargetRaceEditACTests.
 # This Maestro flow verifies the UI-visible preselect indicator (checkmark).
 
-# === Step 1: Ensure logged in and on main training screen ===
-- launchApp:
-    stopApp: true
-    clearState: false
-    arguments:
-      "-ui_testing_reviewer_demo": true
-      "-reviewerAccessPressDuration": "1.0"
-- runFlow: ../../../subflows/reviewer-demo-login.yaml
-# Dismiss any modals (心率設定, announcements, etc.)
-- tapOn:
-    text: "明天再提醒我|不再提醒|稍後|Later|關閉|Close|完成|Done|Skip"
-    optional: true
-- tapOn:
-    text: "明天再提醒我|不再提醒|稍後|Later|關閉|Close|完成|Done|Skip"
-    optional: true
-# Wait for main screen (ellipsis.circle is the reliable anchor)
-- extendedWaitUntil:
-    visible:
-      id: "ellipsis.circle"
-    timeout: 30000
-# Navigate to Training Overview
-- tapOn:
-    id: "ellipsis.circle"
-    optional: true
-- tapOn:
-    text: "訓練計畫概覽|訓練總覽|Training Plan Overview|トレーニング計画概要"
-    optional: true
-
-- extendedWaitUntil:
-    visible:
-      text: "目標資訊|訓練目標|總週數|Target Info|Training Goal|Weeks"
-    timeout: 12000
-
-- tapOn:
-    text: "訓練計畫|Training Plan|トレーニング計画"
-    optional: true
-
-- scrollUntilVisible:
-    element: "目標賽事|Target Race|目標レース|訓練目標|Training Target"
-    direction: DOWN
-    timeout: 10000
-
-- tapOn:
-    text: "pencil"
-    optional: true
-- tapOn:
-    id: "v2.overview.target_name"
-    optional: true
-
-- extendedWaitUntil:
-    visible:
-      text: "編輯目標|Edit Race Goal|目標を編集"
-    timeout: 8000
+- runFlow: ../../../subflows/ensure-race-target-from-database.yaml
+- runFlow: ../../../subflows/open-main-target-edit.yaml
 
 # === Step 2: Open race picker from edit target ===
 - tapOn:
@@ -96,7 +45,6 @@ tags:
 # (If the target has no raceId yet — e.g., manually created — skip this assertion with optional)
 - assertVisible:
     id: ".*RaceEventCard_Selected_.*"
-    optional: true
 
 # Regardless of preselect state, verify picker loads successfully
 - assertVisible:
@@ -106,4 +54,5 @@ tags:
 - tapOn:
     text: "取消|Cancel|キャンセル"
     optional: true
-- back
+- back:
+    optional: true

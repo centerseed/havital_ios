@@ -11,7 +11,6 @@ struct TrainingPlanV2View: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var showPlanOverview = false
     @State private var showUserProfile = false
-    @State private var showEditSchedule = false
     @State private var editScheduleVM: EditScheduleV2ViewModel?
     @State private var showContactPaceriz = false
     @State private var showFeedbackReport = false
@@ -200,6 +199,7 @@ struct TrainingPlanV2View: View {
                         Button(action: { showPlanOverview = true }) {
                             Label(NSLocalizedString("training.plan_overview", comment: "Plan Overview"), systemImage: "doc.text.below.ecg")
                         }
+                        .accessibilityIdentifier("TrainingPlan_Menu_PlanOverview")
 
                         Button(action: {
                             viewModel.summary.summaryFlowPhase = .showingSummary
@@ -247,6 +247,7 @@ struct TrainingPlanV2View: View {
                             }) {
                                 Label("🗑️ 刪除當前週課表", systemImage: "trash")
                             }
+                            .accessibilityIdentifier("TrainingPlan_Debug_DeleteCurrentWeekPlan")
 
                             Button(role: .destructive, action: {
                                 Task {
@@ -255,9 +256,11 @@ struct TrainingPlanV2View: View {
                             }) {
                                 Label("🗑️ 刪除當前週回顧", systemImage: "trash")
                             }
+                            .accessibilityIdentifier("TrainingPlan_Debug_DeleteCurrentWeeklySummary")
                         } label: {
                             Label("🐛 Debug 工具", systemImage: "hammer.circle")
                         }
+                        .accessibilityIdentifier("TrainingPlan_Menu_Debug")
                         #endif
                     } label: {
                         Image(systemName: "ellipsis.circle")
@@ -295,19 +298,13 @@ struct TrainingPlanV2View: View {
                     showUserProfile = false
                 }
             }
-            .sheet(isPresented: $showEditSchedule, onDismiss: {
-                // 編輯 sheet 關閉後，套用儲存結果（避免 @Observable sheet 重建問題）
-                if let savedPlan = editScheduleVM?.savedPlan {
-                    viewModel.loader.weeklyPlan = savedPlan
-                    viewModel.loader.planStatus = .ready(savedPlan)
-                }
-                editScheduleVM = nil
-            }) {
-                if let editVM = editScheduleVM {
-                    EditScheduleViewV2(
-                        editViewModel: editVM,
-                        planViewModel: viewModel
-                    )
+            .sheet(item: $editScheduleVM) { editVM in
+                EditScheduleViewV2(
+                    editViewModel: editVM,
+                    planViewModel: viewModel
+                )
+                .onDisappear {
+                    applySavedEditSchedulePlan(from: editVM)
                 }
             }
             // ✅ 合併 Sheet：loading review → summary → loading plan（零閃爍）
@@ -531,7 +528,12 @@ struct TrainingPlanV2View: View {
             return Date()
         }()
         editScheduleVM = EditScheduleV2ViewModel(weeklyPlan: weeklyPlan, startDate: startDate)
-        showEditSchedule = true
+    }
+
+    private func applySavedEditSchedulePlan(from editVM: EditScheduleV2ViewModel) {
+        guard let savedPlan = editVM.savedPlan else { return }
+        viewModel.loader.weeklyPlan = savedPlan
+        viewModel.loader.planStatus = .ready(savedPlan)
     }
 
     private var isChineseLanguage: Bool {

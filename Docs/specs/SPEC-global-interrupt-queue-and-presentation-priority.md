@@ -1,10 +1,10 @@
 ---
 type: SPEC
 id: SPEC-global-interrupt-queue-and-presentation-priority
-status: Draft
+status: Implemented
 ontology_entity: app-shell-routing-guardrails
 created: 2026-04-23
-updated: 2026-04-23
+updated: 2026-04-24
 ---
 
 # Feature Spec: 全域 Interrupt Queue 與主動介入畫面優先級

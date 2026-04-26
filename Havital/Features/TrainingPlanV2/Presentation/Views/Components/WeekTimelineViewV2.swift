@@ -932,6 +932,11 @@ private struct ClimateAdjustmentDetailView: View {
                 .font(AppFont.caption())
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+
+            Text(meta.feelsLikeFootnote)
+                .font(AppFont.captionSmall())
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(10)
         .background(
@@ -1157,6 +1162,17 @@ private extension ClimateMeta {
             return "Segment paces were adjusted for the day's heat stress."
         case .japanese:
             return "各セグメントのペースは当日の暑熱ストレスに合わせて調整済みです。"
+        }
+    }
+
+    var feelsLikeFootnote: String {
+        switch currentLanguage {
+        case .traditionalChinese:
+            return "體感為當天最高值（含溫度、濕度、風）；清晨或傍晚可能較涼，可彈性選擇時段。"
+        case .english:
+            return "Feels-like shown is the daily peak (temperature + humidity + wind). Early morning or evening may be cooler — adjust your run time accordingly."
+        case .japanese:
+            return "体感は当日のピーク値（気温・湿度・風を反映）。早朝や夕方は涼しい場合があるので、時間帯は柔軟に選んでください。"
         }
     }
 }

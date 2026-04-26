@@ -5,7 +5,9 @@ import SwiftUI
 /// V2 週課表編輯 ViewModel
 /// 使用 WeeklyPlanV2 和 TrainingPlanV2Repository
 @MainActor
-final class EditScheduleV2ViewModel: ObservableObject, TaskManageable {
+final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManageable {
+
+    let id = UUID()
 
     // MARK: - Published State
 

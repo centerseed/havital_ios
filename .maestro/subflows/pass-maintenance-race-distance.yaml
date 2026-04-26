@@ -1,0 +1,12 @@
+appId: com.havital.Havital.dev
+---
+# Pass the maintenance race-distance step by choosing "unsure".
+- runFlow:
+    when:
+      visible:
+        id: "MaintenanceRaceDistance_Screen"
+    commands:
+      - tapOn:
+          id: "MaintenanceRaceDistance_unsure"
+      - tapOn:
+          id: "MaintenanceRaceDistance_NextButton"

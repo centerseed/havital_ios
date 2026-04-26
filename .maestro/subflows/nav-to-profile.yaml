@@ -5,6 +5,12 @@ appId: com.havital.Havital.dev
 # 後置：在個人資料頁（可見「個人資料」或「Profile」標題）
 # 支援：繁體中文 / English / 日本語（プロフィール）
 
+- launchApp:
+    stopApp: false
+    clearState: false
+    arguments:
+      -skipHealthKitAuth: "true"
+
 - tapOn:
     text: "稍後|Later|後で"
     optional: true

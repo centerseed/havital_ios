@@ -906,7 +906,8 @@ final class OnboardingFeatureViewModel: ObservableObject {
                     targetPace: targetPace,
                     raceDate: Int(raceDate.timeIntervalSince1970),
                     isMainRace: true,
-                    trainingWeeks: trainingWeeks
+                    trainingWeeks: trainingWeeks,
+                    raceId: selectedRaceEvent?.raceId
                 )
                 _ = try await targetRepository.updateTarget(id: selectedTargetId, target: updatedTarget)
                 Logger.debug("[OnboardingFeatureVM] 目標已更新: \(updatedTarget.name)")
@@ -921,7 +922,8 @@ final class OnboardingFeatureViewModel: ObservableObject {
                     targetPace: targetPace,
                     raceDate: Int(raceDate.timeIntervalSince1970),
                     isMainRace: true,
-                    trainingWeeks: trainingWeeks
+                    trainingWeeks: trainingWeeks,
+                    raceId: selectedRaceEvent?.raceId
                 )
                 let createdTarget = try await targetRepository.createTarget(target)
                 selectedTargetKey = createdTarget.id

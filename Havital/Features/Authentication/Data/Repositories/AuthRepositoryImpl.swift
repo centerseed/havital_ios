@@ -291,16 +291,19 @@ final class AuthRepositoryImpl: AuthRepository {
         }
     }
 
-    func registerEmail(email: String, password: String) async throws -> RegisterData {
-        try await backendAuth.registerEmail(email: email, password: password)
+    func registerEmail(email: String, password: String) async throws -> EmailRegistrationResult {
+        let dto = try await backendAuth.registerEmail(email: email, password: password)
+        return EmailRegistrationResult(uid: dto.uid, email: dto.email, message: dto.message)
     }
 
-    func verifyEmail(oobCode: String) async throws -> VerifyData {
-        try await backendAuth.verifyEmail(oobCode: oobCode)
+    func verifyEmail(oobCode: String) async throws -> EmailVerificationResult {
+        let dto = try await backendAuth.verifyEmail(oobCode: oobCode)
+        return EmailVerificationResult(uid: dto.uid, message: dto.message)
     }
 
-    func resendEmailVerification(email: String, password: String) async throws -> ResendData {
-        try await backendAuth.resendEmailVerification(email: email, password: password)
+    func resendEmailVerification(email: String, password: String) async throws -> EmailResendResult {
+        let dto = try await backendAuth.resendEmailVerification(email: email, password: password)
+        return EmailResendResult(email: dto.email, message: dto.message)
     }
 
     /// Demo login for development/testing
