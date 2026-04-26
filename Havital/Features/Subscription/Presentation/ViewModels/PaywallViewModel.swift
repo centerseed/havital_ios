@@ -48,6 +48,10 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
     /// 觸發付費牆的原因
     let trigger: PaywallTrigger
 
+    /// Sub-source for resubscribe flows (AC-PAYWALL-28).
+    /// When trigger = .resubscribe, this identifies the feature that originally triggered the gate.
+    let subSource: PaywallSource?
+
     // MARK: - Published State
 
     @Published var offerings: ViewState<[SubscriptionOfferingEntity]> = .loading
@@ -68,11 +72,13 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
 
     init(
         trigger: PaywallTrigger,
+        subSource: PaywallSource? = nil,
         subscriptionRepository: SubscriptionRepository? = nil,
         analyticsService: AnalyticsService? = nil,
         offerRedemptionCoordinator: OfferRedemptionCoordinator? = nil
     ) {
         self.trigger = trigger
+        self.subSource = subSource
         let resolvedRepository = subscriptionRepository ?? DependencyContainer.shared.resolve()
         self.subscriptionRepository = resolvedRepository
         self.analyticsService = analyticsService ?? DependencyContainer.shared.resolve()
@@ -295,12 +301,26 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
         true
     }
 
-    /// 試用期剩餘天數（僅 .trial 狀態時非 nil）
-    /// 優先採用後端計算的 `trialRemainingDays`（SSOT），
-    /// 若後端未提供則 fallback 到本地以 `expiresAt` 計算的 `daysRemaining`。
+    /// 試用期剩餘天數（trial 或 Apple intro trial 狀態時非 nil）。
+    /// AC-PAYWALL-29: backend 16 天 trial 退場；trial 倒數優先使用 Apple intro offer 的 trialEndAt 或 expiresAt。
+    /// backend `trialRemainingDays` 僅作為最終 fallback（後端不再回傳此值）。
     var trialDaysRemaining: Int? {
-        guard let status = SubscriptionStateManager.shared.currentStatus,
-              status.status == .trial else { return nil }
+        guard let status = SubscriptionStateManager.shared.currentStatus else { return nil }
+
+        // Apple intro trial: use trialEndAt first (from Apple intro offer end date)
+        if status.inIntroTrial == true {
+            if let trialEndAt = status.trialEndAt {
+                let remaining = max(0, trialEndAt - Date().timeIntervalSince1970)
+                return Int(ceil(remaining / 86400.0))
+            }
+            // Fallback to expiresAt for Apple intro trial countdown
+            if status.expiresAt != nil {
+                return status.daysRemaining
+            }
+        }
+
+        // Legacy backend trial (.trial status) — keep for backward compatibility
+        guard status.status == .trial else { return nil }
         if let backendValue = status.trialRemainingDays {
             return backendValue
         }
@@ -341,6 +361,12 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
     // MARK: - Analytics
 
     func trackPaywallView() {
+        // AC-PAYWALL-28: fire paywallOpened with source + optional sub_source
+        let sourceString = trigger.paywallSource.rawValue
+        let subSourceString: String? = trigger.isResubscribe ? subSource?.rawValue : nil
+        analyticsService.track(.paywallOpened(source: sourceString, subSource: subSourceString))
+
+        // Legacy event retained for backward compatibility
         analyticsService.track(.paywallView(
             trigger: trigger.analyticsString,
             trialRemainingDays: trialDaysRemaining

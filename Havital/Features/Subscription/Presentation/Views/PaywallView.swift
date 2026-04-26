@@ -14,6 +14,16 @@ enum PaywallCardType: Equatable {
     }
 }
 
+// MARK: - FeatureGroup
+
+/// Data model for the 4-group features section in PaywallView (AC-PAYWALL-10/11).
+/// File-private so FeatureGroupCard (below PaywallView) can also reference it.
+fileprivate struct FeatureGroup {
+    let titleKey: String
+    let bulletKeys: [String]
+    let icon: String
+}
+
 // MARK: - PaywallView
 
 struct PaywallView: View {
@@ -26,8 +36,8 @@ struct PaywallView: View {
     /// Default = .defaultYearly (AC-07: Yearly card pre-selected on open).
     @State private var focusedCard: PaywallCardType = .defaultYearly
 
-    init(trigger: PaywallTrigger) {
-        _viewModel = StateObject(wrappedValue: PaywallViewModel(trigger: trigger))
+    init(trigger: PaywallTrigger, subSource: PaywallSource? = nil) {
+        _viewModel = StateObject(wrappedValue: PaywallViewModel(trigger: trigger, subSource: subSource))
     }
 
     var body: some View {
@@ -237,61 +247,57 @@ struct PaywallView: View {
         }
     }
 
-    // MARK: - Features comparison table (free vs premium)
+    // MARK: - Features 4 groups (AC-PAYWALL-10/11)
 
-    private let freeColWidth: CGFloat = 48
-    private let premiumColWidth: CGFloat = 72
+    private let featureGroups: [FeatureGroup] = [
+        FeatureGroup(
+            titleKey: "paywall.premium.features.plan.title",
+            bulletKeys: [
+                "paywall.premium.features.plan.bullet1",
+                "paywall.premium.features.plan.bullet2",
+                "paywall.premium.features.plan.bullet3"
+            ],
+            icon: "calendar.badge.plus"
+        ),
+        FeatureGroup(
+            titleKey: "paywall.premium.features.adjust.title",
+            bulletKeys: [
+                "paywall.premium.features.adjust.bullet1",
+                "paywall.premium.features.adjust.bullet2"
+            ],
+            icon: "slider.horizontal.3"
+        ),
+        FeatureGroup(
+            titleKey: "paywall.premium.features.review.title",
+            bulletKeys: [
+                "paywall.premium.features.review.bullet1",
+                "paywall.premium.features.review.bullet2"
+            ],
+            icon: "chart.line.uptrend.xyaxis"
+        ),
+        FeatureGroup(
+            titleKey: "paywall.premium.features.race.title",
+            bulletKeys: [
+                "paywall.premium.features.race.bullet1",
+                "paywall.premium.features.race.bullet2"
+            ],
+            icon: "flag.checkered"
+        )
+    ]
 
     private var featuresSection: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                Color.clear.frame(maxWidth: .infinity)
-                Text(NSLocalizedString("paywall.comparison.header.free", comment: "Free"))
-                    .font(AppFont.caption())
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-                    .frame(width: freeColWidth, alignment: .center)
-                Text("Premium")
-                    .font(AppFont.caption())
-                    .fontWeight(.bold)
-                    .foregroundColor(.orange)
-                    .lineLimit(1)
-                    .frame(width: premiumColWidth, alignment: .center)
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(featureGroups.indices, id: \.self) { index in
+                let group = featureGroups[index]
+                FeatureGroupCard(group: group)
+                if index < featureGroups.count - 1 {
+                    Divider().padding(.leading, 48)
+                }
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-
-            Divider()
-            comparisonRow(NSLocalizedString("paywall.comparison.feature.run_tracking", comment: ""), free: true)
-            Divider().padding(.leading, 14)
-            comparisonRow(NSLocalizedString("paywall.comparison.feature.training_metrics", comment: ""), free: true)
-            Divider().padding(.leading, 14)
-            comparisonRow(NSLocalizedString("paywall.comparison.feature.ai_plan", comment: ""), free: false)
-            Divider().padding(.leading, 14)
-            comparisonRow(NSLocalizedString("paywall.comparison.feature.ai_advice", comment: ""), free: false)
         }
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .accessibilityIdentifier("Paywall_FeaturesSection")
-    }
-
-    private func comparisonRow(_ name: String, free: Bool) -> some View {
-        HStack(spacing: 0) {
-            Text(name)
-                .font(AppFont.caption())
-                .foregroundColor(.primary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Image(systemName: free ? "checkmark" : "minus")
-                .font(.system(size: 12, weight: .regular))
-                .foregroundColor(Color(.tertiaryLabel))
-                .frame(width: freeColWidth, alignment: .center)
-            Image(systemName: "checkmark")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(.orange)
-                .frame(width: premiumColWidth, alignment: .center)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 11)
     }
 
     // MARK: - Offerings (S05: Default + Early-bird — AC-12..17)
@@ -573,6 +579,43 @@ struct PaywallView: View {
             value,
             unitText
         )
+    }
+}
+
+// MARK: - FeatureGroupCard
+
+private struct FeatureGroupCard: View {
+    let group: FeatureGroup
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            Image(systemName: group.icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.orange)
+                .frame(width: 22, alignment: .center)
+                .padding(.top, 2)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(NSLocalizedString(group.titleKey, comment: ""))
+                    .font(AppFont.systemScaled(size: 13, weight: .semibold))
+                    .foregroundColor(.primary)
+
+                ForEach(group.bulletKeys, id: \.self) { key in
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("·")
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                        Text(NSLocalizedString(key, comment: ""))
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
     }
 }
 

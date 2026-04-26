@@ -2514,9 +2514,18 @@
 
 // Features (4 groups)
 "paywall.premium.features.plan.title" = "AI Personalized Weekly Plan";
+"paywall.premium.features.plan.bullet1" = "Smart weekly plans, periodized for your race";
+"paywall.premium.features.plan.bullet2" = "Adapts to your readiness and recovery";
+"paywall.premium.features.plan.bullet3" = "From base to taper, planned for you";
 "paywall.premium.features.adjust.title" = "Adjust Anytime";
+"paywall.premium.features.adjust.bullet1" = "Regenerate this week's plan anytime";
+"paywall.premium.features.adjust.bullet2" = "Edit a single day, AI rebalances the rest";
 "paywall.premium.features.review.title" = "AI Weekly Review";
+"paywall.premium.features.review.bullet1" = "Weekly training and load auto-summary";
+"paywall.premium.features.review.bullet2" = "AI suggestions for next week's focus";
 "paywall.premium.features.race.title" = "Race Goal Planning";
+"paywall.premium.features.race.bullet1" = "Set target races and weekly goals";
+"paywall.premium.features.race.bullet2" = "AI periodizes your entire training plan";
 "paywall.comparison.header.free" = "Free";
 "paywall.comparison.feature.run_tracking" = "Run tracking";
 "paywall.comparison.feature.training_metrics" = "Training metrics";
@@ -2550,6 +2559,16 @@
 // Disclosure (trial + standard)
 "paywall.premium.disclosure.trial" = "By tapping \"Start 30-day free trial\" you agree: your free trial lasts 30 days, after which your selected plan will auto-renew at the listed price billed to your Apple ID. Cancel at least 24 hours before the trial ends in your Apple ID settings to avoid charges. Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period. See Terms of Use and Privacy Policy.";
 "paywall.premium.disclosure.standard" = "By tapping \"Subscribe now\" you agree: your selected plan will be billed immediately to your Apple ID. Subscriptions auto-renew at the same price unless cancelled at least 24 hours before the end of the current period in your Apple ID settings. See Terms of Use and Privacy Policy.";
+
+// Inline upsell cards (x3)
+"paywall.inline.weekly_plan.title" = "Unlock your full weekly plan";
+"paywall.inline.weekly_plan.body" = "Week 1 is free. Subscribe to generate Week 2+ and re-adjust anytime";
+"paywall.inline.weekly_review.title" = "Weekly Review is a Premium feature";
+"paywall.inline.weekly_review.body" = "Get an AI-curated summary of your week's training, load, and next-week tips";
+"paywall.inline.target_race.title" = "Setting a target race is a Premium feature";
+"paywall.inline.target_race.body" = "Subscribe to set target races and weekly goals, with AI race-periodized planning";
+"paywall.inline.cta.start_trial" = "Start 30-day free trial";
+"paywall.inline.cta.restore" = "Already subscribed? Restore";
 
 "profile.subscription.redeem_offer_code" = "Redeem Offer Code";
 "profile.subscription.redeem_alert_title" = "Offer Code";

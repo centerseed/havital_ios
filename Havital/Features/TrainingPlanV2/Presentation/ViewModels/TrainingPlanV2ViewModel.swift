@@ -29,6 +29,14 @@ final class TrainingPlanV2ViewModel: TaskManageable {
     var paywallTrigger: PaywallTrigger?
     var showRizoQuotaExceededBanner: Bool = false
 
+    // S07 inline upsell state (AC-PAYWALL-22/23/26)
+    // true = show WeeklyPlanInlineUpsellCard in place of the plan content
+    var showWeeklyPlanInlineUpsell: Bool = false
+    /// Whether the inline card was triggered by a re-generation (true) or first Week 2 (false).
+    var weeklyPlanUpsellIsRegenerate: Bool = false
+    // true = show WeeklyReviewInlineUpsellCard in place of weekly review
+    var showWeeklyReviewInlineUpsell: Bool = false
+
     // MARK: - Computed Properties
 
     var isLoading: Bool {
@@ -98,7 +106,8 @@ final class TrainingPlanV2ViewModel: TaskManageable {
             onPaywallTriggered: { [weak self] trigger in self?.paywallTrigger = trigger },
             onRizoQuotaExceeded: { [weak self] in self?.showRizoQuotaExceededBanner = true },
             onNetworkError: { [weak self] error in self?.networkError = error },
-            isEnforcementEnabled: { SubscriptionStateManager.shared.isEnforcementEnabled }
+            isEnforcementEnabled: { SubscriptionStateManager.shared.isEnforcementEnabled },
+            onWeeklyReviewInlineUpsellNeeded: { [weak self] in self?.showWeeklyReviewInlineUpsell = true }
         )
 
         self.generator = WeeklyPlanGenerator(
@@ -113,7 +122,11 @@ final class TrainingPlanV2ViewModel: TaskManageable {
             },
             onSuccessToast: { [weak self] message in self?.successToast = message },
             onRizoQuotaExceeded: { [weak self] in self?.showRizoQuotaExceededBanner = true },
-            onNetworkError: { [weak self] error in self?.networkError = error }
+            onNetworkError: { [weak self] error in self?.networkError = error },
+            onWeeklyPlanInlineUpsellNeeded: { [weak self] isRegenerate in
+                self?.weeklyPlanUpsellIsRegenerate = isRegenerate
+                self?.showWeeklyPlanInlineUpsell = true
+            }
         )
     }
 

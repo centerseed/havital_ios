@@ -1127,6 +1127,10 @@ extension L10n {
         static let deviceInfo = "feedback.device_info"
         static let successTitle = "feedback.success_title"
         static let successMessage = "feedback.success_message"
+        static let contactUs = "feedback.contact_us"
+        static let contactUsHint = "feedback.contact_us_hint"
+        static let threads = "feedback.threads"
+        static let facebook = "feedback.facebook"
 
         enum FeedbackType {
             static let issue = "feedback.type.issue"

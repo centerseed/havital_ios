@@ -2540,9 +2540,18 @@
 
 // Features (4 groups)
 "paywall.premium.features.plan.title" = "AI 個人化週課表";
+"paywall.premium.features.plan.bullet1" = "智能週課表，依目標賽事週期化";
+"paywall.premium.features.plan.bullet2" = "根據體能與恢復狀態自動調整";
+"paywall.premium.features.plan.bullet3" = "從基礎期到 taper 的完整規劃";
 "paywall.premium.features.adjust.title" = "隨時調整訓練";
+"paywall.premium.features.adjust.bullet1" = "隨時重新生成本週課表";
+"paywall.premium.features.adjust.bullet2" = "修改單日訓練、AI 自動補回";
 "paywall.premium.features.review.title" = "AI 週回顧";
+"paywall.premium.features.review.bullet1" = "每週訓練表現與負荷自動摘要";
+"paywall.premium.features.review.bullet2" = "下一週訓練重點 AI 建議";
 "paywall.premium.features.race.title" = "賽事目標規劃";
+"paywall.premium.features.race.bullet1" = "建立目標賽事與週訓練目標";
+"paywall.premium.features.race.bullet2" = "AI 為你週期化整個訓練計畫";
 "paywall.comparison.header.free" = "免費";
 "paywall.comparison.feature.run_tracking" = "跑步紀錄";
 "paywall.comparison.feature.training_metrics" = "訓練相關指標";
@@ -2576,6 +2585,16 @@
 // Disclosure (trial + standard)
 "paywall.premium.disclosure.trial" = "點擊「開始 30 天免費試用」即代表你同意：免費試用期為 30 天，到期後將以所選方案價格自動續訂並從你的 Apple ID 扣款。試用期結束 24 小時前可在 Apple ID 設定中取消，避免扣款。訂閱會在每個週期結束前 24 小時自動續訂，除非你取消。詳情請參閱使用條款與隱私權政策。";
 "paywall.premium.disclosure.standard" = "點擊「立即訂閱」即代表你同意：將立即從你的 Apple ID 扣款並訂閱所選方案。訂閱會在每個週期結束前 24 小時自動續訂，除非你在當前週期結束 24 小時前於 Apple ID 設定中取消。詳情請參閱使用條款與隱私權政策。";
+
+// Inline upsell cards (x3)
+"paywall.inline.weekly_plan.title" = "解鎖完整週課表";
+"paywall.inline.weekly_plan.body" = "Week 1 是免費的。訂閱後可生成第 2 週起的個人化課表，並可隨時重新調整";
+"paywall.inline.weekly_review.title" = "AI 週回顧是 Premium 功能";
+"paywall.inline.weekly_review.body" = "由 AI 整理你本週的訓練表現、負荷與下週建議";
+"paywall.inline.target_race.title" = "設定目標賽事是 Premium 功能";
+"paywall.inline.target_race.body" = "訂閱後可建立目標賽事與週訓練目標，由 AI 為你週期化規劃";
+"paywall.inline.cta.start_trial" = "開始 30 天免費試用";
+"paywall.inline.cta.restore" = "已訂閱？恢復購買";
 
 "profile.subscription.redeem_offer_code" = "兌換優惠碼";
 "profile.subscription.redeem_alert_title" = "優惠碼";

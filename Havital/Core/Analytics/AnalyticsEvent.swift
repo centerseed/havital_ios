@@ -25,6 +25,11 @@ enum AnalyticsEvent {
 
     // MARK: Subscription
 
+    /// Fired when PaywallView becomes visible (AC-PAYWALL-28).
+    /// Every paywall sheet opening must fire this event with a valid source.
+    /// sub_source is required when source = "resubscribe"; nil for all other sources.
+    case paywallOpened(source: String, subSource: String?)
+
     /// Fired when PaywallView appears on screen.
     case paywallView(trigger: String, trialRemainingDays: Int?)
 
@@ -55,6 +60,7 @@ extension AnalyticsEvent {
         case .onboardingGarminComplete: return "onboarding_garmin_complete"
         case .onboardingTargetSet:    return "onboarding_target_set"
         case .onboardingComplete:     return "onboarding_complete"
+        case .paywallOpened:          return "paywall_opened"
         case .paywallView:            return "paywall_view"
         case .paywallTapSubscribe:    return "paywall_tap_subscribe"
         case .purchaseFail:           return "purchase_fail"
@@ -86,6 +92,11 @@ extension AnalyticsEvent {
 
         case .onboardingComplete(let durationSeconds):
             return ["duration_seconds": durationSeconds]
+
+        case .paywallOpened(let source, let subSource):
+            var params: [String: Any] = ["source": source]
+            if let sub = subSource { params["sub_source"] = sub }
+            return params
 
         case .paywallView(let trigger, let trialRemainingDays):
             var params: [String: Any] = ["trigger": trigger]

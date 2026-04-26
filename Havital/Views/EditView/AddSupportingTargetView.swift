@@ -6,6 +6,30 @@ struct AddSupportingTargetView: View {
 
     var body: some View {
         NavigationView {
+            // S07: show inline upsell card if user has no subscription (AC-PAYWALL-24)
+            // checkSubscriptionAccess() is called on onAppear so the card appears
+            // immediately when entering the screen, before the user fills the form.
+            if viewModel.showTargetRaceInlineUpsell {
+                ScrollView {
+                    TargetRaceInlineUpsellCard(
+                        onStartTrial: {
+                            dismiss()
+                            _ = InterruptCoordinator.shared.enqueue(.paywall(.targetRaceCreate))
+                        },
+                        onRestore: {
+                            Task { try? await (DependencyContainer.shared.resolve() as SubscriptionRepository).restorePurchases() }
+                        }
+                    )
+                    .padding(20)
+                }
+                .navigationTitle(L10n.EditTarget.addTitle.localized)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button(L10n.Common.cancel.localized) { dismiss() }
+                    }
+                }
+            } else {
             Form {
                 // 從資料庫選擇入口 (AC-TREDIT-01)
                 Section {
@@ -105,6 +129,10 @@ struct AddSupportingTargetView: View {
                     .disabled(viewModel.raceName.isEmpty || viewModel.isLoading)
                 }
             }
+        }
+        } // end else (non-upsell branch)
+        .onAppear {
+            viewModel.checkSubscriptionAccess()
         }
     }
 }

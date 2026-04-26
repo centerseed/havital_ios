@@ -35,7 +35,7 @@
 ## Commands
 
 ```bash
-# Build (always iPhone 17 Pro — UDID 237D67B5-E7D0-4057-A8A1-F4FEDBC6875D)
+# Build (always iPhone 17 Pro — UDID BEC21B6F-4CCF-4596-A600-ECFBE32B3FB4)
 xcodebuild clean build -project Havital.xcodeproj -scheme Havital \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 

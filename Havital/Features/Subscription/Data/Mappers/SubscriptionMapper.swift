@@ -74,6 +74,10 @@ enum SubscriptionMapper {
         case SubscriptionStatus.trial.rawValue:
             return .trial
         case "trial_active":
+            // AC-PAYWALL-29: backend 16-day trial retired. Mapping retained for backward
+            // compatibility in case old backend instances still send this value.
+            // New users no longer receive trial_active from backend.
+            // The authoritative trial source is now Apple Introductory Offer (inIntroTrial=true).
             return .trial
         case "cancelled":
             return .cancelled

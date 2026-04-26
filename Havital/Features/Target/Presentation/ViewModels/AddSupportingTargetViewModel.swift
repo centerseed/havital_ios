@@ -7,12 +7,34 @@ class AddSupportingTargetViewModel: BaseSupportingTargetViewModel {
     // MARK: - Dependencies (Clean Architecture)
     private let targetRepository: TargetRepository
 
+    // MARK: - S07 Inline Upsell State (AC-PAYWALL-24)
+    /// True when user has no premium access. Set on onAppear so the upsell card
+    /// shows immediately on screen entry, not only after tapping Save.
+    var showTargetRaceInlineUpsell: Bool = false
+
     init(targetRepository: TargetRepository = DependencyContainer.shared.resolve()) {
         self.targetRepository = targetRepository
         super.init()
     }
 
+    func checkSubscriptionAccess() {
+        let subscriptionManager = SubscriptionStateManager.shared
+        if subscriptionManager.isEnforcementEnabled,
+           !subscriptionManager.hasPremiumAccess {
+            showTargetRaceInlineUpsell = true
+            Logger.debug("[AddSupportingTargetVM] ⛔ 進入畫面：無 premium access，顯示 target_race inline upsell card")
+        }
+    }
+
     func createTarget() async -> Bool {
+        // Defense-in-depth: re-check subscription in case onAppear check was bypassed.
+        let subscriptionManager = SubscriptionStateManager.shared
+        if subscriptionManager.isEnforcementEnabled,
+           !subscriptionManager.hasPremiumAccess {
+            showTargetRaceInlineUpsell = true
+            return false
+        }
+
         isLoading = true
         error = nil
 

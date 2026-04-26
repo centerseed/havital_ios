@@ -16,6 +16,10 @@ struct TrainingPlanV2View: View {
     @State private var showFeedbackReport = false
     @State private var showWeekSelector = false
     @State private var showMessageCenter = false
+    // S07 inline upsell sheet state (AC-PAYWALL-22/23)
+    @State private var showWeeklyPlanInlineUpsellSheet = false
+    @State private var weeklyPlanUpsellIsRegenerateLocal = false
+    @State private var showWeeklyReviewInlineUpsellSheet = false
     @StateObject private var userProfileViewModel = UserProfileFeatureViewModel()
     @StateObject private var announcementViewModel = AnnouncementViewModel(
         repository: DependencyContainer.shared.resolve()
@@ -423,6 +427,81 @@ struct TrainingPlanV2View: View {
             guard let trigger else { return }
             _ = InterruptCoordinator.shared.enqueue(.paywall(trigger))
             bindableViewModel.paywallTrigger = nil
+        }
+        // S07: show inline upsell cards for weekly plan (AC-PAYWALL-22/26)
+        .onChange(of: viewModel.showWeeklyPlanInlineUpsell) { _, shouldShow in
+            if shouldShow {
+                weeklyPlanUpsellIsRegenerateLocal = viewModel.weeklyPlanUpsellIsRegenerate
+                showWeeklyPlanInlineUpsellSheet = true
+                viewModel.showWeeklyPlanInlineUpsell = false
+            }
+        }
+        // S07: show inline upsell card for weekly review (AC-PAYWALL-23)
+        .onChange(of: viewModel.showWeeklyReviewInlineUpsell) { _, shouldShow in
+            if shouldShow {
+                showWeeklyReviewInlineUpsellSheet = true
+                viewModel.showWeeklyReviewInlineUpsell = false
+            }
+        }
+        // S06: inline upsell sheet for weekly plan
+        .sheet(isPresented: $showWeeklyPlanInlineUpsellSheet) {
+            NavigationStack {
+                ScrollView {
+                    WeeklyPlanInlineUpsellCard(
+                        isRegenerate: weeklyPlanUpsellIsRegenerateLocal,
+                        onStartTrial: {
+                            showWeeklyPlanInlineUpsellSheet = false
+                            let trigger: PaywallTrigger = weeklyPlanUpsellIsRegenerateLocal
+                                ? .weeklyPlanRegenerate
+                                : .weeklyPlanWeek2
+                            _ = InterruptCoordinator.shared.enqueue(.paywall(trigger))
+                        },
+                        onRestore: {
+                            showWeeklyPlanInlineUpsellSheet = false
+                            Task { try? await (DependencyContainer.shared.resolve() as SubscriptionRepository).restorePurchases() }
+                        }
+                    )
+                    .padding(20)
+                }
+                .navigationTitle(NSLocalizedString("paywall.inline.weekly_plan.title", comment: ""))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(NSLocalizedString("common.close", comment: "Close")) {
+                            showWeeklyPlanInlineUpsellSheet = false
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.medium])
+        }
+        // S06: inline upsell sheet for weekly review
+        .sheet(isPresented: $showWeeklyReviewInlineUpsellSheet) {
+            NavigationStack {
+                ScrollView {
+                    WeeklyReviewInlineUpsellCard(
+                        onStartTrial: {
+                            showWeeklyReviewInlineUpsellSheet = false
+                            _ = InterruptCoordinator.shared.enqueue(.paywall(.weeklyReview))
+                        },
+                        onRestore: {
+                            showWeeklyReviewInlineUpsellSheet = false
+                            Task { try? await (DependencyContainer.shared.resolve() as SubscriptionRepository).restorePurchases() }
+                        }
+                    )
+                    .padding(20)
+                }
+                .navigationTitle(NSLocalizedString("paywall.inline.weekly_review.title", comment: ""))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(NSLocalizedString("common.close", comment: "Close")) {
+                            showWeeklyReviewInlineUpsellSheet = false
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.medium])
         }
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }

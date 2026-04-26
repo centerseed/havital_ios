@@ -29,6 +29,21 @@ final class SubscriptionStateManager: ObservableObject {
         currentStatus?.enforcementEnabled ?? false
     }
 
+    /// Whether the user has access to premium features (subscribed or in Apple intro trial).
+    /// Used by S07 gating: if true, do NOT show inline upsell card.
+    /// AC-PAYWALL-27: subscribers and trial users proceed without gating.
+    var hasPremiumAccess: Bool {
+        guard let status = currentStatus else { return false }
+        // Apple intro trial also counts as premium access
+        if status.inIntroTrial == true { return true }
+        switch status.status {
+        case .active, .trial, .gracePeriod, .cancelled:
+            return true
+        case .expired, .none:
+            return false
+        }
+    }
+
     func update(_ status: SubscriptionStatusEntity) {
         if let previous = currentStatus {
             guard status != previous else { return }

@@ -2511,9 +2511,18 @@
 
 // Features (4 groups)
 "paywall.premium.features.plan.title" = "AIパーソナル週間プラン";
+"paywall.premium.features.plan.bullet1" = "目標レースに合わせた週期化スマートプラン";
+"paywall.premium.features.plan.bullet2" = "体力とリカバリーに応じて自動調整";
+"paywall.premium.features.plan.bullet3" = "ベース期からテーパーまでの完全プラン";
 "paywall.premium.features.adjust.title" = "いつでも調整";
+"paywall.premium.features.adjust.bullet1" = "今週のプランをいつでも再生成";
+"paywall.premium.features.adjust.bullet2" = "1日を編集、AIが残りを再調整";
 "paywall.premium.features.review.title" = "AI週次レビュー";
+"paywall.premium.features.review.bullet1" = "週ごとのトレーニングと負荷を自動要約";
+"paywall.premium.features.review.bullet2" = "来週のフォーカスをAIが提案";
 "paywall.premium.features.race.title" = "レース目標プラン";
+"paywall.premium.features.race.bullet1" = "目標レースと週目標を設定";
+"paywall.premium.features.race.bullet2" = "AIがトレーニング全体を週期化";
 "paywall.comparison.header.free" = "無料";
 "paywall.comparison.feature.run_tracking" = "ランニング記録";
 "paywall.comparison.feature.training_metrics" = "トレーニング指標";
@@ -2547,6 +2556,16 @@
 // Disclosure (trial + standard)
 "paywall.premium.disclosure.trial" = "「30日間の無料体験を開始」をタップすることで、以下に同意したものとみなされます：無料体験期間は30日間です。期間終了後、選択したプランは自動的に更新され、Apple IDに記載の価格で課金されます。課金を回避するには、トライアル終了の24時間前までにApple IDの設定からキャンセルしてください。各更新期間終了の24時間前までに解約しない限り、サブスクリプションは自動更新されます。詳細は利用規約とプライバシーポリシーをご覧ください。";
 "paywall.premium.disclosure.standard" = "「今すぐ登録」をタップすることで、以下に同意したものとみなされます：選択したプランはApple IDから即時に課金されます。各更新期間終了の24時間前までにApple IDの設定で解約しない限り、サブスクリプションは同じ価格で自動更新されます。詳細は利用規約とプライバシーポリシーをご覧ください。";
+
+// Inline upsell cards (x3)
+"paywall.inline.weekly_plan.title" = "週間プランを全て解放";
+"paywall.inline.weekly_plan.body" = "第1週は無料。サブスク登録で第2週以降の生成と再調整が可能";
+"paywall.inline.weekly_review.title" = "週次レビューはPremium機能";
+"paywall.inline.weekly_review.body" = "今週のトレーニングと負荷をAIが整理、来週の提案も";
+"paywall.inline.target_race.title" = "目標レース設定はPremium機能";
+"paywall.inline.target_race.body" = "サブスク登録で目標レースと週目標を設定、AIが週期化プランを作成";
+"paywall.inline.cta.start_trial" = "30日間の無料体験を開始";
+"paywall.inline.cta.restore" = "登録済み？復元する";
 
 "profile.subscription.redeem_offer_code" = "オファーコードを利用";
 "profile.subscription.redeem_alert_title" = "オファーコード";

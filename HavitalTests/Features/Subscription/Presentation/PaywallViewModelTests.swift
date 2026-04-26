@@ -177,16 +177,36 @@ final class PaywallViewModelTests: XCTestCase {
     }
 
     func testTrackPaywallView_EmitsTriggerWithoutOfferType() {
+        // AC-PAYWALL-28: trackPaywallView() now fires TWO events:
+        //   [0] paywallOpened(source:subSource:) — new, required by AC-PAYWALL-28
+        //   [1] paywallView(trigger:trialRemainingDays:) — legacy, retained for backward compat
+        // Updated by QA 2026-04-26 after paywall rewrite (S08).
         SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none))
 
         sut.trackPaywallView()
 
-        XCTAssertEqual(analyticsService.trackedEvents.count, 1)
-        if case .paywallView(let trigger, let trialRemainingDays) = analyticsService.trackedEvents[0] {
-            XCTAssertEqual(trigger, "api_gated")
+        XCTAssertEqual(analyticsService.trackedEvents.count, 2,
+                       "trackPaywallView must fire paywallOpened (AC-PAYWALL-28) + paywallView (legacy)")
+
+        // Verify paywallOpened event at index 0 (AC-PAYWALL-28)
+        // Note: .apiGated is a legacy trigger; its paywallSource maps to .weeklyPlanWeek2 ("weekly_plan_week2")
+        // per PaywallTrigger.paywallSource fallback logic.
+        if case .paywallOpened(let source, let subSource) = analyticsService.trackedEvents[0] {
+            XCTAssertEqual(source, "weekly_plan_week2",
+                           "paywallOpened source for .apiGated legacy trigger maps to weekly_plan_week2")
+            XCTAssertNil(subSource, "subSource must be nil for non-resubscribe trigger")
+        } else {
+            XCTFail("Expected paywallOpened event at index 0")
+        }
+
+        // Verify legacy paywallView event at index 1
+        // Note: .paywallView uses trigger.analyticsString which also maps to "weekly_plan_week2" for .apiGated
+        if case .paywallView(let trigger, let trialRemainingDays) = analyticsService.trackedEvents[1] {
+            XCTAssertEqual(trigger, "weekly_plan_week2",
+                           "legacy paywallView trigger for .apiGated maps to weekly_plan_week2")
             XCTAssertNil(trialRemainingDays)
         } else {
-            XCTFail("Expected paywallView event")
+            XCTFail("Expected paywallView event at index 1")
         }
     }
 

@@ -47,6 +47,8 @@ final class WeeklySummaryCoordinator {
     @ObservationIgnored private let onRizoQuotaExceeded: () -> Void
     @ObservationIgnored private let onNetworkError: (Error) -> Void
     @ObservationIgnored private let isEnforcementEnabled: () -> Bool
+    /// S07 (AC-PAYWALL-23): called when weekly review is triggered without a subscription.
+    @ObservationIgnored private let onWeeklyReviewInlineUpsellNeeded: (() -> Void)?
 
     // MARK: - Init
 
@@ -62,7 +64,8 @@ final class WeeklySummaryCoordinator {
         onPaywallTriggered: @escaping (PaywallTrigger) -> Void,
         onRizoQuotaExceeded: @escaping () -> Void,
         onNetworkError: @escaping (Error) -> Void,
-        isEnforcementEnabled: @escaping () -> Bool
+        isEnforcementEnabled: @escaping () -> Bool,
+        onWeeklyReviewInlineUpsellNeeded: (() -> Void)? = nil
     ) {
         self.repository = repository
         self.currentSelectedWeek = currentSelectedWeek
@@ -76,6 +79,7 @@ final class WeeklySummaryCoordinator {
         self.onRizoQuotaExceeded = onRizoQuotaExceeded
         self.onNetworkError = onNetworkError
         self.isEnforcementEnabled = isEnforcementEnabled
+        self.onWeeklyReviewInlineUpsellNeeded = onWeeklyReviewInlineUpsellNeeded
     }
 
     // MARK: - Adjustment Selection State
@@ -141,6 +145,14 @@ final class WeeklySummaryCoordinator {
         let selectedWeek = currentSelectedWeek()
         Logger.debug("[WeeklySummaryCoordinator] 產生第 \(selectedWeek) 週摘要...")
 
+        // S07 gating: check subscription before executing (AC-PAYWALL-23/27)
+        if isEnforcementEnabled(),
+           !SubscriptionStateManager.shared.hasPremiumAccess {
+            onWeeklyReviewInlineUpsellNeeded?()
+            Logger.debug("[WeeklySummaryCoordinator] ⛔ 週回顧被 gate：顯示 weekly_review inline upsell card")
+            return
+        }
+
         lastRequestedSummaryWeek = selectedWeek
         weeklySummary = .loading
 
@@ -179,6 +191,14 @@ final class WeeklySummaryCoordinator {
     /// Week 2+ 必須先產生 summary，才能產生下週課表
     func createWeeklySummaryAndShow(week: Int) async {
         Logger.debug("[WeeklySummaryCoordinator] 產生第 \(week) 週摘要並顯示...")
+
+        // S07 gating: check subscription before executing (AC-PAYWALL-23/27)
+        if isEnforcementEnabled(),
+           !SubscriptionStateManager.shared.hasPremiumAccess {
+            onWeeklyReviewInlineUpsellNeeded?()
+            Logger.debug("[WeeklySummaryCoordinator] ⛔ 週回顧 sheet 被 gate：顯示 weekly_review inline upsell card")
+            return
+        }
 
         lastRequestedSummaryWeek = week
         isGeneratingSummary = true
