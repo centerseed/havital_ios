@@ -1525,6 +1525,10 @@
 "feedback.error.description_required" = "説明が必要です";
 "feedback.success_title" = "成功";
 "feedback.success_message" = "フィードバックをありがとうございます！";
+"feedback.contact_us" = "お問い合わせ";
+"feedback.contact_us_hint" = "すぐにサポートが必要な場合は、以下のチャンネルでご連絡ください";
+"feedback.threads" = "公式 Threads アカウント";
+"feedback.facebook" = "Facebook ファンページ";
 
 // MARK: - Contact
 "contact.paceriz" = "Pacerizに連絡";
@@ -2507,18 +2511,14 @@
 
 // Features (4 groups)
 "paywall.premium.features.plan.title" = "AIパーソナル週間プラン";
-"paywall.premium.features.plan.bullet1" = "目標レースに合わせた週期化スマートプラン";
-"paywall.premium.features.plan.bullet2" = "体力とリカバリーに応じて自動調整";
-"paywall.premium.features.plan.bullet3" = "ベース期からテーパーまでの完全プラン";
 "paywall.premium.features.adjust.title" = "いつでも調整";
-"paywall.premium.features.adjust.bullet1" = "今週のプランをいつでも再生成";
-"paywall.premium.features.adjust.bullet2" = "1日を編集、AIが残りを再調整";
 "paywall.premium.features.review.title" = "AI週次レビュー";
-"paywall.premium.features.review.bullet1" = "週ごとのトレーニングと負荷を自動要約";
-"paywall.premium.features.review.bullet2" = "来週のフォーカスをAIが提案";
 "paywall.premium.features.race.title" = "レース目標プラン";
-"paywall.premium.features.race.bullet1" = "目標レースと週目標を設定";
-"paywall.premium.features.race.bullet2" = "AIがトレーニング全体を週期化";
+"paywall.comparison.header.free" = "無料";
+"paywall.comparison.feature.run_tracking" = "ランニング記録";
+"paywall.comparison.feature.training_metrics" = "トレーニング指標";
+"paywall.comparison.feature.ai_plan" = "AIトレーニングプラン";
+"paywall.comparison.feature.ai_advice" = "AIトレーニングアドバイス";
 
 // Pricing section labels
 "paywall.premium.section.default.title" = "スタンダードプラン";
@@ -2535,7 +2535,7 @@
 "paywall.premium.plan.no_trial_format" = "即時課金、トライアルなし";
 
 // CTA buttons
-"paywall.premium.cta.start_trial" = "30日間の無料体験を開始";
+"paywall.premium.cta.start_trial" = "30日間無料体験";
 "paywall.premium.cta.subscribe_now" = "今すぐ登録";
 "paywall.premium.cta.resubscribe" = "再登録";
 "paywall.premium.cta.change_plan" = "このプランに変更";

@@ -1526,6 +1526,10 @@
 "feedback.error.description_required" = "Description is required";
 "feedback.success_title" = "Success";
 "feedback.success_message" = "Thank you for your feedback!";
+"feedback.contact_us" = "Contact Us";
+"feedback.contact_us_hint" = "For immediate support, contact us through these channels";
+"feedback.threads" = "Official Threads Account";
+"feedback.facebook" = "Facebook Fan Page";
 
 // MARK: - Contact
 "contact.paceriz" = "Contact Paceriz";
@@ -2510,18 +2514,14 @@
 
 // Features (4 groups)
 "paywall.premium.features.plan.title" = "AI Personalized Weekly Plan";
-"paywall.premium.features.plan.bullet1" = "Smart weekly plans, periodized for your race";
-"paywall.premium.features.plan.bullet2" = "Adapts to your readiness and recovery";
-"paywall.premium.features.plan.bullet3" = "From base to taper, planned for you";
 "paywall.premium.features.adjust.title" = "Adjust Anytime";
-"paywall.premium.features.adjust.bullet1" = "Regenerate this week's plan anytime";
-"paywall.premium.features.adjust.bullet2" = "Edit a single day, AI rebalances the rest";
 "paywall.premium.features.review.title" = "AI Weekly Review";
-"paywall.premium.features.review.bullet1" = "Weekly training and load auto-summary";
-"paywall.premium.features.review.bullet2" = "AI suggestions for next week's focus";
 "paywall.premium.features.race.title" = "Race Goal Planning";
-"paywall.premium.features.race.bullet1" = "Set target races and weekly goals";
-"paywall.premium.features.race.bullet2" = "AI periodizes your entire training plan";
+"paywall.comparison.header.free" = "Free";
+"paywall.comparison.feature.run_tracking" = "Run tracking";
+"paywall.comparison.feature.training_metrics" = "Training metrics";
+"paywall.comparison.feature.ai_plan" = "AI training plan";
+"paywall.comparison.feature.ai_advice" = "AI training advice";
 
 // Pricing section labels
 "paywall.premium.section.default.title" = "Standard Plans";
@@ -2538,7 +2538,7 @@
 "paywall.premium.plan.no_trial_format" = "Charged immediately, no trial";
 
 // CTA buttons
-"paywall.premium.cta.start_trial" = "Start 30-day free trial";
+"paywall.premium.cta.start_trial" = "Try free 30 days";
 "paywall.premium.cta.subscribe_now" = "Subscribe now";
 "paywall.premium.cta.resubscribe" = "Resubscribe";
 "paywall.premium.cta.change_plan" = "Switch to this plan";

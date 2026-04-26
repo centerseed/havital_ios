@@ -237,41 +237,61 @@ struct PaywallView: View {
         }
     }
 
-    // MARK: - Features (S03: 4 groups — AC-10/11)
+    // MARK: - Features comparison table (free vs premium)
+
+    private let freeColWidth: CGFloat = 48
+    private let premiumColWidth: CGFloat = 72
 
     private var featuresSection: some View {
-        VStack(spacing: 12) {
-            FeatureGroupCard(
-                title: NSLocalizedString("paywall.premium.features.plan.title", comment: ""),
-                bullets: [
-                    NSLocalizedString("paywall.premium.features.plan.bullet1", comment: ""),
-                    NSLocalizedString("paywall.premium.features.plan.bullet2", comment: ""),
-                    NSLocalizedString("paywall.premium.features.plan.bullet3", comment: "")
-                ]
-            )
-            FeatureGroupCard(
-                title: NSLocalizedString("paywall.premium.features.adjust.title", comment: ""),
-                bullets: [
-                    NSLocalizedString("paywall.premium.features.adjust.bullet1", comment: ""),
-                    NSLocalizedString("paywall.premium.features.adjust.bullet2", comment: "")
-                ]
-            )
-            FeatureGroupCard(
-                title: NSLocalizedString("paywall.premium.features.review.title", comment: ""),
-                bullets: [
-                    NSLocalizedString("paywall.premium.features.review.bullet1", comment: ""),
-                    NSLocalizedString("paywall.premium.features.review.bullet2", comment: "")
-                ]
-            )
-            FeatureGroupCard(
-                title: NSLocalizedString("paywall.premium.features.race.title", comment: ""),
-                bullets: [
-                    NSLocalizedString("paywall.premium.features.race.bullet1", comment: ""),
-                    NSLocalizedString("paywall.premium.features.race.bullet2", comment: "")
-                ]
-            )
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                Color.clear.frame(maxWidth: .infinity)
+                Text(NSLocalizedString("paywall.comparison.header.free", comment: "Free"))
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .frame(width: freeColWidth, alignment: .center)
+                Text("Premium")
+                    .font(AppFont.caption())
+                    .fontWeight(.bold)
+                    .foregroundColor(.orange)
+                    .lineLimit(1)
+                    .frame(width: premiumColWidth, alignment: .center)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+
+            Divider()
+            comparisonRow(NSLocalizedString("paywall.comparison.feature.run_tracking", comment: ""), free: true)
+            Divider().padding(.leading, 14)
+            comparisonRow(NSLocalizedString("paywall.comparison.feature.training_metrics", comment: ""), free: true)
+            Divider().padding(.leading, 14)
+            comparisonRow(NSLocalizedString("paywall.comparison.feature.ai_plan", comment: ""), free: false)
+            Divider().padding(.leading, 14)
+            comparisonRow(NSLocalizedString("paywall.comparison.feature.ai_advice", comment: ""), free: false)
         }
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
         .accessibilityIdentifier("Paywall_FeaturesSection")
+    }
+
+    private func comparisonRow(_ name: String, free: Bool) -> some View {
+        HStack(spacing: 0) {
+            Text(name)
+                .font(AppFont.caption())
+                .foregroundColor(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: free ? "checkmark" : "minus")
+                .font(.system(size: 12, weight: .regular))
+                .foregroundColor(Color(.tertiaryLabel))
+                .frame(width: freeColWidth, alignment: .center)
+            Image(systemName: "checkmark")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.orange)
+                .frame(width: premiumColWidth, alignment: .center)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
     }
 
     // MARK: - Offerings (S05: Default + Early-bird — AC-12..17)
@@ -284,15 +304,15 @@ struct PaywallView: View {
 
         case .loaded(let offerings):
             VStack(spacing: 24) {
-                // Default section — always shown (AC-12)
-                defaultSection()
-                    .accessibilityIdentifier("Paywall_DefaultSection")
-
-                // Early-bird section — shown only when eligible (AC-15)
+                // Early-bird section — shown first when eligible (AC-15)
                 if viewModel.shouldShowEarlyBirdSection {
                     earlyBirdSection(offerings: offerings)
                         .accessibilityIdentifier("Paywall_EarlyBirdSection")
                 }
+
+                // Default section — always shown (AC-12)
+                defaultSection()
+                    .accessibilityIdentifier("Paywall_DefaultSection")
             }
 
         case .error:
@@ -556,41 +576,6 @@ struct PaywallView: View {
     }
 }
 
-// MARK: - FeatureGroupCard (S03)
-
-private struct FeatureGroupCard: View {
-    let title: String
-    let bullets: [String]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(AppFont.systemScaled(size: 15, weight: .semibold, design: .rounded))
-                .foregroundColor(.primary)
-
-            VStack(alignment: .leading, spacing: 4) {
-                ForEach(bullets, id: \.self) { bullet in
-                    HStack(alignment: .top, spacing: 8) {
-                        Text("✓")
-                            .font(AppFont.caption())
-                            .foregroundColor(.orange)
-                            .frame(width: 16)
-                        Text(bullet)
-                            .font(AppFont.caption())
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-    }
-}
-
 // MARK: - YearlyCard
 
 private struct YearlyCard: View {
@@ -660,20 +645,23 @@ private struct YearlyCard: View {
                             .font(AppFont.caption())
                             .foregroundColor(.white.opacity(0.85))
 
-                        Text(NSLocalizedString("paywall.plan.yearly_note", comment: "年繳方案說明"))
-                            .font(AppFont.caption())
-                            .foregroundColor(.white.opacity(0.75))
+                        if displayPackage.isEarlyBird {
+                            Text(NSLocalizedString("paywall.section.early_bird.lock_forever_subtitle", comment: ""))
+                                .font(AppFont.caption())
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                        }
                     }
                     Spacer()
                     if case .purchasing = purchaseState, isFocused {
                         ProgressView().tint(.white)
                     } else {
                         Text(actionTitle)
-                            .font(AppFont.caption())
+                            .font(AppFont.caption2())
                             .fontWeight(.bold)
                             .foregroundColor(Color(red: 0.95, green: 0.42, blue: 0.0))
                             .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
+                            .padding(.vertical, 7)
                             .background(.white)
                             .clipShape(Capsule())
                     }

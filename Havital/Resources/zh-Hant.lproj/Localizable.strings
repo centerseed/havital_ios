@@ -1585,6 +1585,10 @@
 "feedback.error.description_required" = "請輸入描述內容";
 "feedback.success_title" = "提交成功";
 "feedback.success_message" = "感謝您的回報！";
+"feedback.contact_us" = "聯絡我們";
+"feedback.contact_us_hint" = "如需即時協助，歡迎透過以下管道聯絡我們";
+"feedback.threads" = "Threads 官方帳號";
+"feedback.facebook" = "Facebook 粉絲團";
 
 // MARK: - Contact
 "contact.paceriz" = "聯絡 Paceriz";
@@ -2536,18 +2540,14 @@
 
 // Features (4 groups)
 "paywall.premium.features.plan.title" = "AI 個人化週課表";
-"paywall.premium.features.plan.bullet1" = "智能週課表，依目標賽事週期化";
-"paywall.premium.features.plan.bullet2" = "根據體能與恢復狀態自動調整";
-"paywall.premium.features.plan.bullet3" = "從基礎期到 taper 的完整規劃";
 "paywall.premium.features.adjust.title" = "隨時調整訓練";
-"paywall.premium.features.adjust.bullet1" = "隨時重新生成本週課表";
-"paywall.premium.features.adjust.bullet2" = "修改單日訓練、AI 自動補回";
 "paywall.premium.features.review.title" = "AI 週回顧";
-"paywall.premium.features.review.bullet1" = "每週訓練表現與負荷自動摘要";
-"paywall.premium.features.review.bullet2" = "下一週訓練重點 AI 建議";
 "paywall.premium.features.race.title" = "賽事目標規劃";
-"paywall.premium.features.race.bullet1" = "建立目標賽事與週訓練目標";
-"paywall.premium.features.race.bullet2" = "AI 為你週期化整個訓練計畫";
+"paywall.comparison.header.free" = "免費";
+"paywall.comparison.feature.run_tracking" = "跑步紀錄";
+"paywall.comparison.feature.training_metrics" = "訓練相關指標";
+"paywall.comparison.feature.ai_plan" = "AI 課表訓練流程";
+"paywall.comparison.feature.ai_advice" = "AI 訓練建議";
 
 // Pricing section labels
 "paywall.premium.section.default.title" = "標準方案";
@@ -2564,7 +2564,7 @@
 "paywall.premium.plan.no_trial_format" = "立即扣款，無試用期";
 
 // CTA buttons
-"paywall.premium.cta.start_trial" = "開始 30 天免費試用";
+"paywall.premium.cta.start_trial" = "免費試用 30 天";
 "paywall.premium.cta.subscribe_now" = "立即訂閱";
 "paywall.premium.cta.resubscribe" = "重新訂閱";
 "paywall.premium.cta.change_plan" = "變更為此方案";

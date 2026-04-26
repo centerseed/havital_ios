@@ -1,9 +1,5 @@
 import SwiftUI
 
-// MARK: - PaywallTrialTimelineView
-/// Horizontal 3-step trial timeline shown on the paywall when a Yearly card is focused
-/// and the user is not currently in an Apple intro offer trial.
-/// AC-PAYWALL-07: displayed above Features section when any Yearly card is focused.
 struct PaywallTrialTimelineView: View {
 
     private struct TimelineStep {
@@ -29,40 +25,40 @@ struct PaywallTrialTimelineView: View {
     }
 
     var body: some View {
-        VStack(spacing: 8) {
-            // Connector row: dots with lines between them
-            HStack(spacing: 0) {
-                ForEach(steps.indices, id: \.self) { index in
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(steps.indices, id: \.self) { index in
+                // Step row: dot + text side by side
+                HStack(alignment: .top, spacing: 12) {
                     Circle()
                         .fill(Color.orange)
-                        .frame(width: 10, height: 10)
+                        .frame(width: 8, height: 8)
+                        .padding(.top, 3)
+                        .frame(width: 8)
 
-                    if index < steps.count - 1 {
-                        Rectangle()
-                            .fill(Color.orange.opacity(0.4))
-                            .frame(height: 2)
-                    }
-                }
-            }
-
-            // Labels row
-            HStack(alignment: .top, spacing: 0) {
-                ForEach(steps.indices, id: \.self) { index in
                     VStack(alignment: .leading, spacing: 2) {
                         Text(steps[index].label)
                             .font(AppFont.systemScaled(size: 12, weight: .bold))
                             .foregroundColor(.orange)
-
                         Text(steps[index].desc)
                             .font(AppFont.caption2())
                             .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
+
+                // Connector between steps — separate element, fixed height
+                if index < steps.count - 1 {
+                    HStack(spacing: 12) {
+                        Rectangle()
+                            .fill(Color.orange.opacity(0.35))
+                            .frame(width: 2, height: 10)
+                            .frame(width: 8)
+                        Spacer()
+                    }
+                }
             }
         }
-        .padding(.horizontal, 4)
+        .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .background(Color.orange.opacity(0.05))
         .clipShape(RoundedRectangle(cornerRadius: 10))
