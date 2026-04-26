@@ -2424,7 +2424,7 @@
 "paywall.header.trial_expired" = "トライアル期間が終了しました";
 "paywall.header.feature_locked" = "アップグレードして全機能を解放";
 "paywall.header.resubscribe" = "再購読";
-"paywall.header.change_plan" = "プラン変更";
+"paywall.header.change_plan" = "Paceriz Premium";
 "paywall.purchase_success_title" = "購入完了！";
 "paywall.purchase_success_start" = "使い始める";
 "paywall.purchase_success_trial_note" = "有料プランはトライアル終了後に適用されます";
@@ -2442,12 +2442,14 @@
 "paywall.feature.analytics" = "高度なランニング分析とインサイト";
 "paywall.feature.customization" = "無制限のスケジュールカスタマイズ";
 "paywall.badge.best_value" = "お得";
+"paywall.badge.early_bird" = "早割限定";
 "paywall.plan.yearly_note" = "年額請求";
 "paywall.plan.original_price" = "通常価格 %@";
 "paywall.plan.savings" = "%@ お得（%d%%）";
 "paywall.offer.badge_official" = "公式オファー";
+"paywall.offer.badge_early_bird" = "早割プラン";
+"paywall.accessibility.original_price" = "通常価格 %@";
 "paywall.offer.free" = "無料";
-"paywall.offer.discount_percent" = "公式割引 %d%%";
 "paywall.offer.ends_on" = "本日開始した場合、%@ まで";
 "paywall.offer.intro_free_trial" = "%@ の無料トライアル";
 "paywall.offer.intro_pay_as_you_go" = "初回オファー %@ / %@";
@@ -2479,6 +2481,73 @@
 "paywall.offer_code_identity_sync_failed" = "現在、サブスクリプションの本人確認ができません。しばらくしてから再度お試しください。";
 "paywall.offer_code_scene_unavailable" = "現在、Apple のオファーコード入力画面を開けません。しばらくしてから再度お試しください。";
 "paywall.purchase_cancelled_retry" = "Appleアカウントへのサインインは完了しました。購入を完了するには、もう一度プランをタップしてください。";
+"paywall.section.early_bird.title" = "アーリーバード";
+"paywall.section.early_bird.badge_limited_time" = "期間限定";
+"paywall.section.early_bird.lock_forever_subtitle" = "ご登録後、この価格でずっとご利用いただけます";
+"paywall.section.default.title" = "通常プラン";
+
+// MARK: - Paywall Premium (SPEC-paywall-rewrite)
+"paywall.premium.nav_title" = "Paceriz Premium";
+
+// Hero (state-aware)
+"paywall.premium.hero.default.title" = "AIコーチと次のPBへ";
+"paywall.premium.hero.default.subtitle" = "AIコーチがあなたの毎週のトレーニングを目標に合わせます";
+"paywall.premium.hero.resubscribe.title" = "おかえりなさい。トレーニングを続けましょう";
+"paywall.premium.hero.resubscribe.subtitle" = "再登録してすべてのAI機能を利用";
+"paywall.premium.hero.change.title" = "プラン変更";
+"paywall.premium.hero.change.subtitle" = "月額・年額の切替はいつでも可能";
+
+// Trial Timeline (3 steps)
+"paywall.premium.timeline.step1.label" = "今日";
+"paywall.premium.timeline.step1.desc" = "全機能をすぐに利用";
+"paywall.premium.timeline.step2.label" = "28日目";
+"paywall.premium.timeline.step2.desc" = "課金2日前にお知らせ";
+"paywall.premium.timeline.step3.label" = "30日目";
+"paywall.premium.timeline.step3.desc" = "サブスク開始（いつでも解約可能）";
+
+// Features (4 groups)
+"paywall.premium.features.plan.title" = "AIパーソナル週間プラン";
+"paywall.premium.features.plan.bullet1" = "目標レースに合わせた週期化スマートプラン";
+"paywall.premium.features.plan.bullet2" = "体力とリカバリーに応じて自動調整";
+"paywall.premium.features.plan.bullet3" = "ベース期からテーパーまでの完全プラン";
+"paywall.premium.features.adjust.title" = "いつでも調整";
+"paywall.premium.features.adjust.bullet1" = "今週のプランをいつでも再生成";
+"paywall.premium.features.adjust.bullet2" = "1日を編集、AIが残りを再調整";
+"paywall.premium.features.review.title" = "AI週次レビュー";
+"paywall.premium.features.review.bullet1" = "週ごとのトレーニングと負荷を自動要約";
+"paywall.premium.features.review.bullet2" = "来週のフォーカスをAIが提案";
+"paywall.premium.features.race.title" = "レース目標プラン";
+"paywall.premium.features.race.bullet1" = "目標レースと週目標を設定";
+"paywall.premium.features.race.bullet2" = "AIがトレーニング全体を週期化";
+
+// Pricing section labels
+"paywall.premium.section.default.title" = "スタンダードプラン";
+"paywall.premium.section.default.subtitle" = "30日間無料体験。いつでも解約可能";
+"paywall.premium.section.earlybird.title" = "アーリーバード";
+"paywall.premium.section.earlybird.subtitle" = "上場前価格、30日間無料体験付き";
+
+// Plan card labels
+"paywall.premium.plan.annual.label" = "年額";
+"paywall.premium.plan.annual.badge_recommended" = "おすすめ";
+"paywall.premium.plan.annual.savings_format" = "年額で%@%%お得";
+"paywall.premium.plan.monthly.label" = "月額";
+"paywall.premium.plan.trial_format" = "%@日間無料、その後課金";
+"paywall.premium.plan.no_trial_format" = "即時課金、トライアルなし";
+
+// CTA buttons
+"paywall.premium.cta.start_trial" = "30日間の無料体験を開始";
+"paywall.premium.cta.subscribe_now" = "今すぐ登録";
+"paywall.premium.cta.resubscribe" = "再登録";
+"paywall.premium.cta.change_plan" = "このプランに変更";
+
+// Trial Banner
+"paywall.premium.trial_banner.format" = "トライアル中 — 残り%@日";
+"paywall.premium.trial_banner.subtitle" = "トライアル後自動更新。いつでも解約可能";
+
+// Disclosure (trial + standard)
+"paywall.premium.disclosure.trial" = "「30日間の無料体験を開始」をタップすることで、以下に同意したものとみなされます：無料体験期間は30日間です。期間終了後、選択したプランは自動的に更新され、Apple IDに記載の価格で課金されます。課金を回避するには、トライアル終了の24時間前までにApple IDの設定からキャンセルしてください。各更新期間終了の24時間前までに解約しない限り、サブスクリプションは自動更新されます。詳細は利用規約とプライバシーポリシーをご覧ください。";
+"paywall.premium.disclosure.standard" = "「今すぐ登録」をタップすることで、以下に同意したものとみなされます：選択したプランはApple IDから即時に課金されます。各更新期間終了の24時間前までにApple IDの設定で解約しない限り、サブスクリプションは同じ価格で自動更新されます。詳細は利用規約とプライバシーポリシーをご覧ください。";
+
 "profile.subscription.redeem_offer_code" = "オファーコードを利用";
 "profile.subscription.redeem_alert_title" = "オファーコード";
 "profile.subscription.redeem_success" = "オファーコードを利用しました。購読状態を更新しました。";

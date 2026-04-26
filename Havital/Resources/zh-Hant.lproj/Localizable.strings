@@ -2453,7 +2453,7 @@
 "paywall.header.trial_expired" = "試用期已結束";
 "paywall.header.feature_locked" = "升級以解鎖完整功能";
 "paywall.header.resubscribe" = "重新訂閱";
-"paywall.header.change_plan" = "變更方案";
+"paywall.header.change_plan" = "Paceriz Premium";
 "paywall.purchase_success_title" = "購買成功！";
 "paywall.purchase_success_start" = "開始使用";
 "paywall.purchase_success_trial_note" = "付費方案將在試用結束後啟用";
@@ -2471,12 +2471,14 @@
 "paywall.feature.analytics" = "進階跑步分析與洞察";
 "paywall.feature.customization" = "無限調整與客製化課表";
 "paywall.badge.best_value" = "最超值";
+"paywall.badge.early_bird" = "早鳥限定";
 "paywall.plan.yearly_note" = "年繳方案，平均每月計費";
 "paywall.plan.original_price" = "原價 %@";
 "paywall.plan.savings" = "現省 %@（%d%%）";
 "paywall.offer.badge_official" = "官方優惠";
+"paywall.offer.badge_early_bird" = "早鳥方案";
+"paywall.accessibility.original_price" = "原定價 %@";
 "paywall.offer.free" = "免費";
-"paywall.offer.discount_percent" = "官方折扣 %d%%";
 "paywall.offer.ends_on" = "若今天開始，優惠至 %@";
 "paywall.offer.intro_free_trial" = "官方體驗優惠：%@ 免費試用";
 "paywall.offer.intro_pay_as_you_go" = "官方首購優惠：%@ / %@";
@@ -2508,6 +2510,73 @@
 "paywall.offer_code_identity_sync_failed" = "目前無法確認你的訂閱身份，請稍後再試。";
 "paywall.offer_code_scene_unavailable" = "目前無法開啟 Apple 優惠碼兌換視窗，請稍後再試。";
 "paywall.purchase_cancelled_retry" = "已完成 Apple 帳號登入，請再點一次方案完成購買。";
+"paywall.section.early_bird.title" = "超早鳥方案";
+"paywall.section.early_bird.badge_limited_time" = "期間限定";
+"paywall.section.early_bird.lock_forever_subtitle" = "訂閱後永久鎖定優惠價";
+"paywall.section.default.title" = "一般訂閱方案";
+
+// MARK: - Paywall Premium (SPEC-paywall-rewrite)
+"paywall.premium.nav_title" = "Paceriz Premium";
+
+// Hero (state-aware)
+"paywall.premium.hero.default.title" = "讓 AI 教練陪你練到下一場 PB";
+"paywall.premium.hero.default.subtitle" = "AI 教練讓你的每一週訓練都對齊目標";
+"paywall.premium.hero.resubscribe.title" = "歡迎回來，繼續完成你的訓練";
+"paywall.premium.hero.resubscribe.subtitle" = "重新訂閱以解鎖完整 AI 功能";
+"paywall.premium.hero.change.title" = "變更你的訂閱方案";
+"paywall.premium.hero.change.subtitle" = "隨時切換月訂與年訂";
+
+// Trial Timeline (3 steps)
+"paywall.premium.timeline.step1.label" = "今天";
+"paywall.premium.timeline.step1.desc" = "立即解鎖全部功能";
+"paywall.premium.timeline.step2.label" = "第 28 天";
+"paywall.premium.timeline.step2.desc" = "我們會提前 2 天提醒你";
+"paywall.premium.timeline.step3.label" = "第 30 天";
+"paywall.premium.timeline.step3.desc" = "訂閱開始，可隨時取消";
+
+// Features (4 groups)
+"paywall.premium.features.plan.title" = "AI 個人化週課表";
+"paywall.premium.features.plan.bullet1" = "智能週課表，依目標賽事週期化";
+"paywall.premium.features.plan.bullet2" = "根據體能與恢復狀態自動調整";
+"paywall.premium.features.plan.bullet3" = "從基礎期到 taper 的完整規劃";
+"paywall.premium.features.adjust.title" = "隨時調整訓練";
+"paywall.premium.features.adjust.bullet1" = "隨時重新生成本週課表";
+"paywall.premium.features.adjust.bullet2" = "修改單日訓練、AI 自動補回";
+"paywall.premium.features.review.title" = "AI 週回顧";
+"paywall.premium.features.review.bullet1" = "每週訓練表現與負荷自動摘要";
+"paywall.premium.features.review.bullet2" = "下一週訓練重點 AI 建議";
+"paywall.premium.features.race.title" = "賽事目標規劃";
+"paywall.premium.features.race.bullet1" = "建立目標賽事與週訓練目標";
+"paywall.premium.features.race.bullet2" = "AI 為你週期化整個訓練計畫";
+
+// Pricing section labels
+"paywall.premium.section.default.title" = "標準方案";
+"paywall.premium.section.default.subtitle" = "30 天免費試用，隨時取消";
+"paywall.premium.section.earlybird.title" = "超早鳥方案";
+"paywall.premium.section.earlybird.subtitle" = "上架前優惠價，享 30 天免費試用";
+
+// Plan card labels
+"paywall.premium.plan.annual.label" = "年訂";
+"paywall.premium.plan.annual.badge_recommended" = "推薦";
+"paywall.premium.plan.annual.savings_format" = "年訂省 %@%%";
+"paywall.premium.plan.monthly.label" = "月訂";
+"paywall.premium.plan.trial_format" = "%@ 天免費試用後扣款";
+"paywall.premium.plan.no_trial_format" = "立即扣款，無試用期";
+
+// CTA buttons
+"paywall.premium.cta.start_trial" = "開始 30 天免費試用";
+"paywall.premium.cta.subscribe_now" = "立即訂閱";
+"paywall.premium.cta.resubscribe" = "重新訂閱";
+"paywall.premium.cta.change_plan" = "變更為此方案";
+
+// Trial Banner
+"paywall.premium.trial_banner.format" = "你正在試用中，還剩 %@ 天";
+"paywall.premium.trial_banner.subtitle" = "試用結束後將自動扣款，可隨時取消";
+
+// Disclosure (trial + standard)
+"paywall.premium.disclosure.trial" = "點擊「開始 30 天免費試用」即代表你同意：免費試用期為 30 天，到期後將以所選方案價格自動續訂並從你的 Apple ID 扣款。試用期結束 24 小時前可在 Apple ID 設定中取消，避免扣款。訂閱會在每個週期結束前 24 小時自動續訂，除非你取消。詳情請參閱使用條款與隱私權政策。";
+"paywall.premium.disclosure.standard" = "點擊「立即訂閱」即代表你同意：將立即從你的 Apple ID 扣款並訂閱所選方案。訂閱會在每個週期結束前 24 小時自動續訂，除非你在當前週期結束 24 小時前於 Apple ID 設定中取消。詳情請參閱使用條款與隱私權政策。";
+
 "profile.subscription.redeem_offer_code" = "兌換優惠碼";
 "profile.subscription.redeem_alert_title" = "優惠碼";
 "profile.subscription.redeem_success" = "已完成優惠碼兌換，訂閱狀態已更新。";

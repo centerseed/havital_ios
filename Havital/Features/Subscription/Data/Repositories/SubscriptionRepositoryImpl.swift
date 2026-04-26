@@ -30,6 +30,24 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
 
     // MARK: - SubscriptionRepository Protocol
 
+    /// 目前 RC current offering 的 identifier。
+    /// nil 表示 offerings 尚未 fetch 或 RC 無 current offering。
+    var currentOfferingIdentifier: String? {
+        cachedOfferings?.current?.identifier
+    }
+
+    /// 判定目前是否為早鳥 offering。
+    /// 雙條件 OR：identifier 符合 OR 任一 package product ID 在已知早鳥集合。
+    var isEarlyBirdOffering: Bool {
+        if currentOfferingIdentifier == Constants.IAP.earlyBirdOfferingIdentifier {
+            return true
+        }
+        guard let currentOffering = cachedOfferings?.current else { return false }
+        return currentOffering.availablePackages.contains { package in
+            Constants.IAP.earlyBirdProductIDs.contains(package.storeProduct.productIdentifier)
+        }
+    }
+
     func getStatus() async throws -> SubscriptionStatusEntity {
         if !localDataSource.isExpired(), let cachedDTO = localDataSource.getStatus() {
             Logger.debug("[SubscriptionRepositoryImpl] getStatus: cache hit")
@@ -134,7 +152,8 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
                         period: period,
                         billingPeriodValue: billingPeriodValue,
                         billingPeriodUnit: billingPeriodUnit,
-                        officialOffer: officialOffer
+                        officialOffer: officialOffer,
+                        localizedTitle: storeProduct.localizedTitle
                     )
                     )
                 }
@@ -172,7 +191,8 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
                     period: .yearly,
                     billingPeriodValue: 1,
                     billingPeriodUnit: .year,
-                    officialOffer: nil
+                    officialOffer: nil,
+                    localizedTitle: "Premium Yearly"
                 ),
                 SubscriptionPackageEntity(
                     id: "$rc_monthly",
@@ -184,7 +204,8 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
                     period: .monthly,
                     billingPeriodValue: 1,
                     billingPeriodUnit: .month,
-                    officialOffer: nil
+                    officialOffer: nil,
+                    localizedTitle: "Premium Monthly"
                 )
             ]
         )]

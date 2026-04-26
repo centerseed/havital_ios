@@ -2427,7 +2427,7 @@
 "paywall.header.trial_expired" = "Trial period has ended";
 "paywall.header.feature_locked" = "Upgrade to unlock full features";
 "paywall.header.resubscribe" = "Resubscribe";
-"paywall.header.change_plan" = "Change Plan";
+"paywall.header.change_plan" = "Paceriz Premium";
 "paywall.purchase_success_title" = "Purchase Successful!";
 "paywall.purchase_success_start" = "Start Using";
 "paywall.purchase_success_trial_note" = "Paid plan activates after trial ends";
@@ -2445,12 +2445,14 @@
 "paywall.feature.analytics" = "Advanced run analytics & insights";
 "paywall.feature.customization" = "Unlimited schedule customization";
 "paywall.badge.best_value" = "Best Value";
+"paywall.badge.early_bird" = "Early Bird";
 "paywall.plan.yearly_note" = "Billed annually";
 "paywall.plan.original_price" = "Original %@";
 "paywall.plan.savings" = "Save %@ (%d%%)";
 "paywall.offer.badge_official" = "Official Offer";
+"paywall.offer.badge_early_bird" = "Early Bird Plan";
+"paywall.accessibility.original_price" = "Original price %@";
 "paywall.offer.free" = "Free";
-"paywall.offer.discount_percent" = "Official discount %d%%";
 "paywall.offer.ends_on" = "Ends on %@";
 "paywall.offer.intro_free_trial" = "Free trial for %@";
 "paywall.offer.intro_pay_as_you_go" = "Intro offer %@ / %@";
@@ -2482,6 +2484,73 @@
 "paywall.offer_code_identity_sync_failed" = "Unable to verify your subscription identity right now. Please try again.";
 "paywall.offer_code_scene_unavailable" = "Unable to open the Apple offer code sheet right now. Please try again.";
 "paywall.purchase_cancelled_retry" = "Apple sign-in completed. Please tap the plan again to finish the purchase.";
+"paywall.section.early_bird.title" = "Early Bird";
+"paywall.section.early_bird.badge_limited_time" = "Limited Time";
+"paywall.section.early_bird.lock_forever_subtitle" = "Lock in this price forever after subscribing";
+"paywall.section.default.title" = "Standard Plans";
+
+// MARK: - Paywall Premium (SPEC-paywall-rewrite)
+"paywall.premium.nav_title" = "Paceriz Premium";
+
+// Hero (state-aware)
+"paywall.premium.hero.default.title" = "Train smarter with your AI coach";
+"paywall.premium.hero.default.subtitle" = "Your AI coach keeps every week aligned with your goals";
+"paywall.premium.hero.resubscribe.title" = "Welcome back. Pick up where you left off.";
+"paywall.premium.hero.resubscribe.subtitle" = "Resubscribe to unlock all AI features";
+"paywall.premium.hero.change.title" = "Change your plan";
+"paywall.premium.hero.change.subtitle" = "Switch between monthly and annual anytime";
+
+// Trial Timeline (3 steps)
+"paywall.premium.timeline.step1.label" = "Today";
+"paywall.premium.timeline.step1.desc" = "Unlock everything instantly";
+"paywall.premium.timeline.step2.label" = "Day 28";
+"paywall.premium.timeline.step2.desc" = "We'll remind you 2 days before billing";
+"paywall.premium.timeline.step3.label" = "Day 30";
+"paywall.premium.timeline.step3.desc" = "Subscription starts. Cancel anytime.";
+
+// Features (4 groups)
+"paywall.premium.features.plan.title" = "AI Personalized Weekly Plan";
+"paywall.premium.features.plan.bullet1" = "Smart weekly plans, periodized for your race";
+"paywall.premium.features.plan.bullet2" = "Adapts to your readiness and recovery";
+"paywall.premium.features.plan.bullet3" = "From base to taper, planned for you";
+"paywall.premium.features.adjust.title" = "Adjust Anytime";
+"paywall.premium.features.adjust.bullet1" = "Regenerate this week's plan anytime";
+"paywall.premium.features.adjust.bullet2" = "Edit a single day, AI rebalances the rest";
+"paywall.premium.features.review.title" = "AI Weekly Review";
+"paywall.premium.features.review.bullet1" = "Weekly training and load auto-summary";
+"paywall.premium.features.review.bullet2" = "AI suggestions for next week's focus";
+"paywall.premium.features.race.title" = "Race Goal Planning";
+"paywall.premium.features.race.bullet1" = "Set target races and weekly goals";
+"paywall.premium.features.race.bullet2" = "AI periodizes your entire training plan";
+
+// Pricing section labels
+"paywall.premium.section.default.title" = "Standard Plans";
+"paywall.premium.section.default.subtitle" = "30-day free trial. Cancel anytime.";
+"paywall.premium.section.earlybird.title" = "Early Bird";
+"paywall.premium.section.earlybird.subtitle" = "Pre-launch pricing with 30-day free trial";
+
+// Plan card labels
+"paywall.premium.plan.annual.label" = "Annual";
+"paywall.premium.plan.annual.badge_recommended" = "RECOMMENDED";
+"paywall.premium.plan.annual.savings_format" = "Save %@%% with annual";
+"paywall.premium.plan.monthly.label" = "Monthly";
+"paywall.premium.plan.trial_format" = "%@ days free, then charged";
+"paywall.premium.plan.no_trial_format" = "Charged immediately, no trial";
+
+// CTA buttons
+"paywall.premium.cta.start_trial" = "Start 30-day free trial";
+"paywall.premium.cta.subscribe_now" = "Subscribe now";
+"paywall.premium.cta.resubscribe" = "Resubscribe";
+"paywall.premium.cta.change_plan" = "Switch to this plan";
+
+// Trial Banner
+"paywall.premium.trial_banner.format" = "You're on trial — %@ days left";
+"paywall.premium.trial_banner.subtitle" = "Auto-renews after trial. Cancel anytime.";
+
+// Disclosure (trial + standard)
+"paywall.premium.disclosure.trial" = "By tapping \"Start 30-day free trial\" you agree: your free trial lasts 30 days, after which your selected plan will auto-renew at the listed price billed to your Apple ID. Cancel at least 24 hours before the trial ends in your Apple ID settings to avoid charges. Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period. See Terms of Use and Privacy Policy.";
+"paywall.premium.disclosure.standard" = "By tapping \"Subscribe now\" you agree: your selected plan will be billed immediately to your Apple ID. Subscriptions auto-renew at the same price unless cancelled at least 24 hours before the end of the current period in your Apple ID settings. See Terms of Use and Privacy Policy.";
+
 "profile.subscription.redeem_offer_code" = "Redeem Offer Code";
 "profile.subscription.redeem_alert_title" = "Offer Code";
 "profile.subscription.redeem_success" = "Offer code redeemed. Your subscription has been updated.";
