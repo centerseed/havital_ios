@@ -413,6 +413,7 @@
 "training.type.norwegian_4x4" = "挪威4x4";
 "training.type.norwegian_singles" = "挪威單次訓練";
 "training.type.yasso_800" = "亞索800";
+"training.type.mile_repeats" = "英里重複跑";
 // 新增組合訓練類型（fartlek 已存在）
 "training.type.fast_finish" = "快速完成跑";
 // 新增比賽配速訓練
@@ -1137,6 +1138,7 @@
 "intensity.high" = "高";
 "intensity.minutes" = "%d 分鐘";
 "intensity.minutes_progress" = "%d / %d 分鐘";
+"intensity.minutes_short" = "分";
 "intensity.not_scheduled" = "未排課";
 "intensity.unscheduled" = "(未排課)";
 

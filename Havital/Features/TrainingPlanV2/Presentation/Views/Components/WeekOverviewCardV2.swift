@@ -208,21 +208,61 @@ struct CompactIntensityBarV2: View {
     let target: Int
     let color: Color
 
-    private var progress: Double {
-        guard target > 0 else { return 0 }
-        return min(Double(current) / Double(target), 1.0)
+    // 三狀態判斷
+    private enum BarState {
+        case unscheduledUnrun   // target == 0 && current == 0
+        case normal             // target > 0
+        case overrun            // target == 0 && current > 0
     }
 
-    private var isUnscheduled: Bool {
-        target == 0
+    private var barState: BarState {
+        if target > 0 { return .normal }
+        if current > 0 { return .overrun }
+        return .unscheduledUnrun
+    }
+
+    private var progress: Double {
+        switch barState {
+        case .unscheduledUnrun: return 0
+        case .normal: return min(Double(current) / Double(target), 1.0)
+        case .overrun: return 1.0
+        }
+    }
+
+    private var labelText: String {
+        switch barState {
+        case .unscheduledUnrun:
+            return "\(label) 0/0"
+        case .normal:
+            return "\(label) \(current)/\(target)"
+        case .overrun:
+            let minutesShort = NSLocalizedString("intensity.minutes_short", comment: "Short unit for minutes")
+            return "\(label) \(current) \(minutesShort) ✓"
+        }
+    }
+
+    private var labelColor: Color {
+        switch barState {
+        case .unscheduledUnrun: return .secondary.opacity(0.7)
+        case .normal, .overrun: return .primary
+        }
+    }
+
+    private var barFillColor: Color {
+        switch barState {
+        case .unscheduledUnrun: return Color.gray.opacity(0.3)
+        case .normal, .overrun: return color
+        }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             // 標籤和數字
-            Text("\(label) \(current)/\(target)")
+            Text(labelText)
                 .font(AppFont.caption())
-                .foregroundColor(isUnscheduled ? .secondary.opacity(0.7) : .secondary)
+                .foregroundColor(labelColor)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
 
             // 自定義進度條
             GeometryReader { geometry in
@@ -234,7 +274,7 @@ struct CompactIntensityBarV2: View {
 
                     // 前景進度
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(isUnscheduled ? Color.gray.opacity(0.3) : color)
+                        .fill(barFillColor)
                         .frame(width: geometry.size.width * progress, height: 4)
                 }
             }

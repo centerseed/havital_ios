@@ -424,6 +424,7 @@
 "training.type.norwegian_4x4" = "Norwegian 4x4";
 "training.type.norwegian_singles" = "Norwegian Singles";
 "training.type.yasso_800" = "Yasso 800s";
+"training.type.mile_repeats" = "Mile Repeats";
 // New Combination Training Types (fartlek already exists)
 "training.type.fast_finish" = "Fast Finish Run";
 // New Race Pace Training
@@ -1143,6 +1144,7 @@
 "intensity.high" = "High";
 "intensity.minutes" = "%d mins";
 "intensity.minutes_progress" = "%d / %d mins";
+"intensity.minutes_short" = "min";
 "intensity.not_scheduled" = "Not scheduled";
 "intensity.unscheduled" = "(Unscheduled)";
 

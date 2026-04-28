@@ -424,6 +424,7 @@
 "training.type.norwegian_4x4" = "ノルウェー4x4";
 "training.type.norwegian_singles" = "ノルウェーシングル";
 "training.type.yasso_800" = "ヤッソ800";
+"training.type.mile_repeats" = "マイルリピート";
 // 新しいコンビネーショントレーニングタイプ（fartlek は既存）
 "training.type.fast_finish" = "ファストフィニッシュラン";
 // 新しいレースペーストレーニング
@@ -1142,6 +1143,7 @@
 "intensity.high" = "高強度";
 "intensity.minutes" = "%d分";
 "intensity.minutes_progress" = "%d / %d分";
+"intensity.minutes_short" = "分";
 "intensity.not_scheduled" = "スケジュールなし";
 "intensity.unscheduled" = "（スケジュールなし）";
 
