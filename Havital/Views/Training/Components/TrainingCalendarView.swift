@@ -544,27 +544,14 @@ struct DayCell: View {
     }
 
     var body: some View {
-        VStack(spacing: 2) {
-            // 上排：日期靠左，多訓練 ×N 標記靠右（同一行避免重疊）
-            HStack(spacing: 2) {
-                Text(dayNumber)
-                    .font(AppFont.systemScaled(size: 14, weight: isToday ? .bold : .medium))
-                    .foregroundColor(isToday ? .blue : .primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-                Spacer(minLength: 0)
-                if let info = workoutInfo, info.workoutCount > 1 {
-                    Text("×\(info.workoutCount)")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundColor(workoutColor.opacity(0.85))
-                        .lineLimit(1)
-                }
-            }
-            .padding(.horizontal, 4)
-            .padding(.top, 4)
+        VStack(spacing: 3) {
+            Text(dayNumber)
+                .font(AppFont.systemScaled(size: 14, weight: isToday ? .bold : .medium))
+                .foregroundColor(isToday ? .blue : .primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
 
             if let info = workoutInfo {
-                // 只有在距離 > 0 時才顯示距離數值（置中）
                 if info.totalDistance > 0 {
                     Text(String(format: "%.1f", info.totalDistance))
                         .font(AppFont.systemScaled(size: 12, weight: .bold))
@@ -573,12 +560,19 @@ struct DayCell: View {
                         .minimumScaleFactor(0.7)
                 }
 
-                Image(systemName: workoutIcon)
-                    .font(AppFont.systemScaled(size: 12))
-                    .foregroundColor(workoutColor.opacity(0.8))
+                // 跑步 icon 旁邊掛 ×N — 語意：N 筆此類訓練
+                HStack(spacing: 2) {
+                    Image(systemName: workoutIcon)
+                        .font(AppFont.systemScaled(size: 12))
+                        .foregroundColor(workoutColor.opacity(0.8))
+                    if info.workoutCount > 1 {
+                        Text("×\(info.workoutCount)")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundColor(workoutColor.opacity(0.85))
+                            .lineLimit(1)
+                    }
+                }
             }
-
-            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity)
         .frame(height: 70)
