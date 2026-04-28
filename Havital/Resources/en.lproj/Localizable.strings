@@ -276,6 +276,9 @@
 "profile.subscription.change_plan" = "Change Plan";
 "profile.subscription.plan.yearly" = "Annual";
 "profile.subscription.plan.monthly" = "Monthly";
+"profile.subscription.plan.yearly_early_bird" = "Annual (Early Bird)";
+"profile.subscription.plan.monthly_early_bird" = "Monthly (Early Bird)";
+"profile.subscription.plan.premium_early_bird" = "Premium (Early Bird)";
 "profile.subscription.trial_ends" = "Trial ends";
 "profile.subscription.trial_remaining_days" = "%d days remaining";
 "profile.subscription.trial_purchased_note" = "Subscribed — activates after trial ends";
@@ -2435,6 +2438,9 @@
 "paywall.purchase_success_title" = "Purchase Successful!";
 "paywall.purchase_success_start" = "Start Using";
 "paywall.purchase_success_trial_note" = "Paid plan activates after trial ends";
+"paywall.purchase_success.plan.yearly" = "Yearly Plan";
+"paywall.purchase_success.plan.monthly" = "Monthly Plan";
+"paywall.purchase_success.plan.premium" = "Premium Subscription";
 "reminder.trial_expiring_title" = "Trial Expiring Soon";
 "reminder.trial_expiring_message" = "Your trial ends in %1$d days (%2$@).\n\nSubscribing now won't affect your trial — billing starts only after the trial ends.";
 "reminder.expired_title" = "Subscription Expired";
@@ -2560,6 +2566,12 @@
 "paywall.premium.disclosure.trial" = "By tapping \"Start 30-day free trial\" you agree: your free trial lasts 30 days, after which your selected plan will auto-renew at the listed price billed to your Apple ID. Cancel at least 24 hours before the trial ends in your Apple ID settings to avoid charges. Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period. See Terms of Use and Privacy Policy.";
 "paywall.premium.disclosure.standard" = "By tapping \"Subscribe now\" you agree: your selected plan will be billed immediately to your Apple ID. Subscriptions auto-renew at the same price unless cancelled at least 24 hours before the end of the current period in your Apple ID settings. See Terms of Use and Privacy Policy.";
 
+// Disclosure link texts and format strings (AC-PAYWALL-32/33/34)
+"paywall.disclosure.privacy_link_text" = "Privacy Policy";
+"paywall.disclosure.terms_link_text" = "Terms of Use";
+"paywall.disclosure.trial.with_links_format" = "30-day free trial ends %1$@, then auto-renews. See %2$@ and %3$@.";
+"paywall.disclosure.standard.with_links_format" = "Monthly subscription billed immediately and auto-renews. See %1$@ and %2$@.";
+
 // Inline upsell cards (x3)
 "paywall.inline.weekly_plan.title" = "Unlock your full weekly plan";
 "paywall.inline.weekly_plan.body" = "Week 1 is free. Subscribe to generate Week 2+ and re-adjust anytime";
@@ -2574,3 +2586,20 @@
 "profile.subscription.redeem_alert_title" = "Offer Code";
 "profile.subscription.redeem_success" = "Offer code redeemed. Your subscription has been updated.";
 "onboarding.clear_selected_race" = "Switch to manual input";
+
+// Free Tier Banner (AC-PAYWALL-35)
+"paywall.free_tier.banner.title" = "Free Preview";
+"paywall.free_tier.banner.subtitle" = "Next week's plan requires subscription";
+"paywall.free_tier.banner.cta" = "Upgrade";
+
+// Grace Period Banner (AC-PAYWALL-38)
+"paywall.grace_period.banner.title_format" = "%d days free trial remaining";
+"paywall.grace_period.banner.subtitle" = "Subscribe in 7 days to keep AI features";
+
+// Settings Subscription Tier Indicator (AC-PAYWALL-36/40)
+"settings.subscription.tier.free_label" = "Current plan: Free Preview";
+"settings.subscription.tier.trial_label_format" = "Current plan: Trial (%d days left)";
+"settings.subscription.tier.premium_label_format" = "Current plan: Premium (%@)";
+"settings.subscription.tier.grace_label_format" = "Current plan: Free trial (%d days left)";
+"settings.subscription.tier.upgrade_cta" = "Upgrade to Premium";
+"settings.subscription.tier.manage_cta" = "Manage Subscription";

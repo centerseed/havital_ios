@@ -40,6 +40,21 @@ struct SubscriptionStatusEntity {
     /// 試用期結束時間（Unix timestamp）。來自後端 trial_end_at 欄位。
     let trialEndAt: TimeInterval?
 
+    /// 用戶首次訂閱時間（Unix timestamp）。nil 表示從未訂閱過（真新用戶）。
+    /// AC-PAYWALL-37: 用於區分「真新用戶」（從沒付費過）與「流失用戶」（曾付費已到期）。
+    let subscribedAt: TimeInterval?
+
+    /// IAP grace period 結束時間（Unix timestamp）。nil 表示不在 grace period 中。
+    /// AC-PAYWALL-38/39: IAP 購買後後端給予 7 天免費體驗期。
+    let iapGraceUntil: TimeInterval?
+
+    /// 是否正處於 7-day grace period（後端權威值）。預設 false 確保舊 backend 不回此欄位時安全。
+    /// AC-PAYWALL-38/39: true 時享有 premium-equivalent access，但非真正訂閱。
+    let inGracePeriod: Bool
+
+    /// Grace period 剩餘天數（後端計算值）。inGracePeriod=true 時後端提供。
+    let graceRemainingDays: Int?
+
     // MARK: - Initialization
 
     init(
@@ -53,7 +68,11 @@ struct SubscriptionStatusEntity {
         isEarlyBird: Bool? = nil,
         hasOverride: Bool? = nil,
         inIntroTrial: Bool? = nil,
-        trialEndAt: TimeInterval? = nil
+        trialEndAt: TimeInterval? = nil,
+        subscribedAt: TimeInterval? = nil,
+        iapGraceUntil: TimeInterval? = nil,
+        inGracePeriod: Bool = false,
+        graceRemainingDays: Int? = nil
     ) {
         self.status = status
         self.expiresAt = expiresAt
@@ -66,6 +85,10 @@ struct SubscriptionStatusEntity {
         self.hasOverride = hasOverride
         self.inIntroTrial = inIntroTrial
         self.trialEndAt = trialEndAt
+        self.subscribedAt = subscribedAt
+        self.iapGraceUntil = iapGraceUntil
+        self.inGracePeriod = inGracePeriod
+        self.graceRemainingDays = graceRemainingDays
     }
 }
 
@@ -83,6 +106,10 @@ extension SubscriptionStatusEntity: Equatable {
             && lhs.hasOverride == rhs.hasOverride
             && lhs.inIntroTrial == rhs.inIntroTrial
             && lhs.trialEndAt == rhs.trialEndAt
+            && lhs.subscribedAt == rhs.subscribedAt
+            && lhs.iapGraceUntil == rhs.iapGraceUntil
+            && lhs.inGracePeriod == rhs.inGracePeriod
+            && lhs.graceRemainingDays == rhs.graceRemainingDays
     }
 }
 

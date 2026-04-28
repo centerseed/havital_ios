@@ -276,6 +276,9 @@
 "profile.subscription.change_plan" = "プラン変更";
 "profile.subscription.plan.yearly" = "年間サブスク";
 "profile.subscription.plan.monthly" = "月間サブスク";
+"profile.subscription.plan.yearly_early_bird" = "年間サブスク（早割）";
+"profile.subscription.plan.monthly_early_bird" = "月間サブスク（早割）";
+"profile.subscription.plan.premium_early_bird" = "プレミアム（早割）";
 "profile.subscription.trial_ends" = "トライアル終了日";
 "profile.subscription.trial_remaining_days" = "残り%d日";
 "profile.subscription.trial_purchased_note" = "購読済み。トライアル終了後に有効化されます";
@@ -2432,6 +2435,9 @@
 "paywall.purchase_success_title" = "購入完了！";
 "paywall.purchase_success_start" = "使い始める";
 "paywall.purchase_success_trial_note" = "有料プランはトライアル終了後に適用されます";
+"paywall.purchase_success.plan.yearly" = "年額プラン";
+"paywall.purchase_success.plan.monthly" = "月額プラン";
+"paywall.purchase_success.plan.premium" = "Premiumプラン";
 "reminder.trial_expiring_title" = "トライアル期間まもなく終了";
 "reminder.trial_expiring_message" = "トライアル残り%1$d日（%2$@まで）。\n\n今すぐ購読してもトライアルには影響しません。請求はトライアル終了後に開始されます。";
 "reminder.expired_title" = "サブスクリプション期限切れ";
@@ -2557,6 +2563,12 @@
 "paywall.premium.disclosure.trial" = "「30日間の無料体験を開始」をタップすることで、以下に同意したものとみなされます：無料体験期間は30日間です。期間終了後、選択したプランは自動的に更新され、Apple IDに記載の価格で課金されます。課金を回避するには、トライアル終了の24時間前までにApple IDの設定からキャンセルしてください。各更新期間終了の24時間前までに解約しない限り、サブスクリプションは自動更新されます。詳細は利用規約とプライバシーポリシーをご覧ください。";
 "paywall.premium.disclosure.standard" = "「今すぐ登録」をタップすることで、以下に同意したものとみなされます：選択したプランはApple IDから即時に課金されます。各更新期間終了の24時間前までにApple IDの設定で解約しない限り、サブスクリプションは同じ価格で自動更新されます。詳細は利用規約とプライバシーポリシーをご覧ください。";
 
+// Disclosure link texts and format strings (AC-PAYWALL-32/33/34)
+"paywall.disclosure.privacy_link_text" = "プライバシーポリシー";
+"paywall.disclosure.terms_link_text" = "利用規約";
+"paywall.disclosure.trial.with_links_format" = "30日間無料トライアルは %1$@ に終了、その後自動更新されます。%2$@ および %3$@ をご覧ください。";
+"paywall.disclosure.standard.with_links_format" = "月額サブスクリプションはすぐに課金され、自動更新されます。%1$@ および %2$@ をご覧ください。";
+
 // Inline upsell cards (x3)
 "paywall.inline.weekly_plan.title" = "週間プランを全て解放";
 "paywall.inline.weekly_plan.body" = "第1週は無料。サブスク登録で第2週以降の生成と再調整が可能";
@@ -2571,3 +2583,20 @@
 "profile.subscription.redeem_alert_title" = "オファーコード";
 "profile.subscription.redeem_success" = "オファーコードを利用しました。購読状態を更新しました。";
 "onboarding.clear_selected_race" = "手動入力に戻る";
+
+// Free Tier Banner (AC-PAYWALL-35)
+"paywall.free_tier.banner.title" = "無料体験中";
+"paywall.free_tier.banner.subtitle" = "来週のプランは購読が必要です";
+"paywall.free_tier.banner.cta" = "アップグレード";
+
+// Grace Period Banner (AC-PAYWALL-38)
+"paywall.grace_period.banner.title_format" = "無料体験中、残り%d日";
+"paywall.grace_period.banner.subtitle" = "7日後にサブスクが必要";
+
+// Settings Subscription Tier Indicator (AC-PAYWALL-36/40)
+"settings.subscription.tier.free_label" = "現在のプラン：無料体験版";
+"settings.subscription.tier.trial_label_format" = "現在のプラン：トライアル中（残り%d日）";
+"settings.subscription.tier.premium_label_format" = "現在のプラン：プレミアム（%@）";
+"settings.subscription.tier.grace_label_format" = "現在のプラン：無料体験中（残り%d日）";
+"settings.subscription.tier.upgrade_cta" = "プレミアムへアップグレード";
+"settings.subscription.tier.manage_cta" = "サブスクリプション管理";

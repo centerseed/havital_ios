@@ -18,6 +18,10 @@ enum PaywallSource: String {
     case resubscribe = "resubscribe"
     /// Active subscriber changing plan.
     case changePlan = "change_plan"
+    /// Free tier banner on training plan home tapped (AC-PAYWALL-35).
+    case freeTierBanner = "free_tier_banner"
+    /// Settings subscription tier indicator CTA tapped (AC-PAYWALL-36).
+    case settingsTier = "settings_tier"
 }
 
 // MARK: - PaywallTrigger
@@ -35,6 +39,8 @@ enum PaywallTrigger: Hashable, Identifiable {
     case weeklyReview                               // 週回顧 inline card CTA
     case targetRaceCreate                           // 建立目標賽事 inline card CTA
     case settingsUpgrade                            // Settings 升級按鈕
+    case freeTierBanner                             // Free tier banner on training plan home (AC-PAYWALL-35)
+    case settingsTier                               // Settings subscription tier CTA (AC-PAYWALL-36)
 
     var id: Self { self }
 
@@ -48,6 +54,8 @@ enum PaywallTrigger: Hashable, Identifiable {
         case .settingsUpgrade:      return .settingsUpgrade
         case .resubscribe:          return .resubscribe
         case .changePlan:           return .changePlan
+        case .freeTierBanner:       return .freeTierBanner
+        case .settingsTier:         return .settingsTier
         // Legacy fallbacks
         case .apiGated, .featureLocked: return .weeklyPlanWeek2
         case .trialExpired:         return .resubscribe

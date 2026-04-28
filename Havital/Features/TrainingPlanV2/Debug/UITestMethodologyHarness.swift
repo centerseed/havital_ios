@@ -658,6 +658,11 @@ private struct FixtureRecord {
 private final class UITestMethodologyTrainingPlanRepository: TrainingPlanV2Repository {
     private let context: UITestMethodologyContext?
 
+    // AC-PAYWALL-37: UITest harness never emits real overview updates
+    var overviewDidUpdate: AnyPublisher<PlanOverviewV2, Never> {
+        Empty().eraseToAnyPublisher()
+    }
+
     init(context: UITestMethodologyContext?) {
         self.context = context
     }

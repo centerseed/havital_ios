@@ -17,6 +17,17 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
     /// 快取最近一次 fetchOfferings 結果，避免 purchase 時重複拉取
     private var cachedOfferings: Offerings?
 
+    /// After RevenueCat confirms an active entitlement, the backend can still lag
+    /// until the webhook lands. During this short window, generic refreshStatus()
+    /// calls (foreground refresh, pull-to-refresh, quota checks) must not overwrite
+    /// the optimistic active state with stale `.none` / `.expired`.
+    private var optimisticAuthorizationHoldUntil: Date?
+
+    private enum OptimisticAuthorizationHold {
+        /// Match the purchase reconciliation window (15 attempts x 2 seconds).
+        static let duration: TimeInterval = 30
+    }
+
     // MARK: - Initialization
 
     init(
@@ -342,9 +353,30 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
     private func fetchAndCache() async throws -> SubscriptionStatusEntity {
         let dto = try await remoteDataSource.fetchStatus()
         let apiEntity = SubscriptionMapper.toEntity(from: dto)
+
+        if let preservedEntity = optimisticAuthorizedStatusToPreserve(over: apiEntity) {
+            Logger.debug(
+                "[SubscriptionRepositoryImpl] refreshStatus: preserving optimistic active state while backend is stale"
+            )
+            await SubscriptionStateManager.shared.update(preservedEntity)
+            return preservedEntity
+        }
+
+        if isUnlockedStatus(apiEntity.status) {
+            optimisticAuthorizationHoldUntil = nil
+        }
+
         localDataSource.saveStatus(dto)
         await SubscriptionStateManager.shared.update(apiEntity)
         return apiEntity
+    }
+
+    /// 只讀 backend 狀態，不寫 cache，不更新全域 SubscriptionStateManager。
+    /// 用於 purchase 後的 polling 場景：polling 期間不應蓋掉 optimistic state。
+    /// 回傳 (DTO, Entity)，讓呼叫端在確認狀態後可一次寫 cache 並更新 state。
+    private func fetchStatusOnly() async throws -> (SubscriptionStatusDTO, SubscriptionStatusEntity) {
+        let dto = try await remoteDataSource.fetchStatus()
+        return (dto, SubscriptionMapper.toEntity(from: dto))
     }
 
     @MainActor
@@ -370,7 +402,10 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
             ?? scenes.first
     }
 
-    private func waitForBackendAuthorizedStatus(
+    // MARK: - Internal (testable)
+
+    // `internal` (not `private`) so unit tests can call it directly with delaySeconds: 0.
+    func waitForBackendAuthorizedStatus(
         maxAttempts: Int = 15,
         delaySeconds: UInt64 = 2
     ) async throws -> PurchaseResultEntity {
@@ -379,15 +414,34 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
                 try await Task.sleep(nanoseconds: delaySeconds * 1_000_000_000)
             }
 
-            let status = try await fetchAndCache()
-            switch status.status {
+            // 只讀 backend 狀態，不更新全域 SubscriptionStateManager。
+            // 避免 polling 途中 backend 回 stale（.none/.expired）時蓋掉 optimistic .active。
+            let dto: SubscriptionStatusDTO
+            let entity: SubscriptionStatusEntity
+            do {
+                (dto, entity) = try await fetchStatusOnly()
+            } catch {
+                print("[Subscription] waitForBackend attempt=\(attempt) network error, retrying: \(error)")
+                continue
+            }
+
+            print("[Subscription] waitForBackend attempt=\(attempt) backendStatus=\(entity.status.rawValue)")
+
+            switch entity.status {
             case .active, .trial, .cancelled, .gracePeriod:
+                // Backend 已確認 → 寫 cache + 更新全域 state（authoritative override optimistic）
+                optimisticAuthorizationHoldUntil = nil
+                localDataSource.saveStatus(dto)
+                await SubscriptionStateManager.shared.update(entity)
+                print("[Subscription] waitForBackend authoritative confirm: status=\(entity.status.rawValue)")
                 return .success
             case .expired, .none:
+                // Backend 尚未收到 webhook，保留 optimistic state，繼續 polling
                 continue
             }
         }
 
+        // 30 秒到，backend 未確認，optimistic state 仍生效
         return .pendingProcessing
     }
 
@@ -467,10 +521,15 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
     }
 
     private func publishOptimisticStatusIfPossible(from customerInfo: CustomerInfo) async -> Bool {
+        print("[Subscription] optimistic publish START customerInfo entitlements=\(customerInfo.entitlements.all.keys)")
+
         guard let entitlement = customerInfo.entitlements[RevenueCatConfig.premiumEntitlement],
               entitlement.isActive else {
+            print("[Subscription] entitlement \(RevenueCatConfig.premiumEntitlement) isActive=false — skipping optimistic publish")
             return false
         }
+
+        print("[Subscription] entitlement \(RevenueCatConfig.premiumEntitlement) isActive=\(entitlement.isActive)")
 
         let dto = SubscriptionStatusDTO(
             status: "subscribed",
@@ -483,10 +542,47 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
         localDataSource.saveStatus(dto)
 
         let entity = SubscriptionMapper.toEntity(from: dto)
+        optimisticAuthorizationHoldUntil = Date().addingTimeInterval(OptimisticAuthorizationHold.duration)
         await SubscriptionStateManager.shared.update(entity)
-        Logger.debug("[SubscriptionRepositoryImpl] optimistic unlock published: status=\(entity.status.rawValue)")
+        print("[Subscription] optimistic published: status=\(entity.status.rawValue)")
         return true
     }
+
+    private func optimisticAuthorizedStatusToPreserve(
+        over apiEntity: SubscriptionStatusEntity
+    ) -> SubscriptionStatusEntity? {
+        guard isBackendStaleDuringOptimisticHold(apiEntity),
+              let cachedEntity = getCachedStatus(),
+              isUnlockedStatus(cachedEntity.status),
+              !isExpired(cachedEntity) else {
+            return nil
+        }
+        return cachedEntity
+    }
+
+    private func isBackendStaleDuringOptimisticHold(_ apiEntity: SubscriptionStatusEntity) -> Bool {
+        guard let holdUntil = optimisticAuthorizationHoldUntil,
+              holdUntil > Date() else {
+            optimisticAuthorizationHoldUntil = nil
+            return false
+        }
+        return apiEntity.status == .none || apiEntity.status == .expired
+    }
+
+    private func isUnlockedStatus(_ status: SubscriptionStatus) -> Bool {
+        status == .active || status == .trial || status == .cancelled || status == .gracePeriod
+    }
+
+    private func isExpired(_ entity: SubscriptionStatusEntity) -> Bool {
+        guard let expiresAt = entity.expiresAt else { return false }
+        return expiresAt <= Date().timeIntervalSince1970
+    }
+
+    #if DEBUG
+    internal func setOptimisticAuthorizationHoldUntilForTesting(_ date: Date?) {
+        optimisticAuthorizationHoldUntil = date
+    }
+    #endif
 
     private func resolvePlanType(from productIdentifier: String?) -> String? {
         guard let productIdentifier = productIdentifier?.lowercased() else { return nil }

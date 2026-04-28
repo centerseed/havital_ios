@@ -102,6 +102,12 @@ struct HavitalApp: App {
             UITestMethodologyHarness.registerDependencies()
             print("🧪 [UI Test] 已切換為 Methodology fixture 測試依賴")
         }
+        // AC-PAYWALL-37: inject mock that reproduces the race between onAppear
+        // (cache cold → hasGeneratedTrainingPlan=false) and plan loader completing.
+        if CommandLine.arguments.contains("-ui_testing_ac37") {
+            UITestAC37ReminderRaceHarness.registerDependencies()
+            print("[UI Test] 已切換為 AC37 race condition 測試依賴")
+        }
         #endif
 
         // 🔍 DEBUG: 驗證 MonthlyStatsRepository 是否註冊
@@ -182,6 +188,10 @@ struct HavitalApp: App {
                 paywallUITestHarnessView
             } else if shouldLaunchTypographyAuditHarness {
                 typographyAuditHarnessView
+            } else if shouldLaunchAC37UITestHarness {
+                ac37UITestHarnessView
+            } else if shouldLaunchAC38UITestHarness {
+                ac38UITestHarnessView
             } else {
                 Group {
                     if let featureFlagManager = featureFlagManager {
@@ -299,6 +309,8 @@ struct HavitalApp: App {
             || arguments.contains("-ui_testing_methodology_fixture")
             || arguments.contains("-ui_testing_loading_cache")
             || arguments.contains("-ui_testing_typography_audit")
+            || arguments.contains("-ui_testing_ac37")
+            || arguments.contains("-ui_testing_ac38")
     }
 
     private var shouldLaunchPaywallUITestHarness: Bool {
@@ -350,6 +362,31 @@ struct HavitalApp: App {
         #endif
     }
 
+    private var shouldLaunchAC37UITestHarness: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-ui_testing_ac37")
+        #else
+        false
+        #endif
+    }
+
+    private var shouldLaunchAC38UITestHarness: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-ui_testing_ac38")
+        #else
+        false
+        #endif
+    }
+
+    @ViewBuilder
+    private var ac38UITestHarnessView: some View {
+        #if DEBUG
+        UITestAC38GraceHostView()
+        #else
+        EmptyView()
+        #endif
+    }
+
     @ViewBuilder
     private var loadingCacheUITestHarnessView: some View {
         #if DEBUG
@@ -386,6 +423,15 @@ struct HavitalApp: App {
         #endif
     }
 
+    @ViewBuilder
+    private var ac37UITestHarnessView: some View {
+        #if DEBUG
+        UITestAC37HostView()
+        #else
+        EmptyView()
+        #endif
+    }
+
     /// P0-4: 前景恢復時刷新訂閱狀態，偵測降級
     private func refreshSubscriptionOnForeground() async {
         guard AppStateManager.shared.isUserAuthenticated else { return }
@@ -395,8 +441,13 @@ struct HavitalApp: App {
         do {
             let status = try await repo.refreshStatus()
             Logger.debug("[HavitalApp] 前景恢復：訂閱狀態已刷新")
-            // P1-9/P1-10: 前景恢復時也檢查提醒
-            await SubscriptionReminderManager.shared.checkAndShowReminder(status: status)
+            // P1-9/P1-10: 前景恢復時也檢查提醒（AC-PAYWALL-37 互斥由 manager 處理）
+            let trainingPlanRepo: TrainingPlanV2Repository? = DependencyContainer.shared.tryResolve()
+            let hasGeneratedTrainingPlan = trainingPlanRepo?.getCachedOverview() != nil
+            await SubscriptionReminderManager.shared.checkAndShowReminder(
+                status: status,
+                hasGeneratedTrainingPlan: hasGeneratedTrainingPlan
+            )
         } catch {
             Logger.debug("[HavitalApp] 前景恢復：訂閱狀態刷新失敗 \(error.localizedDescription)")
         }

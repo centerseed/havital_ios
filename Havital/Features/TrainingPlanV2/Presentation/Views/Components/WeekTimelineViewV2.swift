@@ -212,14 +212,14 @@ struct TimelineItemViewV2: View {
                                 .fixedSize(horizontal: false, vertical: true)
                         }
 
-                        if let climateMeta = day.effectiveClimateMeta {
-                            ClimateAdjustmentDetailView(day: day, meta: climateMeta)
-                                .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_detail")
-                        }
-
                         // 訓練詳情
                         if day.session != nil {
                             TrainingDetailsViewV2(day: day)
+                        }
+
+                        if let climateMeta = day.effectiveClimateMeta {
+                            ClimateAdjustmentDetailView(day: day, meta: climateMeta)
+                                .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_detail")
                         }
 
                         // 已完成的訓練記錄
@@ -863,19 +863,13 @@ private struct ClimateBadgeView: View {
     let meta: ClimateMeta
 
     var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "thermometer.medium")
-                .font(AppFont.captionSmall())
-            Text(meta.badgeLabel)
-                .font(AppFont.caption())
-                .fontWeight(.semibold)
-                .lineLimit(1)
-        }
+        Image(systemName: meta.badgeIconName)
+            .font(AppFont.caption())
+            .frame(width: 24, height: 24)
         .foregroundColor(meta.badgeForegroundColor)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
         .background(meta.badgeBackgroundColor)
         .clipShape(Capsule())
+        .accessibilityLabel(meta.shortLevelDisplayText)
     }
 }
 
@@ -887,66 +881,58 @@ private struct ClimateAdjustmentDetailView: View {
         day.primaryRunActivity
     }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 6) {
-                Image(systemName: "thermometer.sun.fill")
-                    .font(AppFont.caption())
-                    .foregroundColor(meta.badgeAccentColor)
-                Text(meta.sectionTitle)
-                    .font(AppFont.bodySmall())
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-                Spacer()
-            }
-
-            HStack(spacing: 8) {
-                ClimateValueChip(title: meta.levelTitle, value: meta.levelDisplayText)
-                if let temp = meta.feelsLikeTempText {
-                    ClimateValueChip(title: meta.temperatureTitle, value: temp)
-                }
-                if let adjustment = meta.adjustmentText {
-                    ClimateValueChip(title: meta.adjustmentTitle, value: adjustment)
-                }
-            }
-
-            if let basePace = runActivity?.basePace,
-               let adjustedPace = runActivity?.climateAdjustedPace {
-                HStack(spacing: 8) {
-                    ClimateValueChip(title: meta.originalPaceTitle, value: basePace)
-                    ClimateValueChip(title: meta.adjustedPaceTitle, value: adjustedPace)
-                }
-            } else if runActivity?.segments?.contains(where: { $0.climateAdjustedPace != nil }) == true {
-                Text(meta.segmentAdjustmentSummary)
-                    .font(AppFont.caption())
-                    .foregroundColor(.secondary)
-            }
-
-            if let reduction = meta.longRunReductionText {
-                Text(reduction)
-                    .font(AppFont.caption())
-                    .foregroundColor(.secondary)
-            }
-
-            Text(meta.reasonText)
-                .font(AppFont.caption())
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Text(meta.feelsLikeFootnote)
-                .font(AppFont.captionSmall())
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+    private var slowdownSeconds: Int? {
+        guard let basePace = runActivity?.basePace,
+              let adjustedPace = runActivity?.climateAdjustedPace,
+              let baseSeconds = paceSeconds(from: basePace),
+              let adjustedSeconds = paceSeconds(from: adjustedPace) else {
+            return nil
         }
-        .padding(10)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(meta.badgeBackgroundColor.opacity(0.22))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(meta.badgeAccentColor.opacity(0.25), lineWidth: 1)
-        )
+        let delta = adjustedSeconds - baseSeconds
+        return delta > 0 ? Int(delta.rounded()) : nil
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: meta.badgeIconName)
+                .font(AppFont.caption())
+                .foregroundColor(meta.badgeForegroundColor)
+                .frame(width: 20, height: 20)
+                .background(meta.badgeBackgroundColor)
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(meta.compactSummary(slowdownSeconds: slowdownSeconds))
+                    .font(AppFont.caption())
+                    .fontWeight(.medium)
+                    .foregroundColor(.primary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(meta.reasonText)
+                    .font(AppFont.captionSmall())
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(Color(.tertiarySystemGroupedBackground).opacity(0.65))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func paceSeconds(from pace: String) -> Double? {
+        let paceOnly = pace
+            .split(separator: "/", maxSplits: 1, omittingEmptySubsequences: true)
+            .first?
+            .split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
+            .first
+            .map(String.init) ?? pace
+        let components = paceOnly.split(separator: ":").compactMap { Int($0) }
+        guard components.count == 2 else { return nil }
+        return Double(components[0] * 60 + components[1])
     }
 }
 
@@ -963,7 +949,9 @@ private struct ClimateValueChip: View {
                 .font(AppFont.caption())
                 .fontWeight(.medium)
                 .foregroundColor(.primary)
+                .fixedSize(horizontal: false, vertical: true)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
         .background(Color(.tertiarySystemGroupedBackground))
@@ -975,13 +963,6 @@ private struct ClimateValueChip: View {
 private extension ClimateMeta {
     var currentLanguage: SupportedLanguage {
         LanguageManager.shared.currentLanguage
-    }
-
-    var badgeLabel: String {
-        if let adjustmentText {
-            return "\(shortLevelDisplayText) \(adjustmentText)"
-        }
-        return shortLevelDisplayText
     }
 
     var badgeAccentColor: Color {
@@ -996,6 +977,17 @@ private extension ClimateMeta {
             return Color(red: 0.55, green: 0.10, blue: 0.12)
         default:
             return .gray
+        }
+    }
+
+    var badgeIconName: String {
+        switch normalizedHeatPressureLevel {
+        case "danger":
+            return "exclamationmark.triangle.fill"
+        case "high":
+            return "thermometer.high"
+        default:
+            return "thermometer.medium"
         }
     }
 
@@ -1091,25 +1083,9 @@ private extension ClimateMeta {
 
     var adjustmentTitle: String {
         switch currentLanguage {
-        case .traditionalChinese: return "調整"
-        case .english: return "Adjustment"
-        case .japanese: return "調整"
-        }
-    }
-
-    var originalPaceTitle: String {
-        switch currentLanguage {
-        case .traditionalChinese: return "原配速"
-        case .english: return "Base Pace"
-        case .japanese: return "元のペース"
-        }
-    }
-
-    var adjustedPaceTitle: String {
-        switch currentLanguage {
-        case .traditionalChinese: return "調整後"
-        case .english: return "Adjusted"
-        case .japanese: return "調整後"
+        case .traditionalChinese: return "降速參考"
+        case .english: return "Slowdown Guide"
+        case .japanese: return "減速目安"
         }
     }
 
@@ -1118,15 +1094,24 @@ private extension ClimateMeta {
         return String(format: "%.1f°C", feelsLikeTempC)
     }
 
-    var adjustmentText: String? {
+    func adjustmentText(slowdownSeconds: Int? = nil) -> String? {
         if let paceAdjustmentPct {
             switch currentLanguage {
             case .traditionalChinese:
-                return String(format: "配速 +%.0f%%", paceAdjustmentPct)
+                if let slowdownSeconds {
+                    return String(format: "建議慢約 %.0f%%（+%d秒/km）", paceAdjustmentPct, slowdownSeconds)
+                }
+                return String(format: "建議慢約 %.0f%%", paceAdjustmentPct)
             case .english:
-                return String(format: "Pace +%.0f%%", paceAdjustmentPct)
+                if let slowdownSeconds {
+                    return String(format: "Slow about %.0f%% (+%ds/km)", paceAdjustmentPct, slowdownSeconds)
+                }
+                return String(format: "Slow about %.0f%%", paceAdjustmentPct)
             case .japanese:
-                return String(format: "ペース +%.0f%%", paceAdjustmentPct)
+                if let slowdownSeconds {
+                    return String(format: "約%.0f%%遅め（+%d秒/km）", paceAdjustmentPct, slowdownSeconds)
+                }
+                return String(format: "約%.0f%%遅め", paceAdjustmentPct)
             }
         }
         if let longRunReductionPct {
@@ -1140,6 +1125,25 @@ private extension ClimateMeta {
             }
         }
         return nil
+    }
+
+    func compactSummary(slowdownSeconds: Int? = nil) -> String {
+        let temp = feelsLikeTempText
+        let adjustment = adjustmentText(slowdownSeconds: slowdownSeconds)
+        switch currentLanguage {
+        case .traditionalChinese:
+            return [sectionTitle, temp.map { "體感 \($0)" }, adjustment]
+                .compactMap { $0 }
+                .joined(separator: " · ")
+        case .english:
+            return [sectionTitle, temp.map { "Feels \($0)" }, adjustment]
+                .compactMap { $0 }
+                .joined(separator: " · ")
+        case .japanese:
+            return [sectionTitle, temp.map { "体感 \($0)" }, adjustment]
+                .compactMap { $0 }
+                .joined(separator: " · ")
+        }
     }
 
     var longRunReductionText: String? {
@@ -1157,22 +1161,22 @@ private extension ClimateMeta {
     var segmentAdjustmentSummary: String {
         switch currentLanguage {
         case .traditionalChinese:
-            return "分段配速已依當日熱壓力調整。"
+            return "分段配速可依當日熱壓力保守執行。"
         case .english:
-            return "Segment paces were adjusted for the day's heat stress."
+            return "Run segment paces conservatively for the day's heat stress."
         case .japanese:
-            return "各セグメントのペースは当日の暑熱ストレスに合わせて調整済みです。"
+            return "当日の暑熱負荷に合わせて各区間を保守的に実施してください。"
         }
     }
 
     var feelsLikeFootnote: String {
         switch currentLanguage {
         case .traditionalChinese:
-            return "體感為當天最高值（含溫度、濕度、風）；清晨或傍晚可能較涼，可彈性選擇時段。"
+            return "體感可能是當天高點；清晨或傍晚可能低很多，請把數字當降速參考，不是固定配速。"
         case .english:
-            return "Feels-like shown is the daily peak (temperature + humidity + wind). Early morning or evening may be cooler — adjust your run time accordingly."
+            return "Feels-like may be the daily peak. Treat the number as a slowdown guide, not a fixed pace."
         case .japanese:
-            return "体感は当日のピーク値（気温・湿度・風を反映）。早朝や夕方は涼しい場合があるので、時間帯は柔軟に選んでください。"
+            return "体感温度は当日の高値の可能性があります。固定ペースではなく減速の目安として使ってください。"
         }
     }
 }

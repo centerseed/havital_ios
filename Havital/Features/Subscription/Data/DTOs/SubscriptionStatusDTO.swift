@@ -31,6 +31,21 @@ struct SubscriptionStatusDTO: Codable {
     /// 試用期結束時間（ISO8601）。status=trial_active 時後端提供此欄位。
     let trialEndAt: String?
 
+    /// 用戶首次訂閱時間（ISO8601）。nil 表示從未訂閱過（真新用戶）。
+    /// AC-PAYWALL-37: 用於區分「真新用戶」（從沒付費過）與「流失用戶」（曾付費已到期）。
+    let subscribedAt: String?
+
+    /// 7-day grace period 結束時間（ISO8601）。nil 表示目前不在 grace period 中。
+    /// AC-PAYWALL-38/39: IAP 購買後後端給予 7 天免費體驗期，期間享有 premium-equivalent access。
+    let iapGraceUntil: String?
+
+    /// 是否正處於 7-day grace period 中（後端權威值）。
+    /// AC-PAYWALL-38/39: true 時 hasPremiumAccess = true，但 hasRealSubscription = false。
+    let inGracePeriod: Bool?
+
+    /// Grace period 剩餘天數（後端計算值）。inGracePeriod=true 時後端提供此欄位。
+    let graceRemainingDays: Int?
+
     // MARK: - Initialization
 
     /// 顯式 init（所有新欄位預設 nil，讓既有 call site 不需修改）
@@ -45,7 +60,11 @@ struct SubscriptionStatusDTO: Codable {
         isEarlyBird: Bool? = nil,
         hasOverride: Bool? = nil,
         inIntroTrial: Bool? = nil,
-        trialEndAt: String? = nil
+        trialEndAt: String? = nil,
+        subscribedAt: String? = nil,
+        iapGraceUntil: String? = nil,
+        inGracePeriod: Bool? = nil,
+        graceRemainingDays: Int? = nil
     ) {
         self.status = status
         self.expiresAt = expiresAt
@@ -58,6 +77,10 @@ struct SubscriptionStatusDTO: Codable {
         self.hasOverride = hasOverride
         self.inIntroTrial = inIntroTrial
         self.trialEndAt = trialEndAt
+        self.subscribedAt = subscribedAt
+        self.iapGraceUntil = iapGraceUntil
+        self.inGracePeriod = inGracePeriod
+        self.graceRemainingDays = graceRemainingDays
     }
 
     // MARK: - CodingKeys
@@ -74,6 +97,10 @@ struct SubscriptionStatusDTO: Codable {
         case hasOverride = "has_override"
         case inIntroTrial = "in_intro_trial"
         case trialEndAt = "trial_end_at"
+        case subscribedAt = "subscribed_at"
+        case iapGraceUntil = "iap_grace_until"
+        case inGracePeriod = "in_grace_period"
+        case graceRemainingDays = "grace_remaining_days"
     }
 }
 

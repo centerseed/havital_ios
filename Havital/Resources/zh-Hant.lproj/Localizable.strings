@@ -276,6 +276,9 @@
 "profile.subscription.change_plan" = "變更方案";
 "profile.subscription.plan.yearly" = "年訂閱";
 "profile.subscription.plan.monthly" = "月訂閱";
+"profile.subscription.plan.yearly_early_bird" = "年訂閱（早鳥）";
+"profile.subscription.plan.monthly_early_bird" = "月訂閱（早鳥）";
+"profile.subscription.plan.premium_early_bird" = "Premium（早鳥）";
 "profile.subscription.trial_ends" = "試用到期日";
 "profile.subscription.trial_remaining_days" = "剩餘 %d 天";
 "profile.subscription.trial_purchased_note" = "已訂閱，試用結束後自動生效";
@@ -2461,6 +2464,9 @@
 "paywall.purchase_success_title" = "購買成功！";
 "paywall.purchase_success_start" = "開始使用";
 "paywall.purchase_success_trial_note" = "付費方案將在試用結束後啟用";
+"paywall.purchase_success.plan.yearly" = "年訂閱";
+"paywall.purchase_success.plan.monthly" = "月訂閱";
+"paywall.purchase_success.plan.premium" = "Premium 訂閱";
 "reminder.trial_expiring_title" = "試用即將到期";
 "reminder.trial_expiring_message" = "試用期還剩 %1$d 天（%2$@ 到期）。\n\n現在訂閱不影響試用期，訂閱將於試用期結束後才開始計費。";
 "reminder.expired_title" = "訂閱已到期";
@@ -2586,6 +2592,12 @@
 "paywall.premium.disclosure.trial" = "點擊「開始 30 天免費試用」即代表你同意：免費試用期為 30 天，到期後將以所選方案價格自動續訂並從你的 Apple ID 扣款。試用期結束 24 小時前可在 Apple ID 設定中取消，避免扣款。訂閱會在每個週期結束前 24 小時自動續訂，除非你取消。詳情請參閱使用條款與隱私權政策。";
 "paywall.premium.disclosure.standard" = "點擊「立即訂閱」即代表你同意：將立即從你的 Apple ID 扣款並訂閱所選方案。訂閱會在每個週期結束前 24 小時自動續訂，除非你在當前週期結束 24 小時前於 Apple ID 設定中取消。詳情請參閱使用條款與隱私權政策。";
 
+// Disclosure 連結文字與格式（AC-PAYWALL-32/33/34）
+"paywall.disclosure.privacy_link_text" = "隱私政策";
+"paywall.disclosure.terms_link_text" = "服務條款";
+"paywall.disclosure.trial.with_links_format" = "30 天免費試用至 %1$@，到期後將自動扣款。請參閱 %2$@ 與 %3$@。";
+"paywall.disclosure.standard.with_links_format" = "月訂閱將立即扣款並自動續訂。請參閱 %1$@ 與 %2$@。";
+
 // Inline upsell cards (x3)
 "paywall.inline.weekly_plan.title" = "解鎖完整週課表";
 "paywall.inline.weekly_plan.body" = "Week 1 是免費的。訂閱後可生成第 2 週起的個人化課表，並可隨時重新調整";
@@ -2654,3 +2666,20 @@
 "onboarding.clear_selected_race" = "改回手動輸入";
 "onboarding.tight_schedule_title" = "時間較緊迫";
 "onboarding.tight_schedule_message" = "距離賽事不足 4 週，系統會根據可用時間自動調整訓練計畫。";
+
+// Free Tier Banner (AC-PAYWALL-35)
+"paywall.free_tier.banner.title" = "免費體驗期";
+"paywall.free_tier.banner.subtitle" = "下週課表需訂閱解鎖";
+"paywall.free_tier.banner.cta" = "升級";
+
+// Grace Period Banner (AC-PAYWALL-38)
+"paywall.grace_period.banner.title_format" = "免費體驗中，剩 %d 天";
+"paywall.grace_period.banner.subtitle" = "7 天後需訂閱解鎖 AI 功能";
+
+// Settings Subscription Tier Indicator (AC-PAYWALL-36/40)
+"settings.subscription.tier.free_label" = "目前方案：Free 免費體驗版";
+"settings.subscription.tier.trial_label_format" = "目前方案：試用中（剩 %d 天）";
+"settings.subscription.tier.premium_label_format" = "目前方案：Premium（%@）";
+"settings.subscription.tier.grace_label_format" = "目前方案：免費體驗中（剩 %d 天）";
+"settings.subscription.tier.upgrade_cta" = "升級至完整版";
+"settings.subscription.tier.manage_cta" = "管理訂閱";

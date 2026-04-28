@@ -1,4 +1,12 @@
+import SafariServices
 import SwiftUI
+
+// MARK: - IdentifiableURL
+/// Thin wrapper that makes URL usable as a `.sheet(item:)` identifier.
+private struct IdentifiableURL: Identifiable {
+    let id = UUID()
+    let url: URL
+}
 
 // MARK: - PaywallCardType
 /// Identifies which card is currently focused by the user.
@@ -14,16 +22,6 @@ enum PaywallCardType: Equatable {
     }
 }
 
-// MARK: - FeatureGroup
-
-/// Data model for the 4-group features section in PaywallView (AC-PAYWALL-10/11).
-/// File-private so FeatureGroupCard (below PaywallView) can also reference it.
-fileprivate struct FeatureGroup {
-    let titleKey: String
-    let bulletKeys: [String]
-    let icon: String
-}
-
 // MARK: - PaywallView
 
 struct PaywallView: View {
@@ -35,6 +33,9 @@ struct PaywallView: View {
     /// Focused card — drives Trial Timeline, Disclosure, and CTA copy.
     /// Default = .defaultYearly (AC-07: Yearly card pre-selected on open).
     @State private var focusedCard: PaywallCardType = .defaultYearly
+
+    /// URL to open in SFSafariViewController (AC-PAYWALL-32/33: privacy + terms links).
+    @State private var safariURL: IdentifiableURL?
 
     init(trigger: PaywallTrigger, subSource: PaywallSource? = nil) {
         _viewModel = StateObject(wrappedValue: PaywallViewModel(trigger: trigger, subSource: subSource))
@@ -149,6 +150,11 @@ struct PaywallView: View {
                     Text(message)
                 }
             }
+            // AC-PAYWALL-32/33: SFSafariViewController sheet for Privacy Policy / Terms of Use links.
+            .sheet(item: $safariURL) { identifiableURL in
+                SafariView(url: identifiableURL.url)
+                    .ignoresSafeArea()
+            }
         }
     }
 
@@ -167,7 +173,7 @@ struct PaywallView: View {
                 Text(NSLocalizedString("paywall.purchase_success_title", comment: "Purchase Successful"))
                     .font(AppFont.systemScaled(size: 22, weight: .bold, design: .rounded))
 
-                if let planName = subscriptionState.currentStatus?.planType {
+                if let planName = viewModel.lastPurchasedPlanName {
                     Text(planName)
                         .font(AppFont.subheadline())
                         .foregroundColor(.secondary)
@@ -247,57 +253,61 @@ struct PaywallView: View {
         }
     }
 
-    // MARK: - Features 4 groups (AC-PAYWALL-10/11)
+    // MARK: - Features comparison table (free vs premium) — AC-PAYWALL-10/11
 
-    private let featureGroups: [FeatureGroup] = [
-        FeatureGroup(
-            titleKey: "paywall.premium.features.plan.title",
-            bulletKeys: [
-                "paywall.premium.features.plan.bullet1",
-                "paywall.premium.features.plan.bullet2",
-                "paywall.premium.features.plan.bullet3"
-            ],
-            icon: "calendar.badge.plus"
-        ),
-        FeatureGroup(
-            titleKey: "paywall.premium.features.adjust.title",
-            bulletKeys: [
-                "paywall.premium.features.adjust.bullet1",
-                "paywall.premium.features.adjust.bullet2"
-            ],
-            icon: "slider.horizontal.3"
-        ),
-        FeatureGroup(
-            titleKey: "paywall.premium.features.review.title",
-            bulletKeys: [
-                "paywall.premium.features.review.bullet1",
-                "paywall.premium.features.review.bullet2"
-            ],
-            icon: "chart.line.uptrend.xyaxis"
-        ),
-        FeatureGroup(
-            titleKey: "paywall.premium.features.race.title",
-            bulletKeys: [
-                "paywall.premium.features.race.bullet1",
-                "paywall.premium.features.race.bullet2"
-            ],
-            icon: "flag.checkered"
-        )
-    ]
+    private let freeColWidth: CGFloat = 48
+    private let premiumColWidth: CGFloat = 72
 
     private var featuresSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            ForEach(featureGroups.indices, id: \.self) { index in
-                let group = featureGroups[index]
-                FeatureGroupCard(group: group)
-                if index < featureGroups.count - 1 {
-                    Divider().padding(.leading, 48)
-                }
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
+                Color.clear.frame(maxWidth: .infinity)
+                Text(NSLocalizedString("paywall.comparison.header.free", comment: "Free"))
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .frame(width: freeColWidth, alignment: .center)
+                Text("Premium")
+                    .font(AppFont.caption())
+                    .fontWeight(.bold)
+                    .foregroundColor(.orange)
+                    .lineLimit(1)
+                    .frame(width: premiumColWidth, alignment: .center)
             }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+
+            Divider()
+            comparisonRow(NSLocalizedString("paywall.comparison.feature.run_tracking", comment: ""), free: true)
+            Divider().padding(.leading, 14)
+            comparisonRow(NSLocalizedString("paywall.comparison.feature.training_metrics", comment: ""), free: true)
+            Divider().padding(.leading, 14)
+            comparisonRow(NSLocalizedString("paywall.comparison.feature.ai_plan", comment: ""), free: false)
+            Divider().padding(.leading, 14)
+            comparisonRow(NSLocalizedString("paywall.comparison.feature.ai_advice", comment: ""), free: false)
         }
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12))
         .accessibilityIdentifier("Paywall_FeaturesSection")
+    }
+
+    private func comparisonRow(_ name: String, free: Bool) -> some View {
+        HStack(spacing: 0) {
+            Text(name)
+                .font(AppFont.caption())
+                .foregroundColor(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: free ? "checkmark" : "minus")
+                .font(.system(size: 12, weight: .regular))
+                .foregroundColor(Color(.tertiaryLabel))
+                .frame(width: freeColWidth, alignment: .center)
+            Image(systemName: "checkmark")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.orange)
+                .frame(width: premiumColWidth, alignment: .center)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
     }
 
     // MARK: - Offerings (S05: Default + Early-bird — AC-12..17)
@@ -493,18 +503,55 @@ struct PaywallView: View {
         }
     }
 
-    // MARK: - Disclosure (S05: switches by focused card — AC-20/21)
+    // MARK: - Disclosure (S05: switches by focused card — AC-20/21/32/33/34)
 
     private var disclosureSection: some View {
-        let key = focusedCard.isYearly
-            ? "paywall.premium.disclosure.trial"
-            : "paywall.premium.disclosure.standard"
-        return Text(NSLocalizedString(key, comment: ""))
+        let attributed = makeDisclosureAttributedString()
+        return Text(attributed)
             .font(AppFont.caption2())
             .foregroundColor(.secondary)
             .multilineTextAlignment(.leading)
             .fixedSize(horizontal: false, vertical: true)
             .accessibilityIdentifier("Paywall_Disclosure")
+            .environment(\.openURL, OpenURLAction { url in
+                safariURL = IdentifiableURL(url: url)
+                return .handled
+            })
+    }
+
+    /// Constructs the disclosure AttributedString for the current card focus state.
+    /// Yearly (not in trial): trial end date + tappable links. Otherwise: standard billing + links.
+    private func makeDisclosureAttributedString() -> AttributedString {
+        let privacyText = NSLocalizedString("paywall.disclosure.privacy_link_text", comment: "Privacy Policy")
+        let termsText = NSLocalizedString("paywall.disclosure.terms_link_text", comment: "Terms of Use")
+        let privacyURL = URL(string: Constants.URLs.privacyPolicy)!
+        let termsURL = URL(string: Constants.URLs.termsOfUse)!
+
+        let fullText: String
+        if focusedCard.isYearly && !viewModel.isInAppleIntroTrial {
+            // AC-PAYWALL-34: include precise trial end date (now + 30 days, device locale format).
+            let trialEndDate = Calendar.current.date(byAdding: .day, value: 30, to: Date()) ?? Date()
+            let dateString = DateFormatter.localizedString(from: trialEndDate, dateStyle: .long, timeStyle: .none)
+            let format = NSLocalizedString("paywall.disclosure.trial.with_links_format", comment: "")
+            fullText = String(format: format, dateString, termsText, privacyText)
+        } else {
+            let format = NSLocalizedString("paywall.disclosure.standard.with_links_format", comment: "")
+            fullText = String(format: format, termsText, privacyText)
+        }
+        return buildAttributedString(fullText: fullText, links: [(termsText, termsURL), (privacyText, privacyURL)])
+    }
+
+    /// Builds an `AttributedString` from `fullText`, attaching `.link` attributes to each
+    /// occurrence of the link display text found in `links`.
+    private func buildAttributedString(fullText: String, links: [(String, URL)]) -> AttributedString {
+        var attributed = AttributedString(fullText)
+        for (linkText, url) in links {
+            if let range = attributed.range(of: linkText) {
+                attributed[range].link = url
+                attributed[range].foregroundColor = .accentColor
+            }
+        }
+        return attributed
     }
 
     // MARK: - Helpers (kept for early-bird section)
@@ -579,43 +626,6 @@ struct PaywallView: View {
             value,
             unitText
         )
-    }
-}
-
-// MARK: - FeatureGroupCard
-
-private struct FeatureGroupCard: View {
-    let group: FeatureGroup
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            Image(systemName: group.icon)
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.orange)
-                .frame(width: 22, alignment: .center)
-                .padding(.top, 2)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(NSLocalizedString(group.titleKey, comment: ""))
-                    .font(AppFont.systemScaled(size: 13, weight: .semibold))
-                    .foregroundColor(.primary)
-
-                ForEach(group.bulletKeys, id: \.self) { key in
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text("·")
-                            .font(AppFont.caption())
-                            .foregroundColor(.secondary)
-                        Text(NSLocalizedString(key, comment: ""))
-                            .font(AppFont.caption())
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
     }
 }
 
@@ -820,4 +830,17 @@ private struct MonthlyCard: View {
         .accessibilityIdentifier("Paywall_MonthlyOption")
         .opacity(isFocused ? 1.0 : 0.85)
     }
+}
+
+// MARK: - SafariView
+/// UIViewControllerRepresentable wrapper for SFSafariViewController.
+/// Used by PaywallView to open Privacy Policy and Terms of Use links in-app (AC-PAYWALL-32/33).
+private struct SafariView: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        SFSafariViewController(url: url)
+    }
+
+    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
 }

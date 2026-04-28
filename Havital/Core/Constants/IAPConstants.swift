@@ -5,6 +5,20 @@ import Foundation
 /// Top-level namespace for project-wide constants.
 enum Constants {}
 
+// MARK: - Constants.URLs
+
+extension Constants {
+    enum URLs {
+        /// Privacy Policy URL. Used in paywall disclosure links (AC-PAYWALL-32).
+        /// TODO: Confirm final URL with PM before App Store submission.
+        static let privacyPolicy = "https://paceriz.com/privacy"
+
+        /// Terms of Use URL. Used in paywall disclosure links (AC-PAYWALL-33).
+        /// TODO: Confirm final URL with PM before App Store submission.
+        static let termsOfUse = "https://paceriz.com/terms"
+    }
+}
+
 // MARK: - Constants.IAP
 
 extension Constants {

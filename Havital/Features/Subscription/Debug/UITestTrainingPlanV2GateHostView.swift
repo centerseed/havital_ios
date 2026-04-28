@@ -1,6 +1,7 @@
 #if DEBUG
 import SwiftUI
 import Foundation
+import Combine
 
 enum UITestTrainingPlanV2GateHarness {
     static func registerDependencies() {
@@ -63,6 +64,11 @@ private final class UITestTrainingPlanV2GateRepository: TrainingPlanV2Repository
     private let generatePlanError = UITestGateErrorKind.fromEnvironment("UITEST_TPV2_GENERATE_PLAN_ERROR")
     private let generateSummaryError = UITestGateErrorKind.fromEnvironment("UITEST_TPV2_GENERATE_SUMMARY_ERROR")
     private let updateOverviewError = UITestGateErrorKind.fromEnvironment("UITEST_TPV2_UPDATE_OVERVIEW_ERROR")
+
+    // AC-PAYWALL-37: UITest harness never emits real overview updates
+    var overviewDidUpdate: AnyPublisher<PlanOverviewV2, Never> {
+        Empty().eraseToAnyPublisher()
+    }
 
     func getPlanStatus(forceRefresh: Bool) async throws -> PlanStatusV2Response {
         PlanStatusV2Response(

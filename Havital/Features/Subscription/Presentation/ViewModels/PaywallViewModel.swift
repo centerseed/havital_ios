@@ -57,6 +57,12 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
     @Published var offerings: ViewState<[SubscriptionOfferingEntity]> = .loading
     @Published var purchaseState: PurchaseState = .idle
 
+    /// The localized plan name of the most recently purchased package.
+    /// Set at the moment purchase succeeds — before the RC webhook lands — so the
+    /// success modal always shows the plan the user actually bought (not the stale
+    /// backend planType that may still reflect the previous subscription period).
+    @Published var lastPurchasedPlanName: String?
+
     // MARK: - Foreground Observer
 
     /// Notification observer token — held strongly so deinit cleans up automatically.
@@ -140,9 +146,12 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
             switch result {
             case .success:
                 let unlocked = await refreshStatusWithRetry()
-                purchaseState = unlocked
-                    ? .success
-                    : .failed(NSLocalizedString("paywall.purchase_pending_processing", comment: "Purchase is being processed"))
+                if unlocked {
+                    lastPurchasedPlanName = localizedPlanName(for: planType)
+                    purchaseState = .success
+                } else {
+                    purchaseState = .failed(NSLocalizedString("paywall.purchase_pending_processing", comment: "Purchase is being processed"))
+                }
             case .cancelled:
                 // User-cancelled is intentional — not a failure.
                 purchaseState = .failed(
@@ -153,9 +162,12 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
                 )
             case .pendingProcessing:
                 let unlocked = await refreshStatusWithRetry()
-                purchaseState = unlocked
-                    ? .success
-                    : .failed(NSLocalizedString("paywall.purchase_pending_processing", comment: "Purchase is being processed"))
+                if unlocked {
+                    lastPurchasedPlanName = localizedPlanName(for: planType)
+                    purchaseState = .success
+                } else {
+                    purchaseState = .failed(NSLocalizedString("paywall.purchase_pending_processing", comment: "Purchase is being processed"))
+                }
             case .failed(let error):
                 analyticsService.track(
                     .purchaseFail(
@@ -386,6 +398,20 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
     }
 
     // MARK: - Private
+
+    /// Maps the analytics planType ("yearly" / "monthly") to a localized display string for
+    /// the success modal — called immediately on purchase so the modal is independent of
+    /// RC webhook timing.
+    private func localizedPlanName(for planType: String) -> String {
+        switch planType {
+        case "yearly":
+            return NSLocalizedString("paywall.purchase_success.plan.yearly", comment: "Yearly plan")
+        case "monthly":
+            return NSLocalizedString("paywall.purchase_success.plan.monthly", comment: "Monthly plan")
+        default:
+            return NSLocalizedString("paywall.purchase_success.plan.premium", comment: "Premium subscription")
+        }
+    }
 
     private func classifyPurchaseError(_ error: Error) -> String {
         let desc = error.localizedDescription.lowercased()

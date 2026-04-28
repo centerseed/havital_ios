@@ -535,6 +535,111 @@ final class PaywallViewModelTests: XCTestCase {
         )
     }
 
+    // MARK: - lastPurchasedPlanName (Bug 1 fix: success modal shows correct plan)
+
+    /// Bug 1: success modal must show the plan the user bought, not the stale backend planType.
+    /// Verifies: yearly packageId → lastPurchasedPlanName is set to the yearly plan key.
+    func testPurchase_Yearly_SetsLastPurchasedPlanName_Yearly() async {
+        repository.purchaseResult = .success
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active))
+
+        await sut.purchase(
+            request: SubscriptionPurchaseRequest(
+                offeringId: "default",
+                packageId: "$rc_annual",
+                offerType: nil,
+                offerIdentifier: nil
+            )
+        )
+
+        XCTAssertEqual(sut.purchaseState, .success)
+        XCTAssertEqual(
+            sut.lastPurchasedPlanName,
+            NSLocalizedString("paywall.purchase_success.plan.yearly", comment: ""),
+            "Yearly purchase must set lastPurchasedPlanName to the yearly plan localized string"
+        )
+    }
+
+    /// Bug 1: monthly packageId → lastPurchasedPlanName is set to the monthly plan key.
+    func testPurchase_Monthly_SetsLastPurchasedPlanName_Monthly() async {
+        repository.purchaseResult = .success
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active))
+
+        await sut.purchase(
+            request: SubscriptionPurchaseRequest(
+                offeringId: "default",
+                packageId: "$rc_monthly",
+                offerType: nil,
+                offerIdentifier: nil
+            )
+        )
+
+        XCTAssertEqual(sut.purchaseState, .success)
+        XCTAssertEqual(
+            sut.lastPurchasedPlanName,
+            NSLocalizedString("paywall.purchase_success.plan.monthly", comment: ""),
+            "Monthly purchase must set lastPurchasedPlanName to the monthly plan localized string"
+        )
+    }
+
+    /// Bug 1: yearly offeringId (annual keyword) → inferred as yearly even if packageId is generic.
+    func testPurchase_AnnualKeywordInOfferingId_SetsLastPurchasedPlanName_Yearly() async {
+        repository.purchaseResult = .success
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active))
+
+        await sut.purchase(
+            request: SubscriptionPurchaseRequest(
+                offeringId: "annual_promo",
+                packageId: "$rc_annual_promo",
+                offerType: nil,
+                offerIdentifier: nil
+            )
+        )
+
+        XCTAssertEqual(sut.purchaseState, .success)
+        XCTAssertEqual(
+            sut.lastPurchasedPlanName,
+            NSLocalizedString("paywall.purchase_success.plan.yearly", comment: ""),
+            "annual keyword in offeringId must map to yearly plan name"
+        )
+    }
+
+    /// Bug 1: failed purchase must NOT set lastPurchasedPlanName.
+    func testPurchase_WhenFailed_DoesNotSetLastPurchasedPlanName() async {
+        repository.purchaseResult = .failed(DomainError.validationFailure("purchase failed"))
+
+        await sut.purchase(
+            request: SubscriptionPurchaseRequest(
+                offeringId: "default",
+                packageId: "$rc_annual",
+                offerType: nil,
+                offerIdentifier: nil
+            )
+        )
+
+        if case .failed = sut.purchaseState {
+            XCTAssertNil(sut.lastPurchasedPlanName, "Failed purchase must not set lastPurchasedPlanName")
+        } else {
+            XCTFail("Expected purchaseState to be .failed")
+        }
+    }
+
+    /// Bug 1: cancelled purchase must NOT set lastPurchasedPlanName.
+    func testPurchase_WhenCancelled_DoesNotSetLastPurchasedPlanName() async {
+        repository.purchaseResult = .cancelled
+
+        await sut.purchase(
+            request: SubscriptionPurchaseRequest(
+                offeringId: "default",
+                packageId: "$rc_annual",
+                offerType: nil,
+                offerIdentifier: nil
+            )
+        )
+
+        XCTAssertNil(sut.lastPurchasedPlanName, "Cancelled purchase must not set lastPurchasedPlanName")
+    }
+
     /// Done Criteria #6 (S03a P0): isEarlyBirdOffering is true when RC identifier is "Early bird"
     /// (capitalized first letter, space separator — exact match to RevenueCat dashboard value).
     func test_isEarlyBirdOffering_true_when_rc_identifier_is_capitalized_with_space() {

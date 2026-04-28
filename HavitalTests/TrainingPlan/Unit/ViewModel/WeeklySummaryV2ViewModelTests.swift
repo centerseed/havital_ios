@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import Combine
 @testable import paceriz_dev
 
 @MainActor
@@ -545,6 +546,11 @@ final class TrainingPlanV2InitializationRegressionTests: XCTestCase {
 }
 
 private final class StartupStatusFailureButCachedPlanRepository: TrainingPlanV2Repository {
+
+    // AC-PAYWALL-37: test harness never emits real overview updates
+    var overviewDidUpdate: AnyPublisher<PlanOverviewV2, Never> {
+        Empty().eraseToAnyPublisher()
+    }
 
     private let cachedOverview: PlanOverviewV2
     private let cachedPlan: WeeklyPlanV2

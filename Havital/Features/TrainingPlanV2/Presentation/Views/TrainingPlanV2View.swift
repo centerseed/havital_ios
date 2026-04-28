@@ -20,6 +20,8 @@ struct TrainingPlanV2View: View {
     @State private var showWeeklyPlanInlineUpsellSheet = false
     @State private var weeklyPlanUpsellIsRegenerateLocal = false
     @State private var showWeeklyReviewInlineUpsellSheet = false
+    // AC-PAYWALL-35: observe subscription state for free tier banner visibility
+    @StateObject private var subscriptionState = SubscriptionStateManager.shared
     @StateObject private var userProfileViewModel = UserProfileFeatureViewModel()
     @StateObject private var announcementViewModel = AnnouncementViewModel(
         repository: DependencyContainer.shared.resolve()
@@ -69,6 +71,19 @@ struct TrainingPlanV2View: View {
         )
     }
 
+    // AC-PAYWALL-35/38: Free tier banner visibility logic.
+    // Visible when: no real subscription AND training plan exists (week 1 generated).
+    // Grace period users also see the banner (they have hasPremiumAccess=true but not a real subscription).
+    // Hidden when: real subscriber, Apple intro trial, or onboarding not yet completed (no planOverview).
+    //
+    // Note: hasPremiumAccess is NOT used here because grace period users have hasPremiumAccess=true
+    // yet still need to see the banner ("X days left, subscribe to keep access").
+    private var shouldShowFreeTierBanner: Bool {
+        guard !subscriptionState.hasRealSubscription else { return false }
+        // planOverview != nil means the user has generated at least Week 1
+        return viewModel.loader.planOverview != nil
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -80,6 +95,20 @@ struct TrainingPlanV2View: View {
                     .ignoresSafeArea()
             ScrollView {
                 VStack(spacing: 24) {
+                    // AC-PAYWALL-35/38: Free tier banner — shown when user is unsubscribed
+                    // (or in 7-day grace period) and has already generated Week 1.
+                    if shouldShowFreeTierBanner {
+                        FreeTierBanner(
+                            inGracePeriod: subscriptionState.currentStatus?.inGracePeriod == true,
+                            graceRemainingDays: subscriptionState.currentStatus?.graceRemainingDays
+                        ) {
+                            _ = InterruptCoordinator.shared.enqueue(
+                                .paywall(.freeTierBanner)
+                            )
+                        }
+                        .transition(.opacity)
+                    }
+
                     switch viewModel.loader.planStatus {
                     case .ready(let weeklyPlan):
                         // 1️⃣ 訓練進度卡片（與 V1 相同）

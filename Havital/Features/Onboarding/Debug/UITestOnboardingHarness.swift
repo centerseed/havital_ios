@@ -1,5 +1,6 @@
 #if DEBUG
 import Foundation
+import Combine
 
 extension RunSegment {
     init(
@@ -109,6 +110,12 @@ private final class UITestOnboardingTargetRepository: TargetRepository {
 }
 
 private final class UITestOnboardingTrainingPlanV2Repository: TrainingPlanV2Repository {
+
+    // AC-PAYWALL-37: UITest harness never emits real overview updates
+    var overviewDidUpdate: AnyPublisher<PlanOverviewV2, Never> {
+        Empty().eraseToAnyPublisher()
+    }
+
     private let targetTypes: [TargetTypeV2] = [
         TargetTypeV2(
             id: "race_run",

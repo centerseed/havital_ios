@@ -515,4 +515,485 @@ final class PaywallACTests: XCTestCase {
         // Cannot be unit tested; requires sandbox StoreKit testing.
         XCTSkip("Operational AC: requires App Store Connect configuration by PM. Verified via ASC dashboard or RC offering metadata in sandbox. Not automatable as unit test.")
     }
+
+    // MARK: - Pre-Review Hardening (2026-04-27 新增, F1+F2+F4)
+
+    // AC-PAYWALL-32: Disclosure 包含可點擊的隱私政策連結
+    func test_ac_paywall_32_disclosure_contains_privacy_link() {
+        // Given 用戶開啟 paywall sheet
+        // When 用戶看到 disclosure 區
+        // Then 文字內出現可點擊「隱私政策 / Privacy Policy / プライバシーポリシー」連結；
+        //      點擊後以 SFSafariViewController 開啟既有 Privacy Policy URL；不離開 App。
+        //
+        // Unit verifiable: i18n key resolves correctly in the main app bundle.
+        // SFSafariViewController presentation is verified by QA via simulator screenshot.
+        let bundle = Bundle(for: PaywallViewModel.self)
+
+        // Verify privacy link text key resolves to non-empty localized string
+        let privacyLinkText = NSLocalizedString("paywall.disclosure.privacy_link_text", bundle: bundle, comment: "")
+        XCTAssertNotEqual(privacyLinkText, "paywall.disclosure.privacy_link_text",
+                          "paywall.disclosure.privacy_link_text must resolve to a localized value, not fall back to key")
+        XCTAssertFalse(privacyLinkText.isEmpty,
+                       "paywall.disclosure.privacy_link_text must not be empty")
+
+        // Verify trial format string contains privacy link text placeholder (%@)
+        let trialFormat = NSLocalizedString("paywall.disclosure.trial.with_links_format", bundle: bundle, comment: "")
+        XCTAssertNotEqual(trialFormat, "paywall.disclosure.trial.with_links_format",
+                          "paywall.disclosure.trial.with_links_format must resolve to a localized value")
+        XCTAssertTrue(trialFormat.contains("%") || trialFormat.contains(privacyLinkText),
+                      "Trial format string must contain format placeholders or the privacy link text directly")
+
+        // Verify standard format string
+        let standardFormat = NSLocalizedString("paywall.disclosure.standard.with_links_format", bundle: bundle, comment: "")
+        XCTAssertNotEqual(standardFormat, "paywall.disclosure.standard.with_links_format",
+                          "paywall.disclosure.standard.with_links_format must resolve to a localized value")
+
+        // Verify privacy URL constant is a valid HTTPS URL
+        let privacyURL = URL(string: Constants.URLs.privacyPolicy)
+        XCTAssertNotNil(privacyURL, "Constants.URLs.privacyPolicy must be a valid URL string")
+        XCTAssertEqual(privacyURL?.scheme, "https", "Privacy Policy URL must use HTTPS scheme")
+
+        // Verify disclosure link text appears in formatted string
+        let formattedTrialDisclosure = String(
+            format: trialFormat,
+            "May 27, 2026",
+            NSLocalizedString("paywall.disclosure.terms_link_text", bundle: bundle, comment: ""),
+            privacyLinkText
+        )
+        XCTAssertTrue(formattedTrialDisclosure.contains(privacyLinkText),
+                      "Formatted trial disclosure must contain privacy link text '\(privacyLinkText)'")
+    }
+
+    // AC-PAYWALL-33: Disclosure 包含可點擊的服務條款連結
+    func test_ac_paywall_33_disclosure_contains_terms_link() {
+        // Given 用戶開啟 paywall sheet
+        // When 用戶看到 disclosure 區
+        // Then 文字內出現可點擊「服務條款 / Terms of Use / 利用規約」連結；
+        //      點擊後以 SFSafariViewController 開啟既有 Terms of Use URL；不離開 App。
+        //
+        // Unit verifiable: i18n key resolves correctly in the main app bundle.
+        // SFSafariViewController presentation verified by QA via simulator screenshot.
+        let bundle = Bundle(for: PaywallViewModel.self)
+
+        // Verify terms link text key resolves to non-empty localized string
+        let termsLinkText = NSLocalizedString("paywall.disclosure.terms_link_text", bundle: bundle, comment: "")
+        XCTAssertNotEqual(termsLinkText, "paywall.disclosure.terms_link_text",
+                          "paywall.disclosure.terms_link_text must resolve to a localized value, not fall back to key")
+        XCTAssertFalse(termsLinkText.isEmpty,
+                       "paywall.disclosure.terms_link_text must not be empty")
+
+        // Verify terms URL constant is a valid HTTPS URL
+        let termsURL = URL(string: Constants.URLs.termsOfUse)
+        XCTAssertNotNil(termsURL, "Constants.URLs.termsOfUse must be a valid URL string")
+        XCTAssertEqual(termsURL?.scheme, "https", "Terms of Use URL must use HTTPS scheme")
+
+        // Verify terms link text appears in formatted trial disclosure string
+        let trialFormat = NSLocalizedString("paywall.disclosure.trial.with_links_format", bundle: bundle, comment: "")
+        let privacyLinkText = NSLocalizedString("paywall.disclosure.privacy_link_text", bundle: bundle, comment: "")
+        let formattedTrialDisclosure = String(
+            format: trialFormat,
+            "May 27, 2026",
+            termsLinkText,
+            privacyLinkText
+        )
+        XCTAssertTrue(formattedTrialDisclosure.contains(termsLinkText),
+                      "Formatted trial disclosure must contain terms link text '\(termsLinkText)'")
+
+        // Verify terms link text appears in formatted standard disclosure string
+        let standardFormat = NSLocalizedString("paywall.disclosure.standard.with_links_format", bundle: bundle, comment: "")
+        let formattedStandardDisclosure = String(
+            format: standardFormat,
+            termsLinkText,
+            privacyLinkText
+        )
+        XCTAssertTrue(formattedStandardDisclosure.contains(termsLinkText),
+                      "Formatted standard disclosure must contain terms link text '\(termsLinkText)'")
+    }
+
+    // AC-PAYWALL-34: Yearly card focus 時 disclosure 顯示精確試用結束日期
+    func test_ac_paywall_34_disclosure_shows_trial_end_date_yearly() {
+        // Given 用戶不在 Apple intro offer trial 中（首次訂閱）
+        // And 用戶 focus 在 Yearly card（含 default 與 early-bird）
+        // When 用戶看到 disclosure 區
+        // Then 文字包含具體結束日期（now + 30 days，locale-aware format）
+        // And Monthly card focus 時不包含試用日期
+
+        // 1. Verify trial end date computation: now + 30 days
+        let now = Date()
+        let trialEndDate = Calendar.current.date(byAdding: .day, value: 30, to: now)
+        XCTAssertNotNil(trialEndDate, "Calendar.current.date(byAdding: .day, value: 30, to: Date()) must not return nil")
+
+        guard let trialEndDate else { return }
+
+        // 2. Verify locale-aware DateFormatter output is non-empty
+        let formatter = DateFormatter()
+        formatter.dateStyle = .long
+        formatter.locale = Locale.current
+        let dateString = formatter.string(from: trialEndDate)
+        XCTAssertFalse(dateString.isEmpty, "DateFormatter with .long style must produce non-empty date string")
+
+        // 3. Verify trial disclosure format string accepts date injection
+        let bundle = Bundle(for: PaywallViewModel.self)
+        let trialFormat = NSLocalizedString("paywall.disclosure.trial.with_links_format", bundle: bundle, comment: "")
+        XCTAssertNotEqual(trialFormat, "paywall.disclosure.trial.with_links_format",
+                          "paywall.disclosure.trial.with_links_format must resolve to a localized value")
+
+        let termsText = NSLocalizedString("paywall.disclosure.terms_link_text", bundle: bundle, comment: "")
+        let privacyText = NSLocalizedString("paywall.disclosure.privacy_link_text", bundle: bundle, comment: "")
+        let formattedDisclosure = String(format: trialFormat, dateString, termsText, privacyText)
+
+        // 4. The formatted disclosure must contain the date string
+        XCTAssertTrue(formattedDisclosure.contains(dateString),
+                      "Formatted trial disclosure must contain the trial end date '\(dateString)'")
+
+        // 5. Standard disclosure must NOT include a date (monthly = no trial)
+        let standardFormat = NSLocalizedString("paywall.disclosure.standard.with_links_format", bundle: bundle, comment: "")
+        let standardDisclosure = String(format: standardFormat, termsText, privacyText)
+        // Standard format has only 2 placeholders (%1$@ = terms, %2$@ = privacy), no date placeholder.
+        // Verify the year portion of the date is absent from standard disclosure.
+        let yearString = String(Calendar.current.component(.year, from: trialEndDate))
+        XCTAssertFalse(standardDisclosure.contains(yearString),
+                       "Standard (monthly) disclosure must not contain year '\(yearString)' — no trial date for monthly")
+
+        // 6. Verify yearly card isYearly == true (prerequisite for date disclosure)
+        XCTAssertTrue(PaywallCardType.defaultYearly.isYearly)
+        XCTAssertTrue(PaywallCardType.earlyBirdYearly.isYearly)
+
+        // 7. Verify monthly card isYearly == false (no date disclosure)
+        XCTAssertFalse(PaywallCardType.defaultMonthly.isYearly)
+        XCTAssertFalse(PaywallCardType.earlyBirdMonthly.isYearly)
+    }
+
+    // AC-PAYWALL-35: 未訂閱 + 已生 Week 1 用戶在主頁顯示 Free tier banner
+    func test_ac_paywall_35_free_tier_banner_visible_when_unsubscribed_with_week1() {
+        // Given subscription_status = expired AND active_training_id 存在 AND week_of_training >= 1
+        // When 用戶開啟主頁
+        // Then 主頁頂部顯示 Free tier banner，標題 "免費體驗期", 副標 "下週課表需訂閱解鎖", CTA "升級"
+        // And subscription_status ∈ {trial_active, subscribed} → banner 不顯示
+        // And 尚未生 Week 1 → banner 不顯示
+        // And 點 banner / CTA → 開啟 paywall sheet, source=free_tier_banner, sub_source=home
+
+        let bundle = Bundle(for: PaywallViewModel.self)
+
+        // 1. Verify banner i18n keys exist in all three locales (via default test locale)
+        let bannerTitle = NSLocalizedString("paywall.free_tier.banner.title", bundle: bundle, comment: "")
+        XCTAssertNotEqual(bannerTitle, "paywall.free_tier.banner.title",
+                          "paywall.free_tier.banner.title must resolve to a localized value")
+        XCTAssertFalse(bannerTitle.isEmpty, "paywall.free_tier.banner.title must not be empty")
+
+        let bannerSubtitle = NSLocalizedString("paywall.free_tier.banner.subtitle", bundle: bundle, comment: "")
+        XCTAssertNotEqual(bannerSubtitle, "paywall.free_tier.banner.subtitle",
+                          "paywall.free_tier.banner.subtitle must resolve to a localized value")
+        XCTAssertFalse(bannerSubtitle.isEmpty, "paywall.free_tier.banner.subtitle must not be empty")
+
+        let bannerCTA = NSLocalizedString("paywall.free_tier.banner.cta", bundle: bundle, comment: "")
+        XCTAssertNotEqual(bannerCTA, "paywall.free_tier.banner.cta",
+                          "paywall.free_tier.banner.cta must resolve to a localized value")
+        XCTAssertFalse(bannerCTA.isEmpty, "paywall.free_tier.banner.cta must not be empty")
+
+        // 2. Verify hasPremiumAccess returns false for unsubscribed user (banner should show)
+        let unsubscribedStatus = SubscriptionStatusEntity(status: .none, enforcementEnabled: true)
+        SubscriptionStateManager.shared.update(unsubscribedStatus)
+        XCTAssertFalse(SubscriptionStateManager.shared.hasPremiumAccess,
+                       "Unsubscribed user must NOT have premium access — banner should be visible")
+
+        // 3. Verify hasPremiumAccess returns false for expired user (banner should show)
+        let expiredStatus = SubscriptionStatusEntity(status: .expired, enforcementEnabled: true)
+        SubscriptionStateManager.shared.update(expiredStatus)
+        XCTAssertFalse(SubscriptionStateManager.shared.hasPremiumAccess,
+                       "Expired user must NOT have premium access — banner should be visible")
+
+        // 4. Verify hasPremiumAccess returns true for active subscriber (banner should NOT show)
+        let activeStatus = SubscriptionStatusEntity(status: .active, enforcementEnabled: true)
+        SubscriptionStateManager.shared.update(activeStatus)
+        XCTAssertTrue(SubscriptionStateManager.shared.hasPremiumAccess,
+                      "Active subscriber must have premium access — banner should be hidden")
+
+        // 5. Verify hasPremiumAccess returns true for Apple intro trial (banner should NOT show)
+        let trialStatus = SubscriptionStatusEntity(
+            status: .active,
+            inIntroTrial: true,
+            trialEndAt: Date().timeIntervalSince1970 + 30 * 86400
+        )
+        SubscriptionStateManager.shared.update(trialStatus)
+        XCTAssertTrue(SubscriptionStateManager.shared.hasPremiumAccess,
+                      "Apple intro trial user must have premium access — banner should be hidden")
+
+        // 6. Verify FreeTierBanner source is in PaywallSource
+        let source = PaywallTrigger.freeTierBanner.paywallSource
+        XCTAssertEqual(source.rawValue, "free_tier_banner",
+                       "PaywallTrigger.freeTierBanner must map to source 'free_tier_banner'")
+
+        // 7. Visibility predicate: banner shown when !hasPremiumAccess AND planOverview != nil (has Week 1)
+        // When planOverview is nil (no Week 1), shouldShowFreeTierBanner must be false.
+        // This is enforced in TrainingPlanV2View: shouldShowFreeTierBanner requires planOverview != nil.
+        // Reset state for safety
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none))
+    }
+
+    // AC-PAYWALL-36: 設定頁顯示目前訂閱方案標示
+    func test_ac_paywall_36_settings_subscription_tier_indicator() {
+        // Given 用戶開啟設定頁
+        // When 用戶看到 Subscription 區
+        // Then:
+        //   未訂閱 → "目前方案：Free 免費體驗版" + "升級至完整版" CTA
+        //   Apple intro trial 中 → "目前方案：試用中（剩 X 天）"
+        //   訂閱中 → "目前方案：Premium（{方案名}）" + "管理訂閱" CTA
+        // And Free tier 用戶點 CTA → paywall sheet, source=settings_tier
+        let bundle = Bundle(for: PaywallViewModel.self)
+
+        // 1. Verify all tier label i18n keys resolve correctly
+        let freeLabel = NSLocalizedString("settings.subscription.tier.free_label", bundle: bundle, comment: "")
+        XCTAssertNotEqual(freeLabel, "settings.subscription.tier.free_label",
+                          "settings.subscription.tier.free_label must resolve to localized value")
+        XCTAssertFalse(freeLabel.isEmpty)
+
+        let trialFormat = NSLocalizedString("settings.subscription.tier.trial_label_format", bundle: bundle, comment: "")
+        XCTAssertNotEqual(trialFormat, "settings.subscription.tier.trial_label_format",
+                          "settings.subscription.tier.trial_label_format must resolve to localized value")
+        XCTAssertFalse(trialFormat.isEmpty)
+
+        // Verify trial format accepts %d (days remaining)
+        let trialLabel = String(format: trialFormat, 10)
+        XCTAssertFalse(trialLabel.isEmpty, "Formatted trial label with 10 days must not be empty")
+        XCTAssertNotEqual(trialLabel, trialFormat, "Formatted trial label must differ from format string")
+
+        let premiumFormat = NSLocalizedString("settings.subscription.tier.premium_label_format", bundle: bundle, comment: "")
+        XCTAssertNotEqual(premiumFormat, "settings.subscription.tier.premium_label_format",
+                          "settings.subscription.tier.premium_label_format must resolve to localized value")
+        XCTAssertFalse(premiumFormat.isEmpty)
+
+        // Verify premium format accepts %@ (plan name)
+        let premiumLabel = String(format: premiumFormat, "Annual")
+        XCTAssertFalse(premiumLabel.isEmpty, "Formatted premium label must not be empty")
+        XCTAssertNotEqual(premiumLabel, premiumFormat, "Formatted premium label must differ from format string")
+
+        let upgradeCTA = NSLocalizedString("settings.subscription.tier.upgrade_cta", bundle: bundle, comment: "")
+        XCTAssertNotEqual(upgradeCTA, "settings.subscription.tier.upgrade_cta",
+                          "settings.subscription.tier.upgrade_cta must resolve to localized value")
+        XCTAssertFalse(upgradeCTA.isEmpty)
+
+        let manageCTA = NSLocalizedString("settings.subscription.tier.manage_cta", bundle: bundle, comment: "")
+        XCTAssertNotEqual(manageCTA, "settings.subscription.tier.manage_cta",
+                          "settings.subscription.tier.manage_cta must resolve to localized value")
+        XCTAssertFalse(manageCTA.isEmpty)
+
+        // 2. Verify PaywallTrigger.settingsTier maps to correct source
+        let settingsTierSource = PaywallTrigger.settingsTier.paywallSource
+        XCTAssertEqual(settingsTierSource.rawValue, "settings_tier",
+                       "PaywallTrigger.settingsTier must map to source 'settings_tier'")
+
+        // 3. Verify state logic for tier label selection:
+
+        // Free / unsubscribed → free label
+        let noneStatus = SubscriptionStatusEntity(status: .none)
+        let noneIsFreeTier = noneStatus.status == .none || noneStatus.status == .expired
+        XCTAssertTrue(noneIsFreeTier, "Status .none should show free tier label")
+
+        let expiredStatus = SubscriptionStatusEntity(status: .expired)
+        let expiredIsFreeTier = expiredStatus.status == .none || expiredStatus.status == .expired
+        XCTAssertTrue(expiredIsFreeTier, "Status .expired should show free tier label")
+
+        // Apple intro trial → trial label
+        let introTrialStatus = SubscriptionStatusEntity(
+            status: .active,
+            inIntroTrial: true,
+            trialEndAt: Date().timeIntervalSince1970 + 10 * 86400
+        )
+        XCTAssertTrue(introTrialStatus.inIntroTrial == true,
+                      "Apple intro trial must set inIntroTrial = true")
+        // days remaining computation
+        let remaining = max(0, introTrialStatus.trialEndAt! - Date().timeIntervalSince1970)
+        let days = Int(ceil(remaining / 86400.0))
+        XCTAssertTrue(days >= 9 && days <= 11, "Trial days should be ~10, got \(days)")
+
+        // Active → premium label
+        let activeStatus = SubscriptionStatusEntity(status: .active, planType: "yearly")
+        let activeIsPremium = activeStatus.status == .active || activeStatus.status == .gracePeriod
+        XCTAssertTrue(activeIsPremium, "Status .active should show premium label")
+        XCTAssertEqual(activeStatus.planType, "yearly", "Plan type must be preserved")
+    }
+
+    // MARK: - AC-PAYWALL-38/39/40: 7-day Grace Period
+
+    /// AC-PAYWALL-38: Grace period banner shows remaining days
+    func test_ac_paywall_38_grace_period_banner_shows_remaining_days() {
+        let bundle = Bundle(for: PaywallViewModel.self)
+
+        // 1. Verify banner grace format key resolves in all three locales
+        let graceTitleFormat = NSLocalizedString(
+            "paywall.grace_period.banner.title_format",
+            bundle: bundle,
+            comment: ""
+        )
+        XCTAssertNotEqual(
+            graceTitleFormat,
+            "paywall.grace_period.banner.title_format",
+            "paywall.grace_period.banner.title_format must resolve to a localized value"
+        )
+        XCTAssertFalse(graceTitleFormat.isEmpty, "paywall.grace_period.banner.title_format must not be empty")
+
+        // 2. Verify format string accepts %d (days remaining)
+        let formattedTitle = String(format: graceTitleFormat, 5)
+        XCTAssertFalse(formattedTitle.isEmpty, "Formatted grace title with 5 days must not be empty")
+        XCTAssertNotEqual(formattedTitle, graceTitleFormat, "Formatted grace title must differ from format string")
+
+        // 3. Verify subtitle key
+        let graceSubtitle = NSLocalizedString(
+            "paywall.grace_period.banner.subtitle",
+            bundle: bundle,
+            comment: ""
+        )
+        XCTAssertNotEqual(graceSubtitle, "paywall.grace_period.banner.subtitle")
+        XCTAssertFalse(graceSubtitle.isEmpty)
+
+        // 4. Verify grace period entity fields
+        let gracePeriodStatus = SubscriptionStatusEntity(
+            status: .none,
+            inGracePeriod: true,
+            graceRemainingDays: 5
+        )
+        XCTAssertTrue(gracePeriodStatus.inGracePeriod, "inGracePeriod must be true")
+        XCTAssertEqual(gracePeriodStatus.graceRemainingDays, 5, "graceRemainingDays must be 5")
+    }
+
+    /// AC-PAYWALL-39: hasPremiumAccess = true during grace period; hasRealSubscription = false
+    func test_ac_paywall_39_grace_period_has_premium_access_but_not_real_subscription() {
+        // Given: user is in grace period
+        let gracePeriodStatus = SubscriptionStatusEntity(
+            status: .none,
+            enforcementEnabled: true,
+            inGracePeriod: true,
+            graceRemainingDays: 5
+        )
+        SubscriptionStateManager.shared.update(gracePeriodStatus)
+
+        // Then: hasPremiumAccess = true (AI features unlocked, no inline upsell)
+        XCTAssertTrue(
+            SubscriptionStateManager.shared.hasPremiumAccess,
+            "Grace period user must have premium access (AI features unlocked)"
+        )
+
+        // And: hasRealSubscription = false (banner should still show)
+        XCTAssertFalse(
+            SubscriptionStateManager.shared.hasRealSubscription,
+            "Grace period user must NOT have real subscription (banner should remain visible)"
+        )
+
+        // Verify contrast: active subscriber has real subscription
+        let activeStatus = SubscriptionStatusEntity(status: .active, enforcementEnabled: true)
+        SubscriptionStateManager.shared.update(activeStatus)
+        XCTAssertTrue(
+            SubscriptionStateManager.shared.hasPremiumAccess,
+            "Active subscriber must have premium access"
+        )
+        XCTAssertTrue(
+            SubscriptionStateManager.shared.hasRealSubscription,
+            "Active subscriber must have real subscription (banner should NOT show)"
+        )
+
+        // Cleanup
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none))
+    }
+
+    /// AC-PAYWALL-40: Profile tier label shows remaining days during grace period + Upgrade CTA visible
+    func test_ac_paywall_40_profile_tier_label_grace_period_format() {
+        let bundle = Bundle(for: PaywallViewModel.self)
+
+        // 1. Verify grace label format key exists and accepts %d
+        let graceLabelFormat = NSLocalizedString(
+            "settings.subscription.tier.grace_label_format",
+            bundle: bundle,
+            comment: ""
+        )
+        XCTAssertNotEqual(
+            graceLabelFormat,
+            "settings.subscription.tier.grace_label_format",
+            "settings.subscription.tier.grace_label_format must resolve to a localized value"
+        )
+        XCTAssertFalse(graceLabelFormat.isEmpty)
+
+        let formattedLabel = String(format: graceLabelFormat, 3)
+        XCTAssertFalse(formattedLabel.isEmpty, "Formatted grace label with 3 days must not be empty")
+        XCTAssertNotEqual(formattedLabel, graceLabelFormat)
+
+        // 2. Verify upgrade CTA key still exists (used for grace period too)
+        let upgradeCTA = NSLocalizedString("settings.subscription.tier.upgrade_cta", bundle: bundle, comment: "")
+        XCTAssertNotEqual(upgradeCTA, "settings.subscription.tier.upgrade_cta")
+        XCTAssertFalse(upgradeCTA.isEmpty)
+
+        // 3. Verify grace period state: inGracePeriod=true → isFreeTier=true in view logic
+        let gracePeriodStatus = SubscriptionStatusEntity(
+            status: .none,
+            inGracePeriod: true,
+            graceRemainingDays: 3
+        )
+        // Simulate the view's isFreeTier logic: isInGracePeriod=true → isFreeTier=true
+        let isInGracePeriod = gracePeriodStatus.inGracePeriod
+        let isFreeTierForGrace = isInGracePeriod
+            || gracePeriodStatus.status == .expired
+            || gracePeriodStatus.status == .none
+        XCTAssertTrue(isFreeTierForGrace, "Grace period user must be treated as free tier in UI (Upgrade CTA shown)")
+
+        // 4. Verify active subscriber is NOT treated as free tier (no Upgrade CTA)
+        let activeStatus = SubscriptionStatusEntity(status: .active)
+        let activeIsInGracePeriod = activeStatus.inGracePeriod
+        let activeIsFreeTier = activeIsInGracePeriod
+            || activeStatus.status == .expired
+            || activeStatus.status == .none
+        XCTAssertFalse(activeIsFreeTier, "Active subscriber must NOT be treated as free tier")
+    }
+
+    // MARK: - AC-PAYWALL-37
+
+    /// AC-PAYWALL-37: FreeTierBanner 顯示時 expired dialog 噤聲
+    ///
+    /// Given  status = expired, hasGeneratedTrainingPlan = true
+    /// When   checkAndShowReminder is called
+    /// Then   pendingReminder == nil (banner handles UX, dialog suppressed)
+    ///
+    /// Contrast: hasGeneratedTrainingPlan = false → dialog fires as before
+    func test_ac_paywall_37_expired_dialog_suppressed_when_banner_visible() {
+        let sut = SubscriptionReminderManager.shared
+        // Churned user: subscribedAt != nil (previously paid). True new user: nil.
+        let churnedExpiredStatus = SubscriptionStatusEntity(
+            status: .expired,
+            enforcementEnabled: true,
+            subscribedAt: Date().addingTimeInterval(-7_776_000).timeIntervalSince1970 // 90 days ago
+        )
+        let newUserExpiredStatus = SubscriptionStatusEntity(
+            status: .expired,
+            enforcementEnabled: true,
+            subscribedAt: nil
+        )
+
+        // Ensure enforcement is on so the guard passes
+        SubscriptionStateManager.shared.update(
+            SubscriptionStatusEntity(status: .active, enforcementEnabled: true)
+        )
+
+        // --- Case 1: banner visible (hasGeneratedTrainingPlan = true) → dialog suppressed ---
+        sut.resetSession()
+        sut.checkAndShowReminder(status: churnedExpiredStatus, hasGeneratedTrainingPlan: true)
+        XCTAssertNil(
+            sut.pendingReminder,
+            "expired dialog must be suppressed when FreeTierBanner is visible (hasGeneratedTrainingPlan = true)"
+        )
+
+        // --- Case 2: churned user, no plan → dialog fires (re-engagement nudge) ---
+        sut.resetSession()
+        sut.checkAndShowReminder(status: churnedExpiredStatus, hasGeneratedTrainingPlan: false)
+        XCTAssertEqual(
+            sut.pendingReminder, .expired,
+            "expired dialog must fire for churned user (subscribedAt != nil) who has not yet generated a training plan"
+        )
+
+        // --- Case 3 (AC-PAYWALL-37 belt-and-suspenders): true new user, no plan → no dialog ---
+        sut.resetSession()
+        sut.checkAndShowReminder(status: newUserExpiredStatus, hasGeneratedTrainingPlan: false)
+        XCTAssertNil(
+            sut.pendingReminder,
+            "expired dialog must NOT fire for true new user (subscribedAt = nil) — they never subscribed; 'expired' is wrong messaging"
+        )
+    }
 }

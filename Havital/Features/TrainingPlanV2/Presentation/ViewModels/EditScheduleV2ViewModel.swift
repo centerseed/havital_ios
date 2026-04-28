@@ -141,6 +141,8 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
 
     private func buildDayDetailDTO(from day: MutableTrainingDay) -> DayDetailDTO {
         let dayType = DayType(rawValue: day.trainingType) ?? .rest
+        let originalDay = originalDay(for: day)
+        let dayClimateMeta = originalDay?.effectiveClimateMeta.map { TrainingSessionMapper.toDTO(from: $0) }
         let category: String?
         let primary: PrimaryActivityDTO?
 
@@ -196,39 +198,11 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
         let warmupDTO: RunSegmentDTO?
         let cooldownDTO: RunSegmentDTO?
         if category == "run" {
-            warmupDTO = day.warmup.map { w in
-                RunSegmentDTO(
-                    distanceKm: w.distanceKm,
-                    distanceM: w.distanceM,
-                    distanceDisplay: w.distanceDisplay,
-                    distanceUnit: w.distanceUnit,
-                    durationMinutes: w.durationMinutes,
-                    durationSeconds: w.durationSeconds,
-                    pace: w.pace,
-                    basePace: nil,
-                    climateAdjustedPace: nil,
-                    climateMeta: nil,
-                    heartRateRange: nil,
-                    intensity: w.intensity,
-                    description: w.description
-                )
+            warmupDTO = day.warmup.map { segment -> RunSegmentDTO in
+                TrainingSessionMapper.toDTO(from: segment)
             }
-            cooldownDTO = day.cooldown.map { c in
-                RunSegmentDTO(
-                    distanceKm: c.distanceKm,
-                    distanceM: c.distanceM,
-                    distanceDisplay: c.distanceDisplay,
-                    distanceUnit: c.distanceUnit,
-                    durationMinutes: c.durationMinutes,
-                    durationSeconds: c.durationSeconds,
-                    pace: c.pace,
-                    basePace: nil,
-                    climateAdjustedPace: nil,
-                    climateMeta: nil,
-                    heartRateRange: nil,
-                    intensity: c.intensity,
-                    description: c.description
-                )
+            cooldownDTO = day.cooldown.map { segment -> RunSegmentDTO in
+                TrainingSessionMapper.toDTO(from: segment)
             }
         } else {
             warmupDTO = nil
@@ -241,7 +215,7 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
             reason: day.reason ?? "",
             tips: day.tips,
             category: category,
-            climateMeta: nil,
+            climateMeta: dayClimateMeta,
             primary: primary,
             warmup: warmupDTO,
             cooldown: cooldownDTO,
@@ -287,7 +261,17 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
 
     private func buildRunActivityDTO(from day: MutableTrainingDay, dayType: DayType) -> RunActivityDTO {
         let runType = dayType.apiRunType
+        let originalDay = originalDay(for: day)
+        let originalRun = originalDay?.primaryRunActivity
+        let runClimateMeta = originalRun?.climateMeta ?? originalDay?.effectiveClimateMeta
+        let preserveRunClimate = shouldPreserveRunClimate(day: day, runType: runType, originalRun: originalRun)
         guard let details = day.trainingDetails else {
+            let climatePace = climatePaceValues(
+                currentPace: nil,
+                climateMeta: runClimateMeta,
+                fallbackRun: originalRun,
+                shouldUseFallback: preserveRunClimate
+            )
             return RunActivityDTO(
                 runType: runType,
                 distanceKm: nil,
@@ -297,16 +281,23 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
                 durationMinutes: nil,
                 durationSeconds: nil,
                 pace: nil,
-                basePace: nil,
-                climateAdjustedPace: nil,
+                basePace: climatePace.basePace,
+                climateAdjustedPace: climatePace.adjustedPace,
                 heartRateRange: nil,
                 interval: nil,
                 segments: nil,
                 description: day.dayTarget,
                 targetIntensity: nil,
-                climateMeta: nil
+                climateMeta: runClimateMeta.map { TrainingSessionMapper.toDTO(from: $0) }
             )
         }
+
+        let climatePace = climatePaceValues(
+            currentPace: details.pace,
+            climateMeta: runClimateMeta,
+            fallbackRun: originalRun,
+            shouldUseFallback: preserveRunClimate
+        )
 
         // 間歇訓練
         if let work = details.work, let recovery = details.recovery, let repeats = details.repeats {
@@ -337,21 +328,31 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
                 durationMinutes: details.timeMinutes.map { Int($0) },
                 durationSeconds: nil,
                 pace: details.pace,
-                basePace: nil,
-                climateAdjustedPace: nil,
+                basePace: climatePace.basePace,
+                climateAdjustedPace: climatePace.adjustedPace,
                 heartRateRange: nil,
                 interval: intervalDTO,
                 segments: nil,
                 description: details.description ?? day.dayTarget,
                 targetIntensity: nil,
-                climateMeta: nil
+                climateMeta: runClimateMeta.map { TrainingSessionMapper.toDTO(from: $0) }
             )
         }
 
         // 分段訓練（progression, combination, fartlek, fastFinish）
         if let segs = details.segments, !segs.isEmpty {
-            let segDTOs = segs.map { seg in
-                RunSegmentDTO(
+            let originalSegments = originalRun?.segments ?? []
+            let segDTOs: [RunSegmentDTO] = segs.enumerated().map { index, seg -> RunSegmentDTO in
+                let originalSegment = index < originalSegments.count ? originalSegments[index] : nil
+                let preserveSegmentClimate = preserveRunClimate && seg.pace == originalSegment?.pace
+                let segmentClimateMeta = originalSegment?.climateMeta ?? runClimateMeta
+                let segmentClimatePace = climatePaceValues(
+                    currentPace: seg.pace,
+                    climateMeta: segmentClimateMeta,
+                    fallbackSegment: originalSegment,
+                    shouldUseFallback: preserveSegmentClimate
+                )
+                return RunSegmentDTO(
                     distanceKm: seg.distanceKm,
                     distanceM: nil,
                     distanceDisplay: nil,
@@ -359,9 +360,9 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
                     durationMinutes: nil,
                     durationSeconds: nil,
                     pace: seg.pace,
-                    basePace: nil,
-                    climateAdjustedPace: nil,
-                    climateMeta: nil,
+                    basePace: segmentClimatePace.basePace,
+                    climateAdjustedPace: segmentClimatePace.adjustedPace,
+                    climateMeta: segmentClimateMeta.map { TrainingSessionMapper.toDTO(from: $0) },
                     heartRateRange: nil,
                     intensity: nil,
                     description: seg.description
@@ -376,14 +377,14 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
                 durationMinutes: details.timeMinutes.map { Int($0) },
                 durationSeconds: nil,
                 pace: details.pace,
-                basePace: nil,
-                climateAdjustedPace: nil,
+                basePace: climatePace.basePace,
+                climateAdjustedPace: climatePace.adjustedPace,
                 heartRateRange: nil,
                 interval: nil,
                 segments: segDTOs,
                 description: details.description ?? day.dayTarget,
                 targetIntensity: nil,
-                climateMeta: nil
+                climateMeta: runClimateMeta.map { TrainingSessionMapper.toDTO(from: $0) }
             )
         }
 
@@ -397,15 +398,103 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
             durationMinutes: details.timeMinutes.map { Int($0) },
             durationSeconds: nil,
             pace: details.pace,
-            basePace: nil,
-            climateAdjustedPace: nil,
+            basePace: climatePace.basePace,
+            climateAdjustedPace: climatePace.adjustedPace,
             heartRateRange: nil,
             interval: nil,
             segments: nil,
             description: details.description ?? day.dayTarget,
             targetIntensity: nil,
-            climateMeta: nil
+            climateMeta: runClimateMeta.map { TrainingSessionMapper.toDTO(from: $0) }
         )
+    }
+
+    private func originalDay(for day: MutableTrainingDay) -> DayDetail? {
+        weeklyPlan.days.first { $0.dayIndex == day.dayIndexInt }
+    }
+
+    private func shouldPreserveRunClimate(
+        day: MutableTrainingDay,
+        runType: String,
+        originalRun: RunActivity?
+    ) -> Bool {
+        guard let details = day.trainingDetails, let originalRun else { return false }
+        guard normalizedRunType(originalRun.runType) == normalizedRunType(runType) else { return false }
+        guard details.pace == originalRun.pace else { return false }
+        guard details.distanceKm == originalRun.distanceKm || details.totalDistanceKm == originalRun.distanceKm else { return false }
+        return true
+    }
+
+    private func normalizedRunType(_ runType: String) -> String {
+        switch runType.lowercased() {
+        case "easy_run":
+            return "easy"
+        case "recovery_run":
+            return "recovery"
+        case "long_run", "long_slow_distance":
+            return "lsd"
+        default:
+            return runType.lowercased()
+        }
+    }
+
+    private func climatePaceValues(
+        currentPace: String?,
+        climateMeta: ClimateMeta?,
+        fallbackRun: RunActivity?,
+        shouldUseFallback: Bool
+    ) -> (basePace: String?, adjustedPace: String?) {
+        if currentPace == fallbackRun?.climateAdjustedPace {
+            return (fallbackRun?.basePace, fallbackRun?.climateAdjustedPace)
+        }
+        if let calculated = adjustedPace(currentPace, climateMeta: climateMeta) {
+            return (currentPace, calculated)
+        }
+        guard shouldUseFallback else { return (nil, nil) }
+        return (fallbackRun?.basePace, fallbackRun?.climateAdjustedPace)
+    }
+
+    private func climatePaceValues(
+        currentPace: String?,
+        climateMeta: ClimateMeta?,
+        fallbackSegment: RunSegment?,
+        shouldUseFallback: Bool
+    ) -> (basePace: String?, adjustedPace: String?) {
+        if currentPace == fallbackSegment?.climateAdjustedPace {
+            return (fallbackSegment?.basePace, fallbackSegment?.climateAdjustedPace)
+        }
+        if let calculated = adjustedPace(currentPace, climateMeta: climateMeta) {
+            return (currentPace, calculated)
+        }
+        guard shouldUseFallback else { return (nil, nil) }
+        return (fallbackSegment?.basePace, fallbackSegment?.climateAdjustedPace)
+    }
+
+    private func adjustedPace(_ pace: String?, climateMeta: ClimateMeta?) -> String? {
+        guard let pace,
+              let adjustmentPct = climateMeta?.paceAdjustmentPct,
+              let seconds = paceSeconds(from: pace) else {
+            return nil
+        }
+        let adjustedSeconds = seconds * (1 + adjustmentPct / 100)
+        return formatPace(seconds: adjustedSeconds)
+    }
+
+    private func paceSeconds(from pace: String) -> Double? {
+        let paceOnly = pace
+            .split(separator: "/", maxSplits: 1, omittingEmptySubsequences: true)
+            .first?
+            .split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
+            .first
+            .map(String.init) ?? pace
+        let components = paceOnly.split(separator: ":").compactMap { Int($0) }
+        guard components.count == 2 else { return nil }
+        return Double(components[0] * 60 + components[1])
+    }
+
+    private func formatPace(seconds: Double) -> String {
+        let roundedSeconds = max(0, Int(seconds.rounded()))
+        return String(format: "%d:%02d", roundedSeconds / 60, roundedSeconds % 60)
     }
 }
 
