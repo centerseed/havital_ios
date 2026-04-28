@@ -1556,24 +1556,16 @@ struct TrainingLoadChartView: View {
                         let record = chartHealthData[index]
                         if let fitness = record.fitness {
                             if let totalTss = record.totalTss, totalTss == 0 {
-                                // 空心圓 - total_tss = 0
+                                // 休息日：空心圓（stroke only），與 legend 一致
                                 PointMark(
                                     x: .value("日期", formatDateForChart(record.date)),
                                     y: .value("體適能指數", fitness * 10)
                                 )
                                 .foregroundStyle(.blue)
-                                .symbol(.circle)
-                                .symbolSize(40)
-
-                                PointMark(
-                                    x: .value("日期", formatDateForChart(record.date)),
-                                    y: .value("體適能指數", fitness * 10)
-                                )
-                                .foregroundStyle(.white)
-                                .symbol(.circle)
-                                .symbolSize(10)
+                                .symbol(StrokeCircleSymbol())
+                                .symbolSize(CGSize(width: 12, height: 12))
                             } else {
-                                // 實心圓 - total_tss > 0
+                                // 訓練日：實心圓
                                 PointMark(
                                     x: .value("日期", formatDateForChart(record.date)),
                                     y: .value("體適能指數", fitness * 10)
@@ -2104,24 +2096,16 @@ struct FitnessIndexChartView: View {
                     let record = chartHealthData[index]
                     if let atl = record.atl {
                         if let totalTss = record.totalTss, totalTss == 0 {
-                            // 空心圓 - total_tss = 0
+                            // 休息日：空心圓（stroke only），與 legend 一致
                             PointMark(
                                 x: .value("日期", formatDateForChart(record.date)),
                                 y: .value("訓練指數", atl * 10)
                             )
                             .foregroundStyle(.blue)
-                            .symbol(.circle)
-                            .symbolSize(40)
-
-                            PointMark(
-                                x: .value("日期", formatDateForChart(record.date)),
-                                y: .value("訓練指數", atl * 10)
-                            )
-                            .foregroundStyle(.white)
-                            .symbol(.circle)
-                            .symbolSize(10)
+                            .symbol(StrokeCircleSymbol())
+                            .symbolSize(CGSize(width: 12, height: 12))
                         } else {
-                            // 實心圓 - total_tss > 0
+                            // 訓練日：實心圓
                             PointMark(
                                 x: .value("日期", formatDateForChart(record.date)),
                                 y: .value("訓練指數", atl * 10)
@@ -3012,6 +2996,18 @@ struct TrainingLoadDetailExplanationView: View {
                     .foregroundColor(.secondary)
             }
         }
+    }
+}
+
+// MARK: - Chart Helpers
+
+/// 空心圓符號，與 legend 的 Circle().stroke() 視覺完全一致
+private struct StrokeCircleSymbol: ChartSymbolShape {
+    var perceptualUnitRect: CGRect { CGRect(x: 0, y: 0, width: 1, height: 1) }
+
+    func path(in rect: CGRect) -> Path {
+        let inset: CGFloat = 1.5
+        return Path(ellipseIn: rect.insetBy(dx: inset, dy: inset))
     }
 }
 

@@ -544,29 +544,40 @@ struct DayCell: View {
     }
 
     var body: some View {
-        VStack(spacing: 3) {
-            Text(dayNumber)
-                .font(AppFont.systemScaled(size: 14, weight: isToday ? .bold : .medium))
-                .foregroundColor(isToday ? .blue : .primary)
+        ZStack(alignment: .topTrailing) {
+            // 主內容居中
+            VStack(spacing: 3) {
+                Text(dayNumber)
+                    .font(AppFont.systemScaled(size: 14, weight: isToday ? .bold : .medium))
+                    .foregroundColor(isToday ? .blue : .primary)
 
-            if let info = workoutInfo {
-                // 只有在距離 > 0 時才顯示距離數值
-                if info.totalDistance > 0 {
-                    Text(String(format: "%.1f", info.totalDistance))
-                        .font(AppFont.systemScaled(size: 12, weight: .bold))
-                        .foregroundColor(workoutColor)
+                if let info = workoutInfo {
+                    // 只有在距離 > 0 時才顯示距離數值
+                    if info.totalDistance > 0 {
+                        Text(String(format: "%.1f", info.totalDistance))
+                            .font(AppFont.systemScaled(size: 12, weight: .bold))
+                            .foregroundColor(workoutColor)
+                    }
+
+                    Image(systemName: workoutIcon)
+                        .font(AppFont.systemScaled(size: 12))
+                        .foregroundColor(workoutColor.opacity(0.8))
                 }
+            }
+            .frame(maxWidth: .infinity)
 
-                Image(systemName: workoutIcon)
-                    .font(AppFont.systemScaled(size: 12))
-                    .foregroundColor(workoutColor.opacity(0.8))
-
-                // 如果有多個訓練，顯示數量
-                if info.workoutCount > 1 {
-                    Text("×\(info.workoutCount)")
-                        .font(AppFont.systemScaled(size: 10, weight: .semibold))
-                        .foregroundColor(workoutColor.opacity(0.7))
-                }
+            // 多訓練 ×N badge — 右上角固定位置，不佔主內容空間
+            if let info = workoutInfo, info.workoutCount > 1 {
+                Text("×\(info.workoutCount)")
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundColor(workoutColor)
+                    .padding(.horizontal, 3)
+                    .padding(.vertical, 1)
+                    .background(
+                        Capsule()
+                            .fill(workoutColor.opacity(0.15))
+                    )
+                    .padding(3)
             }
         }
         .frame(maxWidth: .infinity)

@@ -182,22 +182,60 @@ struct TrainingPlanInfoCard: View {
         switch type.lowercased() {
         case "easy_run", "easy":
             return NSLocalizedString("training.type.easy", comment: "Easy Run")
-        case "interval":
-            return NSLocalizedString("training.type.interval", comment: "Interval Training")
-        case "tempo":
-            return NSLocalizedString("training.type.tempo", comment: "Tempo Run")
-        case "threshold":
-            return NSLocalizedString("training.type.threshold", comment: "Threshold Run")
-        case "long_run":
-            return NSLocalizedString("training.type.long", comment: "Long Run")
         case "recovery_run":
             return NSLocalizedString("training.type.recovery", comment: "Recovery Run")
         case "lsd":
             return NSLocalizedString("training.type.lsd", comment: "LSD Run")
-        case "progression":
-            return NSLocalizedString("training.type.progression", comment: "Progression Run")
+        case "long_run":
+            return NSLocalizedString("training.type.long", comment: "Long Run")
+        case "tempo":
+            return NSLocalizedString("training.type.tempo", comment: "Tempo Run")
+        case "threshold":
+            return NSLocalizedString("training.type.threshold", comment: "Threshold Run")
+        case "race_pace":
+            return NSLocalizedString("training.type.race_pace", comment: "Race Pace Run")
+        case "race":
+            return NSLocalizedString("training.type.race", comment: "Race")
+        case "rest":
+            return NSLocalizedString("training.type.rest_day", comment: "Rest Day")
+        case "interval":
+            return NSLocalizedString("training.type.interval", comment: "Interval Training")
+        case "short_interval":
+            return NSLocalizedString("training.type.short_interval", comment: "Short Intervals")
+        case "long_interval":
+            return NSLocalizedString("training.type.long_interval", comment: "Long Intervals")
+        case "strides":
+            return NSLocalizedString("training.type.strides", comment: "Strides")
+        case "hill_repeats":
+            return NSLocalizedString("training.type.hill_repeats", comment: "Hill Repeats")
+        case "cruise_intervals":
+            return NSLocalizedString("training.type.cruise_intervals", comment: "Cruise Intervals")
+        case "norwegian_4x4":
+            return NSLocalizedString("training.type.norwegian_4x4", comment: "Norwegian 4x4")
+        case "norwegian_singles":
+            return NSLocalizedString("training.type.norwegian_singles", comment: "Norwegian Singles")
+        case "yasso_800":
+            return NSLocalizedString("training.type.yasso_800", comment: "Yasso 800s")
+        case "mile_repeats":
+            return NSLocalizedString("training.type.mile_repeats", comment: "Mile Repeats")
         case "combination":
             return NSLocalizedString("training.type.combination", comment: "Combination Training")
+        case "fartlek":
+            return NSLocalizedString("training.type.fartlek", comment: "Fartlek")
+        case "fast_finish":
+            return NSLocalizedString("training.type.fast_finish", comment: "Fast Finish Run")
+        case "progression":
+            return NSLocalizedString("training.type.progression", comment: "Progression Run")
+        case "cross_training":
+            return NSLocalizedString("training.type.cross_training", comment: "Cross Training")
+        case "strength":
+            return NSLocalizedString("training.type.strength", comment: "Strength Training")
+        case "yoga":
+            return NSLocalizedString("training.type.yoga", comment: "Yoga")
+        case "hiking":
+            return NSLocalizedString("training.type.hiking", comment: "Hiking")
+        case "cycling":
+            return NSLocalizedString("training.type.cycling", comment: "Cycling")
         default:
             return type
         }
