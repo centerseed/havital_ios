@@ -1,0 +1,37 @@
+appId: com.havital.Havital
+---
+- tapOn:
+    text: "明天再提醒我"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      text: "表現數據"
+    timeout: 10000
+- takeScreenshot: /tmp/v_main_after_dismiss.png
+- tapOn:
+    text: "表現數據"
+- extendedWaitUntil:
+    visible:
+      text: "訓練負荷|體適能指數"
+    timeout: 10000
+- takeScreenshot: /tmp/v_perf_top.png
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_perf_s1.png
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_perf_s2.png
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_perf_s3.png
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_perf_s4.png
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_perf_s5.png

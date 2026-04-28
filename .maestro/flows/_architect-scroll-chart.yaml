@@ -1,0 +1,18 @@
+appId: com.havital.Havital
+---
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_02_scroll1.png
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_02_scroll2.png
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_02_scroll3.png
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_02_scroll4.png

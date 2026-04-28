@@ -1,0 +1,48 @@
+appId: com.havital.Havital
+---
+- tapOn:
+    text: "完成"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      text: "訓練計劃|訓練計畫|表現數據"
+    timeout: 10000
+- takeScreenshot: /tmp/v_main.png
+
+# === #2 表現數據 ===
+- tapOn:
+    text: "表現數據"
+- extendedWaitUntil:
+    visible:
+      text: "訓練負荷|體適能指數|訓練準備度"
+    timeout: 10000
+- takeScreenshot: /tmp/v_perf_top_v2.png
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_perf_s1_v2.png
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_perf_s2_v2.png
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_perf_s3_v2.png
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_perf_s4_v2.png
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_perf_s5_v2.png
+
+# === #3 訓練紀錄找 rest workout ===
+- tapOn:
+    text: "訓練紀錄"
+- extendedWaitUntil:
+    visible:
+      text: "週|月|km|公里"
+    timeout: 8000
+- takeScreenshot: /tmp/v_records_top.png
