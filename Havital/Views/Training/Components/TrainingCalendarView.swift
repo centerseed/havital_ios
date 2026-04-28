@@ -544,44 +544,44 @@ struct DayCell: View {
     }
 
     var body: some View {
-        ZStack(alignment: .topTrailing) {
-            // 主內容居中
-            VStack(spacing: 3) {
+        VStack(spacing: 2) {
+            // 上排：日期靠左，多訓練 ×N 標記靠右（同一行避免重疊）
+            HStack(spacing: 2) {
                 Text(dayNumber)
                     .font(AppFont.systemScaled(size: 14, weight: isToday ? .bold : .medium))
                     .foregroundColor(isToday ? .blue : .primary)
-
-                if let info = workoutInfo {
-                    // 只有在距離 > 0 時才顯示距離數值
-                    if info.totalDistance > 0 {
-                        Text(String(format: "%.1f", info.totalDistance))
-                            .font(AppFont.systemScaled(size: 12, weight: .bold))
-                            .foregroundColor(workoutColor)
-                    }
-
-                    Image(systemName: workoutIcon)
-                        .font(AppFont.systemScaled(size: 12))
-                        .foregroundColor(workoutColor.opacity(0.8))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Spacer(minLength: 0)
+                if let info = workoutInfo, info.workoutCount > 1 {
+                    Text("×\(info.workoutCount)")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundColor(workoutColor.opacity(0.85))
+                        .lineLimit(1)
                 }
             }
-            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 4)
+            .padding(.top, 4)
 
-            // 多訓練 ×N badge — 右上角固定位置，不佔主內容空間
-            if let info = workoutInfo, info.workoutCount > 1 {
-                Text("×\(info.workoutCount)")
-                    .font(.system(size: 8, weight: .semibold))
-                    .foregroundColor(workoutColor)
-                    .padding(.horizontal, 3)
-                    .padding(.vertical, 1)
-                    .background(
-                        Capsule()
-                            .fill(workoutColor.opacity(0.15))
-                    )
-                    .padding(3)
+            if let info = workoutInfo {
+                // 只有在距離 > 0 時才顯示距離數值（置中）
+                if info.totalDistance > 0 {
+                    Text(String(format: "%.1f", info.totalDistance))
+                        .font(AppFont.systemScaled(size: 12, weight: .bold))
+                        .foregroundColor(workoutColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+
+                Image(systemName: workoutIcon)
+                    .font(AppFont.systemScaled(size: 12))
+                    .foregroundColor(workoutColor.opacity(0.8))
             }
+
+            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 70)  // 增加高度以容納更大的內容
+        .frame(height: 70)
         .background(backgroundColor)
         .cornerRadius(8)
     }
