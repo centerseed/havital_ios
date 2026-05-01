@@ -4,6 +4,7 @@ import Foundation
 class CacheEventBus {
     static let shared = CacheEventBus()
 
+    private let stateQueue = DispatchQueue(label: "com.havital.cache-event-bus.state")
     private var cacheables: [Cacheable] = []
     private var listeners: [CacheEventListener] = []
 
@@ -15,9 +16,15 @@ class CacheEventBus {
     // MARK: - 註冊管理
     
     func register(_ cacheable: Cacheable) {
-        // 避免重複註冊
-        if !cacheables.contains(where: { $0.cacheIdentifier == cacheable.cacheIdentifier }) {
+        let didRegister = stateQueue.sync {
+            if cacheables.contains(where: { $0.cacheIdentifier == cacheable.cacheIdentifier }) {
+                return false
+            }
             cacheables.append(cacheable)
+            return true
+        }
+
+        if didRegister {
             Logger.firebase("快取管理器已註冊", level: .info, jsonPayload: [
                 "cache_identifier": cacheable.cacheIdentifier
             ])
@@ -25,7 +32,9 @@ class CacheEventBus {
     }
     
     func addListener(_ listener: CacheEventListener) {
-        listeners.append(listener)
+        stateQueue.sync {
+            listeners.append(listener)
+        }
     }
     
     // MARK: - 快取失效管理
@@ -77,10 +86,12 @@ class CacheEventBus {
     ///   - eventKey: 事件鍵（如 "onboardingCompleted"）
     ///   - handler: 事件處理回調
     func subscribe(for eventKey: String, handler: @escaping @MainActor () async -> Void) {
-        if eventSubscriptions[eventKey] == nil {
-            eventSubscriptions[eventKey] = []
+        stateQueue.sync {
+            if eventSubscriptions[eventKey] == nil {
+                eventSubscriptions[eventKey] = []
+            }
+            eventSubscriptions[eventKey]?.append(handler)
         }
-        eventSubscriptions[eventKey]?.append(handler)
         Logger.debug("[CacheEventBus] 訂閱事件: \(eventKey)")
     }
 
@@ -89,14 +100,18 @@ class CacheEventBus {
     ///   - identifier: 訂閱者標識符（用於取消訂閱）
     ///   - handler: 事件處理回調，接收所有事件類型
     func subscribe(forIdentifier identifier: String, handler: @escaping (CacheInvalidationReason) -> Void) {
-        identifierBasedSubscriptions[identifier] = handler
+        stateQueue.sync {
+            identifierBasedSubscriptions[identifier] = handler
+        }
         Logger.debug("[CacheEventBus] 訂閱者註冊: \(identifier)")
     }
 
     /// 取消訂閱
     /// - Parameter identifier: 訂閱者標識符
     func unsubscribe(forIdentifier identifier: String) {
-        identifierBasedSubscriptions.removeValue(forKey: identifier)
+        stateQueue.sync {
+            identifierBasedSubscriptions.removeValue(forKey: identifier)
+        }
         Logger.debug("[CacheEventBus] 訂閱者取消註冊: \(identifier)")
     }
 
@@ -120,8 +135,15 @@ class CacheEventBus {
             eventKey = "weekChanged"
         }
 
+        let (handlers, identifierSubscribers) = stateQueue.sync {
+            (
+                eventSubscriptions[eventKey] ?? [],
+                Array(identifierBasedSubscriptions.values)
+            )
+        }
+
         // 通知基於 eventKey 的訂閱者
-        if let handlers = eventSubscriptions[eventKey] {
+        if !handlers.isEmpty {
             Logger.debug("[CacheEventBus] 通知 \(handlers.count) 個 eventKey 訂閱者: \(eventKey)")
             for handler in handlers {
                 await handler()
@@ -129,10 +151,9 @@ class CacheEventBus {
         }
 
         // 通知基於 identifier 的訂閱者
-        let identifierSubscribers = identifierBasedSubscriptions
         if !identifierSubscribers.isEmpty {
             Logger.debug("[CacheEventBus] 通知 \(identifierSubscribers.count) 個 identifier 訂閱者: \(eventKey)")
-            for (_, handler) in identifierSubscribers {
+            for handler in identifierSubscribers {
                 handler(event)
             }
         }
@@ -141,6 +162,7 @@ class CacheEventBus {
     // MARK: - Private Methods
     
     private func invalidateAllCaches() {
+        let cacheables = stateQueue.sync { self.cacheables }
         for cacheable in cacheables {
             cacheable.clearCache()
         }
@@ -149,6 +171,7 @@ class CacheEventBus {
     
     private func invalidateRelatedCaches(for dataType: DataType) {
         let relatedIdentifiers = getRelatedCacheIdentifiers(for: dataType)
+        let cacheables = stateQueue.sync { self.cacheables }
         
         for cacheable in cacheables {
             if relatedIdentifiers.contains(cacheable.cacheIdentifier) {
@@ -163,6 +186,7 @@ class CacheEventBus {
     }
     
     private func invalidateExpiredCaches() {
+        let cacheables = stateQueue.sync { self.cacheables }
         for cacheable in cacheables {
             if cacheable.isExpired() {
                 cacheable.clearCache()
@@ -194,6 +218,7 @@ class CacheEventBus {
     }
     
     private func notifyListeners(reason: CacheInvalidationReason) {
+        let listeners = stateQueue.sync { self.listeners }
         for listener in listeners {
             listener.onCacheInvalidated(for: "all", reason: reason)
         }
@@ -202,6 +227,7 @@ class CacheEventBus {
     // MARK: - 快取狀態查詢
     
     func getCacheStatus() -> CacheStatus {
+        let cacheables = stateQueue.sync { self.cacheables }
         let totalSize = cacheables.reduce(0) { $0 + $1.getCacheSize() }
         let expiredCount = cacheables.filter { $0.isExpired() }.count
         
