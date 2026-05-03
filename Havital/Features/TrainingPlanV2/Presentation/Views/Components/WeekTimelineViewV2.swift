@@ -68,6 +68,7 @@ struct TimelineItemViewV2: View {
     @State private var isExpanded = false
     @State private var showTrainingTypeInfo = false
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("climateAdjustmentEnabled") private var climateAdjustmentEnabled = false
 
     var body: some View {
         // todayTrigger 參與 body，確保日期變化時 SwiftUI 重繪
@@ -174,7 +175,7 @@ struct TimelineItemViewV2: View {
                                     .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).run_type")
                             }
 
-                            if let climateMeta = day.effectiveClimateMeta {
+                            if climateAdjustmentEnabled, let climateMeta = day.effectiveClimateMeta {
                                 ClimateBadgeView(meta: climateMeta)
                                     .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_badge")
                             }
@@ -217,7 +218,7 @@ struct TimelineItemViewV2: View {
                             TrainingDetailsViewV2(day: day)
                         }
 
-                        if let climateMeta = day.effectiveClimateMeta {
+                        if climateAdjustmentEnabled, let climateMeta = day.effectiveClimateMeta {
                             ClimateAdjustmentDetailView(day: day, meta: climateMeta)
                                 .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_detail")
                         }

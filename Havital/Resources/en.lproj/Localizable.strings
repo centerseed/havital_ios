@@ -124,9 +124,6 @@
 "training_plan.congratulations" = "Congratulations on completing this training cycle!";
 "training_plan.loading_schedule" = "Loading schedule...";
 
-// MARK: - Workout Summary Row
-"workout_summary_row.calculating_heart_rate" = "Calculating heart rate...";
-
 // MARK: - Next Week Planning View
 "next_week_planning.title" = "Next Week Planning";
 "next_week_planning.weekly_feeling" = "This week's training feeling (0-worst, 5-best)";
@@ -484,7 +481,7 @@
 "workout.detail.pace_zones" = "Pace Zone Distribution";
 "workout.detail.zone_distribution" = "Zone Distribution";
 "workout.detail.zone_type" = "Zone Type";
-"workout.detail.dynamic_vdot" = "Dynamic VDOT";
+"workout.detail.dynamic_vdot" = "VDOT";
 "workout.detail.training_load" = "Training Load";
 "workout.detail.movement_efficiency" = "Movement Efficiency";
 "workout.detail.recovery_zone" = "Recovery Zone";
@@ -680,6 +677,11 @@
 "date.sat" = "Sat";
 "date.sun" = "Sun";
 "date.minutes_ago" = "%d minutes ago";
+"date.just_now" = "Just now";
+"date.today_at" = "Today %@";
+"date.yesterday_at" = "Yesterday %@";
+"date.days_ago" = "%d days ago";
+"date.one_week_ago" = "1 week ago";
 
 // MARK: - Alerts & Confirmations
 "alert.unsaved_changes" = "Unsaved Changes";
@@ -1342,7 +1344,7 @@
 
 // MARK: - Achievement View Performance
 "performance.vdot_trend" = "VDOT Trend";
-"performance.vdot_explanation" = "VDOT is an aerobic capacity indicator calculated based on your running performance. As your training progresses, your VDOT value will gradually improve.";
+"performance.vdot_explanation" = "VDOT is an internationally recognized aerobic capacity indicator proposed by Dr. Jack Daniels. A higher value reflects a stronger aerobic base.";
 
 // Performance Time Range
 "performance.time_range.week" = "1 Week";
@@ -1362,16 +1364,18 @@
 "performance.chart.loading" = "Loading...";
 
 // VDOT Performance Terms
-"performance.vdot.dynamic_vdot" = "Dynamic VDOT";
-"performance.vdot.weighted_vdot" = "Weighted VDOT";
-"performance.vdot.latest_vdot" = "Latest VDOT";
-"performance.vdot.vdot_title" = "Dynamic VDOT";
-"performance.vdot.what_is_vdot" = "What is Dynamic VDOT?";
-"performance.vdot.vdot_description" = "Dynamic VDOT is an indicator that comprehensively calculates your running performance and heart rate data, reflecting your true running ability.\n\nDynamic VDOT fluctuates based on training type, temperature, and daily physical condition. As training progresses, dynamic VDOT tends to increase due to improved fitness.\n\nWeighted VDOT references your target race distance and applies appropriate weighting to calculate a weighted average of dynamic VDOT over time, providing a better assessment of your current running power for target races!";
+"performance.vdot.dynamic_vdot" = "VDOT";
+"performance.vdot.weighted_vdot" = "VDOT";
+"performance.vdot.latest_vdot" = "VDOT";
+"performance.vdot.vdot_title" = "VDOT";
+"performance.vdot.what_is_vdot" = "What is VDOT?";
+"performance.vdot.vdot_description" = "VDOT is an internationally recognized aerobic capacity indicator proposed by Dr. Jack Daniels. A higher value reflects a stronger aerobic base.\n\nPaceriz tracks two VDOT values for you:\n\nVDOT\nYour stable aerobic capacity, calculated as a weighted average of recent runs. This reflects your current readiness for your target race.\n\nLive VDOT\nA real-time value calculated after each run. It fluctuates based on temperature, heart rate, and your daily condition. Use VDOT for stable trends.";
 "performance.vdot.set_heart_rate_zones" = "Set Heart Rate Zones";
-"performance.vdot.calculating_vdot" = "Calculating Dynamic VDOT...";
-"performance.vdot.average_weighted_vdot" = "Average Weighted VDOT";
-"performance.vdot.latest_dynamic_vdot" = "Latest Dynamic VDOT";
+"performance.vdot.calculating_vdot" = "Calculating VDOT…";
+"performance.vdot.average_weighted_vdot" = "Average VDOT";
+"performance.vdot.latest_dynamic_vdot" = "Live VDOT (Latest)";
+"performance.vdot.read_more" = "Learn more";
+"performance.vdot.blog_url" = "https://paceriz.com/blog/dynamic_vdot.html";
 "performance.vdot.heart_rate_zone_prompt" = "Please set your heart rate zones for more accurate training intensity guidance";
 "performance.vdot.no_statistics" = "No statistics available";
 "performance.vdot.data_point_count" = "Data points";
@@ -1650,6 +1654,10 @@
 "common.error" = "Error";
 // MARK: - Training Readiness - Estimated Race Time
 "training_readiness.estimated_race_time" = "Est. Finish";
+"training_readiness.non_race_training_mode" = "Non-race training";
+"training_readiness.race_only_metrics_footnote" = "Endurance and race fitness metrics are only available for race training goals.";
+"training_readiness.race_only_note_title" = "Race goal metrics";
+"training_readiness.race_only_note_body" = "Endurance and race fitness metrics are enabled only when your training goal is set to a race. Your current plan is in non-race training mode.";
 
 // MARK: - Content View
 "content_view.data_source_required" = "Data Source Required";
@@ -2605,3 +2613,184 @@
 "settings.subscription.tier.grace_label_format" = "Current plan: Free trial (%d days left)";
 "settings.subscription.tier.upgrade_cta" = "Upgrade to Premium";
 "settings.subscription.tier.manage_cta" = "Manage Subscription";
+
+// Climate Settings
+"climate_settings.title" = "Heat Adaptation";
+"climate_settings.loading" = "Loading heat adaptation settings…";
+"climate_settings.enable_title" = "Enable Heat Adaptation";
+"climate_settings.feels_like_subtitle" = "Daily peak feels-like temperature";
+"climate_settings.enabled_description" = "Currently enabled. The next generated plan will use the day's peak feels-like temperature, including humidity and wind, plus your heat adaptation setting to decide whether to slow paces or shorten long runs. Existing plans will not be recalculated; changes apply to next week's new plan.";
+"climate_settings.disabled_description" = "Currently disabled. Future generated plans will keep original paces and will not apply heat adaptation adjustments. Existing plans will not be recalculated.";
+"climate_settings.current_status.section" = "Current Status";
+"climate_settings.current_status.is_adjusted" = "Adjusted now";
+"climate_settings.current_status.adjusted" = "Adjusted";
+"climate_settings.current_status.not_adjusted" = "Not adjusted";
+"climate_settings.current_status.feels_like" = "Current feels-like temperature";
+"climate_settings.current_status.pace_adjustment" = "Pace adjustment";
+"climate_settings.current_status.long_run_adjustment" = "Long run adjustment";
+"climate_settings.current_status.unavailable" = "This page cannot show whether today's plan is currently adjusted yet; the backend needs to provide current status.";
+"climate_settings.your_setting" = "Your Settings";
+"climate_settings.adjustment_start" = "Starts at";
+"climate_settings.common_adjustment" = "Typical adjustment";
+"climate_settings.adaptation_level" = "Heat adaptation level";
+"climate_settings.adaptation.unacclimated" = "Unacclimated / Beginner";
+"climate_settings.adaptation.normal" = "Normal";
+"climate_settings.adaptation.acclimated" = "Heat acclimated";
+"climate_settings.manual_threshold.toggle" = "Manually adjust start temperature";
+"climate_settings.manual_threshold.start_temp" = "Start temperature";
+"climate_settings.manual_threshold.danger_fixed_format" = "Danger level is fixed at %d°C.";
+"climate_settings.future_only_footer" = "Changes only affect newly generated plans and will not modify existing results.";
+"climate_settings.explanation.open" = "View heat adaptation details";
+"climate_settings.not_available" = "Not available";
+"climate_settings.explanation.title" = "Heat Adaptation Details";
+"climate_settings.explanation.how_it_works" = "How Heat Adaptation Works";
+"climate_settings.explanation.intervention_rules" = "When Adjustments Apply";
+"climate_settings.metrics.section" = "Your Last 14 Days of Heat Adaptation";
+"climate_settings.metrics.recommended" = "System recommendation";
+"climate_settings.metrics.current" = "Current setting";
+"climate_settings.metrics.hot_hours" = "Hot-condition hours";
+"climate_settings.metrics.hot_workouts" = "Heat-stress workouts";
+"climate_settings.metrics.workout_count_format" = "%d workouts";
+"climate_settings.metrics.pace_achievement" = "Pace achievement";
+"climate_settings.metrics.hr_efficiency" = "Heart rate efficiency";
+"climate_settings.metrics.efficiency_change" = "Efficiency change";
+"climate_settings.source.section" = "Data Source";
+"climate_settings.source.region_strategy" = "Regional strategy";
+"climate_settings.source.weather_source" = "Weather source";
+"climate_settings.insufficient_data" = "Insufficient data";
+"climate_settings.trend.improving" = "Improving";
+"climate_settings.trend.declining" = "Declining";
+"climate_settings.trend.stable" = "Stable";
+"climate_settings.effective_notice" = "Climate adjustment will apply to the next generated plan";
+
+// MARK: - Missing NSLocalizedString keys backfilled 2026-05-02
+"common.no_data" = "No data available";
+"edit.future_day" = "Future day";
+"edit.past_day" = "Past day";
+"edit.today" = "Today";
+"edit_schedule.error.empty_plan" = "Training plan is empty.";
+"edit_schedule.error.invalid_day_index" = "Invalid training day.";
+"edit_schedule.error.invalid_training_type" = "Invalid training type.";
+"edit_schedule.error.save_result_missing" = "Schedule update did not return a result.";
+"edit_schedule.save_success" = "Schedule updated successfully.";
+"editsupportingtarget.text_0" = "Supporting goal";
+"error.bad_request" = "Invalid request";
+"error.cache_expired" = "Saved data has expired. Please refresh.";
+"error.check_connection" = "Please check your internet connection and try again.";
+"error.data_corruption" = "Data corruption";
+"error.forbidden" = "Access denied";
+"error.invalid_target_data" = "Invalid target data: %@";
+"error.invalid_update_data" = "Invalid update data: %@";
+"error.network_failure" = "Network request failed";
+"error.no_connection" = "No internet connection";
+"error.no_main_race" = "No main race target found";
+"error.no_permission" = "You don't have permission to perform this action.";
+"error.not_authenticated" = "Please sign in again.";
+"error.preferences_not_found" = "User preferences not found";
+"error.profile_not_found" = "User profile not found";
+"error.resource_not_found" = "The requested resource was not found.";
+"error.rizo_quota_exceeded" = "Rizo quota exceeded";
+"error.server_error" = "Server error";
+"error.server_issue" = "Server is having issues. Please try again later.";
+"error.session_expired" = "Your session has expired. Please sign in again.";
+"error.subscription_required" = "Subscription required";
+"error.target_not_found" = "Target not found: %@";
+"error.title.forbidden" = "Access Denied";
+"error.title.network" = "Network Error";
+"error.title.not_found" = "Not Found";
+"error.title.server" = "Server Error";
+"error.title.unauthorized" = "Session Expired";
+"error.title.unknown" = "Error";
+"error.trial_expired" = "Trial period has ended";
+"error.unauthorized" = "Please sign in again";
+"hr_zone.save_failed_generic" = "Failed to save heart rate zones.";
+"onboarding.browse_race_database" = "Choose from race database";
+"onboarding.browse_race_database_desc" = "Browse upcoming races and quickly set your goal.";
+"onboarding.change_race" = "Change race";
+"onboarding.race_event_list_nav_title" = "Choose a race";
+"onboarding.race_list_empty" = "No matching races found.";
+"onboarding.race_search_prompt" = "Search race name or city";
+"onboarding.race_target_required" = "Please select or enter a race target.";
+"onboarding.select_race_distance_title" = "Choose race distance";
+"onboarding.select_region" = "Region";
+"onboarding.tight_schedule_message" = "Your race date is close, so your plan may start from a later training phase.";
+"onboarding.tight_schedule_title" = "Tight schedule";
+"onboarding.training_weeks_required" = "Please choose how many weeks you want to train.";
+"profile.contact" = "Contact";
+"race_card.days_countdown" = "%d days left";
+"race_card.days_until" = "%d days left";
+"race_card.entry_closed" = "Registration closed";
+"race_card.today" = "Today";
+"race_card.tomorrow" = "Tomorrow";
+"race_distance.half_marathon" = "Half Marathon";
+"race_distance.marathon" = "Marathon";
+"race_filter.10k" = "10K";
+"race_filter.5k" = "5K";
+"race_filter.all" = "All";
+"race_filter.full_marathon" = "Full Marathon";
+"race_filter.half_marathon" = "Half Marathon";
+"race_filter.other" = "Other";
+"race_picker.api_failure_hint" = "Use manual entry or try again later.";
+"race_picker.api_failure_title" = "Unable to load race database";
+"race_picker.retry" = "Retry";
+"race_time_ref.10k_advanced" = "10K advanced runner reference time";
+"race_time_ref.10k_casual" = "10K casual runner reference time";
+"race_time_ref.10k_elite" = "10K elite runner reference time";
+"race_time_ref.5k_advanced" = "5K advanced runner reference time";
+"race_time_ref.5k_casual" = "5K casual runner reference time";
+"race_time_ref.5k_elite" = "5K elite runner reference time";
+"race_time_ref.half_marathon_advanced" = "Half marathon advanced runner reference time";
+"race_time_ref.half_marathon_casual" = "Half marathon casual runner reference time";
+"race_time_ref.half_marathon_elite" = "Half marathon elite runner reference time";
+"race_time_ref.marathon_advanced" = "Marathon advanced runner reference time";
+"race_time_ref.marathon_casual" = "Marathon casual runner reference time";
+"race_time_ref.marathon_elite" = "Marathon elite runner reference time";
+"region.japan" = "Japan";
+"region.taiwan" = "Taiwan";
+"rizo.quota_exceeded_banner" = "Rizo AI quota has been used up for now. Try again later.";
+"search.no_results_message" = "Try adjusting your search criteria.";
+"search.no_results_title" = "No Results";
+"training.no_plan_message" = "You don't have a training plan yet.";
+"training.no_training_today" = "No training scheduled for today.";
+"training.today_training" = "Today's Training";
+"training.week_out_of_range" = "Week %d is out of plan range (1-%d).";
+"trainingload.text_0" = "Training Load Explained";
+"trainingload.text_1" = "Understand how fitness, fatigue, and TSB describe your training status.";
+"trainingload.text_10" = "TSB shows the balance between current fatigue and long-term fitness. Positive values usually mean fresher legs; negative values mean accumulated fatigue.";
+"trainingload.text_11" = "Status ranges";
+"trainingload.text_12" = "TSB > +5";
+"trainingload.text_13" = "You are relatively fresh and may be ready for quality training or racing.";
+"trainingload.text_14" = "-10 to +5";
+"trainingload.text_15" = "This is a balanced zone for normal training weeks.";
+"trainingload.text_16" = "TSB < -10";
+"trainingload.text_17" = "Fatigue is high. Consider recovery if this continues.";
+"trainingload.text_18" = "How to read the chart";
+"trainingload.text_19" = "Fitness";
+"trainingload.text_2" = "Fitness Index";
+"trainingload.text_20" = "Long-term training adaptation trend.";
+"trainingload.text_21" = "TSB";
+"trainingload.text_22" = "Freshness and fatigue balance.";
+"trainingload.text_23" = "Practical suggestions";
+"trainingload.text_24" = "Fitness rising";
+"trainingload.text_25" = "Keep the rhythm and avoid sudden load spikes.";
+"trainingload.text_26" = "Fitness stable";
+"trainingload.text_27" = "Maintain consistency and focus on workout quality.";
+"trainingload.text_28" = "Fitness falling";
+"trainingload.text_29" = "Resume gradually with easy runs before adding intensity.";
+"trainingload.text_3" = "Fitness reflects the long-term benefit accumulated from consistent training. It usually rises gradually when training is stable and falls when training is interrupted.";
+"trainingload.text_30" = "TSB very low";
+"trainingload.text_31" = "Prioritize recovery and reduce high-intensity sessions.";
+"trainingload.text_32" = "Notes";
+"trainingload.text_33" = "These metrics are estimates based on available training data.";
+"trainingload.text_34" = "Use them as guidance, not as medical advice.";
+"trainingload.text_35" = "Short-term fluctuations are normal. Look at multi-week trends.";
+"trainingload.text_36" = "If you feel pain or unusual fatigue, reduce load and rest.";
+"trainingload.text_37" = "More complete workout records improve metric accuracy.";
+"trainingload.text_4" = "Trend meaning";
+"trainingload.text_5" = "Fitness is improving";
+"trainingload.text_6" = "Fitness is stable";
+"trainingload.text_7" = "Fitness is declining";
+"trainingload.text_8" = "Use the trend together with fatigue and recovery, not as a single-day judgment.";
+"trainingload.text_9" = "TSB";
+"workout.no_records_message" = "Start exercising to see your workout history.";
+"workout.no_records_title" = "No Workouts";

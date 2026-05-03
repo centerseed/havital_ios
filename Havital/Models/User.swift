@@ -26,6 +26,9 @@ struct User: Codable {
     let ratingPromptCount: Int?
     let lastRatingPromptDate: String?
 
+    // 熱適應開關
+    let climateAdjustmentEnabled: Bool?
+
     // 自定義解碼方法處理可能的型別轉換
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -83,6 +86,9 @@ struct User: Codable {
         // 處理 App 評分相關欄位
         ratingPromptCount = try container.decodeIfPresent(Int.self, forKey: .ratingPromptCount)
         lastRatingPromptDate = try container.decodeIfPresent(String.self, forKey: .lastRatingPromptDate)
+
+        // 熱適應開關
+        climateAdjustmentEnabled = try container.decodeIfPresent(Bool.self, forKey: .climateAdjustmentEnabled)
     }
     
     enum CodingKeys: String, CodingKey {
@@ -105,6 +111,7 @@ struct User: Codable {
         case trainingVersion = "training_version"
         case ratingPromptCount = "rating_prompt_count"
         case lastRatingPromptDate = "last_rating_prompt_date"
+        case climateAdjustmentEnabled = "climate_adjustment_enabled"
     }
 }
 

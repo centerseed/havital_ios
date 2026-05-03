@@ -124,9 +124,6 @@
 "training_plan.congratulations" = "このトレーニングサイクルを完了おめでとうございます！";
 "training_plan.loading_schedule" = "スケジュール読み込み中...";
 
-// MARK: - Workout Summary Row
-"workout_summary_row.calculating_heart_rate" = "心拍数を計算中...";
-
 // MARK: - Next Week Planning View
 "next_week_planning.title" = "来週計画設定";
 "next_week_planning.weekly_feeling" = "今週のトレーニングの感想（0-最悪、5-最高）";
@@ -484,7 +481,7 @@
 "workout.detail.pace_zones" = "ペースゾーン分布";
 "workout.detail.zone_distribution" = "ゾーン分布";
 "workout.detail.zone_type" = "ゾーンタイプ";
-"workout.detail.dynamic_vdot" = "ダイナミックVDOT";
+"workout.detail.dynamic_vdot" = "VDOT";
 "workout.detail.training_load" = "トレーニング負荷";
 "workout.detail.movement_efficiency" = "動作効率";
 "workout.detail.recovery_zone" = "リカバリーゾーン";
@@ -679,6 +676,11 @@
 "date.fri" = "金";
 "date.sat" = "土";
 "date.sun" = "日";
+"date.just_now" = "たった今";
+"date.today_at" = "今日 %@";
+"date.yesterday_at" = "昨日 %@";
+"date.days_ago" = "%d 日前";
+"date.one_week_ago" = "1 週間前";
 
 // MARK: - Alerts & Confirmations
 "alert.unsaved_changes" = "未保存の変更";
@@ -1340,8 +1342,8 @@
 "datasource.switch_to_this" = "このデータソースに切り替え";
 
 // MARK: - Achievement View Performance
-"performance.vdot_trend" = "VDOTトレンド";
-"performance.vdot_explanation" = "VDOTは、ランニングパフォーマンスに基づいて計算された有酸素能力指標です。トレーニングが進むにつれて、VDOT値は徐々に向上します。";
+"performance.vdot_trend" = "VDOT トレンド";
+"performance.vdot_explanation" = "VDOT は Jack Daniels 博士が提唱した、国際的に認知された有酸素能力の指標です。数値が高いほど、有酸素ベースが強いことを示します。";
 
 // Performance Time Range
 "performance.time_range.week" = "1週間";
@@ -1361,16 +1363,18 @@
 "performance.chart.loading" = "読み込み中...";
 
 // VDOT Performance Terms
-"performance.vdot.dynamic_vdot" = "ダイナミックVDOT";
-"performance.vdot.weighted_vdot" = "加重VDOT";
-"performance.vdot.latest_vdot" = "最新VDOT";
-"performance.vdot.vdot_title" = "ダイナミックVDOT";
-"performance.vdot.what_is_vdot" = "ダイナミックVDOTとは？";
-"performance.vdot.vdot_description" = "ダイナミックVDOTは、ランニングパフォーマンスと心拍数データを総合的に計算した指標で、真のランニング能力を反映します。\n\nダイナミックVDOTは、トレーニングタイプ、気温、日々の身体状態によって変動します。トレーニングが進むにつれて、体力向上によりダイナミックVDOTは上昇傾向を示します。\n\n加重VDOTは目標レース距離を参考に適切な重み付けを行い、一定期間のダイナミックVDOTの加重平均を計算し、目標レースに対する現在のランニング能力をより正確に評価できます！";
+"performance.vdot.dynamic_vdot" = "VDOT";
+"performance.vdot.weighted_vdot" = "VDOT";
+"performance.vdot.latest_vdot" = "VDOT";
+"performance.vdot.vdot_title" = "VDOT";
+"performance.vdot.what_is_vdot" = "VDOT とは？";
+"performance.vdot.vdot_description" = "VDOT は Jack Daniels 博士が提唱した、国際的に認知された有酸素能力の指標です。数値が高いほど、有酸素ベースが強いことを示します。\n\nPaceriz では 2 つの VDOT 値を追跡しています：\n\nVDOT\n直近のランニングデータの加重平均で算出される安定した有酸素能力。目標レースへの現在の実力を反映します。\n\nライブ VDOT\n各ランの後に即時計算されるリアルタイム値。気温、心拍数、当日のコンディションによって変動します。安定したトレンドを見るには VDOT をご覧ください。";
 "performance.vdot.set_heart_rate_zones" = "心拍数ゾーン設定";
-"performance.vdot.calculating_vdot" = "ダイナミックVDOT計算中...";
-"performance.vdot.average_weighted_vdot" = "平均加重VDOT";
-"performance.vdot.latest_dynamic_vdot" = "最新ダイナミックVDOT";
+"performance.vdot.calculating_vdot" = "VDOT を計算中…";
+"performance.vdot.average_weighted_vdot" = "平均 VDOT";
+"performance.vdot.latest_dynamic_vdot" = "ライブ VDOT（最新）";
+"performance.vdot.read_more" = "詳しく見る";
+"performance.vdot.blog_url" = "https://paceriz.com/blog/dynamic_vdot.html";
 "performance.vdot.heart_rate_zone_prompt" = "より正確なトレーニング強度の指導を得るために、心拍数ゾーンを設定してください";
 "performance.vdot.no_statistics" = "統計情報なし";
 "performance.vdot.data_point_count" = "データポイント数";
@@ -1644,6 +1648,10 @@
 "common.error" = "エラー";
 // MARK: - Training Readiness - Estimated Race Time
 "training_readiness.estimated_race_time" = "予想完走時間";
+"training_readiness.non_race_training_mode" = "非レーストレーニング";
+"training_readiness.race_only_metrics_footnote" = "持久力とレース適性の指標は、レース目標のトレーニングでのみ利用できます。";
+"training_readiness.race_only_note_title" = "レース目標専用指標";
+"training_readiness.race_only_note_body" = "持久力とレース適性の指標は、トレーニング目標が「レース」に設定されている場合のみ有効になります。現在のプランは非レーストレーニングモードです。";
 
 // MARK: - Content View
 "content_view.data_source_required" = "データソースの接続が必要です";
@@ -2602,3 +2610,184 @@
 "settings.subscription.tier.grace_label_format" = "現在のプラン：無料体験中（残り%d日）";
 "settings.subscription.tier.upgrade_cta" = "プレミアムへアップグレード";
 "settings.subscription.tier.manage_cta" = "サブスクリプション管理";
+
+// Climate Settings
+"climate_settings.title" = "暑熱順化";
+"climate_settings.loading" = "暑熱順化設定を読み込み中…";
+"climate_settings.enable_title" = "暑熱順化を有効にする";
+"climate_settings.feels_like_subtitle" = "当日の最高体感温度";
+"climate_settings.enabled_description" = "現在有効です。次に生成されるプランでは、当日の最高体感温度（湿度・風を含む）と暑熱順化設定に基づき、ペースを落とすかロング走を短縮するかを判断します。既存のプランは再計算されず、変更は来週の新しいプランから反映されます。";
+"climate_settings.disabled_description" = "現在無効です。今後生成されるプランは元のペースを維持し、暑熱順化による調整は適用されません。既存のプランは再計算されません。";
+"climate_settings.current_status.section" = "現在の状態";
+"climate_settings.current_status.is_adjusted" = "現在の調整状況";
+"climate_settings.current_status.adjusted" = "調整済み";
+"climate_settings.current_status.not_adjusted" = "未調整";
+"climate_settings.current_status.feels_like" = "現在の体感温度";
+"climate_settings.current_status.pace_adjustment" = "ペース調整幅";
+"climate_settings.current_status.long_run_adjustment" = "ロング走調整";
+"climate_settings.current_status.unavailable" = "この画面では、現時点で調整済みかどうかをまだ表示できません。バックエンドの current status 対応が必要です。";
+"climate_settings.your_setting" = "あなたの設定";
+"climate_settings.adjustment_start" = "介入開始";
+"climate_settings.common_adjustment" = "一般的な調整幅";
+"climate_settings.adaptation_level" = "暑熱順化レベル";
+"climate_settings.adaptation.unacclimated" = "未順化／初級";
+"climate_settings.adaptation.normal" = "通常";
+"climate_settings.adaptation.acclimated" = "暑熱順化済み";
+"climate_settings.manual_threshold.toggle" = "開始温度を手動調整";
+"climate_settings.manual_threshold.start_temp" = "介入開始温度";
+"climate_settings.manual_threshold.danger_fixed_format" = "危険レベルは %d°C に固定されています。";
+"climate_settings.future_only_footer" = "変更は今後新しく生成されるプランにのみ反映され、既存の結果は変更されません。";
+"climate_settings.explanation.open" = "暑熱順化の説明を見る";
+"climate_settings.not_available" = "現在未提供";
+"climate_settings.explanation.title" = "暑熱順化の説明";
+"climate_settings.explanation.how_it_works" = "暑熱順化の仕組み";
+"climate_settings.explanation.intervention_rules" = "介入される条件";
+"climate_settings.metrics.section" = "直近14日間の暑熱順化状態";
+"climate_settings.metrics.recommended" = "システム推奨";
+"climate_settings.metrics.current" = "現在の設定";
+"climate_settings.metrics.hot_hours" = "暑熱環境での時間";
+"climate_settings.metrics.hot_workouts" = "暑熱負荷トレーニング";
+"climate_settings.metrics.workout_count_format" = "%d 回";
+"climate_settings.metrics.pace_achievement" = "ペース達成率";
+"climate_settings.metrics.hr_efficiency" = "心拍効率";
+"climate_settings.metrics.efficiency_change" = "効率変化";
+"climate_settings.source.section" = "データソース";
+"climate_settings.source.region_strategy" = "地域戦略";
+"climate_settings.source.weather_source" = "気象ソース";
+"climate_settings.insufficient_data" = "データ不足";
+"climate_settings.trend.improving" = "改善中";
+"climate_settings.trend.declining" = "悪化中";
+"climate_settings.trend.stable" = "安定";
+"climate_settings.effective_notice" = "気候調整は次回生成されるプランから反映されます";
+
+// MARK: - Missing NSLocalizedString keys backfilled 2026-05-02
+"common.no_data" = "\u30C7\u30FC\u30BF\u304C\u3042\u308A\u307E\u305B\u3093";
+"edit.future_day" = "\u4ECA\u5F8C\u306E\u65E5";
+"edit.past_day" = "\u904E\u53BB\u306E\u65E5";
+"edit.today" = "\u4ECA\u65E5";
+"edit_schedule.error.empty_plan" = "\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u8A08\u753B\u304C\u7A7A\u3067\u3059\u3002";
+"edit_schedule.error.invalid_day_index" = "\u7121\u52B9\u306A\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u65E5\u3067\u3059\u3002";
+"edit_schedule.error.invalid_training_type" = "\u7121\u52B9\u306A\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u7A2E\u5225\u3067\u3059\u3002";
+"edit_schedule.error.save_result_missing" = "\u30B9\u30B1\u30B8\u30E5\u30FC\u30EB\u66F4\u65B0\u7D50\u679C\u304C\u8FD4\u3055\u308C\u307E\u305B\u3093\u3067\u3057\u305F\u3002";
+"edit_schedule.save_success" = "\u30B9\u30B1\u30B8\u30E5\u30FC\u30EB\u3092\u66F4\u65B0\u3057\u307E\u3057\u305F\u3002";
+"editsupportingtarget.text_0" = "\u30B5\u30DD\u30FC\u30C8\u76EE\u6A19";
+"error.bad_request" = "\u7121\u52B9\u306A\u30EA\u30AF\u30A8\u30B9\u30C8\u3067\u3059";
+"error.cache_expired" = "\u4FDD\u5B58\u30C7\u30FC\u30BF\u306E\u671F\u9650\u304C\u5207\u308C\u307E\u3057\u305F\u3002\u66F4\u65B0\u3057\u3066\u304F\u3060\u3055\u3044\u3002";
+"error.check_connection" = "\u30A4\u30F3\u30BF\u30FC\u30CD\u30C3\u30C8\u63A5\u7D9A\u3092\u78BA\u8A8D\u3057\u3066\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002";
+"error.data_corruption" = "\u30C7\u30FC\u30BF\u304C\u7834\u640D\u3057\u3066\u3044\u307E\u3059";
+"error.forbidden" = "\u30A2\u30AF\u30BB\u30B9\u304C\u62D2\u5426\u3055\u308C\u307E\u3057\u305F";
+"error.invalid_target_data" = "\u7121\u52B9\u306A\u76EE\u6A19\u30C7\u30FC\u30BF: %@";
+"error.invalid_update_data" = "\u7121\u52B9\u306A\u66F4\u65B0\u30C7\u30FC\u30BF: %@";
+"error.network_failure" = "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u30EA\u30AF\u30A8\u30B9\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F";
+"error.no_connection" = "\u30A4\u30F3\u30BF\u30FC\u30CD\u30C3\u30C8\u63A5\u7D9A\u304C\u3042\u308A\u307E\u305B\u3093";
+"error.no_main_race" = "\u30E1\u30A4\u30F3\u30EC\u30FC\u30B9\u76EE\u6A19\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093";
+"error.no_permission" = "\u3053\u306E\u64CD\u4F5C\u3092\u5B9F\u884C\u3059\u308B\u6A29\u9650\u304C\u3042\u308A\u307E\u305B\u3093\u3002";
+"error.not_authenticated" = "\u3082\u3046\u4E00\u5EA6\u30B5\u30A4\u30F3\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044\u3002";
+"error.preferences_not_found" = "\u30E6\u30FC\u30B6\u30FC\u8A2D\u5B9A\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093";
+"error.profile_not_found" = "\u30E6\u30FC\u30B6\u30FC\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093";
+"error.resource_not_found" = "\u30EA\u30AF\u30A8\u30B9\u30C8\u3055\u308C\u305F\u30EA\u30BD\u30FC\u30B9\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002";
+"error.rizo_quota_exceeded" = "Rizo\u306E\u5229\u7528\u4E0A\u9650\u306B\u9054\u3057\u307E\u3057\u305F";
+"error.server_error" = "\u30B5\u30FC\u30D0\u30FC\u30A8\u30E9\u30FC";
+"error.server_issue" = "\u30B5\u30FC\u30D0\u30FC\u306B\u554F\u984C\u304C\u767A\u751F\u3057\u3066\u3044\u307E\u3059\u3002\u5F8C\u3067\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002";
+"error.session_expired" = "\u30BB\u30C3\u30B7\u30E7\u30F3\u306E\u6709\u52B9\u671F\u9650\u304C\u5207\u308C\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u30B5\u30A4\u30F3\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044\u3002";
+"error.subscription_required" = "\u30B5\u30D6\u30B9\u30AF\u30EA\u30D7\u30B7\u30E7\u30F3\u304C\u5FC5\u8981\u3067\u3059";
+"error.target_not_found" = "\u76EE\u6A19\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093: %@";
+"error.title.forbidden" = "\u30A2\u30AF\u30BB\u30B9\u62D2\u5426";
+"error.title.network" = "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u30A8\u30E9\u30FC";
+"error.title.not_found" = "\u898B\u3064\u304B\u308A\u307E\u305B\u3093";
+"error.title.server" = "\u30B5\u30FC\u30D0\u30FC\u30A8\u30E9\u30FC";
+"error.title.unauthorized" = "\u30BB\u30C3\u30B7\u30E7\u30F3\u671F\u9650\u5207\u308C";
+"error.title.unknown" = "\u30A8\u30E9\u30FC";
+"error.trial_expired" = "\u30C8\u30E9\u30A4\u30A2\u30EB\u671F\u9593\u304C\u7D42\u4E86\u3057\u307E\u3057\u305F";
+"error.unauthorized" = "\u3082\u3046\u4E00\u5EA6\u30B5\u30A4\u30F3\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044";
+"hr_zone.save_failed_generic" = "\u5FC3\u62CD\u30BE\u30FC\u30F3\u306E\u4FDD\u5B58\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002";
+"onboarding.browse_race_database" = "\u30EC\u30FC\u30B9\u30C7\u30FC\u30BF\u30D9\u30FC\u30B9\u304B\u3089\u9078\u629E";
+"onboarding.browse_race_database_desc" = "\u958B\u50AC\u4E88\u5B9A\u306E\u30EC\u30FC\u30B9\u3092\u95B2\u89A7\u3057\u3066\u3001\u76EE\u6A19\u3092\u3059\u3070\u3084\u304F\u8A2D\u5B9A\u3057\u307E\u3059\u3002";
+"onboarding.change_race" = "\u30EC\u30FC\u30B9\u3092\u5909\u66F4";
+"onboarding.race_event_list_nav_title" = "\u30EC\u30FC\u30B9\u3092\u9078\u629E";
+"onboarding.race_list_empty" = "\u6761\u4EF6\u306B\u4E00\u81F4\u3059\u308B\u30EC\u30FC\u30B9\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002";
+"onboarding.race_search_prompt" = "\u30EC\u30FC\u30B9\u540D\u307E\u305F\u306F\u90FD\u5E02\u3092\u691C\u7D22";
+"onboarding.race_target_required" = "\u30EC\u30FC\u30B9\u76EE\u6A19\u3092\u9078\u629E\u307E\u305F\u306F\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002";
+"onboarding.select_race_distance_title" = "\u30EC\u30FC\u30B9\u8DDD\u96E2\u3092\u9078\u629E";
+"onboarding.select_region" = "\u5730\u57DF";
+"onboarding.tight_schedule_message" = "\u30EC\u30FC\u30B9\u65E5\u304C\u8FD1\u3044\u305F\u3081\u3001\u8A08\u753B\u306F\u5F8C\u534A\u306E\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u6BB5\u968E\u304B\u3089\u59CB\u307E\u308B\u5834\u5408\u304C\u3042\u308A\u307E\u3059\u3002";
+"onboarding.tight_schedule_title" = "\u30B9\u30B1\u30B8\u30E5\u30FC\u30EB\u304C\u77ED\u3081\u3067\u3059";
+"onboarding.training_weeks_required" = "\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u9031\u6570\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044\u3002";
+"profile.contact" = "\u9023\u7D61\u5148";
+"race_card.days_countdown" = "\u3042\u3068%d\u65E5";
+"race_card.days_until" = "\u3042\u3068%d\u65E5";
+"race_card.entry_closed" = "\u30A8\u30F3\u30C8\u30EA\u30FC\u7D42\u4E86";
+"race_card.today" = "\u4ECA\u65E5";
+"race_card.tomorrow" = "\u660E\u65E5";
+"race_distance.half_marathon" = "\u30CF\u30FC\u30D5\u30DE\u30E9\u30BD\u30F3";
+"race_distance.marathon" = "\u30DE\u30E9\u30BD\u30F3";
+"race_filter.10k" = "10K";
+"race_filter.5k" = "5K";
+"race_filter.all" = "\u3059\u3079\u3066";
+"race_filter.full_marathon" = "\u30D5\u30EB\u30DE\u30E9\u30BD\u30F3";
+"race_filter.half_marathon" = "\u30CF\u30FC\u30D5\u30DE\u30E9\u30BD\u30F3";
+"race_filter.other" = "\u305D\u306E\u4ED6";
+"race_picker.api_failure_hint" = "\u624B\u52D5\u5165\u529B\u3092\u4F7F\u7528\u3059\u308B\u304B\u3001\u5F8C\u3067\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002";
+"race_picker.api_failure_title" = "\u30EC\u30FC\u30B9\u30C7\u30FC\u30BF\u30D9\u30FC\u30B9\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093";
+"race_picker.retry" = "\u518D\u8A66\u884C";
+"race_time_ref.10k_advanced" = "10K \u4E0A\u7D1A\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.10k_casual" = "10K \u30AB\u30B8\u30E5\u30A2\u30EB\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.10k_elite" = "10K \u30A8\u30EA\u30FC\u30C8\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.5k_advanced" = "5K \u4E0A\u7D1A\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.5k_casual" = "5K \u30AB\u30B8\u30E5\u30A2\u30EB\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.5k_elite" = "5K \u30A8\u30EA\u30FC\u30C8\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.half_marathon_advanced" = "\u30CF\u30FC\u30D5\u30DE\u30E9\u30BD\u30F3\u4E0A\u7D1A\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.half_marathon_casual" = "\u30CF\u30FC\u30D5\u30DE\u30E9\u30BD\u30F3\u30AB\u30B8\u30E5\u30A2\u30EB\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.half_marathon_elite" = "\u30CF\u30FC\u30D5\u30DE\u30E9\u30BD\u30F3\u30A8\u30EA\u30FC\u30C8\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.marathon_advanced" = "\u30DE\u30E9\u30BD\u30F3\u4E0A\u7D1A\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.marathon_casual" = "\u30DE\u30E9\u30BD\u30F3\u30AB\u30B8\u30E5\u30A2\u30EB\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.marathon_elite" = "\u30DE\u30E9\u30BD\u30F3\u30A8\u30EA\u30FC\u30C8\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"region.japan" = "\u65E5\u672C";
+"region.taiwan" = "\u53F0\u6E7E";
+"rizo.quota_exceeded_banner" = "Rizo AI\u306E\u5229\u7528\u4E0A\u9650\u306B\u9054\u3057\u307E\u3057\u305F\u3002\u5F8C\u3067\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002";
+"search.no_results_message" = "\u691C\u7D22\u6761\u4EF6\u3092\u8ABF\u6574\u3057\u3066\u307F\u3066\u304F\u3060\u3055\u3044\u3002";
+"search.no_results_title" = "\u7D50\u679C\u304C\u3042\u308A\u307E\u305B\u3093";
+"training.no_plan_message" = "\u307E\u3060\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u8A08\u753B\u304C\u3042\u308A\u307E\u305B\u3093\u3002";
+"training.no_training_today" = "\u4ECA\u65E5\u306F\u4E88\u5B9A\u3055\u308C\u3066\u3044\u308B\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u304C\u3042\u308A\u307E\u305B\u3093\u3002";
+"training.today_training" = "\u4ECA\u65E5\u306E\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0";
+"training.week_out_of_range" = "\u7B2C%d\u9031\u306F\u8A08\u753B\u7BC4\u56F2\u5916\u3067\u3059\uFF081-%d\uFF09\u3002";
+"trainingload.text_0" = "\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u8CA0\u8377\u306E\u8AAC\u660E";
+"trainingload.text_1" = "\u30D5\u30A3\u30C3\u30C8\u30CD\u30B9\u3001\u75B2\u52B4\u3001TSB\u304C\u73FE\u5728\u306E\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u72B6\u614B\u3092\u3069\u3046\u8868\u3059\u304B\u3092\u7406\u89E3\u3057\u307E\u3057\u3087\u3046\u3002";
+"trainingload.text_10" = "TSB\u306F\u73FE\u5728\u306E\u75B2\u52B4\u3068\u9577\u671F\u7684\u306A\u30D5\u30A3\u30C3\u30C8\u30CD\u30B9\u306E\u30D0\u30E9\u30F3\u30B9\u3092\u793A\u3057\u307E\u3059\u3002\u30D7\u30E9\u30B9\u306F\u6BD4\u8F03\u7684\u30D5\u30EC\u30C3\u30B7\u30E5\u3001\u30DE\u30A4\u30CA\u30B9\u306F\u75B2\u52B4\u306E\u84C4\u7A4D\u3092\u610F\u5473\u3057\u307E\u3059\u3002";
+"trainingload.text_11" = "\u72B6\u614B\u306E\u76EE\u5B89";
+"trainingload.text_12" = "TSB > +5";
+"trainingload.text_13" = "\u6BD4\u8F03\u7684\u30D5\u30EC\u30C3\u30B7\u30E5\u3067\u3001\u8CEA\u306E\u9AD8\u3044\u7DF4\u7FD2\u3084\u30EC\u30FC\u30B9\u306B\u5411\u3044\u3066\u3044\u308B\u53EF\u80FD\u6027\u304C\u3042\u308A\u307E\u3059\u3002";
+"trainingload.text_14" = "-10\u301C+5";
+"trainingload.text_15" = "\u901A\u5E38\u306E\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u9031\u3068\u3057\u3066\u30D0\u30E9\u30F3\u30B9\u306E\u3088\u3044\u7BC4\u56F2\u3067\u3059\u3002";
+"trainingload.text_16" = "TSB < -10";
+"trainingload.text_17" = "\u75B2\u52B4\u304C\u9AD8\u3044\u72B6\u614B\u3067\u3059\u3002\u7D9A\u304F\u5834\u5408\u306F\u56DE\u5FA9\u3092\u691C\u8A0E\u3057\u3066\u304F\u3060\u3055\u3044\u3002";
+"trainingload.text_18" = "\u30B0\u30E9\u30D5\u306E\u898B\u65B9";
+"trainingload.text_19" = "\u30D5\u30A3\u30C3\u30C8\u30CD\u30B9";
+"trainingload.text_2" = "\u30D5\u30A3\u30C3\u30C8\u30CD\u30B9\u6307\u6A19";
+"trainingload.text_20" = "\u9577\u671F\u7684\u306A\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u9069\u5FDC\u306E\u50BE\u5411\u3067\u3059\u3002";
+"trainingload.text_21" = "TSB";
+"trainingload.text_22" = "\u30D5\u30EC\u30C3\u30B7\u30E5\u3055\u3068\u75B2\u52B4\u306E\u30D0\u30E9\u30F3\u30B9\u3067\u3059\u3002";
+"trainingload.text_23" = "\u5B9F\u7528\u7684\u306A\u63D0\u6848";
+"trainingload.text_24" = "\u30D5\u30A3\u30C3\u30C8\u30CD\u30B9\u4E0A\u6607\u4E2D";
+"trainingload.text_25" = "\u30EA\u30BA\u30E0\u3092\u7DAD\u6301\u3057\u3001\u6025\u6FC0\u306A\u8CA0\u8377\u5897\u52A0\u306F\u907F\u3051\u307E\u3057\u3087\u3046\u3002";
+"trainingload.text_26" = "\u30D5\u30A3\u30C3\u30C8\u30CD\u30B9\u5B89\u5B9A";
+"trainingload.text_27" = "\u7D99\u7D9A\u6027\u3092\u4FDD\u3061\u3001\u7DF4\u7FD2\u306E\u8CEA\u3092\u91CD\u8996\u3057\u307E\u3057\u3087\u3046\u3002";
+"trainingload.text_28" = "\u30D5\u30A3\u30C3\u30C8\u30CD\u30B9\u4F4E\u4E0B\u4E2D";
+"trainingload.text_29" = "\u5F37\u5EA6\u3092\u4E0A\u3052\u308B\u524D\u306B\u3001\u30A4\u30FC\u30B8\u30FC\u30E9\u30F3\u304B\u3089\u5F90\u3005\u306B\u623B\u3057\u307E\u3057\u3087\u3046\u3002";
+"trainingload.text_3" = "\u30D5\u30A3\u30C3\u30C8\u30CD\u30B9\u306F\u7D99\u7D9A\u7684\u306A\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u3067\u84C4\u7A4D\u3055\u308C\u308B\u9577\u671F\u7684\u306A\u52B9\u679C\u3092\u793A\u3057\u307E\u3059\u3002\u5B89\u5B9A\u3057\u3066\u7DF4\u7FD2\u3067\u304D\u3066\u3044\u308B\u3068\u5F90\u3005\u306B\u4E0A\u304C\u308A\u3001\u4E2D\u65AD\u304C\u7D9A\u304F\u3068\u4E0B\u304C\u308A\u307E\u3059\u3002";
+"trainingload.text_30" = "TSB\u304C\u975E\u5E38\u306B\u4F4E\u3044";
+"trainingload.text_31" = "\u56DE\u5FA9\u3092\u512A\u5148\u3057\u3001\u9AD8\u5F37\u5EA6\u7DF4\u7FD2\u3092\u6E1B\u3089\u3057\u307E\u3057\u3087\u3046\u3002";
+"trainingload.text_32" = "\u6CE8\u610F\u4E8B\u9805";
+"trainingload.text_33" = "\u3053\u308C\u3089\u306E\u6307\u6A19\u306F\u5229\u7528\u53EF\u80FD\u306A\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u30C7\u30FC\u30BF\u306B\u57FA\u3065\u304F\u63A8\u5B9A\u5024\u3067\u3059\u3002";
+"trainingload.text_34" = "\u533B\u7642\u5224\u65AD\u3067\u306F\u306A\u304F\u3001\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u306E\u53C2\u8003\u3068\u3057\u3066\u4F7F\u3063\u3066\u304F\u3060\u3055\u3044\u3002";
+"trainingload.text_35" = "\u77ED\u671F\u7684\u306A\u5909\u52D5\u306F\u6B63\u5E38\u3067\u3059\u3002\u6570\u9031\u9593\u306E\u50BE\u5411\u3092\u898B\u3066\u304F\u3060\u3055\u3044\u3002";
+"trainingload.text_36" = "\u75DB\u307F\u3084\u901A\u5E38\u3068\u9055\u3046\u75B2\u52B4\u304C\u3042\u308B\u5834\u5408\u306F\u3001\u8CA0\u8377\u3092\u4E0B\u3052\u3066\u4F11\u307F\u307E\u3057\u3087\u3046\u3002";
+"trainingload.text_37" = "\u30EF\u30FC\u30AF\u30A2\u30A6\u30C8\u8A18\u9332\u304C\u591A\u3044\u307B\u3069\u3001\u6307\u6A19\u306E\u7CBE\u5EA6\u304C\u4E0A\u304C\u308A\u307E\u3059\u3002";
+"trainingload.text_4" = "\u30C8\u30EC\u30F3\u30C9\u306E\u610F\u5473";
+"trainingload.text_5" = "\u30D5\u30A3\u30C3\u30C8\u30CD\u30B9\u304C\u5411\u4E0A\u4E2D";
+"trainingload.text_6" = "\u30D5\u30A3\u30C3\u30C8\u30CD\u30B9\u306F\u5B89\u5B9A";
+"trainingload.text_7" = "\u30D5\u30A3\u30C3\u30C8\u30CD\u30B9\u304C\u4F4E\u4E0B\u4E2D";
+"trainingload.text_8" = "\u5358\u65E5\u306E\u5224\u65AD\u3067\u306F\u306A\u304F\u3001\u75B2\u52B4\u3084\u56DE\u5FA9\u72B6\u614B\u3068\u5408\u308F\u305B\u3066\u898B\u3066\u304F\u3060\u3055\u3044\u3002";
+"trainingload.text_9" = "TSB";
+"workout.no_records_message" = "\u904B\u52D5\u3092\u958B\u59CB\u3059\u308B\u3068\u30EF\u30FC\u30AF\u30A2\u30A6\u30C8\u5C65\u6B74\u304C\u8868\u793A\u3055\u308C\u307E\u3059\u3002";
+"workout.no_records_title" = "\u30EF\u30FC\u30AF\u30A2\u30A6\u30C8\u306A\u3057";

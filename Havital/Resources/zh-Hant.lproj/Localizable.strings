@@ -124,9 +124,6 @@
 "training_plan.congratulations" = "恭喜您完成這個訓練週期！";
 "training_plan.loading_schedule" = "課表載入中...";
 
-// MARK: - Workout Summary Row
-"workout_summary_row.calculating_heart_rate" = "心率計算中...";
-
 // MARK: - Next Week Planning View
 "next_week_planning.title" = "下週計劃設定";
 "next_week_planning.weekly_feeling" = "本週訓練感受（0-最差，5-最佳）";
@@ -473,7 +470,7 @@
 "workout.detail.pace_zones" = "配速區間分佈";
 "workout.detail.zone_distribution" = "區間分佈";
 "workout.detail.zone_type" = "區間類型";
-"workout.detail.dynamic_vdot" = "動態跑力";
+"workout.detail.dynamic_vdot" = "VDOT";
 "workout.detail.training_load" = "訓練負荷";
 "workout.detail.movement_efficiency" = "移動效率";
 "workout.detail.recovery_zone" = "恢復區";
@@ -669,6 +666,11 @@
 "date.sat" = "六";
 "date.sun" = "日";
 "date.minutes_ago" = "%d分鐘前";
+"date.just_now" = "剛剛";
+"date.today_at" = "今天 %@";
+"date.yesterday_at" = "昨天 %@";
+"date.days_ago" = "%d 天前";
+"date.one_week_ago" = "一週前";
 
 // MARK: - Alerts & Confirmations
 "alert.unsaved_changes" = "有未儲存的變更";
@@ -1343,7 +1345,7 @@
 
 // MARK: - Achievement View Performance
 "performance.vdot_trend" = "VDOT 趨勢";
-"performance.vdot_explanation" = "VDOT 是根據您的跑步表現所計算出的有氧能力指標。隨著訓練進度的增加，您的 VDOT 值會逐漸提升。";
+"performance.vdot_explanation" = "VDOT 是國際通用的有氧能力指標，由 Jack Daniels 博士提出。數值越高，代表您的有氧基礎越好。";
 
 // Performance Time Range
 "performance.time_range.week" = "一週";
@@ -1359,20 +1361,22 @@
 // Performance Chart Labels
 "performance.chart.date" = "日期";
 "performance.chart.resting_heart_rate" = "靜息心率";
-"performance.chart.vdot_value" = "跑力";
+"performance.chart.vdot_value" = "VDOT";
 "performance.chart.loading" = "載入中...";
 
 // VDOT Performance Terms
-"performance.vdot.dynamic_vdot" = "動態跑力";
-"performance.vdot.weighted_vdot" = "加權跑力";
-"performance.vdot.latest_vdot" = "最新跑力";
-"performance.vdot.vdot_title" = "動態跑力 (VDOT)";
-"performance.vdot.what_is_vdot" = "什麼是動態跑力？";
-"performance.vdot.vdot_description" = "動態跑力是根據您的跑步表現和心率數據綜合計算的指標，反映您的真實跑步能力。\n\n動態跑力會依據訓練的類型，氣溫是度以及當天身體狀況而有起伏。隨著訓練的進行，動態跑力會因您的體能上升而有上升的趨勢。\n\n加權跑力會參考您的目標賽事距離，做出適當的加權來計算一段時間內的動態跑力的加權平均值，更能反映當下對於目標賽事的跑力評估喔！";
+"performance.vdot.dynamic_vdot" = "VDOT";
+"performance.vdot.weighted_vdot" = "VDOT";
+"performance.vdot.latest_vdot" = "VDOT";
+"performance.vdot.vdot_title" = "VDOT";
+"performance.vdot.what_is_vdot" = "什麼是 VDOT？";
+"performance.vdot.vdot_description" = "VDOT 是國際通用的有氧能力指標，由 Jack Daniels 博士提出。數值越高，代表您的有氧基礎越好。\n\nPaceriz 為您追蹤兩個 VDOT 數字：\n\nVDOT\n您的穩定有氧能力，根據近期跑步數據加權平均得出，能反映您對目標賽事的當前實力。\n\n動態跑力\n每次跑步後即時計算的當下表現值，會受到當天氣溫、心率、身體狀況影響而起伏。想看穩定趨勢請看 VDOT。";
 "performance.vdot.set_heart_rate_zones" = "設定心率區間";
-"performance.vdot.calculating_vdot" = "計算動態跑力中...";
-"performance.vdot.average_weighted_vdot" = "平均加權跑力";
-"performance.vdot.latest_dynamic_vdot" = "最新動態跑力";
+"performance.vdot.calculating_vdot" = "計算 VDOT 中…";
+"performance.vdot.average_weighted_vdot" = "平均 VDOT";
+"performance.vdot.latest_dynamic_vdot" = "動態跑力（最新）";
+"performance.vdot.read_more" = "閱讀更多";
+"performance.vdot.blog_url" = "https://paceriz.com/blog/dynamic_vdot.html";
 "performance.vdot.heart_rate_zone_prompt" = "請設定您的心率區間以獲得更準確的訓練強度指導";
 "performance.vdot.no_statistics" = "暫無統計信息";
 "performance.vdot.data_point_count" = "數據點數量";
@@ -1709,6 +1713,10 @@
 "common.error" = "錯誤";
 // MARK: - Training Readiness - Estimated Race Time
 "training_readiness.estimated_race_time" = "預計完賽時間";
+"training_readiness.non_race_training_mode" = "非賽事訓練";
+"training_readiness.race_only_metrics_footnote" = "耐力與比賽適能指標僅適用於賽事訓練目標。";
+"training_readiness.race_only_note_title" = "賽事目標專屬指標";
+"training_readiness.race_only_note_body" = "耐力與比賽適能指標僅在訓練目標設定為「賽事」時才會啟用，目前為非賽事訓練模式。";
 
 // MARK: - Content View
 "content_view.data_source_required" = "需要綁定數據源";
@@ -2685,3 +2693,147 @@
 "settings.subscription.tier.grace_label_format" = "目前方案：免費體驗中（剩 %d 天）";
 "settings.subscription.tier.upgrade_cta" = "升級至完整版";
 "settings.subscription.tier.manage_cta" = "管理訂閱";
+
+// Climate Settings
+"climate_settings.title" = "熱適應";
+"climate_settings.loading" = "載入熱適應設定中…";
+"climate_settings.enable_title" = "啟用熱適應";
+"climate_settings.feels_like_subtitle" = "當天最高體感溫度";
+"climate_settings.enabled_description" = "目前已啟用。系統會在下一次生成課表時，依當天最高體感溫度（含濕度、風）與你的熱適應設定判斷是否放慢配速或縮短長跑。現有課表不會重新調整，設定變更於下週新課表生效。";
+"climate_settings.disabled_description" = "目前已關閉。之後新生成的課表會維持原始配速，不套用熱適應調整。現有課表不會重新調整。";
+"climate_settings.current_status.section" = "目前狀態";
+"climate_settings.current_status.is_adjusted" = "現在是否調整";
+"climate_settings.current_status.adjusted" = "已調整";
+"climate_settings.current_status.not_adjusted" = "未調整";
+"climate_settings.current_status.feels_like" = "目前體感溫度";
+"climate_settings.current_status.pace_adjustment" = "配速調整幅度";
+"climate_settings.current_status.long_run_adjustment" = "長跑調整";
+"climate_settings.current_status.unavailable" = "目前頁面還拿不到「當下是否已調整」；這需要後端補 current status。";
+"climate_settings.your_setting" = "你的設定";
+"climate_settings.adjustment_start" = "開始介入";
+"climate_settings.common_adjustment" = "常見調整幅度";
+"climate_settings.adaptation_level" = "熱適應程度";
+"climate_settings.adaptation.unacclimated" = "未適應／初學";
+"climate_settings.adaptation.normal" = "一般";
+"climate_settings.adaptation.acclimated" = "已熱適應";
+"climate_settings.manual_threshold.toggle" = "手動調整開始溫度";
+"climate_settings.manual_threshold.start_temp" = "開始介入溫度";
+"climate_settings.manual_threshold.danger_fixed_format" = "危險等級固定在 %d°C。";
+"climate_settings.future_only_footer" = "變更只會影響之後新生成的課表，不會回改已生成的結果。";
+"climate_settings.explanation.open" = "查看熱適應說明";
+"climate_settings.not_available" = "目前未提供";
+"climate_settings.explanation.title" = "熱適應說明";
+"climate_settings.explanation.how_it_works" = "熱適應怎麼運作";
+"climate_settings.explanation.intervention_rules" = "什麼情況會介入";
+"climate_settings.metrics.section" = "你的近 14 天熱適應狀態";
+"climate_settings.metrics.recommended" = "系統建議";
+"climate_settings.metrics.current" = "目前設定";
+"climate_settings.metrics.hot_hours" = "熱環境時數";
+"climate_settings.metrics.hot_workouts" = "熱壓力訓練";
+"climate_settings.metrics.workout_count_format" = "%d 次";
+"climate_settings.metrics.pace_achievement" = "配速達成率";
+"climate_settings.metrics.hr_efficiency" = "心率效率";
+"climate_settings.metrics.efficiency_change" = "效率變化";
+"climate_settings.source.section" = "資料來源";
+"climate_settings.source.region_strategy" = "區域策略";
+"climate_settings.source.weather_source" = "氣象來源";
+"climate_settings.insufficient_data" = "資料不足";
+"climate_settings.trend.improving" = "改善中";
+"climate_settings.trend.declining" = "惡化中";
+"climate_settings.trend.stable" = "穩定";
+"climate_settings.effective_notice" = "氣候調整將從下一次產生的課表開始生效";
+
+// MARK: - Missing NSLocalizedString keys backfilled 2026-05-02
+"common.no_data" = "\u66AB\u7121\u8CC7\u6599";
+"edit.future_day" = "\u672A\u4F86\u65E5\u671F";
+"edit.past_day" = "\u904E\u53BB\u65E5\u671F";
+"edit.today" = "\u4ECA\u5929";
+"edit_schedule.error.empty_plan" = "\u8A13\u7DF4\u8AB2\u8868\u662F\u7A7A\u7684\u3002";
+"edit_schedule.error.invalid_day_index" = "\u7121\u6548\u7684\u8A13\u7DF4\u65E5\u671F\u3002";
+"edit_schedule.error.invalid_training_type" = "\u7121\u6548\u7684\u8A13\u7DF4\u985E\u578B\u3002";
+"edit_schedule.error.save_result_missing" = "\u8AB2\u8868\u66F4\u65B0\u6C92\u6709\u56DE\u50B3\u7D50\u679C\u3002";
+"edit_schedule.save_success" = "\u8AB2\u8868\u5DF2\u66F4\u65B0\u3002";
+"editsupportingtarget.text_0" = "\u8F14\u52A9\u76EE\u6A19";
+"error.bad_request" = "\u7121\u6548\u7684\u8ACB\u6C42";
+"error.cache_expired" = "\u66AB\u5B58\u8CC7\u6599\u5DF2\u904E\u671F\uFF0C\u8ACB\u91CD\u65B0\u6574\u7406\u3002";
+"error.check_connection" = "\u8ACB\u6AA2\u67E5\u7DB2\u8DEF\u9023\u7DDA\u5F8C\u518D\u8A66\u4E00\u6B21\u3002";
+"error.data_corruption" = "\u8CC7\u6599\u640D\u58DE";
+"error.forbidden" = "\u7121\u6CD5\u5B58\u53D6";
+"error.invalid_target_data" = "\u7121\u6548\u7684\u76EE\u6A19\u8CC7\u6599\uFF1A%@";
+"error.invalid_update_data" = "\u7121\u6548\u7684\u66F4\u65B0\u8CC7\u6599\uFF1A%@";
+"error.network_failure" = "\u7DB2\u8DEF\u8ACB\u6C42\u5931\u6557";
+"error.no_connection" = "\u6C92\u6709\u7DB2\u8DEF\u9023\u7DDA";
+"error.no_main_race" = "\u627E\u4E0D\u5230\u4E3B\u8981\u8CFD\u4E8B\u76EE\u6A19";
+"error.no_permission" = "\u4F60\u6C92\u6709\u6B0A\u9650\u57F7\u884C\u9019\u500B\u64CD\u4F5C\u3002";
+"error.not_authenticated" = "\u8ACB\u91CD\u65B0\u767B\u5165\u3002";
+"error.preferences_not_found" = "\u627E\u4E0D\u5230\u4F7F\u7528\u8005\u504F\u597D\u8A2D\u5B9A";
+"error.profile_not_found" = "\u627E\u4E0D\u5230\u4F7F\u7528\u8005\u500B\u4EBA\u8CC7\u6599";
+"error.resource_not_found" = "\u627E\u4E0D\u5230\u8ACB\u6C42\u7684\u8CC7\u6E90\u3002";
+"error.rizo_quota_exceeded" = "Rizo \u4F7F\u7528\u984D\u5EA6\u5DF2\u7528\u5B8C";
+"error.server_error" = "\u4F3A\u670D\u5668\u932F\u8AA4";
+"error.server_issue" = "\u4F3A\u670D\u5668\u76EE\u524D\u767C\u751F\u554F\u984C\uFF0C\u8ACB\u7A0D\u5F8C\u518D\u8A66\u3002";
+"error.session_expired" = "\u767B\u5165\u72C0\u614B\u5DF2\u904E\u671F\uFF0C\u8ACB\u91CD\u65B0\u767B\u5165\u3002";
+"error.subscription_required" = "\u9700\u8981\u8A02\u95B1";
+"error.target_not_found" = "\u627E\u4E0D\u5230\u76EE\u6A19\uFF1A%@";
+"error.title.forbidden" = "\u7121\u6CD5\u5B58\u53D6";
+"error.title.network" = "\u7DB2\u8DEF\u932F\u8AA4";
+"error.title.not_found" = "\u627E\u4E0D\u5230\u8CC7\u6599";
+"error.title.server" = "\u4F3A\u670D\u5668\u932F\u8AA4";
+"error.title.unauthorized" = "\u767B\u5165\u5DF2\u904E\u671F";
+"error.title.unknown" = "\u932F\u8AA4";
+"error.trial_expired" = "\u8A66\u7528\u671F\u5DF2\u7D50\u675F";
+"error.unauthorized" = "\u8ACB\u91CD\u65B0\u767B\u5165";
+"hr_zone.save_failed_generic" = "\u5FC3\u7387\u5340\u9593\u5132\u5B58\u5931\u6557\u3002";
+"onboarding.race_target_required" = "\u8ACB\u9078\u64C7\u6216\u8F38\u5165\u8CFD\u4E8B\u76EE\u6A19\u3002";
+"onboarding.training_weeks_required" = "\u8ACB\u9078\u64C7\u8A13\u7DF4\u9031\u6578\u3002";
+"profile.contact" = "\u806F\u7D61\u65B9\u5F0F";
+"race_picker.api_failure_hint" = "\u8ACB\u4F7F\u7528\u624B\u52D5\u8F38\u5165\uFF0C\u6216\u7A0D\u5F8C\u518D\u8A66\u3002";
+"race_picker.api_failure_title" = "\u7121\u6CD5\u8F09\u5165\u8CFD\u4E8B\u8CC7\u6599\u5EAB";
+"race_picker.retry" = "\u91CD\u8A66";
+"rizo.quota_exceeded_banner" = "Rizo AI \u984D\u5EA6\u66AB\u6642\u7528\u5B8C\uFF0C\u8ACB\u7A0D\u5F8C\u518D\u8A66\u3002";
+"search.no_results_message" = "\u8ACB\u5617\u8A66\u8ABF\u6574\u641C\u5C0B\u689D\u4EF6\u3002";
+"search.no_results_title" = "\u6C92\u6709\u7D50\u679C";
+"training.no_plan_message" = "\u4F60\u9084\u6C92\u6709\u8A13\u7DF4\u8AB2\u8868\u3002";
+"training.no_training_today" = "\u4ECA\u5929\u6C92\u6709\u5B89\u6392\u8A13\u7DF4\u3002";
+"training.today_training" = "\u4ECA\u65E5\u8A13\u7DF4";
+"training.week_out_of_range" = "\u7B2C %d \u9031\u8D85\u51FA\u8AB2\u8868\u7BC4\u570D\uFF081-%d\uFF09\u3002";
+"trainingload.text_0" = "\u8A13\u7DF4\u8CA0\u8377\u8AAA\u660E";
+"trainingload.text_1" = "\u4E86\u89E3\u9AD4\u9069\u80FD\u3001\u75B2\u52DE\u8207 TSB \u5982\u4F55\u53CD\u6620\u76EE\u524D\u7684\u8A13\u7DF4\u72C0\u614B\u3002";
+"trainingload.text_10" = "TSB \u4EE3\u8868\u76EE\u524D\u75B2\u52DE\u8207\u9577\u671F\u9AD4\u9069\u80FD\u4E4B\u9593\u7684\u5E73\u8861\u3002\u6B63\u503C\u901A\u5E38\u4EE3\u8868\u8F03\u65B0\u9BAE\uFF0C\u8CA0\u503C\u4EE3\u8868\u75B2\u52DE\u7D2F\u7A4D\u3002";
+"trainingload.text_11" = "\u72C0\u614B\u5340\u9593";
+"trainingload.text_12" = "TSB > +5";
+"trainingload.text_13" = "\u76EE\u524D\u76F8\u5C0D\u65B0\u9BAE\uFF0C\u53EF\u80FD\u9069\u5408\u54C1\u8CEA\u8AB2\u8868\u6216\u6BD4\u8CFD\u3002";
+"trainingload.text_14" = "-10 \u5230 +5";
+"trainingload.text_15" = "\u9019\u662F\u4E00\u822C\u8A13\u7DF4\u9031\u8F03\u5E73\u8861\u7684\u5340\u9593\u3002";
+"trainingload.text_16" = "TSB < -10";
+"trainingload.text_17" = "\u75B2\u52DE\u504F\u9AD8\uFF1B\u5982\u679C\u6301\u7E8C\u504F\u4F4E\uFF0C\u5EFA\u8B70\u5B89\u6392\u6062\u5FA9\u3002";
+"trainingload.text_18" = "\u5982\u4F55\u89E3\u8B80\u5716\u8868";
+"trainingload.text_19" = "\u9AD4\u9069\u80FD";
+"trainingload.text_2" = "\u9AD4\u9069\u80FD\u6307\u6578";
+"trainingload.text_20" = "\u9577\u671F\u8A13\u7DF4\u9069\u61C9\u7684\u8DA8\u52E2\u3002";
+"trainingload.text_21" = "TSB";
+"trainingload.text_22" = "\u65B0\u9BAE\u5EA6\u8207\u75B2\u52DE\u7684\u5E73\u8861\u3002";
+"trainingload.text_23" = "\u5BE6\u7528\u5EFA\u8B70";
+"trainingload.text_24" = "\u9AD4\u9069\u80FD\u4E0A\u5347";
+"trainingload.text_25" = "\u7DAD\u6301\u7BC0\u594F\uFF0C\u907F\u514D\u7A81\u7136\u589E\u52A0\u8CA0\u8377\u3002";
+"trainingload.text_26" = "\u9AD4\u9069\u80FD\u7A69\u5B9A";
+"trainingload.text_27" = "\u7DAD\u6301\u8A13\u7DF4\u9023\u7E8C\u6027\uFF0C\u5C08\u6CE8\u8AB2\u8868\u54C1\u8CEA\u3002";
+"trainingload.text_28" = "\u9AD4\u9069\u80FD\u4E0B\u964D";
+"trainingload.text_29" = "\u5148\u7528\u8F15\u9B06\u8DD1\u9010\u6B65\u6062\u5FA9\uFF0C\u518D\u52A0\u5165\u5F37\u5EA6\u3002";
+"trainingload.text_3" = "\u9AD4\u9069\u80FD\u4EE3\u8868\u7A69\u5B9A\u8A13\u7DF4\u7D2F\u7A4D\u51FA\u7684\u9577\u671F\u6548\u679C\u3002\u8A13\u7DF4\u7A69\u5B9A\u6642\u901A\u5E38\u6703\u9010\u6B65\u4E0A\u5347\uFF0C\u4E2D\u65B7\u8A13\u7DF4\u6642\u6703\u4E0B\u964D\u3002";
+"trainingload.text_30" = "TSB \u904E\u4F4E";
+"trainingload.text_31" = "\u512A\u5148\u6062\u5FA9\uFF0C\u6E1B\u5C11\u9AD8\u5F37\u5EA6\u8A13\u7DF4\u3002";
+"trainingload.text_32" = "\u6CE8\u610F\u4E8B\u9805";
+"trainingload.text_33" = "\u9019\u4E9B\u6307\u6A19\u662F\u6839\u64DA\u53EF\u7528\u8A13\u7DF4\u8CC7\u6599\u4F30\u7B97\u3002";
+"trainingload.text_34" = "\u8ACB\u628A\u5B83\u4F5C\u70BA\u8A13\u7DF4\u53C3\u8003\uFF0C\u4E0D\u662F\u91AB\u7642\u5EFA\u8B70\u3002";
+"trainingload.text_35" = "\u77ED\u671F\u6CE2\u52D5\u662F\u6B63\u5E38\u73FE\u8C61\uFF0C\u8ACB\u770B\u591A\u9031\u8DA8\u52E2\u3002";
+"trainingload.text_36" = "\u5982\u679C\u6709\u75BC\u75DB\u6216\u7570\u5E38\u75B2\u52DE\uFF0C\u8ACB\u964D\u4F4E\u8CA0\u8377\u4E26\u4F11\u606F\u3002";
+"trainingload.text_37" = "\u8D8A\u5B8C\u6574\u7684\u904B\u52D5\u7D00\u9304\uFF0C\u8D8A\u80FD\u63D0\u5347\u6307\u6A19\u6E96\u78BA\u5EA6\u3002";
+"trainingload.text_4" = "\u8DA8\u52E2\u4EE3\u8868\u4EC0\u9EBC";
+"trainingload.text_5" = "\u9AD4\u9069\u80FD\u6B63\u5728\u63D0\u5347";
+"trainingload.text_6" = "\u9AD4\u9069\u80FD\u7DAD\u6301\u7A69\u5B9A";
+"trainingload.text_7" = "\u9AD4\u9069\u80FD\u6B63\u5728\u4E0B\u964D";
+"trainingload.text_8" = "\u8ACB\u642D\u914D\u75B2\u52DE\u8207\u6062\u5FA9\u72C0\u614B\u4E00\u8D77\u5224\u65B7\uFF0C\u4E0D\u8981\u53EA\u770B\u55AE\u4E00\u5929\u6578\u503C\u3002";
+"trainingload.text_9" = "TSB";
+"workout.no_records_message" = "\u958B\u59CB\u904B\u52D5\u5F8C\uFF0C\u9019\u88E1\u6703\u986F\u793A\u4F60\u7684\u8A13\u7DF4\u7D00\u9304\u3002";
+"workout.no_records_title" = "\u6C92\u6709\u8A13\u7DF4\u7D00\u9304";
