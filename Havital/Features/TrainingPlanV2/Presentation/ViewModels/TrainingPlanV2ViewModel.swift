@@ -29,6 +29,12 @@ final class TrainingPlanV2ViewModel: TaskManageable {
     var paywallTrigger: PaywallTrigger?
     var showRizoQuotaExceededBanner: Bool = false
 
+    // MARK: - AC-IOS-ANALYTICS-P1-09: session-level dedup for weekly_plan_view
+    var trackedWeeklyPlanKey: String? = nil
+
+    // MARK: - AC-IOS-ANALYTICS-P1-12: session-level dedup for plan_overview_view
+    var hasTrackedPlanOverviewView: Bool = false
+
     // S07 inline upsell state (AC-PAYWALL-22/23/26)
     // true = show WeeklyPlanInlineUpsellCard in place of the plan content
     var showWeeklyPlanInlineUpsell: Bool = false
@@ -212,6 +218,30 @@ final class TrainingPlanV2ViewModel: TaskManageable {
 
     func clearSuccessToast() {
         successToast = nil
+    }
+
+    // MARK: - AC-IOS-ANALYTICS-P1-09: weekly_plan_view dedup
+
+    /// Track weekly_plan_view for the given plan/week combination.
+    /// Deduplicates by key ("\(planId)-\(weekOfTraining)") — fires at most once per key per session.
+    /// View calls this; ViewModel owns the dedup state and analytics dispatch.
+    func markWeeklyPlanTracked(planId: String, weekOfTraining: Int) {
+        let key = "\(planId)-\(weekOfTraining)"
+        guard trackedWeeklyPlanKey != key else { return }
+        trackedWeeklyPlanKey = key
+        let analyticsService: AnalyticsService = DependencyContainer.shared.resolve()
+        analyticsService.track(.weeklyPlanView(planId: planId, weekOfTraining: weekOfTraining))
+    }
+
+    // MARK: - AC-IOS-ANALYTICS-P1-12: plan_overview_view dedup
+
+    /// Track plan_overview_view once per sheet presentation.
+    /// No-op if already tracked (hasTrackedPlanOverviewView == true).
+    func markPlanOverviewTracked(overviewId: String, targetType: String) {
+        guard !hasTrackedPlanOverviewView else { return }
+        hasTrackedPlanOverviewView = true
+        let analyticsService: AnalyticsService = DependencyContainer.shared.resolve()
+        analyticsService.track(.planOverviewView(overviewId: overviewId, targetType: targetType))
     }
 
     // MARK: - Private Helpers

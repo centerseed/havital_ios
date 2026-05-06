@@ -16,6 +16,7 @@ struct TrainingPlanV2View: View {
     @State private var showFeedbackReport = false
     @State private var showWeekSelector = false
     @State private var showMessageCenter = false
+
     // S07 inline upsell sheet state (AC-PAYWALL-22/23)
     @State private var showWeeklyPlanInlineUpsellSheet = false
     @State private var weeklyPlanUpsellIsRegenerateLocal = false
@@ -79,6 +80,7 @@ struct TrainingPlanV2View: View {
     // Note: hasPremiumAccess is NOT used here because grace period users have hasPremiumAccess=true
     // yet still need to see the banner ("X days left, subscribe to keep access").
     private var shouldShowFreeTierBanner: Bool {
+        guard subscriptionState.isEnforcementEnabled else { return false }
         guard !subscriptionState.hasRealSubscription else { return false }
         // planOverview != nil means the user has generated at least Week 1
         return viewModel.loader.planOverview != nil
@@ -532,6 +534,19 @@ struct TrainingPlanV2View: View {
             }
             .presentationDetents([.medium])
         }
+        // AC-IOS-ANALYTICS-P1-09: track weekly_plan_view when plan loads (session-level dedup).
+        // onAppear covers the case where planStatus is already .ready when the view appears
+        // (e.g. user leaves the tab and returns — onChange won't fire if status hasn't changed).
+        .onAppear {
+            if case .ready(let plan) = viewModel.loader.planStatus {
+                trackWeeklyPlanViewIfNeeded(plan: plan)
+            }
+        }
+        .onChange(of: viewModel.loader.planStatus) { _, newStatus in
+            if case .ready(let plan) = newStatus {
+                trackWeeklyPlanViewIfNeeded(plan: plan)
+            }
+        }
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
             await viewModel.loader.initialize()
@@ -647,6 +662,15 @@ struct TrainingPlanV2View: View {
     private var isChineseLanguage: Bool {
         guard let lang = Bundle.main.preferredLocalizations.first else { return false }
         return lang.hasPrefix("zh")
+    }
+
+    // MARK: - AC-IOS-ANALYTICS-P1-09
+
+    private func trackWeeklyPlanViewIfNeeded(plan: WeeklyPlanV2) {
+        viewModel.markWeeklyPlanTracked(
+            planId: plan.effectivePlanId,
+            weekOfTraining: plan.effectiveWeek
+        )
     }
 }
 

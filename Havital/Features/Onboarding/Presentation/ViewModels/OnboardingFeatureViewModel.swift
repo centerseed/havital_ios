@@ -1004,6 +1004,12 @@ final class OnboardingFeatureViewModel: ObservableObject {
         raceName = event.name
         raceDate = event.eventDate
         selectedDistance = normalizeDistanceForPicker(Int(distance.distanceKm))
+        // AC-IOS-ANALYTICS-P1-06: race_run path — race selected from list
+        OnboardingCoordinator.shared.trackTargetRaceSet(
+            targetType: "race_run",
+            raceId: event.raceId,
+            distanceKm: distance.distanceKm
+        )
     }
 
     /// 清除賽事資料庫選擇，回到手動輸入模式。

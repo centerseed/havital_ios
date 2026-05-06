@@ -54,6 +54,9 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
 
     @Published var yAxisRange: (min: Double, max: Double) = (60, 180)
 
+    // MARK: - AC-IOS-ANALYTICS-P1-10: session-level dedup for workout_analysis_view
+    @Published var hasTrackedAnalyticsView: Bool = false
+
     // MARK: - Dependencies
 
     let workout: WorkoutV2
@@ -205,6 +208,55 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
                 labels: [
                     "module": "WorkoutDetailViewModelV2",
                     "action": "update_training_notes",
+                    "cloud_logging": "true"
+                ],
+                jsonPayload: [
+                    "workout_id": workout.id,
+                    "error": error.localizedDescription
+                ]
+            )
+            return false
+        }
+    }
+
+    func updateRPE(_ rpe: Int?) async -> Bool {
+        if let rpe, !(1...10).contains(rpe) {
+            Logger.error("[WorkoutDetailViewModelV2] RPE 超出 1-10 範圍")
+            return false
+        }
+
+        do {
+            try await repository.updateRPE(id: workout.id, rpe: rpe)
+            await refreshWorkoutDetail()
+
+            await MainActor.run {
+                CacheEventBus.shared.publish(.dataChanged(.workouts))
+            }
+
+            Logger.firebase(
+                "RPE 更新成功",
+                level: .info,
+                labels: [
+                    "module": "WorkoutDetailViewModelV2",
+                    "action": "update_rpe"
+                ],
+                jsonPayload: [
+                    "workout_id": workout.id,
+                    "has_rpe": rpe != nil
+                ]
+            )
+
+            return true
+        } catch is CancellationError {
+            Logger.debug("[WorkoutDetailViewModelV2] RPE 更新已取消")
+            return false
+        } catch {
+            Logger.firebase(
+                "RPE 更新失敗",
+                level: .error,
+                labels: [
+                    "module": "WorkoutDetailViewModelV2",
+                    "action": "update_rpe",
                     "cloud_logging": "true"
                 ],
                 jsonPayload: [
@@ -629,6 +681,17 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     func cancelLoadingTasks() {
         cancelAllTasks()
     }
+
+    // MARK: - AC-IOS-ANALYTICS-P1-10
+
+    /// Track workout_analysis_view once per view presentation (dedup by hasTrackedAnalyticsView).
+    /// No-op when workoutDetail is nil (data not yet loaded) or already tracked.
+    func markAnalyticsViewTracked(workoutId: String, hasCoachNotes: Bool) {
+        guard !hasTrackedAnalyticsView else { return }
+        hasTrackedAnalyticsView = true
+        let analyticsService: AnalyticsService = DependencyContainer.shared.resolve()
+        analyticsService.track(.workoutAnalysisView(workoutId: workoutId, hasCoachNotes: hasCoachNotes))
+    }
     
     @MainActor
     private func performRefreshWorkoutDetail() async {
@@ -827,7 +890,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             let secs: Double
             switch unit {
             case .metric: secs = paceInSecondsPerKm
-            case .imperial: secs = paceInSecondsPerKm / 1.60934
+            case .imperial: secs = paceInSecondsPerKm * 1.60934
             }
             return (secs, unit.distanceSuffix)
         }
@@ -846,6 +909,10 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     
     var dynamicVdot: String? {
         return workout.dynamicVdot.map { String(format: "%.1f", $0) }
+    }
+
+    var currentRPE: Double? {
+        return workoutDetail?.advancedMetrics?.rpe ?? workout.advancedMetrics?.rpe
     }
     
     var trainingType: String? {

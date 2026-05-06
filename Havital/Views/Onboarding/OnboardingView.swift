@@ -38,6 +38,7 @@ struct OnboardingView: View {
                 }
             }
             .padding(.top, 8)
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier(raceSetupModeIdentifier)
         }
         .accessibilityElement(children: .contain)
@@ -123,6 +124,7 @@ struct OnboardingView: View {
                     targetFinishSummaryCard
                 }
             }
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("RaceSetup_ManualInputForm")
         }
     }
@@ -438,7 +440,6 @@ struct OnboardingView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color.accentColor.opacity(0.18), lineWidth: 1)
             )
-            .accessibilityIdentifier("RaceSetup_BrowseDatabaseCard")
         }
         .buttonStyle(PlainButtonStyle())
         .accessibilityIdentifier("RaceSetup_BrowseDatabaseButton")
