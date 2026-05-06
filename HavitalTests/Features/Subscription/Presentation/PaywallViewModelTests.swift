@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 @testable import paceriz_dev
 
 @MainActor
@@ -135,6 +136,53 @@ final class PaywallViewModelTests: XCTestCase {
         )
 
         XCTAssertEqual(sut.trialDaysRemaining, 12)
+    }
+
+    func testTrialDaysRemainingIgnoresSyntheticSoftLaunchBypass9999() {
+        // Backend returns 9999 only for iap_enabled=false non-enforced bypass.
+        // It is not a real trial countdown and must not appear in paywall/profile UI.
+        SubscriptionStateManager.shared.update(
+            SubscriptionStatusEntity(
+                status: .trial,
+                enforcementEnabled: false,
+                trialRemainingDays: 9999
+            )
+        )
+
+        XCTAssertNil(sut.trialDaysRemaining)
+    }
+
+    func testTrialDaysRemainingReturnsNilDuringIAPGracePeriod() {
+        // IAP grace has its own SSOT: graceRemainingDays/iapGraceUntil.
+        // Legacy trial fields can exist on old users and must not drive trial UI.
+        SubscriptionStateManager.shared.update(
+            SubscriptionStatusEntity(
+                status: .trial,
+                enforcementEnabled: true,
+                trialRemainingDays: 2,
+                trialEndAt: Date().addingTimeInterval(2 * 86400).timeIntervalSince1970,
+                iapGraceUntil: Date().addingTimeInterval(5 * 86400).timeIntervalSince1970,
+                inGracePeriod: true,
+                graceRemainingDays: 5
+            )
+        )
+
+        XCTAssertNil(sut.trialDaysRemaining)
+    }
+
+    func testTrialDaysRemainingStillAllowsAppleIntroTrialWhenEnforcementDisabled() {
+        // Review/sandbox can briefly have local Apple intro state before backend
+        // enforcement catches up. Apple intro countdown is real and should remain visible.
+        SubscriptionStateManager.shared.update(
+            SubscriptionStatusEntity(
+                status: .active,
+                enforcementEnabled: false,
+                inIntroTrial: true,
+                trialEndAt: Date().addingTimeInterval(4 * 86400 + 3600).timeIntervalSince1970
+            )
+        )
+
+        XCTAssertEqual(sut.trialDaysRemaining, 5)
     }
 
     func testTrialDaysRemainingFallsBackToExpiresAtWhenNil() {
@@ -640,6 +688,147 @@ final class PaywallViewModelTests: XCTestCase {
         XCTAssertNil(sut.lastPurchasedPlanName, "Cancelled purchase must not set lastPurchasedPlanName")
     }
 
+    // MARK: - AC-IAP-OFFER-04: Foreground Re-enter Triggers Offering Reload
+
+    /// AC-IAP-OFFER-04: When app returns to foreground while paywall is visible, loadOfferings() is
+    /// called again so that the displayed offering stays fresh (e.g. RC offering may have changed).
+    func test_foreground_notification_triggers_offerings_reload() async {
+        // Arrange: do an initial load so we have a baseline count
+        repository.offeringsToReturn = MockSubscriptionRepository.makeDefaultOnlyOfferings()
+        await sut.loadOfferings()
+        let countAfterInitialLoad = repository.fetchOfferingsCallCount
+        XCTAssertEqual(countAfterInitialLoad, 1, "fetchOfferings should be called once on initial loadOfferings()")
+
+        // Act: simulate app returning to foreground
+        NotificationCenter.default.post(
+            name: UIApplication.willEnterForegroundNotification,
+            object: nil
+        )
+
+        // The notification handler dispatches to an async MainActor task. Wait deterministically
+        // until the repository is called again instead of relying on a fixed number of yields.
+        let deadline = Date().addingTimeInterval(1.0)
+        while repository.fetchOfferingsCallCount <= countAfterInitialLoad && Date() < deadline {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        // Assert: fetchOfferings was called again
+        XCTAssertGreaterThan(
+            repository.fetchOfferingsCallCount,
+            countAfterInitialLoad,
+            "loadOfferings() must be called again when UIApplication.willEnterForegroundNotification fires"
+        )
+    }
+
+    // MARK: - AC-IAP-OFFER-06: Trial End Notification — UI Reflects State Change
+
+    /// AC-IAP-OFFER-06: When Apple intro trial has ended (trialEndAt is in the past),
+    /// trialDaysRemaining becomes 0 and isInAppleIntroTrial remains true (status still reported
+    /// as in intro trial by backend). UI should reflect the ended trial state.
+    func test_trial_end_notification_ui_reflects_zero_days_remaining_when_intro_trial_expired() {
+        // Arrange: inIntroTrial=true, trialEndAt is exactly at epoch (past)
+        let expiredTrialEndAt = Date().timeIntervalSince1970 - 1 // 1 second ago
+        SubscriptionStateManager.shared.update(
+            SubscriptionStatusEntity(
+                status: .trial,
+                expiresAt: Date().addingTimeInterval(30 * 86400).timeIntervalSince1970,
+                inIntroTrial: true,
+                trialEndAt: expiredTrialEndAt
+            )
+        )
+
+        // Assert: isInAppleIntroTrial must still be true (backend says user is in intro trial)
+        XCTAssertTrue(
+            sut.isInAppleIntroTrial,
+            "isInAppleIntroTrial must be true when inIntroTrial=true regardless of trialEndAt"
+        )
+
+        // Assert: trialDaysRemaining must be 0 (trial has ended)
+        let days = sut.trialDaysRemaining
+        XCTAssertNotNil(days, "trialDaysRemaining must be non-nil when inIntroTrial=true")
+        XCTAssertEqual(days, 0, "trialDaysRemaining must be 0 when trialEndAt is in the past")
+
+        // Assert: introTrialDaysRemaining also reflects 0 (delegates to trialDaysRemaining)
+        XCTAssertEqual(
+            sut.introTrialDaysRemaining,
+            0,
+            "introTrialDaysRemaining must return 0 when trial end time has passed"
+        )
+    }
+
+    // MARK: - AC-IAP-OFFER-08: Lifetime Promo Offering Display (Early Bird)
+
+    /// AC-IAP-OFFER-08: The early_bird offering (used as the limited-time lifetime promo) must display
+    /// an activity badge (isEarlyBird=true) and a strikethrough original price on each package.
+    /// shouldShowEarlyBirdSection must be true so the View renders the promo section.
+    func test_early_bird_offering_displays_promo_badge_and_linethrough_original_price() async {
+        // Arrange: current offering is early_bird (RC identifier "Early bird")
+        repository.offeringsToReturn = MockSubscriptionRepository.makeEarlyBirdAndDefaultOfferings()
+        repository.isEarlyBirdOfferingResult = true
+        repository.currentOfferingIdentifierResult = Constants.IAP.earlyBirdOfferingIdentifier
+
+        await sut.loadOfferings()
+
+        // Assert: shouldShowEarlyBirdSection drives the promo section visibility
+        XCTAssertTrue(
+            sut.shouldShowEarlyBirdSection,
+            "shouldShowEarlyBirdSection must be true for early_bird offering so the promo badge section renders"
+        )
+
+        // Assert: every display package carries the early-bird badge flag
+        let packages = sut.displayPackages
+        XCTAssertFalse(packages.isEmpty, "displayPackages must not be empty for early_bird offering")
+        for pkg in packages {
+            XCTAssertTrue(
+                pkg.isEarlyBird,
+                "Package \(pkg.package.period.rawValue) must have isEarlyBird=true (promo badge)"
+            )
+            XCTAssertNotNil(
+                pkg.originalPriceLineThrough,
+                "Package \(pkg.package.period.rawValue) must have originalPriceLineThrough (strikethrough price)"
+            )
+        }
+
+        // Assert: the default section (full price, no promo) is still shown for comparison
+        XCTAssertTrue(
+            sut.shouldShowDefaultSection,
+            "shouldShowDefaultSection must be true so users can see standard pricing below the promo"
+        )
+        let defaultPkgs = sut.defaultPackages
+        XCTAssertFalse(defaultPkgs.isEmpty, "defaultPackages must be present as the non-promo comparison section")
+        for pkg in defaultPkgs {
+            XCTAssertFalse(pkg.isEarlyBird, "Default section packages must not carry the promo badge")
+            XCTAssertNil(pkg.originalPriceLineThrough, "Default section packages must not have a strikethrough price")
+        }
+    }
+
+    // MARK: - AC-IAP-OFFER-09: Offer Code Redemption Path
+
+    /// AC-IAP-OFFER-09: Offer code redemption — when Apple's sheet is dismissed without completing
+    /// redemption (.cancelled result), purchaseState must return to .idle so the user can try again.
+    /// This verifies the cancelled path of the redemption coordinator chain is correctly handled.
+    func test_redeemOfferCode_WhenCancelled_RestoresIdleState() async {
+        // Arrange: repository returns .cancelled (user dismissed the Apple offer code sheet)
+        repository.redeemResult = .cancelled
+
+        // Act
+        await sut.redeemOfferCode()
+
+        // Assert: repository's redeemOfferCode was called (coordinator delegation chain works)
+        XCTAssertEqual(
+            repository.redeemOfferCodeCallCount,
+            1,
+            "redeemOfferCode() must be delegated through OfferRedemptionCoordinator to the repository"
+        )
+
+        // Assert: purchaseState must be .idle so the user can tap the button again
+        XCTAssertEqual(
+            sut.purchaseState,
+            .idle,
+            "Cancelled offer code redemption must set purchaseState to .idle — not .failed"
+        )
+    }
+
     /// Done Criteria #6 (S03a P0): isEarlyBirdOffering is true when RC identifier is "Early bird"
     /// (capitalized first letter, space separator — exact match to RevenueCat dashboard value).
     func test_isEarlyBirdOffering_true_when_rc_identifier_is_capitalized_with_space() {
@@ -685,6 +874,7 @@ private final class MockSubscriptionRepository: SubscriptionRepository {
     private(set) var restorePurchasesCallCount = 0
     private(set) var purchaseCallCount = 0
     private(set) var redeemOfferCodeCallCount = 0
+    private(set) var fetchOfferingsCallCount = 0
     private(set) var lastPurchaseRequest: SubscriptionPurchaseRequest?
 
     // MARK: - SubscriptionRepository
@@ -711,7 +901,8 @@ private final class MockSubscriptionRepository: SubscriptionRepository {
     func clearCache() {}
 
     func fetchOfferings() async throws -> [SubscriptionOfferingEntity] {
-        offeringsToReturn
+        fetchOfferingsCallCount += 1
+        return offeringsToReturn
     }
 
     func purchase(request: SubscriptionPurchaseRequest) async throws -> PurchaseResultEntity {

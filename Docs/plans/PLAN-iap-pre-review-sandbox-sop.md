@@ -2,314 +2,229 @@
 parent_plan: apps/ios/Havital/Docs/plans/PLAN-iap-pre-review-hardening.md
 created: 2026-04-27
 status: ready
-purpose: TestFlight sandbox 上送審前最後一道驗證
 duration: 60-90 分鐘
 ---
 
-# IAP Pre-Review Sandbox 驗證 SOP
+# IAP 送審前 Sandbox 驗證 SOP
 
-> 上 App Store 審查前**最後一道**人工驗證流程。把所有 P0 場景在真機 TestFlight 沙盒環境跑一次，確認 Apple 審查員實測時不會踩雷。
+上 App Store 審查前最後一道人工驗證，確認 Apple 審查員實測時不會踩雷。
 
-## 前置條件
+---
 
-- [ ] iOS 17.0+ 真機（iPhone 13 以上）
-- [ ] TestFlight build 已上傳到 App Store Connect 且狀態為「測試就緒 / Ready to Test」
-- [ ] 已加入 TestFlight 內部測試人員
-- [ ] **Sandbox Apple ID** 已建好（**不是**你的 prod Apple ID，必須是 ASC → 使用者與存取 → Sandbox Testers 建的測試帳號）
-- [ ] iPhone「設定 → App Store → 沙盒帳號」已切換到 sandbox Apple ID
-- [ ] 你 Paceriz 帳號 email/password（用於跑 reset 腳本）
-- [ ] Mac terminal 可執行：
-  ```bash
-  cd /Users/wubaizong/havital/cloud/api_service && conda activate api
-  ```
+## 開始前確認（一次性）
 
-## Reset 工具用法
+| 項目 | 說明 |
+|------|------|
+| 裝置 | iOS 17.0+ 真機（iPhone 13+），已透過 TestFlight 安裝 build |
+| Sandbox Apple ID | ASC → 使用者與存取 → Sandbox Testers 建的帳號（**不是**你的 prod Apple ID） |
+| 裝置設定 | 設定 → App Store → 沙盒帳號 → 切換到上面那個 sandbox Apple ID |
+| Terminal | `cd /Users/wubaizong/havital/cloud/api_service && conda activate api` |
 
-每個場景開始前要把訂閱狀態重置到指定起點。Reset 腳本路徑：
-`cloud/api_service/agent_tools/reset_iap_for_sandbox_test.py`
+---
+
+## Reset 指令速查
 
 ```bash
-# 模式 1：清成全新用戶（status=expired, trial cleared）
-python agent_tools/reset_iap_for_sandbox_test.py \
-    --email centerseedwu@gmail.com \
-    --password 'YOUR_PASSWORD' \
-    --mode fresh
+# 全新用戶（trial cleared）
+python agent_tools/reset_iap_for_sandbox_test.py --email centerseedwu@gmail.com --password 'YOUR_PASSWORD' --mode fresh
 
-# 模式 2：強制 expired（paywall 必觸發）
+# 強制 expired（確保 paywall 出現）
 python agent_tools/reset_iap_for_sandbox_test.py ... --mode force-expired
 
-# 模式 3：恢復 trial 狀態（trial_end_at = now+30）
+# 恢復 trial（trial_end_at = now+30）
 python agent_tools/reset_iap_for_sandbox_test.py ... --mode restore-trial
 ```
 
-腳本會自動 backup 當前狀態到 `/tmp/iap_backup_<uid>_<timestamp>.json`，需要的話可手動還原。
+腳本會自動備份當前狀態到 `/tmp/iap_backup_<uid>_<timestamp>.json`。
 
 ---
 
-## 場景驗證清單（10 個 P0 場景）
+## 場景總覽
 
-每個場景跑完打勾。**任何一項 FAIL 必須先解決才能送審**。
+| # | 場景 | Reset | 阻擋送審 |
+|---|------|-------|---------|
+| S1 | 新用戶 onboarding → 主頁沒有 banner | `fresh` | ✅ |
+| S2 | 生成 Week 1 → banner 出現、可點開 paywall | 接 S1 | ✅ |
+| S3 | Paywall disclosure 連結 + 試用結束日期 | 接 S2 | ✅ |
+| S4 | 訂閱年方案（30 天 trial）→ 解鎖、banner 消失 | `fresh` | ✅ |
+| S5 | Settings 顯示 Trial / Expired / Trial 三種 tier | 接 S4 | ✅ |
+| S6 | 刪除重裝 → Restore Purchases | `fresh` + S4 | ✅ |
+| S7 | 取消訂閱 → 期限內仍可用 | 接 S4 | ✅ |
+| S8 | Backend webhook security（curl 假請求） | 不需要 | ⚠️ |
+| S9 | i18n 三語（EN / JA） | 不需要 | ✅ |
+| S10 | Edge cases（離線、快轉） | 依需要 | ⚠️ |
 
-### S1：新用戶 onboarding → 看到 Free tier banner
-
-**Reset**：`--mode fresh`
-
-**步驟**：
-1. 重裝 App（先刪除）→ 開啟
-2. 用 sandbox Apple ID 登入（或 demo login + 已 reset 的 prod 帳號）
-3. 完成 onboarding
-4. 進入主頁
-
-**期望結果**：
-- [ ] 主頁頂部**沒有** Free tier banner（因為還沒生 Week 1 課表）
-- [ ] 顯示生成 Week 1 課表的 CTA
-
-**對應 AC**：AC-PAYWALL-35（hidden state without W1）
+✅ = 任一 FAIL 不送審　⚠️ = partial 可送審但記錄 follow-up
 
 ---
 
-### S2：生成 Week 1 → Free tier banner 出現
+## S1：新用戶 onboarding
 
-**Reset**：接 S1 不重置
+**Reset：** `fresh`
 
-**步驟**：
-1. 主畫面點生成 Week 1 課表
-2. 等待生成完成（30-90 秒）
-3. 看到 Week 1 課表內容
-4. 退到主頁、再進主頁
+1. 刪除 App → 重裝 → 用 sandbox Apple ID 登入
+2. 完成 onboarding → 進主頁
 
-**期望結果**：
-- [ ] Week 1 課表正確生成
-- [ ] 主頁頂部出現 **Free tier banner**：「免費體驗期 / 下週課表需訂閱解鎖 / 升級」
-- [ ] 點 banner → paywall sheet 開啟
-
-**對應 AC**：AC-PAYWALL-35（visible state with W1）
+**✓ 主頁頂部沒有 Free tier banner（Week 1 尚未生成），有生成課表的 CTA**
 
 ---
 
-### S3：Paywall 顯示——disclosure 連結 + 試用結束日期
+## S2：生成 Week 1 → banner 出現
 
-**Reset**：接 S2 不重置
+**Reset：** 接 S1
 
-**步驟**：
-1. 從 S2 點 banner 開啟 paywall sheet
-2. 確認 focus 在 Yearly card（預設應該是）
-3. 把 sheet 滾到底部看 disclosure 區
-4. 點「**隱私政策**」連結
-5. 看 SFSafariViewController 跳出
-6. swipe down 回到 paywall
-7. 點「**服務條款**」連結
-8. 看 SFSafariViewController 再跳出
-9. 切到 **Monthly card**，再看 disclosure
+1. 點生成 Week 1 課表 → 等 30-90 秒
+2. 退回主頁
 
-**期望結果**：
-- [ ] Yearly focus 時 disclosure 包含**具體試用結束日期**（如「試用至 2026 年 5 月 27 日」），日期 = 今天 + 30 天
-- [ ] 「隱私政策」「服務條款」**有底線 / 高亮**（可點擊）
-- [ ] 點擊隱私政策 → SFSafariViewController（**不離開 App**）開啟 paceriz.com/privacy，**HTTP 200**，看到「隱私權政策 - Paceriz」標題
-- [ ] 點擊服務條款 → 同上 paceriz.com/terms，看到「服務條款 - Paceriz」
-- [ ] swipe down 回到 paywall 正常顯示
-- [ ] Monthly card focus → disclosure **不顯示**試用日期，只顯示「月訂閱將立即扣款並自動續訂」
-
-**對應 AC**：AC-PAYWALL-32 / 33 / 34
+**✓ banner 出現：「免費體驗期 / 下週課表需訂閱解鎖 / 升級」**
+**✓ 點 banner → paywall sheet 開啟**
 
 ---
 
-### S4：訂閱年方案（30 天 trial）→ 解鎖
+## S3：Paywall disclosure
 
-**Reset**：`--mode fresh`（重新跑一次完整訂閱流程）
+**Reset：** 接 S2
 
-**步驟**：
-1. App 進主頁（已生 Week 1）→ 點 Free tier banner / 升級 CTA
-2. paywall sheet → focus Yearly → 點「30 天免費試用」CTA
-3. Apple StoreKit confirmation sheet 跳出
-4. 確認 sandbox Apple ID 顯示（**不是** prod Apple ID）
-5. 點「Subscribe」/「訂閱」→ 走完 sandbox 訂閱流程
-6. 訂閱完成後 paywall sheet 自動關閉
-7. **30 秒內**等 backend sync
+1. 從 S2 開啟 paywall → 預設 focus Yearly card → 滾到底部
+2. 點「隱私政策」→ 看 SFSafariViewController（不離開 App）→ swipe down 回來
+3. 點「服務條款」→ 同上
+4. 切到 Monthly card → 看 disclosure 文案
 
-**期望結果**：
-- [ ] Apple confirmation sheet 顯示金額為 NT$0.00（因為 trial）
-- [ ] 訂閱完成後跳轉回主畫面
-- [ ] **30 秒內**主頁 Free tier banner 消失
-- [ ] 設定頁 Subscription 區顯示「目前方案：**試用中（剩 30 天）**」
-- [ ] 嘗試生 Week 2 課表 → 不會再出 paywall，正常生成
-
-**對應 AC**：AC-PAYWALL-31 / 36 / 27（trial 用戶解鎖功能）
-
-**⚠️ 失敗 race condition**：如果 30 秒內 banner 沒消失，**有可能** webhook 還沒處理完。再等 30 秒。如果還是不行 → 重新整理主頁（pull-to-refresh）。仍然不行 → **app bug**，記下來給 Architect。
+**✓ Yearly：disclosure 有具體試用結束日期（今天 + 30 天）**
+**✓ 兩個連結可點、在 App 內開啟、頁面 HTTP 200**
+**✓ Monthly：只顯示「月訂閱將立即扣款並自動續訂」，沒有試用日期**
 
 ---
 
-### S5：Settings tier 標示——Trial / Premium / Free 三種狀態
+## S4：訂閱年方案
 
-**Reset**：S4 完成後接做（trial 中）
+**Reset：** `fresh`（重跑完整流程）
 
-**步驟**：
-1. 進設定頁 → Subscription 區
-2. 截圖記錄當下顯示
-3. 重置成 expired：`--mode force-expired`
-4. 重啟 App，再進設定頁
-5. 重置成 trial：`--mode restore-trial`
-6. 重啟 App，再進設定頁
+1. 進主頁（已生 Week 1）→ 點 banner → paywall
+2. focus Yearly → 點「30 天免費試用」CTA
+3. Apple confirmation sheet → 確認顯示的是 sandbox Apple ID → 點「訂閱」
+4. 等 30 秒（backend sync）
 
-**期望結果**：
-- [ ] Trial 中：「目前方案：**試用中（剩 X 天）**」（X 為實際剩餘天數）
-- [ ] Force-expired 後：「目前方案：**Free 免費體驗版**」+「升級至完整版」CTA
-- [ ] 點「升級至完整版」→ paywall sheet 開啟
-- [ ] Restore-trial 後：「目前方案：**試用中（剩 30 天）**」
+**✓ Confirmation sheet 金額 NT$0.00**
+**✓ 30 秒內 banner 消失**
+**✓ 設定頁：「目前方案：試用中（剩 30 天）」**
+**✓ 生 Week 2 不再出 paywall**
 
-**對應 AC**：AC-PAYWALL-36（三種 tier label）
+> **⚠️ 如果 30 秒後 banner 還在：** 再等 30 秒 → 還沒好 → pull-to-refresh → 仍然沒消 = app bug，記下來。
 
 ---
 
-### S6：Restore Purchases
+## S5：Settings tier 三種狀態
 
-**Reset**：先 `--mode fresh`，再走 S4 訂閱
+**Reset：** 接 S4（目前 trial 中）
 
-**步驟**：
-1. S4 訂閱完成後，刪除 App
-2. 重裝 App，登入同一個 prod 帳號
-3. 完成 onboarding（如果需要）→ 進主頁
-4. 主頁 banner / paywall 預期顯示「未訂閱」
-5. paywall sheet → 點底部「**恢復購買**」按鈕
-6. 等 1-2 秒
+1. 設定頁 → Subscription 區 → 截圖
+2. 執行 `force-expired` → 重啟 App → 設定頁截圖
+3. 執行 `restore-trial` → 重啟 App → 設定頁截圖
 
-**期望結果**：
-- [ ] 「恢復購買」按鈕在 paywall 底部明顯可見
-- [ ] 點擊後出現 loading 指示
-- [ ] 1-3 秒內顯示「已恢復訂閱」或類似提示
-- [ ] paywall sheet 自動關閉
-- [ ] 主頁 Free tier banner 消失
-- [ ] 設定頁 tier 變回「試用中」或「Premium」
-
-**對應 AC**：AC-PAYWALL-03（restore button always visible）
+**✓ Trial：「試用中（剩 X 天）」**
+**✓ Expired：「Free 免費體驗版」+ 「升級至完整版」CTA，點 CTA → paywall 開啟**
+**✓ Restore trial：「試用中（剩 30 天）」**
 
 ---
 
-### S7：取消訂閱
+## S6：Restore Purchases
 
-**Reset**：先確保處於訂閱中（S4 完成後）
+**Reset：** `fresh` → 走 S4 訂閱
 
-**步驟**：
-1. 進設定頁 → 訂閱管理 / Manage Subscription
-2. 跳轉到 Apple 系統訂閱管理頁（**離開 App**到設定）
-3. 點「取消訂閱」
-4. 確認取消
-5. 回到 Paceriz App
-6. 再進設定頁 Subscription 區
+1. 訂閱完成後刪除 App → 重裝 → 登入同一個帳號
+2. 進主頁（預期顯示未訂閱）→ 開 paywall → 點底部「恢復購買」
 
-**期望結果**：
-- [ ] 「管理訂閱」CTA 連到 Apple 系統頁
-- [ ] Apple 訂閱管理頁顯示 Paceriz 訂閱 + 取消按鈕
-- [ ] 取消後回到 App，設定頁顯示**「訂閱已取消，服務至 X 月 X 日」**或類似 wording
-- [ ] 已付款週期內仍可用 premium 功能（生 Week 2 / AI 功能不被擋）
-
-**對應 AC**：AC-SUB-02（cancellation 維持期限）+ AC-PAYWALL-36
+**✓ 1-3 秒內顯示「已恢復訂閱」**
+**✓ paywall 關閉、banner 消失、設定頁 tier 恢復正確**
 
 ---
 
-### S8：Backend webhook security（搭配 backend log 看）
+## S7：取消訂閱
 
-**Reset**：不需要
+**Reset：** 確保 S4 完成（訂閱中）
 
-**步驟**：
-1. 開瀏覽器 GCP Console → Cloud Logging → paceriz-prod
-2. 過濾：`resource.labels.service_name="api-service"` AND `jsonPayload.event="webhook_auth_failed" OR jsonPayload.event="webhook_unknown_user" OR jsonPayload.event="webhook_malformed"`
-3. 在 App 內走 S4 訂閱流程
-4. 等 1-2 分鐘看 log
-5. 額外測試：用 curl 發一個假 webhook（沒 auth）：
+1. 設定頁 → 訂閱管理 → 跳到 Apple 系統頁
+2. 取消訂閱 → 回到 App
+
+**✓ 設定頁顯示「訂閱已取消，服務至 X 月 X 日」**
+**✓ 期限截止前仍可生 Week 2（premium 功能不被擋）**
+
+---
+
+## S8：Backend webhook security
+
+**Reset：** 不需要
+
+1. GCP Console → Cloud Logging → paceriz-prod，過濾：
+   ```
+   resource.labels.service_name="api-service"
+   jsonPayload.event=("webhook_auth_failed" OR "webhook_unknown_user" OR "webhook_malformed")
+   ```
+2. 在 App 跑 S4 訂閱，觀察 log（正常流程不該出現 auth_failed）
+3. 用 curl 發假 webhook（無 auth header）：
    ```bash
    curl -X POST https://api-service-bui2xc5qhq-de.a.run.app/api/v1/subscription/webhook/revenuecat \
      -H "Content-Type: application/json" \
      -d '{"event":{"id":"test-fake","type":"INITIAL_PURCHASE","app_user_id":"fake-uid"}}'
    ```
 
-**期望結果**：
-- [ ] 正常訂閱流程**不應該**出現 `webhook_auth_failed` log（RC 是用對的 secret）
-- [ ] 上面 curl 應該出現 `webhook_auth_failed` log，含 `client_ip` 和 `auth_header_present=False`
-- [ ] log 中**絕不**含 secret 內容
-- [ ] 假 UID curl（如果你帶 secret）應該觸發 `webhook_unknown_user` log
-
-**對應 AC**：P0-16 / P0-17 / P0-18（backend hardening）
+**✓ 正常訂閱 → 無 webhook_auth_failed log**
+**✓ 假請求 → 出現 webhook_auth_failed，含 client_ip、auth_header_present=False**
+**✓ log 中不含任何 secret 內容**
 
 ---
 
-### S9：i18n 三語驗證
+## S9：i18n 三語
 
-**Reset**：不需要
+**Reset：** 不需要（確保 free tier 狀態）
 
-**步驟**：
-1. 切換 iPhone 系統語言為 **English**
-2. 開 Paceriz App → 主頁（free tier 狀態）→ 看 banner 文案
-3. 開 paywall → 看 disclosure
-4. 進設定頁看 tier label
-5. 切換系統語言為 **日本語**
-6. 重複上述
+1. 裝置語言切換到 **English** → 開 App → 看主頁 banner、paywall disclosure、設定頁 tier
+2. 裝置語言切換到 **日本語** → 重複上述
 
-**期望結果**：
-- [ ] **English**：banner 顯示 "Free Preview" / "Next week's plan requires subscription" / "Upgrade"
-- [ ] **English**：disclosure 顯示 "30-day free trial ends May 27, 2026" 之類
-- [ ] **English**：設定頁顯示 "Current plan: Free Preview" 等
-- [ ] **日本語**：banner 顯示 「無料体験中」「来週のプランは購読が必要です」「アップグレード」
-- [ ] **日本語**：disclosure 顯示日期格式「2026年5月27日に終了」
-- [ ] **日本語**：設定頁顯示「現在のプラン：無料体験版」
-- [ ] **沒有出現**任何 raw key（如 `paywall.free_tier.banner.title`）
-
-**對應 AC**：AC-PAYWALL-30（三語齊備）
+**✓ EN banner：「Free Preview / Next week's plan requires subscription / Upgrade」**
+**✓ EN disclosure：「30-day free trial ends May 27, 2026」**
+**✓ JA banner：「無料体験中 / 来週のプランは購読が必要です / アップグレード」**
+**✓ JA disclosure：「2026年5月27日に終了」**
+**✓ 三語均無 raw key（如 `paywall.free_tier.banner.title`）**
 
 ---
 
-### S10：Edge cases
+## S10：Edge cases
 
-**Reset**：依需要
-
-**步驟與檢查**：
-- [ ] **離線狀態**：飛航模式下開 App → 既有訂閱狀態仍能正常顯示（cached）；不會因為 API 失敗就把人 logout
-- [ ] **訂閱期間網路斷**：訂閱動作完成後立刻飛航 → backend sync timeout（30 秒）後 UI 不會錯誤地說「未訂閱」（應該顯示「處理中，請稍候」）
-- [ ] **Onboarding 中途斷網**：onboarding 一半關 App → 重開 → 從上次斷點繼續或重來，**不會**直接進付費頁（free tier 不該強制訂閱）
-- [ ] **訂閱後立刻取消**：S4 訂閱 → 立刻 S7 取消 → 確認權限維持到期限結束
-- [ ] **Sandbox 訂閱「快轉」測試**：sandbox 環境下 Apple 提供快轉功能（30 天 trial 在 sandbox 是 3 分鐘），可測 trial → paid 自動轉換的 webhook：
-  - S4 訂閱後等 3 分鐘
-  - 看 backend log 是否收到 `RENEWAL` 事件（trial → NORMAL 轉換）
-  - 主頁 / 設定頁 tier label 是否從「試用中」變「Premium」
-
----
-
-## 通過判定
-
-- ✅ **全部 PASS**：可以送 App Store 審查
-- ⚠️ **S1-S7 + S9 PASS，S8 / S10 partial**：可送審但記錄 follow-up
-- ❌ **任一 S1-S7 / S9 FAIL**：**不送審**，先讓 Architect 重派 Developer 修
-
-## 失敗處理
-
-任何 PASS / FAIL 結果都記下來。FAIL 時**先分類**：
-
-| 分類 | 定義 | 動作 |
+| 場景 | 操作 | 期望 |
 |------|------|------|
-| App bug | 真實的 production 邏輯錯誤 | Architect 重派 Developer 修 |
-| Test bug | sandbox 環境特殊狀況（如沙盒帳號被鎖）| 換沙盒帳號重試 |
-| Environment issue | 網路 / 帳號 / TestFlight build 配置問題 | 修環境 |
+| 離線開 App | 飛航模式 → 開 App | 既有訂閱狀態正常顯示，不會 logout |
+| 訂閱後斷網 | S4 完成後立刻飛航 | 30 秒 timeout 後不顯示「未訂閱」 |
+| Onboarding 中途斷網 | Onboarding 一半關 App | 重開後從斷點繼續，不跳付費頁 |
+| 訂閱後立刻取消 | S4 → 立刻 S7 | 權限維持到期限結束 |
+| Sandbox 快轉（3 分鐘 trial）| S4 訂閱後等 3 分鐘 | backend log 收到 RENEWAL 事件，tier 從「試用中」變「Premium」 |
 
-## 完成後
+---
 
-跑完所有場景，回傳一份簡短驗證報告給 Architect：
+## 完成後回傳報告
 
 ```
 ## Sandbox 驗證結果
 
 S1: PASS / FAIL（簡述）
 S2: PASS / FAIL
-...
-S10: PASS / FAIL（含 sandbox 快轉觀察結果）
+S3: PASS / FAIL
+S4: PASS / FAIL
+S5: PASS / FAIL
+S6: PASS / FAIL
+S7: PASS / FAIL
+S8: PASS / FAIL
+S9: PASS / FAIL
+S10: PASS / FAIL（含快轉觀察結果）
 
 阻擋送審項目：{列出，或「無」}
-建議：{送審 / 修 X 後再送 / 略}
+結論：{送審 / 修 X 後再送}
 ```
 
-Architect 看完做最終 AC sign-off → 送審。
+---
 
 ## 已知 limitation（不阻擋送審）
 
-- **Req2 / Req3 優惠碼無法在 sandbox 完整測**：One-Time Codes 必須訂閱項目過審後才能建（你的截圖已證實）。送審通過後第一個版本上線時測即可。
-- **Web Privacy / Terms 三語**：目前只有 zh-TW 內容，i18n key 已 wired，但 en/ja 翻譯下個 sprint 補。Apple 審查接受 zh-TW（送審地區為台灣）。
+- **優惠碼**：One-Time Codes 必須訂閱項目過審後才能建，sandbox 無法完整測，送審後第一版上線時補測。
+- **Web Privacy / Terms 三語**：目前只有 zh-TW，en/ja 翻譯下個 sprint 補，Apple 審查接受 zh-TW（送審地區台灣）。

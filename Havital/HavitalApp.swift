@@ -184,6 +184,8 @@ struct HavitalApp: App {
                 trainingPlanV2GateHarnessView
             } else if shouldLaunchLoadingCacheUITestHarness {
                 loadingCacheUITestHarnessView
+            } else if shouldLaunchWorkoutDetailRPEUITestHarness {
+                workoutDetailRPEUITestHarnessView
             } else if shouldLaunchPaywallUITestHarness {
                 paywallUITestHarnessView
             } else if shouldLaunchTypographyAuditHarness {
@@ -308,6 +310,7 @@ struct HavitalApp: App {
             || arguments.contains("-ui_testing_training_v2_gates")
             || arguments.contains("-ui_testing_methodology_fixture")
             || arguments.contains("-ui_testing_loading_cache")
+            || arguments.contains("-ui_testing_workout_detail_rpe")
             || arguments.contains("-ui_testing_typography_audit")
             || arguments.contains("-ui_testing_ac37")
             || arguments.contains("-ui_testing_ac38")
@@ -354,6 +357,14 @@ struct HavitalApp: App {
         #endif
     }
 
+    private var shouldLaunchWorkoutDetailRPEUITestHarness: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-ui_testing_workout_detail_rpe")
+        #else
+        false
+        #endif
+    }
+
     private var shouldLaunchTypographyAuditHarness: Bool {
         #if DEBUG
         CommandLine.arguments.contains("-ui_testing_typography_audit")
@@ -391,6 +402,15 @@ struct HavitalApp: App {
     private var loadingCacheUITestHarnessView: some View {
         #if DEBUG
         LocalUITestTrainingLoadingCacheHostView()
+        #else
+        EmptyView()
+        #endif
+    }
+
+    @ViewBuilder
+    private var workoutDetailRPEUITestHarnessView: some View {
+        #if DEBUG
+        UITestWorkoutDetailRPEHostView()
         #else
         EmptyView()
         #endif

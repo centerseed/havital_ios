@@ -143,11 +143,6 @@ enum TrainingPlan {
     static let loadingSchedule = "training_plan.loading_schedule" // "課表載入中..."
 }
 
-// MARK: - Workout Summary Row
-enum WorkoutSummaryRow {
-    static let calculatingHeartRate = "workout_summary_row.calculating_heart_rate" // "心率計算中..."
-}
-
 // MARK: - Next Week Planning View
 enum NextWeekPlanning {
     static let title = "next_week_planning.title" // "下週計劃設定"
@@ -648,6 +643,13 @@ enum GaitAnalysisChart {
         static let trainingLoad = "workout.detail.training_load"
         static let movementEfficiency = "workout.detail.movement_efficiency"
         static let effortScore = "workout.effort_score"  // iOS 18+ Effort Score
+        static let addRPE = "workout.detail.add_rpe"
+        static let clearRPE = "workout.detail.clear_rpe"
+        static let rpeEditorTitle = "workout.detail.rpe_editor_title"
+        static let rpeDescription = "workout.detail.rpe_description"
+        static let rpePickerTitle = "workout.detail.rpe_picker_title"
+        static let rpeSelectedFormat = "workout.detail.rpe_selected_format"
+        static let rpeSaveError = "workout.detail.rpe_save_error"
         
         // Heart Rate Zones
         static let recoveryZone = "workout.detail.recovery_zone"
@@ -685,6 +687,10 @@ enum GaitAnalysisChart {
         static let trainingNotesPlaceholder = "workout.detail.training_notes_placeholder"
         static let trainingNotesSaveError = "workout.detail.training_notes_save_error"
         static let trainingNotesEditorTitle = "workout.detail.training_notes_editor_title"
+    }
+
+    enum LowData {
+        static let vdotHint = "low_data.vdot_hint"
     }
     
     // MARK: - Workout Metrics
@@ -792,6 +798,8 @@ enum GaitAnalysisChart {
             static let noStatistics = "performance.vdot.no_statistics"
             static let dataPointCount = "performance.vdot.data_point_count"
             static let trend = "performance.vdot.trend"
+            static let readMore = "performance.vdot.read_more"
+            static let blogUrl = "performance.vdot.blog_url"
         }
         
         enum HRV {

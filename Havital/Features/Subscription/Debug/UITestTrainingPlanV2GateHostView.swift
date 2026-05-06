@@ -248,6 +248,8 @@ private final class UITestTrainingPlanV2GateRepository: TrainingPlanV2Repository
             designReason: nil,
             days: [],
             intensityTotalMinutes: nil,
+            currentVdot: nil,
+            vdotSource: nil,
             createdAt: Date(),
             updatedAt: Date(),
             trainingLoadAnalysis: nil,

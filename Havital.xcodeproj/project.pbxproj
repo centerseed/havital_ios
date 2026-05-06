@@ -407,7 +407,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-				shellScript = "# CFBundleVersion is expanded from CURRENT_PROJECT_VERSION in Info.plist.\necho \"✅ Build number: ${CURRENT_PROJECT_VERSION}\"\n";
+			shellScript = "# CFBundleVersion is expanded from CURRENT_PROJECT_VERSION in Info.plist.\necho \"✅ Build number: ${CURRENT_PROJECT_VERSION}\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

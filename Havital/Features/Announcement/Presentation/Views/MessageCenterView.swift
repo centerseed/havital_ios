@@ -23,7 +23,13 @@ struct MessageCenterView: View {
                 ScrollView {
                     LazyVStack(spacing: 12) {
                         ForEach(viewModel.allAnnouncements) { announcement in
-                            AnnouncementCardView(announcement: announcement)
+                            Button {
+                                viewModel.openMessageCenterAnnouncement(announcement)
+                            } label: {
+                                AnnouncementCardView(announcement: announcement)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("MessageCenter_AnnouncementCard_\(announcement.id)")
                         }
                     }
                     .padding(.horizontal, 16)
@@ -35,6 +41,17 @@ struct MessageCenterView: View {
         .navigationTitle("訊息中心")
         .onAppear {
             viewModel.loadMessageCenter()
+        }
+        .sheet(item: $viewModel.selectedMessageCenterAnnouncement) { announcement in
+            AnnouncementPopupView(
+                announcement: announcement,
+                onCTA: {
+                    viewModel.handlePopupCTA(announcement)
+                },
+                onDismiss: {
+                    viewModel.dismissSelectedMessageCenterAnnouncement()
+                }
+            )
         }
     }
 }

@@ -345,6 +345,17 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         Logger.debug("[WorkoutRepositoryImpl] updateTrainingNotes - 完成")
     }
 
+    func updateRPE(id: String, rpe: Int?) async throws {
+        Logger.debug("[WorkoutRepositoryImpl] updateRPE - id: \(id)")
+
+        let body: [String: Any] = ["rpe": rpe.map { $0 as Any } ?? NSNull()]
+        try await remoteDataSource.updateWorkout(id: id, body: body)
+
+        localDataSource.clearWorkoutDetailCache(id: id)
+
+        Logger.debug("[WorkoutRepositoryImpl] updateRPE - 完成")
+    }
+
     // MARK: - Delete
 
     func deleteWorkout(id: String) async throws {

@@ -52,6 +52,15 @@
    # expected: no matches
    ```
 
+8. **Firestore Python SDK always requires native DNS.** Before any backend command that imports `firebase_admin`, creates a Firestore client, or calls user/training services, set `GRPC_DNS_RESOLVER=native`. This is mandatory for prod/dev reads and writes; missing it causes hangs that look like Firestore slowness.
+
+   ```bash
+   GRPC_DNS_RESOLVER=native .venv/bin/python <script>
+   GRPC_DNS_RESOLVER=native conda run -n api python <script>
+   ```
+
+9. **For local prod Firestore batch reads, reuse the proven REST path.** The successful Firestore → SQL migrations do not rely on ad hoc Firebase SDK setup. Follow `cloud/api_service/scripts/backfill_workout_v2_sql_all_users.py`: set `GRPC_DNS_RESOLVER=native`, build `google.auth.default(scopes=["https://www.googleapis.com/auth/datastore"])`, wrap it in `google.auth.transport.requests.AuthorizedSession`, then call Firestore REST with decode helpers. Do not infer that Firestore is unreadable from one service-account JSON or from a hanging SDK call.
+
 ## Commands
 
 ```bash

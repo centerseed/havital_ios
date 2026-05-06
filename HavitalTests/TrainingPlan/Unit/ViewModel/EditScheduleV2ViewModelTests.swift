@@ -106,6 +106,8 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
             designReason: nil,
             days: [day],
             intensityTotalMinutes: nil,
+            currentVdot: nil,
+            vdotSource: nil,
             createdAt: nil,
             updatedAt: nil,
             trainingLoadAnalysis: nil,

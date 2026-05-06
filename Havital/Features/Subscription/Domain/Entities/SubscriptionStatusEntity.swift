@@ -121,6 +121,25 @@ extension SubscriptionStatusEntity {
         let remaining = max(0, expiresAt - Date().timeIntervalSince1970)
         return Int(ceil(remaining / 86400.0))
     }
+
+    /// Trial remaining days for UI.
+    ///
+    /// Backend returns `trial_remaining_days=9999` for non-enforced soft-launch
+    /// bypass users. That value is not a real trial countdown and must not leak
+    /// into paywall/profile UI.
+    var trialDaysRemaining: Int? {
+        guard !inGracePeriod else { return nil }
+        if let trialEndAt {
+            let remaining = max(0, trialEndAt - Date().timeIntervalSince1970)
+            return Int(ceil(remaining / 86400.0))
+        }
+        if let trialRemainingDays {
+            guard enforcementEnabled || trialRemainingDays < 9999 else { return nil }
+            return trialRemainingDays
+        }
+        guard expiresAt != nil else { return nil }
+        return daysRemaining
+    }
 }
 
 // MARK: - SubscriptionStatus

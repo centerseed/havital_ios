@@ -347,7 +347,24 @@ struct UserProfileView: View {
 
             if let status = subscriptionState.currentStatus {
                 // 狀態輔助資訊（依 Spec UI 矩陣）
-                switch status.status {
+                if status.inGracePeriod {
+                    if let graceUntil = status.iapGraceUntil {
+                        subscriptionDateRow(
+                            title: NSLocalizedString("profile.subscription.trial_ends", comment: "Trial ends"),
+                            systemImage: "clock",
+                            expiresAt: graceUntil,
+                            color: .orange
+                        )
+                    }
+                    if let days = status.graceRemainingDays {
+                        Label(
+                            String(format: NSLocalizedString("profile.subscription.trial_remaining_days", comment: ""), days),
+                            systemImage: "hourglass"
+                        )
+                        .foregroundColor(.orange)
+                    }
+                } else {
+                    switch status.status {
                 case .trial:
                     if let endAt = status.trialEndAt {
                         subscriptionDateRow(
@@ -357,8 +374,7 @@ struct UserProfileView: View {
                             color: .orange
                         )
                     }
-                    let days = status.trialRemainingDays ?? status.daysRemaining
-                    if days > 0 {
+                    if let days = status.trialDaysRemaining, days > 0 {
                         Label(
                             String(format: NSLocalizedString("profile.subscription.trial_remaining_days", comment: ""), days),
                             systemImage: "hourglass"
@@ -412,6 +428,7 @@ struct UserProfileView: View {
 
                 case .none:
                     EmptyView()
+                }
                 }
 
                 // billing_issue 警告（gracePeriod 以外的 billing issue）
@@ -566,14 +583,7 @@ struct UserProfileView: View {
             )
         }
         // Apple intro trial state
-        if status.inIntroTrial == true {
-            let days: Int
-            if let trialEndAt = status.trialEndAt {
-                let remaining = max(0, trialEndAt - Date().timeIntervalSince1970)
-                days = Int(ceil(remaining / 86400.0))
-            } else {
-                days = status.daysRemaining
-            }
+        if status.inIntroTrial == true, let days = status.trialDaysRemaining {
             return String(
                 format: NSLocalizedString("settings.subscription.tier.trial_label_format", comment: "Current plan: Trial (%d days left)"),
                 days
@@ -586,7 +596,9 @@ struct UserProfileView: View {
                 subscriptionPlanName(for: status)
             )
         case .trial:
-            let days = status.trialRemainingDays ?? status.daysRemaining
+            guard let days = status.trialDaysRemaining else {
+                return NSLocalizedString("settings.subscription.tier.free_label", comment: "Current plan: Free Preview")
+            }
             return String(
                 format: NSLocalizedString("settings.subscription.tier.trial_label_format", comment: "Current plan: Trial (%d days left)"),
                 days

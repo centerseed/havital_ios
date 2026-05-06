@@ -114,6 +114,12 @@ protocol WorkoutRepository {
     ///   - notes: 心得內容
     func updateTrainingNotes(id: String, notes: String) async throws
 
+    /// 更新主觀強度 RPE
+    /// - Parameters:
+    ///   - id: 訓練 ID
+    ///   - rpe: 主觀強度 1-10，nil 表示清除
+    func updateRPE(id: String, rpe: Int?) async throws
+
     /// 刪除訓練
     /// - Parameter id: 訓練 ID
     func deleteWorkout(id: String) async throws
@@ -145,6 +151,10 @@ extension WorkoutRepository {
     }
 
     func fetchWorkoutSummary(id: String) async throws -> WorkoutSummary {
+        throw WorkoutRepositoryError.dataSourceUnavailable
+    }
+
+    func updateRPE(id: String, rpe: Int?) async throws {
         throw WorkoutRepositoryError.dataSourceUnavailable
     }
 }

@@ -2002,6 +2002,14 @@
 
 // MARK: - Workout - Effort Score (iOS 18+)
 "workout.effort_score" = "Effort Score";
+"workout.detail.add_rpe" = "Add effort";
+"workout.detail.clear_rpe" = "Clear effort";
+"workout.detail.rpe_editor_title" = "Effort";
+"workout.detail.rpe_description" = "Use 1 to 10 to record how hard this workout felt. This is a low-data helper signal and does not replace heart-rate or HRV analysis.";
+"workout.detail.rpe_picker_title" = "Effort";
+"workout.detail.rpe_selected_format" = "This workout: %d / 10";
+"workout.detail.rpe_save_error" = "Unable to save effort. Please try again later.";
+"low_data.vdot_hint" = "VDOT appears after you build up running data.";
 
 // MARK: - Backfilled Translations
 "edit_schedule.addSegment" = "Add Segment";

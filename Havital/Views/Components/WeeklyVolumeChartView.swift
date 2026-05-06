@@ -140,60 +140,68 @@ struct WeeklyVolumeChartView: View {
     private func customBarChart(data: [(weekStart: String, date: Date, distance: Double)], geometry: GeometryProxy) -> some View {
         let maxDistance = data.map { $0.distance }.max() ?? 1
         let chartWidth = geometry.size.width
-        let chartHeight = geometry.size.height - 40
-        let barWidth = chartWidth / CGFloat(data.count) * 0.7
+        let chartHeight = geometry.size.height - 24 // 預留 X 軸 label 高度
+        let slotWidth = chartWidth / CGFloat(data.count)
+        let barWidth = slotWidth * 0.7
 
-        ZStack {
-            // Grid lines
-            ForEach(0..<5) { i in
-                let y = chartHeight * CGFloat(i) / 4
+        VStack(spacing: 4) {
+            // 上半：grid + bars
+            ZStack(alignment: .topLeading) {
+                ForEach(0..<5) { i in
+                    let y = chartHeight * CGFloat(i) / 4
 
-                Path { path in
-                    path.move(to: CGPoint(x: 0, y: y))
-                    path.addLine(to: CGPoint(x: chartWidth, y: y))
-                }
-                .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
-
-                Text("\(Int(maxDistance * Double(4 - i) / 4))km")
-                    .font(AppFont.captionSmall())
-                    .foregroundColor(.secondary)
-                    .position(x: -20, y: y)
-            }
-
-            // Bars and labels
-            ForEach(0..<data.count, id: \.self) { index in
-                let item = data[index]
-                let xPosition = CGFloat(index) * (chartWidth / CGFloat(data.count))
-                let barHeight = maxDistance > 0 ? chartHeight * item.distance / maxDistance : 0
-                let yPosition = chartHeight - barHeight
-
-                // Bar
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(
-                        LinearGradient(
-                            colors: [.blue.opacity(0.7), .blue],
-                            startPoint: .bottom,
-                            endPoint: .top
-                        )
-                    )
-                    .frame(width: barWidth, height: barHeight)
-                    .position(x: xPosition + barWidth/2, y: yPosition + barHeight/2)
-                    .onTapGesture {
-                        selectedWeekStart = item.weekStart
+                    Path { path in
+                        path.move(to: CGPoint(x: 0, y: y))
+                        path.addLine(to: CGPoint(x: chartWidth, y: y))
                     }
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 0.5)
 
-                // Date label
-                Text(formatDate(item.date))
-                    .font(AppFont.captionSmall())
-                    .foregroundColor(.secondary)
-                    .position(x: xPosition + barWidth/2, y: chartHeight + 15)
+                    Text("\(Int(maxDistance * Double(4 - i) / 4))km")
+                        .font(AppFont.captionSmall())
+                        .foregroundColor(.secondary)
+                        .position(x: -20, y: y)
+                }
+
+                ForEach(0..<data.count, id: \.self) { index in
+                    let item = data[index]
+                    let centerX = slotWidth * (CGFloat(index) + 0.5)
+                    let barHeight = maxDistance > 0 ? chartHeight * item.distance / maxDistance : 0
+                    let yPosition = chartHeight - barHeight
+
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(
+                            LinearGradient(
+                                colors: [.blue.opacity(0.7), .blue],
+                                startPoint: .bottom,
+                                endPoint: .top
+                            )
+                        )
+                        .frame(width: barWidth, height: barHeight)
+                        .position(x: centerX, y: yPosition + barHeight/2)
+                        .onTapGesture {
+                            selectedWeekStart = item.weekStart
+                        }
+                }
+            }
+            .frame(width: chartWidth, height: chartHeight)
+
+            // 下半：X 軸日期 label，每個固定 slotWidth，避免重疊
+            HStack(spacing: 0) {
+                ForEach(0..<data.count, id: \.self) { index in
+                    Text(formatDate(data[index].date))
+                        .font(AppFont.captionSmall())
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .frame(width: slotWidth)
+                }
             }
         }
     }
 
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "MM/dd"
+        formatter.dateFormat = "M/d"
         // 使用用户设置的时区，如果未设置则使用设备当前时区
         if let userTimezone = UserPreferencesManager.shared.timezonePreference {
             formatter.timeZone = TimeZone(identifier: userTimezone)

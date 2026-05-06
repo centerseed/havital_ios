@@ -750,6 +750,28 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         return data
     }
 
+    /// 抽取 HKWorkout 中所有 pause/resume 事件，序列化成後端可消費的格式。
+    /// 後端用此清單精算 moving_duration_s 並驗證 workout.duration。
+    /// lap/segment/marker 不在此清單，已透過 LapData 路徑上傳。
+    private func extractPauseEvents(from workout: HKWorkout) -> [WorkoutEventData] {
+        guard let events = workout.workoutEvents, !events.isEmpty else { return [] }
+        return events.compactMap { event in
+            let typeString: String
+            switch event.type {
+            case .pause:           typeString = "pause"
+            case .resume:          typeString = "resume"
+            case .motionPaused:    typeString = "motion_paused"
+            case .motionResumed:   typeString = "motion_resumed"
+            default: return nil   // 跳過 lap/segment/marker 等非 pause 事件
+            }
+            return WorkoutEventData(
+                type: typeString,
+                startTime: event.dateInterval.start.timeIntervalSince1970,
+                endTime: event.dateInterval.end.timeIntervalSince1970
+            )
+        }
+    }
+
     // MARK: - Internal request helper
     private func postWorkoutDetails(workout: HKWorkout,
                                     heartRates: [DataPoint],
@@ -763,6 +785,11 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                                     source: String,
                                     device: String?,
                                     metadata: WorkoutMetadata? = nil) async throws {
+        let pauseEvents = extractPauseEvents(from: workout)
+        if !pauseEvents.isEmpty {
+            print("⏸️ [Upload] 偵測到 \(pauseEvents.count) 個 pause/resume 事件，附加到上傳 payload")
+        }
+
         // 建立 WorkoutData 結構
         let workoutData = WorkoutData(
             id: makeWorkoutId(for: workout),
@@ -782,7 +809,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             laps: laps,
             source: source,
             device: device,
-            metadata: metadata)
+            metadata: metadata,
+            workoutEvents: pauseEvents.isEmpty ? nil : pauseEvents)
         
         do {
             // 先嘗試上傳，如果成功就結束
@@ -1575,6 +1603,21 @@ struct WorkoutData: Codable {
     let source: String?                       // 資料來源 (如: apple_health, garmin, polar 等)
     let device: String?                       // 裝置型號 (如: Apple Watch Series 7, Garmin Forerunner 945 等)
     let metadata: WorkoutMetadata?            // 環境數據（溫度、天氣、濕度等）v2.1+ 新增
+    let workoutEvents: [WorkoutEventData]?    // pause/resume 事件，讓後端可精算暫停時長 v2.2+
+}
+
+// HKWorkoutEvent pause/resume 序列化結構，後端用來驗證 / 補算 moving_duration_s。
+// 只送 pause 相關 event；lap/segment/marker 已透過 LapData 路徑處理。
+struct WorkoutEventData: Codable {
+    let type: String              // "pause" | "resume" | "motion_paused" | "motion_resumed"
+    let startTime: TimeInterval   // epoch seconds (event.dateInterval.start)
+    let endTime: TimeInterval     // epoch seconds (event.dateInterval.end，瞬時事件 == startTime)
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case startTime = "start_time"
+        case endTime = "end_time"
+    }
 }
 
 // 環境數據結構 (v2.1+)

@@ -96,7 +96,7 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
         foregroundObserver = NotificationCenter.default.addObserver(
             forName: UIApplication.willEnterForegroundNotification,
             object: nil,
-            queue: .main
+            queue: nil
         ) { [weak self] _ in
             guard let self else { return }
             Task { @MainActor [weak self] in
@@ -319,25 +319,13 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
     var trialDaysRemaining: Int? {
         guard let status = SubscriptionStateManager.shared.currentStatus else { return nil }
 
-        // Apple intro trial: use trialEndAt first (from Apple intro offer end date)
         if status.inIntroTrial == true {
-            if let trialEndAt = status.trialEndAt {
-                let remaining = max(0, trialEndAt - Date().timeIntervalSince1970)
-                return Int(ceil(remaining / 86400.0))
-            }
-            // Fallback to expiresAt for Apple intro trial countdown
-            if status.expiresAt != nil {
-                return status.daysRemaining
-            }
+            return status.trialDaysRemaining
         }
 
         // Legacy backend trial (.trial status) — keep for backward compatibility
         guard status.status == .trial else { return nil }
-        if let backendValue = status.trialRemainingDays {
-            return backendValue
-        }
-        guard status.expiresAt != nil else { return nil }
-        return status.daysRemaining
+        return status.trialDaysRemaining
     }
 
     /// Whether the user is currently in an Apple intro offer trial.

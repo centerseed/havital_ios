@@ -1556,14 +1556,22 @@ struct TrainingLoadChartView: View {
                         let record = chartHealthData[index]
                         if let fitness = record.fitness {
                             if let totalTss = record.totalTss, totalTss == 0 {
-                                // 休息日：空心圓（stroke only），與 legend 一致
+                                // 休息日：先疊背景色實心圓蓋住底下的 LineMark，再疊空心藍環
+                                PointMark(
+                                    x: .value("日期", formatDateForChart(record.date)),
+                                    y: .value("體適能指數", fitness * 10)
+                                )
+                                .foregroundStyle(Color(UIColor.systemBackground))
+                                .symbol(.circle)
+                                .symbolSize(CGSize(width: 10, height: 10))
+
                                 PointMark(
                                     x: .value("日期", formatDateForChart(record.date)),
                                     y: .value("體適能指數", fitness * 10)
                                 )
                                 .foregroundStyle(.blue)
                                 .symbol(StrokeCircleSymbol())
-                                .symbolSize(CGSize(width: 12, height: 12))
+                                .symbolSize(CGSize(width: 10, height: 10))
                             } else {
                                 // 訓練日：實心圓
                                 PointMark(
@@ -1572,7 +1580,7 @@ struct TrainingLoadChartView: View {
                                 )
                                 .foregroundStyle(.blue)
                                 .symbol(.circle)
-                                .symbolSize(30)
+                                .symbolSize(CGSize(width: 10, height: 10))
                             }
                         }
                     }
@@ -1786,31 +1794,16 @@ struct TrainingLoadChartView: View {
         return DateFormatterHelper.formatShortDate(date)
     }
 
-    /// 格式化週數顯示（例如: w23, w24, w25, w26）
+    /// X 軸日期顯示（M/d 格式，使用用戶時區，與週跑量圖表一致）
     private func formatWeekForDisplay(_ date: Date) -> String {
-        // 簡化邏輯：基於當前週數和數據範圍計算週數標籤
-        let currentWeek = trainingPlanViewModel.currentWeek
-        if currentWeek == 0 {
-            let calendar = Calendar.current
-            let weekOfYear = calendar.component(.weekOfYear, from: date)
-            return "w\(weekOfYear)"
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M/d"
+        if let userTimezone = UserPreferencesManager.shared.timezonePreference {
+            formatter.timeZone = TimeZone(identifier: userTimezone)
+        } else {
+            formatter.timeZone = TimeZone.current
         }
-
-        // 獲取數據的日期範圍，計算相對週數
-        let sortedData = chartHealthData.sorted { $0.date < $1.date }
-        guard !sortedData.isEmpty else { return "w\(currentWeek)" }
-
-        let dateString = formatDateString(date)
-        if let index = sortedData.firstIndex(where: { $0.date == dateString }) {
-            // 最新數據對應當前週數，往前推算
-            let totalDataPoints = sortedData.count
-            let weeksSpan = max(4, totalDataPoints / 7) // 數據跨越的週數
-            let relativePosition = Double(index) / Double(totalDataPoints - 1)
-            let displayWeek = max(1, currentWeek - weeksSpan + Int(relativePosition * Double(weeksSpan)) + 1)
-            return "w\(displayWeek)"
-        }
-
-        return "w\(currentWeek)"
+        return formatter.string(from: date)
     }
 
     /// 將 Date 轉換為 yyyy-MM-dd 格式的字串
@@ -2096,14 +2089,22 @@ struct FitnessIndexChartView: View {
                     let record = chartHealthData[index]
                     if let atl = record.atl {
                         if let totalTss = record.totalTss, totalTss == 0 {
-                            // 休息日：空心圓（stroke only），與 legend 一致
+                            // 休息日：先疊背景色實心圓蓋住底下的 LineMark，再疊空心藍環
+                            PointMark(
+                                x: .value("日期", formatDateForChart(record.date)),
+                                y: .value("訓練指數", atl * 10)
+                            )
+                            .foregroundStyle(Color(UIColor.systemBackground))
+                            .symbol(.circle)
+                            .symbolSize(CGSize(width: 10, height: 10))
+
                             PointMark(
                                 x: .value("日期", formatDateForChart(record.date)),
                                 y: .value("訓練指數", atl * 10)
                             )
                             .foregroundStyle(.blue)
                             .symbol(StrokeCircleSymbol())
-                            .symbolSize(CGSize(width: 12, height: 12))
+                            .symbolSize(CGSize(width: 10, height: 10))
                         } else {
                             // 訓練日：實心圓
                             PointMark(
@@ -2112,7 +2113,7 @@ struct FitnessIndexChartView: View {
                             )
                             .foregroundStyle(.blue)
                             .symbol(.circle)
-                            .symbolSize(30)
+                            .symbolSize(CGSize(width: 10, height: 10))
                         }
                     }
                 }
@@ -2270,26 +2271,14 @@ struct FitnessIndexChartView: View {
     }
 
     private func formatWeekForDisplay(_ date: Date) -> String {
-        let currentWeek = trainingPlanViewModel.currentWeek
-        if currentWeek == 0 {
-            let calendar = Calendar.current
-            let weekOfYear = calendar.component(.weekOfYear, from: date)
-            return "w\(weekOfYear)"
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M/d"
+        if let userTimezone = UserPreferencesManager.shared.timezonePreference {
+            formatter.timeZone = TimeZone(identifier: userTimezone)
+        } else {
+            formatter.timeZone = TimeZone.current
         }
-
-        let sortedData = chartHealthData.sorted { $0.date < $1.date }
-        guard !sortedData.isEmpty else { return "w\(currentWeek)" }
-
-        let dateString = formatDateString(date)
-        if let index = sortedData.firstIndex(where: { $0.date == dateString }) {
-            let totalDataPoints = sortedData.count
-            let weeksSpan = max(4, totalDataPoints / 7)
-            let relativePosition = Double(index) / Double(totalDataPoints - 1)
-            let displayWeek = max(1, currentWeek - weeksSpan + Int(relativePosition * Double(weeksSpan)) + 1)
-            return "w\(displayWeek)"
-        }
-
-        return "w\(currentWeek)"
+        return formatter.string(from: date)
     }
 
     private func formatDateString(_ date: Date) -> String {
@@ -2592,26 +2581,14 @@ struct TSBChartView: View {
     }
 
     private func formatWeekForDisplay(_ date: Date) -> String {
-        let currentWeek = trainingPlanViewModel.currentWeek
-        if currentWeek == 0 {
-            let calendar = Calendar.current
-            let weekOfYear = calendar.component(.weekOfYear, from: date)
-            return "w\(weekOfYear)"
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M/d"
+        if let userTimezone = UserPreferencesManager.shared.timezonePreference {
+            formatter.timeZone = TimeZone(identifier: userTimezone)
+        } else {
+            formatter.timeZone = TimeZone.current
         }
-
-        let sortedData = chartHealthData.sorted { $0.date < $1.date }
-        guard !sortedData.isEmpty else { return "w\(currentWeek)" }
-
-        let dateString = formatDateString(date)
-        if let index = sortedData.firstIndex(where: { $0.date == dateString }) {
-            let totalDataPoints = sortedData.count
-            let weeksSpan = max(4, totalDataPoints / 7)
-            let relativePosition = Double(index) / Double(totalDataPoints - 1)
-            let displayWeek = max(1, currentWeek - weeksSpan + Int(relativePosition * Double(weeksSpan)) + 1)
-            return "w\(displayWeek)"
-        }
-
-        return "w\(currentWeek)"
+        return formatter.string(from: date)
     }
 
     private func formatDateString(_ date: Date) -> String {
@@ -3002,12 +2979,14 @@ struct TrainingLoadDetailExplanationView: View {
 // MARK: - Chart Helpers
 
 /// 空心圓符號，與 legend 的 Circle().stroke() 視覺完全一致
+/// 注意：ChartSymbolShape 的 path 會被 fill（不是 stroke），
+/// 所以必須回傳「描邊轉填充」後的環形 path，才能呈現真正的空心圓。
 private struct StrokeCircleSymbol: ChartSymbolShape {
     var perceptualUnitRect: CGRect { CGRect(x: 0, y: 0, width: 1, height: 1) }
 
     func path(in rect: CGRect) -> Path {
-        let inset: CGFloat = 1.5
-        return Path(ellipseIn: rect.insetBy(dx: inset, dy: inset))
+        let circle = Path(ellipseIn: rect.insetBy(dx: 1, dy: 1))
+        return circle.strokedPath(StrokeStyle(lineWidth: 1.5))
     }
 }
 

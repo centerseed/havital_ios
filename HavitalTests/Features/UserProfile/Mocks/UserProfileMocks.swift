@@ -270,6 +270,9 @@ final class MockUserProfileLocalDataSource: UserProfileLocalDataSourceProtocol {
     var heartRateZonesToReturn: [HeartRateZone]? = UserProfileTestFixtures.testHeartRateZones
     var targetsToReturn: [Target]? = UserProfileTestFixtures.testTargets
 
+    // Call count tracking
+    private(set) var clearUserProfileCallCount = 0
+
     func getUserProfile() -> User? {
         return userToReturn
     }
@@ -279,6 +282,7 @@ final class MockUserProfileLocalDataSource: UserProfileLocalDataSourceProtocol {
     }
 
     func clearUserProfile() {
+        clearUserProfileCallCount += 1
         userToReturn = nil
     }
 

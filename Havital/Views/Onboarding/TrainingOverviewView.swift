@@ -94,6 +94,10 @@ struct TrainingOverviewView: View {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("TrainingOverview_Screen")
         .navigationTitle(NSLocalizedString("onboarding.training_overview_title", comment: "Training Overview"))
+        .onAppear {
+            // AC-IOS-ANALYTICS-P1-08: plan generating loading screen appeared
+            coordinator.trackPlanGenerating()
+        }
         .task {
             viewModel.isBeginner = coordinator.isBeginner
 

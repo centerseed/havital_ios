@@ -723,6 +723,14 @@
 "workout.resync_data" = "重新同步資料";
 "workout.force_reupload_description" = "強制重新上傳這筆訓練紀錄，包含重新嘗試抓取心率資料";
 "workout.effort_score" = "努力評分";
+"workout.detail.add_rpe" = "新增主觀強度";
+"workout.detail.clear_rpe" = "清除主觀強度";
+"workout.detail.rpe_editor_title" = "主觀強度";
+"workout.detail.rpe_description" = "用 1 到 10 記錄這次訓練的主觀感受。這是低資料輔助訊號，不會取代心率或 HRV 分析。";
+"workout.detail.rpe_picker_title" = "主觀強度";
+"workout.detail.rpe_selected_format" = "這次訓練：%d / 10";
+"workout.detail.rpe_save_error" = "無法儲存主觀強度，請稍後再試";
+"low_data.vdot_hint" = "累積跑步資料後會顯示 VDOT。";
 
 // MARK: - Record Additional
 "record.avg_heart_rate" = "平均心率";

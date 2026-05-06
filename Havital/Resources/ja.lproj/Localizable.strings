@@ -1998,6 +1998,14 @@
 
 // MARK: - Workout - Effort Score (iOS 18+)
 "workout.effort_score" = "努力スコア";
+"workout.detail.add_rpe" = "主観的強度を追加";
+"workout.detail.clear_rpe" = "主観的強度を削除";
+"workout.detail.rpe_editor_title" = "主観的強度";
+"workout.detail.rpe_description" = "このワークアウトのきつさを 1 から 10 で記録します。これは低データ時の補助シグナルで、心拍数や HRV 分析の代わりではありません。";
+"workout.detail.rpe_picker_title" = "主観的強度";
+"workout.detail.rpe_selected_format" = "今回のワークアウト：%d / 10";
+"workout.detail.rpe_save_error" = "主観的強度を保存できません。後でもう一度お試しください。";
+"low_data.vdot_hint" = "ランニングデータが蓄積されると VDOT が表示されます。";
 "date.minutes_ago" = "%d分前";
 
 // MARK: - Backfilled Translations

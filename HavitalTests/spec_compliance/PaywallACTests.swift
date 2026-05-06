@@ -703,13 +703,19 @@ final class PaywallACTests: XCTestCase {
         XCTAssertFalse(SubscriptionStateManager.shared.hasPremiumAccess,
                        "Expired user must NOT have premium access — banner should be visible")
 
-        // 4. Verify hasPremiumAccess returns true for active subscriber (banner should NOT show)
+        // 4. Soft launch guard: when enforcement is disabled, free-tier/paywall UI must stay hidden.
+        let softLaunchStatus = SubscriptionStatusEntity(status: .none, enforcementEnabled: false)
+        SubscriptionStateManager.shared.update(softLaunchStatus)
+        XCTAssertFalse(SubscriptionStateManager.shared.isEnforcementEnabled,
+                       "IAP soft launch disabled must suppress FreeTierBanner/paywall UI")
+
+        // 5. Verify hasPremiumAccess returns true for active subscriber (banner should NOT show)
         let activeStatus = SubscriptionStatusEntity(status: .active, enforcementEnabled: true)
         SubscriptionStateManager.shared.update(activeStatus)
         XCTAssertTrue(SubscriptionStateManager.shared.hasPremiumAccess,
                       "Active subscriber must have premium access — banner should be hidden")
 
-        // 5. Verify hasPremiumAccess returns true for Apple intro trial (banner should NOT show)
+        // 6. Verify hasPremiumAccess returns true for Apple intro trial (banner should NOT show)
         let trialStatus = SubscriptionStatusEntity(
             status: .active,
             inIntroTrial: true,
@@ -719,14 +725,14 @@ final class PaywallACTests: XCTestCase {
         XCTAssertTrue(SubscriptionStateManager.shared.hasPremiumAccess,
                       "Apple intro trial user must have premium access — banner should be hidden")
 
-        // 6. Verify FreeTierBanner source is in PaywallSource
+        // 7. Verify FreeTierBanner source is in PaywallSource
         let source = PaywallTrigger.freeTierBanner.paywallSource
         XCTAssertEqual(source.rawValue, "free_tier_banner",
                        "PaywallTrigger.freeTierBanner must map to source 'free_tier_banner'")
 
-        // 7. Visibility predicate: banner shown when !hasPremiumAccess AND planOverview != nil (has Week 1)
+        // 8. Visibility predicate: banner shown when enforcement enabled AND !hasRealSubscription AND planOverview != nil (has Week 1)
         // When planOverview is nil (no Week 1), shouldShowFreeTierBanner must be false.
-        // This is enforced in TrainingPlanV2View: shouldShowFreeTierBanner requires planOverview != nil.
+        // This is enforced in TrainingPlanV2View: shouldShowFreeTierBanner requires enforcement + planOverview != nil.
         // Reset state for safety
         SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none))
     }

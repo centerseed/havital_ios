@@ -52,6 +52,15 @@ struct WeeklyPlanV2DTO: Codable {
     /// 強度分鐘數分布 {low, medium, high}
     let intensityTotalMinutes: WeeklyPlan.IntensityTotalMinutes?
 
+    /// 生成此週課表時使用的 VDOT（配速表需與課表基準一致）
+    let currentVdot: Double?
+
+    /// 兼容欄位：同 currentVdot
+    let vdot: Double?
+
+    /// VDOT 來源說明
+    let vdotSource: String?
+
     // MARK: - 時間戳
 
     /// 創建時間
@@ -100,6 +109,9 @@ struct WeeklyPlanV2DTO: Codable {
         case designReason = "design_reason"
         case days
         case intensityTotalMinutes = "intensity_total_minutes"
+        case currentVdot = "current_vdot"
+        case vdot
+        case vdotSource = "vdot_source"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case trainingLoadAnalysis = "training_load_analysis"

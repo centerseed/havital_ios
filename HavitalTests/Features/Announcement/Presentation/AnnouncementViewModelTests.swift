@@ -101,6 +101,18 @@ final class AnnouncementViewModelTests: XCTestCase {
         XCTAssertEqual(markSeenBatchCalls, [["older-unread", "newer-unread"]])
     }
 
+    func testOpenMessageCenterAnnouncementSelectsAnnouncementForDetailPresentation() async {
+        let announcement = makeAnnouncement(id: "message", publishedAt: date(offset: -100), isSeen: true)
+
+        sut.openMessageCenterAnnouncement(announcement)
+
+        XCTAssertEqual(sut.selectedMessageCenterAnnouncement?.id, "message")
+
+        sut.dismissSelectedMessageCenterAnnouncement()
+
+        XCTAssertNil(sut.selectedMessageCenterAnnouncement)
+    }
+
     private func waitUntil(
         timeout: TimeInterval = 1.5,
         pollInterval: UInt64 = 50_000_000,

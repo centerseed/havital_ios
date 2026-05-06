@@ -16,6 +16,11 @@ class TrainingReadinessViewModel: ObservableObject {
     private let manager: TrainingReadinessManager
     private var cancellables = Set<AnyCancellable>()
 
+    // MARK: - Plan Type Fallback
+    /// Injected provider for fallback plan type when readiness doc lacks plan_type (V1 docs).
+    /// Defaults to nil; callers should wire DependencyContainer.shared.resolve() at construction.
+    var planOverviewProvider: (() -> PlanOverviewV2?)? = nil
+
     // MARK: - Initialization
     init(manager: TrainingReadinessManager = .shared) {
         self.manager = manager
@@ -95,6 +100,21 @@ class TrainingReadinessViewModel: ObservableObject {
 // MARK: - Computed Properties for UI
 extension TrainingReadinessViewModel {
 
+    /// Effective plan type for conditional UI display.
+    /// Fallback chain:
+    ///   1. readinessData?.planType  (V2 doc — direct field)
+    ///   2. planOverviewProvider()?.targetType  (V1 fallback via PlanOverviewV2)
+    ///   3. .unknown  (default: show everything — conservative strategy)
+    var effectivePlanType: ReadinessPlanType {
+        if let pt = readinessData?.planType {
+            return ReadinessPlanType(from: pt)
+        }
+        if let targetType = planOverviewProvider?()?.targetType {
+            return ReadinessPlanType(from: targetType)
+        }
+        return .unknown
+    }
+
     /// Overall score (nil-safe)
     var overallScore: Double? {
         return readinessData?.overallScore
@@ -172,38 +192,22 @@ extension TrainingReadinessViewModel {
 
     /// Speed metric (nil-safe)
     var speedMetric: SpeedMetric? {
-        let metric = metrics?.speed
-        if let metric = metric {
-            print("[TrainingReadinessViewModel] 🏃 速度指標載入: score=\(metric.score)")
-        }
-        return metric
+        return metrics?.speed
     }
 
     /// Endurance metric (nil-safe)
     var enduranceMetric: EnduranceMetric? {
-        let metric = metrics?.endurance
-        if let metric = metric {
-            print("[TrainingReadinessViewModel] 💪 耐力指標載入: score=\(metric.score)")
-        }
-        return metric
+        return metrics?.endurance
     }
 
     /// Race fitness metric (nil-safe)
     var raceFitnessMetric: RaceFitnessMetric? {
-        let metric = metrics?.raceFitness
-        if let metric = metric {
-            print("[TrainingReadinessViewModel] 🏁 比賽適能指標載入: score=\(metric.score)")
-        }
-        return metric
+        return metrics?.raceFitness
     }
 
     /// Training load metric (nil-safe)
     var trainingLoadMetric: TrainingLoadMetric? {
-        let metric = metrics?.trainingLoad
-        if let metric = metric {
-            print("[TrainingReadinessViewModel] 📊 訓練負荷指標載入: score=\(metric.score)")
-        }
-        return metric
+        return metrics?.trainingLoad
     }
 
     /// Recovery metric (nil-safe)

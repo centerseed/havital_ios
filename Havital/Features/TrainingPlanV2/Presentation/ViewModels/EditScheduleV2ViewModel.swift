@@ -70,9 +70,16 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
     // MARK: - Public Methods
 
     func loadVDOT() {
+        if let planVdot = weeklyPlan.currentVdot, planVdot > 0 {
+            currentVDOT = planVdot
+            Logger.debug("[EditScheduleV2VM] loadVDOT - using weekly plan VDOT: \(planVdot)")
+            return
+        }
+
         VDOTManager.shared.loadLocalCacheSync()
         let vdot = VDOTManager.shared.currentVDOT
         currentVDOT = vdot > 0 ? vdot : PaceCalculator.defaultVDOT
+        Logger.debug("[EditScheduleV2VM] loadVDOT - fallback VDOTManager/current default: \(currentVDOT ?? 0)")
     }
 
     func getDateForDay(dayIndex: Int) -> Date? {
