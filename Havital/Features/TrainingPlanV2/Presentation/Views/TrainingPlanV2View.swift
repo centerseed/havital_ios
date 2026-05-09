@@ -16,6 +16,7 @@ struct TrainingPlanV2View: View {
     @State private var showFeedbackReport = false
     @State private var showWeekSelector = false
     @State private var showMessageCenter = false
+    @State private var summaryIsMenuInspect = false
 
     // S07 inline upsell sheet state (AC-PAYWALL-22/23)
     @State private var showWeeklyPlanInlineUpsellSheet = false
@@ -237,6 +238,7 @@ struct TrainingPlanV2View: View {
                         .accessibilityIdentifier("TrainingPlan_Menu_PlanOverview")
 
                         Button(action: {
+                            summaryIsMenuInspect = true
                             viewModel.summary.summaryFlowPhase = .showingSummary
                             viewModel.summary.summaryFlowActive = true
                         }) {
@@ -343,7 +345,9 @@ struct TrainingPlanV2View: View {
                 }
             }
             // ✅ 合併 Sheet：loading review → summary → loading plan（零閃爍）
-            .sheet(isPresented: $bindableViewModel.summary.summaryFlowActive) {
+            .sheet(isPresented: $bindableViewModel.summary.summaryFlowActive, onDismiss: {
+                summaryIsMenuInspect = false
+            }) {
                 let weekToShow: Int = {
                     if case .loaded(let loadedSummary) = viewModel.summary.weeklySummary {
                         return loadedSummary.weekOfTraining
@@ -368,7 +372,7 @@ struct TrainingPlanV2View: View {
                         WeeklySummaryV2View(
                             viewModel: viewModel,
                             weekOfPlan: weekToShow,
-                            onGenerateNextWeek: isTrainingCompleted ? nil : {
+                            onGenerateNextWeek: (isTrainingCompleted || summaryIsMenuInspect) ? nil : {
                                 viewModel.summary.summaryFlowPhase = .loadingPlan
                                 Task {
                                     let success = await viewModel.summary.applySelectedAdjustments(weekOfPlan: weekToShow)
@@ -408,7 +412,14 @@ struct TrainingPlanV2View: View {
         } // ZStack
         }
         .sheet(isPresented: $showWeekSelector) {
-            WeekSelectorSheetV2(viewModel: viewModel, isPresented: $showWeekSelector)
+            WeekSelectorSheetV2(
+                viewModel: viewModel,
+                isPresented: $showWeekSelector,
+                onViewWeeklySummary: { week in
+                    summaryIsMenuInspect = true
+                    Task { await viewModel.summary.viewHistoricalSummary(week: week) }
+                }
+            )
         }
         .confirmationDialog(
             NSLocalizedString("contact.paceriz", comment: "Contact Paceriz"),
@@ -971,40 +982,18 @@ private struct ErrorView: View {
 private struct WeekSelectorSheetV2: View {
     var viewModel: TrainingPlanV2ViewModel
     @Binding var isPresented: Bool
+    var onViewWeeklySummary: ((Int) -> Void)? = nil
 
     var body: some View {
         NavigationStack {
             List(1...max(viewModel.totalWeeks, 1), id: \.self) { week in
-                Button {
-                    Task {
-                        await viewModel.loader.switchToWeek(week)
-                        isPresented = false
-                    }
-                } label: {
-                    HStack {
-                        Text(String(format: NSLocalizedString("training.week_number", comment: "第 %d 週"), week))
-                            .font(AppFont.body())
-                            .foregroundColor(.primary)
-
-                        Spacer()
-
-                        if week == viewModel.loader.currentWeek {
-                            Text(NSLocalizedString("training.current_week_label", comment: "本週"))
-                                .font(AppFont.caption())
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(Color.blue)
-                                .cornerRadius(8)
-                        }
-
-                        if week == viewModel.loader.selectedWeek {
-                            Image(systemName: "checkmark")
-                                .foregroundColor(.blue)
-                        }
-                    }
-                }
+                let item = viewModel.summary.weeklySummaries.first(where: { $0.weekIndex == week })
+                weekRow(week: week, item: item)
+                    .listRowBackground(Color(UIColor.secondarySystemGroupedBackground))
+                    .listRowSeparator(.hidden)
+                    .padding(.vertical, 2)
             }
+            .listStyle(.insetGrouped)
             .navigationTitle(NSLocalizedString("training.switch_week", comment: "切換週數"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1015,6 +1004,103 @@ private struct WeekSelectorSheetV2: View {
                 }
             }
         }
+        .task {
+            await viewModel.summary.fetchWeeklySummaries()
+        }
+    }
+
+    @ViewBuilder
+    private func weekRow(week: Int, item: WeeklySummaryItem?) -> some View {
+        HStack(spacing: 6) {
+            // 週次
+            Text(String(format: NSLocalizedString("training.week_number", comment: "第 %d 週"), week))
+                .font(AppFont.body())
+                .fontWeight(.medium)
+                .foregroundColor(.primary)
+
+            // 本週標籤
+            if week == viewModel.loader.currentWeek {
+                Text(NSLocalizedString("training.current_week_label", comment: "本週"))
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.blue)
+                    .cornerRadius(6)
+            }
+
+            // 完成率 bar + 百分比 + 跑量
+            if let item {
+                if let percent = item.completionPercentage {
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color(.systemGray5))
+                            .frame(width: 36, height: 4)
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(LinearGradient(
+                                gradient: Gradient(colors: [.blue, .teal]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            ))
+                            .frame(width: 36 * min(percent, 100) / 100, height: 4)
+                    }
+                    Text("\(Int(percent))%")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.blue)
+                }
+                if let km = item.distanceKm, km > 0 {
+                    Text(String(format: "%.1fkm", km))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Spacer(minLength: 4)
+
+            // 週回顧按鈕
+            if item?.weekSummary != nil {
+                Button {
+                    isPresented = false
+                    onViewWeeklySummary?(week)
+                } label: {
+                    Text(NSLocalizedString("week_selector.review", comment: "週回顧"))
+                        .font(.system(size: 11, weight: .medium))
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(Color.blue.opacity(0.1))
+                        .foregroundColor(.blue)
+                        .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+            }
+
+            // 課表按鈕
+            if item?.weekPlan != nil {
+                Button {
+                    Task {
+                        await viewModel.loader.switchToWeek(week)
+                        isPresented = false
+                    }
+                } label: {
+                    Text(NSLocalizedString("week_selector.schedule", comment: "課表"))
+                        .font(.system(size: 11, weight: .medium))
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(Color.green.opacity(0.1))
+                        .foregroundColor(.green)
+                        .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+            }
+
+            // 已選 checkmark
+            if week == viewModel.loader.selectedWeek {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.blue)
+            }
+        }
+        .padding(.vertical, 6)
     }
 }
 
