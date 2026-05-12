@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - FreeTierBanner
 /// Persistent banner shown at the top of the training plan home when the user is
-/// on Free tier (or in 7-day grace period) AND has already generated Week 1.
+/// on Free tier (or in launch grace period) AND has already generated Week 1.
 ///
 /// AC-PAYWALL-35:
 /// - Visible: subscription_status != premium AND active training plan exists (week >= 1)
@@ -14,7 +14,7 @@ import SwiftUI
 /// Pure rendering view — zero business logic. All visibility decisions are made by
 /// the parent (TrainingPlanV2View) before rendering this component.
 struct FreeTierBanner: View {
-    /// Whether user is in the 7-day IAP grace period. Drives title text switching.
+    /// Whether user is in the IAP launch grace period. Drives title text switching.
     var inGracePeriod: Bool = false
     /// Grace period remaining days. Used only when inGracePeriod = true.
     var graceRemainingDays: Int? = nil
@@ -40,7 +40,7 @@ struct FreeTierBanner: View {
         if inGracePeriod {
             return NSLocalizedString(
                 "paywall.grace_period.banner.subtitle",
-                comment: "Subscribe in 7 days to keep AI features"
+                comment: "Subscribe to keep AI features"
             )
         }
         return NSLocalizedString(

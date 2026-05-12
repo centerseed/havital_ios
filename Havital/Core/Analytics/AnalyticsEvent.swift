@@ -39,6 +39,19 @@ enum AnalyticsEvent {
     /// Fired when a purchase fails (user-cancelled purchases excluded).
     case purchaseFail(errorType: String, offerType: String)
 
+    /// Fired when RevenueCat offerings are loaded, for non-PII IAP price diagnostics.
+    case iapPriceDiagnostic(
+        offeringId: String,
+        packageId: String,
+        productId: String,
+        localizedPrice: String,
+        currencyCode: String?,
+        localeIdentifier: String?,
+        period: String,
+        isCurrentOffering: Bool,
+        isEarlyBirdProduct: Bool
+    )
+
     // MARK: Retention
 
     /// Fired once per cold-launch when the app reaches .ready state.
@@ -90,6 +103,9 @@ enum AnalyticsEvent {
 
     /// AC-IOS-ANALYTICS-P1-13: Fired when race prediction view appears with loaded prediction data.
     case racePredictionView(predictedTime: String, distanceKm: Double)
+
+    /// Fired for PB Moment view/share/save/close. Payload must not include workout id, route, location, or PII.
+    case pbMoment(action: String, distance: String, entry: String, isFirstRecord: Bool)
 }
 
 // MARK: - Event metadata
@@ -108,6 +124,7 @@ extension AnalyticsEvent {
         case .paywallView:            return "paywall_view"
         case .paywallTapSubscribe:    return "paywall_tap_subscribe"
         case .purchaseFail:           return "purchase_fail"
+        case .iapPriceDiagnostic:     return "iap_price_diagnostic"
         case .appOpen:                return "app_open"
         case .sessionStart:           return "session_start"
 
@@ -126,6 +143,7 @@ extension AnalyticsEvent {
         case .weeklySummaryView:      return "weekly_summary_view"
         case .planOverviewView:       return "plan_overview_view"
         case .racePredictionView:     return "race_prediction_view"
+        case .pbMoment:               return "pb_moment"
         }
     }
 
@@ -174,6 +192,30 @@ extension AnalyticsEvent {
                 "error_type": errorType,
                 "offer_type": offerType
             ]
+
+        case .iapPriceDiagnostic(
+            let offeringId,
+            let packageId,
+            let productId,
+            let localizedPrice,
+            let currencyCode,
+            let localeIdentifier,
+            let period,
+            let isCurrentOffering,
+            let isEarlyBirdProduct
+        ):
+            var params: [String: Any] = [
+                "offering_id": offeringId,
+                "package_id": packageId,
+                "product_id": productId,
+                "localized_price": localizedPrice,
+                "period": period,
+                "is_current_offering": isCurrentOffering,
+                "is_early_bird_product": isEarlyBirdProduct
+            ]
+            if let currencyCode { params["currency_code"] = currencyCode }
+            if let localeIdentifier { params["locale_identifier"] = localeIdentifier }
+            return params
 
         case .appOpen(let daysSinceInstall, let subscriptionStatus):
             return [
@@ -240,6 +282,14 @@ extension AnalyticsEvent {
             return [
                 "predicted_time": predictedTime,
                 "distance_km": distanceKm
+            ]
+
+        case .pbMoment(let action, let distance, let entry, let isFirstRecord):
+            return [
+                "action": action,
+                "distance": distance,
+                "entry": entry,
+                "is_first_record": isFirstRecord
             ]
         }
     }

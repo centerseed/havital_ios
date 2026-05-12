@@ -77,7 +77,7 @@ struct WorkoutV2RowView: View {
 
                     // 配速
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(formatPace(duration: workout.duration, distanceMeters: workout.distanceMeters))
+                        Text(formatPace(workout))
                             .font(AppFont.systemScaled(size: 18, weight: .bold))
                             .foregroundColor(.primary)
                         Text(L10n.Common.pace.localized)
@@ -161,9 +161,8 @@ struct WorkoutV2RowView: View {
     // MARK: - Helper Methods
 
     /// 計算並格式化配速（秒/公里 → UnitManager 格式化）
-    private func formatPace(duration: TimeInterval, distanceMeters: Double?) -> String {
-        guard let distanceMeters = distanceMeters, distanceMeters > 0 else { return "-" }
-        let secondsPerKm = duration / distanceMeters * 1000
+    private func formatPace(_ workout: WorkoutV2) -> String {
+        guard let secondsPerKm = workout.displayPaceSecondsPerKm else { return "-" }
         return UnitManager.shared.formatPace(secondsPerKm: secondsPerKm)
     }
 

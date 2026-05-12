@@ -331,7 +331,8 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
             if forceRefresh, let oldUser = currentUser {
                 await userRepository.detectPersonalBestUpdates(
                     oldData: oldUser.personalBestV2?["race_run"],
-                    newData: output.profile.personalBestV2?["race_run"]
+                    newData: output.profile.personalBestV2?["race_run"],
+                    workoutId: nil
                 )
             }
 

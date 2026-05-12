@@ -192,7 +192,8 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
 
     func detectPersonalBestUpdates(
         oldData: [String: [PersonalBestRecordV2]]?,
-        newData: [String: [PersonalBestRecordV2]]?
+        newData: [String: [PersonalBestRecordV2]]?,
+        workoutId: String? = nil
     ) async {
         Logger.debug("[UserProfileRepo] Detecting PB updates")
 
@@ -209,6 +210,9 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
         // Compare each distance
         for (distance, newRecords) in newData {
             guard let newBest = newRecords.first else { continue }
+            if let workoutId, newBest.workoutId != workoutId {
+                continue
+            }
 
             if let oldRecords = oldData?[distance],
                let oldBest = oldRecords.first {
@@ -221,6 +225,7 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
                         newTime: newBest.completeTime,
                         improvementSeconds: improvement,
                         workoutDate: newBest.workoutDate,
+                        workoutId: newBest.workoutId,
                         detectedAt: Date()
                     ))
 
@@ -234,20 +239,34 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
                         ]
                     )
                 }
+            } else {
+                updates.append(PersonalBestUpdate(
+                    distance: distance,
+                    oldTime: nil,
+                    newTime: newBest.completeTime,
+                    improvementSeconds: 0,
+                    workoutDate: newBest.workoutDate,
+                    workoutId: newBest.workoutId,
+                    detectedAt: Date(),
+                    isFirstRecord: true
+                ))
             }
         }
 
-        // Save the best update (longest distance priority)
-        if let bestUpdate = updates.max(by: { $0.distancePriority < $1.distancePriority }) {
+        // Save the best update by largest improvement, not longest distance.
+        if var bestUpdate = updates.max(by: {
+            if $0.improvementSeconds == $1.improvementSeconds {
+                return $0.distancePriority < $1.distancePriority
+            }
+            return $0.improvementSeconds < $1.improvementSeconds
+        }) {
+            bestUpdate.relatedUpdateCount = max(updates.count - 1, 0)
             savePersonalBestUpdate(bestUpdate)
         }
     }
 
     func getPendingCelebrationUpdate() -> PersonalBestUpdate? {
-        let cache = PersonalBestCelebrationStorage.load()
-        return (!cache.hasShownCelebration && cache.lastDetectedUpdate != nil)
-            ? cache.lastDetectedUpdate
-            : nil
+        PersonalBestCelebrationStorage.getPendingCelebrationUpdate()
     }
 
     func markCelebrationAsShown() {
@@ -294,6 +313,11 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
     }
 
     private func savePersonalBestUpdate(_ update: PersonalBestUpdate) {
+        guard !PersonalBestCelebrationStorage.hasShownCelebration(for: update) else {
+            Logger.debug("[UserProfileRepo] PB Moment already shown for \(update.dedupeKey)")
+            return
+        }
+
         var cache = PersonalBestCelebrationStorage.load()
         cache.lastDetectedUpdate = update
         cache.hasShownCelebration = false

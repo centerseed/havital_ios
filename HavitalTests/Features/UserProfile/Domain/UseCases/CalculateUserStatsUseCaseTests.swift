@@ -49,7 +49,8 @@ private final class NilStatsUserProfileRepository: UserProfileRepository {
     func updatePersonalBest(distanceKm: Double, completeTime: Int) async throws { fatalError("Not used") }
     func detectPersonalBestUpdates(
         oldData: [String : [PersonalBestRecordV2]]?,
-        newData: [String : [PersonalBestRecordV2]]?
+        newData: [String : [PersonalBestRecordV2]]?,
+        workoutId: String?
     ) async { fatalError("Not used") }
 
     func getPendingCelebrationUpdate() -> PersonalBestUpdate? { fatalError("Not used") }

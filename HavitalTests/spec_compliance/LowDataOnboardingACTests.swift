@@ -48,9 +48,24 @@ final class LowDataOnboardingACTests: XCTestCase {
         XCTAssertTrue(view.contains("showRPEEditor"))
         XCTAssertTrue(view.contains("workout_detail_rpe_button"))
         XCTAssertTrue(editor.contains("rpe_editor_clear_button"))
+        XCTAssertTrue(editor.contains("rpeScaleRow"))
+        XCTAssertTrue(editor.contains("rpeSelectedLow"))
+        XCTAssertTrue(editor.contains("rpeSelectedMedium"))
+        XCTAssertTrue(editor.contains("rpeSelectedHigh"))
         XCTAssertTrue(view.contains("currentRPE"))
         XCTAssertTrue(viewModel.contains("updateRPE"))
         XCTAssertTrue(repository.contains("updateRPE"))
+    }
+
+    func test_ac_ld_23_noHrNoRPEDoesNotFabricateTSSOrAIInWorkoutDetail() throws {
+        let view = try read("Havital/Views/Training/WorkoutDetailViewV2.swift")
+
+        XCTAssertTrue(view.contains("if let tss = viewModel.workout.advancedMetrics?.tss"))
+        XCTAssertTrue(view.contains("if viewModel.workoutDetail?.dailyPlanSummary != nil || viewModel.workoutDetail?.aiSummary != nil"))
+        XCTAssertTrue(view.contains("L10n.WorkoutDetail.addRPE.localized"))
+        XCTAssertTrue(view.contains("L10n.WorkoutDetail.noHeartRateData.localized"))
+        XCTAssertFalse(view.contains("AI suggestion"))
+        XCTAssertFalse(view.contains("estimatedTSS"))
     }
 
     func test_ac_ld_26_27_dataSourceReminderIsThrottled() throws {

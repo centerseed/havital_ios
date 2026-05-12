@@ -2005,9 +2005,16 @@
 "workout.detail.add_rpe" = "Add effort";
 "workout.detail.clear_rpe" = "Clear effort";
 "workout.detail.rpe_editor_title" = "Effort";
-"workout.detail.rpe_description" = "Use 1 to 10 to record how hard this workout felt. This is a low-data helper signal and does not replace heart-rate or HRV analysis.";
+"workout.detail.rpe_description" = "Think about how the run felt: breathing, leg fatigue, and whether you could still talk. Pick the closest score. No calculation needed.";
 "workout.detail.rpe_picker_title" = "Effort";
 "workout.detail.rpe_selected_format" = "This workout: %d / 10";
+"workout.detail.rpe_scale_title" = "How to choose";
+"workout.detail.rpe_scale_low" = "1-3 Easy: you could talk and had energy left, like a recovery run or very easy jog.";
+"workout.detail.rpe_scale_medium" = "4-7 Working: breathing took focus, but the pace stayed controlled, like a normal run, long run, or tempo block.";
+"workout.detail.rpe_scale_high" = "8-10 Hard: talking was almost impossible and breathing or legs felt heavy, like intervals, a test, or a race.";
+"workout.detail.rpe_selected_low" = "Easy effort: this was closer to recovery or relaxed mileage.";
+"workout.detail.rpe_selected_medium" = "Moderate effort: this had training stimulus but stayed controlled.";
+"workout.detail.rpe_selected_high" = "Hard effort: this felt close to high intensity or race effort.";
 "workout.detail.rpe_save_error" = "Unable to save effort. Please try again later.";
 "low_data.vdot_hint" = "VDOT appears after you build up running data.";
 
@@ -2432,6 +2439,17 @@
 "performance.fitness_balance" = "Fitness Index & Training Stress Balance";
 "performance.syncing" = "Syncing...";
 "workoutsharecardsheet.close" = "Close";
+
+/* PB Moment & Share Card */
+"my_achievement.celebration.new_pb" = "New PB";
+"my_achievement.celebration.first_record" = "First standard-distance record";
+"my_achievement.celebration.other_pbs" = "%d more PBs";
+"my_achievement.celebration.share" = "Share";
+"my_achievement.celebration.save" = "Save";
+"my_achievement.celebration.save_image" = "Save image";
+"my_achievement.celebration.date" = "Date";
+"my_achievement.celebration.result" = "Result";
+"my_achievement.celebration.share_card_title" = "PB Share Card";
 "time.seconds_format" = "%ds";
 "time.minutes_format" = "%d min";
 "time.minutes_seconds_format" = "%dm %ds";
@@ -2612,7 +2630,7 @@
 
 // Grace Period Banner (AC-PAYWALL-38)
 "paywall.grace_period.banner.title_format" = "%d days free trial remaining";
-"paywall.grace_period.banner.subtitle" = "Subscribe in 7 days to keep AI features";
+"paywall.grace_period.banner.subtitle" = "Subscribe to keep AI features";
 
 // Settings Subscription Tier Indicator (AC-PAYWALL-36/40)
 "settings.subscription.tier.free_label" = "Current plan: Free Preview";

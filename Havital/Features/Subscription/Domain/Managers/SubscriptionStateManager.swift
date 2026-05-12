@@ -29,7 +29,7 @@ final class SubscriptionStateManager: ObservableObject {
         currentStatus?.enforcementEnabled ?? false
     }
 
-    /// Whether the user has access to premium features (subscribed, in Apple intro trial, or in 7-day grace period).
+    /// Whether the user has access to premium features (subscribed, in Apple intro trial, or in launch grace period).
     /// Used by S07 gating: if true, do NOT show inline upsell card.
     /// AC-PAYWALL-27: subscribers and trial users proceed without gating.
     /// AC-PAYWALL-39: grace period users also have premium access (AI features unlocked).
@@ -37,7 +37,7 @@ final class SubscriptionStateManager: ObservableObject {
         guard let status = currentStatus else { return false }
         // Apple intro trial also counts as premium access
         if status.inIntroTrial == true { return true }
-        // 7-day IAP grace period: backend-confirmed, unlocks all AI features
+        // IAP launch grace period: backend-confirmed, unlocks all AI features
         if status.inGracePeriod { return true }
         switch status.status {
         case .active, .trial, .gracePeriod, .cancelled:
@@ -47,7 +47,7 @@ final class SubscriptionStateManager: ObservableObject {
         }
     }
 
-    /// Whether the user has a real (paid) subscription — excludes 7-day grace period.
+    /// Whether the user has a real (paid) subscription — excludes launch grace period.
     /// Used by banner / tier label logic: grace period users see the upgrade prompt,
     /// not the "subscribed" UI.
     /// AC-PAYWALL-38/39: grace period → hasRealSubscription = false (banner still visible).

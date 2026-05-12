@@ -190,6 +190,8 @@ struct HavitalApp: App {
                 paywallUITestHarnessView
             } else if shouldLaunchTypographyAuditHarness {
                 typographyAuditHarnessView
+            } else if shouldLaunchPBMomentPreviewHarness {
+                pbMomentPreviewHarnessView
             } else if shouldLaunchAC37UITestHarness {
                 ac37UITestHarnessView
             } else if shouldLaunchAC38UITestHarness {
@@ -312,6 +314,7 @@ struct HavitalApp: App {
             || arguments.contains("-ui_testing_loading_cache")
             || arguments.contains("-ui_testing_workout_detail_rpe")
             || arguments.contains("-ui_testing_typography_audit")
+            || arguments.contains("-ui_testing_pb_moment_preview")
             || arguments.contains("-ui_testing_ac37")
             || arguments.contains("-ui_testing_ac38")
     }
@@ -368,6 +371,14 @@ struct HavitalApp: App {
     private var shouldLaunchTypographyAuditHarness: Bool {
         #if DEBUG
         CommandLine.arguments.contains("-ui_testing_typography_audit")
+        #else
+        false
+        #endif
+    }
+
+    private var shouldLaunchPBMomentPreviewHarness: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-ui_testing_pb_moment_preview")
         #else
         false
         #endif
@@ -438,6 +449,17 @@ struct HavitalApp: App {
     private var typographyAuditHarnessView: some View {
         #if DEBUG
         UITestTypographyAuditHostView()
+        #else
+        EmptyView()
+        #endif
+    }
+
+    @ViewBuilder
+    private var pbMomentPreviewHarnessView: some View {
+        #if DEBUG
+        NavigationStack {
+            PBMomentPreviewView()
+        }
         #else
         EmptyView()
         #endif

@@ -30,6 +30,27 @@ struct RPEEditorView: View {
                     .font(AppFont.headline())
                     .frame(maxWidth: .infinity, alignment: .center)
 
+                Text(NSLocalizedString(selectedGuideKey, comment: ""))
+                    .font(AppFont.subheadline())
+                    .foregroundColor(.primary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(NSLocalizedString(L10n.WorkoutDetail.rpeScaleTitle, comment: ""))
+                        .font(AppFont.subheadline())
+                        .fontWeight(.semibold)
+
+                    rpeScaleRow(NSLocalizedString(L10n.WorkoutDetail.rpeScaleLow, comment: ""))
+                    rpeScaleRow(NSLocalizedString(L10n.WorkoutDetail.rpeScaleMedium, comment: ""))
+                    rpeScaleRow(NSLocalizedString(L10n.WorkoutDetail.rpeScaleHigh, comment: ""))
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(8)
+
                 Spacer()
             }
             .padding()
@@ -90,6 +111,24 @@ struct RPEEditorView: View {
                 }
             }
         }
+    }
+
+    private var selectedGuideKey: String {
+        switch selectedRPE {
+        case 1...3:
+            return L10n.WorkoutDetail.rpeSelectedLow
+        case 4...7:
+            return L10n.WorkoutDetail.rpeSelectedMedium
+        default:
+            return L10n.WorkoutDetail.rpeSelectedHigh
+        }
+    }
+
+    private func rpeScaleRow(_ text: String) -> some View {
+        Text(text)
+            .font(AppFont.footnote())
+            .foregroundColor(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }
 

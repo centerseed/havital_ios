@@ -2001,9 +2001,16 @@
 "workout.detail.add_rpe" = "主観的強度を追加";
 "workout.detail.clear_rpe" = "主観的強度を削除";
 "workout.detail.rpe_editor_title" = "主観的強度";
-"workout.detail.rpe_description" = "このワークアウトのきつさを 1 から 10 で記録します。これは低データ時の補助シグナルで、心拍数や HRV 分析の代わりではありません。";
+"workout.detail.rpe_description" = "走り終えた感覚で選びます。呼吸、脚の疲れ、会話できる余裕を思い出して、一番近い点数を選んでください。計算は不要です。";
 "workout.detail.rpe_picker_title" = "主観的強度";
 "workout.detail.rpe_selected_format" = "今回のワークアウト：%d / 10";
+"workout.detail.rpe_scale_title" = "選び方";
+"workout.detail.rpe_scale_low" = "1-3 楽：会話できて余力がある。リカバリー走やかなり楽なジョグに近い感覚。";
+"workout.detail.rpe_scale_medium" = "4-7 しっかり：呼吸に集中するが、ペースは保てる。通常のラン、ロング走、テンポ区間に近い感覚。";
+"workout.detail.rpe_scale_high" = "8-10 かなりきつい：会話はほぼ無理で、呼吸や脚が重い。インターバル、テスト、レースに近い感覚。";
+"workout.detail.rpe_selected_low" = "軽め：今回は回復走や楽な距離走に近い感覚です。";
+"workout.detail.rpe_selected_medium" = "中くらい：刺激はあるが、まだコントロールできる強度です。";
+"workout.detail.rpe_selected_high" = "きつい：高強度やレースに近い感覚です。";
 "workout.detail.rpe_save_error" = "主観的強度を保存できません。後でもう一度お試しください。";
 "low_data.vdot_hint" = "ランニングデータが蓄積されると VDOT が表示されます。";
 "date.minutes_ago" = "%d分前";
@@ -2429,6 +2436,17 @@
 "performance.fitness_balance" = "フィットネス指数 & トレーニングストレスバランス";
 "performance.syncing" = "同期中...";
 "workoutsharecardsheet.close" = "閉じる";
+
+/* PB Moment & Share Card */
+"my_achievement.celebration.new_pb" = "New PB";
+"my_achievement.celebration.first_record" = "初めての標準距離記録";
+"my_achievement.celebration.other_pbs" = "他に%d件のPB";
+"my_achievement.celebration.share" = "シェア";
+"my_achievement.celebration.save" = "保存";
+"my_achievement.celebration.save_image" = "画像を保存";
+"my_achievement.celebration.date" = "日付";
+"my_achievement.celebration.result" = "記録";
+"my_achievement.celebration.share_card_title" = "PBシェアカード";
 "time.seconds_format" = "%d秒";
 "time.minutes_format" = "%d分";
 "time.minutes_seconds_format" = "%d分%d秒";
@@ -2609,7 +2627,7 @@
 
 // Grace Period Banner (AC-PAYWALL-38)
 "paywall.grace_period.banner.title_format" = "無料体験中、残り%d日";
-"paywall.grace_period.banner.subtitle" = "7日後にサブスクが必要";
+"paywall.grace_period.banner.subtitle" = "AI機能を継続するにはサブスクが必要";
 
 // Settings Subscription Tier Indicator (AC-PAYWALL-36/40)
 "settings.subscription.tier.free_label" = "現在のプラン：無料体験版";

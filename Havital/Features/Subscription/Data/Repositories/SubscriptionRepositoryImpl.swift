@@ -152,8 +152,7 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
                         Logger.debug("[SubscriptionRepositoryImpl] product=\(storeProduct.productIdentifier) no official offer")
                     }
 
-                    packages.append(
-                        SubscriptionPackageEntity(
+                    let entity = SubscriptionPackageEntity(
                         id: package.identifier,
                         productId: storeProduct.productIdentifier,
                         localizedPrice: package.localizedPriceString,
@@ -166,7 +165,12 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
                         officialOffer: officialOffer,
                         localizedTitle: storeProduct.localizedTitle
                     )
+                    trackIAPPriceDiagnostic(
+                        offeringId: offering.identifier,
+                        package: entity,
+                        isCurrentOffering: offering.identifier == offerings.current?.identifier
                     )
+                    packages.append(entity)
                 }
 
                 entities.append(
@@ -593,6 +597,25 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
             return "monthly"
         }
         return nil
+    }
+
+    private func trackIAPPriceDiagnostic(
+        offeringId: String,
+        package: SubscriptionPackageEntity,
+        isCurrentOffering: Bool
+    ) {
+        let analyticsService: AnalyticsService = DependencyContainer.shared.resolve()
+        analyticsService.track(.iapPriceDiagnostic(
+            offeringId: offeringId,
+            packageId: package.id,
+            productId: package.productId,
+            localizedPrice: package.localizedPrice,
+            currencyCode: package.currencyCode,
+            localeIdentifier: package.localeIdentifier,
+            period: package.period.rawValue,
+            isCurrentOffering: isCurrentOffering,
+            isEarlyBirdProduct: Constants.IAP.earlyBirdProductIDs.contains(package.productId)
+        ))
     }
 
     private static func iso8601String(from date: Date) -> String {

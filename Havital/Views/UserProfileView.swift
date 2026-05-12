@@ -1272,6 +1272,16 @@ struct UserProfileView: View {
                 }
             }
 
+            NavigationLink {
+                PBMomentPreviewView()
+            } label: {
+                HStack {
+                    Image(systemName: "trophy.fill")
+                        .foregroundColor(.orange)
+                    Text("PB Moment Preview")
+                }
+            }
+
             Divider()
 
             Button {

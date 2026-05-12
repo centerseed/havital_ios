@@ -35,11 +35,11 @@ struct SubscriptionStatusDTO: Codable {
     /// AC-PAYWALL-37: 用於區分「真新用戶」（從沒付費過）與「流失用戶」（曾付費已到期）。
     let subscribedAt: String?
 
-    /// 7-day grace period 結束時間（ISO8601）。nil 表示目前不在 grace period 中。
-    /// AC-PAYWALL-38/39: IAP 購買後後端給予 7 天免費體驗期，期間享有 premium-equivalent access。
+    /// Launch grace period 結束時間（ISO8601）。nil 表示目前不在 grace period 中。
+    /// AC-PAYWALL-38/39: IAP 上線後後端給予免費體驗期，期間享有 premium-equivalent access。
     let iapGraceUntil: String?
 
-    /// 是否正處於 7-day grace period 中（後端權威值）。
+    /// 是否正處於 launch grace period 中（後端權威值）。
     /// AC-PAYWALL-38/39: true 時 hasPremiumAccess = true，但 hasRealSubscription = false。
     let inGracePeriod: Bool?
 

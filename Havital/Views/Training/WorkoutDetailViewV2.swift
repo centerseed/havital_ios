@@ -19,6 +19,9 @@ struct WorkoutDetailViewV2: View {
     @State private var showShareCardSheet = false
     @State private var showPhotoPickersheet = false
     @State private var showShareMenu = false  // 分享選單狀態
+    @State private var showPBMoment = false
+    @State private var showPBShareCardSheet = false
+    @State private var selectedPBShareUpdate: PersonalBestUpdate?
 
     // 刪除相關狀態
     @State private var showDeleteConfirmation = false
@@ -157,6 +160,16 @@ struct WorkoutDetailViewV2: View {
                               systemImage: "photo.on.rectangle.angled")
                     }
 
+                    if let update = viewModel.personalBestUpdatesForWorkout.first {
+                        Button {
+                            selectedPBShareUpdate = update
+                            showPBShareCardSheet = true
+                        } label: {
+                            Label(L10n.MyAchievement.Celebration.shareCardTitle.localized,
+                                  systemImage: "trophy.fill")
+                        }
+                    }
+
                     // 分享長截圖
                     Button {
                         shareWorkout()
@@ -194,6 +207,19 @@ struct WorkoutDetailViewV2: View {
                 workout: viewModel.workout,
                 workoutDetail: viewModel.workoutDetail
             )
+        }
+        .sheet(isPresented: $showPBShareCardSheet) {
+            if let update = selectedPBShareUpdate {
+                PBMomentShareCardSheetView(
+                    update: update,
+                    onShare: {
+                        viewModel.trackPBMoment(action: "share", entry: "share_menu")
+                    },
+                    onSave: {
+                        viewModel.trackPBMoment(action: "save", entry: "share_menu")
+                    }
+                )
+            }
         }
         .sheet(isPresented: $showTrainingNotesEditor) {
             TrainingNotesEditorView(
@@ -246,6 +272,30 @@ struct WorkoutDetailViewV2: View {
                 trackWorkoutAnalysisViewIfReady()
             }
         }
+        .onChange(of: viewModel.pendingPBMomentUpdate) { _, update in
+            if update != nil {
+                showPBMoment = true
+            }
+        }
+        .overlay {
+            if showPBMoment, let update = viewModel.pendingPBMomentUpdate {
+                PersonalBestCelebrationView(
+                    update: update,
+                    onDismiss: {
+                        viewModel.trackPBMoment(action: "close")
+                        viewModel.markPBMomentShown()
+                        showPBMoment = false
+                    },
+                    onShare: {
+                        selectedPBShareUpdate = update
+                        showPBShareCardSheet = true
+                        viewModel.trackPBMoment(action: "share", entry: "post_workout")
+                    }
+                )
+                .transition(.opacity)
+                .zIndex(999)
+            }
+        }
     }
 
     // MARK: - 基本資訊卡片
@@ -267,6 +317,18 @@ struct WorkoutDetailViewV2: View {
                         .padding(.vertical, 4)
                         .background(Color.blue.opacity(0.1))
                         .cornerRadius(6)
+                }
+
+                if let pbUpdate = viewModel.personalBestUpdatesForWorkout.first {
+                    Text("\(L10n.MyAchievement.Celebration.newPB.localized) · \(RaceDistanceV2(rawValue: pbUpdate.distance)?.shortName ?? pbUpdate.distance)")
+                        .font(AppFont.caption())
+                        .fontWeight(.semibold)
+                        .foregroundColor(.orange)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.orange.opacity(0.12))
+                        .cornerRadius(6)
+                        .accessibilityIdentifier("workout_detail_pb_badge")
                 }
 
                 Spacer()

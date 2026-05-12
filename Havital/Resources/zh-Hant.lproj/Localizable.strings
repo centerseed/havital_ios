@@ -726,9 +726,16 @@
 "workout.detail.add_rpe" = "新增主觀強度";
 "workout.detail.clear_rpe" = "清除主觀強度";
 "workout.detail.rpe_editor_title" = "主觀強度";
-"workout.detail.rpe_description" = "用 1 到 10 記錄這次訓練的主觀感受。這是低資料輔助訊號，不會取代心率或 HRV 分析。";
+"workout.detail.rpe_description" = "想一下這次跑完的感覺：呼吸、腿的疲勞、還能不能聊天。選最接近的分數，不用精準計算。";
 "workout.detail.rpe_picker_title" = "主觀強度";
 "workout.detail.rpe_selected_format" = "這次訓練：%d / 10";
+"workout.detail.rpe_scale_title" = "怎麼選";
+"workout.detail.rpe_scale_low" = "1-3 輕鬆：可以聊天，跑完還有餘力，像恢復跑或很輕鬆的慢跑。";
+"workout.detail.rpe_scale_medium" = "4-7 有訓練感：需要專心呼吸，但還能穩住節奏，像一般跑、長跑或節奏段。";
+"workout.detail.rpe_scale_high" = "8-10 很吃力：幾乎不能聊天，腿或呼吸壓力很大，像間歇、測驗或比賽。";
+"workout.detail.rpe_selected_low" = "偏輕鬆：這次比較像恢復或輕鬆累積。";
+"workout.detail.rpe_selected_medium" = "中等偏累：這次有訓練刺激，但仍可控制。";
+"workout.detail.rpe_selected_high" = "很吃力：這次接近高強度或比賽感。";
 "workout.detail.rpe_save_error" = "無法儲存主觀強度，請稍後再試";
 "low_data.vdot_hint" = "累積跑步資料後會顯示 VDOT。";
 
@@ -2458,6 +2465,17 @@
 "performance.fitness_balance" = "體適能指數 & 訓練壓力平衡";
 "performance.syncing" = "同步中...";
 "workoutsharecardsheet.close" = "關閉";
+
+/* PB Moment & Share Card */
+"my_achievement.celebration.new_pb" = "New PB";
+"my_achievement.celebration.first_record" = "首次標準距離紀錄";
+"my_achievement.celebration.other_pbs" = "另有 %d 個 PB";
+"my_achievement.celebration.share" = "分享";
+"my_achievement.celebration.save" = "儲存";
+"my_achievement.celebration.save_image" = "存圖片";
+"my_achievement.celebration.date" = "日期";
+"my_achievement.celebration.result" = "成績";
+"my_achievement.celebration.share_card_title" = "PB 分享卡";
 "time.seconds_format" = "%d秒";
 "time.minutes_format" = "%d分鐘";
 "time.minutes_seconds_format" = "%d分%d秒";
@@ -2692,7 +2710,7 @@
 
 // Grace Period Banner (AC-PAYWALL-38)
 "paywall.grace_period.banner.title_format" = "免費體驗中，剩 %d 天";
-"paywall.grace_period.banner.subtitle" = "7 天後需訂閱解鎖 AI 功能";
+"paywall.grace_period.banner.subtitle" = "訂閱以保留 AI 功能";
 
 // Settings Subscription Tier Indicator (AC-PAYWALL-36/40)
 "settings.subscription.tier.free_label" = "目前方案：Free 免費體驗版";

@@ -82,8 +82,9 @@ class UnitManager: ObservableObject {
         case .metric: converted = secondsPerKm
         case .imperial: converted = secondsPerKm * 1.60934
         }
-        let minutes = Int(converted) / 60
-        let seconds = Int(converted) % 60
+        let rounded = Int(converted.rounded())
+        let minutes = rounded / 60
+        let seconds = rounded % 60
         return String(format: "%d:%02d%@", minutes, seconds, currentUnitSystem.paceSuffix)
     }
 

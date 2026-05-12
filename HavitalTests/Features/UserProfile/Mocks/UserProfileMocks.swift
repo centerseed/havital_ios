@@ -93,7 +93,7 @@ final class MockUserProfileRepository: UserProfileRepository {
         if let error = errorToThrow { throw error }
     }
 
-    func detectPersonalBestUpdates(oldData: [String: [PersonalBestRecordV2]]?, newData: [String: [PersonalBestRecordV2]]?) async {
+    func detectPersonalBestUpdates(oldData: [String: [PersonalBestRecordV2]]?, newData: [String: [PersonalBestRecordV2]]?, workoutId: String?) async {
         detectPersonalBestUpdatesCallCount += 1
     }
 

@@ -274,6 +274,20 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     
     // 檢查並上傳待處理的健身記錄 - 加強版檢查
     func checkAndUploadPendingWorkouts() async {
+        // 防止過度觸發 - 先檢查冷卻時間，避免背景喚醒時洗 Cloud Logging
+        let now = Date()
+        if let lastTime = lastUploadCheckTime,
+           now.timeIntervalSince(lastTime) < uploadCheckCooldown {
+            print("⏰ 上傳檢查冷卻中，跳過重複調用（距上次 \(Int(now.timeIntervalSince(lastTime)))秒）")
+            return
+        }
+
+        // 防止並發執行
+        guard !isCurrentlyProcessing else {
+            print("🔄 已有上傳任務在進行中，跳過重複調用")
+            return
+        }
+
         // 收集所有狀態用於診斷
         let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
         let appStateDataSource = await MainActor.run { AppStateManager.shared.userDataSource }
@@ -337,20 +351,6 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
             return
         }
 
-        // 防止過度觸發 - 檢查冷卻時間
-        let now = Date()
-        if let lastTime = lastUploadCheckTime,
-           now.timeIntervalSince(lastTime) < uploadCheckCooldown {
-            print("⏰ 上傳檢查冷卻中，跳過重複調用（距上次 \(Int(now.timeIntervalSince(lastTime)))秒）")
-            return
-        }
-
-        // 防止並發執行
-        guard !isCurrentlyProcessing else {
-            print("🔄 已有上傳任務在進行中，跳過重複調用")
-            return
-        }
-        
         print("檢查待上傳的健身記錄...")
         isCurrentlyProcessing = true
         lastUploadCheckTime = now

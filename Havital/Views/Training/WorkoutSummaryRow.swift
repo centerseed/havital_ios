@@ -98,8 +98,7 @@ struct WorkoutV2SummaryRow: View {
                         }
                     }
 
-                    if shouldShowPace, let distance = workout.distance, distance > 0 {
-                        let paceInSeconds = workout.duration / distance * 1000
+                    if shouldShowPace, let paceInSeconds = workout.displayPaceSecondsPerKm {
                         HStack(spacing: 2) {
                             Image(systemName: "speedometer")
                                 .font(AppFont.captionSmall())
@@ -177,8 +176,7 @@ struct CollapsedWorkoutV2Summary: View {
                             }
                         }
                         
-                        if shouldShowPace, let distance = workout.distance, distance > 0 {
-                            let paceInSeconds = workout.duration / distance * 1000
+                        if shouldShowPace, let paceInSeconds = workout.displayPaceSecondsPerKm {
                             HStack(spacing: 2) {
                                 Image(systemName: "speedometer")
                                     .font(AppFont.captionSmall())

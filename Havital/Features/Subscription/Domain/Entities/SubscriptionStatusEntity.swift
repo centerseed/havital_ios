@@ -45,10 +45,10 @@ struct SubscriptionStatusEntity {
     let subscribedAt: TimeInterval?
 
     /// IAP grace period 結束時間（Unix timestamp）。nil 表示不在 grace period 中。
-    /// AC-PAYWALL-38/39: IAP 購買後後端給予 7 天免費體驗期。
+    /// AC-PAYWALL-38/39: IAP 上線後後端給予免費體驗期。
     let iapGraceUntil: TimeInterval?
 
-    /// 是否正處於 7-day grace period（後端權威值）。預設 false 確保舊 backend 不回此欄位時安全。
+    /// 是否正處於 launch grace period（後端權威值）。預設 false 確保舊 backend 不回此欄位時安全。
     /// AC-PAYWALL-38/39: true 時享有 premium-equivalent access，但非真正訂閱。
     let inGracePeriod: Bool
 

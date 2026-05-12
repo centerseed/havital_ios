@@ -649,6 +649,13 @@ enum GaitAnalysisChart {
         static let rpeDescription = "workout.detail.rpe_description"
         static let rpePickerTitle = "workout.detail.rpe_picker_title"
         static let rpeSelectedFormat = "workout.detail.rpe_selected_format"
+        static let rpeScaleTitle = "workout.detail.rpe_scale_title"
+        static let rpeScaleLow = "workout.detail.rpe_scale_low"
+        static let rpeScaleMedium = "workout.detail.rpe_scale_medium"
+        static let rpeScaleHigh = "workout.detail.rpe_scale_high"
+        static let rpeSelectedLow = "workout.detail.rpe_selected_low"
+        static let rpeSelectedMedium = "workout.detail.rpe_selected_medium"
+        static let rpeSelectedHigh = "workout.detail.rpe_selected_high"
         static let rpeSaveError = "workout.detail.rpe_save_error"
         
         // Heart Rate Zones
@@ -1423,6 +1430,15 @@ extension L10n {
         enum Celebration {
             static let newRecord = "my_achievement.celebration.new_record"  // "新紀錄！"
             static let improved = "my_achievement.celebration.improved"  // "進步了"
+            static let newPB = "my_achievement.celebration.new_pb"  // "New PB"
+            static let firstRecord = "my_achievement.celebration.first_record"  // 首次標準距離紀錄
+            static let otherPBs = "my_achievement.celebration.other_pbs"  // 另有 %d 個 PB
+            static let share = "my_achievement.celebration.share"  // 分享
+            static let save = "my_achievement.celebration.save"  // 儲存
+            static let saveImage = "my_achievement.celebration.save_image"  // 存圖片
+            static let date = "my_achievement.celebration.date"  // 日期
+            static let result = "my_achievement.celebration.result"  // 成績
+            static let shareCardTitle = "my_achievement.celebration.share_card_title"  // PB 分享卡
         }
     }
 
