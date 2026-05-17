@@ -72,7 +72,11 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
 
     // MARK: - Badge Celebration State
 
-    /// In-memory dedup: badge IDs whose celebration has already been shown in this VM instance.
+    // shownBadgeIds is in-memory only — dedup does not persist across VM
+    // recreation or app restarts. A user who kills the app between viewing the
+    // celebration and re-opening the same workout detail may see the badge
+    // celebration re-trigger. Acceptable for v1; PB dedup uses
+    // PersonalBestCelebrationStorage for cross-restart suppression.
     private var shownBadgeIds: Set<String> = []
 
     /// Guards against infinite retry when achievementRepository.cachedSummary stays nil.
@@ -758,8 +762,10 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
         }
 
         let pb = pendingPBMomentUpdate
-        let workoutId = pb?.workoutId ?? workout.id
-        let newBadges = newlyUnlockedBadges(forWorkoutId: workoutId)
+        // Badges are scoped to the currently-viewed workout, independent of which
+        // workout's PB triggered the celebration. Using pb?.workoutId here would
+        // mis-attribute badges when a stale pendingPBMomentUpdate is present.
+        let newBadges = newlyUnlockedBadges(forWorkoutId: workout.id)
 
         if let pb, !newBadges.isEmpty {
             pendingCelebrationContent = .pbWithBadges(pb, newBadges)
