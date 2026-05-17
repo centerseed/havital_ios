@@ -41,7 +41,7 @@ struct CelebrationSharePreviewSheet: View {
             }
             .sheet(isPresented: $showSystemShare) {
                 if let image = renderedImage {
-                    ActivityViewControllerWrapper(activityItems: [image])
+                    ActivityViewController(activityItems: [image])
                 }
             }
         }
@@ -61,12 +61,4 @@ struct CelebrationSharePreviewSheet: View {
         .background(RoundedRectangle(cornerRadius: 10).fill(Color(UIColor.tertiarySystemBackground)))
         .padding(.horizontal)
     }
-}
-
-private struct ActivityViewControllerWrapper: UIViewControllerRepresentable {
-    let activityItems: [Any]
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
-    }
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }

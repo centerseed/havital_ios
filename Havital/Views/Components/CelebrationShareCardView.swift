@@ -251,6 +251,7 @@ struct CelebrationShareCardView: View {
 
 extension CelebrationShareCardView {
     /// Renders a 1080×1350 PNG image (4:5 ratio, ×4 scale).
+    @MainActor
     static func render(data: ShareData) -> UIImage? {
         let view = CelebrationShareCardView(data: data)
         let renderer = ImageRenderer(content: view)
