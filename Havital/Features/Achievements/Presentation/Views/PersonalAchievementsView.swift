@@ -163,8 +163,8 @@ struct PersonalAchievementsView: View {
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
 
-                if let unlockedAt = badge.unlockedAt, !unlockedAt.isEmpty {
-                    Text(L10n.Achievements.Hero.unlockedAt.localized(with: unlockedAt))
+                if let unlockedAt = badge.unlockedAt, let formatted = Self.formatUnlockedAt(unlockedAt) {
+                    Text(L10n.Achievements.Hero.unlockedAt.localized(with: formatted))
                         .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
@@ -474,6 +474,27 @@ struct PersonalAchievementsView: View {
         }
     }
 
+    private static let iso8601Formatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    private static let iso8601FormatterNoFraction: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
+    /// 把 `unlockedAt`（ISO8601 UTC 或 yyyy-MM-dd）格式化為使用者時區的短日期。
+    static func formatUnlockedAt(_ raw: String) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return nil }
+        if let date = iso8601Formatter.date(from: trimmed) ?? iso8601FormatterNoFraction.date(from: trimmed) {
+            return DateFormatterHelper.formatter(dateFormat: "yyyy/MM/dd").string(from: date)
+        }
+        return String(trimmed.prefix(10))
+    }
 }
 
 private struct AchievementBadgeLibraryView: View {
