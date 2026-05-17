@@ -154,6 +154,13 @@ final class DependencyContainer {
         Logger.debug("[DI] Target module dependencies registered")
     }
 
+    /// 註冊 Race 模組依賴
+    /// 調用 Race 模組的完整註冊流程
+    func registerRaceDependencies() {
+        registerRaceModule()
+        Logger.debug("[DI] Race module dependencies registered")
+    }
+
     /// 註冊 Auth 模組依賴
     /// 調用 Authentication 模組的完整註冊流程
     func registerAuthDependencies() {

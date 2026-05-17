@@ -42,7 +42,16 @@ final class SelectDisplayBadgeUseCaseTests: XCTestCase {
     func test_returnsFirstBadge_whenAllLockedAndNoInProgress() {
         let badges = [makeBadge(id: "LOCK1", status: .locked), makeBadge(id: "LOCK2", status: .locked)]
         let result = sut.execute(pinnedBadgeId: nil, allBadges: badges)
-        XCTAssertNotNil(result)
+        XCTAssertEqual(result?.badgeId, "LOCK1")
+    }
+
+    func test_pinnedButDegradedStatus_fallsThroughToAlgorithm() {
+        let badges = [
+            makeBadge(id: "DEGRADED-PIN", status: .locked, progress: 0.99),
+            makeBadge(id: "FALLBACK", status: .inProgress, progress: 0.30),
+        ]
+        let result = sut.execute(pinnedBadgeId: "DEGRADED-PIN", allBadges: badges)
+        XCTAssertEqual(result?.badgeId, "FALLBACK", "Pinned badge with status=.locked must not win — should fall through to algorithm picking the best in-progress badge")
     }
 
     // MARK: - Helpers

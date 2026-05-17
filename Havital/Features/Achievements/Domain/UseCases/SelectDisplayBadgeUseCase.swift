@@ -5,7 +5,8 @@ import Foundation
 struct SelectDisplayBadgeUseCase {
     func execute(pinnedBadgeId: String?, allBadges: [AchievementBadge]) -> AchievementBadge? {
         if let pinnedBadgeId,
-           let pinned = allBadges.first(where: { $0.badgeId == pinnedBadgeId }) {
+           let pinned = allBadges.first(where: { $0.badgeId == pinnedBadgeId }),
+           pinned.status == .unlocked || pinned.status == .inProgress {
             return pinned
         }
 
