@@ -21,6 +21,7 @@ struct PBMomentPreviewView: View {
     @State private var scenario: Scenario = .newPB
     @State private var showMoment = false
     @State private var showShareCard = false
+    @State private var presentingShareData: CelebrationShareCardView.ShareData?
 
     private var update: PersonalBestUpdate {
         switch scenario {
@@ -111,12 +112,15 @@ struct PBMomentPreviewView: View {
                     onDismiss: { showMoment = false },
                     onShare: {
                         showMoment = false
-                        showShareCard = true
+                        presentingShareData = CelebrationContent.pbOnly(update).toShareData()
                     }
                 )
                 .accessibilityIdentifier("PBMomentPreview_Celebration")
                 .transition(.opacity)
             }
+        }
+        .sheet(item: $presentingShareData) { shareData in
+            CelebrationSharePreviewSheet(data: shareData)
         }
     }
 }

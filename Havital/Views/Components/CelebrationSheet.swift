@@ -23,6 +23,30 @@ enum CelebrationContent: Equatable {
     }
 }
 
+// MARK: - CelebrationContent → ShareData helper
+
+extension CelebrationContent {
+    /// Build a CelebrationShareCardView.ShareData from this content.
+    /// - Parameter today: Override for the current date (used in tests); defaults to Date().
+    func toShareData(today: Date = Date()) -> CelebrationShareCardView.ShareData {
+        let date: String
+        if let pb = self.pb {
+            date = pb.workoutDate
+        } else {
+            let df = DateFormatter()
+            df.dateFormat = "yyyy-MM-dd"
+            df.locale = Locale(identifier: "en_US_POSIX")
+            df.timeZone = TimeZone.current
+            date = df.string(from: today)
+        }
+        return CelebrationShareCardView.ShareData(
+            content: self,
+            optionalFields: [],
+            date: date
+        )
+    }
+}
+
 // MARK: - Celebration Sheet
 
 struct CelebrationSheet: View {

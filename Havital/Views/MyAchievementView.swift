@@ -107,6 +107,7 @@ struct MyAchievementView: View {
     // Personal Best v2 慶祝動畫相關
     @State private var showCelebration = false
     @State private var celebrationUpdate: PersonalBestUpdate?
+    @State private var presentingShareData: CelebrationShareCardView.ShareData?
 
     // 從快取讀取當前用戶資料（Clean Architecture）
     private var cachedUser: User? {
@@ -235,6 +236,9 @@ struct MyAchievementView: View {
                         onDismiss: {
                             showCelebration = false
                             PersonalBestCelebrationStorage.markCelebrationAsShown()
+                        },
+                        onShare: {
+                            presentingShareData = CelebrationContent.pbOnly(update).toShareData()
                         }
                     )
                     .transition(.opacity)
@@ -261,9 +265,12 @@ struct MyAchievementView: View {
                     ActivityViewController(activityItems: [shareImage])
                 }
             }
+            .sheet(item: $presentingShareData) { shareData in
+                CelebrationSharePreviewSheet(data: shareData)
+            }
         }
     }
-    
+
     private func shareWeeklyReview() {
         isGeneratingScreenshot = true
         

@@ -64,15 +64,8 @@ final class PBMomentACTests: XCTestCase {
     }
 
     func test_ac_pbm_06_momentContainsRequiredFields() throws {
-        let celebration = try read("Havital/Views/Components/PersonalBestCelebrationView.swift")
-
-        assertContains(celebration, "newPB")
-        assertContains(celebration, "RaceDistanceV2(rawValue: update.distance)")
-        assertContains(celebration, "formatTime(update.newTime)")
-        assertContains(celebration, "formatImprovement(update.improvementSeconds)")
-        assertContains(celebration, "update.workoutDate")
-
-        // Task 8: live path is now CelebrationSheet — assert required fields there too
+        // Task 12: PersonalBestCelebrationView struct removed (legacy modal replaced by CelebrationSheet).
+        // Assertions now target CelebrationSheet.swift only.
         let celebrationSheet = try read("Havital/Views/Components/CelebrationSheet.swift")
         assertContains(celebrationSheet, "newPB")
         XCTAssertTrue(

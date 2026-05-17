@@ -19,7 +19,8 @@ struct CelebrationShareCardView: View {
 
     // MARK: - ShareData
 
-    struct ShareData {
+    struct ShareData: Identifiable {
+        let id = UUID()
         let content: CelebrationContent
         let optionalFields: [ShareField]
         let date: String  // YYYY-MM-DD

@@ -22,6 +22,7 @@ struct WorkoutDetailViewV2: View {
     @State private var showPBMoment = false
     @State private var showPBShareCardSheet = false
     @State private var selectedPBShareUpdate: PersonalBestUpdate?
+    @State private var presentingShareData: CelebrationShareCardView.ShareData?
 
     // 刪除相關狀態
     @State private var showDeleteConfirmation = false
@@ -221,6 +222,9 @@ struct WorkoutDetailViewV2: View {
                 )
             }
         }
+        .sheet(item: $presentingShareData) { shareData in
+            CelebrationSharePreviewSheet(data: shareData)
+        }
         .sheet(isPresented: $showTrainingNotesEditor) {
             TrainingNotesEditorView(
                 workoutId: viewModel.workout.id,
@@ -287,11 +291,8 @@ struct WorkoutDetailViewV2: View {
                         showPBMoment = false
                     },
                     onShare: {
-                        if let pb = content.pb {
-                            selectedPBShareUpdate = pb
-                        }
-                        showPBShareCardSheet = true
                         viewModel.trackPBMoment(action: "share", entry: "post_workout")
+                        presentingShareData = content.toShareData()
                     }
                 )
                 .transition(.opacity)

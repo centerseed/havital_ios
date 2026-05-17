@@ -47,6 +47,10 @@ struct PersonalAchievementsView: View {
                         onTogglePin: { badgeId in viewModel.togglePin(badgeId: badgeId) }
                     )
                 }
+                // TODO(Task-13): Migrate AchievementSharePreviewSheet → CelebrationSharePreviewSheet.
+                // AchievementShareable carries materialType/titleKey/summaryKey/publicFields from
+                // backend that don't map cleanly to AchievementBadge (needed for
+                // CelebrationContent.badgesOnly). Keeping this path until Task-13 defines the bridge.
                 .sheet(item: $viewModel.selectedShareable, onDismiss: {
                     viewModel.closeShare()
                 }) { shareable in
@@ -574,6 +578,14 @@ private struct AchievementBadgeTile: View {
                     .lineLimit(2)
                     .frame(maxWidth: .infinity, minHeight: 34, alignment: .top)
 
+                if badge.status == .inProgress, let progress = badge.progress,
+                   let current = progress.current, let target = progress.target, target > 0 {
+                    ProgressView(value: min(current / target, 1))
+                        .progressViewStyle(.linear)
+                        .tint(chapterAccentColor)
+                        .frame(height: 4)
+                }
+
                 Text(statusText)
                     .font(AppFont.captionSmall())
                     .foregroundColor(statusColor)
@@ -584,8 +596,16 @@ private struct AchievementBadgeTile: View {
             .padding(.horizontal, 6)
             .background(Color(UIColor.secondarySystemGroupedBackground))
             .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .strokeBorder(chapterAccentColor.opacity(0.35), lineWidth: 1.5)
+            )
         }
         .buttonStyle(.plain)
+    }
+
+    private var chapterAccentColor: Color {
+        AchievementChapterTheme.primaryColor(for: badge.chapter)
     }
 
     private var statusText: String {
@@ -600,10 +620,10 @@ private struct AchievementBadgeTile: View {
 
     private var statusColor: Color {
         switch badge.status {
-        case .unlocked: return .blue
-        case .inProgress: return .green
-        case .insufficientData: return .secondary
-        case .locked, .unknown: return .gray
+        case .unlocked:          return PacerizTokens.color.brand.primary
+        case .inProgress:        return PacerizTokens.color.semantic.success
+        case .insufficientData:  return Color.secondary
+        case .locked, .unknown:  return Color.gray
         }
     }
 }
