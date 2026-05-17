@@ -298,6 +298,7 @@ struct CelebrationSheet: View {
             // badgesOnly: hero for first badge, smaller for rest
             let remaining = Array(badges.dropFirst())
 
+
             VStack(alignment: .center, spacing: 14) {
                 // Hero badge
                 VStack(spacing: 8) {
@@ -350,6 +351,9 @@ struct CelebrationSheet: View {
                     .frame(maxHeight: 150)
                 }
             }
+        } else {
+            let _ = { assertionFailure("CelebrationSheet: .badgesOnly constructed with empty badges array") }()
+            EmptyView()
         }
     }
 
@@ -379,18 +383,11 @@ struct CelebrationSheet: View {
     // MARK: - Helpers
 
     private func formatTime(_ seconds: Int) -> String {
-        let hours = seconds / 3600
-        let minutes = (seconds % 3600) / 60
-        let secs = seconds % 60
-        return hours > 0
-            ? String(format: "%d:%02d:%02d", hours, minutes, secs)
-            : String(format: "%d:%02d", minutes, secs)
+        TimeFormatting.formatTime(seconds)
     }
 
     private func formatImprovement(_ seconds: Int) -> String {
-        let minutes = seconds / 60
-        let secs = seconds % 60
-        return minutes > 0 ? String(format: "%d:%02d", minutes, secs) : "\(secs)s"
+        TimeFormatting.formatImprovement(seconds)
     }
 }
 

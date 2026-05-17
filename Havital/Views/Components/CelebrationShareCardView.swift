@@ -119,6 +119,9 @@ struct CelebrationShareCardView: View {
         case .badgesOnly(let badges):
             if let badge = badges.first {
                 badgeHeroBig(badge)
+            } else {
+                let _ = { assertionFailure("CelebrationShareCardView: .badgesOnly constructed with empty badges array") }()
+                EmptyView()
             }
         case .pbWithBadges(let pb, let badges):
             pbHero(pb, timeFontSize: 36)
@@ -233,18 +236,11 @@ struct CelebrationShareCardView: View {
     // MARK: - Time Formatting Helpers
 
     private func formatTime(_ seconds: Int) -> String {
-        let hours = seconds / 3600
-        let minutes = (seconds % 3600) / 60
-        let secs = seconds % 60
-        return hours > 0
-            ? String(format: "%d:%02d:%02d", hours, minutes, secs)
-            : String(format: "%d:%02d", minutes, secs)
+        TimeFormatting.formatTime(seconds)
     }
 
     private func formatImprovement(_ seconds: Int) -> String {
-        let minutes = seconds / 60
-        let secs = seconds % 60
-        return minutes > 0 ? String(format: "%d:%02d", minutes, secs) : "\(secs)s"
+        TimeFormatting.formatImprovement(seconds)
     }
 }
 
