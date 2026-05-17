@@ -1,11 +1,20 @@
 import Foundation
+import Combine
 
 final class AchievementRepositoryImpl: AchievementRepository {
     private let dataSource: AchievementRemoteDataSource
     private(set) var cachedSummary: AchievementSummary?
 
+    private let pinnedBadgeSubject: CurrentValueSubject<String?, Never>
+    private let selectDisplayBadge = SelectDisplayBadgeUseCase()
+
+    var pinnedBadgeIdDidChange: AnyPublisher<String?, Never> {
+        pinnedBadgeSubject.eraseToAnyPublisher()
+    }
+
     init(dataSource: AchievementRemoteDataSource) {
         self.dataSource = dataSource
+        self.pinnedBadgeSubject = CurrentValueSubject(PinnedBadgeStorage.load())
     }
 
     func fetchSummary(forceRefresh: Bool = false) async throws -> AchievementSummary {
@@ -61,6 +70,38 @@ final class AchievementRepositoryImpl: AchievementRepository {
             Logger.error("[AchievementRepository] ackBackfill failed: \(error.localizedDescription)")
             throw AchievementError.ackBackfillFailed(error.localizedDescription)
         }
+    }
+
+    func getPinnedBadgeId() -> String? {
+        PinnedBadgeStorage.load()
+    }
+
+    func setPinnedBadgeId(_ badgeId: String?) {
+        PinnedBadgeStorage.save(badgeId)
+        pinnedBadgeSubject.send(badgeId)
+    }
+
+    func getDisplayBadge() -> AchievementBadge? {
+        let allBadges = allBadgesFromCache()
+        return selectDisplayBadge.execute(
+            pinnedBadgeId: PinnedBadgeStorage.load(),
+            allBadges: allBadges
+        )
+    }
+
+    func getInProgressBadges() -> [AchievementBadge] {
+        allBadgesFromCache().filter { $0.status == .inProgress }
+    }
+
+    func findBadge(byId badgeId: String) -> AchievementBadge? {
+        allBadgesFromCache().first { $0.badgeId == badgeId }
+    }
+
+    // MARK: - Private
+
+    private func allBadgesFromCache() -> [AchievementBadge] {
+        guard let summary = cachedSummary else { return [] }
+        return summary.badgeGroups.flatMap { $0.badges }
     }
 }
 

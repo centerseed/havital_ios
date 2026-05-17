@@ -1,5 +1,5 @@
 import XCTest
-@testable import Havital
+@testable import paceriz_dev
 
 final class PinnedBadgeStorageTests: XCTestCase {
     override func setUp() {

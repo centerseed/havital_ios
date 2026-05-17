@@ -1,5 +1,5 @@
 import XCTest
-@testable import Havital
+@testable import paceriz_dev
 
 final class SelectDisplayBadgeUseCaseTests: XCTestCase {
     private let sut = SelectDisplayBadgeUseCase()
@@ -9,7 +9,7 @@ final class SelectDisplayBadgeUseCaseTests: XCTestCase {
     }
 
     func test_returnsPinnedBadge_whenPinnedExists() {
-        let badges = [makeBadge(id: "A"), makeBadge(id: "B", status: .inProgress)]
+        let badges = [makeBadge(id: "A", status: .unlocked), makeBadge(id: "B", status: .inProgress)]
         let result = sut.execute(pinnedBadgeId: "A", allBadges: badges)
         XCTAssertEqual(result?.badgeId, "A")
     }

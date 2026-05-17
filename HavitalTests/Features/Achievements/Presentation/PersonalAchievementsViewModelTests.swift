@@ -1,4 +1,5 @@
 import XCTest
+import Combine
 @testable import paceriz_dev
 
 @MainActor
@@ -82,6 +83,9 @@ private final class MockAchievementRepository: AchievementRepository {
     private(set) var didAckBackfill = false
     private(set) var cachedSummary: AchievementSummary?
 
+    private let pinnedSubject = CurrentValueSubject<String?, Never>(nil)
+    var pinnedBadgeIdDidChange: AnyPublisher<String?, Never> { pinnedSubject.eraseToAnyPublisher() }
+
     init(summary: AchievementSummary) {
         self.summaryResult = .success(summary)
         self.cachedSummary = summary
@@ -99,6 +103,14 @@ private final class MockAchievementRepository: AchievementRepository {
 
     func ackBackfill() async throws {
         didAckBackfill = true
+    }
+
+    func getPinnedBadgeId() -> String? { nil }
+    func setPinnedBadgeId(_ badgeId: String?) { pinnedSubject.send(badgeId) }
+    func getDisplayBadge() -> AchievementBadge? { cachedSummary?.badgeGroups.flatMap { $0.badges }.first }
+    func getInProgressBadges() -> [AchievementBadge] { [] }
+    func findBadge(byId badgeId: String) -> AchievementBadge? {
+        cachedSummary?.badgeGroups.flatMap { $0.badges }.first { $0.badgeId == badgeId }
     }
 }
 

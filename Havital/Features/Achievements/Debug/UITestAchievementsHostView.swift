@@ -1,6 +1,7 @@
 #if DEBUG
 import SwiftUI
 import Foundation
+import Combine
 
 struct UITestAchievementsHostView: View {
     var body: some View {
@@ -16,6 +17,9 @@ struct UITestAchievementsHostView: View {
 private final class UITestAchievementRepository: AchievementRepository {
     var cachedSummary: AchievementSummary?
 
+    private let pinnedSubject = CurrentValueSubject<String?, Never>(nil)
+    var pinnedBadgeIdDidChange: AnyPublisher<String?, Never> { pinnedSubject.eraseToAnyPublisher() }
+
     init() {
         cachedSummary = Self.summary
     }
@@ -27,6 +31,20 @@ private final class UITestAchievementRepository: AchievementRepository {
     func markFeedbackSeen(feedbackId: String) async throws {}
 
     func ackBackfill() async throws {}
+
+    func getPinnedBadgeId() -> String? { nil }
+
+    func setPinnedBadgeId(_ badgeId: String?) { pinnedSubject.send(badgeId) }
+
+    func getDisplayBadge() -> AchievementBadge? {
+        cachedSummary?.badgeGroups.flatMap { $0.badges }.first
+    }
+
+    func getInProgressBadges() -> [AchievementBadge] { [] }
+
+    func findBadge(byId badgeId: String) -> AchievementBadge? {
+        cachedSummary?.badgeGroups.flatMap { $0.badges }.first { $0.badgeId == badgeId }
+    }
 
     private static let summary: AchievementSummary = {
         let badges = [
