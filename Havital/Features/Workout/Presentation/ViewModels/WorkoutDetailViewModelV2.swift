@@ -68,6 +68,15 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     let workout: WorkoutV2
     private let repository: WorkoutRepository
     private let userProfileRepository: UserProfileRepository
+    private let achievementRepository: AchievementRepository
+
+    // MARK: - Badge Celebration State
+
+    /// In-memory dedup: badge IDs whose celebration has already been shown in this VM instance.
+    private var shownBadgeIds: Set<String> = []
+
+    /// Guards against infinite retry when achievementRepository.cachedSummary stays nil.
+    private var summaryFetchAttempted = false
 
     // MARK: - TaskManageable
 
@@ -78,17 +87,26 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     /// ✅ Clean Architecture: 建構子注入 Repository Protocol（不依賴 Singleton）
     init(workout: WorkoutV2,
          repository: WorkoutRepository,
-         userProfileRepository: UserProfileRepository? = nil) {
+         userProfileRepository: UserProfileRepository? = nil,
+         achievementRepository: AchievementRepository? = nil) {
         self.workout = workout
         self.repository = repository
+        let container = DependencyContainer.shared
         if let userProfileRepository {
             self.userProfileRepository = userProfileRepository
         } else {
-            let container = DependencyContainer.shared
             if !container.isRegistered(UserProfileRepository.self) {
                 container.registerUserProfileModule()
             }
             self.userProfileRepository = container.resolve()
+        }
+        if let achievementRepository {
+            self.achievementRepository = achievementRepository
+        } else {
+            if !container.isRegistered(AchievementRepository.self) {
+                container.registerAchievementModule()
+            }
+            self.achievementRepository = container.resolve()
         }
 
         Logger.debug("[WorkoutDetailViewModelV2] 初始化完成 - workout: \(workout.id)")
@@ -712,22 +730,61 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
 
     @MainActor
     func markPBMomentShown() {
-        guard let update = pendingPBMomentUpdate else { return }
-        PersonalBestCelebrationStorage.markCelebrationAsShown(for: update)
+        if let update = pendingPBMomentUpdate {
+            PersonalBestCelebrationStorage.markCelebrationAsShown(for: update)
+        }
+        // Mark any badges that were part of the shown celebration so they don't repeat.
+        pendingCelebrationContent?.badges.forEach { shownBadgeIds.insert($0.badgeId) }
         pendingPBMomentUpdate = nil
-        deriveCelebrationContent()
+        pendingCelebrationContent = nil
     }
 
     // MARK: - Celebration Content Derivation
 
     @MainActor
     private func deriveCelebrationContent() {
-        if let pb = pendingPBMomentUpdate {
+        // If cache is absent, kick off a one-shot fetch then retry.
+        // summaryFetchAttempted guards against infinite retry on persistent failure.
+        if achievementRepository.cachedSummary == nil && !summaryFetchAttempted {
+            summaryFetchAttempted = true
+            Task { [weak self] in
+                guard let self else { return }
+                _ = try? await achievementRepository.fetchSummary(forceRefresh: false)
+                await MainActor.run {
+                    self.deriveCelebrationContent()
+                }
+            }
+            return
+        }
+
+        let pb = pendingPBMomentUpdate
+        let workoutId = pb?.workoutId ?? workout.id
+        let newBadges = newlyUnlockedBadges(forWorkoutId: workoutId)
+
+        if let pb, !newBadges.isEmpty {
+            pendingCelebrationContent = .pbWithBadges(pb, newBadges)
+        } else if let pb {
             pendingCelebrationContent = .pbOnly(pb)
+        } else if !newBadges.isEmpty {
+            pendingCelebrationContent = .badgesOnly(newBadges)
         } else {
             pendingCelebrationContent = nil
         }
-        // Task 9 will extend this with badge integration
+    }
+
+    /// Returns badges that are unlocked for `workoutId` and have not yet been shown in this VM.
+    @MainActor
+    private func newlyUnlockedBadges(forWorkoutId workoutId: String) -> [AchievementBadge] {
+        let allBadges = achievementRepository.cachedSummary?.badgeGroups.flatMap { $0.badges } ?? []
+        return allBadges.filter { badge in
+            guard badge.status == .unlocked else { return false }
+            guard !shownBadgeIds.contains(badge.badgeId) else { return false }
+            guard let sourceParams = badge.sourceRef?.summaryParams else { return false }
+            if case .string(let s) = sourceParams["workout_id"], s == workoutId {
+                return true
+            }
+            return false
+        }
     }
 
     func trackPBMoment(action: String, entry: String = "workout_detail") {
