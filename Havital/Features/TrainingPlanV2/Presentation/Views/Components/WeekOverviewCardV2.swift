@@ -8,7 +8,6 @@ struct WeekOverviewCardV2: View {
     let plan: WeeklyPlanV2
     @State private var showWeekTargetDetail = false
     @State private var showTrainingCalendar = false
-    @State private var showBadgeDetailFor: AchievementBadge?
 
     // ✅ 從 intensityTotalMinutes 提取強度目標（分鐘）
     private var lowIntensityTarget: Int {
@@ -47,62 +46,54 @@ struct WeekOverviewCardV2: View {
             }
 
             // 上半部：圓形進度 + 可點擊項目
-            HStack(alignment: .top, spacing: 16) {
-                // 左側：圓形週跑量進度（中心顯示徽章 artwork 或 fallback km）
+            HStack(spacing: 0) {
+                Spacer()
+
+                // 左側：圓形週跑量進度
                 ZStack {
                     Circle()
                         .stroke(Color.gray.opacity(0.2), lineWidth: 9)
-                        .frame(width: 110, height: 110)
+                        .frame(width: 90, height: 90)
 
                     Circle()
                         .trim(from: 0, to: weekProgress)
                         .stroke(
-                            PacerizTokens.color.brand.primary,
+                            Color.blue,
                             style: StrokeStyle(lineWidth: 9, lineCap: .round)
                         )
-                        .frame(width: 110, height: 110)
+                        .frame(width: 90, height: 90)
                         .rotationEffect(.degrees(-90))
 
-                    if let badge = viewModel.displayBadge {
-                        Image(AchievementBadgeArtwork.assetName(for: badge))
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 72, height: 72)
-                            .clipShape(Circle())
-                            .accessibilityIdentifier("v2.weekly.display_badge.\(badge.badgeId)")
-                    } else {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                    }
-                }
-                .contentShape(Circle())
-                .accessibilityIdentifier("v2.weekly.badge_ring")
-                .onTapGesture {
-                    if let badge = viewModel.displayBadge {
-                        showBadgeDetailFor = badge
-                    }
-                }
+                    VStack(spacing: 2) {
+                        HStack(spacing: 1) {
+                            Text(String(format: "%.0f", unitManager.convertedDistance(viewModel.loader.currentWeekDistance)))
+                                .font(AppFont.systemScaled(size: 17, weight: .bold))
+                                .foregroundColor(.primary)
+                                .minimumScaleFactor(0.8)
+                                .lineLimit(1)
 
-                // 右側：km 數字 + 本週目標 + 訓練日曆按鈕
-                VStack(alignment: .leading, spacing: 10) {
-                    // km 數字移到右欄頂
-                    HStack(spacing: 2) {
-                        Text(String(format: "%.0f", unitManager.convertedDistance(viewModel.loader.currentWeekDistance)))
-                            .font(AppFont.systemScaled(size: 16, weight: .bold))
-                            .foregroundColor(.primary)
-                        Text("/")
-                            .font(AppFont.systemScaled(size: 14))
-                            .foregroundColor(.secondary)
-                        Text(String(format: "%.0f", unitManager.convertedDistance(plan.totalDistance)))
-                            .font(AppFont.systemScaled(size: 14))
-                            .foregroundColor(.secondary)
+                            Text("/")
+                                .font(AppFont.systemScaled(size: 13))
+                                .foregroundColor(.secondary)
+
+                            Text(String(format: "%.0f", unitManager.convertedDistance(plan.totalDistance)))
+                                .font(AppFont.systemScaled(size: 13))
+                                .foregroundColor(.secondary)
+                                .minimumScaleFactor(0.8)
+                                .lineLimit(1)
+                        }
+
                         Text(unitManager.currentUnitSystem.distanceSuffix)
-                            .font(AppFont.systemScaled(size: 14))
+                            .font(AppFont.caption2())
                             .foregroundColor(.secondary)
                     }
-                    .padding(.leading, 2)
-                    .accessibilityIdentifier("v2.weekly.km_label")
+                    .offset(y: 3)
+                }
 
+                Spacer()
+
+                // 右側：本週目標和訓練日曆按鈕
+                VStack(alignment: .leading, spacing: 10) {
                     Button(action: {
                         showWeekTargetDetail = true
                     }) {
@@ -151,7 +142,7 @@ struct WeekOverviewCardV2: View {
                     .buttonStyle(PlainButtonStyle())
                 }
 
-                Spacer(minLength: 0)
+                Spacer()
             }
 
             // 下半部：強度分布（使用從 plan.plan 提取的目標值）
@@ -205,13 +196,6 @@ struct WeekOverviewCardV2: View {
             NavigationView {
                 TrainingCalendarView()
             }
-        }
-        .sheet(item: $showBadgeDetailFor) { badge in
-            AchievementDetailView(
-                badge: badge,
-                shareable: nil,
-                onShare: { _ in }
-            )
         }
     }
 }

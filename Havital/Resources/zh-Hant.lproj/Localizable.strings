@@ -2878,6 +2878,12 @@
 "achievements.story.recent_unlock" = "最近解鎖";
 "achievements.story.no_recent_unlock" = "第一個里程碑會顯示在這裡。";
 "achievements.story.next_badge" = "下一個篇章";
+"achievements.hero.title" = "代表徽章";
+"achievements.hero.explanation" = "從已解鎖徽章中選一個當作你目前的代表。";
+"achievements.hero.picker_title" = "選一個代表徽章";
+"achievements.hero.picker_empty" = "完成第一場跑步來解鎖你的第一個徽章。";
+"achievements.hero.unlocked_at" = "%@ 解鎖";
+"achievements.hero.no_selection" = "尚未選擇代表徽章";
 "achievements.empty.title" = "開始留下你的訓練故事";
 "achievements.empty.start" = "完成並同步一筆跑步紀錄後，Paceriz 會開始整理你的成就。";
 "achievements.backfill.ready" = "你的 Paceriz 訓練履歷已整理好。";
@@ -2924,6 +2930,7 @@
 "achievements.detail.historical" = "這個成就是由歷史訓練資料整理而來。";
 "achievements.detail.unlocked_at" = "解鎖於 %@";
 "achievements.detail.criteria_unavailable" = "解鎖條件暫無資料";
+"achievements.detail.criteria" = "如何解鎖";
 "achievements.status.unlocked" = "已解鎖";
 "achievements.status.in_progress" = "累積中";
 "achievements.status.locked" = "待累積";

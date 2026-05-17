@@ -2832,6 +2832,12 @@
 "achievements.story.recent_unlock" = "最近";
 "achievements.story.no_recent_unlock" = "最初のマイルストーンがここに表示されます。";
 "achievements.story.next_badge" = "次";
+"achievements.hero.title" = "代表バッジ";
+"achievements.hero.explanation" = "解除済みのバッジから今の代表を 1 つ選んでください。";
+"achievements.hero.picker_title" = "代表バッジを選ぶ";
+"achievements.hero.picker_empty" = "最初のランを完了すると、最初のバッジが解除されます。";
+"achievements.hero.unlocked_at" = "%@ 解除";
+"achievements.hero.no_selection" = "まだ代表バッジを選んでいません";
 "achievements.empty.title" = "トレーニングストーリーを始める";
 "achievements.empty.start" = "ランを完了して同期すると、Paceriz が実績を整理し始めます。";
 "achievements.backfill.ready" = "Paceriz のトレーニング履歴を整理しました。";
@@ -2878,6 +2884,7 @@
 "achievements.detail.historical" = "この実績は過去のトレーニングデータから整理されました。";
 "achievements.detail.unlocked_at" = "解除日 %@";
 "achievements.detail.criteria_unavailable" = "解除条件は現在利用できません";
+"achievements.detail.criteria" = "解除方法";
 "achievements.status.unlocked" = "解除済み";
 "achievements.status.in_progress" = "進行中";
 "achievements.status.locked" = "これから";

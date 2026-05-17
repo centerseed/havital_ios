@@ -2835,6 +2835,12 @@
 "achievements.story.recent_unlock" = "Recent";
 "achievements.story.no_recent_unlock" = "Your first milestone will appear here.";
 "achievements.story.next_badge" = "Next";
+"achievements.hero.title" = "Featured Badge";
+"achievements.hero.explanation" = "Pick one of your unlocked badges to represent you right now.";
+"achievements.hero.picker_title" = "Choose a featured badge";
+"achievements.hero.picker_empty" = "Finish your first run to unlock your first badge.";
+"achievements.hero.unlocked_at" = "Unlocked %@";
+"achievements.hero.no_selection" = "No featured badge yet";
 "achievements.empty.title" = "Start your training story";
 "achievements.empty.start" = "Complete and sync a run. Paceriz will start organizing your achievements.";
 "achievements.backfill.ready" = "Your Paceriz training history is ready.";
@@ -2881,6 +2887,7 @@
 "achievements.detail.historical" = "This achievement was organized from historical training data.";
 "achievements.detail.unlocked_at" = "Unlocked on %@";
 "achievements.detail.criteria_unavailable" = "Unlock criteria unavailable";
+"achievements.detail.criteria" = "How to Earn";
 "achievements.status.unlocked" = "Unlocked";
 "achievements.status.in_progress" = "In progress";
 "achievements.status.locked" = "To build";

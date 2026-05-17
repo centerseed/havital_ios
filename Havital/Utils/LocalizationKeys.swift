@@ -1460,6 +1460,15 @@ extension L10n {
             static let nextBadge = "achievements.story.next_badge"
         }
 
+        enum Hero {
+            static let title = "achievements.hero.title"
+            static let explanation = "achievements.hero.explanation"
+            static let pickerTitle = "achievements.hero.picker_title"
+            static let pickerEmpty = "achievements.hero.picker_empty"
+            static let unlockedAt = "achievements.hero.unlocked_at"
+            static let noSelection = "achievements.hero.no_selection"
+        }
+
         enum Empty {
             static let title = "achievements.empty.title"
             static let start = "achievements.empty.start"
@@ -1531,6 +1540,7 @@ extension L10n {
             static let historical = "achievements.detail.historical"
             static let unlockedAt = "achievements.detail.unlocked_at"
             static let criteriaUnavailable = "achievements.detail.criteria_unavailable"
+            static let criteria = "achievements.detail.criteria"
         }
 
         enum Status {

@@ -13,13 +13,6 @@ struct PersonalAchievementsView: View {
         cachedUser?.personalBestV2?["race_run"]
     }
 
-    private var personalBestCount: Int {
-        if let records = viewModel.summary?.pbOverview?.records, !records.isEmpty {
-            return records.count
-        }
-        return cachedPersonalBestData?.count ?? 0
-    }
-
     @MainActor
     init(viewModel: PersonalAchievementsViewModel? = nil) {
         _viewModel = StateObject(wrappedValue: viewModel ?? PersonalAchievementsViewModel())
@@ -103,16 +96,12 @@ struct PersonalAchievementsView: View {
                     backfillBanner
                 }
 
-                achievementOverviewCard
+                badgeHeroCard
 
                 if let pbOverview = viewModel.summary?.pbOverview, !pbOverview.records.isEmpty {
                     pbRecordsCard(pbOverview)
                 } else {
                     PersonalBestCardView(personalBestData: cachedPersonalBestData)
-                }
-
-                if let lifetimeStats = viewModel.summary?.lifetimeStats, lifetimeStats.hasAnyValue {
-                    lifetimeStatsCard(lifetimeStats)
                 }
 
                 badgeLibraryEntry
@@ -121,91 +110,128 @@ struct PersonalAchievementsView: View {
         }
     }
 
-    private var achievementOverviewCard: some View {
+    private var allBadges: [AchievementBadge] {
+        viewModel.summary?.badgeGroups.flatMap(\.badges) ?? []
+    }
+
+    private var unlockedBadges: [AchievementBadge] {
+        allBadges
+            .filter { $0.status == .unlocked }
+            .sorted { ($0.unlockedAt ?? "") > ($1.unlockedAt ?? "") }
+    }
+
+    private var selectedHeroBadge: AchievementBadge? {
+        SelectDisplayBadgeUseCase().execute(
+            pinnedBadgeId: viewModel.pinnedBadgeId,
+            allBadges: allBadges
+        )
+    }
+
+    private var badgeHeroCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             SectionTitleWithInfo(
-                title: L10n.Achievements.Story.title.localized,
-                explanation: L10n.Achievements.Story.explanation.localized
+                title: L10n.Achievements.Hero.title.localized,
+                explanation: L10n.Achievements.Hero.explanation.localized
             )
 
-            if let story = viewModel.summary?.storySummary {
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
-                    DataItem(
-                        title: L10n.Achievements.Status.unlocked.localized,
-                        value: "\(story.unlockedCount)/\(story.totalCount)",
-                        icon: "trophy"
-                    )
-                    DataItem(
-                        title: L10n.Achievements.PB.title.localized,
-                        value: "\(personalBestCount)",
-                        icon: "crown"
-                    )
-                    DataItem(
-                        title: L10n.Achievements.Stats.completedWeeks.localized,
-                        value: "\(viewModel.summary?.lifetimeStats.completedWeeks ?? 0)",
-                        icon: "checkmark.circle"
-                    )
-                }
+            heroBadgeDisplay
 
-                VStack(spacing: 8) {
-                    storySnapshotRow(
-                        title: L10n.Achievements.Story.recentUnlock.localized,
-                        snapshot: story.recentUnlock,
-                        fallback: L10n.Achievements.Story.noRecentUnlock.localized
-                    )
-                    storySnapshotRow(
-                        title: L10n.Achievements.Story.nextBadge.localized,
-                        snapshot: story.nextBadge,
-                        fallback: story.emptyStateKey?.localizedOrFallback(default: L10n.Achievements.Empty.start.localized) ?? L10n.Achievements.Empty.start.localized
-                    )
-                }
-            }
+            heroPickerRow
         }
         .padding()
         .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
         .padding(.horizontal)
-        .accessibilityIdentifier("Achievements_OverviewCard")
+        .accessibilityIdentifier("Achievements_HeroCard")
     }
 
-    private func storySnapshotRow(title: String, snapshot: AchievementBadgeSnapshot?, fallback: String) -> some View {
-        HStack(alignment: .center, spacing: 10) {
-            if let snapshot {
+    @ViewBuilder
+    private var heroBadgeDisplay: some View {
+        if let badge = selectedHeroBadge {
+            VStack(spacing: 10) {
                 AchievementBadgeImage(
-                    assetName: AchievementBadgeArtwork.assetName(for: snapshot),
-                    status: snapshot.status ?? .unlocked,
-                    size: 44
+                    assetName: AchievementBadgeArtwork.assetName(for: badge),
+                    status: badge.status,
+                    size: 140
                 )
-            } else {
-                Image(systemName: "flag.checkered")
-                    .font(AppFont.title3())
-                    .foregroundColor(.secondary)
-                    .frame(width: 44, height: 44)
-                    .background(Color(UIColor.secondarySystemGroupedBackground))
-                    .clipShape(Circle())
-            }
+                .accessibilityIdentifier("Achievements_HeroBadge")
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(AppFont.caption())
-                    .foregroundColor(.secondary)
-                Text(snapshot?.nameKey.localizedOrFallback(default: fallback) ?? fallback)
-                    .font(AppFont.bodyMedium())
+                Text(badge.nameKey.localizedOrFallback(default: L10n.Achievements.Badges.badge.localized))
+                    .font(AppFont.title3())
                     .foregroundColor(.primary)
+                    .multilineTextAlignment(.center)
                     .lineLimit(2)
-                if let storyKey = snapshot?.storyKey {
-                    Text(storyKey.localizedOrFallback(default: ""))
+
+                if let unlockedAt = badge.unlockedAt, !unlockedAt.isEmpty {
+                    Text(L10n.Achievements.Hero.unlockedAt.localized(with: unlockedAt))
                         .font(AppFont.caption())
                         .foregroundColor(.secondary)
-                        .lineLimit(2)
-                    }
                 }
-            Spacer()
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+        } else {
+            VStack(spacing: 10) {
+                Image(systemName: "rosette")
+                    .font(.system(size: 64))
+                    .foregroundColor(.secondary)
+                Text(L10n.Achievements.Hero.noSelection.localized)
+                    .font(AppFont.bodyMedium())
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 24)
         }
-        .padding(10)
-        .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(8)
+    }
+
+    @ViewBuilder
+    private var heroPickerRow: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(L10n.Achievements.Hero.pickerTitle.localized)
+                .font(AppFont.caption())
+                .foregroundColor(.secondary)
+
+            if unlockedBadges.isEmpty {
+                Text(L10n.Achievements.Hero.pickerEmpty.localized)
+                    .font(AppFont.bodySmall())
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 12) {
+                        ForEach(unlockedBadges, id: \.badgeId) { badge in
+                            heroPickerThumbnail(badge)
+                        }
+                    }
+                    .padding(.horizontal, 2)
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+    }
+
+    private func heroPickerThumbnail(_ badge: AchievementBadge) -> some View {
+        let isSelected = selectedHeroBadge?.badgeId == badge.badgeId
+        return Button {
+            viewModel.togglePin(badgeId: badge.badgeId)
+        } label: {
+            AchievementBadgeImage(
+                assetName: AchievementBadgeArtwork.assetName(for: badge),
+                status: badge.status,
+                size: 56
+            )
+            .padding(4)
+            .overlay(
+                Circle()
+                    .strokeBorder(
+                        isSelected ? PacerizTokens.color.brand.primary : Color.clear,
+                        lineWidth: 2.5
+                    )
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(isSelected ? "Achievements_HeroPicker_Selected" : "Achievements_HeroPicker_Item")
     }
 
     private func pbRecordsCard(_ overview: AchievementPBOverview) -> some View {
@@ -291,57 +317,6 @@ struct PersonalAchievementsView: View {
     private func distanceValue(from text: String) -> Double? {
         let numericText = text.filter { $0.isNumber || $0 == "." }
         return Double(numericText)
-    }
-
-    private func lifetimeStatsCard(_ stats: AchievementLifetimeStats) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionTitleWithInfo(
-                title: L10n.Achievements.Stats.title.localized,
-                explanation: L10n.Achievements.Stats.explanation.localized
-            )
-
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 16) {
-                DataItem(
-                    title: L10n.Achievements.Stats.totalRuns.localized,
-                    value: "\(stats.totalRuns)",
-                    icon: "figure.run"
-                )
-                DataItem(
-                    title: L10n.Achievements.Stats.totalDistance.localized,
-                    value: L10n.Achievements.Stats.kilometers.localized(with: distanceText(stats.totalDistanceKm)),
-                    icon: "location"
-                )
-                DataItem(
-                    title: L10n.Achievements.Stats.completedWeeks.localized,
-                    value: "\(stats.completedWeeks)",
-                    icon: "checkmark.circle"
-                )
-                DataItem(
-                    title: L10n.Achievements.Stats.longestRun.localized,
-                    value: L10n.Achievements.Stats.kilometers.localized(with: distanceText(stats.longestRunKm)),
-                    icon: "arrow.up.right"
-                )
-            }
-
-            if let firstWorkoutDate = stats.firstWorkoutDate {
-                HStack {
-                    Text(L10n.Achievements.Stats.firstWorkout.localized)
-                        .font(AppFont.caption())
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Text(firstWorkoutDate)
-                        .font(AppFont.caption())
-                        .foregroundColor(.primary)
-                }
-                .padding(.top, 2)
-            }
-        }
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
-        .padding(.horizontal)
-        .accessibilityIdentifier("Achievements_LifetimeStatsCard")
     }
 
     private var badgeLibraryEntry: some View {
@@ -499,13 +474,6 @@ struct PersonalAchievementsView: View {
         }
     }
 
-    private func distanceText(_ kilometers: Double) -> String {
-        let rounded = (kilometers * 10).rounded() / 10
-        if rounded.truncatingRemainder(dividingBy: 1) == 0 {
-            return "\(Int(rounded))"
-        }
-        return String(format: "%.1f", rounded)
-    }
 }
 
 private struct AchievementBadgeLibraryView: View {
