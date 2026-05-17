@@ -16,7 +16,7 @@ enum AchievementBadgeArtwork {
     private static func fallbackAssetName(for badgeId: String) -> String {
         switch badgeId {
         case "BADGE-START-FIRST-RUN":
-            return "achievement_badge_start_first_run_marker"
+            return "achievement_badge_start_first_run_road"
         case "BADGE-START-PLAN-STARTED":
             return "achievement_badge_start_plan_started_calendar"
         case "BADGE-START-FIRST-WEEK":
