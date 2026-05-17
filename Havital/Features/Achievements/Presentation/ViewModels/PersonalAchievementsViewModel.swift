@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 @MainActor
 final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
@@ -15,11 +16,13 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
     @Published private(set) var isAcknowledgingBackfill = false
     @Published var selectedBadge: AchievementBadge?
     @Published var selectedShareable: AchievementShareable?
+    @Published private(set) var pinnedBadgeId: String?
 
     nonisolated let taskRegistry = TaskRegistry()
 
     private let repository: AchievementRepository
     private let analyticsService: AnalyticsService
+    private var cancellables = Set<AnyCancellable>()
     private var hasTrackedTabOpen = false
 
     init(
@@ -36,10 +39,27 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
             self.repository = container.resolve() as AchievementRepository
         }
         self.analyticsService = analyticsService ?? (container.resolve() as AnalyticsService)
+        observePinnedBadge()
     }
 
     deinit {
         cancelAllTasks()
+    }
+
+    // MARK: - Pin
+
+    private func observePinnedBadge() {
+        pinnedBadgeId = repository.getPinnedBadgeId()
+        repository.pinnedBadgeIdDidChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] id in self?.pinnedBadgeId = id }
+            .store(in: &cancellables)
+    }
+
+    func togglePin(badgeId: String) {
+        let current = repository.getPinnedBadgeId()
+        let newValue: String? = (current == badgeId) ? nil : badgeId
+        repository.setPinnedBadgeId(newValue)
     }
 
     var showBackfillBanner: Bool {

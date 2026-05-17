@@ -2880,6 +2880,8 @@
 "achievements.chapter.prove" = "成果突破";
 "achievements.chapter.identity" = "ランナー像";
 "achievements.chapter.unknown" = "その他";
+"achievements.action.pin" = "ホームに固定";
+"achievements.action.unpin" = "ホームから外す";
 "achievements.error.load_failed" = "実績を読み込めません";
 "achievements.insight.completed_weeks" = "Paceriz で %@ 週のトレーニングを完了しました。";
 "achievements.insight.smart_adjustments" = "%@ 回のスマートな調整を受け入れました。";

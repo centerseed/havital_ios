@@ -2883,6 +2883,8 @@
 "achievements.chapter.prove" = "Breakthroughs";
 "achievements.chapter.identity" = "Runner Identity";
 "achievements.chapter.unknown" = "Other";
+"achievements.action.pin" = "Pin to home";
+"achievements.action.unpin" = "Unpin from home";
 "achievements.error.load_failed" = "Unable to load achievements";
 "achievements.insight.completed_weeks" = "You have completed %@ training weeks with Paceriz.";
 "achievements.insight.smart_adjustments" = "You accepted %@ smart training adjustments.";

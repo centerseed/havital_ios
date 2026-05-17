@@ -1541,6 +1541,11 @@ extension L10n {
         enum Error {
             static let loadFailed = "achievements.error.load_failed"
         }
+
+        enum Action {
+            static let pin = "achievements.action.pin"
+            static let unpin = "achievements.action.unpin"
+        }
     }
 
     // MARK: - Debug Tools (Optional - Low Priority)

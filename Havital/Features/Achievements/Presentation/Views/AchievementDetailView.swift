@@ -5,6 +5,12 @@ struct AchievementDetailView: View {
     let badge: AchievementBadge
     let shareable: AchievementShareable?
     let onShare: (AchievementShareable) -> Void
+    var pinnedBadgeId: String? = nil
+    var onTogglePin: ((String) -> Void)? = nil
+
+    private var isPinned: Bool {
+        pinnedBadgeId == badge.badgeId
+    }
 
     var body: some View {
         NavigationStack {
@@ -20,6 +26,23 @@ struct AchievementDetailView: View {
                     }
                     if badge.historicalBackfill {
                         historicalSection
+                    }
+                    if onTogglePin != nil {
+                        Button {
+                            onTogglePin?(badge.badgeId)
+                        } label: {
+                            Label(
+                                isPinned
+                                    ? L10n.Achievements.Action.unpin.localized
+                                    : L10n.Achievements.Action.pin.localized,
+                                systemImage: isPinned ? "pin.fill" : "pin"
+                            )
+                            .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("achievement.pin_button")
+                        .padding(.horizontal)
+                        .padding(.top, 4)
                     }
                     if let shareable {
                         Button {

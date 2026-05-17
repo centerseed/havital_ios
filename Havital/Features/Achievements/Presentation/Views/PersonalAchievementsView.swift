@@ -42,7 +42,9 @@ struct PersonalAchievementsView: View {
                         onShare: { shareable in
                             viewModel.selectedBadge = nil
                             viewModel.selectShareable(shareable, entry: "badge_detail")
-                        }
+                        },
+                        pinnedBadgeId: viewModel.pinnedBadgeId,
+                        onTogglePin: { badgeId in viewModel.togglePin(badgeId: badgeId) }
                     )
                 }
                 .sheet(item: $viewModel.selectedShareable, onDismiss: {

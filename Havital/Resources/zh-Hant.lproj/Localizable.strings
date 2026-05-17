@@ -2926,6 +2926,8 @@
 "achievements.chapter.prove" = "成果突破";
 "achievements.chapter.identity" = "跑者身份";
 "achievements.chapter.unknown" = "其他";
+"achievements.action.pin" = "Pin 到首頁";
+"achievements.action.unpin" = "從首頁取消";
 "achievements.error.load_failed" = "無法載入成就";
 "achievements.insight.completed_weeks" = "你已在 Paceriz 完成 %@ 個訓練週。";
 "achievements.insight.smart_adjustments" = "你曾接受 %@ 次聰明訓練調整。";
