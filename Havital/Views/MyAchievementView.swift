@@ -230,10 +230,13 @@ struct MyAchievementView: View {
             }
             .overlay {
                 if showCelebration, let update = celebrationUpdate {
-                    PersonalBestCelebrationView(update: update) {
-                        showCelebration = false
-                        PersonalBestCelebrationStorage.markCelebrationAsShown()
-                    }
+                    CelebrationSheet(
+                        content: .pbOnly(update),
+                        onDismiss: {
+                            showCelebration = false
+                            PersonalBestCelebrationStorage.markCelebrationAsShown()
+                        }
+                    )
                     .transition(.opacity)
                     .zIndex(999)
                 }

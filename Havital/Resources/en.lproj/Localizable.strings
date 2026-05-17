@@ -2452,6 +2452,9 @@
 "my_achievement.celebration.date" = "Date";
 "my_achievement.celebration.result" = "Result";
 "my_achievement.celebration.share_card_title" = "PB Share Card";
+"my_achievement.celebration.new_badge" = "New Badge";
+"my_achievement.celebration.new_pb_and_badge" = "New PB + Badge";
+"my_achievement.celebration.also_unlocked" = "Also unlocked";
 "time.seconds_format" = "%ds";
 "time.minutes_format" = "%d min";
 "time.minutes_seconds_format" = "%dm %ds";
@@ -3019,3 +3022,44 @@
 "achievements.reason.badge_id_consistent_runner" = "Consistent training has become part of your runner identity.";
 "achievements.reason.badge_id_smart_trainer" = "You are building both training consistency and adjustment skill.";
 "achievements.reason.badge_id_pb_hunter" = "Recent training has turned into a new PB record.";
+
+// MARK: - Badge Criteria (how to unlock, 35 badges × en)
+// Chapter: Start
+"achievements.badge.start.first_run.criteria" = "Complete and sync your first run to unlock this badge.";
+"achievements.badge.start.plan_started.criteria" = "Start your first Paceriz training plan to unlock this badge.";
+"achievements.badge.start.first_week.criteria" = "Complete your first training week by hitting the weekly mileage goal.";
+"achievements.badge.start.first_long_run.criteria" = "Complete and sync a run of 12 km or more.";
+"achievements.badge.start.first_recovery.criteria" = "Complete a recovery run scheduled in your Paceriz plan.";
+// Chapter: Build
+"achievements.badge.build.showing_up.criteria" = "Accumulate 2 weeks of training records in Paceriz, including partial weeks.";
+"achievements.badge.build.routine_builder.criteria" = "Complete 4 training weeks where weekly mileage meets the plan target.";
+"achievements.badge.build.eight_week_block.criteria" = "Complete 8 weeks of training without exceeding a safe mileage range.";
+"achievements.badge.build.long_run_done.criteria" = "Complete the long run (12 km or more) scheduled in your plan this week.";
+"achievements.badge.build.weekly_goal.criteria" = "Complete this week's training goal by meeting the weekly mileage target.";
+"achievements.badge.build.volume_base.criteria" = "Complete 4 weeks of training without exceeding a safe mileage range.";
+"achievements.badge.build.plan_finisher.criteria" = "Finish a Paceriz training plan from start to end.";
+// Chapter: Adapt
+"achievements.badge.adapt.recovery_earned.criteria" = "Complete a plan-scheduled recovery week with reduced volume and lower intensity.";
+"achievements.badge.adapt.load_balanced.criteria" = "Complete a training week while staying within a safe mileage range — hitting the goal without overloading.";
+"achievements.badge.adapt.heat_adjusted.criteria" = "Paceriz detects high heat and adjusts your pace. Complete the run at the adjusted effort to earn this automatically.";
+"achievements.badge.adapt.comeback.criteria" = "Return to training after a break. Paceriz detects that you resumed at a safe, controlled pace and awards this automatically.";
+"achievements.badge.adapt.rest_week.criteria" = "Respect a recovery week Paceriz schedules — complete it without forcing extra intensity.";
+"achievements.badge.adapt.smart_skip.criteria" = "Paceriz identifies a session that is not safe to force. Skip or adjust it and this badge is awarded automatically.";
+"achievements.badge.adapt.pace_patience.criteria" = "Paceriz detects that you held an easy or recovery pace in the correct zone during a scheduled easy run. Awarded automatically.";
+// Chapter: Prove
+"achievements.badge.prove.new_pb.criteria" = "Set a new personal best at any standard distance: 5K, 10K, half marathon, or marathon.";
+"achievements.badge.prove.first_5k.criteria" = "Complete and sync a run of 5 km or more.";
+"achievements.badge.prove.first_10k.criteria" = "Complete and sync a run of 10 km or more.";
+"achievements.badge.prove.first_half.criteria" = "Complete and sync a run of 21 km or more (half-marathon distance).";
+"achievements.badge.prove.first_marathon.criteria" = "Complete and sync a run of 42 km or more (marathon distance).";
+"achievements.badge.prove.distance_breakthrough.criteria" = "Keep running and push your longest single run a little further each time.";
+"achievements.badge.prove.race_ready.criteria" = "Build consistent training until Paceriz's overall readiness score reaches 90% or above with no high-risk flags.";
+"achievements.badge.prove.goal_completed.criteria" = "Complete the goal you set in Paceriz — finish your target distance or achieve your race time.";
+// Chapter: Identity
+"achievements.badge.identity.5k_runner.criteria" = "Complete a run of 5 km or more and accumulate at least 2 weeks of training records.";
+"achievements.badge.identity.10k_runner.criteria" = "Complete a run of 10 km or more and accumulate at least 4 weeks of training records.";
+"achievements.badge.identity.half_marathoner.criteria" = "Complete a run of 21 km or more (half-marathon distance).";
+"achievements.badge.identity.marathon_builder.criteria" = "Complete a run of 20 km or more and accumulate at least 8 weeks of training records.";
+"achievements.badge.identity.consistent_runner.criteria" = "Over 8 or more training weeks, keep at least 6 of those weeks within a safe mileage range.";
+"achievements.badge.identity.smart_trainer.criteria" = "Complete 4 training weeks and include at least one recovery week or one heat-adjusted run recommended by Paceriz.";
+"achievements.badge.identity.pb_hunter.criteria" = "Set a personal best at two or more standard distances within 30 days.";

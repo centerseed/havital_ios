@@ -58,8 +58,9 @@ final class PBMomentACTests: XCTestCase {
         let view = try read("Havital/Views/Training/WorkoutDetailViewV2.swift")
 
         assertContains(viewModel, "pendingPBMomentUpdate = userProfileRepository.getPendingCelebrationUpdate()")
-        assertContains(view, ".onChange(of: viewModel.pendingPBMomentUpdate)")
-        assertContains(view, "PersonalBestCelebrationView(")
+        // Task 8: migrated to pendingCelebrationContent + CelebrationSheet
+        assertContains(view, ".onChange(of: viewModel.pendingCelebrationContent)")
+        assertContains(view, "CelebrationSheet(")
     }
 
     func test_ac_pbm_06_momentContainsRequiredFields() throws {

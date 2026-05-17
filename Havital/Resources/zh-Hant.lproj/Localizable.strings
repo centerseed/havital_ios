@@ -2478,6 +2478,9 @@
 "my_achievement.celebration.date" = "日期";
 "my_achievement.celebration.result" = "成績";
 "my_achievement.celebration.share_card_title" = "PB 分享卡";
+"my_achievement.celebration.new_badge" = "新徽章";
+"my_achievement.celebration.new_pb_and_badge" = "新 PB + 徽章";
+"my_achievement.celebration.also_unlocked" = "同時解鎖";
 "time.seconds_format" = "%d秒";
 "time.minutes_format" = "%d分鐘";
 "time.minutes_seconds_format" = "%d分%d秒";
@@ -3006,17 +3009,6 @@
 "achievements.field.chapter" = "篇章";
 "achievements.field.date" = "日期";
 "achievements.field.result" = "成果";
-"badge.start.first_run.name" = "First Run";
-"badge.start.first_run.story" = "你在 Paceriz 訓練故事中的第一筆可信跑步。";
-"badge.start.first_run.reason" = "完成並同步第一筆有效跑步紀錄。";
-"badge.build.weekly_goal.name" = "Weekly Goal";
-"badge.build.weekly_goal.story" = "你把一個訓練週踏實留下來。";
-"badge.adapt.heat_adjusted.name" = "Heat Adjusted";
-"badge.adapt.heat_adjusted.story" = "因應狀態與環境調整，也是訓練的一部分。";
-"badge.prove.new_pb.name" = "New PB";
-"badge.prove.new_pb.story" = "累積的訓練在一筆可信 PB 中被看見。";
-"badge.identity.smart_trainer.name" = "Smart Trainer";
-"badge.identity.smart_trainer.story" = "你正在建立能長久持續的訓練身份。";
 "achievement.source.weekly_summary" = "週摘要";
 "achievement.source.pb" = "個人最佳";
 "achievement.source.workout" = "訓練摘要";
@@ -3062,3 +3054,44 @@
 "achievements.reason.badge_id_consistent_runner" = "穩定訓練已成為你的跑者特徵。";
 "achievements.reason.badge_id_smart_trainer" = "同時累積訓練與調整能力。";
 "achievements.reason.badge_id_pb_hunter" = "近期訓練已轉化成新的 PB 紀錄。";
+
+// MARK: - Badge Criteria（如何解鎖，35 badges × zh-Hant）
+// Chapter: Start
+"achievements.badge.start.first_run.criteria" = "完成並同步你的第一次跑步紀錄，即可解鎖。";
+"achievements.badge.start.plan_started.criteria" = "在 Paceriz 啟動你的第一份訓練課表，即可解鎖。";
+"achievements.badge.start.first_week.criteria" = "完成第一個訓練週，讓本週跑量達到課表目標，即可解鎖。";
+"achievements.badge.start.first_long_run.criteria" = "完成一次 12 公里以上的跑步並同步紀錄，即可解鎖。";
+"achievements.badge.start.first_recovery.criteria" = "完成一次課表中標記為恢復跑的輕鬆訓練，即可解鎖。";
+// Chapter: Build
+"achievements.badge.build.showing_up.criteria" = "在 Paceriz 累積 2 週訓練紀錄（含未完成週），即可解鎖。";
+"achievements.badge.build.routine_builder.criteria" = "完成 4 個達標訓練週，每週跑量達到課表目標，即可解鎖。";
+"achievements.badge.build.eight_week_block.criteria" = "在安全的跑量範圍內不超量完成 8 週訓練，即可解鎖。";
+"achievements.badge.build.long_run_done.criteria" = "完成本週課表排定的長跑（12 公里以上），即可解鎖。";
+"achievements.badge.build.weekly_goal.criteria" = "完成這週設定的訓練目標，週跑量達標，即可解鎖。";
+"achievements.badge.build.volume_base.criteria" = "在安全的跑量範圍內不超量完成 4 週訓練，即可解鎖。";
+"achievements.badge.build.plan_finisher.criteria" = "把一份 Paceriz 訓練課表從頭到尾走完，即可解鎖。";
+// Chapter: Adapt
+"achievements.badge.adapt.recovery_earned.criteria" = "完成一個課表安排的恢復訓練週，跑量降低、強度放鬆，即可解鎖。";
+"achievements.badge.adapt.load_balanced.criteria" = "在完成訓練週的同時維持在安全跑量範圍內，達標且不超量，即可解鎖。";
+"achievements.badge.adapt.heat_adjusted.criteria" = "Paceriz 偵測到高溫天氣並調整配速後，依照調整後配速完成跑步，即可自動獲得。";
+"achievements.badge.adapt.comeback.criteria" = "停訓一段時間後重新開始，Paceriz 偵測到你以安全節奏回歸訓練，即可自動獲得。";
+"achievements.badge.adapt.rest_week.criteria" = "在 Paceriz 安排降量恢復週時，完成該週而不是硬追強度，即可解鎖。";
+"achievements.badge.adapt.smart_skip.criteria" = "Paceriz 判定不適合硬上的情況下，選擇跳過或調整訓練，由系統自動識別後獲得。";
+"achievements.badge.adapt.pace_patience.criteria" = "Paceriz 偵測到你在課表輕鬆跑或恢復跑中維持在正確配速區間，即可自動獲得。";
+// Chapter: Prove
+"achievements.badge.prove.new_pb.criteria" = "在任何標準距離（5K、10K、半馬、全馬）創下新的個人最佳，即可解鎖。";
+"achievements.badge.prove.first_5k.criteria" = "完成一次 5 公里以上的跑步並同步紀錄，即可解鎖。";
+"achievements.badge.prove.first_10k.criteria" = "完成一次 10 公里以上的跑步並同步紀錄，即可解鎖。";
+"achievements.badge.prove.first_half.criteria" = "完成一次 21 公里以上（半馬距離）的跑步並同步紀錄，即可解鎖。";
+"achievements.badge.prove.first_marathon.criteria" = "完成一次 42 公里以上（全馬距離）的跑步並同步紀錄，即可解鎖。";
+"achievements.badge.prove.distance_breakthrough.criteria" = "持續跑步，每次把自己最長的單次距離往前推進，即可解鎖。";
+"achievements.badge.prove.race_ready.criteria" = "透過穩定訓練讓 Paceriz 整體訓練準備度評分達 90% 以上，且無高風險警示，即可解鎖。";
+"achievements.badge.prove.goal_completed.criteria" = "按照在 Paceriz 設定的目標完成訓練，如完跑目標距離或達成比賽成績，即可解鎖。";
+// Chapter: Identity
+"achievements.badge.identity.5k_runner.criteria" = "完成一次 5 公里以上的跑步，並累積至少 2 週訓練紀錄，即可解鎖。";
+"achievements.badge.identity.10k_runner.criteria" = "完成一次 10 公里以上的跑步，並累積至少 4 週訓練紀錄，即可解鎖。";
+"achievements.badge.identity.half_marathoner.criteria" = "完成一次 21 公里以上（半馬距離）的跑步，即可解鎖。";
+"achievements.badge.identity.marathon_builder.criteria" = "完成一次 20 公里以上的跑步，並累積至少 8 週訓練紀錄，即可解鎖。";
+"achievements.badge.identity.consistent_runner.criteria" = "在 8 週以上訓練期間，有至少 6 週維持在安全的跑量範圍內，即可解鎖。";
+"achievements.badge.identity.smart_trainer.criteria" = "完成 4 個訓練週，並在過程中至少完成一個恢復週或依照 Paceriz 高溫建議調整配速，即可解鎖。";
+"achievements.badge.identity.pb_hunter.criteria" = "在 30 天內，在兩個以上的標準距離各創下一次個人最佳，即可解鎖。";

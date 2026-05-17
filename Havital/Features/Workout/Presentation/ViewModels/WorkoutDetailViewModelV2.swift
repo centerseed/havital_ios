@@ -61,6 +61,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
 
     @Published private(set) var personalBestUpdatesForWorkout: [PersonalBestUpdate] = []
     @Published private(set) var pendingPBMomentUpdate: PersonalBestUpdate?
+    @Published private(set) var pendingCelebrationContent: CelebrationContent?
 
     // MARK: - Dependencies
 
@@ -713,6 +714,18 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
         guard let update = pendingPBMomentUpdate else { return }
         PersonalBestCelebrationStorage.markCelebrationAsShown(for: update)
         pendingPBMomentUpdate = nil
+        deriveCelebrationContent()
+    }
+
+    // MARK: - Celebration Content Derivation
+
+    private func deriveCelebrationContent() {
+        if let pb = pendingPBMomentUpdate {
+            pendingCelebrationContent = .pbOnly(pb)
+        } else {
+            pendingCelebrationContent = nil
+        }
+        // Task 9 will extend this with badge integration
     }
 
     func trackPBMoment(action: String, entry: String = "workout_detail") {
@@ -893,6 +906,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
                 workoutId: workout.id
             )
             pendingPBMomentUpdate = userProfileRepository.getPendingCelebrationUpdate()
+            deriveCelebrationContent()
 
             if pendingPBMomentUpdate != nil {
                 trackPBMoment(action: "view")

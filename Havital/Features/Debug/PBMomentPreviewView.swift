@@ -106,8 +106,8 @@ struct PBMomentPreviewView: View {
             }
 
             if showMoment {
-                PersonalBestCelebrationView(
-                    update: update,
+                CelebrationSheet(
+                    content: .pbOnly(update),
                     onDismiss: { showMoment = false },
                     onShare: {
                         showMoment = false

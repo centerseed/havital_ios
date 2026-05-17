@@ -1440,6 +1440,9 @@ extension L10n {
             static let date = "my_achievement.celebration.date"  // 日期
             static let result = "my_achievement.celebration.result"  // 成績
             static let shareCardTitle = "my_achievement.celebration.share_card_title"  // PB 分享卡
+            static let newBadge = "my_achievement.celebration.new_badge"  // 新徽章
+            static let newPBAndBadge = "my_achievement.celebration.new_pb_and_badge"  // 新 PB + 徽章
+            static let alsoUnlocked = "my_achievement.celebration.also_unlocked"  // 同時解鎖
         }
     }
 

@@ -272,22 +272,24 @@ struct WorkoutDetailViewV2: View {
                 trackWorkoutAnalysisViewIfReady()
             }
         }
-        .onChange(of: viewModel.pendingPBMomentUpdate) { _, update in
-            if update != nil {
+        .onChange(of: viewModel.pendingCelebrationContent) { _, content in
+            if content != nil {
                 showPBMoment = true
             }
         }
         .overlay {
-            if showPBMoment, let update = viewModel.pendingPBMomentUpdate {
-                PersonalBestCelebrationView(
-                    update: update,
+            if showPBMoment, let content = viewModel.pendingCelebrationContent {
+                CelebrationSheet(
+                    content: content,
                     onDismiss: {
                         viewModel.trackPBMoment(action: "close")
                         viewModel.markPBMomentShown()
                         showPBMoment = false
                     },
                     onShare: {
-                        selectedPBShareUpdate = update
+                        if let pb = content.pb {
+                            selectedPBShareUpdate = pb
+                        }
                         showPBShareCardSheet = true
                         viewModel.trackPBMoment(action: "share", entry: "post_workout")
                     }

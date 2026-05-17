@@ -2449,6 +2449,9 @@
 "my_achievement.celebration.date" = "日付";
 "my_achievement.celebration.result" = "記録";
 "my_achievement.celebration.share_card_title" = "PBシェアカード";
+"my_achievement.celebration.new_badge" = "新バッジ";
+"my_achievement.celebration.new_pb_and_badge" = "新PB＋バッジ";
+"my_achievement.celebration.also_unlocked" = "同時解除";
 "time.seconds_format" = "%d秒";
 "time.minutes_format" = "%d分";
 "time.minutes_seconds_format" = "%d分%d秒";
@@ -3016,3 +3019,44 @@
 "achievements.reason.badge_id_consistent_runner" = "継続したトレーニングがランナー像の一部になりました。";
 "achievements.reason.badge_id_smart_trainer" = "継続力と調整力の両方を育てています。";
 "achievements.reason.badge_id_pb_hunter" = "最近のトレーニングが新しい PB 記録につながりました。";
+
+// MARK: - Badge Criteria（解除方法、35 badges × ja）
+// Chapter: Start
+"achievements.badge.start.first_run.criteria" = "最初のランを完了して同期するだけで解除できます。";
+"achievements.badge.start.plan_started.criteria" = "Paceriz で最初のトレーニングプランを開始すると解除できます。";
+"achievements.badge.start.first_week.criteria" = "週間走行距離がプランの目標に達し、最初のトレーニング週を完了すると解除できます。";
+"achievements.badge.start.first_long_run.criteria" = "12 km 以上のランを完了して同期すると解除できます。";
+"achievements.badge.start.first_recovery.criteria" = "Paceriz のプランに組まれた回復ランを完了すると解除できます。";
+// Chapter: Build
+"achievements.badge.build.showing_up.criteria" = "未完了の週を含め、Paceriz に 2 週分のトレーニング記録を積み重ねると解除できます。";
+"achievements.badge.build.routine_builder.criteria" = "週間目標距離を達成したトレーニング週を 4 週完了すると解除できます。";
+"achievements.badge.build.eight_week_block.criteria" = "安全な走行距離の範囲を超えずに 8 週のトレーニングを完了すると解除できます。";
+"achievements.badge.build.long_run_done.criteria" = "今週プランに組まれたロングラン（12 km 以上）を完了すると解除できます。";
+"achievements.badge.build.weekly_goal.criteria" = "週間走行距離の目標を達成し、今週のトレーニング目標を完了すると解除できます。";
+"achievements.badge.build.volume_base.criteria" = "安全な走行距離の範囲を超えずに 4 週のトレーニングを完了すると解除できます。";
+"achievements.badge.build.plan_finisher.criteria" = "Paceriz のトレーニングプランを最初から最後まで完走すると解除できます。";
+// Chapter: Adapt
+"achievements.badge.adapt.recovery_earned.criteria" = "プランに組まれた回復週（走行量を減らし強度を落とした週）を完了すると解除できます。";
+"achievements.badge.adapt.load_balanced.criteria" = "安全な走行距離の範囲内に収まりながらトレーニング週を完了する（目標達成かつ超えない）と解除できます。";
+"achievements.badge.adapt.heat_adjusted.criteria" = "Paceriz が高温を検知してペースを調整します。調整後のペースでランを完了すると自動的に獲得できます。";
+"achievements.badge.adapt.comeback.criteria" = "休止後にトレーニングを再開すると、Paceriz が安全なペースで戻ったことを自動検知して付与します。";
+"achievements.badge.adapt.rest_week.criteria" = "Paceriz が組んだ回復週を、無理に強度を上げずそのまま完了すると解除できます。";
+"achievements.badge.adapt.smart_skip.criteria" = "Paceriz が無理すべきでないと判断したセッションをスキップまたは調整すると、自動的に付与されます。";
+"achievements.badge.adapt.pace_patience.criteria" = "Paceriz が、イージーランまたは回復ランで適切なペース帯を維持したことを検知すると自動的に獲得できます。";
+// Chapter: Prove
+"achievements.badge.prove.new_pb.criteria" = "5K・10K・ハーフ・フルマラソンのいずれかの標準距離で新しい自己ベストを出すと解除できます。";
+"achievements.badge.prove.first_5k.criteria" = "5 km 以上のランを完了して同期すると解除できます。";
+"achievements.badge.prove.first_10k.criteria" = "10 km 以上のランを完了して同期すると解除できます。";
+"achievements.badge.prove.first_half.criteria" = "21 km 以上（ハーフマラソン距離）のランを完了して同期すると解除できます。";
+"achievements.badge.prove.first_marathon.criteria" = "42 km 以上（マラソン距離）のランを完了して同期すると解除できます。";
+"achievements.badge.prove.distance_breakthrough.criteria" = "ランを続けて、単回の最長距離を少しずつ更新していくと解除できます。";
+"achievements.badge.prove.race_ready.criteria" = "継続したトレーニングで Paceriz の総合準備度スコアが 90% 以上になり、高リスク警告がない状態になると解除できます。";
+"achievements.badge.prove.goal_completed.criteria" = "Paceriz で設定した目標（目標距離の完走またはレースタイムの達成）を果たすと解除できます。";
+// Chapter: Identity
+"achievements.badge.identity.5k_runner.criteria" = "5 km 以上のランを完了し、2 週以上のトレーニング記録を積み重ねると解除できます。";
+"achievements.badge.identity.10k_runner.criteria" = "10 km 以上のランを完了し、4 週以上のトレーニング記録を積み重ねると解除できます。";
+"achievements.badge.identity.half_marathoner.criteria" = "21 km 以上（ハーフマラソン距離）のランを完了すると解除できます。";
+"achievements.badge.identity.marathon_builder.criteria" = "20 km 以上のランを完了し、8 週以上のトレーニング記録を積み重ねると解除できます。";
+"achievements.badge.identity.consistent_runner.criteria" = "8 週以上のトレーニング期間に、少なくとも 6 週を安全な走行距離の範囲内で維持すると解除できます。";
+"achievements.badge.identity.smart_trainer.criteria" = "4 週のトレーニングを完了し、その中で回復週の完了または Paceriz の暑さ推奨調整を少なくとも 1 回行うと解除できます。";
+"achievements.badge.identity.pb_hunter.criteria" = "30 日以内に 2 つ以上の標準距離でそれぞれ自己ベストを更新すると解除できます。";
