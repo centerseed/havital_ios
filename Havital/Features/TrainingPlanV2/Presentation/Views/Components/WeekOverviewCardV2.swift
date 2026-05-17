@@ -71,34 +71,12 @@ struct WeekOverviewCardV2: View {
                             .clipShape(Circle())
                             .accessibilityIdentifier("v2.weekly.display_badge.\(badge.badgeId)")
                     } else {
-                        // Fallback: 顯示原本的 km 數字當保底（displayBadge 尚未載入時）
-                        VStack(spacing: 2) {
-                            HStack(spacing: 1) {
-                                Text(String(format: "%.0f", unitManager.convertedDistance(viewModel.loader.currentWeekDistance)))
-                                    .font(AppFont.systemScaled(size: 17, weight: .bold))
-                                    .foregroundColor(.primary)
-                                    .minimumScaleFactor(0.8)
-                                    .lineLimit(1)
-
-                                Text("/")
-                                    .font(AppFont.systemScaled(size: 13))
-                                    .foregroundColor(.secondary)
-
-                                Text(String(format: "%.0f", unitManager.convertedDistance(plan.totalDistance)))
-                                    .font(AppFont.systemScaled(size: 13))
-                                    .foregroundColor(.secondary)
-                                    .minimumScaleFactor(0.8)
-                                    .lineLimit(1)
-                            }
-
-                            Text(unitManager.currentUnitSystem.distanceSuffix)
-                                .font(AppFont.caption2())
-                                .foregroundColor(.secondary)
-                        }
-                        .offset(y: 3)
+                        ProgressView()
+                            .scaleEffect(0.8)
                     }
                 }
                 .contentShape(Circle())
+                .accessibilityIdentifier("v2.weekly.badge_ring")
                 .onTapGesture {
                     if let badge = viewModel.displayBadge {
                         showBadgeDetailFor = badge
