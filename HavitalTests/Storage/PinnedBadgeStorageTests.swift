@@ -27,6 +27,12 @@ final class PinnedBadgeStorageTests: XCTestCase {
         XCTAssertNil(PinnedBadgeStorage.load())
     }
 
+    func test_save_emptyString_unpins() {
+        PinnedBadgeStorage.save("BADGE-Z")
+        PinnedBadgeStorage.save("")
+        XCTAssertNil(PinnedBadgeStorage.load())
+    }
+
     func test_clear_removes() {
         PinnedBadgeStorage.save("BADGE-Y")
         PinnedBadgeStorage.clear()
