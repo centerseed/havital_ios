@@ -47,10 +47,12 @@ struct PersonalAchievementsView: View {
                         onTogglePin: { badgeId in viewModel.togglePin(badgeId: badgeId) }
                     )
                 }
-                // TODO(Task-13): Migrate AchievementSharePreviewSheet → CelebrationSharePreviewSheet.
-                // AchievementShareable carries materialType/titleKey/summaryKey/publicFields from
-                // backend that don't map cleanly to AchievementBadge (needed for
-                // CelebrationContent.badgesOnly). Keeping this path until Task-13 defines the bridge.
+                // Library-tab "share a badge" entry point intentionally keeps
+                // AchievementSharePreviewSheet — AchievementShareable carries
+                // backend-shaped fields (materialType / publicFields) that don't
+                // map cleanly to CelebrationContent. Celebration flow uses
+                // CelebrationSharePreviewSheet (result-type info); this path uses
+                // the shareable-shaped variant. Two paths by design (decided 2026-05-17).
                 .sheet(item: $viewModel.selectedShareable, onDismiss: {
                     viewModel.closeShare()
                 }) { shareable in
