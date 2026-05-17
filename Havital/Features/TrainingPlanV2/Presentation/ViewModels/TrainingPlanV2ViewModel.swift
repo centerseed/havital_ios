@@ -155,6 +155,10 @@ final class TrainingPlanV2ViewModel: TaskManageable {
             container.registerWorkoutModule()
         }
 
+        if !container.isRegistered(AchievementRepository.self) {
+            container.registerAchievementModule()
+        }
+
         let repository: TrainingPlanV2Repository = container.resolve()
         let workoutRepository: WorkoutRepository = container.resolve()
         let versionRouter: TrainingVersionRouter = container.resolve()
