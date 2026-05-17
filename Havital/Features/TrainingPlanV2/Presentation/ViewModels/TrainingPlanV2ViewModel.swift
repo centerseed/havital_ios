@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import Observation
 
@@ -12,6 +13,8 @@ final class TrainingPlanV2ViewModel: TaskManageable {
     private let repository: TrainingPlanV2Repository
     private let workoutRepository: WorkoutRepository
     private let versionRouter: TrainingVersionRouter
+    private let achievementRepository: AchievementRepository
+    @ObservationIgnored private var displayBadgeCancellables = Set<AnyCancellable>()
 
     // MARK: - TaskManageable
     @ObservationIgnored nonisolated let taskRegistry = TaskRegistry()
@@ -23,6 +26,7 @@ final class TrainingPlanV2ViewModel: TaskManageable {
     private(set) var generator: WeeklyPlanGenerator!
 
     // MARK: - Orchestration State
+    var displayBadge: AchievementBadge?
     var networkError: Error?
     var successToast: String?
     var isLoadingAnimation = false
@@ -68,11 +72,13 @@ final class TrainingPlanV2ViewModel: TaskManageable {
     init(
         repository: TrainingPlanV2Repository,
         workoutRepository: WorkoutRepository,
-        versionRouter: TrainingVersionRouter
+        versionRouter: TrainingVersionRouter,
+        achievementRepository: AchievementRepository
     ) {
         self.repository = repository
         self.workoutRepository = workoutRepository
         self.versionRouter = versionRouter
+        self.achievementRepository = achievementRepository
 
         loader = WeeklyPlanLoader(
             repository: repository,
@@ -134,6 +140,8 @@ final class TrainingPlanV2ViewModel: TaskManageable {
                 self?.showWeeklyPlanInlineUpsell = true
             }
         )
+
+        setupDisplayBadgeObservation()
     }
 
     /// 便利初始化器（使用 DI Container）
@@ -150,11 +158,13 @@ final class TrainingPlanV2ViewModel: TaskManageable {
         let repository: TrainingPlanV2Repository = container.resolve()
         let workoutRepository: WorkoutRepository = container.resolve()
         let versionRouter: TrainingVersionRouter = container.resolve()
+        let achievementRepository: AchievementRepository = container.resolve()
 
         self.init(
             repository: repository,
             workoutRepository: workoutRepository,
-            versionRouter: versionRouter
+            versionRouter: versionRouter,
+            achievementRepository: achievementRepository
         )
     }
 
@@ -245,6 +255,25 @@ final class TrainingPlanV2ViewModel: TaskManageable {
     }
 
     // MARK: - Private Helpers
+
+    private func setupDisplayBadgeObservation() {
+        // Initial load: fetch summary then snapshot displayBadge
+        Task { [weak self] in
+            guard let self else { return }
+            _ = try? await achievementRepository.fetchSummary(forceRefresh: false)
+            await MainActor.run {
+                self.displayBadge = self.achievementRepository.getDisplayBadge()
+            }
+        }
+
+        // Live updates: react to pin changes
+        achievementRepository.pinnedBadgeIdDidChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.displayBadge = self?.achievementRepository.getDisplayBadge()
+            }
+            .store(in: &displayBadgeCancellables)
+    }
 
     private func shouldSuppressError(_ domainError: DomainError, context: String, onDataCorruption: (() -> Void)? = nil) -> Bool {
         if case .dataCorruption = domainError {

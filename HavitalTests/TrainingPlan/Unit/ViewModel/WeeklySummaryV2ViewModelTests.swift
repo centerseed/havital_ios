@@ -105,12 +105,17 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         if !container.isRegistered(TrainingVersionRouter.self) {
             container.registerTrainingVersionRouter()
         }
+        if !container.isRegistered(AchievementRepository.self) {
+            container.registerAchievementModule()
+        }
         let versionRouter: TrainingVersionRouter = container.resolve()
+        let achievementRepository: AchievementRepository = container.resolve()
 
         sut = TrainingPlanV2ViewModel(
             repository: mockRepository,
             workoutRepository: mockWorkoutRepository,
-            versionRouter: versionRouter
+            versionRouter: versionRouter,
+            achievementRepository: achievementRepository
         )
     }
 
@@ -542,12 +547,17 @@ final class TrainingPlanV2InitializationRegressionTests: XCTestCase {
         if !container.isRegistered(TrainingVersionRouter.self) {
             container.registerTrainingVersionRouter()
         }
+        if !container.isRegistered(AchievementRepository.self) {
+            container.registerAchievementModule()
+        }
         let versionRouter: TrainingVersionRouter = container.resolve()
+        let achievementRepository: AchievementRepository = container.resolve()
 
         sut = TrainingPlanV2ViewModel(
             repository: StartupStatusFailureButCachedPlanRepository(),
             workoutRepository: workoutRepository,
-            versionRouter: versionRouter
+            versionRouter: versionRouter,
+            achievementRepository: achievementRepository
         )
     }
 
