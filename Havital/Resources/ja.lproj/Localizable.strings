@@ -2855,6 +2855,8 @@
 "achievements.share.item" = "成果";
 "achievements.share.action" = "シェア";
 "achievements.share.preview_title" = "シェアプレビュー";
+"achievements.share.privacy_title" = "プライバシー保護";
+"achievements.share.privacy_body" = "心拍、ルート、GPS軌跡、ペース時系列はシェアカードに含まれません。";
 "achievements.share.public_fields" = "公開される項目";
 "achievements.share.default_public_fields" = "このカードにはタイトル、チャプター、日付、公開サマリーだけが含まれます。";
 "achievements.share.sensitive_excluded" = "ルート、GPS、心拍、睡眠、けが、workout ID、email、uid、詳しいメニューは含まれません。";

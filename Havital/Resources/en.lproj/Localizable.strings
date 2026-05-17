@@ -2858,6 +2858,8 @@
 "achievements.share.item" = "Result";
 "achievements.share.action" = "Share";
 "achievements.share.preview_title" = "Share Preview";
+"achievements.share.privacy_title" = "Privacy Protected";
+"achievements.share.privacy_body" = "Heart rate, route, GPS track, and pace series are never included in the share card.";
 "achievements.share.public_fields" = "Public fields";
 "achievements.share.default_public_fields" = "This share card includes only the title, chapter, date, and public summary.";
 "achievements.share.sensitive_excluded" = "Route, GPS, heart rate, sleep, injury, workout ID, email, UID, and full schedule details are excluded.";

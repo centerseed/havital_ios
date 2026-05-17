@@ -2901,6 +2901,8 @@
 "achievements.share.item" = "成果";
 "achievements.share.action" = "分享";
 "achievements.share.preview_title" = "分享預覽";
+"achievements.share.privacy_title" = "隱私保障";
+"achievements.share.privacy_body" = "心率、路線、GPS 軌跡、配速時序永遠不會出現在分享卡上。";
 "achievements.share.public_fields" = "會公開的欄位";
 "achievements.share.default_public_fields" = "這張分享卡只包含標題、篇章、日期與公開摘要。";
 "achievements.share.sensitive_excluded" = "路線、GPS、心率、睡眠、傷痛、workout ID、email、uid 與完整課表細節都不會包含。";

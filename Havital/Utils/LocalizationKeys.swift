@@ -1499,6 +1499,8 @@ extension L10n {
             static let item = "achievements.share.item"
             static let action = "achievements.share.action"
             static let previewTitle = "achievements.share.preview_title"
+            static let privacyTitle = "achievements.share.privacy_title"
+            static let privacyBody = "achievements.share.privacy_body"
             static let publicFields = "achievements.share.public_fields"
             static let defaultPublicFields = "achievements.share.default_public_fields"
             static let sensitiveExcluded = "achievements.share.sensitive_excluded"
