@@ -4,6 +4,7 @@ import UIKit
 struct PersonalAchievementsView: View {
     @StateObject private var viewModel: PersonalAchievementsViewModel
     @State private var shareActivityItem: AchievementActivityItem?
+    @State private var selectedPBDetailItem: PersonalBestDetailItem?
 
     private var cachedUser: User? {
         UserProfileLocalDataSource().getUserProfile()
@@ -61,6 +62,9 @@ struct PersonalAchievementsView: View {
                         viewModel.completeShare()
                         shareActivityItem = nil
                     }
+                }
+                .sheet(item: $selectedPBDetailItem) { item in
+                    PersonalBestDetailView(distance: item.distance, records: item.records)
                 }
         }
     }
@@ -250,8 +254,14 @@ struct PersonalAchievementsView: View {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 12) {
                         ForEach(sortedPBRecords(overview.records)) { record in
-                            pbRecordTile(record)
-                                .frame(width: 128)
+                            Button {
+                                openPBDetail(for: record)
+                            } label: {
+                                pbRecordTile(record)
+                                    .frame(width: 128)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("Achievements_PBTile_\(record.distance)")
                         }
                     }
                     .padding(.vertical, 2)
@@ -466,6 +476,13 @@ struct PersonalAchievementsView: View {
             .buttonStyle(.borderedProminent)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private func openPBDetail(for record: AchievementPBRecord) {
+        guard let distance = RaceDistanceV2(rawValue: record.distance) else { return }
+        let records = cachedPersonalBestData?[distance.rawValue] ?? []
+        guard !records.isEmpty else { return }
+        selectedPBDetailItem = PersonalBestDetailItem(distance: distance, records: records)
     }
 
     private func matchingShareable(for badge: AchievementBadge) -> AchievementShareable? {
