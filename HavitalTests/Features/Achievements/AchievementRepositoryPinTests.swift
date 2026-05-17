@@ -23,6 +23,8 @@ final class AchievementRepositoryPinTests: XCTestCase {
         sut.setPinnedBadgeId("BADGE-X")
 
         XCTAssertEqual(sut.getPinnedBadgeId(), "BADGE-X")
+        XCTAssertEqual(observed.count, 2, "Should receive initial nil emission + the new BADGE-X")
+        XCTAssertTrue(observed.first == .some(nil), "CurrentValueSubject should emit current value (nil) on subscribe")
         XCTAssertEqual(observed.last, "BADGE-X")
     }
 

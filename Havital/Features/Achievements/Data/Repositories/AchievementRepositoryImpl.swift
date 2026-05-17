@@ -73,7 +73,7 @@ final class AchievementRepositoryImpl: AchievementRepository {
     }
 
     func getPinnedBadgeId() -> String? {
-        PinnedBadgeStorage.load()
+        pinnedBadgeSubject.value
     }
 
     func setPinnedBadgeId(_ badgeId: String?) {
@@ -84,7 +84,7 @@ final class AchievementRepositoryImpl: AchievementRepository {
     func getDisplayBadge() -> AchievementBadge? {
         let allBadges = allBadgesFromCache()
         return selectDisplayBadge.execute(
-            pinnedBadgeId: PinnedBadgeStorage.load(),
+            pinnedBadgeId: pinnedBadgeSubject.value,
             allBadges: allBadges
         )
     }
