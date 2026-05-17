@@ -710,6 +710,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
         analyticsService.track(.workoutAnalysisView(workoutId: workoutId, hasCoachNotes: hasCoachNotes))
     }
 
+    @MainActor
     func markPBMomentShown() {
         guard let update = pendingPBMomentUpdate else { return }
         PersonalBestCelebrationStorage.markCelebrationAsShown(for: update)
@@ -719,6 +720,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
 
     // MARK: - Celebration Content Derivation
 
+    @MainActor
     private func deriveCelebrationContent() {
         if let pb = pendingPBMomentUpdate {
             pendingCelebrationContent = .pbOnly(pb)

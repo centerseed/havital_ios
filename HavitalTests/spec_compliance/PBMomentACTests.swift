@@ -71,6 +71,20 @@ final class PBMomentACTests: XCTestCase {
         assertContains(celebration, "formatTime(update.newTime)")
         assertContains(celebration, "formatImprovement(update.improvementSeconds)")
         assertContains(celebration, "update.workoutDate")
+
+        // Task 8: live path is now CelebrationSheet — assert required fields there too
+        let celebrationSheet = try read("Havital/Views/Components/CelebrationSheet.swift")
+        assertContains(celebrationSheet, "newPB")
+        XCTAssertTrue(
+            celebrationSheet.contains("RaceDistanceV2(rawValue: update.distance)") ||
+            celebrationSheet.contains("RaceDistanceV2(rawValue: pb.distance)"),
+            "CelebrationSheet must derive race distance from PB update"
+        )
+        assertContains(celebrationSheet, "formatTime(")
+        XCTAssertTrue(
+            celebrationSheet.contains(".workoutDate") || celebrationSheet.contains("workoutDate"),
+            "CelebrationSheet must reference workoutDate"
+        )
     }
 
     func test_ac_pbm_07_multiplePBPrioritizesLargestImprovement() throws {

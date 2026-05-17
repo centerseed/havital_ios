@@ -268,11 +268,10 @@ struct CelebrationSheet: View {
                     }
                     .padding(.vertical, 4)
                 }
-                .frame(maxHeight: 96)
+                .frame(maxHeight: 240)
             }
-        } else {
+        } else if let heroBadge = badges.first {
             // badgesOnly: hero for first badge, smaller for rest
-            let heroBadge = badges[0]
             let remaining = Array(badges.dropFirst())
 
             VStack(alignment: .center, spacing: 14) {
