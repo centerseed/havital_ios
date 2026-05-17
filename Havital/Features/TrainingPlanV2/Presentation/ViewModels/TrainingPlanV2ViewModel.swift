@@ -295,7 +295,10 @@ final class TrainingPlanV2ViewModel: TaskManageable {
     // MARK: - Debug Actions
 
     func debugGenerateWeeklySummary() async {
-        let week = max(1, loader.currentWeek - 1)
+        guard let week = TrainingPlanV2View.previousWeeklySummaryWeek(currentWeek: loader.currentWeek) else {
+            successToast = NSLocalizedString("training.weekly_summary_not_available_first_week", comment: "No completed week is available for weekly review yet")
+            return
+        }
         await summary.debugGenerateForWeek(
             week,
             onSuccess: { [weak self] msg in self?.successToast = msg },

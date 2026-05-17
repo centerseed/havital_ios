@@ -73,6 +73,15 @@ struct TrainingPlanV2View: View {
         )
     }
 
+    static func previousWeeklySummaryWeek(currentWeek: Int) -> Int? {
+        let previousWeek = currentWeek - 1
+        return previousWeek >= 1 ? previousWeek : nil
+    }
+
+    private var previousWeeklySummaryWeek: Int? {
+        Self.previousWeeklySummaryWeek(currentWeek: viewModel.loader.currentWeek)
+    }
+
     // AC-PAYWALL-35/38: Free tier banner visibility logic.
     // Visible when: no real subscription AND training plan exists (week 1 generated).
     // Grace period users also see the banner (they have hasPremiumAccess=true but not a real subscription).
@@ -238,9 +247,14 @@ struct TrainingPlanV2View: View {
                         .accessibilityIdentifier("TrainingPlan_Menu_PlanOverview")
 
                         Button(action: {
+                            guard let week = previousWeeklySummaryWeek else {
+                                viewModel.successToast = NSLocalizedString("training.weekly_summary_not_available_first_week", comment: "No completed week is available for weekly review yet")
+                                return
+                            }
                             summaryIsMenuInspect = true
-                            viewModel.summary.summaryFlowPhase = .showingSummary
-                            viewModel.summary.summaryFlowActive = true
+                            Task {
+                                await viewModel.summary.viewHistoricalSummary(week: week)
+                            }
                         }) {
                             Label(NSLocalizedString("training.weekly_summary", comment: "週摘要"), systemImage: "chart.bar.doc.horizontal")
                         }

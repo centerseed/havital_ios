@@ -175,7 +175,7 @@ struct TimelineItemViewV2: View {
                                     .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).run_type")
                             }
 
-                            if climateAdjustmentEnabled, let climateMeta = day.effectiveClimateMeta {
+                            if climateAdjustmentEnabled, let climateMeta = day.displayClimateMeta {
                                 ClimateBadgeView(meta: climateMeta)
                                     .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_badge")
                             }
@@ -218,7 +218,7 @@ struct TimelineItemViewV2: View {
                             TrainingDetailsViewV2(day: day)
                         }
 
-                        if climateAdjustmentEnabled, let climateMeta = day.effectiveClimateMeta {
+                        if climateAdjustmentEnabled, let climateMeta = day.displayClimateMeta {
                             ClimateAdjustmentDetailView(day: day, meta: climateMeta)
                                 .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_detail")
                         }

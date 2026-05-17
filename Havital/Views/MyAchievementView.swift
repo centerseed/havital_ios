@@ -183,11 +183,6 @@ struct MyAchievementView: View {
                     .cardStyle()
                     .padding(.horizontal)
 
-                    // Personal Best v2 Card - 個人最佳成績
-                    PersonalBestCardView(
-                        personalBestData: cachedUser?.personalBestV2?["race_run"]
-                    )
-
                     // 訓練負荷圖 - 使用 health_daily API 取得 tsb_metrics
                     TrainingLoadChartSection()
                         .environmentObject(healthKitManager)

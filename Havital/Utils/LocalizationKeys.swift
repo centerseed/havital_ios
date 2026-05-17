@@ -8,6 +8,7 @@ enum L10n {
         static let trainingPlan = "tab.training_plan"
         static let trainingRecord = "tab.training_record"
         static let performanceData = "tab.performance_data"
+        static let achievement = "tab.achievement"
         static let profile = "tab.profile"
     }
     
@@ -1439,6 +1440,106 @@ extension L10n {
             static let date = "my_achievement.celebration.date"  // 日期
             static let result = "my_achievement.celebration.result"  // 成績
             static let shareCardTitle = "my_achievement.celebration.share_card_title"  // PB 分享卡
+        }
+    }
+
+    // MARK: - Personal Achievements
+    enum Achievements {
+        static let title = "achievements.title"
+        static let loading = "achievements.loading"
+
+        enum Story {
+            static let title = "achievements.story.title"
+            static let explanation = "achievements.story.explanation"
+            static let unlockedCount = "achievements.story.unlocked_count"
+            static let recentUnlock = "achievements.story.recent_unlock"
+            static let noRecentUnlock = "achievements.story.no_recent_unlock"
+            static let nextBadge = "achievements.story.next_badge"
+        }
+
+        enum Empty {
+            static let title = "achievements.empty.title"
+            static let start = "achievements.empty.start"
+        }
+
+        enum Backfill {
+            static let ready = "achievements.backfill.ready"
+            static let count = "achievements.backfill.count"
+        }
+
+        enum PB {
+            static let title = "achievements.pb.title"
+            static let explanation = "achievements.pb.explanation"
+            static let empty = "achievements.pb.empty"
+            static let record = "achievements.pb.record"
+        }
+
+        enum Stats {
+            static let title = "achievements.stats.title"
+            static let explanation = "achievements.stats.explanation"
+            static let totalRuns = "achievements.stats.total_runs"
+            static let totalDistance = "achievements.stats.total_distance"
+            static let completedWeeks = "achievements.stats.completed_weeks"
+            static let longestRun = "achievements.stats.longest_run"
+            static let firstWorkout = "achievements.stats.first_workout"
+            static let kilometers = "achievements.stats.kilometers"
+        }
+
+        enum Insights {
+            static let title = "achievements.insights.title"
+            static let explanation = "achievements.insights.explanation"
+        }
+
+        enum Share {
+            static let title = "achievements.share.title"
+            static let explanation = "achievements.share.explanation"
+            static let item = "achievements.share.item"
+            static let action = "achievements.share.action"
+            static let previewTitle = "achievements.share.preview_title"
+            static let publicFields = "achievements.share.public_fields"
+            static let defaultPublicFields = "achievements.share.default_public_fields"
+            static let sensitiveExcluded = "achievements.share.sensitive_excluded"
+            static let privacyFooter = "achievements.share.privacy_footer"
+            static let badgeLabel = "achievements.share.badge_label"
+        }
+
+        enum Badges {
+            static let title = "achievements.badges.title"
+            static let explanation = "achievements.badges.explanation"
+            static let badge = "achievements.badges.badge"
+            static let historical = "achievements.badges.historical"
+            static let progress = "achievements.badges.progress"
+            static let emptyPreview = "achievements.badges.empty_preview"
+        }
+
+        enum Detail {
+            static let title = "achievements.detail.title"
+            static let story = "achievements.detail.story"
+            static let progress = "achievements.detail.progress"
+            static let source = "achievements.detail.source"
+            static let historical = "achievements.detail.historical"
+            static let unlockedAt = "achievements.detail.unlocked_at"
+        }
+
+        enum Status {
+            static let unlocked = "achievements.status.unlocked"
+            static let inProgress = "achievements.status.in_progress"
+            static let locked = "achievements.status.locked"
+            static let insufficientData = "achievements.status.insufficient_data"
+            static let unknown = "achievements.status.unknown"
+        }
+
+        enum Chapter {
+            static let start = "achievements.chapter.start"
+            static let build = "achievements.chapter.build"
+            static let adapt = "achievements.chapter.adapt"
+            static let prove = "achievements.chapter.prove"
+            static let identity = "achievements.chapter.identity"
+            static let unknown = "achievements.chapter.unknown"
+        }
+
+        enum Error {
+            static let loadFailed = "achievements.error.load_failed"
         }
     }
 

@@ -301,6 +301,10 @@ extension DayDetail {
         climateMeta ?? primaryRunActivity?.climateMeta
     }
 
+    var displayClimateMeta: ClimateMeta? {
+        primaryRunActivity?.climateMeta
+    }
+
     /// V1 兼容: dayIndexInt (V2 已經是 Int 類型,直接返回)
     var dayIndexInt: Int {
         return dayIndex

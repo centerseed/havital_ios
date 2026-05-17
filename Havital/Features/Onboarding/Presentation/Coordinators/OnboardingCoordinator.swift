@@ -293,7 +293,10 @@ class OnboardingCoordinator: ObservableObject {
             isCompleting = false
             print("[OnboardingCoordinator] Loading 動畫已關閉")
 
-            if !output.wasReonboarding {
+            if output.wasReonboarding {
+                let targetType = selectedTargetTypeId ?? "unknown"
+                analyticsService.track(.reonboardingComplete(targetType: targetType))
+            } else {
                 let startTime = UserDefaults.standard.analyticsOnboardingStartTime
                 let durationSeconds = startTime > 0
                     ? Int(Date().timeIntervalSince1970 - startTime)

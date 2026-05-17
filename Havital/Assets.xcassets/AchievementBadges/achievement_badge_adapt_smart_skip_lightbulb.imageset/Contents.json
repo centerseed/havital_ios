@@ -1,0 +1,13 @@
+{
+  "images": [
+    {
+      "filename": "achievement_badge_adapt_smart_skip_lightbulb.png",
+      "idiom": "universal",
+      "scale": "1x"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}

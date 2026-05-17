@@ -149,7 +149,9 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
     private func buildDayDetailDTO(from day: MutableTrainingDay) -> DayDetailDTO {
         let dayType = DayType(rawValue: day.trainingType) ?? .rest
         let originalDay = originalDay(for: day)
-        let dayClimateMeta = originalDay?.effectiveClimateMeta.map { TrainingSessionMapper.toDTO(from: $0) }
+        let dayClimateMeta = dayType.isRunningActivity
+            ? originalDay?.effectiveClimateMeta.map { TrainingSessionMapper.toDTO(from: $0) }
+            : nil
         let category: String?
         let primary: PrimaryActivityDTO?
 

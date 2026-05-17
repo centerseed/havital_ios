@@ -192,6 +192,8 @@ struct HavitalApp: App {
                 typographyAuditHarnessView
             } else if shouldLaunchPBMomentPreviewHarness {
                 pbMomentPreviewHarnessView
+            } else if shouldLaunchAchievementsUITestHarness {
+                achievementsUITestHarnessView
             } else if shouldLaunchAC37UITestHarness {
                 ac37UITestHarnessView
             } else if shouldLaunchAC38UITestHarness {
@@ -315,6 +317,7 @@ struct HavitalApp: App {
             || arguments.contains("-ui_testing_workout_detail_rpe")
             || arguments.contains("-ui_testing_typography_audit")
             || arguments.contains("-ui_testing_pb_moment_preview")
+            || arguments.contains("-ui_testing_achievements")
             || arguments.contains("-ui_testing_ac37")
             || arguments.contains("-ui_testing_ac38")
     }
@@ -381,6 +384,23 @@ struct HavitalApp: App {
         CommandLine.arguments.contains("-ui_testing_pb_moment_preview")
         #else
         false
+        #endif
+    }
+
+    private var shouldLaunchAchievementsUITestHarness: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-ui_testing_achievements")
+        #else
+        false
+        #endif
+    }
+
+    @ViewBuilder
+    private var achievementsUITestHarnessView: some View {
+        #if DEBUG
+        UITestAchievementsHostView()
+        #else
+        EmptyView()
         #endif
     }
 

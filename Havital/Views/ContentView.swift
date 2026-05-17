@@ -214,6 +214,12 @@ struct ContentView: View {
                         Image(systemName: "gauge.with.dots.needle.bottom.50percent")
                         Text(L10n.Tab.performanceData.localized)
                     }
+
+                PersonalAchievementsView()
+                    .tabItem {
+                        Image(systemName: "rosette")
+                        Text(L10n.Tab.achievement.localized)
+                    }
             }
 
             InterruptHostView(

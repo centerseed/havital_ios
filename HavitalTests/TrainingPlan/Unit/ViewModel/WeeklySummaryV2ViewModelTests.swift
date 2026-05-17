@@ -464,6 +464,30 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         )
     }
 
+    func testPreviousWeeklySummaryWeek_returnsNilForFirstWeek() {
+        XCTAssertNil(
+            TrainingPlanV2View.previousWeeklySummaryWeek(currentWeek: 1),
+            "Week 1 has no completed previous week, so the app menu must not call weekly summary APIs."
+        )
+    }
+
+    func testPreviousWeeklySummaryWeek_returnsPreviousWeekAfterWeekOne() {
+        XCTAssertEqual(TrainingPlanV2View.previousWeeklySummaryWeek(currentWeek: 2), 1)
+        XCTAssertEqual(TrainingPlanV2View.previousWeeklySummaryWeek(currentWeek: 5), 4)
+    }
+
+    func testDebugGenerateWeeklySummary_firstWeekDoesNotCallAPI() async {
+        sut.loader.currentWeek = 1
+
+        await sut.debugGenerateWeeklySummary()
+
+        XCTAssertEqual(mockRepository.generateWeeklySummaryCallCount, 0)
+        XCTAssertEqual(
+            sut.successToast,
+            NSLocalizedString("training.weekly_summary_not_available_first_week", comment: "No completed week is available for weekly review yet")
+        )
+    }
+
     func testRefreshWeeklyPlan_whenViewingNextWeek_refreshesSelectedWeekInsteadOfCurrentWeek() async throws {
         mockRepository.planStatusToReturn = PlanStatusV2Response(
             currentWeek: 1,

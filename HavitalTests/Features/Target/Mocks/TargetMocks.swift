@@ -9,6 +9,7 @@ import Foundation
 // MARK: - MockTargetRepository
 class MockTargetRepository: TargetRepository {
     var targetsToReturn: [Target] = []
+    var forceRefreshTargetsToReturn: [Target]?
     var targetToReturn: Target?
     var mainTargetToReturn: Target?
     var supportingTargetsToReturn: [Target] = []
@@ -63,7 +64,7 @@ class MockTargetRepository: TargetRepository {
     func forceRefresh() async throws -> [Target] {
         forceRefreshCallCount += 1
         if let error = errorToThrow { throw error }
-        return targetsToReturn
+        return forceRefreshTargetsToReturn ?? targetsToReturn
     }
     
     func clearCache() {

@@ -47,6 +47,9 @@ final class AuthRepositoryImpl: AuthRepository {
     /// 7. Cache AuthUser
     func signInWithGoogle() async throws -> AuthUser {
         do {
+            authSessionRepository.setDemoToken(nil)
+            authSessionRepository.setDemoUser(nil)
+
             // Step 1: Google SDK sign-in
             Logger.debug("[AuthRepository] Step 1: Starting Google Sign-In")
             let googleUser = try await googleSignIn.performSignIn()
@@ -97,6 +100,8 @@ final class AuthRepositoryImpl: AuthRepository {
             // Step 7: Cache AuthUser
             Logger.debug("[AuthRepository] Step 7: Caching AuthUser")
             authCache.saveUser(authUser)
+            authSessionRepository.setDemoToken(nil)
+            authSessionRepository.setDemoUser(nil)
 
             Logger.debug("[AuthRepository] Google Sign-In completed successfully: \(authUser.uid)")
             return authUser
@@ -115,6 +120,9 @@ final class AuthRepositoryImpl: AuthRepository {
     /// Similar 7-Step flow as Google Sign-In
     func signInWithApple() async throws -> AuthUser {
         do {
+            authSessionRepository.setDemoToken(nil)
+            authSessionRepository.setDemoUser(nil)
+
             // Step 1: Generate nonce for security
             Logger.debug("[AuthRepository] Step 1: Generating nonce for Apple Sign-In")
             let rawNonce = FirebaseAuthDataSource.generateNonce()
@@ -171,6 +179,8 @@ final class AuthRepositoryImpl: AuthRepository {
             // Step 7: Cache AuthUser
             Logger.debug("[AuthRepository] Step 7: Caching AuthUser")
             authCache.saveUser(authUser)
+            authSessionRepository.setDemoToken(nil)
+            authSessionRepository.setDemoUser(nil)
 
             Logger.debug("[AuthRepository] Apple Sign-In completed successfully: \(authUser.uid)")
             return authUser
@@ -188,6 +198,9 @@ final class AuthRepositoryImpl: AuthRepository {
     /// Similar 7-Step flow as Google Sign-In
     func signInWithApple(credential: AppleAuthCredential) async throws -> AuthUser {
         do {
+            authSessionRepository.setDemoToken(nil)
+            authSessionRepository.setDemoUser(nil)
+
             // Step 1: Generate nonce for security (rawNonce needed for Firebase verification)
             Logger.debug("[AuthRepository] Step 1: Generating nonce for Apple Sign-In")
             let rawNonce = FirebaseAuthDataSource.generateNonce()
@@ -237,6 +250,8 @@ final class AuthRepositoryImpl: AuthRepository {
             // Step 7: Cache AuthUser
             Logger.debug("[AuthRepository] Step 7: Caching AuthUser")
             authCache.saveUser(authUser)
+            authSessionRepository.setDemoToken(nil)
+            authSessionRepository.setDemoUser(nil)
 
             Logger.debug("[AuthRepository] Apple Sign-In completed successfully: \(authUser.uid)")
             return authUser
@@ -252,6 +267,9 @@ final class AuthRepositoryImpl: AuthRepository {
 
     func signInWithEmail(email: String, password: String) async throws -> AuthUser {
         do {
+            authSessionRepository.setDemoToken(nil)
+            authSessionRepository.setDemoUser(nil)
+
             Logger.debug("[AuthRepository] Email Sign-In started")
 
             _ = try await backendAuth.loginEmail(email: email, password: password)
@@ -280,6 +298,8 @@ final class AuthRepositoryImpl: AuthRepository {
                 syncResponse: syncResponse
             )
             authCache.saveUser(authUser)
+            authSessionRepository.setDemoToken(nil)
+            authSessionRepository.setDemoUser(nil)
             return authUser
         } catch let error as AuthError {
             throw error

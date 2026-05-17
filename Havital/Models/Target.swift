@@ -52,7 +52,12 @@ struct Target: Codable, Identifiable {
         id = try container.decode(String.self, forKey: .id)
         type = try container.decode(String.self, forKey: .type)
         name = try container.decode(String.self, forKey: .name)
-        distanceKm = try container.decode(Int.self, forKey: .distanceKm)
+        if let intDistance = try? container.decode(Int.self, forKey: .distanceKm) {
+            distanceKm = intDistance
+        } else {
+            let doubleDistance = try container.decode(Double.self, forKey: .distanceKm)
+            distanceKm = Int(doubleDistance.rounded())
+        }
         targetTime = try container.decode(Int.self, forKey: .targetTime)
         targetPace = try container.decode(String.self, forKey: .targetPace)
         raceDate = try container.decode(Int.self, forKey: .raceDate)
@@ -66,4 +71,3 @@ struct Target: Codable, Identifiable {
         raceId = try container.decodeIfPresent(String.self, forKey: .raceId)
     }
 }
-

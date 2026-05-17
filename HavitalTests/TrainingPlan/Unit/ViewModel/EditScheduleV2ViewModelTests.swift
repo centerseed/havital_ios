@@ -51,6 +51,30 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
         XCTAssertEqual(runActivity.climateMeta?.paceAdjustmentPct, 6.5)
     }
 
+    func testSaveEdits_clearsClimateMetaWhenRunChangedToStrength() async throws {
+        let repository = MockTrainingPlanV2Repository()
+        let weeklyPlan = makeWeeklyPlan()
+        repository.weeklyPlanV2ToReturn = weeklyPlan
+
+        let viewModel = EditScheduleV2ViewModel(
+            weeklyPlan: weeklyPlan,
+            repository: repository
+        )
+        viewModel.editingDays[0].trainingType = DayType.strength.rawValue
+        viewModel.editingDays[0].trainingDetails = nil
+        viewModel.editingDays[0].strengthExercises = []
+        viewModel.editingDays[0].strengthType = "general"
+
+        _ = try await viewModel.saveEdits()
+
+        let savedDay = try XCTUnwrap(repository.lastUpdateWeeklyPlanRequest?.days?.first)
+        XCTAssertNil(savedDay.climateMeta)
+
+        guard case .strength = savedDay.primary else {
+            return XCTFail("Expected strength activity")
+        }
+    }
+
     private func makeWeeklyPlan() -> WeeklyPlanV2 {
         let climateMeta = ClimateMeta(
             feelsLikeTempC: 33.6,

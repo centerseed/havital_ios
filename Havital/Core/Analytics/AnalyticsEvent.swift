@@ -20,8 +20,11 @@ enum AnalyticsEvent {
     /// Fired when the user finishes selecting their training target.
     case onboardingTargetSet(targetType: String, raceId: String?, distanceKm: Double?)
 
-    /// Fired when completeOnboarding() succeeds.
+    /// Fired when completeOnboarding() succeeds for a new user.
     case onboardingComplete(durationSeconds: Int)
+
+    /// Fired when re-onboarding completes successfully.
+    case reonboardingComplete(targetType: String)
 
     // MARK: Subscription
 
@@ -106,6 +109,23 @@ enum AnalyticsEvent {
 
     /// Fired for PB Moment view/share/save/close. Payload must not include workout id, route, location, or PII.
     case pbMoment(action: String, distance: String, entry: String, isFirstRecord: Bool)
+
+    // MARK: Achievements
+
+    /// Fired when the Personal Achievements tab is opened.
+    case achievementTabOpen(entry: String)
+
+    /// Fired when a badge detail is opened. Payload must stay low sensitivity.
+    case achievementBadgeOpen(entry: String, badgeId: String, chapter: String, status: String)
+
+    /// Fired when a public achievement share material is tapped.
+    case achievementShareTap(entry: String, materialType: String, badgeId: String?, chapter: String?)
+
+    /// Fired when an achievement share is completed by the platform share sheet.
+    case achievementShareComplete(entry: String, materialType: String, badgeId: String?, chapter: String?)
+
+    /// Fired when the achievement share preview is closed.
+    case achievementShareClose(entry: String, materialType: String, badgeId: String?, chapter: String?)
 }
 
 // MARK: - Event metadata
@@ -120,6 +140,7 @@ extension AnalyticsEvent {
         case .onboardingGarminComplete: return "onboarding_garmin_complete"
         case .onboardingTargetSet:    return "onboarding_target_set"
         case .onboardingComplete:     return "onboarding_complete"
+        case .reonboardingComplete:   return "reonboarding_complete"
         case .paywallOpened:          return "paywall_opened"
         case .paywallView:            return "paywall_view"
         case .paywallTapSubscribe:    return "paywall_tap_subscribe"
@@ -144,6 +165,11 @@ extension AnalyticsEvent {
         case .planOverviewView:       return "plan_overview_view"
         case .racePredictionView:     return "race_prediction_view"
         case .pbMoment:               return "pb_moment"
+        case .achievementTabOpen:      return "achievement_tab_open"
+        case .achievementBadgeOpen:    return "achievement_badge_open"
+        case .achievementShareTap:     return "achievement_share_tap"
+        case .achievementShareComplete: return "achievement_share_complete"
+        case .achievementShareClose:   return "achievement_share_close"
         }
     }
 
@@ -170,6 +196,9 @@ extension AnalyticsEvent {
 
         case .onboardingComplete(let durationSeconds):
             return ["duration_seconds": durationSeconds]
+
+        case .reonboardingComplete(let targetType):
+            return ["target_type": targetType]
 
         case .paywallOpened(let source, let subSource):
             var params: [String: Any] = ["source": source]
@@ -291,6 +320,30 @@ extension AnalyticsEvent {
                 "entry": entry,
                 "is_first_record": isFirstRecord
             ]
+
+        case .achievementTabOpen(let entry):
+            return AchievementAnalyticsPayloadGuard.sanitized([
+                "entry": entry
+            ])
+
+        case .achievementBadgeOpen(let entry, let badgeId, let chapter, let status):
+            return AchievementAnalyticsPayloadGuard.sanitized([
+                "entry": entry,
+                "badge_id": badgeId,
+                "chapter": chapter,
+                "status": status
+            ])
+
+        case .achievementShareTap(let entry, let materialType, let badgeId, let chapter),
+             .achievementShareComplete(let entry, let materialType, let badgeId, let chapter),
+             .achievementShareClose(let entry, let materialType, let badgeId, let chapter):
+            var params: [String: Any] = [
+                "entry": entry,
+                "material_type": materialType
+            ]
+            if let badgeId { params["badge_id"] = badgeId }
+            if let chapter { params["chapter"] = chapter }
+            return AchievementAnalyticsPayloadGuard.sanitized(params)
         }
     }
 }
