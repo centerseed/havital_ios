@@ -2863,6 +2863,9 @@
 "achievements.share.sensitive_excluded" = "Route, GPS, heart rate, sleep, injury, workout ID, email, UID, and full schedule details are excluded.";
 "achievements.share.privacy_footer" = "Paceriz training result";
 "achievements.share.badge_label" = "Badge";
+"achievements.share.tag_new_pb" = "New PB";
+"achievements.share.tag_new_badge" = "New Badge";
+"achievements.share.tag_pb_and_badge" = "New PB + Badge";
 "achievements.badges.title" = "Badge Collection";
 "achievements.badges.explanation" = "View the badges you have earned and the ones still building.";
 "achievements.badges.badge" = "Badge";
@@ -2875,6 +2878,7 @@
 "achievements.detail.source" = "Source";
 "achievements.detail.historical" = "This achievement was organized from historical training data.";
 "achievements.detail.unlocked_at" = "Unlocked on %@";
+"achievements.detail.criteria_unavailable" = "Unlock criteria unavailable";
 "achievements.status.unlocked" = "Unlocked";
 "achievements.status.in_progress" = "In progress";
 "achievements.status.locked" = "To build";
@@ -2966,17 +2970,6 @@
 "achievements.field.chapter" = "Chapter";
 "achievements.field.date" = "Date";
 "achievements.field.result" = "Result";
-"badge.start.first_run.name" = "First Run";
-"badge.start.first_run.story" = "The first verified run in your Paceriz story.";
-"badge.start.first_run.reason" = "Completed and synced your first valid run.";
-"badge.build.weekly_goal.name" = "Weekly Goal";
-"badge.build.weekly_goal.story" = "You left one training week in the bank.";
-"badge.adapt.heat_adjusted.name" = "Heat Adjusted";
-"badge.adapt.heat_adjusted.story" = "Adjusting for conditions is still training.";
-"badge.prove.new_pb.name" = "New PB";
-"badge.prove.new_pb.story" = "The work showed up in a verified personal best.";
-"badge.identity.smart_trainer.name" = "Smart Trainer";
-"badge.identity.smart_trainer.story" = "You are building a sustainable training identity.";
 "achievement.source.weekly_summary" = "Weekly summary";
 "achievement.source.pb" = "Personal best";
 "achievement.source.workout" = "Workout summary";

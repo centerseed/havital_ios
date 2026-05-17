@@ -2860,6 +2860,9 @@
 "achievements.share.sensitive_excluded" = "ルート、GPS、心拍、睡眠、けが、workout ID、email、uid、詳しいメニューは含まれません。";
 "achievements.share.privacy_footer" = "Paceriz トレーニング成果";
 "achievements.share.badge_label" = "バッジ";
+"achievements.share.tag_new_pb" = "新PB";
+"achievements.share.tag_new_badge" = "新バッジ";
+"achievements.share.tag_pb_and_badge" = "新PB＋バッジ";
 "achievements.badges.title" = "バッジコレクション";
 "achievements.badges.explanation" = "獲得済みと累積中のバッジを確認できます。";
 "achievements.badges.badge" = "バッジ";
@@ -2872,6 +2875,7 @@
 "achievements.detail.source" = "ソース";
 "achievements.detail.historical" = "この実績は過去のトレーニングデータから整理されました。";
 "achievements.detail.unlocked_at" = "解除日 %@";
+"achievements.detail.criteria_unavailable" = "解除条件は現在利用できません";
 "achievements.status.unlocked" = "解除済み";
 "achievements.status.in_progress" = "進行中";
 "achievements.status.locked" = "これから";
@@ -2963,17 +2967,6 @@
 "achievements.field.chapter" = "チャプター";
 "achievements.field.date" = "日付";
 "achievements.field.result" = "結果";
-"badge.start.first_run.name" = "First Run";
-"badge.start.first_run.story" = "Paceriz で確認された最初のランです。";
-"badge.start.first_run.reason" = "最初の有効なランを完了して同期しました。";
-"badge.build.weekly_goal.name" = "Weekly Goal";
-"badge.build.weekly_goal.story" = "1 週間のトレーニングを積み重ねました。";
-"badge.adapt.heat_adjusted.name" = "Heat Adjusted";
-"badge.adapt.heat_adjusted.story" = "状況に合わせた調整もトレーニングです。";
-"badge.prove.new_pb.name" = "New PB";
-"badge.prove.new_pb.story" = "積み重ねが確認済みの自己ベストに表れました。";
-"badge.identity.smart_trainer.name" = "Smart Trainer";
-"badge.identity.smart_trainer.story" = "長く続けられるトレーニングの形を作っています。";
 "achievement.source.weekly_summary" = "週間サマリー";
 "achievement.source.pb" = "自己ベスト";
 "achievement.source.workout" = "ワークアウトサマリー";

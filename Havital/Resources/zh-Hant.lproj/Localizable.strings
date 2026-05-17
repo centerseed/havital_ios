@@ -2906,6 +2906,9 @@
 "achievements.share.sensitive_excluded" = "路線、GPS、心率、睡眠、傷痛、workout ID、email、uid 與完整課表細節都不會包含。";
 "achievements.share.privacy_footer" = "Paceriz 訓練成果";
 "achievements.share.badge_label" = "徽章";
+"achievements.share.tag_new_pb" = "新 PB";
+"achievements.share.tag_new_badge" = "新徽章";
+"achievements.share.tag_pb_and_badge" = "新 PB + 徽章";
 "achievements.badges.title" = "徽章收藏";
 "achievements.badges.explanation" = "查看你已拿到與正在累積的徽章。";
 "achievements.badges.badge" = "徽章";
@@ -2918,6 +2921,7 @@
 "achievements.detail.source" = "來源";
 "achievements.detail.historical" = "這個成就是由歷史訓練資料整理而來。";
 "achievements.detail.unlocked_at" = "解鎖於 %@";
+"achievements.detail.criteria_unavailable" = "解鎖條件暫無資料";
 "achievements.status.unlocked" = "已解鎖";
 "achievements.status.in_progress" = "累積中";
 "achievements.status.locked" = "待累積";

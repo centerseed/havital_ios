@@ -1504,6 +1504,12 @@ extension L10n {
             static let sensitiveExcluded = "achievements.share.sensitive_excluded"
             static let privacyFooter = "achievements.share.privacy_footer"
             static let badgeLabel = "achievements.share.badge_label"
+            // Share card eyebrow capsule labels
+            static let tagNewPB = "achievements.share.tag_new_pb"
+            static let tagNewBadge = "achievements.share.tag_new_badge"
+            static let tagPBAndBadge = "achievements.share.tag_pb_and_badge"
+            // Reuse Task 8 key to avoid duplication
+            static let alsoUnlocked = "my_achievement.celebration.also_unlocked"
         }
 
         enum Badges {
@@ -1522,6 +1528,7 @@ extension L10n {
             static let source = "achievements.detail.source"
             static let historical = "achievements.detail.historical"
             static let unlockedAt = "achievements.detail.unlocked_at"
+            static let criteriaUnavailable = "achievements.detail.criteria_unavailable"
         }
 
         enum Status {
