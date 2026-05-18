@@ -4,13 +4,14 @@ import SwiftUI
 /// Compact race header for the training plan main screen (Phase B2).
 ///
 /// Single-row layout:
-///   [倒數 · 天] | [賽名 / 差 chip / est → target] | [適能 score delta ›]
+///   [倒數 · 天] | [賽名 / target → est] | [適能 score delta ›]
 ///
-/// Dark gradient background (1A1F2C → 2A3550).
+/// Adaptive gradient background: light mode 1A1F2C → 2A3550, dark mode 2E3548 → 424D6B.
 /// All sections hide gracefully when data is nil — no crash, no empty boxes.
 struct RaceHeaderViewV2: View {
 
     @ObservedObject var viewModel: RaceHeaderViewModelV2
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
@@ -22,18 +23,27 @@ struct RaceHeaderViewV2: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 12)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(red: 0x1A/255.0, green: 0x1F/255.0, blue: 0x2C/255.0),
-                    Color(red: 0x2A/255.0, green: 0x35/255.0, blue: 0x50/255.0)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
+        .background(adaptiveDarkGradient(for: colorScheme))
         .cornerRadius(16)
         .shadow(color: Color(red: 20/255, green: 30/255, blue: 60/255).opacity(0.18), radius: 9, x: 0, y: 4)
+    }
+
+    // MARK: - Adaptive Background
+
+    private func adaptiveDarkGradient(for colorScheme: ColorScheme) -> LinearGradient {
+        let stops: [Gradient.Stop]
+        if colorScheme == .dark {
+            stops = [
+                .init(color: Color(red: 0x2E / 255.0, green: 0x35 / 255.0, blue: 0x48 / 255.0), location: 0),
+                .init(color: Color(red: 0x42 / 255.0, green: 0x4D / 255.0, blue: 0x6B / 255.0), location: 1)
+            ]
+        } else {
+            stops = [
+                .init(color: Color(red: 0x1A / 255.0, green: 0x1F / 255.0, blue: 0x2C / 255.0), location: 0),
+                .init(color: Color(red: 0x2A / 255.0, green: 0x35 / 255.0, blue: 0x50 / 255.0), location: 1)
+            ]
+        }
+        return LinearGradient(stops: stops, startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
     // MARK: - Countdown Column
@@ -81,24 +91,24 @@ struct RaceHeaderViewV2: View {
                 .truncationMode(.tail)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Estimated → target (gap chip removed)
+            // Target → estimated (goal first, then current projection)
             HStack(spacing: 4) {
-                if let est = viewModel.estimatedFinish {
-                    Text(est)
-                        .font(.system(size: 15, weight: .semibold, design: .monospaced))
-                        .foregroundColor(viewModel.estimatedTimeColor)
+                if let target = viewModel.targetFinish {
+                    Text(target)
+                        .font(.system(size: 15, weight: .heavy, design: .monospaced))
+                        .foregroundColor(.white)
                 }
 
-                if viewModel.estimatedFinish != nil, viewModel.targetFinish != nil {
+                if viewModel.targetFinish != nil, viewModel.estimatedFinish != nil {
                     Text("→")
                         .font(.system(size: 10, weight: .regular))
                         .foregroundColor(.white.opacity(0.4))
                 }
 
-                if let target = viewModel.targetFinish {
-                    Text(target)
-                        .font(.system(size: 15, weight: .heavy, design: .monospaced))
-                        .foregroundColor(Color(red: 1, green: 0.690, blue: 0.533))  // #FFB088
+                if let est = viewModel.estimatedFinish {
+                    Text(est)
+                        .font(.system(size: 15, weight: .semibold, design: .monospaced))
+                        .foregroundColor(viewModel.estimatedTimeColor)
                 }
             }
         }
