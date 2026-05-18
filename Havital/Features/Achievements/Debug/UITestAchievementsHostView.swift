@@ -91,6 +91,95 @@ private final class UITestAchievementRepository: AchievementRepository {
                 assetName: "achievement_badge_prove_new_pb"
             )
         ]
+        let rhythmNextBadge = AchievementBadge(
+            badgeId: "BADGE-RHYTHM-02-RETURN-WEEK",
+            chapter: .build,
+            nameKey: "achievements.badge.rhythm.return_week.name",
+            storyKey: "achievements.badge.rhythm.return_week.story",
+            status: .inProgress,
+            progress: AchievementProgress(
+                current: 1,
+                target: 2,
+                unitKey: "achievements.progress.unit.week",
+                summaryKey: nil,
+                summaryParams: [:]
+            ),
+            unlockedAt: nil,
+            unlockReasonKey: nil,
+            sourceRef: nil,
+            historicalBackfill: false,
+            shareable: true,
+            assetName: "achievement_badge_rhythm_02_return_week"
+        )
+        let planNextBadge = AchievementBadge(
+            badgeId: "BADGE-PLAN-01-FIRST-QUALIFIED-WEEK",
+            chapter: .adapt,
+            nameKey: "achievements.badge.plan.first_qualified_week.name",
+            storyKey: "achievements.badge.plan.first_qualified_week.story",
+            status: .inProgress,
+            progress: AchievementProgress(
+                current: 0,
+                target: 1,
+                unitKey: "achievements.progress.unit.week",
+                summaryKey: nil,
+                summaryParams: [:]
+            ),
+            unlockedAt: nil,
+            unlockReasonKey: nil,
+            sourceRef: nil,
+            historicalBackfill: false,
+            shareable: true,
+            assetName: "achievement_badge_plan_01_first_qualified_week"
+        )
+        let resultsNextBadge = AchievementBadge(
+            badgeId: "BADGE-RESULTS-01-FIRST-MAJOR-RESULT",
+            chapter: .prove,
+            nameKey: "achievements.badge.results.first_major_result.name",
+            storyKey: "achievements.badge.results.first_major_result.story",
+            status: .inProgress,
+            progress: AchievementProgress(
+                current: 0,
+                target: 1,
+                unitKey: "achievements.progress.unit.count",
+                summaryKey: nil,
+                summaryParams: [:]
+            ),
+            unlockedAt: nil,
+            unlockReasonKey: nil,
+            sourceRef: nil,
+            historicalBackfill: false,
+            shareable: true,
+            assetName: "achievement_badge_results_01_first_major_result"
+        )
+        let tracks = [
+            AchievementTrack(
+                trackId: "rhythm",
+                titleKey: "achievements.track.rhythm.title",
+                storyKey: "achievements.track.rhythm.story",
+                metricKey: "active_weeks",
+                current: 1,
+                nextBadge: rhythmNextBadge,
+                badges: [rhythmNextBadge]
+            ),
+            AchievementTrack(
+                trackId: "plan",
+                titleKey: "achievements.track.plan.title",
+                storyKey: "achievements.track.plan.story",
+                metricKey: "qualified_plan_weeks",
+                current: 0,
+                nextBadge: planNextBadge,
+                badges: [planNextBadge]
+            ),
+            AchievementTrack(
+                trackId: "results",
+                titleKey: "achievements.track.results.title",
+                storyKey: "achievements.track.results.story",
+                metricKey: "major_results",
+                current: 0,
+                nextBadge: resultsNextBadge,
+                badges: [resultsNextBadge]
+            )
+        ]
 
         let shareables = [
             AchievementShareable(
@@ -139,6 +228,7 @@ private final class UITestAchievementRepository: AchievementRepository {
                 AchievementBadgeGroup(chapter: .build, titleKey: "achievements.chapter.build", badges: [badges[1]]),
                 AchievementBadgeGroup(chapter: .prove, titleKey: "achievements.chapter.prove", badges: [badges[2]])
             ],
+            achievementTracks: tracks,
             pbOverview: AchievementPBOverview(
                 titleKey: "achievements.pb.title",
                 updatedAt: "2026-05-01",

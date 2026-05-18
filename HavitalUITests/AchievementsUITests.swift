@@ -6,12 +6,20 @@ final class AchievementsUITests: XCTestCase {
         app.launchArguments = ["-ui_testing_achievements"]
         app.launch()
 
-        XCTAssertTrue(element(in: app, id: "Achievements_OverviewCard").waitForExistence(timeout: 8))
+        XCTAssertTrue(element(in: app, id: "Achievements_TrackRoutes").waitForExistence(timeout: 8))
+        let rhythmCard = element(in: app, id: "Achievements_TrackCard_rhythm")
+        let planCard = element(in: app, id: "Achievements_TrackCard_plan")
+        let resultsCard = element(in: app, id: "Achievements_TrackCard_results")
+        XCTAssertTrue(rhythmCard.exists)
+        XCTAssertEqual(rhythmCard.label, "訓練節奏")
+        XCTAssertTrue(planCard.exists)
+        XCTAssertEqual(planCard.label, "課表執行")
+        XCTAssertTrue(resultsCard.exists)
+        XCTAssertEqual(resultsCard.label, "成果突破")
+        XCTAssertTrue(element(in: app, id: "Achievements_HeroCard").exists)
         XCTAssertTrue(element(in: app, id: "Achievements_PBCard").exists)
-        XCTAssertTrue(element(in: app, id: "Achievements_LifetimeStatsCard").exists)
 
         XCTAssertTrue(app.staticTexts["個人最佳"].exists)
-        XCTAssertTrue(app.staticTexts["累積紀錄"].exists)
 
         app.swipeUp()
 

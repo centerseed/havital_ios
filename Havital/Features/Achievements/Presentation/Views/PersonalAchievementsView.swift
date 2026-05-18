@@ -100,6 +100,8 @@ struct PersonalAchievementsView: View {
                     backfillBanner
                 }
 
+                achievementTrackRoutes
+
                 badgeHeroCard
 
                 if let pbOverview = viewModel.summary?.pbOverview, !pbOverview.records.isEmpty {
@@ -391,6 +393,123 @@ struct PersonalAchievementsView: View {
             }
             .buttonStyle(.plain)
         )
+    }
+
+    @ViewBuilder
+    private var achievementTrackRoutes: some View {
+        if let tracks = viewModel.summary?.achievementTracks, !tracks.isEmpty {
+            VStack(spacing: 12) {
+                ForEach(tracks) { track in
+                    achievementTrackCard(track)
+                }
+            }
+            .padding(.horizontal)
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("Achievements_TrackRoutes")
+        }
+    }
+
+    @ViewBuilder
+    private func achievementTrackCard(_ track: AchievementTrack) -> some View {
+        if let nextBadge = track.nextBadge {
+            Button {
+                viewModel.openBadge(nextBadge, entry: "achievement_track")
+            } label: {
+                achievementTrackCardContent(track, nextBadge: nextBadge)
+            }
+            .buttonStyle(.plain)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(track.titleKey.localizedOrFallback(default: track.trackId.capitalized))
+            .accessibilityIdentifier("Achievements_TrackCard_\(track.trackId)")
+        } else {
+            achievementTrackCardContent(track, nextBadge: nil)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(track.titleKey.localizedOrFallback(default: track.trackId.capitalized))
+                .accessibilityIdentifier("Achievements_TrackCard_\(track.trackId)")
+        }
+    }
+
+    private func achievementTrackCardContent(_ track: AchievementTrack, nextBadge: AchievementBadge?) -> some View {
+        let progress = achievementTrackProgress(track, nextBadge: nextBadge)
+        return HStack(alignment: .top, spacing: 12) {
+            if let nextBadge {
+                AchievementBadgeImage(
+                    assetName: AchievementBadgeArtwork.assetName(for: nextBadge),
+                    status: nextBadge.status,
+                    size: 62
+                )
+                .accessibilityHidden(true)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(track.titleKey.localizedOrFallback(default: track.trackId.capitalized))
+                        .font(AppFont.headline())
+                        .foregroundColor(.primary)
+                        .lineLimit(2)
+
+                    Text(track.storyKey.localizedOrFallback(default: ""))
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
+                }
+
+                if let nextBadge {
+                    Text(nextBadge.nameKey.localizedOrFallback(default: L10n.Achievements.Badges.badge.localized))
+                        .font(AppFont.bodySmall())
+                        .foregroundColor(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
+
+                VStack(alignment: .leading, spacing: 5) {
+                    ProgressView(value: progress.value)
+                        .progressViewStyle(.linear)
+                        .tint(nextBadge.map { AchievementChapterTheme.primaryColor(for: $0.chapter) } ?? PacerizTokens.color.brand.primary)
+                        .frame(height: 5)
+
+                    Text(L10n.Achievements.Detail.progress.localized + " · " + progress.text)
+                        .font(AppFont.captionSmall())
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
+            }
+
+            if nextBadge != nil {
+                Spacer(minLength: 4)
+                Image(systemName: "chevron.right")
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+                    .padding(.top, 4)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground))
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+    }
+
+    private func achievementTrackProgress(_ track: AchievementTrack, nextBadge: AchievementBadge?) -> (value: Double, text: String) {
+        let rawCurrent = nextBadge?.progress?.current ?? track.current ?? 0
+        let rawTarget = nextBadge?.progress?.target ?? 1
+        let target = rawTarget > 0 ? rawTarget : 1
+        let value = min(max(rawCurrent / target, 0), 1)
+        let unitKey = nextBadge?.progress?.unitKey
+        let currentText = achievementProgressValueText(rawCurrent, unitKey: unitKey)
+        let targetText = achievementProgressValueText(target, unitKey: unitKey)
+        return (
+            value: value,
+            text: "achievement.progress.current_target".localized(with: currentText, targetText)
+        )
+    }
+
+    private func achievementProgressValueText(_ value: Double, unitKey: String?) -> String {
+        let formatted = value.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(value)) : String(format: "%.1f", value)
+        guard let unitKey else { return formatted }
+        let unit = unitKey.localizedOrFallback(default: "")
+        return unit.isEmpty ? formatted : "\(formatted) \(unit)"
     }
 
     private func featuredBadgePreview(_ badge: AchievementBadge) -> some View {
