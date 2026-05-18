@@ -448,7 +448,7 @@ struct TrainingCalendarView: View {
                     Text(String(format: "%.1f", UnitManager.shared.convertedDistance(totalMonthDistance)))
                         .font(AppFont.title1())
                         .fontWeight(.bold)
-                        .foregroundColor(.green)
+                        .foregroundColor(PacerizTokens.color.brand.primary)
 
                     Text(UnitManager.shared.currentUnitSystem.distanceSuffix)
                         .font(AppFont.bodySmall())
@@ -466,7 +466,7 @@ struct TrainingCalendarView: View {
                 Text(averagePace)
                     .font(AppFont.title1())
                     .fontWeight(.bold)
-                    .foregroundColor(.orange)
+                    .foregroundColor(PacerizTokens.color.brand.accent)
             }
         }
         .padding()
@@ -481,7 +481,6 @@ struct TrainingCalendarView: View {
     private var monthlySummaryView: some View {
         let summaries = viewModel.monthlySummaries
         let featuredSummary = summaries.first
-        let bestSummary = summaries.max { $0.totalDistanceKm < $1.totalDistanceKm }
 
         return VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top) {
@@ -512,17 +511,14 @@ struct TrainingCalendarView: View {
             } else {
                 VStack(spacing: 14) {
                     if let featuredSummary {
-                        MonthlyRunningHeroCard(summary: featuredSummary, bestSummary: bestSummary)
+                        MonthlyRunningHeroCard(summary: featuredSummary)
                     }
 
                     MonthlyRunningTrendCard(summaries: summaries)
 
                     VStack(spacing: 8) {
                         ForEach(summaries) { summary in
-                            MonthlyRunningSummaryRow(
-                                summary: summary,
-                                isBestMonth: summary.id == bestSummary?.id
-                            )
+                            MonthlyRunningSummaryRow(summary: summary)
                         }
                     }
                 }
@@ -695,7 +691,7 @@ struct DayWorkoutInfo {
 
 private struct MonthlyRunningSummaryRow: View {
     let summary: MonthlyRunningSummary
-    let isBestMonth: Bool
+    private let accentColor = PacerizTokens.color.brand.primary
 
     private var monthTitle: String {
         let formatter = DateFormatter()
@@ -723,16 +719,16 @@ private struct MonthlyRunningSummaryRow: View {
             VStack(spacing: 2) {
                 Text(monthAbbreviation)
                     .font(AppFont.systemScaled(size: 13, weight: .bold))
-                    .foregroundColor(isBestMonth ? .white : .green)
+                    .foregroundColor(accentColor)
 
                 Text(yearText)
                     .font(AppFont.systemScaled(size: 10, weight: .medium))
-                    .foregroundColor(isBestMonth ? .white.opacity(0.78) : .secondary)
+                    .foregroundColor(.secondary)
             }
             .frame(width: 52, height: 52)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(isBestMonth ? Color.green : Color.green.opacity(0.12))
+                    .fill(accentColor.opacity(0.12))
             )
 
             VStack(alignment: .leading, spacing: 4) {
@@ -744,15 +740,6 @@ private struct MonthlyRunningSummaryRow: View {
                     Text(String(format: NSLocalizedString("training_calendar.run_count_format", comment: "Run count"), summary.workoutCount))
                         .font(AppFont.caption())
                         .foregroundColor(.secondary)
-
-                    if isBestMonth {
-                        Text(NSLocalizedString("training_calendar.best_month", comment: "Best month"))
-                            .font(AppFont.systemScaled(size: 11, weight: .bold))
-                            .foregroundColor(.green)
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 3)
-                            .background(Capsule().fill(Color.green.opacity(0.12)))
-                    }
                 }
             }
 
@@ -791,7 +778,7 @@ private struct MonthlyRunningSummaryRow: View {
 
 private struct MonthlyRunningHeroCard: View {
     let summary: MonthlyRunningSummary
-    let bestSummary: MonthlyRunningSummary?
+    private let accentColor = PacerizTokens.color.brand.primary
 
     private var monthTitle: String {
         let formatter = DateFormatter()
@@ -816,35 +803,49 @@ private struct MonthlyRunningHeroCard: View {
         return String(format: "%d'%02d\"", totalSeconds / 60, totalSeconds % 60)
     }
 
+    private var averageDistancePerRunText: String {
+        guard summary.workoutCount > 0 else { return "--" }
+        let averageKm = summary.totalDistanceKm / Double(summary.workoutCount)
+        let converted = UnitManager.shared.convertedDistance(averageKm)
+        let unit = UnitManager.shared.currentUnitSystem.distanceSuffix
+        return "\(String(format: "%.1f", converted)) \(unit)"
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(monthTitle)
                         .font(AppFont.systemScaled(size: 17, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.9))
+                        .foregroundColor(.primary)
 
                     Text(NSLocalizedString("training_calendar.hero_caption", comment: "Monthly running recap"))
                         .font(AppFont.caption())
-                        .foregroundColor(.white.opacity(0.68))
+                        .foregroundColor(.secondary)
                 }
 
                 Spacer()
 
                 Image(systemName: "figure.run.circle.fill")
-                    .font(.system(size: 36, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.9))
+                    .font(.system(size: 32, weight: .semibold))
+                    .foregroundColor(accentColor)
             }
 
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(distanceValue)
-                    .font(AppFont.systemScaled(size: 52, weight: .bold))
-                    .foregroundColor(.white)
-                    .minimumScaleFactor(0.74)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(NSLocalizedString("training_plan.monthly_total_distance", comment: "Monthly Total Distance"))
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
 
-                Text(distanceUnit)
-                    .font(AppFont.systemScaled(size: 18, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.74))
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(distanceValue)
+                        .font(AppFont.systemScaled(size: 46, weight: .bold))
+                        .foregroundColor(accentColor)
+                        .minimumScaleFactor(0.78)
+
+                    Text(distanceUnit)
+                        .font(AppFont.systemScaled(size: 18, weight: .semibold))
+                        .foregroundColor(.secondary)
+                }
             }
 
             HStack(spacing: 10) {
@@ -857,22 +858,17 @@ private struct MonthlyRunningHeroCard: View {
                     value: "\(summary.workoutCount)"
                 )
                 heroMetric(
-                    title: NSLocalizedString("training_calendar.best_short", comment: "Best"),
-                    value: bestSummary.map { String(format: "%.0f", UnitManager.shared.convertedDistance($0.totalDistanceKm)) } ?? "--"
+                    title: NSLocalizedString("training_calendar.avg_distance_short", comment: "Average distance per run"),
+                    value: averageDistancePerRunText
                 )
             }
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            LinearGradient(
-                colors: [Color(red: 0.05, green: 0.45, blue: 0.27), Color(red: 0.08, green: 0.28, blue: 0.18)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color(UIColor.secondarySystemGroupedBackground))
         )
-        .clipShape(RoundedRectangle(cornerRadius: 22))
-        .shadow(color: Color.green.opacity(0.2), radius: 16, x: 0, y: 8)
         .accessibilityElement(children: .combine)
     }
 
@@ -880,13 +876,13 @@ private struct MonthlyRunningHeroCard: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(AppFont.systemScaled(size: 11, weight: .medium))
-                .foregroundColor(.white.opacity(0.62))
+                .foregroundColor(.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
 
             Text(value)
                 .font(AppFont.systemScaled(size: 17, weight: .bold))
-                .foregroundColor(.white)
+                .foregroundColor(.primary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
         }
@@ -895,7 +891,7 @@ private struct MonthlyRunningHeroCard: View {
         .padding(.horizontal, 10)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white.opacity(0.12))
+                .fill(Color(UIColor.tertiarySystemGroupedBackground))
         )
     }
 }
@@ -903,6 +899,7 @@ private struct MonthlyRunningHeroCard: View {
 private struct MonthlyRunningTrendCard: View {
     let summaries: [MonthlyRunningSummary]
     private let chartHeight: CGFloat = 92
+    private let accentColor = PacerizTokens.color.brand.primary
 
     private var chartSummaries: [MonthlyRunningSummary] {
         Array(summaries.reversed())
@@ -931,7 +928,7 @@ private struct MonthlyRunningTrendCard: View {
                     VStack(spacing: 7) {
                         ZStack(alignment: .bottom) {
                             RoundedRectangle(cornerRadius: 6)
-                                .fill(Color.green)
+                                .fill(accentColor)
                                 .frame(height: barHeight(for: summary))
                         }
                         .frame(height: chartHeight, alignment: .bottom)

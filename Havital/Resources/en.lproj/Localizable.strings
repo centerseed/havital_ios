@@ -1171,8 +1171,7 @@
 "training_calendar.hero_caption" = "Monthly running recap";
 "training_calendar.average_pace_short" = "Avg pace";
 "training_calendar.runs_short" = "Runs";
-"training_calendar.best_short" = "Best";
-"training_calendar.best_month" = "Best month";
+"training_calendar.avg_distance_short" = "Avg distance";
 "training_calendar.recent_trend" = "Recent trend";
 "training_calendar.last_six_months" = "Last 6 months";
 "training_plan.today" = "Today";

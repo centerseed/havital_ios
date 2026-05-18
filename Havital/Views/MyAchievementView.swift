@@ -188,13 +188,13 @@ struct MyAchievementView: View {
                     .cardStyle()
                     .padding(.horizontal)
 
+                    // Personal Best stays on the Performance tab while the Awards tab is hidden.
+                    PersonalBestCardView(personalBestData: cachedPersonalBestData)
+
                     // 訓練負荷圖 - 使用 health_daily API 取得 tsb_metrics
                     TrainingLoadChartSection()
                         .environmentObject(healthKitManager)
                         .environmentObject(sharedHealthDataManager)
-
-                    // Personal Best stays on the Performance tab while the Awards tab is hidden.
-                    PersonalBestCardView(personalBestData: cachedPersonalBestData)
 
                     // Weekly Volume Chart Section - 週跑量趨勢圖
                     VStack(alignment: .leading, spacing: 12) {

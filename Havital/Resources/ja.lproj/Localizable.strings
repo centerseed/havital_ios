@@ -1170,8 +1170,7 @@
 "training_calendar.hero_caption" = "月間ランニング記録";
 "training_calendar.average_pace_short" = "平均ペース";
 "training_calendar.runs_short" = "回数";
-"training_calendar.best_short" = "最高";
-"training_calendar.best_month" = "最高月";
+"training_calendar.avg_distance_short" = "平均距離";
 "training_calendar.recent_trend" = "最近の推移";
 "training_calendar.last_six_months" = "直近6か月";
 "training_plan.today" = "今日";
