@@ -1181,6 +1181,9 @@
 "training_calendar.last_six_months" = "直近6か月";
 "training_plan.today" = "今日";
 "training_plan.active_recovery_day" = "アクティブリカバリー";
+"training_plan.start_today_workout" = "今日のトレーニング開始";
+"rest_day.info_title" = "アクティブリカバリーデー";
+"rest_day.info_body" = "今日は休息日です。軽いストレッチ、ウォーキング、ヨガで身体を休めましょう。完全な回復は次のトレーニングに不可欠です。";
 "training_plan.tip" = "ヒント：%@";
 "training_plan.segment" = "セグメント%d";
 "training_plan.heart_rate_zone" = "心拍ゾーン：%@";

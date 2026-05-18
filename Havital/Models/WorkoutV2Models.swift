@@ -7,7 +7,15 @@ struct WorkoutListResponse: Codable {
     let pagination: PaginationInfo
 }
 
-struct WorkoutV2: Codable, Identifiable {
+struct WorkoutV2: Codable, Identifiable, Hashable {
+    // Hashable: identity is stable and unique per workout record
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    static func == (lhs: WorkoutV2, rhs: WorkoutV2) -> Bool {
+        lhs.id == rhs.id
+    }
+
     let id: String
     let provider: String
     let activityType: String

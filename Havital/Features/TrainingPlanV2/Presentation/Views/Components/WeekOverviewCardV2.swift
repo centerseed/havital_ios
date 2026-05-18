@@ -5,9 +5,9 @@ import SwiftUI
 // Removed: circular progress ring (ZStack with Circle), CompactIntensityBarV2.
 // Added: hero row (badge + distance + intensity bar + dot legend) + flat action buttons.
 // Phase B: badge hero now driven by AchievementRepository via TrainingPlanV2ViewModel.
-//   - recentUnlock → real badge image + "新解鎖" chip
-//   - nextBadge    → real badge image grayscale + locked overlay + "解鎖中" chip
-//   - nil          → PRPlaceholderBadge fallback (no crash)
+//   - any badge (any status) → real badge image colorful + "新解鎖" chip
+//   - nil                    → PRPlaceholderBadge fallback (no crash)
+// Note: grayscale + "解鎖中" chip intentionally removed per 2026-05 UX decision.
 // WeekTargetDetailViewV2 struct is preserved unchanged at the bottom of this file.
 
 /// V2 週總覽卡片 - 顯示本週跑量和強度分配
@@ -79,22 +79,10 @@ struct WeekOverviewCardV2: View {
                         size: 72
                     )
 
-                    if let badge = viewModel.displayBadge {
-                        // Real badge: show "新解鎖" (unlocked) or lock icon (in progress)
-                        badgeStatusChip(badge: badge, isUnlocked: badge.status == .unlocked)
-                            .offset(x: -4, y: -4)
-                    } else {
-                        // Fallback placeholder chip — shown when no badge data yet
-                        Text("NEW")
-                            .font(.system(size: 9, weight: .heavy))
-                            .tracking(0.5)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 5)
-                            .padding(.vertical, 2)
-                            .background(Capsule().fill(PacerizColor.blue))
-                            .overlay(Capsule().stroke(Color.white, lineWidth: 1.5))
-                            .offset(x: -4, y: -4)
-                    }
+                    // Always show "新解鎖" chip regardless of badge status.
+                    // Grayscale / "解鎖中" removed per 2026-05 UX decision.
+                    badgeStatusChip()
+                        .offset(x: -4, y: -4)
                 }
 
                 // Right: badge name + distance + intensity bar + dot legend
@@ -273,36 +261,20 @@ struct WeekOverviewCardV2: View {
     // MARK: - Private Helpers
 
     @ViewBuilder
-    private func badgeStatusChip(badge: AchievementBadge, isUnlocked: Bool) -> some View {
-        if isUnlocked {
-            // "新解鎖" with sparkles
-            HStack(spacing: 2) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 8, weight: .bold))
-                Text(NSLocalizedString("training_plan.weekly_badge_coming_soon", comment: "新解鎖"))
-                    .font(.system(size: 9, weight: .heavy))
-                    .tracking(0.3)
-            }
-            .foregroundColor(.white)
-            .padding(.horizontal, 5)
-            .padding(.vertical, 2)
-            .background(Capsule().fill(PacerizColor.blue))
-            .overlay(Capsule().stroke(Color.white, lineWidth: 1.5))
-        } else {
-            // "解鎖中" with lock icon
-            HStack(spacing: 2) {
-                Image(systemName: "lock.fill")
-                    .font(.system(size: 8, weight: .bold))
-                Text(NSLocalizedString("training_plan.weekly_badge_in_progress", comment: "解鎖中"))
-                    .font(.system(size: 9, weight: .heavy))
-                    .tracking(0.3)
-            }
-            .foregroundColor(.white)
-            .padding(.horizontal, 5)
-            .padding(.vertical, 2)
-            .background(Capsule().fill(Color.gray.opacity(0.75)))
-            .overlay(Capsule().stroke(Color.white, lineWidth: 1.5))
+    private func badgeStatusChip() -> some View {
+        // Always "新解鎖" with sparkles — no grayscale/lock state shown in homepage card.
+        HStack(spacing: 2) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 8, weight: .bold))
+            Text(NSLocalizedString("training_plan.weekly_badge_coming_soon", comment: "新解鎖"))
+                .font(.system(size: 9, weight: .heavy))
+                .tracking(0.3)
         }
+        .foregroundColor(.white)
+        .padding(.horizontal, 5)
+        .padding(.vertical, 2)
+        .background(Capsule().fill(PacerizColor.blue))
+        .overlay(Capsule().stroke(Color.white, lineWidth: 1.5))
     }
 }
 

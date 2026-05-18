@@ -47,10 +47,8 @@ struct WeekTimelineViewV2: View {
                 }
             )
         }
-        .sheet(item: $selectedWorkout) { workout in
-            NavigationStack {
-                WorkoutDetailViewV2(workout: workout)
-            }
+        .navigationDestination(item: $selectedWorkout) { workout in
+            WorkoutDetailViewV2(workout: workout)
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
             todayTrigger = Date()
@@ -73,6 +71,7 @@ struct TimelineItemViewV2: View {
 
     @State private var isExpanded = false
     @State private var showTrainingTypeInfo = false
+    @State private var showRestDayInfo = false
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("climateAdjustmentEnabled") private var climateAdjustmentEnabled = false
 
@@ -118,7 +117,15 @@ struct TimelineItemViewV2: View {
             // 右側內容卡片
             VStack(alignment: .leading, spacing: 8) {
                 Button(action: {
-                    if !isToday {
+                    if isToday {
+                        // Today: inline expand — no-op here; card is always expanded for today
+                    } else if day.type == .rest {
+                        showRestDayInfo = true
+                    } else if let workout = workouts.first {
+                        // Past day with recorded workout → push WorkoutDetailViewV2
+                        onWorkoutSelect(workout)
+                    } else {
+                        // Future day or past day without a recorded workout → toggle inline expand
                         withAnimation(.easeInOut(duration: 0.2)) {
                             isExpanded.toggle()
                         }
@@ -319,6 +326,40 @@ struct TimelineItemViewV2: View {
                                 }
                             }
                         }
+
+                        // B5: Today CTA — "開始今日訓練" button
+                        if isToday && day.type != .rest {
+                            let accent = getTypeColor()
+                            Button(action: {
+                                if let workout = workouts.first {
+                                    onWorkoutSelect(workout)
+                                }
+                                // If no recorded workout yet, button is intentionally non-navigating
+                                // (future Phase C may deep-link to in-progress workout)
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "play.fill")
+                                        .font(.system(size: 12))
+                                    Text(NSLocalizedString("training_plan.start_today_workout", comment: "開始今日訓練"))
+                                        .font(.system(size: 14, weight: .heavy))
+                                        .tracking(-0.2)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 44)
+                                .foregroundColor(.white)
+                                .background(
+                                    LinearGradient(
+                                        colors: [accent, accent.opacity(0.8)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .cornerRadius(12)
+                                .shadow(color: accent.opacity(0.33), radius: 8, x: 0, y: 6)
+                            }
+                            .padding(.top, 8)
+                            .accessibilityIdentifier("v2.weekly.today.start_workout_cta")
+                        }
                     }
                 }
 
@@ -400,6 +441,9 @@ struct TimelineItemViewV2: View {
             if let trainingTypeInfo = TrainingTypeInfo.info(for: day.type) {
                 TrainingTypeInfoView(trainingTypeInfo: trainingTypeInfo)
             }
+        }
+        .sheet(isPresented: $showRestDayInfo) {
+            RestDayInfoSheet()
         }
     }
 
@@ -1613,6 +1657,37 @@ private struct RedesignedSegmentsView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - B4: Rest Day Info Sheet
+
+/// 主動恢復日說明 sheet（B4 rest day tap 互動）
+private struct RestDayInfoSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(NSLocalizedString("rest_day.info_body", comment: "Rest day info body"))
+                    .font(.body)
+                    .foregroundColor(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer()
+            }
+            .padding(24)
+            .navigationTitle(NSLocalizedString("rest_day.info_title", comment: "主動恢復日"))
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(NSLocalizedString("common.done", comment: "Done")) {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 }
 

@@ -1191,6 +1191,9 @@
 "training_calendar.last_six_months" = "近 6 個月";
 "training_plan.today" = "今日";
 "training_plan.active_recovery_day" = "主動恢復日";
+"training_plan.start_today_workout" = "開始今日訓練";
+"rest_day.info_title" = "主動恢復日";
+"rest_day.info_body" = "今天是休息日。可以做輕量伸展、走路或瑜伽。完全恢復對下一次訓練很重要。";
 "training_plan.tip" = "小提示：%@";
 "training_plan.segment" = "第 %d 段";
 "training_plan.heart_rate_zone" = "心率區間：%@";

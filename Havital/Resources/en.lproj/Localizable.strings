@@ -1182,6 +1182,9 @@
 "training_calendar.last_six_months" = "Last 6 months";
 "training_plan.today" = "Today";
 "training_plan.active_recovery_day" = "Active Recovery";
+"training_plan.start_today_workout" = "Start today's workout";
+"rest_day.info_title" = "Active recovery day";
+"rest_day.info_body" = "Today is a rest day. Light stretching, walking, or yoga helps recovery. Full recovery is essential for your next training session.";
 "training_plan.tip" = "Tip: %@";
 "training_plan.segment" = "Segment %d";
 "training_plan.heart_rate_zone" = "Heart Rate Zone: %@";
