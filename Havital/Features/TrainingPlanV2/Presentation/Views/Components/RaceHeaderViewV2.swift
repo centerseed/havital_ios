@@ -42,13 +42,13 @@ struct RaceHeaderViewV2: View {
     private var countdownColumn: some View {
         VStack(alignment: .center, spacing: 2) {
             Text(NSLocalizedString("training_plan.race_countdown_label", comment: "倒數"))
-                .font(.system(size: 9, weight: .heavy))
+                .font(.system(size: 12, weight: .heavy))
                 .foregroundColor(.white.opacity(0.7))
                 .tracking(0.6)
 
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(viewModel.daysLeft.map { "\($0)" } ?? "--")
-                    .font(.system(size: 24, weight: .heavy, design: .monospaced))
+                    .font(.system(size: 28, weight: .heavy, design: .monospaced))
                     .foregroundColor(Color(red: 1, green: 0.498, blue: 0.314))  // #FF7F50
                     .lineLimit(1)
                 Text(NSLocalizedString("training_plan.race_countdown_days", comment: "天"))
@@ -75,36 +75,18 @@ struct RaceHeaderViewV2: View {
         VStack(alignment: .leading, spacing: 3) {
             // Race title
             Text(viewModel.raceTitle ?? "")
-                .font(.system(size: 12, weight: .bold))
+                .font(.system(size: 16, weight: .bold))
                 .foregroundColor(.white)
                 .lineLimit(1)
                 .truncationMode(.tail)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            // Gap chip + estimated → target
+            // Estimated → target (gap chip removed)
             HStack(spacing: 4) {
-                if let gapText = viewModel.gapText {
-                    Text(gapText)
-                        .font(.system(size: 10.5, weight: .heavy))
-                        .foregroundColor(viewModel.isOnTrack
-                            ? Color(red: 0.651, green: 0.851, blue: 0.722)  // #A6D9B8
-                            : Color(red: 1, green: 0.690, blue: 0.533))     // #FFB088
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 1)
-                        .background(
-                            RoundedRectangle(cornerRadius: 4)
-                                .fill(viewModel.isOnTrack
-                                    ? Color(red: 0.463, green: 0.784, blue: 0.576, opacity: 0.25)
-                                    : Color(red: 1, green: 0.498, blue: 0.314, opacity: 0.20))
-                        )
-                }
-
                 if let est = viewModel.estimatedFinish {
                     Text(est)
-                        .font(.system(size: 10.5, weight: .semibold, design: .monospaced))
-                        .foregroundColor(.white.opacity(0.85))
+                        .font(.system(size: 15, weight: .semibold, design: .monospaced))
+                        .foregroundColor(viewModel.estimatedTimeColor)
                 }
 
                 if viewModel.estimatedFinish != nil, viewModel.targetFinish != nil {
@@ -115,7 +97,7 @@ struct RaceHeaderViewV2: View {
 
                 if let target = viewModel.targetFinish {
                     Text(target)
-                        .font(.system(size: 10.5, weight: .heavy, design: .monospaced))
+                        .font(.system(size: 15, weight: .heavy, design: .monospaced))
                         .foregroundColor(Color(red: 1, green: 0.690, blue: 0.533))  // #FFB088
                 }
             }
@@ -129,19 +111,19 @@ struct RaceHeaderViewV2: View {
     private var readinessColumn: some View {
         VStack(alignment: .trailing, spacing: 2) {
             Text(NSLocalizedString("training_plan.race_readiness_label", comment: "適能"))
-                .font(.system(size: 9, weight: .heavy))
+                .font(.system(size: 12, weight: .heavy))
                 .foregroundColor(.white.opacity(0.7))
                 .tracking(0.6)
 
             HStack(alignment: .firstTextBaseline, spacing: 2) {
                 Text(viewModel.readinessScore.map { "\($0)" } ?? "--")
-                    .font(.system(size: 18, weight: .heavy, design: .monospaced))
+                    .font(.system(size: 28, weight: .heavy, design: .monospaced))
                     .foregroundColor(readinessColor)
                     .lineLimit(1)
 
                 if let delta = viewModel.weekDeltaDisplay {
                     Text("\(delta.symbol)\(delta.magnitude)")
-                        .font(.system(size: 9, weight: .heavy))
+                        .font(.system(size: 11, weight: .heavy))
                         .foregroundColor(delta.color)
                 }
             }

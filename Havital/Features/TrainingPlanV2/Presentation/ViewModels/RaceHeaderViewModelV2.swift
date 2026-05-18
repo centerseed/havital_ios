@@ -37,6 +37,12 @@ final class RaceHeaderViewModelV2: ObservableObject {
     /// Whether estimated time is within 60 s of target (controls chip colour)
     @Published private(set) var isOnTrack: Bool = false
 
+    /// Estimated finish time in seconds (parsed from estimatedFinish string)
+    private(set) var estimatedSeconds: Int?
+
+    /// Target finish time in seconds (parsed from targetFinish string)
+    private(set) var targetSeconds: Int?
+
     /// Readiness overall score as integer (nil when no data)
     @Published private(set) var readinessScore: Int?
 
@@ -99,6 +105,12 @@ final class RaceHeaderViewModelV2: ObservableObject {
         } else {
             targetFinish = nil
         }
+
+        // -- parse seconds for color computation --
+        if let est = estimatedFinish { estimatedSeconds = Self.parseTimeString(est) }
+        else { estimatedSeconds = nil }
+        if let tgt = targetFinish { targetSeconds = Self.parseTimeString(tgt) }
+        else { targetSeconds = nil }
 
         // -- gap chip --
         updateGapChip()
@@ -182,6 +194,27 @@ final class RaceHeaderViewModelV2: ObservableObject {
             ? Color(red: 0.651, green: 0.851, blue: 0.722)  // #A6D9B8
             : Color(red: 1.0, green: 0.690, blue: 0.533)    // #FFB088
         return (symbol, magnitude, color)
+    }
+
+    // MARK: - Estimated Time Color
+
+    /// Color for estimated finish time based on relative difference from target.
+    /// - ratio <= 0.5%  → green  (essentially on target)
+    /// - ratio <= 2%    → yellow (close)
+    /// - ratio <= 4%    → orange (moderate gap)
+    /// - ratio >  4%    → red    (large gap)
+    var estimatedTimeColor: Color {
+        guard let estimated = estimatedSeconds,
+              let target = targetSeconds,
+              estimated > 0, target > 0 else {
+            return .white
+        }
+        let diff = abs(estimated - target)
+        let ratio = Double(diff) / Double(target)
+        if ratio <= 0.005 { return PacerizColor.green }
+        if ratio <= 0.02  { return Color(red: 1.0, green: 0.85, blue: 0.3) }
+        if ratio <= 0.04  { return PacerizColor.orange }
+        return PacerizColor.error
     }
 
     // MARK: - Time Formatting Helpers
