@@ -277,70 +277,39 @@ struct WeekTargetDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                // 週目標區域
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "target")
-                            .foregroundColor(.blue)
-                            .font(AppFont.title3())
-
-                        Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
-                            .font(AppFont.headline())
-                            .foregroundColor(.primary)
-                    }
-
+            VStack(alignment: .leading, spacing: 16) {
+                WeekTargetSectionCard(
+                    icon: "target",
+                    iconColor: .blue,
+                    title: NSLocalizedString("training_plan.week_target", comment: "Week Target")
+                ) {
                     Text(purpose)
-                        .font(AppFont.body())
-                        .foregroundColor(.primary)
+                        .font(AppFont.systemScaled(size: 16))
+                        .foregroundColor(.primary.opacity(0.82))
+                        .lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)
-                        .padding(.leading, 4)
                 }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.blue.opacity(0.08))
-                )
 
                 // 設計原因區域（如果有的話）
                 if let designReason = designReason, !designReason.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "lightbulb.circle.fill")
-                                .foregroundColor(.orange)
-                                .font(AppFont.title3())
-
-                            Text(NSLocalizedString("training.design_reason", comment: "Design Reason"))
-                                .font(AppFont.headline())
-                                .foregroundColor(.primary)
-                        }
-
-                        VStack(alignment: .leading, spacing: 12) {
+                    WeekTargetSectionCard(
+                        icon: "lightbulb.circle.fill",
+                        iconColor: .orange,
+                        title: NSLocalizedString("training.design_reason", comment: "Design Reason")
+                    ) {
+                        VStack(alignment: .leading, spacing: 14) {
                             ForEach(Array(designReason.enumerated()), id: \.offset) { index, reason in
-                                HStack(alignment: .top, spacing: 10) {
-                                    Text("\(index + 1).")
-                                        .font(AppFont.body())
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.orange)
-
-                                    Text(reason)
-                                        .font(AppFont.body())
-                                        .foregroundColor(.primary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
+                                NumberedReasonRow(index: index + 1, text: reason)
                             }
                         }
-                        .padding(.leading, 4)
                     }
-                    .padding()
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color.orange.opacity(0.08))
-                    )
                 }
             }
-            .padding()
+            .padding(.horizontal, 20)
+            .padding(.top, 18)
+            .padding(.bottom, 28)
         }
+        .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -349,6 +318,62 @@ struct WeekTargetDetailView: View {
                     dismiss()
                 }
             }
+        }
+    }
+}
+
+private struct WeekTargetSectionCard<Content: View>: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 9) {
+                Image(systemName: icon)
+                    .font(AppFont.systemScaled(size: 18, weight: .semibold))
+                    .foregroundColor(iconColor)
+                    .frame(width: 24, height: 24)
+
+                Text(title)
+                    .font(AppFont.systemScaled(size: 17, weight: .semibold))
+                    .foregroundColor(.primary)
+
+                Spacer(minLength: 0)
+            }
+
+            content
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(UIColor.secondarySystemGroupedBackground))
+        )
+    }
+}
+
+private struct NumberedReasonRow: View {
+    let index: Int
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text("\(index)")
+                .font(AppFont.systemScaled(size: 13, weight: .bold))
+                .foregroundColor(.orange)
+                .frame(width: 24, height: 24)
+                .background(
+                    Circle()
+                        .fill(Color.orange.opacity(0.12))
+                )
+
+            Text(text)
+                .font(AppFont.systemScaled(size: 15))
+                .foregroundColor(.primary.opacity(0.82))
+                .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

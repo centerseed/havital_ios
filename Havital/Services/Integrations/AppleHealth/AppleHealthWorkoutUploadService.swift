@@ -1154,7 +1154,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         }
         Logger.firebase(
             "HealthKit 數據獲取失敗 - \(dataType)",
-            level: isExpected ? LogLevel.warn : LogLevel.error,
+            level: .warn,
             labels: [
                 "module": "AppleHealthWorkoutUploadService",
                 "action": "healthkit_data_fetch_error",

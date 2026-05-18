@@ -171,7 +171,7 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
             print("⚠️ HealthKit 授權請求失敗: \(error.localizedDescription)，仍嘗試設置 Observer")
             Logger.firebase(
                 "HealthKit 授權失敗 - Observer 可能無法收到更新，用戶需到 設定 > 健康 開啟授權",
-                level: .error,
+                level: .warn,
                 labels: ["module": "WorkoutBackgroundManager", "action": "healthkit_auth_failed", "cloud_logging": "true"],
                 jsonPayload: ["error": error.localizedDescription]
             )
@@ -208,7 +208,7 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
         if !bgDeliveryStatus {
             Logger.firebase(
                 "Workout Observer 背景傳遞設置失敗",
-                level: .error,
+                level: .warn,
                 labels: ["module": "WorkoutBackgroundManager", "action": "setup_observer_failed", "cloud_logging": "true"],
                 jsonPayload: ["reason": "background_delivery_failed"]
             )
@@ -652,6 +652,11 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
 
     // 請求通知授權（非核心，失敗不影響 HealthKit Observer）
     private func requestNotificationAuthorization() async {
+        if CommandLine.arguments.contains("-ui_testing_skip_notification_authorization") {
+            Logger.debug("🧪 [UI Test] Skipping WorkoutBackgroundManager notification authorization")
+            return
+        }
+
         do {
             let granted = try await notificationCenter.requestAuthorization(options: [.alert, .sound, .badge])
             if !granted {
