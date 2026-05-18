@@ -14,8 +14,12 @@ enum PacerizColor {
     // Base blue — #3F86F6 (--p-blue)
     static let blue = Color(red: 0x3F / 255.0, green: 0x86 / 255.0, blue: 0xF6 / 255.0)
 
-    // Deep blue — #1E62D0 (--p-blue-deep)
-    static let blueDeep = Color(red: 0x1E / 255.0, green: 0x62 / 255.0, blue: 0xD0 / 255.0)
+    // Deep blue — #1E62D0 (--p-blue-deep) / adaptive: dark mode uses lighter #7AA8F8 for contrast
+    static let blueDeep = Color(UIColor { trait in
+        trait.userInterfaceStyle == .dark
+            ? UIColor(red: 0x7A / 255.0, green: 0xA8 / 255.0, blue: 0xF8 / 255.0, alpha: 1)
+            : UIColor(red: 0x1E / 255.0, green: 0x62 / 255.0, blue: 0xD0 / 255.0, alpha: 1)
+    })
 
     // Blue 12% opacity — adaptive (light: 0.12 / dark: 0.22) per styles.css dark variant
     // Must use UIColor trait-based adaptive — NOT .opacity(0.12)
@@ -27,8 +31,12 @@ enum PacerizColor {
     // Base green — #76C893 (--p-green)
     static let green = Color(red: 0x76 / 255.0, green: 0xC8 / 255.0, blue: 0x93 / 255.0)
 
-    // Deep green — #4FA070 (--p-green-deep)
-    static let greenDeep = Color(red: 0x4F / 255.0, green: 0xA0 / 255.0, blue: 0x70 / 255.0)
+    // Deep green — #4FA070 (--p-green-deep) / adaptive: dark mode uses lighter #9AD3AE for contrast
+    static let greenDeep = Color(UIColor { trait in
+        trait.userInterfaceStyle == .dark
+            ? UIColor(red: 0x9A / 255.0, green: 0xD3 / 255.0, blue: 0xAE / 255.0, alpha: 1)
+            : UIColor(red: 0x4F / 255.0, green: 0xA0 / 255.0, blue: 0x70 / 255.0, alpha: 1)
+    })
 
     // Green 12% opacity — adaptive (light: 0.14 / dark: 0.20) per styles.css dark variant
     static let green12 = Color(UIColor { trait in
@@ -39,8 +47,12 @@ enum PacerizColor {
     // Base orange — #FF7F50 (--p-orange)
     static let orange = Color(red: 0xFF / 255.0, green: 0x7F / 255.0, blue: 0x50 / 255.0)
 
-    // Deep orange — #E5613A (--p-orange-deep)
-    static let orangeDeep = Color(red: 0xE5 / 255.0, green: 0x61 / 255.0, blue: 0x3A / 255.0)
+    // Deep orange — #E5613A (--p-orange-deep) / adaptive: dark mode uses lighter #FFA987 for contrast
+    static let orangeDeep = Color(UIColor { trait in
+        trait.userInterfaceStyle == .dark
+            ? UIColor(red: 0xFF / 255.0, green: 0xA9 / 255.0, blue: 0x87 / 255.0, alpha: 1)
+            : UIColor(red: 0xE5 / 255.0, green: 0x61 / 255.0, blue: 0x3A / 255.0, alpha: 1)
+    })
 
     // Orange 12% opacity — adaptive (light: 0.14 / dark: 0.22) per styles.css dark variant
     static let orange12 = Color(UIColor { trait in

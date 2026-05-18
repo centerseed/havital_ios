@@ -53,7 +53,7 @@ struct RaceHeaderViewV2: View {
         VStack(alignment: .center, spacing: 2) {
             Text(NSLocalizedString("training_plan.race_countdown_label", comment: "倒數"))
                 .font(.system(size: 12, weight: .heavy))
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(.white.opacity(0.85))
                 .tracking(0.6)
 
             HStack(alignment: .firstTextBaseline, spacing: 2) {
@@ -63,7 +63,7 @@ struct RaceHeaderViewV2: View {
                     .lineLimit(1)
                 Text(NSLocalizedString("training_plan.race_countdown_days", comment: "天"))
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(.white.opacity(0.85))
             }
         }
         .frame(minWidth: 50, alignment: .center)
@@ -122,7 +122,7 @@ struct RaceHeaderViewV2: View {
         VStack(alignment: .trailing, spacing: 2) {
             Text(NSLocalizedString("training_plan.race_readiness_label", comment: "適能"))
                 .font(.system(size: 12, weight: .heavy))
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(.white.opacity(0.85))
                 .tracking(0.6)
 
             HStack(alignment: .firstTextBaseline, spacing: 2) {

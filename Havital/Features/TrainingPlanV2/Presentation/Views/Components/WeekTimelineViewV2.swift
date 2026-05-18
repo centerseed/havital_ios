@@ -143,7 +143,7 @@ struct TimelineItemViewV2: View {
                                 if let date = viewModel.getDate(for: day.dayIndexInt) {
                                     Text(DateFormatterHelper.formatShortDate(date))
                                         .font(AppFont.caption())
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(.primary)
                                 }
 
                                 if isToday {
@@ -449,7 +449,8 @@ struct TimelineItemViewV2: View {
         case .race, .racePace:
             return .red
         case .rest:
-            return .gray
+            // Use adaptive systemGray so rest chip is visible in both light and dark mode
+            return Color(.systemGray)
         case .crossTraining, .strength, .fartlek, .swimming, .elliptical, .rowing:
             return .purple
         }
