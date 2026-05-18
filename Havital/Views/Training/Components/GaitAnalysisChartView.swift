@@ -228,7 +228,7 @@ struct GaitAnalysisChartView: View {
                 }()
                 
                 if availableTabs.count > 1 {
-                    Picker("步態指標", selection: $selectedGaitTab) {
+                    Picker(L10n.Performance.gaitMetricPicker.localized, selection: $selectedGaitTab) {
                         ForEach(availableTabs, id: \.self) { tab in
                             Text(tab.title).tag(tab)
                         }

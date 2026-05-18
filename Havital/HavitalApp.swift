@@ -241,7 +241,7 @@ struct HavitalApp: App {
                             }
                     } else {
                         // Firebase 和 FeatureFlagManager 初始化中
-                        ProgressView("初始化中...")
+                        ProgressView(L10n.Common.initializing.localized)
                             .onAppear {
                                 // 在 Firebase 初始化完成後創建 FeatureFlagManager
                                 if FirebaseApp.app() != nil {
@@ -372,11 +372,7 @@ struct HavitalApp: App {
     }
 
     private var shouldLaunchTypographyAuditHarness: Bool {
-        #if DEBUG
         CommandLine.arguments.contains("-ui_testing_typography_audit")
-        #else
-        false
-        #endif
     }
 
     private var shouldLaunchPBMomentPreviewHarness: Bool {
@@ -609,6 +605,11 @@ struct HavitalApp: App {
     
     /// 請求通知授權
     private func requestNotificationAuthorization() async {
+        if CommandLine.arguments.contains("-ui_testing_skip_notification_authorization") {
+            print("🧪 [UI Test] Skipping notification authorization")
+            return
+        }
+
         do {
             let center = UNUserNotificationCenter.current()
             let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
@@ -1082,14 +1083,19 @@ private struct LocalUITestTrainingLoadingCacheHostView: View {
 }
 
 private enum UITestTypographyAuditScreen: String {
+    case login
     case achievement
+    case tabEntry = "tab_entry"
+    case performance
+    case profile
+    case trainingHome = "training_home"
     case weekTimeline = "week_timeline"
     case editCard = "edit_card"
     case paywall
 
     static func current() -> UITestTypographyAuditScreen {
         let raw = ProcessInfo.processInfo.environment["UITEST_TYPOGRAPHY_SCREEN"]?.lowercased()
-            ?? UITestTypographyAuditScreen.achievement.rawValue
+            ?? UITestTypographyAuditScreen.performance.rawValue
         return UITestTypographyAuditScreen(rawValue: raw) ?? .achievement
     }
 }
@@ -1100,8 +1106,20 @@ private struct UITestTypographyAuditHostView: View {
     var body: some View {
         Group {
             switch UITestTypographyAuditScreen.current() {
+            case .login:
+                LoginView()
             case .achievement:
                 MyAchievementView()
+            case .tabEntry:
+                tabEntrySmokeView
+            case .performance:
+                MyAchievementView()
+            case .profile:
+                NavigationStack {
+                    profileSmokeView
+                }
+            case .trainingHome:
+                trainingHomeSmokeView
             case .weekTimeline:
                 NavigationStack {
                     ScrollView {
@@ -1157,6 +1175,103 @@ private struct UITestTypographyAuditHostView: View {
                 }
             }
         }
+    }
+
+    private var tabEntrySmokeView: some View {
+        TabView {
+            trainingHomeSmokeView
+                .tabItem {
+                    Image(systemName: "figure.run")
+                    Text(L10n.Tab.trainingPlan.localized)
+                }
+
+            NavigationStack {
+                Text(L10n.Tab.trainingRecord.localized)
+                    .font(AppFont.title2())
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .tabItem {
+                Image(systemName: "chart.line.text.clipboard")
+                Text(L10n.Tab.trainingRecord.localized)
+            }
+
+            MyAchievementView()
+                .tabItem {
+                    Image(systemName: "gauge.with.dots.needle.bottom.50percent")
+                    Text(L10n.Tab.performanceData.localized)
+                }
+        }
+        .accessibilityIdentifier("UITest_Typography_TabEntry")
+    }
+
+    private var trainingHomeSmokeView: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text(L10n.Tab.trainingPlan.localized)
+                        .font(AppFont.headline())
+                        .accessibilityIdentifier("UITest_Typography_Title")
+
+                    WeekTimelineView(
+                        viewModel: trainingPlanViewModel,
+                        plan: Self.mockWeeklyPlan
+                    )
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(L10n.TrainingProgress.schedule.localized)
+                            .font(AppFont.bodyMedium())
+                        Text(Self.mockWeeklyPlan.purpose)
+                            .font(AppFont.bodySmall())
+                            .foregroundColor(.secondary)
+                        Text(String(format: "%.1f km", Self.mockWeeklyPlan.totalDistance))
+                            .font(AppFont.title2())
+                    }
+                    .padding(16)
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .cornerRadius(12)
+                }
+                .padding(20)
+            }
+            .background(Color(UIColor.systemGroupedBackground))
+        }
+        .accessibilityIdentifier("UITest_Typography_TrainingHome")
+    }
+
+    private var profileSmokeView: some View {
+        List {
+            Section {
+                HStack(alignment: .center, spacing: 16) {
+                    Image(systemName: "person.crop.circle.fill")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 64, height: 64)
+                        .foregroundColor(.gray)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Paceriz Runner")
+                            .font(AppFont.title2())
+                            .bold()
+
+                        Text(ProfileIdentityDisplay.emailText(
+                            profileEmail: "runner@privaterelay.appleid.com",
+                            firebaseEmail: nil
+                        ))
+                        .font(AppFont.bodySmall())
+                        .foregroundColor(.secondary)
+                        .textSelection(.enabled)
+                    }
+                }
+                .padding(.vertical)
+            }
+
+            Section(L10n.Settings.title.localized) {
+                Label(L10n.Settings.language.localized, systemImage: "globe")
+                Label(L10n.Settings.timezone.localized, systemImage: "clock")
+                Label(L10n.Onboarding.trainingDays.localized, systemImage: "calendar")
+            }
+        }
+        .navigationTitle(NSLocalizedString("profile.title", comment: "Profile"))
+        .accessibilityIdentifier("UITest_Typography_Profile")
     }
 
     @ViewBuilder

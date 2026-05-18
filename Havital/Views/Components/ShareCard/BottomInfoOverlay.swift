@@ -45,7 +45,7 @@ struct BottomInfoOverlay: View {
                                 Text(String(format: "%.2f", distance / 1000))
                                     .font(AppFont.systemScaled(size: 54, weight: .semibold))
                                     .foregroundColor(.white)
-                                Text("距離 (km)")
+                                Text(L10n.ShareCard.metricDistanceKm.localized)
                                     .font(AppFont.dataSmall())
                                     .foregroundColor(.white.opacity(0.8))
                             }
@@ -56,7 +56,7 @@ struct BottomInfoOverlay: View {
                             Text(data.workout.formattedDuration)
                                 .font(AppFont.systemScaled(size: 54, weight: .semibold))
                                 .foregroundColor(.white)
-                            Text("總計時間")
+                            Text(L10n.ShareCard.metricTotalTime.localized)
                                 .font(AppFont.dataSmall())
                                 .foregroundColor(.white.opacity(0.8))
                         }
@@ -67,7 +67,7 @@ struct BottomInfoOverlay: View {
                                 Text(paceText)
                                     .font(AppFont.systemScaled(size: 54, weight: .semibold))
                                     .foregroundColor(.white)
-                                Text("平均配速")
+                                Text(L10n.ShareCard.metricAvgPace.localized)
                                     .font(AppFont.dataSmall())
                                     .foregroundColor(.white.opacity(0.8))
                             }

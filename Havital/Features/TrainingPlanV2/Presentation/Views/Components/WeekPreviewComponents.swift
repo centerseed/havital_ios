@@ -148,9 +148,9 @@ struct IntensityBarView: View {
 
             // 比例文字標籤
             HStack(spacing: 8) {
-                intensityLabel(color: .green, text: "低 \(Int(ratio.low * 100))%")
-                intensityLabel(color: .orange, text: "中 \(Int(ratio.medium * 100))%")
-                intensityLabel(color: .red, text: "高 \(Int(ratio.high * 100))%")
+                intensityLabel(color: .green, text: L10n.Training.intensityLowShort.localized(with: Int(ratio.low * 100)))
+                intensityLabel(color: .orange, text: L10n.Training.intensityMediumShort.localized(with: Int(ratio.medium * 100)))
+                intensityLabel(color: .red, text: L10n.Training.intensityHighShort.localized(with: Int(ratio.high * 100)))
                 Spacer()
             }
         }
@@ -167,4 +167,3 @@ struct IntensityBarView: View {
         }
     }
 }
-

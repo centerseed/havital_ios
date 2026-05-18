@@ -2,6 +2,17 @@ import SwiftUI
 import FirebaseAuth
 import HealthKit
 
+enum ProfileIdentityDisplay {
+    static func emailText(profileEmail: String?, firebaseEmail: String?) -> String {
+        if let profileEmail = profileEmail?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !profileEmail.isEmpty {
+            return profileEmail
+        }
+
+        return firebaseEmail?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+}
+
 struct UserProfileView: View {
     @Binding var isShowing: Bool
     @StateObject private var viewModel = UserProfileFeatureViewModel()
@@ -247,18 +258,12 @@ struct UserProfileView: View {
                 Text(userData.displayName ?? NSLocalizedString("profile.name", comment: "Name"))
                     .font(AppFont.title2()).bold()
                 
-                // 檢查是否為 Apple 登入且 email 為空或匿名
-                if let providerData = Auth.auth().currentUser?.providerData.first,
-                   providerData.providerID == "apple.com" &&
-                   (userData.email?.isEmpty == true || userData.email?.contains("privaterelay.appleid.com") == true) {
-                    Text(L10n.ProfileView.appleUser.localized)
-                        .font(AppFont.bodySmall())
-                        .foregroundColor(.secondary)
-                } else {
-                    Text(userData.email ?? Auth.auth().currentUser?.email ?? "")
-                        .font(AppFont.bodySmall())
-                        .foregroundColor(.secondary)
-                }
+                Text(ProfileIdentityDisplay.emailText(
+                    profileEmail: userData.email,
+                    firebaseEmail: Auth.auth().currentUser?.email
+                ))
+                .font(AppFont.bodySmall())
+                .foregroundColor(.secondary)
             }
             Spacer()
         }
@@ -1019,7 +1024,7 @@ struct UserProfileView: View {
             }) {
                 HStack {
                     Image(systemName: "thermometer.sun")
-                    Text("熱適應")
+                    Text(L10n.Performance.heatAdaptation.localized)
                     Spacer()
                     Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)
@@ -1038,7 +1043,7 @@ struct UserProfileView: View {
                     HStack {
                         Image(systemName: "hand.thumbsup.fill")
                             .foregroundColor(.blue)
-                        Text("FB 粉絲團")
+                        Text(L10n.ProfileView.contactFacebookPage.localized)
                         Spacer()
                         Image(systemName: "arrow.up.right")
                             .font(AppFont.caption())

@@ -1094,6 +1094,8 @@
 "login.email_title" = "Email Login";
 "login.email_not_verified_resend" = "Resend Verification Email";
 "login.resend_success_title" = "Notice";
+"login.language" = "Language";
+"login.language_picker_accessibility" = "Login language selector";
 
 // MARK: - Data Sync Strings
 "sync.title" = "Data Sync";
@@ -1435,8 +1437,10 @@
 "performance.training_load.training_load_title" = "Training Load";
 "performance.training_load.training_load_explanation" = "Track your fitness progress with the Fitness Index and monitor fatigue-recovery balance with TSB indicators. Tap to learn detailed explanations and usage tips";
 "performance.training_load.fitness_index" = "Fitness Index";
+"performance.training_load.fitness_index_short" = "Fitness";
 "performance.training_load.fitness_index_explanation" = "Shows your fitness level relative to your past performance. Upward trends indicate improvement but watch for fatigue accumulation. Downward trends are often tapering periods - monitor TSB and HRV recovery";
 "performance.training_load.tsb" = "Training Stress Balance (TSB)";
+"performance.training_load.tsb_short" = "TSB";
 "performance.training_load.tsb_explanation" = "An indicator of the balance between training fatigue and recovery. Positive values indicate good recovery, negative values indicate accumulated fatigue";
 "performance.training_load.insufficient_data" = "Insufficient workout data, at least 5 records needed";
 "performance.training_load.loading_training_load" = "Loading training load data...";
@@ -3065,3 +3069,94 @@
 "achievements.badge.identity.consistent_runner.criteria" = "Over 8 or more training weeks, keep at least 6 of those weeks within a safe mileage range.";
 "achievements.badge.identity.smart_trainer.criteria" = "Complete 4 training weeks and include at least one recovery week or one heat-adjusted run recommended by Paceriz.";
 "achievements.badge.identity.pb_hunter.criteria" = "Set a personal best at two or more standard distances within 30 days.";
+
+// MARK: - Debug Tools
+"debug.confirm_delete" = "Are you sure you want to delete test data?";
+"debug.delete_by_time_range" = "Delete by time range";
+"debug.delete_marked_only" = "Delete marked test records only";
+"debug.delete_all" = "Delete all data";
+"debug.select_delete_method" = "Choose a deletion method. Time range deletion removes all workout records in the selected window.";
+"debug.sync_status" = "Sync status";
+"debug.refresh_status" = "Refresh status";
+"debug.test_features" = "Test features";
+"debug.create_test_workout" = "Create test workout";
+"debug.manual_check_upload" = "Check and upload manually";
+"debug.test_notification" = "Test notification";
+"debug.clear_upload_history" = "Clear upload history";
+"debug.test_data_management" = "Test data management";
+"debug.delete_test_data" = "Delete test data";
+"debug.find_workouts" = "Find workouts";
+"debug.delete_warning" = "Deletion removes workouts from HealthKit. Use carefully; deleted data cannot be restored.";
+"debug.health_kit_observer" = "HealthKit observer setup";
+"debug.test_observer" = "Test observer setup";
+"debug.operation_log" = "Operation log";
+"debug.select_time_range" = "Select time range";
+"debug.found_workouts" = "Found workouts";
+"debug.delete_all_records" = "Delete all records (%d)";
+"debug.delete_warning_message" = "Warning: this permanently deletes these workout records from your health data.";
+"debug.confirm_delete_title" = "Confirm deletion";
+"debug.confirm_delete_message" = "This will permanently delete %d workout records from your HealthKit data. This action cannot be undone.";
+"debug.created_test_workout" = "Created test workout ID: %@";
+
+// MARK: - Feedback / Timezone
+"feedback.category.uncategorized" = "Uncategorized";
+"timezone.change_confirm" = "Change timezone";
+
+// MARK: - i18n Release Gate Additions
+"common.initializing" = "Initializing...";
+"common.add" = "Add";
+"common.reset" = "Reset";
+"force_update.title" = "Update Paceriz";
+"force_update.message" = "Your app version is out of date. Please update to the latest version from the App Store to continue.";
+"force_update.cta" = "Update on the App Store";
+"message_center.empty" = "No announcements";
+"message_center.title" = "Message Center";
+"training.week_progress_format" = "%d / %d weeks";
+"training.phases_count" = "%d phases";
+"training.intensity.low_short" = "Low %d%%";
+"training.intensity.medium_short" = "Medium %d%%";
+"training.intensity.high_short" = "High %d%%";
+"performance.unknown_workout" = "Unknown workout";
+"performance.performance_index_format" = "Performance index: %.1f";
+"performance.gait_metric_picker" = "Gait metric";
+"performance.heat_adaptation" = "Heat Adaptation";
+"profile_view.contact_facebook_page" = "Facebook Page";
+"share_card.title" = "Share Card";
+"share_card.metric.distance_km" = "Distance (km)";
+"share_card.metric.total_time" = "Total Time";
+"share_card.metric.avg_pace" = "Average Pace";
+"share_card.tutorial.title" = "Share Card Editing Guide";
+"share_card.tutorial.start_editing" = "Start Editing";
+"share_card.tutorial.edit_title.title" = "Tap the title or AI review";
+"share_card.tutorial.edit_title.description" = "Edit or delete text content.";
+"share_card.tutorial.add_text.title" = "Add text";
+"share_card.tutorial.add_text.description" = "Add custom text and move it freely.";
+"share_card.tutorial.layout_size.title" = "Layout and size";
+"share_card.tutorial.layout_size.description" = "Switch layout styles and image sizes.";
+"share_card.tutorial.choose_photo.title" = "Choose photo";
+"share_card.tutorial.choose_photo.description" = "Change the background photo and adjust its position.";
+"share_card.editor.title" = "Create Share Card";
+"share_card.editor.edit_achievement_title" = "Edit Achievement Title";
+"share_card.editor.edit_ai_review" = "Edit AI Review";
+"share_card.editor.add_free_text" = "Add Free Text";
+"share_card.editor.edit_text" = "Edit Text";
+"share_card.editor.add_free_text_message" = "Add your own text to the share card.";
+"share_card.editor.edit_text_message" = "Edit your text.";
+"share_card.editor.title_placeholder" = "Enter title (max 50 chars)";
+"share_card.editor.ai_review_placeholder" = "Enter AI review (max 80 chars)";
+"share_card.editor.free_text_placeholder" = "Enter text (max 30 chars)";
+"share_card.editor.layout" = "Layout";
+"share_card.editor.size" = "Size";
+"share_card.editor.add_text" = "Add Text";
+"edit_schedule.add_strength_training" = "Add strength training";
+"edit_schedule.convert_to_strength_day" = "Convert to strength day";
+"edit_schedule.work_time" = "Work time";
+"edit_schedule.select_work_time" = "Select work time";
+"edit_schedule.reapply_defaults" = "Reapply defaults";
+"edit_schedule.change_to_rest_day" = "Change to rest day";
+"edit_schedule.type_change_alert" = "Changing type will clear the current exercise list. Continue?";
+"edit_schedule.remove_strength_training" = "Remove strength training";
+"edit_schedule.easy_training_section" = "Easy training";
+"edit_schedule.intensity_training_section" = "Intensity training";
+"edit_schedule.long_distance_training_section" = "Long-distance training";
+"edit_schedule.other_training_section" = "Other";

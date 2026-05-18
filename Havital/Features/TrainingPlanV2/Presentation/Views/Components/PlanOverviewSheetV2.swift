@@ -687,12 +687,12 @@ private struct TrainingOverviewTabV2: View {
                 if !methodology.phases.isEmpty || methodology.crossTrainingEnabled {
                     HStack(spacing: 10) {
                         if !methodology.phases.isEmpty {
-                            Label("\(methodology.phases.count) 個階段", systemImage: "flag.fill")
+                            Label(L10n.Training.phasesCount.localized(with: methodology.phases.count), systemImage: "flag.fill")
                                 .font(AppFont.caption2())
                                 .foregroundColor(.secondary)
                         }
                         if methodology.crossTrainingEnabled {
-                            Label("交叉訓練", systemImage: "figure.cross.training")
+                            Label(L10n.Training.TrainingType.crossTraining.localized, systemImage: "figure.cross.training")
                                 .font(AppFont.caption2())
                                 .foregroundColor(.teal)
                         }

@@ -341,7 +341,7 @@ struct SimplifiedDailyCard: View {
                     showingPacePicker = true
                 } label: {
                     HStack(spacing: 4) {
-                        Text("配速:")
+                        Text(L10n.EditSchedule.paceLabel.localized)
                             .font(AppFont.caption())
                             .foregroundColor(.secondary)
                         Text(day.trainingDetails?.pace ?? "")
@@ -365,7 +365,7 @@ struct SimplifiedDailyCard: View {
                     showingDistancePicker = true
                 } label: {
                     HStack(spacing: 4) {
-                        Text("距離:")
+                        Text(L10n.EditSchedule.distanceLabel.localized)
                             .font(AppFont.caption())
                             .foregroundColor(.secondary)
                         Text(String(format: "%.1f km", distance))
@@ -945,4 +945,3 @@ struct SimplifiedDailyCard: View {
         return round(meters / roundTo) * roundTo
     }
 }
-

@@ -114,6 +114,10 @@ struct MyAchievementView: View {
         UserProfileLocalDataSource().getUserProfile()
     }
 
+    private var cachedPersonalBestData: [String: [PersonalBestRecordV2]]? {
+        cachedUser?.personalBestV2?["race_run"]
+    }
+
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
         UserPreferencesManager.shared.dataSourcePreference
@@ -188,6 +192,9 @@ struct MyAchievementView: View {
                     TrainingLoadChartSection()
                         .environmentObject(healthKitManager)
                         .environmentObject(sharedHealthDataManager)
+
+                    // Personal Best stays on the Performance tab while the Awards tab is hidden.
+                    PersonalBestCardView(personalBestData: cachedPersonalBestData)
 
                     // Weekly Volume Chart Section - 週跑量趨勢圖
                     VStack(alignment: .leading, spacing: 12) {
@@ -372,6 +379,15 @@ enum TrainingLoadChartTab: String, CaseIterable {
             return NSLocalizedString("performance.training_load.fitness_index", comment: "Fitness Index")
         case .tsb:
             return NSLocalizedString("performance.training_load.tsb", comment: "Training Stress Balance")
+        }
+    }
+
+    var pickerTitle: String {
+        switch self {
+        case .fitness:
+            return L10n.Performance.TrainingLoad.fitnessIndexShort.localized
+        case .tsb:
+            return L10n.Performance.TrainingLoad.tsbShort.localized
         }
     }
 }
@@ -1383,7 +1399,7 @@ struct TrainingLoadChartSection: View {
                 // 選項卡切換
                 Picker("Training Load Chart Type", selection: $selectedTab) {
                     ForEach(TrainingLoadChartTab.allCases, id: \.self) { tab in
-                        Text(tab.title).tag(tab)
+                        Text(tab.pickerTitle).tag(tab)
                     }
                 }
                 .pickerStyle(SegmentedPickerStyle())

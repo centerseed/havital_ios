@@ -1103,6 +1103,8 @@
 "login.email_title" = "電子郵件登入";
 "login.email_not_verified_resend" = "重新發送驗證信";
 "login.resend_success_title" = "通知";
+"login.language" = "語言";
+"login.language_picker_accessibility" = "登入頁語言選擇";
 
 // MARK: - Data Sync Strings
 "sync.title" = "資料同步";
@@ -1451,8 +1453,10 @@
 "performance.training_load.training_load_title" = "訓練負荷";
 "performance.training_load.training_load_explanation" = "透過體適能指數追蹤您的運動能力變化，使用TSB指標了解疲勞與恢復平衡。點擊了解詳細說明和使用技巧";
 "performance.training_load.fitness_index" = "體適能指數";
+"performance.training_load.fitness_index_short" = "體適能";
 "performance.training_load.fitness_index_explanation" = "反映您相對於過往表現的運動能力水平，重點在於觀察趨勢變化而非絕對數值";
 "performance.training_load.tsb" = "訓練壓力平衡 (TSB)";
+"performance.training_load.tsb_short" = "TSB";
 "performance.training_load.tsb_explanation" = "反映訓練疲勞與恢復平衡的指標。正值表示恢復良好，負值表示累積疲勞";
 "performance.training_load.insufficient_data" = "運動數據不足，需要至少 5 筆記錄";
 "performance.training_load.loading_training_load" = "載入訓練負荷數據中...";
@@ -3108,3 +3112,94 @@
 "achievements.badge.identity.consistent_runner.criteria" = "在 8 週以上訓練期間，有至少 6 週維持在安全的跑量範圍內，即可解鎖。";
 "achievements.badge.identity.smart_trainer.criteria" = "完成 4 個訓練週，並在過程中至少完成一個恢復週或依照 Paceriz 高溫建議調整配速，即可解鎖。";
 "achievements.badge.identity.pb_hunter.criteria" = "在 30 天內，在兩個以上的標準距離各創下一次個人最佳，即可解鎖。";
+
+// MARK: - Debug Tools
+"debug.confirm_delete" = "確定要刪除測試資料嗎？";
+"debug.delete_by_time_range" = "依時間範圍刪除";
+"debug.delete_marked_only" = "只刪除已標記的測試紀錄";
+"debug.delete_all" = "刪除所有資料";
+"debug.select_delete_method" = "選擇刪除方式。時間範圍刪除可以刪除指定時間內的所有運動紀錄。";
+"debug.sync_status" = "同步狀態";
+"debug.refresh_status" = "重新整理狀態";
+"debug.test_features" = "測試功能";
+"debug.create_test_workout" = "建立測試運動紀錄";
+"debug.manual_check_upload" = "手動檢查並上傳";
+"debug.test_notification" = "測試通知";
+"debug.clear_upload_history" = "清除上傳歷史";
+"debug.test_data_management" = "測試資料管理";
+"debug.delete_test_data" = "刪除測試資料";
+"debug.find_workouts" = "尋找運動紀錄";
+"debug.delete_warning" = "刪除功能會移除 HealthKit 中的運動紀錄。請謹慎操作，刪除後無法復原。";
+"debug.health_kit_observer" = "HealthKit 觀察者設定";
+"debug.test_observer" = "測試觀察者設定";
+"debug.operation_log" = "操作日誌";
+"debug.select_time_range" = "選擇時間範圍";
+"debug.found_workouts" = "找到的運動紀錄";
+"debug.delete_all_records" = "刪除所有紀錄（%d）";
+"debug.delete_warning_message" = "警告：此操作會從你的健康資料中永久刪除這些運動紀錄。";
+"debug.confirm_delete_title" = "確認刪除";
+"debug.confirm_delete_message" = "這會從你的 HealthKit 資料中永久刪除 %d 筆運動紀錄。此操作無法復原。";
+"debug.created_test_workout" = "已建立測試運動紀錄 ID: %@";
+
+// MARK: - Feedback / Timezone
+"feedback.category.uncategorized" = "未分類";
+"timezone.change_confirm" = "變更時區";
+
+// MARK: - i18n Release Gate Additions
+"common.initializing" = "初始化中...";
+"common.add" = "新增";
+"common.reset" = "重置";
+"force_update.title" = "需要更新 Paceriz";
+"force_update.message" = "你的 App 版本過舊，請前往 App Store 更新至最新版本後繼續使用。";
+"force_update.cta" = "前往 App Store 更新";
+"message_center.empty" = "目前沒有公告";
+"message_center.title" = "訊息中心";
+"training.week_progress_format" = "%d / %d 週";
+"training.phases_count" = "%d 個階段";
+"training.intensity.low_short" = "低 %d%%";
+"training.intensity.medium_short" = "中 %d%%";
+"training.intensity.high_short" = "高 %d%%";
+"performance.unknown_workout" = "未知運動";
+"performance.performance_index_format" = "表現指數: %.1f";
+"performance.gait_metric_picker" = "步態指標";
+"performance.heat_adaptation" = "熱適應";
+"profile_view.contact_facebook_page" = "FB 粉絲團";
+"share_card.title" = "分享卡";
+"share_card.metric.distance_km" = "距離 (km)";
+"share_card.metric.total_time" = "總計時間";
+"share_card.metric.avg_pace" = "平均配速";
+"share_card.tutorial.title" = "分享卡編輯指南";
+"share_card.tutorial.start_editing" = "開始編輯";
+"share_card.tutorial.edit_title.title" = "點擊標題或 AI 簡評";
+"share_card.tutorial.edit_title.description" = "可以編輯或刪除文字內容。";
+"share_card.tutorial.add_text.title" = "新增文字";
+"share_card.tutorial.add_text.description" = "添加自訂文字並自由移動位置。";
+"share_card.tutorial.layout_size.title" = "版型與尺寸";
+"share_card.tutorial.layout_size.description" = "切換不同的佈局樣式和圖片尺寸。";
+"share_card.tutorial.choose_photo.title" = "選擇照片";
+"share_card.tutorial.choose_photo.description" = "更換背景照片並調整位置。";
+"share_card.editor.title" = "生成分享卡";
+"share_card.editor.edit_achievement_title" = "編輯成就標題";
+"share_card.editor.edit_ai_review" = "編輯 AI 簡評";
+"share_card.editor.add_free_text" = "添加自由文字";
+"share_card.editor.edit_text" = "編輯文字";
+"share_card.editor.add_free_text_message" = "在分享卡上添加你的個性文字！";
+"share_card.editor.edit_text_message" = "修改你的文字內容";
+"share_card.editor.title_placeholder" = "輸入標題（最多50字）";
+"share_card.editor.ai_review_placeholder" = "輸入 AI 簡評（最多80字）";
+"share_card.editor.free_text_placeholder" = "輸入文字（最多30字）";
+"share_card.editor.layout" = "版型";
+"share_card.editor.size" = "尺寸";
+"share_card.editor.add_text" = "新增文字";
+"edit_schedule.add_strength_training" = "新增力量訓練";
+"edit_schedule.convert_to_strength_day" = "轉為力量訓練日";
+"edit_schedule.work_time" = "工作時間";
+"edit_schedule.select_work_time" = "選擇工作時間";
+"edit_schedule.reapply_defaults" = "重新套用預設";
+"edit_schedule.change_to_rest_day" = "改為休息日";
+"edit_schedule.type_change_alert" = "更換類型將清除目前的動作清單，確定嗎？";
+"edit_schedule.remove_strength_training" = "移除力量訓練";
+"edit_schedule.easy_training_section" = "輕鬆訓練";
+"edit_schedule.intensity_training_section" = "強度訓練";
+"edit_schedule.long_distance_training_section" = "長距離訓練";
+"edit_schedule.other_training_section" = "其他";

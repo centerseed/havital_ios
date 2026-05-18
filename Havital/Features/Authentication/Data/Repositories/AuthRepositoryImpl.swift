@@ -36,6 +36,10 @@ final class AuthRepositoryImpl: AuthRepository {
 
     // MARK: - Sign-In Operations
 
+    private func selectedAppLanguageCode() async -> String {
+        await MainActor.run { LanguageManager.shared.currentLanguage.apiCode }
+    }
+
     /// Sign in with Google account
     /// 7-Step Authentication Flow:
     /// 1. Google SDK sign-in → Get tokens
@@ -71,10 +75,12 @@ final class AuthRepositoryImpl: AuthRepository {
 
             // Step 5: Backend user sync
             Logger.debug("[AuthRepository] Step 5: Syncing with backend")
+            let appLanguageCode = await selectedAppLanguageCode()
             let syncRequest = UserSyncRequest(
                 firebaseUid: firebaseUser.uid,
                 idToken: idToken,
                 fcmToken: nil, // TODO: Add FCM token if available
+                language: appLanguageCode,
                 deviceInfo: DeviceInfo(
                     model: UIDevice.current.model,
                     osVersion: UIDevice.current.systemVersion,
@@ -150,10 +156,12 @@ final class AuthRepositoryImpl: AuthRepository {
 
             // Step 5: Backend user sync
             Logger.debug("[AuthRepository] Step 5: Syncing with backend")
+            let appLanguageCode = await selectedAppLanguageCode()
             let syncRequest = UserSyncRequest(
                 firebaseUid: firebaseUser.uid,
                 idToken: idToken,
                 fcmToken: nil,
+                language: appLanguageCode,
                 deviceInfo: DeviceInfo(
                     model: UIDevice.current.model,
                     osVersion: UIDevice.current.systemVersion,
@@ -221,10 +229,12 @@ final class AuthRepositoryImpl: AuthRepository {
 
             // Step 5: Backend user sync
             Logger.debug("[AuthRepository] Step 5: Syncing with backend")
+            let appLanguageCode = await selectedAppLanguageCode()
             let syncRequest = UserSyncRequest(
                 firebaseUid: firebaseUser.uid,
                 idToken: idToken,
                 fcmToken: nil,
+                language: appLanguageCode,
                 deviceInfo: DeviceInfo(
                     model: UIDevice.current.model,
                     osVersion: UIDevice.current.systemVersion,
@@ -276,10 +286,12 @@ final class AuthRepositoryImpl: AuthRepository {
             let firebaseUser = try await firebaseAuth.signInWithEmail(email: email, password: password)
             let idToken = try await firebaseAuth.getIdToken()
 
+            let appLanguageCode = await selectedAppLanguageCode()
             let syncRequest = UserSyncRequest(
                 firebaseUid: firebaseUser.uid,
                 idToken: idToken,
                 fcmToken: nil,
+                language: appLanguageCode,
                 deviceInfo: DeviceInfo(
                     model: UIDevice.current.model,
                     osVersion: UIDevice.current.systemVersion,

@@ -595,7 +595,7 @@ struct TrainingEditSheetV2: View {
         if editState.hasSupplementaryStrength {
             SupplementaryStrengthEditor(editState: editState)
         } else {
-            Button("+ 新增力量訓練") {
+            Button(L10n.EditSchedule.addStrengthTraining.localized) {
                 editState.hasSupplementaryStrength = true
                 if editState.supplementaryStrengthExercises.isEmpty {
                     editState.supplementaryStrengthExercises = StrengthEditorV2.defaultExercises[editState.supplementaryStrengthType] ?? []
@@ -618,7 +618,7 @@ struct TrainingEditSheetV2: View {
                 .font(AppFont.body())
                 .foregroundColor(.secondary)
 
-            Button("轉為力量訓練日") {
+            Button(L10n.EditSchedule.convertToStrengthDay.localized) {
                 editState.trainingType = "strength"
             }
             .font(AppFont.body())
@@ -1152,7 +1152,7 @@ struct WorkTimeWheelPicker: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                Picker("工作時間", selection: $selectedTimeMinutes) {
+                Picker(L10n.EditSchedule.workTime.localized, selection: $selectedTimeMinutes) {
                     ForEach(timeOptions, id: \.self) { minutes in
                         Text("\(Int(minutes)) " + NSLocalizedString("training.minutes_unit", comment: "min")).tag(minutes)
                     }
@@ -1160,11 +1160,11 @@ struct WorkTimeWheelPicker: View {
                 .pickerStyle(.wheel)
                 .frame(height: 200)
             }
-            .navigationTitle("選擇工作時間")
+            .navigationTitle(L10n.EditSchedule.selectWorkTime.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("完成") {
+                    Button(L10n.Common.done.localized) {
                         dismiss()
                     }
                     .fontWeight(.semibold)
@@ -1425,7 +1425,7 @@ struct StrengthEditorV2: View {
 
             ExerciseListEditor(exercises: $editState.strengthExercises)
 
-            Button("重新套用預設") {
+            Button(L10n.EditSchedule.reapplyDefaults.localized) {
                 editState.strengthExercises = Self.defaultExercises[editState.strengthType] ?? []
             }
             .font(AppFont.caption())
@@ -1442,7 +1442,7 @@ struct StrengthEditorV2: View {
                 DescriptionViewV2(description: desc)
             }
 
-            Button("改為休息日", role: .destructive) {
+            Button(L10n.EditSchedule.changeToRestDay.localized, role: .destructive) {
                 editState.trainingType = "rest"
                 editState.strengthExercises = []
             }
@@ -1457,14 +1457,14 @@ struct StrengthEditorV2: View {
                 editState.strengthExercises = Self.defaultExercises[editState.strengthType] ?? []
             }
         }
-        .alert("更換類型將清除目前的動作清單，確定嗎？", isPresented: $showTypeChangeAlert) {
-            Button("確定") {
+        .alert(L10n.EditSchedule.typeChangeAlert.localized, isPresented: $showTypeChangeAlert) {
+            Button(L10n.Common.confirm.localized) {
                 if let type = pendingStrengthType {
                     applyTemplate(for: type)
                 }
                 pendingStrengthType = nil
             }
-            Button("取消", role: .cancel) {
+            Button(L10n.Common.cancel.localized, role: .cancel) {
                 pendingStrengthType = nil
             }
         }
@@ -1483,7 +1483,7 @@ struct ExerciseListEditor: View {
                     .font(AppFont.bodySmall())
                     .foregroundColor(.secondary)
                 Spacer()
-                Button("+ 新增") {
+                Button(L10n.Common.add.localized) {
                     exercises.append(MutableExercise())
                 }
                 .font(AppFont.caption())
@@ -1724,7 +1724,7 @@ struct SupplementaryStrengthEditor: View {
 
             ExerciseListEditor(exercises: $editState.supplementaryStrengthExercises)
 
-            Button("移除力量訓練", role: .destructive) {
+            Button(L10n.EditSchedule.removeStrengthTraining.localized, role: .destructive) {
                 editState.hasSupplementaryStrength = false
                 editState.supplementaryStrengthExercises = []
             }

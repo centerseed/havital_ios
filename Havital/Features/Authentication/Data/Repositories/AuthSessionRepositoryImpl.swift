@@ -40,6 +40,10 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
 
     // MARK: - Session State Operations
 
+    private func selectedAppLanguageCode() async -> String {
+        await MainActor.run { LanguageManager.shared.currentLanguage.apiCode }
+    }
+
     /// Get currently cached user (synchronous)
     /// Returns cached AuthUser without making network calls
     /// Cache expires after 5 minutes (business data only, no tokens)
@@ -72,10 +76,12 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
 
                 Logger.debug("[AuthSession] 🔄 Demo mode: syncing fresh user state for \(cachedUser.uid)")
 
+                let appLanguageCode = await selectedAppLanguageCode()
                 let syncRequest = UserSyncRequest(
                     firebaseUid: cachedUser.uid,
                     idToken: demoToken,
                     fcmToken: nil,
+                    language: appLanguageCode,
                     deviceInfo: DeviceInfo(
                         model: UIDevice.current.model,
                         osVersion: UIDevice.current.systemVersion,
@@ -103,10 +109,12 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
 
             // Step 3: Sync with backend to get latest data
             // 必須帶 deviceInfo.appVersion，後端 version gate middleware 依此判定是否觸發 426
+            let appLanguageCode = await selectedAppLanguageCode()
             let syncRequest = UserSyncRequest(
                 firebaseUid: firebaseUser.uid,
                 idToken: idToken,
                 fcmToken: nil,
+                language: appLanguageCode,
                 deviceInfo: DeviceInfo(
                     model: UIDevice.current.model,
                     osVersion: UIDevice.current.systemVersion,

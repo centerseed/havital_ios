@@ -42,9 +42,12 @@ enum L10n {
         static let ok = "common.ok" // "OK"
         static let error = "common.error" // "Error"
         static let generating = "common.generating" // "Generating..."
+        static let initializing = "common.initializing" // "Initializing..."
         static let submit = "common.submit" // "Submit"
         static let later = "common.later" // "Later"
         static let reload = "common.reload" // "Reload"
+        static let add = "common.add" // "Add"
+        static let reset = "common.reset" // "Reset"
     }
     
     // MARK: - Authentication
@@ -70,6 +73,23 @@ enum L10n {
         static let verifyEmail = "auth.verify_email" // "驗證 Email"
         static let verifyFailed = "auth.verify_failed" // "驗證失敗"
         static let verifySuccess = "auth.verify_success" // "驗證成功"
+    }
+
+    // MARK: - Login
+    enum Login {
+        static let language = "login.language"
+        static let languagePickerAccessibility = "login.language_picker_accessibility"
+    }
+
+    enum ForceUpdate {
+        static let title = "force_update.title"
+        static let message = "force_update.message"
+        static let cta = "force_update.cta"
+    }
+
+    enum MessageCenter {
+        static let empty = "message_center.empty"
+        static let title = "message_center.title"
     }
     
     // MARK: - Calendar Sync Setup
@@ -497,9 +517,14 @@ enum GaitAnalysisChart {
         static let trainingStages = "training.training_stages" // "訓練階段"
         static let cannotGetStages = "training.cannot_get_stages" // "無法取得訓練階段資訊"
         static let weekNumber = "training.week_number" // "第 %d 週"
+        static let weekProgressFormat = "training.week_progress_format" // "%d / %d weeks"
         static let getWeeklyReview = "training.get_weekly_review" // "取得週回顧"
         static let paceZone = "training.pace_zone" // "配速區間"
         static let heartRateZone = "training.heart_rate_zone" // "心率區間"
+        static let phasesCount = "training.phases_count" // "%d phases"
+        static let intensityLowShort = "training.intensity.low_short" // "Low %d%%"
+        static let intensityMediumShort = "training.intensity.medium_short" // "Medium %d%%"
+        static let intensityHighShort = "training.intensity.high_short" // "High %d%%"
         
         // Loading Animation Messages
         enum LoadingAnimation {
@@ -766,6 +791,10 @@ enum GaitAnalysisChart {
         static let longestRun = "performance.longest_run"
         static let fastestPace = "performance.fastest_pace"
         static let progress = "performance.progress"
+        static let unknownWorkout = "performance.unknown_workout"
+        static let performanceIndexFormat = "performance.performance_index_format"
+        static let gaitMetricPicker = "performance.gait_metric_picker"
+        static let heatAdaptation = "performance.heat_adaptation"
         
         // Achievement View specific
         static let vdotTrend = "performance.vdot_trend"
@@ -821,8 +850,10 @@ enum GaitAnalysisChart {
             static let trainingLoadTitle = "performance.training_load.training_load_title"
             static let trainingLoadExplanation = "performance.training_load.training_load_explanation"
             static let fitnessIndex = "performance.training_load.fitness_index"
+            static let fitnessIndexShort = "performance.training_load.fitness_index_short"
             static let fitnessIndexExplanation = "performance.training_load.fitness_index_explanation"
             static let tsb = "performance.training_load.tsb"
+            static let tsbShort = "performance.training_load.tsb_short"
             static let tsbExplanation = "performance.training_load.tsb_explanation"
             static let insufficientData = "performance.training_load.insufficient_data"
             static let loadingTrainingLoad = "performance.training_load.loading_training_load"
@@ -1182,6 +1213,7 @@ extension L10n {
         static let ok = "profile_view.ok" // "OK"
         static let garminAlreadyBoundMessage = "profile_view.garmin_already_bound_message"
         static let stravaAlreadyBoundMessage = "profile_view.strava_already_bound_message"
+        static let contactFacebookPage = "profile_view.contact_facebook_page"
 
         // Developer Section
         enum Developer {
@@ -1208,6 +1240,20 @@ extension L10n {
         static let cannotEdit = "edit_schedule.cannot_edit" // "無法編輯"
         static let addSegment = "edit_schedule.add_segment" // "新增區段"
         static let totalDistance = "edit_schedule.total_distance" // "總距離"
+        static let paceLabel = "edit_schedule.pace_label" // "Pace:"
+        static let distanceLabel = "edit_schedule.distance_label" // "Distance:"
+        static let addStrengthTraining = "edit_schedule.add_strength_training" // "Add strength training"
+        static let convertToStrengthDay = "edit_schedule.convert_to_strength_day" // "Convert to strength day"
+        static let workTime = "edit_schedule.work_time" // "Work time"
+        static let selectWorkTime = "edit_schedule.select_work_time" // "Select work time"
+        static let reapplyDefaults = "edit_schedule.reapply_defaults" // "Reapply defaults"
+        static let changeToRestDay = "edit_schedule.change_to_rest_day" // "Change to rest day"
+        static let typeChangeAlert = "edit_schedule.type_change_alert" // "Changing type will clear the current exercises. Continue?"
+        static let removeStrengthTraining = "edit_schedule.remove_strength_training" // "Remove strength training"
+        static let easyTrainingSection = "edit_schedule.easy_training_section" // "Easy training"
+        static let intensityTrainingSection = "edit_schedule.intensity_training_section" // "Intensity training"
+        static let longDistanceTrainingSection = "edit_schedule.long_distance_training_section" // "Long-distance training"
+        static let otherTrainingSection = "edit_schedule.other_training_section" // "Other"
 
         // Training Types
         static let easyRun = "edit_schedule.easy_run" // "輕鬆跑"
@@ -1606,6 +1652,33 @@ extension L10n {
     enum ShareCard {
         static let generateShareCard = "share_card.generate" // "生成分享卡"
         static let choosePhoto = "share_card.choose_photo" // "選擇照片"
+        static let title = "share_card.title" // "Share Card"
+        static let metricDistanceKm = "share_card.metric.distance_km" // "Distance (km)"
+        static let metricTotalTime = "share_card.metric.total_time" // "Total Time"
+        static let metricAvgPace = "share_card.metric.avg_pace" // "Average Pace"
+        static let tutorialTitle = "share_card.tutorial.title" // "Share Card Editing Guide"
+        static let tutorialStartEditing = "share_card.tutorial.start_editing" // "Start Editing"
+        static let tutorialEditTitleTitle = "share_card.tutorial.edit_title.title" // "Tap title or AI review"
+        static let tutorialEditTitleDescription = "share_card.tutorial.edit_title.description" // "Edit or delete text content"
+        static let tutorialAddTextTitle = "share_card.tutorial.add_text.title" // "Add text"
+        static let tutorialAddTextDescription = "share_card.tutorial.add_text.description" // "Add custom text and move it freely"
+        static let tutorialLayoutSizeTitle = "share_card.tutorial.layout_size.title" // "Layout and size"
+        static let tutorialLayoutSizeDescription = "share_card.tutorial.layout_size.description" // "Switch layout styles and image sizes"
+        static let tutorialChoosePhotoTitle = "share_card.tutorial.choose_photo.title" // "Choose photo"
+        static let tutorialChoosePhotoDescription = "share_card.tutorial.choose_photo.description" // "Change background photo and adjust its position"
+        static let editorTitle = "share_card.editor.title" // "Create Share Card"
+        static let editAchievementTitle = "share_card.editor.edit_achievement_title" // "Edit Achievement Title"
+        static let editAIReview = "share_card.editor.edit_ai_review" // "Edit AI Review"
+        static let addFreeText = "share_card.editor.add_free_text" // "Add Free Text"
+        static let editText = "share_card.editor.edit_text" // "Edit Text"
+        static let addFreeTextMessage = "share_card.editor.add_free_text_message" // "Add your own text to the share card."
+        static let editTextMessage = "share_card.editor.edit_text_message" // "Edit your text."
+        static let titlePlaceholder = "share_card.editor.title_placeholder" // "Enter title (max 50 chars)"
+        static let aiReviewPlaceholder = "share_card.editor.ai_review_placeholder" // "Enter AI review (max 80 chars)"
+        static let freeTextPlaceholder = "share_card.editor.free_text_placeholder" // "Enter text (max 30 chars)"
+        static let layout = "share_card.editor.layout" // "Layout"
+        static let size = "share_card.editor.size" // "Size"
+        static let addText = "share_card.editor.add_text" // "Add Text"
     }
 
     // MARK: - Onboarding Additional

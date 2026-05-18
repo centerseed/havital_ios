@@ -40,14 +40,7 @@ struct TrainingPlanV2View: View {
     }
 
     private var userProfileMenuTitle: String {
-        switch LanguageManager.shared.currentLanguage {
-        case .traditionalChinese:
-            return "個人資料"
-        case .english:
-            return "Profile"
-        case .japanese:
-            return "プロフィール"
-        }
+        L10n.Tab.profile.localized
     }
 
     static func shouldShowNextWeekButton(
@@ -328,7 +321,7 @@ struct TrainingPlanV2View: View {
                     MessageCenterView(viewModel: announcementViewModel)
                         .toolbar {
                             ToolbarItem(placement: .navigationBarTrailing) {
-                                Button("關閉") { showMessageCenter = false }
+                                Button(L10n.Common.close.localized) { showMessageCenter = false }
                             }
                         }
                 }
@@ -448,7 +441,7 @@ struct TrainingPlanV2View: View {
             }
 
             if isChineseLanguage {
-                Button("FB 粉絲團") {
+                Button(L10n.ProfileView.contactFacebookPage.localized) {
                     if let url = URL(string: "https://www.facebook.com/profile.php?id=61574822777267") {
                         UIApplication.shared.open(url)
                     }

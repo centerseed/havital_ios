@@ -7,7 +7,7 @@ struct TrainingTypeMenu: View {
 
     var body: some View {
         Menu {
-            Section("輕鬆訓練") {
+            Section(L10n.EditSchedule.easyTrainingSection.localized) {
                 ForEach(easyTypes, id: \.rawValue) { type in
                     Button {
                         selectedType = type.rawValue
@@ -24,7 +24,7 @@ struct TrainingTypeMenu: View {
                 }
             }
 
-            Section("強度訓練") {
+            Section(L10n.EditSchedule.intensityTrainingSection.localized) {
                 ForEach(intensityTypes, id: \.rawValue) { type in
                     Button {
                         selectedType = type.rawValue
@@ -41,7 +41,7 @@ struct TrainingTypeMenu: View {
                 }
             }
 
-            Section("長距離訓練") {
+            Section(L10n.EditSchedule.longDistanceTrainingSection.localized) {
                 ForEach(longDistanceTypes, id: \.rawValue) { type in
                     Button {
                         selectedType = type.rawValue
@@ -58,7 +58,7 @@ struct TrainingTypeMenu: View {
                 }
             }
 
-            Section("其他") {
+            Section(L10n.EditSchedule.otherTrainingSection.localized) {
                 ForEach(otherTypes, id: \.rawValue) { type in
                     Button {
                         selectedType = type.rawValue

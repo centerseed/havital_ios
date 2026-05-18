@@ -123,6 +123,24 @@ final class UserProfileFeatureViewModelTests: XCTestCase {
             XCTFail("State should be .error")
         }
     }
+
+    func testProfileIdentityDisplay_showsApplePrivateRelayEmail() {
+        let result = ProfileIdentityDisplay.emailText(
+            profileEmail: "runner@privaterelay.appleid.com",
+            firebaseEmail: nil
+        )
+
+        XCTAssertEqual(result, "runner@privaterelay.appleid.com")
+    }
+
+    func testProfileIdentityDisplay_fallsBackToFirebaseEmailWhenProfileEmailIsBlank() {
+        let result = ProfileIdentityDisplay.emailText(
+            profileEmail: "",
+            firebaseEmail: "relay@privaterelay.appleid.com"
+        )
+
+        XCTAssertEqual(result, "relay@privaterelay.appleid.com")
+    }
     
     // MARK: - Heart Rate Zones Tests
     

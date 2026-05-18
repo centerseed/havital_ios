@@ -46,7 +46,7 @@ struct WorkoutShareCardSheetView: View {
     var body: some View {
         NavigationStack {
             contentWithAlerts
-                .navigationTitle("生成分享卡")
+                .navigationTitle(L10n.ShareCard.editorTitle.localized)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
@@ -68,7 +68,7 @@ struct WorkoutShareCardSheetView: View {
                             if let shareImage = shareImage {
                                 ShareLink(
                                     item: Image(uiImage: shareImage),
-                                    preview: SharePreview("分享卡", image: Image(uiImage: shareImage))
+                                    preview: SharePreview(L10n.ShareCard.title.localized, image: Image(uiImage: shareImage))
                                 )
                             }
                         }
@@ -79,20 +79,20 @@ struct WorkoutShareCardSheetView: View {
 
     private var contentWithAlerts: some View {
         contentWithLifecycle
-            .alert("編輯成就標題", isPresented: $showTitleEditor) {
+            .alert(L10n.ShareCard.editAchievementTitle.localized, isPresented: $showTitleEditor) {
                 titleEditorAlert
             } message: {
                 Text(NSLocalizedString("workoutsharecardsheet.text_1", comment: "Customize title"))
             }
-            .alert("編輯 AI 簡評", isPresented: $showEncouragementEditor) {
+            .alert(L10n.ShareCard.editAIReview.localized, isPresented: $showEncouragementEditor) {
                 encouragementEditorAlert
             } message: {
                 Text(NSLocalizedString("workoutsharecardsheet.text_2", comment: "Add notes"))
             }
-            .alert(editingOverlayId == nil ? "添加自由文字" : "編輯文字", isPresented: $showTextOverlayEditor) {
+            .alert(editingOverlayId == nil ? L10n.ShareCard.addFreeText.localized : L10n.ShareCard.editText.localized, isPresented: $showTextOverlayEditor) {
                 textOverlayEditorAlert
             } message: {
-                Text(editingOverlayId == nil ? "在分享卡上添加你的個性文字！" : "修改你的文字內容")
+                Text(editingOverlayId == nil ? L10n.ShareCard.addFreeTextMessage.localized : L10n.ShareCard.editTextMessage.localized)
             }
     }
 
@@ -175,52 +175,52 @@ struct WorkoutShareCardSheetView: View {
 
     @ViewBuilder
     private var titleEditorAlert: some View {
-        TextField("輸入標題（最多50字）", text: $editingTitle)
+        TextField(L10n.ShareCard.titlePlaceholder.localized, text: $editingTitle)
             .lineLimit(2)
-        Button("確定") {
+        Button(L10n.Common.confirm.localized) {
             if editingTitle.count <= 50 {
                 customTitle = editingTitle.isEmpty ? nil : editingTitle
             }
         }
-        Button("刪除", role: .destructive) {
+        Button(L10n.Common.delete.localized, role: .destructive) {
             customTitle = ""  // 空字串代表已刪除
             editingTitle = ""
         }
-        Button("重置") {
+        Button(L10n.Common.reset.localized) {
             customTitle = nil  // nil 代表使用原始值
             editingTitle = ""
         }
-        Button("取消", role: .cancel) { }
+        Button(L10n.Common.cancel.localized, role: .cancel) { }
     }
 
     @ViewBuilder
     private var encouragementEditorAlert: some View {
-        TextField("輸入 AI 簡評（最多80字）", text: $editingEncouragement)
+        TextField(L10n.ShareCard.aiReviewPlaceholder.localized, text: $editingEncouragement)
             .lineLimit(3)
-        Button("確定") {
+        Button(L10n.Common.confirm.localized) {
             if editingEncouragement.count <= 80 {
                 customEncouragement = editingEncouragement.isEmpty ? nil : editingEncouragement
             }
         }
-        Button("刪除", role: .destructive) {
+        Button(L10n.Common.delete.localized, role: .destructive) {
             customEncouragement = ""  // 空字串代表已刪除
             editingEncouragement = ""
         }
-        Button("重置") {
+        Button(L10n.Common.reset.localized) {
             customEncouragement = nil  // nil 代表使用原始值
             editingEncouragement = ""
         }
-        Button("取消", role: .cancel) { }
+        Button(L10n.Common.cancel.localized, role: .cancel) { }
     }
 
     @ViewBuilder
     private var textOverlayEditorAlert: some View {
-        TextField("輸入文字（最多30字）", text: $editingOverlayText)
+        TextField(L10n.ShareCard.freeTextPlaceholder.localized, text: $editingOverlayText)
             .lineLimit(2)
-        Button("確定") {
+        Button(L10n.Common.confirm.localized) {
             saveTextOverlay()
         }
-        Button("取消", role: .cancel) {
+        Button(L10n.Common.cancel.localized, role: .cancel) {
             editingOverlayId = nil
         }
     }
@@ -470,7 +470,7 @@ struct WorkoutShareCardSheetView: View {
                             }
                         }
                     } label: {
-                        ToolbarButtonLabel(icon: "rectangle.3.group", label: "版型")
+                        ToolbarButtonLabel(icon: "rectangle.3.group", label: L10n.ShareCard.layout.localized)
                     }
 
                     // 📐 尺寸選擇
@@ -488,13 +488,13 @@ struct WorkoutShareCardSheetView: View {
                             }
                         }
                     } label: {
-                        ToolbarButtonLabel(icon: "arrow.up.left.and.arrow.down.right", label: "尺寸")
+                        ToolbarButtonLabel(icon: "arrow.up.left.and.arrow.down.right", label: L10n.ShareCard.size.localized)
                     }
 
                     // Aa 添加文字
                     ToolbarButton(
                         icon: "character.textbox",
-                        label: "新增文字",
+                        label: L10n.ShareCard.addText.localized,
                         action: {
                             addNewTextOverlay()
                         }

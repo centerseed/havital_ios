@@ -1093,6 +1093,8 @@
 "login.email_title" = "メールログイン";
 "login.email_not_verified_resend" = "確認メールを再送信";
 "login.resend_success_title" = "お知らせ";
+"login.language" = "言語";
+"login.language_picker_accessibility" = "ログイン画面の言語選択";
 
 // MARK: - Data Sync Strings
 "sync.title" = "データ同期";
@@ -1434,8 +1436,10 @@
 "performance.training_load.training_load_title" = "トレーニング負荷";
 "performance.training_load.training_load_explanation" = "体力指数で運動能力の変化を追跡し、TSB指標で疲労と回復のバランスを把握します。詳細説明と使用のコツについてはタップしてください";
 "performance.training_load.fitness_index" = "体力指数";
+"performance.training_load.fitness_index_short" = "体力";
 "performance.training_load.fitness_index_explanation" = "過去の実績と比較した相対的な運動能力レベルを示します。上昇トレンドは体力向上を示しますが疲労蓄積に注意。下降トレンドは通常テーパリング期間で、TSBとHRVの回復を観察しましょう";
 "performance.training_load.tsb" = "トレーニングストレスバランス（TSB）";
+"performance.training_load.tsb_short" = "TSB";
 "performance.training_load.tsb_explanation" = "トレーニング疲労と回復のバランスを示す指標。正の値は良い回復を、負の値は蓄積された疲労を示します";
 "performance.training_load.insufficient_data" = "トレーニングデータが不足しています。少なくとも5つのレコードが必要です";
 "performance.training_load.loading_training_load" = "トレーニング負荷データ読み込み中...";
@@ -3062,3 +3066,94 @@
 "achievements.badge.identity.consistent_runner.criteria" = "8 週以上のトレーニング期間に、少なくとも 6 週を安全な走行距離の範囲内で維持すると解除できます。";
 "achievements.badge.identity.smart_trainer.criteria" = "4 週のトレーニングを完了し、その中で回復週の完了または Paceriz の暑さ推奨調整を少なくとも 1 回行うと解除できます。";
 "achievements.badge.identity.pb_hunter.criteria" = "30 日以内に 2 つ以上の標準距離でそれぞれ自己ベストを更新すると解除できます。";
+
+// MARK: - Debug Tools
+"debug.confirm_delete" = "テストデータを削除してもよろしいですか？";
+"debug.delete_by_time_range" = "期間で削除";
+"debug.delete_marked_only" = "マーク済みのテスト記録のみ削除";
+"debug.delete_all" = "すべてのデータを削除";
+"debug.select_delete_method" = "削除方法を選択してください。期間指定では、選択した期間内のすべてのワークアウト記録を削除できます。";
+"debug.sync_status" = "同期状態";
+"debug.refresh_status" = "更新状態";
+"debug.test_features" = "テスト機能";
+"debug.create_test_workout" = "テストワークアウトを作成";
+"debug.manual_check_upload" = "手動で確認してアップロード";
+"debug.test_notification" = "通知をテスト";
+"debug.clear_upload_history" = "アップロード履歴を消去";
+"debug.test_data_management" = "テストデータ管理";
+"debug.delete_test_data" = "テストデータを削除";
+"debug.find_workouts" = "ワークアウトを検索";
+"debug.delete_warning" = "削除機能は HealthKit のワークアウト記録を削除します。慎重に操作してください。削除後は復元できません。";
+"debug.health_kit_observer" = "HealthKit オブザーバー設定";
+"debug.test_observer" = "オブザーバー設定をテスト";
+"debug.operation_log" = "操作ログ";
+"debug.select_time_range" = "期間を選択";
+"debug.found_workouts" = "見つかったワークアウト";
+"debug.delete_all_records" = "すべての記録を削除（%d）";
+"debug.delete_warning_message" = "警告：この操作は、これらのワークアウト記録をヘルスデータから完全に削除します。";
+"debug.confirm_delete_title" = "削除を確認";
+"debug.confirm_delete_message" = "%d 件のワークアウト記録を HealthKit データから完全に削除します。この操作は元に戻せません。";
+"debug.created_test_workout" = "テストワークアウト ID を作成しました: %@";
+
+// MARK: - Feedback / Timezone
+"feedback.category.uncategorized" = "未分類";
+"timezone.change_confirm" = "タイムゾーンを変更";
+
+// MARK: - i18n Release Gate Additions
+"common.initializing" = "初期化中...";
+"common.add" = "追加";
+"common.reset" = "リセット";
+"force_update.title" = "Paceriz の更新が必要です";
+"force_update.message" = "アプリのバージョンが古くなっています。続行するには App Store で最新版に更新してください。";
+"force_update.cta" = "App Store で更新";
+"message_center.empty" = "お知らせはありません";
+"message_center.title" = "メッセージセンター";
+"training.week_progress_format" = "%d / %d 週";
+"training.phases_count" = "%d フェーズ";
+"training.intensity.low_short" = "低 %d%%";
+"training.intensity.medium_short" = "中 %d%%";
+"training.intensity.high_short" = "高 %d%%";
+"performance.unknown_workout" = "不明なワークアウト";
+"performance.performance_index_format" = "パフォーマンス指数: %.1f";
+"performance.gait_metric_picker" = "歩行指標";
+"performance.heat_adaptation" = "暑熱適応";
+"profile_view.contact_facebook_page" = "Facebook ページ";
+"share_card.title" = "シェアカード";
+"share_card.metric.distance_km" = "距離 (km)";
+"share_card.metric.total_time" = "合計時間";
+"share_card.metric.avg_pace" = "平均ペース";
+"share_card.tutorial.title" = "シェアカード編集ガイド";
+"share_card.tutorial.start_editing" = "編集を開始";
+"share_card.tutorial.edit_title.title" = "タイトルまたは AI レビューをタップ";
+"share_card.tutorial.edit_title.description" = "テキスト内容を編集または削除できます。";
+"share_card.tutorial.add_text.title" = "テキストを追加";
+"share_card.tutorial.add_text.description" = "自由に移動できるカスタムテキストを追加します。";
+"share_card.tutorial.layout_size.title" = "レイアウトとサイズ";
+"share_card.tutorial.layout_size.description" = "レイアウトスタイルと画像サイズを切り替えます。";
+"share_card.tutorial.choose_photo.title" = "写真を選択";
+"share_card.tutorial.choose_photo.description" = "背景写真を変更し、位置を調整します。";
+"share_card.editor.title" = "シェアカードを作成";
+"share_card.editor.edit_achievement_title" = "実績タイトルを編集";
+"share_card.editor.edit_ai_review" = "AI レビューを編集";
+"share_card.editor.add_free_text" = "自由テキストを追加";
+"share_card.editor.edit_text" = "テキストを編集";
+"share_card.editor.add_free_text_message" = "シェアカードに自分のテキストを追加できます。";
+"share_card.editor.edit_text_message" = "テキスト内容を変更します。";
+"share_card.editor.title_placeholder" = "タイトルを入力（最大50文字）";
+"share_card.editor.ai_review_placeholder" = "AI レビューを入力（最大80文字）";
+"share_card.editor.free_text_placeholder" = "テキストを入力（最大30文字）";
+"share_card.editor.layout" = "レイアウト";
+"share_card.editor.size" = "サイズ";
+"share_card.editor.add_text" = "テキストを追加";
+"edit_schedule.add_strength_training" = "筋力トレーニングを追加";
+"edit_schedule.convert_to_strength_day" = "筋力トレーニング日に変更";
+"edit_schedule.work_time" = "作業時間";
+"edit_schedule.select_work_time" = "作業時間を選択";
+"edit_schedule.reapply_defaults" = "デフォルトを再適用";
+"edit_schedule.change_to_rest_day" = "休息日に変更";
+"edit_schedule.type_change_alert" = "種類を変更すると現在のエクササイズ一覧が消去されます。続行しますか？";
+"edit_schedule.remove_strength_training" = "筋力トレーニングを削除";
+"edit_schedule.easy_training_section" = "イージートレーニング";
+"edit_schedule.intensity_training_section" = "高強度トレーニング";
+"edit_schedule.long_distance_training_section" = "長距離トレーニング";
+"edit_schedule.other_training_section" = "その他";

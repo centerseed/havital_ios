@@ -14,7 +14,7 @@ struct MessageCenterView: View {
                     Image(systemName: "bell.slash")
                         .font(AppFont.systemScaled(size: 44))
                         .foregroundColor(.secondary)
-                    Text("目前沒有公告")
+                    Text(L10n.MessageCenter.empty.localized)
                         .font(AppFont.subheadline())
                         .foregroundColor(.secondary)
                 }
@@ -38,7 +38,7 @@ struct MessageCenterView: View {
                 .background(Color(UIColor.systemGroupedBackground))
             }
         }
-        .navigationTitle("訊息中心")
+        .navigationTitle(L10n.MessageCenter.title.localized)
         .onAppear {
             viewModel.loadMessageCenter()
         }
