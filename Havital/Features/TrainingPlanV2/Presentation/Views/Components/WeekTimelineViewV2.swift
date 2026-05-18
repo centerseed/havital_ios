@@ -70,7 +70,6 @@ struct TimelineItemViewV2: View {
     let todayTrigger: Date
 
     @State private var isExpanded = false
-    @State private var showTrainingTypeInfo = false
     @State private var showRestDayInfo = false
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("climateAdjustmentEnabled") private var climateAdjustmentEnabled = false
@@ -161,33 +160,16 @@ struct TimelineItemViewV2: View {
                             Spacer()
 
                             // 訓練類型標籤
-                            // F6.c: type chip height 22pt per design jsx L827
-                            if TrainingTypeInfo.info(for: day.type) != nil {
-                                Button(action: {
-                                    showTrainingTypeInfo = true
-                                }) {
-                                    Text(day.type.localizedName)
-                                        .font(.system(size: 12, weight: .medium))
-                                        .fontWeight(.medium)
-                                        .foregroundColor(getTypeColor())
-                                        .padding(.horizontal, 10)
-                                        .frame(height: 22)
-                                        .background(getTypeColor().opacity(0.15))
-                                        .cornerRadius(8)
-                                }
-                                .buttonStyle(.borderless)
+                            // F6.c: type chip height 22pt per design jsx L827 — display only, no tap
+                            Text(day.type.localizedName)
+                                .font(.system(size: 12, weight: .medium))
+                                .fontWeight(.medium)
+                                .foregroundColor(getTypeColor())
+                                .padding(.horizontal, 10)
+                                .frame(height: 22)
+                                .background(getTypeColor().opacity(0.15))
+                                .cornerRadius(8)
                                 .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).run_type")
-                            } else {
-                                Text(day.type.localizedName)
-                                    .font(.system(size: 12, weight: .medium))
-                                    .fontWeight(.medium)
-                                    .foregroundColor(getTypeColor())
-                                    .padding(.horizontal, 10)
-                                    .frame(height: 22)
-                                    .background(getTypeColor().opacity(0.15))
-                                    .cornerRadius(8)
-                                    .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).run_type")
-                            }
 
                             if climateAdjustmentEnabled, let climateMeta = day.effectiveClimateMeta {
                                 ClimateBadgeView(meta: climateMeta)
@@ -436,11 +418,6 @@ struct TimelineItemViewV2: View {
                 y: isToday ? 4 : 1
             )
             .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).card")
-        }
-        .sheet(isPresented: $showTrainingTypeInfo) {
-            if let trainingTypeInfo = TrainingTypeInfo.info(for: day.type) {
-                TrainingTypeInfoView(trainingTypeInfo: trainingTypeInfo)
-            }
         }
         .sheet(isPresented: $showRestDayInfo) {
             RestDayInfoSheet()

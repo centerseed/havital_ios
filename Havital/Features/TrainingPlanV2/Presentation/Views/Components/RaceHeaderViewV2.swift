@@ -89,7 +89,9 @@ struct RaceHeaderViewV2: View {
                         .foregroundColor(viewModel.isOnTrack
                             ? Color(red: 0.651, green: 0.851, blue: 0.722)  // #A6D9B8
                             : Color(red: 1, green: 0.690, blue: 0.533))     // #FFB088
-                        .padding(.horizontal, 6)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                        .padding(.horizontal, 4)
                         .padding(.vertical, 1)
                         .background(
                             RoundedRectangle(cornerRadius: 4)

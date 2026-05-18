@@ -3237,7 +3237,7 @@
 // MARK: - B2 Race Header
 "training_plan.race_countdown_days" = " 日";
 "training_plan.race_countdown_label" = "残り";
-"training_plan.race_readiness_label" = "適性";
+"training_plan.race_readiness_label" = "準備度";
 "training_plan.race_gap_within_target" = "目標内";
 "training_plan.race_gap_diff" = "差 %@";
 

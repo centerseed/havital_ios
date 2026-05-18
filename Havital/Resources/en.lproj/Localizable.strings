@@ -3240,7 +3240,7 @@
 // MARK: - B2 Race Header
 "training_plan.race_countdown_days" = " days";
 "training_plan.race_countdown_label" = "Count";
-"training_plan.race_readiness_label" = "Fit";
+"training_plan.race_readiness_label" = "Readiness";
 "training_plan.race_gap_within_target" = "On target";
 "training_plan.race_gap_diff" = "+%@ off";
 
