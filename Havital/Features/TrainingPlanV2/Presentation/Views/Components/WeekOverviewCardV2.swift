@@ -1,5 +1,11 @@
 import SwiftUI
 
+// MARK: - PACERIZ REDESIGN 2026-05
+// WeekOverviewCardV2 has been fully redesigned to match new VolumeIntensityCard layout.
+// Removed: circular progress ring (ZStack with Circle), CompactIntensityBarV2.
+// Added: hero row (PRPlaceholderBadge + distance + intensity bar + dot legend) + flat action buttons.
+// WeekTargetDetailViewV2 struct is preserved unchanged at the bottom of this file.
+
 /// V2 週總覽卡片 - 顯示本週跑量和強度分配
 struct WeekOverviewCardV2: View {
     var viewModel: TrainingPlanV2ViewModel
@@ -32,162 +38,215 @@ struct WeekOverviewCardV2: View {
         return min(viewModel.loader.currentWeekDistance / plan.totalDistance, 1.0)
     }
 
+    // Week range string derived from plan day dates (e.g. "5/11 – 5/17")
+    private var weekRangeText: String? {
+        guard let startDate = viewModel.getDate(for: 1),
+              let endDate = viewModel.getDate(for: 7) else { return nil }
+        let fmt = DateFormatter()
+        fmt.dateFormat = "M/d"
+        return "\(fmt.string(from: startDate)) – \(fmt.string(from: endDate))"
+    }
+
+    // Intensity actual values
+    private var actualLow: Int { Int(viewModel.loader.currentWeekIntensity.low) }
+    private var actualMedium: Int { Int(viewModel.loader.currentWeekIntensity.medium) }
+    private var actualHigh: Int { Int(viewModel.loader.currentWeekIntensity.high) }
+
+    // For segmented bar denominator: use max of planned total vs actual total so bar never overflows
+    private var intensityBarTotal: Int {
+        let planned = lowIntensityTarget + mediumIntensityTarget + highIntensityTarget
+        let actual = actualLow + actualMedium + actualHigh
+        return max(planned, actual, 1)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // 標題
-            HStack {
-                Image(systemName: "chart.pie.fill")
-                    .foregroundColor(.blue)
-                    .font(AppFont.headline())
 
-                Text(NSLocalizedString("training_plan.weekly_volume_and_intensity", comment: "週跑量和訓練強度"))
-                    .font(AppFont.headline())
-                    .foregroundColor(.primary)
-            }
+            // ── Hero row ─────────────────────────────────────────────────
+            HStack(alignment: .center, spacing: 14) {
 
-            // 上半部：圓形進度 + 可點擊項目
-            HStack(spacing: 0) {
-                Spacer()
+                // Left: placeholder badge (72×72) with NEW overlay badge top-left corner
+                // PHASE_B_BADGE: Replace with real BadgeRepository data in Phase B
+                // F6.d: NEW badge placed at top-left corner per design spec
+                ZStack(alignment: .topLeading) {
+                    PRPlaceholderBadge(size: 72)
 
-                // 左側：圓形週跑量進度
-                ZStack {
-                    Circle()
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 9)
-                        .frame(width: 90, height: 90)
-
-                    Circle()
-                        .trim(from: 0, to: weekProgress)
-                        .stroke(
-                            Color.blue,
-                            style: StrokeStyle(lineWidth: 9, lineCap: .round)
+                    Text("NEW")
+                        .font(.system(size: 9, weight: .heavy))
+                        .tracking(0.5)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 2)
+                        .background(
+                            Capsule().fill(PacerizColor.blue)
                         )
-                        .frame(width: 90, height: 90)
-                        .rotationEffect(.degrees(-90))
+                        .overlay(Capsule().stroke(Color.white, lineWidth: 1.5))
+                        .offset(x: -4, y: -4)
+                }
 
-                    VStack(spacing: 2) {
-                        HStack(spacing: 1) {
-                            Text(String(format: "%.0f", unitManager.convertedDistance(viewModel.loader.currentWeekDistance)))
-                                .font(AppFont.systemScaled(size: 17, weight: .bold))
-                                .foregroundColor(.primary)
-                                .minimumScaleFactor(0.8)
-                                .lineLimit(1)
+                // Right: badge name + distance + intensity bar + dot legend
+                VStack(alignment: .leading, spacing: 6) {
 
-                            Text("/")
-                                .font(AppFont.systemScaled(size: 13))
-                                .foregroundColor(.secondary)
+                    // Badge name row (placeholder) — F1.c: removed title row per design jsx (no separate header)
+                    // F1.d: date chip moved here, right-aligned per design jsx L417-423
+                    // F6.d: PRChip "新解鎖" removed; NEW badge now lives on the badge icon instead
+                    // PHASE_B_BADGE: Badge name & "Coming soon" chip will be data-driven in Phase B
+                    HStack(spacing: 6) {
+                        // F5.a: 16pt + blueDeep color, fixedSize ensures full display without truncation
+                        Text(NSLocalizedString("training_plan.weekly_badge_placeholder_name", comment: "本週進度"))
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(PacerizColor.blueDeep)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
 
-                            Text(String(format: "%.0f", unitManager.convertedDistance(plan.totalDistance)))
-                                .font(AppFont.systemScaled(size: 13))
-                                .foregroundColor(.secondary)
-                                .minimumScaleFactor(0.8)
-                                .lineLimit(1)
-                        }
+                        Spacer()
 
-                        Text(unitManager.currentUnitSystem.distanceSuffix)
-                            .font(AppFont.caption2())
+                        // F1.d: date chip moved here per design jsx L417-423
+                        // F4.a: .fixedSize(horizontal: true, vertical: false) prevents date from wrapping
+                        // F5.a: calendar icon 11pt, date 12pt
+                        if let range = weekRangeText {
+                            HStack(spacing: 4) {
+                                Image(systemName: "calendar")
+                                    .font(.system(size: 11, weight: .semibold))
+                                Text(range)
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .lineLimit(1)
+                            }
                             .foregroundColor(.secondary)
-                    }
-                    .offset(y: 3)
-                }
-
-                Spacer()
-
-                // 右側：本週目標和訓練日曆按鈕
-                VStack(alignment: .leading, spacing: 10) {
-                    Button(action: {
-                        showWeekTargetDetail = true
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "target")
-                                .foregroundColor(.blue)
-                                .font(AppFont.subheadline())
-
-                            Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
-                                .font(AppFont.subheadline())
-                                .foregroundColor(.primary)
-
-                            Image(systemName: "chevron.right")
-                                .font(AppFont.caption2())
-                                .foregroundColor(.secondary)
+                            .fixedSize(horizontal: true, vertical: false)
                         }
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 10)
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(8)
                     }
-                    .buttonStyle(PlainButtonStyle())
 
-                    // 訓練日曆
-                    Button(action: {
-                        showTrainingCalendar = true
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "calendar")
-                                .foregroundColor(.green)
-                                .font(AppFont.subheadline())
+                    // Distance row: big current + small "/ target unit" + spacer + percentage chip
+                    HStack(alignment: .lastTextBaseline, spacing: 4) {
+                        Text(String(format: "%.0f", unitManager.convertedDistance(viewModel.loader.currentWeekDistance)))
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
 
-                            Text(NSLocalizedString("training_plan.training_calendar", comment: "Training Calendar"))
-                                .font(AppFont.subheadline())
-                                .foregroundColor(.primary)
+                        Text("/ \(String(format: "%.0f", unitManager.convertedDistance(plan.totalDistance))) \(unitManager.currentUnitSystem.distanceSuffix)")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.secondary)
 
-                            Image(systemName: "chevron.right")
-                                .font(AppFont.caption2())
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 10)
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(8)
+                        Spacer()
+
+                        let pct = plan.totalDistance > 0
+                            ? Int(min(viewModel.loader.currentWeekDistance / plan.totalDistance * 100, 100))
+                            : 0
+                        PRChip(
+                            text: "\(pct)%",
+                            fg: PacerizColor.blueDeep,
+                            bg: PacerizColor.blue12,
+                            fontSize: 13
+                        )
                     }
-                    .buttonStyle(PlainButtonStyle())
+
+                    // Segmented intensity bar
+                    PRSegmentedIntensityBar(
+                        low: actualLow,
+                        medium: actualMedium,
+                        high: actualHigh,
+                        total: intensityBarTotal
+                    )
+
+                    // Dot legend — F1.e: new keys per TD §3.5 D 2026-05-18 校準
+                    HStack(spacing: 12) {
+                        PRDotLegendItem(
+                            dotColor: PacerizColor.green,
+                            label: NSLocalizedString("training_plan.intensity_legend_low", comment: "輕鬆")
+                        )
+                        PRDotLegendItem(
+                            dotColor: PacerizColor.orange,
+                            label: NSLocalizedString("training_plan.intensity_legend_medium", comment: "中等")
+                        )
+                        PRDotLegendItem(
+                            dotColor: PacerizColor.error,
+                            label: NSLocalizedString("training_plan.intensity_legend_high", comment: "強度")
+                        )
+                    }
                 }
-
-                Spacer()
-            }
-
-            // 下半部：強度分布（使用從 plan.plan 提取的目標值）
-            HStack(spacing: 12) {
-                // 低強度
-                CompactIntensityBarV2(
-                    label: NSLocalizedString("intensity.low", comment: "Low"),
-                    intensityKey: "low",
-                    current: Int(viewModel.loader.currentWeekIntensity.low),
-                    target: lowIntensityTarget,
-                    color: .green
-                )
-
-                // 中強度
-                CompactIntensityBarV2(
-                    label: NSLocalizedString("intensity.medium", comment: "Medium"),
-                    intensityKey: "medium",
-                    current: Int(viewModel.loader.currentWeekIntensity.medium),
-                    target: mediumIntensityTarget,
-                    color: .orange
-                )
-
-                // 高強度
-                CompactIntensityBarV2(
-                    label: NSLocalizedString("intensity.high", comment: "High"),
-                    intensityKey: "high",
-                    current: Int(viewModel.loader.currentWeekIntensity.high),
-                    target: highIntensityTarget,
-                    color: .red
-                )
             }
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("v2.weekly.intensity_distribution")
+
+            Divider()
+
+            // ── Action button row ────────────────────────────────────────
+            HStack(spacing: 8) {
+                // 本週目標
+                Button(action: {
+                    showWeekTargetDetail = true
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "target")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(PacerizColor.blue)
+
+                        Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.primary)
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 12)
+                    .frame(height: 44)
+                    .background(PacerizColor.blue12)
+                    .cornerRadius(PacerizRadius.inner)
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                // 訓練日曆
+                Button(action: {
+                    showTrainingCalendar = true
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(PacerizColor.greenDeep)
+
+                        Text(NSLocalizedString("training_plan.training_calendar", comment: "Training Calendar"))
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.primary)
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 12)
+                    .frame(height: 44)
+                    .background(PacerizColor.green12)
+                    .cornerRadius(PacerizRadius.inner)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
         }
-        .padding()
+        .padding(14)
+        // MARK: PACERIZ REDESIGN 2026-05 — gradient "暈開" per design jsx L373
+        // F7: faster transition — 2-stop, white at 50%
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(UIColor.tertiarySystemBackground))
+            RoundedRectangle(cornerRadius: PacerizRadius.card)
+                .fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: PacerizColor.blue.opacity(0.14), location: 0.0),
+                            .init(color: Color(UIColor.tertiarySystemBackground), location: 0.5)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
         .accessibilityIdentifier("v2.weekly.overview_card")
         .sheet(isPresented: $showWeekTargetDetail) {
             NavigationView {
                 WeekTargetDetailViewV2(
-                    purpose: plan.purpose,  // ✅ 直接使用 V1 欄位
+                    purpose: plan.purpose,
                     designReason: designReason
                 )
             }
@@ -197,51 +256,6 @@ struct WeekOverviewCardV2: View {
                 TrainingCalendarView()
             }
         }
-    }
-}
-
-// MARK: - 緊湊型強度條組件 V2
-struct CompactIntensityBarV2: View {
-    let label: String
-    let intensityKey: String
-    let current: Int
-    let target: Int
-    let color: Color
-
-    private var progress: Double {
-        guard target > 0 else { return 0 }
-        return min(Double(current) / Double(target), 1.0)
-    }
-
-    private var isUnscheduled: Bool {
-        target == 0
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // 標籤和數字
-            Text("\(label) \(current)/\(target)")
-                .font(AppFont.caption())
-                .foregroundColor(isUnscheduled ? .secondary.opacity(0.7) : .secondary)
-
-            // 自定義進度條
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    // 背景
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 4)
-
-                    // 前景進度
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(isUnscheduled ? Color.gray.opacity(0.3) : color)
-                        .frame(width: geometry.size.width * progress, height: 4)
-                }
-            }
-            .frame(height: 4)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("v2.weekly.intensity.\(intensityKey)")
     }
 }
 

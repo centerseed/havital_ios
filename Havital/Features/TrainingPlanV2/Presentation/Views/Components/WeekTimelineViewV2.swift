@@ -59,6 +59,12 @@ struct WeekTimelineViewV2: View {
 }
 
 /// V2 時間軸單項視圖
+// MARK: - PACERIZ REDESIGN 2026-05
+// Visual enhancements to TimelineItemViewV2:
+//   1. Type accent 3pt left bar (per §3.5 G)
+//   2. Today outline upgraded to 2.0pt PacerizColor.blue (per §3.5 G)
+//   3. Planned/actual dual row display for non-rest days (per §3.5 G)
+// Interaction model is UNCHANGED (isExpanded toggle / isToday / sheet bindings).
 struct TimelineItemViewV2: View {
     var viewModel: TrainingPlanV2ViewModel
     let day: DayDetail
@@ -135,7 +141,7 @@ struct TimelineItemViewV2: View {
 
                                 if isToday {
                                     Text(NSLocalizedString("training_plan.today", comment: "Today"))
-                                        .font(AppFont.caption())
+                                        .font(.system(size: 10, weight: .semibold))
                                         .foregroundColor(.white)
                                         .padding(.horizontal, 6)
                                         .padding(.vertical, 2)
@@ -147,16 +153,17 @@ struct TimelineItemViewV2: View {
                             Spacer()
 
                             // 訓練類型標籤
+                            // F6.c: type chip height 22pt per design jsx L827
                             if TrainingTypeInfo.info(for: day.type) != nil {
                                 Button(action: {
                                     showTrainingTypeInfo = true
                                 }) {
                                     Text(day.type.localizedName)
-                                        .font(AppFont.bodySmall())
+                                        .font(.system(size: 12, weight: .medium))
                                         .fontWeight(.medium)
                                         .foregroundColor(getTypeColor())
                                         .padding(.horizontal, 10)
-                                        .padding(.vertical, 6)
+                                        .frame(height: 22)
                                         .background(getTypeColor().opacity(0.15))
                                         .cornerRadius(8)
                                 }
@@ -164,11 +171,11 @@ struct TimelineItemViewV2: View {
                                 .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).run_type")
                             } else {
                                 Text(day.type.localizedName)
-                                    .font(AppFont.bodySmall())
+                                    .font(.system(size: 12, weight: .medium))
                                     .fontWeight(.medium)
                                     .foregroundColor(getTypeColor())
                                     .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
+                                    .frame(height: 22)
                                     .background(getTypeColor().opacity(0.15))
                                     .cornerRadius(8)
                                     .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).run_type")
@@ -179,13 +186,64 @@ struct TimelineItemViewV2: View {
                                     .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_badge")
                             }
 
-                            // 展開/收起圖示
+                            // F6.c: chevron.right per design jsx L831 — today has no chevron, non-today shows static right arrow
                             if !isToday {
-                                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                Image(systemName: "chevron.right")
                                     .foregroundColor(.secondary)
                                     .font(AppFont.bodySmall())
-                                    .frame(width: 44, height: 44)
+                                    .frame(width: 20, height: 44)
                                     .contentShape(Rectangle())
+                            }
+                        }
+
+                        // PACERIZ REDESIGN 2026-05: 課表/實際雙行（§3.5 G）
+                        // Always show for non-rest days; actual row only when workouts exist.
+                        // F6.c: rest day shows 「主動恢復日」in collapsed state per design jsx L823
+                        if day.type == .rest {
+                            Text(NSLocalizedString("training_plan.active_recovery_day", comment: "主動恢復日"))
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.secondary)
+                        } else {
+                            VStack(spacing: 4) {
+                                // 計畫 row (always show for non-rest)
+                                if let run = day.primaryRunActivity {
+                                    HStack(spacing: 4) {
+                                        Text("課表")
+                                            .font(.system(size: 9, weight: .bold))
+                                            .tracking(0.4)
+                                            .foregroundColor(.secondary)
+                                            .textCase(.uppercase)
+                                            .frame(minWidth: 28, alignment: .leading)
+
+                                        let plannedDistStr = run.distanceKm.map { String(format: "%.1f \(UnitManager.shared.currentUnitSystem.distanceSuffix)", UnitManager.shared.convertedDistance($0)) } ?? ""
+                                        let plannedDurStr = formatPlannedDuration(minutes: run.durationMinutes, seconds: run.durationSeconds)
+                                        let planParts = [plannedDistStr, plannedDurStr].filter { !$0.isEmpty }
+                                        Text(planParts.joined(separator: " · "))
+                                            .font(.system(size: 11.5, weight: .semibold))
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+
+                                // 實際 row (only when workouts exist)
+                                if let workout = workouts.first {
+                                    HStack(spacing: 4) {
+                                        Text("實際")
+                                            .font(.system(size: 9, weight: .bold))
+                                            .tracking(0.4)
+                                            .foregroundColor(PacerizColor.greenDeep)
+                                            .textCase(.uppercase)
+                                            .frame(minWidth: 28, alignment: .leading)
+
+                                        let rawDistVal = workout.distanceDisplay ?? (workout.distance ?? 0.0) / 1000.0
+                                        let distVal = workout.distanceUnit != nil ? rawDistVal : UnitManager.shared.convertedDistance(rawDistVal)
+                                        let distUnit = workout.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
+                                        let actualDistStr = String(format: "%.2f \(distUnit)", distVal)
+                                        let actualDurStr = formatDuration(workout.duration)
+                                        Text("\(actualDistStr) · \(actualDurStr)")
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundColor(.primary)
+                                    }
+                                }
                             }
                         }
                     }
@@ -197,29 +255,18 @@ struct TimelineItemViewV2: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Divider()
 
-                        // 訓練目標描述
-                        if !day.reason.isEmpty {
-                            Text(day.reason)
-                                .font(AppFont.caption())
-                                .foregroundColor(.secondary)
-                                .lineLimit(nil)
-                                .fixedSize(horizontal: false, vertical: true)
-                        } else {
-                            Text(day.dayTarget)
-                                .font(AppFont.caption())
-                                .foregroundColor(.secondary)
-                                .lineLimit(nil)
-                                .fixedSize(horizontal: false, vertical: true)
+                        // PACERIZ REDESIGN 2026-05: 訓練詳情移至前，使用 RedesignedSegmentsView（run）或原 TrainingDetailsViewV2（非 run）
+                        if day.session != nil {
+                            if day.primaryRunActivity != nil {
+                                RedesignedSegmentsView(day: day)
+                            } else {
+                                TrainingDetailsViewV2(day: day)
+                            }
                         }
 
                         if let climateMeta = day.effectiveClimateMeta {
                             ClimateAdjustmentDetailView(day: day, meta: climateMeta)
                                 .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_detail")
-                        }
-
-                        // 訓練詳情
-                        if day.session != nil {
-                            TrainingDetailsViewV2(day: day)
                         }
 
                         // 已完成的訓練記錄
@@ -318,15 +365,28 @@ struct TimelineItemViewV2: View {
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: 10)
+                RoundedRectangle(cornerRadius: PacerizRadius.card)
                     .fill(getCardBackgroundColor(isToday: isToday, isCompleted: isCompleted))
             )
+            // PACERIZ REDESIGN 2026-05: today outline upgraded to 2.0pt PacerizColor.blue (§3.5 G)
             .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .strokeBorder(getCardBorderColor(isToday: isToday, isCompleted: isCompleted, isPast: isPast), lineWidth: isToday ? 1.5 : 1.0)
+                RoundedRectangle(cornerRadius: PacerizRadius.card)
+                    .strokeBorder(
+                        isToday ? PacerizColor.blue : getCardBorderColor(isToday: false, isCompleted: isCompleted, isPast: isPast),
+                        lineWidth: isToday ? 2.0 : 1.0
+                    )
             )
+            // PACERIZ REDESIGN 2026-05: type accent 3pt left bar (§3.5 G); hidden for rest days
+            .overlay(alignment: .leading) {
+                if day.type != .rest {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(getTypeColor())
+                        .frame(width: 3)
+                        .padding(.vertical, 8)
+                }
+            }
             .shadow(
                 color: getShadowColor(isToday: isToday, isCompleted: isCompleted),
                 radius: isToday ? 8 : 3,
@@ -373,12 +433,9 @@ struct TimelineItemViewV2: View {
         }
     }
 
+    // F6.b: today no longer gets blue background — only 2pt blue outline distinguishes today
     private func getCardBackgroundColor(isToday: Bool, isCompleted: Bool) -> Color {
-        if isToday {
-            return colorScheme == .dark ? Color.blue.opacity(0.2) : Color.blue.opacity(0.08)
-        } else {
-            return Color(.secondarySystemGroupedBackground)
-        }
+        return Color(.secondarySystemGroupedBackground)
     }
 
     private func getCardBorderColor(isToday: Bool, isCompleted: Bool, isPast: Bool) -> Color {
@@ -410,6 +467,20 @@ struct TimelineItemViewV2: View {
             return String(format: "%d:%02d:%02d", hours, minutes, seconds)
         } else {
             return String(format: "%d:%02d", minutes, seconds)
+        }
+    }
+
+    // PACERIZ REDESIGN 2026-05: helper for planned duration display in 課表 row (§3.5 G)
+    private func formatPlannedDuration(minutes: Int?, seconds: Int?) -> String {
+        let totalSec = (minutes ?? 0) * 60 + (seconds ?? 0)
+        guard totalSec > 0 else { return "" }
+        let h = totalSec / 3600
+        let m = (totalSec % 3600) / 60
+        let s = totalSec % 60
+        if h > 0 {
+            return String(format: "%d:%02d:%02d", h, m, s)
+        } else {
+            return String(format: "%d:%02d", m, s)
         }
     }
 }
@@ -1267,6 +1338,279 @@ private struct MainActivityView: View {
             StrengthContentView(activity: strengthActivity)
         case .cross(let crossActivity):
             CrossContentView(activity: crossActivity)
+        }
+    }
+}
+
+// MARK: - PACERIZ REDESIGN 2026-05 — Flat segments renderer (today inline only, not used by WorkoutDetail screen)
+
+/// 統一 pill row 樣式的 segments 視圖，僅用於今日 inline 展開場景。
+/// 只處理 run activity；force/cross 仍走 TrainingDetailsViewV2。
+private struct RedesignedSegmentsView: View {
+    let day: DayDetail
+
+    private struct FlatSegment {
+        let label: String
+        let detail: String
+        let subDetail: String?
+        let reps: String?
+        let accent: Color
+
+        init(label: String, detail: String, subDetail: String? = nil, reps: String? = nil, accent: Color) {
+            self.label = label
+            self.detail = detail
+            self.subDetail = subDetail
+            self.reps = reps
+            self.accent = accent
+        }
+    }
+
+    private func emojiPrefix(for role: String) -> String {
+        switch role {
+        case "warmup": return "🔥"
+        case "cooldown": return "🌀"
+        case "recovery": return "💨"
+        default: return "⚡"
+        }
+    }
+
+    private func buildSegments() -> [FlatSegment] {
+        guard let session = day.session,
+              case .run(let run) = session.primary else { return [] }
+
+        var result: [FlatSegment] = []
+
+        // 暖身
+        if let warmup = session.warmup {
+            let distStr: String
+            if let km = warmup.distanceKm {
+                let val = UnitManager.shared.convertedDistance(km)
+                distStr = String(format: "%.1f \(UnitManager.shared.currentUnitSystem.distanceSuffix)", val)
+            } else if let m = warmup.distanceM {
+                distStr = "\(m)m"
+            } else {
+                distStr = ""
+            }
+            let paceStr = warmup.effectivePace ?? ""
+            let parts = [distStr, paceStr].filter { !$0.isEmpty }
+            result.append(FlatSegment(
+                label: "\(emojiPrefix(for: "warmup")) 暖身",
+                detail: parts.joined(separator: " · "),
+                reps: nil,
+                accent: .orange
+            ))
+        }
+
+        // 主活動
+        if let interval = run.interval {
+            // F12: 間歇訓練合併成一個 row（衝刺 + 恢復），顯示趟數
+            let variantName: String
+            switch (interval.variant ?? run.runType).lowercased() {
+            case "strides": variantName = "加速跑"
+            case "hill_repeats": variantName = "坡度間歇"
+            case "cruise_intervals": variantName = "節奏間歇"
+            case "norwegian_4x4": variantName = "4x4間歇"
+            case "yasso_800": variantName = "800m間歇"
+            default: variantName = "衝刺"
+            }
+
+            // 主行：工作距離 @ 配速
+            var workParts: [String] = []
+            if let m = interval.workDistanceM {
+                workParts.append("\(m)m")
+            } else if let km = interval.workDistanceKm {
+                workParts.append(String(format: "%.1fkm", km))
+            }
+            if let pace = interval.workPace {
+                workParts.append("@ \(pace)")
+            }
+            let workDetail = workParts.joined(separator: " ")
+
+            // 副行：恢復資訊
+            let hasRecoveryInfo = interval.recoveryDistanceKm != nil
+                || interval.recoveryDistanceM != nil
+                || interval.recoveryPace != nil
+                || interval.recoveryDurationMinutes != nil
+                || interval.recoveryDurationSeconds != nil
+                || interval.recoveryDescription != nil
+            let recoverySubDetail: String?
+            if hasRecoveryInfo {
+                var recoveryParts: [String] = ["💨 恢復"]
+                if let km = interval.recoveryDistanceKm {
+                    recoveryParts.append(String(format: "%.1fkm", km))
+                } else if let m = interval.recoveryDistanceM {
+                    recoveryParts.append("\(m)m")
+                }
+                if let pace = interval.recoveryPace {
+                    recoveryParts.append("@ \(pace)/km")
+                }
+                if let min = interval.recoveryDurationMinutes {
+                    recoveryParts.append("\(min)min")
+                } else if let sec = interval.recoveryDurationSeconds {
+                    recoveryParts.append("\(sec)s")
+                }
+                if recoveryParts.count == 1 {
+                    recoveryParts.append(interval.recoveryDescription ?? NSLocalizedString("training.interval.rest", comment: "Rest"))
+                }
+                recoverySubDetail = recoveryParts.joined(separator: " ")
+            } else {
+                recoverySubDetail = nil
+            }
+
+            result.append(FlatSegment(
+                label: "⚡ \(variantName) + 恢復",
+                detail: workDetail,
+                subDetail: recoverySubDetail,
+                reps: "× \(interval.repeats) 趟",
+                accent: .orange
+            ))
+        } else if let segs = run.segments, !segs.isEmpty {
+            // 分段跑（progression / combination）
+            for (idx, seg) in segs.enumerated() {
+                let role = idx == 0 ? "warmup" : (idx == segs.count - 1 ? "cooldown" : "main")
+                let distStr: String
+                if let display = seg.distanceDisplay {
+                    let unit = seg.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
+                    let val = seg.distanceUnit != nil ? display : UnitManager.shared.convertedDistance(display)
+                    distStr = String(format: "%.1f\(unit)", val)
+                } else if let km = seg.distanceKm {
+                    let val = UnitManager.shared.convertedDistance(km)
+                    distStr = String(format: "%.1f\(UnitManager.shared.currentUnitSystem.distanceSuffix)", val)
+                } else if let m = seg.distanceM {
+                    distStr = "\(m)m"
+                } else {
+                    distStr = ""
+                }
+                let paceStr = seg.effectivePace ?? ""
+                let parts = [distStr, paceStr].filter { !$0.isEmpty }
+                let segLabel: String
+                switch role {
+                case "warmup": segLabel = "\(emojiPrefix(for: "warmup")) 暖身"
+                case "cooldown": segLabel = "\(emojiPrefix(for: "cooldown")) 緩和"
+                default: segLabel = "\(emojiPrefix(for: "main")) 第\(idx + 1)段"
+                }
+                result.append(FlatSegment(
+                    label: segLabel,
+                    detail: parts.joined(separator: " · "),
+                    reps: nil,
+                    accent: role == "warmup" ? .orange : (role == "cooldown" ? .mint : .blue)
+                ))
+            }
+        } else {
+            // 簡單跑
+            let distStr: String
+            if let display = run.distanceDisplay {
+                let unit = run.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
+                let val = run.distanceUnit != nil ? display : UnitManager.shared.convertedDistance(display)
+                distStr = String(format: "%.1f \(unit)", val)
+            } else if let km = run.distanceKm {
+                let val = UnitManager.shared.convertedDistance(km)
+                distStr = String(format: "%.1f \(UnitManager.shared.currentUnitSystem.distanceSuffix)", val)
+            } else {
+                distStr = ""
+            }
+            let paceStr = run.effectivePace ?? ""
+            let parts = [distStr, paceStr].filter { !$0.isEmpty }
+            result.append(FlatSegment(
+                label: "\(emojiPrefix(for: "main")) \(run.runType)",
+                detail: parts.joined(separator: " · "),
+                reps: nil,
+                accent: .blue
+            ))
+        }
+
+        // 緩和
+        if let cooldown = session.cooldown {
+            let distStr: String
+            if let km = cooldown.distanceKm {
+                let val = UnitManager.shared.convertedDistance(km)
+                distStr = String(format: "%.1f \(UnitManager.shared.currentUnitSystem.distanceSuffix)", val)
+            } else if let m = cooldown.distanceM {
+                distStr = "\(m)m"
+            } else {
+                distStr = ""
+            }
+            let paceStr = cooldown.effectivePace ?? ""
+            let parts = [distStr, paceStr].filter { !$0.isEmpty }
+            result.append(FlatSegment(
+                label: "\(emojiPrefix(for: "cooldown")) 緩和",
+                detail: parts.joined(separator: " · "),
+                reps: nil,
+                accent: .mint
+            ))
+        }
+
+        return result
+    }
+
+    var body: some View {
+        let segments = buildSegments()
+        if !segments.isEmpty {
+            VStack(spacing: 8) {
+                ForEach(segments.indices, id: \.self) { idx in
+                    let seg = segments[idx]
+                    HStack(spacing: 10) {
+                        Rectangle()
+                            .fill(seg.accent.opacity(0.7))
+                            .frame(width: 4)
+                            .clipShape(Capsule())
+
+                        if seg.subDetail != nil {
+                            // F12: 2 行版型（有 subDetail 時使用）
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack {
+                                    Text(seg.label)
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(.primary)
+                                    Spacer()
+                                    if let reps = seg.reps {
+                                        Text(reps)
+                                            .font(.system(size: 12, weight: .bold))
+                                            .foregroundColor(.primary)
+                                    }
+                                }
+                                HStack(spacing: 4) {
+                                    if !seg.detail.isEmpty {
+                                        Text(seg.detail)
+                                            .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                                            .foregroundColor(.secondary)
+                                    }
+                                    if let sub = seg.subDetail {
+                                        if !seg.detail.isEmpty {
+                                            Text("·")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(.secondary)
+                                        }
+                                        Text(sub)
+                                            .font(.system(size: 11, weight: .semibold))
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                }
+                            }
+                        } else {
+                            // 單行版型（原有）
+                            Text(seg.label)
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(.primary)
+                                .frame(minWidth: 56, alignment: .leading)
+                            Text(seg.detail)
+                                .font(.system(size: 12, weight: .bold).monospacedDigit())
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            if let reps = seg.reps {
+                                Text(reps)
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, seg.subDetail != nil ? 8 : 6)
+                    .background(Color(UIColor.tertiarySystemBackground))
+                    .cornerRadius(8)
+                }
+            }
         }
     }
 }
