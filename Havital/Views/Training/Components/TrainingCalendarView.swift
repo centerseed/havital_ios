@@ -817,34 +817,34 @@ private struct MonthlyRunningHeroCard: View {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(monthTitle)
                         .font(AppFont.systemScaled(size: 17, weight: .semibold))
-                        .foregroundColor(.primary)
+                        .foregroundColor(.white.opacity(0.92))
 
                     Text(NSLocalizedString("training_calendar.hero_caption", comment: "Monthly running recap"))
                         .font(AppFont.caption())
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white.opacity(0.72))
                 }
 
                 Spacer()
 
                 Image(systemName: "figure.run.circle.fill")
                     .font(.system(size: 32, weight: .semibold))
-                    .foregroundColor(accentColor)
+                    .foregroundColor(.white.opacity(0.92))
             }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(NSLocalizedString("training_plan.monthly_total_distance", comment: "Monthly Total Distance"))
                     .font(AppFont.caption())
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.white.opacity(0.72))
 
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(distanceValue)
                         .font(AppFont.systemScaled(size: 46, weight: .bold))
-                        .foregroundColor(accentColor)
+                        .foregroundColor(.white)
                         .minimumScaleFactor(0.78)
 
                     Text(distanceUnit)
                         .font(AppFont.systemScaled(size: 18, weight: .semibold))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.white.opacity(0.72))
                 }
             }
 
@@ -866,9 +866,14 @@ private struct MonthlyRunningHeroCard: View {
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(Color(UIColor.secondarySystemGroupedBackground))
+            LinearGradient(
+                colors: [PacerizTokens.color.brand.primary, PacerizTokens.color.brand.primary.opacity(0.72)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         )
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .shadow(color: PacerizTokens.color.brand.primary.opacity(0.2), radius: 14, x: 0, y: 7)
         .accessibilityElement(children: .combine)
     }
 
@@ -876,13 +881,13 @@ private struct MonthlyRunningHeroCard: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(AppFont.systemScaled(size: 11, weight: .medium))
-                .foregroundColor(.secondary)
+                .foregroundColor(.white.opacity(0.7))
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
 
             Text(value)
                 .font(AppFont.systemScaled(size: 17, weight: .bold))
-                .foregroundColor(.primary)
+                .foregroundColor(.white)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
         }
@@ -891,7 +896,7 @@ private struct MonthlyRunningHeroCard: View {
         .padding(.horizontal, 10)
         .background(
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color(UIColor.tertiarySystemGroupedBackground))
+                .fill(Color.white.opacity(0.14))
         )
     }
 }
