@@ -1150,6 +1150,7 @@
 "training_plan.training_calendar" = "トレーニングカレンダー";
 "training_plan.weekly_badge_placeholder_name" = "リズムビルダー";
 "training_plan.weekly_badge_coming_soon" = "新規解錠";
+"training_plan.weekly_badge_in_progress" = "進行中";
 "training_plan.intensity_legend_low" = "イージー";
 "training_plan.intensity_legend_medium" = "中程度";
 "training_plan.intensity_legend_high" = "ハード";

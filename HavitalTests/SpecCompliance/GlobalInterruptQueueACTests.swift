@@ -266,7 +266,8 @@ final class GlobalInterruptQueueACTests: XCTestCase {
         let viewModel = TrainingPlanV2ViewModel(
             repository: repository,
             workoutRepository: workoutRepository,
-            versionRouter: versionRouter
+            versionRouter: versionRouter,
+            achievementRepository: AchievementRepositoryImpl.shared
         )
 
         viewModel.loader.planOverview = makeTrainingPlanOverview()

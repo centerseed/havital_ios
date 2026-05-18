@@ -3,7 +3,11 @@ import SwiftUI
 // MARK: - PACERIZ REDESIGN 2026-05
 // WeekOverviewCardV2 has been fully redesigned to match new VolumeIntensityCard layout.
 // Removed: circular progress ring (ZStack with Circle), CompactIntensityBarV2.
-// Added: hero row (PRPlaceholderBadge + distance + intensity bar + dot legend) + flat action buttons.
+// Added: hero row (badge + distance + intensity bar + dot legend) + flat action buttons.
+// Phase B: badge hero now driven by AchievementRepository via TrainingPlanV2ViewModel.
+//   - recentUnlock → real badge image + "新解鎖" chip
+//   - nextBadge    → real badge image grayscale + locked overlay + "解鎖中" chip
+//   - nil          → PRPlaceholderBadge fallback (no crash)
 // WeekTargetDetailViewV2 struct is preserved unchanged at the bottom of this file.
 
 /// V2 週總覽卡片 - 顯示本週跑量和強度分配
@@ -65,35 +69,43 @@ struct WeekOverviewCardV2: View {
             // ── Hero row ─────────────────────────────────────────────────
             HStack(alignment: .center, spacing: 14) {
 
-                // Left: placeholder badge (72×72) with NEW overlay badge top-left corner
-                // PHASE_B_BADGE: Replace with real BadgeRepository data in Phase B
-                // F6.d: NEW badge placed at top-left corner per design spec
+                // Left: badge hero (72×72)
+                // Phase B: real badge from AchievementRepository; fallback to PRPlaceholderBadge when nil.
+                // F6.d: status chip placed at top-left corner per design spec
                 ZStack(alignment: .topLeading) {
-                    PRPlaceholderBadge(size: 72)
+                    AchievementBadgeHeroView(
+                        badge: viewModel.currentBadge,
+                        isUnlocked: viewModel.isCurrentBadgeUnlocked,
+                        size: 72
+                    )
 
-                    Text("NEW")
-                        .font(.system(size: 9, weight: .heavy))
-                        .tracking(0.5)
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 5)
-                        .padding(.vertical, 2)
-                        .background(
-                            Capsule().fill(PacerizColor.blue)
-                        )
-                        .overlay(Capsule().stroke(Color.white, lineWidth: 1.5))
-                        .offset(x: -4, y: -4)
+                    if let badge = viewModel.currentBadge {
+                        // Real badge: show "新解鎖" (unlocked) or lock icon (in progress)
+                        badgeStatusChip(badge: badge, isUnlocked: viewModel.isCurrentBadgeUnlocked)
+                            .offset(x: -4, y: -4)
+                    } else {
+                        // Fallback placeholder chip — kept from Phase A
+                        Text("NEW")
+                            .font(.system(size: 9, weight: .heavy))
+                            .tracking(0.5)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(PacerizColor.blue))
+                            .overlay(Capsule().stroke(Color.white, lineWidth: 1.5))
+                            .offset(x: -4, y: -4)
+                    }
                 }
 
                 // Right: badge name + distance + intensity bar + dot legend
                 VStack(alignment: .leading, spacing: 6) {
 
-                    // Badge name row (placeholder) — F1.c: removed title row per design jsx (no separate header)
+                    // Badge name row — real badge name when available; fallback to placeholder key.
+                    // F1.c: removed title row per design jsx (no separate header)
                     // F1.d: date chip moved here, right-aligned per design jsx L417-423
-                    // F6.d: PRChip "新解鎖" removed; NEW badge now lives on the badge icon instead
-                    // PHASE_B_BADGE: Badge name & "Coming soon" chip will be data-driven in Phase B
                     HStack(spacing: 6) {
                         // F5.a: 16pt + blueDeep color, fixedSize ensures full display without truncation
-                        Text(NSLocalizedString("training_plan.weekly_badge_placeholder_name", comment: "本週進度"))
+                        Text(viewModel.currentBadge?.name ?? NSLocalizedString("training_plan.weekly_badge_placeholder_name", comment: "本週進度"))
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(PacerizColor.blueDeep)
                             .lineLimit(1)
@@ -255,6 +267,41 @@ struct WeekOverviewCardV2: View {
             NavigationView {
                 TrainingCalendarView()
             }
+        }
+    }
+
+    // MARK: - Private Helpers
+
+    @ViewBuilder
+    private func badgeStatusChip(badge: AchievementBadgeSnapshot, isUnlocked: Bool) -> some View {
+        if isUnlocked {
+            // "新解鎖" with sparkles
+            HStack(spacing: 2) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 8, weight: .bold))
+                Text(NSLocalizedString("training_plan.weekly_badge_coming_soon", comment: "新解鎖"))
+                    .font(.system(size: 9, weight: .heavy))
+                    .tracking(0.3)
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(Capsule().fill(PacerizColor.blue))
+            .overlay(Capsule().stroke(Color.white, lineWidth: 1.5))
+        } else {
+            // "解鎖中" with lock icon
+            HStack(spacing: 2) {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 8, weight: .bold))
+                Text(NSLocalizedString("training_plan.weekly_badge_in_progress", comment: "解鎖中"))
+                    .font(.system(size: 9, weight: .heavy))
+                    .tracking(0.3)
+            }
+            .foregroundColor(.white)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(Capsule().fill(Color.gray.opacity(0.75)))
+            .overlay(Capsule().stroke(Color.white, lineWidth: 1.5))
         }
     }
 }

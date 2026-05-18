@@ -12,6 +12,7 @@ final class TrainingPlanV2ViewModel: TaskManageable {
     private let repository: TrainingPlanV2Repository
     private let workoutRepository: WorkoutRepository
     private let versionRouter: TrainingVersionRouter
+    private let achievementRepository: AchievementRepository
 
     // MARK: - TaskManageable
     @ObservationIgnored nonisolated let taskRegistry = TaskRegistry()
@@ -28,6 +29,13 @@ final class TrainingPlanV2ViewModel: TaskManageable {
     var isLoadingAnimation = false
     var paywallTrigger: PaywallTrigger?
     var showRizoQuotaExceededBanner: Bool = false
+
+    // MARK: - Badge State (B1)
+    /// The badge to display in WeekOverviewCardV2 hero section.
+    /// Priority: recentUnlock → nextBadge → nil (shows PRPlaceholderBadge fallback).
+    private(set) var currentBadge: AchievementBadgeSnapshot? = nil
+    /// True if the currentBadge has been unlocked (show sparkles + "新解鎖" chip).
+    private(set) var isCurrentBadgeUnlocked: Bool = false
 
     // MARK: - Computed Properties
 
@@ -54,11 +62,13 @@ final class TrainingPlanV2ViewModel: TaskManageable {
     init(
         repository: TrainingPlanV2Repository,
         workoutRepository: WorkoutRepository,
-        versionRouter: TrainingVersionRouter
+        versionRouter: TrainingVersionRouter,
+        achievementRepository: AchievementRepository
     ) {
         self.repository = repository
         self.workoutRepository = workoutRepository
         self.versionRouter = versionRouter
+        self.achievementRepository = achievementRepository
 
         loader = WeeklyPlanLoader(
             repository: repository,
@@ -127,15 +137,20 @@ final class TrainingPlanV2ViewModel: TaskManageable {
         if !container.isRegistered(WorkoutRepository.self) {
             container.registerWorkoutModule()
         }
+        if !container.isRegistered(AchievementRepository.self) {
+            container.registerAchievementsModule()
+        }
 
         let repository: TrainingPlanV2Repository = container.resolve()
         let workoutRepository: WorkoutRepository = container.resolve()
         let versionRouter: TrainingVersionRouter = container.resolve()
+        let achievementRepository: AchievementRepository = container.resolve()
 
         self.init(
             repository: repository,
             workoutRepository: workoutRepository,
-            versionRouter: versionRouter
+            versionRouter: versionRouter,
+            achievementRepository: achievementRepository
         )
     }
 
@@ -147,6 +162,31 @@ final class TrainingPlanV2ViewModel: TaskManageable {
 
     func initialize() async {
         await loader.initialize()
+        await loadBadgeState()
+    }
+
+    // MARK: - Badge State Loading (B1)
+
+    /// Fetches badge data from AchievementRepository and updates currentBadge / isCurrentBadgeUnlocked.
+    /// Uses cache-friendly fetch (forceRefresh: false).
+    /// Safe to call even when backend endpoint is unavailable — returns nil gracefully.
+    func loadBadgeState() async {
+        guard let summary = try? await achievementRepository.fetchSummary(forceRefresh: false) else {
+            currentBadge = nil
+            isCurrentBadgeUnlocked = false
+            return
+        }
+
+        if let recentUnlock = summary.storySummary.recentUnlock {
+            currentBadge = recentUnlock
+            isCurrentBadgeUnlocked = true
+        } else if let nextBadge = summary.storySummary.nextBadge {
+            currentBadge = nextBadge
+            isCurrentBadgeUnlocked = false
+        } else {
+            currentBadge = nil
+            isCurrentBadgeUnlocked = false
+        }
     }
 
     func loadCurrentWeekPlan() async {

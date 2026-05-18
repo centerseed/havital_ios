@@ -62,6 +62,9 @@ struct AppDependencyBootstrap {
 
         // 10. Race 模組 (獨立模組，目標編輯與 onboarding 共用)
         registerRaceModule()
+
+        // 11. Achievements 模組 (Phase B stub — badge data wiring)
+        registerAchievementsModule()
     }
 
     // MARK: - Individual Module Registration
@@ -210,6 +213,18 @@ struct AppDependencyBootstrap {
 
         DependencyContainer.shared.registerRaceModule()
         Logger.debug("[Bootstrap] ✅ Race module registered")
+    }
+
+    /// 註冊 Achievements 模組
+    /// 包含: AchievementRepository (Phase B stub — no backend endpoint yet)
+    private static func registerAchievementsModule() {
+        guard !DependencyContainer.shared.isRegistered(AchievementRepository.self) else {
+            Logger.debug("[Bootstrap] Achievements module already registered, skipping")
+            return
+        }
+
+        DependencyContainer.shared.registerAchievementsModule()
+        Logger.debug("[Bootstrap] ✅ Achievements module registered")
     }
 
     // MARK: - Testing Support

@@ -1151,6 +1151,7 @@
 "training_plan.training_calendar" = "Training Calendar";
 "training_plan.weekly_badge_placeholder_name" = "Rhythm Builder";
 "training_plan.weekly_badge_coming_soon" = "New unlock";
+"training_plan.weekly_badge_in_progress" = "In progress";
 "training_plan.intensity_legend_low" = "Easy";
 "training_plan.intensity_legend_medium" = "Moderate";
 "training_plan.intensity_legend_high" = "Hard";

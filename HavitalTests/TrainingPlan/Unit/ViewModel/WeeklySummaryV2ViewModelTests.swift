@@ -109,7 +109,8 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         sut = TrainingPlanV2ViewModel(
             repository: mockRepository,
             workoutRepository: mockWorkoutRepository,
-            versionRouter: versionRouter
+            versionRouter: versionRouter,
+            achievementRepository: AchievementRepositoryImpl.shared
         )
     }
 
@@ -522,7 +523,8 @@ final class TrainingPlanV2InitializationRegressionTests: XCTestCase {
         sut = TrainingPlanV2ViewModel(
             repository: StartupStatusFailureButCachedPlanRepository(),
             workoutRepository: workoutRepository,
-            versionRouter: versionRouter
+            versionRouter: versionRouter,
+            achievementRepository: AchievementRepositoryImpl.shared
         )
     }
 
