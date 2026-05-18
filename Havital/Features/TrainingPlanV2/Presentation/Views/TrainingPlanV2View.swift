@@ -29,6 +29,11 @@ struct TrainingPlanV2View: View {
         repository: DependencyContainer.shared.resolve()
     )
 
+    // B2/B3: Shared readiness VM; header VMs are created lazily after viewModel init
+    @StateObject private var readinessVM = TrainingReadinessViewModel()
+    @State private var raceHeaderVM: RaceHeaderViewModelV2?
+    @State private var modeHeaderVM: TrainingModeHeaderViewModelV2?
+
     // MARK: - Initialization
 
     init(viewModel: TrainingPlanV2ViewModel? = nil) {
@@ -116,6 +121,19 @@ struct TrainingPlanV2View: View {
 
                     switch viewModel.loader.planStatus {
                     case .ready(let weeklyPlan):
+                        // B2: Race mode header
+                        if viewModel.loader.planOverview?.isRaceRunTarget == true,
+                           let raceVM = raceHeaderVM {
+                            RaceHeaderViewV2(viewModel: raceVM)
+                        }
+
+                        // B3: Starter / Maintenance mode header
+                        if let overview = viewModel.loader.planOverview,
+                           (overview.isBeginnerTarget || overview.isMaintenanceTarget),
+                           let modeVM = modeHeaderVM {
+                            TrainingModeHeaderV2(viewModel: modeVM)
+                        }
+
                         // 1️⃣ 訓練進度卡片（與 V1 相同）
                         TrainingProgressCardV2(viewModel: viewModel, plan: weeklyPlan)
 
@@ -559,11 +577,30 @@ struct TrainingPlanV2View: View {
             if case .ready(let plan) = viewModel.loader.planStatus {
                 trackWeeklyPlanViewIfNeeded(plan: plan)
             }
+            // B2/B3: lazily initialise header VMs on first appear
+            if raceHeaderVM == nil {
+                raceHeaderVM = DependencyContainer.shared.makeRaceHeaderViewModelV2(
+                    loader: viewModel.loader,
+                    readinessVM: readinessVM
+                )
+            }
+            if modeHeaderVM == nil {
+                modeHeaderVM = DependencyContainer.shared.makeTrainingModeHeaderViewModelV2(
+                    loader: viewModel.loader,
+                    readinessVM: readinessVM
+                )
+            }
+            Task { await readinessVM.loadData() }
         }
         .onChange(of: viewModel.loader.planStatus) { _, newStatus in
             if case .ready(let plan) = newStatus {
                 trackWeeklyPlanViewIfNeeded(plan: plan)
             }
+        }
+        .onChange(of: viewModel.loader.planOverview) { _, _ in
+            // B2/B3: re-derive header data when planOverview loads (async after view appears)
+            raceHeaderVM?.refresh()
+            modeHeaderVM?.refresh()
         }
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }

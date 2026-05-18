@@ -3236,3 +3236,20 @@
 "edit_schedule.intensity_training_section" = "Intensity training";
 "edit_schedule.long_distance_training_section" = "Long-distance training";
 "edit_schedule.other_training_section" = "Other";
+
+// MARK: - B2 Race Header
+"training_plan.race_countdown_days" = " days";
+"training_plan.race_countdown_label" = "Count";
+"training_plan.race_readiness_label" = "Fit";
+"training_plan.race_gap_within_target" = "On target";
+"training_plan.race_gap_diff" = "+%@ off";
+
+// MARK: - B3 Training Mode Header
+"training_mode.starter_label" = "Beginner";
+"training_mode.maintain_label" = "Maintenance";
+"training_mode.starter_tagline" = "Build a consistent aerobic base";
+"training_mode.maintain_tagline" = "Stay fit, prevent regression";
+"training_mode.streak_label" = "Streak";
+"training_mode.monthly_km_label" = "Monthly KM";
+"training_mode.readiness_label" = "Readiness";
+"training_mode.week_number" = "Week %d";

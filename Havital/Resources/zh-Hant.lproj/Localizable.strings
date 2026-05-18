@@ -3279,3 +3279,20 @@
 "edit_schedule.intensity_training_section" = "強度訓練";
 "edit_schedule.long_distance_training_section" = "長距離訓練";
 "edit_schedule.other_training_section" = "其他";
+
+// MARK: - B2 Race Header
+"training_plan.race_countdown_days" = "天";
+"training_plan.race_countdown_label" = "倒數";
+"training_plan.race_readiness_label" = "適能";
+"training_plan.race_gap_within_target" = "達標範圍";
+"training_plan.race_gap_diff" = "差 %@";
+
+// MARK: - B3 Training Mode Header
+"training_mode.starter_label" = "新手訓練";
+"training_mode.maintain_label" = "維持訓練";
+"training_mode.starter_tagline" = "建立規律的有氧基礎";
+"training_mode.maintain_tagline" = "保持體能、避免退步";
+"training_mode.streak_label" = "連續訓練";
+"training_mode.monthly_km_label" = "本月里程";
+"training_mode.readiness_label" = "就緒指數";
+"training_mode.week_number" = "第 %d 週";

@@ -3233,3 +3233,20 @@
 "edit_schedule.intensity_training_section" = "高強度トレーニング";
 "edit_schedule.long_distance_training_section" = "長距離トレーニング";
 "edit_schedule.other_training_section" = "その他";
+
+// MARK: - B2 Race Header
+"training_plan.race_countdown_days" = " 日";
+"training_plan.race_countdown_label" = "残り";
+"training_plan.race_readiness_label" = "適性";
+"training_plan.race_gap_within_target" = "目標内";
+"training_plan.race_gap_diff" = "差 %@";
+
+// MARK: - B3 Training Mode Header
+"training_mode.starter_label" = "ビギナー";
+"training_mode.maintain_label" = "メンテナンス";
+"training_mode.starter_tagline" = "規則的な有酸素基礎を築く";
+"training_mode.maintain_tagline" = "体力を維持し、退化を防ぐ";
+"training_mode.streak_label" = "連続";
+"training_mode.monthly_km_label" = "今月の距離";
+"training_mode.readiness_label" = "準備度";
+"training_mode.week_number" = "%d 週目";
