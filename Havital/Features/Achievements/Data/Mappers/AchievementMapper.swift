@@ -8,6 +8,7 @@ enum AchievementMapper {
             backfill: toDomain(dto.backfill),
             storySummary: toDomain(dto.storySummary),
             badgeGroups: dto.badgeGroups.map(toDomain),
+            achievementTracks: dto.achievementTracks.map(toDomain),
             pbOverview: dto.pbOverview.map(toDomain),
             lifetimeStats: dto.lifetimeStats.map(toDomain) ?? .empty,
             insights: dto.insights.map(toDomain),
@@ -62,6 +63,18 @@ enum AchievementMapper {
         AchievementBadgeGroup(
             chapter: AchievementChapter(rawValue: dto.chapter),
             titleKey: dto.titleKey,
+            badges: dto.badges.map(toDomain)
+        )
+    }
+
+    private static func toDomain(_ dto: AchievementTrackDTO) -> AchievementTrack {
+        AchievementTrack(
+            trackId: dto.trackId,
+            titleKey: dto.titleKey,
+            storyKey: dto.storyKey,
+            metricKey: dto.metricKey,
+            current: dto.current,
+            nextBadge: dto.nextBadge.map(toDomain),
             badges: dto.badges.map(toDomain)
         )
     }

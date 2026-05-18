@@ -48,6 +48,38 @@ final class AchievementDTOTests: XCTestCase {
         XCTAssertFalse(summary.hasVisibleContent)
     }
 
+    func testSummaryDecodesAchievementTracksAndMapsToDomain() throws {
+        let data = Data(Self.summaryWithAchievementTracksJSON.utf8)
+
+        let dto = try JSONDecoder().decode(AchievementSummaryResponse.self, from: data)
+        let summary = AchievementMapper.toDomain(dto)
+
+        XCTAssertEqual(dto.achievementTracks.count, 3)
+        XCTAssertEqual(summary.achievementTracks.count, 3)
+        XCTAssertEqual(summary.achievementTracks[0].trackId, "distance")
+        XCTAssertEqual(summary.achievementTracks[0].titleKey, "achievements.track.distance.title")
+        XCTAssertEqual(summary.achievementTracks[0].storyKey, "achievements.track.distance.story")
+        XCTAssertEqual(summary.achievementTracks[0].metricKey, "achievements.metric.distance")
+        XCTAssertEqual(summary.achievementTracks[0].current, 52.7)
+        XCTAssertEqual(summary.achievementTracks[0].nextBadge?.badgeId, "BADGE-DISTANCE-100K")
+        XCTAssertEqual(summary.achievementTracks[0].badges.count, 2)
+        XCTAssertEqual(summary.achievementTracks[1].trackId, "consistency")
+        XCTAssertNil(summary.achievementTracks[1].metricKey)
+        XCTAssertNil(summary.achievementTracks[1].current)
+        XCTAssertNil(summary.achievementTracks[1].nextBadge)
+        XCTAssertEqual(summary.achievementTracks[2].trackId, "pb")
+    }
+
+    func testSummaryDefaultsAchievementTracksToEmptyWhenAbsent() throws {
+        let data = Data(Self.degradedSummaryJSON.utf8)
+
+        let dto = try JSONDecoder().decode(AchievementSummaryResponse.self, from: data)
+        let summary = AchievementMapper.toDomain(dto)
+
+        XCTAssertTrue(dto.achievementTracks.isEmpty)
+        XCTAssertTrue(summary.achievementTracks.isEmpty)
+    }
+
     func testRemoteDataSourceUsesAchievementsEndpoints() async throws {
         let httpClient = MockHTTPClient()
         let parser = MockAPIParser()
@@ -243,6 +275,114 @@ final class AchievementDTOTests: XCTestCase {
       "cache": {
         "status": "degraded",
         "reason": "summary_unavailable"
+      }
+    }
+    """
+
+    private static let summaryWithAchievementTracksJSON = """
+    {
+      "generated_at": "2026-05-13T08:00:00Z",
+      "catalog_version": "achievement_catalog_v20260512",
+      "backfill": {
+        "status": "completed",
+        "show_banner": false,
+        "banner_key": null,
+        "historical_unlock_count": 0,
+        "acknowledged_at": null
+      },
+      "story_summary": {
+        "unlocked_count": 1,
+        "total_count": 3,
+        "recent_unlock": null,
+        "next_badge": null,
+        "empty_state_key": null
+      },
+      "badge_groups": [],
+      "achievement_tracks": [
+        {
+          "track_id": "distance",
+          "title_key": "achievements.track.distance.title",
+          "story_key": "achievements.track.distance.story",
+          "metric_key": "achievements.metric.distance",
+          "current": 52.7,
+          "next_badge": {
+            "badge_id": "BADGE-DISTANCE-100K",
+            "chapter": "build",
+            "name_key": "badge.distance.100k.name",
+            "story_key": "badge.distance.100k.story",
+            "status": "in_progress",
+            "progress": {
+              "current": 52.7,
+              "target": 100,
+              "unit_key": "km",
+              "summary_key": "achievement.progress.current_target",
+              "summary_params": { "current": 52.7, "target": 100 }
+            },
+            "unlocked_at": null,
+            "unlock_reason_key": null,
+            "source_ref": null,
+            "historical_backfill": false,
+            "shareable": false,
+            "asset_name": null
+          },
+          "badges": [
+            {
+              "badge_id": "BADGE-DISTANCE-50K",
+              "chapter": "build",
+              "name_key": "badge.distance.50k.name",
+              "story_key": "badge.distance.50k.story",
+              "status": "unlocked",
+              "progress": null,
+              "unlocked_at": "2026-05-10",
+              "unlock_reason_key": null,
+              "source_ref": null,
+              "historical_backfill": false,
+              "shareable": true,
+              "asset_name": null
+            },
+            {
+              "badge_id": "BADGE-DISTANCE-100K",
+              "chapter": "build",
+              "name_key": "badge.distance.100k.name",
+              "story_key": "badge.distance.100k.story",
+              "status": "in_progress",
+              "progress": null,
+              "unlocked_at": null,
+              "unlock_reason_key": null,
+              "source_ref": null,
+              "historical_backfill": false,
+              "shareable": false,
+              "asset_name": null
+            }
+          ]
+        },
+        {
+          "track_id": "consistency",
+          "title_key": "achievements.track.consistency.title",
+          "story_key": "achievements.track.consistency.story",
+          "metric_key": null,
+          "current": null,
+          "next_badge": null,
+          "badges": []
+        },
+        {
+          "track_id": "pb",
+          "title_key": "achievements.track.pb.title",
+          "story_key": "achievements.track.pb.story",
+          "metric_key": "achievements.metric.pb",
+          "current": 1,
+          "next_badge": null,
+          "badges": []
+        }
+      ],
+      "pb_overview": null,
+      "lifetime_stats": null,
+      "insights": [],
+      "recent_shareables": [],
+      "unlock_feedback_queue": [],
+      "privacy_policy": {
+        "default_sensitive_fields_enabled": false,
+        "excluded_fields": ["route"]
       }
     }
     """

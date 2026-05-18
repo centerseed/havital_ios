@@ -6,6 +6,7 @@ struct AchievementSummaryResponse: Codable, Equatable {
     let backfill: AchievementBackfillDTO
     let storySummary: AchievementStorySummaryDTO
     let badgeGroups: [AchievementBadgeGroupDTO]
+    let achievementTracks: [AchievementTrackDTO]
     let pbOverview: AchievementPBOverviewDTO?
     let lifetimeStats: AchievementLifetimeStatsDTO?
     let insights: [AchievementInsightDTO]
@@ -19,12 +20,29 @@ struct AchievementSummaryResponse: Codable, Equatable {
         case backfill
         case storySummary = "story_summary"
         case badgeGroups = "badge_groups"
+        case achievementTracks = "achievement_tracks"
         case pbOverview = "pb_overview"
         case lifetimeStats = "lifetime_stats"
         case insights
         case recentShareables = "recent_shareables"
         case unlockFeedbackQueue = "unlock_feedback_queue"
         case privacyPolicy = "privacy_policy"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        generatedAt = try container.decode(String.self, forKey: .generatedAt)
+        catalogVersion = try container.decode(String.self, forKey: .catalogVersion)
+        backfill = try container.decode(AchievementBackfillDTO.self, forKey: .backfill)
+        storySummary = try container.decode(AchievementStorySummaryDTO.self, forKey: .storySummary)
+        badgeGroups = try container.decode([AchievementBadgeGroupDTO].self, forKey: .badgeGroups)
+        achievementTracks = try container.decodeIfPresent([AchievementTrackDTO].self, forKey: .achievementTracks) ?? []
+        pbOverview = try container.decodeIfPresent(AchievementPBOverviewDTO.self, forKey: .pbOverview)
+        lifetimeStats = try container.decodeIfPresent(AchievementLifetimeStatsDTO.self, forKey: .lifetimeStats)
+        insights = try container.decodeIfPresent([AchievementInsightDTO].self, forKey: .insights) ?? []
+        recentShareables = try container.decodeIfPresent([AchievementShareableDTO].self, forKey: .recentShareables) ?? []
+        unlockFeedbackQueue = try container.decodeIfPresent([AchievementUnlockFeedbackDTO].self, forKey: .unlockFeedbackQueue) ?? []
+        privacyPolicy = try container.decode(AchievementPrivacyPolicyDTO.self, forKey: .privacyPolicy)
     }
 }
 
@@ -102,6 +120,26 @@ struct AchievementBadgeGroupDTO: Codable, Equatable {
     enum CodingKeys: String, CodingKey {
         case chapter
         case titleKey = "title_key"
+        case badges
+    }
+}
+
+struct AchievementTrackDTO: Codable, Equatable {
+    let trackId: String
+    let titleKey: String
+    let storyKey: String
+    let metricKey: String?
+    let current: Double?
+    let nextBadge: AchievementBadgeDTO?
+    let badges: [AchievementBadgeDTO]
+
+    enum CodingKeys: String, CodingKey {
+        case trackId = "track_id"
+        case titleKey = "title_key"
+        case storyKey = "story_key"
+        case metricKey = "metric_key"
+        case current
+        case nextBadge = "next_badge"
         case badges
     }
 }

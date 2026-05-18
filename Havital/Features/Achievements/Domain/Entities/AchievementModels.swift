@@ -182,12 +182,41 @@ struct AchievementSummary: Equatable, Sendable {
     let backfill: AchievementBackfill
     let storySummary: AchievementStorySummary
     let badgeGroups: [AchievementBadgeGroup]
+    let achievementTracks: [AchievementTrack]
     let pbOverview: AchievementPBOverview?
     let lifetimeStats: AchievementLifetimeStats
     let insights: [AchievementInsight]
     let recentShareables: [AchievementShareable]
     let unlockFeedbackQueue: [AchievementUnlockFeedback]
     let privacyPolicy: AchievementPrivacyPolicy
+
+    init(
+        generatedAt: String,
+        catalogVersion: String,
+        backfill: AchievementBackfill,
+        storySummary: AchievementStorySummary,
+        badgeGroups: [AchievementBadgeGroup],
+        achievementTracks: [AchievementTrack] = [],
+        pbOverview: AchievementPBOverview?,
+        lifetimeStats: AchievementLifetimeStats,
+        insights: [AchievementInsight],
+        recentShareables: [AchievementShareable],
+        unlockFeedbackQueue: [AchievementUnlockFeedback],
+        privacyPolicy: AchievementPrivacyPolicy
+    ) {
+        self.generatedAt = generatedAt
+        self.catalogVersion = catalogVersion
+        self.backfill = backfill
+        self.storySummary = storySummary
+        self.badgeGroups = badgeGroups
+        self.achievementTracks = achievementTracks
+        self.pbOverview = pbOverview
+        self.lifetimeStats = lifetimeStats
+        self.insights = insights
+        self.recentShareables = recentShareables
+        self.unlockFeedbackQueue = unlockFeedbackQueue
+        self.privacyPolicy = privacyPolicy
+    }
 
     var hasVisibleContent: Bool {
         storySummary.unlockedCount > 0
@@ -258,6 +287,17 @@ struct AchievementBadgeGroup: Identifiable, Equatable, Sendable {
     var id: AchievementChapter { chapter }
     let chapter: AchievementChapter
     let titleKey: String?
+    let badges: [AchievementBadge]
+}
+
+struct AchievementTrack: Identifiable, Equatable, Sendable {
+    var id: String { trackId }
+    let trackId: String
+    let titleKey: String
+    let storyKey: String
+    let metricKey: String?
+    let current: Double?
+    let nextBadge: AchievementBadge?
     let badges: [AchievementBadge]
 }
 
