@@ -19,6 +19,10 @@ struct WorkoutDetailViewV2: View {
     @State private var showShareCardSheet = false
     @State private var showPhotoPickersheet = false
     @State private var showShareMenu = false  // 分享選單狀態
+    @State private var showPBMoment = false
+    @State private var showPBShareCardSheet = false
+    @State private var selectedPBShareUpdate: PersonalBestUpdate?
+    @State private var presentingShareData: CelebrationShareCardView.ShareData?
 
     // 刪除相關狀態
     @State private var showDeleteConfirmation = false
@@ -29,6 +33,10 @@ struct WorkoutDetailViewV2: View {
     // 訓練心得相關狀態
     @State private var showTrainingNotesEditor = false
     @State private var displayedTrainingNotes: String? = nil  // 用於樂觀 UI 更新
+    @State private var showRPEEditor = false
+    @State private var displayedRPE: Int? = nil
+
+    // AC-IOS-ANALYTICS-P1-10: dedup state lifted to ViewModel (hasTrackedAnalyticsView)
 
     enum ZoneTab: CaseIterable {
         case heartRate, pace
@@ -61,9 +69,7 @@ struct WorkoutDetailViewV2: View {
                 basicInfoCard
 
                 // 高級指標卡片
-                if viewModel.workout.advancedMetrics != nil {
-                    advancedMetricsCard
-                }
+                advancedMetricsCard
 
                 // 課表資訊和AI分析卡片
                 if viewModel.workoutDetail?.dailyPlanSummary != nil || viewModel.workoutDetail?.aiSummary != nil {
@@ -155,6 +161,16 @@ struct WorkoutDetailViewV2: View {
                               systemImage: "photo.on.rectangle.angled")
                     }
 
+                    if let update = viewModel.personalBestUpdatesForWorkout.first {
+                        Button {
+                            selectedPBShareUpdate = update
+                            showPBShareCardSheet = true
+                        } label: {
+                            Label(L10n.MyAchievement.Celebration.shareCardTitle.localized,
+                                  systemImage: "trophy.fill")
+                        }
+                    }
+
                     // 分享長截圖
                     Button {
                         shareWorkout()
@@ -193,6 +209,22 @@ struct WorkoutDetailViewV2: View {
                 workoutDetail: viewModel.workoutDetail
             )
         }
+        .sheet(isPresented: $showPBShareCardSheet) {
+            if let update = selectedPBShareUpdate {
+                PBMomentShareCardSheetView(
+                    update: update,
+                    onShare: {
+                        viewModel.trackPBMoment(action: "share", entry: "share_menu")
+                    },
+                    onSave: {
+                        viewModel.trackPBMoment(action: "save", entry: "share_menu")
+                    }
+                )
+            }
+        }
+        .sheet(item: $presentingShareData) { shareData in
+            CelebrationSharePreviewSheet(data: shareData)
+        }
         .sheet(isPresented: $showTrainingNotesEditor) {
             TrainingNotesEditorView(
                 workoutId: viewModel.workout.id,
@@ -210,10 +242,61 @@ struct WorkoutDetailViewV2: View {
                 }
             )
         }
+        .sheet(isPresented: $showRPEEditor) {
+            RPEEditorView(
+                initialRPE: displayedRPE ?? viewModel.currentRPE.map { Int($0.rounded()) },
+                onSave: { rpe in
+                    return await Task {
+                        let success = await viewModel.updateRPE(rpe)
+                        if success {
+                            displayedRPE = rpe
+                        }
+                        return success
+                    }.tracked(from: "WorkoutDetailViewV2: updateRPE").value
+                }
+            )
+        }
         .onChange(of: viewModel.workoutDetail?.trainingNotes) { newNotes in
             // 當從 API 刷新後，同步更新本地狀態
             if displayedTrainingNotes == nil {
                 displayedTrainingNotes = newNotes
+            }
+        }
+        .onChange(of: viewModel.currentRPE) { newRPE in
+            if displayedRPE == nil {
+                displayedRPE = newRPE.map { Int($0.rounded()) }
+            }
+        }
+        // AC-IOS-ANALYTICS-P1-10: workout_analysis_view — fire when detail is available
+        .onAppear {
+            trackWorkoutAnalysisViewIfReady()
+        }
+        .onChange(of: viewModel.workoutDetail != nil) { _, hasDetail in
+            if hasDetail {
+                trackWorkoutAnalysisViewIfReady()
+            }
+        }
+        .onChange(of: viewModel.pendingCelebrationContent) { _, content in
+            if content != nil {
+                showPBMoment = true
+            }
+        }
+        .overlay {
+            if showPBMoment, let content = viewModel.pendingCelebrationContent {
+                CelebrationSheet(
+                    content: content,
+                    onDismiss: {
+                        viewModel.trackPBMoment(action: "close")
+                        viewModel.markPBMomentShown()
+                        showPBMoment = false
+                    },
+                    onShare: {
+                        viewModel.trackPBMoment(action: "share", entry: "post_workout")
+                        presentingShareData = content.toShareData()
+                    }
+                )
+                .transition(.opacity)
+                .zIndex(999)
             }
         }
     }
@@ -239,6 +322,18 @@ struct WorkoutDetailViewV2: View {
                         .cornerRadius(6)
                 }
 
+                if let pbUpdate = viewModel.personalBestUpdatesForWorkout.first {
+                    Text("\(L10n.MyAchievement.Celebration.newPB.localized) · \(RaceDistanceV2(rawValue: pbUpdate.distance)?.shortName ?? pbUpdate.distance)")
+                        .font(AppFont.caption())
+                        .fontWeight(.semibold)
+                        .foregroundColor(.orange)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.orange.opacity(0.12))
+                        .cornerRadius(6)
+                        .accessibilityIdentifier("workout_detail_pb_badge")
+                }
+
                 Spacer()
 
                 // Strava/Garmin Attribution badges
@@ -250,15 +345,15 @@ struct WorkoutDetailViewV2: View {
                 DataItem(title: L10n.Record.distance.localized, value: viewModel.distance ?? "-", icon: "location")
                 DataItem(title: L10n.Record.duration.localized, value: viewModel.duration, icon: "clock")
                 DataItem(title: L10n.Record.calories.localized, value: viewModel.calories ?? "-", icon: "flame")
-                
+
                 if let pace = viewModel.pace {
                     DataItem(title: L10n.Record.pace.localized, value: pace, icon: "speedometer")
                 }
-                
+
                 if let avgHR = viewModel.averageHeartRate {
                     DataItem(title: L10n.Record.avgHeartRate.localized, value: avgHR, icon: "heart")
                 }
-                
+
                 if let maxHR = viewModel.maxHeartRate {
                     DataItem(title: L10n.Record.maxHeartRate.localized, value: maxHR, icon: "heart.fill")
                 }
@@ -700,14 +795,38 @@ struct WorkoutDetailViewV2: View {
                 }
 
                 if let tss = viewModel.workout.advancedMetrics?.tss {
-                    DataItem(title: L10n.WorkoutDetail.trainingLoad.localized, value: String(format: "%.1f", tss), icon: "heart.circle")
+                    DataItem(title: L10n.WorkoutDetail.trainingLoad.localized, value: String(format: "%.1f", tss), icon: "chart.bar.fill")
                 }
 
-                // Effort Score (RPE) - iOS 18+ Apple Watch
-                if #available(iOS 18.0, *) {
-                    if let rpe = viewModel.workout.advancedMetrics?.rpe {
-                        DataItem(title: L10n.WorkoutDetail.effortScore.localized, value: String(format: "%.1f/10", rpe), icon: "gauge.with.dots.needle.bottom.50percent")
+                // Effort Score (RPE)
+                if let rpe = displayedRPE ?? viewModel.currentRPE.map({ Int($0.rounded()) }) {
+                    Button {
+                        showRPEEditor = true
+                    } label: {
+                        DataItem(title: L10n.WorkoutDetail.effortScore.localized, value: "\(rpe)/10", icon: "gauge")
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("workout_detail_rpe_button")
+                } else {
+                    Button {
+                        showRPEEditor = true
+                    } label: {
+                        VStack(spacing: 6) {
+                            Image(systemName: "gauge")
+                                .font(.title2)
+                                .foregroundColor(.blue)
+                            Text(L10n.WorkoutDetail.addRPE.localized)
+                                .font(AppFont.caption())
+                                .foregroundColor(.primary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 72)
+                        .padding(.vertical, 8)
+                        .background(Color.blue.opacity(0.08))
+                        .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("workout_detail_rpe_button")
                 }
 
                 if let avgVerticalRatio = viewModel.workout.advancedMetrics?.avgVerticalRatioPercent {
@@ -945,8 +1064,21 @@ struct WorkoutDetailViewV2: View {
         return V2IntensityMinutes(from: intensity)
     }
     
+    // MARK: - Analytics
+
+    /// AC-IOS-ANALYTICS-P1-10: workout_analysis_view.
+    /// Fires once per view presentation, after detail data is available.
+    /// Guard in ViewModel ensures we never fire with stale data.
+    private func trackWorkoutAnalysisViewIfReady() {
+        guard let detail = viewModel.workoutDetail else { return }
+        viewModel.markAnalyticsViewTracked(
+            workoutId: viewModel.workout.id,
+            hasCoachNotes: detail.aiSummary != nil
+        )
+    }
+
     // MARK: - 輔助方法
-    
+
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .long

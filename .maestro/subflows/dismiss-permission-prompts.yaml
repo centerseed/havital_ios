@@ -1,0 +1,26 @@
+appId: com.havital.Havital.dev
+---
+- tapOn:
+    text: "不允許|Don't Allow|Don’t Allow|許可しない"
+    optional: true
+- tapOn:
+    text: "稍後|Later|後で"
+    optional: true
+- tapOn:
+    text: "允許|Allow|許可"
+    optional: true
+- tapOn:
+    text: "開啟全部|Allow All|すべてオン"
+    optional: true
+- tapOn:
+    text: "好|OK"
+    optional: true
+- tapOn:
+    text: "明天再提醒我|Remind Me Tomorrow|明日再通知"
+    optional: true
+- tapOn:
+    text: "不再提醒|Don't Remind Again|再通知しない"
+    optional: true
+- tapOn:
+    text: "稍後設定|Set Later|後で設定"
+    optional: true

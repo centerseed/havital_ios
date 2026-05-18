@@ -48,6 +48,9 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
     private var authSessionRepository: AuthSessionRepository {
         DependencyContainer.shared.resolve()
     }
+    private var authRepository: AuthRepository {
+        DependencyContainer.shared.resolve()
+    }
     private init(httpClient: HTTPClient = DefaultHTTPClient.shared,
                  parser: APIParser = DefaultAPIParser.shared) {
         self.httpClient = httpClient
@@ -372,27 +375,18 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
         do {
             // 步驟 1: 呼叫 Demo 登入 API
             print("🔵 [Demo Login] 步驟 1: 呼叫 /login/demo API")
-            let response = try await EmailAuthService.shared.demoLogin(reviewerPasscode: reviewerPasscode)
-
-            guard response.success else {
-                print("❌ [Demo Login] API 返回 success=false")
-                throw AuthError.unknown
-            }
+            let authUser = try await authRepository.demoLogin(reviewerPasscode: reviewerPasscode)
 
             print("✅ [Demo Login] API 調用成功")
-            print("✅ [Demo Login] UID=\(response.data.user.uid)")
-            print("✅ [Demo Login] Email=\(response.data.user.email)")
-            print("✅ [Demo Login] idToken長度=\(response.data.idToken.count)")
+            print("✅ [Demo Login] UID=\(authUser.uid)")
+            print("✅ [Demo Login] Email=\(authUser.email ?? "無")")
 
             // 步驟 2: 直接使用後端返回的 ID token（不需要 signInWithCustomToken）
             print("🔵 [Demo Login] 步驟 2: 儲存 Demo ID token")
-            self.demoIdToken = response.data.idToken
-            
-            // Clean Architecture: Sync Demo Token to Repository
-            self.authSessionRepository.setDemoToken(response.data.idToken)
+            self.demoIdToken = try? await authSessionRepository.getIdToken()
 
             // 設置用戶ID追蹤
-            setUserIDForAnalytics(response.data.user.uid)
+            setUserIDForAnalytics(authUser.uid)
 
             Logger.firebase(
                 "Demo 登入成功",
@@ -400,7 +394,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
                 labels: [
                     "module": "AuthenticationService",
                     "action": "demo_login_success",
-                    "user_id": response.data.user.uid
+                    "user_id": authUser.uid
                 ]
             )
 

@@ -1,0 +1,74 @@
+appId: com.havital.Havital.dev
+---
+# Creates a race_run target from the race database and lands on the main weekly plan.
+# This is the stable precondition for target-race-edit spec-compliance flows:
+# the target must be a race target and must have a race_id.
+
+- runFlow: ensure-goal-type-screen.yaml
+
+- assertVisible:
+    id: "GoalType_NextButton"
+- tapOn:
+    id: "GoalType_race_run"
+- tapOn:
+    id: "GoalType_NextButton"
+
+- extendedWaitUntil:
+    visible:
+      text: "從賽事資料庫選擇|Browse Race Database|レースデータベースから選択"
+    timeout: 15000
+- tapOn:
+    text: "從賽事資料庫選擇|Browse Race Database|レースデータベースから選択"
+
+- extendedWaitUntil:
+    visible:
+      text: "選擇賽事|Select Race|レースを選択"
+    timeout: 15000
+- extendedWaitUntil:
+    visible:
+      text: "2026 日月潭環湖馬拉松"
+    timeout: 15000
+
+- tapOn:
+    text: "2026 日月潭環湖馬拉松"
+- tapOn:
+    text: "6.0 km|6 km"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      text: "更換賽事|Change Race|レースを変更"
+    timeout: 10000
+- tapOn:
+    id: "RaceSetup_SaveButton"
+
+- runFlow: assert-onboarding-branch.yaml
+- extendedWaitUntil:
+    visible:
+      id: "Methodology_paceriz"
+    timeout: 15000
+- tapOn:
+    id: "Methodology_paceriz"
+- tapOn:
+    id: "Methodology_NextButton"
+
+- runFlow: assert-onboarding-branch.yaml
+- tapOn:
+    id: "StartStage_NextButton"
+    optional: true
+
+- runFlow: assert-onboarding-branch.yaml
+- assertVisible:
+    id: "TrainingDays_SaveButton"
+- tapOn:
+    id: "TrainingDays_SaveButton"
+- extendedWaitUntil:
+    visible:
+      id: "TrainingOverview_GenerateButton"
+    timeout: 15000
+- tapOn:
+    id: "TrainingOverview_GenerateButton"
+- extendedWaitUntil:
+    visible:
+      id: "TrainingPlan_MenuButton"
+    timeout: 60000

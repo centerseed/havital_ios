@@ -143,4 +143,22 @@ final class WeeklySummaryV2DecodingTests: XCTestCase {
         XCTAssertEqual(dto.weeklyHighlights.highlights.count, 1)
         XCTAssertEqual(dto.nextWeekAdjustments.items.count, 0)
     }
+
+    func test_decode_backendGoldenClosedLoop_raceWeekAdjustmentItem() throws {
+        let dto = try decodeSummary(from: "backend_golden_closed_loop")
+
+        XCTAssertEqual(dto.planContext?.targetType, "race_run")
+        XCTAssertEqual(dto.planContext?.methodologyId, "paceriz")
+        XCTAssertEqual(dto.planContext?.currentPhase, "taper")
+        XCTAssertEqual(dto.trainingCompletion.plannedKm, 24.0, accuracy: 0.01)
+        XCTAssertEqual(dto.trainingCompletion.completedKm, 10.0, accuracy: 0.01)
+        XCTAssertEqual(dto.trainingAnalysis.distance?.comparisonToPlan, "race_completed")
+        XCTAssertEqual(dto.upcomingRaceEvaluation?.raceName, "A Race 10K")
+        XCTAssertEqual(dto.nextWeekAdjustments.items.count, 1)
+        XCTAssertEqual(dto.nextWeekAdjustments.items[0].category, "volume")
+        XCTAssertEqual(dto.nextWeekAdjustments.items[0].apply, true)
+        XCTAssertEqual(dto.nextWeekAdjustments.items[0].sourceFlag, "race_week")
+        XCTAssertEqual(dto.nextWeekAdjustments.methodologyConstraintsConsidered, true)
+        XCTAssertEqual(dto.restWeekRecommendation?.recommended, true)
+    }
 }

@@ -44,6 +44,73 @@ final class RobustnessTests: XCTestCase {
         XCTAssertEqual(dto.days.count, 1)
     }
 
+    func test_weeklyPlanGenerationMeta_decodingSucceeds() throws {
+        let json = """
+        {
+            "purpose": "Layered weekly plan",
+            "week_of_plan": 1,
+            "total_weeks": 16,
+            "total_distance_km": 9.0,
+            "data_version": "v3",
+            "_generation_meta": {
+                "pipeline": "weekly_plan_generation_v2_layered",
+                "slot_roles_before_finalize": {
+                    "0": {"day_index": 0, "role": "rest", "source": "allocator"},
+                    "1": {"day_index": 1, "role": "easy", "source": "allocator"}
+                },
+                "allocation_report": {
+                    "requested_target_km": 10.0,
+                    "allocated_main_km": 9.0,
+                    "displayed_total_km": 9.0
+                }
+            },
+            "days": [
+                {
+                    "day_index": 1,
+                    "category": "run",
+                    "day_target": "Easy run",
+                    "reason": "Test",
+                    "primary": {
+                        "run_type": "easy",
+                        "distance_km": 3.0,
+                        "duration_minutes": 20,
+                        "pace": "6:40"
+                    }
+                },
+                {
+                    "day_index": 2,
+                    "category": "run",
+                    "day_target": "Easy run",
+                    "reason": "Test",
+                    "primary": {
+                        "run_type": "easy",
+                        "distance_km": 3.0,
+                        "duration_minutes": 20,
+                        "pace": "6:40"
+                    }
+                },
+                {
+                    "day_index": 3,
+                    "category": "run",
+                    "day_target": "Easy run",
+                    "reason": "Test",
+                    "primary": {
+                        "run_type": "easy",
+                        "distance_km": 3.0,
+                        "duration_minutes": 20,
+                        "pace": "6:40"
+                    }
+                }
+            ]
+        }
+        """.data(using: .utf8)!
+
+        let dto = try JSONDecoder().decode(WeeklyPlanV2DTO.self, from: json)
+        XCTAssertEqual(dto.purpose, "Layered weekly plan")
+        XCTAssertEqual(dto.totalDistance, 9.0)
+        XCTAssertEqual(dto.days.count, 3)
+    }
+
     // MARK: - Empty Arrays
 
     func test_emptyDaysArray_decodingSucceeds() throws {

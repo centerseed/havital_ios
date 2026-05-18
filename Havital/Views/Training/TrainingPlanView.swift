@@ -477,7 +477,7 @@ struct TrainingPlanView: View {
             // 根據語言顯示不同的聯絡方式
             if isChineseLanguage {
                 // Facebook
-                Button("FB 粉絲團") {
+                Button(L10n.ProfileView.contactFacebookPage.localized) {
                     if let url = URL(string: "https://www.facebook.com/profile.php?id=61574822777267") {
                         UIApplication.shared.open(url)
                     }
@@ -625,6 +625,7 @@ struct TrainingPlanView: View {
                     }) {
                         Label(NSLocalizedString("training.overview", comment: "Training Overview"), systemImage: "doc.text.below.ecg")
                     }
+                    .accessibilityIdentifier("TrainingPlan_Menu_PlanOverview")
                     
                     Button(action: {
                         showTrainingProgress = true

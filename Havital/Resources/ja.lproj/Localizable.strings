@@ -4,9 +4,10 @@
 */
 
 // MARK: - Main Navigation
-"tab.training_plan" = "トレーニング計画";
-"tab.training_record" = "トレーニング記録";
-"tab.performance_data" = "パフォーマンス";
+"tab.training_plan" = "計画";
+"tab.training_record" = "記録";
+"tab.performance_data" = "成績";
+"tab.achievement" = "実績";
 "tab.profile" = "プロフィール";
 
 // MARK: - Toast Messages
@@ -123,9 +124,6 @@
 "training_plan.cycle_completed" = "トレーニングサイクル完了";
 "training_plan.congratulations" = "このトレーニングサイクルを完了おめでとうございます！";
 "training_plan.loading_schedule" = "スケジュール読み込み中...";
-
-// MARK: - Workout Summary Row
-"workout_summary_row.calculating_heart_rate" = "心拍数を計算中...";
 
 // MARK: - Next Week Planning View
 "next_week_planning.title" = "来週計画設定";
@@ -276,6 +274,9 @@
 "profile.subscription.change_plan" = "プラン変更";
 "profile.subscription.plan.yearly" = "年間サブスク";
 "profile.subscription.plan.monthly" = "月間サブスク";
+"profile.subscription.plan.yearly_early_bird" = "年間サブスク（早割）";
+"profile.subscription.plan.monthly_early_bird" = "月間サブスク（早割）";
+"profile.subscription.plan.premium_early_bird" = "プレミアム（早割）";
 "profile.subscription.trial_ends" = "トライアル終了日";
 "profile.subscription.trial_remaining_days" = "残り%d日";
 "profile.subscription.trial_purchased_note" = "購読済み。トライアル終了後に有効化されます";
@@ -421,6 +422,7 @@
 "training.type.norwegian_4x4" = "ノルウェー4x4";
 "training.type.norwegian_singles" = "ノルウェーシングル";
 "training.type.yasso_800" = "ヤッソ800";
+"training.type.mile_repeats" = "マイルリピート";
 // 新しいコンビネーショントレーニングタイプ（fartlek は既存）
 "training.type.fast_finish" = "ファストフィニッシュラン";
 // 新しいレースペーストレーニング
@@ -480,7 +482,7 @@
 "workout.detail.pace_zones" = "ペースゾーン分布";
 "workout.detail.zone_distribution" = "ゾーン分布";
 "workout.detail.zone_type" = "ゾーンタイプ";
-"workout.detail.dynamic_vdot" = "ダイナミックVDOT";
+"workout.detail.dynamic_vdot" = "VDOT";
 "workout.detail.training_load" = "トレーニング負荷";
 "workout.detail.movement_efficiency" = "動作効率";
 "workout.detail.recovery_zone" = "リカバリーゾーン";
@@ -675,6 +677,11 @@
 "date.fri" = "金";
 "date.sat" = "土";
 "date.sun" = "日";
+"date.just_now" = "たった今";
+"date.today_at" = "今日 %@";
+"date.yesterday_at" = "昨日 %@";
+"date.days_ago" = "%d 日前";
+"date.one_week_ago" = "1 週間前";
 
 // MARK: - Alerts & Confirmations
 "alert.unsaved_changes" = "未保存の変更";
@@ -1086,6 +1093,8 @@
 "login.email_title" = "メールログイン";
 "login.email_not_verified_resend" = "確認メールを再送信";
 "login.resend_success_title" = "お知らせ";
+"login.language" = "言語";
+"login.language_picker_accessibility" = "ログイン画面の言語選択";
 
 // MARK: - Data Sync Strings
 "sync.title" = "データ同期";
@@ -1139,6 +1148,7 @@
 "intensity.high" = "高強度";
 "intensity.minutes" = "%d分";
 "intensity.minutes_progress" = "%d / %d分";
+"intensity.minutes_short" = "分";
 "intensity.not_scheduled" = "スケジュールなし";
 "intensity.unscheduled" = "（スケジュールなし）";
 
@@ -1156,6 +1166,19 @@
 "training_plan.intensity_legend_high" = "ハード";
 "training_plan.monthly_total_distance" = "月間総距離";
 "training_plan.average_pace" = "平均ペース";
+"training_calendar.view_mode" = "表示モード";
+"training_calendar.calendar_view" = "カレンダー";
+"training_calendar.monthly_summary" = "月別";
+"training_calendar.monthly_summary_title" = "月別ランニング";
+"training_calendar.monthly_summary_description" = "月ごとの距離と平均ペース";
+"training_calendar.no_monthly_data" = "月別のランニングデータはありません";
+"training_calendar.run_count_format" = "%d回のラン";
+"training_calendar.hero_caption" = "月間ランニング記録";
+"training_calendar.average_pace_short" = "平均ペース";
+"training_calendar.runs_short" = "回数";
+"training_calendar.avg_distance_short" = "平均距離";
+"training_calendar.recent_trend" = "最近の推移";
+"training_calendar.last_six_months" = "直近6か月";
 "training_plan.today" = "今日";
 "training_plan.active_recovery_day" = "アクティブリカバリー";
 "training_plan.tip" = "ヒント：%@";
@@ -1342,8 +1365,8 @@
 "datasource.switch_to_this" = "このデータソースに切り替え";
 
 // MARK: - Achievement View Performance
-"performance.vdot_trend" = "VDOTトレンド";
-"performance.vdot_explanation" = "VDOTは、ランニングパフォーマンスに基づいて計算された有酸素能力指標です。トレーニングが進むにつれて、VDOT値は徐々に向上します。";
+"performance.vdot_trend" = "VDOT トレンド";
+"performance.vdot_explanation" = "VDOT は Jack Daniels 博士が提唱した、国際的に認知された有酸素能力の指標です。数値が高いほど、有酸素ベースが強いことを示します。";
 
 // Performance Time Range
 "performance.time_range.week" = "1週間";
@@ -1363,16 +1386,18 @@
 "performance.chart.loading" = "読み込み中...";
 
 // VDOT Performance Terms
-"performance.vdot.dynamic_vdot" = "ダイナミックVDOT";
-"performance.vdot.weighted_vdot" = "加重VDOT";
-"performance.vdot.latest_vdot" = "最新VDOT";
-"performance.vdot.vdot_title" = "ダイナミックVDOT";
-"performance.vdot.what_is_vdot" = "ダイナミックVDOTとは？";
-"performance.vdot.vdot_description" = "ダイナミックVDOTは、ランニングパフォーマンスと心拍数データを総合的に計算した指標で、真のランニング能力を反映します。\n\nダイナミックVDOTは、トレーニングタイプ、気温、日々の身体状態によって変動します。トレーニングが進むにつれて、体力向上によりダイナミックVDOTは上昇傾向を示します。\n\n加重VDOTは目標レース距離を参考に適切な重み付けを行い、一定期間のダイナミックVDOTの加重平均を計算し、目標レースに対する現在のランニング能力をより正確に評価できます！";
+"performance.vdot.dynamic_vdot" = "VDOT";
+"performance.vdot.weighted_vdot" = "VDOT";
+"performance.vdot.latest_vdot" = "VDOT";
+"performance.vdot.vdot_title" = "VDOT";
+"performance.vdot.what_is_vdot" = "VDOT とは？";
+"performance.vdot.vdot_description" = "VDOT は Jack Daniels 博士が提唱した、国際的に認知された有酸素能力の指標です。数値が高いほど、有酸素ベースが強いことを示します。\n\nPaceriz では 2 つの VDOT 値を追跡しています：\n\nVDOT\n直近のランニングデータの加重平均で算出される安定した有酸素能力。目標レースへの現在の実力を反映します。\n\nライブ VDOT\n各ランの後に即時計算されるリアルタイム値。気温、心拍数、当日のコンディションによって変動します。安定したトレンドを見るには VDOT をご覧ください。";
 "performance.vdot.set_heart_rate_zones" = "心拍数ゾーン設定";
-"performance.vdot.calculating_vdot" = "ダイナミックVDOT計算中...";
-"performance.vdot.average_weighted_vdot" = "平均加重VDOT";
-"performance.vdot.latest_dynamic_vdot" = "最新ダイナミックVDOT";
+"performance.vdot.calculating_vdot" = "VDOT を計算中…";
+"performance.vdot.average_weighted_vdot" = "平均 VDOT";
+"performance.vdot.latest_dynamic_vdot" = "ライブ VDOT（最新）";
+"performance.vdot.read_more" = "詳しく見る";
+"performance.vdot.blog_url" = "https://paceriz.com/blog/dynamic_vdot.html";
 "performance.vdot.heart_rate_zone_prompt" = "より正確なトレーニング強度の指導を得るために、心拍数ゾーンを設定してください";
 "performance.vdot.no_statistics" = "統計情報なし";
 "performance.vdot.data_point_count" = "データポイント数";
@@ -1431,8 +1456,10 @@
 "performance.training_load.training_load_title" = "トレーニング負荷";
 "performance.training_load.training_load_explanation" = "体力指数で運動能力の変化を追跡し、TSB指標で疲労と回復のバランスを把握します。詳細説明と使用のコツについてはタップしてください";
 "performance.training_load.fitness_index" = "体力指数";
+"performance.training_load.fitness_index_short" = "体力";
 "performance.training_load.fitness_index_explanation" = "過去の実績と比較した相対的な運動能力レベルを示します。上昇トレンドは体力向上を示しますが疲労蓄積に注意。下降トレンドは通常テーパリング期間で、TSBとHRVの回復を観察しましょう";
 "performance.training_load.tsb" = "トレーニングストレスバランス（TSB）";
+"performance.training_load.tsb_short" = "TSB";
 "performance.training_load.tsb_explanation" = "トレーニング疲労と回復のバランスを示す指標。正の値は良い回復を、負の値は蓄積された疲労を示します";
 "performance.training_load.insufficient_data" = "トレーニングデータが不足しています。少なくとも5つのレコードが必要です";
 "performance.training_load.loading_training_load" = "トレーニング負荷データ読み込み中...";
@@ -1532,6 +1559,10 @@
 "feedback.error.description_required" = "説明が必要です";
 "feedback.success_title" = "成功";
 "feedback.success_message" = "フィードバックをありがとうございます！";
+"feedback.contact_us" = "お問い合わせ";
+"feedback.contact_us_hint" = "すぐにサポートが必要な場合は、以下のチャンネルでご連絡ください";
+"feedback.threads" = "公式 Threads アカウント";
+"feedback.facebook" = "Facebook ファンページ";
 
 // MARK: - Contact
 "contact.paceriz" = "Pacerizに連絡";
@@ -1642,6 +1673,10 @@
 "common.error" = "エラー";
 // MARK: - Training Readiness - Estimated Race Time
 "training_readiness.estimated_race_time" = "予想完走時間";
+"training_readiness.non_race_training_mode" = "非レーストレーニング";
+"training_readiness.race_only_metrics_footnote" = "持久力とレース適性の指標は、レース目標のトレーニングでのみ利用できます。";
+"training_readiness.race_only_note_title" = "レース目標専用指標";
+"training_readiness.race_only_note_body" = "持久力とレース適性の指標は、トレーニング目標が「レース」に設定されている場合のみ有効になります。現在のプランは非レーストレーニングモードです。";
 
 // MARK: - Content View
 "content_view.data_source_required" = "データソースの接続が必要です";
@@ -1988,6 +2023,21 @@
 
 // MARK: - Workout - Effort Score (iOS 18+)
 "workout.effort_score" = "努力スコア";
+"workout.detail.add_rpe" = "主観的強度を追加";
+"workout.detail.clear_rpe" = "主観的強度を削除";
+"workout.detail.rpe_editor_title" = "主観的強度";
+"workout.detail.rpe_description" = "走り終えた感覚で選びます。呼吸、脚の疲れ、会話できる余裕を思い出して、一番近い点数を選んでください。計算は不要です。";
+"workout.detail.rpe_picker_title" = "主観的強度";
+"workout.detail.rpe_selected_format" = "今回のワークアウト：%d / 10";
+"workout.detail.rpe_scale_title" = "選び方";
+"workout.detail.rpe_scale_low" = "1-3 楽：会話できて余力がある。リカバリー走やかなり楽なジョグに近い感覚。";
+"workout.detail.rpe_scale_medium" = "4-7 しっかり：呼吸に集中するが、ペースは保てる。通常のラン、ロング走、テンポ区間に近い感覚。";
+"workout.detail.rpe_scale_high" = "8-10 かなりきつい：会話はほぼ無理で、呼吸や脚が重い。インターバル、テスト、レースに近い感覚。";
+"workout.detail.rpe_selected_low" = "軽め：今回は回復走や楽な距離走に近い感覚です。";
+"workout.detail.rpe_selected_medium" = "中くらい：刺激はあるが、まだコントロールできる強度です。";
+"workout.detail.rpe_selected_high" = "きつい：高強度やレースに近い感覚です。";
+"workout.detail.rpe_save_error" = "主観的強度を保存できません。後でもう一度お試しください。";
+"low_data.vdot_hint" = "ランニングデータが蓄積されると VDOT が表示されます。";
 "date.minutes_ago" = "%d分前";
 
 // MARK: - Backfilled Translations
@@ -2271,6 +2321,7 @@
 
 // MARK: - Settings Menu (added to match zh-Hant)
 "training.weekly_summary" = "週次レビュー";
+"training.weekly_summary_not_available_first_week" = "まだ振り返れる前週がありません";
 "training.user_profile" = "プロフィール";
 "training.contact_paceriz" = "Pacerizに連絡";
 "training.switch_week" = "週を切り替え";
@@ -2411,6 +2462,20 @@
 "performance.fitness_balance" = "フィットネス指数 & トレーニングストレスバランス";
 "performance.syncing" = "同期中...";
 "workoutsharecardsheet.close" = "閉じる";
+
+/* PB Moment & Share Card */
+"my_achievement.celebration.new_pb" = "New PB";
+"my_achievement.celebration.first_record" = "初めての標準距離記録";
+"my_achievement.celebration.other_pbs" = "他に%d件のPB";
+"my_achievement.celebration.share" = "シェア";
+"my_achievement.celebration.save" = "保存";
+"my_achievement.celebration.save_image" = "画像を保存";
+"my_achievement.celebration.date" = "日付";
+"my_achievement.celebration.result" = "記録";
+"my_achievement.celebration.share_card_title" = "PBシェアカード";
+"my_achievement.celebration.new_badge" = "新バッジ";
+"my_achievement.celebration.new_pb_and_badge" = "新PB＋バッジ";
+"my_achievement.celebration.also_unlocked" = "同時解除";
 "time.seconds_format" = "%d秒";
 "time.minutes_format" = "%d分";
 "time.minutes_seconds_format" = "%d分%d秒";
@@ -2431,10 +2496,13 @@
 "paywall.header.trial_expired" = "トライアル期間が終了しました";
 "paywall.header.feature_locked" = "アップグレードして全機能を解放";
 "paywall.header.resubscribe" = "再購読";
-"paywall.header.change_plan" = "プラン変更";
+"paywall.header.change_plan" = "Paceriz Premium";
 "paywall.purchase_success_title" = "購入完了！";
 "paywall.purchase_success_start" = "使い始める";
 "paywall.purchase_success_trial_note" = "有料プランはトライアル終了後に適用されます";
+"paywall.purchase_success.plan.yearly" = "年額プラン";
+"paywall.purchase_success.plan.monthly" = "月額プラン";
+"paywall.purchase_success.plan.premium" = "Premiumプラン";
 "reminder.trial_expiring_title" = "トライアル期間まもなく終了";
 "reminder.trial_expiring_message" = "トライアル残り%1$d日（%2$@まで）。\n\n今すぐ購読してもトライアルには影響しません。請求はトライアル終了後に開始されます。";
 "reminder.expired_title" = "サブスクリプション期限切れ";
@@ -2449,12 +2517,14 @@
 "paywall.feature.analytics" = "高度なランニング分析とインサイト";
 "paywall.feature.customization" = "無制限のスケジュールカスタマイズ";
 "paywall.badge.best_value" = "お得";
+"paywall.badge.early_bird" = "早割限定";
 "paywall.plan.yearly_note" = "年額請求";
 "paywall.plan.original_price" = "通常価格 %@";
 "paywall.plan.savings" = "%@ お得（%d%%）";
 "paywall.offer.badge_official" = "公式オファー";
+"paywall.offer.badge_early_bird" = "早割プラン";
+"paywall.accessibility.original_price" = "通常価格 %@";
 "paywall.offer.free" = "無料";
-"paywall.offer.discount_percent" = "公式割引 %d%%";
 "paywall.offer.ends_on" = "本日開始した場合、%@ まで";
 "paywall.offer.intro_free_trial" = "%@ の無料トライアル";
 "paywall.offer.intro_pay_as_you_go" = "初回オファー %@ / %@";
@@ -2486,7 +2556,677 @@
 "paywall.offer_code_identity_sync_failed" = "現在、サブスクリプションの本人確認ができません。しばらくしてから再度お試しください。";
 "paywall.offer_code_scene_unavailable" = "現在、Apple のオファーコード入力画面を開けません。しばらくしてから再度お試しください。";
 "paywall.purchase_cancelled_retry" = "Appleアカウントへのサインインは完了しました。購入を完了するには、もう一度プランをタップしてください。";
+"paywall.section.early_bird.title" = "アーリーバード";
+"paywall.section.early_bird.badge_limited_time" = "期間限定";
+"paywall.section.early_bird.lock_forever_subtitle" = "ご登録後、この価格でずっとご利用いただけます";
+"paywall.section.default.title" = "通常プラン";
+
+// MARK: - Paywall Premium (SPEC-paywall-rewrite)
+"paywall.premium.nav_title" = "Paceriz Premium";
+
+// Hero (state-aware)
+"paywall.premium.hero.default.title" = "AIコーチと次のPBへ";
+"paywall.premium.hero.default.subtitle" = "AIコーチがあなたの毎週のトレーニングを目標に合わせます";
+"paywall.premium.hero.resubscribe.title" = "おかえりなさい。トレーニングを続けましょう";
+"paywall.premium.hero.resubscribe.subtitle" = "再登録してすべてのAI機能を利用";
+"paywall.premium.hero.change.title" = "プラン変更";
+"paywall.premium.hero.change.subtitle" = "月額・年額の切替はいつでも可能";
+
+// Trial Timeline (3 steps)
+"paywall.premium.timeline.step1.label" = "今日";
+"paywall.premium.timeline.step1.desc" = "全機能をすぐに利用";
+"paywall.premium.timeline.step2.label" = "28日目";
+"paywall.premium.timeline.step2.desc" = "課金2日前にお知らせ";
+"paywall.premium.timeline.step3.label" = "30日目";
+"paywall.premium.timeline.step3.desc" = "サブスク開始（いつでも解約可能）";
+
+// Features (4 groups)
+"paywall.premium.features.plan.title" = "AIパーソナル週間プラン";
+"paywall.premium.features.plan.bullet1" = "目標レースに合わせた週期化スマートプラン";
+"paywall.premium.features.plan.bullet2" = "体力とリカバリーに応じて自動調整";
+"paywall.premium.features.plan.bullet3" = "ベース期からテーパーまでの完全プラン";
+"paywall.premium.features.adjust.title" = "いつでも調整";
+"paywall.premium.features.adjust.bullet1" = "今週のプランをいつでも再生成";
+"paywall.premium.features.adjust.bullet2" = "1日を編集、AIが残りを再調整";
+"paywall.premium.features.review.title" = "AI週次レビュー";
+"paywall.premium.features.review.bullet1" = "週ごとのトレーニングと負荷を自動要約";
+"paywall.premium.features.review.bullet2" = "来週のフォーカスをAIが提案";
+"paywall.premium.features.race.title" = "レース目標プラン";
+"paywall.premium.features.race.bullet1" = "目標レースと週目標を設定";
+"paywall.premium.features.race.bullet2" = "AIがトレーニング全体を週期化";
+"paywall.comparison.header.free" = "無料";
+"paywall.comparison.feature.run_tracking" = "ランニング記録";
+"paywall.comparison.feature.training_metrics" = "トレーニング指標";
+"paywall.comparison.feature.ai_plan" = "AIトレーニングプラン";
+"paywall.comparison.feature.ai_advice" = "AIトレーニングアドバイス";
+
+// Pricing section labels
+"paywall.premium.section.default.title" = "スタンダードプラン";
+"paywall.premium.section.default.subtitle" = "30日間無料体験。いつでも解約可能";
+"paywall.premium.section.earlybird.title" = "アーリーバード";
+"paywall.premium.section.earlybird.subtitle" = "上場前価格、30日間無料体験付き";
+
+// Plan card labels
+"paywall.premium.plan.annual.label" = "年額";
+"paywall.premium.plan.annual.badge_recommended" = "おすすめ";
+"paywall.premium.plan.annual.savings_format" = "年額で%@%%お得";
+"paywall.premium.plan.monthly.label" = "月額";
+"paywall.premium.plan.trial_format" = "%@日間無料、その後課金";
+"paywall.premium.plan.no_trial_format" = "即時課金、トライアルなし";
+
+// CTA buttons
+"paywall.premium.cta.start_trial" = "30日間無料体験";
+"paywall.premium.cta.subscribe_now" = "今すぐ登録";
+"paywall.premium.cta.resubscribe" = "再登録";
+"paywall.premium.cta.change_plan" = "このプランに変更";
+
+// Trial Banner
+"paywall.premium.trial_banner.format" = "トライアル中 — 残り%@日";
+"paywall.premium.trial_banner.subtitle" = "トライアル後自動更新。いつでも解約可能";
+
+// Disclosure (trial + standard)
+"paywall.premium.disclosure.trial" = "「30日間の無料体験を開始」をタップすることで、以下に同意したものとみなされます：無料体験期間は30日間です。期間終了後、選択したプランは自動的に更新され、Apple IDに記載の価格で課金されます。課金を回避するには、トライアル終了の24時間前までにApple IDの設定からキャンセルしてください。各更新期間終了の24時間前までに解約しない限り、サブスクリプションは自動更新されます。詳細は利用規約とプライバシーポリシーをご覧ください。";
+"paywall.premium.disclosure.standard" = "「今すぐ登録」をタップすることで、以下に同意したものとみなされます：選択したプランはApple IDから即時に課金されます。各更新期間終了の24時間前までにApple IDの設定で解約しない限り、サブスクリプションは同じ価格で自動更新されます。詳細は利用規約とプライバシーポリシーをご覧ください。";
+
+// Disclosure link texts and format strings (AC-PAYWALL-32/33/34)
+"paywall.disclosure.privacy_link_text" = "プライバシーポリシー";
+"paywall.disclosure.terms_link_text" = "利用規約";
+"paywall.disclosure.trial.with_links_format" = "30日間無料トライアルは %1$@ に終了、その後自動更新されます。%2$@ および %3$@ をご覧ください。";
+"paywall.disclosure.standard.with_links_format" = "月額サブスクリプションはすぐに課金され、自動更新されます。%1$@ および %2$@ をご覧ください。";
+
+// Inline upsell cards (x3)
+"paywall.inline.weekly_plan.title" = "週間プランを全て解放";
+"paywall.inline.weekly_plan.body" = "第1週は無料。サブスク登録で第2週以降の生成と再調整が可能";
+"paywall.inline.weekly_review.title" = "週次レビューはPremium機能";
+"paywall.inline.weekly_review.body" = "今週のトレーニングと負荷をAIが整理、来週の提案も";
+"paywall.inline.target_race.title" = "目標レース設定はPremium機能";
+"paywall.inline.target_race.body" = "サブスク登録で目標レースと週目標を設定、AIが週期化プランを作成";
+"paywall.inline.cta.start_trial" = "30日間の無料体験を開始";
+"paywall.inline.cta.restore" = "登録済み？復元する";
+
 "profile.subscription.redeem_offer_code" = "オファーコードを利用";
 "profile.subscription.redeem_alert_title" = "オファーコード";
 "profile.subscription.redeem_success" = "オファーコードを利用しました。購読状態を更新しました。";
 "onboarding.clear_selected_race" = "手動入力に戻る";
+
+// Free Tier Banner (AC-PAYWALL-35)
+"paywall.free_tier.banner.title" = "無料体験中";
+"paywall.free_tier.banner.subtitle" = "来週のプランは購読が必要です";
+"paywall.free_tier.banner.cta" = "アップグレード";
+
+// Grace Period Banner (AC-PAYWALL-38)
+"paywall.grace_period.banner.title_format" = "無料体験中、残り%d日";
+"paywall.grace_period.banner.subtitle" = "AI機能を継続するにはサブスクが必要";
+
+// Settings Subscription Tier Indicator (AC-PAYWALL-36/40)
+"settings.subscription.tier.free_label" = "現在のプラン：無料体験版";
+"settings.subscription.tier.trial_label_format" = "現在のプラン：トライアル中（残り%d日）";
+"settings.subscription.tier.premium_label_format" = "現在のプラン：プレミアム（%@）";
+"settings.subscription.tier.grace_label_format" = "現在のプラン：無料体験中（残り%d日）";
+"settings.subscription.tier.upgrade_cta" = "プレミアムへアップグレード";
+"settings.subscription.tier.manage_cta" = "サブスクリプション管理";
+
+// Climate Settings
+"climate_settings.title" = "暑熱順化";
+"climate_settings.loading" = "暑熱順化設定を読み込み中…";
+"climate_settings.enable_title" = "暑熱順化を有効にする";
+"climate_settings.feels_like_subtitle" = "当日の最高体感温度";
+"climate_settings.enabled_description" = "現在有効です。次に生成されるプランでは、当日の最高体感温度（湿度・風を含む）と暑熱順化設定に基づき、ペースを落とすかロング走を短縮するかを判断します。既存のプランは再計算されず、変更は来週の新しいプランから反映されます。";
+"climate_settings.disabled_description" = "現在無効です。今後生成されるプランは元のペースを維持し、暑熱順化による調整は適用されません。既存のプランは再計算されません。";
+"climate_settings.current_status.section" = "現在の状態";
+"climate_settings.current_status.is_adjusted" = "現在の調整状況";
+"climate_settings.current_status.adjusted" = "調整済み";
+"climate_settings.current_status.not_adjusted" = "未調整";
+"climate_settings.current_status.feels_like" = "現在の体感温度";
+"climate_settings.current_status.pace_adjustment" = "ペース調整幅";
+"climate_settings.current_status.long_run_adjustment" = "ロング走調整";
+"climate_settings.current_status.unavailable" = "この画面では、現時点で調整済みかどうかをまだ表示できません。バックエンドの current status 対応が必要です。";
+"climate_settings.your_setting" = "あなたの設定";
+"climate_settings.adjustment_start" = "介入開始";
+"climate_settings.common_adjustment" = "一般的な調整幅";
+"climate_settings.adaptation_level" = "暑熱順化レベル";
+"climate_settings.adaptation.unacclimated" = "未順化／初級";
+"climate_settings.adaptation.normal" = "通常";
+"climate_settings.adaptation.acclimated" = "暑熱順化済み";
+"climate_settings.manual_threshold.toggle" = "開始温度を手動調整";
+"climate_settings.manual_threshold.start_temp" = "介入開始温度";
+"climate_settings.manual_threshold.danger_fixed_format" = "危険レベルは %d°C に固定されています。";
+"climate_settings.future_only_footer" = "変更は今後新しく生成されるプランにのみ反映され、既存の結果は変更されません。";
+"climate_settings.explanation.open" = "暑熱順化の説明を見る";
+"climate_settings.not_available" = "現在未提供";
+"climate_settings.explanation.title" = "暑熱順化の説明";
+"climate_settings.explanation.how_it_works" = "暑熱順化の仕組み";
+"climate_settings.explanation.intervention_rules" = "介入される条件";
+"climate_settings.metrics.section" = "直近14日間の暑熱順化状態";
+"climate_settings.metrics.recommended" = "システム推奨";
+"climate_settings.metrics.current" = "現在の設定";
+"climate_settings.metrics.hot_hours" = "暑熱環境での時間";
+"climate_settings.metrics.hot_workouts" = "暑熱負荷トレーニング";
+"climate_settings.metrics.workout_count_format" = "%d 回";
+"climate_settings.metrics.pace_achievement" = "ペース達成率";
+"climate_settings.metrics.hr_efficiency" = "心拍効率";
+"climate_settings.metrics.efficiency_change" = "効率変化";
+"climate_settings.source.section" = "データソース";
+"climate_settings.source.region_strategy" = "地域戦略";
+"climate_settings.source.weather_source" = "気象ソース";
+"climate_settings.insufficient_data" = "データ不足";
+"climate_settings.trend.improving" = "改善中";
+"climate_settings.trend.declining" = "悪化中";
+"climate_settings.trend.stable" = "安定";
+"climate_settings.effective_notice" = "気候調整は次回生成されるプランから反映されます";
+
+// MARK: - Missing NSLocalizedString keys backfilled 2026-05-02
+"common.no_data" = "\u30C7\u30FC\u30BF\u304C\u3042\u308A\u307E\u305B\u3093";
+"edit.future_day" = "\u4ECA\u5F8C\u306E\u65E5";
+"edit.past_day" = "\u904E\u53BB\u306E\u65E5";
+"edit.today" = "\u4ECA\u65E5";
+"edit_schedule.error.empty_plan" = "\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u8A08\u753B\u304C\u7A7A\u3067\u3059\u3002";
+"edit_schedule.error.invalid_day_index" = "\u7121\u52B9\u306A\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u65E5\u3067\u3059\u3002";
+"edit_schedule.error.invalid_training_type" = "\u7121\u52B9\u306A\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u7A2E\u5225\u3067\u3059\u3002";
+"edit_schedule.error.save_result_missing" = "\u30B9\u30B1\u30B8\u30E5\u30FC\u30EB\u66F4\u65B0\u7D50\u679C\u304C\u8FD4\u3055\u308C\u307E\u305B\u3093\u3067\u3057\u305F\u3002";
+"edit_schedule.save_success" = "\u30B9\u30B1\u30B8\u30E5\u30FC\u30EB\u3092\u66F4\u65B0\u3057\u307E\u3057\u305F\u3002";
+"editsupportingtarget.text_0" = "\u30B5\u30DD\u30FC\u30C8\u76EE\u6A19";
+"error.bad_request" = "\u7121\u52B9\u306A\u30EA\u30AF\u30A8\u30B9\u30C8\u3067\u3059";
+"error.cache_expired" = "\u4FDD\u5B58\u30C7\u30FC\u30BF\u306E\u671F\u9650\u304C\u5207\u308C\u307E\u3057\u305F\u3002\u66F4\u65B0\u3057\u3066\u304F\u3060\u3055\u3044\u3002";
+"error.check_connection" = "\u30A4\u30F3\u30BF\u30FC\u30CD\u30C3\u30C8\u63A5\u7D9A\u3092\u78BA\u8A8D\u3057\u3066\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002";
+"error.data_corruption" = "\u30C7\u30FC\u30BF\u304C\u7834\u640D\u3057\u3066\u3044\u307E\u3059";
+"error.forbidden" = "\u30A2\u30AF\u30BB\u30B9\u304C\u62D2\u5426\u3055\u308C\u307E\u3057\u305F";
+"error.invalid_target_data" = "\u7121\u52B9\u306A\u76EE\u6A19\u30C7\u30FC\u30BF: %@";
+"error.invalid_update_data" = "\u7121\u52B9\u306A\u66F4\u65B0\u30C7\u30FC\u30BF: %@";
+"error.network_failure" = "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u30EA\u30AF\u30A8\u30B9\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F";
+"error.no_connection" = "\u30A4\u30F3\u30BF\u30FC\u30CD\u30C3\u30C8\u63A5\u7D9A\u304C\u3042\u308A\u307E\u305B\u3093";
+"error.no_main_race" = "\u30E1\u30A4\u30F3\u30EC\u30FC\u30B9\u76EE\u6A19\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093";
+"error.no_permission" = "\u3053\u306E\u64CD\u4F5C\u3092\u5B9F\u884C\u3059\u308B\u6A29\u9650\u304C\u3042\u308A\u307E\u305B\u3093\u3002";
+"error.not_authenticated" = "\u3082\u3046\u4E00\u5EA6\u30B5\u30A4\u30F3\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044\u3002";
+"error.preferences_not_found" = "\u30E6\u30FC\u30B6\u30FC\u8A2D\u5B9A\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093";
+"error.profile_not_found" = "\u30E6\u30FC\u30B6\u30FC\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093";
+"error.resource_not_found" = "\u30EA\u30AF\u30A8\u30B9\u30C8\u3055\u308C\u305F\u30EA\u30BD\u30FC\u30B9\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002";
+"error.rizo_quota_exceeded" = "Rizo\u306E\u5229\u7528\u4E0A\u9650\u306B\u9054\u3057\u307E\u3057\u305F";
+"error.server_error" = "\u30B5\u30FC\u30D0\u30FC\u30A8\u30E9\u30FC";
+"error.server_issue" = "\u30B5\u30FC\u30D0\u30FC\u306B\u554F\u984C\u304C\u767A\u751F\u3057\u3066\u3044\u307E\u3059\u3002\u5F8C\u3067\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002";
+"error.session_expired" = "\u30BB\u30C3\u30B7\u30E7\u30F3\u306E\u6709\u52B9\u671F\u9650\u304C\u5207\u308C\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u30B5\u30A4\u30F3\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044\u3002";
+"error.subscription_required" = "\u30B5\u30D6\u30B9\u30AF\u30EA\u30D7\u30B7\u30E7\u30F3\u304C\u5FC5\u8981\u3067\u3059";
+"error.target_not_found" = "\u76EE\u6A19\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093: %@";
+"error.title.forbidden" = "\u30A2\u30AF\u30BB\u30B9\u62D2\u5426";
+"error.title.network" = "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u30A8\u30E9\u30FC";
+"error.title.not_found" = "\u898B\u3064\u304B\u308A\u307E\u305B\u3093";
+"error.title.server" = "\u30B5\u30FC\u30D0\u30FC\u30A8\u30E9\u30FC";
+"error.title.unauthorized" = "\u30BB\u30C3\u30B7\u30E7\u30F3\u671F\u9650\u5207\u308C";
+"error.title.unknown" = "\u30A8\u30E9\u30FC";
+"error.trial_expired" = "\u30C8\u30E9\u30A4\u30A2\u30EB\u671F\u9593\u304C\u7D42\u4E86\u3057\u307E\u3057\u305F";
+"error.unauthorized" = "\u3082\u3046\u4E00\u5EA6\u30B5\u30A4\u30F3\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044";
+"hr_zone.save_failed_generic" = "\u5FC3\u62CD\u30BE\u30FC\u30F3\u306E\u4FDD\u5B58\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002";
+"onboarding.browse_race_database" = "\u30EC\u30FC\u30B9\u30C7\u30FC\u30BF\u30D9\u30FC\u30B9\u304B\u3089\u9078\u629E";
+"onboarding.browse_race_database_desc" = "\u958B\u50AC\u4E88\u5B9A\u306E\u30EC\u30FC\u30B9\u3092\u95B2\u89A7\u3057\u3066\u3001\u76EE\u6A19\u3092\u3059\u3070\u3084\u304F\u8A2D\u5B9A\u3057\u307E\u3059\u3002";
+"onboarding.change_race" = "\u30EC\u30FC\u30B9\u3092\u5909\u66F4";
+"onboarding.race_event_list_nav_title" = "\u30EC\u30FC\u30B9\u3092\u9078\u629E";
+"onboarding.race_list_empty" = "\u6761\u4EF6\u306B\u4E00\u81F4\u3059\u308B\u30EC\u30FC\u30B9\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002";
+"onboarding.race_search_prompt" = "\u30EC\u30FC\u30B9\u540D\u307E\u305F\u306F\u90FD\u5E02\u3092\u691C\u7D22";
+"onboarding.race_target_required" = "\u30EC\u30FC\u30B9\u76EE\u6A19\u3092\u9078\u629E\u307E\u305F\u306F\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002";
+"onboarding.select_race_distance_title" = "\u30EC\u30FC\u30B9\u8DDD\u96E2\u3092\u9078\u629E";
+"onboarding.select_region" = "\u5730\u57DF";
+"onboarding.tight_schedule_message" = "\u30EC\u30FC\u30B9\u65E5\u304C\u8FD1\u3044\u305F\u3081\u3001\u8A08\u753B\u306F\u5F8C\u534A\u306E\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u6BB5\u968E\u304B\u3089\u59CB\u307E\u308B\u5834\u5408\u304C\u3042\u308A\u307E\u3059\u3002";
+"onboarding.tight_schedule_title" = "\u30B9\u30B1\u30B8\u30E5\u30FC\u30EB\u304C\u77ED\u3081\u3067\u3059";
+"onboarding.training_weeks_required" = "\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u9031\u6570\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044\u3002";
+"profile.contact" = "\u9023\u7D61\u5148";
+"race_card.days_countdown" = "\u3042\u3068%d\u65E5";
+"race_card.days_until" = "\u3042\u3068%d\u65E5";
+"race_card.entry_closed" = "\u30A8\u30F3\u30C8\u30EA\u30FC\u7D42\u4E86";
+"race_card.today" = "\u4ECA\u65E5";
+"race_card.tomorrow" = "\u660E\u65E5";
+"race_distance.half_marathon" = "\u30CF\u30FC\u30D5\u30DE\u30E9\u30BD\u30F3";
+"race_distance.marathon" = "\u30DE\u30E9\u30BD\u30F3";
+"race_filter.10k" = "10K";
+"race_filter.5k" = "5K";
+"race_filter.all" = "\u3059\u3079\u3066";
+"race_filter.full_marathon" = "\u30D5\u30EB\u30DE\u30E9\u30BD\u30F3";
+"race_filter.half_marathon" = "\u30CF\u30FC\u30D5\u30DE\u30E9\u30BD\u30F3";
+"race_filter.other" = "\u305D\u306E\u4ED6";
+"race_picker.api_failure_hint" = "\u624B\u52D5\u5165\u529B\u3092\u4F7F\u7528\u3059\u308B\u304B\u3001\u5F8C\u3067\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002";
+"race_picker.api_failure_title" = "\u30EC\u30FC\u30B9\u30C7\u30FC\u30BF\u30D9\u30FC\u30B9\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093";
+"race_picker.retry" = "\u518D\u8A66\u884C";
+"race_time_ref.10k_advanced" = "10K \u4E0A\u7D1A\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.10k_casual" = "10K \u30AB\u30B8\u30E5\u30A2\u30EB\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.10k_elite" = "10K \u30A8\u30EA\u30FC\u30C8\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.5k_advanced" = "5K \u4E0A\u7D1A\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.5k_casual" = "5K \u30AB\u30B8\u30E5\u30A2\u30EB\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.5k_elite" = "5K \u30A8\u30EA\u30FC\u30C8\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.half_marathon_advanced" = "\u30CF\u30FC\u30D5\u30DE\u30E9\u30BD\u30F3\u4E0A\u7D1A\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.half_marathon_casual" = "\u30CF\u30FC\u30D5\u30DE\u30E9\u30BD\u30F3\u30AB\u30B8\u30E5\u30A2\u30EB\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.half_marathon_elite" = "\u30CF\u30FC\u30D5\u30DE\u30E9\u30BD\u30F3\u30A8\u30EA\u30FC\u30C8\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.marathon_advanced" = "\u30DE\u30E9\u30BD\u30F3\u4E0A\u7D1A\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.marathon_casual" = "\u30DE\u30E9\u30BD\u30F3\u30AB\u30B8\u30E5\u30A2\u30EB\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"race_time_ref.marathon_elite" = "\u30DE\u30E9\u30BD\u30F3\u30A8\u30EA\u30FC\u30C8\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
+"region.japan" = "\u65E5\u672C";
+"region.taiwan" = "\u53F0\u6E7E";
+"rizo.quota_exceeded_banner" = "Rizo AI\u306E\u5229\u7528\u4E0A\u9650\u306B\u9054\u3057\u307E\u3057\u305F\u3002\u5F8C\u3067\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002";
+"search.no_results_message" = "\u691C\u7D22\u6761\u4EF6\u3092\u8ABF\u6574\u3057\u3066\u307F\u3066\u304F\u3060\u3055\u3044\u3002";
+"search.no_results_title" = "\u7D50\u679C\u304C\u3042\u308A\u307E\u305B\u3093";
+"training.no_plan_message" = "\u307E\u3060\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u8A08\u753B\u304C\u3042\u308A\u307E\u305B\u3093\u3002";
+"training.no_training_today" = "\u4ECA\u65E5\u306F\u4E88\u5B9A\u3055\u308C\u3066\u3044\u308B\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u304C\u3042\u308A\u307E\u305B\u3093\u3002";
+"training.today_training" = "\u4ECA\u65E5\u306E\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0";
+"training.week_out_of_range" = "\u7B2C%d\u9031\u306F\u8A08\u753B\u7BC4\u56F2\u5916\u3067\u3059\uFF081-%d\uFF09\u3002";
+"trainingload.text_0" = "トレーニング負荷の説明";
+"trainingload.text_1" = "フィットネス、疲労、TSBが現在のトレーニング状態をどう表すかを理解しましょう。";
+"trainingload.text_10" = "TSBは現在の疲労と長期的なフィットネスのバランスを示します。プラスは比較的フレッシュ、マイナスは疲労の蓄積を意味します。";
+"trainingload.text_11" = "状態の目安";
+"trainingload.text_12" = "TSB > +5";
+"trainingload.text_13" = "比較的フレッシュで、質の高い練習やレースに向いている可能性があります。";
+"trainingload.text_14" = "-10〜+5";
+"trainingload.text_15" = "通常のトレーニング週としてバランスのよい範囲です。";
+"trainingload.text_16" = "TSB < -10";
+"trainingload.text_17" = "疲労が高い状態です。続く場合は回復を検討してください。";
+"trainingload.text_18" = "グラフの見方";
+"trainingload.text_19" = "フィットネス";
+"trainingload.text_2" = "フィットネス指標";
+"trainingload.text_20" = "長期的なトレーニング適応の傾向です。";
+"trainingload.text_21" = "TSB";
+"trainingload.text_22" = "フレッシュさと疲労のバランスです。";
+"trainingload.text_23" = "実用的な提案";
+"trainingload.text_24" = "フィットネス上昇中";
+"trainingload.text_25" = "リズムを維持し、急激な負荷増加は避けましょう。";
+"trainingload.text_26" = "フィットネス安定";
+"trainingload.text_27" = "継続性を保ち、練習の質を重視しましょう。";
+"trainingload.text_28" = "フィットネス低下中";
+"trainingload.text_29" = "強度を上げる前に、イージーランから徐々に戻しましょう。";
+"trainingload.text_3" = "フィットネスは継続的なトレーニングで蓄積される長期的な効果を示します。安定して練習できていると徐々に上がり、中断が続くと下がります。";
+"trainingload.text_30" = "TSBが非常に低い";
+"trainingload.text_31" = "回復を優先し、高強度練習を減らしましょう。";
+"trainingload.text_32" = "注意事項";
+"trainingload.text_33" = "これらの指標は利用可能なトレーニングデータに基づく推定値です。";
+"trainingload.text_34" = "医療判断ではなく、トレーニングの参考として使ってください。";
+"trainingload.text_35" = "短期的な変動は正常です。数週間の傾向を見てください。";
+"trainingload.text_36" = "痛みや通常と違う疲労がある場合は、負荷を下げて休みましょう。";
+"trainingload.text_37" = "ワークアウト記録が多いほど、指標の精度が上がります。";
+"trainingload.text_4" = "トレンドの意味";
+"trainingload.text_5" = "フィットネスが向上中";
+"trainingload.text_6" = "フィットネスは安定";
+"trainingload.text_7" = "フィットネスが低下中";
+"trainingload.text_8" = "単日の判断ではなく、疲労や回復状態と合わせて見てください。";
+"trainingload.text_9" = "TSB";
+"workout.no_records_message" = "\u904B\u52D5\u3092\u958B\u59CB\u3059\u308B\u3068\u30EF\u30FC\u30AF\u30A2\u30A6\u30C8\u5C65\u6B74\u304C\u8868\u793A\u3055\u308C\u307E\u3059\u3002";
+"workout.no_records_title" = "\u30EF\u30FC\u30AF\u30A2\u30A6\u30C8\u306A\u3057";
+
+// MARK: - Personal Achievements
+"achievements.title" = "個人実績";
+"achievements.loading" = "実績を読み込んでいます...";
+"achievements.story.title" = "ランナーのストーリー";
+"achievements.story.explanation" = "Pacerizで積み重ねたトレーニング、PB、バッジをまとめて表示します。";
+"achievements.story.unlocked_count" = "%d 個のバッジ中で解除済み";
+"achievements.story.recent_unlock" = "最近";
+"achievements.story.no_recent_unlock" = "最初のマイルストーンがここに表示されます。";
+"achievements.story.next_badge" = "次";
+"achievements.hero.title" = "代表バッジ";
+"achievements.hero.explanation" = "解除済みのバッジから今の代表を 1 つ選んでください。";
+"achievements.hero.picker_title" = "代表バッジを選ぶ";
+"achievements.hero.picker_empty" = "最初のランを完了すると、最初のバッジが解除されます。";
+"achievements.hero.unlocked_at" = "%@ 解除";
+"achievements.hero.no_selection" = "まだ代表バッジを選んでいません";
+"achievements.empty.title" = "トレーニングストーリーを始める";
+"achievements.empty.start" = "ランを完了して同期すると、Paceriz が実績を整理し始めます。";
+"achievements.backfill.ready" = "Paceriz のトレーニング履歴を整理しました。";
+"achievements.backfill.count" = "履歴から %d 個のバッジを整理しました。";
+"achievements.pb.title" = "自己ベスト";
+"achievements.pb.explanation" = "標準距離の自己ベストをここで見返して共有できます。";
+"achievements.pb.empty" = "標準距離の自己ベストはまだありません。";
+"achievements.pb.record" = "記録";
+"achievements.stats.title" = "累積記録";
+"achievements.stats.explanation" = "同期された Paceriz トレーニングから累積データを整理します。";
+"achievements.stats.total_runs" = "ラン回数";
+"achievements.stats.total_distance" = "総距離";
+"achievements.stats.completed_weeks" = "完了週";
+"achievements.stats.longest_run" = "最長ラン";
+"achievements.stats.first_workout" = "初回記録";
+"achievements.stats.kilometers" = "%@ km";
+"achievements.insights.title" = "トレーニングメモリー";
+"achievements.insights.explanation" = "Paceriz があなたの履歴から整理した積み重ねです。";
+"achievements.share.title" = "最近の成果";
+"achievements.share.explanation" = "最近見返したいPB、バッジ、トレーニング成果です。";
+"achievements.share.item" = "成果";
+"achievements.share.action" = "シェア";
+"achievements.share.preview_title" = "シェアプレビュー";
+"achievements.share.privacy_title" = "プライバシー保護";
+"achievements.share.privacy_body" = "心拍、ルート、GPS軌跡、ペース時系列はシェアカードに含まれません。";
+"achievements.share.public_fields" = "公開される項目";
+"achievements.share.default_public_fields" = "このカードにはタイトル、チャプター、日付、公開サマリーだけが含まれます。";
+"achievements.share.sensitive_excluded" = "ルート、GPS、心拍、睡眠、けが、workout ID、email、uid、詳しいメニューは含まれません。";
+"achievements.share.privacy_footer" = "Paceriz トレーニング成果";
+"achievements.share.badge_label" = "バッジ";
+"achievements.share.tag_new_pb" = "新PB";
+"achievements.share.tag_new_badge" = "新バッジ";
+"achievements.share.tag_pb_and_badge" = "新PB＋バッジ";
+"achievements.badges.title" = "バッジコレクション";
+"achievements.badges.explanation" = "獲得済みと累積中のバッジを確認できます。";
+"achievements.badges.badge" = "バッジ";
+"achievements.badges.historical" = "履歴";
+"achievements.badges.progress" = "%d / %d 解除済み";
+"achievements.badges.empty_preview" = "トレーニングが増えると代表バッジがここに表示されます。";
+"achievements.detail.title" = "実績の詳細";
+"achievements.detail.story" = "ストーリー";
+"achievements.detail.progress" = "進捗";
+"achievements.detail.source" = "ソース";
+"achievements.detail.historical" = "この実績は過去のトレーニングデータから整理されました。";
+"achievements.detail.unlocked_at" = "解除日 %@";
+"achievements.detail.criteria_unavailable" = "解除条件は現在利用できません";
+"achievements.detail.criteria" = "解除方法";
+"achievements.status.unlocked" = "解除済み";
+"achievements.status.in_progress" = "進行中";
+"achievements.status.locked" = "これから";
+"achievements.status.insufficient_data" = "データ不足";
+"achievements.status.unknown" = "不明";
+"achievements.chapter.start" = "はじめの一歩";
+"achievements.chapter.build" = "積み重ね";
+"achievements.chapter.adapt" = "スマート調整";
+"achievements.chapter.prove" = "成果突破";
+"achievements.chapter.identity" = "ランナー像";
+"achievements.chapter.unknown" = "その他";
+"achievements.action.pin" = "ホームに固定";
+"achievements.action.unpin" = "ホームから外す";
+"achievements.error.load_failed" = "実績を読み込めません";
+"achievements.insight.completed_weeks" = "Paceriz で %@ 週のトレーニングを完了しました。";
+"achievements.insight.smart_adjustments" = "%@ 回のスマートな調整を受け入れました。";
+"achievements.insight.training_companion_time" = "Paceriz は %@ 週のトレーニングを支えています。";
+"achievements.share.summary.badge" = "Paceriz のトレーニングストーリーから確認済みのバッジです。";
+"achievements.share.summary.pb" = "Paceriz の履歴から確認済みの自己ベストです。";
+"achievements.share.badge.summary" = "Paceriz のトレーニングで獲得したバッジです。";
+"achievements.track.rhythm.title" = "トレーニングリズム";
+"achievements.track.rhythm.story" = "有効なトレーニング週を重ねて、安定したリズムを作ります。";
+"achievements.track.plan.title" = "プラン実行";
+"achievements.track.plan.story" = "Paceriz のプランにしっかり沿った週を完了して進めます。";
+"achievements.track.results.title" = "成果突破";
+"achievements.track.results.story" = "目標、レース、PB、新しい距離から信頼できる成果を集めます。";
+"achievements.progress.unit.week" = "週";
+"achievements.progress.unit.count" = "件";
+"achievements.badge.rhythm.first_active_week.name" = "最初のアクティブ週";
+"achievements.badge.rhythm.first_active_week.story" = "Paceriz に最初のアクティブなトレーニング週を残しました。";
+"achievements.badge.rhythm.return_week.name" = "リズム復帰";
+"achievements.badge.rhythm.return_week.story" = "戻ってきて、もう 1 つアクティブな週を積み重ねました。";
+"achievements.badge.rhythm.four_week_rhythm.name" = "4週リズム";
+"achievements.badge.rhythm.four_week_rhythm.story" = "4つのアクティブ週をランニングリズムにできました。";
+"achievements.badge.rhythm.eight_week_rhythm.name" = "8週リズム";
+"achievements.badge.rhythm.eight_week_rhythm.story" = "8週にわたってアクティブなトレーニングリズムを保ちました。";
+"achievements.badge.rhythm.season_runner.name" = "シーズンランナー";
+"achievements.badge.rhythm.season_runner.story" = "12週のシーズンを通してトレーニングを継続しました。";
+"achievements.badge.rhythm.half_year_runner.name" = "半年ランナー";
+"achievements.badge.rhythm.half_year_runner.story" = "半年分のトレーニング週で継続して取り組みました。";
+"achievements.badge.rhythm.year_runner.name" = "年間ランナー";
+"achievements.badge.rhythm.year_runner.story" = "1年続くランニングリズムを作りました。";
+"achievements.badge.plan.plan_started.name" = "プラン開始";
+"achievements.badge.plan.plan_started.story" = "Paceriz のトレーニングプランを開始しました。";
+"achievements.badge.plan.first_qualified_week.name" = "最初のプラン週";
+"achievements.badge.plan.first_qualified_week.story" = "プランにしっかり沿った最初のトレーニング週を完了しました。";
+"achievements.badge.plan.two_qualified_weeks.name" = "2つのプラン週";
+"achievements.badge.plan.two_qualified_weeks.story" = "プランにしっかり沿った週を 2 つ完了しました。";
+"achievements.badge.plan.four_qualified_weeks.name" = "4つのプラン週";
+"achievements.badge.plan.four_qualified_weeks.story" = "Paceriz の有効なプラン週を 4 つ完了しました。";
+"achievements.badge.plan.eight_qualified_weeks.name" = "8つのプラン週";
+"achievements.badge.plan.eight_qualified_weeks.story" = "Paceriz の有効なプラン週を 8 つ完了しました。";
+"achievements.badge.plan.twelve_qualified_weeks.name" = "12のプラン週";
+"achievements.badge.plan.twelve_qualified_weeks.story" = "Paceriz の有効なプラン週を 12 完了しました。";
+"achievements.badge.plan.twenty_four_qualified_weeks.name" = "24のプラン週";
+"achievements.badge.plan.twenty_four_qualified_weeks.story" = "Paceriz の有効なプラン週を 24 完了しました。";
+"achievements.badge.results.first_major_result.name" = "最初の重要成果";
+"achievements.badge.results.first_major_result.story" = "Paceriz で最初の信頼できる成果を得ました。";
+"achievements.badge.results.three_major_results.name" = "3つの重要成果";
+"achievements.badge.results.three_major_results.story" = "信頼できるトレーニングまたはレース成果を 3 つ集めました。";
+"achievements.badge.results.five_major_results.name" = "5つの重要成果";
+"achievements.badge.results.five_major_results.story" = "ランニングから信頼できる成果を 5 つ集めました。";
+"achievements.badge.results.ten_major_results.name" = "10の重要成果";
+"achievements.badge.results.ten_major_results.story" = "ランニングから信頼できる成果を 10 集めました。";
+"achievements.badge.results.twenty_major_results.name" = "20の重要成果";
+"achievements.badge.results.twenty_major_results.story" = "時間をかけて信頼できる成果を 20 集めました。";
+"achievements.badge.results.collector.name" = "成果コレクター";
+"achievements.badge.results.collector.story" = "信頼できるランニング成果の深い記録を作りました。";
+"achievements.badge.rhythm.next_action" = "もう 1 つアクティブなトレーニング週を完了しましょう。";
+"achievements.badge.plan.next_action_start" = "Paceriz のトレーニングプランを開始しましょう。";
+"achievements.badge.plan.next_action" = "もう 1 つ有効なプラン週を完了しましょう。";
+"achievements.badge.results.next_action" = "もう 1 つ信頼できる成果を記録しましょう。";
+"achievements.badge.start.first_run.name" = "初めてのラン";
+"achievements.badge.start.first_run.story" = "Paceriz に最初のランを記録しました。";
+"achievements.badge.start.plan_started.name" = "プラン開始";
+"achievements.badge.start.plan_started.story" = "Paceriz のトレーニングプランを開始しました。";
+"achievements.badge.start.first_week.name" = "最初の週を完了";
+"achievements.badge.start.first_week.story" = "最初のトレーニング週を完了しました。";
+"achievements.badge.start.first_long_run.name" = "初めてのロングラン";
+"achievements.badge.start.first_long_run.story" = "初めてのロングランを完了しました。";
+"achievements.badge.start.first_recovery.name" = "初めての回復";
+"achievements.badge.start.first_recovery.story" = "回復をトレーニングのリズムに入れました。";
+"achievements.badge.build.showing_up.name" = "継続参加";
+"achievements.badge.build.showing_up.story" = "安定してトレーニングを残し始めました。";
+"achievements.badge.build.routine_builder.name" = "リズム作り";
+"achievements.badge.build.routine_builder.story" = "ランを続けられるリズムにしています。";
+"achievements.badge.build.eight_week_block.name" = "8週ブロック";
+"achievements.badge.build.eight_week_block.story" = "意味のあるトレーニングブロックを完了しました。";
+"achievements.badge.build.long_run_done.name" = "ロングラン完了";
+"achievements.badge.build.long_run_done.story" = "今週のロングランを完了しました。";
+"achievements.badge.build.weekly_goal.name" = "週間目標";
+"achievements.badge.build.weekly_goal.story" = "今週のトレーニング目標を完了しました。";
+"achievements.badge.build.volume_base.name" = "有酸素ベース";
+"achievements.badge.build.volume_base.story" = "安定した走行距離の土台を作っています。";
+"achievements.badge.build.plan_finisher.name" = "プラン完了";
+"achievements.badge.build.plan_finisher.story" = "トレーニングプランを最後まで完了しました。";
+"achievements.badge.adapt.recovery_earned.name" = "回復も練習";
+"achievements.badge.adapt.recovery_earned.story" = "必要な回復を完了しました。";
+"achievements.badge.adapt.load_balanced.name" = "負荷バランス";
+"achievements.badge.adapt.load_balanced.story" = "トレーニング負荷をより安定した範囲に保ちました。";
+"achievements.badge.adapt.heat_adjusted.name" = "暑さ調整";
+"achievements.badge.adapt.heat_adjusted.story" = "暑さに合わせて調整し、練習の質を保ちました。";
+"achievements.badge.adapt.comeback.name" = "安全な復帰";
+"achievements.badge.adapt.comeback.story" = "無理なくトレーニングに戻りました。";
+"achievements.badge.adapt.rest_week.name" = "回復週";
+"achievements.badge.adapt.rest_week.story" = "回復が必要な週を尊重しました。";
+"achievements.badge.adapt.smart_skip.name" = "賢いスキップ";
+"achievements.badge.adapt.smart_skip.story" = "無理に行うべきでない練習を避けました。";
+"achievements.badge.adapt.pace_patience.name" = "ペースの忍耐";
+"achievements.badge.adapt.pace_patience.story" = "適切な強度帯で練習を続けました。";
+"achievements.badge.prove.new_pb.name" = "新PB";
+"achievements.badge.prove.new_pb.story" = "積み重ねが新しい自己ベストになりました。";
+"achievements.badge.prove.first_5k.name" = "初めての5K";
+"achievements.badge.prove.first_5k.story" = "初めての5K記録を残しました。";
+"achievements.badge.prove.first_10k.name" = "初めての10K";
+"achievements.badge.prove.first_10k.story" = "初めての10K記録を残しました。";
+"achievements.badge.prove.first_half.name" = "初めてのハーフ";
+"achievements.badge.prove.first_half.story" = "初めてハーフマラソン距離を完了しました。";
+"achievements.badge.prove.first_marathon.name" = "初めてのフル";
+"achievements.badge.prove.first_marathon.story" = "初めてマラソン距離を完了しました。";
+"achievements.badge.prove.distance_breakthrough.name" = "距離突破";
+"achievements.badge.prove.distance_breakthrough.story" = "最長距離を一歩伸ばしました。";
+"achievements.badge.prove.race_ready.name" = "レース準備完了";
+"achievements.badge.prove.race_ready.story" = "スタートラインに立てるだけの積み重ねができました。";
+"achievements.badge.prove.goal_completed.name" = "目標達成";
+"achievements.badge.prove.goal_completed.story" = "自分で設定した目標を完了しました。";
+"achievements.badge.identity.5k_runner.name" = "5Kランナー";
+"achievements.badge.identity.5k_runner.story" = "5K があなたのランニングの一部になりました。";
+"achievements.badge.identity.10k_runner.name" = "10Kランナー";
+"achievements.badge.identity.10k_runner.story" = "10K があなたのランニングの一部になりました。";
+"achievements.badge.identity.half_marathoner.name" = "ハーフランナー";
+"achievements.badge.identity.half_marathoner.story" = "ハーフマラソンがあなたのランニングの一部になりました。";
+"achievements.badge.identity.marathon_builder.name" = "マラソン構築中";
+"achievements.badge.identity.marathon_builder.story" = "マラソンに向けた力を積み上げています。";
+"achievements.badge.identity.consistent_runner.name" = "継続ランナー";
+"achievements.badge.identity.consistent_runner.story" = "継続した練習があなたの特徴になっています。";
+"achievements.badge.identity.smart_trainer.name" = "スマートトレーナー";
+"achievements.badge.identity.smart_trainer.story" = "進める時と調整する時を理解しています。";
+"achievements.badge.identity.pb_hunter.name" = "PBハンター";
+"achievements.badge.identity.pb_hunter.story" = "積み重ねを新しい結果につなげています。";
+"achievements.field.chapter" = "チャプター";
+"achievements.field.date" = "日付";
+"achievements.field.result" = "結果";
+"achievement.source.weekly_summary" = "週間サマリー";
+"achievement.source.pb" = "自己ベスト";
+"achievement.source.workout" = "ワークアウトサマリー";
+"achievement.progress.current_target" = "%@ / %@ 完了";
+"achievements.insight.training_rhythm" = "あなたは主に曜日 %@ にトレーニングを記録しています。";
+"achievements.insight.pb_context" = "%@ 件の PB は %@ 週の積み重ねから生まれました。";
+"achievements.share.pb.title" = "自己ベスト";
+"achievements.share.pb.summary" = "Paceriz の履歴から確認された %@ PB です。";
+"achievements.share.week_complete.title" = "トレーニング週完了";
+"achievements.share.week_complete.summary" = "Paceriz のトレーニング週を完了しました。";
+"achievements.share.insight.summary" = "Paceriz がトレーニング履歴から整理した公開インサイトです。";
+"achievements.reason.badge_start_first_run" = "最初の有効なランを完了して同期しました。";
+"achievements.reason.badge_start_plan_started" = "最初の Paceriz トレーニングプランを開始しました。";
+"achievements.reason.badge_start_first_week" = "最初のトレーニング週を完了しました。";
+"achievements.reason.badge_start_first_long_run" = "最初のロングランを完了しました。";
+"achievements.reason.badge_start_first_recovery" = "最初の回復ランを完了しました。";
+"achievements.reason.badge_build_showing_up" = "安定したトレーニングリズムを作り始めました。";
+"achievements.reason.badge_build_routine_builder" = "主要なトレーニング週を複数週続けて完了しました。";
+"achievements.reason.badge_build_eight_week_block" = "安全なトレーニングブロックを完了しました。";
+"achievements.reason.badge_build_long_run_done" = "今週のロングランを完了しました。";
+"achievements.reason.badge_build_weekly_goal" = "今週の主なトレーニング目標を完了しました。";
+"achievements.reason.badge_build_volume_base" = "安全な範囲で有酸素ベースを作りました。";
+"achievements.reason.badge_build_plan_finisher" = "Paceriz のトレーニングプランを完了しました。";
+"achievements.reason.badge_adapt_recovery_earned" = "回復をトレーニングリズムに組み込みました。";
+"achievements.reason.badge_adapt_load_balanced" = "管理しやすい負荷範囲でトレーニングを完了しました。";
+"achievements.reason.badge_adapt_heat_adjusted" = "天候や暑さに合わせて調整し、トレーニングを完了しました。";
+"achievements.reason.badge_adapt_comeback" = "中断後に安全にトレーニングへ戻りました。";
+"achievements.reason.badge_adapt_rest_week" = "無理に負荷を増やさず回復週を尊重しました。";
+"achievements.reason.badge_adapt_smart_skip" = "リスクや状態に合わせて妥当な調整を行いました。";
+"achievements.reason.badge_adapt_pace_patience" = "意図された強度範囲でトレーニングを完了しました。";
+"achievements.reason.badge_prove_new_pb" = "標準距離の自己ベストを更新しました。";
+"achievements.reason.badge_prove_first_5k" = "最初の 5K 距離記録を完了しました。";
+"achievements.reason.badge_prove_first_10k" = "最初の 10K 距離記録を完了しました。";
+"achievements.reason.badge_prove_first_half" = "最初のハーフマラソン距離記録を完了しました。";
+"achievements.reason.badge_prove_first_marathon" = "最初のマラソン距離記録を完了しました。";
+"achievements.reason.badge_prove_distance_breakthrough" = "最長ラン距離を更新しました。";
+"achievements.reason.badge_prove_race_ready" = "レース前の重要なトレーニングを完了しました。";
+"achievements.reason.badge_prove_goal_completed" = "主なトレーニング目標を完了しました。";
+"achievements.reason.badge_id_5k_runner" = "5K がランニング履歴の一部になりました。";
+"achievements.reason.badge_id_10k_runner" = "10K がランニング履歴の一部になりました。";
+"achievements.reason.badge_id_half_marathoner" = "ハーフマラソン距離がランニング履歴の一部になりました。";
+"achievements.reason.badge_id_marathon_builder" = "マラソンに向けた力を作っています。";
+"achievements.reason.badge_id_consistent_runner" = "継続したトレーニングがランナー像の一部になりました。";
+"achievements.reason.badge_id_smart_trainer" = "継続力と調整力の両方を育てています。";
+"achievements.reason.badge_id_pb_hunter" = "最近のトレーニングが新しい PB 記録につながりました。";
+
+// MARK: - Badge Criteria（解除方法、35 badges × ja）
+// Chapter: Start
+"achievements.badge.start.first_run.criteria" = "最初のランを完了して同期するだけで解除できます。";
+"achievements.badge.start.plan_started.criteria" = "Paceriz で最初のトレーニングプランを開始すると解除できます。";
+"achievements.badge.start.first_week.criteria" = "週間走行距離がプランの目標に達し、最初のトレーニング週を完了すると解除できます。";
+"achievements.badge.start.first_long_run.criteria" = "12 km 以上のランを完了して同期すると解除できます。";
+"achievements.badge.start.first_recovery.criteria" = "Paceriz のプランに組まれた回復ランを完了すると解除できます。";
+// Chapter: Build
+"achievements.badge.build.showing_up.criteria" = "未完了の週を含め、Paceriz に 2 週分のトレーニング記録を積み重ねると解除できます。";
+"achievements.badge.build.routine_builder.criteria" = "週間目標距離を達成したトレーニング週を 4 週完了すると解除できます。";
+"achievements.badge.build.eight_week_block.criteria" = "安全な走行距離の範囲を超えずに 8 週のトレーニングを完了すると解除できます。";
+"achievements.badge.build.long_run_done.criteria" = "今週プランに組まれたロングラン（12 km 以上）を完了すると解除できます。";
+"achievements.badge.build.weekly_goal.criteria" = "週間走行距離の目標を達成し、今週のトレーニング目標を完了すると解除できます。";
+"achievements.badge.build.volume_base.criteria" = "安全な走行距離の範囲を超えずに 4 週のトレーニングを完了すると解除できます。";
+"achievements.badge.build.plan_finisher.criteria" = "Paceriz のトレーニングプランを最初から最後まで完走すると解除できます。";
+// Chapter: Adapt
+"achievements.badge.adapt.recovery_earned.criteria" = "プランに組まれた回復週（走行量を減らし強度を落とした週）を完了すると解除できます。";
+"achievements.badge.adapt.load_balanced.criteria" = "安全な走行距離の範囲内に収まりながらトレーニング週を完了する（目標達成かつ超えない）と解除できます。";
+"achievements.badge.adapt.heat_adjusted.criteria" = "Paceriz が高温を検知してペースを調整します。調整後のペースでランを完了すると自動的に獲得できます。";
+"achievements.badge.adapt.comeback.criteria" = "休止後にトレーニングを再開すると、Paceriz が安全なペースで戻ったことを自動検知して付与します。";
+"achievements.badge.adapt.rest_week.criteria" = "Paceriz が組んだ回復週を、無理に強度を上げずそのまま完了すると解除できます。";
+"achievements.badge.adapt.smart_skip.criteria" = "Paceriz が無理すべきでないと判断したセッションをスキップまたは調整すると、自動的に付与されます。";
+"achievements.badge.adapt.pace_patience.criteria" = "Paceriz が、イージーランまたは回復ランで適切なペース帯を維持したことを検知すると自動的に獲得できます。";
+// Chapter: Prove
+"achievements.badge.prove.new_pb.criteria" = "5K・10K・ハーフ・フルマラソンのいずれかの標準距離で新しい自己ベストを出すと解除できます。";
+"achievements.badge.prove.first_5k.criteria" = "5 km 以上のランを完了して同期すると解除できます。";
+"achievements.badge.prove.first_10k.criteria" = "10 km 以上のランを完了して同期すると解除できます。";
+"achievements.badge.prove.first_half.criteria" = "21 km 以上（ハーフマラソン距離）のランを完了して同期すると解除できます。";
+"achievements.badge.prove.first_marathon.criteria" = "42 km 以上（マラソン距離）のランを完了して同期すると解除できます。";
+"achievements.badge.prove.distance_breakthrough.criteria" = "ランを続けて、単回の最長距離を少しずつ更新していくと解除できます。";
+"achievements.badge.prove.race_ready.criteria" = "継続したトレーニングで Paceriz の総合準備度スコアが 90% 以上になり、高リスク警告がない状態になると解除できます。";
+"achievements.badge.prove.goal_completed.criteria" = "Paceriz で設定した目標（目標距離の完走またはレースタイムの達成）を果たすと解除できます。";
+// Chapter: Identity
+"achievements.badge.identity.5k_runner.criteria" = "5 km 以上のランを完了し、2 週以上のトレーニング記録を積み重ねると解除できます。";
+"achievements.badge.identity.10k_runner.criteria" = "10 km 以上のランを完了し、4 週以上のトレーニング記録を積み重ねると解除できます。";
+"achievements.badge.identity.half_marathoner.criteria" = "21 km 以上（ハーフマラソン距離）のランを完了すると解除できます。";
+"achievements.badge.identity.marathon_builder.criteria" = "20 km 以上のランを完了し、8 週以上のトレーニング記録を積み重ねると解除できます。";
+"achievements.badge.identity.consistent_runner.criteria" = "8 週以上のトレーニング期間に、少なくとも 6 週を安全な走行距離の範囲内で維持すると解除できます。";
+"achievements.badge.identity.smart_trainer.criteria" = "4 週のトレーニングを完了し、その中で回復週の完了または Paceriz の暑さ推奨調整を少なくとも 1 回行うと解除できます。";
+"achievements.badge.identity.pb_hunter.criteria" = "30 日以内に 2 つ以上の標準距離でそれぞれ自己ベストを更新すると解除できます。";
+
+// MARK: - Debug Tools
+"debug.confirm_delete" = "テストデータを削除してもよろしいですか？";
+"debug.delete_by_time_range" = "期間で削除";
+"debug.delete_marked_only" = "マーク済みのテスト記録のみ削除";
+"debug.delete_all" = "すべてのデータを削除";
+"debug.select_delete_method" = "削除方法を選択してください。期間指定では、選択した期間内のすべてのワークアウト記録を削除できます。";
+"debug.sync_status" = "同期状態";
+"debug.refresh_status" = "更新状態";
+"debug.test_features" = "テスト機能";
+"debug.create_test_workout" = "テストワークアウトを作成";
+"debug.manual_check_upload" = "手動で確認してアップロード";
+"debug.test_notification" = "通知をテスト";
+"debug.clear_upload_history" = "アップロード履歴を消去";
+"debug.test_data_management" = "テストデータ管理";
+"debug.delete_test_data" = "テストデータを削除";
+"debug.find_workouts" = "ワークアウトを検索";
+"debug.delete_warning" = "削除機能は HealthKit のワークアウト記録を削除します。慎重に操作してください。削除後は復元できません。";
+"debug.health_kit_observer" = "HealthKit オブザーバー設定";
+"debug.test_observer" = "オブザーバー設定をテスト";
+"debug.operation_log" = "操作ログ";
+"debug.select_time_range" = "期間を選択";
+"debug.found_workouts" = "見つかったワークアウト";
+"debug.delete_all_records" = "すべての記録を削除（%d）";
+"debug.delete_warning_message" = "警告：この操作は、これらのワークアウト記録をヘルスデータから完全に削除します。";
+"debug.confirm_delete_title" = "削除を確認";
+"debug.confirm_delete_message" = "%d 件のワークアウト記録を HealthKit データから完全に削除します。この操作は元に戻せません。";
+"debug.created_test_workout" = "テストワークアウト ID を作成しました: %@";
+
+// MARK: - Feedback / Timezone
+"feedback.category.uncategorized" = "未分類";
+"timezone.change_confirm" = "タイムゾーンを変更";
+
+// MARK: - i18n Release Gate Additions
+"common.initializing" = "初期化中...";
+"common.add" = "追加";
+"common.reset" = "リセット";
+"force_update.title" = "Paceriz の更新が必要です";
+"force_update.message" = "アプリのバージョンが古くなっています。続行するには App Store で最新版に更新してください。";
+"force_update.cta" = "App Store で更新";
+"message_center.empty" = "お知らせはありません";
+"message_center.title" = "メッセージセンター";
+"message_center.full_text" = "全文";
+"training.week_progress_format" = "%d / %d 週";
+"training.phases_count" = "%d フェーズ";
+"training.intensity.low_short" = "低 %d%%";
+"training.intensity.medium_short" = "中 %d%%";
+"training.intensity.high_short" = "高 %d%%";
+"performance.unknown_workout" = "不明なワークアウト";
+"performance.performance_index_format" = "パフォーマンス指数: %.1f";
+"performance.gait_metric_picker" = "歩行指標";
+"performance.heat_adaptation" = "暑熱適応";
+"profile_view.contact_facebook_page" = "Facebook ページ";
+"share_card.title" = "シェアカード";
+"share_card.metric.distance_km" = "距離 (km)";
+"share_card.metric.total_time" = "合計時間";
+"share_card.metric.avg_pace" = "平均ペース";
+"share_card.tutorial.title" = "シェアカード編集ガイド";
+"share_card.tutorial.start_editing" = "編集を開始";
+"share_card.tutorial.edit_title.title" = "タイトルまたは AI レビューをタップ";
+"share_card.tutorial.edit_title.description" = "テキスト内容を編集または削除できます。";
+"share_card.tutorial.add_text.title" = "テキストを追加";
+"share_card.tutorial.add_text.description" = "自由に移動できるカスタムテキストを追加します。";
+"share_card.tutorial.layout_size.title" = "レイアウトとサイズ";
+"share_card.tutorial.layout_size.description" = "レイアウトスタイルと画像サイズを切り替えます。";
+"share_card.tutorial.choose_photo.title" = "写真を選択";
+"share_card.tutorial.choose_photo.description" = "背景写真を変更し、位置を調整します。";
+"share_card.editor.title" = "シェアカードを作成";
+"share_card.editor.edit_achievement_title" = "実績タイトルを編集";
+"share_card.editor.edit_ai_review" = "AI レビューを編集";
+"share_card.editor.add_free_text" = "自由テキストを追加";
+"share_card.editor.edit_text" = "テキストを編集";
+"share_card.editor.add_free_text_message" = "シェアカードに自分のテキストを追加できます。";
+"share_card.editor.edit_text_message" = "テキスト内容を変更します。";
+"share_card.editor.title_placeholder" = "タイトルを入力（最大50文字）";
+"share_card.editor.ai_review_placeholder" = "AI レビューを入力（最大80文字）";
+"share_card.editor.free_text_placeholder" = "テキストを入力（最大30文字）";
+"share_card.editor.layout" = "レイアウト";
+"share_card.editor.size" = "サイズ";
+"share_card.editor.add_text" = "テキストを追加";
+"edit_schedule.add_strength_training" = "筋力トレーニングを追加";
+"edit_schedule.convert_to_strength_day" = "筋力トレーニング日に変更";
+"edit_schedule.work_time" = "作業時間";
+"edit_schedule.select_work_time" = "作業時間を選択";
+"edit_schedule.reapply_defaults" = "デフォルトを再適用";
+"edit_schedule.change_to_rest_day" = "休息日に変更";
+"edit_schedule.type_change_alert" = "種類を変更すると現在のエクササイズ一覧が消去されます。続行しますか？";
+"edit_schedule.remove_strength_training" = "筋力トレーニングを削除";
+"edit_schedule.easy_training_section" = "イージートレーニング";
+"edit_schedule.intensity_training_section" = "高強度トレーニング";
+"edit_schedule.long_distance_training_section" = "長距離トレーニング";
+"edit_schedule.other_training_section" = "その他";

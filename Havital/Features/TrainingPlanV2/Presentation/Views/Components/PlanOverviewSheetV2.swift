@@ -17,6 +17,7 @@ struct PlanOverviewSheetV2: View {
     @State private var showStageSelection = false
     @State private var pendingWeeksRemaining: Int = 12
     @State private var pendingDistanceKm: Double = 42.195
+    // AC-IOS-ANALYTICS-P1-12: dedup flag lifted to TrainingPlanV2ViewModel.hasTrackedPlanOverviewView
 
     init(viewModel: TrainingPlanV2ViewModel, initialTab: Int = 0) {
         self.viewModel = viewModel
@@ -92,6 +93,15 @@ struct PlanOverviewSheetV2: View {
             .navigationTitle(viewModel.loader.trainingPlanName)
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier("v2.overview.screen")
+            // AC-IOS-ANALYTICS-P1-12: plan_overview_view.
+            // onAppear fires when overview is already loaded; onChange covers async load race.
+            // hasTrackedPlanOverviewView dedup prevents double-fire from race condition.
+            .onAppear {
+                trackPlanOverviewViewIfNeeded()
+            }
+            .onChange(of: viewModel.loader.planOverview) { _, _ in
+                trackPlanOverviewViewIfNeeded()
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(NSLocalizedString("common.close", comment: "Close")) {
@@ -175,6 +185,14 @@ struct PlanOverviewSheetV2: View {
                 }
             }
         }
+    }
+
+    // MARK: - AC-IOS-ANALYTICS-P1-12
+
+    /// Fire plan_overview_view once per sheet presentation, when overview data is available.
+    private func trackPlanOverviewViewIfNeeded() {
+        guard let overview = viewModel.loader.planOverview else { return }
+        viewModel.markPlanOverviewTracked(overviewId: overview.id, targetType: overview.targetType)
     }
 }
 
@@ -669,12 +687,12 @@ private struct TrainingOverviewTabV2: View {
                 if !methodology.phases.isEmpty || methodology.crossTrainingEnabled {
                     HStack(spacing: 10) {
                         if !methodology.phases.isEmpty {
-                            Label("\(methodology.phases.count) 個階段", systemImage: "flag.fill")
+                            Label(L10n.Training.phasesCount.localized(with: methodology.phases.count), systemImage: "flag.fill")
                                 .font(AppFont.caption2())
                                 .foregroundColor(.secondary)
                         }
                         if methodology.crossTrainingEnabled {
-                            Label("交叉訓練", systemImage: "figure.cross.training")
+                            Label(L10n.Training.TrainingType.crossTraining.localized, systemImage: "figure.cross.training")
                                 .font(AppFont.caption2())
                                 .foregroundColor(.teal)
                         }

@@ -20,6 +20,17 @@ protocol SubscriptionRepository {
 
     // MARK: - ADR-002: 購買介面（RevenueCat 就緒後啟用）
 
+    /// 目前 RC current offering 的 identifier（例如 "default" 或 "early_bird"）。
+    /// nil 表示 offerings 尚未 fetch 或 RC 無 current offering。
+    var currentOfferingIdentifier: String? { get }
+
+    /// 判定目前是否為早鳥 offering。
+    /// 條件（OR）：
+    ///   1. currentOfferingIdentifier == Constants.IAP.earlyBirdOfferingIdentifier
+    ///   2. 任一 package 的 productIdentifier 在 Constants.IAP.earlyBirdProductIDs 內
+    /// 雙條件 OR 設計：對 RC offering identifier 改名有抵抗性。
+    var isEarlyBirdOffering: Bool { get }
+
     /// 取得可用訂閱方案列表
     func fetchOfferings() async throws -> [SubscriptionOfferingEntity]
 
@@ -44,4 +55,12 @@ extension SubscriptionRepository {
             )
         )
     }
+
+    /// Default implementation: nil (offerings not yet fetched).
+    /// Concrete implementations that cache RC Offerings override this.
+    var currentOfferingIdentifier: String? { nil }
+
+    /// Default implementation: false (no early-bird detection without RC offerings cache).
+    /// Concrete implementations that cache RC Offerings override this.
+    var isEarlyBirdOffering: Bool { false }
 }

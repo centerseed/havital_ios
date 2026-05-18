@@ -170,13 +170,9 @@ struct DateFormatterHelper {
         }
 
 
-        // 今天
-        var calendar = Calendar.current
-        if let userTimezone = UserPreferencesManager.shared.timezonePreference,
-           let tz = TimeZone(identifier: userTimezone) {
-            calendar.timeZone = tz
-        }
+        let calendar = userCalendar
 
+        // 今天
         if calendar.isDateInToday(date) {
             return String(format: NSLocalizedString("date.today_at", bundle: bundle, comment: "今天 %@"), formatTime(date))
         }
@@ -190,14 +186,50 @@ struct DateFormatterHelper {
         if interval < 7 * 24 * 3600 {
             let weekdayFormatter = DateFormatter()
             weekdayFormatter.dateFormat = "EEEE HH:mm"
-            if let userTimezone = UserPreferencesManager.shared.timezonePreference {
-                weekdayFormatter.timeZone = TimeZone(identifier: userTimezone) ?? .current
-            }
+            weekdayFormatter.timeZone = calendar.timeZone
             return weekdayFormatter.string(from: date)
         }
 
         // 其他情況顯示完整日期時間
         return formatDateTime(date)
+    }
+
+    /// 格式化為訓練紀錄卡片用的相對時間（今天 HH:mm / 昨天 HH:mm / N 天前 / 一週前 / 完整日期）
+    /// - Parameter date: 要格式化的日期
+    /// - Returns: 相對時間字串，適合訓練紀錄列表卡片顯示
+    static func formatRelativeForWorkoutCard(_ date: Date) -> String {
+        let interval = Date().timeIntervalSince(date)
+        guard interval >= 0 else { return formatDateTime(date) }
+
+        let calendar = userCalendar
+
+        if calendar.isDateInToday(date) {
+            return String(format: NSLocalizedString("date.today_at", bundle: bundle, comment: "今天 %@"), formatTime(date))
+        }
+        if calendar.isDateInYesterday(date) {
+            return String(format: NSLocalizedString("date.yesterday_at", bundle: bundle, comment: "昨天 %@"), formatTime(date))
+        }
+
+        // Use Calendar.dateComponents for accurate day count (handles DST correctly)
+        let days = calendar.dateComponents([.day], from: date, to: Date()).day ?? 0
+        if days < 7 {
+            return String(format: NSLocalizedString("date.days_ago", bundle: bundle, comment: "%d 天前"), days)
+        }
+        if days < 14 {
+            return NSLocalizedString("date.one_week_ago", bundle: bundle, comment: "一週前")
+        }
+
+        return formatDateTime(date)
+    }
+
+    /// Returns Calendar.current with the user's preferred timezone applied if set.
+    private static var userCalendar: Calendar {
+        var calendar = Calendar.current
+        if let userTimezone = UserPreferencesManager.shared.timezonePreference,
+           let tz = TimeZone(identifier: userTimezone) {
+            calendar.timeZone = tz
+        }
+        return calendar
     }
 
     // MARK: - 訓練計劃相關工具
@@ -310,5 +342,10 @@ extension Date {
     /// 格式化為相對時間
     var formattedRelativeTime: String {
         DateFormatterHelper.formatRelativeTime(self)
+    }
+
+    /// 格式化為訓練紀錄卡片用的相對時間
+    var formattedRelativeForWorkoutCard: String {
+        DateFormatterHelper.formatRelativeForWorkoutCard(self)
     }
 }

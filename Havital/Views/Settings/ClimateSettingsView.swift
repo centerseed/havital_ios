@@ -1,5 +1,8 @@
 import SwiftUI
-import FirebaseAuth
+
+private func climateLocalized(_ key: String) -> String {
+    NSLocalizedString(key, comment: "")
+}
 
 private struct ClimateSettingsPayload: Codable {
     let enabled: Bool
@@ -151,6 +154,90 @@ private struct ClimateAdaptationMetricsResponse: Codable {
     }
 }
 
+private struct ClimateSettingsContext {
+    let profile: ClimateProfileResponse
+    let metrics: ClimateAdaptationMetricsResponse
+}
+
+private protocol ClimateSettingsRepository {
+    func fetchSettingsContext() async throws -> ClimateSettingsContext
+    func updateSettings(_ payload: ClimateSettingsPayload) async throws
+}
+
+private final class ClimateSettingsRemoteDataSource {
+    private let httpClient: HTTPClient
+    private let parser: APIParser
+    private let authSessionRepository: AuthSessionRepository
+
+    init(
+        httpClient: HTTPClient = DependencyContainer.shared.resolve(),
+        parser: APIParser = DefaultAPIParser.shared,
+        authSessionRepository: AuthSessionRepository = DependencyContainer.shared.resolve()
+    ) {
+        self.httpClient = httpClient
+        self.parser = parser
+        self.authSessionRepository = authSessionRepository
+    }
+
+    func fetchSettingsContext() async throws -> ClimateSettingsContext {
+        let uid = try await resolveCurrentUid()
+
+        async let profileResponse = request(
+            ClimateProfileResponse.self,
+            path: "/v1/users/\(uid)/climate/profile",
+            method: .GET
+        )
+        async let metricsResponse = request(
+            ClimateAdaptationMetricsResponse.self,
+            path: "/v1/users/\(uid)/climate/adaptation-metrics",
+            method: .GET
+        )
+
+        let (profile, metrics) = try await (profileResponse, metricsResponse)
+        return ClimateSettingsContext(profile: profile, metrics: metrics)
+    }
+
+    func updateSettings(_ payload: ClimateSettingsPayload) async throws {
+        let uid = try await resolveCurrentUid()
+        let body = try JSONEncoder().encode(payload)
+        _ = try await httpClient.request(
+            path: "/v1/users/\(uid)/climate/settings",
+            method: .PUT,
+            body: body
+        )
+    }
+
+    private func request<T: Codable>(_ type: T.Type, path: String, method: HTTPMethod) async throws -> T {
+        let rawData = try await httpClient.request(path: path, method: method, body: nil)
+        return try ResponseProcessor.extractData(type, from: rawData, using: parser)
+    }
+
+    private func resolveCurrentUid() async throws -> String {
+        if let uid = authSessionRepository.getCurrentUser()?.uid {
+            return uid
+        }
+
+        let currentUser = try await authSessionRepository.fetchCurrentUser()
+        return currentUser.uid
+    }
+}
+
+private final class ClimateSettingsRepositoryImpl: ClimateSettingsRepository {
+    private let remoteDataSource: ClimateSettingsRemoteDataSource
+
+    init(remoteDataSource: ClimateSettingsRemoteDataSource = ClimateSettingsRemoteDataSource()) {
+        self.remoteDataSource = remoteDataSource
+    }
+
+    func fetchSettingsContext() async throws -> ClimateSettingsContext {
+        try await remoteDataSource.fetchSettingsContext()
+    }
+
+    func updateSettings(_ payload: ClimateSettingsPayload) async throws {
+        try await remoteDataSource.updateSettings(payload)
+    }
+}
+
 @MainActor
 private final class ClimateSettingsViewModel: ObservableObject {
     @Published var isLoading = false
@@ -158,44 +245,31 @@ private final class ClimateSettingsViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var profile: ClimateProfileResponse?
     @Published var metrics: ClimateAdaptationMetricsResponse?
-    @Published var enabled = true
+    @Published var enabled = false
     @Published var adaptationLevel = "normal"
     @Published var useManualThreshold = false
     @Published var manualThreshold = 27.0
 
-    func load() async {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            errorMessage = "找不到目前登入使用者。"
-            return
-        }
+    private let repository: ClimateSettingsRepository
 
+    init(repository: ClimateSettingsRepository = ClimateSettingsRepositoryImpl()) {
+        self.repository = repository
+    }
+
+    func load() async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            async let profileResponse = APIClient.shared.request(
-                ClimateProfileResponse.self,
-                path: "/v1/users/\(uid)/climate/profile"
-            )
-            async let metricsResponse = APIClient.shared.request(
-                ClimateAdaptationMetricsResponse.self,
-                path: "/v1/users/\(uid)/climate/adaptation-metrics"
-            )
-
-            let (loadedProfile, loadedMetrics) = try await (profileResponse, metricsResponse)
-            apply(profile: loadedProfile, metrics: loadedMetrics)
+            let context = try await repository.fetchSettingsContext()
+            apply(profile: context.profile, metrics: context.metrics)
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
     func save() async {
-        guard let uid = Auth.auth().currentUser?.uid else {
-            errorMessage = "找不到目前登入使用者。"
-            return
-        }
-
         isSaving = true
         errorMessage = nil
         defer { isSaving = false }
@@ -210,13 +284,7 @@ private final class ClimateSettingsViewModel: ObservableObject {
         )
 
         do {
-            let body = try JSONEncoder().encode(payload)
-            _ = try await APIClient.shared.request(
-                ClimateSettingsPayload.self,
-                path: "/v1/users/\(uid)/climate/settings",
-                method: "PUT",
-                body: body
-            )
+            try await repository.updateSettings(payload)
             await load()
         } catch {
             errorMessage = error.localizedDescription
@@ -227,6 +295,7 @@ private final class ClimateSettingsViewModel: ObservableObject {
         self.profile = profile
         self.metrics = metrics
         enabled = profile.settings.enabled
+        UserDefaults.standard.set(profile.settings.enabled, forKey: "climateAdjustmentEnabled")
         adaptationLevel = profile.settings.adaptationLevel
         if let threshold = profile.settings.manualStartThresholdC {
             useManualThreshold = true
@@ -265,20 +334,20 @@ struct ClimateSettingsView: View {
             }
             .overlay {
                 if viewModel.isLoading {
-                    ProgressView("載入熱適應設定中…")
+                    ProgressView(climateLocalized("climate_settings.loading"))
                 }
             }
-            .navigationTitle("熱適應")
+            .navigationTitle(climateLocalized("climate_settings.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("關閉") { dismiss() }
+                    Button(climateLocalized("common.close")) { dismiss() }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     if viewModel.isSaving {
                         ProgressView()
                     } else {
-                        Button("儲存") {
+                        Button(climateLocalized("common.save")) {
                             Task { await viewModel.save() }
                         }
                         .disabled(viewModel.profile == nil)
@@ -304,31 +373,41 @@ struct ClimateSettingsView: View {
         Section {
             Toggle(isOn: $viewModel.enabled) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("啟用熱適應")
+                    Text(climateLocalized("climate_settings.enable_title"))
                         .font(.headline)
+                    Text(climateLocalized("climate_settings.feels_like_subtitle"))
+                        .font(.footnote.weight(.semibold))
+                        .foregroundColor(.secondary)
                     Text(toggleStatusDescription(profile))
                         .font(.footnote)
                         .foregroundColor(.secondary)
                 }
             }
             .padding(.vertical, 4)
+        } footer: {
+            Text(climateLocalized("climate_settings.effective_notice"))
+                .font(.caption)
+                .foregroundColor(.secondary)
         }
     }
 
     @ViewBuilder
     private func currentStatusSection(_ profile: ClimateProfileResponse) -> some View {
-        Section("目前狀態") {
+        Section(climateLocalized("climate_settings.current_status.section")) {
             if let currentStatus = profile.heatProfile.currentStatus {
-                statusRow("現在是否調整", currentStatus.isAdjusted ? "已調整" : "未調整")
+                statusRow(
+                    climateLocalized("climate_settings.current_status.is_adjusted"),
+                    currentStatus.isAdjusted ? climateLocalized("climate_settings.current_status.adjusted") : climateLocalized("climate_settings.current_status.not_adjusted")
+                )
 
                 if let feelsLike = currentStatus.feelsLikeTempC {
-                    statusRow("目前體感溫度", String(format: "%.1f°C", feelsLike))
+                    statusRow(climateLocalized("climate_settings.current_status.feels_like"), String(format: "%.1f°C", feelsLike))
                 }
 
-                statusRow("配速調整幅度", currentStatusPaceText(currentStatus))
+                statusRow(climateLocalized("climate_settings.current_status.pace_adjustment"), currentStatusPaceText(currentStatus))
 
                 if let longRunText = currentStatusLongRunText(currentStatus) {
-                    statusRow("長跑調整", longRunText)
+                    statusRow(climateLocalized("climate_settings.current_status.long_run_adjustment"), longRunText)
                 }
 
                 if let statusText = currentStatus.statusText, !statusText.isEmpty {
@@ -337,10 +416,10 @@ struct ClimateSettingsView: View {
                         .foregroundColor(.secondary)
                 }
             } else {
-                statusRow("你的設定", profile.heatProfile.uiSummary.currentSettingLabel)
-                statusRow("開始介入", "\(Int(profile.heatProfile.uiSummary.adjustmentStartTempC))°C")
-                statusRow("常見調整幅度", primaryAdjustmentPreview(profile))
-                Text("目前頁面還拿不到『當下是否已調整』；這需要後端補 current status。")
+                statusRow(climateLocalized("climate_settings.your_setting"), profile.heatProfile.uiSummary.currentSettingLabel)
+                statusRow(climateLocalized("climate_settings.adjustment_start"), "\(Int(profile.heatProfile.uiSummary.adjustmentStartTempC))°C")
+                statusRow(climateLocalized("climate_settings.common_adjustment"), primaryAdjustmentPreview(profile))
+                Text(climateLocalized("climate_settings.current_status.unavailable"))
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
@@ -350,33 +429,33 @@ struct ClimateSettingsView: View {
     @ViewBuilder
     private func controlsSection(_ profile: ClimateProfileResponse) -> some View {
         Section {
-            Picker("熱適應程度", selection: $viewModel.adaptationLevel) {
-                Text("未適應／初學").tag("unacclimated")
-                Text("一般").tag("normal")
-                Text("已熱適應").tag("acclimated")
+            Picker(climateLocalized("climate_settings.adaptation_level"), selection: $viewModel.adaptationLevel) {
+                Text(climateLocalized("climate_settings.adaptation.unacclimated")).tag("unacclimated")
+                Text(climateLocalized("climate_settings.adaptation.normal")).tag("normal")
+                Text(climateLocalized("climate_settings.adaptation.acclimated")).tag("acclimated")
             }
 
-            Toggle("手動調整開始溫度", isOn: $viewModel.useManualThreshold)
+            Toggle(climateLocalized("climate_settings.manual_threshold.toggle"), isOn: $viewModel.useManualThreshold)
 
             if viewModel.useManualThreshold {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("開始介入溫度")
+                        Text(climateLocalized("climate_settings.manual_threshold.start_temp"))
                         Spacer()
                         Text(String(format: "%.1f°C", viewModel.manualThreshold))
                             .foregroundColor(.secondary)
                     }
                     Slider(value: $viewModel.manualThreshold, in: 24...30, step: 0.5)
-                    Text("危險等級固定在 \(Int(profile.heatProfile.uiSummary.dangerTempC))°C。")
+                    Text(String(format: climateLocalized("climate_settings.manual_threshold.danger_fixed_format"), Int(profile.heatProfile.uiSummary.dangerTempC)))
                         .font(.footnote)
                         .foregroundColor(.secondary)
                 }
                 .padding(.vertical, 4)
             }
         } header: {
-            Text("你的設定")
+            Text(climateLocalized("climate_settings.your_setting"))
         } footer: {
-            Text("變更只會影響之後新生成的課表，不會回改已生成的結果。")
+            Text(climateLocalized("climate_settings.future_only_footer"))
         }
     }
 
@@ -387,7 +466,7 @@ struct ClimateSettingsView: View {
                 showExplanation = true
             } label: {
                 HStack {
-                    Text("查看熱適應說明")
+                    Text(climateLocalized("climate_settings.explanation.open"))
                         .foregroundColor(.primary)
                     Spacer()
                     Image(systemName: "chevron.right")
@@ -410,19 +489,19 @@ struct ClimateSettingsView: View {
     }
 
     private func primaryAdjustmentPreview(_ profile: ClimateProfileResponse) -> String {
-        profile.heatProfile.interventionRules.compactMap(\.paceText).first ?? "目前未提供"
+        profile.heatProfile.interventionRules.compactMap(\.paceText).first ?? climateLocalized("climate_settings.not_available")
     }
 
     private func toggleStatusDescription(_ profile: ClimateProfileResponse) -> String {
         if viewModel.enabled {
-            return "目前已啟用。系統會在下一次生成課表時，依預報與你的熱適應設定判斷是否要放慢配速或縮短長跑。"
+            return climateLocalized("climate_settings.enabled_description")
         }
-        return "目前已關閉。之後新生成的課表會維持原始配速，不套用熱適應調整。"
+        return climateLocalized("climate_settings.disabled_description")
     }
 
     private func currentStatusPaceText(_ currentStatus: ClimateCurrentStatus) -> String {
         guard currentStatus.isAdjusted else { return "0%" }
-        guard let paceAdjustmentPct = currentStatus.paceAdjustmentPct else { return "已調整" }
+        guard let paceAdjustmentPct = currentStatus.paceAdjustmentPct else { return climateLocalized("climate_settings.current_status.adjusted") }
         return String(format: "%.1f%%", paceAdjustmentPct)
     }
 
@@ -440,7 +519,7 @@ private struct HeatAdaptationExplanationView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("熱適應怎麼運作") {
+                Section(climateLocalized("climate_settings.explanation.how_it_works")) {
                     ForEach(Array(profile.heatProfile.uiSummary.howItWorks.enumerated()), id: \.offset) { index, item in
                         HStack(alignment: .top, spacing: 12) {
                             Text("\(index + 1)")
@@ -456,7 +535,7 @@ private struct HeatAdaptationExplanationView: View {
                     }
                 }
 
-                Section("什麼情況會介入") {
+                Section(climateLocalized("climate_settings.explanation.intervention_rules")) {
                     ForEach(profile.heatProfile.interventionRules) { rule in
                         VStack(alignment: .leading, spacing: 8) {
                             Text(rule.temperatureRangeLabel)
@@ -484,15 +563,15 @@ private struct HeatAdaptationExplanationView: View {
                 }
 
                 if let metrics {
-                    Section("你的近 14 天熱適應狀態") {
-                        LabeledContent("系統建議", value: localizedAdaptation(metrics.recommendedAdaptationLevel))
-                        LabeledContent("目前設定", value: localizedAdaptation(metrics.currentAdaptationLevel))
-                        LabeledContent("熱環境時數", value: String(format: "%.1f h", metrics.indicators.hotTrainingHours14d))
-                        LabeledContent("熱壓力訓練", value: "\(metrics.indicators.hotWorkoutCount14d) 次")
-                        LabeledContent("配速達成率", value: percentText(metrics.indicators.hotPaceAchievementRatePct))
-                        LabeledContent("心率效率", value: localizedTrend(metrics.indicators.hotHrEfficiencyTrend))
+                    Section(climateLocalized("climate_settings.metrics.section")) {
+                        LabeledContent(climateLocalized("climate_settings.metrics.recommended"), value: localizedAdaptation(metrics.recommendedAdaptationLevel))
+                        LabeledContent(climateLocalized("climate_settings.metrics.current"), value: localizedAdaptation(metrics.currentAdaptationLevel))
+                        LabeledContent(climateLocalized("climate_settings.metrics.hot_hours"), value: String(format: "%.1f h", metrics.indicators.hotTrainingHours14d))
+                        LabeledContent(climateLocalized("climate_settings.metrics.hot_workouts"), value: String(format: climateLocalized("climate_settings.metrics.workout_count_format"), metrics.indicators.hotWorkoutCount14d))
+                        LabeledContent(climateLocalized("climate_settings.metrics.pace_achievement"), value: percentText(metrics.indicators.hotPaceAchievementRatePct))
+                        LabeledContent(climateLocalized("climate_settings.metrics.hr_efficiency"), value: localizedTrend(metrics.indicators.hotHrEfficiencyTrend))
                         if let delta = metrics.indicators.hotHrEfficiencyDeltaPct {
-                            LabeledContent("效率變化", value: String(format: "%.1f%%", delta))
+                            LabeledContent(climateLocalized("climate_settings.metrics.efficiency_change"), value: String(format: "%.1f%%", delta))
                         }
                         if metrics.dataInsufficient, let reason = metrics.dataInsufficientReason {
                             Text(reason)
@@ -502,43 +581,43 @@ private struct HeatAdaptationExplanationView: View {
                     }
                 }
 
-                Section("資料來源") {
-                    LabeledContent("區域策略", value: profile.adapter.displayName)
-                    LabeledContent("氣象來源", value: profile.adapter.dataSource)
+                Section(climateLocalized("climate_settings.source.section")) {
+                    LabeledContent(climateLocalized("climate_settings.source.region_strategy"), value: profile.adapter.displayName)
+                    LabeledContent(climateLocalized("climate_settings.source.weather_source"), value: profile.adapter.dataSource)
                     Text(profile.heatProfile.uiSummary.sourceDisclosure)
                         .font(.footnote)
                         .foregroundColor(.secondary)
                 }
             }
-            .navigationTitle("熱適應說明")
+            .navigationTitle(climateLocalized("climate_settings.explanation.title"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("關閉") { dismiss() }
+                    Button(climateLocalized("common.close")) { dismiss() }
                 }
             }
         }
     }
 
     private func percentText(_ value: Double?) -> String {
-        guard let value else { return "資料不足" }
+        guard let value else { return climateLocalized("climate_settings.insufficient_data") }
         return String(format: "%.1f%%", value)
     }
 
     private func localizedAdaptation(_ value: String) -> String {
         switch value {
-        case "unacclimated": return "未適應／初學"
-        case "acclimated": return "已熱適應"
-        default: return "一般"
+        case "unacclimated": return climateLocalized("climate_settings.adaptation.unacclimated")
+        case "acclimated": return climateLocalized("climate_settings.adaptation.acclimated")
+        default: return climateLocalized("climate_settings.adaptation.normal")
         }
     }
 
     private func localizedTrend(_ value: String) -> String {
         switch value {
-        case "improving": return "改善中"
-        case "declining": return "惡化中"
-        case "stable": return "穩定"
-        default: return "資料不足"
+        case "improving": return climateLocalized("climate_settings.trend.improving")
+        case "declining": return climateLocalized("climate_settings.trend.declining")
+        case "stable": return climateLocalized("climate_settings.trend.stable")
+        default: return climateLocalized("climate_settings.insufficient_data")
         }
     }
 }

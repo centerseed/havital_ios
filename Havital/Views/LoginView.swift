@@ -7,6 +7,8 @@ import UIKit
 struct LoginView: View {
     // Clean Architecture: Use LoginViewModel instead of AuthenticationService
     @StateObject private var viewModel = LoginViewModel()
+    @StateObject private var languageManager = LanguageManager.shared
+    @State private var selectedLanguage = LanguageManager.shared.currentLanguage
     @State private var showError = false
     @State private var reviewerAccessProgress: CGFloat = 0
     @State private var reviewerAccessTriggered = false
@@ -39,6 +41,10 @@ struct LoginView: View {
                         .font(AppFont.title2())
                         .foregroundColor(AppTheme.TextColors.secondary)
                         .multilineTextAlignment(.center)
+
+                    languagePicker
+                        .padding(.top, 8)
+                        .frame(maxWidth: 280)
                 }
                 .contentShape(Rectangle())
                 .onLongPressGesture(
@@ -209,6 +215,20 @@ struct LoginView: View {
         }
         .onDisappear {
             stopReviewerProgress(resetProgress: true)
+        }
+    }
+
+    private var languagePicker: some View {
+        Picker(L10n.Login.language.localized, selection: $selectedLanguage) {
+            ForEach(SupportedLanguage.allCases, id: \.self) { language in
+                Text(language.displayName).tag(language)
+            }
+        }
+        .pickerStyle(.segmented)
+        .accessibilityIdentifier("Login_LanguagePicker")
+        .accessibilityLabel(L10n.Login.languagePickerAccessibility.localized)
+        .onChange(of: selectedLanguage) { _, newLanguage in
+            languageManager.applyPreLoginLanguage(newLanguage)
         }
     }
 

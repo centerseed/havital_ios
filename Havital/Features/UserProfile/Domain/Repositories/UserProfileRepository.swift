@@ -78,7 +78,8 @@ protocol UserProfileRepository {
     ///   - newData: New personal best data
     func detectPersonalBestUpdates(
         oldData: [String: [PersonalBestRecordV2]]?,
-        newData: [String: [PersonalBestRecordV2]]?
+        newData: [String: [PersonalBestRecordV2]]?,
+        workoutId: String?
     ) async
 
     /// Get pending celebration update (if any PB was detected)

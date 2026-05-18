@@ -68,7 +68,7 @@ class EditSupportingTargetViewModel: BaseSupportingTargetViewModel {
             Logger.debug("[EditSupportingTargetVM] 支援賽事已刪除")
             isLoading = false
             return true
-        } catch let nsError as NSError where nsError.domain == "APIClient" && nsError.code == 404 {
+        } catch let httpError as HTTPError where httpError.statusCode == 404 {
             // 雲端已不存在，從本地也刪除
             TargetStorage.shared.removeTarget(id: targetId)
             NotificationCenter.default.post(name: .supportingTargetUpdated, object: nil)

@@ -426,6 +426,40 @@ enum HTTPError: Error, LocalizedError {
             return false
         }
     }
+
+    var statusCode: Int? {
+        switch self {
+        case .badRequest:
+            return 400
+        case .unauthorized:
+            return 401
+        case .forbidden:
+            return 403
+        case .notFound:
+            return 404
+        case .httpError(let code, _), .serverError(let code, _):
+            return code
+        default:
+            return nil
+        }
+    }
+
+    var responseBody: String? {
+        switch self {
+        case .badRequest(let message),
+             .unauthorized(let message),
+             .forbidden(let message),
+             .notFound(let message),
+             .httpError(_, let message),
+             .serverError(_, let message),
+             .networkError(let message),
+             .invalidResponse(let message),
+             .invalidURL(let message):
+            return message
+        default:
+            return nil
+        }
+    }
 }
 
 // MARK: - Force Update Notification

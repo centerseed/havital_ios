@@ -231,15 +231,13 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
     }
 
     func checkDataSourceBindingReminderIfNeeded(forceRefresh: Bool = false) async {
-        let localPreference = UserPreferencesManager.shared.dataSourcePreference
-        if localPreference == .unbound {
-            presentDataSourceNotBoundAlertIfEligible()
-            return
-        }
-
         do {
             let user = try await loadUserForDataSourceReminder(forceRefresh: forceRefresh)
             guard user.dataSource == nil || user.dataSource == DataSourceType.unbound.rawValue else {
+                if UserPreferencesManager.shared.dataSourcePreference == .unbound,
+                   let dataSource = DataSourceType(rawValue: user.dataSource ?? "") {
+                    UserPreferencesManager.shared.dataSourcePreference = dataSource
+                }
                 interruptCoordinator.remove(stableID: InterruptItem.dataSourceBindingReminderStableID)
                 syncDataSourceReminderVisibility()
                 return

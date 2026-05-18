@@ -1,0 +1,16 @@
+appId: com.havital.Havital
+---
+- tapOn:
+    text: "訓練計劃|訓練計畫|トレーニング|Training Plan"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      text: "訓練日曆|Training Calendar|トレーニングカレンダー"
+    timeout: 8000
+- tapOn:
+    text: "訓練日曆|Training Calendar|トレーニングカレンダー"
+- extendedWaitUntil:
+    visible:
+      text: "Mon|月"
+    timeout: 8000
+- takeScreenshot: /tmp/x2_recheck_default.png

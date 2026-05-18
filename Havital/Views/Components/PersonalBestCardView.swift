@@ -31,20 +31,20 @@ struct PersonalBestCardView: View {
     // MARK: - Personal Best Grid
 
     private func personalBestGrid(data: [String: [PersonalBestRecordV2]]) -> some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible()),
-            GridItem(.flexible()),
-            GridItem(.flexible())
-        ], spacing: 8) {
-            ForEach(sortedDistances(data: data), id: \.self) { distance in
-                if let records = data[distance.rawValue],
-                   let bestRecord = records.first {
-                    personalBestItemCard(distance: distance, record: bestRecord)
-                        .onTapGesture {
-                            selectedItem = PersonalBestDetailItem(distance: distance, records: records)
-                        }
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(sortedDistances(data: data), id: \.self) { distance in
+                    if let records = data[distance.rawValue],
+                       let bestRecord = records.first {
+                        personalBestItemCard(distance: distance, record: bestRecord)
+                            .frame(width: 128)
+                            .onTapGesture {
+                                selectedItem = PersonalBestDetailItem(distance: distance, records: records)
+                            }
+                    }
                 }
             }
+            .padding(.vertical, 2)
         }
         .padding()
     }
@@ -92,11 +92,13 @@ struct PersonalBestCardView: View {
 
     // MARK: - Helper Methods
 
-    /// 排序距離（按優先級降序）
+    /// 排序距離（公里數由大到小）
     private func sortedDistances(data: [String: [PersonalBestRecordV2]]) -> [RaceDistanceV2] {
         RaceDistanceV2.allCases
             .filter { data[$0.rawValue] != nil }
-            .sorted { $0.priority > $1.priority }
+            .sorted { lhs, rhs in
+                (Double(lhs.rawValue) ?? 0) > (Double(rhs.rawValue) ?? 0)
+            }
     }
 }
 

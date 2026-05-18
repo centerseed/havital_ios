@@ -204,13 +204,18 @@ final class AppViewModelTests: XCTestCase {
         XCTAssertEqual(mockUserProfileRepository.getUserProfileCallCount, 0)
     }
 
-    func testCheckDataSourceBindingReminderIfNeeded_LocalPreferenceUnbound_SkipsRepositoryAndShowsAlert() async {
+    func testCheckDataSourceBindingReminderIfNeeded_LocalPreferenceUnboundButBackendBound_DoesNotFlashAlert() async {
         UserPreferencesManager.shared.dataSourcePreference = .unbound
+        mockUserProfileRepository.userToReturn = makeUser(
+            dataSource: "apple_health",
+            trainingVersion: "v2"
+        )
 
         await sut.checkDataSourceBindingReminderIfNeeded(forceRefresh: true)
 
-        XCTAssertTrue(sut.showDataSourceNotBoundAlert)
-        XCTAssertEqual(mockUserProfileRepository.refreshUserProfileCallCount, 0)
+        XCTAssertFalse(sut.showDataSourceNotBoundAlert)
+        XCTAssertEqual(UserPreferencesManager.shared.dataSourcePreference, .appleHealth)
+        XCTAssertEqual(mockUserProfileRepository.refreshUserProfileCallCount, 1)
         XCTAssertEqual(mockUserProfileRepository.getUserProfileCallCount, 0)
     }
 

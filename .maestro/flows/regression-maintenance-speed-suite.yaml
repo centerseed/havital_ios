@@ -35,6 +35,8 @@ tags:
     id: "Methodology_NextButton"
     optional: true
 
+- runFlow: ../subflows/pass-maintenance-race-distance.yaml
+
 # 訓練週數 / 起始階段
 - tapOn:
     id: "TrainingWeeks_NextButton"
@@ -48,6 +50,8 @@ tags:
 - tapOn:
     text: "繼續"
     optional: true
+
+- runFlow: ../subflows/pass-maintenance-race-distance.yaml
 
 # 訓練偏好設定
 - assertVisible:

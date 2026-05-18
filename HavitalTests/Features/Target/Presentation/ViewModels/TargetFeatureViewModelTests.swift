@@ -28,7 +28,12 @@ final class TargetFeatureViewModelTests: XCTestCase {
     
     func testLoadTargets_Success_UpdatesPublishedProperties() async throws {
         // Given
-        let targets = TargetTestFixtures.targetsList
+        let futureSupport = makeTarget(
+            id: TargetTestFixtures.supportingTarget.id,
+            raceDate: Int(Date().timeIntervalSince1970) + 30 * 24 * 60 * 60,
+            isMainRace: false
+        )
+        let targets = [TargetTestFixtures.mainTarget, futureSupport]
         mockRepository.targetsToReturn = targets
         
         // When
@@ -100,5 +105,61 @@ final class TargetFeatureViewModelTests: XCTestCase {
         // Then
         XCTAssertEqual(mockRepository.forceRefreshCallCount, 1)
         XCTAssertEqual(sut.targets.count, 2)
+    }
+
+    func testLoadTargets_ShowsSupportingRacesFromTwoWeeksAgoThroughFuture() async throws {
+        // Given
+        let now = Int(Date().timeIntervalSince1970)
+        let visiblePastSupport = makeTarget(id: "support_past_13d", raceDate: now - 13 * 24 * 60 * 60, isMainRace: false)
+        let hiddenPastSupport = makeTarget(id: "support_past_15d", raceDate: now - 15 * 24 * 60 * 60, isMainRace: false)
+        let futureSupport = makeTarget(id: "support_future", raceDate: now + 90 * 24 * 60 * 60, isMainRace: false)
+        let pastMainRace = makeTarget(id: "main_past_13d", raceDate: now - 13 * 24 * 60 * 60, isMainRace: true)
+        mockRepository.targetsToReturn = [
+            visiblePastSupport,
+            hiddenPastSupport,
+            futureSupport,
+            pastMainRace,
+        ]
+
+        // When
+        await sut.loadTargets()
+
+        // Then
+        XCTAssertEqual(
+            sut.supportingTargets.map(\.id),
+            ["support_past_13d", "support_future"]
+        )
+    }
+
+    func testLoadTargets_RefreshesPublishedStateAfterCacheHit() async throws {
+        // Given
+        let now = Int(Date().timeIntervalSince1970)
+        let cachedMainOnly = makeTarget(id: "cached_main", raceDate: now + 100 * 24 * 60 * 60, isMainRace: true)
+        let apiSupportRace = makeTarget(id: "api_support_past_7d", raceDate: now - 7 * 24 * 60 * 60, isMainRace: false)
+        mockRepository.targetsToReturn = [cachedMainOnly]
+        mockRepository.forceRefreshTargetsToReturn = [cachedMainOnly, apiSupportRace]
+
+        // When
+        await sut.loadTargets()
+
+        // Then
+        XCTAssertEqual(mockRepository.getTargetsCallCount, 1)
+        XCTAssertEqual(mockRepository.forceRefreshCallCount, 1)
+        XCTAssertEqual(sut.supportingTargets.map(\.id), ["api_support_past_7d"])
+    }
+
+    private func makeTarget(id: String, raceDate: Int, isMainRace: Bool) -> Target {
+        Target(
+            id: id,
+            type: "race_run",
+            name: id,
+            distanceKm: 21,
+            targetTime: 7200,
+            targetPace: "05:41",
+            raceDate: raceDate,
+            isMainRace: isMainRace,
+            trainingWeeks: 0,
+            timezone: "Asia/Taipei"
+        )
     }
 }

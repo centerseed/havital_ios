@@ -42,14 +42,35 @@ class PersonalBestCelebrationStorage {
     static func markCelebrationAsShown() {
         var cache = load()
         cache.hasShownCelebration = true
+        if let update = cache.lastDetectedUpdate,
+           !cache.shownWorkoutUpdateKeys.contains(update.dedupeKey) {
+            cache.shownWorkoutUpdateKeys.append(update.dedupeKey)
+        }
         save(cache)
         Logger.debug("慶祝動畫已標記為已顯示")
+    }
+
+    /// 標記指定 workout PB Moment 已顯示
+    static func markCelebrationAsShown(for update: PersonalBestUpdate) {
+        var cache = load()
+        cache.hasShownCelebration = true
+        if !cache.shownWorkoutUpdateKeys.contains(update.dedupeKey) {
+            cache.shownWorkoutUpdateKeys.append(update.dedupeKey)
+        }
+        save(cache)
+        Logger.debug("慶祝動畫已標記為已顯示: \(update.dedupeKey)")
+    }
+
+    /// 指定 workout + distance 是否已顯示過阻擋式 PB Moment
+    static func hasShownCelebration(for update: PersonalBestUpdate) -> Bool {
+        load().shownWorkoutUpdateKeys.contains(update.dedupeKey)
     }
 
     /// 獲取待顯示的慶祝更新
     static func getPendingCelebrationUpdate() -> PersonalBestUpdate? {
         let cache = load()
-        return (!cache.hasShownCelebration && cache.lastDetectedUpdate != nil)
+        guard let update = cache.lastDetectedUpdate else { return nil }
+        return (!cache.hasShownCelebration && !cache.shownWorkoutUpdateKeys.contains(update.dedupeKey))
             ? cache.lastDetectedUpdate
             : nil
     }

@@ -74,17 +74,17 @@ struct WeekOverviewCardV2: View {
                 // F6.d: status chip placed at top-left corner per design spec
                 ZStack(alignment: .topLeading) {
                     AchievementBadgeHeroView(
-                        badge: viewModel.currentBadge,
-                        isUnlocked: viewModel.isCurrentBadgeUnlocked,
+                        badge: viewModel.displayBadge,
+                        isUnlocked: viewModel.displayBadge?.status == .unlocked,
                         size: 72
                     )
 
-                    if let badge = viewModel.currentBadge {
+                    if let badge = viewModel.displayBadge {
                         // Real badge: show "新解鎖" (unlocked) or lock icon (in progress)
-                        badgeStatusChip(badge: badge, isUnlocked: viewModel.isCurrentBadgeUnlocked)
+                        badgeStatusChip(badge: badge, isUnlocked: badge.status == .unlocked)
                             .offset(x: -4, y: -4)
                     } else {
-                        // Fallback placeholder chip — kept from Phase A
+                        // Fallback placeholder chip — shown when no badge data yet
                         Text("NEW")
                             .font(.system(size: 9, weight: .heavy))
                             .tracking(0.5)
@@ -105,7 +105,7 @@ struct WeekOverviewCardV2: View {
                     // F1.d: date chip moved here, right-aligned per design jsx L417-423
                     HStack(spacing: 6) {
                         // F5.a: 16pt + blueDeep color, fixedSize ensures full display without truncation
-                        Text(viewModel.currentBadge?.name ?? NSLocalizedString("training_plan.weekly_badge_placeholder_name", comment: "本週進度"))
+                        Text(viewModel.displayBadge.map { NSLocalizedString($0.nameKey, comment: "") } ?? NSLocalizedString("training_plan.weekly_badge_placeholder_name", comment: "本週進度"))
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(PacerizColor.blueDeep)
                             .lineLimit(1)
@@ -273,7 +273,7 @@ struct WeekOverviewCardV2: View {
     // MARK: - Private Helpers
 
     @ViewBuilder
-    private func badgeStatusChip(badge: AchievementBadgeSnapshot, isUnlocked: Bool) -> some View {
+    private func badgeStatusChip(badge: AchievementBadge, isUnlocked: Bool) -> some View {
         if isUnlocked {
             // "新解鎖" with sparkles
             HStack(spacing: 2) {

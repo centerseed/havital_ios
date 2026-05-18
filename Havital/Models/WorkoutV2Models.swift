@@ -141,6 +141,21 @@ struct WorkoutV2: Codable, Identifiable {
     var distance: Double? {
         return distanceMeters
     }
+
+    var displayPaceSecondsPerKm: Double? {
+        if let avgPace = basicMetrics?.avgPaceSPerKm, avgPace.isFinite, avgPace > 0 {
+            return avgPace
+        }
+
+        guard let distance = distanceMeters, distance > 0 else { return nil }
+
+        if let movingDuration = basicMetrics?.movingDurationS, movingDuration > 0 {
+            return Double(movingDuration) / distance * 1000
+        }
+
+        guard durationSeconds > 0 else { return nil }
+        return Double(durationSeconds) / distance * 1000
+    }
     
     var calories: Double? {
         return basicMetrics?.caloriesKcal.map { Double($0) }
@@ -1391,7 +1406,7 @@ extension WorkoutV2 {
 
     /// 分享卡專用格式化配速（依 UnitManager 設定決定單位）
     var formattedPace: String {
-        guard let pace = basicMetrics?.avgPaceSPerKm else { return "-" }
+        guard let pace = displayPaceSecondsPerKm else { return "-" }
         return MainActor.assumeIsolated {
             let unit = UnitManager.shared.currentUnitSystem
             let converted: Double
@@ -1399,8 +1414,9 @@ extension WorkoutV2 {
             case .metric: converted = pace
             case .imperial: converted = pace * 1.60934
             }
-            let minutes = Int(converted) / 60
-            let seconds = Int(converted) % 60
+            let rounded = Int(converted.rounded())
+            let minutes = rounded / 60
+            let seconds = rounded % 60
             return String(format: "%d'%02d\"/%@", minutes, seconds, unit.distanceSuffix)
         }
     }

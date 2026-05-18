@@ -13,6 +13,7 @@ class TargetFeatureViewModel: ObservableObject, @preconcurrency TaskManageable {
 
     // MARK: - ViewModel Name (for logging)
     private let viewModelName = "TargetVM"
+    private static let supportingRacePastVisibilityWindow: TimeInterval = 14 * 24 * 60 * 60
 
     // MARK: - Published State
 
@@ -112,6 +113,11 @@ class TargetFeatureViewModel: ObservableObject, @preconcurrency TaskManageable {
                 let loadedTargets = try await self.repository.getTargets()
                 await MainActor.run {
                     self.updateTargetsState(loadedTargets)
+                }
+
+                let refreshedTargets = try await self.repository.forceRefresh()
+                await MainActor.run {
+                    self.updateTargetsState(refreshedTargets)
                 }
             } catch {
                 // Use centralized cancellation check
@@ -273,7 +279,8 @@ class TargetFeatureViewModel: ObservableObject, @preconcurrency TaskManageable {
 
     /// Get supporting targets synchronously
     func getSupportingTargets() -> [Target] {
-        return supportingTargets.isEmpty ? TargetLocalDataSource().getSupportingTargets() : supportingTargets
+        let source = supportingTargets.isEmpty ? TargetLocalDataSource().getSupportingTargets() : supportingTargets
+        return visibleSupportingTargets(from: source)
     }
 
     /// Check if targets exist (including cache)
@@ -288,7 +295,14 @@ class TargetFeatureViewModel: ObservableObject, @preconcurrency TaskManageable {
     private func updateTargetsState(_ newTargets: [Target]) {
         self.targets = newTargets
         self.mainTarget = newTargets.first { $0.isMainRace }
-        self.supportingTargets = newTargets.filter { !$0.isMainRace }
+        self.supportingTargets = visibleSupportingTargets(from: newTargets)
         Logger.debug("[TargetVM] State updated: main=\(self.mainTarget?.name ?? "none"), supporting=\(self.supportingTargets.count)")
+    }
+
+    private func visibleSupportingTargets(from targets: [Target], now: Date = Date()) -> [Target] {
+        let cutoff = Int(now.addingTimeInterval(-Self.supportingRacePastVisibilityWindow).timeIntervalSince1970)
+        return targets.filter { target in
+            !target.isMainRace && target.raceDate >= cutoff
+        }
     }
 }

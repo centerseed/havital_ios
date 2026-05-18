@@ -1,8 +1,15 @@
 import Foundation
+import Combine
 @testable import paceriz_dev
 
 /// Mock implementation of TrainingPlanV2Repository for testing
 final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
+
+    // MARK: - AC-PAYWALL-37: overview publisher (no-op for unit tests)
+
+    var overviewDidUpdate: AnyPublisher<PlanOverviewV2, Never> {
+        Empty().eraseToAnyPublisher()
+    }
 
     // MARK: - Call Tracking
 
@@ -37,6 +44,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     var lastUpdatedOverviewId: String?
     var lastUpdatedOverviewStartFromStage: String?
     var lastUpdatedOverviewMethodologyId: String?
+    var lastUpdateWeeklyPlanRequest: UpdateWeeklyPlanRequest?
 
     // MARK: - Return Values
 
@@ -85,6 +93,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         lastUpdatedOverviewId = nil
         lastUpdatedOverviewStartFromStage = nil
         lastUpdatedOverviewMethodologyId = nil
+        lastUpdateWeeklyPlanRequest = nil
         errorToThrow = nil
         generateWeeklyPlanErrors = []
         applyAdjustmentItemsError = nil
@@ -197,6 +206,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
 
     func updateWeeklyPlan(planId: String, updates: UpdateWeeklyPlanRequest) async throws -> WeeklyPlanV2 {
         updateWeeklyPlanCallCount += 1
+        lastUpdateWeeklyPlanRequest = updates
         if let error = errorToThrow { throw error }
         guard let plan = weeklyPlanV2ToReturn else {
             throw TrainingPlanV2Error.weeklyPlanNotFound(week: 0)

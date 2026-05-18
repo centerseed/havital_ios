@@ -140,6 +140,8 @@ struct GoalTypeSelectionView: View {
         switch goalType {
         case .v2(let targetType):
             coordinator.selectedTargetTypeId = targetType.id
+            // AC-IOS-ANALYTICS-P1-05: goal type confirmed before navigation
+            coordinator.trackGoalTypeSelected(targetType: targetType.id)
 
             if targetType.isRaceRunTarget {
                 coordinator.isBeginner = false
@@ -170,9 +172,13 @@ struct GoalTypeSelectionView: View {
         case .specificRace:
             coordinator.isBeginner = false
             viewModel.isBeginner = false
+            // AC-IOS-ANALYTICS-P1-05: legacy V1 race_run path
+            coordinator.trackGoalTypeSelected(targetType: "race_run")
             coordinator.navigate(to: .raceSetup)
 
         case .beginner5k:
+            // AC-IOS-ANALYTICS-P1-05: legacy V1 beginner path
+            coordinator.trackGoalTypeSelected(targetType: "beginner")
             Task {
                 let success = await viewModel.createBeginner5kGoal()
                 if success {

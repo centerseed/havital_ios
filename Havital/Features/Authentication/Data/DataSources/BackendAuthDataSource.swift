@@ -10,9 +10,47 @@ final class BackendAuthDataSource {
     private enum Endpoint {
         static let authSync = "/auth/sync"
         static let demoLogin = "/login/demo"
+        static let registerEmail = "/register/email"
+        static let loginEmail = "/login/email"
+        static let verifyEmail = "/verify/email"
+        static let resendEmail = "/resend/email"
         static let onboardingStatus = "/auth/users/%@/onboarding"
         static let completeOnboarding = "/auth/users/%@/complete-onboarding"
         static let resetOnboarding = "/auth/users/%@/reset-onboarding"
+    }
+
+    // MARK: - Email Auth
+
+    func registerEmail(email: String, password: String) async throws -> RegisterData {
+        let bodyData = try JSONEncoder().encode(EmailPasswordRequest(email: email, password: password))
+        let rawData = try await httpClient.request(path: Endpoint.registerEmail, method: .POST, body: bodyData)
+        return try ResponseProcessor.extractData(RegisterData.self, from: rawData, using: parser)
+    }
+
+    func loginEmail(email: String, password: String) async throws -> LoginData {
+        let bodyData = try JSONEncoder().encode(EmailPasswordRequest(email: email, password: password))
+
+        do {
+            let rawData = try await httpClient.request(path: Endpoint.loginEmail, method: .POST, body: bodyData)
+            return try ResponseProcessor.extractData(LoginData.self, from: rawData, using: parser)
+        } catch let error as HTTPError {
+            if case .unauthorized = error {
+                throw AuthError.emailNotVerified
+            }
+            throw error
+        }
+    }
+
+    func verifyEmail(oobCode: String) async throws -> VerifyData {
+        let bodyData = try JSONEncoder().encode(VerifyEmailRequest(oobCode: oobCode))
+        let rawData = try await httpClient.request(path: Endpoint.verifyEmail, method: .POST, body: bodyData)
+        return try ResponseProcessor.extractData(VerifyData.self, from: rawData, using: parser)
+    }
+
+    func resendEmailVerification(email: String, password: String) async throws -> ResendData {
+        let bodyData = try JSONEncoder().encode(EmailPasswordRequest(email: email, password: password))
+        let rawData = try await httpClient.request(path: Endpoint.resendEmail, method: .POST, body: bodyData)
+        return try ResponseProcessor.extractData(ResendData.self, from: rawData, using: parser)
     }
 
     // MARK: - Dependencies
@@ -218,4 +256,13 @@ private struct ReviewerDemoLoginRequest: Encodable {
     enum CodingKeys: String, CodingKey {
         case reviewerPasscode = "reviewer_passcode"
     }
+}
+
+private struct EmailPasswordRequest: Encodable {
+    let email: String
+    let password: String
+}
+
+private struct VerifyEmailRequest: Encodable {
+    let oobCode: String
 }

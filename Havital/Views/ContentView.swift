@@ -1,5 +1,6 @@
 // Havital/Views/ContentView.swift
 import SwiftUI
+import Combine
 
 struct ContentView: View {
     // Clean Architecture: Use AuthenticationViewModel
@@ -20,6 +21,13 @@ struct ContentView: View {
     // Task 完成時只有 token 仍匹配才寫回 state，避免舊 Task 覆寫新結果（re-onboarding / 快速帳號切換 race）。
     @State private var versionCheckToken: Int = 0
     @State private var showUserProfileForDataSourceBinding = false
+
+    // AC-PAYWALL-37: stable observer for plan overview cache updates.
+    // PlanOverviewObserver.shared is a singleton — single subscription lifetime
+    // regardless of body re-renders — fixes the missed-event bug.
+    // Using @ObservedObject on the shared instance (not @StateObject) so that
+    // WeeklyPlanLoader can call PlanOverviewObserver.shared.confirmNoPlan() directly.
+    @ObservedObject private var planOverviewObserver = PlanOverviewObserver.shared
 
     var body: some View {
         // 移除高頻日誌：body 每次重新評估都會觸發
@@ -206,6 +214,7 @@ struct ContentView: View {
                         Image(systemName: "gauge.with.dots.needle.bottom.50percent")
                         Text(L10n.Tab.performanceData.localized)
                     }
+
             }
 
             InterruptHostView(
@@ -252,22 +261,68 @@ struct ContentView: View {
         .onChange(of: subscriptionState.recentDowngrade) { _, downgrade in
             guard let downgrade else { return }
             Logger.debug("[ContentView] 訂閱狀態降級: \(downgrade.from.rawValue) → \(downgrade.to.rawValue)")
-            // 降級通知透過 reminder 系統顯示，觸發 expired 提醒
-            reminderManager.checkAndShowReminder(status: subscriptionState.currentStatus)
+            // 降級通知透過 reminder 系統顯示，觸發 expired 提醒（AC-PAYWALL-37 互斥由 manager 處理）
+            reminderManager.checkAndShowReminder(
+                status: subscriptionState.currentStatus,
+                hasGeneratedTrainingPlan: hasGeneratedTrainingPlan
+            )
             subscriptionState.clearDowngrade()
         }
         // P1-9/P1-10: 訂閱到期提醒
+        // AC-PAYWALL-37: for expired status we defer the reminder check until
+        // PlanOverviewObserver.planCheckConfirmed is true (plan loader has a definitive answer).
+        // For trial and all other statuses, fire immediately — they don't have the race risk.
         .onAppear {
-            reminderManager.checkAndShowReminder(status: subscriptionState.currentStatus)
-            syncSubscriptionReminderInterrupt()
+            let status = subscriptionState.currentStatus
+            let isExpiredStatus = status?.status == .expired
+            if isExpiredStatus && !planOverviewObserver.planCheckConfirmed {
+                // Cold start with expired status: plan loader not yet confirmed.
+                // Do NOT queue the dialog yet — wait for planCheckConfirmed or hasOverview.
+                syncSubscriptionReminderInterrupt()
+            } else {
+                reminderManager.checkAndShowReminder(
+                    status: status,
+                    hasGeneratedTrainingPlan: hasGeneratedTrainingPlan
+                )
+                syncSubscriptionReminderInterrupt()
+            }
         }
         .onChange(of: subscriptionState.currentStatus?.status) { _, _ in
-            reminderManager.checkAndShowReminder(status: subscriptionState.currentStatus)
+            reminderManager.checkAndShowReminder(
+                status: subscriptionState.currentStatus,
+                hasGeneratedTrainingPlan: hasGeneratedTrainingPlan
+            )
             syncSubscriptionReminderInterrupt()
         }
         .onChange(of: reminderManager.pendingReminder?.id) { _, _ in
             syncSubscriptionReminderInterrupt()
         }
+        // AC-PAYWALL-37: plan overview confirmed present → suppress expired dialog.
+        // PlanOverviewObserver uses a stable @StateObject subscription (immune to body re-renders).
+        .onChange(of: planOverviewObserver.hasOverview) { _, hasOverview in
+            guard hasOverview else { return }
+            reminderManager.checkAndShowReminder(
+                status: subscriptionState.currentStatus,
+                hasGeneratedTrainingPlan: true
+            )
+            syncSubscriptionReminderInterrupt()
+        }
+        // AC-PAYWALL-37: plan check confirmed with no plan → safe to show expired dialog.
+        // This fires when plan loader definitively finds no plan (no overview / create_plan state).
+        .onChange(of: planOverviewObserver.planCheckConfirmed) { _, confirmed in
+            guard confirmed, !planOverviewObserver.hasOverview else { return }
+            reminderManager.checkAndShowReminder(
+                status: subscriptionState.currentStatus,
+                hasGeneratedTrainingPlan: false
+            )
+            syncSubscriptionReminderInterrupt()
+        }
+    }
+
+    // AC-PAYWALL-37: expired + has plan → FreeTierBanner 已顯示，expired dialog 不重複。
+    // Uses PlanOverviewObserver.shared.hasOverview — singleton subscription, immune to body re-renders.
+    private var hasGeneratedTrainingPlan: Bool {
+        planOverviewObserver.hasOverview
     }
 
     private func syncSubscriptionReminderInterrupt() {

@@ -11,12 +11,19 @@ struct TrainingPlanV2View: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var showPlanOverview = false
     @State private var showUserProfile = false
-    @State private var showEditSchedule = false
     @State private var editScheduleVM: EditScheduleV2ViewModel?
     @State private var showContactPaceriz = false
     @State private var showFeedbackReport = false
     @State private var showWeekSelector = false
     @State private var showMessageCenter = false
+    @State private var summaryIsMenuInspect = false
+
+    // S07 inline upsell sheet state (AC-PAYWALL-22/23)
+    @State private var showWeeklyPlanInlineUpsellSheet = false
+    @State private var weeklyPlanUpsellIsRegenerateLocal = false
+    @State private var showWeeklyReviewInlineUpsellSheet = false
+    // AC-PAYWALL-35: observe subscription state for free tier banner visibility
+    @StateObject private var subscriptionState = SubscriptionStateManager.shared
     @StateObject private var userProfileViewModel = UserProfileFeatureViewModel()
     @StateObject private var announcementViewModel = AnnouncementViewModel(
         repository: DependencyContainer.shared.resolve()
@@ -33,14 +40,7 @@ struct TrainingPlanV2View: View {
     }
 
     private var userProfileMenuTitle: String {
-        switch LanguageManager.shared.currentLanguage {
-        case .traditionalChinese:
-            return "個人資料"
-        case .english:
-            return "Profile"
-        case .japanese:
-            return "プロフィール"
-        }
+        L10n.Tab.profile.localized
     }
 
     static func shouldShowNextWeekButton(
@@ -66,6 +66,29 @@ struct TrainingPlanV2View: View {
         )
     }
 
+    static func previousWeeklySummaryWeek(currentWeek: Int) -> Int? {
+        let previousWeek = currentWeek - 1
+        return previousWeek >= 1 ? previousWeek : nil
+    }
+
+    private var previousWeeklySummaryWeek: Int? {
+        Self.previousWeeklySummaryWeek(currentWeek: viewModel.loader.currentWeek)
+    }
+
+    // AC-PAYWALL-35/38: Free tier banner visibility logic.
+    // Visible when: no real subscription AND training plan exists (week 1 generated).
+    // Grace period users also see the banner (they have hasPremiumAccess=true but not a real subscription).
+    // Hidden when: real subscriber, Apple intro trial, or onboarding not yet completed (no planOverview).
+    //
+    // Note: hasPremiumAccess is NOT used here because grace period users have hasPremiumAccess=true
+    // yet still need to see the banner ("X days left, subscribe to keep access").
+    private var shouldShowFreeTierBanner: Bool {
+        guard subscriptionState.isEnforcementEnabled else { return false }
+        guard !subscriptionState.hasRealSubscription else { return false }
+        // planOverview != nil means the user has generated at least Week 1
+        return viewModel.loader.planOverview != nil
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -77,6 +100,20 @@ struct TrainingPlanV2View: View {
                     .ignoresSafeArea()
             ScrollView {
                 VStack(spacing: 24) {
+                    // AC-PAYWALL-35/38: Free tier banner — shown when user is unsubscribed
+                    // (or in 7-day grace period) and has already generated Week 1.
+                    if shouldShowFreeTierBanner {
+                        FreeTierBanner(
+                            inGracePeriod: subscriptionState.currentStatus?.inGracePeriod == true,
+                            graceRemainingDays: subscriptionState.currentStatus?.graceRemainingDays
+                        ) {
+                            _ = InterruptCoordinator.shared.enqueue(
+                                .paywall(.freeTierBanner)
+                            )
+                        }
+                        .transition(.opacity)
+                    }
+
                     switch viewModel.loader.planStatus {
                     case .ready(let weeklyPlan):
                         // 1️⃣ 訓練進度卡片（與 V1 相同）
@@ -200,10 +237,17 @@ struct TrainingPlanV2View: View {
                         Button(action: { showPlanOverview = true }) {
                             Label(NSLocalizedString("training.plan_overview", comment: "Plan Overview"), systemImage: "doc.text.below.ecg")
                         }
+                        .accessibilityIdentifier("TrainingPlan_Menu_PlanOverview")
 
                         Button(action: {
-                            viewModel.summary.summaryFlowPhase = .showingSummary
-                            viewModel.summary.summaryFlowActive = true
+                            guard let week = previousWeeklySummaryWeek else {
+                                viewModel.successToast = NSLocalizedString("training.weekly_summary_not_available_first_week", comment: "No completed week is available for weekly review yet")
+                                return
+                            }
+                            summaryIsMenuInspect = true
+                            Task {
+                                await viewModel.summary.viewHistoricalSummary(week: week)
+                            }
                         }) {
                             Label(NSLocalizedString("training.weekly_summary", comment: "週摘要"), systemImage: "chart.bar.doc.horizontal")
                         }
@@ -247,6 +291,7 @@ struct TrainingPlanV2View: View {
                             }) {
                                 Label("🗑️ 刪除當前週課表", systemImage: "trash")
                             }
+                            .accessibilityIdentifier("TrainingPlan_Debug_DeleteCurrentWeekPlan")
 
                             Button(role: .destructive, action: {
                                 Task {
@@ -255,9 +300,11 @@ struct TrainingPlanV2View: View {
                             }) {
                                 Label("🗑️ 刪除當前週回顧", systemImage: "trash")
                             }
+                            .accessibilityIdentifier("TrainingPlan_Debug_DeleteCurrentWeeklySummary")
                         } label: {
                             Label("🐛 Debug 工具", systemImage: "hammer.circle")
                         }
+                        .accessibilityIdentifier("TrainingPlan_Menu_Debug")
                         #endif
                     } label: {
                         Image(systemName: "ellipsis.circle")
@@ -274,7 +321,7 @@ struct TrainingPlanV2View: View {
                     MessageCenterView(viewModel: announcementViewModel)
                         .toolbar {
                             ToolbarItem(placement: .navigationBarTrailing) {
-                                Button("關閉") { showMessageCenter = false }
+                                Button(L10n.Common.close.localized) { showMessageCenter = false }
                             }
                         }
                 }
@@ -295,23 +342,19 @@ struct TrainingPlanV2View: View {
                     showUserProfile = false
                 }
             }
-            .sheet(isPresented: $showEditSchedule, onDismiss: {
-                // 編輯 sheet 關閉後，套用儲存結果（避免 @Observable sheet 重建問題）
-                if let savedPlan = editScheduleVM?.savedPlan {
-                    viewModel.loader.weeklyPlan = savedPlan
-                    viewModel.loader.planStatus = .ready(savedPlan)
-                }
-                editScheduleVM = nil
-            }) {
-                if let editVM = editScheduleVM {
-                    EditScheduleViewV2(
-                        editViewModel: editVM,
-                        planViewModel: viewModel
-                    )
+            .sheet(item: $editScheduleVM) { editVM in
+                EditScheduleViewV2(
+                    editViewModel: editVM,
+                    planViewModel: viewModel
+                )
+                .onDisappear {
+                    applySavedEditSchedulePlan(from: editVM)
                 }
             }
             // ✅ 合併 Sheet：loading review → summary → loading plan（零閃爍）
-            .sheet(isPresented: $bindableViewModel.summary.summaryFlowActive) {
+            .sheet(isPresented: $bindableViewModel.summary.summaryFlowActive, onDismiss: {
+                summaryIsMenuInspect = false
+            }) {
                 let weekToShow: Int = {
                     if case .loaded(let loadedSummary) = viewModel.summary.weeklySummary {
                         return loadedSummary.weekOfTraining
@@ -336,7 +379,7 @@ struct TrainingPlanV2View: View {
                         WeeklySummaryV2View(
                             viewModel: viewModel,
                             weekOfPlan: weekToShow,
-                            onGenerateNextWeek: isTrainingCompleted ? nil : {
+                            onGenerateNextWeek: (isTrainingCompleted || summaryIsMenuInspect) ? nil : {
                                 viewModel.summary.summaryFlowPhase = .loadingPlan
                                 Task {
                                     let success = await viewModel.summary.applySelectedAdjustments(weekOfPlan: weekToShow)
@@ -376,7 +419,14 @@ struct TrainingPlanV2View: View {
         } // ZStack
         }
         .sheet(isPresented: $showWeekSelector) {
-            WeekSelectorSheetV2(viewModel: viewModel, isPresented: $showWeekSelector)
+            WeekSelectorSheetV2(
+                viewModel: viewModel,
+                isPresented: $showWeekSelector,
+                onViewWeeklySummary: { week in
+                    summaryIsMenuInspect = true
+                    Task { await viewModel.summary.viewHistoricalSummary(week: week) }
+                }
+            )
         }
         .confirmationDialog(
             NSLocalizedString("contact.paceriz", comment: "Contact Paceriz"),
@@ -391,7 +441,7 @@ struct TrainingPlanV2View: View {
             }
 
             if isChineseLanguage {
-                Button("FB 粉絲團") {
+                Button(L10n.ProfileView.contactFacebookPage.localized) {
                     if let url = URL(string: "https://www.facebook.com/profile.php?id=61574822777267") {
                         UIApplication.shared.open(url)
                     }
@@ -426,6 +476,94 @@ struct TrainingPlanV2View: View {
             guard let trigger else { return }
             _ = InterruptCoordinator.shared.enqueue(.paywall(trigger))
             bindableViewModel.paywallTrigger = nil
+        }
+        // S07: show inline upsell cards for weekly plan (AC-PAYWALL-22/26)
+        .onChange(of: viewModel.showWeeklyPlanInlineUpsell) { _, shouldShow in
+            if shouldShow {
+                weeklyPlanUpsellIsRegenerateLocal = viewModel.weeklyPlanUpsellIsRegenerate
+                showWeeklyPlanInlineUpsellSheet = true
+                viewModel.showWeeklyPlanInlineUpsell = false
+            }
+        }
+        // S07: show inline upsell card for weekly review (AC-PAYWALL-23)
+        .onChange(of: viewModel.showWeeklyReviewInlineUpsell) { _, shouldShow in
+            if shouldShow {
+                showWeeklyReviewInlineUpsellSheet = true
+                viewModel.showWeeklyReviewInlineUpsell = false
+            }
+        }
+        // S06: inline upsell sheet for weekly plan
+        .sheet(isPresented: $showWeeklyPlanInlineUpsellSheet) {
+            NavigationStack {
+                ScrollView {
+                    WeeklyPlanInlineUpsellCard(
+                        isRegenerate: weeklyPlanUpsellIsRegenerateLocal,
+                        onStartTrial: {
+                            showWeeklyPlanInlineUpsellSheet = false
+                            let trigger: PaywallTrigger = weeklyPlanUpsellIsRegenerateLocal
+                                ? .weeklyPlanRegenerate
+                                : .weeklyPlanWeek2
+                            _ = InterruptCoordinator.shared.enqueue(.paywall(trigger))
+                        },
+                        onRestore: {
+                            showWeeklyPlanInlineUpsellSheet = false
+                            Task { try? await (DependencyContainer.shared.resolve() as SubscriptionRepository).restorePurchases() }
+                        }
+                    )
+                    .padding(20)
+                }
+                .navigationTitle(NSLocalizedString("paywall.inline.weekly_plan.title", comment: ""))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(NSLocalizedString("common.close", comment: "Close")) {
+                            showWeeklyPlanInlineUpsellSheet = false
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.medium])
+        }
+        // S06: inline upsell sheet for weekly review
+        .sheet(isPresented: $showWeeklyReviewInlineUpsellSheet) {
+            NavigationStack {
+                ScrollView {
+                    WeeklyReviewInlineUpsellCard(
+                        onStartTrial: {
+                            showWeeklyReviewInlineUpsellSheet = false
+                            _ = InterruptCoordinator.shared.enqueue(.paywall(.weeklyReview))
+                        },
+                        onRestore: {
+                            showWeeklyReviewInlineUpsellSheet = false
+                            Task { try? await (DependencyContainer.shared.resolve() as SubscriptionRepository).restorePurchases() }
+                        }
+                    )
+                    .padding(20)
+                }
+                .navigationTitle(NSLocalizedString("paywall.inline.weekly_review.title", comment: ""))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(NSLocalizedString("common.close", comment: "Close")) {
+                            showWeeklyReviewInlineUpsellSheet = false
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.medium])
+        }
+        // AC-IOS-ANALYTICS-P1-09: track weekly_plan_view when plan loads (session-level dedup).
+        // onAppear covers the case where planStatus is already .ready when the view appears
+        // (e.g. user leaves the tab and returns — onChange won't fire if status hasn't changed).
+        .onAppear {
+            if case .ready(let plan) = viewModel.loader.planStatus {
+                trackWeeklyPlanViewIfNeeded(plan: plan)
+            }
+        }
+        .onChange(of: viewModel.loader.planStatus) { _, newStatus in
+            if case .ready(let plan) = newStatus {
+                trackWeeklyPlanViewIfNeeded(plan: plan)
+            }
         }
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
@@ -531,12 +669,26 @@ struct TrainingPlanV2View: View {
             return Date()
         }()
         editScheduleVM = EditScheduleV2ViewModel(weeklyPlan: weeklyPlan, startDate: startDate)
-        showEditSchedule = true
+    }
+
+    private func applySavedEditSchedulePlan(from editVM: EditScheduleV2ViewModel) {
+        guard let savedPlan = editVM.savedPlan else { return }
+        viewModel.loader.weeklyPlan = savedPlan
+        viewModel.loader.planStatus = .ready(savedPlan)
     }
 
     private var isChineseLanguage: Bool {
         guard let lang = Bundle.main.preferredLocalizations.first else { return false }
         return lang.hasPrefix("zh")
+    }
+
+    // MARK: - AC-IOS-ANALYTICS-P1-09
+
+    private func trackWeeklyPlanViewIfNeeded(plan: WeeklyPlanV2) {
+        viewModel.markWeeklyPlanTracked(
+            planId: plan.effectivePlanId,
+            weekOfTraining: plan.effectiveWeek
+        )
     }
 }
 
@@ -837,40 +989,18 @@ private struct ErrorView: View {
 private struct WeekSelectorSheetV2: View {
     var viewModel: TrainingPlanV2ViewModel
     @Binding var isPresented: Bool
+    var onViewWeeklySummary: ((Int) -> Void)? = nil
 
     var body: some View {
         NavigationStack {
             List(1...max(viewModel.totalWeeks, 1), id: \.self) { week in
-                Button {
-                    Task {
-                        await viewModel.loader.switchToWeek(week)
-                        isPresented = false
-                    }
-                } label: {
-                    HStack {
-                        Text(String(format: NSLocalizedString("training.week_number", comment: "第 %d 週"), week))
-                            .font(AppFont.body())
-                            .foregroundColor(.primary)
-
-                        Spacer()
-
-                        if week == viewModel.loader.currentWeek {
-                            Text(NSLocalizedString("training.current_week_label", comment: "本週"))
-                                .font(AppFont.caption())
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(Color.blue)
-                                .cornerRadius(8)
-                        }
-
-                        if week == viewModel.loader.selectedWeek {
-                            Image(systemName: "checkmark")
-                                .foregroundColor(.blue)
-                        }
-                    }
-                }
+                let item = viewModel.summary.weeklySummaries.first(where: { $0.weekIndex == week })
+                weekRow(week: week, item: item)
+                    .listRowBackground(Color(UIColor.secondarySystemGroupedBackground))
+                    .listRowSeparator(.hidden)
+                    .padding(.vertical, 2)
             }
+            .listStyle(.insetGrouped)
             .navigationTitle(NSLocalizedString("training.switch_week", comment: "切換週數"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -881,6 +1011,103 @@ private struct WeekSelectorSheetV2: View {
                 }
             }
         }
+        .task {
+            await viewModel.summary.fetchWeeklySummaries()
+        }
+    }
+
+    @ViewBuilder
+    private func weekRow(week: Int, item: WeeklySummaryItem?) -> some View {
+        HStack(spacing: 6) {
+            // 週次
+            Text(String(format: NSLocalizedString("training.week_number", comment: "第 %d 週"), week))
+                .font(AppFont.body())
+                .fontWeight(.medium)
+                .foregroundColor(.primary)
+
+            // 本週標籤
+            if week == viewModel.loader.currentWeek {
+                Text(NSLocalizedString("training.current_week_label", comment: "本週"))
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Color.blue)
+                    .cornerRadius(6)
+            }
+
+            // 完成率 bar + 百分比 + 跑量
+            if let item {
+                if let percent = item.completionPercentage {
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color(.systemGray5))
+                            .frame(width: 36, height: 4)
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(LinearGradient(
+                                gradient: Gradient(colors: [.blue, .teal]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            ))
+                            .frame(width: 36 * min(percent, 100) / 100, height: 4)
+                    }
+                    Text("\(Int(percent))%")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.blue)
+                }
+                if let km = item.distanceKm, km > 0 {
+                    Text(String(format: "%.1fkm", km))
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Spacer(minLength: 4)
+
+            // 週回顧按鈕
+            if item?.weekSummary != nil {
+                Button {
+                    isPresented = false
+                    onViewWeeklySummary?(week)
+                } label: {
+                    Text(NSLocalizedString("week_selector.review", comment: "週回顧"))
+                        .font(.system(size: 11, weight: .medium))
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(Color.blue.opacity(0.1))
+                        .foregroundColor(.blue)
+                        .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+            }
+
+            // 課表按鈕
+            if item?.weekPlan != nil {
+                Button {
+                    Task {
+                        await viewModel.loader.switchToWeek(week)
+                        isPresented = false
+                    }
+                } label: {
+                    Text(NSLocalizedString("week_selector.schedule", comment: "課表"))
+                        .font(.system(size: 11, weight: .medium))
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(Color.green.opacity(0.1))
+                        .foregroundColor(.green)
+                        .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+            }
+
+            // 已選 checkmark
+            if week == viewModel.loader.selectedWeek {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.blue)
+            }
+        }
+        .padding(.vertical, 6)
     }
 }
 

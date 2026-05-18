@@ -2,6 +2,17 @@ import SwiftUI
 import FirebaseAuth
 import HealthKit
 
+enum ProfileIdentityDisplay {
+    static func emailText(profileEmail: String?, firebaseEmail: String?) -> String {
+        if let profileEmail = profileEmail?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !profileEmail.isEmpty {
+            return profileEmail
+        }
+
+        return firebaseEmail?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    }
+}
+
 struct UserProfileView: View {
     @Binding var isShowing: Bool
     @StateObject private var viewModel = UserProfileFeatureViewModel()
@@ -247,18 +258,12 @@ struct UserProfileView: View {
                 Text(userData.displayName ?? NSLocalizedString("profile.name", comment: "Name"))
                     .font(AppFont.title2()).bold()
                 
-                // 檢查是否為 Apple 登入且 email 為空或匿名
-                if let providerData = Auth.auth().currentUser?.providerData.first,
-                   providerData.providerID == "apple.com" &&
-                   (userData.email?.isEmpty == true || userData.email?.contains("privaterelay.appleid.com") == true) {
-                    Text(L10n.ProfileView.appleUser.localized)
-                        .font(AppFont.bodySmall())
-                        .foregroundColor(.secondary)
-                } else {
-                    Text(userData.email ?? Auth.auth().currentUser?.email ?? "")
-                        .font(AppFont.bodySmall())
-                        .foregroundColor(.secondary)
-                }
+                Text(ProfileIdentityDisplay.emailText(
+                    profileEmail: userData.email,
+                    firebaseEmail: Auth.auth().currentUser?.email
+                ))
+                .font(AppFont.bodySmall())
+                .foregroundColor(.secondary)
             }
             Spacer()
         }
@@ -284,9 +289,59 @@ struct UserProfileView: View {
         }
     }
 
+    // AC-PAYWALL-36/40: Tier indicator row displayed at top of subscription section.
+    // Shows current tier label and a contextual CTA depending on status.
+    // Grace period users see Upgrade CTA (they haven't really subscribed yet).
+    @ViewBuilder
+    private var tierIndicatorRow: some View {
+        let status = subscriptionState.currentStatus
+        let isInGracePeriod = status?.inGracePeriod == true
+        let isFreeTier = isInGracePeriod
+            || status == nil
+            || status?.status == .expired
+            || status?.status == .none
+        let isPremiumActive = !isInGracePeriod && (status?.status == .active || status?.status == .gracePeriod)
+        let isInTrial = status?.inIntroTrial == true || status?.status == .trial
+
+        VStack(alignment: .leading, spacing: 6) {
+            Text(subscriptionTierLabel)
+                .font(.body)
+                .foregroundColor(isFreeTier ? .secondary : (isPremiumActive ? .green : .orange))
+                .accessibilityIdentifier("Settings_TierLabel")
+
+            if isFreeTier {
+                // Free tier or grace period → Upgrade CTA (AC-PAYWALL-36/40)
+                Button {
+                    paywallTrigger = .settingsTier
+                } label: {
+                    Text(NSLocalizedString("settings.subscription.tier.upgrade_cta", comment: "Upgrade to Premium"))
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.orange)
+                }
+                .accessibilityIdentifier("Settings_TierUpgradeCTA")
+            } else if isPremiumActive, !isInTrial {
+                // Subscribed → Manage CTA (AC-PAYWALL-36)
+                Button {
+                    if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    Text(NSLocalizedString("settings.subscription.tier.manage_cta", comment: "Manage Subscription"))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .accessibilityIdentifier("Settings_TierManageCTA")
+            }
+        }
+    }
+
     @ViewBuilder
     private var subscriptionSection: some View {
         Section {
+            // AC-PAYWALL-36: Tier indicator row — shows current plan tier with CTA
+            tierIndicatorRow
+
             // 方案名稱
             HStack {
                 Label(NSLocalizedString("profile.subscription.plan", comment: "Plan"), systemImage: "crown")
@@ -297,7 +352,24 @@ struct UserProfileView: View {
 
             if let status = subscriptionState.currentStatus {
                 // 狀態輔助資訊（依 Spec UI 矩陣）
-                switch status.status {
+                if status.inGracePeriod {
+                    if let graceUntil = status.iapGraceUntil {
+                        subscriptionDateRow(
+                            title: NSLocalizedString("profile.subscription.trial_ends", comment: "Trial ends"),
+                            systemImage: "clock",
+                            expiresAt: graceUntil,
+                            color: .orange
+                        )
+                    }
+                    if let days = status.graceRemainingDays {
+                        Label(
+                            String(format: NSLocalizedString("profile.subscription.trial_remaining_days", comment: ""), days),
+                            systemImage: "hourglass"
+                        )
+                        .foregroundColor(.orange)
+                    }
+                } else {
+                    switch status.status {
                 case .trial:
                     if let endAt = status.trialEndAt {
                         subscriptionDateRow(
@@ -307,8 +379,7 @@ struct UserProfileView: View {
                             color: .orange
                         )
                     }
-                    let days = status.trialRemainingDays ?? status.daysRemaining
-                    if days > 0 {
+                    if let days = status.trialDaysRemaining, days > 0 {
                         Label(
                             String(format: NSLocalizedString("profile.subscription.trial_remaining_days", comment: ""), days),
                             systemImage: "hourglass"
@@ -362,6 +433,7 @@ struct UserProfileView: View {
 
                 case .none:
                     EmptyView()
+                }
                 }
 
                 // billing_issue 警告（gracePeriod 以外的 billing issue）
@@ -499,20 +571,55 @@ struct UserProfileView: View {
         }
     }
 
+    // AC-PAYWALL-36/40: Tier label string shown in the Subscription section.
+    // States: free / Apple intro trial / 7-day grace period / subscribed.
+    private var subscriptionTierLabel: String {
+        guard let status = subscriptionState.currentStatus else {
+            return NSLocalizedString("settings.subscription.tier.free_label", comment: "Current plan: Free Preview")
+        }
+        // AC-PAYWALL-40: 7-day grace period — show remaining days label
+        if status.inGracePeriod, let days = status.graceRemainingDays {
+            return String(
+                format: NSLocalizedString(
+                    "settings.subscription.tier.grace_label_format",
+                    comment: "Current plan: Free trial (%d days left)"
+                ),
+                days
+            )
+        }
+        // Apple intro trial state
+        if status.inIntroTrial == true, let days = status.trialDaysRemaining {
+            return String(
+                format: NSLocalizedString("settings.subscription.tier.trial_label_format", comment: "Current plan: Trial (%d days left)"),
+                days
+            )
+        }
+        switch status.status {
+        case .active, .gracePeriod:
+            return String(
+                format: NSLocalizedString("settings.subscription.tier.premium_label_format", comment: "Current plan: Premium (%@)"),
+                subscriptionPlanName(for: status)
+            )
+        case .trial:
+            guard let days = status.trialDaysRemaining else {
+                return NSLocalizedString("settings.subscription.tier.free_label", comment: "Current plan: Free Preview")
+            }
+            return String(
+                format: NSLocalizedString("settings.subscription.tier.trial_label_format", comment: "Current plan: Trial (%d days left)"),
+                days
+            )
+        case .cancelled, .expired, .none:
+            return NSLocalizedString("settings.subscription.tier.free_label", comment: "Current plan: Free Preview")
+        }
+    }
+
     private var subscriptionPlanDisplayName: String {
         guard let status = subscriptionState.currentStatus else {
             return NSLocalizedString("profile.subscription.free", comment: "Free")
         }
         switch status.status {
         case .active, .gracePeriod:
-            switch status.planType {
-            case "yearly":
-                return NSLocalizedString("profile.subscription.plan.yearly", comment: "年訂閱")
-            case "monthly":
-                return NSLocalizedString("profile.subscription.plan.monthly", comment: "月訂閱")
-            default:
-                return "Paceriz Premium"
-            }
+            return subscriptionPlanName(for: status)
         case .trial:
             return NSLocalizedString("profile.subscription.trial", comment: "Trial")
         case .cancelled:
@@ -521,6 +628,24 @@ struct UserProfileView: View {
             return NSLocalizedString("profile.subscription.expired", comment: "Expired")
         case .none:
             return NSLocalizedString("profile.subscription.free", comment: "Free")
+        }
+    }
+
+    private func subscriptionPlanName(for status: SubscriptionStatusEntity) -> String {
+        let isEarlyBird = status.isEarlyBird == true
+        switch status.planType {
+        case "yearly":
+            return isEarlyBird
+                ? NSLocalizedString("profile.subscription.plan.yearly_early_bird", comment: "Annual Early Bird")
+                : NSLocalizedString("profile.subscription.plan.yearly", comment: "Annual")
+        case "monthly":
+            return isEarlyBird
+                ? NSLocalizedString("profile.subscription.plan.monthly_early_bird", comment: "Monthly Early Bird")
+                : NSLocalizedString("profile.subscription.plan.monthly", comment: "Monthly")
+        default:
+            return isEarlyBird
+                ? NSLocalizedString("profile.subscription.plan.premium_early_bird", comment: "Premium Early Bird")
+                : "Paceriz Premium"
         }
     }
 
@@ -899,7 +1024,7 @@ struct UserProfileView: View {
             }) {
                 HStack {
                     Image(systemName: "thermometer.sun")
-                    Text("熱適應")
+                    Text(L10n.Performance.heatAdaptation.localized)
                     Spacer()
                     Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)
@@ -918,7 +1043,7 @@ struct UserProfileView: View {
                     HStack {
                         Image(systemName: "hand.thumbsup.fill")
                             .foregroundColor(.blue)
-                        Text("FB 粉絲團")
+                        Text(L10n.ProfileView.contactFacebookPage.localized)
                         Spacer()
                         Image(systemName: "arrow.up.right")
                             .font(AppFont.caption())
@@ -1149,6 +1274,16 @@ struct UserProfileView: View {
                     Image(systemName: "square.and.arrow.up.on.square")
                         .foregroundColor(.blue)
                     Text("V2 Fixture Export")
+                }
+            }
+
+            NavigationLink {
+                PBMomentPreviewView()
+            } label: {
+                HStack {
+                    Image(systemName: "trophy.fill")
+                        .foregroundColor(.orange)
+                    Text("PB Moment Preview")
                 }
             }
 

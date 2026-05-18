@@ -1,49 +1,48 @@
-# CLAUDE.md — Paceriz iOS
+# CLAUDE.md — iOS App (Swift)
 
-## Hard Constraints
+> **Shared project-wide constraints** (never fabricate, evidence-first, mock boundaries, no deploy, no auto-commit, own problems, i18n/timezone, environment table, cross-repo architecture) live in `../../../CLAUDE.md` and load automatically via stacking. This file is iOS-specific only.
 
-1. **Never fabricate results.** If you haven't run it, you don't know. Say "unverified" — not "should work" or PASS. Fabricated results cost 10x more to debug than honest unknowns.
+## iOS-Specific Constraints
 
-2. **Own all problems.** Build fails: fix it. QA fails: find root cause. "I don't have simulator access" is false — you have MCP tools (`mcp__ios-simulator__*`). Never push investigation back to the user.
+1. **`Date` is NOT a valid Dictionary key.** Use `TimeInterval`. `Date`'s `Hashable` is time-dependent → silent runtime crash, no compile error.
 
-3. **`Date` is not a valid Dictionary key.** Use `TimeInterval`. Date's Hashable is time-dependent — silent runtime crash, no compile error.
+2. **Filter `NSURLErrorCancelled` before touching UI state.** Cancelled tasks are intentional navigation; showing `ErrorView` for them is a UX lie.
 
-4. **HealthKit data must go through backend.** `HealthKit → Backend API → UI`, never `HealthKit → UI`. Bypassing backend creates split truth between HealthKit and Firestore.
+3. **ViewModel depends on Repository Protocol, never `RepositoryImpl`.** Concrete impl breaks DI and forces unit tests to wire the full stack.
 
-5. **Filter `NSURLErrorCancelled` before touching UI state.** Cancelled tasks are intentional navigation — showing ErrorView for them is a UX lie.
+4. **Repository never publishes to `CacheEventBus`.** Repository is passive data access; event flow belongs to ViewModels/Services. Correct pattern:
 
-6. **ViewModel depends on Repository Protocol, never RepositoryImpl.** Concrete impl breaks DI and makes unit testing require full wiring rewrite.
-
-7. **Repository never touches CacheEventBus.** Repository is passive data access. Event flow belongs to ViewModels/Services — mixing it in creates hidden coupling that breaks layer independence.
-
-   **Correct pattern** — Repository exposes a Combine publisher; ViewModel subscribes and republishes:
    ```swift
-   // Repository (Data layer)
+   // Data layer
    private let refreshSubject = PassthroughSubject<Void, Never>()
    var workoutsDidRefresh: AnyPublisher<Void, Never> { refreshSubject.eraseToAnyPublisher() }
-   // on background refresh success:
    refreshSubject.send()   // ← NOT CacheEventBus.shared.publish
 
-   // ViewModel (Presentation layer)
+   // Presentation layer
    repository.workoutsDidRefresh
        .sink { CacheEventBus.shared.publish(.dataChanged(.workouts)) }
        .store(in: &cancellables)
    ```
 
-   **Check for regressions:**
+   Regression check:
    ```bash
    grep -rn "CacheEventBus" Havital/Features/*/Data/ Havital/Features/*/Domain/ Havital/Core/Data/
    # expected: no matches
    ```
 
+5. **HealthKit → Backend → UI.** Never `HealthKit → UI` directly — creates split truth between HealthKit and Firestore.
+
 ## Commands
 
 ```bash
-# Build (always iPhone 17 Pro)
+# Build (always iPhone 17 Pro — UDID BEC21B6F-4CCF-4596-A600-ECFBE32B3FB4)
 xcodebuild clean build -project Havital.xcodeproj -scheme Havital \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 
-# Find Date-as-key crashes
+# Maestro UI tests (never use --no-window; user needs to see the screen)
+maestro test .maestro/flows/<flow>.yaml
+
+# Find Date-as-key regressions
 grep -r "Dictionary.*Date\|Date.*Dictionary" Havital/ --include="*.swift"
 ```
 
@@ -51,32 +50,20 @@ grep -r "Dictionary.*Date\|Date.*Dictionary" Havital/ --include="*.swift"
 
 Full rules: @.claude/rules/architecture.md
 
-```
-Presentation → Domain → Data → Core  (dependencies always inward)
-```
+Layering: `Presentation → Domain → Data → Core` (inward only).
 
-- DTO in Data layer (snake_case + CodingKeys), Entity in Domain (camelCase). Never add Codable to Entity — couples Domain to serialization format.
-- Singleton: HTTPClient, Logger, DataSource, Mapper, RepositoryImpl. Factory (new per use): ViewModel.
+- **DTO** in Data layer (snake_case + `CodingKeys`).
+- **Entity** in Domain (camelCase, no Codable — couples Domain to serialization format).
+- **Singleton**: HTTPClient, Logger, DataSource, Mapper, RepositoryImpl.
+- **Factory** (new per use): ViewModel.
 
 ## Known Gotchas
 
-**TaskManageable** — every ViewModel/Manager must implement it. `TaskRegistry` with unique `TaskID`. `cancelAllTasks()` in deinit. Never update UI state for cancelled tasks.
-
-**Init order is strict — race conditions are invisible in unit tests:**
-```
-App Launch → Auth → User Data → Training Overview → Weekly Plan → UI Ready
-```
-
-**API call tracking** — chain `.tracked(from: "ViewName: functionName")` on every API call. Without this, production incidents are unattributable.
-
-**Naming trap** — product name is **Paceriz** (user-facing), bundle ID stays `com.havital.*` (App Store continuity), directory stays `Havital`.
-
-## ZenOS Governance
-
-If `skills/governance/` exists, read before acting:
-- Writing docs → `document-governance.md`
-- Creating L2 concepts → `l2-knowledge-governance.md`
-- Creating tasks → `task-governance.md`
+- **TaskManageable** — every ViewModel/Manager implements it. `TaskRegistry` with unique `TaskID`. `cancelAllTasks()` in deinit. Never update UI state for cancelled tasks.
+- **Init order** is strict — race conditions invisible in unit tests:
+  `App Launch → Auth → User Data → Training Overview → Weekly Plan → UI Ready`
+- **API call tracking** — chain `.tracked(from: "ViewName: functionName")` on every API call. Without this, production incidents are unattributable.
+- **Naming trap** — product name is **Paceriz**, bundle ID stays `com.havital.*`, directory stays `Havital`.
 
 ## Role-Specific Rules
 

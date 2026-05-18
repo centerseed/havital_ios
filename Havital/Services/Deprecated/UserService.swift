@@ -211,6 +211,11 @@ class UserService {
         // Update week of training if available
         userPreferenceManager.weekOfTraining = user.weekOfTraining
         
+        // 同步熱適應開關狀態
+        if let climateEnabled = user.climateAdjustmentEnabled {
+            UserDefaults.standard.set(climateEnabled, forKey: "climateAdjustmentEnabled")
+        }
+
         // 同步數據源設定（不在這裡檢查連接狀態）
         if let dataSourceString = user.dataSource,
            let dataSourceType = DataSourceType(rawValue: dataSourceString) {

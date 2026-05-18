@@ -8,29 +8,27 @@ struct VDOTChartView: View {
     @State private var showingHeartRateZoneEditor = false
     @State private var showingInfo = false
     @Environment(\.colorScheme) var colorScheme
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Title
             HStack {
                 Text(L10n.Performance.VDOT.vdotTitle.localized)
                     .font(AppFont.headline())
-                
+
                 Button {
                     showingInfo = true
                 } label: {
                     Image(systemName: "info.circle")
                         .foregroundStyle(.secondary)
                 }
-                .alert(L10n.Performance.VDOT.whatIsVdot.localized, isPresented: $showingInfo) {
-                    Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) {}
-                } message: {
-                    Text(L10n.Performance.VDOT.vdotDescription.localized)
-                }
-                
+
                 Spacer()
             }
             .padding(.bottom, 8)
+            .sheet(isPresented: $showingInfo) {
+                VDOTInfoSheetView()
+            }
             
             // Heart Rate Zone Update Banner
             if viewModel.needUpdatedHrRange {
@@ -239,9 +237,9 @@ struct VDOTChartView: View {
                     value: String(format: "%.2f", viewModel.averageVdot),
                     backgroundColor: Color.blue.opacity(0.15)
                 )
-                
+
                 statsBox(
-                    title: L10n.Performance.VDOT.latestVdot.localized,
+                    title: L10n.Performance.VDOT.latestDynamicVdot.localized,
                     value: String(format: "%.2f", viewModel.latestVdot),
                     backgroundColor: Color.green.opacity(0.15)
                 )
@@ -271,6 +269,49 @@ struct VDOTChartView: View {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy/MM/dd HH:mm"
         return formatter
+    }
+}
+
+// MARK: - VDOT Info Sheet
+
+/// VDOT 說明 sheet，包含說明文字與「閱讀更多」官網連結
+struct VDOTInfoSheetView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text(L10n.Performance.VDOT.vdotDescription.localized)
+                        .font(AppFont.body())
+                        .foregroundColor(.primary)
+                        .padding(.bottom, 8)
+
+                    if let url = URL(string: L10n.Performance.VDOT.blogUrl.localized) {
+                        Link(destination: url) {
+                            HStack {
+                                Text(L10n.Performance.VDOT.readMore.localized)
+                                    .font(AppFont.bodySmall())
+                                    .fontWeight(.medium)
+                                Image(systemName: "arrow.up.right.square")
+                                    .font(AppFont.bodySmall())
+                            }
+                            .foregroundColor(.blue)
+                        }
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle(L10n.Performance.VDOT.whatIsVdot.localized)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(NSLocalizedString("common.ok", comment: "OK")) {
+                        dismiss()
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -906,7 +906,8 @@ final class OnboardingFeatureViewModel: ObservableObject {
                     targetPace: targetPace,
                     raceDate: Int(raceDate.timeIntervalSince1970),
                     isMainRace: true,
-                    trainingWeeks: trainingWeeks
+                    trainingWeeks: trainingWeeks,
+                    raceId: selectedRaceEvent?.raceId
                 )
                 _ = try await targetRepository.updateTarget(id: selectedTargetId, target: updatedTarget)
                 Logger.debug("[OnboardingFeatureVM] 目標已更新: \(updatedTarget.name)")
@@ -921,7 +922,8 @@ final class OnboardingFeatureViewModel: ObservableObject {
                     targetPace: targetPace,
                     raceDate: Int(raceDate.timeIntervalSince1970),
                     isMainRace: true,
-                    trainingWeeks: trainingWeeks
+                    trainingWeeks: trainingWeeks,
+                    raceId: selectedRaceEvent?.raceId
                 )
                 let createdTarget = try await targetRepository.createTarget(target)
                 selectedTargetKey = createdTarget.id
@@ -1002,6 +1004,12 @@ final class OnboardingFeatureViewModel: ObservableObject {
         raceName = event.name
         raceDate = event.eventDate
         selectedDistance = normalizeDistanceForPicker(Int(distance.distanceKm))
+        // AC-IOS-ANALYTICS-P1-06: race_run path — race selected from list
+        OnboardingCoordinator.shared.trackTargetRaceSet(
+            targetType: "race_run",
+            raceId: event.raceId,
+            distanceKm: distance.distanceKm
+        )
     }
 
     /// 清除賽事資料庫選擇，回到手動輸入模式。

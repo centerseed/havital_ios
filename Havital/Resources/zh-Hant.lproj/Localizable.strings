@@ -4,9 +4,10 @@
 */
 
 // MARK: - Main Navigation
-"tab.training_plan" = "訓練計劃";
-"tab.training_record" = "訓練紀錄";
-"tab.performance_data" = "表現數據";
+"tab.training_plan" = "課表";
+"tab.training_record" = "紀錄";
+"tab.performance_data" = "表現";
+"tab.achievement" = "成就";
 "tab.profile" = "個人";
 
 // MARK: - Toast Messages
@@ -123,9 +124,6 @@
 "training_plan.cycle_completed" = "訓練週期已完成";
 "training_plan.congratulations" = "恭喜您完成這個訓練週期！";
 "training_plan.loading_schedule" = "課表載入中...";
-
-// MARK: - Workout Summary Row
-"workout_summary_row.calculating_heart_rate" = "心率計算中...";
 
 // MARK: - Next Week Planning View
 "next_week_planning.title" = "下週計劃設定";
@@ -276,6 +274,9 @@
 "profile.subscription.change_plan" = "變更方案";
 "profile.subscription.plan.yearly" = "年訂閱";
 "profile.subscription.plan.monthly" = "月訂閱";
+"profile.subscription.plan.yearly_early_bird" = "年訂閱（早鳥）";
+"profile.subscription.plan.monthly_early_bird" = "月訂閱（早鳥）";
+"profile.subscription.plan.premium_early_bird" = "Premium（早鳥）";
 "profile.subscription.trial_ends" = "試用到期日";
 "profile.subscription.trial_remaining_days" = "剩餘 %d 天";
 "profile.subscription.trial_purchased_note" = "已訂閱，試用結束後自動生效";
@@ -410,6 +411,7 @@
 "training.type.norwegian_4x4" = "挪威4x4";
 "training.type.norwegian_singles" = "挪威單次訓練";
 "training.type.yasso_800" = "亞索800";
+"training.type.mile_repeats" = "英里重複跑";
 // 新增組合訓練類型（fartlek 已存在）
 "training.type.fast_finish" = "快速完成跑";
 // 新增比賽配速訓練
@@ -469,7 +471,7 @@
 "workout.detail.pace_zones" = "配速區間分佈";
 "workout.detail.zone_distribution" = "區間分佈";
 "workout.detail.zone_type" = "區間類型";
-"workout.detail.dynamic_vdot" = "動態跑力";
+"workout.detail.dynamic_vdot" = "VDOT";
 "workout.detail.training_load" = "訓練負荷";
 "workout.detail.movement_efficiency" = "移動效率";
 "workout.detail.recovery_zone" = "恢復區";
@@ -665,6 +667,11 @@
 "date.sat" = "六";
 "date.sun" = "日";
 "date.minutes_ago" = "%d分鐘前";
+"date.just_now" = "剛剛";
+"date.today_at" = "今天 %@";
+"date.yesterday_at" = "昨天 %@";
+"date.days_ago" = "%d 天前";
+"date.one_week_ago" = "一週前";
 
 // MARK: - Alerts & Confirmations
 "alert.unsaved_changes" = "有未儲存的變更";
@@ -717,6 +724,21 @@
 "workout.resync_data" = "重新同步資料";
 "workout.force_reupload_description" = "強制重新上傳這筆訓練紀錄，包含重新嘗試抓取心率資料";
 "workout.effort_score" = "努力評分";
+"workout.detail.add_rpe" = "新增主觀強度";
+"workout.detail.clear_rpe" = "清除主觀強度";
+"workout.detail.rpe_editor_title" = "主觀強度";
+"workout.detail.rpe_description" = "想一下這次跑完的感覺：呼吸、腿的疲勞、還能不能聊天。選最接近的分數，不用精準計算。";
+"workout.detail.rpe_picker_title" = "主觀強度";
+"workout.detail.rpe_selected_format" = "這次訓練：%d / 10";
+"workout.detail.rpe_scale_title" = "怎麼選";
+"workout.detail.rpe_scale_low" = "1-3 輕鬆：可以聊天，跑完還有餘力，像恢復跑或很輕鬆的慢跑。";
+"workout.detail.rpe_scale_medium" = "4-7 有訓練感：需要專心呼吸，但還能穩住節奏，像一般跑、長跑或節奏段。";
+"workout.detail.rpe_scale_high" = "8-10 很吃力：幾乎不能聊天，腿或呼吸壓力很大，像間歇、測驗或比賽。";
+"workout.detail.rpe_selected_low" = "偏輕鬆：這次比較像恢復或輕鬆累積。";
+"workout.detail.rpe_selected_medium" = "中等偏累：這次有訓練刺激，但仍可控制。";
+"workout.detail.rpe_selected_high" = "很吃力：這次接近高強度或比賽感。";
+"workout.detail.rpe_save_error" = "無法儲存主觀強度，請稍後再試";
+"low_data.vdot_hint" = "累積跑步資料後會顯示 VDOT。";
 
 // MARK: - Record Additional
 "record.avg_heart_rate" = "平均心率";
@@ -1081,6 +1103,8 @@
 "login.email_title" = "電子郵件登入";
 "login.email_not_verified_resend" = "重新發送驗證信";
 "login.resend_success_title" = "通知";
+"login.language" = "語言";
+"login.language_picker_accessibility" = "登入頁語言選擇";
 
 // MARK: - Data Sync Strings
 "sync.title" = "資料同步";
@@ -1134,6 +1158,7 @@
 "intensity.high" = "高";
 "intensity.minutes" = "%d 分鐘";
 "intensity.minutes_progress" = "%d / %d 分鐘";
+"intensity.minutes_short" = "分";
 "intensity.not_scheduled" = "未排課";
 "intensity.unscheduled" = "(未排課)";
 
@@ -1151,6 +1176,19 @@
 "training_plan.intensity_legend_high" = "強度";
 "training_plan.monthly_total_distance" = "月總距離";
 "training_plan.average_pace" = "平均配速";
+"training_calendar.view_mode" = "顯示模式";
+"training_calendar.calendar_view" = "月曆";
+"training_calendar.monthly_summary" = "月統計";
+"training_calendar.monthly_summary_title" = "逐月跑量";
+"training_calendar.monthly_summary_description" = "依月份查看跑量與平均配速";
+"training_calendar.no_monthly_data" = "目前沒有逐月跑步資料";
+"training_calendar.run_count_format" = "%d 次跑步";
+"training_calendar.hero_caption" = "本月跑步回顧";
+"training_calendar.average_pace_short" = "平均配速";
+"training_calendar.runs_short" = "次數";
+"training_calendar.avg_distance_short" = "單次均距";
+"training_calendar.recent_trend" = "近月趨勢";
+"training_calendar.last_six_months" = "近 6 個月";
 "training_plan.today" = "今日";
 "training_plan.active_recovery_day" = "主動恢復日";
 "training_plan.tip" = "小提示：%@";
@@ -1345,7 +1383,7 @@
 
 // MARK: - Achievement View Performance
 "performance.vdot_trend" = "VDOT 趨勢";
-"performance.vdot_explanation" = "VDOT 是根據您的跑步表現所計算出的有氧能力指標。隨著訓練進度的增加，您的 VDOT 值會逐漸提升。";
+"performance.vdot_explanation" = "VDOT 是國際通用的有氧能力指標，由 Jack Daniels 博士提出。數值越高，代表您的有氧基礎越好。";
 
 // Performance Time Range
 "performance.time_range.week" = "一週";
@@ -1361,20 +1399,22 @@
 // Performance Chart Labels
 "performance.chart.date" = "日期";
 "performance.chart.resting_heart_rate" = "靜息心率";
-"performance.chart.vdot_value" = "跑力";
+"performance.chart.vdot_value" = "VDOT";
 "performance.chart.loading" = "載入中...";
 
 // VDOT Performance Terms
-"performance.vdot.dynamic_vdot" = "動態跑力";
-"performance.vdot.weighted_vdot" = "加權跑力";
-"performance.vdot.latest_vdot" = "最新跑力";
-"performance.vdot.vdot_title" = "動態跑力 (VDOT)";
-"performance.vdot.what_is_vdot" = "什麼是動態跑力？";
-"performance.vdot.vdot_description" = "動態跑力是根據您的跑步表現和心率數據綜合計算的指標，反映您的真實跑步能力。\n\n動態跑力會依據訓練的類型，氣溫是度以及當天身體狀況而有起伏。隨著訓練的進行，動態跑力會因您的體能上升而有上升的趨勢。\n\n加權跑力會參考您的目標賽事距離，做出適當的加權來計算一段時間內的動態跑力的加權平均值，更能反映當下對於目標賽事的跑力評估喔！";
+"performance.vdot.dynamic_vdot" = "VDOT";
+"performance.vdot.weighted_vdot" = "VDOT";
+"performance.vdot.latest_vdot" = "VDOT";
+"performance.vdot.vdot_title" = "VDOT";
+"performance.vdot.what_is_vdot" = "什麼是 VDOT？";
+"performance.vdot.vdot_description" = "VDOT 是國際通用的有氧能力指標，由 Jack Daniels 博士提出。數值越高，代表您的有氧基礎越好。\n\nPaceriz 為您追蹤兩個 VDOT 數字：\n\nVDOT\n您的穩定有氧能力，根據近期跑步數據加權平均得出，能反映您對目標賽事的當前實力。\n\n動態跑力\n每次跑步後即時計算的當下表現值，會受到當天氣溫、心率、身體狀況影響而起伏。想看穩定趨勢請看 VDOT。";
 "performance.vdot.set_heart_rate_zones" = "設定心率區間";
-"performance.vdot.calculating_vdot" = "計算動態跑力中...";
-"performance.vdot.average_weighted_vdot" = "平均加權跑力";
-"performance.vdot.latest_dynamic_vdot" = "最新動態跑力";
+"performance.vdot.calculating_vdot" = "計算 VDOT 中…";
+"performance.vdot.average_weighted_vdot" = "平均 VDOT";
+"performance.vdot.latest_dynamic_vdot" = "動態跑力（最新）";
+"performance.vdot.read_more" = "閱讀更多";
+"performance.vdot.blog_url" = "https://paceriz.com/blog/dynamic_vdot.html";
 "performance.vdot.heart_rate_zone_prompt" = "請設定您的心率區間以獲得更準確的訓練強度指導";
 "performance.vdot.no_statistics" = "暫無統計信息";
 "performance.vdot.data_point_count" = "數據點數量";
@@ -1433,8 +1473,10 @@
 "performance.training_load.training_load_title" = "訓練負荷";
 "performance.training_load.training_load_explanation" = "透過體適能指數追蹤您的運動能力變化，使用TSB指標了解疲勞與恢復平衡。點擊了解詳細說明和使用技巧";
 "performance.training_load.fitness_index" = "體適能指數";
+"performance.training_load.fitness_index_short" = "體適能";
 "performance.training_load.fitness_index_explanation" = "反映您相對於過往表現的運動能力水平，重點在於觀察趨勢變化而非絕對數值";
 "performance.training_load.tsb" = "訓練壓力平衡 (TSB)";
+"performance.training_load.tsb_short" = "TSB";
 "performance.training_load.tsb_explanation" = "反映訓練疲勞與恢復平衡的指標。正值表示恢復良好，負值表示累積疲勞";
 "performance.training_load.insufficient_data" = "運動數據不足，需要至少 5 筆記錄";
 "performance.training_load.loading_training_load" = "載入訓練負荷數據中...";
@@ -1592,6 +1634,10 @@
 "feedback.error.description_required" = "請輸入描述內容";
 "feedback.success_title" = "提交成功";
 "feedback.success_message" = "感謝您的回報！";
+"feedback.contact_us" = "聯絡我們";
+"feedback.contact_us_hint" = "如需即時協助，歡迎透過以下管道聯絡我們";
+"feedback.threads" = "Threads 官方帳號";
+"feedback.facebook" = "Facebook 粉絲團";
 
 // MARK: - Contact
 "contact.paceriz" = "聯絡 Paceriz";
@@ -1707,6 +1753,10 @@
 "common.error" = "錯誤";
 // MARK: - Training Readiness - Estimated Race Time
 "training_readiness.estimated_race_time" = "預計完賽時間";
+"training_readiness.non_race_training_mode" = "非賽事訓練";
+"training_readiness.race_only_metrics_footnote" = "耐力與比賽適能指標僅適用於賽事訓練目標。";
+"training_readiness.race_only_note_title" = "賽事目標專屬指標";
+"training_readiness.race_only_note_body" = "耐力與比賽適能指標僅在訓練目標設定為「賽事」時才會啟用，目前為非賽事訓練模式。";
 
 // MARK: - Content View
 "content_view.data_source_required" = "需要綁定數據源";
@@ -2241,6 +2291,7 @@
 "training_plan.current_week" = "本週";
 "training_plan.not_current_week" = "非本週";
 "training.weekly_summary" = "週回顧";
+"training.weekly_summary_not_available_first_week" = "第一週尚無可回顧的上一週";
 "training.user_profile" = "個人資料";
 "training.contact_paceriz" = "聯絡 Paceriz";
 "training.switch_week" = "切換週數";
@@ -2440,6 +2491,20 @@
 "performance.fitness_balance" = "體適能指數 & 訓練壓力平衡";
 "performance.syncing" = "同步中...";
 "workoutsharecardsheet.close" = "關閉";
+
+/* PB Moment & Share Card */
+"my_achievement.celebration.new_pb" = "New PB";
+"my_achievement.celebration.first_record" = "首次標準距離紀錄";
+"my_achievement.celebration.other_pbs" = "另有 %d 個 PB";
+"my_achievement.celebration.share" = "分享";
+"my_achievement.celebration.save" = "儲存";
+"my_achievement.celebration.save_image" = "存圖片";
+"my_achievement.celebration.date" = "日期";
+"my_achievement.celebration.result" = "成績";
+"my_achievement.celebration.share_card_title" = "PB 分享卡";
+"my_achievement.celebration.new_badge" = "新徽章";
+"my_achievement.celebration.new_pb_and_badge" = "新 PB + 徽章";
+"my_achievement.celebration.also_unlocked" = "同時解鎖";
 "time.seconds_format" = "%d秒";
 "time.minutes_format" = "%d分鐘";
 "time.minutes_seconds_format" = "%d分%d秒";
@@ -2460,10 +2525,13 @@
 "paywall.header.trial_expired" = "試用期已結束";
 "paywall.header.feature_locked" = "升級以解鎖完整功能";
 "paywall.header.resubscribe" = "重新訂閱";
-"paywall.header.change_plan" = "變更方案";
+"paywall.header.change_plan" = "Paceriz Premium";
 "paywall.purchase_success_title" = "購買成功！";
 "paywall.purchase_success_start" = "開始使用";
 "paywall.purchase_success_trial_note" = "付費方案將在試用結束後啟用";
+"paywall.purchase_success.plan.yearly" = "年訂閱";
+"paywall.purchase_success.plan.monthly" = "月訂閱";
+"paywall.purchase_success.plan.premium" = "Premium 訂閱";
 "reminder.trial_expiring_title" = "試用即將到期";
 "reminder.trial_expiring_message" = "試用期還剩 %1$d 天（%2$@ 到期）。\n\n現在訂閱不影響試用期，訂閱將於試用期結束後才開始計費。";
 "reminder.expired_title" = "訂閱已到期";
@@ -2478,12 +2546,14 @@
 "paywall.feature.analytics" = "進階跑步分析與洞察";
 "paywall.feature.customization" = "無限調整與客製化課表";
 "paywall.badge.best_value" = "最超值";
+"paywall.badge.early_bird" = "早鳥限定";
 "paywall.plan.yearly_note" = "年繳方案，平均每月計費";
 "paywall.plan.original_price" = "原價 %@";
 "paywall.plan.savings" = "現省 %@（%d%%）";
 "paywall.offer.badge_official" = "官方優惠";
+"paywall.offer.badge_early_bird" = "早鳥方案";
+"paywall.accessibility.original_price" = "原定價 %@";
 "paywall.offer.free" = "免費";
-"paywall.offer.discount_percent" = "官方折扣 %d%%";
 "paywall.offer.ends_on" = "若今天開始，優惠至 %@";
 "paywall.offer.intro_free_trial" = "官方體驗優惠：%@ 免費試用";
 "paywall.offer.intro_pay_as_you_go" = "官方首購優惠：%@ / %@";
@@ -2515,6 +2585,94 @@
 "paywall.offer_code_identity_sync_failed" = "目前無法確認你的訂閱身份，請稍後再試。";
 "paywall.offer_code_scene_unavailable" = "目前無法開啟 Apple 優惠碼兌換視窗，請稍後再試。";
 "paywall.purchase_cancelled_retry" = "已完成 Apple 帳號登入，請再點一次方案完成購買。";
+"paywall.section.early_bird.title" = "超早鳥方案";
+"paywall.section.early_bird.badge_limited_time" = "期間限定";
+"paywall.section.early_bird.lock_forever_subtitle" = "訂閱後永久鎖定優惠價";
+"paywall.section.default.title" = "一般訂閱方案";
+
+// MARK: - Paywall Premium (SPEC-paywall-rewrite)
+"paywall.premium.nav_title" = "Paceriz Premium";
+
+// Hero (state-aware)
+"paywall.premium.hero.default.title" = "讓 AI 教練陪你練到下一場 PB";
+"paywall.premium.hero.default.subtitle" = "AI 教練讓你的每一週訓練都對齊目標";
+"paywall.premium.hero.resubscribe.title" = "歡迎回來，繼續完成你的訓練";
+"paywall.premium.hero.resubscribe.subtitle" = "重新訂閱以解鎖完整 AI 功能";
+"paywall.premium.hero.change.title" = "變更你的訂閱方案";
+"paywall.premium.hero.change.subtitle" = "隨時切換月訂與年訂";
+
+// Trial Timeline (3 steps)
+"paywall.premium.timeline.step1.label" = "今天";
+"paywall.premium.timeline.step1.desc" = "立即解鎖全部功能";
+"paywall.premium.timeline.step2.label" = "第 28 天";
+"paywall.premium.timeline.step2.desc" = "我們會提前 2 天提醒你";
+"paywall.premium.timeline.step3.label" = "第 30 天";
+"paywall.premium.timeline.step3.desc" = "訂閱開始，可隨時取消";
+
+// Features (4 groups)
+"paywall.premium.features.plan.title" = "AI 個人化週課表";
+"paywall.premium.features.plan.bullet1" = "智能週課表，依目標賽事週期化";
+"paywall.premium.features.plan.bullet2" = "根據體能與恢復狀態自動調整";
+"paywall.premium.features.plan.bullet3" = "從基礎期到 taper 的完整規劃";
+"paywall.premium.features.adjust.title" = "隨時調整訓練";
+"paywall.premium.features.adjust.bullet1" = "隨時重新生成本週課表";
+"paywall.premium.features.adjust.bullet2" = "修改單日訓練、AI 自動補回";
+"paywall.premium.features.review.title" = "AI 週回顧";
+"paywall.premium.features.review.bullet1" = "每週訓練表現與負荷自動摘要";
+"paywall.premium.features.review.bullet2" = "下一週訓練重點 AI 建議";
+"paywall.premium.features.race.title" = "賽事目標規劃";
+"paywall.premium.features.race.bullet1" = "建立目標賽事與週訓練目標";
+"paywall.premium.features.race.bullet2" = "AI 為你週期化整個訓練計畫";
+"paywall.comparison.header.free" = "免費";
+"paywall.comparison.feature.run_tracking" = "跑步紀錄";
+"paywall.comparison.feature.training_metrics" = "訓練相關指標";
+"paywall.comparison.feature.ai_plan" = "AI 課表訓練流程";
+"paywall.comparison.feature.ai_advice" = "AI 訓練建議";
+
+// Pricing section labels
+"paywall.premium.section.default.title" = "標準方案";
+"paywall.premium.section.default.subtitle" = "30 天免費試用，隨時取消";
+"paywall.premium.section.earlybird.title" = "超早鳥方案";
+"paywall.premium.section.earlybird.subtitle" = "上架前優惠價，享 30 天免費試用";
+
+// Plan card labels
+"paywall.premium.plan.annual.label" = "年訂";
+"paywall.premium.plan.annual.badge_recommended" = "推薦";
+"paywall.premium.plan.annual.savings_format" = "年訂省 %@%%";
+"paywall.premium.plan.monthly.label" = "月訂";
+"paywall.premium.plan.trial_format" = "%@ 天免費試用後扣款";
+"paywall.premium.plan.no_trial_format" = "立即扣款，無試用期";
+
+// CTA buttons
+"paywall.premium.cta.start_trial" = "免費試用 30 天";
+"paywall.premium.cta.subscribe_now" = "立即訂閱";
+"paywall.premium.cta.resubscribe" = "重新訂閱";
+"paywall.premium.cta.change_plan" = "變更為此方案";
+
+// Trial Banner
+"paywall.premium.trial_banner.format" = "你正在試用中，還剩 %@ 天";
+"paywall.premium.trial_banner.subtitle" = "試用結束後將自動扣款，可隨時取消";
+
+// Disclosure (trial + standard)
+"paywall.premium.disclosure.trial" = "點擊「開始 30 天免費試用」即代表你同意：免費試用期為 30 天，到期後將以所選方案價格自動續訂並從你的 Apple ID 扣款。試用期結束 24 小時前可在 Apple ID 設定中取消，避免扣款。訂閱會在每個週期結束前 24 小時自動續訂，除非你取消。詳情請參閱使用條款與隱私權政策。";
+"paywall.premium.disclosure.standard" = "點擊「立即訂閱」即代表你同意：將立即從你的 Apple ID 扣款並訂閱所選方案。訂閱會在每個週期結束前 24 小時自動續訂，除非你在當前週期結束 24 小時前於 Apple ID 設定中取消。詳情請參閱使用條款與隱私權政策。";
+
+// Disclosure 連結文字與格式（AC-PAYWALL-32/33/34）
+"paywall.disclosure.privacy_link_text" = "隱私政策";
+"paywall.disclosure.terms_link_text" = "服務條款";
+"paywall.disclosure.trial.with_links_format" = "30 天免費試用至 %1$@，到期後將自動扣款。請參閱 %2$@ 與 %3$@。";
+"paywall.disclosure.standard.with_links_format" = "月訂閱將立即扣款並自動續訂。請參閱 %1$@ 與 %2$@。";
+
+// Inline upsell cards (x3)
+"paywall.inline.weekly_plan.title" = "解鎖完整週課表";
+"paywall.inline.weekly_plan.body" = "Week 1 是免費的。訂閱後可生成第 2 週起的個人化課表，並可隨時重新調整";
+"paywall.inline.weekly_review.title" = "AI 週回顧是 Premium 功能";
+"paywall.inline.weekly_review.body" = "由 AI 整理你本週的訓練表現、負荷與下週建議";
+"paywall.inline.target_race.title" = "設定目標賽事是 Premium 功能";
+"paywall.inline.target_race.body" = "訂閱後可建立目標賽事與週訓練目標，由 AI 為你週期化規劃";
+"paywall.inline.cta.start_trial" = "開始 30 天免費試用";
+"paywall.inline.cta.restore" = "已訂閱？恢復購買";
+
 "profile.subscription.redeem_offer_code" = "兌換優惠碼";
 "profile.subscription.redeem_alert_title" = "優惠碼";
 "profile.subscription.redeem_success" = "已完成優惠碼兌換，訂閱狀態已更新。";
@@ -2573,3 +2731,548 @@
 "onboarding.clear_selected_race" = "改回手動輸入";
 "onboarding.tight_schedule_title" = "時間較緊迫";
 "onboarding.tight_schedule_message" = "距離賽事不足 4 週，系統會根據可用時間自動調整訓練計畫。";
+
+// Free Tier Banner (AC-PAYWALL-35)
+"paywall.free_tier.banner.title" = "免費體驗期";
+"paywall.free_tier.banner.subtitle" = "下週課表需訂閱解鎖";
+"paywall.free_tier.banner.cta" = "升級";
+
+// Grace Period Banner (AC-PAYWALL-38)
+"paywall.grace_period.banner.title_format" = "免費體驗中，剩 %d 天";
+"paywall.grace_period.banner.subtitle" = "訂閱以保留 AI 功能";
+
+// Settings Subscription Tier Indicator (AC-PAYWALL-36/40)
+"settings.subscription.tier.free_label" = "目前方案：Free 免費體驗版";
+"settings.subscription.tier.trial_label_format" = "目前方案：試用中（剩 %d 天）";
+"settings.subscription.tier.premium_label_format" = "目前方案：Premium（%@）";
+"settings.subscription.tier.grace_label_format" = "目前方案：免費體驗中（剩 %d 天）";
+"settings.subscription.tier.upgrade_cta" = "升級至完整版";
+"settings.subscription.tier.manage_cta" = "管理訂閱";
+
+// Climate Settings
+"climate_settings.title" = "熱適應";
+"climate_settings.loading" = "載入熱適應設定中…";
+"climate_settings.enable_title" = "啟用熱適應";
+"climate_settings.feels_like_subtitle" = "當天最高體感溫度";
+"climate_settings.enabled_description" = "目前已啟用。系統會在下一次生成課表時，依當天最高體感溫度（含濕度、風）與你的熱適應設定判斷是否放慢配速或縮短長跑。現有課表不會重新調整，設定變更於下週新課表生效。";
+"climate_settings.disabled_description" = "目前已關閉。之後新生成的課表會維持原始配速，不套用熱適應調整。現有課表不會重新調整。";
+"climate_settings.current_status.section" = "目前狀態";
+"climate_settings.current_status.is_adjusted" = "現在是否調整";
+"climate_settings.current_status.adjusted" = "已調整";
+"climate_settings.current_status.not_adjusted" = "未調整";
+"climate_settings.current_status.feels_like" = "目前體感溫度";
+"climate_settings.current_status.pace_adjustment" = "配速調整幅度";
+"climate_settings.current_status.long_run_adjustment" = "長跑調整";
+"climate_settings.current_status.unavailable" = "目前頁面還拿不到「當下是否已調整」；這需要後端補 current status。";
+"climate_settings.your_setting" = "你的設定";
+"climate_settings.adjustment_start" = "開始介入";
+"climate_settings.common_adjustment" = "常見調整幅度";
+"climate_settings.adaptation_level" = "熱適應程度";
+"climate_settings.adaptation.unacclimated" = "未適應／初學";
+"climate_settings.adaptation.normal" = "一般";
+"climate_settings.adaptation.acclimated" = "已熱適應";
+"climate_settings.manual_threshold.toggle" = "手動調整開始溫度";
+"climate_settings.manual_threshold.start_temp" = "開始介入溫度";
+"climate_settings.manual_threshold.danger_fixed_format" = "危險等級固定在 %d°C。";
+"climate_settings.future_only_footer" = "變更只會影響之後新生成的課表，不會回改已生成的結果。";
+"climate_settings.explanation.open" = "查看熱適應說明";
+"climate_settings.not_available" = "目前未提供";
+"climate_settings.explanation.title" = "熱適應說明";
+"climate_settings.explanation.how_it_works" = "熱適應怎麼運作";
+"climate_settings.explanation.intervention_rules" = "什麼情況會介入";
+"climate_settings.metrics.section" = "你的近 14 天熱適應狀態";
+"climate_settings.metrics.recommended" = "系統建議";
+"climate_settings.metrics.current" = "目前設定";
+"climate_settings.metrics.hot_hours" = "熱環境時數";
+"climate_settings.metrics.hot_workouts" = "熱壓力訓練";
+"climate_settings.metrics.workout_count_format" = "%d 次";
+"climate_settings.metrics.pace_achievement" = "配速達成率";
+"climate_settings.metrics.hr_efficiency" = "心率效率";
+"climate_settings.metrics.efficiency_change" = "效率變化";
+"climate_settings.source.section" = "資料來源";
+"climate_settings.source.region_strategy" = "區域策略";
+"climate_settings.source.weather_source" = "氣象來源";
+"climate_settings.insufficient_data" = "資料不足";
+"climate_settings.trend.improving" = "改善中";
+"climate_settings.trend.declining" = "惡化中";
+"climate_settings.trend.stable" = "穩定";
+"climate_settings.effective_notice" = "氣候調整將從下一次產生的課表開始生效";
+
+// MARK: - Missing NSLocalizedString keys backfilled 2026-05-02
+"common.no_data" = "\u66AB\u7121\u8CC7\u6599";
+"edit.future_day" = "\u672A\u4F86\u65E5\u671F";
+"edit.past_day" = "\u904E\u53BB\u65E5\u671F";
+"edit.today" = "\u4ECA\u5929";
+"edit_schedule.error.empty_plan" = "\u8A13\u7DF4\u8AB2\u8868\u662F\u7A7A\u7684\u3002";
+"edit_schedule.error.invalid_day_index" = "\u7121\u6548\u7684\u8A13\u7DF4\u65E5\u671F\u3002";
+"edit_schedule.error.invalid_training_type" = "\u7121\u6548\u7684\u8A13\u7DF4\u985E\u578B\u3002";
+"edit_schedule.error.save_result_missing" = "\u8AB2\u8868\u66F4\u65B0\u6C92\u6709\u56DE\u50B3\u7D50\u679C\u3002";
+"edit_schedule.save_success" = "\u8AB2\u8868\u5DF2\u66F4\u65B0\u3002";
+"editsupportingtarget.text_0" = "\u8F14\u52A9\u76EE\u6A19";
+"error.bad_request" = "\u7121\u6548\u7684\u8ACB\u6C42";
+"error.cache_expired" = "\u66AB\u5B58\u8CC7\u6599\u5DF2\u904E\u671F\uFF0C\u8ACB\u91CD\u65B0\u6574\u7406\u3002";
+"error.check_connection" = "\u8ACB\u6AA2\u67E5\u7DB2\u8DEF\u9023\u7DDA\u5F8C\u518D\u8A66\u4E00\u6B21\u3002";
+"error.data_corruption" = "\u8CC7\u6599\u640D\u58DE";
+"error.forbidden" = "\u7121\u6CD5\u5B58\u53D6";
+"error.invalid_target_data" = "\u7121\u6548\u7684\u76EE\u6A19\u8CC7\u6599\uFF1A%@";
+"error.invalid_update_data" = "\u7121\u6548\u7684\u66F4\u65B0\u8CC7\u6599\uFF1A%@";
+"error.network_failure" = "\u7DB2\u8DEF\u8ACB\u6C42\u5931\u6557";
+"error.no_connection" = "\u6C92\u6709\u7DB2\u8DEF\u9023\u7DDA";
+"error.no_main_race" = "\u627E\u4E0D\u5230\u4E3B\u8981\u8CFD\u4E8B\u76EE\u6A19";
+"error.no_permission" = "\u4F60\u6C92\u6709\u6B0A\u9650\u57F7\u884C\u9019\u500B\u64CD\u4F5C\u3002";
+"error.not_authenticated" = "\u8ACB\u91CD\u65B0\u767B\u5165\u3002";
+"error.preferences_not_found" = "\u627E\u4E0D\u5230\u4F7F\u7528\u8005\u504F\u597D\u8A2D\u5B9A";
+"error.profile_not_found" = "\u627E\u4E0D\u5230\u4F7F\u7528\u8005\u500B\u4EBA\u8CC7\u6599";
+"error.resource_not_found" = "\u627E\u4E0D\u5230\u8ACB\u6C42\u7684\u8CC7\u6E90\u3002";
+"error.rizo_quota_exceeded" = "Rizo \u4F7F\u7528\u984D\u5EA6\u5DF2\u7528\u5B8C";
+"error.server_error" = "\u4F3A\u670D\u5668\u932F\u8AA4";
+"error.server_issue" = "\u4F3A\u670D\u5668\u76EE\u524D\u767C\u751F\u554F\u984C\uFF0C\u8ACB\u7A0D\u5F8C\u518D\u8A66\u3002";
+"error.session_expired" = "\u767B\u5165\u72C0\u614B\u5DF2\u904E\u671F\uFF0C\u8ACB\u91CD\u65B0\u767B\u5165\u3002";
+"error.subscription_required" = "\u9700\u8981\u8A02\u95B1";
+"error.target_not_found" = "\u627E\u4E0D\u5230\u76EE\u6A19\uFF1A%@";
+"error.title.forbidden" = "\u7121\u6CD5\u5B58\u53D6";
+"error.title.network" = "\u7DB2\u8DEF\u932F\u8AA4";
+"error.title.not_found" = "\u627E\u4E0D\u5230\u8CC7\u6599";
+"error.title.server" = "\u4F3A\u670D\u5668\u932F\u8AA4";
+"error.title.unauthorized" = "\u767B\u5165\u5DF2\u904E\u671F";
+"error.title.unknown" = "\u932F\u8AA4";
+"error.trial_expired" = "\u8A66\u7528\u671F\u5DF2\u7D50\u675F";
+"error.unauthorized" = "\u8ACB\u91CD\u65B0\u767B\u5165";
+"hr_zone.save_failed_generic" = "\u5FC3\u7387\u5340\u9593\u5132\u5B58\u5931\u6557\u3002";
+"onboarding.race_target_required" = "\u8ACB\u9078\u64C7\u6216\u8F38\u5165\u8CFD\u4E8B\u76EE\u6A19\u3002";
+"onboarding.training_weeks_required" = "\u8ACB\u9078\u64C7\u8A13\u7DF4\u9031\u6578\u3002";
+"profile.contact" = "\u806F\u7D61\u65B9\u5F0F";
+"race_picker.api_failure_hint" = "\u8ACB\u4F7F\u7528\u624B\u52D5\u8F38\u5165\uFF0C\u6216\u7A0D\u5F8C\u518D\u8A66\u3002";
+"race_picker.api_failure_title" = "\u7121\u6CD5\u8F09\u5165\u8CFD\u4E8B\u8CC7\u6599\u5EAB";
+"race_picker.retry" = "\u91CD\u8A66";
+"rizo.quota_exceeded_banner" = "Rizo AI \u984D\u5EA6\u66AB\u6642\u7528\u5B8C\uFF0C\u8ACB\u7A0D\u5F8C\u518D\u8A66\u3002";
+"search.no_results_message" = "\u8ACB\u5617\u8A66\u8ABF\u6574\u641C\u5C0B\u689D\u4EF6\u3002";
+"search.no_results_title" = "\u6C92\u6709\u7D50\u679C";
+"training.no_plan_message" = "\u4F60\u9084\u6C92\u6709\u8A13\u7DF4\u8AB2\u8868\u3002";
+"training.no_training_today" = "\u4ECA\u5929\u6C92\u6709\u5B89\u6392\u8A13\u7DF4\u3002";
+"training.today_training" = "\u4ECA\u65E5\u8A13\u7DF4";
+"training.week_out_of_range" = "\u7B2C %d \u9031\u8D85\u51FA\u8AB2\u8868\u7BC4\u570D\uFF081-%d\uFF09\u3002";
+"trainingload.text_0" = "訓練負荷說明";
+"trainingload.text_1" = "了解體適能、疲勞與 TSB 如何反映目前的訓練狀態。";
+"trainingload.text_10" = "TSB 代表目前疲勞與長期體適能之間的平衡。正值通常代表較新鮮，負值代表疲勞累積。";
+"trainingload.text_11" = "狀態區間";
+"trainingload.text_12" = "TSB > +5";
+"trainingload.text_13" = "目前相對新鮮，可能適合品質課表或比賽。";
+"trainingload.text_14" = "-10 到 +5";
+"trainingload.text_15" = "這是一般訓練週較平衡的區間。";
+"trainingload.text_16" = "TSB < -10";
+"trainingload.text_17" = "疲勞偏高；如果持續偏低，建議安排恢復。";
+"trainingload.text_18" = "如何解讀圖表";
+"trainingload.text_19" = "體適能";
+"trainingload.text_2" = "體適能指數";
+"trainingload.text_20" = "長期訓練適應的趨勢。";
+"trainingload.text_21" = "TSB";
+"trainingload.text_22" = "新鮮度與疲勞的平衡。";
+"trainingload.text_23" = "實用建議";
+"trainingload.text_24" = "體適能上升";
+"trainingload.text_25" = "維持節奏，避免突然增加負荷。";
+"trainingload.text_26" = "體適能穩定";
+"trainingload.text_27" = "維持訓練連續性，專注課表品質。";
+"trainingload.text_28" = "體適能下降";
+"trainingload.text_29" = "先用輕鬆跑逐步恢復，再加入強度。";
+"trainingload.text_3" = "體適能代表穩定訓練累積出的長期效果。訓練穩定時通常會逐步上升，中斷訓練時會下降。";
+"trainingload.text_30" = "TSB 過低";
+"trainingload.text_31" = "優先恢復，減少高強度訓練。";
+"trainingload.text_32" = "注意事項";
+"trainingload.text_33" = "這些指標是根據可用訓練資料估算。";
+"trainingload.text_34" = "請把它作為訓練參考，不是醫療建議。";
+"trainingload.text_35" = "短期波動是正常現象，請看多週趨勢。";
+"trainingload.text_36" = "如果有疼痛或異常疲勞，請降低負荷並休息。";
+"trainingload.text_37" = "越完整的運動紀錄，越能提升指標準確度。";
+"trainingload.text_4" = "趨勢代表什麼";
+"trainingload.text_5" = "體適能正在提升";
+"trainingload.text_6" = "體適能維持穩定";
+"trainingload.text_7" = "體適能正在下降";
+"trainingload.text_8" = "請搭配疲勞與恢復狀態一起判斷，不要只看單一天數值。";
+"trainingload.text_9" = "TSB";
+"workout.no_records_message" = "\u958B\u59CB\u904B\u52D5\u5F8C\uFF0C\u9019\u88E1\u6703\u986F\u793A\u4F60\u7684\u8A13\u7DF4\u7D00\u9304\u3002";
+"workout.no_records_title" = "\u6C92\u6709\u8A13\u7DF4\u7D00\u9304";
+
+// MARK: - Personal Achievements
+"achievements.title" = "個人成就";
+"achievements.loading" = "正在載入你的成就...";
+"achievements.story.title" = "跑者故事";
+"achievements.story.explanation" = "把你在 Paceriz 累積下來的訓練、PB 與徽章整理在一起。";
+"achievements.story.unlocked_count" = "共 %d 個徽章已解鎖";
+"achievements.story.recent_unlock" = "最近解鎖";
+"achievements.story.no_recent_unlock" = "第一個里程碑會顯示在這裡。";
+"achievements.story.next_badge" = "下一個篇章";
+"achievements.hero.title" = "代表徽章";
+"achievements.hero.explanation" = "從已解鎖徽章中選一個當作你目前的代表。";
+"achievements.hero.picker_title" = "選一個代表徽章";
+"achievements.hero.picker_empty" = "完成第一場跑步來解鎖你的第一個徽章。";
+"achievements.hero.unlocked_at" = "%@ 解鎖";
+"achievements.hero.no_selection" = "尚未選擇代表徽章";
+"achievements.empty.title" = "開始留下你的訓練故事";
+"achievements.empty.start" = "完成並同步一筆跑步紀錄後，Paceriz 會開始整理你的成就。";
+"achievements.backfill.ready" = "你的 Paceriz 訓練履歷已整理好。";
+"achievements.backfill.count" = "已從歷史資料整理出 %d 個徽章。";
+"achievements.pb.title" = "個人最佳";
+"achievements.pb.explanation" = "你在標準距離留下的最佳成績，之後可從這裡回看與分享。";
+"achievements.pb.empty" = "目前還沒有標準距離 PB。";
+"achievements.pb.record" = "紀錄";
+"achievements.stats.title" = "累積紀錄";
+"achievements.stats.explanation" = "Paceriz 根據你的同步訓練整理出的累積數據。";
+"achievements.stats.total_runs" = "跑步次數";
+"achievements.stats.total_distance" = "總跑量";
+"achievements.stats.completed_weeks" = "完成週數";
+"achievements.stats.longest_run" = "最長跑步";
+"achievements.stats.first_workout" = "第一次紀錄";
+"achievements.stats.kilometers" = "%@ km";
+"achievements.insights.title" = "訓練記憶";
+"achievements.insights.explanation" = "Paceriz 從你的訓練歷史整理出的個人累積。";
+"achievements.share.title" = "最近成果";
+"achievements.share.explanation" = "最近值得回看的 PB、徽章或訓練成果。";
+"achievements.share.item" = "成果";
+"achievements.share.action" = "分享";
+"achievements.share.preview_title" = "分享預覽";
+"achievements.share.privacy_title" = "隱私保障";
+"achievements.share.privacy_body" = "心率、路線、GPS 軌跡、配速時序永遠不會出現在分享卡上。";
+"achievements.share.public_fields" = "會公開的欄位";
+"achievements.share.default_public_fields" = "這張分享卡只包含標題、篇章、日期與公開摘要。";
+"achievements.share.sensitive_excluded" = "路線、GPS、心率、睡眠、傷痛、workout ID、email、uid 與完整課表細節都不會包含。";
+"achievements.share.privacy_footer" = "Paceriz 訓練成果";
+"achievements.share.badge_label" = "徽章";
+"achievements.share.tag_new_pb" = "新 PB";
+"achievements.share.tag_new_badge" = "新徽章";
+"achievements.share.tag_pb_and_badge" = "新 PB + 徽章";
+"achievements.badges.title" = "徽章收藏";
+"achievements.badges.explanation" = "查看你已拿到與正在累積的徽章。";
+"achievements.badges.badge" = "徽章";
+"achievements.badges.historical" = "歷史";
+"achievements.badges.progress" = "已解鎖 %d / %d";
+"achievements.badges.empty_preview" = "完成更多訓練後，代表徽章會出現在這裡。";
+"achievements.detail.title" = "成就詳情";
+"achievements.detail.story" = "故事";
+"achievements.detail.progress" = "進度";
+"achievements.detail.source" = "來源";
+"achievements.detail.historical" = "這個成就是由歷史訓練資料整理而來。";
+"achievements.detail.unlocked_at" = "解鎖於 %@";
+"achievements.detail.criteria_unavailable" = "解鎖條件暫無資料";
+"achievements.detail.criteria" = "如何解鎖";
+"achievements.status.unlocked" = "已解鎖";
+"achievements.status.in_progress" = "累積中";
+"achievements.status.locked" = "待累積";
+"achievements.status.insufficient_data" = "資料不足";
+"achievements.status.unknown" = "未知";
+"achievements.chapter.start" = "開始起跑";
+"achievements.chapter.build" = "穩定累積";
+"achievements.chapter.adapt" = "聰明調整";
+"achievements.chapter.prove" = "成果突破";
+"achievements.chapter.identity" = "跑者身份";
+"achievements.chapter.unknown" = "其他";
+"achievements.action.pin" = "Pin 到首頁";
+"achievements.action.unpin" = "從首頁取消";
+"achievements.error.load_failed" = "無法載入成就";
+"achievements.insight.completed_weeks" = "你已在 Paceriz 完成 %@ 個訓練週。";
+"achievements.insight.smart_adjustments" = "你曾接受 %@ 次聰明訓練調整。";
+"achievements.insight.training_companion_time" = "Paceriz 已陪你累積 %@ 週訓練。";
+"achievements.share.summary.badge" = "你 Paceriz 訓練故事中的一枚可信徽章。";
+"achievements.share.summary.pb" = "你 Paceriz 歷史中的一筆可信個人最佳。";
+"achievements.share.badge.summary" = "你在 Paceriz 累積到的一枚徽章。";
+"achievements.track.rhythm.title" = "訓練節奏";
+"achievements.track.rhythm.story" = "每週留下有效訓練，慢慢建立穩定節奏。";
+"achievements.track.plan.title" = "課表執行";
+"achievements.track.plan.story" = "完成有實際跟上 Paceriz 課表的訓練週。";
+"achievements.track.results.title" = "成果突破";
+"achievements.track.results.story" = "從目標、比賽、PB 與新距離累積可信成果。";
+"achievements.progress.unit.week" = "週";
+"achievements.progress.unit.count" = "次";
+"achievements.badge.rhythm.first_active_week.name" = "第一個活躍週";
+"achievements.badge.rhythm.first_active_week.story" = "你在 Paceriz 留下了第一個活躍訓練週。";
+"achievements.badge.rhythm.return_week.name" = "回到節奏";
+"achievements.badge.rhythm.return_week.story" = "你回來並累積了另一個活躍訓練週。";
+"achievements.badge.rhythm.four_week_rhythm.name" = "四週節奏";
+"achievements.badge.rhythm.four_week_rhythm.story" = "你把四個活躍週放進跑步節奏裡。";
+"achievements.badge.rhythm.eight_week_rhythm.name" = "八週節奏";
+"achievements.badge.rhythm.eight_week_rhythm.story" = "你維持了八週的活躍訓練節奏。";
+"achievements.badge.rhythm.season_runner.name" = "一季跑者";
+"achievements.badge.rhythm.season_runner.story" = "你完成了一季長度的持續訓練。";
+"achievements.badge.rhythm.half_year_runner.name" = "半年跑者";
+"achievements.badge.rhythm.half_year_runner.story" = "你在半年的訓練週裡持續出現。";
+"achievements.badge.rhythm.year_runner.name" = "全年跑者";
+"achievements.badge.rhythm.year_runner.story" = "你建立了一整年的跑步節奏。";
+"achievements.badge.plan.plan_started.name" = "課表開始";
+"achievements.badge.plan.plan_started.story" = "你開始了一份 Paceriz 訓練課表。";
+"achievements.badge.plan.first_qualified_week.name" = "第一個課表週";
+"achievements.badge.plan.first_qualified_week.story" = "你完成了第一個有實際跟上課表的訓練週。";
+"achievements.badge.plan.two_qualified_weeks.name" = "兩個課表週";
+"achievements.badge.plan.two_qualified_weeks.story" = "你完成了兩個有實際跟上課表的訓練週。";
+"achievements.badge.plan.four_qualified_weeks.name" = "四個課表週";
+"achievements.badge.plan.four_qualified_weeks.story" = "你完成了四個合格的 Paceriz 課表週。";
+"achievements.badge.plan.eight_qualified_weeks.name" = "八個課表週";
+"achievements.badge.plan.eight_qualified_weeks.story" = "你完成了八個合格的 Paceriz 課表週。";
+"achievements.badge.plan.twelve_qualified_weeks.name" = "十二個課表週";
+"achievements.badge.plan.twelve_qualified_weeks.story" = "你完成了十二個合格的 Paceriz 課表週。";
+"achievements.badge.plan.twenty_four_qualified_weeks.name" = "二十四個課表週";
+"achievements.badge.plan.twenty_four_qualified_weeks.story" = "你完成了二十四個合格的 Paceriz 課表週。";
+"achievements.badge.results.first_major_result.name" = "第一個重要成果";
+"achievements.badge.results.first_major_result.story" = "你在 Paceriz 累積了第一個可信成果。";
+"achievements.badge.results.three_major_results.name" = "三個重要成果";
+"achievements.badge.results.three_major_results.story" = "你累積了三個可信的訓練或比賽成果。";
+"achievements.badge.results.five_major_results.name" = "五個重要成果";
+"achievements.badge.results.five_major_results.story" = "你從跑步裡累積了五個可信成果。";
+"achievements.badge.results.ten_major_results.name" = "十個重要成果";
+"achievements.badge.results.ten_major_results.story" = "你從跑步裡累積了十個可信成果。";
+"achievements.badge.results.twenty_major_results.name" = "二十個重要成果";
+"achievements.badge.results.twenty_major_results.story" = "你長期累積了二十個可信成果。";
+"achievements.badge.results.collector.name" = "成果收藏家";
+"achievements.badge.results.collector.story" = "你建立了一份扎實的可信跑步成果紀錄。";
+"achievements.badge.rhythm.next_action" = "再完成一個活躍訓練週。";
+"achievements.badge.plan.next_action_start" = "開始一份 Paceriz 訓練課表。";
+"achievements.badge.plan.next_action" = "再完成一個合格課表週。";
+"achievements.badge.results.next_action" = "再留下一次可信成果。";
+"achievements.badge.start.first_run.name" = "第一筆跑步";
+"achievements.badge.start.first_run.story" = "你在 Paceriz 留下了第一筆跑步紀錄。";
+"achievements.badge.start.plan_started.name" = "課表開始";
+"achievements.badge.start.plan_started.story" = "你開始了一份 Paceriz 訓練課表。";
+"achievements.badge.start.first_week.name" = "第一週完成";
+"achievements.badge.start.first_week.story" = "你完成了第一個訓練週。";
+"achievements.badge.start.first_long_run.name" = "第一次長跑";
+"achievements.badge.start.first_long_run.story" = "你完成了第一次長距離訓練。";
+"achievements.badge.start.first_recovery.name" = "第一次恢復";
+"achievements.badge.start.first_recovery.story" = "你把恢復也納入訓練節奏。";
+"achievements.badge.build.showing_up.name" = "穩定出席";
+"achievements.badge.build.showing_up.story" = "你開始穩定地把訓練留下來。";
+"achievements.badge.build.routine_builder.name" = "節奏建立者";
+"achievements.badge.build.routine_builder.story" = "你正在把跑步變成可持續的節奏。";
+"achievements.badge.build.eight_week_block.name" = "八週累積";
+"achievements.badge.build.eight_week_block.story" = "你完成了一段夠長的訓練累積。";
+"achievements.badge.build.long_run_done.name" = "長跑完成";
+"achievements.badge.build.long_run_done.story" = "你把本週的長跑踏實完成。";
+"achievements.badge.build.weekly_goal.name" = "週目標完成";
+"achievements.badge.build.weekly_goal.story" = "你完成了這週設定的訓練目標。";
+"achievements.badge.build.volume_base.name" = "有氧基礎";
+"achievements.badge.build.volume_base.story" = "你正在建立穩定的跑量基礎。";
+"achievements.badge.build.plan_finisher.name" = "課表完成者";
+"achievements.badge.build.plan_finisher.story" = "你把一份訓練課表走完。";
+"achievements.badge.adapt.recovery_earned.name" = "恢復也是訓練";
+"achievements.badge.adapt.recovery_earned.story" = "你完成了該恢復的訓練。";
+"achievements.badge.adapt.load_balanced.name" = "負荷平衡";
+"achievements.badge.adapt.load_balanced.story" = "你讓訓練負荷維持在更穩定的節奏。";
+"achievements.badge.adapt.heat_adjusted.name" = "高溫調整";
+"achievements.badge.adapt.heat_adjusted.story" = "你依照天氣調整訓練，保留了品質。";
+"achievements.badge.adapt.comeback.name" = "安全回歸";
+"achievements.badge.adapt.comeback.story" = "你用更穩的方式回到訓練。";
+"achievements.badge.adapt.rest_week.name" = "尊重恢復週";
+"achievements.badge.adapt.rest_week.story" = "你沒有硬追強度，而是完成該休息的週期。";
+"achievements.badge.adapt.smart_skip.name" = "聰明跳過";
+"achievements.badge.adapt.smart_skip.story" = "你避開了不適合硬上的訓練。";
+"achievements.badge.adapt.pace_patience.name" = "配速耐心";
+"achievements.badge.adapt.pace_patience.story" = "你控制住配速，把訓練做在該做的區間。";
+"achievements.badge.prove.new_pb.name" = "新 PB";
+"achievements.badge.prove.new_pb.story" = "你的累積轉成了一筆新的個人最佳。";
+"achievements.badge.prove.first_5k.name" = "第一個 5K";
+"achievements.badge.prove.first_5k.story" = "你留下了第一筆 5K 成績。";
+"achievements.badge.prove.first_10k.name" = "第一個 10K";
+"achievements.badge.prove.first_10k.story" = "你留下了第一筆 10K 成績。";
+"achievements.badge.prove.first_half.name" = "第一個半馬";
+"achievements.badge.prove.first_half.story" = "你完成了第一個半馬距離。";
+"achievements.badge.prove.first_marathon.name" = "第一個全馬";
+"achievements.badge.prove.first_marathon.story" = "你完成了第一個全馬距離。";
+"achievements.badge.prove.distance_breakthrough.name" = "距離突破";
+"achievements.badge.prove.distance_breakthrough.story" = "你把最長距離往前推進了一步。";
+"achievements.badge.prove.race_ready.name" = "比賽準備完成";
+"achievements.badge.prove.race_ready.story" = "你已經累積到可以站上起跑線的狀態。";
+"achievements.badge.prove.goal_completed.name" = "目標完成";
+"achievements.badge.prove.goal_completed.story" = "你完成了自己設定的訓練目標。";
+"achievements.badge.identity.5k_runner.name" = "5K 跑者";
+"achievements.badge.identity.5k_runner.story" = "5K 已經成為你的跑步身份之一。";
+"achievements.badge.identity.10k_runner.name" = "10K 跑者";
+"achievements.badge.identity.10k_runner.story" = "10K 已經成為你的跑步身份之一。";
+"achievements.badge.identity.half_marathoner.name" = "半馬跑者";
+"achievements.badge.identity.half_marathoner.story" = "半馬已經成為你的跑步身份之一。";
+"achievements.badge.identity.marathon_builder.name" = "馬拉松建構者";
+"achievements.badge.identity.marathon_builder.story" = "你正在累積通往馬拉松的能力。";
+"achievements.badge.identity.consistent_runner.name" = "穩定跑者";
+"achievements.badge.identity.consistent_runner.story" = "穩定訓練已經成為你的特色。";
+"achievements.badge.identity.smart_trainer.name" = "聰明訓練者";
+"achievements.badge.identity.smart_trainer.story" = "你知道什麼時候推進，也知道什麼時候調整。";
+"achievements.badge.identity.pb_hunter.name" = "PB 獵人";
+"achievements.badge.identity.pb_hunter.story" = "你持續把累積轉換成新的成績。";
+"achievements.field.chapter" = "篇章";
+"achievements.field.date" = "日期";
+"achievements.field.result" = "成果";
+"achievement.source.weekly_summary" = "週摘要";
+"achievement.source.pb" = "個人最佳";
+"achievement.source.workout" = "訓練摘要";
+"achievement.progress.current_target" = "已完成 %@ / %@";
+"achievements.insight.training_rhythm" = "你最常在星期 %@ 留下訓練紀錄。";
+"achievements.insight.pb_context" = "你的 %@ 筆 PB 紀錄，來自 %@ 週訓練累積。";
+"achievements.share.pb.title" = "個人最佳";
+"achievements.share.pb.summary" = "這是 Paceriz 從你的紀錄確認的 %@ PB。";
+"achievements.share.week_complete.title" = "訓練週完成";
+"achievements.share.week_complete.summary" = "你完成了一個 Paceriz 訓練週。";
+"achievements.share.insight.summary" = "這是 Paceriz 從你的訓練歷史整理出的公開洞察。";
+"achievements.reason.badge_start_first_run" = "完成並同步第一筆有效跑步紀錄。";
+"achievements.reason.badge_start_plan_started" = "開始第一份 Paceriz 訓練計畫。";
+"achievements.reason.badge_start_first_week" = "完成第一個訓練週。";
+"achievements.reason.badge_start_first_long_run" = "完成第一筆長跑訓練。";
+"achievements.reason.badge_start_first_recovery" = "完成第一筆恢復訓練。";
+"achievements.reason.badge_build_showing_up" = "開始穩定留下訓練紀錄。";
+"achievements.reason.badge_build_routine_builder" = "連續完成多個主要訓練週。";
+"achievements.reason.badge_build_eight_week_block" = "完成一段安全的訓練累積。";
+"achievements.reason.badge_build_long_run_done" = "完成本週長跑。";
+"achievements.reason.badge_build_weekly_goal" = "達成本週主要訓練目標。";
+"achievements.reason.badge_build_volume_base" = "在安全範圍內建立有氧基礎。";
+"achievements.reason.badge_build_plan_finisher" = "完成一份 Paceriz 訓練計畫。";
+"achievements.reason.badge_adapt_recovery_earned" = "把恢復納入訓練節奏。";
+"achievements.reason.badge_adapt_load_balanced" = "在可承受的負荷範圍內完成訓練。";
+"achievements.reason.badge_adapt_heat_adjusted" = "接受氣候或熱壓力調整後完成訓練。";
+"achievements.reason.badge_adapt_comeback" = "中斷後以安全方式回到訓練。";
+"achievements.reason.badge_adapt_rest_week" = "尊重恢復週，沒有硬堆訓練量。";
+"achievements.reason.badge_adapt_smart_skip" = "依照風險或狀態做出合理調整。";
+"achievements.reason.badge_adapt_pace_patience" = "在正確強度區間完成訓練。";
+"achievements.reason.badge_prove_new_pb" = "刷新一筆標準距離個人最佳。";
+"achievements.reason.badge_prove_first_5k" = "完成第一筆 5K 距離紀錄。";
+"achievements.reason.badge_prove_first_10k" = "完成第一筆 10K 距離紀錄。";
+"achievements.reason.badge_prove_first_half" = "完成第一筆半馬距離紀錄。";
+"achievements.reason.badge_prove_first_marathon" = "完成第一筆全馬距離紀錄。";
+"achievements.reason.badge_prove_distance_breakthrough" = "刷新個人最長跑步距離。";
+"achievements.reason.badge_prove_race_ready" = "完成賽前關鍵訓練累積。";
+"achievements.reason.badge_prove_goal_completed" = "完成設定的主要訓練目標。";
+"achievements.reason.badge_id_5k_runner" = "5K 已成為你的跑步紀錄一部分。";
+"achievements.reason.badge_id_10k_runner" = "10K 已成為你的跑步紀錄一部分。";
+"achievements.reason.badge_id_half_marathoner" = "半馬距離已成為你的跑步紀錄一部分。";
+"achievements.reason.badge_id_marathon_builder" = "正在建立面向全馬的訓練能力。";
+"achievements.reason.badge_id_consistent_runner" = "穩定訓練已成為你的跑者特徵。";
+"achievements.reason.badge_id_smart_trainer" = "同時累積訓練與調整能力。";
+"achievements.reason.badge_id_pb_hunter" = "近期訓練已轉化成新的 PB 紀錄。";
+
+// MARK: - Badge Criteria（如何解鎖，35 badges × zh-Hant）
+// Chapter: Start
+"achievements.badge.start.first_run.criteria" = "完成並同步你的第一次跑步紀錄，即可解鎖。";
+"achievements.badge.start.plan_started.criteria" = "在 Paceriz 啟動你的第一份訓練課表，即可解鎖。";
+"achievements.badge.start.first_week.criteria" = "完成第一個訓練週，讓本週跑量達到課表目標，即可解鎖。";
+"achievements.badge.start.first_long_run.criteria" = "完成一次 12 公里以上的跑步並同步紀錄，即可解鎖。";
+"achievements.badge.start.first_recovery.criteria" = "完成一次課表中標記為恢復跑的輕鬆訓練，即可解鎖。";
+// Chapter: Build
+"achievements.badge.build.showing_up.criteria" = "在 Paceriz 累積 2 週訓練紀錄（含未完成週），即可解鎖。";
+"achievements.badge.build.routine_builder.criteria" = "完成 4 個達標訓練週，每週跑量達到課表目標，即可解鎖。";
+"achievements.badge.build.eight_week_block.criteria" = "在安全的跑量範圍內不超量完成 8 週訓練，即可解鎖。";
+"achievements.badge.build.long_run_done.criteria" = "完成本週課表排定的長跑（12 公里以上），即可解鎖。";
+"achievements.badge.build.weekly_goal.criteria" = "完成這週設定的訓練目標，週跑量達標，即可解鎖。";
+"achievements.badge.build.volume_base.criteria" = "在安全的跑量範圍內不超量完成 4 週訓練，即可解鎖。";
+"achievements.badge.build.plan_finisher.criteria" = "把一份 Paceriz 訓練課表從頭到尾走完，即可解鎖。";
+// Chapter: Adapt
+"achievements.badge.adapt.recovery_earned.criteria" = "完成一個課表安排的恢復訓練週，跑量降低、強度放鬆，即可解鎖。";
+"achievements.badge.adapt.load_balanced.criteria" = "在完成訓練週的同時維持在安全跑量範圍內，達標且不超量，即可解鎖。";
+"achievements.badge.adapt.heat_adjusted.criteria" = "Paceriz 偵測到高溫天氣並調整配速後，依照調整後配速完成跑步，即可自動獲得。";
+"achievements.badge.adapt.comeback.criteria" = "停訓一段時間後重新開始，Paceriz 偵測到你以安全節奏回歸訓練，即可自動獲得。";
+"achievements.badge.adapt.rest_week.criteria" = "在 Paceriz 安排降量恢復週時，完成該週而不是硬追強度，即可解鎖。";
+"achievements.badge.adapt.smart_skip.criteria" = "Paceriz 判定不適合硬上的情況下，選擇跳過或調整訓練，由系統自動識別後獲得。";
+"achievements.badge.adapt.pace_patience.criteria" = "Paceriz 偵測到你在課表輕鬆跑或恢復跑中維持在正確配速區間，即可自動獲得。";
+// Chapter: Prove
+"achievements.badge.prove.new_pb.criteria" = "在任何標準距離（5K、10K、半馬、全馬）創下新的個人最佳，即可解鎖。";
+"achievements.badge.prove.first_5k.criteria" = "完成一次 5 公里以上的跑步並同步紀錄，即可解鎖。";
+"achievements.badge.prove.first_10k.criteria" = "完成一次 10 公里以上的跑步並同步紀錄，即可解鎖。";
+"achievements.badge.prove.first_half.criteria" = "完成一次 21 公里以上（半馬距離）的跑步並同步紀錄，即可解鎖。";
+"achievements.badge.prove.first_marathon.criteria" = "完成一次 42 公里以上（全馬距離）的跑步並同步紀錄，即可解鎖。";
+"achievements.badge.prove.distance_breakthrough.criteria" = "持續跑步，每次把自己最長的單次距離往前推進，即可解鎖。";
+"achievements.badge.prove.race_ready.criteria" = "透過穩定訓練讓 Paceriz 整體訓練準備度評分達 90% 以上，且無高風險警示，即可解鎖。";
+"achievements.badge.prove.goal_completed.criteria" = "按照在 Paceriz 設定的目標完成訓練，如完跑目標距離或達成比賽成績，即可解鎖。";
+// Chapter: Identity
+"achievements.badge.identity.5k_runner.criteria" = "完成一次 5 公里以上的跑步，並累積至少 2 週訓練紀錄，即可解鎖。";
+"achievements.badge.identity.10k_runner.criteria" = "完成一次 10 公里以上的跑步，並累積至少 4 週訓練紀錄，即可解鎖。";
+"achievements.badge.identity.half_marathoner.criteria" = "完成一次 21 公里以上（半馬距離）的跑步，即可解鎖。";
+"achievements.badge.identity.marathon_builder.criteria" = "完成一次 20 公里以上的跑步，並累積至少 8 週訓練紀錄，即可解鎖。";
+"achievements.badge.identity.consistent_runner.criteria" = "在 8 週以上訓練期間，有至少 6 週維持在安全的跑量範圍內，即可解鎖。";
+"achievements.badge.identity.smart_trainer.criteria" = "完成 4 個訓練週，並在過程中至少完成一個恢復週或依照 Paceriz 高溫建議調整配速，即可解鎖。";
+"achievements.badge.identity.pb_hunter.criteria" = "在 30 天內，在兩個以上的標準距離各創下一次個人最佳，即可解鎖。";
+
+// MARK: - Debug Tools
+"debug.confirm_delete" = "確定要刪除測試資料嗎？";
+"debug.delete_by_time_range" = "依時間範圍刪除";
+"debug.delete_marked_only" = "只刪除已標記的測試紀錄";
+"debug.delete_all" = "刪除所有資料";
+"debug.select_delete_method" = "選擇刪除方式。時間範圍刪除可以刪除指定時間內的所有運動紀錄。";
+"debug.sync_status" = "同步狀態";
+"debug.refresh_status" = "重新整理狀態";
+"debug.test_features" = "測試功能";
+"debug.create_test_workout" = "建立測試運動紀錄";
+"debug.manual_check_upload" = "手動檢查並上傳";
+"debug.test_notification" = "測試通知";
+"debug.clear_upload_history" = "清除上傳歷史";
+"debug.test_data_management" = "測試資料管理";
+"debug.delete_test_data" = "刪除測試資料";
+"debug.find_workouts" = "尋找運動紀錄";
+"debug.delete_warning" = "刪除功能會移除 HealthKit 中的運動紀錄。請謹慎操作，刪除後無法復原。";
+"debug.health_kit_observer" = "HealthKit 觀察者設定";
+"debug.test_observer" = "測試觀察者設定";
+"debug.operation_log" = "操作日誌";
+"debug.select_time_range" = "選擇時間範圍";
+"debug.found_workouts" = "找到的運動紀錄";
+"debug.delete_all_records" = "刪除所有紀錄（%d）";
+"debug.delete_warning_message" = "警告：此操作會從你的健康資料中永久刪除這些運動紀錄。";
+"debug.confirm_delete_title" = "確認刪除";
+"debug.confirm_delete_message" = "這會從你的 HealthKit 資料中永久刪除 %d 筆運動紀錄。此操作無法復原。";
+"debug.created_test_workout" = "已建立測試運動紀錄 ID: %@";
+
+// MARK: - Feedback / Timezone
+"feedback.category.uncategorized" = "未分類";
+"timezone.change_confirm" = "變更時區";
+
+// MARK: - i18n Release Gate Additions
+"common.initializing" = "初始化中...";
+"common.add" = "新增";
+"common.reset" = "重置";
+"force_update.title" = "需要更新 Paceriz";
+"force_update.message" = "你的 App 版本過舊，請前往 App Store 更新至最新版本後繼續使用。";
+"force_update.cta" = "前往 App Store 更新";
+"message_center.empty" = "目前沒有公告";
+"message_center.title" = "訊息中心";
+"message_center.full_text" = "全文";
+"training.week_progress_format" = "%d / %d 週";
+"training.phases_count" = "%d 個階段";
+"training.intensity.low_short" = "低 %d%%";
+"training.intensity.medium_short" = "中 %d%%";
+"training.intensity.high_short" = "高 %d%%";
+"performance.unknown_workout" = "未知運動";
+"performance.performance_index_format" = "表現指數: %.1f";
+"performance.gait_metric_picker" = "步態指標";
+"performance.heat_adaptation" = "熱適應";
+"profile_view.contact_facebook_page" = "FB 粉絲團";
+"share_card.title" = "分享卡";
+"share_card.metric.distance_km" = "距離 (km)";
+"share_card.metric.total_time" = "總計時間";
+"share_card.metric.avg_pace" = "平均配速";
+"share_card.tutorial.title" = "分享卡編輯指南";
+"share_card.tutorial.start_editing" = "開始編輯";
+"share_card.tutorial.edit_title.title" = "點擊標題或 AI 簡評";
+"share_card.tutorial.edit_title.description" = "可以編輯或刪除文字內容。";
+"share_card.tutorial.add_text.title" = "新增文字";
+"share_card.tutorial.add_text.description" = "添加自訂文字並自由移動位置。";
+"share_card.tutorial.layout_size.title" = "版型與尺寸";
+"share_card.tutorial.layout_size.description" = "切換不同的佈局樣式和圖片尺寸。";
+"share_card.tutorial.choose_photo.title" = "選擇照片";
+"share_card.tutorial.choose_photo.description" = "更換背景照片並調整位置。";
+"share_card.editor.title" = "生成分享卡";
+"share_card.editor.edit_achievement_title" = "編輯成就標題";
+"share_card.editor.edit_ai_review" = "編輯 AI 簡評";
+"share_card.editor.add_free_text" = "添加自由文字";
+"share_card.editor.edit_text" = "編輯文字";
+"share_card.editor.add_free_text_message" = "在分享卡上添加你的個性文字！";
+"share_card.editor.edit_text_message" = "修改你的文字內容";
+"share_card.editor.title_placeholder" = "輸入標題（最多50字）";
+"share_card.editor.ai_review_placeholder" = "輸入 AI 簡評（最多80字）";
+"share_card.editor.free_text_placeholder" = "輸入文字（最多30字）";
+"share_card.editor.layout" = "版型";
+"share_card.editor.size" = "尺寸";
+"share_card.editor.add_text" = "新增文字";
+"edit_schedule.add_strength_training" = "新增力量訓練";
+"edit_schedule.convert_to_strength_day" = "轉為力量訓練日";
+"edit_schedule.work_time" = "工作時間";
+"edit_schedule.select_work_time" = "選擇工作時間";
+"edit_schedule.reapply_defaults" = "重新套用預設";
+"edit_schedule.change_to_rest_day" = "改為休息日";
+"edit_schedule.type_change_alert" = "更換類型將清除目前的動作清單，確定嗎？";
+"edit_schedule.remove_strength_training" = "移除力量訓練";
+"edit_schedule.easy_training_section" = "輕鬆訓練";
+"edit_schedule.intensity_training_section" = "強度訓練";
+"edit_schedule.long_distance_training_section" = "長距離訓練";
+"edit_schedule.other_training_section" = "其他";

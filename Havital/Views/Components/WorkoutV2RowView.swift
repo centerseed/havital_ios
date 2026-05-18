@@ -41,7 +41,7 @@ struct WorkoutV2RowView: View {
                     // VDOT 右上角
                     if let dynamicVdot = workout.dynamicVdot {
                         HStack(spacing: 4) {
-                            Image(systemName: "speedometer")
+                            Image(systemName: "chart.line.uptrend.xyaxis")
                                 .font(AppFont.caption())
                                 .foregroundColor(.orange)
                             Text(String(format: "VDOT %.1f", dynamicVdot))
@@ -56,7 +56,7 @@ struct WorkoutV2RowView: View {
                     }
                 }
 
-                // 數據網格（標籤在下、數字在上）
+                // 數據網格（距離 / 配速 / 時間）標籤在下、數字在上
                 HStack(spacing: 0) {
                     // 距離
                     VStack(alignment: .leading, spacing: 4) {
@@ -75,29 +75,23 @@ struct WorkoutV2RowView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
+                    // 配速
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(formatPace(workout))
+                            .font(AppFont.systemScaled(size: 18, weight: .bold))
+                            .foregroundColor(.primary)
+                        Text(L10n.Common.pace.localized)
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
                     // 時間
                     VStack(alignment: .leading, spacing: 4) {
                         Text(formatDuration(workout.duration))
                             .font(AppFont.systemScaled(size: 18, weight: .bold))
                             .foregroundColor(.primary)
                         Text(L10n.WorkoutMetrics.time.localized)
-                            .font(AppFont.caption())
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-
-                    // 卡路里
-                    VStack(alignment: .leading, spacing: 4) {
-                        if let calories = workout.calories {
-                            Text(String(format: "%.0f kcal", calories))
-                                .font(AppFont.systemScaled(size: 18, weight: .bold))
-                                .foregroundColor(.primary)
-                        } else {
-                            Text("-")
-                                .font(AppFont.systemScaled(size: 18, weight: .bold))
-                                .foregroundColor(.secondary)
-                        }
-                        Text(L10n.WorkoutMetrics.calories.localized)
                             .font(AppFont.caption())
                             .foregroundColor(.secondary)
                     }
@@ -109,9 +103,9 @@ struct WorkoutV2RowView: View {
                     .fill(Color.secondary.opacity(0.2))
                     .frame(height: 1)
 
-                // 底部：日期時間（左） + Badge（右）
+                // 底部：相對時間（左） + Badge（右）
                 HStack {
-                    Text(formattedDate(workout.startDate))
+                    Text(workout.startDate.formattedRelativeForWorkoutCard)
                         .font(AppFont.caption())
                         .foregroundColor(.secondary)
 
@@ -133,42 +127,45 @@ struct WorkoutV2RowView: View {
     // MARK: - Attribution Logos
     @ViewBuilder
     private var attributionLogos: some View {
-        let isStravaProvider = workout.provider.lowercased() == "strava"
-        let isGarminProvider = workout.provider.lowercased() == "garmin"
+        let provider = workout.provider.lowercased()
+        let isStravaProvider = provider == "strava"
+        let isGarminProvider = provider == "garmin"
         let isGarminDevice = workout.deviceName?.lowercased().contains("garmin") ?? false ||
                              workout.deviceName?.lowercased().contains("forerunner") ?? false
+        let isAppleHealthProvider = !isStravaProvider && !isGarminProvider && !isGarminDevice
 
-        if isStravaProvider || isGarminProvider || isGarminDevice {
-            HStack(spacing: 6) {
-                Spacer()
+        HStack(spacing: 6) {
+            // Strava logo
+            if isStravaProvider {
+                ConditionalStravaAttributionView(
+                    dataProvider: workout.provider,
+                    displayStyle: .compact
+                )
+            }
 
-                // Strava logo
-                if isStravaProvider {
-                    ConditionalStravaAttributionView(
-                        dataProvider: workout.provider,
-                        displayStyle: .compact
-                    )
-                }
+            // Garmin logo (if provider is Garmin OR device is Garmin)
+            if isGarminProvider || isGarminDevice {
+                GarminAttributionView(
+                    deviceModel: nil,
+                    displayStyle: .compact
+                )
+            }
 
-                // Garmin logo (if provider is Garmin OR device is Garmin)
-                if isGarminProvider || isGarminDevice {
-                    GarminAttributionView(
-                        deviceModel: nil,  // 列表中不顯示型號，節省空間
-                        displayStyle: .compact
-                    )
-                }
+            // Apple Health badge for all other sources
+            if isAppleHealthProvider {
+                AppleHealthAttributionView(displayStyle: .compact)
             }
         }
     }
 
-    private func formattedDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy/MM/dd HH:mm"
-        return formatter.string(from: date)
-    }
-    
     // MARK: - Helper Methods
-    
+
+    /// 計算並格式化配速（秒/公里 → UnitManager 格式化）
+    private func formatPace(_ workout: WorkoutV2) -> String {
+        guard let secondsPerKm = workout.displayPaceSecondsPerKm else { return "-" }
+        return UnitManager.shared.formatPace(secondsPerKm: secondsPerKm)
+    }
+
     private func formatDistance(_ distance: Double) -> String {
         if distance >= 1000 {
             return UnitManager.shared.formatDistance(distance / 1000)

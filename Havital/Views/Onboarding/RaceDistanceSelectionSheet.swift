@@ -20,71 +20,83 @@ struct RaceDistanceSelectionSheet: View {
     let onDistanceSelected: (RaceDistance) -> Void
 
     var body: some View {
-        NavigationView {
-            VStack(alignment: .leading, spacing: 0) {
-                // 賽事名稱副標題
-                Text(race.name)
-                    .font(AppFont.bodySmall())
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 24)
-                    .padding(.top, 8)
-                    .padding(.bottom, 16)
-
-                Divider()
-
-                // 距離選項列表
-                VStack(spacing: 0) {
-                    ForEach(Array(race.distances.sorted(by: { $0.distanceKm < $1.distanceKm }).enumerated()), id: \.element.id) { index, distance in
-                        Button(action: {
-                            onDistanceSelected(distance)
-                            dismiss()
-                        }) {
-                            HStack(spacing: 16) {
-                                Image(systemName: "circle")
-                                    .font(AppFont.systemScaled(size: 20))
-                                    .foregroundColor(.accentColor)
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(distance.name)
-                                        .font(AppFont.headline())
-                                        .foregroundColor(.primary)
-
-                                    Text(String(format: "%.3g km", distance.distanceKm))
-                                        .font(AppFont.caption())
-                                        .foregroundColor(.secondary)
-                                }
-
-                                Spacer()
-
-                                Image(systemName: "chevron.right")
-                                    .font(AppFont.systemScaled(size: 14))
-                                    .foregroundColor(.secondary.opacity(0.5))
-                            }
-                            .padding(.horizontal, 24)
-                            .padding(.vertical, 16)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("RaceDistanceOption_\(index)")
-
-                        if distance.id != race.distances.sorted(by: { $0.distanceKm < $1.distanceKm }).last?.id {
-                            Divider()
-                                .padding(.leading, 24)
-                        }
-                    }
-                }
-
+        VStack(alignment: .leading, spacing: 0) {
+            // 自訂 header：標題 + 取消按鈕
+            HStack {
+                Text(NSLocalizedString("onboarding.select_race_distance_title", comment: "選擇比賽距離"))
+                    .font(AppFont.headline())
                 Spacer()
+                Button(NSLocalizedString("common.cancel", comment: "取消")) {
+                    dismiss()
+                }
+                .accessibilityIdentifier("RaceDistanceSelection_CancelButton")
             }
-            .navigationTitle(NSLocalizedString("onboarding.select_race_distance_title", comment: "選擇比賽距離"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(NSLocalizedString("common.cancel", comment: "取消")) {
+            .padding(.horizontal, 24)
+            .padding(.top, 20)
+            .padding(.bottom, 8)
+
+            // 賽事名稱副標題
+            Text(race.name)
+                .font(AppFont.bodySmall())
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
+                .padding(.bottom, 16)
+
+            Divider()
+
+            // 距離選項列表
+            // NOTE: 不用 Button wrapper — iOS 26 sheet 環境下 UIAccessibilityActivate
+            // 不觸發 Button action。與 RaceEventCard 相同 workaround：
+            // contentShape + onTapGesture 供手動 tap；accessibilityAction(.default)
+            // 供 Maestro accessibility tap 路徑。
+            VStack(spacing: 0) {
+                ForEach(Array(race.distances.sorted(by: { $0.distanceKm < $1.distanceKm }).enumerated()), id: \.element.id) { index, distance in
+                    HStack(spacing: 16) {
+                        Image(systemName: "circle")
+                            .font(AppFont.systemScaled(size: 20))
+                            .foregroundColor(.accentColor)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(distance.name)
+                                .font(AppFont.headline())
+                                .foregroundColor(.primary)
+
+                            Text(String(format: "%.3g km", distance.distanceKm))
+                                .font(AppFont.caption())
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(AppFont.systemScaled(size: 14))
+                            .foregroundColor(.secondary.opacity(0.5))
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 16)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        onDistanceSelected(distance)
                         dismiss()
                     }
-                    .accessibilityIdentifier("RaceDistanceSelection_CancelButton")
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(distance.name)
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityAction(.default) {
+                        onDistanceSelected(distance)
+                        dismiss()
+                    }
+                    .accessibilityIdentifier("RaceDistanceOption_\(index)")
+
+                    if distance.id != race.distances.sorted(by: { $0.distanceKm < $1.distanceKm }).last?.id {
+                        Divider()
+                            .padding(.leading, 24)
+                    }
                 }
             }
+
+            Spacer()
         }
         .presentationDetents(race.distances.count <= 3 ? [.height(280)] : [.medium])
     }

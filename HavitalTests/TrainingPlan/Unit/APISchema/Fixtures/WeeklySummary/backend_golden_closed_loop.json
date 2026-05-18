@@ -1,0 +1,112 @@
+{
+  "id": "summary_backend_golden_closed_loop",
+  "uid": "user_closed_loop",
+  "weekly_plan_id": "plan_expander_wrx02",
+  "training_overview_id": "overview_race_run_paceriz",
+  "week_of_training": 16,
+  "created_at": "2026-04-27T09:00:00Z",
+  "plan_context": {
+    "target_type": "race_run",
+    "methodology_id": "paceriz",
+    "methodology_name": "Paceriz",
+    "current_phase": "taper",
+    "phase_week": 2,
+    "phase_total_weeks": 2,
+    "total_weeks": 16,
+    "weeks_remaining": 0,
+    "current_stage_description": "Race week generated from PlanExpander with race day overlay",
+    "upcoming_milestone": {
+      "id": "race_10k",
+      "name": "A Race 10K",
+      "target_week": 16,
+      "description": "Main race week"
+    }
+  },
+  "training_completion": {
+    "percentage": 1.0,
+    "planned_km": 24.0,
+    "completed_km": 10.0,
+    "planned_sessions": 4,
+    "completed_sessions": 1,
+    "evaluation": "Race outcome captured; support sessions intentionally stayed light."
+  },
+  "training_analysis": {
+    "heart_rate": null,
+    "pace": {
+      "average": "5:00",
+      "trend": "race_outcome",
+      "target_pace_achievement": 1.0,
+      "evaluation": "Race pace was evaluated as the main outcome, not as a normal workout."
+    },
+    "distance": {
+      "total": 10.0,
+      "comparison_to_plan": "race_completed",
+      "long_run_completed": false,
+      "evaluation": "Race day replaced long-run interpretation for this week."
+    },
+    "intensity_distribution": {
+      "easy_percentage": 0.75,
+      "moderate_percentage": 0.0,
+      "hard_percentage": 0.25,
+      "target_distribution": "race week taper",
+      "evaluation": "Intensity came from the race; no high-intensity makeup is recommended."
+    }
+  },
+  "readiness_summary": null,
+  "capability_progression": null,
+  "milestone_progress": null,
+  "historical_comparison": null,
+  "weekly_highlights": {
+    "highlights": [
+      "Race outcome reviewed",
+      "Race day preserved from expander output"
+    ],
+    "achievements": [
+      "Completed A Race 10K"
+    ],
+    "areas_for_improvement": [
+      "Prioritize post-race recovery before rebuilding load"
+    ]
+  },
+  "upcoming_race_evaluation": {
+    "race_name": "A Race 10K",
+    "race_date": "2026-05-03",
+    "days_remaining": 0,
+    "readiness_score": 0.82,
+    "readiness_assessment": "Race week completed; evaluate outcome before next block.",
+    "key_concerns": []
+  },
+  "next_week_adjustments": {
+    "items": [
+      {
+        "content": "Reduce next week volume by 10%",
+        "category": "volume",
+        "apply": true,
+        "slot_type": null,
+        "training_type": null,
+        "reason": "Post-race recovery should lower load before the next plan is generated",
+        "impact": "Keeps next week generation inside methodology constraints",
+        "source_flag": "race_week",
+        "priority": "medium",
+        "type": "adjust_volume",
+        "persistent_hint": false,
+        "value": -10.0,
+        "day_index": null,
+        "description": "Apply as a weekly-scoped adjustment for week 17"
+      }
+    ],
+    "summary": "Race outcome is handled as a special week and next week remains recovery-oriented.",
+    "methodology_constraints_considered": true,
+    "based_on_flags": [
+      "race_week"
+    ],
+    "customization_recommendations": []
+  },
+  "rest_week_recommendation": {
+    "recommended": true,
+    "reason": "Race week completed; recovery load is appropriate.",
+    "fatigue_indicators": []
+  },
+  "final_training_review": null,
+  "prompt_audit_id": "audit_backend_golden_closed_loop"
+}

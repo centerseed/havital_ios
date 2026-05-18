@@ -17,11 +17,11 @@ struct ForceUpdateView: View {
                     .font(.system(size: 64))
                     .foregroundColor(.accentColor)
 
-                Text("需要更新 Paceriz")
+                Text(L10n.ForceUpdate.title.localized)
                     .font(.title2.bold())
                     .multilineTextAlignment(.center)
 
-                Text("您的 App 版本過舊，請前往 App Store 更新至最新版本後繼續使用。")
+                Text(L10n.ForceUpdate.message.localized)
                     .font(.body)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -32,7 +32,7 @@ struct ForceUpdateView: View {
                           let url = URL(string: urlString) else { return }
                     UIApplication.shared.open(url)
                 } label: {
-                    Text("前往 App Store 更新")
+                    Text(L10n.ForceUpdate.cta.localized)
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(isEnabled ? Color.accentColor : Color.gray)

@@ -19,6 +19,7 @@
 .maestro/scripts/run-maestro-categories.sh list
 .maestro/scripts/run-maestro-categories.sh CAT-IAP
 .maestro/scripts/run-maestro-categories.sh CAT-EDT
+.maestro/scripts/run-maestro-categories.sh CAT-SPEC
 .maestro/scripts/run-maestro-categories.sh FULL-REGRESSION
 # 可選：分類前置 flow（例如讓 WKY/EDT 先進入穩定起點）
 MAESTRO_PREP_WKY=onboarding-race-paceriz.yaml MAESTRO_PREP_WKY_MODE=once \
@@ -35,11 +36,12 @@ MAESTRO_PREP_WKY=onboarding-race-paceriz.yaml MAESTRO_PREP_WKY_MODE=once \
 | `CAT-WKY` | Weekly/Overview/Summary/Preview |
 | `CAT-EDT` | Edit Schedule 專項 |
 | `CAT-REG` | Regression 單項 |
+| `CAT-SPEC` | 近期功能 Spec compliance flows |
 | `CAT-SUITE` | Regression 套件集合 |
 | `CAT-UTL` | Utility/Reset/Smoke |
 | `CAT-DBG` | Debug/Tmp |
 | `CAT-ARC-IAP` | IAP 封存歷史測項 |
-| `FULL-REGRESSION` | 全量 active 測項（`CAT-IAP + CAT-ONB + CAT-BND + CAT-WKY + CAT-EDT + CAT-REG`） |
+| `FULL-REGRESSION` | 全量 active 測項（`CAT-IAP + CAT-ONB + CAT-BND + CAT-WKY + CAT-EDT + CAT-REG + CAT-SPEC`） |
 
 註：
 - `CAT-IAP` / `FULL-REGRESSION` 內的 IAP 段落會自動走 `.maestro/scripts/run-iap-regression.sh all`（含 backend precondition），不是裸跑 IAP flow。

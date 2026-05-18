@@ -658,6 +658,11 @@ private struct FixtureRecord {
 private final class UITestMethodologyTrainingPlanRepository: TrainingPlanV2Repository {
     private let context: UITestMethodologyContext?
 
+    // AC-PAYWALL-37: UITest harness never emits real overview updates
+    var overviewDidUpdate: AnyPublisher<PlanOverviewV2, Never> {
+        Empty().eraseToAnyPublisher()
+    }
+
     init(context: UITestMethodologyContext?) {
         self.context = context
     }
@@ -916,6 +921,7 @@ private final class UITestMethodologyWorkoutRepository: WorkoutRepository {
     func clearWorkoutDetailCache(id: String) async {}
     func syncWorkout(_ workout: WorkoutV2) async throws -> WorkoutV2 { workout }
     func updateTrainingNotes(id: String, notes: String) async throws {}
+    func updateRPE(id: String, rpe: Int?) async throws {}
     func deleteWorkout(id: String) async throws {}
     func invalidateRefreshCooldown() {}
     func clearCache() async {}

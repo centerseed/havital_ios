@@ -49,6 +49,12 @@ struct WeeklyPlanV2: Codable, Equatable {
     /// 強度分鐘數分布 - 重用 V1 的 IntensityTotalMinutes
     let intensityTotalMinutes: WeeklyPlan.IntensityTotalMinutes?
 
+    /// 生成此週課表時使用的 VDOT；配速表與編輯建議應優先使用此值
+    let currentVdot: Double?
+
+    /// VDOT 來源說明
+    let vdotSource: String?
+
     // MARK: - 時間戳
 
     /// 創建時間

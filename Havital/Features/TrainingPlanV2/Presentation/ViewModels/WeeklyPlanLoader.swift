@@ -72,6 +72,8 @@ final class WeeklyPlanLoader {
             self.weeklyPlan = nil
             self.workoutsByDay = [:]
             self.currentWeekDistance = 0.0
+            // AC-PAYWALL-37: reset observer so next user gets a clean state
+            PlanOverviewObserver.shared.reset()
         }
 
         CacheEventBus.shared.subscribe(for: "dataChanged.trainingPlanV2.loader") { [weak self] in
@@ -155,6 +157,9 @@ final class WeeklyPlanLoader {
         guard let status = planStatusResponse, planOverview != nil else {
             if !hadData {
                 planStatus = .noPlan
+                // AC-PAYWALL-37: no overview confirmed → safe to show expired reminder
+                // for users without any plan (no race window with FreeTierBanner).
+                PlanOverviewObserver.shared.confirmNoPlan()
             }
             return
         }
@@ -184,6 +189,8 @@ final class WeeklyPlanLoader {
             if case .notFound = domainError {
                 self.planStatus = .noPlan
                 self.planStatusResponse = nil
+                // AC-PAYWALL-37: status not found → definitively no plan
+                PlanOverviewObserver.shared.confirmNoPlan()
             }
             Logger.error("[WeeklyPlanLoader] ❌ Plan Status 刷新失敗: \(domainError.localizedDescription)")
         }
@@ -206,6 +213,11 @@ final class WeeklyPlanLoader {
         } catch {
             let domainError = error.toDomainError()
             if shouldSuppressError(domainError, "Plan Overview 刷新", nil) { return }
+            // AC-PAYWALL-37: 404/notFound on overview → definitively no plan.
+            // Only call confirmNoPlan on definitive "not found" — not network errors.
+            if case .notFound = domainError {
+                PlanOverviewObserver.shared.confirmNoPlan()
+            }
             Logger.error("[WeeklyPlanLoader] ❌ Plan Overview 刷新失敗: \(domainError.localizedDescription)")
         }
     }
@@ -252,6 +264,8 @@ final class WeeklyPlanLoader {
             if case .notFound = domainError {
                 Logger.debug("[WeeklyPlanLoader] 無活躍計畫")
                 planStatus = .noPlan
+                // AC-PAYWALL-37: status not found → definitively no plan
+                PlanOverviewObserver.shared.confirmNoPlan()
             } else {
                 Logger.error("[WeeklyPlanLoader] ❌ Plan Status 載入失敗: \(domainError.localizedDescription)")
                 onNetworkError(domainError)
@@ -284,6 +298,10 @@ final class WeeklyPlanLoader {
 
         case "create_plan":
             planStatus = .noWeeklyPlan
+            // AC-PAYWALL-37: plan exists (overview loaded) but W1 not yet generated.
+            // This is NOT the "no plan" case — FreeTierBanner is the correct UX.
+            // confirmNoPlan() is intentionally NOT called here; the overview already
+            // fired overviewDidUpdate which set hasOverview=true.
             Logger.debug("[WeeklyPlanLoader] 等待使用者產生第 \(currentWeek) 週課表")
 
         case "create_summary":

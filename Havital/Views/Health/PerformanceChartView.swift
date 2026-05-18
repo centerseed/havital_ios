@@ -81,11 +81,11 @@ struct PerformanceChartView: View {
                                 Text(selectedPoint.date.formatted(.dateTime.year().month().day()))
                                     .font(AppFont.bodySmall())
                                 if selectedPoint.hasWorkout {
-                                    Text(selectedPoint.workoutName ?? "未知運動")
+                                    Text(selectedPoint.workoutName ?? L10n.Performance.unknownWorkout.localized)
                                         .font(AppFont.bodySmall())
                                         .foregroundColor(.orange)
                                 }
-                                Text(String(format: "表現指數: %.1f", selectedPoint.performance))
+                                Text(L10n.Performance.performanceIndexFormat.localized(with: selectedPoint.performance))
                                     .font(AppFont.bodySmall())
                             }
                             .padding(.horizontal)

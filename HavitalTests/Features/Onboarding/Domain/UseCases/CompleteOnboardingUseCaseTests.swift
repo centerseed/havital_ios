@@ -123,6 +123,8 @@ final class CompleteOnboardingUseCaseTests: XCTestCase {
             designReason: ["Test"],
             days: [],
             intensityTotalMinutes: nil,
+            currentVdot: nil,
+            vdotSource: nil,
             createdAt: Date(),
             updatedAt: Date(),
             trainingLoadAnalysis: nil,

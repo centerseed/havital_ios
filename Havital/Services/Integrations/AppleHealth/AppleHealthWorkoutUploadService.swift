@@ -9,7 +9,11 @@ enum AppleHealthWorkoutUploadError: Error {
 // MARK: - Apple Health Workout Upload Service
 class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
     static let shared = AppleHealthWorkoutUploadService()
-    private init() {}
+    private let workoutRepository: WorkoutRepository
+
+    private init(workoutRepository: WorkoutRepository = WorkoutRepositoryImpl.shared) {
+        self.workoutRepository = workoutRepository
+    }
 
     typealias FirebaseLogHandler = (_ message: String, _ level: LogLevel, _ labels: [String: String], _ jsonPayload: [String: Any]?) -> Void
 
@@ -746,6 +750,28 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         return data
     }
 
+    /// 抽取 HKWorkout 中所有 pause/resume 事件，序列化成後端可消費的格式。
+    /// 後端用此清單精算 moving_duration_s 並驗證 workout.duration。
+    /// lap/segment/marker 不在此清單，已透過 LapData 路徑上傳。
+    private func extractPauseEvents(from workout: HKWorkout) -> [WorkoutEventData] {
+        guard let events = workout.workoutEvents, !events.isEmpty else { return [] }
+        return events.compactMap { event in
+            let typeString: String
+            switch event.type {
+            case .pause:           typeString = "pause"
+            case .resume:          typeString = "resume"
+            case .motionPaused:    typeString = "motion_paused"
+            case .motionResumed:   typeString = "motion_resumed"
+            default: return nil   // 跳過 lap/segment/marker 等非 pause 事件
+            }
+            return WorkoutEventData(
+                type: typeString,
+                startTime: event.dateInterval.start.timeIntervalSince1970,
+                endTime: event.dateInterval.end.timeIntervalSince1970
+            )
+        }
+    }
+
     // MARK: - Internal request helper
     private func postWorkoutDetails(workout: HKWorkout,
                                     heartRates: [DataPoint],
@@ -759,6 +785,11 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                                     source: String,
                                     device: String?,
                                     metadata: WorkoutMetadata? = nil) async throws {
+        let pauseEvents = extractPauseEvents(from: workout)
+        if !pauseEvents.isEmpty {
+            print("⏸️ [Upload] 偵測到 \(pauseEvents.count) 個 pause/resume 事件，附加到上傳 payload")
+        }
+
         // 建立 WorkoutData 結構
         let workoutData = WorkoutData(
             id: makeWorkoutId(for: workout),
@@ -778,16 +809,12 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             laps: laps,
             source: source,
             device: device,
-            metadata: metadata)
+            metadata: metadata,
+            workoutEvents: pauseEvents.isEmpty ? nil : pauseEvents)
         
         do {
             // 先嘗試上傳，如果成功就結束
-            let _: EmptyResponse = try await APIClient.shared.request(
-                EmptyResponse.self,
-                path: "/v2/workouts",
-                method: "POST",
-                body: try JSONEncoder().encode(workoutData)
-            )
+            try await workoutRepository.uploadWorkout(workoutData)
         } catch {
             // 記錄上傳失敗
             let errorDescription = error.localizedDescription
@@ -805,9 +832,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
     
     // MARK: - Summary Helpers (cache)
     func getWorkoutSummary(workoutId: String) async throws -> WorkoutSummary {
-        let path = "/workout/summary/\(workoutId)" // v2 未提供 summary 端點，暫沿用舊端點
-        let response: WorkoutSummaryResponse = try await APIClient.shared.request(WorkoutSummaryResponse.self, path: path, method: "GET")
-        return response.data.workout
+        try await workoutRepository.fetchWorkoutSummary(id: workoutId)
     }
     
     func saveCachedWorkoutSummary(_ summary: WorkoutSummary, for id: String) {
@@ -990,22 +1015,11 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         var errorType = "unknown"
         
         // 分析錯誤類型並提取 HTTP 狀態碼
-        if let nsError = error as? NSError {
-            errorDetails["error_domain"] = nsError.domain
-            errorDetails["error_code"] = nsError.code
-            
-            // 檢查是否是 HTTP 錯誤（來自 APIClient）
-            if nsError.domain == "APIClient" {
-                errorType = "http_error"
-                errorDetails["http_status_code"] = nsError.code
-                
-                // 嘗試從 userInfo 獲取回應內容
-                if let errorMessage = nsError.userInfo[NSLocalizedDescriptionKey] as? String {
-                    errorDetails["response_body"] = errorMessage
-                }
-                
-                // 根據 HTTP 狀態碼分類
-                switch nsError.code {
+        if let httpError = error as? HTTPError {
+            errorType = "http_error"
+            if let statusCode = httpError.statusCode {
+                errorDetails["http_status_code"] = statusCode
+                switch statusCode {
                 case 400...499:
                     errorDetails["error_category"] = "client_error"
                 case 500...599:
@@ -1014,6 +1028,12 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                     errorDetails["error_category"] = "unknown_http_error"
                 }
             }
+            if let responseBody = httpError.responseBody {
+                errorDetails["response_body"] = responseBody
+            }
+        } else if let nsError = error as? NSError {
+            errorDetails["error_domain"] = nsError.domain
+            errorDetails["error_code"] = nsError.code
         } else if let urlError = error as? URLError {
             errorType = "network_error"
             errorDetails["url_error_code"] = urlError.code.rawValue
@@ -1134,7 +1154,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         }
         Logger.firebase(
             "HealthKit 數據獲取失敗 - \(dataType)",
-            level: isExpected ? LogLevel.warn : LogLevel.error,
+            level: .warn,
             labels: [
                 "module": "AppleHealthWorkoutUploadService",
                 "action": "healthkit_data_fetch_error",
@@ -1583,6 +1603,21 @@ struct WorkoutData: Codable {
     let source: String?                       // 資料來源 (如: apple_health, garmin, polar 等)
     let device: String?                       // 裝置型號 (如: Apple Watch Series 7, Garmin Forerunner 945 等)
     let metadata: WorkoutMetadata?            // 環境數據（溫度、天氣、濕度等）v2.1+ 新增
+    let workoutEvents: [WorkoutEventData]?    // pause/resume 事件，讓後端可精算暫停時長 v2.2+
+}
+
+// HKWorkoutEvent pause/resume 序列化結構，後端用來驗證 / 補算 moving_duration_s。
+// 只送 pause 相關 event；lap/segment/marker 已透過 LapData 路徑處理。
+struct WorkoutEventData: Codable {
+    let type: String              // "pause" | "resume" | "motion_paused" | "motion_resumed"
+    let startTime: TimeInterval   // epoch seconds (event.dateInterval.start)
+    let endTime: TimeInterval     // epoch seconds (event.dateInterval.end，瞬時事件 == startTime)
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case startTime = "start_time"
+        case endTime = "end_time"
+    }
 }
 
 // 環境數據結構 (v2.1+)

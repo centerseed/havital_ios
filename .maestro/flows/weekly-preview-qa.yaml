@@ -19,8 +19,7 @@ tags:
       text: "我的訓練目標|訓練總覽|Training Overview"
     timeout: 15000
 
-- assertVisible:
-    text: "目標賽事|支援賽事|總週數|賽事日期|目標配速"
+- runFlow: ../subflows/assert-plan-overview-integrity.yaml
 
 - scrollUntilVisible:
     element:

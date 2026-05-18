@@ -8,15 +8,15 @@ import SwiftUI
 /// - badge != nil && !isUnlocked → real badge image with grayscale + locked overlay
 /// - badge == nil               → PRPlaceholderBadge fallback (no crash)
 ///
-/// Asset naming convention: "badge_\(badge.badgeId)"
-/// If the asset is missing (Phase B stub), falls back to PRPlaceholderBadge.
+/// Asset naming: uses badge.assetName if set, falls back to "badge_\(badge.badgeId)".
+/// If the asset is missing, falls back to PRPlaceholderBadge.
 struct AchievementBadgeHeroView: View {
 
-    let badge: AchievementBadgeSnapshot?
+    let badge: AchievementBadge?
     let isUnlocked: Bool
     let size: CGFloat
 
-    init(badge: AchievementBadgeSnapshot?, isUnlocked: Bool, size: CGFloat = 72) {
+    init(badge: AchievementBadge?, isUnlocked: Bool, size: CGFloat = 72) {
         self.badge = badge
         self.isUnlocked = isUnlocked
         self.size = size
@@ -24,12 +24,12 @@ struct AchievementBadgeHeroView: View {
 
     var body: some View {
         if let badge = badge {
-            let assetName = "badge_\(badge.badgeId)"
+            let assetName = badge.assetName ?? "badge_\(badge.badgeId)"
             if UIImage(named: assetName) != nil {
                 // Real badge asset found
                 realBadgeView(assetName: assetName, badge: badge)
             } else {
-                // Asset not yet bundled — use placeholder (common during Phase B stub)
+                // Asset not bundled — use placeholder
                 PRPlaceholderBadge(size: size)
             }
         } else {
@@ -39,7 +39,7 @@ struct AchievementBadgeHeroView: View {
     }
 
     @ViewBuilder
-    private func realBadgeView(assetName: String, badge: AchievementBadgeSnapshot) -> some View {
+    private func realBadgeView(assetName: String, badge: AchievementBadge) -> some View {
         let base = Image(assetName)
             .resizable()
             .scaledToFit()

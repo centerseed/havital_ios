@@ -20,7 +20,7 @@ struct ShareCardTutorialOverlay: View {
                         .font(AppFont.systemScaled(size: 50))
                         .foregroundColor(.white)
 
-                    Text("分享卡編輯指南")
+                    Text(L10n.ShareCard.tutorialTitle.localized)
                         .font(AppFont.systemScaled(size: 28, weight: .bold))
                         .foregroundColor(.white)
                 }
@@ -32,26 +32,26 @@ struct ShareCardTutorialOverlay: View {
                 VStack(alignment: .leading, spacing: 24) {
                     TutorialItem(
                         icon: "text.bubble",
-                        title: "點擊標題或AI簡評",
-                        description: "可以編輯或刪除文字內容"
+                        title: L10n.ShareCard.tutorialEditTitleTitle.localized,
+                        description: L10n.ShareCard.tutorialEditTitleDescription.localized
                     )
 
                     TutorialItem(
                         icon: "character.textbox",
-                        title: "新增文字",
-                        description: "添加自定義文字並自由移動位置"
+                        title: L10n.ShareCard.tutorialAddTextTitle.localized,
+                        description: L10n.ShareCard.tutorialAddTextDescription.localized
                     )
 
                     TutorialItem(
                         icon: "rectangle.3.group",
-                        title: "版型與尺寸",
-                        description: "切換不同的佈局樣式和圖片尺寸"
+                        title: L10n.ShareCard.tutorialLayoutSizeTitle.localized,
+                        description: L10n.ShareCard.tutorialLayoutSizeDescription.localized
                     )
 
                     TutorialItem(
                         icon: "photo",
-                        title: "選擇照片",
-                        description: "更換背景照片並調整位置"
+                        title: L10n.ShareCard.tutorialChoosePhotoTitle.localized,
+                        description: L10n.ShareCard.tutorialChoosePhotoDescription.localized
                     )
                 }
                 .padding(.horizontal, 40)
@@ -60,7 +60,7 @@ struct ShareCardTutorialOverlay: View {
 
                 // 關閉按鈕
                 Button(action: onDismiss) {
-                    Text("開始編輯")
+                    Text(L10n.ShareCard.tutorialStartEditing.localized)
                         .font(AppFont.systemScaled(size: 18, weight: .semibold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)

@@ -128,6 +128,33 @@ struct FeedbackReportView: View {
     var body: some View {
         NavigationView {
             Form {
+                // Contact Channels
+                Section(
+                    header: Text(NSLocalizedString("feedback.contact_us", comment: "Contact Us")),
+                    footer: Text(NSLocalizedString("feedback.contact_us_hint", comment: "For immediate support, contact us through these channels"))
+                ) {
+                    Link(destination: URL(string: "https://www.threads.com/@paceriz_official")!) {
+                        HStack {
+                            Image(systemName: "at")
+                            Text(NSLocalizedString("feedback.threads", comment: "Official Threads Account"))
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    Link(destination: URL(string: "https://www.facebook.com/profile.php?id=61574822777267")!) {
+                        HStack {
+                            Image(systemName: "person.2")
+                            Text(NSLocalizedString("feedback.facebook", comment: "Facebook Fan Page"))
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+
                 // Type Selection
                 Section(header: Text(NSLocalizedString("feedback.type", comment: "Type"))) {
                     Picker(NSLocalizedString("feedback.type", comment: "Type"), selection: $viewModel.selectedType) {

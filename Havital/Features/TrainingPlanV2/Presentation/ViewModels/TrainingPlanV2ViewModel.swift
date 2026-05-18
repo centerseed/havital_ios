@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import Observation
 
@@ -13,6 +14,7 @@ final class TrainingPlanV2ViewModel: TaskManageable {
     private let workoutRepository: WorkoutRepository
     private let versionRouter: TrainingVersionRouter
     private let achievementRepository: AchievementRepository
+    @ObservationIgnored private var displayBadgeCancellables = Set<AnyCancellable>()
 
     // MARK: - TaskManageable
     @ObservationIgnored nonisolated let taskRegistry = TaskRegistry()
@@ -24,18 +26,26 @@ final class TrainingPlanV2ViewModel: TaskManageable {
     private(set) var generator: WeeklyPlanGenerator!
 
     // MARK: - Orchestration State
+    var displayBadge: AchievementBadge?
     var networkError: Error?
     var successToast: String?
     var isLoadingAnimation = false
     var paywallTrigger: PaywallTrigger?
     var showRizoQuotaExceededBanner: Bool = false
 
-    // MARK: - Badge State (B1)
-    /// The badge to display in WeekOverviewCardV2 hero section.
-    /// Priority: recentUnlock → nextBadge → nil (shows PRPlaceholderBadge fallback).
-    private(set) var currentBadge: AchievementBadgeSnapshot? = nil
-    /// True if the currentBadge has been unlocked (show sparkles + "新解鎖" chip).
-    private(set) var isCurrentBadgeUnlocked: Bool = false
+    // MARK: - AC-IOS-ANALYTICS-P1-09: session-level dedup for weekly_plan_view
+    var trackedWeeklyPlanKey: String? = nil
+
+    // MARK: - AC-IOS-ANALYTICS-P1-12: session-level dedup for plan_overview_view
+    var hasTrackedPlanOverviewView: Bool = false
+
+    // S07 inline upsell state (AC-PAYWALL-22/23/26)
+    // true = show WeeklyPlanInlineUpsellCard in place of the plan content
+    var showWeeklyPlanInlineUpsell: Bool = false
+    /// Whether the inline card was triggered by a re-generation (true) or first Week 2 (false).
+    var weeklyPlanUpsellIsRegenerate: Bool = false
+    // true = show WeeklyReviewInlineUpsellCard in place of weekly review
+    var showWeeklyReviewInlineUpsell: Bool = false
 
     // MARK: - Computed Properties
 
@@ -108,7 +118,8 @@ final class TrainingPlanV2ViewModel: TaskManageable {
             onPaywallTriggered: { [weak self] trigger in self?.paywallTrigger = trigger },
             onRizoQuotaExceeded: { [weak self] in self?.showRizoQuotaExceededBanner = true },
             onNetworkError: { [weak self] error in self?.networkError = error },
-            isEnforcementEnabled: { SubscriptionStateManager.shared.isEnforcementEnabled }
+            isEnforcementEnabled: { SubscriptionStateManager.shared.isEnforcementEnabled },
+            onWeeklyReviewInlineUpsellNeeded: { [weak self] in self?.showWeeklyReviewInlineUpsell = true }
         )
 
         self.generator = WeeklyPlanGenerator(
@@ -123,8 +134,14 @@ final class TrainingPlanV2ViewModel: TaskManageable {
             },
             onSuccessToast: { [weak self] message in self?.successToast = message },
             onRizoQuotaExceeded: { [weak self] in self?.showRizoQuotaExceededBanner = true },
-            onNetworkError: { [weak self] error in self?.networkError = error }
+            onNetworkError: { [weak self] error in self?.networkError = error },
+            onWeeklyPlanInlineUpsellNeeded: { [weak self] isRegenerate in
+                self?.weeklyPlanUpsellIsRegenerate = isRegenerate
+                self?.showWeeklyPlanInlineUpsell = true
+            }
         )
+
+        setupDisplayBadgeObservation()
     }
 
     /// 便利初始化器（使用 DI Container）
@@ -137,8 +154,9 @@ final class TrainingPlanV2ViewModel: TaskManageable {
         if !container.isRegistered(WorkoutRepository.self) {
             container.registerWorkoutModule()
         }
+
         if !container.isRegistered(AchievementRepository.self) {
-            container.registerAchievementsModule()
+            container.registerAchievementModule()
         }
 
         let repository: TrainingPlanV2Repository = container.resolve()
@@ -162,31 +180,6 @@ final class TrainingPlanV2ViewModel: TaskManageable {
 
     func initialize() async {
         await loader.initialize()
-        await loadBadgeState()
-    }
-
-    // MARK: - Badge State Loading (B1)
-
-    /// Fetches badge data from AchievementRepository and updates currentBadge / isCurrentBadgeUnlocked.
-    /// Uses cache-friendly fetch (forceRefresh: false).
-    /// Safe to call even when backend endpoint is unavailable — returns nil gracefully.
-    func loadBadgeState() async {
-        guard let summary = try? await achievementRepository.fetchSummary(forceRefresh: false) else {
-            currentBadge = nil
-            isCurrentBadgeUnlocked = false
-            return
-        }
-
-        if let recentUnlock = summary.storySummary.recentUnlock {
-            currentBadge = recentUnlock
-            isCurrentBadgeUnlocked = true
-        } else if let nextBadge = summary.storySummary.nextBadge {
-            currentBadge = nextBadge
-            isCurrentBadgeUnlocked = false
-        } else {
-            currentBadge = nil
-            isCurrentBadgeUnlocked = false
-        }
     }
 
     func loadCurrentWeekPlan() async {
@@ -241,7 +234,50 @@ final class TrainingPlanV2ViewModel: TaskManageable {
         successToast = nil
     }
 
+    // MARK: - AC-IOS-ANALYTICS-P1-09: weekly_plan_view dedup
+
+    /// Track weekly_plan_view for the given plan/week combination.
+    /// Deduplicates by key ("\(planId)-\(weekOfTraining)") — fires at most once per key per session.
+    /// View calls this; ViewModel owns the dedup state and analytics dispatch.
+    func markWeeklyPlanTracked(planId: String, weekOfTraining: Int) {
+        let key = "\(planId)-\(weekOfTraining)"
+        guard trackedWeeklyPlanKey != key else { return }
+        trackedWeeklyPlanKey = key
+        let analyticsService: AnalyticsService = DependencyContainer.shared.resolve()
+        analyticsService.track(.weeklyPlanView(planId: planId, weekOfTraining: weekOfTraining))
+    }
+
+    // MARK: - AC-IOS-ANALYTICS-P1-12: plan_overview_view dedup
+
+    /// Track plan_overview_view once per sheet presentation.
+    /// No-op if already tracked (hasTrackedPlanOverviewView == true).
+    func markPlanOverviewTracked(overviewId: String, targetType: String) {
+        guard !hasTrackedPlanOverviewView else { return }
+        hasTrackedPlanOverviewView = true
+        let analyticsService: AnalyticsService = DependencyContainer.shared.resolve()
+        analyticsService.track(.planOverviewView(overviewId: overviewId, targetType: targetType))
+    }
+
     // MARK: - Private Helpers
+
+    private func setupDisplayBadgeObservation() {
+        // Initial load: fetch summary then snapshot displayBadge
+        Task { [weak self] in
+            guard let self else { return }
+            _ = try? await achievementRepository.fetchSummary(forceRefresh: false)
+            await MainActor.run {
+                self.displayBadge = self.achievementRepository.getDisplayBadge()
+            }
+        }
+
+        // Live updates: react to pin changes
+        achievementRepository.pinnedBadgeIdDidChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.displayBadge = self?.achievementRepository.getDisplayBadge()
+            }
+            .store(in: &displayBadgeCancellables)
+    }
 
     private func shouldSuppressError(_ domainError: DomainError, context: String, onDataCorruption: (() -> Void)? = nil) -> Bool {
         if case .dataCorruption = domainError {
@@ -292,7 +328,10 @@ final class TrainingPlanV2ViewModel: TaskManageable {
     // MARK: - Debug Actions
 
     func debugGenerateWeeklySummary() async {
-        let week = max(1, loader.currentWeek - 1)
+        guard let week = TrainingPlanV2View.previousWeeklySummaryWeek(currentWeek: loader.currentWeek) else {
+            successToast = NSLocalizedString("training.weekly_summary_not_available_first_week", comment: "No completed week is available for weekly review yet")
+            return
+        }
         await summary.debugGenerateForWeek(
             week,
             onSuccess: { [weak self] msg in self?.successToast = msg },

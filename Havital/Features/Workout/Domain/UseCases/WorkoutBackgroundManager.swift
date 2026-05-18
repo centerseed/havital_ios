@@ -171,7 +171,7 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
             print("⚠️ HealthKit 授權請求失敗: \(error.localizedDescription)，仍嘗試設置 Observer")
             Logger.firebase(
                 "HealthKit 授權失敗 - Observer 可能無法收到更新，用戶需到 設定 > 健康 開啟授權",
-                level: .error,
+                level: .warn,
                 labels: ["module": "WorkoutBackgroundManager", "action": "healthkit_auth_failed", "cloud_logging": "true"],
                 jsonPayload: ["error": error.localizedDescription]
             )
@@ -208,7 +208,7 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
         if !bgDeliveryStatus {
             Logger.firebase(
                 "Workout Observer 背景傳遞設置失敗",
-                level: .error,
+                level: .warn,
                 labels: ["module": "WorkoutBackgroundManager", "action": "setup_observer_failed", "cloud_logging": "true"],
                 jsonPayload: ["reason": "background_delivery_failed"]
             )
@@ -274,6 +274,20 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     
     // 檢查並上傳待處理的健身記錄 - 加強版檢查
     func checkAndUploadPendingWorkouts() async {
+        // 防止過度觸發 - 先檢查冷卻時間，避免背景喚醒時洗 Cloud Logging
+        let now = Date()
+        if let lastTime = lastUploadCheckTime,
+           now.timeIntervalSince(lastTime) < uploadCheckCooldown {
+            print("⏰ 上傳檢查冷卻中，跳過重複調用（距上次 \(Int(now.timeIntervalSince(lastTime)))秒）")
+            return
+        }
+
+        // 防止並發執行
+        guard !isCurrentlyProcessing else {
+            print("🔄 已有上傳任務在進行中，跳過重複調用")
+            return
+        }
+
         // 收集所有狀態用於診斷
         let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
         let appStateDataSource = await MainActor.run { AppStateManager.shared.userDataSource }
@@ -337,20 +351,6 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
             return
         }
 
-        // 防止過度觸發 - 檢查冷卻時間
-        let now = Date()
-        if let lastTime = lastUploadCheckTime,
-           now.timeIntervalSince(lastTime) < uploadCheckCooldown {
-            print("⏰ 上傳檢查冷卻中，跳過重複調用（距上次 \(Int(now.timeIntervalSince(lastTime)))秒）")
-            return
-        }
-
-        // 防止並發執行
-        guard !isCurrentlyProcessing else {
-            print("🔄 已有上傳任務在進行中，跳過重複調用")
-            return
-        }
-        
         print("檢查待上傳的健身記錄...")
         isCurrentlyProcessing = true
         lastUploadCheckTime = now
@@ -652,6 +652,11 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
 
     // 請求通知授權（非核心，失敗不影響 HealthKit Observer）
     private func requestNotificationAuthorization() async {
+        if CommandLine.arguments.contains("-ui_testing_skip_notification_authorization") {
+            Logger.debug("🧪 [UI Test] Skipping WorkoutBackgroundManager notification authorization")
+            return
+        }
+
         do {
             let granted = try await notificationCenter.requestAuthorization(options: [.alert, .sound, .badge])
             if !granted {

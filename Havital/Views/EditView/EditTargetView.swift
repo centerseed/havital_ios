@@ -37,6 +37,7 @@ struct EditTargetView: View {
                 Section(header: Text(L10n.EditTarget.raceInfo.localized)) {
                     TextField(L10n.EditTarget.raceName.localized, text: $targetModel.raceName)
                         .textContentType(.name)
+                        .accessibilityIdentifier("EditTarget_RaceNameField")
 
                     DatePicker(L10n.EditTarget.raceDate.localized,
                               selection: $targetModel.raceDate,
@@ -55,6 +56,7 @@ struct EditTargetView: View {
                         }
                     }
                     .pickerStyle(.menu)
+                    .accessibilityIdentifier("EditTarget_DistancePicker")
                 }
                 
                 Section(header: Text(L10n.EditTarget.targetTime.localized)) {

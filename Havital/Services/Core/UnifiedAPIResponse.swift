@@ -234,6 +234,18 @@ struct ErrorMapper {
 // MARK: - Response Processing Utilities
 
 struct ResponseProcessor {
+    private static func shouldPreferWrappedResponse(for rawData: Data) -> Bool {
+        guard
+            let jsonObject = try? JSONSerialization.jsonObject(with: rawData) as? [String: Any]
+        else {
+            return false
+        }
+
+        return jsonObject.keys.contains("success")
+            || jsonObject.keys.contains("data")
+            || jsonObject.keys.contains("error")
+    }
+
     /// 處理統一 API 回應
     static func process<T: Codable>(
         _ response: UnifiedAPIResponse<T>,
@@ -290,6 +302,19 @@ struct ResponseProcessor {
             Logger.debug("[ResponseProcessor] ⚠️ 無法解析原始響應為字符串")
         }
         
+        let preferWrappedResponse = shouldPreferWrappedResponse(for: rawData)
+
+        if !preferWrappedResponse {
+            do {
+                Logger.debug("[ResponseProcessor] 原始 JSON 不像包裝回應，直接解析為 \(String(describing: type))")
+                let result = try parser.parse(T.self, from: rawData)
+                Logger.debug("[ResponseProcessor] 直接解析成功")
+                return result
+            } catch {
+                Logger.debug("[ResponseProcessor] 直接解析失敗，回退到包裝回應解析: \(error.localizedDescription)")
+            }
+        }
+
         // 嘗試解析為統一回應格式（這是主要路徑，錯誤最有意義）
         var primaryError: Error?
         do {

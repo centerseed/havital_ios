@@ -1,23 +1,14 @@
 appId: com.havital.Havital.dev
 ---
-# 子流程：維持訓練方法論 (aerobic_endurance / balanced_fitness) 課表品質驗證
-# 依據：aerobic-endurance-workout-spec.md
+# 子流程：維持訓練方法論 (Paceriz maintenance) 課表品質驗證
+# 依據：目前 maintenance target types：default_methodology = paceriz
 # 前提：在每日訓練頁面，課表已載入
 # 驗證：
-#   1. 不允許 interval / tempo / threshold / race_pace 等賽季導向主課
-#   2. 應以輕鬆跑為主，可有 strides / hill_repeats（maintenance 階段）
+#   1. 不應出現 race-pace 型賽事課
+#   2. 必須有輕鬆跑與休息日
 #   3. 強度分布以 low 為主
 
-# === 1. 禁止出現的賽季導向訓練類型 ===
-- assertNotVisible:
-    text: "間歇訓練"
-    optional: false
-- assertNotVisible:
-    text: "節奏跑"
-    optional: false
-- assertNotVisible:
-    text: "巡航間歇"
-    optional: false
+# === 1. 禁止 race-pace 型賽事課 ===
 - assertNotVisible:
     text: "配速跑"
     optional: false

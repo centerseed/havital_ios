@@ -34,6 +34,12 @@ protocol AuthRepository {
     /// - Throws: AuthenticationError if sign-in fails
     func signInWithEmail(email: String, password: String) async throws -> AuthUser
 
+    func registerEmail(email: String, password: String) async throws -> EmailRegistrationResult
+
+    func verifyEmail(oobCode: String) async throws -> EmailVerificationResult
+
+    func resendEmailVerification(email: String, password: String) async throws -> EmailResendResult
+
     /// Demo login for development/testing
     /// - Parameter reviewerPasscode: Reviewer access passcode collected from the hidden login gate
     /// - Returns: Demo user with pre-configured data
@@ -46,4 +52,18 @@ protocol AuthRepository {
     /// Clears Firebase session, cache, and all authentication state
     /// - Throws: AuthenticationError if sign-out fails
     func signOut() async throws
+}
+
+extension AuthRepository {
+    func registerEmail(email: String, password: String) async throws -> EmailRegistrationResult {
+        throw AuthenticationError.invalidCredentials
+    }
+
+    func verifyEmail(oobCode: String) async throws -> EmailVerificationResult {
+        throw AuthenticationError.invalidCredentials
+    }
+
+    func resendEmailVerification(email: String, password: String) async throws -> EmailResendResult {
+        throw AuthenticationError.invalidCredentials
+    }
 }

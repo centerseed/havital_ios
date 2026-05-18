@@ -1,6 +1,10 @@
 appId: com.havital.Havital.dev
 ---
 # Guardrail helper: verify the weekly plan renders all seven days and includes a rest/easy anchor.
+- tapOn:
+    text: "稍後|Later|後で"
+    optional: true
+
 - assertVisible:
     id: "TrainingPlan_MenuButton"
 

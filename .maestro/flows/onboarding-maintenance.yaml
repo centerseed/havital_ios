@@ -17,7 +17,7 @@ tags:
 
 - runFlow: ../subflows/assert-onboarding-branch.yaml
 - tapOn:
-    id: "Methodology_aerobic_endurance"
+    id: "Methodology_paceriz"
     optional: true
 
 - tapOn:
@@ -30,12 +30,7 @@ tags:
     id: "TrainingWeeks_NextButton"
 
 - runFlow: ../subflows/assert-onboarding-branch.yaml
-- tapOn:
-    text: "不確定（略過）|不確定 \\(略過\\)"
-    optional: true
-- tapOn:
-    id: "MaintenanceRaceDistance_NextButton"
-    optional: true
+- runFlow: ../subflows/pass-maintenance-race-distance.yaml
 - runFlow: ../subflows/assert-preference-persistence.yaml
 
 - runFlow: ../subflows/verify-methodology-maintenance.yaml

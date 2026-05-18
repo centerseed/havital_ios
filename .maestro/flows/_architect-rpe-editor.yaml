@@ -1,0 +1,45 @@
+appId: com.havital.Havital
+---
+# Preconditions:
+# - App is logged in and already on the main training screen.
+# - At least one visible running workout card exists.
+
+- tapOn:
+    text: "輕鬆跑|Easy Run|イージーラン"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: "訓練詳情|Workout Details|ワークアウト詳細|課表資訊|Training Details|トレーニング詳細"
+    timeout: 8000
+- swipe:
+    direction: UP
+    duration: 600
+- tapOn:
+    id: "workout_detail_rpe_button"
+- extendedWaitUntil:
+    visible:
+      id: "rpe_editor_picker"
+    timeout: 5000
+- tapOn:
+    text: "7"
+- tapOn:
+    id: "rpe_editor_save_button"
+- extendedWaitUntil:
+    visible:
+      id: "workout_detail_rpe_button"
+    timeout: 8000
+- tapOn:
+    id: "workout_detail_rpe_button"
+- extendedWaitUntil:
+    visible:
+      id: "rpe_editor_clear_button"
+    timeout: 5000
+- tapOn:
+    id: "rpe_editor_clear_button"
+- extendedWaitUntil:
+    visible:
+      id: "workout_detail_rpe_button"
+    timeout: 8000
+- tapOn:
+    text: "關閉|Close|閉じる"
+    optional: true

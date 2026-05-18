@@ -19,6 +19,7 @@ struct TrainingReadinessResponse: Codable {
     let metrics: TrainingReadinessMetrics?
     let dataSource: String?
     let lastUpdated: String?
+    let planType: String?            // ✅ V2: plan type ("race_run" | "beginner" | "maintenance")
 
     enum CodingKeys: String, CodingKey {
         case date
@@ -28,7 +29,49 @@ struct TrainingReadinessResponse: Codable {
         case metrics
         case dataSource = "data_source"
         case lastUpdated = "last_updated"
+        case planType = "plan_type"
     }
+}
+
+// MARK: - ReadinessPlanType (Domain Layer)
+
+/// Plan type enum for conditional readiness display.
+/// Determines which UI components are shown for different training goals.
+enum ReadinessPlanType {
+    case raceRun
+    case beginner
+    case maintenance
+    case unknown
+
+    init(from string: String?) {
+        switch string {
+        case "race_run": self = .raceRun
+        case "beginner": self = .beginner
+        case "maintenance": self = .maintenance
+        default: self = .unknown
+        }
+    }
+
+    /// Show radar chart — true for race_run and unknown (conservative: show all when plan type undetermined)
+    var shouldShowRadar: Bool { self == .raceRun || self == .unknown }
+
+    /// Show overall score — true for race_run and unknown
+    var shouldShowOverallScore: Bool { self == .raceRun || self == .unknown }
+
+    /// Show estimated race time — true for race_run and unknown
+    var shouldShowEstimatedRaceTime: Bool { self == .raceRun || self == .unknown }
+
+    /// Show status text — true for race_run and unknown
+    var shouldShowStatusText: Bool { self == .raceRun || self == .unknown }
+
+    /// Show endurance card — true for race_run and unknown
+    var shouldShowEndurance: Bool { self == .raceRun || self == .unknown }
+
+    /// Show race fitness card — true for race_run and unknown
+    var shouldShowRaceFitness: Bool { self == .raceRun || self == .unknown }
+
+    /// Show recovery card — true for race_run and unknown
+    var shouldShowRecovery: Bool { self == .raceRun || self == .unknown }
 }
 
 /// Container for all readiness metrics
@@ -52,7 +95,7 @@ struct TrainingReadinessMetrics: Codable {
 
 /// Trend chart data (趨勢圖數據)
 struct TrendData: Codable {
-    let values: [Double]       // 數值陣列 (3-21 個數據點)
+    let values: [Double]       // 數值陣列 (最多 28 個數據點)
     let dates: [String]        // 日期陣列 (格式: MM-DD)
     let direction: String      // 趨勢方向: "up", "down", "stable"
 

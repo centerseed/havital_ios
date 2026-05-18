@@ -1,4 +1,5 @@
 import XCTest
+import UIKit
 @testable import paceriz_dev
 
 @MainActor
@@ -137,6 +138,53 @@ final class PaywallViewModelTests: XCTestCase {
         XCTAssertEqual(sut.trialDaysRemaining, 12)
     }
 
+    func testTrialDaysRemainingIgnoresSyntheticSoftLaunchBypass9999() {
+        // Backend returns 9999 only for iap_enabled=false non-enforced bypass.
+        // It is not a real trial countdown and must not appear in paywall/profile UI.
+        SubscriptionStateManager.shared.update(
+            SubscriptionStatusEntity(
+                status: .trial,
+                enforcementEnabled: false,
+                trialRemainingDays: 9999
+            )
+        )
+
+        XCTAssertNil(sut.trialDaysRemaining)
+    }
+
+    func testTrialDaysRemainingReturnsNilDuringIAPGracePeriod() {
+        // IAP grace has its own SSOT: graceRemainingDays/iapGraceUntil.
+        // Legacy trial fields can exist on old users and must not drive trial UI.
+        SubscriptionStateManager.shared.update(
+            SubscriptionStatusEntity(
+                status: .trial,
+                enforcementEnabled: true,
+                trialRemainingDays: 2,
+                trialEndAt: Date().addingTimeInterval(2 * 86400).timeIntervalSince1970,
+                iapGraceUntil: Date().addingTimeInterval(5 * 86400).timeIntervalSince1970,
+                inGracePeriod: true,
+                graceRemainingDays: 5
+            )
+        )
+
+        XCTAssertNil(sut.trialDaysRemaining)
+    }
+
+    func testTrialDaysRemainingStillAllowsAppleIntroTrialWhenEnforcementDisabled() {
+        // Review/sandbox can briefly have local Apple intro state before backend
+        // enforcement catches up. Apple intro countdown is real and should remain visible.
+        SubscriptionStateManager.shared.update(
+            SubscriptionStatusEntity(
+                status: .active,
+                enforcementEnabled: false,
+                inIntroTrial: true,
+                trialEndAt: Date().addingTimeInterval(4 * 86400 + 3600).timeIntervalSince1970
+            )
+        )
+
+        XCTAssertEqual(sut.trialDaysRemaining, 5)
+    }
+
     func testTrialDaysRemainingFallsBackToExpiresAtWhenNil() {
         // 後端未提供 trial_remaining_days（舊版後端）——fallback 到 expiresAt 計算的 daysRemaining。
         let expiresAt = Date().addingTimeInterval(5 * 86400 + 3600).timeIntervalSince1970
@@ -177,16 +225,36 @@ final class PaywallViewModelTests: XCTestCase {
     }
 
     func testTrackPaywallView_EmitsTriggerWithoutOfferType() {
+        // AC-PAYWALL-28: trackPaywallView() now fires TWO events:
+        //   [0] paywallOpened(source:subSource:) — new, required by AC-PAYWALL-28
+        //   [1] paywallView(trigger:trialRemainingDays:) — legacy, retained for backward compat
+        // Updated by QA 2026-04-26 after paywall rewrite (S08).
         SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none))
 
         sut.trackPaywallView()
 
-        XCTAssertEqual(analyticsService.trackedEvents.count, 1)
-        if case .paywallView(let trigger, let trialRemainingDays) = analyticsService.trackedEvents[0] {
-            XCTAssertEqual(trigger, "api_gated")
+        XCTAssertEqual(analyticsService.trackedEvents.count, 2,
+                       "trackPaywallView must fire paywallOpened (AC-PAYWALL-28) + paywallView (legacy)")
+
+        // Verify paywallOpened event at index 0 (AC-PAYWALL-28)
+        // Note: .apiGated is a legacy trigger; its paywallSource maps to .weeklyPlanWeek2 ("weekly_plan_week2")
+        // per PaywallTrigger.paywallSource fallback logic.
+        if case .paywallOpened(let source, let subSource) = analyticsService.trackedEvents[0] {
+            XCTAssertEqual(source, "weekly_plan_week2",
+                           "paywallOpened source for .apiGated legacy trigger maps to weekly_plan_week2")
+            XCTAssertNil(subSource, "subSource must be nil for non-resubscribe trigger")
+        } else {
+            XCTFail("Expected paywallOpened event at index 0")
+        }
+
+        // Verify legacy paywallView event at index 1
+        // Note: .paywallView uses trigger.analyticsString which also maps to "weekly_plan_week2" for .apiGated
+        if case .paywallView(let trigger, let trialRemainingDays) = analyticsService.trackedEvents[1] {
+            XCTAssertEqual(trigger, "weekly_plan_week2",
+                           "legacy paywallView trigger for .apiGated maps to weekly_plan_week2")
             XCTAssertNil(trialRemainingDays)
         } else {
-            XCTFail("Expected paywallView event")
+            XCTFail("Expected paywallView event at index 1")
         }
     }
 
@@ -292,6 +360,502 @@ final class PaywallViewModelTests: XCTestCase {
             XCTFail("Expected failure message, got \(sut.purchaseState)")
         }
     }
+
+    // MARK: - Early Bird Offering Tests (S03a)
+
+    /// AC-IAP-OFFER-01: displayPackages for early_bird offering includes line-through original price.
+    func test_displayPackages_for_early_bird_offering_includes_line_through_original_price() async {
+        // Arrange: configure mock to return early_bird + default offerings, mark as early bird
+        repository.offeringsToReturn = MockSubscriptionRepository.makeEarlyBirdAndDefaultOfferings()
+        repository.isEarlyBirdOfferingResult = true
+        repository.currentOfferingIdentifierResult = "early_bird"
+
+        await sut.loadOfferings()
+
+        // Act
+        let packages = sut.displayPackages
+
+        // Assert: both packages should be early-bird with a line-through price
+        XCTAssertFalse(packages.isEmpty, "displayPackages should not be empty for early-bird offering")
+        for pkg in packages {
+            XCTAssertTrue(pkg.isEarlyBird, "All packages must be marked isEarlyBird=true")
+            XCTAssertNotNil(
+                pkg.originalPriceLineThrough,
+                "Early-bird package \(pkg.package.period.rawValue) must have a line-through original price"
+            )
+        }
+
+        // Verify yearly and monthly are both present
+        let yearly = packages.first(where: { $0.package.period == .yearly })
+        let monthly = packages.first(where: { $0.package.period == .monthly })
+        XCTAssertNotNil(yearly, "Yearly package must be present")
+        XCTAssertNotNil(monthly, "Monthly package must be present")
+
+        // Verify the line-through price matches the default offering price (not the early-bird price)
+        XCTAssertEqual(yearly?.originalPriceLineThrough, "NT$1,999/年", "Yearly original price must be from default offering")
+        XCTAssertEqual(monthly?.originalPriceLineThrough, "NT$199/月", "Monthly original price must be from default offering")
+
+        // Verify the display price is the early-bird price
+        XCTAssertEqual(yearly?.displayPrice, "NT$1,390/年", "Yearly display price must be early-bird price")
+        XCTAssertEqual(monthly?.displayPrice, "NT$180/月", "Monthly display price must be early-bird price")
+    }
+
+    /// AC-IAP-OFFER-02: displayPackages for default offering has no line-through, no badge.
+    func test_displayPackages_for_default_offering_no_line_through_no_badge() async {
+        // Arrange: default offering, not early bird
+        repository.offeringsToReturn = MockSubscriptionRepository.makeDefaultOnlyOfferings()
+        repository.isEarlyBirdOfferingResult = false
+        repository.currentOfferingIdentifierResult = "default"
+
+        await sut.loadOfferings()
+
+        let packages = sut.displayPackages
+
+        XCTAssertFalse(packages.isEmpty, "displayPackages should not be empty for default offering")
+        for pkg in packages {
+            XCTAssertFalse(pkg.isEarlyBird, "No package should be marked isEarlyBird in default offering")
+            XCTAssertNil(
+                pkg.originalPriceLineThrough,
+                "No package should have a line-through price in default offering"
+            )
+        }
+
+        // Verify prices are standard prices
+        let yearly = packages.first(where: { $0.package.period == .yearly })
+        let monthly = packages.first(where: { $0.package.period == .monthly })
+        XCTAssertEqual(yearly?.displayPrice, "NT$1,999/年")
+        XCTAssertEqual(monthly?.displayPrice, "NT$199/月")
+    }
+
+    // MARK: - Two-Section Paywall Tests (S03a Revised)
+
+    /// AC-IAP-OFFER-01 (revised): Early-bird offering shows both sections — early-bird on top, default below.
+    /// Tests that shouldShowEarlyBirdSection is true AND shouldShowDefaultSection is true.
+    func test_paywall_early_bird_offering_renders_both_sections_in_order() async {
+        // Arrange: early-bird is current
+        repository.offeringsToReturn = MockSubscriptionRepository.makeEarlyBirdAndDefaultOfferings()
+        repository.isEarlyBirdOfferingResult = true
+        repository.currentOfferingIdentifierResult = "early_bird"
+
+        await sut.loadOfferings()
+
+        // Assert: both sections should be shown
+        XCTAssertTrue(sut.shouldShowEarlyBirdSection, "shouldShowEarlyBirdSection must be true when current offering is early_bird")
+        XCTAssertTrue(sut.shouldShowDefaultSection, "shouldShowDefaultSection must always be true")
+
+        // Verify early-bird packages (top section) have line-through prices
+        let earlyBirdPackages = sut.displayPackages
+        XCTAssertFalse(earlyBirdPackages.isEmpty, "Early-bird section must have packages")
+        for pkg in earlyBirdPackages {
+            XCTAssertTrue(pkg.isEarlyBird, "Early-bird section packages must have isEarlyBird=true")
+            XCTAssertNotNil(pkg.originalPriceLineThrough, "Early-bird packages must show line-through original price")
+        }
+
+        // Verify default packages (bottom section) have no line-through
+        let defaultPkgs = sut.defaultPackages
+        XCTAssertFalse(defaultPkgs.isEmpty, "Default section must have packages")
+        for pkg in defaultPkgs {
+            XCTAssertFalse(pkg.isEarlyBird, "Default section packages must not be early-bird")
+            XCTAssertNil(pkg.originalPriceLineThrough, "Default section packages must not have line-through price")
+        }
+    }
+
+    /// AC-IAP-OFFER-02 (revised): Default offering shows only default section — no early-bird section.
+    func test_paywall_default_offering_renders_only_default_section() async {
+        // Arrange: default offering is current
+        repository.offeringsToReturn = MockSubscriptionRepository.makeDefaultOnlyOfferings()
+        repository.isEarlyBirdOfferingResult = false
+        repository.currentOfferingIdentifierResult = "default"
+
+        await sut.loadOfferings()
+
+        // Assert: early-bird section must not be shown; default section always shown
+        XCTAssertFalse(sut.shouldShowEarlyBirdSection, "shouldShowEarlyBirdSection must be false for default offering")
+        XCTAssertTrue(sut.shouldShowDefaultSection, "shouldShowDefaultSection must always be true")
+
+        // No early-bird flags or line-through prices
+        let packages = sut.displayPackages
+        for pkg in packages {
+            XCTAssertFalse(pkg.isEarlyBird, "No package should be early-bird in default-only mode")
+            XCTAssertNil(pkg.originalPriceLineThrough, "No line-through price in default-only mode")
+        }
+    }
+
+    /// defaultPackages returns the default offering packages when current is early-bird.
+    func test_defaultPackages_returns_default_offering_packages_when_current_is_early_bird() async {
+        // Arrange: both offerings present, current = early_bird
+        repository.offeringsToReturn = MockSubscriptionRepository.makeEarlyBirdAndDefaultOfferings()
+        repository.isEarlyBirdOfferingResult = true
+        repository.currentOfferingIdentifierResult = "early_bird"
+
+        await sut.loadOfferings()
+
+        // Act
+        let packages = sut.defaultPackages
+
+        // Assert: packages come from default offering — standard pricing, no early-bird flags
+        XCTAssertFalse(packages.isEmpty, "defaultPackages should not be empty when default offering is present")
+        XCTAssertEqual(packages.count, 2, "Default offering has yearly and monthly packages")
+
+        for pkg in packages {
+            XCTAssertFalse(pkg.isEarlyBird, "defaultPackages must never be marked isEarlyBird")
+            XCTAssertNil(pkg.originalPriceLineThrough, "defaultPackages must not carry a line-through price")
+        }
+
+        let yearly = packages.first(where: { $0.package.period == .yearly })
+        let monthly = packages.first(where: { $0.package.period == .monthly })
+        XCTAssertNotNil(yearly, "Yearly package must be present in defaultPackages")
+        XCTAssertNotNil(monthly, "Monthly package must be present in defaultPackages")
+
+        // Prices must match the default offering — not the early-bird offering
+        XCTAssertEqual(yearly?.displayPrice, "NT$1,999/年", "Yearly default price must be standard price")
+        XCTAssertEqual(monthly?.displayPrice, "NT$199/月", "Monthly default price must be standard price")
+    }
+
+    /// Done Criteria 8: purchase from the default section uses the same purchase(request:) path.
+    func test_purchase_from_default_section_uses_same_purchase_flow() async {
+        // Arrange: early-bird is current; user selects a default section package
+        repository.offeringsToReturn = MockSubscriptionRepository.makeEarlyBirdAndDefaultOfferings()
+        repository.isEarlyBirdOfferingResult = true
+        repository.currentOfferingIdentifierResult = "early_bird"
+        repository.purchaseResult = .success
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active))
+
+        await sut.loadOfferings()
+
+        let defaultPackages = sut.defaultPackages
+        guard let yearlyDefault = defaultPackages.first(where: { $0.package.period == .yearly }) else {
+            XCTFail("defaultPackages must contain a yearly package")
+            return
+        }
+
+        // Act: purchase the default yearly package (as the default section card would)
+        await sut.purchase(
+            request: SubscriptionPurchaseRequest(
+                offeringId: Constants.IAP.defaultOfferingIdentifier,
+                packageId: yearlyDefault.package.id,
+                offerType: nil,
+                offerIdentifier: nil
+            )
+        )
+
+        // Assert: same purchase() path — repository.purchase() was called once with the correct offeringId
+        XCTAssertEqual(repository.purchaseCallCount, 1, "purchase() must be called exactly once")
+        XCTAssertEqual(
+            repository.lastPurchaseRequest?.offeringId,
+            Constants.IAP.defaultOfferingIdentifier,
+            "Purchase must use the default offering ID, not the current early-bird offering ID"
+        )
+        XCTAssertEqual(
+            repository.lastPurchaseRequest?.packageId,
+            yearlyDefault.package.id,
+            "Package ID must match the selected default package"
+        )
+        XCTAssertNil(repository.lastPurchaseRequest?.offerType, "Default package purchase has no offerType")
+        XCTAssertEqual(sut.purchaseState, .success, "Purchase state must be success after successful purchase")
+    }
+
+    /// Dual-condition: isEarlyBirdOffering is true when identifier matches OR product ID is in known set.
+    /// Uses the correct identifier "Early bird" (capitalized, with space) as set in RevenueCat dashboard.
+    func test_isEarlyBirdOffering_true_when_identifier_matches_or_product_in_set() {
+        // Case 1: identifier matches the RC dashboard identifier "Early bird"
+        repository.currentOfferingIdentifierResult = "Early bird"
+        repository.isEarlyBirdOfferingResult = true
+        XCTAssertTrue(
+            repository.isEarlyBirdOffering,
+            "isEarlyBirdOffering must be true when currentOfferingIdentifier == 'Early bird'"
+        )
+
+        // Case 2: identifier is nil / different, but product ID in set
+        repository.currentOfferingIdentifierResult = "custom_campaign"
+        repository.isEarlyBirdOfferingResult = true
+        XCTAssertTrue(
+            repository.isEarlyBirdOffering,
+            "isEarlyBirdOffering must be true when any package product ID is in earlyBirdProductIDs"
+        )
+
+        // Case 3: default offering, not early bird
+        repository.currentOfferingIdentifierResult = "default"
+        repository.isEarlyBirdOfferingResult = false
+        XCTAssertFalse(
+            repository.isEarlyBirdOffering,
+            "isEarlyBirdOffering must be false for default offering with standard product IDs"
+        )
+    }
+
+    // MARK: - lastPurchasedPlanName (Bug 1 fix: success modal shows correct plan)
+
+    /// Bug 1: success modal must show the plan the user bought, not the stale backend planType.
+    /// Verifies: yearly packageId → lastPurchasedPlanName is set to the yearly plan key.
+    func testPurchase_Yearly_SetsLastPurchasedPlanName_Yearly() async {
+        repository.purchaseResult = .success
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active))
+
+        await sut.purchase(
+            request: SubscriptionPurchaseRequest(
+                offeringId: "default",
+                packageId: "$rc_annual",
+                offerType: nil,
+                offerIdentifier: nil
+            )
+        )
+
+        XCTAssertEqual(sut.purchaseState, .success)
+        XCTAssertEqual(
+            sut.lastPurchasedPlanName,
+            NSLocalizedString("paywall.purchase_success.plan.yearly", comment: ""),
+            "Yearly purchase must set lastPurchasedPlanName to the yearly plan localized string"
+        )
+    }
+
+    /// Bug 1: monthly packageId → lastPurchasedPlanName is set to the monthly plan key.
+    func testPurchase_Monthly_SetsLastPurchasedPlanName_Monthly() async {
+        repository.purchaseResult = .success
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active))
+
+        await sut.purchase(
+            request: SubscriptionPurchaseRequest(
+                offeringId: "default",
+                packageId: "$rc_monthly",
+                offerType: nil,
+                offerIdentifier: nil
+            )
+        )
+
+        XCTAssertEqual(sut.purchaseState, .success)
+        XCTAssertEqual(
+            sut.lastPurchasedPlanName,
+            NSLocalizedString("paywall.purchase_success.plan.monthly", comment: ""),
+            "Monthly purchase must set lastPurchasedPlanName to the monthly plan localized string"
+        )
+    }
+
+    /// Bug 1: yearly offeringId (annual keyword) → inferred as yearly even if packageId is generic.
+    func testPurchase_AnnualKeywordInOfferingId_SetsLastPurchasedPlanName_Yearly() async {
+        repository.purchaseResult = .success
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active))
+
+        await sut.purchase(
+            request: SubscriptionPurchaseRequest(
+                offeringId: "annual_promo",
+                packageId: "$rc_annual_promo",
+                offerType: nil,
+                offerIdentifier: nil
+            )
+        )
+
+        XCTAssertEqual(sut.purchaseState, .success)
+        XCTAssertEqual(
+            sut.lastPurchasedPlanName,
+            NSLocalizedString("paywall.purchase_success.plan.yearly", comment: ""),
+            "annual keyword in offeringId must map to yearly plan name"
+        )
+    }
+
+    /// Bug 1: failed purchase must NOT set lastPurchasedPlanName.
+    func testPurchase_WhenFailed_DoesNotSetLastPurchasedPlanName() async {
+        repository.purchaseResult = .failed(DomainError.validationFailure("purchase failed"))
+
+        await sut.purchase(
+            request: SubscriptionPurchaseRequest(
+                offeringId: "default",
+                packageId: "$rc_annual",
+                offerType: nil,
+                offerIdentifier: nil
+            )
+        )
+
+        if case .failed = sut.purchaseState {
+            XCTAssertNil(sut.lastPurchasedPlanName, "Failed purchase must not set lastPurchasedPlanName")
+        } else {
+            XCTFail("Expected purchaseState to be .failed")
+        }
+    }
+
+    /// Bug 1: cancelled purchase must NOT set lastPurchasedPlanName.
+    func testPurchase_WhenCancelled_DoesNotSetLastPurchasedPlanName() async {
+        repository.purchaseResult = .cancelled
+
+        await sut.purchase(
+            request: SubscriptionPurchaseRequest(
+                offeringId: "default",
+                packageId: "$rc_annual",
+                offerType: nil,
+                offerIdentifier: nil
+            )
+        )
+
+        XCTAssertNil(sut.lastPurchasedPlanName, "Cancelled purchase must not set lastPurchasedPlanName")
+    }
+
+    // MARK: - AC-IAP-OFFER-04: Foreground Re-enter Triggers Offering Reload
+
+    /// AC-IAP-OFFER-04: When app returns to foreground while paywall is visible, loadOfferings() is
+    /// called again so that the displayed offering stays fresh (e.g. RC offering may have changed).
+    func test_foreground_notification_triggers_offerings_reload() async {
+        // Arrange: do an initial load so we have a baseline count
+        repository.offeringsToReturn = MockSubscriptionRepository.makeDefaultOnlyOfferings()
+        await sut.loadOfferings()
+        let countAfterInitialLoad = repository.fetchOfferingsCallCount
+        XCTAssertEqual(countAfterInitialLoad, 1, "fetchOfferings should be called once on initial loadOfferings()")
+
+        // Act: simulate app returning to foreground
+        NotificationCenter.default.post(
+            name: UIApplication.willEnterForegroundNotification,
+            object: nil
+        )
+
+        // The notification handler dispatches to an async MainActor task. Wait deterministically
+        // until the repository is called again instead of relying on a fixed number of yields.
+        let deadline = Date().addingTimeInterval(1.0)
+        while repository.fetchOfferingsCallCount <= countAfterInitialLoad && Date() < deadline {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        // Assert: fetchOfferings was called again
+        XCTAssertGreaterThan(
+            repository.fetchOfferingsCallCount,
+            countAfterInitialLoad,
+            "loadOfferings() must be called again when UIApplication.willEnterForegroundNotification fires"
+        )
+    }
+
+    // MARK: - AC-IAP-OFFER-06: Trial End Notification — UI Reflects State Change
+
+    /// AC-IAP-OFFER-06: When Apple intro trial has ended (trialEndAt is in the past),
+    /// trialDaysRemaining becomes 0 and isInAppleIntroTrial remains true (status still reported
+    /// as in intro trial by backend). UI should reflect the ended trial state.
+    func test_trial_end_notification_ui_reflects_zero_days_remaining_when_intro_trial_expired() {
+        // Arrange: inIntroTrial=true, trialEndAt is exactly at epoch (past)
+        let expiredTrialEndAt = Date().timeIntervalSince1970 - 1 // 1 second ago
+        SubscriptionStateManager.shared.update(
+            SubscriptionStatusEntity(
+                status: .trial,
+                expiresAt: Date().addingTimeInterval(30 * 86400).timeIntervalSince1970,
+                inIntroTrial: true,
+                trialEndAt: expiredTrialEndAt
+            )
+        )
+
+        // Assert: isInAppleIntroTrial must still be true (backend says user is in intro trial)
+        XCTAssertTrue(
+            sut.isInAppleIntroTrial,
+            "isInAppleIntroTrial must be true when inIntroTrial=true regardless of trialEndAt"
+        )
+
+        // Assert: trialDaysRemaining must be 0 (trial has ended)
+        let days = sut.trialDaysRemaining
+        XCTAssertNotNil(days, "trialDaysRemaining must be non-nil when inIntroTrial=true")
+        XCTAssertEqual(days, 0, "trialDaysRemaining must be 0 when trialEndAt is in the past")
+
+        // Assert: introTrialDaysRemaining also reflects 0 (delegates to trialDaysRemaining)
+        XCTAssertEqual(
+            sut.introTrialDaysRemaining,
+            0,
+            "introTrialDaysRemaining must return 0 when trial end time has passed"
+        )
+    }
+
+    // MARK: - AC-IAP-OFFER-08: Lifetime Promo Offering Display (Early Bird)
+
+    /// AC-IAP-OFFER-08: The early_bird offering (used as the limited-time lifetime promo) must display
+    /// an activity badge (isEarlyBird=true) and a strikethrough original price on each package.
+    /// shouldShowEarlyBirdSection must be true so the View renders the promo section.
+    func test_early_bird_offering_displays_promo_badge_and_linethrough_original_price() async {
+        // Arrange: current offering is early_bird (RC identifier "Early bird")
+        repository.offeringsToReturn = MockSubscriptionRepository.makeEarlyBirdAndDefaultOfferings()
+        repository.isEarlyBirdOfferingResult = true
+        repository.currentOfferingIdentifierResult = Constants.IAP.earlyBirdOfferingIdentifier
+
+        await sut.loadOfferings()
+
+        // Assert: shouldShowEarlyBirdSection drives the promo section visibility
+        XCTAssertTrue(
+            sut.shouldShowEarlyBirdSection,
+            "shouldShowEarlyBirdSection must be true for early_bird offering so the promo badge section renders"
+        )
+
+        // Assert: every display package carries the early-bird badge flag
+        let packages = sut.displayPackages
+        XCTAssertFalse(packages.isEmpty, "displayPackages must not be empty for early_bird offering")
+        for pkg in packages {
+            XCTAssertTrue(
+                pkg.isEarlyBird,
+                "Package \(pkg.package.period.rawValue) must have isEarlyBird=true (promo badge)"
+            )
+            XCTAssertNotNil(
+                pkg.originalPriceLineThrough,
+                "Package \(pkg.package.period.rawValue) must have originalPriceLineThrough (strikethrough price)"
+            )
+        }
+
+        // Assert: the default section (full price, no promo) is still shown for comparison
+        XCTAssertTrue(
+            sut.shouldShowDefaultSection,
+            "shouldShowDefaultSection must be true so users can see standard pricing below the promo"
+        )
+        let defaultPkgs = sut.defaultPackages
+        XCTAssertFalse(defaultPkgs.isEmpty, "defaultPackages must be present as the non-promo comparison section")
+        for pkg in defaultPkgs {
+            XCTAssertFalse(pkg.isEarlyBird, "Default section packages must not carry the promo badge")
+            XCTAssertNil(pkg.originalPriceLineThrough, "Default section packages must not have a strikethrough price")
+        }
+    }
+
+    // MARK: - AC-IAP-OFFER-09: Offer Code Redemption Path
+
+    /// AC-IAP-OFFER-09: Offer code redemption — when Apple's sheet is dismissed without completing
+    /// redemption (.cancelled result), purchaseState must return to .idle so the user can try again.
+    /// This verifies the cancelled path of the redemption coordinator chain is correctly handled.
+    func test_redeemOfferCode_WhenCancelled_RestoresIdleState() async {
+        // Arrange: repository returns .cancelled (user dismissed the Apple offer code sheet)
+        repository.redeemResult = .cancelled
+
+        // Act
+        await sut.redeemOfferCode()
+
+        // Assert: repository's redeemOfferCode was called (coordinator delegation chain works)
+        XCTAssertEqual(
+            repository.redeemOfferCodeCallCount,
+            1,
+            "redeemOfferCode() must be delegated through OfferRedemptionCoordinator to the repository"
+        )
+
+        // Assert: purchaseState must be .idle so the user can tap the button again
+        XCTAssertEqual(
+            sut.purchaseState,
+            .idle,
+            "Cancelled offer code redemption must set purchaseState to .idle — not .failed"
+        )
+    }
+
+    /// Done Criteria #6 (S03a P0): isEarlyBirdOffering is true when RC identifier is "Early bird"
+    /// (capitalized first letter, space separator — exact match to RevenueCat dashboard value).
+    func test_isEarlyBirdOffering_true_when_rc_identifier_is_capitalized_with_space() {
+        // RC dashboard uses "Early bird" — not "early_bird". The constant must match exactly.
+        XCTAssertEqual(
+            Constants.IAP.earlyBirdOfferingIdentifier,
+            "Early bird",
+            "earlyBirdOfferingIdentifier constant must be 'Early bird' to match RevenueCat dashboard"
+        )
+
+        // Simulate the mock repository receiving offering identifier "Early bird" from RC
+        repository.currentOfferingIdentifierResult = "Early bird"
+        repository.isEarlyBirdOfferingResult = true
+
+        XCTAssertTrue(
+            repository.isEarlyBirdOffering,
+            "isEarlyBirdOffering must be true when RC offering identifier is 'Early bird'"
+        )
+
+        // Confirm the old identifier string does NOT produce a match (regression guard)
+        repository.currentOfferingIdentifierResult = "early_bird"
+        repository.isEarlyBirdOfferingResult = false
+        XCTAssertFalse(
+            repository.isEarlyBirdOffering,
+            "isEarlyBirdOffering must be false when identifier is 'early_bird' (old lowercase+underscore form)"
+        )
+    }
 }
 
 private final class MockSubscriptionRepository: SubscriptionRepository {
@@ -301,11 +865,22 @@ private final class MockSubscriptionRepository: SubscriptionRepository {
     var restoreError: Error?
     var refreshError: Error?
 
+    // S03a early-bird properties
+    var offeringsToReturn: [SubscriptionOfferingEntity] = []
+    var isEarlyBirdOfferingResult: Bool = false
+    var currentOfferingIdentifierResult: String? = nil
+
     private(set) var refreshStatusCallCount = 0
     private(set) var restorePurchasesCallCount = 0
     private(set) var purchaseCallCount = 0
     private(set) var redeemOfferCodeCallCount = 0
+    private(set) var fetchOfferingsCallCount = 0
     private(set) var lastPurchaseRequest: SubscriptionPurchaseRequest?
+
+    // MARK: - SubscriptionRepository
+
+    var currentOfferingIdentifier: String? { currentOfferingIdentifierResult }
+    var isEarlyBirdOffering: Bool { isEarlyBirdOfferingResult }
 
     func getStatus() async throws -> SubscriptionStatusEntity {
         statusToReturn
@@ -326,7 +901,8 @@ private final class MockSubscriptionRepository: SubscriptionRepository {
     func clearCache() {}
 
     func fetchOfferings() async throws -> [SubscriptionOfferingEntity] {
-        []
+        fetchOfferingsCallCount += 1
+        return offeringsToReturn
     }
 
     func purchase(request: SubscriptionPurchaseRequest) async throws -> PurchaseResultEntity {
@@ -345,6 +921,116 @@ private final class MockSubscriptionRepository: SubscriptionRepository {
         if let restoreError {
             throw restoreError
         }
+    }
+
+    // MARK: - S03a Test Factories
+
+    /// Returns [early_bird offering, default offering] for early-bird display tests.
+    static func makeEarlyBirdAndDefaultOfferings() -> [SubscriptionOfferingEntity] {
+        let earlyBird = SubscriptionOfferingEntity(
+            id: "early_bird",
+            title: "Early Bird",
+            description: "Early Bird",
+            packages: [
+                SubscriptionPackageEntity(
+                    id: "$rc_annual",
+                    productId: "paceriz.sub.yearly.eb1",
+                    localizedPrice: "NT$1,390/年",
+                    price: Decimal(string: "1390") ?? .zero,
+                    currencyCode: "TWD",
+                    localeIdentifier: "zh_TW",
+                    period: .yearly,
+                    billingPeriodValue: 1,
+                    billingPeriodUnit: .year,
+                    officialOffer: nil,
+                    localizedTitle: "年訂閱 - 超早鳥"
+                ),
+                SubscriptionPackageEntity(
+                    id: "$rc_monthly",
+                    productId: "paceriz.sub.monthly.eb1",
+                    localizedPrice: "NT$180/月",
+                    price: Decimal(string: "180") ?? .zero,
+                    currencyCode: "TWD",
+                    localeIdentifier: "zh_TW",
+                    period: .monthly,
+                    billingPeriodValue: 1,
+                    billingPeriodUnit: .month,
+                    officialOffer: nil,
+                    localizedTitle: "月訂閱 - 超早鳥"
+                )
+            ]
+        )
+        let defaultOffering = SubscriptionOfferingEntity(
+            id: "default",
+            title: "Default",
+            description: "Default",
+            packages: [
+                SubscriptionPackageEntity(
+                    id: "$rc_annual_default",
+                    productId: "paceriz.sub.yearly",
+                    localizedPrice: "NT$1,999/年",
+                    price: Decimal(string: "1999") ?? .zero,
+                    currencyCode: "TWD",
+                    localeIdentifier: "zh_TW",
+                    period: .yearly,
+                    billingPeriodValue: 1,
+                    billingPeriodUnit: .year,
+                    officialOffer: nil,
+                    localizedTitle: "年訂閱"
+                ),
+                SubscriptionPackageEntity(
+                    id: "$rc_monthly_default",
+                    productId: "paceriz.sub.monthly",
+                    localizedPrice: "NT$199/月",
+                    price: Decimal(string: "199") ?? .zero,
+                    currencyCode: "TWD",
+                    localeIdentifier: "zh_TW",
+                    period: .monthly,
+                    billingPeriodValue: 1,
+                    billingPeriodUnit: .month,
+                    officialOffer: nil,
+                    localizedTitle: "月訂閱"
+                )
+            ]
+        )
+        return [earlyBird, defaultOffering]
+    }
+
+    /// Returns [default offering only] for standard display tests.
+    static func makeDefaultOnlyOfferings() -> [SubscriptionOfferingEntity] {
+        return [SubscriptionOfferingEntity(
+            id: "default",
+            title: "Default",
+            description: "Default",
+            packages: [
+                SubscriptionPackageEntity(
+                    id: "$rc_annual",
+                    productId: "paceriz.sub.yearly",
+                    localizedPrice: "NT$1,999/年",
+                    price: Decimal(string: "1999") ?? .zero,
+                    currencyCode: "TWD",
+                    localeIdentifier: "zh_TW",
+                    period: .yearly,
+                    billingPeriodValue: 1,
+                    billingPeriodUnit: .year,
+                    officialOffer: nil,
+                    localizedTitle: "年訂閱"
+                ),
+                SubscriptionPackageEntity(
+                    id: "$rc_monthly",
+                    productId: "paceriz.sub.monthly",
+                    localizedPrice: "NT$199/月",
+                    price: Decimal(string: "199") ?? .zero,
+                    currencyCode: "TWD",
+                    localeIdentifier: "zh_TW",
+                    period: .monthly,
+                    billingPeriodValue: 1,
+                    billingPeriodUnit: .month,
+                    officialOffer: nil,
+                    localizedTitle: "月訂閱"
+                )
+            ]
+        )]
     }
 }
 

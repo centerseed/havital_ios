@@ -1034,7 +1034,7 @@ struct WorkoutSyncDebugView: View {
             let paceSeconds: Double
             switch unit {
             case .metric: paceSeconds = paceInSecondsPerKm
-            case .imperial: paceSeconds = paceInSecondsPerKm / 1.60934
+            case .imperial: paceSeconds = paceInSecondsPerKm * 1.60934
             }
             let minutes = Int(paceSeconds) / 60
             let seconds = Int(paceSeconds) % 60

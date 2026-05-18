@@ -6,21 +6,22 @@ tags:
 ---
 # 回歸測試：賽事（Supporting Target）新增流程
 # 目的：驗證支援賽事 Create 流程可進入、可填寫並成功返回概覽
-# 前提：App 已登入，有課表資料（V2 用戶）
+# 前提：App 已登入；本 flow 會先建立 race_run 目標，避免依賴帳號殘留狀態
 # 路徑：主頁 → 更多選單 → 訓練總覽 → 支援賽事 → 新增 → 返回概覽
 # 注意：SupportingRacesCard 的 + 按鈕是 plus.circle 圖示，無文字
 
-# 先收斂到主畫面（支援 zh/en/ja）
-- runFlow: ../subflows/ensure-main-training-screen.yaml
+# 先建立穩定 race target，支援賽事區塊只會在賽事目標下出現
+- runFlow: ../subflows/ensure-race-target-from-database.yaml
+- runFlow: ../subflows/dismiss-permission-prompts.yaml
 
 # === Step 1: 導航到訓練總覽（內含支援賽事區塊）===
 
 # 開啟右側選單（優先使用穩定 id）
 - tapOn:
-    id: "ellipsis.circle"
+    id: "TrainingPlan_MenuButton"
     optional: true
 - tapOn:
-    text: "訓練計畫概覽|訓練總覽|Training Plan Overview|トレーニング計画概要"
+    id: "TrainingPlan_Menu_PlanOverview"
     optional: true
 - tapOn:
     text: "更多|More|もっと見る"
@@ -28,28 +29,24 @@ tags:
 
 # 再嘗試一次概覽入口（若前一步已成功，這步會被略過）
 - tapOn:
-    text: "訓練計畫概覽|訓練總覽|Training Plan Overview|トレーニング計画概要"
+    text: "訓練計畫概覽|訓練總覽|Training Plan Overview|Plan Overview|トレーニング計画概要"
     optional: true
 
 # 等待訓練總覽頁載入（相容舊版與新版概覽）
 - extendedWaitUntil:
     visible:
-      text: "目標資訊|訓練目標|總週數|週數|Target Info|Training Goal|Weeks|週間|Total Weeks"
+      text: "賽事資訊|目標資訊|訓練目標|總週數|週數|Race Info|Target Info|Training Goal|Weeks|週間|Total Weeks"
     timeout: 12000
-
-# 新版概覽先切到「訓練計畫」分頁，舊版則略過
-- tapOn:
-    text: "訓練計畫|Training Plan|トレーニング計画"
-    optional: true
 
 # 滑動找到支援賽事區塊（或目標賽事）
 - scrollUntilVisible:
-    element: "支援賽事|目標賽事|Supporting Races|Target Race|サポートレース|目標レース"
+    element: "支援賽事|目標賽事|Supporting Races|Target Race|サポートレース|サポート大会|目標レース"
     direction: DOWN
-    timeout: 15000
+    timeout: 20000
+    visibilityPercentage: 70
 
 # 確認支援賽事區塊可見
-- assertVisible: "支援賽事|目標賽事|Supporting Races|Target Race|サポートレース|目標レース"
+- assertVisible: "支援賽事|目標賽事|Supporting Races|Target Race|サポートレース|サポート大会|目標レース"
 
 # === Step 2: 新增支援賽事（Create）===
 
@@ -85,9 +82,9 @@ tags:
 
 # 等待回到訓練總覽
 - extendedWaitUntil:
-    visible: "支援賽事|Supporting Races|サポートレース"
+    visible: "支援賽事|Supporting Races|サポートレース|サポート大会"
     timeout: 10000
 
 # 確認已離開新增頁，且仍在支援賽事區塊
 - assertNotVisible: "添加支援賽事|Add Supporting Race|サポートレースを追加"
-- assertVisible: "支援賽事|Supporting Races|サポートレース"
+- assertVisible: "支援賽事|Supporting Races|サポートレース|サポート大会"

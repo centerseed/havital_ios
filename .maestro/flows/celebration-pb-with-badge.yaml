@@ -1,0 +1,84 @@
+appId: com.havital.Havital.dev
+tags:
+  - celebration
+  - pb-moment
+  - task13
+---
+# Task 13: CelebrationSheet E2E via PB Moment preview harness.
+#
+# Launch argument -ui_testing_pb_moment_preview boots PBMomentPreviewView
+# (DEBUG-only) which renders a picker and a "Show PB Moment" button.
+# Tapping "Show PB Moment" presents CelebrationSheet(.pbOnly) with a
+# fake 5 km PB fixture. This validates the new CelebrationSheet renders
+# the eyebrow capsule, share button, and the share preview path.
+#
+# Note: PBMomentPreviewView does not currently expose a .pbWithBadges
+# harness sub-mode via launch arg. The .pbWithBadges and .badgesOnly
+# visual paths require the harness to be extended; that is out of scope
+# for Task 13 and noted in the QA report as "untested scenario".
+
+- launchApp:
+    stopApp: true
+    clearState: false
+    arguments:
+      -ui_testing_pb_moment_preview: "true"
+      -skipHealthKitAuth: "true"
+
+- extendedWaitUntil:
+    visible:
+      text: "PB Moment Preview"
+    timeout: 15000
+
+- takeScreenshot: celebration_01_harness_screen
+
+# Tap "Show PB Moment" to present CelebrationSheet(.pbOnly)
+- tapOn:
+    text: "Show PB Moment"
+
+- extendedWaitUntil:
+    visible:
+      id: "PBMomentPreview_Celebration"
+    timeout: 8000
+
+- takeScreenshot: celebration_02_sheet_open
+
+# Assert eyebrow capsule text for .pbOnly scenario
+# L10n.MyAchievement.Celebration.newPB = "New PB" (en) / "New PB" (zh-Hant)
+- assertVisible:
+    text: "New PB"
+
+# Assert share button is present
+- assertVisible:
+    text: "分享|Share|シェア"
+
+- takeScreenshot: celebration_03_eyebrow_and_share
+
+# Tap share to exercise the CelebrationSharePreviewSheet path
+- tapOn:
+    text: "分享|Share|シェア"
+
+- extendedWaitUntil:
+    visible:
+      text: "分享預覽|Share Preview|シェアプレビュー"
+    timeout: 8000
+
+- takeScreenshot: celebration_04_share_preview_sheet
+
+# Verify no raw i18n key fallback in share preview
+- assertNotVisible:
+    text: "achievements.share."
+
+- assertNotVisible:
+    text: "my_achievement.celebration."
+
+- takeScreenshot: celebration_05_no_raw_keys
+
+# Dismiss share preview (back gesture or close button)
+- tapOn:
+    text: "關閉|Close|閉じる|完成|Done|Cancel|キャンセル|取消"
+    optional: true
+
+- back:
+    optional: true
+
+- takeScreenshot: celebration_06_done

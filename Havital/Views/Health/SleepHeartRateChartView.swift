@@ -15,7 +15,7 @@ struct SleepHeartRateChartView: View {
     var body: some View {
         VStack {
             if viewModel.isLoading {
-                ProgressView("載入中...")
+                ProgressView(L10n.Common.loading.localized)
             } else if viewModel.heartRateData.isEmpty {
                 EmptyStateView(type: .sleepHeartRateData)
             } else {

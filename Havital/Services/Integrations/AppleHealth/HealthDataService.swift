@@ -159,7 +159,7 @@ class HealthDataService {
 }
 
 // MARK: - Response Models
-// 注意：HealthDailyResponse, HealthDailyData, HealthRecord 已在 APIClient.swift 中定義
+// 注意：HealthDailyResponse 與 HealthRecord 已由 TrainingPlan data models 提供
 
 /// 健康統計回應結構
 struct HealthStatsResponse: Codable {

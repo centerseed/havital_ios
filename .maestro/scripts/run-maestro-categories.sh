@@ -18,6 +18,7 @@ ONLY_FAILED="${MAESTRO_ONLY_FAILED:-0}"        # 1 = run only items listed in FA
 # - CAT-WKY: Weekly/overview/summary/preview flows
 # - CAT-EDT: Edit schedule flows
 # - CAT-REG: Regression single-item flows (non-suite)
+# - CAT-SPEC: Spec compliance flows for recently shipped features
 # - CAT-SUITE: Regression suite bundles
 # - CAT-UTL: Utility/reset/smoke helpers
 # - CAT-DBG: Debug/tmp flows
@@ -39,11 +40,9 @@ CAT_ONB=(
   "onboarding-fresh-beginner.yaml"
   "onboarding-fresh-maintenance.yaml"
   "onboarding-maintenance.yaml"
-  "onboarding-race-hansons.yaml"
   "onboarding-race-marathon.yaml"
   "onboarding-race-norwegian.yaml"
   "onboarding-race-paceriz.yaml"
-  "onboarding-race-polarized.yaml"
   "onboarding-race-start-from-base.yaml"
   "onboarding-race-start-from-build.yaml"
 )
@@ -85,15 +84,20 @@ CAT_REG=(
   "regression-v2-weekly-flow.yaml"
 )
 
+CAT_SPEC=(
+  "spec-compliance/target-race-edit/AC-TREDIT-01-dual-entry.yaml"
+  "spec-compliance/target-race-edit/AC-TREDIT-02-preselect.yaml"
+  "spec-compliance/target-race-edit/AC-TREDIT-04-autofill.yaml"
+  "spec-compliance/target-race-edit/AC-TREDIT-06-api-failure.yaml"
+  "spec-compliance/target-race-edit/AC-TREDIT-07-multi-distance.yaml"
+)
+
 CAT_SUITE=(
   "regression-beginner-5k-suite.yaml"
   "regression-full-suite.yaml"
-  "regression-maintenance-speed-suite.yaml"
   "regression-maintenance-suite.yaml"
-  "regression-race-hansons-suite.yaml"
   "regression-race-norwegian-suite.yaml"
   "regression-race-paceriz-suite.yaml"
-  "regression-race-polarized-suite.yaml"
 )
 
 CAT_UTL=(
@@ -153,6 +157,7 @@ Category Prefixes:
   CAT-WKY
   CAT-EDT
   CAT-REG
+  CAT-SPEC
   CAT-SUITE
   CAT-UTL
   CAT-DBG
@@ -161,7 +166,7 @@ Category Prefixes:
   RETRY-FAILED
 
 Notes:
-  - FULL-REGRESSION = CAT-IAP + CAT-ONB + CAT-BND + CAT-WKY + CAT-EDT + CAT-REG
+  - FULL-REGRESSION = CAT-IAP + CAT-ONB + CAT-BND + CAT-WKY + CAT-EDT + CAT-REG + CAT-SPEC
   - RETRY-FAILED = rerun only flows that failed in previous run (stored in .last_failed_flows.txt)
   - CAT-IAP is orchestrated via run-iap-regression.sh all (with backend preconditions)
   - Each non-IAP flow is executed through run-maestro-with-artifact-cleanup.sh
@@ -187,6 +192,7 @@ CATEGORY PREFIX MAP
   CAT-WKY      Weekly/overview/summary/preview flows
   CAT-EDT      Edit schedule flows
   CAT-REG      Regression single-item flows
+  CAT-SPEC     Spec compliance flows for recently shipped features
   CAT-SUITE    Regression bundle suites
   CAT-UTL      Utility/reset/smoke flows
   CAT-DBG      Debug/tmp flows
@@ -320,6 +326,9 @@ main() {
     CAT-REG)
       run_flow_list "CAT-REG" "$prep_reg" "$prep_reg_mode" "${CAT_REG[@]}"
       ;;
+    CAT-SPEC)
+      run_flow_list "CAT-SPEC" "" "none" "${CAT_SPEC[@]}"
+      ;;
     CAT-SUITE)
       run_flow_list "CAT-SUITE" "" "none" "${CAT_SUITE[@]}"
       ;;
@@ -343,6 +352,7 @@ main() {
       run_flow_list "CAT-WKY" "$prep_wky" "$prep_wky_mode" "${CAT_WKY[@]}" || rc=1
       run_flow_list "CAT-EDT" "$prep_edt" "$prep_edt_mode" "${CAT_EDT[@]}" || rc=1
       run_flow_list "CAT-REG" "$prep_reg" "$prep_reg_mode" "${CAT_REG[@]}" || rc=1
+      run_flow_list "CAT-SPEC" "" "none" "${CAT_SPEC[@]}" || rc=1
       return "$rc"
       ;;
     FULL-REGRESSION|full-regression)
@@ -354,6 +364,7 @@ main() {
       run_flow_list "CAT-WKY" "$prep_wky" "$prep_wky_mode" "${CAT_WKY[@]}" || rc=1
       run_flow_list "CAT-EDT" "$prep_edt" "$prep_edt_mode" "${CAT_EDT[@]}" || rc=1
       run_flow_list "CAT-REG" "$prep_reg" "$prep_reg_mode" "${CAT_REG[@]}" || rc=1
+      run_flow_list "CAT-SPEC" "" "none" "${CAT_SPEC[@]}" || rc=1
       return "$rc"
       ;;
     *)

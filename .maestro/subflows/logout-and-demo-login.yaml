@@ -14,13 +14,23 @@ appId: com.havital.Havital.dev
 - launchApp:
     stopApp: true
     clearState: false
+    arguments:
+      "-ui_testing_onboarding": true
+      "-skipHealthKitAuth": true
+      "-reviewerAccessPressDuration": "1.0"
 
 # 處理可能的系統彈窗
 - tapOn:
-    text: "允許"
+    text: "開啟全部|Turn On All|すべてをオンにする"
     optional: true
 - tapOn:
-    text: "好"
+    text: "允許|Allow|許可"
+    optional: true
+- tapOn:
+    text: "不允許|Don't Allow|Don’t Allow|許可しない"
+    optional: true
+- tapOn:
+    text: "好|OK"
     optional: true
 
 # 若已在登入頁，直接走 reviewer demo gate；否則略過
@@ -36,15 +46,8 @@ appId: com.havital.Havital.dev
     optional: true
 
 # 透過「更多 → 個人資料 → 重新開始完整 Onboarding」觸發 onboarding
-- tapOn:
-    id: "ellipsis.circle"
-    optional: true
-- tapOn:
-    text: "更多|More|もっと見る"
-    optional: true
-- tapOn:
-    text: "個人資料|Profile|プロフィール"
-    optional: true
+- runFlow: nav-to-profile.yaml
+
 - extendedWaitUntil:
     visible: "個人資料|Profile|プロフィール"
     timeout: 8000
@@ -97,7 +100,7 @@ appId: com.havital.Havital.dev
 
 # Step 3: 心率區間設定（如果出現）
 - tapOn:
-    text: "下一步"
+    id: "HeartRateZone_ContinueButton"
     optional: true
 
 # 等待進入 PB 步驟或訓練總覽（reonboarding 可能已跳到 overview）

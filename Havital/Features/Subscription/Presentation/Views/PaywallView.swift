@@ -1,4 +1,26 @@
+import SafariServices
 import SwiftUI
+
+// MARK: - IdentifiableURL
+/// Thin wrapper that makes URL usable as a `.sheet(item:)` identifier.
+private struct IdentifiableURL: Identifiable {
+    let id = UUID()
+    let url: URL
+}
+
+// MARK: - PaywallCardType
+/// Identifies which card is currently focused by the user.
+/// Used to drive Trial Timeline / Disclosure / CTA switching (AC-07/08/20/21).
+enum PaywallCardType: Equatable {
+    case defaultYearly
+    case defaultMonthly
+    case earlyBirdYearly
+    case earlyBirdMonthly
+
+    var isYearly: Bool {
+        self == .defaultYearly || self == .earlyBirdYearly
+    }
+}
 
 // MARK: - PaywallView
 
@@ -6,36 +28,59 @@ struct PaywallView: View {
     @StateObject private var viewModel: PaywallViewModel
     @ObservedObject private var subscriptionState = SubscriptionStateManager.shared
     @Environment(\.dismiss) private var dismiss
-    @State private var selectedPackageId: String? = nil
     @State private var showPurchaseSuccess = false
 
-    init(trigger: PaywallTrigger) {
-        _viewModel = StateObject(wrappedValue: PaywallViewModel(trigger: trigger))
+    /// Focused card — drives Trial Timeline, Disclosure, and CTA copy.
+    /// Default = .defaultYearly (AC-07: Yearly card pre-selected on open).
+    @State private var focusedCard: PaywallCardType = .defaultYearly
+
+    /// URL to open in SFSafariViewController (AC-PAYWALL-32/33: privacy + terms links).
+    @State private var safariURL: IdentifiableURL?
+
+    init(trigger: PaywallTrigger, subSource: PaywallSource? = nil) {
+        _viewModel = StateObject(wrappedValue: PaywallViewModel(trigger: trigger, subSource: subSource))
     }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 0) {
+                    // 1. Hero
                     heroSection
                         .padding(.top, 12)
                         .padding(.horizontal, 24)
 
-                    if let days = viewModel.trialDaysRemaining {
-                        trialBanner(daysRemaining: days)
+                    // 2. Conditional: Trial Banner (if in Apple intro trial) OR
+                    //    Trial Timeline (if Yearly focused and NOT in trial)
+                    if viewModel.isInAppleIntroTrial {
+                        // AC-PAYWALL-18: trial banner shown during Apple intro trial
+                        PaywallTrialBanner(daysRemaining: viewModel.introTrialDaysRemaining ?? 0)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 16)
+                    } else if focusedCard.isYearly {
+                        // AC-PAYWALL-07: timeline shown when yearly card is focused and not in trial
+                        PaywallTrialTimelineView()
                             .padding(.horizontal, 20)
                             .padding(.top, 16)
                     }
 
+                    // 3. Features 4 groups
                     featuresSection
                         .padding(.top, 24)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 20)
 
+                    // 4 + 5. Offerings (Default section + Early-bird section)
                     offeringsSection
                         .padding(.top, 20)
                         .padding(.horizontal, 20)
 
-                    Spacer(minLength: 28)
+                    // 6. Disclosure (switches by focused card)
+                    disclosureSection
+                        .padding(.top, 12)
+                        .padding(.horizontal, 20)
+
+                    // 7. Footer: Redeem + Restore
+                    Spacer(minLength: 20)
 
                     Button {
                         Task { await viewModel.redeemOfferCode() }
@@ -48,30 +93,26 @@ struct PaywallView: View {
                     }
                     .foregroundColor(.secondary)
                     .accessibilityIdentifier("Paywall_RedeemOfferCodeButton")
-                    .padding(.bottom, viewModel.shouldShowRestoreButton ? 8 : 24)
+                    .padding(.bottom, 8)
 
-                    if viewModel.shouldShowRestoreButton {
-                        Button(NSLocalizedString("paywall.restore_purchases", comment: "Restore Purchases")) {
-                            Task { try? await viewModel.restorePurchases() }
-                        }
-                        .font(AppFont.bodySmall())
-                        .foregroundColor(.secondary)
-                        .accessibilityIdentifier("Paywall_RestoreButton")
-                        .padding(.bottom, 24)
+                    // AC-PAYWALL-03: Restore Purchases always in footer
+                    Button(NSLocalizedString("paywall.restore_purchases", comment: "Restore Purchases")) {
+                        Task { try? await viewModel.restorePurchases() }
                     }
+                    .font(AppFont.bodySmall())
+                    .foregroundColor(.secondary)
+                    .accessibilityIdentifier("Paywall_RestoreButton")
+                    .padding(.bottom, 24)
                 }
             }
             .background(Color(.systemGroupedBackground).ignoresSafeArea())
+            .navigationTitle(NSLocalizedString("paywall.premium.nav_title", comment: "Paceriz Premium"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(NSLocalizedString("common.close", comment: "Close")) { dismiss() }
                         .foregroundColor(.primary)
                         .accessibilityIdentifier("Paywall_CloseButton")
-                }
-                ToolbarItem(placement: .principal) {
-                    Text(NSLocalizedString("paywall.title", comment: "Upgrade"))
-                        .font(AppFont.headline())
                 }
             }
             .task { await viewModel.loadOfferings() }
@@ -109,6 +150,11 @@ struct PaywallView: View {
                     Text(message)
                 }
             }
+            // AC-PAYWALL-32/33: SFSafariViewController sheet for Privacy Policy / Terms of Use links.
+            .sheet(item: $safariURL) { identifiableURL in
+                SafariView(url: identifiableURL.url)
+                    .ignoresSafeArea()
+            }
         }
     }
 
@@ -127,7 +173,7 @@ struct PaywallView: View {
                 Text(NSLocalizedString("paywall.purchase_success_title", comment: "Purchase Successful"))
                     .font(AppFont.systemScaled(size: 22, weight: .bold, design: .rounded))
 
-                if let planName = subscriptionState.currentStatus?.planType {
+                if let planName = viewModel.lastPurchasedPlanName {
                     Text(planName)
                         .font(AppFont.subheadline())
                         .foregroundColor(.secondary)
@@ -167,37 +213,15 @@ struct PaywallView: View {
         .accessibilityIdentifier("Paywall_SuccessOverlay")
     }
 
-    // MARK: - Hero
+    // MARK: - Hero (S02: state-aware — AC-04/05/06)
 
     private var heroSection: some View {
         VStack(spacing: 10) {
-            ZStack {
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [Color.orange.opacity(0.2), Color.orange.opacity(0.05)],
-                            center: .center,
-                            startRadius: 10,
-                            endRadius: 44
-                        )
-                    )
-                    .frame(width: 88, height: 88)
-                Image(systemName: "trophy.fill")
-                    .font(AppFont.systemScaled(size: 38, weight: .medium))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color(red: 1.0, green: 0.7, blue: 0.1), Color(red: 0.95, green: 0.45, blue: 0.0)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                    )
-            }
-
-            Text(headerTitle)
+            Text(heroTitle)
                 .font(AppFont.systemScaled(size: 22, weight: .bold, design: .rounded))
                 .multilineTextAlignment(.center)
 
-            Text(NSLocalizedString("paywall.subtitle", comment: "解鎖專屬訓練計畫，突破個人極限"))
+            Text(heroSubtitle)
                 .font(AppFont.body())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -207,50 +231,86 @@ struct PaywallView: View {
         .accessibilityIdentifier("Paywall_Header")
     }
 
-    private var headerTitle: String {
+    private var heroTitle: String {
         switch viewModel.trigger {
-        case .apiGated:      return NSLocalizedString("paywall.header.api_gated", comment: "")
-        case .trialExpired:  return NSLocalizedString("paywall.header.trial_expired", comment: "")
-        case .featureLocked: return NSLocalizedString("paywall.header.feature_locked", comment: "")
-        case .resubscribe:   return NSLocalizedString("paywall.header.resubscribe", comment: "")
-        case .changePlan:    return NSLocalizedString("paywall.header.change_plan", comment: "")
+        case .resubscribe:
+            return NSLocalizedString("paywall.premium.hero.resubscribe.title", comment: "")
+        case .changePlan:
+            return NSLocalizedString("paywall.premium.hero.change.title", comment: "")
+        default:
+            return NSLocalizedString("paywall.premium.hero.default.title", comment: "")
         }
     }
 
-    // MARK: - Trial Banner
-
-    private func trialBanner(daysRemaining: Int) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "clock.fill").foregroundColor(.orange)
-            Text(String(format: NSLocalizedString("paywall.trial_days_remaining", comment: ""), daysRemaining))
-                .font(AppFont.subheadline())
-                .fontWeight(.medium)
-                .foregroundColor(.orange)
+    private var heroSubtitle: String {
+        switch viewModel.trigger {
+        case .resubscribe:
+            return NSLocalizedString("paywall.premium.hero.resubscribe.subtitle", comment: "")
+        case .changePlan:
+            return NSLocalizedString("paywall.premium.hero.change.subtitle", comment: "")
+        default:
+            return NSLocalizedString("paywall.premium.hero.default.subtitle", comment: "")
         }
-        .padding(.horizontal, 16).padding(.vertical, 10)
-        .frame(maxWidth: .infinity)
-        .background(Color.orange.opacity(0.1))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    // MARK: - Features
+    // MARK: - Features comparison table (free vs premium) — AC-PAYWALL-10/11
+
+    private let freeColWidth: CGFloat = 48
+    private let premiumColWidth: CGFloat = 72
 
     private var featuresSection: some View {
         VStack(spacing: 0) {
-            FeatureRow(icon: "figure.run",
-                       text: NSLocalizedString("paywall.feature.training_plan", comment: ""))
-            Divider().padding(.leading, 38)
-            FeatureRow(icon: "chart.line.uptrend.xyaxis",
-                       text: NSLocalizedString("paywall.feature.analytics", comment: ""))
-            Divider().padding(.leading, 38)
-            FeatureRow(icon: "slider.horizontal.3",
-                       text: NSLocalizedString("paywall.feature.customization", comment: ""))
+            HStack(spacing: 0) {
+                Color.clear.frame(maxWidth: .infinity)
+                Text(NSLocalizedString("paywall.comparison.header.free", comment: "Free"))
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .frame(width: freeColWidth, alignment: .center)
+                Text("Premium")
+                    .font(AppFont.caption())
+                    .fontWeight(.bold)
+                    .foregroundColor(.orange)
+                    .lineLimit(1)
+                    .frame(width: premiumColWidth, alignment: .center)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+
+            Divider()
+            comparisonRow(NSLocalizedString("paywall.comparison.feature.run_tracking", comment: ""), free: true)
+            Divider().padding(.leading, 14)
+            comparisonRow(NSLocalizedString("paywall.comparison.feature.training_metrics", comment: ""), free: true)
+            Divider().padding(.leading, 14)
+            comparisonRow(NSLocalizedString("paywall.comparison.feature.ai_plan", comment: ""), free: false)
+            Divider().padding(.leading, 14)
+            comparisonRow(NSLocalizedString("paywall.comparison.feature.ai_advice", comment: ""), free: false)
         }
         .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .accessibilityIdentifier("Paywall_FeaturesSection")
     }
 
-    // MARK: - Offerings
+    private func comparisonRow(_ name: String, free: Bool) -> some View {
+        HStack(spacing: 0) {
+            Text(name)
+                .font(AppFont.caption())
+                .foregroundColor(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: free ? "checkmark" : "minus")
+                .font(.system(size: 12, weight: .regular))
+                .foregroundColor(Color(.tertiaryLabel))
+                .frame(width: freeColWidth, alignment: .center)
+            Image(systemName: "checkmark")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.orange)
+                .frame(width: premiumColWidth, alignment: .center)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+    }
+
+    // MARK: - Offerings (S05: Default + Early-bird — AC-12..17)
 
     @ViewBuilder
     private var offeringsSection: some View {
@@ -259,55 +319,16 @@ struct PaywallView: View {
             ProgressView().frame(maxWidth: .infinity).padding(.vertical, 48)
 
         case .loaded(let offerings):
-            VStack(spacing: 12) {
-                let allPackages = offerings.flatMap { $0.packages }
-                let yearly = allPackages.first(where: { $0.period == .yearly })
-                let monthly = allPackages.first(where: { $0.period == .monthly })
+            VStack(spacing: 24) {
+                // Early-bird section — shown first when eligible (AC-15)
+                if viewModel.shouldShowEarlyBirdSection {
+                    earlyBirdSection(offerings: offerings)
+                        .accessibilityIdentifier("Paywall_EarlyBirdSection")
+                }
 
-                if let yearly,
-                   let yearlyOfferingId = offerings.first(where: { $0.packages.contains { $0.id == yearly.id } })?.id {
-                    let offerInfo = officialOfferDisplayInfo(for: yearly)
-                    YearlyCard(package: yearly,
-                               offerInfo: offerInfo,
-                               disclosureText: renewalDisclosureText(for: yearly),
-                               actionTitle: purchaseActionTitle(for: yearly),
-                               isSelected: selectedPackageId == yearly.id,
-                               purchaseState: viewModel.purchaseState) {
-                        selectedPackageId = yearly.id
-                        Task {
-                            await viewModel.purchase(
-                                request: SubscriptionPurchaseRequest(
-                                    offeringId: yearlyOfferingId,
-                                    packageId: yearly.id,
-                                    offerType: yearly.officialOffer?.type,
-                                    offerIdentifier: yearly.officialOffer?.offerIdentifier
-                                )
-                            )
-                        }
-                    }
-                }
-                if let monthly,
-                   let monthlyOfferingId = offerings.first(where: { $0.packages.contains { $0.id == monthly.id } })?.id {
-                    let offerInfo = officialOfferDisplayInfo(for: monthly)
-                    MonthlyCard(package: monthly,
-                                offerInfo: offerInfo,
-                                disclosureText: renewalDisclosureText(for: monthly),
-                                actionTitle: purchaseActionTitle(for: monthly),
-                                isSelected: selectedPackageId == monthly.id,
-                                purchaseState: viewModel.purchaseState) {
-                        selectedPackageId = monthly.id
-                        Task {
-                            await viewModel.purchase(
-                                request: SubscriptionPurchaseRequest(
-                                    offeringId: monthlyOfferingId,
-                                    packageId: monthly.id,
-                                    offerType: monthly.officialOffer?.type,
-                                    offerIdentifier: monthly.officialOffer?.offerIdentifier
-                                )
-                            )
-                        }
-                    }
-                }
+                // Default section — always shown (AC-12)
+                defaultSection()
+                    .accessibilityIdentifier("Paywall_DefaultSection")
             }
 
         case .error:
@@ -325,6 +346,215 @@ struct PaywallView: View {
                 .foregroundColor(.secondary).frame(maxWidth: .infinity).padding(.vertical, 32)
         }
     }
+
+    // MARK: - Default Section (AC-12/13/14)
+
+    @ViewBuilder
+    private func defaultSection() -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(NSLocalizedString("paywall.premium.section.default.title", comment: ""))
+                    .font(AppFont.systemScaled(size: 16, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+                    .accessibilityIdentifier("Paywall_DefaultSectionTitle")
+
+                Text(NSLocalizedString("paywall.premium.section.default.subtitle", comment: ""))
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+            }
+
+            let defaultPackages = viewModel.defaultPackages
+            let defaultYearly = defaultPackages.first(where: { $0.package.period == .yearly })
+            let defaultMonthly = defaultPackages.first(where: { $0.package.period == .monthly })
+
+            VStack(spacing: 12) {
+                if let defaultYearly {
+                    YearlyCard(
+                        displayPackage: defaultYearly,
+                        cardSubtitle: String(
+                            format: NSLocalizedString("paywall.premium.plan.trial_format", comment: ""),
+                            "30"
+                        ),
+                        actionTitle: NSLocalizedString("paywall.premium.cta.start_trial", comment: ""),
+                        isFocused: focusedCard == .defaultYearly,
+                        purchaseState: viewModel.purchaseState,
+                        onTap: {
+                            focusedCard = .defaultYearly
+                            Task {
+                                await viewModel.purchase(
+                                    request: SubscriptionPurchaseRequest(
+                                        offeringId: Constants.IAP.defaultOfferingIdentifier,
+                                        packageId: defaultYearly.package.id,
+                                        offerType: nil,
+                                        offerIdentifier: nil
+                                    )
+                                )
+                            }
+                        }
+                    )
+                }
+                if let defaultMonthly {
+                    MonthlyCard(
+                        displayPackage: defaultMonthly,
+                        cardSubtitle: NSLocalizedString("paywall.premium.plan.no_trial_format", comment: ""),
+                        actionTitle: NSLocalizedString("paywall.premium.cta.subscribe_now", comment: ""),
+                        isFocused: focusedCard == .defaultMonthly,
+                        purchaseState: viewModel.purchaseState,
+                        onTap: {
+                            focusedCard = .defaultMonthly
+                            Task {
+                                await viewModel.purchase(
+                                    request: SubscriptionPurchaseRequest(
+                                        offeringId: Constants.IAP.defaultOfferingIdentifier,
+                                        packageId: defaultMonthly.package.id,
+                                        offerType: nil,
+                                        offerIdentifier: nil
+                                    )
+                                )
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    // MARK: - Early-Bird Section (AC-15/16/17)
+
+    @ViewBuilder
+    private func earlyBirdSection(offerings: [SubscriptionOfferingEntity]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text(NSLocalizedString("paywall.premium.section.earlybird.title", comment: ""))
+                        .font(AppFont.systemScaled(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(.primary)
+
+                    Text(NSLocalizedString("paywall.section.early_bird.badge_limited_time", comment: "Limited Time"))
+                        .font(AppFont.caption2())
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Color.orange)
+                        .clipShape(Capsule())
+                        .accessibilityIdentifier("Paywall_LimitedTimeBadge")
+                }
+
+                Text(NSLocalizedString("paywall.premium.section.earlybird.subtitle", comment: ""))
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+            }
+
+            let allPackages = viewModel.displayPackages
+            let yearly = allPackages.first(where: { $0.package.period == .yearly })
+            let monthly = allPackages.first(where: { $0.package.period == .monthly })
+            let currentOfferingId = viewModel.currentOfferingId(from: offerings)
+
+            VStack(spacing: 12) {
+                if let yearly {
+                    YearlyCard(
+                        displayPackage: yearly,
+                        cardSubtitle: String(
+                            format: NSLocalizedString("paywall.premium.plan.trial_format", comment: ""),
+                            "30"
+                        ),
+                        actionTitle: NSLocalizedString("paywall.premium.cta.start_trial", comment: ""),
+                        isFocused: focusedCard == .earlyBirdYearly,
+                        purchaseState: viewModel.purchaseState,
+                        onTap: {
+                            focusedCard = .earlyBirdYearly
+                            Task {
+                                await viewModel.purchase(
+                                    request: SubscriptionPurchaseRequest(
+                                        offeringId: currentOfferingId,
+                                        packageId: yearly.package.id,
+                                        offerType: yearly.package.officialOffer?.type,
+                                        offerIdentifier: yearly.package.officialOffer?.offerIdentifier
+                                    )
+                                )
+                            }
+                        }
+                    )
+                }
+                if let monthly {
+                    MonthlyCard(
+                        displayPackage: monthly,
+                        cardSubtitle: NSLocalizedString("paywall.premium.plan.no_trial_format", comment: ""),
+                        actionTitle: NSLocalizedString("paywall.premium.cta.subscribe_now", comment: ""),
+                        isFocused: focusedCard == .earlyBirdMonthly,
+                        purchaseState: viewModel.purchaseState,
+                        onTap: {
+                            focusedCard = .earlyBirdMonthly
+                            Task {
+                                await viewModel.purchase(
+                                    request: SubscriptionPurchaseRequest(
+                                        offeringId: currentOfferingId,
+                                        packageId: monthly.package.id,
+                                        offerType: monthly.package.officialOffer?.type,
+                                        offerIdentifier: monthly.package.officialOffer?.offerIdentifier
+                                    )
+                                )
+                            }
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    // MARK: - Disclosure (S05: switches by focused card — AC-20/21/32/33/34)
+
+    private var disclosureSection: some View {
+        let attributed = makeDisclosureAttributedString()
+        return Text(attributed)
+            .font(AppFont.caption2())
+            .foregroundColor(.secondary)
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("Paywall_Disclosure")
+            .environment(\.openURL, OpenURLAction { url in
+                safariURL = IdentifiableURL(url: url)
+                return .handled
+            })
+    }
+
+    /// Constructs the disclosure AttributedString for the current card focus state.
+    /// Yearly (not in trial): trial end date + tappable links. Otherwise: standard billing + links.
+    private func makeDisclosureAttributedString() -> AttributedString {
+        let privacyText = NSLocalizedString("paywall.disclosure.privacy_link_text", comment: "Privacy Policy")
+        let termsText = NSLocalizedString("paywall.disclosure.terms_link_text", comment: "Terms of Use")
+        let privacyURL = URL(string: Constants.URLs.privacyPolicy)!
+        let termsURL = URL(string: Constants.URLs.termsOfUse)!
+
+        let fullText: String
+        if focusedCard.isYearly && !viewModel.isInAppleIntroTrial {
+            // AC-PAYWALL-34: include precise trial end date (now + 30 days, device locale format).
+            let trialEndDate = Calendar.current.date(byAdding: .day, value: 30, to: Date()) ?? Date()
+            let dateString = DateFormatter.localizedString(from: trialEndDate, dateStyle: .long, timeStyle: .none)
+            let format = NSLocalizedString("paywall.disclosure.trial.with_links_format", comment: "")
+            fullText = String(format: format, dateString, termsText, privacyText)
+        } else {
+            let format = NSLocalizedString("paywall.disclosure.standard.with_links_format", comment: "")
+            fullText = String(format: format, termsText, privacyText)
+        }
+        return buildAttributedString(fullText: fullText, links: [(termsText, termsURL), (privacyText, privacyURL)])
+    }
+
+    /// Builds an `AttributedString` from `fullText`, attaching `.link` attributes to each
+    /// occurrence of the link display text found in `links`.
+    private func buildAttributedString(fullText: String, links: [(String, URL)]) -> AttributedString {
+        var attributed = AttributedString(fullText)
+        for (linkText, url) in links {
+            if let range = attributed.range(of: linkText) {
+                attributed[range].link = url
+                attributed[range].foregroundColor = .accentColor
+            }
+        }
+        return attributed
+    }
+
+    // MARK: - Helpers (kept for early-bird section)
 
     private func officialOfferText(for package: SubscriptionPackageEntity) -> String? {
         guard let offer = package.officialOffer else { return nil }
@@ -366,32 +596,6 @@ struct PaywallView: View {
         }
     }
 
-    private func officialOfferDisplayInfo(for package: SubscriptionPackageEntity) -> OfficialOfferDisplayInfo? {
-        guard let offer = package.officialOffer,
-              let detailText = officialOfferText(for: package) else { return nil }
-
-        let displayPriceText: String = {
-            switch offer.paymentMode {
-            case .freeTrial:
-                return NSLocalizedString("paywall.offer.free", comment: "Free")
-            case .payAsYouGo, .payUpFront:
-                return offer.localizedPrice
-            }
-        }()
-
-        let discountPercentText = officialDiscountPercent(for: package).map {
-            String(format: NSLocalizedString("paywall.offer.discount_percent", comment: "Official discount %d%%"), $0)
-        }
-
-        return OfficialOfferDisplayInfo(
-            displayPriceText: displayPriceText,
-            originalPriceText: package.localizedPrice,
-            detailText: detailText,
-            discountPercentText: discountPercentText,
-            endDateText: nil
-        )
-    }
-
     private func localizedOfferDuration(_ offer: SubscriptionOfficialOffer) -> String {
         let totalUnits = max(1, offer.periodValue) * max(1, offer.numberOfPeriods)
         switch offer.periodUnit {
@@ -406,250 +610,111 @@ struct PaywallView: View {
         }
     }
 
-    private func officialDiscountPercent(for package: SubscriptionPackageEntity) -> Int? {
-        guard let offer = package.officialOffer else { return nil }
-        if offer.paymentMode == .freeTrial { return 100 }
-
-        let baseDays = package.billingPeriodUnit.lengthInDays(value: package.billingPeriodValue)
-        let offerSinglePeriodDays = offer.periodUnit.lengthInDays(value: offer.periodValue)
-        let offerTotalPeriods = max(1, offer.numberOfPeriods)
-        let offerTotalDays = offerSinglePeriodDays * Double(offerTotalPeriods)
-
-        guard baseDays > 0, offerTotalDays > 0 else { return nil }
-
-        let regularPrice = NSDecimalNumber(decimal: package.price).doubleValue
-        let regularTotal = regularPrice * (offerTotalDays / baseDays)
-
-        let offerPrice = NSDecimalNumber(decimal: offer.price).doubleValue
-        let offerTotal: Double = {
-            switch offer.paymentMode {
-            case .payAsYouGo:
-                return offerPrice * Double(offerTotalPeriods)
-            case .payUpFront:
-                return offerPrice
-            case .freeTrial:
-                return 0
-            }
-        }()
-
-        guard regularTotal > 0, offerTotal < regularTotal else { return nil }
-        let percent = Int(((regularTotal - offerTotal) / regularTotal * 100).rounded())
-        return percent > 0 ? percent : nil
-    }
-
-    private func purchaseActionTitle(for package: SubscriptionPackageEntity) -> String {
-        switch package.officialOffer?.type {
-        case .introductory:
-            return NSLocalizedString("paywall.cta.start_offer", comment: "Start Offer")
-        case .promotional:
-            return NSLocalizedString("paywall.cta.claim_offer", comment: "Claim Offer")
-        case .winBack:
-            return NSLocalizedString("paywall.cta.return_with_offer", comment: "Return with Offer")
-        case nil:
-            return NSLocalizedString("paywall.cta.subscribe", comment: "Subscribe")
-        }
-    }
-
-    private func renewalDisclosureText(for package: SubscriptionPackageEntity) -> String {
-        let regularPriceText = String(
-            format: NSLocalizedString("paywall.disclosure.renews_at_price", comment: "Then %@ / %@."),
-            package.localizedPrice,
-            localizedBillingCycle(for: package)
-        )
-        let autoRenewText = NSLocalizedString(
-            "paywall.disclosure.auto_renews_unless_cancelled",
-            comment: "Auto-renews unless cancelled at least 24 hours before the end of the current period."
-        )
-
-        guard let offer = package.officialOffer else {
-            return [
-                regularPriceText,
-                autoRenewText
-            ].joined(separator: " ")
-        }
-
-        switch offer.type {
-        case .introductory:
-            switch offer.paymentMode {
-            case .freeTrial:
-                let trialText = String(
-                    format: NSLocalizedString("paywall.disclosure.free_trial_then", comment: "Free for %@, then %@ / %@."),
-                    localizedOfferDuration(offer),
-                    package.localizedPrice,
-                    localizedBillingCycle(for: package)
-                )
-                return [trialText, autoRenewText].joined(separator: " ")
-            case .payAsYouGo, .payUpFront:
-                let introText = String(
-                    format: NSLocalizedString("paywall.disclosure.offer_then", comment: "%@ applies for %@, then %@ / %@."),
-                    offer.localizedPrice,
-                    localizedOfferDuration(offer),
-                    package.localizedPrice,
-                    localizedBillingCycle(for: package)
-                )
-                return [introText, autoRenewText].joined(separator: " ")
-            }
-
-        case .promotional, .winBack:
-            let offerText = String(
-                format: NSLocalizedString("paywall.disclosure.offer_then", comment: "%@ applies for %@, then %@ / %@."),
-                offer.localizedPrice,
-                localizedOfferDuration(offer),
-                package.localizedPrice,
-                localizedBillingCycle(for: package)
-            )
-            return [offerText, autoRenewText].joined(separator: " ")
-        }
-    }
-
     private func localizedBillingCycle(for package: SubscriptionPackageEntity) -> String {
         let unitKey: String
         switch package.billingPeriodUnit {
-        case .day:
-            unitKey = "paywall.disclosure.cycle.day"
-        case .week:
-            unitKey = "paywall.disclosure.cycle.week"
-        case .month:
-            unitKey = "paywall.disclosure.cycle.month"
-        case .year:
-            unitKey = "paywall.disclosure.cycle.year"
+        case .day:   unitKey = "paywall.disclosure.cycle.day"
+        case .week:  unitKey = "paywall.disclosure.cycle.week"
+        case .month: unitKey = "paywall.disclosure.cycle.month"
+        case .year:  unitKey = "paywall.disclosure.cycle.year"
         }
-
         let unitText = NSLocalizedString(unitKey, comment: "billing cycle unit")
         let value = max(1, package.billingPeriodValue)
-        if value == 1 {
-            return unitText
-        }
-
+        if value == 1 { return unitText }
         return String(
             format: NSLocalizedString("paywall.disclosure.cycle.multiple", comment: "%d %@"),
             value,
             unitText
         )
     }
-
-}
-
-private struct OfficialOfferDisplayInfo {
-    let displayPriceText: String
-    let originalPriceText: String
-    let detailText: String
-    let discountPercentText: String?
-    let endDateText: String?
-}
-
-// MARK: - FeatureRow
-
-private struct FeatureRow: View {
-    let icon: String
-    let text: String
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(AppFont.systemScaled(size: 15, weight: .semibold))
-                .foregroundColor(.orange)
-                .frame(width: 22)
-            Text(text)
-                .font(AppFont.subheadline())
-                .foregroundColor(.primary)
-            Spacer()
-            Image(systemName: "checkmark")
-                .font(AppFont.systemScaled(size: 12, weight: .bold))
-                .foregroundColor(Color(red: 0.2, green: 0.7, blue: 0.35))
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 13)
-    }
 }
 
 // MARK: - YearlyCard
 
 private struct YearlyCard: View {
-    let package: SubscriptionPackageEntity
-    let offerInfo: OfficialOfferDisplayInfo?
-    let disclosureText: String
+    let displayPackage: PaywallDisplayPackage
+    let cardSubtitle: String
     let actionTitle: String
-    let isSelected: Bool
+    let isFocused: Bool
     let purchaseState: PurchaseState
     let onTap: () -> Void
 
     var body: some View {
         Button(action: onTap) {
             VStack(spacing: 0) {
-                // Best Value Banner
-                HStack {
-                    Spacer()
-                    Text("★  \(NSLocalizedString("paywall.badge.best_value", comment: "最超值"))  ★")
-                        .font(AppFont.systemScaled(size: 12, weight: .black))
-                        .foregroundColor(.white)
-                        .kerning(0.5)
-                    Spacer()
+                // Early-bird top banner
+                if displayPackage.isEarlyBird {
+                    HStack {
+                        Spacer()
+                        Text("⚡  \(NSLocalizedString("paywall.badge.early_bird", comment: "早鳥限定"))  ⚡")
+                            .font(AppFont.systemScaled(size: 12, weight: .black))
+                            .foregroundColor(.white)
+                            .kerning(0.5)
+                        Spacer()
+                    }
+                    .padding(.vertical, 7)
+                    .background(Color(red: 0.82, green: 0.32, blue: 0.0))
+                } else {
+                    // Recommended badge for default yearly
+                    HStack {
+                        Spacer()
+                        Text(NSLocalizedString("paywall.premium.plan.annual.badge_recommended", comment: "RECOMMENDED"))
+                            .font(AppFont.systemScaled(size: 11, weight: .black))
+                            .foregroundColor(.white)
+                            .kerning(0.5)
+                        Spacer()
+                    }
+                    .padding(.vertical, 6)
+                    .background(Color(red: 0.82, green: 0.32, blue: 0.0))
                 }
-                .padding(.vertical, 7)
-                .background(Color(red: 0.82, green: 0.32, blue: 0.0))
 
-                // Card Body
+                // Card body
                 HStack(alignment: .center) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(NSLocalizedString("paywall.plan.yearly", comment: "年訂閱"))
+                        Text(NSLocalizedString("paywall.premium.plan.annual.label", comment: ""))
                             .font(AppFont.systemScaled(size: 15, weight: .semibold))
                             .foregroundColor(.white.opacity(0.9))
-                        if let offerInfo {
-                            Text(
-                                String(
-                                    format: NSLocalizedString("paywall.plan.original_price", comment: "Original %@"),
-                                    offerInfo.originalPriceText
+
+                        // Early-bird line-through original price
+                        if displayPackage.isEarlyBird, let originalPrice = displayPackage.originalPriceLineThrough {
+                            Text(originalPrice)
+                                .font(AppFont.caption())
+                                .foregroundColor(.white.opacity(0.72))
+                                .strikethrough(true, color: .white.opacity(0.72))
+                                .accessibilityLabel(
+                                    String(
+                                        format: NSLocalizedString("paywall.accessibility.original_price", comment: "Original price %@"),
+                                        originalPrice
+                                    )
                                 )
-                            )
-                            .font(AppFont.caption())
-                            .foregroundColor(.white.opacity(0.72))
-                            .strikethrough()
                         }
-                        Text(offerInfo?.displayPriceText ?? package.localizedPrice)
+
+                        Text(displayPackage.displayPrice)
                             .font(AppFont.systemScaled(size: 28, weight: .bold, design: .rounded))
                             .foregroundColor(.white)
-                        if let offerInfo {
-                            Text(NSLocalizedString("paywall.offer.badge_official", comment: "Official Offer"))
-                                .font(AppFont.caption2())
-                                .fontWeight(.bold)
-                                .foregroundColor(.white.opacity(0.95))
-                            Text(offerInfo.detailText)
-                                .font(AppFont.caption2())
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white.opacity(0.9))
-                            if let discountPercentText = offerInfo.discountPercentText {
-                                Text(discountPercentText)
-                                    .font(AppFont.caption2())
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.white.opacity(0.9))
-                            }
-                            if let endDateText = offerInfo.endDateText {
-                                Text(endDateText)
-                                    .font(AppFont.caption2())
-                                    .foregroundColor(.white.opacity(0.82))
-                            }
-                        }
-                        Text(NSLocalizedString("paywall.plan.yearly_note", comment: "年繳方案說明"))
+                            .accessibilityIdentifier("Paywall_YearlyPrice")
+
+                        Text(cardSubtitle)
                             .font(AppFont.caption())
-                            .foregroundColor(.white.opacity(0.75))
-                        Text(disclosureText)
-                            .font(AppFont.caption2())
-                            .foregroundColor(.white.opacity(0.82))
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.top, 4)
-                            .accessibilityIdentifier("Paywall_YearlyDisclosure")
+                            .foregroundColor(.white.opacity(0.85))
+
+                        if displayPackage.isEarlyBird {
+                            Text(NSLocalizedString("paywall.section.early_bird.lock_forever_subtitle", comment: ""))
+                                .font(AppFont.caption())
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+                        }
                     }
                     Spacer()
-                    if case .purchasing = purchaseState, isSelected {
+                    if case .purchasing = purchaseState, isFocused {
                         ProgressView().tint(.white)
                     } else {
                         Text(actionTitle)
-                            .font(AppFont.caption())
+                            .font(AppFont.caption2())
                             .fontWeight(.bold)
                             .foregroundColor(Color(red: 0.95, green: 0.42, blue: 0.0))
                             .padding(.horizontal, 10)
-                            .padding(.vertical, 8)
+                            .padding(.vertical, 7)
                             .background(.white)
                             .clipShape(Capsule())
                     }
@@ -671,18 +736,26 @@ private struct YearlyCard: View {
         .buttonStyle(.plain)
         .accessibilityIdentifier("Paywall_YearlyOption")
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: Color.orange.opacity(0.35), radius: 10, x: 0, y: 4)
+        .shadow(
+            color: Color.orange.opacity(isFocused ? 0.5 : 0.2),
+            radius: isFocused ? 12 : 6,
+            x: 0,
+            y: 4
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.white.opacity(isFocused ? 0.6 : 0.0), lineWidth: 2)
+        )
     }
 }
 
 // MARK: - MonthlyCard
 
 private struct MonthlyCard: View {
-    let package: SubscriptionPackageEntity
-    let offerInfo: OfficialOfferDisplayInfo?
-    let disclosureText: String
+    let displayPackage: PaywallDisplayPackage
+    let cardSubtitle: String
     let actionTitle: String
-    let isSelected: Bool
+    let isFocused: Bool
     let purchaseState: PurchaseState
     let onTap: () -> Void
 
@@ -690,53 +763,48 @@ private struct MonthlyCard: View {
         Button(action: onTap) {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(NSLocalizedString("paywall.plan.monthly", comment: "月訂閱"))
-                        .font(AppFont.systemScaled(size: 15, weight: .semibold))
-                        .foregroundColor(.secondary)
-                    if let offerInfo {
-                        Text(
-                            String(
-                                format: NSLocalizedString("paywall.plan.original_price", comment: "Original %@"),
-                                offerInfo.originalPriceText
-                            )
-                        )
-                        .font(AppFont.caption())
-                        .foregroundColor(.secondary)
-                        .strikethrough()
+                    HStack(spacing: 6) {
+                        Text(NSLocalizedString("paywall.premium.plan.monthly.label", comment: ""))
+                            .font(AppFont.systemScaled(size: 15, weight: .semibold))
+                            .foregroundColor(.secondary)
+                        if displayPackage.isEarlyBird {
+                            Text(NSLocalizedString("paywall.offer.badge_early_bird", comment: "早鳥方案"))
+                                .font(AppFont.caption2())
+                                .fontWeight(.bold)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.orange)
+                                .clipShape(Capsule())
+                                .accessibilityIdentifier("Paywall_EarlyBirdBadge_Monthly")
+                        }
                     }
-                    Text(offerInfo?.displayPriceText ?? package.localizedPrice)
+
+                    // Early-bird line-through original price
+                    if displayPackage.isEarlyBird, let originalPrice = displayPackage.originalPriceLineThrough {
+                        Text(originalPrice)
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                            .strikethrough(true, color: .secondary)
+                            .accessibilityLabel(
+                                String(
+                                    format: NSLocalizedString("paywall.accessibility.original_price", comment: "Original price %@"),
+                                    originalPrice
+                                )
+                            )
+                    }
+
+                    Text(displayPackage.displayPrice)
                         .font(AppFont.systemScaled(size: 26, weight: .bold, design: .rounded))
                         .foregroundColor(.primary)
-                    if let offerInfo {
-                        Text(NSLocalizedString("paywall.offer.badge_official", comment: "Official Offer"))
-                            .font(AppFont.caption2())
-                            .fontWeight(.bold)
-                            .foregroundColor(.orange)
-                        Text(offerInfo.detailText)
-                            .font(AppFont.caption2())
-                            .fontWeight(.semibold)
-                            .foregroundColor(.secondary)
-                        if let discountPercentText = offerInfo.discountPercentText {
-                            Text(discountPercentText)
-                                .font(AppFont.caption2())
-                                .fontWeight(.semibold)
-                                .foregroundColor(.secondary)
-                        }
-                        if let endDateText = offerInfo.endDateText {
-                            Text(endDateText)
-                                .font(AppFont.caption2())
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    Text(disclosureText)
-                        .font(AppFont.caption2())
+                        .accessibilityIdentifier("Paywall_MonthlyPrice")
+
+                    Text(cardSubtitle)
+                        .font(AppFont.caption())
                         .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .padding(.top, 4)
-                        .accessibilityIdentifier("Paywall_MonthlyDisclosure")
                 }
                 Spacer()
-                if case .purchasing = purchaseState, isSelected {
+                if case .purchasing = purchaseState, isFocused {
                     ProgressView().tint(.orange)
                 } else {
                     Text(actionTitle)
@@ -755,10 +823,24 @@ private struct MonthlyCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color(.separator), lineWidth: 0.5)
+                    .stroke(isFocused ? Color.orange : Color(.separator), lineWidth: isFocused ? 2 : 0.5)
             )
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("Paywall_MonthlyOption")
+        .opacity(isFocused ? 1.0 : 0.85)
     }
+}
+
+// MARK: - SafariView
+/// UIViewControllerRepresentable wrapper for SFSafariViewController.
+/// Used by PaywallView to open Privacy Policy and Terms of Use links in-app (AC-PAYWALL-32/33).
+private struct SafariView: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        SFSafariViewController(url: url)
+    }
+
+    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
 }

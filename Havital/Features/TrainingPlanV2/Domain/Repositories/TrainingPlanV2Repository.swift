@@ -1,9 +1,18 @@
 import Foundation
+import Combine
 
 // MARK: - TrainingPlanV2 Repository Protocol
 /// 定義訓練計畫 V2 數據存取介面
 /// Domain Layer - 只定義介面，不涉及實作細節
 protocol TrainingPlanV2Repository {
+
+    // MARK: - Overview Change Publisher (for race-condition guard)
+
+    /// 每次 overview 被寫入 cache 時發送，值為最新的 PlanOverviewV2。
+    /// Presentation 層可訂閱此 publisher 來重評估依賴 planOverview 的狀態，
+    /// 避免 cold-start 期間因 cache 尚未填充而導致的 race condition。
+    /// Repository 只負責 send，絕對不 publish 到 CacheEventBus（架構紅線）。
+    var overviewDidUpdate: AnyPublisher<PlanOverviewV2, Never> { get }
 
     // MARK: - Plan Status
 

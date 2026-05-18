@@ -1,35 +1,27 @@
 import Foundation
+import Combine
 
-// MARK: - AchievementRepository
-/// Protocol for fetching achievement and badge data.
-/// Phase B: implemented as a stub returning nil until backend badge endpoint is available.
-protocol AchievementRepository: AnyObject {
-    /// Fetches the achievement summary including story badges.
-    /// - Parameter forceRefresh: If true, bypasses cache and fetches from remote.
-    /// - Returns: Summary with storySummary.recentUnlock and .nextBadge, or nil if unavailable.
-    func fetchSummary(forceRefresh: Bool) async throws -> AchievementSummary?
+protocol AchievementRepository {
+    var cachedSummary: AchievementSummary? { get }
+    var pinnedBadgeIdDidChange: AnyPublisher<String?, Never> { get }
 
-    /// Returns the best badge to display for the current user:
-    /// recentUnlock if available, otherwise nextBadge.
-    func getDisplayBadge() async -> AchievementBadgeSnapshot?
+    func fetchSummary(forceRefresh: Bool) async throws -> AchievementSummary
+    func markFeedbackSeen(feedbackId: String) async throws
+    func ackBackfill() async throws
 
-    /// Returns all badges that are currently in progress (status == .inProgress).
-    func getInProgressBadges() async -> [AchievementBadgeSnapshot]
-}
+    /// 取得用戶 pin 在 Training 首頁的徽章 ID（local-first）
+    func getPinnedBadgeId() -> String?
 
-// MARK: - Default implementations
-extension AchievementRepository {
-    func fetchSummary() async throws -> AchievementSummary? {
-        return try await fetchSummary(forceRefresh: false)
-    }
+    /// 設定 pinned 徽章（傳 nil = unpin）
+    func setPinnedBadgeId(_ badgeId: String?)
 
-    func getDisplayBadge() async -> AchievementBadgeSnapshot? {
-        guard let summary = try? await fetchSummary(forceRefresh: false) else { return nil }
-        return summary.storySummary.recentUnlock ?? summary.storySummary.nextBadge
-    }
+    /// 取得首頁應展示徽章：pinned > 演算法 fallback > 任一 in-progress > unlocked recent
+    /// 完全本地推導，不打 network；caller 必須在 fetchSummary 至少一次後呼叫
+    func getDisplayBadge() -> AchievementBadge?
 
-    func getInProgressBadges() async -> [AchievementBadgeSnapshot] {
-        guard let summary = try? await fetchSummary(forceRefresh: false) else { return [] }
-        return [summary.storySummary.nextBadge].compactMap { $0 }.filter { $0.status == .inProgress }
-    }
+    /// 取所有 status == .inProgress 徽章
+    func getInProgressBadges() -> [AchievementBadge]
+
+    /// 從快取裡找特定 badge by ID
+    func findBadge(byId badgeId: String) -> AchievementBadge?
 }

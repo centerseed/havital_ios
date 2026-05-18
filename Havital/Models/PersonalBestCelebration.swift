@@ -83,15 +83,22 @@ enum RaceDistanceV2: String, CaseIterable {
 /// 個人最佳更新記錄（用於慶祝動畫）
 struct PersonalBestUpdate: Codable, Equatable {
     let distance: String              // 距離（如 "21"）
-    let oldTime: Int                  // 舊紀錄（秒）
+    let oldTime: Int?                 // 舊紀錄（秒）；首次標準距離紀錄可為 nil
     let newTime: Int                  // 新紀錄（秒）
     let improvementSeconds: Int       // 進步秒數
     let workoutDate: String           // 訓練日期
+    let workoutId: String             // 來源 workout ID，用於 detail badge 與 dedupe
     let detectedAt: Date              // 檢測時間
+    var isFirstRecord: Bool = false   // 首次標準距離紀錄，不使用刷新/進步文案
+    var relatedUpdateCount: Int = 0    // 同一 workout 其他 PB 數量，用於多 PB 摘要
 
     /// 距離優先級（用於選擇顯示哪個慶祝動畫）
     var distancePriority: Int {
         RaceDistanceV2(rawValue: distance)?.priority ?? 0
+    }
+
+    var dedupeKey: String {
+        "\(workoutId)::\(distance)"
     }
 
     /// 格式化進步時間
@@ -114,4 +121,5 @@ struct PersonalBestCelebrationCache: Codable {
     var lastDetectedUpdate: PersonalBestUpdate?     // 最後檢測到的更新
     var hasShownCelebration: Bool = false            // 是否已顯示慶祝動畫
     var lastCheckTimestamp: Date?                    // 上次檢查時間
+    var shownWorkoutUpdateKeys: [String] = []         // 已看過的 workout PB moment keys
 }

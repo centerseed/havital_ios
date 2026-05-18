@@ -8,6 +8,7 @@ enum L10n {
         static let trainingPlan = "tab.training_plan"
         static let trainingRecord = "tab.training_record"
         static let performanceData = "tab.performance_data"
+        static let achievement = "tab.achievement"
         static let profile = "tab.profile"
     }
     
@@ -41,9 +42,12 @@ enum L10n {
         static let ok = "common.ok" // "OK"
         static let error = "common.error" // "Error"
         static let generating = "common.generating" // "Generating..."
+        static let initializing = "common.initializing" // "Initializing..."
         static let submit = "common.submit" // "Submit"
         static let later = "common.later" // "Later"
         static let reload = "common.reload" // "Reload"
+        static let add = "common.add" // "Add"
+        static let reset = "common.reset" // "Reset"
     }
     
     // MARK: - Authentication
@@ -69,6 +73,23 @@ enum L10n {
         static let verifyEmail = "auth.verify_email" // "驗證 Email"
         static let verifyFailed = "auth.verify_failed" // "驗證失敗"
         static let verifySuccess = "auth.verify_success" // "驗證成功"
+    }
+
+    // MARK: - Login
+    enum Login {
+        static let language = "login.language"
+        static let languagePickerAccessibility = "login.language_picker_accessibility"
+    }
+
+    enum ForceUpdate {
+        static let title = "force_update.title"
+        static let message = "force_update.message"
+        static let cta = "force_update.cta"
+    }
+
+    enum MessageCenter {
+        static let empty = "message_center.empty"
+        static let title = "message_center.title"
     }
     
     // MARK: - Calendar Sync Setup
@@ -141,11 +162,6 @@ enum TrainingPlan {
     static let cycleCompleted = "training_plan.cycle_completed" // "訓練週期已完成"
     static let congratulations = "training_plan.congratulations" // "恭喜您完成這個訓練週期！"
     static let loadingSchedule = "training_plan.loading_schedule" // "課表載入中..."
-}
-
-// MARK: - Workout Summary Row
-enum WorkoutSummaryRow {
-    static let calculatingHeartRate = "workout_summary_row.calculating_heart_rate" // "心率計算中..."
 }
 
 // MARK: - Next Week Planning View
@@ -501,9 +517,14 @@ enum GaitAnalysisChart {
         static let trainingStages = "training.training_stages" // "訓練階段"
         static let cannotGetStages = "training.cannot_get_stages" // "無法取得訓練階段資訊"
         static let weekNumber = "training.week_number" // "第 %d 週"
+        static let weekProgressFormat = "training.week_progress_format" // "%d / %d weeks"
         static let getWeeklyReview = "training.get_weekly_review" // "取得週回顧"
         static let paceZone = "training.pace_zone" // "配速區間"
         static let heartRateZone = "training.heart_rate_zone" // "心率區間"
+        static let phasesCount = "training.phases_count" // "%d phases"
+        static let intensityLowShort = "training.intensity.low_short" // "Low %d%%"
+        static let intensityMediumShort = "training.intensity.medium_short" // "Medium %d%%"
+        static let intensityHighShort = "training.intensity.high_short" // "High %d%%"
         
         // Loading Animation Messages
         enum LoadingAnimation {
@@ -648,6 +669,20 @@ enum GaitAnalysisChart {
         static let trainingLoad = "workout.detail.training_load"
         static let movementEfficiency = "workout.detail.movement_efficiency"
         static let effortScore = "workout.effort_score"  // iOS 18+ Effort Score
+        static let addRPE = "workout.detail.add_rpe"
+        static let clearRPE = "workout.detail.clear_rpe"
+        static let rpeEditorTitle = "workout.detail.rpe_editor_title"
+        static let rpeDescription = "workout.detail.rpe_description"
+        static let rpePickerTitle = "workout.detail.rpe_picker_title"
+        static let rpeSelectedFormat = "workout.detail.rpe_selected_format"
+        static let rpeScaleTitle = "workout.detail.rpe_scale_title"
+        static let rpeScaleLow = "workout.detail.rpe_scale_low"
+        static let rpeScaleMedium = "workout.detail.rpe_scale_medium"
+        static let rpeScaleHigh = "workout.detail.rpe_scale_high"
+        static let rpeSelectedLow = "workout.detail.rpe_selected_low"
+        static let rpeSelectedMedium = "workout.detail.rpe_selected_medium"
+        static let rpeSelectedHigh = "workout.detail.rpe_selected_high"
+        static let rpeSaveError = "workout.detail.rpe_save_error"
         
         // Heart Rate Zones
         static let recoveryZone = "workout.detail.recovery_zone"
@@ -685,6 +720,10 @@ enum GaitAnalysisChart {
         static let trainingNotesPlaceholder = "workout.detail.training_notes_placeholder"
         static let trainingNotesSaveError = "workout.detail.training_notes_save_error"
         static let trainingNotesEditorTitle = "workout.detail.training_notes_editor_title"
+    }
+
+    enum LowData {
+        static let vdotHint = "low_data.vdot_hint"
     }
     
     // MARK: - Workout Metrics
@@ -752,6 +791,10 @@ enum GaitAnalysisChart {
         static let longestRun = "performance.longest_run"
         static let fastestPace = "performance.fastest_pace"
         static let progress = "performance.progress"
+        static let unknownWorkout = "performance.unknown_workout"
+        static let performanceIndexFormat = "performance.performance_index_format"
+        static let gaitMetricPicker = "performance.gait_metric_picker"
+        static let heatAdaptation = "performance.heat_adaptation"
         
         // Achievement View specific
         static let vdotTrend = "performance.vdot_trend"
@@ -792,6 +835,8 @@ enum GaitAnalysisChart {
             static let noStatistics = "performance.vdot.no_statistics"
             static let dataPointCount = "performance.vdot.data_point_count"
             static let trend = "performance.vdot.trend"
+            static let readMore = "performance.vdot.read_more"
+            static let blogUrl = "performance.vdot.blog_url"
         }
         
         enum HRV {
@@ -805,8 +850,10 @@ enum GaitAnalysisChart {
             static let trainingLoadTitle = "performance.training_load.training_load_title"
             static let trainingLoadExplanation = "performance.training_load.training_load_explanation"
             static let fitnessIndex = "performance.training_load.fitness_index"
+            static let fitnessIndexShort = "performance.training_load.fitness_index_short"
             static let fitnessIndexExplanation = "performance.training_load.fitness_index_explanation"
             static let tsb = "performance.training_load.tsb"
+            static let tsbShort = "performance.training_load.tsb_short"
             static let tsbExplanation = "performance.training_load.tsb_explanation"
             static let insufficientData = "performance.training_load.insufficient_data"
             static let loadingTrainingLoad = "performance.training_load.loading_training_load"
@@ -1127,6 +1174,10 @@ extension L10n {
         static let deviceInfo = "feedback.device_info"
         static let successTitle = "feedback.success_title"
         static let successMessage = "feedback.success_message"
+        static let contactUs = "feedback.contact_us"
+        static let contactUsHint = "feedback.contact_us_hint"
+        static let threads = "feedback.threads"
+        static let facebook = "feedback.facebook"
 
         enum FeedbackType {
             static let issue = "feedback.type.issue"
@@ -1162,6 +1213,7 @@ extension L10n {
         static let ok = "profile_view.ok" // "OK"
         static let garminAlreadyBoundMessage = "profile_view.garmin_already_bound_message"
         static let stravaAlreadyBoundMessage = "profile_view.strava_already_bound_message"
+        static let contactFacebookPage = "profile_view.contact_facebook_page"
 
         // Developer Section
         enum Developer {
@@ -1188,6 +1240,20 @@ extension L10n {
         static let cannotEdit = "edit_schedule.cannot_edit" // "無法編輯"
         static let addSegment = "edit_schedule.add_segment" // "新增區段"
         static let totalDistance = "edit_schedule.total_distance" // "總距離"
+        static let paceLabel = "edit_schedule.pace_label" // "Pace:"
+        static let distanceLabel = "edit_schedule.distance_label" // "Distance:"
+        static let addStrengthTraining = "edit_schedule.add_strength_training" // "Add strength training"
+        static let convertToStrengthDay = "edit_schedule.convert_to_strength_day" // "Convert to strength day"
+        static let workTime = "edit_schedule.work_time" // "Work time"
+        static let selectWorkTime = "edit_schedule.select_work_time" // "Select work time"
+        static let reapplyDefaults = "edit_schedule.reapply_defaults" // "Reapply defaults"
+        static let changeToRestDay = "edit_schedule.change_to_rest_day" // "Change to rest day"
+        static let typeChangeAlert = "edit_schedule.type_change_alert" // "Changing type will clear the current exercises. Continue?"
+        static let removeStrengthTraining = "edit_schedule.remove_strength_training" // "Remove strength training"
+        static let easyTrainingSection = "edit_schedule.easy_training_section" // "Easy training"
+        static let intensityTrainingSection = "edit_schedule.intensity_training_section" // "Intensity training"
+        static let longDistanceTrainingSection = "edit_schedule.long_distance_training_section" // "Long-distance training"
+        static let otherTrainingSection = "edit_schedule.other_training_section" // "Other"
 
         // Training Types
         static let easyRun = "edit_schedule.easy_run" // "輕鬆跑"
@@ -1411,6 +1477,142 @@ extension L10n {
         enum Celebration {
             static let newRecord = "my_achievement.celebration.new_record"  // "新紀錄！"
             static let improved = "my_achievement.celebration.improved"  // "進步了"
+            static let newPB = "my_achievement.celebration.new_pb"  // "New PB"
+            static let firstRecord = "my_achievement.celebration.first_record"  // 首次標準距離紀錄
+            static let otherPBs = "my_achievement.celebration.other_pbs"  // 另有 %d 個 PB
+            static let share = "my_achievement.celebration.share"  // 分享
+            static let save = "my_achievement.celebration.save"  // 儲存
+            static let saveImage = "my_achievement.celebration.save_image"  // 存圖片
+            static let date = "my_achievement.celebration.date"  // 日期
+            static let result = "my_achievement.celebration.result"  // 成績
+            static let shareCardTitle = "my_achievement.celebration.share_card_title"  // PB 分享卡
+            static let newBadge = "my_achievement.celebration.new_badge"  // 新徽章
+            static let newPBAndBadge = "my_achievement.celebration.new_pb_and_badge"  // 新 PB + 徽章
+            static let alsoUnlocked = "my_achievement.celebration.also_unlocked"  // 同時解鎖
+        }
+    }
+
+    // MARK: - Personal Achievements
+    enum Achievements {
+        static let title = "achievements.title"
+        static let loading = "achievements.loading"
+
+        enum Story {
+            static let title = "achievements.story.title"
+            static let explanation = "achievements.story.explanation"
+            static let unlockedCount = "achievements.story.unlocked_count"
+            static let recentUnlock = "achievements.story.recent_unlock"
+            static let noRecentUnlock = "achievements.story.no_recent_unlock"
+            static let nextBadge = "achievements.story.next_badge"
+        }
+
+        enum Hero {
+            static let title = "achievements.hero.title"
+            static let explanation = "achievements.hero.explanation"
+            static let pickerTitle = "achievements.hero.picker_title"
+            static let pickerEmpty = "achievements.hero.picker_empty"
+            static let unlockedAt = "achievements.hero.unlocked_at"
+            static let noSelection = "achievements.hero.no_selection"
+        }
+
+        enum Empty {
+            static let title = "achievements.empty.title"
+            static let start = "achievements.empty.start"
+        }
+
+        enum Backfill {
+            static let ready = "achievements.backfill.ready"
+            static let count = "achievements.backfill.count"
+        }
+
+        enum PB {
+            static let title = "achievements.pb.title"
+            static let explanation = "achievements.pb.explanation"
+            static let empty = "achievements.pb.empty"
+            static let record = "achievements.pb.record"
+        }
+
+        enum Stats {
+            static let title = "achievements.stats.title"
+            static let explanation = "achievements.stats.explanation"
+            static let totalRuns = "achievements.stats.total_runs"
+            static let totalDistance = "achievements.stats.total_distance"
+            static let completedWeeks = "achievements.stats.completed_weeks"
+            static let longestRun = "achievements.stats.longest_run"
+            static let firstWorkout = "achievements.stats.first_workout"
+            static let kilometers = "achievements.stats.kilometers"
+        }
+
+        enum Insights {
+            static let title = "achievements.insights.title"
+            static let explanation = "achievements.insights.explanation"
+        }
+
+        enum Share {
+            static let title = "achievements.share.title"
+            static let explanation = "achievements.share.explanation"
+            static let item = "achievements.share.item"
+            static let action = "achievements.share.action"
+            static let previewTitle = "achievements.share.preview_title"
+            static let privacyTitle = "achievements.share.privacy_title"
+            static let privacyBody = "achievements.share.privacy_body"
+            static let publicFields = "achievements.share.public_fields"
+            static let defaultPublicFields = "achievements.share.default_public_fields"
+            static let sensitiveExcluded = "achievements.share.sensitive_excluded"
+            static let privacyFooter = "achievements.share.privacy_footer"
+            static let badgeLabel = "achievements.share.badge_label"
+            // Share card eyebrow capsule labels
+            static let tagNewPB = "achievements.share.tag_new_pb"
+            static let tagNewBadge = "achievements.share.tag_new_badge"
+            static let tagPBAndBadge = "achievements.share.tag_pb_and_badge"
+            // Reuse Task 8 key to avoid duplication
+            static let alsoUnlocked = "my_achievement.celebration.also_unlocked"
+        }
+
+        enum Badges {
+            static let title = "achievements.badges.title"
+            static let explanation = "achievements.badges.explanation"
+            static let badge = "achievements.badges.badge"
+            static let historical = "achievements.badges.historical"
+            static let progress = "achievements.badges.progress"
+            static let emptyPreview = "achievements.badges.empty_preview"
+        }
+
+        enum Detail {
+            static let title = "achievements.detail.title"
+            static let story = "achievements.detail.story"
+            static let progress = "achievements.detail.progress"
+            static let source = "achievements.detail.source"
+            static let historical = "achievements.detail.historical"
+            static let unlockedAt = "achievements.detail.unlocked_at"
+            static let criteriaUnavailable = "achievements.detail.criteria_unavailable"
+            static let criteria = "achievements.detail.criteria"
+        }
+
+        enum Status {
+            static let unlocked = "achievements.status.unlocked"
+            static let inProgress = "achievements.status.in_progress"
+            static let locked = "achievements.status.locked"
+            static let insufficientData = "achievements.status.insufficient_data"
+            static let unknown = "achievements.status.unknown"
+        }
+
+        enum Chapter {
+            static let start = "achievements.chapter.start"
+            static let build = "achievements.chapter.build"
+            static let adapt = "achievements.chapter.adapt"
+            static let prove = "achievements.chapter.prove"
+            static let identity = "achievements.chapter.identity"
+            static let unknown = "achievements.chapter.unknown"
+        }
+
+        enum Error {
+            static let loadFailed = "achievements.error.load_failed"
+        }
+
+        enum Action {
+            static let pin = "achievements.action.pin"
+            static let unpin = "achievements.action.unpin"
         }
     }
 
@@ -1450,6 +1652,33 @@ extension L10n {
     enum ShareCard {
         static let generateShareCard = "share_card.generate" // "生成分享卡"
         static let choosePhoto = "share_card.choose_photo" // "選擇照片"
+        static let title = "share_card.title" // "Share Card"
+        static let metricDistanceKm = "share_card.metric.distance_km" // "Distance (km)"
+        static let metricTotalTime = "share_card.metric.total_time" // "Total Time"
+        static let metricAvgPace = "share_card.metric.avg_pace" // "Average Pace"
+        static let tutorialTitle = "share_card.tutorial.title" // "Share Card Editing Guide"
+        static let tutorialStartEditing = "share_card.tutorial.start_editing" // "Start Editing"
+        static let tutorialEditTitleTitle = "share_card.tutorial.edit_title.title" // "Tap title or AI review"
+        static let tutorialEditTitleDescription = "share_card.tutorial.edit_title.description" // "Edit or delete text content"
+        static let tutorialAddTextTitle = "share_card.tutorial.add_text.title" // "Add text"
+        static let tutorialAddTextDescription = "share_card.tutorial.add_text.description" // "Add custom text and move it freely"
+        static let tutorialLayoutSizeTitle = "share_card.tutorial.layout_size.title" // "Layout and size"
+        static let tutorialLayoutSizeDescription = "share_card.tutorial.layout_size.description" // "Switch layout styles and image sizes"
+        static let tutorialChoosePhotoTitle = "share_card.tutorial.choose_photo.title" // "Choose photo"
+        static let tutorialChoosePhotoDescription = "share_card.tutorial.choose_photo.description" // "Change background photo and adjust its position"
+        static let editorTitle = "share_card.editor.title" // "Create Share Card"
+        static let editAchievementTitle = "share_card.editor.edit_achievement_title" // "Edit Achievement Title"
+        static let editAIReview = "share_card.editor.edit_ai_review" // "Edit AI Review"
+        static let addFreeText = "share_card.editor.add_free_text" // "Add Free Text"
+        static let editText = "share_card.editor.edit_text" // "Edit Text"
+        static let addFreeTextMessage = "share_card.editor.add_free_text_message" // "Add your own text to the share card."
+        static let editTextMessage = "share_card.editor.edit_text_message" // "Edit your text."
+        static let titlePlaceholder = "share_card.editor.title_placeholder" // "Enter title (max 50 chars)"
+        static let aiReviewPlaceholder = "share_card.editor.ai_review_placeholder" // "Enter AI review (max 80 chars)"
+        static let freeTextPlaceholder = "share_card.editor.free_text_placeholder" // "Enter text (max 30 chars)"
+        static let layout = "share_card.editor.layout" // "Layout"
+        static let size = "share_card.editor.size" // "Size"
+        static let addText = "share_card.editor.add_text" // "Add Text"
     }
 
     // MARK: - Onboarding Additional

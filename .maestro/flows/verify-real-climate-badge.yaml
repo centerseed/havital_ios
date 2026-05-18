@@ -1,0 +1,30 @@
+appId: com.havital.Havital.dev
+tags:
+  - climate
+  - smoke
+  - real-backend
+---
+# Verify climate badge appears on real dev-backend weekly plan (no fixture).
+# Conditions required to pass:
+#   - DEMO_REVIEWER_PASSCODE in .maestro/.env.local
+#   - test reviewer account already has a V2 weekly plan in dev Firestore
+#   - At least one upcoming day in the plan has high enough feels-like temp to trigger climate_meta
+
+- runFlow: ../subflows/ensure-main-training-screen.yaml
+
+# Scroll the weekly timeline to make sure all 7 days have rendered.
+- scrollUntilVisible:
+    element:
+      text: "星期日|Sunday|日曜日"
+    direction: DOWN
+    timeout: 15000
+
+- scroll
+- scroll
+
+# Expect at least one short-form heat label to appear somewhere in the visible plan.
+# Short labels come from WeekTimelineViewV2.shortLevelDisplayText.
+- assertVisible:
+    text: "輕熱|中熱|高熱|危險"
+
+- takeScreenshot: real_climate_badge_visible

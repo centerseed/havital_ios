@@ -54,10 +54,33 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
 
     @Published var yAxisRange: (min: Double, max: Double) = (60, 180)
 
+    // MARK: - AC-IOS-ANALYTICS-P1-10: session-level dedup for workout_analysis_view
+    @Published var hasTrackedAnalyticsView: Bool = false
+
+    // MARK: - PB Moment
+
+    @Published private(set) var personalBestUpdatesForWorkout: [PersonalBestUpdate] = []
+    @Published private(set) var pendingPBMomentUpdate: PersonalBestUpdate?
+    @Published private(set) var pendingCelebrationContent: CelebrationContent?
+
     // MARK: - Dependencies
 
     let workout: WorkoutV2
     private let repository: WorkoutRepository
+    private let userProfileRepository: UserProfileRepository
+    private let achievementRepository: AchievementRepository
+
+    // MARK: - Badge Celebration State
+
+    // shownBadgeIds is in-memory only — dedup does not persist across VM
+    // recreation or app restarts. A user who kills the app between viewing the
+    // celebration and re-opening the same workout detail may see the badge
+    // celebration re-trigger. Acceptable for v1; PB dedup uses
+    // PersonalBestCelebrationStorage for cross-restart suppression.
+    private var shownBadgeIds: Set<String> = []
+
+    /// Guards against infinite retry when achievementRepository.cachedSummary stays nil.
+    private var summaryFetchAttempted = false
 
     // MARK: - TaskManageable
 
@@ -67,9 +90,28 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
 
     /// ✅ Clean Architecture: 建構子注入 Repository Protocol（不依賴 Singleton）
     init(workout: WorkoutV2,
-         repository: WorkoutRepository) {
+         repository: WorkoutRepository,
+         userProfileRepository: UserProfileRepository? = nil,
+         achievementRepository: AchievementRepository? = nil) {
         self.workout = workout
         self.repository = repository
+        let container = DependencyContainer.shared
+        if let userProfileRepository {
+            self.userProfileRepository = userProfileRepository
+        } else {
+            if !container.isRegistered(UserProfileRepository.self) {
+                container.registerUserProfileModule()
+            }
+            self.userProfileRepository = container.resolve()
+        }
+        if let achievementRepository {
+            self.achievementRepository = achievementRepository
+        } else {
+            if !container.isRegistered(AchievementRepository.self) {
+                container.registerAchievementModule()
+            }
+            self.achievementRepository = container.resolve()
+        }
 
         Logger.debug("[WorkoutDetailViewModelV2] 初始化完成 - workout: \(workout.id)")
     }
@@ -205,6 +247,55 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
                 labels: [
                     "module": "WorkoutDetailViewModelV2",
                     "action": "update_training_notes",
+                    "cloud_logging": "true"
+                ],
+                jsonPayload: [
+                    "workout_id": workout.id,
+                    "error": error.localizedDescription
+                ]
+            )
+            return false
+        }
+    }
+
+    func updateRPE(_ rpe: Int?) async -> Bool {
+        if let rpe, !(1...10).contains(rpe) {
+            Logger.error("[WorkoutDetailViewModelV2] RPE 超出 1-10 範圍")
+            return false
+        }
+
+        do {
+            try await repository.updateRPE(id: workout.id, rpe: rpe)
+            await refreshWorkoutDetail()
+
+            await MainActor.run {
+                CacheEventBus.shared.publish(.dataChanged(.workouts))
+            }
+
+            Logger.firebase(
+                "RPE 更新成功",
+                level: .info,
+                labels: [
+                    "module": "WorkoutDetailViewModelV2",
+                    "action": "update_rpe"
+                ],
+                jsonPayload: [
+                    "workout_id": workout.id,
+                    "has_rpe": rpe != nil
+                ]
+            )
+
+            return true
+        } catch is CancellationError {
+            Logger.debug("[WorkoutDetailViewModelV2] RPE 更新已取消")
+            return false
+        } catch {
+            Logger.firebase(
+                "RPE 更新失敗",
+                level: .error,
+                labels: [
+                    "module": "WorkoutDetailViewModelV2",
+                    "action": "update_rpe",
                     "cloud_logging": "true"
                 ],
                 jsonPayload: [
@@ -629,6 +720,89 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     func cancelLoadingTasks() {
         cancelAllTasks()
     }
+
+    // MARK: - AC-IOS-ANALYTICS-P1-10
+
+    /// Track workout_analysis_view once per view presentation (dedup by hasTrackedAnalyticsView).
+    /// No-op when workoutDetail is nil (data not yet loaded) or already tracked.
+    func markAnalyticsViewTracked(workoutId: String, hasCoachNotes: Bool) {
+        guard !hasTrackedAnalyticsView else { return }
+        hasTrackedAnalyticsView = true
+        let analyticsService: AnalyticsService = DependencyContainer.shared.resolve()
+        analyticsService.track(.workoutAnalysisView(workoutId: workoutId, hasCoachNotes: hasCoachNotes))
+    }
+
+    @MainActor
+    func markPBMomentShown() {
+        if let update = pendingPBMomentUpdate {
+            PersonalBestCelebrationStorage.markCelebrationAsShown(for: update)
+        }
+        // Mark any badges that were part of the shown celebration so they don't repeat.
+        pendingCelebrationContent?.badges.forEach { shownBadgeIds.insert($0.badgeId) }
+        pendingPBMomentUpdate = nil
+        pendingCelebrationContent = nil
+    }
+
+    // MARK: - Celebration Content Derivation
+
+    @MainActor
+    private func deriveCelebrationContent() {
+        // If cache is absent, kick off a one-shot fetch then retry.
+        // summaryFetchAttempted guards against infinite retry on persistent failure.
+        if achievementRepository.cachedSummary == nil && !summaryFetchAttempted {
+            summaryFetchAttempted = true
+            Task { [weak self] in
+                guard let self else { return }
+                _ = try? await achievementRepository.fetchSummary(forceRefresh: false)
+                await MainActor.run {
+                    self.deriveCelebrationContent()
+                }
+            }
+            return
+        }
+
+        let pb = pendingPBMomentUpdate
+        // Badges are scoped to the currently-viewed workout, independent of which
+        // workout's PB triggered the celebration. Using pb?.workoutId here would
+        // mis-attribute badges when a stale pendingPBMomentUpdate is present.
+        let newBadges = newlyUnlockedBadges(forWorkoutId: workout.id)
+
+        if let pb, !newBadges.isEmpty {
+            pendingCelebrationContent = .pbWithBadges(pb, newBadges)
+        } else if let pb {
+            pendingCelebrationContent = .pbOnly(pb)
+        } else if !newBadges.isEmpty {
+            pendingCelebrationContent = .badgesOnly(newBadges)
+        } else {
+            pendingCelebrationContent = nil
+        }
+    }
+
+    /// Returns badges that are unlocked for `workoutId` and have not yet been shown in this VM.
+    @MainActor
+    private func newlyUnlockedBadges(forWorkoutId workoutId: String) -> [AchievementBadge] {
+        let allBadges = achievementRepository.cachedSummary?.badgeGroups.flatMap { $0.badges } ?? []
+        return allBadges.filter { badge in
+            guard badge.status == .unlocked else { return false }
+            guard !shownBadgeIds.contains(badge.badgeId) else { return false }
+            guard let sourceParams = badge.sourceRef?.summaryParams else { return false }
+            if case .string(let s) = sourceParams["workout_id"], s == workoutId {
+                return true
+            }
+            return false
+        }
+    }
+
+    func trackPBMoment(action: String, entry: String = "workout_detail") {
+        guard let update = pendingPBMomentUpdate ?? personalBestUpdatesForWorkout.first else { return }
+        let analyticsService: AnalyticsService = DependencyContainer.shared.resolve()
+        analyticsService.track(.pbMoment(
+            action: action,
+            distance: update.distance,
+            entry: entry,
+            isFirstRecord: update.isFirstRecord
+        ))
+    }
     
     @MainActor
     private func performRefreshWorkoutDetail() async {
@@ -672,6 +846,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
 
             // 更新狀態
             self.state = .loaded(response)
+            await refreshPersonalBestMomentIfNeeded()
 
             Logger.firebase(
                 "運動詳情刷新成功",
@@ -736,6 +911,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
 
             // 更新狀態
             self.state = .loaded(response)
+            await refreshPersonalBestMomentIfNeeded()
 
             Logger.firebase(
                 "運動詳情載入成功",
@@ -769,6 +945,77 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
                           level: .error,
                           labels: ["cloud_logging": "true", "component": "WorkoutDetailViewModelV2", "operation": "loadWorkoutDetail"],
                           jsonPayload: errorDetails)
+        }
+    }
+
+    @MainActor
+    private func refreshPersonalBestMomentIfNeeded() async {
+        guard state.hasData else { return }
+
+        do {
+            let oldProfile = try await userProfileRepository.getUserProfile()
+            let newProfile = try await userProfileRepository.refreshUserProfile()
+            let oldData = oldProfile.personalBestV2?["race_run"]
+            let newData = newProfile.personalBestV2?["race_run"]
+
+            let workoutUpdates = makePersonalBestUpdatesForWorkout(
+                oldData: oldData,
+                newData: newData,
+                workoutId: workout.id
+            )
+            personalBestUpdatesForWorkout = workoutUpdates
+
+            await userProfileRepository.detectPersonalBestUpdates(
+                oldData: oldData,
+                newData: newData,
+                workoutId: workout.id
+            )
+            pendingPBMomentUpdate = userProfileRepository.getPendingCelebrationUpdate()
+            deriveCelebrationContent()
+
+            if pendingPBMomentUpdate != nil {
+                trackPBMoment(action: "view")
+            }
+        } catch {
+            Logger.debug("[WorkoutDetailViewModelV2] PB Moment profile refresh skipped: \(error.localizedDescription)")
+        }
+    }
+
+    private func makePersonalBestUpdatesForWorkout(
+        oldData: [String: [PersonalBestRecordV2]]?,
+        newData: [String: [PersonalBestRecordV2]]?,
+        workoutId: String
+    ) -> [PersonalBestUpdate] {
+        guard let newData else { return [] }
+
+        var updates: [PersonalBestUpdate] = []
+        for (distance, newRecords) in newData {
+            guard let newBest = newRecords.first, newBest.workoutId == workoutId else { continue }
+
+            let oldBest = oldData?[distance]?.first
+            let improvement = max((oldBest?.completeTime ?? newBest.completeTime) - newBest.completeTime, 0)
+            updates.append(PersonalBestUpdate(
+                distance: distance,
+                oldTime: oldBest?.completeTime,
+                newTime: newBest.completeTime,
+                improvementSeconds: improvement,
+                workoutDate: newBest.workoutDate,
+                workoutId: newBest.workoutId,
+                detectedAt: Date(),
+                isFirstRecord: oldBest == nil
+            ))
+        }
+
+        let sorted = updates.sorted {
+            if $0.improvementSeconds == $1.improvementSeconds {
+                return $0.distancePriority > $1.distancePriority
+            }
+            return $0.improvementSeconds > $1.improvementSeconds
+        }
+        return sorted.map { update in
+            var mutable = update
+            mutable.relatedUpdateCount = max(sorted.count - 1, 0)
+            return mutable
         }
     }
     
@@ -818,22 +1065,10 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     }
     
     var pace: String? {
-        guard let distance = workout.distance, distance > 0 else { return nil }
-        
-        let paceSecondsPerMeter = workout.duration / distance
-        let paceInSecondsPerKm = paceSecondsPerMeter * 1000
-        let (paceSeconds, suffix) = MainActor.assumeIsolated {
-            let unit = UnitManager.shared.currentUnitSystem
-            let secs: Double
-            switch unit {
-            case .metric: secs = paceInSecondsPerKm
-            case .imperial: secs = paceInSecondsPerKm / 1.60934
-            }
-            return (secs, unit.distanceSuffix)
+        guard let paceSecondsPerKm = workout.displayPaceSecondsPerKm else { return nil }
+        return MainActor.assumeIsolated {
+            UnitManager.shared.formatPace(secondsPerKm: paceSecondsPerKm)
         }
-        let paceMinutes = Int(paceSeconds) / 60
-        let paceRemainingSeconds = Int(paceSeconds) % 60
-        return String(format: "%d:%02d/%@", paceMinutes, paceRemainingSeconds, suffix)
     }
     
     var averageHeartRate: String? {
@@ -846,6 +1081,10 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     
     var dynamicVdot: String? {
         return workout.dynamicVdot.map { String(format: "%.1f", $0) }
+    }
+
+    var currentRPE: Double? {
+        return workoutDetail?.advancedMetrics?.rpe ?? workout.advancedMetrics?.rpe
     }
     
     var trainingType: String? {

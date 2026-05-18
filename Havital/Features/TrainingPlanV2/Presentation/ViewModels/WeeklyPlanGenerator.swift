@@ -26,6 +26,9 @@ final class WeeklyPlanGenerator {
     @ObservationIgnored private let onSuccessToast: (String) -> Void
     @ObservationIgnored private let onRizoQuotaExceeded: () -> Void
     @ObservationIgnored private let onNetworkError: (Error) -> Void
+    /// S07 (AC-PAYWALL-22/26): called with isRegenerate=false for Week 2 first time,
+    /// isRegenerate=true for re-generation / adjustment operations.
+    @ObservationIgnored private let onWeeklyPlanInlineUpsellNeeded: ((_ isRegenerate: Bool) -> Void)?
 
     // MARK: - Init
 
@@ -39,7 +42,8 @@ final class WeeklyPlanGenerator {
         shouldSuppressError: @escaping (DomainError, String, (() -> Void)?) -> Bool,
         onSuccessToast: @escaping (String) -> Void,
         onRizoQuotaExceeded: @escaping () -> Void,
-        onNetworkError: @escaping (Error) -> Void
+        onNetworkError: @escaping (Error) -> Void,
+        onWeeklyPlanInlineUpsellNeeded: ((_ isRegenerate: Bool) -> Void)? = nil
     ) {
         self.repository = repository
         self.loader = loader
@@ -51,6 +55,7 @@ final class WeeklyPlanGenerator {
         self.onSuccessToast = onSuccessToast
         self.onRizoQuotaExceeded = onRizoQuotaExceeded
         self.onNetworkError = onNetworkError
+        self.onWeeklyPlanInlineUpsellNeeded = onWeeklyPlanInlineUpsellNeeded
     }
 
     // MARK: - Generate Current Week Plan
@@ -127,6 +132,15 @@ final class WeeklyPlanGenerator {
     ///   此函式不呼叫 setLoadingAnimation。
     func generateWeeklyPlanDirectly(weekNumber: Int, managedLoadingExternally: Bool = false) async {
         Logger.debug("[WeeklyPlanGenerator] 開始產生第 \(weekNumber) 週課表...")
+
+        // S07 gating for re-generation path (AC-PAYWALL-26)
+        if weekNumber >= 2,
+           SubscriptionStateManager.shared.isEnforcementEnabled,
+           !SubscriptionStateManager.shared.hasPremiumAccess {
+            onWeeklyPlanInlineUpsellNeeded?(true)
+            Logger.debug("[WeeklyPlanGenerator] ⛔ Week \(weekNumber) 直接產生被 gate：顯示 weekly_plan inline upsell card (regenerate)")
+            return
+        }
 
         if !managedLoadingExternally {
             guard await prepareForGeneration() else { return }
@@ -218,9 +232,23 @@ final class WeeklyPlanGenerator {
 
     // MARK: - Private Helpers
 
-    /// 產生課表前的前置檢查：重置 summary 動畫、啟動 loading、檢查 Rizo 配額。
-    /// Returns false if blocked by quota (caller should return early).
+    /// 產生課表前的前置檢查：
+    /// 1. AC-PAYWALL-25/26: Week 1 不擋；Week 2+ 未訂閱時顯示 inline upsell card。
+    /// 2. 重置 summary 動畫、啟動 loading、檢查 Rizo 配額。
+    /// Returns false if blocked (caller should return early).
     private func prepareForGeneration() async -> Bool {
+        // S07 gating: enforce subscription check for Week 2+ (AC-PAYWALL-25/26/27)
+        let week = loader.selectedWeek
+        if week >= 2,
+           SubscriptionStateManager.shared.isEnforcementEnabled,
+           !SubscriptionStateManager.shared.hasPremiumAccess {
+            // Inline upsell card instead of executing (AC-PAYWALL-26)
+            // isRegenerate = false: first-time Week 2 generation
+            onWeeklyPlanInlineUpsellNeeded?(false)
+            Logger.debug("[WeeklyPlanGenerator] ⛔ Week \(week) 課表被 gate：顯示 weekly_plan inline upsell card")
+            return false
+        }
+
         summary.isLoadingWeeklySummary = false
         setLoadingAnimation(true)
 

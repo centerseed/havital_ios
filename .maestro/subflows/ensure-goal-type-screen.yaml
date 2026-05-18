@@ -12,6 +12,17 @@ appId: com.havital.Havital.dev
       "-skipHealthKitAuth": true
       "-reviewerAccessPressDuration": "1.0"
 
+- extendedWaitUntil:
+    visible:
+      id: "Login_ReviewerAccessTrigger"
+    timeout: 30000
+    optional: true
+- extendedWaitUntil:
+    visible:
+      text: "UI Test Demo Access|歡迎來到|開始設定|個人最佳成績|您的週跑量|訓練目標|每日訓練|Training Goal|Training Plan"
+    timeout: 30000
+    optional: true
+
 - runFlow:
     file: reviewer-demo-login.yaml
     optional: true
@@ -56,6 +67,17 @@ appId: com.havital.Havital.dev
       "-resetOnboarding": true
       "-skipHealthKitAuth": true
       "-reviewerAccessPressDuration": "1.0"
+
+- extendedWaitUntil:
+    visible:
+      id: "Login_ReviewerAccessTrigger"
+    timeout: 30000
+    optional: true
+- extendedWaitUntil:
+    visible:
+      text: "UI Test Demo Access|歡迎來到|開始設定|個人最佳成績|您的週跑量|訓練目標|每日訓練|Training Goal|Training Plan"
+    timeout: 30000
+    optional: true
 
 - runFlow:
     file: reviewer-demo-login.yaml

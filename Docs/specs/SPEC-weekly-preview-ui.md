@@ -3,7 +3,7 @@ doc_id: SPEC-weekly-preview-ui
 title: 功能規格：週訓練骨架預覽 UI
 type: SPEC
 ontology_entity: 訓練計畫系統
-status: under_review
+status: Implemented
 version: "0.1"
 date: 2026-04-04
 supersedes: null
