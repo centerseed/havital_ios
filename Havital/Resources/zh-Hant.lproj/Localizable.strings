@@ -1180,8 +1180,7 @@
 "training_calendar.hero_caption" = "本月跑步回顧";
 "training_calendar.average_pace_short" = "平均配速";
 "training_calendar.runs_short" = "次數";
-"training_calendar.best_short" = "最佳";
-"training_calendar.best_month" = "最佳月份";
+"training_calendar.avg_distance_short" = "單次均距";
 "training_calendar.recent_trend" = "近月趨勢";
 "training_calendar.last_six_months" = "近 6 個月";
 "training_plan.today" = "今日";
