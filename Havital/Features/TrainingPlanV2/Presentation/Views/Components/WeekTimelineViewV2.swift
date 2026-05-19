@@ -154,12 +154,8 @@ struct TimelineItemViewV2: View {
                             // Today: always expanded inline — no-op on card tap
                         } else if day.type == .rest {
                             showRestDayInfo = true
-                        } else if let workout = workouts.first {
-                            // Has recorded workout → push history detail
-                            Logger.debug("[TimelineItemViewV2] onDestinationSelect .history workoutId=\(workout.id)")
-                            onDestinationSelect(.history(workout))
                         } else {
-                            // Future / planned day → push planned detail
+                            // Always push planned (課表詳情) regardless of past/future or workout existence
                             let date = viewModel.getDate(for: day.dayIndexInt)
                             Logger.debug("[TimelineItemViewV2] onDestinationSelect .planned day=\(day.dayIndexInt)")
                             onDestinationSelect(.planned(day, date))
