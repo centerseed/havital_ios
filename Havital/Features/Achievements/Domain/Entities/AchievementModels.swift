@@ -224,6 +224,7 @@ struct AchievementSummary: Equatable, Sendable {
             || lifetimeStats.hasAnyValue
             || !visibleInsights.isEmpty
             || !recentShareables.isEmpty
+            || achievementTracks.contains { !$0.badges.isEmpty }
             || badgeGroups.contains { !$0.badges.isEmpty }
     }
 

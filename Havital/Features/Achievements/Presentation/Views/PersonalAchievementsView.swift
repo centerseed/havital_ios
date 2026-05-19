@@ -117,7 +117,29 @@ struct PersonalAchievementsView: View {
     }
 
     private var allBadges: [AchievementBadge] {
-        viewModel.summary?.badgeGroups.flatMap(\.badges) ?? []
+        routeBadgeGroups.flatMap(\.badges)
+    }
+
+    private var routeBadgeGroups: [AchievementRouteBadgeGroup] {
+        guard let summary = viewModel.summary else { return [] }
+        if !summary.achievementTracks.isEmpty {
+            return summary.achievementTracks.map { track in
+                AchievementRouteBadgeGroup(
+                    id: track.trackId,
+                    titleKey: track.titleKey,
+                    fallbackTitle: track.trackId.capitalized,
+                    badges: track.badges
+                )
+            }
+        }
+        return summary.badgeGroups.map { group in
+            AchievementRouteBadgeGroup(
+                id: group.chapter.rawValue,
+                titleKey: group.titleKey,
+                fallbackTitle: group.chapter.localizedName,
+                badges: group.badges
+            )
+        }
     }
 
     private var unlockedBadges: [AchievementBadge] {
@@ -332,7 +354,8 @@ struct PersonalAchievementsView: View {
     }
 
     private var badgeLibraryEntry: some View {
-        guard let groups = viewModel.summary?.badgeGroups else {
+        let groups = routeBadgeGroups
+        guard !groups.isEmpty else {
             return AnyView(EmptyView())
         }
         let featuredBadges = groups
@@ -633,8 +656,15 @@ struct PersonalAchievementsView: View {
     }
 }
 
+private struct AchievementRouteBadgeGroup: Identifiable, Equatable {
+    let id: String
+    let titleKey: String?
+    let fallbackTitle: String
+    let badges: [AchievementBadge]
+}
+
 private struct AchievementBadgeLibraryView: View {
-    let groups: [AchievementBadgeGroup]
+    let groups: [AchievementRouteBadgeGroup]
     let onOpenBadge: (AchievementBadge) -> Void
 
     var body: some View {
@@ -644,7 +674,7 @@ private struct AchievementBadgeLibraryView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(group.titleKey?.localizedOrFallback(default: group.chapter.localizedName) ?? group.chapter.localizedName)
+                                Text(group.titleKey?.localizedOrFallback(default: group.fallbackTitle) ?? group.fallbackTitle)
                                     .font(AppFont.headline())
                                     .foregroundColor(.primary)
                                 Text("\(group.badges.filter { $0.status == .unlocked }.count) / \(group.badges.count)")

@@ -58,6 +58,7 @@ final class AchievementRepositoryImpl: AchievementRepository {
                     ),
                     storySummary: current.storySummary,
                     badgeGroups: current.badgeGroups,
+                    achievementTracks: current.achievementTracks,
                     pbOverview: current.pbOverview,
                     lifetimeStats: current.lifetimeStats,
                     insights: current.insights,
@@ -101,6 +102,9 @@ final class AchievementRepositoryImpl: AchievementRepository {
 
     private func allBadgesFromCache() -> [AchievementBadge] {
         guard let summary = cachedSummary else { return [] }
+        if !summary.achievementTracks.isEmpty {
+            return summary.achievementTracks.flatMap(\.badges)
+        }
         return summary.badgeGroups.flatMap { $0.badges }
     }
 }
