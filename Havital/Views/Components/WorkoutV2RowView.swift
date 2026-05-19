@@ -116,19 +116,19 @@ struct WorkoutV2RowView: View {
             HStack(spacing: 5) {
                 Circle()
                     .fill(typeColor)
-                    .frame(width: 5, height: 5)
+                    .frame(width: 6, height: 6)
                 Text(typeName)
-                    .font(.system(size: 11, weight: .heavy))
+                    .font(.system(size: 12.5, weight: .heavy))
                     .foregroundColor(typeColor)
             }
-            .padding(.vertical, 3)
-            .padding(.horizontal, 9)
+            .padding(.vertical, 4)
+            .padding(.horizontal, 10)
             .background(typeColor.opacity(0.12))
             .clipShape(Capsule())
 
             // Relative time
             Text(whenString)
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(.secondary)
                 .lineLimit(1)
 
@@ -144,20 +144,20 @@ struct WorkoutV2RowView: View {
     private func vdotPill(vdot: Double, delta: Double?) -> some View {
         HStack(spacing: 4) {
             Text("VDOT")
-                .font(.system(size: 9, weight: .heavy))
+                .font(.system(size: 10, weight: .heavy))
                 .foregroundColor(PacerizColor.orangeDeep.opacity(0.7))
                 .kerning(0.6)
             Text(String(format: "%.1f", vdot))
-                .font(.system(size: 11, weight: .heavy).monospacedDigit())
+                .font(.system(size: 13, weight: .heavy).monospacedDigit())
                 .foregroundColor(PacerizColor.orangeDeep)
             if let delta = delta {
                 Image(systemName: delta >= 0 ? "arrow.up.right" : "arrow.down.right")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundColor(PacerizColor.orangeDeep)
             }
         }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .padding(.horizontal, 9)
         .background(PacerizColor.orange.opacity(0.12))
         .cornerRadius(8)
     }
@@ -197,20 +197,20 @@ struct WorkoutV2RowView: View {
 
     private func metricColumn(value: String, unit: String?, label: String) -> some View {
         VStack(alignment: .trailing, spacing: 2) {
-            HStack(alignment: .lastTextBaseline, spacing: 0) {
+            HStack(alignment: .lastTextBaseline, spacing: 1) {
                 Text(value)
-                    .font(.system(size: 17, weight: .heavy).monospacedDigit())
+                    .font(.system(size: 19, weight: .heavy).monospacedDigit())
                     .foregroundColor(.primary)
                     .lineLimit(1)
                     .fixedSize()
                 if let unit = unit {
                     Text(unit)
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.system(size: 12, weight: .bold))
                         .foregroundColor(.secondary)
                 }
             }
             Text(label)
-                .font(.system(size: 10, weight: .bold))
+                .font(.system(size: 11, weight: .bold))
                 .foregroundColor(.secondary)
                 .kerning(0.4)
         }
@@ -222,10 +222,10 @@ struct WorkoutV2RowView: View {
             if planMatched == true {
                 HStack(spacing: 4) {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 10, weight: .heavy))
+                        .font(.system(size: 11, weight: .heavy))
                         .foregroundColor(PacerizColor.greenDeep)
                     Text("與課表匹配")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(.system(size: 12.5, weight: .bold))
                         .foregroundColor(PacerizColor.greenDeep)
                 }
             }

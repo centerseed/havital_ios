@@ -140,10 +140,10 @@ struct TrainingRecordView: View {
             || (option.label != "全部" && selectedFilter == option.label)
 
         return Text(option.label)
-            .font(.system(size: 13, weight: .semibold))
+            .font(.system(size: 14, weight: .semibold))
             .foregroundColor(isSelected ? .white : .primary)
-            .padding(.vertical, 7)
-            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 15)
             .background(isSelected ? PacerizColor.blue : Color(.tertiarySystemGroupedBackground))
             .clipShape(Capsule())
             .onTapGesture {
@@ -259,16 +259,16 @@ struct TrainingRecordView: View {
         HStack {
             HStack(alignment: .lastTextBaseline, spacing: 6) {
                 Text(group.title)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 15, weight: .bold))
                     .foregroundColor(.secondary)
                 Text("\(group.workouts.count) 次跑步")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 12.5, weight: .semibold))
                     .foregroundColor(Color(UIColor.tertiaryLabel))
             }
             Spacer()
             if group.totalKm > 0 {
                 Text(String(format: "共 %.1f km", group.totalKm))
-                    .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                    .font(.system(size: 13.5, weight: .semibold).monospacedDigit())
                     .foregroundColor(.secondary)
             }
         }

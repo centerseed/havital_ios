@@ -56,11 +56,24 @@ struct WeekOverviewCardV2: View {
     private var actualMedium: Int { Int(viewModel.loader.currentWeekIntensity.medium) }
     private var actualHigh: Int { Int(viewModel.loader.currentWeekIntensity.high) }
 
-    // For segmented bar denominator: use max of planned total vs actual total so bar never overflows
+    // Segmented bar denominator priority:
+    //   1) planned intensity minutes (from plan.intensityTotalMinutes) if non-zero
+    //   2) extrapolate from weekProgress: if user has done weekProgress fraction of weekly km,
+    //      assume same fraction of total weekly minutes → total = actual / weekProgress
+    //   3) fall back to actual (rare: weekProgress=0 means nothing done yet)
+    // Without (2), nil intensityTotalMinutes causes denominator = actual → bar always 100% filled,
+    // which the user reported as "一跑就 100%". Reported 2026-05-19.
     private var intensityBarTotal: Int {
         let planned = lowIntensityTarget + mediumIntensityTarget + highIntensityTarget
         let actual = actualLow + actualMedium + actualHigh
-        return max(planned, actual, 1)
+        if planned > 0 {
+            return max(planned, actual, 1)
+        }
+        if weekProgress > 0 && actual > 0 {
+            let extrapolated = Int((Double(actual) / weekProgress).rounded())
+            return max(extrapolated, actual, 1)
+        }
+        return max(actual, 1)
     }
 
     var body: some View {
