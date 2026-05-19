@@ -618,12 +618,17 @@ struct PlannedSessionDetailView: View {
         // Interval → 訓練負荷 (TSS estimated); Progression/FastFinish add end-pace pill (already added above as separate pace); others → 預估時間
         switch day.type {
         case .interval, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
-            // Pill 4: 目標心率 — prefer real HR bpm range, fall back to inferred zone label
-            if let hr = run.heartRateRange, hr.isValid, let hrText = hr.displayText {
-                pills.append(TargetZonePillData(label: "目標心率", value: hrText, unit: "bpm", isDanger: true))
-            } else {
-                let zone = inferredHRZone(for: day.type)
-                pills.append(TargetZonePillData(label: "目標心率", value: zone, unit: "", isDanger: false))
+            // Pill 4: 組間休息 — prefer recoveryDurationSeconds/Minutes/Description; fall back to 總組數
+            if let interval = run.interval {
+                if let sec = interval.recoveryDurationSeconds {
+                    pills.append(TargetZonePillData(label: "組間休息", value: "\(sec)", unit: "秒", isDanger: false))
+                } else if let min = interval.recoveryDurationMinutes {
+                    pills.append(TargetZonePillData(label: "組間休息", value: "\(min)", unit: "分", isDanger: false))
+                } else if let desc = interval.recoveryDescription {
+                    pills.append(TargetZonePillData(label: "組間休息", value: desc, unit: "", isDanger: false))
+                } else {
+                    pills.append(TargetZonePillData(label: "總組數", value: "\(interval.repeats)", unit: "組", isDanger: false))
+                }
             }
         case .progression:
             // Add end-pace pill from last segment
