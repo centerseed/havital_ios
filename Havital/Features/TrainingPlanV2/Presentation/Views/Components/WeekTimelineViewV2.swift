@@ -243,7 +243,6 @@ struct TimelineItemViewV2: View {
                 // 訓練內容區域（只在展開或今日時顯示）
                 if isExpanded || isToday {
                     VStack(alignment: .leading, spacing: 8) {
-                        Divider()
 
                         // PACERIZ REDESIGN 2026-05: 訓練詳情移至前，使用 RedesignedSegmentsView（run）或原 TrainingDetailsViewV2（非 run）
                         if day.session != nil {
@@ -1568,7 +1567,8 @@ private struct RedesignedSegmentsView: View {
 
     var body: some View {
         let segments = buildSegments()
-        if !segments.isEmpty {
+        // 單段 workout 不渲染（資訊與 card header 重複）
+        if segments.count > 1 {
             VStack(spacing: 8) {
                 ForEach(segments.indices, id: \.self) { idx in
                     let seg = segments[idx]
