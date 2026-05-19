@@ -215,6 +215,12 @@ struct ContentView: View {
                         Text(L10n.Tab.performanceData.localized)
                     }
 
+                PersonalAchievementsView()
+                    .tabItem {
+                        Image(systemName: "medal.fill")
+                        Text("成就")
+                    }
+
             }
 
             InterruptHostView(

@@ -1,6 +1,7 @@
 import SwiftUI
 import UIKit
 
+// MARK: - PersonalAchievementsView (Redesigned 2026-05)
 struct PersonalAchievementsView: View {
     @StateObject private var viewModel: PersonalAchievementsViewModel
     @State private var shareActivityItem: AchievementActivityItem?
@@ -23,7 +24,7 @@ struct PersonalAchievementsView: View {
         NavigationStack {
             content
                 .background(Color(UIColor.systemGroupedBackground))
-                .navigationTitle(L10n.Achievements.title.localized)
+                .navigationTitle("個人成就")
                 .navigationBarTitleDisplayMode(.inline)
                 .onAppear {
                     viewModel.trackTabOpenIfNeeded()
@@ -41,12 +42,6 @@ struct PersonalAchievementsView: View {
                         onTogglePin: { badgeId in viewModel.togglePin(badgeId: badgeId) }
                     )
                 }
-                // Library-tab "share a badge" entry point intentionally keeps
-                // AchievementSharePreviewSheet — AchievementShareable carries
-                // backend-shaped fields (materialType / publicFields) that don't
-                // map cleanly to CelebrationContent. Celebration flow uses
-                // CelebrationSharePreviewSheet (result-type info); this path uses
-                // the shareable-shaped variant. Two paths by design (decided 2026-05-17).
                 .sheet(item: $viewModel.selectedShareable, onDismiss: {
                     viewModel.closeShare()
                 }) { shareable in
@@ -100,433 +95,666 @@ struct PersonalAchievementsView: View {
                     backfillBanner
                 }
 
-                achievementTrackRoutes
+                // 1. Stats Banner
+                statsBannerCard
 
-                badgeHeroCard
+                // 2. Combined Hero Card (latest unlock + next target)
+                heroCard
 
-                if let pbOverview = viewModel.summary?.pbOverview, !pbOverview.records.isEmpty {
-                    pbRecordsCard(pbOverview)
-                } else {
-                    PersonalBestCardView(personalBestData: cachedPersonalBestData)
-                }
+                // 3. PB Section
+                pbSection
 
-                badgeLibraryEntry
+                // 4. Badge Collection (chapter cards)
+                badgeCollectionSection
             }
-            .padding(.vertical)
+            .padding(.top, 8)
+            .padding(.bottom, 24)
         }
     }
 
-    private var allBadges: [AchievementBadge] {
-        viewModel.summary?.badgeGroups.flatMap(\.badges) ?? []
-    }
+    // MARK: - Stats Banner
 
-    private var unlockedBadges: [AchievementBadge] {
-        allBadges
-            .filter { $0.status == .unlocked }
-            .sorted { ($0.unlockedAt ?? "") > ($1.unlockedAt ?? "") }
-    }
+    private var statsBannerCard: some View {
+        let summary = viewModel.summary
+        let unlocked = summary?.storySummary.unlockedCount ?? 0
+        let total = summary?.storySummary.totalCount ?? 0
+        let pbCount = summary?.pbOverview?.records.filter { !$0.time.isEmpty && $0.time != "-" }.count ?? 0
+        let pbTotal = 4
+        // AchievementLifetimeStats has no streak field — always show "—"
+        let streakText: String? = nil
 
-    private var selectedHeroBadge: AchievementBadge? {
-        SelectDisplayBadgeUseCase().execute(
-            pinnedBadgeId: viewModel.pinnedBadgeId,
-            allBadges: allBadges
-        )
-    }
-
-    private var badgeHeroCard: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            SectionTitleWithInfo(
-                title: L10n.Achievements.Hero.title.localized,
-                explanation: L10n.Achievements.Hero.explanation.localized
+        return HStack(spacing: 0) {
+            statsBannerColumn(
+                label: "徽章已解鎖",
+                number: "\(unlocked)",
+                suffix: "/ \(total)",
+                numberColor: .primary
             )
-
-            heroBadgeDisplay
-
-            heroPickerRow
+            Rectangle()
+                .fill(Color.gray.opacity(0.2))
+                .frame(width: 1)
+                .padding(.vertical, 12)
+            statsBannerColumn(
+                label: "PB 紀錄",
+                number: "\(pbCount)",
+                suffix: "/ \(pbTotal)",
+                numberColor: PacerizColor.blueDeep
+            )
+            Rectangle()
+                .fill(Color.gray.opacity(0.2))
+                .frame(width: 1)
+                .padding(.vertical, 12)
+            statsBannerColumn(
+                label: "連續訓練",
+                number: streakText ?? "—",
+                suffix: streakText != nil ? "天" : "",
+                numberColor: PacerizColor.orangeDeep
+            )
         }
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground))
+        .padding(.vertical, 16)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
         .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+        .shadow(color: Color.black.opacity(0.06), radius: 2, x: 0, y: 1)
         .padding(.horizontal)
-        .accessibilityIdentifier("Achievements_HeroCard")
+    }
+
+    private func statsBannerColumn(
+        label: String,
+        number: String,
+        suffix: String,
+        numberColor: Color
+    ) -> some View {
+        VStack(alignment: .center, spacing: 3) {
+            Text(label)
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(.secondary)
+            HStack(alignment: .lastTextBaseline, spacing: 3) {
+                Text(number)
+                    .font(.system(size: 28, weight: .heavy).monospacedDigit())
+                    .foregroundColor(numberColor)
+                if !suffix.isEmpty {
+                    Text(suffix)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Color(UIColor.tertiaryLabel))
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - Hero Card (Latest unlock + Next target)
+
+    private var heroCard: some View {
+        let summary = viewModel.summary
+        let latestUnlocked = latestUnlockedBadge
+        let nextTarget = nextTargetBadge
+
+        return VStack(alignment: .leading, spacing: 0) {
+            // Latest unlocked section
+            if let badge = latestUnlocked {
+                latestUnlockedSection(badge: badge)
+            }
+
+            // Dotted divider if both sections exist
+            if latestUnlocked != nil && nextTarget != nil {
+                Rectangle()
+                    .strokeBorder(style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+                    .foregroundColor(Color.primary.opacity(0.12))
+                    .frame(height: 1.5)
+                    .padding(.vertical, 14)
+            }
+
+            // Next target section
+            if let track = nextTarget {
+                nextTargetSection(track: track)
+            }
+
+            // If no data at all, show placeholder
+            if latestUnlocked == nil && nextTarget == nil {
+                noHeroDataPlaceholder
+            }
+        }
+        .padding(16)
+        .background(
+            LinearGradient(
+                colors: [
+                    PacerizColor.blue.opacity(0.12),
+                    PacerizColor.blue.opacity(0.04),
+                    Color(UIColor.secondarySystemGroupedBackground)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.06), radius: 2, x: 0, y: 1)
+        .padding(.horizontal)
     }
 
     @ViewBuilder
-    private var heroBadgeDisplay: some View {
-        if let badge = selectedHeroBadge {
-            VStack(spacing: 10) {
+    private func latestUnlockedSection(badge: AchievementBadge) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // "最新解鎖" chip
+            Text("✨ 最新解鎖")
+                .font(.system(size: 11.5, weight: .bold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(PacerizColor.blue)
+                .clipShape(Capsule())
+
+            HStack(alignment: .center, spacing: 12) {
+                // Badge hero image 120×120
                 AchievementBadgeImage(
                     assetName: AchievementBadgeArtwork.assetName(for: badge),
                     status: badge.status,
-                    size: 140
+                    size: 120
                 )
-                .accessibilityIdentifier("Achievements_HeroBadge")
+                .accessibilityIdentifier("Achievements_HeroBadge_Latest")
 
-                Text(badge.nameKey.localizedOrFallback(default: L10n.Achievements.Badges.badge.localized))
-                    .font(AppFont.title3())
-                    .foregroundColor(.primary)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(badge.nameKey.localizedOrFallback(default: badge.badgeId))
+                        .font(.system(size: 17, weight: .heavy))
+                        .foregroundColor(.primary)
+                        .lineLimit(2)
 
-                if let unlockedAt = badge.unlockedAt, let formatted = Self.formatUnlockedAt(unlockedAt) {
-                    Text(L10n.Achievements.Hero.unlockedAt.localized(with: formatted))
-                        .font(AppFont.caption())
-                        .foregroundColor(.secondary)
+                    if let unlockedAt = badge.unlockedAt,
+                       let formatted = PersonalAchievementsView.formatUnlockedAt(unlockedAt) {
+                        Text(formatted)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
+
+                    Text(badge.storyKey.localizedOrFallback(default: ""))
+                        .font(.system(size: 12))
+                        .foregroundColor(.primary)
+                        .lineSpacing(1.5)
+                        .lineLimit(4)
+                        .padding(.top, 2)
+
+                    // Share + Pin buttons
+                    HStack(spacing: 8) {
+                        Button {
+                            if let shareable = matchingShareable(for: badge) {
+                                viewModel.selectShareable(shareable, entry: "hero_card")
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.system(size: 11, weight: .bold))
+                                Text("分享")
+                                    .font(.system(size: 11.5, weight: .heavy))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 12)
+                            .frame(height: 30)
+                            .background(PacerizColor.blue)
+                            .cornerRadius(9)
+                        }
+                        .buttonStyle(.plain)
+
+                        Button {
+                            viewModel.togglePin(badgeId: badge.badgeId)
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "pin")
+                                    .font(.system(size: 11, weight: .semibold))
+                                Text("釘選")
+                                    .font(.system(size: 11.5, weight: .semibold))
+                            }
+                            .foregroundColor(.primary)
+                            .padding(.horizontal, 12)
+                            .frame(height: 30)
+                            .background(Color(UIColor.tertiarySystemGroupedBackground))
+                            .cornerRadius(9)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.top, 4)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-        } else {
-            VStack(spacing: 10) {
-                Image(systemName: "rosette")
-                    .font(.system(size: 64))
-                    .foregroundColor(.secondary)
-                Text(L10n.Achievements.Hero.noSelection.localized)
-                    .font(AppFont.bodyMedium())
-                    .foregroundColor(.secondary)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 24)
         }
     }
 
     @ViewBuilder
-    private var heroPickerRow: some View {
+    private func nextTargetSection(track: AchievementTrack) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(L10n.Achievements.Hero.pickerTitle.localized)
-                .font(AppFont.caption())
+            // "下一個目標" chip
+            Text("🎯 下一個目標")
+                .font(.system(size: 11.5, weight: .bold))
                 .foregroundColor(.secondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(Color(UIColor.tertiarySystemGroupedBackground))
+                .clipShape(Capsule())
 
-            if unlockedBadges.isEmpty {
-                Text(L10n.Achievements.Hero.pickerEmpty.localized)
-                    .font(AppFont.bodySmall())
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(unlockedBadges, id: \.badgeId) { badge in
-                            heroPickerThumbnail(badge)
-                        }
+            if let nextBadge = track.nextBadge {
+                HStack(alignment: .center, spacing: 12) {
+                    // Locked badge 56×56 grayscale + lock overlay
+                    ZStack(alignment: .bottomTrailing) {
+                        AchievementBadgeImage(
+                            assetName: AchievementBadgeArtwork.assetName(for: nextBadge),
+                            status: .locked,
+                            size: 56
+                        )
                     }
-                    .padding(.horizontal, 2)
-                    .padding(.vertical, 4)
-                }
-            }
-        }
-    }
+                    .frame(width: 56, height: 56)
+                    .accessibilityIdentifier("Achievements_HeroBadge_Next")
 
-    private func heroPickerThumbnail(_ badge: AchievementBadge) -> some View {
-        let isSelected = selectedHeroBadge?.badgeId == badge.badgeId
-        return Button {
-            viewModel.togglePin(badgeId: badge.badgeId)
-        } label: {
-            AchievementBadgeImage(
-                assetName: AchievementBadgeArtwork.assetName(for: badge),
-                status: badge.status,
-                size: 56
-            )
-            .padding(4)
-            .overlay(
-                Circle()
-                    .strokeBorder(
-                        isSelected ? PacerizTokens.color.brand.primary : Color.clear,
-                        lineWidth: 2.5
-                    )
-            )
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier(isSelected ? "Achievements_HeroPicker_Selected" : "Achievements_HeroPicker_Item")
-    }
-
-    private func pbRecordsCard(_ overview: AchievementPBOverview) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionTitleWithInfo(
-                title: overview.titleKey?.localizedOrFallback(default: L10n.Achievements.PB.title.localized) ?? L10n.Achievements.PB.title.localized,
-                explanation: L10n.Achievements.PB.explanation.localized
-            )
-
-            if overview.records.isEmpty {
-                Text(L10n.Achievements.PB.empty.localized)
-                    .font(AppFont.bodySmall())
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 64, alignment: .center)
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(sortedPBRecords(overview.records)) { record in
-                            Button {
-                                openPBDetail(for: record)
-                            } label: {
-                                pbRecordTile(record)
-                                    .frame(width: 128)
+                    // Progress info
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text(nextBadge.nameKey.localizedOrFallback(default: nextBadge.badgeId))
+                                .font(.system(size: 14, weight: .heavy))
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
+                            Spacer()
+                            if let progress = nextBadge.progress,
+                               let current = progress.current,
+                               let target = progress.target, target > 0 {
+                                let pct = Int((current / target * 100).rounded())
+                                Text("\(pct)%")
+                                    .font(.system(size: 11, weight: .heavy).monospacedDigit())
+                                    .foregroundColor(PacerizColor.blueDeep)
+                                    .padding(.horizontal, 7)
+                                    .padding(.vertical, 2)
+                                    .background(PacerizColor.blue.opacity(0.12))
+                                    .clipShape(Capsule())
                             }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("Achievements_PBTile_\(record.distance)")
+                        }
+
+                        // Progress bar 6pt height
+                        if let progress = nextBadge.progress,
+                           let current = progress.current,
+                           let target = progress.target, target > 0 {
+                            let ratio = min(current / target, 1.0)
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(Color.black.opacity(0.06))
+                                        .frame(height: 6)
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(LinearGradient(
+                                            colors: [PacerizColor.blue, PacerizColor.blueDeep],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        ))
+                                        .frame(width: geo.size.width * ratio, height: 6)
+                                }
+                            }
+                            .frame(height: 6)
+
+                            // Footer hint "X / Y unit · 還差 Z"
+                            let unitKey = progress.unitKey ?? ""
+                            let unit = unitKey.localizedOrFallback(default: unitKey)
+                            let currentInt = current.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(current))" : String(format: "%.1f", current)
+                            let targetInt = target.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(target))" : String(format: "%.1f", target)
+                            let remaining = target - current
+                            let remainingStr = remaining.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(remaining))" : String(format: "%.1f", remaining)
+                            let unitSuffix = unit.isEmpty ? "" : " \(unit)"
+
+                            Text("\(currentInt)\(unitSuffix) / \(targetInt)\(unitSuffix) · 還差 \(remainingStr)\(unitSuffix)")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                        } else {
+                            Text(track.storyKey.localizedOrFallback(default: ""))
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.secondary)
+                                .lineLimit(2)
                         }
                     }
-                    .padding(.vertical, 2)
+                    .frame(maxWidth: .infinity)
                 }
             }
         }
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground))
+    }
+
+    private var noHeroDataPlaceholder: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "rosette")
+                .font(.system(size: 48))
+                .foregroundColor(.secondary)
+            Text(L10n.Achievements.Hero.noSelection.localized)
+                .font(AppFont.bodyMedium())
+                .foregroundColor(.secondary)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+    }
+
+    // MARK: - PB Section
+
+    @ViewBuilder
+    private var pbSection: some View {
+        let pbOverview = viewModel.summary?.pbOverview
+        let records = pbOverview?.records ?? []
+        let hasRecords = !records.isEmpty
+
+        VStack(alignment: .leading, spacing: 10) {
+            // Section header: "個人最佳" + "X / 4 已創下"
+            HStack(alignment: .firstTextBaseline) {
+                Text("個人最佳")
+                    .font(.system(size: 18, weight: .heavy))
+                    .foregroundColor(.primary)
+                Spacer()
+                Text("\(records.count) / 4 已創下")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal)
+
+            // PBRecordsCard
+            pbRecordsCard(records: records)
+        }
+        .accessibilityIdentifier("Achievements_PBSection")
+    }
+
+    private func pbRecordsCard(records: [AchievementPBRecord]) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Card header
+            HStack {
+                HStack(spacing: 6) {
+                    Text("🏆")
+                        .font(.system(size: 16))
+                    Text("個人最佳紀錄")
+                        .font(.system(size: 14, weight: .bold))
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 13))
+                        .foregroundColor(Color(UIColor.tertiaryLabel))
+                }
+                Spacer()
+                Button {
+                    // PB detail — show first record's detail if available
+                    if let first = records.first {
+                        openPBDetail(for: first)
+                    }
+                } label: {
+                    HStack(spacing: 2) {
+                        Text("查看全部")
+                            .font(.system(size: 12, weight: .bold))
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12))
+                    }
+                    .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+
+            if records.isEmpty {
+                // Empty state
+                VStack(spacing: 6) {
+                    Text("🏃")
+                        .font(.system(size: 24))
+                    Text("還沒有個人最佳紀錄")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.secondary)
+                    Text("完成第一次計時跑就能創下 PB")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(Color(UIColor.tertiaryLabel))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+            } else {
+                // Grid: up to 4 columns
+                let sorted = sortedPBRecords(records)
+                let count = min(sorted.count, 4)
+                let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: count)
+
+                LazyVGrid(columns: columns, spacing: 8) {
+                    ForEach(sorted.prefix(4)) { record in
+                        Button {
+                            openPBDetail(for: record)
+                        } label: {
+                            pbRecordCell(record)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("Achievements_PBTile_\(record.distance)")
+                    }
+                }
+
+                if sorted.count > 4 {
+                    Text("+\(sorted.count - 4) 個其他距離紀錄")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(.top, 4)
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
         .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+        .shadow(color: Color.black.opacity(0.06), radius: 2, x: 0, y: 1)
         .padding(.horizontal)
         .accessibilityIdentifier("Achievements_PBCard")
     }
 
-    private func pbRecordTile(_ record: AchievementPBRecord) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            HStack(spacing: 4) {
+    private func pbRecordCell(_ record: AchievementPBRecord) -> some View {
+        ZStack(alignment: .topTrailing) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(record.displayDistance)
-                    .font(AppFont.captionSmall())
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 11.5, weight: .heavy))
+                    .foregroundColor(.primary)
                     .lineLimit(1)
-                if record.isRecent {
-                    Image(systemName: "sparkle")
-                        .font(AppFont.captionSmall())
-                        .foregroundColor(.blue)
-                }
+
+                Text(record.time)
+                    .font(.system(size: 17, weight: .heavy).monospacedDigit())
+                    .foregroundColor(PacerizColor.blueDeep)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .padding(.top, 2)
+
+                Text(record.achievedAt ?? "")
+                    .font(.system(size: 9.5, weight: .semibold))
+                    .foregroundColor(Color(UIColor.tertiaryLabel))
+                    .lineLimit(1)
+                    .padding(.top, 1)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(10)
+            .background(Color(UIColor.secondarySystemGroupedBackground))
+            .cornerRadius(10)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(
+                        record.isRecent ? PacerizColor.blue : Color.gray.opacity(0.15),
+                        lineWidth: record.isRecent ? 1.5 : 1
+                    )
+            )
 
-            Text(record.time)
-                .font(AppFont.systemScaled(size: 20, weight: .bold))
-                .foregroundColor(.blue)
-                .lineLimit(1)
-                .minimumScaleFactor(0.65)
-
-            Text(record.achievedAt ?? L10n.Achievements.PB.record.localized)
-                .font(AppFont.captionSmall())
-                .foregroundColor(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(minHeight: 70)
-        .padding(10)
-        .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(8)
-    }
-
-    private func sortedPBRecords(_ records: [AchievementPBRecord]) -> [AchievementPBRecord] {
-        records.sorted { lhs, rhs in
-            let lhsDistance = pbDistanceValue(lhs)
-            let rhsDistance = pbDistanceValue(rhs)
-            if lhsDistance == rhsDistance {
-                return lhs.displayDistance < rhs.displayDistance
+            if record.isRecent {
+                Text("NEW PB")
+                    .font(.system(size: 8.5, weight: .heavy))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 1)
+                    .background(PacerizColor.blue)
+                    .clipShape(Capsule())
+                    .offset(y: -7)
+                    .padding(.trailing, 6)
             }
-            return lhsDistance > rhsDistance
         }
     }
 
-    private func pbDistanceValue(_ record: AchievementPBRecord) -> Double {
-        distanceValue(from: record.distance) ?? distanceValue(from: record.displayDistance) ?? 0
-    }
+    // MARK: - Badge Collection (Chapter Cards)
 
-    private func distanceValue(from text: String) -> Double? {
-        let numericText = text.filter { $0.isNumber || $0 == "." }
-        return Double(numericText)
-    }
-
-    private var badgeLibraryEntry: some View {
-        guard let groups = viewModel.summary?.badgeGroups else {
+    @ViewBuilder
+    private var badgeCollectionSection: some View {
+        guard let groups = viewModel.summary?.badgeGroups, !groups.isEmpty else {
             return AnyView(EmptyView())
         }
-        let featuredBadges = groups
-            .flatMap(\.badges)
-            .filter { $0.status == .unlocked || $0.status == .inProgress }
-            .prefix(4)
-        let unlocked = groups.flatMap(\.badges).filter { $0.status == .unlocked }.count
-        let total = groups.flatMap(\.badges).count
+
+        let totalUnlocked = groups.flatMap(\.badges).filter { $0.status == .unlocked }.count
+        let totalBadges = groups.flatMap(\.badges).count
 
         return AnyView(
-            NavigationLink {
-                AchievementBadgeLibraryView(groups: groups) { badge in
-                    viewModel.openBadge(badge, entry: "badge_library")
+            VStack(alignment: .leading, spacing: 10) {
+                // Section header
+                HStack(alignment: .firstTextBaseline) {
+                    Text("徽章收藏")
+                        .font(.system(size: 18, weight: .heavy))
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Text("\(totalUnlocked)/\(totalBadges) 已解鎖")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(.secondary)
                 }
-            } label: {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(L10n.Achievements.Badges.title.localized)
-                                .font(AppFont.headline())
-                                .foregroundColor(.primary)
-                            Text(L10n.Achievements.Badges.explanation.localized)
-                                .font(AppFont.caption())
-                                .foregroundColor(.secondary)
-                                .lineLimit(2)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.secondary)
-                    }
-
-                    if !featuredBadges.isEmpty {
-                        HStack(spacing: 10) {
-                            ForEach(Array(featuredBadges), id: \.badgeId) { badge in
-                                featuredBadgePreview(badge)
-                            }
-                        }
-                    } else {
-                        Text(L10n.Achievements.Badges.emptyPreview.localized)
-                            .font(AppFont.bodySmall())
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-
-                    HStack(spacing: 8) {
-                        Text(L10n.Achievements.Badges.progress.localized(with: unlocked, total))
-                            .font(AppFont.caption())
-                            .foregroundColor(.secondary)
-                        Spacer()
-                    }
-                }
-                .padding()
-                .background(Color(.secondarySystemGroupedBackground))
-                .cornerRadius(12)
-                .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
                 .padding(.horizontal)
-                .accessibilityIdentifier("Achievements_BadgeLibraryEntry")
+
+                // Chapter cards
+                VStack(spacing: 12) {
+                    ForEach(groups) { group in
+                        chapterCard(group: group)
+                    }
+                }
             }
-            .buttonStyle(.plain)
         )
     }
 
-    @ViewBuilder
-    private var achievementTrackRoutes: some View {
-        if let tracks = viewModel.summary?.achievementTracks, !tracks.isEmpty {
-            VStack(spacing: 12) {
-                ForEach(tracks) { track in
-                    achievementTrackCard(track)
-                }
-            }
-            .padding(.horizontal)
-            .accessibilityElement(children: .contain)
-            .accessibilityIdentifier("Achievements_TrackRoutes")
-        }
-    }
+    private func chapterCard(group: AchievementBadgeGroup) -> some View {
+        let accentColor = AchievementChapterTheme.primaryColor(for: group.chapter)
+        let groupGlyph = chapterGlyph(for: group.chapter)
+        let groupTitle = group.titleKey?.localizedOrFallback(default: group.chapter.localizedName) ?? group.chapter.localizedName
+        let unlocked = group.badges.filter { $0.status == .unlocked }.count
+        let total = group.badges.count
+        let pct = total > 0 ? Double(unlocked) / Double(total) : 0
 
-    @ViewBuilder
-    private func achievementTrackCard(_ track: AchievementTrack) -> some View {
-        if let nextBadge = track.nextBadge {
-            Button {
-                viewModel.openBadge(nextBadge, entry: "achievement_track")
-            } label: {
-                achievementTrackCardContent(track, nextBadge: nextBadge)
-            }
-            .buttonStyle(.plain)
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(track.titleKey.localizedOrFallback(default: track.trackId.capitalized))
-            .accessibilityIdentifier("Achievements_TrackCard_\(track.trackId)")
-        } else {
-            achievementTrackCardContent(track, nextBadge: nil)
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel(track.titleKey.localizedOrFallback(default: track.trackId.capitalized))
-                .accessibilityIdentifier("Achievements_TrackCard_\(track.trackId)")
-        }
-    }
+        return VStack(alignment: .leading, spacing: 14) {
+            // Chapter header row
+            HStack(alignment: .center) {
+                // Glyph icon 38×38
+                Text(groupGlyph)
+                    .font(.system(size: 18))
+                    .frame(width: 38, height: 38)
+                    .background(accentColor.opacity(0.22))
+                    .cornerRadius(12)
 
-    private func achievementTrackCardContent(_ track: AchievementTrack, nextBadge: AchievementBadge?) -> some View {
-        let progress = achievementTrackProgress(track, nextBadge: nextBadge)
-        return HStack(alignment: .top, spacing: 12) {
-            if let nextBadge {
-                AchievementBadgeImage(
-                    assetName: AchievementBadgeArtwork.assetName(for: nextBadge),
-                    status: nextBadge.status,
-                    size: 62
-                )
-                .accessibilityHidden(true)
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(track.titleKey.localizedOrFallback(default: track.trackId.capitalized))
-                        .font(AppFont.headline())
-                        .foregroundColor(.primary)
-                        .lineLimit(2)
-
-                    Text(track.storyKey.localizedOrFallback(default: ""))
-                        .font(AppFont.caption())
-                        .foregroundColor(.secondary)
-                        .lineLimit(2)
-                }
-
-                if let nextBadge {
-                    Text(nextBadge.nameKey.localizedOrFallback(default: L10n.Achievements.Badges.badge.localized))
-                        .font(AppFont.bodySmall())
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(groupTitle)
+                        .font(.system(size: 15, weight: .heavy))
                         .foregroundColor(.primary)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.75)
+
+                    HStack(spacing: 6) {
+                        // Progress bar 90×4
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Color.black.opacity(0.06))
+                                .frame(width: 90, height: 4)
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(accentColor)
+                                .frame(width: 90 * pct, height: 4)
+                        }
+
+                        Text("\(unlocked) / \(total)")
+                            .font(.system(size: 11, weight: .bold).monospacedDigit())
+                            .foregroundColor(.secondary)
+                    }
                 }
+                .padding(.leading, 4)
 
-                VStack(alignment: .leading, spacing: 5) {
-                    ProgressView(value: progress.value)
-                        .progressViewStyle(.linear)
-                        .tint(nextBadge.map { AchievementChapterTheme.primaryColor(for: $0.chapter) } ?? PacerizTokens.color.brand.primary)
-                        .frame(height: 5)
+                Spacer()
 
-                    Text(L10n.Achievements.Detail.progress.localized + " · " + progress.text)
-                        .font(AppFont.captionSmall())
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
-                }
-            }
-
-            if nextBadge != nil {
-                Spacer(minLength: 4)
-                Image(systemName: "chevron.right")
-                    .font(AppFont.caption())
+                // "看更多" button
+                NavigationLink {
+                    AchievementBadgeLibraryView(groups: [group]) { badge in
+                        viewModel.openBadge(badge, entry: "chapter_card")
+                    }
+                } label: {
+                    HStack(spacing: 2) {
+                        Text("看更多")
+                            .font(.system(size: 12, weight: .bold))
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12))
+                    }
                     .foregroundColor(.secondary)
-                    .padding(.top, 4)
+                }
+                .buttonStyle(.plain)
+            }
+
+            // Horizontal scrolling badge tiles
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(group.badges) { badge in
+                        Button {
+                            viewModel.openBadge(badge, entry: "chapter_card")
+                        } label: {
+                            badgeTile(badge: badge, accentColor: accentColor)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 2)
+                .padding(.vertical, 4)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground))
+        .padding(16)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
         .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+        .shadow(color: Color.black.opacity(0.06), radius: 2, x: 0, y: 1)
+        .padding(.horizontal)
+        .accessibilityIdentifier("Achievements_ChapterCard_\(group.chapter.rawValue)")
     }
 
-    private func achievementTrackProgress(_ track: AchievementTrack, nextBadge: AchievementBadge?) -> (value: Double, text: String) {
-        let rawCurrent = nextBadge?.progress?.current ?? track.current ?? 0
-        let rawTarget = nextBadge?.progress?.target ?? 1
-        let target = rawTarget > 0 ? rawTarget : 1
-        let value = min(max(rawCurrent / target, 0), 1)
-        let unitKey = nextBadge?.progress?.unitKey
-        let currentText = achievementProgressValueText(rawCurrent, unitKey: unitKey)
-        let targetText = achievementProgressValueText(target, unitKey: unitKey)
-        return (
-            value: value,
-            text: "achievement.progress.current_target".localized(with: currentText, targetText)
-        )
-    }
+    private func badgeTile(badge: AchievementBadge, accentColor: Color) -> some View {
+        let isUnlocked = badge.status == .unlocked
+        let tileSize: CGFloat = 84
+        let cornerRadius: CGFloat = tileSize * 0.22
 
-    private func achievementProgressValueText(_ value: Double, unitKey: String?) -> String {
-        let formatted = value.truncatingRemainder(dividingBy: 1) == 0 ? String(Int(value)) : String(format: "%.1f", value)
-        guard let unitKey else { return formatted }
-        let unit = unitKey.localizedOrFallback(default: "")
-        return unit.isEmpty ? formatted : "\(formatted) \(unit)"
-    }
+        return VStack(spacing: 5) {
+            ZStack(alignment: .bottomTrailing) {
+                // Badge image
+                AchievementBadgeImage(
+                    assetName: AchievementBadgeArtwork.assetName(for: badge),
+                    status: badge.status,
+                    size: tileSize
+                )
+                .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
 
-    private func featuredBadgePreview(_ badge: AchievementBadge) -> some View {
-        VStack(spacing: 6) {
-            AchievementBadgeImage(
-                assetName: AchievementBadgeArtwork.assetName(for: badge),
-                status: badge.status,
-                size: 54
+                // Green checkmark for unlocked
+                if isUnlocked {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 9, weight: .black))
+                        .foregroundColor(.white)
+                        .frame(width: 20, height: 20)
+                        .background(Color.green)
+                        .clipShape(Circle())
+                        .overlay(Circle().strokeBorder(Color(UIColor.secondarySystemGroupedBackground), lineWidth: 1.5))
+                        .offset(x: 4, y: 4)
+                }
+            }
+            .shadow(
+                color: isUnlocked ? accentColor.opacity(0.25) : Color.black.opacity(0.05),
+                radius: isUnlocked ? 8 : 2,
+                x: 0, y: isUnlocked ? 4 : 1
             )
-            Text(badge.nameKey.localizedOrFallback(default: L10n.Achievements.Badges.badge.localized))
-                .font(AppFont.captionSmall())
-                .foregroundColor(.primary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+
+            VStack(spacing: 1) {
+                Text(badge.nameKey.localizedOrFallback(default: badge.badgeId))
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(isUnlocked ? .primary : Color(UIColor.tertiaryLabel))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: tileSize + 14)
+
+                if isUnlocked, let unlockedAt = badge.unlockedAt,
+                   let formatted = PersonalAchievementsView.formatUnlockedAt(unlockedAt) {
+                    Text(formatted)
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .foregroundColor(Color(UIColor.tertiaryLabel))
+                } else if !isUnlocked {
+                    Text(hintText(for: badge))
+                        .font(.system(size: 10.5, weight: .semibold))
+                        .foregroundColor(Color(UIColor.tertiaryLabel))
+                }
+            }
         }
-        .frame(maxWidth: .infinity)
+        .frame(minWidth: tileSize + 8)
     }
+
+    // MARK: - Backfill Banner
 
     private var backfillBanner: some View {
         HStack(alignment: .top, spacing: 12) {
@@ -555,6 +783,8 @@ struct PersonalAchievementsView: View {
         .cornerRadius(10)
         .padding(.horizontal)
     }
+
+    // MARK: - Empty / Error
 
     private var emptyView: some View {
         VStack(spacing: 14) {
@@ -597,6 +827,70 @@ struct PersonalAchievementsView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    // MARK: - Helpers
+
+    private var allBadges: [AchievementBadge] {
+        viewModel.summary?.badgeGroups.flatMap(\.badges) ?? []
+    }
+
+    private var latestUnlockedBadge: AchievementBadge? {
+        // Prefer pinned badge if available
+        if let pinnedId = viewModel.pinnedBadgeId,
+           let pinned = allBadges.first(where: { $0.badgeId == pinnedId && $0.status == .unlocked }) {
+            return pinned
+        }
+        // Otherwise most recently unlocked
+        return allBadges
+            .filter { $0.status == .unlocked }
+            .sorted { ($0.unlockedAt ?? "") > ($1.unlockedAt ?? "") }
+            .first
+    }
+
+    private var nextTargetBadge: AchievementTrack? {
+        // First track that has a nextBadge (in progress or locked with progress)
+        viewModel.summary?.achievementTracks.first { $0.nextBadge != nil }
+    }
+
+    private func hintText(for badge: AchievementBadge) -> String {
+        if badge.status == .insufficientData {
+            return "資料不足"
+        }
+        if let progress = badge.progress, let summaryKey = progress.summaryKey {
+            return summaryKey.achievementLocalized(params: progress.summaryParams)
+        }
+        return "尚未解鎖"
+    }
+
+    private func chapterGlyph(for chapter: AchievementChapter) -> String {
+        switch chapter {
+        case .start:    return "🌱"
+        case .build:    return "📈"
+        case .adapt:    return "🔥"
+        case .prove:    return "🏆"
+        case .identity: return "⭐"
+        case .unknown:  return "🎖"
+        }
+    }
+
+    private func sortedPBRecords(_ records: [AchievementPBRecord]) -> [AchievementPBRecord] {
+        let weight: [String: Int] = ["42": 6, "21": 5, "10": 4, "5": 3, "3": 2, "1": 1]
+        return records.sorted { lhs, rhs in
+            let lv = pbDistanceValue(lhs)
+            let rv = pbDistanceValue(rhs)
+            if lv == rv { return lhs.displayDistance < rhs.displayDistance }
+            return lv > rv
+        }
+    }
+
+    private func pbDistanceValue(_ record: AchievementPBRecord) -> Double {
+        distanceValue(from: record.distance) ?? distanceValue(from: record.displayDistance) ?? 0
+    }
+
+    private func distanceValue(from text: String) -> Double? {
+        let numericText = text.filter { $0.isNumber || $0 == "." }
+        return Double(numericText)
+    }
+
     private func openPBDetail(for record: AchievementPBRecord) {
         guard let distance = RaceDistanceV2(rawValue: record.distance) else { return }
         let records = cachedPersonalBestData?[distance.rawValue] ?? []
@@ -622,7 +916,6 @@ struct PersonalAchievementsView: View {
         return f
     }()
 
-    /// 把 `unlockedAt`（ISO8601 UTC 或 yyyy-MM-dd）格式化為使用者時區的短日期。
     static func formatUnlockedAt(_ raw: String) -> String? {
         let trimmed = raw.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return nil }
@@ -633,6 +926,7 @@ struct PersonalAchievementsView: View {
     }
 }
 
+// MARK: - AchievementBadgeLibraryView (kept as internal navigation destination)
 private struct AchievementBadgeLibraryView: View {
     let groups: [AchievementBadgeGroup]
     let onOpenBadge: (AchievementBadge) -> Void
@@ -755,12 +1049,16 @@ private struct AchievementBadgeTile: View {
     }
 }
 
+// MARK: - String helpers
+
 private extension String {
     func localizedOrFallback(default fallback: String) -> String {
         let value = NSLocalizedString(self, comment: "")
         return value == self ? fallback : value
     }
 }
+
+// MARK: - Private types
 
 private struct AchievementActivityItem: Identifiable {
     let id = UUID()
