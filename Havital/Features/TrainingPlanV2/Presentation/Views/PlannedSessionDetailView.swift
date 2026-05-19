@@ -20,6 +20,7 @@ struct PlannedSessionDetailView: View {
                 coachIntentCard.padding(.horizontal, 16).padding(.top, 12)
                 structureSectionIfNeeded.padding(.horizontal, 16).padding(.top, 12)
                 targetZonesSection.padding(.horizontal, 16).padding(.top, 12)
+                tipSection.padding(.horizontal, 16).padding(.top, 12)
                 supplementarySection.padding(.horizontal, 16).padding(.top, 12)
                 climateSection.padding(.horizontal, 16).padding(.top, 12)
                 secondaryButtons.padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 8)
@@ -79,13 +80,13 @@ struct PlannedSessionDetailView: View {
             "easy":           ("EASY · Z2",            "輕鬆跑"),
             "easyRun":        ("EASY · Z2",            "輕鬆跑"),
             "recovery_run":   ("EASY · Z2",            "恢復跑"),
-            "lsd":            ("LONG · Z2-Z3",         "長距離"),
+            "lsd":            ("LONG · Z2-Z3",         "長距離輕鬆跑"),
             "interval":       ("INTERVAL · Z4",        "間歇訓練"),
             "tempo":          ("TEMPO · Z3-Z4",        "節奏跑"),
             "threshold":      ("THRESHOLD · Z4",       "閾值跑"),
             "progression":    ("PROGRESSION · Z2 → Z4","漸速跑"),
             "fastFinish":     ("FAST FINISH · Z2 + Z3","快速完成跑"),
-            "longRun":        ("LONG · Z2-Z3",         "長距離跑"),
+            "longRun":        ("LONG · Z2-Z3",         "長距離輕鬆跑"),
             "race":           ("RACE · Z5",            "比賽"),
             "racePace":       ("RACE PACE · Z4-Z5",    "比賽配速跑"),
             "combination":    ("COMBINATION",          "組合訓練"),
@@ -311,7 +312,10 @@ struct PlannedSessionDetailView: View {
 
     @ViewBuilder
     private var structureSectionIfNeeded: some View {
-        if let segments = buildDetailSegments(), !segments.isEmpty {
+        // Detail page always shows segments — even single-segment runs provide useful
+        // label + HR range info (Fix 4: do NOT hide single segment here, unlike DayCard).
+        let segments = buildDetailSegmentsForDetailPage()
+        if !segments.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 sectionHeader(title: "訓練結構", subtitle: "\(segments.count) 段 · \(totalMinutes) 分鐘")
                 VStack(spacing: 8) {
@@ -356,6 +360,55 @@ struct PlannedSessionDetailView: View {
     private var climateSection: some View {
         if climateAdjustmentEnabled, let climateMeta = day.effectiveClimateMeta {
             ClimateTipCard(meta: climateMeta, accentColor: typeAccentColor)
+        }
+    }
+
+    // MARK: - Tip Row (per variant)
+
+    // Tip data per run type, derived from design spec (workout-detail.jsx).
+    private struct WorkoutTip {
+        let icon: String
+        let text: String
+    }
+
+    private var workoutTip: WorkoutTip? {
+        let runType = day.session.flatMap { session -> String? in
+            if case .run(let r) = session.primary { return r.runType }
+            return nil
+        } ?? day.type.rawValue
+
+        switch runType {
+        case "lsd", "long_slow_distance", "longRun", "long_run":
+            return WorkoutTip(icon: "💧", text: NSLocalizedString("tip.lsd", value: "預計超過 60 分鐘，建議攜帶水分與能量補給", comment: "LSD tip"))
+        case "easy", "easyRun", "easy_run":
+            return nil  // easy runs typically no extra tip (climate section handles heat)
+        case "interval", "shortInterval", "longInterval", "norwegian4x4", "yasso800", "strides", "hillRepeats":
+            return WorkoutTip(icon: "⚠️", text: NSLocalizedString("tip.interval", value: "高強度日後請安排足夠睡眠與蛋白質補充", comment: "Interval tip"))
+        case "progression":
+            return WorkoutTip(icon: "🌫️", text: NSLocalizedString("tip.progression", value: "前三分之一不要起太快，預留體力給最後一段", comment: "Progression tip"))
+        case "fastFinish":
+            return WorkoutTip(icon: "🔋", text: NSLocalizedString("tip.fastFinish", value: "末段交接前補水補給 · 加速時保持上半身放鬆", comment: "Fast finish tip"))
+        default:
+            // Fallback by DayType
+            switch day.type {
+            case .lsd, .longRun:
+                return WorkoutTip(icon: "💧", text: NSLocalizedString("tip.lsd", value: "預計超過 60 分鐘，建議攜帶水分與能量補給", comment: "LSD tip"))
+            case .interval, .shortInterval, .longInterval, .norwegian4x4, .yasso800, .strides, .hillRepeats:
+                return WorkoutTip(icon: "⚠️", text: NSLocalizedString("tip.interval", value: "高強度日後請安排足夠睡眠與蛋白質補充", comment: "Interval tip"))
+            case .progression:
+                return WorkoutTip(icon: "🌫️", text: NSLocalizedString("tip.progression", value: "前三分之一不要起太快，預留體力給最後一段", comment: "Progression tip"))
+            case .fastFinish:
+                return WorkoutTip(icon: "🔋", text: NSLocalizedString("tip.fastFinish", value: "末段交接前補水補給 · 加速時保持上半身放鬆", comment: "Fast finish tip"))
+            default:
+                return nil
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var tipSection: some View {
+        if let tip = workoutTip {
+            WorkoutTipBox(icon: tip.icon, text: tip.text, accentColor: typeAccentColor)
         }
     }
 
@@ -425,6 +478,46 @@ struct PlannedSessionDetailView: View {
         let reps: Int?
         let rest: String?
         let isMain: Bool
+    }
+
+    // Detail-page variant: always shows segments (Fix 4). Single-segment runs show 1 row.
+    // DayCard (WeekTimelineViewV2) still uses buildDetailSegments() with the single-segment guard.
+    private func buildDetailSegmentsForDetailPage() -> [DetailSegmentData] {
+        guard let session = day.session,
+              case .run(let run) = session.primary else { return [] }
+
+        // Multi-segment / interval: delegate to existing builder (removes the single-seg guard path)
+        if run.interval != nil || (run.segments?.count ?? 0) > 1 {
+            return buildDetailSegments() ?? []
+        }
+
+        // Single-segment (or no segments array): synthesize a single row from the run itself
+        let segLabel: String
+        switch day.type {
+        case .lsd, .longRun:
+            segLabel = "長距離有氧"
+        case .easy, .easyRun:
+            segLabel = "輕鬆有氧"
+        case .recovery_run:
+            segLabel = "恢復慢跑"
+        case .tempo:
+            segLabel = "節奏跑段"
+        case .threshold:
+            segLabel = "閾值段"
+        default:
+            segLabel = workoutTypeName
+        }
+        let hrText: String? = run.heartRateRange?.displayText
+        return [DetailSegmentData(
+            index: 1,
+            label: segLabel,
+            distance: distanceString(run) + " " + distanceUnit(run),
+            pace: run.effectivePace,
+            hr: hrText,
+            reps: nil,
+            rest: nil,
+            isMain: true
+        )]
     }
 
     private func buildDetailSegments() -> [DetailSegmentData]? {
@@ -561,16 +654,42 @@ struct PlannedSessionDetailView: View {
             pills.append(TargetZonePillData(label: "目標心率", value: hrText, unit: "bpm", isDanger: true))
         } else {
             let zone = inferredHRZone(for: day.type)
-            pills.append(TargetZonePillData(label: "心率區間", value: zone, unit: "", isDanger: false))
+            pills.append(TargetZonePillData(label: "目標心率", value: zone, unit: "", isDanger: false))
         }
 
         // Pill 3: RPE — prefer explicit targetIntensity, fall back to inferred
         let rpeValue = run.targetIntensity ?? inferredRPE(for: day.type)
-        pills.append(TargetZonePillData(label: "體感 RPE", value: rpeValue, unit: "/10", isDanger: false))
+        pills.append(TargetZonePillData(label: "體感", value: rpeValue, unit: "/10", isDanger: false))
 
-        // Pill 4: estimated duration (always available for run activities)
-        if let mins = run.durationMinutes {
-            pills.append(TargetZonePillData(label: "預估時間", value: "\(mins)", unit: "分", isDanger: false))
+        // Pill 4: varies by type
+        // Interval → 訓練負荷 (TSS estimated); Progression/FastFinish add end-pace pill (already added above as separate pace); others → 預估時間
+        switch day.type {
+        case .interval, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
+            // Estimated TSS for interval: roughly repeats × workDistance-based calc, show as placeholder if no data
+            if let interval = run.interval {
+                let estimatedTSS = interval.repeats * 17  // rough: each 800m rep ~17 TSS
+                pills.append(TargetZonePillData(label: "訓練負荷", value: "\(estimatedTSS)", unit: "TSS", isDanger: false))
+            } else if let mins = run.durationMinutes {
+                pills.append(TargetZonePillData(label: "預估時間", value: "\(mins)", unit: "分", isDanger: false))
+            }
+        case .progression:
+            // Add end-pace pill from last segment
+            if let segs = run.segments, segs.count > 1, let lastPace = segs.last?.effectivePace {
+                pills.append(TargetZonePillData(label: "結束配速", value: lastPace, unit: "/km", isDanger: false))
+            } else if let mins = run.durationMinutes {
+                pills.append(TargetZonePillData(label: "預估時間", value: "\(mins)", unit: "分", isDanger: false))
+            }
+        case .fastFinish:
+            // Add tempo/fast pace from last segment
+            if let segs = run.segments, segs.count > 1, let lastPace = segs.last?.effectivePace {
+                pills.append(TargetZonePillData(label: "節奏配速", value: lastPace, unit: "/km", isDanger: false))
+            } else if let mins = run.durationMinutes {
+                pills.append(TargetZonePillData(label: "預估時間", value: "\(mins)", unit: "分", isDanger: false))
+            }
+        default:
+            if let mins = run.durationMinutes {
+                pills.append(TargetZonePillData(label: "預估時間", value: "\(mins)", unit: "分", isDanger: false))
+            }
         }
 
         return pills
@@ -752,6 +871,37 @@ private struct ClimateTipCard: View {
             Spacer()
         }
         .padding(12).background(Color(UIColor.secondarySystemGroupedBackground)).cornerRadius(PacerizRadius.card)
+    }
+}
+
+// MARK: - WorkoutTipBox
+
+private struct WorkoutTipBox: View {
+    let icon: String
+    let text: String
+    let accentColor: Color
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(accentColor.opacity(0.12))
+                    .frame(width: 32, height: 32)
+                Text(icon).font(.system(size: 16))
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text("提醒").font(.system(size: 12, weight: .heavy)).foregroundColor(.primary)
+                Text(text)
+                    .font(.system(size: 11.5, weight: .semibold))
+                    .foregroundColor(.secondary)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+        }
+        .padding(12)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(PacerizRadius.card)
     }
 }
 
