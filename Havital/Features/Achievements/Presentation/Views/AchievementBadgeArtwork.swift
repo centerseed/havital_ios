@@ -95,26 +95,27 @@ struct AchievementBadgeImage: View {
     let size: CGFloat
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
+        if isUnlocked {
             Image(assetName)
                 .resizable()
                 .scaledToFit()
-                .saturation(isUnlocked ? 1 : 0)
-                .opacity(isUnlocked ? 1 : 0.42)
-
-            if !isUnlocked {
-                Image(systemName: "lock.fill")
-                    .font(AppFont.captionSmall())
-                    .foregroundColor(.white)
-                    .padding(5)
-                    .background(Color.black.opacity(0.42))
-                    .clipShape(Circle())
+                .frame(width: size, height: size)
+        } else {
+            // Locked: gray rounded-rect with large "?" — user-requested "mystery" look
+            // instead of grayscale artwork + lock chip.
+            let cornerRadius = size * 0.22
+            ZStack {
+                RoundedRectangle(cornerRadius: cornerRadius)
+                    .fill(Color(UIColor.systemGray5))
+                Text("?")
+                    .font(.system(size: size * 0.55, weight: .heavy, design: .rounded))
+                    .foregroundColor(Color(UIColor.systemGray2))
             }
+            .frame(width: size, height: size)
         }
-        .frame(width: size, height: size)
     }
 
     private var isUnlocked: Bool {
-        status == .unlocked || status == .inProgress
+        status == .unlocked
     }
 }
