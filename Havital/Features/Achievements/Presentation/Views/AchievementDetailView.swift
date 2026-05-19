@@ -12,50 +12,33 @@ struct AchievementDetailView: View {
         pinnedBadgeId == badge.badgeId
     }
 
+    private var isUnlocked: Bool {
+        badge.status == .unlocked
+    }
+
+    private var accent: Color {
+        AchievementChapterTheme.primaryColor(for: badge.chapter)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    header
+                VStack(spacing: 18) {
+                    heroSection
                     storySection
-                    if let progress = badge.progress {
+                    if let progress = badge.progress, !isUnlocked {
                         progressSection(progress)
                     }
-                    if let source = badge.sourceRef {
+                    if let source = badge.sourceRef, isUnlocked {
                         sourceSection(source)
                     }
                     if badge.historicalBackfill {
-                        historicalSection
+                        historicalChip
                     }
-                    if onTogglePin != nil {
-                        Button {
-                            onTogglePin?(badge.badgeId)
-                        } label: {
-                            Label(
-                                isPinned
-                                    ? L10n.Achievements.Action.unpin.localized
-                                    : L10n.Achievements.Action.pin.localized,
-                                systemImage: isPinned ? "pin.fill" : "pin"
-                            )
-                            .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        .accessibilityIdentifier("achievement.pin_button")
-                        .padding(.horizontal)
-                        .padding(.top, 4)
-                    }
-                    if let shareable {
-                        Button {
-                            onShare(shareable)
-                        } label: {
-                            Label(L10n.Achievements.Share.action.localized, systemImage: "square.and.arrow.up")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .padding(.top, 4)
-                    }
+                    actionButtons
                 }
-                .padding()
+                .padding(.horizontal, 16)
+                .padding(.vertical, 20)
             }
             .background(Color(UIColor.systemGroupedBackground))
             .navigationTitle(L10n.Achievements.Detail.title.localized)
@@ -63,110 +46,320 @@ struct AchievementDetailView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(L10n.Common.done.localized) { dismiss() }
+                        .font(.system(size: 15, weight: .semibold))
                 }
             }
         }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 14) {
-                AchievementBadgeImage(
-                    assetName: AchievementBadgeArtwork.assetName(for: badge),
-                    status: badge.status,
-                    size: 76
-                )
+    // MARK: - Hero
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(badge.nameKey.localizedOrFallback(default: L10n.Achievements.Badges.badge.localized))
-                        .font(AppFont.title3())
-                    Text(badge.chapter.localizedName)
-                        .font(AppFont.caption())
+    private var heroSection: some View {
+        VStack(spacing: 14) {
+            // Chapter chip
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(accent)
+                    .frame(width: 6, height: 6)
+                Text(badge.chapter.localizedName)
+                    .font(.system(size: 12, weight: .heavy))
+                    .foregroundColor(accent)
+            }
+            .padding(.vertical, 4)
+            .padding(.horizontal, 10)
+            .background(accent.opacity(0.12))
+            .clipShape(Capsule())
+
+            // Large badge artwork
+            AchievementBadgeImage(
+                assetName: AchievementBadgeArtwork.assetName(for: badge),
+                status: badge.status,
+                size: 140
+            )
+            .shadow(
+                color: isUnlocked ? accent.opacity(0.3) : Color.black.opacity(0.05),
+                radius: isUnlocked ? 12 : 3,
+                x: 0, y: isUnlocked ? 6 : 1
+            )
+
+            // Title
+            Text(badge.nameKey.localizedOrFallback(default: L10n.Achievements.Badges.badge.localized))
+                .font(.system(size: 22, weight: .heavy))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 12)
+
+            // Status + unlocked-at
+            statusLine
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+        .padding(.horizontal, 16)
+        .background(
+            LinearGradient(
+                colors: [accent.opacity(0.12), accent.opacity(0.04), Color(UIColor.secondarySystemGroupedBackground)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .cornerRadius(16)
+    }
+
+    private var statusLine: some View {
+        Group {
+            if let unlockedAtString = badge.unlockedAt,
+               let unlockedDate = Self.parseISO(unlockedAtString) {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 13))
+                        .foregroundColor(accent)
+                    Text(Self.formatUnlockedAt(unlockedDate))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(.secondary)
                 }
-                Spacer()
-            }
-
-            Text(badge.status.localizedName)
-                .font(AppFont.caption())
-                .foregroundColor(.blue)
-
-            if let unlockedAt = badge.unlockedAt {
-                Text(L10n.Achievements.Detail.unlockedAt.localized(with: unlockedAt))
-                    .font(AppFont.caption())
+            } else {
+                Text(badge.status.localizedName)
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.secondary)
             }
         }
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
     }
+
+    private static func parseISO(_ s: String) -> Date? {
+        let formatters: [ISO8601DateFormatter] = [
+            { let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]; return f }(),
+            { let f = ISO8601DateFormatter(); f.formatOptions = [.withInternetDateTime]; return f }(),
+        ]
+        for f in formatters {
+            if let d = f.date(from: s) { return d }
+        }
+        return nil
+    }
+
+    // MARK: - Story
 
     private var storySection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(L10n.Achievements.Detail.story.localized)
-                .font(AppFont.headline())
-            Text(badge.storyKey.localizedOrFallback(default: ""))
-                .font(AppFont.bodySmall())
-                .foregroundColor(.primary)
-            if let reasonKey = badge.unlockReasonKey {
-                Text(reasonKey.localizedOrFallback(default: ""))
-                    .font(AppFont.bodySmall())
-                    .foregroundColor(.secondary)
+        let storyText = badge.storyKey.localizedOrFallback(default: "")
+        guard !storyText.isEmpty else { return AnyView(EmptyView()) }
+
+        return AnyView(
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: "text.alignleft")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(accent)
+                    Text(L10n.Achievements.Detail.story.localized)
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundColor(.primary)
+                }
+                Text(storyText)
+                    .font(.system(size: 14))
+                    .foregroundColor(.primary)
+                    .lineSpacing(5)
+                    .fixedSize(horizontal: false, vertical: true)
+                if let reasonKey = badge.unlockReasonKey {
+                    let reasonText = reasonKey.localizedOrFallback(default: "")
+                    if !reasonText.isEmpty {
+                        Text(reasonText)
+                            .font(.system(size: 13))
+                            .foregroundColor(.secondary)
+                            .lineSpacing(4)
+                    }
+                }
             }
-        }
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(UIColor.secondarySystemGroupedBackground))
+            .cornerRadius(14)
+        )
     }
+
+    // MARK: - Progress
 
     private func progressSection(_ progress: AchievementProgress) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(L10n.Achievements.Detail.progress.localized)
-                .font(AppFont.headline())
-            if let summaryKey = progress.summaryKey {
-                Text(summaryKey.achievementLocalized(params: progress.summaryParams))
-                    .font(AppFont.bodySmall())
-                    .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(accent)
+                Text(L10n.Achievements.Detail.progress.localized)
+                    .font(.system(size: 14, weight: .heavy))
             }
             if let current = progress.current, let target = progress.target, target > 0 {
-                ProgressView(value: min(current / target, 1))
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(formatNumber(current))
+                        .font(.system(size: 22, weight: .heavy).monospacedDigit())
+                        .foregroundColor(accent)
+                    Text("/ \(formatNumber(target))")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Text("\(Int(min(current / target, 1) * 100))%")
+                        .font(.system(size: 13, weight: .heavy).monospacedDigit())
+                        .foregroundColor(accent)
+                }
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color(UIColor.tertiarySystemGroupedBackground))
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(LinearGradient(colors: [accent, accent.opacity(0.7)], startPoint: .leading, endPoint: .trailing))
+                            .frame(width: geo.size.width * CGFloat(min(current / target, 1)))
+                    }
+                }
+                .frame(height: 8)
+            }
+            if let summaryKey = progress.summaryKey {
+                let summary = summaryKey.achievementLocalized(params: progress.summaryParams)
+                if !summary.isEmpty && summary != summaryKey {
+                    Text(summary)
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
             }
         }
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(14)
     }
+
+    // MARK: - Source
 
     private func sourceSection(_ source: AchievementSourceRef) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(L10n.Achievements.Detail.source.localized)
-                .font(AppFont.headline())
-            Text(source.labelKey?.localizedOrFallback(default: source.type) ?? source.type)
-                .font(AppFont.bodyMedium())
-            if let summaryKey = source.summaryKey {
-                Text(summaryKey.achievementLocalized(params: source.summaryParams))
-                    .font(AppFont.bodySmall())
+        let label = Self.localizeSourceLabel(source)
+        let summary = source.summaryKey.flatMap { key -> String? in
+            let v = key.achievementLocalized(params: source.summaryParams)
+            return (v.isEmpty || v == key) ? nil : v
+        }
+
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Image(systemName: "link")
+                    .font(.system(size: 13, weight: .bold))
                     .foregroundColor(.secondary)
+                Text(L10n.Achievements.Detail.source.localized)
+                    .font(.system(size: 14, weight: .heavy))
+            }
+            Text(label)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.primary)
+            if let summary {
+                Text(summary)
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+                    .lineSpacing(3)
             }
         }
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(14)
     }
 
-    private var historicalSection: some View {
-        Text(L10n.Achievements.Detail.historical.localized)
-            .font(AppFont.bodySmall())
-            .foregroundColor(.secondary)
-            .padding()
-            .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+    private var historicalChip: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "clock.arrow.circlepath")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundColor(.secondary)
+            Text(L10n.Achievements.Detail.historical.localized)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(.secondary)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(10)
+    }
+
+    // MARK: - Action buttons
+
+    private var actionButtons: some View {
+        HStack(spacing: 10) {
+            if onTogglePin != nil {
+                Button {
+                    onTogglePin?(badge.badgeId)
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: isPinned ? "pin.slash.fill" : "pin.fill")
+                        Text(isPinned
+                             ? L10n.Achievements.Action.unpin.localized
+                             : L10n.Achievements.Action.pin.localized)
+                    }
+                    .font(.system(size: 14, weight: .heavy))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .foregroundColor(.primary)
+                    .background(Color(UIColor.tertiarySystemGroupedBackground))
+                    .cornerRadius(12)
+                }
+                .accessibilityIdentifier("achievement.pin_button")
+            }
+            if let shareable {
+                Button {
+                    onShare(shareable)
+                } label: {
+                    HStack(spacing: 5) {
+                        Image(systemName: "square.and.arrow.up")
+                        Text(L10n.Achievements.Share.action.localized)
+                    }
+                    .font(.system(size: 14, weight: .heavy))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 44)
+                    .foregroundColor(.white)
+                    .background(accent)
+                    .cornerRadius(12)
+                }
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    // MARK: - Formatters
+
+    private static func formatUnlockedAt(_ date: Date) -> String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) {
+            let f = DateFormatter()
+            f.locale = Locale.current
+            f.dateFormat = "HH:mm"
+            return String(format: NSLocalizedString("achievements.detail.unlocked_today", value: "今天 %@ 解鎖", comment: "Unlocked today"), f.string(from: date))
+        }
+        if calendar.isDateInYesterday(date) {
+            return NSLocalizedString("achievements.detail.unlocked_yesterday", value: "昨天解鎖", comment: "Unlocked yesterday")
+        }
+        let f = DateFormatter()
+        f.locale = Locale.current
+        f.dateFormat = "yyyy/MM/dd"
+        return String(format: NSLocalizedString("achievements.detail.unlocked_on", value: "%@ 解鎖", comment: "Unlocked on date"), f.string(from: date))
+    }
+
+    private func formatNumber(_ value: Double) -> String {
+        if value.truncatingRemainder(dividingBy: 1) == 0 {
+            return String(format: "%.0f", value)
+        }
+        return String(format: "%.1f", value)
+    }
+
+    /// Localize source label with sensible fallback so raw i18n keys don't leak.
+    private static func localizeSourceLabel(_ source: AchievementSourceRef) -> String {
+        if let key = source.labelKey {
+            let v = NSLocalizedString(key, comment: "")
+            if v != key && !v.isEmpty { return v }
+        }
+        // Friendly fallback by source type
+        switch source.type.lowercased() {
+        case "weekly_summary", "weekly":
+            return NSLocalizedString("achievements.source.fallback.weekly", value: "週摘要", comment: "Weekly summary source")
+        case "workout":
+            return NSLocalizedString("achievements.source.fallback.workout", value: "訓練紀錄", comment: "Workout source")
+        case "plan", "plan_overview":
+            return NSLocalizedString("achievements.source.fallback.plan", value: "訓練計畫", comment: "Plan source")
+        case "pb", "personal_best":
+            return NSLocalizedString("achievements.source.fallback.pb", value: "個人最佳", comment: "PB source")
+        default:
+            return source.type
+        }
     }
 }
 
