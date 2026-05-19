@@ -1,11 +1,40 @@
 import SwiftUI
 
+// MARK: - WorkoutDetailDestination
+// Phase C C4: Distinguishes history record push vs planned-day push.
+// Hashable implementation uses only the stable id string for navigation identity.
+struct WorkoutDetailDestination: Identifiable, Hashable {
+    enum Kind {
+        case history(WorkoutV2)
+        case planned(DayDetail, Date?)
+    }
+
+    let id: String
+    let kind: Kind
+
+    static func history(_ workout: WorkoutV2) -> WorkoutDetailDestination {
+        WorkoutDetailDestination(id: "history-\(workout.id)", kind: .history(workout))
+    }
+
+    static func planned(_ day: DayDetail, _ date: Date?) -> WorkoutDetailDestination {
+        WorkoutDetailDestination(id: "planned-\(day.dayIndex)", kind: .planned(day, date))
+    }
+
+    static func == (lhs: WorkoutDetailDestination, rhs: WorkoutDetailDestination) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+}
+
 /// V2 週訓練時間軸視圖 - 顯示本週所有訓練的時間軸
 /// 基於 V1 WeekTimelineView，適配 V2 ViewModel 和 WeeklyPlanV2
 struct WeekTimelineViewV2: View {
     var viewModel: TrainingPlanV2ViewModel
     let plan: WeeklyPlanV2
-    @State private var selectedWorkout: WorkoutV2?
+    @State private var destination: WorkoutDetailDestination?
     /// 午夜跨日觸發器：值變化時強制重繪所有 TimelineItemViewV2，修正「兩天都顯示今日」
     @State private var todayTrigger = Date()
 
@@ -30,8 +59,8 @@ struct WeekTimelineViewV2: View {
                     TimelineItemViewV2(
                         viewModel: viewModel,
                         day: day,
-                        onWorkoutSelect: { workout in
-                            selectedWorkout = workout
+                        onDestinationSelect: { dest in
+                            destination = dest
                         },
                         todayTrigger: todayTrigger
                     )
@@ -47,8 +76,13 @@ struct WeekTimelineViewV2: View {
                 }
             )
         }
-        .navigationDestination(item: $selectedWorkout) { workout in
-            WorkoutDetailViewV2(workout: workout)
+        .navigationDestination(item: $destination) { dest in
+            switch dest.kind {
+            case .history(let workout):
+                WorkoutDetailViewV2(workout: workout)
+            case .planned(let day, let date):
+                PlannedSessionDetailView(day: day, date: date)
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
             todayTrigger = Date()
@@ -62,14 +96,17 @@ struct WeekTimelineViewV2: View {
 //   1. Type accent 3pt left bar (per §3.5 G)
 //   2. Today outline upgraded to 2.0pt PacerizColor.blue (per §3.5 G)
 //   3. Planned/actual dual row display for non-rest days (per §3.5 G)
-// Interaction model is UNCHANGED (isExpanded toggle / isToday / sheet bindings).
+// Phase C C4: Interaction model refactored:
+//   - Removed isExpanded toggle for non-today days
+//   - Interval / supplementary days: always show segments inline (no tap needed)
+//   - Single-segment days: collapsed only
+//   - Tap (non-today, non-rest) → push WorkoutDetailDestination (.history or .planned)
 struct TimelineItemViewV2: View {
     var viewModel: TrainingPlanV2ViewModel
     let day: DayDetail
-    let onWorkoutSelect: (WorkoutV2) -> Void
+    let onDestinationSelect: (WorkoutDetailDestination) -> Void
     let todayTrigger: Date
 
-    @State private var isExpanded = false
     @State private var showRestDayInfo = false
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("climateAdjustmentEnabled") private var climateAdjustmentEnabled = false
@@ -94,6 +131,11 @@ struct TimelineItemViewV2: View {
         let isCompletedRest = day.type == .rest && (isToday || isPast)
         let isCompleted = isCompletedRest || !workouts.isEmpty
 
+        // Phase C C4: always-inline for interval or supplementary days (non-today)
+        let hasInterval = day.primaryRunActivity?.interval != nil
+        let hasSupplementary = (day.session?.supplementary?.isEmpty == false)
+        let alwaysInline = hasInterval || hasSupplementary
+
         HStack(alignment: .top, spacing: 12) {
             // 左側時間軸狀態點
             ZStack {
@@ -117,18 +159,18 @@ struct TimelineItemViewV2: View {
             VStack(alignment: .leading, spacing: 8) {
                 Button(action: {
                     if isToday {
-                        // Today: inline expand — no-op here; card is always expanded for today
+                        // Today: always expanded inline — no-op on card tap
                     } else if day.type == .rest {
                         showRestDayInfo = true
                     } else if let workout = workouts.first {
-                        // Past day with recorded workout → push WorkoutDetailViewV2
-                        onWorkoutSelect(workout)
+                        // Has recorded workout → push history detail
+                        onDestinationSelect(.history(workout))
                     } else {
-                        // Future day or past day without a recorded workout → toggle inline expand
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isExpanded.toggle()
-                        }
+                        // Future / planned day → push planned detail
+                        let date = viewModel.getDate(for: day.dayIndexInt)
+                        onDestinationSelect(.planned(day, date))
                     }
+
                 }) {
                     VStack(alignment: .leading, spacing: 8) {
                         // 第一行：日期 + 訓練類型標籤 + 收折按鈕
@@ -240,8 +282,10 @@ struct TimelineItemViewV2: View {
                 }
                 .buttonStyle(PlainButtonStyle())
 
-                // 訓練內容區域（只在展開或今日時顯示）
-                if isExpanded || isToday {
+                // 訓練內容區域
+                // Phase C C4: today always expanded; interval/supplementary always visible;
+                // single-segment non-today days: collapsed (no inline content shown)
+                if isToday || alwaysInline {
                     VStack(alignment: .leading, spacing: 8) {
 
                         // PACERIZ REDESIGN 2026-05: 訓練詳情移至前，使用 RedesignedSegmentsView（run）或原 TrainingDetailsViewV2（非 run）
@@ -258,8 +302,8 @@ struct TimelineItemViewV2: View {
                                 .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_detail")
                         }
 
-                        // 已完成的訓練記錄
-                        if !workouts.isEmpty {
+                        // 已完成的訓練記錄 (only shown in today's always-expanded card)
+                        if isToday && !workouts.isEmpty {
                             Divider()
                                 .padding(.vertical, 4)
 
@@ -272,7 +316,7 @@ struct TimelineItemViewV2: View {
 
                                 ForEach(workouts.prefix(2), id: \.id) { workout in
                                     Button {
-                                        onWorkoutSelect(workout)
+                                        onDestinationSelect(WorkoutDetailDestination.history(workout))
                                     } label: {
                                         HStack {
                                             Image(systemName: "figure.run")
@@ -313,10 +357,9 @@ struct TimelineItemViewV2: View {
                             let accent = getTypeColor()
                             Button(action: {
                                 if let workout = workouts.first {
-                                    onWorkoutSelect(workout)
+                                    onDestinationSelect(WorkoutDetailDestination.history(workout))
                                 }
                                 // If no recorded workout yet, button is intentionally non-navigating
-                                // (future Phase C may deep-link to in-progress workout)
                             }) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "play.fill")
@@ -344,48 +387,8 @@ struct TimelineItemViewV2: View {
                     }
                 }
 
-                // 折疊時也顯示已完成訓練
-                if !isExpanded && !isToday && !workouts.isEmpty {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Divider()
-                            .padding(.vertical, 4)
-
-                        ForEach(workouts.prefix(2), id: \.id) { workout in
-                            Button {
-                                onWorkoutSelect(workout)
-                            } label: {
-                                HStack {
-                                    Image(systemName: "figure.run")
-                                        .foregroundColor(.green)
-                                        .font(AppFont.captionSmall())
-
-                                    let rawDistVal = workout.distanceDisplay ?? (workout.distance ?? 0.0) / 1000.0
-                                    let distVal = workout.distanceUnit != nil ? rawDistVal : UnitManager.shared.convertedDistance(rawDistVal)
-                                    let distUnit = workout.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
-                                    Text(String(format: "%.2f \(distUnit)", distVal))
-                                        .font(AppFont.caption())
-                                        .foregroundColor(.primary)
-
-                                    Text("·")
-                                        .foregroundColor(.secondary)
-
-                                    Text(formatDuration(workout.duration))
-                                        .font(AppFont.caption())
-                                        .foregroundColor(.secondary)
-
-                                    Spacer()
-                                }
-                            }
-                            .buttonStyle(PlainButtonStyle())
-                        }
-
-                        if workouts.count > 2 {
-                            Text("+ \(workouts.count - 2) " + NSLocalizedString("training.more_workouts", comment: "more"))
-                                .font(AppFont.captionSmall())
-                                .foregroundColor(.blue)
-                        }
-                    }
-                }
+                // Phase C C4: Collapsed non-today days show no workout list inline.
+                // Tap the card to navigate → WorkoutDetailViewV2 (history) or PlannedSessionDetailView.
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
