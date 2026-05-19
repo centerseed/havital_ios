@@ -100,21 +100,6 @@ struct WeekOverviewCardV2: View {
                             .fixedSize(horizontal: true, vertical: false)
 
                         Spacer()
-
-                        // F1.d: date chip moved here per design jsx L417-423
-                        // F4.a: .fixedSize(horizontal: true, vertical: false) prevents date from wrapping
-                        // F5.a: calendar icon 11pt, date 12pt
-                        if let range = weekRangeText {
-                            HStack(spacing: 4) {
-                                Image(systemName: "calendar")
-                                    .font(.system(size: 11, weight: .semibold))
-                                Text(range)
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .lineLimit(1)
-                            }
-                            .foregroundColor(.secondary)
-                            .fixedSize(horizontal: true, vertical: false)
-                        }
                     }
 
                     // Distance row: big current + small "/ target unit" + spacer + percentage chip
