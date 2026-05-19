@@ -24,8 +24,6 @@ struct PlannedSessionDetailView: View {
                 supplementarySection.padding(.horizontal, 16).padding(.top, 12)
                 climateSection.padding(.horizontal, 16).padding(.top, 12)
                 secondaryButtons.padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 8)
-
-                Color.clear.frame(height: 80)
             }
         }
         .background(Color(UIColor.systemGroupedBackground))
@@ -40,9 +38,6 @@ struct PlannedSessionDetailView: View {
                     Text("訓練詳情").font(.system(size: 15, weight: .heavy)).kerning(-0.01)
                 }
             }
-        }
-        .overlay(alignment: .bottom) {
-            startTodayButton
         }
         .sheet(isPresented: $showTrainingTypeInfo) {
             if let info = TrainingTypeInfo.info(for: day.type) {
@@ -372,6 +367,12 @@ struct PlannedSessionDetailView: View {
     }
 
     private var workoutTip: WorkoutTip? {
+        // Priority: DayDetail.tips from API → hardcode fallback by runType
+        if let apiTip = day.tips, !apiTip.isEmpty {
+            return WorkoutTip(icon: "💡", text: apiTip)
+        }
+
+        // Hardcode fallback
         let runType = day.session.flatMap { session -> String? in
             if case .run(let r) = session.primary { return r.runType }
             return nil
@@ -419,26 +420,6 @@ struct PlannedSessionDetailView: View {
             SecondaryActionButton(icon: "info.circle", label: "什麼是\(workoutTypeName)？", action: { showTrainingTypeInfo = true })
             SecondaryActionButton(icon: "arrow.triangle.2.circlepath", label: "調整這一天", action: { /* stub */ })
         }
-    }
-
-    // MARK: - Sticky CTA
-
-    private var startTodayButton: some View {
-        let ac = typeAccentColor
-        return VStack(spacing: 0) {
-            Button { /* stub */ } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "play.fill").font(.system(size: 12))
-                    Text(NSLocalizedString("training_plan.start_today_workout", comment: "開始今日訓練"))
-                        .font(.system(size: 14, weight: .heavy)).tracking(-0.2)
-                }
-                .frame(maxWidth: .infinity).frame(height: 50).foregroundColor(.white)
-                .background(LinearGradient(colors: [ac, ac.opacity(0.8)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .cornerRadius(14).shadow(color: ac.opacity(0.33), radius: 8, x: 0, y: 6)
-            }
-            .buttonStyle(PlainButtonStyle()).padding(.horizontal, 16).padding(.vertical, 12)
-        }
-        .background(Color(UIColor.systemGroupedBackground).ignoresSafeArea(edges: .bottom))
     }
 
     // MARK: - Section Header Helper
@@ -539,14 +520,18 @@ struct PlannedSessionDetailView: View {
                 if let min = interval.recoveryDurationMinutes { return "\(min)分 慢跑" }
                 return interval.recoveryDescription
             }()
+            // Prefer real HR range from RunActivity; fall back to inferred zone label
+            let intervalHR = run.heartRateRange?.displayText.map { "\($0) bpm" } ?? "Z4"
             result.append(DetailSegmentData(index: idx, label: "衝刺", distance: workDistanceLabel(interval),
-                pace: interval.workPace, hr: "Z4", reps: interval.repeats, rest: restStr, isMain: true))
+                pace: interval.workPace, hr: intervalHR, reps: interval.repeats, rest: restStr, isMain: true))
             idx += 1
         } else if let segs = run.segments, segs.count > 1 {
             for (segIdx, seg) in segs.enumerated() {
+                // Use real HR range from segment if available
+                let segHR = seg.heartRateRange?.displayText.map { "\($0) bpm" }
                 result.append(DetailSegmentData(index: idx, label: segmentLabel(index: segIdx, total: segs.count),
                     distance: segmentDistanceString(seg), pace: seg.effectivePace,
-                    hr: nil, reps: nil, rest: nil, isMain: segIdx == segs.count - 1))
+                    hr: segHR, reps: nil, rest: nil, isMain: segIdx == segs.count - 1))
                 idx += 1
             }
         }
@@ -559,9 +544,11 @@ struct PlannedSessionDetailView: View {
     }
 
     private func bookendSegment(index: Int, label: String, seg: RunSegment) -> DetailSegmentData {
-        DetailSegmentData(index: index, label: label,
+        // Use real HR range from segment if available; otherwise no HR label
+        let hr = seg.heartRateRange?.displayText.map { "\($0) bpm" }
+        return DetailSegmentData(index: index, label: label,
             distance: segmentDistanceString(seg), pace: seg.effectivePace,
-            hr: seg.heartRateRange?.displayText != nil ? "Z2" : nil,
+            hr: hr,
             reps: nil, rest: nil, isMain: false)
     }
 
