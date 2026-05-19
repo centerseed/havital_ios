@@ -95,7 +95,7 @@ struct RaceHeaderViewV2: View {
             HStack(spacing: 4) {
                 if let target = viewModel.targetFinish {
                     Text(target)
-                        .font(.system(size: 15, weight: .heavy, design: .monospaced))
+                        .font(.system(size: 15, weight: .regular, design: .monospaced))
                         .foregroundColor(.white)
                 }
 
