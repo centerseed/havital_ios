@@ -6,7 +6,7 @@ import SwiftUI
 /// Single-row layout:
 ///   [倒數 · 天] | [賽名 / target → est] | [適能 score delta ›]
 ///
-/// Adaptive gradient background: light mode 1A1F2C → 2A3550, dark mode 2E3548 → 424D6B.
+/// Adaptive gradient background: light mode 3D4663 → 525C7F, dark mode 2E3548 → 424D6B.
 /// All sections hide gracefully when data is nil — no crash, no empty boxes.
 struct RaceHeaderViewV2: View {
 
@@ -39,8 +39,8 @@ struct RaceHeaderViewV2: View {
             ]
         } else {
             stops = [
-                .init(color: Color(red: 0x1A / 255.0, green: 0x1F / 255.0, blue: 0x2C / 255.0), location: 0),
-                .init(color: Color(red: 0x2A / 255.0, green: 0x35 / 255.0, blue: 0x50 / 255.0), location: 1)
+                .init(color: Color(red: 0x3D / 255.0, green: 0x46 / 255.0, blue: 0x63 / 255.0), location: 0),
+                .init(color: Color(red: 0x52 / 255.0, green: 0x5C / 255.0, blue: 0x7F / 255.0), location: 1)
             ]
         }
         return LinearGradient(stops: stops, startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -107,7 +107,7 @@ struct RaceHeaderViewV2: View {
 
                 if let est = viewModel.estimatedFinish {
                     Text(est)
-                        .font(.system(size: 15, weight: .semibold, design: .monospaced))
+                        .font(.system(size: 15, weight: .bold, design: .monospaced))
                         .foregroundColor(viewModel.estimatedTimeColor)
                 }
             }

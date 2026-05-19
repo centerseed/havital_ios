@@ -278,19 +278,14 @@ struct WeekOverviewCardV2: View {
 
     @ViewBuilder
     private func badgeStatusChip() -> some View {
-        // Always "新解鎖" with sparkles — no grayscale/lock state shown in homepage card.
-        HStack(spacing: 2) {
-            Image(systemName: "sparkles")
-                .font(.system(size: 8, weight: .bold))
-            Text(NSLocalizedString("training_plan.weekly_badge_coming_soon", comment: "新解鎖"))
-                .font(.system(size: 9, weight: .heavy))
-                .tracking(0.3)
-        }
-        .foregroundColor(.white)
-        .padding(.horizontal, 5)
-        .padding(.vertical, 2)
-        .background(Capsule().fill(PacerizColor.blue))
-        .overlay(Capsule().stroke(Color.white, lineWidth: 1.5))
+        // Hardcoded "NEW" chip — not localized per 2026-05 UX decision.
+        PRChip(
+            text: "NEW",
+            fg: .white,
+            bg: PacerizColor.blue,
+            fontSize: 11,
+            leadingSymbol: "sparkles"
+        )
     }
 }
 
