@@ -34,7 +34,8 @@ struct WorkoutDetailDestination: Identifiable, Hashable {
 struct WeekTimelineViewV2: View {
     var viewModel: TrainingPlanV2ViewModel
     let plan: WeeklyPlanV2
-    @State private var destination: WorkoutDetailDestination?
+    /// Destination callback：由 TrainingPlanV2View 提供，把 destination 狀態上移至 NavigationStack 直接子層
+    let onDestinationSelect: (WorkoutDetailDestination) -> Void
     /// 午夜跨日觸發器：值變化時強制重繪所有 TimelineItemViewV2，修正「兩天都顯示今日」
     @State private var todayTrigger = Date()
 
@@ -59,9 +60,7 @@ struct WeekTimelineViewV2: View {
                     TimelineItemViewV2(
                         viewModel: viewModel,
                         day: day,
-                        onDestinationSelect: { dest in
-                            destination = dest
-                        },
+                        onDestinationSelect: onDestinationSelect,
                         todayTrigger: todayTrigger
                     )
                 }
@@ -75,14 +74,6 @@ struct WeekTimelineViewV2: View {
                         .offset(x: 7)
                 }
             )
-        }
-        .navigationDestination(item: $destination) { dest in
-            switch dest.kind {
-            case .history(let workout):
-                WorkoutDetailViewV2(workout: workout)
-            case .planned(let day, let date):
-                PlannedSessionDetailView(day: day, date: date)
-            }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
             todayTrigger = Date()
@@ -98,8 +89,8 @@ struct WeekTimelineViewV2: View {
 //   3. Planned/actual dual row display for non-rest days (per §3.5 G)
 // Phase C C4: Interaction model refactored:
 //   - Removed isExpanded toggle for non-today days
-//   - Interval / supplementary days: always show segments inline (no tap needed)
-//   - Single-segment days: collapsed only
+//   - Only today shows segments inline (always expanded)
+//   - All past/future days are collapsed regardless of type (interval, supplementary, etc.)
 //   - Tap (non-today, non-rest) → push WorkoutDetailDestination (.history or .planned)
 struct TimelineItemViewV2: View {
     var viewModel: TrainingPlanV2ViewModel
@@ -108,6 +99,7 @@ struct TimelineItemViewV2: View {
     let todayTrigger: Date
 
     @State private var showRestDayInfo = false
+    @State private var isExpanded: Bool = false
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("climateAdjustmentEnabled") private var climateAdjustmentEnabled = false
 
@@ -131,11 +123,6 @@ struct TimelineItemViewV2: View {
         let isCompletedRest = day.type == .rest && (isToday || isPast)
         let isCompleted = isCompletedRest || !workouts.isEmpty
 
-        // Phase C C4: always-inline for interval or supplementary days (non-today)
-        let hasInterval = day.primaryRunActivity?.interval != nil
-        let hasSupplementary = (day.session?.supplementary?.isEmpty == false)
-        let alwaysInline = hasInterval || hasSupplementary
-
         HStack(alignment: .top, spacing: 12) {
             // 左側時間軸狀態點
             ZStack {
@@ -156,239 +143,258 @@ struct TimelineItemViewV2: View {
             .frame(width: 16, height: 16)
 
             // 右側內容卡片
-            VStack(alignment: .leading, spacing: 8) {
-                Button(action: {
-                    if isToday {
-                        // Today: always expanded inline — no-op on card tap
-                    } else if day.type == .rest {
-                        showRestDayInfo = true
-                    } else if let workout = workouts.first {
-                        // Has recorded workout → push history detail
-                        onDestinationSelect(.history(workout))
-                    } else {
-                        // Future / planned day → push planned detail
-                        let date = viewModel.getDate(for: day.dayIndexInt)
-                        onDestinationSelect(.planned(day, date))
-                    }
-
-                }) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        // 第一行：日期 + 訓練類型標籤 + 收折按鈕
-                        HStack(alignment: .center, spacing: 8) {
-                            // 日期
-                            HStack(spacing: 6) {
-                                Text(DateFormatterHelper.weekdayName(for: day.dayIndexInt))
-                                    .font(AppFont.bodySmall())
-                                    .fontWeight(isToday ? .semibold : .regular)
-                                    .foregroundColor(isToday ? .blue : .primary)
-
-                                if let date = viewModel.getDate(for: day.dayIndexInt) {
-                                    Text(DateFormatterHelper.formatShortDate(date))
-                                        .font(AppFont.caption())
-                                        .foregroundColor(.primary)
-                                }
-
-                                if isToday {
-                                    Text(NSLocalizedString("training_plan.today", comment: "Today"))
-                                        .font(.system(size: 10, weight: .semibold))
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(Color.blue)
-                                        .cornerRadius(4)
-                                }
-                            }
-
-                            Spacer()
-
-                            // 訓練類型標籤
-                            // F6.c: type chip height 22pt per design jsx L827 — display only, no tap
-                            Text(day.type.localizedName)
-                                .font(.system(size: 12, weight: .medium))
-                                .fontWeight(.medium)
-                                .foregroundColor(getTypeColor())
-                                .padding(.horizontal, 10)
-                                .frame(height: 22)
-                                .background(getTypeColor().opacity(0.15))
-                                .cornerRadius(8)
-                                .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).run_type")
-
-                            if climateAdjustmentEnabled, let climateMeta = day.effectiveClimateMeta {
-                                ClimateBadgeView(meta: climateMeta)
-                                    .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_badge")
-                            }
-
-                            // F6.c: chevron.right per design jsx L831 — today has no chevron, non-today shows static right arrow
-                            if !isToday {
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.secondary)
-                                    .font(AppFont.bodySmall())
-                                    .frame(width: 20, height: 44)
-                                    .contentShape(Rectangle())
-                            }
+            // Bug 3: Outer HStack holds card body button + standalone chevron toggle button
+            // so chevron tap does NOT trigger card navigation.
+            HStack(alignment: .top, spacing: 0) {
+                // Card body button — date/chip/plan rows → navigation
+                VStack(alignment: .leading, spacing: 8) {
+                    Button(action: {
+                        Logger.debug("[TimelineItemViewV2] tap day=\(day.dayIndexInt) isToday=\(isToday) type=\(day.type) workouts=\(workouts.count)")
+                        if isToday {
+                            // Today: always expanded inline — no-op on card tap
+                        } else if day.type == .rest {
+                            showRestDayInfo = true
+                        } else if let workout = workouts.first {
+                            // Has recorded workout → push history detail
+                            Logger.debug("[TimelineItemViewV2] onDestinationSelect .history workoutId=\(workout.id)")
+                            onDestinationSelect(.history(workout))
+                        } else {
+                            // Future / planned day → push planned detail
+                            let date = viewModel.getDate(for: day.dayIndexInt)
+                            Logger.debug("[TimelineItemViewV2] onDestinationSelect .planned day=\(day.dayIndexInt)")
+                            onDestinationSelect(.planned(day, date))
                         }
 
-                        // PACERIZ REDESIGN 2026-05: 課表/實際雙行（§3.5 G）
-                        // Always show for non-rest days; actual row only when workouts exist.
-                        // F6.c: rest day shows 「主動恢復日」in collapsed state per design jsx L823
-                        if day.type == .rest {
-                            Text(NSLocalizedString("training_plan.active_recovery_day", comment: "主動恢復日"))
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.secondary)
-                        } else {
-                            VStack(spacing: 4) {
-                                // 計畫 row (always show for non-rest)
-                                if let run = day.primaryRunActivity {
-                                    HStack(spacing: 4) {
-                                        Text("課表")
-                                            .font(.system(size: 9, weight: .bold))
-                                            .tracking(0.4)
-                                            .foregroundColor(.secondary)
-                                            .textCase(.uppercase)
-                                            .frame(minWidth: 28, alignment: .leading)
+                    }) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            // 第一行：日期 + 訓練類型標籤
+                            HStack(alignment: .center, spacing: 8) {
+                                // 日期
+                                HStack(spacing: 6) {
+                                    Text(DateFormatterHelper.weekdayName(for: day.dayIndexInt))
+                                        .font(AppFont.bodySmall())
+                                        .fontWeight(isToday ? .semibold : .regular)
+                                        .foregroundColor(isToday ? .blue : .primary)
 
-                                        let plannedDistStr = run.distanceKm.map { String(format: "%.1f \(UnitManager.shared.currentUnitSystem.distanceSuffix)", UnitManager.shared.convertedDistance($0)) } ?? ""
-                                        let plannedDurStr = formatPlannedDuration(minutes: run.durationMinutes, seconds: run.durationSeconds)
-                                        let planParts = [plannedDistStr, plannedDurStr].filter { !$0.isEmpty }
-                                        Text(planParts.joined(separator: " · "))
-                                            .font(.system(size: 11.5, weight: .semibold))
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-
-                                // 實際 row (only when workouts exist)
-                                if let workout = workouts.first {
-                                    HStack(spacing: 4) {
-                                        Text("實際")
-                                            .font(.system(size: 9, weight: .bold))
-                                            .tracking(0.4)
-                                            .foregroundColor(PacerizColor.greenDeep)
-                                            .textCase(.uppercase)
-                                            .frame(minWidth: 28, alignment: .leading)
-
-                                        let rawDistVal = workout.distanceDisplay ?? (workout.distance ?? 0.0) / 1000.0
-                                        let distVal = workout.distanceUnit != nil ? rawDistVal : UnitManager.shared.convertedDistance(rawDistVal)
-                                        let distUnit = workout.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
-                                        let actualDistStr = String(format: "%.2f \(distUnit)", distVal)
-                                        let actualDurStr = formatDuration(workout.duration)
-                                        Text("\(actualDistStr) · \(actualDurStr)")
-                                            .font(.system(size: 12, weight: .bold))
+                                    if let date = viewModel.getDate(for: day.dayIndexInt) {
+                                        Text(DateFormatterHelper.formatShortDate(date))
+                                            .font(AppFont.caption())
                                             .foregroundColor(.primary)
                                     }
+
+                                    if isToday {
+                                        Text(NSLocalizedString("training_plan.today", comment: "Today"))
+                                            .font(.system(size: 10, weight: .semibold))
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(Color.blue)
+                                            .cornerRadius(4)
+                                    }
+                                }
+
+                                Spacer()
+
+                                // 訓練類型標籤
+                                // F6.c: type chip height 22pt per design jsx L827 — display only, no tap
+                                Text(day.type.localizedName)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .fontWeight(.medium)
+                                    .foregroundColor(getTypeColor())
+                                    .padding(.horizontal, 10)
+                                    .frame(height: 22)
+                                    .background(getTypeColor().opacity(0.15))
+                                    .cornerRadius(8)
+                                    .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).run_type")
+
+                                if climateAdjustmentEnabled, let climateMeta = day.effectiveClimateMeta {
+                                    ClimateBadgeView(meta: climateMeta)
+                                        .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_badge")
                                 }
                             }
-                        }
-                    }
-                }
-                .buttonStyle(PlainButtonStyle())
 
-                // 訓練內容區域
-                // Phase C C4: today always expanded; interval/supplementary always visible;
-                // single-segment non-today days: collapsed (no inline content shown)
-                if isToday || alwaysInline {
-                    VStack(alignment: .leading, spacing: 8) {
-
-                        // PACERIZ REDESIGN 2026-05: 訓練詳情移至前，使用 RedesignedSegmentsView（run）或原 TrainingDetailsViewV2（非 run）
-                        if day.session != nil {
-                            if day.primaryRunActivity != nil {
-                                RedesignedSegmentsView(day: day)
+                            // PACERIZ REDESIGN 2026-05: 課表/實際雙行（§3.5 G）
+                            // Always show for non-rest days; actual row only when workouts exist.
+                            // F6.c: rest day shows 「主動恢復日」in collapsed state per design jsx L823
+                            if day.type == .rest {
+                                Text(NSLocalizedString("training_plan.active_recovery_day", comment: "主動恢復日"))
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.secondary)
                             } else {
-                                TrainingDetailsViewV2(day: day)
-                            }
-                        }
+                                VStack(alignment: .leading, spacing: 4) {
+                                    // 計畫 row (always show for non-rest)
+                                    if let run = day.primaryRunActivity {
+                                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                            Text("課表")
+                                                .font(.system(size: 11, weight: .bold))
+                                                .tracking(0.4)
+                                                .foregroundColor(.secondary)
+                                                .textCase(.uppercase)
+                                                .frame(width: 40, alignment: .leading)
 
-                        if climateAdjustmentEnabled, let climateMeta = day.effectiveClimateMeta {
-                            ClimateAdjustmentDetailView(day: day, meta: climateMeta)
-                                .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_detail")
-                        }
+                                            let plannedDistStr = run.distanceKm.map { String(format: "%.1f \(UnitManager.shared.currentUnitSystem.distanceSuffix)", UnitManager.shared.convertedDistance($0)) } ?? ""
+                                            let plannedDurStr = formatPlannedDuration(minutes: run.durationMinutes, seconds: run.durationSeconds)
+                                            let planParts = [plannedDistStr, plannedDurStr].filter { !$0.isEmpty }
+                                            Text(planParts.joined(separator: " · "))
+                                                .font(.system(size: 13.5, weight: .semibold).monospacedDigit())
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
 
-                        // 已完成的訓練記錄 (only shown in today's always-expanded card)
-                        if isToday && !workouts.isEmpty {
-                            Divider()
-                                .padding(.vertical, 4)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(NSLocalizedString("training.completed_workouts", comment: "Completed Workouts"))
-                                    .font(AppFont.captionSmall())
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.green)
-                                    .padding(.bottom, 2)
-
-                                ForEach(workouts.prefix(2), id: \.id) { workout in
-                                    Button {
-                                        onDestinationSelect(WorkoutDetailDestination.history(workout))
-                                    } label: {
-                                        HStack {
-                                            Image(systemName: "figure.run")
-                                                .foregroundColor(.green)
-                                                .font(AppFont.captionSmall())
+                                    // 實際 row (only when workouts exist)
+                                    if let workout = workouts.first {
+                                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                            Text("實際")
+                                                .font(.system(size: 11, weight: .bold))
+                                                .tracking(0.4)
+                                                .foregroundColor(PacerizColor.greenDeep)
+                                                .textCase(.uppercase)
+                                                .frame(width: 40, alignment: .leading)
 
                                             let rawDistVal = workout.distanceDisplay ?? (workout.distance ?? 0.0) / 1000.0
                                             let distVal = workout.distanceUnit != nil ? rawDistVal : UnitManager.shared.convertedDistance(rawDistVal)
                                             let distUnit = workout.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
-                                            Text(String(format: "%.2f \(distUnit)", distVal))
-                                                .font(AppFont.caption())
+                                            let actualDistStr = String(format: "%.2f \(distUnit)", distVal)
+                                            let actualDurStr = formatDuration(workout.duration)
+                                            Text("\(actualDistStr) · \(actualDurStr)")
+                                                .font(.system(size: 13.5, weight: .bold).monospacedDigit())
                                                 .foregroundColor(.primary)
-
-                                            Text("·")
-                                                .foregroundColor(.secondary)
-
-                                            Text(formatDuration(workout.duration))
-                                                .font(AppFont.caption())
-                                                .foregroundColor(.secondary)
-
-                                            Spacer()
                                         }
-                                        .padding(.vertical, 2)
                                     }
-                                    .buttonStyle(PlainButtonStyle())
-                                }
-
-                                if workouts.count > 2 {
-                                    Text("+ \(workouts.count - 2) " + NSLocalizedString("training.more_workouts", comment: "more"))
-                                        .font(AppFont.captionSmall())
-                                        .foregroundColor(.blue)
                                 }
                             }
-                        }
-
-                        // B5: Today CTA — "開始今日訓練" button
-                        if isToday && day.type != .rest {
-                            let accent = getTypeColor()
-                            Button(action: {
-                                if let workout = workouts.first {
-                                    onDestinationSelect(WorkoutDetailDestination.history(workout))
-                                }
-                                // If no recorded workout yet, button is intentionally non-navigating
-                            }) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "play.fill")
-                                        .font(.system(size: 12))
-                                    Text(NSLocalizedString("training_plan.start_today_workout", comment: "開始今日訓練"))
-                                        .font(.system(size: 14, weight: .heavy))
-                                        .tracking(-0.2)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 44)
-                                .foregroundColor(.white)
-                                .background(
-                                    LinearGradient(
-                                        colors: [accent, accent.opacity(0.8)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .cornerRadius(12)
-                                .shadow(color: accent.opacity(0.33), radius: 8, x: 0, y: 6)
-                            }
-                            .padding(.top, 8)
-                            .accessibilityIdentifier("v2.weekly.today.start_workout_cta")
                         }
                     }
-                }
+                    .buttonStyle(PlainButtonStyle())
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
 
-                // Phase C C4: Collapsed non-today days show no workout list inline.
-                // Tap the card to navigate → WorkoutDetailViewV2 (history) or PlannedSessionDetailView.
+                    // 訓練內容區域
+                    // Bug 3: Today always expanded; past/future toggle via isExpanded (chevron button).
+                    if isToday || isExpanded {
+                        VStack(alignment: .leading, spacing: 8) {
+
+                            // PACERIZ REDESIGN 2026-05: 訓練詳情移至前，使用 RedesignedSegmentsView（run）或原 TrainingDetailsViewV2（非 run）
+                            if day.session != nil {
+                                if day.primaryRunActivity != nil {
+                                    RedesignedSegmentsView(day: day)
+                                } else {
+                                    TrainingDetailsViewV2(day: day)
+                                }
+                            }
+
+                            if climateAdjustmentEnabled, let climateMeta = day.effectiveClimateMeta {
+                                ClimateAdjustmentDetailView(day: day, meta: climateMeta)
+                                    .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_detail")
+                            }
+
+                            // 已完成的訓練記錄 (only shown in today's always-expanded card)
+                            if isToday && !workouts.isEmpty {
+                                Divider()
+                                    .padding(.vertical, 4)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(NSLocalizedString("training.completed_workouts", comment: "Completed Workouts"))
+                                        .font(AppFont.captionSmall())
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.green)
+                                        .padding(.bottom, 2)
+
+                                    ForEach(workouts.prefix(2), id: \.id) { workout in
+                                        Button {
+                                            onDestinationSelect(WorkoutDetailDestination.history(workout))
+                                        } label: {
+                                            HStack {
+                                                Image(systemName: "figure.run")
+                                                    .foregroundColor(.green)
+                                                    .font(AppFont.captionSmall())
+
+                                                let rawDistVal = workout.distanceDisplay ?? (workout.distance ?? 0.0) / 1000.0
+                                                let distVal = workout.distanceUnit != nil ? rawDistVal : UnitManager.shared.convertedDistance(rawDistVal)
+                                                let distUnit = workout.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
+                                                Text(String(format: "%.2f \(distUnit)", distVal))
+                                                    .font(AppFont.caption())
+                                                    .foregroundColor(.primary)
+
+                                                Text("·")
+                                                    .foregroundColor(.secondary)
+
+                                                Text(formatDuration(workout.duration))
+                                                    .font(AppFont.caption())
+                                                    .foregroundColor(.secondary)
+
+                                                Spacer()
+                                            }
+                                            .padding(.vertical, 2)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                    }
+
+                                    if workouts.count > 2 {
+                                        Text("+ \(workouts.count - 2) " + NSLocalizedString("training.more_workouts", comment: "more"))
+                                            .font(AppFont.captionSmall())
+                                            .foregroundColor(.blue)
+                                    }
+                                }
+                            }
+
+                            // B5: Today CTA — "開始今日訓練" button
+                            if isToday && day.type != .rest {
+                                let accent = getTypeColor()
+                                Button(action: {
+                                    if let workout = workouts.first {
+                                        onDestinationSelect(WorkoutDetailDestination.history(workout))
+                                    }
+                                    // If no recorded workout yet, button is intentionally non-navigating
+                                }) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "play.fill")
+                                            .font(.system(size: 12))
+                                        Text(NSLocalizedString("training_plan.start_today_workout", comment: "開始今日訓練"))
+                                            .font(.system(size: 14, weight: .heavy))
+                                            .tracking(-0.2)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 44)
+                                    .foregroundColor(.white)
+                                    .background(
+                                        LinearGradient(
+                                            colors: [accent, accent.opacity(0.8)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .cornerRadius(12)
+                                    .shadow(color: accent.opacity(0.33), radius: 8, x: 0, y: 6)
+                                }
+                                .padding(.top, 8)
+                                .accessibilityIdentifier("v2.weekly.today.start_workout_cta")
+                            }
+                        }
+                        .animation(.easeInOut(duration: 0.2), value: isExpanded)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Bug 3: Standalone chevron toggle button — only for non-today, non-rest days.
+                // Placed OUTSIDE the card body VStack so its tap does NOT trigger card navigation.
+                // chevron.right = collapsed, chevron.down = expanded; 44pt hit target per HIG.
+                if !isToday && day.type != .rest {
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isExpanded.toggle()
+                        }
+                        Logger.debug("[TimelineItemViewV2] chevron toggle day=\(day.dayIndexInt) isExpanded=\(isExpanded)")
+                    }) {
+                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                            .foregroundColor(.secondary)
+                            .font(AppFont.bodySmall())
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).chevron_toggle")
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
@@ -1460,7 +1466,7 @@ private struct RedesignedSegmentsView: View {
                 || interval.recoveryDescription != nil
             let recoverySubDetail: String?
             if hasRecoveryInfo {
-                var recoveryParts: [String] = ["💨 恢復"]
+                var recoveryParts: [String] = ["恢復"]
                 if let km = interval.recoveryDistanceKm {
                     recoveryParts.append(String(format: "%.1fkm", km))
                 } else if let m = interval.recoveryDistanceM {
@@ -1583,32 +1589,32 @@ private struct RedesignedSegmentsView: View {
 
                         if seg.subDetail != nil {
                             // F12: 2 行版型（有 subDetail 時使用）
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: 3) {
                                 HStack {
                                     Text(seg.label)
-                                        .font(.system(size: 12, weight: .bold))
+                                        .font(.system(size: 14, weight: .bold))
                                         .foregroundColor(.primary)
                                     Spacer()
                                     if let reps = seg.reps {
                                         Text(reps)
-                                            .font(.system(size: 12, weight: .bold))
+                                            .font(.system(size: 13, weight: .bold))
                                             .foregroundColor(.primary)
                                     }
                                 }
                                 HStack(spacing: 4) {
                                     if !seg.detail.isEmpty {
                                         Text(seg.detail)
-                                            .font(.system(size: 11, weight: .semibold).monospacedDigit())
+                                            .font(.system(size: 13, weight: .semibold).monospacedDigit())
                                             .foregroundColor(.secondary)
                                     }
                                     if let sub = seg.subDetail {
                                         if !seg.detail.isEmpty {
                                             Text("·")
-                                                .font(.system(size: 11))
+                                                .font(.system(size: 13))
                                                 .foregroundColor(.secondary)
                                         }
                                         Text(sub)
-                                            .font(.system(size: 11, weight: .semibold))
+                                            .font(.system(size: 13, weight: .semibold))
                                             .foregroundColor(.secondary)
                                     }
                                     Spacer()
@@ -1617,16 +1623,16 @@ private struct RedesignedSegmentsView: View {
                         } else {
                             // 單行版型（原有）
                             Text(seg.label)
-                                .font(.system(size: 12, weight: .bold))
+                                .font(.system(size: 14, weight: .bold))
                                 .foregroundColor(.primary)
-                                .frame(minWidth: 56, alignment: .leading)
+                                .frame(minWidth: 64, alignment: .leading)
                             Text(seg.detail)
-                                .font(.system(size: 12, weight: .bold).monospacedDigit())
+                                .font(.system(size: 13, weight: .bold).monospacedDigit())
                                 .foregroundColor(.secondary)
                             Spacer()
                             if let reps = seg.reps {
                                 Text(reps)
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(.system(size: 13, weight: .bold))
                                     .foregroundColor(.secondary)
                             }
                         }

@@ -62,6 +62,7 @@ enum UITestMethodologyHarness {
 struct UITestMethodologyHostView: View {
     @State private var selectedScreen: UITestMethodologyScreen
     @State private var viewModel = DependencyContainer.shared.makeTrainingPlanV2ViewModel()
+    @State private var harnessDestination: WorkoutDetailDestination?
 
     init() {
         _selectedScreen = State(initialValue: UITestMethodologyHarness.state.context?.initialScreen ?? .weekly)
@@ -91,6 +92,14 @@ struct UITestMethodologyHostView: View {
                     .background(Color(UIColor.systemGroupedBackground))
                 } else {
                     errorView(message: "Methodology harness has no fixture context.")
+                }
+            }
+            .navigationDestination(item: $harnessDestination) { dest in
+                switch dest.kind {
+                case .history(let workout):
+                    WorkoutDetailViewV2(workout: workout)
+                case .planned(let day, let date):
+                    PlannedSessionDetailView(day: day, date: date)
                 }
             }
             .navigationTitle("Methodology Harness")
@@ -138,7 +147,13 @@ struct UITestMethodologyHostView: View {
                     VStack(spacing: 24) {
                         TrainingProgressCardV2(viewModel: viewModel, plan: weekly)
                         WeekOverviewCardV2(viewModel: viewModel, plan: weekly)
-                        WeekTimelineViewV2(viewModel: viewModel, plan: weekly)
+                        WeekTimelineViewV2(
+                            viewModel: viewModel,
+                            plan: weekly,
+                            onDestinationSelect: { dest in
+                                harnessDestination = dest
+                            }
+                        )
                     }
                     .padding(.horizontal)
                     .padding(.bottom, 24)

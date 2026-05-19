@@ -34,6 +34,10 @@ struct TrainingPlanV2View: View {
     @State private var raceHeaderVM: RaceHeaderViewModelV2?
     @State private var modeHeaderVM: TrainingModeHeaderViewModelV2?
 
+    // Navigation destination for day card taps (history or planned session).
+    // Must live here — attaching .navigationDestination inside ScrollView causes silent fail in SwiftUI.
+    @State private var workoutDetailDestination: WorkoutDetailDestination?
+
     // MARK: - Initialization
 
     init(viewModel: TrainingPlanV2ViewModel? = nil) {
@@ -141,7 +145,13 @@ struct TrainingPlanV2View: View {
                         WeekOverviewCardV2(viewModel: viewModel, plan: weeklyPlan)
 
                         // 3️⃣ 週時間軸
-                        WeekTimelineViewV2(viewModel: viewModel, plan: weeklyPlan)
+                        WeekTimelineViewV2(
+                            viewModel: viewModel,
+                            plan: weeklyPlan,
+                            onDestinationSelect: { dest in
+                                workoutDetailDestination = dest
+                            }
+                        )
 
 
                     case .noWeeklyPlan:
@@ -435,6 +445,14 @@ struct TrainingPlanV2View: View {
                 }
             }
         } // ZStack
+        .navigationDestination(item: $workoutDetailDestination) { dest in
+            switch dest.kind {
+            case .history(let workout):
+                WorkoutDetailViewV2(workout: workout)
+            case .planned(let day, let date):
+                PlannedSessionDetailView(day: day, date: date)
+            }
+        }
         }
         .sheet(isPresented: $showWeekSelector) {
             WeekSelectorSheetV2(
