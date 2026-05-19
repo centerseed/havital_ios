@@ -85,42 +85,49 @@ struct WorkoutV2RowView: View {
     // MARK: - Body
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            // Subtle radial gradient corner accent
-            RadialGradient(
-                gradient: Gradient(colors: [typeColor.opacity(0.12), Color.clear]),
-                center: .topLeading,
-                startRadius: 0,
-                endRadius: 80
-            )
-            .frame(width: 80, height: 80)
-            .allowsHitTesting(false)
+        HStack(spacing: 0) {
+            // Left accent bar — type color (Android parity)
+            Rectangle()
+                .fill(typeColor)
+                .frame(width: 5)
 
-            VStack(alignment: .leading, spacing: 0) {
-                // Row 1: type chip + time label + VDOT pill
-                topRow
+            ZStack(alignment: .topLeading) {
+                // Subtle radial gradient corner accent
+                RadialGradient(
+                    gradient: Gradient(colors: [typeColor.opacity(0.10), Color.clear]),
+                    center: .topLeading,
+                    startRadius: 0,
+                    endRadius: 80
+                )
+                .frame(width: 80, height: 80)
+                .allowsHitTesting(false)
 
-                Spacer().frame(height: 14)
+                VStack(alignment: .leading, spacing: 0) {
+                    // Row 1: type chip + time label + VDOT pill
+                    topRow
 
-                // Row 2: hero distance (left) + pace/time (right)
-                heroRow
+                    Spacer().frame(height: 14)
 
-                Spacer().frame(height: 12)
+                    // Row 2: hero distance (left) + pace/time (right)
+                    heroRow
 
-                // Hairline separator
-                Divider()
-                    .background(Color.secondary.opacity(0.2))
+                    Spacer().frame(height: 12)
 
-                Spacer().frame(height: 10)
+                    // Hairline separator
+                    Divider()
+                        .background(Color.secondary.opacity(0.2))
 
-                // Row 3: footer chips
-                footerRow
+                    Spacer().frame(height: 10)
+
+                    // Row 3: footer chips
+                    footerRow
+                }
+                .padding(.top, 14)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
             }
-            .padding(.top, 14)
-            .padding(.horizontal, 16)
-            .padding(.bottom, 12)
+            .background(Color(.secondarySystemGroupedBackground))
         }
-        .background(Color(.secondarySystemGroupedBackground))
         .cornerRadius(12)
         .clipped()
     }
