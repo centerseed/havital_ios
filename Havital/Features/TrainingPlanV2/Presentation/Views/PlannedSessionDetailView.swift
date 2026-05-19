@@ -201,21 +201,10 @@ struct PlannedSessionDetailView: View {
     private var intervalHeroMetrics: some View {
         Group {
             if let run = day.primaryRunActivity, let interval = run.interval {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("間歇架構").font(.system(size: 10, weight: .heavy)).tracking(0.06).foregroundColor(.white.opacity(0.85))
-                    HStack(alignment: .lastTextBaseline, spacing: 8) {
-                        Text("\(interval.repeats) × \(workDistanceLabel(interval))")
-                            .font(.system(size: 32, weight: .heavy).monospacedDigit()).tracking(-0.03).foregroundColor(.white)
-                        Text("衝刺").font(.system(size: 11, weight: .bold)).foregroundColor(.white.opacity(0.7))
-                    }
-
-                    if let pace = interval.workPace {
-                        HStack(alignment: .lastTextBaseline, spacing: 4) {
-                            Text("配速").font(.system(size: 11, weight: .bold)).foregroundColor(.white.opacity(0.7))
-                            Text(pace).font(.system(size: 20, weight: .heavy).monospacedDigit()).tracking(-0.03).foregroundColor(.white)
-                            Text("/km").font(.system(size: 11, weight: .bold)).foregroundColor(.white.opacity(0.7))
-                        }
-                    }
+                HStack(alignment: .lastTextBaseline, spacing: 10) {
+                    Text("\(interval.repeats) × \(workDistanceLabel(interval))")
+                        .font(.system(size: 36, weight: .heavy).monospacedDigit()).tracking(-0.03).foregroundColor(.white)
+                    Text("衝刺").font(.system(size: 13, weight: .bold)).foregroundColor(.white.opacity(0.7))
                 }
             }
         }
