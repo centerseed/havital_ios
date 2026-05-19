@@ -21,6 +21,7 @@ struct WorkoutV2RowView: View {
     var vdotDelta: Double? = nil
 
     @Environment(\.colorScheme) var colorScheme
+    @ObservedObject private var unitManager = UnitManager.shared
 
     // MARK: - Derived values
 
@@ -38,16 +39,32 @@ struct WorkoutV2RowView: View {
         return workout.activityType.workoutTypeDisplayName()
     }
 
-    private var distanceKmString: String {
+    private var distanceValueString: String {
         guard let meters = workout.distanceMeters, meters > 0 else { return "-" }
-        return String(format: "%.1f", meters / 1000.0)
+        let km = meters / 1000.0
+        let converted = unitManager.convertedDistance(km)
+        return String(format: "%.1f", converted)
     }
 
-    private var paceString: String {
+    private var distanceUnitString: String {
+        unitManager.currentUnitSystem.distanceSuffix
+    }
+
+    /// Pace value without suffix (e.g. "5:58"). Unit is rendered separately
+    /// via `paceUnitString` so font weight/color can differ.
+    private var paceValueString: String {
         guard let secondsPerKm = workout.displayPaceSecondsPerKm else { return "--:--" }
-        let minutes = Int(secondsPerKm) / 60
-        let seconds = Int(secondsPerKm) % 60
-        return String(format: "%d:%02d", minutes, seconds)
+        let converted: Double
+        switch unitManager.currentUnitSystem {
+        case .metric: converted = secondsPerKm
+        case .imperial: converted = secondsPerKm * 1.60934
+        }
+        let rounded = Int(converted.rounded())
+        return String(format: "%d:%02d", rounded / 60, rounded % 60)
+    }
+
+    private var paceUnitString: String {
+        unitManager.currentUnitSystem.paceSuffix  // "/km" or "/mi"
     }
 
     private var durationString: String {
@@ -166,14 +183,14 @@ struct WorkoutV2RowView: View {
         HStack(alignment: .bottom, spacing: 0) {
             // Left: large distance
             HStack(alignment: .lastTextBaseline, spacing: 3) {
-                Text(distanceKmString)
-                    .font(.system(size: 40, weight: .heavy).monospacedDigit())
+                Text(distanceValueString)
+                    .font(.system(size: 36, weight: .heavy).monospacedDigit())
                     .foregroundColor(.primary)
                     .lineLimit(1)
                     .fixedSize()
-                Text("km")
+                Text(distanceUnitString)
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(Color(UIColor.tertiaryLabel))
+                    .foregroundColor(Color(UIColor.secondaryLabel))
                     .lineLimit(1)
             }
 
@@ -182,8 +199,8 @@ struct WorkoutV2RowView: View {
             // Right: pace + time stacked
             HStack(alignment: .bottom, spacing: 18) {
                 metricColumn(
-                    value: paceString,
-                    unit: "/km",
+                    value: paceValueString,
+                    unit: paceUnitString,
                     label: NSLocalizedString("common.pace", comment: "配速")
                 )
                 metricColumn(
@@ -245,13 +262,17 @@ struct WorkoutV2RowView: View {
         let isGarminDevice = (workout.deviceName?.lowercased().contains("garmin") ?? false) ||
                              (workout.deviceName?.lowercased().contains("forerunner") ?? false)
 
-        if isStravaProvider {
-            ConditionalStravaAttributionView(dataProvider: workout.provider, displayStyle: .compact)
-        } else if isGarminProvider || isGarminDevice {
-            GarminAttributionView(deviceModel: nil, displayStyle: .compact)
-        } else {
-            AppleHealthAttributionView(displayStyle: .compact)
+        Group {
+            if isStravaProvider {
+                ConditionalStravaAttributionView(dataProvider: workout.provider, displayStyle: .compact)
+            } else if isGarminProvider || isGarminDevice {
+                GarminAttributionView(deviceModel: nil, displayStyle: .compact)
+            } else {
+                AppleHealthAttributionView(displayStyle: .compact)
+            }
         }
+        .scaleEffect(0.82, anchor: .trailing)
+        .padding(.trailing, -4)  // compensate for shrink-induced gap
     }
 
     // MARK: - Static helpers
