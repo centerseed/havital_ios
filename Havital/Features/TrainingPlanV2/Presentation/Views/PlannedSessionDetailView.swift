@@ -216,43 +216,9 @@ struct PlannedSessionDetailView: View {
                             Text("/km").font(.system(size: 11, weight: .bold)).foregroundColor(.white.opacity(0.7))
                         }
                     }
-
-                    Divider().background(Color.white.opacity(0.18)).padding(.top, 10)
-
-                    HStack(spacing: 8) {
-                        if let warmup = day.session?.warmup {
-                            intervalBookendLabel(icon: "🔥", text: segmentDistanceString(warmup) ?? "")
-                            dotSeparator
-                        }
-                        if let recoverPace = interval.recoveryPace {
-                            intervalBookendLabel(icon: "🔄", text: recoverPace + "/km")
-                            dotSeparator
-                        } else if let recoverSec = interval.recoveryDurationSeconds {
-                            intervalBookendLabel(icon: "🔄", text: "\(recoverSec)秒")
-                            dotSeparator
-                        }
-                        if let cooldown = day.session?.cooldown {
-                            intervalBookendLabel(icon: "🌀", text: segmentDistanceString(cooldown) ?? "")
-                        }
-                    }
-                    .foregroundColor(.white.opacity(0.85))
-                    .padding(.top, 2)
                 }
             }
         }
-    }
-
-    @ViewBuilder
-    private func intervalBookendLabel(icon: String, text: String) -> some View {
-        Label {
-            Text(text).font(.system(size: 10.5, weight: .bold).monospacedDigit())
-        } icon: {
-            Text(icon).font(.system(size: 10.5))
-        }
-    }
-
-    private var dotSeparator: some View {
-        Text("·").font(.system(size: 10)).foregroundColor(.white.opacity(0.4))
     }
 
     @ViewBuilder
@@ -652,12 +618,12 @@ struct PlannedSessionDetailView: View {
         // Interval → 訓練負荷 (TSS estimated); Progression/FastFinish add end-pace pill (already added above as separate pace); others → 預估時間
         switch day.type {
         case .interval, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
-            // Estimated TSS for interval: roughly repeats × workDistance-based calc, show as placeholder if no data
-            if let interval = run.interval {
-                let estimatedTSS = interval.repeats * 17  // rough: each 800m rep ~17 TSS
-                pills.append(TargetZonePillData(label: "訓練負荷", value: "\(estimatedTSS)", unit: "TSS", isDanger: false))
-            } else if let mins = run.durationMinutes {
-                pills.append(TargetZonePillData(label: "預估時間", value: "\(mins)", unit: "分", isDanger: false))
+            // Pill 4: 目標心率 — prefer real HR bpm range, fall back to inferred zone label
+            if let hr = run.heartRateRange, hr.isValid, let hrText = hr.displayText {
+                pills.append(TargetZonePillData(label: "目標心率", value: hrText, unit: "bpm", isDanger: true))
+            } else {
+                let zone = inferredHRZone(for: day.type)
+                pills.append(TargetZonePillData(label: "目標心率", value: zone, unit: "", isDanger: false))
             }
         case .progression:
             // Add end-pace pill from last segment
