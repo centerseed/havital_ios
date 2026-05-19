@@ -228,18 +228,10 @@ struct WeekOverviewCardV2: View {
         .padding(14)
         // MARK: PACERIZ REDESIGN 2026-05 — gradient "暈開" per design jsx L373
         // F7: faster transition — 2-stop, white at 50%
+        // 2026-05-19: adaptive dark mode — white glow + secondarySystemGroupedBackground (consistent with DayCard)
         .background(
             RoundedRectangle(cornerRadius: PacerizRadius.card)
-                .fill(
-                    LinearGradient(
-                        stops: [
-                            .init(color: PacerizColor.blue.opacity(0.14), location: 0.0),
-                            .init(color: Color(UIColor.tertiarySystemBackground), location: 0.5)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+                .fill(adaptiveCardGradient(for: colorScheme))
                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
         .accessibilityIdentifier("v2.weekly.overview_card")
@@ -259,6 +251,30 @@ struct WeekOverviewCardV2: View {
     }
 
     // MARK: - Private Helpers
+
+    private func adaptiveCardGradient(for colorScheme: ColorScheme) -> LinearGradient {
+        if colorScheme == .dark {
+            // Dark mode: white glow top-left → secondarySystemGroupedBackground (consistent with DayCard)
+            return LinearGradient(
+                stops: [
+                    .init(color: Color.white.opacity(0.10), location: 0.0),
+                    .init(color: Color(UIColor.secondarySystemGroupedBackground), location: 0.5)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            // Light mode: blue glow top-left → secondarySystemGroupedBackground (consistent with DayCard)
+            return LinearGradient(
+                stops: [
+                    .init(color: PacerizColor.blue.opacity(0.14), location: 0.0),
+                    .init(color: Color(UIColor.secondarySystemGroupedBackground), location: 0.5)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
 
     @ViewBuilder
     private func badgeStatusChip() -> some View {

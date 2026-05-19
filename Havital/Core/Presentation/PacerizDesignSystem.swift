@@ -148,9 +148,13 @@ struct PRSegmentedIntensityBar: View {
             let highW = width * CGFloat(high) / CGFloat(denom)
 
             ZStack(alignment: .leading) {
-                // Background track
+                // Background track — adaptive: white 12% in dark mode, black 8% in light mode
                 RoundedRectangle(cornerRadius: barHeight / 2)
-                    .fill(Color.black.opacity(0.06))
+                    .fill(Color(UIColor { trait in
+                        trait.userInterfaceStyle == .dark
+                            ? UIColor.white.withAlphaComponent(0.12)
+                            : UIColor.black.withAlphaComponent(0.08)
+                    }))
                     .frame(height: barHeight)
 
                 // Filled segments

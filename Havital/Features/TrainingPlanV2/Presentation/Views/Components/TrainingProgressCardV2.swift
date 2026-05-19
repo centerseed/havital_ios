@@ -143,7 +143,7 @@ struct TrainingProgressCardV2: View {
                 }()
                 ForEach(boundaries.indices, id: \.self) { i in
                     Rectangle()
-                        .fill(Color.white)
+                        .fill(Color(UIColor.tertiarySystemBackground))
                         .frame(width: 2, height: 12)
                         .cornerRadius(1)
                         .offset(x: barWidth * boundaries[i] - 1, y: 0)
