@@ -186,6 +186,7 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
                             ),
                             storySummary: current.storySummary,
                             badgeGroups: current.badgeGroups,
+                            achievementTracks: current.achievementTracks,
                             pbOverview: current.pbOverview,
                             lifetimeStats: current.lifetimeStats,
                             insights: current.insights,
