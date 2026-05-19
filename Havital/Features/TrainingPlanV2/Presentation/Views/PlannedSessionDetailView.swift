@@ -10,44 +10,38 @@ import SwiftUI
 struct PlannedSessionDetailView: View {
     let day: DayDetail
     let date: Date?
-    @Environment(\.dismiss) private var dismiss
     @State private var showTrainingTypeInfo = false
     @AppStorage("climateAdjustmentEnabled") private var climateAdjustmentEnabled = false
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 0) {
-                    heroCard.padding(.horizontal, 16).padding(.top, 12)
-                    coachIntentCard.padding(.horizontal, 16).padding(.top, 12)
-                    structureSectionIfNeeded.padding(.horizontal, 16).padding(.top, 12)
-                    targetZonesSection.padding(.horizontal, 16).padding(.top, 12)
-                    supplementarySection.padding(.horizontal, 16).padding(.top, 12)
-                    climateSection.padding(.horizontal, 16).padding(.top, 12)
-                    secondaryButtons.padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 8)
+        ScrollView {
+            VStack(spacing: 0) {
+                heroCard.padding(.horizontal, 16).padding(.top, 12)
+                coachIntentCard.padding(.horizontal, 16).padding(.top, 12)
+                structureSectionIfNeeded.padding(.horizontal, 16).padding(.top, 12)
+                targetZonesSection.padding(.horizontal, 16).padding(.top, 12)
+                supplementarySection.padding(.horizontal, 16).padding(.top, 12)
+                climateSection.padding(.horizontal, 16).padding(.top, 12)
+                secondaryButtons.padding(.horizontal, 16).padding(.top, 14).padding(.bottom, 8)
 
-                    Color.clear.frame(height: 80)
-                }
+                Color.clear.frame(height: 80)
             }
-            .background(Color(UIColor.systemGroupedBackground))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    VStack(spacing: 2) {
-                        if let date {
-                            Text("\(weekdayString(date)) · \(shortDateString(date))")
-                                .font(.system(size: 11, weight: .bold)).foregroundColor(.secondary)
-                        }
-                        Text("訓練詳情").font(.system(size: 15, weight: .heavy)).kerning(-0.01)
+        }
+        .background(Color(UIColor.systemGroupedBackground))
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                VStack(spacing: 2) {
+                    if let date {
+                        Text("\(weekdayString(date)) · \(shortDateString(date))")
+                            .font(.system(size: 11, weight: .bold)).foregroundColor(.secondary)
                     }
-                }
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button { dismiss() } label: { Image(systemName: "chevron.left").foregroundColor(.primary) }
+                    Text("訓練詳情").font(.system(size: 15, weight: .heavy)).kerning(-0.01)
                 }
             }
-            .overlay(alignment: .bottom) {
-                startTodayButton
-            }
+        }
+        .overlay(alignment: .bottom) {
+            startTodayButton
         }
         .sheet(isPresented: $showTrainingTypeInfo) {
             if let info = TrainingTypeInfo.info(for: day.type) {
@@ -61,8 +55,10 @@ struct PlannedSessionDetailView: View {
     private enum WorkoutMeta {
         static func accentColor(for type: DayType) -> Color {
             switch type {
-            case .easyRun, .easy, .recovery_run, .lsd:
+            case .easyRun, .easy, .recovery_run:
                 return PacerizColor.green
+            case .lsd:
+                return PacerizColor.blue
             case .interval, .tempo, .progression, .threshold, .combination,
                  .strides, .hillRepeats, .cruiseIntervals, .shortInterval,
                  .longInterval, .norwegian4x4, .yasso800:
@@ -83,7 +79,7 @@ struct PlannedSessionDetailView: View {
             "easy":           ("EASY · Z2",            "輕鬆跑"),
             "easyRun":        ("EASY · Z2",            "輕鬆跑"),
             "recovery_run":   ("EASY · Z2",            "恢復跑"),
-            "lsd":            ("LONG · Z2-Z3",         "長距離 LSD"),
+            "lsd":            ("LONG · Z2-Z3",         "長距離"),
             "interval":       ("INTERVAL · Z4",        "間歇訓練"),
             "tempo":          ("TEMPO · Z3-Z4",        "節奏跑"),
             "threshold":      ("THRESHOLD · Z4",       "閾值跑"),
@@ -283,13 +279,22 @@ struct PlannedSessionDetailView: View {
 
     private var coachIntentCard: some View {
         let accentColor = typeAccentColor
-        let goalText = day.session.map { session -> String in
-            switch session.primary {
-            case .run(let r): return r.description ?? day.dayTarget
-            case .strength(let s): return s.description ?? day.dayTarget
-            case .cross(let c): return c.description ?? day.dayTarget
-            }
-        } ?? day.dayTarget
+        // Priority: day.reason (coach annotation) → day.dayTarget → activity description
+        let reasonText = day.reason.isEmpty ? nil : day.reason
+        let goalText: String
+        if let reason = reasonText {
+            goalText = reason
+        } else if !day.dayTarget.isEmpty {
+            goalText = day.dayTarget
+        } else {
+            goalText = day.session.map { session -> String in
+                switch session.primary {
+                case .run(let r): return r.description ?? ""
+                case .strength(let s): return s.description ?? ""
+                case .cross(let c): return c.description ?? ""
+                }
+            } ?? ""
+        }
 
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
@@ -487,10 +492,53 @@ struct PlannedSessionDetailView: View {
         let isDanger: Bool
     }
 
+    // Infer heart-rate zone string from run type (used when no explicit HR data is present).
+    private func inferredHRZone(for type: DayType) -> String {
+        switch type {
+        case .easy, .easyRun, .recovery_run:
+            return "Z2"
+        case .lsd, .longRun:
+            return "Z2-Z3"
+        case .tempo, .cruiseIntervals, .fastFinish:
+            return "Z3-Z4"
+        case .threshold, .progression:
+            return "Z4"
+        case .interval, .shortInterval, .longInterval, .norwegian4x4, .yasso800, .strides, .hillRepeats:
+            return "Z4-Z5"
+        case .race, .racePace:
+            return "Z5"
+        default:
+            return "Z2-Z3"
+        }
+    }
+
+    // Infer RPE (1-10) from run type (used when targetIntensity is nil).
+    private func inferredRPE(for type: DayType) -> String {
+        switch type {
+        case .easy, .easyRun, .recovery_run:
+            return "3"
+        case .lsd, .longRun:
+            return "4-5"
+        case .fastFinish:
+            return "4-7"
+        case .tempo, .cruiseIntervals:
+            return "6"
+        case .threshold, .progression:
+            return "7"
+        case .interval, .shortInterval, .longInterval, .norwegian4x4, .yasso800, .strides, .hillRepeats:
+            return "8"
+        case .race, .racePace:
+            return "9"
+        default:
+            return "5"
+        }
+    }
+
     private func buildTargetZonePills() -> [TargetZonePillData] {
         guard let run = day.primaryRunActivity else { return [] }
         var pills: [TargetZonePillData] = []
 
+        // Pill 1: pace (label varies by type)
         if let interval = run.interval {
             if let pace = interval.workPace {
                 pills.append(TargetZonePillData(label: "衝刺配速", value: pace, unit: "/km", isDanger: false))
@@ -508,12 +556,19 @@ struct PlannedSessionDetailView: View {
             pills.append(TargetZonePillData(label: paceLabel, value: pace, unit: "/km", isDanger: false))
         }
 
+        // Pill 2: heart-rate zone — prefer explicit HR range, fall back to inferred zone string
         if let hr = run.heartRateRange, hr.isValid, let hrText = hr.displayText {
             pills.append(TargetZonePillData(label: "目標心率", value: hrText, unit: "bpm", isDanger: true))
+        } else {
+            let zone = inferredHRZone(for: day.type)
+            pills.append(TargetZonePillData(label: "心率區間", value: zone, unit: "", isDanger: false))
         }
-        if let intensity = run.targetIntensity {
-            pills.append(TargetZonePillData(label: "體感", value: intensity, unit: "/10", isDanger: false))
-        }
+
+        // Pill 3: RPE — prefer explicit targetIntensity, fall back to inferred
+        let rpeValue = run.targetIntensity ?? inferredRPE(for: day.type)
+        pills.append(TargetZonePillData(label: "體感 RPE", value: rpeValue, unit: "/10", isDanger: false))
+
+        // Pill 4: estimated duration (always available for run activities)
         if let mins = run.durationMinutes {
             pills.append(TargetZonePillData(label: "預估時間", value: "\(mins)", unit: "分", isDanger: false))
         }
@@ -703,38 +758,42 @@ private struct ClimateTipCard: View {
 // MARK: - Preview
 
 #Preview {
-    PlannedSessionDetailView(
-        day: DayDetail(
-            dayIndex: 3,
-            dayTarget: "建立有氧基礎，幫助身體恢復並適應週初強度。",
-            reason: "easy day",
-            tips: nil,
-            category: .run,
-            climateMeta: nil,
-            session: TrainingSession(
-                warmup: nil,
-                primary: .run(RunActivity(
-                    runType: "easy",
-                    distanceKm: 6.0,
-                    distanceDisplay: nil,
-                    distanceUnit: nil,
-                    paceUnit: nil,
-                    durationMinutes: 36,
-                    durationSeconds: nil,
-                    pace: "6:00",
-                    basePace: nil,
-                    climateAdjustedPace: nil,
-                    heartRateRange: HeartRateRangeV2(min: 138, max: 148),
-                    interval: nil,
-                    segments: nil,
-                    description: nil,
-                    targetIntensity: "3",
-                    climateMeta: nil
-                )),
-                cooldown: nil,
-                supplementary: nil
-            )
-        ),
-        date: Date()
-    )
+    // NavigationStack is required because PlannedSessionDetailView uses .toolbar and
+    // .navigationBarTitleDisplayMode which rely on the parent NavigationStack environment.
+    NavigationStack {
+        PlannedSessionDetailView(
+            day: DayDetail(
+                dayIndex: 3,
+                dayTarget: "建立有氧基礎，幫助身體恢復並適應週初強度。",
+                reason: "easy day",
+                tips: nil,
+                category: .run,
+                climateMeta: nil,
+                session: TrainingSession(
+                    warmup: nil,
+                    primary: .run(RunActivity(
+                        runType: "easy",
+                        distanceKm: 6.0,
+                        distanceDisplay: nil,
+                        distanceUnit: nil,
+                        paceUnit: nil,
+                        durationMinutes: 36,
+                        durationSeconds: nil,
+                        pace: "6:00",
+                        basePace: nil,
+                        climateAdjustedPace: nil,
+                        heartRateRange: HeartRateRangeV2(min: 138, max: 148),
+                        interval: nil,
+                        segments: nil,
+                        description: nil,
+                        targetIntensity: "3",
+                        climateMeta: nil
+                    )),
+                    cooldown: nil,
+                    supplementary: nil
+                )
+            ),
+            date: Date()
+        )
+    }
 }
