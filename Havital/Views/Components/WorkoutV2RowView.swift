@@ -106,25 +106,19 @@ struct WorkoutV2RowView: View {
                     // Row 1: type chip + time label + VDOT pill
                     topRow
 
-                    Spacer().frame(height: 14)
+                    Spacer().frame(height: 10)
 
                     // Row 2: hero distance (left) + pace/time (right)
                     heroRow
 
-                    Spacer().frame(height: 12)
+                    Spacer().frame(height: 8)
 
-                    // Hairline separator
-                    Divider()
-                        .background(Color.secondary.opacity(0.2))
-
-                    Spacer().frame(height: 10)
-
-                    // Row 3: footer chips
+                    // Row 3: footer chips (与课表匹配 + source attribution)
                     footerRow
                 }
-                .padding(.top, 14)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 12)
+                .padding(.top, 12)
+                .padding(.horizontal, 14)
+                .padding(.bottom, 10)
             }
             .background(Color(.secondarySystemGroupedBackground))
         }
@@ -191,12 +185,12 @@ struct WorkoutV2RowView: View {
             // Left: large distance
             HStack(alignment: .lastTextBaseline, spacing: 3) {
                 Text(distanceValueString)
-                    .font(.system(size: 36, weight: .heavy).monospacedDigit())
+                    .font(.system(size: 30, weight: .heavy).monospacedDigit())
                     .foregroundColor(.primary)
                     .lineLimit(1)
                     .fixedSize()
                 Text(distanceUnitString)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 13, weight: .bold))
                     .foregroundColor(Color(UIColor.secondaryLabel))
                     .lineLimit(1)
             }
@@ -204,7 +198,7 @@ struct WorkoutV2RowView: View {
             Spacer()
 
             // Right: pace + time stacked
-            HStack(alignment: .bottom, spacing: 18) {
+            HStack(alignment: .bottom, spacing: 16) {
                 metricColumn(
                     value: paceValueString,
                     unit: paceUnitString,
