@@ -1287,6 +1287,16 @@ struct UserProfileView: View {
                 }
             }
 
+            NavigationLink {
+                WorkoutRecapPreviewView()
+            } label: {
+                HStack {
+                    Image(systemName: "sparkles")
+                        .foregroundColor(.blue)
+                    Text("訓練回顧 Recap Preview")
+                }
+            }
+
             Divider()
 
             Button {

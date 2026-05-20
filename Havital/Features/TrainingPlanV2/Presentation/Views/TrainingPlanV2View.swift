@@ -38,6 +38,11 @@ struct TrainingPlanV2View: View {
     // Must live here — attaching .navigationDestination inside ScrollView causes silent fail in SwiftUI.
     @State private var workoutDetailDestination: WorkoutDetailDestination?
 
+    #if DEBUG
+    // Debug 選單「觸發訓練回顧」用：本地 sheet 呈現，避開 InterruptCoordinator 跨視圖 race。
+    @State private var debugRecapContent: WorkoutRecapContent?
+    #endif
+
     // MARK: - Initialization
 
     init(viewModel: TrainingPlanV2ViewModel? = nil) {
@@ -312,6 +317,16 @@ struct TrainingPlanV2View: View {
                                 Label("🐛 產生週回顧", systemImage: "note.text.badge.plus")
                             }
 
+                            Button(action: {
+                                Task {
+                                    let content = await WorkoutRecapCoordinator.shared.debugLatestContent()
+                                    await MainActor.run { debugRecapContent = content }
+                                }
+                            }) {
+                                Label("🐛 觸發訓練回顧", systemImage: "sparkles")
+                            }
+                            .accessibilityIdentifier("TrainingPlan_Debug_WorkoutRecap")
+
                             Button(role: .destructive, action: {
                                 Task {
                                     await viewModel.debugDeleteCurrentWeekPlan()
@@ -344,6 +359,11 @@ struct TrainingPlanV2View: View {
             .sheet(isPresented: $showPlanOverview) {
                 PlanOverviewSheetV2(viewModel: viewModel)
             }
+            #if DEBUG
+            .sheet(item: $debugRecapContent) { content in
+                WorkoutRecapView(content: content)
+            }
+            #endif
             .sheet(isPresented: $showMessageCenter) {
                 NavigationStack {
                     MessageCenterView(viewModel: announcementViewModel)
