@@ -28,11 +28,11 @@ struct TrainingProgressCardV2: View {
                         let stageColor = stageColorFor(week: plan.effectiveWeek, stages: overview.trainingStages)
 
                         Image(systemName: "chart.line.uptrend.xyaxis")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(AppFont.bodyStrong())
                             .foregroundColor(stageColor)
 
                         Text(currentStage.stageName)
-                            .font(.system(size: 17, weight: .bold))
+                            .font(AppFont.titleM())
                             .foregroundColor(.primary)
 
                         PRChip(
@@ -44,18 +44,18 @@ struct TrainingProgressCardV2: View {
                     } else {
                         // PHASE-fallback: planOverview nil → show generic title, no crash
                         Image(systemName: "chart.line.uptrend.xyaxis")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(AppFont.bodyStrong())
                             .foregroundColor(.blue)
 
                         Text(NSLocalizedString("training.progress", comment: "Training Progress"))
-                            .font(.system(size: 17, weight: .bold))
+                            .font(AppFont.titleM())
                             .foregroundColor(.primary)
                     }
 
                     Spacer()
 
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(AppFont.label())
                         .foregroundColor(.secondary)
                 }
 

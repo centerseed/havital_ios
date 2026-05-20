@@ -140,7 +140,7 @@ struct WeekOverviewCardV2: View {
                     HStack(spacing: 6) {
                         // F5.a: 16pt + blueDeep color, fixedSize ensures full display without truncation
                         Text(viewModel.displayBadge.map { NSLocalizedString($0.nameKey, comment: "") } ?? NSLocalizedString("training_plan.weekly_badge_placeholder_name", comment: "本週進度"))
-                            .font(.system(size: 16, weight: .bold))
+                            .font(AppFont.titleM())
                             .foregroundColor(PacerizColor.blueDeep)
                             .lineLimit(1)
                             .fixedSize(horizontal: true, vertical: false)
@@ -155,7 +155,7 @@ struct WeekOverviewCardV2: View {
                             .foregroundColor(.primary)
 
                         Text("/ \(String(format: "%.0f", unitManager.convertedDistance(plan.totalDistance))) \(unitManager.currentUnitSystem.distanceSuffix)")
-                            .font(.system(size: 14, weight: .semibold))
+                            .font(AppFont.label())
                             .foregroundColor(.secondary)
 
                         Spacer()
@@ -209,17 +209,17 @@ struct WeekOverviewCardV2: View {
                 }) {
                     HStack(spacing: 6) {
                         Image(systemName: "target")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(AppFont.bodyStrong())
                             .foregroundColor(PacerizColor.blue)
 
                         Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
-                            .font(.system(size: 15, weight: .bold))
+                            .font(AppFont.bodyStrong())
                             .foregroundColor(.primary)
 
                         Spacer()
 
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(AppFont.micro())
                             .foregroundColor(.secondary)
                     }
                     .padding(.horizontal, 12)
@@ -235,17 +235,17 @@ struct WeekOverviewCardV2: View {
                 }) {
                     HStack(spacing: 6) {
                         Image(systemName: "calendar")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(AppFont.bodyStrong())
                             .foregroundColor(PacerizColor.greenDeep)
 
                         Text(NSLocalizedString("training_plan.training_calendar", comment: "Training Calendar"))
-                            .font(.system(size: 15, weight: .bold))
+                            .font(AppFont.bodyStrong())
                             .foregroundColor(.primary)
 
                         Spacer()
 
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(AppFont.micro())
                             .foregroundColor(.secondary)
                     }
                     .padding(.horizontal, 12)

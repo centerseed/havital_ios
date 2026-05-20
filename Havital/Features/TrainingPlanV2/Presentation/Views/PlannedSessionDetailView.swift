@@ -33,9 +33,9 @@ struct PlannedSessionDetailView: View {
                 VStack(spacing: 2) {
                     if let date {
                         Text("\(weekdayString(date)) · \(shortDateString(date))")
-                            .font(.system(size: 11, weight: .bold)).foregroundColor(.secondary)
+                            .font(AppFont.micro()).foregroundColor(.secondary)
                     }
-                    Text("訓練詳情").font(.system(size: 15, weight: .heavy)).kerning(-0.01)
+                    Text("訓練詳情").font(AppFont.labelStrong()).kerning(-0.01)
                 }
             }
         }
@@ -140,9 +140,9 @@ struct PlannedSessionDetailView: View {
                 .shadow(color: accentColor.opacity(0.4), radius: 10, x: 0, y: 6)
 
             VStack(alignment: .leading, spacing: 0) {
-                Text(typeChipLabel).font(.system(size: 10.5, weight: .heavy)).tracking(0.06).foregroundColor(.white)
+                Text(typeChipLabel).font(AppFont.micro()).tracking(0.06).foregroundColor(.white)
                     .padding(.horizontal, 9).padding(.vertical, 3).background(Color.white.opacity(0.22)).clipShape(Capsule())
-                Text(workoutTypeName).font(.system(size: 28, weight: .heavy)).tracking(-0.02).foregroundColor(.white).padding(.top, 10)
+                Text(workoutTypeName).font(AppFont.numberLarge()).tracking(-0.02).foregroundColor(.white).padding(.top, 10)
 
                 Group {
                     switch heroVariant {
@@ -185,7 +185,7 @@ struct PlannedSessionDetailView: View {
                     Spacer()
                     HStack {
                         Text(label)
-                            .font(.system(size: 11, weight: .bold))
+                            .font(AppFont.micro())
                             .foregroundColor(.white.opacity(0.9))
                         Spacer()
                     }
@@ -203,8 +203,8 @@ struct PlannedSessionDetailView: View {
             if let run = day.primaryRunActivity, let interval = run.interval {
                 HStack(alignment: .lastTextBaseline, spacing: 10) {
                     Text("\(interval.repeats) × \(workDistanceLabel(interval))")
-                        .font(.system(size: 36, weight: .heavy).monospacedDigit()).tracking(-0.03).foregroundColor(.white)
-                    Text("衝刺").font(.system(size: 13, weight: .bold)).foregroundColor(.white.opacity(0.7))
+                        .font(AppFont.numberLarge().monospacedDigit()).tracking(-0.03).foregroundColor(.white)
+                    Text("衝刺").font(AppFont.micro()).foregroundColor(.white.opacity(0.7))
                 }
             }
         }
@@ -213,10 +213,10 @@ struct PlannedSessionDetailView: View {
     @ViewBuilder
     private func heroMetricColumn(title: String, value: String, unit: String?) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.system(size: 10, weight: .bold)).foregroundColor(.white.opacity(0.85))
+            Text(title).font(AppFont.micro()).foregroundColor(.white.opacity(0.85))
             HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text(value).font(.system(size: 26, weight: .heavy).monospacedDigit()).tracking(-0.03).foregroundColor(.white)
-                if let unit { Text(unit).font(.system(size: 11, weight: .bold)).foregroundColor(.white.opacity(0.85)) }
+                Text(value).font(AppFont.numberLarge().monospacedDigit()).tracking(-0.03).foregroundColor(.white)
+                if let unit { Text(unit).font(AppFont.micro()).foregroundColor(.white.opacity(0.85)) }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -249,10 +249,10 @@ struct PlannedSessionDetailView: View {
 
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
-                Image(systemName: "sparkles").font(.system(size: 14)).foregroundColor(accentColor)
-                Text("本次訓練目標").font(.system(size: 12, weight: .heavy)).tracking(0.04).foregroundColor(accentColor)
+                Image(systemName: "sparkles").font(AppFont.captionRegular()).foregroundColor(accentColor)
+                Text("本次訓練目標").font(AppFont.chip()).tracking(0.04).foregroundColor(accentColor)
             }
-            Text(goalText).font(.system(size: 13.5)).foregroundColor(.primary).lineSpacing(4).fixedSize(horizontal: false, vertical: true)
+            Text(goalText).font(AppFont.micro()).foregroundColor(.primary).lineSpacing(4).fixedSize(horizontal: false, vertical: true)
         }
         .padding(14).frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(UIColor.secondarySystemGroupedBackground)).cornerRadius(PacerizRadius.card)
@@ -381,8 +381,8 @@ struct PlannedSessionDetailView: View {
 
     private func sectionHeader(title: String, subtitle: String?) -> some View {
         HStack(alignment: .firstTextBaseline) {
-            Text(title).font(.system(size: 14, weight: .heavy)).foregroundColor(.primary)
-            if let subtitle { Text(subtitle).font(.system(size: 12, weight: .semibold)).foregroundColor(.secondary) }
+            Text(title).font(AppFont.chip()).foregroundColor(.primary)
+            if let subtitle { Text(subtitle).font(AppFont.micro()).foregroundColor(.secondary) }
             Spacer()
         }
     }
@@ -701,8 +701,8 @@ private struct SecondaryActionButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 6) {
-                Image(systemName: icon).font(.system(size: 14))
-                Text(label).font(.system(size: 13, weight: .bold))
+                Image(systemName: icon).font(AppFont.captionRegular())
+                Text(label).font(AppFont.micro())
             }
             .frame(maxWidth: .infinity)
             .frame(height: 40)
@@ -731,35 +731,35 @@ private struct DetailSegmentRow: View {
                             .strokeBorder(segment.isMain ? Color.clear : accentColor.opacity(0.55), lineWidth: 1.5)
                     )
                 Text("\(segment.index)")
-                    .font(.system(size: 13, weight: .heavy))
+                    .font(AppFont.chip())
                     .foregroundColor(segment.isMain ? .white : accentColor)
             }
             .frame(width: 28, height: 28)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(segment.label).font(.system(size: 14, weight: .heavy)).foregroundColor(.primary)
+                Text(segment.label).font(AppFont.chip()).foregroundColor(.primary)
                 HStack(spacing: 4) {
                     if let dist = segment.distance {
-                        Text(dist).font(.system(size: 11.5, weight: .semibold).monospacedDigit()).foregroundColor(.secondary)
+                        Text(dist).font(AppFont.micro().monospacedDigit()).foregroundColor(.secondary)
                     }
                     if let pace = segment.pace {
-                        Text("·").font(.system(size: 11)).foregroundColor(.secondary.opacity(0.4))
-                        Text(pace).font(.system(size: 11.5, weight: .semibold).monospacedDigit()).foregroundColor(.secondary)
+                        Text("·").font(AppFont.micro()).foregroundColor(.secondary.opacity(0.4))
+                        Text(pace).font(AppFont.micro().monospacedDigit()).foregroundColor(.secondary)
                     }
                     if let hr = segment.hr {
-                        Text("·").font(.system(size: 11)).foregroundColor(.secondary.opacity(0.4))
-                        Text(hr).font(.system(size: 11.5, weight: .semibold).monospacedDigit()).foregroundColor(.secondary)
+                        Text("·").font(AppFont.micro()).foregroundColor(.secondary.opacity(0.4))
+                        Text(hr).font(AppFont.micro().monospacedDigit()).foregroundColor(.secondary)
                     }
                 }
                 if let rest = segment.rest {
-                    Text("組間休息：\(rest)").font(.system(size: 11, weight: .semibold)).foregroundColor(.secondary.opacity(0.7))
+                    Text("組間休息：\(rest)").font(AppFont.micro()).foregroundColor(.secondary.opacity(0.7))
                 }
             }
 
             Spacer()
 
             if let reps = segment.reps {
-                Text("× \(reps)").font(.system(size: 13, weight: .heavy).monospacedDigit()).foregroundColor(.white)
+                Text("× \(reps)").font(AppFont.chip().monospacedDigit()).foregroundColor(.white)
                     .padding(.horizontal, 10).padding(.vertical, 4)
                     .background(accentColor).clipShape(Capsule())
                     .shadow(color: accentColor.opacity(0.55), radius: 3, x: 0, y: 2)
@@ -784,11 +784,11 @@ private struct TargetZonePill: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label).font(.system(size: 10, weight: .bold)).tracking(0.04).foregroundColor(.secondary)
+            Text(label).font(AppFont.micro()).tracking(0.04).foregroundColor(.secondary)
             HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text(value).font(.system(size: 18, weight: .heavy).monospacedDigit()).tracking(-0.02)
+                Text(value).font(AppFont.numberMedium().monospacedDigit()).tracking(-0.02)
                     .foregroundColor(isDanger ? PacerizColor.orange : accentColor)
-                Text(unit).font(.system(size: 10, weight: .bold)).foregroundColor(Color(.tertiaryLabel))
+                Text(unit).font(AppFont.micro()).foregroundColor(Color(.tertiaryLabel))
             }
         }
         .padding(.horizontal, 12).padding(.vertical, 10)
@@ -808,11 +808,11 @@ private struct ClimateTipCard: View {
         HStack(spacing: 10) {
             ZStack {
                 RoundedRectangle(cornerRadius: 10).fill(accentColor.opacity(0.12)).frame(width: 32, height: 32)
-                Image(systemName: "thermometer.sun").font(.system(size: 16)).foregroundColor(accentColor)
+                Image(systemName: "thermometer.sun").font(AppFont.bodyRegular()).foregroundColor(accentColor)
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text("提醒").font(.system(size: 12, weight: .heavy)).foregroundColor(.primary)
-                Text(meta.reasonText).font(.system(size: 11.5, weight: .semibold)).foregroundColor(.secondary)
+                Text("提醒").font(AppFont.chip()).foregroundColor(.primary)
+                Text(meta.reasonText).font(AppFont.micro()).foregroundColor(.secondary)
                     .lineLimit(3).fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
@@ -834,12 +834,12 @@ private struct WorkoutTipBox: View {
                 RoundedRectangle(cornerRadius: 10)
                     .fill(accentColor.opacity(0.12))
                     .frame(width: 32, height: 32)
-                Text(icon).font(.system(size: 16))
+                Text(icon).font(AppFont.bodyRegular())
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text("提醒").font(.system(size: 12, weight: .heavy)).foregroundColor(.primary)
+                Text("提醒").font(AppFont.chip()).foregroundColor(.primary)
                 Text(text)
-                    .font(.system(size: 11.5, weight: .semibold))
+                    .font(AppFont.micro())
                     .foregroundColor(.secondary)
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)

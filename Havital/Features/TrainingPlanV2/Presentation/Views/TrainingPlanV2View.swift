@@ -259,7 +259,7 @@ struct TrainingPlanV2View: View {
                                 .padding(.top, 4)
                             if announcementViewModel.unreadCount > 0 {
                                 Text(announcementViewModel.unreadCount > 99 ? "99+" : "\(announcementViewModel.unreadCount)")
-                                    .font(.system(size: 10, weight: .bold))
+                                    .font(AppFont.micro())
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 4)
                                     .padding(.vertical, 1)
@@ -1115,7 +1115,7 @@ private struct WeekSelectorSheetV2: View {
             // 本週標籤
             if week == viewModel.loader.currentWeek {
                 Text(NSLocalizedString("training.current_week_label", comment: "本週"))
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(AppFont.micro())
                     .foregroundColor(.white)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
@@ -1139,12 +1139,12 @@ private struct WeekSelectorSheetV2: View {
                             .frame(width: 36 * min(percent, 100) / 100, height: 4)
                     }
                     Text("\(Int(percent))%")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(AppFont.micro())
                         .foregroundColor(.blue)
                 }
                 if let km = item.distanceKm, km > 0 {
                     Text(String(format: "%.1fkm", km))
-                        .font(.system(size: 11))
+                        .font(AppFont.micro())
                         .foregroundColor(.secondary)
                 }
             }
@@ -1158,7 +1158,7 @@ private struct WeekSelectorSheetV2: View {
                     onViewWeeklySummary?(week)
                 } label: {
                     Text(NSLocalizedString("week_selector.review", comment: "週回顧"))
-                        .font(.system(size: 11, weight: .medium))
+                        .font(AppFont.micro())
                         .padding(.vertical, 4)
                         .padding(.horizontal, 8)
                         .background(Color.blue.opacity(0.1))
@@ -1177,7 +1177,7 @@ private struct WeekSelectorSheetV2: View {
                     }
                 } label: {
                     Text(NSLocalizedString("week_selector.schedule", comment: "課表"))
-                        .font(.system(size: 11, weight: .medium))
+                        .font(AppFont.micro())
                         .padding(.vertical, 4)
                         .padding(.horizontal, 8)
                         .background(Color.green.opacity(0.1))
@@ -1190,7 +1190,7 @@ private struct WeekSelectorSheetV2: View {
             // 已選 checkmark
             if week == viewModel.loader.selectedWeek {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.micro())
                     .foregroundColor(.blue)
             }
         }

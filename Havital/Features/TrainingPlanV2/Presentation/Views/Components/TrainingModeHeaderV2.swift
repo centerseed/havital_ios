@@ -23,7 +23,7 @@ struct TrainingModeHeaderV2: View {
                 Spacer()
                 if let week = viewModel.currentWeek {
                     Text(String(format: NSLocalizedString("training_mode.week_number", comment: ""), week))
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(AppFont.micro())
                         .foregroundColor(.white.opacity(0.7))
                 }
             }
@@ -31,7 +31,7 @@ struct TrainingModeHeaderV2: View {
 
             // Row 2: tagline / motivational message
             Text(tagline)
-                .font(.system(size: 14, weight: .bold))
+                .font(AppFont.bodyStrong())
                 .foregroundColor(.white.opacity(0.92))
                 .lineSpacing(4)
                 .fixedSize(horizontal: false, vertical: true)
@@ -69,9 +69,9 @@ struct TrainingModeHeaderV2: View {
         let meta = modeMetadata
         HStack(spacing: 4) {
             Text(meta.icon)
-                .font(.system(size: 11))
+                .font(AppFont.micro())
             Text(meta.label)
-                .font(.system(size: 10.5, weight: .heavy))
+                .font(AppFont.micro())
                 .tracking(0.6)
         }
         .foregroundColor(meta.color)
@@ -142,7 +142,7 @@ struct TrainingModeHeaderV2: View {
     ) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(.system(size: 9.5, weight: .heavy))
+                .font(AppFont.micro())
                 .foregroundColor(.white.opacity(0.7))
                 .tracking(0.6)
 
@@ -152,7 +152,7 @@ struct TrainingModeHeaderV2: View {
                     .foregroundColor(valueColor)
                     .lineLimit(1)
                 Text(unit)
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.micro())
                     .foregroundColor(.white.opacity(0.7))
             }
         }

@@ -52,7 +52,7 @@ struct RaceHeaderViewV2: View {
     private var countdownColumn: some View {
         VStack(alignment: .center, spacing: 2) {
             Text(NSLocalizedString("training_plan.race_countdown_label", comment: "倒數"))
-                .font(.system(size: 12, weight: .heavy))
+                .font(AppFont.chip())
                 .foregroundColor(.white.opacity(0.85))
                 .tracking(0.6)
 
@@ -62,7 +62,7 @@ struct RaceHeaderViewV2: View {
                     .foregroundColor(Color(red: 1, green: 0.498, blue: 0.314))  // #FF7F50
                     .lineLimit(1)
                 Text(NSLocalizedString("training_plan.race_countdown_days", comment: "天"))
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(AppFont.micro())
                     .foregroundColor(.white.opacity(0.85))
             }
         }
@@ -85,7 +85,7 @@ struct RaceHeaderViewV2: View {
         VStack(alignment: .leading, spacing: 3) {
             // Race title
             Text(viewModel.raceTitle ?? "")
-                .font(.system(size: 16, weight: .bold))
+                .font(AppFont.titleM())
                 .foregroundColor(.white)
                 .lineLimit(1)
                 .truncationMode(.tail)
@@ -101,7 +101,7 @@ struct RaceHeaderViewV2: View {
 
                 if viewModel.targetFinish != nil, viewModel.estimatedFinish != nil {
                     Text("→")
-                        .font(.system(size: 10, weight: .regular))
+                        .font(AppFont.micro())
                         .foregroundColor(.white.opacity(0.4))
                 }
 
@@ -121,7 +121,7 @@ struct RaceHeaderViewV2: View {
     private var readinessColumn: some View {
         VStack(alignment: .trailing, spacing: 2) {
             Text(NSLocalizedString("training_plan.race_readiness_label", comment: "適能"))
-                .font(.system(size: 12, weight: .heavy))
+                .font(AppFont.chip())
                 .foregroundColor(.white.opacity(0.85))
                 .tracking(0.6)
 
@@ -133,13 +133,13 @@ struct RaceHeaderViewV2: View {
 
                 if let delta = viewModel.weekDeltaDisplay {
                     Text("\(delta.symbol)\(delta.magnitude)")
-                        .font(.system(size: 11, weight: .heavy))
+                        .font(AppFont.chip())
                         .foregroundColor(delta.color)
                 }
             }
 
             Image(systemName: "chevron.right")
-                .font(.system(size: 11, weight: .semibold))
+                .font(AppFont.micro())
                 .foregroundColor(.white.opacity(0.5))
         }
         .frame(minWidth: 56, alignment: .trailing)

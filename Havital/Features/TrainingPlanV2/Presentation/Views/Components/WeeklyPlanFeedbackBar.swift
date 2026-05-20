@@ -63,13 +63,13 @@ struct WeeklyPlanFeedbackBar: View {
                         thanksView
                     } else {
                         Text(NSLocalizedString("weekly_plan_feedback.title", comment: ""))
-                            .font(.system(size: 15, weight: .bold))
+                            .font(AppFont.bodyStrong())
 
                         ratingButtons
 
                         if submitError {
                             Text(NSLocalizedString("weekly_plan_feedback.error", comment: ""))
-                                .font(.system(size: 12))
+                                .font(AppFont.captionRegular())
                                 .foregroundColor(.red)
                         }
                     }
@@ -114,8 +114,8 @@ struct WeeklyPlanFeedbackBar: View {
             }
         } label: {
             VStack(spacing: 4) {
-                Text(emoji).font(.system(size: 24))
-                Text(label).font(.system(size: 12, weight: .semibold))
+                Text(emoji).font(AppFont.titleL())
+                Text(label).font(AppFont.micro())
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
@@ -138,7 +138,7 @@ struct WeeklyPlanFeedbackBar: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     Text(NSLocalizedString("weekly_plan_feedback.reasons_prompt", comment: ""))
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(AppFont.label())
                         .foregroundColor(.secondary)
 
                     FlowChips(reasons: BadReason.allCases, selected: selectedReasons) { reason in
@@ -151,7 +151,7 @@ struct WeeklyPlanFeedbackBar: View {
 
                     if submitError {
                         Text(NSLocalizedString("weekly_plan_feedback.error", comment: ""))
-                            .font(.system(size: 12))
+                            .font(AppFont.captionRegular())
                             .foregroundColor(.red)
                     }
 
@@ -183,7 +183,7 @@ struct WeeklyPlanFeedbackBar: View {
                 Text(isSubmitting
                      ? NSLocalizedString("weekly_plan_feedback.submitting", comment: "")
                      : NSLocalizedString("weekly_plan_feedback.submit", comment: ""))
-                    .font(.system(size: 14, weight: .heavy))
+                    .font(AppFont.chip())
             }
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
@@ -200,7 +200,7 @@ struct WeeklyPlanFeedbackBar: View {
             Image(systemName: "checkmark.circle.fill")
                 .foregroundColor(PacerizColor.green)
             Text(NSLocalizedString("weekly_plan_feedback.thanks", comment: ""))
-                .font(.system(size: 14, weight: .semibold))
+                .font(AppFont.label())
             Spacer()
         }
     }
@@ -280,7 +280,7 @@ private struct FlowChips: View {
                     onTap(reason)
                 } label: {
                     Text(reason.label)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(AppFont.micro())
                         .foregroundColor(isOn ? .white : .primary)
                         .padding(.vertical, 8)
                         .padding(.horizontal, 12)

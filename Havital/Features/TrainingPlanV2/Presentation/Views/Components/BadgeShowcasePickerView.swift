@@ -34,13 +34,13 @@ struct BadgeShowcasePickerView: View {
                         onSelect(nil)
                         dismiss()
                     }
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(AppFont.label())
                     .foregroundColor(.secondary)
                     .disabled(selectedBadgeId == nil)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("完成") { dismiss() }
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(AppFont.label())
                 }
             }
         }
@@ -51,7 +51,7 @@ struct BadgeShowcasePickerView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 Text("點選一顆已解鎖徽章，放到課表首頁展示。")
-                    .font(.system(size: 13))
+                    .font(AppFont.micro())
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 4)
 
@@ -88,7 +88,7 @@ struct BadgeShowcasePickerView: View {
 
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(AppFont.titleM())
                         .foregroundColor(PacerizColor.blue)
                         .background(Circle().fill(Color(UIColor.systemBackground)))
                         .offset(x: 4, y: -4)
@@ -96,7 +96,7 @@ struct BadgeShowcasePickerView: View {
             }
 
             Text(NSLocalizedString(badge.nameKey, comment: ""))
-                .font(.system(size: 11.5, weight: isSelected ? .bold : .semibold))
+                .font(AppFont.micro())
                 .foregroundColor(isSelected ? PacerizColor.blueDeep : .primary)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
@@ -107,12 +107,12 @@ struct BadgeShowcasePickerView: View {
     private var emptyState: some View {
         VStack(spacing: 12) {
             Image(systemName: "trophy")
-                .font(.system(size: 36))
+                .font(AppFont.numberLarge())
                 .foregroundColor(.secondary)
             Text("還沒有已解鎖徽章")
-                .font(.system(size: 15, weight: .semibold))
+                .font(AppFont.label())
             Text("完成訓練解鎖徽章後，就能選一顆放到課表首頁展示。")
-                .font(.system(size: 13))
+                .font(AppFont.micro())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)

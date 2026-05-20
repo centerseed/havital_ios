@@ -36,7 +36,7 @@ struct WorkoutRecapView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(L10n.Common.done.localized) { dismiss() }
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(AppFont.label())
                 }
             }
             // 禮炮撒花：進場噴射一次，~3 秒後自動移除（不留殘留）。
@@ -60,17 +60,17 @@ struct WorkoutRecapView: View {
         VStack(alignment: .leading, spacing: 4) {
             if let title = content.celebrationTitle {
                 Text(title)
-                    .font(.system(size: 22, weight: .heavy))
+                    .font(AppFont.numberMedium())
             } else if let type = content.trainingTypeName {
                 Text("完成了一次\(type)")
-                    .font(.system(size: 22, weight: .heavy))
+                    .font(AppFont.numberMedium())
             } else {
                 Text("訓練完成")
-                    .font(.system(size: 22, weight: .heavy))
+                    .font(AppFont.numberMedium())
             }
             if let encouragement = content.encouragement {
                 Text(encouragement)
-                    .font(.system(size: 14))
+                    .font(AppFont.captionRegular())
                     .foregroundColor(.secondary)
             }
         }
@@ -101,9 +101,9 @@ struct WorkoutRecapView: View {
     private func metricCell(label: String, value: String) -> some View {
         VStack(spacing: 4) {
             Text(value)
-                .font(.system(size: 18, weight: .heavy).monospacedDigit())
+                .font(AppFont.numberMedium().monospacedDigit())
             Text(label)
-                .font(.system(size: 11, weight: .semibold))
+                .font(AppFont.micro())
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity)
@@ -116,7 +116,7 @@ struct WorkoutRecapView: View {
     private var diarySection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("訓練心得")
-                .font(.system(size: 15, weight: .bold))
+                .font(AppFont.bodyStrong())
             Button {
                 (onWriteDiary ?? { dismiss() })()
             } label: {
@@ -124,7 +124,7 @@ struct WorkoutRecapView: View {
                     Image(systemName: "square.and.pencil")
                     Text("寫下今天的感受")
                 }
-                .font(.system(size: 14, weight: .semibold))
+                .font(AppFont.label())
                 .foregroundColor(PacerizColor.blueDeep)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)

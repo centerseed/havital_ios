@@ -177,7 +177,7 @@ struct UITestMethodologyHostView: View {
     private func errorView(message: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 32))
+                .font(AppFont.numberLarge())
                 .foregroundColor(.orange)
             Text(message)
                 .font(AppFont.bodySmall())
@@ -192,7 +192,7 @@ struct UITestMethodologyHostView: View {
     private func unavailableView(for screen: UITestMethodologyScreen) -> some View {
         VStack(spacing: 12) {
             Image(systemName: "doc.questionmark")
-                .font(.system(size: 28))
+                .font(AppFont.numberLarge())
                 .foregroundColor(.secondary)
             Text("\(screen.title) fixture unavailable")
                 .font(AppFont.bodySmall())

@@ -180,7 +180,7 @@ struct TimelineItemViewV2: View {
 
                                     if isToday {
                                         Text(NSLocalizedString("training_plan.today", comment: "Today"))
-                                            .font(.system(size: 10, weight: .semibold))
+                                            .font(AppFont.micro())
                                             .foregroundColor(.white)
                                             .padding(.horizontal, 6)
                                             .padding(.vertical, 2)
@@ -194,7 +194,7 @@ struct TimelineItemViewV2: View {
                                 // 訓練類型標籤
                                 // F6.c: type chip height 22pt per design jsx L827 — display only, no tap
                                 Text(day.type.localizedName)
-                                    .font(.system(size: 12, weight: .medium))
+                                    .font(AppFont.micro())
                                     .fontWeight(.medium)
                                     .foregroundColor(getTypeColor())
                                     .padding(.horizontal, 10)
@@ -214,7 +214,7 @@ struct TimelineItemViewV2: View {
                             // F6.c: rest day shows 「主動恢復日」in collapsed state per design jsx L823
                             if day.type == .rest {
                                 Text(NSLocalizedString("training_plan.active_recovery_day", comment: "主動恢復日"))
-                                    .font(.system(size: 12, weight: .semibold))
+                                    .font(AppFont.micro())
                                     .foregroundColor(.secondary)
                             } else {
                                 VStack(alignment: .leading, spacing: 4) {
@@ -222,7 +222,7 @@ struct TimelineItemViewV2: View {
                                     if let run = day.primaryRunActivity {
                                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                                             Text("課表")
-                                                .font(.system(size: 11, weight: .bold))
+                                                .font(AppFont.micro())
                                                 .tracking(0.4)
                                                 .foregroundColor(.secondary)
                                                 .textCase(.uppercase)
@@ -232,7 +232,7 @@ struct TimelineItemViewV2: View {
                                             let plannedDurStr = formatPlannedDuration(minutes: run.durationMinutes, seconds: run.durationSeconds)
                                             let planParts = [plannedDistStr, plannedDurStr].filter { !$0.isEmpty }
                                             Text(planParts.joined(separator: " · "))
-                                                .font(.system(size: 13.5, weight: .semibold).monospacedDigit())
+                                                .font(AppFont.micro().monospacedDigit())
                                                 .foregroundColor(.secondary)
                                         }
                                     }
@@ -241,7 +241,7 @@ struct TimelineItemViewV2: View {
                                     if let workout = workouts.first {
                                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                                             Text("實際")
-                                                .font(.system(size: 11, weight: .bold))
+                                                .font(AppFont.micro())
                                                 .tracking(0.4)
                                                 .foregroundColor(PacerizColor.greenDeep)
                                                 .textCase(.uppercase)
@@ -253,7 +253,7 @@ struct TimelineItemViewV2: View {
                                             let actualDistStr = String(format: "%.2f \(distUnit)", distVal)
                                             let actualDurStr = formatDuration(workout.duration)
                                             Text("\(actualDistStr) · \(actualDurStr)")
-                                                .font(.system(size: 13.5, weight: .bold).monospacedDigit())
+                                                .font(AppFont.micro().monospacedDigit())
                                                 .foregroundColor(.primary)
                                         }
                                     }
@@ -345,9 +345,9 @@ struct TimelineItemViewV2: View {
                                 }) {
                                     HStack(spacing: 8) {
                                         Image(systemName: "play.fill")
-                                            .font(.system(size: 12))
+                                            .font(AppFont.captionRegular())
                                         Text(NSLocalizedString("training_plan.start_today_workout", comment: "開始今日訓練"))
-                                            .font(.system(size: 14, weight: .heavy))
+                                            .font(AppFont.chip())
                                             .tracking(-0.2)
                                     }
                                     .frame(maxWidth: .infinity)
@@ -1588,29 +1588,29 @@ private struct RedesignedSegmentsView: View {
                             VStack(alignment: .leading, spacing: 3) {
                                 HStack {
                                     Text(seg.label)
-                                        .font(.system(size: 14, weight: .bold))
+                                        .font(AppFont.bodyStrong())
                                         .foregroundColor(.primary)
                                     Spacer()
                                     if let reps = seg.reps {
                                         Text(reps)
-                                            .font(.system(size: 13, weight: .bold))
+                                            .font(AppFont.micro())
                                             .foregroundColor(.primary)
                                     }
                                 }
                                 HStack(spacing: 4) {
                                     if !seg.detail.isEmpty {
                                         Text(seg.detail)
-                                            .font(.system(size: 13, weight: .semibold).monospacedDigit())
+                                            .font(AppFont.micro().monospacedDigit())
                                             .foregroundColor(.secondary)
                                     }
                                     if let sub = seg.subDetail {
                                         if !seg.detail.isEmpty {
                                             Text("·")
-                                                .font(.system(size: 13))
+                                                .font(AppFont.micro())
                                                 .foregroundColor(.secondary)
                                         }
                                         Text(sub)
-                                            .font(.system(size: 13, weight: .semibold))
+                                            .font(AppFont.micro())
                                             .foregroundColor(.secondary)
                                     }
                                     Spacer()
@@ -1619,16 +1619,16 @@ private struct RedesignedSegmentsView: View {
                         } else {
                             // 單行版型（原有）
                             Text(seg.label)
-                                .font(.system(size: 14, weight: .bold))
+                                .font(AppFont.bodyStrong())
                                 .foregroundColor(.primary)
                                 .frame(minWidth: 64, alignment: .leading)
                             Text(seg.detail)
-                                .font(.system(size: 13, weight: .bold).monospacedDigit())
+                                .font(AppFont.micro().monospacedDigit())
                                 .foregroundColor(.secondary)
                             Spacer()
                             if let reps = seg.reps {
                                 Text(reps)
-                                    .font(.system(size: 13, weight: .bold))
+                                    .font(AppFont.micro())
                                     .foregroundColor(.secondary)
                             }
                         }
