@@ -140,6 +140,16 @@ struct ContentView: View {
                             try? await Task.sleep(nanoseconds: 800_000_000)
                             await appViewModel.checkDataSourceBindingReminderIfNeeded(forceRefresh: true)
                         }
+                        // 訓練完成 Recap：進入主畫面時偵測最新且未看過的訓練（cold launch 可靠觸發點）。
+                        Task {
+                            #if DEBUG
+                            if ProcessInfo.processInfo.environment["FORCE_WORKOUT_RECAP"] == "1" {
+                                await WorkoutRecapCoordinator.shared.debugForceShowLatest()
+                                return
+                            }
+                            #endif
+                            await WorkoutRecapCoordinator.shared.checkForNewWorkoutRecap()
+                        }
                     }
             }
         }
@@ -201,6 +211,17 @@ struct ContentView: View {
             try? await Task.sleep(nanoseconds: 800_000_000)
             appViewModel.resetDataSourceBindingReminderSession()
             await appViewModel.checkDataSourceBindingReminderIfNeeded(forceRefresh: true)
+
+            // 訓練完成 Recap：偵測最新且未看過的訓練 → 透過 InterruptCoordinator 彈出。
+            #if DEBUG
+            if ProcessInfo.processInfo.environment["FORCE_WORKOUT_RECAP"] == "1" {
+                await WorkoutRecapCoordinator.shared.debugForceShowLatest()
+            } else {
+                await WorkoutRecapCoordinator.shared.checkForNewWorkoutRecap()
+            }
+            #else
+            await WorkoutRecapCoordinator.shared.checkForNewWorkoutRecap()
+            #endif
         }
     }
 
