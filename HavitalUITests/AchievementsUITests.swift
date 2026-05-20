@@ -26,7 +26,7 @@ final class AchievementsUITests: XCTestCase {
         XCTAssertTrue(element(in: app, id: "Achievements_BadgeLibraryEntry").waitForExistence(timeout: 4))
         XCTAssertTrue(app.staticTexts["徽章收藏"].exists)
         XCTAssertTrue(app.staticTexts["回到節奏"].exists)
-        XCTAssertTrue(app.staticTexts["第一個課表週"].exists)
+        XCTAssertTrue(app.staticTexts["完成了 1 週課表"].exists)
         XCTAssertTrue(app.staticTexts["第一個重要成果"].exists)
 
         XCTAssertFalse(app.staticTexts["第一筆跑步"].exists)
