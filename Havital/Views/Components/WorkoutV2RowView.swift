@@ -136,7 +136,7 @@ struct WorkoutV2RowView: View {
                     .fill(typeColor)
                     .frame(width: 6, height: 6)
                 Text(typeName)
-                    .font(.system(size: 12.5, weight: .heavy))
+                    .font(AppFont.chip())
                     .foregroundColor(typeColor)
             }
             .padding(.vertical, 4)
@@ -146,7 +146,7 @@ struct WorkoutV2RowView: View {
 
             // Relative time
             Text(whenString)
-                .font(.system(size: 13, weight: .semibold))
+                .font(AppFont.micro())
                 .foregroundColor(.secondary)
                 .lineLimit(1)
 
@@ -162,15 +162,15 @@ struct WorkoutV2RowView: View {
     private func vdotPill(vdot: Double, delta: Double?) -> some View {
         HStack(spacing: 4) {
             Text("VDOT")
-                .font(.system(size: 10, weight: .heavy))
+                .font(AppFont.micro())
                 .foregroundColor(PacerizColor.orangeDeep.opacity(0.7))
                 .kerning(0.6)
             Text(String(format: "%.1f", vdot))
-                .font(.system(size: 13, weight: .heavy).monospacedDigit())
+                .font(AppFont.chip().monospacedDigit())
                 .foregroundColor(PacerizColor.orangeDeep)
             if let delta = delta {
                 Image(systemName: delta >= 0 ? "arrow.up.right" : "arrow.down.right")
-                    .font(.system(size: 10, weight: .bold))
+                    .font(AppFont.micro())
                     .foregroundColor(PacerizColor.orangeDeep)
             }
         }
@@ -185,12 +185,12 @@ struct WorkoutV2RowView: View {
             // Left: large distance
             HStack(alignment: .lastTextBaseline, spacing: 3) {
                 Text(distanceValueString)
-                    .font(.system(size: 30, weight: .heavy).monospacedDigit())
+                    .font(AppFont.numberLarge().monospacedDigit())
                     .foregroundColor(.primary)
                     .lineLimit(1)
                     .fixedSize()
                 Text(distanceUnitString)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(AppFont.micro())
                     .foregroundColor(Color(UIColor.secondaryLabel))
                     .lineLimit(1)
             }
@@ -217,18 +217,18 @@ struct WorkoutV2RowView: View {
         VStack(alignment: .trailing, spacing: 2) {
             HStack(alignment: .lastTextBaseline, spacing: 1) {
                 Text(value)
-                    .font(.system(size: 19, weight: .heavy).monospacedDigit())
+                    .font(AppFont.numberMedium().monospacedDigit())
                     .foregroundColor(.primary)
                     .lineLimit(1)
                     .fixedSize()
                 if let unit = unit {
                     Text(unit)
-                        .font(.system(size: 12, weight: .bold))
+                        .font(AppFont.chip())
                         .foregroundColor(.secondary)
                 }
             }
             Text(label)
-                .font(.system(size: 11, weight: .bold))
+                .font(AppFont.micro())
                 .foregroundColor(.secondary)
                 .kerning(0.4)
         }
@@ -240,10 +240,10 @@ struct WorkoutV2RowView: View {
             if planMatched == true {
                 HStack(spacing: 4) {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 11, weight: .heavy))
+                        .font(AppFont.chip())
                         .foregroundColor(PacerizColor.greenDeep)
                     Text("與課表匹配")
-                        .font(.system(size: 12.5, weight: .bold))
+                        .font(AppFont.micro())
                         .foregroundColor(PacerizColor.greenDeep)
                 }
             }

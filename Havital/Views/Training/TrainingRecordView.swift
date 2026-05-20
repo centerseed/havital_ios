@@ -139,7 +139,7 @@ struct TrainingRecordView: View {
             || (option.label != "全部" && selectedFilter == option.label)
 
         return Text(option.label)
-            .font(.system(size: 14, weight: .semibold))
+            .font(AppFont.label())
             .foregroundColor(isSelected ? .white : .primary)
             .padding(.vertical, 8)
             .padding(.horizontal, 15)
@@ -258,16 +258,16 @@ struct TrainingRecordView: View {
         HStack {
             HStack(alignment: .lastTextBaseline, spacing: 6) {
                 Text(group.title)
-                    .font(.system(size: 15, weight: .bold))
+                    .font(AppFont.bodyStrong())
                     .foregroundColor(.secondary)
                 Text("\(group.workouts.count) 次跑步")
-                    .font(.system(size: 12.5, weight: .semibold))
+                    .font(AppFont.micro())
                     .foregroundColor(Color(UIColor.tertiaryLabel))
             }
             Spacer()
             if group.totalKm > 0 {
                 Text(String(format: "共 %.1f km", group.totalKm))
-                    .font(.system(size: 13.5, weight: .semibold).monospacedDigit())
+                    .font(AppFont.micro().monospacedDigit())
                     .foregroundColor(.secondary)
             }
         }
