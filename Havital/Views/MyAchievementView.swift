@@ -109,15 +109,6 @@ struct MyAchievementView: View {
     @State private var celebrationUpdate: PersonalBestUpdate?
     @State private var presentingShareData: CelebrationShareCardView.ShareData?
 
-    // 從快取讀取當前用戶資料（Clean Architecture）
-    private var cachedUser: User? {
-        UserProfileLocalDataSource().getUserProfile()
-    }
-
-    private var cachedPersonalBestData: [String: [PersonalBestRecordV2]]? {
-        cachedUser?.personalBestV2?["race_run"]
-    }
-
     // 當前數據源設定
     private var dataSourcePreference: DataSourceType {
         UserPreferencesManager.shared.dataSourcePreference
@@ -188,8 +179,7 @@ struct MyAchievementView: View {
                     .cardStyle()
                     .padding(.horizontal)
 
-                    // Personal Best stays on the Performance tab while the Awards tab is hidden.
-                    PersonalBestCardView(personalBestData: cachedPersonalBestData)
+                    // 個人最佳成績已移至「個人成就」分頁，表現分頁不再重複顯示。
 
                     // 訓練負荷圖 - 使用 health_daily API 取得 tsb_metrics
                     TrainingLoadChartSection()
