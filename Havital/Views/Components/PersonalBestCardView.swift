@@ -122,7 +122,7 @@ struct PersonalBestDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
                     Text(L10n.MyAchievement.PersonalBest.topRecords.localized)
-                        .font(.system(size: 13, weight: .bold))
+                        .font(AppFont.micro())
                         .foregroundColor(.secondary)
                         .padding(.horizontal, 4)
                         .padding(.top, 4)
@@ -141,7 +141,7 @@ struct PersonalBestDetailView: View {
                     Button(L10n.Common.done.localized) {
                         dismiss()
                     }
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(AppFont.label())
                 }
             }
         }
@@ -160,17 +160,17 @@ struct PersonalBestDetailView: View {
                     .fill(rankColor(rank).opacity(0.16))
                     .frame(width: 46, height: 46)
                 Text(rankEmoji(rank: rank))
-                    .font(.system(size: 24))
+                    .font(AppFont.titleL())
             }
 
             VStack(alignment: .leading, spacing: 5) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(record.formattedTime())
-                        .font(.system(size: 25, weight: .heavy).monospacedDigit())
+                        .font(AppFont.numberMedium().monospacedDigit())
                         .foregroundColor(isBest ? PacerizColor.blueDeep : .primary)
                     if isBest {
                         Text("最佳")
-                            .font(.system(size: 10, weight: .heavy))
+                            .font(AppFont.chip())
                             .foregroundColor(.white)
                             .padding(.horizontal, 7)
                             .padding(.vertical, 2)
@@ -182,10 +182,10 @@ struct PersonalBestDetailView: View {
                 HStack(spacing: 10) {
                     Label {
                         Text(UnitManager.shared.formatPaceString(record.pace))
-                            .font(.system(size: 12.5, weight: .semibold).monospacedDigit())
+                            .font(AppFont.micro().monospacedDigit())
                     } icon: {
                         Image(systemName: "speedometer")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(AppFont.micro())
                     }
                     .foregroundColor(.secondary)
 
@@ -194,10 +194,10 @@ struct PersonalBestDetailView: View {
 
                     Label {
                         Text(formatWorkoutDate(record.workoutDate))
-                            .font(.system(size: 12.5, weight: .semibold).monospacedDigit())
+                            .font(AppFont.micro().monospacedDigit())
                     } icon: {
                         Image(systemName: "calendar")
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(AppFont.micro())
                     }
                     .foregroundColor(.secondary)
                 }

@@ -19,7 +19,7 @@ struct AchievementTracksPathView: View {
                     }
                     if tracks.isEmpty {
                         Text("尚無主線資料")
-                            .font(.system(size: 14))
+                            .font(AppFont.bodyRegular())
                             .foregroundColor(.secondary)
                             .frame(maxWidth: .infinity, minHeight: 200)
                     }
@@ -32,7 +32,7 @@ struct AchievementTracksPathView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(L10n.Common.done.localized) { dismiss() }
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(AppFont.bodyStrong())
                 }
             }
         }
@@ -47,17 +47,17 @@ struct AchievementTracksPathView: View {
         return VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
                 Text(track.titleKey.localizedOrFallback(default: track.trackId))
-                    .font(.system(size: 16, weight: .heavy))
+                    .font(AppFont.titleM())
                 Spacer()
                 Text("\(unlocked) / \(total)")
-                    .font(.system(size: 13, weight: .bold).monospacedDigit())
+                    .font(AppFont.label().monospacedDigit())
                     .foregroundColor(.secondary)
             }
 
             let story = track.storyKey.localizedOrFallback(default: "")
             if !story.isEmpty {
                 Text(story)
-                    .font(.system(size: 12.5))
+                    .font(AppFont.captionRegular())
                     .foregroundColor(.secondary)
             }
 
@@ -94,26 +94,26 @@ struct AchievementTracksPathView: View {
             )
 
             Text(badge.nameKey.localizedOrFallback(default: badge.badgeId))
-                .font(.system(size: 11, weight: isNext ? .bold : .medium))
+                .font(AppFont.micro())
                 .foregroundColor(nameColor)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
-                .frame(height: 28, alignment: .top)
+                .frame(height: 36, alignment: .top)
 
             if isNext, let p = badge.progress, let c = p.current, let t = p.target, t > 0 {
                 Text("\(Int((c / t * 100).rounded()))%")
-                    .font(.system(size: 11, weight: .heavy).monospacedDigit())
+                    .font(AppFont.chip().monospacedDigit())
                     .foregroundColor(PacerizColor.blueDeep)
             } else if isUnlocked {
                 Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 11))
+                    .font(AppFont.micro())
                     .foregroundColor(PacerizColor.green)
             } else {
                 Text(" ")
-                    .font(.system(size: 11))
+                    .font(AppFont.micro())
             }
         }
-        .frame(width: 70)
+        .frame(width: 80)
     }
 
     private func connector(done: Bool) -> some View {

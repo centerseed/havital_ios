@@ -172,15 +172,15 @@ struct PersonalAchievementsView: View {
     ) -> some View {
         VStack(alignment: .center, spacing: 3) {
             Text(label)
-                .font(.system(size: 11, weight: .semibold))
+                .font(AppFont.micro())
                 .foregroundColor(.secondary)
             HStack(alignment: .lastTextBaseline, spacing: 3) {
                 Text(number)
-                    .font(.system(size: 28, weight: .heavy).monospacedDigit())
+                    .font(AppFont.numberLarge().monospacedDigit())
                     .foregroundColor(numberColor)
                 if !suffix.isEmpty {
                     Text(suffix)
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(AppFont.micro())
                         .foregroundColor(Color(UIColor.tertiaryLabel))
                 }
             }
@@ -242,7 +242,7 @@ struct PersonalAchievementsView: View {
         VStack(alignment: .leading, spacing: 10) {
             // "最新解鎖" chip
             Text("✨ 最新解鎖")
-                .font(.system(size: 11.5, weight: .bold))
+                .font(AppFont.micro())
                 .foregroundColor(.white)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 4)
@@ -260,19 +260,19 @@ struct PersonalAchievementsView: View {
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(badge.nameKey.localizedOrFallback(default: badge.badgeId))
-                        .font(.system(size: 17, weight: .heavy))
+                        .font(AppFont.numberMedium())
                         .foregroundColor(.primary)
                         .lineLimit(2)
 
                     if let unlockedAt = badge.unlockedAt,
                        let formatted = PersonalAchievementsView.formatUnlockedAt(unlockedAt) {
                         Text(formatted)
-                            .font(.system(size: 11, weight: .semibold))
+                            .font(AppFont.micro())
                             .foregroundColor(.secondary)
                     }
 
                     Text(badge.storyKey.localizedOrFallback(default: ""))
-                        .font(.system(size: 12))
+                        .font(AppFont.captionRegular())
                         .foregroundColor(.primary)
                         .lineSpacing(1.5)
                         .lineLimit(4)
@@ -287,9 +287,9 @@ struct PersonalAchievementsView: View {
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "square.and.arrow.up")
-                                    .font(.system(size: 11, weight: .bold))
+                                    .font(AppFont.micro())
                                 Text("分享")
-                                    .font(.system(size: 11.5, weight: .heavy))
+                                    .font(AppFont.chip())
                             }
                             .foregroundColor(.white)
                             .padding(.horizontal, 12)
@@ -304,9 +304,9 @@ struct PersonalAchievementsView: View {
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "pin")
-                                    .font(.system(size: 11, weight: .semibold))
+                                    .font(AppFont.micro())
                                 Text("釘選")
-                                    .font(.system(size: 11.5, weight: .semibold))
+                                    .font(AppFont.micro())
                             }
                             .foregroundColor(.primary)
                             .padding(.horizontal, 12)
@@ -329,7 +329,7 @@ struct PersonalAchievementsView: View {
             // "下一個目標" chip + 查看三條主線提示
             HStack(spacing: 6) {
                 Text("🎯 下一個目標")
-                    .font(.system(size: 11.5, weight: .bold))
+                    .font(AppFont.micro())
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
@@ -340,9 +340,9 @@ struct PersonalAchievementsView: View {
 
                 HStack(spacing: 2) {
                     Text("看全部主線")
-                        .font(.system(size: 11.5, weight: .semibold))
+                        .font(AppFont.micro())
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .bold))
+                        .font(AppFont.micro())
                 }
                 .foregroundColor(PacerizColor.blueDeep)
             }
@@ -364,7 +364,7 @@ struct PersonalAchievementsView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(alignment: .firstTextBaseline) {
                             Text(nextBadge.nameKey.localizedOrFallback(default: nextBadge.badgeId))
-                                .font(.system(size: 14, weight: .heavy))
+                                .font(AppFont.chip())
                                 .foregroundColor(.primary)
                                 .lineLimit(1)
                             Spacer()
@@ -373,7 +373,7 @@ struct PersonalAchievementsView: View {
                                let target = progress.target, target > 0 {
                                 let pct = Int((current / target * 100).rounded())
                                 Text("\(pct)%")
-                                    .font(.system(size: 11, weight: .heavy).monospacedDigit())
+                                    .font(AppFont.chip().monospacedDigit())
                                     .foregroundColor(PacerizColor.blueDeep)
                                     .padding(.horizontal, 7)
                                     .padding(.vertical, 2)
@@ -413,12 +413,12 @@ struct PersonalAchievementsView: View {
                             let unitSuffix = unit.isEmpty ? "" : " \(unit)"
 
                             Text("\(currentInt)\(unitSuffix) / \(targetInt)\(unitSuffix) · 還差 \(remainingStr)\(unitSuffix)")
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(AppFont.micro())
                                 .foregroundColor(.secondary)
                                 .lineLimit(1)
                         } else {
                             Text(track.storyKey.localizedOrFallback(default: ""))
-                                .font(.system(size: 11, weight: .semibold))
+                                .font(AppFont.micro())
                                 .foregroundColor(.secondary)
                                 .lineLimit(2)
                         }
@@ -456,11 +456,11 @@ struct PersonalAchievementsView: View {
             // Section header: "個人最佳" + "X / 4 已創下"
             HStack(alignment: .firstTextBaseline) {
                 Text("個人最佳")
-                    .font(.system(size: 18, weight: .heavy))
+                    .font(AppFont.numberMedium())
                     .foregroundColor(.primary)
                 Spacer()
                 Text("\(records.count) / 4 已創下")
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(AppFont.micro())
                     .foregroundColor(.secondary)
             }
             .padding(.horizontal)
@@ -477,11 +477,11 @@ struct PersonalAchievementsView: View {
             HStack {
                 HStack(spacing: 6) {
                     Text("🏆")
-                        .font(.system(size: 16))
+                        .font(AppFont.bodyRegular())
                     Text("個人最佳紀錄")
-                        .font(.system(size: 14, weight: .bold))
+                        .font(AppFont.bodyStrong())
                     Image(systemName: "info.circle")
-                        .font(.system(size: 13))
+                        .font(AppFont.micro())
                         .foregroundColor(Color(UIColor.tertiaryLabel))
                 }
                 Spacer()
@@ -493,9 +493,9 @@ struct PersonalAchievementsView: View {
                 } label: {
                     HStack(spacing: 2) {
                         Text("查看全部")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(AppFont.chip())
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 12))
+                            .font(AppFont.captionRegular())
                     }
                     .foregroundColor(.secondary)
                 }
@@ -506,12 +506,12 @@ struct PersonalAchievementsView: View {
                 // Empty state
                 VStack(spacing: 6) {
                     Text("🏃")
-                        .font(.system(size: 24))
+                        .font(AppFont.titleL())
                     Text("還沒有個人最佳紀錄")
-                        .font(.system(size: 12, weight: .bold))
+                        .font(AppFont.chip())
                         .foregroundColor(.secondary)
                     Text("完成第一次計時跑就能創下 PB")
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(AppFont.micro())
                         .foregroundColor(Color(UIColor.tertiaryLabel))
                 }
                 .frame(maxWidth: .infinity)
@@ -536,7 +536,7 @@ struct PersonalAchievementsView: View {
 
                 if sorted.count > 4 {
                     Text("+\(sorted.count - 4) 個其他距離紀錄")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(AppFont.micro())
                         .foregroundColor(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.top, 4)
@@ -555,19 +555,19 @@ struct PersonalAchievementsView: View {
         ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(record.displayDistance)
-                    .font(.system(size: 11.5, weight: .heavy))
+                    .font(AppFont.chip())
                     .foregroundColor(.primary)
                     .lineLimit(1)
 
                 Text(record.time)
-                    .font(.system(size: 17, weight: .heavy).monospacedDigit())
+                    .font(AppFont.numberMedium().monospacedDigit())
                     .foregroundColor(PacerizColor.blueDeep)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                    .minimumScaleFactor(0.55)
                     .padding(.top, 2)
 
                 Text(record.achievedAt ?? "")
-                    .font(.system(size: 9.5, weight: .semibold))
+                    .font(AppFont.micro())
                     .foregroundColor(Color(UIColor.tertiaryLabel))
                     .lineLimit(1)
                     .padding(.top, 1)
@@ -586,7 +586,7 @@ struct PersonalAchievementsView: View {
 
             if record.isRecent {
                 Text("NEW PB")
-                    .font(.system(size: 8.5, weight: .heavy))
+                    .font(AppFont.micro())
                     .foregroundColor(.white)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 1)
@@ -618,11 +618,11 @@ struct PersonalAchievementsView: View {
                 // Section header
                 HStack(alignment: .firstTextBaseline) {
                     Text("徽章收藏")
-                        .font(.system(size: 18, weight: .heavy))
+                        .font(AppFont.numberMedium())
                         .foregroundColor(.primary)
                     Spacer()
                     Text("\(totalUnlocked)/\(totalBadges) 已解鎖")
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(AppFont.micro())
                         .foregroundColor(.secondary)
                 }
                 .padding(.horizontal)
@@ -650,14 +650,14 @@ struct PersonalAchievementsView: View {
             HStack(alignment: .center) {
                 // Glyph icon 38×38
                 Text(groupGlyph)
-                    .font(.system(size: 18))
+                    .font(AppFont.titleM())
                     .frame(width: 38, height: 38)
                     .background(accentColor.opacity(0.22))
                     .cornerRadius(12)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(groupTitle)
-                        .font(.system(size: 15, weight: .heavy))
+                        .font(AppFont.labelStrong())
                         .foregroundColor(.primary)
                         .lineLimit(1)
 
@@ -673,7 +673,7 @@ struct PersonalAchievementsView: View {
                         }
 
                         Text("\(unlocked) / \(total)")
-                            .font(.system(size: 11, weight: .bold).monospacedDigit())
+                            .font(AppFont.micro().monospacedDigit())
                             .foregroundColor(.secondary)
                     }
                 }
@@ -689,9 +689,9 @@ struct PersonalAchievementsView: View {
                 } label: {
                     HStack(spacing: 2) {
                         Text("看更多")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(AppFont.chip())
                         Image(systemName: "chevron.right")
-                            .font(.system(size: 12))
+                            .font(AppFont.captionRegular())
                     }
                     .foregroundColor(.secondary)
                 }
@@ -740,7 +740,7 @@ struct PersonalAchievementsView: View {
                 // Green checkmark for unlocked
                 if isUnlocked {
                     Image(systemName: "checkmark")
-                        .font(.system(size: 9, weight: .black))
+                        .font(AppFont.micro())
                         .foregroundColor(.white)
                         .frame(width: 20, height: 20)
                         .background(Color.green)
@@ -757,7 +757,7 @@ struct PersonalAchievementsView: View {
 
             VStack(spacing: 1) {
                 Text(badge.nameKey.localizedOrFallback(default: badge.badgeId))
-                    .font(.system(size: 12, weight: .bold))
+                    .font(AppFont.chip())
                     .foregroundColor(isUnlocked ? .primary : Color(UIColor.tertiaryLabel))
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
@@ -766,11 +766,11 @@ struct PersonalAchievementsView: View {
                 if isUnlocked, let unlockedAt = badge.unlockedAt,
                    let formatted = PersonalAchievementsView.formatUnlockedAt(unlockedAt) {
                     Text(formatted)
-                        .font(.system(size: 10.5, weight: .semibold))
+                        .font(AppFont.micro())
                         .foregroundColor(Color(UIColor.tertiaryLabel))
                 } else if !isUnlocked {
                     Text(hintText(for: badge))
-                        .font(.system(size: 10.5, weight: .semibold))
+                        .font(AppFont.micro())
                         .foregroundColor(Color(UIColor.tertiaryLabel))
                 }
             }

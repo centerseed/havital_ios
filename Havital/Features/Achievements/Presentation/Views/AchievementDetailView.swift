@@ -46,7 +46,7 @@ struct AchievementDetailView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(L10n.Common.done.localized) { dismiss() }
-                        .font(.system(size: 15, weight: .semibold))
+                        .font(AppFont.label())
                 }
             }
         }
@@ -62,7 +62,7 @@ struct AchievementDetailView: View {
                     .fill(accent)
                     .frame(width: 6, height: 6)
                 Text(badge.chapter.localizedName)
-                    .font(.system(size: 12, weight: .heavy))
+                    .font(AppFont.chip())
                     .foregroundColor(accent)
             }
             .padding(.vertical, 4)
@@ -84,7 +84,7 @@ struct AchievementDetailView: View {
 
             // Title
             Text(badge.nameKey.localizedOrFallback(default: L10n.Achievements.Badges.badge.localized))
-                .font(.system(size: 22, weight: .heavy))
+                .font(AppFont.numberMedium())
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 12)
 
@@ -110,15 +110,15 @@ struct AchievementDetailView: View {
                let unlockedDate = Self.parseISO(unlockedAtString) {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.seal.fill")
-                        .font(.system(size: 13))
+                        .font(AppFont.micro())
                         .foregroundColor(accent)
                     Text(Self.formatUnlockedAt(unlockedDate))
-                        .font(.system(size: 13, weight: .semibold))
+                        .font(AppFont.micro())
                         .foregroundColor(.secondary)
                 }
             } else {
                 Text(badge.status.localizedName)
-                    .font(.system(size: 13, weight: .semibold))
+                    .font(AppFont.micro())
                     .foregroundColor(.secondary)
             }
         }
@@ -145,14 +145,14 @@ struct AchievementDetailView: View {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(spacing: 6) {
                     Image(systemName: "text.alignleft")
-                        .font(.system(size: 13, weight: .bold))
+                        .font(AppFont.micro())
                         .foregroundColor(accent)
                     Text(L10n.Achievements.Detail.story.localized)
-                        .font(.system(size: 14, weight: .heavy))
+                        .font(AppFont.chip())
                         .foregroundColor(.primary)
                 }
                 Text(storyText)
-                    .font(.system(size: 14))
+                    .font(AppFont.captionRegular())
                     .foregroundColor(.primary)
                     .lineSpacing(5)
                     .fixedSize(horizontal: false, vertical: true)
@@ -160,7 +160,7 @@ struct AchievementDetailView: View {
                     let reasonText = reasonKey.localizedOrFallback(default: "")
                     if !reasonText.isEmpty {
                         Text(reasonText)
-                            .font(.system(size: 13))
+                            .font(AppFont.micro())
                             .foregroundColor(.secondary)
                             .lineSpacing(4)
                     }
@@ -179,22 +179,22 @@ struct AchievementDetailView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 6) {
                 Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(AppFont.micro())
                     .foregroundColor(accent)
                 Text(L10n.Achievements.Detail.progress.localized)
-                    .font(.system(size: 14, weight: .heavy))
+                    .font(AppFont.chip())
             }
             if let current = progress.current, let target = progress.target, target > 0 {
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(formatNumber(current))
-                        .font(.system(size: 22, weight: .heavy).monospacedDigit())
+                        .font(AppFont.numberMedium().monospacedDigit())
                         .foregroundColor(accent)
                     Text("/ \(formatNumber(target))")
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(AppFont.label())
                         .foregroundColor(.secondary)
                     Spacer()
                     Text("\(Int(min(current / target, 1) * 100))%")
-                        .font(.system(size: 13, weight: .heavy).monospacedDigit())
+                        .font(AppFont.chip().monospacedDigit())
                         .foregroundColor(accent)
                 }
                 GeometryReader { geo in
@@ -212,7 +212,7 @@ struct AchievementDetailView: View {
                 let summary = summaryKey.achievementLocalized(params: progress.summaryParams)
                 if !summary.isEmpty && summary != summaryKey {
                     Text(summary)
-                        .font(.system(size: 12))
+                        .font(AppFont.captionRegular())
                         .foregroundColor(.secondary)
                 }
             }
@@ -235,17 +235,17 @@ struct AchievementDetailView: View {
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: "link")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(AppFont.micro())
                     .foregroundColor(.secondary)
                 Text(L10n.Achievements.Detail.source.localized)
-                    .font(.system(size: 14, weight: .heavy))
+                    .font(AppFont.chip())
             }
             Text(label)
-                .font(.system(size: 14, weight: .semibold))
+                .font(AppFont.label())
                 .foregroundColor(.primary)
             if let summary {
                 Text(summary)
-                    .font(.system(size: 12))
+                    .font(AppFont.captionRegular())
                     .foregroundColor(.secondary)
                     .lineSpacing(3)
             }
@@ -259,10 +259,10 @@ struct AchievementDetailView: View {
     private var historicalChip: some View {
         HStack(spacing: 6) {
             Image(systemName: "clock.arrow.circlepath")
-                .font(.system(size: 12, weight: .bold))
+                .font(AppFont.chip())
                 .foregroundColor(.secondary)
             Text(L10n.Achievements.Detail.historical.localized)
-                .font(.system(size: 12, weight: .semibold))
+                .font(AppFont.micro())
                 .foregroundColor(.secondary)
         }
         .padding(.horizontal, 12)
@@ -286,7 +286,7 @@ struct AchievementDetailView: View {
                              ? L10n.Achievements.Action.unpin.localized
                              : L10n.Achievements.Action.pin.localized)
                     }
-                    .font(.system(size: 14, weight: .heavy))
+                    .font(AppFont.chip())
                     .frame(maxWidth: .infinity)
                     .frame(height: 44)
                     .foregroundColor(.primary)
@@ -303,7 +303,7 @@ struct AchievementDetailView: View {
                         Image(systemName: "square.and.arrow.up")
                         Text(L10n.Achievements.Share.action.localized)
                     }
-                    .font(.system(size: 14, weight: .heavy))
+                    .font(AppFont.chip())
                     .frame(maxWidth: .infinity)
                     .frame(height: 44)
                     .foregroundColor(.white)

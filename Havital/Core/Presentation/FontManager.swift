@@ -305,6 +305,48 @@ struct AppFont {
         .system(.body, design: .monospaced)
     }
 
+    // MARK: - Design Tokens (2026 redesign 統一字級)
+    //
+    // 收斂散落的 .font(.system(size:weight:)) 到一組語意 token，
+    // 同類顯示層級用同一 token，避免「字級字重超級多種」。
+    // 英文走 Onest、CJK 走系統字 + 小字補償（與既有 AppFont 一致）。
+
+    /// 統一 token 產生器：英文 Onest、CJK 系統字。
+    /// ⚠️ 用原尺寸、不再額外做 CJK 小字放大——這些 token 的尺寸是 2026 redesign
+    /// 已在 CJK 下調好的緊湊版面，再放大會撐爆（截斷/跑版）。
+    private static func token(_ size: CGFloat, _ weight: Font.Weight) -> Font {
+        switch currentLanguage() {
+        case .english:
+            return .custom("Onest", size: size, relativeTo: .body).weight(weight)
+        case .japanese, .traditionalChinese:
+            return .system(size: size, weight: weight, design: .default)
+        }
+    }
+
+    // 尺寸對齊課表頁 / 既有 AppFont 的 CJK 字級（caption 15、body 16、headline 18…），整體偏大易讀。
+    /// 大數據（hero 距離等）
+    static func numberLarge() -> Font { token(32, .heavy) }
+    /// 次數據（配速 / 時間 / VDOT 值）
+    static func numberMedium() -> Font { token(22, .heavy) }
+    /// 區塊大標題
+    static func titleL() -> Font { token(22, .bold) }
+    /// 卡片標題 / 徽章名 / 強調列首
+    static func titleM() -> Font { token(18, .bold) }
+    /// 強調內文
+    static func bodyStrong() -> Font { token(16, .semibold) }
+    /// 一般內文
+    static func bodyRegular() -> Font { token(16, .regular) }
+    /// 標籤 / 欄位名
+    static func label() -> Font { token(15, .semibold) }
+    /// 強調標籤（數值列首）
+    static func labelStrong() -> Font { token(15, .heavy) }
+    /// chip / 百分比 / 小徽章字
+    static func chip() -> Font { token(14, .heavy) }
+    /// 註解 / 次要說明
+    static func captionRegular() -> Font { token(15, .regular) }
+    /// 最小標籤
+    static func micro() -> Font { token(13, .semibold) }
+
     // MARK: - Helper
     /// 取得字重名稱（用於自訂字型名稱）
     private static func weightName(for weight: Font.Weight) -> String {
