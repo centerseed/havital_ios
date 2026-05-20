@@ -71,6 +71,22 @@ struct ContentView: View {
                         )
                     }
             }
+            // 已登入但 onboarding 狀態尚未從後端確認 → 顯示載入畫面，
+            // 避免已完成 onboarding 的用戶在登入後閃一下 onboarding 畫面。
+            else if authViewModel.isResolvingOnboardingStatus && !authViewModel.hasCompletedOnboarding {
+                AppLoadingView()
+                    .onAppear {
+                        Logger.firebase(
+                            "顯示載入畫面（onboarding 狀態解析中）",
+                            level: .info,
+                            labels: [
+                                "module": "ContentView",
+                                "action": "show_loading_resolving_onboarding",
+                                "user_id": authViewModel.currentUser?.uid ?? "unknown"
+                            ]
+                        )
+                    }
+            }
             // 如果用戶未完成引導，顯示引導畫面
             else if !authViewModel.hasCompletedOnboarding && !authViewModel.isReonboardingMode {
                 // 首次使用，顯示完整 onboarding 流程（使用新的統一容器）
