@@ -71,6 +71,7 @@ struct PersonalAchievementsView: View {
             loadingView
         case .empty:
             ScrollView { emptyView.padding(.vertical) }
+                .refreshable { await viewModel.refresh() }
         case .error(let message):
             errorView(message)
         case .loaded:
@@ -110,6 +111,7 @@ struct PersonalAchievementsView: View {
             .padding(.top, 8)
             .padding(.bottom, 24)
         }
+        .refreshable { await viewModel.refresh() }
     }
 
     // MARK: - Stats Banner
@@ -582,9 +584,13 @@ struct PersonalAchievementsView: View {
 
     @ViewBuilder
     private var badgeCollectionSection: some View {
-        guard let groups = viewModel.summary?.badgeGroups, !groups.isEmpty else {
+        guard let allGroups = viewModel.summary?.badgeGroups, !allGroups.isEmpty else {
             return AnyView(EmptyView())
         }
+
+        // 聰明調整（adapt）、跑者身份（identity）章節暫不展示
+        let groups = allGroups.filter { $0.chapter != .adapt && $0.chapter != .identity }
+        guard !groups.isEmpty else { return AnyView(EmptyView()) }
 
         let totalUnlocked = groups.flatMap(\.badges).filter { $0.status == .unlocked }.count
         let totalBadges = groups.flatMap(\.badges).count

@@ -40,6 +40,19 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
         }
         self.analyticsService = analyticsService ?? (container.resolve() as AnalyticsService)
         observePinnedBadge()
+        subscribeToEvents()
+    }
+
+    /// 訓練同步 / 課表變更後成就可能解鎖 → 自動強制刷新（使用者無感）。
+    private func subscribeToEvents() {
+        CacheEventBus.shared.subscribe(for: "dataChanged.workouts") { [weak self] in
+            Self.diagnostic("event dataChanged.workouts → forceRefresh")
+            await self?.performLoad(forceRefresh: true)
+        }
+        CacheEventBus.shared.subscribe(for: "dataChanged.trainingPlanV2") { [weak self] in
+            Self.diagnostic("event dataChanged.trainingPlanV2 → forceRefresh")
+            await self?.performLoad(forceRefresh: true)
+        }
     }
 
     deinit {
@@ -75,36 +88,45 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
             "load start forceRefresh=\(forceRefresh) appVersion=\(Self.appVersion) build=\(Self.buildNumber)"
         )
         Task { [weak self] in
-            guard let self else { return }
-            await self.executeTask(id: TaskID("achievements_load"), cooldownSeconds: forceRefresh ? 0 : 1) { [weak self] in
-                guard let self else { return }
-                await MainActor.run {
-                    if self.summary == nil {
-                        self.state = .loading
-                    }
-                }
+            await self?.performLoad(forceRefresh: forceRefresh)
+        }
+    }
 
-                do {
-                    let summary = try await self.repository.fetchSummary(forceRefresh: forceRefresh)
-                    await MainActor.run {
-                        self.summary = summary
-                        self.state = summary.hasVisibleContent ? .loaded : .empty
-                        Self.diagnostic(
-                            "load success state=\(summary.hasVisibleContent ? "loaded" : "empty") catalog=\(summary.catalogVersion) groups=\(summary.badgeGroups.count) unlocked=\(summary.storySummary.unlockedCount)/\(summary.storySummary.totalCount)"
-                        )
-                    }
-                } catch let urlError as URLError where urlError.code == .cancelled {
-                    Self.diagnostic("load cancelled via URLError.cancelled", level: .debug)
-                    return
-                } catch HTTPError.cancelled {
-                    Self.diagnostic("load cancelled via HTTPError.cancelled", level: .debug)
-                    return
-                } catch {
-                    await MainActor.run {
-                        Self.diagnostic("load failed state=error error=\(type(of: error)): \(error.localizedDescription)", level: .error)
-                        Self.cloudFailure(error)
-                        self.state = .error(error.localizedDescription)
-                    }
+    /// 下拉刷新用：await 直到抓取完成，刷新指示器才會收起。
+    func refresh() async {
+        Self.diagnostic("refresh start (pull-to-refresh)")
+        await performLoad(forceRefresh: true)
+    }
+
+    private func performLoad(forceRefresh: Bool) async {
+        await executeTask(id: TaskID("achievements_load"), cooldownSeconds: forceRefresh ? 0 : 1) { [weak self] in
+            guard let self else { return }
+            await MainActor.run {
+                if self.summary == nil {
+                    self.state = .loading
+                }
+            }
+
+            do {
+                let summary = try await self.repository.fetchSummary(forceRefresh: forceRefresh)
+                await MainActor.run {
+                    self.summary = summary
+                    self.state = summary.hasVisibleContent ? .loaded : .empty
+                    Self.diagnostic(
+                        "load success state=\(summary.hasVisibleContent ? "loaded" : "empty") catalog=\(summary.catalogVersion) groups=\(summary.badgeGroups.count) unlocked=\(summary.storySummary.unlockedCount)/\(summary.storySummary.totalCount)"
+                    )
+                }
+            } catch let urlError as URLError where urlError.code == .cancelled {
+                Self.diagnostic("load cancelled via URLError.cancelled", level: .debug)
+                return
+            } catch HTTPError.cancelled {
+                Self.diagnostic("load cancelled via HTTPError.cancelled", level: .debug)
+                return
+            } catch {
+                await MainActor.run {
+                    Self.diagnostic("load failed state=error error=\(type(of: error)): \(error.localizedDescription)", level: .error)
+                    Self.cloudFailure(error)
+                    self.state = .error(error.localizedDescription)
                 }
             }
         }
