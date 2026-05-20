@@ -6,6 +6,7 @@ struct PersonalAchievementsView: View {
     @StateObject private var viewModel: PersonalAchievementsViewModel
     @State private var shareActivityItem: AchievementActivityItem?
     @State private var selectedPBDetailItem: PersonalBestDetailItem?
+    @State private var showTracksPath = false
 
     private var cachedUser: User? {
         UserProfileLocalDataSource().getUserProfile()
@@ -60,6 +61,9 @@ struct PersonalAchievementsView: View {
                 }
                 .sheet(item: $selectedPBDetailItem) { item in
                     PersonalBestDetailView(distance: item.distance, records: item.records)
+                }
+                .sheet(isPresented: $showTracksPath) {
+                    AchievementTracksPathView(tracks: viewModel.summary?.achievementTracks ?? [])
                 }
         }
     }
@@ -322,14 +326,26 @@ struct PersonalAchievementsView: View {
     @ViewBuilder
     private func nextTargetSection(track: AchievementTrack) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            // "下一個目標" chip
-            Text("🎯 下一個目標")
-                .font(.system(size: 11.5, weight: .bold))
-                .foregroundColor(.secondary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(Color(UIColor.tertiarySystemGroupedBackground))
-                .clipShape(Capsule())
+            // "下一個目標" chip + 查看三條主線提示
+            HStack(spacing: 6) {
+                Text("🎯 下一個目標")
+                    .font(.system(size: 11.5, weight: .bold))
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color(UIColor.tertiarySystemGroupedBackground))
+                    .clipShape(Capsule())
+
+                Spacer()
+
+                HStack(spacing: 2) {
+                    Text("看全部主線")
+                        .font(.system(size: 11.5, weight: .semibold))
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 10, weight: .bold))
+                }
+                .foregroundColor(PacerizColor.blueDeep)
+            }
 
             if let nextBadge = track.nextBadge {
                 HStack(alignment: .center, spacing: 12) {
@@ -411,6 +427,8 @@ struct PersonalAchievementsView: View {
                 }
             }
         }
+        .contentShape(Rectangle())
+        .onTapGesture { showTracksPath = true }
     }
 
     private var noHeroDataPlaceholder: some View {
@@ -852,9 +870,20 @@ struct PersonalAchievementsView: View {
             .first
     }
 
+    /// 下一個目標：三條主線中「尚未完成」且**離完成最近（進度比例最高）**的那條。
+    /// 跳過已完成的主線（其 nextBadge 已是 unlocked），自動前進到下一條未完成主線。
     private var nextTargetBadge: AchievementTrack? {
-        // First track that has a nextBadge (in progress or locked with progress)
-        viewModel.summary?.achievementTracks.first { $0.nextBadge != nil }
+        let incomplete = (viewModel.summary?.achievementTracks ?? []).filter {
+            ($0.nextBadge?.status ?? .unlocked) != .unlocked
+        }
+        return incomplete.max { Self.trackProgressRatio($0) < Self.trackProgressRatio($1) }
+    }
+
+    /// 主線 nextBadge 的進度比例（current / target），無資料則 0。
+    static func trackProgressRatio(_ track: AchievementTrack) -> Double {
+        guard let p = track.nextBadge?.progress,
+              let current = p.current, let target = p.target, target > 0 else { return 0 }
+        return min(current / target, 1.0)
     }
 
     private func hintText(for badge: AchievementBadge) -> String {
