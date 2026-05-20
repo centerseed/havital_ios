@@ -10,6 +10,22 @@ struct WeeklyPlanFeedbackBar: View {
     let userEmail: String
     /// 描述附帶的情境（例如 "Week 3"），方便後台定位。
     let weekContext: String
+    /// 持久化鍵：每份課表（plan + 週）唯一。已回報過就不再顯示（跨重啟）。
+    let persistKey: String
+
+    private static let storageKey = "weekly_plan_feedback_submitted_keys"
+
+    private static func hasSubmitted(_ key: String) -> Bool {
+        (UserDefaults.standard.stringArray(forKey: storageKey) ?? []).contains(key)
+    }
+
+    private static func markSubmitted(_ key: String) {
+        var keys = UserDefaults.standard.stringArray(forKey: storageKey) ?? []
+        guard !keys.contains(key) else { return }
+        keys.append(key)
+        if keys.count > 200 { keys.removeFirst(keys.count - 200) }
+        UserDefaults.standard.set(keys, forKey: storageKey)
+    }
 
     private enum Rating {
         case bad, fine, good
@@ -71,6 +87,10 @@ struct WeeklyPlanFeedbackBar: View {
         }
         .animation(.easeInOut(duration: 0.2), value: didSubmit)
         .animation(.easeOut(duration: 0.4), value: isHidden)
+        .onAppear {
+            // 這份課表已回報過 → 不再顯示（跨重啟持久化）。
+            if Self.hasSubmitted(persistKey) { isHidden = true }
+        }
     }
 
     // MARK: - Sub-views
@@ -202,6 +222,7 @@ struct WeeklyPlanFeedbackBar: View {
                     email: userEmail,
                     images: nil
                 )
+                Self.markSubmitted(persistKey)
                 await MainActor.run {
                     isSubmitting = false
                     showBadReasons = false   // 關閉原因 sheet（若有）

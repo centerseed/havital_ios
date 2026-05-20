@@ -212,7 +212,8 @@ struct TrainingPlanV2View: View {
                     if case .ready = viewModel.loader.planStatus {
                         WeeklyPlanFeedbackBar(
                             userEmail: userProfileViewModel.userData?.email ?? "",
-                            weekContext: "Week \(viewModel.loader.currentWeek)"
+                            weekContext: "Week \(viewModel.loader.currentWeek)",
+                            persistKey: "\(viewModel.loader.trainingPlanName)#W\(viewModel.loader.currentWeek)"
                         )
                         .id("weeklyPlanFeedback_\(viewModel.loader.currentWeek)")
                     }
