@@ -35,10 +35,12 @@ final class MonthlyStatsRepositoryImpl: MonthlyStatsRepository {
     func getMonthlyStats(year: Int, month: Int) async throws -> [DailyStat] {
         Logger.debug("[MonthlyStatsRepositoryImpl] getMonthlyStats - year: \(year), month: \(month)")
 
-        // ✅ 先從本地緩存讀取數據
-        // ⚠️ 重要：只有當緩存有實際數據時才返回，空數組仍需調用 API
-        if let cachedStats = localDataSource.getMonthlyStats(year: year, month: month), !cachedStats.isEmpty {
-            print("📊 [MonthlyStatsRepo] 從本地緩存返回，\(year)-\(String(format: "%02d", month))，數量: \(cachedStats.count)")
+        // ✅ 健壯快取策略：只信任「該月結算後才抓取」的快取。
+        // 進行中的月份、或在月底前就被快取的舊資料（資料尚不完整）一律重抓，
+        // 確保月中新增的訓練不會永久從日曆消失，並自動修復既有的不完整快取。
+        if Self.isCacheSettled(year: year, month: month, syncTimestamp: localDataSource.getSyncTimestamp(year: year, month: month)),
+           let cachedStats = localDataSource.getMonthlyStats(year: year, month: month), !cachedStats.isEmpty {
+            print("📊 [MonthlyStatsRepo] 從本地緩存返回（已結算），\(year)-\(String(format: "%02d", month))，數量: \(cachedStats.count)")
             return cachedStats
         }
 
@@ -122,6 +124,52 @@ final class MonthlyStatsRepositoryImpl: MonthlyStatsRepository {
             level: .info,
             labels: ["module": "MonthlyStatsRepository", "action": "clear_cache"]
         )
+    }
+
+    /// 失效最近 N 個月（含當月）的快取，讓下次讀取重新打 API。
+    /// 用於運動同步事件：新訓練（含晚同步、結算後才到的）進來時確保日曆會更新。
+    /// - Note: 只清同步時間戳；isCacheSettled 因此判定為 false → 強制重抓。
+    func invalidateRecentMonths(count: Int = 3) async {
+        let calendar = Calendar.current
+        let now = Date()
+        for offset in 0..<max(count, 1) {
+            guard let date = calendar.date(byAdding: .month, value: -offset, to: now) else { continue }
+            let year = calendar.component(.year, from: date)
+            let month = calendar.component(.month, from: date)
+            localDataSource.clearSyncTimestamp(year: year, month: month)
+        }
+        Logger.debug("[MonthlyStatsRepositoryImpl] invalidateRecentMonths - 已失效最近 \(count) 個月")
+    }
+
+    // MARK: - Cache Settlement
+
+    /// 容忍 Garmin/Strava 晚同步的寬限天數：月底再加這幾天才視為「已結算」。
+    private static let lateSyncGraceDays = 3
+
+    /// 該月快取是否「已結算」可永久信任：
+    /// 快取的同步時間必須晚於「月底 + 寬限期」，代表抓取當下該月資料已完整。
+    /// internal（非 private）以利單元測試覆蓋此回歸關鍵邏輯。
+    static func isCacheSettled(year: Int, month: Int, syncTimestamp: Date?) -> Bool {
+        guard let syncTimestamp,
+              let settlement = settlementDate(year: year, month: month) else {
+            return false
+        }
+        return syncTimestamp > settlement
+    }
+
+    /// 「結算點」= 下個月第一天 + 寬限天數（皆以當地時區計）。
+    static func settlementDate(year: Int, month: Int) -> Date? {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        var comps = DateComponents()
+        comps.year = year
+        comps.month = month
+        comps.day = 1
+        guard let startOfMonth = calendar.date(from: comps),
+              let startOfNextMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth) else {
+            return nil
+        }
+        return calendar.date(byAdding: .day, value: lateSyncGraceDays, to: startOfNextMonth)
     }
 
     // MARK: - Additional Helper Methods

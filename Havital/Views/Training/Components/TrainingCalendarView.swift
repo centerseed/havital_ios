@@ -19,6 +19,9 @@ class TrainingCalendarViewModel: ObservableObject {
     /// ✅ Event subscriber ID for cleanup
     private var eventSubscriberId: String?
 
+    /// 記住最後載入的月份，供同步事件後重載。
+    private var lastLoadedMonth: Date?
+
     init(workoutRepository: WorkoutRepository = DependencyContainer.shared.resolve(),
          monthlyStatsRepository: MonthlyStatsRepository = DependencyContainer.shared.resolve()) {
         print("🚀🚀🚀 [TrainingCalendarViewModel] Init started 🚀🚀🚀")
@@ -48,14 +51,24 @@ class TrainingCalendarViewModel: ObservableObject {
 
         // ✅ Fix Data Race: 確保回調在 MainActor 中執行
         CacheEventBus.shared.subscribe(forIdentifier: subscriberId) { [weak self] reason in
-            guard case .userLogout = reason else { return }
-
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
 
-                Logger.debug("[TrainingCalendarViewModel] 收到 userLogout 事件，清除月度統計緩存")
-                await self.monthlyStatsRepository.clearCache()
-                self.workouts = []
+                switch reason {
+                case .userLogout:
+                    Logger.debug("[TrainingCalendarViewModel] 收到 userLogout 事件，清除月度統計緩存")
+                    await self.monthlyStatsRepository.clearCache()
+                    self.workouts = []
+                case .dataChanged(.workouts):
+                    // 新訓練同步進來 → 失效近月快取並重載當前顯示月份，避免日曆漏掉新訓練。
+                    Logger.debug("[TrainingCalendarViewModel] 收到 dataChanged.workouts，失效近月快取並重載")
+                    await self.monthlyStatsRepository.invalidateRecentMonths(count: 3)
+                    if let month = self.lastLoadedMonth {
+                        await self.loadWorkoutsForMonth(month: month)
+                    }
+                default:
+                    break
+                }
             }
         }
     }
@@ -80,6 +93,7 @@ class TrainingCalendarViewModel: ObservableObject {
     /// ✅ Clean Architecture: 使用 MonthlyStatsRepository 獲取月度數據（自動處理緩存）
     func loadWorkoutsForMonth(month: Date) async {
         print("🔥🔥🔥 loadWorkoutsForMonth called for: \(month) 🔥🔥🔥")
+        lastLoadedMonth = month
         isLoading = true
         let calendar = Calendar.current
 
