@@ -1133,6 +1133,18 @@ enum SupportedLanguage: String, CaseIterable {
             return "ja-JP"
         }
     }
+
+    /// 緊湊縮寫（登入畫面右上角語言切換用）
+    var shortCode: String {
+        switch self {
+        case .traditionalChinese:
+            return "ZH"
+        case .english:
+            return "EN"
+        case .japanese:
+            return "JP"
+        }
+    }
     
     init?(apiCode: String) {
         switch apiCode {
