@@ -206,6 +206,14 @@ struct TrainingPlanV2View: View {
                         GenerateNextWeekButtonV2(viewModel: viewModel, nextWeekInfo: nextWeekInfo)
                             .transition(.opacity)
                     }
+
+                    // 課表快速回報（最底部，僅在有課表時顯示）
+                    if case .ready = viewModel.loader.planStatus {
+                        WeeklyPlanFeedbackBar(
+                            userEmail: userProfileViewModel.userData?.email ?? "",
+                            weekContext: "Week \(viewModel.loader.currentWeek)"
+                        )
+                    }
                 }
                 .padding(.horizontal)
             }

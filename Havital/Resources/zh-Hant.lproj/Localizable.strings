@@ -3296,3 +3296,23 @@
 "training_mode.monthly_km_label" = "本月里程";
 "training_mode.readiness_label" = "就緒指數";
 "training_mode.week_number" = "第 %d 週";
+
+// MARK: - Weekly Plan Feedback
+"weekly_plan_feedback.title" = "這份課表如何？";
+"weekly_plan_feedback.rating.bad" = "不太好";
+"weekly_plan_feedback.rating.fine" = "還可以";
+"weekly_plan_feedback.rating.good" = "很好";
+"weekly_plan_feedback.reasons_prompt" = "哪裡可以更好？（可複選）";
+"weekly_plan_feedback.reason.mileage_too_high" = "跑量太多";
+"weekly_plan_feedback.reason.mileage_too_low" = "跑量太少";
+"weekly_plan_feedback.reason.intensity_too_high" = "強度太高";
+"weekly_plan_feedback.reason.intensity_too_low" = "強度太低";
+"weekly_plan_feedback.reason.too_tiring" = "太累 / 負荷過重";
+"weekly_plan_feedback.reason.too_easy" = "太輕鬆";
+"weekly_plan_feedback.reason.monotonous" = "課表太單調";
+"weekly_plan_feedback.submit" = "送出回報";
+"weekly_plan_feedback.submitting" = "送出中…";
+"weekly_plan_feedback.error" = "送出失敗，請稍後再試";
+"weekly_plan_feedback.thanks" = "感謝你的回饋！我們會用來調整課表。";
+"weekly_plan_feedback.desc.rating_prefix" = "課表回饋：";
+"weekly_plan_feedback.desc.issue_prefix" = "問題：";

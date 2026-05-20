@@ -3253,3 +3253,23 @@
 "training_mode.monthly_km_label" = "Monthly KM";
 "training_mode.readiness_label" = "Readiness";
 "training_mode.week_number" = "Week %d";
+
+// MARK: - Weekly Plan Feedback
+"weekly_plan_feedback.title" = "How's this plan?";
+"weekly_plan_feedback.rating.bad" = "Not great";
+"weekly_plan_feedback.rating.fine" = "Okay";
+"weekly_plan_feedback.rating.good" = "Great";
+"weekly_plan_feedback.reasons_prompt" = "What could be better? (multi-select)";
+"weekly_plan_feedback.reason.mileage_too_high" = "Too much mileage";
+"weekly_plan_feedback.reason.mileage_too_low" = "Too little mileage";
+"weekly_plan_feedback.reason.intensity_too_high" = "Intensity too high";
+"weekly_plan_feedback.reason.intensity_too_low" = "Intensity too low";
+"weekly_plan_feedback.reason.too_tiring" = "Too tiring / overload";
+"weekly_plan_feedback.reason.too_easy" = "Too easy";
+"weekly_plan_feedback.reason.monotonous" = "Too monotonous";
+"weekly_plan_feedback.submit" = "Submit";
+"weekly_plan_feedback.submitting" = "Submitting…";
+"weekly_plan_feedback.error" = "Submission failed. Please try again later.";
+"weekly_plan_feedback.thanks" = "Thanks for your feedback! We'll use it to improve your plan.";
+"weekly_plan_feedback.desc.rating_prefix" = "Plan feedback: ";
+"weekly_plan_feedback.desc.issue_prefix" = "Issues: ";

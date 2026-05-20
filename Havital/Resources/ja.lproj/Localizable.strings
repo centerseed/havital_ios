@@ -3250,3 +3250,23 @@
 "training_mode.monthly_km_label" = "今月の距離";
 "training_mode.readiness_label" = "準備度";
 "training_mode.week_number" = "%d 週目";
+
+// MARK: - Weekly Plan Feedback
+"weekly_plan_feedback.title" = "この計画はどうですか？";
+"weekly_plan_feedback.rating.bad" = "イマイチ";
+"weekly_plan_feedback.rating.fine" = "まあまあ";
+"weekly_plan_feedback.rating.good" = "良い";
+"weekly_plan_feedback.reasons_prompt" = "どこを改善できますか？（複数選択可）";
+"weekly_plan_feedback.reason.mileage_too_high" = "走行距離が多すぎる";
+"weekly_plan_feedback.reason.mileage_too_low" = "走行距離が少なすぎる";
+"weekly_plan_feedback.reason.intensity_too_high" = "強度が高すぎる";
+"weekly_plan_feedback.reason.intensity_too_low" = "強度が低すぎる";
+"weekly_plan_feedback.reason.too_tiring" = "きつすぎる / 負荷過多";
+"weekly_plan_feedback.reason.too_easy" = "楽すぎる";
+"weekly_plan_feedback.reason.monotonous" = "単調すぎる";
+"weekly_plan_feedback.submit" = "送信";
+"weekly_plan_feedback.submitting" = "送信中…";
+"weekly_plan_feedback.error" = "送信に失敗しました。後でもう一度お試しください。";
+"weekly_plan_feedback.thanks" = "フィードバックありがとうございます！計画の改善に活用します。";
+"weekly_plan_feedback.desc.rating_prefix" = "計画フィードバック：";
+"weekly_plan_feedback.desc.issue_prefix" = "課題：";
