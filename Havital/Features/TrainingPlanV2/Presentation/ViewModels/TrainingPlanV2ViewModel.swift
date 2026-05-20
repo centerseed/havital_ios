@@ -258,6 +258,24 @@ final class TrainingPlanV2ViewModel: TaskManageable {
         analyticsService.track(.planOverviewView(overviewId: overviewId, targetType: targetType))
     }
 
+    // MARK: - Showcase Badge (課表首頁展示徽章)
+
+    /// 已解鎖徽章清單（picker 用），最近解鎖在前。
+    var unlockedBadges: [AchievementBadge] {
+        achievementRepository.getUnlockedBadges()
+    }
+
+    /// 目前自選的展示徽章 ID；nil = 自動挑選（最近解鎖）。
+    var showcaseBadgeId: String? {
+        achievementRepository.getPinnedBadgeId()
+    }
+
+    /// 設定展示徽章（nil = 恢復預設自動挑選）。
+    /// pin 變更會透過 pinnedBadgeIdDidChange 自動更新 displayBadge。
+    func setShowcaseBadge(_ badgeId: String?) {
+        achievementRepository.setPinnedBadgeId(badgeId)
+    }
+
     // MARK: - Private Helpers
 
     private func setupDisplayBadgeObservation() {

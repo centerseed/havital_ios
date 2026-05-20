@@ -10,8 +10,9 @@ import SwiftUI
 /// Grayscale + lock overlay intentionally removed: if a plan exists, a badge always shows
 /// in full color regardless of unlock status.
 ///
-/// Asset naming: uses badge.assetName if set, falls back to "badge_\(badge.badgeId)".
-/// If the asset is missing, falls back to PRPlaceholderBadge.
+/// Asset naming: routes through AchievementBadgeArtwork.assetName(for:) so the
+/// showcase badge always matches the badge-collection artwork (same asset + fallback map).
+/// If the resolved asset is missing from the bundle, falls back to PRPlaceholderBadge.
 struct AchievementBadgeHeroView: View {
 
     let badge: AchievementBadge?
@@ -26,7 +27,7 @@ struct AchievementBadgeHeroView: View {
 
     var body: some View {
         if let badge = badge {
-            let assetName = badge.assetName ?? "badge_\(badge.badgeId)"
+            let assetName = AchievementBadgeArtwork.assetName(for: badge)
             if UIImage(named: assetName) != nil {
                 // Real badge asset found — always full color
                 realBadgeView(assetName: assetName)

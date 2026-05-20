@@ -93,6 +93,12 @@ final class AchievementRepositoryImpl: AchievementRepository {
         allBadgesFromCache().filter { $0.status == .inProgress }
     }
 
+    func getUnlockedBadges() -> [AchievementBadge] {
+        allBadgesFromCache()
+            .filter { $0.status == .unlocked }
+            .sorted { ($0.unlockedAt ?? "") > ($1.unlockedAt ?? "") }
+    }
+
     func findBadge(byId badgeId: String) -> AchievementBadge? {
         allBadgesFromCache().first { $0.badgeId == badgeId }
     }

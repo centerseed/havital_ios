@@ -18,6 +18,7 @@ struct WeekOverviewCardV2: View {
     let plan: WeeklyPlanV2
     @State private var showWeekTargetDetail = false
     @State private var showTrainingCalendar = false
+    @State private var showBadgePicker = false
 
     // ✅ 從 intensityTotalMinutes 提取強度目標（分鐘）
     private var lowIntensityTarget: Int {
@@ -40,6 +41,32 @@ struct WeekOverviewCardV2: View {
     private var weekProgress: Double {
         guard plan.totalDistance > 0 else { return 0 }
         return min(viewModel.loader.currentWeekDistance / plan.totalDistance, 1.0)
+    }
+
+    // 展示徽章是否為「最近 1 天內解鎖」→ 決定是否顯示 NEW chip
+    private var isDisplayBadgeNew: Bool {
+        guard let badge = viewModel.displayBadge,
+              badge.status == .unlocked,
+              let raw = badge.unlockedAt,
+              let date = Self.parseUnlockedAt(raw) else { return false }
+        let oneDay: TimeInterval = 24 * 60 * 60
+        return Date().timeIntervalSince(date) <= oneDay
+    }
+
+    private static func parseUnlockedAt(_ raw: String) -> Date? {
+        let trimmed = raw.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return nil }
+        let withFraction = ISO8601DateFormatter()
+        withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let d = withFraction.date(from: trimmed) { return d }
+        let noFraction = ISO8601DateFormatter()
+        noFraction.formatOptions = [.withInternetDateTime]
+        if let d = noFraction.date(from: trimmed) { return d }
+        let ymd = DateFormatter()
+        ymd.dateFormat = "yyyy-MM-dd"
+        ymd.locale = Locale(identifier: "en_US_POSIX")
+        ymd.timeZone = TimeZone(identifier: "UTC")
+        return ymd.date(from: String(trimmed.prefix(10)))
     }
 
     // Week range string derived from plan day dates (e.g. "5/11 – 5/17")
@@ -92,11 +119,17 @@ struct WeekOverviewCardV2: View {
                         size: 72
                     )
 
-                    // Always show "新解鎖" chip regardless of badge status.
-                    // Grayscale / "解鎖中" removed per 2026-05 UX decision.
-                    badgeStatusChip()
-                        .offset(x: -4, y: -4)
+                    // "NEW" chip 只在展示徽章為「最近 7 天內解鎖」時顯示，
+                    // 避免釘選舊徽章 / 自動挑到舊徽章時永久掛 NEW（誤導）。
+                    if isDisplayBadgeNew {
+                        badgeStatusChip()
+                            .offset(x: -4, y: -4)
+                    }
                 }
+                .contentShape(Rectangle())
+                .onTapGesture { showBadgePicker = true }
+                .accessibilityIdentifier("v2.weekly.showcase_badge")
+                .accessibilityLabel("選擇展示徽章")
 
                 // Right: badge name + distance + intensity bar + dot legend
                 VStack(alignment: .leading, spacing: 6) {
@@ -245,6 +278,13 @@ struct WeekOverviewCardV2: View {
             NavigationView {
                 TrainingCalendarView()
             }
+        }
+        .sheet(isPresented: $showBadgePicker) {
+            BadgeShowcasePickerView(
+                badges: viewModel.unlockedBadges,
+                selectedBadgeId: viewModel.showcaseBadgeId,
+                onSelect: { badgeId in viewModel.setShowcaseBadge(badgeId) }
+            )
         }
     }
 
