@@ -208,14 +208,17 @@ struct TrainingPlanV2View: View {
                     }
 
                     // 課表快速回報（最底部，僅在有課表時顯示）
+                    // .id(週次) → 每換一週就重建、狀態歸零，每份新課表都能重新回報。
                     if case .ready = viewModel.loader.planStatus {
                         WeeklyPlanFeedbackBar(
                             userEmail: userProfileViewModel.userData?.email ?? "",
                             weekContext: "Week \(viewModel.loader.currentWeek)"
                         )
+                        .id("weeklyPlanFeedback_\(viewModel.loader.currentWeek)")
                     }
                 }
                 .padding(.horizontal)
+                .padding(.bottom, 24)   // tab bar 上方留白，避免最底內容貼著 tab bar
             }
             .safeAreaInset(edge: .bottom) {
                 if viewModel.loader.selectedWeek != viewModel.loader.currentWeek {

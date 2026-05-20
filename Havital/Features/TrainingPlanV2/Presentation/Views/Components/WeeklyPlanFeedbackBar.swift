@@ -36,35 +36,41 @@ struct WeeklyPlanFeedbackBar: View {
     @State private var isSubmitting = false
     @State private var didSubmit = false
     @State private var submitError = false
+    @State private var showBadReasons = false
+    @State private var isHidden = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            if didSubmit {
-                thanksView
-            } else {
-                Text(NSLocalizedString("weekly_plan_feedback.title", comment: ""))
-                    .font(.system(size: 15, weight: .bold))
+        Group {
+            if !isHidden {
+                VStack(alignment: .leading, spacing: 14) {
+                    if didSubmit {
+                        thanksView
+                    } else {
+                        Text(NSLocalizedString("weekly_plan_feedback.title", comment: ""))
+                            .font(.system(size: 15, weight: .bold))
 
-                ratingButtons
+                        ratingButtons
 
-                if rating == .bad {
-                    reasonChips
-                    submitButton
+                        if submitError {
+                            Text(NSLocalizedString("weekly_plan_feedback.error", comment: ""))
+                                .font(.system(size: 12))
+                                .foregroundColor(.red)
+                        }
+                    }
                 }
-
-                if submitError {
-                    Text(NSLocalizedString("weekly_plan_feedback.error", comment: ""))
-                        .font(.system(size: 12))
-                        .foregroundColor(.red)
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(UIColor.secondarySystemGroupedBackground))
+                .cornerRadius(14)
+                .transition(.opacity)
+                // 「不太好」→ 底部 sheet 選原因，避免在長頁面底部就地展開要捲動。
+                .sheet(isPresented: $showBadReasons) {
+                    badReasonsSheet
                 }
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(14)
-        .animation(.easeInOut(duration: 0.2), value: rating)
         .animation(.easeInOut(duration: 0.2), value: didSubmit)
+        .animation(.easeOut(duration: 0.4), value: isHidden)
     }
 
     // MARK: - Sub-views
@@ -80,10 +86,10 @@ struct WeeklyPlanFeedbackBar: View {
     private func ratingButton(_ value: Rating, emoji: String, label: String) -> some View {
         let isSelected = rating == value
         return Button {
+            rating = value
             if value == .bad {
-                rating = .bad   // 展開原因，等使用者送出
+                showBadReasons = true   // 開 sheet 選原因
             } else {
-                rating = value
                 submit(type: .suggestion)   // good / fine 直接送出
             }
         } label: {
@@ -105,20 +111,47 @@ struct WeeklyPlanFeedbackBar: View {
         .disabled(isSubmitting)
     }
 
-    private var reasonChips: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(NSLocalizedString("weekly_plan_feedback.reasons_prompt", comment: ""))
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.secondary)
+    // MARK: - Bad reasons sheet
 
-            FlowChips(reasons: BadReason.allCases, selected: selectedReasons) { reason in
-                if selectedReasons.contains(reason) {
-                    selectedReasons.remove(reason)
-                } else {
-                    selectedReasons.insert(reason)
+    private var badReasonsSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text(NSLocalizedString("weekly_plan_feedback.reasons_prompt", comment: ""))
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.secondary)
+
+                    FlowChips(reasons: BadReason.allCases, selected: selectedReasons) { reason in
+                        if selectedReasons.contains(reason) {
+                            selectedReasons.remove(reason)
+                        } else {
+                            selectedReasons.insert(reason)
+                        }
+                    }
+
+                    if submitError {
+                        Text(NSLocalizedString("weekly_plan_feedback.error", comment: ""))
+                            .font(.system(size: 12))
+                            .foregroundColor(.red)
+                    }
+
+                    submitButton
+                        .padding(.top, 4)
+                }
+                .padding(20)
+            }
+            .background(Color(UIColor.systemGroupedBackground))
+            .navigationTitle(NSLocalizedString("weekly_plan_feedback.rating.bad", comment: ""))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(NSLocalizedString("common.close", comment: "")) {
+                        showBadReasons = false
+                    }
                 }
             }
         }
+        .presentationDetents([.medium, .large])
     }
 
     private var submitButton: some View {
@@ -171,8 +204,12 @@ struct WeeklyPlanFeedbackBar: View {
                 )
                 await MainActor.run {
                     isSubmitting = false
-                    didSubmit = true
+                    showBadReasons = false   // 關閉原因 sheet（若有）
+                    didSubmit = true         // bar 顯示感謝
                 }
+                // 感謝訊息顯示 3 秒後自動淡出整個 bar，不長留。
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                await MainActor.run { isHidden = true }
             } catch {
                 Logger.error("[WeeklyPlanFeedback] submit failed: \(error.localizedDescription)")
                 await MainActor.run {
