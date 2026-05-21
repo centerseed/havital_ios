@@ -523,18 +523,8 @@ struct HavitalApp: App {
         print("🔐 用戶認證狀態: \(isAuthenticated)")
         print("🔐 數據源: \(dataSource.rawValue)")
 
-        // 📊 關鍵診斷：記錄入口狀態
-        Logger.firebase(
-            "setupPermissions 入口狀態",
-            level: .info,
-            labels: ["module": "HavitalApp", "action": "setup_permissions_entry", "cloud_logging": "true"],
-            jsonPayload: [
-                "isAuthenticated": isAuthenticated,
-                "dataSource": dataSource.rawValue,
-                "userPrefsDataSource": UserPreferencesManager.shared.dataSourcePreference.rawValue,
-                "hasCompletedOnboarding": UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
-            ]
-        )
+        // 本地進度 log（routine setup entry — no cloud upload needed）
+        Logger.debug("[HavitalApp] setupPermissions 入口狀態 authed=\(isAuthenticated) dataSource=\(dataSource.rawValue) prefs=\(UserPreferencesManager.shared.dataSourcePreference.rawValue) onboarding=\(UserDefaults.standard.bool(forKey: "hasCompletedOnboarding"))")
         
         if isAuthenticated {
             // 🔧 多來源判定：避免 AppStateManager 未同步完成時漏判
@@ -634,16 +624,8 @@ struct HavitalApp: App {
         // 🚨 關鍵修復：只有 Apple Health 用戶才設置觀察者
         let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
 
-        // 📊 診斷：記錄進入 setupWorkoutBackgroundProcessing 的狀態
-        Logger.firebase(
-            "setupWorkoutBackgroundProcessing 開始",
-            level: .info,
-            labels: ["module": "HavitalApp", "action": "setup_workout_bg", "cloud_logging": "true"],
-            jsonPayload: [
-                "dataSourcePreference": dataSourcePreference.rawValue,
-                "isFirstLogin": authViewModel.isFirstLogin
-            ]
-        )
+        // 本地進度 log（routine bg setup start — no cloud upload needed）
+        Logger.debug("[HavitalApp] setupWorkoutBackgroundProcessing 開始 dataSource=\(dataSourcePreference.rawValue) isFirstLogin=\(authViewModel.isFirstLogin)")
 
         if dataSourcePreference == .appleHealth {
             print("設置健身記錄觀察者（Apple Health 用戶）...")
