@@ -617,25 +617,9 @@ class UserPreferencesManager: ObservableObject, DataManageable {
     /// 嘗試從API更新心率數據
     func fetchHeartRateDataFromAPI() async {
         do {
-            let user = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<User, Error>) in
-                var cancellable: AnyCancellable?
-                cancellable = UserService.shared.getUserProfile().sink(
-                    receiveCompletion: { completion in
-                        switch completion {
-                        case .finished:
-                            break
-                        case .failure(let error):
-                            continuation.resume(throwing: error)
-                        }
-                        cancellable?.cancel()
-                    },
-                    receiveValue: { user in
-                        continuation.resume(returning: user)
-                        cancellable?.cancel()
-                    }
-                )
-            }
-
+            // 走有緩存的 UserProfileRepository（取代 deprecated UserService publisher，消除重複 GET /user）
+            let repo: UserProfileRepository = DependencyContainer.shared.resolve()
+            let user = try await repo.getUserProfile()
             syncHeartRateData(from: user)
         } catch {
             print("從API獲取心率數據失敗：\(error)")
