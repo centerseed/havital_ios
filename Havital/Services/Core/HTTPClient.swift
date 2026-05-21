@@ -59,8 +59,7 @@ actor DefaultHTTPClient: HTTPClient {
         let source = APICallTracker.getCurrentSource()
         let startTime = Date()
 
-        // 📱 記錄 API 調用開始
-        print("📱 [API] \(source) → \(method.rawValue) \(path)")
+        // 📱 記錄 API 調用開始（單一輸出，移除原本 print + Logger 重複兩行）
         Logger.debug("📱 [API] \(source) → \(method.rawValue) \(path)")
 
         // 檢查網路連接
@@ -274,13 +273,13 @@ actor DefaultHTTPClient: HTTPClient {
         
         // 添加認證 token（除了登入相關端點，且沒有自定義 Authorization）
         if !isAuthenticationEndpoint(path: path) && customHeaders?["Authorization"] == nil {
-            Logger.debug("[HTTPClient] 🔐 Adding authentication token for: \(method.rawValue) \(path)")
+            Logger.trace("[HTTPClient] 🔐 Adding authentication token for: \(method.rawValue) \(path)")
             let token = try await authSessionRepository.getIdToken()
             let tokenPreview = String(token.prefix(30))
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            Logger.debug("[HTTPClient] 🔐 Authorization header set (token preview: \(tokenPreview)...)")
+            Logger.trace("[HTTPClient] 🔐 Authorization header set (token preview: \(tokenPreview)...)")
         } else if isAuthenticationEndpoint(path: path) {
-            Logger.debug("[HTTPClient] ⚪ Skipping auth token for authentication endpoint: \(path)")
+            Logger.trace("[HTTPClient] ⚪ Skipping auth token for authentication endpoint: \(path)")
         }
         
         // 設置請求體

@@ -92,7 +92,7 @@ class CacheEventBus {
             }
             eventSubscriptions[eventKey]?.append(handler)
         }
-        Logger.debug("[CacheEventBus] 訂閱事件: \(eventKey)")
+        Logger.trace("[CacheEventBus] 訂閱事件: \(eventKey)")
     }
 
     /// 基於標識符的全局事件訂閱
@@ -103,7 +103,7 @@ class CacheEventBus {
         stateQueue.sync {
             identifierBasedSubscriptions[identifier] = handler
         }
-        Logger.debug("[CacheEventBus] 訂閱者註冊: \(identifier)")
+        Logger.trace("[CacheEventBus] 訂閱者註冊: \(identifier)")
     }
 
     /// 取消訂閱
@@ -112,7 +112,7 @@ class CacheEventBus {
         stateQueue.sync {
             identifierBasedSubscriptions.removeValue(forKey: identifier)
         }
-        Logger.debug("[CacheEventBus] 訂閱者取消註冊: \(identifier)")
+        Logger.trace("[CacheEventBus] 訂閱者取消註冊: \(identifier)")
     }
 
     /// 通知事件訂閱者

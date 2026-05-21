@@ -31,7 +31,7 @@ actor TaskRegistry {
         // 檢查是否已存在
         if activeTasks[id] != nil {
             // 只記錄本地日誌，不發送到後端
-            print("[TaskRegistry] 任務已在執行中，跳過重複請求: \(id.description)")
+            Logger.trace("[TaskRegistry] 任務已在執行中，跳過重複請求: \(id.description)")
             return false
         }
 
@@ -40,14 +40,14 @@ actor TaskRegistry {
             let elapsed = Date().timeIntervalSince(lastTime)
             if elapsed < cooldownSeconds {
                 let remaining = Int(cooldownSeconds - elapsed)
-                print("[TaskRegistry] 任務在冷卻中，剩餘 \(remaining) 秒: \(id.description)")
+                Logger.trace("[TaskRegistry] 任務在冷卻中，剩餘 \(remaining) 秒: \(id.description)")
                 return false
             }
         }
 
         activeTasks[id] = task
         // 只記錄本地日誌，不發送到後端
-        print("[TaskRegistry] 註冊任務: \(id.description)")
+        Logger.trace("[TaskRegistry] 註冊任務: \(id.description)")
         return true
     }
 
@@ -56,7 +56,7 @@ actor TaskRegistry {
             // ✅ 記錄完成時間
             lastCompletionTimes[id] = Date()
             // 只記錄本地日誌，不發送到後端
-            print("[TaskRegistry] 移除任務: \(id.description)")
+            Logger.trace("[TaskRegistry] 移除任務: \(id.description)")
         }
     }
     
@@ -64,7 +64,7 @@ actor TaskRegistry {
         if let task = activeTasks.removeValue(forKey: id) {
             task.cancel()
             // 只記錄本地日誌，不發送到後端
-            print("[TaskRegistry] 取消任務: \(id.description)")
+            Logger.trace("[TaskRegistry] 取消任務: \(id.description)")
         }
     }
     
@@ -79,7 +79,7 @@ actor TaskRegistry {
         
         // 只記錄本地日誌，不發送到後端
         if cancelledCount > 0 {
-            print("[TaskRegistry] 取消所有任務，數量: \(cancelledCount)")
+            Logger.trace("[TaskRegistry] 取消所有任務，數量: \(cancelledCount)")
         }
     }
     
@@ -139,21 +139,21 @@ extension TaskManageable {
         operation: @escaping @Sendable () async throws -> T
     ) async -> T? {
         // 只記錄本地調試日誌，不發送到後端
-        print("[TaskManageable] 執行任務: \(id.description) from \(String(describing: type(of: self)))")
+        Logger.trace("[TaskManageable] 執行任務: \(id.description) from \(String(describing: type(of: self)))")
 
         // 創建執行任務，不需要捕獲 self，因為 operation 已經是 @Sendable
         let executionTask = Task<T?, Never> {
             do {
                 let result = try await operation()
                 // 只記錄本地日誌，不發送到後端
-                print("[TaskManageable] 任務執行成功: \(id.description)")
+                Logger.trace("[TaskManageable] 任務執行成功: \(id.description)")
                 return result
             } catch is CancellationError {
                 // 取消事件不需要記錄，避免過多日誌
                 return nil
             } catch {
                 // TaskManagement 錯誤只記錄在本地，不上傳到雲端
-                print("[TaskManageable] 任務執行失敗: \(id.description) - \(error.localizedDescription)")
+                Logger.trace("[TaskManageable] 任務執行失敗: \(id.description) - \(error.localizedDescription)")
                 return nil
             }
         }

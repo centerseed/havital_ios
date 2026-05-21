@@ -221,14 +221,14 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
             return demoToken
         }
 
-        // Check if Firebase user exists first
-        Logger.debug("[AuthSession] 🔑 Attempting to get Firebase ID Token...")
-        Logger.debug("[AuthSession] 🔑 Firebase currentUser exists: \(firebaseAuth.getCurrentUser() != nil)")
+        // Check if Firebase user exists first（每次 API call 都會走到，降為 trace 避免洗版）
+        Logger.trace("[AuthSession] 🔑 Attempting to get Firebase ID Token...")
+        Logger.trace("[AuthSession] 🔑 Firebase currentUser exists: \(firebaseAuth.getCurrentUser() != nil)")
 
         do {
             let token = try await firebaseAuth.getIdToken()
             let tokenPreview = String(token.prefix(30))
-            Logger.debug("[AuthSession] ✅ ID Token retrieved successfully (length: \(token.count), preview: \(tokenPreview)...)")
+            Logger.trace("[AuthSession] ✅ ID Token retrieved successfully (length: \(token.count), preview: \(tokenPreview)...)")
             return token
         } catch {
             Logger.error("[AuthSession] ❌ Failed to get ID Token: \(error.localizedDescription)")

@@ -293,58 +293,58 @@ struct ResponseProcessor {
         using parser: APIParser
     ) throws -> T {
 
-        Logger.debug("[ResponseProcessor] 開始提取數據，目標類型: \(String(describing: type))")
+        Logger.trace("[ResponseProcessor] 開始提取數據，目標類型: \(String(describing: type))")
 
         // 打印完整的原始響應以便調試
         if let rawString = String(data: rawData, encoding: .utf8) {
-            Logger.debug("[ResponseProcessor] 🔍 完整原始響應:\n\(rawString)")
+            Logger.trace("[ResponseProcessor] 🔍 完整原始響應:\n\(rawString)")
         } else {
-            Logger.debug("[ResponseProcessor] ⚠️ 無法解析原始響應為字符串")
+            Logger.trace("[ResponseProcessor] ⚠️ 無法解析原始響應為字符串")
         }
         
         let preferWrappedResponse = shouldPreferWrappedResponse(for: rawData)
 
         if !preferWrappedResponse {
             do {
-                Logger.debug("[ResponseProcessor] 原始 JSON 不像包裝回應，直接解析為 \(String(describing: type))")
+                Logger.trace("[ResponseProcessor] 原始 JSON 不像包裝回應，直接解析為 \(String(describing: type))")
                 let result = try parser.parse(T.self, from: rawData)
-                Logger.debug("[ResponseProcessor] 直接解析成功")
+                Logger.trace("[ResponseProcessor] 直接解析成功")
                 return result
             } catch {
-                Logger.debug("[ResponseProcessor] 直接解析失敗，回退到包裝回應解析: \(error.localizedDescription)")
+                Logger.trace("[ResponseProcessor] 直接解析失敗，回退到包裝回應解析: \(error.localizedDescription)")
             }
         }
 
         // 嘗試解析為統一回應格式（這是主要路徑，錯誤最有意義）
         var primaryError: Error?
         do {
-            Logger.debug("[ResponseProcessor] 嘗試解析為 UnifiedAPIResponse<\(String(describing: type))>")
+            Logger.trace("[ResponseProcessor] 嘗試解析為 UnifiedAPIResponse<\(String(describing: type))>")
             let unifiedResponse = try parser.parse(UnifiedAPIResponse<T>.self, from: rawData)
-            Logger.debug("[ResponseProcessor] 成功解析為統一格式，處理業務邏輯...")
+            Logger.trace("[ResponseProcessor] 成功解析為統一格式，處理業務邏輯...")
             return try process(unifiedResponse, expecting: type)
         } catch {
             primaryError = error
-            Logger.debug("[ResponseProcessor] 統一格式解析失敗: \(error.localizedDescription)")
+            Logger.trace("[ResponseProcessor] 統一格式解析失敗: \(error.localizedDescription)")
         }
 
         // 嘗試簡單格式
         do {
-            Logger.debug("[ResponseProcessor] 嘗試解析為 APIResponse<\(String(describing: type))>")
+            Logger.trace("[ResponseProcessor] 嘗試解析為 APIResponse<\(String(describing: type))>")
             let simpleResponse = try parser.parse(APIResponse<T>.self, from: rawData)
-            Logger.debug("[ResponseProcessor] 成功解析為簡單格式，處理業務邏輯...")
+            Logger.trace("[ResponseProcessor] 成功解析為簡單格式，處理業務邏輯...")
             return try process(simpleResponse)
         } catch {
-            Logger.debug("[ResponseProcessor] 簡單格式解析失敗: \(error.localizedDescription)")
+            Logger.trace("[ResponseProcessor] 簡單格式解析失敗: \(error.localizedDescription)")
         }
 
         // 最後嘗試直接解析
         do {
-            Logger.debug("[ResponseProcessor] 嘗試直接解析為 \(String(describing: type))")
+            Logger.trace("[ResponseProcessor] 嘗試直接解析為 \(String(describing: type))")
             let result = try parser.parse(T.self, from: rawData)
-            Logger.debug("[ResponseProcessor] 直接解析成功")
+            Logger.trace("[ResponseProcessor] 直接解析成功")
             return result
         } catch {
-            Logger.debug("[ResponseProcessor] 直接解析也失敗: \(error.localizedDescription)")
+            Logger.trace("[ResponseProcessor] 直接解析也失敗: \(error.localizedDescription)")
             // 拋出第一個錯誤（UnifiedAPIResponse 解析錯誤），因為那才是真正的根因
             // 直接解析把 {success,data} 外層當 DTO 解，報的錯完全無關
             throw primaryError ?? error
