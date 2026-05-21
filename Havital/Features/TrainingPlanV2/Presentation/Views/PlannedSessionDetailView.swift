@@ -70,46 +70,47 @@ struct PlannedSessionDetailView: View {
             }
         }
 
-        // chip label + display name keyed by DayType rawValue
-        private static let labels: [String: (chip: String, name: String)] = [
-            "easy":           ("EASY · Z2",            "輕鬆跑"),
-            "easyRun":        ("EASY · Z2",            "輕鬆跑"),
-            "recovery_run":   ("EASY · Z2",            "恢復跑"),
-            "lsd":            ("LONG · Z2-Z3",         "長距離輕鬆跑"),
-            "interval":       ("INTERVAL · Z4",        "間歇訓練"),
-            "tempo":          ("TEMPO · Z3-Z4",        "節奏跑"),
-            "threshold":      ("THRESHOLD · Z4",       "閾值跑"),
-            "progression":    ("PROGRESSION · Z2 → Z4","漸速跑"),
-            "fastFinish":     ("FAST FINISH · Z2 + Z3","快速完成跑"),
-            "longRun":        ("LONG · Z2-Z3",         "長距離輕鬆跑"),
-            "race":           ("RACE · Z5",            "比賽"),
-            "racePace":       ("RACE PACE · Z4-Z5",    "比賽配速跑"),
-            "combination":    ("COMBINATION",          "組合訓練"),
-            "strides":        ("STRIDES · Z4-Z5",      "衝刺跑"),
-            "hillRepeats":    ("HILL REPEATS · Z4",    "坡度訓練"),
-            "cruiseIntervals":("CRUISE · Z3-Z4",       "節奏間歇"),
-            "shortInterval":  ("SHORT · Z5",           "短間歇"),
-            "longInterval":   ("LONG · Z4-Z5",         "長間歇"),
-            "norwegian4x4":   ("NOR 4×4 · Z4-Z5",     "挪威4×4"),
-            "yasso800":       ("YASSO 800 · Z4-Z5",    "800m間歇"),
-            "fartlek":        ("FARTLEK · Z2-Z4",      "法特雷克"),
-            "strength":       ("STRENGTH",             "力量訓練"),
-            "crossTraining":  ("CROSS TRAINING",       "交叉訓練"),
-            "yoga":           ("CROSS TRAINING",       "瑜伽"),
-            "hiking":         ("CROSS TRAINING",       "健行"),
-            "cycling":        ("CROSS TRAINING",       "騎車"),
-            "swimming":       ("CROSS TRAINING",       "游泳"),
-            "elliptical":     ("CROSS TRAINING",       "橢圓機"),
-            "rowing":         ("CROSS TRAINING",       "划船"),
-            "rest":           ("REST",                 "休息"),
-        ]
+        // chip label + display name。用 exhaustive switch（編譯器保證涵蓋所有 DayType；
+        // 未來新增型態會編譯失敗，逼著補上，避免 hero 顯示醜 fallback）。
+        private static func labelPair(for type: DayType) -> (chip: String, name: String) {
+            switch type {
+            case .easy, .easyRun:   return ("EASY · Z2",             "輕鬆跑")
+            case .recovery_run:     return ("EASY · Z2",             "恢復跑")
+            case .lsd, .longRun:    return ("LONG · Z2-Z3",          "長距離輕鬆跑")
+            case .interval:         return ("INTERVAL · Z4",         "間歇訓練")
+            case .tempo:            return ("TEMPO · Z3-Z4",         "節奏跑")
+            case .threshold:        return ("THRESHOLD · Z4",        "閾值跑")
+            case .progression:      return ("PROGRESSION · Z2 → Z4", "漸速跑")
+            case .fastFinish:       return ("FAST FINISH · Z2 + Z3", "快速完成跑")
+            case .race:             return ("RACE · Z5",             "比賽")
+            case .racePace:         return ("RACE PACE · Z4-Z5",     "比賽配速跑")
+            case .combination:      return ("COMBINATION",           "組合訓練")
+            case .strides:          return ("STRIDES · Z4-Z5",       "衝刺跑")
+            case .hillRepeats:      return ("HILL REPEATS · Z4",     "坡度訓練")
+            case .cruiseIntervals:  return ("CRUISE · Z3-Z4",        "節奏間歇")
+            case .shortInterval:    return ("SHORT · Z5",            "短間歇")
+            case .longInterval:     return ("LONG · Z4-Z5",          "長間歇")
+            case .norwegian4x4:     return ("NOR 4×4 · Z4-Z5",       "挪威4×4")
+            case .yasso800:         return ("YASSO 800 · Z4-Z5",     "800m間歇")
+            case .fartlek:          return ("FARTLEK · Z2-Z4",       "法特雷克")
+            case .strength:         return ("STRENGTH",              "力量訓練")
+            case .crossTraining:    return ("CROSS TRAINING",        "交叉訓練")
+            case .yoga:             return ("CROSS TRAINING",        "瑜伽")
+            case .hiking:           return ("CROSS TRAINING",        "健行")
+            case .cycling:          return ("CROSS TRAINING",        "騎車")
+            case .swimming:         return ("CROSS TRAINING",        "游泳")
+            case .elliptical:       return ("CROSS TRAINING",        "橢圓機")
+            case .rowing:           return ("CROSS TRAINING",        "划船")
+            case .rest:             return ("REST",                  "休息")
+            }
+        }
 
         static func chipLabel(for type: DayType) -> String {
-            labels[type.rawValue]?.chip ?? type.rawValue.uppercased()
+            labelPair(for: type).chip
         }
 
         static func typeName(for type: DayType) -> String {
-            labels[type.rawValue]?.name ?? type.rawValue
+            labelPair(for: type).name
         }
     }
 
