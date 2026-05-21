@@ -126,6 +126,12 @@ git commit -m "chore(observability): attribute monthly_stats API calls via track
 策略：所有 GET /user 走 `UserProfileRepository`（`getUserProfile()` cache-first / `refreshUserProfile()` 強制新鮮）；PUT /user 走 `updateUserProfile([...])`。`UserService` 僅保留兩塊**非 /user** 邏輯：`loginWithGoogle`（特殊認證）與 `syncUserPreferences`（本地偏好同步）。
 
 > 風險：本 Phase 動到啟動/認證流程（CLAUDE.md 標記 init order 嚴格、易有 race）。每個 Task 後務必用模擬器跑通「冷啟動 → 課表載入 → 切 tab」並截圖確認無白屏/重登。
+>
+> **🔴 硬約束（載入順序，使用者明示）：V2 版本判斷與 IAP/訂閱狀態都依賴 user API。**
+> - `TrainingVersionRouter.isV2User()` 讀 `user.trainingVersion`；冷啟動若 UserProfileRepository 尚未 bootstrap 會 default v1 → **V2 用戶被誤判 V1**。因此 `AppStateManager.loadUserData` 必須用 `refreshUserProfile()`（強制新鮮、寫入 repo cache），**嚴禁改成 cache-first `getUserProfile()`**。
+> - 載入順序必須維持：**user 載入完成（trainingVersion 寫入 cache）→ 訓練版本路由 / 載入訂閱狀態（`loadSubscriptionStatus`）**。不可調換或並行化破壞此序。
+> - 每個 Phase 2 Task 後額外驗證：(a) V2 demo 用戶冷啟動仍路由到 V2；(b) 訂閱/IAP 狀態正確（premium 不變免費）。
+> - 動工前先確認 `TrainingVersionRouter` 讀 user 的來源與 `loadUserData` 寫入的 cache 是同一 store，確保 refreshUserProfile 寫入後 isV2User 讀得到。
 
 ### Task 2.1：AppRatingManager 改走 repository
 
