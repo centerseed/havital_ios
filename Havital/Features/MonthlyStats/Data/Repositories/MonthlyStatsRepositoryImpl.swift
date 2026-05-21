@@ -14,6 +14,14 @@ final class MonthlyStatsRepositoryImpl: MonthlyStatsRepository {
     private let remoteDataSource: MonthlyStatsRemoteDataSource
     private let localDataSource: MonthlyStatsLocalDataSource
 
+    /// 進行中的抓取（依 year-month 合併並發請求，避免冷啟動/多 caller 同月各打一次 API）。
+    private var inFlight: [String: Task<[DailyStat], Never>] = [:]
+    private let inFlightLock = NSLock()
+
+    /// 未結算月份（進行中當月）的快取新鮮窗口：同步後此期間內重用快取，
+    /// 避免「當月永不信任」造成每次讀都打 API。新訓練進來會經 invalidateRecentMonths 清時間戳強制重抓。
+    private static let unsettledFreshnessTTL: TimeInterval = 5 * 60
+
     // MARK: - Initialization
 
     init(remoteDataSource: MonthlyStatsRemoteDataSource = MonthlyStatsRemoteDataSource(),
@@ -35,15 +43,33 @@ final class MonthlyStatsRepositoryImpl: MonthlyStatsRepository {
     func getMonthlyStats(year: Int, month: Int) async throws -> [DailyStat] {
         Logger.debug("[MonthlyStatsRepositoryImpl] getMonthlyStats - year: \(year), month: \(month)")
 
-        // ✅ 健壯快取策略：只信任「該月結算後才抓取」的快取。
-        // 進行中的月份、或在月底前就被快取的舊資料（資料尚不完整）一律重抓，
-        // 確保月中新增的訓練不會永久從日曆消失，並自動修復既有的不完整快取。
-        if Self.isCacheSettled(year: year, month: month, syncTimestamp: localDataSource.getSyncTimestamp(year: year, month: month)),
+        // ✅ 健壯快取策略：信任「已結算月份」的快取（永久），或「未結算當月在新鮮窗口內」的快取。
+        // 結算前的當月用短 TTL 重用，避免每次讀都打 API；新訓練會經 invalidateRecentMonths 清時間戳強制重抓，
+        // 確保月中新增的訓練不會永久從日曆消失。
+        let syncTs = localDataSource.getSyncTimestamp(year: year, month: month)
+        if Self.isCacheSettled(year: year, month: month, syncTimestamp: syncTs) || Self.isCacheFresh(syncTimestamp: syncTs),
            let cachedStats = localDataSource.getMonthlyStats(year: year, month: month), !cachedStats.isEmpty {
-            print("📊 [MonthlyStatsRepo] 從本地緩存返回（已結算），\(year)-\(String(format: "%02d", month))，數量: \(cachedStats.count)")
+            print("📊 [MonthlyStatsRepo] 從本地緩存返回，\(year)-\(String(format: "%02d", month))，數量: \(cachedStats.count)")
             return cachedStats
         }
 
+        // ✅ 並發合併：同月若已有抓取進行中，共用同一個 Task，不重複打 API。
+        // check-or-create 在同一把鎖內完成，避免兩個並發呼叫都判定「無進行中」而各建一個 Task。
+        let key = "\(year)-\(String(format: "%02d", month))"
+        let (task, isOwner) = inFlightTaskOrCreate(for: key) { [weak self] in
+            guard let self else { return [] }
+            return await self.fetchAndCacheMonthlyStats(year: year, month: month)
+        }
+        if !isOwner {
+            print("📊 [MonthlyStatsRepo] ⏳ 併入進行中的抓取 \(key)")
+            return await task.value
+        }
+        defer { removeInFlightTask(for: key) }
+        return await task.value
+    }
+
+    /// 從 API 抓取並依結果緩存（並發合併與快取判斷在 getMonthlyStats 處理）。
+    private func fetchAndCacheMonthlyStats(year: Int, month: Int) async -> [DailyStat] {
         // ✅ 本地沒有數據或數據為空，從 API 獲取
         print("📊 [MonthlyStatsRepo] 🌐 調用 API: /v2/workout/monthly_stats?year=\(year)&month=\(month)")
 
@@ -155,6 +181,34 @@ final class MonthlyStatsRepositoryImpl: MonthlyStatsRepository {
             return false
         }
         return syncTimestamp > settlement
+    }
+
+    /// 未結算月份的短 TTL 新鮮判斷：同步時間在新鮮窗口內即可重用快取。
+    static func isCacheFresh(syncTimestamp: Date?, now: Date = Date()) -> Bool {
+        guard let syncTimestamp else { return false }
+        return now.timeIntervalSince(syncTimestamp) < unsettledFreshnessTTL
+    }
+
+    // MARK: - In-flight Coalescing
+
+    /// 在單一鎖內：若該 key 已有進行中的 Task 就回傳它（isOwner=false）；否則用 factory 建立、存入並回傳（isOwner=true）。
+    /// 只有 owner 負責在完成後移除，follower 僅 await。
+    private func inFlightTaskOrCreate(
+        for key: String,
+        _ factory: @escaping @Sendable () async -> [DailyStat]
+    ) -> (task: Task<[DailyStat], Never>, isOwner: Bool) {
+        inFlightLock.lock(); defer { inFlightLock.unlock() }
+        if let existing = inFlight[key] {
+            return (existing, false)
+        }
+        let task = Task<[DailyStat], Never> { await factory() }
+        inFlight[key] = task
+        return (task, true)
+    }
+
+    private func removeInFlightTask(for key: String) {
+        inFlightLock.lock(); defer { inFlightLock.unlock() }
+        inFlight[key] = nil
     }
 
     /// 「結算點」= 下個月第一天 + 寬限天數（皆以當地時區計）。
