@@ -47,7 +47,9 @@ struct AchievementBadgeHeroView: View {
             .resizable()
             .scaledToFit()
             .frame(width: size, height: size)
-            .clipShape(Circle())
+            // 與徽章收藏（AchievementBadgeImage）一致用圓角方形裁切，
+            // Circle 會切掉 asset 內建的圓角方形外框 → 課表 hero 外框看起來怪。
+            .clipShape(RoundedRectangle(cornerRadius: size * 0.22, style: .continuous))
             .shadow(
                 color: PacerizColor.blue.opacity(0.30),
                 radius: 9,
