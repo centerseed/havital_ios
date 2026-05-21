@@ -12,6 +12,14 @@ protocol WorkoutRepository {
     /// ViewModel 訂閱後自行決定如何通知 UI / 其他模組
     var workoutsDidRefresh: AnyPublisher<Void, Never> { get }
 
+    /// 分頁狀態更新訊號：任何一次伺服器抓頁（初次/刷新/背景/載入更多）都會帶出後端真實 has_more。
+    /// ViewModel 訂閱後同步 hasMoreData，避免依賴本地猜測。
+    var workoutsPaginationDidUpdate: AnyPublisher<PaginationInfo, Never> { get }
+
+    /// 讀取緩存的分頁狀態（與列表緩存平行存放），供 Track A 立即取得正確 has_more。
+    /// - Returns: 緩存分頁，若無則 nil
+    func getCachedPagination() -> PaginationInfo?
+
     // MARK: - Query (DEPRECATED - Use Async versions)
 
     /// 獲取指定日期範圍內的訓練記錄

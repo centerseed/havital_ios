@@ -227,6 +227,8 @@ class WorkoutListTestMockRepository: WorkoutRepository {
 
     let refreshSubject = PassthroughSubject<Void, Never>()
     var workoutsDidRefresh: AnyPublisher<Void, Never> { refreshSubject.eraseToAnyPublisher() }
+    var workoutsPaginationDidUpdate: AnyPublisher<PaginationInfo, Never> { Empty().eraseToAnyPublisher() }
+    func getCachedPagination() -> PaginationInfo? { nil }
 }
 
 // 2. Mock UseCases

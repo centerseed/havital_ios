@@ -27,6 +27,15 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         refreshSubject.eraseToAnyPublisher()
     }
 
+    private let paginationSubject = PassthroughSubject<PaginationInfo, Never>()
+    var workoutsPaginationDidUpdate: AnyPublisher<PaginationInfo, Never> {
+        paginationSubject.eraseToAnyPublisher()
+    }
+
+    func getCachedPagination() -> PaginationInfo? {
+        localDataSource.getPagination()
+    }
+
     // MARK: - Initialization
 
     init(remoteDataSource: WorkoutRemoteDataSource = WorkoutRemoteDataSource(),
@@ -114,23 +123,27 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
             return cachedWorkouts
         }
 
-        // 沒有緩存時，直接從 API 載入
+        // 沒有緩存時，直接從 API 載入（連同後端分頁狀態一起存）
         Logger.debug("[WorkoutRepositoryImpl] 無緩存，從 API 載入")
-        let workouts = try await remoteDataSource.fetchWorkouts(pageSize: limit, cursor: nil)
-        localDataSource.saveWorkouts(workouts)
+        let page = try await remoteDataSource.fetchWorkoutsPage(pageSize: limit, cursor: nil)
+        localDataSource.saveWorkouts(page.workouts)
+        localDataSource.savePagination(page.pagination)
+        paginationSubject.send(page.pagination)
 
-        return workouts
+        return page.workouts
     }
 
     func refreshWorkouts() async throws -> [WorkoutV2] {
         Logger.debug("[WorkoutRepositoryImpl] refreshWorkouts - 強制刷新")
 
-        // 強制刷新：跳過緩存，直接從 API 獲取
-        let workouts = try await remoteDataSource.fetchWorkouts(pageSize: nil, cursor: nil)
-        localDataSource.saveWorkouts(workouts)
+        // 強制刷新：跳過緩存，直接從 API 獲取（連同後端分頁狀態一起存）
+        let page = try await remoteDataSource.fetchWorkoutsPage(pageSize: nil, cursor: nil)
+        localDataSource.saveWorkouts(page.workouts)
+        localDataSource.savePagination(page.pagination)
+        paginationSubject.send(page.pagination)
 
-        Logger.debug("[WorkoutRepositoryImpl] refreshWorkouts - 完成，數量: \(workouts.count)")
-        return workouts
+        Logger.debug("[WorkoutRepositoryImpl] refreshWorkouts - 完成，數量: \(page.workouts.count)")
+        return page.workouts
     }
 
     // MARK: - Pagination (Migrated from UnifiedWorkoutManager)
@@ -138,82 +151,54 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
     func loadInitialWorkouts(pageSize: Int = 10) async throws -> WorkoutListResponse {
         Logger.debug("[WorkoutRepositoryImpl] loadInitialWorkouts - pageSize: \(pageSize)")
 
-        // Fetch from API
-        let workouts = try await remoteDataSource.fetchWorkouts(pageSize: pageSize, cursor: nil)
+        // Fetch from API（含後端真實分頁狀態）
+        let page = try await remoteDataSource.fetchWorkoutsPage(pageSize: pageSize, cursor: nil)
 
-        // Update cache
-        localDataSource.saveWorkouts(workouts)
+        // Update cache（列表 + 分頁）
+        localDataSource.saveWorkouts(page.workouts)
+        localDataSource.savePagination(page.pagination)
+        paginationSubject.send(page.pagination)
 
-        // Construct pagination info
-        let pagination = PaginationInfo(
-            nextCursor: workouts.last?.id,
-            prevCursor: nil,
-            hasMore: workouts.count >= pageSize,
-            hasNewer: false,
-            oldestId: workouts.last?.id,
-            newestId: workouts.first?.id,
-            totalItems: workouts.count,
-            pageSize: pageSize
-        )
-
-        Logger.debug("[WorkoutRepositoryImpl] loadInitialWorkouts - 完成，數量: \(workouts.count)")
-        return WorkoutListResponse(workouts: workouts, pagination: pagination)
+        Logger.debug("[WorkoutRepositoryImpl] loadInitialWorkouts - 完成，數量: \(page.workouts.count)，has_more: \(page.pagination.hasMore)")
+        return page
     }
 
     func loadMoreWorkouts(afterCursor: String, pageSize: Int = 10) async throws -> WorkoutListResponse {
         Logger.debug("[WorkoutRepositoryImpl] loadMoreWorkouts - afterCursor: \(afterCursor), pageSize: \(pageSize)")
 
-        // Fetch from API
-        let workouts = try await remoteDataSource.fetchWorkouts(pageSize: pageSize, cursor: afterCursor)
+        // Fetch from API（含後端真實分頁狀態）
+        let page = try await remoteDataSource.fetchWorkoutsPage(pageSize: pageSize, cursor: afterCursor)
 
         // Merge with existing cache
         if var cachedWorkouts = localDataSource.getWorkouts() {
-            cachedWorkouts.append(contentsOf: workouts)
+            cachedWorkouts.append(contentsOf: page.workouts)
             localDataSource.saveWorkouts(cachedWorkouts)
             Logger.debug("[WorkoutRepositoryImpl] Merged with cache, total: \(cachedWorkouts.count)")
         } else {
-            localDataSource.saveWorkouts(workouts)
+            localDataSource.saveWorkouts(page.workouts)
         }
 
-        // Construct pagination info
-        let pagination = PaginationInfo(
-            nextCursor: workouts.last?.id,
-            prevCursor: afterCursor,
-            hasMore: workouts.count >= pageSize,
-            hasNewer: false,
-            oldestId: workouts.last?.id,
-            newestId: workouts.first?.id,
-            totalItems: workouts.count,
-            pageSize: pageSize
-        )
+        // 分頁狀態以後端為準（has_more 反映「比 afterCursor 更舊的還有沒有」）
+        localDataSource.savePagination(page.pagination)
+        paginationSubject.send(page.pagination)
 
-        Logger.debug("[WorkoutRepositoryImpl] loadMoreWorkouts - 完成，返回: \(workouts.count)")
-        return WorkoutListResponse(workouts: workouts, pagination: pagination)
+        Logger.debug("[WorkoutRepositoryImpl] loadMoreWorkouts - 完成，返回: \(page.workouts.count)，has_more: \(page.pagination.hasMore)")
+        return page
     }
 
     func refreshLatestWorkouts(beforeCursor: String? = nil, pageSize: Int = 10) async throws -> WorkoutListResponse {
         Logger.debug("[WorkoutRepositoryImpl] refreshLatestWorkouts - beforeCursor: \(String(describing: beforeCursor)), pageSize: \(pageSize)")
 
-        // Fetch from API
-        let workouts = try await remoteDataSource.fetchWorkouts(pageSize: pageSize, cursor: nil)
+        // Fetch from API（含後端真實分頁狀態）
+        let page = try await remoteDataSource.fetchWorkoutsPage(pageSize: pageSize, cursor: nil)
 
-        // Replace cache (not merge)
-        localDataSource.saveWorkouts(workouts)
+        // Replace cache (not merge)（列表 + 分頁）
+        localDataSource.saveWorkouts(page.workouts)
+        localDataSource.savePagination(page.pagination)
+        paginationSubject.send(page.pagination)
 
-        // Construct pagination info
-        let pagination = PaginationInfo(
-            nextCursor: workouts.last?.id,
-            prevCursor: nil,
-            hasMore: workouts.count >= pageSize,
-            hasNewer: false,
-            oldestId: workouts.last?.id,
-            newestId: workouts.first?.id,
-            totalItems: workouts.count,
-            pageSize: pageSize
-        )
-
-        Logger.debug("[WorkoutRepositoryImpl] refreshLatestWorkouts - 完成，數量: \(workouts.count)")
-        return WorkoutListResponse(workouts: workouts, pagination: pagination)
+        Logger.debug("[WorkoutRepositoryImpl] refreshLatestWorkouts - 完成，數量: \(page.workouts.count)")
+        return page
     }
 
     // MARK: - Single Workout
@@ -438,11 +423,17 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         }
         lastBackgroundRefreshTime = now
 
-        await backgroundRefresh(
-            taskName: "訓練列表",
-            fetch: { try await self.remoteDataSource.fetchWorkouts(pageSize: pageSize, cursor: nil) },
-            save: { workouts in self.localDataSource.saveWorkouts(workouts) }
-        )
+        // Track B：抓整頁（含後端分頁狀態），列表 + 分頁一起更新並發訊號。
+        do {
+            let page = try await remoteDataSource.fetchWorkoutsPage(pageSize: pageSize, cursor: nil)
+            localDataSource.saveWorkouts(page.workouts)
+            localDataSource.savePagination(page.pagination)
+            Logger.debug("[WorkoutRepositoryImpl] Track B - 訓練列表 背景刷新完成，數量: \(page.workouts.count)，has_more: \(page.pagination.hasMore)")
+            refreshSubject.send()
+            paginationSubject.send(page.pagination)
+        } catch {
+            Logger.error("[WorkoutRepositoryImpl] Track B - 訓練列表 背景刷新失敗: \(error.localizedDescription)")
+        }
     }
 
     /// 背景刷新單個訓練

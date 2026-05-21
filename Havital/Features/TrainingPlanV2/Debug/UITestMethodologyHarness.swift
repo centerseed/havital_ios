@@ -886,6 +886,12 @@ private final class UITestMethodologyWorkoutRepository: WorkoutRepository {
         Empty().eraseToAnyPublisher()
     }
 
+    var workoutsPaginationDidUpdate: AnyPublisher<PaginationInfo, Never> {
+        Empty().eraseToAnyPublisher()
+    }
+
+    func getCachedPagination() -> PaginationInfo? { nil }
+
     var workoutsDidUpdateNotification: Notification.Name {
         .workoutsDidUpdate
     }

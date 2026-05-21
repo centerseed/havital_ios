@@ -8,7 +8,7 @@ import HealthKit
 //   2. Added horizontal-scroll filter chip row (全部 / 輕鬆跑 / 節奏跑 / 間歇 / 長距離)
 //   3. Added grouping logic by recency (今天 / 昨天 / 本週稍早 / 上週 / month-based older)
 //   4. Group header shows count + total km
-//   5. WorkoutV2RowView receives planMatched + vdotDelta derived here
+//   5. WorkoutV2RowView receives planMatched derived here
 //   Unchanged: loadWorkouts / pagination flow, WorkoutDetailViewV2 routing
 
 struct TrainingRecordView: View {
@@ -285,8 +285,7 @@ struct TrainingRecordView: View {
                 workout: workout,
                 isUploaded: true,
                 uploadTime: workout.startDate,
-                planMatched: derivePlanMatched(workout),
-                vdotDelta: deriveVdotDelta(workout)
+                planMatched: derivePlanMatched(workout)
             )
         }
         .buttonStyle(.plain)
@@ -303,15 +302,6 @@ struct TrainingRecordView: View {
 
     /// VDOT delta vs. previous workout in the full list (not filtered).
     /// Returns nil if current or previous VDOT is absent.
-    private func deriveVdotDelta(_ workout: WorkoutV2) -> Double? {
-        let all = viewModel.workouts  // sorted desc by date
-        guard let currentVdot = workout.dynamicVdot,
-              let idx = all.firstIndex(where: { $0.id == workout.id }),
-              idx + 1 < all.count,
-              let prevVdot = all[idx + 1].dynamicVdot else { return nil }
-        return currentVdot - prevVdot
-    }
-
     // MARK: - Load more
 
     private var loadMoreTrigger: some View {

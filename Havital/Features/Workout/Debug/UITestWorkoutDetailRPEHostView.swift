@@ -12,6 +12,8 @@ final class UITestWorkoutDetailRPEMockRepository: ObservableObject, WorkoutRepos
     @Published private(set) var updateCallCount = 0
 
     var workoutsDidRefresh: AnyPublisher<Void, Never> { subject.eraseToAnyPublisher() }
+    var workoutsPaginationDidUpdate: AnyPublisher<PaginationInfo, Never> { Empty().eraseToAnyPublisher() }
+    func getCachedPagination() -> PaginationInfo? { nil }
     var workoutsDidUpdateNotification: Notification.Name { Notification.Name("UITestWorkoutDetailRPEMockRepositoryDidUpdate") }
 
     init(initialRPE: Int?) {

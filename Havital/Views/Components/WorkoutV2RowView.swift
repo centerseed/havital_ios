@@ -8,7 +8,6 @@ import SwiftUI
 //   Radial gradient corner accent (top-left)
 //   Footer: hairline + optional "與課表匹配" chip + source tag
 //
-// VDOT delta: requires at least two workouts in sorted list; passed in by caller.
 // planMatched: derived from workout.dailyPlanSummary presence; no fake data.
 
 struct WorkoutV2RowView: View {
@@ -17,8 +16,6 @@ struct WorkoutV2RowView: View {
     let uploadTime: Date?
     /// Optional: pass true/false if caller can determine; nil = omit chip
     var planMatched: Bool? = nil
-    /// Optional VDOT delta vs previous workout; positive = up, negative = down, nil = omit arrow
-    var vdotDelta: Double? = nil
 
     @Environment(\.colorScheme) var colorScheme
     @ObservedObject private var unitManager = UnitManager.shared
@@ -154,12 +151,12 @@ struct WorkoutV2RowView: View {
 
             // VDOT pill (orange) — only if present
             if let vdot = workout.dynamicVdot {
-                vdotPill(vdot: vdot, delta: vdotDelta)
+                vdotPill(vdot: vdot)
             }
         }
     }
 
-    private func vdotPill(vdot: Double, delta: Double?) -> some View {
+    private func vdotPill(vdot: Double) -> some View {
         HStack(spacing: 4) {
             Text("VDOT")
                 .font(AppFont.micro())
@@ -168,11 +165,6 @@ struct WorkoutV2RowView: View {
             Text(String(format: "%.1f", vdot))
                 .font(AppFont.chip().monospacedDigit())
                 .foregroundColor(PacerizColor.orangeDeep)
-            if let delta = delta {
-                Image(systemName: delta >= 0 ? "arrow.up.right" : "arrow.down.right")
-                    .font(AppFont.micro())
-                    .foregroundColor(PacerizColor.orangeDeep)
-            }
         }
         .padding(.vertical, 5)
         .padding(.horizontal, 9)
@@ -342,8 +334,8 @@ struct WorkoutV2RowView: View {
 
     return ScrollView {
         VStack(spacing: 10) {
-            WorkoutV2RowView(workout: workout, isUploaded: true, uploadTime: Date(), planMatched: true, vdotDelta: 0.4)
-            WorkoutV2RowView(workout: workout, isUploaded: true, uploadTime: Date(), planMatched: false, vdotDelta: nil)
+            WorkoutV2RowView(workout: workout, isUploaded: true, uploadTime: Date(), planMatched: true)
+            WorkoutV2RowView(workout: workout, isUploaded: true, uploadTime: Date(), planMatched: false)
         }
         .padding()
     }
