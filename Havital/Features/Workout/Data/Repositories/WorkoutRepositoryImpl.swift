@@ -169,11 +169,17 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         // Fetch from API（含後端真實分頁狀態）
         let page = try await remoteDataSource.fetchWorkoutsPage(pageSize: pageSize, cursor: afterCursor)
 
-        // Merge with existing cache
-        if var cachedWorkouts = localDataSource.getWorkouts() {
-            cachedWorkouts.append(contentsOf: page.workouts)
-            localDataSource.saveWorkouts(cachedWorkouts)
-            Logger.debug("[WorkoutRepositoryImpl] Merged with cache, total: \(cachedWorkouts.count)")
+        // Merge with existing cache — 依 id 去重，避免重疊分頁/重抓造成同一筆 workout 重複累積
+        // （重複會讓 getAllWorkoutsAsync 加總時週里程膨脹）。
+        if let cachedWorkouts = localDataSource.getWorkouts() {
+            var seen = Set(cachedWorkouts.map { $0.id })
+            var merged = cachedWorkouts
+            for w in page.workouts where !seen.contains(w.id) {
+                seen.insert(w.id)
+                merged.append(w)
+            }
+            localDataSource.saveWorkouts(merged)
+            Logger.debug("[WorkoutRepositoryImpl] Merged with cache (deduped), total: \(merged.count)")
         } else {
             localDataSource.saveWorkouts(page.workouts)
         }

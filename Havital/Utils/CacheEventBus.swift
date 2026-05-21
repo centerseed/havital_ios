@@ -210,13 +210,13 @@ class CacheEventBus {
             // 用戶 PROFILE 變更（含每次啟動 auth 狀態變化）會發此事件。清 profile 衍生的快取，
             // 但「保留」計畫/運動/週總結的雙軌快取——否則每次啟動都清光 → 課表 relaunch 卡 loading。
             // 跨用戶污染由換帳號時的 .userLogout（清光全部，見 LoginViewModel）防護，此處毋須清計畫/運動。
-            // 用真實註冊的 cacheIdentifier（類別名）。保留計畫/運動的雙軌快取，
-            // 其餘（profile/target/subscription）仍清。換帳號由 .userLogout 清光全部。
-            let dualTrackPlanWorkoutCaches: Set<String> = [
-                "TrainingPlanV2LocalDataSource",
-                "WorkoutLocalDataSource"
+            // 只保留「課表」雙軌快取（修 relaunch 卡 loading）。
+            // Workout 快取「仍清」——它每次啟動清掉重抓才正確；保留會讓 loadMore 的 append 累積/重複，
+            // 造成週里程（getAllWorkoutsAsync 加總）膨脹。換帳號由 .userLogout 清光全部。
+            let preservedCaches: Set<String> = [
+                "TrainingPlanV2LocalDataSource"
             ]
-            return Set(cacheables.map { $0.cacheIdentifier }).subtracting(dualTrackPlanWorkoutCaches)
+            return Set(cacheables.map { $0.cacheIdentifier }).subtracting(preservedCaches)
         case .healthData:
             return ["HealthDataUploadManager", "hrv_cache", "HRVManager", "health_data"] // 健康數據及相關緩存
         case .hrv:
