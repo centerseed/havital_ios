@@ -103,6 +103,22 @@ struct TimelineItemViewV2: View {
     @Environment(\.colorScheme) private var colorScheme
     @AppStorage("climateAdjustmentEnabled") private var climateAdjustmentEnabled = false
 
+    /// 是否有可展開的內容。
+    /// 單趟訓練（純跑步、無暖身/緩和/間歇/分段、無補充訓練）header 已含全部資訊，不需展開。
+    /// 多段/間歇跑、含暖身緩和、含補充訓練、或非跑步主項（力量/交叉）才允許展開。
+    private var canExpand: Bool {
+        guard let session = day.session else { return false }  // rest 日無展開內容
+        if case .run(let run) = session.primary {
+            let hasRunStructure = run.interval != nil
+                || (run.segments?.isEmpty == false)
+                || session.warmup != nil
+                || session.cooldown != nil
+            let hasSupplementary = (session.supplementary?.isEmpty == false)
+            return hasRunStructure || hasSupplementary
+        }
+        return true  // 力量／交叉等非跑步主項一律可展開
+    }
+
     var body: some View {
         // todayTrigger 參與 body，確保日期變化時 SwiftUI 重繪
         let _ = todayTrigger
@@ -150,12 +166,10 @@ struct TimelineItemViewV2: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Button(action: {
                         Logger.debug("[TimelineItemViewV2] tap day=\(day.dayIndexInt) isToday=\(isToday) type=\(day.type) workouts=\(workouts.count)")
-                        if isToday {
-                            // Today: always expanded inline — no-op on card tap
-                        } else if day.type == .rest {
+                        if day.type == .rest {
                             showRestDayInfo = true
                         } else {
-                            // Always push planned (課表詳情) regardless of past/future or workout existence
+                            // Always push planned (課表詳情) regardless of today/past/future or workout existence
                             let date = viewModel.getDate(for: day.dayIndexInt)
                             Logger.debug("[TimelineItemViewV2] onDestinationSelect .planned day=\(day.dayIndexInt)")
                             onDestinationSelect(.planned(day, date))
@@ -266,14 +280,19 @@ struct TimelineItemViewV2: View {
                     .contentShape(Rectangle())
 
                     // 訓練內容區域
-                    // Bug 3: Today always expanded; past/future toggle via isExpanded (chevron button).
-                    if isToday || isExpanded {
+                    // 單趟訓練不展開（canExpand=false）：今日 always-expanded 與 chevron 都跳過。
+                    // 多段/間歇/含補充訓練/非跑步主項才展開。
+                    if (isToday || isExpanded) && canExpand {
                         VStack(alignment: .leading, spacing: 8) {
 
                             // PACERIZ REDESIGN 2026-05: 訓練詳情移至前，使用 RedesignedSegmentsView（run）或原 TrainingDetailsViewV2（非 run）
                             if day.session != nil {
                                 if day.primaryRunActivity != nil {
                                     RedesignedSegmentsView(day: day)
+                                    // RedesignedSegmentsView 只畫跑步段落；補充訓練（力量/交叉）另外補上。
+                                    if let supplementary = day.session?.supplementary, !supplementary.isEmpty {
+                                        SupplementaryTrainingView(activities: supplementary)
+                                    }
                                 } else {
                                     TrainingDetailsViewV2(day: day)
                                 }
@@ -334,38 +353,6 @@ struct TimelineItemViewV2: View {
                                 }
                             }
 
-                            // B5: Today CTA — "開始今日訓練" button
-                            if isToday && day.type != .rest {
-                                let accent = getTypeColor()
-                                Button(action: {
-                                    if let workout = workouts.first {
-                                        onDestinationSelect(WorkoutDetailDestination.history(workout))
-                                    }
-                                    // If no recorded workout yet, button is intentionally non-navigating
-                                }) {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "play.fill")
-                                            .font(AppFont.captionRegular())
-                                        Text(NSLocalizedString("training_plan.start_today_workout", comment: "開始今日訓練"))
-                                            .font(AppFont.chip())
-                                            .tracking(-0.2)
-                                    }
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 44)
-                                    .foregroundColor(.white)
-                                    .background(
-                                        LinearGradient(
-                                            colors: [accent, accent.opacity(0.8)],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-                                    .cornerRadius(12)
-                                    .shadow(color: accent.opacity(0.33), radius: 8, x: 0, y: 6)
-                                }
-                                .padding(.top, 8)
-                                .accessibilityIdentifier("v2.weekly.today.start_workout_cta")
-                            }
                         }
                         .animation(.easeInOut(duration: 0.2), value: isExpanded)
                     }
@@ -373,9 +360,10 @@ struct TimelineItemViewV2: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 // Bug 3: Standalone chevron toggle button — only for non-today, non-rest days.
+                // 單趟訓練（canExpand=false）不顯示展開箭頭，點卡片直接進課表詳情。
                 // Placed OUTSIDE the card body VStack so its tap does NOT trigger card navigation.
                 // chevron.right = collapsed, chevron.down = expanded; 44pt hit target per HIG.
-                if !isToday && day.type != .rest {
+                if !isToday && day.type != .rest && canExpand {
                     Button(action: {
                         withAnimation(.easeInOut(duration: 0.2)) {
                             isExpanded.toggle()
