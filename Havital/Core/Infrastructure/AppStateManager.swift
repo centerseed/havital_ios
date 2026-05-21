@@ -60,7 +60,6 @@ class AppStateManager: ObservableObject {
 
     // Clean Architecture: Use AuthSessionRepository instead of AuthenticationService
     private let authSessionRepository: AuthSessionRepository
-    private var userService: UserService?
     private let workoutRepository: WorkoutRepository
     private var healthDataUploadManager: HealthDataUploadManagerV2?
 
@@ -232,28 +231,19 @@ class AppStateManager: ObservableObject {
         }
         
         do {
-            userService = UserService.shared
-            
             print("📥 AppStateManager: 從後端 User API 獲取用戶資料...")
 
-            // 🚨 正確的流程：從後端 User API 獲取用戶的實際數據源設定
-            guard let userService = userService else {
-                Logger.firebase("UserService 未初始化", level: .error, labels: [
-                    "module": "AppStateManager",
-                    "action": "load_user_data"
-                ])
-                throw NSError(domain: "AppStateManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "UserService 未初始化"])
+            // Use UserProfileRepository (cache-aware, V2 routing safe)
+            let repo: UserProfileRepository = DependencyContainer.shared.resolve()
+            let user = try await tracked("AppStateManager: loadUserData") {
+                try await repo.refreshUserProfile()
             }
-            let user = try await userService.getUserProfileAsync()
 
             print("📥 AppStateManager: 成功獲取用戶資料")
             print("   - 後端數據源: \(user.dataSource ?? "未設定")")
 
             // 同步用戶偏好設定（包括數據源）
-            userService.syncUserPreferences(with: user)
-
-            // 🔥 重要：將用戶資料保存到本地快取（Clean Architecture）
-            UserProfileLocalDataSource().saveUserProfile(user)
+            UserService.shared.syncUserPreferences(with: user)
 
             // 使用同步後的數據源設定
             userDataSource = UserPreferencesManager.shared.dataSourcePreference
