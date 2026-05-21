@@ -207,7 +207,16 @@ class CacheEventBus {
         case .targets:
             return ["targets", "training_plan", "TargetManager"] // 目標影響訓練計劃
         case .user:
-            return Set(cacheables.map { $0.cacheIdentifier }) // 用戶變更影響所有
+            // 用戶 PROFILE 變更（含每次啟動 auth 狀態變化）會發此事件。清 profile 衍生的快取，
+            // 但「保留」計畫/運動/週總結的雙軌快取——否則每次啟動都清光 → 課表 relaunch 卡 loading。
+            // 跨用戶污染由換帳號時的 .userLogout（清光全部，見 LoginViewModel）防護，此處毋須清計畫/運動。
+            // 用真實註冊的 cacheIdentifier（類別名）。保留計畫/運動的雙軌快取，
+            // 其餘（profile/target/subscription）仍清。換帳號由 .userLogout 清光全部。
+            let dualTrackPlanWorkoutCaches: Set<String> = [
+                "TrainingPlanV2LocalDataSource",
+                "WorkoutLocalDataSource"
+            ]
+            return Set(cacheables.map { $0.cacheIdentifier }).subtracting(dualTrackPlanWorkoutCaches)
         case .healthData:
             return ["HealthDataUploadManager", "hrv_cache", "HRVManager", "health_data"] // 健康數據及相關緩存
         case .hrv:
