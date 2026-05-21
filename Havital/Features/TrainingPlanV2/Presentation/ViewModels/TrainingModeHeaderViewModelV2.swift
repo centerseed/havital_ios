@@ -114,7 +114,9 @@ final class TrainingModeHeaderViewModelV2: ObservableObject {
         let month = calendar.component(.month, from: now)
 
         do {
-            let stats = try await monthlyStatsRepository.getMonthlyStats(year: year, month: month)
+            let stats = try await tracked("TrainingModeHeaderViewModelV2: loadMonthlyStats") {
+                try await monthlyStatsRepository.getMonthlyStats(year: year, month: month)
+            }
 
             // Monthly km — sum of all DailyStat.totalDistanceKm in this month
             let totalKm = stats.reduce(0.0) { $0 + $1.totalDistanceKm }

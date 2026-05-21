@@ -122,7 +122,9 @@ class TrainingCalendarViewModel: ObservableObject {
         print("📊 [TrainingCalendar] 🌐 開始調用 monthlyStatsRepository.getMonthlyStats(\(year), \(monthNumber))")
         var monthlyStats: [DailyStat] = []
         do {
-            monthlyStats = try await monthlyStatsRepository.getMonthlyStats(year: year, month: monthNumber)
+            monthlyStats = try await tracked("TrainingCalendarView: loadMonthlyStats") {
+                try await monthlyStatsRepository.getMonthlyStats(year: year, month: monthNumber)
+            }
             print("📊 [TrainingCalendar] ✅ 月度統計成功: \(monthlyStats.count) 筆")
         } catch {
             print("📊 [TrainingCalendar] ❌ 月度統計失敗: \(error.localizedDescription)")
@@ -165,7 +167,9 @@ class TrainingCalendarViewModel: ObservableObject {
 
             let monthlyStats: [DailyStat]
             do {
-                monthlyStats = try await monthlyStatsRepository.getMonthlyStats(year: year, month: monthNumber)
+                monthlyStats = try await tracked("TrainingCalendarView: loadMonthlyStats") {
+                    try await monthlyStatsRepository.getMonthlyStats(year: year, month: monthNumber)
+                }
             } catch {
                 Logger.debug("[TrainingCalendar] monthly summary stats failed for \(year)-\(monthNumber): \(error.localizedDescription)")
                 monthlyStats = []
