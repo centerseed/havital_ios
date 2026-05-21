@@ -21,35 +21,39 @@ struct WorkoutRecapView: View {
     @State private var showConfetti = true
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    headerSection
-                    metricsSection
-                    diarySection
+        ZStack {
+            NavigationStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 20) {
+                        headerSection
+                        metricsSection
+                        diarySection
+                    }
+                    .padding(20)
                 }
-                .padding(20)
-            }
-            .background(Color(UIColor.systemGroupedBackground))
-            .navigationTitle("訓練回顧")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(L10n.Common.done.localized) { dismiss() }
-                        .font(AppFont.label())
-                }
-            }
-            // 禮炮撒花：進場噴射一次，~3 秒後自動移除（不留殘留）。
-            .overlay {
-                if showConfetti {
-                    RecapConfettiCannon()
-                        .transition(.opacity)
+                .background(Color(UIColor.systemGroupedBackground))
+                .navigationTitle("訓練回顧")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(L10n.Common.done.localized) { dismiss() }
+                            .font(AppFont.label())
+                    }
                 }
             }
-            .task {
-                try? await Task.sleep(nanoseconds: 3_200_000_000)
-                withAnimation(.easeOut(duration: 0.4)) { showConfetti = false }
+
+            // 撒花：放在 sheet 內容最上層（不掛在 ScrollView overlay，避免被裁切），
+            // 進場灑落一次，~3 秒後自動移除（不留殘留）。
+            if showConfetti {
+                RecapConfettiCannon()
+                    .allowsHitTesting(false)
+                    .transition(.opacity)
+                    .ignoresSafeArea()
             }
+        }
+        .task {
+            try? await Task.sleep(nanoseconds: 3_200_000_000)
+            withAnimation(.easeOut(duration: 0.4)) { showConfetti = false }
         }
         .presentationDetents([.large])
     }
