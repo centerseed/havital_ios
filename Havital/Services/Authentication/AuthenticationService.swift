@@ -400,7 +400,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
 
             // 步驟 3: 獲取用戶資料（使用 demo token）
             print("🔵 [Demo Login] 步驟 3: 獲取用戶資料")
-            let user = try await makeAPICall(User.self, path: "/user")
+            let user = try await userProfileRepository.refreshUserProfile()
 
             print("✅ [Demo Login] 用戶資料獲取成功")
             print("✅ [Demo Login] 用戶名稱=\(user.displayName ?? "無")")
@@ -529,8 +529,8 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
     }
     
     private func performUserSync(idToken: String) async throws {
-        // 從後端取得完整用戶資料
-        var user = try await makeAPICall(User.self, path: "/user")
+        // 從後端取得完整用戶資料（force refresh: writes cache so V2 routing sees trainingVersion）
+        var user = try await userProfileRepository.refreshUserProfile()
         // 若後端未返回名稱或頭像，使用 Firebase 資料更新後端
         if let firebaseUser = Auth.auth().currentUser {
             var updateData = [String: Any]()
@@ -543,8 +543,8 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
             if !updateData.isEmpty {
                 // Clean Architecture: Service → Repository
                 try await userProfileRepository.updateUserProfile(updateData)
-                // 重新抓取更新後的用戶資料
-                user = try await makeAPICall(User.self, path: "/user")
+                // 重新抓取更新後的用戶資料（force refresh after update）
+                user = try await userProfileRepository.refreshUserProfile()
             }
         }
         await MainActor.run {
@@ -654,83 +654,15 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
             ]
         )
 
-        // Wrap the entire publisher in a Task with TaskLocal context
-        Task {
-            await APICallTracker.$currentSource.withValue("AuthenticationService: fetchUserProfile") {
-                UserService.shared.getUserProfile()
-                    .receive(on: DispatchQueue.main)
-                    .sink { [weak self] completion in
-                self?.isLoading = false
-                if case .failure(let error) = completion {
-                    print("無法獲取用戶資料: \(error)")
+        Task { [weak self] in
+            guard let self = self else { return }
+            do {
+                let user = try await self.userProfileRepository.getUserProfile()
 
-                    Logger.firebase(
-                        "獲取用戶資料失敗",
-                        level: .error,
-                        labels: [
-                            "module": "AuthenticationService",
-                            "action": "fetch_user_profile_failed",
-                            "user_id": self?.user?.uid ?? "unknown"
-                        ],
-                        jsonPayload: [
-                            "error": error.localizedDescription,
-                            "error_type": String(describing: type(of: error))
-                        ]
-                    )
-
-                    // 判斷是否需要重置認證狀態
-                    guard let self = self else { return }
-
-                    // 1. 解析錯誤：後端回應格式變更
-                    if error is DecodingError {
-                        Logger.firebase(
-                            "DecodingError - 重置認證狀態",
-                            level: .warn,
-                            labels: [
-                                "module": "AuthenticationService",
-                                "action": "reset_auth_decoding_error"
-                            ]
-                        )
-                        self.appUser = nil
-                        self.isAuthenticated = false
-                        return
-                    }
-
-                    // 2. 認證錯誤 (401/403)：Token 無效或已撤銷
-                    if let httpError = error as? HTTPError {
-                        switch httpError {
-                        case .unauthorized, .forbidden:
-                            Logger.firebase(
-                                "認證錯誤 - 重置認證狀態並登出 Firebase",
-                                level: .warn,
-                                labels: [
-                                    "module": "AuthenticationService",
-                                    "action": "reset_auth_http_error",
-                                    "user_id": self.user?.uid ?? "unknown"
-                                ],
-                                jsonPayload: [
-                                    "error_type": String(describing: httpError)
-                                ]
-                            )
-
-                            // 清除 Firebase session（同步）
-                            do {
-                                try Auth.auth().signOut()
-                                print("✅ 已登出 Firebase（因為 API 認證失敗）")
-                            } catch {
-                                print("⚠️ Firebase 登出失敗: \(error.localizedDescription)")
-                            }
-
-                            self.appUser = nil
-                            self.isAuthenticated = false
-                        default:
-                            // 其他 HTTP 錯誤（網路、伺服器錯誤等）不重置認證
-                            break
-                        }
-                    }
+                await MainActor.run {
+                    self.isLoading = false
+                    self.appUser = user
                 }
-            } receiveValue: { [weak self] user in
-                self?.appUser = user
 
                 Logger.firebase(
                     "成功獲取用戶資料",
@@ -738,33 +670,102 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
                     labels: [
                         "module": "AuthenticationService",
                         "action": "fetch_user_profile_success",
-                        "user_id": self?.user?.uid ?? "unknown"
+                        "user_id": self.user?.uid ?? "unknown"
                     ],
                     jsonPayload: [
                         "has_active_weekly_plan": user.activeWeeklyPlanId != nil,
                         "active_weekly_plan_id": user.activeWeeklyPlanId ?? "null",
-                        "current_has_completed_onboarding": self?.hasCompletedOnboarding ?? false
+                        "current_has_completed_onboarding": self.hasCompletedOnboarding
                     ]
                 )
 
                 // 檢查 onboarding 狀態
-                self?.checkOnboardingStatus(user: user)
+                self.checkOnboardingStatus(user: user)
 
                 // 同步用戶偏好
                 UserService.shared.syncUserPreferences(with: user)
 
                 // 在用戶資料載入完成後檢查 Garmin 和 Strava 連線狀態（被動路徑，session 內只查一次）
-                Task {
-                    await self?.checkGarminConnectionAfterUserData()
-                    await self?.checkStravaConnectionAfterUserData()
+                await self.checkGarminConnectionAfterUserData()
+                await self.checkStravaConnectionAfterUserData()
 
-                    // 檢查數據源綁定狀態（僅在 onboarding 完成後）
-                    await self?.checkDataSourceBinding(user: user)
+                // 檢查數據源綁定狀態（僅在 onboarding 完成後）
+                await self.checkDataSourceBinding(user: user)
+
+            } catch {
+                await MainActor.run {
+                    self.isLoading = false
+                }
+
+                print("無法獲取用戶資料: \(error)")
+
+                Logger.firebase(
+                    "獲取用戶資料失敗",
+                    level: .error,
+                    labels: [
+                        "module": "AuthenticationService",
+                        "action": "fetch_user_profile_failed",
+                        "user_id": self.user?.uid ?? "unknown"
+                    ],
+                    jsonPayload: [
+                        "error": error.localizedDescription,
+                        "error_type": String(describing: type(of: error))
+                    ]
+                )
+
+                // 1. 解析錯誤：後端回應格式變更
+                if error is DecodingError {
+                    Logger.firebase(
+                        "DecodingError - 重置認證狀態",
+                        level: .warn,
+                        labels: [
+                            "module": "AuthenticationService",
+                            "action": "reset_auth_decoding_error"
+                        ]
+                    )
+                    await MainActor.run {
+                        self.appUser = nil
+                        self.isAuthenticated = false
+                    }
+                    return
+                }
+
+                // 2. 認證錯誤 (401/403)：Token 無效或已撤銷
+                if let httpError = error as? HTTPError {
+                    switch httpError {
+                    case .unauthorized, .forbidden:
+                        Logger.firebase(
+                            "認證錯誤 - 重置認證狀態並登出 Firebase",
+                            level: .warn,
+                            labels: [
+                                "module": "AuthenticationService",
+                                "action": "reset_auth_http_error",
+                                "user_id": self.user?.uid ?? "unknown"
+                            ],
+                            jsonPayload: [
+                                "error_type": String(describing: httpError)
+                            ]
+                        )
+
+                        // 清除 Firebase session（同步）
+                        do {
+                            try Auth.auth().signOut()
+                            print("✅ 已登出 Firebase（因為 API 認證失敗）")
+                        } catch {
+                            print("⚠️ Firebase 登出失敗: \(error.localizedDescription)")
+                        }
+
+                        await MainActor.run {
+                            self.appUser = nil
+                            self.isAuthenticated = false
+                        }
+                    default:
+                        // 其他 HTTP 錯誤（網路、伺服器錯誤等）不重置認證
+                        break
+                    }
                 }
             }
-            .store(in: &cancellables)
-            }
-        }
+        }.tracked(from: "AuthenticationService: fetchUserProfile")
     }
     
     deinit {
