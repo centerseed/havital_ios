@@ -79,7 +79,7 @@ struct TrainingProgressCardV2: View {
         .buttonStyle(PlainButtonStyle())
         .accessibilityIdentifier("v2.weekly.progress_card")
         .sheet(isPresented: $showTrainingProgress) {
-            TrainingProgressViewV2(viewModel: viewModel)
+            TrainingOverviewV2View(viewModel: viewModel)
         }
     }
 

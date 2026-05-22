@@ -369,7 +369,7 @@ struct TrainingPlanV2View: View {
                 }
             }
             .sheet(isPresented: $showPlanOverview) {
-                PlanOverviewSheetV2(viewModel: viewModel)
+                TrainingOverviewV2View(viewModel: viewModel)
             }
             #if DEBUG
             .sheet(item: $debugRecapContent) { content in

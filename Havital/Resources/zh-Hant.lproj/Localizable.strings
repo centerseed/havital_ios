@@ -2328,6 +2328,12 @@
 "training.race_distance" = "賽事距離";
 "training.target_pace" = "目標配速";
 "training.target_time" = "目標時間";
+"training.overview.edit" = "編輯";
+"training.overview.days_unit" = "天";
+"training.overview.phase_week_chip" = "%@ · 第 %d / %d 週";
+"training.overview.beginner_subtitle" = "從零開始，建立穩定跑步基礎";
+"training.overview.maintenance_subtitle" = "保持訓練節奏，維持體能狀態";
+"training.overview.key_milestones" = "關鍵里程碑";
 "training.training_weeks" = "訓練週數";
 "training.race_evaluation" = "賽事評估";
 "training.target_evaluation" = "目標評估";
@@ -3357,3 +3363,17 @@
 "record.group.total_km_format" = "共 %.1f km";
 "record.group.month_group_format" = "%d年%d月";
 "weekly_plan_feedback.desc.issue_prefix" = "問題：";
+
+// MARK: - Phase Roadmap (Task 2/5)
+"phase_roadmap.title" = "計畫路線";
+"phase_roadmap.subtitle" = "%d 個階段 · %d 週";
+"phase_roadmap.subtitle_race_count" = "%d 場比賽";
+"phase_roadmap.add_race" = "加賽事";
+"phase_roadmap.in_progress_badge" = "進行中 · 第 %d / %d 週";
+"phase_roadmap.completed_badge" = "✓ 已完成";
+"phase_roadmap.focus_label" = "重點";
+"phase_roadmap.show_all_weeks" = "顯示全部 %d 週 · 還有 %d 週";
+"phase_roadmap.collapse_weeks" = "收起 · 只看本週附近";
+"phase_roadmap.race_badge" = "賽";
+"phase_roadmap.main_race_label" = "主賽事";
+"phase_roadmap.target_time_prefix" = "目標 ";

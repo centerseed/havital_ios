@@ -2416,6 +2416,12 @@
 "training.target_info" = "Goal Info";
 "training.target_pace" = "Target Pace";
 "training.target_time" = "Target Time";
+"training.overview.edit" = "Edit";
+"training.overview.days_unit" = "days";
+"training.overview.phase_week_chip" = "%@ · Week %d / %d";
+"training.overview.beginner_subtitle" = "Build a solid running foundation from scratch";
+"training.overview.maintenance_subtitle" = "Keep your training rhythm and maintain fitness";
+"training.overview.key_milestones" = "Key Milestones";
 "training.training_focus" = "Training Focus";
 "training.training_plan" = "Training Plan";
 "training.training_strategy" = "Training Strategy";
@@ -3314,3 +3320,17 @@
 "record.group.total_km_format" = "%.1f km total";
 "record.group.month_group_format" = "%d/%d";
 "weekly_plan_feedback.desc.issue_prefix" = "Issues: ";
+
+// MARK: - Phase Roadmap (Task 2/5)
+"phase_roadmap.title" = "Training Route";
+"phase_roadmap.subtitle" = "%d phases · %d weeks";
+"phase_roadmap.subtitle_race_count" = "%d races";
+"phase_roadmap.add_race" = "Add Race";
+"phase_roadmap.in_progress_badge" = "In Progress · Week %d / %d";
+"phase_roadmap.completed_badge" = "✓ Completed";
+"phase_roadmap.focus_label" = "Focus";
+"phase_roadmap.show_all_weeks" = "Show all %d weeks · %d more";
+"phase_roadmap.collapse_weeks" = "Collapse · show this week";
+"phase_roadmap.race_badge" = "Race";
+"phase_roadmap.main_race_label" = "Main Race";
+"phase_roadmap.target_time_prefix" = "Goal ";

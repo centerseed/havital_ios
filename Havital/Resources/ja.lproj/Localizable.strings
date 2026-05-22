@@ -2413,6 +2413,12 @@
 "training.target_info" = "目標情報";
 "training.target_pace" = "目標ペース";
 "training.target_time" = "目標タイム";
+"training.overview.edit" = "編集";
+"training.overview.days_unit" = "日";
+"training.overview.phase_week_chip" = "%@ · 第 %d / %d 週";
+"training.overview.beginner_subtitle" = "ゼロから着実なランニング基礎を築く";
+"training.overview.maintenance_subtitle" = "トレーニングリズムを維持し、体力を保つ";
+"training.overview.key_milestones" = "キーマイルストーン";
 "training.training_focus" = "トレーニング重点";
 "training.training_plan" = "トレーニングプラン";
 "training.training_strategy" = "トレーニング戦略";
@@ -3311,3 +3317,17 @@
 "record.group.total_km_format" = "合計 %.1f km";
 "record.group.month_group_format" = "%d年%d月";
 "weekly_plan_feedback.desc.issue_prefix" = "課題：";
+
+// MARK: - Phase Roadmap (Task 2/5)
+"phase_roadmap.title" = "トレーニングルート";
+"phase_roadmap.subtitle" = "%d フェーズ · %d 週";
+"phase_roadmap.subtitle_race_count" = "%d レース";
+"phase_roadmap.add_race" = "レース追加";
+"phase_roadmap.in_progress_badge" = "進行中 · 第 %d / %d 週";
+"phase_roadmap.completed_badge" = "✓ 完了";
+"phase_roadmap.focus_label" = "重点";
+"phase_roadmap.show_all_weeks" = "全 %d 週を表示 · あと %d 週";
+"phase_roadmap.collapse_weeks" = "折りたたむ · 今週付近のみ";
+"phase_roadmap.race_badge" = "レース";
+"phase_roadmap.main_race_label" = "メインレース";
+"phase_roadmap.target_time_prefix" = "目標 ";
