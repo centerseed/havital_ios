@@ -274,8 +274,8 @@ struct AchievementPBRecordDTO: Codable, Equatable {
 
     private static func displayDistance(from value: String) -> String {
         guard !value.isEmpty else { return "-" }
-        if value == "21" || value == "21.0975" { return "Half" }
-        if value == "42" || value == "42.195" { return "Full" }
+        if value == "21" || value == "21.0975" { return "21K" }
+        if value == "42" || value == "42.195" { return "42K" }
         return value.uppercased().hasSuffix("K") ? value.uppercased() : "\(value)K"
     }
 

@@ -2910,6 +2910,11 @@
 "achievements.share.sensitive_excluded" = "ルート、GPS、心拍、睡眠、けが、workout ID、email、uid、詳しいメニューは含まれません。";
 "achievements.share.privacy_footer" = "Paceriz トレーニング成果";
 "achievements.share.badge_label" = "バッジ";
+"achievements.share.card.chapter_label" = "チャプター · %@";
+"achievements.share.stat.total_distance" = "累計距離";
+"achievements.share.stat.completed_weeks" = "完了週数";
+"achievements.share.stat.unlocked_badges" = "獲得バッジ";
+"achievements.share.stat.weeks_value" = "%d週";
 "achievements.share.tag_new_pb" = "新PB";
 "achievements.share.tag_new_badge" = "新バッジ";
 "achievements.share.tag_pb_and_badge" = "新PB＋バッジ";
@@ -3292,6 +3297,7 @@
 "achievements.hero_card.latest_unlock" = "✨ 最新解除";
 "achievements.hero_card.share" = "シェア";
 "achievements.hero_card.pin" = "固定";
+"achievements.hero_card.unpin" = "固定を解除";
 "achievements.hero_card.next_target" = "🎯 次の目標";
 "achievements.hero_card.view_all_tracks" = "全トラックを見る";
 "achievements.hero_card.remaining" = "残り";
@@ -3339,3 +3345,65 @@
 "phase_roadmap.race_badge" = "レース";
 "phase_roadmap.main_race_label" = "メインレース";
 "phase_roadmap.target_time_prefix" = "目標 ";
+
+// MARK: - Training Detail View (PlannedSessionDetailView)
+"training.detail.title" = "トレーニング詳細";
+"training.detail.metric_distance" = "距離";
+"training.detail.metric_total_distance" = "総距離";
+"training.detail.metric_estimated_time" = "予想時間";
+"training.detail.metric_pace_variation" = "ペース変化";
+"training.detail.section_goal" = "トレーニング目標";
+"training.detail.section_structure" = "トレーニング構成";
+"training.detail.structure_subtitle" = "%d セグメント · %d 分";
+"training.detail.section_target_zone" = "目標ゾーン";
+"training.detail.section_supplementary" = "補助トレーニング";
+"training.detail.supplementary_subtitle" = "ランニング後に実施";
+"training.detail.reminder" = "リマインダー";
+"training.detail.what_is_type" = "%@ とは？";
+"training.detail.adjust_day" = "この日を調整";
+"training.detail.rest_with_desc" = "レスト：%@";
+
+// MARK: - Training Segment Labels
+"training.segment.sprint" = "スプリント";
+"training.segment.progression_label" = "3段階進歩：イージー → テンポ → ファスト";
+"training.segment.fast_finish_label" = "2段階：イージー → テンポ";
+"training.segment.lsd_single" = "ロング有酸素";
+"training.segment.easy_single" = "イージー有酸素";
+"training.segment.recovery_single" = "リカバリーJog";
+"training.segment.tempo_single" = "テンポ区間";
+"training.segment.threshold_single" = "閾値区間";
+"training.segment.warmup" = "ウォームアップ";
+"training.segment.cooldown" = "クールダウン";
+"training.segment.easy_pace" = "イージーペース";
+"training.segment.tempo_pace" = "テンポペース";
+"training.segment.accelerate" = "加速";
+"training.segment.tempo_finish" = "テンポフィニッシュ";
+
+// MARK: - Training Zone Pills
+"training.zone.sprint_pace" = "スプリントペース";
+"training.zone.recovery_pace" = "リカバリーペース";
+"training.zone.start_pace" = "開始ペース";
+"training.zone.target_pace" = "目標ペース";
+"training.zone.target_hr" = "目標心拍";
+"training.zone.rpe" = "主観的運動強度";
+"training.zone.rest_between" = "レスト";
+"training.zone.total_sets" = "総セット数";
+"training.zone.end_pace" = "終了ペース";
+"training.zone.estimated_time" = "予想時間";
+
+// MARK: - Training Type (swimming/elliptical/rowing)
+"training.type.swimming" = "水泳";
+"training.type.elliptical" = "エリプティカル";
+"training.type.rowing" = "ローイング";
+
+// MARK: - Short units and format strings used in PlannedSessionDetailView
+"training.minute_abbr" = "分";
+"training.detail.segment_count" = "%dセグメント";
+"training.detail.rest_seconds_jog" = "%d秒 ジョグ";
+"training.detail.rest_minutes_jog" = "%d分 ジョグ";
+
+// MARK: - Workout Tips
+"tip.lsd" = "60分以上を想定し、水分と栄養補給を持参することをお勧めします";
+"tip.interval" = "高強度日の後は十分な睡眠とタンパク質補給を心がけてください";
+"tip.progression" = "最初の3分の1はゆっくり始め、最後のセグメントに備えてエネルギーを残しておきましょう";
+"tip.fastFinish" = "ラストの加速前に水分・栄養補給を · 加速中は上半身をリラックスさせてください";

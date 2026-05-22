@@ -1640,6 +1640,8 @@ extension L10n {
             static let tagPBAndBadge = "achievements.share.tag_pb_and_badge"
             // Reuse Task 8 key to avoid duplication
             static let alsoUnlocked = "my_achievement.celebration.also_unlocked"
+            // New badge share card — chapter chip label ("%@" = chapter name)
+            static let cardChapterLabel = "achievements.share.card.chapter_label"
         }
 
         enum Badges {
@@ -1698,6 +1700,7 @@ extension L10n {
             static let latestUnlock = "achievements.hero_card.latest_unlock" // "✨ 最新解鎖"
             static let share = "achievements.hero_card.share" // "分享"
             static let pin = "achievements.hero_card.pin" // "釘選"
+            static let unpin = "achievements.hero_card.unpin" // "取消釘選"
             static let nextTarget = "achievements.hero_card.next_target" // "🎯 下一個目標"
             static let viewAllTracks = "achievements.hero_card.view_all_tracks" // "看全部主線"
             static let remaining = "achievements.hero_card.remaining" // "還差"

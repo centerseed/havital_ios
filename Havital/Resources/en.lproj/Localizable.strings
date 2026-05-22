@@ -2913,6 +2913,11 @@
 "achievements.share.sensitive_excluded" = "Route, GPS, heart rate, sleep, injury, workout ID, email, UID, and full schedule details are excluded.";
 "achievements.share.privacy_footer" = "Paceriz training result";
 "achievements.share.badge_label" = "Badge";
+"achievements.share.card.chapter_label" = "Chapter · %@";
+"achievements.share.stat.total_distance" = "Total Distance";
+"achievements.share.stat.completed_weeks" = "Weeks Done";
+"achievements.share.stat.unlocked_badges" = "Badges";
+"achievements.share.stat.weeks_value" = "%d wks";
 "achievements.share.tag_new_pb" = "New PB";
 "achievements.share.tag_new_badge" = "New Badge";
 "achievements.share.tag_pb_and_badge" = "New PB + Badge";
@@ -3295,6 +3300,7 @@
 "achievements.hero_card.latest_unlock" = "✨ Latest Unlock";
 "achievements.hero_card.share" = "Share";
 "achievements.hero_card.pin" = "Pin";
+"achievements.hero_card.unpin" = "Unpin";
 "achievements.hero_card.next_target" = "🎯 Next Target";
 "achievements.hero_card.view_all_tracks" = "View All Tracks";
 "achievements.hero_card.remaining" = "Left";
@@ -3342,3 +3348,65 @@
 "phase_roadmap.race_badge" = "Race";
 "phase_roadmap.main_race_label" = "Main Race";
 "phase_roadmap.target_time_prefix" = "Goal ";
+
+// MARK: - Training Detail View (PlannedSessionDetailView)
+"training.detail.title" = "Training Details";
+"training.detail.metric_distance" = "Distance";
+"training.detail.metric_total_distance" = "Total Distance";
+"training.detail.metric_estimated_time" = "Est. Time";
+"training.detail.metric_pace_variation" = "Pace Variation";
+"training.detail.section_goal" = "Workout Goal";
+"training.detail.section_structure" = "Training Structure";
+"training.detail.structure_subtitle" = "%d segments · %d min";
+"training.detail.section_target_zone" = "Target Zones";
+"training.detail.section_supplementary" = "Supplementary Work";
+"training.detail.supplementary_subtitle" = "After your run";
+"training.detail.reminder" = "Reminder";
+"training.detail.what_is_type" = "What is %@?";
+"training.detail.adjust_day" = "Adjust This Day";
+"training.detail.rest_with_desc" = "Rest: %@";
+
+// MARK: - Training Segment Labels
+"training.segment.sprint" = "Sprint";
+"training.segment.progression_label" = "3-Stage: Easy → Tempo → Fast";
+"training.segment.fast_finish_label" = "2-Stage: Easy → Tempo";
+"training.segment.lsd_single" = "Long Aerobic";
+"training.segment.easy_single" = "Easy Aerobic";
+"training.segment.recovery_single" = "Recovery Jog";
+"training.segment.tempo_single" = "Tempo Segment";
+"training.segment.threshold_single" = "Threshold Segment";
+"training.segment.warmup" = "Warm-up";
+"training.segment.cooldown" = "Cool-down";
+"training.segment.easy_pace" = "Easy Pace";
+"training.segment.tempo_pace" = "Tempo Pace";
+"training.segment.accelerate" = "Accelerate";
+"training.segment.tempo_finish" = "Tempo Finish";
+
+// MARK: - Training Zone Pills
+"training.zone.sprint_pace" = "Sprint Pace";
+"training.zone.recovery_pace" = "Recovery Pace";
+"training.zone.start_pace" = "Starting Pace";
+"training.zone.target_pace" = "Target Pace";
+"training.zone.target_hr" = "Target HR";
+"training.zone.rpe" = "RPE";
+"training.zone.rest_between" = "Rest";
+"training.zone.total_sets" = "Total Sets";
+"training.zone.end_pace" = "Finish Pace";
+"training.zone.estimated_time" = "Est. Time";
+
+// MARK: - Training Type (swimming/elliptical/rowing)
+"training.type.swimming" = "Swimming";
+"training.type.elliptical" = "Elliptical";
+"training.type.rowing" = "Rowing";
+
+// MARK: - Short units and format strings used in PlannedSessionDetailView
+"training.minute_abbr" = "min";
+"training.detail.segment_count" = "%d segs";
+"training.detail.rest_seconds_jog" = "%dsec jog";
+"training.detail.rest_minutes_jog" = "%dmin jog";
+
+// MARK: - Workout Tips
+"tip.lsd" = "60+ min run: bring water and nutrition for sustained energy";
+"tip.interval" = "After hard intervals, prioritize sleep and protein recovery";
+"tip.progression" = "Hold back in the first third — save energy for the final surge";
+"tip.fastFinish" = "Fuel up before the fast finish · keep your upper body relaxed as you accelerate";

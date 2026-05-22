@@ -2956,6 +2956,11 @@
 "achievements.share.sensitive_excluded" = "路線、GPS、心率、睡眠、傷痛、workout ID、email、uid 與完整課表細節都不會包含。";
 "achievements.share.privacy_footer" = "Paceriz 訓練成果";
 "achievements.share.badge_label" = "徽章";
+"achievements.share.card.chapter_label" = "章節 · %@";
+"achievements.share.stat.total_distance" = "累積里程";
+"achievements.share.stat.completed_weeks" = "完成週數";
+"achievements.share.stat.unlocked_badges" = "解鎖徽章";
+"achievements.share.stat.weeks_value" = "%d 週";
 "achievements.share.tag_new_pb" = "新 PB";
 "achievements.share.tag_new_badge" = "新徽章";
 "achievements.share.tag_pb_and_badge" = "新 PB + 徽章";
@@ -3338,6 +3343,7 @@
 "achievements.hero_card.latest_unlock" = "✨ 最新解鎖";
 "achievements.hero_card.share" = "分享";
 "achievements.hero_card.pin" = "釘選";
+"achievements.hero_card.unpin" = "取消釘選";
 "achievements.hero_card.next_target" = "🎯 下一個目標";
 "achievements.hero_card.view_all_tracks" = "看全部主線";
 "achievements.hero_card.remaining" = "還差";
@@ -3385,3 +3391,65 @@
 "phase_roadmap.race_badge" = "賽";
 "phase_roadmap.main_race_label" = "主賽事";
 "phase_roadmap.target_time_prefix" = "目標 ";
+
+// MARK: - Training Detail View (PlannedSessionDetailView)
+"training.detail.title" = "訓練詳情";
+"training.detail.metric_distance" = "距離";
+"training.detail.metric_total_distance" = "總距離";
+"training.detail.metric_estimated_time" = "預計時間";
+"training.detail.metric_pace_variation" = "配速變化";
+"training.detail.section_goal" = "本次訓練目標";
+"training.detail.section_structure" = "訓練結構";
+"training.detail.structure_subtitle" = "%d 段 · %d 分鐘";
+"training.detail.section_target_zone" = "目標區間";
+"training.detail.section_supplementary" = "補充訓練";
+"training.detail.supplementary_subtitle" = "跑後進行";
+"training.detail.reminder" = "提醒";
+"training.detail.what_is_type" = "什麼是 %@？";
+"training.detail.adjust_day" = "調整這一天";
+"training.detail.rest_with_desc" = "組間休息：%@";
+
+// MARK: - Training Segment Labels
+"training.segment.sprint" = "衝刺";
+"training.segment.progression_label" = "三段進階：輕 → 節奏 → 快";
+"training.segment.fast_finish_label" = "二段式：輕鬆 → 節奏";
+"training.segment.lsd_single" = "長距離有氧";
+"training.segment.easy_single" = "輕鬆有氧";
+"training.segment.recovery_single" = "恢復慢跑";
+"training.segment.tempo_single" = "節奏跑段";
+"training.segment.threshold_single" = "閾值段";
+"training.segment.warmup" = "暖身";
+"training.segment.cooldown" = "緩和";
+"training.segment.easy_pace" = "輕鬆配速";
+"training.segment.tempo_pace" = "節奏配速";
+"training.segment.accelerate" = "加速";
+"training.segment.tempo_finish" = "節奏跑收尾";
+
+// MARK: - Training Zone Pills
+"training.zone.sprint_pace" = "衝刺配速";
+"training.zone.recovery_pace" = "恢復配速";
+"training.zone.start_pace" = "起始配速";
+"training.zone.target_pace" = "目標配速";
+"training.zone.target_hr" = "目標心率";
+"training.zone.rpe" = "體感";
+"training.zone.rest_between" = "組間休息";
+"training.zone.total_sets" = "總組數";
+"training.zone.end_pace" = "結束配速";
+"training.zone.estimated_time" = "預估時間";
+
+// MARK: - Training Type (swimming/elliptical/rowing not in existing keys)
+"training.type.swimming" = "游泳";
+"training.type.elliptical" = "橢圓機";
+"training.type.rowing" = "划船";
+
+// MARK: - Short units and format strings used in PlannedSessionDetailView
+"training.minute_abbr" = "分";
+"training.detail.segment_count" = "%d 段";
+"training.detail.rest_seconds_jog" = "%d秒 慢跑";
+"training.detail.rest_minutes_jog" = "%d分 慢跑";
+
+// MARK: - Workout Tips
+"tip.lsd" = "預計超過 60 分鐘，建議攜帶水分與能量補給";
+"tip.interval" = "高強度日後請安排足夠睡眠與蛋白質補充";
+"tip.progression" = "前三分之一不要起太快，預留體力給最後一段";
+"tip.fastFinish" = "末段交接前補水補給 · 加速時保持上半身放鬆";

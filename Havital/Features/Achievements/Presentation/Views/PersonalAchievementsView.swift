@@ -48,6 +48,7 @@ struct PersonalAchievementsView: View {
                 }) { shareable in
                     AchievementSharePreviewSheet(
                         shareable: shareable,
+                        badgeAssetName: shareBadgeAssetName(for: shareable),
                         onShare: { image in
                             shareActivityItem = AchievementActivityItem(image: image)
                         }
@@ -281,9 +282,7 @@ struct PersonalAchievementsView: View {
                     // Share + Pin buttons
                     HStack(spacing: 8) {
                         Button {
-                            if let shareable = matchingShareable(for: badge) {
-                                viewModel.selectShareable(shareable, entry: "hero_card")
-                            }
+                            viewModel.selectShareable(resolvedShareable(for: badge), entry: "hero_card")
                         } label: {
                             HStack(spacing: 4) {
                                 Image(systemName: "square.and.arrow.up")
@@ -299,19 +298,20 @@ struct PersonalAchievementsView: View {
                         }
                         .buttonStyle(.plain)
 
+                        let isPinned = viewModel.pinnedBadgeId == badge.badgeId
                         Button {
                             viewModel.togglePin(badgeId: badge.badgeId)
                         } label: {
                             HStack(spacing: 4) {
-                                Image(systemName: "pin")
+                                Image(systemName: isPinned ? "pin.fill" : "pin")
                                     .font(AppFont.micro())
-                                Text(L10n.Achievements.HeroCard.pin.localized)
+                                Text(isPinned ? L10n.Achievements.HeroCard.unpin.localized : L10n.Achievements.HeroCard.pin.localized)
                                     .font(AppFont.micro())
                             }
-                            .foregroundColor(.primary)
+                            .foregroundColor(isPinned ? PacerizColor.blue : .primary)
                             .padding(.horizontal, 12)
                             .frame(height: 30)
-                            .background(Color(UIColor.tertiarySystemGroupedBackground))
+                            .background(isPinned ? PacerizColor.blue.opacity(0.12) : Color(UIColor.tertiarySystemGroupedBackground))
                             .cornerRadius(9)
                         }
                         .buttonStyle(.plain)
@@ -845,13 +845,10 @@ struct PersonalAchievementsView: View {
     }
 
     private var latestUnlockedBadge: AchievementBadge? {
-        // Prefer pinned badge if available
-        if let pinnedId = viewModel.pinnedBadgeId,
-           let pinned = allBadges.first(where: { $0.badgeId == pinnedId && $0.status == .unlocked }) {
-            return pinned
-        }
-        // Otherwise most recently unlocked
-        return allBadges
+        // Always the genuinely most-recently unlocked badge, independent of pin.
+        // (Previously preferred the pinned badge, so pinning/unpinning from this card
+        // swapped the displayed badge — the "按了就換徽章" bug.)
+        allBadges
             .filter { $0.status == .unlocked }
             .sorted { ($0.unlockedAt ?? "") > ($1.unlockedAt ?? "") }
             .first
@@ -924,6 +921,59 @@ struct PersonalAchievementsView: View {
         viewModel.summary?.recentShareables.first {
             $0.materialType == .badge && $0.badgeId == badge.badgeId
         }
+    }
+
+    /// Resolve the real badge artwork asset for the share card. Looks up the full
+    /// AchievementBadge by id so `assetName(for:)` can use `badge.assetName` (the backend
+    /// artwork) instead of the badgeId-switch fallback, which left the card image blank.
+    private func shareBadgeAssetName(for shareable: AchievementShareable) -> String {
+        if let id = shareable.badgeId,
+           let badge = allBadges.first(where: { $0.badgeId == id }) {
+            return AchievementBadgeArtwork.assetName(for: badge)
+        }
+        return AchievementBadgeArtwork.assetNameForBadgeId(shareable.badgeId ?? "")
+    }
+
+    /// Backend shareable if present; otherwise a synthetic one built from the badge so the
+    /// share button always works. Stats fall back to always-available lifetime/summary data
+    /// (累積里程 / 完成週數 / 解鎖徽章數) since per-week context isn't in the achievement summary.
+    private func resolvedShareable(for badge: AchievementBadge) -> AchievementShareable {
+        if let real = matchingShareable(for: badge) { return real }
+
+        var fields: [AchievementPublicField] = []
+        if let km = viewModel.summary?.lifetimeStats.totalDistanceKm {
+            fields.append(AchievementPublicField(
+                key: "total_distance",
+                labelKey: "achievements.share.stat.total_distance",
+                value: "\(Int(km.rounded())) km"
+            ))
+        }
+        if let weeks = viewModel.summary?.lifetimeStats.completedWeeks {
+            fields.append(AchievementPublicField(
+                key: "completed_weeks",
+                labelKey: "achievements.share.stat.completed_weeks",
+                value: String(format: NSLocalizedString("achievements.share.stat.weeks_value", comment: ""), weeks)
+            ))
+        }
+        if let unlocked = viewModel.summary?.storySummary.unlockedCount {
+            fields.append(AchievementPublicField(
+                key: "unlocked_badges",
+                labelKey: "achievements.share.stat.unlocked_badges",
+                value: "\(unlocked)"
+            ))
+        }
+
+        return AchievementShareable(
+            materialId: "badge_\(badge.badgeId)",
+            materialType: .badge,
+            titleKey: badge.nameKey,
+            summaryKey: badge.storyKey,
+            summaryParams: [:],
+            publicFields: fields,
+            defaultSensitiveFieldsEnabled: false,
+            badgeId: badge.badgeId,
+            chapter: badge.chapter
+        )
     }
 
     private static let iso8601Formatter: ISO8601DateFormatter = {
