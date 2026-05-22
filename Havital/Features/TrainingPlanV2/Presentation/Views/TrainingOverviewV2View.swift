@@ -88,9 +88,13 @@ struct TrainingOverviewV2View: View {
                 .cornerRadius(16)
             }
         }
+        .navigationTitle(L10n.Training.overview.localized)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(.hidden, for: .navigationBar)
-        .tint(.white)
+        // White nav-bar content (back chevron) over the coloured hero WITHOUT
+        // leaking a white tint into sheets presented from this view (which made
+        // their 取消/儲存 buttons invisible). Scope to the nav bar only.
+        .toolbarColorScheme(.dark, for: .navigationBar)
         // Edit main race/target lives in the nav bar (hero is full-bleed under the
         // transparent nav bar, so an in-hero button would be swallowed by the bar).
         .toolbar {
@@ -456,16 +460,9 @@ struct TrainingOverviewV2View: View {
                 .ignoresSafeArea(edges: .top)
 
             VStack(alignment: .leading, spacing: 0) {
-                // Safe area spacer
-                Color.clear.frame(height: 52)
-
-                // Nav row: "訓練總覽" label — push 模式下系統返回鍵在 nav bar 左側，此 label 作為頁面小標題
-                Text(L10n.Training.overview.localized)
-                    .font(AppFont.micro())
-                    .foregroundColor(.white.opacity(0.92))
-                    .tracking(0.5)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.bottom, 14)
+                // Spacer to clear the (transparent) nav bar — system back button + title
+                // live there in push mode, so hero text starts below them.
+                Color.clear.frame(height: 104)
 
                 // Target / race title row with edit pill (JSX lines 520–540)
                 HStack(alignment: .top, spacing: 0) {

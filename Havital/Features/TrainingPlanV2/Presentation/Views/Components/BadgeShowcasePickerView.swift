@@ -71,6 +71,8 @@ struct BadgeShowcasePickerView: View {
 
     private func tile(badge: AchievementBadge) -> some View {
         let isSelected = badge.badgeId == selectedBadgeId
+        // Shape-agnostic selection: a rounded-rect cell highlight (badges may be
+        // square / circular / hexagonal, so a circular ring looked wrong).
         return VStack(spacing: 7) {
             ZStack(alignment: .topTrailing) {
                 AchievementBadgeImage(
@@ -78,20 +80,13 @@ struct BadgeShowcasePickerView: View {
                     status: badge.status,
                     size: 68
                 )
-                .overlay(
-                    Circle()
-                        .strokeBorder(
-                            isSelected ? PacerizColor.blue : Color.clear,
-                            lineWidth: 2.5
-                        )
-                )
 
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(AppFont.titleM())
                         .foregroundColor(PacerizColor.blue)
                         .background(Circle().fill(Color(UIColor.systemBackground)))
-                        .offset(x: 4, y: -4)
+                        .offset(x: 6, y: -6)
                 }
             }
 
@@ -102,6 +97,16 @@ struct BadgeShowcasePickerView: View {
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
         }
+        .padding(.vertical, 10)
+        .padding(.horizontal, 6)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(isSelected ? PacerizColor.blue.opacity(0.12) : Color.clear)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(isSelected ? PacerizColor.blue : Color.clear, lineWidth: 2)
+        )
     }
 
     private var emptyState: some View {
