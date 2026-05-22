@@ -381,6 +381,13 @@
 "training.type.interval" = "間歇訓練";
 "training.type.paceriz_interval" = "間歇";
 "training.type._generic_interval" = "間歇";
+"training.race_countdown.hide" = "隱藏賽事倒數";
+"profile.race_countdown.title" = "賽事倒數卡片";
+"profile.race_countdown.always" = "一律顯示";
+"profile.race_countdown.auto" = "賽前顯示";
+"profile.race_countdown.off" = "不顯示";
+"profile.race_countdown.days_before" = "賽前顯示天數";
+"profile.race_countdown.days_value" = "%d 天";
 "interval.static_rest" = "原地休息";
 "training.type.long" = "長距離跑";
 "training.type.recovery" = "恢復跑";

@@ -40,6 +40,11 @@ struct TrainingPlanV2View: View {
     // Navigation destination for training overview push (same rule: must live here, not inside ScrollView).
     @State private var showOverviewV2 = false
 
+    // Race countdown card visibility: default shows only within N days of the race (42).
+    // Long-press sets "off"; profile settings can switch to always / N-days-before / off.
+    @AppStorage("raceCountdownMode") private var raceCountdownModeRaw = RaceCountdownDisplayMode.default.rawValue
+    @AppStorage("raceCountdownDaysBefore") private var raceCountdownDaysBefore = RaceCountdownGate.defaultDaysBefore
+
     #if DEBUG
     // Debug 選單「觸發訓練回顧」用：本地 sheet 呈現，避開 InterruptCoordinator 跨視圖 race。
     @State private var debugRecapContent: WorkoutRecapContent?
@@ -132,10 +137,25 @@ struct TrainingPlanV2View: View {
 
                     switch viewModel.loader.planStatus {
                     case .ready(let weeklyPlan):
-                        // B2: Race mode header
+                        // B2: Race mode header — shows per countdown gate (default: within 42 days).
+                        // Tap opens training overview; long-press hides it (sets mode = off).
                         if viewModel.loader.planOverview?.isRaceRunTarget == true,
-                           let raceVM = raceHeaderVM {
+                           let raceVM = raceHeaderVM,
+                           RaceCountdownGate.shouldShow(
+                               mode: RaceCountdownDisplayMode(rawValueOrDefault: raceCountdownModeRaw),
+                               daysBefore: raceCountdownDaysBefore,
+                               daysLeft: raceVM.daysLeft
+                           ) {
                             RaceHeaderViewV2(viewModel: raceVM)
+                                .contentShape(Rectangle())
+                                .onTapGesture { showOverviewV2 = true }
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        raceCountdownModeRaw = RaceCountdownDisplayMode.off.rawValue
+                                    } label: {
+                                        Label(NSLocalizedString("training.race_countdown.hide", comment: "Hide race countdown card"), systemImage: "eye.slash")
+                                    }
+                                }
                         }
 
                         // B3: Starter / Maintenance mode header

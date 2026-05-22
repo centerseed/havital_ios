@@ -381,6 +381,13 @@
 "training.type.interval" = "インターバル走";
 "training.type.paceriz_interval" = "インターバル";
 "training.type._generic_interval" = "インターバル";
+"training.race_countdown.hide" = "レースカウントダウンを非表示";
+"profile.race_countdown.title" = "レースカウントダウン";
+"profile.race_countdown.always" = "常に表示";
+"profile.race_countdown.auto" = "レース前に表示";
+"profile.race_countdown.off" = "非表示";
+"profile.race_countdown.days_before" = "レース何日前から表示";
+"profile.race_countdown.days_value" = "%d日前";
 "interval.static_rest" = "その場休憩";
 "training.type.long" = "ロングラン";
 "training.type.recovery" = "リカバリーラン";

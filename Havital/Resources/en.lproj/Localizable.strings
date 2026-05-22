@@ -381,6 +381,13 @@
 "training.type.interval" = "Interval Training";
 "training.type.paceriz_interval" = "Interval";
 "training.type._generic_interval" = "Intervals";
+"training.race_countdown.hide" = "Hide Race Countdown";
+"profile.race_countdown.title" = "Race Countdown Card";
+"profile.race_countdown.always" = "Always";
+"profile.race_countdown.auto" = "Before Race";
+"profile.race_countdown.off" = "Hidden";
+"profile.race_countdown.days_before" = "Show Days Before Race";
+"profile.race_countdown.days_value" = "%d days";
 "interval.static_rest" = "Static Rest";
 "training.type.long" = "Long Run";
 "training.type.recovery" = "Recovery Run";

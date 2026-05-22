@@ -44,6 +44,10 @@ struct UserProfileView: View {
     @State private var showTimezoneSettings = false
     @State private var showClimateSettings = false
     @State private var showDebugFailedWorkouts = false
+    // Home-screen display preference: race countdown card visibility.
+    // Default shows only within N days of the race; can be always / N-days-before / off.
+    @AppStorage("raceCountdownMode") private var raceCountdownModeRaw = RaceCountdownDisplayMode.default.rawValue
+    @AppStorage("raceCountdownDaysBefore") private var raceCountdownDaysBefore = RaceCountdownGate.defaultDaysBefore
     @State private var showIAPTestConsole = false
     @State private var showPaceZoneDetail = false
     @State private var paywallTrigger: PaywallTrigger?
@@ -751,6 +755,26 @@ struct UserProfileView: View {
                         Image(systemName: "chevron.right")
                             .foregroundColor(.secondary)
                             .font(AppFont.caption())
+                    }
+                }
+
+                // 賽事倒數卡片顯示偏好（首頁；預設賽前 42 天才顯示）
+                Picker(selection: $raceCountdownModeRaw) {
+                    Text(NSLocalizedString("profile.race_countdown.always", comment: "Always show")).tag(RaceCountdownDisplayMode.always.rawValue)
+                    Text(NSLocalizedString("profile.race_countdown.auto", comment: "Show before race")).tag(RaceCountdownDisplayMode.auto.rawValue)
+                    Text(NSLocalizedString("profile.race_countdown.off", comment: "Hidden")).tag(RaceCountdownDisplayMode.off.rawValue)
+                } label: {
+                    Label(NSLocalizedString("profile.race_countdown.title", comment: "Race countdown card"), systemImage: "flag.checkered")
+                }
+
+                if raceCountdownModeRaw == RaceCountdownDisplayMode.auto.rawValue {
+                    Stepper(value: $raceCountdownDaysBefore, in: 7...180, step: 7) {
+                        HStack {
+                            Text(NSLocalizedString("profile.race_countdown.days_before", comment: "Days before race"))
+                            Spacer()
+                            Text(String(format: NSLocalizedString("profile.race_countdown.days_value", comment: "%d days"), raceCountdownDaysBefore))
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
             }
