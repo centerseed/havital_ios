@@ -656,16 +656,21 @@ struct PhaseRoadmapView: View {
                 let qualityDisplay = TrainingTypeDisplayName.qualityOptionsDisplay(skeleton.qualityOptions)
 
                 if longRunDisplay != "—" || qualityDisplay != "—" {
-                    HStack(spacing: 12) {
+                    // Two-row vertical layout: each line is label + value, value truncates at tail.
+                    // This is safe for both Chinese and Japanese (longer strings) without overflow.
+                    VStack(alignment: .leading, spacing: 3) {
                         if longRunDisplay != "—" {
                             HStack(spacing: 4) {
                                 Text(L10n.Training.workoutTypeLongRun.localized)
                                     .font(AppFont.caption2())
                                     .foregroundColor(.secondary)
+                                    .fixedSize()
                                 Text(longRunDisplay)
                                     .font(AppFont.caption2())
                                     .fontWeight(.medium)
                                     .foregroundColor(isFutureWeek ? .secondary.opacity(0.7) : .primary)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
                             }
                         }
                         if qualityDisplay != "—" {
@@ -673,14 +678,15 @@ struct PhaseRoadmapView: View {
                                 Text(L10n.Training.qualitySession.localized)
                                     .font(AppFont.caption2())
                                     .foregroundColor(.secondary)
+                                    .fixedSize()
                                 Text(qualityDisplay)
                                     .font(AppFont.caption2())
                                     .fontWeight(.medium)
                                     .foregroundColor(isFutureWeek ? .secondary.opacity(0.7) : .primary)
                                     .lineLimit(1)
+                                    .truncationMode(.tail)
                             }
                         }
-                        Spacer()
                     }
                 }
             }

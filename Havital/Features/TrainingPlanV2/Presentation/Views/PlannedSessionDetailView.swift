@@ -35,7 +35,7 @@ struct PlannedSessionDetailView: View {
                         Text("\(weekdayString(date)) · \(shortDateString(date))")
                             .font(AppFont.micro()).foregroundColor(.secondary)
                     }
-                    Text("訓練詳情").font(AppFont.labelStrong()).kerning(-0.01)
+                    Text(NSLocalizedString("training.detail.title", comment: "")).font(AppFont.labelStrong()).kerning(-0.01)
                 }
             }
         }
@@ -74,34 +74,34 @@ struct PlannedSessionDetailView: View {
         // 未來新增型態會編譯失敗，逼著補上，避免 hero 顯示醜 fallback）。
         private static func labelPair(for type: DayType) -> (chip: String, name: String) {
             switch type {
-            case .easy, .easyRun:   return ("EASY · Z2",             "輕鬆跑")
-            case .recovery_run:     return ("EASY · Z2",             "恢復跑")
-            case .lsd, .longRun:    return ("LONG · Z2-Z3",          "長距離輕鬆跑")
-            case .interval:         return ("INTERVAL · Z4",         "間歇訓練")
-            case .tempo:            return ("TEMPO · Z3-Z4",         "節奏跑")
-            case .threshold:        return ("THRESHOLD · Z4",        "閾值跑")
-            case .progression:      return ("PROGRESSION · Z2 → Z4", "漸速跑")
-            case .fastFinish:       return ("FAST FINISH · Z2 + Z3", "快速完成跑")
-            case .race:             return ("RACE · Z5",             "比賽")
-            case .racePace:         return ("RACE PACE · Z4-Z5",     "比賽配速跑")
-            case .combination:      return ("COMBINATION",           "組合訓練")
-            case .strides:          return ("STRIDES · Z4-Z5",       "衝刺跑")
-            case .hillRepeats:      return ("HILL REPEATS · Z4",     "坡度訓練")
-            case .cruiseIntervals:  return ("CRUISE · Z3-Z4",        "節奏間歇")
-            case .shortInterval:    return ("SHORT · Z5",            "短間歇")
-            case .longInterval:     return ("LONG · Z4-Z5",          "長間歇")
-            case .norwegian4x4:     return ("NOR 4×4 · Z4-Z5",       "挪威4×4")
-            case .yasso800:         return ("YASSO 800 · Z4-Z5",     "800m間歇")
-            case .fartlek:          return ("FARTLEK · Z2-Z4",       "法特雷克")
-            case .strength:         return ("STRENGTH",              "力量訓練")
-            case .crossTraining:    return ("CROSS TRAINING",        "交叉訓練")
-            case .yoga:             return ("CROSS TRAINING",        "瑜伽")
-            case .hiking:           return ("CROSS TRAINING",        "健行")
-            case .cycling:          return ("CROSS TRAINING",        "騎車")
-            case .swimming:         return ("CROSS TRAINING",        "游泳")
-            case .elliptical:       return ("CROSS TRAINING",        "橢圓機")
-            case .rowing:           return ("CROSS TRAINING",        "划船")
-            case .rest:             return ("REST",                  "休息")
+            case .easy, .easyRun:   return ("EASY · Z2",             NSLocalizedString("training.type.easy", comment: ""))
+            case .recovery_run:     return ("EASY · Z2",             NSLocalizedString("training.type.recovery", comment: ""))
+            case .lsd, .longRun:    return ("LONG · Z2-Z3",          NSLocalizedString("training.type.lsd", comment: ""))
+            case .interval:         return ("INTERVAL · Z4",         NSLocalizedString("training.type.interval", comment: ""))
+            case .tempo:            return ("TEMPO · Z3-Z4",         NSLocalizedString("training.type.tempo", comment: ""))
+            case .threshold:        return ("THRESHOLD · Z4",        NSLocalizedString("training.type.threshold", comment: ""))
+            case .progression:      return ("PROGRESSION · Z2 → Z4", NSLocalizedString("training.type.progression", comment: ""))
+            case .fastFinish:       return ("FAST FINISH · Z2 + Z3", NSLocalizedString("training.type.fast_finish", comment: ""))
+            case .race:             return ("RACE · Z5",             NSLocalizedString("training.type.race", comment: ""))
+            case .racePace:         return ("RACE PACE · Z4-Z5",     NSLocalizedString("training.type.race_pace", comment: ""))
+            case .combination:      return ("COMBINATION",           NSLocalizedString("training.type.combination", comment: ""))
+            case .strides:          return ("STRIDES · Z4-Z5",       NSLocalizedString("training.type.strides", comment: ""))
+            case .hillRepeats:      return ("HILL REPEATS · Z4",     NSLocalizedString("training.type.hill_repeats", comment: ""))
+            case .cruiseIntervals:  return ("CRUISE · Z3-Z4",        NSLocalizedString("training.type.cruise_intervals", comment: ""))
+            case .shortInterval:    return ("SHORT · Z5",            NSLocalizedString("training.type.short_interval", comment: ""))
+            case .longInterval:     return ("LONG · Z4-Z5",          NSLocalizedString("training.type.long_interval", comment: ""))
+            case .norwegian4x4:     return ("NOR 4×4 · Z4-Z5",       NSLocalizedString("training.type.norwegian_4x4", comment: ""))
+            case .yasso800:         return ("YASSO 800 · Z4-Z5",     NSLocalizedString("training.type.yasso_800", comment: ""))
+            case .fartlek:          return ("FARTLEK · Z2-Z4",       NSLocalizedString("training.type.fartlek", comment: ""))
+            case .strength:         return ("STRENGTH",              NSLocalizedString("training.type.strength", comment: ""))
+            case .crossTraining:    return ("CROSS TRAINING",        NSLocalizedString("training.type.cross_training", comment: ""))
+            case .yoga:             return ("CROSS TRAINING",        NSLocalizedString("training.type.yoga", comment: ""))
+            case .hiking:           return ("CROSS TRAINING",        NSLocalizedString("training.type.hiking", comment: ""))
+            case .cycling:          return ("CROSS TRAINING",        NSLocalizedString("training.type.cycling", comment: ""))
+            case .swimming:         return ("CROSS TRAINING",        NSLocalizedString("training.type.swimming", comment: ""))
+            case .elliptical:       return ("CROSS TRAINING",        NSLocalizedString("training.type.elliptical", comment: ""))
+            case .rowing:           return ("CROSS TRAINING",        NSLocalizedString("training.type.rowing", comment: ""))
+            case .rest:             return ("REST",                  NSLocalizedString("training.type.rest", comment: ""))
             }
         }
 
@@ -161,11 +161,11 @@ struct PlannedSessionDetailView: View {
     private var simpleHeroMetrics: some View {
         HStack(alignment: .bottom, spacing: 0) {
             if let run = day.primaryRunActivity {
-                heroMetricColumn(title: "距離", value: distanceString(run), unit: distanceUnit(run))
+                heroMetricColumn(title: NSLocalizedString("training.detail.metric_distance", comment: ""), value: distanceString(run), unit: distanceUnit(run))
                 heroDivider
-                heroMetricColumn(title: "預計時間", value: durationString(run), unit: nil)
+                heroMetricColumn(title: NSLocalizedString("training.detail.metric_estimated_time", comment: ""), value: durationString(run), unit: nil)
                 heroDivider
-                heroMetricColumn(title: "配速", value: run.effectivePace ?? "-", unit: nil)
+                heroMetricColumn(title: NSLocalizedString("common.pace", comment: ""), value: run.effectivePace ?? "-", unit: nil)
             }
         }
     }
@@ -173,11 +173,11 @@ struct PlannedSessionDetailView: View {
     private var segmentedHeroMetrics: some View {
         HStack(alignment: .bottom, spacing: 0) {
             if let run = day.primaryRunActivity {
-                heroMetricColumn(title: "總距離", value: distanceString(run), unit: distanceUnit(run))
+                heroMetricColumn(title: NSLocalizedString("training.detail.metric_total_distance", comment: ""), value: distanceString(run), unit: distanceUnit(run))
                 heroDivider
-                heroMetricColumn(title: "預計時間", value: durationString(run), unit: nil)
+                heroMetricColumn(title: NSLocalizedString("training.detail.metric_estimated_time", comment: ""), value: durationString(run), unit: nil)
                 heroDivider
-                heroMetricColumn(title: "配速變化", value: "\(run.segments?.count ?? 1) 段", unit: nil)
+                heroMetricColumn(title: NSLocalizedString("training.detail.metric_pace_variation", comment: ""), value: String(format: NSLocalizedString("training.detail.segment_count", comment: ""), run.segments?.count ?? 1), unit: nil)
             }
         }
         .overlay(alignment: .bottom) {
@@ -205,7 +205,7 @@ struct PlannedSessionDetailView: View {
                 HStack(alignment: .lastTextBaseline, spacing: 10) {
                     Text("\(interval.repeats) × \(workDistanceLabel(interval))")
                         .font(AppFont.numberLarge().monospacedDigit()).tracking(-0.03).foregroundColor(.white)
-                    Text("衝刺").font(AppFont.micro()).foregroundColor(.white.opacity(0.7))
+                    Text(NSLocalizedString("training.segment.sprint", comment: "")).font(AppFont.micro()).foregroundColor(.white.opacity(0.7))
                 }
             }
         }
@@ -251,7 +251,7 @@ struct PlannedSessionDetailView: View {
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
                 Image(systemName: "sparkles").font(AppFont.captionRegular()).foregroundColor(accentColor)
-                Text("本次訓練目標").font(AppFont.chip()).tracking(0.04).foregroundColor(accentColor)
+                Text(NSLocalizedString("training.detail.section_goal", comment: "")).font(AppFont.chip()).tracking(0.04).foregroundColor(accentColor)
             }
             Text(goalText).font(AppFont.micro()).foregroundColor(.primary).lineSpacing(4).fixedSize(horizontal: false, vertical: true)
         }
@@ -268,7 +268,7 @@ struct PlannedSessionDetailView: View {
         let segments = buildDetailSegmentsForDetailPage()
         if !segments.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                sectionHeader(title: "訓練結構", subtitle: "\(segments.count) 段 · \(totalMinutes) 分鐘")
+                sectionHeader(title: NSLocalizedString("training.detail.section_structure", comment: ""), subtitle: String(format: NSLocalizedString("training.detail.structure_subtitle", comment: ""), segments.count, totalMinutes))
                 VStack(spacing: 8) {
                     ForEach(segments.indices, id: \.self) { idx in
                         DetailSegmentRow(segment: segments[idx], accentColor: typeAccentColor)
@@ -282,7 +282,7 @@ struct PlannedSessionDetailView: View {
 
     private var targetZonesSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            sectionHeader(title: "目標區間", subtitle: nil)
+            sectionHeader(title: NSLocalizedString("training.detail.section_target_zone", comment: ""), subtitle: nil)
             let pills = buildTargetZonePills()
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 ForEach(pills.indices, id: \.self) { idx in
@@ -299,7 +299,7 @@ struct PlannedSessionDetailView: View {
     private var supplementarySection: some View {
         if let supplementary = day.session?.supplementary, !supplementary.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                sectionHeader(title: "補充訓練", subtitle: "跑後進行")
+                sectionHeader(title: NSLocalizedString("training.detail.section_supplementary", comment: ""), subtitle: NSLocalizedString("training.detail.supplementary_subtitle", comment: ""))
                 SupplementaryTrainingView(activities: supplementary)
             }
         }
@@ -378,8 +378,8 @@ struct PlannedSessionDetailView: View {
 
     private var secondaryButtons: some View {
         HStack(spacing: 8) {
-            SecondaryActionButton(icon: "info.circle", label: "什麼是\(workoutTypeName)？", action: { showTrainingTypeInfo = true })
-            SecondaryActionButton(icon: "arrow.triangle.2.circlepath", label: "調整這一天", action: { /* stub */ })
+            SecondaryActionButton(icon: "info.circle", label: String(format: NSLocalizedString("training.detail.what_is_type", comment: ""), workoutTypeName), action: { showTrainingTypeInfo = true })
+            SecondaryActionButton(icon: "arrow.triangle.2.circlepath", label: NSLocalizedString("training.detail.adjust_day", comment: ""), action: { /* stub */ })
         }
     }
 
@@ -399,9 +399,9 @@ struct PlannedSessionDetailView: View {
         switch day.type {
         case .progression:
             guard let segs = day.primaryRunActivity?.segments, segs.count == 3 else { return nil }
-            return "三段進階：輕 → 節奏 → 快"
+            return NSLocalizedString("training.segment.progression_label", comment: "")
         case .fastFinish:
-            return "二段式：輕鬆 → 節奏"
+            return NSLocalizedString("training.segment.fast_finish_label", comment: "")
         default:
             return nil
         }
@@ -437,15 +437,15 @@ struct PlannedSessionDetailView: View {
         let segLabel: String
         switch day.type {
         case .lsd, .longRun:
-            segLabel = "長距離有氧"
+            segLabel = NSLocalizedString("training.segment.lsd_single", comment: "")
         case .easy, .easyRun:
-            segLabel = "輕鬆有氧"
+            segLabel = NSLocalizedString("training.segment.easy_single", comment: "")
         case .recovery_run:
-            segLabel = "恢復慢跑"
+            segLabel = NSLocalizedString("training.segment.recovery_single", comment: "")
         case .tempo:
-            segLabel = "節奏跑段"
+            segLabel = NSLocalizedString("training.segment.tempo_single", comment: "")
         case .threshold:
-            segLabel = "閾值段"
+            segLabel = NSLocalizedString("training.segment.threshold_single", comment: "")
         default:
             segLabel = workoutTypeName
         }
@@ -472,18 +472,18 @@ struct PlannedSessionDetailView: View {
         var idx = 1
 
         if let warmup = session.warmup {
-            result.append(bookendSegment(index: idx, label: "暖身", seg: warmup)); idx += 1
+            result.append(bookendSegment(index: idx, label: NSLocalizedString("training.segment.warmup", comment: ""), seg: warmup)); idx += 1
         }
 
         if let interval = run.interval {
             let restStr: String? = {
-                if let sec = interval.recoveryDurationSeconds { return "\(sec)秒 慢跑" }
-                if let min = interval.recoveryDurationMinutes { return "\(min)分 慢跑" }
+                if let sec = interval.recoveryDurationSeconds { return String(format: NSLocalizedString("training.detail.rest_seconds_jog", comment: ""), sec) }
+                if let min = interval.recoveryDurationMinutes { return String(format: NSLocalizedString("training.detail.rest_minutes_jog", comment: ""), min) }
                 return interval.recoveryDescription
             }()
             // Prefer real HR range from RunActivity; fall back to inferred zone label
             let intervalHR = run.heartRateRange?.displayText.map { "\($0) bpm" } ?? "Z4"
-            result.append(DetailSegmentData(index: idx, label: "衝刺", distance: workDistanceLabel(interval),
+            result.append(DetailSegmentData(index: idx, label: NSLocalizedString("training.segment.sprint", comment: ""), distance: workDistanceLabel(interval),
                 pace: interval.workPace, hr: intervalHR, reps: interval.repeats, rest: restStr, isMain: true))
             idx += 1
         } else if let segs = run.segments, segs.count > 1 {
@@ -498,7 +498,7 @@ struct PlannedSessionDetailView: View {
         }
 
         if let cooldown = session.cooldown {
-            result.append(bookendSegment(index: idx, label: "緩和", seg: cooldown))
+            result.append(bookendSegment(index: idx, label: NSLocalizedString("training.segment.cooldown", comment: ""), seg: cooldown))
         }
 
         return result.isEmpty ? nil : result
@@ -515,12 +515,12 @@ struct PlannedSessionDetailView: View {
 
     private func segmentLabel(index: Int, total: Int) -> String {
         switch (total, index) {
-        case (3, 0): return "輕鬆配速"
-        case (3, 1): return "節奏配速"
-        case (3, 2): return "加速"
-        case (2, 0): return "輕鬆跑"
-        case (2, 1): return "節奏跑收尾"
-        default: return "第\(index + 1)段"
+        case (3, 0): return NSLocalizedString("training.segment.easy_pace", comment: "")
+        case (3, 1): return NSLocalizedString("training.segment.tempo_pace", comment: "")
+        case (3, 2): return NSLocalizedString("training.segment.accelerate", comment: "")
+        case (2, 0): return NSLocalizedString("training.type.easy", comment: "")
+        case (2, 1): return NSLocalizedString("training.segment.tempo_finish", comment: "")
+        default: return String(format: NSLocalizedString("training.segment_n", comment: ""), index + 1)
         }
     }
 
@@ -582,66 +582,66 @@ struct PlannedSessionDetailView: View {
         // Pill 1: pace (label varies by type)
         if let interval = run.interval {
             if let pace = interval.workPace {
-                pills.append(TargetZonePillData(label: "衝刺配速", value: pace, unit: "/km", isDanger: false))
+                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.sprint_pace", comment: ""), value: pace, unit: "/km", isDanger: false))
             }
             if let recPace = interval.recoveryPace {
-                pills.append(TargetZonePillData(label: "恢復配速", value: recPace, unit: "/km", isDanger: false))
+                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.recovery_pace", comment: ""), value: recPace, unit: "/km", isDanger: false))
             }
         } else if let pace = run.effectivePace {
             let paceLabel: String
             switch day.type {
-            case .progression: paceLabel = "起始配速"
-            case .fastFinish: paceLabel = "輕鬆配速"
-            default: paceLabel = "目標配速"
+            case .progression: paceLabel = NSLocalizedString("training.zone.start_pace", comment: "")
+            case .fastFinish: paceLabel = NSLocalizedString("training.segment.easy_pace", comment: "")
+            default: paceLabel = NSLocalizedString("training.zone.target_pace", comment: "")
             }
             pills.append(TargetZonePillData(label: paceLabel, value: pace, unit: "/km", isDanger: false))
         }
 
         // Pill 2: heart-rate zone — prefer explicit HR range, fall back to inferred zone string
         if let hr = run.heartRateRange, hr.isValid, let hrText = hr.displayText {
-            pills.append(TargetZonePillData(label: "目標心率", value: hrText, unit: "bpm", isDanger: true))
+            pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.target_hr", comment: ""), value: hrText, unit: "bpm", isDanger: true))
         } else {
             let zone = inferredHRZone(for: day.type)
-            pills.append(TargetZonePillData(label: "目標心率", value: zone, unit: "", isDanger: false))
+            pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.target_hr", comment: ""), value: zone, unit: "", isDanger: false))
         }
 
         // Pill 3: RPE — prefer explicit targetIntensity, fall back to inferred
         let rpeValue = run.targetIntensity ?? inferredRPE(for: day.type)
-        pills.append(TargetZonePillData(label: "體感", value: rpeValue, unit: "/10", isDanger: false))
+        pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.rpe", comment: ""), value: rpeValue, unit: "/10", isDanger: false))
 
         // Pill 4: varies by type
         // Interval → 訓練負荷 (TSS estimated); Progression/FastFinish add end-pace pill (already added above as separate pace); others → 預估時間
         switch day.type {
         case .interval, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
-            // Pill 4: 組間休息 — prefer recoveryDurationSeconds/Minutes/Description; fall back to 總組數
+            // Pill 4: rest — prefer recoveryDurationSeconds/Minutes/Description; fall back to total sets
             if let interval = run.interval {
                 if let sec = interval.recoveryDurationSeconds {
-                    pills.append(TargetZonePillData(label: "組間休息", value: "\(sec)", unit: "秒", isDanger: false))
+                    pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.rest_between", comment: ""), value: "\(sec)", unit: NSLocalizedString("training.seconds_unit", comment: ""), isDanger: false))
                 } else if let min = interval.recoveryDurationMinutes {
-                    pills.append(TargetZonePillData(label: "組間休息", value: "\(min)", unit: "分", isDanger: false))
+                    pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.rest_between", comment: ""), value: "\(min)", unit: NSLocalizedString("training.minute_abbr", comment: ""), isDanger: false))
                 } else if let desc = interval.recoveryDescription {
-                    pills.append(TargetZonePillData(label: "組間休息", value: desc, unit: "", isDanger: false))
+                    pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.rest_between", comment: ""), value: desc, unit: "", isDanger: false))
                 } else {
-                    pills.append(TargetZonePillData(label: "總組數", value: "\(interval.repeats)", unit: "組", isDanger: false))
+                    pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.total_sets", comment: ""), value: "\(interval.repeats)", unit: NSLocalizedString("training.sets_unit", comment: ""), isDanger: false))
                 }
             }
         case .progression:
             // Add end-pace pill from last segment
             if let segs = run.segments, segs.count > 1, let lastPace = segs.last?.effectivePace {
-                pills.append(TargetZonePillData(label: "結束配速", value: lastPace, unit: "/km", isDanger: false))
+                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.end_pace", comment: ""), value: lastPace, unit: "/km", isDanger: false))
             } else if let mins = run.durationMinutes {
-                pills.append(TargetZonePillData(label: "預估時間", value: "\(mins)", unit: "分", isDanger: false))
+                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.estimated_time", comment: ""), value: "\(mins)", unit: NSLocalizedString("training.minute_abbr", comment: ""), isDanger: false))
             }
         case .fastFinish:
             // Add tempo/fast pace from last segment
             if let segs = run.segments, segs.count > 1, let lastPace = segs.last?.effectivePace {
-                pills.append(TargetZonePillData(label: "節奏配速", value: lastPace, unit: "/km", isDanger: false))
+                pills.append(TargetZonePillData(label: NSLocalizedString("training.segment.tempo_pace", comment: ""), value: lastPace, unit: "/km", isDanger: false))
             } else if let mins = run.durationMinutes {
-                pills.append(TargetZonePillData(label: "預估時間", value: "\(mins)", unit: "分", isDanger: false))
+                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.estimated_time", comment: ""), value: "\(mins)", unit: NSLocalizedString("training.minute_abbr", comment: ""), isDanger: false))
             }
         default:
             if let mins = run.durationMinutes {
-                pills.append(TargetZonePillData(label: "預估時間", value: "\(mins)", unit: "分", isDanger: false))
+                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.estimated_time", comment: ""), value: "\(mins)", unit: NSLocalizedString("training.minute_abbr", comment: ""), isDanger: false))
             }
         }
 
@@ -681,7 +681,7 @@ struct PlannedSessionDetailView: View {
     private func workDistanceLabel(_ interval: IntervalBlock) -> String {
         if let m = interval.workDistanceM { return "\(m)m" }
         if let km = interval.workDistanceKm { return String(format: "%.1fkm", km) }
-        if let mins = interval.workDurationMinutes { return "\(mins)分" }
+        if let mins = interval.workDurationMinutes { return "\(mins)\(NSLocalizedString("training.minute_abbr", comment: ""))" }
         return ""
     }
 
@@ -758,7 +758,7 @@ private struct DetailSegmentRow: View {
                     }
                 }
                 if let rest = segment.rest {
-                    Text("組間休息：\(rest)").font(AppFont.micro()).foregroundColor(.secondary.opacity(0.7))
+                    Text(String(format: NSLocalizedString("training.detail.rest_with_desc", comment: ""), rest)).font(AppFont.micro()).foregroundColor(.secondary.opacity(0.7))
                 }
             }
 
@@ -930,7 +930,7 @@ private struct WorkoutTipBox: View {
                 Text(icon).font(AppFont.bodyRegular())
             }
             VStack(alignment: .leading, spacing: 2) {
-                Text("提醒").font(AppFont.chip()).foregroundColor(.primary)
+                Text(NSLocalizedString("training.detail.reminder", comment: "")).font(AppFont.chip()).foregroundColor(.primary)
                 Text(text)
                     .font(AppFont.micro())
                     .foregroundColor(.secondary)

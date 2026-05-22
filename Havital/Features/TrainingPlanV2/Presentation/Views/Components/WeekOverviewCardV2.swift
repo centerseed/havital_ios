@@ -83,26 +83,6 @@ struct WeekOverviewCardV2: View {
     private var actualMedium: Int { Int(viewModel.loader.currentWeekIntensity.medium) }
     private var actualHigh: Int { Int(viewModel.loader.currentWeekIntensity.high) }
 
-    // Segmented bar denominator priority:
-    //   1) planned intensity minutes (from plan.intensityTotalMinutes) if non-zero
-    //   2) extrapolate from weekProgress: if user has done weekProgress fraction of weekly km,
-    //      assume same fraction of total weekly minutes → total = actual / weekProgress
-    //   3) fall back to actual (rare: weekProgress=0 means nothing done yet)
-    // Without (2), nil intensityTotalMinutes causes denominator = actual → bar always 100% filled,
-    // which the user reported as "一跑就 100%". Reported 2026-05-19.
-    private var intensityBarTotal: Int {
-        let planned = lowIntensityTarget + mediumIntensityTarget + highIntensityTarget
-        let actual = actualLow + actualMedium + actualHigh
-        if planned > 0 {
-            return max(planned, actual, 1)
-        }
-        if weekProgress > 0 && actual > 0 {
-            let extrapolated = Int((Double(actual) / weekProgress).rounded())
-            return max(extrapolated, actual, 1)
-        }
-        return max(actual, 1)
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
 
@@ -171,29 +151,14 @@ struct WeekOverviewCardV2: View {
                         )
                     }
 
-                    // Segmented intensity bar
-                    PRSegmentedIntensityBar(
-                        low: actualLow,
-                        medium: actualMedium,
-                        high: actualHigh,
-                        total: intensityBarTotal
-                    )
+                    // Segmented intensity bar — inline for precise alignment control.
+                    // Bar always fills completely (denominator = actual total) to show
+                    // how effort was distributed, not how much progress was made.
+                    // Leading segment is rounded on the left, trailing segment on the right.
+                    intensityBarView
 
-                    // Dot legend — F1.e: new keys per TD §3.5 D 2026-05-18 校準
-                    HStack(spacing: 12) {
-                        PRDotLegendItem(
-                            dotColor: PacerizColor.green,
-                            label: NSLocalizedString("training_plan.intensity_legend_low", comment: "輕鬆")
-                        )
-                        PRDotLegendItem(
-                            dotColor: PacerizColor.orange,
-                            label: NSLocalizedString("training_plan.intensity_legend_medium", comment: "中等")
-                        )
-                        PRDotLegendItem(
-                            dotColor: PacerizColor.error,
-                            label: NSLocalizedString("training_plan.intensity_legend_high", comment: "強度")
-                        )
-                    }
+                    // Dot legend — same horizontal layout as the bar above.
+                    intensityLegendView
                 }
             }
             .accessibilityElement(children: .contain)
@@ -290,6 +255,41 @@ struct WeekOverviewCardV2: View {
 
     // MARK: - Private Helpers
 
+    // Intensity bar: 3-colour segments always filling the full width.
+    // Denominator = actual total minutes so all segments always fill the bar completely.
+    // Leading/trailing caps are rounded; inner segment joins are square (flush).
+    private var intensityBarView: some View {
+        IntensityDistributionBar(low: actualLow, medium: actualMedium, high: actualHigh)
+    }
+
+    // Dot legend: circle dots (matching bar's rounded aesthetic) + labels.
+    // Spacing mirrors bar width so they feel visually anchored together.
+    @ViewBuilder
+    private var intensityLegendView: some View {
+        HStack(spacing: 0) {
+            legendDot(color: PacerizColor.green,
+                      label: NSLocalizedString("training_plan.intensity_legend_low", comment: "輕鬆"))
+            Spacer()
+            legendDot(color: PacerizColor.orange,
+                      label: NSLocalizedString("training_plan.intensity_legend_medium", comment: "中等"))
+            Spacer()
+            legendDot(color: PacerizColor.error,
+                      label: NSLocalizedString("training_plan.intensity_legend_high", comment: "強度"))
+        }
+    }
+
+    @ViewBuilder
+    private func legendDot(color: Color, label: String) -> some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+            Text(label)
+                .font(AppFont.micro())
+                .foregroundColor(.secondary)
+        }
+    }
+
     private func adaptiveCardGradient(for colorScheme: ColorScheme) -> LinearGradient {
         if colorScheme == .dark {
             // Dark mode: white glow top-left → secondarySystemGroupedBackground (consistent with DayCard)
@@ -324,6 +324,78 @@ struct WeekOverviewCardV2: View {
             fontSize: 11,
             leadingSymbol: "sparkles"
         )
+    }
+}
+
+// MARK: - IntensityDistributionBar
+// Private helper: 3-colour bar where all segments always fill the full width.
+// Denominator = sum of actual minutes; no empty tail.
+// Outer ends are rounded (capsule), inner segment joins are square.
+private struct IntensityDistributionBar: View {
+    let low: Int
+    let medium: Int
+    let high: Int
+
+    private let barH: CGFloat = 8
+
+    private var hasLow: Bool { low > 0 }
+    private var hasMed: Bool { medium > 0 }
+    private var hasHigh: Bool { high > 0 }
+    private var denom: CGFloat { CGFloat(max(low + medium + high, 1)) }
+    private var radius: CGFloat { barH / 2 }
+
+    var body: some View {
+        GeometryReader { geo in
+            let totalW = geo.size.width
+            let lowW  = totalW * CGFloat(low)    / denom
+            let medW  = totalW * CGFloat(medium) / denom
+            let highW = totalW * CGFloat(high)   / denom
+
+            ZStack(alignment: .leading) {
+                // Track
+                Capsule()
+                    .fill(Color(UIColor { t in
+                        t.userInterfaceStyle == .dark
+                            ? UIColor.white.withAlphaComponent(0.12)
+                            : UIColor.black.withAlphaComponent(0.08)
+                    }))
+                    .frame(height: barH)
+
+                // Segments
+                HStack(spacing: 0) {
+                    if hasLow {
+                        let trailR: CGFloat = (!hasMed && !hasHigh) ? radius : 0
+                        UnevenRoundedRectangle(
+                            topLeadingRadius: radius, bottomLeadingRadius: radius,
+                            bottomTrailingRadius: trailR, topTrailingRadius: trailR
+                        )
+                        .fill(PacerizColor.green)
+                        .frame(width: lowW, height: barH)
+                    }
+                    if hasMed {
+                        let leadR: CGFloat = !hasLow  ? radius : 0
+                        let trailR: CGFloat = !hasHigh ? radius : 0
+                        UnevenRoundedRectangle(
+                            topLeadingRadius: leadR, bottomLeadingRadius: leadR,
+                            bottomTrailingRadius: trailR, topTrailingRadius: trailR
+                        )
+                        .fill(PacerizColor.orange)
+                        .frame(width: medW, height: barH)
+                    }
+                    if hasHigh {
+                        let leadR: CGFloat = (!hasLow && !hasMed) ? radius : 0
+                        UnevenRoundedRectangle(
+                            topLeadingRadius: leadR, bottomLeadingRadius: leadR,
+                            bottomTrailingRadius: radius, topTrailingRadius: radius
+                        )
+                        .fill(PacerizColor.error)
+                        .frame(width: highW, height: barH)
+                    }
+                }
+                .frame(height: barH)
+            }
+        }
+        .frame(height: barH)
     }
 }
 
