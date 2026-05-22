@@ -25,7 +25,7 @@ struct PersonalAchievementsView: View {
         NavigationStack {
             content
                 .background(Color(UIColor.systemGroupedBackground))
-                .navigationTitle("個人成就")
+                .navigationTitle(L10n.Achievements.title.localized)
                 .navigationBarTitleDisplayMode(.inline)
                 .onAppear {
                     viewModel.trackTabOpenIfNeeded()
@@ -131,7 +131,7 @@ struct PersonalAchievementsView: View {
 
         return HStack(spacing: 0) {
             statsBannerColumn(
-                label: "徽章已解鎖",
+                label: L10n.Achievements.StatsBanner.unlockedLabel.localized,
                 number: "\(unlocked)",
                 suffix: "/ \(total)",
                 numberColor: .primary
@@ -141,7 +141,7 @@ struct PersonalAchievementsView: View {
                 .frame(width: 1)
                 .padding(.vertical, 12)
             statsBannerColumn(
-                label: "PB 紀錄",
+                label: L10n.Achievements.StatsBanner.pbLabel.localized,
                 number: "\(pbCount)",
                 suffix: "/ \(pbTotal)",
                 numberColor: PacerizColor.blueDeep
@@ -151,9 +151,9 @@ struct PersonalAchievementsView: View {
                 .frame(width: 1)
                 .padding(.vertical, 12)
             statsBannerColumn(
-                label: "連續訓練",
+                label: L10n.Achievements.StatsBanner.streakLabel.localized,
                 number: streakText ?? "—",
-                suffix: streakText != nil ? "天" : "",
+                suffix: "",
                 numberColor: PacerizColor.orangeDeep
             )
         }
@@ -241,7 +241,7 @@ struct PersonalAchievementsView: View {
     private func latestUnlockedSection(badge: AchievementBadge) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             // "最新解鎖" chip
-            Text("✨ 最新解鎖")
+            Text(L10n.Achievements.HeroCard.latestUnlock.localized)
                 .font(AppFont.micro())
                 .foregroundColor(.white)
                 .padding(.horizontal, 10)
@@ -288,7 +288,7 @@ struct PersonalAchievementsView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "square.and.arrow.up")
                                     .font(AppFont.micro())
-                                Text("分享")
+                                Text(L10n.Achievements.HeroCard.share.localized)
                                     .font(AppFont.chip())
                             }
                             .foregroundColor(.white)
@@ -305,7 +305,7 @@ struct PersonalAchievementsView: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "pin")
                                     .font(AppFont.micro())
-                                Text("釘選")
+                                Text(L10n.Achievements.HeroCard.pin.localized)
                                     .font(AppFont.micro())
                             }
                             .foregroundColor(.primary)
@@ -328,7 +328,7 @@ struct PersonalAchievementsView: View {
         VStack(alignment: .leading, spacing: 10) {
             // "下一個目標" chip + 查看三條主線提示
             HStack(spacing: 6) {
-                Text("🎯 下一個目標")
+                Text(L10n.Achievements.HeroCard.nextTarget.localized)
                     .font(AppFont.micro())
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 10)
@@ -339,7 +339,7 @@ struct PersonalAchievementsView: View {
                 Spacer()
 
                 HStack(spacing: 2) {
-                    Text("看全部主線")
+                    Text(L10n.Achievements.HeroCard.viewAllTracks.localized)
                         .font(AppFont.micro())
                     Image(systemName: "chevron.right")
                         .font(AppFont.micro())
@@ -412,7 +412,7 @@ struct PersonalAchievementsView: View {
                             let remainingStr = remaining.truncatingRemainder(dividingBy: 1) == 0 ? "\(Int(remaining))" : String(format: "%.1f", remaining)
                             let unitSuffix = unit.isEmpty ? "" : " \(unit)"
 
-                            Text("\(currentInt)\(unitSuffix) / \(targetInt)\(unitSuffix) · 還差 \(remainingStr)\(unitSuffix)")
+                            Text("\(currentInt)\(unitSuffix) / \(targetInt)\(unitSuffix) · \(L10n.Achievements.HeroCard.remaining.localized) \(remainingStr)\(unitSuffix)")
                                 .font(AppFont.micro())
                                 .foregroundColor(.secondary)
                                 .lineLimit(1)
@@ -455,11 +455,11 @@ struct PersonalAchievementsView: View {
         VStack(alignment: .leading, spacing: 10) {
             // Section header: "個人最佳" + "X / 4 已創下"
             HStack(alignment: .firstTextBaseline) {
-                Text("個人最佳")
+                Text(L10n.Achievements.PBCard.sectionTitle.localized)
                     .font(AppFont.numberMedium())
                     .foregroundColor(.primary)
                 Spacer()
-                Text("\(records.count) / 4 已創下")
+                Text(L10n.Achievements.PBCard.setCountFormat.localized(with: records.count))
                     .font(AppFont.micro())
                     .foregroundColor(.secondary)
             }
@@ -478,7 +478,7 @@ struct PersonalAchievementsView: View {
                 HStack(spacing: 6) {
                     Text("🏆")
                         .font(AppFont.bodyRegular())
-                    Text("個人最佳紀錄")
+                    Text(L10n.Achievements.PBCard.cardTitle.localized)
                         .font(AppFont.bodyStrong())
                     Image(systemName: "info.circle")
                         .font(AppFont.micro())
@@ -492,7 +492,7 @@ struct PersonalAchievementsView: View {
                     }
                 } label: {
                     HStack(spacing: 2) {
-                        Text("查看全部")
+                        Text(L10n.Achievements.PBCard.viewAll.localized)
                             .font(AppFont.chip())
                         Image(systemName: "chevron.right")
                             .font(AppFont.captionRegular())
@@ -507,10 +507,10 @@ struct PersonalAchievementsView: View {
                 VStack(spacing: 6) {
                     Text("🏃")
                         .font(AppFont.titleL())
-                    Text("還沒有個人最佳紀錄")
+                    Text(L10n.Achievements.PBCard.noPB.localized)
                         .font(AppFont.chip())
                         .foregroundColor(.secondary)
-                    Text("完成第一次計時跑就能創下 PB")
+                    Text(L10n.Achievements.PBCard.noPBHint.localized)
                         .font(AppFont.micro())
                         .foregroundColor(Color(UIColor.tertiaryLabel))
                 }
@@ -535,7 +535,7 @@ struct PersonalAchievementsView: View {
                 }
 
                 if sorted.count > 4 {
-                    Text("+\(sorted.count - 4) 個其他距離紀錄")
+                    Text(L10n.Achievements.PBCard.moreDistancesFormat.localized(with: sorted.count - 4))
                         .font(AppFont.micro())
                         .foregroundColor(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
@@ -617,11 +617,11 @@ struct PersonalAchievementsView: View {
             VStack(alignment: .leading, spacing: 10) {
                 // Section header
                 HStack(alignment: .firstTextBaseline) {
-                    Text("徽章收藏")
+                    Text(L10n.Achievements.BadgeCollection.title.localized)
                         .font(AppFont.numberMedium())
                         .foregroundColor(.primary)
                     Spacer()
-                    Text("\(totalUnlocked)/\(totalBadges) 已解鎖")
+                    Text(L10n.Achievements.BadgeCollection.unlockedCountFormat.localized(with: totalUnlocked, totalBadges))
                         .font(AppFont.micro())
                         .foregroundColor(.secondary)
                 }
@@ -688,7 +688,7 @@ struct PersonalAchievementsView: View {
                     }
                 } label: {
                     HStack(spacing: 2) {
-                        Text("看更多")
+                        Text(L10n.Achievements.BadgeCollection.viewMore.localized)
                             .font(AppFont.chip())
                         Image(systemName: "chevron.right")
                             .font(AppFont.captionRegular())
@@ -888,12 +888,12 @@ struct PersonalAchievementsView: View {
 
     private func hintText(for badge: AchievementBadge) -> String {
         if badge.status == .insufficientData {
-            return "資料不足"
+            return L10n.Achievements.BadgeTile.insufficientData.localized
         }
         if let progress = badge.progress, let summaryKey = progress.summaryKey {
             return summaryKey.achievementLocalized(params: progress.summaryParams)
         }
-        return "尚未解鎖"
+        return L10n.Achievements.BadgeTile.locked.localized
     }
 
     private func chapterGlyph(for chapter: AchievementChapter) -> String {

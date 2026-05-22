@@ -2350,6 +2350,7 @@
 "onboarding.selected_duration" = "Selected Training Duration";
 "onboarding.short_duration_warning" = "A shorter training period may limit your progress";
 "onboarding.target_type" = "Goal Type";
+"onboarding.beginner_target_distance" = "Target Distance";
 "onboarding.training_weeks_description" = "How many weeks do you plan to train?";
 "onboarding.training_weeks_nav_title" = "Training Weeks";
 "onboarding.training_weeks_title" = "Training Weeks";
@@ -3272,4 +3273,44 @@
 "weekly_plan_feedback.error" = "Submission failed. Please try again later.";
 "weekly_plan_feedback.thanks" = "Thanks for your feedback! We'll use it to improve your plan.";
 "weekly_plan_feedback.desc.rating_prefix" = "Plan feedback: ";
+
+// MARK: - Achievements UI (PersonalAchievementsView)
+"achievements.stats_banner.unlocked_label" = "Badges Unlocked";
+"achievements.stats_banner.pb_label" = "PB Records";
+"achievements.stats_banner.streak_label" = "Streak";
+"achievements.hero_card.latest_unlock" = "✨ Latest Unlock";
+"achievements.hero_card.share" = "Share";
+"achievements.hero_card.pin" = "Pin";
+"achievements.hero_card.next_target" = "🎯 Next Target";
+"achievements.hero_card.view_all_tracks" = "View All Tracks";
+"achievements.hero_card.remaining" = "Left";
+"achievements.pb_card.section_title" = "Personal Best";
+"achievements.pb_card.set_count_format" = "%d / 4 Set";
+"achievements.pb_card.card_title" = "Personal Best Records";
+"achievements.pb_card.view_all" = "View All";
+"achievements.pb_card.no_pb" = "No personal bests yet";
+"achievements.pb_card.no_pb_hint" = "Complete your first timed run to set a PB";
+"achievements.pb_card.more_distances_format" = "+%d other distance records";
+"achievements.badge_collection.title" = "Badge Collection";
+"achievements.badge_collection.unlocked_count_format" = "%d/%d Unlocked";
+"achievements.badge_collection.view_more" = "View More";
+"achievements.badge_tile.insufficient_data" = "Insufficient data";
+"achievements.badge_tile.locked" = "Locked";
+"achievements.tracks.title" = "Achievement Tracks";
+"achievements.tracks.empty" = "No track data yet";
+
+// MARK: - Training Record Filter & Groups
+"record.filter.all" = "All";
+"record.filter.easy_run" = "Easy Run";
+"record.filter.tempo" = "Tempo";
+"record.filter.interval" = "Interval";
+"record.filter.long_run" = "Long Run";
+"record.group.today" = "Today";
+"record.group.yesterday" = "Yesterday";
+"record.group.earlier_this_week" = "Earlier This Week";
+"record.group.last_week" = "Last Week";
+"record.group.older" = "Older";
+"record.group.run_count_format" = "%d runs";
+"record.group.total_km_format" = "%.1f km total";
+"record.group.month_group_format" = "%d/%d";
 "weekly_plan_feedback.desc.issue_prefix" = "Issues: ";

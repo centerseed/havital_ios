@@ -2347,6 +2347,7 @@
 "onboarding.selected_duration" = "選択したトレーニング期間";
 "onboarding.short_duration_warning" = "短いトレーニング期間は進歩を制限する可能性があります";
 "onboarding.target_type" = "目標タイプ";
+"onboarding.beginner_target_distance" = "目標距離";
 "onboarding.training_weeks_description" = "何週間トレーニングする予定ですか？";
 "onboarding.training_weeks_nav_title" = "トレーニング週数";
 "onboarding.training_weeks_title" = "トレーニング週数";
@@ -3269,4 +3270,44 @@
 "weekly_plan_feedback.error" = "送信に失敗しました。後でもう一度お試しください。";
 "weekly_plan_feedback.thanks" = "フィードバックありがとうございます！計画の改善に活用します。";
 "weekly_plan_feedback.desc.rating_prefix" = "計画フィードバック：";
+
+// MARK: - Achievements UI (PersonalAchievementsView)
+"achievements.stats_banner.unlocked_label" = "解除済みバッジ";
+"achievements.stats_banner.pb_label" = "PB記録";
+"achievements.stats_banner.streak_label" = "連続トレーニング";
+"achievements.hero_card.latest_unlock" = "✨ 最新解除";
+"achievements.hero_card.share" = "シェア";
+"achievements.hero_card.pin" = "固定";
+"achievements.hero_card.next_target" = "🎯 次の目標";
+"achievements.hero_card.view_all_tracks" = "全トラックを見る";
+"achievements.hero_card.remaining" = "残り";
+"achievements.pb_card.section_title" = "自己ベスト";
+"achievements.pb_card.set_count_format" = "%d / 4 達成";
+"achievements.pb_card.card_title" = "自己ベスト記録";
+"achievements.pb_card.view_all" = "すべて見る";
+"achievements.pb_card.no_pb" = "自己ベストはまだありません";
+"achievements.pb_card.no_pb_hint" = "初めてのタイム計測ランでPBを樹立しましょう";
+"achievements.pb_card.more_distances_format" = "他%d種類の距離記録";
+"achievements.badge_collection.title" = "バッジコレクション";
+"achievements.badge_collection.unlocked_count_format" = "%d/%d 解除済み";
+"achievements.badge_collection.view_more" = "もっと見る";
+"achievements.badge_tile.insufficient_data" = "データ不足";
+"achievements.badge_tile.locked" = "未解除";
+"achievements.tracks.title" = "実績トラック";
+"achievements.tracks.empty" = "トラックデータなし";
+
+// MARK: - Training Record Filter & Groups
+"record.filter.all" = "すべて";
+"record.filter.easy_run" = "イージーラン";
+"record.filter.tempo" = "テンポ走";
+"record.filter.interval" = "インターバル";
+"record.filter.long_run" = "ロング走";
+"record.group.today" = "今日";
+"record.group.yesterday" = "昨日";
+"record.group.earlier_this_week" = "今週の以前";
+"record.group.last_week" = "先週";
+"record.group.older" = "以前";
+"record.group.run_count_format" = "%d回のラン";
+"record.group.total_km_format" = "合計 %.1f km";
+"record.group.month_group_format" = "%d年%d月";
 "weekly_plan_feedback.desc.issue_prefix" = "課題：";

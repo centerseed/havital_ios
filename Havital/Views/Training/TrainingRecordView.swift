@@ -24,13 +24,22 @@ struct TrainingRecordView: View {
     @State private var selectedFilter: String? = nil
 
     // MARK: - Filter Options
-    private let filterOptions: [(label: String, trainingTypes: [String])] = [
-        ("全部", []),
-        ("輕鬆跑", ["easy_run", "easy", "recovery_run", "recovery", "lsd"]),
-        ("節奏跑", ["tempo", "threshold", "fartlek"]),
-        ("間歇", ["interval"]),
-        ("長距離", ["long_run", "long"]),
-    ]
+    // `id` is a stable English key used for selection state; `localizedLabel` is displayed.
+    private struct FilterOption {
+        let id: String
+        let localizedLabel: String
+        let trainingTypes: [String]
+    }
+
+    private var filterOptions: [FilterOption] {
+        [
+            FilterOption(id: "all",       localizedLabel: L10n.Record.Filter.all.localized,     trainingTypes: []),
+            FilterOption(id: "easy_run",  localizedLabel: L10n.Record.Filter.easyRun.localized,  trainingTypes: ["easy_run", "easy", "recovery_run", "recovery", "lsd"]),
+            FilterOption(id: "tempo",     localizedLabel: L10n.Record.Filter.tempo.localized,    trainingTypes: ["tempo", "threshold", "fartlek"]),
+            FilterOption(id: "interval",  localizedLabel: L10n.Record.Filter.interval.localized, trainingTypes: ["interval"]),
+            FilterOption(id: "long_run",  localizedLabel: L10n.Record.Filter.longRun.localized,  trainingTypes: ["long_run", "long"]),
+        ]
+    }
 
     var body: some View {
         NavigationStack {
@@ -124,7 +133,7 @@ struct TrainingRecordView: View {
     private var filterChipRow: some View {
         // Plain HStack (no horizontal ScrollView) — 5 short chips fit iPhone 17 Pro 393pt width.
         HStack(spacing: 6) {
-            ForEach(filterOptions, id: \.label) { option in
+            ForEach(filterOptions, id: \.id) { option in
                 filterChip(option)
             }
         }
@@ -134,11 +143,11 @@ struct TrainingRecordView: View {
         .background(Color(UIColor.systemGroupedBackground))
     }
 
-    private func filterChip(_ option: (label: String, trainingTypes: [String])) -> some View {
-        let isSelected = (option.label == "全部" && selectedFilter == nil)
-            || (option.label != "全部" && selectedFilter == option.label)
+    private func filterChip(_ option: FilterOption) -> some View {
+        let isSelected = (option.id == "all" && selectedFilter == nil)
+            || (option.id != "all" && selectedFilter == option.id)
 
-        return Text(option.label)
+        return Text(option.localizedLabel)
             .font(AppFont.label())
             .foregroundColor(isSelected ? .white : .primary)
             .padding(.vertical, 8)
@@ -147,7 +156,7 @@ struct TrainingRecordView: View {
             .clipShape(Capsule())
             .onTapGesture {
                 withAnimation(.easeInOut(duration: 0.18)) {
-                    selectedFilter = option.label == "全部" ? nil : option.label
+                    selectedFilter = option.id == "all" ? nil : option.id
                 }
             }
     }
@@ -166,7 +175,7 @@ struct TrainingRecordView: View {
         guard let filter = selectedFilter else {
             return viewModel.workouts
         }
-        let option = filterOptions.first { $0.label == filter }
+        let option = filterOptions.first { $0.id == filter }
         guard let types = option?.trainingTypes, !types.isEmpty else {
             return viewModel.workouts
         }
@@ -221,10 +230,10 @@ struct TrainingRecordView: View {
             }
         }
 
-        if !todayItems.isEmpty { groups.append(WorkoutGroup(title: "今天", workouts: todayItems)) }
-        if !yesterdayItems.isEmpty { groups.append(WorkoutGroup(title: "昨天", workouts: yesterdayItems)) }
-        if !earlierThisWeekItems.isEmpty { groups.append(WorkoutGroup(title: "本週稍早", workouts: earlierThisWeekItems)) }
-        if !lastWeekItems.isEmpty { groups.append(WorkoutGroup(title: "上週", workouts: lastWeekItems)) }
+        if !todayItems.isEmpty { groups.append(WorkoutGroup(title: L10n.Record.Group.today.localized, workouts: todayItems)) }
+        if !yesterdayItems.isEmpty { groups.append(WorkoutGroup(title: L10n.Record.Group.yesterday.localized, workouts: yesterdayItems)) }
+        if !earlierThisWeekItems.isEmpty { groups.append(WorkoutGroup(title: L10n.Record.Group.earlierThisWeek.localized, workouts: earlierThisWeekItems)) }
+        if !lastWeekItems.isEmpty { groups.append(WorkoutGroup(title: L10n.Record.Group.lastWeek.localized, workouts: lastWeekItems)) }
         for key in olderOrder {
             if let items = olderBuckets[key], !items.isEmpty {
                 groups.append(WorkoutGroup(title: key, workouts: items))
@@ -236,8 +245,8 @@ struct TrainingRecordView: View {
 
     private func monthGroupKey(for date: Date, calendar: Calendar) -> String {
         let comps = calendar.dateComponents([.year, .month], from: date)
-        guard let year = comps.year, let month = comps.month else { return "更早" }
-        return "\(year)年\(month)月"
+        guard let year = comps.year, let month = comps.month else { return L10n.Record.Group.older.localized }
+        return L10n.Record.Group.monthGroupFormat.localized(with: year, month)
     }
 
     // MARK: - Section rendering
@@ -260,13 +269,13 @@ struct TrainingRecordView: View {
                 Text(group.title)
                     .font(AppFont.bodyStrong())
                     .foregroundColor(.secondary)
-                Text("\(group.workouts.count) 次跑步")
+                Text(L10n.Record.Group.runCountFormat.localized(with: group.workouts.count))
                     .font(AppFont.micro())
                     .foregroundColor(Color(UIColor.tertiaryLabel))
             }
             Spacer()
             if group.totalKm > 0 {
-                Text(String(format: "共 %.1f km", group.totalKm))
+                Text(L10n.Record.Group.totalKmFormat.localized(with: group.totalKm))
                     .font(AppFont.micro().monospacedDigit())
                     .foregroundColor(.secondary)
             }

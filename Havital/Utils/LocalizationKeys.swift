@@ -774,6 +774,27 @@ enum GaitAnalysisChart {
         static let deviceInfoNativeSupport = "record.device_info.native_support"
         static let deviceInfoLimitations = "record.device_info.limitations"
         static let deviceInfoFutureSupport = "record.device_info.future_support"
+
+        // Filter chips
+        enum Filter {
+            static let all = "record.filter.all" // "全部"
+            static let easyRun = "record.filter.easy_run" // "輕鬆跑"
+            static let tempo = "record.filter.tempo" // "節奏跑"
+            static let interval = "record.filter.interval" // "間歇"
+            static let longRun = "record.filter.long_run" // "長距離"
+        }
+
+        // Group headers
+        enum Group {
+            static let today = "record.group.today" // "今天"
+            static let yesterday = "record.group.yesterday" // "昨天"
+            static let earlierThisWeek = "record.group.earlier_this_week" // "本週稍早"
+            static let lastWeek = "record.group.last_week" // "上週"
+            static let older = "record.group.older" // "更早"
+            static let runCountFormat = "record.group.run_count_format" // "%d 次跑步"
+            static let totalKmFormat = "record.group.total_km_format" // "共 %.1f km"
+            static let monthGroupFormat = "record.group.month_group_format" // "%d年%d月"
+        }
     }
     
     // MARK: - Performance
@@ -1625,6 +1646,47 @@ extension L10n {
         enum Action {
             static let pin = "achievements.action.pin"
             static let unpin = "achievements.action.unpin"
+        }
+
+        enum StatsBanner {
+            static let unlockedLabel = "achievements.stats_banner.unlocked_label" // "徽章已解鎖"
+            static let pbLabel = "achievements.stats_banner.pb_label" // "PB 紀錄"
+            static let streakLabel = "achievements.stats_banner.streak_label" // "連續訓練"
+        }
+
+        enum HeroCard {
+            static let latestUnlock = "achievements.hero_card.latest_unlock" // "✨ 最新解鎖"
+            static let share = "achievements.hero_card.share" // "分享"
+            static let pin = "achievements.hero_card.pin" // "釘選"
+            static let nextTarget = "achievements.hero_card.next_target" // "🎯 下一個目標"
+            static let viewAllTracks = "achievements.hero_card.view_all_tracks" // "看全部主線"
+            static let remaining = "achievements.hero_card.remaining" // "還差"
+        }
+
+        enum PBCard {
+            static let sectionTitle = "achievements.pb_card.section_title" // "個人最佳"
+            static let setCountFormat = "achievements.pb_card.set_count_format" // "%d / 4 已創下"
+            static let cardTitle = "achievements.pb_card.card_title" // "個人最佳紀錄"
+            static let viewAll = "achievements.pb_card.view_all" // "查看全部"
+            static let noPB = "achievements.pb_card.no_pb" // "還沒有個人最佳紀錄"
+            static let noPBHint = "achievements.pb_card.no_pb_hint" // "完成第一次計時跑就能創下 PB"
+            static let moreDistancesFormat = "achievements.pb_card.more_distances_format" // "+%d 個其他距離紀錄"
+        }
+
+        enum BadgeCollection {
+            static let title = "achievements.badge_collection.title" // "徽章收藏"
+            static let unlockedCountFormat = "achievements.badge_collection.unlocked_count_format" // "%d/%d 已解鎖"
+            static let viewMore = "achievements.badge_collection.view_more" // "看更多"
+        }
+
+        enum BadgeTile {
+            static let insufficientData = "achievements.badge_tile.insufficient_data" // "資料不足"
+            static let locked = "achievements.badge_tile.locked" // "尚未解鎖"
+        }
+
+        enum Tracks {
+            static let title = "achievements.tracks.title" // "成就主線"
+            static let empty = "achievements.tracks.empty" // "尚無主線資料"
         }
     }
 

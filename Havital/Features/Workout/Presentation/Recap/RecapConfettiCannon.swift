@@ -2,30 +2,21 @@ import SwiftUI
 
 // MARK: - RecapConfettiCannon
 //
-// 標準撒花：彩片從畫面頂端均勻灑落，邊落邊左右輕擺 + 旋轉，最後淡出（不留殘留）。
-// 每片用 KeyframeAnimator 各自跑「延遲 → 下落 + 擺動 + 旋轉 + 淡出」，onAppear 自動播一次。
-// 各片 delay 錯開形成連續灑落感。
-// （型別名沿用 Cannon 僅為相容呼叫點，行為已改為頂部灑落。）
+// 標準撒花：彩片從頂端灑落、邊落邊旋轉與飄動，落出畫面外即消失。
+// 用 TimelineView(.animation) + Canvas 逐幀自繪 —— 不依賴 SwiftUI 隱式/keyframe 動畫
+// （那兩者在 sheet overlay 內不會啟動，導致彩片卡住不動 = 撒花失效）。
 
 struct RecapConfettiCannon: View {
-    private struct Piece: Identifiable {
-        let id = UUID()
+    private struct Piece {
         let color: Color
         let w: CGFloat
         let h: CGFloat
         let isCircle: Bool
         let xRatio: CGFloat   // 起始水平位置（佔寬度 0...1）
-        let drift: CGFloat    // 下落時左右擺動幅度
+        let drift: CGFloat    // 水平飄移幅度
         let delay: Double     // 錯開起始時間
         let duration: Double  // 下落總時長
-        let spin: Double
-    }
-
-    private struct Vals {
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        var opacity: Double = 1
-        var rot: Double = 0
+        let spin: Double      // 每秒旋轉度數
     }
 
     private static let palette: [Color] = [
@@ -38,8 +29,13 @@ struct RecapConfettiCannon: View {
     ]
 
     private let pieces: [Piece]
+    @State private var start = Date()
 
-    init(count: Int = 80) {
+    // 全程約 5 秒；最後 2 秒（t=3→5）整體淡出。
+    private let totalDuration: Double = 5.0
+    private let fadeStart: Double = 3.0
+
+    init(count: Int = 120) {
         pieces = (0..<count).map { _ in
             Piece(
                 color: Self.palette.randomElement() ?? .blue,
@@ -47,67 +43,47 @@ struct RecapConfettiCannon: View {
                 h: CGFloat.random(in: 9...16),
                 isCircle: Bool.random(),
                 xRatio: CGFloat.random(in: 0.02...0.98),
-                drift: CGFloat.random(in: 8...22) * (Bool.random() ? 1 : -1),
-                delay: Double.random(in: 0...0.5),
-                duration: Double.random(in: 1.8...2.4),
-                spin: Double.random(in: 180...540) * (Bool.random() ? 1 : -1)
+                drift: CGFloat.random(in: 16...44) * (Bool.random() ? 1 : -1),
+                delay: Double.random(in: 0...1.0),
+                duration: Double.random(in: 3.6...5.0),
+                spin: Double.random(in: 120...320) * (Bool.random() ? 1 : -1)
             )
         }
     }
 
     var body: some View {
         GeometryReader { geo in
-            ZStack {
-                ForEach(pieces) { piece in
-                    let startX = geo.size.width * piece.xRatio
-                    shape(for: piece)
-                        .position(x: startX, y: 12)
-                        // repeating: false → 只灑落一次，不循環（預設 true 會落完彈回頂端重跑，看起來像原地一直轉）
-                        .keyframeAnimator(initialValue: Vals(), repeating: false) { view, value in
-                            view
-                                .offset(x: value.x, y: value.y)
-                                .rotationEffect(.degrees(value.rot))
-                                .opacity(value.opacity)
-                        } keyframes: { _ in
-                            // 下落：延遲後等速落到畫面外
-                            KeyframeTrack(\.y) {
-                                LinearKeyframe(0, duration: piece.delay)
-                                LinearKeyframe(geo.size.height + 60, duration: piece.duration)
-                            }
-                            // 左右輕擺（三段 wobble）
-                            KeyframeTrack(\.x) {
-                                LinearKeyframe(0, duration: piece.delay)
-                                CubicKeyframe(piece.drift, duration: piece.duration * 0.33)
-                                CubicKeyframe(-piece.drift, duration: piece.duration * 0.34)
-                                CubicKeyframe(piece.drift * 0.5, duration: piece.duration * 0.33)
-                            }
-                            // 持續旋轉
-                            KeyframeTrack(\.rot) {
-                                LinearKeyframe(0, duration: piece.delay)
-                                LinearKeyframe(piece.spin, duration: piece.duration)
-                            }
-                            // 最後 20% 淡出
-                            KeyframeTrack(\.opacity) {
-                                LinearKeyframe(1, duration: piece.delay + piece.duration * 0.8)
-                                LinearKeyframe(0, duration: piece.duration * 0.2)
-                            }
+            TimelineView(.animation) { timeline in
+                let t = timeline.date.timeIntervalSince(start)
+                // 整體淡出：t < fadeStart 全顯，fadeStart→totalDuration 線性淡出。
+                let globalFade = t < fadeStart ? 1.0 : max(0.0, 1.0 - (t - fadeStart) / (totalDuration - fadeStart))
+                Canvas { ctx, size in
+                    if globalFade <= 0 { return }
+                    for piece in pieces {
+                        let lt = t - piece.delay
+                        if lt <= 0 { continue }
+                        let prog = lt / piece.duration
+                        if prog >= 1 { continue }
+
+                        let eased = pow(prog, 1.3)          // 略微加速下落
+                        let y = -24 + eased * (size.height + 140)
+                        let x = size.width * piece.xRatio + sin(lt * 3 + Double(piece.xRatio) * 6) * piece.drift
+
+                        ctx.drawLayer { layer in
+                            layer.opacity = globalFade
+                            layer.translateBy(x: x, y: y)
+                            layer.rotate(by: .degrees(lt * piece.spin))
+                            let rect = CGRect(x: -piece.w / 2, y: -piece.h / 2, width: piece.w, height: piece.h)
+                            let path = piece.isCircle
+                                ? Path(ellipseIn: CGRect(x: -piece.w / 2, y: -piece.w / 2, width: piece.w, height: piece.w))
+                                : Path(roundedRect: rect, cornerRadius: 1.5)
+                            layer.fill(path, with: .color(piece.color))
                         }
+                    }
                 }
             }
         }
         .allowsHitTesting(false)
-    }
-
-    @ViewBuilder
-    private func shape(for piece: Piece) -> some View {
-        if piece.isCircle {
-            Circle()
-                .fill(piece.color)
-                .frame(width: piece.w, height: piece.w)
-        } else {
-            RoundedRectangle(cornerRadius: 1.5)
-                .fill(piece.color)
-                .frame(width: piece.w, height: piece.h)
-        }
+        .onAppear { start = Date() }
     }
 }

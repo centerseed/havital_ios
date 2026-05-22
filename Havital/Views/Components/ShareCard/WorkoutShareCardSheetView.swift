@@ -58,19 +58,10 @@ struct WorkoutShareCardSheetView: View {
                     }
 
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        HStack(spacing: 12) {
-                            Button(action: {
-                                showTutorial = true
-                            }) {
-                                Image(systemName: "questionmark.circle")
-                            }
-
-                            if let shareImage = shareImage {
-                                ShareLink(
-                                    item: Image(uiImage: shareImage),
-                                    preview: SharePreview(L10n.ShareCard.title.localized, image: Image(uiImage: shareImage))
-                                )
-                            }
+                        Button(action: {
+                            showTutorial = true
+                        }) {
+                            Image(systemName: "questionmark.circle")
                         }
                     }
                 }
@@ -141,7 +132,7 @@ struct WorkoutShareCardSheetView: View {
 
     private var contentWithCardDataHandlers: some View {
         mainContentView
-            .background(Color(UIColor.systemBackground))
+            .background(Color(UIColor.systemGroupedBackground))
             .onChange(of: viewModel.cardData?.workout.id) { _, _ in
                 Task { await updateShareImage() }
             }
@@ -157,6 +148,7 @@ struct WorkoutShareCardSheetView: View {
             VStack(spacing: 0) {
                 previewArea
                 bottomToolbar
+                shareActionButton
             }
 
             // 引導畫面
@@ -292,8 +284,8 @@ struct WorkoutShareCardSheetView: View {
                         )
                             .scaleEffect(previewScale(for: geometry.size))
                             .frame(width: previewWidth(for: geometry.size), height: previewHeight(for: geometry.size))
-                            .cornerRadius(12)
-                            .shadow(color: .black.opacity(0.2), radius: 10, x: 0, y: 4)
+                            .cornerRadius(PacerizRadius.card)
+                            .shadow(color: .black.opacity(0.18), radius: 14, x: 0, y: 8)
                             .gesture(
                                 selectedPhoto != nil ?
                                 MagnificationGesture()
@@ -354,6 +346,47 @@ struct WorkoutShareCardSheetView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+    }
+
+    // MARK: - Share Action Button (recap 風格：底部主要藍色按鈕)
+
+    @ViewBuilder
+    private var shareActionButton: some View {
+        Group {
+            if let shareImage = shareImage {
+                ShareLink(
+                    item: Image(uiImage: shareImage),
+                    preview: SharePreview(L10n.ShareCard.title.localized, image: Image(uiImage: shareImage))
+                ) {
+                    shareButtonLabel(loading: false)
+                }
+                .buttonStyle(.plain)
+            } else {
+                // 圖片生成中：維持按鈕版位，避免跳動
+                shareButtonLabel(loading: true)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
+        .padding(.bottom, 12)
+        .background(Color(UIColor.systemBackground))
+    }
+
+    private func shareButtonLabel(loading: Bool) -> some View {
+        HStack(spacing: 8) {
+            if loading {
+                ProgressView().tint(.white)
+            } else {
+                Image(systemName: "square.and.arrow.up")
+            }
+            Text("分享這次訓練")
+        }
+        .font(AppFont.label())
+        .foregroundColor(.white)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 15)
+        .background(loading ? PacerizColor.blue.opacity(0.5) : PacerizColor.blue)
+        .cornerRadius(PacerizRadius.inner)
     }
 
     // MARK: - Bottom Toolbar

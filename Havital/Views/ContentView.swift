@@ -255,7 +255,7 @@ struct ContentView: View {
                 PersonalAchievementsView()
                     .tabItem {
                         Image(systemName: "medal.fill")
-                        Text("成就")
+                        Text(L10n.Tab.achievement.localized)
                     }
 
             }

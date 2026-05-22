@@ -18,7 +18,7 @@ struct AchievementTracksPathView: View {
                         trackCard(track)
                     }
                     if tracks.isEmpty {
-                        Text("尚無主線資料")
+                        Text(L10n.Achievements.Tracks.empty.localized)
                             .font(AppFont.bodyRegular())
                             .foregroundColor(.secondary)
                             .frame(maxWidth: .infinity, minHeight: 200)
@@ -27,7 +27,7 @@ struct AchievementTracksPathView: View {
                 .padding(16)
             }
             .background(Color(UIColor.systemGroupedBackground))
-            .navigationTitle("成就主線")
+            .navigationTitle(L10n.Achievements.Tracks.title.localized)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
