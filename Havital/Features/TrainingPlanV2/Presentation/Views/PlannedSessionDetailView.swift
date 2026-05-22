@@ -312,7 +312,6 @@ struct PlannedSessionDetailView: View {
         if climateAdjustmentEnabled, let climateMeta = day.effectiveClimateMeta {
             ClimateTipCard(
                 meta: climateMeta,
-                accentColor: typeAccentColor,
                 // 危險級後端不給 climate_adjusted_pace，用原本 pace 當基準算「若仍戶外」放慢配速。
                 basePace: day.primaryRunActivity?.basePace ?? day.primaryRunActivity?.pace,
                 adjustedPace: day.primaryRunActivity?.climateAdjustedPace
@@ -809,9 +808,12 @@ private struct TargetZonePill: View {
 
 private struct ClimateTipCard: View {
     let meta: ClimateMeta
-    let accentColor: Color
     var basePace: String? = nil
     var adjustedPace: String? = nil
+
+    // Climate tip uses its OWN heat-alert level colour (mild/moderate/high/danger),
+    // not the workout type colour — the warning severity should drive the colour.
+    private var climateColor: Color { meta.badgeForegroundColor }
 
     private var headerChip: String {
         if let t = meta.feelsLikeTempText {
@@ -826,7 +828,7 @@ private struct ClimateTipCard: View {
             HStack(spacing: 8) {
                 Image(systemName: "thermometer.sun.fill")
                     .font(AppFont.bodyRegular())
-                    .foregroundColor(accentColor)
+                    .foregroundColor(climateColor)
                 Text(meta.sectionTitle)
                     .font(AppFont.bodyStrong())
                     .foregroundColor(.primary)
@@ -834,10 +836,10 @@ private struct ClimateTipCard: View {
                 Text(headerChip)
                     .font(AppFont.micro())
                     .fontWeight(.semibold)
-                    .foregroundColor(accentColor)
+                    .foregroundColor(climateColor)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
-                    .background(accentColor.opacity(0.14))
+                    .background(climateColor.opacity(0.14))
                     .clipShape(Capsule())
             }
 
@@ -855,7 +857,7 @@ private struct ClimateTipCard: View {
             HStack(alignment: .top, spacing: 8) {
                 Image(systemName: "sun.haze.fill")
                     .font(AppFont.caption())
-                    .foregroundColor(accentColor)
+                    .foregroundColor(climateColor)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(meta.recommendationTitle)
                         .font(AppFont.micro())
@@ -869,7 +871,7 @@ private struct ClimateTipCard: View {
             }
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(accentColor.opacity(0.08))
+            .background(climateColor.opacity(0.08))
             .clipShape(RoundedRectangle(cornerRadius: 10))
         }
         .padding(14)
@@ -886,14 +888,14 @@ private struct ClimateTipCard: View {
             HStack(spacing: 10) {
                 paceChip(meta.originalPaceTitle, b, .secondary)
                 Image(systemName: "arrow.right").font(.caption2).foregroundColor(.secondary)
-                paceChip(meta.dangerOutdoorPaceTitle, "\(floorPace)+", accentColor)
+                paceChip(meta.dangerOutdoorPaceTitle, "\(floorPace)+", climateColor)
                 Spacer()
             }
         } else if let b = basePace, let a = adjustedPace, b != a {
             HStack(spacing: 10) {
                 paceChip(meta.originalPaceTitle, b, .secondary)
                 Image(systemName: "arrow.right").font(.caption2).foregroundColor(.secondary)
-                paceChip(meta.adjustedPaceTitle, a, accentColor)
+                paceChip(meta.adjustedPaceTitle, a, climateColor)
                 Spacer()
             }
         }
