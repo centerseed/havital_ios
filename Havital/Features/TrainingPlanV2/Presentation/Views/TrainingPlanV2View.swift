@@ -9,7 +9,6 @@ struct TrainingPlanV2View: View {
     @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @EnvironmentObject private var appViewModel: AppViewModel
     @Environment(\.scenePhase) private var scenePhase
-    @State private var showPlanOverview = false
     @State private var showUserProfile = false
     @State private var editScheduleVM: EditScheduleV2ViewModel?
     @State private var showContactPaceriz = false
@@ -37,6 +36,9 @@ struct TrainingPlanV2View: View {
     // Navigation destination for day card taps (history or planned session).
     // Must live here — attaching .navigationDestination inside ScrollView causes silent fail in SwiftUI.
     @State private var workoutDetailDestination: WorkoutDetailDestination?
+
+    // Navigation destination for training overview push (same rule: must live here, not inside ScrollView).
+    @State private var showOverviewV2 = false
 
     #if DEBUG
     // Debug 選單「觸發訓練回顧」用：本地 sheet 呈現，避開 InterruptCoordinator 跨視圖 race。
@@ -144,7 +146,7 @@ struct TrainingPlanV2View: View {
                         }
 
                         // 1️⃣ 訓練進度卡片（與 V1 相同）
-                        TrainingProgressCardV2(viewModel: viewModel, plan: weeklyPlan)
+                        TrainingProgressCardV2(viewModel: viewModel, plan: weeklyPlan, onOpenOverview: { showOverviewV2 = true })
 
                         // 2️⃣ 週總覽卡片（與 V1 相同）
                         WeekOverviewCardV2(viewModel: viewModel, plan: weeklyPlan)
@@ -279,7 +281,7 @@ struct TrainingPlanV2View: View {
                         }
                         .accessibilityIdentifier("TrainingPlan_Menu_Profile")
 
-                        Button(action: { showPlanOverview = true }) {
+                        Button(action: { showOverviewV2 = true }) {
                             Label(NSLocalizedString("training.plan_overview", comment: "Plan Overview"), systemImage: "doc.text.below.ecg")
                         }
                         .accessibilityIdentifier("TrainingPlan_Menu_PlanOverview")
@@ -367,9 +369,6 @@ struct TrainingPlanV2View: View {
                     }
                     .accessibilityIdentifier("TrainingPlan_MenuButton")
                 }
-            }
-            .sheet(isPresented: $showPlanOverview) {
-                TrainingOverviewV2View(viewModel: viewModel)
             }
             #if DEBUG
             .sheet(item: $debugRecapContent) { content in
@@ -484,6 +483,9 @@ struct TrainingPlanV2View: View {
             case .planned(let day, let date):
                 PlannedSessionDetailView(day: day, date: date)
             }
+        }
+        .navigationDestination(isPresented: $showOverviewV2) {
+            TrainingOverviewV2View(viewModel: viewModel)
         }
         }
         .sheet(isPresented: $showWeekSelector) {

@@ -3,7 +3,9 @@ import SwiftUI
 // MARK: - TrainingOverviewV2View
 //
 // Task 1/5: Outer container + Hero gradient section + Stats card (race mode only).
-// Presented as a .sheet, so it owns its own dismiss button via @Environment(\.dismiss).
+// Pushed via NavigationStack.navigationDestination (not .sheet).
+// System back button is white (via .tint(.white) + toolbarBackground hidden) so it
+// remains visible over the blue hero gradient.
 //
 // Data source: viewModel.loader (V2 path — PlanOverviewV2 entity).
 // Design reference: OverviewScreenB in plan-overview.jsx, lines 498–591.
@@ -22,6 +24,9 @@ struct TrainingOverviewV2View: View {
     @State private var isChangingMethodology = false
     @State private var showStageSelectionForMethodology = false
     @State private var pendingMethodologyId: String? = nil
+
+    // Edit main race/target — mirrors PlanOverviewSheetV2 showEditMainTarget flow
+    @State private var showEditMainTarget = false
 
     // MARK: - Body
 
@@ -83,6 +88,24 @@ struct TrainingOverviewV2View: View {
                 .cornerRadius(16)
             }
         }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .tint(.white)
+        // Edit main race/target lives in the nav bar (hero is full-bleed under the
+        // transparent nav bar, so an in-hero button would be swallowed by the bar).
+        .toolbar {
+            if viewModel.loader.planOverview != nil {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showEditMainTarget = true
+                    } label: {
+                        Label(L10n.Training.overviewEditAction.localized, systemImage: "pencil")
+                            .font(AppFont.bodyStrong())
+                            .foregroundColor(.white)
+                    }
+                }
+            }
+        }
         .task {
             // Load supporting races (mirrors PlanOverviewSheetV2:114-116)
             await targetViewModel.loadTargets()
@@ -117,6 +140,12 @@ struct TrainingOverviewV2View: View {
                         }
                     }
                 }
+            }
+        }
+        // Edit main race/target — mirrors PlanOverviewSheetV2:162-166
+        .sheet(isPresented: $showEditMainTarget) {
+            if let target = targetViewModel.mainTarget {
+                EditTargetView(target: target)
             }
         }
     }
@@ -430,24 +459,13 @@ struct TrainingOverviewV2View: View {
                 // Safe area spacer
                 Color.clear.frame(height: 52)
 
-                // Nav row: "訓練總覽" label on the left + "完成" close on the right
-                HStack {
-                    Text(L10n.Training.overview.localized)
-                        .font(AppFont.micro())
-                        .foregroundColor(.white.opacity(0.92))
-                        .tracking(0.5)
-
-                    Spacer()
-
-                    Button {
-                        dismiss()
-                    } label: {
-                        Text(L10n.Common.done.localized)
-                            .font(AppFont.bodyStrong())
-                            .foregroundColor(.white.opacity(0.95))
-                    }
-                }
-                .padding(.bottom, 14)
+                // Nav row: "訓練總覽" label — push 模式下系統返回鍵在 nav bar 左側，此 label 作為頁面小標題
+                Text(L10n.Training.overview.localized)
+                    .font(AppFont.micro())
+                    .foregroundColor(.white.opacity(0.92))
+                    .tracking(0.5)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, 14)
 
                 // Target / race title row with edit pill (JSX lines 520–540)
                 HStack(alignment: .top, spacing: 0) {
@@ -466,11 +484,6 @@ struct TrainingOverviewV2View: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-
-                    // Edit pill (JSX lines 528–539)
-                    editPill(accentColor: accentColor)
-                        .padding(.leading, 10)
-                        .padding(.top, 4)
                 }
 
                 // Big countdown — race mode only (JSX lines 542–551)
@@ -521,22 +534,6 @@ struct TrainingOverviewV2View: View {
             startPoint: UnitPoint(x: 0.0, y: 0.0),
             endPoint: UnitPoint(x: 0.55, y: 1.0)  // ~160 deg mapped to SwiftUI UnitPoint
         )
-    }
-
-    @ViewBuilder
-    private func editPill(accentColor: Color) -> some View {
-        HStack(spacing: 4) {
-            Image(systemName: "pencil")
-                .font(.system(size: 11, weight: .bold))
-            Text(L10n.Training.overviewEditAction.localized)
-                .font(AppFont.chip())
-        }
-        .foregroundColor(accentColor)
-        .padding(.horizontal, 13)
-        .padding(.vertical, 7)
-        .background(Color.white.opacity(0.95))
-        .clipShape(Capsule())
-        .shadow(color: .black.opacity(0.15), radius: 4, x: 0, y: 2)
     }
 
     @ViewBuilder

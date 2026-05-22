@@ -231,11 +231,32 @@ struct PhaseRoadmapView: View {
         color: Color,
         currentWeek: Int
     ) -> some View {
-        HStack(alignment: .center, spacing: 6) {
-            Text(stage.stageName)
-                .font(AppFont.bodyStrong())
-                .foregroundColor(isFuture ? .secondary : .primary)
+        VStack(alignment: .leading, spacing: 6) {
+            // Row 1: stage name + week range + chevron
+            HStack(alignment: .center, spacing: 6) {
+                Text(stage.stageName)
+                    .font(AppFont.bodyStrong())
+                    .foregroundColor(isFuture ? .secondary : .primary)
+                    .lineLimit(1)
+                    .layoutPriority(1)
 
+                Spacer(minLength: 6)
+
+                Text(L10n.Training.weekRange.localized(with: stage.weekStart, stage.weekEnd))
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.secondary)
+                    .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                    .animation(.easeInOut(duration: 0.2), value: isExpanded)
+            }
+
+            // Row 2: status badge on its own line (never competes with the name)
             if isCurrent {
                 let weekInStage = currentWeek - stage.weekStart + 1
                 let totalInStage = stage.weekEnd - stage.weekStart + 1
@@ -243,31 +264,20 @@ struct PhaseRoadmapView: View {
                     .font(AppFont.caption())
                     .fontWeight(.bold)
                     .foregroundColor(color)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 2)
                     .background(color.opacity(0.12))
                     .clipShape(Capsule())
-            }
-
-            if isPast {
+            } else if isPast {
                 Text(L10n.PhaseRoadmap.completedBadge.localized)
                     .font(AppFont.caption())
                     .fontWeight(.bold)
                     .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
-
-            Spacer()
-
-            Text(L10n.Training.weekRange.localized(with: stage.weekStart, stage.weekEnd))
-                .font(AppFont.caption())
-                .foregroundColor(.secondary)
-                .monospacedDigit()
-
-            Image(systemName: "chevron.down")
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(.secondary)
-                .rotationEffect(.degrees(isExpanded ? 180 : 0))
-                .animation(.easeInOut(duration: 0.2), value: isExpanded)
         }
         .padding(.vertical, 8)
     }
@@ -358,7 +368,7 @@ struct PhaseRoadmapView: View {
 
     @ViewBuilder
     private func phaseSummaryRow(stage: TrainingStageV2, isCurrent: Bool) -> some View {
-        HStack(alignment: .top, spacing: 0) {
+        HStack(alignment: .top, spacing: 12) {
             // 重點 column
             VStack(alignment: .leading, spacing: 1) {
                 Text(L10n.PhaseRoadmap.focusLabel.localized)
@@ -383,8 +393,10 @@ struct PhaseRoadmapView: View {
                     .font(AppFont.numberMedium())
                     .foregroundColor(.primary)
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
-            .frame(alignment: .trailing)
+            .layoutPriority(1)
         }
         .padding(.top, isCurrent ? 12 : 8)
     }

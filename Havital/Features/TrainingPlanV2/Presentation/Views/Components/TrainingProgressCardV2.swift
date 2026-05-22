@@ -4,7 +4,7 @@ import SwiftUI
 struct TrainingProgressCardV2: View {
     var viewModel: TrainingPlanV2ViewModel
     let plan: WeeklyPlanV2
-    @State private var showTrainingProgress = false
+    var onOpenOverview: () -> Void = {}
 
     private var progress: Double {
         guard let overview = viewModel.loader.planOverview, overview.totalWeeks > 0 else { return 0 }
@@ -16,7 +16,7 @@ struct TrainingProgressCardV2: View {
         // Layout change: 3-row → single header row + slider.
         // Old rows (title row / stage indicator row) merged into one header row with PRChip.
         Button(action: {
-            showTrainingProgress = true
+            onOpenOverview()
         }) {
             VStack(alignment: .leading, spacing: 12) {
 
@@ -78,9 +78,6 @@ struct TrainingProgressCardV2: View {
         }
         .buttonStyle(PlainButtonStyle())
         .accessibilityIdentifier("v2.weekly.progress_card")
-        .sheet(isPresented: $showTrainingProgress) {
-            TrainingOverviewV2View(viewModel: viewModel)
-        }
     }
 
     // MARK: - Helper Functions
