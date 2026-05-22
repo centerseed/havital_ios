@@ -102,6 +102,8 @@ private final class WorkoutDetailUnitConversionMockRepository: WorkoutRepository
     func getAllWorkouts() -> [WorkoutV2] { [] }
     func getWorkoutsInDateRangeAsync(startDate: Date, endDate: Date) async -> [WorkoutV2] { [] }
     func getAllWorkoutsAsync() async -> [WorkoutV2] { [] }
+    func getLatestWorkout() async throws -> WorkoutV2? { nil }
+    func ensureMonthLoaded(year: Int, month: Int) async {}
     func getWorkouts(limit: Int?, offset: Int?) async throws -> [WorkoutV2] { [] }
     func refreshWorkouts() async throws -> [WorkoutV2] { [] }
     func loadInitialWorkouts(pageSize: Int) async throws -> WorkoutListResponse { emptyResponse(pageSize: pageSize) }

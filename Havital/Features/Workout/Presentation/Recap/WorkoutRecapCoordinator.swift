@@ -41,7 +41,9 @@ final class WorkoutRecapCoordinator {
 
         let latest: WorkoutV2?
         do {
-            latest = try await workoutRepository.getWorkouts(limit: 1, offset: nil).first
+            // 用 getLatestWorkout（cache-first、不污染共用列表緩存）。
+            // 不能用 getWorkouts(limit:1)：它的背景刷新會把主畫面共用的列表緩存壓成 1 筆。
+            latest = try await workoutRepository.getLatestWorkout()
         } catch {
             Logger.debug("[WorkoutRecap] fetch latest failed: \(error.localizedDescription)")
             return

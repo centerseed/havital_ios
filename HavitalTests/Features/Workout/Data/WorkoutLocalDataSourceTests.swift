@@ -64,6 +64,40 @@ class WorkoutLocalDataSourceTests: XCTestCase {
         XCTAssertEqual(result?.count, 5, "Should return latest batch count")
     }
 
+    // MARK: - Upsert Tests（回歸：防 recap limit:1 探針把共用列表緩存壓成 1 筆）
+
+    /// 主畫面只看到最近一筆的根因回歸測試：
+    /// preloadData 載入 20 筆後，recap 探針用 1 筆背景刷新，緩存「絕不可」被壓成 1 筆。
+    func testUpsertWorkouts_SmallBatch_DoesNotShrinkCache() {
+        // Given：緩存已有 20 筆（模擬 preloadData）
+        sut.saveWorkouts(createMockWorkouts(count: 20))
+
+        // When：用 1 筆 upsert（模擬 recap limit:1 探針的背景刷新）
+        sut.upsertWorkouts([createMockWorkout(id: "workout_0")])
+
+        // Then：仍是 20 筆，不會被壓成 1 筆
+        XCTAssertEqual(sut.getWorkouts()?.count, 20, "upsert 小批次不可縮小共用列表緩存")
+    }
+
+    func testUpsertWorkouts_NewIds_AreAdded() {
+        sut.saveWorkouts(createMockWorkouts(count: 3)) // workout_0..2
+        sut.upsertWorkouts([createMockWorkout(id: "workout_9")])
+
+        let ids = Set(sut.getWorkouts()?.map { $0.id } ?? [])
+        XCTAssertEqual(ids.count, 4, "新 id 應被加入")
+        XCTAssertTrue(ids.contains("workout_9"))
+        XCTAssertTrue(ids.contains("workout_0"))
+    }
+
+    func testUpsertWorkouts_ExistingId_UpdatesNoDuplicate() {
+        sut.saveWorkouts(createMockWorkouts(count: 3))
+        sut.upsertWorkouts([createMockWorkout(id: "workout_1")]) // 既有 id
+
+        let result = sut.getWorkouts() ?? []
+        XCTAssertEqual(result.count, 3, "既有 id upsert 不應產生重複")
+        XCTAssertEqual(result.filter { $0.id == "workout_1" }.count, 1, "同 id 只能有一筆")
+    }
+
     // MARK: - Single Workout Tests
 
     func testGetWorkout_WhenCacheEmpty_ReturnsNil() {

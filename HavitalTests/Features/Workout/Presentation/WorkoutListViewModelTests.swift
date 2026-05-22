@@ -193,6 +193,8 @@ class WorkoutListTestMockRepository: WorkoutRepository {
     // Async methods
     func getWorkoutsInDateRangeAsync(startDate: Date, endDate: Date) async -> [WorkoutV2] { return [] }
     func getAllWorkoutsAsync() async -> [WorkoutV2] { return [] }
+    func getLatestWorkout() async throws -> WorkoutV2? { return nil }
+    func ensureMonthLoaded(year: Int, month: Int) async {}
 
     // Pagination methods
     func loadInitialWorkouts(pageSize: Int) async throws -> WorkoutListResponse {

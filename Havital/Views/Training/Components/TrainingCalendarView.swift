@@ -109,6 +109,8 @@ class TrainingCalendarViewModel: ObservableObject {
 
         // ✅ Track A: 獲取本地 workouts（用於詳細顯示，如心率、配速曲線等）
         print("📊 [TrainingCalendar] 開始載入 \(year)-\(String(format: "%02d", monthNumber))")
+        // 先補滿該月（往前分頁 upsert，用 API 時間確認補滿、補滿後不重抓）→ 修日曆缺口。
+        await workoutRepository.ensureMonthLoaded(year: year, month: monthNumber)
         let localWorkouts = await workoutRepository.getWorkoutsInDateRangeAsync(
             startDate: startOfMonth,
             endDate: endOfMonth

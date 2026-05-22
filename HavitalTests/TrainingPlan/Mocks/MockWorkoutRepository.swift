@@ -66,6 +66,13 @@ class MockWorkoutRepository: WorkoutRepository {
         return workoutsToReturn
     }
 
+    func getLatestWorkout() async throws -> WorkoutV2? {
+        if let error = errorToThrow { throw error }
+        return workoutsToReturn.sorted { $0.endDate > $1.endDate }.first
+    }
+
+    func ensureMonthLoaded(year: Int, month: Int) async {}
+
     // MARK: - Pagination Methods
 
     func loadInitialWorkouts(pageSize: Int) async throws -> WorkoutListResponse {

@@ -98,6 +98,18 @@ class WorkoutLocalDataSource {
         Logger.debug("[WorkoutLocalDataSource] saveWorkouts - 已保存 \(workouts.count) 條記錄到緩存")
     }
 
+    /// Upsert（依 id 合併）訓練列表：更新既有、插入新增、保留其他，依結束時間新→舊排序。
+    /// 用 upsert 取代「整份覆蓋」——小請求（如 limit:1）才不會把共用列表壓小，也能補回日曆缺口。
+    func upsertWorkouts(_ incoming: [WorkoutV2]) {
+        guard !incoming.isEmpty else { return }
+        var byId: [String: WorkoutV2] = [:]
+        for w in getWorkouts() ?? [] { byId[w.id] = w }
+        for w in incoming { byId[w.id] = w }   // 既有→更新，沒有→新增
+        let merged = byId.values.sorted { $0.endDate > $1.endDate }
+        cacheManager.saveToCache(merged)
+        Logger.debug("[WorkoutLocalDataSource] upsertWorkouts - 合併 \(incoming.count) 筆，總計 \(merged.count) 筆")
+    }
+
     // MARK: - Pagination State
 
     /// 保存分頁狀態（與列表緩存同步寫入）。

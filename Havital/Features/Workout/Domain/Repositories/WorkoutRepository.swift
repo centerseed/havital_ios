@@ -50,6 +50,15 @@ protocol WorkoutRepository {
     /// - Returns: 訓練記錄列表
     func getAllWorkoutsAsync() async -> [WorkoutV2]
 
+    /// 取最新一筆訓練（給 recap 探針用）。
+    /// 重點：**不可把共用列表緩存壓成 1 筆**——有緩存讀緩存，無緩存才抓「合理整頁」種子緩存。
+    func getLatestWorkout() async throws -> WorkoutV2?
+
+    /// 確保指定月份的訓練已補滿到本地（給訓練日曆用，修缺口）。
+    /// 用 pageSize + cursor 往前分頁、upsert，直到「最舊一筆早於月初」（用 API 時間確認補滿）或沒有更多。
+    /// 已涵蓋（緩存最舊早於月初）就直接返回，不重抓。
+    func ensureMonthLoaded(year: Int, month: Int) async
+
     // MARK: - Workout List (Workout 模組使用)
 
     /// 獲取訓練列表（支援緩存）

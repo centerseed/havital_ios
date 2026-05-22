@@ -20,6 +20,16 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
     private var lastBackgroundRefreshTime: Date = .distantPast
     private let backgroundRefreshCooldown: TimeInterval = 43200 // 12 小時
 
+    /// 「往前補史已到底」水位（持久化）。
+    /// ⚠️ 只由 ensureMonthLoaded 的「往前補史」在後端回 hasMore=false 時設定 true；
+    ///    「刷新頂端」(cursor:nil) 永遠回 hasMore=true，碰不到此水位 —— 否則會把「已到底」洗掉、
+    ///    導致比第一筆訓練還舊的空月份每次都重抓到底。登出 clearAll 時重置。
+    private let backfillReachedEndKey = "workout_backfill_reached_end"
+    private var backfillReachedEnd: Bool {
+        get { UserDefaults.standard.bool(forKey: backfillReachedEndKey) }
+        set { UserDefaults.standard.set(newValue, forKey: backfillReachedEndKey) }
+    }
+
     // MARK: - Background Refresh Publisher
 
     private let refreshSubject = PassthroughSubject<Void, Never>()
@@ -106,6 +116,90 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         return allWorkouts.sorted { $0.endDate > $1.endDate }
     }
 
+    func getLatestWorkout() async throws -> WorkoutV2? {
+        // 有緩存 → 直接讀最新一筆（不打 API、不動緩存）。
+        if let cached = localDataSource.getWorkouts(), !cached.isEmpty {
+            return cached.sorted { $0.endDate > $1.endDate }.first
+        }
+        // 冷緩存 → 抓「合理整頁」種子緩存（20 筆），絕不只存 1 筆污染列表。
+        let page = try await remoteDataSource.fetchWorkoutsPage(pageSize: 20, cursor: nil)
+        localDataSource.upsertWorkouts(page.workouts)
+        localDataSource.savePagination(page.pagination)
+        paginationSubject.send(page.pagination)
+        return page.workouts.sorted { $0.endDate > $1.endDate }.first
+    }
+
+    /// 確保某月已補滿（訓練日曆修缺口）—— 第一性原理版：
+    /// 1) 近期月份：刷新最新一頁（catch 新；不動補史水位）。單次錯誤 → 下次開自動重試。
+    /// 2) 過去月份：只在「未涵蓋且未到底」時一次性往前補史；補滿（API 時間驗證）或到底（hasMore=false）後不再抓。
+    /// 覆蓋只用可驗證事實宣告（緩存最舊 < 月初 / 後端 hasMore=false）→ 單次錯誤絕不造成永久缺口。
+    func ensureMonthLoaded(year: Int, month: Int) async {
+        var comps = DateComponents()
+        comps.year = year
+        comps.month = month
+        comps.day = 1
+        guard let monthStart = Calendar.current.date(from: comps) else { return }
+
+        func oldestCachedDate() -> Date? {
+            localDataSource.getWorkouts()?.map { $0.endDate }.min()
+        }
+
+        // 冷緩存：先抓最新一頁種子（建立緩存與 frontier 游標）。
+        if localDataSource.getWorkouts()?.isEmpty ?? true {
+            await refreshTopPage(seedFrontier: true)
+        }
+
+        // 近期月份（近 45 天內）：永遠刷新最新一頁抓新；不依賴覆蓋判斷，確保剛同步的訓練不漏。
+        let recentThreshold = Calendar.current.date(byAdding: .day, value: -45, to: Date()) ?? monthStart
+        if monthStart >= recentThreshold {
+            await refreshTopPage(seedFrontier: false)
+            return
+        }
+
+        // 過去月份：
+        if backfillReachedEnd { return }                                  // 補史已到底 → 緩存即全部
+        if let oldest = oldestCachedDate(), oldest < monthStart { return } // 該月已連續涵蓋（API 時間驗證）
+
+        // 一次性往前補史：從 frontier 游標往舊分頁 upsert，直到涵蓋月初或到底；上限 30 頁保護。
+        var guardCount = 0
+        while guardCount < 30 {
+            if let oldest = oldestCachedDate(), oldest < monthStart { break }
+            guard let cursor = localDataSource.getPagination()?.nextCursor else { break }
+            guardCount += 1
+            do {
+                let page = try await remoteDataSource.fetchWorkoutsPage(pageSize: 50, cursor: cursor)
+                localDataSource.upsertWorkouts(page.workouts)
+                localDataSource.savePagination(page.pagination)   // 推進 frontier（成功才推進）
+                paginationSubject.send(page.pagination)
+                if !page.pagination.hasMore {
+                    backfillReachedEnd = true                     // 權威「沒有更舊」→ 記錄到底，永不重抓
+                    break
+                }
+            } catch {
+                // 單次錯誤：不推進水位、不標記涵蓋 → 下次開該月自動重試（upsert 冪等，安全、不漏）。
+                Logger.error("[WorkoutRepositoryImpl] ensureMonthLoaded 補史失敗，下次重試: \(error.localizedDescription)")
+                break
+            }
+        }
+        refreshSubject.send()
+    }
+
+    /// 刷新最新一頁（cursor:nil）→ upsert。catch 新資料、冪等可重跑。
+    /// seedFrontier=true（冷緩存種子）才寫 pagination 當 frontier；否則不動補史 frontier。
+    private func refreshTopPage(seedFrontier: Bool) async {
+        do {
+            let page = try await remoteDataSource.fetchWorkoutsPage(pageSize: 50, cursor: nil)
+            localDataSource.upsertWorkouts(page.workouts)
+            if seedFrontier {
+                localDataSource.savePagination(page.pagination)
+                paginationSubject.send(page.pagination)
+            }
+            refreshSubject.send()
+        } catch {
+            Logger.debug("[WorkoutRepositoryImpl] refreshTopPage 失敗（下次重試）: \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Workout List (雙軌緩存策略)
 
     func getWorkouts(limit: Int?, offset: Int?) async throws -> [WorkoutV2] {
@@ -126,7 +220,7 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         // 沒有緩存時，直接從 API 載入（連同後端分頁狀態一起存）
         Logger.debug("[WorkoutRepositoryImpl] 無緩存，從 API 載入")
         let page = try await remoteDataSource.fetchWorkoutsPage(pageSize: limit, cursor: nil)
-        localDataSource.saveWorkouts(page.workouts)
+        localDataSource.upsertWorkouts(page.workouts)
         localDataSource.savePagination(page.pagination)
         paginationSubject.send(page.pagination)
 
@@ -138,7 +232,7 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
 
         // 強制刷新：跳過緩存，直接從 API 獲取（連同後端分頁狀態一起存）
         let page = try await remoteDataSource.fetchWorkoutsPage(pageSize: nil, cursor: nil)
-        localDataSource.saveWorkouts(page.workouts)
+        localDataSource.upsertWorkouts(page.workouts)
         localDataSource.savePagination(page.pagination)
         paginationSubject.send(page.pagination)
 
@@ -155,7 +249,7 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         let page = try await remoteDataSource.fetchWorkoutsPage(pageSize: pageSize, cursor: nil)
 
         // Update cache（列表 + 分頁）
-        localDataSource.saveWorkouts(page.workouts)
+        localDataSource.upsertWorkouts(page.workouts)
         localDataSource.savePagination(page.pagination)
         paginationSubject.send(page.pagination)
 
@@ -169,20 +263,8 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         // Fetch from API（含後端真實分頁狀態）
         let page = try await remoteDataSource.fetchWorkoutsPage(pageSize: pageSize, cursor: afterCursor)
 
-        // Merge with existing cache — 依 id 去重，避免重疊分頁/重抓造成同一筆 workout 重複累積
-        // （重複會讓 getAllWorkoutsAsync 加總時週里程膨脹）。
-        if let cachedWorkouts = localDataSource.getWorkouts() {
-            var seen = Set(cachedWorkouts.map { $0.id })
-            var merged = cachedWorkouts
-            for w in page.workouts where !seen.contains(w.id) {
-                seen.insert(w.id)
-                merged.append(w)
-            }
-            localDataSource.saveWorkouts(merged)
-            Logger.debug("[WorkoutRepositoryImpl] Merged with cache (deduped), total: \(merged.count)")
-        } else {
-            localDataSource.saveWorkouts(page.workouts)
-        }
+        // upsert（依 id 合併）— 補上更舊的分頁，不重複累積、不縮小既有緩存。
+        localDataSource.upsertWorkouts(page.workouts)
 
         // 分頁狀態以後端為準（has_more 反映「比 afterCursor 更舊的還有沒有」）
         localDataSource.savePagination(page.pagination)
@@ -199,7 +281,7 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         let page = try await remoteDataSource.fetchWorkoutsPage(pageSize: pageSize, cursor: nil)
 
         // Replace cache (not merge)（列表 + 分頁）
-        localDataSource.saveWorkouts(page.workouts)
+        localDataSource.upsertWorkouts(page.workouts)
         localDataSource.savePagination(page.pagination)
         paginationSubject.send(page.pagination)
 
@@ -307,6 +389,7 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
 
         // 清空列表緩存，強制下次重新載入
         localDataSource.clearAll()
+        backfillReachedEnd = false               // 緩存清空 → 補史水位歸零
 
         Logger.debug("[WorkoutRepositoryImpl] syncWorkout - 完成")
         return syncedWorkout
@@ -372,6 +455,7 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         Logger.debug("[WorkoutRepositoryImpl] clearCache")
         localDataSource.clearAll()
         lastBackgroundRefreshTime = .distantPast // 重置 cooldown，允許下次立即刷新
+        backfillReachedEnd = false               // 緩存清空 → 補史水位歸零，允許重新補史
     }
 
     func preloadData() async {
@@ -379,7 +463,7 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
 
         do {
             let recentWorkouts = try await remoteDataSource.fetchRecentWorkouts(pageSize: 20)
-            localDataSource.saveWorkouts(recentWorkouts)
+            localDataSource.upsertWorkouts(recentWorkouts)
             Logger.debug("[WorkoutRepositoryImpl] preloadData - 完成，數量: \(recentWorkouts.count)")
         } catch {
             Logger.error("[WorkoutRepositoryImpl] preloadData - 失敗: \(error.localizedDescription)")
@@ -429,10 +513,11 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         }
         lastBackgroundRefreshTime = now
 
-        // Track B：抓整頁（含後端分頁狀態），列表 + 分頁一起更新並發訊號。
+        // Track B：抓整頁（含後端分頁狀態）→ upsert（依 id 合併），不覆蓋。
+        // upsert 確保 limit:1 之類的小請求不會把共用列表壓小（主畫面就只剩最近一筆）。
         do {
             let page = try await remoteDataSource.fetchWorkoutsPage(pageSize: pageSize, cursor: nil)
-            localDataSource.saveWorkouts(page.workouts)
+            localDataSource.upsertWorkouts(page.workouts)
             localDataSource.savePagination(page.pagination)
             Logger.debug("[WorkoutRepositoryImpl] Track B - 訓練列表 背景刷新完成，數量: \(page.workouts.count)，has_more: \(page.pagination.hasMore)")
             refreshSubject.send()

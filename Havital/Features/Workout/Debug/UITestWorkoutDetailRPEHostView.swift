@@ -25,6 +25,8 @@ final class UITestWorkoutDetailRPEMockRepository: ObservableObject, WorkoutRepos
     func getAllWorkouts() -> [WorkoutV2] { [workout] }
     func getWorkoutsInDateRangeAsync(startDate: Date, endDate: Date) async -> [WorkoutV2] { [workout] }
     func getAllWorkoutsAsync() async -> [WorkoutV2] { [workout] }
+    func getLatestWorkout() async throws -> WorkoutV2? { workout }
+    func ensureMonthLoaded(year: Int, month: Int) async {}
     func getWorkouts(limit: Int?, offset: Int?) async throws -> [WorkoutV2] { [workout] }
     func refreshWorkouts() async throws -> [WorkoutV2] { [workout] }
     func loadInitialWorkouts(pageSize: Int) async throws -> WorkoutListResponse {
