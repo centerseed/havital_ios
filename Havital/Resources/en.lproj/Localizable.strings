@@ -380,6 +380,7 @@
 "training.type.tempo" = "Tempo Run";
 "training.type.interval" = "Interval Training";
 "training.type.paceriz_interval" = "Interval";
+"training.type._generic_interval" = "Intervals";
 "interval.static_rest" = "Static Rest";
 "training.type.long" = "Long Run";
 "training.type.recovery" = "Recovery Run";

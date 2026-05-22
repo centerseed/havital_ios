@@ -380,6 +380,7 @@
 "training.type.tempo" = "節奏跑";
 "training.type.interval" = "間歇訓練";
 "training.type.paceriz_interval" = "間歇";
+"training.type._generic_interval" = "間歇";
 "interval.static_rest" = "原地休息";
 "training.type.long" = "長距離跑";
 "training.type.recovery" = "恢復跑";

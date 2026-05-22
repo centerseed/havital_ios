@@ -26,6 +26,11 @@ struct PhaseRoadmapView: View {
     // Per-phase "show all weeks" state (keyed by phase index)
     @State private var showAllWeeksForPhase: Set<Int> = []
 
+    // Race editing — mirrors PlanOverviewSheetV2 edit flows
+    @State private var selectedSupportingTarget: Target? = nil
+    @State private var showEditSupportingTarget = false
+    @State private var showEditMainTarget = false
+
     var body: some View {
         if let overview = viewModel.loader.planOverview {
             let stages = overview.trainingStages
@@ -34,6 +39,18 @@ struct PhaseRoadmapView: View {
             }
             .onAppear {
                 expandCurrentPhase(stages: stages)
+            }
+            // Edit main race (mirrors PlanOverviewSheetV2:162-166)
+            .sheet(isPresented: $showEditMainTarget) {
+                if let target = targetViewModel.mainTarget {
+                    EditTargetView(target: target)
+                }
+            }
+            // Edit supporting race (mirrors PlanOverviewSheetV2:167-170)
+            .sheet(isPresented: $showEditSupportingTarget) {
+                if let target = selectedSupportingTarget {
+                    EditSupportingTargetView(target: target)
+                }
             }
         }
     }
@@ -61,7 +78,12 @@ struct PhaseRoadmapView: View {
 
                 // Main race finish line — race mode only (JSX 1005-1031)
                 if overview.isRaceRunTarget {
-                    mainRaceFinishLine(overview: overview)
+                    Button {
+                        showEditMainTarget = true
+                    } label: {
+                        mainRaceFinishLine(overview: overview)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
             .padding(.horizontal, 14)
@@ -324,8 +346,14 @@ struct PhaseRoadmapView: View {
             let phaseRaces = supportingRacesForPhase(stage: stage, currentWeek: currentWeek)
             if !phaseRaces.isEmpty {
                 ForEach(phaseRaces, id: \.id) { race in
-                    supportingRaceRow(race: race)
-                        .padding(.top, 8)
+                    Button {
+                        selectedSupportingTarget = race
+                        showEditSupportingTarget = true
+                    } label: {
+                        supportingRaceRow(race: race)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .padding(.top, 8)
                 }
             }
         }
@@ -583,7 +611,8 @@ struct PhaseRoadmapView: View {
 
                 Spacer()
 
-                // 課表 button (JSX 906-915; navigation from TrainingProgressViewV2:277-292)
+                // 課表 button — icon-only to stay compact and i18n-safe
+                // (navigation from TrainingProgressViewV2:277-292)
                 if showSchedule {
                     Button {
                         Task {
@@ -591,45 +620,33 @@ struct PhaseRoadmapView: View {
                             dismiss()
                         }
                     } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "calendar")
-                                .font(AppFont.systemScaled(size: 12, weight: .medium))
-                            Text(L10n.TrainingProgress.schedule.localized)
-                                .font(AppFont.footnote())
-                                .fontWeight(.semibold)
-                        }
-                        .fixedSize()
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 12)
-                        .background(isCurrentWeek ? color : Color(UIColor.secondarySystemBackground))
-                        .foregroundColor(isCurrentWeek ? .white : .primary)
-                        .cornerRadius(8)
+                        Image(systemName: "calendar")
+                            .font(AppFont.systemScaled(size: 14, weight: .semibold))
+                            .frame(width: 34, height: 30)
+                            .background(isCurrentWeek ? color : Color(UIColor.secondarySystemBackground))
+                            .foregroundColor(isCurrentWeek ? .white : .primary)
+                            .cornerRadius(8)
                     }
                     .buttonStyle(PlainButtonStyle())
+                    .accessibilityLabel(L10n.TrainingProgress.schedule.localized)
                 }
 
-                // 回顧 button (JSX 916-927; navigation from TrainingProgressViewV2:254-272)
+                // 回顧 button — icon-only (navigation from TrainingProgressViewV2:254-272)
                 if showReview {
                     Button {
                         Task {
                             await viewModel.summary.viewHistoricalSummary(week: weekNumber)
                         }
                     } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "doc.text.magnifyingglass")
-                                .font(AppFont.systemScaled(size: 12, weight: .medium))
-                            Text(L10n.TrainingProgress.review.localized)
-                                .font(AppFont.footnote())
-                                .fontWeight(.semibold)
-                        }
-                        .fixedSize()
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 12)
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .foregroundColor(.primary)
-                        .cornerRadius(8)
+                        Image(systemName: "doc.text.magnifyingglass")
+                            .font(AppFont.systemScaled(size: 14, weight: .semibold))
+                            .frame(width: 34, height: 30)
+                            .background(Color(UIColor.secondarySystemBackground))
+                            .foregroundColor(.primary)
+                            .cornerRadius(8)
                     }
                     .buttonStyle(PlainButtonStyle())
+                    .accessibilityLabel(L10n.TrainingProgress.review.localized)
                 }
             }
 
@@ -690,7 +707,7 @@ struct PhaseRoadmapView: View {
     private func keyWorkoutsChips(keyWorkouts: [String], color: Color) -> some View {
         FlowLayout(spacing: 6) {
             ForEach(keyWorkouts, id: \.self) { kw in
-                Text(kw)
+                Text(TrainingTypeDisplayName.qualityOptionName(kw))
                     .font(AppFont.caption2())
                     .fontWeight(.semibold)
                     .foregroundColor(color)
