@@ -218,6 +218,7 @@ struct TimelineItemViewV2: View {
                                     .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).run_type")
 
                                 if climateAdjustmentEnabled, let climateMeta = day.effectiveClimateMeta {
+                                    // day card 只放溫度計圖示，詳細調整建議在課表詳情。
                                     ClimateBadgeView(meta: climateMeta)
                                         .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_badge")
                                 }
@@ -243,11 +244,25 @@ struct TimelineItemViewV2: View {
                                                 .frame(width: 40, alignment: .leading)
 
                                             let plannedDistStr = run.distanceKm.map { String(format: "%.1f \(UnitManager.shared.currentUnitSystem.distanceSuffix)", UnitManager.shared.convertedDistance($0)) } ?? ""
-                                            let plannedDurStr = formatPlannedDuration(minutes: run.durationMinutes, seconds: run.durationSeconds)
+                                            // 輕鬆跑：拿掉時間，課表只顯示距離（時間對輕鬆跑無意義，依配速/體感跑）。
+                                            let isEasyType = day.type == .easyRun || day.type == .easy || day.type == .recovery_run
+                                            let plannedDurStr = isEasyType ? "" : formatPlannedDuration(minutes: run.durationMinutes, seconds: run.durationSeconds)
                                             let planParts = [plannedDistStr, plannedDurStr].filter { !$0.isEmpty }
                                             Text(planParts.joined(separator: " · "))
                                                 .font(AppFont.micro().monospacedDigit())
                                                 .foregroundColor(.secondary)
+
+                                            // 輕鬆跑／長距離輕鬆跑依心率區間跑 → 課表顯示目標心率
+                                            let showHR = day.type == .easyRun || day.type == .easy || day.type == .recovery_run || day.type == .lsd
+                                            if showHR, let hr = run.heartRateRange, hr.isValid, let hrText = hr.displayText {
+                                                Text("·").font(AppFont.micro()).foregroundColor(.secondary)
+                                                Image(systemName: "heart.fill")
+                                                    .font(.system(size: 9))
+                                                    .foregroundColor(.pink.opacity(0.75))
+                                                Text(hrText)
+                                                    .font(AppFont.micro().monospacedDigit())
+                                                    .foregroundColor(.secondary)
+                                            }
                                         }
                                     }
 
@@ -945,23 +960,32 @@ private struct SegmentsView: View {
     }
 }
 
+/// 把「6:45」/「7:11/km」配速字串轉為秒數（忽略單位後綴）。
+func paceStringToSeconds(_ pace: String) -> Int? {
+    let core = pace.split(separator: "/").first.map(String.init) ?? pace
+    let parts = core.trimmingCharacters(in: .whitespaces).split(separator: ":")
+    guard parts.count == 2, let m = Int(parts[0]), let s = Int(parts[1]) else { return nil }
+    return m * 60 + s
+}
+
+/// 秒數轉「m:ss」配速字串。
+func secondsToPaceString(_ seconds: Int) -> String {
+    let m = seconds / 60
+    let s = seconds % 60
+    return String(format: "%d:%02d", m, s)
+}
+
+/// day card 上的氣候徽章 —— 只放溫度計圖示（依等級上色），詳細調整建議在課表詳情。
 private struct ClimateBadgeView: View {
     let meta: ClimateMeta
 
     var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "thermometer.medium")
-                .font(AppFont.captionSmall())
-            Text(meta.badgeLabel)
-                .font(AppFont.caption())
-                .fontWeight(.semibold)
-                .lineLimit(1)
-        }
-        .foregroundColor(meta.badgeForegroundColor)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
-        .background(meta.badgeBackgroundColor)
-        .clipShape(Capsule())
+        Image(systemName: "thermometer.medium")
+            .font(.system(size: 11, weight: .bold))
+            .foregroundColor(meta.badgeForegroundColor)
+            .frame(width: 24, height: 24)
+            .background(meta.badgeBackgroundColor)
+            .clipShape(Circle())
     }
 }
 
@@ -1053,16 +1077,85 @@ private struct ClimateValueChip: View {
 }
 
 @MainActor
-private extension ClimateMeta {
+extension ClimateMeta {
     var currentLanguage: SupportedLanguage {
         LanguageManager.shared.currentLanguage
     }
 
-    var badgeLabel: String {
-        if let adjustmentText {
-            return "\(shortLevelDisplayText) \(adjustmentText)"
+    /// 熱適應「為什麼調整」的說明（課表詳情用）。多語。
+    var heatAdaptationExplanation: String {
+        switch currentLanguage {
+        case .traditionalChinese:
+            return "高溫濕熱會讓心率上升、同樣配速感覺更累——這是正常生理反應，不是退步。系統已依今日體感溫度把配速目標放寬，讓你用對的強度安全完成這次訓練。"
+        case .english:
+            return "Heat and humidity raise your heart rate and make the same pace feel harder — that's a normal physiological response, not a loss of fitness. Today's pace target has been eased based on the feels-like temperature so you can finish this session safely at the right effort."
+        case .japanese:
+            return "高温多湿は心拍数を上げ、同じペースでもよりきつく感じます。これは正常な生理反応で、走力の低下ではありません。本日の体感温度に合わせてペース目標を緩めてあるので、適切な強度で安全に完了できます。"
         }
-        return shortLevelDisplayText
+    }
+
+    /// 建議訓練時段／室內（依等級，對齊 SPEC-climate-engine 附錄 A 建議時段）。多語。
+    var trainingTimeRecommendation: String {
+        switch currentLanguage {
+        case .traditionalChinese:
+            switch normalizedHeatPressureLevel {
+            case "danger":
+                return "強烈建議改到室內（跑步機／交叉訓練）或改期；若一定要戶外，請選最涼的清晨或入夜後，務必大幅放慢、縮短距離並隨時補水。"
+            case "high":
+                return "建議在清晨或傍晚較涼時段進行，避開 11:00–15:00 高溫；長跑可縮短 20–30%，或改到室內。"
+            case "moderate":
+                return "避開 11:00–15:00 最熱時段，長跑改到清晨；訓練全程注意補水。"
+            default:
+                return "天氣偏熱，建議清晨或傍晚較舒適時段訓練，並記得補充水分。"
+            }
+        case .english:
+            switch normalizedHeatPressureLevel {
+            case "danger":
+                return "Strongly consider moving indoors (treadmill / cross-training) or rescheduling. If you must go outside, pick the coolest early morning or after dark, slow down significantly, shorten the distance, and hydrate constantly."
+            case "high":
+                return "Train in the cooler early morning or evening and avoid 11:00–15:00. Shorten long runs by 20–30%, or move them indoors."
+            case "moderate":
+                return "Avoid the hottest 11:00–15:00 window and move long runs to early morning. Hydrate throughout."
+            default:
+                return "It's warm — train in the cooler early morning or evening and remember to hydrate."
+            }
+        case .japanese:
+            switch normalizedHeatPressureLevel {
+            case "danger":
+                return "室内（トレッドミル／クロストレーニング）への変更か日程の延期を強く推奨します。屋外で行う場合は最も涼しい早朝か夜間を選び、大幅にペースを落とし、距離を短くし、こまめに水分補給してください。"
+            case "high":
+                return "涼しい早朝か夕方に行い、11:00〜15:00は避けてください。ロング走は20〜30%短縮するか、屋内に変更しましょう。"
+            case "moderate":
+                return "最も暑い11:00〜15:00を避け、ロング走は早朝へ。トレーニング中はこまめに水分補給を。"
+            default:
+                return "暑めです。涼しい早朝か夕方に行い、水分補給を忘れずに。"
+            }
+        }
+    }
+
+    /// 建議時段標題。多語。
+    var recommendationTitle: String {
+        switch currentLanguage {
+        case .traditionalChinese: return "建議時段"
+        case .english: return "When to train"
+        case .japanese: return "おすすめの時間帯"
+        }
+    }
+
+    var isDangerLevel: Bool { normalizedHeatPressureLevel == "danger" }
+
+    /// 危險級「若仍要戶外」的最低放慢量（秒/km）。
+    /// 依據：knowledge_base/09_environmental_adaptation 高熱(30-34°C)=放慢 30–60 秒/km（一個配速等級），
+    /// 危險(>34°C) 至少不低於此，故取 60 秒/km 為下限。
+    var dangerOutdoorMinSlowdownSeconds: Int { 60 }
+
+    /// 危險級標題：若仍要戶外的配速建議。多語。
+    var dangerOutdoorPaceTitle: String {
+        switch currentLanguage {
+        case .traditionalChinese: return "若仍戶外"
+        case .english: return "If outdoors"
+        case .japanese: return "屋外なら"
+        }
     }
 
     var badgeAccentColor: Color {
@@ -1200,7 +1293,8 @@ private extension ClimateMeta {
     }
 
     var adjustmentText: String? {
-        if let paceAdjustmentPct {
+        // 危險級（≥36°C）依 SPEC 不給百分比；修正幅度四捨五入為 0 也不顯示（避免「配速 +0%」）。
+        if let paceAdjustmentPct, paceAdjustmentPct.rounded() != 0 {
             switch currentLanguage {
             case .traditionalChinese:
                 return String(format: "配速 +%.0f%%", paceAdjustmentPct)
@@ -1210,7 +1304,7 @@ private extension ClimateMeta {
                 return String(format: "ペース +%.0f%%", paceAdjustmentPct)
             }
         }
-        if let longRunReductionPct {
+        if let longRunReductionPct, longRunReductionPct.rounded() != 0 {
             switch currentLanguage {
             case .traditionalChinese:
                 return String(format: "縮量 %.0f%%", longRunReductionPct)

@@ -310,7 +310,13 @@ struct PlannedSessionDetailView: View {
     @ViewBuilder
     private var climateSection: some View {
         if climateAdjustmentEnabled, let climateMeta = day.effectiveClimateMeta {
-            ClimateTipCard(meta: climateMeta, accentColor: typeAccentColor)
+            ClimateTipCard(
+                meta: climateMeta,
+                accentColor: typeAccentColor,
+                // 危險級後端不給 climate_adjusted_pace，用原本 pace 當基準算「若仍戶外」放慢配速。
+                basePace: day.primaryRunActivity?.basePace ?? day.primaryRunActivity?.pace,
+                adjustedPace: day.primaryRunActivity?.climateAdjustedPace
+            )
         }
     }
 
@@ -804,21 +810,105 @@ private struct TargetZonePill: View {
 private struct ClimateTipCard: View {
     let meta: ClimateMeta
     let accentColor: Color
+    var basePace: String? = nil
+    var adjustedPace: String? = nil
+
+    private var headerChip: String {
+        if let t = meta.feelsLikeTempText {
+            return "\(meta.shortLevelDisplayText) · \(t)"
+        }
+        return meta.shortLevelDisplayText
+    }
 
     var body: some View {
-        HStack(spacing: 10) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 10).fill(accentColor.opacity(0.12)).frame(width: 32, height: 32)
-                Image(systemName: "thermometer.sun").font(AppFont.bodyRegular()).foregroundColor(accentColor)
+        VStack(alignment: .leading, spacing: 12) {
+            // Header：熱適應 + 等級・體感溫度
+            HStack(spacing: 8) {
+                Image(systemName: "thermometer.sun.fill")
+                    .font(AppFont.bodyRegular())
+                    .foregroundColor(accentColor)
+                Text(meta.sectionTitle)
+                    .font(AppFont.bodyStrong())
+                    .foregroundColor(.primary)
+                Spacer()
+                Text(headerChip)
+                    .font(AppFont.micro())
+                    .fontWeight(.semibold)
+                    .foregroundColor(accentColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(accentColor.opacity(0.14))
+                    .clipShape(Capsule())
             }
-            VStack(alignment: .leading, spacing: 2) {
-                Text("提醒").font(AppFont.chip()).foregroundColor(.primary)
-                Text(meta.reasonText).font(AppFont.micro()).foregroundColor(.secondary)
-                    .lineLimit(3).fixedSize(horizontal: false, vertical: true)
+
+            // 為什麼調整（說明）
+            Text(meta.heatAdaptationExplanation)
+                .font(AppFont.micro())
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            // 配速建議：非危險顯示「原 → 今日（調整後）」；危險即使後端不給百分比，
+            // 也算出「若仍戶外」至少放慢的具體配速（依知識庫：放慢 ≥ 一個配速等級）。
+            paceGuidanceRow
+
+            // 建議時段／室內
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "sun.haze.fill")
+                    .font(AppFont.caption())
+                    .foregroundColor(accentColor)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(meta.recommendationTitle)
+                        .font(AppFont.micro())
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                    Text(meta.trainingTimeRecommendation)
+                        .font(AppFont.micro())
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-            Spacer()
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(accentColor.opacity(0.08))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
         }
-        .padding(12).background(Color(UIColor.secondarySystemGroupedBackground)).cornerRadius(PacerizRadius.card)
+        .padding(14)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(PacerizRadius.card)
+    }
+
+    @ViewBuilder
+    private var paceGuidanceRow: some View {
+        if meta.normalizedHeatPressureLevel == "danger",
+           let b = basePace, let bs = paceStringToSeconds(b) {
+            // 危險：原配速 → 至少放慢一個配速等級（約 base + 60 秒/km）。
+            let floorPace = secondsToPaceString(bs + meta.dangerOutdoorMinSlowdownSeconds)
+            HStack(spacing: 10) {
+                paceChip(meta.originalPaceTitle, b, .secondary)
+                Image(systemName: "arrow.right").font(.caption2).foregroundColor(.secondary)
+                paceChip(meta.dangerOutdoorPaceTitle, "\(floorPace)+", accentColor)
+                Spacer()
+            }
+        } else if let b = basePace, let a = adjustedPace, b != a {
+            HStack(spacing: 10) {
+                paceChip(meta.originalPaceTitle, b, .secondary)
+                Image(systemName: "arrow.right").font(.caption2).foregroundColor(.secondary)
+                paceChip(meta.adjustedPaceTitle, a, accentColor)
+                Spacer()
+            }
+        }
+    }
+
+    private func paceChip(_ title: String, _ value: String, _ color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(title)
+                .font(AppFont.micro())
+                .foregroundColor(.secondary)
+            Text(value)
+                .font(AppFont.caption().monospacedDigit())
+                .fontWeight(.semibold)
+                .foregroundColor(color)
+        }
     }
 }
 
