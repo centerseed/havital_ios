@@ -517,29 +517,21 @@ struct PersonalAchievementsView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
             } else {
-                // Grid: up to 4 columns
+                // 水平捲動，全部距離都列出；卡片依內容寬、時間不縮放（字級一致）。
                 let sorted = sortedPBRecords(records)
-                let count = min(sorted.count, 4)
-                let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: count)
-
-                LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(sorted.prefix(4)) { record in
-                        Button {
-                            openPBDetail(for: record)
-                        } label: {
-                            pbRecordCell(record)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(sorted) { record in
+                            Button {
+                                openPBDetail(for: record)
+                            } label: {
+                                pbRecordCell(record)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("Achievements_PBTile_\(record.distance)")
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("Achievements_PBTile_\(record.distance)")
                     }
-                }
-
-                if sorted.count > 4 {
-                    Text(L10n.Achievements.PBCard.moreDistancesFormat.localized(with: sorted.count - 4))
-                        .font(AppFont.micro())
-                        .foregroundColor(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(.top, 4)
+                    .padding(.vertical, 2)   // 給陰影/邊框一點呼吸空間
                 }
             }
         }
@@ -563,16 +555,11 @@ struct PersonalAchievementsView: View {
                     .font(AppFont.numberMedium().monospacedDigit())
                     .foregroundColor(PacerizColor.blueDeep)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.55)
+                    .fixedSize(horizontal: true, vertical: false)   // 不縮放，所有時間同字級
                     .padding(.top, 2)
-
-                Text(record.achievedAt ?? "")
-                    .font(AppFont.micro())
-                    .foregroundColor(Color(UIColor.tertiaryLabel))
-                    .lineLimit(1)
-                    .padding(.top, 1)
+                // 日期在窄卡只會顯示成「2026-…」截斷、無意義 → 不顯示。
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(minWidth: 72, alignment: .leading)   // 卡片依內容寬、最短也有底寬，水平捲動
             .padding(10)
             .background(Color(UIColor.secondarySystemGroupedBackground))
             .cornerRadius(10)
@@ -757,7 +744,7 @@ struct PersonalAchievementsView: View {
 
             VStack(spacing: 1) {
                 Text(badge.nameKey.localizedOrFallback(default: badge.badgeId))
-                    .font(AppFont.chip())
+                    .font(AppFont.label())
                     .foregroundColor(isUnlocked ? .primary : Color(UIColor.tertiaryLabel))
                     .lineLimit(2)
                     .multilineTextAlignment(.center)

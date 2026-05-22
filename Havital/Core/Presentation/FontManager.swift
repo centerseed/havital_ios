@@ -324,10 +324,10 @@ struct AppFont {
     }
 
     // 尺寸對齊課表頁 / 既有 AppFont 的 CJK 字級（caption 15、body 16、headline 18…），整體偏大易讀。
-    /// 大數據（hero 距離等）
-    static func numberLarge() -> Font { token(32, .heavy) }
-    /// 次數據（配速 / 時間 / VDOT 值）
-    static func numberMedium() -> Font { token(22, .heavy) }
+    /// 大數據（hero 距離等）—— 非粗體，數字以中等字重呈現較清爽
+    static func numberLarge() -> Font { token(32, .medium) }
+    /// 次數據（配速 / 時間 / VDOT 值）—— 非粗體
+    static func numberMedium() -> Font { token(22, .medium) }
     /// 區塊大標題
     static func titleL() -> Font { token(22, .bold) }
     /// 卡片標題 / 徽章名 / 強調列首
