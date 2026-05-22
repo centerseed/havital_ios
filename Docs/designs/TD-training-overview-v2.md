@@ -11,8 +11,9 @@ repo: apps/ios/Havital
 
 ## Scope（已與用戶確認）
 
-- **合併對象 = 訓練總覽（`TrainingPlanOverviewDetailView`）+ 訓練進度（`TrainingProgressView`）。**
-  砍掉 `TrainingProgressView`，把其「每週清單 + 課表/週回顧 入口」併進新總覽的 `PhaseRoadmap`。
+- **目標 = V2 路徑**（`trainingVersion=="v2"` 的 `TrainingPlanV2View`）。
+- **合併對象 = 訓練總覽（`PlanOverviewSheetV2`，雙 tab）+ 訓練進度（`TrainingProgressViewV2`）。**
+  砍掉 `TrainingProgressViewV2`，把其「每週清單 + 課表/週回顧 入口」併進新總覽的 `PhaseRoadmap`；同時把 `PlanOverviewSheetV2` 雙 tab 攤平成單頁。
 - **訓練紀錄分頁（`TrainingRecordView`）保留不動**（本次不併）。
 - **本次只做 L1 總覽**；L2 體能趨勢詳細頁（`FitnessTrajectoryScreen`）**不做**（趨勢入口先隱藏或停用）。
 - 來源設計：Claude Design bundle `Training Overview v2.html` → `OverviewScreenB`（plan-overview.jsx）。
@@ -24,9 +25,11 @@ repo: apps/ios/Havital
 - `OverviewScreenB` 區塊順序：HERO（漸層底；倒數天數[race]；「●階段·第N/M週」chip）→ 數據卡[race]（距離/目標時間/目標配速 + `FitnessGapGauge`→L2）→ `PhaseRoadmap`（每階段展開＝該期所有週 + 每週「課表/週回顧」icon + 賽事 pin + 週跑量 + key workouts）→ 方法論+策略（合併一卡）→ 里程碑。
 - `chat3:865` 意圖：「砍掉訓練進度，把每週清單 + 課表/週回顧 icon 併進 PhaseRoadmap」；`chat3:72/96`：砍總覽原雙 tab 改單頁。
 
-現有 iOS（已讀）
-- 訓練總覽 = `Havital/Views/Training/TrainingPlanOverviewDetailView.swift`（首頁「⋯」選單 → 訓練總覽）。
-- 訓練進度 = `Havital/Views/Training/TrainingProgressView.swift`（`trainingStageDescription` 階段 + `weeklyDetailsList(startWeek...endWeek)` 每週 + `selectedWeekForSummary` 週回顧 sheet）。
+現有 iOS（已讀）— **目標為 V2 路徑**（ContentView 依 `trainingVersion=="v2"` 路由到 `TrainingPlanV2View`；V1 `TrainingPlanView` 仍在 prod 不動）
+- 訓練總覽 = `Havital/Features/TrainingPlanV2/Presentation/Views/Components/PlanOverviewSheetV2.swift`（1270 行；內含雙 tab：`TargetInfoTabV2` 賽事/目標+`SupportingRacesCard` 支援賽事 / `TrainingOverviewTabV2` 方法論+`trainingStagesSection`+`milestonesSection`）。入口：`TrainingPlanV2View` 選單 `training.plan_overview` → `showPlanOverview`。
+- 訓練進度 = `Havital/Features/TrainingPlanV2/Presentation/Views/TrainingProgressViewV2.swift`（385 行）。入口：主畫面 `TrainingProgressCardV2`（`showTrainingProgress` sheet）。
+- 資料存取：`TrainingPlanV2ViewModel.loader`（`planOverview: PlanOverviewV2`、`weeklyPreview: WeeklyPreviewV2`、`currentWeek`/`selectedWeek`、`weeklyPlan`）+ `viewModel.summary.weeklySummary`（週回顧）+ `vm.upcomingWeeks`。支援賽事 = TargetViewModel `sortedSupportingTargets`。
+- ⚠️ V1 的 `Havital/Views/Training/TrainingProgressView.swift` 與 `TrainingPlanOverviewDetailView.swift` **不在本次範圍**（V1 prod 路徑，保留）。
 - 資料模型 = `Havital/Features/TrainingPlanV2/Domain/Entities/PlanOverviewV2.swift`：
   - `trainingStages: [TrainingStageV2]`（stageName / weekStart / weekEnd / trainingFocus / targetWeeklyKmRange(+Display) / intensityRatio / **keyWorkouts**）
   - `milestones: [MilestoneV2]`、`methodologyOverview`、`approachSummary`、`targetEvaluate`
@@ -66,10 +69,10 @@ repo: apps/ios/Havital
 ### MilestonesCard（新）
 - `milestones` 列表。
 
-### 入口/導航遷移
-- 首頁「⋯」選單「訓練總覽」→ 改開 `TrainingOverviewV2View`。
-- 首頁原「訓練進度」卡片/入口（`TrainingPlanView` 內）→ 移除或改導向新總覽（待確認首頁是否保留進度卡片入口）。
-- `TrainingProgressView` 刪除（或保留檔案但移除入口，過渡期）。
+### 入口/導航遷移（V2）
+- `TrainingPlanV2View` 選單「訓練總覽」(`showPlanOverview`) → 改開 `TrainingOverviewV2View`（取代 `PlanOverviewSheetV2`）。
+- 主畫面 `TrainingProgressCardV2`（`showTrainingProgress`）→ 改開 `TrainingOverviewV2View`（取代 `TrainingProgressViewV2`）；卡片本身保留。
+- 刪除 `TrainingProgressViewV2.swift`。`PlanOverviewSheetV2.swift` 被新單頁取代（保留可複用子元件如 `SupportingRacesCard`、methodology change sheet 邏輯）。
 
 ## 資料決策（已與用戶確認）
 
