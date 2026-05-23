@@ -75,7 +75,10 @@ struct WorkoutReflectionView: View {
     // MARK: - Body
 
     var body: some View {
-        NavigationStack {
+        // 自繪頂列（不用 NavigationStack）：sheet 內嵌 NavigationStack 在 iOS 26 Liquid Glass
+        // 會讓 toolbar 膠囊按鈕貼邊被切；自繪 header 給固定 16pt 邊距即可完全避免。
+        VStack(spacing: 0) {
+            header
             VStack(spacing: 12) {
                 contextStrip
                 rpeSection
@@ -84,33 +87,43 @@ struct WorkoutReflectionView: View {
             }
             .padding(16)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(Color(UIColor.systemGroupedBackground))
-            .navigationTitle(NSLocalizedString("workout.reflection.title", comment: "訓練回顧"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(NSLocalizedString("common.cancel", comment: "取消")) { dismiss() }
-                        .disabled(isSaving)
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
+        }
+        .background(Color(UIColor.systemGroupedBackground))
+        .onAppear {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { focused = true }
+        }
+        .alert(NSLocalizedString("workout.reflection.saveError", comment: "儲存失敗，請重試"), isPresented: $showError) {
+            Button(NSLocalizedString("common.ok", comment: "確定"), role: .cancel) {}
+        }
+    }
+
+    // MARK: - Header (custom top bar)
+
+    private var header: some View {
+        ZStack {
+            Text(NSLocalizedString("workout.reflection.title", comment: "訓練回顧"))
+                .font(AppFont.bodyStrong())
+                .foregroundColor(.primary)
+
+            HStack {
+                Button(NSLocalizedString("common.cancel", comment: "取消")) { dismiss() }
+                    .disabled(isSaving)
+                Spacer()
+                if isSaving {
+                    ProgressView()
+                } else {
+                    Button(NSLocalizedString("common.save", comment: "儲存")) {
                         Task { await save() }
-                    } label: {
-                        if isSaving {
-                            ProgressView()
-                        } else {
-                            Text(NSLocalizedString("common.save", comment: "儲存")).fontWeight(.semibold)
-                        }
                     }
-                    .disabled(isOverLimit || isSaving)
+                    .fontWeight(.semibold)
+                    .disabled(isOverLimit)
                 }
             }
-            .onAppear {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { focused = true }
-            }
-            .alert(NSLocalizedString("workout.reflection.saveError", comment: "儲存失敗，請重試"), isPresented: $showError) {
-                Button(NSLocalizedString("common.ok", comment: "確定"), role: .cancel) {}
-            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(Color(UIColor.separator).opacity(0.4)).frame(height: 0.5)
         }
     }
 
