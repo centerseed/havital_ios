@@ -1,32 +1,28 @@
 import SwiftUI
 
 /// 力量訓練動作清單組件
-/// 顯示力量訓練的具體動作、組數、次數、時長等資訊
+/// 卡片式清單：序號 + 動作名稱 + 組數標籤 + 次數/時長，行間以分隔線區隔。
 struct ExercisesListView: View {
     let exercises: [Exercise]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            // 標題
-            HStack(spacing: 4) {
-                Text("💪")
-                    .font(AppFont.caption())
-                Text(NSLocalizedString("training.exercises", comment: "Exercises"))
-                    .font(AppFont.caption())
-                    .fontWeight(.semibold)
-            }
-
-            // 動作清單
+        VStack(spacing: 0) {
             ForEach(exercises.indices, id: \.self) { index in
                 ExerciseRowWrapperView(
                     exercise: exercises[index],
                     index: index + 1
                 )
+                if index < exercises.count - 1 {
+                    Divider().padding(.leading, 44)
+                }
             }
         }
-        .padding(10)
-        .background(Color.purple.opacity(0.08))
-        .cornerRadius(8)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(Color(.separator).opacity(0.6), lineWidth: 0.5)
+        )
     }
 }
 
@@ -61,62 +57,57 @@ private struct ExerciseRowWrapperView: View {
     }
 }
 
-/// 單個動作行視圖
+/// 單個動作行視圖：序號 · 名稱 · 組數標籤 · 主要數值（時長/次數/重量）
 private struct ExerciseRowView: View {
     let exercise: Exercise
     let index: Int
 
+    /// 主要數值：優先時長（如棒式 45 秒），否則次數（如 12 次），否則重量。
+    private var trailingValue: String? {
+        if let d = exercise.durationSeconds {
+            return "\(d) \(NSLocalizedString("training.seconds_unit", comment: ""))"
+        }
+        if let reps = exercise.reps, !reps.isEmpty {
+            return "\(reps) \(NSLocalizedString("training.reps_unit", comment: ""))"
+        }
+        if let w = exercise.weightKg {
+            return String(format: "%.0f kg", w)
+        }
+        return nil
+    }
+
     var body: some View {
-        HStack(alignment: .top, spacing: 6) {
-            // 序號
-            Text("\(index).")
-                .font(AppFont.caption())
-                .foregroundColor(.secondary)
-                .frame(width: 20, alignment: .leading)
+        HStack(spacing: 12) {
+            Text(String(format: "%02d", index))
+                .font(AppFont.caption().monospacedDigit())
+                .foregroundColor(Color(.tertiaryLabel))
 
-            // 動作名稱
             Text(exercise.name)
-                .font(AppFont.caption())
+                .font(AppFont.bodyStrong())
                 .foregroundColor(.primary)
+                .lineLimit(1)
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            // 組數/次數/時長/重量
-            HStack(spacing: 6) {
-                if let sets = exercise.sets {
-                    Text("\(sets)" + NSLocalizedString("training.sets_unit", comment: "Sets"))
-                        .font(AppFont.caption())
-                        .foregroundColor(.secondary)
-                }
+            if let sets = exercise.sets {
+                Text("\(sets) \(NSLocalizedString("training.sets_unit", comment: ""))")
+                    .font(AppFont.micro())
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color(.tertiarySystemFill))
+                    .clipShape(Capsule())
+            }
 
-                if let reps = exercise.reps, !reps.isEmpty {
-                    Text("\(reps)" + NSLocalizedString("training.reps_unit", comment: "Reps"))
-                        .font(AppFont.caption())
-                        .foregroundColor(.secondary)
-                }
-
-                if let duration = exercise.durationSeconds {
-                    Text("\(duration)" + NSLocalizedString("training.seconds_unit", comment: "Seconds"))
-                        .font(AppFont.caption())
-                        .foregroundColor(.secondary)
-                }
-
-                if let weight = exercise.weightKg {
-                    Text(String(format: "%.1fkg", weight))
-                        .font(AppFont.caption())
-                        .foregroundColor(.secondary)
-                }
+            if let value = trailingValue {
+                Text(value)
+                    .font(AppFont.bodyStrong().monospacedDigit())
+                    .foregroundColor(.primary)
+                    .fixedSize()
             }
         }
-        .padding(.vertical, 2)
-
-        // 動作描述（如果有）
-        if let desc = exercise.description, !desc.isEmpty {
-            Text(desc)
-                .font(AppFont.caption2())
-                .foregroundColor(.secondary)
-                .padding(.leading, 26)
-        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 13)
     }
 }
 

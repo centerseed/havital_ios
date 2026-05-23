@@ -6,27 +6,53 @@ struct SupplementaryTrainingView: View {
     let activities: [SupplementaryActivity]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // 標題
-            HStack(spacing: 4) {
-                Text("➕")
-                    .font(AppFont.caption())
-                Text(NSLocalizedString("training.supplementary", comment: "Supplementary"))
-                    .font(AppFont.caption())
-                    .fontWeight(.semibold)
-                    .foregroundColor(.orange)
-            }
-
-            // 補充訓練項目
+        VStack(alignment: .leading, spacing: 14) {
             ForEach(activities.indices, id: \.self) { index in
                 SupplementaryActivityItemView(
                     activity: activities[index]
                 )
             }
         }
-        .padding(10)
-        .background(Color.orange.opacity(0.05))
-        .cornerRadius(8)
+    }
+}
+
+/// 補充訓練區塊的卡片標頭：圖示方塊 + 標題（+副標）+ 時長膠囊。
+private struct SupplementaryHeader: View {
+    let title: String
+    let subtitle: String?
+    let durationMinutes: Int?
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 9)
+                    .fill(PacerizColor.orange.opacity(0.15))
+                    .frame(width: 36, height: 36)
+                Image(systemName: "plus")
+                    .font(AppFont.bodyStrong())
+                    .foregroundColor(PacerizColor.orange)
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(AppFont.bodyStrong())
+                    .foregroundColor(.primary)
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(AppFont.micro())
+                        .foregroundColor(.secondary)
+                }
+            }
+            Spacer()
+            if let mins = durationMinutes {
+                Text("\(mins) \(NSLocalizedString("training.minutes_unit", comment: ""))")
+                    .font(AppFont.micro())
+                    .foregroundColor(PacerizColor.orangeDeep)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(PacerizColor.orange.opacity(0.14))
+                    .clipShape(Capsule())
+            }
+        }
     }
 }
 
@@ -51,30 +77,13 @@ private struct StrengthActivityView: View {
     let activity: StrengthActivity
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            // 力量訓練類型和時長
-            HStack {
-                Text(strengthTypeDisplayName(activity.strengthType))
-                    .font(AppFont.caption())
-                    .fontWeight(.medium)
+        VStack(alignment: .leading, spacing: 10) {
+            SupplementaryHeader(
+                title: strengthTypeDisplayName(activity.strengthType),
+                subtitle: activity.description,
+                durationMinutes: activity.durationMinutes
+            )
 
-                Spacer()
-
-                if let mins = activity.durationMinutes {
-                    Text("\(mins)" + NSLocalizedString("training.minutes_unit", comment: "Minutes"))
-                        .font(AppFont.caption())
-                        .foregroundColor(.secondary)
-                }
-            }
-
-            // 描述
-            if let desc = activity.description, !desc.isEmpty {
-                Text(desc)
-                    .font(AppFont.caption2())
-                    .foregroundColor(.secondary)
-            }
-
-            // 動作清單
             if !activity.exercises.isEmpty {
                 ExercisesListView(exercises: activity.exercises)
             }
@@ -108,25 +117,11 @@ private struct CrossSupplementaryView: View {
     let activity: CrossActivity
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(crossTypeDisplayName(activity.crossType))
-                    .font(AppFont.caption())
-                    .fontWeight(.medium)
-
-                Spacer()
-
-                Text("\(activity.durationMinutes) " + NSLocalizedString("training.minutes_unit", comment: "Minutes"))
-                    .font(AppFont.caption())
-                    .foregroundColor(.secondary)
-            }
-
-            if let desc = activity.description, !desc.isEmpty {
-                Text(desc)
-                    .font(AppFont.caption2())
-                    .foregroundColor(.secondary)
-            }
-        }
+        SupplementaryHeader(
+            title: crossTypeDisplayName(activity.crossType),
+            subtitle: activity.description,
+            durationMinutes: activity.durationMinutes
+        )
     }
 
     private func crossTypeDisplayName(_ type: String) -> String {

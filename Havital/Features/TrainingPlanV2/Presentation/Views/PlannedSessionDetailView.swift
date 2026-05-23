@@ -20,6 +20,7 @@ struct PlannedSessionDetailView: View {
                 coachIntentCard.padding(.horizontal, 16).padding(.top, 12)
                 structureSectionIfNeeded.padding(.horizontal, 16).padding(.top, 12)
                 targetZonesSection.padding(.horizontal, 16).padding(.top, 12)
+                nonRunContentSection.padding(.horizontal, 16).padding(.top, 12)
                 tipSection.padding(.horizontal, 16).padding(.top, 12)
                 supplementarySection.padding(.horizontal, 16).padding(.top, 12)
                 climateSection.padding(.horizontal, 16).padding(.top, 12)
@@ -114,7 +115,12 @@ struct PlannedSessionDetailView: View {
         }
     }
 
-    private var typeAccentColor: Color { WorkoutMeta.accentColor(for: day.type) }
+    /// 非跑步主項（力量／交叉訓練）：primary 不是 run 的課表日。
+    private var isNonRunSession: Bool { day.session != nil && day.primaryRunActivity == nil }
+
+    private var typeAccentColor: Color {
+        isNonRunSession ? PacerizColor.indigo : WorkoutMeta.accentColor(for: day.type)
+    }
     private var typeChipLabel: String { WorkoutMeta.chipLabel(for: day.type) }
     private var workoutTypeName: String { WorkoutMeta.typeName(for: day.type) }
 
@@ -188,10 +194,14 @@ struct PlannedSessionDetailView: View {
                 Text(workoutTypeName).font(AppFont.numberLarge()).tracking(-0.02).foregroundColor(.white).padding(.top, 10)
 
                 Group {
-                    switch heroVariant {
-                    case .interval: intervalHeroMetrics
-                    case .segmented: segmentedHeroMetrics
-                    case .simple: simpleHeroMetrics
+                    if isNonRunSession {
+                        nonRunHeroMetrics
+                    } else {
+                        switch heroVariant {
+                        case .interval: intervalHeroMetrics
+                        case .segmented: segmentedHeroMetrics
+                        case .simple: simpleHeroMetrics
+                        }
                     }
                 }
                 .padding(.top, 14)
@@ -213,6 +223,36 @@ struct PlannedSessionDetailView: View {
                     heroMetricColumn(title: NSLocalizedString("training.detail.metric_estimated_time", comment: ""), value: durationString(run), unit: nil)
                     heroDivider
                     heroMetricColumn(title: NSLocalizedString("common.pace", comment: ""), value: displayPace(run.effectivePace) ?? "-", unit: paceSuffix)
+                }
+            }
+        }
+    }
+
+    /// 非跑步主項的 hero 指標：力量→動作數＋時長；交叉→時長＋距離。
+    @ViewBuilder
+    private var nonRunHeroMetrics: some View {
+        HStack(alignment: .bottom, spacing: 0) {
+            if let session = day.session {
+                switch session.primary {
+                case .strength(let s):
+                    if !s.exercises.isEmpty {
+                        heroMetricColumn(title: NSLocalizedString("training.exercises", comment: ""), value: "\(s.exercises.count)", unit: NSLocalizedString("training.exercises_count_unit", comment: ""))
+                    }
+                    if let mins = s.durationMinutes {
+                        if !s.exercises.isEmpty { heroDivider }
+                        heroMetricColumn(title: NSLocalizedString("training.detail.metric_estimated_time", comment: ""), value: "\(mins)", unit: NSLocalizedString("training.minute_abbr", comment: ""))
+                    }
+                case .cross(let c):
+                    heroMetricColumn(title: NSLocalizedString("training.detail.metric_estimated_time", comment: ""), value: "\(c.durationMinutes)", unit: NSLocalizedString("training.minute_abbr", comment: ""))
+                    if c.distanceDisplay != nil || c.distanceKm != nil {
+                        let rawDist = c.distanceDisplay ?? c.distanceKm ?? 0
+                        let distVal = c.distanceUnit != nil ? rawDist : UnitManager.shared.convertedDistance(rawDist)
+                        let distUnit = c.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
+                        heroDivider
+                        heroMetricColumn(title: NSLocalizedString("training.detail.metric_distance", comment: ""), value: String(format: "%.1f", distVal), unit: distUnit)
+                    }
+                case .run:
+                    EmptyView()
                 }
             }
         }
@@ -339,14 +379,18 @@ struct PlannedSessionDetailView: View {
 
     // MARK: - Target Zones Section
 
+    @ViewBuilder
     private var targetZonesSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            sectionHeader(title: NSLocalizedString("training.detail.section_target_zone", comment: ""), subtitle: nil)
-            let pills = buildTargetZonePills()
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                ForEach(pills.indices, id: \.self) { idx in
-                    let pill = pills[idx]
-                    TargetZonePill(label: pill.label, value: pill.value, unit: pill.unit, isDanger: pill.isDanger, accentColor: typeAccentColor)
+        // 非跑步主項沒有配速/區間 pill → 不顯示空的「目標區間」格子。
+        let pills = buildTargetZonePills()
+        if !pills.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                sectionHeader(title: NSLocalizedString("training.detail.section_target_zone", comment: ""), subtitle: nil)
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    ForEach(pills.indices, id: \.self) { idx in
+                        let pill = pills[idx]
+                        TargetZonePill(label: pill.label, value: pill.value, unit: pill.unit, isDanger: pill.isDanger, accentColor: typeAccentColor)
+                    }
                 }
             }
         }
@@ -360,6 +404,27 @@ struct PlannedSessionDetailView: View {
             VStack(alignment: .leading, spacing: 10) {
                 sectionHeader(title: NSLocalizedString("training.detail.section_supplementary", comment: ""), subtitle: NSLocalizedString("training.detail.supplementary_subtitle", comment: ""))
                 SupplementaryTrainingView(activities: supplementary)
+            }
+        }
+    }
+
+    // MARK: - Non-Run Content Section
+
+    /// 非跑步主項的內容：力量訓練顯示動作清單（鏡射 day card 展開）；交叉訓練的時長/距離已在 hero。
+    @ViewBuilder
+    private var nonRunContentSection: some View {
+        if let session = day.session {
+            switch session.primary {
+            case .strength(let strength):
+                if !strength.exercises.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        sectionHeader(title: NSLocalizedString("training.exercises", comment: ""), subtitle: nil)
+                        ExercisesListView(exercises: strength.exercises)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            case .cross, .run:
+                EmptyView()
             }
         }
     }

@@ -44,6 +44,9 @@ enum PacerizColor {
         return base.withAlphaComponent(trait.userInterfaceStyle == .dark ? 0.20 : 0.14)
     })
 
+    // Base indigo — #6366F1 — 非跑步（力量／交叉訓練）專用主色，與跑步色系（綠/橘/藍/紅）區隔
+    static let indigo = Color(red: 0x63 / 255.0, green: 0x66 / 255.0, blue: 0xF1 / 255.0)
+
     // Base orange — #FF7F50 (--p-orange)
     static let orange = Color(red: 0xFF / 255.0, green: 0x7F / 255.0, blue: 0x50 / 255.0)
 

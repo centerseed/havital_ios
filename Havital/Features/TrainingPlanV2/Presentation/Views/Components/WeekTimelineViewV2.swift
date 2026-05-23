@@ -446,6 +446,10 @@ struct TimelineItemViewV2: View {
     }
 
     private func getTypeColor() -> Color {
+        // 非跑步主項（力量／交叉訓練）統一用 indigo，與跑步色系區隔。
+        if day.type != .rest, day.primaryRunActivity == nil {
+            return PacerizColor.indigo
+        }
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return .mint
@@ -1353,21 +1357,21 @@ private struct StrengthContentView: View {
                     Text(strengthTypeDisplayName(activity.strengthType))
                         .font(AppFont.bodySmall())
                         .fontWeight(.semibold)
-                        .foregroundColor(.purple)
+                        .foregroundColor(PacerizColor.indigo)
                 }
                 if !activity.exercises.isEmpty {
                     Text("·").font(AppFont.caption()).foregroundColor(.secondary)
                     Text("\(activity.exercises.count) \(NSLocalizedString("training.exercises_count_unit", comment: "exercises"))")
                         .font(AppFont.bodySmall())
                         .fontWeight(.semibold)
-                        .foregroundColor(.purple)
+                        .foregroundColor(PacerizColor.indigo)
                 }
                 if let mins = activity.durationMinutes {
                     Text("·").font(AppFont.caption()).foregroundColor(.secondary)
                     Text("\(mins) \(NSLocalizedString("training.minutes_unit", comment: "min"))")
                         .font(AppFont.bodySmall())
                         .fontWeight(.semibold)
-                        .foregroundColor(.purple)
+                        .foregroundColor(PacerizColor.indigo)
                 }
                 Spacer()
             }
