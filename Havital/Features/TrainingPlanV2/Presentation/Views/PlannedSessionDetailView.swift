@@ -126,11 +126,31 @@ struct PlannedSessionDetailView: View {
         }
     }
 
-    /// Original (non-climate-adjusted) pace widened by ±20s, e.g. "5:40–6:20".
+    /// Original (non-climate-adjusted) pace widened by ±20s, e.g. "5:40–6:20"（依使用者單位換算）。
     private func easyPaceRange(_ run: RunActivity) -> String? {
         let original = run.basePace ?? run.pace
         guard let original, let sec = paceStringToSeconds(original) else { return original }
-        return "\(secondsToPaceString(max(0, sec - 20)))–\(secondsToPaceString(sec + 20))"
+        return "\(convertedPaceString(secondsPerKm: max(0, sec - 20)))–\(convertedPaceString(secondsPerKm: sec + 20))"
+    }
+
+    // MARK: - Pace Unit Conversion
+    // 後端配速一律以「秒/km」回傳；顯示時依使用者單位設定（公制 /km、英制 /mi）換算。
+
+    /// 目前單位的配速後綴（"/km" 或 "/mi"）。
+    private var paceSuffix: String { UnitManager.shared.currentUnitSystem.paceSuffix }
+
+    /// 將「秒/km」換算為使用者單位的 "mm:ss" 配速字串（不含後綴）。
+    private func convertedPaceString(secondsPerKm: Int) -> String {
+        let converted = UnitManager.shared.currentUnitSystem == .imperial
+            ? Double(secondsPerKm) * 1.60934
+            : Double(secondsPerKm)
+        return secondsToPaceString(Int(converted.rounded()))
+    }
+
+    /// 將後端 "mm:ss"（秒/km）配速換算為使用者單位（不含後綴）；無法解析時原樣回傳。
+    private func displayPace(_ perKm: String?) -> String? {
+        guard let perKm, let sec = paceStringToSeconds(perKm) else { return perKm }
+        return convertedPaceString(secondsPerKm: sec)
     }
 
     /// 預估時間範圍：配速算出的時間為下限，×1.15(四捨五入取整)為上限。
@@ -192,7 +212,7 @@ struct PlannedSessionDetailView: View {
                 } else {
                     heroMetricColumn(title: NSLocalizedString("training.detail.metric_estimated_time", comment: ""), value: durationString(run), unit: nil)
                     heroDivider
-                    heroMetricColumn(title: NSLocalizedString("common.pace", comment: ""), value: run.effectivePace ?? "-", unit: "/km")
+                    heroMetricColumn(title: NSLocalizedString("common.pace", comment: ""), value: displayPace(run.effectivePace) ?? "-", unit: paceSuffix)
                 }
             }
         }
@@ -416,10 +436,8 @@ struct PlannedSessionDetailView: View {
     // MARK: - Secondary Buttons
 
     private var secondaryButtons: some View {
-        HStack(spacing: 8) {
-            SecondaryActionButton(icon: "info.circle", label: String(format: NSLocalizedString("training.detail.what_is_type", comment: ""), workoutTypeName), action: { showTrainingTypeInfo = true })
-            SecondaryActionButton(icon: "arrow.triangle.2.circlepath", label: NSLocalizedString("training.detail.adjust_day", comment: ""), action: { /* stub */ })
-        }
+        // 「調整這一天」目前無功能，先移除避免誤導；保留「這是什麼訓練」資訊入口。
+        SecondaryActionButton(icon: "info.circle", label: String(format: NSLocalizedString("training.detail.what_is_type", comment: ""), workoutTypeName), action: { showTrainingTypeInfo = true })
     }
 
     // MARK: - Section Header Helper
@@ -493,7 +511,7 @@ struct PlannedSessionDetailView: View {
             index: 1,
             label: segLabel,
             distance: distanceString(run) + " " + distanceUnit(run),
-            pace: run.effectivePace,
+            pace: displayPace(run.effectivePace),
             hr: hrText,
             reps: nil,
             rest: nil,
@@ -523,14 +541,14 @@ struct PlannedSessionDetailView: View {
             // Prefer real HR range from RunActivity; fall back to inferred zone label
             let intervalHR = run.heartRateRange?.displayText.map { "\($0) bpm" } ?? "Z4"
             result.append(DetailSegmentData(index: idx, label: NSLocalizedString("training.segment.sprint", comment: ""), distance: workDistanceLabel(interval),
-                pace: interval.workPace, hr: intervalHR, reps: interval.repeats, rest: restStr, isMain: true))
+                pace: displayPace(interval.workPace), hr: intervalHR, reps: interval.repeats, rest: restStr, isMain: true))
             idx += 1
         } else if let segs = run.segments, segs.count > 1 {
             for (segIdx, seg) in segs.enumerated() {
                 // Use real HR range from segment if available
                 let segHR = seg.heartRateRange?.displayText.map { "\($0) bpm" }
                 result.append(DetailSegmentData(index: idx, label: segmentLabel(index: segIdx, total: segs.count),
-                    distance: segmentDistanceString(seg), pace: seg.effectivePace,
+                    distance: segmentDistanceString(seg), pace: displayPace(seg.effectivePace),
                     hr: segHR, reps: nil, rest: nil, isMain: segIdx == segs.count - 1))
                 idx += 1
             }
@@ -547,7 +565,7 @@ struct PlannedSessionDetailView: View {
         // Use real HR range from segment if available; otherwise no HR label
         let hr = seg.heartRateRange?.displayText.map { "\($0) bpm" }
         return DetailSegmentData(index: index, label: label,
-            distance: segmentDistanceString(seg), pace: seg.effectivePace,
+            distance: segmentDistanceString(seg), pace: displayPace(seg.effectivePace),
             hr: hr,
             reps: nil, rest: nil, isMain: false)
     }
@@ -618,13 +636,13 @@ struct PlannedSessionDetailView: View {
         guard let run = day.primaryRunActivity else { return [] }
         var pills: [TargetZonePillData] = []
 
-        // Pill 1: pace (label varies by type)
+        // Pill 1: pace (label varies by type) — 配速依使用者單位換算。
         if let interval = run.interval {
             if let pace = interval.workPace {
-                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.sprint_pace", comment: ""), value: pace, unit: "/km", isDanger: false))
+                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.sprint_pace", comment: ""), value: displayPace(pace) ?? pace, unit: paceSuffix, isDanger: false))
             }
             if let recPace = interval.recoveryPace {
-                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.recovery_pace", comment: ""), value: recPace, unit: "/km", isDanger: false))
+                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.recovery_pace", comment: ""), value: displayPace(recPace) ?? recPace, unit: paceSuffix, isDanger: false))
             }
         } else if let pace = run.effectivePace {
             let paceLabel: String
@@ -634,8 +652,8 @@ struct PlannedSessionDetailView: View {
             default: paceLabel = NSLocalizedString("training.zone.target_pace", comment: "")
             }
             // Easy/LSD: show original pace widened by ±20s instead of the climate-adjusted single value.
-            let paceValue = isEasyOrLSD ? (easyPaceRange(run) ?? pace) : pace
-            pills.append(TargetZonePillData(label: paceLabel, value: paceValue, unit: "/km", isDanger: false))
+            let paceValue = isEasyOrLSD ? (easyPaceRange(run) ?? (displayPace(pace) ?? pace)) : (displayPace(pace) ?? pace)
+            pills.append(TargetZonePillData(label: paceLabel, value: paceValue, unit: paceSuffix, isDanger: false))
         }
 
         // Pill 2: heart-rate zone — prefer explicit HR range, fall back to inferred zone string
@@ -646,9 +664,10 @@ struct PlannedSessionDetailView: View {
             pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.target_hr", comment: ""), value: zone, unit: "", isDanger: false))
         }
 
-        // Pill 3: RPE — prefer explicit targetIntensity, fall back to inferred
+        // Pill 3: RPE — prefer explicit targetIntensity, fall back to inferred.
+        // 體感值與 /10 合併顯示為「3/10」（值內含分母，讀起來更直覺，不讓 /10 浮在標籤旁）。
         let rpeValue = run.targetIntensity ?? inferredRPE(for: day.type)
-        pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.rpe", comment: ""), value: rpeValue, unit: "/10", isDanger: false))
+        pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.rpe", comment: ""), value: "\(rpeValue)/10", unit: "", isDanger: false))
 
         // Pill 4: varies by type
         // Interval → 訓練負荷 (TSS estimated); Progression/FastFinish add end-pace pill (already added above as separate pace); others → 預估時間
@@ -669,14 +688,14 @@ struct PlannedSessionDetailView: View {
         case .progression:
             // Add end-pace pill from last segment
             if let segs = run.segments, segs.count > 1, let lastPace = segs.last?.effectivePace {
-                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.end_pace", comment: ""), value: lastPace, unit: "/km", isDanger: false))
+                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.end_pace", comment: ""), value: displayPace(lastPace) ?? lastPace, unit: paceSuffix, isDanger: false))
             } else if let mins = run.durationMinutes {
                 pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.estimated_time", comment: ""), value: estimatedTimeRange(minutes: mins), unit: NSLocalizedString("training.minute_abbr", comment: ""), isDanger: false))
             }
         case .fastFinish:
             // Add tempo/fast pace from last segment
             if let segs = run.segments, segs.count > 1, let lastPace = segs.last?.effectivePace {
-                pills.append(TargetZonePillData(label: NSLocalizedString("training.segment.tempo_pace", comment: ""), value: lastPace, unit: "/km", isDanger: false))
+                pills.append(TargetZonePillData(label: NSLocalizedString("training.segment.tempo_pace", comment: ""), value: displayPace(lastPace) ?? lastPace, unit: paceSuffix, isDanger: false))
             } else if let mins = run.durationMinutes {
                 pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.estimated_time", comment: ""), value: estimatedTimeRange(minutes: mins), unit: NSLocalizedString("training.minute_abbr", comment: ""), isDanger: false))
             }
@@ -861,8 +880,9 @@ private struct ClimateTipCard: View {
     private var climateColor: Color { meta.badgeForegroundColor }
 
     private var headerChip: String {
+        // 溫度需明確標示為「體感」，避免被誤會成實際氣溫。
         if let t = meta.feelsLikeTempText {
-            return "\(meta.shortLevelDisplayText) · \(t)"
+            return "\(meta.shortLevelDisplayText) · \(meta.temperatureTitle) \(t)"
         }
         return meta.shortLevelDisplayText
     }
