@@ -380,6 +380,14 @@
 "training.type.tempo" = "テンポラン";
 "training.type.interval" = "インターバル走";
 "training.type.paceriz_interval" = "インターバル";
+"training.type._generic_interval" = "インターバル";
+"training.race_countdown.hide" = "レースカウントダウンを非表示";
+"profile.race_countdown.title" = "レースカウントダウン";
+"profile.race_countdown.always" = "常に表示";
+"profile.race_countdown.auto" = "レース前に表示";
+"profile.race_countdown.off" = "非表示";
+"profile.race_countdown.days_before" = "レース何日前から表示";
+"profile.race_countdown.days_value" = "%d日前";
 "interval.static_rest" = "その場休憩";
 "training.type.long" = "ロングラン";
 "training.type.recovery" = "リカバリーラン";
@@ -1158,6 +1166,12 @@
 "training_plan.weekly_volume_and_intensity" = "週間走行距離と強度";
 "training_plan.week_target" = "今週の目標";
 "training_plan.training_calendar" = "トレーニングカレンダー";
+"training_plan.weekly_badge_placeholder_name" = "リズムビルダー";
+"training_plan.weekly_badge_coming_soon" = "新規解錠";
+"training_plan.weekly_badge_in_progress" = "進行中";
+"training_plan.intensity_legend_low" = "イージー";
+"training_plan.intensity_legend_medium" = "中程度";
+"training_plan.intensity_legend_high" = "ハード";
 "training_plan.monthly_total_distance" = "月間総距離";
 "training_plan.average_pace" = "平均ペース";
 "training_calendar.view_mode" = "表示モード";
@@ -1174,6 +1188,10 @@
 "training_calendar.recent_trend" = "最近の推移";
 "training_calendar.last_six_months" = "直近6か月";
 "training_plan.today" = "今日";
+"training_plan.active_recovery_day" = "アクティブリカバリー";
+"training_plan.start_today_workout" = "今日のトレーニング開始";
+"rest_day.info_title" = "アクティブリカバリーデー";
+"rest_day.info_body" = "今日は休息日です。軽いストレッチ、ウォーキング、ヨガで身体を休めましょう。完全な回復は次のトレーニングに不可欠です。";
 "training_plan.tip" = "ヒント：%@";
 "training_plan.segment" = "セグメント%d";
 "training_plan.heart_rate_zone" = "心拍ゾーン：%@";
@@ -1565,6 +1583,28 @@
 // MARK: - Workout Detail
 "workout.share_card" = "トレーニングカードをシェア";
 "workout.share_screenshot" = "スクリーンショットをシェア";
+"workout.share.title" = "トレーニングをシェア";
+"workout.share.action" = "今回の成果をシェア";
+"workout.share.card.completed_format" = "%@ 完了";
+"workout.share.card.completed_default" = "トレーニング完了";
+"workout.share.card.metric_time" = "時間";
+"workout.share.card.metric_pace" = "ペース";
+"workout.share.card.edit_title" = "タイトルを編集";
+"workout.share.card.add_photo" = "写真を追加";
+"workout.share.card.change_photo" = "写真を変更";
+"workout.reflection.title" = "トレーニング振り返り";
+"workout.reflection.saveError" = "保存に失敗しました。再試行してください";
+"workout.rpe.prompt" = "今日の感覚は？";
+"workout.rpe.selected" = "今日のきつさ %d/10";
+"workout.rpe.feedback.low" = "楽にこなせた ✓";
+"workout.rpe.feedback.medium" = "リズムよく走れた ✓";
+"workout.rpe.feedback.high" = "充実したトレーニング ✓";
+"workout.rpe.feedback.max" = "頑張り抜いた 💪";
+"workout.diary.promptHint" = "ここから始めよう ↓";
+"workout.diary.promptTip" = "タップすると書き出しが入力される";
+"workout.diary.placeholder" = "今回のトレーニングの感想を… 一言でもOK。";
+"workout.diary.privacy" = "このメモはあなただけに表示されます";
+"workout.defaultType" = "トレーニング";
 
 // MARK: - Data Source
 "datasource.strava_subtitle" = "Stravaのアクティビティを同期";
@@ -2337,6 +2377,7 @@
 "onboarding.selected_duration" = "選択したトレーニング期間";
 "onboarding.short_duration_warning" = "短いトレーニング期間は進歩を制限する可能性があります";
 "onboarding.target_type" = "目標タイプ";
+"onboarding.beginner_target_distance" = "目標距離";
 "onboarding.training_weeks_description" = "何週間トレーニングする予定ですか？";
 "onboarding.training_weeks_nav_title" = "トレーニング週数";
 "onboarding.training_weeks_title" = "トレーニング週数";
@@ -2402,6 +2443,12 @@
 "training.target_info" = "目標情報";
 "training.target_pace" = "目標ペース";
 "training.target_time" = "目標タイム";
+"training.overview.edit" = "編集";
+"training.overview.days_unit" = "日";
+"training.overview.phase_week_chip" = "%@ · 第 %d / %d 週";
+"training.overview.beginner_subtitle" = "ゼロから着実なランニング基礎を築く";
+"training.overview.maintenance_subtitle" = "トレーニングリズムを維持し、体力を保つ";
+"training.overview.key_milestones" = "キーマイルストーン";
 "training.training_focus" = "トレーニング重点";
 "training.training_plan" = "トレーニングプラン";
 "training.training_strategy" = "トレーニング戦略";
@@ -2885,6 +2932,11 @@
 "achievements.share.sensitive_excluded" = "ルート、GPS、心拍、睡眠、けが、workout ID、email、uid、詳しいメニューは含まれません。";
 "achievements.share.privacy_footer" = "Paceriz トレーニング成果";
 "achievements.share.badge_label" = "バッジ";
+"achievements.share.card.chapter_label" = "チャプター · %@";
+"achievements.share.stat.total_distance" = "累計距離";
+"achievements.share.stat.completed_weeks" = "完了週数";
+"achievements.share.stat.unlocked_badges" = "獲得バッジ";
+"achievements.share.stat.weeks_value" = "%d週";
 "achievements.share.tag_new_pb" = "新PB";
 "achievements.share.tag_new_badge" = "新バッジ";
 "achievements.share.tag_pb_and_badge" = "新PB＋バッジ";
@@ -3223,3 +3275,157 @@
 "edit_schedule.intensity_training_section" = "高強度トレーニング";
 "edit_schedule.long_distance_training_section" = "長距離トレーニング";
 "edit_schedule.other_training_section" = "その他";
+
+// MARK: - B2 Race Header
+"training_plan.race_countdown_days" = " 日";
+"training_plan.race_countdown_label" = "残り";
+"training_plan.race_readiness_label" = "準備度";
+"training_plan.race_gap_within_target" = "目標内";
+"training_plan.race_gap_diff" = "差 %@";
+
+// MARK: - B3 Training Mode Header
+"training_mode.starter_label" = "ビギナー";
+"training_mode.maintain_label" = "メンテナンス";
+"training_mode.starter_tagline" = "規則的な有酸素基礎を築く";
+"training_mode.maintain_tagline" = "体力を維持し、退化を防ぐ";
+"training_mode.streak_label" = "連続";
+"training_mode.monthly_km_label" = "今月の距離";
+"training_mode.readiness_label" = "準備度";
+"training_mode.week_number" = "%d 週目";
+
+// MARK: - Weekly Plan Feedback
+"weekly_plan_feedback.title" = "この計画はどうですか？";
+"weekly_plan_feedback.rating.bad" = "イマイチ";
+"weekly_plan_feedback.rating.fine" = "まあまあ";
+"weekly_plan_feedback.rating.good" = "良い";
+"weekly_plan_feedback.reasons_prompt" = "どこを改善できますか？（複数選択可）";
+"weekly_plan_feedback.reason.mileage_too_high" = "走行距離が多すぎる";
+"weekly_plan_feedback.reason.mileage_too_low" = "走行距離が少なすぎる";
+"weekly_plan_feedback.reason.intensity_too_high" = "強度が高すぎる";
+"weekly_plan_feedback.reason.intensity_too_low" = "強度が低すぎる";
+"weekly_plan_feedback.reason.too_tiring" = "きつすぎる / 負荷過多";
+"weekly_plan_feedback.reason.too_easy" = "楽すぎる";
+"weekly_plan_feedback.reason.monotonous" = "単調すぎる";
+"weekly_plan_feedback.submit" = "送信";
+"weekly_plan_feedback.submitting" = "送信中…";
+"weekly_plan_feedback.error" = "送信に失敗しました。後でもう一度お試しください。";
+"weekly_plan_feedback.thanks" = "フィードバックありがとうございます！計画の改善に活用します。";
+"weekly_plan_feedback.desc.rating_prefix" = "計画フィードバック：";
+
+// MARK: - Achievements UI (PersonalAchievementsView)
+"achievements.stats_banner.unlocked_label" = "解除済みバッジ";
+"achievements.stats_banner.pb_label" = "PB記録";
+"achievements.stats_banner.streak_label" = "連続トレーニング";
+"achievements.hero_card.latest_unlock" = "✨ 最新解除";
+"achievements.hero_card.share" = "シェア";
+"achievements.hero_card.pin" = "固定";
+"achievements.hero_card.unpin" = "固定を解除";
+"achievements.hero_card.next_target" = "🎯 次の目標";
+"achievements.hero_card.view_all_tracks" = "全トラックを見る";
+"achievements.hero_card.remaining" = "残り";
+"achievements.pb_card.section_title" = "自己ベスト";
+"achievements.pb_card.set_count_format" = "%d / 4 達成";
+"achievements.pb_card.card_title" = "自己ベスト記録";
+"achievements.pb_card.view_all" = "すべて見る";
+"achievements.pb_card.no_pb" = "自己ベストはまだありません";
+"achievements.pb_card.no_pb_hint" = "初めてのタイム計測ランでPBを樹立しましょう";
+"achievements.pb_card.more_distances_format" = "他%d種類の距離記録";
+"achievements.badge_collection.title" = "バッジコレクション";
+"achievements.badge_collection.unlocked_count_format" = "%d/%d 解除済み";
+"achievements.badge_collection.view_more" = "もっと見る";
+"achievements.badge_tile.insufficient_data" = "データ不足";
+"achievements.badge_tile.locked" = "未解除";
+"achievements.tracks.title" = "実績トラック";
+"achievements.tracks.empty" = "トラックデータなし";
+
+// MARK: - Training Record Filter & Groups
+"record.filter.all" = "すべて";
+"record.filter.easy_run" = "イージーラン";
+"record.filter.tempo" = "テンポ走";
+"record.filter.interval" = "インターバル";
+"record.filter.long_run" = "ロング走";
+"record.group.today" = "今日";
+"record.group.yesterday" = "昨日";
+"record.group.earlier_this_week" = "今週の以前";
+"record.group.last_week" = "先週";
+"record.group.older" = "以前";
+"record.group.run_count_format" = "%d回のラン";
+"record.group.total_km_format" = "合計 %.1f km";
+"record.group.month_group_format" = "%d年%d月";
+"weekly_plan_feedback.desc.issue_prefix" = "課題：";
+
+// MARK: - Phase Roadmap (Task 2/5)
+"phase_roadmap.title" = "トレーニングルート";
+"phase_roadmap.subtitle" = "%d フェーズ · %d 週";
+"phase_roadmap.subtitle_race_count" = "%d レース";
+"phase_roadmap.add_race" = "レース追加";
+"phase_roadmap.in_progress_badge" = "進行中 · 第 %d / %d 週";
+"phase_roadmap.completed_badge" = "✓ 完了";
+"phase_roadmap.focus_label" = "重点";
+"phase_roadmap.show_all_weeks" = "全 %d 週を表示 · あと %d 週";
+"phase_roadmap.collapse_weeks" = "折りたたむ · 今週付近のみ";
+"phase_roadmap.race_badge" = "レース";
+"phase_roadmap.main_race_label" = "メインレース";
+"phase_roadmap.target_time_prefix" = "目標 ";
+
+// MARK: - Training Detail View (PlannedSessionDetailView)
+"training.detail.title" = "トレーニング詳細";
+"training.detail.metric_distance" = "距離";
+"training.detail.metric_total_distance" = "総距離";
+"training.detail.metric_estimated_time" = "予想時間";
+"training.detail.metric_pace_variation" = "ペース変化";
+"training.detail.section_goal" = "トレーニング目標";
+"training.detail.section_structure" = "トレーニング構成";
+"training.detail.structure_subtitle" = "%d セグメント · %d 分";
+"training.detail.section_target_zone" = "目標ゾーン";
+"training.detail.section_supplementary" = "補助トレーニング";
+"training.detail.supplementary_subtitle" = "ランニング後に実施";
+"training.detail.reminder" = "リマインダー";
+"training.detail.what_is_type" = "%@ とは？";
+"training.detail.adjust_day" = "この日を調整";
+"training.detail.rest_with_desc" = "レスト：%@";
+
+// MARK: - Training Segment Labels
+"training.segment.sprint" = "スプリント";
+"training.segment.progression_label" = "3段階進歩：イージー → テンポ → ファスト";
+"training.segment.fast_finish_label" = "2段階：イージー → テンポ";
+"training.segment.lsd_single" = "ロング有酸素";
+"training.segment.easy_single" = "イージー有酸素";
+"training.segment.recovery_single" = "リカバリーJog";
+"training.segment.tempo_single" = "テンポ区間";
+"training.segment.threshold_single" = "閾値区間";
+"training.segment.warmup" = "ウォームアップ";
+"training.segment.cooldown" = "クールダウン";
+"training.segment.easy_pace" = "イージーペース";
+"training.segment.tempo_pace" = "テンポペース";
+"training.segment.accelerate" = "加速";
+"training.segment.tempo_finish" = "テンポフィニッシュ";
+
+// MARK: - Training Zone Pills
+"training.zone.sprint_pace" = "スプリントペース";
+"training.zone.recovery_pace" = "リカバリーペース";
+"training.zone.start_pace" = "開始ペース";
+"training.zone.target_pace" = "目標ペース";
+"training.zone.target_hr" = "目標心拍";
+"training.zone.rpe" = "主観的運動強度";
+"training.zone.rest_between" = "レスト";
+"training.zone.total_sets" = "総セット数";
+"training.zone.end_pace" = "終了ペース";
+"training.zone.estimated_time" = "予想時間";
+
+// MARK: - Training Type (swimming/elliptical/rowing)
+"training.type.swimming" = "水泳";
+"training.type.elliptical" = "エリプティカル";
+"training.type.rowing" = "ローイング";
+
+// MARK: - Short units and format strings used in PlannedSessionDetailView
+"training.minute_abbr" = "分";
+"training.detail.segment_count" = "%dセグメント";
+"training.detail.rest_seconds_jog" = "%d秒 ジョグ";
+"training.detail.rest_minutes_jog" = "%d分 ジョグ";
+
+// MARK: - Workout Tips
+"tip.lsd" = "60分以上を想定し、水分と栄養補給を持参することをお勧めします";
+"tip.interval" = "高強度日の後は十分な睡眠とタンパク質補給を心がけてください";
+"tip.progression" = "最初の3分の1はゆっくり始め、最後のセグメントに備えてエネルギーを残しておきましょう";
+"tip.fastFinish" = "ラストの加速前に水分・栄養補給を · 加速中は上半身をリラックスさせてください";

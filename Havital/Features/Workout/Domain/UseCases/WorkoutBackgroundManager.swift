@@ -133,18 +133,8 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
 
         print("當前數據來源設定: prefs=\(dataSourcePreference.rawValue), appState=\(appStateDataSource.rawValue)")
 
-        // 📊 Firebase 日誌：記錄 Observer 設置開始
-        Logger.firebase(
-            "設置 Workout Observer",
-            level: .info,
-            labels: ["module": "WorkoutBackgroundManager", "action": "setup_observer", "cloud_logging": "true"],
-            jsonPayload: [
-                "dataSource_userPrefs": dataSourcePreference.rawValue,
-                "dataSource_appState": appStateDataSource.rawValue,
-                "isAppleHealthUser": isAppleHealthUser,
-                "isObservingWorkouts": isObservingWorkouts
-            ]
-        )
+        // 本地進度 log（routine setup start — no cloud upload needed）
+        Logger.debug("[WorkoutBackgroundManager] 設置 Workout Observer (prefs=\(dataSourcePreference.rawValue), appState=\(appStateDataSource.rawValue), isAppleHealth=\(isAppleHealthUser), observing=\(isObservingWorkouts))")
 
         // 只有 Apple Health 用戶才需要啟動 HealthKit 觀察者
         guard isAppleHealthUser else {
@@ -294,20 +284,8 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
         let hasCompletedOnboarding = await AuthenticationViewModel.shared.hasCompletedOnboarding
         let isAuthenticated = await AuthenticationViewModel.shared.isAuthenticated
 
-        // 📊 Firebase 日誌：記錄上傳檢查開始的完整狀態
-        Logger.firebase(
-            "Workout 上傳檢查開始",
-            level: .info,
-            labels: ["module": "WorkoutBackgroundManager", "action": "check_upload", "cloud_logging": "true"],
-            jsonPayload: [
-                "dataSource_userPrefs": dataSourcePreference.rawValue,
-                "dataSource_appState": appStateDataSource.rawValue,
-                "hasCompletedOnboarding": hasCompletedOnboarding,
-                "isAuthenticated": isAuthenticated,
-                "isCurrentlyProcessing": isCurrentlyProcessing,
-                "lastUploadCheckTime": lastUploadCheckTime?.timeIntervalSince1970 ?? 0
-            ]
-        )
+        // 本地進度 log（routine check_upload start — no cloud upload needed）
+        Logger.debug("[WorkoutBackgroundManager] Workout 上傳檢查開始 (prefs=\(dataSourcePreference.rawValue), appState=\(appStateDataSource.rawValue), onboarding=\(hasCompletedOnboarding), authed=\(isAuthenticated), processing=\(isCurrentlyProcessing))")
 
         // 🔧 數據源判定：任一來源顯示 appleHealth 就視為 Apple Health 用戶
         // 避免 UserPreferencesManager cache 損壞導致回傳 .unbound

@@ -22,6 +22,9 @@ protocol AchievementRepository {
     /// 取所有 status == .inProgress 徽章
     func getInProgressBadges() -> [AchievementBadge]
 
+    /// 取所有 status == .unlocked 徽章，依 unlockedAt 由新到舊排序（展示徽章 picker 用）
+    func getUnlockedBadges() -> [AchievementBadge]
+
     /// 從快取裡找特定 badge by ID
     func findBadge(byId badgeId: String) -> AchievementBadge?
 }

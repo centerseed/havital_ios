@@ -39,6 +39,8 @@ class MockWorkoutRepository: WorkoutRepository {
     }
 
     var workoutsDidRefresh: AnyPublisher<Void, Never> { Empty().eraseToAnyPublisher() }
+    var workoutsPaginationDidUpdate: AnyPublisher<PaginationInfo, Never> { Empty().eraseToAnyPublisher() }
+    func getCachedPagination() -> PaginationInfo? { nil }
 
     func getWorkoutsInDateRange(startDate: Date, endDate: Date) -> [WorkoutV2] {
         getWorkoutsInDateRangeCallCount += 1
@@ -63,6 +65,13 @@ class MockWorkoutRepository: WorkoutRepository {
         getAllWorkoutsCallCount += 1
         return workoutsToReturn
     }
+
+    func getLatestWorkout() async throws -> WorkoutV2? {
+        if let error = errorToThrow { throw error }
+        return workoutsToReturn.sorted { $0.endDate > $1.endDate }.first
+    }
+
+    func ensureMonthLoaded(year: Int, month: Int) async {}
 
     // MARK: - Pagination Methods
 

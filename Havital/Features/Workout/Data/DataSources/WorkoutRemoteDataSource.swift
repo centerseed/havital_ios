@@ -26,6 +26,12 @@ class WorkoutRemoteDataSource {
     ///   - cursor: 分頁游標
     /// - Returns: 訓練列表
     func fetchWorkouts(pageSize: Int?, cursor: String?) async throws -> [WorkoutV2] {
+        try await fetchWorkoutsPage(pageSize: pageSize, cursor: cursor).workouts
+    }
+
+    /// 獲取訓練列表「整頁」回應（含後端真實分頁資訊 has_more / next_cursor）。
+    /// 與 fetchWorkouts 不同：保留 pagination，供雙軌緩存把分頁狀態一併存起來。
+    func fetchWorkoutsPage(pageSize: Int?, cursor: String?) async throws -> WorkoutListResponse {
         // 構建查詢參數
         var queryItems: [URLQueryItem] = []
         if let pageSize = pageSize {
@@ -37,12 +43,10 @@ class WorkoutRemoteDataSource {
 
         let path = URLBuilderHelper.buildPath("/v2/workouts", queryItems: queryItems)
 
-        Logger.debug("[WorkoutRemoteDataSource] fetchWorkouts - path: \(path)")
+        Logger.debug("[WorkoutRemoteDataSource] fetchWorkoutsPage - path: \(path)")
 
         let rawData = try await httpClient.request(path: path, method: .GET, body: nil)
-        let response = try ResponseProcessor.extractData(WorkoutListResponse.self, from: rawData, using: parser)
-
-        return response.workouts
+        return try ResponseProcessor.extractData(WorkoutListResponse.self, from: rawData, using: parser)
     }
 
     /// 獲取最近的訓練記錄

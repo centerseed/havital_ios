@@ -105,7 +105,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
         do {
             return try decoder.decode(PlanStatusV2Response.self, from: data)
         } catch {
-            Logger.debug("[TrainingPlanV2LocalDS] Failed to decode plan status, clearing cache")
+            Logger.trace("[TrainingPlanV2LocalDS] Failed to decode plan status, clearing cache")
             clearPlanStatus()
             return nil
         }
@@ -116,7 +116,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
             let data = try encoder.encode(status)
             defaults.set(data, forKey: Keys.planStatus)
             defaults.set(Date(), forKey: Keys.planStatus + Keys.timestampSuffix)
-            Logger.debug("[TrainingPlanV2LocalDS] Plan status saved to cache")
+            Logger.trace("[TrainingPlanV2LocalDS] Plan status saved to cache")
         } catch {
             Logger.error("[TrainingPlanV2LocalDS] Failed to encode plan status: \(error)")
         }
@@ -132,7 +132,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     func clearPlanStatus() {
         defaults.removeObject(forKey: Keys.planStatus)
         defaults.removeObject(forKey: Keys.planStatus + Keys.timestampSuffix)
-        Logger.debug("[TrainingPlanV2LocalDS] Plan status cache cleared")
+        Logger.trace("[TrainingPlanV2LocalDS] Plan status cache cleared")
     }
 
     // MARK: - Overview Cache
@@ -145,7 +145,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
         do {
             return try decoder.decode(PlanOverviewV2.self, from: data)
         } catch {
-            Logger.debug("[TrainingPlanV2LocalDS] Failed to decode overview, clearing cache")
+            Logger.trace("[TrainingPlanV2LocalDS] Failed to decode overview, clearing cache")
             clearOverview()
             return nil
         }
@@ -156,7 +156,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
             let data = try encoder.encode(overview)
             defaults.set(data, forKey: Keys.overview)
             defaults.set(Date(), forKey: Keys.overview + Keys.timestampSuffix)
-            Logger.debug("[TrainingPlanV2LocalDS] Overview saved to cache: \(overview.id)")
+            Logger.trace("[TrainingPlanV2LocalDS] Overview saved to cache: \(overview.id)")
         } catch {
             Logger.error("[TrainingPlanV2LocalDS] Failed to encode overview: \(error)")
         }
@@ -172,7 +172,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     func clearOverview() {
         defaults.removeObject(forKey: Keys.overview)
         defaults.removeObject(forKey: Keys.overview + Keys.timestampSuffix)
-        Logger.debug("[TrainingPlanV2LocalDS] Overview cache cleared")
+        Logger.trace("[TrainingPlanV2LocalDS] Overview cache cleared")
     }
 
     // MARK: - Weekly Plan Cache
@@ -186,7 +186,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
         do {
             return try decoder.decode(WeeklyPlanV2.self, from: data)
         } catch {
-            Logger.debug("[TrainingPlanV2LocalDS] Failed to decode weekly plan for week \(week), clearing cache")
+            Logger.trace("[TrainingPlanV2LocalDS] Failed to decode weekly plan for week \(week), clearing cache")
             clearWeeklyPlan(week: week)
             return nil
         }
@@ -198,7 +198,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
             let data = try encoder.encode(plan)
             defaults.set(data, forKey: key)
             defaults.set(Date(), forKey: key + Keys.timestampSuffix)
-            Logger.debug("[TrainingPlanV2LocalDS] Weekly plan saved to cache: week \(week)")
+            Logger.trace("[TrainingPlanV2LocalDS] Weekly plan saved to cache: week \(week)")
         } catch {
             Logger.error("[TrainingPlanV2LocalDS] Failed to encode weekly plan: \(error)")
         }
@@ -216,7 +216,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
         let key = Keys.weeklyPlanPrefix + "\(week)"
         defaults.removeObject(forKey: key)
         defaults.removeObject(forKey: key + Keys.timestampSuffix)
-        Logger.debug("[TrainingPlanV2LocalDS] Weekly plan cache cleared for week \(week)")
+        Logger.trace("[TrainingPlanV2LocalDS] Weekly plan cache cleared for week \(week)")
     }
 
     func clearAllWeeklyPlans() {
@@ -224,7 +224,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
         for week in 1...52 {
             clearWeeklyPlan(week: week)
         }
-        Logger.debug("[TrainingPlanV2LocalDS] All weekly plan caches cleared")
+        Logger.trace("[TrainingPlanV2LocalDS] All weekly plan caches cleared")
     }
 
     // MARK: - Weekly Summary Cache
@@ -238,7 +238,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
         do {
             return try decoder.decode(WeeklySummaryV2.self, from: data)
         } catch {
-            Logger.debug("[TrainingPlanV2LocalDS] Failed to decode weekly summary for week \(week), clearing cache")
+            Logger.trace("[TrainingPlanV2LocalDS] Failed to decode weekly summary for week \(week), clearing cache")
             clearWeeklySummary(week: week)
             return nil
         }
@@ -250,7 +250,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
             let data = try encoder.encode(summary)
             defaults.set(data, forKey: key)
             defaults.set(Date(), forKey: key + Keys.timestampSuffix)
-            Logger.debug("[TrainingPlanV2LocalDS] Weekly summary saved to cache: week \(week)")
+            Logger.trace("[TrainingPlanV2LocalDS] Weekly summary saved to cache: week \(week)")
         } catch {
             Logger.error("[TrainingPlanV2LocalDS] Failed to encode weekly summary: \(error)")
         }
@@ -268,7 +268,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
         let key = Keys.weeklySummaryPrefix + "\(week)"
         defaults.removeObject(forKey: key)
         defaults.removeObject(forKey: key + Keys.timestampSuffix)
-        Logger.debug("[TrainingPlanV2LocalDS] Weekly summary cache cleared for week \(week)")
+        Logger.trace("[TrainingPlanV2LocalDS] Weekly summary cache cleared for week \(week)")
     }
 
     func clearAllWeeklySummaries() {
@@ -276,7 +276,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
         for week in 1...52 {
             clearWeeklySummary(week: week)
         }
-        Logger.debug("[TrainingPlanV2LocalDS] All weekly summary caches cleared")
+        Logger.trace("[TrainingPlanV2LocalDS] All weekly summary caches cleared")
     }
 
     // MARK: - Weekly Preview Cache
@@ -290,7 +290,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
         do {
             return try decoder.decode(WeeklyPreviewV2.self, from: data)
         } catch {
-            Logger.debug("[TrainingPlanV2LocalDS] Failed to decode weekly preview for \(overviewId), clearing cache")
+            Logger.trace("[TrainingPlanV2LocalDS] Failed to decode weekly preview for \(overviewId), clearing cache")
             clearWeeklyPreview(overviewId: overviewId)
             return nil
         }
@@ -302,7 +302,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
             let data = try encoder.encode(preview)
             defaults.set(data, forKey: key)
             defaults.set(Date(), forKey: key + Keys.timestampSuffix)
-            Logger.debug("[TrainingPlanV2LocalDS] Weekly preview saved to cache: \(overviewId)")
+            Logger.trace("[TrainingPlanV2LocalDS] Weekly preview saved to cache: \(overviewId)")
         } catch {
             Logger.error("[TrainingPlanV2LocalDS] Failed to encode weekly preview: \(error)")
         }
@@ -320,7 +320,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
         let key = Keys.weeklyPreviewPrefix + overviewId
         defaults.removeObject(forKey: key)
         defaults.removeObject(forKey: key + Keys.timestampSuffix)
-        Logger.debug("[TrainingPlanV2LocalDS] Weekly preview cache cleared for \(overviewId)")
+        Logger.trace("[TrainingPlanV2LocalDS] Weekly preview cache cleared for \(overviewId)")
     }
 
     // MARK: - Utility
@@ -353,7 +353,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
         cooldownLock.lock()
         cooldownTimestamps[resource] = now
         cooldownLock.unlock()
-        Logger.debug("[TrainingPlanV2LocalDS] Cooldown marked for \(resource)")
+        Logger.trace("[TrainingPlanV2LocalDS] Cooldown marked for \(resource)")
     }
 
     /// Clears the cooldown for a resource, so the next cache-hit will trigger a refresh.
@@ -361,7 +361,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
         cooldownLock.lock()
         cooldownTimestamps.removeValue(forKey: resource)
         cooldownLock.unlock()
-        Logger.debug("[TrainingPlanV2LocalDS] Cooldown invalidated for \(resource)")
+        Logger.trace("[TrainingPlanV2LocalDS] Cooldown invalidated for \(resource)")
     }
 
     private func clearAllWeeklyPreviews() {

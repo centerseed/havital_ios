@@ -368,9 +368,12 @@ extension DayDetail {
         case "threshold":
             return .threshold
         case "interval":
-            // 後端會將 norwegian_4x4、yasso_800 等正規化為 "interval"，原始類型存於 interval.variant
+            // 後端會將 norwegian_4x4、yasso_800 等正規化為 "interval"，原始類型存於 interval.variant。
+            // variant 可能是複合格式 "template_id:variation"（例如 "norwegian_4x4:standard"），
+            // 取 ":" 前的主型態比對；未知 variant 回退通用 .interval。
             if let variant = activity.interval?.variant {
-                switch variant.lowercased() {
+                let base = variant.lowercased().split(separator: ":").first.map(String.init) ?? variant.lowercased()
+                switch base {
                 case "norwegian_4x4": return .norwegian4x4
                 case "yasso_800": return .yasso800
                 case "strides": return .strides

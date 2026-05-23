@@ -92,7 +92,7 @@ class CacheEventBus {
             }
             eventSubscriptions[eventKey]?.append(handler)
         }
-        Logger.debug("[CacheEventBus] 訂閱事件: \(eventKey)")
+        Logger.trace("[CacheEventBus] 訂閱事件: \(eventKey)")
     }
 
     /// 基於標識符的全局事件訂閱
@@ -103,7 +103,7 @@ class CacheEventBus {
         stateQueue.sync {
             identifierBasedSubscriptions[identifier] = handler
         }
-        Logger.debug("[CacheEventBus] 訂閱者註冊: \(identifier)")
+        Logger.trace("[CacheEventBus] 訂閱者註冊: \(identifier)")
     }
 
     /// 取消訂閱
@@ -112,7 +112,7 @@ class CacheEventBus {
         stateQueue.sync {
             identifierBasedSubscriptions.removeValue(forKey: identifier)
         }
-        Logger.debug("[CacheEventBus] 訂閱者取消註冊: \(identifier)")
+        Logger.trace("[CacheEventBus] 訂閱者取消註冊: \(identifier)")
     }
 
     /// 通知事件訂閱者
@@ -207,7 +207,16 @@ class CacheEventBus {
         case .targets:
             return ["targets", "training_plan", "TargetManager"] // 目標影響訓練計劃
         case .user:
-            return Set(cacheables.map { $0.cacheIdentifier }) // 用戶變更影響所有
+            // 用戶 PROFILE 變更（含每次啟動 auth 狀態變化）會發此事件。清 profile 衍生的快取，
+            // 但「保留」計畫/運動/週總結的雙軌快取——否則每次啟動都清光 → 課表 relaunch 卡 loading。
+            // 跨用戶污染由換帳號時的 .userLogout（清光全部，見 LoginViewModel）防護，此處毋須清計畫/運動。
+            // 只保留「課表」雙軌快取（修 relaunch 卡 loading）。
+            // Workout 快取「仍清」——它每次啟動清掉重抓才正確；保留會讓 loadMore 的 append 累積/重複，
+            // 造成週里程（getAllWorkoutsAsync 加總）膨脹。換帳號由 .userLogout 清光全部。
+            let preservedCaches: Set<String> = [
+                "TrainingPlanV2LocalDataSource"
+            ]
+            return Set(cacheables.map { $0.cacheIdentifier }).subtracting(preservedCaches)
         case .healthData:
             return ["HealthDataUploadManager", "hrv_cache", "HRVManager", "health_data"] // 健康數據及相關緩存
         case .hrv:

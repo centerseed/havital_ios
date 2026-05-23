@@ -94,12 +94,16 @@ final class WorkoutDetailUnitConversionTests: XCTestCase {
 private final class WorkoutDetailUnitConversionMockRepository: WorkoutRepository {
     let refreshSubject = PassthroughSubject<Void, Never>()
     var workoutsDidRefresh: AnyPublisher<Void, Never> { refreshSubject.eraseToAnyPublisher() }
+    var workoutsPaginationDidUpdate: AnyPublisher<PaginationInfo, Never> { Empty().eraseToAnyPublisher() }
+    func getCachedPagination() -> PaginationInfo? { nil }
     var workoutsDidUpdateNotification: Notification.Name { Notification.Name("WorkoutDetailUnitConversionMockRepository") }
 
     func getWorkoutsInDateRange(startDate: Date, endDate: Date) -> [WorkoutV2] { [] }
     func getAllWorkouts() -> [WorkoutV2] { [] }
     func getWorkoutsInDateRangeAsync(startDate: Date, endDate: Date) async -> [WorkoutV2] { [] }
     func getAllWorkoutsAsync() async -> [WorkoutV2] { [] }
+    func getLatestWorkout() async throws -> WorkoutV2? { nil }
+    func ensureMonthLoaded(year: Int, month: Int) async {}
     func getWorkouts(limit: Int?, offset: Int?) async throws -> [WorkoutV2] { [] }
     func refreshWorkouts() async throws -> [WorkoutV2] { [] }
     func loadInitialWorkouts(pageSize: Int) async throws -> WorkoutListResponse { emptyResponse(pageSize: pageSize) }

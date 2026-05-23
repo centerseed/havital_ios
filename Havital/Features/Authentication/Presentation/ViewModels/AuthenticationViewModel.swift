@@ -31,6 +31,11 @@ final class AuthenticationViewModel: ObservableObject {
     /// Re-onboarding mode flag
     @Published var isReonboardingMode: Bool = false
 
+    /// True while authenticated but onboarding status not yet confirmed from backend.
+    /// Gates ContentView so already-onboarded users don't flash the onboarding screen
+    /// right after login (when cached hasCompletedOnboarding is still false).
+    @Published var isResolvingOnboardingStatus: Bool = false
+
     /// Loading state for auth operations
     @Published var isLoading: Bool = false
 
@@ -140,6 +145,11 @@ final class AuthenticationViewModel: ObservableObject {
 
         guard isAuthenticated else { return }
 
+        // 已登入但快取 onboarding 狀態尚未確認 → 標記解析中，避免 ContentView 閃 onboarding。
+        if !hasCompletedOnboarding {
+            isResolvingOnboardingStatus = true
+        }
+
         // Cold start should reconcile cached/demo session state with backend as early as possible.
         Task { @MainActor [weak self] in
             guard let self = self else { return }
@@ -149,6 +159,7 @@ final class AuthenticationViewModel: ObservableObject {
                 UserDefaults.standard.set(user.hasCompletedOnboarding, forKey: "hasCompletedOnboarding")
                 Logger.debug("[AuthViewModel] Refreshed initial onboarding status: \(user.hasCompletedOnboarding)")
             }
+            self.isResolvingOnboardingStatus = false
         }
     }
 
@@ -162,6 +173,11 @@ final class AuthenticationViewModel: ObservableObject {
 
                 // Update authentication status using AuthSessionRepository (supports both Firebase and Demo mode)
                 self.isAuthenticated = self.authSessionRepository.isAuthenticated()
+
+                // 剛變成已登入但 onboarding 狀態未確認 → 標記解析中，避免閃 onboarding。
+                if self.isAuthenticated && !self.hasCompletedOnboarding {
+                    self.isResolvingOnboardingStatus = true
+                }
 
                 // Fetch user data if authenticated
                 let targetRevenueCatUserID: String?
@@ -205,21 +221,26 @@ final class AuthenticationViewModel: ObservableObject {
             // Update authentication status (supports both Firebase and Demo mode)
             await MainActor.run {
                 self.isAuthenticated = self.authSessionRepository.isAuthenticated()
+                // 剛登入但 onboarding 狀態未確認 → 標記解析中，避免閃 onboarding。
+                if self.isAuthenticated && !self.hasCompletedOnboarding {
+                    self.isResolvingOnboardingStatus = true
+                }
                 Logger.debug("[AuthViewModel] Updated isAuthenticated: \(self.isAuthenticated)")
             }
 
             // Fetch latest user data from backend
             await self.fetchCurrentUserData()
 
-            // Update onboarding status from user data
-            if let user = self.currentUser {
-                await MainActor.run {
+            // Update onboarding status from user data（無論成功與否都重置解析旗標）
+            await MainActor.run {
+                if let user = self.currentUser {
                     let forceOnboardingInUITest = CommandLine.arguments.contains("-resetOnboarding")
                     let resolvedOnboardingStatus = forceOnboardingInUITest ? false : user.hasCompletedOnboarding
                     self.hasCompletedOnboarding = resolvedOnboardingStatus
                     UserDefaults.standard.set(resolvedOnboardingStatus, forKey: "hasCompletedOnboarding")
                     Logger.debug("[AuthViewModel] ✅ Onboarding status updated: \(resolvedOnboardingStatus)")
                 }
+                self.isResolvingOnboardingStatus = false
             }
 
             self.scheduleRevenueCatIdentitySync(for: self.currentUser?.uid)
@@ -249,6 +270,7 @@ final class AuthenticationViewModel: ObservableObject {
                 self.isAuthenticated = false
                 self.currentUser = nil
                 self.hasCompletedOnboarding = false
+                self.isResolvingOnboardingStatus = false
             }
 
             self.scheduleRevenueCatIdentitySync(for: nil)
@@ -309,6 +331,7 @@ final class AuthenticationViewModel: ObservableObject {
             currentUser = nil
             hasCompletedOnboarding = false
             isReonboardingMode = false
+            isResolvingOnboardingStatus = false
             isLoading = false
 
             // Step 3: Nuclear clear — remove entire UserDefaults domain

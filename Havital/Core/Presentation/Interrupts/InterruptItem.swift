@@ -15,6 +15,7 @@ enum InterruptType: Hashable {
     case announcement
     case dataSourceBindingReminder
     case subscriptionReminder
+    case workoutRecap
     case otherNudge
 
     var policy: InterruptPolicy {
@@ -29,6 +30,8 @@ enum InterruptType: Hashable {
             return InterruptPolicy(priority: .dataSourceBindingReminder, presentationStyle: .overlay)
         case .subscriptionReminder:
             return InterruptPolicy(priority: .paywall, presentationStyle: .alert)
+        case .workoutRecap:
+            return InterruptPolicy(priority: .workoutRecap, presentationStyle: .sheet)
         case .otherNudge:
             return InterruptPolicy(priority: .otherNudge, presentationStyle: .alert)
         }
@@ -41,6 +44,7 @@ struct InterruptItem: Identifiable {
         case announcement(Announcement)
         case dataSourceBindingReminder
         case subscriptionReminder(SubscriptionReminder)
+        case workoutRecap(WorkoutRecapContent)
     }
 
     static let dataSourceBindingReminderStableID = "interrupt.data_source_binding_reminder"
@@ -74,6 +78,11 @@ struct InterruptItem: Identifiable {
     var subscriptionReminder: SubscriptionReminder? {
         guard case .subscriptionReminder(let reminder) = payload else { return nil }
         return reminder
+    }
+
+    var workoutRecapContent: WorkoutRecapContent? {
+        guard case .workoutRecap(let content) = payload else { return nil }
+        return content
     }
 
     var debugLabel: String {
@@ -147,6 +156,20 @@ struct InterruptItem: Identifiable {
             stableID: "interrupt.subscription_reminder.\(reminder.id)",
             type: .subscriptionReminder,
             payload: .subscriptionReminder(reminder),
+            primaryAction: nil,
+            onPresented: nil,
+            onDismiss: onDismiss
+        )
+    }
+
+    static func workoutRecap(
+        _ content: WorkoutRecapContent,
+        onDismiss: ((InterruptDismissReason) -> Void)? = nil
+    ) -> InterruptItem {
+        InterruptItem(
+            stableID: "interrupt.workout_recap.\(content.id)",
+            type: .workoutRecap,
+            payload: .workoutRecap(content),
             primaryAction: nil,
             onPresented: nil,
             onDismiss: onDismiss

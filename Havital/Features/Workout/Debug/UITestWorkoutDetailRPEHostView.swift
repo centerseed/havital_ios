@@ -12,6 +12,8 @@ final class UITestWorkoutDetailRPEMockRepository: ObservableObject, WorkoutRepos
     @Published private(set) var updateCallCount = 0
 
     var workoutsDidRefresh: AnyPublisher<Void, Never> { subject.eraseToAnyPublisher() }
+    var workoutsPaginationDidUpdate: AnyPublisher<PaginationInfo, Never> { Empty().eraseToAnyPublisher() }
+    func getCachedPagination() -> PaginationInfo? { nil }
     var workoutsDidUpdateNotification: Notification.Name { Notification.Name("UITestWorkoutDetailRPEMockRepositoryDidUpdate") }
 
     init(initialRPE: Int?) {
@@ -23,6 +25,8 @@ final class UITestWorkoutDetailRPEMockRepository: ObservableObject, WorkoutRepos
     func getAllWorkouts() -> [WorkoutV2] { [workout] }
     func getWorkoutsInDateRangeAsync(startDate: Date, endDate: Date) async -> [WorkoutV2] { [workout] }
     func getAllWorkoutsAsync() async -> [WorkoutV2] { [workout] }
+    func getLatestWorkout() async throws -> WorkoutV2? { workout }
+    func ensureMonthLoaded(year: Int, month: Int) async {}
     func getWorkouts(limit: Int?, offset: Int?) async throws -> [WorkoutV2] { [workout] }
     func refreshWorkouts() async throws -> [WorkoutV2] { [workout] }
     func loadInitialWorkouts(pageSize: Int) async throws -> WorkoutListResponse {

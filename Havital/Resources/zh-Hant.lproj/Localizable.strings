@@ -380,6 +380,14 @@
 "training.type.tempo" = "節奏跑";
 "training.type.interval" = "間歇訓練";
 "training.type.paceriz_interval" = "間歇";
+"training.type._generic_interval" = "間歇";
+"training.race_countdown.hide" = "隱藏賽事倒數";
+"profile.race_countdown.title" = "賽事倒數卡片";
+"profile.race_countdown.always" = "一律顯示";
+"profile.race_countdown.auto" = "賽前顯示";
+"profile.race_countdown.off" = "不顯示";
+"profile.race_countdown.days_before" = "賽前顯示天數";
+"profile.race_countdown.days_value" = "%d 天";
 "interval.static_rest" = "原地休息";
 "training.type.long" = "長距離跑";
 "training.type.recovery" = "恢復跑";
@@ -1168,6 +1176,12 @@
 "training_plan.weekly_volume_and_intensity" = "週跑量和訓練強度";
 "training_plan.week_target" = "本週目標";
 "training_plan.training_calendar" = "訓練日曆";
+"training_plan.weekly_badge_placeholder_name" = "節奏建立者";
+"training_plan.weekly_badge_coming_soon" = "新解鎖";
+"training_plan.weekly_badge_in_progress" = "解鎖中";
+"training_plan.intensity_legend_low" = "輕鬆";
+"training_plan.intensity_legend_medium" = "中等";
+"training_plan.intensity_legend_high" = "強度";
 "training_plan.monthly_total_distance" = "月總距離";
 "training_plan.average_pace" = "平均配速";
 "training_calendar.view_mode" = "顯示模式";
@@ -1184,6 +1198,10 @@
 "training_calendar.recent_trend" = "近月趨勢";
 "training_calendar.last_six_months" = "近 6 個月";
 "training_plan.today" = "今日";
+"training_plan.active_recovery_day" = "主動恢復日";
+"training_plan.start_today_workout" = "開始今日訓練";
+"rest_day.info_title" = "主動恢復日";
+"rest_day.info_body" = "今天是休息日。可以做輕量伸展、走路或瑜伽。完全恢復對下一次訓練很重要。";
 "training_plan.tip" = "小提示：%@";
 "training_plan.segment" = "第 %d 段";
 "training_plan.heart_rate_zone" = "心率區間：%@";
@@ -1640,6 +1658,28 @@
 // MARK: - Workout Detail
 "workout.share_card" = "分享訓練成果";
 "workout.share_screenshot" = "分享長截圖";
+"workout.share.title" = "分享訓練成果";
+"workout.share.action" = "分享這次成就";
+"workout.share.card.completed_format" = "完成 %@";
+"workout.share.card.completed_default" = "訓練完成";
+"workout.share.card.metric_time" = "時間";
+"workout.share.card.metric_pace" = "配速";
+"workout.share.card.edit_title" = "編輯標題";
+"workout.share.card.add_photo" = "加入照片";
+"workout.share.card.change_photo" = "換照片";
+"workout.reflection.title" = "訓練回顧";
+"workout.reflection.saveError" = "儲存失敗，請重試";
+"workout.rpe.prompt" = "今天感覺如何？";
+"workout.rpe.selected" = "今天的體感 %d/10";
+"workout.rpe.feedback.low" = "輕巧地完成 ✓";
+"workout.rpe.feedback.medium" = "節奏掌握得不錯 ✓";
+"workout.rpe.feedback.high" = "紮實的一次 ✓";
+"workout.rpe.feedback.max" = "硬仗打完了 💪";
+"workout.diary.promptHint" = "可以從這裡開始 ↓";
+"workout.diary.promptTip" = "點主題會自動帶起頭";
+"workout.diary.placeholder" = "寫下這次訓練的感受⋯ 一句話也算。";
+"workout.diary.privacy" = "這份心得只有你看得到";
+"workout.defaultType" = "訓練";
 
 // MARK: - Data Source
 "datasource.strava_subtitle" = "同步您的 Strava 活動記錄";
@@ -2237,6 +2277,7 @@
 "onboarding.cross_training_enabled" = "支援交叉訓練";
 
 /* Training Weeks Setup */
+"onboarding.beginner_target_distance" = "目標距離";
 "onboarding.training_weeks_title" = "訓練週數";
 "onboarding.training_weeks_description" = "您計劃訓練幾週？";
 "onboarding.training_weeks_nav_title" = "訓練週數";
@@ -2317,6 +2358,12 @@
 "training.race_distance" = "賽事距離";
 "training.target_pace" = "目標配速";
 "training.target_time" = "目標時間";
+"training.overview.edit" = "編輯";
+"training.overview.days_unit" = "天";
+"training.overview.phase_week_chip" = "%@ · 第 %d / %d 週";
+"training.overview.beginner_subtitle" = "從零開始，建立穩定跑步基礎";
+"training.overview.maintenance_subtitle" = "保持訓練節奏，維持體能狀態";
+"training.overview.key_milestones" = "關鍵里程碑";
 "training.training_weeks" = "訓練週數";
 "training.race_evaluation" = "賽事評估";
 "training.target_evaluation" = "目標評估";
@@ -2931,6 +2978,11 @@
 "achievements.share.sensitive_excluded" = "路線、GPS、心率、睡眠、傷痛、workout ID、email、uid 與完整課表細節都不會包含。";
 "achievements.share.privacy_footer" = "Paceriz 訓練成果";
 "achievements.share.badge_label" = "徽章";
+"achievements.share.card.chapter_label" = "章節 · %@";
+"achievements.share.stat.total_distance" = "累積里程";
+"achievements.share.stat.completed_weeks" = "完成週數";
+"achievements.share.stat.unlocked_badges" = "解鎖徽章";
+"achievements.share.stat.weeks_value" = "%d 週";
 "achievements.share.tag_new_pb" = "新 PB";
 "achievements.share.tag_new_badge" = "新徽章";
 "achievements.share.tag_pb_and_badge" = "新 PB + 徽章";
@@ -3269,3 +3321,157 @@
 "edit_schedule.intensity_training_section" = "強度訓練";
 "edit_schedule.long_distance_training_section" = "長距離訓練";
 "edit_schedule.other_training_section" = "其他";
+
+// MARK: - B2 Race Header
+"training_plan.race_countdown_days" = "天";
+"training_plan.race_countdown_label" = "倒數";
+"training_plan.race_readiness_label" = "準備度";
+"training_plan.race_gap_within_target" = "達標範圍";
+"training_plan.race_gap_diff" = "差 %@";
+
+// MARK: - B3 Training Mode Header
+"training_mode.starter_label" = "新手訓練";
+"training_mode.maintain_label" = "維持訓練";
+"training_mode.starter_tagline" = "建立規律的有氧基礎";
+"training_mode.maintain_tagline" = "保持體能、避免退步";
+"training_mode.streak_label" = "連續訓練";
+"training_mode.monthly_km_label" = "本月里程";
+"training_mode.readiness_label" = "就緒指數";
+"training_mode.week_number" = "第 %d 週";
+
+// MARK: - Weekly Plan Feedback
+"weekly_plan_feedback.title" = "這份課表如何？";
+"weekly_plan_feedback.rating.bad" = "不太好";
+"weekly_plan_feedback.rating.fine" = "還可以";
+"weekly_plan_feedback.rating.good" = "很好";
+"weekly_plan_feedback.reasons_prompt" = "哪裡可以更好？（可複選）";
+"weekly_plan_feedback.reason.mileage_too_high" = "跑量太多";
+"weekly_plan_feedback.reason.mileage_too_low" = "跑量太少";
+"weekly_plan_feedback.reason.intensity_too_high" = "強度太高";
+"weekly_plan_feedback.reason.intensity_too_low" = "強度太低";
+"weekly_plan_feedback.reason.too_tiring" = "太累 / 負荷過重";
+"weekly_plan_feedback.reason.too_easy" = "太輕鬆";
+"weekly_plan_feedback.reason.monotonous" = "課表太單調";
+"weekly_plan_feedback.submit" = "送出回報";
+"weekly_plan_feedback.submitting" = "送出中…";
+"weekly_plan_feedback.error" = "送出失敗，請稍後再試";
+"weekly_plan_feedback.thanks" = "感謝你的回饋！我們會用來調整課表。";
+"weekly_plan_feedback.desc.rating_prefix" = "課表回饋：";
+
+// MARK: - Achievements UI (PersonalAchievementsView)
+"achievements.stats_banner.unlocked_label" = "徽章已解鎖";
+"achievements.stats_banner.pb_label" = "PB 紀錄";
+"achievements.stats_banner.streak_label" = "連續訓練";
+"achievements.hero_card.latest_unlock" = "✨ 最新解鎖";
+"achievements.hero_card.share" = "分享";
+"achievements.hero_card.pin" = "釘選";
+"achievements.hero_card.unpin" = "取消釘選";
+"achievements.hero_card.next_target" = "🎯 下一個目標";
+"achievements.hero_card.view_all_tracks" = "看全部主線";
+"achievements.hero_card.remaining" = "還差";
+"achievements.pb_card.section_title" = "個人最佳";
+"achievements.pb_card.set_count_format" = "%d / 4 已創下";
+"achievements.pb_card.card_title" = "個人最佳紀錄";
+"achievements.pb_card.view_all" = "查看全部";
+"achievements.pb_card.no_pb" = "還沒有個人最佳紀錄";
+"achievements.pb_card.no_pb_hint" = "完成第一次計時跑就能創下 PB";
+"achievements.pb_card.more_distances_format" = "+%d 個其他距離紀錄";
+"achievements.badge_collection.title" = "徽章收藏";
+"achievements.badge_collection.unlocked_count_format" = "%d/%d 已解鎖";
+"achievements.badge_collection.view_more" = "看更多";
+"achievements.badge_tile.insufficient_data" = "資料不足";
+"achievements.badge_tile.locked" = "尚未解鎖";
+"achievements.tracks.title" = "成就主線";
+"achievements.tracks.empty" = "尚無主線資料";
+
+// MARK: - Training Record Filter & Groups
+"record.filter.all" = "全部";
+"record.filter.easy_run" = "輕鬆跑";
+"record.filter.tempo" = "節奏跑";
+"record.filter.interval" = "間歇";
+"record.filter.long_run" = "長距離";
+"record.group.today" = "今天";
+"record.group.yesterday" = "昨天";
+"record.group.earlier_this_week" = "本週稍早";
+"record.group.last_week" = "上週";
+"record.group.older" = "更早";
+"record.group.run_count_format" = "%d 次跑步";
+"record.group.total_km_format" = "共 %.1f km";
+"record.group.month_group_format" = "%d年%d月";
+"weekly_plan_feedback.desc.issue_prefix" = "問題：";
+
+// MARK: - Phase Roadmap (Task 2/5)
+"phase_roadmap.title" = "計畫路線";
+"phase_roadmap.subtitle" = "%d 個階段 · %d 週";
+"phase_roadmap.subtitle_race_count" = "%d 場比賽";
+"phase_roadmap.add_race" = "加賽事";
+"phase_roadmap.in_progress_badge" = "進行中 · 第 %d / %d 週";
+"phase_roadmap.completed_badge" = "✓ 已完成";
+"phase_roadmap.focus_label" = "重點";
+"phase_roadmap.show_all_weeks" = "顯示全部 %d 週 · 還有 %d 週";
+"phase_roadmap.collapse_weeks" = "收起 · 只看本週附近";
+"phase_roadmap.race_badge" = "賽";
+"phase_roadmap.main_race_label" = "主賽事";
+"phase_roadmap.target_time_prefix" = "目標 ";
+
+// MARK: - Training Detail View (PlannedSessionDetailView)
+"training.detail.title" = "訓練詳情";
+"training.detail.metric_distance" = "距離";
+"training.detail.metric_total_distance" = "總距離";
+"training.detail.metric_estimated_time" = "預計時間";
+"training.detail.metric_pace_variation" = "配速變化";
+"training.detail.section_goal" = "本次訓練目標";
+"training.detail.section_structure" = "訓練結構";
+"training.detail.structure_subtitle" = "%d 段 · %d 分鐘";
+"training.detail.section_target_zone" = "目標區間";
+"training.detail.section_supplementary" = "補充訓練";
+"training.detail.supplementary_subtitle" = "跑後進行";
+"training.detail.reminder" = "提醒";
+"training.detail.what_is_type" = "什麼是 %@？";
+"training.detail.adjust_day" = "調整這一天";
+"training.detail.rest_with_desc" = "組間休息：%@";
+
+// MARK: - Training Segment Labels
+"training.segment.sprint" = "衝刺";
+"training.segment.progression_label" = "三段進階：輕 → 節奏 → 快";
+"training.segment.fast_finish_label" = "二段式：輕鬆 → 節奏";
+"training.segment.lsd_single" = "長距離有氧";
+"training.segment.easy_single" = "輕鬆有氧";
+"training.segment.recovery_single" = "恢復慢跑";
+"training.segment.tempo_single" = "節奏跑段";
+"training.segment.threshold_single" = "閾值段";
+"training.segment.warmup" = "暖身";
+"training.segment.cooldown" = "緩和";
+"training.segment.easy_pace" = "輕鬆配速";
+"training.segment.tempo_pace" = "節奏配速";
+"training.segment.accelerate" = "加速";
+"training.segment.tempo_finish" = "節奏跑收尾";
+
+// MARK: - Training Zone Pills
+"training.zone.sprint_pace" = "衝刺配速";
+"training.zone.recovery_pace" = "恢復配速";
+"training.zone.start_pace" = "起始配速";
+"training.zone.target_pace" = "目標配速";
+"training.zone.target_hr" = "目標心率";
+"training.zone.rpe" = "體感";
+"training.zone.rest_between" = "組間休息";
+"training.zone.total_sets" = "總組數";
+"training.zone.end_pace" = "結束配速";
+"training.zone.estimated_time" = "預估時間";
+
+// MARK: - Training Type (swimming/elliptical/rowing not in existing keys)
+"training.type.swimming" = "游泳";
+"training.type.elliptical" = "橢圓機";
+"training.type.rowing" = "划船";
+
+// MARK: - Short units and format strings used in PlannedSessionDetailView
+"training.minute_abbr" = "分";
+"training.detail.segment_count" = "%d 段";
+"training.detail.rest_seconds_jog" = "%d秒 慢跑";
+"training.detail.rest_minutes_jog" = "%d分 慢跑";
+
+// MARK: - Workout Tips
+"tip.lsd" = "預計超過 60 分鐘，建議攜帶水分與能量補給";
+"tip.interval" = "高強度日後請安排足夠睡眠與蛋白質補充";
+"tip.progression" = "前三分之一不要起太快，預留體力給最後一段";
+"tip.fastFinish" = "末段交接前補水補給 · 加速時保持上半身放鬆";

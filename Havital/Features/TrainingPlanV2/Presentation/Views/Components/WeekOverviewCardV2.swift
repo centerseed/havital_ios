@@ -1,5 +1,15 @@
 import SwiftUI
 
+// MARK: - PACERIZ REDESIGN 2026-05
+// WeekOverviewCardV2 has been fully redesigned to match new VolumeIntensityCard layout.
+// Removed: circular progress ring (ZStack with Circle), CompactIntensityBarV2.
+// Added: hero row (badge + distance + intensity bar + dot legend) + flat action buttons.
+// Phase B: badge hero now driven by AchievementRepository via TrainingPlanV2ViewModel.
+//   - any badge (any status) → real badge image colorful + "新解鎖" chip
+//   - nil                    → PRPlaceholderBadge fallback (no crash)
+// Note: grayscale + "解鎖中" chip intentionally removed per 2026-05 UX decision.
+// WeekTargetDetailViewV2 struct is preserved unchanged at the bottom of this file.
+
 /// V2 週總覽卡片 - 顯示本週跑量和強度分配
 struct WeekOverviewCardV2: View {
     var viewModel: TrainingPlanV2ViewModel
@@ -8,6 +18,7 @@ struct WeekOverviewCardV2: View {
     let plan: WeeklyPlanV2
     @State private var showWeekTargetDetail = false
     @State private var showTrainingCalendar = false
+    @State private var showBadgePicker = false
 
     // ✅ 從 intensityTotalMinutes 提取強度目標（分鐘）
     private var lowIntensityTarget: Int {
@@ -32,162 +43,197 @@ struct WeekOverviewCardV2: View {
         return min(viewModel.loader.currentWeekDistance / plan.totalDistance, 1.0)
     }
 
+    // 展示徽章是否為「最近 1 天內解鎖」→ 決定是否顯示 NEW chip
+    private var isDisplayBadgeNew: Bool {
+        guard let badge = viewModel.displayBadge,
+              badge.status == .unlocked,
+              let raw = badge.unlockedAt,
+              let date = Self.parseUnlockedAt(raw) else { return false }
+        let oneDay: TimeInterval = 24 * 60 * 60
+        return Date().timeIntervalSince(date) <= oneDay
+    }
+
+    private static func parseUnlockedAt(_ raw: String) -> Date? {
+        let trimmed = raw.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return nil }
+        let withFraction = ISO8601DateFormatter()
+        withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let d = withFraction.date(from: trimmed) { return d }
+        let noFraction = ISO8601DateFormatter()
+        noFraction.formatOptions = [.withInternetDateTime]
+        if let d = noFraction.date(from: trimmed) { return d }
+        let ymd = DateFormatter()
+        ymd.dateFormat = "yyyy-MM-dd"
+        ymd.locale = Locale(identifier: "en_US_POSIX")
+        ymd.timeZone = TimeZone(identifier: "UTC")
+        return ymd.date(from: String(trimmed.prefix(10)))
+    }
+
+    // Week range string derived from plan day dates (e.g. "5/11 – 5/17")
+    private var weekRangeText: String? {
+        guard let startDate = viewModel.getDate(for: 1),
+              let endDate = viewModel.getDate(for: 7) else { return nil }
+        let fmt = DateFormatter()
+        fmt.dateFormat = "M/d"
+        return "\(fmt.string(from: startDate)) – \(fmt.string(from: endDate))"
+    }
+
+    // Intensity actual values
+    private var actualLow: Int { Int(viewModel.loader.currentWeekIntensity.low) }
+    private var actualMedium: Int { Int(viewModel.loader.currentWeekIntensity.medium) }
+    private var actualHigh: Int { Int(viewModel.loader.currentWeekIntensity.high) }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            // 標題
-            HStack {
-                Image(systemName: "chart.pie.fill")
-                    .foregroundColor(.blue)
-                    .font(AppFont.headline())
 
-                Text(NSLocalizedString("training_plan.weekly_volume_and_intensity", comment: "週跑量和訓練強度"))
-                    .font(AppFont.headline())
-                    .foregroundColor(.primary)
-            }
+            // ── Hero row ─────────────────────────────────────────────────
+            HStack(alignment: .center, spacing: 14) {
 
-            // 上半部：圓形進度 + 可點擊項目
-            HStack(spacing: 0) {
-                Spacer()
+                // Left: badge hero (72×72)
+                // Phase B: real badge from AchievementRepository; fallback to PRPlaceholderBadge when nil.
+                // F6.d: status chip placed at top-left corner per design spec
+                ZStack(alignment: .topLeading) {
+                    AchievementBadgeHeroView(
+                        badge: viewModel.displayBadge,
+                        isUnlocked: viewModel.displayBadge?.status == .unlocked,
+                        size: 72
+                    )
 
-                // 左側：圓形週跑量進度
-                ZStack {
-                    Circle()
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 9)
-                        .frame(width: 90, height: 90)
+                    // "NEW" chip 只在展示徽章為「最近 7 天內解鎖」時顯示，
+                    // 避免釘選舊徽章 / 自動挑到舊徽章時永久掛 NEW（誤導）。
+                    if isDisplayBadgeNew {
+                        badgeStatusChip()
+                            .offset(x: -4, y: -4)
+                    }
+                }
+                .contentShape(Rectangle())
+                .onTapGesture { showBadgePicker = true }
+                .accessibilityIdentifier("v2.weekly.showcase_badge")
+                .accessibilityLabel("選擇展示徽章")
 
-                    Circle()
-                        .trim(from: 0, to: weekProgress)
-                        .stroke(
-                            Color.blue,
-                            style: StrokeStyle(lineWidth: 9, lineCap: .round)
-                        )
-                        .frame(width: 90, height: 90)
-                        .rotationEffect(.degrees(-90))
+                // Right: badge name + distance + intensity bar + dot legend
+                VStack(alignment: .leading, spacing: 6) {
 
-                    VStack(spacing: 2) {
-                        HStack(spacing: 1) {
-                            Text(String(format: "%.0f", unitManager.convertedDistance(viewModel.loader.currentWeekDistance)))
-                                .font(AppFont.systemScaled(size: 17, weight: .bold))
-                                .foregroundColor(.primary)
-                                .minimumScaleFactor(0.8)
-                                .lineLimit(1)
+                    // Badge name row — real badge name when available; fallback to placeholder key.
+                    // F1.c: removed title row per design jsx (no separate header)
+                    // F1.d: date chip moved here, right-aligned per design jsx L417-423
+                    HStack(spacing: 6) {
+                        // F5.a: 16pt + blueDeep color, fixedSize ensures full display without truncation
+                        Text(viewModel.displayBadge.map { NSLocalizedString($0.nameKey, comment: "") } ?? NSLocalizedString("training_plan.weekly_badge_placeholder_name", comment: "本週進度"))
+                            .font(AppFont.titleM())
+                            .foregroundColor(PacerizColor.blueDeep)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
 
-                            Text("/")
-                                .font(AppFont.systemScaled(size: 13))
-                                .foregroundColor(.secondary)
+                        Spacer()
+                    }
 
-                            Text(String(format: "%.0f", unitManager.convertedDistance(plan.totalDistance)))
-                                .font(AppFont.systemScaled(size: 13))
-                                .foregroundColor(.secondary)
-                                .minimumScaleFactor(0.8)
-                                .lineLimit(1)
-                        }
+                    // Distance row: big current + small "/ target unit" + spacer + percentage chip
+                    HStack(alignment: .lastTextBaseline, spacing: 4) {
+                        Text(String(format: "%.0f", unitManager.convertedDistance(viewModel.loader.currentWeekDistance)))
+                            .font(.system(size: 32, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
 
-                        Text(unitManager.currentUnitSystem.distanceSuffix)
-                            .font(AppFont.caption2())
+                        Text("/ \(String(format: "%.0f", unitManager.convertedDistance(plan.totalDistance))) \(unitManager.currentUnitSystem.distanceSuffix)")
+                            .font(AppFont.label())
                             .foregroundColor(.secondary)
+
+                        Spacer()
+
+                        let pct = plan.totalDistance > 0
+                            ? Int(min(viewModel.loader.currentWeekDistance / plan.totalDistance * 100, 100))
+                            : 0
+                        PRChip(
+                            text: "\(pct)%",
+                            fg: PacerizColor.blueDeep,
+                            bg: PacerizColor.blue12,
+                            fontSize: 13
+                        )
                     }
-                    .offset(y: 3)
+
+                    // Progress bar with intensity-coloured fill: filled portion = mileage
+                    // progress (currentWeekDistance / totalDistance), subdivided by the actual
+                    // low/medium/high split; the remaining distance shows as a grey track tail.
+                    intensityBarView
+
+                    // Dot legend — same horizontal layout as the bar above.
+                    intensityLegendView
                 }
-
-                Spacer()
-
-                // 右側：本週目標和訓練日曆按鈕
-                VStack(alignment: .leading, spacing: 10) {
-                    Button(action: {
-                        showWeekTargetDetail = true
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "target")
-                                .foregroundColor(.blue)
-                                .font(AppFont.subheadline())
-
-                            Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
-                                .font(AppFont.subheadline())
-                                .foregroundColor(.primary)
-
-                            Image(systemName: "chevron.right")
-                                .font(AppFont.caption2())
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 10)
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(8)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-
-                    // 訓練日曆
-                    Button(action: {
-                        showTrainingCalendar = true
-                    }) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "calendar")
-                                .foregroundColor(.green)
-                                .font(AppFont.subheadline())
-
-                            Text(NSLocalizedString("training_plan.training_calendar", comment: "Training Calendar"))
-                                .font(AppFont.subheadline())
-                                .foregroundColor(.primary)
-
-                            Image(systemName: "chevron.right")
-                                .font(AppFont.caption2())
-                                .foregroundColor(.secondary)
-                        }
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 10)
-                        .background(Color(UIColor.secondarySystemBackground))
-                        .cornerRadius(8)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
-
-                Spacer()
-            }
-
-            // 下半部：強度分布（使用從 plan.plan 提取的目標值）
-            HStack(spacing: 12) {
-                // 低強度
-                CompactIntensityBarV2(
-                    label: NSLocalizedString("intensity.low", comment: "Low"),
-                    intensityKey: "low",
-                    current: Int(viewModel.loader.currentWeekIntensity.low),
-                    target: lowIntensityTarget,
-                    color: .green
-                )
-
-                // 中強度
-                CompactIntensityBarV2(
-                    label: NSLocalizedString("intensity.medium", comment: "Medium"),
-                    intensityKey: "medium",
-                    current: Int(viewModel.loader.currentWeekIntensity.medium),
-                    target: mediumIntensityTarget,
-                    color: .orange
-                )
-
-                // 高強度
-                CompactIntensityBarV2(
-                    label: NSLocalizedString("intensity.high", comment: "High"),
-                    intensityKey: "high",
-                    current: Int(viewModel.loader.currentWeekIntensity.high),
-                    target: highIntensityTarget,
-                    color: .red
-                )
             }
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("v2.weekly.intensity_distribution")
+
+            Divider()
+
+            // ── Action button row ────────────────────────────────────────
+            HStack(spacing: 8) {
+                // 本週目標
+                Button(action: {
+                    showWeekTargetDetail = true
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "target")
+                            .font(AppFont.bodyStrong())
+                            .foregroundColor(PacerizColor.blue)
+
+                        Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
+                            .font(AppFont.bodyStrong())
+                            .foregroundColor(.primary)
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(AppFont.micro())
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 12)
+                    .frame(height: 44)
+                    .background(PacerizColor.blue12)
+                    .cornerRadius(PacerizRadius.inner)
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                // 訓練日曆
+                Button(action: {
+                    showTrainingCalendar = true
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "calendar")
+                            .font(AppFont.bodyStrong())
+                            .foregroundColor(PacerizColor.greenDeep)
+
+                        Text(NSLocalizedString("training_plan.training_calendar", comment: "Training Calendar"))
+                            .font(AppFont.bodyStrong())
+                            .foregroundColor(.primary)
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(AppFont.micro())
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 12)
+                    .frame(height: 44)
+                    .background(PacerizColor.green12)
+                    .cornerRadius(PacerizRadius.inner)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
         }
-        .padding()
+        .padding(14)
+        // MARK: PACERIZ REDESIGN 2026-05 — gradient "暈開" per design jsx L373
+        // F7: faster transition — 2-stop, white at 50%
+        // 2026-05-19: adaptive dark mode — white glow + secondarySystemGroupedBackground (consistent with DayCard)
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(UIColor.tertiarySystemBackground))
+            RoundedRectangle(cornerRadius: PacerizRadius.card)
+                .fill(adaptiveCardGradient(for: colorScheme))
                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
         .accessibilityIdentifier("v2.weekly.overview_card")
         .sheet(isPresented: $showWeekTargetDetail) {
             NavigationView {
                 WeekTargetDetailViewV2(
-                    purpose: plan.purpose,  // ✅ 直接使用 V1 欄位
+                    purpose: plan.purpose,
                     designReason: designReason
                 )
             }
@@ -197,91 +243,173 @@ struct WeekOverviewCardV2: View {
                 TrainingCalendarView()
             }
         }
+        .sheet(isPresented: $showBadgePicker) {
+            BadgeShowcasePickerView(
+                badges: viewModel.unlockedBadges,
+                selectedBadgeId: viewModel.showcaseBadgeId,
+                onSelect: { badgeId in viewModel.setShowcaseBadge(badgeId) }
+            )
+        }
+    }
+
+    // MARK: - Private Helpers
+
+    // Progress bar: filled width = week mileage progress; filled portion split by the
+    // actual low/medium/high intensity proportions; remaining distance shows as grey track.
+    private var intensityBarView: some View {
+        WeekProgressIntensityBar(progress: weekProgress, low: actualLow, medium: actualMedium, high: actualHigh)
+    }
+
+    // Dot legend: circle dots (matching bar's rounded aesthetic) + labels.
+    // Spacing mirrors bar width so they feel visually anchored together.
+    @ViewBuilder
+    private var intensityLegendView: some View {
+        HStack(spacing: 0) {
+            legendDot(color: PacerizColor.green,
+                      label: NSLocalizedString("training_plan.intensity_legend_low", comment: "輕鬆"))
+            Spacer()
+            legendDot(color: PacerizColor.orange,
+                      label: NSLocalizedString("training_plan.intensity_legend_medium", comment: "中等"))
+            Spacer()
+            legendDot(color: PacerizColor.error,
+                      label: NSLocalizedString("training_plan.intensity_legend_high", comment: "強度"))
+        }
+    }
+
+    @ViewBuilder
+    private func legendDot(color: Color, label: String) -> some View {
+        HStack(spacing: 5) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+            Text(label)
+                .font(AppFont.micro())
+                .foregroundColor(.secondary)
+        }
+    }
+
+    private func adaptiveCardGradient(for colorScheme: ColorScheme) -> LinearGradient {
+        if colorScheme == .dark {
+            // Dark mode: white glow top-left → secondarySystemGroupedBackground (consistent with DayCard)
+            return LinearGradient(
+                stops: [
+                    .init(color: Color.white.opacity(0.10), location: 0.0),
+                    .init(color: Color(UIColor.secondarySystemGroupedBackground), location: 0.5)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        } else {
+            // Light mode: blue glow top-left → secondarySystemGroupedBackground (consistent with DayCard)
+            return LinearGradient(
+                stops: [
+                    .init(color: PacerizColor.blue.opacity(0.14), location: 0.0),
+                    .init(color: Color(UIColor.secondarySystemGroupedBackground), location: 0.5)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func badgeStatusChip() -> some View {
+        // Hardcoded "NEW" chip — not localized per 2026-05 UX decision.
+        PRChip(
+            text: "NEW",
+            fg: .white,
+            bg: PacerizColor.blue,
+            fontSize: 11,
+            leadingSymbol: "sparkles"
+        )
     }
 }
 
-// MARK: - 緊湊型強度條組件 V2
-struct CompactIntensityBarV2: View {
-    let label: String
-    let intensityKey: String
-    let current: Int
-    let target: Int
-    let color: Color
+// MARK: - WeekProgressIntensityBar
+// Progress bar whose filled width = week mileage progress (0...1), with the filled
+// portion subdivided by the actual low/medium/high intensity proportions. The remaining
+// distance shows as a grey track tail, so the bar reads as "how much of the week is done"
+// while still conveying how that effort split across intensities.
+// Fill caps are rounded (pill); inner segment joins are square (flush).
+private struct WeekProgressIntensityBar: View {
+    let progress: Double   // 0...1 (currentWeekDistance / totalDistance)
+    let low: Int
+    let medium: Int
+    let high: Int
 
-    // 三狀態判斷
-    private enum BarState {
-        case unscheduledUnrun   // target == 0 && current == 0
-        case normal             // target > 0
-        case overrun            // target == 0 && current > 0
-    }
+    private let barH: CGFloat = 8
+    private var radius: CGFloat { barH / 2 }
+    private var clampedProgress: CGFloat { CGFloat(min(max(progress, 0), 1)) }
+    private var intensityDenom: CGFloat { CGFloat(max(low + medium + high, 1)) }
+    private var hasIntensity: Bool { low + medium + high > 0 }
 
-    private var barState: BarState {
-        if target > 0 { return .normal }
-        if current > 0 { return .overrun }
-        return .unscheduledUnrun
-    }
-
-    private var progress: Double {
-        switch barState {
-        case .unscheduledUnrun: return 0
-        case .normal: return min(Double(current) / Double(target), 1.0)
-        case .overrun: return 1.0
-        }
-    }
-
-    private var labelText: String {
-        switch barState {
-        case .unscheduledUnrun:
-            return "\(label) 0/0"
-        case .normal:
-            return "\(label) \(current)/\(target)"
-        case .overrun:
-            let minutesShort = NSLocalizedString("intensity.minutes_short", comment: "Short unit for minutes")
-            return "\(label) \(current) \(minutesShort) ✓"
-        }
-    }
-
-    private var labelColor: Color {
-        switch barState {
-        case .unscheduledUnrun: return .secondary.opacity(0.7)
-        case .normal, .overrun: return .primary
-        }
-    }
-
-    private var barFillColor: Color {
-        switch barState {
-        case .unscheduledUnrun: return Color.gray.opacity(0.3)
-        case .normal, .overrun: return color
-        }
-    }
+    private var hasLow: Bool { low > 0 }
+    private var hasMed: Bool { medium > 0 }
+    private var hasHigh: Bool { high > 0 }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // 標籤和數字
-            Text(labelText)
-                .font(AppFont.caption())
-                .foregroundColor(labelColor)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
+        GeometryReader { geo in
+            let totalW = geo.size.width
+            let fillW = totalW * clampedProgress
+            // Within the filled width, split by intensity proportions.
+            let lowW  = fillW * CGFloat(low)    / intensityDenom
+            let medW  = fillW * CGFloat(medium) / intensityDenom
+            let highW = fillW * CGFloat(high)   / intensityDenom
 
-            // 自定義進度條
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    // 背景
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 4)
+            ZStack(alignment: .leading) {
+                // Track (remaining distance)
+                Capsule()
+                    .fill(Color(UIColor { t in
+                        t.userInterfaceStyle == .dark
+                            ? UIColor.white.withAlphaComponent(0.12)
+                            : UIColor.black.withAlphaComponent(0.08)
+                    }))
+                    .frame(height: barH)
 
-                    // 前景進度
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(barFillColor)
-                        .frame(width: geometry.size.width * progress, height: 4)
+                // Filled portion
+                if fillW > 0 {
+                    if hasIntensity {
+                        HStack(spacing: 0) {
+                            if hasLow {
+                                let trailR: CGFloat = (!hasMed && !hasHigh) ? radius : 0
+                                UnevenRoundedRectangle(
+                                    topLeadingRadius: radius, bottomLeadingRadius: radius,
+                                    bottomTrailingRadius: trailR, topTrailingRadius: trailR
+                                )
+                                .fill(PacerizColor.green)
+                                .frame(width: lowW, height: barH)
+                            }
+                            if hasMed {
+                                let leadR: CGFloat = !hasLow  ? radius : 0
+                                let trailR: CGFloat = !hasHigh ? radius : 0
+                                UnevenRoundedRectangle(
+                                    topLeadingRadius: leadR, bottomLeadingRadius: leadR,
+                                    bottomTrailingRadius: trailR, topTrailingRadius: trailR
+                                )
+                                .fill(PacerizColor.orange)
+                                .frame(width: medW, height: barH)
+                            }
+                            if hasHigh {
+                                let leadR: CGFloat = (!hasLow && !hasMed) ? radius : 0
+                                UnevenRoundedRectangle(
+                                    topLeadingRadius: leadR, bottomLeadingRadius: leadR,
+                                    bottomTrailingRadius: radius, topTrailingRadius: radius
+                                )
+                                .fill(PacerizColor.error)
+                                .frame(width: highW, height: barH)
+                            }
+                        }
+                        .frame(height: barH)
+                    } else {
+                        // Progress exists but no intensity breakdown → neutral fill.
+                        Capsule()
+                            .fill(PacerizColor.blue)
+                            .frame(width: fillW, height: barH)
+                    }
                 }
             }
-            .frame(height: 4)
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("v2.weekly.intensity.\(intensityKey)")
+        .frame(height: barH)
     }
 }
 
@@ -293,39 +421,70 @@ struct WeekTargetDetailViewV2: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                WeekTargetSectionCardV2(
-                    icon: "target",
-                    iconColor: .blue,
-                    title: NSLocalizedString("training_plan.week_target", comment: "Week Target")
-                ) {
+            VStack(alignment: .leading, spacing: 24) {
+                // 週目標區域
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "target")
+                            .foregroundColor(.blue)
+                            .font(AppFont.title3())
+
+                        Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
+                            .font(AppFont.headline())
+                            .foregroundColor(.primary)
+                    }
+
                     Text(purpose)
-                        .font(AppFont.systemScaled(size: 16))
-                        .foregroundColor(.primary.opacity(0.82))
-                        .lineSpacing(3)
+                        .font(AppFont.body())
+                        .foregroundColor(.primary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .padding(.leading, 4)
                 }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.blue.opacity(0.08))
+                )
 
                 // 設計原因區域（如果有的話）
                 if let designReason = designReason, !designReason.isEmpty {
-                    WeekTargetSectionCardV2(
-                        icon: "lightbulb.circle.fill",
-                        iconColor: .orange,
-                        title: NSLocalizedString("training.design_reason", comment: "Design Reason")
-                    ) {
-                        VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "lightbulb.circle.fill")
+                                .foregroundColor(.orange)
+                                .font(AppFont.title3())
+
+                            Text(NSLocalizedString("training.design_reason", comment: "Design Reason"))
+                                .font(AppFont.headline())
+                                .foregroundColor(.primary)
+                        }
+
+                        VStack(alignment: .leading, spacing: 12) {
                             ForEach(Array(designReason.enumerated()), id: \.offset) { index, reason in
-                                NumberedReasonRowV2(index: index + 1, text: reason)
+                                HStack(alignment: .top, spacing: 10) {
+                                    Text("\(index + 1).")
+                                        .font(AppFont.body())
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.orange)
+
+                                    Text(reason)
+                                        .font(AppFont.body())
+                                        .foregroundColor(.primary)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                             }
                         }
+                        .padding(.leading, 4)
                     }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.orange.opacity(0.08))
+                    )
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 18)
-            .padding(.bottom, 28)
+            .padding()
         }
-        .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -334,62 +493,6 @@ struct WeekTargetDetailViewV2: View {
                     dismiss()
                 }
             }
-        }
-    }
-}
-
-private struct WeekTargetSectionCardV2<Content: View>: View {
-    let icon: String
-    let iconColor: Color
-    let title: String
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 9) {
-                Image(systemName: icon)
-                    .font(AppFont.systemScaled(size: 18, weight: .semibold))
-                    .foregroundColor(iconColor)
-                    .frame(width: 24, height: 24)
-
-                Text(title)
-                    .font(AppFont.systemScaled(size: 17, weight: .semibold))
-                    .foregroundColor(.primary)
-
-                Spacer(minLength: 0)
-            }
-
-            content
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 14)
-                .fill(Color(UIColor.secondarySystemGroupedBackground))
-        )
-    }
-}
-
-private struct NumberedReasonRowV2: View {
-    let index: Int
-    let text: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Text("\(index)")
-                .font(AppFont.systemScaled(size: 13, weight: .bold))
-                .foregroundColor(.orange)
-                .frame(width: 24, height: 24)
-                .background(
-                    Circle()
-                        .fill(Color.orange.opacity(0.12))
-                )
-
-            Text(text)
-                .font(AppFont.systemScaled(size: 15))
-                .foregroundColor(.primary.opacity(0.82))
-                .lineSpacing(3)
-                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

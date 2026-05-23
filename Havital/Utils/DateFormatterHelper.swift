@@ -48,11 +48,11 @@ struct DateFormatterHelper {
         return formatter(dateFormat: "yyyy/MM/dd HH:mm").string(from: date)
     }
 
-    /// 格式化為短日期（MM/dd）
+    /// 格式化為短日期（M/d，無前導零）
     /// - Parameter date: 要格式化的日期
-    /// - Returns: 格式化後的字串，例如："11/19"
+    /// - Returns: 格式化後的字串，例如："1/9"（不含前導零）
     static func formatShortDate(_ date: Date) -> String {
-        return formatter(dateFormat: "MM/dd").string(from: date)
+        return formatter(dateFormat: "M/d").string(from: date)
     }
 
     /// 格式化為時間（HH:mm）

@@ -42,6 +42,10 @@ private final class UITestAchievementRepository: AchievementRepository {
 
     func getInProgressBadges() -> [AchievementBadge] { [] }
 
+    func getUnlockedBadges() -> [AchievementBadge] {
+        cachedSummary?.badgeGroups.flatMap { $0.badges }.filter { $0.status == .unlocked } ?? []
+    }
+
     func findBadge(byId badgeId: String) -> AchievementBadge? {
         cachedSummary?.badgeGroups.flatMap { $0.badges }.first { $0.badgeId == badgeId }
     }

@@ -1,8 +1,10 @@
 import Foundation
 
 /// 日誌等級
+/// trace = 高頻、低訊號的操作細節（token 取得、DI 註冊、parser/cache 內部）；預設不輸出，
+/// 需要時把 minLevel 調到 .trace 才看得到。debug 起才是預設會印的有意義事件。
 public enum LogLevel: Int, Comparable {
-    case debug = 0, info, warn, error
+    case trace = 0, debug, info, warn, error
     public static func < (lhs: LogLevel, rhs: LogLevel) -> Bool { lhs.rawValue < rhs.rawValue }
 }
 
@@ -40,6 +42,12 @@ public struct Logger {
         print(output)
     }
 
+    /// Convenience for trace level（高頻操作細節，預設不輸出）
+    public static func trace(_ message: @autoclosure () -> String,
+                             tag: String? = nil,
+                             file: String = #file) {
+        log(message(), level: .trace, tag: tag, file: file)
+    }
     /// Convenience for debug level
     public static func debug(_ message: @autoclosure () -> String,
                               tag: String? = nil,

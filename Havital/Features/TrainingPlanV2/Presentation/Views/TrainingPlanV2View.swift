@@ -9,7 +9,6 @@ struct TrainingPlanV2View: View {
     @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @EnvironmentObject private var appViewModel: AppViewModel
     @Environment(\.scenePhase) private var scenePhase
-    @State private var showPlanOverview = false
     @State private var showUserProfile = false
     @State private var editScheduleVM: EditScheduleV2ViewModel?
     @State private var showContactPaceriz = false
@@ -28,6 +27,28 @@ struct TrainingPlanV2View: View {
     @StateObject private var announcementViewModel = AnnouncementViewModel(
         repository: DependencyContainer.shared.resolve()
     )
+
+    // B2/B3: Shared readiness VM; header VMs are created lazily after viewModel init
+    @StateObject private var readinessVM = TrainingReadinessViewModel()
+    @State private var raceHeaderVM: RaceHeaderViewModelV2?
+    @State private var modeHeaderVM: TrainingModeHeaderViewModelV2?
+
+    // Navigation destination for day card taps (history or planned session).
+    // Must live here — attaching .navigationDestination inside ScrollView causes silent fail in SwiftUI.
+    @State private var workoutDetailDestination: WorkoutDetailDestination?
+
+    // Navigation destination for training overview push (same rule: must live here, not inside ScrollView).
+    @State private var showOverviewV2 = false
+
+    // Race countdown card visibility: default shows only within N days of the race (42).
+    // Long-press sets "off"; profile settings can switch to always / N-days-before / off.
+    @AppStorage("raceCountdownMode") private var raceCountdownModeRaw = RaceCountdownDisplayMode.default.rawValue
+    @AppStorage("raceCountdownDaysBefore") private var raceCountdownDaysBefore = RaceCountdownGate.defaultDaysBefore
+
+    #if DEBUG
+    // Debug 選單「觸發訓練回顧」用：本地 sheet 呈現，避開 InterruptCoordinator 跨視圖 race。
+    @State private var debugRecapContent: WorkoutRecapContent?
+    #endif
 
     // MARK: - Initialization
 
@@ -116,14 +137,48 @@ struct TrainingPlanV2View: View {
 
                     switch viewModel.loader.planStatus {
                     case .ready(let weeklyPlan):
+                        // B2: Race mode header — shows per countdown gate (default: within 42 days).
+                        // Tap opens training overview; long-press hides it (sets mode = off).
+                        if viewModel.loader.planOverview?.isRaceRunTarget == true,
+                           let raceVM = raceHeaderVM,
+                           RaceCountdownGate.shouldShow(
+                               mode: RaceCountdownDisplayMode(rawValueOrDefault: raceCountdownModeRaw),
+                               daysBefore: raceCountdownDaysBefore,
+                               daysLeft: raceVM.daysLeft
+                           ) {
+                            RaceHeaderViewV2(viewModel: raceVM)
+                                .contentShape(Rectangle())
+                                .onTapGesture { showOverviewV2 = true }
+                                .contextMenu {
+                                    Button(role: .destructive) {
+                                        raceCountdownModeRaw = RaceCountdownDisplayMode.off.rawValue
+                                    } label: {
+                                        Label(NSLocalizedString("training.race_countdown.hide", comment: "Hide race countdown card"), systemImage: "eye.slash")
+                                    }
+                                }
+                        }
+
+                        // B3: Starter / Maintenance mode header
+                        if let overview = viewModel.loader.planOverview,
+                           (overview.isBeginnerTarget || overview.isMaintenanceTarget),
+                           let modeVM = modeHeaderVM {
+                            TrainingModeHeaderV2(viewModel: modeVM)
+                        }
+
                         // 1️⃣ 訓練進度卡片（與 V1 相同）
-                        TrainingProgressCardV2(viewModel: viewModel, plan: weeklyPlan)
+                        TrainingProgressCardV2(viewModel: viewModel, plan: weeklyPlan, onOpenOverview: { showOverviewV2 = true })
 
                         // 2️⃣ 週總覽卡片（與 V1 相同）
                         WeekOverviewCardV2(viewModel: viewModel, plan: weeklyPlan)
 
                         // 3️⃣ 週時間軸
-                        WeekTimelineViewV2(viewModel: viewModel, plan: weeklyPlan)
+                        WeekTimelineViewV2(
+                            viewModel: viewModel,
+                            plan: weeklyPlan,
+                            onDestinationSelect: { dest in
+                                workoutDetailDestination = dest
+                            }
+                        )
 
 
                     case .noWeeklyPlan:
@@ -173,8 +228,20 @@ struct TrainingPlanV2View: View {
                         GenerateNextWeekButtonV2(viewModel: viewModel, nextWeekInfo: nextWeekInfo)
                             .transition(.opacity)
                     }
+
+                    // 課表快速回報（最底部，僅在有課表時顯示）
+                    // .id(週次) → 每換一週就重建、狀態歸零，每份新課表都能重新回報。
+                    if case .ready = viewModel.loader.planStatus {
+                        WeeklyPlanFeedbackBar(
+                            userEmail: userProfileViewModel.userData?.email ?? "",
+                            weekContext: "Week \(viewModel.loader.currentWeek)",
+                            persistKey: "\(viewModel.loader.trainingPlanName)#W\(viewModel.loader.currentWeek)"
+                        )
+                        .id("weeklyPlanFeedback_\(viewModel.loader.currentWeek)")
+                    }
                 }
                 .padding(.horizontal)
+                .padding(.bottom, 24)   // tab bar 上方留白，避免最底內容貼著 tab bar
             }
             .safeAreaInset(edge: .bottom) {
                 if viewModel.loader.selectedWeek != viewModel.loader.currentWeek {
@@ -214,7 +281,7 @@ struct TrainingPlanV2View: View {
                                 .padding(.top, 4)
                             if announcementViewModel.unreadCount > 0 {
                                 Text(announcementViewModel.unreadCount > 99 ? "99+" : "\(announcementViewModel.unreadCount)")
-                                    .font(.system(size: 10, weight: .bold))
+                                    .font(AppFont.micro())
                                     .foregroundColor(.white)
                                     .padding(.horizontal, 4)
                                     .padding(.vertical, 1)
@@ -234,7 +301,7 @@ struct TrainingPlanV2View: View {
                         }
                         .accessibilityIdentifier("TrainingPlan_Menu_Profile")
 
-                        Button(action: { showPlanOverview = true }) {
+                        Button(action: { showOverviewV2 = true }) {
                             Label(NSLocalizedString("training.plan_overview", comment: "Plan Overview"), systemImage: "doc.text.below.ecg")
                         }
                         .accessibilityIdentifier("TrainingPlan_Menu_PlanOverview")
@@ -284,6 +351,16 @@ struct TrainingPlanV2View: View {
                                 Label("🐛 產生週回顧", systemImage: "note.text.badge.plus")
                             }
 
+                            Button(action: {
+                                Task {
+                                    let content = await WorkoutRecapCoordinator.shared.debugLatestContent()
+                                    await MainActor.run { debugRecapContent = content }
+                                }
+                            }) {
+                                Label("🐛 觸發訓練回顧", systemImage: "sparkles")
+                            }
+                            .accessibilityIdentifier("TrainingPlan_Debug_WorkoutRecap")
+
                             Button(role: .destructive, action: {
                                 Task {
                                     await viewModel.debugDeleteCurrentWeekPlan()
@@ -313,9 +390,11 @@ struct TrainingPlanV2View: View {
                     .accessibilityIdentifier("TrainingPlan_MenuButton")
                 }
             }
-            .sheet(isPresented: $showPlanOverview) {
-                PlanOverviewSheetV2(viewModel: viewModel)
+            #if DEBUG
+            .sheet(item: $debugRecapContent) { content in
+                WorkoutRecapView(content: content, showConfetti: true)
             }
+            #endif
             .sheet(isPresented: $showMessageCenter) {
                 NavigationStack {
                     MessageCenterView(viewModel: announcementViewModel)
@@ -417,6 +496,17 @@ struct TrainingPlanV2View: View {
                 }
             }
         } // ZStack
+        .navigationDestination(item: $workoutDetailDestination) { dest in
+            switch dest.kind {
+            case .history(let workout):
+                WorkoutDetailViewV2(workout: workout)
+            case .planned(let day, let date):
+                PlannedSessionDetailView(day: day, date: date)
+            }
+        }
+        .navigationDestination(isPresented: $showOverviewV2) {
+            TrainingOverviewV2View(viewModel: viewModel)
+        }
         }
         .sheet(isPresented: $showWeekSelector) {
             WeekSelectorSheetV2(
@@ -559,11 +649,30 @@ struct TrainingPlanV2View: View {
             if case .ready(let plan) = viewModel.loader.planStatus {
                 trackWeeklyPlanViewIfNeeded(plan: plan)
             }
+            // B2/B3: lazily initialise header VMs on first appear
+            if raceHeaderVM == nil {
+                raceHeaderVM = DependencyContainer.shared.makeRaceHeaderViewModelV2(
+                    loader: viewModel.loader,
+                    readinessVM: readinessVM
+                )
+            }
+            if modeHeaderVM == nil {
+                modeHeaderVM = DependencyContainer.shared.makeTrainingModeHeaderViewModelV2(
+                    loader: viewModel.loader,
+                    readinessVM: readinessVM
+                )
+            }
+            Task { await readinessVM.loadData() }
         }
         .onChange(of: viewModel.loader.planStatus) { _, newStatus in
             if case .ready(let plan) = newStatus {
                 trackWeeklyPlanViewIfNeeded(plan: plan)
             }
+        }
+        .onChange(of: viewModel.loader.planOverview) { _, _ in
+            // B2/B3: re-derive header data when planOverview loads (async after view appears)
+            raceHeaderVM?.refresh()
+            modeHeaderVM?.refresh()
         }
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
@@ -1028,7 +1137,7 @@ private struct WeekSelectorSheetV2: View {
             // 本週標籤
             if week == viewModel.loader.currentWeek {
                 Text(NSLocalizedString("training.current_week_label", comment: "本週"))
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(AppFont.micro())
                     .foregroundColor(.white)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
@@ -1052,12 +1161,12 @@ private struct WeekSelectorSheetV2: View {
                             .frame(width: 36 * min(percent, 100) / 100, height: 4)
                     }
                     Text("\(Int(percent))%")
-                        .font(.system(size: 11, weight: .bold))
+                        .font(AppFont.micro())
                         .foregroundColor(.blue)
                 }
                 if let km = item.distanceKm, km > 0 {
                     Text(String(format: "%.1fkm", km))
-                        .font(.system(size: 11))
+                        .font(AppFont.micro())
                         .foregroundColor(.secondary)
                 }
             }
@@ -1071,7 +1180,7 @@ private struct WeekSelectorSheetV2: View {
                     onViewWeeklySummary?(week)
                 } label: {
                     Text(NSLocalizedString("week_selector.review", comment: "週回顧"))
-                        .font(.system(size: 11, weight: .medium))
+                        .font(AppFont.micro())
                         .padding(.vertical, 4)
                         .padding(.horizontal, 8)
                         .background(Color.blue.opacity(0.1))
@@ -1090,7 +1199,7 @@ private struct WeekSelectorSheetV2: View {
                     }
                 } label: {
                     Text(NSLocalizedString("week_selector.schedule", comment: "課表"))
-                        .font(.system(size: 11, weight: .medium))
+                        .font(AppFont.micro())
                         .padding(.vertical, 4)
                         .padding(.horizontal, 8)
                         .background(Color.green.opacity(0.1))
@@ -1103,7 +1212,7 @@ private struct WeekSelectorSheetV2: View {
             // 已選 checkmark
             if week == viewModel.loader.selectedWeek {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(AppFont.micro())
                     .foregroundColor(.blue)
             }
         }

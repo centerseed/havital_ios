@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import Combine
 
 // MARK: - WeeklyPlanLoader
 
@@ -27,6 +28,7 @@ final class WeeklyPlanLoader {
     // MARK: - Private State
 
     private var isRefreshing: Bool = false
+    @ObservationIgnored private var workoutCancellables = Set<AnyCancellable>()
 
     // MARK: - Dependencies
 
@@ -81,6 +83,24 @@ final class WeeklyPlanLoader {
             Logger.debug("[WeeklyPlanLoader] 收到 dataChanged.trainingPlanV2 事件，刷新課表")
             await self.refreshWeeklyPlan()
         }
+
+        // 新訓練同步進來 → 重算本週跑量/強度，否則 hero 會停在載入當下的舊值（漏算本週稍早的跑步）。
+        // ⚠️ key 必須與發布端一致（無 .loader 後綴），否則不會觸發。
+        CacheEventBus.shared.subscribe(for: "dataChanged.workouts") { [weak self] in
+            guard let self else { return }
+            Logger.debug("[WeeklyPlanLoader] 收到 dataChanged.workouts 事件，重算本週訓練記錄")
+            await self.loadWorkoutsForCurrentWeek()
+        }
+
+        // 最可靠：任何 workout 快取刷新（含課表分頁時的背景刷新）都重算本週，
+        // 避免 hero 停在載入當下的舊快取值。
+        workoutRepository.workoutsDidRefresh
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                guard let self else { return }
+                Task { await self.loadWorkoutsForCurrentWeek() }
+            }
+            .store(in: &workoutCancellables)
     }
 
     // MARK: - Public Methods - Initialization

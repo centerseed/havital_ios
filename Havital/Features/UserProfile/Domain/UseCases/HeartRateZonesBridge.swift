@@ -1,5 +1,4 @@
 import Foundation
-import Combine
 
 /// 橋接 HeartRateZonesManager 和 HealthKitManager 的心率區間功能
 ///
@@ -13,7 +12,6 @@ class HeartRateZonesBridge {
     
     private let zonesManager = HeartRateZonesManager.shared
     private let userPreferenceManager = UserPreferencesManager.shared
-    private var cancellables = Set<AnyCancellable>()
     
     private init() {}
     
@@ -31,21 +29,8 @@ class HeartRateZonesBridge {
         
         print("嘗試從用戶資料同步心率數據")
         do {
-            // 修正第二個錯誤：使用正確的方式處理異步操作
-            let userProfile = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<User, Error>) in
-                UserService.shared.getUserProfile()
-                    .sink(
-                        receiveCompletion: { completion in
-                            if case .failure(let error) = completion {
-                                continuation.resume(throwing: error)
-                            }
-                        },
-                        receiveValue: { user in
-                            continuation.resume(returning: user)
-                        }
-                    )
-                    .store(in: &cancellables)
-            }
+            let repo: UserProfileRepository = DependencyContainer.shared.resolve()
+            let userProfile = try await repo.getUserProfile()
             
             // 獲取心率數據
             if userProfile.maxHr ?? 0 > 0 {

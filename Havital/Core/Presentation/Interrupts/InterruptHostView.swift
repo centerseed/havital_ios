@@ -43,6 +43,8 @@ struct InterruptHostView: View {
                     )
                 case .paywall(let trigger):
                     PaywallView(trigger: trigger)
+                case .workoutRecap(let content):
+                    WorkoutRecapView(content: content, showConfetti: true)
                 case .dataSourceBindingReminder, .subscriptionReminder:
                     EmptyView()
                 }
@@ -51,7 +53,7 @@ struct InterruptHostView: View {
                 switch item.payload {
                 case .subscriptionReminder(let reminder):
                     return subscriptionAlert(for: reminder)
-                case .announcement, .paywall, .dataSourceBindingReminder:
+                case .announcement, .paywall, .dataSourceBindingReminder, .workoutRecap:
                     return Alert(title: Text(""))
                 }
             }

@@ -71,6 +71,22 @@ struct ContentView: View {
                         )
                     }
             }
+            // 已登入但 onboarding 狀態尚未從後端確認 → 顯示載入畫面，
+            // 避免已完成 onboarding 的用戶在登入後閃一下 onboarding 畫面。
+            else if authViewModel.isResolvingOnboardingStatus && !authViewModel.hasCompletedOnboarding {
+                AppLoadingView()
+                    .onAppear {
+                        Logger.firebase(
+                            "顯示載入畫面（onboarding 狀態解析中）",
+                            level: .info,
+                            labels: [
+                                "module": "ContentView",
+                                "action": "show_loading_resolving_onboarding",
+                                "user_id": authViewModel.currentUser?.uid ?? "unknown"
+                            ]
+                        )
+                    }
+            }
             // 如果用戶未完成引導，顯示引導畫面
             else if !authViewModel.hasCompletedOnboarding && !authViewModel.isReonboardingMode {
                 // 首次使用，顯示完整 onboarding 流程（使用新的統一容器）
@@ -123,6 +139,16 @@ struct ContentView: View {
                         Task {
                             try? await Task.sleep(nanoseconds: 800_000_000)
                             await appViewModel.checkDataSourceBindingReminderIfNeeded(forceRefresh: true)
+                        }
+                        // 訓練完成 Recap：進入主畫面時偵測最新且未看過的訓練（cold launch 可靠觸發點）。
+                        Task {
+                            #if DEBUG
+                            if ProcessInfo.processInfo.environment["FORCE_WORKOUT_RECAP"] == "1" {
+                                await WorkoutRecapCoordinator.shared.debugForceShowLatest()
+                                return
+                            }
+                            #endif
+                            await WorkoutRecapCoordinator.shared.checkForNewWorkoutRecap()
                         }
                     }
             }
@@ -185,6 +211,17 @@ struct ContentView: View {
             try? await Task.sleep(nanoseconds: 800_000_000)
             appViewModel.resetDataSourceBindingReminderSession()
             await appViewModel.checkDataSourceBindingReminderIfNeeded(forceRefresh: true)
+
+            // 訓練完成 Recap：偵測最新且未看過的訓練 → 透過 InterruptCoordinator 彈出。
+            #if DEBUG
+            if ProcessInfo.processInfo.environment["FORCE_WORKOUT_RECAP"] == "1" {
+                await WorkoutRecapCoordinator.shared.debugForceShowLatest()
+            } else {
+                await WorkoutRecapCoordinator.shared.checkForNewWorkoutRecap()
+            }
+            #else
+            await WorkoutRecapCoordinator.shared.checkForNewWorkoutRecap()
+            #endif
         }
     }
 
@@ -213,6 +250,12 @@ struct ContentView: View {
                     .tabItem {
                         Image(systemName: "gauge.with.dots.needle.bottom.50percent")
                         Text(L10n.Tab.performanceData.localized)
+                    }
+
+                PersonalAchievementsView()
+                    .tabItem {
+                        Image(systemName: "medal.fill")
+                        Text(L10n.Tab.achievement.localized)
                     }
 
             }

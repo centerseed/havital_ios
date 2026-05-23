@@ -100,8 +100,10 @@ final class FirebaseAuthDataSource {
 
     // MARK: - Token Management
 
-    /// Get Firebase ID Token with automatic refresh
-    /// Token is fetched fresh every time for security
+    /// 取得 Firebase ID Token。
+    /// 註：user.getIDToken() = forcingRefresh:false，Firebase SDK 會回本地快取的 token，
+    /// 直到約 1 小時到期才自動向網路換新——不會每次呼叫都打網路。
+    /// 需要強制刷新請用 refreshIdToken()。
     /// - Returns: Valid Firebase ID Token
     /// - Throws: AuthenticationError.tokenExpired if token cannot be retrieved
     func getIdToken() async throws -> String {
@@ -110,7 +112,7 @@ final class FirebaseAuthDataSource {
         }
 
         do {
-            // Force refresh to ensure token is valid
+            // SDK 本地快取，未到期不打網路
             let token = try await user.getIDToken()
             return token
         } catch {

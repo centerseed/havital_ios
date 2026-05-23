@@ -27,12 +27,12 @@ struct DefaultAPIParser: APIParser {
     
     func parse<T: Codable>(_ type: T.Type, from data: Data) throws -> T {
         // 增強日誌：記錄正在解析的類型和數據大小
-        Logger.debug("[APIParser] 開始解析類型: \(String(describing: type)), 數據大小: \(data.count) bytes")
+        Logger.trace("[APIParser] 開始解析類型: \(String(describing: type)), 數據大小: \(data.count) bytes")
         
         do {
             // 主要解析邏輯
             let result = try decoder.decode(T.self, from: data)
-            Logger.debug("[APIParser] 成功解析類型: \(String(describing: type))")
+            Logger.trace("[APIParser] 成功解析類型: \(String(describing: type))")
             return result
             
         } catch let decodingError as DecodingError {
@@ -72,7 +72,7 @@ struct DefaultAPIParser: APIParser {
             
             // 嘗試容錯處理
             if let fallbackResult = try? attemptFallbackParsing(type, from: data) {
-                Logger.debug("[APIParser] 使用容錯機制成功解析")
+                Logger.trace("[APIParser] 使用容錯機制成功解析")
                 return fallbackResult
             }
             

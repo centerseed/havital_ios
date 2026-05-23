@@ -585,7 +585,31 @@ enum GaitAnalysisChart {
         static let distance = "training.distance"
         static let pace = "training.pace"
         static let trainingType = "training.training_type"
-        
+
+        // TrainingOverviewV2View — Hero + Stats card
+        static let targetTime = "training.target_time"          // "目標時間"
+        static let targetPace = "training.target_pace"          // "目標配速"
+        static let overview = "training.overview"               // "訓練總覽"
+        static let overviewEditAction = "training.overview.edit"             // "編輯"
+        static let overviewDaysUnit = "training.overview.days_unit"          // "天"
+        static let overviewPhaseWeekChip = "training.overview.phase_week_chip" // "%@ · 第 %d / %d 週"
+        static let overviewBeginnerSubtitle = "training.overview.beginner_subtitle"     // "從零開始，建立穩定跑步基礎"
+        static let overviewMaintenanceSubtitle = "training.overview.maintenance_subtitle" // "保持訓練節奏，維持體能狀態"
+
+        // TrainingOverviewV2View — Task 3: MethodologyStrategyCard + MilestonesCard (reuse existing keys)
+        static let overviewKeyMilestones = "training.overview.key_milestones"   // new "關鍵里程碑" (JSX-aligned)
+        static let overviewChangeMethodology = "training.change_methodology"    // reuse existing "更換方法論"
+        static let overviewIntensityDistribution = "training.intensity_distribution" // reuse existing "強度分配"
+        static let overviewMilestoneDisclaimer = "training.milestone_disclaimer"     // reuse existing disclaimer
+        static let overviewSelectMethodology = "training.select_methodology"         // reuse existing "選擇方法論"
+        static let overviewUpdatingPlan = "training.updating_overview"               // reuse existing "正在更新訓練計畫..."
+
+        // TrainingProgressViewV2 / PhaseRoadmapView shared keys
+        static let currentWeekLabel = "training.current_week_label"    // "本週"
+        static let recoveryWeek = "training.recovery_week"             // "恢復週"
+        static let workoutTypeLongRun = "training.workout_type.long_run"  // "長距離"
+        static let qualitySession = "training.quality_session"         // "品質課"
+
         enum TrainingType {
             static let easy = "training.type.easy"
             static let tempo = "training.type.tempo"
@@ -632,6 +656,22 @@ enum GaitAnalysisChart {
         }
     }
     
+    // MARK: - Phase Roadmap (Task 2/5 — PhaseRoadmapView)
+    enum PhaseRoadmap {
+        static let title = "phase_roadmap.title"                       // "計畫路線"
+        static let subtitle = "phase_roadmap.subtitle"                 // "%d 個階段 · %d 週"
+        static let subtitleRaceCount = "phase_roadmap.subtitle_race_count" // "%d 場比賽"
+        static let addRace = "phase_roadmap.add_race"                  // "加賽事"
+        static let inProgressBadge = "phase_roadmap.in_progress_badge" // "進行中 · 第 %d / %d 週"
+        static let completedBadge = "phase_roadmap.completed_badge"    // "✓ 已完成"
+        static let focusLabel = "phase_roadmap.focus_label"            // "重點"
+        static let showAllWeeks = "phase_roadmap.show_all_weeks"       // "顯示全部 %d 週 · 還有 %d 週"
+        static let collapseWeeks = "phase_roadmap.collapse_weeks"      // "收起 · 只看本週附近"
+        static let raceBadge = "phase_roadmap.race_badge"              // "賽"
+        static let mainRaceLabel = "phase_roadmap.main_race_label"     // "主賽事"
+        static let targetTimePrefix = "phase_roadmap.target_time_prefix" // "目標 "
+    }
+
     // MARK: - Workout Detail
     enum WorkoutDetail {
         // Upload Actions
@@ -774,6 +814,27 @@ enum GaitAnalysisChart {
         static let deviceInfoNativeSupport = "record.device_info.native_support"
         static let deviceInfoLimitations = "record.device_info.limitations"
         static let deviceInfoFutureSupport = "record.device_info.future_support"
+
+        // Filter chips
+        enum Filter {
+            static let all = "record.filter.all" // "全部"
+            static let easyRun = "record.filter.easy_run" // "輕鬆跑"
+            static let tempo = "record.filter.tempo" // "節奏跑"
+            static let interval = "record.filter.interval" // "間歇"
+            static let longRun = "record.filter.long_run" // "長距離"
+        }
+
+        // Group headers
+        enum Group {
+            static let today = "record.group.today" // "今天"
+            static let yesterday = "record.group.yesterday" // "昨天"
+            static let earlierThisWeek = "record.group.earlier_this_week" // "本週稍早"
+            static let lastWeek = "record.group.last_week" // "上週"
+            static let older = "record.group.older" // "更早"
+            static let runCountFormat = "record.group.run_count_format" // "%d 次跑步"
+            static let totalKmFormat = "record.group.total_km_format" // "共 %.1f km"
+            static let monthGroupFormat = "record.group.month_group_format" // "%d年%d月"
+        }
     }
     
     // MARK: - Performance
@@ -1131,6 +1192,18 @@ enum SupportedLanguage: String, CaseIterable {
             return "en-US"
         case .japanese:
             return "ja-JP"
+        }
+    }
+
+    /// 緊湊縮寫（登入畫面右上角語言切換用）
+    var shortCode: String {
+        switch self {
+        case .traditionalChinese:
+            return "ZH"
+        case .english:
+            return "EN"
+        case .japanese:
+            return "JP"
         }
     }
     
@@ -1567,6 +1640,8 @@ extension L10n {
             static let tagPBAndBadge = "achievements.share.tag_pb_and_badge"
             // Reuse Task 8 key to avoid duplication
             static let alsoUnlocked = "my_achievement.celebration.also_unlocked"
+            // New badge share card — chapter chip label ("%@" = chapter name)
+            static let cardChapterLabel = "achievements.share.card.chapter_label"
         }
 
         enum Badges {
@@ -1613,6 +1688,48 @@ extension L10n {
         enum Action {
             static let pin = "achievements.action.pin"
             static let unpin = "achievements.action.unpin"
+        }
+
+        enum StatsBanner {
+            static let unlockedLabel = "achievements.stats_banner.unlocked_label" // "徽章已解鎖"
+            static let pbLabel = "achievements.stats_banner.pb_label" // "PB 紀錄"
+            static let streakLabel = "achievements.stats_banner.streak_label" // "連續訓練"
+        }
+
+        enum HeroCard {
+            static let latestUnlock = "achievements.hero_card.latest_unlock" // "✨ 最新解鎖"
+            static let share = "achievements.hero_card.share" // "分享"
+            static let pin = "achievements.hero_card.pin" // "釘選"
+            static let unpin = "achievements.hero_card.unpin" // "取消釘選"
+            static let nextTarget = "achievements.hero_card.next_target" // "🎯 下一個目標"
+            static let viewAllTracks = "achievements.hero_card.view_all_tracks" // "看全部主線"
+            static let remaining = "achievements.hero_card.remaining" // "還差"
+        }
+
+        enum PBCard {
+            static let sectionTitle = "achievements.pb_card.section_title" // "個人最佳"
+            static let setCountFormat = "achievements.pb_card.set_count_format" // "%d / 4 已創下"
+            static let cardTitle = "achievements.pb_card.card_title" // "個人最佳紀錄"
+            static let viewAll = "achievements.pb_card.view_all" // "查看全部"
+            static let noPB = "achievements.pb_card.no_pb" // "還沒有個人最佳紀錄"
+            static let noPBHint = "achievements.pb_card.no_pb_hint" // "完成第一次計時跑就能創下 PB"
+            static let moreDistancesFormat = "achievements.pb_card.more_distances_format" // "+%d 個其他距離紀錄"
+        }
+
+        enum BadgeCollection {
+            static let title = "achievements.badge_collection.title" // "徽章收藏"
+            static let unlockedCountFormat = "achievements.badge_collection.unlocked_count_format" // "%d/%d 已解鎖"
+            static let viewMore = "achievements.badge_collection.view_more" // "看更多"
+        }
+
+        enum BadgeTile {
+            static let insufficientData = "achievements.badge_tile.insufficient_data" // "資料不足"
+            static let locked = "achievements.badge_tile.locked" // "尚未解鎖"
+        }
+
+        enum Tracks {
+            static let title = "achievements.tracks.title" // "成就主線"
+            static let empty = "achievements.tracks.empty" // "尚無主線資料"
         }
     }
 

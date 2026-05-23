@@ -10,6 +10,9 @@ class WorkoutLocalDataSource {
     private let cacheManager: BaseCacheManagerTemplate<[WorkoutV2]>
     private let workoutCacheManager: BaseCacheManagerTemplate<WorkoutV2>
     private let detailCacheManager: BaseCacheManagerTemplate<WorkoutV2Detail>
+    /// 分頁狀態緩存：與列表緩存平行，存後端真實 has_more / cursor，
+    /// 讓 Track A（讀緩存）也能拿到正確分頁狀態，避免誤觸發無限載入。
+    private let paginationCacheManager: BaseCacheManagerTemplate<PaginationInfo>
 
     /// 緩存過期時間（2 小時 - 合理的平衡點）
     /// ✅ 2小時足夠減少 API 請求，又不會讓數據太舊
@@ -52,6 +55,12 @@ class WorkoutLocalDataSource {
             defaultTTL: cacheExpirationInterval
         )
 
+        // 初始化分頁狀態緩存管理器
+        self.paginationCacheManager = BaseCacheManagerTemplate<PaginationInfo>(
+            identifier: "WorkoutPaginationCache\(suffix)",
+            defaultTTL: cacheExpirationInterval
+        )
+
         Logger.debug("[WorkoutLocalDataSource] 初始化完成，緩存過期時間: \(cacheExpirationInterval / 60) 分鐘")
     }
 
@@ -87,6 +96,31 @@ class WorkoutLocalDataSource {
     func saveWorkouts(_ workouts: [WorkoutV2]) {
         cacheManager.saveToCache(workouts)
         Logger.debug("[WorkoutLocalDataSource] saveWorkouts - 已保存 \(workouts.count) 條記錄到緩存")
+    }
+
+    /// Upsert（依 id 合併）訓練列表：更新既有、插入新增、保留其他，依結束時間新→舊排序。
+    /// 用 upsert 取代「整份覆蓋」——小請求（如 limit:1）才不會把共用列表壓小，也能補回日曆缺口。
+    func upsertWorkouts(_ incoming: [WorkoutV2]) {
+        guard !incoming.isEmpty else { return }
+        var byId: [String: WorkoutV2] = [:]
+        for w in getWorkouts() ?? [] { byId[w.id] = w }
+        for w in incoming { byId[w.id] = w }   // 既有→更新，沒有→新增
+        let merged = byId.values.sorted { $0.endDate > $1.endDate }
+        cacheManager.saveToCache(merged)
+        Logger.debug("[WorkoutLocalDataSource] upsertWorkouts - 合併 \(incoming.count) 筆，總計 \(merged.count) 筆")
+    }
+
+    // MARK: - Pagination State
+
+    /// 保存分頁狀態（與列表緩存同步寫入）。
+    func savePagination(_ pagination: PaginationInfo) {
+        paginationCacheManager.saveToCache(pagination)
+        Logger.debug("[WorkoutLocalDataSource] savePagination - has_more: \(pagination.hasMore), next_cursor: \(pagination.nextCursor ?? "nil")")
+    }
+
+    /// 讀取緩存的分頁狀態（即使過期也返回，供 Track A 立即使用）。
+    func getPagination() -> PaginationInfo? {
+        return paginationCacheManager.loadFromCache()
     }
 
     // MARK: - Single Workout
@@ -188,6 +222,7 @@ class WorkoutLocalDataSource {
         cacheManager.clearCache()
         workoutCacheManager.clearCache()
         detailCacheManager.clearCache()
+        paginationCacheManager.clearCache()
         Logger.debug("[WorkoutLocalDataSource] clearAll - 所有緩存已清空")
     }
 

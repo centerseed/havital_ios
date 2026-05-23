@@ -269,12 +269,15 @@ extension Logger {
         
         // 先在本機記錄
         log(messageString, level: level, tag: "FirebaseLogging", file: file)
-        
+
+        // trace 為高頻本地噪音，不上傳雲端（省 cloud-logging 流量）
+        guard level > .trace else { return }
+
         // 異步上傳到 Firebase
         Task {
             let firebaseLevel: FirebaseLoggingService.LogLevel
             switch level {
-            case .debug:
+            case .trace, .debug:
                 firebaseLevel = .debug
             case .info:
                 firebaseLevel = .info
@@ -283,7 +286,7 @@ extension Logger {
             case .error:
                 firebaseLevel = .error
             }
-            
+
             await FirebaseLoggingService.shared.log(
                 level: firebaseLevel,
                 message: messageString,
