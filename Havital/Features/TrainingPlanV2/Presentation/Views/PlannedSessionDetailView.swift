@@ -431,13 +431,26 @@ struct PlannedSessionDetailView: View {
 
     // MARK: - Climate Section
 
+    /// 熱適應卡的基準配速：一般跑取 run 層 base/pace；間歇／法特雷克取 interval.workPace；
+    /// 漸速/快結尾取首段配速。讓所有有配速的課表都能顯示「原 → 今日」調整。
+    private var climateBasePace: String? {
+        guard let run = day.primaryRunActivity else { return nil }
+        return run.basePace
+            ?? run.pace
+            ?? run.interval?.workPace
+            ?? run.segments?.first?.basePace
+            ?? run.segments?.first?.pace
+    }
+
     @ViewBuilder
     private var climateSection: some View {
         if climateAdjustmentEnabled, let climateMeta = day.effectiveClimateMeta {
             ClimateTipCard(
                 meta: climateMeta,
                 // 危險級後端不給 climate_adjusted_pace，用原本 pace 當基準算「若仍戶外」放慢配速。
-                basePace: day.primaryRunActivity?.basePace ?? day.primaryRunActivity?.pace,
+                // 間歇／法特雷克的配速在 interval.workPace，run 層 pace 為 nil → 退回 workPace，
+                // 否則熱適應卡會因 basePace 缺失而不顯示配速調整。
+                basePace: climateBasePace,
                 adjustedPace: day.primaryRunActivity?.climateAdjustedPace
             )
         }
