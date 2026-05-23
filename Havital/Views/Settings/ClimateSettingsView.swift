@@ -8,6 +8,7 @@ private struct ClimateSettingsPayload: Codable {
     let enabled: Bool
     let adaptationLevel: String
     let manualStartThresholdC: Double?
+    let regionKey: String?
     let presets: [String]?
     let createdAt: String?
     let updatedAt: String?
@@ -16,6 +17,7 @@ private struct ClimateSettingsPayload: Codable {
         case enabled
         case adaptationLevel = "adaptation_level"
         case manualStartThresholdC = "manual_start_threshold_c"
+        case regionKey = "region_key"
         case presets
         case createdAt = "created_at"
         case updatedAt = "updated_at"
@@ -278,6 +280,7 @@ private final class ClimateSettingsViewModel: ObservableObject {
             enabled: enabled,
             adaptationLevel: adaptationLevel,
             manualStartThresholdC: useManualThreshold ? manualThreshold : nil,
+            regionKey: profile?.settings.regionKey,
             presets: nil,
             createdAt: nil,
             updatedAt: nil
