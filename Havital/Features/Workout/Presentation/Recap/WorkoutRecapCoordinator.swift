@@ -67,7 +67,8 @@ final class WorkoutRecapCoordinator {
             from: workout,
             isPremium: SubscriptionStateManager.shared.hasPremiumAccess,
             aiAnalysisOverride: detail?.aiSummary?.analysis,
-            rpeOverride: detail?.advancedMetrics?.rpe
+            rpeOverride: detail?.advancedMetrics?.rpe,
+            shareCardContentOverride: detail?.shareCardContent
         )
     }
 

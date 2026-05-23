@@ -1658,6 +1658,21 @@
 // MARK: - Workout Detail
 "workout.share_card" = "分享訓練成果";
 "workout.share_screenshot" = "分享長截圖";
+"workout.share.title" = "分享訓練成果";
+"workout.share.action" = "分享這次成就";
+"workout.reflection.title" = "訓練回顧";
+"workout.reflection.saveError" = "儲存失敗，請重試";
+"workout.rpe.prompt" = "今天感覺如何？";
+"workout.rpe.selected" = "今天的體感 %d/10";
+"workout.rpe.feedback.low" = "輕巧地完成 ✓";
+"workout.rpe.feedback.medium" = "節奏掌握得不錯 ✓";
+"workout.rpe.feedback.high" = "紮實的一次 ✓";
+"workout.rpe.feedback.max" = "硬仗打完了 💪";
+"workout.diary.promptHint" = "可以從這裡開始 ↓";
+"workout.diary.promptTip" = "點主題會自動帶起頭";
+"workout.diary.placeholder" = "寫下這次訓練的感受⋯ 一句話也算。";
+"workout.diary.privacy" = "這份心得只有你看得到";
+"workout.defaultType" = "訓練";
 
 // MARK: - Data Source
 "datasource.strava_subtitle" = "同步您的 Strava 活動記錄";

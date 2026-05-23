@@ -16,7 +16,7 @@ struct WorkoutDetailViewV2: View {
     @State private var heartRateCount = 0
 
     // 分享卡相關狀態
-    @State private var showShareCardSheet = false
+    @State private var shareRecapContent: WorkoutRecapContent?
     @State private var showPhotoPickersheet = false
     @State private var showShareMenu = false  // 分享選單狀態
     @State private var showPBMoment = false
@@ -30,10 +30,10 @@ struct WorkoutDetailViewV2: View {
     @State private var deleteResultMessage: String?
     @State private var showDeleteResult = false
 
-    // 訓練心得相關狀態
-    @State private var showTrainingNotesEditor = false
+    // 訓練回顧相關狀態
+    @State private var showReflection = false
+    @State private var didAutoPromptReflection = false
     @State private var displayedTrainingNotes: String? = nil  // 用於樂觀 UI 更新
-    @State private var showRPEEditor = false
     @State private var displayedRPE: Int? = nil
 
     // AC-IOS-ANALYTICS-P1-10: dedup state lifted to ViewModel (hasTrackedAnalyticsView)
@@ -51,15 +51,6 @@ struct WorkoutDetailViewV2: View {
     
     init(workout: WorkoutV2) {
         _viewModel = StateObject(wrappedValue: WorkoutDetailViewModelV2(workout: workout))
-
-        // 調試：檢查 workout 的 shareCardContent
-        print("📋 [WorkoutDetailViewV2] Init with workout.id: \(workout.id)")
-        print("   - shareCardContent 是否為 nil: \(workout.shareCardContent == nil)")
-        if let content = workout.shareCardContent {
-            print("   - achievementTitle: \(content.achievementTitle ?? "nil")")
-            print("   - encouragementText: \(content.encouragementText ?? "nil")")
-            print("   - streakDays: \(content.streakDays?.description ?? "nil")")
-        }
     }
     
     var body: some View {
@@ -83,7 +74,7 @@ struct WorkoutDetailViewV2: View {
                 TrainingNotesCard(
                     notes: displayedTrainingNotes ?? viewModel.workoutDetail?.trainingNotes,
                     onEdit: {
-                        showTrainingNotesEditor = true
+                        showReflection = true
                     }
                 )
 
@@ -153,9 +144,17 @@ struct WorkoutDetailViewV2: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 // 分享按鈕 - 點擊彈出選單
                 Menu {
-                    // 分享訓練成果（照片分享卡）
+                    // 分享訓練成果（recap 分享卡，不撒花）
                     Button {
-                        showShareCardSheet = true
+                        Task { @MainActor in
+                            shareRecapContent = WorkoutRecapContent.make(
+                                from: viewModel.workout,
+                                isPremium: SubscriptionStateManager.shared.hasPremiumAccess,
+                                aiAnalysisOverride: viewModel.workoutDetail?.aiSummary?.analysis,
+                                rpeOverride: viewModel.currentRPE,
+                                shareCardContentOverride: viewModel.workoutDetail?.shareCardContent
+                            )
+                        }
                     } label: {
                         Label(L10n.Workout.shareCard.localized,
                               systemImage: "photo.on.rectangle.angled")
@@ -203,11 +202,8 @@ struct WorkoutDetailViewV2: View {
                 ActivityViewController(activityItems: [shareImage])
             }
         }
-        .sheet(isPresented: $showShareCardSheet) {
-            WorkoutShareCardSheetView(
-                workout: viewModel.workout,
-                workoutDetail: viewModel.workoutDetail
-            )
+        .sheet(item: $shareRecapContent) { recapContent in
+            WorkoutRecapView(content: recapContent, showConfetti: false)
         }
         .sheet(isPresented: $showPBShareCardSheet) {
             if let update = selectedPBShareUpdate {
@@ -225,27 +221,15 @@ struct WorkoutDetailViewV2: View {
         .sheet(item: $presentingShareData) { shareData in
             CelebrationSharePreviewSheet(data: shareData)
         }
-        .sheet(isPresented: $showTrainingNotesEditor) {
-            TrainingNotesEditorView(
+        .sheet(isPresented: $showReflection) {
+            WorkoutReflectionView(
                 workoutId: viewModel.workout.id,
-                initialNotes: displayedTrainingNotes ?? viewModel.workoutDetail?.trainingNotes,
-                onSave: { notes in
-                    // 使用 Task.tracked 進行 API 追蹤（符合 CLAUDE.md Section 7 規範）
-                    return await Task {
-                        let success = await viewModel.updateTrainingNotes(notes)
-                        if success {
-                            // 樂觀 UI 更新：立即更新顯示的內容
-                            displayedTrainingNotes = notes
-                        }
-                        return success
-                    }.tracked(from: "WorkoutDetailViewV2: updateTrainingNotes").value
-                }
-            )
-        }
-        .sheet(isPresented: $showRPEEditor) {
-            RPEEditorView(
+                typeName: viewModel.trainingType,
+                distanceText: viewModel.distance ?? "-",
+                date: viewModel.workout.startDate,
                 initialRPE: displayedRPE ?? viewModel.currentRPE.map { Int($0.rounded()) },
-                onSave: { rpe in
+                initialNotes: displayedTrainingNotes ?? viewModel.workoutDetail?.trainingNotes,
+                onSaveRPE: { rpe in
                     return await Task {
                         let success = await viewModel.updateRPE(rpe)
                         if success {
@@ -253,6 +237,15 @@ struct WorkoutDetailViewV2: View {
                         }
                         return success
                     }.tracked(from: "WorkoutDetailViewV2: updateRPE").value
+                },
+                onSaveNotes: { notes in
+                    return await Task {
+                        let success = await viewModel.updateTrainingNotes(notes)
+                        if success {
+                            displayedTrainingNotes = notes
+                        }
+                        return success
+                    }.tracked(from: "WorkoutDetailViewV2: updateTrainingNotes").value
                 }
             )
         }
@@ -270,10 +263,12 @@ struct WorkoutDetailViewV2: View {
         // AC-IOS-ANALYTICS-P1-10: workout_analysis_view — fire when detail is available
         .onAppear {
             trackWorkoutAnalysisViewIfReady()
+            maybeAutoPromptReflection()
         }
         .onChange(of: viewModel.workoutDetail != nil) { _, hasDetail in
             if hasDetail {
                 trackWorkoutAnalysisViewIfReady()
+                maybeAutoPromptReflection()
             }
         }
         .onChange(of: viewModel.pendingCelebrationContent) { _, content in
@@ -801,7 +796,7 @@ struct WorkoutDetailViewV2: View {
                 // Effort Score (RPE)
                 if let rpe = displayedRPE ?? viewModel.currentRPE.map({ Int($0.rounded()) }) {
                     Button {
-                        showRPEEditor = true
+                        showReflection = true
                     } label: {
                         DataItem(title: L10n.WorkoutDetail.effortScore.localized, value: "\(rpe)/10", icon: "gauge")
                     }
@@ -809,7 +804,7 @@ struct WorkoutDetailViewV2: View {
                     .accessibilityIdentifier("workout_detail_rpe_button")
                 } else {
                     Button {
-                        showRPEEditor = true
+                        showReflection = true
                     } label: {
                         VStack(spacing: 6) {
                             Image(systemName: "gauge")
@@ -1075,6 +1070,19 @@ struct WorkoutDetailViewV2: View {
             workoutId: viewModel.workout.id,
             hasCoachNotes: detail.aiSummary != nil
         )
+    }
+
+    /// 自動彈 WorkoutReflectionView：detail 載入後、無 RPE、本次未彈過。
+    private func maybeAutoPromptReflection() {
+        let hasRPE = (displayedRPE ?? viewModel.currentRPE.map { Int($0.rounded()) }) != nil
+        if WorkoutReflectionGate.shouldAutoPrompt(
+            hasRPE: hasRPE,
+            detailLoaded: viewModel.workoutDetail != nil,
+            alreadyPrompted: didAutoPromptReflection
+        ) {
+            didAutoPromptReflection = true
+            showReflection = true
+        }
     }
 
     // MARK: - 輔助方法

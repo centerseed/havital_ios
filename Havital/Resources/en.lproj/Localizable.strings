@@ -1584,6 +1584,21 @@
 // MARK: - Workout Detail
 "workout.share_card" = "Share Workout Card";
 "workout.share_screenshot" = "Share Screenshot";
+"workout.share.title" = "Share Workout";
+"workout.share.action" = "Share This Achievement";
+"workout.reflection.title" = "Workout Reflection";
+"workout.reflection.saveError" = "Save failed, please try again";
+"workout.rpe.prompt" = "How did it feel today?";
+"workout.rpe.selected" = "Today's effort %d/10";
+"workout.rpe.feedback.low" = "Effortlessly done ✓";
+"workout.rpe.feedback.medium" = "Good rhythm ✓";
+"workout.rpe.feedback.high" = "Solid session ✓";
+"workout.rpe.feedback.max" = "Tough one done 💪";
+"workout.diary.promptHint" = "Start from here ↓";
+"workout.diary.promptTip" = "Tap a topic to start";
+"workout.diary.placeholder" = "Write how this session felt… even one line counts.";
+"workout.diary.privacy" = "Only you can see this";
+"workout.defaultType" = "Workout";
 
 // MARK: - Data Source
 "datasource.strava_subtitle" = "Sync your activities from Strava";

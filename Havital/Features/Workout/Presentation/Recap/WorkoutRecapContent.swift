@@ -49,8 +49,11 @@ extension WorkoutRecapContent {
         from workout: WorkoutV2,
         isPremium: Bool,
         aiAnalysisOverride: String? = nil,
-        rpeOverride: Double? = nil
+        rpeOverride: Double? = nil,
+        shareCardContentOverride: ShareCardContent? = nil
     ) -> WorkoutRecapContent {
+        // list endpoint 的 workout 常不帶 shareCardContent；caller 補抓 detail 後以 override 傳入。
+        let shareCard = shareCardContentOverride ?? workout.shareCardContent
         let unit = UnitManager.shared
 
         // 距離
@@ -87,9 +90,9 @@ extension WorkoutRecapContent {
             vdot: workout.dynamicVdot,
             rpe: rpeOverride ?? workout.advancedMetrics?.rpe,
             aiAnalysis: aiAnalysisOverride ?? workout.aiSummary?.analysis,
-            celebrationTitle: workout.shareCardContent?.achievementTitle,
-            encouragement: workout.shareCardContent?.encouragementText,
-            streakDays: workout.shareCardContent?.streakDays,
+            celebrationTitle: shareCard?.achievementTitle,
+            encouragement: shareCard?.encouragementText,
+            streakDays: shareCard?.streakDays,
             isPremium: isPremium
         )
     }

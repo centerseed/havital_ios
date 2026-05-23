@@ -392,7 +392,7 @@ struct TrainingPlanV2View: View {
             }
             #if DEBUG
             .sheet(item: $debugRecapContent) { content in
-                WorkoutRecapView(content: content)
+                WorkoutRecapView(content: content, showConfetti: true)
             }
             #endif
             .sheet(isPresented: $showMessageCenter) {

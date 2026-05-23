@@ -1583,6 +1583,21 @@
 // MARK: - Workout Detail
 "workout.share_card" = "トレーニングカードをシェア";
 "workout.share_screenshot" = "スクリーンショットをシェア";
+"workout.share.title" = "トレーニングをシェア";
+"workout.share.action" = "今回の成果をシェア";
+"workout.reflection.title" = "トレーニング振り返り";
+"workout.reflection.saveError" = "保存に失敗しました。再試行してください";
+"workout.rpe.prompt" = "今日の感覚は？";
+"workout.rpe.selected" = "今日のきつさ %d/10";
+"workout.rpe.feedback.low" = "楽にこなせた ✓";
+"workout.rpe.feedback.medium" = "リズムよく走れた ✓";
+"workout.rpe.feedback.high" = "充実したトレーニング ✓";
+"workout.rpe.feedback.max" = "頑張り抜いた 💪";
+"workout.diary.promptHint" = "ここから始めよう ↓";
+"workout.diary.promptTip" = "タップすると書き出しが入力される";
+"workout.diary.placeholder" = "今回のトレーニングの感想を… 一言でもOK。";
+"workout.diary.privacy" = "このメモはあなただけに表示されます";
+"workout.defaultType" = "トレーニング";
 
 // MARK: - Data Source
 "datasource.strava_subtitle" = "Stravaのアクティビティを同期";
