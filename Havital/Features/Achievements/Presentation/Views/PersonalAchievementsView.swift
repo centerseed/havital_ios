@@ -473,33 +473,16 @@ struct PersonalAchievementsView: View {
 
     private func pbRecordsCard(records: [AchievementPBRecord]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Card header
-            HStack {
-                HStack(spacing: 6) {
-                    Text("🏆")
-                        .font(AppFont.bodyRegular())
-                    Text(L10n.Achievements.PBCard.cardTitle.localized)
-                        .font(AppFont.bodyStrong())
-                    Image(systemName: "info.circle")
-                        .font(AppFont.micro())
-                        .foregroundColor(Color(UIColor.tertiaryLabel))
-                }
+            // Card header — 所有距離已在下方橫向列出，無需「查看全部」（每張卡片點擊即看詳情）。
+            HStack(spacing: 6) {
+                Text("🏆")
+                    .font(AppFont.bodyRegular())
+                Text(L10n.Achievements.PBCard.cardTitle.localized)
+                    .font(AppFont.bodyStrong())
+                Image(systemName: "info.circle")
+                    .font(AppFont.micro())
+                    .foregroundColor(Color(UIColor.tertiaryLabel))
                 Spacer()
-                Button {
-                    // PB detail — show first record's detail if available
-                    if let first = records.first {
-                        openPBDetail(for: first)
-                    }
-                } label: {
-                    HStack(spacing: 2) {
-                        Text(L10n.Achievements.PBCard.viewAll.localized)
-                            .font(AppFont.chip())
-                        Image(systemName: "chevron.right")
-                            .font(AppFont.captionRegular())
-                    }
-                    .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
             }
 
             if records.isEmpty {
