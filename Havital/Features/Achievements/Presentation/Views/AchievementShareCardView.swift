@@ -9,8 +9,6 @@ import UIKit
 
 struct AchievementShareCardView: View {
     let shareable: AchievementShareable
-    /// "@username" 格式；由 AchievementSharePreviewSheet 從 UserProfile 取，找不到用 "@paceriz"
-    let handle: String
     /// "YYYY.MM.DD" 格式的日期字串
     let dateString: String
     /// 由呼叫端解析的真實徽章 asset 名（用 AchievementBadge.assetName，fallback 才用 badgeId switch）
@@ -133,20 +131,10 @@ struct AchievementShareCardView: View {
     // MARK: - Badge Section
 
     private var badgeSection: some View {
-        ZStack {
-            // 虛線圓環
-            Circle()
-                .strokeBorder(
-                    style: StrokeStyle(lineWidth: 1.5, dash: [4, 5])
-                )
-                .foregroundColor(Color.white.opacity(0.30))
-                .frame(width: 130, height: 130)
-
-            Image(badgeAssetName)
-                .resizable()
-                .scaledToFit()
-                .frame(width: 100, height: 100)
-        }
+        Image(badgeAssetName)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 150, height: 150)
     }
 
     // MARK: - UNLOCKED Label
@@ -207,12 +195,12 @@ struct AchievementShareCardView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 12)
+        .padding(.vertical, 7)
         .background(Color.black.opacity(0.28), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private func statCell(field: AchievementPublicField) -> some View {
-        VStack(spacing: 3) {
+        VStack(spacing: 2) {
             Text(field.value)
                 .font(.system(size: 17, weight: .bold).monospacedDigit())
                 .foregroundColor(.white)
@@ -230,9 +218,6 @@ struct AchievementShareCardView: View {
 
     private var footer: some View {
         HStack {
-            Text(handle)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(.white.opacity(0.70))
             Spacer()
             Text(dateString)
                 .font(.system(size: 11, weight: .regular).monospacedDigit())
@@ -266,8 +251,7 @@ struct AchievementSharePreviewSheet: View {
     let shareable: AchievementShareable
     let onShare: (UIImage) -> Void
 
-    // handle 和 dateString 在 init 時從 UserProfileLocalDataSource 取，保持呼叫端 API 不變
-    private let handle: String
+    // dateString 在 init 時產生，保持呼叫端 API 不變
     private let dateString: String
     private let badgeAssetName: String
 
@@ -275,14 +259,6 @@ struct AchievementSharePreviewSheet: View {
         self.shareable = shareable
         self.badgeAssetName = badgeAssetName
         self.onShare = onShare
-
-        // 取 displayName，加 "@" 前綴；找不到 fallback "@paceriz"
-        let ds = UserProfileLocalDataSource()
-        if let name = ds.getUserProfile()?.displayName, !name.isEmpty {
-            self.handle = "@\(name)"
-        } else {
-            self.handle = "@paceriz"
-        }
 
         // 今日日期作為 fallback（shareable 沒有解鎖日期欄位）
         let formatter = DateFormatter()
@@ -296,14 +272,11 @@ struct AchievementSharePreviewSheet: View {
                 VStack(spacing: 16) {
                     AchievementShareCardView(
                         shareable: shareable,
-                        handle: handle,
                         dateString: dateString,
                         badgeAssetName: badgeAssetName
                     )
                     .shadow(color: Color.black.opacity(0.18), radius: 12, x: 0, y: 6)
                     .padding(.top)
-
-                    publicFieldsSection
 
                     Button {
                         if let image = renderCard() {
@@ -331,41 +304,9 @@ struct AchievementSharePreviewSheet: View {
         }
     }
 
-    private var publicFieldsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(L10n.Achievements.Share.publicFields.localized)
-                .font(AppFont.headline())
-
-            if shareable.publicFields.isEmpty {
-                Text(L10n.Achievements.Share.defaultPublicFields.localized)
-                    .font(AppFont.bodySmall())
-                    .foregroundColor(.secondary)
-            } else {
-                ForEach(shareable.publicFields) { field in
-                    HStack {
-                        Text(field.labelKey.localizedOrFallback(default: field.key))
-                            .font(AppFont.bodySmall())
-                        Spacer()
-                        Text(field.value)
-                            .font(AppFont.bodyMedium())
-                    }
-                }
-            }
-
-            Text(L10n.Achievements.Share.sensitiveExcluded.localized)
-                .font(AppFont.caption())
-                .foregroundColor(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding()
-        .cardStyle()
-        .padding(.horizontal)
-    }
-
     private func renderCard() -> UIImage? {
         let card = AchievementShareCardView(
             shareable: shareable,
-            handle: handle,
             dateString: dateString,
             badgeAssetName: badgeAssetName
         )
@@ -390,8 +331,8 @@ private extension String {
 private let previewShareable = AchievementShareable(
     materialId: "preview-badge-1",
     materialType: .badge,
-    titleKey: "連續出賽者",
-    summaryKey: "連續完成 7 天的訓練節奏",
+    titleKey: "賽季節奏跑者",
+    summaryKey: "連續累積 12 週有效訓練節奏",
     summaryParams: [:],
     publicFields: [
         AchievementPublicField(key: "distance", labelKey: "總距離", value: "32.4km"),
@@ -399,7 +340,7 @@ private let previewShareable = AchievementShareable(
         AchievementPublicField(key: "pace", labelKey: "配速", value: "5:42/km")
     ],
     defaultSensitiveFieldsEnabled: false,
-    badgeId: "BADGE-BUILD-SHOWING-UP",
+    badgeId: "BADGE-RHYTHM-12-SEASON-RUNNER",
     chapter: .build
 )
 
@@ -408,9 +349,8 @@ private let previewShareable = AchievementShareable(
         Color(UIColor.systemGroupedBackground)
         AchievementShareCardView(
             shareable: previewShareable,
-            handle: "@runner_wu",
             dateString: "2026.05.22",
-            badgeAssetName: "achievement_badge_build_showing_up_footprints"
+            badgeAssetName: "achievement_badge_rhythm_12_season_runner"
         )
         .shadow(color: Color.black.opacity(0.18), radius: 12, x: 0, y: 6)
     }
