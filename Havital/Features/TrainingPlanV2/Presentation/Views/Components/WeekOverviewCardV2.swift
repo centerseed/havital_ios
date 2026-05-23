@@ -151,10 +151,9 @@ struct WeekOverviewCardV2: View {
                         )
                     }
 
-                    // Segmented intensity bar — inline for precise alignment control.
-                    // Bar always fills completely (denominator = actual total) to show
-                    // how effort was distributed, not how much progress was made.
-                    // Leading segment is rounded on the left, trailing segment on the right.
+                    // Progress bar with intensity-coloured fill: filled portion = mileage
+                    // progress (currentWeekDistance / totalDistance), subdivided by the actual
+                    // low/medium/high split; the remaining distance shows as a grey track tail.
                     intensityBarView
 
                     // Dot legend — same horizontal layout as the bar above.
@@ -255,11 +254,10 @@ struct WeekOverviewCardV2: View {
 
     // MARK: - Private Helpers
 
-    // Intensity bar: 3-colour segments always filling the full width.
-    // Denominator = actual total minutes so all segments always fill the bar completely.
-    // Leading/trailing caps are rounded; inner segment joins are square (flush).
+    // Progress bar: filled width = week mileage progress; filled portion split by the
+    // actual low/medium/high intensity proportions; remaining distance shows as grey track.
     private var intensityBarView: some View {
-        IntensityDistributionBar(low: actualLow, medium: actualMedium, high: actualHigh)
+        WeekProgressIntensityBar(progress: weekProgress, low: actualLow, medium: actualMedium, high: actualHigh)
     }
 
     // Dot legend: circle dots (matching bar's rounded aesthetic) + labels.
@@ -327,32 +325,39 @@ struct WeekOverviewCardV2: View {
     }
 }
 
-// MARK: - IntensityDistributionBar
-// Private helper: 3-colour bar where all segments always fill the full width.
-// Denominator = sum of actual minutes; no empty tail.
-// Outer ends are rounded (capsule), inner segment joins are square.
-private struct IntensityDistributionBar: View {
+// MARK: - WeekProgressIntensityBar
+// Progress bar whose filled width = week mileage progress (0...1), with the filled
+// portion subdivided by the actual low/medium/high intensity proportions. The remaining
+// distance shows as a grey track tail, so the bar reads as "how much of the week is done"
+// while still conveying how that effort split across intensities.
+// Fill caps are rounded (pill); inner segment joins are square (flush).
+private struct WeekProgressIntensityBar: View {
+    let progress: Double   // 0...1 (currentWeekDistance / totalDistance)
     let low: Int
     let medium: Int
     let high: Int
 
     private let barH: CGFloat = 8
+    private var radius: CGFloat { barH / 2 }
+    private var clampedProgress: CGFloat { CGFloat(min(max(progress, 0), 1)) }
+    private var intensityDenom: CGFloat { CGFloat(max(low + medium + high, 1)) }
+    private var hasIntensity: Bool { low + medium + high > 0 }
 
     private var hasLow: Bool { low > 0 }
     private var hasMed: Bool { medium > 0 }
     private var hasHigh: Bool { high > 0 }
-    private var denom: CGFloat { CGFloat(max(low + medium + high, 1)) }
-    private var radius: CGFloat { barH / 2 }
 
     var body: some View {
         GeometryReader { geo in
             let totalW = geo.size.width
-            let lowW  = totalW * CGFloat(low)    / denom
-            let medW  = totalW * CGFloat(medium) / denom
-            let highW = totalW * CGFloat(high)   / denom
+            let fillW = totalW * clampedProgress
+            // Within the filled width, split by intensity proportions.
+            let lowW  = fillW * CGFloat(low)    / intensityDenom
+            let medW  = fillW * CGFloat(medium) / intensityDenom
+            let highW = fillW * CGFloat(high)   / intensityDenom
 
             ZStack(alignment: .leading) {
-                // Track
+                // Track (remaining distance)
                 Capsule()
                     .fill(Color(UIColor { t in
                         t.userInterfaceStyle == .dark
@@ -361,38 +366,47 @@ private struct IntensityDistributionBar: View {
                     }))
                     .frame(height: barH)
 
-                // Segments
-                HStack(spacing: 0) {
-                    if hasLow {
-                        let trailR: CGFloat = (!hasMed && !hasHigh) ? radius : 0
-                        UnevenRoundedRectangle(
-                            topLeadingRadius: radius, bottomLeadingRadius: radius,
-                            bottomTrailingRadius: trailR, topTrailingRadius: trailR
-                        )
-                        .fill(PacerizColor.green)
-                        .frame(width: lowW, height: barH)
-                    }
-                    if hasMed {
-                        let leadR: CGFloat = !hasLow  ? radius : 0
-                        let trailR: CGFloat = !hasHigh ? radius : 0
-                        UnevenRoundedRectangle(
-                            topLeadingRadius: leadR, bottomLeadingRadius: leadR,
-                            bottomTrailingRadius: trailR, topTrailingRadius: trailR
-                        )
-                        .fill(PacerizColor.orange)
-                        .frame(width: medW, height: barH)
-                    }
-                    if hasHigh {
-                        let leadR: CGFloat = (!hasLow && !hasMed) ? radius : 0
-                        UnevenRoundedRectangle(
-                            topLeadingRadius: leadR, bottomLeadingRadius: leadR,
-                            bottomTrailingRadius: radius, topTrailingRadius: radius
-                        )
-                        .fill(PacerizColor.error)
-                        .frame(width: highW, height: barH)
+                // Filled portion
+                if fillW > 0 {
+                    if hasIntensity {
+                        HStack(spacing: 0) {
+                            if hasLow {
+                                let trailR: CGFloat = (!hasMed && !hasHigh) ? radius : 0
+                                UnevenRoundedRectangle(
+                                    topLeadingRadius: radius, bottomLeadingRadius: radius,
+                                    bottomTrailingRadius: trailR, topTrailingRadius: trailR
+                                )
+                                .fill(PacerizColor.green)
+                                .frame(width: lowW, height: barH)
+                            }
+                            if hasMed {
+                                let leadR: CGFloat = !hasLow  ? radius : 0
+                                let trailR: CGFloat = !hasHigh ? radius : 0
+                                UnevenRoundedRectangle(
+                                    topLeadingRadius: leadR, bottomLeadingRadius: leadR,
+                                    bottomTrailingRadius: trailR, topTrailingRadius: trailR
+                                )
+                                .fill(PacerizColor.orange)
+                                .frame(width: medW, height: barH)
+                            }
+                            if hasHigh {
+                                let leadR: CGFloat = (!hasLow && !hasMed) ? radius : 0
+                                UnevenRoundedRectangle(
+                                    topLeadingRadius: leadR, bottomLeadingRadius: leadR,
+                                    bottomTrailingRadius: radius, topTrailingRadius: radius
+                                )
+                                .fill(PacerizColor.error)
+                                .frame(width: highW, height: barH)
+                            }
+                        }
+                        .frame(height: barH)
+                    } else {
+                        // Progress exists but no intensity breakdown → neutral fill.
+                        Capsule()
+                            .fill(PacerizColor.blue)
+                            .frame(width: fillW, height: barH)
                     }
                 }
-                .frame(height: barH)
             }
         }
         .frame(height: barH)
