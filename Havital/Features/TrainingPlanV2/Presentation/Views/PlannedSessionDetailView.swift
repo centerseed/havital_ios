@@ -118,6 +118,28 @@ struct PlannedSessionDetailView: View {
     private var typeChipLabel: String { WorkoutMeta.chipLabel(for: day.type) }
     private var workoutTypeName: String { WorkoutMeta.typeName(for: day.type) }
 
+    /// Easy / long-easy runs: single-segment, relaxed. Pace shown as original ±20s, no structure.
+    private var isEasyOrLSD: Bool {
+        switch day.type {
+        case .easy, .easyRun, .recovery_run, .lsd, .longRun: return true
+        default: return false
+        }
+    }
+
+    /// Original (non-climate-adjusted) pace widened by ±20s, e.g. "5:40–6:20".
+    private func easyPaceRange(_ run: RunActivity) -> String? {
+        let original = run.basePace ?? run.pace
+        guard let original, let sec = paceStringToSeconds(original) else { return original }
+        return "\(secondsToPaceString(max(0, sec - 20)))–\(secondsToPaceString(sec + 20))"
+    }
+
+    /// 預估時間範圍：配速算出的時間為下限，×1.15(四捨五入取整)為上限。
+    /// 回傳如 "62-71"（不含單位；上限與下限相同時只回單一值）。
+    private func estimatedTimeRange(minutes: Int) -> String {
+        let upper = Int((Double(minutes) * 1.15).rounded())
+        return upper > minutes ? "\(minutes)-\(upper)" : "\(minutes)"
+    }
+
     // MARK: - Hero Card
 
     private enum HeroVariant { case interval, segmented, simple }
@@ -163,11 +185,25 @@ struct PlannedSessionDetailView: View {
             if let run = day.primaryRunActivity {
                 heroMetricColumn(title: NSLocalizedString("training.detail.metric_distance", comment: ""), value: distanceString(run), unit: distanceUnit(run))
                 heroDivider
-                heroMetricColumn(title: NSLocalizedString("training.detail.metric_estimated_time", comment: ""), value: durationString(run), unit: nil)
-                heroDivider
-                heroMetricColumn(title: NSLocalizedString("common.pace", comment: ""), value: run.effectivePace ?? "-", unit: nil)
+                if isEasyOrLSD {
+                    // Easy/long-easy runs are HR-driven → show 距離 + 心率 (pace lives in target zones as a range).
+                    let hr = heroHRValue(run)
+                    heroMetricColumn(title: NSLocalizedString("training.zone.target_hr", comment: ""), value: hr.value, unit: hr.unit)
+                } else {
+                    heroMetricColumn(title: NSLocalizedString("training.detail.metric_estimated_time", comment: ""), value: durationString(run), unit: nil)
+                    heroDivider
+                    heroMetricColumn(title: NSLocalizedString("common.pace", comment: ""), value: run.effectivePace ?? "-", unit: "/km")
+                }
             }
         }
+    }
+
+    /// Hero heart-rate value: explicit HR range (bpm) if present, else inferred zone string.
+    private func heroHRValue(_ run: RunActivity) -> (value: String, unit: String) {
+        if let hr = run.heartRateRange, hr.isValid, let text = hr.displayText {
+            return (text, "bpm")
+        }
+        return (inferredHRZone(for: day.type), "")
     }
 
     private var segmentedHeroMetrics: some View {
@@ -214,11 +250,15 @@ struct PlannedSessionDetailView: View {
     @ViewBuilder
     private func heroMetricColumn(title: String, value: String, unit: String?) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(AppFont.micro()).foregroundColor(.white.opacity(0.85))
-            HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text(value).font(AppFont.numberLarge().monospacedDigit()).tracking(-0.03).foregroundColor(.white)
-                if let unit { Text(unit).font(AppFont.micro()).foregroundColor(.white.opacity(0.85)) }
+            // Unit lives next to the title (consistent across all cards), not the value.
+            HStack(spacing: 3) {
+                Text(title).font(AppFont.micro()).foregroundColor(.white.opacity(0.85))
+                if let unit, !unit.isEmpty {
+                    Text(unit).font(AppFont.micro()).foregroundColor(.white.opacity(0.6))
+                }
             }
+            Text(value).font(AppFont.numberLarge().monospacedDigit()).tracking(-0.03).foregroundColor(.white)
+                .lineLimit(1).minimumScaleFactor(0.6)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -263,10 +303,9 @@ struct PlannedSessionDetailView: View {
 
     @ViewBuilder
     private var structureSectionIfNeeded: some View {
-        // Detail page always shows segments — even single-segment runs provide useful
-        // label + HR range info (Fix 4: do NOT hide single segment here, unlike DayCard).
+        // Easy / long-easy runs are a single relaxed segment — no structure section needed.
         let segments = buildDetailSegmentsForDetailPage()
-        if !segments.isEmpty {
+        if !isEasyOrLSD, !segments.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 sectionHeader(title: NSLocalizedString("training.detail.section_structure", comment: ""), subtitle: String(format: NSLocalizedString("training.detail.structure_subtitle", comment: ""), segments.count, totalMinutes))
                 VStack(spacing: 8) {
@@ -594,7 +633,9 @@ struct PlannedSessionDetailView: View {
             case .fastFinish: paceLabel = NSLocalizedString("training.segment.easy_pace", comment: "")
             default: paceLabel = NSLocalizedString("training.zone.target_pace", comment: "")
             }
-            pills.append(TargetZonePillData(label: paceLabel, value: pace, unit: "/km", isDanger: false))
+            // Easy/LSD: show original pace widened by ±20s instead of the climate-adjusted single value.
+            let paceValue = isEasyOrLSD ? (easyPaceRange(run) ?? pace) : pace
+            pills.append(TargetZonePillData(label: paceLabel, value: paceValue, unit: "/km", isDanger: false))
         }
 
         // Pill 2: heart-rate zone — prefer explicit HR range, fall back to inferred zone string
@@ -630,18 +671,18 @@ struct PlannedSessionDetailView: View {
             if let segs = run.segments, segs.count > 1, let lastPace = segs.last?.effectivePace {
                 pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.end_pace", comment: ""), value: lastPace, unit: "/km", isDanger: false))
             } else if let mins = run.durationMinutes {
-                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.estimated_time", comment: ""), value: "\(mins)", unit: NSLocalizedString("training.minute_abbr", comment: ""), isDanger: false))
+                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.estimated_time", comment: ""), value: estimatedTimeRange(minutes: mins), unit: NSLocalizedString("training.minute_abbr", comment: ""), isDanger: false))
             }
         case .fastFinish:
             // Add tempo/fast pace from last segment
             if let segs = run.segments, segs.count > 1, let lastPace = segs.last?.effectivePace {
                 pills.append(TargetZonePillData(label: NSLocalizedString("training.segment.tempo_pace", comment: ""), value: lastPace, unit: "/km", isDanger: false))
             } else if let mins = run.durationMinutes {
-                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.estimated_time", comment: ""), value: "\(mins)", unit: NSLocalizedString("training.minute_abbr", comment: ""), isDanger: false))
+                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.estimated_time", comment: ""), value: estimatedTimeRange(minutes: mins), unit: NSLocalizedString("training.minute_abbr", comment: ""), isDanger: false))
             }
         default:
             if let mins = run.durationMinutes {
-                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.estimated_time", comment: ""), value: "\(mins)", unit: NSLocalizedString("training.minute_abbr", comment: ""), isDanger: false))
+                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.estimated_time", comment: ""), value: estimatedTimeRange(minutes: mins), unit: NSLocalizedString("training.minute_abbr", comment: ""), isDanger: false))
             }
         }
 
@@ -790,12 +831,16 @@ private struct TargetZonePill: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(label).font(AppFont.micro()).tracking(0.04).foregroundColor(.secondary)
-            HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text(value).font(AppFont.numberMedium().monospacedDigit()).tracking(-0.02)
-                    .foregroundColor(isDanger ? PacerizColor.orange : accentColor)
-                Text(unit).font(AppFont.micro()).foregroundColor(Color(.tertiaryLabel))
+            // Unit next to the label (consistent across all cards), not the value.
+            HStack(spacing: 3) {
+                Text(label).font(AppFont.micro()).tracking(0.04).foregroundColor(.secondary)
+                if !unit.isEmpty {
+                    Text(unit).font(AppFont.micro()).foregroundColor(Color(.tertiaryLabel))
+                }
             }
+            Text(value).font(AppFont.numberMedium().monospacedDigit()).tracking(-0.02)
+                .foregroundColor(isDanger ? PacerizColor.orange : accentColor)
+                .lineLimit(1).minimumScaleFactor(0.6)
         }
         .padding(.horizontal, 12).padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
