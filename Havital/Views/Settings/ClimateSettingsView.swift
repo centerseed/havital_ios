@@ -295,7 +295,7 @@ private final class ClimateSettingsViewModel: ObservableObject {
         self.profile = profile
         self.metrics = metrics
         enabled = profile.settings.enabled
-        UserDefaults.standard.set(profile.settings.enabled, forKey: "climateAdjustmentEnabled")
+        ClimateAdjustmentSyncStore.setEnabled(profile.settings.enabled)
         adaptationLevel = profile.settings.adaptationLevel
         if let threshold = profile.settings.manualStartThresholdC {
             useManualThreshold = true

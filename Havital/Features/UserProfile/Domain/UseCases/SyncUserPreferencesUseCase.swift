@@ -38,7 +38,7 @@ struct SyncUserPreferencesUseCase {
 
         // Sync climate adjustment toggle (only written when field is present in user doc)
         if let climateEnabled = input.user.climateAdjustmentEnabled {
-            UserDefaults.standard.set(climateEnabled, forKey: "climateAdjustmentEnabled")
+            ClimateAdjustmentSyncStore.setEnabled(climateEnabled)
             Logger.debug("[SyncUserPreferencesUseCase] Climate adjustment enabled: \(climateEnabled)")
         }
 
