@@ -28,6 +28,11 @@ final class WorkoutRecapCoordinator {
     /// 運動同步進來時也檢查（不只靠開 app）。WorkoutRepository 背景刷新會發出此事件。
     private func subscribeToWorkoutSync() {
         CacheEventBus.shared.subscribe(for: "dataChanged.workouts") { [weak self] in
+            // 同步事件緊接 publish() 內的 invalidateCache（清空 workout 快取）與多個並發 handler。
+            // 若立即檢查，getLatestWorkout 會撞到「快取剛清空 / 後端剛寫入尚未穩定」→ 取到舊資料
+            // 而誤判已看過；加上 isChecking guard 會把緊接而來的重試事件丟掉，導致新訓練的 recap
+            // 要等下次進前景才彈。與前景 .task 路徑一致，給一個 settle 窗口讓資料穩定後再檢查。
+            try? await Task.sleep(nanoseconds: 800_000_000)
             await self?.checkForNewWorkoutRecap()
         }
     }
