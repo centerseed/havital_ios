@@ -132,14 +132,7 @@ struct PersonalAchievementsView: View {
                 )
             }
         }
-        return summary.badgeGroups.map { group in
-            AchievementRouteBadgeGroup(
-                id: group.chapter.rawValue,
-                titleKey: group.titleKey,
-                fallbackTitle: group.chapter.localizedName,
-                badges: group.badges
-            )
-        }
+        return []
     }
 
     private var unlockedBadges: [AchievementBadge] {

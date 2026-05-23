@@ -105,7 +105,7 @@ final class AchievementRepositoryImpl: AchievementRepository {
         if !summary.achievementTracks.isEmpty {
             return summary.achievementTracks.flatMap(\.badges)
         }
-        return summary.badgeGroups.flatMap { $0.badges }
+        return []
     }
 }
 

@@ -48,6 +48,54 @@ final class MonthlyStatsRepositoryImplTests: XCTestCase {
         XCTAssertEqual(mockHTTPClient.requestCount, 0)
     }
 
+    func testGetMonthlyStatsRefreshesStaleCachedData() async throws {
+        let staleStats = [
+            DailyStat(date: "2026-04-01", totalDistanceKm: 5.0, avgPacePerKm: 330, workoutCount: 1)
+        ]
+        let refreshedStats = [
+            DailyStatsDTO(date: "2026-04-01", totalDistanceKm: 5.0, avgPacePerKm: 330, workoutCount: 1),
+            DailyStatsDTO(date: "2026-04-13", totalDistanceKm: 18.2, avgPacePerKm: 345, workoutCount: 1)
+        ]
+        localDataSource.saveMonthlyStats(staleStats, year: 2026, month: 4)
+        localDataSource.setSyncTimestamp(
+            year: 2026,
+            month: 4,
+            date: Date(timeIntervalSinceNow: -48 * 60 * 60)
+        )
+        try mockHTTPClient.setJSONResponse(
+            for: "/v2/workout/monthly_stats?year=2026&month=4&activity_type=running",
+            response: makeResponse(year: 2026, month: 4, dailyStats: refreshedStats)
+        )
+
+        let result = try await sut.getMonthlyStats(year: 2026, month: 4)
+
+        XCTAssertEqual(result.map(\.date), ["2026-04-01", "2026-04-13"])
+        XCTAssertEqual(result.reduce(0) { $0 + $1.totalDistanceKm }, 23.2, accuracy: 0.001)
+        XCTAssertEqual(mockHTTPClient.requestCount, 1)
+        XCTAssertEqual(localDataSource.getMonthlyStats(year: 2026, month: 4), result)
+    }
+
+    func testGetMonthlyStatsFallsBackToStaleCacheWhenRefreshFails() async throws {
+        let staleStats = [
+            DailyStat(date: "2026-04-01", totalDistanceKm: 5.0, avgPacePerKm: 330, workoutCount: 1)
+        ]
+        localDataSource.saveMonthlyStats(staleStats, year: 2026, month: 4)
+        localDataSource.setSyncTimestamp(
+            year: 2026,
+            month: 4,
+            date: Date(timeIntervalSinceNow: -48 * 60 * 60)
+        )
+        mockHTTPClient.setError(
+            for: "/v2/workout/monthly_stats?year=2026&month=4&activity_type=running",
+            error: HTTPError.noConnection
+        )
+
+        let result = try await sut.getMonthlyStats(year: 2026, month: 4)
+
+        XCTAssertEqual(result, staleStats)
+        XCTAssertEqual(mockHTTPClient.requestCount, 1)
+    }
+
     func testGetMonthlyStatsFetchesAndCachesWhenWorkoutCountIsPositive() async throws {
         let path = "/v2/workout/monthly_stats?year=2026&month=5&activity_type=running"
         let response = makeResponse(

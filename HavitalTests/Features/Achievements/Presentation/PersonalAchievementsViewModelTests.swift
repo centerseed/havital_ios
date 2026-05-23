@@ -26,6 +26,16 @@ final class PersonalAchievementsViewModelTests: XCTestCase {
         XCTAssertEqual(sut.state, .empty)
     }
 
+    func testLoadLegacyBadgeGroupsWithoutAchievementTracksPublishesEmptyState() async throws {
+        let repository = MockAchievementRepository(summary: .legacyOnlyFixture())
+        let sut = PersonalAchievementsViewModel(repository: repository, analyticsService: MockAchievementAnalyticsService())
+
+        sut.load()
+        try await Task.sleep(nanoseconds: 100_000_000)
+
+        XCTAssertEqual(sut.state, .empty)
+    }
+
     func testLoadErrorPublishesErrorState() async throws {
         let repository = MockAchievementRepository(error: AchievementError.fetchFailed("boom"))
         let sut = PersonalAchievementsViewModel(repository: repository, analyticsService: MockAchievementAnalyticsService())
@@ -36,19 +46,22 @@ final class PersonalAchievementsViewModelTests: XCTestCase {
         XCTAssertEqual(sut.state, .error("boom"))
     }
 
-    func testBackfillAckHidesBanner() async throws {
-        let repository = MockAchievementRepository(summary: .fixture(unlockedCount: 2, showBackfill: true))
+    func testBackfillAckHidesBannerAndPreservesAchievementTracks() async throws {
+        let repository = MockAchievementRepository(summary: .fixture(unlockedCount: 2, showBackfill: true, includeTracks: true))
         let sut = PersonalAchievementsViewModel(repository: repository, analyticsService: MockAchievementAnalyticsService())
 
         sut.load()
         try await Task.sleep(nanoseconds: 100_000_000)
         XCTAssertTrue(sut.showBackfillBanner)
+        XCTAssertEqual(sut.summary?.achievementTracks.count, 1)
 
         sut.acknowledgeBackfill()
         try await Task.sleep(nanoseconds: 100_000_000)
 
         XCTAssertTrue(repository.didAckBackfill)
         XCTAssertFalse(sut.showBackfillBanner)
+        XCTAssertEqual(sut.summary?.achievementTracks.count, 1)
+        XCTAssertEqual(sut.summary?.achievementTracks.first?.trackId, "plan")
     }
 
     func testBadgeAndShareAnalyticsUseLowSensitivityPayload() {
@@ -141,7 +154,38 @@ private extension AchievementSummary {
         )
     }
 
-    static func fixture(unlockedCount: Int, showBackfill: Bool = false) -> AchievementSummary {
+    static func legacyOnlyFixture() -> AchievementSummary {
+        let legacyBadge = AchievementBadge(
+            badgeId: "BADGE-LEGACY-START",
+            chapter: .start,
+            nameKey: "badge.legacy.name",
+            storyKey: "badge.legacy.story",
+            status: .unlocked,
+            progress: nil,
+            unlockedAt: "2026-05-12",
+            unlockReasonKey: nil,
+            sourceRef: nil,
+            historicalBackfill: false,
+            shareable: true,
+            assetName: nil
+        )
+        return AchievementSummary(
+            generatedAt: "2026-05-13T08:00:00Z",
+            catalogVersion: "legacy",
+            backfill: AchievementBackfill(status: .notNeeded, showBanner: false, bannerKey: nil, historicalUnlockCount: 0, acknowledgedAt: nil),
+            storySummary: AchievementStorySummary(unlockedCount: 1, totalCount: 1, recentUnlock: nil, nextBadge: nil, emptyStateKey: nil),
+            badgeGroups: [AchievementBadgeGroup(chapter: .start, titleKey: "achievements.chapter.start", badges: [legacyBadge])],
+            achievementTracks: [],
+            pbOverview: nil,
+            lifetimeStats: .empty,
+            insights: [],
+            recentShareables: [],
+            unlockFeedbackQueue: [],
+            privacyPolicy: AchievementPrivacyPolicy(defaultExcludedFields: [], sensitiveFields: [], publicOnly: true)
+        )
+    }
+
+    static func fixture(unlockedCount: Int, showBackfill: Bool = false, includeTracks: Bool = false) -> AchievementSummary {
         let badge = AchievementBadge(
             badgeId: "BADGE-START-FIRST-RUN",
             chapter: .start,
@@ -169,6 +213,19 @@ private extension AchievementSummary {
             badgeId: badge.badgeId,
             chapter: badge.chapter
         )
+        let tracks = includeTracks
+            ? [
+                AchievementTrack(
+                    trackId: "plan",
+                    titleKey: "achievements.track.plan.title",
+                    storyKey: "achievements.track.plan.story",
+                    metricKey: "qualified_plan_weeks",
+                    current: 1,
+                    nextBadge: nil,
+                    badges: [badge]
+                )
+            ]
+            : []
         return AchievementSummary(
             generatedAt: "2026-05-13T08:00:00Z",
             catalogVersion: "v1",
@@ -187,6 +244,7 @@ private extension AchievementSummary {
                 emptyStateKey: nil
             ),
             badgeGroups: [AchievementBadgeGroup(chapter: .start, titleKey: "achievements.chapter.start", badges: [badge])],
+            achievementTracks: tracks,
             pbOverview: AchievementPBOverview(titleKey: "achievements.pb.title", updatedAt: nil, records: [
                 AchievementPBRecord(distance: "5k", displayDistance: "5K", time: "24:10", achievedAt: "2026-05-12", isRecent: true)
             ]),

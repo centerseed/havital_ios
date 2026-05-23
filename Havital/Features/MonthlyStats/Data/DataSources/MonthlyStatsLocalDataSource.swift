@@ -86,9 +86,9 @@ final class MonthlyStatsLocalDataSource {
     /// - Parameters:
     ///   - year: 年份
     ///   - month: 月份 (1-12)
-    func setSyncTimestamp(year: Int, month: Int) {
+    func setSyncTimestamp(year: Int, month: Int, date: Date = Date()) {
         let key = timestampKey(year: year, month: month)
-        userDefaults.set(Date(), forKey: key)
+        userDefaults.set(date, forKey: key)
         Logger.debug("[MonthlyStatsLocalDataSource] 月度時間戳已保存: \(year)-\(String(format: "%02d", month))")
     }
 

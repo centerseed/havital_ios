@@ -13,6 +13,7 @@ final class MonthlyStatsRepositoryImpl: MonthlyStatsRepository {
 
     private let remoteDataSource: MonthlyStatsRemoteDataSource
     private let localDataSource: MonthlyStatsLocalDataSource
+    private let cacheFreshnessInterval: TimeInterval = 24 * 60 * 60
 
     // MARK: - Initialization
 
@@ -26,23 +27,39 @@ final class MonthlyStatsRepositoryImpl: MonthlyStatsRepository {
 
     // MARK: - MonthlyStatsRepository Protocol
 
-    /// 獲取指定月份的每日統計數據（永久 TTL 策略）
+    /// 獲取指定月份的每日統計數據
     /// - Parameters:
     ///   - year: 年份
     ///   - month: 月份 (1-12)
     /// - Returns: 每日統計數據列表
-    /// - Note: ✅ Clean Architecture: 先檢查本地緩存，沒有數據才調用 API
+    /// - Note: 先檢查本地緩存；超過 freshness window 時背景來源改為 API，失敗才回退舊緩存
     func getMonthlyStats(year: Int, month: Int) async throws -> [DailyStat] {
         Logger.debug("[MonthlyStatsRepositoryImpl] getMonthlyStats - year: \(year), month: \(month)")
 
         // ✅ 先從本地緩存讀取數據
         // ⚠️ 重要：只有當緩存有實際數據時才返回，空數組仍需調用 API
         if let cachedStats = localDataSource.getMonthlyStats(year: year, month: month), !cachedStats.isEmpty {
-            print("📊 [MonthlyStatsRepo] 從本地緩存返回，\(year)-\(String(format: "%02d", month))，數量: \(cachedStats.count)")
-            return cachedStats
+            if isCacheFresh(year: year, month: month) {
+                print("📊 [MonthlyStatsRepo] 從本地緩存返回，\(year)-\(String(format: "%02d", month))，數量: \(cachedStats.count)")
+                return cachedStats
+            }
+
+            print("📊 [MonthlyStatsRepo] 本地緩存過期，刷新 \(year)-\(String(format: "%02d", month))")
+            return await fetchAndCacheMonthlyStats(year: year, month: month, fallback: cachedStats)
         }
 
-        // ✅ 本地沒有數據或數據為空，從 API 獲取
+        return await fetchAndCacheMonthlyStats(year: year, month: month, fallback: nil)
+    }
+
+    private func isCacheFresh(year: Int, month: Int) -> Bool {
+        guard let timestamp = localDataSource.getSyncTimestamp(year: year, month: month) else {
+            return true
+        }
+
+        return Date().timeIntervalSince(timestamp) < cacheFreshnessInterval
+    }
+
+    private func fetchAndCacheMonthlyStats(year: Int, month: Int, fallback: [DailyStat]?) async -> [DailyStat] {
         print("📊 [MonthlyStatsRepo] 🌐 調用 API: /v2/workout/monthly_stats?year=\(year)&month=\(month)")
 
         do {
@@ -84,6 +101,11 @@ final class MonthlyStatsRepositoryImpl: MonthlyStatsRepository {
             return entities
 
         } catch {
+            if let fallback {
+                Logger.error("[MonthlyStatsRepositoryImpl] 月度數據刷新失敗，回退本地緩存: \(error.localizedDescription)")
+                return fallback
+            }
+
             // ✅ 靜默降級：API 失敗時返回空數組，不拋出錯誤
             Logger.error("[MonthlyStatsRepositoryImpl] 月度數據獲取失敗，靜默降級: \(error.localizedDescription)")
 
@@ -135,11 +157,7 @@ final class MonthlyStatsRepositoryImpl: MonthlyStatsRepository {
     func refreshMonth(year: Int, month: Int) async throws -> [DailyStat] {
         Logger.debug("[MonthlyStatsRepositoryImpl] refreshMonth - year: \(year), month: \(month)")
 
-        // 清除時間戳
-        localDataSource.clearSyncTimestamp(year: year, month: month)
-
-        // 重新獲取
-        return try await getMonthlyStats(year: year, month: month)
+        return await fetchAndCacheMonthlyStats(year: year, month: month, fallback: nil)
     }
 
     /// 獲取所有已同步的月份列表（調試用）

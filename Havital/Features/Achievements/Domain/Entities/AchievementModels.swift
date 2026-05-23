@@ -219,13 +219,11 @@ struct AchievementSummary: Equatable, Sendable {
     }
 
     var hasVisibleContent: Bool {
-        storySummary.unlockedCount > 0
-            || pbOverview?.records.isEmpty == false
+        pbOverview?.records.isEmpty == false
             || lifetimeStats.hasAnyValue
             || !visibleInsights.isEmpty
             || !recentShareables.isEmpty
             || achievementTracks.contains { !$0.badges.isEmpty }
-            || badgeGroups.contains { !$0.badges.isEmpty }
     }
 
     var visibleInsights: [AchievementInsight] {
