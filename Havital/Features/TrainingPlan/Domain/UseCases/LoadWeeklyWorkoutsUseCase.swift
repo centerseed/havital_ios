@@ -24,7 +24,8 @@ struct LoadWeeklyWorkoutsUseCase {
     /// - Returns: 按 dayIndex 分組的訓練記錄
     func execute(
         weekInfo: WeekDateInfo,
-        activityTypes: Set<String> = ["running", "walking", "hiking", "cross_training"]
+        activityTypes: Set<String> = ["running", "walking", "hiking", "cross_training", "cycling",
+                                      "yoga", "strength_training", "swimming", "rowing", "fitness_equipment"]
     ) async -> [Int: [WorkoutV2]] {
         Logger.debug("[LoadWeeklyWorkoutsUseCase] Loading workouts from \(weekInfo.startDate) to \(weekInfo.endDate)")
 

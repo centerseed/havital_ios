@@ -10,7 +10,8 @@ enum WeekMetricsCalculator {
         let intensity: TrainingIntensityManager.IntensityMinutes
     }
 
-    private static let activityTypes: Set<String> = ["running", "walking", "hiking", "cross_training"]
+    private static let activityTypes: Set<String> = ["running", "walking", "hiking", "cross_training", "cycling",
+                                                      "yoga", "strength_training", "swimming", "rowing", "fitness_equipment"]
 
     /// Groups workouts by day index (1-7) for the given week.
     /// Only retains running/walking/hiking/cross_training within the week range.
