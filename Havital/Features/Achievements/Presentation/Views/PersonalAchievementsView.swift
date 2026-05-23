@@ -4,7 +4,6 @@ import UIKit
 // MARK: - PersonalAchievementsView (Redesigned 2026-05)
 struct PersonalAchievementsView: View {
     @StateObject private var viewModel: PersonalAchievementsViewModel
-    @State private var shareActivityItem: AchievementActivityItem?
     @State private var selectedPBDetailItem: PersonalBestDetailItem?
     @State private var showTracksPath = false
 
@@ -49,16 +48,8 @@ struct PersonalAchievementsView: View {
                     AchievementSharePreviewSheet(
                         shareable: shareable,
                         badgeAssetName: shareBadgeAssetName(for: shareable),
-                        onShare: { image in
-                            shareActivityItem = AchievementActivityItem(image: image)
-                        }
+                        onShared: { viewModel.completeShare() }
                     )
-                }
-                .sheet(item: $shareActivityItem) { item in
-                    AchievementActivityViewController(items: [item.image]) {
-                        viewModel.completeShare()
-                        shareActivityItem = nil
-                    }
                 }
                 .sheet(item: $selectedPBDetailItem) { item in
                     PersonalBestDetailView(distance: item.distance, records: item.records)
@@ -97,10 +88,6 @@ struct PersonalAchievementsView: View {
     private var loadedView: some View {
         ScrollView {
             VStack(spacing: 16) {
-                if viewModel.showBackfillBanner {
-                    backfillBanner
-                }
-
                 // 1. Stats Banner
                 statsBannerCard
 
@@ -1115,12 +1102,12 @@ private extension String {
 
 // MARK: - Private types
 
-private struct AchievementActivityItem: Identifiable {
+struct AchievementActivityItem: Identifiable {
     let id = UUID()
     let image: UIImage
 }
 
-private struct AchievementActivityViewController: UIViewControllerRepresentable {
+struct AchievementActivityViewController: UIViewControllerRepresentable {
     let items: [Any]
     let onComplete: () -> Void
 

@@ -249,16 +249,19 @@ extension AchievementBadgeArtwork {
 struct AchievementSharePreviewSheet: View {
     @Environment(\.dismiss) private var dismiss
     let shareable: AchievementShareable
-    let onShare: (UIImage) -> Void
+    /// 分享完成後的追蹤回呼（實際的系統分享表單由本 sheet 自己呈現，避免 sheet-over-sheet 失效）。
+    let onShared: () -> Void
+
+    @State private var activityItem: AchievementActivityItem?
 
     // dateString 在 init 時產生，保持呼叫端 API 不變
     private let dateString: String
     private let badgeAssetName: String
 
-    init(shareable: AchievementShareable, badgeAssetName: String, onShare: @escaping (UIImage) -> Void) {
+    init(shareable: AchievementShareable, badgeAssetName: String, onShared: @escaping () -> Void) {
         self.shareable = shareable
         self.badgeAssetName = badgeAssetName
-        self.onShare = onShare
+        self.onShared = onShared
 
         // 今日日期作為 fallback（shareable 沒有解鎖日期欄位）
         let formatter = DateFormatter()
@@ -280,11 +283,13 @@ struct AchievementSharePreviewSheet: View {
 
                     Button {
                         if let image = renderCard() {
-                            onShare(image)
+                            activityItem = AchievementActivityItem(image: image)
                         }
                     } label: {
                         Label(L10n.Achievements.Share.action.localized, systemImage: "square.and.arrow.up")
+                            .font(AppFont.bodyStrong())
                             .frame(maxWidth: .infinity)
+                            .frame(height: 54)
                     }
                     .buttonStyle(.borderedProminent)
                     .padding(.horizontal)
@@ -299,6 +304,13 @@ struct AchievementSharePreviewSheet: View {
                     Button(L10n.Common.close.localized) {
                         dismiss()
                     }
+                }
+            }
+            // 系統分享表單由本 sheet 自己呈現（preview 為 presenter），避免從父層 sheet-over-sheet 而無反應。
+            .sheet(item: $activityItem) { item in
+                AchievementActivityViewController(items: [item.image]) {
+                    onShared()
+                    activityItem = nil
                 }
             }
         }
