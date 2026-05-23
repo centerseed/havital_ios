@@ -1585,6 +1585,13 @@
 "workout.share_screenshot" = "スクリーンショットをシェア";
 "workout.share.title" = "トレーニングをシェア";
 "workout.share.action" = "今回の成果をシェア";
+"workout.share.card.completed_format" = "%@ 完了";
+"workout.share.card.completed_default" = "トレーニング完了";
+"workout.share.card.metric_time" = "時間";
+"workout.share.card.metric_pace" = "ペース";
+"workout.share.card.edit_title" = "タイトルを編集";
+"workout.share.card.add_photo" = "写真を追加";
+"workout.share.card.change_photo" = "写真を変更";
 "workout.reflection.title" = "トレーニング振り返り";
 "workout.reflection.saveError" = "保存に失敗しました。再試行してください";
 "workout.rpe.prompt" = "今日の感覚は？";

@@ -1660,6 +1660,13 @@
 "workout.share_screenshot" = "分享長截圖";
 "workout.share.title" = "分享訓練成果";
 "workout.share.action" = "分享這次成就";
+"workout.share.card.completed_format" = "完成 %@";
+"workout.share.card.completed_default" = "訓練完成";
+"workout.share.card.metric_time" = "時間";
+"workout.share.card.metric_pace" = "配速";
+"workout.share.card.edit_title" = "編輯標題";
+"workout.share.card.add_photo" = "加入照片";
+"workout.share.card.change_photo" = "換照片";
 "workout.reflection.title" = "訓練回顧";
 "workout.reflection.saveError" = "儲存失敗，請重試";
 "workout.rpe.prompt" = "今天感覺如何？";

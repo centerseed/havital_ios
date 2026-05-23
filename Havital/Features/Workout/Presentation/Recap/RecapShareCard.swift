@@ -36,10 +36,29 @@ struct RecapShareCard: View {
     var onPhotoTap: (() -> Void)? = nil
     /// 螢幕上用圓角；匯出傳 0 → 全出血不透明矩形（避免分享縮圖呈透明棋盤/空白）。
     var cornerRadius: CGFloat = 18
+    /// nil = 用預設標題邏輯；"" = 不顯示標題；其他 = 顯示自訂文字。
+    var customTitle: String? = nil
+    /// 照片的位置偏移（scaledToFill 後相對於卡片中心的 offset）。
+    var photoOffset: CGSize = .zero
 
-    private var titleText: String {
-        if let type = content.trainingTypeName, !type.isEmpty { return "完成 \(type)" }
-        return "訓練完成"
+    /// 預設標題（根據 trainingTypeName 決定）。
+    private var defaultTitleText: String {
+        if let type = content.trainingTypeName, !type.isEmpty {
+            return String(format: NSLocalizedString("workout.share.card.completed_format", comment: ""), type)
+        }
+        return NSLocalizedString("workout.share.card.completed_default", comment: "")
+    }
+
+    /// 實際要顯示的標題（nil = 隱藏）。
+    private var displayTitle: String? {
+        switch customTitle {
+        case .none:
+            return defaultTitleText          // nil → 預設
+        case .some(let s) where s.isEmpty:
+            return nil                       // "" → 不顯示
+        case .some(let s):
+            return s                         // 其他 → 自訂
+        }
     }
 
     private var distanceValue: String {
@@ -83,14 +102,36 @@ struct RecapShareCard: View {
 
     // MARK: - Background
 
+    /// 計算 photo 在 cardSize 上 scaledToFill 之後，套用 photoOffset 的夾制值。
+    /// 確保任何位置都不會露出卡片以外的黑邊。
+    private func clampedPhotoOffset(photo: UIImage, cardSize: CGSize) -> CGSize {
+        let imgW = photo.size.width
+        let imgH = photo.size.height
+        guard imgW > 0, imgH > 0 else { return .zero }
+
+        // scaledToFill scale = max(cardW/imgW, cardH/imgH)
+        let scale = max(cardSize.width / imgW, cardSize.height / imgH)
+        let scaledW = imgW * scale
+        let scaledH = imgH * scale
+
+        let maxOffsetX = max(0, (scaledW - cardSize.width)  / 2)
+        let maxOffsetY = max(0, (scaledH - cardSize.height) / 2)
+
+        return CGSize(
+            width:  min(max(photoOffset.width,  -maxOffsetX), maxOffsetX),
+            height: min(max(photoOffset.height, -maxOffsetY), maxOffsetY)
+        )
+    }
+
     @ViewBuilder
     private func backgroundLayer(_ size: CGSize) -> some View {
         if let photo {
-            // 必須明確框成卡片尺寸 + clip，否則 scaledToFill 的內在尺寸會把整張卡撐爆（數據被推出邊界）。
             Image(uiImage: photo)
                 .resizable()
                 .scaledToFill()
                 .frame(width: size.width, height: size.height)
+                .offset(clampedPhotoOffset(photo: photo, cardSize: size))
+                .frame(width: size.width, height: size.height, alignment: .center)
                 .clipped()
         } else {
             ZStack {
@@ -181,7 +222,9 @@ struct RecapShareCard: View {
             HStack(spacing: 7) {
                 Image(systemName: photo == nil ? "photo" : "arrow.triangle.2.circlepath")
                     .font(.system(size: 13, weight: .bold))
-                Text(photo == nil ? "加入照片" : "換照片")
+                Text(photo == nil
+                     ? NSLocalizedString("workout.share.card.add_photo", comment: "")
+                     : NSLocalizedString("workout.share.card.change_photo", comment: ""))
                     .font(.system(size: 13, weight: .heavy))
             }
             .foregroundColor(.white)
@@ -197,17 +240,19 @@ struct RecapShareCard: View {
 
     private var infoBlock: some View {
         VStack(spacing: 0) {
-            Text(titleText)
-                .font(.system(size: 22, weight: .bold))
-                .foregroundColor(.white)
-                .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 2)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
+            if let title = displayTitle {
+                Text(title)
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundColor(.white)
+                    .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 2)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            }
 
             HStack(alignment: .top, spacing: 4) {
                 metric(distanceValue, "KM")
-                metric(content.durationText, "時間")
-                metric(paceValue, "配速")
+                metric(content.durationText, NSLocalizedString("workout.share.card.metric_time", comment: ""))
+                metric(paceValue, NSLocalizedString("workout.share.card.metric_pace", comment: ""))
             }
             .padding(.top, 12)
 

@@ -1586,6 +1586,13 @@
 "workout.share_screenshot" = "Share Screenshot";
 "workout.share.title" = "Share Workout";
 "workout.share.action" = "Share This Achievement";
+"workout.share.card.completed_format" = "Completed %@";
+"workout.share.card.completed_default" = "Workout Complete";
+"workout.share.card.metric_time" = "Time";
+"workout.share.card.metric_pace" = "Pace";
+"workout.share.card.edit_title" = "Edit Title";
+"workout.share.card.add_photo" = "Add Photo";
+"workout.share.card.change_photo" = "Change Photo";
 "workout.reflection.title" = "Workout Reflection";
 "workout.reflection.saveError" = "Save failed, please try again";
 "workout.rpe.prompt" = "How did it feel today?";
