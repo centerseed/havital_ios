@@ -638,6 +638,7 @@ enum GaitAnalysisChart {
             static let shortInterval = "training.type.short_interval"
             static let longInterval = "training.type.long_interval"
             static let norwegian4x4 = "training.type.norwegian_4x4"
+            static let norwegianSingles = "training.type.norwegian_singles"
             static let yasso800 = "training.type.yasso_800"
             // 新增組合訓練類型
             static let fastFinish = "training.type.fast_finish"

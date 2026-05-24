@@ -1098,7 +1098,7 @@ struct TimelineItemView: View {
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return .mint
-        case .interval, .tempo, .progression, .threshold, .combination, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
+        case .interval, .tempo, .progression, .threshold, .combination, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .norwegianSingles, .yasso800:
             return .orange
         case .longRun, .hiking, .cycling, .fastFinish:
             return .blue

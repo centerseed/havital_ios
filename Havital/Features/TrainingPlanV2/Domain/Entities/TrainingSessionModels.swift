@@ -53,8 +53,10 @@ struct RunSegment: Codable, Equatable {
     let intensity: String?
     let description: String?
 
+    // 計畫一律顯示原始配速；熱調整後配速只在「溫度補償卡」呈現（使用者決策 2026-05）。
+    // 勿改回 climateAdjustedPace ?? pace，否則主畫面又會被氣候值蓋掉。
     var effectivePace: String? {
-        climateAdjustedPace ?? pace
+        pace
     }
 }
 
@@ -101,8 +103,10 @@ struct RunActivity: Codable, Equatable {
     let targetIntensity: String?
     let climateMeta: ClimateMeta?
 
+    // 計畫一律顯示原始配速；熱調整後配速只在「溫度補償卡」呈現（使用者決策 2026-05）。
+    // 勿改回 climateAdjustedPace ?? pace，否則主畫面又會被氣候值蓋掉。
     var effectivePace: String? {
-        climateAdjustedPace ?? pace
+        pace
     }
 }
 
@@ -271,8 +275,17 @@ struct DayDetail: Codable, Identifiable, Equatable {
     let category: TrainingCategory?  // ✅ 改為可選，API 可能返回 null
     let climateMeta: ClimateMeta?
     let session: TrainingSession?  // rest 日為 nil
+    // 補充訓練（力量）後端掛在 day 層級，休息日沒有 session 也會有。
+    // 只放 session.supplementary 會讓休息日的力量訓練在 mapper 被丟掉。
+    let supplementary: [SupplementaryActivity]?
 
     var id: Int { dayIndex }
+
+    /// 統一取得補充訓練：優先 day 層級，退回 session 層級（向後兼容）。
+    var effectiveSupplementary: [SupplementaryActivity]? {
+        if let supplementary, !supplementary.isEmpty { return supplementary }
+        return session?.supplementary
+    }
 }
 
 // MARK: - TrainingCategory (訓練大類)
@@ -375,6 +388,7 @@ extension DayDetail {
                 let base = variant.lowercased().split(separator: ":").first.map(String.init) ?? variant.lowercased()
                 switch base {
                 case "norwegian_4x4": return .norwegian4x4
+                case "norwegian_singles": return .norwegianSingles
                 case "yasso_800": return .yasso800
                 case "strides": return .strides
                 case "hill_repeats": return .hillRepeats

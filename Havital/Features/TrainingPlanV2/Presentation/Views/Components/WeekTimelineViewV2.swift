@@ -167,7 +167,13 @@ struct TimelineItemViewV2: View {
                     Button(action: {
                         Logger.debug("[TimelineItemViewV2] tap day=\(day.dayIndexInt) isToday=\(isToday) type=\(day.type) workouts=\(workouts.count)")
                         if day.type == .rest {
-                            showRestDayInfo = true
+                            // 休息日若有補充訓練（力量），點卡片進「訓練詳情」看內容；否則彈出休息日說明。
+                            if day.effectiveSupplementary?.isEmpty == false {
+                                let date = viewModel.getDate(for: day.dayIndexInt)
+                                onDestinationSelect(.planned(day, date))
+                            } else {
+                                showRestDayInfo = true
+                            }
                         } else {
                             // Always push planned (課表詳情) regardless of today/past/future or workout existence
                             let date = viewModel.getDate(for: day.dayIndexInt)
@@ -228,9 +234,19 @@ struct TimelineItemViewV2: View {
                             // Always show for non-rest days; actual row only when workouts exist.
                             // F6.c: rest day shows 「主動恢復日」in collapsed state per design jsx L823
                             if day.type == .rest {
-                                Text(NSLocalizedString("training_plan.active_recovery_day", comment: "主動恢復日"))
-                                    .font(AppFont.micro())
-                                    .foregroundColor(.secondary)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(NSLocalizedString("training_plan.active_recovery_day", comment: "主動恢復日"))
+                                        .font(AppFont.micro())
+                                        .foregroundColor(.secondary)
+                                    // 休息日的補充訓練（力量）指示：點卡片可進詳情看動作。
+                                    if let supp = day.effectiveSupplementary, !supp.isEmpty {
+                                        supplementaryIndicatorRow(supp)
+                                    }
+                                    // 休息日當天若有實際運動紀錄仍要顯示，原本被 rest 分支整段吃掉。
+                                    if let workout = workouts.first {
+                                        actualWorkoutRow(workout)
+                                    }
+                                }
                             } else {
                                 VStack(alignment: .leading, spacing: 4) {
                                     // 計畫 row (always show for non-rest)
@@ -268,23 +284,7 @@ struct TimelineItemViewV2: View {
 
                                     // 實際 row (only when workouts exist)
                                     if let workout = workouts.first {
-                                        HStack(alignment: .firstTextBaseline, spacing: 6) {
-                                            Text("實際")
-                                                .font(AppFont.micro())
-                                                .tracking(0.4)
-                                                .foregroundColor(PacerizColor.greenDeep)
-                                                .textCase(.uppercase)
-                                                .frame(width: 40, alignment: .leading)
-
-                                            let rawDistVal = workout.distanceDisplay ?? (workout.distance ?? 0.0) / 1000.0
-                                            let distVal = workout.distanceUnit != nil ? rawDistVal : UnitManager.shared.convertedDistance(rawDistVal)
-                                            let distUnit = workout.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
-                                            let actualDistStr = String(format: "%.2f \(distUnit)", distVal)
-                                            let actualDurStr = formatDuration(workout.duration)
-                                            Text("\(actualDistStr) · \(actualDurStr)")
-                                                .font(AppFont.micro().monospacedDigit())
-                                                .foregroundColor(.primary)
-                                        }
+                                        actualWorkoutRow(workout)
                                     }
                                 }
                             }
@@ -433,6 +433,55 @@ struct TimelineItemViewV2: View {
 
     // MARK: - Helper Functions
 
+    // 實際運動紀錄行：休息日與訓練日共用，確保任何一天只要有實際紀錄都會顯示。
+    @ViewBuilder
+    private func actualWorkoutRow(_ workout: WorkoutV2) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text("實際")
+                .font(AppFont.micro())
+                .tracking(0.4)
+                .foregroundColor(PacerizColor.greenDeep)
+                .textCase(.uppercase)
+                .frame(width: 40, alignment: .leading)
+
+            let rawDistVal = workout.distanceDisplay ?? (workout.distance ?? 0.0) / 1000.0
+            let distVal = workout.distanceUnit != nil ? rawDistVal : UnitManager.shared.convertedDistance(rawDistVal)
+            let distUnit = workout.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
+            // 有距離才顯示距離（力量／瑜珈等無距離項目只顯示時間）。
+            let actualDurStr = formatDuration(workout.duration)
+            let actualText = distVal > 0
+                ? "\(String(format: "%.2f \(distUnit)", distVal)) · \(actualDurStr)"
+                : actualDurStr
+            Text(actualText)
+                .font(AppFont.micro().monospacedDigit())
+                .foregroundColor(.primary)
+        }
+    }
+
+    // 休息日補充訓練指示：啞鈴 + 「補充訓練 · N 動作」，點卡片可進詳情。
+    @ViewBuilder
+    private func supplementaryIndicatorRow(_ activities: [SupplementaryActivity]) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Image(systemName: "dumbbell.fill")
+                .font(.system(size: 9))
+                .foregroundColor(PacerizColor.indigo)
+            Text(supplementarySummaryText(activities))
+                .font(AppFont.micro())
+                .foregroundColor(PacerizColor.indigo)
+        }
+    }
+
+    private func supplementarySummaryText(_ activities: [SupplementaryActivity]) -> String {
+        let label = NSLocalizedString("training.supplementary", comment: "Supplementary Training")
+        for activity in activities {
+            if case .strength(let s) = activity, !s.exercises.isEmpty {
+                let unit = NSLocalizedString("training.exercises_count_unit", comment: "")
+                return "\(label) · \(s.exercises.count) \(unit)"
+            }
+        }
+        return label
+    }
+
     private func getStatusColor(isCompleted: Bool, isToday: Bool, isPast: Bool) -> Color {
         if isCompleted {
             return .mint
@@ -453,7 +502,7 @@ struct TimelineItemViewV2: View {
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return .mint
-        case .interval, .tempo, .progression, .threshold, .combination, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
+        case .interval, .tempo, .progression, .threshold, .combination, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .norwegianSingles, .yasso800:
             return .orange
         case .longRun, .hiking, .cycling, .fastFinish:
             return .blue
@@ -1001,6 +1050,15 @@ private struct ClimateAdjustmentDetailView: View {
         day.primaryRunActivity
     }
 
+    /// 分段型課表逐段「原 → 今日」配速（後端不給分段調整，app 端補算）。
+    private var segmentAdjustedRows: [(title: String, base: String, adjusted: String)] {
+        guard let segs = runActivity?.segments, segs.count > 1 else { return [] }
+        return segs.enumerated().compactMap { idx, seg in
+            guard let p = seg.pace, let adj = meta.climateAdjustedPace(forBasePace: p) else { return nil }
+            return (seg.description ?? "段 \(idx + 1)", p, adj)
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 6) {
@@ -1030,10 +1088,14 @@ private struct ClimateAdjustmentDetailView: View {
                     ClimateValueChip(title: meta.originalPaceTitle, value: basePace)
                     ClimateValueChip(title: meta.adjustedPaceTitle, value: adjustedPace)
                 }
-            } else if runActivity?.segments?.contains(where: { $0.climateAdjustedPace != nil }) == true {
-                Text(meta.segmentAdjustmentSummary)
-                    .font(AppFont.caption())
-                    .foregroundColor(.secondary)
+            } else if !segmentAdjustedRows.isEmpty {
+                // 分段型課表：逐段顯示「原 → 今日」。
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(segmentAdjustedRows.indices, id: \.self) { i in
+                        let row = segmentAdjustedRows[i]
+                        ClimateValueChip(title: row.title, value: "\(row.base) → \(row.adjusted)")
+                    }
+                }
             }
 
             if let reduction = meta.longRunReductionText {
@@ -1152,6 +1214,20 @@ extension ClimateMeta {
     /// 依據：knowledge_base/09_environmental_adaptation 高熱(30-34°C)=放慢 30–60 秒/km（一個配速等級），
     /// 危險(>34°C) 至少不低於此，故取 60 秒/km 為下限。
     var dangerOutdoorMinSlowdownSeconds: Int { 60 }
+
+    /// app 端依本日體感調整百分比，從原始配速補算熱調整後配速。
+    /// 後端只對單一配速跑與間歇 work_pace 套用，分段型課表（progression/fast_finish/combination）
+    /// 後端不給 climate_adjusted_pace，由 app 在溫度補償卡逐段補算（公式對齊後端 l5_response_builder）。
+    func climateAdjustedPace(forBasePace basePace: String) -> String? {
+        guard let baseSec = paceStringToSeconds(basePace) else { return nil }
+        if normalizedHeatPressureLevel == "danger" {
+            // 危險級後端常不給百分比：至少放慢一個配速等級。
+            return "\(secondsToPaceString(baseSec + dangerOutdoorMinSlowdownSeconds))+"
+        }
+        let pct = paceAdjustmentPct ?? 0
+        guard pct > 0 else { return nil }
+        return secondsToPaceString(Int((Double(baseSec) * (1 + pct / 100)).rounded()))
+    }
 
     /// 危險級標題：若仍要戶外的配速建議。多語。
     var dangerOutdoorPaceTitle: String {
@@ -1487,6 +1563,18 @@ private struct RedesignedSegmentsView: View {
         }
     }
 
+    /// 分段語意化標籤，對齊 PlannedSessionDetailView.segmentLabel，確保 day card 與詳情頁一致。
+    private func segmentLabel(index: Int, total: Int) -> String {
+        switch (total, index) {
+        case (3, 0): return NSLocalizedString("training.segment.easy_pace", comment: "")
+        case (3, 1): return NSLocalizedString("training.segment.tempo_pace", comment: "")
+        case (3, 2): return NSLocalizedString("training.segment.accelerate", comment: "")
+        case (2, 0): return NSLocalizedString("training.type.easy", comment: "")
+        case (2, 1): return NSLocalizedString("training.segment.tempo_finish", comment: "")
+        default: return String(format: NSLocalizedString("training.segment_n", comment: ""), index + 1)
+        }
+    }
+
     private func buildSegments() -> [FlatSegment] {
         guard let session = day.session,
               case .run(let run) = session.primary else { return [] }
@@ -1579,8 +1667,9 @@ private struct RedesignedSegmentsView: View {
             ))
         } else if let segs = run.segments, !segs.isEmpty {
             // 分段跑（progression / combination）
+            // 分段跑（progression / fast_finish / combination）：segments 是主課表結構，
+            // 用語意化標籤（輕鬆／節奏收尾…），勿以位置硬套暖身/緩和——真正的暖身緩和在 session.warmup/cooldown。
             for (idx, seg) in segs.enumerated() {
-                let role = idx == 0 ? "warmup" : (idx == segs.count - 1 ? "cooldown" : "main")
                 let distStr: String
                 if let display = seg.distanceDisplay {
                     let unit = seg.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
@@ -1596,17 +1685,11 @@ private struct RedesignedSegmentsView: View {
                 }
                 let paceStr = seg.effectivePace ?? ""
                 let parts = [distStr, paceStr].filter { !$0.isEmpty }
-                let segLabel: String
-                switch role {
-                case "warmup": segLabel = "\(emojiPrefix(for: "warmup")) 暖身"
-                case "cooldown": segLabel = "\(emojiPrefix(for: "cooldown")) 緩和"
-                default: segLabel = "\(emojiPrefix(for: "main")) 第\(idx + 1)段"
-                }
                 result.append(FlatSegment(
-                    label: segLabel,
+                    label: "\(emojiPrefix(for: "main")) \(segmentLabel(index: idx, total: segs.count))",
                     detail: parts.joined(separator: " · "),
                     reps: nil,
-                    accent: role == "warmup" ? .orange : (role == "cooldown" ? .mint : .blue)
+                    accent: idx == segs.count - 1 ? .red : .blue
                 ))
             }
         } else {

@@ -147,8 +147,8 @@ struct MutableTrainingDay: Identifiable, Equatable {
             self.strengthExercises = strengthActivity.exercises
             self.strengthType = strengthActivity.strengthType
         }
-        // 保留 V3 supplementary（例如：跑步日附加力量訓練）
-        self.supplementaryActivities = day.session?.supplementary
+        // 保留 V3 supplementary（例如：跑步日附加力量訓練；休息日在 day 層級）。
+        self.supplementaryActivities = day.effectiveSupplementary
     }
 
     /// 轉換回 TrainingDay

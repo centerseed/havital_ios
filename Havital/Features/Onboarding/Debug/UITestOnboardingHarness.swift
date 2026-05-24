@@ -495,7 +495,8 @@ private final class UITestOnboardingTrainingPlanV2Repository: TrainingPlanV2Repo
                 ),
                 cooldown: nil,
                 supplementary: nil
-            )
+            ),
+            supplementary: nil
         )
     }
 
@@ -507,7 +508,8 @@ private final class UITestOnboardingTrainingPlanV2Repository: TrainingPlanV2Repo
             tips: nil,
             category: .rest,
             climateMeta: nil,
-            session: nil
+            session: nil,
+            supplementary: nil
         )
     }
 

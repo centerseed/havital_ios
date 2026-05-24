@@ -28,6 +28,7 @@ extension DayType {
         case .shortInterval: return L10n.Training.TrainingType.shortInterval.localized
         case .longInterval: return L10n.Training.TrainingType.longInterval.localized
         case .norwegian4x4: return L10n.Training.TrainingType.norwegian4x4.localized
+        case .norwegianSingles: return L10n.Training.TrainingType.norwegianSingles.localized
         case .yasso800: return L10n.Training.TrainingType.yasso800.localized
         // 新增組合訓練類型
         case .fartlek: return L10n.Training.TrainingType.fartlek.localized
@@ -55,7 +56,7 @@ extension DayType {
         // 強度訓練 - 橘色
         case .interval, .tempo, .threshold, .combination:
             return .orange
-        case .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
+        case .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .norwegianSingles, .yasso800:
             return .orange
         case .fartlek: return .orange      // 法特雷克 - 橘色（變速訓練，屬強度訓練）
         case .racePace:

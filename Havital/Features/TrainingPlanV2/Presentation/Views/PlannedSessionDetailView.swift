@@ -58,7 +58,7 @@ struct PlannedSessionDetailView: View {
                 return PacerizColor.blue
             case .interval, .tempo, .progression, .threshold, .combination,
                  .strides, .hillRepeats, .cruiseIntervals, .shortInterval,
-                 .longInterval, .norwegian4x4, .yasso800:
+                 .longInterval, .norwegian4x4, .norwegianSingles, .yasso800:
                 return PacerizColor.orange
             case .longRun, .hiking, .cycling, .fastFinish:
                 return PacerizColor.blue
@@ -92,6 +92,7 @@ struct PlannedSessionDetailView: View {
             case .shortInterval:    return ("SHORT · Z5",            NSLocalizedString("training.type.short_interval", comment: ""))
             case .longInterval:     return ("LONG · Z4-Z5",          NSLocalizedString("training.type.long_interval", comment: ""))
             case .norwegian4x4:     return ("NOR 4×4 · Z4-Z5",       NSLocalizedString("training.type.norwegian_4x4", comment: ""))
+            case .norwegianSingles: return ("NOR SINGLES · Z3-Z4",   NSLocalizedString("training.type.norwegian_singles", comment: ""))
             case .yasso800:         return ("YASSO 800 · Z4-Z5",     NSLocalizedString("training.type.yasso_800", comment: ""))
             case .fartlek:          return ("FARTLEK · Z2-Z4",       NSLocalizedString("training.type.fartlek", comment: ""))
             case .strength:         return ("STRENGTH",              NSLocalizedString("training.type.strength", comment: ""))
@@ -159,6 +160,11 @@ struct PlannedSessionDetailView: View {
         return convertedPaceString(secondsPerKm: sec)
     }
 
+    /// 訓練結構段落用的配速字串：含使用者單位後綴（如 "5:30/km"）。
+    private func segmentPaceLabel(_ perKm: String?) -> String? {
+        displayPace(perKm).map { "\($0)\(paceSuffix)" }
+    }
+
     /// 預估時間範圍：配速算出的時間為下限，×1.15(四捨五入取整)為上限。
     /// 回傳如 "62-71"（不含單位；上限與下限相同時只回單一值）。
     private func estimatedTimeRange(minutes: Int) -> String {
@@ -196,6 +202,9 @@ struct PlannedSessionDetailView: View {
                 Group {
                     if isNonRunSession {
                         nonRunHeroMetrics
+                    } else if let strength = restSupplementaryStrength {
+                        // 休息日但有補充力量訓練：hero 顯示力量摘要，避免空白。
+                        supplementaryHeroMetrics(strength)
                     } else {
                         switch heroVariant {
                         case .interval: intervalHeroMetrics
@@ -258,6 +267,28 @@ struct PlannedSessionDetailView: View {
         }
     }
 
+    /// 休息日（無 session）但帶補充力量訓練時，取第一個力量項目供 hero 顯示摘要。
+    private var restSupplementaryStrength: StrengthActivity? {
+        guard day.session == nil else { return nil }
+        for activity in day.effectiveSupplementary ?? [] {
+            if case .strength(let s) = activity { return s }
+        }
+        return nil
+    }
+
+    /// 休息日補充力量的 hero 指標：動作數 + 時長。
+    private func supplementaryHeroMetrics(_ s: StrengthActivity) -> some View {
+        HStack(alignment: .bottom, spacing: 0) {
+            if !s.exercises.isEmpty {
+                heroMetricColumn(title: NSLocalizedString("training.exercises", comment: ""), value: "\(s.exercises.count)", unit: NSLocalizedString("training.exercises_count_unit", comment: ""))
+            }
+            if let mins = s.durationMinutes {
+                if !s.exercises.isEmpty { heroDivider }
+                heroMetricColumn(title: NSLocalizedString("training.detail.metric_estimated_time", comment: ""), value: "\(mins)", unit: NSLocalizedString("training.minute_abbr", comment: ""))
+            }
+        }
+    }
+
     /// Hero heart-rate value: explicit HR range (bpm) if present, else inferred zone string.
     private func heroHRValue(_ run: RunActivity) -> (value: String, unit: String) {
         if let hr = run.heartRateRange, hr.isValid, let text = hr.displayText {
@@ -267,29 +298,23 @@ struct PlannedSessionDetailView: View {
     }
 
     private var segmentedHeroMetrics: some View {
-        HStack(alignment: .bottom, spacing: 0) {
-            if let run = day.primaryRunActivity {
-                heroMetricColumn(title: NSLocalizedString("training.detail.metric_total_distance", comment: ""), value: distanceString(run), unit: distanceUnit(run))
-                heroDivider
-                heroMetricColumn(title: NSLocalizedString("training.detail.metric_estimated_time", comment: ""), value: durationString(run), unit: nil)
-                heroDivider
-                heroMetricColumn(title: NSLocalizedString("training.detail.metric_pace_variation", comment: ""), value: String(format: NSLocalizedString("training.detail.segment_count", comment: ""), run.segments?.count ?? 1), unit: nil)
+        // 結構標籤排在指標列「下方」，不可用 overlay 疊在數字上（會切版蓋住距離/時間）。
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .bottom, spacing: 0) {
+                if let run = day.primaryRunActivity {
+                    heroMetricColumn(title: NSLocalizedString("training.detail.metric_total_distance", comment: ""), value: distanceString(run), unit: distanceUnit(run))
+                    heroDivider
+                    heroMetricColumn(title: NSLocalizedString("training.detail.metric_estimated_time", comment: ""), value: durationString(run), unit: nil)
+                    heroDivider
+                    heroMetricColumn(title: NSLocalizedString("training.detail.metric_pace_variation", comment: ""), value: String(format: NSLocalizedString("training.detail.segment_count", comment: ""), run.segments?.count ?? 1), unit: nil)
+                }
             }
-        }
-        .overlay(alignment: .bottom) {
             if let label = segmentStructureLabel {
-                VStack {
-                    Spacer()
-                    HStack {
-                        Text(label)
-                            .font(AppFont.micro())
-                            .foregroundColor(.white.opacity(0.9))
-                        Spacer()
-                    }
-                    .padding(.top, 10)
-                    .overlay(alignment: .top) {
-                        Divider().background(Color.white.opacity(0.18))
-                    }
+                VStack(alignment: .leading, spacing: 8) {
+                    Divider().background(Color.white.opacity(0.18))
+                    Text(label)
+                        .font(AppFont.micro())
+                        .foregroundColor(.white.opacity(0.9))
                 }
             }
         }
@@ -400,7 +425,8 @@ struct PlannedSessionDetailView: View {
 
     @ViewBuilder
     private var supplementarySection: some View {
-        if let supplementary = day.session?.supplementary, !supplementary.isEmpty {
+        // 讀 day 層級（休息日也有），非只 session.supplementary，否則休息日的力量訓練看不到。
+        if let supplementary = day.effectiveSupplementary, !supplementary.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 sectionHeader(title: NSLocalizedString("training.detail.section_supplementary", comment: ""), subtitle: NSLocalizedString("training.detail.supplementary_subtitle", comment: ""))
                 SupplementaryTrainingView(activities: supplementary)
@@ -451,8 +477,19 @@ struct PlannedSessionDetailView: View {
                 // 間歇／法特雷克的配速在 interval.workPace，run 層 pace 為 nil → 退回 workPace，
                 // 否則熱適應卡會因 basePace 缺失而不顯示配速調整。
                 basePace: climateBasePace,
-                adjustedPace: day.primaryRunActivity?.climateAdjustedPace
+                adjustedPace: day.primaryRunActivity?.climateAdjustedPace,
+                segmentBasePaces: climateSegmentBasePaces
             )
+        }
+    }
+
+    /// 分段型課表（progression/fast_finish/combination）的逐段原始配速，供溫度補償卡逐段補算調整。
+    private var climateSegmentBasePaces: [(title: String, base: String)] {
+        guard let segs = day.primaryRunActivity?.segments, segs.count > 1 else { return [] }
+        return segs.enumerated().compactMap { idx, seg in
+            guard let p = seg.pace else { return nil }
+            let title = seg.description ?? String(format: NSLocalizedString("training.detail.segment_index", value: "段 %d", comment: "Segment N"), idx + 1)
+            return (title, p)
         }
     }
 
@@ -584,12 +621,13 @@ struct PlannedSessionDetailView: View {
         default:
             segLabel = workoutTypeName
         }
-        let hrText: String? = run.heartRateRange?.displayText
+        // 質量課表（非輕鬆配速）以配速為主，不顯示心率；easy/LSD 仍以心率為導引。
+        let hrText: String? = isEasyOrLSD ? run.heartRateRange?.displayText : nil
         return [DetailSegmentData(
             index: 1,
             label: segLabel,
             distance: distanceString(run) + " " + distanceUnit(run),
-            pace: displayPace(run.effectivePace),
+            pace: segmentPaceLabel(run.effectivePace),
             hr: hrText,
             reps: nil,
             rest: nil,
@@ -616,17 +654,17 @@ struct PlannedSessionDetailView: View {
                 if let min = interval.recoveryDurationMinutes { return String(format: NSLocalizedString("training.detail.rest_minutes_jog", comment: ""), min) }
                 return interval.recoveryDescription
             }()
-            // Prefer real HR range from RunActivity; fall back to inferred zone label
-            let intervalHR = run.heartRateRange?.displayText.map { "\($0) bpm" } ?? "Z4"
+            // 間歇為質量課表 → 不顯示心率（以配速為主）。
+            let intervalHR: String? = isEasyOrLSD ? (run.heartRateRange?.displayText.map { "\($0) bpm" } ?? "Z4") : nil
             result.append(DetailSegmentData(index: idx, label: NSLocalizedString("training.segment.sprint", comment: ""), distance: workDistanceLabel(interval),
-                pace: displayPace(interval.workPace), hr: intervalHR, reps: interval.repeats, rest: restStr, isMain: true))
+                pace: segmentPaceLabel(interval.workPace), hr: intervalHR, reps: interval.repeats, rest: restStr, isMain: true))
             idx += 1
         } else if let segs = run.segments, segs.count > 1 {
             for (segIdx, seg) in segs.enumerated() {
-                // Use real HR range from segment if available
-                let segHR = seg.heartRateRange?.displayText.map { "\($0) bpm" }
+                // 質量課表的結構不顯示心率（以配速為主）；easy/LSD 才保留。
+                let segHR: String? = isEasyOrLSD ? seg.heartRateRange?.displayText.map { "\($0) bpm" } : nil
                 result.append(DetailSegmentData(index: idx, label: segmentLabel(index: segIdx, total: segs.count),
-                    distance: segmentDistanceString(seg), pace: displayPace(seg.effectivePace),
+                    distance: segmentDistanceString(seg), pace: segmentPaceLabel(seg.effectivePace),
                     hr: segHR, reps: nil, rest: nil, isMain: segIdx == segs.count - 1))
                 idx += 1
             }
@@ -640,10 +678,10 @@ struct PlannedSessionDetailView: View {
     }
 
     private func bookendSegment(index: Int, label: String, seg: RunSegment) -> DetailSegmentData {
-        // Use real HR range from segment if available; otherwise no HR label
-        let hr = seg.heartRateRange?.displayText.map { "\($0) bpm" }
+        // 暖身／緩和屬於質量課表結構的一部分 → 同樣不顯示心率（easy/LSD 才保留）。
+        let hr: String? = isEasyOrLSD ? seg.heartRateRange?.displayText.map { "\($0) bpm" } : nil
         return DetailSegmentData(index: index, label: label,
-            distance: segmentDistanceString(seg), pace: displayPace(seg.effectivePace),
+            distance: segmentDistanceString(seg), pace: segmentPaceLabel(seg.effectivePace),
             hr: hr,
             reps: nil, rest: nil, isMain: false)
     }
@@ -675,7 +713,7 @@ struct PlannedSessionDetailView: View {
             return "Z2"
         case .lsd, .longRun:
             return "Z2-Z3"
-        case .tempo, .cruiseIntervals, .fastFinish:
+        case .tempo, .cruiseIntervals, .norwegianSingles, .fastFinish:
             return "Z3-Z4"
         case .threshold, .progression:
             return "Z4"
@@ -697,7 +735,7 @@ struct PlannedSessionDetailView: View {
             return "4-5"
         case .fastFinish:
             return "4-7"
-        case .tempo, .cruiseIntervals:
+        case .tempo, .cruiseIntervals, .norwegianSingles:
             return "6"
         case .threshold, .progression:
             return "7"
@@ -734,12 +772,14 @@ struct PlannedSessionDetailView: View {
             pills.append(TargetZonePillData(label: paceLabel, value: paceValue, unit: paceSuffix, isDanger: false))
         }
 
-        // Pill 2: heart-rate zone — prefer explicit HR range, fall back to inferred zone string
-        if let hr = run.heartRateRange, hr.isValid, let hrText = hr.displayText {
-            pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.target_hr", comment: ""), value: hrText, unit: "bpm", isDanger: true))
-        } else {
-            let zone = inferredHRZone(for: day.type)
-            pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.target_hr", comment: ""), value: zone, unit: "", isDanger: false))
+        // Pill 2: heart-rate zone — 僅 easy/LSD（以心率為導引）顯示；質量課表（非輕鬆配速）以配速為主，不顯示心率。
+        if isEasyOrLSD {
+            if let hr = run.heartRateRange, hr.isValid, let hrText = hr.displayText {
+                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.target_hr", comment: ""), value: hrText, unit: "bpm", isDanger: true))
+            } else {
+                let zone = inferredHRZone(for: day.type)
+                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.target_hr", comment: ""), value: zone, unit: "", isDanger: false))
+            }
         }
 
         // Pill 3: RPE — prefer explicit targetIntensity, fall back to inferred.
@@ -952,6 +992,8 @@ private struct ClimateTipCard: View {
     let meta: ClimateMeta
     var basePace: String? = nil
     var adjustedPace: String? = nil
+    // 分段型課表（progression/fast_finish/combination）後端不給調整配速，逐段在卡片補算顯示。
+    var segmentBasePaces: [(title: String, base: String)] = []
 
     // Climate tip uses its OWN heat-alert level colour (mild/moderate/high/danger),
     // not the workout type colour — the warning severity should drive the colour.
@@ -1024,7 +1066,22 @@ private struct ClimateTipCard: View {
 
     @ViewBuilder
     private var paceGuidanceRow: some View {
-        if meta.normalizedHeatPressureLevel == "danger",
+        if !segmentBasePaces.isEmpty {
+            // 分段型課表：逐段顯示「原 → 今日」。
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(segmentBasePaces.indices, id: \.self) { i in
+                    let seg = segmentBasePaces[i]
+                    if let adj = meta.climateAdjustedPace(forBasePace: seg.base) {
+                        HStack(spacing: 10) {
+                            paceChip(seg.title, seg.base, .secondary)
+                            Image(systemName: "arrow.right").font(.caption2).foregroundColor(.secondary)
+                            paceChip(meta.adjustedPaceTitle, adj, climateColor)
+                            Spacer()
+                        }
+                    }
+                }
+            }
+        } else if meta.normalizedHeatPressureLevel == "danger",
            let b = basePace, let bs = paceStringToSeconds(b) {
             // 危險：原配速 → 至少放慢一個配速等級（約 base + 60 秒/km）。
             let floorPace = secondsToPaceString(bs + meta.dangerOutdoorMinSlowdownSeconds)
@@ -1124,7 +1181,8 @@ private struct WorkoutTipBox: View {
                     )),
                     cooldown: nil,
                     supplementary: nil
-                )
+                ),
+                supplementary: nil
             ),
             date: Date()
         )

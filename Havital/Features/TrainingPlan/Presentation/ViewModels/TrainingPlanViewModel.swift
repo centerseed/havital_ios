@@ -691,7 +691,7 @@ class TrainingPlanViewModel: ObservableObject {
 
         Logger.firebase(
             "v2_user_entered_v1_training_plan_vm",
-            level: .error,
+            level: .warn,
             labels: [
                 "cloud_logging": "true",
                 "module": "TrainingPlanVM",
