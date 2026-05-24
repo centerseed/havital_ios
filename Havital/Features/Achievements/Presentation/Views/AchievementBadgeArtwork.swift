@@ -1,8 +1,11 @@
 import SwiftUI
+import UIKit
 
 enum AchievementBadgeArtwork {
     static func assetName(for badge: AchievementBadge) -> String {
-        if let assetName = badge.assetName, !assetName.isEmpty {
+        if let assetName = badge.assetName,
+           !assetName.isEmpty,
+           UIImage(named: assetName) != nil {
             return assetName
         }
 
@@ -17,74 +20,60 @@ enum AchievementBadgeArtwork {
         switch badgeId {
         case "BADGE-START-FIRST-RUN":
             return "achievement_badge_start_first_run_marker"
-        case "BADGE-START-PLAN-STARTED":
-            return "achievement_badge_start_plan_started_calendar"
-        case "BADGE-START-FIRST-WEEK":
-            return "achievement_badge_start_first_week_seven_flags"
-        case "BADGE-START-FIRST-LONG-RUN":
-            return "achievement_badge_start_first_long_run_road"
-        case "BADGE-BUILD-LONG-RUN-DONE":
-            return "achievement_badge_build_long_run_route_pin"
-        case "BADGE-START-FIRST-RECOVERY":
-            return "achievement_badge_start_first_recovery_leaf_runner"
-        case "BADGE-ADAPT-RECOVERY-EARNED":
-            return "achievement_badge_adapt_recovery_earned_pin_star"
-        case "BADGE-BUILD-SHOWING-UP":
-            return "achievement_badge_build_showing_up_footprints"
-        case "BADGE-BUILD-ROUTINE-BUILDER":
-            return "achievement_badge_build_routine_builder_week_line"
-        case "BADGE-BUILD-EIGHT-WEEK-BLOCK":
-            return "achievement_badge_build_eight_week_block_grid"
-        case "BADGE-BUILD-WEEKLY-GOAL":
-            return "achievement_badge_build_weekly_goal_target"
-        case "BADGE-BUILD-VOLUME-BASE":
-            return "achievement_badge_build_volume_base_heart"
-        case "BADGE-BUILD-PLAN-FINISHER":
-            return "achievement_badge_build_plan_finisher_calendar"
-        case "BADGE-ADAPT-LOAD-BALANCED":
-            return "achievement_badge_adapt_load_balance_scale"
-        case "BADGE-ADAPT-HEAT-ADJUSTED":
-            return "achievement_badge_adapt_heat_adjusted_runner"
-        case "BADGE-ADAPT-COMEBACK":
-            return "achievement_badge_adapt_comeback_bridge"
-        case "BADGE-ADAPT-REST-WEEK":
-            return "achievement_badge_adapt_respect_recovery_week_pause"
-        case "BADGE-ADAPT-SMART-SKIP":
-            return "achievement_badge_adapt_smart_skip_lightbulb"
-        case "BADGE-ADAPT-PACE-PATIENCE":
-            return "achievement_badge_adapt_recovery_patience_hourglass"
-        case "BADGE-PROVE-NEW-PB":
-            return "achievement_badge_prove_new_pb"
-        case "BADGE-PROVE-FIRST-5K":
-            return "achievement_badge_prove_first_5k"
-        case "BADGE-PROVE-FIRST-10K":
-            return "achievement_badge_prove_first_10k"
-        case "BADGE-PROVE-FIRST-HALF":
-            return "achievement_badge_prove_first_half_marathon_21k"
-        case "BADGE-PROVE-FIRST-MARATHON":
-            return "achievement_badge_prove_first_marathon_42k"
-        case "BADGE-PROVE-DISTANCE-BREAKTHROUGH":
-            return "achievement_badge_prove_distance_breakthrough_growth_chart"
-        case "BADGE-PROVE-RACE-READY":
-            return "achievement_badge_prove_marathon_ready_42k_ready"
-        case "BADGE-PROVE-GOAL-COMPLETED":
-            return "achievement_badge_prove_race_ready_summit_flag"
-        case "BADGE-ID-5K-RUNNER":
-            return "achievement_badge_identity_5k_runner"
-        case "BADGE-ID-10K-RUNNER":
-            return "achievement_badge_identity_10k_runner"
-        case "BADGE-ID-HALF-MARATHONER":
-            return "achievement_badge_identity_half_marathoner"
-        case "BADGE-ID-MARATHON-BUILDER":
-            return "achievement_badge_identity_marathon_builder_42k"
-        case "BADGE-ID-CONSISTENT-RUNNER":
-            return "achievement_badge_identity_consistent_runner_route"
-        case "BADGE-ID-SMART-TRAINER":
-            return "achievement_badge_identity_smart_trainer_heart"
-        case "BADGE-ID-PB-HUNTER":
-            return "achievement_badge_identity_pb_hunter_target"
+        case "BADGE-START-PLAN-STARTED", "BADGE-PLAN-00-PLAN-STARTED":
+            return "achievement_badge_plan_00_plan_started"
+        case "BADGE-START-FIRST-WEEK", "BADGE-PLAN-01-FIRST-QUALIFIED-WEEK":
+            return "achievement_badge_plan_01_first_qualified_week"
+        case "BADGE-PLAN-02-TWO-QUALIFIED-WEEKS":
+            return "achievement_badge_plan_02_two_qualified_weeks"
+        case "BADGE-PLAN-04-FOUR-QUALIFIED-WEEKS":
+            return "achievement_badge_plan_04_four_qualified_weeks"
+        case "BADGE-PLAN-08-EIGHT-QUALIFIED-WEEKS":
+            return "achievement_badge_plan_08_eight_qualified_weeks"
+        case "BADGE-PLAN-12-TWELVE-QUALIFIED-WEEKS":
+            return "achievement_badge_plan_12_twelve_qualified_weeks"
+        case "BADGE-PLAN-24-TWENTY-FOUR-QUALIFIED-WEEKS":
+            return "achievement_badge_plan_24_twenty_four_qualified_weeks"
+        case "BADGE-RHYTHM-01-FIRST-ACTIVE-WEEK":
+            return "achievement_badge_rhythm_01_first_active_week"
+        case "BADGE-RHYTHM-02-RETURN-WEEK":
+            return "achievement_badge_rhythm_02_return_week"
+        case "BADGE-RHYTHM-04-FOUR-WEEK-RHYTHM":
+            return "achievement_badge_rhythm_04_four_week_rhythm"
+        case "BADGE-RHYTHM-08-EIGHT-WEEK-RHYTHM":
+            return "achievement_badge_rhythm_08_eight_week_rhythm"
+        case "BADGE-RHYTHM-12-SEASON-RUNNER":
+            return "achievement_badge_rhythm_12_season_runner"
+        case "BADGE-RHYTHM-24-HALF-YEAR-RUNNER":
+            return "achievement_badge_rhythm_24_half_year_runner"
+        case "BADGE-RHYTHM-52-YEAR-RUNNER":
+            return "achievement_badge_rhythm_52_year_runner"
+        case "BADGE-RESULTS-01-FIRST-MAJOR-RESULT", "BADGE-PROVE-NEW-PB":
+            return "achievement_badge_results_01_first_major_result"
+        case "BADGE-RESULTS-03-THREE-MAJOR-RESULTS":
+            return "achievement_badge_results_03_three_major_results"
+        case "BADGE-RESULTS-05-FIVE-MAJOR-RESULTS":
+            return "achievement_badge_results_05_five_major_results"
+        case "BADGE-RESULTS-10-TEN-MAJOR-RESULTS":
+            return "achievement_badge_results_10_ten_major_results"
+        case "BADGE-RESULTS-20-TWENTY-MAJOR-RESULTS":
+            return "achievement_badge_results_20_twenty_major_results"
+        case "BADGE-RESULTS-COLLECTOR":
+            return "achievement_badge_results_collector"
+        case "BADGE-MILEAGE-MARKERS-100K":
+            return "achievement_badge_mileage_markers_100k"
+        case "BADGE-MILEAGE-MARKERS-200K":
+            return "achievement_badge_mileage_markers_200k"
+        case "BADGE-MILEAGE-MARKERS-400K":
+            return "achievement_badge_mileage_markers_400k"
+        case "BADGE-MILEAGE-MARKERS-600K":
+            return "achievement_badge_mileage_markers_600k"
+        case "BADGE-MILEAGE-MARKERS-800K":
+            return "achievement_badge_mileage_markers_800k"
+        case "BADGE-MILEAGE-MARKERS-10000K":
+            return "achievement_badge_mileage_markers_10000k"
         default:
-            return "achievement_badge_identity_smart_trainer_lightbulb"
+            return "achievement_badge_results_collector"
         }
     }
 }

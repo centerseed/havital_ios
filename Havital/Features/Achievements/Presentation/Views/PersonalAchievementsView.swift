@@ -112,8 +112,8 @@ struct PersonalAchievementsView: View {
         let summary = viewModel.summary
         let unlocked = summary?.storySummary.unlockedCount ?? 0
         let total = summary?.storySummary.totalCount ?? 0
+        // PB 數量＝所有距離內擁有的個人最佳筆數（無固定分母）。
         let pbCount = summary?.pbOverview?.records.filter { !$0.time.isEmpty && $0.time != "-" }.count ?? 0
-        let pbTotal = 4
         // AchievementLifetimeStats has no streak field — always show "—"
         let streakText: String? = nil
 
@@ -131,7 +131,7 @@ struct PersonalAchievementsView: View {
             statsBannerColumn(
                 label: L10n.Achievements.StatsBanner.pbLabel.localized,
                 number: "\(pbCount)",
-                suffix: "/ \(pbTotal)",
+                suffix: "",
                 numberColor: PacerizColor.blueDeep
             )
             Rectangle()
@@ -563,12 +563,27 @@ struct PersonalAchievementsView: View {
             return AnyView(EmptyView())
         }
 
-        // 聰明調整（adapt）、跑者身份（identity）章節暫不展示
-        let groups = allGroups.filter { $0.chapter != .adapt && $0.chapter != .identity }
-        guard !groups.isEmpty else { return AnyView(EmptyView()) }
+        // 里程軌跡碑獨立成一張卡，因此把它的徽章從章節卡裡濾掉，避免同一顆顯示兩次。
+        let mileageTrack = viewModel.summary?.achievementTracks.first { $0.trackId == "mileage_markers" }
+        let mileageIds = Set(mileageTrack?.badges.map(\.badgeId) ?? [])
 
-        let totalUnlocked = groups.flatMap(\.badges).filter { $0.status == .unlocked }.count
-        let totalBadges = groups.flatMap(\.badges).count
+        // 聰明調整（adapt）、跑者身份（identity）章節暫不展示
+        let groups = allGroups
+            .filter { $0.chapter != .adapt && $0.chapter != .identity }
+            .map { group in
+                AchievementBadgeGroup(
+                    chapter: group.chapter,
+                    titleKey: group.titleKey,
+                    badges: group.badges.filter { !mileageIds.contains($0.badgeId) }
+                )
+            }
+            .filter { !$0.badges.isEmpty }
+
+        let mileageBadges = mileageTrack?.badges ?? []
+        guard !groups.isEmpty || !mileageBadges.isEmpty else { return AnyView(EmptyView()) }
+
+        let totalUnlocked = (groups.flatMap(\.badges) + mileageBadges).filter { $0.status == .unlocked }.count
+        let totalBadges = groups.flatMap(\.badges).count + mileageBadges.count
 
         return AnyView(
             VStack(alignment: .leading, spacing: 10) {
@@ -584,10 +599,13 @@ struct PersonalAchievementsView: View {
                 }
                 .padding(.horizontal)
 
-                // Chapter cards
+                // Chapter cards + 里程軌跡碑（同款式，第三條線）
                 VStack(spacing: 12) {
                     ForEach(groups) { group in
                         chapterCard(group: group)
+                    }
+                    if let mileageTrack, !mileageBadges.isEmpty {
+                        mileageTrackCard(track: mileageTrack)
                     }
                 }
             }
@@ -595,25 +613,56 @@ struct PersonalAchievementsView: View {
     }
 
     private func chapterCard(group: AchievementBadgeGroup) -> some View {
-        let accentColor = AchievementChapterTheme.primaryColor(for: group.chapter)
-        let groupGlyph = chapterGlyph(for: group.chapter)
-        let groupTitle = group.titleKey?.localizedOrFallback(default: group.chapter.localizedName) ?? group.chapter.localizedName
-        let unlocked = group.badges.filter { $0.status == .unlocked }.count
-        let total = group.badges.count
+        collectionCard(
+            glyph: chapterGlyph(for: group.chapter),
+            accentColor: AchievementChapterTheme.primaryColor(for: group.chapter),
+            title: group.titleKey?.localizedOrFallback(default: group.chapter.localizedName) ?? group.chapter.localizedName,
+            badges: group.badges,
+            libraryGroup: group,
+            entry: "chapter_card",
+            accessibilityId: "Achievements_ChapterCard_\(group.chapter.rawValue)"
+        )
+    }
+
+    // 里程軌跡碑：把 mileage track 當成徽章收藏的一張卡，與其他章節卡同款式（第三條線）。
+    private func mileageTrackCard(track: AchievementTrack) -> some View {
+        let libraryGroup = AchievementBadgeGroup(chapter: .build, titleKey: track.titleKey, badges: track.badges)
+        return collectionCard(
+            glyph: "🛣️",
+            accentColor: PacerizColor.indigo,
+            title: track.titleKey.localizedOrFallback(default: track.trackId),
+            badges: track.badges,
+            libraryGroup: libraryGroup,
+            entry: "mileage_track_card",
+            accessibilityId: "Achievements_TrackCard_mileage_markers"
+        )
+    }
+
+    private func collectionCard(
+        glyph: String,
+        accentColor: Color,
+        title: String,
+        badges: [AchievementBadge],
+        libraryGroup: AchievementBadgeGroup,
+        entry: String,
+        accessibilityId: String
+    ) -> some View {
+        let unlocked = badges.filter { $0.status == .unlocked }.count
+        let total = badges.count
         let pct = total > 0 ? Double(unlocked) / Double(total) : 0
 
         return VStack(alignment: .leading, spacing: 14) {
-            // Chapter header row
+            // Header row
             HStack(alignment: .center) {
                 // Glyph icon 38×38
-                Text(groupGlyph)
+                Text(glyph)
                     .font(AppFont.titleM())
                     .frame(width: 38, height: 38)
                     .background(accentColor.opacity(0.22))
                     .cornerRadius(12)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(groupTitle)
+                    Text(title)
                         .font(AppFont.labelStrong())
                         .foregroundColor(.primary)
                         .lineLimit(1)
@@ -640,8 +689,8 @@ struct PersonalAchievementsView: View {
 
                 // "看更多" button
                 NavigationLink {
-                    AchievementBadgeLibraryView(groups: [group]) { badge in
-                        viewModel.openBadge(badge, entry: "chapter_card")
+                    AchievementBadgeLibraryView(groups: [libraryGroup]) { badge in
+                        viewModel.openBadge(badge, entry: entry)
                     }
                 } label: {
                     HStack(spacing: 2) {
@@ -658,9 +707,9 @@ struct PersonalAchievementsView: View {
             // Horizontal scrolling badge tiles
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 12) {
-                    ForEach(group.badges) { badge in
+                    ForEach(badges) { badge in
                         Button {
-                            viewModel.openBadge(badge, entry: "chapter_card")
+                            viewModel.openBadge(badge, entry: entry)
                         } label: {
                             badgeTile(badge: badge, accentColor: accentColor)
                         }
@@ -676,7 +725,7 @@ struct PersonalAchievementsView: View {
         .cornerRadius(12)
         .shadow(color: Color.black.opacity(0.06), radius: 2, x: 0, y: 1)
         .padding(.horizontal)
-        .accessibilityIdentifier("Achievements_ChapterCard_\(group.chapter.rawValue)")
+        .accessibilityIdentifier(accessibilityId)
     }
 
     private func badgeTile(badge: AchievementBadge, accentColor: Color) -> some View {
@@ -811,7 +860,11 @@ struct PersonalAchievementsView: View {
     // MARK: - Helpers
 
     private var allBadges: [AchievementBadge] {
-        viewModel.summary?.badgeGroups.flatMap(\.badges) ?? []
+        guard let summary = viewModel.summary else { return [] }
+        if !summary.achievementTracks.isEmpty {
+            return summary.achievementTracks.flatMap(\.badges)
+        }
+        return summary.badgeGroups.flatMap(\.badges)
     }
 
     private var latestUnlockedBadge: AchievementBadge? {

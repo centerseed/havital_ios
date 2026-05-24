@@ -64,13 +64,13 @@ private final class UITestAchievementRepository: AchievementRepository {
                 sourceRef: nil,
                 historicalBackfill: false,
                 shareable: true,
-                assetName: "achievement_badge_start_first_run_trail"
+                assetName: "achievement_badge_start_first_run_marker"
             ),
             AchievementBadge(
-                badgeId: "BADGE-BUILD-LONG-RUN-DONE",
+                badgeId: "BADGE-RHYTHM-12-SEASON-RUNNER",
                 chapter: .build,
-                nameKey: "achievements.badge.build.long_run_done.name",
-                storyKey: "achievements.badge.build.long_run_done.story",
+                nameKey: "achievements.badge.rhythm.season_runner.name",
+                storyKey: "achievements.badge.rhythm.season_runner.story",
                 status: .unlocked,
                 progress: nil,
                 unlockedAt: "2026-04-20",
@@ -78,13 +78,13 @@ private final class UITestAchievementRepository: AchievementRepository {
                 sourceRef: nil,
                 historicalBackfill: false,
                 shareable: true,
-                assetName: "achievement_badge_build_long_run_route_pin_alt"
+                assetName: "achievement_badge_rhythm_12_season_runner"
             ),
             AchievementBadge(
-                badgeId: "BADGE-PROVE-NEW-PB",
+                badgeId: "BADGE-RESULTS-01-FIRST-MAJOR-RESULT",
                 chapter: .prove,
-                nameKey: "achievements.badge.prove.new_pb.name",
-                storyKey: "achievements.badge.prove.new_pb.story",
+                nameKey: "achievements.badge.results.first_major_result.name",
+                storyKey: "achievements.badge.results.first_major_result.story",
                 status: .unlocked,
                 progress: nil,
                 unlockedAt: "2026-05-01",
@@ -92,7 +92,7 @@ private final class UITestAchievementRepository: AchievementRepository {
                 sourceRef: nil,
                 historicalBackfill: false,
                 shareable: true,
-                assetName: "achievement_badge_prove_new_pb"
+                assetName: "achievement_badge_results_01_first_major_result"
             )
         ]
         let rhythmNextBadge = AchievementBadge(

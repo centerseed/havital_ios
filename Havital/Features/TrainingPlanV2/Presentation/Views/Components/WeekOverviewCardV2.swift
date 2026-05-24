@@ -89,14 +89,14 @@ struct WeekOverviewCardV2: View {
             // ── Hero row ─────────────────────────────────────────────────
             HStack(alignment: .center, spacing: 14) {
 
-                // Left: badge hero (72×72)
+                // Left: badge hero (86×86, 邊長 +20%)
                 // Phase B: real badge from AchievementRepository; fallback to PRPlaceholderBadge when nil.
                 // F6.d: status chip placed at top-left corner per design spec
                 ZStack(alignment: .topLeading) {
                     AchievementBadgeHeroView(
                         badge: viewModel.displayBadge,
                         isUnlocked: viewModel.displayBadge?.status == .unlocked,
-                        size: 72
+                        size: 86
                     )
 
                     // "NEW" chip 只在展示徽章為「最近 7 天內解鎖」時顯示，

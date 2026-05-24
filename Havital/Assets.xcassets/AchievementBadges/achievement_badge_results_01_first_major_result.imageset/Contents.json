@@ -1,13 +1,13 @@
 {
-  "images": [
+  "images" : [
     {
-      "filename": "achievement_badge_results_01_first_major_result.png",
-      "idiom": "universal",
-      "scale": "1x"
+      "filename" : "achievement_badge_results_01_first_major_result.heic",
+      "idiom" : "universal",
+      "scale" : "1x"
     }
   ],
-  "info": {
-    "author": "xcode",
-    "version": 1
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
   }
 }

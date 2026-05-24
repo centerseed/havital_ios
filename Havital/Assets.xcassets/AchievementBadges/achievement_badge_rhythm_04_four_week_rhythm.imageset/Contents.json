@@ -1,13 +1,13 @@
 {
-  "images": [
+  "images" : [
     {
-      "filename": "achievement_badge_rhythm_04_four_week_rhythm.png",
-      "idiom": "universal",
-      "scale": "1x"
+      "filename" : "achievement_badge_rhythm_04_four_week_rhythm.heic",
+      "idiom" : "universal",
+      "scale" : "1x"
     }
   ],
-  "info": {
-    "author": "xcode",
-    "version": 1
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
   }
 }
