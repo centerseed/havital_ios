@@ -5,12 +5,6 @@ struct AchievementDetailView: View {
     let badge: AchievementBadge
     let shareable: AchievementShareable?
     let onShare: (AchievementShareable) -> Void
-    var pinnedBadgeId: String? = nil
-    var onTogglePin: ((String) -> Void)? = nil
-
-    private var isPinned: Bool {
-        pinnedBadgeId == badge.badgeId
-    }
 
     private var isUnlocked: Bool {
         badge.status == .unlocked
@@ -276,25 +270,6 @@ struct AchievementDetailView: View {
 
     private var actionButtons: some View {
         HStack(spacing: 10) {
-            if onTogglePin != nil {
-                Button {
-                    onTogglePin?(badge.badgeId)
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: isPinned ? "pin.slash.fill" : "pin.fill")
-                        Text(isPinned
-                             ? L10n.Achievements.Action.unpin.localized
-                             : L10n.Achievements.Action.pin.localized)
-                    }
-                    .font(AppFont.chip())
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
-                    .foregroundColor(.primary)
-                    .background(Color(UIColor.tertiarySystemGroupedBackground))
-                    .cornerRadius(12)
-                }
-                .accessibilityIdentifier("achievement.pin_button")
-            }
             if let shareable {
                 Button {
                     onShare(shareable)

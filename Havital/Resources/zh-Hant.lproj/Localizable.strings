@@ -1175,6 +1175,7 @@
 "training_plan.weekly_volume_load" = "週跑量";
 "training_plan.weekly_volume_and_intensity" = "週跑量和訓練強度";
 "training_plan.week_target" = "本週目標";
+"training_plan.coach_note" = "教練的話";
 "training_plan.training_calendar" = "訓練日曆";
 "training_plan.weekly_badge_placeholder_name" = "節奏建立者";
 "training_plan.weekly_badge_coming_soon" = "新解鎖";
@@ -3011,8 +3012,6 @@
 "achievements.chapter.prove" = "成果突破";
 "achievements.chapter.identity" = "跑者身份";
 "achievements.chapter.unknown" = "其他";
-"achievements.action.pin" = "Pin 到首頁";
-"achievements.action.unpin" = "從首頁取消";
 "achievements.error.load_failed" = "無法載入成就";
 "achievements.insight.completed_weeks" = "你已在 Paceriz 完成 %@ 個訓練週。";
 "achievements.insight.smart_adjustments" = "你曾接受 %@ 次聰明訓練調整。";
@@ -3364,8 +3363,6 @@
 "achievements.stats_banner.streak_label" = "連續訓練";
 "achievements.hero_card.latest_unlock" = "✨ 最新解鎖";
 "achievements.hero_card.share" = "分享";
-"achievements.hero_card.pin" = "釘選";
-"achievements.hero_card.unpin" = "取消釘選";
 "achievements.hero_card.next_target" = "🎯 下一個目標";
 "achievements.hero_card.view_all_tracks" = "看全部主線";
 "achievements.hero_card.remaining" = "還差";
