@@ -233,10 +233,11 @@ class AppStateManager: ObservableObject {
         do {
             print("📥 AppStateManager: 從後端 User API 獲取用戶資料...")
 
-            // Use UserProfileRepository (cache-aware, V2 routing safe)
+            // Use UserProfileRepository cache-first（雙軌）：有有效快取就秒回 + 背景刷新，
+            // 冷啟動不再每次都卡網路往返。快取過期/缺失時才打 API（與原行為一致）。
             let repo: UserProfileRepository = DependencyContainer.shared.resolve()
             let user = try await tracked("AppStateManager: loadUserData") {
-                try await repo.refreshUserProfile()
+                try await repo.getUserProfile()
             }
 
             print("📥 AppStateManager: 成功獲取用戶資料")
