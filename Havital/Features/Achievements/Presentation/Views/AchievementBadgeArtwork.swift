@@ -62,14 +62,14 @@ enum AchievementBadgeArtwork {
             return "achievement_badge_results_collector"
         case "BADGE-MILEAGE-MARKERS-100K":
             return "achievement_badge_mileage_markers_100k"
-        case "BADGE-MILEAGE-MARKERS-200K":
-            return "achievement_badge_mileage_markers_200k"
-        case "BADGE-MILEAGE-MARKERS-400K":
-            return "achievement_badge_mileage_markers_400k"
-        case "BADGE-MILEAGE-MARKERS-600K":
-            return "achievement_badge_mileage_markers_600k"
-        case "BADGE-MILEAGE-MARKERS-800K":
-            return "achievement_badge_mileage_markers_800k"
+        case "BADGE-MILEAGE-MARKERS-300K":
+            return "achievement_badge_mileage_markers_300k"
+        case "BADGE-MILEAGE-MARKERS-1000K":
+            return "achievement_badge_mileage_markers_1000k"
+        case "BADGE-MILEAGE-MARKERS-2400K":
+            return "achievement_badge_mileage_markers_2400k"
+        case "BADGE-MILEAGE-MARKERS-4600K":
+            return "achievement_badge_mileage_markers_4600k"
         case "BADGE-MILEAGE-MARKERS-10000K":
             return "achievement_badge_mileage_markers_10000k"
         default:
