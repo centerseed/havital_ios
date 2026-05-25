@@ -1686,11 +1686,6 @@ extension L10n {
             static let loadFailed = "achievements.error.load_failed"
         }
 
-        enum Action {
-            static let pin = "achievements.action.pin"
-            static let unpin = "achievements.action.unpin"
-        }
-
         enum StatsBanner {
             static let unlockedLabel = "achievements.stats_banner.unlocked_label" // "徽章已解鎖"
             static let pbLabel = "achievements.stats_banner.pb_label" // "PB 紀錄"
@@ -1700,8 +1695,6 @@ extension L10n {
         enum HeroCard {
             static let latestUnlock = "achievements.hero_card.latest_unlock" // "✨ 最新解鎖"
             static let share = "achievements.hero_card.share" // "分享"
-            static let pin = "achievements.hero_card.pin" // "釘選"
-            static let unpin = "achievements.hero_card.unpin" // "取消釘選"
             static let nextTarget = "achievements.hero_card.next_target" // "🎯 下一個目標"
             static let viewAllTracks = "achievements.hero_card.view_all_tracks" // "看全部主線"
             static let remaining = "achievements.hero_card.remaining" // "還差"

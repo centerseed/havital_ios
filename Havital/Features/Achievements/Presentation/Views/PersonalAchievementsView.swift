@@ -37,9 +37,7 @@ struct PersonalAchievementsView: View {
                         onShare: { shareable in
                             viewModel.selectedBadge = nil
                             viewModel.selectShareable(shareable, entry: "badge_detail")
-                        },
-                        pinnedBadgeId: viewModel.pinnedBadgeId,
-                        onTogglePin: { badgeId in viewModel.togglePin(badgeId: badgeId) }
+                        }
                     )
                 }
                 .sheet(item: $viewModel.selectedShareable, onDismiss: {
@@ -266,43 +264,23 @@ struct PersonalAchievementsView: View {
                         .lineLimit(4)
                         .padding(.top, 2)
 
-                    // Share + Pin buttons
-                    HStack(spacing: 8) {
-                        Button {
-                            viewModel.selectShareable(resolvedShareable(for: badge), entry: "hero_card")
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "square.and.arrow.up")
-                                    .font(AppFont.micro())
-                                Text(L10n.Achievements.HeroCard.share.localized)
-                                    .font(AppFont.chip())
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 12)
-                            .frame(height: 30)
-                            .background(PacerizColor.blue)
-                            .cornerRadius(9)
+                    // Share button
+                    Button {
+                        viewModel.selectShareable(resolvedShareable(for: badge), entry: "hero_card")
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(AppFont.micro())
+                            Text(L10n.Achievements.HeroCard.share.localized)
+                                .font(AppFont.chip())
                         }
-                        .buttonStyle(.plain)
-
-                        let isPinned = viewModel.pinnedBadgeId == badge.badgeId
-                        Button {
-                            viewModel.togglePin(badgeId: badge.badgeId)
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: isPinned ? "pin.fill" : "pin")
-                                    .font(AppFont.micro())
-                                Text(isPinned ? L10n.Achievements.HeroCard.unpin.localized : L10n.Achievements.HeroCard.pin.localized)
-                                    .font(AppFont.micro())
-                            }
-                            .foregroundColor(isPinned ? PacerizColor.blue : .primary)
-                            .padding(.horizontal, 12)
-                            .frame(height: 30)
-                            .background(isPinned ? PacerizColor.blue.opacity(0.12) : Color(UIColor.tertiarySystemGroupedBackground))
-                            .cornerRadius(9)
-                        }
-                        .buttonStyle(.plain)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .frame(height: 30)
+                        .background(PacerizColor.blue)
+                        .cornerRadius(9)
                     }
+                    .buttonStyle(.plain)
                     .padding(.top, 4)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

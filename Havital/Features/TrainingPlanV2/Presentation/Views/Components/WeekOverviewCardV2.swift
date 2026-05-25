@@ -234,9 +234,11 @@ struct WeekOverviewCardV2: View {
             NavigationView {
                 WeekTargetDetailViewV2(
                     purpose: plan.purpose,
-                    designReason: designReason
+                    designReason: designReason,
+                    coachNote: plan.coachNote
                 )
             }
+            .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: $showTrainingCalendar) {
             NavigationView {
@@ -417,16 +419,45 @@ private struct WeekProgressIntensityBar: View {
 struct WeekTargetDetailViewV2: View {
     let purpose: String
     let designReason: [String]?
+    let coachNote: String?
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 18) {
+                // 教練的話（coach_note）— 本週重點總結，放最上方當開場
+                if let coachNote = coachNote, !coachNote.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "quote.bubble.fill")
+                                .foregroundColor(PacerizColor.blue)
+                                .font(AppFont.title3())
+
+                            Text(NSLocalizedString("training_plan.coach_note", comment: "Coach's Note"))
+                                .font(AppFont.headline())
+                                .foregroundColor(.primary)
+                        }
+
+                        Text(coachNote)
+                            .font(AppFont.body())
+                            .foregroundColor(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .lineSpacing(3)
+                            .padding(.leading, 4)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(PacerizColor.blue.opacity(0.10))
+                    )
+                }
+
                 // 週目標區域
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(spacing: 8) {
                         Image(systemName: "target")
-                            .foregroundColor(.blue)
+                            .foregroundColor(PacerizColor.greenDeep)
                             .font(AppFont.title3())
 
                         Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
@@ -441,9 +472,10 @@ struct WeekTargetDetailViewV2: View {
                         .padding(.leading, 4)
                 }
                 .padding()
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.blue.opacity(0.08))
+                        .fill(PacerizColor.greenDeep.opacity(0.08))
                 )
 
                 // 設計原因區域（如果有的話）

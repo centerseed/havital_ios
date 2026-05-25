@@ -43,6 +43,9 @@ struct WeeklyPlanV2: Codable, Equatable {
     /// 安排理由列表
     let designReason: [String]?
 
+    /// 教練筆記（本週訓練重點 1-2 句總結）
+    let coachNote: String?
+
     /// 訓練日陣列（7 天完整資料）- V2.1+ 使用 DayDetail
     let days: [DayDetail]
 
