@@ -119,7 +119,7 @@ struct WeekOverviewCardV2: View {
                     // F1.d: date chip moved here, right-aligned per design jsx L417-423
                     HStack(spacing: 6) {
                         // F5.a: 16pt + blueDeep color, fixedSize ensures full display without truncation
-                        Text(viewModel.displayBadge.map { NSLocalizedString($0.nameKey, comment: "") } ?? NSLocalizedString("training_plan.weekly_badge_placeholder_name", comment: "本週進度"))
+                        Text(viewModel.displayBadge.map { $0.nameKey.localizedOrFallback(default: $0.badgeId) } ?? NSLocalizedString("training_plan.weekly_badge_placeholder_name", comment: "本週進度"))
                             .font(AppFont.titleM())
                             .foregroundColor(PacerizColor.blueDeep)
                             .lineLimit(1)
@@ -526,6 +526,17 @@ struct WeekTargetDetailViewV2: View {
                 }
             }
         }
+    }
+}
+
+private extension String {
+    /// 徽章 name_key 可能是 base key（未含 .name 後綴）。先試原 key，找不到再補 .name，
+    /// 仍找不到才用 fallback。避免顯示 raw key（如 achievements.badge.mileage_markers.100k）。
+    func localizedOrFallback(default fallback: String) -> String {
+        let value = NSLocalizedString(self, comment: "")
+        if value != self { return value }
+        let named = NSLocalizedString(self + ".name", comment: "")
+        return named != self + ".name" ? named : fallback
     }
 }
 
