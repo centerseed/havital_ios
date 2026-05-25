@@ -84,10 +84,19 @@ final class AchievementRepositoryImpl: AchievementRepository {
 
     func getDisplayBadge() -> AchievementBadge? {
         let allBadges = allBadgesFromCache()
-        return selectDisplayBadge.execute(
+        let resolved = selectDisplayBadge.execute(
             pinnedBadgeId: pinnedBadgeSubject.value,
             allBadges: allBadges
         )
+
+        if !allBadges.isEmpty {
+            // Cache 已載入 = 權威來源：把快照同步成真值（或清除），供下次冷啟動即時渲染。
+            DisplayBadgeStorage.save(resolved)
+            return resolved
+        }
+
+        // Cache 尚未載入（冷啟動 summary 還沒回來）：用上次持久化的快照即時、穩定渲染，避免閃暫代值。
+        return DisplayBadgeStorage.load() ?? resolved
     }
 
     func getInProgressBadges() -> [AchievementBadge] {

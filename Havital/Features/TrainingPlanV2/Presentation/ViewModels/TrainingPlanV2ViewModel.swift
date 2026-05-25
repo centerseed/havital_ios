@@ -279,7 +279,10 @@ final class TrainingPlanV2ViewModel: TaskManageable {
     // MARK: - Private Helpers
 
     private func setupDisplayBadgeObservation() {
-        // Initial load: fetch summary then snapshot displayBadge
+        // 即時渲染：用本地持久化快照（或已熱的 cache）同步顯示，冷啟動不閃暫代值。
+        displayBadge = achievementRepository.getDisplayBadge()
+
+        // 權威更新：summary 回來後重算（值若相同不會跳動）。
         Task { [weak self] in
             guard let self else { return }
             _ = try? await achievementRepository.fetchSummary(forceRefresh: false)
@@ -288,8 +291,9 @@ final class TrainingPlanV2ViewModel: TaskManageable {
             }
         }
 
-        // Live updates: react to pin changes
+        // 反應 pin 變更（初始值已由上面同步處理，dropFirst 避免重複覆寫）。
         achievementRepository.pinnedBadgeIdDidChange
+            .dropFirst()
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.displayBadge = self?.achievementRepository.getDisplayBadge()
