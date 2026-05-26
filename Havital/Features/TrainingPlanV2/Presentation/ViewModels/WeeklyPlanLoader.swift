@@ -128,9 +128,13 @@ final class WeeklyPlanLoader {
 
         guard let cachedStatus = repository.getCachedPlanStatus() else { return }
         let isFirstLoad = planStatusResponse == nil
+        let priorCurrentWeek = currentWeek
         planStatusResponse = cachedStatus
         currentWeek = cachedStatus.currentWeek
-        if isFirstLoad {
+        // selectedWeek 跟著 currentWeek，除非使用者已主動切到別週（switchToWeek 會把
+        // selectedWeek 設成不等於 currentWeek 的值）。先前用 isFirstLoad 判斷會在「快取
+        // 帶回 stale currentWeek=1，之後 API 刷到 13」時把 selectedWeek 永遠卡在 1。
+        if isFirstLoad || selectedWeek == priorCurrentWeek {
             selectedWeek = cachedStatus.currentWeek
         }
 
@@ -195,10 +199,13 @@ final class WeeklyPlanLoader {
         do {
             let status = try await repository.getPlanStatus(forceRefresh: true)
             let isFirstLoad = self.planStatusResponse == nil
+            let priorCurrentWeek = self.currentWeek
             self.planStatusResponse = status
             self.currentWeek = status.currentWeek
-            // 只在首次載入時跟隨 currentWeek，避免覆蓋使用者正在查看的週數
-            if isFirstLoad {
+            // selectedWeek 跟著 currentWeek，除非使用者主動切到別週（switchToWeek 會把
+            // selectedWeek 設成不等於 currentWeek 的值）。先前只在 isFirstLoad 時同步，
+            // 會在「stale cache 把 selectedWeek 種成 1，之後 API 刷到 13」時永遠卡在 1。
+            if isFirstLoad || self.selectedWeek == priorCurrentWeek {
                 self.selectedWeek = status.currentWeek
             }
 

@@ -361,4 +361,32 @@ final class WeeklyPlanLoaderTests: XCTestCase {
         // The key assertion is that planStatus is coherent (not stuck in a bad state)
         XCTAssertNotEqual(loader.planStatus, .loading, "planStatus should not remain .loading after initialize")
     }
+
+    // MARK: - selectedWeek must track current_week when not user-navigated
+
+    /// Bug: a stale local cache reporting currentWeek=1 pinned selectedWeek to 1; the
+    /// later fresh API response (currentWeek=13) was suppressed by an `isFirstLoad`-only
+    /// guard, so the generate-current-week button kept POSTing week=1 forever.
+    /// Fix: selectedWeek follows currentWeek whenever it was tracking it
+    /// (selectedWeek == priorCurrentWeek); user navigation (switchToWeek) is preserved
+    /// because it sets selectedWeek to a value that no longer equals currentWeek.
+    func test_refresh_advancesSelectedWeek_whenCacheIsStaleAndUserHasNotNavigated() async {
+        // Arrange: cache returns stale week=1, API returns fresh week=13
+        mockRepository.cachedPlanStatusToReturn = makeStatus(currentWeek: 1, nextAction: "view_plan")
+        mockRepository.planStatusToReturn = makeStatus(currentWeek: 13, nextAction: "view_plan")
+        mockRepository.overviewToReturn = makeOverview()
+        mockRepository.weeklyPlanV2ToReturn = makeWeeklyPlan(week: 13)
+
+        let loader = makeLoader()
+
+        // Act: full init — cache restore (selectedWeek=1) then API refresh (currentWeek=13)
+        await loader.initialize()
+
+        // Assert: selectedWeek must follow the fresh currentWeek, not stay at the stale 1
+        XCTAssertEqual(loader.currentWeek, 13)
+        XCTAssertEqual(
+            loader.selectedWeek, 13,
+            "selectedWeek must follow fresh currentWeek when it was tracking the cached value; otherwise the generate button POSTs week=1 forever (prod bug)"
+        )
+    }
 }

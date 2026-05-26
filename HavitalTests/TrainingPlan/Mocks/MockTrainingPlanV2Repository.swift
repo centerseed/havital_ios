@@ -282,8 +282,12 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         if let error = errorToThrow { throw error }
     }
 
+    /// When non-nil, getCachedPlanStatus() returns this instead of planStatusToReturn.
+    /// Lets a test simulate a stale local cache that differs from the fresh API response.
+    var cachedPlanStatusToReturn: PlanStatusV2Response?
+
     func getCachedPlanStatus() -> PlanStatusV2Response? {
-        planStatusToReturn
+        cachedPlanStatusToReturn ?? planStatusToReturn
     }
 
     func getCachedOverview() -> PlanOverviewV2? {
