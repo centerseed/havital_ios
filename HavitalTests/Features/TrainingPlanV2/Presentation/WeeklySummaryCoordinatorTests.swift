@@ -332,4 +332,46 @@ final class WeeklySummaryCoordinatorTests: XCTestCase {
         // Assert
         XCTAssertEqual(coordinator.lastRequestedSummaryWeek, 7)
     }
+
+    // MARK: Test: paywall gate — enforcement ON + no premium → triggers upsell, skips summary
+
+    /// AC-PAYWALL-23/27: when enforcement is enabled and user has no premium access,
+    /// generateWeeklySummary/createWeeklySummaryAndShow must call onWeeklyReviewInlineUpsellNeeded
+    /// and NOT proceed to the repository call.
+    func test_enforcementOn_noPremium_triggersUpsellAndSkipsSummary() async {
+        // Arrange: seed SubscriptionStateManager with no-premium state
+        await SubscriptionStateManager.shared.update(
+            SubscriptionStatusEntity(status: .none, enforcementEnabled: false)
+        )
+        // Confirm hasPremiumAccess is false (precondition)
+        XCTAssertFalse(SubscriptionStateManager.shared.hasPremiumAccess,
+                       "Precondition: SubscriptionStateManager must report no premium access")
+
+        let upsellExpectation = expectation(description: "onWeeklyReviewInlineUpsellNeeded called")
+        let coordinator = WeeklySummaryCoordinator(
+            repository: mockRepository,
+            currentSelectedWeek: { 2 },
+            setLoadingAnimation: { _ in },
+            shouldBlockByRizoQuota: { false },
+            refreshPlanStatusResponse: {},
+            shouldSuppressError: { _, _, _ in false },
+            resolvePaywallTrigger: { .apiGated },
+            onSuccessToast: { _ in },
+            onPaywallTriggered: { _ in },
+            onRizoQuotaExceeded: {},
+            onNetworkError: { _ in },
+            isEnforcementEnabled: { true },  // enforcement ON
+            onWeeklyReviewInlineUpsellNeeded: { upsellExpectation.fulfill() }
+        )
+
+        // Act: both entry points must gate
+        await coordinator.generateWeeklySummary()
+
+        // Assert: upsell triggered, repository NOT called, flow NOT started
+        await fulfillment(of: [upsellExpectation], timeout: 2)
+        XCTAssertEqual(mockRepository.generateWeeklySummaryCallCount, 0,
+                       "Repository must NOT be called when paywall gates the request")
+        XCTAssertFalse(coordinator.summaryFlowActive,
+                       "summaryFlowActive must remain false when gate fires")
+    }
 }

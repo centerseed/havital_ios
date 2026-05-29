@@ -75,6 +75,23 @@ class CacheEventBus {
         }
     }
 
+    /// 依序發布多個事件，保證訂閱者收到事件的順序與陣列順序一致。
+    /// 使用場景：需要原子性保證事件順序時（如 userLogout 必須在 dataChanged(.user) 之前）。
+    /// 每個事件的 cache invalidation 同步執行，subscriber 通知在同一 Task 中依序 await。
+    func publishSequence(_ events: [CacheInvalidationReason]) {
+        guard !events.isEmpty else { return }
+        // Cache invalidation is synchronous — run all in order first.
+        for event in events {
+            invalidateCache(for: event)
+        }
+        // Subscriber notifications are async; fire them in one Task to guarantee order.
+        Task { @MainActor in
+            for event in events {
+                await notifyEventSubscribers(for: event)
+            }
+        }
+    }
+
     // MARK: - Event Subscription (回調式訂閱)
 
     /// 基於標識符的事件訂閱

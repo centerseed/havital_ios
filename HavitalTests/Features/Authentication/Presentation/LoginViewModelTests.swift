@@ -194,15 +194,19 @@ final class LoginViewModelTests: XCTestCase {
             AuthUserFactory.makeAuthenticatedUser(uid: "my-user")
         )
 
+        // ORDER is the contract: userLogout MUST arrive before dataChanged(.user)
         let logoutExpectation = expectation(description: "userLogout published")
         let userChangedExpectation = expectation(description: "dataChanged.user published")
 
+        var eventOrder: [String] = []
         let identifier = "LoginViewModelTests.userSwitch.\(UUID().uuidString)"
         CacheEventBus.shared.subscribe(forIdentifier: identifier) { reason in
             switch reason {
             case .userLogout:
+                eventOrder.append("logout")
                 logoutExpectation.fulfill()
             case .dataChanged(.user):
+                eventOrder.append("userChanged")
                 userChangedExpectation.fulfill()
             default:
                 break
@@ -210,7 +214,10 @@ final class LoginViewModelTests: XCTestCase {
         }
 
         await sut.signInWithApple(credential: credential)
-        await fulfillment(of: [logoutExpectation, userChangedExpectation], timeout: 3.0)
+        // enforceOrder:true — test fails if userChanged arrives before logout
+        await fulfillment(of: [logoutExpectation, userChangedExpectation], timeout: 3.0, enforceOrder: true)
+        XCTAssertEqual(eventOrder, ["logout", "userChanged"],
+                       "userLogout must be published before dataChanged(.user) on user switch")
         CacheEventBus.shared.unsubscribe(forIdentifier: identifier)
     }
 

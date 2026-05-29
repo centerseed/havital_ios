@@ -57,55 +57,12 @@ final class GarminInitialBackfillGuardACTests: XCTestCase {
     // MARK: - AC-GARMIN-BF-03: Non-started decisions must be non-blocking
 
     func test_ac_garmin_bf_03_non_started_decision_is_non_blocking() throws {
-        // Spec: When ensureInitialGarminBackfill returns a non-started decision
-        // (already_requested, already_has_data, in_progress, not_eligible),
-        // the app must not show an error and must not block the UI flow.
-        //
-        // Test approach:
-        // 1. Verify BackfillService source handles non-started decisions without throwing.
-        // 2. Verify GarminManager.handleCallback does not display an error for non-started decisions.
-        //
-        // Since ensureInitialGarminBackfill does not yet exist (see BF-02 gap), we verify the
-        // CONTRACT that will be required once S02 is implemented, by checking the design invariants
-        // already present in triggerOnboardingBackfill (which uses Task.detached — non-blocking).
-        let backfillServiceSource = try readSource(at: "Havital/Features/Workout/Infrastructure/BackfillService.swift")
-
-        // The current triggerOnboardingBackfill already uses Task.detached, making it non-blocking.
-        // Verify this non-blocking pattern exists.
-        XCTAssertTrue(
-            backfillServiceSource.contains("Task.detached"),
-            "BackfillService onboarding backfill path must use Task.detached to be non-blocking"
-        )
-
-        // Verify handleCallback itself doesn't await on the backfill call
-        // (i.e., the call uses fire-and-forget or Task.detached, not direct await).
-        // The current triggerOnboardingBackfill is void (non-async), so it's inherently non-blocking.
-        // After S02, the new ensureInitialGarminBackfill path must also be non-blocking.
-        let callSiteIsNonBlocking =
-            backfillServiceSource.contains("func triggerOnboardingBackfill") &&
-            backfillServiceSource.contains("Task.detached(priority: .background)")
-
-        XCTAssertTrue(
-            callSiteIsNonBlocking,
-            "BackfillService backfill trigger must use Task.detached for non-blocking execution " +
-            "(AC-GARMIN-BF-03 contract). This invariant must be maintained in ensureInitialGarminBackfill."
-        )
-
-        // Verify that 429 (already-in-progress signal) is explicitly handled without throwing.
-        XCTAssertTrue(
-            backfillServiceSource.contains("429"),
-            "BackfillService must handle 429 (already in progress) as a non-error path " +
-            "(AC-GARMIN-BF-03: non-started decisions must not block UI)"
-        )
-
-        // Verify that the backfill error path is handled silently (logged, not propagated to UI).
-        // BackfillService.triggerOnboardingBackfill catches errors and logs them without surfacing to UI.
-        XCTAssertTrue(
-            backfillServiceSource.contains("Onboarding Backfill") &&
-            backfillServiceSource.contains("catch {"),
-            "BackfillService must silently log backfill failures and not expose them " +
-            "as user-visible errors (AC-GARMIN-BF-03)"
-        )
+        // S02 ensureInitialGarminBackfill not yet implemented.
+        // Previous revision verified triggerOnboardingBackfill (old path) — wrong contract.
+        // TODO: when S02 lands, verify ensureInitialGarminBackfill handles non-started decisions
+        // (already_requested, already_has_data, in_progress, not_eligible) without throwing
+        // and without blocking the UI flow.
+        throw XCTSkip("Pending AC-GARMIN-BF-03 — ensureInitialGarminBackfill (S02) not implemented")
     }
 
     // MARK: - Source Analysis Helpers

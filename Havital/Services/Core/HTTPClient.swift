@@ -276,7 +276,11 @@ actor DefaultHTTPClient: HTTPClient {
         // 添加認證 token（除了登入相關端點，且沒有自定義 Authorization）
         if !isAuthenticationEndpoint(path: path) && customHeaders?["Authorization"] == nil {
             Logger.trace("[HTTPClient] 🔐 Adding authentication token for: \(method.rawValue) \(path)")
-            if let token = try await authSessionRepository?.getIdToken() {
+            let repo = authSessionRepository  // capture once — computed property does a DI lookup each time
+            if repo == nil {
+                Logger.warn("[HTTPClient] authSessionRepository nil — Authorization header skipped for \(path); request will likely 401")
+            }
+            if let token = try await repo?.getIdToken() {
                 let tokenPreview = String(token.prefix(30))
                 request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
                 Logger.trace("[HTTPClient] 🔐 Authorization header set (token preview: \(tokenPreview)...)")

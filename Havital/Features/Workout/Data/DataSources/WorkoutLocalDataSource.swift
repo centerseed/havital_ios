@@ -200,19 +200,29 @@ class WorkoutLocalDataSource {
 
     // MARK: - Delete
 
+    /// 從列表緩存中移除指定訓練條目（不清除詳情緩存）
+    /// 用於跑步機校正後讓列表 Track A miss，強制下次 list 載入從 API 拿校正後資料。
+    /// - Parameter id: 訓練 ID
+    func removeWorkoutFromListCache(id: String) {
+        removeFromListCacheByID(id)
+        Logger.debug("[WorkoutLocalDataSource] removeWorkoutFromListCache(\(id)) - 已從列表緩存移除")
+    }
+
     /// 刪除單個訓練緩存
     /// - Parameter id: 訓練 ID
     func deleteWorkout(id: String) {
         workoutCacheManager.clearCache()
         detailCacheManager.clearCache()
         Logger.debug("[WorkoutLocalDataSource] deleteWorkout(\(id)) - 已從詳情緩存刪除")
+        removeFromListCacheByID(id)
+        Logger.debug("[WorkoutLocalDataSource] deleteWorkout(\(id)) - 已從列表緩存刪除")
+    }
 
-        // 直接從緩存讀取，不經過過期檢查，確保列表緩存正確更新
-        if var workouts = cacheManager.loadFromCache() {
-            workouts.removeAll { $0.id == id }
-            cacheManager.saveToCache(workouts)
-            Logger.debug("[WorkoutLocalDataSource] deleteWorkout(\(id)) - 已從列表緩存刪除，剩餘: \(workouts.count)")
-        }
+    /// 從列表緩存中移除一個 id — 底層共用邏輯，供 removeWorkoutFromListCache / deleteWorkout 呼叫。
+    private func removeFromListCacheByID(_ id: String) {
+        guard var workouts = cacheManager.loadFromCache() else { return }
+        workouts.removeAll { $0.id == id }
+        cacheManager.saveToCache(workouts)
     }
 
     // MARK: - Cache Management

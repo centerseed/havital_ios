@@ -22,35 +22,10 @@ final class HeartRateZonesBridgeTests: XCTestCase {
         super.tearDown()
     }
 
-    func testConvertToHealthKitManagerZones_MapsAllFields() {
-        let bridge = HeartRateZonesBridge.shared
-        let source = [
-            HeartRateZonesManager.HeartRateZone(
-                zone: 1,
-                name: "Z1",
-                range: 100...120,
-                description: "easy",
-                benefit: "recovery"
-            ),
-            HeartRateZonesManager.HeartRateZone(
-                zone: 2,
-                name: "Z2",
-                range: 121...140,
-                description: "steady",
-                benefit: "aerobic"
-            ),
-        ]
-
-        let mapped = bridge.convertToHealthKitManagerZones(source)
-
-        XCTAssertEqual(mapped.count, 2)
-        XCTAssertEqual(mapped[0].id, 1)
-        XCTAssertEqual(mapped[0].zone, 1)
-        XCTAssertEqual(mapped[0].range.lowerBound, 100)
-        XCTAssertEqual(mapped[0].range.upperBound, 120)
-        XCTAssertEqual(mapped[0].description, "easy")
-        XCTAssertEqual(mapped[0].benefit, "recovery")
-    }
+    // testConvertToHealthKitManagerZones_MapsAllFields removed: HealthKitManager's
+    // duplicate heart-rate-zone subsystem was deleted (Wave 2 #4 Stage 2), so
+    // HeartRateZonesBridge.convertToHealthKitManagerZones no longer exists.
+    // The Domain HeartRateZonesManager (HRR) is the single source of truth.
 
     func testEnsureHeartRateZonesAvailable_WhenCached_DoesNotTriggerSync() async {
         let bridge = HeartRateZonesBridge.shared

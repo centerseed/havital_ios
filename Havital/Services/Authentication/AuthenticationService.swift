@@ -1085,10 +1085,16 @@ extension AuthenticationService: ASAuthorizationControllerPresentationContextPro
             return anyWindow
         }
 
+        // No window scene found — the fallback UIWindow() cannot present ASAuthorizationController.
+        // Apple Sign-In sheet will silently fail to appear (unrecoverable edge case under sync constraint).
+        // Surface as loginError so the UI is not stuck without feedback.
         Logger.firebase(
-            "Apple Sign-In: 找不到可用的 UIWindowScene，回傳 fallback window",
-            level: .warn
+            "Apple Sign-In: 找不到任何 UIWindowScene — presentationAnchor fallback，Sign-In sheet 無法 present",
+            level: .error
         )
+        Task { @MainActor in
+            self.loginError = AuthError.presentationError
+        }
         return UIWindow()
     }
 }

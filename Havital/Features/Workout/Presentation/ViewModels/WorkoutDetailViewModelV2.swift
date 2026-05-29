@@ -283,9 +283,9 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
 
             await MainActor.run {
                 self.state = .loaded(updatedDetail)
-                CacheEventBus.shared.publish(.dataChanged(.workouts))
+                // 列表更新由 repo.refreshSubject → WorkoutListViewModel → CacheEventBus 鏈處理
+                // 此處不重複 publish，避免雙重 reload（MEDIUM-2）
             }
-            Logger.debug("[WorkoutDetailViewModelV2] 發布 .dataChanged(.workouts) 事件 (跑步機校正)")
 
             Logger.firebase(
                 "跑步機里程校正成功",

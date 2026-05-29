@@ -426,6 +426,10 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         localDataSource.clearWorkoutDetailCache(id: id)
         localDataSource.saveWorkoutDetail(updatedDetail)
 
+        // 移除列表緩存中的舊條目，讓下次 list 載入 Track A miss → 從 API 拿校正後資料
+        // 無法在此直接 upsert：WorkoutV2Detail 與 WorkoutV2 結構不同，無 mapper
+        localDataSource.removeWorkoutFromListCache(id: id)
+
         // 通知 workout list reload（ViewModel 訂閱後轉介 CacheEventBus）
         // Repository 不直接 publish CacheEventBus — 架構紅線
         refreshSubject.send()
