@@ -459,6 +459,7 @@ struct WorkoutV2Detail: Codable {
     let aiSummary: AISummary?
     let shareCardContent: ShareCardContent?  // 分享卡內容 (optional,向後兼容)
     let trainingNotes: String?  // 訓練心得 (optional,向後兼容)
+    let correction: TreadmillCorrection?  // 跑步機里程校正 (optional,向後兼容)
 
     enum CodingKeys: String, CodingKey {
         case id, provider, source
@@ -487,6 +488,36 @@ struct WorkoutV2Detail: Codable {
         case aiSummary = "ai_summary"
         case shareCardContent = "share_card_content"
         case trainingNotes = "training_notes"
+        case correction = "correction"
+    }
+}
+
+// MARK: - Treadmill Correction Model
+
+/// 跑步機里程校正資料（後端返回，沿用既有 legacy Codable 模式）
+struct TreadmillCorrection: Codable, Hashable {
+    let type: String?
+    let source: String?
+    let actualDistanceM: Double?
+    let avgInclinePercent: Double?
+    let originalDistanceM: Double?
+    let originalAvgPaceSPerKm: Double?
+    let originalDynamicVdot: Double?
+    let correctedAvgPaceSPerKm: Double?
+    let correctedDynamicVdot: Double?
+    let notes: String?
+    let appliedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case type, source, notes
+        case actualDistanceM = "actual_distance_m"
+        case avgInclinePercent = "avg_incline_percent"
+        case originalDistanceM = "original_distance_m"
+        case originalAvgPaceSPerKm = "original_avg_pace_s_per_km"
+        case originalDynamicVdot = "original_dynamic_vdot"
+        case correctedAvgPaceSPerKm = "corrected_avg_pace_s_per_km"
+        case correctedDynamicVdot = "corrected_dynamic_vdot"
+        case appliedAt = "applied_at"
     }
 }
 
@@ -1269,6 +1300,15 @@ struct ConnectionInfo: Codable {
     }
 }
 
+// MARK: - Treadmill Correction Helper
+
+extension WorkoutV2Detail {
+    /// 是否已完成跑步機里程人工校正
+    var isTreadmillCorrected: Bool {
+        correction?.type == "treadmill" && correction?.source == "user_treadmill_correction"
+    }
+}
+
 // MARK: - Helper Extensions
 
 extension WorkoutV2Detail {
@@ -1524,6 +1564,7 @@ extension LapData: Equatable {}
 
 extension WorkoutV2: Equatable {}
 extension WorkoutV2Detail: Equatable {}
+extension TreadmillCorrection: Equatable {}
 
 // MARK: - More Equatable Extensions (DailyPlan)
 extension DailyPlanSegment: Equatable {}

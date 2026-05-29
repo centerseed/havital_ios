@@ -407,6 +407,33 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         try await remoteDataSource.fetchWorkoutSummary(id: id)
     }
 
+    func applyTreadmillCorrection(
+        id: String,
+        actualDistanceM: Double,
+        avgInclinePercent: Double?,
+        notes: String?
+    ) async throws -> WorkoutV2Detail {
+        Logger.debug("[WorkoutRepositoryImpl] applyTreadmillCorrection - id: \(id)")
+
+        let updatedDetail = try await remoteDataSource.applyTreadmillCorrection(
+            id: id,
+            actualDistanceM: actualDistanceM,
+            avgInclinePercent: avgInclinePercent,
+            notes: notes
+        )
+
+        // 清除舊的詳情緩存，儲存新的詳情
+        localDataSource.clearWorkoutDetailCache(id: id)
+        localDataSource.saveWorkoutDetail(updatedDetail)
+
+        // 通知 workout list reload（ViewModel 訂閱後轉介 CacheEventBus）
+        // Repository 不直接 publish CacheEventBus — 架構紅線
+        refreshSubject.send()
+
+        Logger.debug("[WorkoutRepositoryImpl] applyTreadmillCorrection - 完成")
+        return updatedDetail
+    }
+
     func updateTrainingNotes(id: String, notes: String) async throws {
         Logger.debug("[WorkoutRepositoryImpl] updateTrainingNotes - id: \(id)")
 

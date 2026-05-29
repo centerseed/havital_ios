@@ -258,6 +258,67 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
         }
     }
 
+    // MARK: - 跑步機里程校正
+
+    /// 套用跑步機里程校正
+    /// - Parameters:
+    ///   - actualDistanceM: 實際距離（公尺），合法範圍 100..100000
+    ///   - avgInclinePercent: 平均坡度（%），optional，合法範圍 -10..25
+    ///   - notes: 備註，optional，最多 500 字
+    /// - Returns: 是否成功
+    func applyTreadmillCorrection(
+        actualDistanceM: Double,
+        avgInclinePercent: Double?,
+        notes: String?
+    ) async -> Bool {
+        do {
+            Logger.debug("[WorkoutDetailViewModelV2] applyTreadmillCorrection - workout_id: \(workout.id)")
+
+            let updatedDetail = try await repository.applyTreadmillCorrection(
+                id: workout.id,
+                actualDistanceM: actualDistanceM,
+                avgInclinePercent: avgInclinePercent,
+                notes: notes
+            )
+
+            await MainActor.run {
+                self.state = .loaded(updatedDetail)
+                CacheEventBus.shared.publish(.dataChanged(.workouts))
+            }
+            Logger.debug("[WorkoutDetailViewModelV2] 發布 .dataChanged(.workouts) 事件 (跑步機校正)")
+
+            Logger.firebase(
+                "跑步機里程校正成功",
+                level: .info,
+                labels: ["module": "WorkoutDetailViewModelV2", "action": "treadmill_correction"],
+                jsonPayload: [
+                    "workout_id": workout.id,
+                    "actual_distance_m": actualDistanceM
+                ]
+            )
+
+            return true
+        } catch is CancellationError {
+            Logger.debug("[WorkoutDetailViewModelV2] 跑步機校正已取消")
+            return false
+        } catch {
+            Logger.firebase(
+                "跑步機里程校正失敗",
+                level: .error,
+                labels: [
+                    "module": "WorkoutDetailViewModelV2",
+                    "action": "treadmill_correction",
+                    "cloud_logging": "true"
+                ],
+                jsonPayload: [
+                    "workout_id": workout.id,
+                    "error": error.localizedDescription
+                ]
+            )
+            return false
+        }
+    }
+
     func updateRPE(_ rpe: Int?) async -> Bool {
         if let rpe, !(1...10).contains(rpe) {
             Logger.error("[WorkoutDetailViewModelV2] RPE 超出 1-10 範圍")

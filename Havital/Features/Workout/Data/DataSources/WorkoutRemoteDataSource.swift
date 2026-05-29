@@ -1,5 +1,20 @@
 import Foundation
 
+// MARK: - Treadmill Correction Request Body
+
+/// POST /v2/workouts/{id}/treadmill-correction 的請求 body
+private struct TreadmillCorrectionRequest: Encodable {
+    let actualDistanceM: Double
+    let avgInclinePercent: Double?
+    let notes: String?
+
+    enum CodingKeys: String, CodingKey {
+        case actualDistanceM = "actual_distance_m"
+        case avgInclinePercent = "avg_incline_percent"
+        case notes
+    }
+}
+
 // MARK: - Workout Remote Data Source
 /// 負責從遠端 API 獲取 Workout 數據
 /// Data Layer - Remote Data Source
@@ -124,6 +139,38 @@ class WorkoutRemoteDataSource {
         let rawData = try await httpClient.request(path: path, method: .GET, body: nil)
         let response = try ResponseProcessor.extractData(WorkoutSummaryResponse.self, from: rawData, using: parser)
         return response.data.workout
+    }
+
+    // MARK: - Treadmill Correction
+
+    /// 套用跑步機里程校正
+    /// - Parameters:
+    ///   - id: 訓練 ID
+    ///   - actualDistanceM: 實際距離（公尺），合法範圍 100..100000
+    ///   - avgInclinePercent: 平均坡度（%），optional，合法範圍 -10..25
+    ///   - notes: 備註，optional，最多 500 字
+    /// - Returns: 更新後的 WorkoutV2Detail（含 correction 欄位）
+    func applyTreadmillCorrection(
+        id: String,
+        actualDistanceM: Double,
+        avgInclinePercent: Double?,
+        notes: String?
+    ) async throws -> WorkoutV2Detail {
+        let path = "/v2/workouts/\(id)/treadmill-correction"
+
+        Logger.debug("[WorkoutRemoteDataSource] applyTreadmillCorrection - id: \(id)")
+
+        let request = TreadmillCorrectionRequest(
+            actualDistanceM: actualDistanceM,
+            avgInclinePercent: avgInclinePercent,
+            notes: notes
+        )
+        let bodyData = try JSONEncoder().encode(request)
+
+        let rawData = try await tracked("WorkoutRemoteDataSource: applyTreadmillCorrection") {
+            try await self.httpClient.request(path: path, method: .POST, body: bodyData)
+        }
+        return try ResponseProcessor.extractData(WorkoutV2Detail.self, from: rawData, using: parser)
     }
 
     // MARK: - Update

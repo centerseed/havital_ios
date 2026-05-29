@@ -125,6 +125,20 @@ protocol WorkoutRepository {
 
     func fetchWorkoutSummary(id: String) async throws -> WorkoutSummary
 
+    /// 套用跑步機里程校正
+    /// - Parameters:
+    ///   - id: 訓練 ID
+    ///   - actualDistanceM: 實際距離（公尺），合法範圍 100..100000
+    ///   - avgInclinePercent: 平均坡度（%），optional，合法範圍 -10..25
+    ///   - notes: 備註，optional，最多 500 字
+    /// - Returns: 更新後的 WorkoutV2Detail（含 correction 欄位）
+    func applyTreadmillCorrection(
+        id: String,
+        actualDistanceM: Double,
+        avgInclinePercent: Double?,
+        notes: String?
+    ) async throws -> WorkoutV2Detail
+
     /// 更新訓練心得
     /// - Parameters:
     ///   - id: 訓練 ID
@@ -159,6 +173,15 @@ protocol WorkoutRepository {
 }
 
 extension WorkoutRepository {
+    func applyTreadmillCorrection(
+        id: String,
+        actualDistanceM: Double,
+        avgInclinePercent: Double?,
+        notes: String?
+    ) async throws -> WorkoutV2Detail {
+        throw WorkoutRepositoryError.dataSourceUnavailable
+    }
+
     func uploadWorkout(_ request: UploadWorkoutRequest) async throws -> UploadWorkoutResponse {
         throw WorkoutRepositoryError.dataSourceUnavailable
     }

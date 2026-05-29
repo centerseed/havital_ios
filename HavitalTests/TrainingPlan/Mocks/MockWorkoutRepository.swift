@@ -195,6 +195,25 @@ class MockWorkoutRepository: WorkoutRepository {
         }
     }
 
+    var applyTreadmillCorrectionCallCount = 0
+    var applyTreadmillCorrectionLastParams: (id: String, actualDistanceM: Double, avgInclinePercent: Double?, notes: String?)?
+    var treadmillCorrectionDetailToReturn: WorkoutV2Detail?
+
+    func applyTreadmillCorrection(
+        id: String,
+        actualDistanceM: Double,
+        avgInclinePercent: Double?,
+        notes: String?
+    ) async throws -> WorkoutV2Detail {
+        applyTreadmillCorrectionCallCount += 1
+        applyTreadmillCorrectionLastParams = (id, actualDistanceM, avgInclinePercent, notes)
+        if let error = errorToThrow { throw error }
+        guard let detail = treadmillCorrectionDetailToReturn else {
+            throw DomainError.notFound("Mock treadmill detail not configured")
+        }
+        return detail
+    }
+
     func invalidateRefreshCooldown() {}
 
     func clearCache() async {
@@ -220,5 +239,8 @@ class MockWorkoutRepository: WorkoutRepository {
         deleteWorkoutCallCount = 0
         clearCacheCallCount = 0
         preloadDataCallCount = 0
+        applyTreadmillCorrectionCallCount = 0
+        applyTreadmillCorrectionLastParams = nil
+        treadmillCorrectionDetailToReturn = nil
     }
 }

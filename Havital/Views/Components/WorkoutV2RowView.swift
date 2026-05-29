@@ -234,7 +234,7 @@ struct WorkoutV2RowView: View {
                     Image(systemName: "checkmark")
                         .font(AppFont.chip())
                         .foregroundColor(PacerizColor.greenDeep)
-                    Text("與課表匹配")
+                    Text(NSLocalizedString("workout.plan_matched", comment: ""))
                         .font(AppFont.micro())
                         .foregroundColor(PacerizColor.greenDeep)
                 }

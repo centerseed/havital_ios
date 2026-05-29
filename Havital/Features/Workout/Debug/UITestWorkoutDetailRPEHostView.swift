@@ -58,6 +58,8 @@ final class UITestWorkoutDetailRPEMockRepository: ObservableObject, WorkoutRepos
     func clearCache() async {}
     func preloadData() async {}
 
+    // applyTreadmillCorrection uses protocol default (throws dataSourceUnavailable)
+
     private static func makeWorkout(rpe: Int?) -> WorkoutV2 {
         WorkoutV2(
             id: "uitest-workout-rpe",

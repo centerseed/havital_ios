@@ -36,6 +36,9 @@ struct WorkoutDetailViewV2: View {
     @State private var displayedTrainingNotes: String? = nil  // 用於樂觀 UI 更新
     @State private var displayedRPE: Int? = nil
 
+    // 跑步機校正相關狀態
+    @State private var showTreadmillCorrection = false
+
     // AC-IOS-ANALYTICS-P1-10: dedup state lifted to ViewModel (hasTrackedAnalyticsView)
 
     enum ZoneTab: CaseIterable {
@@ -118,6 +121,11 @@ struct WorkoutDetailViewV2: View {
                             )
                         }
                     }
+                }
+
+                // 跑步機校正卡片（只在 treadmill_running 顯示）
+                if isTreadmillRunning {
+                    treadmillCorrectionCard
                 }
 
                 // 數據來源和設備信息卡片（移到最底下）
@@ -249,6 +257,21 @@ struct WorkoutDetailViewV2: View {
                 }
             )
         }
+        .sheet(isPresented: $showTreadmillCorrection) {
+            TreadmillCorrectionView(
+                currentCorrection: viewModel.workoutDetail?.correction,
+                isAlreadyCorrected: viewModel.workoutDetail?.isTreadmillCorrected == true,
+                onApply: { dist, incline, notes in
+                    return await Task {
+                        await viewModel.applyTreadmillCorrection(
+                            actualDistanceM: dist,
+                            avgInclinePercent: incline,
+                            notes: notes
+                        )
+                    }.tracked(from: "WorkoutDetailViewV2: applyTreadmillCorrection").value
+                }
+            )
+        }
         .onChange(of: viewModel.workoutDetail?.trainingNotes) { newNotes in
             // 當從 API 刷新後，同步更新本地狀態
             if displayedTrainingNotes == nil {
@@ -296,8 +319,65 @@ struct WorkoutDetailViewV2: View {
         }
     }
 
+    // MARK: - 跑步機校正
+
+    /// 是否為跑步機訓練（校正入口只在此條件下顯示）
+    /// activityType == "running" 且 sportType == "treadmill_running"（來自 WorkoutV2Detail）
+    private var isTreadmillRunning: Bool {
+        viewModel.workout.activityType.lowercased() == "running"
+            && viewModel.workoutDetail?.sportType?.lowercased() == "treadmill_running"
+    }
+
+    private var treadmillCorrectionCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(L10n.WorkoutDetail.treadmillCorrectionTitle.localized)
+                    .font(AppFont.headline())
+                    .fontWeight(.semibold)
+
+                Spacer()
+
+                if viewModel.workoutDetail?.isTreadmillCorrected == true {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                }
+            }
+
+            if viewModel.workoutDetail?.isTreadmillCorrected == true,
+               let dist = viewModel.workoutDetail?.correction?.actualDistanceM {
+                Text(String(format: L10n.WorkoutDetail.treadmillCorrectionAppliedDistance.localized, dist))
+                    .font(AppFont.bodySmall())
+                    .foregroundColor(.secondary)
+            } else {
+                Text(L10n.WorkoutDetail.treadmillCorrectionDescription.localized)
+                    .font(AppFont.captionSmall())
+                    .foregroundColor(.secondary)
+                    .lineLimit(3)
+            }
+
+            Button(action: {
+                showTreadmillCorrection = true
+            }) {
+                let labelKey = viewModel.workoutDetail?.isTreadmillCorrected == true
+                    ? L10n.WorkoutDetail.treadmillCorrectionModify.localized
+                    : L10n.WorkoutDetail.treadmillCorrectionApply.localized
+                Label(labelKey, systemImage: "ruler")
+                    .font(AppFont.caption())
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(6)
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground))
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+    }
+
     // MARK: - 基本資訊卡片
-    
+
     private var basicInfoCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
