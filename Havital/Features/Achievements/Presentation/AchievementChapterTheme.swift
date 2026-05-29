@@ -12,7 +12,7 @@ enum AchievementChapterTheme {
         case .prove:
             return PacerizTokens.color.semantic.error
         case .identity:
-            return PacerizTokens.color.brand.primary
+            return PacerizTokens.color.semantic.success
         case .unknown:
             return PacerizTokens.color.text.secondary
         }

@@ -68,7 +68,7 @@ struct AchievementDetailView: View {
             AchievementBadgeImage(
                 assetName: AchievementBadgeArtwork.assetName(for: badge),
                 status: badge.status,
-                size: 140
+                size: 200
             )
             .shadow(
                 color: isUnlocked ? accent.opacity(0.3) : Color.black.opacity(0.05),
