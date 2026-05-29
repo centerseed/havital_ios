@@ -704,7 +704,7 @@ struct TrainingPlanV2View: View {
         .overlay(alignment: .top) {
             if let error = viewModel.networkError {
                 VStack {
-                    Text("❌ \(error.localizedDescription)")
+                    Text("❌ \(error.errorDescription ?? "")")
                         .font(AppFont.bodySmall())
                         .padding()
                         .background(Color.red.opacity(0.9))
@@ -719,7 +719,7 @@ struct TrainingPlanV2View: View {
                     Spacer()
                 }
                 .transition(.move(edge: .top).combined(with: .opacity))
-                .animation(.easeInOut, value: viewModel.networkError as? NSError)
+                .animation(.easeInOut, value: viewModel.networkError)
             }
         }
         // Rizo 配額超出 Banner
@@ -767,8 +767,11 @@ struct TrainingPlanV2View: View {
 
     private func applySavedEditSchedulePlan(from editVM: EditScheduleV2ViewModel) {
         guard let savedPlan = editVM.savedPlan else { return }
+        // 先即時套用 saved plan，UI 立刻反映新課表
         viewModel.loader.weeklyPlan = savedPlan
         viewModel.loader.planStatus = .ready(savedPlan)
+        // 再觸發完整刷新，確保 hero metrics、workoutsByDay 等衍生狀態同步
+        Task { await viewModel.refreshWeeklyPlan() }
     }
 
     private var isChineseLanguage: Bool {

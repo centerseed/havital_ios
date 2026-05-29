@@ -92,7 +92,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
         encoder.dateEncodingStrategy = .iso8601
         decoder.dateDecodingStrategy = .iso8601
 
-        CacheEventBus.shared.register(self)
+        // CacheEventBus registration moved to CacheRegistrationCoordinator (App layer)
     }
 
     // MARK: - Overview Cache

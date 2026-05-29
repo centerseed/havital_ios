@@ -14,14 +14,14 @@ final class SubscriptionStateManager: ObservableObject {
     @Published private(set) var recentDowngrade: StatusDowngrade?
 
     private init() {
-        CacheEventBus.shared.subscribe(forIdentifier: "SubscriptionStateManager") { [weak self] reason in
-            if case .userLogout = reason {
-                Task { @MainActor in
-                    self?.update(SubscriptionStatusEntity(status: .none))
-                    self?.clearDowngrade()
-                }
-            }
-        }
+        // CacheEventBus subscription moved to CacheRegistrationCoordinator (App layer)
+    }
+
+    /// Reset subscription state on logout.
+    /// Called by CacheRegistrationCoordinator when CacheEventBus fires .userLogout.
+    func applyLogoutReset() {
+        update(SubscriptionStatusEntity(status: .none))
+        clearDowngrade()
     }
 
     /// 後端是否開啟訂閱執行（false = 軟上線期間，不顯示 paywall）

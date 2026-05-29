@@ -181,17 +181,16 @@ extension TaskManageable {
     }
     
     func cancelTask(id: TaskID) {
-        Task { [weak self] in
-            guard let strongSelf = self else { return }
-            await strongSelf.taskRegistry.cancelTask(id: id)
-        }
+        // 捕捉 registry（actor，reference type）而非 self：
+        // 與 cancelAllTasks 保持一致，確保即使在物件釋放邊緣呼叫也能完成取消。
+        let registry = taskRegistry
+        Task { await registry.cancelTask(id: id) }
     }
-    
+
     func cancelAllTasks() {
-        // 在 deinit 中調用時使用 weak 引用避免循環引用
-        Task { [weak self] in
-            guard let strongSelf = self else { return }
-            await strongSelf.taskRegistry.cancelAllTasks()
-        }
+        // deinit 時 self 已釋放：捕捉 registry（actor）而非 self，
+        // 讓 registry 在取消完成前存活，確保 in-flight task 確實被取消。
+        let registry = taskRegistry
+        Task { await registry.cancelAllTasks() }
     }
 }

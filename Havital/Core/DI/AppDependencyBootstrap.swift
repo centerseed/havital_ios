@@ -16,6 +16,11 @@ struct AppDependencyBootstrap {
         // - HTTPClient
         // - APIParser
 
+        // Step 1.5: Wire CacheEventBus registrations at the App composition root.
+        // Must run before any feature module is registered so that cache identifiers are
+        // claimed before any ad-hoc LocalDataSource instance is created by RepositoryImpl.
+        CacheRegistrationCoordinator.registerAll()
+
         // Step 2: Analytics (early — singletons use lazy resolve, but register before any tracking)
         registerAnalyticsModule()
 
@@ -234,6 +239,7 @@ struct AppDependencyBootstrap {
         Logger.debug("[Bootstrap] Resetting DI container for testing")
 
         DependencyContainer.shared.reset()
+        CacheRegistrationCoordinator.resetForTesting()
         registerAllModules()
 
         Logger.debug("[Bootstrap] ✅ DI container reset complete")

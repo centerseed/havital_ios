@@ -4,15 +4,15 @@
 */
 
 // MARK: - Main Navigation
-"tab.training_plan" = "計画";
-"tab.training_record" = "記録";
+"tab.training_plan" = "プラン";
+"tab.training_record" = "ワークアウト";
 "tab.performance_data" = "成績";
 "tab.achievement" = "実績";
 "tab.profile" = "プロフィール";
 
 // MARK: - Toast Messages
 "toast.network_error" = "ネットワーク接続に問題があります。キャッシュデータを表示しています";
-"toast.generating_screenshot" = "スクリーンショットを生成中です。お待ちください...";
+"toast.generating_screenshot" = "スクリーンショットを作成中です。お待ちください...";
 
 // MARK: - Common Actions
 "common.save" = "保存";
@@ -39,6 +39,7 @@
 "common.pause" = "一時停止";
 "common.resume" = "再開";
 "common.finish" = "終了";
+"common.best" = "ベスト";
 "common.week_unit" = "週";
 "common.weeks" = "週";
 
@@ -60,7 +61,7 @@
 "auth.register_success" = "登録成功";
 "auth.register_success_message" = "メールを確認し、確認リンクをクリックして認証を完了してから、ここに戻ってログインしてください。";
 "auth.verify_email_title" = "メール認証";
-"auth.verify_code_placeholder" = "認証コード (oobCode)";
+"auth.verify_code_placeholder" = "認証コード";
 "auth.verify_email" = "メール認証";
 "auth.verify_failed" = "認証に失敗しました";
 "auth.verify_success" = "認証成功";
@@ -106,7 +107,7 @@
 // MARK: - Weekly Distance Editor View
 "weekly_distance_editor.title" = "週間走行距離編集";
 "weekly_distance_editor.weekly_distance" = "週間走行距離：%d km";
-"weekly_distance_editor.next_week_notice" = "週間走行距離の変更は来週のトレーニング計画に反映されます";
+"weekly_distance_editor.next_week_notice" = "週間走行距離の変更は来週のトレーニングプランに反映されます";
 
 // MARK: - Training Item Detail View
 "training_item_detail.purpose" = "目的";
@@ -126,15 +127,15 @@
 "training_plan.loading_schedule" = "スケジュール読み込み中...";
 
 // MARK: - Next Week Planning View
-"next_week_planning.title" = "来週計画設定";
+"next_week_planning.title" = "来週のプラン設定";
 "next_week_planning.weekly_feeling" = "今週のトレーニングの感想（0-最悪、5-最高）";
 "next_week_planning.overall_feeling" = "全体的な感想：";
-"next_week_planning.training_expectation" = "来週のトレーニングに関するご要望をお聞かせください。Pacerizが実際の状況に基づいて調整します。生成された計画は自由に編集可能です";
+"next_week_planning.training_expectation" = "来週の希望を入力してください。Paceriz が実績に合わせて調整します。作成後のプランは編集できます。";
 "next_week_planning.difficulty_adjustment" = "難易度調整";
 "next_week_planning.days_adjustment" = "トレーニング日数調整";
 "next_week_planning.training_item_adjustment" = "トレーニング項目変更調整";
-"next_week_planning.start_generating" = "次回計画の生成を開始";
-"next_week_planning.generating_plan" = "Pacerizがあなたのトレーニング計画を作成しています...";
+"next_week_planning.start_generating" = "次回プランの作成を開始";
+"next_week_planning.generating_plan" = "Pacerizがあなたのトレーニングプランを作成しています...";
 "next_week_planning.please_wait" = "お待ちください";
 "next_week_planning.cancel" = "キャンセル";
 "next_week_planning.adjustment.decrease" = "減少";
@@ -142,13 +143,13 @@
 "next_week_planning.adjustment.increase" = "増加";
 
 // MARK: - Training Plan Overview View
-"training_plan_overview.title" = "トレーニング計画概要";
+"training_plan_overview.title" = "トレーニングプラン概要";
 "training_plan_overview.target_evaluation" = "目標評価";
 "training_plan_overview.training_method" = "トレーニング方法";
 "training_plan_overview.training_stages" = "トレーニング段階";
 "training_plan_overview.week_range" = "第%d-%d週";
 "training_plan_overview.week_progress" = "第%d週 / %d週";
-"training_plan_overview.generate_plan" = "第%d週トレーニング計画を作成";
+"training_plan_overview.generate_plan" = "第%d週トレーニングプランを作成";
 "training_plan_overview.error_title" = "エラー";
 "training_plan_overview.error_confirm" = "OK";
 
@@ -296,22 +297,22 @@
 "datasource.syncing" = "同期中...";
 
 // MARK: - Training Plan
-"training.plan_title" = "トレーニング計画";
-"training.weekly_plan" = "週間計画";
+"training.plan_title" = "トレーニングプラン";
+"training.weekly_plan" = "週間プラン";
 "training.no_weekly_plan_title" = "週間スケジュール未作成";
 "training.no_weekly_plan_description" = "下のボタンをタップして今週のスケジュールを作成";
 "training.generate_weekly_plan" = "スケジュールを作成";
-"training.get_weekly_summary" = "週間レビューを取得";
+"training.get_weekly_summary" = "週次レビューを取得";
 "training.generate_next_week_plan" = "来週のスケジュールを作成";
 "training.generating_weekly_plan" = "スケジュール作成中...";
 "training.generating_weekly_plan_description" = "AIが今週のトレーニングを計画しています、しばらくお待ちください";
 "training.daily_training" = "日々のトレーニング";
-"training.design_reason" = "今週のトレーニング計画設計理由";
+"training.design_reason" = "今週のトレーニングプラン設計理由";
 "training.weekly_volume" = "週間走行距離";
 "training.training_review" = "トレーニング振り返り";
 "training.generate_plan" = "スケジュール作成";
-"training.no_plan" = "トレーニング計画なし";
-"training.create_plan" = "トレーニング計画を作成";
+"training.no_plan" = "トレーニングプランなし";
+"training.create_plan" = "トレーニングプランを作成";
 "training.week" = "第%d週";
 "training.today" = "今日";
 "training.tomorrow" = "明日";
@@ -326,7 +327,7 @@
 // MARK: - Loading Animation Messages
 "training.loading.analyzing_fitness" = "体力状況を分析中...";
 "training.loading.planning_intensity" = "今週のトレーニング強度を計画中...";
-"training.loading.preparing_custom_plan" = "カスタマイズされた計画を準備中...";
+"training.loading.preparing_custom_plan" = "カスタマイズされたプランを準備中...";
 "training.loading.analyzing_training_data" = "今週のトレーニングデータを分析中...";
 "training.loading.evaluating_progress" = "今週のトレーニング状況を評価中...";
 "training.loading.preparing_review" = "素晴らしい！トレーニング振り返りが準備完了です！";
@@ -335,17 +336,17 @@
 "training.review.weekly_review" = "週間トレーニング振り返り";
 "training.review.last_week_review" = "先週のトレーニング振り返り";
 "training.review.week_review" = "第%d週トレーニング振り返り";
-"training.review.generate_next_week_plan" = "来週の計画を作成";
+"training.review.generate_next_week_plan" = "来週のプランを作成";
 "training.review.training_completion" = "トレーニング完了度";
 "training.review.training_analysis" = "トレーニング分析";
 "training.review.next_week_focus" = "来週のトレーニング重点";
-"training.review.plan_adjustment_suggestions" = "計画調整提案";
+"training.review.plan_adjustment_suggestions" = "プラン調整案";
 "training.review.heart_rate_performance" = "心拍数パフォーマンス";
 "training.review.pace_performance" = "ペースパフォーマンス";
 "training.review.distance_performance" = "距離パフォーマンス";
 "training.review.interval_training" = "インターバルトレーニング";
 "training.review.long_run_training" = "ロングラントレーニング";
-"training.review.original_plan" = "元の計画";
+"training.review.original_plan" = "元のプラン";
 "training.review.adjusted_plan" = "調整後";
 "training.review.average" = "平均";
 "training.review.maximum" = "最大";
@@ -358,14 +359,14 @@
 
 // MARK: - Generate Next Week
 "training.ready_for_next_week" = "🎯 来週のトレーニングの準備はできましたか？";
-"training.generate_week_plan" = "第%d週の計画を生成";
+"training.generate_week_plan" = "第%d週のプランを作成";
 "training.need_complete_review" = "今週の振り返りを先に完了する必要があります";
 "training.review_completed" = "今週の振り返りが完了しました";
 "training.confirm_training_completed_title" = "トレーニング完了の確認";
 "training.confirm_training_completed_message" = "今週のトレーニングがすべて完了していることを確認してください。正確な分析のため、週次振り返りには完全なトレーニングデータが必要です。";
 
 // MARK: - Training Plan Info Card
-"training.plan_info" = "トレーニング計画情報";
+"training.plan_info" = "トレーニングプラン情報";
 "training.ai_analysis" = "AI分析";
 "training.expand" = "展開";
 "training.collapse" = "折りたたみ";
@@ -521,6 +522,25 @@
 "workout.detail.training_notes_save_error" = "トレーニングメモの保存に失敗しました。後でもう一度お試しください。";
 "workout.detail.training_notes_editor_title" = "トレーニングメモを編集";
 
+// Treadmill Correction
+"workout.detail.treadmill_correction_title" = "トレッドミル距離補正";
+"workout.detail.treadmill_correction_description" = "トレッドミルのコンソールに表示された実際の距離を入力して、GPS の不正確さを補正します。";
+"workout.detail.treadmill_correction_actual_distance" = "実際の距離（メートル）";
+"workout.detail.treadmill_correction_incline" = "平均傾斜（%、任意）";
+"workout.detail.treadmill_correction_notes" = "メモ（任意）";
+"workout.detail.treadmill_correction_apply" = "補正を適用";
+"workout.detail.treadmill_correction_applied" = "トレッドミル距離で補正済み";
+"workout.detail.treadmill_correction_applied_distance" = "補正後の距離：%.0f m";
+"workout.detail.treadmill_correction_modify" = "再修正";
+"workout.detail.treadmill_correction_success" = "距離の補正が正常に適用されました。";
+"workout.detail.treadmill_correction_error" = "補正の適用に失敗しました。後でもう一度お試しください。";
+"workout.detail.treadmill_correction_distance_error" = "距離は100〜100000メートルの範囲で入力してください。";
+"workout.detail.treadmill_correction_incline_error" = "傾斜は-10%〜25%の範囲で入力してください。";
+"workout.detail.treadmill_correction_notes_error" = "メモは500文字以内で入力してください。";
+"workout.detail.treadmill_correction_distance_placeholder" = "例：5000";
+"workout.detail.treadmill_correction_incline_placeholder" = "例：1.5";
+"workout.detail.treadmill_correction_notes_placeholder" = "例：コンソール表示距離";
+
 // MARK: - Workout Metrics
 "workout.metrics.distance" = "距離";
 "workout.metrics.time" = "時間";
@@ -540,7 +560,7 @@
 "activity.type.other" = "その他";
 
 // MARK: - Training Record
-"record.title" = "トレーニング記録";
+"record.title" = "ワークアウト記録";
 "record.all_workouts" = "すべてのワークアウト";
 "record.this_week" = "今週";
 "record.this_month" = "今月";
@@ -552,7 +572,7 @@
 "record.calories" = "カロリー";
 "record.elevation" = "標高";
 "record.cadence" = "ケイデンス";
-"record.no_records" = "トレーニング記録なし";
+"record.no_records" = "ワークアウト記録なし";
 "record.no_records_description" = "ワークアウト記録がありません。運動を開始すると、ここに表示されます";
 "record.view_details" = "詳細を見る";
 
@@ -615,7 +635,7 @@
 "timezone.title" = "タイムゾーン設定";
 "timezone.current" = "現在のタイムゾーン";
 "timezone.changeConfirm" = "タイムゾーンを変更してもよろしいですか？";
-"timezone.change_warning_message" = "タイムゾーンを変更すると、タイムゾーン境界の影響により、トレーニング記録の統計に一時的なずれが生じる可能性があります。これは、システムが新しいタイムゾーンに基づいてトレーニングサイクルを再計算する必要があるためです。統計は、次のトレーニングで徐々に正確になります。";
+"timezone.change_warning_message" = "タイムゾーンを変更すると、タイムゾーン境界の影響により、ワークアウト記録の統計に一時的なずれが生じる可能性があります。これは、システムが新しいタイムゾーンに基づいてトレーニングサイクルを再計算する必要があるためです。統計は、次のトレーニングで徐々に正確になります。";
 "timezone.detecting_timezone" = "タイムゾーンを検出中...";
 "timezone.auto_detected" = "自動検出";
 "timezone.select_timezone" = "タイムゾーンを選択";
@@ -641,7 +661,7 @@
 "success.updated" = "更新しました";
 "success.deleted" = "削除しました";
 "success.synced" = "同期完了";
-"success.plan_generated" = "トレーニング計画を作成しました";
+"success.plan_generated" = "トレーニングプランを作成しました";
 "success.profile_updated" = "プロフィールを更新しました";
 "success.settings_saved" = "設定を保存しました";
 
@@ -707,18 +727,18 @@
 "training.get_weekly_review" = "週間振り返りを取得 ";
 "training.cycle_completed_message" = "素晴らしい！トレーニングサイクルが完了しました。トレーニングを振り返った後、次のトレーニング目標を設定することを忘れないでください！";
 "training.set_new_goal" = "新しい目標を設定";
-"training.loading_plan" = "トレーニング計画を読み込み中...";
+"training.loading_plan" = "トレーニングプランを読み込み中...";
 "training.share_schedule" = "スケジュールを共有";
 "training.overview" = "トレーニング概要";
 "training.progress" = "トレーニング進捗";
 "training.modify_schedule" = "スケジュールを変更";
 "training.edit_schedule" = "スケジュールを編集";
-"training.cannot_load_overview" = "トレーニング計画概要を読み込めません";
-"training.cannot_load_plan" = "トレーニング計画を読み込めません";
+"training.cannot_load_overview" = "トレーニングプラン概要を読み込めません";
+"training.cannot_load_plan" = "トレーニングプランを読み込めません";
 "training.week_schedule" = "週間スケジュール";
 "training.no_schedule_generated" = "今週のスケジュールはまだ作成されていません";
 "training.generate_review_first" = "個別トレーニング推奨事項を取得するため、まず週間振り返りを作成してください";
-"training.loading_records" = "トレーニング記録を読み込み中...";
+"training.loading_records" = "ワークアウト記録を読み込み中...";
 "training.loading_more_records" = "さらに記録を読み込み中...";
 "training.pace_zone" = "ペースゾーン";
 
@@ -738,6 +758,7 @@
 "workout.reupload_error" = "再アップロード中にエラーが発生しました：";
 "workout.reupload_failed" = "再アップロードに失敗しました。後でもう一度お試しください。";
 "workout.provider" = "プロバイダー";
+"workout.plan_matched" = "プランに一致";
 "workout.activity_type" = "アクティビティタイプ";
 "workout.resync_data" = "データを再同期";
 "workout.force_reupload_description" = "このワークアウト記録を強制再アップロードし、心拍数データの再取得を試行します";
@@ -748,7 +769,7 @@
 
 // MARK: - Performance
 "performance.weekly_volume_trend" = "週間走行距離トレンド";
-"performance.weekly_volume_trend_description" = "週間ランニング距離の変化を表示し、トレーニング量のトレンドを追跡してトレーニング計画を調整するのに役立ちます。";
+"performance.weekly_volume_trend_description" = "週間ランニング距離の変化を表示し、トレーニング量のトレンドを追跡してトレーニングプランを調整するのに役立ちます。";
 "performance.select_data_source_resting_hr" = "安静時心拍数トレンドを表示するデータソースを選択してください";
 
 // MARK: - Error Additional
@@ -792,21 +813,24 @@
 
 // MARK: - Training Overview Strings
 "training.total_weeks" = "総週数：%d週";
-"training.race_planning" = "レース計画";
+"training.race_planning" = "レースプラン";
 "training.race_planning_summary" = "メインレースとサポートレースを確認";
 "training.race_info" = "レース情報";
-"training.plan_overview" = "計画概要";
+"training.plan_overview" = "プラン概要";
+"training.plan_overview_update_pending" = "トレーニング概要を更新中です。まもなく自動で反映されます。";
+"training.plan_overview_updated" = "トレーニング概要を更新しました";
+"training.plan_overview_update_failed" = "トレーニング概要の更新に失敗しました。しばらくしてからもう一度お試しください。";
 "training.goal_assessment" = "目標評価";
-"training.plan_highlights" = "計画のハイライト";
+"training.plan_highlights" = "プランのハイライト";
 "training.stages_summary" = "%dステージ、合計%d週";
-"training.updating_plan" = "トレーニング計画を更新中...";
-"training.plan_regenerated" = "最新の目標に基づいてトレーニング計画が再作成されました";
-"training.update_failed" = "トレーニング計画の更新に失敗しました：%@";
+"training.updating_plan" = "トレーニングプランを更新中...";
+"training.plan_regenerated" = "最新の目標に基づいてトレーニングプランが再作成されました";
+"training.update_failed" = "トレーニングプランの更新に失敗しました：%@";
 
 // MARK: - Onboarding Strings
 "onboarding.welcome_to_paceriz" = "Pacerizへようこそ！";
-"onboarding.ready_to_start" = "Pacerizは、あなた専用の科学的なトレーニング計画を作成し、安全かつ効果的にランニング目標を達成するサポートをします。";
-"onboarding.training_focus" = "私たちのトレーニング計画は専門的なランニング知識を取り入れ、以下に焦点を当てています：";
+"onboarding.ready_to_start" = "Pacerizは、あなた専用の科学的なトレーニングプランを作成し、安全かつ効果的にランニング目標を達成するサポートをします。";
+"onboarding.training_focus" = "私たちのトレーニングプランは専門的なランニング知識を取り入れ、以下に焦点を当てています：";
 "onboarding.goal_oriented" = "目標指向";
 "onboarding.goal_oriented_desc" = "あなたに合わせた明確なトレーニングパスを計画します。";
 "onboarding.progressive" = "怪我の予防";
@@ -818,6 +842,7 @@
 "onboarding.your_running_goal" = "あなたのランニング目標";
 "onboarding.goal_description" = "特定のレースがない場合は、「初回5K完走」や「10Kスピード向上」などの挑戦目標を設定できます。";
 "onboarding.or_select_existing_target" = "以前に設定した目標レース";
+"onboarding.or_manual_input" = "または手動入力";
 "onboarding.goal_name_placeholder" = "目標名（例：台北マラソンまたはマイ5Kチャレンジ）";
 "onboarding.goal_name_label" = "目標名";
 "onboarding.goal_prefilled_from_race" = "レースデータベースから反映済みです。編集する場合は手動入力に戻してください。";
@@ -870,8 +895,8 @@
 "onboarding.training_timeline" = "トレーニングタイムライン";
 "onboarding.training_focus_title" = "トレーニング重点";
 "onboarding.training_highlight" = "トレーニングハイライト";
-"onboarding.generate_first_week" = "第1週のプランを生成";
-"onboarding.confirm_generate_first_week" = "確認して第1週のプランを生成";
+"onboarding.generate_first_week" = "第1週のプランを作成";
+"onboarding.confirm_generate_first_week" = "確認して第1週のプランを作成";
 "onboarding.week_range" = "第%d-%d週";
 "onboarding.week_single" = "第%d週";
 
@@ -908,10 +933,10 @@
 "onboarding.backfill_prompt.title" = "最近のトレーニングデータを同期しますか？";
 "onboarding.backfill_prompt.subtitle" = "%@ から過去 14 日間のデータを取得します";
 "onboarding.backfill_prompt.what_is_backfill" = "データ同期とは？";
-"onboarding.backfill_prompt.backfill_description" = "過去 14 日間のランニング記録を同期し、Vita がより正確なトレーニング計画を作成できるようにします。";
+"onboarding.backfill_prompt.backfill_description" = "過去 14 日間のランニング記録を同期し、Paceriz がより正確なトレーニングプランを作成できるようにします。";
 "onboarding.backfill_prompt.why_it_helps" = "なぜこれが重要なのですか？";
 "onboarding.backfill_prompt.benefit1_title" = "より適切なトレーニング提案";
-"onboarding.backfill_prompt.benefit1_description" = "あなたの履歴に基づいた個別の計画を作成します。";
+"onboarding.backfill_prompt.benefit1_description" = "あなたの履歴に基づいた個別のプランを作成します。";
 "onboarding.backfill_prompt.benefit2_title" = "完全な進捗追跡";
 "onboarding.backfill_prompt.benefit2_description" = "あなたの全トレーニングの道のりと成長を確認できます。";
 "onboarding.backfill_prompt.benefit3_title" = "正確なフィットネス評価";
@@ -931,7 +956,7 @@
 "onboarding.select_long_run_day" = "ロングラン日を選択";
 "onboarding.long_run_day_must_be_training_day" = "ロングラン日は選択したトレーニング日の一つでなければなりません。";
 "onboarding.suggest_saturday_long_run" = "長距離トレーニングに十分な時間を確保するため、週末をロングラン日に設定することをお勧めします。";
-"onboarding.save_preferences_preview" = "トレーニング計画概要を生成";
+"onboarding.save_preferences_preview" = "トレーニングプラン概要を作成";
 "onboarding.complete_setup_view_schedule" = "設定を完了して第1週のスケジュールを表示";
 
 // MARK: - WeeklyDistanceSetupView (if it exists)
@@ -943,7 +968,7 @@
 "onboarding.almost_ready" = "もうすぐ完了！個人向けスケジュールを準備中...";
 "onboarding.evaluating_goal" = "目標イベントを評価中";
 "onboarding.calculating_training_intensity" = "トレーニング強度を計算中";
-"onboarding.generating_overview" = "トレーニング概要を生成中";
+"onboarding.generating_overview" = "トレーニング概要を作成中";
 
 // MARK: - Weekday Names for Training Days
 "onboarding.monday" = "月曜日";
@@ -959,13 +984,13 @@
 
 // MARK: - Heart Rate Setup
 "onboarding.heart_rate_title" = "心拍数設定";
-"onboarding.heart_rate_description" = "心拍ゾーンを設定することで、よりパーソナライズされたトレーニング計画を作成できます。後でプロフィールからこれらの値を更新して、心拍ゾーンをより正確にし、トレーニング効果を向上させることができます。";
+"onboarding.heart_rate_description" = "心拍ゾーンを設定することで、よりパーソナライズされたトレーニングプランを作成できます。後でプロフィールからこれらの値を更新して、心拍ゾーンをより正確にし、トレーニング効果を向上させることができます。";
 "onboarding.heart_rate_intro" = "最大心拍数と安静時心拍数を設定してください";
 "onboarding.skip_heart_rate" = "スキップ（デフォルト値を使用）";
 
 // MARK: - Weekly Distance Setup
 "onboarding.current_weekly_distance" = "現在の週間ランニング量";
-"onboarding.weekly_distance_description" = "週間ランニング量は、一週間で通常走る総キロ数です。このデータはPacerizが現在のランニング習慣を理解し、適切なトレーニング強度を配置するのに役立ちます。不明な場合は、おおよその数字を估算するか、このステップを「スキップ」できます。";
+"onboarding.weekly_distance_description" = "週間ランニング量は、一週間で通常走る総キロ数です。このデータはPacerizが現在のランニング習慣を理解し、適切なトレーニング強度を配置するのに役立ちます。不明な場合は、おおよその数字を入力するか、このステップを「スキップ」できます。";
 "onboarding.target_distance_label" = "目標距離：%.1f km";
 "onboarding.adjust_weekly_volume" = "現在の平均週間ランニング量を調整してください。";
 "onboarding.weekly_volume_label" = "推定週間量：%.0f km";
@@ -1143,7 +1168,7 @@
 "weekly_volume.trend" = "週間走行距離トレンド";
 "weekly_volume.loading" = "読み込み中...";
 "weekly_volume.no_data" = "週間走行距離データがありません";
-"weekly_volume.no_data_message" = "週間走行距離データがありません。トレーニング記録があることを確認してください";
+"weekly_volume.no_data_message" = "週間走行距離データがありません。ワークアウト記録があることを確認してください";
 "weekly_volume.week_number" = "第%d週";
 "weekly_volume.kilometers" = "%.1f km";
 "weekly_volume.no_running_records" = "ランニング記録なし";
@@ -1164,11 +1189,14 @@
 "training_plan.week_overview" = "週間概要";
 "training_plan.weekly_volume_load" = "週間走行距離";
 "training_plan.weekly_volume_and_intensity" = "週間走行距離と強度";
-"training_plan.week_target" = "今週の目標";
-"training_plan.training_calendar" = "トレーニングカレンダー";
+"training_plan.week_target" = "目標";
+"training_plan.coach_note" = "コーチメモ";
+"training_plan.training_calendar" = "カレンダー";
 "training_plan.weekly_badge_placeholder_name" = "リズムビルダー";
-"training_plan.weekly_badge_coming_soon" = "新規解錠";
+"training_plan.weekly_badge_coming_soon" = "新規獲得";
 "training_plan.weekly_badge_in_progress" = "進行中";
+"training.timeline.plan_label" = "プラン";
+"training.timeline.actual_label" = "実績";
 "training_plan.intensity_legend_low" = "イージー";
 "training_plan.intensity_legend_medium" = "中程度";
 "training_plan.intensity_legend_high" = "ハード";
@@ -1257,21 +1285,21 @@
 "training_type_info.long_run.logic" = "中等強度の長時間有酸素トレーニング（最大心拍数の約70–80%）。この強度では、体は脂肪とグリコーゲンの両方を燃料として使用し、エネルギー利用効率と筋肉持久力を向上させます。また、「レースペースの安定性」と「精神的耐性」を強化する重要なワークアウト。";
 "training_type_info.long_run.role" = "通常週末、週で最も長いセッション。強化期やレース準備期間中、レース条件をシミュレートするコアトレーニングで、イージーランやリカバリーランと組み合わせて負荷を吸収します。";
 
-"training_type_info.easy.title" = "イージーラン Easy Run";
+"training_type_info.easy.title" = "イージーラン";
 "training_type_info.easy.how_to_run" = "非常にリラックスしたペース。楽に会話でき、ほぼ息が上がらない。「走る喜びのために」走っている感覚です。";
 "training_type_info.easy.why_run" = "イージーランは日々のトレーニングの基礎です。過度な疲労を起こさずに規則正しい走行に体を慣らし、ランニングへの情熱を続ける鍵となります。";
 "training_type_info.easy.logic" = "低強度有酸素トレーニング（最大心拍数の約60–70%）。この強度では、体は脂肪を主な燃料源として安定して利用しながら、有酸素能力と毛細血管の成長を構築します。";
 "training_type_info.easy.role" = "訓練週の「日常の主役」。ハードセッション前後にイージーランでウォームアップと回復をしたり、単独でイージーデーとして使用して、プレッシャーなしにトレーニング負荷に体を適応させます。";
 
-"training_type_info.combination.title" = "コンビネーショントレーニング Combination Training";
+"training_type_info.combination.title" = "コンビネーショントレーニング";
 "training_type_info.combination.how_to_run" = "1つのセッション内に複数の強度ゾーンを組み合わせます。楽に開始し、徐々にペースを上げるか、スプリントと回復を交互に行います。";
 "training_type_info.combination.why_run" = "コンビネーショントレーニングは1つのセッション内で複数の能力に刺激を与えます。変動する強度下で素早く適応し、心肺と筋肉の総合的なパフォーマンスを向上させるよう訓練します。";
 "training_type_info.combination.logic" = "有酸素トレーニングと無酸素トレーニングの利点を統合し、強度の変動を通じて複数の生理系を刺激します。単一強度セッションと比較して、持久力、速度、適応能力をより包括的に構築します。";
 "training_type_info.combination.role" = "時間が限られているが包括的なトレーニング効果を望む場合、週中のメインセッションとして機能します。実際のレースの変動するペースをシミュレートするため、レース準備期間中にも一般的です。";
 
-"training_type_info.rest.title" = "レストデー Rest Day";
+"training_type_info.rest.title" = "レストデー";
 "training_type_info.rest.how_to_run" = "構造化されたランニングトレーニングはありません。軽いウォーキングまたは完全な静的休息を選択でき、体の声に耳を傾けてください。";
-"training_type_info.rest.why_run" = "休息はトレーニング計画の中で最も見落とされやすいのに、最も重要な部分です。完全な休息日は筋肉修復、神経系の回復、エネルギー貯蔵の補充を可能にします。";
+"training_type_info.rest.why_run" = "休息はトレーニングプランの中で最も見落とされやすいのに、最も重要な部分です。完全な休息日は筋肉修復、神経系の回復、エネルギー貯蔵の補充を可能にします。";
 "training_type_info.rest.logic" = "トレーニング負荷がない場合、体は深い修復を行います。筋肉タンパク質合成が増加し、疲労毒素が消失し、ホルモンと免疫系のバランスが再調整される——これが「休息を通じて強くなる」プロセスです。";
 "training_type_info.rest.role" = "毎週1～2日の完全休息日をスケジュールします。通常、ハードトレーニング後に配置します。十分な休息日は過度なトレーニングを防ぎ、長期的なパフォーマンスと健康を維持します。";
 
@@ -1321,17 +1349,17 @@
 "training_type_info.norwegian_4x4.logic" = "VO₂max帯を狙う高強度インターバルです。4分間の負荷で心肺をしっかり引き上げ、3分間の回復で後半の本数も質を落としにくくし、効果的な高強度ボリュームを積み上げます。";
 "training_type_info.norwegian_4x4.role" = "通常はビルドアップ期やレース準備期に配置し、頻度は週1回までが目安です。前後はイージーランや回復日と組み合わせ、全体負荷が高くなりすぎないようにします。";
 
-"training_type_info.short_interval.title" = "短間隔走";
+"training_type_info.short_interval.title" = "ショートインターバル";
 "training_type_info.short_interval.how_to_run" = "短距離（400-600m）の高強度走を6-10本実施し、各本間に1-2分のイージーラン回復を挟む。全力でスプリントし、呼吸をしっかり上げます。";
-"training_type_info.short_interval.why_run" = "短間隔走はスピードと爆発力を鍛えます。短距離により全力を維持でき、十分な回復時間によって全本完走を支援。特に5Kレース準備に有効です。";
+"training_type_info.short_interval.why_run" = "ショートインターバルはスピードと爆発力を鍛えます。短い距離なら高い出力を保ちやすく、十分な回復を挟むことで最後まで質を維持できます。特に5Kレース準備に有効です。";
 "training_type_info.short_interval.logic" = "高強度間隔トレーニング(HIIT)の一種で、VO₂maxと神経筋反応を刺激します。短距離は最高速度と走行ケイデンス向上に特に効果的であり、加速能力も鍛えられます。";
 "training_type_info.short_interval.role" = "通常、基礎スピード開発期または5K準備期に使用。最大週1回、イージーランと休息日と組み合わせます。連続実施は受傷リスク増加につながります。";
 
-"training_type_info.long_interval.title" = "長間隔走";
-"training_type_info.long_interval.how_to_run" = "より長い距離（1200-2000m）の高強度走を4-6本実施し、各本間に2-3分のイージーラン回復を挟む。短間隔走より若干遅いペースですが、高強度を維持します。";
-"training_type_info.long_interval.why_run" = "長間隔走は短間隔走と持続走の橋渡し。VO₂maxを刺激しながら長時間高ペース維持でき、ハーフマラソンと10Kレース準備に特に適しています。";
-"training_type_info.long_interval.logic" = "短間隔走より強度がやや低い高強度間隔トレーニング。より長い継続努力により、疲労下での高ペース維持に体を適応させ、乳酸耐性も向上させます。";
-"training_type_info.long_interval.role" = "通常、上級スピード開発期またはハーフマラソン/10K準備期に使用。最大週1回、通常は短間隔走後に実施。十分な回復が必要です。";
+"training_type_info.long_interval.title" = "ロングインターバル";
+"training_type_info.long_interval.how_to_run" = "長めの距離（1200-2000m）の高強度走を4-6本行い、各本の間に2-3分のイージーランを挟みます。ショートインターバルより少し遅いペースで、高い強度を保ちます。";
+"training_type_info.long_interval.why_run" = "ロングインターバルはショートインターバルと持続走の橋渡しです。VO₂maxを刺激しながら高いペースを長く保つ力を養い、ハーフマラソンや10Kの準備に特に適しています。";
+"training_type_info.long_interval.logic" = "ショートインターバルより強度を少し抑えた高強度インターバルです。長めの努力を続けることで、疲労下でも高いペースを維持する力と乳酸耐性を高めます。";
+"training_type_info.long_interval.role" = "上級のスピード強化期やハーフマラソン/10K準備期に使います。頻度は週1回までを目安にし、十分な回復を確保します。";
 
 "training_type_info.yasso_800.title" = "ヤッソ800";
 "training_type_info.yasso_800.how_to_run" = "800mの高強度走を8-10本実施し、各本間に2-3分のジョギング回復を挟みます（800mの所要時間に相当）。例えば800mを3分で走れば、回復も約3分です。";
@@ -1340,13 +1368,13 @@
 "training_type_info.yasso_800.role" = "マラソン準備期に特に有用で、週1回実施。マラソン練習の中で最も予測的なワークアウト。他の距離レース準備期でのスピード向上にも一般的に使用されます。";
 
 // MARK: - Weekday Names (Full and Short)
-"weekday.monday" = "月曜日";
-"weekday.tuesday" = "火曜日";
-"weekday.wednesday" = "水曜日";
-"weekday.thursday" = "木曜日";
-"weekday.friday" = "金曜日";
-"weekday.saturday" = "土曜日";
-"weekday.sunday" = "日曜日";
+"weekday.monday" = "月";
+"weekday.tuesday" = "火";
+"weekday.wednesday" = "水";
+"weekday.thursday" = "木";
+"weekday.friday" = "金";
+"weekday.saturday" = "土";
+"weekday.sunday" = "日";
 
 "weekday.mon_short" = "月";
 "weekday.tue_short" = "火";
@@ -1366,10 +1394,10 @@
 // MARK: - Profile Actions
 "profile.reset_goal" = "目標を再設定";
 "profile.reset_goal_confirm_title" = "目標設定プロセスを再開してもよろしいですか？";
-"profile.reset_goal_confirm_message" = "すべてのトレーニング設定がリセットされ、トレーニング設定を再構成する必要があります。現在のトレーニング計画はクリアされ、復元できません。";
+"profile.reset_goal_confirm_message" = "すべてのトレーニング設定がリセットされ、トレーニング設定を再構成する必要があります。現在のトレーニングプランはクリアされ、復元できません。";
 
 // MARK: - Data Source Additional
-"datasource.select_primary_message" = "トレーニング記録を同期するため、メインデータソースを選択してください";
+"datasource.select_primary_message" = "ワークアウト記録を同期するため、メインデータソースを選択してください";
 "datasource.apple_health_subtitle" = "iPhoneとApple Watchからヘルスデータを使用";
 "datasource.garmin_subtitle" = "Garminアカウントのアクティビティを同期";
 "datasource.currently_active" = "現在アクティブなデータソース";
@@ -1472,7 +1500,7 @@
 "performance.training_load.tsb" = "トレーニングストレスバランス（TSB）";
 "performance.training_load.tsb_short" = "TSB";
 "performance.training_load.tsb_explanation" = "トレーニング疲労と回復のバランスを示す指標。正の値は良い回復を、負の値は蓄積された疲労を示します";
-"performance.training_load.insufficient_data" = "トレーニングデータが不足しています。少なくとも5つのレコードが必要です";
+"performance.training_load.insufficient_data" = "トレーニングデータが不足しています。少なくとも5件の記録が必要です";
 "performance.training_load.loading_training_load" = "トレーニング負荷データ読み込み中...";
 "performance.training_load.no_training_load_data" = "トレーニング負荷データなし";
 "performance.training_load.select_data_source_training_load" = "トレーニング負荷トレンドを表示するためにデータソースを選択してください";
@@ -1531,7 +1559,7 @@
 "adjustment.add_button" = "調整を追加";
 "adjustment.ignore_all" = "すべて無視";
 "adjustment.apply_selected" = "選択した項目を適用";
-"adjustment.generate_weekly_plan" = "今週の計画を生成";
+"adjustment.generate_weekly_plan" = "今週のプランを作成";
 "adjustment.content_placeholder" = "調整内容";
 
 // MARK: - App Rating
@@ -1550,9 +1578,9 @@
 "feedback.type.issue" = "問題";
 "feedback.type.suggestion" = "提案";
 "feedback.category" = "カテゴリー";
-"feedback.category.weekly_plan_failed" = "週間計画生成失敗";
-"feedback.category.weekly_summary_failed" = "週間サマリー生成失敗";
-"feedback.category.training_overview_failed" = "トレーニング概要生成失敗";
+"feedback.category.weekly_plan_failed" = "週間プラン作成失敗";
+"feedback.category.weekly_summary_failed" = "週次レビュー作成失敗";
+"feedback.category.training_overview_failed" = "トレーニング概要作成失敗";
 "feedback.category.other" = "その他";
 "feedback.description" = "説明";
 "feedback.description_hint" = "問題または提案の詳細を記述してください";
@@ -1646,13 +1674,13 @@
 // Stage Alternatives
 "start_stage.peak_suitable" = "十分なトレーニングを積んだ経験豊富なランナー";
 "start_stage.peak_description" = "週40km以上走るランナーに適しています";
-"start_stage.base_suitable" = "完全な計画";
+"start_stage.base_suitable" = "完全なプラン";
 "start_stage.base_description" = "基礎期から段階的に構築";
 "start_stage.build_suitable" = "トレーニング習慣があるランナー";
 "start_stage.build_description" = "より安全な選択";
 "start_stage.build_skip_base_description" = "既に週20-30kmのランニング量がある場合";
 "start_stage.base_short_time_description" = "期間が短く、各段階の効果が不十分になる可能性があります";
-"start_stage.base_very_short_description" = "時間不足、完全なトレーニング計画を実行できません";
+"start_stage.base_very_short_description" = "時間不足、完全なトレーニングプランを実行できません";
 
 // Time Warning
 "start_stage.time_too_short_title" = "期間が短い";
@@ -1679,16 +1707,16 @@
 
 // MARK: - データソース切り替えメッセージ
 "datasource.switch.title" = "データソースを切り替える";
-"datasource.switch.garmin.select_auth" = "Garmin Connect™の選択には認可が必要です。Garminウェブサイトにリダイレクトされてログインと認可を行います。認可に成功すると、トレーニング記録はGarmin Connect™から読み込まれます。";
-"datasource.switch.apple_health.select" = "Apple Healthをデータソースとして選択します。トレーニング記録はApple Healthから読み込まれ、iPhoneとApple Watchのヘルスデータが含まれます。";
-"datasource.switch.garmin_to_apple" = "Apple Healthへの切り替えはGarmin Connect™との接続を解除し、バックエンドがGarminデータを受け取らなくなります。トレーニング記録はApple Healthから読み込まれ、現在表示されているレコードは新しいデータソースの内容に置き換わります。続行しますか？";
-"datasource.switch.apple_to_garmin" = "Garmin Connect™への切り替えには認可が必要です。Garminウェブサイトにリダイレクトされてログインと認可を行います。認可に成功すると、トレーニング記録はGarmin Connect™から読み込まれ、現在表示されているレコードは新しいデータソースの内容に置き換わります。";
-"datasource.switch.unbound_to_strava" = "Stravaの選択には認可が必要です。Stravaウェブサイトにリダイレクトされてログインと認可を行います。認可に成功すると、トレーニング記録はStravaから読み込まれます。";
-"datasource.switch.apple_to_strava" = "Stravaへの切り替えには認可が必要です。Stravaウェブサイトにリダイレクトされてログインと認可を行います。認可に成功すると、トレーニング記録はStravaから読み込まれ、現在表示されているレコードは新しいデータソースの内容に置き換わります。";
-"datasource.switch.garmin_to_strava" = "Stravaへの切り替えはGarmin Connect™との接続を解除し、Strava認可が必要になります。トレーニング記録はStravaから読み込まれ、現在表示されているレコードは新しいデータソースの内容に置き換わります。";
-"datasource.switch.strava_to_apple" = "Apple Healthへの切り替えはStravaとの接続を解除します。トレーニング記録はApple Healthから読み込まれ、現在表示されているレコードは新しいデータソースの内容に置き換わります。";
-"datasource.switch.strava_to_garmin" = "Garmin Connect™への切り替えはStravaとの接続を解除し、Garmin認可が必要になります。トレーニング記録はGarmin Connect™から読み込まれ、現在表示されているレコードは新しいデータソースの内容に置き換わります。";
-"datasource.switch.to_unbound" = "未バインド状態への切り替えはすべてのローカルワークアウトデータを削除します。後でプロファイルページでデータソースを再選択して接続できます。";
+"datasource.switch.garmin.select_auth" = "Garmin Connect™を選択するには連携認証が必要です。GarminのWebサイトでログインし、連携を許可してください。連携が完了すると、ワークアウト記録はGarmin Connect™から読み込まれます。";
+"datasource.switch.apple_health.select" = "Apple Healthをデータソースとして選択します。ワークアウト記録はApple Healthから読み込まれ、iPhoneとApple Watchのヘルスデータが含まれます。";
+"datasource.switch.garmin_to_apple" = "Apple Healthへ切り替えるとGarmin Connect™との接続が解除され、PacerizはGarminデータを受け取らなくなります。ワークアウト記録はApple Healthから読み込まれ、現在表示されている記録は新しいデータソースの内容に置き換わります。続行しますか？";
+"datasource.switch.apple_to_garmin" = "Garmin Connect™へ切り替えるには連携認証が必要です。GarminのWebサイトでログインし、連携を許可してください。連携が完了すると、ワークアウト記録はGarmin Connect™から読み込まれ、現在表示されている記録は新しいデータソースの内容に置き換わります。";
+"datasource.switch.unbound_to_strava" = "Stravaを選択するには連携認証が必要です。StravaのWebサイトでログインし、連携を許可してください。連携が完了すると、ワークアウト記録はStravaから読み込まれます。";
+"datasource.switch.apple_to_strava" = "Stravaへ切り替えるには連携認証が必要です。StravaのWebサイトでログインし、連携を許可してください。連携が完了すると、ワークアウト記録はStravaから読み込まれ、現在表示されている記録は新しいデータソースの内容に置き換わります。";
+"datasource.switch.garmin_to_strava" = "Stravaへの切り替えではGarmin Connect™との接続を解除し、Stravaの連携認証が必要になります。ワークアウト記録はStravaから読み込まれ、現在表示されている記録は新しいデータソースの内容に置き換わります。";
+"datasource.switch.strava_to_apple" = "Apple Healthへ切り替えるとStravaとの接続が解除されます。ワークアウト記録はApple Healthから読み込まれ、現在表示されている記録は新しいデータソースの内容に置き換わります。";
+"datasource.switch.strava_to_garmin" = "Garmin Connect™への切り替えではStravaとの接続を解除し、Garminの連携認証が必要になります。ワークアウト記録はGarmin Connect™から読み込まれ、現在表示されている記録は新しいデータソースの内容に置き換わります。";
+"datasource.switch.to_unbound" = "未接続状態に切り替えると、すべてのローカルワークアウトデータが削除されます。後でプロフィールページからデータソースを再接続できます。";
 "datasource.switch.default" = "この操作を続行しますか？";
 
 // MARK: - 心拍数設定プロンプト
@@ -1809,7 +1837,7 @@
 "edit_schedule.repeats_selection" = "繰り返し回数選択";
 
 // Pace Table
-"edit_schedule.pace_table_description" = "ランニング能力に基づいて計算されたトレーニングペースの推奨。各ゾーンは最速 - 最遅ペース範囲を表示";
+"edit_schedule.pace_table_description" = "ランニング能力に基づく推奨トレーニングペースです。各ゾーンには最速からゆっくりめまでのペース範囲が表示されます。";
 "edit_schedule.pace_zone_details" = "ペースゾーンの詳細";
 "edit_schedule.reference_pace_table" = "参照ペーステーブル";
 
@@ -1863,7 +1891,7 @@
 "training_readiness.refresh_data" = "データを更新";
 
 // MARK: - Share Card
-"share_card.my_training_plan" = "私のトレーニング計画";
+"share_card.my_training_plan" = "私のトレーニングプラン";
 "share_card.share_to_social" = "ソーシャルメディアに共有";
 
 // MARK: - Onboarding Additional
@@ -1915,7 +1943,7 @@
 "training_readiness.speed.title" = "速度指標";
 "training_readiness.speed.description" = "ランニングペース能力を評価します";
 "training_readiness.speed.what_it_means" = "ペースがトレーニング進捗の期待に合っているかを示します";
-"training_readiness.speed.how_to_improve_1" = "スピードトレーニングの計画ペースを達成します";
+"training_readiness.speed.how_to_improve_1" = "スピード練習の目標ペースを達成します";
 "training_readiness.speed.how_to_improve_2" = "インターバルのスプリント区間ペースを維持します";
 "training_readiness.speed.when_decreases" = "目標ペースに達しない、または長期間トレーニングしていない場合に低下します";
 
@@ -1931,7 +1959,7 @@
 "training_readiness.race_fitness.title" = "レース適性";
 "training_readiness.race_fitness.description" = "目標レースへの準備進捗を評価します";
 "training_readiness.race_fitness.what_it_means" = "フィットネス状態が目標ペースからどれだけ離れているかを示します";
-"training_readiness.race_fitness.how_to_improve_1" = "毎週のトレーニング計画に従います";
+"training_readiness.race_fitness.how_to_improve_1" = "毎週のトレーニングプランに従います";
 "training_readiness.race_fitness.how_to_improve_2" = "質の高い休息と回復を取ります";
 "training_readiness.race_fitness.how_to_improve_3" = "適切な筋力トレーニングを行います";
 "training_readiness.race_fitness.when_decreases" = "暑い天候、体調不良、または多様なトレーニングが不足している場合に低下します";
@@ -1940,7 +1968,7 @@
 "training_readiness.load.title" = "トレーニング負荷";
 "training_readiness.load.description" = "トレーニング量が適切かどうかを評価します";
 "training_readiness.load.what_it_means" = "トレーニング量が過剰かどうかを示します";
-"training_readiness.load.how_to_improve_1" = "計画に従って走行量と強度を着実に増やします";
+"training_readiness.load.how_to_improve_1" = "プランに従って走行量と強度を着実に増やします";
 "training_readiness.load.how_to_improve_2" = "負荷が過剰な場合は回復週を検討します";
 "training_readiness.load.how_to_improve_3" = "高強度トレーニング後に回復日を設定します";
 "training_readiness.load.when_decreases" = "継続的に高いトレーニング量で回復状態が悪い場合に低下します";
@@ -2075,7 +2103,7 @@
 
 // MARK: - Backfilled Translations
 "edit_schedule.addSegment" = "セグメントを追加";
-"edit_schedule.cannot_edit_completed" = "トレーニング記録のあるスケジュールは編集できません";
+"edit_schedule.cannot_edit_completed" = "ワークアウト記録のあるスケジュールは編集できません";
 "edit_schedule.drag_to_swap" = "長押ししてドラッグで入れ替え";
 "edit_schedule.heart_rate" = "心拍数";
 "intensity.high_zh" = "高強度";
@@ -2098,7 +2126,7 @@
 "my_achievement.reminder3" = "• TSBとHRVの両方のトレンドを同時に観察して、身体全体の回復状態を判断することをお勧めします。";
 "my_achievement.reminder4" = "• 体調が優れない場合は、休息を優先してください。データは参考用であり、完全に依存しないでください。";
 "my_achievement.syncing" = "同期中...";
-"my_achievement.training_load_subtitle" = "フィットネス指数とトレーニング・ストレス・バランス（TSB）を理解して、トレーニング計画の最適化に役立てましょう";
+"my_achievement.training_load_subtitle" = "フィットネス指数とトレーニング・ストレス・バランス（TSB）を理解して、トレーニングプランの最適化に役立てましょう";
 "my_achievement.tsb" = "トレーニング・ストレス・バランス (TSB)";
 "my_achievement.tsb_interpretation" = "TSB ステータスの解釈:";
 "onboarding.goal_assessment" = "目標評価";
@@ -2186,7 +2214,7 @@
 "myachievement.text_6" = "適正なトレーニング負荷範囲";
 "myachievement.text_7" = "疲労状態";
 "myachievement.text_8" = "トレーニング負荷の詳細";
-"myachievement.text_9" = "フィットネス指数とトレーニング・ストレス・バランスを理解し、トレーニング計画を最適化しましょう";
+"myachievement.text_9" = "フィットネス指数とトレーニング・ストレス・バランスを理解し、トレーニングプランを最適化しましょう";
 "myachievement.tsb" = "TSB ステータスの解釈:";
 "myachievement.tsb_hrv" = "• TSBとHRVのトレンドを同時に観察して、総合的な回復状態を判断することをお勧めします";
 "onboarding.text_0" = "%@km";
@@ -2223,7 +2251,7 @@
 "trainingplanviewmodel.text_0" = "週が範囲外です";
 "trainingprogress.text_0" = "読み込み中...";
 "trainingreadiness.tsb" = "TSB";
-"userprofile.onboarding" = "オンボーディングを最初からやり直す";
+"userprofile.onboarding" = "初期設定を最初からやり直す";
 "userprofile.text_0" = "🧪 開発者テスト";
 "weekprogressheader.text_0" = "第 %d / %d 週";
 "weektimeline.text_0" = "インターバルトレーニング";
@@ -2271,14 +2299,14 @@
 "workoutsyncdebug.text_8" = "テストデータ管理";
 "workoutsyncdebug.text_9" = "テストデータを削除";
 // MARK: - Weekly Summary V2
-"training.week_summary_title" = "第%d週サマリー";
+"training.week_summary_title" = "第%d週レビュー";
 "training.completion" = "達成度";
 "training.sessions" = "セッション";
 "training.analysis" = "分析";
 "training.heart_rate" = "心拍数";
 "training.trend" = "トレンド";
 "training.total" = "合計";
-"training.vs_plan" = "計画との比較";
+"training.vs_plan" = "プランとの比較";
 "training.intensity_distribution" = "強度配分";
 "training.average" = "平均";
 "training.max" = "最大";
@@ -2286,8 +2314,8 @@
 "training.achievements" = "達成";
 "training.areas_for_improvement" = "改善点";
 "training.next_week_adjustments" = "来週の調整提案";
-"training.no_weekly_summary" = "週間サマリーなし";
-"training.no_weekly_summary_hint" = "週間サマリーはトレーニング終了後に自動生成されます";
+"training.no_weekly_summary" = "週次レビューなし";
+"training.no_weekly_summary_hint" = "週次レビューはトレーニング終了後に自動作成されます";
 
 "training.interval_type.interval" = "インターバル";
 "training.interval_type.fartlek" = "ファルトレク";
@@ -2384,9 +2412,9 @@
 "training_plan.back_to_current_week" = "現在の週に戻る (第%d週)";
 "training_plan.current_week" = "現在の週";
 "training_plan.not_current_week" = "現在の週ではない";
-"training.accept_adjustments_and_generate" = "調整を承認して来週のプランを生成";
-"training.apply_n_adjustments_and_generate" = "%d 件の提案を適用して来週のプランを生成";
-"training.generate_without_adjustments" = "調整なしで直接プランを生成";
+"training.accept_adjustments_and_generate" = "調整を承認して来週のプランを作成";
+"training.apply_n_adjustments_and_generate" = "%d 件の提案を適用して来週のプランを作成";
+"training.generate_without_adjustments" = "調整なしで直接プランを作成";
 "training.adjustment_selected_count" = "%d / %d 件選択中";
 "training.achievements_count" = "%d 個の達成";
 "training.areas_for_improvement_title" = "改善点";
@@ -2409,8 +2437,8 @@
 "training.current_summary_completed" = "今週のレビュー完了";
 "training.current_week_label" = "今週";
 "training.exercises" = "エクササイズ";
-"training.generate_week_n_plan" = "第%d週のプランを生成";
-"training.generate_week_summary" = "第%d週のレビューを生成";
+"training.generate_week_n_plan" = "第%d週のプランを作成";
+"training.generate_week_summary" = "第%d週のレビューを作成";
 "training.highlights_count" = "%d 個のハイライト";
 "training.key_milestones" = "重要マイルストーン";
 "training.key_workouts" = "重要トレーニング";
@@ -2420,10 +2448,10 @@
 "training.more_workouts" = "他のトレーニング";
 "training.my_training_target" = "私のトレーニング目標";
 "training.need_complete_current_summary" = "今週のレビューを先に完了する必要があります";
-"training.need_weekly_summary_description" = "来週のプランを生成する前に第%d週のレビューを生成してください";
+"training.need_weekly_summary_description" = "来週のプランを作成する前に第%d週のレビューを作成してください";
 "training.need_weekly_summary_title" = "週次レビューが必要です";
 "training.no_highlights" = "ハイライトデータなし";
-"training.no_plan_description" = "オンボーディングでトレーニングプランを作成してください";
+"training.no_plan_description" = "初期設定でトレーニングプランを作成してください";
 "training.no_plan_title" = "トレーニングプランがありません";
 "training.philosophy" = "トレーニング哲学";
 "training.race_date" = "レース日付";
@@ -2504,7 +2532,7 @@
 "workoutsharecardsheet.close" = "閉じる";
 
 /* PB Moment & Share Card */
-"my_achievement.celebration.new_pb" = "New PB";
+"my_achievement.celebration.new_pb" = "新PB";
 "my_achievement.celebration.first_record" = "初めての標準距離記録";
 "my_achievement.celebration.other_pbs" = "他に%d件のPB";
 "my_achievement.celebration.share" = "シェア";
@@ -2515,7 +2543,7 @@
 "my_achievement.celebration.share_card_title" = "PBシェアカード";
 "my_achievement.celebration.new_badge" = "新バッジ";
 "my_achievement.celebration.new_pb_and_badge" = "新PB＋バッジ";
-"my_achievement.celebration.also_unlocked" = "同時解除";
+"my_achievement.celebration.also_unlocked" = "同時獲得";
 "time.seconds_format" = "%d秒";
 "time.minutes_format" = "%d分";
 "time.minutes_seconds_format" = "%d分%d秒";
@@ -2616,24 +2644,24 @@
 "paywall.premium.timeline.step1.label" = "今日";
 "paywall.premium.timeline.step1.desc" = "全機能をすぐに利用";
 "paywall.premium.timeline.step2.label" = "28日目";
-"paywall.premium.timeline.step2.desc" = "課金2日前にお知らせ";
+"paywall.premium.timeline.step2.desc" = "課金2日前に通知";
 "paywall.premium.timeline.step3.label" = "30日目";
-"paywall.premium.timeline.step3.desc" = "サブスク開始（いつでも解約可能）";
+"paywall.premium.timeline.step3.desc" = "いつでも解約可";
 
 // Features (4 groups)
 "paywall.premium.features.plan.title" = "AIパーソナル週間プラン";
-"paywall.premium.features.plan.bullet1" = "目標レースに合わせた週期化スマートプラン";
+"paywall.premium.features.plan.bullet1" = "目標レースに合わせた周期化スマートプラン";
 "paywall.premium.features.plan.bullet2" = "体力とリカバリーに応じて自動調整";
 "paywall.premium.features.plan.bullet3" = "ベース期からテーパーまでの完全プラン";
 "paywall.premium.features.adjust.title" = "いつでも調整";
-"paywall.premium.features.adjust.bullet1" = "今週のプランをいつでも再生成";
+"paywall.premium.features.adjust.bullet1" = "今週のプランをいつでも再作成";
 "paywall.premium.features.adjust.bullet2" = "1日を編集、AIが残りを再調整";
 "paywall.premium.features.review.title" = "AI週次レビュー";
 "paywall.premium.features.review.bullet1" = "週ごとのトレーニングと負荷を自動要約";
 "paywall.premium.features.review.bullet2" = "来週のフォーカスをAIが提案";
 "paywall.premium.features.race.title" = "レース目標プラン";
 "paywall.premium.features.race.bullet1" = "目標レースと週目標を設定";
-"paywall.premium.features.race.bullet2" = "AIがトレーニング全体を週期化";
+"paywall.premium.features.race.bullet2" = "AIがトレーニング全体を周期化";
 "paywall.comparison.header.free" = "無料";
 "paywall.comparison.feature.run_tracking" = "ランニング記録";
 "paywall.comparison.feature.training_metrics" = "トレーニング指標";
@@ -2676,11 +2704,11 @@
 
 // Inline upsell cards (x3)
 "paywall.inline.weekly_plan.title" = "週間プランを全て解放";
-"paywall.inline.weekly_plan.body" = "第1週は無料。サブスク登録で第2週以降の生成と再調整が可能";
+"paywall.inline.weekly_plan.body" = "第1週は無料。サブスク登録で第2週以降の作成と再調整が可能";
 "paywall.inline.weekly_review.title" = "週次レビューはPremium機能";
 "paywall.inline.weekly_review.body" = "今週のトレーニングと負荷をAIが整理、来週の提案も";
 "paywall.inline.target_race.title" = "目標レース設定はPremium機能";
-"paywall.inline.target_race.body" = "サブスク登録で目標レースと週目標を設定、AIが週期化プランを作成";
+"paywall.inline.target_race.body" = "サブスク登録で目標レースと週目標を設定、AIが周期化プランを作成";
 "paywall.inline.cta.start_trial" = "30日間の無料体験を開始";
 "paywall.inline.cta.restore" = "登録済み？復元する";
 
@@ -2699,10 +2727,10 @@
 "paywall.grace_period.banner.subtitle" = "AI機能を継続するにはサブスクが必要";
 
 // Settings Subscription Tier Indicator (AC-PAYWALL-36/40)
-"settings.subscription.tier.free_label" = "現在のプラン：無料体験版";
-"settings.subscription.tier.trial_label_format" = "現在のプラン：トライアル中（残り%d日）";
-"settings.subscription.tier.premium_label_format" = "現在のプラン：プレミアム（%@）";
-"settings.subscription.tier.grace_label_format" = "現在のプラン：無料体験中（残り%d日）";
+"settings.subscription.tier.free_label" = "プラン：無料体験版";
+"settings.subscription.tier.trial_label_format" = "プラン：トライアル中（残り%d日）";
+"settings.subscription.tier.premium_label_format" = "プラン：プレミアム（%@）";
+"settings.subscription.tier.grace_label_format" = "プラン：無料体験（残り%d日）";
 "settings.subscription.tier.upgrade_cta" = "プレミアムへアップグレード";
 "settings.subscription.tier.manage_cta" = "サブスクリプション管理";
 
@@ -2711,8 +2739,8 @@
 "climate_settings.loading" = "暑熱順化設定を読み込み中…";
 "climate_settings.enable_title" = "暑熱順化を有効にする";
 "climate_settings.feels_like_subtitle" = "当日の最高体感温度";
-"climate_settings.enabled_description" = "現在有効です。次に生成されるプランでは、当日の最高体感温度（湿度・風を含む）と暑熱順化設定に基づき、ペースを落とすかロング走を短縮するかを判断します。既存のプランは再計算されず、変更は来週の新しいプランから反映されます。";
-"climate_settings.disabled_description" = "現在無効です。今後生成されるプランは元のペースを維持し、暑熱順化による調整は適用されません。既存のプランは再計算されません。";
+"climate_settings.enabled_description" = "現在有効です。次に作成されるプランでは、当日の最高体感温度（湿度・風を含む）と暑熱順化設定に基づき、ペースを落とすかロング走を短縮するかを判断します。既存のプランは再計算されず、変更は来週の新しいプランから反映されます。";
+"climate_settings.disabled_description" = "現在無効です。今後作成されるプランは元のペースを維持し、暑熱順化による調整は適用されません。既存のプランは再計算されません。";
 "climate_settings.current_status.section" = "現在の状態";
 "climate_settings.current_status.is_adjusted" = "現在の調整状況";
 "climate_settings.current_status.adjusted" = "調整済み";
@@ -2720,7 +2748,7 @@
 "climate_settings.current_status.feels_like" = "現在の体感温度";
 "climate_settings.current_status.pace_adjustment" = "ペース調整幅";
 "climate_settings.current_status.long_run_adjustment" = "ロング走調整";
-"climate_settings.current_status.unavailable" = "この画面では、現時点で調整済みかどうかをまだ表示できません。バックエンドの current status 対応が必要です。";
+"climate_settings.current_status.unavailable" = "現在の調整状況はまだ利用できません。";
 "climate_settings.your_setting" = "あなたの設定";
 "climate_settings.adjustment_start" = "介入開始";
 "climate_settings.common_adjustment" = "一般的な調整幅";
@@ -2731,7 +2759,7 @@
 "climate_settings.manual_threshold.toggle" = "開始温度を手動調整";
 "climate_settings.manual_threshold.start_temp" = "介入開始温度";
 "climate_settings.manual_threshold.danger_fixed_format" = "危険レベルは %d°C に固定されています。";
-"climate_settings.future_only_footer" = "変更は今後新しく生成されるプランにのみ反映され、既存の結果は変更されません。";
+"climate_settings.future_only_footer" = "変更は今後新しく作成されるプランにのみ反映され、既存の結果は変更されません。";
 "climate_settings.explanation.open" = "暑熱順化の説明を見る";
 "climate_settings.not_available" = "現在未提供";
 "climate_settings.explanation.title" = "暑熱順化の説明";
@@ -2753,99 +2781,100 @@
 "climate_settings.trend.improving" = "改善中";
 "climate_settings.trend.declining" = "悪化中";
 "climate_settings.trend.stable" = "安定";
-"climate_settings.effective_notice" = "気候調整は次回生成されるプランから反映されます";
+"climate_settings.effective_notice" = "気候調整は次回作成されるプランから反映されます";
 
 // MARK: - Missing NSLocalizedString keys backfilled 2026-05-02
-"common.no_data" = "\u30C7\u30FC\u30BF\u304C\u3042\u308A\u307E\u305B\u3093";
-"edit.future_day" = "\u4ECA\u5F8C\u306E\u65E5";
-"edit.past_day" = "\u904E\u53BB\u306E\u65E5";
-"edit.today" = "\u4ECA\u65E5";
-"edit_schedule.error.empty_plan" = "\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u8A08\u753B\u304C\u7A7A\u3067\u3059\u3002";
-"edit_schedule.error.invalid_day_index" = "\u7121\u52B9\u306A\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u65E5\u3067\u3059\u3002";
-"edit_schedule.error.invalid_training_type" = "\u7121\u52B9\u306A\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u7A2E\u5225\u3067\u3059\u3002";
-"edit_schedule.error.save_result_missing" = "\u30B9\u30B1\u30B8\u30E5\u30FC\u30EB\u66F4\u65B0\u7D50\u679C\u304C\u8FD4\u3055\u308C\u307E\u305B\u3093\u3067\u3057\u305F\u3002";
-"edit_schedule.save_success" = "\u30B9\u30B1\u30B8\u30E5\u30FC\u30EB\u3092\u66F4\u65B0\u3057\u307E\u3057\u305F\u3002";
-"editsupportingtarget.text_0" = "\u30B5\u30DD\u30FC\u30C8\u76EE\u6A19";
-"error.bad_request" = "\u7121\u52B9\u306A\u30EA\u30AF\u30A8\u30B9\u30C8\u3067\u3059";
-"error.cache_expired" = "\u4FDD\u5B58\u30C7\u30FC\u30BF\u306E\u671F\u9650\u304C\u5207\u308C\u307E\u3057\u305F\u3002\u66F4\u65B0\u3057\u3066\u304F\u3060\u3055\u3044\u3002";
-"error.check_connection" = "\u30A4\u30F3\u30BF\u30FC\u30CD\u30C3\u30C8\u63A5\u7D9A\u3092\u78BA\u8A8D\u3057\u3066\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002";
-"error.data_corruption" = "\u30C7\u30FC\u30BF\u304C\u7834\u640D\u3057\u3066\u3044\u307E\u3059";
-"error.forbidden" = "\u30A2\u30AF\u30BB\u30B9\u304C\u62D2\u5426\u3055\u308C\u307E\u3057\u305F";
-"error.invalid_target_data" = "\u7121\u52B9\u306A\u76EE\u6A19\u30C7\u30FC\u30BF: %@";
-"error.invalid_update_data" = "\u7121\u52B9\u306A\u66F4\u65B0\u30C7\u30FC\u30BF: %@";
-"error.network_failure" = "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u30EA\u30AF\u30A8\u30B9\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F";
-"error.no_connection" = "\u30A4\u30F3\u30BF\u30FC\u30CD\u30C3\u30C8\u63A5\u7D9A\u304C\u3042\u308A\u307E\u305B\u3093";
-"error.no_main_race" = "\u30E1\u30A4\u30F3\u30EC\u30FC\u30B9\u76EE\u6A19\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093";
-"error.no_permission" = "\u3053\u306E\u64CD\u4F5C\u3092\u5B9F\u884C\u3059\u308B\u6A29\u9650\u304C\u3042\u308A\u307E\u305B\u3093\u3002";
-"error.not_authenticated" = "\u3082\u3046\u4E00\u5EA6\u30B5\u30A4\u30F3\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044\u3002";
-"error.preferences_not_found" = "\u30E6\u30FC\u30B6\u30FC\u8A2D\u5B9A\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093";
-"error.profile_not_found" = "\u30E6\u30FC\u30B6\u30FC\u30D7\u30ED\u30D5\u30A3\u30FC\u30EB\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093";
-"error.resource_not_found" = "\u30EA\u30AF\u30A8\u30B9\u30C8\u3055\u308C\u305F\u30EA\u30BD\u30FC\u30B9\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002";
-"error.rizo_quota_exceeded" = "Rizo\u306E\u5229\u7528\u4E0A\u9650\u306B\u9054\u3057\u307E\u3057\u305F";
-"error.server_error" = "\u30B5\u30FC\u30D0\u30FC\u30A8\u30E9\u30FC";
-"error.server_issue" = "\u30B5\u30FC\u30D0\u30FC\u306B\u554F\u984C\u304C\u767A\u751F\u3057\u3066\u3044\u307E\u3059\u3002\u5F8C\u3067\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002";
-"error.session_expired" = "\u30BB\u30C3\u30B7\u30E7\u30F3\u306E\u6709\u52B9\u671F\u9650\u304C\u5207\u308C\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u30B5\u30A4\u30F3\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044\u3002";
-"error.subscription_required" = "\u30B5\u30D6\u30B9\u30AF\u30EA\u30D7\u30B7\u30E7\u30F3\u304C\u5FC5\u8981\u3067\u3059";
-"error.target_not_found" = "\u76EE\u6A19\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093: %@";
-"error.title.forbidden" = "\u30A2\u30AF\u30BB\u30B9\u62D2\u5426";
-"error.title.network" = "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u30A8\u30E9\u30FC";
-"error.title.not_found" = "\u898B\u3064\u304B\u308A\u307E\u305B\u3093";
-"error.title.server" = "\u30B5\u30FC\u30D0\u30FC\u30A8\u30E9\u30FC";
-"error.title.unauthorized" = "\u30BB\u30C3\u30B7\u30E7\u30F3\u671F\u9650\u5207\u308C";
-"error.title.unknown" = "\u30A8\u30E9\u30FC";
-"error.trial_expired" = "\u30C8\u30E9\u30A4\u30A2\u30EB\u671F\u9593\u304C\u7D42\u4E86\u3057\u307E\u3057\u305F";
-"error.unauthorized" = "\u3082\u3046\u4E00\u5EA6\u30B5\u30A4\u30F3\u30A4\u30F3\u3057\u3066\u304F\u3060\u3055\u3044";
-"hr_zone.save_failed_generic" = "\u5FC3\u62CD\u30BE\u30FC\u30F3\u306E\u4FDD\u5B58\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002";
-"onboarding.browse_race_database" = "\u30EC\u30FC\u30B9\u30C7\u30FC\u30BF\u30D9\u30FC\u30B9\u304B\u3089\u9078\u629E";
-"onboarding.browse_race_database_desc" = "\u958B\u50AC\u4E88\u5B9A\u306E\u30EC\u30FC\u30B9\u3092\u95B2\u89A7\u3057\u3066\u3001\u76EE\u6A19\u3092\u3059\u3070\u3084\u304F\u8A2D\u5B9A\u3057\u307E\u3059\u3002";
-"onboarding.change_race" = "\u30EC\u30FC\u30B9\u3092\u5909\u66F4";
-"onboarding.race_event_list_nav_title" = "\u30EC\u30FC\u30B9\u3092\u9078\u629E";
-"onboarding.race_list_empty" = "\u6761\u4EF6\u306B\u4E00\u81F4\u3059\u308B\u30EC\u30FC\u30B9\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002";
-"onboarding.race_search_prompt" = "\u30EC\u30FC\u30B9\u540D\u307E\u305F\u306F\u90FD\u5E02\u3092\u691C\u7D22";
-"onboarding.race_target_required" = "\u30EC\u30FC\u30B9\u76EE\u6A19\u3092\u9078\u629E\u307E\u305F\u306F\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002";
-"onboarding.select_race_distance_title" = "\u30EC\u30FC\u30B9\u8DDD\u96E2\u3092\u9078\u629E";
-"onboarding.select_region" = "\u5730\u57DF";
-"onboarding.tight_schedule_message" = "\u30EC\u30FC\u30B9\u65E5\u304C\u8FD1\u3044\u305F\u3081\u3001\u8A08\u753B\u306F\u5F8C\u534A\u306E\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u6BB5\u968E\u304B\u3089\u59CB\u307E\u308B\u5834\u5408\u304C\u3042\u308A\u307E\u3059\u3002";
-"onboarding.tight_schedule_title" = "\u30B9\u30B1\u30B8\u30E5\u30FC\u30EB\u304C\u77ED\u3081\u3067\u3059";
-"onboarding.training_weeks_required" = "\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u9031\u6570\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044\u3002";
-"profile.contact" = "\u9023\u7D61\u5148";
-"race_card.days_countdown" = "\u3042\u3068%d\u65E5";
-"race_card.days_until" = "\u3042\u3068%d\u65E5";
-"race_card.entry_closed" = "\u30A8\u30F3\u30C8\u30EA\u30FC\u7D42\u4E86";
-"race_card.today" = "\u4ECA\u65E5";
-"race_card.tomorrow" = "\u660E\u65E5";
-"race_distance.half_marathon" = "\u30CF\u30FC\u30D5\u30DE\u30E9\u30BD\u30F3";
-"race_distance.marathon" = "\u30DE\u30E9\u30BD\u30F3";
+"common.no_data" = "データがありません";
+"edit.future_day" = "今後の日";
+"edit.past_day" = "過去の日";
+"edit.today" = "今日";
+"edit_schedule.error.empty_plan" = "トレーニングプランが空です。";
+"edit_schedule.error.invalid_day_index" = "無効なトレーニング日です。";
+"edit_schedule.error.invalid_training_type" = "無効なトレーニング種別です。";
+"edit_schedule.error.save_result_missing" = "スケジュール更新結果が返されませんでした。";
+"edit_schedule.save_success" = "スケジュールを更新しました。";
+"editsupportingtarget.text_0" = "サポート目標";
+"error.bad_request" = "無効なリクエストです";
+"error.cache_expired" = "保存データの期限が切れました。更新してください。";
+"error.check_connection" = "インターネット接続を確認して、もう一度お試しください。";
+"error.data_corruption" = "データが破損しています";
+"error.forbidden" = "アクセスが拒否されました";
+"error.invalid_target_data" = "無効な目標データ: %@";
+"error.invalid_update_data" = "無効な更新データ: %@";
+"error.network_failure" = "ネットワークリクエストに失敗しました";
+"error.no_connection" = "インターネット接続がありません";
+"error.no_main_race" = "メインレース目標が見つかりません";
+"error.no_permission" = "この操作を実行する権限がありません。";
+"error.not_authenticated" = "もう一度サインインしてください。";
+"error.preferences_not_found" = "ユーザー設定が見つかりません";
+"error.profile_not_found" = "ユーザープロフィールが見つかりません";
+"error.resource_not_found" = "リクエストされたリソースが見つかりません。";
+"error.rizo_quota_exceeded" = "Rizoの利用上限に達しました";
+"error.server_error" = "サーバーエラー";
+"error.server_issue" = "サーバーに問題が発生しています。後でもう一度お試しください。";
+"error.session_expired" = "セッションの有効期限が切れました。もう一度サインインしてください。";
+"error.subscription_required" = "サブスクリプションが必要です";
+"error.target_not_found" = "目標が見つかりません: %@";
+"error.title.forbidden" = "アクセス拒否";
+"error.title.network" = "ネットワークエラー";
+"error.title.not_found" = "見つかりません";
+"error.title.server" = "サーバーエラー";
+"error.title.unauthorized" = "セッション期限切れ";
+"error.title.unknown" = "エラー";
+"error.trial_expired" = "トライアル期間が終了しました";
+"error.unauthorized" = "もう一度サインインしてください";
+"error.weekly_plan_unavailable" = "削除できる週次プランがありません";
+"hr_zone.save_failed_generic" = "心拍ゾーンの保存に失敗しました。";
+"onboarding.browse_race_database" = "レースデータベースから選択";
+"onboarding.browse_race_database_desc" = "開催予定のレースを閲覧して、目標をすばやく設定します。";
+"onboarding.change_race" = "レースを変更";
+"onboarding.race_event_list_nav_title" = "レースを選択";
+"onboarding.race_list_empty" = "条件に一致するレースが見つかりません。";
+"onboarding.race_search_prompt" = "レース名または都市を検索";
+"onboarding.race_target_required" = "レース目標を選択または入力してください。";
+"onboarding.select_race_distance_title" = "レース距離を選択";
+"onboarding.select_region" = "地域";
+"onboarding.tight_schedule_message" = "レース日が近いため、プランは後半のトレーニング段階から始まる場合があります。";
+"onboarding.tight_schedule_title" = "スケジュールが短めです";
+"onboarding.training_weeks_required" = "トレーニング週数を選択してください。";
+"profile.contact" = "連絡先";
+"race_card.days_countdown" = "あと%d日";
+"race_card.days_until" = "あと%d日";
+"race_card.entry_closed" = "エントリー終了";
+"race_card.today" = "今日";
+"race_card.tomorrow" = "明日";
+"race_distance.half_marathon" = "ハーフマラソン";
+"race_distance.marathon" = "マラソン";
 "race_filter.10k" = "10K";
 "race_filter.5k" = "5K";
-"race_filter.all" = "\u3059\u3079\u3066";
-"race_filter.full_marathon" = "\u30D5\u30EB\u30DE\u30E9\u30BD\u30F3";
-"race_filter.half_marathon" = "\u30CF\u30FC\u30D5\u30DE\u30E9\u30BD\u30F3";
-"race_filter.other" = "\u305D\u306E\u4ED6";
-"race_picker.api_failure_hint" = "\u624B\u52D5\u5165\u529B\u3092\u4F7F\u7528\u3059\u308B\u304B\u3001\u5F8C\u3067\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002";
-"race_picker.api_failure_title" = "\u30EC\u30FC\u30B9\u30C7\u30FC\u30BF\u30D9\u30FC\u30B9\u3092\u8AAD\u307F\u8FBC\u3081\u307E\u305B\u3093";
-"race_picker.retry" = "\u518D\u8A66\u884C";
-"race_time_ref.10k_advanced" = "10K \u4E0A\u7D1A\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
-"race_time_ref.10k_casual" = "10K \u30AB\u30B8\u30E5\u30A2\u30EB\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
-"race_time_ref.10k_elite" = "10K \u30A8\u30EA\u30FC\u30C8\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
-"race_time_ref.5k_advanced" = "5K \u4E0A\u7D1A\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
-"race_time_ref.5k_casual" = "5K \u30AB\u30B8\u30E5\u30A2\u30EB\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
-"race_time_ref.5k_elite" = "5K \u30A8\u30EA\u30FC\u30C8\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
-"race_time_ref.half_marathon_advanced" = "\u30CF\u30FC\u30D5\u30DE\u30E9\u30BD\u30F3\u4E0A\u7D1A\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
-"race_time_ref.half_marathon_casual" = "\u30CF\u30FC\u30D5\u30DE\u30E9\u30BD\u30F3\u30AB\u30B8\u30E5\u30A2\u30EB\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
-"race_time_ref.half_marathon_elite" = "\u30CF\u30FC\u30D5\u30DE\u30E9\u30BD\u30F3\u30A8\u30EA\u30FC\u30C8\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
-"race_time_ref.marathon_advanced" = "\u30DE\u30E9\u30BD\u30F3\u4E0A\u7D1A\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
-"race_time_ref.marathon_casual" = "\u30DE\u30E9\u30BD\u30F3\u30AB\u30B8\u30E5\u30A2\u30EB\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
-"race_time_ref.marathon_elite" = "\u30DE\u30E9\u30BD\u30F3\u30A8\u30EA\u30FC\u30C8\u30E9\u30F3\u30CA\u30FC\u53C2\u8003\u30BF\u30A4\u30E0";
-"region.japan" = "\u65E5\u672C";
-"region.taiwan" = "\u53F0\u6E7E";
-"rizo.quota_exceeded_banner" = "Rizo AI\u306E\u5229\u7528\u4E0A\u9650\u306B\u9054\u3057\u307E\u3057\u305F\u3002\u5F8C\u3067\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002";
-"search.no_results_message" = "\u691C\u7D22\u6761\u4EF6\u3092\u8ABF\u6574\u3057\u3066\u307F\u3066\u304F\u3060\u3055\u3044\u3002";
-"search.no_results_title" = "\u7D50\u679C\u304C\u3042\u308A\u307E\u305B\u3093";
-"training.no_plan_message" = "\u307E\u3060\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u8A08\u753B\u304C\u3042\u308A\u307E\u305B\u3093\u3002";
-"training.no_training_today" = "\u4ECA\u65E5\u306F\u4E88\u5B9A\u3055\u308C\u3066\u3044\u308B\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0\u304C\u3042\u308A\u307E\u305B\u3093\u3002";
-"training.today_training" = "\u4ECA\u65E5\u306E\u30C8\u30EC\u30FC\u30CB\u30F3\u30B0";
-"training.week_out_of_range" = "\u7B2C%d\u9031\u306F\u8A08\u753B\u7BC4\u56F2\u5916\u3067\u3059\uFF081-%d\uFF09\u3002";
+"race_filter.all" = "すべて";
+"race_filter.full_marathon" = "フルマラソン";
+"race_filter.half_marathon" = "ハーフマラソン";
+"race_filter.other" = "その他";
+"race_picker.api_failure_hint" = "手動入力を使用するか、後でもう一度お試しください。";
+"race_picker.api_failure_title" = "レースデータベースを読み込めません";
+"race_picker.retry" = "再試行";
+"race_time_ref.10k_advanced" = "10K 上級ランナー参考タイム";
+"race_time_ref.10k_casual" = "10K カジュアルランナー参考タイム";
+"race_time_ref.10k_elite" = "10K エリートランナー参考タイム";
+"race_time_ref.5k_advanced" = "5K 上級ランナー参考タイム";
+"race_time_ref.5k_casual" = "5K カジュアルランナー参考タイム";
+"race_time_ref.5k_elite" = "5K エリートランナー参考タイム";
+"race_time_ref.half_marathon_advanced" = "ハーフマラソン上級ランナー参考タイム";
+"race_time_ref.half_marathon_casual" = "ハーフマラソンカジュアルランナー参考タイム";
+"race_time_ref.half_marathon_elite" = "ハーフマラソンエリートランナー参考タイム";
+"race_time_ref.marathon_advanced" = "マラソン上級ランナー参考タイム";
+"race_time_ref.marathon_casual" = "マラソンカジュアルランナー参考タイム";
+"race_time_ref.marathon_elite" = "マラソンエリートランナー参考タイム";
+"region.japan" = "日本";
+"region.taiwan" = "台湾";
+"rizo.quota_exceeded_banner" = "Rizo AIの利用上限に達しました。後でもう一度お試しください。";
+"search.no_results_message" = "検索条件を調整してみてください。";
+"search.no_results_title" = "結果がありません";
+"training.no_plan_message" = "まだトレーニングプランがありません。";
+"training.no_training_today" = "今日は予定されているトレーニングがありません。";
+"training.today_training" = "今日のトレーニング";
+"training.week_out_of_range" = "第%d週はプラン範囲外です（1-%d）。";
 "trainingload.text_0" = "トレーニング負荷の説明";
 "trainingload.text_1" = "フィットネス、疲労、TSBが現在のトレーニング状態をどう表すかを理解しましょう。";
 "trainingload.text_10" = "TSBは現在の疲労と長期的なフィットネスのバランスを示します。プラスは比較的フレッシュ、マイナスは疲労の蓄積を意味します。";
@@ -2884,23 +2913,23 @@
 "trainingload.text_7" = "フィットネスが低下中";
 "trainingload.text_8" = "単日の判断ではなく、疲労や回復状態と合わせて見てください。";
 "trainingload.text_9" = "TSB";
-"workout.no_records_message" = "\u904B\u52D5\u3092\u958B\u59CB\u3059\u308B\u3068\u30EF\u30FC\u30AF\u30A2\u30A6\u30C8\u5C65\u6B74\u304C\u8868\u793A\u3055\u308C\u307E\u3059\u3002";
-"workout.no_records_title" = "\u30EF\u30FC\u30AF\u30A2\u30A6\u30C8\u306A\u3057";
+"workout.no_records_message" = "運動を開始するとワークアウト履歴が表示されます。";
+"workout.no_records_title" = "ワークアウトなし";
 
 // MARK: - Personal Achievements
 "achievements.title" = "個人実績";
 "achievements.loading" = "実績を読み込んでいます...";
 "achievements.story.title" = "ランナーのストーリー";
 "achievements.story.explanation" = "Pacerizで積み重ねたトレーニング、PB、バッジをまとめて表示します。";
-"achievements.story.unlocked_count" = "%d 個のバッジ中で解除済み";
+"achievements.story.unlocked_count" = "%d 個のバッジを獲得済み";
 "achievements.story.recent_unlock" = "最近";
 "achievements.story.no_recent_unlock" = "最初のマイルストーンがここに表示されます。";
 "achievements.story.next_badge" = "次";
 "achievements.hero.title" = "代表バッジ";
-"achievements.hero.explanation" = "解除済みのバッジから今の代表を 1 つ選んでください。";
+"achievements.hero.explanation" = "獲得済みのバッジから今の代表を 1 つ選んでください。";
 "achievements.hero.picker_title" = "代表バッジを選ぶ";
-"achievements.hero.picker_empty" = "最初のランを完了すると、最初のバッジが解除されます。";
-"achievements.hero.unlocked_at" = "%@ 解除";
+"achievements.hero.picker_empty" = "最初のランを完了すると、最初のバッジを獲得できます。";
+"achievements.hero.unlocked_at" = "%@ 獲得";
 "achievements.hero.no_selection" = "まだ代表バッジを選んでいません";
 "achievements.empty.title" = "トレーニングストーリーを始める";
 "achievements.empty.start" = "ランを完了して同期すると、Paceriz が実績を整理し始めます。";
@@ -2929,7 +2958,7 @@
 "achievements.share.privacy_body" = "心拍、ルート、GPS軌跡、ペース時系列はシェアカードに含まれません。";
 "achievements.share.public_fields" = "公開される項目";
 "achievements.share.default_public_fields" = "このカードにはタイトル、チャプター、日付、公開サマリーだけが含まれます。";
-"achievements.share.sensitive_excluded" = "ルート、GPS、心拍、睡眠、けが、workout ID、email、uid、詳しいメニューは含まれません。";
+"achievements.share.sensitive_excluded" = "ルート、GPS、心拍、睡眠、けが、ワークアウト ID、メールアドレス、UID、詳しいメニューは含まれません。";
 "achievements.share.privacy_footer" = "Paceriz トレーニング成果";
 "achievements.share.badge_label" = "バッジ";
 "achievements.share.card.chapter_label" = "チャプター · %@";
@@ -2937,6 +2966,12 @@
 "achievements.share.stat.completed_weeks" = "完了週数";
 "achievements.share.stat.unlocked_badges" = "獲得バッジ";
 "achievements.share.stat.weeks_value" = "%d週";
+"achievements.share.stat.annual_distance" = "今年の走行距離";
+"achievements.share.stat.active_weeks" = "活動週数";
+"achievements.share.stat.qualified_weeks" = "達成週数";
+"achievements.share.stat.major_results" = "主な成果";
+"achievements.share.stat.total_runs" = "ラン回数";
+"achievements.share.stat.longest_run" = "最長ラン";
 "achievements.share.tag_new_pb" = "新PB";
 "achievements.share.tag_new_badge" = "新バッジ";
 "achievements.share.tag_pb_and_badge" = "新PB＋バッジ";
@@ -2944,17 +2979,20 @@
 "achievements.badges.explanation" = "獲得済みと累積中のバッジを確認できます。";
 "achievements.badges.badge" = "バッジ";
 "achievements.badges.historical" = "履歴";
-"achievements.badges.progress" = "%d / %d 解除済み";
+"achievements.badges.progress" = "%d / %d 獲得済み";
 "achievements.badges.empty_preview" = "トレーニングが増えると代表バッジがここに表示されます。";
 "achievements.detail.title" = "実績の詳細";
 "achievements.detail.story" = "ストーリー";
 "achievements.detail.progress" = "進捗";
-"achievements.detail.source" = "ソース";
+"achievements.detail.source" = "出典";
 "achievements.detail.historical" = "この実績は過去のトレーニングデータから整理されました。";
-"achievements.detail.unlocked_at" = "解除日 %@";
-"achievements.detail.criteria_unavailable" = "解除条件は現在利用できません";
-"achievements.detail.criteria" = "解除方法";
-"achievements.status.unlocked" = "解除済み";
+"achievements.detail.unlocked_at" = "獲得日 %@";
+"achievements.detail.unlocked_today" = "今日 %@ に獲得";
+"achievements.detail.unlocked_yesterday" = "昨日獲得";
+"achievements.detail.unlocked_on" = "%@ 獲得";
+"achievements.detail.criteria_unavailable" = "獲得条件は現在利用できません";
+"achievements.detail.criteria" = "獲得方法";
+"achievements.status.unlocked" = "獲得済み";
 "achievements.status.in_progress" = "進行中";
 "achievements.status.locked" = "これから";
 "achievements.status.insufficient_data" = "データ不足";
@@ -3000,7 +3038,7 @@
 "achievements.badge.rhythm.year_runner.name" = "年間ランナー";
 "achievements.badge.rhythm.year_runner.story" = "1年続くランニングリズムを作りました。";
 "achievements.badge.plan.plan_started.name" = "プラン開始";
-"achievements.badge.plan.plan_started.story" = "Paceriz のトレーニングプランを開始しました。";
+"achievements.badge.plan.plan_started.story" = "ただ走るのは移動。プランに沿って走るのは方向性。あなたは方向性を選んだ。";
 "achievements.badge.plan.first_qualified_week.name" = "プラン週を 1 週完了";
 "achievements.badge.plan.first_qualified_week.story" = "完了率 80% 以上のプラン週を 1 週完了しました。";
 "achievements.badge.plan.two_qualified_weeks.name" = "プラン週を 2 週完了";
@@ -3043,29 +3081,29 @@
 "achievements.badge.mileage_markers.10000k.story" = "何年も積み重ねたランニングの物語を示す、生涯距離の節目です。";
 "achievements.badge.mileage_markers.next_action" = "次の距離マーカーに向けて走り続けましょう。";
 "achievements.badge.start.first_run.name" = "初めてのラン";
-"achievements.badge.start.first_run.story" = "Paceriz に最初のランを記録しました。";
+"achievements.badge.start.first_run.story" = "最初の一歩は誰でも不安定。それでも、あなたは踏み出した。";
 "achievements.badge.start.plan_started.name" = "プラン開始";
-"achievements.badge.start.plan_started.story" = "Paceriz のトレーニングプランを開始しました。";
+"achievements.badge.start.plan_started.story" = "ただ走るのは移動。プランに沿って走るのは方向性。あなたは方向性を選んだ。";
 "achievements.badge.start.first_week.name" = "最初の週を完了";
-"achievements.badge.start.first_week.story" = "最初のトレーニング週を完了しました。";
+"achievements.badge.start.first_week.story" = "一番つらい週ではないかもしれない。でも、すべての週はここから始まる。";
 "achievements.badge.start.first_long_run.name" = "初めてのロングラン";
-"achievements.badge.start.first_long_run.story" = "初めてのロングランを完了しました。";
+"achievements.badge.start.first_long_run.story" = "自分の限界だと思っていた距離を超えた。その線は、最初から存在しなかった。";
 "achievements.badge.start.first_recovery.name" = "初めての回復";
-"achievements.badge.start.first_recovery.story" = "回復をトレーニングのリズムに入れました。";
+"achievements.badge.start.first_recovery.story" = "いつ止まるかを知ることは、速く走ることより難しい技術だ。";
 "achievements.badge.build.showing_up.name" = "継続参加";
-"achievements.badge.build.showing_up.story" = "安定してトレーニングを残し始めました。";
+"achievements.badge.build.showing_up.story" = "気が乗らない日も、あなたは現れた。それこそがトレーニングの本当の材料だ。";
 "achievements.badge.build.routine_builder.name" = "リズム作り";
-"achievements.badge.build.routine_builder.story" = "ランを続けられるリズムにしています。";
+"achievements.badge.build.routine_builder.story" = "「今週走ろう」から「自分は走る人だ」へ。あなたはその道にいる。";
 "achievements.badge.build.eight_week_block.name" = "8週ブロック";
-"achievements.badge.build.eight_week_block.story" = "意味のあるトレーニングブロックを完了しました。";
+"achievements.badge.build.eight_week_block.story" = "8週は、自分の変化に気づくのに十分な長さだ。気づいているか？";
 "achievements.badge.build.long_run_done.name" = "ロングラン完了";
-"achievements.badge.build.long_run_done.story" = "今週のロングランを完了しました。";
+"achievements.badge.build.long_run_done.story" = "ロングランはレースじゃない。自分との約束だ——今日、あなたはそれを果たした。";
 "achievements.badge.build.weekly_goal.name" = "週間目標";
-"achievements.badge.build.weekly_goal.story" = "今週のトレーニング目標を完了しました。";
+"achievements.badge.build.weekly_goal.story" = "今週のトレーニングが完了した。自分への借りはない。";
 "achievements.badge.build.volume_base.name" = "有酸素ベース";
-"achievements.badge.build.volume_base.story" = "安定した走行距離の土台を作っています。";
+"achievements.badge.build.volume_base.story" = "有酸素の土台は見えない。でも、これからの速さはすべてその上に建つ。";
 "achievements.badge.build.plan_finisher.name" = "プラン完了";
-"achievements.badge.build.plan_finisher.story" = "トレーニングプランを最後まで完了しました。";
+"achievements.badge.build.plan_finisher.story" = "プランを始めるのは簡単だ。最後まで走りきるには、別の強さが必要だ。";
 "achievements.badge.adapt.recovery_earned.name" = "回復も練習";
 "achievements.badge.adapt.recovery_earned.story" = "必要な回復を完了しました。";
 "achievements.badge.adapt.load_balanced.name" = "負荷バランス";
@@ -3113,9 +3151,19 @@
 "achievements.field.chapter" = "チャプター";
 "achievements.field.date" = "日付";
 "achievements.field.result" = "結果";
-"achievement.source.weekly_summary" = "週間サマリー";
+"achievements.empty.next_start" = "次のランを完了すると、実績が積み上がり始めます。";
+"achievements.badge.unknown.criteria" = "獲得条件はまだ利用できません。";
+"achievement.source.weekly_summary" = "週次レビュー";
 "achievement.source.pb" = "自己ベスト";
 "achievement.source.workout" = "ワークアウトサマリー";
+"achievements.source.weekly_summary.summary" = "進捗：%@ / %@。";
+"achievements.source.pb.summary" = "%@ PB、記録日 %@。";
+"achievements.source.workout.summary" = "%@ kmのワークアウト、日付 %@。";
+"achievements.unlock.track_distance" = "距離マイルストーンに到達しました。";
+"achievements.source.fallback.weekly" = "週次レビュー";
+"achievements.source.fallback.workout" = "ワークアウト記録";
+"achievements.source.fallback.plan" = "トレーニングプラン";
+"achievements.source.fallback.pb" = "自己ベスト";
 "achievement.progress.current_target" = "%@ / %@ 完了";
 "achievements.insight.training_rhythm" = "あなたは主に曜日 %@ にトレーニングを記録しています。";
 "achievements.insight.pb_context" = "%@ 件の PB は %@ 週の積み重ねから生まれました。";
@@ -3159,46 +3207,46 @@
 "achievements.reason.badge_id_smart_trainer" = "継続力と調整力の両方を育てています。";
 "achievements.reason.badge_id_pb_hunter" = "最近のトレーニングが新しい PB 記録につながりました。";
 
-// MARK: - Badge Criteria（解除方法、35 badges × ja）
+// MARK: - Badge Criteria（獲得方法、35 badges × ja）
 // Chapter: Start
-"achievements.badge.start.first_run.criteria" = "最初のランを完了して同期するだけで解除できます。";
-"achievements.badge.start.plan_started.criteria" = "Paceriz で最初のトレーニングプランを開始すると解除できます。";
-"achievements.badge.start.first_week.criteria" = "週間走行距離がプランの目標に達し、最初のトレーニング週を完了すると解除できます。";
-"achievements.badge.start.first_long_run.criteria" = "12 km 以上のランを完了して同期すると解除できます。";
-"achievements.badge.start.first_recovery.criteria" = "Paceriz のプランに組まれた回復ランを完了すると解除できます。";
+"achievements.badge.start.first_run.criteria" = "最初のランを完了して同期するだけで獲得できます。";
+"achievements.badge.start.plan_started.criteria" = "Paceriz で最初のトレーニングプランを開始すると獲得できます。";
+"achievements.badge.start.first_week.criteria" = "週間走行距離がプランの目標に達し、最初のトレーニング週を完了すると獲得できます。";
+"achievements.badge.start.first_long_run.criteria" = "12 km 以上のランを完了して同期すると獲得できます。";
+"achievements.badge.start.first_recovery.criteria" = "Paceriz のプランに組まれた回復ランを完了すると獲得できます。";
 // Chapter: Build
-"achievements.badge.build.showing_up.criteria" = "未完了の週を含め、Paceriz に 2 週分のトレーニング記録を積み重ねると解除できます。";
-"achievements.badge.build.routine_builder.criteria" = "週間目標距離を達成したトレーニング週を 4 週完了すると解除できます。";
-"achievements.badge.build.eight_week_block.criteria" = "安全な走行距離の範囲を超えずに 8 週のトレーニングを完了すると解除できます。";
-"achievements.badge.build.long_run_done.criteria" = "今週プランに組まれたロングラン（12 km 以上）を完了すると解除できます。";
-"achievements.badge.build.weekly_goal.criteria" = "週間走行距離の目標を達成し、今週のトレーニング目標を完了すると解除できます。";
-"achievements.badge.build.volume_base.criteria" = "安全な走行距離の範囲を超えずに 4 週のトレーニングを完了すると解除できます。";
-"achievements.badge.build.plan_finisher.criteria" = "Paceriz のトレーニングプランを最初から最後まで完走すると解除できます。";
+"achievements.badge.build.showing_up.criteria" = "未完了の週を含め、Paceriz に 2 週分のワークアウト記録を積み重ねると獲得できます。";
+"achievements.badge.build.routine_builder.criteria" = "週間目標距離を達成したトレーニング週を 4 週完了すると獲得できます。";
+"achievements.badge.build.eight_week_block.criteria" = "安全な走行距離の範囲を超えずに 8 週のトレーニングを完了すると獲得できます。";
+"achievements.badge.build.long_run_done.criteria" = "今週プランに組まれたロングラン（12 km 以上）を完了すると獲得できます。";
+"achievements.badge.build.weekly_goal.criteria" = "週間走行距離の目標を達成し、今週のトレーニング目標を完了すると獲得できます。";
+"achievements.badge.build.volume_base.criteria" = "安全な走行距離の範囲を超えずに 4 週のトレーニングを完了すると獲得できます。";
+"achievements.badge.build.plan_finisher.criteria" = "Paceriz のトレーニングプランを最初から最後まで完走すると獲得できます。";
 // Chapter: Adapt
-"achievements.badge.adapt.recovery_earned.criteria" = "プランに組まれた回復週（走行量を減らし強度を落とした週）を完了すると解除できます。";
-"achievements.badge.adapt.load_balanced.criteria" = "安全な走行距離の範囲内に収まりながらトレーニング週を完了する（目標達成かつ超えない）と解除できます。";
+"achievements.badge.adapt.recovery_earned.criteria" = "プランに組まれた回復週（走行量を減らし強度を落とした週）を完了すると獲得できます。";
+"achievements.badge.adapt.load_balanced.criteria" = "安全な走行距離の範囲内に収まりながらトレーニング週を完了する（目標達成かつ超えない）と獲得できます。";
 "achievements.badge.adapt.heat_adjusted.criteria" = "Paceriz が高温を検知してペースを調整します。調整後のペースでランを完了すると自動的に獲得できます。";
 "achievements.badge.adapt.comeback.criteria" = "休止後にトレーニングを再開すると、Paceriz が安全なペースで戻ったことを自動検知して付与します。";
-"achievements.badge.adapt.rest_week.criteria" = "Paceriz が組んだ回復週を、無理に強度を上げずそのまま完了すると解除できます。";
+"achievements.badge.adapt.rest_week.criteria" = "Paceriz が組んだ回復週を、無理に強度を上げずそのまま完了すると獲得できます。";
 "achievements.badge.adapt.smart_skip.criteria" = "Paceriz が無理すべきでないと判断したセッションをスキップまたは調整すると、自動的に付与されます。";
 "achievements.badge.adapt.pace_patience.criteria" = "Paceriz が、イージーランまたは回復ランで適切なペース帯を維持したことを検知すると自動的に獲得できます。";
 // Chapter: Prove
-"achievements.badge.prove.new_pb.criteria" = "5K・10K・ハーフ・フルマラソンのいずれかの標準距離で新しい自己ベストを出すと解除できます。";
-"achievements.badge.prove.first_5k.criteria" = "5 km 以上のランを完了して同期すると解除できます。";
-"achievements.badge.prove.first_10k.criteria" = "10 km 以上のランを完了して同期すると解除できます。";
-"achievements.badge.prove.first_half.criteria" = "21 km 以上（ハーフマラソン距離）のランを完了して同期すると解除できます。";
-"achievements.badge.prove.first_marathon.criteria" = "42 km 以上（マラソン距離）のランを完了して同期すると解除できます。";
-"achievements.badge.prove.distance_breakthrough.criteria" = "ランを続けて、単回の最長距離を少しずつ更新していくと解除できます。";
-"achievements.badge.prove.race_ready.criteria" = "継続したトレーニングで Paceriz の総合準備度スコアが 90% 以上になり、高リスク警告がない状態になると解除できます。";
-"achievements.badge.prove.goal_completed.criteria" = "Paceriz で設定した目標（目標距離の完走またはレースタイムの達成）を果たすと解除できます。";
+"achievements.badge.prove.new_pb.criteria" = "5K・10K・ハーフ・フルマラソンのいずれかの標準距離で新しい自己ベストを出すと獲得できます。";
+"achievements.badge.prove.first_5k.criteria" = "5 km 以上のランを完了して同期すると獲得できます。";
+"achievements.badge.prove.first_10k.criteria" = "10 km 以上のランを完了して同期すると獲得できます。";
+"achievements.badge.prove.first_half.criteria" = "21 km 以上（ハーフマラソン距離）のランを完了して同期すると獲得できます。";
+"achievements.badge.prove.first_marathon.criteria" = "42 km 以上（マラソン距離）のランを完了して同期すると獲得できます。";
+"achievements.badge.prove.distance_breakthrough.criteria" = "ランを続けて、単回の最長距離を少しずつ更新していくと獲得できます。";
+"achievements.badge.prove.race_ready.criteria" = "継続したトレーニングで Paceriz の総合準備度スコアが 90% 以上になり、高リスク警告がない状態になると獲得できます。";
+"achievements.badge.prove.goal_completed.criteria" = "Paceriz で設定した目標（目標距離の完走またはレースタイムの達成）を果たすと獲得できます。";
 // Chapter: Identity
-"achievements.badge.identity.5k_runner.criteria" = "5 km 以上のランを完了し、2 週以上のトレーニング記録を積み重ねると解除できます。";
-"achievements.badge.identity.10k_runner.criteria" = "10 km 以上のランを完了し、4 週以上のトレーニング記録を積み重ねると解除できます。";
-"achievements.badge.identity.half_marathoner.criteria" = "21 km 以上（ハーフマラソン距離）のランを完了すると解除できます。";
-"achievements.badge.identity.marathon_builder.criteria" = "20 km 以上のランを完了し、8 週以上のトレーニング記録を積み重ねると解除できます。";
-"achievements.badge.identity.consistent_runner.criteria" = "8 週以上のトレーニング期間に、少なくとも 6 週を安全な走行距離の範囲内で維持すると解除できます。";
-"achievements.badge.identity.smart_trainer.criteria" = "4 週のトレーニングを完了し、その中で回復週の完了または Paceriz の暑さ推奨調整を少なくとも 1 回行うと解除できます。";
-"achievements.badge.identity.pb_hunter.criteria" = "30 日以内に 2 つ以上の標準距離でそれぞれ自己ベストを更新すると解除できます。";
+"achievements.badge.identity.5k_runner.criteria" = "5 km 以上のランを完了し、2 週以上のワークアウト記録を積み重ねると獲得できます。";
+"achievements.badge.identity.10k_runner.criteria" = "10 km 以上のランを完了し、4 週以上のワークアウト記録を積み重ねると獲得できます。";
+"achievements.badge.identity.half_marathoner.criteria" = "21 km 以上（ハーフマラソン距離）のランを完了すると獲得できます。";
+"achievements.badge.identity.marathon_builder.criteria" = "20 km 以上のランを完了し、8 週以上のワークアウト記録を積み重ねると獲得できます。";
+"achievements.badge.identity.consistent_runner.criteria" = "8 週以上のトレーニング期間に、少なくとも 6 週を安全な走行距離の範囲内で維持すると獲得できます。";
+"achievements.badge.identity.smart_trainer.criteria" = "4 週のトレーニングを完了し、その中で回復週の完了または Paceriz の暑さ推奨調整を少なくとも 1 回行うと獲得できます。";
+"achievements.badge.identity.pb_hunter.criteria" = "30 日以内に 2 つ以上の標準距離でそれぞれ自己ベストを更新すると獲得できます。";
 
 // MARK: - Debug Tools
 "debug.confirm_delete" = "テストデータを削除してもよろしいですか？";
@@ -3310,7 +3358,7 @@
 "training_mode.week_number" = "%d 週目";
 
 // MARK: - Weekly Plan Feedback
-"weekly_plan_feedback.title" = "この計画はどうですか？";
+"weekly_plan_feedback.title" = "このプランはどうですか？";
 "weekly_plan_feedback.rating.bad" = "イマイチ";
 "weekly_plan_feedback.rating.fine" = "まあまあ";
 "weekly_plan_feedback.rating.good" = "良い";
@@ -3325,20 +3373,26 @@
 "weekly_plan_feedback.submit" = "送信";
 "weekly_plan_feedback.submitting" = "送信中…";
 "weekly_plan_feedback.error" = "送信に失敗しました。後でもう一度お試しください。";
-"weekly_plan_feedback.thanks" = "フィードバックありがとうございます！計画の改善に活用します。";
-"weekly_plan_feedback.desc.rating_prefix" = "計画フィードバック：";
+"weekly_plan_feedback.thanks" = "フィードバックありがとうございます！プランの改善に活用します。";
+"weekly_plan_feedback.desc.rating_prefix" = "プランフィードバック：";
 
 // MARK: - Achievements UI (PersonalAchievementsView)
-"achievements.stats_banner.unlocked_label" = "解除済みバッジ";
+"achievements.stats_banner.unlocked_label" = "獲得済みバッジ";
 "achievements.stats_banner.pb_label" = "PB記録";
 "achievements.stats_banner.streak_label" = "連続トレーニング";
-"achievements.hero_card.latest_unlock" = "✨ 最新解除";
+"achievements.hero_card.latest_unlock" = "✨ 最新獲得";
 "achievements.hero_card.share" = "シェア";
 "achievements.hero_card.pin" = "固定";
 "achievements.hero_card.unpin" = "固定を解除";
 "achievements.hero_card.next_target" = "🎯 次の目標";
 "achievements.hero_card.view_all_tracks" = "全トラックを見る";
 "achievements.hero_card.remaining" = "残り";
+"achievements.badge_showcase_picker.title" = "表示するバッジ";
+"achievements.badge_showcase_picker.reset" = "リセット";
+"achievements.badge_showcase_picker.description" = "獲得済みのバッジを1つ選んで、プランのホームに表示します。";
+"achievements.badge_showcase_picker.empty_title" = "獲得済みのバッジはまだありません";
+"achievements.badge_showcase_picker.empty_message" = "トレーニングでバッジを獲得すると、プランのホームに表示するバッジを選べます。";
+"achievements.badge_showcase_picker.accessibility_label" = "表示するバッジを選択";
 "achievements.pb_card.section_title" = "自己ベスト";
 "achievements.pb_card.set_count_format" = "PB %d 回";
 "achievements.pb_card.card_title" = "自己ベスト記録";
@@ -3347,10 +3401,10 @@
 "achievements.pb_card.no_pb_hint" = "初めてのタイム計測ランでPBを樹立しましょう";
 "achievements.pb_card.more_distances_format" = "他%d種類の距離記録";
 "achievements.badge_collection.title" = "バッジコレクション";
-"achievements.badge_collection.unlocked_count_format" = "%d/%d 解除済み";
+"achievements.badge_collection.unlocked_count_format" = "%d/%d 獲得済み";
 "achievements.badge_collection.view_more" = "もっと見る";
 "achievements.badge_tile.insufficient_data" = "データ不足";
-"achievements.badge_tile.locked" = "未解除";
+"achievements.badge_tile.locked" = "未獲得";
 "achievements.tracks.title" = "実績トラック";
 "achievements.tracks.empty" = "トラックデータなし";
 
@@ -3400,10 +3454,11 @@
 "training.detail.what_is_type" = "%@ とは？";
 "training.detail.adjust_day" = "この日を調整";
 "training.detail.rest_with_desc" = "レスト：%@";
+"training.detail.segment_index" = "セグメント %d";
 
 // MARK: - Training Segment Labels
 "training.segment.sprint" = "スプリント";
-"training.segment.progression_label" = "3段階進歩：イージー → テンポ → ファスト";
+"training.segment.progression_label" = "3段階：軽め→テンポ→速め";
 "training.segment.fast_finish_label" = "2段階：イージー → テンポ";
 "training.segment.lsd_single" = "ロング有酸素";
 "training.segment.easy_single" = "イージー有酸素";

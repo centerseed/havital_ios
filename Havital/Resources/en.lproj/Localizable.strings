@@ -5,9 +5,9 @@
 
 // MARK: - Main Navigation
 "tab.training_plan" = "Plan";
-"tab.training_record" = "Log";
+"tab.training_record" = "Workouts";
 "tab.performance_data" = "Stats";
-"tab.achievement" = "Awards";
+"tab.achievement" = "Achievements";
 "tab.profile" = "Profile";
 
 // MARK: - Toast Messages
@@ -39,6 +39,7 @@
 "common.pause" = "Pause";
 "common.resume" = "Resume";
 "common.finish" = "Finish";
+"common.best" = "Best";
 "common.week_unit" = "week";
 "common.weeks" = "weeks";
 
@@ -60,7 +61,7 @@
 "auth.register_success" = "Registration Successful";
 "auth.register_success_message" = "Please check your email and click the confirmation link to complete verification, then return here to log in.";
 "auth.verify_email_title" = "Verify Email";
-"auth.verify_code_placeholder" = "Verification Code (oobCode)";
+"auth.verify_code_placeholder" = "Verification Code";
 "auth.verify_email" = "Verify Email";
 "auth.verify_failed" = "Verification Failed";
 "auth.verify_success" = "Verification Successful";
@@ -129,7 +130,7 @@
 "next_week_planning.title" = "Next Week Planning";
 "next_week_planning.weekly_feeling" = "This week's training feeling (0-worst, 5-best)";
 "next_week_planning.overall_feeling" = "Overall feeling: ";
-"next_week_planning.training_expectation" = "Tell us your expectations for next week's training, and Paceriz will make adjustments based on your actual performance. You can also freely edit the newly generated training plan";
+"next_week_planning.training_expectation" = "Tell us what you want for next week. Paceriz will adjust based on your actual training, and you can edit the new plan.";
 "next_week_planning.difficulty_adjustment" = "Difficulty Adjustment";
 "next_week_planning.days_adjustment" = "Training Days Adjustment";
 "next_week_planning.training_item_adjustment" = "Training Item Variation Adjustment";
@@ -521,6 +522,25 @@
 "workout.detail.training_notes_save_error" = "Failed to save training notes. Please try again later.";
 "workout.detail.training_notes_editor_title" = "Edit Training Notes";
 
+// Treadmill Correction
+"workout.detail.treadmill_correction_title" = "Treadmill Distance Correction";
+"workout.detail.treadmill_correction_description" = "Enter the actual distance shown on the treadmill console to correct GPS-based inaccuracies.";
+"workout.detail.treadmill_correction_actual_distance" = "Actual Distance (m)";
+"workout.detail.treadmill_correction_incline" = "Avg Incline (%, optional)";
+"workout.detail.treadmill_correction_notes" = "Notes (optional)";
+"workout.detail.treadmill_correction_apply" = "Apply Correction";
+"workout.detail.treadmill_correction_applied" = "Treadmill distance corrected";
+"workout.detail.treadmill_correction_applied_distance" = "Corrected distance: %.0f m";
+"workout.detail.treadmill_correction_modify" = "Modify";
+"workout.detail.treadmill_correction_success" = "Distance correction applied successfully.";
+"workout.detail.treadmill_correction_error" = "Failed to apply correction. Please try again.";
+"workout.detail.treadmill_correction_distance_error" = "Distance must be between 100 and 100000 metres.";
+"workout.detail.treadmill_correction_incline_error" = "Incline must be between -10 and 25%.";
+"workout.detail.treadmill_correction_notes_error" = "Notes must not exceed 500 characters.";
+"workout.detail.treadmill_correction_distance_placeholder" = "e.g. 5000";
+"workout.detail.treadmill_correction_incline_placeholder" = "e.g. 1.5";
+"workout.detail.treadmill_correction_notes_placeholder" = "e.g. console reading";
+
 // MARK: - Workout Metrics
 "workout.metrics.distance" = "Distance";
 "workout.metrics.time" = "Time";
@@ -739,6 +759,7 @@
 "workout.reupload_error" = "Error occurred during re-upload:";
 "workout.reupload_failed" = "Re-upload failed, please try again later.";
 "workout.provider" = "Provider";
+"workout.plan_matched" = "Matches Plan";
 "workout.activity_type" = "Activity Type";
 "workout.resync_data" = "Resync Data";
 "workout.force_reupload_description" = "Force re-upload this workout record, including retry fetching heart rate data";
@@ -797,6 +818,9 @@
 "training.race_planning_summary" = "View main and supporting races";
 "training.race_info" = "Race Info";
 "training.plan_overview" = "Plan Overview";
+"training.plan_overview_update_pending" = "Updating plan overview. It will apply automatically soon.";
+"training.plan_overview_updated" = "Plan overview updated";
+"training.plan_overview_update_failed" = "Plan overview update failed. Please try again later.";
 "training.goal_assessment" = "Goal Assessment";
 "training.plan_highlights" = "Plan Highlights";
 "training.stages_summary" = "%d stages, %d weeks total";
@@ -819,6 +843,7 @@
 "onboarding.your_running_goal" = "Your Running Goal";
 "onboarding.goal_description" = "If you don't have a specific race, you can set a challenge goal for yourself, such as 'Complete first 5K' or 'Improve 10K speed'.";
 "onboarding.or_select_existing_target" = "Previously set target races";
+"onboarding.or_manual_input" = "or enter manually";
 "onboarding.goal_name_placeholder" = "Goal name (e.g., Taipei Marathon or My 5K Challenge)";
 "onboarding.goal_name_label" = "Goal Name";
 "onboarding.goal_prefilled_from_race" = "Prefilled from race database. Switch to manual input to edit.";
@@ -909,7 +934,7 @@
 "onboarding.backfill_prompt.title" = "Sync recent training data?";
 "onboarding.backfill_prompt.subtitle" = "Get your last 14 days from %@";
 "onboarding.backfill_prompt.what_is_backfill" = "What is data sync?";
-"onboarding.backfill_prompt.backfill_description" = "We'll sync your last 14 days of running records to help Vita create a more accurate training plan for you.";
+"onboarding.backfill_prompt.backfill_description" = "We'll sync your last 14 days of running records to help Paceriz create a more accurate training plan for you.";
 "onboarding.backfill_prompt.why_it_helps" = "Why it helps?";
 "onboarding.backfill_prompt.benefit1_title" = "Better training suggestions";
 "onboarding.backfill_prompt.benefit1_description" = "Personalized plan based on your history.";
@@ -1165,11 +1190,14 @@
 "training_plan.week_overview" = "Week Overview";
 "training_plan.weekly_volume_load" = "Weekly Volume";
 "training_plan.weekly_volume_and_intensity" = "Weekly Volume & Intensity";
-"training_plan.week_target" = "This Week's Target";
-"training_plan.training_calendar" = "Training Calendar";
+"training_plan.week_target" = "Goal";
+"training_plan.coach_note" = "Coach's Note";
+"training_plan.training_calendar" = "Calendar";
 "training_plan.weekly_badge_placeholder_name" = "Rhythm Builder";
 "training_plan.weekly_badge_coming_soon" = "New unlock";
 "training_plan.weekly_badge_in_progress" = "In progress";
+"training.timeline.plan_label" = "Plan";
+"training.timeline.actual_label" = "Actual";
 "training_plan.intensity_legend_low" = "Easy";
 "training_plan.intensity_legend_medium" = "Moderate";
 "training_plan.intensity_legend_high" = "Hard";
@@ -1341,13 +1369,13 @@
 "training_type_info.yasso_800.role" = "Especially valuable during marathon preparation, performed once per week. The most predictive workout in marathon training. Also commonly used during other distance race preparation phases to build speed.";
 
 // MARK: - Weekday Names (Full and Short)
-"weekday.monday" = "Monday";
-"weekday.tuesday" = "Tuesday";
-"weekday.wednesday" = "Wednesday";
-"weekday.thursday" = "Thursday";
-"weekday.friday" = "Friday";
-"weekday.saturday" = "Saturday";
-"weekday.sunday" = "Sunday";
+"weekday.monday" = "Mon";
+"weekday.tuesday" = "Tue";
+"weekday.wednesday" = "Wed";
+"weekday.thursday" = "Thu";
+"weekday.friday" = "Fri";
+"weekday.saturday" = "Sat";
+"weekday.sunday" = "Sun";
 
 "weekday.mon_short" = "Mon";
 "weekday.tue_short" = "Tue";
@@ -2426,7 +2454,7 @@
 "training.need_weekly_summary_description" = "Please generate the Week %d summary before generating next week's plan";
 "training.need_weekly_summary_title" = "Weekly Summary Required";
 "training.no_highlights" = "No highlights data";
-"training.no_plan_description" = "Please go through Onboarding to create your training plan";
+"training.no_plan_description" = "Complete initial setup to create your training plan";
 "training.no_plan_title" = "No Training Plan Yet";
 "training.philosophy" = "Training Philosophy";
 "training.race_date" = "Race Date";
@@ -2619,9 +2647,9 @@
 "paywall.premium.timeline.step1.label" = "Today";
 "paywall.premium.timeline.step1.desc" = "Unlock everything instantly";
 "paywall.premium.timeline.step2.label" = "Day 28";
-"paywall.premium.timeline.step2.desc" = "We'll remind you 2 days before billing";
+"paywall.premium.timeline.step2.desc" = "2-day billing reminder";
 "paywall.premium.timeline.step3.label" = "Day 30";
-"paywall.premium.timeline.step3.desc" = "Subscription starts. Cancel anytime.";
+"paywall.premium.timeline.step3.desc" = "Cancel anytime.";
 
 // Features (4 groups)
 "paywall.premium.features.plan.title" = "AI Personalized Weekly Plan";
@@ -2702,10 +2730,10 @@
 "paywall.grace_period.banner.subtitle" = "Subscribe to keep AI features";
 
 // Settings Subscription Tier Indicator (AC-PAYWALL-36/40)
-"settings.subscription.tier.free_label" = "Current plan: Free Preview";
-"settings.subscription.tier.trial_label_format" = "Current plan: Trial (%d days left)";
-"settings.subscription.tier.premium_label_format" = "Current plan: Premium (%@)";
-"settings.subscription.tier.grace_label_format" = "Current plan: Free trial (%d days left)";
+"settings.subscription.tier.free_label" = "Plan: Free Preview";
+"settings.subscription.tier.trial_label_format" = "Plan: Trial (%d days left)";
+"settings.subscription.tier.premium_label_format" = "Plan: Premium (%@)";
+"settings.subscription.tier.grace_label_format" = "Plan: Free trial (%d days left)";
 "settings.subscription.tier.upgrade_cta" = "Upgrade to Premium";
 "settings.subscription.tier.manage_cta" = "Manage Subscription";
 
@@ -2723,7 +2751,7 @@
 "climate_settings.current_status.feels_like" = "Current feels-like temperature";
 "climate_settings.current_status.pace_adjustment" = "Pace adjustment";
 "climate_settings.current_status.long_run_adjustment" = "Long run adjustment";
-"climate_settings.current_status.unavailable" = "This page cannot show whether today's plan is currently adjusted yet; the backend needs to provide current status.";
+"climate_settings.current_status.unavailable" = "Current adjustment status is not available yet.";
 "climate_settings.your_setting" = "Your Settings";
 "climate_settings.adjustment_start" = "Starts at";
 "climate_settings.common_adjustment" = "Typical adjustment";
@@ -2798,6 +2826,7 @@
 "error.title.unknown" = "Error";
 "error.trial_expired" = "Trial period has ended";
 "error.unauthorized" = "Please sign in again";
+"error.weekly_plan_unavailable" = "No weekly plan available to delete";
 "hr_zone.save_failed_generic" = "Failed to save heart rate zones.";
 "onboarding.browse_race_database" = "Choose from race database";
 "onboarding.browse_race_database_desc" = "Browse upcoming races and quickly set your goal.";
@@ -2940,6 +2969,12 @@
 "achievements.share.stat.completed_weeks" = "Weeks Done";
 "achievements.share.stat.unlocked_badges" = "Badges";
 "achievements.share.stat.weeks_value" = "%d wks";
+"achievements.share.stat.annual_distance" = "This Year";
+"achievements.share.stat.active_weeks" = "Active Weeks";
+"achievements.share.stat.qualified_weeks" = "Qualified Weeks";
+"achievements.share.stat.major_results" = "Key Results";
+"achievements.share.stat.total_runs" = "Total Runs";
+"achievements.share.stat.longest_run" = "Longest Run";
 "achievements.share.tag_new_pb" = "New PB";
 "achievements.share.tag_new_badge" = "New Badge";
 "achievements.share.tag_pb_and_badge" = "New PB + Badge";
@@ -2955,6 +2990,9 @@
 "achievements.detail.source" = "Source";
 "achievements.detail.historical" = "This achievement was organized from historical training data.";
 "achievements.detail.unlocked_at" = "Unlocked on %@";
+"achievements.detail.unlocked_today" = "Unlocked today at %@";
+"achievements.detail.unlocked_yesterday" = "Unlocked yesterday";
+"achievements.detail.unlocked_on" = "Unlocked on %@";
 "achievements.detail.criteria_unavailable" = "Unlock criteria unavailable";
 "achievements.detail.criteria" = "How to Earn";
 "achievements.status.unlocked" = "Unlocked";
@@ -3003,7 +3041,7 @@
 "achievements.badge.rhythm.year_runner.name" = "Year Runner";
 "achievements.badge.rhythm.year_runner.story" = "You built a year-long running rhythm.";
 "achievements.badge.plan.plan_started.name" = "Plan Started";
-"achievements.badge.plan.plan_started.story" = "You started a Paceriz training plan.";
+"achievements.badge.plan.plan_started.story" = "Random miles are movement. A plan is direction. You chose direction.";
 "achievements.badge.plan.first_qualified_week.name" = "Completed 1 Plan Week";
 "achievements.badge.plan.first_qualified_week.story" = "You completed 1 plan week with at least 80% completion.";
 "achievements.badge.plan.two_qualified_weeks.name" = "Completed 2 Plan Weeks";
@@ -3046,29 +3084,29 @@
 "achievements.badge.mileage_markers.10000k.story" = "A lifetime distance marker for a running story built over years.";
 "achievements.badge.mileage_markers.next_action" = "Keep running to reach the next distance marker.";
 "achievements.badge.start.first_run.name" = "First Run";
-"achievements.badge.start.first_run.story" = "You logged your first run with Paceriz.";
+"achievements.badge.start.first_run.story" = "Some first steps are shaky. Yours got you out the door.";
 "achievements.badge.start.plan_started.name" = "Plan Started";
-"achievements.badge.start.plan_started.story" = "You started a Paceriz training plan.";
+"achievements.badge.start.plan_started.story" = "Random miles are movement. A plan is direction. You chose direction.";
 "achievements.badge.start.first_week.name" = "First Week Complete";
-"achievements.badge.start.first_week.story" = "You completed your first training week.";
+"achievements.badge.start.first_week.story" = "Not the hardest week you'll have. But every week that follows starts here.";
 "achievements.badge.start.first_long_run.name" = "First Long Run";
-"achievements.badge.start.first_long_run.story" = "You completed your first long run.";
+"achievements.badge.start.first_long_run.story" = "You ran past the distance you thought was your limit. Turns out that line was imaginary.";
 "achievements.badge.start.first_recovery.name" = "First Recovery";
-"achievements.badge.start.first_recovery.story" = "You made recovery part of your training rhythm.";
+"achievements.badge.start.first_recovery.story" = "Knowing when to stop is harder to learn than running faster.";
 "achievements.badge.build.showing_up.name" = "Showing Up";
-"achievements.badge.build.showing_up.story" = "You started showing up consistently.";
+"achievements.badge.build.showing_up.story" = "You showed up on the days that didn't feel right. That's what training is actually made of.";
 "achievements.badge.build.routine_builder.name" = "Routine Builder";
-"achievements.badge.build.routine_builder.story" = "You are turning running into a sustainable rhythm.";
+"achievements.badge.build.routine_builder.story" = "Running is shifting from something you do to something you are. You're on that path.";
 "achievements.badge.build.eight_week_block.name" = "Eight-Week Block";
-"achievements.badge.build.eight_week_block.story" = "You completed a meaningful training block.";
+"achievements.badge.build.eight_week_block.story" = "Eight weeks is long enough to see yourself change. Have you noticed?";
 "achievements.badge.build.long_run_done.name" = "Long Run Done";
-"achievements.badge.build.long_run_done.story" = "You completed the week's long run.";
+"achievements.badge.build.long_run_done.story" = "A long run isn't a race. It's a promise to yourself — and you kept it today.";
 "achievements.badge.build.weekly_goal.name" = "Weekly Goal";
-"achievements.badge.build.weekly_goal.story" = "You completed the week's training goal.";
+"achievements.badge.build.weekly_goal.story" = "The week's work is done. Nothing owed.";
 "achievements.badge.build.volume_base.name" = "Aerobic Base";
-"achievements.badge.build.volume_base.story" = "You are building a stable mileage base.";
+"achievements.badge.build.volume_base.story" = "The base doesn't show. But every fast mile you'll ever run is built on top of it.";
 "achievements.badge.build.plan_finisher.name" = "Plan Finisher";
-"achievements.badge.build.plan_finisher.story" = "You finished a training plan.";
+"achievements.badge.build.plan_finisher.story" = "Starting a plan is easy. Finishing it takes a different kind of person.";
 "achievements.badge.adapt.recovery_earned.name" = "Recovery Counts";
 "achievements.badge.adapt.recovery_earned.story" = "You completed the recovery your training needed.";
 "achievements.badge.adapt.load_balanced.name" = "Load Balanced";
@@ -3116,9 +3154,19 @@
 "achievements.field.chapter" = "Chapter";
 "achievements.field.date" = "Date";
 "achievements.field.result" = "Result";
+"achievements.empty.next_start" = "Complete your next run to start building achievements.";
+"achievements.badge.unknown.criteria" = "Unlock criteria unavailable.";
 "achievement.source.weekly_summary" = "Weekly summary";
 "achievement.source.pb" = "Personal best";
 "achievement.source.workout" = "Workout summary";
+"achievements.source.weekly_summary.summary" = "Progress: %@ of %@.";
+"achievements.source.pb.summary" = "%@ PB recorded on %@.";
+"achievements.source.workout.summary" = "%@ km workout on %@.";
+"achievements.unlock.track_distance" = "Reached the distance milestone.";
+"achievements.source.fallback.weekly" = "Weekly summary";
+"achievements.source.fallback.workout" = "Workout record";
+"achievements.source.fallback.plan" = "Training plan";
+"achievements.source.fallback.pb" = "Personal best";
 "achievement.progress.current_target" = "%@ of %@ completed";
 "achievements.insight.training_rhythm" = "You most often log training on weekday %@.";
 "achievements.insight.pb_context" = "Your %@ PB records are backed by %@ training weeks.";
@@ -3342,6 +3390,12 @@
 "achievements.hero_card.next_target" = "🎯 Next Target";
 "achievements.hero_card.view_all_tracks" = "View All Tracks";
 "achievements.hero_card.remaining" = "Left";
+"achievements.badge_showcase_picker.title" = "Showcase Badge";
+"achievements.badge_showcase_picker.reset" = "Reset";
+"achievements.badge_showcase_picker.description" = "Choose one unlocked badge to show on the plan home.";
+"achievements.badge_showcase_picker.empty_title" = "No unlocked badges yet";
+"achievements.badge_showcase_picker.empty_message" = "Unlock a badge through training, then choose one to show on the plan home.";
+"achievements.badge_showcase_picker.accessibility_label" = "Choose showcase badge";
 "achievements.pb_card.section_title" = "Personal Best";
 "achievements.pb_card.set_count_format" = "%d PBs set";
 "achievements.pb_card.card_title" = "Personal Best Records";
@@ -3403,6 +3457,7 @@
 "training.detail.what_is_type" = "What is %@?";
 "training.detail.adjust_day" = "Adjust This Day";
 "training.detail.rest_with_desc" = "Rest: %@";
+"training.detail.segment_index" = "Segment %d";
 
 // MARK: - Training Segment Labels
 "training.segment.sprint" = "Sprint";

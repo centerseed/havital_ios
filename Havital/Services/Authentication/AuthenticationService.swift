@@ -1068,11 +1068,28 @@ extension AuthenticationService: ASAuthorizationControllerDelegate {
 
 extension AuthenticationService: ASAuthorizationControllerPresentationContextProviding {
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = windowScene.windows.first else {
-            fatalError("No window available for Apple Sign In presentation")
+        // 優先找前景 active 的 UIWindowScene 的 key window；
+        // multi-scene / 邊緣生命週期下 connectedScenes.first 可能不是 UIWindowScene，
+        // 此時退而求其次找任一可用 window，仍找不到則回傳非致命空 window（不可 fatalError）。
+        let windowScenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+
+        if let foregroundWindow = windowScenes
+            .first(where: { $0.activationState == .foregroundActive })?
+            .windows.first(where: { $0.isKeyWindow }) ?? windowScenes
+            .first(where: { $0.activationState == .foregroundActive })?
+            .windows.first {
+            return foregroundWindow
         }
-        return window
+
+        if let anyWindow = windowScenes.flatMap({ $0.windows }).first {
+            return anyWindow
+        }
+
+        Logger.firebase(
+            "Apple Sign-In: 找不到可用的 UIWindowScene，回傳 fallback window",
+            level: .warn
+        )
+        return UIWindow()
     }
 }
 

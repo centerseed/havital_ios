@@ -29,9 +29,6 @@ final class WeeklyPlanViewModel: ObservableObject {
     private let repository: TrainingPlanRepository
     private let versionRouter: TrainingVersionRouting
 
-    // MARK: - TaskManageable
-    nonisolated let taskRegistry = TaskRegistry()
-
     // MARK: - Computed Properties
 
     /// 當前顯示的計畫 ID

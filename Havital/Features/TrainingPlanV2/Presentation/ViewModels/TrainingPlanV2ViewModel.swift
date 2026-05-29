@@ -27,7 +27,7 @@ final class TrainingPlanV2ViewModel: TaskManageable {
 
     // MARK: - Orchestration State
     var displayBadge: AchievementBadge?
-    var networkError: Error?
+    var networkError: DomainError?
     var successToast: String?
     var isLoadingAnimation = false
     var paywallTrigger: PaywallTrigger?
@@ -86,7 +86,7 @@ final class TrainingPlanV2ViewModel: TaskManageable {
             shouldSuppressError: { [weak self] error, ctx, dataCorruption in
                 self?.shouldSuppressError(error, context: ctx, onDataCorruption: dataCorruption) ?? false
             },
-            onNetworkError: { [weak self] error in self?.networkError = error }
+            onNetworkError: { [weak self] error in self?.networkError = error.toDomainError() }
         )
 
         self.methodology = MethodologyCoordinator(
@@ -101,7 +101,7 @@ final class TrainingPlanV2ViewModel: TaskManageable {
                 await self.loader.loadPlanStatus()
             },
             onPaywallNeeded: { [weak self] in self?.triggerPaywallIfEnforced() },
-            onNetworkError: { [weak self] error in self?.networkError = error }
+            onNetworkError: { [weak self] error in self?.networkError = error.toDomainError() }
         )
 
         self.summary = WeeklySummaryCoordinator(
@@ -117,7 +117,7 @@ final class TrainingPlanV2ViewModel: TaskManageable {
             onSuccessToast: { [weak self] message in self?.successToast = message },
             onPaywallTriggered: { [weak self] trigger in self?.paywallTrigger = trigger },
             onRizoQuotaExceeded: { [weak self] in self?.showRizoQuotaExceededBanner = true },
-            onNetworkError: { [weak self] error in self?.networkError = error },
+            onNetworkError: { [weak self] error in self?.networkError = error.toDomainError() },
             isEnforcementEnabled: { SubscriptionStateManager.shared.isEnforcementEnabled },
             onWeeklyReviewInlineUpsellNeeded: { [weak self] in self?.showWeeklyReviewInlineUpsell = true }
         )
@@ -134,7 +134,7 @@ final class TrainingPlanV2ViewModel: TaskManageable {
             },
             onSuccessToast: { [weak self] message in self?.successToast = message },
             onRizoQuotaExceeded: { [weak self] in self?.showRizoQuotaExceededBanner = true },
-            onNetworkError: { [weak self] error in self?.networkError = error },
+            onNetworkError: { [weak self] error in self?.networkError = error.toDomainError() },
             onWeeklyPlanInlineUpsellNeeded: { [weak self] isRegenerate in
                 self?.weeklyPlanUpsellIsRegenerate = isRegenerate
                 self?.showWeeklyPlanInlineUpsell = true
@@ -192,6 +192,69 @@ final class TrainingPlanV2ViewModel: TaskManageable {
 
     func refreshWeeklyPlan() async {
         await loader.refreshWeeklyPlan()
+    }
+
+    func refreshOverviewAfterTargetUpdate() async {
+        await repository.clearOverviewCache()
+
+        do {
+            let freshOverview = try await repository.refreshOverview()
+            loader.planOverview = freshOverview
+            loader.trainingPlanName = freshOverview.targetName ?? "訓練計畫"
+            await loader.loadPlanStatus()
+        } catch {
+            networkError = error.toDomainError()
+            Logger.error("[TrainingPlanV2VM] ❌ Target update overview refresh failed: \(error.localizedDescription)")
+        }
+    }
+
+    func pollPlanOverviewRegeneration(overviewId: String, pollAfterSeconds: Int) async {
+        let intervalSeconds = max(0, pollAfterSeconds)
+        let maxAttempts = max(1, 90 / max(1, pollAfterSeconds))
+
+        for _ in 0..<maxAttempts {
+            if Task.isCancelled { return }
+
+            if intervalSeconds > 0 {
+                try? await Task.sleep(nanoseconds: UInt64(intervalSeconds) * 1_000_000_000)
+            } else {
+                await Task.yield()
+            }
+
+            await repository.clearOverviewCache()
+
+            do {
+                let freshOverview = try await repository.refreshOverview()
+                loader.planOverview = freshOverview
+                loader.trainingPlanName = freshOverview.targetName ?? "訓練計畫"
+
+                if freshOverview.regenerationStatus == "completed" {
+                    successToast = NSLocalizedString("training.plan_overview_updated", comment: "訓練總覽已更新")
+                    await refreshWeeklyPreview(overviewId: freshOverview.id)
+                    await loader.refreshPlanStatusResponse()
+                    return
+                }
+
+                if freshOverview.regenerationStatus == "failed" {
+                    successToast = NSLocalizedString("training.plan_overview_update_failed", comment: "訓練總覽更新失敗，請稍後再試")
+                    await loader.refreshPlanStatusResponse()
+                    return
+                }
+            } catch {
+                networkError = error.toDomainError()
+                Logger.error("[TrainingPlanV2VM] ❌ Overview regeneration polling failed for \(overviewId): \(error.localizedDescription)")
+            }
+        }
+
+        successToast = NSLocalizedString("training.plan_overview_update_pending", comment: "訓練總覽仍在更新中，稍後會自動套用")
+    }
+
+    private func refreshWeeklyPreview(overviewId: String) async {
+        do {
+            loader.weeklyPreview = try await repository.refreshWeeklyPreview(overviewId: overviewId)
+        } catch {
+            Logger.error("[TrainingPlanV2VM] ⚠️ Weekly preview refresh after overview regeneration failed: \(error.localizedDescription)")
+        }
     }
 
     // MARK: - Helper Methods
@@ -357,13 +420,15 @@ final class TrainingPlanV2ViewModel: TaskManageable {
         await summary.debugGenerateForWeek(
             week,
             onSuccess: { [weak self] msg in self?.successToast = msg },
-            onNetworkError: { [weak self] err in self?.networkError = err }
+            onNetworkError: { [weak self] err in self?.networkError = err.toDomainError() }
         )
     }
 
     func debugDeleteCurrentWeekPlan() async {
         guard let plan = loader.weeklyPlan else {
-            networkError = NSError(domain: "TrainingPlanV2", code: -1, userInfo: [NSLocalizedDescriptionKey: "無週課表可刪除"])
+            networkError = .validationFailure(
+                NSLocalizedString("error.weekly_plan_unavailable", comment: "No weekly plan available to delete")
+            )
             return
         }
         let planId = plan.effectivePlanId
@@ -374,7 +439,7 @@ final class TrainingPlanV2ViewModel: TaskManageable {
             loader.planStatus = .noWeeklyPlan
             successToast = "✅ [DEBUG] 週課表已刪除"
         } catch {
-            networkError = error
+            networkError = error.toDomainError()
         }
     }
 
@@ -386,7 +451,7 @@ final class TrainingPlanV2ViewModel: TaskManageable {
             summary.weeklySummary = .empty
             successToast = "✅ [DEBUG] 週回顧已刪除"
         } catch {
-            networkError = error
+            networkError = error.toDomainError()
         }
     }
 }

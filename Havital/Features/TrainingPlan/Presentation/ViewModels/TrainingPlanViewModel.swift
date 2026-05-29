@@ -368,10 +368,6 @@ class TrainingPlanViewModel: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    // MARK: - TaskManageable
-
-    nonisolated let taskRegistry = TaskRegistry()
-
     // MARK: - Initialization
 
     init(

@@ -24,10 +24,11 @@
        .store(in: &cancellables)
    ```
 
-   Regression check:
+   Regression check (matches actual usage, not explanatory comments — the bus is a
+   private-init singleton so every real coupling goes through `CacheEventBus.shared`):
    ```bash
-   grep -rn "CacheEventBus" Havital/Features/*/Data/ Havital/Features/*/Domain/ Havital/Core/Data/
-   # expected: no matches
+   grep -rn "CacheEventBus\.shared" Havital/Features/*/Data/ Havital/Features/*/Domain/ Havital/Core/Data/
+   # expected: no matches (registration/subscription lives in Core/DI/CacheRegistrationCoordinator)
    ```
 
 5. **HealthKit → Backend → UI.** Never `HealthKit → UI` directly — creates split truth between HealthKit and Firestore.

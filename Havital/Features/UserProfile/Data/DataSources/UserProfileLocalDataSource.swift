@@ -50,7 +50,7 @@ final class UserProfileLocalDataSource: UserProfileLocalDataSourceProtocol {
         self.defaults = defaults
         self.encoder = JSONEncoder()
         self.decoder = JSONDecoder()
-        CacheEventBus.shared.register(self)
+        // CacheEventBus registration moved to CacheRegistrationCoordinator (App layer)
     }
 
     // MARK: - User Profile Cache
