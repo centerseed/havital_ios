@@ -27,7 +27,6 @@ struct TrainingOverviewV2View: View {
 
     // Edit main race/target — mirrors PlanOverviewSheetV2 showEditMainTarget flow
     @State private var showEditMainTarget = false
-
     // MARK: - Body
 
     var body: some View {
@@ -117,6 +116,46 @@ struct TrainingOverviewV2View: View {
             // (mirrors TrainingProgressViewV2:35-38)
             if viewModel.summary.weeklySummaries.isEmpty {
                 await viewModel.summary.fetchWeeklySummaries()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .targetUpdated)) { notification in
+            Task {
+                showEditMainTarget = false
+                try? await Task.sleep(nanoseconds: 400_000_000)
+                await targetViewModel.forceRefresh()
+
+                let userInfo = notification.userInfo
+                let overviewUpdateStatus = userInfo?["planOverviewUpdateStatus"] as? String
+                let overviewUpdateOverviewId = userInfo?["planOverviewUpdateOverviewId"] as? String
+                let pollAfterSeconds = userInfo?["planOverviewUpdatePollAfterSeconds"] as? Int ?? 3
+
+                if overviewUpdateStatus == "queued" || overviewUpdateStatus == "running" {
+                    viewModel.successToast = NSLocalizedString(
+                        "training.plan_overview_update_pending",
+                        comment: "訓練總覽更新中，稍後會自動套用"
+                    )
+                    if let overviewId = overviewUpdateOverviewId {
+                        await viewModel.pollPlanOverviewRegeneration(
+                            overviewId: overviewId,
+                            pollAfterSeconds: pollAfterSeconds
+                        )
+                    }
+                    return
+                }
+
+                if overviewUpdateStatus == "failed" {
+                    viewModel.successToast = NSLocalizedString(
+                        "training.plan_overview_update_failed",
+                        comment: "訓練總覽更新失敗，請稍後再試"
+                    )
+                }
+
+                await viewModel.refreshOverviewAfterTargetUpdate()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .supportingTargetUpdated)) { _ in
+            Task {
+                await targetViewModel.forceRefresh()
             }
         }
         // Task 3: methodology selection sheet

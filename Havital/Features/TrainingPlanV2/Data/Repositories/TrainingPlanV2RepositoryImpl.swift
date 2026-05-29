@@ -274,6 +274,12 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
         return try await fetchAndCacheWeeklyPreview(overviewId: overviewId)
     }
 
+    func refreshWeeklyPreview(overviewId: String) async throws -> WeeklyPreviewV2 {
+        Logger.debug("[TrainingPlanV2Repo] Force refresh weekly preview for overview: \(overviewId)")
+        localDataSource.clearWeeklyPreview(overviewId: overviewId)
+        return try await fetchAndCacheWeeklyPreview(overviewId: overviewId)
+    }
+
     // MARK: - Weekly Summary
 
     func generateWeeklySummary(weekOfPlan: Int, forceUpdate: Bool?) async throws -> WeeklySummaryV2 {

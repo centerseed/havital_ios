@@ -109,7 +109,7 @@ struct WeekOverviewCardV2: View {
                 .contentShape(Rectangle())
                 .onTapGesture { showBadgePicker = true }
                 .accessibilityIdentifier("v2.weekly.showcase_badge")
-                .accessibilityLabel("選擇展示徽章")
+                .accessibilityLabel(Text(NSLocalizedString("achievements.badge_showcase_picker.accessibility_label", comment: "")))
 
                 // Right: badge name + distance + intensity bar + dot legend
                 VStack(alignment: .leading, spacing: 6) {
@@ -179,6 +179,7 @@ struct WeekOverviewCardV2: View {
                         Text(NSLocalizedString("training_plan.week_target", comment: "Week Target"))
                             .font(AppFont.bodyStrong())
                             .foregroundColor(.primary)
+                            .lineLimit(1)
 
                         Spacer()
 
@@ -205,6 +206,7 @@ struct WeekOverviewCardV2: View {
                         Text(NSLocalizedString("training_plan.training_calendar", comment: "Training Calendar"))
                             .font(AppFont.bodyStrong())
                             .foregroundColor(.primary)
+                            .lineLimit(1)
 
                         Spacer()
 

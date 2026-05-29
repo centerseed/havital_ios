@@ -15,9 +15,6 @@ struct PlanOverviewSheetV2: View {
     @State private var showAddSupportingTarget = false
     @State private var selectedSupportingTarget: Target? = nil
     @State private var isUpdatingOverview = false
-    @State private var showStageSelection = false
-    @State private var pendingWeeksRemaining: Int = 12
-    @State private var pendingDistanceKm: Double = 42.195
     // AC-IOS-ANALYTICS-P1-12: dedup flag lifted to TrainingPlanV2ViewModel.hasTrackedPlanOverviewView
 
     init(viewModel: TrainingPlanV2ViewModel, initialTab: Int = 0) {
@@ -120,38 +117,38 @@ struct PlanOverviewSheetV2: View {
                 Logger.debug("[🐛 TARGET_UPDATE] ③ PlanOverviewSheetV2 接收到通知")
                 Logger.debug("[🐛 TARGET_UPDATE]    userInfo = \(String(describing: notification.userInfo))")
 
-                // 檢查是否有重要變更
-                if let userInfo = notification.userInfo,
-                   let hasSignificantChange = userInfo["hasSignificantChange"] as? Bool {
-                    Logger.debug("[🐛 TARGET_UPDATE]    解析成功: hasSignificantChange = \(hasSignificantChange)")
+                let userInfo = notification.userInfo
+                let overviewUpdateStatus = userInfo?["planOverviewUpdateStatus"] as? String
+                let overviewUpdateOverviewId = userInfo?["planOverviewUpdateOverviewId"] as? String
+                let pollAfterSeconds = userInfo?["planOverviewUpdatePollAfterSeconds"] as? Int ?? 3
 
-                    if hasSignificantChange {
-                        let weeks = userInfo["remainingWeeks"] as? Int ?? 12
-                        let distance = userInfo["distanceKm"] as? Double ?? 42.195
-                        showEditMainTarget = false
-                        Task {
-                            // 等待 EditTargetView sheet dismiss 動畫完成
-                            try? await Task.sleep(nanoseconds: 400_000_000)
-                            await targetViewModel.forceRefresh()
-                            // Only show stage selection for race_run plans
-                            if viewModel.loader.planOverview?.isRaceRunTarget == true {
-                                Logger.debug("[🐛 TARGET_UPDATE] ④ 顯示起始階段選擇")
-                                pendingWeeksRemaining = weeks
-                                pendingDistanceKm = distance
-                                showStageSelection = true
-                            } else {
-                                Logger.debug("[🐛 TARGET_UPDATE] ④ 非 race plan，跳過起始階段選擇，直接更新 overview")
-                                await viewModel.generator.updateOverview(startFromStage: nil)
-                            }
+                showEditMainTarget = false
+                Task {
+                    try? await Task.sleep(nanoseconds: 400_000_000)
+                    await targetViewModel.forceRefresh()
+
+                    if overviewUpdateStatus == "queued" || overviewUpdateStatus == "running" {
+                        viewModel.successToast = NSLocalizedString(
+                            "training.plan_overview_update_pending",
+                            comment: "訓練總覽更新中，稍後會自動套用"
+                        )
+                        if let overviewId = overviewUpdateOverviewId {
+                            await viewModel.pollPlanOverviewRegeneration(
+                                overviewId: overviewId,
+                                pollAfterSeconds: pollAfterSeconds
+                            )
                         }
-                    } else {
-                        Logger.debug("[🐛 TARGET_UPDATE]    無重要變更，僅重新載入賽事資料")
-                        Task {
-                            await targetViewModel.forceRefresh()
-                        }
+                        return
                     }
-                } else {
-                    Logger.error("[🐛 TARGET_UPDATE] ❌ 無法解析 userInfo！")
+
+                    if overviewUpdateStatus == "failed" {
+                        viewModel.successToast = NSLocalizedString(
+                            "training.plan_overview_update_failed",
+                            comment: "訓練總覽更新失敗，請稍後再試"
+                        )
+                    }
+
+                    await viewModel.refreshOverviewAfterTargetUpdate()
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .supportingTargetUpdated)) { _ in
@@ -171,19 +168,6 @@ struct PlanOverviewSheetV2: View {
             }
             .sheet(isPresented: $showAddSupportingTarget) {
                 AddSupportingTargetView()
-            }
-            .sheet(isPresented: $showStageSelection) {
-                EditTargetStageSelectionView(
-                    weeksRemaining: pendingWeeksRemaining,
-                    targetDistanceKm: pendingDistanceKm
-                ) { selectedStageApiIdentifier in
-                    showStageSelection = false
-                    Task {
-                        withAnimation { isUpdatingOverview = true }
-                        await viewModel.generator.updateOverview(startFromStage: selectedStageApiIdentifier)
-                        withAnimation { isUpdatingOverview = false }
-                    }
-                }
             }
         }
     }

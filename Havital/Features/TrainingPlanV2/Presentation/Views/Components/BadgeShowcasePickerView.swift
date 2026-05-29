@@ -26,11 +26,11 @@ struct BadgeShowcasePickerView: View {
                 }
             }
             .background(Color(UIColor.systemGroupedBackground))
-            .navigationTitle("選擇展示徽章")
+            .navigationTitle(NSLocalizedString("achievements.badge_showcase_picker.title", comment: ""))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("恢復預設") {
+                    Button(NSLocalizedString("achievements.badge_showcase_picker.reset", comment: "")) {
                         onSelect(nil)
                         dismiss()
                     }
@@ -39,7 +39,7 @@ struct BadgeShowcasePickerView: View {
                     .disabled(selectedBadgeId == nil)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("完成") { dismiss() }
+                    Button(NSLocalizedString("common.done", comment: "")) { dismiss() }
                         .font(AppFont.label())
                 }
             }
@@ -50,7 +50,7 @@ struct BadgeShowcasePickerView: View {
     private var grid: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                Text("點選一顆已解鎖徽章，放到課表首頁展示。")
+                Text(NSLocalizedString("achievements.badge_showcase_picker.description", comment: ""))
                     .font(AppFont.micro())
                     .foregroundColor(.secondary)
                     .padding(.horizontal, 4)
@@ -114,9 +114,9 @@ struct BadgeShowcasePickerView: View {
             Image(systemName: "trophy")
                 .font(AppFont.numberLarge())
                 .foregroundColor(.secondary)
-            Text("還沒有已解鎖徽章")
+            Text(NSLocalizedString("achievements.badge_showcase_picker.empty_title", comment: ""))
                 .font(AppFont.label())
-            Text("完成訓練解鎖徽章後，就能選一顆放到課表首頁展示。")
+            Text(NSLocalizedString("achievements.badge_showcase_picker.empty_message", comment: ""))
                 .font(AppFont.micro())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)

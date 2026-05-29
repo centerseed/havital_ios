@@ -527,13 +527,18 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
     private func publishOptimisticStatusIfPossible(from customerInfo: CustomerInfo) async -> Bool {
         print("[Subscription] optimistic publish START customerInfo entitlements=\(customerInfo.entitlements.all.keys)")
 
-        guard let entitlement = customerInfo.entitlements[RevenueCatConfig.premiumEntitlement],
-              entitlement.isActive else {
-            print("[Subscription] entitlement \(RevenueCatConfig.premiumEntitlement) isActive=false — skipping optimistic publish")
+        guard let entitlement = customerInfo.entitlements[RevenueCatConfig.premiumEntitlement] else {
+            print("[Subscription] entitlement \(RevenueCatConfig.premiumEntitlement) not found — skipping optimistic publish")
             return false
         }
 
-        print("[Subscription] entitlement \(RevenueCatConfig.premiumEntitlement) isActive=\(entitlement.isActive)")
+        // RC SDK 在 intro trial 購買後有時回傳舊 cache（isActive=false）。
+        // 只要 entitlement 存在，purchase transaction 已被 Apple 確認，仍做 optimistic publish。
+        if !entitlement.isActive {
+            print("[Subscription] entitlement \(RevenueCatConfig.premiumEntitlement) isActive=false (RC server lag) — proceeding with optimistic publish")
+        } else {
+            print("[Subscription] entitlement \(RevenueCatConfig.premiumEntitlement) isActive=true")
+        }
 
         let dto = SubscriptionStatusDTO(
             status: "subscribed",

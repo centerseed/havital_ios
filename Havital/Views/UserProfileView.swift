@@ -2,6 +2,11 @@ import SwiftUI
 import FirebaseAuth
 import HealthKit
 
+private struct WeeklyDistanceEditContext: Identifiable {
+    let id = UUID()
+    let initialValue: Int
+}
+
 enum ProfileIdentityDisplay {
     static func emailText(profileEmail: String?, firebaseEmail: String?) -> String {
         if let profileEmail = profileEmail?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -25,9 +30,7 @@ struct UserProfileView: View {
     @EnvironmentObject private var featureFlagManager: FeatureFlagManager
     @Environment(\.dismiss) private var dismiss
     @State private var showZoneEditor = false
-    @State private var showWeeklyDistanceEditor = false  // 新增週跑量編輯器狀態
-    @State private var currentWeekDistance: Int = 0  // 新增當前週跑量
-    @State private var weeklyDistance: Int = 0
+    @State private var weeklyDistanceEditContext: WeeklyDistanceEditContext? = nil
     @State private var showTrainingDaysEditor = false
     // Note: reset goal confirmation uses UIKit UIAlertController (see showResetGoalAlert)
     // because SwiftUI .alert button actions don't fire in iOS 26 sheet context
@@ -122,10 +125,9 @@ struct UserProfileView: View {
                 HeartRateZoneInfoView()
             }
         }
-        // 新增週跑量編輯器
-        .sheet(isPresented: $showWeeklyDistanceEditor) {
+        .sheet(item: $weeklyDistanceEditContext) { ctx in
             WeeklyDistanceEditorView(
-                distance: $weeklyDistance,
+                initial: ctx.initialValue,
                 onSave: { newDistance in
                     Task {
                         await viewModel.updateWeeklyDistance(distance: newDistance)
@@ -676,40 +678,6 @@ struct UserProfileView: View {
     }
 
 
-    @ViewBuilder
-    private var weeklyDistanceSection: some View {
-        if let userData = viewModel.userData {
-            Section(header: Text(NSLocalizedString("profile.training_info", comment: "Training Info"))) {
-                HStack {
-                    Label(NSLocalizedString("profile.weekly_mileage", comment: "Weekly Mileage"), systemImage: "figure.walk")
-                        .foregroundColor(.blue)
-                    Spacer()
-                    Text({
-                        let dist = UnitManager.shared.convertedDistance(Double(userData.currentWeekDistance ?? 0))
-                        return "\(Int(dist)) \(UnitManager.shared.currentUnitSystem.distanceSuffix)"
-                    }())
-                        .fontWeight(.medium)
-                }
-
-                Button(action: {
-                    currentWeekDistance = Int(userData.currentWeekDistance ?? 0)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        weeklyDistance = Int(userData.currentWeekDistance ?? 0)
-                        showWeeklyDistanceEditor = true
-                    }
-                }) {
-                    HStack {
-                        Text(NSLocalizedString("training.edit_volume", comment: "Edit Weekly Volume"))
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundColor(.secondary)
-                            .font(AppFont.caption())
-                    }
-                }
-            }
-        }
-    }
-
     // MARK: - Group 2: 訓練設定（週跑量 + 訓練日合併）
 
     @ViewBuilder
@@ -729,11 +697,7 @@ struct UserProfileView: View {
                 }
 
                 Button(action: {
-                    currentWeekDistance = Int(userData.currentWeekDistance ?? 0)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        weeklyDistance = Int(userData.currentWeekDistance ?? 0)
-                        showWeeklyDistanceEditor = true
-                    }
+                    weeklyDistanceEditContext = WeeklyDistanceEditContext(initialValue: Int(userData.currentWeekDistance ?? 0))
                 }) {
                     HStack {
                         Text(NSLocalizedString("training.edit_volume", comment: "Edit Weekly Volume"))

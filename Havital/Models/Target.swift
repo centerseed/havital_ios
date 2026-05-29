@@ -1,5 +1,21 @@
 import Foundation
 
+struct PlanOverviewUpdateStatus: Codable, Equatable {
+    let status: String
+    let overviewId: String?
+    let pollAfterSeconds: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case status
+        case overviewId = "overview_id"
+        case pollAfterSeconds = "poll_after_seconds"
+    }
+
+    var shouldPoll: Bool {
+        status == "queued" || status == "running"
+    }
+}
+
 struct Target: Codable, Identifiable {
     let id: String
     let type: String
@@ -12,6 +28,7 @@ struct Target: Codable, Identifiable {
     let trainingWeeks: Int
     let timezone: String  // 新增：賽事時區
     let raceId: String?   // 賽事資料庫 ID（選填，手動輸入則為 nil）
+    let planOverviewUpdate: PlanOverviewUpdateStatus?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -25,13 +42,15 @@ struct Target: Codable, Identifiable {
         case trainingWeeks = "training_weeks"
         case timezone
         case raceId = "race_id"
+        case planOverviewUpdate = "plan_overview_update"
     }
 
     // 初始化器，預設時區為台北，raceId 選填
     init(id: String = "", type: String, name: String, distanceKm: Int,
          targetTime: Int, targetPace: String, raceDate: Int,
          isMainRace: Bool, trainingWeeks: Int, timezone: String = "Asia/Taipei",
-         raceId: String? = nil) {
+         raceId: String? = nil,
+         planOverviewUpdate: PlanOverviewUpdateStatus? = nil) {
         self.id = id
         self.type = type
         self.name = name
@@ -43,6 +62,7 @@ struct Target: Codable, Identifiable {
         self.trainingWeeks = trainingWeeks
         self.timezone = timezone
         self.raceId = raceId
+        self.planOverviewUpdate = planOverviewUpdate
     }
 
     // 從 Decoder 解碼時的處理
@@ -69,5 +89,6 @@ struct Target: Codable, Identifiable {
 
         // raceId 選填：後端暫未回傳時容錯
         raceId = try container.decodeIfPresent(String.self, forKey: .raceId)
+        planOverviewUpdate = try container.decodeIfPresent(PlanOverviewUpdateStatus.self, forKey: .planOverviewUpdate)
     }
 }

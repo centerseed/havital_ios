@@ -126,6 +126,11 @@ protocol TrainingPlanV2Repository {
     /// - Returns: 週訓練預覽實體
     func getWeeklyPreview(overviewId: String) async throws -> WeeklyPreviewV2
 
+    /// 強制刷新週訓練預覽
+    /// - Parameter overviewId: 概覽 ID
+    /// - Returns: 最新的週訓練預覽實體
+    func refreshWeeklyPreview(overviewId: String) async throws -> WeeklyPreviewV2
+
     // MARK: - Weekly Summary
 
     /// 套用選取的調整建議
@@ -195,6 +200,11 @@ extension TrainingPlanV2Repository {
     /// 預設呼叫不帶 forceRefresh（forceRefresh = false）
     func getPlanStatus() async throws -> PlanStatusV2Response {
         try await getPlanStatus(forceRefresh: false)
+    }
+
+    /// Default fallback for test/debug repositories that do not cache weekly preview.
+    func refreshWeeklyPreview(overviewId: String) async throws -> WeeklyPreviewV2 {
+        try await getWeeklyPreview(overviewId: overviewId)
     }
 }
 

@@ -131,15 +131,15 @@ struct TrainingRecordView: View {
     // MARK: - Filter Chip Row
 
     private var filterChipRow: some View {
-        // Plain HStack (no horizontal ScrollView) — 5 short chips fit iPhone 17 Pro 393pt width.
-        HStack(spacing: 6) {
-            ForEach(filterOptions, id: \.id) { option in
-                filterChip(option)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(filterOptions, id: \.id) { option in
+                    filterChip(option)
+                }
             }
+            .padding(.horizontal, 16)
         }
-        .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .frame(maxWidth: .infinity)
         .background(Color(UIColor.systemGroupedBackground))
     }
 
@@ -149,6 +149,8 @@ struct TrainingRecordView: View {
 
         return Text(option.localizedLabel)
             .font(AppFont.label())
+            .lineLimit(1)
+            .fixedSize()
             .foregroundColor(isSelected ? .white : .primary)
             .padding(.vertical, 8)
             .padding(.horizontal, 15)

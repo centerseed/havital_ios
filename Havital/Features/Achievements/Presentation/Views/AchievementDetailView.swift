@@ -132,7 +132,8 @@ struct AchievementDetailView: View {
     // MARK: - Story
 
     private var storySection: some View {
-        let storyText = badge.storyKey.localizedOrFallback(default: "")
+        let isRevealed = badge.status == .unlocked
+        let storyText = isRevealed ? badge.storyKey.localizedOrFallback(default: "") : "??????"
         guard !storyText.isEmpty else { return AnyView(EmptyView()) }
 
         return AnyView(

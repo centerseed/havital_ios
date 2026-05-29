@@ -43,6 +43,11 @@ struct PlanOverviewV2DTO: Codable {
     // 里程碑計算依據
     let milestoneBasis: String?
 
+    // Async target-overview regeneration metadata
+    let regenerationStatus: String?
+    let regenerationReason: String?
+    let regenerationErrorMessage: String?
+
     // MARK: - CodingKeys
 
     enum CodingKeys: String, CodingKey {
@@ -69,6 +74,9 @@ struct PlanOverviewV2DTO: Codable {
         case createdAt = "created_at"
         case methodologyVersion = "methodology_version"
         case milestoneBasis = "milestone_basis"
+        case regenerationStatus = "regeneration_status"
+        case regenerationReason = "regeneration_reason"
+        case regenerationErrorMessage = "regeneration_error_message"
     }
 
     init(
@@ -94,7 +102,10 @@ struct PlanOverviewV2DTO: Codable {
         milestones: [MilestoneDTO]?,
         createdAt: String?,
         methodologyVersion: String?,
-        milestoneBasis: String?
+        milestoneBasis: String?,
+        regenerationStatus: String? = nil,
+        regenerationReason: String? = nil,
+        regenerationErrorMessage: String? = nil
     ) {
         self.id = id
         self.targetId = targetId
@@ -119,6 +130,9 @@ struct PlanOverviewV2DTO: Codable {
         self.createdAt = createdAt
         self.methodologyVersion = methodologyVersion
         self.milestoneBasis = milestoneBasis
+        self.regenerationStatus = regenerationStatus
+        self.regenerationReason = regenerationReason
+        self.regenerationErrorMessage = regenerationErrorMessage
     }
 
     init(from decoder: Decoder) throws {
@@ -146,6 +160,9 @@ struct PlanOverviewV2DTO: Codable {
         milestones = try container.decodeIfPresent([MilestoneDTO].self, forKey: .milestones)
         methodologyVersion = try container.decodeIfPresent(String.self, forKey: .methodologyVersion)
         milestoneBasis = try container.decodeIfPresent(String.self, forKey: .milestoneBasis)
+        regenerationStatus = try container.decodeIfPresent(String.self, forKey: .regenerationStatus)
+        regenerationReason = try container.decodeIfPresent(String.self, forKey: .regenerationReason)
+        regenerationErrorMessage = try container.decodeIfPresent(String.self, forKey: .regenerationErrorMessage)
 
         if let createdAtString = try? container.decodeIfPresent(String.self, forKey: .createdAt) {
             createdAt = createdAtString

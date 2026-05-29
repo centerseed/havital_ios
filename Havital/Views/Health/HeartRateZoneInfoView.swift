@@ -11,9 +11,7 @@ struct HeartRateZoneInfoView: View {
     @StateObject private var viewModel = UserProfileFeatureViewModel()
     @State private var maxHeartRate: Int = 190
     @State private var restingHeartRate: Int = 60
-    @State private var zones: [HeartRateZone] = []
     @State private var isLoading = true
-    @State private var isEditing = false
     @State private var showingAlert = false
     @State private var alertMessage = ""
     @State private var isSaving = false
@@ -21,6 +19,11 @@ struct HeartRateZoneInfoView: View {
     @State private var navigateToBackfillPrompt = false
     /// true = 用戶尚未手動設定過心率，目前顯示的是基於年齡的預設值（僅 onboarding 模式使用）
     @State private var isUsingDefaultHeartRate = false
+
+    /// 心率區間從目前的最大/靜息心率即時計算 — picker 一變動，下方區間就跟著更新。
+    private var zones: [HeartRateZone] {
+        HeartRateZone.calculateZones(maxHR: maxHeartRate, restingHR: restingHeartRate)
+    }
 
     private let backfillCoordinator = OnboardingBackfillCoordinator.shared
     private let mode: HeartRateViewMode
@@ -85,17 +88,26 @@ struct HeartRateZoneInfoView: View {
     @ViewBuilder
     private var contentView: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(spacing: 16) {
                 descriptionText
-                heartRateSettingsView
-                if !isOnboardingMode {
-                    Divider()
-                        .padding(.horizontal)
-                    heartRateZoneDetailsView
+                heartRateEditCards
+
+                if isOnboardingMode {
+                    if isUsingDefaultHeartRate {
+                        Text(NSLocalizedString("hr_zone.default_values_hint", comment: "Default heart rate values hint"))
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                            .padding(.horizontal)
+                    }
+                } else {
+                    zoneSpectrumBar
+                    zoneList
+                    saveButton
                 }
             }
+            .padding(.vertical, 16)
         }
-        .background(Color(UIColor.systemBackground)) // 確保有不透明的背景
+        .background(Color(UIColor.systemGroupedBackground))
     }
 
     @ViewBuilder
@@ -105,233 +117,182 @@ struct HeartRateZoneInfoView: View {
              NSLocalizedString("hr_zone.description", comment: "Heart rate zone description"))
             .font(AppFont.footnote())
             .foregroundColor(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal)
-            .padding(.top)
     }
 
-    @ViewBuilder
-    private var heartRateSettingsView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if !isOnboardingMode {
-                editToggleHeader
-            }
-
-            if isEditing || isOnboardingMode {
-                editModeContent
-            } else {
-                displayModeContent
-            }
-        }
-        .padding(.vertical, 8)
-    }
+    // MARK: - HR Edit Cards (Hero)
 
     @ViewBuilder
-    private var editToggleHeader: some View {
-        HStack {
-            Text(NSLocalizedString("hr_zone.current_settings", comment: "Current Settings"))
-                .font(AppFont.headline())
+    private var heartRateEditCards: some View {
+        HStack(spacing: 12) {
+            hrEditCard(
+                iconName: "bolt.heart.fill",
+                accent: .red,
+                title: NSLocalizedString("hr_zone.max_hr", comment: "Max HR"),
+                value: $maxHeartRate,
+                range: 100...250
+            )
 
-            Spacer()
-
-            Button(isEditing ? NSLocalizedString("common.cancel", comment: "Cancel") : NSLocalizedString("common.edit", comment: "Edit")) {
-                if isEditing {
-                    loadCurrentValues()
-                }
-                isEditing.toggle()
-            }
-            .foregroundColor(.blue)
+            hrEditCard(
+                iconName: "moon.zzz.fill",
+                accent: .indigo,
+                title: NSLocalizedString("hr_zone.resting_hr", comment: "Resting HR"),
+                value: $restingHeartRate,
+                range: 30...120
+            )
         }
         .padding(.horizontal)
     }
 
     @ViewBuilder
-    private var editModeContent: some View {
-        VStack(spacing: 20) {
-            maxHeartRateEditor
-            Divider().padding(.horizontal)
-            restingHeartRateEditor
-
-            // 預設值說明文字：僅在 onboarding 模式且用戶尚未手動修改時顯示
-            if isOnboardingMode && isUsingDefaultHeartRate {
-                Text(NSLocalizedString("hr_zone.default_values_hint", comment: "Default heart rate values hint"))
+    private func hrEditCard(iconName: String, accent: Color, title: String, value: Binding<Int>, range: ClosedRange<Int>) -> some View {
+        VStack(spacing: 14) {
+            HStack(spacing: 6) {
+                Image(systemName: iconName)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(accent)
+                Text(title)
                     .font(AppFont.caption())
                     .foregroundColor(.secondary)
-                    .padding(.horizontal)
-                    .padding(.top, 4)
+                    .lineLimit(1)
             }
 
-            if !isOnboardingMode {
-                Button(action: { Task { await saveHeartRateZones() } }) {
-                    if isSaving {
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle())
-                    } else {
-                        Text(NSLocalizedString("hr_zone.save_settings", comment: "Save Settings"))
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .disabled(isSaving)
-                .padding(.horizontal)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var maxHeartRateEditor: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(NSLocalizedString("hr_zone.max_hr", comment: "Max Heart Rate"))
-                        .font(AppFont.headline())
-
-                    Text(NSLocalizedString("hr_zone.max_hr_info_message", comment: "Max HR info message"))
-                        .font(AppFont.caption())
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Spacer()
-
-                HStack(spacing: 4) {
-                    Picker("", selection: $maxHeartRate) {
-                        ForEach(100...250, id: \.self) { value in
-                            Text("\(value)").tag(value)
-                        }
-                    }
-                    .pickerStyle(.wheel)
-                    .frame(width: 80)
-                    .onChange(of: maxHeartRate) { _ in
-                        if isOnboardingMode {
-                            isUsingDefaultHeartRate = false
-                        }
-                    }
-
-                    Text("bpm")
-                        .foregroundColor(.secondary)
-                        .font(AppFont.bodySmall())
-                }
-            }
-
-            // 添加 220-年齡 公式提示
-            Text(NSLocalizedString("hr_zone.max_hr_formula_hint", comment: "Tip: You can estimate your max heart rate using the formula: 220 - age"))
-                .font(AppFont.captionSmall())
-                .foregroundColor(.secondary.opacity(0.8))
-                .italic()
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-    }
-
-    @ViewBuilder
-    private var restingHeartRateEditor: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(NSLocalizedString("hr_zone.resting_hr", comment: "Resting Heart Rate"))
-                    .font(AppFont.headline())
-
-                Text(NSLocalizedString("hr_zone.resting_hr_info_message", comment: "Resting HR info message"))
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                Text("\(value.wrappedValue)")
+                    .font(.system(size: 44, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundColor(.primary)
+                    .contentTransition(.numericText())
+                    .animation(.snappy(duration: 0.15), value: value.wrappedValue)
+                Text("bpm")
                     .font(AppFont.caption())
                     .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Spacer()
-
-            HStack(spacing: 4) {
-                Picker("", selection: $restingHeartRate) {
-                    ForEach(30...120, id: \.self) { value in
-                        Text("\(value)").tag(value)
-                    }
-                }
-                .pickerStyle(.wheel)
-                .frame(width: 80)
-                .onChange(of: restingHeartRate) { _ in
+            Stepper("", value: value, in: range)
+                .labelsHidden()
+                .controlSize(.regular)
+                .onChange(of: value.wrappedValue) { _ in
                     if isOnboardingMode {
                         isUsingDefaultHeartRate = false
                     }
                 }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 18)
+        .padding(.horizontal, 12)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(16)
+    }
 
-                Text("bpm")
-                    .foregroundColor(.secondary)
-                    .font(AppFont.bodySmall())
+    // MARK: - Zone Spectrum Bar (Visual)
+
+    @ViewBuilder
+    private var zoneSpectrumBar: some View {
+        let zoneLow = zones.first?.range.lowerBound ?? Double(restingHeartRate)
+        let zoneHigh = zones.last?.range.upperBound ?? Double(maxHeartRate)
+        let totalRange = max(1.0, zoneHigh - zoneLow)
+
+        VStack(spacing: 6) {
+            GeometryReader { geo in
+                HStack(spacing: 2) {
+                    ForEach(zones, id: \.zone) { zone in
+                        let proportion = (zone.range.upperBound - zone.range.lowerBound) / totalRange
+                        let segmentWidth = max(14, geo.size.width * proportion - 2)
+                        ZStack {
+                            zoneColor(for: zone.zone).opacity(0.88)
+                            Text("\(zone.zone)")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        .frame(width: segmentWidth)
+                    }
+                }
             }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 8)
-    }
+            .frame(height: 24)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
 
-    @ViewBuilder
-    private var displayModeContent: some View {
-        HStack {
-            Text(NSLocalizedString("hr_zone.max_heart_rate_display", comment: "Max Heart Rate"))
-                .font(AppFont.bodySmall())
-            Spacer()
-            Text("\(maxHeartRate) bpm")
-                .font(AppFont.bodySmall())
-                .foregroundColor(.secondary)
-        }
-        .padding(.horizontal)
-
-        HStack {
-            Text(NSLocalizedString("hr_zone.resting_heart_rate_display", comment: "Resting Heart Rate"))
-                .font(AppFont.bodySmall())
-            Spacer()
-            Text("\(restingHeartRate) bpm")
-                .font(AppFont.bodySmall())
-                .foregroundColor(.secondary)
+            HStack {
+                Text("\(Int(zoneLow.rounded())) bpm")
+                Spacer()
+                Text("\(Int(zoneHigh.rounded())) bpm")
+            }
+            .font(AppFont.captionSmall())
+            .foregroundColor(.secondary)
+            .monospacedDigit()
         }
         .padding(.horizontal)
     }
 
-    @ViewBuilder
-    private var heartRateZoneDetailsView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(NSLocalizedString("hr_zone.details", comment: "Heart Rate Zone Details"))
-                .font(AppFont.headline())
-                .padding(.horizontal)
+    // MARK: - Compact Zone List
 
-            if isLoading {
-                ProgressView(NSLocalizedString("hr_zone.loading", comment: "Loading..."))
-                    .frame(maxWidth: .infinity, minHeight: 100)
-            } else {
-                ForEach(zones, id: \.zone) { zone in
-                    zoneDetailRow(zone: zone)
+    @ViewBuilder
+    private var zoneList: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(zones.enumerated()), id: \.element.zone) { index, zone in
+                HStack(spacing: 12) {
+                    Circle()
+                        .fill(zoneColor(for: zone.zone))
+                        .frame(width: 10, height: 10)
+
+                    Text("Z\(zone.zone)")
+                        .font(AppFont.captionMedium())
+                        .foregroundColor(.secondary)
+                        .frame(width: 22, alignment: .leading)
+                        .monospacedDigit()
+
+                    Text(zone.name)
+                        .font(AppFont.body())
+                        .lineLimit(1)
+
+                    Spacer()
+
+                    HStack(spacing: 3) {
+                        Text("\(Int(zone.range.lowerBound.rounded()))-\(Int(zone.range.upperBound.rounded()))")
+                            .font(AppFont.bodySmall())
+                            .foregroundColor(.primary)
+                            .monospacedDigit()
+                        Text("bpm")
+                            .font(AppFont.captionSmall())
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+
+                if index < zones.count - 1 {
+                    Divider().padding(.leading, 48)
                 }
             }
         }
-        .padding(.vertical, 8)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(14)
+        .padding(.horizontal)
     }
 
+    // MARK: - Save Button
+
     @ViewBuilder
-    private func zoneDetailRow(zone: HeartRateZone) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(String(format: NSLocalizedString("hr_zone.zone", comment: "Zone info"), zone.zone, zone.name))
-                    .font(AppFont.bodySmall())
-                    .fontWeight(.medium)
-
-                Spacer()
-
-                Text("\(Int(zone.range.lowerBound.rounded()))-\(Int(zone.range.upperBound.rounded())) bpm")
-                    .font(AppFont.bodySmall())
-                    .foregroundColor(.primary)
-                    .fontWeight(.medium)
+    private var saveButton: some View {
+        Button {
+            Task { await saveHeartRateZones() }
+        } label: {
+            ZStack {
+                if isSaving {
+                    ProgressView()
+                        .tint(.white)
+                } else {
+                    Text(NSLocalizedString("hr_zone.save_settings", comment: "Save Settings"))
+                        .font(AppFont.headline())
+                        .foregroundColor(.white)
+                }
             }
-
-            Text(zone.description)
-                .font(AppFont.caption())
-                .foregroundColor(.secondary)
-
-            Text(String(format: NSLocalizedString("hr_zone.benefit", comment: "Benefit"), zone.benefit))
-                .font(AppFont.caption())
-                .foregroundColor(.secondary)
+            .frame(maxWidth: .infinity, minHeight: 50)
+            .background(Color.accentColor)
+            .cornerRadius(14)
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal)
-        .background(zoneColor(for: zone.zone).opacity(0.1))
-        .cornerRadius(8)
+        .disabled(isSaving)
         .padding(.horizontal)
     }
 
@@ -395,15 +356,6 @@ struct HeartRateZoneInfoView: View {
         await HeartRateZonesBridge.shared.ensureHeartRateZonesAvailable()
         loadCurrentValues()
 
-        if !isOnboardingMode {
-            // Use HeartRateZone entity directly instead of deprecated HeartRateZonesManager
-            zones = HeartRateZone.calculateZones(maxHR: maxHeartRate, restingHR: restingHeartRate)
-        }
-
-        if isOnboardingMode {
-            isEditing = true
-        }
-
         isLoading = false
     }
 
@@ -466,8 +418,8 @@ struct HeartRateZoneInfoView: View {
                 // Onboarding 模式：檢查是否需要顯示 backfill 提示並導航
                 onboardingCoordinator.navigate(to: .personalBest)
             } else {
-                isEditing = false
-                await loadZoneData()
+                // Profile 模式：存檔成功，關閉 sheet 回到個人資料
+                dismiss()
             }
 
         } catch {

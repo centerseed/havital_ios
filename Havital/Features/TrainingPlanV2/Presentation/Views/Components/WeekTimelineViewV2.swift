@@ -191,6 +191,7 @@ struct TimelineItemViewV2: View {
                                         .font(AppFont.bodySmall())
                                         .fontWeight(isToday ? .semibold : .regular)
                                         .foregroundColor(isToday ? .blue : .primary)
+                                        .lineLimit(1)
 
                                     if let date = viewModel.getDate(for: day.dayIndexInt) {
                                         Text(DateFormatterHelper.formatShortDate(date))
@@ -252,7 +253,7 @@ struct TimelineItemViewV2: View {
                                     // 計畫 row (always show for non-rest)
                                     if let run = day.primaryRunActivity {
                                         HStack(alignment: .firstTextBaseline, spacing: 6) {
-                                            Text("課表")
+                                            Text(NSLocalizedString("training.timeline.plan_label", comment: ""))
                                                 .font(AppFont.micro())
                                                 .tracking(0.4)
                                                 .foregroundColor(.secondary)
@@ -437,7 +438,7 @@ struct TimelineItemViewV2: View {
     @ViewBuilder
     private func actualWorkoutRow(_ workout: WorkoutV2) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text("實際")
+            Text(NSLocalizedString("training.timeline.actual_label", comment: ""))
                 .font(AppFont.micro())
                 .tracking(0.4)
                 .foregroundColor(PacerizColor.greenDeep)

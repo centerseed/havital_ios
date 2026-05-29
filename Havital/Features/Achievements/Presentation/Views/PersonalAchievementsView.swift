@@ -33,7 +33,7 @@ struct PersonalAchievementsView: View {
                 .sheet(item: $viewModel.selectedBadge) { badge in
                     AchievementDetailView(
                         badge: badge,
-                        shareable: matchingShareable(for: badge),
+                        shareable: badge.status == .unlocked ? resolvedShareable(for: badge) : nil,
                         onShare: { shareable in
                             viewModel.selectedBadge = nil
                             viewModel.selectShareable(shareable, entry: "badge_detail")
@@ -935,34 +935,78 @@ struct PersonalAchievementsView: View {
         return AchievementBadgeArtwork.assetNameForBadgeId(shareable.badgeId ?? "")
     }
 
-    /// Backend shareable if present; otherwise a synthetic one built from the badge so the
-    /// share button always works. Stats fall back to always-available lifetime/summary data
-    /// (累積里程 / 完成週數 / 解鎖徽章數) since per-week context isn't in the achievement summary.
+    /// Build a shareable for any unlocked badge with one context stat per track/chapter.
     private func resolvedShareable(for badge: AchievementBadge) -> AchievementShareable {
-        if let real = matchingShareable(for: badge) { return real }
+        let track = viewModel.summary?.achievementTracks.first {
+            $0.badges.contains { $0.badgeId == badge.badgeId }
+        }
+        let stats = viewModel.summary?.lifetimeStats
+        let weeksFormat = NSLocalizedString("achievements.share.stat.weeks_value", comment: "")
 
-        var fields: [AchievementPublicField] = []
-        if let km = viewModel.summary?.lifetimeStats.totalDistanceKm {
-            fields.append(AchievementPublicField(
-                key: "total_distance",
-                labelKey: "achievements.share.stat.total_distance",
-                value: "\(Int(km.rounded())) km"
-            ))
-        }
-        if let weeks = viewModel.summary?.lifetimeStats.completedWeeks {
-            fields.append(AchievementPublicField(
-                key: "completed_weeks",
-                labelKey: "achievements.share.stat.completed_weeks",
-                value: String(format: NSLocalizedString("achievements.share.stat.weeks_value", comment: ""), weeks)
-            ))
-        }
-        if let unlocked = viewModel.summary?.storySummary.unlockedCount {
-            fields.append(AchievementPublicField(
-                key: "unlocked_badges",
-                labelKey: "achievements.share.stat.unlocked_badges",
-                value: "\(unlocked)"
-            ))
-        }
+        let field: AchievementPublicField? = {
+            if let track {
+                switch track.trackId {
+                case "mileage_markers":
+                    if let km = track.current {
+                        return AchievementPublicField(key: "annual_distance",
+                            labelKey: "achievements.share.stat.annual_distance",
+                            value: "\(Int(km.rounded())) km")
+                    }
+                case "rhythm":
+                    if let runs = stats?.totalRuns, runs > 0 {
+                        return AchievementPublicField(key: "total_runs",
+                            labelKey: "achievements.share.stat.total_runs",
+                            value: "\(runs)")
+                    }
+                case "plan":
+                    if let weeks = track.current {
+                        return AchievementPublicField(key: "qualified_weeks",
+                            labelKey: "achievements.share.stat.qualified_weeks",
+                            value: String(format: weeksFormat, Int(weeks)))
+                    }
+                case "results":
+                    if let count = track.current {
+                        return AchievementPublicField(key: "major_results",
+                            labelKey: "achievements.share.stat.major_results",
+                            value: "\(Int(count))")
+                    }
+                default: break
+                }
+            }
+            switch badge.chapter {
+            case .start:
+                if let runs = stats?.totalRuns, runs > 0 {
+                    return AchievementPublicField(key: "total_runs",
+                        labelKey: "achievements.share.stat.total_runs", value: "\(runs)")
+                }
+            case .build:
+                if let km = stats?.totalDistanceKm {
+                    return AchievementPublicField(key: "total_distance",
+                        labelKey: "achievements.share.stat.total_distance",
+                        value: "\(Int(km.rounded())) km")
+                }
+            case .adapt:
+                if let weeks = stats?.completedWeeks {
+                    return AchievementPublicField(key: "completed_weeks",
+                        labelKey: "achievements.share.stat.completed_weeks",
+                        value: String(format: weeksFormat, weeks))
+                }
+            case .prove:
+                if let km = stats?.longestRunKm, km > 0 {
+                    return AchievementPublicField(key: "longest_run",
+                        labelKey: "achievements.share.stat.longest_run",
+                        value: "\(Int(km.rounded())) km")
+                }
+            case .identity:
+                if let km = stats?.totalDistanceKm {
+                    return AchievementPublicField(key: "total_distance",
+                        labelKey: "achievements.share.stat.total_distance",
+                        value: "\(Int(km.rounded())) km")
+                }
+            default: break
+            }
+            return nil
+        }()
 
         return AchievementShareable(
             materialId: "badge_\(badge.badgeId)",
@@ -970,7 +1014,7 @@ struct PersonalAchievementsView: View {
             titleKey: badge.nameKey,
             summaryKey: badge.storyKey,
             summaryParams: [:],
-            publicFields: fields,
+            publicFields: field.map { [$0] } ?? [],
             defaultSensitiveFieldsEnabled: false,
             badgeId: badge.badgeId,
             chapter: badge.chapter

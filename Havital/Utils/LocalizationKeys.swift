@@ -761,6 +761,25 @@ enum GaitAnalysisChart {
         static let trainingNotesPlaceholder = "workout.detail.training_notes_placeholder"
         static let trainingNotesSaveError = "workout.detail.training_notes_save_error"
         static let trainingNotesEditorTitle = "workout.detail.training_notes_editor_title"
+
+        // Treadmill Correction
+        static let treadmillCorrectionTitle = "workout.detail.treadmill_correction_title"
+        static let treadmillCorrectionDescription = "workout.detail.treadmill_correction_description"
+        static let treadmillCorrectionActualDistance = "workout.detail.treadmill_correction_actual_distance"
+        static let treadmillCorrectionIncline = "workout.detail.treadmill_correction_incline"
+        static let treadmillCorrectionNotes = "workout.detail.treadmill_correction_notes"
+        static let treadmillCorrectionApply = "workout.detail.treadmill_correction_apply"
+        static let treadmillCorrectionApplied = "workout.detail.treadmill_correction_applied"
+        static let treadmillCorrectionAppliedDistance = "workout.detail.treadmill_correction_applied_distance"
+        static let treadmillCorrectionModify = "workout.detail.treadmill_correction_modify"
+        static let treadmillCorrectionSuccess = "workout.detail.treadmill_correction_success"
+        static let treadmillCorrectionError = "workout.detail.treadmill_correction_error"
+        static let treadmillCorrectionDistanceError = "workout.detail.treadmill_correction_distance_error"
+        static let treadmillCorrectionInclineError = "workout.detail.treadmill_correction_incline_error"
+        static let treadmillCorrectionNotesError = "workout.detail.treadmill_correction_notes_error"
+        static let treadmillCorrectionDistancePlaceholder = "workout.detail.treadmill_correction_distance_placeholder"
+        static let treadmillCorrectionInclinePlaceholder = "workout.detail.treadmill_correction_incline_placeholder"
+        static let treadmillCorrectionNotesPlaceholder = "workout.detail.treadmill_correction_notes_placeholder"
     }
 
     enum LowData {

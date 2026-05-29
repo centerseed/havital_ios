@@ -949,6 +949,8 @@ private final class UITestMethodologyWorkoutRepository: WorkoutRepository {
     func invalidateRefreshCooldown() {}
     func clearCache() async {}
     func preloadData() async {}
+
+    // applyTreadmillCorrection uses protocol default (throws dataSourceUnavailable)
 }
 
 private enum HarnessError: LocalizedError {

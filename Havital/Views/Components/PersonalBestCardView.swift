@@ -169,7 +169,7 @@ struct PersonalBestDetailView: View {
                         .font(AppFont.numberMedium().monospacedDigit())
                         .foregroundColor(isBest ? PacerizColor.blueDeep : .primary)
                     if isBest {
-                        Text("最佳")
+                        Text(NSLocalizedString("common.best", comment: ""))
                             .font(AppFont.chip())
                             .foregroundColor(.white)
                             .padding(.horizontal, 7)

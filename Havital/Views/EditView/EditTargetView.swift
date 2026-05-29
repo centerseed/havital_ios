@@ -106,16 +106,19 @@ struct EditTargetView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(L10n.Common.save.localized) {
                         Task {
-                            if let hasSignificantChange = await targetModel.updateTarget() {
+                            if let result = await targetModel.updateTarget() {
                                 // 無論是否有重要變更，都發送通知並關閉視圖
-                                Logger.debug("[🐛 TARGET_UPDATE] ② 發送通知: hasSignificantChange = \(hasSignificantChange)")
+                                Logger.debug("[🐛 TARGET_UPDATE] ② 發送通知: hasSignificantChange = \(result.hasSignificantChange)")
                                 NotificationCenter.default.post(
                                     name: .targetUpdated,
                                     object: nil,
                                     userInfo: [
-                                        "hasSignificantChange": hasSignificantChange,
+                                        "hasSignificantChange": result.hasSignificantChange,
                                         "remainingWeeks": targetModel.remainingWeeks,
-                                        "distanceKm": Double(targetModel.selectedDistance) ?? 42.195
+                                        "distanceKm": Double(targetModel.selectedDistance) ?? 42.195,
+                                        "planOverviewUpdateStatus": result.planOverviewUpdate?.status as Any,
+                                        "planOverviewUpdateOverviewId": result.planOverviewUpdate?.overviewId as Any,
+                                        "planOverviewUpdatePollAfterSeconds": result.planOverviewUpdate?.pollAfterSeconds as Any
                                     ]
                                 )
                                 dismiss()
@@ -128,6 +131,11 @@ struct EditTargetView: View {
             }
         }
     }
+}
+
+struct EditTargetUpdateResult {
+    let hasSignificantChange: Bool
+    let planOverviewUpdate: PlanOverviewUpdateStatus?
 }
 
 @MainActor
@@ -295,7 +303,7 @@ class EditTargetViewModel: ObservableObject {
         }
     }
     
-    func updateTarget() async -> Bool? {
+    func updateTarget() async -> EditTargetUpdateResult? {
         isLoading = true
         error = nil
 
@@ -315,7 +323,7 @@ class EditTargetViewModel: ObservableObject {
             )
             
             // 更新目標賽事 (using TargetRepository)
-            _ = try await targetRepository.updateTarget(id: targetId, target: target)
+            let updatedTarget = try await targetRepository.updateTarget(id: targetId, target: target)
             
             // 檢查是否有重要變更（距離、完賽時間、訓練週數、或賽事日期跨週）
             let currentTargetTime = targetHours * 3600 + targetMinutes * 60
@@ -339,7 +347,10 @@ class EditTargetViewModel: ObservableObject {
               🎯 hasSignificantChange = \(hasSignificantChange)
             """)
             isLoading = false
-            return hasSignificantChange
+            return EditTargetUpdateResult(
+                hasSignificantChange: hasSignificantChange,
+                planOverviewUpdate: updatedTarget.planOverviewUpdate
+            )
         } catch {
             self.error = error.localizedDescription
             Logger.error("[EditTargetVM] 更新賽事目標失敗: \(error.localizedDescription)")
