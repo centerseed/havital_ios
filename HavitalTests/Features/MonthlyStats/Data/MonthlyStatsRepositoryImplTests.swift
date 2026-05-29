@@ -41,6 +41,9 @@ final class MonthlyStatsRepositoryImplTests: XCTestCase {
             DailyStat(date: "2026-04-01", totalDistanceKm: 10.0, avgPacePerKm: 300, workoutCount: 1)
         ]
         localDataSource.saveMonthlyStats(cachedStats, year: 2026, month: 4)
+        // commit 4ba2d3f: cache is only trusted when syncTimestamp is present (settled or fresh).
+        // Seed a recent timestamp so isCacheFresh → true.
+        localDataSource.setSyncTimestamp(year: 2026, month: 4)
 
         let result = try await sut.getMonthlyStats(year: 2026, month: 4)
 

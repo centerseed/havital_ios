@@ -44,7 +44,9 @@ final class AchievementDTOTests: XCTestCase {
         XCTAssertTrue(summary.recentShareables.isEmpty)
         XCTAssertTrue(summary.unlockFeedbackQueue.isEmpty)
         XCTAssertTrue(summary.privacyPolicy.defaultExcludedFields.contains("gps"))
-        XCTAssertFalse(summary.privacyPolicy.publicOnly)
+        // AchievementPrivacyPolicyDTO derives publicOnly = !defaultSensitiveFieldsEnabled when
+        // public_only is absent. Degraded fixture has defaultSensitiveFieldsEnabled=false → publicOnly=true.
+        XCTAssertTrue(summary.privacyPolicy.publicOnly)
         XCTAssertFalse(summary.hasVisibleContent)
     }
 

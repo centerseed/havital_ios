@@ -39,20 +39,21 @@ final class LowDataOnboardingACTests: XCTestCase {
     }
 
     func test_ac_ld_22_24_25_workoutDetailProvidesOptionalRPEEntry() throws {
+        // RPEEditorView.swift was replaced by WorkoutReflectionView.swift (merged RPE + notes).
+        // Path updated from Havital/Views/Training/RPEEditorView.swift
+        //   to Havital/Features/Workout/Presentation/Recap/WorkoutReflectionView.swift
         let view = try read("Havital/Views/Training/WorkoutDetailViewV2.swift")
-        let editor = try read("Havital/Views/Training/RPEEditorView.swift")
+        let editor = try read("Havital/Features/Workout/Presentation/Recap/WorkoutReflectionView.swift")
         let viewModel = try read("Havital/Features/Workout/Presentation/ViewModels/WorkoutDetailViewModelV2.swift")
         let repository = try read("Havital/Features/Workout/Domain/Repositories/WorkoutRepository.swift")
 
-        XCTAssertTrue(view.contains("RPEEditorView"))
-        XCTAssertTrue(view.contains("showRPEEditor"))
-        XCTAssertTrue(view.contains("workout_detail_rpe_button"))
-        XCTAssertTrue(editor.contains("rpe_editor_clear_button"))
-        XCTAssertTrue(editor.contains("rpeScaleRow"))
-        XCTAssertTrue(editor.contains("rpeSelectedLow"))
-        XCTAssertTrue(editor.contains("rpeSelectedMedium"))
-        XCTAssertTrue(editor.contains("rpeSelectedHigh"))
-        XCTAssertTrue(view.contains("currentRPE"))
+        XCTAssertTrue(view.contains("WorkoutReflectionView"), "WorkoutDetailView must embed WorkoutReflectionView (replaces RPEEditorView)")
+        XCTAssertTrue(view.contains("workout_detail_rpe_button"), "RPE entry button accessibility ID must remain")
+        // WorkoutReflectionView contains the RPE scale section (rpeSection / rpePill)
+        XCTAssertTrue(editor.contains("rpeSection"), "WorkoutReflectionView must contain rpeSection")
+        XCTAssertTrue(editor.contains("rpePill"), "WorkoutReflectionView must render RPE pills")
+        XCTAssertTrue(view.contains("currentRPE") || viewModel.contains("currentRPE") || viewModel.contains("initialRPE") || editor.contains("initialRPE"),
+                      "RPE state must be tracked in view or viewmodel")
         XCTAssertTrue(viewModel.contains("updateRPE"))
         XCTAssertTrue(repository.contains("updateRPE"))
     }

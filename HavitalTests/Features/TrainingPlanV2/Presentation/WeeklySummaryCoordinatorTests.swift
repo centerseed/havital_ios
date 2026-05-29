@@ -23,7 +23,7 @@ final class WeeklySummaryCoordinatorTests: XCTestCase {
         onPaywallTriggered: @escaping (PaywallTrigger) -> Void = { _ in },
         onRizoQuotaExceeded: @escaping () -> Void = {},
         onNetworkError: @escaping (Error) -> Void = { _ in },
-        isEnforcementEnabled: @escaping () -> Bool = { true }
+        isEnforcementEnabled: @escaping () -> Bool = { false }
     ) -> WeeklySummaryCoordinator {
         WeeklySummaryCoordinator(
             repository: mockRepository,

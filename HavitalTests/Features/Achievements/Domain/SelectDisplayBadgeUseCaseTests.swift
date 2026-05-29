@@ -15,19 +15,21 @@ final class SelectDisplayBadgeUseCaseTests: XCTestCase {
     }
 
     func test_fallsBackToHighestProgressInProgress_whenNoPin() {
+        // Production (commit 45c8838): only unlocked badges are returned; no fallback to in-progress.
         let badges = [
             makeBadge(id: "FAR", status: .inProgress, progress: 0.10),
             makeBadge(id: "CLOSE", status: .inProgress, progress: 0.85),
             makeBadge(id: "MID", status: .inProgress, progress: 0.50),
         ]
         let result = sut.execute(pinnedBadgeId: nil, allBadges: badges)
-        XCTAssertEqual(result?.badgeId, "CLOSE")
+        XCTAssertNil(result, "No unlocked badges → result must be nil (in-progress no longer falls back)")
     }
 
     func test_pinnedMissing_fallsBackToAlgorithm() {
+        // Production (commit 45c8838): pin missing + only in-progress → nil (no unlocked to fall back to).
         let badges = [makeBadge(id: "ONLY", status: .inProgress, progress: 0.40)]
         let result = sut.execute(pinnedBadgeId: "DELETED-PIN", allBadges: badges)
-        XCTAssertEqual(result?.badgeId, "ONLY")
+        XCTAssertNil(result, "Pin missing and no unlocked badges → result must be nil")
     }
 
     func test_returnsMostRecentUnlock_whenNoInProgress() {
@@ -40,18 +42,21 @@ final class SelectDisplayBadgeUseCaseTests: XCTestCase {
     }
 
     func test_returnsFirstBadge_whenAllLockedAndNoInProgress() {
+        // Production (commit 45c8838): only unlocked badges returned; all locked → nil.
         let badges = [makeBadge(id: "LOCK1", status: .locked), makeBadge(id: "LOCK2", status: .locked)]
         let result = sut.execute(pinnedBadgeId: nil, allBadges: badges)
-        XCTAssertEqual(result?.badgeId, "LOCK1")
+        XCTAssertNil(result, "All locked badges and no unlocked → result must be nil")
     }
 
     func test_pinnedButDegradedStatus_fallsThroughToAlgorithm() {
+        // Production (commit 45c8838): pinned badge must be .unlocked to win; if not, falls through
+        // to algorithm which returns most-recently-unlocked; with no unlocked badges → nil.
         let badges = [
             makeBadge(id: "DEGRADED-PIN", status: .locked, progress: 0.99),
             makeBadge(id: "FALLBACK", status: .inProgress, progress: 0.30),
         ]
         let result = sut.execute(pinnedBadgeId: "DEGRADED-PIN", allBadges: badges)
-        XCTAssertEqual(result?.badgeId, "FALLBACK", "Pinned badge with status=.locked must not win — should fall through to algorithm picking the best in-progress badge")
+        XCTAssertNil(result, "Pinned badge not unlocked + no other unlocked badges → nil (in-progress not a fallback)")
     }
 
     // MARK: - Helpers

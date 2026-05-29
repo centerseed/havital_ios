@@ -168,11 +168,13 @@ final class WeeklyPlanV2MapperTests: XCTestCase {
             return
         }
 
+        // commit 45c8838: effectivePace = raw basePace (heat adjustment only applies on temperature card,
+        // not baked into effectivePace). climateAdjustedPace field is still mapped and preserved.
         XCTAssertEqual(runActivity.basePace, "5:00")
-        XCTAssertEqual(runActivity.climateAdjustedPace, "5:18")
-        XCTAssertEqual(runActivity.effectivePace, "5:18")
+        XCTAssertEqual(runActivity.climateAdjustedPace, "5:18", "climateAdjustedPace must still be mapped from DTO")
+        XCTAssertEqual(runActivity.effectivePace, "5:00", "effectivePace equals raw basePace (commit 45c8838)")
         XCTAssertEqual(runActivity.climateMeta?.longRunReductionPct ?? 0, 25.0, accuracy: 0.01)
-        XCTAssertEqual(runActivity.segments?.first?.effectivePace, "5:13")
+        XCTAssertEqual(runActivity.segments?.first?.effectivePace, "4:55", "segment effectivePace equals segment basePace")
     }
 
     // MARK: - Imperial Units Preserved

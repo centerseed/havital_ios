@@ -6,10 +6,13 @@ final class AchievementRepositoryPinTests: XCTestCase {
     override func setUp() {
         super.setUp()
         PinnedBadgeStorage.clear()
+        // commit df716dd: DisplayBadgeStorage uses UserDefaults.standard; clear to avoid cross-test leakage.
+        DisplayBadgeStorage.clear()
     }
 
     override func tearDown() {
         PinnedBadgeStorage.clear()
+        DisplayBadgeStorage.clear()
         super.tearDown()
     }
 

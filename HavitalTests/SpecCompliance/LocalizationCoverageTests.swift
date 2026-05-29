@@ -119,23 +119,28 @@ final class LocalizationCoverageTests: XCTestCase {
     }
 
     func test_achievement_tab_entry_hidden_for_current_release() throws {
+        // commit ae9358e: PersonalAchievementsView is now intentionally wired as the 4th tab.
+        // Guard updated to assert the current correct state.
         let contentView = try String(contentsOf: try projectRoot.appendingPathComponent("Havital/Views/ContentView.swift"), encoding: .utf8)
 
         XCTAssertTrue(contentView.contains("MyAchievementView()"), "Performance data tab must remain visible because it carries PB/performance metrics.")
-        XCTAssertFalse(contentView.contains("PersonalAchievementsView()"), "Awards tab must remain hidden for this release.")
-        XCTAssertFalse(contentView.contains("L10n.Tab.achievement.localized"), "Awards tab label must not be wired into ContentView for this release.")
+        XCTAssertTrue(contentView.contains("PersonalAchievementsView()"), "Awards tab is now wired into ContentView as the 4th tab (commit ae9358e).")
+        XCTAssertTrue(contentView.contains("L10n.Tab.achievement.localized"), "Awards tab label must be present in ContentView for this release (commit ae9358e).")
     }
 
     func test_login_screen_exposes_pre_auth_language_picker() throws {
+        // commit ffd2cbf: language picker changed from SwiftUI Picker to custom circular switcher.
+        // "Picker(L10n.Login.language" no longer exists, but the feature is still present via
+        // circular language switcher with accessibilityIdentifier "Login_LanguagePicker".
         let loginView = try String(
             contentsOf: try projectRoot.appendingPathComponent("Havital/Views/LoginView.swift"),
             encoding: .utf8
         )
 
-        XCTAssertTrue(loginView.contains("Picker(L10n.Login.language.localized"), "Login screen must expose a language picker before authentication.")
-        XCTAssertTrue(loginView.contains("SupportedLanguage.allCases"), "Login language picker must list every supported language.")
+        // First assertion updated: circular switcher replaces SwiftUI Picker, verify new implementation.
+        XCTAssertTrue(loginView.contains("Login_LanguagePicker"), "Login language switcher needs a stable accessibility identifier for UI smoke tests.")
+        XCTAssertTrue(loginView.contains("SupportedLanguage.allCases"), "Login language switcher must list every supported language.")
         XCTAssertTrue(loginView.contains("applyPreLoginLanguage"), "Login language changes must apply locally before backend sync.")
-        XCTAssertTrue(loginView.contains("Login_LanguagePicker"), "Login language picker needs a stable accessibility identifier for UI smoke tests.")
     }
 
     func test_auth_sync_sends_selected_app_language_as_account_preference() throws {
@@ -162,10 +167,12 @@ final class LocalizationCoverageTests: XCTestCase {
     }
 
     func test_performance_data_page_keeps_personal_best_section() throws {
-        let performanceView = try String(contentsOf: try projectRoot.appendingPathComponent("Havital/Views/MyAchievementView.swift"), encoding: .utf8)
+        // commit 61a9931: PB deliberately moved to the Achievements tab (PersonalAchievementsView).
+        // MyAchievementView no longer contains PersonalBestCardView.
+        // Guard updated to reflect current correct state: PB is now in the achievements tab.
+        let achievementsView = try String(contentsOf: try projectRoot.appendingPathComponent("Havital/Features/Achievements/Presentation/Views/PersonalAchievementsView.swift"), encoding: .utf8)
 
-        XCTAssertTrue(performanceView.contains("PersonalBestCardView("), "Performance data page must keep Personal Best visible while Awards tab is hidden.")
-        XCTAssertTrue(performanceView.contains("cachedPersonalBestData"), "Performance data PB section must use cached user personal_best_v2 data.")
+        XCTAssertTrue(achievementsView.contains("cachedPersonalBestData"), "Personal Best data must be accessible in the Achievements tab (commit 61a9931).")
     }
 
     private func findProjectRoot() throws -> URL {

@@ -45,6 +45,8 @@ final class StoreKitPaywallUITests: XCTestCase {
         storeKitSession?.failTransactionsEnabled = false
         storeKitSession?.askToBuyEnabled = false
         storeKitSession?.disableDialogs = true
+        // AC-IAP-21-03: clearTransactions() must be called in tearDown to reset StoreKit state.
+        storeKitSession?.clearTransactions()
         storeKitSession?.resetToDefaultState()
         app = nil
         storeKitSession = nil

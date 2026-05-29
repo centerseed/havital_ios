@@ -125,7 +125,7 @@ class WorkoutRemoteDataSourceTests: XCTestCase {
     // MARK: - uploadWorkout Tests
 
     func testUploadWorkout_UsesCorrectEndpoint() async throws {
-        // Given
+        // Given: production posts to /v2/workouts (not /v2/workouts/upload)
         let uploadRequest = createUploadRequest()
         let mockResponse = UploadWorkoutResponse(
             id: "upload_123",
@@ -136,19 +136,19 @@ class WorkoutRemoteDataSourceTests: XCTestCase {
             advancedMetrics: nil,
             message: "Upload successful"
         )
-        try mockHTTPClient.setJSONResponse(for: "/v2/workouts/upload", method: .POST, response: mockResponse)
+        try mockHTTPClient.setJSONResponse(for: "/v2/workouts", method: .POST, response: mockResponse)
 
         // When
         _ = try await sut.uploadWorkout(uploadRequest)
 
         // Then
-        XCTAssertEqual(mockHTTPClient.lastRequest?.path, "/v2/workouts/upload", "Should use upload endpoint")
+        XCTAssertEqual(mockHTTPClient.lastRequest?.path, "/v2/workouts", "Should use POST /v2/workouts endpoint")
         XCTAssertEqual(mockHTTPClient.lastRequest?.method, HTTPMethod.POST, "Should use POST method")
         XCTAssertNotNil(mockHTTPClient.lastRequest?.body, "Should include request body")
     }
 
     func testUploadWorkout_Success_ReturnsResponse() async throws {
-        // Given
+        // Given: production posts to /v2/workouts (not /v2/workouts/upload)
         let uploadRequest = createUploadRequest()
         let mockResponse = UploadWorkoutResponse(
             id: "upload_123",
@@ -159,7 +159,7 @@ class WorkoutRemoteDataSourceTests: XCTestCase {
             advancedMetrics: nil,
             message: "Upload successful"
         )
-        try mockHTTPClient.setJSONResponse(for: "/v2/workouts/upload", method: .POST, response: mockResponse)
+        try mockHTTPClient.setJSONResponse(for: "/v2/workouts", method: .POST, response: mockResponse)
 
         // When
         let response = try await sut.uploadWorkout(uploadRequest)
