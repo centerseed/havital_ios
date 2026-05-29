@@ -17,11 +17,13 @@ final class ClimateForecastRemoteDataSource {
 
     func fetchForecast(days: Int = 7) async throws -> ClimateForecastResponse {
         let uid = try await resolveCurrentUid()
-        let rawData = try await httpClient.request(
-            path: "/v1/users/\(uid)/climate/forecast?days=\(days)",
-            method: .GET,
-            body: nil
-        )
+        let rawData = try await tracked("ClimateForecastRemoteDataSource: fetchForecast") {
+            try await httpClient.request(
+                path: "/v1/users/\(uid)/climate/forecast?days=\(days)",
+                method: .GET,
+                body: nil
+            )
+        }
         return try ResponseProcessor.extractData(
             ClimateForecastResponse.self,
             from: rawData,

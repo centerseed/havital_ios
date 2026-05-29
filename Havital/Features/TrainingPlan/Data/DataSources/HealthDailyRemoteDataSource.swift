@@ -14,7 +14,9 @@ final class HealthDailyRemoteDataSource {
 
     func fetchHealthDaily(limit: Int) async throws -> HealthDailyResponse {
         let path = "/v2/workouts/health_daily?limit=\(limit)"
-        let rawData = try await httpClient.request(path: path, method: .GET, body: nil)
+        let rawData = try await tracked("HealthDailyRemoteDataSource: fetchHealthDaily") {
+            try await httpClient.request(path: path, method: .GET, body: nil)
+        }
         return try ResponseProcessor.extractData(HealthDailyResponse.self, from: rawData, using: parser)
     }
 }

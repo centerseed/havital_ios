@@ -63,10 +63,12 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
     func getPlanStatus() async throws -> PlanStatusV2Response {
         Logger.debug("[TrainingPlanV2RemoteDS] Fetching plan status from /v2/plan/status")
 
-        let response = try await apiHelper.get(
-            PlanStatusV2Response.self,
-            path: "/v2/plan/status"
-        )
+        let response = try await tracked("TrainingPlanV2RemoteDataSource: getPlanStatus") {
+            try await apiHelper.get(
+                PlanStatusV2Response.self,
+                path: "/v2/plan/status"
+            )
+        }
 
         Logger.info("[TrainingPlanV2RemoteDS] ✅ Plan status fetched: currentWeek=\(response.currentWeek), nextAction=\(response.nextAction)")
         return response
@@ -79,10 +81,12 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
     func getTargetTypes() async throws -> [TargetTypeV2] {
         Logger.debug("[TrainingPlanV2RemoteDS] Fetching target types from /v2/target/types")
 
-        let response: TargetTypesResponseV2DTO = try await apiHelper.get(
-            TargetTypesResponseV2DTO.self,
-            path: "/v2/target/types"
-        )
+        let response: TargetTypesResponseV2DTO = try await tracked("TrainingPlanV2RemoteDataSource: getTargetTypes") {
+            try await apiHelper.get(
+                TargetTypesResponseV2DTO.self,
+                path: "/v2/target/types"
+            )
+        }
 
         Logger.info("[TrainingPlanV2RemoteDS] ✅ Fetched \(response.targetTypes.count) target types")
         return TargetTypeV2Mapper.toEntities(response)
@@ -101,10 +105,12 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
 
         Logger.info("[TrainingPlanV2RemoteDS] 📡 API Request: GET \(path)")
 
-        let response: MethodologiesResponseV2DTO = try await apiHelper.get(
-            MethodologiesResponseV2DTO.self,
-            path: path
-        )
+        let response: MethodologiesResponseV2DTO = try await tracked("TrainingPlanV2RemoteDataSource: getMethodologies") {
+            try await apiHelper.get(
+                MethodologiesResponseV2DTO.self,
+                path: path
+            )
+        }
 
         Logger.info("[TrainingPlanV2RemoteDS] ✅ API Response: \(response.methodologies.count) methodologies - IDs: \(response.methodologies.map { $0.id })")
         return MethodologyV2Mapper.toEntities(response)
@@ -126,11 +132,13 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
             methodologyId: methodologyId
         )
 
-        let overview = try await apiHelper.post(
-            PlanOverviewV2DTO.self,
-            path: "/v2/plan/overview",
-            body: request
-        )
+        let overview = try await tracked("TrainingPlanV2RemoteDataSource: createOverviewForRace") {
+            try await apiHelper.post(
+                PlanOverviewV2DTO.self,
+                path: "/v2/plan/overview",
+                body: request
+            )
+        }
 
         Logger.info("[TrainingPlanV2RemoteDS] Overview created: \(overview.id)")
         return overview
@@ -163,11 +171,13 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
             intendedRaceDistanceKm: intendedRaceDistanceKm
         )
 
-        let overview = try await apiHelper.post(
-            PlanOverviewV2DTO.self,
-            path: "/v2/plan/overview",
-            body: request
-        )
+        let overview = try await tracked("TrainingPlanV2RemoteDataSource: createOverviewForNonRace") {
+            try await apiHelper.post(
+                PlanOverviewV2DTO.self,
+                path: "/v2/plan/overview",
+                body: request
+            )
+        }
 
         Logger.info("[TrainingPlanV2RemoteDS] Overview created: \(overview.id)")
         return overview
@@ -177,7 +187,9 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
     /// - Returns: Plan Overview DTO
     func getOverview() async throws -> PlanOverviewV2DTO {
         Logger.debug("[TrainingPlanV2RemoteDS] Fetching active overview")
-        return try await apiHelper.get(PlanOverviewV2DTO.self, path: "/v2/plan/overview")
+        return try await tracked("TrainingPlanV2RemoteDataSource: getOverview") {
+            try await apiHelper.get(PlanOverviewV2DTO.self, path: "/v2/plan/overview")
+        }
     }
 
     /// 更新計畫概覽
@@ -190,11 +202,13 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
 
         let request = UpdateOverviewRequest(startFromStage: startFromStage, methodologyId: methodologyId)
 
-        let overview = try await apiHelper.put(
-            PlanOverviewV2DTO.self,
-            path: "/v2/plan/overview/\(overviewId)",
-            body: request
-        )
+        let overview = try await tracked("TrainingPlanV2RemoteDataSource: updateOverview") {
+            try await apiHelper.put(
+                PlanOverviewV2DTO.self,
+                path: "/v2/plan/overview/\(overviewId)",
+                body: request
+            )
+        }
 
         Logger.info("[TrainingPlanV2RemoteDS] Overview updated: \(overview.id)")
         return overview
@@ -224,11 +238,13 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
             methodology: methodology
         )
 
-        let weeklyPlan = try await apiHelper.post(
-            WeeklyPlanV2DTO.self,
-            path: "/v2/plan/weekly",
-            body: request
-        )
+        let weeklyPlan = try await tracked("TrainingPlanV2RemoteDataSource: generateWeeklyPlan") {
+            try await apiHelper.post(
+                WeeklyPlanV2DTO.self,
+                path: "/v2/plan/weekly",
+                body: request
+            )
+        }
 
         Logger.info("[TrainingPlanV2RemoteDS] Weekly plan generated: \(weeklyPlan.id)")
         return weeklyPlan
@@ -239,7 +255,9 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
     /// - Returns: Weekly Plan DTO
     func getWeeklyPlan(planId: String) async throws -> WeeklyPlanV2DTO {
         Logger.debug("[TrainingPlanV2RemoteDS] Fetching weekly plan: \(planId)")
-        let weeklyPlan = try await apiHelper.get(WeeklyPlanV2DTO.self, path: "/v2/plan/weekly/\(planId)")
+        let weeklyPlan = try await tracked("TrainingPlanV2RemoteDataSource: getWeeklyPlan") {
+            try await apiHelper.get(WeeklyPlanV2DTO.self, path: "/v2/plan/weekly/\(planId)")
+        }
         Logger.info("[TrainingPlanV2RemoteDS] Weekly plan fetched: \(weeklyPlan.id)")
         return weeklyPlan
     }
@@ -256,7 +274,9 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
            let jsonString = String(data: jsonData, encoding: .utf8) {
             Logger.debug("[TrainingPlanV2RemoteDS] 📤 Request JSON: \(jsonString)")
         }
-        let weeklyPlan = try await apiHelper.put(WeeklyPlanV2DTO.self, path: "/v2/plan/weekly/\(planId)", body: updates)
+        let weeklyPlan = try await tracked("TrainingPlanV2RemoteDataSource: updateWeeklyPlan") {
+            try await apiHelper.put(WeeklyPlanV2DTO.self, path: "/v2/plan/weekly/\(planId)", body: updates)
+        }
         Logger.info("[TrainingPlanV2RemoteDS] Weekly plan updated: \(weeklyPlan.id)")
         return weeklyPlan
     }
@@ -265,7 +285,9 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
     /// - Parameter planId: 週課表 ID
     func deleteWeeklyPlan(planId: String) async throws {
         Logger.debug("[TrainingPlanV2RemoteDS] 🗑️ [DEBUG] Deleting weekly plan: \(planId)")
-        try await apiHelper.delete(path: "/v2/plan/weekly/\(planId)")
+        try await tracked("TrainingPlanV2RemoteDataSource: deleteWeeklyPlan") {
+            try await apiHelper.delete(path: "/v2/plan/weekly/\(planId)")
+        }
         Logger.info("[TrainingPlanV2RemoteDS] ✅ [DEBUG] Weekly plan deleted: \(planId)")
     }
 
@@ -277,10 +299,12 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
     /// - Returns: Weekly Preview Response DTO
     func getWeeklyPreview(overviewId: String) async throws -> WeeklyPreviewResponseDTO {
         Logger.debug("[TrainingPlanV2RemoteDS] Fetching weekly preview for overview: \(overviewId)")
-        let response = try await apiHelper.get(
-            WeeklyPreviewResponseDTO.self,
-            path: "/v2/plan/\(overviewId)/weekly-preview"
-        )
+        let response = try await tracked("TrainingPlanV2RemoteDataSource: getWeeklyPreview") {
+            try await apiHelper.get(
+                WeeklyPreviewResponseDTO.self,
+                path: "/v2/plan/\(overviewId)/weekly-preview"
+            )
+        }
         Logger.info("[TrainingPlanV2RemoteDS] ✅ Weekly preview fetched: \(response.weeks.count) weeks")
         return response
     }
@@ -300,11 +324,13 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
             forceUpdate: forceUpdate
         )
 
-        let summary = try await apiHelper.post(
-            WeeklySummaryV2DTO.self,
-            path: "/v2/summary/weekly",
-            body: request
-        )
+        let summary = try await tracked("TrainingPlanV2RemoteDataSource: generateWeeklySummary") {
+            try await apiHelper.post(
+                WeeklySummaryV2DTO.self,
+                path: "/v2/summary/weekly",
+                body: request
+            )
+        }
 
         Logger.info("[TrainingPlanV2RemoteDS] Weekly summary generated: \(summary.id)")
         return summary
@@ -315,19 +341,25 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
     /// - Returns: Weekly Summary DTO
     func getWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2DTO {
         Logger.debug("[TrainingPlanV2RemoteDS] Fetching weekly summary for week \(weekOfPlan)")
-        return try await apiHelper.get(WeeklySummaryV2DTO.self, path: "/v2/summary/weekly?week_of_plan=\(weekOfPlan)")
+        return try await tracked("TrainingPlanV2RemoteDataSource: getWeeklySummary") {
+            try await apiHelper.get(WeeklySummaryV2DTO.self, path: "/v2/summary/weekly?week_of_plan=\(weekOfPlan)")
+        }
     }
 
     /// 獲取所有週摘要列表（共用 V1 endpoint）
     func getWeeklySummaries() async throws -> [WeeklySummaryItem] {
         Logger.debug("[TrainingPlanV2RemoteDS] Fetching weekly summaries list")
-        return try await apiHelper.get([WeeklySummaryItem].self, path: "/summary/weekly/")
+        return try await tracked("TrainingPlanV2RemoteDataSource: getWeeklySummaries") {
+            try await apiHelper.get([WeeklySummaryItem].self, path: "/summary/weekly/")
+        }
     }
 
     func applyAdjustmentItems(weekOfPlan: Int, appliedIndices: [Int]) async throws {
         Logger.debug("[TrainingPlanV2RemoteDS] Applying \(appliedIndices.count) adjustment items for week \(weekOfPlan)")
         let request = ApplyAdjustmentItemsRequest(weekOfPlan: weekOfPlan, appliedIndices: appliedIndices)
-        _ = try await apiHelper.post(ApplyAdjustmentItemsResponseDTO.self, path: "/v2/summary/weekly/apply-items", body: request)
+        _ = try await tracked("TrainingPlanV2RemoteDataSource: applyAdjustmentItems") {
+            try await apiHelper.post(ApplyAdjustmentItemsResponseDTO.self, path: "/v2/summary/weekly/apply-items", body: request)
+        }
         Logger.info("[TrainingPlanV2RemoteDS] ✅ Adjustment items applied for week \(weekOfPlan)")
     }
 
@@ -335,7 +367,9 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
     /// - Parameter summaryId: 週摘要 ID
     func deleteWeeklySummary(summaryId: String) async throws {
         Logger.debug("[TrainingPlanV2RemoteDS] 🗑️ [DEBUG] Deleting weekly summary: \(summaryId)")
-        try await apiHelper.delete(path: "/v2/summary/weekly/\(summaryId)")
+        try await tracked("TrainingPlanV2RemoteDataSource: deleteWeeklySummary") {
+            try await apiHelper.delete(path: "/v2/summary/weekly/\(summaryId)")
+        }
         Logger.info("[TrainingPlanV2RemoteDS] ✅ [DEBUG] Weekly summary deleted: \(summaryId)")
     }
 }

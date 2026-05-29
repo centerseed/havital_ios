@@ -37,13 +37,17 @@ final class TargetRemoteDataSource: TargetRemoteDataSourceProtocol {
     /// Fetch all targets from API
     func getTargets() async throws -> [Target] {
         Logger.debug("[TargetRemoteDS] Fetching all targets")
-        return try await apiHelper.get([Target].self, path: "/user/targets")
+        return try await tracked("TargetRemoteDataSource: getTargets") {
+            try await apiHelper.get([Target].self, path: "/user/targets")
+        }
     }
 
     /// Fetch single target by ID from API
     func getTarget(id: String) async throws -> Target {
         Logger.debug("[TargetRemoteDS] Fetching target: \(id)")
-        return try await apiHelper.get(Target.self, path: "/user/targets/\(id)")
+        return try await tracked("TargetRemoteDataSource: getTarget") {
+            try await apiHelper.get(Target.self, path: "/user/targets/\(id)")
+        }
     }
 
     // MARK: - Write Operations
@@ -51,18 +55,24 @@ final class TargetRemoteDataSource: TargetRemoteDataSourceProtocol {
     /// Create new target via API
     func createTarget(_ target: Target) async throws -> Target {
         Logger.debug("[TargetRemoteDS] Creating target: \(target.name)")
-        return try await apiHelper.post(Target.self, path: "/user/targets", body: target)
+        return try await tracked("TargetRemoteDataSource: createTarget") {
+            try await apiHelper.post(Target.self, path: "/user/targets", body: target)
+        }
     }
 
     /// Update target via API
     func updateTarget(id: String, target: Target) async throws -> Target {
         Logger.debug("[TargetRemoteDS] Updating target: \(id)")
-        return try await apiHelper.put(Target.self, path: "/user/targets/\(id)", body: target)
+        return try await tracked("TargetRemoteDataSource: updateTarget") {
+            try await apiHelper.put(Target.self, path: "/user/targets/\(id)", body: target)
+        }
     }
 
     /// Delete target via API
     func deleteTarget(id: String) async throws {
         Logger.debug("[TargetRemoteDS] Deleting target: \(id)")
-        try await apiHelper.delete(path: "/user/targets/\(id)")
+        try await tracked("TargetRemoteDataSource: deleteTarget") {
+            try await apiHelper.delete(path: "/user/targets/\(id)")
+        }
     }
 }

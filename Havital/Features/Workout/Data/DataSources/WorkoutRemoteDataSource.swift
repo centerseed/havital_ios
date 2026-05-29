@@ -60,7 +60,9 @@ class WorkoutRemoteDataSource {
 
         Logger.debug("[WorkoutRemoteDataSource] fetchWorkoutsPage - path: \(path)")
 
-        let rawData = try await httpClient.request(path: path, method: .GET, body: nil)
+        let rawData = try await tracked("WorkoutRemoteDataSource: fetchWorkoutsPage") {
+            try await httpClient.request(path: path, method: .GET, body: nil)
+        }
         return try ResponseProcessor.extractData(WorkoutListResponse.self, from: rawData, using: parser)
     }
 
@@ -81,7 +83,9 @@ class WorkoutRemoteDataSource {
 
         Logger.debug("[WorkoutRemoteDataSource] fetchWorkout - id: \(id)")
 
-        let rawData = try await httpClient.request(path: path, method: .GET, body: nil)
+        let rawData = try await tracked("WorkoutRemoteDataSource: fetchWorkout") {
+            try await httpClient.request(path: path, method: .GET, body: nil)
+        }
         let response = try ResponseProcessor.extractData(WorkoutDetailResponse.self, from: rawData, using: parser)
 
         // 使用 WorkoutMapper 進行轉換
@@ -96,7 +100,9 @@ class WorkoutRemoteDataSource {
 
         Logger.debug("[WorkoutRemoteDataSource] fetchWorkoutDetail - id: \(id)")
 
-        let rawData = try await httpClient.request(path: path, method: .GET, body: nil)
+        let rawData = try await tracked("WorkoutRemoteDataSource: fetchWorkoutDetail") {
+            try await httpClient.request(path: path, method: .GET, body: nil)
+        }
         let response = try ResponseProcessor.extractData(WorkoutV2Detail.self, from: rawData, using: parser)
 
         return response
@@ -115,7 +121,9 @@ class WorkoutRemoteDataSource {
         let encoder = JSONEncoder()
         let bodyData = try encoder.encode(request)
 
-        let rawData = try await httpClient.request(path: path, method: .POST, body: bodyData)
+        let rawData = try await tracked("WorkoutRemoteDataSource: uploadWorkout") {
+            try await httpClient.request(path: path, method: .POST, body: bodyData)
+        }
         let response = try ResponseProcessor.extractData(UploadWorkoutResponse.self, from: rawData, using: parser)
 
         return response
@@ -127,7 +135,9 @@ class WorkoutRemoteDataSource {
         Logger.debug("[WorkoutRemoteDataSource] uploadAppleHealthWorkout - source: \(workoutData.source ?? "unknown")")
 
         let bodyData = try JSONEncoder().encode(workoutData)
-        _ = try await httpClient.request(path: path, method: .POST, body: bodyData)
+        _ = try await tracked("WorkoutRemoteDataSource: uploadWorkoutData") {
+            try await httpClient.request(path: path, method: .POST, body: bodyData)
+        }
     }
 
     func fetchWorkoutSummary(id: String) async throws -> WorkoutSummary {
@@ -136,7 +146,9 @@ class WorkoutRemoteDataSource {
 
         Logger.debug("[WorkoutRemoteDataSource] fetchWorkoutSummary - id: \(id)")
 
-        let rawData = try await httpClient.request(path: path, method: .GET, body: nil)
+        let rawData = try await tracked("WorkoutRemoteDataSource: fetchWorkoutSummary") {
+            try await httpClient.request(path: path, method: .GET, body: nil)
+        }
         let response = try ResponseProcessor.extractData(WorkoutSummaryResponse.self, from: rawData, using: parser)
         return response.data.workout
     }
@@ -182,9 +194,11 @@ class WorkoutRemoteDataSource {
     func updateWorkout(id: String, body: [String: Any]) async throws {
         let path = "/v2/workouts/\(id)"
         Logger.debug("[WorkoutRemoteDataSource] updateWorkout - id: \(id)")
-        
+
         let bodyData = try JSONSerialization.data(withJSONObject: body)
-        _ = try await httpClient.request(path: path, method: .PATCH, body: bodyData)
+        _ = try await tracked("WorkoutRemoteDataSource: updateWorkout") {
+            try await httpClient.request(path: path, method: .PATCH, body: bodyData)
+        }
     }
 
     // MARK: - Delete
@@ -196,7 +210,9 @@ class WorkoutRemoteDataSource {
 
         Logger.debug("[WorkoutRemoteDataSource] deleteWorkout - id: \(id)")
 
-        _ = try await httpClient.request(path: path, method: .DELETE, body: nil)
+        _ = try await tracked("WorkoutRemoteDataSource: deleteWorkout") {
+            try await httpClient.request(path: path, method: .DELETE, body: nil)
+        }
     }
 
     // MARK: - Stats
@@ -209,7 +225,9 @@ class WorkoutRemoteDataSource {
 
         Logger.debug("[WorkoutRemoteDataSource] fetchWorkoutStats - days: \(days)")
 
-        let rawData = try await httpClient.request(path: path, method: .GET, body: nil)
+        let rawData = try await tracked("WorkoutRemoteDataSource: fetchWorkoutStats") {
+            try await httpClient.request(path: path, method: .GET, body: nil)
+        }
         let response = try ResponseProcessor.extractData(WorkoutStatsResponse.self, from: rawData, using: parser)
 
         return response

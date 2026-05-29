@@ -37,7 +37,9 @@ final class UserPreferencesRemoteDataSource: UserPreferencesRemoteDataSourceProt
     /// - Returns: UserPreferences model
     func getPreferences() async throws -> UserPreferences {
         Logger.debug("[UserPreferencesRemoteDS] Fetching preferences")
-        return try await apiHelper.get(UserPreferences.self, path: "/user/preferences")
+        return try await tracked("UserPreferencesRemoteDataSource: getPreferences") {
+            try await apiHelper.get(UserPreferences.self, path: "/user/preferences")
+        }
     }
 
     /// Update user preferences (language, timezone, and/or unit system)
@@ -65,7 +67,9 @@ final class UserPreferencesRemoteDataSource: UserPreferencesRemoteDataSourceProt
         }
 
         let body = try JSONEncoder().encode(requestBody)
-        try await apiHelper.callNoResponse(path: "/user/preferences", method: .PUT, body: body)
+        try await tracked("UserPreferencesRemoteDataSource: updatePreferences") {
+            try await apiHelper.callNoResponse(path: "/user/preferences", method: .PUT, body: body)
+        }
         Logger.info("[UserPreferencesRemoteDS] Preferences updated: \(requestBody)")
     }
 
