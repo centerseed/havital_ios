@@ -146,7 +146,7 @@ class TrainingPlanViewModel: ObservableObject {
 
     /// 獲取建議配速
     func getSuggestedPace(for trainingType: String, vdot: Double) -> String {
-        return PaceFormatterHelper.getSuggestedPace(for: trainingType, vdot: vdot)
+        return PaceCalculator.getSuggestedPace(for: trainingType, vdot: vdot) ?? "--:--"
     }
 
     /// 強制從 API 刷新 workout 數據（用於 App 從背景回到前景時）

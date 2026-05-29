@@ -133,7 +133,7 @@ final class EditScheduleViewModel: ObservableObject, @preconcurrency TaskManagea
     /// 獲取建議配速
     func getSuggestedPace(for trainingType: String) -> String? {
         guard let vdot = currentVDOT else { return nil }
-        return PaceFormatterHelper.getSuggestedPace(for: trainingType, vdot: vdot)
+        return PaceCalculator.getSuggestedPace(for: trainingType, vdot: vdot)
     }
 
     /// 獲取編輯狀態訊息
