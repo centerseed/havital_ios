@@ -231,12 +231,16 @@ struct TrainingPlanV2View: View {
                     // 課表快速回報（最底部，僅在有課表時顯示）
                     // .id(週次) → 每換一週就重建、狀態歸零，每份新課表都能重新回報。
                     if case .ready = viewModel.loader.planStatus {
+                        // 穩定回報鍵：優先用後端 current_week_plan_id（無 fallback、每週唯一），
+                        // 避免顯示名退回預設「訓練計畫」或 currentWeek 重載漂移時，已回報的 bar 又跳出。
+                        let feedbackKey = viewModel.loader.planStatusResponse?.currentWeekPlanId
+                            ?? "\(viewModel.loader.trainingPlanName)#W\(viewModel.loader.currentWeek)"
                         WeeklyPlanFeedbackBar(
                             userEmail: userProfileViewModel.userData?.email ?? "",
                             weekContext: "Week \(viewModel.loader.currentWeek)",
-                            persistKey: "\(viewModel.loader.trainingPlanName)#W\(viewModel.loader.currentWeek)"
+                            persistKey: feedbackKey
                         )
-                        .id("weeklyPlanFeedback_\(viewModel.loader.currentWeek)")
+                        .id("weeklyPlanFeedback_\(feedbackKey)")
                     }
                 }
                 .padding(.horizontal)
