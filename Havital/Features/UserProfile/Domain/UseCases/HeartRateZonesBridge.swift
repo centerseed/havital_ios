@@ -65,19 +65,6 @@ class HeartRateZonesBridge {
         }
     }
     
-    /// 將 HeartRateZonesManager.HeartRateZone 轉換為 HealthKitManager.HeartRateZone
-    func convertToHealthKitManagerZones(_ zones: [HeartRateZonesManager.HeartRateZone]) -> [HealthKitManager.HeartRateZone] {
-        zones.map { zone in
-            HealthKitManager.HeartRateZone(
-                id: zone.zone,
-                zone: zone.zone,
-                range: zone.range,
-                description: zone.description,
-                benefit: zone.benefit
-            )
-        }
-    }
-    
     /// 確保心率區間已計算並存儲
     func ensureHeartRateZonesAvailable() async {
         if let _ = userPreferenceManager.heartRateZones {

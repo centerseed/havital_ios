@@ -15,7 +15,7 @@ class HeartRateZonesManager {
     
     private let userPreferenceManager = UserPreferencesManager.shared
     
-    /// 心率區間結構 (與 HealthKitManager.HeartRateZone 相容的結構)
+    /// 心率區間結構
     struct HeartRateZone {
         let zone: Int
         let name: String
