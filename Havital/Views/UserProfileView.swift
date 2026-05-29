@@ -26,7 +26,7 @@ struct UserProfileView: View {
     @ObservedObject private var subscriptionState = SubscriptionStateManager.shared
     @StateObject private var garminManager = GarminManager.shared
     @StateObject private var stravaManager = StravaManager.shared
-    @StateObject private var healthKitManager = HealthKitManager()
+    @ObservedObject private var healthKitManager = HealthKitManager.shared
     @EnvironmentObject private var featureFlagManager: FeatureFlagManager
     @Environment(\.dismiss) private var dismiss
     @State private var showZoneEditor = false

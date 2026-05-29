@@ -437,8 +437,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
         }
 
         do {
-            let healthKitManager = HealthKitManager()
-            let heartRateData = try await healthKitManager.fetchHeartRateData(for: hkWorkout, forceRefresh: true, retryAttempt: 0)
+            let heartRateData = try await HealthKitManager.shared.fetchHeartRateData(for: hkWorkout, forceRefresh: true, retryAttempt: 0)
 
             print("🔍 心率數據檢查: \(heartRateData.count) 筆")
 

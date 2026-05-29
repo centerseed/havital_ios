@@ -64,7 +64,7 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     private let workoutService = WorkoutV2Service.shared
     private let workoutUploadTracker = WorkoutUploadTracker.shared
     private let notificationCenter = UNUserNotificationCenter.current()
-    private let healthKitManager = HealthKitManager()
+    private let healthKitManager = HealthKitManager.shared
     
     // 通知控制
     private var lastNotificationTime: Date? {

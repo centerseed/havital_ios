@@ -2,12 +2,8 @@ import SwiftUI
 import Charts
 
 struct HRVTrendChartView: View {
-    @StateObject private var viewModel: HRVChartViewModel
+    @StateObject private var viewModel = HRVChartViewModel(healthKitManager: HealthKitManager.shared)
 
-    init() {
-        _viewModel = StateObject(wrappedValue: HRVChartViewModel(healthKitManager: HealthKitManager()))
-    }
-    
     var body: some View {
         VStack {
             if viewModel.isLoading {

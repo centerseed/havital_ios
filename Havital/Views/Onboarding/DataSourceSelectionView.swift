@@ -2,7 +2,7 @@ import SwiftUI
 import HealthKit
 
 struct DataSourceSelectionView: View {
-    @StateObject private var healthKitManager = HealthKitManager()
+    @ObservedObject private var healthKitManager = HealthKitManager.shared
     @StateObject private var garminManager = GarminManager.shared
     @StateObject private var stravaManager = StravaManager.shared
     @StateObject private var viewModel = UserProfileFeatureViewModel()

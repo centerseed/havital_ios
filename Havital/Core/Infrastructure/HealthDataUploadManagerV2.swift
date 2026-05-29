@@ -103,7 +103,7 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     // MARK: - Dependencies
     let service: HealthDataService
     private let cacheManager: HealthDataCacheManager
-    private let healthKitManager = HealthKitManager()
+    private let healthKitManager = HealthKitManager.shared
     private let userPreferenceManager = UserPreferencesManager.shared
     
     // MARK: - Configuration

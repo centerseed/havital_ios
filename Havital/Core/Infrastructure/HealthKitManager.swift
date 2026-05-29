@@ -16,9 +16,12 @@ extension HKQuantity {
 private typealias DomainHeartRateZone = HeartRateZone
 
 class HealthKitManager: ObservableObject, TaskManageable {
+    // MARK: - Shared Instance
+    static let shared = HealthKitManager()
+
     public var healthStore: HKHealthStore { _healthStore }
     private let _healthStore = HKHealthStore()
-    
+
     // MARK: - TaskManageable
     let taskRegistry = TaskRegistry()
     

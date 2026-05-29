@@ -96,7 +96,7 @@ extension View {
 }
 
 struct MyAchievementView: View {
-    @StateObject private var healthKitManager = HealthKitManager()
+    @ObservedObject private var healthKitManager = HealthKitManager.shared
     @StateObject private var sharedHealthDataManager = SharedHealthDataManager.shared
     @ObservedObject private var trainingReadinessManager = TrainingReadinessManager.shared
     @State private var showShareSheet = false

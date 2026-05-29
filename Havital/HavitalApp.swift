@@ -116,7 +116,7 @@ struct HavitalApp: App {
         
         // 3. 🚀 必須在訪問 self 之前初始化所有屬性
         // 注意：此時 Firebase 已就緒，DI Container 已填充，可以安全創建單例和 ViewModels
-        self._healthKitManager = StateObject(wrappedValue: HealthKitManager())
+        self._healthKitManager = StateObject(wrappedValue: HealthKitManager.shared)
         self._appViewModel = StateObject(wrappedValue: AppViewModel())
         // Clean Architecture: Use AuthenticationViewModel instead of AuthenticationService
         self._authViewModel = StateObject(wrappedValue: AuthenticationViewModel.shared)

@@ -30,7 +30,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         let diagnosticMessage: String
     }
     
-    private let healthKitManager = HealthKitManager()
+    private let healthKitManager = HealthKitManager.shared
     private let workoutUploadTracker = WorkoutUploadTracker.shared
     
     // Task Management - 使用 Actor-based TaskRegistry 防止重複上傳

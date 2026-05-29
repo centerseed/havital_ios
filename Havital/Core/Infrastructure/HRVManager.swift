@@ -67,7 +67,7 @@ class HRVManager: ObservableObject, DataManageable {
     
     // MARK: - Initialization
     private init() {
-        self.service = HealthKitManager()
+        self.service = HealthKitManager.shared
         self.cacheManager = HRVCacheManager()
         
         // 註冊到 CacheEventBus
