@@ -40,9 +40,11 @@ enum HTTPMethod: String {
 actor DefaultHTTPClient: HTTPClient {
     static let shared = DefaultHTTPClient()
 
-    // Clean Architecture: Use AuthSessionRepository instead of AuthenticationService
-    private var authSessionRepository: AuthSessionRepository {
-        DependencyContainer.shared.resolve()
+    // Clean Architecture: Use AuthSessionRepository instead of AuthenticationService.
+    // Uses tryResolve so background HTTP tasks during unit-test tearDown (when DI is
+    // temporarily empty after reset()) do not crash with a fatalError.
+    private var authSessionRepository: AuthSessionRepository? {
+        DependencyContainer.shared.tryResolve()
     }
 
     // MARK: - Retry Configuration
@@ -109,7 +111,7 @@ actor DefaultHTTPClient: HTTPClient {
 
                     // 強制刷新 token
                     do {
-                        _ = try await authSessionRepository.refreshIdToken()
+                        _ = try await authSessionRepository?.refreshIdToken()
 
                         // 用新 token 重建請求
                         let retryRequest = try await buildRequest(path: path, method: method, body: body, customHeaders: customHeaders)
@@ -274,10 +276,11 @@ actor DefaultHTTPClient: HTTPClient {
         // 添加認證 token（除了登入相關端點，且沒有自定義 Authorization）
         if !isAuthenticationEndpoint(path: path) && customHeaders?["Authorization"] == nil {
             Logger.trace("[HTTPClient] 🔐 Adding authentication token for: \(method.rawValue) \(path)")
-            let token = try await authSessionRepository.getIdToken()
-            let tokenPreview = String(token.prefix(30))
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            Logger.trace("[HTTPClient] 🔐 Authorization header set (token preview: \(tokenPreview)...)")
+            if let token = try await authSessionRepository?.getIdToken() {
+                let tokenPreview = String(token.prefix(30))
+                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                Logger.trace("[HTTPClient] 🔐 Authorization header set (token preview: \(tokenPreview)...)")
+            }
         } else if isAuthenticationEndpoint(path: path) {
             Logger.trace("[HTTPClient] ⚪ Skipping auth token for authentication endpoint: \(path)")
         }

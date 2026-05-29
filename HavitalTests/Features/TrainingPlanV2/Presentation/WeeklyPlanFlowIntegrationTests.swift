@@ -146,6 +146,7 @@ final class WeeklyPlanFlowIntegrationTests: XCTestCase {
             totalDistanceUnit: nil,
             totalDistanceReason: nil,
             designReason: nil,
+            coachNote: nil,
             days: [],
             intensityTotalMinutes: nil,
             currentVdot: nil,

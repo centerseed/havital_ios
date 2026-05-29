@@ -35,7 +35,9 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     var lastAppliedIndices: [Int] = []
     var lastApplyAdjustmentItemsWeekOfPlan: Int?
     var getWeeklyPreviewCallCount = 0
+    var refreshWeeklyPreviewCallCount = 0
     var clearCacheCallCount = 0
+    var clearOverviewCacheCallCount = 0
     var lastRequestedWeeklyPlanWeekOfTraining: Int?
     var lastRefreshedWeeklyPlanWeekOfTraining: Int?
     var lastCreateOverviewForRaceTargetId: String?
@@ -53,6 +55,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     var targetTypesToReturn: [TargetTypeV2] = []
     var methodologiesToReturn: [MethodologyV2] = []
     var overviewToReturn: PlanOverviewV2?
+    var refreshOverviewResults: [PlanOverviewV2] = []
     var weeklyPlanV2ToReturn: WeeklyPlanV2?
     var weeklySummaryV2ToReturn: WeeklySummaryV2?
     var errorToThrow: Error?
@@ -84,7 +87,9 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         lastAppliedIndices = []
         lastApplyAdjustmentItemsWeekOfPlan = nil
         getWeeklyPreviewCallCount = 0
+        refreshWeeklyPreviewCallCount = 0
         clearCacheCallCount = 0
+        clearOverviewCacheCallCount = 0
         lastRequestedWeeklyPlanWeekOfTraining = nil
         lastRefreshedWeeklyPlanWeekOfTraining = nil
         lastCreateOverviewForRaceTargetId = nil
@@ -95,6 +100,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         lastUpdatedOverviewMethodologyId = nil
         lastUpdateWeeklyPlanRequest = nil
         errorToThrow = nil
+        refreshOverviewResults = []
         generateWeeklyPlanErrors = []
         applyAdjustmentItemsError = nil
     }
@@ -155,6 +161,9 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     func refreshOverview() async throws -> PlanOverviewV2 {
         refreshOverviewCallCount += 1
         if let error = errorToThrow { throw error }
+        if !refreshOverviewResults.isEmpty {
+            return refreshOverviewResults.removeFirst()
+        }
         guard let overview = overviewToReturn else {
             throw TrainingPlanV2Error.overviewNotFound
         }
@@ -238,6 +247,15 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         return preview
     }
 
+    func refreshWeeklyPreview(overviewId: String) async throws -> WeeklyPreviewV2 {
+        refreshWeeklyPreviewCallCount += 1
+        if let error = errorToThrow { throw error }
+        guard let preview = weeklyPreviewToReturn else {
+            throw TrainingPlanV2Error.unknown("No mock weekly preview set")
+        }
+        return preview
+    }
+
     func generateWeeklySummary(weekOfPlan: Int, forceUpdate: Bool?) async throws -> WeeklySummaryV2 {
         generateWeeklySummaryCallCount += 1
         if let error = errorToThrow { throw error }
@@ -302,7 +320,9 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         clearCacheCallCount += 1
     }
 
-    func clearOverviewCache() async {}
+    func clearOverviewCache() async {
+        clearOverviewCacheCallCount += 1
+    }
     func clearWeeklyPlanCache(weekOfTraining: Int?) async {}
     func clearWeeklySummaryCache(weekOfPlan: Int?) async {}
     func preloadData() async {}

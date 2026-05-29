@@ -63,9 +63,13 @@ class AppStateManager: ObservableObject {
     private let workoutRepository: WorkoutRepository
     private var healthDataUploadManager: HealthDataUploadManagerV2?
 
-    // Lazy resolve: SubscriptionRepository 在 DI 註冊完成後才可用
+    // Injected subscription repository (set by testable init; nil in production singleton).
+    private var _injectedSubscriptionRepository: SubscriptionRepository?
+
+    // Lazy resolve: SubscriptionRepository 在 DI 註冊完成後才可用.
+    // Testable init sets _injectedSubscriptionRepository to avoid any DI lookup.
     private var subscriptionRepository: SubscriptionRepository {
-        DependencyContainer.shared.resolve()
+        _injectedSubscriptionRepository ?? DependencyContainer.shared.resolve()
     }
 
     private var analyticsService: AnalyticsService {
@@ -79,8 +83,26 @@ class AppStateManager: ObservableObject {
         self.authSessionRepository = DependencyContainer.shared.resolve()
         self.workoutRepository = DependencyContainer.shared.resolve()
         print("🏁 AppStateManager: 已初始化")
+        setupSubscriptionStatusSync()
+    }
 
-        // Keep the GA4 subscription_status user property in sync with live state changes.
+    /// Testable initializer — injects all dependencies directly, bypasses the singleton and real DI.
+    /// Use in unit tests to create an isolated instance without touching real Firebase services.
+    /// All three repositories must be provided so no DI lookup happens during initializeApp().
+    init(
+        authSessionRepository: AuthSessionRepository,
+        workoutRepository: WorkoutRepository,
+        subscriptionRepository: SubscriptionRepository
+    ) {
+        self.authSessionRepository = authSessionRepository
+        self.workoutRepository = workoutRepository
+        self._injectedSubscriptionRepository = subscriptionRepository
+        print("🏁 AppStateManager: 已初始化（測試用注入）")
+        setupSubscriptionStatusSync()
+    }
+
+    /// Keeps the GA4 subscription_status user property in sync with live state changes.
+    private func setupSubscriptionStatusSync() {
         SubscriptionStateManager.shared.$currentStatus
             .compactMap { $0 }
             .removeDuplicates { $0.status == $1.status }

@@ -11,7 +11,9 @@ final class DependencyContainer {
     // MARK: - Storage
     private var singletons: [String: Any] = [:]
     private var factories: [String: () -> Any] = [:]
-    private let lock = NSLock()
+    // NSRecursiveLock required because reset() holds the lock while calling
+    // registerCoreDependencies(), which in turn calls register() (also locking).
+    private let lock = NSRecursiveLock()
 
     // MARK: - Initialization
     private init() {

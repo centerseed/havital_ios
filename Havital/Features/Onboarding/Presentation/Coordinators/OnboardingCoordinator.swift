@@ -131,10 +131,16 @@ class OnboardingCoordinator: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    /// ✅ Clean Architecture: Use Case for completing onboarding
-    private lazy var completeOnboardingUseCase: CompleteOnboardingUseCase = {
-        DependencyContainer.shared.makeCompleteOnboardingUseCase()
-    }()
+    /// ✅ Clean Architecture: Use Case for completing onboarding.
+    /// Resolved lazily from DI on first access. Reset in reset() so that
+    /// unit tests replacing DI registrations get a fresh instance.
+    private var _completeOnboardingUseCase: CompleteOnboardingUseCase?
+    private var completeOnboardingUseCase: CompleteOnboardingUseCase {
+        if let existing = _completeOnboardingUseCase { return existing }
+        let useCase = DependencyContainer.shared.makeCompleteOnboardingUseCase()
+        _completeOnboardingUseCase = useCase
+        return useCase
+    }
 
     // Lazy resolve — coordinator is a singleton so it cannot take constructor deps.
     private var analyticsService: AnalyticsService {
@@ -339,6 +345,9 @@ class OnboardingCoordinator: ObservableObject {
 
     /// 重置所有狀態
     func reset() {
+        // Invalidate the cached use case so unit tests that replace DI registrations
+        // always get a fresh instance resolving the current mocks.
+        _completeOnboardingUseCase = nil
         navigationPath.removeAll()
         highestReachedDepth = 0
         targetDistance = 21.0975

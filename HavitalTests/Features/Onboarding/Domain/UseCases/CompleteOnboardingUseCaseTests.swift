@@ -121,6 +121,7 @@ final class CompleteOnboardingUseCaseTests: XCTestCase {
             totalDistanceUnit: nil,
             totalDistanceReason: nil,
             designReason: ["Test"],
+            coachNote: nil,
             days: [],
             intensityTotalMinutes: nil,
             currentVdot: nil,

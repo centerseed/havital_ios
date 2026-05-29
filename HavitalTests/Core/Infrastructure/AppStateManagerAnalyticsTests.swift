@@ -6,6 +6,7 @@ final class AppStateManagerAnalyticsTests: XCTestCase {
 
     private var authSessionRepository: MockAuthSessionRepository!
     private var workoutRepository: MockWorkoutRepository!
+    private var subscriptionRepository: MockSubscriptionRepositoryForAppState!
     private var analyticsService: MockAnalyticsService!
     private var sut: AppStateManager!
 
@@ -17,10 +18,10 @@ final class AppStateManagerAnalyticsTests: XCTestCase {
         authSessionRepository = MockAuthSessionRepository()
         authSessionRepository.isAuthenticatedValue = false
         workoutRepository = MockWorkoutRepository()
+        subscriptionRepository = MockSubscriptionRepositoryForAppState()
         analyticsService = MockAnalyticsService()
 
-        DependencyContainer.shared.register(authSessionRepository as AuthSessionRepository, forProtocol: AuthSessionRepository.self)
-        DependencyContainer.shared.register(workoutRepository as WorkoutRepository, forProtocol: WorkoutRepository.self)
+        // Register analytics mock so AppStateManager's computed analyticsService resolves to it.
         DependencyContainer.shared.replace(analyticsService as AnalyticsService, for: AnalyticsService.self)
 
         UserDefaults.standard.removeObject(forKey: "analytics_first_install_date")
@@ -31,12 +32,18 @@ final class AppStateManagerAnalyticsTests: XCTestCase {
 
         SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none))
 
-        sut = AppStateManager.shared
+        // Use testable init: all three repos injected directly — no real network, no Firebase.
+        sut = AppStateManager(
+            authSessionRepository: authSessionRepository,
+            workoutRepository: workoutRepository,
+            subscriptionRepository: subscriptionRepository
+        )
     }
 
     override func tearDown() async throws {
         sut = nil
         analyticsService = nil
+        subscriptionRepository = nil
         workoutRepository = nil
         authSessionRepository = nil
 
@@ -82,6 +89,22 @@ final class AppStateManagerAnalyticsTests: XCTestCase {
             analyticsService.userProperties.contains(where: { $0.name == "target_type" && $0.value == "race_run" })
         )
     }
+}
+
+/// Hermetic SubscriptionRepository stub: returns .none status without any network call.
+private final class MockSubscriptionRepositoryForAppState: SubscriptionRepository {
+    func getStatus() async throws -> SubscriptionStatusEntity { SubscriptionStatusEntity(status: .none) }
+    func refreshStatus() async throws -> SubscriptionStatusEntity { SubscriptionStatusEntity(status: .none) }
+    func getCachedStatus() -> SubscriptionStatusEntity? { nil }
+    func clearCache() {}
+    func fetchOfferings() async throws -> [SubscriptionOfferingEntity] { [] }
+    func purchase(request: SubscriptionPurchaseRequest) async throws -> PurchaseResultEntity {
+        throw NSError(domain: "Mock", code: 0)
+    }
+    func redeemOfferCode() async throws -> PurchaseResultEntity {
+        throw NSError(domain: "Mock", code: 0)
+    }
+    func restorePurchases() async throws {}
 }
 
 private final class MockAnalyticsService: AnalyticsService {

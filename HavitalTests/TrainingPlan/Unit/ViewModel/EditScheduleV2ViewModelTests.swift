@@ -113,7 +113,8 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
                 primary: .run(runActivity),
                 cooldown: nil,
                 supplementary: nil
-            )
+            ),
+            supplementary: nil
         )
 
         return WeeklyPlanV2(
@@ -128,6 +129,7 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
             totalDistanceUnit: nil,
             totalDistanceReason: nil,
             designReason: nil,
+            coachNote: nil,
             days: [day],
             intensityTotalMinutes: nil,
             currentVdot: nil,

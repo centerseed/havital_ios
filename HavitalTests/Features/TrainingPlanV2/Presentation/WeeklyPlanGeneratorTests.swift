@@ -93,6 +93,7 @@ final class WeeklyPlanGeneratorTests: XCTestCase {
             totalDistanceUnit: nil,
             totalDistanceReason: nil,
             designReason: nil,
+            coachNote: nil,
             days: [],
             intensityTotalMinutes: nil,
             currentVdot: nil,
