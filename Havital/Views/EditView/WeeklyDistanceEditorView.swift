@@ -4,15 +4,12 @@ struct WeeklyDistanceEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var isLoading = false
     @State private var errorMessage: String? = nil
-    @Binding var distance: Int
     @State private var editingDistance: Int
     let onSave: (Int) -> Void
-    
-    init(distance: Binding<Int>, onSave: @escaping (Int) -> Void) {
-        self._distance = distance
+
+    init(initial: Int, onSave: @escaping (Int) -> Void) {
+        self._editingDistance = State(initialValue: initial)
         self.onSave = onSave
-        self._editingDistance = State(initialValue: distance.wrappedValue)
-        print("初始化週跑量編輯器，傳入值: \(distance.wrappedValue)")
     }
     
     
@@ -60,11 +57,8 @@ struct WeeklyDistanceEditorView: View {
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(L10n.Common.save.localized) {
-                        DispatchQueue.main.async {
-                            distance = editingDistance
-                            onSave(editingDistance)
-                            dismiss()
-                        }
+                        onSave(editingDistance)
+                        dismiss()
                     }
                 }
             }
@@ -73,13 +67,5 @@ struct WeeklyDistanceEditorView: View {
 }
 
 #Preview {
-    struct Preview: View {
-        @State private var distance = 30
-        
-        var body: some View {
-            WeeklyDistanceEditorView(distance: $distance) { _ in }
-        }
-    }
-    
-    return Preview()
+    WeeklyDistanceEditorView(initial: 30) { _ in }
 }

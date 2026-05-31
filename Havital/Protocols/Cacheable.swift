@@ -21,7 +21,7 @@ protocol CacheEventListener: AnyObject {
 }
 
 // MARK: - 快取失效原因
-enum CacheInvalidationReason {
+enum CacheInvalidationReason: Hashable {
     case userLogout
     case dataChanged(DataType)
     case manualClear
@@ -32,7 +32,7 @@ enum CacheInvalidationReason {
 }
 
 // MARK: - 資料類型
-enum DataType {
+enum DataType: Hashable {
     case workouts
     case trainingPlan
     case trainingPlanV2

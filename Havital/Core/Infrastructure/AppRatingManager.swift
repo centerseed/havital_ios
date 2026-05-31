@@ -10,7 +10,6 @@ class AppRatingManager: ObservableObject, @preconcurrency TaskManageable {
     let taskRegistry = TaskRegistry()
 
     // MARK: - Dependencies
-    private let userService = UserService.shared
     private let userProfileLocalDataSource = UserProfileLocalDataSource()
     private let trainingPlanLocalDataSource = TrainingPlanLocalDataSource()
 
@@ -167,10 +166,11 @@ class AppRatingManager: ObservableObject, @preconcurrency TaskManageable {
 
             // 嘗試更新後端（失敗不影響本地）
             do {
-                try await self.userService.recordRatingPrompt(
-                    promptCount: newCount,
-                    lastPromptDate: dateString
-                )
+                let repo: UserProfileRepository = DependencyContainer.shared.resolve()
+                _ = try await repo.updateUserProfile([
+                    "rating_prompt_count": newCount,
+                    "last_rating_prompt_date": dateString
+                ])
                 print("✅ [AppRatingManager] 已同步後端")
             } catch {
                 print("⚠️ [AppRatingManager] 後端同步失敗（本地已記錄）: \(error.localizedDescription)")

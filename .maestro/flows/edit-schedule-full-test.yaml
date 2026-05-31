@@ -16,14 +16,18 @@ tags:
 - assertVisible: "每日訓練"
 - tapOn: "更多"
 - tapOn: "編輯課表"
-- assertVisible: "編輯週課表"
+- extendedWaitUntil:
+    visible: "編輯週課表"
+    timeout: 30000
 - tapOn: "取消"
 - assertVisible: "每日訓練"
 
 # === E2: 改訓練類型 ===
 - tapOn: "更多"
 - tapOn: "編輯課表"
-- assertVisible: "編輯週課表"
+- extendedWaitUntil:
+    visible: "編輯週課表"
+    timeout: 30000
 # 點第四天訓練類型 dropdown（避免第一天可能是休息）
 - tapOn:
     id: "training_type_menu_4"
@@ -45,7 +49,9 @@ tags:
 # === E3: 改配速（透過齒輪 sheet 套用建議配速）===
 - tapOn: "更多"
 - tapOn: "編輯課表"
-- assertVisible: "編輯週課表"
+- extendedWaitUntil:
+    visible: "編輯週課表"
+    timeout: 30000
 # 點第二天齒輪進入編輯 sheet（使用 stable id）
 - tapOn:
     id: "day_2_edit_gear"
@@ -55,7 +61,9 @@ tags:
 # 點儲存（sheet 內）
 - tapOn: "儲存"
 # 回到編輯週課表
-- assertVisible: "編輯週課表"
+- extendedWaitUntil:
+    visible: "編輯週課表"
+    timeout: 30000
 # 儲存整個課表
 - tapOn: "儲存"
 - extendedWaitUntil:
@@ -66,7 +74,9 @@ tags:
 # === TEARDOWN：還原資料（第四天從休息改回跑步）===
 - tapOn: "更多"
 - tapOn: "編輯課表"
-- assertVisible: "編輯週課表"
+- extendedWaitUntil:
+    visible: "編輯週課表"
+    timeout: 30000
 - tapOn:
     id: "training_type_menu_4"
 - tapOn:

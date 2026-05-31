@@ -26,7 +26,15 @@ final class SubscriptionReminderManager: ObservableObject {
     // MARK: - Public
 
     /// 檢查並產生提醒（App 啟動或前景恢復時呼叫）
-    func checkAndShowReminder(status: SubscriptionStatusEntity?) {
+    /// - Parameters:
+    ///   - status: 目前訂閱狀態。
+    ///   - hasGeneratedTrainingPlan: 用戶是否已生成 Week 1 課表（planOverview != nil）。
+    ///     若為 true 且狀態為 expired，FreeTierBanner 已在主頁持續顯示，不再重複觸發 dialog。
+    ///     預設 false，保持向後相容（不傳此參數時行為不變）。
+    func checkAndShowReminder(
+        status: SubscriptionStatusEntity?,
+        hasGeneratedTrainingPlan: Bool = false
+    ) {
         guard let status else {
             pendingReminder = nil
             return
@@ -41,7 +49,13 @@ final class SubscriptionReminderManager: ObservableObject {
         case .trial:
             checkTrialReminder(status: status)
         case .expired:
-            checkExpiredReminder()
+            // FreeTierBanner 顯示條件：!hasPremiumAccess && planOverview != nil。
+            // 若 banner 已常駐顯示，dialog 是重複提醒；以 hasGeneratedTrainingPlan 代理此判斷。
+            if hasGeneratedTrainingPlan {
+                pendingReminder = nil
+                return
+            }
+            checkExpiredReminder(status: status)
         default:
             // active, cancelled, gracePeriod, none — 不需要提醒
             pendingReminder = nil
@@ -83,7 +97,15 @@ final class SubscriptionReminderManager: ObservableObject {
         pendingReminder = .trialExpiring(daysRemaining: remainingDays, trialEndsAt: status.trialEndAt)
     }
 
-    private func checkExpiredReminder() {
+    private func checkExpiredReminder(status: SubscriptionStatusEntity) {
+        // AC-PAYWALL-37 belt-and-suspenders: a nil subscribedAt means the user
+        // has never had a paid subscription (true new user). Showing an "expired"
+        // dialog is incorrect messaging — they never subscribed. Skip it.
+        guard status.subscribedAt != nil else {
+            pendingReminder = nil
+            return
+        }
+
         guard !hasShownExpiredThisSession else {
             pendingReminder = nil
             return

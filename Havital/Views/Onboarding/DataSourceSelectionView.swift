@@ -2,7 +2,7 @@ import SwiftUI
 import HealthKit
 
 struct DataSourceSelectionView: View {
-    @StateObject private var healthKitManager = HealthKitManager()
+    @ObservedObject private var healthKitManager = HealthKitManager.shared
     @StateObject private var garminManager = GarminManager.shared
     @StateObject private var stravaManager = StravaManager.shared
     @StateObject private var viewModel = UserProfileFeatureViewModel()
@@ -78,6 +78,9 @@ struct DataSourceSelectionView: View {
             }
         }
         .accessibilityIdentifier("DataSource_Screen")
+        .onAppear {
+            coordinator.trackDataSourcePromptedIfNeeded()
+        }
         .navigationTitle(L10n.Onboarding.chooseDataSource.localized)
         .navigationBarTitleDisplayMode(.inline)
         .alert(L10n.Onboarding.garminAlreadyBound.localized, isPresented: $showGarminAlreadyBoundAlert) {
@@ -210,6 +213,8 @@ struct DataSourceSelectionView: View {
 
     private func handleSkipForNow() {
         isProcessing = true
+        // AC-IOS-ANALYTICS-P1-03: user chose to skip data source binding
+        coordinator.trackDataSourceSkipped()
 
         Task {
             do {
@@ -238,6 +243,9 @@ struct DataSourceSelectionView: View {
 
         try await healthKitManager.requestAuthorization()
         try await viewModel.updateAndSyncDataSource(.appleHealth)
+
+        // AC-IOS-ANALYTICS-P1-04: step-level Apple Health connection success
+        coordinator.trackDataSourceConnected(provider: "apple_health")
 
         Logger.firebase("Apple Health 權限請求成功", level: .info, labels: [
             "module": "DataSourceSelectionView",

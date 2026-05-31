@@ -7,7 +7,15 @@ struct WorkoutListResponse: Codable {
     let pagination: PaginationInfo
 }
 
-struct WorkoutV2: Codable, Identifiable {
+struct WorkoutV2: Codable, Identifiable, Hashable {
+    // Hashable: identity is stable and unique per workout record
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    static func == (lhs: WorkoutV2, rhs: WorkoutV2) -> Bool {
+        lhs.id == rhs.id
+    }
+
     let id: String
     let provider: String
     let activityType: String
@@ -140,6 +148,21 @@ struct WorkoutV2: Codable, Identifiable {
     
     var distance: Double? {
         return distanceMeters
+    }
+
+    var displayPaceSecondsPerKm: Double? {
+        if let avgPace = basicMetrics?.avgPaceSPerKm, avgPace.isFinite, avgPace > 0 {
+            return avgPace
+        }
+
+        guard let distance = distanceMeters, distance > 0 else { return nil }
+
+        if let movingDuration = basicMetrics?.movingDurationS, movingDuration > 0 {
+            return Double(movingDuration) / distance * 1000
+        }
+
+        guard durationSeconds > 0 else { return nil }
+        return Double(durationSeconds) / distance * 1000
     }
     
     var calories: Double? {
@@ -436,6 +459,7 @@ struct WorkoutV2Detail: Codable {
     let aiSummary: AISummary?
     let shareCardContent: ShareCardContent?  // 分享卡內容 (optional,向後兼容)
     let trainingNotes: String?  // 訓練心得 (optional,向後兼容)
+    let correction: TreadmillCorrection?  // 跑步機里程校正 (optional,向後兼容)
 
     enum CodingKeys: String, CodingKey {
         case id, provider, source
@@ -464,6 +488,36 @@ struct WorkoutV2Detail: Codable {
         case aiSummary = "ai_summary"
         case shareCardContent = "share_card_content"
         case trainingNotes = "training_notes"
+        case correction = "correction"
+    }
+}
+
+// MARK: - Treadmill Correction Model
+
+/// 跑步機里程校正資料（後端返回，沿用既有 legacy Codable 模式）
+struct TreadmillCorrection: Codable, Hashable {
+    let type: String?
+    let source: String?
+    let actualDistanceM: Double?
+    let avgInclinePercent: Double?
+    let originalDistanceM: Double?
+    let originalAvgPaceSPerKm: Double?
+    let originalDynamicVdot: Double?
+    let correctedAvgPaceSPerKm: Double?
+    let correctedDynamicVdot: Double?
+    let notes: String?
+    let appliedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case type, source, notes
+        case actualDistanceM = "actual_distance_m"
+        case avgInclinePercent = "avg_incline_percent"
+        case originalDistanceM = "original_distance_m"
+        case originalAvgPaceSPerKm = "original_avg_pace_s_per_km"
+        case originalDynamicVdot = "original_dynamic_vdot"
+        case correctedAvgPaceSPerKm = "corrected_avg_pace_s_per_km"
+        case correctedDynamicVdot = "corrected_dynamic_vdot"
+        case appliedAt = "applied_at"
     }
 }
 
@@ -1246,6 +1300,15 @@ struct ConnectionInfo: Codable {
     }
 }
 
+// MARK: - Treadmill Correction Helper
+
+extension WorkoutV2Detail {
+    /// 是否已完成跑步機里程人工校正
+    var isTreadmillCorrected: Bool {
+        correction?.type == "treadmill" && correction?.source == "user_treadmill_correction"
+    }
+}
+
 // MARK: - Helper Extensions
 
 extension WorkoutV2Detail {
@@ -1391,7 +1454,7 @@ extension WorkoutV2 {
 
     /// 分享卡專用格式化配速（依 UnitManager 設定決定單位）
     var formattedPace: String {
-        guard let pace = basicMetrics?.avgPaceSPerKm else { return "-" }
+        guard let pace = displayPaceSecondsPerKm else { return "-" }
         return MainActor.assumeIsolated {
             let unit = UnitManager.shared.currentUnitSystem
             let converted: Double
@@ -1399,8 +1462,9 @@ extension WorkoutV2 {
             case .metric: converted = pace
             case .imperial: converted = pace * 1.60934
             }
-            let minutes = Int(converted) / 60
-            let seconds = Int(converted) % 60
+            let rounded = Int(converted.rounded())
+            let minutes = rounded / 60
+            let seconds = rounded % 60
             return String(format: "%d'%02d\"/%@", minutes, seconds, unit.distanceSuffix)
         }
     }
@@ -1500,6 +1564,7 @@ extension LapData: Equatable {}
 
 extension WorkoutV2: Equatable {}
 extension WorkoutV2Detail: Equatable {}
+extension TreadmillCorrection: Equatable {}
 
 // MARK: - More Equatable Extensions (DailyPlan)
 extension DailyPlanSegment: Equatable {}

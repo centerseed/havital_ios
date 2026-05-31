@@ -11,15 +11,19 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
         // 設定 Firebase Messaging 代理
         Messaging.messaging().delegate = self
         
-        // 向 APNs 註冊遠端通知
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-            if let error = error {
-                print("通知權限請求失敗: \(error.localizedDescription)")
-            }
-            print("通知權限\(granted ? "已允許" : "被拒絕")")
-            // 無論是否允許，都嘗試向 APNs 註冊，iOS 會自行判斷
-            DispatchQueue.main.async {
-                application.registerForRemoteNotifications()
+        if CommandLine.arguments.contains("-ui_testing_skip_notification_authorization") {
+            print("🧪 [UI Test] Skipping AppDelegate notification authorization")
+        } else {
+            // 向 APNs 註冊遠端通知
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+                if let error = error {
+                    print("通知權限請求失敗: \(error.localizedDescription)")
+                }
+                print("通知權限\(granted ? "已允許" : "被拒絕")")
+                // 無論是否允許，都嘗試向 APNs 註冊，iOS 會自行判斷
+                DispatchQueue.main.async {
+                    application.registerForRemoteNotifications()
+                }
             }
         }
 

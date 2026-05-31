@@ -1,0 +1,25 @@
+appId: com.havital.Havital
+---
+- tapOn:
+    text: "關閉|Close|閉じる"
+    optional: true
+- tapOn:
+    text: "表現數據|Performance"
+    optional: true
+- extendedWaitUntil:
+    visible: "表現數據|Performance"
+    timeout: 15000
+    optional: true
+- scrollUntilVisible:
+    element: "診斷 HRV 問題|Diagnose HRV Issue|HRV 問題の診断"
+    direction: DOWN
+    timeout: 20000
+    optional: true
+- tapOn:
+    text: "診斷 HRV 問題|Diagnose HRV Issue|HRV 問題の診断"
+    optional: true
+- extendedWaitUntil:
+    visible: "讀取授權|原始樣本數|來源|Authorization|Raw samples|Source|診斷失敗"
+    timeout: 15000
+    optional: true
+- takeScreenshot: "hrv-diagnostic-review"

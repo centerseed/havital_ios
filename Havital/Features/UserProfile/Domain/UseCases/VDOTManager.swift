@@ -136,10 +136,8 @@ class VDOTManager: ObservableObject, DataManageable {
     private init() {
         self.service = VDOTService.shared
         self.cacheManager = VDOTCacheManager()
-        
-        // 註冊到 CacheEventBus
-        CacheEventBus.shared.register(self)
-        
+
+        // CacheEventBus registration moved to CacheRegistrationCoordinator (App layer)
         setupNotificationObservers()
     }
     

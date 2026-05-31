@@ -1,6 +1,7 @@
 # Xcode
 #
 build/
+.build/
 *.pbxuser
 !default.pbxuser
 *.mode1v3
@@ -37,3 +38,9 @@ skills/
 .swiftpm/
 SourcePackages/
 Package.resolved
+
+# Maestro runtime cache
+.maestro/.last_failed_flows.txt
+
+# Python bytecode
+**/__pycache__/

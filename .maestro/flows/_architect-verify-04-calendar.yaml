@@ -1,0 +1,40 @@
+appId: com.havital.Havital
+---
+- tapOn:
+    text: "訓練計劃|訓練計畫"
+- extendedWaitUntil:
+    visible:
+      text: "取得週回顧|訓練日曆|每日訓練"
+    timeout: 8000
+- takeScreenshot: /tmp/v4_main_before.png
+
+# 點「取得週回顧」
+- tapOn:
+    text: "取得週回顧"
+    optional: true
+
+# 等候週回顧產生（LLM 可能要 30 秒）
+- extendedWaitUntil:
+    visible:
+      text: "訓練日曆|每日訓練|本週目標|週跑量"
+    timeout: 60000
+- takeScreenshot: /tmp/v4_main_after_review.png
+
+# 找訓練日曆入口
+- tapOn:
+    text: "訓練日曆"
+- extendedWaitUntil:
+    visible:
+      text: "Mon|Tue|月總距離|平均配速"
+    timeout: 8000
+- takeScreenshot: /tmp/v4_calendar_default_month.png
+
+# 翻到 3 月（用戶截圖那月）— 從目前往前翻幾個月
+- tapOn:
+    point: "8%,28%"
+    optional: true
+- takeScreenshot: /tmp/v4_calendar_back1.png
+- tapOn:
+    point: "8%,28%"
+    optional: true
+- takeScreenshot: /tmp/v4_calendar_back2.png

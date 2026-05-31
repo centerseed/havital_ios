@@ -4,7 +4,7 @@ import SwiftUI
 struct TrainingProgressCardV2: View {
     var viewModel: TrainingPlanV2ViewModel
     let plan: WeeklyPlanV2
-    @State private var showTrainingProgress = false
+    var onOpenOverview: () -> Void = {}
 
     private var progress: Double {
         guard let overview = viewModel.loader.planOverview, overview.totalWeeks > 0 else { return 0 }
@@ -12,35 +12,54 @@ struct TrainingProgressCardV2: View {
     }
 
     var body: some View {
+        // MARK: - PACERIZ REDESIGN 2026-05
+        // Layout change: 3-row → single header row + slider.
+        // Old rows (title row / stage indicator row) merged into one header row with PRChip.
         Button(action: {
-            showTrainingProgress = true
+            onOpenOverview()
         }) {
             VStack(alignment: .leading, spacing: 12) {
-                // 標題和週數
-                HStack {
-                    Image(systemName: "chart.line.uptrend.xyaxis")
-                        .foregroundColor(.blue)
-                        .font(AppFont.headline())
 
-                    Text(NSLocalizedString("training.progress", comment: "Training Progress"))
-                        .font(AppFont.headline())
-                        .foregroundColor(.primary)
+                // Row 1 (新): single-row header
+                // trend icon · stage name · week chip · spacer · chevron
+                HStack(spacing: 8) {
+                    if let overview = viewModel.loader.planOverview,
+                       let currentStage = getCurrentStage(from: overview) {
+                        let stageColor = stageColorFor(week: plan.effectiveWeek, stages: overview.trainingStages)
+
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .font(AppFont.bodyStrong())
+                            .foregroundColor(stageColor)
+
+                        Text(currentStage.stageName)
+                            .font(AppFont.titleM())
+                            .foregroundColor(.primary)
+
+                        PRChip(
+                            text: String(format: NSLocalizedString("training_plan_overview.week_progress", comment: ""), plan.effectiveWeek, overview.totalWeeks),
+                            fg: stageColor,
+                            bg: stageColor.opacity(0.13),
+                            fontSize: 12
+                        )
+                    } else {
+                        // PHASE-fallback: planOverview nil → show generic title, no crash
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .font(AppFont.bodyStrong())
+                            .foregroundColor(.blue)
+
+                        Text(NSLocalizedString("training.progress", comment: "Training Progress"))
+                            .font(AppFont.titleM())
+                            .foregroundColor(.primary)
+                    }
 
                     Spacer()
 
-                    if let overview = viewModel.loader.planOverview {
-                        Text(String(format: NSLocalizedString("training_plan_overview.week_progress", comment: ""), plan.effectiveWeek, overview.totalWeeks))
-                            .font(AppFont.subheadline())
-                            .fontWeight(.semibold)
-                            .foregroundColor(.secondary)
-                    }
-
                     Image(systemName: "chevron.right")
-                        .font(AppFont.caption())
+                        .font(AppFont.label())
                         .foregroundColor(.secondary)
                 }
 
-                // 多階段彩色進度條
+                // Row 2: 多階段彩色進度條 (unchanged)
                 if let overview = viewModel.loader.planOverview, !overview.trainingStages.isEmpty {
                     stageProgressBar(overview: overview)
                         .padding(.vertical, 4)
@@ -49,41 +68,16 @@ struct TrainingProgressCardV2: View {
                         .tint(.blue)
                         .scaleEffect(y: 1.8)
                 }
-
-                // 當前階段指示器（簡化版 - 待實作完整階段邏輯）
-                if let overview = viewModel.loader.planOverview,
-                   let currentStage = getCurrentStage(from: overview) {
-                    HStack(alignment: .center, spacing: 8) {
-                        Circle()
-                            .fill(getStageColor(stageId: currentStage.stageId))
-                            .frame(width: 10, height: 10)
-
-                        Text(currentStage.stageName)
-                            .font(AppFont.caption())
-                            .fontWeight(.medium)
-                            .foregroundColor(.primary)
-                            .accessibilityIdentifier("v2.weekly.current_stage")
-
-                        Spacer()
-
-                        Text(String(format: NSLocalizedString("training_plan_overview.week_range", comment: ""), currentStage.weekStart, currentStage.weekEnd))
-                            .font(AppFont.caption2())
-                            .foregroundColor(.secondary)
-                    }
-                }
             }
             .padding()
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: PacerizRadius.card)
                     .fill(Color(UIColor.tertiarySystemBackground))
                     .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
             )
         }
         .buttonStyle(PlainButtonStyle())
         .accessibilityIdentifier("v2.weekly.progress_card")
-        .sheet(isPresented: $showTrainingProgress) {
-            TrainingProgressViewV2(viewModel: viewModel)
-        }
     }
 
     // MARK: - Helper Functions
@@ -109,7 +103,7 @@ struct TrainingProgressCardV2: View {
                     LinearGradient(stops: stops, startPoint: .leading, endPoint: .trailing)
                         .frame(width: barWidth, height: barHeight)
                         .clipShape(Capsule())
-                        .opacity(0.25)
+                        .opacity(0.45)
                 } else {
                     Capsule()
                         .fill(Color(UIColor.systemGray5))
@@ -133,6 +127,25 @@ struct TrainingProgressCardV2: View {
                         )
                 }
 
+                // F11.b: 白色邊界 tick（各 stage 交界處，高 12pt 寬 2pt）
+                let boundaries: [Double] = {
+                    guard !overview.trainingStages.isEmpty else { return [] }
+                    var positions: [Double] = []
+                    var cursor = 0
+                    for stage in overview.trainingStages.dropLast() {
+                        cursor += stage.weekEnd - stage.weekStart + 1
+                        positions.append(Double(cursor) / totalWeeks)
+                    }
+                    return positions
+                }()
+                ForEach(boundaries.indices, id: \.self) { i in
+                    Rectangle()
+                        .fill(Color(UIColor.tertiarySystemBackground))
+                        .frame(width: 2, height: 12)
+                        .cornerRadius(1)
+                        .offset(x: barWidth * boundaries[i] - 1, y: 0)
+                }
+
                 // 圓圈 knob
                 Circle()
                     .fill(Color.white)
@@ -146,11 +159,11 @@ struct TrainingProgressCardV2: View {
         .frame(height: knobSize)
     }
 
-    /// 建立漸層 stops：每個階段邊界兩側各留 3% 的過渡帶
+    /// 建立漸層 stops：hard-stop 各段純色，無過渡帶
     private func makeGradientStops(stages: [TrainingStageV2], totalWeeks: Double) -> [Gradient.Stop] {
         guard !stages.isEmpty else { return [] }
         var stops: [Gradient.Stop] = []
-        let blend = 0.03
+        let blend = 0.0  // F11.a: hard-stop，各段純色，邊界直接切換
 
         for (i, stage) in stages.enumerated() {
             let color = getStageColor(stageId: stage.stageId)

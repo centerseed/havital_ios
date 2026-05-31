@@ -17,6 +17,7 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
 
     /// Persist demo auth across app relaunches during reviewer/UI test flows.
     private static let demoTokenKey = "auth.demo_id_token"
+    private static let demoUserKey = "auth.demo_user"
 
     // MARK: - Dependencies
 
@@ -38,6 +39,10 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
     }
 
     // MARK: - Session State Operations
+
+    private func selectedAppLanguageCode() async -> String {
+        await MainActor.run { LanguageManager.shared.currentLanguage.apiCode }
+    }
 
     /// Get currently cached user (synchronous)
     /// Returns cached AuthUser without making network calls
@@ -64,17 +69,19 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
             Logger.debug("[AuthSession] 🎯 fetchCurrentUser called. SessionRepo ID: \(ObjectIdentifier(self)). DemoToken: \(demoToken != nil ? "set" : "nil")")
 
             if let demoToken {
-                guard let cachedUser = authCache.getCurrentUser() else {
+                guard let cachedUser = authCache.getCurrentUser() ?? getPersistedDemoUser() else {
                     Logger.error("[AuthSession] ❌ Demo mode: no cached user found. SessionRepo ID: \(ObjectIdentifier(self))")
                     throw AuthenticationError.userNotFound
                 }
 
                 Logger.debug("[AuthSession] 🔄 Demo mode: syncing fresh user state for \(cachedUser.uid)")
 
+                let appLanguageCode = await selectedAppLanguageCode()
                 let syncRequest = UserSyncRequest(
                     firebaseUid: cachedUser.uid,
                     idToken: demoToken,
                     fcmToken: nil,
+                    language: appLanguageCode,
                     deviceInfo: DeviceInfo(
                         model: UIDevice.current.model,
                         osVersion: UIDevice.current.systemVersion,
@@ -102,10 +109,12 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
 
             // Step 3: Sync with backend to get latest data
             // 必須帶 deviceInfo.appVersion，後端 version gate middleware 依此判定是否觸發 426
+            let appLanguageCode = await selectedAppLanguageCode()
             let syncRequest = UserSyncRequest(
                 firebaseUid: firebaseUser.uid,
                 idToken: idToken,
                 fcmToken: nil,
+                language: appLanguageCode,
                 deviceInfo: DeviceInfo(
                     model: UIDevice.current.model,
                     osVersion: UIDevice.current.systemVersion,
@@ -212,14 +221,14 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
             return demoToken
         }
 
-        // Check if Firebase user exists first
-        Logger.debug("[AuthSession] 🔑 Attempting to get Firebase ID Token...")
-        Logger.debug("[AuthSession] 🔑 Firebase currentUser exists: \(firebaseAuth.getCurrentUser() != nil)")
+        // Check if Firebase user exists first（每次 API call 都會走到，降為 trace 避免洗版）
+        Logger.trace("[AuthSession] 🔑 Attempting to get Firebase ID Token...")
+        Logger.trace("[AuthSession] 🔑 Firebase currentUser exists: \(firebaseAuth.getCurrentUser() != nil)")
 
         do {
             let token = try await firebaseAuth.getIdToken()
             let tokenPreview = String(token.prefix(30))
-            Logger.debug("[AuthSession] ✅ ID Token retrieved successfully (length: \(token.count), preview: \(tokenPreview)...)")
+            Logger.trace("[AuthSession] ✅ ID Token retrieved successfully (length: \(token.count), preview: \(tokenPreview)...)")
             return token
         } catch {
             Logger.error("[AuthSession] ❌ Failed to get ID Token: \(error.localizedDescription)")
@@ -247,6 +256,7 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
     func clearCache() {
         authCache.clearCache()
         setDemoToken(nil)
+        setDemoUser(nil)
         Logger.debug("[AuthSession] Cache cleared")
     }
 
@@ -262,5 +272,25 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
             UserDefaults.standard.removeObject(forKey: Self.demoTokenKey)
         }
         Logger.debug("[AuthSession] 🎯 Demo token set in SessionRepo ID: \(ObjectIdentifier(self)). Token: \(token != nil ? "set" : "cleared")")
+    }
+
+    func setDemoUser(_ user: AuthUser?) {
+        if let user, let encoded = try? JSONEncoder().encode(user) {
+            UserDefaults.standard.set(encoded, forKey: Self.demoUserKey)
+            Logger.debug("[AuthSession] 🎯 Demo user persisted: \(user.uid)")
+        } else {
+            UserDefaults.standard.removeObject(forKey: Self.demoUserKey)
+            Logger.debug("[AuthSession] 🎯 Demo user cleared")
+        }
+    }
+
+    private func getPersistedDemoUser() -> AuthUser? {
+        guard let data = UserDefaults.standard.data(forKey: Self.demoUserKey),
+              let user = try? JSONDecoder().decode(AuthUser.self, from: data) else {
+            return nil
+        }
+
+        Logger.debug("[AuthSession] 🎯 Returning persisted demo user: \(user.uid)")
+        return user
     }
 }

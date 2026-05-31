@@ -17,6 +17,9 @@ struct UserSyncRequest: Codable {
     /// FCM push notification token
     let fcmToken: String?
 
+    /// Selected app language preference to persist on the user account.
+    let language: String?
+
     /// Device information for analytics
     let deviceInfo: DeviceInfo?
 
@@ -26,6 +29,7 @@ struct UserSyncRequest: Codable {
         case firebaseUid = "firebase_uid"
         case idToken = "id_token"
         case fcmToken = "fcm_token"
+        case language
         case deviceInfo = "device_info"
     }
 
@@ -35,11 +39,13 @@ struct UserSyncRequest: Codable {
         firebaseUid: String,
         idToken: String,
         fcmToken: String? = nil,
+        language: String? = nil,
         deviceInfo: DeviceInfo? = nil
     ) {
         self.firebaseUid = firebaseUid
         self.idToken = idToken
         self.fcmToken = fcmToken
+        self.language = language
         self.deviceInfo = deviceInfo
     }
 }

@@ -238,11 +238,13 @@ final class LoginViewModel: ObservableObject {
 
         if let previousUserId, previousUserId != user.uid {
             Logger.debug("[LoginViewModel] Detected user switch: \(previousUserId) -> \(user.uid)")
-            CacheEventBus.shared.publish(.userLogout)
+            // Use publishSequence to guarantee userLogout arrives before dataChanged(.user).
+            // Two separate publish() calls spawn two Tasks whose execution order is not guaranteed.
+            CacheEventBus.shared.publishSequence([.userLogout, .dataChanged(.user)])
+        } else {
+            // Publish user data change event
+            CacheEventBus.shared.publish(.dataChanged(.user))
         }
-
-        // Publish user data change event
-        CacheEventBus.shared.publish(.dataChanged(.user))
 
         // 登入後拉取訂閱狀態（更新 SubscriptionStateManager）
         Task {

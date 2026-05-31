@@ -38,7 +38,14 @@ class LanguageManager: ObservableObject {
         // Debug: Print language initialization info
         Logger.debug("LanguageManager initialized with: \(currentLanguage.rawValue) (API: \(currentLanguage.apiCode))")
     }
-    
+
+    /// Applies language before a user is authenticated.
+    /// This is intentionally local-only because there is no account to sync yet.
+    func applyPreLoginLanguage(_ language: SupportedLanguage) {
+        applyLocalLanguage(language)
+        Logger.firebase("Pre-login language applied locally: \(language.rawValue)", level: .info)
+    }
+
     // MARK: - Language Change (Single Path)
 
     /// 唯一的語言切換入口。先同步後端，成功後套用本地並 restart。

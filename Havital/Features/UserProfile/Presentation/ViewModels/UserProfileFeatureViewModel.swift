@@ -263,7 +263,7 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
     // MARK: - Event Subscriptions
 
     private func setupEventSubscriptions() {
-        CacheEventBus.shared.subscribe(for: "userLogout") { [weak self] in
+        CacheEventBus.shared.subscribe(for: .userLogout) { [weak self] in
             guard let self = self else { return }
 
             Logger.debug("[UserProfileVM] 收到 userLogout 事件，重置目前帳號資料")
@@ -271,7 +271,7 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
             await self.resetUserScopedState(clearAuthContext: true)
         }
 
-        CacheEventBus.shared.subscribe(for: "dataChanged.user") { [weak self] in
+        CacheEventBus.shared.subscribe(for: .dataChanged(.user)) { [weak self] in
             guard let self = self else { return }
 
             Logger.debug("[UserProfileVM] 收到 dataChanged.user 事件，刷新目前帳號資料")
@@ -331,7 +331,8 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
             if forceRefresh, let oldUser = currentUser {
                 await userRepository.detectPersonalBestUpdates(
                     oldData: oldUser.personalBestV2?["race_run"],
-                    newData: output.profile.personalBestV2?["race_run"]
+                    newData: output.profile.personalBestV2?["race_run"],
+                    workoutId: nil
                 )
             }
 

@@ -12,58 +12,8 @@ tags:
 # ViewModel-level AC-TREDIT-04 is covered by XCTest.
 # This flow verifies the UI autofill (name appears in form after selection).
 
-# Ensure clean login state with UI test shortcut enabled
-- launchApp:
-    stopApp: true
-    clearState: false
-    arguments:
-      "-ui_testing_reviewer_demo": true
-      "-reviewerAccessPressDuration": "1.0"
-- runFlow: ../../../subflows/reviewer-demo-login.yaml
-- tapOn:
-    text: "明天再提醒我|不再提醒|稍後|Later|關閉|Close|完成|Done|Skip"
-    optional: true
-- tapOn:
-    text: "明天再提醒我|不再提醒|稍後|Later|關閉|Close|完成|Done|Skip"
-    optional: true
-- extendedWaitUntil:
-    visible:
-      id: "ellipsis.circle"
-    timeout: 30000
-
-# Navigate to training overview
-- tapOn:
-    id: "ellipsis.circle"
-    optional: true
-- tapOn:
-    text: "訓練計畫概覽|訓練總覽|Training Plan Overview|トレーニング計画概要"
-    optional: true
-
-- extendedWaitUntil:
-    visible:
-      text: "目標資訊|訓練目標|總週數|Target Info|Training Goal|Weeks"
-    timeout: 12000
-
-- tapOn:
-    text: "訓練計畫|Training Plan|トレーニング計画"
-    optional: true
-
-- scrollUntilVisible:
-    element: "目標賽事|Target Race|目標レース|訓練目標|Training Target"
-    direction: DOWN
-    timeout: 10000
-
-- tapOn:
-    text: "pencil"
-    optional: true
-- tapOn:
-    id: "v2.overview.target_name"
-    optional: true
-
-- extendedWaitUntil:
-    visible:
-      text: "編輯目標|Edit Race Goal|目標を編集"
-    timeout: 8000
+- runFlow: ../../../subflows/ensure-race-target-from-database.yaml
+- runFlow: ../../../subflows/open-main-target-edit.yaml
 
 # === Step 2: Open race picker ===
 - tapOn:
@@ -76,23 +26,23 @@ tags:
 
 - extendedWaitUntil:
     visible:
-      id: "RaceEventCard_0"
+      text: "2026 日月潭環湖馬拉松"
     timeout: 10000
 
 # === Step 3: Select first race ===
 - tapOn:
-    id: "RaceEventCard_0"
+    text: "2026 日月潭環湖馬拉松"
 
 # If multi-distance sheet appears, select first distance option
 - tapOn:
-    id: "RaceDistanceOption_0"
+    text: "6.0 km|6 km"
     optional: true
 
 # === Step 4: Back on EditTargetView — verify autofill ===
 # After selection, dismiss should have been called and we're back to edit form
 - extendedWaitUntil:
     visible:
-      text: "編輯目標|Edit Race Goal|目標を編集"
+      text: "編輯賽事目標|Edit Race Goal|レース目標編集"
     timeout: 8000
 
 # Verify race name field is now filled (not empty)

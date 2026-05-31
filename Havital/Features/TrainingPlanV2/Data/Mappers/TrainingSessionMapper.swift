@@ -333,7 +333,9 @@ enum TrainingSessionMapper {
             tips: dto.tips,
             category: dto.category.flatMap { TrainingCategory(rawValue: $0) },  // ✅ 處理可選值
             climateMeta: dto.climateMeta.map { toEntity(from: $0) },
-            session: session
+            session: session,
+            // day 層級補充訓練：休息日無 session 也要保留，否則力量訓練被丟。
+            supplementary: dto.supplementary?.map { toEntity(from: $0) }
         )
     }
 
@@ -348,7 +350,8 @@ enum TrainingSessionMapper {
             primary: entity.session.map { toDTO(from: $0.primary) },
             warmup: entity.session?.warmup.map { toDTO(from: $0) },
             cooldown: entity.session?.cooldown.map { toDTO(from: $0) },
-            supplementary: entity.session?.supplementary?.map { toDTO(from: $0) }
+            // 從 day 層級回寫（休息日也保留），對齊後端扁平結構。
+            supplementary: entity.effectiveSupplementary?.map { toDTO(from: $0) }
         )
     }
 }

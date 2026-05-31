@@ -9,6 +9,7 @@ final class OnboardingCoordinatorAnalyticsTests: XCTestCase {
     private var analyticsService: MockAnalyticsService!
     private var mockTrainingPlanRepository: MockTrainingPlanRepository!
     private var mockTrainingPlanV2Repository: MockTrainingPlanV2Repository!
+    private var mockUserProfileLocalDS: MockUserProfileLocalDataSource!
 
     override func setUp() async throws {
         try await super.setUp()
@@ -18,9 +19,15 @@ final class OnboardingCoordinatorAnalyticsTests: XCTestCase {
         analyticsService = MockAnalyticsService()
         mockTrainingPlanRepository = MockTrainingPlanRepository()
         mockTrainingPlanV2Repository = MockTrainingPlanV2Repository()
+        mockUserProfileLocalDS = MockUserProfileLocalDataSource()
         DependencyContainer.shared.replace(analyticsService as AnalyticsService, for: AnalyticsService.self)
         DependencyContainer.shared.replace(mockTrainingPlanRepository as TrainingPlanRepository, for: TrainingPlanRepository.self)
         DependencyContainer.shared.replace(mockTrainingPlanV2Repository as TrainingPlanV2Repository, for: TrainingPlanV2Repository.self)
+        // Required by completeOnboarding() to clear UserProfile cache after flow completes.
+        DependencyContainer.shared.register(
+            mockUserProfileLocalDS as UserProfileLocalDataSourceProtocol,
+            forProtocol: UserProfileLocalDataSourceProtocol.self
+        )
 
         UserDefaults.standard.removeObject(forKey: sourceKey)
         UserDefaults.standard.removeObject(forKey: campaignIdKey)
@@ -35,6 +42,7 @@ final class OnboardingCoordinatorAnalyticsTests: XCTestCase {
     override func tearDown() async throws {
         OnboardingCoordinator.shared.reset()
         analyticsService = nil
+        mockUserProfileLocalDS = nil
         UserDefaults.standard.removeObject(forKey: sourceKey)
         UserDefaults.standard.removeObject(forKey: campaignIdKey)
         UserDefaults.standard.analyticsOnboardingStartTime = 0

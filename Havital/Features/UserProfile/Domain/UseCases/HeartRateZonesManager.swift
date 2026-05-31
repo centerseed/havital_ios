@@ -1,5 +1,4 @@
 import Foundation
-import Combine
 
 private typealias DomainHeartRateZone = HeartRateZone
 
@@ -16,7 +15,7 @@ class HeartRateZonesManager {
     
     private let userPreferenceManager = UserPreferencesManager.shared
     
-    /// 心率區間結構 (與 HealthKitManager.HeartRateZone 相容的結構)
+    /// 心率區間結構
     struct HeartRateZone {
         let zone: Int
         let name: String
@@ -139,28 +138,8 @@ class HeartRateZonesManager {
     func syncHeartRateZonesFromUserProfile() async {
         do {
             // 嘗試從 API 獲取用戶資料
-            let userProfile = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<User, Error>) in
-                var cancellable: AnyCancellable?
-                cancellable = UserService.shared.getUserProfile().sink(
-                    receiveCompletion: { completion in
-                        switch completion {
-                        case .finished:
-                            break
-                        case .failure(let error):
-                            continuation.resume(throwing: error)
-                        }
-                        if let cancellable = cancellable {
-                            cancellable.cancel()
-                        }
-                    },
-                    receiveValue: { user in
-                        continuation.resume(returning: user)
-                        if let cancellable = cancellable {
-                            cancellable.cancel()
-                        }
-                    }
-                )
-            }
+            let repo: UserProfileRepository = DependencyContainer.shared.resolve()
+            let userProfile = try await repo.getUserProfile()
             
             if userProfile.maxHr ?? 0 > 0 && userProfile.relaxingHr ?? 0 > 0 {
                 let maxHR = userProfile.maxHr

@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import SwiftUI
 
@@ -28,6 +29,9 @@ class TrainingReadinessManager: ObservableObject, @preconcurrency TaskManageable
     // MARK: - TaskManageable
     let taskRegistry = TaskRegistry()
 
+    // MARK: - Combine
+    private var cancellables = Set<AnyCancellable>()
+
     // MARK: - Singleton
     static let shared = TrainingReadinessManager()
 
@@ -38,8 +42,20 @@ class TrainingReadinessManager: ObservableObject, @preconcurrency TaskManageable
     ) {
         self.service = service
         self.storage = storage
-
         setupNotificationObservers()
+    }
+
+    /// Subscribe to plan overview updates so that a plan-type change forces a readiness re-fetch.
+    /// Called externally after DI setup (e.g. from the app bootstrap or a coordinator).
+    func subscribeToOverviewUpdates(repo: any TrainingPlanV2Repository) {
+        repo.overviewDidUpdate
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                Task { [weak self] in
+                    await self?.forceRefresh()
+                }
+            }
+            .store(in: &cancellables)
     }
 
     deinit {
@@ -50,7 +66,7 @@ class TrainingReadinessManager: ObservableObject, @preconcurrency TaskManageable
 
     /// Initialize and load data
     func initialize() async {
-        print("[TrainingReadinessManager] 初始化")
+        Logger.debug("[TrainingReadinessManager] 初始化")
 
         // Load cached data first (Track A: immediate)
         loadLocalData()
@@ -96,14 +112,14 @@ class TrainingReadinessManager: ObservableObject, @preconcurrency TaskManageable
 
     /// Force refresh with recalculation
     func forceRefresh() async {
-        print("[TrainingReadinessManager] 🔄 開始強制刷新（force_calculate=true）")
+        Logger.debug("[TrainingReadinessManager] force refresh started")
         await executeTask(id: TaskID("force_refresh_readiness")) { [weak self] in
             guard let self = self else { return }
 
-            // 清除緩存，確保從 API 獲取最新數據
+            // Clear cache to ensure fresh API data
             await MainActor.run {
                 self.storage.clearReadinessData()
-                print("[TrainingReadinessManager] 🗑️ 已清除本地緩存")
+                Logger.debug("[TrainingReadinessManager] local cache cleared")
             }
 
             await self.fetchFromAPI(showLoading: true, forceCalculate: true)
@@ -118,7 +134,7 @@ class TrainingReadinessManager: ObservableObject, @preconcurrency TaskManageable
             syncError = nil
         }
         storage.clearReadinessData()
-        print("[TrainingReadinessManager] 已清除所有數據")
+        Logger.debug("[TrainingReadinessManager] all data cleared")
     }
 
     // MARK: - Private Methods
@@ -128,7 +144,7 @@ class TrainingReadinessManager: ObservableObject, @preconcurrency TaskManageable
         if let cachedData = storage.loadReadinessData() {
             readinessData = cachedData
             lastSyncTime = storage.getLastFetchTime()
-            print("[TrainingReadinessManager] 從緩存載入數據")
+            Logger.debug("[TrainingReadinessManager] loaded from cache")
         }
     }
 
@@ -150,30 +166,12 @@ class TrainingReadinessManager: ObservableObject, @preconcurrency TaskManageable
         }
 
         do {
-            print("[TrainingReadinessManager] 📡 調用 API: forceCalculate=\(forceCalculate)")
+            Logger.debug("[TrainingReadinessManager] calling API: forceCalculate=\(forceCalculate)")
             let response = try await APICallTracker.$currentSource.withValue("TrainingReadinessManager: fetchFromAPI") {
                 try await service.getTodayReadiness(forceCalculate: forceCalculate)
             }
 
-            print("[TrainingReadinessManager] ✅ API 回應成功")
-            print("[TrainingReadinessManager] 📊 整體分數: \(response.overallScore ?? 0)")
-
-            // 詳細記錄每個指標的分數和描述
-            if let speed = response.metrics?.speed {
-                print("[TrainingReadinessManager] 🏃 速度分數: \(speed.score), 描述: \(speed.description ?? "無")")
-            }
-            if let endurance = response.metrics?.endurance {
-                print("[TrainingReadinessManager] 💪 耐力分數: \(endurance.score), 描述: \(endurance.description ?? "無")")
-            }
-            if let raceFitness = response.metrics?.raceFitness {
-                print("[TrainingReadinessManager] 🏁 比賽適能分數: \(raceFitness.score), 描述: \(raceFitness.description ?? "無")")
-                print("[TrainingReadinessManager] ⏱️ 預計完賽時間: \(raceFitness.estimatedRaceTime ?? "未設定")")
-            }
-            if let trainingLoad = response.metrics?.trainingLoad {
-                print("[TrainingReadinessManager] 📊 訓練負荷分數: \(trainingLoad.score), 描述: \(trainingLoad.description ?? "無")")
-            }
-
-            print("[TrainingReadinessManager] 📈 指標數量: speed=\(response.metrics?.speed != nil ? "✓" : "✗"), endurance=\(response.metrics?.endurance != nil ? "✓" : "✗"), raceFitness=\(response.metrics?.raceFitness != nil ? "✓" : "✗"), trainingLoad=\(response.metrics?.trainingLoad != nil ? "✓" : "✗")")
+            Logger.debug("[TrainingReadinessManager] API success: overallScore=\(response.overallScore ?? 0), planType=\(response.planType ?? "nil")")
 
             await MainActor.run {
                 self.readinessData = response
@@ -187,13 +185,12 @@ class TrainingReadinessManager: ObservableObject, @preconcurrency TaskManageable
             // Save to cache
             storage.saveReadinessData(response)
 
-            print("[TrainingReadinessManager] 💾 已儲存到緩存")
-            print("[TrainingReadinessManager] ✅ 刷新完成")
+            Logger.debug("[TrainingReadinessManager] saved to cache, refresh complete")
 
         } catch {
             // Use standardized isCancellationError extension for consistency
             if error.isCancellationError {
-                print("[TrainingReadinessManager] 任務被取消，忽略錯誤")
+                Logger.debug("[TrainingReadinessManager] task cancelled, ignoring")
                 return
             }
 
@@ -205,7 +202,7 @@ class TrainingReadinessManager: ObservableObject, @preconcurrency TaskManageable
                 }
             }
 
-            print("[TrainingReadinessManager] 載入失敗: \(error.localizedDescription)")
+            Logger.error("[TrainingReadinessManager] load failed: \(error.localizedDescription)")
         }
     }
 

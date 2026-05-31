@@ -1,0 +1,30 @@
+appId: com.havital.Havital
+---
+- extendedWaitUntil:
+    visible:
+      text: "訓練計劃|訓練計畫|訓練紀錄|表現數據"
+    timeout: 15000
+- takeScreenshot: /tmp/v_after_restart_main.png
+- tapOn:
+    text: "表現數據"
+- extendedWaitUntil:
+    visible:
+      text: "訓練負荷|體適能指數"
+    timeout: 10000
+- takeScreenshot: /tmp/v_perf_top2.png
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_perf_scroll1.png
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_perf_scroll2.png
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_perf_scroll3.png
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_perf_scroll4.png

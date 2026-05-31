@@ -22,6 +22,9 @@ struct SubscriptionPackageEntity: Identifiable {
     let billingPeriodValue: Int
     let billingPeriodUnit: SubscriptionOfferPeriodUnit
     let officialOffer: SubscriptionOfficialOffer?
+    /// ASC 上設定的 product 顯示名稱（例如「年訂閱 - 超早鳥」）。
+    /// nil 表示無法從 storeProduct 取得，UI 應 fallback 到 i18n 文案。
+    let localizedTitle: String?
 }
 
 // MARK: - SubscriptionPeriod

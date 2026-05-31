@@ -7,6 +7,8 @@ import UIKit
 struct LoginView: View {
     // Clean Architecture: Use LoginViewModel instead of AuthenticationService
     @StateObject private var viewModel = LoginViewModel()
+    @StateObject private var languageManager = LanguageManager.shared
+    @State private var selectedLanguage = LanguageManager.shared.currentLanguage
     @State private var showError = false
     @State private var reviewerAccessProgress: CGFloat = 0
     @State private var reviewerAccessTriggered = false
@@ -15,6 +17,7 @@ struct LoginView: View {
     @State private var reviewerProgressTask: Task<Void, Never>?
     @FocusState private var isReviewerPasscodeFocused: Bool
     @Environment(\.colorScheme) var colorScheme
+    @State private var isLangExpanded = false
 
     var body: some View {
         NavigationView {
@@ -132,6 +135,11 @@ struct LoginView: View {
                 .padding(.horizontal, 32)
                 .padding(.bottom, 48)
             }
+            .overlay(alignment: .topTrailing) {
+                languageSwitcher
+                    .padding(.trailing, 16)
+                    .padding(.top, 4)
+            }
         }
         .navigationViewStyle(StackNavigationViewStyle())
         .background(Color(UIColor { traitCollection in
@@ -210,6 +218,67 @@ struct LoginView: View {
         .onDisappear {
             stopReviewerProgress(resetProgress: true)
         }
+    }
+
+    // 收合時只顯示目前語言一顆圓；展開時其餘語言在左、目前語言錨在右（[EN JP ZH]）。
+    private var expandedLanguages: [SupportedLanguage] {
+        SupportedLanguage.allCases.filter { $0 != selectedLanguage } + [selectedLanguage]
+    }
+
+    private var languageSwitcher: some View {
+        HStack(spacing: 6) {
+            if isLangExpanded {
+                ForEach(expandedLanguages, id: \.self) { language in
+                    langCircle(language)
+                }
+            } else {
+                langCircle(selectedLanguage)
+            }
+        }
+        .padding(isLangExpanded ? 4 : 0)
+        .background(
+            Capsule().fill(isLangExpanded ? PacerizColor.blue.opacity(0.10) : Color.clear)
+        )
+        .animation(.spring(response: 0.32, dampingFraction: 0.8), value: isLangExpanded)
+        .accessibilityIdentifier("Login_LanguagePicker")
+        .accessibilityLabel(L10n.Login.languagePickerAccessibility.localized)
+    }
+
+    private func langCircle(_ language: SupportedLanguage) -> some View {
+        let isSelected = language == selectedLanguage
+        return Text(language.shortCode)
+            .font(.system(size: 12.5, weight: .heavy))
+            .foregroundColor(isSelected ? .white : PacerizColor.blueDeep.opacity(0.7))
+            .frame(width: 34, height: 34)
+            .background(
+                Circle().fill(isSelected ? PacerizColor.blue : Color(UIColor.secondarySystemBackground))
+            )
+            .overlay(
+                Circle().strokeBorder(
+                    isSelected ? Color.clear : PacerizColor.blue.opacity(0.25),
+                    lineWidth: 1
+                )
+            )
+            .shadow(
+                color: isSelected ? PacerizColor.blue.opacity(0.30) : Color.black.opacity(0.06),
+                radius: 3, x: 0, y: 1
+            )
+            .contentShape(Circle())
+            .onTapGesture {
+                if isLangExpanded {
+                    if language != selectedLanguage {
+                        selectedLanguage = language
+                        languageManager.applyPreLoginLanguage(language)
+                    }
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
+                        isLangExpanded = false
+                    }
+                } else {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
+                        isLangExpanded = true
+                    }
+                }
+            }
     }
 
     private func handleReviewerPressChange(_ isPressing: Bool) {

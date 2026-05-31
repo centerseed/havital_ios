@@ -10,6 +10,7 @@ final class AnnouncementViewModel: ObservableObject, TaskManageable {
     @Published var unreadCount: Int = 0
     @Published var isLoadingCenter: Bool = false
     @Published var currentPopup: Announcement?
+    @Published var selectedMessageCenterAnnouncement: Announcement?
 
     // MARK: - TaskManageable
 
@@ -181,6 +182,14 @@ final class AnnouncementViewModel: ObservableObject, TaskManageable {
                 }
             }
         }
+    }
+
+    func openMessageCenterAnnouncement(_ announcement: Announcement) {
+        selectedMessageCenterAnnouncement = announcement
+    }
+
+    func dismissSelectedMessageCenterAnnouncement() {
+        selectedMessageCenterAnnouncement = nil
     }
 
     private func makeInterruptItem(for announcement: Announcement) -> InterruptItem {

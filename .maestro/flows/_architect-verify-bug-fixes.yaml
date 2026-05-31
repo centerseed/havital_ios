@@ -1,0 +1,91 @@
+appId: com.havital.Havital.dev
+tags:
+  - architect-verify
+---
+# Architect 自驗：4 個 bug 修復
+# #2 訓練負荷圖表休息日空心圓
+# #3 訓練詳情訓練類型「rest → 休息日」
+# #4 訓練日曆 ×N 不跑版
+
+# === 走 demo login ===
+- runFlow: ../subflows/reviewer-demo-login.yaml
+
+# === 等待主畫面 ===
+- extendedWaitUntil:
+    visible:
+      text: "訓練計劃|訓練計畫|訓練紀錄|表現數據"
+    timeout: 15000
+
+# === #4 訓練日曆 ===
+- tapOn:
+    text: "訓練計劃|訓練計畫"
+    optional: true
+- takeScreenshot: /tmp/verify_01_training_main.png
+
+# 找「訓練日曆」入口（在週跑量卡片右側）
+- runFlow:
+    when:
+      visible:
+        text: "訓練日曆"
+    commands:
+      - tapOn:
+          text: "訓練日曆"
+      - extendedWaitUntil:
+          visible:
+            text: "Mon|Tue|月|平均配速|月總距離"
+          timeout: 8000
+      - takeScreenshot: /tmp/verify_04_calendar_default.png
+      # 翻到 3 月 2026（用戶截圖中該月有多筆 ×N case）
+      - tapOn:
+          text: "<"
+          optional: true
+      - takeScreenshot: /tmp/verify_04_calendar_prev.png
+      - tapOn:
+          text: "<"
+          optional: true
+      - takeScreenshot: /tmp/verify_04_calendar_march.png
+      - tapOn:
+          text: "關閉"
+          optional: true
+
+# === #3 訓練詳情 rest → 休息日 ===
+# 回到訓練計畫頁，找一個有 workout 的日 tap 進去
+- assertVisible:
+    text: "訓練計劃|訓練計畫"
+    optional: true
+
+# 點擊任一已完成的訓練日（綠色打勾），看是否觸發訓練詳情
+- runFlow:
+    when:
+      visible:
+        text: "輕鬆跑|休息"
+    commands:
+      - tapOn:
+          text: "輕鬆跑|休息"
+          index: 0
+          optional: true
+      - extendedWaitUntil:
+          visible:
+            text: "訓練詳情|訓練類型|課表資訊"
+          timeout: 5000
+          optional: true
+      - takeScreenshot: /tmp/verify_03_workout_detail.png
+      - tapOn:
+          text: "關閉"
+          optional: true
+
+# === #2 表現數據圖表 ===
+- tapOn:
+    text: "表現數據"
+- extendedWaitUntil:
+    visible:
+      text: "訓練負荷|體適能指數|TSB"
+    timeout: 8000
+- takeScreenshot: /tmp/verify_02_performance_top.png
+
+# 滾到「訓練負荷」圖表 + legend
+- scrollUntilVisible:
+    element:
+      text: "標記說明|有訓練|休息日"
+    direction: DOWN
+- takeScreenshot: /tmp/verify_02_chart_with_legend.png

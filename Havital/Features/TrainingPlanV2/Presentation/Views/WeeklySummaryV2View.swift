@@ -28,6 +28,7 @@ struct WeeklySummaryV2View: View {
     var onSetNewGoal: (() -> Void)?
 
     @State private var expandedSections: Set<SectionID> = []
+    // AC-IOS-ANALYTICS-P1-11/P1-13: dedup flags lifted to WeeklySummaryCoordinator
 
     var body: some View {
         Group {
@@ -48,9 +49,45 @@ struct WeeklySummaryV2View: View {
         .background(Color(UIColor.systemGroupedBackground))
         .navigationTitle(String(format: NSLocalizedString("training.week_summary_title", comment: "第 %d 週摘要"), weekOfPlan))
         .navigationBarTitleDisplayMode(.inline)
+        // AC-IOS-ANALYTICS-P1-11: track weekly_summary_view when summary data loads
+        .onChange(of: viewModel.summary.weeklySummary) { _, newState in
+            if case .loaded(let summary) = newState {
+                trackWeeklySummaryViewIfNeeded(summary: summary)
+            }
+        }
+        // AC-IOS-ANALYTICS-P1-13: re-attempt race_prediction_view when planOverview arrives
+        // (covers the case where summary loaded first but planOverview was not yet available)
+        .onChange(of: viewModel.loader.planOverview) { _, _ in
+            if case .loaded(let summary) = viewModel.summary.weeklySummary {
+                trackRacePredictionViewIfNeeded(summary: summary)
+            }
+        }
         .task {
             await viewModel.summary.loadWeeklySummary(weekOfPlan: weekOfPlan)
         }
+    }
+
+    private func trackWeeklySummaryViewIfNeeded(summary: WeeklySummaryV2) {
+        viewModel.summary.markSummaryTracked(
+            summaryId: summary.id,
+            weekOfTraining: summary.weekOfTraining
+        )
+        // AC-IOS-ANALYTICS-P1-13: also attempt race_prediction_view here
+        // (cover the case where planOverview is already loaded when summary arrives)
+        trackRacePredictionViewIfNeeded(summary: summary)
+    }
+
+    /// AC-IOS-ANALYTICS-P1-13: race_prediction_view — independent dedup from P1-11.
+    /// Uses its own hasTrackedRacePredictionView flag so a late-arriving planOverview
+    /// can still fire this event even after P1-11 has already fired.
+    private func trackRacePredictionViewIfNeeded(summary: WeeklySummaryV2) {
+        guard let eval = summary.upcomingRaceEvaluation,
+              let predictedTime = eval.predictedTime,
+              let distanceKm = viewModel.loader.planOverview?.distanceKm else { return }
+        viewModel.summary.markRacePredictionTracked(
+            predictedTime: predictedTime,
+            distanceKm: distanceKm
+        )
     }
 
     // MARK: - Loaded View

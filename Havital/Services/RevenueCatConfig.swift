@@ -7,17 +7,14 @@ struct RevenueCatConfig {
     private static let apiKeyInfoKey = "REVENUECAT_API_KEY"
     private static let entitlementInfoKey = "REVENUECAT_PREMIUM_ENTITLEMENT"
     private static let fallbackPremiumEntitlement = "Paceriz Premium"
-    private static let fallbackDebugAPIKey = "appl_goEmxlWDniAtziTzdXeOpmgNkEt"
+    private static let fallbackAPIKey = "appl_goEmxlWDniAtziTzdXeOpmgNkEt"
 
     static var apiKey: String {
         guard let value = Bundle.main.object(forInfoDictionaryKey: apiKeyInfoKey) as? String,
               !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
               !value.contains("$(") else {
-            #if DEBUG
-            return fallbackDebugAPIKey
-            #else
-            preconditionFailure("Missing \(apiKeyInfoKey) in Info.plist build settings")
-            #endif
+            assertionFailure("Missing \(apiKeyInfoKey) in Info.plist build settings")
+            return fallbackAPIKey
         }
         return value
     }

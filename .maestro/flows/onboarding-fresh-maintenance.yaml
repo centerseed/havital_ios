@@ -28,16 +28,21 @@ tags:
     id: "GoalType_NextButton"
     optional: true
 
-# === Step 3: 方法論（維持訓練可能有） ===
+# === Step 3: 方法論（維持訓練可能有；目前 maintenance 預設 Paceriz） ===
 - tapOn:
-    text: "有氧耐力提升"
+    id: "Methodology_paceriz"
     optional: true
 - tapOn:
-    text: "下一步"
+    text: "Paceriz"
     optional: true
 - tapOn:
     id: "Methodology_NextButton"
     optional: true
+- tapOn:
+    text: "下一步"
+    optional: true
+
+- runFlow: ../subflows/pass-maintenance-race-distance.yaml
 
 # === Step 4: 訓練週數 / 起始階段 ===
 - tapOn:
@@ -52,6 +57,8 @@ tags:
 - tapOn:
     text: "繼續"
     optional: true
+
+- runFlow: ../subflows/pass-maintenance-race-distance.yaml
 
 # === Step 5: 訓練偏好 ===
 - assertVisible:

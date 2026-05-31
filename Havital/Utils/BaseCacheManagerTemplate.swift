@@ -38,14 +38,7 @@ class BaseCacheManagerTemplate<DataType: Codable>: BaseCacheManager {
             let encodedData = try JSONEncoder().encode(container)
             UserDefaults.standard.set(encodedData, forKey: cacheKey)
             
-            Logger.firebase(
-                "快取保存成功",
-                level: .debug,
-                jsonPayload: [
-                    "cache_identifier": cacheIdentifier,
-                    "data_size": encodedData.count
-                ]
-            )
+            Logger.trace("快取保存成功 [\(cacheIdentifier)] size=\(encodedData.count)")
         } catch {
             Logger.firebase(
                 "快取保存失敗",
@@ -66,15 +59,8 @@ class BaseCacheManagerTemplate<DataType: Codable>: BaseCacheManager {
         do {
             let container = try JSONDecoder().decode(CacheContainer.self, from: data)
             
-            Logger.firebase(
-                "快取讀取成功",
-                level: .debug,
-                jsonPayload: [
-                    "cache_identifier": cacheIdentifier,
-                    "cache_age_seconds": Int(Date().timeIntervalSince(container.timestamp))
-                ]
-            )
-            
+            Logger.trace("快取讀取成功 [\(cacheIdentifier)] age=\(Int(Date().timeIntervalSince(container.timestamp)))s")
+
             return container.data
         } catch {
             Logger.firebase(
@@ -95,11 +81,7 @@ class BaseCacheManagerTemplate<DataType: Codable>: BaseCacheManager {
     func clearCache() {
         UserDefaults.standard.removeObject(forKey: cacheKey)
         
-        Logger.firebase(
-            "快取已清除",
-            level: .info,
-            jsonPayload: ["cache_identifier": cacheIdentifier]
-        )
+        Logger.trace("快取已清除 [\(cacheIdentifier)]")
         
         // 發送快取失效通知
         NotificationCenter.default.post(

@@ -228,12 +228,12 @@ actor FirebaseLoggingService {
         encoder.dateEncodingStrategy = .iso8601
         let bodyData = try encoder.encode(logEntry)
 
-        // 假設後端提供 /internal/cloud-logging 端點接收 JSON
-        let path = "/internal/cloud-logging"
-        _ = try await APIClient.shared.request(EmptyResponse.self,
-                                              path: path,
-                                              method: "POST",
-                                              body: bodyData)
+        let httpClient: HTTPClient = DependencyContainer.shared.resolve()
+        _ = try await httpClient.request(
+            path: "/internal/cloud-logging",
+            method: .POST,
+            body: bodyData
+        )
     }
     
     private func logToAnalytics(_ logEntry: LogEntry) async {
@@ -269,12 +269,15 @@ extension Logger {
         
         // 先在本機記錄
         log(messageString, level: level, tag: "FirebaseLogging", file: file)
-        
+
+        // trace 為高頻本地噪音，不上傳雲端（省 cloud-logging 流量）
+        guard level > .trace else { return }
+
         // 異步上傳到 Firebase
         Task {
             let firebaseLevel: FirebaseLoggingService.LogLevel
             switch level {
-            case .debug:
+            case .trace, .debug:
                 firebaseLevel = .debug
             case .info:
                 firebaseLevel = .info
@@ -283,7 +286,7 @@ extension Logger {
             case .error:
                 firebaseLevel = .error
             }
-            
+
             await FirebaseLoggingService.shared.log(
                 level: firebaseLevel,
                 message: messageString,

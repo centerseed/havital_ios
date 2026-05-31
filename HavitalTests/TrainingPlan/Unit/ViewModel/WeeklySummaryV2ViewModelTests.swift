@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import Combine
 @testable import paceriz_dev
 
 @MainActor
@@ -104,12 +105,17 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         if !container.isRegistered(TrainingVersionRouter.self) {
             container.registerTrainingVersionRouter()
         }
+        if !container.isRegistered(AchievementRepository.self) {
+            container.registerAchievementModule()
+        }
         let versionRouter: TrainingVersionRouter = container.resolve()
+        let achievementRepository: AchievementRepository = container.resolve()
 
         sut = TrainingPlanV2ViewModel(
             repository: mockRepository,
             workoutRepository: mockWorkoutRepository,
-            versionRouter: versionRouter
+            versionRouter: versionRouter,
+            achievementRepository: achievementRepository
         )
     }
 
@@ -463,6 +469,30 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
         )
     }
 
+    func testPreviousWeeklySummaryWeek_returnsNilForFirstWeek() {
+        XCTAssertNil(
+            TrainingPlanV2View.previousWeeklySummaryWeek(currentWeek: 1),
+            "Week 1 has no completed previous week, so the app menu must not call weekly summary APIs."
+        )
+    }
+
+    func testPreviousWeeklySummaryWeek_returnsPreviousWeekAfterWeekOne() {
+        XCTAssertEqual(TrainingPlanV2View.previousWeeklySummaryWeek(currentWeek: 2), 1)
+        XCTAssertEqual(TrainingPlanV2View.previousWeeklySummaryWeek(currentWeek: 5), 4)
+    }
+
+    func testDebugGenerateWeeklySummary_firstWeekDoesNotCallAPI() async {
+        sut.loader.currentWeek = 1
+
+        await sut.debugGenerateWeeklySummary()
+
+        XCTAssertEqual(mockRepository.generateWeeklySummaryCallCount, 0)
+        XCTAssertEqual(
+            sut.successToast,
+            NSLocalizedString("training.weekly_summary_not_available_first_week", comment: "No completed week is available for weekly review yet")
+        )
+    }
+
     func testRefreshWeeklyPlan_whenViewingNextWeek_refreshesSelectedWeekInsteadOfCurrentWeek() async throws {
         mockRepository.planStatusToReturn = PlanStatusV2Response(
             currentWeek: 1,
@@ -517,12 +547,17 @@ final class TrainingPlanV2InitializationRegressionTests: XCTestCase {
         if !container.isRegistered(TrainingVersionRouter.self) {
             container.registerTrainingVersionRouter()
         }
+        if !container.isRegistered(AchievementRepository.self) {
+            container.registerAchievementModule()
+        }
         let versionRouter: TrainingVersionRouter = container.resolve()
+        let achievementRepository: AchievementRepository = container.resolve()
 
         sut = TrainingPlanV2ViewModel(
             repository: StartupStatusFailureButCachedPlanRepository(),
             workoutRepository: workoutRepository,
-            versionRouter: versionRouter
+            versionRouter: versionRouter,
+            achievementRepository: achievementRepository
         )
     }
 
@@ -545,6 +580,11 @@ final class TrainingPlanV2InitializationRegressionTests: XCTestCase {
 }
 
 private final class StartupStatusFailureButCachedPlanRepository: TrainingPlanV2Repository {
+
+    // AC-PAYWALL-37: test harness never emits real overview updates
+    var overviewDidUpdate: AnyPublisher<PlanOverviewV2, Never> {
+        Empty().eraseToAnyPublisher()
+    }
 
     private let cachedOverview: PlanOverviewV2
     private let cachedPlan: WeeklyPlanV2

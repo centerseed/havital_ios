@@ -11,6 +11,17 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
     private let targetRemoteDataSource: TargetRemoteDataSourceProtocol
     private let authSessionRepository: AuthSessionRepository
 
+    /// 進行中的 /user 抓取（前景）：多個並發 getUserProfile(cache-miss)/refreshUserProfile 共用同一個 Task，
+    /// 避免冷啟動多 caller 各打一次 GET /user。
+    private var inFlightFetch: Task<User, Error>?
+    /// 背景刷新是否進行中：每次 cache-hit 都會嘗試背景刷新，去重避免疊加多發 GET /user。
+    private var backgroundRefreshInFlight = false
+    /// 最近一次成功抓取 /user 的時間；背景刷新在此新鮮窗口內直接跳過，
+    /// 避免冷啟動多個 cache-hit caller 在剛抓過後仍各觸發一發背景 GET /user。
+    private var lastFetchAt: Date?
+    private static let backgroundRefreshFreshnessWindow: TimeInterval = 60
+    private let fetchLock = NSLock()
+
     // MARK: - Initialization
     init(
         remoteDataSource: UserProfileRemoteDataSourceProtocol = UserProfileRemoteDataSource(),
@@ -192,7 +203,8 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
 
     func detectPersonalBestUpdates(
         oldData: [String: [PersonalBestRecordV2]]?,
-        newData: [String: [PersonalBestRecordV2]]?
+        newData: [String: [PersonalBestRecordV2]]?,
+        workoutId: String? = nil
     ) async {
         Logger.debug("[UserProfileRepo] Detecting PB updates")
 
@@ -209,6 +221,9 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
         // Compare each distance
         for (distance, newRecords) in newData {
             guard let newBest = newRecords.first else { continue }
+            if let workoutId, newBest.workoutId != workoutId {
+                continue
+            }
 
             if let oldRecords = oldData?[distance],
                let oldBest = oldRecords.first {
@@ -221,6 +236,7 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
                         newTime: newBest.completeTime,
                         improvementSeconds: improvement,
                         workoutDate: newBest.workoutDate,
+                        workoutId: newBest.workoutId,
                         detectedAt: Date()
                     ))
 
@@ -234,20 +250,34 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
                         ]
                     )
                 }
+            } else {
+                updates.append(PersonalBestUpdate(
+                    distance: distance,
+                    oldTime: nil,
+                    newTime: newBest.completeTime,
+                    improvementSeconds: 0,
+                    workoutDate: newBest.workoutDate,
+                    workoutId: newBest.workoutId,
+                    detectedAt: Date(),
+                    isFirstRecord: true
+                ))
             }
         }
 
-        // Save the best update (longest distance priority)
-        if let bestUpdate = updates.max(by: { $0.distancePriority < $1.distancePriority }) {
+        // Save the best update by largest improvement, not longest distance.
+        if var bestUpdate = updates.max(by: {
+            if $0.improvementSeconds == $1.improvementSeconds {
+                return $0.distancePriority < $1.distancePriority
+            }
+            return $0.improvementSeconds < $1.improvementSeconds
+        }) {
+            bestUpdate.relatedUpdateCount = max(updates.count - 1, 0)
             savePersonalBestUpdate(bestUpdate)
         }
     }
 
     func getPendingCelebrationUpdate() -> PersonalBestUpdate? {
-        let cache = PersonalBestCelebrationStorage.load()
-        return (!cache.hasShownCelebration && cache.lastDetectedUpdate != nil)
-            ? cache.lastDetectedUpdate
-            : nil
+        PersonalBestCelebrationStorage.getPendingCelebrationUpdate()
     }
 
     func markCelebrationAsShown() {
@@ -271,12 +301,57 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
     // MARK: - Private Methods
 
     private func fetchAndCacheUserProfile() async throws -> User {
-        let profile = try await remoteDataSource.getUserProfile()
-        localDataSource.saveUserProfile(profile)
-        return profile
+        // 並發合併：同時間只有一個前景 /user 抓取，其餘 await 同一個 Task。
+        let (task, isOwner) = inFlightFetchOrCreate()
+        if !isOwner {
+            return try await task.value
+        }
+        defer { clearInFlightFetch() }
+        return try await task.value
+    }
+
+    /// check-or-create 在同一把鎖內完成，避免兩個並發呼叫各建一個 Task。
+    private func inFlightFetchOrCreate() -> (task: Task<User, Error>, isOwner: Bool) {
+        fetchLock.lock(); defer { fetchLock.unlock() }
+        if let existing = inFlightFetch {
+            return (existing, false)
+        }
+        let task = Task<User, Error> { [remoteDataSource, localDataSource, weak self] in
+            let profile = try await remoteDataSource.getUserProfile()
+            localDataSource.saveUserProfile(profile)
+            self?.markFetched()
+            return profile
+        }
+        inFlightFetch = task
+        return (task, true)
+    }
+
+    private func clearInFlightFetch() {
+        fetchLock.lock(); defer { fetchLock.unlock() }
+        inFlightFetch = nil
+    }
+
+    private func markFetched() {
+        fetchLock.lock(); lastFetchAt = Date(); fetchLock.unlock()
     }
 
     private func refreshInBackground() async {
+        // 去重 + 新鮮窗口：已有背景刷新進行中、或剛抓過 /user，就跳過，避免冷啟動疊加多發 GET /user。
+        fetchLock.lock()
+        if backgroundRefreshInFlight {
+            fetchLock.unlock()
+            return
+        }
+        if let last = lastFetchAt, Date().timeIntervalSince(last) < Self.backgroundRefreshFreshnessWindow {
+            fetchLock.unlock()
+            return
+        }
+        backgroundRefreshInFlight = true
+        fetchLock.unlock()
+        defer {
+            fetchLock.lock(); backgroundRefreshInFlight = false; fetchLock.unlock()
+        }
+
         do {
             let profile = try await remoteDataSource.getUserProfile()
 
@@ -287,6 +362,7 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
             }
 
             localDataSource.saveUserProfile(profile)
+            markFetched()
             Logger.debug("[UserProfileRepo] Background refresh success")
         } catch {
             Logger.debug("[UserProfileRepo] Background refresh failed (non-critical): \(error.localizedDescription)")
@@ -294,6 +370,11 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
     }
 
     private func savePersonalBestUpdate(_ update: PersonalBestUpdate) {
+        guard !PersonalBestCelebrationStorage.hasShownCelebration(for: update) else {
+            Logger.debug("[UserProfileRepo] PB Moment already shown for \(update.dedupeKey)")
+            return
+        }
+
         var cache = PersonalBestCelebrationStorage.load()
         cache.lastDetectedUpdate = update
         cache.hasShownCelebration = false

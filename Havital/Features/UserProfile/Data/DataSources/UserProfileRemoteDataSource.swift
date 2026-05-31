@@ -38,7 +38,9 @@ final class UserProfileRemoteDataSource: UserProfileRemoteDataSourceProtocol {
         Logger.debug("[UserProfileRemoteDS] Fetching user profile")
 
         do {
-            let rawData = try await httpClient.request(path: "/user", method: .GET)
+            let rawData = try await tracked("UserProfileRemoteDataSource: getUserProfile") {
+                try await httpClient.request(path: "/user", method: .GET)
+            }
             return try ResponseProcessor.extractData(User.self, from: rawData, using: parser)
         } catch let apiError as APIError where apiError.isCancelled {
             throw SystemError.taskCancelled
@@ -53,7 +55,9 @@ final class UserProfileRemoteDataSource: UserProfileRemoteDataSourceProtocol {
         let body = try JSONSerialization.data(withJSONObject: updates)
 
         do {
-            _ = try await httpClient.request(path: "/user", method: .PUT, body: body)
+            _ = try await tracked("UserProfileRemoteDataSource: updateUserProfile") {
+                try await httpClient.request(path: "/user", method: .PUT, body: body)
+            }
         } catch let apiError as APIError where apiError.isCancelled {
             throw SystemError.taskCancelled
         }
@@ -76,7 +80,9 @@ final class UserProfileRemoteDataSource: UserProfileRemoteDataSourceProtocol {
         let body = try JSONSerialization.data(withJSONObject: performanceData)
 
         do {
-            _ = try await httpClient.request(path: "/user/pb/race_run", method: .POST, body: body)
+            _ = try await tracked("UserProfileRemoteDataSource: updatePersonalBest") {
+                try await httpClient.request(path: "/user/pb/race_run", method: .POST, body: body)
+            }
         } catch let apiError as APIError where apiError.isCancelled {
             throw SystemError.taskCancelled
         }
@@ -88,7 +94,9 @@ final class UserProfileRemoteDataSource: UserProfileRemoteDataSourceProtocol {
         Logger.debug("[UserProfileRemoteDS] Deleting user: \(userId)")
 
         do {
-            _ = try await httpClient.request(path: "/user/\(userId)", method: .DELETE)
+            _ = try await tracked("UserProfileRemoteDataSource: deleteUser") {
+                try await httpClient.request(path: "/user/\(userId)", method: .DELETE)
+            }
         } catch let apiError as APIError where apiError.isCancelled {
             throw SystemError.taskCancelled
         }
@@ -100,7 +108,9 @@ final class UserProfileRemoteDataSource: UserProfileRemoteDataSourceProtocol {
         Logger.debug("[UserProfileRemoteDS] Fetching targets")
 
         do {
-            let rawData = try await httpClient.request(path: "/user/targets", method: .GET)
+            let rawData = try await tracked("UserProfileRemoteDataSource: getTargets") {
+                try await httpClient.request(path: "/user/targets", method: .GET)
+            }
             return try ResponseProcessor.extractData([Target].self, from: rawData, using: parser)
         } catch let apiError as APIError where apiError.isCancelled {
             throw SystemError.taskCancelled
@@ -119,7 +129,9 @@ final class UserProfileRemoteDataSource: UserProfileRemoteDataSourceProtocol {
         let body = try JSONEncoder().encode(target)
 
         do {
-            _ = try await httpClient.request(path: "/user/targets", method: .POST, body: body)
+            _ = try await tracked("UserProfileRemoteDataSource: createTarget") {
+                try await httpClient.request(path: "/user/targets", method: .POST, body: body)
+            }
         } catch let apiError as APIError where apiError.isCancelled {
             throw SystemError.taskCancelled
         }

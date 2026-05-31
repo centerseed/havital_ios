@@ -12,6 +12,14 @@ protocol WorkoutRepository {
     /// ViewModel 訂閱後自行決定如何通知 UI / 其他模組
     var workoutsDidRefresh: AnyPublisher<Void, Never> { get }
 
+    /// 分頁狀態更新訊號：任何一次伺服器抓頁（初次/刷新/背景/載入更多）都會帶出後端真實 has_more。
+    /// ViewModel 訂閱後同步 hasMoreData，避免依賴本地猜測。
+    var workoutsPaginationDidUpdate: AnyPublisher<PaginationInfo, Never> { get }
+
+    /// 讀取緩存的分頁狀態（與列表緩存平行存放），供 Track A 立即取得正確 has_more。
+    /// - Returns: 緩存分頁，若無則 nil
+    func getCachedPagination() -> PaginationInfo?
+
     // MARK: - Query (DEPRECATED - Use Async versions)
 
     /// 獲取指定日期範圍內的訓練記錄
@@ -41,6 +49,15 @@ protocol WorkoutRepository {
     /// 獲取所有已載入的訓練記錄 (異步版本)
     /// - Returns: 訓練記錄列表
     func getAllWorkoutsAsync() async -> [WorkoutV2]
+
+    /// 取最新一筆訓練（給 recap 探針用）。
+    /// 重點：**不可把共用列表緩存壓成 1 筆**——有緩存讀緩存，無緩存才抓「合理整頁」種子緩存。
+    func getLatestWorkout() async throws -> WorkoutV2?
+
+    /// 確保指定月份的訓練已補滿到本地（給訓練日曆用，修缺口）。
+    /// 用 pageSize + cursor 往前分頁、upsert，直到「最舊一筆早於月初」（用 API 時間確認補滿）或沒有更多。
+    /// 已涵蓋（緩存最舊早於月初）就直接返回，不重抓。
+    func ensureMonthLoaded(year: Int, month: Int) async
 
     // MARK: - Workout List (Workout 模組使用)
 
@@ -102,11 +119,37 @@ protocol WorkoutRepository {
     /// - Returns: 同步後的訓練實體
     func syncWorkout(_ workout: WorkoutV2) async throws -> WorkoutV2
 
+    func uploadWorkout(_ request: UploadWorkoutRequest) async throws -> UploadWorkoutResponse
+
+    func uploadWorkout(_ workoutData: WorkoutData) async throws
+
+    func fetchWorkoutSummary(id: String) async throws -> WorkoutSummary
+
+    /// 套用跑步機里程校正
+    /// - Parameters:
+    ///   - id: 訓練 ID
+    ///   - actualDistanceM: 實際距離（公尺），合法範圍 100..100000
+    ///   - avgInclinePercent: 平均坡度（%），optional，合法範圍 -10..25
+    ///   - notes: 備註，optional，最多 500 字
+    /// - Returns: 更新後的 WorkoutV2Detail（含 correction 欄位）
+    func applyTreadmillCorrection(
+        id: String,
+        actualDistanceM: Double,
+        avgInclinePercent: Double?,
+        notes: String?
+    ) async throws -> WorkoutV2Detail
+
     /// 更新訓練心得
     /// - Parameters:
     ///   - id: 訓練 ID
     ///   - notes: 心得內容
     func updateTrainingNotes(id: String, notes: String) async throws
+
+    /// 更新主觀強度 RPE
+    /// - Parameters:
+    ///   - id: 訓練 ID
+    ///   - rpe: 主觀強度 1-10，nil 表示清除
+    func updateRPE(id: String, rpe: Int?) async throws
 
     /// 刪除訓練
     /// - Parameter id: 訓練 ID
@@ -127,6 +170,33 @@ protocol WorkoutRepository {
 
     /// 訓練記錄更新的通知名稱
     var workoutsDidUpdateNotification: Notification.Name { get }
+}
+
+extension WorkoutRepository {
+    func applyTreadmillCorrection(
+        id: String,
+        actualDistanceM: Double,
+        avgInclinePercent: Double?,
+        notes: String?
+    ) async throws -> WorkoutV2Detail {
+        throw WorkoutRepositoryError.dataSourceUnavailable
+    }
+
+    func uploadWorkout(_ request: UploadWorkoutRequest) async throws -> UploadWorkoutResponse {
+        throw WorkoutRepositoryError.dataSourceUnavailable
+    }
+
+    func uploadWorkout(_ workoutData: WorkoutData) async throws {
+        throw WorkoutRepositoryError.dataSourceUnavailable
+    }
+
+    func fetchWorkoutSummary(id: String) async throws -> WorkoutSummary {
+        throw WorkoutRepositoryError.dataSourceUnavailable
+    }
+
+    func updateRPE(id: String, rpe: Int?) async throws {
+        throw WorkoutRepositoryError.dataSourceUnavailable
+    }
 }
 
 // MARK: - Workout Repository Errors

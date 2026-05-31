@@ -2,22 +2,18 @@ import SwiftUI
 import Charts
 
 struct HRVTrendChartView: View {
-    @StateObject private var viewModel: HRVChartViewModel
+    @StateObject private var viewModel = HRVChartViewModel(healthKitManager: HealthKitManager.shared)
 
-    init() {
-        _viewModel = StateObject(wrappedValue: HRVChartViewModel(healthKitManager: HealthKitManager()))
-    }
-    
     var body: some View {
         VStack {
             if viewModel.isLoading {
-                ProgressView("載入中...")
+                ProgressView(L10n.Common.loading.localized)
             } else if viewModel.hrvData.isEmpty {
                 VStack(spacing: 16) {
                     EmptyStateView(type: .hrvData)
                     
                     // 診斷按鈕
-                    Button("診斷 HRV 問題") {
+                    Button(L10n.Misc.diagHRVIssue.localized) {
                         Task { await viewModel.fetchDiagnostics() }
                     }
                     .font(AppFont.bodySmall())

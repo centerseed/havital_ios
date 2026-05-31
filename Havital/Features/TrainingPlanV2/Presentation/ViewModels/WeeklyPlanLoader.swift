@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import Combine
 
 // MARK: - WeeklyPlanLoader
 
@@ -27,6 +28,7 @@ final class WeeklyPlanLoader {
     // MARK: - Private State
 
     private var isRefreshing: Bool = false
+    @ObservationIgnored private var workoutCancellables = Set<AnyCancellable>()
 
     // MARK: - Dependencies
 
@@ -54,7 +56,7 @@ final class WeeklyPlanLoader {
     // MARK: - Event Subscriptions
 
     private func setupEventSubscriptions() {
-        CacheEventBus.shared.subscribe(for: "onboardingCompleted.loader") { [weak self] in
+        CacheEventBus.shared.subscribe(for: .onboardingCompleted) { [weak self] in
             guard let self else { return }
             Logger.debug("[WeeklyPlanLoader] 收到 onboardingCompleted 事件，清除快取並重新初始化")
             await self.repository.clearOverviewCache()
@@ -62,7 +64,7 @@ final class WeeklyPlanLoader {
             await self.initialize()
         }
 
-        CacheEventBus.shared.subscribe(for: "userLogout.loader") { [weak self] in
+        CacheEventBus.shared.subscribe(for: .userLogout) { [weak self] in
             guard let self else { return }
             Logger.debug("[WeeklyPlanLoader] 收到 userLogout 事件，清除所有狀態")
             await self.repository.clearOverviewCache()
@@ -72,13 +74,32 @@ final class WeeklyPlanLoader {
             self.weeklyPlan = nil
             self.workoutsByDay = [:]
             self.currentWeekDistance = 0.0
+            // AC-PAYWALL-37: reset observer so next user gets a clean state
+            PlanOverviewObserver.shared.reset()
         }
 
-        CacheEventBus.shared.subscribe(for: "dataChanged.trainingPlanV2.loader") { [weak self] in
+        CacheEventBus.shared.subscribe(for: .dataChanged(.trainingPlanV2)) { [weak self] in
             guard let self else { return }
             Logger.debug("[WeeklyPlanLoader] 收到 dataChanged.trainingPlanV2 事件，刷新課表")
             await self.refreshWeeklyPlan()
         }
+
+        // 新訓練同步進來 → 重算本週跑量/強度，否則 hero 會停在載入當下的舊值（漏算本週稍早的跑步）。
+        CacheEventBus.shared.subscribe(for: .dataChanged(.workouts)) { [weak self] in
+            guard let self else { return }
+            Logger.debug("[WeeklyPlanLoader] 收到 dataChanged.workouts 事件，重算本週訓練記錄")
+            await self.loadWorkoutsForCurrentWeek()
+        }
+
+        // 最可靠：任何 workout 快取刷新（含課表分頁時的背景刷新）都重算本週，
+        // 避免 hero 停在載入當下的舊快取值。
+        workoutRepository.workoutsDidRefresh
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in
+                guard let self else { return }
+                Task { await self.loadWorkoutsForCurrentWeek() }
+            }
+            .store(in: &workoutCancellables)
     }
 
     // MARK: - Public Methods - Initialization
@@ -106,9 +127,13 @@ final class WeeklyPlanLoader {
 
         guard let cachedStatus = repository.getCachedPlanStatus() else { return }
         let isFirstLoad = planStatusResponse == nil
+        let priorCurrentWeek = currentWeek
         planStatusResponse = cachedStatus
         currentWeek = cachedStatus.currentWeek
-        if isFirstLoad {
+        // selectedWeek 跟著 currentWeek，除非使用者已主動切到別週（switchToWeek 會把
+        // selectedWeek 設成不等於 currentWeek 的值）。先前用 isFirstLoad 判斷會在「快取
+        // 帶回 stale currentWeek=1，之後 API 刷到 13」時把 selectedWeek 永遠卡在 1。
+        if isFirstLoad || selectedWeek == priorCurrentWeek {
             selectedWeek = cachedStatus.currentWeek
         }
 
@@ -155,6 +180,9 @@ final class WeeklyPlanLoader {
         guard let status = planStatusResponse, planOverview != nil else {
             if !hadData {
                 planStatus = .noPlan
+                // AC-PAYWALL-37: no overview confirmed → safe to show expired reminder
+                // for users without any plan (no race window with FreeTierBanner).
+                PlanOverviewObserver.shared.confirmNoPlan()
             }
             return
         }
@@ -170,10 +198,13 @@ final class WeeklyPlanLoader {
         do {
             let status = try await repository.getPlanStatus(forceRefresh: true)
             let isFirstLoad = self.planStatusResponse == nil
+            let priorCurrentWeek = self.currentWeek
             self.planStatusResponse = status
             self.currentWeek = status.currentWeek
-            // 只在首次載入時跟隨 currentWeek，避免覆蓋使用者正在查看的週數
-            if isFirstLoad {
+            // selectedWeek 跟著 currentWeek，除非使用者主動切到別週（switchToWeek 會把
+            // selectedWeek 設成不等於 currentWeek 的值）。先前只在 isFirstLoad 時同步，
+            // 會在「stale cache 把 selectedWeek 種成 1，之後 API 刷到 13」時永遠卡在 1。
+            if isFirstLoad || self.selectedWeek == priorCurrentWeek {
                 self.selectedWeek = status.currentWeek
             }
 
@@ -184,6 +215,8 @@ final class WeeklyPlanLoader {
             if case .notFound = domainError {
                 self.planStatus = .noPlan
                 self.planStatusResponse = nil
+                // AC-PAYWALL-37: status not found → definitively no plan
+                PlanOverviewObserver.shared.confirmNoPlan()
             }
             Logger.error("[WeeklyPlanLoader] ❌ Plan Status 刷新失敗: \(domainError.localizedDescription)")
         }
@@ -206,6 +239,11 @@ final class WeeklyPlanLoader {
         } catch {
             let domainError = error.toDomainError()
             if shouldSuppressError(domainError, "Plan Overview 刷新", nil) { return }
+            // AC-PAYWALL-37: 404/notFound on overview → definitively no plan.
+            // Only call confirmNoPlan on definitive "not found" — not network errors.
+            if case .notFound = domainError {
+                PlanOverviewObserver.shared.confirmNoPlan()
+            }
             Logger.error("[WeeklyPlanLoader] ❌ Plan Overview 刷新失敗: \(domainError.localizedDescription)")
         }
     }
@@ -252,6 +290,8 @@ final class WeeklyPlanLoader {
             if case .notFound = domainError {
                 Logger.debug("[WeeklyPlanLoader] 無活躍計畫")
                 planStatus = .noPlan
+                // AC-PAYWALL-37: status not found → definitively no plan
+                PlanOverviewObserver.shared.confirmNoPlan()
             } else {
                 Logger.error("[WeeklyPlanLoader] ❌ Plan Status 載入失敗: \(domainError.localizedDescription)")
                 onNetworkError(domainError)
@@ -284,6 +324,10 @@ final class WeeklyPlanLoader {
 
         case "create_plan":
             planStatus = .noWeeklyPlan
+            // AC-PAYWALL-37: plan exists (overview loaded) but W1 not yet generated.
+            // This is NOT the "no plan" case — FreeTierBanner is the correct UX.
+            // confirmNoPlan() is intentionally NOT called here; the overview already
+            // fired overviewDidUpdate which set hasOverview=true.
             Logger.debug("[WeeklyPlanLoader] 等待使用者產生第 \(currentWeek) 週課表")
 
         case "create_summary":

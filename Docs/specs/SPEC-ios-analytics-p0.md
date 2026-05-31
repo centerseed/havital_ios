@@ -1,10 +1,10 @@
 ---
 type: SPEC
 id: SPEC-ios-analytics-p0
-status: Draft
+status: Implemented
 parent: SPEC-analytics-event-tracking
 created: 2026-04-15
-updated: 2026-04-22
+updated: 2026-04-24
 ---
 
 # Feature Spec: iOS P0 埋點實作

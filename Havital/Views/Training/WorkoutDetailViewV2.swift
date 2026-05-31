@@ -16,9 +16,13 @@ struct WorkoutDetailViewV2: View {
     @State private var heartRateCount = 0
 
     // 分享卡相關狀態
-    @State private var showShareCardSheet = false
+    @State private var shareRecapContent: WorkoutRecapContent?
     @State private var showPhotoPickersheet = false
     @State private var showShareMenu = false  // 分享選單狀態
+    @State private var showPBMoment = false
+    @State private var showPBShareCardSheet = false
+    @State private var selectedPBShareUpdate: PersonalBestUpdate?
+    @State private var presentingShareData: CelebrationShareCardView.ShareData?
 
     // 刪除相關狀態
     @State private var showDeleteConfirmation = false
@@ -26,9 +30,16 @@ struct WorkoutDetailViewV2: View {
     @State private var deleteResultMessage: String?
     @State private var showDeleteResult = false
 
-    // 訓練心得相關狀態
-    @State private var showTrainingNotesEditor = false
+    // 訓練回顧相關狀態
+    @State private var showReflection = false
+    @State private var didAutoPromptReflection = false
     @State private var displayedTrainingNotes: String? = nil  // 用於樂觀 UI 更新
+    @State private var displayedRPE: Int? = nil
+
+    // 跑步機校正相關狀態
+    @State private var showTreadmillCorrection = false
+
+    // AC-IOS-ANALYTICS-P1-10: dedup state lifted to ViewModel (hasTrackedAnalyticsView)
 
     enum ZoneTab: CaseIterable {
         case heartRate, pace
@@ -43,15 +54,6 @@ struct WorkoutDetailViewV2: View {
     
     init(workout: WorkoutV2) {
         _viewModel = StateObject(wrappedValue: WorkoutDetailViewModelV2(workout: workout))
-
-        // 調試：檢查 workout 的 shareCardContent
-        print("📋 [WorkoutDetailViewV2] Init with workout.id: \(workout.id)")
-        print("   - shareCardContent 是否為 nil: \(workout.shareCardContent == nil)")
-        if let content = workout.shareCardContent {
-            print("   - achievementTitle: \(content.achievementTitle ?? "nil")")
-            print("   - encouragementText: \(content.encouragementText ?? "nil")")
-            print("   - streakDays: \(content.streakDays?.description ?? "nil")")
-        }
     }
     
     var body: some View {
@@ -61,9 +63,7 @@ struct WorkoutDetailViewV2: View {
                 basicInfoCard
 
                 // 高級指標卡片
-                if viewModel.workout.advancedMetrics != nil {
-                    advancedMetricsCard
-                }
+                advancedMetricsCard
 
                 // 課表資訊和AI分析卡片
                 if viewModel.workoutDetail?.dailyPlanSummary != nil || viewModel.workoutDetail?.aiSummary != nil {
@@ -77,7 +77,7 @@ struct WorkoutDetailViewV2: View {
                 TrainingNotesCard(
                     notes: displayedTrainingNotes ?? viewModel.workoutDetail?.trainingNotes,
                     onEdit: {
-                        showTrainingNotesEditor = true
+                        showReflection = true
                     }
                 )
 
@@ -123,6 +123,11 @@ struct WorkoutDetailViewV2: View {
                     }
                 }
 
+                // 跑步機校正卡片（只在 treadmill_running 顯示）
+                if isTreadmillRunning {
+                    treadmillCorrectionCard
+                }
+
                 // 數據來源和設備信息卡片（移到最底下）
                 sourceInfoCardWithAlerts
 
@@ -147,12 +152,30 @@ struct WorkoutDetailViewV2: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 // 分享按鈕 - 點擊彈出選單
                 Menu {
-                    // 分享訓練成果（照片分享卡）
+                    // 分享訓練成果（recap 分享卡，不撒花）
                     Button {
-                        showShareCardSheet = true
+                        Task { @MainActor in
+                            shareRecapContent = WorkoutRecapContent.make(
+                                from: viewModel.workout,
+                                isPremium: SubscriptionStateManager.shared.hasPremiumAccess,
+                                aiAnalysisOverride: viewModel.workoutDetail?.aiSummary?.analysis,
+                                rpeOverride: viewModel.currentRPE,
+                                shareCardContentOverride: viewModel.workoutDetail?.shareCardContent
+                            )
+                        }
                     } label: {
                         Label(L10n.Workout.shareCard.localized,
                               systemImage: "photo.on.rectangle.angled")
+                    }
+
+                    if let update = viewModel.personalBestUpdatesForWorkout.first {
+                        Button {
+                            selectedPBShareUpdate = update
+                            showPBShareCardSheet = true
+                        } label: {
+                            Label(L10n.MyAchievement.Celebration.shareCardTitle.localized,
+                                  systemImage: "trophy.fill")
+                        }
                     }
 
                     // 分享長截圖
@@ -187,26 +210,65 @@ struct WorkoutDetailViewV2: View {
                 ActivityViewController(activityItems: [shareImage])
             }
         }
-        .sheet(isPresented: $showShareCardSheet) {
-            WorkoutShareCardSheetView(
-                workout: viewModel.workout,
-                workoutDetail: viewModel.workoutDetail
-            )
+        .sheet(item: $shareRecapContent) { recapContent in
+            WorkoutRecapView(content: recapContent, showConfetti: false)
         }
-        .sheet(isPresented: $showTrainingNotesEditor) {
-            TrainingNotesEditorView(
+        .sheet(isPresented: $showPBShareCardSheet) {
+            if let update = selectedPBShareUpdate {
+                PBMomentShareCardSheetView(
+                    update: update,
+                    onShare: {
+                        viewModel.trackPBMoment(action: "share", entry: "share_menu")
+                    },
+                    onSave: {
+                        viewModel.trackPBMoment(action: "save", entry: "share_menu")
+                    }
+                )
+            }
+        }
+        .sheet(item: $presentingShareData) { shareData in
+            CelebrationSharePreviewSheet(data: shareData)
+        }
+        .sheet(isPresented: $showReflection) {
+            WorkoutReflectionView(
                 workoutId: viewModel.workout.id,
+                typeName: viewModel.trainingType,
+                distanceText: viewModel.distance ?? "-",
+                date: viewModel.workout.startDate,
+                initialRPE: displayedRPE ?? viewModel.currentRPE.map { Int($0.rounded()) },
                 initialNotes: displayedTrainingNotes ?? viewModel.workoutDetail?.trainingNotes,
-                onSave: { notes in
-                    // 使用 Task.tracked 進行 API 追蹤（符合 CLAUDE.md Section 7 規範）
+                onSaveRPE: { rpe in
+                    return await Task {
+                        let success = await viewModel.updateRPE(rpe)
+                        if success {
+                            displayedRPE = rpe
+                        }
+                        return success
+                    }.tracked(from: "WorkoutDetailViewV2: updateRPE").value
+                },
+                onSaveNotes: { notes in
                     return await Task {
                         let success = await viewModel.updateTrainingNotes(notes)
                         if success {
-                            // 樂觀 UI 更新：立即更新顯示的內容
                             displayedTrainingNotes = notes
                         }
                         return success
                     }.tracked(from: "WorkoutDetailViewV2: updateTrainingNotes").value
+                }
+            )
+        }
+        .sheet(isPresented: $showTreadmillCorrection) {
+            TreadmillCorrectionView(
+                currentCorrection: viewModel.workoutDetail?.correction,
+                isAlreadyCorrected: viewModel.workoutDetail?.isTreadmillCorrected == true,
+                onApply: { dist, incline, notes in
+                    return await Task {
+                        await viewModel.applyTreadmillCorrection(
+                            actualDistanceM: dist,
+                            avgInclinePercent: incline,
+                            notes: notes
+                        )
+                    }.tracked(from: "WorkoutDetailViewV2: applyTreadmillCorrection").value
                 }
             )
         }
@@ -216,10 +278,106 @@ struct WorkoutDetailViewV2: View {
                 displayedTrainingNotes = newNotes
             }
         }
+        .onChange(of: viewModel.currentRPE) { newRPE in
+            if displayedRPE == nil {
+                displayedRPE = newRPE.map { Int($0.rounded()) }
+            }
+        }
+        // AC-IOS-ANALYTICS-P1-10: workout_analysis_view — fire when detail is available
+        .onAppear {
+            trackWorkoutAnalysisViewIfReady()
+            maybeAutoPromptReflection()
+        }
+        .onChange(of: viewModel.workoutDetail != nil) { _, hasDetail in
+            if hasDetail {
+                trackWorkoutAnalysisViewIfReady()
+                maybeAutoPromptReflection()
+            }
+        }
+        .onChange(of: viewModel.pendingCelebrationContent) { _, content in
+            if content != nil {
+                showPBMoment = true
+            }
+        }
+        .overlay {
+            if showPBMoment, let content = viewModel.pendingCelebrationContent {
+                CelebrationSheet(
+                    content: content,
+                    onDismiss: {
+                        viewModel.trackPBMoment(action: "close")
+                        viewModel.markPBMomentShown()
+                        showPBMoment = false
+                    },
+                    onShare: {
+                        viewModel.trackPBMoment(action: "share", entry: "post_workout")
+                        presentingShareData = content.toShareData()
+                    }
+                )
+                .transition(.opacity)
+                .zIndex(999)
+            }
+        }
+    }
+
+    // MARK: - 跑步機校正
+
+    /// 是否為跑步機訓練（校正入口只在此條件下顯示）
+    /// activityType == "running" 且 sportType == "treadmill_running"（來自 WorkoutV2Detail）
+    private var isTreadmillRunning: Bool {
+        viewModel.workout.activityType.lowercased() == "running"
+            && viewModel.workoutDetail?.sportType?.lowercased() == "treadmill_running"
+    }
+
+    private var treadmillCorrectionCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(L10n.WorkoutDetail.treadmillCorrectionTitle.localized)
+                    .font(AppFont.headline())
+                    .fontWeight(.semibold)
+
+                Spacer()
+
+                if viewModel.workoutDetail?.isTreadmillCorrected == true {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                }
+            }
+
+            if viewModel.workoutDetail?.isTreadmillCorrected == true,
+               let dist = viewModel.workoutDetail?.correction?.actualDistanceM {
+                Text(String(format: L10n.WorkoutDetail.treadmillCorrectionAppliedDistance.localized, dist))
+                    .font(AppFont.bodySmall())
+                    .foregroundColor(.secondary)
+            } else {
+                Text(L10n.WorkoutDetail.treadmillCorrectionDescription.localized)
+                    .font(AppFont.captionSmall())
+                    .foregroundColor(.secondary)
+                    .lineLimit(3)
+            }
+
+            Button(action: {
+                showTreadmillCorrection = true
+            }) {
+                let labelKey = viewModel.workoutDetail?.isTreadmillCorrected == true
+                    ? L10n.WorkoutDetail.treadmillCorrectionModify.localized
+                    : L10n.WorkoutDetail.treadmillCorrectionApply.localized
+                Label(labelKey, systemImage: "ruler")
+                    .font(AppFont.caption())
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(6)
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground))
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
     }
 
     // MARK: - 基本資訊卡片
-    
+
     private var basicInfoCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
@@ -239,6 +397,18 @@ struct WorkoutDetailViewV2: View {
                         .cornerRadius(6)
                 }
 
+                if let pbUpdate = viewModel.personalBestUpdatesForWorkout.first {
+                    Text("\(L10n.MyAchievement.Celebration.newPB.localized) · \(RaceDistanceV2(rawValue: pbUpdate.distance)?.shortName ?? pbUpdate.distance)")
+                        .font(AppFont.caption())
+                        .fontWeight(.semibold)
+                        .foregroundColor(.orange)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.orange.opacity(0.12))
+                        .cornerRadius(6)
+                        .accessibilityIdentifier("workout_detail_pb_badge")
+                }
+
                 Spacer()
 
                 // Strava/Garmin Attribution badges
@@ -250,15 +420,15 @@ struct WorkoutDetailViewV2: View {
                 DataItem(title: L10n.Record.distance.localized, value: viewModel.distance ?? "-", icon: "location")
                 DataItem(title: L10n.Record.duration.localized, value: viewModel.duration, icon: "clock")
                 DataItem(title: L10n.Record.calories.localized, value: viewModel.calories ?? "-", icon: "flame")
-                
+
                 if let pace = viewModel.pace {
                     DataItem(title: L10n.Record.pace.localized, value: pace, icon: "speedometer")
                 }
-                
+
                 if let avgHR = viewModel.averageHeartRate {
                     DataItem(title: L10n.Record.avgHeartRate.localized, value: avgHR, icon: "heart")
                 }
-                
+
                 if let maxHR = viewModel.maxHeartRate {
                     DataItem(title: L10n.Record.maxHeartRate.localized, value: maxHR, icon: "heart.fill")
                 }
@@ -700,14 +870,38 @@ struct WorkoutDetailViewV2: View {
                 }
 
                 if let tss = viewModel.workout.advancedMetrics?.tss {
-                    DataItem(title: L10n.WorkoutDetail.trainingLoad.localized, value: String(format: "%.1f", tss), icon: "heart.circle")
+                    DataItem(title: L10n.WorkoutDetail.trainingLoad.localized, value: String(format: "%.1f", tss), icon: "chart.bar.fill")
                 }
 
-                // Effort Score (RPE) - iOS 18+ Apple Watch
-                if #available(iOS 18.0, *) {
-                    if let rpe = viewModel.workout.advancedMetrics?.rpe {
-                        DataItem(title: L10n.WorkoutDetail.effortScore.localized, value: String(format: "%.1f/10", rpe), icon: "gauge.with.dots.needle.bottom.50percent")
+                // Effort Score (RPE)
+                if let rpe = displayedRPE ?? viewModel.currentRPE.map({ Int($0.rounded()) }) {
+                    Button {
+                        showReflection = true
+                    } label: {
+                        DataItem(title: L10n.WorkoutDetail.effortScore.localized, value: "\(rpe)/10", icon: "gauge")
                     }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("workout_detail_rpe_button")
+                } else {
+                    Button {
+                        showReflection = true
+                    } label: {
+                        VStack(spacing: 6) {
+                            Image(systemName: "gauge")
+                                .font(.title2)
+                                .foregroundColor(.blue)
+                            Text(L10n.WorkoutDetail.addRPE.localized)
+                                .font(AppFont.caption())
+                                .foregroundColor(.primary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 72)
+                        .padding(.vertical, 8)
+                        .background(Color.blue.opacity(0.08))
+                        .cornerRadius(8)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("workout_detail_rpe_button")
                 }
 
                 if let avgVerticalRatio = viewModel.workout.advancedMetrics?.avgVerticalRatioPercent {
@@ -945,8 +1139,34 @@ struct WorkoutDetailViewV2: View {
         return V2IntensityMinutes(from: intensity)
     }
     
+    // MARK: - Analytics
+
+    /// AC-IOS-ANALYTICS-P1-10: workout_analysis_view.
+    /// Fires once per view presentation, after detail data is available.
+    /// Guard in ViewModel ensures we never fire with stale data.
+    private func trackWorkoutAnalysisViewIfReady() {
+        guard let detail = viewModel.workoutDetail else { return }
+        viewModel.markAnalyticsViewTracked(
+            workoutId: viewModel.workout.id,
+            hasCoachNotes: detail.aiSummary != nil
+        )
+    }
+
+    /// 自動彈 WorkoutReflectionView：detail 載入後、無 RPE、本次未彈過。
+    private func maybeAutoPromptReflection() {
+        let hasRPE = (displayedRPE ?? viewModel.currentRPE.map { Int($0.rounded()) }) != nil
+        if WorkoutReflectionGate.shouldAutoPrompt(
+            hasRPE: hasRPE,
+            detailLoaded: viewModel.workoutDetail != nil,
+            alreadyPrompted: didAutoPromptReflection
+        ) {
+            didAutoPromptReflection = true
+            showReflection = true
+        }
+    }
+
     // MARK: - 輔助方法
-    
+
     private func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .long

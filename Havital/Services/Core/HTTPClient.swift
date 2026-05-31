@@ -40,9 +40,11 @@ enum HTTPMethod: String {
 actor DefaultHTTPClient: HTTPClient {
     static let shared = DefaultHTTPClient()
 
-    // Clean Architecture: Use AuthSessionRepository instead of AuthenticationService
-    private var authSessionRepository: AuthSessionRepository {
-        DependencyContainer.shared.resolve()
+    // Clean Architecture: Use AuthSessionRepository instead of AuthenticationService.
+    // Uses tryResolve so background HTTP tasks during unit-test tearDown (when DI is
+    // temporarily empty after reset()) do not crash with a fatalError.
+    private var authSessionRepository: AuthSessionRepository? {
+        DependencyContainer.shared.tryResolve()
     }
 
     // MARK: - Retry Configuration
@@ -59,8 +61,7 @@ actor DefaultHTTPClient: HTTPClient {
         let source = APICallTracker.getCurrentSource()
         let startTime = Date()
 
-        // 📱 記錄 API 調用開始
-        print("📱 [API] \(source) → \(method.rawValue) \(path)")
+        // 📱 記錄 API 調用開始（單一輸出，移除原本 print + Logger 重複兩行）
         Logger.debug("📱 [API] \(source) → \(method.rawValue) \(path)")
 
         // 檢查網路連接
@@ -110,7 +111,7 @@ actor DefaultHTTPClient: HTTPClient {
 
                     // 強制刷新 token
                     do {
-                        _ = try await authSessionRepository.refreshIdToken()
+                        _ = try await authSessionRepository?.refreshIdToken()
 
                         // 用新 token 重建請求
                         let retryRequest = try await buildRequest(path: path, method: method, body: body, customHeaders: customHeaders)
@@ -274,13 +275,18 @@ actor DefaultHTTPClient: HTTPClient {
         
         // 添加認證 token（除了登入相關端點，且沒有自定義 Authorization）
         if !isAuthenticationEndpoint(path: path) && customHeaders?["Authorization"] == nil {
-            Logger.debug("[HTTPClient] 🔐 Adding authentication token for: \(method.rawValue) \(path)")
-            let token = try await authSessionRepository.getIdToken()
-            let tokenPreview = String(token.prefix(30))
-            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            Logger.debug("[HTTPClient] 🔐 Authorization header set (token preview: \(tokenPreview)...)")
+            Logger.trace("[HTTPClient] 🔐 Adding authentication token for: \(method.rawValue) \(path)")
+            let repo = authSessionRepository  // capture once — computed property does a DI lookup each time
+            if repo == nil {
+                Logger.warn("[HTTPClient] authSessionRepository nil — Authorization header skipped for \(path); request will likely 401")
+            }
+            if let token = try await repo?.getIdToken() {
+                let tokenPreview = String(token.prefix(30))
+                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                Logger.trace("[HTTPClient] 🔐 Authorization header set (token preview: \(tokenPreview)...)")
+            }
         } else if isAuthenticationEndpoint(path: path) {
-            Logger.debug("[HTTPClient] ⚪ Skipping auth token for authentication endpoint: \(path)")
+            Logger.trace("[HTTPClient] ⚪ Skipping auth token for authentication endpoint: \(path)")
         }
         
         // 設置請求體
@@ -424,6 +430,40 @@ enum HTTPError: Error, LocalizedError {
             return true
         default:
             return false
+        }
+    }
+
+    var statusCode: Int? {
+        switch self {
+        case .badRequest:
+            return 400
+        case .unauthorized:
+            return 401
+        case .forbidden:
+            return 403
+        case .notFound:
+            return 404
+        case .httpError(let code, _), .serverError(let code, _):
+            return code
+        default:
+            return nil
+        }
+    }
+
+    var responseBody: String? {
+        switch self {
+        case .badRequest(let message),
+             .unauthorized(let message),
+             .forbidden(let message),
+             .notFound(let message),
+             .httpError(_, let message),
+             .serverError(_, let message),
+             .networkError(let message),
+             .invalidResponse(let message),
+             .invalidURL(let message):
+            return message
+        default:
+            return nil
         }
     }
 }

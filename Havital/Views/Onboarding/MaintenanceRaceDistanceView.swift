@@ -98,6 +98,14 @@ struct MaintenanceRaceDistanceView: View {
 
     private func saveAndNavigate() {
         coordinator.intendedRaceDistanceKm = selectedOption?.distanceKm
+        // AC-IOS-ANALYTICS-P1-06: maintenance with race path
+        if let option = selectedOption, option != .unsure {
+            coordinator.trackTargetRaceSet(
+                targetType: "maintenance",
+                raceId: nil,
+                distanceKm: option.distanceKm.map { Double($0) }
+            )
+        }
         coordinator.navigate(to: .trainingDays)
     }
 }

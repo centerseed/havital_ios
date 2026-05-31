@@ -62,6 +62,7 @@ enum UITestMethodologyHarness {
 struct UITestMethodologyHostView: View {
     @State private var selectedScreen: UITestMethodologyScreen
     @State private var viewModel = DependencyContainer.shared.makeTrainingPlanV2ViewModel()
+    @State private var harnessDestination: WorkoutDetailDestination?
 
     init() {
         _selectedScreen = State(initialValue: UITestMethodologyHarness.state.context?.initialScreen ?? .weekly)
@@ -91,6 +92,14 @@ struct UITestMethodologyHostView: View {
                     .background(Color(UIColor.systemGroupedBackground))
                 } else {
                     errorView(message: "Methodology harness has no fixture context.")
+                }
+            }
+            .navigationDestination(item: $harnessDestination) { dest in
+                switch dest.kind {
+                case .history(let workout):
+                    WorkoutDetailViewV2(workout: workout)
+                case .planned(let day, let date):
+                    PlannedSessionDetailView(day: day, date: date)
                 }
             }
             .navigationTitle("Methodology Harness")
@@ -138,7 +147,13 @@ struct UITestMethodologyHostView: View {
                     VStack(spacing: 24) {
                         TrainingProgressCardV2(viewModel: viewModel, plan: weekly)
                         WeekOverviewCardV2(viewModel: viewModel, plan: weekly)
-                        WeekTimelineViewV2(viewModel: viewModel, plan: weekly)
+                        WeekTimelineViewV2(
+                            viewModel: viewModel,
+                            plan: weekly,
+                            onDestinationSelect: { dest in
+                                harnessDestination = dest
+                            }
+                        )
                     }
                     .padding(.horizontal)
                     .padding(.bottom, 24)
@@ -162,7 +177,7 @@ struct UITestMethodologyHostView: View {
     private func errorView(message: String) -> some View {
         VStack(spacing: 12) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 32))
+                .font(AppFont.numberLarge())
                 .foregroundColor(.orange)
             Text(message)
                 .font(AppFont.bodySmall())
@@ -177,7 +192,7 @@ struct UITestMethodologyHostView: View {
     private func unavailableView(for screen: UITestMethodologyScreen) -> some View {
         VStack(spacing: 12) {
             Image(systemName: "doc.questionmark")
-                .font(.system(size: 28))
+                .font(AppFont.numberLarge())
                 .foregroundColor(.secondary)
             Text("\(screen.title) fixture unavailable")
                 .font(AppFont.bodySmall())
@@ -658,6 +673,11 @@ private struct FixtureRecord {
 private final class UITestMethodologyTrainingPlanRepository: TrainingPlanV2Repository {
     private let context: UITestMethodologyContext?
 
+    // AC-PAYWALL-37: UITest harness never emits real overview updates
+    var overviewDidUpdate: AnyPublisher<PlanOverviewV2, Never> {
+        Empty().eraseToAnyPublisher()
+    }
+
     init(context: UITestMethodologyContext?) {
         self.context = context
     }
@@ -866,6 +886,12 @@ private final class UITestMethodologyWorkoutRepository: WorkoutRepository {
         Empty().eraseToAnyPublisher()
     }
 
+    var workoutsPaginationDidUpdate: AnyPublisher<PaginationInfo, Never> {
+        Empty().eraseToAnyPublisher()
+    }
+
+    func getCachedPagination() -> PaginationInfo? { nil }
+
     var workoutsDidUpdateNotification: Notification.Name {
         .workoutsDidUpdate
     }
@@ -874,6 +900,8 @@ private final class UITestMethodologyWorkoutRepository: WorkoutRepository {
     func getAllWorkouts() -> [WorkoutV2] { [] }
     func getWorkoutsInDateRangeAsync(startDate: Date, endDate: Date) async -> [WorkoutV2] { [] }
     func getAllWorkoutsAsync() async -> [WorkoutV2] { [] }
+    func getLatestWorkout() async throws -> WorkoutV2? { nil }
+    func ensureMonthLoaded(year: Int, month: Int) async {}
     func getWorkouts(limit: Int?, offset: Int?) async throws -> [WorkoutV2] { [] }
     func refreshWorkouts() async throws -> [WorkoutV2] { [] }
 
@@ -916,10 +944,13 @@ private final class UITestMethodologyWorkoutRepository: WorkoutRepository {
     func clearWorkoutDetailCache(id: String) async {}
     func syncWorkout(_ workout: WorkoutV2) async throws -> WorkoutV2 { workout }
     func updateTrainingNotes(id: String, notes: String) async throws {}
+    func updateRPE(id: String, rpe: Int?) async throws {}
     func deleteWorkout(id: String) async throws {}
     func invalidateRefreshCooldown() {}
     func clearCache() async {}
     func preloadData() async {}
+
+    // applyTreadmillCorrection uses protocol default (throws dataSourceUnavailable)
 }
 
 private enum HarnessError: LocalizedError {

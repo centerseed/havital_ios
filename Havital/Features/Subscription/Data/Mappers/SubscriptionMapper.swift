@@ -22,6 +22,9 @@ enum SubscriptionMapper {
         }
         let expiresAt = dto.expiresAt.flatMap { parseISO8601ToTimeInterval($0) }
         let trialEndAt = dto.trialEndAt.flatMap { parseISO8601ToTimeInterval($0) }
+        let subscribedAt = dto.subscribedAt.flatMap { parseISO8601ToTimeInterval($0) }
+        let iapGraceUntil = dto.iapGraceUntil.flatMap { parseISO8601ToTimeInterval($0) }
+        let inGracePeriod = dto.inGracePeriod ?? false
         let billingIssue = dto.billingIssue ?? false
 
         // active + billingIssue → gracePeriod（Apple billing retry 期間，服務不中斷但帳務異常）
@@ -47,7 +50,11 @@ enum SubscriptionMapper {
             isEarlyBird: dto.isEarlyBird,
             hasOverride: dto.hasOverride,
             inIntroTrial: dto.inIntroTrial,
-            trialEndAt: trialEndAt
+            trialEndAt: trialEndAt,
+            subscribedAt: subscribedAt,
+            iapGraceUntil: iapGraceUntil,
+            inGracePeriod: inGracePeriod,
+            graceRemainingDays: dto.graceRemainingDays
         )
     }
 
@@ -74,6 +81,10 @@ enum SubscriptionMapper {
         case SubscriptionStatus.trial.rawValue:
             return .trial
         case "trial_active":
+            // AC-PAYWALL-29: backend 16-day trial retired. Mapping retained for backward
+            // compatibility in case old backend instances still send this value.
+            // New users no longer receive trial_active from backend.
+            // The authoritative trial source is now Apple Introductory Offer (inIntroTrial=true).
             return .trial
         case "cancelled":
             return .cancelled

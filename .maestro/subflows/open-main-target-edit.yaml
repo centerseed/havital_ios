@@ -1,0 +1,38 @@
+appId: com.havital.Havital.dev
+---
+# Opens the main race target edit sheet from the weekly plan screen.
+
+- tapOn:
+    text: "稍後|Later|後で"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "TrainingPlan_MenuButton"
+    timeout: 30000
+
+- tapOn:
+    id: "TrainingPlan_MenuButton"
+- tapOn:
+    id: "TrainingPlan_Menu_PlanOverview"
+
+- extendedWaitUntil:
+    visible:
+      text: "目標資訊|目標賽事|Target Info|Target Race|目標レース"
+    timeout: 12000
+
+- tapOn:
+    text: "目標資訊|Target Info|目標情報"
+    optional: true
+- scrollUntilVisible:
+    element: "目標賽事|Target Race|目標レース"
+    direction: DOWN
+    timeout: 10000
+
+- tapOn:
+    id: "TargetRaceCard_EditButton"
+
+- extendedWaitUntil:
+    visible:
+      text: "編輯賽事目標|Edit Race Goal|レース目標編集"
+    timeout: 8000

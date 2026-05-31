@@ -12,12 +12,18 @@ class RegisterEmailViewModel: ObservableObject, @preconcurrency TaskManageable {
     @Published var errorMessage: String?
     @Published var successMessage: String?
 
+    private let authRepository: AuthRepository
+
+    init(authRepository: AuthRepository = DependencyContainer.shared.resolve()) {
+        self.authRepository = authRepository
+    }
+
     func register() async {
         errorMessage = nil
         successMessage = nil
         isLoading = true
         do {
-            let data = try await EmailAuthService.shared.register(email: email, password: password)
+            let data = try await authRepository.registerEmail(email: email, password: password)
             successMessage = data.message
         } catch {
             errorMessage = error.localizedDescription

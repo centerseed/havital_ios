@@ -196,7 +196,7 @@ struct SimplifiedDailyCard: View {
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return Color.green
-        case .interval, .tempo, .progression, .threshold, .combination, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
+        case .interval, .tempo, .progression, .threshold, .combination, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .norwegianSingles, .yasso800:
             return Color.orange
         case .longRun, .hiking, .cycling, .fastFinish:
             return Color.blue
@@ -341,7 +341,7 @@ struct SimplifiedDailyCard: View {
                     showingPacePicker = true
                 } label: {
                     HStack(spacing: 4) {
-                        Text("配速:")
+                        Text(L10n.EditSchedule.paceLabel.localized)
                             .font(AppFont.caption())
                             .foregroundColor(.secondary)
                         Text(day.trainingDetails?.pace ?? "")
@@ -365,7 +365,7 @@ struct SimplifiedDailyCard: View {
                     showingDistancePicker = true
                 } label: {
                     HStack(spacing: 4) {
-                        Text("距離:")
+                        Text(L10n.EditSchedule.distanceLabel.localized)
                             .font(AppFont.caption())
                             .foregroundColor(.secondary)
                         Text(String(format: "%.1f km", distance))
@@ -945,4 +945,3 @@ struct SimplifiedDailyCard: View {
         return round(meters / roundTo) * roundTo
     }
 }
-

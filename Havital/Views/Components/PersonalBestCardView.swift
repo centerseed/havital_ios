@@ -31,20 +31,20 @@ struct PersonalBestCardView: View {
     // MARK: - Personal Best Grid
 
     private func personalBestGrid(data: [String: [PersonalBestRecordV2]]) -> some View {
-        LazyVGrid(columns: [
-            GridItem(.flexible()),
-            GridItem(.flexible()),
-            GridItem(.flexible())
-        ], spacing: 8) {
-            ForEach(sortedDistances(data: data), id: \.self) { distance in
-                if let records = data[distance.rawValue],
-                   let bestRecord = records.first {
-                    personalBestItemCard(distance: distance, record: bestRecord)
-                        .onTapGesture {
-                            selectedItem = PersonalBestDetailItem(distance: distance, records: records)
-                        }
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(sortedDistances(data: data), id: \.self) { distance in
+                    if let records = data[distance.rawValue],
+                       let bestRecord = records.first {
+                        personalBestItemCard(distance: distance, record: bestRecord)
+                            .frame(width: 128)
+                            .onTapGesture {
+                                selectedItem = PersonalBestDetailItem(distance: distance, records: records)
+                            }
+                    }
                 }
             }
+            .padding(.vertical, 2)
         }
         .padding()
     }
@@ -92,11 +92,13 @@ struct PersonalBestCardView: View {
 
     // MARK: - Helper Methods
 
-    /// 排序距離（按優先級降序）
+    /// 排序距離（公里數由大到小）
     private func sortedDistances(data: [String: [PersonalBestRecordV2]]) -> [RaceDistanceV2] {
         RaceDistanceV2.allCases
             .filter { data[$0.rawValue] != nil }
-            .sorted { $0.priority > $1.priority }
+            .sorted { lhs, rhs in
+                (Double(lhs.rawValue) ?? 0) > (Double(rhs.rawValue) ?? 0)
+            }
     }
 }
 
@@ -116,36 +118,22 @@ struct PersonalBestDetailView: View {
     let records: [PersonalBestRecordV2]
 
     var body: some View {
-        NavigationView {
-            List {
-                // 紀錄列表
-                Section(header: Text(L10n.MyAchievement.PersonalBest.topRecords.localized)) {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(L10n.MyAchievement.PersonalBest.topRecords.localized)
+                        .font(AppFont.micro())
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 4)
+                        .padding(.top, 4)
+
                     ForEach(Array(records.prefix(3).enumerated()), id: \.element.workoutId) { index, record in
-                        HStack {
-                            Text(rankEmoji(rank: index + 1))
-                                .font(AppFont.title3())
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(record.formattedTime())
-                                    .font(AppFont.headline())
-
-                                HStack(spacing: 12) {
-                                    Text(UnitManager.shared.formatPaceString(record.pace))
-                                        .font(AppFont.caption())
-                                        .foregroundColor(.secondary)
-
-                                    Text(formatWorkoutDate(record.workoutDate))
-                                        .font(AppFont.caption())
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-
-                            Spacer()
-                        }
-                        .padding(.vertical, 4)
+                        recordCard(rank: index + 1, record: record)
                     }
                 }
+                .padding(16)
             }
+            .background(Color(UIColor.systemGroupedBackground))
             .navigationTitle(distance.displayName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -153,10 +141,87 @@ struct PersonalBestDetailView: View {
                     Button(L10n.Common.done.localized) {
                         dismiss()
                     }
+                    .font(AppFont.label())
                 }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
+    }
+
+    // MARK: - Record Card
+
+    private func recordCard(rank: Int, record: PersonalBestRecordV2) -> some View {
+        let isBest = rank == 1
+
+        return HStack(spacing: 14) {
+            // Rank medal
+            ZStack {
+                Circle()
+                    .fill(rankColor(rank).opacity(0.16))
+                    .frame(width: 46, height: 46)
+                Text(rankEmoji(rank: rank))
+                    .font(AppFont.titleL())
+            }
+
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(record.formattedTime())
+                        .font(AppFont.numberMedium().monospacedDigit())
+                        .foregroundColor(isBest ? PacerizColor.blueDeep : .primary)
+                    if isBest {
+                        Text(NSLocalizedString("common.best", comment: ""))
+                            .font(AppFont.chip())
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 2)
+                            .background(PacerizColor.blue)
+                            .clipShape(Capsule())
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    Label {
+                        Text(UnitManager.shared.formatPaceString(record.pace))
+                            .font(AppFont.micro().monospacedDigit())
+                    } icon: {
+                        Image(systemName: "speedometer")
+                            .font(AppFont.micro())
+                    }
+                    .foregroundColor(.secondary)
+
+                    Text("·")
+                        .foregroundColor(Color(UIColor.tertiaryLabel))
+
+                    Label {
+                        Text(formatWorkoutDate(record.workoutDate))
+                            .font(AppFont.micro().monospacedDigit())
+                    } icon: {
+                        Image(systemName: "calendar")
+                            .font(AppFont.micro())
+                    }
+                    .foregroundColor(.secondary)
+                }
+            }
+
+            Spacer()
+        }
+        .padding(16)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .cornerRadius(14)
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .strokeBorder(isBest ? PacerizColor.blue.opacity(0.4) : Color.clear, lineWidth: 1.5)
+        )
+        .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 1)
+    }
+
+    private func rankColor(_ rank: Int) -> Color {
+        switch rank {
+        case 1: return Color(red: 0.93, green: 0.70, blue: 0.18)   // gold
+        case 2: return Color(red: 0.62, green: 0.65, blue: 0.69)   // silver
+        case 3: return Color(red: 0.78, green: 0.51, blue: 0.30)   // bronze
+        default: return .secondary
+        }
     }
 
     private func rankEmoji(rank: Int) -> String {
@@ -172,6 +237,6 @@ struct PersonalBestDetailView: View {
         guard let date = DateFormatterHelper.parseDate(from: dateString, format: "yyyy-MM-dd") else {
             return dateString
         }
-        return DateFormatterHelper.formatShortDate(date)
+        return DateFormatterHelper.formatter(dateFormat: "yyyy/MM/dd").string(from: date)
     }
 }

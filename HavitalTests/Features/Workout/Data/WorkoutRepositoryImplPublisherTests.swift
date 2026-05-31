@@ -18,10 +18,20 @@ final class StubWorkoutRemoteDataSource: WorkoutRemoteDataSource {
     var fetchCallCount = 0
     var onFetchWorkouts: (() -> Void)?
 
-    override func fetchWorkouts(pageSize: Int?, cursor: String?) async throws -> [WorkoutV2] {
+    override func fetchWorkoutsPage(pageSize: Int?, cursor: String?) async throws -> WorkoutListResponse {
         fetchCallCount += 1
         onFetchWorkouts?()
-        return stubbedWorkouts
+        let pagination = PaginationInfo(
+            nextCursor: nil,
+            prevCursor: nil,
+            hasMore: false,
+            hasNewer: false,
+            oldestId: stubbedWorkouts.last?.id,
+            newestId: stubbedWorkouts.first?.id,
+            totalItems: stubbedWorkouts.count,
+            pageSize: pageSize
+        )
+        return WorkoutListResponse(workouts: stubbedWorkouts, pagination: pagination)
     }
 }
 

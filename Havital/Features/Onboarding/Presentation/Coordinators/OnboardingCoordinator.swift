@@ -113,6 +113,10 @@ class OnboardingCoordinator: ObservableObject {
     /// 已到達的最高步驟深度（用於進度指示器「只進不退」規則）
     private var highestReachedDepth: Int = 0
 
+    /// AC-IOS-ANALYTICS-P1-02: session-level dedup flag for onboarding_data_source_prompted.
+    /// Reset in reset() so each onboarding session fires at most once.
+    private var hasTrackedDataSourcePrompted: Bool = false
+
     // MARK: - Computed Properties
 
     /// 進度指示器數值（0.0 ... 1.0），只進不退。
@@ -127,10 +131,16 @@ class OnboardingCoordinator: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    /// ✅ Clean Architecture: Use Case for completing onboarding
-    private lazy var completeOnboardingUseCase: CompleteOnboardingUseCase = {
-        DependencyContainer.shared.makeCompleteOnboardingUseCase()
-    }()
+    /// ✅ Clean Architecture: Use Case for completing onboarding.
+    /// Resolved lazily from DI on first access. Reset in reset() so that
+    /// unit tests replacing DI registrations get a fresh instance.
+    private var _completeOnboardingUseCase: CompleteOnboardingUseCase?
+    private var completeOnboardingUseCase: CompleteOnboardingUseCase {
+        if let existing = _completeOnboardingUseCase { return existing }
+        let useCase = DependencyContainer.shared.makeCompleteOnboardingUseCase()
+        _completeOnboardingUseCase = useCase
+        return useCase
+    }
 
     // Lazy resolve — coordinator is a singleton so it cannot take constructor deps.
     private var analyticsService: AnalyticsService {
@@ -154,6 +164,53 @@ class OnboardingCoordinator: ObservableObject {
         let source = AttributionManager.shared.source
         let campaignId = AttributionManager.shared.campaignId
         analyticsService.track(.onboardingStart(source: source, campaignId: campaignId))
+    }
+
+    // MARK: - P1 Analytics Tracking Methods
+
+    /// AC-IOS-ANALYTICS-P1-02: Call from .dataSource step onAppear. Session-level dedup.
+    func trackDataSourcePromptedIfNeeded() {
+        guard !hasTrackedDataSourcePrompted else { return }
+        hasTrackedDataSourcePrompted = true
+        analyticsService.track(.onboardingDataSourcePrompted)
+    }
+
+    /// AC-IOS-ANALYTICS-P1-03: Call when user skips .dataSource step.
+    func trackDataSourceSkipped() {
+        analyticsService.track(.onboardingDataSourceSkipped)
+    }
+
+    /// AC-IOS-ANALYTICS-P1-04: Call when data source binding succeeds in onboarding.
+    func trackDataSourceConnected(provider: String) {
+        analyticsService.track(.onboardingDataSourceConnected(provider: provider))
+    }
+
+    /// AC-IOS-ANALYTICS-P1-05: Call when user confirms goal type selection.
+    func trackGoalTypeSelected(targetType: String) {
+        analyticsService.track(.onboardingGoalTypeSelected(targetType: targetType))
+    }
+
+    /// AC-IOS-ANALYTICS-P1-06: Call when user confirms race/distance selection.
+    func trackTargetRaceSet(targetType: String, raceId: String?, distanceKm: Double?) {
+        analyticsService.track(.onboardingTargetRaceSet(
+            targetType: targetType,
+            raceId: raceId,
+            distanceKm: distanceKm
+        ))
+    }
+
+    /// AC-IOS-ANALYTICS-P1-07: Call when user confirms training days.
+    func trackScheduleSet(availableDays: Int) {
+        analyticsService.track(.onboardingScheduleSet(availableDays: availableDays))
+    }
+
+    /// AC-IOS-ANALYTICS-P1-08: Call from .trainingOverview step onAppear.
+    func trackPlanGenerating() {
+        if selectedTargetTypeId == nil && !isBeginner {
+            Logger.warn("[Analytics] P1-08: selectedTargetTypeId is nil and not beginner — falling back to 'race_run'. Check that targetTypeId is set before trainingOverview step.")
+        }
+        let targetType = selectedTargetTypeId ?? (isBeginner ? "beginner" : "race_run")
+        analyticsService.track(.onboardingPlanGenerating(targetType: targetType))
     }
 
     // MARK: - Navigation Methods
@@ -242,7 +299,10 @@ class OnboardingCoordinator: ObservableObject {
             isCompleting = false
             print("[OnboardingCoordinator] Loading 動畫已關閉")
 
-            if !output.wasReonboarding {
+            if output.wasReonboarding {
+                let targetType = selectedTargetTypeId ?? "unknown"
+                analyticsService.track(.reonboardingComplete(targetType: targetType))
+            } else {
                 let startTime = UserDefaults.standard.analyticsOnboardingStartTime
                 let durationSeconds = startTime > 0
                     ? Int(Date().timeIntervalSince1970 - startTime)
@@ -251,18 +311,17 @@ class OnboardingCoordinator: ObservableObject {
             }
 
             // 清理 UI 狀態
+            // ⚠️ 順序很重要：onboarding 完成 ⇒ user profile 必定變動，必清 cache，
+            // 確保 ContentView.checkTrainingVersion() 透過 TrainingVersionRouter →
+            // UserProfileRepository（cache-first）拿到 fresh profile，不返回 stale v1 profile。
+            // 此行必須在兩個 branch 之前執行，否則新用戶路徑會漏清（prod 事故：41x v1_endpoint_blocked）。
+            let localDS: UserProfileLocalDataSourceProtocol = DependencyContainer.shared.resolve()
+            localDS.clearUserProfile()
+
             if output.wasReonboarding {
                 // Re-onboarding 模式：關閉 sheet 並通知所有訂閱者刷新資料
-                print("[OnboardingCoordinator] Re-onboarding 完成，關閉 sheet 並發布 onboardingCompleted 事件")
-
-                // ⚠️ 順序很重要：必須先清除 user profile cache，再設定 isReonboardingMode = false。
-                // 設定 isReonboardingMode = false 會觸發 ContentView.checkTrainingVersion()，
-                // 該方法透過 TrainingVersionRouter → UserProfileRepository（cache-first）讀取版本。
-                // 若 cache 未清除，會返回 stale v1 profile，導致 UI 顯示 v1 訓練計畫。
-                let localDS: UserProfileLocalDataSourceProtocol = DependencyContainer.shared.resolve()
-                localDS.clearUserProfile()
-
                 AuthenticationViewModel.shared.isReonboardingMode = false
+                print("[OnboardingCoordinator] Re-onboarding 完成，關閉 sheet 並發布 onboardingCompleted 事件")
                 CacheEventBus.shared.publish(.onboardingCompleted)
             } else {
                 // 新用戶 onboarding：重置所有狀態並發布事件
@@ -286,6 +345,9 @@ class OnboardingCoordinator: ObservableObject {
 
     /// 重置所有狀態
     func reset() {
+        // Invalidate the cached use case so unit tests that replace DI registrations
+        // always get a fresh instance resolving the current mocks.
+        _completeOnboardingUseCase = nil
         navigationPath.removeAll()
         highestReachedDepth = 0
         targetDistance = 21.0975
@@ -306,6 +368,7 @@ class OnboardingCoordinator: ObservableObject {
         error = nil
         isReonboarding = false
         reonboardingStartStep = nil
+        hasTrackedDataSourcePrompted = false
         print("[OnboardingCoordinator] 狀態已重置")
     }
 

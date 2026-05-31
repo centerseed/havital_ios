@@ -326,7 +326,7 @@ class DataSyncViewModel: ObservableObject {
     private var syncTask: Task<Void, Never>?
 
     private let workoutV2Service = WorkoutV2Service.shared
-    private let healthKitManager = HealthKitManager()
+    private let healthKitManager = HealthKitManager.shared
     private let repository: WorkoutRepository
 
     // MARK: - Initialization

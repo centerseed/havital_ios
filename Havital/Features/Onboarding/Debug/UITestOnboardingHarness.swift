@@ -1,5 +1,6 @@
 #if DEBUG
 import Foundation
+import Combine
 
 extension RunSegment {
     init(
@@ -109,6 +110,12 @@ private final class UITestOnboardingTargetRepository: TargetRepository {
 }
 
 private final class UITestOnboardingTrainingPlanV2Repository: TrainingPlanV2Repository {
+
+    // AC-PAYWALL-37: UITest harness never emits real overview updates
+    var overviewDidUpdate: AnyPublisher<PlanOverviewV2, Never> {
+        Empty().eraseToAnyPublisher()
+    }
+
     private let targetTypes: [TargetTypeV2] = [
         TargetTypeV2(
             id: "race_run",
@@ -281,8 +288,11 @@ private final class UITestOnboardingTrainingPlanV2Repository: TrainingPlanV2Repo
             totalDistanceUnit: nil,
             totalDistanceReason: nil,
             designReason: ["Deterministic onboarding UI test plan"],
+            coachNote: nil,
             days: makeWeeklyDays(),
             intensityTotalMinutes: nil,
+            currentVdot: nil,
+            vdotSource: nil,
             createdAt: Date(),
             updatedAt: Date(),
             trainingLoadAnalysis: nil,
@@ -407,8 +417,11 @@ private final class UITestOnboardingTrainingPlanV2Repository: TrainingPlanV2Repo
             totalDistanceUnit: nil,
             totalDistanceReason: nil,
             designReason: ["Deterministic onboarding UI test plan"],
+            coachNote: nil,
             days: days,
             intensityTotalMinutes: nil,
+            currentVdot: nil,
+            vdotSource: nil,
             createdAt: Date(),
             updatedAt: Date(),
             trainingLoadAnalysis: nil,
@@ -484,7 +497,8 @@ private final class UITestOnboardingTrainingPlanV2Repository: TrainingPlanV2Repo
                 ),
                 cooldown: nil,
                 supplementary: nil
-            )
+            ),
+            supplementary: nil
         )
     }
 
@@ -496,7 +510,8 @@ private final class UITestOnboardingTrainingPlanV2Repository: TrainingPlanV2Repo
             tips: nil,
             category: .rest,
             climateMeta: nil,
-            session: nil
+            session: nil,
+            supplementary: nil
         )
     }
 

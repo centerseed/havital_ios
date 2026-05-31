@@ -51,7 +51,9 @@ final class MonthlyStatsRemoteDataSource {
         Logger.debug("[MonthlyStatsRemoteDataSource] fetchMonthlyStats - year: \(year), month: \(month)")
 
         // 調用 API
-        let rawData = try await httpClient.request(path: path, method: .GET, body: nil)
+        let rawData = try await tracked("MonthlyStatsRemoteDataSource: fetchMonthlyStats") {
+            try await httpClient.request(path: path, method: .GET, body: nil)
+        }
 
         // 解析響應
         let response = try parser.parse(MonthlyStatsDTO.self, from: rawData)

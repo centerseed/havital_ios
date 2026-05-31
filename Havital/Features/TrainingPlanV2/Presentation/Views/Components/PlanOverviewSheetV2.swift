@@ -1,5 +1,6 @@
 import SwiftUI
 
+// DEAD: presentation entry point replaced by TrainingOverviewV2View; retained for UITestMethodologyHarness (.overview tab) — TODO cleanup when Harness migrates
 /// V2 訓練計畫概覽 Sheet
 /// 使用 Tab 顯示不同資訊：賽事資訊 & 訓練計畫概覽
 struct PlanOverviewSheetV2: View {
@@ -14,9 +15,7 @@ struct PlanOverviewSheetV2: View {
     @State private var showAddSupportingTarget = false
     @State private var selectedSupportingTarget: Target? = nil
     @State private var isUpdatingOverview = false
-    @State private var showStageSelection = false
-    @State private var pendingWeeksRemaining: Int = 12
-    @State private var pendingDistanceKm: Double = 42.195
+    // AC-IOS-ANALYTICS-P1-12: dedup flag lifted to TrainingPlanV2ViewModel.hasTrackedPlanOverviewView
 
     init(viewModel: TrainingPlanV2ViewModel, initialTab: Int = 0) {
         self.viewModel = viewModel
@@ -92,6 +91,15 @@ struct PlanOverviewSheetV2: View {
             .navigationTitle(viewModel.loader.trainingPlanName)
             .navigationBarTitleDisplayMode(.inline)
             .accessibilityIdentifier("v2.overview.screen")
+            // AC-IOS-ANALYTICS-P1-12: plan_overview_view.
+            // onAppear fires when overview is already loaded; onChange covers async load race.
+            // hasTrackedPlanOverviewView dedup prevents double-fire from race condition.
+            .onAppear {
+                trackPlanOverviewViewIfNeeded()
+            }
+            .onChange(of: viewModel.loader.planOverview) { _, _ in
+                trackPlanOverviewViewIfNeeded()
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(NSLocalizedString("common.close", comment: "Close")) {
@@ -109,38 +117,38 @@ struct PlanOverviewSheetV2: View {
                 Logger.debug("[🐛 TARGET_UPDATE] ③ PlanOverviewSheetV2 接收到通知")
                 Logger.debug("[🐛 TARGET_UPDATE]    userInfo = \(String(describing: notification.userInfo))")
 
-                // 檢查是否有重要變更
-                if let userInfo = notification.userInfo,
-                   let hasSignificantChange = userInfo["hasSignificantChange"] as? Bool {
-                    Logger.debug("[🐛 TARGET_UPDATE]    解析成功: hasSignificantChange = \(hasSignificantChange)")
+                let userInfo = notification.userInfo
+                let overviewUpdateStatus = userInfo?["planOverviewUpdateStatus"] as? String
+                let overviewUpdateOverviewId = userInfo?["planOverviewUpdateOverviewId"] as? String
+                let pollAfterSeconds = userInfo?["planOverviewUpdatePollAfterSeconds"] as? Int ?? 3
 
-                    if hasSignificantChange {
-                        let weeks = userInfo["remainingWeeks"] as? Int ?? 12
-                        let distance = userInfo["distanceKm"] as? Double ?? 42.195
-                        showEditMainTarget = false
-                        Task {
-                            // 等待 EditTargetView sheet dismiss 動畫完成
-                            try? await Task.sleep(nanoseconds: 400_000_000)
-                            await targetViewModel.forceRefresh()
-                            // Only show stage selection for race_run plans
-                            if viewModel.loader.planOverview?.isRaceRunTarget == true {
-                                Logger.debug("[🐛 TARGET_UPDATE] ④ 顯示起始階段選擇")
-                                pendingWeeksRemaining = weeks
-                                pendingDistanceKm = distance
-                                showStageSelection = true
-                            } else {
-                                Logger.debug("[🐛 TARGET_UPDATE] ④ 非 race plan，跳過起始階段選擇，直接更新 overview")
-                                await viewModel.generator.updateOverview(startFromStage: nil)
-                            }
+                showEditMainTarget = false
+                Task {
+                    try? await Task.sleep(nanoseconds: 400_000_000)
+                    await targetViewModel.forceRefresh()
+
+                    if overviewUpdateStatus == "queued" || overviewUpdateStatus == "running" {
+                        viewModel.successToast = NSLocalizedString(
+                            "training.plan_overview_update_pending",
+                            comment: "訓練總覽更新中，稍後會自動套用"
+                        )
+                        if let overviewId = overviewUpdateOverviewId {
+                            await viewModel.pollPlanOverviewRegeneration(
+                                overviewId: overviewId,
+                                pollAfterSeconds: pollAfterSeconds
+                            )
                         }
-                    } else {
-                        Logger.debug("[🐛 TARGET_UPDATE]    無重要變更，僅重新載入賽事資料")
-                        Task {
-                            await targetViewModel.forceRefresh()
-                        }
+                        return
                     }
-                } else {
-                    Logger.error("[🐛 TARGET_UPDATE] ❌ 無法解析 userInfo！")
+
+                    if overviewUpdateStatus == "failed" {
+                        viewModel.successToast = NSLocalizedString(
+                            "training.plan_overview_update_failed",
+                            comment: "訓練總覽更新失敗，請稍後再試"
+                        )
+                    }
+
+                    await viewModel.refreshOverviewAfterTargetUpdate()
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .supportingTargetUpdated)) { _ in
@@ -161,20 +169,15 @@ struct PlanOverviewSheetV2: View {
             .sheet(isPresented: $showAddSupportingTarget) {
                 AddSupportingTargetView()
             }
-            .sheet(isPresented: $showStageSelection) {
-                EditTargetStageSelectionView(
-                    weeksRemaining: pendingWeeksRemaining,
-                    targetDistanceKm: pendingDistanceKm
-                ) { selectedStageApiIdentifier in
-                    showStageSelection = false
-                    Task {
-                        withAnimation { isUpdatingOverview = true }
-                        await viewModel.generator.updateOverview(startFromStage: selectedStageApiIdentifier)
-                        withAnimation { isUpdatingOverview = false }
-                    }
-                }
-            }
         }
+    }
+
+    // MARK: - AC-IOS-ANALYTICS-P1-12
+
+    /// Fire plan_overview_view once per sheet presentation, when overview data is available.
+    private func trackPlanOverviewViewIfNeeded() {
+        guard let overview = viewModel.loader.planOverview else { return }
+        viewModel.markPlanOverviewTracked(overviewId: overview.id, targetType: overview.targetType)
     }
 }
 
@@ -669,12 +672,12 @@ private struct TrainingOverviewTabV2: View {
                 if !methodology.phases.isEmpty || methodology.crossTrainingEnabled {
                     HStack(spacing: 10) {
                         if !methodology.phases.isEmpty {
-                            Label("\(methodology.phases.count) 個階段", systemImage: "flag.fill")
+                            Label(L10n.Training.phasesCount.localized(with: methodology.phases.count), systemImage: "flag.fill")
                                 .font(AppFont.caption2())
                                 .foregroundColor(.secondary)
                         }
                         if methodology.crossTrainingEnabled {
-                            Label("交叉訓練", systemImage: "figure.cross.training")
+                            Label(L10n.Training.TrainingType.crossTraining.localized, systemImage: "figure.cross.training")
                                 .font(AppFont.caption2())
                                 .foregroundColor(.teal)
                         }
@@ -1081,167 +1084,6 @@ private struct FlowLayout: Layout {
         let totalWidth = maxWidth
 
         return (CGSize(width: totalWidth, height: totalHeight), frames)
-    }
-}
-
-// MARK: - EditTargetStageSelectionView
-
-/// 修改目標後的起始階段選擇 Sheet（不依賴 OnboardingCoordinator）
-private struct EditTargetStageSelectionView: View {
-    let weeksRemaining: Int
-    let targetDistanceKm: Double
-    let onConfirm: (String?) -> Void
-
-    @State private var selectedStage: TrainingStagePhase?
-    @State private var recommendation: StartStageRecommendation
-    @Environment(\.dismiss) private var dismiss
-
-    init(weeksRemaining: Int, targetDistanceKm: Double, onConfirm: @escaping (String?) -> Void) {
-        self.weeksRemaining = weeksRemaining
-        self.targetDistanceKm = targetDistanceKm
-        self.onConfirm = onConfirm
-
-        let rec = TrainingPlanCalculator.recommendStartStage(
-            weeksRemaining: weeksRemaining,
-            targetDistanceKm: targetDistanceKm
-        )
-        _recommendation = State(initialValue: rec)
-        _selectedStage = State(initialValue: rec.recommendedStage)
-    }
-
-    var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                Form {
-                    // 時間提示區塊
-                    Section {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Image(systemName: "clock.fill")
-                                    .foregroundColor(.orange)
-                                Text(NSLocalizedString("start_stage.time_notice_title", comment: "訓練時間提醒"))
-                                    .font(AppFont.headline())
-                            }
-
-                            Text(String(format: NSLocalizedString("start_stage.time_notice", comment: "你的賽事在 %d 週後"),
-                                       weeksRemaining))
-                                .font(AppFont.bodySmall())
-                                .foregroundColor(.secondary)
-
-                            if hasBaseStageOption {
-                                HStack(alignment: .top, spacing: 8) {
-                                    Image(systemName: "info.circle.fill")
-                                        .foregroundColor(.blue)
-                                        .font(AppFont.bodySmall())
-
-                                    Text(NSLocalizedString("start_stage.training_habit_reminder", comment: "建議有規律訓練習慣的跑者選擇跳過基礎期"))
-                                        .font(AppFont.caption())
-                                        .foregroundColor(.secondary)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 12)
-                                .background(Color.blue.opacity(0.1))
-                                .cornerRadius(8)
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    }
-
-                    // 推薦階段
-                    Section {
-                        VStack(alignment: .leading, spacing: 0) {
-                            HStack {
-                                Text(NSLocalizedString("start_stage.recommendation", comment: "推薦起始階段"))
-                                    .font(AppFont.caption())
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 4)
-                                    .background(Color.accentColor)
-                                    .cornerRadius(12)
-                                Spacer()
-                            }
-                            .padding(.bottom, 12)
-
-                            StageOptionCard(
-                                stageName: recommendation.stageName,
-                                reason: recommendation.reason,
-                                riskLevel: recommendation.riskLevel,
-                                isRecommended: true,
-                                isSelected: selectedStage == recommendation.recommendedStage
-                            )
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                selectedStage = recommendation.recommendedStage
-                            }
-                        }
-                        .padding(.vertical, 8)
-                    }
-
-                    // 其他選項
-                    if !recommendation.alternatives.isEmpty {
-                        Section(header: Text(NSLocalizedString("start_stage.other_options", comment: "其他選項"))) {
-                            ForEach(recommendation.alternatives) { alternative in
-                                StageAlternativeCard(
-                                    alternative: alternative,
-                                    isSelected: selectedStage == alternative.stage
-                                )
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    selectedStage = alternative.stage
-                                }
-                                .padding(.vertical, 4)
-                            }
-                        }
-                    }
-
-                    // 週數分配預覽
-                    Section(header: Text(NSLocalizedString("start_stage.training_distribution", comment: "訓練週數分配"))) {
-                        if let stage = selectedStage {
-                            let distribution = TrainingPlanCalculator.calculateTrainingPeriods(
-                                trainingWeeks: weeksRemaining,
-                                targetDistanceKm: targetDistanceKm,
-                                startFromStage: stage
-                            )
-                            TrainingDistributionView(distribution: distribution, totalWeeks: weeksRemaining)
-                        }
-                    }
-                }
-
-                // 底部確認按鈕
-                VStack {
-                    Button(action: {
-                        onConfirm(selectedStage?.apiIdentifier)
-                    }) {
-                        Text(NSLocalizedString("common.confirm", comment: "確認"))
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
-                    }
-                    .padding()
-                    .background(Color.accentColor)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-                    .padding(.horizontal)
-                    .padding(.bottom, 30)
-                }
-                .background(Color(.systemGroupedBackground))
-            }
-            .navigationTitle(NSLocalizedString("start_stage.title", comment: "訓練計劃起始階段"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(NSLocalizedString("common.close", comment: "關閉")) {
-                        dismiss()
-                    }
-                }
-            }
-            .background(Color(UIColor.systemGroupedBackground))
-        }
-    }
-
-    private var hasBaseStageOption: Bool {
-        recommendation.alternatives.contains { $0.stage == .base }
     }
 }
 

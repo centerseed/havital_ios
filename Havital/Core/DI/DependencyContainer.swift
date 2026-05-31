@@ -11,7 +11,9 @@ final class DependencyContainer {
     // MARK: - Storage
     private var singletons: [String: Any] = [:]
     private var factories: [String: () -> Any] = [:]
-    private let lock = NSLock()
+    // NSRecursiveLock required because reset() holds the lock while calling
+    // registerCoreDependencies(), which in turn calls register() (also locking).
+    private let lock = NSRecursiveLock()
 
     // MARK: - Initialization
     private init() {
@@ -27,7 +29,7 @@ final class DependencyContainer {
 
         let key = String(describing: type)
         singletons[key] = instance
-        Logger.debug("[DI] Registered singleton: \(key)")
+        Logger.trace("[DI] Registered singleton: \(key)")
     }
 
     /// 註冊工廠（每次 resolve 都創建新實例）
@@ -37,7 +39,7 @@ final class DependencyContainer {
 
         let key = String(describing: type)
         factories[key] = factory
-        Logger.debug("[DI] Registered factory: \(key)")
+        Logger.trace("[DI] Registered factory: \(key)")
     }
 
     /// 註冊 Protocol 到實作的映射
@@ -47,7 +49,7 @@ final class DependencyContainer {
 
         let key = String(describing: protocolType)
         singletons[key] = instance
-        Logger.debug("[DI] Registered protocol: \(key) -> \(String(describing: T.self))")
+        Logger.trace("[DI] Registered protocol: \(key) -> \(String(describing: T.self))")
     }
 
     // MARK: - Resolution
@@ -104,7 +106,7 @@ final class DependencyContainer {
         register(DefaultHTTPClient.shared, forProtocol: HTTPClient.self)
         register(DefaultAPIParser.shared, forProtocol: APIParser.self)
 
-        Logger.debug("[DI] Core dependencies registered")
+        Logger.trace("[DI] Core dependencies registered")
     }
 
     // MARK: - Feature Registration (擴展點)
@@ -124,7 +126,7 @@ final class DependencyContainer {
         // 註冊 TrainingVersionRouter
         registerTrainingVersionRouter()
 
-        Logger.debug("[DI] TrainingPlanV2 module dependencies registered")
+        Logger.trace("[DI] TrainingPlanV2 module dependencies registered")
     }
 
     /// 註冊 User 模組依賴
@@ -138,7 +140,7 @@ final class DependencyContainer {
         // Views 應直接使用 @StateObject private var viewModel = UserProfileFeatureViewModel()
         // UserProfileFeatureViewModel 的 convenience init 會自動從 DI 解析所有依賴
 
-        Logger.debug("[DI] User module dependencies registered")
+        Logger.trace("[DI] User module dependencies registered")
     }
 
     /// 註冊 Target 模組依賴
@@ -151,7 +153,7 @@ final class DependencyContainer {
         // Views 應直接使用 @StateObject private var viewModel = TargetFeatureViewModel()
         // TargetFeatureViewModel 的 convenience init 會自動從 DI 解析所有依賴
 
-        Logger.debug("[DI] Target module dependencies registered")
+        Logger.trace("[DI] Target module dependencies registered")
     }
 
     /// 註冊 Auth 模組依賴
@@ -165,7 +167,7 @@ final class DependencyContainer {
         // Views 應直接使用 @StateObject private var viewModel = LoginViewModel()
         // LoginViewModel 和 AuthCoordinatorViewModel 的 convenience init 會自動從 DI 解析所有依賴
 
-        Logger.debug("[DI] Authentication module dependencies registered")
+        Logger.trace("[DI] Authentication module dependencies registered")
     }
 
     // MARK: - Testing Support
@@ -179,7 +181,7 @@ final class DependencyContainer {
         factories.removeAll()
         registerCoreDependencies()
 
-        Logger.debug("[DI] Container reset")
+        Logger.trace("[DI] Container reset")
     }
 
     /// 替換依賴（用於測試注入 Mock）
@@ -189,7 +191,7 @@ final class DependencyContainer {
 
         let key = String(describing: type)
         singletons[key] = instance
-        Logger.debug("[DI] Replaced: \(key)")
+        Logger.trace("[DI] Replaced: \(key)")
     }
 }
 

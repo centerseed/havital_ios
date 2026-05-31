@@ -511,7 +511,6 @@ class RaceSetupPage: BasePage {
             app.descendants(matching: .any)["RaceSetup_Mode_DatabaseOrManual"].firstMatch,
             app.descendants(matching: .any)["RaceSetup_Mode_ManualOnly"].firstMatch,
             app.descendants(matching: .any)["RaceSetup_BrowseDatabaseButton"].firstMatch,
-            app.descendants(matching: .any)["RaceSetup_BrowseDatabaseCard"].firstMatch,
             app.descendants(matching: .any)["RaceSetup_TargetTimeEditorButton"].firstMatch,
             app.descendants(matching: .any)["RaceSetup_TargetTimeSection"].firstMatch,
             app.descendants(matching: .any)["RaceSetup_ManualInputForm"].firstMatch,

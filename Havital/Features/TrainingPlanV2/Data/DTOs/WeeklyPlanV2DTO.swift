@@ -46,11 +46,23 @@ struct WeeklyPlanV2DTO: Codable {
     /// 安排理由列表
     let designReason: [String]?
 
+    /// 教練筆記（本週訓練重點 1-2 句總結）
+    let coachNote: String?
+
     /// 訓練日陣列（7 天完整資料）- V2.1+ 使用 DayDetailDTO
     let days: [DayDetailDTO]
 
     /// 強度分鐘數分布 {low, medium, high}
     let intensityTotalMinutes: WeeklyPlan.IntensityTotalMinutes?
+
+    /// 生成此週課表時使用的 VDOT（配速表需與課表基準一致）
+    let currentVdot: Double?
+
+    /// 兼容欄位：同 currentVdot
+    let vdot: Double?
+
+    /// VDOT 來源說明
+    let vdotSource: String?
 
     // MARK: - 時間戳
 
@@ -98,8 +110,12 @@ struct WeeklyPlanV2DTO: Codable {
         case totalDistanceUnit = "total_distance_unit"
         case totalDistanceReason = "total_distance_reason"
         case designReason = "design_reason"
+        case coachNote = "coach_note"
         case days
         case intensityTotalMinutes = "intensity_total_minutes"
+        case currentVdot = "current_vdot"
+        case vdot
+        case vdotSource = "vdot_source"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case trainingLoadAnalysis = "training_load_analysis"

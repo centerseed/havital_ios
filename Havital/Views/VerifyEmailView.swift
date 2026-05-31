@@ -48,7 +48,7 @@ struct VerifyEmailView: View {
         .padding()
         .navigationTitle(L10n.Auth.verifyEmailTitle.localized)
         .alert(alertTitle, isPresented: $showAlert) {
-            Button("確定", role: .cancel) {}
+            Button(L10n.Common.confirm.localized, role: .cancel) {}
         } message: {
             Text(alertMessage)
         }

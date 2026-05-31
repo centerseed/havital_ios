@@ -14,6 +14,14 @@ final class MonthlyStatsRepositoryImpl: MonthlyStatsRepository {
     private let remoteDataSource: MonthlyStatsRemoteDataSource
     private let localDataSource: MonthlyStatsLocalDataSource
 
+    /// 進行中的抓取（依 year-month 合併並發請求，避免冷啟動/多 caller 同月各打一次 API）。
+    private var inFlight: [String: Task<[DailyStat], Never>] = [:]
+    private let inFlightLock = NSLock()
+
+    /// 未結算月份（進行中當月）的快取新鮮窗口：同步後此期間內重用快取，
+    /// 避免「當月永不信任」造成每次讀都打 API。新訓練進來會經 invalidateRecentMonths 清時間戳強制重抓。
+    private static let unsettledFreshnessTTL: TimeInterval = 5 * 60
+
     // MARK: - Initialization
 
     init(remoteDataSource: MonthlyStatsRemoteDataSource = MonthlyStatsRemoteDataSource(),
@@ -35,13 +43,33 @@ final class MonthlyStatsRepositoryImpl: MonthlyStatsRepository {
     func getMonthlyStats(year: Int, month: Int) async throws -> [DailyStat] {
         Logger.debug("[MonthlyStatsRepositoryImpl] getMonthlyStats - year: \(year), month: \(month)")
 
-        // ✅ 先從本地緩存讀取數據
-        // ⚠️ 重要：只有當緩存有實際數據時才返回，空數組仍需調用 API
-        if let cachedStats = localDataSource.getMonthlyStats(year: year, month: month), !cachedStats.isEmpty {
+        // ✅ 健壯快取策略：信任「已結算月份」的快取（永久），或「未結算當月在新鮮窗口內」的快取。
+        // 結算前的當月用短 TTL 重用，避免每次讀都打 API；新訓練會經 invalidateRecentMonths 清時間戳強制重抓，
+        // 確保月中新增的訓練不會永久從日曆消失。
+        let syncTs = localDataSource.getSyncTimestamp(year: year, month: month)
+        if Self.isCacheSettled(year: year, month: month, syncTimestamp: syncTs) || Self.isCacheFresh(syncTimestamp: syncTs),
+           let cachedStats = localDataSource.getMonthlyStats(year: year, month: month), !cachedStats.isEmpty {
             print("📊 [MonthlyStatsRepo] 從本地緩存返回，\(year)-\(String(format: "%02d", month))，數量: \(cachedStats.count)")
             return cachedStats
         }
 
+        // ✅ 並發合併：同月若已有抓取進行中，共用同一個 Task，不重複打 API。
+        // check-or-create 在同一把鎖內完成，避免兩個並發呼叫都判定「無進行中」而各建一個 Task。
+        let key = "\(year)-\(String(format: "%02d", month))"
+        let (task, isOwner) = inFlightTaskOrCreate(for: key) { [weak self] in
+            guard let self else { return [] }
+            return await self.fetchAndCacheMonthlyStats(year: year, month: month)
+        }
+        if !isOwner {
+            print("📊 [MonthlyStatsRepo] ⏳ 併入進行中的抓取 \(key)")
+            return await task.value
+        }
+        defer { removeInFlightTask(for: key) }
+        return await task.value
+    }
+
+    /// 從 API 抓取並依結果緩存（並發合併與快取判斷在 getMonthlyStats 處理）。
+    private func fetchAndCacheMonthlyStats(year: Int, month: Int) async -> [DailyStat] {
         // ✅ 本地沒有數據或數據為空，從 API 獲取
         print("📊 [MonthlyStatsRepo] 🌐 調用 API: /v2/workout/monthly_stats?year=\(year)&month=\(month)")
 
@@ -122,6 +150,80 @@ final class MonthlyStatsRepositoryImpl: MonthlyStatsRepository {
             level: .info,
             labels: ["module": "MonthlyStatsRepository", "action": "clear_cache"]
         )
+    }
+
+    /// 失效最近 N 個月（含當月）的快取，讓下次讀取重新打 API。
+    /// 用於運動同步事件：新訓練（含晚同步、結算後才到的）進來時確保日曆會更新。
+    /// - Note: 只清同步時間戳；isCacheSettled 因此判定為 false → 強制重抓。
+    func invalidateRecentMonths(count: Int = 3) async {
+        let calendar = Calendar.current
+        let now = Date()
+        for offset in 0..<max(count, 1) {
+            guard let date = calendar.date(byAdding: .month, value: -offset, to: now) else { continue }
+            let year = calendar.component(.year, from: date)
+            let month = calendar.component(.month, from: date)
+            localDataSource.clearSyncTimestamp(year: year, month: month)
+        }
+        Logger.debug("[MonthlyStatsRepositoryImpl] invalidateRecentMonths - 已失效最近 \(count) 個月")
+    }
+
+    // MARK: - Cache Settlement
+
+    /// 容忍 Garmin/Strava 晚同步的寬限天數：月底再加這幾天才視為「已結算」。
+    private static let lateSyncGraceDays = 3
+
+    /// 該月快取是否「已結算」可永久信任：
+    /// 快取的同步時間必須晚於「月底 + 寬限期」，代表抓取當下該月資料已完整。
+    /// internal（非 private）以利單元測試覆蓋此回歸關鍵邏輯。
+    static func isCacheSettled(year: Int, month: Int, syncTimestamp: Date?) -> Bool {
+        guard let syncTimestamp,
+              let settlement = settlementDate(year: year, month: month) else {
+            return false
+        }
+        return syncTimestamp > settlement
+    }
+
+    /// 未結算月份的短 TTL 新鮮判斷：同步時間在新鮮窗口內即可重用快取。
+    static func isCacheFresh(syncTimestamp: Date?, now: Date = Date()) -> Bool {
+        guard let syncTimestamp else { return false }
+        return now.timeIntervalSince(syncTimestamp) < unsettledFreshnessTTL
+    }
+
+    // MARK: - In-flight Coalescing
+
+    /// 在單一鎖內：若該 key 已有進行中的 Task 就回傳它（isOwner=false）；否則用 factory 建立、存入並回傳（isOwner=true）。
+    /// 只有 owner 負責在完成後移除，follower 僅 await。
+    private func inFlightTaskOrCreate(
+        for key: String,
+        _ factory: @escaping @Sendable () async -> [DailyStat]
+    ) -> (task: Task<[DailyStat], Never>, isOwner: Bool) {
+        inFlightLock.lock(); defer { inFlightLock.unlock() }
+        if let existing = inFlight[key] {
+            return (existing, false)
+        }
+        let task = Task<[DailyStat], Never> { await factory() }
+        inFlight[key] = task
+        return (task, true)
+    }
+
+    private func removeInFlightTask(for key: String) {
+        inFlightLock.lock(); defer { inFlightLock.unlock() }
+        inFlight[key] = nil
+    }
+
+    /// 「結算點」= 下個月第一天 + 寬限天數（皆以當地時區計）。
+    static func settlementDate(year: Int, month: Int) -> Date? {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        var comps = DateComponents()
+        comps.year = year
+        comps.month = month
+        comps.day = 1
+        guard let startOfMonth = calendar.date(from: comps),
+              let startOfNextMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth) else {
+            return nil
+        }
+        return calendar.date(byAdding: .day, value: lateSyncGraceDays, to: startOfNextMonth)
     }
 
     // MARK: - Additional Helper Methods

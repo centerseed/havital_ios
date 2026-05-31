@@ -1,9 +1,18 @@
 import Foundation
+import Combine
 
 // MARK: - TrainingPlanV2 Repository Protocol
 /// 定義訓練計畫 V2 數據存取介面
 /// Domain Layer - 只定義介面，不涉及實作細節
 protocol TrainingPlanV2Repository {
+
+    // MARK: - Overview Change Publisher (for race-condition guard)
+
+    /// 每次 overview 被寫入 cache 時發送，值為最新的 PlanOverviewV2。
+    /// Presentation 層可訂閱此 publisher 來重評估依賴 planOverview 的狀態，
+    /// 避免 cold-start 期間因 cache 尚未填充而導致的 race condition。
+    /// Repository 只負責 send，絕對不 publish 到 CacheEventBus（架構紅線）。
+    var overviewDidUpdate: AnyPublisher<PlanOverviewV2, Never> { get }
 
     // MARK: - Plan Status
 
@@ -117,6 +126,11 @@ protocol TrainingPlanV2Repository {
     /// - Returns: 週訓練預覽實體
     func getWeeklyPreview(overviewId: String) async throws -> WeeklyPreviewV2
 
+    /// 強制刷新週訓練預覽
+    /// - Parameter overviewId: 概覽 ID
+    /// - Returns: 最新的週訓練預覽實體
+    func refreshWeeklyPreview(overviewId: String) async throws -> WeeklyPreviewV2
+
     // MARK: - Weekly Summary
 
     /// 套用選取的調整建議
@@ -186,6 +200,11 @@ extension TrainingPlanV2Repository {
     /// 預設呼叫不帶 forceRefresh（forceRefresh = false）
     func getPlanStatus() async throws -> PlanStatusV2Response {
         try await getPlanStatus(forceRefresh: false)
+    }
+
+    /// Default fallback for test/debug repositories that do not cache weekly preview.
+    func refreshWeeklyPreview(overviewId: String) async throws -> WeeklyPreviewV2 {
+        try await getWeeklyPreview(overviewId: overviewId)
     }
 }
 

@@ -54,7 +54,8 @@ final class StoreKitTestSubscriptionRepository: SubscriptionRepository {
                 period: period,
                 billingPeriodValue: subscription.subscriptionPeriod.value,
                 billingPeriodUnit: billingUnit,
-                officialOffer: nil
+                officialOffer: nil,
+                localizedTitle: product.displayName
             )
         }
 
@@ -79,7 +80,8 @@ final class StoreKitTestSubscriptionRepository: SubscriptionRepository {
                         period: .yearly,
                         billingPeriodValue: 1,
                         billingPeriodUnit: .year,
-                        officialOffer: nil
+                        officialOffer: nil,
+                        localizedTitle: nil
                     ),
                     SubscriptionPackageEntity(
                         id: "paceriz.sub.monthly",
@@ -91,7 +93,8 @@ final class StoreKitTestSubscriptionRepository: SubscriptionRepository {
                         period: .monthly,
                         billingPeriodValue: 1,
                         billingPeriodUnit: .month,
-                        officialOffer: nil
+                        officialOffer: nil,
+                        localizedTitle: nil
                     )
                 ]
             )]

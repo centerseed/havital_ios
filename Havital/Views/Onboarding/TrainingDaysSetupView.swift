@@ -251,6 +251,8 @@ struct TrainingDaysSetupView: View {
             }
 
             coordinator.availableDays = viewModel.selectedWeekdays.count
+            // AC-IOS-ANALYTICS-P1-07: training days confirmed
+            coordinator.trackScheduleSet(availableDays: viewModel.selectedWeekdays.count)
 
             let isV2Flow = coordinator.selectedTargetTypeId != nil
             Logger.debug("[TrainingDaysSetupView] isV2Flow: \(isV2Flow), availableDays: \(viewModel.selectedWeekdays.count)")

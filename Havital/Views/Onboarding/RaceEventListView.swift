@@ -68,6 +68,10 @@ struct RaceEventListView<DataSource: RacePickerDataSource>: View {
     @State private var debouncedSearchText: String = ""
     @State private var selectedDistanceFilter: DistanceFilter = .all
     @State private var raceForDistanceSelection: RaceEvent? = nil
+    // NOTE: iOS 26 bug — sheet > NavigationStack > dismiss conflict.
+    // We defer the navigation pop until raceForDistanceSelection turns nil
+    // (sheet fully closed), then dismiss RaceEventListView.
+    @State private var pendingDismissAfterSelection: Bool = false
 
     // MARK: - Filtered Races
 
@@ -133,6 +137,14 @@ struct RaceEventListView<DataSource: RacePickerDataSource>: View {
         .sheet(item: $raceForDistanceSelection) { race in
             RaceDistanceSelectionSheet(race: race) { distance in
                 dataSource.selectRaceEvent(race, distance: distance)
+                pendingDismissAfterSelection = true
+                // Sheet's own dismiss() handles sheet close.
+                // Navigation pop is deferred to onChange(raceForDistanceSelection).
+            }
+        }
+        .onChange(of: raceForDistanceSelection) { newVal in
+            if newVal == nil && pendingDismissAfterSelection {
+                pendingDismissAfterSelection = false
                 dismiss()
             }
         }
@@ -339,86 +351,89 @@ private struct RaceEventCard: View {
     }
 
     var body: some View {
-        Button(action: onTap) {
-            HStack(alignment: .top, spacing: 16) {
-                VStack(alignment: .leading, spacing: 6) {
-                    // 賽事名稱 + 預選標記
-                    HStack(spacing: 6) {
-                        Text(race.name)
-                            .font(AppFont.headline())
-                            .foregroundColor(.primary)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.leading)
+        // NOTE: 不用 Button wrapper，改用 HStack + accessibility modifiers。
+        // Maestro 的 tapOnElement 走 UIAccessibilityActivate 路徑，
+        // 在 UIScrollView 裡的 SwiftUI Button，iOS 的 scroll gesture 系統會
+        // 攔截 accessibility activate，導致 button action 不觸發。
+        // 用 accessibilityAction(.default) 直接連結 onTap 並繞過這個問題。
+        // 手動 tap 仍靠 contentShape + onTapGesture 正常觸發。
+        HStack(alignment: .top, spacing: 16) {
+            VStack(alignment: .leading, spacing: 6) {
+                // 賽事名稱 + 預選標記
+                HStack(spacing: 6) {
+                    Text(race.name)
+                        .font(AppFont.headline())
+                        .foregroundColor(.primary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
 
-                        if isSelected {
-                            Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.accentColor)
-                                .accessibilityIdentifier("RaceEventCard_Selected_\(race.raceId)")
-                        }
-
-                        if race.entryStatus == "closed" {
-                            Text(NSLocalizedString("race_card.entry_closed", comment: "報名截止"))
-                                .font(AppFont.captionSmall())
-                                .fontWeight(.semibold)
-                                .foregroundColor(.orange)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .fill(Color.orange.opacity(0.12))
-                                )
-                        }
+                    if isSelected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.accentColor)
+                            .accessibilityIdentifier("RaceEventCard_Selected_\(race.raceId)")
                     }
 
-                    // 城市
-                    Label(race.city, systemImage: "mappin.circle.fill")
-                        .font(AppFont.bodySmall())
-                        .foregroundColor(.secondary)
-
-                    // 日期
-                    Label(dateString, systemImage: "calendar")
-                        .font(AppFont.bodySmall())
-                        .foregroundColor(.secondary)
-
-                    // 距離 badges
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 6) {
-                            ForEach(race.distances.sorted(by: { $0.distanceKm < $1.distanceKm })) { distance in
-                                Text(distance.name)
-                                    .font(AppFont.captionSmall())
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.accentColor)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 3)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 6)
-                                            .fill(Color.accentColor.opacity(0.1))
-                                    )
-                            }
-                        }
+                    if race.entryStatus == "closed" {
+                        Text(NSLocalizedString("race_card.entry_closed", comment: "報名截止"))
+                            .font(AppFont.captionSmall())
+                            .fontWeight(.semibold)
+                            .foregroundColor(.orange)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(
+                                RoundedRectangle(cornerRadius: 4)
+                                    .fill(Color.orange.opacity(0.12))
+                            )
                     }
                 }
 
-                Spacer(minLength: 8)
+                // 城市
+                Label(race.city, systemImage: "mappin.circle.fill")
+                    .font(AppFont.bodySmall())
+                    .foregroundColor(.secondary)
 
-                // 倒數天數
-                VStack(spacing: 2) {
-                    Text(daysUntilString)
-                        .font(AppFont.captionSmall())
-                        .fontWeight(.semibold)
-                        .foregroundColor(.accentColor)
-                        .multilineTextAlignment(.center)
+                // 日期
+                Label(dateString, systemImage: "calendar")
+                    .font(AppFont.bodySmall())
+                    .foregroundColor(.secondary)
 
-                    Image(systemName: "chevron.right")
-                        .font(AppFont.systemScaled(size: 12))
-                        .foregroundColor(.secondary.opacity(0.5))
-                        .padding(.top, 4)
+                // 距離 badges（HStack，不用 ScrollView 避免 gesture 衝突）
+                HStack(spacing: 6) {
+                    ForEach(race.distances.sorted(by: { $0.distanceKm < $1.distanceKm })) { distance in
+                        Text(distance.name)
+                            .font(AppFont.captionSmall())
+                            .fontWeight(.medium)
+                            .foregroundColor(.accentColor)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .fill(Color.accentColor.opacity(0.1))
+                            )
+                    }
                 }
             }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 14)
+
+            Spacer(minLength: 8)
+
+            // 倒數天數
+            VStack(spacing: 2) {
+                Text(daysUntilString)
+                    .font(AppFont.captionSmall())
+                    .fontWeight(.semibold)
+                    .foregroundColor(.accentColor)
+                    .multilineTextAlignment(.center)
+
+                Image(systemName: "chevron.right")
+                    .font(AppFont.systemScaled(size: 12))
+                    .foregroundColor(.secondary.opacity(0.5))
+                    .padding(.top, 4)
+            }
         }
-        .buttonStyle(.plain)
+        .padding(.horizontal, 24)
+        .padding(.vertical, 14)
+        .contentShape(Rectangle())
+        .onTapGesture(perform: onTap)
         .background(
             isSelected
                 ? Color.accentColor.opacity(0.06)
@@ -430,6 +445,10 @@ private struct RaceEventCard: View {
                     .stroke(Color.accentColor.opacity(0.3), lineWidth: 1)
                 : nil
         )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(race.name)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction(.default, onTap)
         .accessibilityIdentifier(accessibilityId)
     }
 }

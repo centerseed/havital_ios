@@ -19,7 +19,7 @@ struct WeekProgressHeader: View {
                     showWeekSelector = true
                 } label: {
                     HStack(spacing: 4) {
-                        Text("\(plan.weekOfPlan) / \(overview?.totalWeeks ?? plan.totalWeeks) 週")
+                        Text(L10n.Training.weekProgressFormat.localized(with: plan.weekOfPlan, overview?.totalWeeks ?? plan.totalWeeks))
                             .font(AppFont.systemScaled(size: 14, weight: .bold))
                             .foregroundColor(.primary)
                         Image(systemName: "chevron.down.circle.fill")

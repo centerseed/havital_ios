@@ -87,6 +87,71 @@ struct PlanOverviewV2: Codable, Equatable {
     /// 里程碑計算依據（"intended_race_distance" / "prior_target" / "no_prior_target"）
     let milestoneBasis: String?
 
+    /// Async overview regeneration status from GET /v2/plan/overview.
+    let regenerationStatus: String?
+
+    /// Reason for async overview regeneration, e.g. "target_updated".
+    let regenerationReason: String?
+
+    /// Backend error message when regenerationStatus == "failed".
+    let regenerationErrorMessage: String?
+
+    init(
+        id: String,
+        targetId: String?,
+        targetType: String,
+        targetDescription: String?,
+        methodologyId: String?,
+        totalWeeks: Int,
+        startFromStage: String?,
+        raceDate: Int?,
+        distanceKm: Double?,
+        distanceKmDisplay: Double?,
+        distanceUnit: String?,
+        targetPace: String?,
+        targetTime: Int?,
+        isMainRace: Bool?,
+        targetName: String?,
+        methodologyOverview: MethodologyOverviewV2?,
+        targetEvaluate: String?,
+        approachSummary: String?,
+        trainingStages: [TrainingStageV2],
+        milestones: [MilestoneV2],
+        createdAt: Date?,
+        methodologyVersion: String?,
+        milestoneBasis: String?,
+        regenerationStatus: String? = nil,
+        regenerationReason: String? = nil,
+        regenerationErrorMessage: String? = nil
+    ) {
+        self.id = id
+        self.targetId = targetId
+        self.targetType = targetType
+        self.targetDescription = targetDescription
+        self.methodologyId = methodologyId
+        self.totalWeeks = totalWeeks
+        self.startFromStage = startFromStage
+        self.raceDate = raceDate
+        self.distanceKm = distanceKm
+        self.distanceKmDisplay = distanceKmDisplay
+        self.distanceUnit = distanceUnit
+        self.targetPace = targetPace
+        self.targetTime = targetTime
+        self.isMainRace = isMainRace
+        self.targetName = targetName
+        self.methodologyOverview = methodologyOverview
+        self.targetEvaluate = targetEvaluate
+        self.approachSummary = approachSummary
+        self.trainingStages = trainingStages
+        self.milestones = milestones
+        self.createdAt = createdAt
+        self.methodologyVersion = methodologyVersion
+        self.milestoneBasis = milestoneBasis
+        self.regenerationStatus = regenerationStatus
+        self.regenerationReason = regenerationReason
+        self.regenerationErrorMessage = regenerationErrorMessage
+    }
+
     // MARK: - Computed Properties
 
     /// 比賽日期（Date 對象）

@@ -331,7 +331,16 @@ struct TrainingDay: Codable, Identifiable, Equatable {
         switch runType {
         case "interval":
             if let variant = run.interval?.variant {
-                mappedType = variant  // variant 直接映射到舊 DayType rawValue
+                // variant 可能是複合格式 "template_id:variation"（如 "norwegian_singles:kilometer"）。
+                // 取 ":" 前主型態;只有「本身就是 DayType rawValue」的 variant 直接用,
+                // 其餘(如 paceriz_interval / norwegian_singles)回退通用 .interval——
+                // 絕不可讓未知 variant 透過 `?? .rest` 變成休息日。
+                let base = variant.lowercased().split(separator: ":").first.map(String.init) ?? variant.lowercased()
+                let knownIntervalVariants: Set<String> = [
+                    "strides", "hill_repeats", "cruise_intervals",
+                    "short_interval", "long_interval", "norwegian_4x4", "yasso_800",
+                ]
+                mappedType = knownIntervalVariants.contains(base) ? base : "interval"
             } else {
                 mappedType = "interval"
             }
@@ -458,8 +467,8 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                     )
                     return [item]
                 }
-            // 間歇訓練類型（包含新增的大步跑、山坡重複跑、巡航間歇、短間歇、長間歇、挪威4x4、亞索800）
-            case .interval, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
+            // 間歇訓練類型（包含新增的大步跑、山坡重複跑、巡航間歇、短間歇、長間歇、挪威4x4、挪威單閾值、亞索800）
+            case .interval, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .norwegianSingles, .yasso800:
                 var items: [WeeklyTrainingItem] = []
                 // work 和 repeats 是必須的，recovery 可選（nil 表示原地休息）
                 if let work = details.work, let repeats = details.repeats {
@@ -482,6 +491,7 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                         case .shortInterval: return L10n.Training.TrainingType.shortInterval.localized
                         case .longInterval: return L10n.Training.TrainingType.longInterval.localized
                         case .norwegian4x4: return L10n.Training.TrainingType.norwegian4x4.localized
+                        case .norwegianSingles: return L10n.Training.TrainingType.norwegianSingles.localized
                         case .yasso800: return L10n.Training.TrainingType.yasso800.localized
                         default: return L10n.Training.TrainingType.interval.localized
                         }
@@ -861,6 +871,7 @@ enum DayType: String, Codable {
     case shortInterval = "short_interval"       // 短間歇
     case longInterval = "long_interval"         // 長間歇
     case norwegian4x4 = "norwegian_4x4"         // 挪威4x4訓練
+    case norwegianSingles = "norwegian_singles" // 挪威單閾值（次閾值反覆，跑休恢復）
     case yasso800 = "yasso_800"                 // 亞索800
 
     // 新增組合訓練類型

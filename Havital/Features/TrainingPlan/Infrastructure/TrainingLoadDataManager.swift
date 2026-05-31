@@ -10,8 +10,11 @@ actor TrainingLoadDataManager {
     private let currentCacheVersion = 2  // 增加版本號
     private let maxCacheSize = 40
     private let initialLoadDays = 30
+    private let healthDailyRepository: HealthDailyRepository
 
-    private init() {}
+    private init(healthDailyRepository: HealthDailyRepository = HealthDailyRepositoryImpl()) {
+        self.healthDailyRepository = healthDailyRepository
+    }
 
     // MARK: - Public API
 
@@ -45,7 +48,7 @@ actor TrainingLoadDataManager {
     func forceRefreshData() async throws -> [HealthRecord] {
         Logger.debug("[TrainingLoadDataManager] 開始強制刷新數據")
 
-        let response = try await APIClient.shared.fetchHealthDaily(limit: initialLoadDays)
+        let response = try await healthDailyRepository.fetchHealthDaily(limit: initialLoadDays)
         let freshData = response.healthData
 
         // 更新緩存
@@ -80,7 +83,7 @@ actor TrainingLoadDataManager {
             Logger.debug("[TrainingLoadDataManager] 執行增量同步，獲取最近 \(daysSinceLastSync + 1) 天數據")
 
             let incrementalLimit = min(daysSinceLastSync + 1, 7) // 最多獲取7天
-            let response = try await APIClient.shared.fetchHealthDaily(limit: incrementalLimit)
+            let response = try await healthDailyRepository.fetchHealthDaily(limit: incrementalLimit)
             let newData = response.healthData
 
             // 合併數據

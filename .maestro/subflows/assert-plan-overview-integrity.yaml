@@ -3,15 +3,19 @@ appId: com.havital.Havital.dev
 # Guardrail helper: overview must expose core metadata before generation.
 - extendedWaitUntil:
     visible:
-      id: "TrainingOverview_Screen"
+      text: "我的訓練目標|訓練總覽|訓練計畫概覽|Training Overview|Training Plan|Training Plan Overview|トレーニング概要|トレーニング計画概要"
     timeout: 45000
 
 - assertVisible:
     id: "TrainingOverview_Screen"
+    optional: true
+
+- assertVisible:
+    id: "v2.overview.screen"
+    optional: true
 
 - assertVisible:
     text: "我的訓練目標|訓練總覽|訓練計畫概覽|Training Overview|Training Plan|Training Plan Overview|トレーニング概要|トレーニング計画概要"
-    optional: true
 
 - assertVisible:
     text: "總週數|訓練週數|賽事日期|目標配速|目標完賽時間|Total Weeks|Race Date|Target Pace|Target Finish Time|総週数|レース日|目標ペース|目標タイム"

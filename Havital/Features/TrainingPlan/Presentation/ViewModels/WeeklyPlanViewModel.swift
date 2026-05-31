@@ -29,9 +29,6 @@ final class WeeklyPlanViewModel: ObservableObject {
     private let repository: TrainingPlanRepository
     private let versionRouter: TrainingVersionRouting
 
-    // MARK: - TaskManageable
-    nonisolated let taskRegistry = TaskRegistry()
-
     // MARK: - Computed Properties
 
     /// 當前顯示的計畫 ID
@@ -91,7 +88,7 @@ final class WeeklyPlanViewModel: ObservableObject {
     /// 設定事件訂閱
     private func setupEventSubscriptions() {
         // ✅ Clean Architecture: 訂閱用戶登出事件
-        CacheEventBus.shared.subscribe(for: "userLogout") { [weak self] in
+        CacheEventBus.shared.subscribe(for: .userLogout) { [weak self] in
             guard let self = self else { return }
 
             Logger.debug("[WeeklyPlanVM] 收到 userLogout 事件，清除緩存")
@@ -111,7 +108,7 @@ final class WeeklyPlanViewModel: ObservableObject {
         }
 
         // ✅ Clean Architecture: 訂閱訓練計畫修改事件
-        CacheEventBus.shared.subscribe(for: "dataChanged.trainingPlan") { [weak self] in
+        CacheEventBus.shared.subscribe(for: .dataChanged(.trainingPlan)) { [weak self] in
             guard let self = self else { return }
 
             Logger.debug("[WeeklyPlanVM] 收到 dataChanged.trainingPlan 事件，刷新週計畫")

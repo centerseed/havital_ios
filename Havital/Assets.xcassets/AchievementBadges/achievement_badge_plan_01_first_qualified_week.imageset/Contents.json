@@ -1,0 +1,13 @@
+{
+  "images" : [
+    {
+      "filename" : "achievement_badge_plan_01_first_qualified_week.heic",
+      "idiom" : "universal",
+      "scale" : "1x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

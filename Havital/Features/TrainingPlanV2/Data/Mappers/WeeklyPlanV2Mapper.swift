@@ -30,8 +30,11 @@ enum WeeklyPlanV2Mapper {
             totalDistanceUnit: dto.totalDistanceUnit,
             totalDistanceReason: dto.totalDistanceReason,
             designReason: dto.designReason,
+            coachNote: dto.coachNote,
             days: dto.days.map { TrainingSessionMapper.toEntity(from: $0) },  // V2.1+ 使用 TrainingSessionMapper
             intensityTotalMinutes: dto.intensityTotalMinutes,  // 直接使用 V1 的 IntensityTotalMinutes
+            currentVdot: dto.currentVdot ?? dto.vdot,
+            vdotSource: dto.vdotSource,
             createdAt: parseDate(from: dto.createdAt),
             updatedAt: parseDate(from: dto.updatedAt),
             trainingLoadAnalysis: dto.trainingLoadAnalysis,
@@ -60,8 +63,12 @@ enum WeeklyPlanV2Mapper {
             totalDistanceUnit: entity.totalDistanceUnit,
             totalDistanceReason: entity.totalDistanceReason,
             designReason: entity.designReason,
+            coachNote: entity.coachNote,
             days: entity.days.map { TrainingSessionMapper.toDTO(from: $0) },  // V2.1+ 使用 TrainingSessionMapper
             intensityTotalMinutes: entity.intensityTotalMinutes,
+            currentVdot: entity.currentVdot,
+            vdot: entity.currentVdot,
+            vdotSource: entity.vdotSource,
             createdAt: formatDate(entity.createdAt),
             updatedAt: formatDate(entity.updatedAt),
             trainingLoadAnalysis: entity.trainingLoadAnalysis,

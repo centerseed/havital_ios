@@ -1,0 +1,21 @@
+appId: com.havital.Havital
+---
+- tapOn:
+    text: "輕鬆跑"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      text: "訓練詳情|課表資訊|訓練類型|心率變化"
+    timeout: 8000
+- takeScreenshot: /tmp/v_detail_easyrun.png
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_detail_easyrun_s1.png
+- swipe:
+    direction: UP
+    duration: 600
+- takeScreenshot: /tmp/v_detail_easyrun_s2.png
+- tapOn:
+    text: "關閉"
+    optional: true

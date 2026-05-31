@@ -9,13 +9,18 @@ import HealthKit
 @MainActor
 class TrainingCalendarViewModel: ObservableObject {
     @Published var workouts: [WorkoutV2] = []
+    @Published var monthlySummaries: [MonthlyRunningSummary] = []
     @Published var isLoading = false
+    @Published var isLoadingMonthlySummaries = false
 
     private let workoutRepository: WorkoutRepository
     private let monthlyStatsRepository: MonthlyStatsRepository
 
     /// ✅ Event subscriber ID for cleanup
     private var eventSubscriberId: String?
+
+    /// 記住最後載入的月份，供同步事件後重載。
+    private var lastLoadedMonth: Date?
 
     init(workoutRepository: WorkoutRepository = DependencyContainer.shared.resolve(),
          monthlyStatsRepository: MonthlyStatsRepository = DependencyContainer.shared.resolve()) {
@@ -46,14 +51,24 @@ class TrainingCalendarViewModel: ObservableObject {
 
         // ✅ Fix Data Race: 確保回調在 MainActor 中執行
         CacheEventBus.shared.subscribe(forIdentifier: subscriberId) { [weak self] reason in
-            guard case .userLogout = reason else { return }
-
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
 
-                Logger.debug("[TrainingCalendarViewModel] 收到 userLogout 事件，清除月度統計緩存")
-                await self.monthlyStatsRepository.clearCache()
-                self.workouts = []
+                switch reason {
+                case .userLogout:
+                    Logger.debug("[TrainingCalendarViewModel] 收到 userLogout 事件，清除月度統計緩存")
+                    await self.monthlyStatsRepository.clearCache()
+                    self.workouts = []
+                case .dataChanged(.workouts):
+                    // 新訓練同步進來 → 失效近月快取並重載當前顯示月份，避免日曆漏掉新訓練。
+                    Logger.debug("[TrainingCalendarViewModel] 收到 dataChanged.workouts，失效近月快取並重載")
+                    await self.monthlyStatsRepository.invalidateRecentMonths(count: 3)
+                    if let month = self.lastLoadedMonth {
+                        await self.loadWorkoutsForMonth(month: month)
+                    }
+                default:
+                    break
+                }
             }
         }
     }
@@ -78,6 +93,7 @@ class TrainingCalendarViewModel: ObservableObject {
     /// ✅ Clean Architecture: 使用 MonthlyStatsRepository 獲取月度數據（自動處理緩存）
     func loadWorkoutsForMonth(month: Date) async {
         print("🔥🔥🔥 loadWorkoutsForMonth called for: \(month) 🔥🔥🔥")
+        lastLoadedMonth = month
         isLoading = true
         let calendar = Calendar.current
 
@@ -93,6 +109,8 @@ class TrainingCalendarViewModel: ObservableObject {
 
         // ✅ Track A: 獲取本地 workouts（用於詳細顯示，如心率、配速曲線等）
         print("📊 [TrainingCalendar] 開始載入 \(year)-\(String(format: "%02d", monthNumber))")
+        // 先補滿該月（往前分頁 upsert，用 API 時間確認補滿、補滿後不重抓）→ 修日曆缺口。
+        await workoutRepository.ensureMonthLoaded(year: year, month: monthNumber)
         let localWorkouts = await workoutRepository.getWorkoutsInDateRangeAsync(
             startDate: startOfMonth,
             endDate: endOfMonth
@@ -106,7 +124,9 @@ class TrainingCalendarViewModel: ObservableObject {
         print("📊 [TrainingCalendar] 🌐 開始調用 monthlyStatsRepository.getMonthlyStats(\(year), \(monthNumber))")
         var monthlyStats: [DailyStat] = []
         do {
-            monthlyStats = try await monthlyStatsRepository.getMonthlyStats(year: year, month: monthNumber)
+            monthlyStats = try await tracked("TrainingCalendarView: loadMonthlyStats") {
+                try await monthlyStatsRepository.getMonthlyStats(year: year, month: monthNumber)
+            }
             print("📊 [TrainingCalendar] ✅ 月度統計成功: \(monthlyStats.count) 筆")
         } catch {
             print("📊 [TrainingCalendar] ❌ 月度統計失敗: \(error.localizedDescription)")
@@ -123,6 +143,46 @@ class TrainingCalendarViewModel: ObservableObject {
         self.isLoading = false
 
         print("📊 [TrainingCalendar] 🏁 載入完成 - 本地: \(localWorkouts.count), 月度補充: \(monthlyStats.count), 合併後: \(mergedWorkouts.count)")
+    }
+
+    /// 載入最近幾個月的跑量與平均配速摘要。
+    func loadRecentMonthlySummaries(anchorMonth: Date = Date(), monthCount: Int = 6) async {
+        guard !isLoadingMonthlySummaries else { return }
+        isLoadingMonthlySummaries = true
+        defer { isLoadingMonthlySummaries = false }
+
+        let calendar = Calendar.current
+        var summaries: [MonthlyRunningSummary] = []
+
+        for offset in 0..<monthCount {
+            guard let month = calendar.date(byAdding: .month, value: -offset, to: anchorMonth),
+                  let range = DateFormatterHelper.monthRange(for: month) else {
+                continue
+            }
+
+            let year = calendar.component(.year, from: month)
+            let monthNumber = calendar.component(.month, from: month)
+            let localWorkouts = await workoutRepository.getWorkoutsInDateRangeAsync(
+                startDate: range.start,
+                endDate: range.end
+            )
+
+            let monthlyStats: [DailyStat]
+            do {
+                monthlyStats = try await tracked("TrainingCalendarView: loadMonthlyStats") {
+                    try await monthlyStatsRepository.getMonthlyStats(year: year, month: monthNumber)
+                }
+            } catch {
+                Logger.debug("[TrainingCalendar] monthly summary stats failed for \(year)-\(monthNumber): \(error.localizedDescription)")
+                monthlyStats = []
+            }
+
+            summaries.append(
+                makeMonthlySummary(month: month, localWorkouts: localWorkouts, monthlyStats: monthlyStats)
+            )
+        }
+
+        monthlySummaries = summaries
     }
 
     /// 合併本地訓練與月度統計
@@ -177,6 +237,57 @@ class TrainingCalendarViewModel: ObservableObject {
         // 合併並排序
         return (localWorkouts + syntheticWorkouts).sorted { $0.endDate > $1.endDate }
     }
+
+    private func makeMonthlySummary(
+        month: Date,
+        localWorkouts: [WorkoutV2],
+        monthlyStats: [DailyStat]
+    ) -> MonthlyRunningSummary {
+        let calendar = Calendar.current
+        let localRunningWorkouts = localWorkouts.filter { $0.activityType == "running" }
+        let localDates = Set(localRunningWorkouts.map { calendar.startOfDay(for: $0.startDate) })
+
+        var totalDistanceKm = localRunningWorkouts.reduce(0.0) { $0 + (($1.distance ?? 0) / 1000.0) }
+        var totalDurationSeconds = localRunningWorkouts.reduce(0.0) { $0 + $1.duration }
+        var workoutCount = localRunningWorkouts.count
+
+        for stat in monthlyStats {
+            guard let statDate = stat.dateValue else { continue }
+            guard !localDates.contains(calendar.startOfDay(for: statDate)) else { continue }
+            guard stat.totalDistanceKm > 0 else { continue }
+
+            totalDistanceKm += stat.totalDistanceKm
+            workoutCount += stat.workoutCount
+            if let pace = stat.avgPacePerKm {
+                totalDurationSeconds += Double(pace) * stat.totalDistanceKm
+            }
+        }
+
+        let averagePaceSeconds = totalDistanceKm > 0 ? totalDurationSeconds / totalDistanceKm : nil
+        return MonthlyRunningSummary(
+            month: month,
+            totalDistanceKm: totalDistanceKm,
+            averagePaceSecondsPerKm: averagePaceSeconds,
+            workoutCount: workoutCount
+        )
+    }
+}
+
+struct MonthlyRunningSummary: Identifiable, Equatable {
+    var id: String {
+        let calendar = Calendar.current
+        return "\(calendar.component(.year, from: month))-\(calendar.component(.month, from: month))"
+    }
+
+    let month: Date
+    let totalDistanceKm: Double
+    let averagePaceSecondsPerKm: Double?
+    let workoutCount: Int
+}
+
+private enum TrainingCalendarMode: String {
+    case calendar
+    case monthlySummary
 }
 
 /// 訓練日曆視圖 - 顯示每月訓練記錄（從緩存讀取）
@@ -188,11 +299,12 @@ struct TrainingCalendarView: View {
 
     @State private var selectedMonth = Date()
     @State private var workoutsByDate: [TimeInterval: DayWorkoutInfo] = [:]  // 日期 -> 訓練資訊
+    @State private var selectedMode: TrainingCalendarMode = .calendar
 
     private var monthName: String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMM yyyy"
         formatter.locale = Locale.current
+        formatter.setLocalizedDateFormatFromTemplate("MMM yyyy")
         return formatter.string(from: selectedMonth)
     }
 
@@ -251,14 +363,20 @@ struct TrainingCalendarView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                modePicker
+
                 // 月份選擇器
-                monthSelector
+                if selectedMode == .calendar {
+                    monthSelector
 
-                // 統計卡片
-                statsCard
+                    // 統計卡片
+                    statsCard
 
-                // 日曆視圖
-                calendarGrid
+                    // 日曆視圖
+                    calendarGrid
+                } else {
+                    monthlySummaryView
+                }
             }
             .padding()
         }
@@ -274,9 +392,24 @@ struct TrainingCalendarView: View {
         .onAppear {
             loadWorkoutsForMonth()
         }
+        .onChange(of: selectedMode) { mode in
+            guard mode == .monthlySummary else { return }
+            loadMonthlySummariesIfNeeded()
+        }
         .onChange(of: viewModel.workouts) { _ in
             processWorkoutsForDisplay()
         }
+    }
+
+    private var modePicker: some View {
+        Picker(NSLocalizedString("training_calendar.view_mode", comment: "View mode"), selection: $selectedMode) {
+            Text(NSLocalizedString("training_calendar.calendar_view", comment: "Calendar"))
+                .tag(TrainingCalendarMode.calendar)
+            Text(NSLocalizedString("training_calendar.monthly_summary", comment: "Monthly summary"))
+                .tag(TrainingCalendarMode.monthlySummary)
+        }
+        .pickerStyle(.segmented)
+        .accessibilityIdentifier("training_calendar.mode_picker")
     }
 
     // MARK: - 月份選擇器
@@ -335,7 +468,7 @@ struct TrainingCalendarView: View {
                     Text(String(format: "%.1f", UnitManager.shared.convertedDistance(totalMonthDistance)))
                         .font(AppFont.title1())
                         .fontWeight(.bold)
-                        .foregroundColor(.green)
+                        .foregroundColor(PacerizTokens.color.brand.primary)
 
                     Text(UnitManager.shared.currentUnitSystem.distanceSuffix)
                         .font(AppFont.bodySmall())
@@ -353,7 +486,7 @@ struct TrainingCalendarView: View {
                 Text(averagePace)
                     .font(AppFont.title1())
                     .fontWeight(.bold)
-                    .foregroundColor(.orange)
+                    .foregroundColor(PacerizTokens.color.brand.accent)
             }
         }
         .padding()
@@ -361,6 +494,56 @@ struct TrainingCalendarView: View {
             RoundedRectangle(cornerRadius: 12)
                 .fill(colorScheme == .dark ? Color(white: 0.15) : Color(white: 0.95))
         )
+    }
+
+    // MARK: - 月統計
+
+    private var monthlySummaryView: some View {
+        let summaries = viewModel.monthlySummaries
+        let featuredSummary = summaries.first
+
+        return VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(NSLocalizedString("training_calendar.monthly_summary_title", comment: "Monthly running summary"))
+                        .font(AppFont.title2())
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+
+                    Text(NSLocalizedString("training_calendar.monthly_summary_description", comment: "Distance and pace by month"))
+                        .font(AppFont.subheadline())
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                if viewModel.isLoadingMonthlySummaries {
+                    ProgressView()
+                }
+            }
+
+            if summaries.isEmpty && !viewModel.isLoadingMonthlySummaries {
+                Text(NSLocalizedString("training_calendar.no_monthly_data", comment: "No monthly running data"))
+                    .font(AppFont.subheadline())
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 28)
+            } else {
+                VStack(spacing: 14) {
+                    if let featuredSummary {
+                        MonthlyRunningHeroCard(summary: featuredSummary)
+                    }
+
+                    MonthlyRunningTrendCard(summaries: summaries)
+
+                    VStack(spacing: 8) {
+                        ForEach(summaries) { summary in
+                            MonthlyRunningSummaryRow(summary: summary)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     // MARK: - 日曆網格
@@ -390,8 +573,9 @@ struct TrainingCalendarView: View {
     }
 
     private var weekdayHeader: some View {
-        HStack(spacing: 4) {
-            ForEach(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], id: \.self) { day in
+        let symbols = localizedWeekdaySymbolsStartingMonday()
+        return HStack(spacing: 4) {
+            ForEach(symbols, id: \.self) { day in
                 Text(day)
                     .font(AppFont.captionSmall())
                     .fontWeight(.semibold)
@@ -402,6 +586,16 @@ struct TrainingCalendarView: View {
         .padding(.bottom, 4)
     }
 
+    private func localizedWeekdaySymbolsStartingMonday() -> [String] {
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        let symbols = formatter.veryShortStandaloneWeekdaySymbols ?? formatter.shortStandaloneWeekdaySymbols ?? []
+        guard symbols.count == 7 else {
+            return ["M", "T", "W", "T", "F", "S", "S"]
+        }
+        return Array(symbols[1...6]) + [symbols[0]]
+    }
+
     // MARK: - 數據加載
 
     private func loadWorkoutsForMonth() {
@@ -409,6 +603,13 @@ struct TrainingCalendarView: View {
         Task {
             await viewModel.loadWorkoutsForMonth(month: selectedMonth)
         }.tracked(from: "TrainingCalendarView: loadWorkoutsForMonth")
+    }
+
+    private func loadMonthlySummariesIfNeeded() {
+        guard viewModel.monthlySummaries.isEmpty else { return }
+        Task {
+            await viewModel.loadRecentMonthlySummaries(anchorMonth: Date(), monthCount: 6)
+        }.tracked(from: "TrainingCalendarView: loadMonthlySummaries")
     }
     
     private func processWorkoutsForDisplay() {
@@ -506,6 +707,288 @@ struct DayWorkoutInfo {
     var workoutCount: Int
 }
 
+// MARK: - Monthly Summary Row
+
+private struct MonthlyRunningSummaryRow: View {
+    let summary: MonthlyRunningSummary
+    private let accentColor = PacerizTokens.color.brand.primary
+
+    private var monthTitle: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        formatter.setLocalizedDateFormatFromTemplate("MMM yyyy")
+        return formatter.string(from: summary.month)
+    }
+
+    private var distanceText: String {
+        let converted = UnitManager.shared.convertedDistance(summary.totalDistanceKm)
+        let unit = UnitManager.shared.currentUnitSystem.distanceSuffix
+        return "\(String(format: "%.1f", converted)) \(unit)"
+    }
+
+    private var paceText: String {
+        guard let secondsPerKm = summary.averagePaceSecondsPerKm, secondsPerKm.isFinite else {
+            return "--:--"
+        }
+        let totalSeconds = Int(secondsPerKm.rounded())
+        return String(format: "%d'%02d\"", totalSeconds / 60, totalSeconds % 60)
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(spacing: 2) {
+                Text(monthAbbreviation)
+                    .font(AppFont.systemScaled(size: 13, weight: .bold))
+                    .foregroundColor(accentColor)
+
+                Text(yearText)
+                    .font(AppFont.systemScaled(size: 10, weight: .medium))
+                    .foregroundColor(.secondary)
+            }
+            .frame(width: 52, height: 52)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(accentColor.opacity(0.12))
+            )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(monthTitle)
+                    .font(AppFont.systemScaled(size: 16, weight: .semibold))
+                    .foregroundColor(.primary)
+
+                HStack(spacing: 6) {
+                    Text(String(format: NSLocalizedString("training_calendar.run_count_format", comment: "Run count"), summary.workoutCount))
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(distanceText)
+                    .font(AppFont.systemScaled(size: 17, weight: .bold))
+                    .foregroundColor(.primary)
+
+                Text(paceText)
+                    .font(AppFont.systemScaled(size: 14, weight: .medium))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color(UIColor.secondarySystemGroupedBackground))
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("training_calendar.monthly_summary_row.\(summary.id)")
+    }
+
+    private var monthAbbreviation: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        formatter.setLocalizedDateFormatFromTemplate("MMM")
+        return formatter.string(from: summary.month)
+    }
+
+    private var yearText: String {
+        String(Calendar.current.component(.year, from: summary.month))
+    }
+}
+
+private struct MonthlyRunningHeroCard: View {
+    let summary: MonthlyRunningSummary
+    private let accentColor = PacerizTokens.color.brand.primary
+
+    private var monthTitle: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        formatter.setLocalizedDateFormatFromTemplate("MMMM yyyy")
+        return formatter.string(from: summary.month)
+    }
+
+    private var distanceValue: String {
+        String(format: "%.1f", UnitManager.shared.convertedDistance(summary.totalDistanceKm))
+    }
+
+    private var distanceUnit: String {
+        UnitManager.shared.currentUnitSystem.distanceSuffix
+    }
+
+    private var paceText: String {
+        guard let secondsPerKm = summary.averagePaceSecondsPerKm, secondsPerKm.isFinite else {
+            return "--:--"
+        }
+        let totalSeconds = Int(secondsPerKm.rounded())
+        return String(format: "%d'%02d\"", totalSeconds / 60, totalSeconds % 60)
+    }
+
+    private var averageDistancePerRunText: String {
+        guard summary.workoutCount > 0 else { return "--" }
+        let averageKm = summary.totalDistanceKm / Double(summary.workoutCount)
+        let converted = UnitManager.shared.convertedDistance(averageKm)
+        let unit = UnitManager.shared.currentUnitSystem.distanceSuffix
+        return "\(String(format: "%.1f", converted)) \(unit)"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(monthTitle)
+                        .font(AppFont.systemScaled(size: 17, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.92))
+
+                    Text(NSLocalizedString("training_calendar.hero_caption", comment: "Monthly running recap"))
+                        .font(AppFont.caption())
+                        .foregroundColor(.white.opacity(0.72))
+                }
+
+                Spacer()
+
+                Image(systemName: "figure.run.circle.fill")
+                    .font(.system(size: 32, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.92))
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(NSLocalizedString("training_plan.monthly_total_distance", comment: "Monthly Total Distance"))
+                    .font(AppFont.caption())
+                    .foregroundColor(.white.opacity(0.72))
+
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(distanceValue)
+                        .font(AppFont.systemScaled(size: 46, weight: .bold))
+                        .foregroundColor(.white)
+                        .minimumScaleFactor(0.78)
+
+                    Text(distanceUnit)
+                        .font(AppFont.systemScaled(size: 18, weight: .semibold))
+                        .foregroundColor(.white.opacity(0.72))
+                }
+            }
+
+            HStack(spacing: 10) {
+                heroMetric(
+                    title: NSLocalizedString("training_calendar.average_pace_short", comment: "Average pace"),
+                    value: paceText
+                )
+                heroMetric(
+                    title: NSLocalizedString("training_calendar.runs_short", comment: "Runs"),
+                    value: "\(summary.workoutCount)"
+                )
+                heroMetric(
+                    title: NSLocalizedString("training_calendar.avg_distance_short", comment: "Average distance per run"),
+                    value: averageDistancePerRunText
+                )
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            LinearGradient(
+                colors: [PacerizTokens.color.brand.primary, PacerizTokens.color.brand.primary.opacity(0.72)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .shadow(color: PacerizTokens.color.brand.primary.opacity(0.2), radius: 14, x: 0, y: 7)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func heroMetric(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(AppFont.systemScaled(size: 11, weight: .medium))
+                .foregroundColor(.white.opacity(0.7))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+
+            Text(value)
+                .font(AppFont.systemScaled(size: 17, weight: .bold))
+                .foregroundColor(.white)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.white.opacity(0.14))
+        )
+    }
+}
+
+private struct MonthlyRunningTrendCard: View {
+    let summaries: [MonthlyRunningSummary]
+    private let chartHeight: CGFloat = 92
+    private let accentColor = PacerizTokens.color.brand.primary
+
+    private var chartSummaries: [MonthlyRunningSummary] {
+        Array(summaries.reversed())
+    }
+
+    private var maxDistance: Double {
+        max(chartSummaries.map(\.totalDistanceKm).max() ?? 0, 1)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text(NSLocalizedString("training_calendar.recent_trend", comment: "Recent trend"))
+                    .font(AppFont.systemScaled(size: 16, weight: .bold))
+                    .foregroundColor(.primary)
+
+                Spacer()
+
+                Text(NSLocalizedString("training_calendar.last_six_months", comment: "Last six months"))
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+            }
+
+            HStack(alignment: .bottom, spacing: 10) {
+                ForEach(chartSummaries) { summary in
+                    VStack(spacing: 7) {
+                        ZStack(alignment: .bottom) {
+                            RoundedRectangle(cornerRadius: 6)
+                                .fill(accentColor)
+                                .frame(height: barHeight(for: summary))
+                        }
+                        .frame(height: chartHeight, alignment: .bottom)
+                        .frame(maxWidth: .infinity)
+
+                        Text(shortMonth(summary.month))
+                            .font(AppFont.systemScaled(size: 11, weight: .semibold))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 18)
+                .fill(Color(UIColor.secondarySystemGroupedBackground))
+        )
+    }
+
+    private func shortMonth(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        formatter.setLocalizedDateFormatFromTemplate("MMM")
+        return formatter.string(from: date)
+    }
+
+    private func barHeight(for summary: MonthlyRunningSummary) -> CGFloat {
+        let ratio = max(0, min(1, summary.totalDistanceKm / maxDistance))
+        return max(8, chartHeight * ratio)
+    }
+}
+
 // MARK: - Day Cell
 
 struct DayCell: View {
@@ -548,29 +1031,34 @@ struct DayCell: View {
             Text(dayNumber)
                 .font(AppFont.systemScaled(size: 14, weight: isToday ? .bold : .medium))
                 .foregroundColor(isToday ? .blue : .primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
 
             if let info = workoutInfo {
-                // 只有在距離 > 0 時才顯示距離數值
                 if info.totalDistance > 0 {
                     Text(String(format: "%.1f", info.totalDistance))
                         .font(AppFont.systemScaled(size: 12, weight: .bold))
                         .foregroundColor(workoutColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                 }
 
-                Image(systemName: workoutIcon)
-                    .font(AppFont.systemScaled(size: 12))
-                    .foregroundColor(workoutColor.opacity(0.8))
-
-                // 如果有多個訓練，顯示數量
-                if info.workoutCount > 1 {
-                    Text("×\(info.workoutCount)")
-                        .font(AppFont.systemScaled(size: 10, weight: .semibold))
-                        .foregroundColor(workoutColor.opacity(0.7))
+                // 跑步 icon 旁邊掛 ×N — 語意：N 筆此類訓練
+                HStack(spacing: 2) {
+                    Image(systemName: workoutIcon)
+                        .font(AppFont.systemScaled(size: 12))
+                        .foregroundColor(workoutColor.opacity(0.8))
+                    if info.workoutCount > 1 {
+                        Text("×\(info.workoutCount)")
+                            .font(.system(size: 9, weight: .semibold))
+                            .foregroundColor(workoutColor.opacity(0.85))
+                            .lineLimit(1)
+                    }
                 }
             }
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 70)  // 增加高度以容納更大的內容
+        .frame(height: 70)
         .background(backgroundColor)
         .cornerRadius(8)
     }

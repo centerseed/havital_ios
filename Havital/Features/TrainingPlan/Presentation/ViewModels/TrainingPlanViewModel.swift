@@ -73,6 +73,8 @@ class TrainingPlanViewModel: ObservableObject {
 
     /// 獲取指定週計畫（Legacy Proxy）
     func fetchWeekPlan(week: Int) async {
+        if await guardV2UserOnV1ViewModel(method: "fetchWeekPlan") { return }
+
         Logger.debug("[TrainingPlanVM] Fetching week plan for week \(week)")
 
         // 顯示 loading 狀態
@@ -144,7 +146,7 @@ class TrainingPlanViewModel: ObservableObject {
 
     /// 獲取建議配速
     func getSuggestedPace(for trainingType: String, vdot: Double) -> String {
-        return PaceFormatterHelper.getSuggestedPace(for: trainingType, vdot: vdot)
+        return PaceCalculator.getSuggestedPace(for: trainingType, vdot: vdot) ?? "--:--"
     }
 
     /// 強制從 API 刷新 workout 數據（用於 App 從背景回到前景時）
@@ -360,14 +362,11 @@ class TrainingPlanViewModel: ObservableObject {
     private let workoutRepository: WorkoutRepository
     private let loadWeeklyWorkoutsUseCase: LoadWeeklyWorkoutsUseCase
     private let aggregateWorkoutMetricsUseCase: AggregateWorkoutMetricsUseCase
+    private let versionRouter: TrainingVersionRouting
 
     // MARK: - Subscribers
 
     private var cancellables = Set<AnyCancellable>()
-
-    // MARK: - TaskManageable
-
-    nonisolated let taskRegistry = TaskRegistry()
 
     // MARK: - Initialization
 
@@ -376,6 +375,7 @@ class TrainingPlanViewModel: ObservableObject {
         workoutRepository: WorkoutRepository,
         loadWeeklyWorkoutsUseCase: LoadWeeklyWorkoutsUseCase,
         aggregateWorkoutMetricsUseCase: AggregateWorkoutMetricsUseCase,
+        versionRouter: TrainingVersionRouting = TrainingPlanViewModelAlwaysV1Router(),
         weeklyPlanVM: WeeklyPlanViewModel? = nil,
         summaryVM: WeeklySummaryViewModel? = nil
     ) {
@@ -383,7 +383,8 @@ class TrainingPlanViewModel: ObservableObject {
         self.workoutRepository = workoutRepository
         self.loadWeeklyWorkoutsUseCase = loadWeeklyWorkoutsUseCase
         self.aggregateWorkoutMetricsUseCase = aggregateWorkoutMetricsUseCase
-        self.weeklyPlanVM = weeklyPlanVM ?? WeeklyPlanViewModel(repository: repository)
+        self.versionRouter = versionRouter
+        self.weeklyPlanVM = weeklyPlanVM ?? WeeklyPlanViewModel(repository: repository, versionRouter: versionRouter)
         self.summaryVM = summaryVM ?? WeeklySummaryViewModel(repository: repository)
 
         setupBindings()
@@ -400,9 +401,13 @@ class TrainingPlanViewModel: ObservableObject {
         if !container.isRegistered(WorkoutRepository.self) {
             container.registerWorkoutModule()
         }
+        if !container.isRegistered(TrainingVersionRouting.self) {
+            container.registerTrainingVersionRouter()
+        }
 
         let repository: TrainingPlanRepository = container.resolve()
         let workoutRepository: WorkoutRepository = container.resolve()
+        let versionRouter: TrainingVersionRouting = container.resolve()
         let loadWeeklyWorkoutsUseCase = container.makeLoadWeeklyWorkoutsUseCase()
         let aggregateWorkoutMetricsUseCase = container.makeAggregateWorkoutMetricsUseCase()
 
@@ -410,7 +415,8 @@ class TrainingPlanViewModel: ObservableObject {
             repository: repository,
             workoutRepository: workoutRepository,
             loadWeeklyWorkoutsUseCase: loadWeeklyWorkoutsUseCase,
-            aggregateWorkoutMetricsUseCase: aggregateWorkoutMetricsUseCase
+            aggregateWorkoutMetricsUseCase: aggregateWorkoutMetricsUseCase,
+            versionRouter: versionRouter
         )
     }
 
@@ -523,7 +529,7 @@ class TrainingPlanViewModel: ObservableObject {
 
         // ✅ Clean Architecture: 訂閱 Onboarding 完成事件
         // 當用戶完成 Onboarding 時，清除所有緩存並強制重新載入數據
-        subscribeToEvent("onboardingCompleted") {
+        subscribeToEvent(.onboardingCompleted) {
             await self.repository.clearCache()
             await MainActor.run {
                 self.cachedAllWorkouts = []
@@ -534,7 +540,7 @@ class TrainingPlanViewModel: ObservableObject {
 
         // ✅ Clean Architecture: 訂閱用戶登出事件
         // 當用戶登出時，清除所有緩存並重置狀態
-        subscribeToEvent("userLogout") {
+        subscribeToEvent(.userLogout) {
             await self.repository.clearCache()
             await MainActor.run {
                 self.cachedAllWorkouts = []
@@ -548,7 +554,9 @@ class TrainingPlanViewModel: ObservableObject {
 
         // ✅ Clean Architecture: 訂閱訓練計畫修改事件
         // 當訓練計畫被修改時（例如從 EditScheduleView），刷新週計畫
-        subscribeToEvent("dataChanged.trainingPlan") {
+        subscribeToEvent(.dataChanged(.trainingPlan)) {
+            if await self.guardV2UserOnV1ViewModel(method: "event.dataChanged.trainingPlan") { return }
+
             await self.weeklyPlanVM.refreshWeeklyPlan()
             await self.loadWorkoutsForCurrentWeek()
             // ✅ 修復：手動更新 planStatus（因為自動 binding 已移除）
@@ -557,35 +565,11 @@ class TrainingPlanViewModel: ObservableObject {
             }
         }
 
-        // ✅ Clean Architecture: 訂閱目標更新事件
-        // 當用戶修改訓練目標時，可能影響 VDOT 和配速建議
-        subscribeToEvent("targetUpdated") {
-            await self.weeklyPlanVM.loadOverview()
-            await self.loadPlanStatus()
-            // ✅ 修復：更新 planStatus 以反映最新狀態
-            if let response = self.planStatusResponse {
-                if response.nextAction == .viewPlan {
-                    await self.weeklyPlanVM.loadWeeklyPlan()
-                    await MainActor.run {
-                        self.updatePlanStatus(from: self.weeklyPlanVM.state)
-                    }
-                } else if response.nextAction == .trainingCompleted {
-                    await MainActor.run {
-                        self.weeklyPlanVM.state = .empty
-                        self.planStatus = .completed
-                    }
-                } else {
-                    await MainActor.run {
-                        self.weeklyPlanVM.state = .empty
-                        self.planStatus = .noPlan
-                    }
-                }
-            }
-        }
-
         // ✅ 跨週事件：當 App 從背景恢復且跨週時，刷新 plan status 並更新 selectedWeek
         // 確保用戶週一打開 App 時看到當前週的課表，而非上週的
-        subscribeToEvent("weekChanged") {
+        subscribeToEvent(.weekChanged) {
+            if await self.guardV2UserOnV1ViewModel(method: "event.weekChanged") { return }
+
             Logger.debug("[TrainingPlanVM] 🔄 跨週事件：刷新 plan status 並更新 selectedWeek")
 
             // 顯示 loading 狀態
@@ -635,7 +619,7 @@ class TrainingPlanViewModel: ObservableObject {
         // ✅ Clean Architecture: 訂閱用戶登入事件
         // 當用戶登入時（已完成 onboarding 的用戶），重新初始化所有數據
         // 修復：登出再登入後 workouts 不顯示的問題
-        subscribeToEvent("dataChanged.user") {
+        subscribeToEvent(.dataChanged(.user)) {
             await self.repository.clearCache()
             await MainActor.run {
                 self.cachedAllWorkouts = []
@@ -669,6 +653,34 @@ class TrainingPlanViewModel: ObservableObject {
         }
     }
 
+    /// V2 用戶若被全域事件帶進 legacy V1 TrainingPlanViewModel，立刻早退並告警。
+    private func guardV2UserOnV1ViewModel(method: String) async -> Bool {
+        guard await versionRouter.isV2User() else { return false }
+
+        Logger.firebase(
+            "v2_user_entered_v1_training_plan_vm",
+            level: .warn,
+            labels: [
+                "cloud_logging": "true",
+                "module": "TrainingPlanVM",
+                "operation": "v2_user_entered_v1_training_plan_vm",
+                "view_model": "TrainingPlanViewModel",
+                "entry": method
+            ],
+            jsonPayload: [
+                "method": method,
+                "uid": AuthenticationService.shared.user?.uid ?? ""
+            ]
+        )
+
+        let domainError = DomainError.incorrectVersionRouting(
+            context: "TrainingPlanVM.\(method)"
+        )
+        planStatus = .error(domainError)
+        weeklyPlanVM.state = .error(domainError)
+        return true
+    }
+
     /// Subscribe to CacheEventBus event with standardized logging
     ///
     /// This helper reduces boilerplate in event subscription blocks by:
@@ -680,15 +692,15 @@ class TrainingPlanViewModel: ObservableObject {
     ///   - eventName: Event identifier string
     ///   - action: Async closure to execute when event fires
     private func subscribeToEvent(
-        _ eventName: String,
+        _ reason: CacheInvalidationReason,
         action: @escaping () async -> Void
     ) {
-        CacheEventBus.shared.subscribe(for: eventName) { [weak self] in
+        CacheEventBus.shared.subscribe(for: reason) { [weak self] in
             guard let self = self else { return }
 
-            Logger.debug("[TrainingPlanVM] 收到 \(eventName) 事件")
+            Logger.debug("[TrainingPlanVM] 收到 \(String(describing: reason)) 事件")
             await action()
-            Logger.debug("[TrainingPlanVM] ✅ \(eventName) 事件處理完成")
+            Logger.debug("[TrainingPlanVM] ✅ \(String(describing: reason)) 事件處理完成")
         }
     }
 
@@ -697,6 +709,8 @@ class TrainingPlanViewModel: ObservableObject {
     /// 初始化載入所有數據
     /// - Parameter force: 是否強制重新初始化（用於 App 從背景回來時）
     func initialize(force: Bool = false) async {
+        if await guardV2UserOnV1ViewModel(method: "initialize") { return }
+
         // 防止重複初始化（除非強制）
         guard force || !hasInitialized else {
             Logger.debug("[TrainingPlanVM] ⚠️ Already initialized, skipping")
@@ -805,6 +819,8 @@ class TrainingPlanViewModel: ObservableObject {
 
     /// 載入計畫狀態
     func loadPlanStatus(skipCache: Bool = false, shouldResetSelectedWeek: Bool = false) async {
+        if await guardV2UserOnV1ViewModel(method: "loadPlanStatus") { return }
+
         Logger.debug("[TrainingPlanVM] Loading plan status (skipCache: \(skipCache), shouldResetSelectedWeek: \(shouldResetSelectedWeek))")
 
         do {
@@ -869,6 +885,8 @@ class TrainingPlanViewModel: ObservableObject {
 
     /// 刷新週計畫（手動下拉）
     func refreshWeeklyPlan(isManualRefresh: Bool = false) async {
+        if await guardV2UserOnV1ViewModel(method: "refreshWeeklyPlan") { return }
+
         Logger.debug("[TrainingPlanVM] Refreshing weekly plan (manual: \(isManualRefresh))")
 
         // ✅ 雙軌緩存策略：只有在無數據時才顯示 loading（避免閃爍）
@@ -902,6 +920,8 @@ class TrainingPlanViewModel: ObservableObject {
     /// 產生下週課表
     /// - Parameter forceGenerate: 是否強制產生課表（跳過週回顧顯示）。從週回顧 sheet 點擊按鈕時應設為 true
     func generateNextWeekPlan(targetWeek: Int, forceGenerate: Bool = false) async {
+        if await guardV2UserOnV1ViewModel(method: "generateNextWeekPlan") { return }
+
         // 🔍 [DEBUG] Enhanced entry point logging
         Logger.debug("========================================")
         Logger.debug("[TrainingPlanVM] 🎯 generateNextWeekPlan(targetWeek: \(targetWeek), forceGenerate: \(forceGenerate)) 被調用")
@@ -1008,6 +1028,8 @@ class TrainingPlanViewModel: ObservableObject {
 
     /// 產生下週課表（使用 NextWeekInfo）
     func generateNextWeekPlan(nextWeekInfo: NextWeekInfo) async {
+        if await guardV2UserOnV1ViewModel(method: "generateNextWeekPlan(nextWeekInfo:)") { return }
+
         // ✅ 檢查是否需要先產生當前週回顧
         if nextWeekInfo.requiresCurrentWeekSummary {
             // ✅ 直接傳入下週週數，後端會自動減1產生當前週的週回顧
@@ -1083,6 +1105,8 @@ class TrainingPlanViewModel: ObservableObject {
 
     /// 創建週回顧
     func createWeeklySummary(weekNumber: Int? = nil) async {
+        if await guardV2UserOnV1ViewModel(method: "createWeeklySummary") { return }
+
         // 🔍 [DEBUG] Entry point logging
         Logger.debug("========================================")
         Logger.debug("[TrainingPlanVM] 📝 createWeeklySummary(weekNumber: \(weekNumber?.description ?? "nil")) 被調用")
@@ -1095,6 +1119,8 @@ class TrainingPlanViewModel: ObservableObject {
 
     /// 重試創建週回顧
     func retryCreateWeeklySummary() async {
+        if await guardV2UserOnV1ViewModel(method: "retryCreateWeeklySummary") { return }
+
         await summaryVM.retryCreateWeeklySummary()
     }
 
@@ -1134,11 +1160,15 @@ class TrainingPlanViewModel: ObservableObject {
     /// 獲取指定週回顧（Legacy Proxy）
     /// 用於查看已存在的歷史週回顧
     func fetchWeeklySummary(weekNumber: Int) async {
+        if await guardV2UserOnV1ViewModel(method: "fetchWeeklySummary") { return }
+
         await summaryVM.loadWeeklySummary(weekNumber: weekNumber)
     }
 
     /// 獲取所有週回顧（Legacy Proxy）
     func fetchWeeklySummaries() async {
+        if await guardV2UserOnV1ViewModel(method: "fetchWeeklySummaries") { return }
+
         await summaryVM.loadWeeklySummaries()
     }
 
@@ -1146,6 +1176,8 @@ class TrainingPlanViewModel: ObservableObject {
 
     /// 確認調整並產生下週課表
     func confirmAdjustments(_ selectedItems: [AdjustmentItem]) async {
+        if await guardV2UserOnV1ViewModel(method: "confirmAdjustments") { return }
+
         await summaryVM.confirmAdjustments(selectedItems)
 
         // 調整確認後，產生下週課表
@@ -1156,6 +1188,8 @@ class TrainingPlanViewModel: ObservableObject {
 
     /// 確認調整並產生下週課表（同時執行）
     func confirmAdjustmentsAndGenerateNextWeek(targetWeek: Int) async {
+        if await guardV2UserOnV1ViewModel(method: "confirmAdjustmentsAndGenerateNextWeek") { return }
+
         // 🔍 [DEBUG] Entry point logging
         Logger.debug("========================================")
         Logger.debug("[TrainingPlanVM] 🔄 confirmAdjustmentsAndGenerateNextWeek(targetWeek: \(targetWeek)) 被調用")
@@ -1318,6 +1352,8 @@ class TrainingPlanViewModel: ObservableObject {
 
     /// 載入週計畫（代理到 weeklyPlanVM）
     func loadWeeklyPlan() async {
+        if await guardV2UserOnV1ViewModel(method: "loadWeeklyPlan") { return }
+
         await weeklyPlanVM.loadWeeklyPlan()
     }
 
@@ -1325,6 +1361,10 @@ class TrainingPlanViewModel: ObservableObject {
     /// - Parameter overviewId: 概覽 ID
     /// - Returns: 更新後的訓練計畫概覽
     func updateOverview(overviewId: String) async throws -> TrainingPlanOverview {
+        if await guardV2UserOnV1ViewModel(method: "updateOverview") {
+            throw DomainError.incorrectVersionRouting(context: "TrainingPlanVM.updateOverview")
+        }
+
         Logger.debug("[TrainingPlanVM] Updating overview: \(overviewId)")
 
         let updatedOverview = try await repository.updateOverview(overviewId: overviewId)
@@ -1346,6 +1386,8 @@ class TrainingPlanViewModel: ObservableObject {
 
     /// 重試網路請求
     func retryNetworkRequest() async {
+        if await guardV2UserOnV1ViewModel(method: "retryNetworkRequest") { return }
+
         Logger.debug("[TrainingPlanVM] Retrying network request")
         await refreshWeeklyPlan(isManualRefresh: true)
     }
@@ -1410,4 +1452,13 @@ extension DependencyContainer {
     static func makeTrainingPlanViewModel() -> TrainingPlanViewModel {
         return TrainingPlanViewModel()
     }
+}
+
+// MARK: - Always-V1 Stub Router
+
+/// Keeps existing unit tests and previews on the legacy V1 path unless they explicitly inject a router.
+private struct TrainingPlanViewModelAlwaysV1Router: TrainingVersionRouting {
+    func getTrainingVersion() async -> String { "v1" }
+    func isV2User() async -> Bool { false }
+    func isV1User() async -> Bool { true }
 }

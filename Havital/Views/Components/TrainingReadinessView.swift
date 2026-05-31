@@ -24,6 +24,14 @@ struct TrainingReadinessView: View {
                 contentView
             }
         }
+        .onAppear {
+            // Wire planOverviewProvider so V1 fallback (AC-RDNS-04) works.
+            // Uses TrainingPlanV2Repository.getCachedOverview() — sync, no network call.
+            if viewModel.planOverviewProvider == nil {
+                let repo: TrainingPlanV2Repository? = DependencyContainer.shared.tryResolve()
+                viewModel.planOverviewProvider = { repo?.getCachedOverview() }
+            }
+        }
         .refreshable {
             await viewModel.refreshData()
         }
@@ -33,7 +41,7 @@ struct TrainingReadinessView: View {
             Text(metricDescriptionText)
         }
         .sheet(isPresented: $showingDetailedMetricsExplanation) {
-            TrainingReadinessMetricsExplanationView()
+            TrainingReadinessMetricsExplanationView(planType: viewModel.effectivePlanType)
         }
     }
 
@@ -109,23 +117,44 @@ struct TrainingReadinessView: View {
 
             // Metrics Grid (2x2) with explanation button
             if viewModel.hasAnyMetric {
-                HStack {
-                    Text(L10n.TrainingReadiness.trainingMetrics.localized)
-                        .font(AppFont.headline())
-                        .foregroundColor(.primary)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(L10n.TrainingReadiness.trainingMetrics.localized)
+                            .font(AppFont.headline())
+                            .foregroundColor(.primary)
 
-                    Button {
-                        showingDetailedMetricsExplanation = true
-                    } label: {
-                        Image(systemName: "info.circle")
-                            .foregroundColor(.secondary)
+                        Button {
+                            showingDetailedMetricsExplanation = true
+                        } label: {
+                            Image(systemName: "info.circle")
+                                .foregroundColor(.secondary)
+                        }
+
+                        Spacer()
                     }
 
-                    Spacer()
+                    // Non-race training mode badge
+                    if !viewModel.effectivePlanType.shouldShowRadar {
+                        HStack(spacing: 4) {
+                            Image(systemName: "figure.run")
+                                .font(AppFont.captionSmall())
+                            Text(NSLocalizedString("training_readiness.non_race_training_mode", comment: "非賽季訓練"))
+                                .font(AppFont.captionSmall())
+                        }
+                        .foregroundColor(.secondary)
+                    }
                 }
                 .padding(.horizontal)
 
                 metricsGrid
+
+                // Race-only metrics footnote
+                if !viewModel.effectivePlanType.shouldShowEndurance {
+                    Text(NSLocalizedString("training_readiness.race_only_metrics_footnote", comment: "耐力與比賽適能指標僅適用於賽事訓練目標"))
+                        .font(AppFont.captionSmall())
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal)
+                }
             }
         }
     }
@@ -134,46 +163,51 @@ struct TrainingReadinessView: View {
     private var overallScoreSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 16) {
-                // Radar Chart
-                RadarChartView(
-                    metrics: radarMetrics,
-                    size: 100
-                )
+                // Radar Chart — race_run only
+                if viewModel.effectivePlanType.shouldShowRadar {
+                    RadarChartView(
+                        metrics: radarMetrics,
+                        size: 100
+                    )
+                }
 
-                // VStack: [HStack(Score + Race Time), Status text]
-                VStack(alignment: .leading, spacing: 8) {
-                    // HStack: Score + Estimated Race Time
-                    HStack(alignment: .center, spacing: 32) {
-                        // Overall Score
-                        Text(viewModel.overallScoreFormatted)
-                            .font(AppFont.systemScaled(size: 48, weight: .bold))
-                            .foregroundColor(scoreColor)
+                // Score + Race Time + Status text — race_run only
+                if viewModel.effectivePlanType.shouldShowOverallScore {
+                    // VStack: [HStack(Score + Race Time), Status text]
+                    VStack(alignment: .leading, spacing: 8) {
+                        // HStack: Score + Estimated Race Time
+                        HStack(alignment: .center, spacing: 32) {
+                            // Overall Score
+                            Text(viewModel.overallScoreFormatted)
+                                .font(AppFont.systemScaled(size: 48, weight: .bold))
+                                .foregroundColor(scoreColor)
 
-                        // Estimated Race Time (if available)
-                        if let estimatedTime = viewModel.estimatedRaceTime, !estimatedTime.isEmpty {
-                            VStack(alignment: .center, spacing: 2) {
-                                Text(NSLocalizedString("training_readiness.estimated_race_time", comment: "Estimated Race Time"))
-                                    .font(AppFont.captionSmall())
-                                    .foregroundColor(.secondary)
-                                Text(estimatedTime)
-                                    .font(AppFont.monospacedBody())
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.primary)
+                            // Estimated Race Time (if available and plan type permits)
+                            if let estimatedTime = viewModel.estimatedRaceTime,
+                               !estimatedTime.isEmpty,
+                               viewModel.effectivePlanType.shouldShowEstimatedRaceTime {
+                                VStack(alignment: .center, spacing: 2) {
+                                    Text(NSLocalizedString("training_readiness.estimated_race_time", comment: "Estimated Race Time"))
+                                        .font(AppFont.captionSmall())
+                                        .foregroundColor(.secondary)
+                                    Text(estimatedTime)
+                                        .font(AppFont.monospacedBody())
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.primary)
+                                }
                             }
                         }
-                    }
 
-                    // Status text
-                    Text(apiStatusText)
-                        .font(AppFont.bodySmall())
-                        .foregroundColor(.primary)
-                        .fixedSize(horizontal: false, vertical: true)
+                        // Status text — race_run only
+                        if viewModel.effectivePlanType.shouldShowStatusText {
+                            Text(apiStatusText)
+                                .font(AppFont.bodySmall())
+                                .foregroundColor(.primary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .onAppear {
-                print("[TrainingReadinessView] 🏁 RaceFitness 指標: \(viewModel.raceFitnessMetric?.score ?? 0)")
-                print("[TrainingReadinessView] ⏱️ 預計完賽時間: \(viewModel.estimatedRaceTime ?? "未設定")")
             }
         }
         .padding(.bottom, 8)
@@ -218,8 +252,9 @@ struct TrainingReadinessView: View {
                 .id("speed_metric")
             }
 
-            // Endurance Metric
-            if let endurance = viewModel.enduranceMetric {
+            // Endurance Metric — race_run only
+            if viewModel.effectivePlanType.shouldShowEndurance,
+               let endurance = viewModel.enduranceMetric {
                 metricCardWithTrend(
                     title: NSLocalizedString("training_readiness.endurance", comment: ""),
                     score: endurance.score,
@@ -231,8 +266,9 @@ struct TrainingReadinessView: View {
                 .id("endurance_metric")
             }
 
-            // Race Fitness Metric
-            if let raceFitness = viewModel.raceFitnessMetric {
+            // Race Fitness Metric — race_run only
+            if viewModel.effectivePlanType.shouldShowRaceFitness,
+               let raceFitness = viewModel.raceFitnessMetric {
                 metricCardWithTrend(
                     title: NSLocalizedString("training_readiness.race_fitness", comment: ""),
                     score: raceFitness.score,
@@ -561,6 +597,11 @@ struct TrainingReadinessView: View {
 // MARK: - Training Readiness Metrics Detailed Explanation View
 struct TrainingReadinessMetricsExplanationView: View {
     @Environment(\.dismiss) private var dismiss
+    let planType: ReadinessPlanType
+
+    init(planType: ReadinessPlanType = .unknown) {
+        self.planType = planType
+    }
 
     var body: some View {
         NavigationView {
@@ -594,34 +635,62 @@ struct TrainingReadinessMetricsExplanationView: View {
                         whenDecreases: L10n.TrainingReadiness.Speed.whenDecreases.localized
                     )
 
-                    // 耐力指標卡片
-                    metricCard(
-                        icon: "figure.walk",
-                        iconColor: .green,
-                        title: L10n.TrainingReadiness.Endurance.title.localized,
-                        description: L10n.TrainingReadiness.Endurance.description.localized,
-                        whatItMeans: L10n.TrainingReadiness.Endurance.whatItMeans.localized,
-                        howToImprove: [
-                            L10n.TrainingReadiness.Endurance.howToImprove1.localized,
-                            L10n.TrainingReadiness.Endurance.howToImprove2.localized
-                        ],
-                        whenDecreases: L10n.TrainingReadiness.Endurance.whenDecreases.localized
-                    )
+                    // 耐力指標卡片 — race_run only
+                    if planType.shouldShowEndurance {
+                        metricCard(
+                            icon: "figure.walk",
+                            iconColor: .green,
+                            title: L10n.TrainingReadiness.Endurance.title.localized,
+                            description: L10n.TrainingReadiness.Endurance.description.localized,
+                            whatItMeans: L10n.TrainingReadiness.Endurance.whatItMeans.localized,
+                            howToImprove: [
+                                L10n.TrainingReadiness.Endurance.howToImprove1.localized,
+                                L10n.TrainingReadiness.Endurance.howToImprove2.localized
+                            ],
+                            whenDecreases: L10n.TrainingReadiness.Endurance.whenDecreases.localized
+                        )
+                    }
 
-                    // 比賽適能卡片
-                    metricCard(
-                        icon: "medal",
-                        iconColor: .purple,
-                        title: L10n.TrainingReadiness.RaceFitness.title.localized,
-                        description: L10n.TrainingReadiness.RaceFitness.description.localized,
-                        whatItMeans: L10n.TrainingReadiness.RaceFitness.whatItMeans.localized,
-                        howToImprove: [
-                            L10n.TrainingReadiness.RaceFitness.howToImprove1.localized,
-                            L10n.TrainingReadiness.RaceFitness.howToImprove2.localized,
-                            L10n.TrainingReadiness.RaceFitness.howToImprove3.localized
-                        ],
-                        whenDecreases: L10n.TrainingReadiness.RaceFitness.whenDecreases.localized
-                    )
+                    // 比賽適能卡片 — race_run only
+                    if planType.shouldShowRaceFitness {
+                        metricCard(
+                            icon: "medal",
+                            iconColor: .purple,
+                            title: L10n.TrainingReadiness.RaceFitness.title.localized,
+                            description: L10n.TrainingReadiness.RaceFitness.description.localized,
+                            whatItMeans: L10n.TrainingReadiness.RaceFitness.whatItMeans.localized,
+                            howToImprove: [
+                                L10n.TrainingReadiness.RaceFitness.howToImprove1.localized,
+                                L10n.TrainingReadiness.RaceFitness.howToImprove2.localized,
+                                L10n.TrainingReadiness.RaceFitness.howToImprove3.localized
+                            ],
+                            whenDecreases: L10n.TrainingReadiness.RaceFitness.whenDecreases.localized
+                        )
+                    }
+
+                    // 非賽事用戶：說明耐力與比賽適能指標的啟用條件
+                    if !planType.shouldShowEndurance {
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundColor(.secondary)
+                                .font(AppFont.body())
+                                .padding(.top, 2)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(NSLocalizedString("training_readiness.race_only_note_title", comment: "賽事目標專屬指標"))
+                                    .font(AppFont.caption())
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.secondary)
+                                Text(NSLocalizedString("training_readiness.race_only_note_body", comment: "耐力與比賽適能指標僅在訓練目標設定為「賽事」時才會啟用，目前為非賽季訓練模式。"))
+                                    .font(AppFont.caption())
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                        .padding(.horizontal)
+                    }
 
                     // 訓練負荷卡片
                     metricCard(

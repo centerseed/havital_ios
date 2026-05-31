@@ -36,6 +36,10 @@ final class AuthRepositoryImpl: AuthRepository {
 
     // MARK: - Sign-In Operations
 
+    private func selectedAppLanguageCode() async -> String {
+        await MainActor.run { LanguageManager.shared.currentLanguage.apiCode }
+    }
+
     /// Sign in with Google account
     /// 7-Step Authentication Flow:
     /// 1. Google SDK sign-in → Get tokens
@@ -47,6 +51,9 @@ final class AuthRepositoryImpl: AuthRepository {
     /// 7. Cache AuthUser
     func signInWithGoogle() async throws -> AuthUser {
         do {
+            authSessionRepository.setDemoToken(nil)
+            authSessionRepository.setDemoUser(nil)
+
             // Step 1: Google SDK sign-in
             Logger.debug("[AuthRepository] Step 1: Starting Google Sign-In")
             let googleUser = try await googleSignIn.performSignIn()
@@ -68,10 +75,12 @@ final class AuthRepositoryImpl: AuthRepository {
 
             // Step 5: Backend user sync
             Logger.debug("[AuthRepository] Step 5: Syncing with backend")
+            let appLanguageCode = await selectedAppLanguageCode()
             let syncRequest = UserSyncRequest(
                 firebaseUid: firebaseUser.uid,
                 idToken: idToken,
                 fcmToken: nil, // TODO: Add FCM token if available
+                language: appLanguageCode,
                 deviceInfo: DeviceInfo(
                     model: UIDevice.current.model,
                     osVersion: UIDevice.current.systemVersion,
@@ -97,6 +106,8 @@ final class AuthRepositoryImpl: AuthRepository {
             // Step 7: Cache AuthUser
             Logger.debug("[AuthRepository] Step 7: Caching AuthUser")
             authCache.saveUser(authUser)
+            authSessionRepository.setDemoToken(nil)
+            authSessionRepository.setDemoUser(nil)
 
             Logger.debug("[AuthRepository] Google Sign-In completed successfully: \(authUser.uid)")
             return authUser
@@ -115,6 +126,9 @@ final class AuthRepositoryImpl: AuthRepository {
     /// Similar 7-Step flow as Google Sign-In
     func signInWithApple() async throws -> AuthUser {
         do {
+            authSessionRepository.setDemoToken(nil)
+            authSessionRepository.setDemoUser(nil)
+
             // Step 1: Generate nonce for security
             Logger.debug("[AuthRepository] Step 1: Generating nonce for Apple Sign-In")
             let rawNonce = FirebaseAuthDataSource.generateNonce()
@@ -142,10 +156,12 @@ final class AuthRepositoryImpl: AuthRepository {
 
             // Step 5: Backend user sync
             Logger.debug("[AuthRepository] Step 5: Syncing with backend")
+            let appLanguageCode = await selectedAppLanguageCode()
             let syncRequest = UserSyncRequest(
                 firebaseUid: firebaseUser.uid,
                 idToken: idToken,
                 fcmToken: nil,
+                language: appLanguageCode,
                 deviceInfo: DeviceInfo(
                     model: UIDevice.current.model,
                     osVersion: UIDevice.current.systemVersion,
@@ -171,6 +187,8 @@ final class AuthRepositoryImpl: AuthRepository {
             // Step 7: Cache AuthUser
             Logger.debug("[AuthRepository] Step 7: Caching AuthUser")
             authCache.saveUser(authUser)
+            authSessionRepository.setDemoToken(nil)
+            authSessionRepository.setDemoUser(nil)
 
             Logger.debug("[AuthRepository] Apple Sign-In completed successfully: \(authUser.uid)")
             return authUser
@@ -188,6 +206,9 @@ final class AuthRepositoryImpl: AuthRepository {
     /// Similar 7-Step flow as Google Sign-In
     func signInWithApple(credential: AppleAuthCredential) async throws -> AuthUser {
         do {
+            authSessionRepository.setDemoToken(nil)
+            authSessionRepository.setDemoUser(nil)
+
             // Step 1: Generate nonce for security (rawNonce needed for Firebase verification)
             Logger.debug("[AuthRepository] Step 1: Generating nonce for Apple Sign-In")
             let rawNonce = FirebaseAuthDataSource.generateNonce()
@@ -208,10 +229,12 @@ final class AuthRepositoryImpl: AuthRepository {
 
             // Step 5: Backend user sync
             Logger.debug("[AuthRepository] Step 5: Syncing with backend")
+            let appLanguageCode = await selectedAppLanguageCode()
             let syncRequest = UserSyncRequest(
                 firebaseUid: firebaseUser.uid,
                 idToken: idToken,
                 fcmToken: nil,
+                language: appLanguageCode,
                 deviceInfo: DeviceInfo(
                     model: UIDevice.current.model,
                     osVersion: UIDevice.current.systemVersion,
@@ -237,6 +260,8 @@ final class AuthRepositoryImpl: AuthRepository {
             // Step 7: Cache AuthUser
             Logger.debug("[AuthRepository] Step 7: Caching AuthUser")
             authCache.saveUser(authUser)
+            authSessionRepository.setDemoToken(nil)
+            authSessionRepository.setDemoUser(nil)
 
             Logger.debug("[AuthRepository] Apple Sign-In completed successfully: \(authUser.uid)")
             return authUser
@@ -250,10 +275,67 @@ final class AuthRepositoryImpl: AuthRepository {
         }
     }
 
-    /// Sign in with email and password
-    /// Currently not implemented - placeholder for future
     func signInWithEmail(email: String, password: String) async throws -> AuthUser {
-        throw AuthenticationError.invalidCredentials
+        do {
+            authSessionRepository.setDemoToken(nil)
+            authSessionRepository.setDemoUser(nil)
+
+            Logger.debug("[AuthRepository] Email Sign-In started")
+
+            _ = try await backendAuth.loginEmail(email: email, password: password)
+            let firebaseUser = try await firebaseAuth.signInWithEmail(email: email, password: password)
+            let idToken = try await firebaseAuth.getIdToken()
+
+            let appLanguageCode = await selectedAppLanguageCode()
+            let syncRequest = UserSyncRequest(
+                firebaseUid: firebaseUser.uid,
+                idToken: idToken,
+                fcmToken: nil,
+                language: appLanguageCode,
+                deviceInfo: DeviceInfo(
+                    model: UIDevice.current.model,
+                    osVersion: UIDevice.current.systemVersion,
+                    appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+                    locale: Locale.current.identifier
+                )
+            )
+            let syncResponse = try await backendAuth.syncUserWithBackend(request: syncRequest)
+
+            if let vc = syncResponse.versionCheck, vc.forceUpdate {
+                throw AuthenticationError.forceUpdateRequired(updateUrl: vc.updateUrl)
+            }
+
+            let authUser = FirebaseUserMapper.toDomain(
+                firebaseUser: firebaseUser,
+                syncResponse: syncResponse
+            )
+            authCache.saveUser(authUser)
+            authSessionRepository.setDemoToken(nil)
+            authSessionRepository.setDemoUser(nil)
+            return authUser
+        } catch let error as AuthError {
+            throw error
+        } catch let error as AuthenticationError {
+            throw error
+        } catch {
+            Logger.error("[AuthRepository] Email Sign-In failed: \(error.localizedDescription)")
+            throw AuthenticationError.firebaseAuthFailed(error.localizedDescription)
+        }
+    }
+
+    func registerEmail(email: String, password: String) async throws -> EmailRegistrationResult {
+        let dto = try await backendAuth.registerEmail(email: email, password: password)
+        return EmailRegistrationResult(uid: dto.uid, email: dto.email, message: dto.message)
+    }
+
+    func verifyEmail(oobCode: String) async throws -> EmailVerificationResult {
+        let dto = try await backendAuth.verifyEmail(oobCode: oobCode)
+        return EmailVerificationResult(uid: dto.uid, message: dto.message)
+    }
+
+    func resendEmailVerification(email: String, password: String) async throws -> EmailResendResult {
+        let dto = try await backendAuth.resendEmailVerification(email: email, password: password)
+        return EmailResendResult(email: dto.email, message: dto.message)
     }
 
     /// Demo login for development/testing
@@ -286,6 +368,7 @@ final class AuthRepositoryImpl: AuthRepository {
 
             // Step 4: Cache the user
             authCache.saveUser(authUser)
+            authSessionRepository.setDemoUser(authUser)
             Logger.debug("[AuthRepository] 🎯 User cached with UID: \(authUser.uid)")
 
             Logger.debug("[AuthRepository] Demo login completed successfully")

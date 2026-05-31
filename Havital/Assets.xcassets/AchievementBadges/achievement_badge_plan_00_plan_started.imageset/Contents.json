@@ -1,0 +1,13 @@
+{
+  "images" : [
+    {
+      "filename" : "achievement_badge_plan_00_plan_started.heic",
+      "idiom" : "universal",
+      "scale" : "1x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

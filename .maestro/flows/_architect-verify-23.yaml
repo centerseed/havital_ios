@@ -1,0 +1,32 @@
+appId: com.havital.Havital
+tags:
+  - architect-verify
+---
+# 驗 #2 表現數據圖表 + #3 訓練紀錄訓練類型
+
+# 從主畫面切到「表現數據」
+- tapOn:
+    text: "表現數據"
+- extendedWaitUntil:
+    visible:
+      text: "訓練負荷|體適能指數|TSB|訓練準備度"
+    timeout: 10000
+- takeScreenshot: /tmp/v_02_perf_top.png
+
+# 滾下找訓練負荷圖表 + legend
+- scrollUntilVisible:
+    element:
+      text: "標記說明"
+    direction: DOWN
+    timeout: 15000
+    visibilityPercentage: 50
+- takeScreenshot: /tmp/v_02_chart_legend.png
+
+# 切到訓練紀錄 tab
+- tapOn:
+    text: "訓練紀錄"
+- extendedWaitUntil:
+    visible:
+      text: "週|月|km|公里"
+    timeout: 8000
+- takeScreenshot: /tmp/v_03_records_top.png

@@ -1,0 +1,6 @@
+appId: com.havital.Havital
+---
+# 「<」按鈕在月份標題左側，大約在 7-10% x 跟月份標題同一 y
+- tapOn:
+    point: "10%,22%"
+- takeScreenshot: /tmp/v4_calendar_after_back.png

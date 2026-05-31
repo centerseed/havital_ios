@@ -14,23 +14,16 @@ tags:
 #   個人資料 → プロフィール    語言 → 言語    儲存 → 保存    確認 → 確認
 #   每日訓練 → 日々のトレーニング
 
-# 重啟 app 確保乾淨狀態
-- launchApp:
-    stopApp: true
-    clearState: false
-
-# Demo 登入（若登入態未保留）
-- runFlow:
-    file: ../subflows/reviewer-demo-login.yaml
-    optional: true
-
-# 確認主畫面可見（允許任一語系起跑）
-- extendedWaitUntil:
-    visible:
-      text: "訓練計劃|每日訓練|週課表尚未產生|訓練目標|Daily Training|Training Plan|日々のトレーニング|トレーニング計画"
-    timeout: 30000
+# 重啟 app 並收斂到主畫面（含 demo login / prompts）
+- runFlow: ../subflows/ensure-main-training-screen.yaml
 
 # === Step 1: 導航到語言設定（繁中介面）===
+- launchApp:
+    stopApp: false
+    clearState: false
+    arguments:
+      -skipHealthKitAuth: "true"
+- waitForAnimationToEnd
 - runFlow: ../subflows/nav-to-profile.yaml
 
 # 確認個人資料頁已載入
@@ -64,18 +57,19 @@ tags:
     optional: true
 
 # 重啟 app，避免停留在語言設定頁造成誤判
-- launchApp:
-    stopApp: true
-    clearState: false
-- runFlow:
-    file: ../subflows/reviewer-demo-login.yaml
-    optional: true
+- runFlow: ../subflows/ensure-main-training-screen.yaml
 - assertVisible:
     text: "日々のトレーニング|トレーニング計画|每日訓練|訓練計劃|Daily Training|Training Plan"
 
 # === Step 3: 驗證日文 UI ===
 
 # 重新導航到個人資料頁（用 id + 多語系 fallback）
+- launchApp:
+    stopApp: false
+    clearState: false
+    arguments:
+      -skipHealthKitAuth: "true"
+- waitForAnimationToEnd
 - runFlow: ../subflows/nav-to-profile.yaml
 
 # 驗證個人資料在日文下顯示為「プロフィール」
@@ -111,12 +105,7 @@ tags:
     optional: true
 
 # 等待 app 重啟並還原繁中
-- launchApp:
-    stopApp: true
-    clearState: false
-- runFlow:
-    file: ../subflows/reviewer-demo-login.yaml
-    optional: true
+- runFlow: ../subflows/ensure-main-training-screen.yaml
 
 # 驗證已成功還原繁體中文
 - assertVisible:

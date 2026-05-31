@@ -16,6 +16,11 @@ struct AppDependencyBootstrap {
         // - HTTPClient
         // - APIParser
 
+        // Step 1.5: Wire CacheEventBus registrations at the App composition root.
+        // Must run before any feature module is registered so that cache identifiers are
+        // claimed before any ad-hoc LocalDataSource instance is created by RepositoryImpl.
+        CacheRegistrationCoordinator.registerAll()
+
         // Step 2: Analytics (early — singletons use lazy resolve, but register before any tracking)
         registerAnalyticsModule()
 
@@ -62,6 +67,9 @@ struct AppDependencyBootstrap {
 
         // 10. Race 模組 (獨立模組，目標編輯與 onboarding 共用)
         registerRaceModule()
+
+        // 11. Achievement 模組 (獨立模組，成就分頁使用)
+        registerAchievementModule()
     }
 
     // MARK: - Individual Module Registration
@@ -212,6 +220,18 @@ struct AppDependencyBootstrap {
         Logger.debug("[Bootstrap] ✅ Race module registered")
     }
 
+    /// 註冊 Achievement 模組
+    /// 包含: AchievementRepository, AchievementRemoteDataSource
+    private static func registerAchievementModule() {
+        guard !DependencyContainer.shared.isRegistered(AchievementRepository.self) else {
+            Logger.debug("[Bootstrap] Achievement module already registered, skipping")
+            return
+        }
+
+        DependencyContainer.shared.registerAchievementModule()
+        Logger.debug("[Bootstrap] ✅ Achievement module registered")
+    }
+
     // MARK: - Testing Support
 
     /// 重置所有依賴並重新註冊（僅用於測試）
@@ -219,6 +239,7 @@ struct AppDependencyBootstrap {
         Logger.debug("[Bootstrap] Resetting DI container for testing")
 
         DependencyContainer.shared.reset()
+        CacheRegistrationCoordinator.resetForTesting()
         registerAllModules()
 
         Logger.debug("[Bootstrap] ✅ DI container reset complete")

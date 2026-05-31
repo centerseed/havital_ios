@@ -102,6 +102,12 @@ struct HavitalApp: App {
             UITestMethodologyHarness.registerDependencies()
             print("🧪 [UI Test] 已切換為 Methodology fixture 測試依賴")
         }
+        // AC-PAYWALL-37: inject mock that reproduces the race between onAppear
+        // (cache cold → hasGeneratedTrainingPlan=false) and plan loader completing.
+        if CommandLine.arguments.contains("-ui_testing_ac37") {
+            UITestAC37ReminderRaceHarness.registerDependencies()
+            print("[UI Test] 已切換為 AC37 race condition 測試依賴")
+        }
         #endif
 
         // 🔍 DEBUG: 驗證 MonthlyStatsRepository 是否註冊
@@ -110,7 +116,7 @@ struct HavitalApp: App {
         
         // 3. 🚀 必須在訪問 self 之前初始化所有屬性
         // 注意：此時 Firebase 已就緒，DI Container 已填充，可以安全創建單例和 ViewModels
-        self._healthKitManager = StateObject(wrappedValue: HealthKitManager())
+        self._healthKitManager = StateObject(wrappedValue: HealthKitManager.shared)
         self._appViewModel = StateObject(wrappedValue: AppViewModel())
         // Clean Architecture: Use AuthenticationViewModel instead of AuthenticationService
         self._authViewModel = StateObject(wrappedValue: AuthenticationViewModel.shared)
@@ -178,10 +184,20 @@ struct HavitalApp: App {
                 trainingPlanV2GateHarnessView
             } else if shouldLaunchLoadingCacheUITestHarness {
                 loadingCacheUITestHarnessView
+            } else if shouldLaunchWorkoutDetailRPEUITestHarness {
+                workoutDetailRPEUITestHarnessView
             } else if shouldLaunchPaywallUITestHarness {
                 paywallUITestHarnessView
             } else if shouldLaunchTypographyAuditHarness {
                 typographyAuditHarnessView
+            } else if shouldLaunchPBMomentPreviewHarness {
+                pbMomentPreviewHarnessView
+            } else if shouldLaunchAchievementsUITestHarness {
+                achievementsUITestHarnessView
+            } else if shouldLaunchAC37UITestHarness {
+                ac37UITestHarnessView
+            } else if shouldLaunchAC38UITestHarness {
+                ac38UITestHarnessView
             } else {
                 Group {
                     if let featureFlagManager = featureFlagManager {
@@ -225,7 +241,7 @@ struct HavitalApp: App {
                             }
                     } else {
                         // Firebase 和 FeatureFlagManager 初始化中
-                        ProgressView("初始化中...")
+                        ProgressView(L10n.Common.initializing.localized)
                             .onAppear {
                                 // 在 Firebase 初始化完成後創建 FeatureFlagManager
                                 if FirebaseApp.app() != nil {
@@ -298,7 +314,12 @@ struct HavitalApp: App {
             || arguments.contains("-ui_testing_training_v2_gates")
             || arguments.contains("-ui_testing_methodology_fixture")
             || arguments.contains("-ui_testing_loading_cache")
+            || arguments.contains("-ui_testing_workout_detail_rpe")
             || arguments.contains("-ui_testing_typography_audit")
+            || arguments.contains("-ui_testing_pb_moment_preview")
+            || arguments.contains("-ui_testing_achievements")
+            || arguments.contains("-ui_testing_ac37")
+            || arguments.contains("-ui_testing_ac38")
     }
 
     private var shouldLaunchPaywallUITestHarness: Bool {
@@ -342,11 +363,65 @@ struct HavitalApp: App {
         #endif
     }
 
-    private var shouldLaunchTypographyAuditHarness: Bool {
+    private var shouldLaunchWorkoutDetailRPEUITestHarness: Bool {
         #if DEBUG
-        CommandLine.arguments.contains("-ui_testing_typography_audit")
+        CommandLine.arguments.contains("-ui_testing_workout_detail_rpe")
         #else
         false
+        #endif
+    }
+
+    private var shouldLaunchTypographyAuditHarness: Bool {
+        CommandLine.arguments.contains("-ui_testing_typography_audit")
+    }
+
+    private var shouldLaunchPBMomentPreviewHarness: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-ui_testing_pb_moment_preview")
+        #else
+        false
+        #endif
+    }
+
+    private var shouldLaunchAchievementsUITestHarness: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-ui_testing_achievements")
+        #else
+        false
+        #endif
+    }
+
+    @ViewBuilder
+    private var achievementsUITestHarnessView: some View {
+        #if DEBUG
+        UITestAchievementsHostView()
+        #else
+        EmptyView()
+        #endif
+    }
+
+    private var shouldLaunchAC37UITestHarness: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-ui_testing_ac37")
+        #else
+        false
+        #endif
+    }
+
+    private var shouldLaunchAC38UITestHarness: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-ui_testing_ac38")
+        #else
+        false
+        #endif
+    }
+
+    @ViewBuilder
+    private var ac38UITestHarnessView: some View {
+        #if DEBUG
+        UITestAC38GraceHostView()
+        #else
+        EmptyView()
         #endif
     }
 
@@ -354,6 +429,15 @@ struct HavitalApp: App {
     private var loadingCacheUITestHarnessView: some View {
         #if DEBUG
         LocalUITestTrainingLoadingCacheHostView()
+        #else
+        EmptyView()
+        #endif
+    }
+
+    @ViewBuilder
+    private var workoutDetailRPEUITestHarnessView: some View {
+        #if DEBUG
+        UITestWorkoutDetailRPEHostView()
         #else
         EmptyView()
         #endif
@@ -386,6 +470,26 @@ struct HavitalApp: App {
         #endif
     }
 
+    @ViewBuilder
+    private var pbMomentPreviewHarnessView: some View {
+        #if DEBUG
+        NavigationStack {
+            PBMomentPreviewView()
+        }
+        #else
+        EmptyView()
+        #endif
+    }
+
+    @ViewBuilder
+    private var ac37UITestHarnessView: some View {
+        #if DEBUG
+        UITestAC37HostView()
+        #else
+        EmptyView()
+        #endif
+    }
+
     /// P0-4: 前景恢復時刷新訂閱狀態，偵測降級
     private func refreshSubscriptionOnForeground() async {
         guard AppStateManager.shared.isUserAuthenticated else { return }
@@ -395,8 +499,13 @@ struct HavitalApp: App {
         do {
             let status = try await repo.refreshStatus()
             Logger.debug("[HavitalApp] 前景恢復：訂閱狀態已刷新")
-            // P1-9/P1-10: 前景恢復時也檢查提醒
-            await SubscriptionReminderManager.shared.checkAndShowReminder(status: status)
+            // P1-9/P1-10: 前景恢復時也檢查提醒（AC-PAYWALL-37 互斥由 manager 處理）
+            let trainingPlanRepo: TrainingPlanV2Repository? = DependencyContainer.shared.tryResolve()
+            let hasGeneratedTrainingPlan = trainingPlanRepo?.getCachedOverview() != nil
+            await SubscriptionReminderManager.shared.checkAndShowReminder(
+                status: status,
+                hasGeneratedTrainingPlan: hasGeneratedTrainingPlan
+            )
         } catch {
             Logger.debug("[HavitalApp] 前景恢復：訂閱狀態刷新失敗 \(error.localizedDescription)")
         }
@@ -414,18 +523,8 @@ struct HavitalApp: App {
         print("🔐 用戶認證狀態: \(isAuthenticated)")
         print("🔐 數據源: \(dataSource.rawValue)")
 
-        // 📊 關鍵診斷：記錄入口狀態
-        Logger.firebase(
-            "setupPermissions 入口狀態",
-            level: .info,
-            labels: ["module": "HavitalApp", "action": "setup_permissions_entry", "cloud_logging": "true"],
-            jsonPayload: [
-                "isAuthenticated": isAuthenticated,
-                "dataSource": dataSource.rawValue,
-                "userPrefsDataSource": UserPreferencesManager.shared.dataSourcePreference.rawValue,
-                "hasCompletedOnboarding": UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
-            ]
-        )
+        // 本地進度 log（routine setup entry — no cloud upload needed）
+        Logger.debug("[HavitalApp] setupPermissions 入口狀態 authed=\(isAuthenticated) dataSource=\(dataSource.rawValue) prefs=\(UserPreferencesManager.shared.dataSourcePreference.rawValue) onboarding=\(UserDefaults.standard.bool(forKey: "hasCompletedOnboarding"))")
         
         if isAuthenticated {
             // 🔧 多來源判定：避免 AppStateManager 未同步完成時漏判
@@ -496,6 +595,11 @@ struct HavitalApp: App {
     
     /// 請求通知授權
     private func requestNotificationAuthorization() async {
+        if CommandLine.arguments.contains("-ui_testing_skip_notification_authorization") {
+            print("🧪 [UI Test] Skipping notification authorization")
+            return
+        }
+
         do {
             let center = UNUserNotificationCenter.current()
             let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
@@ -520,16 +624,8 @@ struct HavitalApp: App {
         // 🚨 關鍵修復：只有 Apple Health 用戶才設置觀察者
         let dataSourcePreference = UserPreferencesManager.shared.dataSourcePreference
 
-        // 📊 診斷：記錄進入 setupWorkoutBackgroundProcessing 的狀態
-        Logger.firebase(
-            "setupWorkoutBackgroundProcessing 開始",
-            level: .info,
-            labels: ["module": "HavitalApp", "action": "setup_workout_bg", "cloud_logging": "true"],
-            jsonPayload: [
-                "dataSourcePreference": dataSourcePreference.rawValue,
-                "isFirstLogin": authViewModel.isFirstLogin
-            ]
-        )
+        // 本地進度 log（routine bg setup start — no cloud upload needed）
+        Logger.debug("[HavitalApp] setupWorkoutBackgroundProcessing 開始 dataSource=\(dataSourcePreference.rawValue) isFirstLogin=\(authViewModel.isFirstLogin)")
 
         if dataSourcePreference == .appleHealth {
             print("設置健身記錄觀察者（Apple Health 用戶）...")
@@ -969,14 +1065,19 @@ private struct LocalUITestTrainingLoadingCacheHostView: View {
 }
 
 private enum UITestTypographyAuditScreen: String {
+    case login
     case achievement
+    case tabEntry = "tab_entry"
+    case performance
+    case profile
+    case trainingHome = "training_home"
     case weekTimeline = "week_timeline"
     case editCard = "edit_card"
     case paywall
 
     static func current() -> UITestTypographyAuditScreen {
         let raw = ProcessInfo.processInfo.environment["UITEST_TYPOGRAPHY_SCREEN"]?.lowercased()
-            ?? UITestTypographyAuditScreen.achievement.rawValue
+            ?? UITestTypographyAuditScreen.performance.rawValue
         return UITestTypographyAuditScreen(rawValue: raw) ?? .achievement
     }
 }
@@ -987,8 +1088,20 @@ private struct UITestTypographyAuditHostView: View {
     var body: some View {
         Group {
             switch UITestTypographyAuditScreen.current() {
+            case .login:
+                LoginView()
             case .achievement:
                 MyAchievementView()
+            case .tabEntry:
+                tabEntrySmokeView
+            case .performance:
+                MyAchievementView()
+            case .profile:
+                NavigationStack {
+                    profileSmokeView
+                }
+            case .trainingHome:
+                trainingHomeSmokeView
             case .weekTimeline:
                 NavigationStack {
                     ScrollView {
@@ -1044,6 +1157,103 @@ private struct UITestTypographyAuditHostView: View {
                 }
             }
         }
+    }
+
+    private var tabEntrySmokeView: some View {
+        TabView {
+            trainingHomeSmokeView
+                .tabItem {
+                    Image(systemName: "figure.run")
+                    Text(L10n.Tab.trainingPlan.localized)
+                }
+
+            NavigationStack {
+                Text(L10n.Tab.trainingRecord.localized)
+                    .font(AppFont.title2())
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .tabItem {
+                Image(systemName: "chart.line.text.clipboard")
+                Text(L10n.Tab.trainingRecord.localized)
+            }
+
+            MyAchievementView()
+                .tabItem {
+                    Image(systemName: "gauge.with.dots.needle.bottom.50percent")
+                    Text(L10n.Tab.performanceData.localized)
+                }
+        }
+        .accessibilityIdentifier("UITest_Typography_TabEntry")
+    }
+
+    private var trainingHomeSmokeView: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text(L10n.Tab.trainingPlan.localized)
+                        .font(AppFont.headline())
+                        .accessibilityIdentifier("UITest_Typography_Title")
+
+                    WeekTimelineView(
+                        viewModel: trainingPlanViewModel,
+                        plan: Self.mockWeeklyPlan
+                    )
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(L10n.TrainingProgress.schedule.localized)
+                            .font(AppFont.bodyMedium())
+                        Text(Self.mockWeeklyPlan.purpose)
+                            .font(AppFont.bodySmall())
+                            .foregroundColor(.secondary)
+                        Text(String(format: "%.1f km", Self.mockWeeklyPlan.totalDistance))
+                            .font(AppFont.title2())
+                    }
+                    .padding(16)
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .cornerRadius(12)
+                }
+                .padding(20)
+            }
+            .background(Color(UIColor.systemGroupedBackground))
+        }
+        .accessibilityIdentifier("UITest_Typography_TrainingHome")
+    }
+
+    private var profileSmokeView: some View {
+        List {
+            Section {
+                HStack(alignment: .center, spacing: 16) {
+                    Image(systemName: "person.crop.circle.fill")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 64, height: 64)
+                        .foregroundColor(.gray)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Paceriz Runner")
+                            .font(AppFont.title2())
+                            .bold()
+
+                        Text(ProfileIdentityDisplay.emailText(
+                            profileEmail: "runner@privaterelay.appleid.com",
+                            firebaseEmail: nil
+                        ))
+                        .font(AppFont.bodySmall())
+                        .foregroundColor(.secondary)
+                        .textSelection(.enabled)
+                    }
+                }
+                .padding(.vertical)
+            }
+
+            Section(L10n.Settings.title.localized) {
+                Label(L10n.Settings.language.localized, systemImage: "globe")
+                Label(L10n.Settings.timezone.localized, systemImage: "clock")
+                Label(L10n.Onboarding.trainingDays.localized, systemImage: "calendar")
+            }
+        }
+        .navigationTitle(NSLocalizedString("profile.title", comment: "Profile"))
+        .accessibilityIdentifier("UITest_Typography_Profile")
     }
 
     @ViewBuilder

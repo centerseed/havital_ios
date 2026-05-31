@@ -79,7 +79,7 @@ final class WeekMetricsCalculatorTests: XCTestCase {
     }
 
     func test_groupWorkoutsByDay_filtersNonRunningTypes() {
-        // swimming and cycling should not appear
+        // commit d3aa9e1: swimming and cycling are now allowed activity types (not filtered).
         let weekInfo = makeWeekInfo()
         let workouts = [
             makeWorkout(id: "s1", activityType: "swimming", startTimeUtc: "2026-04-14T08:00:00Z"),
@@ -88,9 +88,9 @@ final class WeekMetricsCalculatorTests: XCTestCase {
         ]
         let result = WeekMetricsCalculator.groupWorkoutsByDay(workouts, weekInfo: weekInfo)
         let allIDs = result.values.flatMap { $0 }.map { $0.id }
-        XCTAssertFalse(allIDs.contains("s1"), "swimming should be filtered")
-        XCTAssertFalse(allIDs.contains("c1"), "cycling should be filtered")
-        XCTAssertTrue(allIDs.contains("r1"), "running should be retained")
+        XCTAssertTrue(allIDs.contains("s1"), "swimming is now an allowed activity and must be retained")
+        XCTAssertTrue(allIDs.contains("c1"), "cycling is now an allowed activity and must be retained")
+        XCTAssertTrue(allIDs.contains("r1"), "running must be retained")
     }
 
     func test_groupWorkoutsByDay_filtersOutsideWeekRange() {

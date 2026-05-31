@@ -33,6 +33,8 @@ final class SubscriptionRemoteDataSource: SubscriptionRemoteDataSourceProtocol {
     /// - Returns: 訂閱狀態 DTO
     func fetchStatus() async throws -> SubscriptionStatusDTO {
         Logger.debug("[SubscriptionRemoteDS] fetchStatus: GET /api/v1/subscription/status")
-        return try await apiHelper.get(SubscriptionStatusDTO.self, path: "/api/v1/subscription/status")
+        return try await tracked("SubscriptionRemoteDataSource: fetchStatus") {
+            try await apiHelper.get(SubscriptionStatusDTO.self, path: "/api/v1/subscription/status")
+        }
     }
 }

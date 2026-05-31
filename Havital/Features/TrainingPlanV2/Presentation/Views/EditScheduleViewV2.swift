@@ -136,7 +136,7 @@ struct SimplifiedDailyCardV2: View {
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return .green
-        case .interval, .tempo, .progression, .threshold, .combination, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
+        case .interval, .tempo, .progression, .threshold, .combination, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .norwegianSingles, .yasso800:
             return .orange
         case .longRun, .hiking, .cycling, .fastFinish:
             return .blue
@@ -153,7 +153,7 @@ struct SimplifiedDailyCardV2: View {
         switch day.type {
         case .interval, .combination, .progression,
              .strides, .hillRepeats, .cruiseIntervals,
-             .shortInterval, .longInterval, .norwegian4x4, .yasso800,
+             .shortInterval, .longInterval, .norwegian4x4, .norwegianSingles, .yasso800,
              .fartlek, .fastFinish:
             return true
         default:
@@ -164,7 +164,7 @@ struct SimplifiedDailyCardV2: View {
     private var complexTrainingSummary: String {
         guard let details = day.trainingDetails else { return "" }
         switch day.type {
-        case .interval, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval:
+        case .interval, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegianSingles:
             if let repeats = details.repeats, let work = details.work {
                 let distText = work.distanceKm.map { String(format: "%.0fm", $0 * 1000) } ?? ""
                 let paceText = work.pace ?? ""

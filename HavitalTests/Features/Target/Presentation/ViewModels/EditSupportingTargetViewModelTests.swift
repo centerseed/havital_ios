@@ -62,12 +62,12 @@ final class EditSupportingTargetViewModelTests: XCTestCase {
     }
     
     func testDeleteTarget_CloudNotFound_RemovesFromLocalAndReturnsTrue() async {
-        // Given
-        mockRepository.errorToThrow = NSError(domain: "APIClient", code: 404, userInfo: nil)
-        
+        // Given: production catches HTTPError where statusCode == 404 (not generic NSError).
+        mockRepository.errorToThrow = HTTPError.notFound("target not found")
+
         // When
         let result = await sut.deleteTarget()
-        
+
         // Then
         XCTAssertTrue(result, "Should return true even if cloud not found, as it handles the cleanup")
         XCTAssertEqual(mockRepository.deleteTargetCallCount, 1)

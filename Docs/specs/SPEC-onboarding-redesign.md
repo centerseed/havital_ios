@@ -1,10 +1,10 @@
 ---
 type: SPEC
 id: SPEC-onboarding-redesign
-status: Approved
+status: Implemented
 ontology_entity: TBD
 created: 2026-04-15
-updated: 2026-04-15
+updated: 2026-04-24
 decisions_closed: 2026-04-15
 ---
 

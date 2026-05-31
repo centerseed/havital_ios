@@ -37,7 +37,7 @@ final class SubscriptionLocalDataSource: SubscriptionLocalDataSourceProtocol {
         self.defaults = defaults
         self.encoder = JSONEncoder()
         self.decoder = JSONDecoder()
-        CacheEventBus.shared.register(self)
+        // CacheEventBus registration moved to CacheRegistrationCoordinator (App layer)
     }
 
     // MARK: - Read

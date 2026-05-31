@@ -1,4 +1,5 @@
 import Foundation
+import Combine
 
 // MARK: - TrainingPlanV2RepositoryImpl
 /// Implementation of TrainingPlanV2Repository protocol
@@ -11,6 +12,18 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
 
     private let remoteDataSource: TrainingPlanV2RemoteDataSourceProtocol
     private let localDataSource: TrainingPlanV2LocalDataSourceProtocol
+
+    // MARK: - Overview Publisher (AC-PAYWALL-37 race-condition guard)
+    //
+    // Emits every time an overview is written to local cache. Consumers (Presentation
+    // layer only) subscribe to re-evaluate state that depends on planOverview presence.
+    // Repository must NOT publish to CacheEventBus — architecture red line.
+
+    private let overviewUpdateSubject = PassthroughSubject<PlanOverviewV2, Never>()
+
+    var overviewDidUpdate: AnyPublisher<PlanOverviewV2, Never> {
+        overviewUpdateSubject.eraseToAnyPublisher()
+    }
 
     // MARK: - Initialization
 
@@ -80,8 +93,9 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
 
         let entity = PlanOverviewV2Mapper.toEntity(from: dto)
 
-        // Cache the result
+        // Cache the result and notify observers
         localDataSource.saveOverview(entity)
+        overviewUpdateSubject.send(entity)
 
         Logger.info("[TrainingPlanV2Repo] Overview created and cached: \(entity.id)")
         return entity
@@ -108,8 +122,9 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
 
         let entity = PlanOverviewV2Mapper.toEntity(from: dto)
 
-        // Cache the result
+        // Cache the result and notify observers
         localDataSource.saveOverview(entity)
+        overviewUpdateSubject.send(entity)
 
         Logger.info("[TrainingPlanV2Repo] Overview created and cached: \(entity.id)")
         return entity
@@ -144,9 +159,10 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
 
         let entity = PlanOverviewV2Mapper.toEntity(from: dto)
 
-        // Clear old cache and save new data
+        // Clear old cache, save new data and notify observers
         localDataSource.clearOverview()
         localDataSource.saveOverview(entity)
+        overviewUpdateSubject.send(entity)
 
         Logger.info("[TrainingPlanV2Repo] Overview updated: \(entity.id)")
         return entity
@@ -255,6 +271,12 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
 
         // Cache miss - fetch from API
         Logger.debug("[TrainingPlanV2Repo] Weekly preview cache miss, fetching from API")
+        return try await fetchAndCacheWeeklyPreview(overviewId: overviewId)
+    }
+
+    func refreshWeeklyPreview(overviewId: String) async throws -> WeeklyPreviewV2 {
+        Logger.debug("[TrainingPlanV2Repo] Force refresh weekly preview for overview: \(overviewId)")
+        localDataSource.clearWeeklyPreview(overviewId: overviewId)
         return try await fetchAndCacheWeeklyPreview(overviewId: overviewId)
     }
 
@@ -423,7 +445,9 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
         do {
             let dto = try await remoteDataSource.getOverview()
             let entity = PlanOverviewV2Mapper.toEntity(from: dto)
+            // Save to cache and notify Presentation layer subscribers (AC-PAYWALL-37)
             localDataSource.saveOverview(entity)
+            overviewUpdateSubject.send(entity)
             return entity
         } catch {
             logErrorToCloud(module: "PlanOverview", operation: "fetch", error: error)

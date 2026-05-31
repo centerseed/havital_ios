@@ -2,11 +2,35 @@ appId: com.havital.Havital.dev
 ---
 # Shared entry: converge to logged-in "Daily Training" screen.
 - launchApp:
-    stopApp: false
+    stopApp: true
     clearState: false
+    arguments:
+      -skipHealthKitAuth: "true"
 
 - runFlow:
     file: reviewer-demo-login.yaml
+    optional: true
+
+- tapOn:
+    text: "不允許|Don't Allow|Don’t Allow|許可しない"
+    optional: true
+
+- tapOn:
+    text: "稍後|Later|後で"
+    optional: true
+
+- tapOn:
+    text: "允許|Allow|許可"
+    optional: true
+
+- tapOn:
+    text: "好|OK"
+    optional: true
+
+# Previous flows may leave the app inside an edit sheet. Back out before
+# converging to the training plan screen.
+- tapOn:
+    text: "取消|Cancel|キャンセル"
     optional: true
 
 # Dismiss modal-like pages if they are already open.
@@ -25,6 +49,14 @@ appId: com.havital.Havital.dev
 - tapOn:
     text: "關閉|Close|閉じる|完成|Done"
     optional: true
+
+# Keep Paceriz foregrounded after optional system prompt handling. A bare back
+# can return the simulator to SpringBoard when no modal is open.
+- launchApp:
+    stopApp: false
+    clearState: false
+    arguments:
+      -skipHealthKitAuth: "true"
 
 # If tab is not focused, switch to training plan tab.
 - tapOn:

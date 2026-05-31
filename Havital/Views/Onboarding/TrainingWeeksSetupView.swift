@@ -21,8 +21,31 @@ struct TrainingWeeksSetupView: View {
 
     private let quickOptions = [4, 8, 12, 16, 20, 24]
 
+    // Beginner distance options: 5K → [6,8,10], 10K → [8,10,12]
+    private let beginnerDistanceOptions: [Int: [Int]] = [
+        5: [6, 8, 10],
+        10: [8, 10, 12]
+    ]
+    private let beginnerDistanceRange: [Int: ClosedRange<Int>] = [
+        5: 6...10,
+        10: 8...12
+    ]
+
     @State private var selectedWeeks: Int = 12
     @State private var showCustomPicker = false
+    @State private var selectedBeginnerDistanceKm: Int = 5
+
+    private var isBeginner: Bool {
+        coordinator.selectedTargetTypeId == "beginner"
+    }
+
+    private var currentBeginnerWeekOptions: [Int] {
+        beginnerDistanceOptions[selectedBeginnerDistanceKm] ?? [6, 8, 10]
+    }
+
+    private var currentBeginnerRange: ClosedRange<Int> {
+        beginnerDistanceRange[selectedBeginnerDistanceKm] ?? 6...10
+    }
 
     var body: some View {
         OnboardingPageTemplate(
@@ -49,29 +72,103 @@ struct TrainingWeeksSetupView: View {
                 }
                 .padding(.top, 20)
 
+                // Beginner-only: 5K/10K distance selector
+                if isBeginner {
+                    beginnerDistanceSelector
+                }
+
                 selectedWeeksCard
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text(NSLocalizedString("onboarding.quick_options", comment: "Quick Options"))
                         .font(AppFont.headline())
 
-                    quickOptionsGrid
+                    if isBeginner {
+                        beginnerQuickOptionsGrid
+                    } else {
+                        quickOptionsGrid
+                    }
                 }
 
-                customPickerSection
+                if !isBeginner {
+                    customPickerSection
+                }
             }
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("TrainingWeeks_Screen")
         .navigationTitle(NSLocalizedString("onboarding.training_weeks_nav_title", comment: "Training Duration"))
         .onAppear {
-            if let targetTypeId = coordinator.selectedTargetTypeId,
+            if isBeginner {
+                // Initialize beginner distance from coordinator if already set, else default to 5K
+                let storedKm = coordinator.intendedRaceDistanceKm
+                if storedKm == 10 {
+                    selectedBeginnerDistanceKm = 10
+                } else {
+                    selectedBeginnerDistanceKm = 5
+                }
+                // Set default weeks for the selected distance (8 is valid for both 5K and 10K)
+                let options = beginnerDistanceOptions[selectedBeginnerDistanceKm] ?? [6, 8, 10]
+                selectedWeeks = options.contains(8) ? 8 : (options.first ?? 8)
+                coordinator.intendedRaceDistanceKm = selectedBeginnerDistanceKm
+            } else if let targetTypeId = coordinator.selectedTargetTypeId,
                let recommended = recommendedWeeks[targetTypeId] {
                 selectedWeeks = recommended
             } else if let existingWeeks = coordinator.trainingWeeks {
                 selectedWeeks = existingWeeks
             }
         }
+    }
+
+    // MARK: - Beginner Distance Selector
+
+    @ViewBuilder
+    private var beginnerDistanceSelector: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(NSLocalizedString("onboarding.beginner_target_distance", comment: "Target Distance"))
+                .font(AppFont.headline())
+
+            HStack(spacing: 12) {
+                ForEach([5, 10], id: \.self) { km in
+                    distanceButton(km: km)
+                }
+                Spacer()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func distanceButton(km: Int) -> some View {
+        let isSelected = selectedBeginnerDistanceKm == km
+        Button(action: {
+            withAnimation(.spring(response: 0.3)) {
+                selectedBeginnerDistanceKm = km
+                coordinator.intendedRaceDistanceKm = km
+                // Clamp selectedWeeks into the new distance's valid range
+                let options = beginnerDistanceOptions[km] ?? [6, 8, 10]
+                if !options.contains(selectedWeeks) {
+                    // Snap to nearest valid option
+                    selectedWeeks = options.min(by: { abs($0 - selectedWeeks) < abs($1 - selectedWeeks) }) ?? options[1]
+                }
+            }
+        }) {
+            Text("\(km)K")
+                .font(AppFont.body())
+                .fontWeight(isSelected ? .semibold : .regular)
+                .foregroundColor(isSelected ? .accentColor : .primary)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(isSelected ? Color.accentColor.opacity(0.1) : Color(.systemBackground))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(isSelected ? Color.accentColor : Color(.systemGray4), lineWidth: isSelected ? 2 : 1)
+                )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .accessibilityIdentifier("BeginnerDistance_\(km)K")
     }
 
     // MARK: - Selected Weeks Card
@@ -97,9 +194,7 @@ struct TrainingWeeksSetupView: View {
 
                 Spacer()
 
-                if let targetTypeId = coordinator.selectedTargetTypeId,
-                   let recommended = recommendedWeeks[targetTypeId],
-                   selectedWeeks == recommended {
+                if isRecommendedWeeks {
                     Text(NSLocalizedString("onboarding.recommended", comment: "Recommended"))
                         .font(AppFont.captionSmall())
                         .fontWeight(.semibold)
@@ -116,6 +211,13 @@ struct TrainingWeeksSetupView: View {
         .padding()
         .background(Color(UIColor.secondarySystemGroupedBackground))
         .cornerRadius(12)
+    }
+
+    private var isRecommendedWeeks: Bool {
+        if isBeginner {
+            return selectedWeeks == 8
+        }
+        return coordinator.selectedTargetTypeId.flatMap { recommendedWeeks[$0] } == selectedWeeks
     }
 
     // MARK: - Info Message
@@ -142,7 +244,21 @@ struct TrainingWeeksSetupView: View {
         }
     }
 
-    // MARK: - Quick Options Grid
+    // MARK: - Beginner Quick Options Grid (3 buttons only)
+    @ViewBuilder
+    private var beginnerQuickOptionsGrid: some View {
+        LazyVGrid(columns: [
+            GridItem(.flexible()),
+            GridItem(.flexible()),
+            GridItem(.flexible())
+        ], spacing: 12) {
+            ForEach(currentBeginnerWeekOptions, id: \.self) { weeks in
+                quickOptionButton(weeks: weeks)
+            }
+        }
+    }
+
+    // MARK: - Quick Options Grid (maintenance)
     @ViewBuilder
     private var quickOptionsGrid: some View {
         LazyVGrid(columns: [
@@ -159,7 +275,10 @@ struct TrainingWeeksSetupView: View {
     @ViewBuilder
     private func quickOptionButton(weeks: Int) -> some View {
         let isSelected = selectedWeeks == weeks
-        let isRecommended = coordinator.selectedTargetTypeId.flatMap { recommendedWeeks[$0] } == weeks
+        let isRecommended: Bool = {
+            if isBeginner { return weeks == 8 }
+            return coordinator.selectedTargetTypeId.flatMap { recommendedWeeks[$0] } == weeks
+        }()
 
         Button(action: {
             withAnimation(.spring(response: 0.3)) {
@@ -197,7 +316,7 @@ struct TrainingWeeksSetupView: View {
         .accessibilityIdentifier("TrainingWeeks_\(weeks)")
     }
 
-    // MARK: - Custom Picker Section
+    // MARK: - Custom Picker Section (maintenance only)
     @ViewBuilder
     private var customPickerSection: some View {
         VStack(spacing: 12) {
@@ -242,7 +361,11 @@ struct TrainingWeeksSetupView: View {
     // MARK: - Actions
     private func saveAndNavigate() {
         coordinator.trainingWeeks = selectedWeeks
-        Logger.debug("[TrainingWeeksSetupView] Selected \(selectedWeeks) weeks for \(coordinator.selectedTargetTypeId ?? "unknown")")
+        if isBeginner {
+            // Ensure intendedRaceDistanceKm is set (may already be set via distance selector)
+            coordinator.intendedRaceDistanceKm = selectedBeginnerDistanceKm
+        }
+        Logger.debug("[TrainingWeeksSetupView] Selected \(selectedWeeks) weeks for \(coordinator.selectedTargetTypeId ?? "unknown"), distance: \(coordinator.intendedRaceDistanceKm.map { "\($0)K" } ?? "nil")")
         if coordinator.selectedTargetTypeId == "maintenance" {
             coordinator.navigate(to: .maintenanceRaceDistance)
         } else {

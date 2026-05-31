@@ -60,13 +60,16 @@ class AppStateManager: ObservableObject {
 
     // Clean Architecture: Use AuthSessionRepository instead of AuthenticationService
     private let authSessionRepository: AuthSessionRepository
-    private var userService: UserService?
     private let workoutRepository: WorkoutRepository
     private var healthDataUploadManager: HealthDataUploadManagerV2?
 
-    // Lazy resolve: SubscriptionRepository 在 DI 註冊完成後才可用
+    // Injected subscription repository (set by testable init; nil in production singleton).
+    private var _injectedSubscriptionRepository: SubscriptionRepository?
+
+    // Lazy resolve: SubscriptionRepository 在 DI 註冊完成後才可用.
+    // Testable init sets _injectedSubscriptionRepository to avoid any DI lookup.
     private var subscriptionRepository: SubscriptionRepository {
-        DependencyContainer.shared.resolve()
+        _injectedSubscriptionRepository ?? DependencyContainer.shared.resolve()
     }
 
     private var analyticsService: AnalyticsService {
@@ -80,8 +83,26 @@ class AppStateManager: ObservableObject {
         self.authSessionRepository = DependencyContainer.shared.resolve()
         self.workoutRepository = DependencyContainer.shared.resolve()
         print("🏁 AppStateManager: 已初始化")
+        setupSubscriptionStatusSync()
+    }
 
-        // Keep the GA4 subscription_status user property in sync with live state changes.
+    /// Testable initializer — injects all dependencies directly, bypasses the singleton and real DI.
+    /// Use in unit tests to create an isolated instance without touching real Firebase services.
+    /// All three repositories must be provided so no DI lookup happens during initializeApp().
+    init(
+        authSessionRepository: AuthSessionRepository,
+        workoutRepository: WorkoutRepository,
+        subscriptionRepository: SubscriptionRepository
+    ) {
+        self.authSessionRepository = authSessionRepository
+        self.workoutRepository = workoutRepository
+        self._injectedSubscriptionRepository = subscriptionRepository
+        print("🏁 AppStateManager: 已初始化（測試用注入）")
+        setupSubscriptionStatusSync()
+    }
+
+    /// Keeps the GA4 subscription_status user property in sync with live state changes.
+    private func setupSubscriptionStatusSync() {
         SubscriptionStateManager.shared.$currentStatus
             .compactMap { $0 }
             .removeDuplicates { $0.status == $1.status }
@@ -232,28 +253,20 @@ class AppStateManager: ObservableObject {
         }
         
         do {
-            userService = UserService.shared
-            
             print("📥 AppStateManager: 從後端 User API 獲取用戶資料...")
 
-            // 🚨 正確的流程：從後端 User API 獲取用戶的實際數據源設定
-            guard let userService = userService else {
-                Logger.firebase("UserService 未初始化", level: .error, labels: [
-                    "module": "AppStateManager",
-                    "action": "load_user_data"
-                ])
-                throw NSError(domain: "AppStateManager", code: -1, userInfo: [NSLocalizedDescriptionKey: "UserService 未初始化"])
+            // Use UserProfileRepository cache-first（雙軌）：有有效快取就秒回 + 背景刷新，
+            // 冷啟動不再每次都卡網路往返。快取過期/缺失時才打 API（與原行為一致）。
+            let repo: UserProfileRepository = DependencyContainer.shared.resolve()
+            let user = try await tracked("AppStateManager: loadUserData") {
+                try await repo.getUserProfile()
             }
-            let user = try await userService.getUserProfileAsync()
 
             print("📥 AppStateManager: 成功獲取用戶資料")
             print("   - 後端數據源: \(user.dataSource ?? "未設定")")
 
             // 同步用戶偏好設定（包括數據源）
-            userService.syncUserPreferences(with: user)
-
-            // 🔥 重要：將用戶資料保存到本地快取（Clean Architecture）
-            UserProfileLocalDataSource().saveUserProfile(user)
+            UserService.shared.syncUserPreferences(with: user)
 
             // 使用同步後的數據源設定
             userDataSource = UserPreferencesManager.shared.dataSourcePreference

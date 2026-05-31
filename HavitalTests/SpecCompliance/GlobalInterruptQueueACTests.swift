@@ -261,12 +261,17 @@ final class GlobalInterruptQueueACTests: XCTestCase {
         if !container.isRegistered(TrainingVersionRouter.self) {
             container.registerTrainingVersionRouter()
         }
+        if !container.isRegistered(AchievementRepository.self) {
+            container.registerAchievementModule()
+        }
         let versionRouter: TrainingVersionRouter = container.resolve()
+        let achievementRepository: AchievementRepository = container.resolve()
 
         let viewModel = TrainingPlanV2ViewModel(
             repository: repository,
             workoutRepository: workoutRepository,
-            versionRouter: versionRouter
+            versionRouter: versionRouter,
+            achievementRepository: achievementRepository
         )
 
         viewModel.loader.planOverview = makeTrainingPlanOverview()

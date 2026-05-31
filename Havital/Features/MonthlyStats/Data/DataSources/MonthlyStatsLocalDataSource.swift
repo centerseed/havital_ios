@@ -17,6 +17,7 @@ final class MonthlyStatsLocalDataSource {
     // MARK: - Properties
 
     private let userDefaults: UserDefaults
+    private let cacheManagersLock = NSLock()
 
     /// ✅ 實際數據緩存管理器（永久 TTL = 365 天）
     /// 格式：存儲每個月份的 [DailyStat] 數據
@@ -85,9 +86,9 @@ final class MonthlyStatsLocalDataSource {
     /// - Parameters:
     ///   - year: 年份
     ///   - month: 月份 (1-12)
-    func setSyncTimestamp(year: Int, month: Int) {
+    func setSyncTimestamp(year: Int, month: Int, date: Date = Date()) {
         let key = timestampKey(year: year, month: month)
-        userDefaults.set(Date(), forKey: key)
+        userDefaults.set(date, forKey: key)
         Logger.debug("[MonthlyStatsLocalDataSource] 月度時間戳已保存: \(year)-\(String(format: "%02d", month))")
     }
 
@@ -121,10 +122,13 @@ final class MonthlyStatsLocalDataSource {
         }
 
         // 清除所有數據緩存
-        dataCacheManagers.values.forEach { manager in
+        let managers = lockedCacheManagersSnapshot()
+        managers.forEach { manager in
             manager.clearCache()
         }
+        cacheManagersLock.lock()
         dataCacheManagers.removeAll()
+        cacheManagersLock.unlock()
 
         Logger.debug("[MonthlyStatsLocalDataSource] 已清除 \(timestampKeys.count) 個月度時間戳和所有數據緩存")
     }
@@ -176,6 +180,9 @@ final class MonthlyStatsLocalDataSource {
     /// - Parameter cacheKey: 緩存 key
     /// - Returns: BaseCacheManagerTemplate 實例
     private func getOrCreateCacheManager(for cacheKey: String) -> BaseCacheManagerTemplate<[DailyStat]> {
+        cacheManagersLock.lock()
+        defer { cacheManagersLock.unlock() }
+
         if let existing = dataCacheManagers[cacheKey] {
             return existing
         }
@@ -188,5 +195,11 @@ final class MonthlyStatsLocalDataSource {
 
         dataCacheManagers[cacheKey] = manager
         return manager
+    }
+
+    private func lockedCacheManagersSnapshot() -> [BaseCacheManagerTemplate<[DailyStat]>] {
+        cacheManagersLock.lock()
+        defer { cacheManagersLock.unlock() }
+        return Array(dataCacheManagers.values)
     }
 }

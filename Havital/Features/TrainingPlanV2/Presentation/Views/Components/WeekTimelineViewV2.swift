@@ -1,11 +1,41 @@
 import SwiftUI
 
+// MARK: - WorkoutDetailDestination
+// Phase C C4: Distinguishes history record push vs planned-day push.
+// Hashable implementation uses only the stable id string for navigation identity.
+struct WorkoutDetailDestination: Identifiable, Hashable {
+    enum Kind {
+        case history(WorkoutV2)
+        case planned(DayDetail, Date?)
+    }
+
+    let id: String
+    let kind: Kind
+
+    static func history(_ workout: WorkoutV2) -> WorkoutDetailDestination {
+        WorkoutDetailDestination(id: "history-\(workout.id)", kind: .history(workout))
+    }
+
+    static func planned(_ day: DayDetail, _ date: Date?) -> WorkoutDetailDestination {
+        WorkoutDetailDestination(id: "planned-\(day.dayIndex)", kind: .planned(day, date))
+    }
+
+    static func == (lhs: WorkoutDetailDestination, rhs: WorkoutDetailDestination) -> Bool {
+        lhs.id == rhs.id
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+}
+
 /// V2 週訓練時間軸視圖 - 顯示本週所有訓練的時間軸
 /// 基於 V1 WeekTimelineView，適配 V2 ViewModel 和 WeeklyPlanV2
 struct WeekTimelineViewV2: View {
     var viewModel: TrainingPlanV2ViewModel
     let plan: WeeklyPlanV2
-    @State private var selectedWorkout: WorkoutV2?
+    /// Destination callback：由 TrainingPlanV2View 提供，把 destination 狀態上移至 NavigationStack 直接子層
+    let onDestinationSelect: (WorkoutDetailDestination) -> Void
     /// 午夜跨日觸發器：值變化時強制重繪所有 TimelineItemViewV2，修正「兩天都顯示今日」
     @State private var todayTrigger = Date()
 
@@ -30,9 +60,7 @@ struct WeekTimelineViewV2: View {
                     TimelineItemViewV2(
                         viewModel: viewModel,
                         day: day,
-                        onWorkoutSelect: { workout in
-                            selectedWorkout = workout
-                        },
+                        onDestinationSelect: onDestinationSelect,
                         todayTrigger: todayTrigger
                     )
                 }
@@ -47,11 +75,6 @@ struct WeekTimelineViewV2: View {
                 }
             )
         }
-        .sheet(item: $selectedWorkout) { workout in
-            NavigationStack {
-                WorkoutDetailViewV2(workout: workout)
-            }
-        }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
             todayTrigger = Date()
         }
@@ -59,15 +82,42 @@ struct WeekTimelineViewV2: View {
 }
 
 /// V2 時間軸單項視圖
+// MARK: - PACERIZ REDESIGN 2026-05
+// Visual enhancements to TimelineItemViewV2:
+//   1. Type accent 3pt left bar (per §3.5 G)
+//   2. Today outline upgraded to 2.0pt PacerizColor.blue (per §3.5 G)
+//   3. Planned/actual dual row display for non-rest days (per §3.5 G)
+// Phase C C4: Interaction model refactored:
+//   - Removed isExpanded toggle for non-today days
+//   - Only today shows segments inline (always expanded)
+//   - All past/future days are collapsed regardless of type (interval, supplementary, etc.)
+//   - Tap (non-today, non-rest) → push WorkoutDetailDestination (.history or .planned)
 struct TimelineItemViewV2: View {
     var viewModel: TrainingPlanV2ViewModel
     let day: DayDetail
-    let onWorkoutSelect: (WorkoutV2) -> Void
+    let onDestinationSelect: (WorkoutDetailDestination) -> Void
     let todayTrigger: Date
 
-    @State private var isExpanded = false
-    @State private var showTrainingTypeInfo = false
+    @State private var showRestDayInfo = false
+    @State private var isExpanded: Bool = false
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage("climateAdjustmentEnabled") private var climateAdjustmentEnabled = false
+
+    /// 是否有可展開的內容。
+    /// 單趟訓練（純跑步、無暖身/緩和/間歇/分段、無補充訓練）header 已含全部資訊，不需展開。
+    /// 多段/間歇跑、含暖身緩和、含補充訓練、或非跑步主項（力量/交叉）才允許展開。
+    private var canExpand: Bool {
+        guard let session = day.session else { return false }  // rest 日無展開內容
+        if case .run(let run) = session.primary {
+            let hasRunStructure = run.interval != nil
+                || (run.segments?.isEmpty == false)
+                || session.warmup != nil
+                || session.cooldown != nil
+            let hasSupplementary = (session.supplementary?.isEmpty == false)
+            return hasRunStructure || hasSupplementary
+        }
+        return true  // 力量／交叉等非跑步主項一律可展開
+    }
 
     var body: some View {
         // todayTrigger 參與 body，確保日期變化時 SwiftUI 重繪
@@ -109,224 +159,266 @@ struct TimelineItemViewV2: View {
             .frame(width: 16, height: 16)
 
             // 右側內容卡片
-            VStack(alignment: .leading, spacing: 8) {
-                Button(action: {
-                    if !isToday {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            isExpanded.toggle()
-                        }
-                    }
-                }) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        // 第一行：日期 + 訓練類型標籤 + 收折按鈕
-                        HStack(alignment: .center, spacing: 8) {
-                            // 日期
-                            HStack(spacing: 6) {
-                                Text(DateFormatterHelper.weekdayName(for: day.dayIndexInt))
-                                    .font(AppFont.bodySmall())
-                                    .fontWeight(isToday ? .semibold : .regular)
-                                    .foregroundColor(isToday ? .blue : .primary)
-
-                                if let date = viewModel.getDate(for: day.dayIndexInt) {
-                                    Text(DateFormatterHelper.formatShortDate(date))
-                                        .font(AppFont.caption())
-                                        .foregroundColor(.secondary)
-                                }
-
-                                if isToday {
-                                    Text(NSLocalizedString("training_plan.today", comment: "Today"))
-                                        .font(AppFont.caption())
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(Color.blue)
-                                        .cornerRadius(4)
-                                }
-                            }
-
-                            Spacer()
-
-                            // 訓練類型標籤
-                            if TrainingTypeInfo.info(for: day.type) != nil {
-                                Button(action: {
-                                    showTrainingTypeInfo = true
-                                }) {
-                                    Text(day.type.localizedName)
-                                        .font(AppFont.bodySmall())
-                                        .fontWeight(.medium)
-                                        .foregroundColor(getTypeColor())
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 6)
-                                        .background(getTypeColor().opacity(0.15))
-                                        .cornerRadius(8)
-                                }
-                                .buttonStyle(.borderless)
-                                .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).run_type")
+            // Bug 3: Outer HStack holds card body button + standalone chevron toggle button
+            // so chevron tap does NOT trigger card navigation.
+            HStack(alignment: .top, spacing: 0) {
+                // Card body button — date/chip/plan rows → navigation
+                VStack(alignment: .leading, spacing: 8) {
+                    Button(action: {
+                        Logger.debug("[TimelineItemViewV2] tap day=\(day.dayIndexInt) isToday=\(isToday) type=\(day.type) workouts=\(workouts.count)")
+                        if day.type == .rest {
+                            // 休息日若有補充訓練（力量），點卡片進「訓練詳情」看內容；否則彈出休息日說明。
+                            if day.effectiveSupplementary?.isEmpty == false {
+                                let date = viewModel.getDate(for: day.dayIndexInt)
+                                onDestinationSelect(.planned(day, date))
                             } else {
+                                showRestDayInfo = true
+                            }
+                        } else {
+                            // Always push planned (課表詳情) regardless of today/past/future or workout existence
+                            let date = viewModel.getDate(for: day.dayIndexInt)
+                            Logger.debug("[TimelineItemViewV2] onDestinationSelect .planned day=\(day.dayIndexInt)")
+                            onDestinationSelect(.planned(day, date))
+                        }
+
+                    }) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            // 第一行：日期 + 訓練類型標籤
+                            HStack(alignment: .center, spacing: 8) {
+                                // 日期
+                                HStack(spacing: 6) {
+                                    Text(DateFormatterHelper.weekdayName(for: day.dayIndexInt))
+                                        .font(AppFont.bodySmall())
+                                        .fontWeight(isToday ? .semibold : .regular)
+                                        .foregroundColor(isToday ? .blue : .primary)
+                                        .lineLimit(1)
+
+                                    if let date = viewModel.getDate(for: day.dayIndexInt) {
+                                        Text(DateFormatterHelper.formatShortDate(date))
+                                            .font(AppFont.caption())
+                                            .foregroundColor(.primary)
+                                    }
+
+                                    if isToday {
+                                        Text(NSLocalizedString("training_plan.today", comment: "Today"))
+                                            .font(AppFont.micro())
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(Color.blue)
+                                            .cornerRadius(4)
+                                    }
+                                }
+
+                                Spacer()
+
+                                // 訓練類型標籤
+                                // F6.c: type chip height 22pt per design jsx L827 — display only, no tap
                                 Text(day.type.localizedName)
-                                    .font(AppFont.bodySmall())
+                                    .font(AppFont.micro())
                                     .fontWeight(.medium)
                                     .foregroundColor(getTypeColor())
                                     .padding(.horizontal, 10)
-                                    .padding(.vertical, 6)
+                                    .frame(height: 22)
                                     .background(getTypeColor().opacity(0.15))
                                     .cornerRadius(8)
                                     .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).run_type")
+
+                                if climateAdjustmentEnabled, let climateMeta = day.effectiveClimateMeta {
+                                    // day card 只放溫度計圖示，詳細調整建議在課表詳情。
+                                    ClimateBadgeView(meta: climateMeta)
+                                        .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_badge")
+                                }
                             }
 
-                            if let climateMeta = day.effectiveClimateMeta {
-                                ClimateBadgeView(meta: climateMeta)
-                                    .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_badge")
-                            }
-
-                            // 展開/收起圖示
-                            if !isToday {
-                                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                                    .foregroundColor(.secondary)
-                                    .font(AppFont.bodySmall())
-                                    .frame(width: 44, height: 44)
-                                    .contentShape(Rectangle())
-                            }
-                        }
-                    }
-                }
-                .buttonStyle(PlainButtonStyle())
-
-                // 訓練內容區域（只在展開或今日時顯示）
-                if isExpanded || isToday {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Divider()
-
-                        // 訓練目標描述
-                        if !day.reason.isEmpty {
-                            Text(day.reason)
-                                .font(AppFont.caption())
-                                .foregroundColor(.secondary)
-                                .lineLimit(nil)
-                                .fixedSize(horizontal: false, vertical: true)
-                        } else {
-                            Text(day.dayTarget)
-                                .font(AppFont.caption())
-                                .foregroundColor(.secondary)
-                                .lineLimit(nil)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-
-                        if let climateMeta = day.effectiveClimateMeta {
-                            ClimateAdjustmentDetailView(day: day, meta: climateMeta)
-                                .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_detail")
-                        }
-
-                        // 訓練詳情
-                        if day.session != nil {
-                            TrainingDetailsViewV2(day: day)
-                        }
-
-                        // 已完成的訓練記錄
-                        if !workouts.isEmpty {
-                            Divider()
-                                .padding(.vertical, 4)
-
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(NSLocalizedString("training.completed_workouts", comment: "Completed Workouts"))
-                                    .font(AppFont.captionSmall())
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.green)
-                                    .padding(.bottom, 2)
-
-                                ForEach(workouts.prefix(2), id: \.id) { workout in
-                                    Button {
-                                        onWorkoutSelect(workout)
-                                    } label: {
-                                        HStack {
-                                            Image(systemName: "figure.run")
-                                                .foregroundColor(.green)
-                                                .font(AppFont.captionSmall())
-
-                                            let rawDistVal = workout.distanceDisplay ?? (workout.distance ?? 0.0) / 1000.0
-                                            let distVal = workout.distanceUnit != nil ? rawDistVal : UnitManager.shared.convertedDistance(rawDistVal)
-                                            let distUnit = workout.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
-                                            Text(String(format: "%.2f \(distUnit)", distVal))
-                                                .font(AppFont.caption())
-                                                .foregroundColor(.primary)
-
-                                            Text("·")
-                                                .foregroundColor(.secondary)
-
-                                            Text(formatDuration(workout.duration))
-                                                .font(AppFont.caption())
-                                                .foregroundColor(.secondary)
-
-                                            Spacer()
-                                        }
-                                        .padding(.vertical, 2)
+                            // PACERIZ REDESIGN 2026-05: 課表/實際雙行（§3.5 G）
+                            // Always show for non-rest days; actual row only when workouts exist.
+                            // F6.c: rest day shows 「主動恢復日」in collapsed state per design jsx L823
+                            if day.type == .rest {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(NSLocalizedString("training_plan.active_recovery_day", comment: "主動恢復日"))
+                                        .font(AppFont.micro())
+                                        .foregroundColor(.secondary)
+                                    // 休息日的補充訓練（力量）指示：點卡片可進詳情看動作。
+                                    if let supp = day.effectiveSupplementary, !supp.isEmpty {
+                                        supplementaryIndicatorRow(supp)
                                     }
-                                    .buttonStyle(PlainButtonStyle())
+                                    // 休息日當天若有實際運動紀錄仍要顯示，原本被 rest 分支整段吃掉。
+                                    if let workout = workouts.first {
+                                        actualWorkoutRow(workout)
+                                    }
                                 }
+                            } else {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    // 計畫 row (always show for non-rest)
+                                    if let run = day.primaryRunActivity {
+                                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                                            Text(NSLocalizedString("training.timeline.plan_label", comment: ""))
+                                                .font(AppFont.micro())
+                                                .tracking(0.4)
+                                                .foregroundColor(.secondary)
+                                                .textCase(.uppercase)
+                                                .frame(width: 40, alignment: .leading)
 
-                                if workouts.count > 2 {
-                                    Text("+ \(workouts.count - 2) " + NSLocalizedString("training.more_workouts", comment: "more"))
-                                        .font(AppFont.captionSmall())
-                                        .foregroundColor(.blue)
+                                            let plannedDistStr = run.distanceKm.map { String(format: "%.1f \(UnitManager.shared.currentUnitSystem.distanceSuffix)", UnitManager.shared.convertedDistance($0)) } ?? ""
+                                            // 輕鬆跑：拿掉時間，課表只顯示距離（時間對輕鬆跑無意義，依配速/體感跑）。
+                                            let isEasyType = day.type == .easyRun || day.type == .easy || day.type == .recovery_run
+                                            let plannedDurStr = isEasyType ? "" : formatPlannedDuration(minutes: run.durationMinutes, seconds: run.durationSeconds)
+                                            let planParts = [plannedDistStr, plannedDurStr].filter { !$0.isEmpty }
+                                            Text(planParts.joined(separator: " · "))
+                                                .font(AppFont.micro().monospacedDigit())
+                                                .foregroundColor(.secondary)
+
+                                            // 輕鬆跑／長距離輕鬆跑依心率區間跑 → 課表顯示目標心率
+                                            let showHR = day.type == .easyRun || day.type == .easy || day.type == .recovery_run || day.type == .lsd
+                                            if showHR, let hr = run.heartRateRange, hr.isValid, let hrText = hr.displayText {
+                                                Text("·").font(AppFont.micro()).foregroundColor(.secondary)
+                                                Image(systemName: "heart.fill")
+                                                    .font(.system(size: 9))
+                                                    .foregroundColor(.pink.opacity(0.75))
+                                                Text(hrText)
+                                                    .font(AppFont.micro().monospacedDigit())
+                                                    .foregroundColor(.secondary)
+                                            }
+                                        }
+                                    }
+
+                                    // 實際 row (only when workouts exist)
+                                    if let workout = workouts.first {
+                                        actualWorkoutRow(workout)
+                                    }
                                 }
                             }
                         }
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .contentShape(Rectangle())
+
+                    // 訓練內容區域
+                    // 單趟訓練不展開（canExpand=false）：今日 always-expanded 與 chevron 都跳過。
+                    // 多段/間歇/含補充訓練/非跑步主項才展開。
+                    if (isToday || isExpanded) && canExpand {
+                        VStack(alignment: .leading, spacing: 8) {
+
+                            // PACERIZ REDESIGN 2026-05: 訓練詳情移至前，使用 RedesignedSegmentsView（run）或原 TrainingDetailsViewV2（非 run）
+                            if day.session != nil {
+                                if day.primaryRunActivity != nil {
+                                    RedesignedSegmentsView(day: day)
+                                    // RedesignedSegmentsView 只畫跑步段落；補充訓練（力量/交叉）另外補上。
+                                    if let supplementary = day.session?.supplementary, !supplementary.isEmpty {
+                                        SupplementaryTrainingView(activities: supplementary)
+                                    }
+                                } else {
+                                    TrainingDetailsViewV2(day: day)
+                                }
+                            }
+
+                            if climateAdjustmentEnabled, let climateMeta = day.effectiveClimateMeta {
+                                ClimateAdjustmentDetailView(day: day, meta: climateMeta)
+                                    .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_detail")
+                            }
+
+                            // 已完成的訓練記錄 (only shown in today's always-expanded card)
+                            if isToday && !workouts.isEmpty {
+                                Divider()
+                                    .padding(.vertical, 4)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(NSLocalizedString("training.completed_workouts", comment: "Completed Workouts"))
+                                        .font(AppFont.captionSmall())
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(.green)
+                                        .padding(.bottom, 2)
+
+                                    ForEach(workouts.prefix(2), id: \.id) { workout in
+                                        Button {
+                                            onDestinationSelect(WorkoutDetailDestination.history(workout))
+                                        } label: {
+                                            HStack {
+                                                Image(systemName: "figure.run")
+                                                    .foregroundColor(.green)
+                                                    .font(AppFont.captionSmall())
+
+                                                let rawDistVal = workout.distanceDisplay ?? (workout.distance ?? 0.0) / 1000.0
+                                                let distVal = workout.distanceUnit != nil ? rawDistVal : UnitManager.shared.convertedDistance(rawDistVal)
+                                                let distUnit = workout.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
+                                                Text(String(format: "%.2f \(distUnit)", distVal))
+                                                    .font(AppFont.caption())
+                                                    .foregroundColor(.primary)
+
+                                                Text("·")
+                                                    .foregroundColor(.secondary)
+
+                                                Text(formatDuration(workout.duration))
+                                                    .font(AppFont.caption())
+                                                    .foregroundColor(.secondary)
+
+                                                Spacer()
+                                            }
+                                            .padding(.vertical, 2)
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                    }
+
+                                    if workouts.count > 2 {
+                                        Text("+ \(workouts.count - 2) " + NSLocalizedString("training.more_workouts", comment: "more"))
+                                            .font(AppFont.captionSmall())
+                                            .foregroundColor(.blue)
+                                    }
+                                }
+                            }
+
+                        }
+                        .animation(.easeInOut(duration: 0.2), value: isExpanded)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                // 折疊時也顯示已完成訓練
-                if !isExpanded && !isToday && !workouts.isEmpty {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Divider()
-                            .padding(.vertical, 4)
-
-                        ForEach(workouts.prefix(2), id: \.id) { workout in
-                            Button {
-                                onWorkoutSelect(workout)
-                            } label: {
-                                HStack {
-                                    Image(systemName: "figure.run")
-                                        .foregroundColor(.green)
-                                        .font(AppFont.captionSmall())
-
-                                    let rawDistVal = workout.distanceDisplay ?? (workout.distance ?? 0.0) / 1000.0
-                                    let distVal = workout.distanceUnit != nil ? rawDistVal : UnitManager.shared.convertedDistance(rawDistVal)
-                                    let distUnit = workout.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
-                                    Text(String(format: "%.2f \(distUnit)", distVal))
-                                        .font(AppFont.caption())
-                                        .foregroundColor(.primary)
-
-                                    Text("·")
-                                        .foregroundColor(.secondary)
-
-                                    Text(formatDuration(workout.duration))
-                                        .font(AppFont.caption())
-                                        .foregroundColor(.secondary)
-
-                                    Spacer()
-                                }
-                            }
-                            .buttonStyle(PlainButtonStyle())
+                // Bug 3: Standalone chevron toggle button — only for non-today, non-rest days.
+                // 單趟訓練（canExpand=false）不顯示展開箭頭，點卡片直接進課表詳情。
+                // Placed OUTSIDE the card body VStack so its tap does NOT trigger card navigation.
+                // chevron.right = collapsed, chevron.down = expanded; 44pt hit target per HIG.
+                if !isToday && day.type != .rest && canExpand {
+                    Button(action: {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            isExpanded.toggle()
                         }
-
-                        if workouts.count > 2 {
-                            Text("+ \(workouts.count - 2) " + NSLocalizedString("training.more_workouts", comment: "more"))
-                                .font(AppFont.captionSmall())
-                                .foregroundColor(.blue)
-                        }
+                        Logger.debug("[TimelineItemViewV2] chevron toggle day=\(day.dayIndexInt) isExpanded=\(isExpanded)")
+                    }) {
+                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                            .foregroundColor(.secondary)
+                            .font(AppFont.bodySmall())
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
                     }
+                    .buttonStyle(PlainButtonStyle())
+                    .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).chevron_toggle")
                 }
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 10)
+            .padding(.vertical, 12)
             .background(
-                RoundedRectangle(cornerRadius: 10)
+                RoundedRectangle(cornerRadius: PacerizRadius.card)
                     .fill(getCardBackgroundColor(isToday: isToday, isCompleted: isCompleted))
             )
+            // PACERIZ REDESIGN 2026-05: today outline upgraded to 2.0pt PacerizColor.blue (§3.5 G)
             .overlay(
-                RoundedRectangle(cornerRadius: 10)
-                    .strokeBorder(getCardBorderColor(isToday: isToday, isCompleted: isCompleted, isPast: isPast), lineWidth: isToday ? 1.5 : 1.0)
+                RoundedRectangle(cornerRadius: PacerizRadius.card)
+                    .strokeBorder(
+                        isToday ? PacerizColor.blue : getCardBorderColor(isToday: false, isCompleted: isCompleted, isPast: isPast),
+                        lineWidth: isToday ? 2.0 : 1.0
+                    )
             )
+            // PACERIZ REDESIGN 2026-05: type accent 3pt left bar (§3.5 G); hidden for rest days
+            .overlay(alignment: .leading) {
+                if day.type != .rest {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(getTypeColor())
+                        .frame(width: 3)
+                        .padding(.vertical, 8)
+                }
+            }
             .shadow(
                 color: getShadowColor(isToday: isToday, isCompleted: isCompleted),
                 radius: isToday ? 8 : 3,
@@ -335,14 +427,61 @@ struct TimelineItemViewV2: View {
             )
             .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).card")
         }
-        .sheet(isPresented: $showTrainingTypeInfo) {
-            if let trainingTypeInfo = TrainingTypeInfo.info(for: day.type) {
-                TrainingTypeInfoView(trainingTypeInfo: trainingTypeInfo)
-            }
+        .sheet(isPresented: $showRestDayInfo) {
+            RestDayInfoSheet()
         }
     }
 
     // MARK: - Helper Functions
+
+    // 實際運動紀錄行：休息日與訓練日共用，確保任何一天只要有實際紀錄都會顯示。
+    @ViewBuilder
+    private func actualWorkoutRow(_ workout: WorkoutV2) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(NSLocalizedString("training.timeline.actual_label", comment: ""))
+                .font(AppFont.micro())
+                .tracking(0.4)
+                .foregroundColor(PacerizColor.greenDeep)
+                .textCase(.uppercase)
+                .frame(width: 40, alignment: .leading)
+
+            let rawDistVal = workout.distanceDisplay ?? (workout.distance ?? 0.0) / 1000.0
+            let distVal = workout.distanceUnit != nil ? rawDistVal : UnitManager.shared.convertedDistance(rawDistVal)
+            let distUnit = workout.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
+            // 有距離才顯示距離（力量／瑜珈等無距離項目只顯示時間）。
+            let actualDurStr = formatDuration(workout.duration)
+            let actualText = distVal > 0
+                ? "\(String(format: "%.2f \(distUnit)", distVal)) · \(actualDurStr)"
+                : actualDurStr
+            Text(actualText)
+                .font(AppFont.micro().monospacedDigit())
+                .foregroundColor(.primary)
+        }
+    }
+
+    // 休息日補充訓練指示：啞鈴 + 「補充訓練 · N 動作」，點卡片可進詳情。
+    @ViewBuilder
+    private func supplementaryIndicatorRow(_ activities: [SupplementaryActivity]) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Image(systemName: "dumbbell.fill")
+                .font(.system(size: 9))
+                .foregroundColor(PacerizColor.indigo)
+            Text(supplementarySummaryText(activities))
+                .font(AppFont.micro())
+                .foregroundColor(PacerizColor.indigo)
+        }
+    }
+
+    private func supplementarySummaryText(_ activities: [SupplementaryActivity]) -> String {
+        let label = NSLocalizedString("training.supplementary", comment: "Supplementary Training")
+        for activity in activities {
+            if case .strength(let s) = activity, !s.exercises.isEmpty {
+                let unit = NSLocalizedString("training.exercises_count_unit", comment: "")
+                return "\(label) · \(s.exercises.count) \(unit)"
+            }
+        }
+        return label
+    }
 
     private func getStatusColor(isCompleted: Bool, isToday: Bool, isPast: Bool) -> Color {
         if isCompleted {
@@ -357,28 +496,30 @@ struct TimelineItemViewV2: View {
     }
 
     private func getTypeColor() -> Color {
+        // 非跑步主項（力量／交叉訓練）統一用 indigo，與跑步色系區隔。
+        if day.type != .rest, day.primaryRunActivity == nil {
+            return PacerizColor.indigo
+        }
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return .mint
-        case .interval, .tempo, .progression, .threshold, .combination, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800:
+        case .interval, .tempo, .progression, .threshold, .combination, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .norwegianSingles, .yasso800:
             return .orange
         case .longRun, .hiking, .cycling, .fastFinish:
             return .blue
         case .race, .racePace:
             return .red
         case .rest:
-            return .gray
+            // Use adaptive systemGray so rest chip is visible in both light and dark mode
+            return Color(.systemGray)
         case .crossTraining, .strength, .fartlek, .swimming, .elliptical, .rowing:
             return .purple
         }
     }
 
+    // F6.b: today no longer gets blue background — only 2pt blue outline distinguishes today
     private func getCardBackgroundColor(isToday: Bool, isCompleted: Bool) -> Color {
-        if isToday {
-            return colorScheme == .dark ? Color.blue.opacity(0.2) : Color.blue.opacity(0.08)
-        } else {
-            return Color(.secondarySystemGroupedBackground)
-        }
+        return Color(.secondarySystemGroupedBackground)
     }
 
     private func getCardBorderColor(isToday: Bool, isCompleted: Bool, isPast: Bool) -> Color {
@@ -410,6 +551,20 @@ struct TimelineItemViewV2: View {
             return String(format: "%d:%02d:%02d", hours, minutes, seconds)
         } else {
             return String(format: "%d:%02d", minutes, seconds)
+        }
+    }
+
+    // PACERIZ REDESIGN 2026-05: helper for planned duration display in 課表 row (§3.5 G)
+    private func formatPlannedDuration(minutes: Int?, seconds: Int?) -> String {
+        let totalSec = (minutes ?? 0) * 60 + (seconds ?? 0)
+        guard totalSec > 0 else { return "" }
+        let h = totalSec / 3600
+        let m = (totalSec % 3600) / 60
+        let s = totalSec % 60
+        if h > 0 {
+            return String(format: "%d:%02d:%02d", h, m, s)
+        } else {
+            return String(format: "%d:%02d", m, s)
         }
     }
 }
@@ -859,23 +1014,32 @@ private struct SegmentsView: View {
     }
 }
 
+/// 把「6:45」/「7:11/km」配速字串轉為秒數（忽略單位後綴）。
+func paceStringToSeconds(_ pace: String) -> Int? {
+    let core = pace.split(separator: "/").first.map(String.init) ?? pace
+    let parts = core.trimmingCharacters(in: .whitespaces).split(separator: ":")
+    guard parts.count == 2, let m = Int(parts[0]), let s = Int(parts[1]) else { return nil }
+    return m * 60 + s
+}
+
+/// 秒數轉「m:ss」配速字串。
+func secondsToPaceString(_ seconds: Int) -> String {
+    let m = seconds / 60
+    let s = seconds % 60
+    return String(format: "%d:%02d", m, s)
+}
+
+/// day card 上的氣候徽章 —— 只放溫度計圖示（依等級上色），詳細調整建議在課表詳情。
 private struct ClimateBadgeView: View {
     let meta: ClimateMeta
 
     var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: "thermometer.medium")
-                .font(AppFont.captionSmall())
-            Text(meta.badgeLabel)
-                .font(AppFont.caption())
-                .fontWeight(.semibold)
-                .lineLimit(1)
-        }
-        .foregroundColor(meta.badgeForegroundColor)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
-        .background(meta.badgeBackgroundColor)
-        .clipShape(Capsule())
+        Image(systemName: "thermometer.medium")
+            .font(.system(size: 11, weight: .bold))
+            .foregroundColor(meta.badgeForegroundColor)
+            .frame(width: 24, height: 24)
+            .background(meta.badgeBackgroundColor)
+            .clipShape(Circle())
     }
 }
 
@@ -885,6 +1049,15 @@ private struct ClimateAdjustmentDetailView: View {
 
     private var runActivity: RunActivity? {
         day.primaryRunActivity
+    }
+
+    /// 分段型課表逐段「原 → 今日」配速（後端不給分段調整，app 端補算）。
+    private var segmentAdjustedRows: [(title: String, base: String, adjusted: String)] {
+        guard let segs = runActivity?.segments, segs.count > 1 else { return [] }
+        return segs.enumerated().compactMap { idx, seg in
+            guard let p = seg.pace, let adj = meta.climateAdjustedPace(forBasePace: p) else { return nil }
+            return (seg.description ?? "段 \(idx + 1)", p, adj)
+        }
     }
 
     var body: some View {
@@ -916,10 +1089,14 @@ private struct ClimateAdjustmentDetailView: View {
                     ClimateValueChip(title: meta.originalPaceTitle, value: basePace)
                     ClimateValueChip(title: meta.adjustedPaceTitle, value: adjustedPace)
                 }
-            } else if runActivity?.segments?.contains(where: { $0.climateAdjustedPace != nil }) == true {
-                Text(meta.segmentAdjustmentSummary)
-                    .font(AppFont.caption())
-                    .foregroundColor(.secondary)
+            } else if !segmentAdjustedRows.isEmpty {
+                // 分段型課表：逐段顯示「原 → 今日」。
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(segmentAdjustedRows.indices, id: \.self) { i in
+                        let row = segmentAdjustedRows[i]
+                        ClimateValueChip(title: row.title, value: "\(row.base) → \(row.adjusted)")
+                    }
+                }
             }
 
             if let reduction = meta.longRunReductionText {
@@ -967,16 +1144,99 @@ private struct ClimateValueChip: View {
 }
 
 @MainActor
-private extension ClimateMeta {
+extension ClimateMeta {
     var currentLanguage: SupportedLanguage {
         LanguageManager.shared.currentLanguage
     }
 
-    var badgeLabel: String {
-        if let adjustmentText {
-            return "\(shortLevelDisplayText) \(adjustmentText)"
+    /// 熱適應「為什麼調整」的說明（課表詳情用）。多語。
+    var heatAdaptationExplanation: String {
+        switch currentLanguage {
+        case .traditionalChinese:
+            return "高溫濕熱會讓心率上升、同樣配速感覺更累——這是正常生理反應，不是退步。系統已依今日體感溫度把配速目標放寬，讓你用對的強度安全完成這次訓練。"
+        case .english:
+            return "Heat and humidity raise your heart rate and make the same pace feel harder — that's a normal physiological response, not a loss of fitness. Today's pace target has been eased based on the feels-like temperature so you can finish this session safely at the right effort."
+        case .japanese:
+            return "高温多湿は心拍数を上げ、同じペースでもよりきつく感じます。これは正常な生理反応で、走力の低下ではありません。本日の体感温度に合わせてペース目標を緩めてあるので、適切な強度で安全に完了できます。"
         }
-        return shortLevelDisplayText
+    }
+
+    /// 建議訓練時段／室內（依等級，對齊 SPEC-climate-engine 附錄 A 建議時段）。多語。
+    var trainingTimeRecommendation: String {
+        switch currentLanguage {
+        case .traditionalChinese:
+            switch normalizedHeatPressureLevel {
+            case "danger":
+                return "強烈建議改到室內（跑步機／交叉訓練）或改期；若一定要戶外，請選最涼的清晨或入夜後，務必大幅放慢、縮短距離並隨時補水。"
+            case "high":
+                return "建議在清晨或傍晚較涼時段進行，避開 11:00–15:00 高溫；長跑可縮短 20–30%，或改到室內。"
+            case "moderate":
+                return "避開 11:00–15:00 最熱時段，長跑改到清晨；訓練全程注意補水。"
+            default:
+                return "天氣偏熱，建議清晨或傍晚較舒適時段訓練，並記得補充水分。"
+            }
+        case .english:
+            switch normalizedHeatPressureLevel {
+            case "danger":
+                return "Strongly consider moving indoors (treadmill / cross-training) or rescheduling. If you must go outside, pick the coolest early morning or after dark, slow down significantly, shorten the distance, and hydrate constantly."
+            case "high":
+                return "Train in the cooler early morning or evening and avoid 11:00–15:00. Shorten long runs by 20–30%, or move them indoors."
+            case "moderate":
+                return "Avoid the hottest 11:00–15:00 window and move long runs to early morning. Hydrate throughout."
+            default:
+                return "It's warm — train in the cooler early morning or evening and remember to hydrate."
+            }
+        case .japanese:
+            switch normalizedHeatPressureLevel {
+            case "danger":
+                return "室内（トレッドミル／クロストレーニング）への変更か日程の延期を強く推奨します。屋外で行う場合は最も涼しい早朝か夜間を選び、大幅にペースを落とし、距離を短くし、こまめに水分補給してください。"
+            case "high":
+                return "涼しい早朝か夕方に行い、11:00〜15:00は避けてください。ロング走は20〜30%短縮するか、屋内に変更しましょう。"
+            case "moderate":
+                return "最も暑い11:00〜15:00を避け、ロング走は早朝へ。トレーニング中はこまめに水分補給を。"
+            default:
+                return "暑めです。涼しい早朝か夕方に行い、水分補給を忘れずに。"
+            }
+        }
+    }
+
+    /// 建議時段標題。多語。
+    var recommendationTitle: String {
+        switch currentLanguage {
+        case .traditionalChinese: return "建議時段"
+        case .english: return "When to train"
+        case .japanese: return "おすすめの時間帯"
+        }
+    }
+
+    var isDangerLevel: Bool { normalizedHeatPressureLevel == "danger" }
+
+    /// 危險級「若仍要戶外」的最低放慢量（秒/km）。
+    /// 依據：knowledge_base/09_environmental_adaptation 高熱(30-34°C)=放慢 30–60 秒/km（一個配速等級），
+    /// 危險(>34°C) 至少不低於此，故取 60 秒/km 為下限。
+    var dangerOutdoorMinSlowdownSeconds: Int { 60 }
+
+    /// app 端依本日體感調整百分比，從原始配速補算熱調整後配速。
+    /// 後端只對單一配速跑與間歇 work_pace 套用，分段型課表（progression/fast_finish/combination）
+    /// 後端不給 climate_adjusted_pace，由 app 在溫度補償卡逐段補算（公式對齊後端 l5_response_builder）。
+    func climateAdjustedPace(forBasePace basePace: String) -> String? {
+        guard let baseSec = paceStringToSeconds(basePace) else { return nil }
+        if normalizedHeatPressureLevel == "danger" {
+            // 危險級後端常不給百分比：至少放慢一個配速等級。
+            return "\(secondsToPaceString(baseSec + dangerOutdoorMinSlowdownSeconds))+"
+        }
+        let pct = paceAdjustmentPct ?? 0
+        guard pct > 0 else { return nil }
+        return secondsToPaceString(Int((Double(baseSec) * (1 + pct / 100)).rounded()))
+    }
+
+    /// 危險級標題：若仍要戶外的配速建議。多語。
+    var dangerOutdoorPaceTitle: String {
+        switch currentLanguage {
+        case .traditionalChinese: return "若仍戶外"
+        case .english: return "If outdoors"
+        case .japanese: return "屋外なら"
+        }
     }
 
     var badgeAccentColor: Color {
@@ -1114,7 +1374,8 @@ private extension ClimateMeta {
     }
 
     var adjustmentText: String? {
-        if let paceAdjustmentPct {
+        // 危險級（≥36°C）依 SPEC 不給百分比；修正幅度四捨五入為 0 也不顯示（避免「配速 +0%」）。
+        if let paceAdjustmentPct, paceAdjustmentPct.rounded() != 0 {
             switch currentLanguage {
             case .traditionalChinese:
                 return String(format: "配速 +%.0f%%", paceAdjustmentPct)
@@ -1124,7 +1385,7 @@ private extension ClimateMeta {
                 return String(format: "ペース +%.0f%%", paceAdjustmentPct)
             }
         }
-        if let longRunReductionPct {
+        if let longRunReductionPct, longRunReductionPct.rounded() != 0 {
             switch currentLanguage {
             case .traditionalChinese:
                 return String(format: "縮量 %.0f%%", longRunReductionPct)
@@ -1173,21 +1434,21 @@ private struct StrengthContentView: View {
                     Text(strengthTypeDisplayName(activity.strengthType))
                         .font(AppFont.bodySmall())
                         .fontWeight(.semibold)
-                        .foregroundColor(.purple)
+                        .foregroundColor(PacerizColor.indigo)
                 }
                 if !activity.exercises.isEmpty {
                     Text("·").font(AppFont.caption()).foregroundColor(.secondary)
                     Text("\(activity.exercises.count) \(NSLocalizedString("training.exercises_count_unit", comment: "exercises"))")
                         .font(AppFont.bodySmall())
                         .fontWeight(.semibold)
-                        .foregroundColor(.purple)
+                        .foregroundColor(PacerizColor.indigo)
                 }
                 if let mins = activity.durationMinutes {
                     Text("·").font(AppFont.caption()).foregroundColor(.secondary)
                     Text("\(mins) \(NSLocalizedString("training.minutes_unit", comment: "min"))")
                         .font(AppFont.bodySmall())
                         .fontWeight(.semibold)
-                        .foregroundColor(.purple)
+                        .foregroundColor(PacerizColor.indigo)
                 }
                 Spacer()
             }
@@ -1268,6 +1529,318 @@ private struct MainActivityView: View {
         case .cross(let crossActivity):
             CrossContentView(activity: crossActivity)
         }
+    }
+}
+
+// MARK: - PACERIZ REDESIGN 2026-05 — Flat segments renderer (today inline only, not used by WorkoutDetail screen)
+
+/// 統一 pill row 樣式的 segments 視圖，僅用於今日 inline 展開場景。
+/// 只處理 run activity；force/cross 仍走 TrainingDetailsViewV2。
+private struct RedesignedSegmentsView: View {
+    let day: DayDetail
+
+    private struct FlatSegment {
+        let label: String
+        let detail: String
+        let subDetail: String?
+        let reps: String?
+        let accent: Color
+
+        init(label: String, detail: String, subDetail: String? = nil, reps: String? = nil, accent: Color) {
+            self.label = label
+            self.detail = detail
+            self.subDetail = subDetail
+            self.reps = reps
+            self.accent = accent
+        }
+    }
+
+    private func emojiPrefix(for role: String) -> String {
+        switch role {
+        case "warmup": return "🔥"
+        case "cooldown": return "🌀"
+        case "recovery": return "💨"
+        default: return "⚡"
+        }
+    }
+
+    /// 分段語意化標籤，對齊 PlannedSessionDetailView.segmentLabel，確保 day card 與詳情頁一致。
+    private func segmentLabel(index: Int, total: Int) -> String {
+        switch (total, index) {
+        case (3, 0): return NSLocalizedString("training.segment.easy_pace", comment: "")
+        case (3, 1): return NSLocalizedString("training.segment.tempo_pace", comment: "")
+        case (3, 2): return NSLocalizedString("training.segment.accelerate", comment: "")
+        case (2, 0): return NSLocalizedString("training.type.easy", comment: "")
+        case (2, 1): return NSLocalizedString("training.segment.tempo_finish", comment: "")
+        default: return String(format: NSLocalizedString("training.segment_n", comment: ""), index + 1)
+        }
+    }
+
+    private func buildSegments() -> [FlatSegment] {
+        guard let session = day.session,
+              case .run(let run) = session.primary else { return [] }
+
+        var result: [FlatSegment] = []
+
+        // 暖身
+        if let warmup = session.warmup {
+            let distStr: String
+            if let km = warmup.distanceKm {
+                let val = UnitManager.shared.convertedDistance(km)
+                distStr = String(format: "%.1f \(UnitManager.shared.currentUnitSystem.distanceSuffix)", val)
+            } else if let m = warmup.distanceM {
+                distStr = "\(m)m"
+            } else {
+                distStr = ""
+            }
+            let paceStr = warmup.effectivePace ?? ""
+            let parts = [distStr, paceStr].filter { !$0.isEmpty }
+            result.append(FlatSegment(
+                label: "\(emojiPrefix(for: "warmup")) 暖身",
+                detail: parts.joined(separator: " · "),
+                reps: nil,
+                accent: .orange
+            ))
+        }
+
+        // 主活動
+        if let interval = run.interval {
+            // F12: 間歇訓練合併成一個 row（衝刺 + 恢復），顯示趟數
+            let variantName: String
+            switch (interval.variant ?? run.runType).lowercased() {
+            case "strides": variantName = "加速跑"
+            case "hill_repeats": variantName = "坡度間歇"
+            case "cruise_intervals": variantName = "節奏間歇"
+            case "norwegian_4x4": variantName = "4x4間歇"
+            case "yasso_800": variantName = "800m間歇"
+            default: variantName = "衝刺"
+            }
+
+            // 主行：工作距離 @ 配速
+            var workParts: [String] = []
+            if let m = interval.workDistanceM {
+                workParts.append("\(m)m")
+            } else if let km = interval.workDistanceKm {
+                workParts.append(String(format: "%.1fkm", km))
+            }
+            if let pace = interval.workPace {
+                workParts.append("@ \(pace)")
+            }
+            let workDetail = workParts.joined(separator: " ")
+
+            // 副行：恢復資訊
+            let hasRecoveryInfo = interval.recoveryDistanceKm != nil
+                || interval.recoveryDistanceM != nil
+                || interval.recoveryPace != nil
+                || interval.recoveryDurationMinutes != nil
+                || interval.recoveryDurationSeconds != nil
+                || interval.recoveryDescription != nil
+            let recoverySubDetail: String?
+            if hasRecoveryInfo {
+                var recoveryParts: [String] = ["恢復"]
+                if let km = interval.recoveryDistanceKm {
+                    recoveryParts.append(String(format: "%.1fkm", km))
+                } else if let m = interval.recoveryDistanceM {
+                    recoveryParts.append("\(m)m")
+                }
+                if let pace = interval.recoveryPace {
+                    recoveryParts.append("@ \(pace)/km")
+                }
+                if let min = interval.recoveryDurationMinutes {
+                    recoveryParts.append("\(min)min")
+                } else if let sec = interval.recoveryDurationSeconds {
+                    recoveryParts.append("\(sec)s")
+                }
+                if recoveryParts.count == 1 {
+                    recoveryParts.append(interval.recoveryDescription ?? NSLocalizedString("training.interval.rest", comment: "Rest"))
+                }
+                recoverySubDetail = recoveryParts.joined(separator: " ")
+            } else {
+                recoverySubDetail = nil
+            }
+
+            result.append(FlatSegment(
+                label: "⚡ \(variantName) + 恢復",
+                detail: workDetail,
+                subDetail: recoverySubDetail,
+                reps: "× \(interval.repeats) 趟",
+                accent: .orange
+            ))
+        } else if let segs = run.segments, !segs.isEmpty {
+            // 分段跑（progression / combination）
+            // 分段跑（progression / fast_finish / combination）：segments 是主課表結構，
+            // 用語意化標籤（輕鬆／節奏收尾…），勿以位置硬套暖身/緩和——真正的暖身緩和在 session.warmup/cooldown。
+            for (idx, seg) in segs.enumerated() {
+                let distStr: String
+                if let display = seg.distanceDisplay {
+                    let unit = seg.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
+                    let val = seg.distanceUnit != nil ? display : UnitManager.shared.convertedDistance(display)
+                    distStr = String(format: "%.1f\(unit)", val)
+                } else if let km = seg.distanceKm {
+                    let val = UnitManager.shared.convertedDistance(km)
+                    distStr = String(format: "%.1f\(UnitManager.shared.currentUnitSystem.distanceSuffix)", val)
+                } else if let m = seg.distanceM {
+                    distStr = "\(m)m"
+                } else {
+                    distStr = ""
+                }
+                let paceStr = seg.effectivePace ?? ""
+                let parts = [distStr, paceStr].filter { !$0.isEmpty }
+                result.append(FlatSegment(
+                    label: "\(emojiPrefix(for: "main")) \(segmentLabel(index: idx, total: segs.count))",
+                    detail: parts.joined(separator: " · "),
+                    reps: nil,
+                    accent: idx == segs.count - 1 ? .red : .blue
+                ))
+            }
+        } else {
+            // 簡單跑
+            let distStr: String
+            if let display = run.distanceDisplay {
+                let unit = run.distanceUnit ?? UnitManager.shared.currentUnitSystem.distanceSuffix
+                let val = run.distanceUnit != nil ? display : UnitManager.shared.convertedDistance(display)
+                distStr = String(format: "%.1f \(unit)", val)
+            } else if let km = run.distanceKm {
+                let val = UnitManager.shared.convertedDistance(km)
+                distStr = String(format: "%.1f \(UnitManager.shared.currentUnitSystem.distanceSuffix)", val)
+            } else {
+                distStr = ""
+            }
+            let paceStr = run.effectivePace ?? ""
+            let parts = [distStr, paceStr].filter { !$0.isEmpty }
+            result.append(FlatSegment(
+                label: "\(emojiPrefix(for: "main")) \(run.runType)",
+                detail: parts.joined(separator: " · "),
+                reps: nil,
+                accent: .blue
+            ))
+        }
+
+        // 緩和
+        if let cooldown = session.cooldown {
+            let distStr: String
+            if let km = cooldown.distanceKm {
+                let val = UnitManager.shared.convertedDistance(km)
+                distStr = String(format: "%.1f \(UnitManager.shared.currentUnitSystem.distanceSuffix)", val)
+            } else if let m = cooldown.distanceM {
+                distStr = "\(m)m"
+            } else {
+                distStr = ""
+            }
+            let paceStr = cooldown.effectivePace ?? ""
+            let parts = [distStr, paceStr].filter { !$0.isEmpty }
+            result.append(FlatSegment(
+                label: "\(emojiPrefix(for: "cooldown")) 緩和",
+                detail: parts.joined(separator: " · "),
+                reps: nil,
+                accent: .mint
+            ))
+        }
+
+        return result
+    }
+
+    var body: some View {
+        let segments = buildSegments()
+        // 單段 workout 不渲染（資訊與 card header 重複）
+        if segments.count > 1 {
+            VStack(spacing: 8) {
+                ForEach(segments.indices, id: \.self) { idx in
+                    let seg = segments[idx]
+                    HStack(spacing: 10) {
+                        Rectangle()
+                            .fill(seg.accent.opacity(0.7))
+                            .frame(width: 4)
+                            .clipShape(Capsule())
+
+                        if seg.subDetail != nil {
+                            // F12: 2 行版型（有 subDetail 時使用）
+                            VStack(alignment: .leading, spacing: 3) {
+                                HStack {
+                                    Text(seg.label)
+                                        .font(AppFont.bodyStrong())
+                                        .foregroundColor(.primary)
+                                    Spacer()
+                                    if let reps = seg.reps {
+                                        Text(reps)
+                                            .font(AppFont.micro())
+                                            .foregroundColor(.primary)
+                                    }
+                                }
+                                HStack(spacing: 4) {
+                                    if !seg.detail.isEmpty {
+                                        Text(seg.detail)
+                                            .font(AppFont.micro().monospacedDigit())
+                                            .foregroundColor(.secondary)
+                                    }
+                                    if let sub = seg.subDetail {
+                                        if !seg.detail.isEmpty {
+                                            Text("·")
+                                                .font(AppFont.micro())
+                                                .foregroundColor(.secondary)
+                                        }
+                                        Text(sub)
+                                            .font(AppFont.micro())
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                }
+                            }
+                        } else {
+                            // 單行版型（原有）
+                            Text(seg.label)
+                                .font(AppFont.bodyStrong())
+                                .foregroundColor(.primary)
+                                .frame(minWidth: 64, alignment: .leading)
+                            Text(seg.detail)
+                                .font(AppFont.micro().monospacedDigit())
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            if let reps = seg.reps {
+                                Text(reps)
+                                    .font(AppFont.micro())
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, seg.subDetail != nil ? 8 : 6)
+                    .background(Color(UIColor.tertiarySystemBackground))
+                    .cornerRadius(8)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - B4: Rest Day Info Sheet
+
+/// 主動恢復日說明 sheet（B4 rest day tap 互動）
+private struct RestDayInfoSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(NSLocalizedString("rest_day.info_body", comment: "Rest day info body"))
+                    .font(.body)
+                    .foregroundColor(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer()
+            }
+            .padding(24)
+            .navigationTitle(NSLocalizedString("rest_day.info_title", comment: "主動恢復日"))
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(NSLocalizedString("common.done", comment: "Done")) {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium])
     }
 }
 

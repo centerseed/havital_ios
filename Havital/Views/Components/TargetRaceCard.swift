@@ -20,6 +20,7 @@ struct TargetRaceCard: View {
                         Image(systemName: "pencil")
                             .foregroundColor(.blue)
                     }
+                    .accessibilityIdentifier("TargetRaceCard_EditButton")
                 }
 
                 // 賽事名稱

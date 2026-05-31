@@ -189,10 +189,9 @@ extension LapData {
                 "module": "LapAnalysisView",
                 "action": "decodeLapData"
             ])
-            // Fallback: 用最小 JSON 建立空 LapData（硬編碼 JSON 一定能解析）
-            let fallbackJson = Data("{\"lap_number\":\(lapNumber),\"start_time_offset_s\":0}".utf8)
-            // swiftlint:disable:next force_try
-            return try! decoder.decode(LapData.self, from: fallbackJson)
+            // Fallback: 直接用 memberwise init 建立最小 LapData，
+            // 免 JSON round-trip，避免 LapData 欄位日後改 required 時在防呆分支 crash。
+            return LapData(lapNumber: lapNumber, startTimeOffsetS: 0)
         }
         return lapData
     }

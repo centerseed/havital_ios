@@ -40,7 +40,7 @@ final class TargetLocalDataSource: TargetLocalDataSourceProtocol {
         self.defaults = defaults
         self.encoder = JSONEncoder()
         self.decoder = JSONDecoder()
-        CacheEventBus.shared.register(self)
+        // CacheEventBus registration moved to CacheRegistrationCoordinator (App layer)
     }
 
     // MARK: - Targets Cache

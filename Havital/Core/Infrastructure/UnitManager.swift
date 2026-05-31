@@ -27,8 +27,8 @@ enum UnitSystem: String, CaseIterable {
 
     var paceSuffix: String {
         switch self {
-        case .metric: return "min/km"
-        case .imperial: return "min/mi"
+        case .metric: return "/km"
+        case .imperial: return "/mi"
         }
     }
 }
@@ -82,9 +82,10 @@ class UnitManager: ObservableObject {
         case .metric: converted = secondsPerKm
         case .imperial: converted = secondsPerKm * 1.60934
         }
-        let minutes = Int(converted) / 60
-        let seconds = Int(converted) % 60
-        return String(format: "%d:%02d %@", minutes, seconds, currentUnitSystem.paceSuffix)
+        let rounded = Int(converted.rounded())
+        let minutes = rounded / 60
+        let seconds = rounded % 60
+        return String(format: "%d:%02d%@", minutes, seconds, currentUnitSystem.paceSuffix)
     }
 
     /// 格式化配速（輸入："mm:ss" 字串，輸出：含單位如 "5:30/km"）

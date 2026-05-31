@@ -1,10 +1,10 @@
 ---
 type: SPEC
 id: SPEC-onboarding-delayed-data-source-binding
-status: Approved
+status: Implemented
 ontology_entity: 訓練計畫系統
 created: 2026-04-22
-updated: 2026-04-22
+updated: 2026-04-24
 ---
 
 # Feature Spec: Onboarding 延後綁定資料來源

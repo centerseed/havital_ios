@@ -34,7 +34,10 @@ enum PlanOverviewV2Mapper {
             milestones: (dto.milestones ?? []).map { toMilestone(from: $0) },
             createdAt: parseDate(from: dto.createdAt),
             methodologyVersion: dto.methodologyVersion,
-            milestoneBasis: dto.milestoneBasis
+            milestoneBasis: dto.milestoneBasis,
+            regenerationStatus: dto.regenerationStatus,
+            regenerationReason: dto.regenerationReason,
+            regenerationErrorMessage: dto.regenerationErrorMessage
         )
     }
 
@@ -67,7 +70,10 @@ enum PlanOverviewV2Mapper {
             milestones: entity.milestones.map { toMilestoneDTO(from: $0) },
             createdAt: formatDate(entity.createdAt),
             methodologyVersion: entity.methodologyVersion,
-            milestoneBasis: entity.milestoneBasis
+            milestoneBasis: entity.milestoneBasis,
+            regenerationStatus: entity.regenerationStatus,
+            regenerationReason: entity.regenerationReason,
+            regenerationErrorMessage: entity.regenerationErrorMessage
         )
     }
 

@@ -22,4 +22,8 @@ protocol MonthlyStatsRepository {
 
     /// 清除所有月度統計緩存和時間戳（登出時調用）
     func clearCache() async
+
+    /// 失效最近 N 個月（含當月）的快取，讓下次讀取重新打 API。
+    /// 用於運動同步事件，確保新訓練（含晚同步）會反映到日曆。
+    func invalidateRecentMonths(count: Int) async
 }

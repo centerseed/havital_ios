@@ -1,6 +1,7 @@
 import SwiftUI
 import HealthKit
 import UserNotifications
+import Combine
 
 /// TrainingRecordViewModel - Clean Architecture Presentation Layer
 /// 依賴 WorkoutRepository Protocol，負責分頁邏輯和 UI 狀態管理
@@ -43,6 +44,9 @@ class TrainingRecordViewModel: ObservableObject, @preconcurrency TaskManageable 
     private var oldestId: String?
     private var currentPageSize = 10
 
+    // Combine 訂閱（Repository 分頁訊號）
+    private var cancellables = Set<AnyCancellable>()
+
     // TaskManageable
     let taskRegistry = TaskRegistry()
 
@@ -81,8 +85,11 @@ class TrainingRecordViewModel: ObservableObject, @preconcurrency TaskManageable 
                 await MainActor.run {
                     if workouts.isEmpty {
                         self.state = .empty
+                        self.hasMoreData = false
                     } else {
                         self.state = .loaded(workouts.sorted { $0.endDate > $1.endDate })
+                        // 以後端緩存分頁狀態為準，避免 hasMoreData 停在預設 true 觸發無限載入
+                        self.applyServerOrEstimatedHasMore(fetchedCount: workouts.count)
                         self.updatePaginationState()
                     }
                     Logger.debug("[TrainingRecordViewModel] 載入完成，數量: \(workouts.count)")
@@ -115,8 +122,10 @@ class TrainingRecordViewModel: ObservableObject, @preconcurrency TaskManageable 
                 await MainActor.run {
                     if workouts.isEmpty {
                         self.state = .empty
+                        self.hasMoreData = false
                     } else {
                         self.state = .loaded(workouts.sorted { $0.endDate > $1.endDate })
+                        self.applyServerOrEstimatedHasMore(fetchedCount: workouts.count)
                         self.updatePaginationState()
                     }
                     self.isRefreshing = false
@@ -177,14 +186,14 @@ class TrainingRecordViewModel: ObservableObject, @preconcurrency TaskManageable 
                     let mergedWorkouts = self.mergeWorkouts(existing: currentWorkouts, new: newWorkouts, insertAtTop: false)
                     self.state = .loaded(mergedWorkouts.sorted { $0.endDate > $1.endDate })
 
-                    // 更新分頁狀態
-                    self.updatePaginationState(from: response.pagination)
-
                     Logger.debug("[TrainingRecordViewModel] 載入更多完成：\(newWorkouts.count) 筆記錄，總計 \(self.workouts.count) 筆")
                 } else {
                     Logger.debug("[TrainingRecordViewModel] 載入更多：沒有新記錄")
                 }
 
+                // 不論有無新資料都更新分頁狀態：回空時 pagination.hasMore=false 才能停止觸發，
+                // 否則 hasMoreData 永遠 true → 無限重複載入。
+                self.updatePaginationState(from: response.pagination)
                 self.isLoadingMore = false
             }
 
@@ -215,7 +224,8 @@ class TrainingRecordViewModel: ObservableObject, @preconcurrency TaskManageable 
         // 更新狀態
         state = .loaded(repositoryWorkouts.sorted { $0.endDate > $1.endDate })
 
-        // 更新分頁狀態
+        // 以後端緩存分頁狀態為準，避免 .task 載入前的空窗期誤觸發載入更多
+        applyServerOrEstimatedHasMore(fetchedCount: repositoryWorkouts.count)
         updatePaginationState()
 
         Logger.debug("[TrainingRecordViewModel] 已從 Repository 同步 \(repositoryWorkouts.count) 筆記錄")
@@ -234,7 +244,7 @@ class TrainingRecordViewModel: ObservableObject, @preconcurrency TaskManageable 
             // 更新狀態
             self.state = .loaded(repositoryWorkouts.sorted { $0.endDate > $1.endDate })
 
-            // 更新分頁狀態
+            self.applyServerOrEstimatedHasMore(fetchedCount: repositoryWorkouts.count)
             self.updatePaginationState()
 
             Logger.debug("[TrainingRecordViewModel] [Async] 已從 Repository 同步 \(repositoryWorkouts.count) 筆記錄")
@@ -264,6 +274,16 @@ class TrainingRecordViewModel: ObservableObject, @preconcurrency TaskManageable 
         return uniqueWorkouts
     }
     
+    /// 設定 hasMoreData：優先用緩存的後端真實分頁狀態（雙軌緩存），
+    /// 沒有緩存分頁時才退回「本次回傳少於一頁 = 沒有更多」的估計，避免誤觸發無限載入。
+    private func applyServerOrEstimatedHasMore(fetchedCount: Int) {
+        if let pagination = repository.getCachedPagination() {
+            hasMoreData = pagination.hasMore
+        } else {
+            hasMoreData = fetchedCount >= currentPageSize
+        }
+    }
+
     /// 更新分頁狀態
     private func updatePaginationState(from pagination: PaginationInfo? = nil) {
         if let pagination = pagination {
@@ -344,6 +364,15 @@ class TrainingRecordViewModel: ObservableObject, @preconcurrency TaskManageable 
                 }
             }
         }
+
+        // 監聽 Repository 的分頁狀態更新（雙軌緩存：Track B 背景刷新 / 載入更多帶出後端真實 has_more）
+        repository.workoutsPaginationDidUpdate
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] pagination in
+                self?.hasMoreData = pagination.hasMore
+                Logger.debug("[TrainingRecordViewModel] 分頁狀態更新 - has_more: \(pagination.hasMore)")
+            }
+            .store(in: &cancellables)
 
         // 監聽 CacheEventBus 事件
         setupCacheEventBusObservers()
@@ -429,7 +458,7 @@ class TrainingRecordViewModel: ObservableObject, @preconcurrency TaskManageable 
             // 更新狀態
             self.state = .loaded(repositoryWorkouts.sorted { $0.endDate > $1.endDate })
 
-            // 更新分頁狀態
+            self.applyServerOrEstimatedHasMore(fetchedCount: repositoryWorkouts.count)
             self.updatePaginationState()
 
             Logger.debug("[TrainingRecordViewModel] [Notification] 已從 Repository 同步 \(repositoryWorkouts.count) 筆記錄")

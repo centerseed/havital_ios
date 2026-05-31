@@ -425,6 +425,8 @@ class GarminManager: NSObject, ObservableObject {
                 print("✅ Garmin 連接成功")
 
                 analyticsService.track(.onboardingGarminConnect(success: true))
+                // AC-IOS-ANALYTICS-P1-04: step-level connection success
+                OnboardingCoordinator.shared.trackDataSourceConnected(provider: "garmin")
 
                 // 記錄連接成功和錯誤清除
                 Logger.firebase("Garmin 連接成功，錯誤信息已清除", level: .info, labels: [

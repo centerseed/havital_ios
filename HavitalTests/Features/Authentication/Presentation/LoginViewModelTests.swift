@@ -18,6 +18,12 @@ final class LoginViewModelTests: XCTestCase {
         super.setUp()
         mockAuthRepository = MockAuthRepository()
         mockAuthSessionRepository = MockAuthSessionRepository()
+
+        // LoginViewModel spawns a Task that calls DependencyContainer.shared.resolve(SubscriptionRepository).
+        // Register a minimal mock so the resolve() doesn't fatalError/timeout in unit tests.
+        let mockSubscriptionRepo = LoginViewModelTestsSubscriptionMock()
+        DependencyContainer.shared.register(mockSubscriptionRepo as SubscriptionRepository, forProtocol: SubscriptionRepository.self)
+
         sut = LoginViewModel(
             authRepository: mockAuthRepository,
             authSessionRepository: mockAuthSessionRepository
@@ -188,33 +194,31 @@ final class LoginViewModelTests: XCTestCase {
             AuthUserFactory.makeAuthenticatedUser(uid: "my-user")
         )
 
-        let expectation = expectation(description: "Observe user switch events")
-        expectation.expectedFulfillmentCount = 2
+        // ORDER is the contract: userLogout MUST arrive before dataChanged(.user)
+        let logoutExpectation = expectation(description: "userLogout published")
+        let userChangedExpectation = expectation(description: "dataChanged.user published")
 
-        var observedEvents: [String] = []
-        var sawLogout = false
+        var eventOrder: [String] = []
         let identifier = "LoginViewModelTests.userSwitch.\(UUID().uuidString)"
         CacheEventBus.shared.subscribe(forIdentifier: identifier) { reason in
             switch reason {
             case .userLogout:
-                guard !sawLogout else { return }
-                sawLogout = true
-                observedEvents.append("userLogout")
-                expectation.fulfill()
+                eventOrder.append("logout")
+                logoutExpectation.fulfill()
             case .dataChanged(.user):
-                guard sawLogout, observedEvents.count == 1 else { return }
-                observedEvents.append("dataChanged.user")
-                expectation.fulfill()
+                eventOrder.append("userChanged")
+                userChangedExpectation.fulfill()
             default:
                 break
             }
         }
 
         await sut.signInWithApple(credential: credential)
-        await fulfillment(of: [expectation], timeout: 1.0)
+        // enforceOrder:true — test fails if userChanged arrives before logout
+        await fulfillment(of: [logoutExpectation, userChangedExpectation], timeout: 3.0, enforceOrder: true)
+        XCTAssertEqual(eventOrder, ["logout", "userChanged"],
+                       "userLogout must be published before dataChanged(.user) on user switch")
         CacheEventBus.shared.unsubscribe(forIdentifier: identifier)
-
-        XCTAssertEqual(observedEvents, ["userLogout", "dataChanged.user"])
     }
 
     // MARK: - State Management Tests
@@ -389,4 +393,22 @@ final class LoginViewModelTests: XCTestCase {
             XCTFail("Expected .error state")
         }
     }
+}
+
+// MARK: - Minimal SubscriptionRepository mock for LoginViewModelTests
+
+/// Registered into DependencyContainer so LoginViewModel's post-login Task can resolve
+/// SubscriptionRepository without fatalError. refreshStatus() returns immediately.
+private final class LoginViewModelTestsSubscriptionMock: SubscriptionRepository {
+    var currentOfferingIdentifier: String? { nil }
+    var isEarlyBirdOffering: Bool { false }
+
+    func getStatus() async throws -> SubscriptionStatusEntity { .init(status: .none) }
+    func refreshStatus() async throws -> SubscriptionStatusEntity { .init(status: .none) }
+    func getCachedStatus() -> SubscriptionStatusEntity? { nil }
+    func clearCache() {}
+    func fetchOfferings() async throws -> [SubscriptionOfferingEntity] { [] }
+    func purchase(request: SubscriptionPurchaseRequest) async throws -> PurchaseResultEntity { .success }
+    func redeemOfferCode() async throws -> PurchaseResultEntity { .success }
+    func restorePurchases() async throws {}
 }

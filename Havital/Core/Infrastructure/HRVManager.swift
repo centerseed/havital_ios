@@ -67,7 +67,7 @@ class HRVManager: ObservableObject, DataManageable {
     
     // MARK: - Initialization
     private init() {
-        self.service = HealthKitManager()
+        self.service = HealthKitManager.shared
         self.cacheManager = HRVCacheManager()
         
         // 註冊到 CacheEventBus
@@ -238,7 +238,7 @@ class HRVManager: ObservableObject, DataManageable {
             } catch {
                 Logger.firebase(
                     "HRV 授權狀態檢查失敗: \(error.localizedDescription)",
-                    level: .error
+                    level: .warn
                 )
                 throw error
             }
@@ -271,7 +271,7 @@ class HRVManager: ObservableObject, DataManageable {
             } catch {
                 Logger.firebase(
                     "HRV 診斷信息載入失敗: \(error.localizedDescription)",
-                    level: .error
+                    level: .warn
                 )
                 throw error
             }

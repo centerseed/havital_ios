@@ -1,44 +1,52 @@
 import SwiftUI
 
+/// AppTheme — Paceriz iOS theme façade.
+///
+/// All values delegate to PacerizTokens (generated from design/tokens.json).
+/// Do NOT hardcode Color(hex:) here — edit design/tokens.json and run
+/// Scripts/generate-tokens.sh instead.
 struct AppTheme {
     static let shared = AppTheme()
-    
+
     private init() {}
-    
+
     // MARK: - Light Mode Colors
-    let primaryColor = Color(hex: "#3F86F6")
-    let secondaryColor = Color(hex: "#76C893")
-    let backgroundColor = Color(hex: "#FFFFFF")
-    let cardBackgroundColor = Color(hex: "#F4F4F4")
-    
+
+    let primaryColor         = PacerizTokens.color.brand.primary
+    let secondaryColor       = PacerizTokens.color.brand.secondary
+    let backgroundColor      = PacerizTokens.color.surface.background
+    let cardBackgroundColor  = PacerizTokens.color.surface.card
+
     struct TextColors {
-        static let primary = Color(hex: "#333333")
-        static let secondary = Color(hex: "#7D7D7D")
+        static let primary   = PacerizTokens.color.text.primary
+        static let secondary = PacerizTokens.color.text.secondary
     }
-    
-    let accentColor = Color(hex: "#FF7F50")
-    
+
+    let accentColor = PacerizTokens.color.brand.accent
+
     struct StatusColors {
-        static let success = Color(hex: "#4CAF50")
-        static let warning = Color(hex: "#FFC107")
-        static let error = Color(hex: "#F44336")
+        static let success = PacerizTokens.color.semantic.success
+        static let warning = PacerizTokens.color.semantic.warning
+        static let error   = PacerizTokens.color.semantic.error
     }
-    
+
     // MARK: - Dark Mode Colors
+
     struct DarkMode {
-        static let primaryColor = Color(hex: "#3F86F6")
-        static let secondaryColor = Color(hex: "#76C893")
-        static let backgroundColor = Color(hex: "#121212")
-        static let cardBackgroundColor = Color(hex: "#1E1E1E")
-        
+        static let primaryColor         = PacerizTokens.color.dark.brand.primary
+        static let secondaryColor       = PacerizTokens.color.dark.brand.secondary
+        static let backgroundColor      = PacerizTokens.color.dark.surface.background
+        static let cardBackgroundColor  = PacerizTokens.color.dark.surface.card
+
         struct TextColors {
-            static let primary = Color(hex: "#FFFFFF")
-            static let secondary = Color(hex: "#B3B3B3")
+            static let primary   = PacerizTokens.color.dark.text.primary
+            static let secondary = PacerizTokens.color.dark.text.secondary
         }
     }
 }
 
-// MARK: - Color Extension
+// MARK: - Color Extension (kept here as infrastructure — not a token itself)
+
 extension Color {
     init(hex: String) {
         let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)

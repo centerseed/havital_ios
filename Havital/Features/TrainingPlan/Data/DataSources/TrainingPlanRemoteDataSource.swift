@@ -36,10 +36,12 @@ final class TrainingPlanRemoteDataSource {
 
     /// 獲取週計畫
     func getWeeklyPlan(planId: String) async throws -> WeeklyPlan {
-        let rawData = try await httpClient.request(
-            path: "/plan/race_run/weekly/\(planId)",
-            method: .GET
-        )
+        let rawData = try await tracked("TrainingPlanRemoteDataSource: getWeeklyPlan") {
+            try await httpClient.request(
+                path: "/plan/race_run/weekly/\(planId)",
+                method: .GET
+            )
+        }
         return try ResponseProcessor.extractData(WeeklyPlan.self, from: rawData, using: parser)
     }
 
@@ -60,11 +62,13 @@ final class TrainingPlanRemoteDataSource {
 
         let bodyData = params.isEmpty ? nil : try JSONSerialization.data(withJSONObject: params)
 
-        let rawData = try await httpClient.request(
-            path: "/plan/race_run/weekly",
-            method: .POST,
-            body: bodyData
-        )
+        let rawData = try await tracked("TrainingPlanRemoteDataSource: createWeeklyPlan") {
+            try await httpClient.request(
+                path: "/plan/race_run/weekly",
+                method: .POST,
+                body: bodyData
+            )
+        }
 
         let plan = try ResponseProcessor.extractData(WeeklyPlan.self, from: rawData, using: parser)
         Logger.debug("[RemoteDataSource] 📥 createWeeklyPlan response - plan.id: \(plan.id), plan.weekOfPlan: \(plan.weekOfPlan)")
@@ -98,11 +102,13 @@ final class TrainingPlanRemoteDataSource {
             }
         }
 
-        let rawData = try await httpClient.request(
-            path: "/plan/race_run/weekly/\(planId)/modify",
-            method: .PUT,
-            body: bodyData
-        )
+        let rawData = try await tracked("TrainingPlanRemoteDataSource: modifyWeeklyPlan") {
+            try await httpClient.request(
+                path: "/plan/race_run/weekly/\(planId)/modify",
+                method: .PUT,
+                body: bodyData
+            )
+        }
         return try ResponseProcessor.extractData(WeeklyPlan.self, from: rawData, using: parser)
     }
 
@@ -110,10 +116,12 @@ final class TrainingPlanRemoteDataSource {
 
     /// 獲取訓練概覽
     func getOverview() async throws -> TrainingPlanOverview {
-        let rawData = try await httpClient.request(
-            path: "/plan/race_run/overview",
-            method: .GET
-        )
+        let rawData = try await tracked("TrainingPlanRemoteDataSource: getOverview") {
+            try await httpClient.request(
+                path: "/plan/race_run/overview",
+                method: .GET
+            )
+        }
         return try ResponseProcessor.extractData(TrainingPlanOverview.self, from: rawData, using: parser)
     }
 
@@ -129,20 +137,24 @@ final class TrainingPlanRemoteDataSource {
 
         let bodyData = params.isEmpty ? nil : try JSONSerialization.data(withJSONObject: params)
 
-        let rawData = try await httpClient.request(
-            path: "/plan/race_run/overview",
-            method: .POST,
-            body: bodyData
-        )
+        let rawData = try await tracked("TrainingPlanRemoteDataSource: createOverview") {
+            try await httpClient.request(
+                path: "/plan/race_run/overview",
+                method: .POST,
+                body: bodyData
+            )
+        }
         return try ResponseProcessor.extractData(TrainingPlanOverview.self, from: rawData, using: parser)
     }
 
     /// 更新訓練概覽
     func updateOverview(overviewId: String) async throws -> TrainingPlanOverview {
-        let rawData = try await httpClient.request(
-            path: "/plan/race_run/overview/\(overviewId)",
-            method: .PUT
-        )
+        let rawData = try await tracked("TrainingPlanRemoteDataSource: updateOverview") {
+            try await httpClient.request(
+                path: "/plan/race_run/overview/\(overviewId)",
+                method: .PUT
+            )
+        }
         return try ResponseProcessor.extractData(TrainingPlanOverview.self, from: rawData, using: parser)
     }
 
@@ -150,10 +162,12 @@ final class TrainingPlanRemoteDataSource {
 
     /// 獲取計畫狀態
     func getPlanStatus() async throws -> PlanStatusResponse {
-        let rawData = try await httpClient.request(
-            path: "/plan/race_run/status",
-            method: .GET
-        )
+        let rawData = try await tracked("TrainingPlanRemoteDataSource: getPlanStatus") {
+            try await httpClient.request(
+                path: "/plan/race_run/status",
+                method: .GET
+            )
+        }
         return try ResponseProcessor.extractData(PlanStatusResponse.self, from: rawData, using: parser)
     }
 
@@ -161,19 +175,23 @@ final class TrainingPlanRemoteDataSource {
 
     /// 獲取所有修改
     func getModifications() async throws -> [Modification] {
-        let rawData = try await httpClient.request(
-            path: "/plan/modifications",
-            method: .GET
-        )
+        let rawData = try await tracked("TrainingPlanRemoteDataSource: getModifications") {
+            try await httpClient.request(
+                path: "/plan/modifications",
+                method: .GET
+            )
+        }
         return try ResponseProcessor.extractData([Modification].self, from: rawData, using: parser)
     }
 
     /// 獲取修改描述
     func getModificationsDescription() async throws -> String {
-        let rawData = try await httpClient.request(
-            path: "/plan/modifications/description",
-            method: .GET
-        )
+        let rawData = try await tracked("TrainingPlanRemoteDataSource: getModificationsDescription") {
+            try await httpClient.request(
+                path: "/plan/modifications/description",
+                method: .GET
+            )
+        }
         return try ResponseProcessor.extractData(String.self, from: rawData, using: parser)
     }
 
@@ -181,11 +199,13 @@ final class TrainingPlanRemoteDataSource {
     func createModification(_ modification: NewModification) async throws -> Modification {
         let bodyData = try JSONEncoder().encode(modification)
 
-        let rawData = try await httpClient.request(
-            path: "/plan/modifications",
-            method: .POST,
-            body: bodyData
-        )
+        let rawData = try await tracked("TrainingPlanRemoteDataSource: createModification") {
+            try await httpClient.request(
+                path: "/plan/modifications",
+                method: .POST,
+                body: bodyData
+            )
+        }
         return try ResponseProcessor.extractData(Modification.self, from: rawData, using: parser)
     }
 
@@ -194,20 +214,24 @@ final class TrainingPlanRemoteDataSource {
         let payload = ModificationsUpdateRequest(modifications: modifications)
         let bodyData = try JSONEncoder().encode(payload)
 
-        let rawData = try await httpClient.request(
-            path: "/plan/modifications",
-            method: .PUT,
-            body: bodyData
-        )
+        let rawData = try await tracked("TrainingPlanRemoteDataSource: updateModifications") {
+            try await httpClient.request(
+                path: "/plan/modifications",
+                method: .PUT,
+                body: bodyData
+            )
+        }
         return try ResponseProcessor.extractData([Modification].self, from: rawData, using: parser)
     }
 
     /// 清除所有修改
     func clearModifications() async throws {
-        _ = try await httpClient.request(
-            path: "/plan/modifications",
-            method: .DELETE
-        )
+        _ = try await tracked("TrainingPlanRemoteDataSource: clearModifications") {
+            try await httpClient.request(
+                path: "/plan/modifications",
+                method: .DELETE
+            )
+        }
     }
 
     // MARK: - Weekly Summary APIs
@@ -232,29 +256,35 @@ final class TrainingPlanRemoteDataSource {
 
         let bodyData = params.isEmpty ? nil : try JSONSerialization.data(withJSONObject: params)
 
-        let rawData = try await httpClient.request(
-            path: path,
-            method: .POST,
-            body: bodyData
-        )
+        let rawData = try await tracked("TrainingPlanRemoteDataSource: createWeeklySummary") {
+            try await httpClient.request(
+                path: path,
+                method: .POST,
+                body: bodyData
+            )
+        }
         return try ResponseProcessor.extractData(WeeklyTrainingSummary.self, from: rawData, using: parser)
     }
 
     /// 獲取所有週回顧（歷史記錄）
     func getWeeklySummaries() async throws -> [WeeklySummaryItem] {
-        let rawData = try await httpClient.request(
-            path: "/summary/weekly/",
-            method: .GET
-        )
+        let rawData = try await tracked("TrainingPlanRemoteDataSource: getWeeklySummaries") {
+            try await httpClient.request(
+                path: "/summary/weekly/",
+                method: .GET
+            )
+        }
         return try ResponseProcessor.extractData([WeeklySummaryItem].self, from: rawData, using: parser)
     }
 
     /// 獲取特定週的回顧
     func getWeeklySummary(weekNumber: Int) async throws -> WeeklyTrainingSummary {
-        let rawData = try await httpClient.request(
-            path: "/summary/run_race/week/\(weekNumber)",
-            method: .GET
-        )
+        let rawData = try await tracked("TrainingPlanRemoteDataSource: getWeeklySummary") {
+            try await httpClient.request(
+                path: "/summary/run_race/week/\(weekNumber)",
+                method: .GET
+            )
+        }
         return try ResponseProcessor.extractData(WeeklyTrainingSummary.self, from: rawData, using: parser)
     }
 
@@ -263,11 +293,13 @@ final class TrainingPlanRemoteDataSource {
         let bodyInput = AdjustmentUpdateInput(items: items)
         let bodyData = try JSONEncoder().encode(bodyInput)
 
-        let rawData = try await httpClient.request(
-            path: "/summary/\(summaryId)/adjustments",
-            method: .PUT,
-            body: bodyData
-        )
+        let rawData = try await tracked("TrainingPlanRemoteDataSource: updateAdjustments") {
+            try await httpClient.request(
+                path: "/summary/\(summaryId)/adjustments",
+                method: .PUT,
+                body: bodyData
+            )
+        }
         
         // Parse the dedicated response structure first
         let response = try ResponseProcessor.extractData(UpdateAdjustmentsResponse.self, from: rawData, using: parser)

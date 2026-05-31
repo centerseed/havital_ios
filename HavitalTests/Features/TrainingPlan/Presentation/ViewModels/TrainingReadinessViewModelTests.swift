@@ -201,7 +201,8 @@ final class TrainingReadinessViewModelTests: XCTestCase {
             lastUpdatedTime: "10:30 更新",
             metrics: metrics,
             dataSource: "mock",
-            lastUpdated: "2026-04-14T10:30:00Z"
+            lastUpdated: "2026-04-14T10:30:00Z",
+            planType: nil
         )
     }
 }

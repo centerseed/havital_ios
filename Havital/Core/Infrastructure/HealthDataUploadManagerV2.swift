@@ -103,7 +103,7 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
     // MARK: - Dependencies
     let service: HealthDataService
     private let cacheManager: HealthDataCacheManager
-    private let healthKitManager = HealthKitManager()
+    private let healthKitManager = HealthKitManager.shared
     private let userPreferenceManager = UserPreferencesManager.shared
     
     // MARK: - Configuration
@@ -593,7 +593,7 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
 
             Logger.firebase(
                 "健康數據上傳失敗: \(error.localizedDescription)",
-                level: .error,
+                level: .warn,
                 labels: ["module": "HealthDataUploadManagerV2", "action": "upload_pending_data"]
             )
         }
@@ -697,7 +697,7 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
 
             Logger.firebase(
                 "最近健康數據上傳失敗: \(error.localizedDescription)",
-                level: .error,
+                level: .warn,
                 labels: ["module": "HealthDataUploadManagerV2", "action": "upload_recent_data"]
             )
         }
@@ -865,7 +865,7 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
             // 3. 真正的錯誤才記錄到 Firebase
             Logger.firebase(
                 "收集健康數據失敗: \(error.localizedDescription)",
-                level: .error,
+                level: .warn,
                 labels: ["module": "HealthDataUploadManagerV2", "action": "collect_health_data"],
                 jsonPayload: [
                     "error_domain": nsError.domain,
@@ -901,7 +901,7 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
         } catch {
             Logger.firebase(
                 "背景同步任務註冊失敗: \(error.localizedDescription)",
-                level: .error,
+                level: .warn,
                 labels: ["module": "HealthDataUploadManagerV2", "action": "enable_background_sync"]
             )
         }
@@ -1001,7 +1001,7 @@ class HealthDataUploadManagerV2: ObservableObject, DataManageable {
 
             Logger.firebase(
                 "獲取本地 HealthKit 數據失敗: \(error.localizedDescription)",
-                level: .error,
+                level: .warn,
                 labels: ["module": "HealthDataUploadManagerV2", "action": "get_local_health_data"]
             )
             return []
