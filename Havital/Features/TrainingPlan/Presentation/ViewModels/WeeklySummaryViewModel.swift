@@ -99,7 +99,7 @@ final class WeeklySummaryViewModel: ObservableObject, @preconcurrency TaskManage
     /// 設定事件訂閱
     private func setupEventSubscriptions() {
         // ✅ Clean Architecture: 訂閱用戶登出事件
-        CacheEventBus.shared.subscribe(for: "userLogout") { [weak self] in
+        CacheEventBus.shared.subscribe(for: .userLogout) { [weak self] in
             guard let self = self else { return }
 
             Logger.debug("[WeeklySummaryVM] 收到 userLogout 事件，清除緩存")

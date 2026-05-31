@@ -8,8 +8,8 @@ class CacheEventBus {
     private var cacheables: [Cacheable] = []
     private var listeners: [CacheEventListener] = []
 
-    /// 事件訂閱器（回調式訂閱，使用字符串鍵）
-    private var eventSubscriptions: [String: [@MainActor () async -> Void]] = [:]
+    /// 事件訂閱器（回調式訂閱，使用 enum 鍵 — 編譯期強制 pub/sub 配對）
+    private var eventSubscriptions: [CacheInvalidationReason: [@MainActor () async -> Void]] = [:]
 
     private init() {}
     
@@ -60,6 +60,9 @@ class CacheEventBus {
         case .weekChanged:
             // 跨週事件：不需要清除緩存，只需通知 TrainingPlanViewModel 更新 selectedWeek
             Logger.debug("[CacheEventBus] 跨週事件：通知 UI 更新當前週數")
+        case .targetUpdated:
+            // 目標更新：不需要清除緩存，只需通知 UI 重算 VDOT/配速/plan
+            Logger.debug("[CacheEventBus] 目標更新事件：通知 UI 重算")
         }
 
         notifyListeners(reason: reason)
@@ -100,16 +103,16 @@ class CacheEventBus {
 
     /// 訂閱特定事件
     /// - Parameters:
-    ///   - eventKey: 事件鍵（如 "onboardingCompleted"）
+    ///   - reason: 事件鍵（enum，編譯期強制配對）
     ///   - handler: 事件處理回調
-    func subscribe(for eventKey: String, handler: @escaping @MainActor () async -> Void) {
+    func subscribe(for reason: CacheInvalidationReason, handler: @escaping @MainActor () async -> Void) {
         stateQueue.sync {
-            if eventSubscriptions[eventKey] == nil {
-                eventSubscriptions[eventKey] = []
+            if eventSubscriptions[reason] == nil {
+                eventSubscriptions[reason] = []
             }
-            eventSubscriptions[eventKey]?.append(handler)
+            eventSubscriptions[reason]!.append(handler)
         }
-        Logger.trace("[CacheEventBus] 訂閱事件: \(eventKey)")
+        Logger.trace("[CacheEventBus] 訂閱事件: \(String(describing: reason))")
     }
 
     /// 基於標識符的全局事件訂閱
@@ -134,34 +137,16 @@ class CacheEventBus {
 
     /// 通知事件訂閱者
     private func notifyEventSubscribers(for event: CacheInvalidationReason) async {
-        let eventKey: String
-        switch event {
-        case .onboardingCompleted:
-            eventKey = "onboardingCompleted"
-        case .reonboardingCompleted:
-            eventKey = "reonboardingCompleted"
-        case .userLogout:
-            eventKey = "userLogout"
-        case .dataChanged(let dataType):
-            eventKey = "dataChanged.\(dataType)"
-        case .manualClear:
-            eventKey = "manualClear"
-        case .expired:
-            eventKey = "expired"
-        case .weekChanged:
-            eventKey = "weekChanged"
-        }
-
         let (handlers, identifierSubscribers) = stateQueue.sync {
             (
-                eventSubscriptions[eventKey] ?? [],
+                eventSubscriptions[event] ?? [],
                 Array(identifierBasedSubscriptions.values)
             )
         }
 
-        // 通知基於 eventKey 的訂閱者
+        // 通知基於 reason enum 的訂閱者
         if !handlers.isEmpty {
-            Logger.debug("[CacheEventBus] 通知 \(handlers.count) 個 eventKey 訂閱者: \(eventKey)")
+            Logger.debug("[CacheEventBus] 通知 \(handlers.count) 個 event 訂閱者: \(String(describing: event))")
             for handler in handlers {
                 await handler()
             }
@@ -169,7 +154,7 @@ class CacheEventBus {
 
         // 通知基於 identifier 的訂閱者
         if !identifierSubscribers.isEmpty {
-            Logger.debug("[CacheEventBus] 通知 \(identifierSubscribers.count) 個 identifier 訂閱者: \(eventKey)")
+            Logger.debug("[CacheEventBus] 通知 \(identifierSubscribers.count) 個 identifier 訂閱者: \(String(describing: event))")
             for handler in identifierSubscribers {
                 handler(event)
             }

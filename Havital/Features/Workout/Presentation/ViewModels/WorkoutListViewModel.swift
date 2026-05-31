@@ -92,7 +92,7 @@ final class WorkoutListViewModel: ObservableObject, @preconcurrency TaskManageab
             .store(in: &cancellables)
 
         // 事件 1: Workout 數據變更 → 直接從緩存讀取並更新 UI
-        CacheEventBus.shared.subscribe(for: "dataChanged.workouts") { [weak self] in
+        CacheEventBus.shared.subscribe(for: .dataChanged(.workouts)) { [weak self] in
             guard let self = self else { return }
             Logger.debug("[WorkoutListVM] 收到 dataChanged.workouts 事件，從緩存更新 UI")
 
@@ -112,7 +112,7 @@ final class WorkoutListViewModel: ObservableObject, @preconcurrency TaskManageab
         }
 
         // 事件 2: 用戶登出 → 清除數據
-        CacheEventBus.shared.subscribe(for: "userLogout") { [weak self] in
+        CacheEventBus.shared.subscribe(for: .userLogout) { [weak self] in
             Logger.debug("[WorkoutListVM] 收到 userLogout 事件，重置狀態")
             await self?.handleUserLogoutEvent()
         }

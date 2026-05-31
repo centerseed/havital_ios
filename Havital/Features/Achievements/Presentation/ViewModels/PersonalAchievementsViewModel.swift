@@ -41,11 +41,11 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
 
     /// 訓練同步 / 課表變更後成就可能解鎖 → 自動強制刷新（使用者無感）。
     private func subscribeToEvents() {
-        CacheEventBus.shared.subscribe(for: "dataChanged.workouts") { [weak self] in
+        CacheEventBus.shared.subscribe(for: .dataChanged(.workouts)) { [weak self] in
             Self.diagnostic("event dataChanged.workouts → forceRefresh")
             await self?.performLoad(forceRefresh: true)
         }
-        CacheEventBus.shared.subscribe(for: "dataChanged.trainingPlanV2") { [weak self] in
+        CacheEventBus.shared.subscribe(for: .dataChanged(.trainingPlanV2)) { [weak self] in
             Self.diagnostic("event dataChanged.trainingPlanV2 → forceRefresh")
             await self?.performLoad(forceRefresh: true)
         }

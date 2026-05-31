@@ -529,7 +529,7 @@ class TrainingPlanViewModel: ObservableObject {
 
         // ✅ Clean Architecture: 訂閱 Onboarding 完成事件
         // 當用戶完成 Onboarding 時，清除所有緩存並強制重新載入數據
-        subscribeToEvent("onboardingCompleted") {
+        subscribeToEvent(.onboardingCompleted) {
             await self.repository.clearCache()
             await MainActor.run {
                 self.cachedAllWorkouts = []
@@ -540,7 +540,7 @@ class TrainingPlanViewModel: ObservableObject {
 
         // ✅ Clean Architecture: 訂閱用戶登出事件
         // 當用戶登出時，清除所有緩存並重置狀態
-        subscribeToEvent("userLogout") {
+        subscribeToEvent(.userLogout) {
             await self.repository.clearCache()
             await MainActor.run {
                 self.cachedAllWorkouts = []
@@ -554,7 +554,7 @@ class TrainingPlanViewModel: ObservableObject {
 
         // ✅ Clean Architecture: 訂閱訓練計畫修改事件
         // 當訓練計畫被修改時（例如從 EditScheduleView），刷新週計畫
-        subscribeToEvent("dataChanged.trainingPlan") {
+        subscribeToEvent(.dataChanged(.trainingPlan)) {
             if await self.guardV2UserOnV1ViewModel(method: "event.dataChanged.trainingPlan") { return }
 
             await self.weeklyPlanVM.refreshWeeklyPlan()
@@ -567,7 +567,7 @@ class TrainingPlanViewModel: ObservableObject {
 
         // ✅ Clean Architecture: 訂閱目標更新事件
         // 當用戶修改訓練目標時，可能影響 VDOT 和配速建議
-        subscribeToEvent("targetUpdated") {
+        subscribeToEvent(.targetUpdated) {
             if await self.guardV2UserOnV1ViewModel(method: "event.targetUpdated") { return }
 
             await self.weeklyPlanVM.loadOverview()
@@ -595,7 +595,7 @@ class TrainingPlanViewModel: ObservableObject {
 
         // ✅ 跨週事件：當 App 從背景恢復且跨週時，刷新 plan status 並更新 selectedWeek
         // 確保用戶週一打開 App 時看到當前週的課表，而非上週的
-        subscribeToEvent("weekChanged") {
+        subscribeToEvent(.weekChanged) {
             if await self.guardV2UserOnV1ViewModel(method: "event.weekChanged") { return }
 
             Logger.debug("[TrainingPlanVM] 🔄 跨週事件：刷新 plan status 並更新 selectedWeek")
@@ -647,7 +647,7 @@ class TrainingPlanViewModel: ObservableObject {
         // ✅ Clean Architecture: 訂閱用戶登入事件
         // 當用戶登入時（已完成 onboarding 的用戶），重新初始化所有數據
         // 修復：登出再登入後 workouts 不顯示的問題
-        subscribeToEvent("dataChanged.user") {
+        subscribeToEvent(.dataChanged(.user)) {
             await self.repository.clearCache()
             await MainActor.run {
                 self.cachedAllWorkouts = []
@@ -720,15 +720,15 @@ class TrainingPlanViewModel: ObservableObject {
     ///   - eventName: Event identifier string
     ///   - action: Async closure to execute when event fires
     private func subscribeToEvent(
-        _ eventName: String,
+        _ reason: CacheInvalidationReason,
         action: @escaping () async -> Void
     ) {
-        CacheEventBus.shared.subscribe(for: eventName) { [weak self] in
+        CacheEventBus.shared.subscribe(for: reason) { [weak self] in
             guard let self = self else { return }
 
-            Logger.debug("[TrainingPlanVM] 收到 \(eventName) 事件")
+            Logger.debug("[TrainingPlanVM] 收到 \(String(describing: reason)) 事件")
             await action()
-            Logger.debug("[TrainingPlanVM] ✅ \(eventName) 事件處理完成")
+            Logger.debug("[TrainingPlanVM] ✅ \(String(describing: reason)) 事件處理完成")
         }
     }
 

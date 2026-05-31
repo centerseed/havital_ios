@@ -56,7 +56,7 @@ final class WeeklyPlanLoader {
     // MARK: - Event Subscriptions
 
     private func setupEventSubscriptions() {
-        CacheEventBus.shared.subscribe(for: "onboardingCompleted.loader") { [weak self] in
+        CacheEventBus.shared.subscribe(for: .onboardingCompleted) { [weak self] in
             guard let self else { return }
             Logger.debug("[WeeklyPlanLoader] 收到 onboardingCompleted 事件，清除快取並重新初始化")
             await self.repository.clearOverviewCache()
@@ -64,7 +64,7 @@ final class WeeklyPlanLoader {
             await self.initialize()
         }
 
-        CacheEventBus.shared.subscribe(for: "userLogout.loader") { [weak self] in
+        CacheEventBus.shared.subscribe(for: .userLogout) { [weak self] in
             guard let self else { return }
             Logger.debug("[WeeklyPlanLoader] 收到 userLogout 事件，清除所有狀態")
             await self.repository.clearOverviewCache()
@@ -78,15 +78,14 @@ final class WeeklyPlanLoader {
             PlanOverviewObserver.shared.reset()
         }
 
-        CacheEventBus.shared.subscribe(for: "dataChanged.trainingPlanV2.loader") { [weak self] in
+        CacheEventBus.shared.subscribe(for: .dataChanged(.trainingPlanV2)) { [weak self] in
             guard let self else { return }
             Logger.debug("[WeeklyPlanLoader] 收到 dataChanged.trainingPlanV2 事件，刷新課表")
             await self.refreshWeeklyPlan()
         }
 
         // 新訓練同步進來 → 重算本週跑量/強度，否則 hero 會停在載入當下的舊值（漏算本週稍早的跑步）。
-        // ⚠️ key 必須與發布端一致（無 .loader 後綴），否則不會觸發。
-        CacheEventBus.shared.subscribe(for: "dataChanged.workouts") { [weak self] in
+        CacheEventBus.shared.subscribe(for: .dataChanged(.workouts)) { [weak self] in
             guard let self else { return }
             Logger.debug("[WeeklyPlanLoader] 收到 dataChanged.workouts 事件，重算本週訓練記錄")
             await self.loadWorkoutsForCurrentWeek()

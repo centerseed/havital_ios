@@ -21,7 +21,7 @@ protocol CacheEventListener: AnyObject {
 }
 
 // MARK: - 快取失效原因
-enum CacheInvalidationReason {
+enum CacheInvalidationReason: Hashable {
     case userLogout
     case dataChanged(DataType)
     case manualClear
@@ -29,10 +29,11 @@ enum CacheInvalidationReason {
     case onboardingCompleted      // 新用戶 Onboarding 完成，需清除舊緩存並強制刷新
     case reonboardingCompleted    // Re-onboarding 完成，通知 UI 關閉 sheet
     case weekChanged              // 跨週事件：App 從背景恢復時發現已跨週，需更新 selectedWeek
+    case targetUpdated            // 使用者修改訓練目標，需通知 UI 重算 VDOT/配速/plan；不清快取
 }
 
 // MARK: - 資料類型
-enum DataType {
+enum DataType: Hashable {
     case workouts
     case trainingPlan
     case trainingPlanV2

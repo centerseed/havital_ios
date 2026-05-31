@@ -207,7 +207,7 @@ final class AuthenticationViewModel: ObservableObject {
 
         // ✅ Subscribe to user data change events (e.g., from LoginViewModel)
         // This ensures AuthenticationViewModel stays in sync when user logs in via Clean Architecture
-        CacheEventBus.shared.subscribe(for: "dataChanged.user") { [weak self] in
+        CacheEventBus.shared.subscribe(for: .dataChanged(.user)) { [weak self] in
             guard let self = self else { return }
 
             // 如果正在獲取用戶數據，跳過重複調用
@@ -249,7 +249,7 @@ final class AuthenticationViewModel: ObservableObject {
         // ✅ Subscribe to re-onboarding completed event
         // Clean Architecture: OnboardingCoordinator publishes event, AuthenticationViewModel subscribes
         // This decouples the Coordinator from the ViewModel
-        CacheEventBus.shared.subscribe(for: "reonboardingCompleted") { [weak self] in
+        CacheEventBus.shared.subscribe(for: .reonboardingCompleted) { [weak self] in
             guard let self = self else { return }
 
             Logger.debug("[AuthViewModel] Received reonboardingCompleted event, closing sheet")
@@ -261,7 +261,7 @@ final class AuthenticationViewModel: ObservableObject {
         // ✅ Subscribe to userLogout event (BUG-01 fix)
         // UserProfileFeatureViewModel publishes .userLogout; we respond by clearing auth state.
         // Required for Demo mode where Firebase Auth state listener doesn't fire on signOut.
-        CacheEventBus.shared.subscribe(for: "userLogout") { [weak self] in
+        CacheEventBus.shared.subscribe(for: .userLogout) { [weak self] in
             guard let self = self else { return }
 
             Logger.debug("[AuthViewModel] Received userLogout event, clearing auth state")
