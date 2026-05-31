@@ -60,9 +60,6 @@ class CacheEventBus {
         case .weekChanged:
             // 跨週事件：不需要清除緩存，只需通知 TrainingPlanViewModel 更新 selectedWeek
             Logger.debug("[CacheEventBus] 跨週事件：通知 UI 更新當前週數")
-        case .targetUpdated:
-            // 目標更新：不需要清除緩存，只需通知 UI 重算 VDOT/配速/plan
-            Logger.debug("[CacheEventBus] 目標更新事件：通知 UI 重算")
         }
 
         notifyListeners(reason: reason)

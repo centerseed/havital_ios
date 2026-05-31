@@ -45,19 +45,6 @@ final class CacheEventBusPubSubMatchingTests: XCTestCase {
         XCTAssertTrue(received.flag, "dataChanged exact-key subscriber did not fire")
     }
 
-    /// `.targetUpdated` must deliver to a subscriber registered with `.targetUpdated`.
-    func test_publish_targetUpdated_deliversToSubscriber() async {
-        let received = Received()
-        CacheEventBus.shared.subscribe(for: .targetUpdated) {
-            received.flag = true
-        }
-
-        CacheEventBus.shared.publish(.targetUpdated)
-        await Self.drainMainActor()
-
-        XCTAssertTrue(received.flag, ".targetUpdated subscriber did not receive its event")
-    }
-
     // MARK: - Non-crossover guards
 
     /// A subscriber for one DataType must not fire for a different DataType.

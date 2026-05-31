@@ -565,34 +565,6 @@ class TrainingPlanViewModel: ObservableObject {
             }
         }
 
-        // ✅ Clean Architecture: 訂閱目標更新事件
-        // 當用戶修改訓練目標時，可能影響 VDOT 和配速建議
-        subscribeToEvent(.targetUpdated) {
-            if await self.guardV2UserOnV1ViewModel(method: "event.targetUpdated") { return }
-
-            await self.weeklyPlanVM.loadOverview()
-            await self.loadPlanStatus()
-            // ✅ 修復：更新 planStatus 以反映最新狀態
-            if let response = self.planStatusResponse {
-                if response.nextAction == .viewPlan {
-                    await self.weeklyPlanVM.loadWeeklyPlan()
-                    await MainActor.run {
-                        self.updatePlanStatus(from: self.weeklyPlanVM.state)
-                    }
-                } else if response.nextAction == .trainingCompleted {
-                    await MainActor.run {
-                        self.weeklyPlanVM.state = .empty
-                        self.planStatus = .completed
-                    }
-                } else {
-                    await MainActor.run {
-                        self.weeklyPlanVM.state = .empty
-                        self.planStatus = .noPlan
-                    }
-                }
-            }
-        }
-
         // ✅ 跨週事件：當 App 從背景恢復且跨週時，刷新 plan status 並更新 selectedWeek
         // 確保用戶週一打開 App 時看到當前週的課表，而非上週的
         subscribeToEvent(.weekChanged) {
