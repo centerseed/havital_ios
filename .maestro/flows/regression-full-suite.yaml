@@ -37,9 +37,10 @@ tags:
     text: "略過"
     optional: true
 
-# 目標選擇
+# 目標選擇：用穩定的 id 選「新手入門」（onboarding 用 -ui_testing_onboarding harness，
+# 目標卡是英文 fixture "Build Habit"，舊的中文文字點選 "新手入門" 已失效 → 改用 id）
 - tapOn:
-    text: "新手入門"
+    id: "GoalType_beginner"
     optional: true
 - tapOn:
     text: "下一步"
@@ -88,8 +89,8 @@ tags:
 # (verify-plan-quality 已滑過 7 天 + 休息日，等同 weekly-plan-display 驗證)
 
 # === Phase 4: 設定頁回歸 ===
-- tapOn: "更多"
-- tapOn: "個人資料"
+# ⋯ 選單裡的項目是「個人」（個人資料是進去後的畫面標題）；用 id 導航最穩
+- runFlow: ../subflows/nav-to-profile.yaml
 - extendedWaitUntil:
     visible: "個人資料"
     timeout: 10000
@@ -181,11 +182,11 @@ tags:
 
 # 驗證成功
 - assertVisible: "每日訓練"
-- assertVisible: "星期一"
+- assertVisible: "星期一|週一"
 
 # 滑動確認完整
 - scrollUntilVisible:
-    element: "星期日"
+    element: "星期日|週日"
     direction: DOWN
     timeout: 15000
 - scrollUntilVisible:

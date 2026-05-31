@@ -8,12 +8,13 @@ appId: com.havital.Havital.dev
 - assertVisible:
     id: "TrainingPlan_MenuButton"
 
+# 主課表頁每日清單用縮寫「週一…週日」（非「星期一」）；同時接受縮寫/完整/英日語
 - assertVisible:
-    text: "星期一|Monday|月曜日"
+    text: "星期一|週一|Monday|月曜日"
 
 - scrollUntilVisible:
     element:
-      text: "星期日|Sunday|日曜日"
+      text: "星期日|週日|Sunday|日曜日"
     direction: DOWN
     timeout: 15000
 
