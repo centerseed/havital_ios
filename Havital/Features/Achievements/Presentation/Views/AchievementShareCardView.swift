@@ -16,6 +16,9 @@ struct AchievementShareCardView: View {
     let dateString: String
     /// 由呼叫端解析的真實徽章 asset 名（用 AchievementBadge.assetName，fallback 才用 badgeId switch）
     let badgeAssetName: String
+    /// App 內預覽用圓角卡片（true）；匯出分享圖時用 false → 滿版直角矩形，
+    /// 讓 Threads/IG 等平台用「自己的」圓角去裁，不會出現雙重圓角對不齊的缺角/白邊。
+    var roundedCorners: Bool = true
 
     // MARK: - Layout constants（固定尺寸 — ImageRenderer 匯出用，絕不可隨裝置縮放）
 
@@ -99,19 +102,22 @@ struct AchievementShareCardView: View {
             }
         }
         .frame(width: cardWidth, height: cardHeight)
-        .clipShape(RoundedRectangle(cornerRadius: cardRadius, style: .continuous))
-        // 內描邊：1px 白色高光，讓卡片在淺色背景上有清楚邊界、更精緻
-        .overlay(
-            RoundedRectangle(cornerRadius: cardRadius, style: .continuous)
-                .strokeBorder(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.22), Color.white.opacity(0.04)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    ),
-                    lineWidth: 1
-                )
-        )
+        // 預覽：圓角卡片；匯出：直角滿版（cornerRadius 0 → 無透明角落）
+        .clipShape(RoundedRectangle(cornerRadius: roundedCorners ? cardRadius : 0, style: .continuous))
+        // 內描邊只在預覽圓角時加（滿版匯出不需要邊框，避免變成貼邊白線）
+        .overlay {
+            if roundedCorners {
+                RoundedRectangle(cornerRadius: cardRadius, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.22), Color.white.opacity(0.04)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 1
+                    )
+            }
+        }
     }
 
     // MARK: - Background（精緻深色：單一深藍→黑漸層 + 一道柔和聚光 + 暈影）
@@ -493,7 +499,8 @@ struct AchievementSharePreviewSheet: View {
         let card = AchievementShareCardView(
             shareable: shareable,
             dateString: dateString,
-            badgeAssetName: badgeAssetName
+            badgeAssetName: badgeAssetName,
+            roundedCorners: false   // 匯出滿版直角，交給目的平台自己圓角
         )
         let renderer = ImageRenderer(content: card)
         renderer.scale = UIScreen.main.scale
