@@ -23,6 +23,9 @@ struct AchievementShareCardView: View {
     private let cardHeight: CGFloat = 460
     private let cardRadius: CGFloat = 26
     private let badgeSize: CGFloat = 168
+    private let badgePlatePadding: CGFloat = 24        // 底板比徽章大多少（plate = badgeSize + padding）
+    private let badgePlateCornerRatio: CGFloat = 0.20  // 底板圓角比例（刻意比 app 內 hero 0.22 略方）
+    private let badgeImageInset: CGFloat = 11           // 徽章圖在底板內的四周邊距
 
     // MARK: - Computed
 
@@ -111,119 +114,58 @@ struct AchievementShareCardView: View {
         )
     }
 
-    // MARK: - Background（極光 mesh + 獎章光線 + 暈影 + 微噪點）
+    // MARK: - Background（精緻深色：單一深藍→黑漸層 + 一道柔和聚光 + 暈影）
     //
-    // 設計意圖：用多顆偏移的 radial blob 疊出有層次的「mesh / 極光」場，取代單一藍→黑線性漸層的扁平塑膠感。
-    //   - 底色：近黑深藍，確保整體深沉、底部文字高對比。
-    //   - 上半部仍有品牌藍「舞台燈」把徽章烘成主角（保留 spotlight）。
-    //   - 右上注入章節 accent blob（依 chapter 變色），左下注入一抹冷藍，讓色場有左右流動與深淺。
-    //   - 徽章後方放極淡的同心「獎章光線」(rays)，營造證書／獎座氛圍，opacity 壓很低不搶徽章。
-    //   - 四角暈影 (vignette) 收束視線、加深邊緣與底部 → 更有質感且強化白字對比。
-    //   - 最上層蓋固定 seed 的細噪點，消除純漸層的「平滑塑膠」感（ImageRenderer 下完全確定，不含隨機/時間）。
+    // 設計意圖（2026-05 二次改版，使用者選定「精緻深色」方向）：
+    // 移除原本堆疊過多的 mesh blob×2 / 放射光線 rays / 重噪點——特效堆疊只會更雜、不會更高級
+    // （通用 AI 美學陷阱）。改走克制的「單一平滑深色漸層」奠定沉穩基調。
+    //   - 基底：頂端深藍 → 底部近黑的單一線性漸層。上方略亮讓徽章成主角，底部夠深給白字高對比。
+    //   - 聚光：徽章正後一道柔和 radial 光暈，色相由章節 accent 微帶入（不同成就微妙差異，仍同一深色家族）。
+    //   - 暈影：四角輕收，聚焦中央、強化底部對比。
+    //   - 微噪點：極低 opacity，純為消除單一漸層在 ImageRenderer 匯出時的色帶（banding），非裝飾。
 
     private var backgroundGradient: some View {
         ZStack {
-            // 1) 基底：近黑深藍（比 darkNavy 再深一點，讓上方光更跳）
-            Color(red: 0.043, green: 0.047, blue: 0.071)
-
-            // 2) 上半舞台燈：頂端品牌藍往下漸隱，奠定「上亮下深」基調
+            // 1) 基底：深藍 → 近黑的單一平滑漸層
             LinearGradient(
                 stops: [
-                    .init(color: RecapPalette.brand.opacity(0.92), location: 0.0),
-                    .init(color: RecapPalette.brandDeep.opacity(0.70), location: 0.30),
-                    .init(color: Color.clear, location: 0.66)
+                    .init(color: Color(red: 0.094, green: 0.133, blue: 0.243), location: 0.0),
+                    .init(color: Color(red: 0.051, green: 0.067, blue: 0.125), location: 0.55),
+                    .init(color: Color(red: 0.027, green: 0.035, blue: 0.063), location: 1.0)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
             )
 
-            // 3) mesh blob：右上章節 accent（給不同成就不同氛圍）
-            RadialGradient(
-                colors: [chapterAccent.opacity(0.55), Color.clear],
-                center: UnitPoint(x: 0.86, y: 0.14),
-                startRadius: 0,
-                endRadius: 260
-            )
-            .blendMode(.screen)
-
-            // 4) mesh blob：左下冷藍，與右上 accent 形成對角張力，色場有流動感
-            RadialGradient(
-                colors: [RecapPalette.brandDeep.opacity(0.50), Color.clear],
-                center: UnitPoint(x: 0.10, y: 0.74),
-                startRadius: 0,
-                endRadius: 240
-            )
-            .blendMode(.screen)
-
-            // 5) 獎章光線：徽章後方極淡同心錐光，像獎座反光放射（壓很低，只在亮部隱約可見）
-            awardRays
-
-            // 6) 聚光燈：徽章正後一圈藍白光暈，把獎牌打亮成主角（保留原本 hero spotlight）
+            // 2) 聚光：徽章正後一道柔和光暈，色相由章節 accent 微帶入
             RadialGradient(
                 colors: [
-                    Color.white.opacity(0.30),
-                    RecapPalette.brand.opacity(0.22),
+                    Color.white.opacity(0.16),
+                    chapterAccent.opacity(0.30),
                     Color.clear
                 ],
-                center: UnitPoint(x: 0.5, y: 0.36),
+                center: UnitPoint(x: 0.5, y: 0.34),
                 startRadius: 0,
-                endRadius: 230
+                endRadius: 250
             )
 
-            // 7) 暈影：四角加深，收束視線、強化底部白字對比
+            // 3) 暈影：四角輕收
             vignette
 
-            // 8) 微噪點：固定 seed 的細點，殺掉純漸層的扁平塑膠感
+            // 4) 微噪點：消除漸層色帶（極低 opacity，非裝飾）
             noiseOverlay
         }
-    }
-
-    /// 獎章光線：以徽章中心為原點的角度漸層做出極淡放射錐光，營造證書／獎座感。
-    private var awardRays: some View {
-        AngularGradient(
-            stops: [
-                .init(color: Color.white.opacity(0.05), location: 0.00),
-                .init(color: Color.clear,               location: 0.06),
-                .init(color: Color.white.opacity(0.05), location: 0.12),
-                .init(color: Color.clear,               location: 0.18),
-                .init(color: Color.white.opacity(0.05), location: 0.25),
-                .init(color: Color.clear,               location: 0.31),
-                .init(color: Color.white.opacity(0.05), location: 0.37),
-                .init(color: Color.clear,               location: 0.43),
-                .init(color: Color.white.opacity(0.05), location: 0.50),
-                .init(color: Color.clear,               location: 0.56),
-                .init(color: Color.white.opacity(0.05), location: 0.62),
-                .init(color: Color.clear,               location: 0.68),
-                .init(color: Color.white.opacity(0.05), location: 0.75),
-                .init(color: Color.clear,               location: 0.81),
-                .init(color: Color.white.opacity(0.05), location: 0.87),
-                .init(color: Color.clear,               location: 0.93),
-                .init(color: Color.white.opacity(0.05), location: 1.00)
-            ],
-            center: UnitPoint(x: 0.5, y: 0.36)
-        )
-        // 只讓光線出現在徽章周圍：用 radial 遮罩限制範圍、邊緣柔化
-        .mask(
-            RadialGradient(
-                colors: [Color.white, Color.white.opacity(0.0)],
-                center: UnitPoint(x: 0.5, y: 0.36),
-                startRadius: 36,
-                endRadius: 210
-            )
-        )
-        .blendMode(.plusLighter)
     }
 
     /// 暈影：透明中心 → 半透明黑邊角，加深四周與底部。
     private var vignette: some View {
         RadialGradient(
-            colors: [
-                Color.clear,
-                Color.clear,
-                Color.black.opacity(0.55)
+            stops: [
+                .init(color: .clear, location: 0.5),          // 中心到一半保持透明
+                .init(color: .black.opacity(0.45), location: 1.0)  // 之後往邊角漸暗
             ],
             center: UnitPoint(x: 0.5, y: 0.42),
-            startRadius: 60,
+            startRadius: 80,
             endRadius: 330
         )
         .blendMode(.multiply)
@@ -239,12 +181,12 @@ struct AchievementShareCardView: View {
                 return Double(seed >> 33) / Double(UInt64(1) << 31)
             }
             let dot = CGSize(width: 1, height: 1)
-            let count = 2200
+            let count = 1400
             for _ in 0..<count {
                 let x = next() * size.width
                 let y = next() * size.height
                 let bright = next() > 0.5
-                let alpha = 0.035 * next()
+                let alpha = 0.022 * next()
                 let color: Color = bright ? .white : .black
                 context.fill(
                     Path(CGRect(origin: CGPoint(x: x, y: y), size: dot)),
@@ -260,7 +202,7 @@ struct AchievementShareCardView: View {
 
     private var topRow: some View {
         HStack(alignment: .center, spacing: 0) {
-            // 左：P logo + PACERIZ 字樣
+            // 左：Paceriz 跑鞋 logomark + PACERIZ 字樣
             HStack(spacing: 8) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -270,9 +212,11 @@ struct AchievementShareCardView: View {
                             RoundedRectangle(cornerRadius: 8, style: .continuous)
                                 .strokeBorder(Color.white.opacity(0.30), lineWidth: 0.5)
                         )
-                    Text("P")
-                        .font(.system(size: 17, weight: .black))
-                        .foregroundColor(.white)
+                    // 品牌跑鞋 logomark（透明去背藍色 shoe），取代原本的「P」字母佔位
+                    Image("paceriz_logo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 20, height: 20)
                 }
                 Text("PACERIZ")
                     .font(.system(size: 13, weight: .heavy))
@@ -297,36 +241,49 @@ struct AchievementShareCardView: View {
         }
     }
 
-    // MARK: - Badge Section（主角：聚光光暈 + 柔影 + 透明去背獎牌）
+    // MARK: - Badge Section（嵌入式獎章框，解決淺底插畫白邊問題）
+    //
+    // 設計意圖（2026-05 二次改版）：徽章資產形狀不一致——rhythm 系列是「淺奶油底圓角方形插畫」、
+    // results/mileage 系列是「透明去背圓形獎章/錢幣」。原本一律當透明懸浮獎牌處理（不裁切 + 聚光 + 雙陰影），
+    // 淺色方形插畫貼在深底上 → 圓角露出奶油色 = 看起來像便利貼（使用者反映的「白邊」）。
+    // 改為：把每個徽章都嵌進一個「乾淨的霜面圓角方形底板 + 髮絲框」。
+    //   - 淺底方形插畫：裁成略小的圓角方形、四周留底板邊距 → 變成「裱框的圖」，白邊成為有意圖的外框。
+    //   - 透明圓形獎章：透明角落露出底板 → 變成「裱框的獎章」。兩種形狀都被統一收進同一個框，視覺一致。
+    //   - 圓角刻意比 app 內 hero（0.22）略方（plate 0.20 / image 內縮），更像獎座銘牌、less bubbly，
+    //     呼應使用者「圓角太圓」的回饋。
 
     private var badgeSection: some View {
-        ZStack {
-            // 1) 後方光暈：放在獎牌正後，模擬獎牌反光打亮
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            RecapPalette.gold.opacity(0.32),
-                            RecapPalette.brand.opacity(0.18),
-                            Color.clear
-                        ],
-                        center: .center,
-                        startRadius: 0,
-                        endRadius: badgeSize * 0.62
-                    )
-                )
-                .frame(width: badgeSize * 1.4, height: badgeSize * 1.4)
-                .blur(radius: 6)
+        let plateSize: CGFloat = badgeSize + badgePlatePadding         // 192
+        let plateRadius: CGFloat = plateSize * badgePlateCornerRatio   // ~38
+        let imageSize: CGFloat = plateSize - badgeImageInset * 2       // 170
+        let imageRadius: CGFloat = plateRadius - badgeImageInset       // ~27
 
-            // 2) 獎牌本體：透明去背，雙層柔影做出懸浮立體感
+        return ZStack {
+            // 底板：霜面填色 + 上亮下暗髮絲框 + 柔影，把徽章烘成裱框獎章
+            RoundedRectangle(cornerRadius: plateRadius, style: .continuous)
+                .fill(Color.white.opacity(0.07))
+                .overlay(
+                    RoundedRectangle(cornerRadius: plateRadius, style: .continuous)
+                        .strokeBorder(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.30), Color.white.opacity(0.06)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
+                            lineWidth: 1
+                        )
+                )
+                .frame(width: plateSize, height: plateSize)
+                .shadow(color: Color.black.opacity(0.40), radius: 16, x: 0, y: 10)
+
+            // 徽章本體：裁成圓角方形（淺底插畫不再露原始奶油邊；透明圓章角落露底板）
             Image(badgeAssetName)
                 .resizable()
                 .scaledToFit()
-                .frame(width: badgeSize, height: badgeSize)
-                .shadow(color: Color.black.opacity(0.45), radius: 18, x: 0, y: 12)
-                .shadow(color: RecapPalette.brand.opacity(0.35), radius: 26, x: 0, y: 0)
+                .frame(width: imageSize, height: imageSize)
+                .clipShape(RoundedRectangle(cornerRadius: imageRadius, style: .continuous))
         }
-        .frame(height: badgeSize)
+        .frame(height: plateSize)
     }
 
     // MARK: - UNLOCKED eyebrow（金色成就色）
