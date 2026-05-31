@@ -1212,6 +1212,7 @@
 "training_calendar.hero_caption" = "月間ランニング記録";
 "training_calendar.average_pace_short" = "平均ペース";
 "training_calendar.runs_short" = "回数";
+"training_calendar.active_days_short" = "稼働日数";
 "training_calendar.avg_distance_short" = "平均距離";
 "training_calendar.recent_trend" = "最近の推移";
 "training_calendar.last_six_months" = "直近6か月";
@@ -3493,6 +3494,8 @@
 "training.minute_abbr" = "分";
 "training.detail.segment_count" = "%dセグメント";
 "training.detail.rest_seconds_jog" = "%d秒 ジョグ";
+"training.recovery.amount_seconds" = "%d秒";
+"training.recovery.amount_minutes" = "%d分";
 "training.detail.rest_minutes_jog" = "%d分 ジョグ";
 
 // MARK: - Workout Tips

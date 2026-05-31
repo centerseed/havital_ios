@@ -97,11 +97,16 @@ class TrainingCalendarViewModel: ObservableObject {
         isLoading = true
         let calendar = Calendar.current
 
-        guard let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: month)),
-              let endOfMonth = calendar.date(byAdding: DateComponents(month: 1, day: -1), to: startOfMonth) else {
+        // 用統一的 monthRange helper：end 是最後一天 23:59:59（且尊重使用者時區），
+        // 與 totalMonthDistance 用的 currentMonthRange 一致。
+        // 修正：原本 endOfMonth = 最後一天 00:00:00，會把當月最後一天（含「今天」）00:00 之後的
+        // 訓練全部排除在 getWorkoutsInDateRangeAsync（<= endDate）之外 → 月底那天不顯示。
+        guard let range = DateFormatterHelper.monthRange(for: month) else {
             isLoading = false
             return
         }
+        let startOfMonth = range.start
+        let endOfMonth = range.end
 
         // Extract year and month
         let year = calendar.component(.year, from: month)
@@ -360,6 +365,13 @@ struct TrainingCalendarView: View {
         return String(format: "%d'%02d\"", minutes, seconds)
     }
 
+    /// 本月有運動的天數（含各類型）
+    private var monthlyActiveDays: Int { workoutsByDate.count }
+    /// 本月運動總筆數（含各類型）
+    private var monthlyWorkoutCount: Int {
+        workoutsByDate.values.reduce(0) { $0 + $1.workoutCount }
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -369,8 +381,8 @@ struct TrainingCalendarView: View {
                 if selectedMode == .calendar {
                     monthSelector
 
-                    // 統計卡片
-                    statsCard
+                    // 品牌淡藍 hero（可炫耀：總距離 + 出勤 + 次數 + 配速 + Paceriz 品牌）
+                    shareableHeroCard
 
                     // 日曆視圖
                     calendarGrid
@@ -455,45 +467,82 @@ struct TrainingCalendarView: View {
         return nextMonth <= Date()
     }
 
-    // MARK: - 統計卡片
+    // MARK: - 品牌 hero 卡（淡藍品牌風，可炫耀 + 截圖即分享）
 
-    private var statsCard: some View {
-        HStack(spacing: 20) {
-            VStack(alignment: .leading, spacing: 4) {
+    private var shareableHeroCard: some View {
+        let unit = UnitManager.shared.currentUnitSystem.distanceSuffix
+        let distanceValue = String(format: "%.1f", UnitManager.shared.convertedDistance(totalMonthDistance))
+        return VStack(alignment: .leading, spacing: 10) {
+            // 品牌列：Paceriz logo chip + 月份
+            HStack(spacing: 7) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .fill(Color.white)   // 白底讓藍色 shoe logo 在藍 hero 上看得見
+                        .frame(width: 26, height: 26)
+                    Image("paceriz_logo")
+                        .resizable().scaledToFit().frame(width: 18, height: 18)
+                }
+                Text("PACERIZ")
+                    .font(AppFont.systemScaled(size: 12, weight: .heavy))
+                    .tracking(2)
+                    .foregroundColor(.white)
+                Spacer()
+                // 月份不再放這（上方選擇器已顯示，避免重複）
+            }
+
+            // 大數字：本月總距離（縮小，讓出空間給月曆）
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(distanceValue)
+                    .font(AppFont.systemScaled(size: 34, weight: .bold))
+                    .foregroundColor(.white)
+                    .minimumScaleFactor(0.78)
+                Text(unit)
+                    .font(AppFont.systemScaled(size: 15, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.8))
                 Text(NSLocalizedString("training_plan.monthly_total_distance", comment: "Monthly Total Distance"))
                     .font(AppFont.caption())
-                    .foregroundColor(.secondary)
-
-                HStack(alignment: .firstTextBaseline, spacing: 2) {
-                    Text(String(format: "%.1f", UnitManager.shared.convertedDistance(totalMonthDistance)))
-                        .font(AppFont.title1())
-                        .fontWeight(.bold)
-                        .foregroundColor(PacerizTokens.color.brand.primary)
-
-                    Text(UnitManager.shared.currentUnitSystem.distanceSuffix)
-                        .font(AppFont.bodySmall())
-                        .foregroundColor(.secondary)
-                }
+                    .foregroundColor(.white.opacity(0.7))
+                    .padding(.leading, 4)
             }
 
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(NSLocalizedString("training_plan.average_pace", comment: "Average Pace"))
-                    .font(AppFont.caption())
-                    .foregroundColor(.secondary)
-
-                Text(averagePace)
-                    .font(AppFont.title1())
-                    .fontWeight(.bold)
-                    .foregroundColor(PacerizTokens.color.brand.accent)
+            // 指標 chips：出勤天數 / 跑步次數 / 平均配速
+            HStack(spacing: 8) {
+                heroMetric(title: NSLocalizedString("training_calendar.active_days_short", comment: "Active days"),
+                           value: "\(monthlyActiveDays)")
+                heroMetric(title: NSLocalizedString("training_calendar.runs_short", comment: "Runs"),
+                           value: "\(monthlyWorkoutCount)")
+                heroMetric(title: NSLocalizedString("training_calendar.average_pace_short", comment: "Average pace"),
+                           value: averagePace)
             }
         }
-        .padding()
+        .padding(.horizontal, 16)
+        .padding(.vertical, 13)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(colorScheme == .dark ? Color(white: 0.15) : Color(white: 0.95))
+            LinearGradient(
+                colors: [PacerizColor.blue, PacerizColor.blueDeep],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         )
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .shadow(color: PacerizColor.blue.opacity(0.22), radius: 12, x: 0, y: 6)
+    }
+
+    private func heroMetric(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(AppFont.systemScaled(size: 10, weight: .medium))
+                .foregroundColor(.white.opacity(0.7))
+                .lineLimit(1).minimumScaleFactor(0.75)
+            Text(value)
+                .font(AppFont.systemScaled(size: 16, weight: .bold))
+                .foregroundColor(.white)
+                .lineLimit(1).minimumScaleFactor(0.75)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 7).padding(.horizontal, 9)
+        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.18)))
     }
 
     // MARK: - 月統計
@@ -555,7 +604,10 @@ struct TrainingCalendarView: View {
 
             // 日期網格
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 4) {
-                ForEach(daysInMonth, id: \.self) { date in
+                // 用 slot index 當 id（不要用 \.self）：daysInMonth 開頭有多個 nil 空白格，
+                // 用 \.self 會讓多個 nil 共用同一個 id → ForEach diff 壞掉，導致月底最後幾天的
+                // 格子拿不到資料（缺的天數 ≈ 開頭空白數-1，所以總是月底那幾天空白）。
+                ForEach(Array(daysInMonth.enumerated()), id: \.offset) { _, date in
                     if let date = date {
                         DayCell(date: date, workoutInfo: workoutsByDate[normalizeDate(date).timeIntervalSince1970])
                     } else {
@@ -614,7 +666,7 @@ struct TrainingCalendarView: View {
     
     private func processWorkoutsForDisplay() {
         guard let range = currentMonthRange else { return }
-        let calendar = Calendar.current
+        let calendar = displayCalendar
 
         // 這些數據已經是該月的了，但我們還是過濾一下確保安全
         let allWorkouts = viewModel.workouts
@@ -628,32 +680,39 @@ struct TrainingCalendarView: View {
             return isInMonth && isNotRest
         }
 
-        // 按日期分組並計算總距離和主要運動類型
-        var grouped: [TimeInterval: DayWorkoutInfo] = [:]
+        // 先按「日 → 類型」累計距離與筆數（支援一天多種運動類型）
+        var perDayType: [TimeInterval: [String: (dist: Double, count: Int)]] = [:]
+        var perDayDuration: [TimeInterval: TimeInterval] = [:]
         for workout in monthWorkouts {
             let key = normalizeDate(workout.startDate).timeIntervalSince1970
-            let distance = (workout.distance ?? 0) / 1000.0  // 轉換為公里
-            let duration = workout.duration
+            let type = workout.activityType.lowercased()
+            let distance = (workout.distance ?? 0) / 1000.0
+            var typeMap = perDayType[key] ?? [:]
+            let cur = typeMap[type] ?? (0, 0)
+            typeMap[type] = (cur.dist + distance, cur.count + 1)
+            perDayType[key] = typeMap
+            perDayDuration[key, default: 0] += workout.duration
+        }
 
-            if var existing = grouped[key] {
-                existing.totalDistance += distance
-                existing.totalDuration += duration
-                existing.workoutCount += 1
-                // 更新主要類型（選擇距離最長的）
-                if distance > (existing.primaryDistance ?? 0) {
-                    existing.primaryType = workout.activityType
-                    existing.primaryDistance = distance
+        var grouped: [TimeInterval: DayWorkoutInfo] = [:]
+        for (key, typeMap) in perDayType {
+            // breakdown：跑步永遠排第一，其餘按距離降序
+            let breakdown = typeMap
+                .map { DayTypeBreakdown(activityType: $0.key, distanceKm: $0.value.dist, count: $0.value.count) }
+                .sorted { a, b in
+                    if a.isRunning != b.isRunning { return a.isRunning }
+                    return a.distanceKm > b.distanceKm
                 }
-                grouped[key] = existing
-            } else {
-                grouped[key] = DayWorkoutInfo(
-                    totalDistance: distance,
-                    totalDuration: duration,
-                    primaryType: workout.activityType,
-                    primaryDistance: distance,
-                    workoutCount: 1
-                )
-            }
+            guard let primary = breakdown.max(by: { $0.distanceKm < $1.distanceKm }) else { continue }
+            grouped[key] = DayWorkoutInfo(
+                totalDistance: breakdown.reduce(0) { $0 + $1.distanceKm },
+                totalDuration: perDayDuration[key] ?? 0,
+                primaryType: primary.activityType,
+                primaryDistance: primary.distanceKm,
+                workoutCount: breakdown.reduce(0) { $0 + $1.count },
+                runningDistanceKm: breakdown.first(where: { $0.isRunning })?.distanceKm ?? 0,
+                breakdown: breakdown
+            )
         }
 
         workoutsByDate = grouped
@@ -663,13 +722,25 @@ struct TrainingCalendarView: View {
 
     // MARK: - Helper Functions
 
+    /// 與 DateFormatterHelper.monthRange 同一套時區的 calendar。
+    /// 修正：原本格子/分組 key 用 Calendar.current（裝置時區），但 monthRange（總距離/出勤計算）
+    /// 用「使用者時區偏好」。兩者不一致時，月底跨日的訓練會被算進 hero（出勤 25）卻對不到格子（只畫 22 天）。
+    /// 統一成同一時區後，格子 key、daysInMonth、範圍過濾三者一致。
+    private var displayCalendar: Calendar {
+        var calendar = Calendar.current
+        if let userTimezone = UserPreferencesManager.shared.timezonePreference,
+           let tz = TimeZone(identifier: userTimezone) {
+            calendar.timeZone = tz
+        }
+        return calendar
+    }
+
     private func normalizeDate(_ date: Date) -> Date {
-        let calendar = Calendar.current
-        return calendar.startOfDay(for: date)
+        return displayCalendar.startOfDay(for: date)
     }
 
     private var daysInMonth: [Date?] {
-        let calendar = Calendar.current
+        let calendar = displayCalendar
         guard let startOfMonth = calendar.date(from: calendar.dateComponents([.year, .month], from: selectedMonth)),
               let range = calendar.range(of: .day, in: .month, for: startOfMonth) else {
             return []
@@ -699,12 +770,25 @@ struct TrainingCalendarView: View {
 
 // MARK: - 訓練資訊結構
 
+struct DayTypeBreakdown: Identifiable {
+    let id = UUID()
+    let activityType: String
+    let distanceKm: Double
+    let count: Int
+    var isRunning: Bool {
+        let t = activityType.lowercased()
+        return t == "running" || t == "run"
+    }
+}
+
 struct DayWorkoutInfo {
-    var totalDistance: Double
+    var totalDistance: Double      // 當日跨類型總距離（km）
     var totalDuration: TimeInterval
-    var primaryType: String  // 主要運動類型
+    var primaryType: String        // 距離最長的類型
     var primaryDistance: Double?
-    var workoutCount: Int
+    var workoutCount: Int          // 當日總筆數（跨類型）
+    var runningDistanceKm: Double  // 當日跑步距離（heatmap 分級 + 距離數字用，與 hero 月距離口徑一致）
+    var breakdown: [DayTypeBreakdown]  // 各類型 (距離, 筆數)，跑步優先排序
 }
 
 // MARK: - Monthly Summary Row
@@ -887,13 +971,13 @@ private struct MonthlyRunningHeroCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             LinearGradient(
-                colors: [PacerizTokens.color.brand.primary, PacerizTokens.color.brand.primary.opacity(0.72)],
+                colors: [PacerizColor.blue, PacerizColor.blueDeep],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
         )
         .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: PacerizTokens.color.brand.primary.opacity(0.2), radius: 14, x: 0, y: 7)
+        .shadow(color: PacerizColor.blue.opacity(0.25), radius: 14, x: 0, y: 7)
         .accessibilityElement(children: .combine)
     }
 
@@ -1006,61 +1090,90 @@ struct DayCell: View {
         Calendar.current.isDateInToday(date)
     }
 
-    private var workoutColor: Color {
-        guard let info = workoutInfo else { return .clear }
-        return ActivityTypeStyleHelper.color(for: info.primaryType)
-    }
-
-    private var workoutIcon: String {
-        guard let info = workoutInfo else { return "figure.run" }
-        return ActivityTypeStyleHelper.icon(for: info.primaryType)
-    }
-
-    private var backgroundColor: Color {
-        if isToday {
-            return .blue.opacity(0.15)
-        } else if workoutInfo != nil {
-            return workoutColor.opacity(0.12)
-        } else {
-            return colorScheme == .dark ? Color(white: 0.15) : Color(white: 0.97)
+    // 類型 → 品牌協調色（icon 用；只用 4 色相，避開 ActivityTypeStyleHelper 的 system 色撞色）
+    private func brandColor(for type: String) -> Color {
+        switch type.lowercased() {
+        case "running", "run": return PacerizColor.blue
+        case "cycling", "cycle", "bike": return PacerizColor.indigo
+        case "swimming", "swim": return PacerizColor.green
+        default: return PacerizColor.orange   // strength / yoga / hiking / walking / 其他
         }
+    }
+
+    private var emptyFill: Color { colorScheme == .dark ? Color(white: 0.16) : Color(white: 0.97) }
+
+    // 有訓練的日子用極淡品牌藍底（只區分「有/無訓練」，不編碼跑量 → 不需要圖例）；空白日近乎透明。
+    private var backgroundColor: Color {
+        workoutInfo == nil ? emptyFill : PacerizColor.blue.opacity(0.06)
+    }
+
+    private func distanceText(_ km: Double) -> String {
+        let v = UnitManager.shared.convertedDistance(km)
+        // 格子窄：≥10 去小數（22 而非 22.0）省寬度，避免長距離被截斷
+        return v >= 10 ? String(format: "%.0f", v) : String(format: "%.1f", v)
     }
 
     var body: some View {
-        VStack(spacing: 3) {
-            Text(dayNumber)
-                .font(AppFont.systemScaled(size: 14, weight: isToday ? .bold : .medium))
-                .foregroundColor(isToday ? .blue : .primary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+        VStack(alignment: .leading, spacing: 1) {
+            HStack(spacing: 0) {
+                dayNumberView
+                Spacer(minLength: 0)
+            }
 
+            // 直接列出當日各運動：[類型 icon] [距離]（icon 形狀本身就說明是哪種運動，免圖例）
             if let info = workoutInfo {
-                if info.totalDistance > 0 {
-                    Text(String(format: "%.1f", info.totalDistance))
-                        .font(AppFont.systemScaled(size: 12, weight: .bold))
-                        .foregroundColor(workoutColor)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                ForEach(info.breakdown.prefix(2)) { b in
+                    workoutRow(b)
                 }
-
-                // 跑步 icon 旁邊掛 ×N — 語意：N 筆此類訓練
-                HStack(spacing: 2) {
-                    Image(systemName: workoutIcon)
-                        .font(AppFont.systemScaled(size: 12))
-                        .foregroundColor(workoutColor.opacity(0.8))
-                    if info.workoutCount > 1 {
-                        Text("×\(info.workoutCount)")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundColor(workoutColor.opacity(0.85))
-                            .lineLimit(1)
-                    }
+                if info.breakdown.count > 2 {
+                    Text("+\(info.breakdown.count - 2)")
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundColor(.secondary)
+                        .padding(.leading, 2)
                 }
             }
+
+            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 4)
+        .padding(.top, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .frame(height: 70)
         .background(backgroundColor)
-        .cornerRadius(8)
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+
+    // 一筆「運動 icon + 距離 (+×N)」—— 直接、不需解碼
+    @ViewBuilder
+    private func workoutRow(_ b: DayTypeBreakdown) -> some View {
+        HStack(spacing: 1.5) {
+            Image(systemName: ActivityTypeStyleHelper.icon(for: b.activityType))
+                .font(.system(size: 9.5, weight: .medium))
+                .foregroundColor(brandColor(for: b.activityType))
+                .frame(width: 11, alignment: .center)
+            if b.distanceKm > 0.01 {
+                Text(distanceText(b.distanceKm))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.55)
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    // 日期數字：今天 = 白字 + 品牌藍圓底（系統日曆式「今天」訊號）
+    // 用固定字級 + fixedSize，避免動態字級把數字撐爆固定框 → 顯示成「…」。
+    private var dayNumberView: some View {
+        Text(dayNumber)
+            .font(.system(size: 12, weight: isToday ? .bold : .semibold))
+            .foregroundColor(isToday ? .white : (workoutInfo == nil ? .secondary : .primary))
+            .lineLimit(1)
+            .fixedSize()
+            .frame(minWidth: 18, minHeight: 18)
+            .background(
+                Group { if isToday { Circle().fill(PacerizColor.blue) } }
+            )
     }
 }
 

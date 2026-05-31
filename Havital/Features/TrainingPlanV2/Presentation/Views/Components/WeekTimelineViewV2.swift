@@ -771,12 +771,14 @@ private struct IntervalBlockView: View {
                 )
 
                 // Recovery row — 灰綠色 accent bar
+                // recovery 量改用「時間優先」的 recoveryAmountText（對齊展開頁 PlannedSessionDetailView）：
+                // 秒 → 分 → 距離。duration 傳 nil 避免重複顯示。
                 IntervalRow(
                     accentColor: recoveryColor,
                     label: recoveryLabel,
-                    distance: recoveryDistanceText,
+                    distance: recoveryAmountText,
                     pace: interval.recoveryPace,
-                    duration: interval.recoveryDurationMinutes,
+                    duration: nil,
                     description: interval.recoveryDescription
                 )
             }
@@ -820,6 +822,20 @@ private struct IntervalBlockView: View {
             return "\(m)m"
         }
         return nil
+    }
+
+    /// recovery 量「時間優先」：秒 → 分 → 距離（與展開頁口徑一致）。
+    /// 修正：原本外層用 recoveryDistanceText + duration=recoveryDurationMinutes(nil)，
+    /// 完全沒讀 recoveryDurationSeconds → 時間制 recovery 被誤顯示成距離（如 300m 而非 120秒）。
+    private var recoveryAmountText: String? {
+        if let sec = interval.recoveryDurationSeconds {
+            return String(format: NSLocalizedString("training.recovery.amount_seconds", comment: "recovery seconds, short"), sec)
+        }
+        if let min = interval.recoveryDurationMinutes {
+            return String(format: NSLocalizedString("training.recovery.amount_minutes", comment: "recovery minutes, short"), min)
+        }
+        // 距離制 recovery（如挪威課表 110m）照舊顯示距離
+        return recoveryDistanceText
     }
 
     private var runTypeDisplayName: String {
@@ -1637,19 +1653,27 @@ private struct RedesignedSegmentsView: View {
                 || interval.recoveryDescription != nil
             let recoverySubDetail: String?
             if hasRecoveryInfo {
-                var recoveryParts: [String] = ["恢復"]
-                if let km = interval.recoveryDistanceKm {
+                // label 與 IntervalRow recoveryLabel 一致：有移動（距離/配速）→「恢復跑」，否則「休息」
+                let recoveryHasMovement = interval.recoveryDistanceKm != nil
+                    || interval.recoveryDistanceM != nil
+                    || interval.recoveryPace != nil
+                let recoveryLabelText = recoveryHasMovement
+                    ? NSLocalizedString("training.interval.recovery_run", comment: "Recovery Run")
+                    : NSLocalizedString("training.interval.rest", comment: "Rest")
+                var recoveryParts: [String] = [recoveryLabelText]
+                // 時間優先（秒 → 分 → 距離），對齊展開頁 PlannedSessionDetailView，且 i18n 化
+                // （原本距離優先 + 同時附距離與秒數 + 寫死 "s"/"min"，與展開頁不一致）。
+                if let sec = interval.recoveryDurationSeconds {
+                    recoveryParts.append(String(format: NSLocalizedString("training.recovery.amount_seconds", comment: ""), sec))
+                } else if let min = interval.recoveryDurationMinutes {
+                    recoveryParts.append(String(format: NSLocalizedString("training.recovery.amount_minutes", comment: ""), min))
+                } else if let km = interval.recoveryDistanceKm {
                     recoveryParts.append(String(format: "%.1fkm", km))
                 } else if let m = interval.recoveryDistanceM {
                     recoveryParts.append("\(m)m")
                 }
                 if let pace = interval.recoveryPace {
                     recoveryParts.append("@ \(pace)/km")
-                }
-                if let min = interval.recoveryDurationMinutes {
-                    recoveryParts.append("\(min)min")
-                } else if let sec = interval.recoveryDurationSeconds {
-                    recoveryParts.append("\(sec)s")
                 }
                 if recoveryParts.count == 1 {
                     recoveryParts.append(interval.recoveryDescription ?? NSLocalizedString("training.interval.rest", comment: "Rest"))
