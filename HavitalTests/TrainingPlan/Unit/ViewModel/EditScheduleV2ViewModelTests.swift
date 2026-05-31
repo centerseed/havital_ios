@@ -75,6 +75,56 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
         }
     }
 
+    /// 回歸：使用者沒動的天必須無損 round-trip，心率區間 / 目標強度不可被洗掉。
+    /// 修復前 buildRunActivityDTO 對這兩個欄位寫死 nil，存檔後整週都會掉資訊。
+    func testSaveEdits_preservesHeartRateRangeAndTargetIntensityWhenUnchanged() async throws {
+        let repository = MockTrainingPlanV2Repository()
+        let weeklyPlan = makeWeeklyPlan()
+        repository.weeklyPlanV2ToReturn = weeklyPlan
+
+        let viewModel = EditScheduleV2ViewModel(
+            weeklyPlan: weeklyPlan,
+            repository: repository
+        )
+
+        _ = try await viewModel.saveEdits()
+
+        let savedDay = try XCTUnwrap(repository.lastUpdateWeeklyPlanRequest?.days?.first)
+        guard case .run(let runActivity) = savedDay.primary else {
+            return XCTFail("Expected run activity")
+        }
+        XCTAssertEqual(runActivity.heartRateRange?.min, 140)
+        XCTAssertEqual(runActivity.heartRateRange?.max, 155)
+        XCTAssertEqual(runActivity.targetIntensity, "easy")
+        // 熱適應仍在
+        XCTAssertEqual(savedDay.climateMeta?.heatPressureLevel, "high")
+        XCTAssertEqual(runActivity.climateMeta?.paceAdjustmentPct, 6.5)
+    }
+
+    /// 回歸：只改配速（runType 不變）時，心率區間 / 目標強度應從原始 run 帶回，不可消失。
+    func testSaveEdits_preservesHeartRateRangeAndTargetIntensityWhenOnlyPaceChanges() async throws {
+        let repository = MockTrainingPlanV2Repository()
+        let weeklyPlan = makeWeeklyPlan()
+        repository.weeklyPlanV2ToReturn = weeklyPlan
+
+        let viewModel = EditScheduleV2ViewModel(
+            weeklyPlan: weeklyPlan,
+            repository: repository
+        )
+        viewModel.editingDays[0].trainingDetails?.pace = "5:20"
+
+        _ = try await viewModel.saveEdits()
+
+        let savedDay = try XCTUnwrap(repository.lastUpdateWeeklyPlanRequest?.days?.first)
+        guard case .run(let runActivity) = savedDay.primary else {
+            return XCTFail("Expected run activity")
+        }
+        XCTAssertEqual(runActivity.heartRateRange?.min, 140)
+        XCTAssertEqual(runActivity.heartRateRange?.max, 155)
+        XCTAssertEqual(runActivity.targetIntensity, "easy")
+        XCTAssertEqual(runActivity.basePace, "5:20")
+    }
+
     private func makeWeeklyPlan() -> WeeklyPlanV2 {
         let climateMeta = ClimateMeta(
             feelsLikeTempC: 33.6,
@@ -94,11 +144,11 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
             pace: "5:40",
             basePace: "5:40",
             climateAdjustedPace: "6:02",
-            heartRateRange: nil,
+            heartRateRange: HeartRateRangeV2(min: 140, max: 155),
             interval: nil,
             segments: nil,
             description: "Easy run",
-            targetIntensity: nil,
+            targetIntensity: "easy",
             climateMeta: climateMeta
         )
         let day = DayDetail(

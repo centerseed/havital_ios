@@ -147,8 +147,17 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
     // MARK: - Private: MutableTrainingDay → DayDetailDTO
 
     private func buildDayDetailDTO(from day: MutableTrainingDay) -> DayDetailDTO {
-        let dayType = DayType(rawValue: day.trainingType) ?? .rest
         let originalDay = originalDay(for: day)
+
+        // 使用者沒動這天 → 直接用無損的 Domain→DTO mapper 回傳後端原本的 day，
+        // 完整保留熱適應卡、心率區間、目標強度、顯示單位、segment 等編輯器沒有
+        // 模型化的欄位。只有真的被改動的日子才進入下面從 MutableTrainingDay 重建
+        // 的有損路徑（重建本身仍盡量從 original 帶回非編輯欄位）。
+        if let originalDay, MutableTrainingDay(from: originalDay) == day {
+            return TrainingSessionMapper.toDTO(from: originalDay)
+        }
+
+        let dayType = DayType(rawValue: day.trainingType) ?? .rest
         let dayClimateMeta = dayType.isRunningActivity
             ? originalDay?.effectiveClimateMeta.map { TrainingSessionMapper.toDTO(from: $0) }
             : nil
@@ -274,6 +283,13 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
         let originalRun = originalDay?.primaryRunActivity
         let runClimateMeta = originalRun?.climateMeta ?? originalDay?.effectiveClimateMeta
         let preserveRunClimate = shouldPreserveRunClimate(day: day, runType: runType, originalRun: originalRun)
+        // runType 未變時，把編輯器沒有模型化的欄位（心率區間、目標強度）從原始 run 帶回，
+        // 否則存檔後整週的心率區間 / 目標強度會被洗成空白。runType 改變則交給後端重算。
+        let sameRunType = originalRun.map { normalizedRunType($0.runType) == normalizedRunType(runType) } ?? false
+        let preservedHeartRate = sameRunType
+            ? originalRun?.heartRateRange.map { TrainingSessionMapper.toDTO(from: $0) }
+            : nil
+        let preservedTargetIntensity = sameRunType ? originalRun?.targetIntensity : nil
         guard let details = day.trainingDetails else {
             let climatePace = climatePaceValues(
                 currentPace: nil,
@@ -292,11 +308,11 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
                 pace: nil,
                 basePace: climatePace.basePace,
                 climateAdjustedPace: climatePace.adjustedPace,
-                heartRateRange: nil,
+                heartRateRange: preservedHeartRate,
                 interval: nil,
                 segments: nil,
                 description: day.dayTarget,
-                targetIntensity: nil,
+                targetIntensity: preservedTargetIntensity,
                 climateMeta: runClimateMeta.map { TrainingSessionMapper.toDTO(from: $0) }
             )
         }
@@ -339,11 +355,11 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
                 pace: details.pace,
                 basePace: climatePace.basePace,
                 climateAdjustedPace: climatePace.adjustedPace,
-                heartRateRange: nil,
+                heartRateRange: preservedHeartRate,
                 interval: intervalDTO,
                 segments: nil,
                 description: details.description ?? day.dayTarget,
-                targetIntensity: nil,
+                targetIntensity: preservedTargetIntensity,
                 climateMeta: runClimateMeta.map { TrainingSessionMapper.toDTO(from: $0) }
             )
         }
@@ -372,8 +388,8 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
                     basePace: segmentClimatePace.basePace,
                     climateAdjustedPace: segmentClimatePace.adjustedPace,
                     climateMeta: segmentClimateMeta.map { TrainingSessionMapper.toDTO(from: $0) },
-                    heartRateRange: nil,
-                    intensity: nil,
+                    heartRateRange: originalSegment?.heartRateRange.map { TrainingSessionMapper.toDTO(from: $0) },
+                    intensity: originalSegment?.intensity,
                     description: seg.description
                 )
             }
@@ -388,11 +404,11 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
                 pace: details.pace,
                 basePace: climatePace.basePace,
                 climateAdjustedPace: climatePace.adjustedPace,
-                heartRateRange: nil,
+                heartRateRange: preservedHeartRate,
                 interval: nil,
                 segments: segDTOs,
                 description: details.description ?? day.dayTarget,
-                targetIntensity: nil,
+                targetIntensity: preservedTargetIntensity,
                 climateMeta: runClimateMeta.map { TrainingSessionMapper.toDTO(from: $0) }
             )
         }
@@ -409,11 +425,11 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
             pace: details.pace,
             basePace: climatePace.basePace,
             climateAdjustedPace: climatePace.adjustedPace,
-            heartRateRange: nil,
+            heartRateRange: preservedHeartRate,
             interval: nil,
             segments: nil,
             description: details.description ?? day.dayTarget,
-            targetIntensity: nil,
+            targetIntensity: preservedTargetIntensity,
             climateMeta: runClimateMeta.map { TrainingSessionMapper.toDTO(from: $0) }
         )
     }
