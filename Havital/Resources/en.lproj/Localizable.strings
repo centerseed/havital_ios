@@ -3086,10 +3086,6 @@
 "achievements.badge.mileage_markers.next_action" = "Keep running to reach the next distance marker.";
 "achievements.badge.start.first_run.name" = "First Run";
 "achievements.badge.start.first_run.story" = "You logged your first run on Paceriz — every mile to come starts here.";
-"achievements.badge.start.plan_started.name" = "Plan Started";
-"achievements.badge.start.plan_started.story" = "You started your first training plan, turning \"I want to run\" into \"I'm running with a plan.\"";
-"achievements.badge.start.first_week.name" = "First Week Complete";
-"achievements.badge.start.first_week.story" = "You finished your first training week and hit its mileage goal — the start of a rhythm.";
 "achievements.badge.start.first_long_run.name" = "First Long Run";
 "achievements.badge.start.first_long_run.story" = "You ran your first long run of 12 km or more, pushing your sense of distance a little further out.";
 "achievements.badge.start.first_recovery.name" = "First Recovery";
@@ -3177,8 +3173,6 @@
 "achievements.share.week_complete.summary" = "You completed a Paceriz training week.";
 "achievements.share.insight.summary" = "A public insight Paceriz found in your training history.";
 "achievements.reason.badge_start_first_run" = "Completed and synced your first valid run.";
-"achievements.reason.badge_start_plan_started" = "Started your first Paceriz training plan.";
-"achievements.reason.badge_start_first_week" = "Completed your first training week.";
 "achievements.reason.badge_start_first_long_run" = "Completed your first long run.";
 "achievements.reason.badge_start_first_recovery" = "Completed your first recovery run.";
 "achievements.reason.badge_build_showing_up" = "Started building a steady training rhythm.";
@@ -3214,8 +3208,6 @@
 // MARK: - Badge Criteria (how to unlock, 35 badges × en)
 // Chapter: Start
 "achievements.badge.start.first_run.criteria" = "Complete and sync your first run to unlock this badge.";
-"achievements.badge.start.plan_started.criteria" = "Start your first Paceriz training plan to unlock this badge.";
-"achievements.badge.start.first_week.criteria" = "Complete your first training week by hitting the weekly mileage goal.";
 "achievements.badge.start.first_long_run.criteria" = "Complete and sync a run of 12 km or more.";
 "achievements.badge.start.first_recovery.criteria" = "Complete a recovery run scheduled in your Paceriz plan.";
 // Chapter: Build

@@ -53,6 +53,20 @@ private final class UITestAchievementRepository: AchievementRepository {
     private static let summary: AchievementSummary = {
         let badges = [
             AchievementBadge(
+                badgeId: "BADGE-START-FIRST-WEEK",
+                chapter: .start,
+                nameKey: "achievements.badge.start.first_week.name",
+                storyKey: "achievements.badge.start.first_week.story",
+                status: .unlocked,
+                progress: nil,
+                unlockedAt: "2026-04-19",
+                unlockReasonKey: nil,
+                sourceRef: nil,
+                historicalBackfill: false,
+                shareable: true,
+                assetName: nil
+            ),
+            AchievementBadge(
                 badgeId: "BADGE-START-FIRST-RUN",
                 chapter: .start,
                 nameKey: "achievements.badge.start.first_run.name",
@@ -65,6 +79,20 @@ private final class UITestAchievementRepository: AchievementRepository {
                 historicalBackfill: false,
                 shareable: true,
                 assetName: "achievement_badge_start_first_run_marker"
+            ),
+            AchievementBadge(
+                badgeId: "BADGE-START-PLAN-STARTED",
+                chapter: .start,
+                nameKey: "achievements.badge.start.plan_started.name",
+                storyKey: "achievements.badge.start.plan_started.story",
+                status: .unlocked,
+                progress: nil,
+                unlockedAt: "2026-04-13",
+                unlockReasonKey: nil,
+                sourceRef: nil,
+                historicalBackfill: false,
+                shareable: true,
+                assetName: nil
             ),
             AchievementBadge(
                 badgeId: "BADGE-RHYTHM-12-SEASON-RUNNER",
@@ -189,7 +217,7 @@ private final class UITestAchievementRepository: AchievementRepository {
             AchievementShareable(
                 materialId: "badge:BADGE-START-FIRST-RUN",
                 materialType: .badge,
-                titleKey: badges[0].nameKey,
+                titleKey: badges[1].nameKey,
                 summaryKey: "achievements.share.badge.summary",
                 summaryParams: [:],
                 publicFields: [
@@ -205,8 +233,8 @@ private final class UITestAchievementRepository: AchievementRepository {
                     )
                 ],
                 defaultSensitiveFieldsEnabled: false,
-                badgeId: badges[0].badgeId,
-                chapter: badges[0].chapter
+                badgeId: badges[1].badgeId,
+                chapter: badges[1].chapter
             )
         ]
 
@@ -218,19 +246,19 @@ private final class UITestAchievementRepository: AchievementRepository {
                 unlockedCount: 3,
                 totalCount: 34,
                 recentUnlock: AchievementBadgeSnapshot(
-                    badgeId: badges[2].badgeId,
-                    chapter: badges[2].chapter,
-                    nameKey: badges[2].nameKey,
-                    storyKey: badges[2].storyKey,
-                    status: badges[2].status
+                    badgeId: badges[4].badgeId,
+                    chapter: badges[4].chapter,
+                    nameKey: badges[4].nameKey,
+                    storyKey: badges[4].storyKey,
+                    status: badges[4].status
                 ),
                 nextBadge: nil,
                 emptyStateKey: nil
             ),
             badgeGroups: [
-                AchievementBadgeGroup(chapter: .start, titleKey: "achievements.chapter.start", badges: [badges[0]]),
-                AchievementBadgeGroup(chapter: .build, titleKey: "achievements.chapter.build", badges: [badges[1]]),
-                AchievementBadgeGroup(chapter: .prove, titleKey: "achievements.chapter.prove", badges: [badges[2]])
+                AchievementBadgeGroup(chapter: .start, titleKey: "achievements.chapter.start", badges: [badges[0], badges[1], badges[2]]),
+                AchievementBadgeGroup(chapter: .build, titleKey: "achievements.chapter.build", badges: [badges[3]]),
+                AchievementBadgeGroup(chapter: .prove, titleKey: "achievements.chapter.prove", badges: [badges[4]])
             ],
             achievementTracks: tracks,
             pbOverview: AchievementPBOverview(

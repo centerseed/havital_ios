@@ -72,6 +72,24 @@ final class AchievementDTOTests: XCTestCase {
         XCTAssertEqual(summary.achievementTracks[2].trackId, "pb")
     }
 
+    func testMapperDropsSupersededLegacyPlanBadgesFromGroupsAndTracks() throws {
+        let data = Data(Self.summaryWithSupersededLegacyPlanBadgesJSON.utf8)
+
+        let dto = try JSONDecoder().decode(AchievementSummaryResponse.self, from: data)
+        let summary = AchievementMapper.toDomain(dto)
+
+        XCTAssertEqual(
+            summary.badgeGroups.flatMap(\.badges).map(\.badgeId),
+            ["BADGE-RHYTHM-02-RETURN-WEEK"]
+        )
+        XCTAssertEqual(summary.achievementTracks.map(\.trackId), ["plan"])
+        XCTAssertEqual(
+            summary.achievementTracks[0].badges.map(\.badgeId),
+            ["BADGE-PLAN-01-FIRST-QUALIFIED-WEEK"]
+        )
+        XCTAssertEqual(summary.achievementTracks[0].nextBadge?.badgeId, "BADGE-PLAN-01-FIRST-QUALIFIED-WEEK")
+    }
+
     func testSummaryDefaultsAchievementTracksToEmptyWhenAbsent() throws {
         let data = Data(Self.degradedSummaryJSON.utf8)
 
@@ -375,6 +393,168 @@ final class AchievementDTOTests: XCTestCase {
           "current": 1,
           "next_badge": null,
           "badges": []
+        }
+      ],
+      "pb_overview": null,
+      "lifetime_stats": null,
+      "insights": [],
+      "recent_shareables": [],
+      "unlock_feedback_queue": [],
+      "privacy_policy": {
+        "default_sensitive_fields_enabled": false,
+        "excluded_fields": ["route"]
+      }
+    }
+    """
+
+    private static let summaryWithSupersededLegacyPlanBadgesJSON = """
+    {
+      "generated_at": "2026-05-13T08:00:00Z",
+      "catalog_version": "achievement_catalog_v20260601",
+      "backfill": {
+        "status": "completed",
+        "show_banner": false,
+        "banner_key": null,
+        "historical_unlock_count": 0,
+        "acknowledged_at": null
+      },
+      "story_summary": {
+        "unlocked_count": 2,
+        "total_count": 4,
+        "recent_unlock": null,
+        "next_badge": null,
+        "empty_state_key": null
+      },
+      "badge_groups": [
+        {
+          "chapter": "start",
+          "title_key": "achievements.chapter.start",
+          "badges": [
+            {
+              "badge_id": "BADGE-START-PLAN-STARTED",
+              "chapter": "start",
+              "name_key": "achievements.badge.start.plan_started.name",
+              "story_key": "achievements.badge.start.plan_started.story",
+              "status": "unlocked",
+              "progress": null,
+              "unlocked_at": "2026-05-01",
+              "unlock_reason_key": null,
+              "source_ref": null,
+              "historical_backfill": false,
+              "shareable": true,
+              "asset_name": null
+            },
+            {
+              "badge_id": "BADGE-START-FIRST-WEEK",
+              "chapter": "start",
+              "name_key": "achievements.badge.start.first_week.name",
+              "story_key": "achievements.badge.start.first_week.story",
+              "status": "unlocked",
+              "progress": null,
+              "unlocked_at": "2026-05-08",
+              "unlock_reason_key": null,
+              "source_ref": null,
+              "historical_backfill": false,
+              "shareable": true,
+              "asset_name": null
+            }
+          ]
+        },
+        {
+          "chapter": "build",
+          "title_key": "achievements.chapter.build",
+          "badges": [
+            {
+              "badge_id": "BADGE-RHYTHM-02-RETURN-WEEK",
+              "chapter": "build",
+              "name_key": "achievements.badge.rhythm.return_week.name",
+              "story_key": "achievements.badge.rhythm.return_week.story",
+              "status": "in_progress",
+              "progress": null,
+              "unlocked_at": null,
+              "unlock_reason_key": null,
+              "source_ref": null,
+              "historical_backfill": false,
+              "shareable": true,
+              "asset_name": null
+            }
+          ]
+        }
+      ],
+      "achievement_tracks": [
+        {
+          "track_id": "legacy_start",
+          "title_key": "achievements.track.legacy_start.title",
+          "story_key": "achievements.track.legacy_start.story",
+          "metric_key": "completed_weeks",
+          "current": 1,
+          "next_badge": {
+            "badge_id": "BADGE-START-FIRST-WEEK",
+            "chapter": "start",
+            "name_key": "achievements.badge.start.first_week.name",
+            "story_key": "achievements.badge.start.first_week.story",
+            "status": "unlocked",
+            "progress": null,
+            "unlocked_at": "2026-05-08",
+            "unlock_reason_key": null,
+            "source_ref": null,
+            "historical_backfill": false,
+            "shareable": true,
+            "asset_name": null
+          },
+          "badges": [
+            {
+              "badge_id": "BADGE-START-FIRST-WEEK",
+              "chapter": "start",
+              "name_key": "achievements.badge.start.first_week.name",
+              "story_key": "achievements.badge.start.first_week.story",
+              "status": "unlocked",
+              "progress": null,
+              "unlocked_at": "2026-05-08",
+              "unlock_reason_key": null,
+              "source_ref": null,
+              "historical_backfill": false,
+              "shareable": true,
+              "asset_name": null
+            }
+          ]
+        },
+        {
+          "track_id": "plan",
+          "title_key": "achievements.track.plan.title",
+          "story_key": "achievements.track.plan.story",
+          "metric_key": "qualified_plan_weeks",
+          "current": 1,
+          "next_badge": {
+            "badge_id": "BADGE-PLAN-01-FIRST-QUALIFIED-WEEK",
+            "chapter": "adapt",
+            "name_key": "achievements.badge.plan.first_qualified_week.name",
+            "story_key": "achievements.badge.plan.first_qualified_week.story",
+            "status": "unlocked",
+            "progress": null,
+            "unlocked_at": "2026-05-08",
+            "unlock_reason_key": null,
+            "source_ref": null,
+            "historical_backfill": false,
+            "shareable": true,
+            "asset_name": null
+          },
+          "badges": [
+            {
+              "badge_id": "BADGE-PLAN-01-FIRST-QUALIFIED-WEEK",
+              "chapter": "adapt",
+              "name_key": "achievements.badge.plan.first_qualified_week.name",
+              "story_key": "achievements.badge.plan.first_qualified_week.story",
+              "status": "unlocked",
+              "progress": null,
+              "unlocked_at": "2026-05-08",
+              "unlock_reason_key": null,
+              "source_ref": null,
+              "historical_backfill": false,
+              "shareable": true,
+              "asset_name": null
+            }
+          ]
         }
       ],
       "pb_overview": null,

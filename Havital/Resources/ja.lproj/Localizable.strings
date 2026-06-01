@@ -3083,10 +3083,6 @@
 "achievements.badge.mileage_markers.next_action" = "次の距離マーカーに向けて走り続けましょう。";
 "achievements.badge.start.first_run.name" = "初めてのラン";
 "achievements.badge.start.first_run.story" = "Paceriz で最初のランを記録した——これからの積み重ねは、すべてこの一歩から始まる。";
-"achievements.badge.start.plan_started.name" = "プラン開始";
-"achievements.badge.start.plan_started.story" = "最初のトレーニングプランを始めた。「走りたい」が「計画的に走る」に変わった。";
-"achievements.badge.start.first_week.name" = "最初の週を完了";
-"achievements.badge.start.first_week.story" = "最初のトレーニング週を完了し、走行距離の目標を達成した——リズムの出発点だ。";
 "achievements.badge.start.first_long_run.name" = "初めてのロングラン";
 "achievements.badge.start.first_long_run.story" = "初めて12km以上のロングランを走りきり、距離の限界を少し外へ押し広げた。";
 "achievements.badge.start.first_recovery.name" = "初めての回復";
@@ -3174,8 +3170,6 @@
 "achievements.share.week_complete.summary" = "Paceriz のトレーニング週を完了しました。";
 "achievements.share.insight.summary" = "Paceriz がトレーニング履歴から整理した公開インサイトです。";
 "achievements.reason.badge_start_first_run" = "最初の有効なランを完了して同期しました。";
-"achievements.reason.badge_start_plan_started" = "最初の Paceriz トレーニングプランを開始しました。";
-"achievements.reason.badge_start_first_week" = "最初のトレーニング週を完了しました。";
 "achievements.reason.badge_start_first_long_run" = "最初のロングランを完了しました。";
 "achievements.reason.badge_start_first_recovery" = "最初の回復ランを完了しました。";
 "achievements.reason.badge_build_showing_up" = "安定したトレーニングリズムを作り始めました。";
@@ -3211,8 +3205,6 @@
 // MARK: - Badge Criteria（獲得方法、35 badges × ja）
 // Chapter: Start
 "achievements.badge.start.first_run.criteria" = "最初のランを完了して同期するだけで獲得できます。";
-"achievements.badge.start.plan_started.criteria" = "Paceriz で最初のトレーニングプランを開始すると獲得できます。";
-"achievements.badge.start.first_week.criteria" = "週間走行距離がプランの目標に達し、最初のトレーニング週を完了すると獲得できます。";
 "achievements.badge.start.first_long_run.criteria" = "12 km 以上のランを完了して同期すると獲得できます。";
 "achievements.badge.start.first_recovery.criteria" = "Paceriz のプランに組まれた回復ランを完了すると獲得できます。";
 // Chapter: Build

@@ -96,7 +96,11 @@ final class AchievementRepositoryImpl: AchievementRepository {
         }
 
         // Cache 尚未載入（冷啟動 summary 還沒回來）：用上次持久化的快照即時、穩定渲染，避免閃暫代值。
-        return DisplayBadgeStorage.load() ?? resolved
+        if let stored = DisplayBadgeStorage.load(),
+           AchievementBadgeSemanticPolicy.isDisplayable(stored) {
+            return stored
+        }
+        return resolved
     }
 
     func getInProgressBadges() -> [AchievementBadge] {
@@ -118,9 +122,9 @@ final class AchievementRepositoryImpl: AchievementRepository {
     private func allBadgesFromCache() -> [AchievementBadge] {
         guard let summary = cachedSummary else { return [] }
         if !summary.achievementTracks.isEmpty {
-            return summary.achievementTracks.flatMap(\.badges)
+            return summary.achievementTracks.flatMap(\.badges).filter(AchievementBadgeSemanticPolicy.isDisplayable)
         }
-        return []
+        return summary.badgeGroups.flatMap(\.badges).filter(AchievementBadgeSemanticPolicy.isDisplayable)
     }
 }
 

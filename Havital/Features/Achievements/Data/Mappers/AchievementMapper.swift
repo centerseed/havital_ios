@@ -2,13 +2,49 @@ import Foundation
 
 enum AchievementMapper {
     static func toDomain(_ dto: AchievementSummaryResponse) -> AchievementSummary {
-        AchievementSummary(
+        let badgeGroups = dto.badgeGroups
+            .map(toDomain)
+            .map { group in
+                AchievementBadgeGroup(
+                    chapter: group.chapter,
+                    titleKey: group.titleKey,
+                    badges: group.badges.filter(AchievementBadgeSemanticPolicy.isDisplayable)
+                )
+            }
+            .filter { !$0.badges.isEmpty }
+        let achievementTracks = dto.achievementTracks
+            .map(toDomain)
+            .map { track in
+                let badges = track.badges.filter(AchievementBadgeSemanticPolicy.isDisplayable)
+                let nextBadge = track.nextBadge.flatMap {
+                    AchievementBadgeSemanticPolicy.isDisplayable($0) ? $0 : nil
+                }
+                let hadOnlySupersededBadges = !track.badges.isEmpty
+                    && badges.isEmpty
+                    && nextBadge == nil
+                return (
+                    track: AchievementTrack(
+                        trackId: track.trackId,
+                        titleKey: track.titleKey,
+                        storyKey: track.storyKey,
+                        metricKey: track.metricKey,
+                        current: track.current,
+                        nextBadge: nextBadge,
+                        badges: badges
+                    ),
+                    shouldDrop: hadOnlySupersededBadges
+                )
+            }
+            .filter { !$0.shouldDrop }
+            .map(\.track)
+
+        return AchievementSummary(
             generatedAt: dto.generatedAt,
             catalogVersion: dto.catalogVersion,
             backfill: toDomain(dto.backfill),
             storySummary: toDomain(dto.storySummary),
-            badgeGroups: dto.badgeGroups.map(toDomain),
-            achievementTracks: dto.achievementTracks.map(toDomain),
+            badgeGroups: badgeGroups,
+            achievementTracks: achievementTracks,
             pbOverview: dto.pbOverview.map(toDomain),
             lifetimeStats: dto.lifetimeStats.map(toDomain) ?? .empty,
             insights: dto.insights.map(toDomain),

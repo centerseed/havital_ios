@@ -3128,10 +3128,6 @@
 "achievements.badge.mileage_markers.next_action" = "繼續累積跑量，前往下一座里程碑。";
 "achievements.badge.start.first_run.name" = "第一筆跑步";
 "achievements.badge.start.first_run.story" = "你跑出了在 Paceriz 的第一筆紀錄——所有累積，都從這一步開始。";
-"achievements.badge.start.plan_started.name" = "課表開始";
-"achievements.badge.start.plan_started.story" = "你啟動了第一份訓練課表，把「想跑」變成「有計畫地跑」。";
-"achievements.badge.start.first_week.name" = "第一週完成";
-"achievements.badge.start.first_week.story" = "你完成了第一個訓練週、跑量達標——節奏的起點。";
 "achievements.badge.start.first_long_run.name" = "第一次長跑";
 "achievements.badge.start.first_long_run.story" = "你跑完第一次 12 公里以上的長跑，把距離的界線往外推了一點。";
 "achievements.badge.start.first_recovery.name" = "第一次恢復";
@@ -3219,8 +3215,6 @@
 "achievements.share.week_complete.summary" = "你完成了一個 Paceriz 訓練週。";
 "achievements.share.insight.summary" = "這是 Paceriz 從你的訓練歷史整理出的公開洞察。";
 "achievements.reason.badge_start_first_run" = "完成並同步第一筆有效跑步紀錄。";
-"achievements.reason.badge_start_plan_started" = "開始第一份 Paceriz 訓練計畫。";
-"achievements.reason.badge_start_first_week" = "完成第一個訓練週。";
 "achievements.reason.badge_start_first_long_run" = "完成第一筆長跑訓練。";
 "achievements.reason.badge_start_first_recovery" = "完成第一筆恢復訓練。";
 "achievements.reason.badge_build_showing_up" = "開始穩定留下訓練紀錄。";
@@ -3256,8 +3250,6 @@
 // MARK: - Badge Criteria（如何解鎖，35 badges × zh-Hant）
 // Chapter: Start
 "achievements.badge.start.first_run.criteria" = "完成並同步你的第一次跑步紀錄，即可解鎖。";
-"achievements.badge.start.plan_started.criteria" = "在 Paceriz 啟動你的第一份訓練課表，即可解鎖。";
-"achievements.badge.start.first_week.criteria" = "完成第一個訓練週，讓本週跑量達到課表目標，即可解鎖。";
 "achievements.badge.start.first_long_run.criteria" = "完成一次 12 公里以上的跑步並同步紀錄，即可解鎖。";
 "achievements.badge.start.first_recovery.criteria" = "完成一次課表中標記為恢復跑的輕鬆訓練，即可解鎖。";
 // Chapter: Build

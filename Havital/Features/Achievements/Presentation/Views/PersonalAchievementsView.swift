@@ -552,7 +552,10 @@ struct PersonalAchievementsView: View {
                 AchievementBadgeGroup(
                     chapter: group.chapter,
                     titleKey: group.titleKey,
-                    badges: group.badges.filter { !mileageIds.contains($0.badgeId) }
+                    badges: group.badges.filter {
+                        !mileageIds.contains($0.badgeId)
+                            && AchievementBadgeSemanticPolicy.isDisplayable($0)
+                    }
                 )
             }
             .filter { !$0.badges.isEmpty }
@@ -840,9 +843,9 @@ struct PersonalAchievementsView: View {
     private var allBadges: [AchievementBadge] {
         guard let summary = viewModel.summary else { return [] }
         if !summary.achievementTracks.isEmpty {
-            return summary.achievementTracks.flatMap(\.badges)
+            return summary.achievementTracks.flatMap(\.badges).filter(AchievementBadgeSemanticPolicy.isDisplayable)
         }
-        return summary.badgeGroups.flatMap(\.badges)
+        return summary.badgeGroups.flatMap(\.badges).filter(AchievementBadgeSemanticPolicy.isDisplayable)
     }
 
     private var latestUnlockedBadge: AchievementBadge? {

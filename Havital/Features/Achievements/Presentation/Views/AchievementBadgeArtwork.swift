@@ -20,9 +20,9 @@ enum AchievementBadgeArtwork {
         switch badgeId {
         case "BADGE-START-FIRST-RUN":
             return "achievement_badge_start_first_run_marker"
-        case "BADGE-START-PLAN-STARTED", "BADGE-PLAN-00-PLAN-STARTED":
+        case "BADGE-PLAN-00-PLAN-STARTED":
             return "achievement_badge_plan_00_plan_started"
-        case "BADGE-START-FIRST-WEEK", "BADGE-PLAN-01-FIRST-QUALIFIED-WEEK":
+        case "BADGE-PLAN-01-FIRST-QUALIFIED-WEEK":
             return "achievement_badge_plan_01_first_qualified_week"
         case "BADGE-PLAN-02-TWO-QUALIFIED-WEEKS":
             return "achievement_badge_plan_02_two_qualified_weeks"
