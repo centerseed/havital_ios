@@ -281,8 +281,16 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
                 notes: notes
             )
 
+            // The POST response carries the new `correction` object (so the card flips to the
+            // corrected state) but the recomputed headline metrics (distance / pace / VDOT) only
+            // land via a fresh GET. Re-fetch the authoritative detail so the headline updates
+            // in place instead of staying stale until the next app launch. Falls back to the
+            // POST response if the refresh fails. Direct repo call bypasses refreshWorkoutDetail()'s
+            // cooldown so a correction applied <5s after opening still refreshes.
+            let freshDetail = (try? await repository.refreshWorkoutDetail(id: workout.id)) ?? updatedDetail
+
             await MainActor.run {
-                self.state = .loaded(updatedDetail)
+                self.state = .loaded(freshDetail)
                 // 列表更新由 repo.refreshSubject → WorkoutListViewModel → CacheEventBus 鏈處理
                 // 此處不重複 publish，避免雙重 reload（MEDIUM-2）
             }
