@@ -252,17 +252,26 @@ final class WeeklySummaryCoordinator {
 
             Logger.info("[WeeklySummaryCoordinator] ✅ 週摘要產生成功，顯示 sheet")
         } catch {
-            summaryFlowActive = false
             stopLoadingAnimation()
             let domainError = error.toDomainError()
             switch domainError {
             case .subscriptionRequired, .trialExpired, .forbidden:
                 if isEnforcementEnabled() {
+                    // Do NOT dismiss the loading sheet here. The View dismisses it and then
+                    // presents the paywall in the sheet's onDismiss, so the paywall (which is
+                    // hosted in a different view hierarchy via InterruptHost) is presented only
+                    // after this sheet has fully torn down. Dismissing here and enqueuing the
+                    // paywall in the same tick caused a cross-view race where the paywall could
+                    // not be closed.
                     onPaywallTriggered(resolvePaywallTrigger())
+                } else {
+                    summaryFlowActive = false
                 }
             case .rizoQuotaExceeded:
+                summaryFlowActive = false
                 onRizoQuotaExceeded()
             default:
+                summaryFlowActive = false
                 if shouldSuppressError(domainError, "週摘要產生", { [weak self] in self?.weeklySummary = .empty }) { return }
                 Logger.error("[WeeklySummaryCoordinator] ❌ 週摘要產生失敗: \(domainError.localizedDescription)")
                 onNetworkError(domainError)

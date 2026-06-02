@@ -20,6 +20,14 @@ struct TrainingPlanV2View: View {
     @State private var showWeeklyPlanInlineUpsellSheet = false
     @State private var weeklyPlanUpsellIsRegenerateLocal = false
     @State private var showWeeklyReviewInlineUpsellSheet = false
+
+    // Paywall presented via the root InterruptHost lives in a different view hierarchy
+    // than this tab's own sheets. Enqueuing it in the SAME tick that one of those sheets
+    // is dismissed produces a cross-view present/dismiss race where the resulting paywall
+    // cannot be dismissed (its Close button no-ops). We therefore stage the trigger here
+    // and only enqueue it AFTER the owning sheet has fully torn down (its onDismiss), so the
+    // paywall is presented cleanly — exactly like the working free-tier-banner entry point.
+    @State private var pendingInterruptPaywall: PaywallTrigger?
     // AC-PAYWALL-35: observe subscription state for free tier banner visibility
     @StateObject private var subscriptionState = SubscriptionStateManager.shared
     @StateObject private var userProfileViewModel = UserProfileFeatureViewModel()
@@ -432,6 +440,9 @@ struct TrainingPlanV2View: View {
             // ✅ 合併 Sheet：loading review → summary → loading plan（零閃爍）
             .sheet(isPresented: $bindableViewModel.summary.summaryFlowActive, onDismiss: {
                 summaryIsMenuInspect = false
+                // Weekly-review 403 path: the loading sheet was just dismissed because a
+                // paywall is required. Present it now that this sheet is fully gone.
+                flushPendingInterruptPaywall()
             }) {
                 let weekToShow: Int = {
                     if case .loaded(let loadedSummary) = viewModel.summary.weeklySummary {
@@ -553,8 +564,18 @@ struct TrainingPlanV2View: View {
         }
         .onChange(of: bindableViewModel.paywallTrigger) { _, trigger in
             guard let trigger else { return }
-            _ = InterruptCoordinator.shared.enqueue(.paywall(trigger))
             bindableViewModel.paywallTrigger = nil
+            // Stage the trigger, then present it cleanly. If the weekly-review loading sheet
+            // is still up (the coordinator deliberately leaves it up on the 403 path), dismiss
+            // it and let its onDismiss flush the paywall after full teardown — this avoids the
+            // cross-view present/dismiss race where the paywall's Close button no-ops. If no
+            // owning sheet is up, present immediately (matches the free-tier-banner path).
+            pendingInterruptPaywall = trigger
+            if bindableViewModel.summary.summaryFlowActive {
+                bindableViewModel.summary.summaryFlowActive = false
+            } else {
+                flushPendingInterruptPaywall()
+            }
         }
         // S07: show inline upsell cards for weekly plan (AC-PAYWALL-22/26)
         .onChange(of: viewModel.showWeeklyPlanInlineUpsell) { _, shouldShow in
@@ -572,17 +593,20 @@ struct TrainingPlanV2View: View {
             }
         }
         // S06: inline upsell sheet for weekly plan
-        .sheet(isPresented: $showWeeklyPlanInlineUpsellSheet) {
+        .sheet(isPresented: $showWeeklyPlanInlineUpsellSheet, onDismiss: {
+            flushPendingInterruptPaywall()
+        }) {
             NavigationStack {
                 ScrollView {
                     WeeklyPlanInlineUpsellCard(
                         isRegenerate: weeklyPlanUpsellIsRegenerateLocal,
                         onStartTrial: {
-                            showWeeklyPlanInlineUpsellSheet = false
-                            let trigger: PaywallTrigger = weeklyPlanUpsellIsRegenerateLocal
+                            // Stage the paywall, then dismiss this sheet; the onDismiss above
+                            // presents it after teardown (avoids cross-view present/dismiss race).
+                            pendingInterruptPaywall = weeklyPlanUpsellIsRegenerateLocal
                                 ? .weeklyPlanRegenerate
                                 : .weeklyPlanWeek2
-                            _ = InterruptCoordinator.shared.enqueue(.paywall(trigger))
+                            showWeeklyPlanInlineUpsellSheet = false
                         },
                         onRestore: {
                             showWeeklyPlanInlineUpsellSheet = false
@@ -604,13 +628,17 @@ struct TrainingPlanV2View: View {
             .presentationDetents([.medium])
         }
         // S06: inline upsell sheet for weekly review
-        .sheet(isPresented: $showWeeklyReviewInlineUpsellSheet) {
+        .sheet(isPresented: $showWeeklyReviewInlineUpsellSheet, onDismiss: {
+            flushPendingInterruptPaywall()
+        }) {
             NavigationStack {
                 ScrollView {
                     WeeklyReviewInlineUpsellCard(
                         onStartTrial: {
+                            // Stage the paywall, then dismiss this sheet; the onDismiss above
+                            // presents it after teardown (avoids cross-view present/dismiss race).
+                            pendingInterruptPaywall = .weeklyReview
                             showWeeklyReviewInlineUpsellSheet = false
-                            _ = InterruptCoordinator.shared.enqueue(.paywall(.weeklyReview))
                         },
                         onRestore: {
                             showWeeklyReviewInlineUpsellSheet = false
@@ -752,6 +780,15 @@ struct TrainingPlanV2View: View {
     }
 
     // MARK: - Helpers
+
+    /// Enqueues the staged paywall onto the root InterruptHost once this tab's own sheet
+    /// has finished dismissing. Idempotent: safe to call from multiple onDismiss hooks and
+    /// the deferred fallback — the first call clears `pendingInterruptPaywall`.
+    private func flushPendingInterruptPaywall() {
+        guard let trigger = pendingInterruptPaywall else { return }
+        pendingInterruptPaywall = nil
+        _ = InterruptCoordinator.shared.enqueue(.paywall(trigger))
+    }
 
     private func openEditSchedule() {
         guard case .ready(let weeklyPlan) = viewModel.loader.planStatus else { return }
