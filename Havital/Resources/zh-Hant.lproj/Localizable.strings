@@ -530,6 +530,21 @@
 "workout.detail.treadmill_correction_incline_placeholder" = "例：1.5";
 "workout.detail.treadmill_correction_notes_placeholder" = "例：控制台顯示距離";
 
+// Trim (運動紀錄裁剪)
+"workout.detail.trim_title" = "裁剪紀錄";
+"workout.detail.trim_description" = "忘記按停？拖動把手保留實際運動的區間，系統會重新計算所有指標。";
+"workout.detail.trim_keep_start" = "保留起點";
+"workout.detail.trim_keep_end" = "保留終點";
+"workout.detail.trim_keep_duration" = "保留時長";
+"workout.detail.trim_apply" = "套用裁剪";
+"workout.detail.trim_modify" = "重新裁剪";
+"workout.detail.trim_applied" = "已裁剪此紀錄";
+"workout.detail.trim_success" = "紀錄已成功裁剪。";
+"workout.detail.trim_error" = "裁剪失敗，請稍後重試。";
+"workout.detail.trim_cannot_trim_error" = "此紀錄無法裁剪（原始資料已不可用）。";
+"workout.detail.trim_window_too_short_error" = "保留區間至少需 1 分鐘。";
+"workout.detail.trim_already_trimmed_hint" = "此紀錄已裁剪。再次裁剪會在目前區間內進一步保留。";
+
 // MARK: - Workout Metrics
 "workout.metrics.distance" = "距離";
 "workout.metrics.time" = "時間";

@@ -541,6 +541,21 @@
 "workout.detail.treadmill_correction_incline_placeholder" = "e.g. 1.5";
 "workout.detail.treadmill_correction_notes_placeholder" = "e.g. console reading";
 
+// Trim
+"workout.detail.trim_title" = "Trim Recording";
+"workout.detail.trim_description" = "Forgot to stop the timer? Drag the handles to keep only the active portion. All metrics will be recalculated.";
+"workout.detail.trim_keep_start" = "Keep from";
+"workout.detail.trim_keep_end" = "Keep until";
+"workout.detail.trim_keep_duration" = "Kept duration";
+"workout.detail.trim_apply" = "Apply Trim";
+"workout.detail.trim_modify" = "Re-trim";
+"workout.detail.trim_applied" = "Recording trimmed";
+"workout.detail.trim_success" = "Recording trimmed successfully.";
+"workout.detail.trim_error" = "Failed to trim. Please try again.";
+"workout.detail.trim_cannot_trim_error" = "This recording can't be trimmed (original data is no longer available).";
+"workout.detail.trim_window_too_short_error" = "The kept range must be at least 1 minute.";
+"workout.detail.trim_already_trimmed_hint" = "This recording is already trimmed. Trimming again keeps a portion within the current range.";
+
 // MARK: - Workout Metrics
 "workout.metrics.distance" = "Distance";
 "workout.metrics.time" = "Time";

@@ -327,6 +327,79 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
         }
     }
 
+    // MARK: - 運動紀錄裁剪
+
+    /// 裁剪結果
+    enum TrimApplyResult {
+        case success
+        case cannotTrim   // 409 — 原始 raw 已清，無法裁剪
+        case cancelled    // 任務取消，UI 不顯示錯誤
+        case failure
+    }
+
+    /// 套用運動紀錄裁剪
+    /// - Parameters:
+    ///   - keepStartS: 保留起點（相對原始 start_time 的秒數，>= 0）
+    ///   - keepEndS: 保留終點（相對原始 start_time 的秒數，> keepStartS）
+    /// - Returns: 裁剪結果（success / cannotTrim(409) / cancelled / failure）
+    func applyTrim(keepStartS: Double, keepEndS: Double) async -> TrimApplyResult {
+        do {
+            Logger.debug("[WorkoutDetailViewModelV2] applyTrim - workout_id: \(workout.id)")
+
+            let updatedDetail = try await repository.applyTrim(
+                id: workout.id,
+                keepStartS: keepStartS,
+                keepEndS: keepEndS
+            )
+
+            // POST 回應已是重算後的 detail；再強制 GET 拿權威值，讓 headline（時長/距離/配速/VDOT）
+            // 原地刷新（與 treadmill 同模式，直接呼叫 repo 繞過 refreshWorkoutDetail() 的 5s cooldown）。
+            // refresh 失敗則回退用 POST 回應。
+            let freshDetail = (try? await repository.refreshWorkoutDetail(id: workout.id)) ?? updatedDetail
+
+            await MainActor.run {
+                self.state = .loaded(freshDetail)
+                // 列表更新由 repo.refreshSubject → WorkoutListViewModel → CacheEventBus 鏈處理
+            }
+
+            Logger.firebase(
+                "運動紀錄裁剪成功",
+                level: .info,
+                labels: ["module": "WorkoutDetailViewModelV2", "action": "trim"],
+                jsonPayload: [
+                    "workout_id": workout.id,
+                    "keep_start_s": keepStartS,
+                    "keep_end_s": keepEndS
+                ]
+            )
+            return .success
+        } catch is CancellationError {
+            Logger.debug("[WorkoutDetailViewModelV2] 裁剪已取消")
+            return .cancelled
+        } catch let error as HTTPError {
+            if error.isCancelled { return .cancelled }
+            if case .httpError(409, _) = error {
+                Logger.debug("[WorkoutDetailViewModelV2] 裁剪失敗 409：原始資料已清，無法裁剪")
+                return .cannotTrim
+            }
+            Logger.firebase(
+                "運動紀錄裁剪失敗",
+                level: .error,
+                labels: ["module": "WorkoutDetailViewModelV2", "action": "trim", "cloud_logging": "true"],
+                jsonPayload: ["workout_id": workout.id, "error": error.localizedDescription]
+            )
+            return .failure
+        } catch {
+            Logger.firebase(
+                "運動紀錄裁剪失敗",
+                level: .error,
+                labels: ["module": "WorkoutDetailViewModelV2", "action": "trim", "cloud_logging": "true"],
+                jsonPayload: ["workout_id": workout.id, "error": error.localizedDescription]
+            )
+            return .failure
+        }
+    }
+
     func updateRPE(_ rpe: Int?) async -> Bool {
         if let rpe, !(1...10).contains(rpe) {
             Logger.error("[WorkoutDetailViewModelV2] RPE 超出 1-10 範圍")

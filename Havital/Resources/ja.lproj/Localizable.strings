@@ -541,6 +541,21 @@
 "workout.detail.treadmill_correction_incline_placeholder" = "例：1.5";
 "workout.detail.treadmill_correction_notes_placeholder" = "例：コンソール表示距離";
 
+// Trim (記録のトリミング)
+"workout.detail.trim_title" = "記録をトリミング";
+"workout.detail.trim_description" = "停止し忘れましたか？ハンドルをドラッグして実際に運動した区間だけを残します。すべての指標が再計算されます。";
+"workout.detail.trim_keep_start" = "開始位置";
+"workout.detail.trim_keep_end" = "終了位置";
+"workout.detail.trim_keep_duration" = "保持時間";
+"workout.detail.trim_apply" = "トリミングを適用";
+"workout.detail.trim_modify" = "再トリミング";
+"workout.detail.trim_applied" = "この記録はトリミング済み";
+"workout.detail.trim_success" = "記録を正常にトリミングしました。";
+"workout.detail.trim_error" = "トリミングに失敗しました。後でもう一度お試しください。";
+"workout.detail.trim_cannot_trim_error" = "この記録はトリミングできません（元データが利用できません）。";
+"workout.detail.trim_window_too_short_error" = "保持する区間は最低1分必要です。";
+"workout.detail.trim_already_trimmed_hint" = "この記録はトリミング済みです。再度トリミングすると現在の区間内でさらに保持します。";
+
 // MARK: - Workout Metrics
 "workout.metrics.distance" = "距離";
 "workout.metrics.time" = "時間";

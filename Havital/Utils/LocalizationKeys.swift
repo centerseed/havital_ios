@@ -780,6 +780,21 @@ enum GaitAnalysisChart {
         static let treadmillCorrectionDistancePlaceholder = "workout.detail.treadmill_correction_distance_placeholder"
         static let treadmillCorrectionInclinePlaceholder = "workout.detail.treadmill_correction_incline_placeholder"
         static let treadmillCorrectionNotesPlaceholder = "workout.detail.treadmill_correction_notes_placeholder"
+
+        // Trim (運動紀錄裁剪)
+        static let trimTitle = "workout.detail.trim_title"
+        static let trimDescription = "workout.detail.trim_description"
+        static let trimKeepStart = "workout.detail.trim_keep_start"
+        static let trimKeepEnd = "workout.detail.trim_keep_end"
+        static let trimKeepDuration = "workout.detail.trim_keep_duration"
+        static let trimApply = "workout.detail.trim_apply"
+        static let trimModify = "workout.detail.trim_modify"
+        static let trimApplied = "workout.detail.trim_applied"
+        static let trimSuccess = "workout.detail.trim_success"
+        static let trimError = "workout.detail.trim_error"
+        static let trimCannotTrimError = "workout.detail.trim_cannot_trim_error"
+        static let trimWindowTooShortError = "workout.detail.trim_window_too_short_error"
+        static let trimAlreadyTrimmedHint = "workout.detail.trim_already_trimmed_hint"
     }
 
     enum LowData {

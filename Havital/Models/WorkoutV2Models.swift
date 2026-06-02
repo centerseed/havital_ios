@@ -460,6 +460,7 @@ struct WorkoutV2Detail: Codable {
     let shareCardContent: ShareCardContent?  // 分享卡內容 (optional,向後兼容)
     let trainingNotes: String?  // 訓練心得 (optional,向後兼容)
     let correction: TreadmillCorrection?  // 跑步機里程校正 (optional,向後兼容)
+    let edits: [WorkoutEdit]?  // 宣告式可重播編輯清單（trim 等，optional,向後兼容）
 
     enum CodingKeys: String, CodingKey {
         case id, provider, source
@@ -489,6 +490,25 @@ struct WorkoutV2Detail: Codable {
         case shareCardContent = "share_card_content"
         case trainingNotes = "training_notes"
         case correction = "correction"
+        case edits = "edits"
+    }
+}
+
+// MARK: - Workout Edit Model (Trim)
+
+/// 宣告式可重播編輯記錄（後端 WorkoutEdit，目前僅 trim）。
+/// keep_start_s / keep_end_s 以「原始未編輯時間軸」為基準，確保 re-backfill 不失效。
+struct WorkoutEdit: Codable, Hashable {
+    let type: String?
+    let keepStartS: Double?
+    let keepEndS: Double?
+    let appliedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case keepStartS = "keep_start_s"
+        case keepEndS = "keep_end_s"
+        case appliedAt = "applied_at"
     }
 }
 
@@ -1306,6 +1326,33 @@ extension WorkoutV2Detail {
     /// 是否已完成跑步機里程人工校正
     var isTreadmillCorrected: Bool {
         correction?.type == "treadmill" && correction?.source == "user_treadmill_correction"
+    }
+}
+
+// MARK: - Trim Helper
+
+extension WorkoutV2Detail {
+    /// 後端 TrimService._TRIMMABLE_ACTIVITY_TYPES 的鏡像
+    /// （client 端先 gate，避免送出後才被 400「非可裁型別」拒絕）
+    static let trimmableActivityTypes: Set<String> = [
+        "running", "cycling", "swimming", "walking", "hiking",
+        "indoor_running", "street_running", "track_running", "trail_running",
+        "treadmill_running", "indoor_cycling", "outdoor_cycling",
+    ]
+
+    /// 此活動類型是否支援裁剪
+    var isTrimmableActivity: Bool {
+        Self.trimmableActivityTypes.contains(activityType.lowercased())
+    }
+
+    /// 目前套用中的裁剪編輯（v1 僅單一 trim）
+    var appliedTrim: WorkoutEdit? {
+        edits?.first { $0.type == "trim" }
+    }
+
+    /// 是否已套用裁剪
+    var isTrimmed: Bool {
+        appliedTrim != nil
     }
 }
 

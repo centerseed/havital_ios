@@ -304,7 +304,8 @@ struct TrainingInfoItem: View {
         ),
         shareCardContent: Optional<ShareCardContent>.none,
         trainingNotes: Optional<String>.none,
-        correction: Optional<TreadmillCorrection>.none
+        correction: Optional<TreadmillCorrection>.none,
+        edits: Optional<[WorkoutEdit]>.none
     ))
     .padding()
 }

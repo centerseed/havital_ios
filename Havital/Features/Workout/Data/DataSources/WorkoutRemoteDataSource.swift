@@ -15,6 +15,20 @@ private struct TreadmillCorrectionRequest: Encodable {
     }
 }
 
+// MARK: - Trim Request Body
+
+/// POST /v2/workouts/{id}/trim 的請求 body。
+/// keep_start_s / keep_end_s 以「原始 start_time」為基準的秒數。
+private struct TrimRequest: Encodable {
+    let keepStartS: Double
+    let keepEndS: Double
+
+    enum CodingKeys: String, CodingKey {
+        case keepStartS = "keep_start_s"
+        case keepEndS = "keep_end_s"
+    }
+}
+
 // MARK: - Workout Remote Data Source
 /// 負責從遠端 API 獲取 Workout 數據
 /// Data Layer - Remote Data Source
@@ -180,6 +194,32 @@ class WorkoutRemoteDataSource {
         let bodyData = try JSONEncoder().encode(request)
 
         let rawData = try await tracked("WorkoutRemoteDataSource: applyTreadmillCorrection") {
+            try await self.httpClient.request(path: path, method: .POST, body: bodyData)
+        }
+        return try ResponseProcessor.extractData(WorkoutV2Detail.self, from: rawData, using: parser)
+    }
+
+    // MARK: - Trim
+
+    /// 套用運動紀錄裁剪
+    /// - Parameters:
+    ///   - id: 訓練 ID
+    ///   - keepStartS: 保留起點（相對原始 start_time 的秒數，>= 0）
+    ///   - keepEndS: 保留終點（相對原始 start_time 的秒數，> keepStartS；後端要求保留時長 >= 60s）
+    /// - Returns: 裁剪後的 WorkoutV2Detail（含 edits 欄位）
+    func applyTrim(
+        id: String,
+        keepStartS: Double,
+        keepEndS: Double
+    ) async throws -> WorkoutV2Detail {
+        let path = "/v2/workouts/\(id)/trim"
+
+        Logger.debug("[WorkoutRemoteDataSource] applyTrim - id: \(id)")
+
+        let request = TrimRequest(keepStartS: keepStartS, keepEndS: keepEndS)
+        let bodyData = try JSONEncoder().encode(request)
+
+        let rawData = try await tracked("WorkoutRemoteDataSource: applyTrim") {
             try await self.httpClient.request(path: path, method: .POST, body: bodyData)
         }
         return try ResponseProcessor.extractData(WorkoutV2Detail.self, from: rawData, using: parser)

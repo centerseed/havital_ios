@@ -139,6 +139,18 @@ protocol WorkoutRepository {
         notes: String?
     ) async throws -> WorkoutV2Detail
 
+    /// 套用運動紀錄裁剪
+    /// - Parameters:
+    ///   - id: 訓練 ID
+    ///   - keepStartS: 保留起點（相對原始 start_time 的秒數，>= 0）
+    ///   - keepEndS: 保留終點（相對原始 start_time 的秒數，> keepStartS）
+    /// - Returns: 裁剪後的 WorkoutV2Detail（含 edits 欄位）
+    func applyTrim(
+        id: String,
+        keepStartS: Double,
+        keepEndS: Double
+    ) async throws -> WorkoutV2Detail
+
     /// 更新訓練心得
     /// - Parameters:
     ///   - id: 訓練 ID
@@ -178,6 +190,14 @@ extension WorkoutRepository {
         actualDistanceM: Double,
         avgInclinePercent: Double?,
         notes: String?
+    ) async throws -> WorkoutV2Detail {
+        throw WorkoutRepositoryError.dataSourceUnavailable
+    }
+
+    func applyTrim(
+        id: String,
+        keepStartS: Double,
+        keepEndS: Double
     ) async throws -> WorkoutV2Detail {
         throw WorkoutRepositoryError.dataSourceUnavailable
     }

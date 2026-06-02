@@ -38,6 +38,7 @@ struct WorkoutDetailViewV2: View {
 
     // 跑步機校正相關狀態
     @State private var showTreadmillCorrection = false
+    @State private var showTrimEditor = false
 
     // AC-IOS-ANALYTICS-P1-10: dedup state lifted to ViewModel (hasTrackedAnalyticsView)
 
@@ -126,6 +127,11 @@ struct WorkoutDetailViewV2: View {
                 // 跑步機校正卡片（只在 treadmill_running 顯示）
                 if isTreadmillRunning {
                     treadmillCorrectionCard
+                }
+
+                // 裁剪卡片（跑步/騎乘等連續型運動，時長足夠時顯示）
+                if isTrimmable {
+                    trimEditorCard
                 }
 
                 // 數據來源和設備信息卡片（移到最底下）
@@ -272,6 +278,18 @@ struct WorkoutDetailViewV2: View {
                 }
             )
         }
+        .sheet(isPresented: $showTrimEditor) {
+            TrimEditorView(
+                totalDurationS: Double(viewModel.workoutDetail?.basicMetrics?.totalDurationS ?? 0),
+                baseOffsetS: viewModel.workoutDetail?.appliedTrim?.keepStartS ?? 0,
+                isAlreadyTrimmed: viewModel.workoutDetail?.isTrimmed == true,
+                onApply: { startS, endS in
+                    return await Task {
+                        await viewModel.applyTrim(keepStartS: startS, keepEndS: endS)
+                    }.tracked(from: "WorkoutDetailViewV2: applyTrim").value
+                }
+            )
+        }
         .onChange(of: viewModel.workoutDetail?.trainingNotes) { newNotes in
             // 當從 API 刷新後，同步更新本地狀態
             if displayedTrainingNotes == nil {
@@ -362,6 +380,64 @@ struct WorkoutDetailViewV2: View {
                     ? L10n.WorkoutDetail.treadmillCorrectionModify.localized
                     : L10n.WorkoutDetail.treadmillCorrectionApply.localized
                 Label(labelKey, systemImage: "ruler")
+                    .font(AppFont.caption())
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(6)
+            }
+        }
+        .padding()
+        .background(Color(.secondarySystemGroupedBackground))
+        .cornerRadius(12)
+        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+    }
+
+    // MARK: - 裁剪
+
+    /// 是否可裁剪（活動類型支援 + 時長足夠）
+    /// 至少 120s 才顯示入口：後端最小保留時長 60s，太短的紀錄裁剪無意義。
+    private var isTrimmable: Bool {
+        guard let detail = viewModel.workoutDetail else { return false }
+        guard detail.isTrimmableActivity else { return false }
+        let total = detail.basicMetrics?.totalDurationS ?? 0
+        return total >= 120
+    }
+
+    private var trimEditorCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(L10n.WorkoutDetail.trimTitle.localized)
+                    .font(AppFont.headline())
+                    .fontWeight(.semibold)
+
+                Spacer()
+
+                if viewModel.workoutDetail?.isTrimmed == true {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                }
+            }
+
+            if viewModel.workoutDetail?.isTrimmed == true {
+                Text(L10n.WorkoutDetail.trimApplied.localized)
+                    .font(AppFont.bodySmall())
+                    .foregroundColor(.secondary)
+            } else {
+                Text(L10n.WorkoutDetail.trimDescription.localized)
+                    .font(AppFont.captionSmall())
+                    .foregroundColor(.secondary)
+                    .lineLimit(3)
+            }
+
+            Button(action: {
+                showTrimEditor = true
+            }) {
+                let labelKey = viewModel.workoutDetail?.isTrimmed == true
+                    ? L10n.WorkoutDetail.trimModify.localized
+                    : L10n.WorkoutDetail.trimApply.localized
+                Label(labelKey, systemImage: "scissors")
                     .font(AppFont.caption())
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)

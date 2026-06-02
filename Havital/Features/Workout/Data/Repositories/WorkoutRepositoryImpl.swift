@@ -438,6 +438,34 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         return updatedDetail
     }
 
+    func applyTrim(
+        id: String,
+        keepStartS: Double,
+        keepEndS: Double
+    ) async throws -> WorkoutV2Detail {
+        Logger.debug("[WorkoutRepositoryImpl] applyTrim - id: \(id)")
+
+        let updatedDetail = try await remoteDataSource.applyTrim(
+            id: id,
+            keepStartS: keepStartS,
+            keepEndS: keepEndS
+        )
+
+        // 清除舊的詳情緩存，儲存裁剪後的詳情
+        localDataSource.clearWorkoutDetailCache(id: id)
+        localDataSource.saveWorkoutDetail(updatedDetail)
+
+        // 移除列表緩存中的舊條目，讓下次 list 載入 Track A miss → 從 API 拿裁剪後資料
+        localDataSource.removeWorkoutFromListCache(id: id)
+
+        // 通知 workout list reload（ViewModel 訂閱後轉介 CacheEventBus）
+        // Repository 不直接 publish CacheEventBus — 架構紅線
+        refreshSubject.send()
+
+        Logger.debug("[WorkoutRepositoryImpl] applyTrim - 完成")
+        return updatedDetail
+    }
+
     func updateTrainingNotes(id: String, notes: String) async throws {
         Logger.debug("[WorkoutRepositoryImpl] updateTrainingNotes - id: \(id)")
 
