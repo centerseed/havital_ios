@@ -17,6 +17,9 @@ struct TrimEditorView: View {
     let baseOffsetS: Double
     /// 是否已裁剪過（顯示提示）
     let isAlreadyTrimmed: Bool
+    /// 顯示時間軸（rebase 至 0）對應的累積距離取樣點，用於把手旁的里程輔助顯示。
+    /// 切割本身仍依時間；距離只是讓使用者知道「保留了哪一段里程」（空陣列 = 不顯示距離）。
+    let distanceSamples: [TrimDistanceSample]
     /// 送出原始時間軸的 (keepStartS, keepEndS)，回傳裁剪結果
     let onApply: (Double, Double) async -> WorkoutDetailViewModelV2.TrimApplyResult
 
@@ -44,11 +47,13 @@ struct TrimEditorView: View {
         totalDurationS: Double,
         baseOffsetS: Double,
         isAlreadyTrimmed: Bool,
+        distanceSamples: [TrimDistanceSample] = [],
         onApply: @escaping (Double, Double) async -> WorkoutDetailViewModelV2.TrimApplyResult
     ) {
         self.totalDurationS = totalDurationS
         self.baseOffsetS = baseOffsetS
         self.isAlreadyTrimmed = isAlreadyTrimmed
+        self.distanceSamples = distanceSamples
         self.onApply = onApply
         // 預設保留全部目前區間（= 不再進一步裁剪）
         _keepStartS = State(initialValue: 0)
@@ -66,16 +71,18 @@ struct TrimEditorView: View {
                             .font(AppFont.bodySmall())
                             .foregroundColor(.secondary)
 
-                        // 區間數值
+                        // 區間數值（時間 + 對應里程）
                         HStack(alignment: .top) {
                             timeReadout(
                                 title: L10n.WorkoutDetail.trimKeepStart.localized,
-                                value: keepStartS
+                                value: keepStartS,
+                                distanceMeters: distanceMeters(at: keepStartS)
                             )
                             Spacer()
                             timeReadout(
                                 title: L10n.WorkoutDetail.trimKeepEnd.localized,
                                 value: keepEndS,
+                                distanceMeters: distanceMeters(at: keepEndS),
                                 alignment: .trailing
                             )
                         }
@@ -91,13 +98,13 @@ struct TrimEditorView: View {
                         .onChange(of: keepStartS) { _, _ in errorMessage = nil }
                         .onChange(of: keepEndS) { _, _ in errorMessage = nil }
 
-                        // 保留時長
+                        // 保留時長（+ 保留里程）
                         HStack {
                             Text(L10n.WorkoutDetail.trimKeepDuration.localized)
                                 .font(AppFont.bodySmall())
                                 .foregroundColor(.secondary)
                             Spacer()
-                            Text(formatDuration(keepEndS - keepStartS))
+                            Text(keptDurationText)
                                 .font(AppFont.headline())
                                 .fontWeight(.semibold)
                         }
@@ -163,6 +170,7 @@ struct TrimEditorView: View {
     private func timeReadout(
         title: String,
         value: Double,
+        distanceMeters: Double?,
         alignment: HorizontalAlignment = .leading
     ) -> some View {
         VStack(alignment: alignment, spacing: 4) {
@@ -173,7 +181,24 @@ struct TrimEditorView: View {
                 .font(AppFont.title3())
                 .fontWeight(.semibold)
                 .monospacedDigit()
+            if let meters = distanceMeters {
+                Text(formatDistance(meters))
+                    .font(AppFont.captionSmall())
+                    .foregroundColor(.secondary)
+                    .monospacedDigit()
+            }
         }
+    }
+
+    /// 「保留時長」顯示文字：時間（+ 對應里程，若可計算）
+    private var keptDurationText: String {
+        let duration = formatDuration(keepEndS - keepStartS)
+        guard let startM = distanceMeters(at: keepStartS),
+              let endM = distanceMeters(at: keepEndS),
+              endM - startM > 0 else {
+            return duration
+        }
+        return "\(duration) · \(formatDistance(endM - startM))"
     }
 
     // MARK: - Helpers
@@ -188,6 +213,34 @@ struct TrimEditorView: View {
             return String(format: "%d:%02d:%02d", h, m, sec)
         }
         return String(format: "%d:%02d", m, sec)
+    }
+
+    /// 公尺 → 顯示字串（≥1km 用 km 兩位小數，否則用 m）
+    private func formatDistance(_ meters: Double) -> String {
+        if meters >= 1000 {
+            return String(format: "%.2f km", meters / 1000)
+        }
+        return String(format: "%.0f m", meters)
+    }
+
+    /// 在「顯示時間軸」位置 t（秒，rebase 至 0）查累積距離（公尺，rebase 至 0）。
+    /// 線性內插；無取樣資料則回 nil（不顯示里程）。
+    private func distanceMeters(at t: Double) -> Double? {
+        guard let first = distanceSamples.first,
+              let last = distanceSamples.last else { return nil }
+        if t <= first.t { return first.d }
+        if t >= last.t { return last.d }
+        var lo = 0
+        var hi = distanceSamples.count - 1
+        while lo + 1 < hi {
+            let mid = (lo + hi) / 2
+            if distanceSamples[mid].t <= t { lo = mid } else { hi = mid }
+        }
+        let a = distanceSamples[lo]
+        let b = distanceSamples[hi]
+        guard b.t > a.t else { return a.d }
+        let frac = (t - a.t) / (b.t - a.t)
+        return a.d + (b.d - a.d) * frac
     }
 
     // MARK: - Submit
@@ -225,6 +278,15 @@ struct TrimEditorView: View {
             break  // 取消不顯示錯誤
         }
     }
+}
+
+// MARK: - Trim Distance Sample
+
+/// 顯示時間軸（rebase 至 0）對應的累積距離取樣點。
+/// 由呼叫端從 workout time-series 預先計算，供裁剪編輯器把手旁的里程查表。
+struct TrimDistanceSample {
+    let t: Double   // 顯示時間軸秒數（rebase 至 0）
+    let d: Double   // 累積距離公尺（rebase 至 0）
 }
 
 // MARK: - Trim Range Slider

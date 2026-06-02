@@ -283,6 +283,7 @@ struct WorkoutDetailViewV2: View {
                 totalDurationS: Double(viewModel.workoutDetail?.basicMetrics?.totalDurationS ?? 0),
                 baseOffsetS: viewModel.workoutDetail?.appliedTrim?.keepStartS ?? 0,
                 isAlreadyTrimmed: viewModel.workoutDetail?.isTrimmed == true,
+                distanceSamples: trimDistanceSamples(),
                 onApply: { startS, endS in
                     return await Task {
                         await viewModel.applyTrim(keepStartS: startS, keepEndS: endS)
@@ -403,6 +404,25 @@ struct WorkoutDetailViewV2: View {
         guard detail.isTrimmableActivity else { return false }
         let total = detail.basicMetrics?.totalDurationS ?? 0
         return total >= 120
+    }
+
+    /// 從 time-series 計算「顯示時間軸 → 累積距離」取樣點（皆 rebase 至 0），
+    /// 供裁剪編輯器把手旁顯示對應里程。距離不齊或缺失 → 回空陣列（編輯器只顯示時間）。
+    private func trimDistanceSamples() -> [TrimDistanceSample] {
+        guard let ts = viewModel.workoutDetail?.timeSeries,
+              let times = ts.timestampsS,
+              let dists = ts.distancesM,
+              times.count == dists.count,
+              !times.isEmpty else { return [] }
+
+        var pairs: [(Double, Double)] = []
+        for i in times.indices {
+            if let t = times[i], let d = dists[i] {
+                pairs.append((Double(t), d))
+            }
+        }
+        guard let t0 = pairs.first?.0, let d0 = pairs.first?.1 else { return [] }
+        return pairs.map { TrimDistanceSample(t: $0.0 - t0, d: max(0, $0.1 - d0)) }
     }
 
     private var trimEditorCard: some View {
