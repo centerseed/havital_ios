@@ -77,16 +77,20 @@ struct WorkoutReflectionView: View {
     var body: some View {
         // 自繪頂列（不用 NavigationStack）：sheet 內嵌 NavigationStack 在 iOS 26 Liquid Glass
         // 會讓 toolbar 膠囊按鈕貼邊被切；自繪 header 給固定 16pt 邊距即可完全避免。
+        // ScrollView 包住內容區，確保鍵盤彈起時 header 不被頂出畫面。
         VStack(spacing: 0) {
             header
-            VStack(spacing: 12) {
-                contextStrip
-                rpeSection
-                promptSection
-                editorCard
+            ScrollView {
+                VStack(spacing: 12) {
+                    contextStrip
+                    rpeSection
+                    promptSection
+                    editorCard
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .top)
             }
-            .padding(16)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            .scrollDismissesKeyboard(.interactively)
         }
         .background(Color(UIColor.systemGroupedBackground))
         .onAppear {
@@ -259,7 +263,7 @@ struct WorkoutReflectionView: View {
                     .scrollContentBackground(.hidden)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 8)
-                    .frame(minHeight: 160, maxHeight: .infinity)
+                    .frame(minHeight: 160)
             }
 
             HStack {
@@ -279,7 +283,6 @@ struct WorkoutReflectionView: View {
         }
         .background(Color(UIColor.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .frame(maxHeight: .infinity)
     }
 
     // MARK: - Save
