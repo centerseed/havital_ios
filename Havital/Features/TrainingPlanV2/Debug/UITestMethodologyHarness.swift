@@ -146,7 +146,7 @@ struct UITestMethodologyHostView: View {
                 ScrollView {
                     VStack(spacing: 24) {
                         TrainingProgressCardV2(viewModel: viewModel, plan: weekly)
-                        WeekOverviewCardV2(viewModel: viewModel, plan: weekly)
+                        WeekOverviewCardV2(viewModel: viewModel, plan: weekly, autoShowTarget: .constant(false))
                         WeekTimelineViewV2(
                             viewModel: viewModel,
                             plan: weekly,

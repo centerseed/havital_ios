@@ -16,6 +16,7 @@ struct WeekOverviewCardV2: View {
     @ObservedObject private var unitManager = UnitManager.shared
     @Environment(\.colorScheme) var colorScheme
     let plan: WeeklyPlanV2
+    @Binding var autoShowTarget: Bool
     @State private var showWeekTargetDetail = false
     @State private var showTrainingCalendar = false
     @State private var showBadgePicker = false
@@ -169,6 +170,12 @@ struct WeekOverviewCardV2: View {
             HStack(spacing: 8) {
                 // 本週目標
                 Button(action: {
+                    viewModel.trackWeekTargetOpened(
+                        planId: plan.effectivePlanId,
+                        weekOfTraining: plan.effectiveWeek,
+                        hasCoachNote: plan.coachNote?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+                        hasDesignReason: designReason?.isEmpty == false
+                    )
                     showWeekTargetDetail = true
                 }) {
                     HStack(spacing: 6) {
@@ -232,6 +239,11 @@ struct WeekOverviewCardV2: View {
                 .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
         )
         .accessibilityIdentifier("v2.weekly.overview_card")
+        .onChange(of: autoShowTarget) { _, shouldShow in
+            guard shouldShow else { return }
+            showWeekTargetDetail = true
+            autoShowTarget = false
+        }
         .sheet(isPresented: $showWeekTargetDetail) {
             NavigationView {
                 WeekTargetDetailViewV2(

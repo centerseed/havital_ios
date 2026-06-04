@@ -46,6 +46,7 @@ struct TrainingPlanV2View: View {
 
     // Navigation destination for training overview push (same rule: must live here, not inside ScrollView).
     @State private var showOverviewV2 = false
+    @State private var autoShowWeekTarget = false
 
     // Race countdown card visibility: default shows only within N days of the race (42).
     // Long-press sets "off"; profile settings can switch to always / N-days-before / off.
@@ -176,13 +177,23 @@ struct TrainingPlanV2View: View {
                         TrainingProgressCardV2(viewModel: viewModel, plan: weeklyPlan, onOpenOverview: { showOverviewV2 = true })
 
                         // 2️⃣ 週總覽卡片（與 V1 相同）
-                        WeekOverviewCardV2(viewModel: viewModel, plan: weeklyPlan)
+                        WeekOverviewCardV2(viewModel: viewModel, plan: weeklyPlan, autoShowTarget: $autoShowWeekTarget)
 
                         // 3️⃣ 週時間軸
                         WeekTimelineViewV2(
                             viewModel: viewModel,
                             plan: weeklyPlan,
                             onDestinationSelect: { dest in
+                                if case .planned(let day, _) = dest.kind {
+                                    viewModel.trackPlannedSessionDetailOpened(
+                                        planId: weeklyPlan.effectivePlanId,
+                                        weekOfTraining: weeklyPlan.effectiveWeek,
+                                        dayIndex: day.dayIndexInt,
+                                        dayType: day.type.rawValue,
+                                        hasReason: !day.reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                                        hasClimateAdjustment: day.effectiveClimateMeta != nil
+                                    )
+                                }
                                 workoutDetailDestination = dest
                             }
                         )
@@ -203,10 +214,18 @@ struct TrainingPlanV2View: View {
                             weekToSummarize: viewModel.loader.currentWeek - 1,
                             isGenerating: viewModel.summary.isGeneratingSummary
                         ) {
+                            viewModel.trackWeeklySummaryPromptTapped(
+                                weekOfTraining: viewModel.loader.currentWeek - 1
+                            )
                             Task {
                                 // 產生上週回顧後，自動顯示 sheet
                                 await viewModel.summary.createWeeklySummaryAndShow(week: viewModel.loader.currentWeek - 1)
                             }
+                        }
+                        .onAppear {
+                            viewModel.markWeeklySummaryPromptViewed(
+                                weekOfTraining: viewModel.loader.currentWeek - 1
+                            )
                         }
 
                     case .noPlan:
@@ -414,9 +433,13 @@ struct TrainingPlanV2View: View {
             }
             // ✅ Standalone Loading（updateOverview / debug 等非 summary flow）
             .sheet(isPresented: $bindableViewModel.isLoadingAnimation) {
-                LoadingAnimationView(type: .generatePlan, totalDuration: 12.0)
-                    .ignoresSafeArea()
-                    .interactiveDismissDisabled(true)
+                LoadingAnimationView(
+                    type: .generatePlan,
+                    context: viewModel.loadingAnimationContext,
+                    totalDuration: 12.0
+                )
+                .ignoresSafeArea()
+                .interactiveDismissDisabled(true)
             }
             .sheet(isPresented: $showUserProfile) {
                 NavigationView {
@@ -500,9 +523,13 @@ struct TrainingPlanV2View: View {
                     }
 
                 case .loadingPlan:
-                    LoadingAnimationView(type: .generatePlan, totalDuration: 12.0)
-                        .ignoresSafeArea()
-                        .interactiveDismissDisabled(true)
+                    LoadingAnimationView(
+                        type: .generatePlan,
+                        context: viewModel.loadingAnimationContext,
+                        totalDuration: 12.0
+                    )
+                    .ignoresSafeArea()
+                    .interactiveDismissDisabled(true)
                 }
             }
         } // ZStack
@@ -686,6 +713,13 @@ struct TrainingPlanV2View: View {
                 trackWeeklyPlanViewIfNeeded(plan: plan)
             }
         }
+        .onChange(of: viewModel.shouldAutoShowWeekTarget) { _, flag in
+            guard flag else { return }
+            viewModel.shouldAutoShowWeekTarget = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                autoShowWeekTarget = true
+            }
+        }
         .onChange(of: viewModel.loader.planOverview) { _, _ in
             // B2/B3: re-derive header data when planOverview loads (async after view appears)
             raceHeaderVM?.refresh()
@@ -826,6 +860,15 @@ struct TrainingPlanV2View: View {
         viewModel.markWeeklyPlanTracked(
             planId: plan.effectivePlanId,
             weekOfTraining: plan.effectiveWeek
+        )
+        viewModel.markWeeklyPlanSignalAvailable(
+            planId: plan.effectivePlanId,
+            weekOfTraining: plan.effectiveWeek,
+            hasCoachNote: plan.coachNote?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+            hasDesignReason: plan.designReason?.isEmpty == false,
+            hasLoadAnalysis: plan.trainingLoadAnalysis?.isEmpty == false,
+            hasPersonalizedRecommendations: plan.personalizedRecommendations?.isEmpty == false,
+            hasRealTimeAdjustments: plan.realTimeAdjustments?.isEmpty == false
         )
     }
 }
