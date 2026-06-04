@@ -1689,7 +1689,6 @@
 "workout.diary.promptHint" = "Start from here ↓";
 "workout.diary.promptTip" = "Tap a topic to start";
 "workout.diary.placeholder" = "Write how this session felt… even one line counts.";
-"workout.diary.privacy" = "Only you can see this";
 "workout.defaultType" = "Workout";
 
 // MARK: - Data Source

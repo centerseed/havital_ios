@@ -267,9 +267,6 @@ struct WorkoutReflectionView: View {
             }
 
             HStack {
-                Text(NSLocalizedString("workout.diary.privacy", comment: "這份心得只有你看得到"))
-                    .font(AppFont.micro())
-                    .foregroundColor(Color(UIColor.tertiaryLabel))
                 Spacer()
                 Text("\(notes.count) / \(maxChars)")
                     .font(AppFont.micro().monospacedDigit())

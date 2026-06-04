@@ -1762,7 +1762,6 @@
 "workout.diary.promptHint" = "可以從這裡開始 ↓";
 "workout.diary.promptTip" = "點主題會自動帶起頭";
 "workout.diary.placeholder" = "寫下這次訓練的感受⋯ 一句話也算。";
-"workout.diary.privacy" = "這份心得只有你看得到";
 "workout.defaultType" = "訓練";
 
 // MARK: - Data Source

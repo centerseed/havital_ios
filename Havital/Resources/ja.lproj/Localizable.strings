@@ -1688,7 +1688,6 @@
 "workout.diary.promptHint" = "ここから始めよう ↓";
 "workout.diary.promptTip" = "タップすると書き出しが入力される";
 "workout.diary.placeholder" = "今回のトレーニングの感想を… 一言でもOK。";
-"workout.diary.privacy" = "このメモはあなただけに表示されます";
 "workout.defaultType" = "トレーニング";
 
 // MARK: - Data Source
