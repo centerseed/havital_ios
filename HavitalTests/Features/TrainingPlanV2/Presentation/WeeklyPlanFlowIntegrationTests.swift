@@ -73,7 +73,7 @@ final class WeeklyPlanFlowIntegrationTests: XCTestCase {
             repository: mockRepository,
             loader: loader,
             summary: summary,
-            setLoadingAnimation: { _ in },
+            setLoadingAnimation: { _, _ in },
             shouldBlockByRizoQuota: { false },
             triggerPaywallIfEnforced: { },
             shouldSuppressError: { _, _, _ in false },

@@ -59,7 +59,7 @@ final class WeeklyPlanGeneratorTests: XCTestCase {
     private func makeGenerator(
         loader: WeeklyPlanLoader,
         summary: WeeklySummaryCoordinator,
-        setLoadingAnimation: @escaping (Bool) -> Void = { _ in },
+        setLoadingAnimation: @escaping (Bool, PlanGenerationContext?) -> Void = { _, _ in },
         shouldBlockByRizoQuota: @escaping () async -> Bool = { false },
         triggerPaywallIfEnforced: @escaping () -> Void = {},
         onSuccessToast: @escaping (String) -> Void = { _ in },
@@ -212,7 +212,7 @@ final class WeeklyPlanGeneratorTests: XCTestCase {
         let generator = makeGenerator(
             loader: loader,
             summary: summary,
-            setLoadingAnimation: { loadingAnimationValues.append($0) },
+            setLoadingAnimation: { isLoading, _ in loadingAnimationValues.append(isLoading) },
             shouldBlockByRizoQuota: { true },
             onRizoQuotaExceeded: { rizoExceededCalled = true }
         )

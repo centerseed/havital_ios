@@ -126,6 +126,45 @@ enum AnalyticsEvent {
 
     /// Fired when the achievement share preview is closed.
     case achievementShareClose(entry: String, materialType: String, badgeId: String?, chapter: String?)
+
+    // MARK: Weekly Plan Trust Signals
+
+    /// Fired once per plan/week when signals are available (deduped by planId+week).
+    case weeklyPlanSignalAvailable(
+        planId: String,
+        weekOfTraining: Int,
+        hasCoachNote: Bool,
+        hasDesignReason: Bool,
+        hasLoadAnalysis: Bool,
+        hasPersonalizedRecommendations: Bool,
+        hasRealTimeAdjustments: Bool
+    )
+
+    /// Fired each time the user opens the week-target sheet (coach note / design reason).
+    case weekTargetOpened(
+        planId: String,
+        weekOfTraining: Int,
+        hasCoachNote: Bool,
+        hasDesignReason: Bool
+    )
+
+    /// Fired each time the user opens a planned-session detail card.
+    case plannedSessionDetailOpened(
+        planId: String,
+        weekOfTraining: Int,
+        dayIndex: Int,
+        dayType: String,
+        hasReason: Bool,
+        hasClimateAdjustment: Bool
+    )
+
+    // MARK: Weekly Summary Prompt
+
+    /// Fired once per summarised week per session when the prompt becomes visible.
+    case weeklySummaryPromptView(weekOfTraining: Int)
+
+    /// Fired each time the user taps the weekly-summary prompt CTA.
+    case weeklySummaryPromptTap(weekOfTraining: Int)
 }
 
 // MARK: - Event metadata
@@ -170,6 +209,15 @@ extension AnalyticsEvent {
         case .achievementShareTap:     return "achievement_share_tap"
         case .achievementShareComplete: return "achievement_share_complete"
         case .achievementShareClose:   return "achievement_share_close"
+
+        // Weekly Plan Trust Signals
+        case .weeklyPlanSignalAvailable: return "weekly_plan_signal_available"
+        case .weekTargetOpened:          return "week_target_opened"
+        case .plannedSessionDetailOpened: return "planned_session_detail_opened"
+
+        // Weekly Summary Prompt
+        case .weeklySummaryPromptView:   return "weekly_summary_prompt_view"
+        case .weeklySummaryPromptTap:    return "weekly_summary_prompt_tap"
         }
     }
 
@@ -344,6 +392,60 @@ extension AnalyticsEvent {
             if let badgeId { params["badge_id"] = badgeId }
             if let chapter { params["chapter"] = chapter }
             return AchievementAnalyticsPayloadGuard.sanitized(params)
+
+        // MARK: Weekly Plan Trust Signals — parameters
+
+        case .weeklyPlanSignalAvailable(
+            let planId,
+            let weekOfTraining,
+            let hasCoachNote,
+            let hasDesignReason,
+            let hasLoadAnalysis,
+            let hasPersonalizedRecommendations,
+            let hasRealTimeAdjustments
+        ):
+            return [
+                "plan_id": planId,
+                "week_of_training": weekOfTraining,
+                "has_coach_note": hasCoachNote,
+                "has_design_reason": hasDesignReason,
+                "has_load_analysis": hasLoadAnalysis,
+                "has_personalized_recommendations": hasPersonalizedRecommendations,
+                "has_real_time_adjustments": hasRealTimeAdjustments
+            ]
+
+        case .weekTargetOpened(let planId, let weekOfTraining, let hasCoachNote, let hasDesignReason):
+            return [
+                "plan_id": planId,
+                "week_of_training": weekOfTraining,
+                "has_coach_note": hasCoachNote,
+                "has_design_reason": hasDesignReason
+            ]
+
+        case .plannedSessionDetailOpened(
+            let planId,
+            let weekOfTraining,
+            let dayIndex,
+            let dayType,
+            let hasReason,
+            let hasClimateAdjustment
+        ):
+            return [
+                "plan_id": planId,
+                "week_of_training": weekOfTraining,
+                "day_index": dayIndex,
+                "day_type": dayType,
+                "has_reason": hasReason,
+                "has_climate_adjustment": hasClimateAdjustment
+            ]
+
+        // MARK: Weekly Summary Prompt — parameters
+
+        case .weeklySummaryPromptView(let weekOfTraining):
+            return ["week_of_training": weekOfTraining]
+
+        case .weeklySummaryPromptTap(let weekOfTraining):
+            return ["week_of_training": weekOfTraining]
         }
     }
 }
