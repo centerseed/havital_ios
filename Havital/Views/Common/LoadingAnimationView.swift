@@ -43,6 +43,16 @@ struct LoadingAnimationView: View {
         self.totalDuration = totalDuration
     }
     
+    /// When context is provided and type == .generatePlan, builds pipeline narrative messages.
+    init(type: LoadingType = .generatePlan, context: PlanGenerationContext?, totalDuration: Double = 25) {
+        if case .generatePlan = type, let ctx = context {
+            self.messages = LoadingAnimationView.pipelineMessages(for: ctx)
+        } else {
+            self.messages = type.messages
+        }
+        self.totalDuration = totalDuration
+    }
+
     /// 使用自定義消息初始化
     /// - Parameters:
     ///   - messages: 自定義消息數組
@@ -127,6 +137,36 @@ struct LoadingAnimationView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Pipeline Messages
+
+    static func pipelineMessages(for ctx: PlanGenerationContext) -> [String] {
+        let step1: String = {
+            let vdotStr = ctx.vdot.map { String(format: "%.1f", $0) }
+            let volStr  = ctx.lastWeekVolumeKm.map { String(format: "%.0f", $0) }
+            if let v = vdotStr, let km = volStr {
+                return L10n.Training.LoadingAnimation.pipelineStep1WithData.localized(with: v, km)
+            } else if let v = vdotStr {
+                return L10n.Training.LoadingAnimation.pipelineStep1VdotOnly.localized(with: v)
+            } else {
+                return L10n.Training.LoadingAnimation.pipelineStep1Fallback.localized
+            }
+        }()
+
+        let step2: String = {
+            if let name = ctx.phaseName,
+               let pw = ctx.phaseWeek,
+               let pt = ctx.phaseTotalWeeks {
+                return L10n.Training.LoadingAnimation.pipelineStep2WithData.localized(with: name, pw, pt)
+            } else {
+                return L10n.Training.LoadingAnimation.pipelineStep2Fallback.localized
+            }
+        }()
+
+        let step3 = L10n.Training.LoadingAnimation.pipelineStep3WithWeek.localized(with: ctx.weekNumber)
+
+        return [step1, step2, step3]
     }
 }
 
