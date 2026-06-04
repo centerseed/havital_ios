@@ -31,6 +31,7 @@ struct LoadingAnimationView: View {
     @State private var progress: CGFloat = 0.0
     @State private var shoeBounce = false
     @State private var messageIndex = 0
+    @State private var activeTimer: Timer? = nil
     private let messages: [String]
     private let totalDuration: Double
     
@@ -107,6 +108,10 @@ struct LoadingAnimationView: View {
         .onAppear {
             startAnimation()
         }
+        .onDisappear {
+            activeTimer?.invalidate()
+            activeTimer = nil
+        }
     }
     
     private func progressBarWidth() -> CGFloat {
@@ -126,7 +131,7 @@ struct LoadingAnimationView: View {
         let messageCount = messages.count
         if messageCount > 1 {
             let interval = totalDuration / Double(messageCount)
-            Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { timer in
+            activeTimer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { timer in
                 withAnimation {
                     messageIndex = (messageIndex + 1) % messageCount
                     

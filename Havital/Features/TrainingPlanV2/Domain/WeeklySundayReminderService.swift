@@ -39,9 +39,12 @@ final class WeeklySundayReminderService {
         Calendar.current.component(.hour, from: Date()) >= 20
     }
 
+    // dayIndex == 7 corresponds to Sunday per the backend's 1=Monday…7=Sunday convention
+    // (consistent with WeekDateService which maps dayIndex directly to calendar offsets).
     func hasSundayTraining(in plan: WeeklyPlanV2) -> Bool {
         guard let sunday = plan.days.first(where: { $0.dayIndex == 7 }) else { return false }
-        return sunday.category != .rest && sunday.category != nil
+        guard let category = sunday.category else { return false }
+        return category != .rest
     }
 
     // MARK: - Scheduling
@@ -49,6 +52,13 @@ final class WeeklySundayReminderService {
     private func scheduleNotification() async {
         let center = UNUserNotificationCenter.current()
         center.removePendingNotificationRequests(withIdentifiers: [notificationIdentifier])
+
+        let settings = await center.notificationSettings()
+        guard settings.authorizationStatus == .authorized ||
+              settings.authorizationStatus == .provisional else {
+            Logger.debug("[WeeklySundayReminderService] ⚠️ Notification permission not granted, skipping")
+            return
+        }
 
         let content = UNMutableNotificationContent()
         content.title = L10n.Notification.SundayReminder.title.localized
