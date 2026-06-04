@@ -34,6 +34,8 @@ struct DayHeaderView: View {
             return Color.blue
         case .race, .racePace:
             return Color.red
+        case .benchmark:
+            return Color.indigo
         case .rest:
             return Color.gray
         case .crossTraining, .strength, .fartlek, .swimming, .elliptical, .rowing:
@@ -659,6 +661,8 @@ struct DailyTrainingCard: View {
             return Color.blue
         case .race, .racePace:
             return Color.red
+        case .benchmark:
+            return Color.indigo
         case .rest:
             return Color.gray
         case .crossTraining, .strength, .fartlek, .swimming, .elliptical, .rowing:

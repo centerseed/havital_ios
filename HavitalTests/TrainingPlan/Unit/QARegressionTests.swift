@@ -61,6 +61,30 @@ final class QARegressionTests: XCTestCase {
         XCTAssertFalse(DayType.threshold.shouldHidePace)
     }
 
+    // MARK: - Group 1b: benchmark DayType (T7a / AC-BMK-51)
+
+    /// Backend run_type="benchmark" (指標跑) must decode to .benchmark,
+    /// NOT silently fall through to .rest.
+    func testBenchmark_rawValueDecodesToBenchmark_notRest() {
+        XCTAssertEqual(DayType(rawValue: "benchmark"), .benchmark)
+        XCTAssertNotEqual(DayType(rawValue: "benchmark"), .rest)
+    }
+
+    func testBenchmark_localizedNameNonEmpty() {
+        XCTAssertFalse(DayType.benchmark.localizedName.isEmpty)
+    }
+
+    /// labelColor must be distinct from race's .red.
+    func testBenchmark_labelColorNotRace() {
+        XCTAssertNotEqual(DayType.benchmark.labelColor, DayType.race.labelColor)
+        XCTAssertEqual(DayType.benchmark.labelColor, .indigo)
+    }
+
+    /// benchmark shows pace (it is a measured effort), so shouldHidePace is false.
+    func testBenchmark_showsPace() {
+        XCTAssertFalse(DayType.benchmark.shouldHidePace)
+    }
+
     // MARK: - Group 2: Easy Run Time Consistency
 
     func testEasyRunTime_3kmAt8min05_shouldBe24min() {

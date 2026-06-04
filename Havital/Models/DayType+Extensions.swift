@@ -12,6 +12,7 @@ extension DayType {
         case .threshold: return L10n.Training.TrainingType.threshold.localized
         case .longRun: return L10n.Training.TrainingType.long.localized
         case .race: return L10n.Training.TrainingType.race.localized
+        case .benchmark: return L10n.Training.TrainingType.benchmark.localized
         case .rest: return L10n.Training.TrainingType.rest.localized
         case .crossTraining: return L10n.Training.TrainingType.crossTraining.localized
         case .lsd: return L10n.Training.TrainingType.lsd.localized
@@ -67,6 +68,8 @@ extension DayType {
         // 休息日 - 灰色
         case .race:
             return .red
+        case .benchmark:
+            return .indigo
         case .rest:
             return .gray
         // 交叉訓練 - 紫色

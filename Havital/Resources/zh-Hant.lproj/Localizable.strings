@@ -409,6 +409,7 @@
 "training.type.recovery" = "恢復跑";
 "training.type.recovery_run" = "恢復跑";
 "training.type.race" = "比賽";
+"training.type.benchmark" = "指標跑";
 "training.type.fartlek" = "法特雷克";
 "training.type.hill" = "爬坡訓練";
 "training.type.speed" = "速度訓練";

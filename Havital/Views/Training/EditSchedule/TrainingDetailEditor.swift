@@ -647,6 +647,9 @@ struct TrainingEditSheetV2: View {
         case .race, .racePace:
             // 比賽/比賽配速訓練
             return .red
+        case .benchmark:
+            // 指標跑
+            return .indigo
         case .fartlek:
             // 法特雷克 - 較自由的變速跑
             return .purple

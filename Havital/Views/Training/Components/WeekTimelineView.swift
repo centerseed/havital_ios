@@ -1104,6 +1104,8 @@ struct TimelineItemView: View {
             return .blue
         case .race, .racePace:
             return .red
+        case .benchmark:
+            return .indigo
         case .rest:
             return .gray
         case .crossTraining, .strength, .fartlek, .swimming, .elliptical, .rowing:
