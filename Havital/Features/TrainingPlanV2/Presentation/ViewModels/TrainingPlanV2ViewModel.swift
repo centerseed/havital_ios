@@ -133,8 +133,8 @@ final class TrainingPlanV2ViewModel: TaskManageable {
             loader: loader,
             summary: summary,
             setLoadingAnimation: { [weak self] value, context in
-                self?.isLoadingAnimation = value
                 self?.loadingAnimationContext = context
+                self?.isLoadingAnimation = value
             },
             shouldBlockByRizoQuota: { [weak self] in await self?.shouldBlockByRizoQuota() ?? false },
             triggerPaywallIfEnforced: { [weak self] in self?.triggerPaywallIfEnforced() },
