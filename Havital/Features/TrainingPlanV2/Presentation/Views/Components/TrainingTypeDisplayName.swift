@@ -30,7 +30,8 @@ enum TrainingTypeDisplayName {
     // MARK: - Private
 
     private static func localizedName(_ rawType: String) -> String {
-        let key = "training.type.\(rawType)"
+        let normalizedType = normalizedType(rawType)
+        let key = "training.type.\(normalizedType)"
         let localized = NSLocalizedString(key, comment: "")
         // NSLocalizedString returns the key itself when no translation is found
         if localized != key {
@@ -38,11 +39,20 @@ enum TrainingTypeDisplayName {
         }
         // Fallback: any unmapped "*_interval(s)" type is generically a 間歇 workout.
         // Avoids leaking raw IDs / methodology branding (e.g. "paceriz_interval").
-        if rawType.lowercased().contains("interval") {
+        if normalizedType.lowercased().contains("interval") {
             let intervalKey = "training.type._generic_interval"
             let intervalName = NSLocalizedString(intervalKey, comment: "")
-            return intervalName == intervalKey ? rawType : intervalName
+            return intervalName == intervalKey ? normalizedType : intervalName
         }
-        return rawType
+        return normalizedType
+    }
+
+    private static func normalizedType(_ rawType: String) -> String {
+        switch rawType.lowercased() {
+        case "easy_long":
+            return "long_run"
+        default:
+            return rawType
+        }
     }
 }

@@ -405,6 +405,8 @@ extension DayDetail {
             return .race
         case "race_pace":
             return .racePace
+        case "benchmark":
+            return .benchmark
         case "recovery", "recovery_run":
             return .recovery_run
         case "long_run":

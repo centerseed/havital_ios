@@ -85,6 +85,51 @@ final class QARegressionTests: XCTestCase {
         XCTAssertFalse(DayType.benchmark.shouldHidePace)
     }
 
+    func testBenchmark_runActivityInfersBenchmarkDayType() {
+        let runActivity = RunActivity(
+            runType: "benchmark",
+            distanceKm: 3,
+            distanceDisplay: nil,
+            distanceUnit: nil,
+            paceUnit: nil,
+            durationMinutes: nil,
+            durationSeconds: nil,
+            pace: "5:35",
+            basePace: nil,
+            climateAdjustedPace: nil,
+            heartRateRange: HeartRateRangeV2(min: 165, max: 185),
+            interval: nil,
+            segments: nil,
+            description: "Benchmark effort",
+            targetIntensity: "high",
+            climateMeta: nil
+        )
+        let day = DayDetail(
+            dayIndex: 3,
+            dayTarget: "Benchmark",
+            reason: "Measure current fitness",
+            tips: nil,
+            category: .run,
+            climateMeta: nil,
+            session: TrainingSession(
+                warmup: nil,
+                primary: .run(runActivity),
+                cooldown: nil,
+                supplementary: nil
+            ),
+            supplementary: nil
+        )
+
+        XCTAssertEqual(day.type, .benchmark)
+    }
+
+    func testTrainingTypeDisplayName_easyLongDoesNotLeakRawKey() {
+        let display = TrainingTypeDisplayName.longRunDisplay("easy_long")
+
+        XCTAssertNotEqual(display, "easy_long")
+        XCTAssertEqual(display, NSLocalizedString("training.type.long_run", comment: ""))
+    }
+
     // MARK: - Group 2: Easy Run Time Consistency
 
     func testEasyRunTime_3kmAt8min05_shouldBe24min() {
