@@ -394,6 +394,7 @@
 "training.type.recovery" = "Recovery Run";
 "training.type.recovery_run" = "Recovery Run";
 "training.type.race" = "Race";
+"training.type.benchmark" = "Benchmark";
 "training.type.fartlek" = "Fartlek";
 "training.type.hill" = "Hill Training";
 "training.type.speed" = "Speed Work";

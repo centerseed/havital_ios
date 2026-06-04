@@ -509,6 +509,8 @@ struct TimelineItemViewV2: View {
             return .blue
         case .race, .racePace:
             return .red
+        case .benchmark:
+            return .indigo
         case .rest:
             // Use adaptive systemGray so rest chip is visible in both light and dark mode
             return Color(.systemGray)

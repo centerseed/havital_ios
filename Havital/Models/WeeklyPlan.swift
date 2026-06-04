@@ -550,8 +550,8 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                     items.append(recoveryItem)
                     return items
                 }
-            // 節奏/閾值類型（包含新增的比賽配速跑）
-            case .tempo, .threshold, .racePace:
+            // 節奏/閾值類型（包含新增的比賽配速跑、指標跑）
+            case .tempo, .threshold, .racePace, .benchmark:
                 if let distance = details.distanceKm {
                     let description = details.description ?? ""
                     let typeName: String = {
@@ -559,6 +559,7 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                         case .tempo: return L10n.Training.TrainingType.tempo.localized
                         case .threshold: return L10n.Training.TrainingType.threshold.localized
                         case .racePace: return L10n.Training.TrainingType.racePace.localized
+                        case .benchmark: return L10n.Training.TrainingType.benchmark.localized
                         default: return L10n.Training.TrainingType.tempo.localized
                         }
                     }()
@@ -854,6 +855,7 @@ enum DayType: String, Codable {
     case lsd = "lsd"
     case progression = "progression"
     case race = "race"
+    case benchmark = "benchmark"
     case rest = "rest"
     case recovery_run = "recovery_run"
     case crossTraining = "cross_training"

@@ -64,6 +64,8 @@ struct PlannedSessionDetailView: View {
                 return PacerizColor.blue
             case .race, .racePace:
                 return Color(red: 0.96, green: 0.26, blue: 0.21)
+            case .benchmark:
+                return .indigo
             case .rest:
                 return Color(.systemGray)
             case .crossTraining, .strength, .fartlek, .swimming, .elliptical, .rowing, .yoga:
@@ -85,6 +87,7 @@ struct PlannedSessionDetailView: View {
             case .fastFinish:       return ("FAST FINISH · Z2 + Z3", NSLocalizedString("training.type.fast_finish", comment: ""))
             case .race:             return ("RACE · Z5",             NSLocalizedString("training.type.race", comment: ""))
             case .racePace:         return ("RACE PACE · Z4-Z5",     NSLocalizedString("training.type.race_pace", comment: ""))
+            case .benchmark:        return ("BENCHMARK · Z4-Z5",     NSLocalizedString("training.type.benchmark", comment: ""))
             case .combination:      return ("COMBINATION",           NSLocalizedString("training.type.combination", comment: ""))
             case .strides:          return ("STRIDES · Z4-Z5",       NSLocalizedString("training.type.strides", comment: ""))
             case .hillRepeats:      return ("HILL REPEATS · Z4",     NSLocalizedString("training.type.hill_repeats", comment: ""))

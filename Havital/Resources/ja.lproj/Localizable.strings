@@ -394,6 +394,7 @@
 "training.type.recovery" = "リカバリーラン";
 "training.type.recovery_run" = "リカバリーラン";
 "training.type.race" = "レース";
+"training.type.benchmark" = "ベンチマーク走";
 "training.type.fartlek" = "ファルトレク";
 "training.type.hill" = "ヒルトレーニング";
 "training.type.speed" = "スピードワーク";

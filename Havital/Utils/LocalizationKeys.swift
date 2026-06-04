@@ -617,6 +617,7 @@ enum GaitAnalysisChart {
             static let long = "training.type.long"
             static let recovery = "training.type.recovery"
             static let race = "training.type.race"
+            static let benchmark = "training.type.benchmark"
             static let fartlek = "training.type.fartlek"
             static let hill = "training.type.hill"
             static let speed = "training.type.speed"
