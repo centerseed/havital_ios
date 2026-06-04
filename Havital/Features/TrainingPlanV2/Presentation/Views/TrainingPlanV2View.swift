@@ -728,6 +728,16 @@ struct TrainingPlanV2View: View {
         .task(id: scenePhase) {
             guard scenePhase == .active else { return }
             await viewModel.loader.initialize()
+            // Sunday reminder: schedule 8pm notification if conditions are met
+            if case .ready(let plan) = viewModel.loader.planStatus {
+                let todayWorkoutsExist = viewModel.loader.workoutsByDay.values
+                    .flatMap { $0 }
+                    .contains { Calendar.current.isDateInToday($0.startDate) }
+                WeeklySundayReminderService.shared.checkAndScheduleIfNeeded(
+                    weeklyPlan: plan,
+                    todayWorkoutExists: todayWorkoutsExist
+                )
+            }
             if authViewModel.hasCompletedOnboarding && !authViewModel.isReonboardingMode {
                 announcementViewModel.loadAnnouncementsIfNeeded()
                 try? await Task.sleep(nanoseconds: 800_000_000)
