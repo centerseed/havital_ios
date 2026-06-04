@@ -19,7 +19,7 @@ final class WeeklyPlanGenerator {
 
     // MARK: - Closure Injection (parent-owned state / helpers)
 
-    @ObservationIgnored private let setLoadingAnimation: (Bool) -> Void
+    @ObservationIgnored private let setLoadingAnimation: (Bool, PlanGenerationContext?) -> Void
     @ObservationIgnored private let shouldBlockByRizoQuota: () async -> Bool
     @ObservationIgnored private let triggerPaywallIfEnforced: () -> Void
     @ObservationIgnored private let shouldSuppressError: (DomainError, String, (() -> Void)?) -> Bool
@@ -29,6 +29,7 @@ final class WeeklyPlanGenerator {
     /// S07 (AC-PAYWALL-22/26): called with isRegenerate=false for Week 2 first time,
     /// isRegenerate=true for re-generation / adjustment operations.
     @ObservationIgnored private let onWeeklyPlanInlineUpsellNeeded: ((_ isRegenerate: Bool) -> Void)?
+    @ObservationIgnored private let onPlanGenerated: (() -> Void)?
 
     // MARK: - Init
 
@@ -36,14 +37,15 @@ final class WeeklyPlanGenerator {
         repository: TrainingPlanV2Repository,
         loader: WeeklyPlanLoader,
         summary: WeeklySummaryCoordinator,
-        setLoadingAnimation: @escaping (Bool) -> Void,
+        setLoadingAnimation: @escaping (Bool, PlanGenerationContext?) -> Void,
         shouldBlockByRizoQuota: @escaping () async -> Bool,
         triggerPaywallIfEnforced: @escaping () -> Void,
         shouldSuppressError: @escaping (DomainError, String, (() -> Void)?) -> Bool,
         onSuccessToast: @escaping (String) -> Void,
         onRizoQuotaExceeded: @escaping () -> Void,
         onNetworkError: @escaping (Error) -> Void,
-        onWeeklyPlanInlineUpsellNeeded: ((_ isRegenerate: Bool) -> Void)? = nil
+        onWeeklyPlanInlineUpsellNeeded: ((_ isRegenerate: Bool) -> Void)? = nil,
+        onPlanGenerated: (() -> Void)? = nil
     ) {
         self.repository = repository
         self.loader = loader
@@ -56,6 +58,7 @@ final class WeeklyPlanGenerator {
         self.onRizoQuotaExceeded = onRizoQuotaExceeded
         self.onNetworkError = onNetworkError
         self.onWeeklyPlanInlineUpsellNeeded = onWeeklyPlanInlineUpsellNeeded
+        self.onPlanGenerated = onPlanGenerated
     }
 
     // MARK: - Generate Current Week Plan
@@ -64,7 +67,8 @@ final class WeeklyPlanGenerator {
     func generateCurrentWeekPlan() async {
         Logger.debug("[WeeklyPlanGenerator] 使用者觸發產生第 \(loader.selectedWeek) 週課表...")
 
-        guard await prepareForGeneration() else { return }
+        let context = buildGenerationContext(forWeek: loader.selectedWeek)
+        guard await prepareForGeneration(context: context) else { return }
 
         do {
             let planLoadStart = Date()
@@ -82,10 +86,11 @@ final class WeeklyPlanGenerator {
                 try await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
             }
 
-            setLoadingAnimation(false)
+            setLoadingAnimation(false, nil)
             loader.currentWeek = loader.selectedWeek
             loader.weeklyPlan = plan
             loader.planStatus = .ready(plan)
+            onPlanGenerated?()
             onSuccessToast("第 \(loader.selectedWeek) 週課表已產生")
 
             await loader.loadWorkoutsForCurrentWeek()
@@ -143,7 +148,8 @@ final class WeeklyPlanGenerator {
         }
 
         if !managedLoadingExternally {
-            guard await prepareForGeneration() else { return }
+            let context = buildGenerationContext(forWeek: weekNumber)
+            guard await prepareForGeneration(context: context) else { return }
         } else {
             if await shouldBlockByRizoQuota() {
                 onRizoQuotaExceeded()
@@ -167,11 +173,14 @@ final class WeeklyPlanGenerator {
                 try await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
             }
 
-            if !managedLoadingExternally { setLoadingAnimation(false) }
+            if !managedLoadingExternally { setLoadingAnimation(false, nil) }
             loader.currentWeek = weekNumber
             loader.selectedWeek = weekNumber
             loader.weeklyPlan = plan
             loader.planStatus = .ready(plan)
+            if !managedLoadingExternally {
+                onPlanGenerated?()
+            }
             onSuccessToast("第 \(weekNumber) 週課表已產生")
 
             async let statusRefresh: Void = loader.refreshPlanStatusResponse()
@@ -198,7 +207,7 @@ final class WeeklyPlanGenerator {
             return
         }
 
-        setLoadingAnimation(true)
+        setLoadingAnimation(true, nil)
         summary.isLoadingWeeklySummary = false
 
         do {
@@ -209,7 +218,7 @@ final class WeeklyPlanGenerator {
             )
 
             loader.planOverview = updatedOverview
-            setLoadingAnimation(false)
+            setLoadingAnimation(false, nil)
             onSuccessToast(NSLocalizedString("training.plan_regenerated", comment: "訓練計劃已根據最新目標重新產生"))
 
             await repository.clearCache()
@@ -218,7 +227,7 @@ final class WeeklyPlanGenerator {
             Logger.info("[WeeklyPlanGenerator] ✅ 訓練計劃概覽已更新")
         } catch {
             let domainError = error.toDomainError()
-            setLoadingAnimation(false)
+            setLoadingAnimation(false, nil)
             switch domainError {
             case .subscriptionRequired, .trialExpired, .forbidden:
                 triggerPaywallIfEnforced()
@@ -236,7 +245,7 @@ final class WeeklyPlanGenerator {
     /// 1. AC-PAYWALL-25/26: Week 1 不擋；Week 2+ 未訂閱時顯示 inline upsell card。
     /// 2. 重置 summary 動畫、啟動 loading、檢查 Rizo 配額。
     /// Returns false if blocked (caller should return early).
-    private func prepareForGeneration() async -> Bool {
+    private func prepareForGeneration(context: PlanGenerationContext? = nil) async -> Bool {
         // S07 gating: enforce subscription check for Week 2+ (AC-PAYWALL-25/26/27)
         let week = loader.selectedWeek
         if week >= 2,
@@ -250,11 +259,11 @@ final class WeeklyPlanGenerator {
         }
 
         summary.isLoadingWeeklySummary = false
-        setLoadingAnimation(true)
+        setLoadingAnimation(true, context)
 
         if await shouldBlockByRizoQuota() {
             onRizoQuotaExceeded()
-            setLoadingAnimation(false)
+            setLoadingAnimation(false, nil)
             return false
         }
         return true
@@ -264,7 +273,7 @@ final class WeeklyPlanGenerator {
     /// - Parameter skipLoadingReset: 當 loading 由外部（summaryFlow）管理時傳 true，跳過 setLoadingAnimation(false)。
     private func handleGenerationError(_ error: Error, skipLoadingReset: Bool = false) {
         let domainError = error.toDomainError()
-        if !skipLoadingReset { setLoadingAnimation(false) }
+        if !skipLoadingReset { setLoadingAnimation(false, nil) }
         switch domainError {
         case .subscriptionRequired, .trialExpired, .forbidden:
             triggerPaywallIfEnforced()
@@ -275,5 +284,39 @@ final class WeeklyPlanGenerator {
             Logger.error("[WeeklyPlanGenerator] ❌ 週課表產生失敗: \(domainError.localizedDescription)")
             loader.planStatus = .error(domainError)
         }
+    }
+
+    private func buildGenerationContext(forWeek weekNumber: Int) -> PlanGenerationContext {
+        let previousPlan = loader.weeklyPlan
+        let overview = loader.planOverview
+
+        let vdot = previousPlan?.currentVdot
+
+        let lastWeekVolumeKm: Double? = {
+            guard let prev = previousPlan else { return nil }
+            let prevWeek = prev.weekOfTraining ?? prev.weekOfPlan ?? 0
+            return (prevWeek == weekNumber - 1) ? prev.totalDistance : nil
+        }()
+
+        var phaseName: String?
+        var phaseWeek: Int?
+        var phaseTotalWeeks: Int?
+
+        if let stages = overview?.trainingStages,
+           let info = PlanGenerationContext.phaseInfo(from: stages, targetWeek: weekNumber) {
+            phaseName = info.localizedKey.localized
+            phaseWeek = info.phaseWeek
+            phaseTotalWeeks = info.phaseTotalWeeks
+        }
+
+        return PlanGenerationContext(
+            weekNumber: weekNumber,
+            totalWeeks: overview?.totalWeeks,
+            vdot: vdot,
+            lastWeekVolumeKm: lastWeekVolumeKm,
+            phaseName: phaseName,
+            phaseWeek: phaseWeek,
+            phaseTotalWeeks: phaseTotalWeeks
+        )
     }
 }

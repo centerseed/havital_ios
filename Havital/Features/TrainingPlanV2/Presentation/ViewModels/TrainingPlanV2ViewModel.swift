@@ -30,11 +30,17 @@ final class TrainingPlanV2ViewModel: TaskManageable {
     var networkError: DomainError?
     var successToast: String?
     var isLoadingAnimation = false
+    var loadingAnimationContext: PlanGenerationContext? = nil
+    var shouldAutoShowWeekTarget: Bool = false
     var paywallTrigger: PaywallTrigger?
     var showRizoQuotaExceededBanner: Bool = false
 
     // MARK: - AC-IOS-ANALYTICS-P1-09: session-level dedup for weekly_plan_view
     var trackedWeeklyPlanKey: String? = nil
+
+    // MARK: - Training Plan Trust Signal Analytics
+    var trackedWeeklyPlanSignalKeys: Set<String> = []
+    var trackedWeeklySummaryPromptViewWeeks: Set<Int> = []
 
     // MARK: - AC-IOS-ANALYTICS-P1-12: session-level dedup for plan_overview_view
     var hasTrackedPlanOverviewView: Bool = false
@@ -126,7 +132,10 @@ final class TrainingPlanV2ViewModel: TaskManageable {
             repository: repository,
             loader: loader,
             summary: summary,
-            setLoadingAnimation: { [weak self] value in self?.isLoadingAnimation = value },
+            setLoadingAnimation: { [weak self] value, context in
+                self?.isLoadingAnimation = value
+                self?.loadingAnimationContext = context
+            },
             shouldBlockByRizoQuota: { [weak self] in await self?.shouldBlockByRizoQuota() ?? false },
             triggerPaywallIfEnforced: { [weak self] in self?.triggerPaywallIfEnforced() },
             shouldSuppressError: { [weak self] error, ctx, onCorrupt in
@@ -138,7 +147,8 @@ final class TrainingPlanV2ViewModel: TaskManageable {
             onWeeklyPlanInlineUpsellNeeded: { [weak self] isRegenerate in
                 self?.weeklyPlanUpsellIsRegenerate = isRegenerate
                 self?.showWeeklyPlanInlineUpsell = true
-            }
+            },
+            onPlanGenerated: { [weak self] in self?.shouldAutoShowWeekTarget = true }
         )
 
         setupDisplayBadgeObservation()
@@ -308,6 +318,82 @@ final class TrainingPlanV2ViewModel: TaskManageable {
         trackedWeeklyPlanKey = key
         let analyticsService: AnalyticsService = DependencyContainer.shared.resolve()
         analyticsService.track(.weeklyPlanView(planId: planId, weekOfTraining: weekOfTraining))
+    }
+
+    /// Track the availability of trust-building plan signals once per plan/week.
+    /// This answers whether a loaded plan actually contained the explanatory signals we expect.
+    func markWeeklyPlanSignalAvailable(
+        planId: String,
+        weekOfTraining: Int,
+        hasCoachNote: Bool,
+        hasDesignReason: Bool,
+        hasLoadAnalysis: Bool,
+        hasPersonalizedRecommendations: Bool,
+        hasRealTimeAdjustments: Bool
+    ) {
+        let key = "\(planId)-\(weekOfTraining)"
+        guard !trackedWeeklyPlanSignalKeys.contains(key) else { return }
+        trackedWeeklyPlanSignalKeys.insert(key)
+        let analyticsService: AnalyticsService = DependencyContainer.shared.resolve()
+        analyticsService.track(.weeklyPlanSignalAvailable(
+            planId: planId,
+            weekOfTraining: weekOfTraining,
+            hasCoachNote: hasCoachNote,
+            hasDesignReason: hasDesignReason,
+            hasLoadAnalysis: hasLoadAnalysis,
+            hasPersonalizedRecommendations: hasPersonalizedRecommendations,
+            hasRealTimeAdjustments: hasRealTimeAdjustments
+        ))
+    }
+
+    /// Track each user opening of the sheet that exposes coach note / design reason.
+    func trackWeekTargetOpened(
+        planId: String,
+        weekOfTraining: Int,
+        hasCoachNote: Bool,
+        hasDesignReason: Bool
+    ) {
+        let analyticsService: AnalyticsService = DependencyContainer.shared.resolve()
+        analyticsService.track(.weekTargetOpened(
+            planId: planId,
+            weekOfTraining: weekOfTraining,
+            hasCoachNote: hasCoachNote,
+            hasDesignReason: hasDesignReason
+        ))
+    }
+
+    /// Track each planned-session detail open from the weekly timeline.
+    func trackPlannedSessionDetailOpened(
+        planId: String,
+        weekOfTraining: Int,
+        dayIndex: Int,
+        dayType: String,
+        hasReason: Bool,
+        hasClimateAdjustment: Bool
+    ) {
+        let analyticsService: AnalyticsService = DependencyContainer.shared.resolve()
+        analyticsService.track(.plannedSessionDetailOpened(
+            planId: planId,
+            weekOfTraining: weekOfTraining,
+            dayIndex: dayIndex,
+            dayType: dayType,
+            hasReason: hasReason,
+            hasClimateAdjustment: hasClimateAdjustment
+        ))
+    }
+
+    /// Track weekly-summary prompt exposure once per summarized week per session.
+    func markWeeklySummaryPromptViewed(weekOfTraining: Int) {
+        guard !trackedWeeklySummaryPromptViewWeeks.contains(weekOfTraining) else { return }
+        trackedWeeklySummaryPromptViewWeeks.insert(weekOfTraining)
+        let analyticsService: AnalyticsService = DependencyContainer.shared.resolve()
+        analyticsService.track(.weeklySummaryPromptView(weekOfTraining: weekOfTraining))
+    }
+
+    /// Track each user tap on the weekly-summary prompt CTA.
+    func trackWeeklySummaryPromptTapped(weekOfTraining: Int) {
+        let analyticsService: AnalyticsService = DependencyContainer.shared.resolve()
+        analyticsService.track(.weeklySummaryPromptTap(weekOfTraining: weekOfTraining))
     }
 
     // MARK: - AC-IOS-ANALYTICS-P1-12: plan_overview_view dedup
