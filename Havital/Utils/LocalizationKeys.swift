@@ -532,13 +532,31 @@ enum GaitAnalysisChart {
             static let analyzingFitness = "training.loading.analyzing_fitness"
             static let planningIntensity = "training.loading.planning_intensity"
             static let preparingCustomPlan = "training.loading.preparing_custom_plan"
-            
+
+            // Pipeline Narrative keys (Feature 1)
+            static let pipelineStep1WithData     = "training.loading.pipeline_step1_with_data"
+            static let pipelineStep1VdotOnly     = "training.loading.pipeline_step1_vdot_only"
+            static let pipelineStep1Fallback     = "training.loading.pipeline_step1_fallback"
+            static let pipelineStep2WithData     = "training.loading.pipeline_step2_with_data"
+            static let pipelineStep2Fallback     = "training.loading.pipeline_step2_fallback"
+            static let pipelineStep3WithWeek     = "training.loading.pipeline_step3_with_week"
+            static let pipelineStep3Fallback     = "training.loading.pipeline_step3_fallback"
+
             // Generate Review Messages
             static let analyzingTrainingData = "training.loading.analyzing_training_data"
             static let evaluatingProgress = "training.loading.evaluating_progress"
             static let preparingReview = "training.loading.preparing_review"
         }
-        
+
+        enum Stage {
+            static let base       = "training.stage.base"
+            static let build      = "training.stage.build"
+            static let peak       = "training.stage.peak"
+            static let taper      = "training.stage.taper"
+            static let conversion = "training.stage.conversion"
+            static let unknown    = "training.stage.unknown"
+        }
+
         // Training Review Sections
         enum Review {
             // Main titles
@@ -815,11 +833,36 @@ enum GaitAnalysisChart {
         static let swimming = "activity.type.swimming"
         static let walking = "activity.type.walking"
         static let hiking = "activity.type.hiking"
+        static let basketball = "activity.type.basketball"
+        static let soccer = "activity.type.soccer"
+        static let tennis = "activity.type.tennis"
+        static let volleyball = "activity.type.volleyball"
+        static let golf = "activity.type.golf"
         static let strengthTraining = "activity.type.strength_training"
         static let yoga = "activity.type.yoga"
+        static let training = "activity.type.training"
+        static let fitnessEquipment = "activity.type.fitness_equipment"
         static let pilates = "activity.type.pilates"
         static let elliptical = "activity.type.elliptical"
         static let rowing = "activity.type.rowing"
+        static let kayaking = "activity.type.kayaking"
+        static let surfing = "activity.type.surfing"
+        static let diving = "activity.type.diving"
+        static let skiing = "activity.type.skiing"
+        static let snowboarding = "activity.type.snowboarding"
+        static let iceSkating = "activity.type.ice_skating"
+        static let boxing = "activity.type.boxing"
+        static let mixedMartialArts = "activity.type.mixed_martial_arts"
+        static let mountaineering = "activity.type.mountaineering"
+        static let rockClimbing = "activity.type.rock_climbing"
+        static let dance = "activity.type.dance"
+        static let meditation = "activity.type.meditation"
+        static let americanFootball = "activity.type.american_football"
+        static let baseball = "activity.type.baseball"
+        static let cricket = "activity.type.cricket"
+        static let rugby = "activity.type.rugby"
+        static let hockey = "activity.type.hockey"
+        static let lacrosse = "activity.type.lacrosse"
         static let other = "activity.type.other"
     }
     
@@ -1886,5 +1929,12 @@ extension L10n {
         static let halfMarathonShort = "distance.half_marathon_short"  // "半馬"
         static let fullMarathon = "distance.full_marathon"  // "全程馬拉松"
         static let fullMarathonShort = "distance.full_marathon_short"  // "全馬"
+    }
+
+    enum Notification {
+        enum SundayReminder {
+            static let title = "notification.sunday_reminder.title"
+            static let body  = "notification.sunday_reminder.body"
+        }
     }
 }

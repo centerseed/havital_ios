@@ -331,6 +331,21 @@
 "training.loading.analyzing_training_data" = "正在分析本週訓練資料...";
 "training.loading.evaluating_progress" = "正在評估這週的訓練狀況...";
 "training.loading.preparing_review" = "太好了，訓練回顧即將準備好了！";
+"training.loading.pipeline_step1_with_data" = "分析體能基準 · VDOT %@ · 上週跑量 %@ km";
+"training.loading.pipeline_step1_vdot_only" = "分析體能基準 · VDOT %@";
+"training.loading.pipeline_step1_fallback" = "分析你的訓練記錄中...";
+"training.loading.pipeline_step2_with_data" = "計算最適跑量 · %@第 %d 週 / 共 %d 週";
+"training.loading.pipeline_step2_fallback" = "根據訓練歷史計算本週跑量...";
+"training.loading.pipeline_step3_with_week" = "生成第 %d 週個人化課表 · 最佳化強度分配中";
+"training.loading.pipeline_step3_fallback" = "生成個人化訓練課表中...";
+"training.stage.base" = "基礎期";
+"training.stage.build" = "進展期";
+"training.stage.peak" = "巔峰期";
+"training.stage.taper" = "減量期";
+"training.stage.conversion" = "適應期";
+"training.stage.unknown" = "訓練中";
+"notification.sunday_reminder.title" = "本週訓練完成了 💪";
+"notification.sunday_reminder.body" = "今天的訓練成果已準備好，來看看 Paceriz 怎麼評估你這週的表現";
 
 // MARK: - Training Review Sections
 "training.review.weekly_review" = "週訓練回顧";
@@ -556,11 +571,36 @@
 "activity.type.swimming" = "游泳";
 "activity.type.walking" = "走路";
 "activity.type.hiking" = "登山健行";
+"activity.type.basketball" = "籃球";
+"activity.type.soccer" = "足球";
+"activity.type.tennis" = "網球";
+"activity.type.volleyball" = "排球";
+"activity.type.golf" = "高爾夫";
 "activity.type.strength_training" = "肌力訓練";
 "activity.type.yoga" = "瑜珈";
+"activity.type.training" = "訓練";
+"activity.type.fitness_equipment" = "健身器材";
 "activity.type.pilates" = "皮拉提斯";
 "activity.type.elliptical" = "橢圓機";
 "activity.type.rowing" = "划船機";
+"activity.type.kayaking" = "皮划艇";
+"activity.type.surfing" = "衝浪";
+"activity.type.diving" = "潛水";
+"activity.type.skiing" = "滑雪";
+"activity.type.snowboarding" = "單板滑雪";
+"activity.type.ice_skating" = "溜冰";
+"activity.type.boxing" = "拳擊";
+"activity.type.mixed_martial_arts" = "綜合格鬥";
+"activity.type.mountaineering" = "登山";
+"activity.type.rock_climbing" = "攀岩";
+"activity.type.dance" = "舞蹈";
+"activity.type.meditation" = "冥想";
+"activity.type.american_football" = "美式足球";
+"activity.type.baseball" = "棒球";
+"activity.type.cricket" = "板球";
+"activity.type.rugby" = "橄欖球";
+"activity.type.hockey" = "曲棍球";
+"activity.type.lacrosse" = "長曲棍球";
 "activity.type.other" = "其他運動";
 
 // MARK: - Training Record

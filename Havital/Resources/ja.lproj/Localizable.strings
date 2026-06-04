@@ -331,6 +331,21 @@
 "training.loading.analyzing_training_data" = "今週のトレーニングデータを分析中...";
 "training.loading.evaluating_progress" = "今週のトレーニング状況を評価中...";
 "training.loading.preparing_review" = "素晴らしい！トレーニング振り返りが準備完了です！";
+"training.loading.pipeline_step1_with_data" = "基礎能力を分析中 · VDOT %@ · 先週の走行距離 %@ km";
+"training.loading.pipeline_step1_vdot_only" = "基礎能力を分析中 · VDOT %@";
+"training.loading.pipeline_step1_fallback" = "トレーニング記録を分析中...";
+"training.loading.pipeline_step2_with_data" = "最適な走行距離を計算中 · %@ 第%d週 / 全%d週";
+"training.loading.pipeline_step2_fallback" = "トレーニング履歴から週間距離を計算中...";
+"training.loading.pipeline_step3_with_week" = "第%d週のパーソナライズプランを生成中 · 強度配分を最適化中";
+"training.loading.pipeline_step3_fallback" = "パーソナライズされたトレーニングプランを生成中...";
+"training.stage.base" = "ベース期";
+"training.stage.build" = "ビルド期";
+"training.stage.peak" = "ピーク期";
+"training.stage.taper" = "テーパー期";
+"training.stage.conversion" = "アダプテーション期";
+"training.stage.unknown" = "トレーニング中";
+"notification.sunday_reminder.title" = "今週のトレーニング完了 💪";
+"notification.sunday_reminder.body" = "今日のトレーニング結果が準備できました。Pacerizによる週間評価をご確認ください";
 
 // MARK: - Training Review Sections
 "training.review.weekly_review" = "週間トレーニング振り返り";
@@ -567,11 +582,36 @@
 "activity.type.swimming" = "水泳";
 "activity.type.walking" = "ウォーキング";
 "activity.type.hiking" = "ハイキング";
+"activity.type.basketball" = "バスケットボール";
+"activity.type.soccer" = "サッカー";
+"activity.type.tennis" = "テニス";
+"activity.type.volleyball" = "バレーボール";
+"activity.type.golf" = "ゴルフ";
 "activity.type.strength_training" = "筋力トレーニング";
 "activity.type.yoga" = "ヨガ";
+"activity.type.training" = "トレーニング";
+"activity.type.fitness_equipment" = "フィットネスマシン";
 "activity.type.pilates" = "ピラティス";
 "activity.type.elliptical" = "エリプティカル";
 "activity.type.rowing" = "ローイング";
+"activity.type.kayaking" = "カヤック";
+"activity.type.surfing" = "サーフィン";
+"activity.type.diving" = "ダイビング";
+"activity.type.skiing" = "スキー";
+"activity.type.snowboarding" = "スノーボード";
+"activity.type.ice_skating" = "アイススケート";
+"activity.type.boxing" = "ボクシング";
+"activity.type.mixed_martial_arts" = "総合格闘技";
+"activity.type.mountaineering" = "登山";
+"activity.type.rock_climbing" = "ロッククライミング";
+"activity.type.dance" = "ダンス";
+"activity.type.meditation" = "瞑想";
+"activity.type.american_football" = "アメリカンフットボール";
+"activity.type.baseball" = "野球";
+"activity.type.cricket" = "クリケット";
+"activity.type.rugby" = "ラグビー";
+"activity.type.hockey" = "ホッケー";
+"activity.type.lacrosse" = "ラクロス";
 "activity.type.other" = "その他";
 
 // MARK: - Training Record

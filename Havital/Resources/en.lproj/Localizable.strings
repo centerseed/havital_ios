@@ -331,6 +331,21 @@
 "training.loading.analyzing_training_data" = "Analyzing this week's training data...";
 "training.loading.evaluating_progress" = "Evaluating this week's training progress...";
 "training.loading.preparing_review" = "Great! Your training review is almost ready!";
+"training.loading.pipeline_step1_with_data" = "Analyzing baseline · VDOT %@ · Last week %@ km";
+"training.loading.pipeline_step1_vdot_only" = "Analyzing baseline · VDOT %@";
+"training.loading.pipeline_step1_fallback" = "Analyzing your training records...";
+"training.loading.pipeline_step2_with_data" = "Calculating optimal volume · %@ Week %d of %d";
+"training.loading.pipeline_step2_fallback" = "Calculating weekly volume from training history...";
+"training.loading.pipeline_step3_with_week" = "Generating Week %d personalized plan · Optimizing intensity";
+"training.loading.pipeline_step3_fallback" = "Generating personalized training plan...";
+"training.stage.base" = "Base Phase";
+"training.stage.build" = "Build Phase";
+"training.stage.peak" = "Peak Phase";
+"training.stage.taper" = "Taper Phase";
+"training.stage.conversion" = "Conversion Phase";
+"training.stage.unknown" = "Training";
+"notification.sunday_reminder.title" = "Week complete 💪";
+"notification.sunday_reminder.body" = "Your training results are ready. See how Paceriz evaluates your week";
 
 // MARK: - Training Review Sections
 "training.review.weekly_review" = "Weekly Training Review";
@@ -567,11 +582,36 @@
 "activity.type.swimming" = "Swimming";
 "activity.type.walking" = "Walking";
 "activity.type.hiking" = "Hiking";
+"activity.type.basketball" = "Basketball";
+"activity.type.soccer" = "Soccer";
+"activity.type.tennis" = "Tennis";
+"activity.type.volleyball" = "Volleyball";
+"activity.type.golf" = "Golf";
 "activity.type.strength_training" = "Strength Training";
 "activity.type.yoga" = "Yoga";
+"activity.type.training" = "Training";
+"activity.type.fitness_equipment" = "Fitness Equipment";
 "activity.type.pilates" = "Pilates";
 "activity.type.elliptical" = "Elliptical";
 "activity.type.rowing" = "Rowing";
+"activity.type.kayaking" = "Kayaking";
+"activity.type.surfing" = "Surfing";
+"activity.type.diving" = "Diving";
+"activity.type.skiing" = "Skiing";
+"activity.type.snowboarding" = "Snowboarding";
+"activity.type.ice_skating" = "Ice Skating";
+"activity.type.boxing" = "Boxing";
+"activity.type.mixed_martial_arts" = "Mixed Martial Arts";
+"activity.type.mountaineering" = "Mountaineering";
+"activity.type.rock_climbing" = "Rock Climbing";
+"activity.type.dance" = "Dance";
+"activity.type.meditation" = "Meditation";
+"activity.type.american_football" = "American Football";
+"activity.type.baseball" = "Baseball";
+"activity.type.cricket" = "Cricket";
+"activity.type.rugby" = "Rugby";
+"activity.type.hockey" = "Hockey";
+"activity.type.lacrosse" = "Lacrosse";
 "activity.type.other" = "Other";
 
 // MARK: - Training Record
