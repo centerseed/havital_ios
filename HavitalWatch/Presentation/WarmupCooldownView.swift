@@ -1,0 +1,41 @@
+import SwiftUI
+
+struct WarmupCooldownView: View {
+    enum Mode {
+        case warmup
+        case cooldown
+    }
+
+    @ObservedObject var vm: ActiveWorkoutViewModel
+    let mode: Mode
+    let primaryAction: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(mode == .warmup ? "暖身" : "緩和")
+                .font(.caption2)
+                .foregroundStyle(.orange)
+            Text(WatchFormatting.time(vm.seconds))
+                .font(.system(size: 42, weight: .semibold, design: .rounded))
+                .foregroundStyle(.green)
+                .monospacedDigit()
+            Text("\(WatchFormatting.pace(WatchFormatting.paceSecondsPerKm(speedMps: vm.recentSpeedMps))) 配速")
+                .font(.body)
+                .foregroundStyle(.cyan)
+            Text(WatchFormatting.distance(vm.meters))
+                .font(.body)
+            Label("\(Int(vm.heartRate))", systemImage: "heart.fill")
+                .font(.body)
+                .foregroundStyle(.red)
+            Button(action: primaryAction) {
+                Label(mode == .warmup ? "開始課表" : "結束", systemImage: mode == .warmup ? "forward.fill" : "stop.fill")
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(mode == .warmup ? .green : .red)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .padding()
+        .background(Color.black)
+        .foregroundStyle(.white)
+    }
+}

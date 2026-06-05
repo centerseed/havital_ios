@@ -36,6 +36,8 @@
 		CFD6838A2D5B353F008A8242 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = CFD683892D5B353F008A8242 /* GoogleSignInSwift */; };
 		CFF518742D1E7D7400CF284A /* GoogleGenerativeAI in Frameworks */ = {isa = PBXBuildFile; productRef = CFF518732D1E7D7400CF284A /* GoogleGenerativeAI */; };
 		CFF518762D1E7D9500CF284A /* GoogleGenerativeAI in Frameworks */ = {isa = PBXBuildFile; productRef = CFF518752D1E7D9500CF284A /* GoogleGenerativeAI */; };
+		D0D100000000000000000001 /* HavitalWatchComplication.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = D0D100000000000000000002 /* HavitalWatchComplication.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		D0D200000000000000000001 /* HavitalWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = D0D000000000000000000001 /* HavitalWatch.app */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -53,7 +55,53 @@
 			remoteGlobalIDString = CFB67CEF2D07047500F672E3;
 			remoteInfo = Havital;
 		};
+		D0D00000000000000000000D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CFB67CE82D07047500F672E3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D0D00000000000000000000B;
+			remoteInfo = HavitalWatch;
+		};
+		D0D100000000000000000008 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CFB67CE82D07047500F672E3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D0D10000000000000000000B;
+			remoteInfo = HavitalWatchComplication;
+		};
+		D0D200000000000000000003 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CFB67CE82D07047500F672E3 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D0D00000000000000000000B;
+			remoteInfo = HavitalWatch;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D0D100000000000000000007 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				D0D100000000000000000001 /* HavitalWatchComplication.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0D200000000000000000002 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				D0D200000000000000000001 /* HavitalWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		A1B2C3D4E5F6000000000011 /* Havital/Core/Analytics/AnalyticsEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Core/Analytics/AnalyticsEvent.swift; sourceTree = SOURCE_ROOT; };
@@ -74,6 +122,9 @@
 		CFB67CF02D07047500F672E3 /* paceriz_dev.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = paceriz_dev.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CFB67D022D07047800F672E3 /* HavitalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HavitalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		CFB67D0C2D07047800F672E3 /* HavitalUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HavitalUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D0D000000000000000000001 /* HavitalWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HavitalWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D0D000000000000000000002 /* HavitalWatchTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HavitalWatchTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D0D100000000000000000002 /* HavitalWatchComplication.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = HavitalWatchComplication.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -83,6 +134,13 @@
 				Info.plist,
 			);
 			target = CFB67CEF2D07047500F672E3 /* Havital */;
+		};
+		D0D100000000000000000016 /* Exceptions for "HavitalWatchComplication" folder in "HavitalWatchComplication" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = D0D10000000000000000000B /* HavitalWatchComplication */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -114,6 +172,24 @@
 		CFB67D0F2D07047800F672E3 /* HavitalUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = HavitalUITests;
+			sourceTree = "<group>";
+		};
+		D0D000000000000000000003 /* HavitalWatch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = HavitalWatch;
+			sourceTree = "<group>";
+		};
+		D0D000000000000000000004 /* HavitalWatchTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = HavitalWatchTests;
+			sourceTree = "<group>";
+		};
+		D0D100000000000000000003 /* HavitalWatchComplication */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				D0D100000000000000000016 /* Exceptions for "HavitalWatchComplication" folder in "HavitalWatchComplication" target */,
+			);
+			path = HavitalWatchComplication;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -149,6 +225,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		CFB67D092D07047800F672E3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0D000000000000000000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0D000000000000000000009 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0D100000000000000000005 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -191,7 +288,10 @@
 			children = (
 				CF1AA05B2DD84D6500569CA7 /* Havital.xctestplan */,
 				CFB67CF22D07047500F672E3 /* Havital */,
+				D0D000000000000000000003 /* HavitalWatch */,
+				D0D100000000000000000003 /* HavitalWatchComplication */,
 				CFB67D052D07047800F672E3 /* HavitalTests */,
+				D0D000000000000000000004 /* HavitalWatchTests */,
 				CFB67D0F2D07047800F672E3 /* HavitalUITests */,
 				CF19F9872E34D87600C7E5ED /* Frameworks */,
 				CFB67CF12D07047500F672E3 /* Products */,
@@ -203,7 +303,10 @@
 			isa = PBXGroup;
 			children = (
 				CFB67CF02D07047500F672E3 /* paceriz_dev.app */,
+				D0D000000000000000000001 /* HavitalWatch.app */,
+				D0D100000000000000000002 /* HavitalWatchComplication.appex */,
 				CFB67D022D07047800F672E3 /* HavitalTests.xctest */,
+				D0D000000000000000000002 /* HavitalWatchTests.xctest */,
 				CFB67D0C2D07047800F672E3 /* HavitalUITests.xctest */,
 			);
 			name = Products;
@@ -219,12 +322,14 @@
 				CFB67CEC2D07047500F672E3 /* Sources */,
 				CFB67CED2D07047500F672E3 /* Frameworks */,
 				CFB67CEE2D07047500F672E3 /* Resources */,
+				D0D200000000000000000002 /* Embed Watch Content */,
 				CF3CDD642DEB216600B6AE66 /* ShellScript */,
 				CF3CDD652DEB3A2500B6AE66 /* Set Build Number */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				D0D200000000000000000004 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				CFB67CF22D07047500F672E3 /* Havital */,
@@ -297,6 +402,75 @@
 			productReference = CFB67D0C2D07047800F672E3 /* HavitalUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		D0D00000000000000000000B /* HavitalWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D0D000000000000000000019 /* Build configuration list for PBXNativeTarget "HavitalWatch" */;
+			buildPhases = (
+				D0D000000000000000000005 /* Sources */,
+				D0D000000000000000000006 /* Frameworks */,
+				D0D000000000000000000007 /* Resources */,
+				D0D100000000000000000007 /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D0D100000000000000000009 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D0D000000000000000000003 /* HavitalWatch */,
+			);
+			name = HavitalWatch;
+			packageProductDependencies = (
+			);
+			productName = HavitalWatch;
+			productReference = D0D000000000000000000001 /* HavitalWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
+		D0D00000000000000000000C /* HavitalWatchTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D0D00000000000000000001A /* Build configuration list for PBXNativeTarget "HavitalWatchTests" */;
+			buildPhases = (
+				D0D000000000000000000008 /* Sources */,
+				D0D000000000000000000009 /* Frameworks */,
+				D0D00000000000000000000A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D0D00000000000000000000E /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				D0D000000000000000000004 /* HavitalWatchTests */,
+			);
+			name = HavitalWatchTests;
+			packageProductDependencies = (
+			);
+			productName = HavitalWatchTests;
+			productReference = D0D000000000000000000002 /* HavitalWatchTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		D0D10000000000000000000B /* HavitalWatchComplication */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D0D100000000000000000015 /* Build configuration list for PBXNativeTarget "HavitalWatchComplication" */;
+			buildPhases = (
+				D0D100000000000000000004 /* Sources */,
+				D0D100000000000000000005 /* Frameworks */,
+				D0D100000000000000000006 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				D0D100000000000000000003 /* HavitalWatchComplication */,
+			);
+			name = HavitalWatchComplication;
+			packageProductDependencies = (
+			);
+			productName = HavitalWatchComplication;
+			productReference = D0D100000000000000000002 /* HavitalWatchComplication.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -317,6 +491,16 @@
 					CFB67D0B2D07047800F672E3 = {
 						CreatedOnToolsVersion = 16.1;
 						TestTargetID = CFB67CEF2D07047500F672E3;
+					};
+					D0D00000000000000000000B = {
+						CreatedOnToolsVersion = 16.1;
+					};
+					D0D00000000000000000000C = {
+						CreatedOnToolsVersion = 16.1;
+						TestTargetID = D0D00000000000000000000B;
+					};
+					D0D10000000000000000000B = {
+						CreatedOnToolsVersion = 16.1;
 					};
 				};
 			};
@@ -343,7 +527,10 @@
 			projectRoot = "";
 			targets = (
 				CFB67CEF2D07047500F672E3 /* Havital */,
+				D0D00000000000000000000B /* HavitalWatch */,
+				D0D10000000000000000000B /* HavitalWatchComplication */,
 				CFB67D012D07047800F672E3 /* HavitalTests */,
+				D0D00000000000000000000C /* HavitalWatchTests */,
 				CFB67D0B2D07047800F672E3 /* HavitalUITests */,
 			);
 		};
@@ -365,6 +552,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		CFB67D0A2D07047800F672E3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0D000000000000000000007 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0D00000000000000000000A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0D100000000000000000006 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -447,6 +655,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D0D000000000000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0D000000000000000000008 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D0D100000000000000000004 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -459,6 +688,21 @@
 			isa = PBXTargetDependency;
 			target = CFB67CEF2D07047500F672E3 /* Havital */;
 			targetProxy = CFB67D0D2D07047800F672E3 /* PBXContainerItemProxy */;
+		};
+		D0D00000000000000000000E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D0D00000000000000000000B /* HavitalWatch */;
+			targetProxy = D0D00000000000000000000D /* PBXContainerItemProxy */;
+		};
+		D0D100000000000000000009 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D0D10000000000000000000B /* HavitalWatchComplication */;
+			targetProxy = D0D100000000000000000008 /* PBXContainerItemProxy */;
+		};
+		D0D200000000000000000004 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D0D00000000000000000000B /* HavitalWatch */;
+			targetProxy = D0D200000000000000000003 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -997,6 +1241,354 @@
 			};
 			name = Release;
 		};
+		D0D000000000000000000011 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = HavitalWatch/HavitalWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = 779277J4JQ;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Paceriz;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Paceriz 需要讀取健康資料以顯示跑步指標。";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Paceriz 需要寫入跑步訓練到 Apple Health。";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Paceriz 需要定位以記錄戶外跑步路線。";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Paceriz 需要動作資料以輔助跑步訓練記錄。";
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.havital.Havital.dev;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		D0D000000000000000000012 /* Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = HavitalWatch/HavitalWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = 779277J4JQ;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Paceriz;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Paceriz 需要讀取健康資料以顯示跑步指標。";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Paceriz 需要寫入跑步訓練到 Apple Health。";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Paceriz 需要定位以記錄戶外跑步路線。";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Paceriz 需要動作資料以輔助跑步訓練記錄。";
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.havital.Havital.dev;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Dev;
+		};
+		D0D000000000000000000013 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = HavitalWatch/HavitalWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = 779277J4JQ;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Paceriz;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Paceriz 需要讀取健康資料以顯示跑步指標。";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Paceriz 需要寫入跑步訓練到 Apple Health。";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Paceriz 需要定位以記錄戶外跑步路線。";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Paceriz 需要動作資料以輔助跑步訓練記錄。";
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.havital.Havital;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		D0D000000000000000000014 /* Prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = HavitalWatch/HavitalWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = 779277J4JQ;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Paceriz;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Paceriz 需要讀取健康資料以顯示跑步指標。";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Paceriz 需要寫入跑步訓練到 Apple Health。";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Paceriz 需要定位以記錄戶外跑步路線。";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Paceriz 需要動作資料以輔助跑步訓練記錄。";
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.havital.Havital;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Prod;
+		};
+		D0D000000000000000000015 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = 779277J4JQ;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev.watchkitapp.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HavitalWatch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HavitalWatch";
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		D0D000000000000000000016 /* Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = 779277J4JQ;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev.watchkitapp.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HavitalWatch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HavitalWatch";
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Dev;
+		};
+		D0D000000000000000000017 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = 779277J4JQ;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.watchkitapp.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HavitalWatch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HavitalWatch";
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		D0D000000000000000000018 /* Prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = 779277J4JQ;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.watchkitapp.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/HavitalWatch.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/HavitalWatch";
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Prod;
+		};
+		D0D100000000000000000011 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = 779277J4JQ;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = HavitalWatchComplication/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev.watchkitapp.complication;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		D0D100000000000000000012 /* Dev */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = 779277J4JQ;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = HavitalWatchComplication/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev.watchkitapp.complication;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Dev;
+		};
+		D0D100000000000000000013 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = 779277J4JQ;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = HavitalWatchComplication/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.watchkitapp.complication;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		D0D100000000000000000014 /* Prod */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 3;
+				DEVELOPMENT_TEAM = 779277J4JQ;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = HavitalWatchComplication/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.watchkitapp.complication;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Prod;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1040,6 +1632,39 @@
 				CF3CDD542DEAFEB100B6AE66 /* Dev */,
 				CFB67D1E2D07047800F672E3 /* Release */,
 				CF3CDD582DEAFEB700B6AE66 /* Prod */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Dev;
+		};
+		D0D000000000000000000019 /* Build configuration list for PBXNativeTarget "HavitalWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D0D000000000000000000011 /* Debug */,
+				D0D000000000000000000012 /* Dev */,
+				D0D000000000000000000013 /* Release */,
+				D0D000000000000000000014 /* Prod */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Dev;
+		};
+		D0D00000000000000000001A /* Build configuration list for PBXNativeTarget "HavitalWatchTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D0D000000000000000000015 /* Debug */,
+				D0D000000000000000000016 /* Dev */,
+				D0D000000000000000000017 /* Release */,
+				D0D000000000000000000018 /* Prod */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Dev;
+		};
+		D0D100000000000000000015 /* Build configuration list for PBXNativeTarget "HavitalWatchComplication" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D0D100000000000000000011 /* Debug */,
+				D0D100000000000000000012 /* Dev */,
+				D0D100000000000000000013 /* Release */,
+				D0D100000000000000000014 /* Prod */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Dev;
