@@ -35,6 +35,8 @@ struct WorkoutDetailViewV2: View {
     @State private var didAutoPromptReflection = false
     @State private var displayedTrainingNotes: String? = nil  // 用於樂觀 UI 更新
     @State private var displayedRPE: Int? = nil
+    private let rizoRepositoryOverride: RizoRepository?
+    private let rizoMinimumReplyLoadingDurationNanoseconds: UInt64
 
     // 跑步機校正相關狀態
     @State private var showTreadmillCorrection = false
@@ -53,7 +55,13 @@ struct WorkoutDetailViewV2: View {
         }
     }
     
-    init(workout: WorkoutV2) {
+    init(
+        workout: WorkoutV2,
+        rizoRepository: RizoRepository? = nil,
+        rizoMinimumReplyLoadingDurationNanoseconds: UInt64 = 700_000_000
+    ) {
+        self.rizoRepositoryOverride = rizoRepository
+        self.rizoMinimumReplyLoadingDurationNanoseconds = rizoMinimumReplyLoadingDurationNanoseconds
         _viewModel = StateObject(wrappedValue: WorkoutDetailViewModelV2(workout: workout))
     }
     
@@ -260,7 +268,9 @@ struct WorkoutDetailViewV2: View {
                         }
                         return success
                     }.tracked(from: "WorkoutDetailViewV2: updateTrainingNotes").value
-                }
+                },
+                rizoRepository: rizoRepositoryOverride,
+                rizoMinimumReplyLoadingDurationNanoseconds: rizoMinimumReplyLoadingDurationNanoseconds
             )
         }
         .sheet(isPresented: $showTreadmillCorrection) {

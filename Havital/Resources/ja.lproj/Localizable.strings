@@ -3564,13 +3564,14 @@
 
 // MARK: - Rizo トレーニング日記 (SPEC-training-journal-feedback S02)
 "rizo.journal.title" = "Rizo と今回のランについて話す";
-"rizo.journal.subtitle" = "感じたことを選ぶと、Rizo がデータを見て返答します";
+"rizo.journal.subtitle" = "上のトレーニングメモを書くと、Rizo がその内容とデータを見て返答します";
 "rizo.journal.category.overall_status" = "全体の状態";
 "rizo.journal.category.fatigue_recovery" = "疲労 / 回復";
 "rizo.journal.category.pace_effort" = "ペース / きつさ";
 "rizo.journal.category.body_discomfort" = "身体の不調";
 "rizo.journal.submit" = "Rizo に送る";
 "rizo.journal.recorded" = "記録しました";
+"rizo.journal.replyLoading" = "Rizo が返信中...";
 "rizo.journal.captureError" = "保存に失敗しました。もう一度お試しください。";
 "rizo.journal.upsell.adjust" = "サブスク登録で Rizo が直接プランを調整できます";
 "rizo.journal.upsell.quotaExhausted" = "今月の無料対話回数を使い切りました。サブスクで無制限に。";

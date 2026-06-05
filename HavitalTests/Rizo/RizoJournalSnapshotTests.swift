@@ -27,7 +27,7 @@ final class RizoJournalSnapshotTests: XCTestCase {
 
     private func settle(_ vm: RizoJournalViewModel, untilRecorded: Bool) async {
         for _ in 0..<300 {
-            if !vm.presets.isEmpty && (!untilRecorded || vm.isRecorded) { return }
+            if !untilRecorded || vm.isRecorded { return }
             await Task.yield()
             try? await Task.sleep(nanoseconds: 3_000_000)
         }
@@ -35,13 +35,11 @@ final class RizoJournalSnapshotTests: XCTestCase {
 
     func test_snapshot_selectionState() async {
         let vm = RizoJournalPreviewFactory.makeViewModel(recorded: false)
-        vm.selectedPresetIDs = ["tired", "pace_off"]
         await settle(vm, untilRecorded: false)
-        XCTAssertFalse(vm.presets.isEmpty, "presets 應已載入")
         render(
-            RizoJournalSection(viewModel: vm, freeNote: { "" }).padding(16),
-            name: "01_selection_4_categories",
-            height: 640
+            RizoJournalSection(viewModel: vm, freeNote: { "後段腿很沉" }).padding(16),
+            name: "01_note_only_ready",
+            height: 220
         )
     }
 

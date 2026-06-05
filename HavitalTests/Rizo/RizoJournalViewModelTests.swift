@@ -22,7 +22,8 @@ final class RizoJournalViewModelTests: XCTestCase {
         sut = RizoJournalViewModel(
             workoutId: "wk-1",
             rizoRepository: rizoRepo,
-            workoutRepository: workoutRepo
+            workoutRepository: workoutRepo,
+            minimumReplyLoadingDurationNanoseconds: 0
         )
     }
 
@@ -63,21 +64,98 @@ final class RizoJournalViewModelTests: XCTestCase {
         }
     }
 
-    // MARK: - AC-TJF-02：PATCH 成功 → isRecorded == true
+    private func waitForRecordedDuringSubmit() async {
+        for _ in 0..<200 {
+            if sut.isRecorded && sut.isSubmitting && sut.reply == nil {
+                return
+            }
+            await Task.yield()
+            try? await Task.sleep(nanoseconds: 2_000_000)
+        }
+    }
 
-    func testSubmitSuccess_setsRecorded() async {
+    private func waitForRizoSendFinished() async {
+        for _ in 0..<200 {
+            if rizoRepo.sendDidFinish {
+                return
+            }
+            await Task.yield()
+            try? await Task.sleep(nanoseconds: 2_000_000)
+        }
+    }
+
+    // MARK: - Note-only：PATCH 成功 → isRecorded == true
+
+    func testSubmitSendsNoteOnly_setsRecorded() async {
         rizoRepo.replyToReturn = reply()
-        sut.selectedPresetIDs = ["p1"]
+        sut.selectedPresetIDs = ["legacy_preset"]
 
-        sut.submit(note: "今天很順")
+        sut.submit(note: "  今天很順  ")
         await waitForSubmit()
 
         XCTAssertTrue(sut.isRecorded, "資料捕捉成功應切已記錄")
         XCTAssertEqual(workoutRepo.updateCallCount, 1)
-        XCTAssertEqual(workoutRepo.lastPresets, ["p1"])
+        XCTAssertEqual(workoutRepo.lastPresets, [], "Rizo 訓練心得應只送 note，不再送 preset selections")
         XCTAssertEqual(workoutRepo.lastNote, "今天很順")
+        XCTAssertEqual(rizoRepo.lastPresetSelections, [], "Rizo chat body 不應再帶 preset selections")
+        XCTAssertEqual(rizoRepo.lastMessage, "今天很順")
         XCTAssertNotNil(sut.reply, "成功應顯示 Rizo 回應")
         XCTAssertNil(sut.captureError)
+    }
+
+    func testSubmitEmptyNote_doesNotCaptureOrChat() async {
+        rizoRepo.replyToReturn = reply()
+
+        sut.submit(note: "   \n ")
+        await waitForSubmit()
+
+        XCTAssertFalse(sut.isRecorded)
+        XCTAssertFalse(sut.isSubmitting)
+        XCTAssertEqual(workoutRepo.updateCallCount, 0)
+        XCTAssertEqual(rizoRepo.sendCallCount, 0)
+        XCTAssertNil(sut.reply)
+        XCTAssertNil(sut.captureError)
+    }
+
+    func testSubmitKeepsLoadingStateWhileWaitingForReply() async {
+        rizoRepo.replyToReturn = reply()
+        rizoRepo.sendDelayNanoseconds = 100_000_000
+
+        sut.submit(note: "後段腿很沉")
+        await waitForRecordedDuringSubmit()
+
+        XCTAssertTrue(sut.isRecorded, "資料捕捉成功後應先切已記錄")
+        XCTAssertTrue(sut.isSubmitting, "等待 Rizo reply 期間應維持 loading 狀態")
+        XCTAssertTrue(sut.isReplyLoading, "等待 Rizo reply 期間應顯示 reply loading")
+        XCTAssertNil(sut.reply, "reply 未回來前 UI 應可顯示 loading")
+
+        await waitForSubmit()
+        XCTAssertFalse(sut.isSubmitting)
+        XCTAssertFalse(sut.isReplyLoading)
+        XCTAssertNotNil(sut.reply)
+    }
+
+    func testSubmitKeepsReplyLoadingVisibleAfterFastReply() async {
+        sut = RizoJournalViewModel(
+            workoutId: "wk-1",
+            rizoRepository: rizoRepo,
+            workoutRepository: workoutRepo,
+            minimumReplyLoadingDurationNanoseconds: 120_000_000
+        )
+        rizoRepo.replyToReturn = reply()
+
+        sut.submit(note: "後段腿很沉")
+        await waitForRizoSendFinished()
+
+        XCTAssertTrue(sut.isRecorded, "資料捕捉成功後應先切已記錄")
+        XCTAssertTrue(sut.isSubmitting, "即使 Rizo 秒回，也要先維持 loading，避免 UI 看不到載入動畫")
+        XCTAssertTrue(sut.isReplyLoading, "即使 Rizo 秒回，也要先顯示 reply loading")
+        XCTAssertNil(sut.reply, "最短 loading 時間結束前不應直接套用 reply")
+
+        await waitForSubmit()
+        XCTAssertFalse(sut.isSubmitting)
+        XCTAssertFalse(sut.isReplyLoading)
+        XCTAssertNotNil(sut.reply)
     }
 
     // MARK: - AC-TJF-11 / 16：chat 失敗 → isRecorded 仍 true（解耦）
@@ -85,12 +163,12 @@ final class RizoJournalViewModelTests: XCTestCase {
     func testChatFailure_stillRecorded() async {
         workoutRepo.shouldThrow = false           // 資料捕捉成功
         rizoRepo.errorToThrow = TestError.boom     // 回應失敗
-        sut.selectedPresetIDs = ["p1"]
 
-        sut.submit(note: "")
+        sut.submit(note: "後段很累")
         await waitForSubmit()
 
         XCTAssertTrue(sut.isRecorded, "回應失敗，資料捕捉仍成功 → 永遠已記錄")
+        XCTAssertFalse(sut.isReplyLoading)
         XCTAssertNil(sut.reply, "回應失敗不顯示 reply")
         XCTAssertNil(sut.captureError, "回應失敗不是捕捉錯誤")
         XCTAssertEqual(sut.quotaState, .none)
@@ -106,6 +184,7 @@ final class RizoJournalViewModelTests: XCTestCase {
         await waitForSubmit()
 
         XCTAssertFalse(sut.isRecorded, "捕捉失敗不可切已記錄")
+        XCTAssertFalse(sut.isReplyLoading)
         XCTAssertNotNil(sut.captureError, "應顯示可重試錯誤")
         XCTAssertEqual(sut.selectedPresetIDs, ["p1", "p2"], "勾選不可丟")
         XCTAssertNil(sut.reply, "捕捉失敗不應呼叫 Rizo")
@@ -116,9 +195,8 @@ final class RizoJournalViewModelTests: XCTestCase {
 
     func testQuotaNotAllowedWithContent_showsSuggestionUpsell() async {
         rizoRepo.replyToReturn = reply(text: "建議你先恢復兩天。", allowed: false)
-        sut.selectedPresetIDs = ["p1"]
 
-        sut.submit(note: "")
+        sut.submit(note: "今天恢復感不好")
         await waitForSubmit()
 
         XCTAssertTrue(sut.isRecorded)
@@ -130,9 +208,8 @@ final class RizoJournalViewModelTests: XCTestCase {
 
     func testQuotaExhaustedEmptyReply_showsQuotaUpsell() async {
         rizoRepo.replyToReturn = reply(text: "   ", allowed: false)
-        sut.selectedPresetIDs = ["p1"]
 
-        sut.submit(note: "")
+        sut.submit(note: "想請 Rizo 看這次訓練")
         await waitForSubmit()
 
         XCTAssertTrue(sut.isRecorded)
@@ -148,9 +225,8 @@ final class RizoJournalViewModelTests: XCTestCase {
             canned: true,
             danger: "medical"
         )
-        sut.selectedPresetIDs = ["danger1"]
 
-        sut.submit(note: "")
+        sut.submit(note: "胸口有點悶")
         await waitForSubmit()
 
         XCTAssertTrue(sut.isRecorded)
@@ -162,8 +238,7 @@ final class RizoJournalViewModelTests: XCTestCase {
 
     func testSessionIdThreadedOnSecondTurn() async {
         rizoRepo.replyToReturn = reply()
-        sut.selectedPresetIDs = ["p1"]
-        sut.submit(note: "")
+        sut.submit(note: "第一句")
         await waitForSubmit()
         XCTAssertNil(rizoRepo.lastSessionId, "首回合 sessionId 為 nil")
 
@@ -198,10 +273,13 @@ private final class MockRizoRepo: RizoRepository {
     var replyToReturn: RizoReply?
     var presetsToReturn: [RizoPreset] = []
     var errorToThrow: Error?
+    var sendDelayNanoseconds: UInt64 = 0
 
     var sendCallCount = 0
+    var sendDidFinish = false
     var lastSessionId: String?
     var lastPresetSelections: [String] = []
+    var lastMessage: String?
 
     func sendJournalChat(
         workoutId: String,
@@ -212,6 +290,11 @@ private final class MockRizoRepo: RizoRepository {
         sendCallCount += 1
         lastSessionId = sessionId
         lastPresetSelections = presetSelections
+        lastMessage = message
+        defer { sendDidFinish = true }
+        if sendDelayNanoseconds > 0 {
+            try await Task.sleep(nanoseconds: sendDelayNanoseconds)
+        }
         if let errorToThrow { throw errorToThrow }
         guard let replyToReturn else { throw TestError.boom }
         return replyToReturn

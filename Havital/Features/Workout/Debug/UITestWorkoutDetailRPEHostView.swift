@@ -10,6 +10,9 @@ final class UITestWorkoutDetailRPEMockRepository: ObservableObject, WorkoutRepos
     @Published private(set) var currentRPE: Int?
     @Published private(set) var lastUpdateRPE: Int?
     @Published private(set) var updateCallCount = 0
+    @Published private(set) var subjectiveInputCallCount = 0
+    @Published private(set) var lastSubjectivePresets: [String] = []
+    @Published private(set) var lastSubjectiveNote: String?
 
     var workoutsDidRefresh: AnyPublisher<Void, Never> { subject.eraseToAnyPublisher() }
     var workoutsPaginationDidUpdate: AnyPublisher<PaginationInfo, Never> { Empty().eraseToAnyPublisher() }
@@ -44,6 +47,11 @@ final class UITestWorkoutDetailRPEMockRepository: ObservableObject, WorkoutRepos
     func clearWorkoutDetailCache(id: String) async {}
     func syncWorkout(_ workout: WorkoutV2) async throws -> WorkoutV2 { workout }
     func updateTrainingNotes(id: String, notes: String) async throws {}
+    func updateSubjectiveInputs(id: String, presets: [String], note: String?) async throws {
+        subjectiveInputCallCount += 1
+        lastSubjectivePresets = presets
+        lastSubjectiveNote = note
+    }
 
     func updateRPE(id: String, rpe: Int?) async throws {
         updateCallCount += 1
@@ -144,13 +152,62 @@ final class UITestWorkoutDetailRPEMockRepository: ObservableObject, WorkoutRepos
     }
 }
 
+private final class UITestWorkoutDetailRPERizoRepository: RizoRepository {
+    private let replyDelayNanos: UInt64
+
+    init(replyDelayNanos: UInt64) {
+        self.replyDelayNanos = replyDelayNanos
+    }
+
+    func sendJournalChat(
+        workoutId: String,
+        message: String,
+        presetSelections: [String],
+        sessionId: String?
+    ) async throws -> RizoReply {
+        if replyDelayNanos > 0 {
+            try await Task.sleep(nanoseconds: replyDelayNanos)
+        }
+        return RizoReply(
+            reply: "UITest Rizo reply: \(message)",
+            sessionId: sessionId ?? "uitest-rizo-session",
+            quota: RizoQuota(
+                allowed: true,
+                used: 1,
+                limit: 3,
+                remaining: 2,
+                resetsAt: nil,
+                reserved: true
+            ),
+            safety: RizoSafety(dangerClass: "none", canned: false)
+        )
+    }
+
+    func getPresets(scenario: String) async throws -> [RizoPreset] { [] }
+    func getHistory() async throws -> [RizoHistoryItem] { [] }
+}
+
 struct UITestWorkoutDetailRPEHostView: View {
     @StateObject private var repository: UITestWorkoutDetailRPEMockRepository
+    private let rizoRepository: RizoRepository?
+    private let rizoMinimumReplyLoadingDurationNanoseconds: UInt64
 
     init() {
         let initialRPE = Self.initialRPEFromEnvironment()
         let repository = UITestWorkoutDetailRPEMockRepository(initialRPE: initialRPE)
         DependencyContainer.shared.replace(repository as WorkoutRepository, for: WorkoutRepository.self)
+        if let delayNanos = Self.rizoReplyDelayFromArguments() {
+            let rizoRepository = UITestWorkoutDetailRPERizoRepository(replyDelayNanos: delayNanos)
+            DependencyContainer.shared.replace(
+                rizoRepository as RizoRepository,
+                for: RizoRepository.self
+            )
+            self.rizoRepository = rizoRepository
+            self.rizoMinimumReplyLoadingDurationNanoseconds = delayNanos
+        } else {
+            self.rizoRepository = nil
+            self.rizoMinimumReplyLoadingDurationNanoseconds = 700_000_000
+        }
         _repository = StateObject(wrappedValue: repository)
     }
 
@@ -170,7 +227,11 @@ struct UITestWorkoutDetailRPEHostView: View {
                 .font(AppFont.caption())
                 .padding(.vertical, 8)
 
-                WorkoutDetailViewV2(workout: repository.workout)
+                WorkoutDetailViewV2(
+                    workout: repository.workout,
+                    rizoRepository: rizoRepository,
+                    rizoMinimumReplyLoadingDurationNanoseconds: rizoMinimumReplyLoadingDurationNanoseconds
+                )
             }
         }
     }
@@ -179,6 +240,19 @@ struct UITestWorkoutDetailRPEHostView: View {
         let value = ProcessInfo.processInfo.environment["UITEST_RPE_INITIAL"] ?? "none"
         guard value != "none" else { return nil }
         return Int(value)
+    }
+
+    private static func rizoReplyDelayFromArguments() -> UInt64? {
+        let flag = "-ui_testing_rizo_reply_delay_ms"
+        let arguments = CommandLine.arguments
+        guard let index = arguments.firstIndex(of: flag) else { return nil }
+        let valueIndex = arguments.index(after: index)
+        guard arguments.indices.contains(valueIndex),
+              let delayMs = UInt64(arguments[valueIndex]),
+              delayMs > 0 else {
+            return nil
+        }
+        return delayMs * 1_000_000
     }
 }
 #endif

@@ -37,7 +37,9 @@ struct WorkoutReflectionView: View {
         initialRPE: Int?,
         initialNotes: String?,
         onSaveRPE: @escaping (Int?) async -> Bool,
-        onSaveNotes: @escaping (String) async -> Bool
+        onSaveNotes: @escaping (String) async -> Bool,
+        rizoRepository: RizoRepository? = nil,
+        rizoMinimumReplyLoadingDurationNanoseconds: UInt64 = 700_000_000
     ) {
         self.workoutId = workoutId
         self.typeName = typeName
@@ -49,7 +51,13 @@ struct WorkoutReflectionView: View {
         self.onSaveNotes = onSaveNotes
         _selectedRPE = State(initialValue: initialRPE)
         _notes = State(initialValue: initialNotes ?? "")
-        _rizoJournalVM = StateObject(wrappedValue: RizoJournalViewModel(workoutId: workoutId))
+        _rizoJournalVM = StateObject(
+            wrappedValue: RizoJournalViewModel(
+                workoutId: workoutId,
+                rizoRepository: rizoRepository,
+                minimumReplyLoadingDurationNanoseconds: rizoMinimumReplyLoadingDurationNanoseconds
+            )
+        )
     }
 
     // MARK: - Computed
