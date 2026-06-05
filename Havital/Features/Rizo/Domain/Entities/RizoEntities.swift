@@ -1,0 +1,94 @@
+import Foundation
+
+// MARK: - Rizo Domain Entities
+// Domain Layer - 純業務模型，camelCase，**絕不加 Codable**（避免耦合序列化格式）。
+// 對應後端 /v2/agent/* 回應，但與 wire 格式解耦：DTO→Entity 的轉換由 RizoMapper 負責。
+
+// MARK: - RizoReply
+
+/// 一次 Rizo 對話回合的回應。
+struct RizoReply: Equatable {
+    /// AI 回覆內容（已經是 canned 或真實 LLM 輸出，由 safety.canned 區分）。
+    let reply: String
+
+    /// 會話 ID，後續同一段對話需回傳給後端維持脈絡。
+    let sessionId: String
+
+    /// 配額狀態（freemium gating）。
+    let quota: RizoQuota
+
+    /// 安全分層資訊（危險分類 / 是否為罐頭回覆）。
+    let safety: RizoSafety
+}
+
+// MARK: - RizoQuota
+
+/// Rizo 使用配額狀態。
+/// `limit` / `remaining` / `resetsAt` 在無上限（如付費無限）時可能為 nil。
+struct RizoQuota: Equatable {
+    /// 本次是否允許使用。
+    let allowed: Bool
+
+    /// 已使用次數。
+    let used: Int
+
+    /// 上限次數（無上限為 nil）。
+    let limit: Int?
+
+    /// 剩餘次數（無上限為 nil）。
+    let remaining: Int?
+
+    /// 配額重置時間（ISO8601 字串，無重置週期為 nil）。
+    let resetsAt: String?
+
+    /// 後端是否已預扣本次配額。
+    let reserved: Bool
+}
+
+// MARK: - RizoSafety
+
+/// 安全分層資訊。
+struct RizoSafety: Equatable {
+    /// 危險分類（後端定義的字串分類，如 "none" / "medical" 等）。
+    let dangerClass: String
+
+    /// 是否為罐頭（預設安全）回覆而非真實 LLM 生成。
+    let canned: Bool
+}
+
+// MARK: - RizoPreset
+
+/// 預設快捷選項（情境化按鈕）。
+struct RizoPreset: Equatable, Identifiable {
+    /// 預設項目唯一 ID。
+    let id: String
+
+    /// 分類（用於分組顯示）。
+    let category: String
+
+    /// 危險分類。
+    let dangerClass: String
+
+    /// 顯示文字。
+    let label: String
+}
+
+// MARK: - RizoHistoryItem
+
+/// 歷史對話項目（本批先建骨架，欄位待後端 history 契約定版後補齊）。
+struct RizoHistoryItem: Equatable, Identifiable {
+    /// 歷史項目唯一 ID。
+    let id: String
+
+    /// 情境（如 "journal"）。
+    let scenario: String
+
+    /// 使用者訊息。
+    let message: String
+
+    /// Rizo 回覆。
+    let response: String
+
+    /// 建立時間（ISO8601 字串）。
+    let createdAt: String?
+}

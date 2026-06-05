@@ -163,6 +163,15 @@ protocol WorkoutRepository {
     ///   - rpe: 主觀強度 1-10，nil 表示清除
     func updateRPE(id: String, rpe: Int?) async throws
 
+    /// 更新訓練日記主觀輸入（Rizo 訓練日記閉環的「資料捕捉」步驟）。
+    /// 打既有 `PATCH /v2/workouts/{id}`，body 含 `subjective_inputs:{presets:[id], note:String?}`。
+    /// 這一步永遠優先於 Rizo 回應，務必先成功才切「已記錄」。
+    /// - Parameters:
+    ///   - id: 訓練 ID
+    ///   - presets: 使用者勾選的預設項目 ID 清單
+    ///   - note: 自由文字（選填）
+    func updateSubjectiveInputs(id: String, presets: [String], note: String?) async throws
+
     /// 刪除訓練
     /// - Parameter id: 訓練 ID
     func deleteWorkout(id: String) async throws
@@ -215,6 +224,10 @@ extension WorkoutRepository {
     }
 
     func updateRPE(id: String, rpe: Int?) async throws {
+        throw WorkoutRepositoryError.dataSourceUnavailable
+    }
+
+    func updateSubjectiveInputs(id: String, presets: [String], note: String?) async throws {
         throw WorkoutRepositoryError.dataSourceUnavailable
     }
 }

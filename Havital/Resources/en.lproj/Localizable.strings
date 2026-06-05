@@ -3553,3 +3553,20 @@
 "tip.interval" = "After hard intervals, prioritize sleep and protein recovery";
 "tip.progression" = "Hold back in the first third — save energy for the final surge";
 "tip.fastFinish" = "Fuel up before the fast finish · keep your upper body relaxed as you accelerate";
+
+
+// common (added for Rizo journal retry)
+"common.retry" = "Retry";
+
+// MARK: - Rizo Training Journal (SPEC-training-journal-feedback S02)
+"rizo.journal.title" = "Chat with Rizo about this run";
+"rizo.journal.subtitle" = "Pick how it felt — Rizo replies using your data";
+"rizo.journal.category.overall_status" = "Overall";
+"rizo.journal.category.fatigue_recovery" = "Fatigue / Recovery";
+"rizo.journal.category.pace_effort" = "Pace / Effort";
+"rizo.journal.category.body_discomfort" = "Body discomfort";
+"rizo.journal.submit" = "Send to Rizo";
+"rizo.journal.recorded" = "Recorded";
+"rizo.journal.captureError" = "Couldn't save. Please retry.";
+"rizo.journal.upsell.adjust" = "Subscribe to let Rizo adjust your plan directly";
+"rizo.journal.upsell.quotaExhausted" = "You've used this month's free chats. Subscribe for unlimited.";

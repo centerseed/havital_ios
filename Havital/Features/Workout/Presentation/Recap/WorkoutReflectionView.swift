@@ -25,6 +25,7 @@ struct WorkoutReflectionView: View {
     @State private var isSaving = false
     @State private var showError = false
     @FocusState private var focused: Bool
+    @StateObject private var rizoJournalVM: RizoJournalViewModel
 
     private let maxChars = WorkoutConstants.maxTrainingNotesLength
 
@@ -48,6 +49,7 @@ struct WorkoutReflectionView: View {
         self.onSaveNotes = onSaveNotes
         _selectedRPE = State(initialValue: initialRPE)
         _notes = State(initialValue: initialNotes ?? "")
+        _rizoJournalVM = StateObject(wrappedValue: RizoJournalViewModel(workoutId: workoutId))
     }
 
     // MARK: - Computed
@@ -86,6 +88,7 @@ struct WorkoutReflectionView: View {
                     rpeSection
                     promptSection
                     editorCard
+                    rizoJournalSection
                 }
                 .padding(16)
                 .frame(maxWidth: .infinity, alignment: .top)
@@ -280,6 +283,13 @@ struct WorkoutReflectionView: View {
         }
         .background(Color(UIColor.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    // MARK: - Rizo Journal Section (SPEC-training-journal-feedback S02)
+
+    private var rizoJournalSection: some View {
+        // 自由文字 editor 與預設一起送（AC-TJF-04）：把當前 notes 交給 VM。
+        RizoJournalSection(viewModel: rizoJournalVM, freeNote: { notes })
     }
 
     // MARK: - Save

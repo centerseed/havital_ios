@@ -489,6 +489,25 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         Logger.debug("[WorkoutRepositoryImpl] updateRPE - 完成")
     }
 
+    func updateSubjectiveInputs(id: String, presets: [String], note: String?) async throws {
+        Logger.debug("[WorkoutRepositoryImpl] updateSubjectiveInputs - id: \(id), presets: \(presets.count)")
+
+        // subjective_inputs:{presets:[id], note:String?}；note 為 nil/空白時送 NSNull 由後端清空。
+        var subjective: [String: Any] = ["presets": presets]
+        if let note, !note.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            subjective["note"] = note
+        } else {
+            subjective["note"] = NSNull()
+        }
+        let body: [String: Any] = ["subjective_inputs": subjective]
+        try await remoteDataSource.updateWorkout(id: id, body: body)
+
+        // 成功後清除詳情緩存，強制下次重新載入。
+        localDataSource.clearWorkoutDetailCache(id: id)
+
+        Logger.debug("[WorkoutRepositoryImpl] updateSubjectiveInputs - 完成")
+    }
+
     // MARK: - Delete
 
     func deleteWorkout(id: String) async throws {

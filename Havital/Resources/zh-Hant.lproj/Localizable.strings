@@ -3595,3 +3595,17 @@
 "tip.interval" = "高強度日後請安排足夠睡眠與蛋白質補充";
 "tip.progression" = "前三分之一不要起太快，預留體力給最後一段";
 "tip.fastFinish" = "末段交接前補水補給 · 加速時保持上半身放鬆";
+
+
+// MARK: - Rizo 訓練日記（SPEC-training-journal-feedback S02）
+"rizo.journal.title" = "跟 Rizo 聊聊這次訓練";
+"rizo.journal.subtitle" = "勾選符合的感受，Rizo 會看你的數據回應";
+"rizo.journal.category.overall_status" = "整體狀態";
+"rizo.journal.category.fatigue_recovery" = "疲勞 / 恢復";
+"rizo.journal.category.pace_effort" = "配速 / 費力";
+"rizo.journal.category.body_discomfort" = "身體不適";
+"rizo.journal.submit" = "送出給 Rizo";
+"rizo.journal.recorded" = "已記錄";
+"rizo.journal.captureError" = "記錄失敗，請重試";
+"rizo.journal.upsell.adjust" = "訂閱後可讓 Rizo 直接幫你調整";
+"rizo.journal.upsell.quotaExhausted" = "本月免費對話次數已用完，訂閱可無限暢聊";

@@ -70,6 +70,9 @@ struct AppDependencyBootstrap {
 
         // 11. Achievement 模組 (獨立模組，成就分頁使用)
         registerAchievementModule()
+
+        // 12. Rizo 模組 (獨立模組，AI 教練 / 訓練日記對話)
+        registerRizoModule()
     }
 
     // MARK: - Individual Module Registration
@@ -230,6 +233,19 @@ struct AppDependencyBootstrap {
 
         DependencyContainer.shared.registerAchievementModule()
         Logger.debug("[Bootstrap] ✅ Achievement module registered")
+    }
+
+    /// 註冊 Rizo 模組
+    /// 包含: RizoRepository, RizoRemoteDataSource
+    /// AI 教練 / 訓練日記對話 (打 /v2/agent/*)
+    private static func registerRizoModule() {
+        guard !DependencyContainer.shared.isRegistered(RizoRepository.self) else {
+            Logger.debug("[Bootstrap] Rizo module already registered, skipping")
+            return
+        }
+
+        DependencyContainer.shared.registerRizoModule()
+        Logger.debug("[Bootstrap] ✅ Rizo module registered")
     }
 
     // MARK: - Testing Support
