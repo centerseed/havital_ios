@@ -72,6 +72,11 @@ struct TrainingPlanV2View: View {
         L10n.Tab.profile.localized
     }
 
+    private var currentWeeklyPlanId: String? {
+        guard case .ready(let weeklyPlan) = viewModel.loader.planStatus else { return nil }
+        return weeklyPlan.effectivePlanId
+    }
+
     static func shouldShowNextWeekButton(
         nextWeekInfo: NextWeekInfoV2?,
         selectedWeek: Int,
@@ -538,7 +543,7 @@ struct TrainingPlanV2View: View {
             case .history(let workout):
                 WorkoutDetailViewV2(workout: workout)
             case .planned(let day, let date):
-                PlannedSessionDetailView(day: day, date: date)
+                PlannedSessionDetailView(day: day, date: date, planId: currentWeeklyPlanId)
             }
         }
         .navigationDestination(isPresented: $showOverviewV2) {

@@ -410,9 +410,16 @@ struct HeartRateZoneInfoView: View {
                 "relaxing_hr": restingHeartRate
             ] as [String : Any]
 
-            _ = await viewModel.updateUserProfile(userData)
+            let didUpdate = await viewModel.updateUserProfile(userData)
 
             isSaving = false
+            guard didUpdate else {
+                alertMessage = NSLocalizedString("hr_zone.save_failed_generic", comment: "Save failed")
+                showingAlert = true
+                return
+            }
+
+            HeartRateProfileRefreshNotifier.notifySaved(isOnboardingMode: isOnboardingMode)
 
             if isOnboardingMode {
                 // Onboarding 模式：檢查是否需要顯示 backfill 提示並導航
@@ -439,6 +446,13 @@ struct HeartRateZoneInfoView: View {
         case 6: return .red       // interval
         default: return .gray
         }
+    }
+}
+
+enum HeartRateProfileRefreshNotifier {
+    static func notifySaved(isOnboardingMode: Bool) {
+        guard !isOnboardingMode else { return }
+        CacheEventBus.shared.publish(.dataChanged(.user))
     }
 }
 

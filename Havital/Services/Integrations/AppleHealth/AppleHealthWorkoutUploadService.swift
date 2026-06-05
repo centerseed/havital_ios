@@ -9,6 +9,7 @@ enum AppleHealthWorkoutUploadError: Error {
 // MARK: - Apple Health Workout Upload Service
 class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
     static let shared = AppleHealthWorkoutUploadService()
+    private static let pacerizRPEMetadataKey = "com.paceriz.rpe"
     private let workoutRepository: WorkoutRepository
 
     private init(workoutRepository: WorkoutRepository = WorkoutRepositoryImpl.shared) {
@@ -64,6 +65,22 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         let start = Int(workout.startDate.timeIntervalSince1970)
         let distM = Int(workout.totalDistance?.safeDoubleValue(for: .meter()) ?? 0)
         return "\(type)_\(start)_\(distM)"
+    }
+
+    static func extractPacerizRPE(from workout: HKWorkout) -> Int? {
+        guard let rawValue = workout.metadata?[pacerizRPEMetadataKey] else { return nil }
+
+        let rpe: Int?
+        if let intValue = rawValue as? Int {
+            rpe = intValue
+        } else if let numberValue = rawValue as? NSNumber {
+            rpe = numberValue.intValue
+        } else {
+            rpe = nil
+        }
+
+        guard let rpe, (1...10).contains(rpe) else { return nil }
+        return rpe
     }
 
     /// 判斷是否為跑步相關的運動
@@ -347,6 +364,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                                      device: actualDevice,
                                      metadata: workoutMetadata)
 
+        await applyPacerizRPEIfNeeded(from: workout, workoutId: workoutId)
+
         // 標記為已上傳（所有必要數據都已驗證）
         let hasHeartRateData = finalRequiredData.heartRateData.count >= 2
         workoutUploadTracker.markWorkoutAsUploaded(workout, hasHeartRate: hasHeartRateData, apiVersion: .v2)
@@ -356,6 +375,17 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
 
         print("✅ [Upload] 上傳成功 - 運動ID: \(workoutId)")
         return .success(hasHeartRate: hasHeartRateData)
+    }
+
+    private func applyPacerizRPEIfNeeded(from workout: HKWorkout, workoutId: String) async {
+        guard let rpe = Self.extractPacerizRPE(from: workout) else { return }
+
+        do {
+            try await workoutRepository.updateRPE(id: workoutId, rpe: rpe)
+            print("✅ [Upload] Watch RPE 已同步 - WorkoutID: \(workoutId), RPE: \(rpe)")
+        } catch {
+            print("⚠️ [Upload] Watch RPE 同步失敗 - WorkoutID: \(workoutId), error: \(error.localizedDescription)")
+        }
     }
     
     // MARK: - Batch Upload

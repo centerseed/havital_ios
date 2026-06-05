@@ -3545,12 +3545,19 @@
 "training.detail.supplementary_subtitle" = "跑後進行";
 "training.detail.reminder" = "提醒";
 "training.detail.what_is_type" = "什麼是 %@？";
+"training.detail.send_to_watch" = "傳送到 Apple Watch";
+"training.detail.install_watch_app" = "在 Apple Watch 安裝 Paceriz";
+"training.detail.watch_status_title" = "Apple Watch";
+"training.detail.watch_sent_message" = "已傳送到 Apple Watch。";
+"training.detail.watch_send_failed_message" = "無法傳送這次訓練到 Apple Watch。請確認手錶已連線後再試。";
+"training.detail.install_watch_app_message" = "請打開 iPhone 上的 Watch app，將 Paceriz 安裝到 Apple Watch。";
 "training.detail.adjust_day" = "調整這一天";
 "training.detail.rest_with_desc" = "組間休息：%@";
 "training.detail.segment_index" = "第 %d 段";
 
 // MARK: - Training Segment Labels
 "training.segment.sprint" = "衝刺";
+"watch.segment.rest" = "休息";
 "training.segment.progression_label" = "三段進階：輕 → 節奏 → 快";
 "training.segment.fast_finish_label" = "二段式：輕鬆 → 節奏";
 "training.segment.lsd_single" = "長距離有氧";

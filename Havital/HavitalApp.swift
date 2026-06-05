@@ -80,6 +80,7 @@ struct HavitalApp: App {
 
         // 3. ✅ Clean Architecture: 使用集中式 Bootstrap 註冊所有模組依賴
         AppDependencyBootstrap.registerAllModules()
+        WatchCompanionService.shared.activate()
         print("📦 所有模組依賴已優先註冊")
 
         #if DEBUG
@@ -209,6 +210,9 @@ struct HavitalApp: App {
                             .environmentObject(featureFlagManager) // 注入 FeatureFlagManager
                             .id(shouldRefreshForLanguage ? "refreshed" : "original") // Force UI refresh
                             .onAppear {
+                                WatchCompanionService.shared.activate()
+                                WatchCompanionService.shared.pushAuth(loggedIn: authViewModel.isAuthenticated)
+
                                 // App 啟動時使用新的狀態管理進行序列化初始化
                                 Task {
                                     print("🚀 HavitalApp: 開始序列化初始化流程")
@@ -238,6 +242,9 @@ struct HavitalApp: App {
                                     print("🌍 收到語言變更通知，刷新 UI")
                                     shouldRefreshForLanguage.toggle() // Trigger UI refresh
                                 }
+                            }
+                            .onChange(of: authViewModel.isAuthenticated) { isAuthenticated in
+                                WatchCompanionService.shared.pushAuth(loggedIn: isAuthenticated)
                             }
                     } else {
                         // Firebase 和 FeatureFlagManager 初始化中

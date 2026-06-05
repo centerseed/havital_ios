@@ -10,8 +10,18 @@ import SwiftUI
 struct PlannedSessionDetailView: View {
     let day: DayDetail
     let date: Date?
+    let planId: String?
     @State private var showTrainingTypeInfo = false
+    @State private var watchAvailability: WatchCompanionService.WatchAvailability = .unavailable
+    @State private var showWatchTransferAlert = false
+    @State private var watchTransferMessage = ""
     @AppStorage("climateAdjustmentEnabled") private var climateAdjustmentEnabled = false
+
+    init(day: DayDetail, date: Date?, planId: String? = nil) {
+        self.day = day
+        self.date = date
+        self.planId = planId
+    }
 
     var body: some View {
         ScrollView {
@@ -44,6 +54,18 @@ struct PlannedSessionDetailView: View {
             if let info = TrainingTypeInfo.info(for: day.type) {
                 TrainingTypeInfoView(trainingTypeInfo: info)
             }
+        }
+        .alert(NSLocalizedString("training.detail.watch_status_title", comment: "Apple Watch"), isPresented: $showWatchTransferAlert) {
+            Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
+        } message: {
+            Text(watchTransferMessage)
+        }
+        .onAppear {
+            WatchCompanionService.shared.activate()
+            refreshWatchAvailability()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .watchAvailabilityChanged)) { _ in
+            refreshWatchAvailability()
         }
     }
 
@@ -555,8 +577,69 @@ struct PlannedSessionDetailView: View {
 
     private var secondaryButtons: some View {
         // 「調整這一天」目前無功能，先移除避免誤導；保留「這是什麼訓練」資訊入口。
-        SecondaryActionButton(icon: "info.circle", label: String(format: NSLocalizedString("training.detail.what_is_type", comment: ""), workoutTypeName), action: { showTrainingTypeInfo = true })
+        VStack(spacing: 8) {
+            SecondaryActionButton(icon: "info.circle", label: String(format: NSLocalizedString("training.detail.what_is_type", comment: ""), workoutTypeName), action: { showTrainingTypeInfo = true })
+
+            if let activity = day.primaryRunActivity {
+                watchTransferButton(for: activity)
+            }
+        }
     }
+
+    @ViewBuilder
+    private func watchTransferButton(for activity: RunActivity) -> some View {
+        switch watchAvailability {
+        case .ready:
+            SecondaryActionButton(
+                icon: "applewatch",
+                label: NSLocalizedString("training.detail.send_to_watch", comment: "Send planned session to Apple Watch"),
+                action: { sendToWatch(activity) }
+            )
+            .accessibilityIdentifier("training.detail.send_to_watch")
+        case .appNotInstalled:
+            SecondaryActionButton(
+                icon: "applewatch.slash",
+                label: NSLocalizedString("training.detail.install_watch_app", comment: "Install Paceriz on Apple Watch"),
+                action: {
+                    watchTransferMessage = NSLocalizedString("training.detail.install_watch_app_message", comment: "Install watch app message")
+                    showWatchTransferAlert = true
+                }
+            )
+            .accessibilityIdentifier("training.detail.install_watch_app")
+        case .noWatch, .unavailable:
+            EmptyView()
+        }
+    }
+
+    private func sendToWatch(_ activity: RunActivity) {
+        let dto = WatchPlanProjector.project(
+            activity: activity,
+            date: watchPlanDateString,
+            planId: planId ?? ""
+        )
+        let didSend = WatchCompanionService.shared.sendTodayPlan(dto)
+        watchTransferMessage = didSend
+            ? NSLocalizedString("training.detail.watch_sent_message", comment: "Sent to Apple Watch")
+            : NSLocalizedString("training.detail.watch_send_failed_message", comment: "Failed to send to Apple Watch")
+        showWatchTransferAlert = true
+    }
+
+    private func refreshWatchAvailability() {
+        watchAvailability = WatchCompanionService.shared.sendAvailability
+    }
+
+    private var watchPlanDateString: String {
+        Self.watchPlanDateFormatter.string(from: date ?? Date())
+    }
+
+    private static let watchPlanDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
 
     // MARK: - Section Header Helper
 

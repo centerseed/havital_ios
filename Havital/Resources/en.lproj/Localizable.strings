@@ -3503,12 +3503,19 @@
 "training.detail.supplementary_subtitle" = "After your run";
 "training.detail.reminder" = "Reminder";
 "training.detail.what_is_type" = "What is %@?";
+"training.detail.send_to_watch" = "Send to Apple Watch";
+"training.detail.install_watch_app" = "Install Paceriz on Apple Watch";
+"training.detail.watch_status_title" = "Apple Watch";
+"training.detail.watch_sent_message" = "Sent to Apple Watch.";
+"training.detail.watch_send_failed_message" = "Couldn’t send this workout to Apple Watch. Try again after the watch is connected.";
+"training.detail.install_watch_app_message" = "Open the Watch app on iPhone and install Paceriz on your Apple Watch.";
 "training.detail.adjust_day" = "Adjust This Day";
 "training.detail.rest_with_desc" = "Rest: %@";
 "training.detail.segment_index" = "Segment %d";
 
 // MARK: - Training Segment Labels
 "training.segment.sprint" = "Sprint";
+"watch.segment.rest" = "Rest";
 "training.segment.progression_label" = "3-Stage: Easy → Tempo → Fast";
 "training.segment.fast_finish_label" = "2-Stage: Easy → Tempo";
 "training.segment.lsd_single" = "Long Aerobic";
