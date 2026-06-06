@@ -73,6 +73,9 @@ struct AppDependencyBootstrap {
 
         // 12. Rizo 模組 (獨立模組，AI 教練 / 訓練日記對話)
         registerRizoModule()
+
+        // 13. DailyState 模組 (獨立模組，今日狀態卡片，打 /v2/state/today)
+        registerDailyStateModule()
     }
 
     // MARK: - Individual Module Registration
@@ -246,6 +249,19 @@ struct AppDependencyBootstrap {
 
         DependencyContainer.shared.registerRizoModule()
         Logger.debug("[Bootstrap] ✅ Rizo module registered")
+    }
+
+    /// 註冊 DailyState 模組
+    /// 包含: DailyStateRepository, DailyStateRemoteDataSource
+    /// 今日狀態卡片 (打 /v2/state/today)
+    private static func registerDailyStateModule() {
+        guard !DependencyContainer.shared.isRegistered(DailyStateRepository.self) else {
+            Logger.debug("[Bootstrap] DailyState module already registered, skipping")
+            return
+        }
+
+        DependencyContainer.shared.registerDailyStateModule()
+        Logger.debug("[Bootstrap] ✅ DailyState module registered")
     }
 
     // MARK: - Testing Support
