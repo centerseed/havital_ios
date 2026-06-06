@@ -7,6 +7,21 @@ struct PaceGuidance: Equatable {
         case tooFast
         case onTarget
         case tooSlow
+
+        var displayText: String {
+            switch self {
+            case .noTarget:
+                return "目前配速"
+            case .waitingForPace:
+                return "定位中"
+            case .tooFast:
+                return "太快"
+            case .onTarget:
+                return "目標內"
+            case .tooSlow:
+                return "太慢"
+            }
+        }
     }
 
     let state: State
@@ -86,7 +101,7 @@ struct PaceGuidanceView: View {
                     .lineLimit(1)
             }
 
-            if guidance.state != .noTarget {
+            if guidance.pointerFraction != nil {
                 paceBar
                     .frame(height: 14)
             }
@@ -116,18 +131,7 @@ struct PaceGuidanceView: View {
     }
 
     private var stateText: String {
-        switch guidance.state {
-        case .noTarget:
-            return "配速"
-        case .waitingForPace:
-            return "等速度"
-        case .tooFast:
-            return "放慢"
-        case .onTarget:
-            return "穩住"
-        case .tooSlow:
-            return "加速"
-        }
+        guidance.state.displayText
     }
 
     private var symbolName: String {
