@@ -54,7 +54,7 @@ final class ActiveWorkoutViewModel: ObservableObject {
         if previousPhase == .warmup, phase == .main {
             markSegmentBoundary()
         }
-        currentSegment = snapshot.segments.first
+        currentSegment = session.currentSegment
         segmentStartMeters = session.activeDistanceMeters
         segmentStartSeconds = session.activeElapsedSeconds
     }
@@ -86,9 +86,9 @@ final class ActiveWorkoutViewModel: ObservableObject {
             switch event {
             case .countdownCue:
                 HapticPlayer.segmentCue()
-            case .advanced(let index):
+            case .advanced:
                 HapticPlayer.start()
-                currentSegment = index < snapshot.segments.count ? snapshot.segments[index] : nil
+                currentSegment = session.currentSegment
                 markSegmentBoundary()
                 segmentStartMeters = session.activeDistanceMeters
                 segmentStartSeconds = session.activeElapsedSeconds

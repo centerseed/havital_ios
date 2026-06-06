@@ -110,6 +110,52 @@ final class ActiveWorkoutViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.segmentMeters, 0)
     }
 
+    func test_debugSimulatedWorkoutBuilder_drivesDistanceSegmentToRest() async {
+        let work = segment(kind: .work, measure: .distance, meters: 400)
+        let rest = segment(kind: .rest, measure: .time, seconds: 90)
+        let builder = DebugSimulatedWorkoutBuilder(
+            samples: [
+                .init(meters: 0, seconds: 0, heartRate: 120, recentSpeedMps: 0),
+                .init(meters: 399, seconds: 120, heartRate: 130, recentSpeedMps: 3.3),
+                .init(meters: 400, seconds: 121, heartRate: 130, recentSpeedMps: 3.3)
+            ],
+            intervalNanoseconds: 1_000_000
+        )
+        let viewModel = ActiveWorkoutViewModel(
+            snapshot: snapshot(segments: [work, rest]),
+            workoutBuilder: builder
+        )
+
+        viewModel.start(indoor: false)
+        viewModel.beginPlan()
+
+        for _ in 0..<20 {
+            if viewModel.currentSegment == rest { break }
+            try? await Task.sleep(nanoseconds: 5_000_000)
+        }
+
+        XCTAssertEqual(viewModel.currentSegment, rest)
+        XCTAssertEqual(viewModel.segmentMeters, 0)
+    }
+
+    func test_structuredWorkout_beginPlanSkipsWarmupSegment() {
+        let builder = SpyWorkoutBuilder()
+        let warmup = segment(kind: .warmup, measure: .time, seconds: 600)
+        let work = segment(kind: .work, measure: .distance, meters: 400)
+        let rest = segment(kind: .rest, measure: .time, seconds: 90)
+        let cooldown = segment(kind: .cooldown, measure: .time, seconds: 600)
+        let viewModel = ActiveWorkoutViewModel(
+            snapshot: snapshot(segments: [warmup, work, rest, cooldown]),
+            workoutBuilder: builder
+        )
+
+        viewModel.start(indoor: false)
+        viewModel.beginPlan()
+
+        XCTAssertEqual(viewModel.phase, .main)
+        XCTAssertEqual(viewModel.currentSegment, work)
+    }
+
     func test_finishedMainSegment_marksFinalSegmentBeforeCooldown() async {
         let builder = SpyWorkoutBuilder()
         var now = Date(timeIntervalSince1970: 1_800_000_000)

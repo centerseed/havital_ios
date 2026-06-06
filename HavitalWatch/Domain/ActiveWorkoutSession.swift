@@ -15,6 +15,7 @@ final class ActiveWorkoutSession {
     private(set) var activeElapsedSeconds: Int = 0
 
     private let engine: SegmentTransitionEngine?
+    private let mainSegments: [WatchSegment]
     private var lastRawMeters: Double?
     private var lastRawSeconds: Int?
     private var needsResumeBaseline = false
@@ -24,14 +25,19 @@ final class ActiveWorkoutSession {
 
         switch snapshot.flowType {
         case .directStart:
+            mainSegments = snapshot.segments
             phase = .main
             engine = nil
             lastRawMeters = 0
             lastRawSeconds = 0
         case .warmupMainCooldown:
+            mainSegments = snapshot.segments.filter { segment in
+                segment.kind != .warmup && segment.kind != .cooldown
+            }
             phase = .warmup
-            engine = SegmentTransitionEngine(segments: snapshot.segments)
+            engine = mainSegments.isEmpty ? nil : SegmentTransitionEngine(segments: mainSegments)
         case .rest, .unsupported:
+            mainSegments = []
             phase = .finished
             engine = nil
         }
@@ -39,6 +45,16 @@ final class ActiveWorkoutSession {
 
     var currentSegmentIndex: Int {
         engine?.currentIndex ?? 0
+    }
+
+    var currentSegment: WatchSegment? {
+        guard
+            let engine,
+            engine.currentIndex < mainSegments.count
+        else {
+            return nil
+        }
+        return mainSegments[engine.currentIndex]
     }
 
     func beginPlan() {

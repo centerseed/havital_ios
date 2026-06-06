@@ -10,6 +10,7 @@ enum WatchUIDebugScreen: String {
     case easy
     case interval
     case intervalSlow = "interval_slow"
+    case simulatedIntervalFlow = "sim_interval_flow"
     case controls
     case rpe
     case summary
@@ -48,6 +49,8 @@ struct WatchUIDebugGalleryView: View {
             IntervalMetricsView(vm: configuredIntervalViewModel(phase: .main))
         case .intervalSlow:
             IntervalMetricsView(vm: configuredIntervalViewModel(phase: .main, recentSpeedMps: 3.03))
+        case .simulatedIntervalFlow:
+            SimulatedIntervalFlowView(snapshot: Self.intervalSnapshot)
         case .controls:
             WorkoutControlView(isPaused: false, togglePause: {}, end: {})
         case .rpe:
@@ -169,8 +172,8 @@ struct WatchUIDebugGalleryView: View {
                 paceLowSecPerKm: nil,
                 paceHighSecPerKm: nil,
                 label: "Rest",
-                repIndex: 3,
-                repTotal: 5
+                repIndex: 1,
+                repTotal: 4
             ),
             WatchSegment(
                 kind: .cooldown,
@@ -185,5 +188,42 @@ struct WatchUIDebugGalleryView: View {
             )
         ]
     )
+}
+
+@MainActor
+private struct SimulatedIntervalFlowView: View {
+    @StateObject private var viewModel: ActiveWorkoutViewModel
+    @State private var started = false
+
+    init(snapshot: WatchPlanSnapshot) {
+        let builder = DebugSimulatedWorkoutBuilder(
+            samples: [
+                .init(meters: 0, seconds: 0, heartRate: 118, recentSpeedMps: 0),
+                .init(meters: 80, seconds: 24, heartRate: 124, recentSpeedMps: 3.27),
+                .init(meters: 160, seconds: 49, heartRate: 132, recentSpeedMps: 3.27),
+                .init(meters: 240, seconds: 73, heartRate: 138, recentSpeedMps: 3.27),
+                .init(meters: 320, seconds: 98, heartRate: 143, recentSpeedMps: 3.27),
+                .init(meters: 360, seconds: 110, heartRate: 146, recentSpeedMps: 3.27),
+                .init(meters: 399, seconds: 121, heartRate: 147, recentSpeedMps: 3.27),
+                .init(meters: 400, seconds: 122, heartRate: 148, recentSpeedMps: 3.27),
+                .init(meters: 400, seconds: 123, heartRate: 142, recentSpeedMps: 0),
+                .init(meters: 400, seconds: 150, heartRate: 128, recentSpeedMps: 0)
+            ],
+            intervalNanoseconds: 1_000_000_000
+        )
+        _viewModel = StateObject(
+            wrappedValue: ActiveWorkoutViewModel(snapshot: snapshot, workoutBuilder: builder)
+        )
+    }
+
+    var body: some View {
+        IntervalMetricsView(vm: viewModel)
+            .onAppear {
+                guard !started else { return }
+                started = true
+                viewModel.start(indoor: false)
+                viewModel.beginPlan()
+            }
+    }
 }
 #endif
