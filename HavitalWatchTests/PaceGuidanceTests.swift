@@ -27,9 +27,9 @@ final class PaceGuidanceTests: XCTestCase {
     func test_stateDisplayText_usesReadableStatusNotCommands() {
         XCTAssertEqual(PaceGuidance.State.noTarget.displayText, "目前配速")
         XCTAssertEqual(PaceGuidance.State.waitingForPace.displayText, "定位中")
-        XCTAssertEqual(PaceGuidance.State.tooFast.displayText, "太快")
+        XCTAssertEqual(PaceGuidance.State.tooFast.displayText, "快於目標")
         XCTAssertEqual(PaceGuidance.State.onTarget.displayText, "目標內")
-        XCTAssertEqual(PaceGuidance.State.tooSlow.displayText, "太慢")
+        XCTAssertEqual(PaceGuidance.State.tooSlow.displayText, "慢於目標")
     }
 
     func test_fasterThanTarget_isTooFast() {

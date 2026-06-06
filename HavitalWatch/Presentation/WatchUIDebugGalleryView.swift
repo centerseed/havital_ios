@@ -9,7 +9,6 @@ enum WatchUIDebugScreen: String {
     case cooldown
     case easy
     case interval
-    case intervalWaiting = "interval_waiting"
     case controls
     case rpe
     case summary
@@ -46,8 +45,6 @@ struct WatchUIDebugGalleryView: View {
             EasyRunMetricsView(vm: configuredEasyViewModel())
         case .interval:
             IntervalMetricsView(vm: configuredIntervalViewModel(phase: .main))
-        case .intervalWaiting:
-            IntervalMetricsView(vm: configuredIntervalViewModel(phase: .main, recentSpeedMps: 0))
         case .controls:
             WorkoutControlView(isPaused: false, togglePause: {}, end: {})
         case .rpe:
@@ -90,14 +87,14 @@ struct WatchUIDebugGalleryView: View {
         viewModel.meters = 3200
         viewModel.seconds = 1120
         viewModel.heartRate = 148
-        viewModel.recentSpeedMps = 2.85
+        viewModel.recentSpeedMps = 0
         return viewModel
     }
 
     @MainActor
     private func configuredIntervalViewModel(
         phase: ActiveWorkoutSession.Phase,
-        recentSpeedMps: Double = 3.03
+        recentSpeedMps: Double = 0
     ) -> ActiveWorkoutViewModel {
         let viewModel = ActiveWorkoutViewModel(snapshot: Self.intervalSnapshot)
         viewModel.phase = phase

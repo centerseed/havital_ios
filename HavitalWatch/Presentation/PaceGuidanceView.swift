@@ -15,11 +15,11 @@ struct PaceGuidance: Equatable {
             case .waitingForPace:
                 return "定位中"
             case .tooFast:
-                return "太快"
+                return "快於目標"
             case .onTarget:
                 return "目標內"
             case .tooSlow:
-                return "太慢"
+                return "慢於目標"
             }
         }
     }
@@ -94,7 +94,20 @@ struct PaceGuidanceView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
                 Spacer(minLength: 4)
-                Text(WatchFormatting.pace(currentPaceSecPerKm))
+                VStack(alignment: .trailing, spacing: 0) {
+                    Text("目前")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundStyle(.secondary)
+                    Text(WatchFormatting.pace(currentPaceSecPerKm))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                }
+            }
+
+            if let targetText {
+                Text("目標 \(targetText)")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
@@ -134,6 +147,28 @@ struct PaceGuidanceView: View {
         guidance.state.displayText
     }
 
+    private var targetText: String? {
+        guard
+            let targetLowSecPerKm,
+            let targetHighSecPerKm,
+            targetLowSecPerKm > 0,
+            targetHighSecPerKm > 0
+        else {
+            return nil
+        }
+
+        let low = min(targetLowSecPerKm, targetHighSecPerKm)
+        let high = max(targetLowSecPerKm, targetHighSecPerKm)
+        if low == high {
+            return WatchFormatting.pace(low)
+        }
+        return "\(paceWithoutUnit(low))-\(WatchFormatting.pace(high))"
+    }
+
+    private func paceWithoutUnit(_ secondsPerKm: Int) -> String {
+        String(format: "%d:%02d", secondsPerKm / 60, secondsPerKm % 60)
+    }
+
     private var symbolName: String {
         switch guidance.state {
         case .noTarget:
@@ -163,6 +198,9 @@ struct PaceGuidanceView: View {
     }
 
     private var accessibilityText: String {
-        "\(stateText)，目前配速 \(WatchFormatting.pace(currentPaceSecPerKm))"
+        if let targetText {
+            return "\(stateText)，目標配速 \(targetText)，目前配速 \(WatchFormatting.pace(currentPaceSecPerKm))"
+        }
+        return "\(stateText)，目前配速 \(WatchFormatting.pace(currentPaceSecPerKm))"
     }
 }
