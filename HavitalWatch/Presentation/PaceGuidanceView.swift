@@ -11,21 +11,22 @@ struct PaceGuidance: Equatable {
         var displayText: String {
             switch self {
             case .noTarget:
-                return "目前配速"
+                return "無配速目標"
             case .waitingForPace:
-                return "定位中"
+                return "等 GPS"
             case .tooFast:
-                return "快於目標"
+                return "快"
             case .onTarget:
                 return "目標內"
             case .tooSlow:
-                return "慢於目標"
+                return "慢"
             }
         }
     }
 
     let state: State
     let pointerFraction: Double?
+    let deviationSeconds: Int?
 
     static func make(
         currentPaceSecPerKm: Int?,
@@ -38,22 +39,26 @@ struct PaceGuidance: Equatable {
             targetLowSecPerKm > 0,
             targetHighSecPerKm > 0
         else {
-            return PaceGuidance(state: .noTarget, pointerFraction: nil)
+            return PaceGuidance(state: .noTarget, pointerFraction: nil, deviationSeconds: nil)
         }
 
         guard let currentPaceSecPerKm, currentPaceSecPerKm > 0 else {
-            return PaceGuidance(state: .waitingForPace, pointerFraction: nil)
+            return PaceGuidance(state: .waitingForPace, pointerFraction: nil, deviationSeconds: nil)
         }
 
         let low = min(targetLowSecPerKm, targetHighSecPerKm)
         let high = max(targetLowSecPerKm, targetHighSecPerKm)
         let state: State
+        let deviationSeconds: Int?
         if currentPaceSecPerKm < low {
             state = .tooFast
+            deviationSeconds = low - currentPaceSecPerKm
         } else if currentPaceSecPerKm > high {
             state = .tooSlow
+            deviationSeconds = currentPaceSecPerKm - high
         } else {
             state = .onTarget
+            deviationSeconds = nil
         }
 
         let targetWidth = max(1, high - low)
@@ -63,7 +68,8 @@ struct PaceGuidance: Equatable {
         let rawFraction = (Double(currentPaceSecPerKm) - visualLow) / (visualHigh - visualLow)
         return PaceGuidance(
             state: state,
-            pointerFraction: min(1, max(0, rawFraction))
+            pointerFraction: min(1, max(0, rawFraction)),
+            deviationSeconds: deviationSeconds
         )
     }
 }
@@ -82,7 +88,27 @@ struct PaceGuidanceView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .bottom, spacing: 8) {
+                paceMetricColumn(
+                    label: "目前",
+                    value: WatchFormatting.pace(currentPaceSecPerKm),
+                    color: currentPaceColor,
+                    alignment: .leading
+                )
+
+                Spacer(minLength: 4)
+
+                if let targetText {
+                    paceMetricColumn(
+                        label: "目標",
+                        value: targetText,
+                        color: .green,
+                        alignment: .trailing
+                    )
+                }
+            }
+
             HStack(spacing: 5) {
                 Image(systemName: symbolName)
                     .font(.caption)
@@ -93,32 +119,33 @@ struct PaceGuidanceView: View {
                     .foregroundStyle(stateColor)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
-                Spacer(minLength: 4)
-                VStack(alignment: .trailing, spacing: 0) {
-                    Text("目前")
-                        .font(.system(size: 9, weight: .medium))
-                        .foregroundStyle(.secondary)
-                    Text(WatchFormatting.pace(currentPaceSecPerKm))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
-                        .lineLimit(1)
-                }
-            }
-
-            if let targetText {
-                Text("目標 \(targetText)")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-                    .lineLimit(1)
             }
 
             if guidance.pointerFraction != nil {
                 paceBar
-                    .frame(height: 14)
+                    .frame(height: 12)
             }
         }
+    }
+
+    private func paceMetricColumn(
+        label: String,
+        value: String,
+        color: Color,
+        alignment: HorizontalAlignment
+    ) -> some View {
+        VStack(alignment: alignment, spacing: 1) {
+            Text(label)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                .foregroundStyle(color)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.58)
+        }
+        .layoutPriority(1)
     }
 
     private var paceBar: some View {
@@ -135,7 +162,7 @@ struct PaceGuidanceView: View {
 
                 Capsule()
                     .fill(Color.white)
-                    .frame(width: 4, height: 14)
+                    .frame(width: 4, height: 12)
                     .shadow(color: .black.opacity(0.35), radius: 1, x: 0, y: 1)
                     .offset(x: min(max(0, pointerX - 2), max(0, width - 4)))
             }
@@ -144,7 +171,10 @@ struct PaceGuidanceView: View {
     }
 
     private var stateText: String {
-        guidance.state.displayText
+        if let deviationSeconds = guidance.deviationSeconds {
+            return "\(guidance.state.displayText) \(paceDeltaText(deviationSeconds))/km"
+        }
+        return guidance.state.displayText
     }
 
     private var targetText: String? {
@@ -169,6 +199,10 @@ struct PaceGuidanceView: View {
         String(format: "%d:%02d", secondsPerKm / 60, secondsPerKm % 60)
     }
 
+    private func paceDeltaText(_ seconds: Int) -> String {
+        String(format: "%d:%02d", seconds / 60, seconds % 60)
+    }
+
     private var symbolName: String {
         switch guidance.state {
         case .noTarget:
@@ -181,6 +215,19 @@ struct PaceGuidanceView: View {
             return "checkmark.circle.fill"
         case .tooSlow:
             return "arrow.up.circle.fill"
+        }
+    }
+
+    private var currentPaceColor: Color {
+        switch guidance.state {
+        case .noTarget, .waitingForPace:
+            return .white
+        case .tooFast:
+            return .orange
+        case .onTarget:
+            return .green
+        case .tooSlow:
+            return .red
         }
     }
 

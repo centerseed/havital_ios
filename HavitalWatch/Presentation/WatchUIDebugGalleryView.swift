@@ -9,6 +9,7 @@ enum WatchUIDebugScreen: String {
     case cooldown
     case easy
     case interval
+    case intervalSlow = "interval_slow"
     case controls
     case rpe
     case summary
@@ -45,6 +46,8 @@ struct WatchUIDebugGalleryView: View {
             EasyRunMetricsView(vm: configuredEasyViewModel())
         case .interval:
             IntervalMetricsView(vm: configuredIntervalViewModel(phase: .main))
+        case .intervalSlow:
+            IntervalMetricsView(vm: configuredIntervalViewModel(phase: .main, recentSpeedMps: 3.03))
         case .controls:
             WorkoutControlView(isPaused: false, togglePause: {}, end: {})
         case .rpe:

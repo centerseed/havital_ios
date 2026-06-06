@@ -11,6 +11,7 @@ final class PaceGuidanceTests: XCTestCase {
 
         XCTAssertEqual(guidance.state, .noTarget)
         XCTAssertNil(guidance.pointerFraction)
+        XCTAssertNil(guidance.deviationSeconds)
     }
 
     func test_waitingForPace_keepsPointerCenteredByView() {
@@ -22,14 +23,15 @@ final class PaceGuidanceTests: XCTestCase {
 
         XCTAssertEqual(guidance.state, .waitingForPace)
         XCTAssertNil(guidance.pointerFraction)
+        XCTAssertNil(guidance.deviationSeconds)
     }
 
     func test_stateDisplayText_usesReadableStatusNotCommands() {
-        XCTAssertEqual(PaceGuidance.State.noTarget.displayText, "目前配速")
-        XCTAssertEqual(PaceGuidance.State.waitingForPace.displayText, "定位中")
-        XCTAssertEqual(PaceGuidance.State.tooFast.displayText, "快於目標")
+        XCTAssertEqual(PaceGuidance.State.noTarget.displayText, "無配速目標")
+        XCTAssertEqual(PaceGuidance.State.waitingForPace.displayText, "等 GPS")
+        XCTAssertEqual(PaceGuidance.State.tooFast.displayText, "快")
         XCTAssertEqual(PaceGuidance.State.onTarget.displayText, "目標內")
-        XCTAssertEqual(PaceGuidance.State.tooSlow.displayText, "慢於目標")
+        XCTAssertEqual(PaceGuidance.State.tooSlow.displayText, "慢")
     }
 
     func test_fasterThanTarget_isTooFast() {
@@ -40,6 +42,7 @@ final class PaceGuidanceTests: XCTestCase {
         )
 
         XCTAssertEqual(guidance.state, .tooFast)
+        XCTAssertEqual(guidance.deviationSeconds, 15)
         XCTAssertLessThan(guidance.pointerFraction ?? 1, 0.5)
     }
 
@@ -51,6 +54,7 @@ final class PaceGuidanceTests: XCTestCase {
         )
 
         XCTAssertEqual(guidance.state, .onTarget)
+        XCTAssertNil(guidance.deviationSeconds)
     }
 
     func test_slowerThanExactTarget_isTooSlowAndPinsRight() {
@@ -61,6 +65,7 @@ final class PaceGuidanceTests: XCTestCase {
         )
 
         XCTAssertEqual(guidance.state, .tooSlow)
+        XCTAssertEqual(guidance.deviationSeconds, 25)
         XCTAssertEqual(guidance.pointerFraction, 1)
     }
 }
