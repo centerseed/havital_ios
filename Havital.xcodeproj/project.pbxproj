@@ -1244,6 +1244,7 @@
 		D0D000000000000000000011 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = HavitalWatch/HavitalWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 3;
@@ -1251,6 +1252,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Paceriz;
+				INFOPLIST_KEY_CFBundleIconName = AppIcon;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Paceriz 需要讀取健康資料以顯示跑步指標。";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Paceriz 需要寫入跑步訓練到 Apple Health。";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Paceriz 需要定位以記錄戶外跑步路線。";
@@ -1278,6 +1280,7 @@
 		D0D000000000000000000012 /* Dev */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = HavitalWatch/HavitalWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 3;
@@ -1285,6 +1288,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Paceriz;
+				INFOPLIST_KEY_CFBundleIconName = AppIcon;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Paceriz 需要讀取健康資料以顯示跑步指標。";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Paceriz 需要寫入跑步訓練到 Apple Health。";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Paceriz 需要定位以記錄戶外跑步路線。";
@@ -1312,6 +1316,7 @@
 		D0D000000000000000000013 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = HavitalWatch/HavitalWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 3;
@@ -1319,6 +1324,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Paceriz;
+				INFOPLIST_KEY_CFBundleIconName = AppIcon;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Paceriz 需要讀取健康資料以顯示跑步指標。";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Paceriz 需要寫入跑步訓練到 Apple Health。";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Paceriz 需要定位以記錄戶外跑步路線。";
@@ -1346,6 +1352,7 @@
 		D0D000000000000000000014 /* Prod */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = HavitalWatch/HavitalWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 3;
@@ -1353,6 +1360,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Paceriz;
+				INFOPLIST_KEY_CFBundleIconName = AppIcon;
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Paceriz 需要讀取健康資料以顯示跑步指標。";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Paceriz 需要寫入跑步訓練到 Apple Health。";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Paceriz 需要定位以記錄戶外跑步路線。";
