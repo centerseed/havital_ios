@@ -2,7 +2,8 @@ import Foundation
 
 enum WatchPlanProjector {
     static func project(activity: RunActivity, date: String, planId: String) -> WatchPlanSnapshotDTO {
-        let segments = activity.interval.map(expandInterval) ?? projectSegments(activity.segments ?? [])
+        let segments = activity.interval.map(expandInterval)
+            ?? projectedSegmentsOrPrimaryRun(activity)
 
         return WatchPlanSnapshotDTO(
             date: date,
@@ -12,6 +13,30 @@ enum WatchPlanProjector {
             planId: planId,
             segments: segments
         )
+    }
+
+    private static func projectedSegmentsOrPrimaryRun(_ activity: RunActivity) -> [WatchSegmentDTO] {
+        let projectedSegments = projectSegments(activity.segments ?? [])
+        guard projectedSegments.isEmpty else { return projectedSegments }
+
+        guard activityDistanceMeters(activity) != nil || activitySeconds(activity) != nil else {
+            return []
+        }
+
+        let paceSec = paceToSec(activity.effectivePace)
+        return [
+            WatchSegmentDTO(
+                kind: "run",
+                measure: activityDistanceMeters(activity) != nil ? "distance" : "time",
+                targetMeters: activityDistanceMeters(activity),
+                targetSeconds: activitySeconds(activity),
+                paceLowSecPerKm: paceSec,
+                paceHighSecPerKm: paceSec,
+                label: activity.description ?? activity.runType,
+                repIndex: nil,
+                repTotal: nil
+            )
+        ]
     }
 
     static func projectSegments(_ segments: [RunSegment]) -> [WatchSegmentDTO] {
@@ -112,6 +137,14 @@ enum WatchPlanProjector {
         if let distanceM = block.recoveryDistanceM { return Double(distanceM) }
         if let distanceKm = block.recoveryDistanceKm { return distanceKm * 1_000 }
         return nil
+    }
+
+    private static func activityDistanceMeters(_ activity: RunActivity) -> Double? {
+        activity.distanceKm.map { $0 * 1_000 }
+    }
+
+    private static func activitySeconds(_ activity: RunActivity) -> Int? {
+        activity.durationSeconds ?? activity.durationMinutes.map { $0 * 60 }
     }
 
     private static func hasRecovery(_ block: IntervalBlock) -> Bool {
