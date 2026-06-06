@@ -1496,7 +1496,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.4.2;
-				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev.watchkitapp.complication;
+				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev.watchkitapp.pacerizcomplication;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -1524,7 +1524,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.4.2;
-				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev.watchkitapp.complication;
+				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev.watchkitapp.pacerizcomplication;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -1552,7 +1552,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.4.2;
-				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.watchkitapp.complication;
+				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.watchkitapp.pacerizcomplication;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
@@ -1580,7 +1580,7 @@
 					"@executable_path/../../Frameworks",
 				);
 				MARKETING_VERSION = 1.4.2;
-				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.watchkitapp.complication;
+				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.watchkitapp.pacerizcomplication;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
