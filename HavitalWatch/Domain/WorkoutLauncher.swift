@@ -13,7 +13,6 @@ enum WorkoutLauncher {
         permissionsGranted: Bool
     ) -> LaunchDecision {
         guard let snapshot else { return .blockedNeedSyncFromPhone }
-        guard snapshot.date == today else { return .blockedNeedSyncFromPhone }
 
         switch snapshot.flowType {
         case .rest:

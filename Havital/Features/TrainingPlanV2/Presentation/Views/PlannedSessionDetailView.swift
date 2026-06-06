@@ -735,11 +735,7 @@ struct PlannedSessionDetailView: View {
         }
 
         if let interval = run.interval {
-            let restStr: String? = {
-                if let sec = interval.recoveryDurationSeconds { return String(format: NSLocalizedString("training.detail.rest_seconds_jog", comment: ""), sec) }
-                if let min = interval.recoveryDurationMinutes { return String(format: NSLocalizedString("training.detail.rest_minutes_jog", comment: ""), min) }
-                return interval.recoveryDescription
-            }()
+            let restStr = intervalRecoveryRestText(interval)
             // 間歇為質量課表 → 不顯示心率（以配速為主）。
             let intervalHR: String? = isEasyOrLSD ? (run.heartRateRange?.displayText.map { "\($0) bpm" } ?? "Z4") : nil
             result.append(DetailSegmentData(index: idx, label: NSLocalizedString("training.segment.sprint", comment: ""), distance: workDistanceLabel(interval),
@@ -761,6 +757,32 @@ struct PlannedSessionDetailView: View {
         }
 
         return result.isEmpty ? nil : result
+    }
+
+    private func intervalRecoveryRestText(_ interval: IntervalBlock) -> String? {
+        let isMovingRecovery = intervalHasMovingRecovery(interval)
+        if let sec = interval.recoveryDurationSeconds {
+            let key = isMovingRecovery ? "training.detail.rest_seconds_jog" : "training.detail.rest_seconds_static"
+            return String(format: NSLocalizedString(key, comment: ""), sec)
+        }
+        if let min = interval.recoveryDurationMinutes {
+            let key = isMovingRecovery ? "training.detail.rest_minutes_jog" : "training.detail.rest_minutes_static"
+            return String(format: NSLocalizedString(key, comment: ""), min)
+        }
+        return interval.recoveryDescription
+    }
+
+    private func intervalHasMovingRecovery(_ interval: IntervalBlock) -> Bool {
+        if interval.recoveryDistanceKm != nil || interval.recoveryDistanceM != nil || interval.recoveryPace != nil {
+            return true
+        }
+
+        let description = (interval.recoveryDescription ?? "").lowercased()
+        return description.contains("jog")
+            || description.contains("run")
+            || description.contains("easy")
+            || description.contains("慢跑")
+            || description.contains("恢復跑")
     }
 
     private func bookendSegment(index: Int, label: String, seg: RunSegment) -> DetailSegmentData {

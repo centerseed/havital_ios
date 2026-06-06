@@ -42,14 +42,14 @@ final class WorkoutLauncherTests: XCTestCase {
         )
     }
 
-    func test_staleSnapshot_blocked() {
+    func test_syncedSnapshotFromAnotherDate_canStart() {
         XCTAssertEqual(
             WorkoutLauncher.evaluate(
                 snapshot: snapshot(flow: .directStart, date: "2026-06-04"),
                 today: "2026-06-05",
                 permissionsGranted: true
             ),
-            .blockedNeedSyncFromPhone
+            .canStart
         )
     }
 

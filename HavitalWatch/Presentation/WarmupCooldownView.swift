@@ -19,9 +19,11 @@ struct WarmupCooldownView: View {
                 .font(.system(size: 42, weight: .semibold, design: .rounded))
                 .foregroundStyle(.green)
                 .monospacedDigit()
-            Text("\(WatchFormatting.pace(WatchFormatting.paceSecondsPerKm(speedMps: vm.recentSpeedMps))) 配速")
-                .font(.body)
-                .foregroundStyle(.cyan)
+            PaceGuidanceView(
+                currentPaceSecPerKm: WatchFormatting.paceSecondsPerKm(speedMps: vm.recentSpeedMps),
+                targetLowSecPerKm: nil,
+                targetHighSecPerKm: nil
+            )
             Text(WatchFormatting.distance(vm.meters))
                 .font(.body)
             Label("\(Int(vm.heartRate))", systemImage: "heart.fill")
@@ -35,6 +37,7 @@ struct WarmupCooldownView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .padding()
+        .padding(.top, 22)
         .background(Color.black)
         .foregroundStyle(.white)
     }

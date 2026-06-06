@@ -5,8 +5,13 @@ import WidgetKit
 final class WCSessionClient: NSObject, WCSessionDelegate {
     static let shared = WCSessionClient()
 
-    private let store = WorkoutSnapshotStore()
+    private let store: WorkoutSnapshotStore
     private(set) var isLoggedIn = false
+
+    init(store: WorkoutSnapshotStore = WorkoutSnapshotStore()) {
+        self.store = store
+        super.init()
+    }
 
     func activate() {
         guard WCSession.isSupported() else { return }
@@ -15,22 +20,45 @@ final class WCSessionClient: NSObject, WCSessionDelegate {
     }
 
     func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
-        switch userInfo["type"] as? String {
+        applyIncomingPayload(userInfo)
+    }
+
+    func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
+        applyIncomingPayload(applicationContext)
+    }
+
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        applyIncomingPayload(message)
+    }
+
+    func session(
+        _ session: WCSession,
+        didReceiveMessage message: [String: Any],
+        replyHandler: @escaping ([String: Any]) -> Void
+    ) {
+        replyHandler(["ok": applyIncomingPayload(message)])
+    }
+
+    @discardableResult
+    func applyIncomingPayload(_ payload: [String: Any]) -> Bool {
+        switch payload["type"] as? String {
         case "today_plan":
             guard
-                let data = userInfo["payload"] as? Data,
+                let data = payload["payload"] as? Data,
                 let dto = try? JSONDecoder().decode(WatchPlanSnapshotDTO.self, from: data)
             else {
-                return
+                return false
             }
             store.save(dto)
             WidgetCenter.shared.reloadAllTimelines()
             NotificationCenter.default.post(name: .watchPlanUpdated, object: nil)
+            return true
         case "auth":
-            isLoggedIn = (userInfo["logged_in"] as? Bool) ?? false
+            isLoggedIn = (payload["logged_in"] as? Bool) ?? false
             NotificationCenter.default.post(name: .watchAuthUpdated, object: nil)
+            return true
         default:
-            break
+            return false
         }
     }
 

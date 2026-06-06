@@ -3593,9 +3593,11 @@
 "training.minute_abbr" = "分";
 "training.detail.segment_count" = "%d 段";
 "training.detail.rest_seconds_jog" = "%d秒 慢跑";
+"training.detail.rest_seconds_static" = "%d秒 原地休息";
 "training.recovery.amount_seconds" = "%d秒";
 "training.recovery.amount_minutes" = "%d分鐘";
 "training.detail.rest_minutes_jog" = "%d分 慢跑";
+"training.detail.rest_minutes_static" = "%d分 原地休息";
 
 // MARK: - Workout Tips
 "tip.lsd" = "預計超過 60 分鐘，建議攜帶水分與能量補給";

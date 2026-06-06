@@ -32,7 +32,7 @@ struct WatchUIDebugGalleryView: View {
     var body: some View {
         switch screen {
         case .welcome:
-            WelcomeView(title: "等待 iPhone 同步", message: "請在 iPhone 上傳送今天的 Paceriz 課表。")
+            WelcomeView(title: "等待 iPhone 同步", message: "請在 iPhone 上傳送 Paceriz 課表。")
         case .permission:
             PermissionView {}
         case .todayEasy:
@@ -57,7 +57,7 @@ struct WatchUIDebugGalleryView: View {
     private var debugTodayStartView: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                Text("今日 · 輕鬆跑")
+                Text("已同步 · \(Self.easySnapshot.date) · 輕鬆跑")
                     .font(.caption2)
                     .foregroundStyle(.green)
                 Text(WatchFormatting.distance(5000))
@@ -97,10 +97,10 @@ struct WatchUIDebugGalleryView: View {
         viewModel.phase = phase
         viewModel.meters = 2400
         viewModel.seconds = 820
-        viewModel.heartRate = 166
-        viewModel.recentSpeedMps = 3.95
+        viewModel.heartRate = 123
+        viewModel.recentSpeedMps = 3.03
         viewModel.currentSegment = Self.intervalSnapshot.segments[1]
-        viewModel.segmentMeters = 430
+        viewModel.segmentMeters = 31
         viewModel.segmentSeconds = 108
         return viewModel
     }
@@ -147,13 +147,13 @@ struct WatchUIDebugGalleryView: View {
             WatchSegment(
                 kind: .work,
                 measure: .distance,
-                targetMeters: 800,
+                targetMeters: 400,
                 targetSeconds: nil,
-                paceLowSecPerKm: 235,
-                paceHighSecPerKm: 255,
-                label: "800m",
-                repIndex: 3,
-                repTotal: 5
+                paceLowSecPerKm: 305,
+                paceHighSecPerKm: 305,
+                label: "400m",
+                repIndex: 1,
+                repTotal: 4
             ),
             WatchSegment(
                 kind: .rest,

@@ -1,5 +1,4 @@
 import CoreLocation
-import CoreMotion
 import HealthKit
 
 final class PermissionGate: NSObject {
@@ -42,7 +41,6 @@ final class PermissionGate: NSObject {
     func allGranted() -> Bool {
         Self.hasAllRequiredPermissions(
             locationStatus: locationManager.authorizationStatus,
-            motionAvailable: CMMotionActivityManager.isActivityAvailable(),
             healthSharingStatuses: Self.requiredHealthShareTypes.map {
                 healthStore.authorizationStatus(for: $0)
             }
@@ -51,12 +49,11 @@ final class PermissionGate: NSObject {
 
     static func hasAllRequiredPermissions(
         locationStatus: CLAuthorizationStatus,
-        motionAvailable: Bool,
         healthSharingStatuses: [HKAuthorizationStatus]
     ) -> Bool {
         let locationGranted = locationStatus == .authorizedWhenInUse || locationStatus == .authorizedAlways
         let healthGranted = !healthSharingStatuses.isEmpty &&
             healthSharingStatuses.allSatisfy { $0 == .sharingAuthorized }
-        return locationGranted && motionAvailable && healthGranted
+        return locationGranted && healthGranted
     }
 }

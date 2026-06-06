@@ -3551,9 +3551,11 @@
 "training.minute_abbr" = "min";
 "training.detail.segment_count" = "%d segs";
 "training.detail.rest_seconds_jog" = "%dsec jog";
+"training.detail.rest_seconds_static" = "%dsec rest in place";
 "training.recovery.amount_seconds" = "%dsec";
 "training.recovery.amount_minutes" = "%dmin";
 "training.detail.rest_minutes_jog" = "%dmin jog";
+"training.detail.rest_minutes_static" = "%dmin rest in place";
 
 // MARK: - Workout Tips
 "tip.lsd" = "60+ min run: bring water and nutrition for sustained energy";

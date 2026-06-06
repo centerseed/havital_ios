@@ -12,9 +12,11 @@ struct EasyRunMetricsView: View {
                 .font(.system(size: 44, weight: .semibold, design: .rounded))
                 .foregroundStyle(.green)
                 .monospacedDigit()
-            Text("\(WatchFormatting.pace(WatchFormatting.paceSecondsPerKm(speedMps: vm.recentSpeedMps))) 配速")
-                .font(.body)
-                .foregroundStyle(.cyan)
+            PaceGuidanceView(
+                currentPaceSecPerKm: WatchFormatting.paceSecondsPerKm(speedMps: vm.recentSpeedMps),
+                targetLowSecPerKm: targetPaceLow,
+                targetHighSecPerKm: targetPaceHigh
+            )
             Text(WatchFormatting.distance(vm.meters))
                 .font(.body)
             Label("\(Int(vm.heartRate))", systemImage: "heart.fill")
@@ -22,6 +24,7 @@ struct EasyRunMetricsView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .padding()
+        .padding(.top, 22)
         .background(Color.black)
         .foregroundStyle(.white)
     }
@@ -31,5 +34,13 @@ struct EasyRunMetricsView: View {
             return WatchFormatting.distance(meters)
         }
         return ""
+    }
+
+    private var targetPaceLow: Int? {
+        vm.currentSegment?.paceLowSecPerKm ?? vm.snapshot.segments.first?.paceLowSecPerKm
+    }
+
+    private var targetPaceHigh: Int? {
+        vm.currentSegment?.paceHighSecPerKm ?? vm.snapshot.segments.first?.paceHighSecPerKm
     }
 }

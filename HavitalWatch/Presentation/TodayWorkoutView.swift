@@ -10,18 +10,18 @@ struct TodayWorkoutView: View {
                 if let snapshot = vm.snapshot {
                     startView(snapshot)
                 } else {
-                    WelcomeView(title: "沒有課表", message: "靠近 iPhone 後同步今日課表。")
+                    WelcomeView(title: "沒有課表", message: "靠近 iPhone 後同步課表。")
                 }
             case .requiresPermission:
                 PermissionView {
                     vm.requestPermissions()
                 }
             case .blockedRestDay:
-                WelcomeView(title: "休息日", message: "今天沒有跑步課表。")
+                WelcomeView(title: "休息日", message: "這天沒有跑步課表。")
             case .blockedUnsupportedType:
                 WelcomeView(title: "不支援的訓練", message: "Apple Watch MVP 目前只支援跑步課表。")
             case .blockedNeedSyncFromPhone:
-                WelcomeView(title: "等待 iPhone 同步", message: "請在 iPhone 上傳送今天的 Paceriz 課表。")
+                WelcomeView(title: "等待 iPhone 同步", message: "請在 iPhone 上傳送 Paceriz 課表。")
             }
         }
         .onAppear {
@@ -38,7 +38,7 @@ struct TodayWorkoutView: View {
     private func startView(_ snapshot: WatchPlanSnapshot) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                Text("今日 · \(flowTitle(snapshot.flowType))")
+                Text("已同步 · \(snapshot.date) · \(flowTitle(snapshot.flowType))")
                     .font(.caption2)
                     .foregroundStyle(.green)
                 Text(summary(snapshot))
@@ -48,14 +48,25 @@ struct TodayWorkoutView: View {
                 Text(routeLabel(snapshot.flowType))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 3) {
+                    ForEach(detailLines(snapshot), id: \.self) { line in
+                        Text(line)
+                            .font(.system(size: 12, weight: .regular, design: .rounded))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.64)
+                    }
+                }
+                .foregroundStyle(.secondary)
 
                 NavigationLink {
                     ActiveWorkoutRootView(snapshot: snapshot)
                 } label: {
                     Label("開始訓練", systemImage: "play.fill")
                 }
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .buttonStyle(.borderedProminent)
                 .tint(.green)
+                .padding(.top, 4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
@@ -90,5 +101,10 @@ struct TodayWorkoutView: View {
             return WatchFormatting.time(seconds)
         }
         return flowTitle(snapshot.flowType)
+    }
+
+    private func detailLines(_ snapshot: WatchPlanSnapshot) -> [String] {
+        let title = summary(snapshot)
+        return WorkoutSummaryFormatter.detailLines(for: snapshot).filter { $0 != title }
     }
 }

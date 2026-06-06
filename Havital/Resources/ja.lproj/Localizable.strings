@@ -3548,9 +3548,11 @@
 "training.minute_abbr" = "分";
 "training.detail.segment_count" = "%dセグメント";
 "training.detail.rest_seconds_jog" = "%d秒 ジョグ";
+"training.detail.rest_seconds_static" = "%d秒 その場で休憩";
 "training.recovery.amount_seconds" = "%d秒";
 "training.recovery.amount_minutes" = "%d分";
 "training.detail.rest_minutes_jog" = "%d分 ジョグ";
+"training.detail.rest_minutes_static" = "%d分 その場で休憩";
 
 // MARK: - Workout Tips
 "tip.lsd" = "60分以上を想定し、水分と栄養補給を持参することをお勧めします";

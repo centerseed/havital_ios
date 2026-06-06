@@ -7,7 +7,6 @@ final class PermissionGateTests: XCTestCase {
     func test_allRequiredPermissions_requiresWorkoutAndRouteSharing() {
         XCTAssertFalse(PermissionGate.hasAllRequiredPermissions(
             locationStatus: .authorizedWhenInUse,
-            motionAvailable: true,
             healthSharingStatuses: [.sharingAuthorized, .notDetermined]
         ))
     }
@@ -15,15 +14,20 @@ final class PermissionGateTests: XCTestCase {
     func test_allRequiredPermissions_requiresLocation() {
         XCTAssertFalse(PermissionGate.hasAllRequiredPermissions(
             locationStatus: .denied,
-            motionAvailable: true,
             healthSharingStatuses: [.sharingAuthorized, .sharingAuthorized]
         ))
     }
 
-    func test_allRequiredPermissions_passesWhenHealthLocationAndMotionAreReady() {
+    func test_allRequiredPermissions_passesWhenHealthAndLocationAreReady() {
         XCTAssertTrue(PermissionGate.hasAllRequiredPermissions(
             locationStatus: .authorizedWhenInUse,
-            motionAvailable: true,
+            healthSharingStatuses: [.sharingAuthorized, .sharingAuthorized]
+        ))
+    }
+
+    func test_allRequiredPermissions_doesNotBlockWhenMotionActivityIsUnavailable() {
+        XCTAssertTrue(PermissionGate.hasAllRequiredPermissions(
+            locationStatus: .authorizedWhenInUse,
             healthSharingStatuses: [.sharingAuthorized, .sharingAuthorized]
         ))
     }

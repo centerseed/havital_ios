@@ -15,24 +15,22 @@ struct IntervalMetricsView: View {
                 .foregroundStyle(.green)
                 .monospacedDigit()
                 .minimumScaleFactor(0.72)
-            if let target = targetPaceText(segment) {
-                Text(target)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
             if segment?.kind == .rest {
                 Text(nextSegmentText())
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
-            Text("\(WatchFormatting.pace(currentPaceSecPerKm)) 配速")
-                .font(.body)
-                .foregroundStyle(paceColor(segment))
+            PaceGuidanceView(
+                currentPaceSecPerKm: currentPaceSecPerKm,
+                targetLowSecPerKm: segment?.paceLowSecPerKm,
+                targetHighSecPerKm: segment?.paceHighSecPerKm
+            )
             Label("\(Int(vm.heartRate))", systemImage: "heart.fill")
                 .foregroundStyle(.red)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .padding()
+        .padding(.top, 22)
         .background(Color.black)
         .foregroundStyle(.white)
     }
@@ -71,27 +69,6 @@ struct IntervalMetricsView: View {
             let remaining = (segment.targetSeconds ?? 0) - vm.segmentSeconds
             return WatchFormatting.time(max(0, remaining))
         }
-    }
-
-    private func targetPaceText(_ segment: WatchSegment?) -> String? {
-        guard let low = segment?.paceLowSecPerKm, let high = segment?.paceHighSecPerKm else {
-            return nil
-        }
-        return "目標 \(WatchFormatting.pace(low))-\(WatchFormatting.pace(high))"
-    }
-
-    private func paceColor(_ segment: WatchSegment?) -> Color {
-        guard
-            let pace = currentPaceSecPerKm,
-            let low = segment?.paceLowSecPerKm,
-            let high = segment?.paceHighSecPerKm
-        else {
-            return .cyan
-        }
-
-        if pace < low { return .orange }
-        if pace > high { return .red }
-        return .green
     }
 
     private func nextSegmentText() -> String {

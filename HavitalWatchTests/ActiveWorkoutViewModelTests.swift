@@ -45,6 +45,25 @@ final class ActiveWorkoutViewModelTests: XCTestCase {
         )
     }
 
+    private func segment(
+        kind: WatchSegment.Kind,
+        measure: WatchSegment.Measure,
+        meters: Double? = nil,
+        seconds: Int? = nil
+    ) -> WatchSegment {
+        WatchSegment(
+            kind: kind,
+            measure: measure,
+            targetMeters: meters,
+            targetSeconds: seconds,
+            paceLowSecPerKm: nil,
+            paceHighSecPerKm: nil,
+            label: "segment",
+            repIndex: nil,
+            repTotal: nil
+        )
+    }
+
     func test_beginPlan_marksWarmupSegment() async {
         let builder = SpyWorkoutBuilder()
         var now = Date(timeIntervalSince1970: 1_800_000_000)
@@ -64,6 +83,31 @@ final class ActiveWorkoutViewModelTests: XCTestCase {
         XCTAssertEqual(builder.markedSegments[0].start, Date(timeIntervalSince1970: 1_800_000_000))
         XCTAssertEqual(builder.markedSegments[0].end, Date(timeIntervalSince1970: 1_800_000_120))
         XCTAssertEqual(builder.markedSegments[0].distanceMeters, 100)
+    }
+
+    func test_distanceWorkoutSegment_advancesOnlyAfterMeasuredMetersReachTarget() async {
+        let builder = SpyWorkoutBuilder()
+        let work = segment(kind: .work, measure: .distance, meters: 400)
+        let rest = segment(kind: .rest, measure: .time, seconds: 90)
+        let viewModel = ActiveWorkoutViewModel(
+            snapshot: snapshot(segments: [work, rest]),
+            workoutBuilder: builder
+        )
+
+        viewModel.start(indoor: false)
+        viewModel.beginPlan()
+        builder.onMetrics?(0, 0, 120, 0)
+        await Task.yield()
+
+        builder.onMetrics?(399, 120, 130, 3.3)
+        await Task.yield()
+        XCTAssertEqual(viewModel.currentSegment, work)
+        XCTAssertEqual(viewModel.segmentMeters, 399)
+
+        builder.onMetrics?(400, 121, 130, 3.3)
+        await Task.yield()
+        XCTAssertEqual(viewModel.currentSegment, rest)
+        XCTAssertEqual(viewModel.segmentMeters, 0)
     }
 
     func test_finishedMainSegment_marksFinalSegmentBeforeCooldown() async {

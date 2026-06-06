@@ -1,7 +1,42 @@
 import XCTest
+import WatchConnectivity
 @testable import paceriz_dev
 
 final class WatchCompanionServiceTests: XCTestCase {
+    private final class SpyWatchPlanSession: WatchPlanSessioning {
+        var isSupported = true
+        var activationState: WCSessionActivationState = .activated
+        var isPaired = true
+        var isWatchAppInstalled = true
+        var isReachable = false
+
+        private(set) var didActivate = false
+        private(set) var applicationContexts: [[String: Any]] = []
+        private(set) var transferredUserInfos: [[String: Any]] = []
+        private(set) var sentMessages: [[String: Any]] = []
+
+        func activate() {
+            didActivate = true
+        }
+
+        func updateApplicationContext(_ context: [String: Any]) throws {
+            applicationContexts.append(context)
+        }
+
+        func transferUserInfo(_ userInfo: [String: Any]) {
+            transferredUserInfos.append(userInfo)
+        }
+
+        func sendMessage(
+            _ message: [String: Any],
+            replyHandler: (([String: Any]) -> Void)?,
+            errorHandler: ((Error) -> Void)?
+        ) {
+            sentMessages.append(message)
+            replyHandler?(["ok": true])
+        }
+    }
+
     func test_todayPlanUserInfo_encodesPayloadWithExpectedType() throws {
         let dto = WatchPlanSnapshotDTO(
             date: "2026-06-05",
@@ -37,5 +72,68 @@ final class WatchCompanionServiceTests: XCTestCase {
 
         XCTAssertEqual(userInfo["type"] as? String, "auth")
         XCTAssertEqual(userInfo["logged_in"] as? Bool, true)
+    }
+
+    func test_sendTodayPlan_updatesLatestContextAndQueuesFallbackTransfer() throws {
+        let session = SpyWatchPlanSession()
+        let service = WatchCompanionService(session: session)
+        let dto = makeTodayPlanDTO()
+
+        XCTAssertTrue(service.sendTodayPlan(dto))
+
+        XCTAssertEqual(session.applicationContexts.count, 1)
+        XCTAssertEqual(session.transferredUserInfos.count, 1)
+        XCTAssertEqual(session.sentMessages.count, 0)
+        try assertTodayPlanPayload(session.applicationContexts[0], equals: dto)
+        try assertTodayPlanPayload(session.transferredUserInfos[0], equals: dto)
+    }
+
+    func test_sendTodayPlan_sendsImmediateMessageWhenWatchIsReachable() throws {
+        let session = SpyWatchPlanSession()
+        session.isReachable = true
+        let service = WatchCompanionService(session: session)
+        let dto = makeTodayPlanDTO()
+
+        XCTAssertTrue(service.sendTodayPlan(dto))
+
+        XCTAssertEqual(session.applicationContexts.count, 1)
+        XCTAssertEqual(session.transferredUserInfos.count, 1)
+        XCTAssertEqual(session.sentMessages.count, 1)
+        try assertTodayPlanPayload(session.sentMessages[0], equals: dto)
+    }
+
+    private func makeTodayPlanDTO() -> WatchPlanSnapshotDTO {
+        WatchPlanSnapshotDTO(
+            date: "2026-06-05",
+            runType: "easy",
+            totalDistanceMeters: 3_000,
+            totalSeconds: nil,
+            planId: "plan-today",
+            segments: [
+                WatchSegmentDTO(
+                    kind: "run",
+                    measure: "distance",
+                    targetMeters: 3_000,
+                    targetSeconds: nil,
+                    paceLowSecPerKm: 395,
+                    paceHighSecPerKm: 435,
+                    label: "輕鬆跑",
+                    repIndex: nil,
+                    repTotal: nil
+                )
+            ]
+        )
+    }
+
+    private func assertTodayPlanPayload(
+        _ userInfo: [String: Any],
+        equals expected: WatchPlanSnapshotDTO,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) throws {
+        XCTAssertEqual(userInfo["type"] as? String, "today_plan", file: file, line: line)
+        let payload = try XCTUnwrap(userInfo["payload"] as? Data, file: file, line: line)
+        let decoded = try JSONDecoder().decode(WatchPlanSnapshotDTO.self, from: payload)
+        XCTAssertEqual(decoded, expected, file: file, line: line)
     }
 }
