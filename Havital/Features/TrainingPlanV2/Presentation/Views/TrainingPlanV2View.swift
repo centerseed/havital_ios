@@ -171,6 +171,10 @@ struct TrainingPlanV2View: View {
                                 }
                         }
 
+                        // 今日狀態卡片（self-contained：自帶 VM + sheet）。打 /v2/state/today，
+                        // 後端未回 chips 時優雅降級為僅 headline；error/empty 自動隱藏。
+                        DailyStateCardView()
+
                         // B3: Starter / Maintenance mode header
                         if let overview = viewModel.loader.planOverview,
                            (overview.isBeginnerTarget || overview.isMaintenanceTarget),
