@@ -183,6 +183,29 @@ private final class UITestWorkoutDetailRPERizoRepository: RizoRepository {
         )
     }
 
+    func sendChat(
+        scenario: String,
+        message: String,
+        sessionId: String?
+    ) async throws -> RizoReply {
+        if replyDelayNanos > 0 {
+            try await Task.sleep(nanoseconds: replyDelayNanos)
+        }
+        return RizoReply(
+            reply: "UITest Rizo reply: \(message)",
+            sessionId: sessionId ?? "uitest-rizo-session",
+            quota: RizoQuota(
+                allowed: true,
+                used: 1,
+                limit: 3,
+                remaining: 2,
+                resetsAt: nil,
+                reserved: true
+            ),
+            safety: RizoSafety(dangerClass: "none", canned: false)
+        )
+    }
+
     func getPresets(scenario: String) async throws -> [RizoPreset] { [] }
     func getHistory() async throws -> [RizoHistoryItem] { [] }
 }

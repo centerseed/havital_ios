@@ -21,6 +21,19 @@ protocol RizoRepository {
         sessionId: String?
     ) async throws -> RizoReply
 
+    /// 送出通用情境（無關聯 workout）的對話訊息。
+    /// 對應 POST /v2/agent/chat（scenario 由呼叫端指定，如今日卡片情境）。
+    /// - Parameters:
+    ///   - scenario: 對話情境（如 "weekly_situation" / "body_status"）。
+    ///   - message: 使用者輸入的訊息；首回合開場可傳空字串，由後端依 scenario 注入今日狀態生成開場。
+    ///   - sessionId: 續談會話 ID；首回合傳 nil，後續傳上一回合 RizoReply 回的 sessionId。
+    /// - Returns: Rizo 回應（含回覆、會話、配額、安全資訊）。
+    func sendChat(
+        scenario: String,
+        message: String,
+        sessionId: String?
+    ) async throws -> RizoReply
+
     /// 取得指定情境的預設快捷選項。
     /// 對應 GET /v2/agent/presets?scenario=...
     /// - Parameter scenario: 情境（如 "journal"）。

@@ -300,6 +300,23 @@ private final class MockRizoRepo: RizoRepository {
         return replyToReturn
     }
 
+    func sendChat(
+        scenario: String,
+        message: String,
+        sessionId: String?
+    ) async throws -> RizoReply {
+        sendCallCount += 1
+        lastSessionId = sessionId
+        lastMessage = message
+        defer { sendDidFinish = true }
+        if sendDelayNanoseconds > 0 {
+            try await Task.sleep(nanoseconds: sendDelayNanoseconds)
+        }
+        if let errorToThrow { throw errorToThrow }
+        guard let replyToReturn else { throw TestError.boom }
+        return replyToReturn
+    }
+
     func getPresets(scenario: String) async throws -> [RizoPreset] {
         if let errorToThrow { throw errorToThrow }
         return presetsToReturn

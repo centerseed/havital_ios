@@ -40,6 +40,22 @@ final class RizoRepositoryImpl: RizoRepository {
         )
     }
 
+    func sendChat(
+        scenario: String,
+        message: String,
+        sessionId: String?
+    ) async throws -> RizoReply {
+        // 通用情境：scenario 由呼叫端指定，無關聯 workout、無 preset selections。
+        // 首回合開場可傳空 message，由後端依 scenario 注入今日狀態生成開場。
+        return try await remoteDataSource.sendChat(
+            scenario: scenario,
+            message: message,
+            sessionId: sessionId,
+            workoutId: nil,
+            presetSelections: []
+        )
+    }
+
     func getPresets(scenario: String) async throws -> [RizoPreset] {
         return try await remoteDataSource.fetchPresets(scenario: scenario)
     }

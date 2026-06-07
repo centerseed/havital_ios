@@ -224,6 +224,10 @@ private final class _PreviewRizoRepo: RizoRepository {
         if let reply { return reply }
         throw NSError(domain: "preview", code: 0)
     }
+    func sendChat(scenario: String, message: String, sessionId: String?) async throws -> RizoReply {
+        if let reply { return reply }
+        throw NSError(domain: "preview", code: 0)
+    }
     func getPresets(scenario: String) async throws -> [RizoPreset] { [] }
     func getHistory() async throws -> [RizoHistoryItem] { [] }
 }
