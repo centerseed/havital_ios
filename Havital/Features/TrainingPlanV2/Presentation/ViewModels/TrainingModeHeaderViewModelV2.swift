@@ -51,6 +51,7 @@ final class TrainingModeHeaderViewModelV2: ObservableObject {
     private let monthlyStatsRepository: MonthlyStatsRepository
     private let readinessVM: TrainingReadinessViewModel
     private var cancellables = Set<AnyCancellable>()
+    private var cacheSubscriberId: String?
 
     // MARK: - Init
 
@@ -66,6 +67,12 @@ final class TrainingModeHeaderViewModelV2: ObservableObject {
         refresh()
     }
 
+    deinit {
+        if let id = cacheSubscriberId {
+            CacheEventBus.shared.unsubscribe(forIdentifier: id)
+        }
+    }
+
     // MARK: - Observation
 
     private func setupObservers() {
@@ -73,6 +80,19 @@ final class TrainingModeHeaderViewModelV2: ObservableObject {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in self?.refresh() }
             .store(in: &cancellables)
+
+        // 新 workout 上傳後清月統計快取並重抓，確保月里程即時更新
+        let id = "TrainingModeHeaderVM_\(UUID().uuidString)"
+        cacheSubscriberId = id
+        CacheEventBus.shared.subscribe(forIdentifier: id) { [weak self] reason in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if case .dataChanged(.workouts) = reason {
+                    await self.monthlyStatsRepository.invalidateRecentMonths(count: 1)
+                    self.refresh()
+                }
+            }
+        }
     }
 
     // MARK: - Public Refresh
