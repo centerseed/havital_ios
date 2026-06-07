@@ -8,14 +8,14 @@ struct WorkoutControlView: View {
     var body: some View {
         VStack(spacing: 10) {
             Button(action: togglePause) {
-                Label(isPaused ? "繼續" : "暫停", systemImage: isPaused ? "play.fill" : "pause.fill")
+                Label(isPaused ? "watch.control.resume" : "watch.control.pause", systemImage: isPaused ? "play.fill" : "pause.fill")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .tint(isPaused ? .green : .orange)
 
             Button(role: .destructive, action: end) {
-                Label("結束", systemImage: "stop.fill")
+                Label("watch.control.end", systemImage: "stop.fill")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)

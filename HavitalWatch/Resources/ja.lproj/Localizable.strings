@@ -1,4 +1,80 @@
+// RPE feedback
 "workout.rpe.feedback.low" = "楽にこなせた ✓";
 "workout.rpe.feedback.medium" = "リズムよく走れた ✓";
 "workout.rpe.feedback.high" = "充実したトレーニング ✓";
 "workout.rpe.feedback.max" = "頑張り抜いた 💪";
+
+// Flow / phase titles
+"watch.flow.easy" = "イージーラン";
+"watch.flow.interval" = "インターバル";
+"watch.flow.rest" = "休息";
+"watch.flow.unsupported" = "非対応";
+"watch.phase.main" = "メイン";
+"watch.phase.warmup" = "ウォームアップ";
+"watch.phase.cooldown" = "クールダウン";
+
+// Today
+"watch.today.start" = "ワークアウトを開始";
+"watch.today.synced" = "同期済み · %1$@ · %2$@";
+"watch.today.directStart" = "すぐ開始";
+"watch.today.route.structured" = "ウォームアップ→メイン→クールダウン";
+
+// Welcome states
+"watch.welcome.noPlan.title" = "ワークアウトなし";
+"watch.welcome.noPlan.body" = "iPhoneを近づけて同期してください。";
+"watch.welcome.rest.title" = "休養日";
+"watch.welcome.rest.body" = "今日はランの予定がありません。";
+"watch.welcome.unsupported.title" = "非対応のワークアウト";
+"watch.welcome.unsupported.body" = "Apple Watchは現在ランニングのワークアウトのみ対応しています。";
+"watch.welcome.waiting.title" = "iPhoneと同期待ち";
+"watch.welcome.waiting.body" = "iPhoneからPacerizのプランを送信してください。";
+
+// RPE screen + actions
+"watch.rpe.title" = "今日の体感";
+"watch.action.done" = "完了";
+"watch.rpe.later" = "あとで";
+
+// Workout controls
+"watch.control.pause" = "一時停止";
+"watch.control.resume" = "再開";
+"watch.control.end" = "終了";
+"watch.warmup.startPlan" = "ワークアウト開始";
+
+// Permission
+"watch.permission.title" = "権限";
+"watch.permission.heading" = "ワークアウト記録を許可";
+"watch.permission.body" = "ランとルートを記録するにはヘルスケアと位置情報の許可が必要です。";
+"watch.permission.allow" = "許可";
+
+// Easy run
+"watch.easy.title" = "イージーラン %@";
+
+// Workout summary
+"watch.summary.distance" = "距離";
+"watch.summary.time" = "時間";
+"watch.summary.pace" = "平均ペース";
+"watch.summary.hr" = "平均心拍";
+
+// Pace guidance
+"watch.pace.noTarget" = "ペース目標なし";
+"watch.pace.waitGPS" = "GPS待ち";
+"watch.pace.fast" = "速い";
+"watch.pace.onTarget" = "目標内";
+"watch.pace.slow" = "遅い";
+"watch.pace.current" = "現在";
+"watch.pace.target" = "目標";
+
+// Interval next segment
+"watch.interval.next" = "次 %@";
+"watch.interval.next.none" = "--";
+"watch.interval.next.meters" = "%dm";
+
+// Summary formatter
+"watch.summary.recoveryRest" = "その場で休息";
+"watch.summary.recoveryJog" = "リカバリージョグ";
+"watch.summary.targetPace" = "目標ペース %@";
+"watch.summary.perRep" = "各本の後に%1$@ %2$@";
+"watch.summary.segmentTarget" = "%1$@ %2$@";
+"watch.dur.minSec" = "%1$d分%2$02d秒";
+"watch.dur.min" = "%d分";
+"watch.dur.sec" = "%d秒";

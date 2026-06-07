@@ -12,7 +12,7 @@ struct WarmupCooldownView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(mode == .warmup ? "暖身" : "緩和")
+            Text(mode == .warmup ? "watch.phase.warmup" : "watch.phase.cooldown")
                 .font(.caption2)
                 .foregroundStyle(.orange)
             Text(WatchFormatting.time(vm.seconds))
@@ -30,7 +30,7 @@ struct WarmupCooldownView: View {
                 .font(.body)
                 .foregroundStyle(.red)
             Button(action: primaryAction) {
-                Label(mode == .warmup ? "開始課表" : "結束", systemImage: mode == .warmup ? "forward.fill" : "stop.fill")
+                Label(mode == .warmup ? "watch.warmup.startPlan" : "watch.control.end", systemImage: mode == .warmup ? "forward.fill" : "stop.fill")
             }
             .buttonStyle(.borderedProminent)
             .tint(mode == .warmup ? .green : .red)

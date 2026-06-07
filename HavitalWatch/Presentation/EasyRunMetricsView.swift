@@ -5,7 +5,7 @@ struct EasyRunMetricsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("輕鬆跑 \(targetText)")
+            Text(String(format: String(localized: "watch.easy.title"), targetText))
                 .font(.caption2)
                 .foregroundStyle(.green)
             Text(WatchFormatting.time(vm.seconds))

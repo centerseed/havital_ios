@@ -40,17 +40,17 @@ struct IntervalMetricsView: View {
     }
 
     private func stepTitle(_ segment: WatchSegment?) -> String {
-        guard let segment else { return "主段" }
+        guard let segment else { return String(localized: "watch.phase.main") }
         let title: String
         switch segment.kind {
         case .rest:
-            title = "休息"
+            title = String(localized: "watch.flow.rest")
         case .work, .run:
-            title = "間歇"
+            title = String(localized: "watch.flow.interval")
         case .warmup:
-            title = "暖身"
+            title = String(localized: "watch.phase.warmup")
         case .cooldown:
-            title = "緩和"
+            title = String(localized: "watch.phase.cooldown")
         }
 
         if let index = segment.repIndex, let total = segment.repTotal {
@@ -76,18 +76,20 @@ struct IntervalMetricsView: View {
             let current = vm.currentSegment,
             let currentIndex = vm.snapshot.segments.firstIndex(of: current)
         else {
-            return "下一段 --"
+            return String(format: String(localized: "watch.interval.next"), String(localized: "watch.interval.next.none"))
         }
 
         let nextIndex = currentIndex + 1
-        guard nextIndex < vm.snapshot.segments.count else { return "下一段 緩和" }
+        guard nextIndex < vm.snapshot.segments.count else {
+            return String(format: String(localized: "watch.interval.next"), String(localized: "watch.phase.cooldown"))
+        }
         let next = vm.snapshot.segments[nextIndex]
         if let meters = next.targetMeters {
-            return "下一段 \(Int(meters))m"
+            return String(format: String(localized: "watch.interval.next"), String(format: String(localized: "watch.interval.next.meters"), Int(meters)))
         }
         if let seconds = next.targetSeconds {
-            return "下一段 \(WatchFormatting.time(seconds))"
+            return String(format: String(localized: "watch.interval.next"), WatchFormatting.time(seconds))
         }
-        return "下一段"
+        return String(format: String(localized: "watch.interval.next"), "").trimmingCharacters(in: .whitespaces)
     }
 }

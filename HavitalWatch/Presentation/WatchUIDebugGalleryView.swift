@@ -34,7 +34,7 @@ struct WatchUIDebugGalleryView: View {
     var body: some View {
         switch screen {
         case .welcome:
-            WelcomeView(title: "等待 iPhone 同步", message: "請在 iPhone 上傳送 Paceriz 課表。")
+            WelcomeView(title: String(localized: "watch.welcome.waiting.title"), message: String(localized: "watch.welcome.waiting.body"))
         case .permission:
             PermissionView {}
         case .todayEasy:
@@ -63,18 +63,18 @@ struct WatchUIDebugGalleryView: View {
     private var debugTodayStartView: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                Text("已同步 · \(Self.easySnapshot.date) · 輕鬆跑")
+                Text(String(format: String(localized: "watch.today.synced"), Self.easySnapshot.date, String(localized: "watch.flow.easy")))
                     .font(.caption2)
                     .foregroundStyle(.green)
                 Text(WatchFormatting.distance(5000))
                     .font(.system(size: 30, weight: .semibold, design: .rounded))
                     .minimumScaleFactor(0.72)
                     .lineLimit(2)
-                Text("直接開始")
+                Text("watch.today.directStart")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 Button {} label: {
-                    Label("開始訓練", systemImage: "play.fill")
+                    Label("watch.today.start", systemImage: "play.fill")
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.green)

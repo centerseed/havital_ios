@@ -5,17 +5,17 @@ struct PermissionView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("權限")
+            Text("watch.permission.title")
                 .font(.caption2)
                 .foregroundStyle(.orange)
-            Text("允許訓練記錄")
+            Text("watch.permission.heading")
                 .font(.system(size: 22, weight: .semibold, design: .rounded))
-            Text("需要 Health 與定位權限，才能記錄跑步與路線。")
+            Text("watch.permission.body")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Button(action: request) {
-                Label("允許", systemImage: "checkmark.circle.fill")
+                Label("watch.permission.allow", systemImage: "checkmark.circle.fill")
             }
             .buttonStyle(.borderedProminent)
             .tint(.green)

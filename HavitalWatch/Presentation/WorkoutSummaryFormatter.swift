@@ -18,22 +18,22 @@ enum WorkoutSummaryFormatter {
         case .rest:
             return formatRest(segment)
         case .warmup:
-            return ["暖身 \(targetText(segment))"]
+            return [String(format: String(localized: "watch.summary.segmentTarget"), String(localized: "watch.phase.warmup"), targetText(segment))]
         case .cooldown:
-            return ["緩和 \(targetText(segment))"]
+            return [String(format: String(localized: "watch.summary.segmentTarget"), String(localized: "watch.phase.cooldown"), targetText(segment))]
         }
     }
 
     private static func formatWork(_ segment: WatchSegment) -> [String] {
         var parts = [targetWithRepetition(segment)]
         if let pace = paceRange(segment) {
-            parts.append("目標配速 \(pace)")
+            parts.append(String(format: String(localized: "watch.summary.targetPace"), pace))
         }
         return parts
     }
 
     private static func formatRest(_ segment: WatchSegment) -> [String] {
-        ["每趟後\(recoveryVerb(segment.label)) \(targetText(segment))"]
+        [String(format: String(localized: "watch.summary.perRep"), recoveryVerb(segment.label), targetText(segment))]
     }
 
     private static func targetWithRepetition(_ segment: WatchSegment) -> String {
@@ -76,15 +76,15 @@ enum WorkoutSummaryFormatter {
     private static func recoveryVerb(_ label: String) -> String {
         let lowercased = label.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if lowercased.contains("static recovery") {
-            return "原地休息"
+            return String(localized: "watch.summary.recoveryRest")
         }
         if lowercased.contains("jog")
             || lowercased.contains("easy")
             || lowercased.contains("慢跑")
             || lowercased.contains("恢復跑") {
-            return "恢復跑"
+            return String(localized: "watch.summary.recoveryJog")
         }
-        return "休息"
+        return String(localized: "watch.flow.rest")
     }
 
     private static func durationText(_ seconds: Int) -> String {
@@ -92,11 +92,11 @@ enum WorkoutSummaryFormatter {
         let minutes = value / 60
         let remainingSeconds = value % 60
         if minutes > 0, remainingSeconds > 0 {
-            return "\(minutes) 分 \(String(format: "%02d", remainingSeconds)) 秒"
+            return String(format: String(localized: "watch.dur.minSec"), minutes, remainingSeconds)
         }
         if minutes > 0 {
-            return "\(minutes) 分鐘"
+            return String(format: String(localized: "watch.dur.min"), minutes)
         }
-        return "\(remainingSeconds) 秒"
+        return String(format: String(localized: "watch.dur.sec"), remainingSeconds)
     }
 }

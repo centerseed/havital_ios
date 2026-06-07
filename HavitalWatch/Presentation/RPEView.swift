@@ -7,7 +7,7 @@ struct RPEView: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            Text("今天的體感")
+            Text("watch.rpe.title")
                 .font(.caption2)
                 .foregroundStyle(.green)
             Text("\(Int(rpe))")
@@ -26,13 +26,13 @@ struct RPEView: View {
             Button {
                 complete(Int(rpe))
             } label: {
-                Label("完成", systemImage: "checkmark")
+                Label("watch.action.done", systemImage: "checkmark")
             }
             .buttonStyle(.borderedProminent)
             .tint(.green)
 
             Button(action: skip) {
-                Label("稍後再說", systemImage: "chevron.right")
+                Label("watch.rpe.later", systemImage: "chevron.right")
             }
             .font(.caption)
         }
