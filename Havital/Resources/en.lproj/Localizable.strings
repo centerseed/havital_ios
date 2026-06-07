@@ -3589,3 +3589,9 @@
 "daily_state.locked" = "Full state reading is for Paceriz members";
 "daily_state.upgrade_cta" = "Upgrade to see the full reading";
 "rizo.journal.upsell.quotaExhausted" = "You've used this month's free chats. Subscribe for unlimited.";
+
+/* Rizo multi-turn chat (daily state detail page) */
+"rizo.chat.subtitle" = "Your AI running coach";
+"rizo.chat.coachBadge" = "Coach";
+"rizo.chat.inputPlaceholder" = "Tell Rizo how today felt…";
+"rizo.chat.error" = "Rizo can't reply right now. Please try again later";

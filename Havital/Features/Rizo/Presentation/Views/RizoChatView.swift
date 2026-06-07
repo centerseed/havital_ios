@@ -1,0 +1,276 @@
+import SwiftUI
+
+// MARK: - RizoChatView
+//
+// 卡片=Rizo hub 詳細頁下半的多輪聊天 UI（可重用）。
+// Presentation Layer — 只渲染，業務邏輯在 StateRizoChatViewModel。
+//
+// 視覺對齊 mockup `2026-06-07-card-rizo-detail.html` 的 .chat-area 區塊：
+//   - chat header：Rizo 漸層頭像 + 名稱 + 副標 + 「教練」徽章
+//   - 教練泡泡：左、含小頭像、淺藍底、左上直角圓角
+//   - 用戶泡泡：右、藍底白字、右下直角圓角
+//   - typing indicator：三點脈動
+//   - quick-reply chips：橫向捲動 PRChip
+//   - input bar：圓角輸入框 + 圓形送出鈕（draft 空或回覆中時 disabled）
+struct RizoChatView: View {
+    @ObservedObject var viewModel: StateRizoChatViewModel
+    /// 快速回應選項（空陣列則不顯示）。
+    var quickReplies: [String] = []
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            chatHeader
+
+            ForEach(viewModel.messages) { message in
+                bubble(message)
+            }
+
+            if viewModel.isReplying {
+                typingIndicator
+            }
+
+            if !quickReplies.isEmpty && !viewModel.isReplying {
+                quickReplyRow
+            }
+
+            inputBar
+        }
+        .padding(14)
+        .background(Color(UIColor.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: PacerizRadius.card, style: .continuous))
+    }
+
+    // MARK: - Chat Header
+
+    private var chatHeader: some View {
+        HStack(spacing: 8) {
+            rizoAvatar(size: 28, fontSize: 14)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Rizo")
+                    .font(AppFont.captionMedium())
+                    .foregroundColor(.primary)
+                Text(NSLocalizedString("rizo.chat.subtitle", comment: "你的 AI 跑步教練"))
+                    .font(AppFont.micro())
+                    .foregroundColor(.secondary)
+            }
+            Spacer(minLength: 0)
+            PRChip(
+                text: NSLocalizedString("rizo.chat.coachBadge", comment: "教練"),
+                fg: PacerizColor.blue,
+                bg: PacerizColor.blue12
+            )
+        }
+        .padding(.bottom, 8)
+        .overlay(alignment: .bottom) {
+            Divider()
+        }
+        .accessibilityIdentifier("rizo_chat_header")
+    }
+
+    // MARK: - Bubble
+
+    @ViewBuilder
+    private func bubble(_ message: StateRizoChatViewModel.Message) -> some View {
+        switch message.role {
+        case .coach:
+            coachBubble(text: message.text)
+        case .user:
+            userBubble(text: message.text)
+        }
+    }
+
+    private func coachBubble(text: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            rizoAvatar(size: 24, fontSize: 11)
+                .padding(.top, 2)
+            Text(text)
+                .font(AppFont.bodyRegular())
+                .foregroundColor(.primary)
+                .multilineTextAlignment(.leading)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(PacerizColor.blue12)
+                .clipShape(coachBubbleShape)
+            Spacer(minLength: 40)
+        }
+        .accessibilityIdentifier("rizo_chat_bubble_coach")
+    }
+
+    private func userBubble(text: String) -> some View {
+        HStack(spacing: 0) {
+            Spacer(minLength: 40)
+            Text(text)
+                .font(AppFont.bodyRegular())
+                .foregroundColor(.white)
+                .multilineTextAlignment(.leading)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(PacerizColor.blue)
+                .clipShape(userBubbleShape)
+        }
+        .accessibilityIdentifier("rizo_chat_bubble_user")
+    }
+
+    /// 教練泡泡：左上直角、其餘圓角（對齊 mockup `border-radius: 0 14 14 14`）。
+    private var coachBubbleShape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(
+            topLeadingRadius: 0,
+            bottomLeadingRadius: 14,
+            bottomTrailingRadius: 14,
+            topTrailingRadius: 14,
+            style: .continuous
+        )
+    }
+
+    /// 用戶泡泡：右下直角、其餘圓角（對齊 mockup `border-radius: 14 14 0 14`）。
+    private var userBubbleShape: UnevenRoundedRectangle {
+        UnevenRoundedRectangle(
+            topLeadingRadius: 14,
+            bottomLeadingRadius: 14,
+            bottomTrailingRadius: 0,
+            topTrailingRadius: 14,
+            style: .continuous
+        )
+    }
+
+    // MARK: - Typing Indicator
+
+    private var typingIndicator: some View {
+        HStack(alignment: .top, spacing: 8) {
+            rizoAvatar(size: 24, fontSize: 11)
+                .padding(.top, 2)
+            HStack(spacing: 4) {
+                ForEach(0..<3, id: \.self) { _ in
+                    Circle()
+                        .fill(PacerizColor.blue.opacity(0.5))
+                        .frame(width: 6, height: 6)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .background(PacerizColor.blue12)
+            .clipShape(coachBubbleShape)
+            Spacer(minLength: 40)
+        }
+        .accessibilityIdentifier("rizo_chat_typing")
+    }
+
+    // MARK: - Quick Replies
+
+    private var quickReplyRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(quickReplies, id: \.self) { reply in
+                    Button {
+                        Task { await viewModel.send(reply) }
+                    } label: {
+                        PRChip(text: reply, fg: PacerizColor.blue, bg: PacerizColor.blue12, fontSize: 12)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.vertical, 2)
+        }
+        .accessibilityIdentifier("rizo_chat_quick_replies")
+    }
+
+    // MARK: - Input Bar
+
+    private var inputBar: some View {
+        HStack(spacing: 8) {
+            TextField(
+                NSLocalizedString("rizo.chat.inputPlaceholder", comment: "跟 Rizo 說說今天的感受…"),
+                text: $viewModel.draft,
+                axis: .vertical
+            )
+            .font(AppFont.bodyRegular())
+            .lineLimit(1...4)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 9)
+            .background(Color(UIColor.tertiarySystemFill))
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .disabled(viewModel.isReplying)
+            .accessibilityIdentifier("rizo_chat_input")
+
+            Button {
+                let text = viewModel.draft
+                Task { await viewModel.send(text) }
+            } label: {
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.white)
+                    .frame(width: 34, height: 34)
+                    .background(canSend ? PacerizColor.blue : Color(UIColor.tertiaryLabel), in: Circle())
+            }
+            .buttonStyle(.plain)
+            .disabled(!canSend)
+            .accessibilityIdentifier("rizo_chat_send")
+        }
+        .padding(.top, 8)
+        .overlay(alignment: .top) {
+            Divider()
+        }
+    }
+
+    private var canSend: Bool {
+        !viewModel.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !viewModel.isReplying
+    }
+
+    // MARK: - Shared Avatar
+
+    /// Rizo 漸層圓形頭像（藍→綠），中央白字「R」。最終可換 mascot 圖示。
+    private func rizoAvatar(size: CGFloat, fontSize: CGFloat) -> some View {
+        Text("R")
+            .font(.system(size: fontSize, weight: .bold))
+            .foregroundColor(.white)
+            .frame(width: size, height: size)
+            .background(
+                LinearGradient(
+                    colors: [PacerizColor.blue, PacerizColor.green],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: Circle()
+            )
+    }
+}
+
+#if DEBUG
+// MARK: - Preview Support
+
+/// 預覽用假 repository（不連後端，回固定 reply）。
+private final class _RizoChatPreviewRepo: RizoRepository {
+    func sendJournalChat(workoutId: String, message: String, presetSelections: [String], sessionId: String?) async throws -> RizoReply {
+        throw NSError(domain: "preview", code: 0)
+    }
+    func sendChat(scenario: String, message: String, sessionId: String?) async throws -> RizoReply {
+        RizoReply(
+            reply: "今天天氣很熱，你跑得很紮實！心率偏高是體溫調節造成的，不用擔心。有沒有哪段特別感覺到壓力？",
+            sessionId: "preview",
+            quota: RizoQuota(allowed: true, used: 1, limit: 3, remaining: 2, resetsAt: nil, reserved: true),
+            safety: RizoSafety(dangerClass: "none", canned: false)
+        )
+    }
+    func getPresets(scenario: String) async throws -> [RizoPreset] { [] }
+    func getHistory() async throws -> [RizoHistoryItem] { [] }
+}
+
+@MainActor
+private func _previewViewModel() -> StateRizoChatViewModel {
+    let vm = StateRizoChatViewModel(scenario: "post_run", repository: _RizoChatPreviewRepo())
+    Task { await vm.startOpening() }
+    return vm
+}
+
+#Preview("Rizo Chat") {
+    ScrollView {
+        RizoChatView(
+            viewModel: _previewViewModel(),
+            quickReplies: ["後半段比較喘", "還好，感覺不錯", "有點頭暈"]
+        )
+        .padding(16)
+    }
+    .background(Color(UIColor.systemGroupedBackground))
+}
+#endif

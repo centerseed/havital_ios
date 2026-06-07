@@ -3586,3 +3586,9 @@
 "daily_state.locked" = "詳しい状態の解説は Paceriz 会員限定です";
 "daily_state.upgrade_cta" = "アップグレードして全文を見る";
 "rizo.journal.upsell.quotaExhausted" = "今月の無料対話回数を使い切りました。サブスクで無制限に。";
+
+/* Rizo マルチターンチャット（今日の状態 詳細ページ） */
+"rizo.chat.subtitle" = "あなたの AI ランニングコーチ";
+"rizo.chat.coachBadge" = "コーチ";
+"rizo.chat.inputPlaceholder" = "今日の感覚を Rizo に話してみよう…";
+"rizo.chat.error" = "Rizo は今返信できません。後でもう一度お試しください";
