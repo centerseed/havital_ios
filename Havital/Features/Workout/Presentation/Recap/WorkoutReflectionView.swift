@@ -96,7 +96,9 @@ struct WorkoutReflectionView: View {
                     rpeSection
                     promptSection
                     editorCard
-                    rizoJournalSection
+                    // Rizo 入口暫時隱藏:將遷移到「今日狀態卡片」作為主入口(每天都在、能接住沒跑/漏練的用戶;
+                    // training note 只在有跑時存在,接不到最需要鼓勵的人)。保留 section/VM 代碼,日後從卡片接 Rizo。
+                    // rizoJournalSection
                 }
                 .padding(16)
                 .frame(maxWidth: .infinity, alignment: .top)
