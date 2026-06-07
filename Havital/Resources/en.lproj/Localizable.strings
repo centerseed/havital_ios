@@ -3579,4 +3579,13 @@
 "rizo.journal.replyLoading" = "Rizo is replying...";
 "rizo.journal.captureError" = "Couldn't save. Please retry.";
 "rizo.journal.upsell.adjust" = "Subscribe to let Rizo adjust your plan directly";
+
+// MARK: - Daily State Card
+"daily_state.title" = "Today's State";
+"daily_state.loading" = "Reading your state…";
+"daily_state.evidence" = "Evidence";
+"daily_state.causes" = "Likely factors";
+"daily_state.action" = "Today's action";
+"daily_state.locked" = "Full state reading is for Paceriz members";
+"daily_state.upgrade_cta" = "Upgrade to see the full reading";
 "rizo.journal.upsell.quotaExhausted" = "You've used this month's free chats. Subscribe for unlimited.";

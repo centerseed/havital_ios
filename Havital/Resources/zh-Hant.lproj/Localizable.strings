@@ -3618,4 +3618,13 @@
 "rizo.journal.replyLoading" = "Rizo 正在回覆...";
 "rizo.journal.captureError" = "記錄失敗，請重試";
 "rizo.journal.upsell.adjust" = "訂閱後可讓 Rizo 直接幫你調整";
+
+// MARK: - Daily State Card
+"daily_state.title" = "今日狀態";
+"daily_state.loading" = "讀取今日狀態中…";
+"daily_state.evidence" = "佐證";
+"daily_state.causes" = "可能因素";
+"daily_state.action" = "今日行動";
+"daily_state.locked" = "完整的今日狀態解讀是 Paceriz 會員專屬";
+"daily_state.upgrade_cta" = "升級看完整今日狀態";
 "rizo.journal.upsell.quotaExhausted" = "本月免費對話次數已用完，訂閱可無限暢聊";
