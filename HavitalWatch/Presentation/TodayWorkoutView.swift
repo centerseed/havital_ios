@@ -10,18 +10,18 @@ struct TodayWorkoutView: View {
                 if let snapshot = vm.snapshot {
                     startView(snapshot)
                 } else {
-                    WelcomeView(title: "沒有課表", message: "靠近 iPhone 後同步課表。")
+                    WelcomeView(title: String(localized: "watch.welcome.noPlan.title"), message: String(localized: "watch.welcome.noPlan.body"))
                 }
             case .requiresPermission:
                 PermissionView {
                     vm.requestPermissions()
                 }
             case .blockedRestDay:
-                WelcomeView(title: "休息日", message: "這天沒有跑步課表。")
+                WelcomeView(title: String(localized: "watch.welcome.rest.title"), message: String(localized: "watch.welcome.rest.body"))
             case .blockedUnsupportedType:
-                WelcomeView(title: "不支援的訓練", message: "Apple Watch MVP 目前只支援跑步課表。")
+                WelcomeView(title: String(localized: "watch.welcome.unsupported.title"), message: String(localized: "watch.welcome.unsupported.body"))
             case .blockedNeedSyncFromPhone:
-                WelcomeView(title: "等待 iPhone 同步", message: "請在 iPhone 上傳送 Paceriz 課表。")
+                WelcomeView(title: String(localized: "watch.welcome.waiting.title"), message: String(localized: "watch.welcome.waiting.body"))
             }
         }
         .onAppear {
@@ -38,7 +38,7 @@ struct TodayWorkoutView: View {
     private func startView(_ snapshot: WatchPlanSnapshot) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                Text("已同步 · \(snapshot.date) · \(flowTitle(snapshot.flowType))")
+                Text(String(format: String(localized: "watch.today.synced"), snapshot.date, flowTitle(snapshot.flowType)))
                     .font(.caption2)
                     .foregroundStyle(.green)
                 Text(summary(snapshot))
@@ -61,7 +61,7 @@ struct TodayWorkoutView: View {
                 NavigationLink {
                     ActiveWorkoutRootView(snapshot: snapshot)
                 } label: {
-                    Label("開始訓練", systemImage: "play.fill")
+                    Label("watch.today.start", systemImage: "play.fill")
                 }
                 .font(.system(size: 15, weight: .semibold, design: .rounded))
                 .buttonStyle(.borderedProminent)
@@ -77,15 +77,15 @@ struct TodayWorkoutView: View {
 
     private func flowTitle(_ flow: WorkoutFlowType) -> String {
         switch flow {
-        case .directStart: return "輕鬆跑"
-        case .warmupMainCooldown: return "間歇"
-        case .rest: return "休息"
-        case .unsupported: return "不支援"
+        case .directStart: return String(localized: "watch.flow.easy")
+        case .warmupMainCooldown: return String(localized: "watch.flow.interval")
+        case .rest: return String(localized: "watch.flow.rest")
+        case .unsupported: return String(localized: "watch.flow.unsupported")
         }
     }
 
     private func routeLabel(_ flow: WorkoutFlowType) -> String {
-        flow == .warmupMainCooldown ? "暖身→主段→緩和" : "直接開始"
+        flow == .warmupMainCooldown ? String(localized: "watch.today.route.structured") : String(localized: "watch.today.directStart")
     }
 
     private func summary(_ snapshot: WatchPlanSnapshot) -> String {

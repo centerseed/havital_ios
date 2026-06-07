@@ -1,4 +1,80 @@
+// RPE feedback
 "workout.rpe.feedback.low" = "輕巧地完成 ✓";
 "workout.rpe.feedback.medium" = "節奏掌握得不錯 ✓";
 "workout.rpe.feedback.high" = "紮實的一次 ✓";
 "workout.rpe.feedback.max" = "硬仗打完了 💪";
+
+// Flow / phase titles
+"watch.flow.easy" = "輕鬆跑";
+"watch.flow.interval" = "間歇";
+"watch.flow.rest" = "休息";
+"watch.flow.unsupported" = "不支援";
+"watch.phase.main" = "主段";
+"watch.phase.warmup" = "暖身";
+"watch.phase.cooldown" = "緩和";
+
+// Today
+"watch.today.start" = "開始訓練";
+"watch.today.synced" = "已同步 · %1$@ · %2$@";
+"watch.today.directStart" = "直接開始";
+"watch.today.route.structured" = "暖身→主段→緩和";
+
+// Welcome states
+"watch.welcome.noPlan.title" = "沒有課表";
+"watch.welcome.noPlan.body" = "靠近 iPhone 後同步課表。";
+"watch.welcome.rest.title" = "休息日";
+"watch.welcome.rest.body" = "這天沒有跑步課表。";
+"watch.welcome.unsupported.title" = "不支援的訓練";
+"watch.welcome.unsupported.body" = "Apple Watch 目前只支援跑步課表。";
+"watch.welcome.waiting.title" = "等待 iPhone 同步";
+"watch.welcome.waiting.body" = "請在 iPhone 上傳送 Paceriz 課表。";
+
+// RPE screen + actions
+"watch.rpe.title" = "今天的體感";
+"watch.action.done" = "完成";
+"watch.rpe.later" = "稍後再說";
+
+// Workout controls
+"watch.control.pause" = "暫停";
+"watch.control.resume" = "繼續";
+"watch.control.end" = "結束";
+"watch.warmup.startPlan" = "開始課表";
+
+// Permission
+"watch.permission.title" = "權限";
+"watch.permission.heading" = "允許訓練記錄";
+"watch.permission.body" = "需要 Health 與定位權限，才能記錄跑步與路線。";
+"watch.permission.allow" = "允許";
+
+// Easy run
+"watch.easy.title" = "輕鬆跑 %@";
+
+// Workout summary
+"watch.summary.distance" = "總距離";
+"watch.summary.time" = "總時間";
+"watch.summary.pace" = "均速";
+"watch.summary.hr" = "均心率";
+
+// Pace guidance
+"watch.pace.noTarget" = "無配速目標";
+"watch.pace.waitGPS" = "等 GPS";
+"watch.pace.fast" = "快";
+"watch.pace.onTarget" = "目標內";
+"watch.pace.slow" = "慢";
+"watch.pace.current" = "目前";
+"watch.pace.target" = "目標";
+
+// Interval next segment
+"watch.interval.next" = "下一段 %@";
+"watch.interval.next.none" = "--";
+"watch.interval.next.meters" = "%dm";
+
+// Summary formatter
+"watch.summary.recoveryRest" = "原地休息";
+"watch.summary.recoveryJog" = "恢復跑";
+"watch.summary.targetPace" = "目標配速 %@";
+"watch.summary.perRep" = "每趟後%1$@ %2$@";
+"watch.summary.segmentTarget" = "%1$@ %2$@";
+"watch.dur.minSec" = "%1$d 分 %2$02d 秒";
+"watch.dur.min" = "%d 分鐘";
+"watch.dur.sec" = "%d 秒";

@@ -1,4 +1,80 @@
+// RPE feedback
 "workout.rpe.feedback.low" = "Effortlessly done ✓";
 "workout.rpe.feedback.medium" = "Good rhythm ✓";
 "workout.rpe.feedback.high" = "Solid session ✓";
 "workout.rpe.feedback.max" = "Tough one done 💪";
+
+// Flow / phase titles
+"watch.flow.easy" = "Easy Run";
+"watch.flow.interval" = "Intervals";
+"watch.flow.rest" = "Rest";
+"watch.flow.unsupported" = "Unsupported";
+"watch.phase.main" = "Main Set";
+"watch.phase.warmup" = "Warm-Up";
+"watch.phase.cooldown" = "Cool-Down";
+
+// Today
+"watch.today.start" = "Start Workout";
+"watch.today.synced" = "Synced · %1$@ · %2$@";
+"watch.today.directStart" = "Start now";
+"watch.today.route.structured" = "Warm-up → Main → Cool-down";
+
+// Welcome states
+"watch.welcome.noPlan.title" = "No workout";
+"watch.welcome.noPlan.body" = "Bring your iPhone nearby to sync.";
+"watch.welcome.rest.title" = "Rest day";
+"watch.welcome.rest.body" = "No run scheduled today.";
+"watch.welcome.unsupported.title" = "Unsupported workout";
+"watch.welcome.unsupported.body" = "Apple Watch currently supports running workouts only.";
+"watch.welcome.waiting.title" = "Waiting for iPhone";
+"watch.welcome.waiting.body" = "Send your Paceriz plan from iPhone.";
+
+// RPE screen + actions
+"watch.rpe.title" = "Today's Effort";
+"watch.action.done" = "Done";
+"watch.rpe.later" = "Later";
+
+// Workout controls
+"watch.control.pause" = "Pause";
+"watch.control.resume" = "Resume";
+"watch.control.end" = "End";
+"watch.warmup.startPlan" = "Start workout";
+
+// Permission
+"watch.permission.title" = "Permissions";
+"watch.permission.heading" = "Allow workout tracking";
+"watch.permission.body" = "Health and Location access are needed to record your runs and routes.";
+"watch.permission.allow" = "Allow";
+
+// Easy run
+"watch.easy.title" = "Easy Run %@";
+
+// Workout summary
+"watch.summary.distance" = "Distance";
+"watch.summary.time" = "Time";
+"watch.summary.pace" = "Avg Pace";
+"watch.summary.hr" = "Avg HR";
+
+// Pace guidance
+"watch.pace.noTarget" = "No pace target";
+"watch.pace.waitGPS" = "Waiting for GPS";
+"watch.pace.fast" = "Fast";
+"watch.pace.onTarget" = "On target";
+"watch.pace.slow" = "Slow";
+"watch.pace.current" = "Now";
+"watch.pace.target" = "Target";
+
+// Interval next segment
+"watch.interval.next" = "Next %@";
+"watch.interval.next.none" = "--";
+"watch.interval.next.meters" = "%dm";
+
+// Summary formatter
+"watch.summary.recoveryRest" = "standing rest";
+"watch.summary.recoveryJog" = "recovery jog";
+"watch.summary.targetPace" = "Target pace %@";
+"watch.summary.perRep" = "%1$@ after each rep %2$@";
+"watch.summary.segmentTarget" = "%1$@ %2$@";
+"watch.dur.minSec" = "%1$d min %2$02d sec";
+"watch.dur.min" = "%d min";
+"watch.dur.sec" = "%d sec";

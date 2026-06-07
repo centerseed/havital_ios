@@ -11,15 +11,15 @@ struct PaceGuidance: Equatable {
         var displayText: String {
             switch self {
             case .noTarget:
-                return "無配速目標"
+                return String(localized: "watch.pace.noTarget")
             case .waitingForPace:
-                return "等 GPS"
+                return String(localized: "watch.pace.waitGPS")
             case .tooFast:
-                return "快"
+                return String(localized: "watch.pace.fast")
             case .onTarget:
-                return "目標內"
+                return String(localized: "watch.pace.onTarget")
             case .tooSlow:
-                return "慢"
+                return String(localized: "watch.pace.slow")
             }
         }
     }
@@ -91,7 +91,7 @@ struct PaceGuidanceView: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .bottom, spacing: 8) {
                 paceMetricColumn(
-                    label: "目前",
+                    label: String(localized: "watch.pace.current"),
                     value: WatchFormatting.pace(currentPaceSecPerKm),
                     color: currentPaceColor,
                     alignment: .leading
@@ -101,7 +101,7 @@ struct PaceGuidanceView: View {
 
                 if let targetText {
                     paceMetricColumn(
-                        label: "目標",
+                        label: String(localized: "watch.pace.target"),
                         value: targetText,
                         color: .green,
                         alignment: .trailing

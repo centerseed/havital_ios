@@ -8,10 +8,10 @@ struct WorkoutSummaryView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            metric("總距離", WatchFormatting.distance(meters), color: .green)
-            metric("總時間", WatchFormatting.time(seconds), color: .green)
-            metric("均速", averagePace, color: .cyan)
-            metric("均心率", "\(Int(averageHeartRate))", color: .red)
+            metric(String(localized: "watch.summary.distance"), WatchFormatting.distance(meters), color: .green)
+            metric(String(localized: "watch.summary.time"), WatchFormatting.time(seconds), color: .green)
+            metric(String(localized: "watch.summary.pace"), averagePace, color: .cyan)
+            metric(String(localized: "watch.summary.hr"), "\(Int(averageHeartRate))", color: .red)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .padding()
