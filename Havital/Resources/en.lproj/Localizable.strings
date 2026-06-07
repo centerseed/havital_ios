@@ -3595,3 +3595,6 @@
 "rizo.chat.coachBadge" = "Coach";
 "rizo.chat.inputPlaceholder" = "Tell Rizo how today felt…";
 "rizo.chat.error" = "Rizo can't reply right now. Please try again later";
+
+/* Daily state detail page: Rizo chat section title */
+"daily_state.chat_section_title" = "Chat with coach Rizo";

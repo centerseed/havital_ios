@@ -3634,3 +3634,6 @@
 "rizo.chat.coachBadge" = "教練";
 "rizo.chat.inputPlaceholder" = "跟 Rizo 說說今天的感受…";
 "rizo.chat.error" = "Rizo 暫時無法回覆，請稍後再試";
+
+/* 今日狀態詳細頁：Rizo 對話區段標題 */
+"daily_state.chat_section_title" = "與 Rizo 教練聊聊";

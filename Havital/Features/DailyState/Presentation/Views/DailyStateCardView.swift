@@ -2,7 +2,7 @@ import SwiftUI
 
 // MARK: - DailyStateCardView
 /// Presentation Layer — 今日狀態摺疊卡片。
-/// 自帶 ViewModel 與 sheet：點卡片開 DailyStateSheet。
+/// 自帶 ViewModel 與 sheet：點卡片開 DailyStateDetailView。
 /// - `.loading`：sparkles + 標題 + circular ProgressView + 讀取文案
 /// - `.loaded`：headline + 第一個佐證 chip + chevron，整卡可點 → sheet
 /// - `.error`/`.empty`：隱藏（不擾民）
@@ -29,7 +29,7 @@ struct DailyStateCardView: View {
             }
             .sheet(isPresented: $showSheet) {
                 if let card = viewModel.state.data {
-                    DailyStateSheet(card: card) {
+                    DailyStateDetailView(card: card) {
                         // 升級：先收掉本 sheet，再透過 InterruptCoordinator 走既有 paywall
                         // （與 FreeTierBanner 同一進場機制；paywall 在 root InterruptHost 呈現）。
                         showSheet = false
