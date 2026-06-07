@@ -33,6 +33,92 @@ final class StateRizoChatViewModelTests: XCTestCase {
         XCTAssertEqual(fake.sendChatCallCount, 1)
     }
 
+    // MARK: - Task 2：scenario 多輪 + 開場
+
+    func test_opening_then_user_reply_appends_messages() async {
+        let fake = FakeRizoRepository(
+            reply: makeReply(text: "最近還好嗎?", sessionId: "s1")
+        )
+        let vm = StateRizoChatViewModel(scenario: "weekly_situation", repository: fake)
+
+        await vm.startOpening()                          // 教練先說話
+        XCTAssertEqual(vm.messages.last?.role, .coach)
+        XCTAssertEqual(vm.messages.count, 1)
+        XCTAssertEqual(fake.lastMessage, "", "開場 message 應為空字串，由後端依 scenario 注入")
+        XCTAssertNil(fake.lastSessionId, "首回合 sessionId 為 nil")
+
+        await vm.send("這週很忙")                          // 用戶回
+        XCTAssertEqual(vm.messages.filter { $0.role == .user }.count, 1)
+        XCTAssertEqual(vm.messages.last?.role, .coach)    // 教練再回
+        XCTAssertEqual(fake.sendChatCallCount, 2)
+        XCTAssertEqual(fake.lastScenario, "weekly_situation")
+    }
+
+    func test_startOpening_isIdempotent_whenMessagesPresent() async {
+        let fake = FakeRizoRepository(
+            reply: makeReply(text: "嗨", sessionId: "s1")
+        )
+        let vm = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+
+        await vm.startOpening()
+        await vm.startOpening()                           // 第二次不應再呼叫後端
+
+        XCTAssertEqual(fake.sendChatCallCount, 1)
+        XCTAssertEqual(vm.messages.count, 1)
+    }
+
+    func test_send_threadsSessionIdOnSecondTurn() async {
+        let fake = FakeRizoRepository(
+            reply: makeReply(text: "了解", sessionId: "sess-9")
+        )
+        let vm = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+
+        await vm.startOpening()
+        XCTAssertNil(fake.lastSessionId)
+
+        await vm.send("膝蓋有點緊")
+        XCTAssertEqual(fake.lastSessionId, "sess-9", "續談應沿用前一回合回的 sessionId")
+    }
+
+    func test_send_emptyText_doesNothing() async {
+        let fake = FakeRizoRepository(
+            reply: makeReply(text: "嗨", sessionId: "s1")
+        )
+        let vm = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+
+        await vm.send("   \n ")
+
+        XCTAssertTrue(vm.messages.isEmpty)
+        XCTAssertEqual(fake.sendChatCallCount, 0)
+    }
+
+    func test_send_clearsDraftOnSubmit() async {
+        let fake = FakeRizoRepository(
+            reply: makeReply(text: "收到", sessionId: "s1")
+        )
+        let vm = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+        vm.draft = "今天很累"
+
+        await vm.send(vm.draft)
+
+        XCTAssertEqual(vm.draft, "")
+    }
+
+    func test_send_failure_appendsCoachFallbackMessage() async {
+        let fake = FakeRizoRepository(
+            reply: makeReply(text: "不會用到", sessionId: "s1")
+        )
+        fake.errorToThrow = StateRizoChatTestError.boom
+        let vm = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+
+        await vm.send("這週很忙")
+
+        // 用戶訊息仍在，教練回覆為 fallback（不可吞錯導致對話卡住）。
+        XCTAssertEqual(vm.messages.filter { $0.role == .user }.count, 1)
+        XCTAssertEqual(vm.messages.last?.role, .coach)
+        XCTAssertFalse(vm.isReplying, "失敗後應釋放 loading 狀態")
+    }
+
     // MARK: - Helpers
 
     private func makeReply(text: String, sessionId: String) -> RizoReply {
