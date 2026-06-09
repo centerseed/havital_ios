@@ -132,6 +132,39 @@ final class WatchCompanionServiceTests: XCTestCase {
         XCTAssertEqual(service.sendTodayPlan(makeTodayPlanDTO()), .notReady(.appNotInstalled))
     }
 
+    // The cold-launch auto-retry decision — the behavioral heart of the next-day fix.
+    func test_resolvePendingSend_noPending_returnsNoPending() {
+        XCTAssertEqual(
+            WatchCompanionService.resolvePendingSend(hasPending: false, availability: .unavailable),
+            .noPending
+        )
+    }
+
+    func test_resolvePendingSend_pendingAndReady_retries() {
+        XCTAssertEqual(
+            WatchCompanionService.resolvePendingSend(hasPending: true, availability: .ready),
+            .retry
+        )
+    }
+
+    func test_resolvePendingSend_pendingButStillActivating_keepsWaiting() {
+        XCTAssertEqual(
+            WatchCompanionService.resolvePendingSend(hasPending: true, availability: .unavailable),
+            .keepWaiting
+        )
+    }
+
+    func test_resolvePendingSend_pendingButTerminalState_fails() {
+        XCTAssertEqual(
+            WatchCompanionService.resolvePendingSend(hasPending: true, availability: .appNotInstalled),
+            .fail(.appNotInstalled)
+        )
+        XCTAssertEqual(
+            WatchCompanionService.resolvePendingSend(hasPending: true, availability: .noWatch),
+            .fail(.noWatch)
+        )
+    }
+
     private func makeTodayPlanDTO() -> WatchPlanSnapshotDTO {
         WatchPlanSnapshotDTO(
             date: "2026-06-05",

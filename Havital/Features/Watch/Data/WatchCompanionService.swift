@@ -90,6 +90,32 @@ final class WatchCompanionService: NSObject, WCSessionDelegate {
         case encodingFailed
     }
 
+    /// What to do with a send that was queued while the session was still activating,
+    /// re-evaluated whenever availability changes. This is the core of the fix for the
+    /// "next-day cold launch can't send" bug, extracted so it is unit-testable rather
+    /// than buried in the View.
+    enum PendingSendResolution: Equatable {
+        case noPending
+        case retry
+        case keepWaiting
+        case fail(WatchAvailability)
+    }
+
+    static func resolvePendingSend(
+        hasPending: Bool,
+        availability: WatchAvailability
+    ) -> PendingSendResolution {
+        guard hasPending else { return .noPending }
+        switch availability {
+        case .ready:
+            return .retry
+        case .unavailable:
+            return .keepWaiting // session still activating — wait for the next change
+        case .appNotInstalled, .noWatch:
+            return .fail(availability)
+        }
+    }
+
     init(session: WatchPlanSessioning = DefaultWatchPlanSession()) {
         self.session = session
         super.init()

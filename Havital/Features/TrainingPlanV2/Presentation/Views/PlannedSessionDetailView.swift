@@ -642,19 +642,22 @@ struct PlannedSessionDetailView: View {
 
     /// Retries a send that was queued while the watch session was still activating.
     private func resolvePendingWatchSend() {
-        guard let pending = pendingWatchActivity else { return }
-        switch watchAvailability {
-        case .ready:
+        switch WatchCompanionService.resolvePendingSend(
+            hasPending: pendingWatchActivity != nil,
+            availability: watchAvailability
+        ) {
+        case .noPending, .keepWaiting:
+            break // nothing queued, or session still activating — wait
+        case .retry:
+            let pending = pendingWatchActivity
             pendingWatchActivity = nil
-            sendToWatch(pending)
-        case .appNotInstalled:
+            if let pending { sendToWatch(pending) }
+        case .fail(.appNotInstalled):
             pendingWatchActivity = nil
             presentWatchAlert("training.detail.install_watch_app_message")
-        case .noWatch:
+        case .fail:
             pendingWatchActivity = nil
             presentWatchAlert("training.detail.watch_send_failed_message")
-        case .unavailable:
-            break // still activating — keep waiting
         }
     }
 
