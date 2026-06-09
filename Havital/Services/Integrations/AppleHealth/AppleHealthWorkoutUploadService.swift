@@ -1,5 +1,6 @@
 import Foundation
 import HealthKit
+import CoreLocation
 
 // MARK: - 錯誤類型定義
 enum AppleHealthWorkoutUploadError: Error {
@@ -351,6 +352,14 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             print("🌡️ [Upload] 環境數據 - 溫度: \(temperature.map { String(format: "%.1f°C", $0) } ?? "N/A"), 天氣: \(weatherCondition ?? "N/A"), 濕度: \(humidity.map { String(format: "%.1f%%", $0) } ?? "N/A"), Effort Score: \(effortScore.map { String(format: "%.1f", $0) } ?? "N/A")")
         }
 
+        // 🗺️ 獲取 GPS 路線數據 (HKWorkoutRoute)
+        let routeLocations = await fetchWorkoutRouteLocations(for: workout)
+        if let locs = routeLocations {
+            print("🗺️ [Upload] GPS 路線: \(locs.count) 個座標點")
+        } else {
+            print("🗺️ [Upload] 無 GPS 路線數據")
+        }
+
         try await postWorkoutDetails(workout: workout,
                                      heartRates: heartRates,
                                      speeds: speeds,
@@ -362,7 +371,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                                      laps: finalRequiredData.lapData,
                                      source: actualSource,
                                      device: actualDevice,
-                                     metadata: workoutMetadata)
+                                     metadata: workoutMetadata,
+                                     locations: routeLocations)
 
         await applyPacerizRPEIfNeeded(from: workout, workoutId: workoutId)
 
@@ -814,7 +824,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                                     laps: [LapData]? = nil,
                                     source: String,
                                     device: String?,
-                                    metadata: WorkoutMetadata? = nil) async throws {
+                                    metadata: WorkoutMetadata? = nil,
+                                    locations: [LocationData]? = nil) async throws {
         let pauseEvents = extractPauseEvents(from: workout)
         if !pauseEvents.isEmpty {
             print("⏸️ [Upload] 偵測到 \(pauseEvents.count) 個 pause/resume 事件，附加到上傳 payload")
@@ -840,7 +851,8 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             source: source,
             device: device,
             metadata: metadata,
-            workoutEvents: pauseEvents.isEmpty ? nil : pauseEvents)
+            workoutEvents: pauseEvents.isEmpty ? nil : pauseEvents,
+            locations: locations)
         
         do {
             // 先嘗試上傳，如果成功就結束
@@ -880,6 +892,56 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         UserDefaults.standard.removeObject(forKey: "WorkoutSummaryCache")
     }
     
+    // MARK: - Route Data Helper
+    private func fetchWorkoutRouteLocations(for workout: HKWorkout) async -> [LocationData]? {
+        let routeType = HKSeriesType.workoutRoute()
+        let predicate = HKQuery.predicateForObjects(from: workout)
+
+        let routes: [HKWorkoutRoute] = await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: routeType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: nil
+            ) { _, samples, _ in
+                continuation.resume(returning: (samples as? [HKWorkoutRoute]) ?? [])
+            }
+            healthKitManager.healthStore.execute(query)
+        }
+
+        guard let route = routes.first else { return nil }
+
+        let locations: [CLLocation] = await withCheckedContinuation { continuation in
+            var allLocations: [CLLocation] = []
+            var didResume = false
+            let routeQuery = HKWorkoutRouteQuery(route: route) { _, newLocations, done, error in
+                if let newLocations {
+                    allLocations.append(contentsOf: newLocations)
+                }
+                // HKWorkoutRouteQuery 在錯誤時可能以 done == false 回呼，必須一併處理，
+                // 否則 continuation 永不 resume → 整個上傳流程卡死。
+                // HK 回呼在內部序列佇列上序列化執行，didResume 不會有 data race。
+                guard !didResume, done || error != nil else { return }
+                didResume = true
+                continuation.resume(returning: allLocations)
+            }
+            healthKitManager.healthStore.execute(routeQuery)
+        }
+
+        guard locations.count >= 2 else { return nil }
+
+        return locations.map { loc in
+            LocationData(
+                time: loc.timestamp.timeIntervalSince1970,
+                latitude: loc.coordinate.latitude,
+                longitude: loc.coordinate.longitude,
+                altitude: loc.altitude,
+                horizontalAccuracy: loc.horizontalAccuracy >= 0 ? loc.horizontalAccuracy : nil,
+                verticalAccuracy: loc.verticalAccuracy >= 0 ? loc.verticalAccuracy : nil
+            )
+        }
+    }
+
     // MARK: - Device Info Helper
     private func getWorkoutDeviceInfo(_ workout: HKWorkout) -> (source: String, device: String?) {
         // 預設值
@@ -1634,6 +1696,7 @@ struct WorkoutData: Codable {
     let device: String?                       // 裝置型號 (如: Apple Watch Series 7, Garmin Forerunner 945 等)
     let metadata: WorkoutMetadata?            // 環境數據（溫度、天氣、濕度等）v2.1+ 新增
     let workoutEvents: [WorkoutEventData]?    // pause/resume 事件，讓後端可精算暫停時長 v2.2+
+    let locations: [LocationData]?            // GPS 路線 (HKWorkoutRoute) v2.2+
 }
 
 // HKWorkoutEvent pause/resume 序列化結構，後端用來驗證 / 補算 moving_duration_s。
@@ -1693,6 +1756,15 @@ struct GroundContactTimeData: Codable {
 struct VerticalOscillationData: Codable {
     let time: TimeInterval
     let value: Double  // 單位：m
+}
+
+struct LocationData: Codable {
+    let time: TimeInterval
+    let latitude: Double
+    let longitude: Double
+    let altitude: Double?
+    let horizontalAccuracy: Double?
+    let verticalAccuracy: Double?
 }
 
 

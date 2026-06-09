@@ -55,6 +55,7 @@ class HealthKitManager: ObservableObject, TaskManageable {
         if let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) {
             typesToRead.insert(sleepType)
         }
+        typesToRead.insert(HKSeriesType.workoutRoute())
 
         // iOS 18+ 新增：Effort Score 類型
         if #available(iOS 18.0, *) {
