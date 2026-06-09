@@ -73,12 +73,21 @@ final class DefaultWatchPlanSession: WatchPlanSessioning {
 final class WatchCompanionService: NSObject, WCSessionDelegate {
     static let shared = WatchCompanionService()
     private let session: WatchPlanSessioning
+    private static let logTag = "WatchCompanion"
 
     enum WatchAvailability: Equatable {
         case ready
         case appNotInstalled
         case noWatch
         case unavailable
+    }
+
+    /// Outcome of a send attempt. Carries WHY a send failed so the UI can show a
+    /// specific, honest message and logs can pinpoint the failing boundary in prod.
+    enum SendOutcome: Equatable {
+        case sent
+        case notReady(WatchAvailability)
+        case encodingFailed
     }
 
     init(session: WatchPlanSessioning = DefaultWatchPlanSession()) {
@@ -102,28 +111,33 @@ final class WatchCompanionService: NSObject, WCSessionDelegate {
     }
 
     @discardableResult
-    func sendTodayPlan(_ dto: WatchPlanSnapshotDTO) -> Bool {
-        guard session.isSupported,
-              sendAvailability == .ready,
-              let userInfo = try? Self.todayPlanUserInfo(for: dto) else {
-            return false
+    func sendTodayPlan(_ dto: WatchPlanSnapshotDTO) -> SendOutcome {
+        let availability = sendAvailability
+        guard availability == .ready else {
+            Logger.warn("sendTodayPlan blocked: availability=\(availability)", tag: Self.logTag)
+            return .notReady(availability)
+        }
+
+        guard let userInfo = try? Self.todayPlanUserInfo(for: dto) else {
+            Logger.error("sendTodayPlan failed: today plan payload encoding failed", tag: Self.logTag)
+            return .encodingFailed
         }
 
         do {
             try session.updateApplicationContext(userInfo)
         } catch {
-            NSLog("WatchCompanionService updateApplicationContext failed: \(error.localizedDescription)")
+            Logger.error("updateApplicationContext failed: \(error.localizedDescription)", tag: Self.logTag)
         }
 
         session.transferUserInfo(userInfo)
 
         if session.isReachable {
             session.sendMessage(userInfo, replyHandler: nil) { error in
-                NSLog("WatchCompanionService sendMessage failed: \(error.localizedDescription)")
+                Logger.error("sendMessage failed: \(error.localizedDescription)", tag: Self.logTag)
             }
         }
 
-        return true
+        return .sent
     }
 
     @discardableResult
@@ -160,10 +174,16 @@ final class WatchCompanionService: NSObject, WCSessionDelegate {
         NotificationCenter.default.post(name: .watchAvailabilityChanged, object: nil)
     }
 
-    func sessionDidBecomeInactive(_ session: WCSession) {}
+    func sessionDidBecomeInactive(_ session: WCSession) {
+        // Availability drops out of `.ready` here; republish so any cached UI state
+        // (e.g. the "send to watch" button) cannot stay stale and accept a tap that
+        // will fail the live guard in `sendTodayPlan`.
+        NotificationCenter.default.post(name: .watchAvailabilityChanged, object: nil)
+    }
 
     func sessionDidDeactivate(_ session: WCSession) {
         self.session.activate()
+        NotificationCenter.default.post(name: .watchAvailabilityChanged, object: nil)
     }
 
     func sessionWatchStateDidChange(_ session: WCSession) {

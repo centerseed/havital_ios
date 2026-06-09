@@ -3508,6 +3508,7 @@
 "training.detail.watch_status_title" = "Apple Watch";
 "training.detail.watch_sent_message" = "Sent to Apple Watch.";
 "training.detail.watch_send_failed_message" = "Couldn’t send this workout to Apple Watch. Try again after the watch is connected.";
+"training.detail.watch_connecting_message" = "Connecting to Apple Watch — this workout will be sent automatically once it’s ready.";
 "training.detail.install_watch_app_message" = "Open the Watch app on iPhone and install Paceriz on your Apple Watch.";
 "training.detail.adjust_day" = "Adjust This Day";
 "training.detail.rest_with_desc" = "Rest: %@";

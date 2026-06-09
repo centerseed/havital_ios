@@ -79,7 +79,7 @@ final class WatchCompanionServiceTests: XCTestCase {
         let service = WatchCompanionService(session: session)
         let dto = makeTodayPlanDTO()
 
-        XCTAssertTrue(service.sendTodayPlan(dto))
+        XCTAssertEqual(service.sendTodayPlan(dto), .sent)
 
         XCTAssertEqual(session.applicationContexts.count, 1)
         XCTAssertEqual(session.transferredUserInfos.count, 1)
@@ -94,12 +94,42 @@ final class WatchCompanionServiceTests: XCTestCase {
         let service = WatchCompanionService(session: session)
         let dto = makeTodayPlanDTO()
 
-        XCTAssertTrue(service.sendTodayPlan(dto))
+        XCTAssertEqual(service.sendTodayPlan(dto), .sent)
 
         XCTAssertEqual(session.applicationContexts.count, 1)
         XCTAssertEqual(session.transferredUserInfos.count, 1)
         XCTAssertEqual(session.sentMessages.count, 1)
         try assertTodayPlanPayload(session.sentMessages[0], equals: dto)
+    }
+
+    // Regression for the "next-day re-send fails" report (user fmc7…):
+    // when the session is not yet activated (cold launch, async activate still in flight),
+    // sendTodayPlan must report WHY it failed and must NOT silently queue a transfer.
+    func test_sendTodayPlan_whenNotActivated_reportsNotReadyAndDoesNotTransfer() {
+        let session = SpyWatchPlanSession()
+        session.activationState = .notActivated
+        let service = WatchCompanionService(session: session)
+
+        XCTAssertEqual(service.sendTodayPlan(makeTodayPlanDTO()), .notReady(.unavailable))
+        XCTAssertEqual(session.applicationContexts.count, 0)
+        XCTAssertEqual(session.transferredUserInfos.count, 0)
+        XCTAssertEqual(session.sentMessages.count, 0)
+    }
+
+    func test_sendTodayPlan_whenWatchNotPaired_reportsNoWatch() {
+        let session = SpyWatchPlanSession()
+        session.isPaired = false
+        let service = WatchCompanionService(session: session)
+
+        XCTAssertEqual(service.sendTodayPlan(makeTodayPlanDTO()), .notReady(.noWatch))
+    }
+
+    func test_sendTodayPlan_whenAppNotInstalled_reportsAppNotInstalled() {
+        let session = SpyWatchPlanSession()
+        session.isWatchAppInstalled = false
+        let service = WatchCompanionService(session: session)
+
+        XCTAssertEqual(service.sendTodayPlan(makeTodayPlanDTO()), .notReady(.appNotInstalled))
     }
 
     private func makeTodayPlanDTO() -> WatchPlanSnapshotDTO {

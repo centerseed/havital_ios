@@ -3505,6 +3505,7 @@
 "training.detail.watch_status_title" = "Apple Watch";
 "training.detail.watch_sent_message" = "Apple Watch に送信しました。";
 "training.detail.watch_send_failed_message" = "このトレーニングを Apple Watch に送信できませんでした。Watch の接続後にもう一度お試しください。";
+"training.detail.watch_connecting_message" = "Apple Watch に接続しています。準備ができ次第、このトレーニングを自動で送信します。";
 "training.detail.install_watch_app_message" = "iPhone の Watch アプリを開き、Apple Watch に Paceriz をインストールしてください。";
 "training.detail.adjust_day" = "この日を調整";
 "training.detail.rest_with_desc" = "レスト：%@";

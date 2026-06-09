@@ -3550,6 +3550,7 @@
 "training.detail.watch_status_title" = "Apple Watch";
 "training.detail.watch_sent_message" = "已傳送到 Apple Watch。";
 "training.detail.watch_send_failed_message" = "無法傳送這次訓練到 Apple Watch。請確認手錶已連線後再試。";
+"training.detail.watch_connecting_message" = "正在連線 Apple Watch，連上後會自動傳送這次訓練。";
 "training.detail.install_watch_app_message" = "請打開 iPhone 上的 Watch app，將 Paceriz 安裝到 Apple Watch。";
 "training.detail.adjust_day" = "調整這一天";
 "training.detail.rest_with_desc" = "組間休息：%@";

@@ -15,6 +15,9 @@ struct PlannedSessionDetailView: View {
     @State private var watchAvailability: WatchCompanionService.WatchAvailability = .unavailable
     @State private var showWatchTransferAlert = false
     @State private var watchTransferMessage = ""
+    // Holds the activity to re-send once the WCSession finishes activating.
+    // Cold-launch activation is async; a tap before it completes would otherwise dead-end.
+    @State private var pendingWatchActivity: RunActivity?
     @AppStorage("climateAdjustmentEnabled") private var climateAdjustmentEnabled = false
 
     init(day: DayDetail, date: Date?, planId: String? = nil) {
@@ -66,6 +69,7 @@ struct PlannedSessionDetailView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .watchAvailabilityChanged)) { _ in
             refreshWatchAvailability()
+            resolvePendingWatchSend()
         }
     }
 
@@ -617,10 +621,45 @@ struct PlannedSessionDetailView: View {
             date: watchPlanDateString,
             planId: planId ?? ""
         )
-        let didSend = WatchCompanionService.shared.sendTodayPlan(dto)
-        watchTransferMessage = didSend
-            ? NSLocalizedString("training.detail.watch_sent_message", comment: "Sent to Apple Watch")
-            : NSLocalizedString("training.detail.watch_send_failed_message", comment: "Failed to send to Apple Watch")
+        switch WatchCompanionService.shared.sendTodayPlan(dto) {
+        case .sent:
+            pendingWatchActivity = nil
+            presentWatchAlert("training.detail.watch_sent_message")
+        case .notReady(.unavailable):
+            // Session not activated yet (cold launch). Kick activation and re-send
+            // automatically once it reports ready, instead of dead-ending on an error.
+            pendingWatchActivity = activity
+            WatchCompanionService.shared.activate()
+            presentWatchAlert("training.detail.watch_connecting_message")
+        case .notReady(.appNotInstalled):
+            pendingWatchActivity = nil
+            presentWatchAlert("training.detail.install_watch_app_message")
+        case .notReady(.noWatch), .notReady(.ready), .encodingFailed:
+            pendingWatchActivity = nil
+            presentWatchAlert("training.detail.watch_send_failed_message")
+        }
+    }
+
+    /// Retries a send that was queued while the watch session was still activating.
+    private func resolvePendingWatchSend() {
+        guard let pending = pendingWatchActivity else { return }
+        switch watchAvailability {
+        case .ready:
+            pendingWatchActivity = nil
+            sendToWatch(pending)
+        case .appNotInstalled:
+            pendingWatchActivity = nil
+            presentWatchAlert("training.detail.install_watch_app_message")
+        case .noWatch:
+            pendingWatchActivity = nil
+            presentWatchAlert("training.detail.watch_send_failed_message")
+        case .unavailable:
+            break // still activating — keep waiting
+        }
+    }
+
+    private func presentWatchAlert(_ key: String) {
+        watchTransferMessage = NSLocalizedString(key, comment: "Apple Watch transfer status")
         showWatchTransferAlert = true
     }
 
