@@ -38,8 +38,18 @@ final class PermissionGate: NSObject {
         }
     }
 
+    #if DEBUG
+    /// Set by the `-injectTodayPlan` sync-test hook so the simulator can render the
+    /// synced start view — HealthKit authorization cannot be granted headlessly via
+    /// simctl, so the gate would otherwise always block on the sim.
+    static var debugAssumeGranted = false
+    #endif
+
     func allGranted() -> Bool {
-        Self.hasAllRequiredPermissions(
+        #if DEBUG
+        if Self.debugAssumeGranted { return true }
+        #endif
+        return Self.hasAllRequiredPermissions(
             locationStatus: locationManager.authorizationStatus,
             healthSharingStatuses: Self.requiredHealthShareTypes.map {
                 healthStore.authorizationStatus(for: $0)

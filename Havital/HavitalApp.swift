@@ -84,6 +84,20 @@ struct HavitalApp: App {
         print("📦 所有模組依賴已優先註冊")
 
         #if DEBUG
+        // Sync transport test hook: after the WCSession has had time to activate, push a
+        // sample plan through the REAL send path so we can observe whether a paired
+        // simulator actually delivers it to the watch. Launch with `-watchSyncSendTest`.
+        if ProcessInfo.processInfo.arguments.contains("-watchSyncSendTest") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                let outcome = WatchCompanionService.shared.sendTodayPlan(
+                    WatchSyncSendTestFixture.todayPlanDTO()
+                )
+                print("🧪 [watchSyncSendTest] sendTodayPlan outcome=\(outcome)")
+            }
+        }
+        #endif
+
+        #if DEBUG
         if CommandLine.arguments.contains("-useStoreKitTestRepository") {
             DependencyContainer.shared.replace(
                 StoreKitTestSubscriptionRepository() as SubscriptionRepository,
