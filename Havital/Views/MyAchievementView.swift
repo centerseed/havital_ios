@@ -273,50 +273,9 @@ struct MyAchievementView: View {
         
         LongScreenshotCapture.captureView(
             VStack(spacing: 20) {
-                // Training Readiness Section
-                VStack(alignment: .leading, spacing: 12) {
-                    SectionTitleWithInfo(
-                        title: NSLocalizedString("training_readiness.title", comment: ""),
-                        explanation: NSLocalizedString("training_readiness.description", comment: "")
-                    )
-                    .padding(.horizontal)
-                    .padding(.top, 12)
-
-                    TrainingReadinessView()
-                        .padding()
+                ForEach(defaultPerformanceShareSections(), id: \.self) { section in
+                    performanceShareSectionView(section)
                 }
-                .cardStyle()
-                .padding(.horizontal)
-
-                // Training Load Chart Section
-                TrainingLoadChartSection()
-                    .environmentObject(healthKitManager)
-                    .environmentObject(sharedHealthDataManager)
-
-                // Weekly Volume Chart Section
-                VStack(alignment: .leading, spacing: 12) {
-                    SectionTitleWithInfo(
-                        title: NSLocalizedString("performance.weekly_volume_trend", comment: "Weekly Volume Trend"),
-                        explanation: NSLocalizedString("performance.weekly_volume_trend_description", comment: "Shows your weekly running mileage changes, helping you track training volume trends and adjust training plans.")
-                    )
-                    .padding(.horizontal)
-                    .padding(.top, 12)
-                    
-                    WeeklyVolumeChartView(showTitle: false)
-                        .padding()
-                }
-                .cardStyle()
-                .padding(.horizontal)
-
-                // Combined Heart Rate Chart Section
-                CombinedHeartRateChartSection()
-                    .environmentObject(healthKitManager)
-                    .environmentObject(sharedHealthDataManager)
-
-                // Training Load Chart Section
-                TrainingLoadChartSection()
-                    .environmentObject(healthKitManager)
-                    .environmentObject(sharedHealthDataManager)
             }
             .padding(.vertical)
             .background(Color(UIColor.systemGroupedBackground))
@@ -326,6 +285,48 @@ struct MyAchievementView: View {
                 self.shareImage = image
                 self.showShareSheet = true
             }
+        }
+    }
+
+    @ViewBuilder
+    private func performanceShareSectionView(_ section: PerformanceShareSection) -> some View {
+        switch section {
+        case .trainingReadiness:
+            VStack(alignment: .leading, spacing: 12) {
+                SectionTitleWithInfo(
+                    title: NSLocalizedString("training_readiness.title", comment: ""),
+                    explanation: NSLocalizedString("training_readiness.description", comment: "")
+                )
+                .padding(.horizontal)
+                .padding(.top, 12)
+
+                TrainingReadinessView()
+                    .padding()
+            }
+            .cardStyle()
+            .padding(.horizontal)
+        case .trainingLoad:
+            TrainingLoadChartSection()
+                .environmentObject(healthKitManager)
+                .environmentObject(sharedHealthDataManager)
+        case .weeklyVolume:
+            VStack(alignment: .leading, spacing: 12) {
+                SectionTitleWithInfo(
+                    title: NSLocalizedString("performance.weekly_volume_trend", comment: "Weekly Volume Trend"),
+                    explanation: NSLocalizedString("performance.weekly_volume_trend_description", comment: "Shows your weekly running mileage changes, helping you track training volume trends and adjust training plans.")
+                )
+                .padding(.horizontal)
+                .padding(.top, 12)
+
+                WeeklyVolumeChartView(showTitle: false)
+                    .padding()
+            }
+            .cardStyle()
+            .padding(.horizontal)
+        case .combinedHeartRate:
+            CombinedHeartRateChartSection()
+                .environmentObject(healthKitManager)
+                .environmentObject(sharedHealthDataManager)
         }
     }
 
@@ -357,6 +358,22 @@ enum HeartRateChartTab: String, CaseIterable {
             return NSLocalizedString("performance.resting_hr", comment: "Resting HR")
         }
     }
+}
+
+enum PerformanceShareSection: Hashable {
+    case trainingReadiness
+    case trainingLoad
+    case weeklyVolume
+    case combinedHeartRate
+}
+
+func defaultPerformanceShareSections() -> [PerformanceShareSection] {
+    [
+        .trainingReadiness,
+        .trainingLoad,
+        .weeklyVolume,
+        .combinedHeartRate,
+    ]
 }
 
 enum TrainingLoadChartTab: String, CaseIterable {
