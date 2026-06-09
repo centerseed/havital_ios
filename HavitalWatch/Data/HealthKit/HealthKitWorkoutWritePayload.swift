@@ -2,6 +2,13 @@ import HealthKit
 
 enum HealthKitWorkoutWritePayload {
     static let rpeMetadataKey = "com.paceriz.rpe"
+    /// Marks the workout as recorded by the Paceriz watchOS app specifically (vs the
+    /// iPhone app or a backend-synced Garmin/Strava import). HealthKit's source revision
+    /// already carries the watch bundle id, but an explicit marker survives the backend
+    /// round-trip and is unambiguous to query.
+    static let recordedByMetadataKey = "com.paceriz.recorded_by"
+    static let recordedByValue = "watchos_app"
+    static let brandName = "Paceriz"
 
     static func configuration(indoor: Bool) -> HKWorkoutConfiguration {
         let configuration = HKWorkoutConfiguration()
@@ -15,7 +22,9 @@ enum HealthKitWorkoutWritePayload {
 
         var metadata: [String: Any] = [
             WorkoutUUIDValidator.metadataKey: workoutUUID,
-            HKMetadataKeyIndoorWorkout: indoor
+            HKMetadataKeyIndoorWorkout: indoor,
+            HKMetadataKeyWorkoutBrandName: brandName,
+            recordedByMetadataKey: recordedByValue
         ]
 
         if let rpe, (1...10).contains(rpe) {

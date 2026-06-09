@@ -27,6 +27,22 @@ final class HealthKitWorkoutWritePayloadTests: XCTestCase {
         XCTAssertEqual(metadata?[HealthKitWorkoutWritePayload.rpeMetadataKey] as? Int, 7)
     }
 
+    func test_metadata_marksWorkoutAsRecordedByPacerizWatchApp() {
+        let metadata = HealthKitWorkoutWritePayload.metadata(
+            workoutUUID: "9b2e4f1a-3c4d-4e5f-8a9b-0c1d2e3f4a5b",
+            indoor: false,
+            rpe: nil
+        )
+
+        // Attribution must be present on every Paceriz-watch-written workout so the
+        // backend / Health app can tell it apart from imports and the iPhone app.
+        XCTAssertEqual(metadata?[HKMetadataKeyWorkoutBrandName] as? String, "Paceriz")
+        XCTAssertEqual(
+            metadata?[HealthKitWorkoutWritePayload.recordedByMetadataKey] as? String,
+            "watchos_app"
+        )
+    }
+
     func test_metadataRejectsInvalidUUIDAndOmitsInvalidRPE() {
         XCTAssertNil(
             HealthKitWorkoutWritePayload.metadata(
