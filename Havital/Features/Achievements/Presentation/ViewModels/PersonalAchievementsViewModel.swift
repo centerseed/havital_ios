@@ -219,9 +219,13 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
     }
 
     private static func cloudFailure(_ error: Error) {
+        // 瞬時網路錯誤（逾時 / 連線中斷）降為 .warn，避免用戶端網路抖動淹沒真正的 .error。
+        // UI 仍維持 .error 狀態，讓使用者可下拉重試。
+        let level: LogLevel = error.isTransientNetworkError ? .warn : .error
+
         Logger.firebase(
             "Achievements screen entered error state",
-            level: .error,
+            level: level,
             labels: [
                 "cloud_logging": "true",
                 "component": "Achievements",

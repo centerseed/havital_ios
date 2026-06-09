@@ -95,9 +95,13 @@ final class AchievementRemoteDataSource {
             payload["response_byte_count"] = responseByteCount
         }
 
+        // 瞬時網路錯誤（逾時 / 連線中斷）多為使用者端網路抖動，HTTPClient 已自動重試，
+        // 降為 .warn 以免淹沒真正的問題（如 decode 失敗 = schema 不匹配，維持 .error）。
+        let level: LogLevel = error.isTransientNetworkError ? .warn : .error
+
         Logger.firebase(
             "Achievements summary load failed",
-            level: .error,
+            level: level,
             labels: [
                 "cloud_logging": "true",
                 "component": "Achievements",

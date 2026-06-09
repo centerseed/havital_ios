@@ -1271,22 +1271,13 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
     
     /// 檢查是否為預期的錯誤（不應記為 error）
     static func isExpectedUploadError(_ error: Error) -> Bool {
-        // Use standardized isCancellationError extension for cancellation checks
+        // 取消與瞬時網路錯誤（逾時 / 連線中斷 / 無網路）使用統一判斷（見 ErrorHelpers）
         if error.isCancellationError { return true }
-
-        // 網路暫時性錯誤
-        if let urlError = error as? URLError {
-            switch urlError.code {
-            case .notConnectedToInternet, .networkConnectionLost, .timedOut:
-                return true
-            default:
-                break
-            }
-        }
+        if error.isTransientNetworkError { return true }
 
         // 429 Too Many Requests
         if (error as NSError).code == 429 { return true }
-        
+
         return false
     }
 

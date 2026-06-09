@@ -65,4 +65,48 @@ extension Error {
 
         return false
     }
+
+    /// 檢查錯誤是否為瞬時網路錯誤（逾時 / 連線中斷 / 無網路）。
+    ///
+    /// 這類錯誤多半來自使用者端網路抖動（行動網路切換、前景/背景轉換等），
+    /// 而非後端或 App 本身的缺陷——HTTPClient 已對其自動重試（見 `isRetryableURLError`）。
+    /// 因此記錄到 Cloud Logging 時應降為 `.warn`，避免淹沒真正的 `.error`（例如 decode 失敗）。
+    ///
+    /// 涵蓋各層映射後的同義錯誤：
+    /// - URLError：`.timedOut` / `.networkConnectionLost` / `.notConnectedToInternet`
+    /// - HTTPError：`.timeout` / `.noConnection`（由 `mapURLErrorToHTTPError` 映射而來）
+    /// - DomainError：`.timeout` / `.noConnection`（Repository 邊界映射而來）
+    var isTransientNetworkError: Bool {
+        // 1. URLError（原始網路層）
+        if let urlError = self as? URLError {
+            switch urlError.code {
+            case .timedOut, .networkConnectionLost, .notConnectedToInternet:
+                return true
+            default:
+                break
+            }
+        }
+
+        // 2. HTTPError（HTTPClient 映射後）
+        if let httpError = self as? HTTPError {
+            switch httpError {
+            case .timeout, .noConnection:
+                return true
+            default:
+                break
+            }
+        }
+
+        // 3. DomainError（Repository 邊界映射後）
+        if let domainError = self as? DomainError {
+            switch domainError {
+            case .timeout, .noConnection:
+                return true
+            default:
+                break
+            }
+        }
+
+        return false
+    }
 }
