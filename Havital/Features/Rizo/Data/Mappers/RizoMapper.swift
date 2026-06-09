@@ -13,7 +13,26 @@ struct RizoMapper {
             reply: dto.response,
             sessionId: dto.sessionId,
             quota: toQuota(from: dto.quota),
-            safety: toSafety(from: dto.safety)
+            safety: toSafety(from: dto.safety),
+            pendingPlanChange: dto.pendingPlanChange.map(toPendingPlanChange(from:))
+        )
+    }
+
+    /// PendingPlanChangeDTO → PendingPlanChange
+    static func toPendingPlanChange(from dto: PendingPlanChangeDTO) -> PendingPlanChange {
+        return PendingPlanChange(
+            proposalId: dto.proposalId,
+            summary: dto.summary,
+            safetyLevel: dto.safetyLevel,
+            requiresSubscription: dto.requiresSubscription
+        )
+    }
+
+    /// PlanChangeConfirmResponseDTO → PlanChangeConfirmResult
+    static func toConfirmResult(from dto: PlanChangeConfirmResponseDTO) -> PlanChangeConfirmResult {
+        return PlanChangeConfirmResult(
+            applied: dto.applied ?? (dto.status == "applied"),
+            status: dto.status
         )
     }
 

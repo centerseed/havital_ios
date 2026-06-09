@@ -3596,6 +3596,11 @@
 "rizo.chat.coachBadge" = "Coach";
 "rizo.chat.inputPlaceholder" = "Tell Rizo how today felt…";
 "rizo.chat.error" = "Rizo can't reply right now. Please try again later";
+"rizo.plan_change.title" = "Plan adjustment";
+"rizo.plan_change.accept" = "Accept";
+"rizo.plan_change.discuss" = "Keep discussing";
+"rizo.plan_change.applied" = "Applied — your plan is updated";
+"rizo.plan_change.confirm_failed" = "Couldn't apply. Please try again later";
 
 /* Daily state detail page: Rizo chat section title */
 "daily_state.chat_section_title" = "Chat with coach Rizo";

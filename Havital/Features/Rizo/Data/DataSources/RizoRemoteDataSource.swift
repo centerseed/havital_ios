@@ -50,6 +50,24 @@ final class RizoRemoteDataSource {
         return RizoMapper.toReply(from: dto)
     }
 
+    // MARK: - Plan Change
+
+    /// 確認並套用先前提出的改課表提案。
+    /// API: POST /v2/agent/plan-change/confirm
+    func confirmPlanChange(proposalId: String) async throws -> PlanChangeConfirmResult {
+        let path = "/v2/agent/plan-change/confirm"
+
+        Logger.debug("[RizoRemoteDataSource] confirmPlanChange - proposalId: \(proposalId)")
+
+        let bodyData = try JSONEncoder().encode(["proposal_id": proposalId])
+
+        let rawData = try await tracked("RizoRemoteDataSource: confirmPlanChange") {
+            try await httpClient.request(path: path, method: .POST, body: bodyData)
+        }
+        let dto = try ResponseProcessor.extractData(PlanChangeConfirmResponseDTO.self, from: rawData, using: parser)
+        return RizoMapper.toConfirmResult(from: dto)
+    }
+
     // MARK: - Presets
 
     /// 取得指定情境的預設快捷選項。

@@ -63,6 +63,10 @@ final class RizoRepositoryImpl: RizoRepository {
     func getHistory() async throws -> [RizoHistoryItem] {
         return try await remoteDataSource.fetchHistory()
     }
+
+    func confirmPlanChange(proposalId: String) async throws -> PlanChangeConfirmResult {
+        return try await remoteDataSource.confirmPlanChange(proposalId: proposalId)
+    }
 }
 
 // MARK: - DependencyContainer Registration

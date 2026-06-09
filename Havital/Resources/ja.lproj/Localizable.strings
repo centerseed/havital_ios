@@ -3593,6 +3593,11 @@
 "rizo.chat.coachBadge" = "コーチ";
 "rizo.chat.inputPlaceholder" = "今日の感覚を Rizo に話してみよう…";
 "rizo.chat.error" = "Rizo は今返信できません。後でもう一度お試しください";
+"rizo.plan_change.title" = "プラン調整";
+"rizo.plan_change.accept" = "適用する";
+"rizo.plan_change.discuss" = "相談を続ける";
+"rizo.plan_change.applied" = "適用しました。プランを更新しました";
+"rizo.plan_change.confirm_failed" = "適用できませんでした。後でもう一度お試しください";
 
 /* 今日の状態 詳細ページ：Rizo チャットセクションのタイトル */
 "daily_state.chat_section_title" = "コーチ Rizo と話す";
