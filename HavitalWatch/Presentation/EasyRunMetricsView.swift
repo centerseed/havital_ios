@@ -4,28 +4,33 @@ struct EasyRunMetricsView: View {
     @ObservedObject var vm: ActiveWorkoutViewModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 8) {
             Text(String(format: String(localized: "watch.easy.title"), targetText))
-                .font(.caption2)
-                .foregroundStyle(.green)
+                .font(WatchTheme.metricLabel)
+                .foregroundStyle(WatchTheme.brand)
             Text(WatchFormatting.time(vm.seconds))
-                .font(.system(size: 44, weight: .semibold, design: .rounded))
-                .foregroundStyle(.green)
+                .font(WatchTheme.metricValue(46))
+                .foregroundStyle(.white)
                 .monospacedDigit()
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
             PaceGuidanceView(
                 currentPaceSecPerKm: WatchFormatting.paceSecondsPerKm(speedMps: vm.recentSpeedMps),
                 targetLowSecPerKm: targetPaceLow,
                 targetHighSecPerKm: targetPaceHigh
             )
-            Text(WatchFormatting.distance(vm.meters))
-                .font(.body)
-            Label("\(Int(vm.heartRate))", systemImage: "heart.fill")
-                .foregroundStyle(.red)
+            HStack(alignment: .bottom, spacing: 10) {
+                WatchMetric(label: String(localized: "watch.summary.distance"),
+                            value: WatchFormatting.distance(vm.meters),
+                            valueColor: .white, valueSize: 20)
+                WatchMetric(label: String(localized: "watch.summary.hr"),
+                            value: "\(Int(vm.heartRate))",
+                            valueColor: WatchTheme.heartRate, valueSize: 20)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .padding()
-        .padding(.top, 22)
-        .background(Color.black)
+        .padding(.horizontal)
+        .background(WatchTheme.activeBackground)
         .foregroundStyle(.white)
     }
 

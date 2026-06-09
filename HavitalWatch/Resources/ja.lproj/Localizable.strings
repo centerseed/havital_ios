@@ -50,6 +50,7 @@
 "watch.easy.title" = "イージーラン %@";
 
 // Workout summary
+"watch.summary.title" = "完了！";
 "watch.summary.distance" = "距離";
 "watch.summary.time" = "時間";
 "watch.summary.pace" = "平均ペース";

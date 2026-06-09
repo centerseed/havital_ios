@@ -12,7 +12,7 @@ struct WorkoutControlView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .tint(isPaused ? .green : .orange)
+            .tint(isPaused ? WatchTheme.brand : WatchTheme.tooFast)
 
             Button(role: .destructive, action: end) {
                 Label("watch.control.end", systemImage: "stop.fill")
@@ -22,7 +22,7 @@ struct WorkoutControlView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
-        .background(Color.black)
+        .background(WatchTheme.activeBackground)
         .foregroundStyle(.white)
     }
 }

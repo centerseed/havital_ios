@@ -6,15 +6,16 @@ struct IntervalMetricsView: View {
     var body: some View {
         let segment = vm.currentSegment
 
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(stepTitle(segment))
-                .font(.caption2)
-                .foregroundStyle(.blue)
+                .font(WatchTheme.metricLabel)
+                .foregroundStyle(segment?.kind == .rest ? WatchTheme.neutral : WatchTheme.brand)
             Text(primaryMetric(segment))
-                .font(.system(size: 42, weight: .semibold, design: .rounded))
-                .foregroundStyle(.green)
+                .font(WatchTheme.metricValue(44))
+                .foregroundStyle(segment?.kind == .rest ? WatchTheme.tooFast : .white)
                 .monospacedDigit()
                 .minimumScaleFactor(0.72)
+                .lineLimit(1)
             if segment?.kind == .rest {
                 Text(nextSegmentText())
                     .font(.caption2)
@@ -26,12 +27,12 @@ struct IntervalMetricsView: View {
                 targetHighSecPerKm: segment?.paceHighSecPerKm
             )
             Label("\(Int(vm.heartRate))", systemImage: "heart.fill")
-                .foregroundStyle(.red)
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
+                .foregroundStyle(WatchTheme.heartRate)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .padding()
-        .padding(.top, 22)
-        .background(Color.black)
+        .padding(.horizontal)
+        .background(WatchTheme.activeBackground)
         .foregroundStyle(.white)
     }
 

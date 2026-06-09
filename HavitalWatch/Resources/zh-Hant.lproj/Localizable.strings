@@ -50,6 +50,7 @@
 "watch.easy.title" = "輕鬆跑 %@";
 
 // Workout summary
+"watch.summary.title" = "完成！";
 "watch.summary.distance" = "總距離";
 "watch.summary.time" = "總時間";
 "watch.summary.pace" = "均速";

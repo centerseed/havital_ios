@@ -50,6 +50,7 @@
 "watch.easy.title" = "Easy Run %@";
 
 // Workout summary
+"watch.summary.title" = "Finished!";
 "watch.summary.distance" = "Distance";
 "watch.summary.time" = "Time";
 "watch.summary.pace" = "Avg Pace";

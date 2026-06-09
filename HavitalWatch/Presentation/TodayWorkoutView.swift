@@ -10,18 +10,18 @@ struct TodayWorkoutView: View {
                 if let snapshot = vm.snapshot {
                     startView(snapshot)
                 } else {
-                    WelcomeView(title: String(localized: "watch.welcome.noPlan.title"), message: String(localized: "watch.welcome.noPlan.body"))
+                    WelcomeView(title: String(localized: "watch.welcome.noPlan.title"), message: String(localized: "watch.welcome.noPlan.body"), systemImage: "figure.run")
                 }
             case .requiresPermission:
                 PermissionView {
                     vm.requestPermissions()
                 }
             case .blockedRestDay:
-                WelcomeView(title: String(localized: "watch.welcome.rest.title"), message: String(localized: "watch.welcome.rest.body"))
+                WelcomeView(title: String(localized: "watch.welcome.rest.title"), message: String(localized: "watch.welcome.rest.body"), systemImage: "moon.zzz.fill")
             case .blockedUnsupportedType:
-                WelcomeView(title: String(localized: "watch.welcome.unsupported.title"), message: String(localized: "watch.welcome.unsupported.body"))
+                WelcomeView(title: String(localized: "watch.welcome.unsupported.title"), message: String(localized: "watch.welcome.unsupported.body"), systemImage: "exclamationmark.triangle.fill")
             case .blockedNeedSyncFromPhone:
-                WelcomeView(title: String(localized: "watch.welcome.waiting.title"), message: String(localized: "watch.welcome.waiting.body"))
+                WelcomeView(title: String(localized: "watch.welcome.waiting.title"), message: String(localized: "watch.welcome.waiting.body"), systemImage: "iphone.gen3")
             }
         }
         .onAppear {
@@ -38,16 +38,20 @@ struct TodayWorkoutView: View {
     private func startView(_ snapshot: WatchPlanSnapshot) -> some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
-                Text(String(format: String(localized: "watch.today.synced"), snapshot.date, flowTitle(snapshot.flowType)))
-                    .font(.caption2)
-                    .foregroundStyle(.green)
+                Label {
+                    Text(String(format: String(localized: "watch.today.synced"), snapshot.date, flowTitle(snapshot.flowType)))
+                } icon: {
+                    Image(systemName: "checkmark.circle.fill")
+                }
+                .font(WatchTheme.metricLabel)
+                .foregroundStyle(WatchTheme.brand)
                 Text(summary(snapshot))
-                    .font(.system(size: 30, weight: .semibold, design: .rounded))
-                    .minimumScaleFactor(0.72)
+                    .font(WatchTheme.metricValue(32))
+                    .minimumScaleFactor(0.7)
                     .lineLimit(2)
                 Text(routeLabel(snapshot.flowType))
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(WatchTheme.neutral)
                 VStack(alignment: .leading, spacing: 3) {
                     ForEach(detailLines(snapshot), id: \.self) { line in
                         Text(line)
@@ -56,22 +60,23 @@ struct TodayWorkoutView: View {
                             .minimumScaleFactor(0.64)
                     }
                 }
-                .foregroundStyle(.secondary)
+                .foregroundStyle(WatchTheme.neutral)
 
                 NavigationLink {
                     ActiveWorkoutRootView(snapshot: snapshot)
                 } label: {
                     Label("watch.today.start", systemImage: "play.fill")
+                        .frame(maxWidth: .infinity)
                 }
-                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .font(.system(size: 16, weight: .semibold, design: .rounded))
                 .buttonStyle(.borderedProminent)
-                .tint(.green)
+                .tint(WatchTheme.brand)
                 .padding(.top, 4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
         }
-        .background(Color.black)
+        .background(WatchTheme.ambientBackground)
         .foregroundStyle(.white)
     }
 
