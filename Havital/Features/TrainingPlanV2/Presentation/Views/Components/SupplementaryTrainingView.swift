@@ -161,7 +161,8 @@ private struct CrossSupplementaryView: View {
                             durationSeconds: 60,
                             weightKg: nil,
                             restSeconds: 30,
-                            description: "保持核心穩定"
+                            description: "保持核心穩定",
+                            seriesId: nil
                         ),
                         Exercise(
                             exerciseId: nil,
@@ -171,7 +172,8 @@ private struct CrossSupplementaryView: View {
                             durationSeconds: nil,
                             weightKg: nil,
                             restSeconds: 30,
-                            description: "控制動作"
+                            description: "控制動作",
+                            seriesId: nil
                         )
                     ],
                     durationMinutes: 15,
@@ -198,7 +200,8 @@ private struct CrossSupplementaryView: View {
                             durationSeconds: nil,
                             weightKg: nil,
                             restSeconds: 30,
-                            description: "強化臀部肌群"
+                            description: "強化臀部肌群",
+                            seriesId: nil
                         )
                     ],
                     durationMinutes: 10,
@@ -217,7 +220,8 @@ private struct CrossSupplementaryView: View {
                             durationSeconds: 45,
                             weightKg: nil,
                             restSeconds: 30,
-                            description: ""
+                            description: "",
+                            seriesId: nil
                         )
                     ],
                     durationMinutes: 8,

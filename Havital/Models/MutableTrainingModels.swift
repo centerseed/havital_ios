@@ -53,7 +53,8 @@ struct MutableExercise: Identifiable, Equatable {
             durationSeconds: durationSeconds,
             weightKg: weightKg,
             restSeconds: restSeconds,
-            description: description
+            description: description,
+            seriesId: nil
         )
     }
 }

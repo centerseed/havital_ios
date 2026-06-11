@@ -122,6 +122,7 @@ struct Exercise: Codable, Equatable {
     let weightKg: Double?
     let restSeconds: Int?
     let description: String?
+    let seriesId: String?
 
     enum CodingKeys: String, CodingKey {
         case exerciseId = "exercise_id"
@@ -132,6 +133,7 @@ struct Exercise: Codable, Equatable {
         case weightKg = "weight_kg"
         case restSeconds = "rest_seconds"
         case description
+        case seriesId = "series_id"
     }
 }
 

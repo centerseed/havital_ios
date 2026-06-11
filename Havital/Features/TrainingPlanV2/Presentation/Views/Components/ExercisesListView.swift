@@ -124,7 +124,8 @@ private struct ExerciseRowView: View {
                 durationSeconds: 60,
                 weightKg: nil,
                 restSeconds: 30,
-                description: "保持核心穩定，身體呈一直線"
+                description: "保持核心穩定，身體呈一直線",
+                seriesId: nil
             ),
             Exercise(
                 exerciseId: nil,
@@ -134,7 +135,8 @@ private struct ExerciseRowView: View {
                 durationSeconds: nil,
                 weightKg: nil,
                 restSeconds: 30,
-                description: "控制動作，避免下背離地"
+                description: "控制動作，避免下背離地",
+                seriesId: nil
             ),
             Exercise(
                 exerciseId: nil,
@@ -144,7 +146,8 @@ private struct ExerciseRowView: View {
                 durationSeconds: 45,
                 weightKg: nil,
                 restSeconds: 30,
-                description: "左右各做一組"
+                description: "左右各做一組",
+                seriesId: nil
             )
         ]
     )
@@ -162,7 +165,8 @@ private struct ExerciseRowView: View {
                 durationSeconds: nil,
                 weightKg: 40.0,
                 restSeconds: 60,
-                description: "膝蓋與腳尖方向一致"
+                description: "膝蓋與腳尖方向一致",
+                seriesId: nil
             ),
             Exercise(
                 exerciseId: nil,
@@ -172,7 +176,8 @@ private struct ExerciseRowView: View {
                 durationSeconds: nil,
                 weightKg: 60.0,
                 restSeconds: 90,
-                description: "保持背部平直"
+                description: "保持背部平直",
+                seriesId: nil
             )
         ]
     )
@@ -190,7 +195,8 @@ private struct ExerciseRowView: View {
                 durationSeconds: 120,
                 weightKg: nil,
                 restSeconds: 60,
-                description: ""
+                description: "",
+                seriesId: nil
             ),
             Exercise(
                 exerciseId: nil,
@@ -200,7 +206,8 @@ private struct ExerciseRowView: View {
                 durationSeconds: nil,
                 weightKg: nil,
                 restSeconds: 45,
-                description: ""
+                description: "",
+                seriesId: nil
             )
         ]
     )

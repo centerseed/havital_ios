@@ -182,7 +182,8 @@ enum TrainingSessionMapper {
             durationSeconds: dto.durationSeconds,
             weightKg: dto.weightKg,
             restSeconds: dto.restSeconds,
-            description: dto.description
+            description: dto.description,
+            seriesId: dto.seriesId
         )
     }
 
@@ -199,7 +200,8 @@ enum TrainingSessionMapper {
             durationSeconds: entity.durationSeconds,
             weightKg: entity.weightKg,
             restSeconds: entity.restSeconds,
-            description: entity.description
+            description: entity.description,
+            seriesId: entity.seriesId
         )
     }
 

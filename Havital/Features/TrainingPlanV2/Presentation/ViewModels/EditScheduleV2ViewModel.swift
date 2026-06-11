@@ -179,7 +179,8 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
                     durationSeconds: exercise.durationSeconds,
                     weightKg: exercise.weightKg,
                     restSeconds: exercise.restSeconds,
-                    description: exercise.description
+                    description: exercise.description,
+                    seriesId: nil
                 )
             }
             primary = .strength(StrengthActivityDTO(
@@ -253,7 +254,8 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
                                     durationSeconds: ex.durationSeconds,
                                     weightKg: ex.weightKg,
                                     restSeconds: ex.restSeconds,
-                                    description: ex.description
+                                    description: ex.description,
+                                    seriesId: ex.seriesId
                                 )
                             },
                             durationMinutes: strengthActivity.durationMinutes,

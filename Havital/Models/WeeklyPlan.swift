@@ -276,7 +276,7 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                 trainingType = "strength"
                 let exercises: [ExerciseV2]? = strength?.exercises?.compactMap { ex -> ExerciseV2? in
                     guard let name = ex.name else { return nil }
-                    return ExerciseV2(exerciseId: ex.exercise_id, name: name, sets: ex.sets, reps: ex.reps != nil ? "\(ex.reps!)" : nil, durationSeconds: ex.duration_seconds, weightKg: nil, restSeconds: nil, description: ex.description ?? "")
+                    return ExerciseV2(exerciseId: ex.exercise_id, name: name, sets: ex.sets, reps: ex.reps != nil ? "\(ex.reps!)" : nil, durationSeconds: ex.duration_seconds, weightKg: nil, restSeconds: nil, description: ex.description ?? "", seriesId: nil)
                 }
                 trainingDetails = TrainingDetails(
                     description: strength?.description,
