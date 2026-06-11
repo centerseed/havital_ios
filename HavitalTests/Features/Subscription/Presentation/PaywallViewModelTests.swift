@@ -400,6 +400,48 @@ final class PaywallViewModelTests: XCTestCase {
         XCTAssertEqual(monthly?.displayPrice, "NT$180/月", "Monthly display price must be early-bird price")
     }
 
+    /// 回歸（關鍵）：6/30 後、非 Starter 買斷者 → 即使 graduate offering 存在也只看到標準價、無早鳥。
+    /// 防營收漏洞「人人過 6/30 還看到早鳥」。
+    func test_afterSunset_nonEligible_showsStandardNoEarlyBird_evenWhenGraduateExists() async {
+        repository.offeringsToReturn = MockSubscriptionRepository.makeGraduateAndDefaultOfferings()
+        repository.isEarlyBirdOfferingResult = false          // 公開早鳥 6/30 已退場
+        repository.currentOfferingIdentifierResult = "default"
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none, canOfferPacerizEb1: false))
+
+        await sut.loadOfferings()
+
+        XCTAssertFalse(sut.shouldShowEarlyBirdSection, "非買斷者過 6/30 不該顯示早鳥區段")
+        let packages = sut.displayPackages
+        XCTAssertFalse(packages.isEmpty)
+        for pkg in packages {
+            XCTAssertFalse(pkg.isEarlyBird, "非買斷者不該看到早鳥標記")
+            XCTAssertNil(pkg.originalPriceLineThrough, "非買斷者不該有早鳥刪除線價")
+        }
+        XCTAssertTrue(
+            packages.allSatisfy { !$0.package.productId.hasSuffix(".eb1") },
+            "非買斷者絕不該拿到 eb1 SKU"
+        )
+    }
+
+    /// 6/30 後、有 Starter 買斷者 → 走 graduate offering，看到 eb1 早鳥價。
+    func test_afterSunset_eligible_showsGraduateEb1() async {
+        repository.offeringsToReturn = MockSubscriptionRepository.makeGraduateAndDefaultOfferings()
+        repository.isEarlyBirdOfferingResult = false
+        repository.currentOfferingIdentifierResult = "default"
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none, canOfferPacerizEb1: true))
+
+        await sut.loadOfferings()
+
+        XCTAssertTrue(sut.shouldShowEarlyBirdSection, "買斷畢業生過 6/30 仍應顯示早鳥區段")
+        let packages = sut.displayPackages
+        XCTAssertFalse(packages.isEmpty)
+        XCTAssertTrue(packages.allSatisfy { $0.isEarlyBird }, "畢業生包應標記早鳥")
+        XCTAssertTrue(
+            packages.allSatisfy { $0.package.productId.hasSuffix(".eb1") },
+            "畢業生應拿到 eb1 SKU"
+        )
+    }
+
     /// AC-IAP-OFFER-02: displayPackages for default offering has no line-through, no badge.
     func test_displayPackages_for_default_offering_no_line_through_no_badge() async {
         // Arrange: default offering, not early bird
@@ -1031,6 +1073,44 @@ private final class MockSubscriptionRepository: SubscriptionRepository {
                 )
             ]
         )]
+    }
+
+    /// Returns [graduate offering (eb1 SKUs), default offering] for graduate-eligibility tests.
+    static func makeGraduateAndDefaultOfferings() -> [SubscriptionOfferingEntity] {
+        let graduate = SubscriptionOfferingEntity(
+            id: "graduate",
+            title: "Graduate",
+            description: "Graduate",
+            packages: [
+                SubscriptionPackageEntity(
+                    id: "$rc_annual",
+                    productId: "paceriz.sub.yearly.eb1",
+                    localizedPrice: "NT$1,390/年",
+                    price: Decimal(string: "1390") ?? .zero,
+                    currencyCode: "TWD",
+                    localeIdentifier: "zh_TW",
+                    period: .yearly,
+                    billingPeriodValue: 1,
+                    billingPeriodUnit: .year,
+                    officialOffer: nil,
+                    localizedTitle: "年訂閱 - 早鳥"
+                ),
+                SubscriptionPackageEntity(
+                    id: "$rc_monthly",
+                    productId: "paceriz.sub.monthly.eb1",
+                    localizedPrice: "NT$120/月",
+                    price: Decimal(string: "120") ?? .zero,
+                    currencyCode: "TWD",
+                    localeIdentifier: "zh_TW",
+                    period: .monthly,
+                    billingPeriodValue: 1,
+                    billingPeriodUnit: .month,
+                    officialOffer: nil,
+                    localizedTitle: "月訂閱 - 早鳥"
+                )
+            ]
+        )
+        return [graduate] + makeDefaultOnlyOfferings()
     }
 }
 
