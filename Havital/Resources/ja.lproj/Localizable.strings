@@ -3631,3 +3631,5 @@
 "benchmark.detail.loop_hint" = "走り終えると、次回の週次レビューで校正結果が表示されます。";
 "benchmark.detail.all_out" = "ペースを追わず全力で";
 "training.type.benchmark.chip" = "BENCHMARK · 全力測定";
+
+"benchmark.readiness.attributed" = "実力評価は %@ のベンチマーク走で校正済み";

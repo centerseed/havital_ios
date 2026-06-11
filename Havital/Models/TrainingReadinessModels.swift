@@ -185,6 +185,10 @@ struct RaceFitnessMetric: Codable {
     let trendData: TrendData?         // ✅ New: Trend chart data
     let estimatedRaceTime: String?    // ✅ New: Estimated race time (e.g., "2:01:32")
     let message: String?
+    /// VDOT 來源："benchmark" 表示由指標跑校準，"training" 表示由訓練資料估算（可選，缺失時不顯示歸因標記）
+    let vdotSource: String?
+    /// 最近指標跑日期，格式 YYYY-MM-DD（僅 vdotSource == "benchmark" 時有值）
+    let benchmarkDate: String?
 
     enum CodingKeys: String, CodingKey {
         case score
@@ -196,6 +200,8 @@ struct RaceFitnessMetric: Codable {
         case trendData = "trend_data"
         case estimatedRaceTime = "estimated_race_time"
         case message
+        case vdotSource = "vdot_source"
+        case benchmarkDate = "benchmark_date"
     }
 }
 

@@ -169,7 +169,9 @@ final class TrainingReadinessViewModelTests: XCTestCase {
                     description: "維持節奏",
                     trendData: nil,
                     estimatedRaceTime: "2:59:00",
-                    message: nil
+                    message: nil,
+                    vdotSource: nil,
+                    benchmarkDate: nil
                 ),
                 trainingLoad: TrainingLoadMetric(
                     score: 74,

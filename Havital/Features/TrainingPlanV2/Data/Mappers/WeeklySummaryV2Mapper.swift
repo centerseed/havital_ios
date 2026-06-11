@@ -180,7 +180,9 @@ enum WeeklySummaryV2Mapper {
             timeGapSeconds: dto.timeGapSeconds,
             trend: dto.trend,
             trendData: dto.trendData.map { toTrendDataPoint(from: $0) },
-            evaluation: dto.evaluation
+            evaluation: dto.evaluation,
+            vdotSource: dto.vdotSource,
+            benchmarkDate: dto.benchmarkDate
         )
     }
 

@@ -3634,3 +3634,5 @@
 "benchmark.detail.loop_hint" = "After you run it, your next weekly review shows the calibration result.";
 "benchmark.detail.all_out" = "Run all-out — don't chase a pace";
 "training.type.benchmark.chip" = "BENCHMARK · All-out";
+
+"benchmark.readiness.attributed" = "Fitness assessment calibrated by your benchmark on %@";

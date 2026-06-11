@@ -3673,3 +3673,5 @@
 "benchmark.detail.loop_hint" = "跑完後，下次週回顧會給你校準成果。";
 "benchmark.detail.all_out" = "全力跑、不用追配速";
 "training.type.benchmark.chip" = "BENCHMARK · 全力測量";
+
+"benchmark.readiness.attributed" = "實力評估已由你 %@ 的指標跑校準";

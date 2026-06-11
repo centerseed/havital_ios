@@ -277,6 +277,10 @@ struct RaceFitnessSummaryDTO: Codable {
     let trend: String
     let trendData: [TrendDataPointDTO]
     let evaluation: String
+    /// VDOT 來源："benchmark" 表示由指標跑校準，"training" 表示由訓練資料估算
+    let vdotSource: String?
+    /// 最近指標跑日期，格式 YYYY-MM-DD（僅 vdotSource == "benchmark" 時有值）
+    let benchmarkDate: String?
 
     enum CodingKeys: String, CodingKey {
         case score
@@ -291,6 +295,8 @@ struct RaceFitnessSummaryDTO: Codable {
         case trend
         case trendData = "trend_data"
         case evaluation
+        case vdotSource = "vdot_source"
+        case benchmarkDate = "benchmark_date"
     }
 }
 
