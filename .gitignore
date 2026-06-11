@@ -44,3 +44,6 @@ Package.resolved
 
 # Python bytecode
 **/__pycache__/
+
+# Superpowers brainstorm runtime
+.superpowers/
