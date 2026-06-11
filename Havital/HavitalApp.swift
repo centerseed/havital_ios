@@ -213,6 +213,8 @@ struct HavitalApp: App {
                 ac37UITestHarnessView
             } else if shouldLaunchAC38UITestHarness {
                 ac38UITestHarnessView
+            } else if shouldLaunchBenchmarkCardGallery {
+                benchmarkCardGalleryView
             } else {
                 Group {
                     if let featureFlagManager = featureFlagManager {
@@ -341,6 +343,7 @@ struct HavitalApp: App {
             || arguments.contains("-ui_testing_achievements")
             || arguments.contains("-ui_testing_ac37")
             || arguments.contains("-ui_testing_ac38")
+            || arguments.contains("-BenchmarkCardGallery")
     }
 
     private var shouldLaunchPaywallUITestHarness: Bool {
@@ -437,10 +440,27 @@ struct HavitalApp: App {
         #endif
     }
 
+    private var shouldLaunchBenchmarkCardGallery: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-BenchmarkCardGallery")
+        #else
+        false
+        #endif
+    }
+
     @ViewBuilder
     private var ac38UITestHarnessView: some View {
         #if DEBUG
         UITestAC38GraceHostView()
+        #else
+        EmptyView()
+        #endif
+    }
+
+    @ViewBuilder
+    private var benchmarkCardGalleryView: some View {
+        #if DEBUG
+        BenchmarkCardGalleryHost()
         #else
         EmptyView()
         #endif
