@@ -297,7 +297,7 @@ enum WeeklySummaryV2Mapper {
     }
 
     private static func toAdjustmentItem(from dto: AdjustmentItemV2DTO) -> AdjustmentItemV2 {
-        return AdjustmentItemV2(
+        var item = AdjustmentItemV2(
             content: dto.content,
             category: dto.category,
             apply: dto.apply,
@@ -308,7 +308,42 @@ enum WeeklySummaryV2Mapper {
             sourceFlag: dto.sourceFlag,
             priority: dto.priority
         )
+        switch dto.type {
+        case "execute_benchmark":
+            if let v = dto.value, let dist = v.distanceKm {
+                item.benchmarkExecute = BenchmarkExecutePayload(
+                    distanceKm: dist,
+                    scheduledWeekday: v.scheduledWeekday
+                )
+            }
+        case "adjust_vdot":
+            if let v = dto.value, let distM = v.benchmarkDistanceM, let dur = v.benchmarkDurationS {
+                let cp = v.calibrationPreview
+                item.benchmarkCalibration = BenchmarkCalibrationPayload(
+                    workoutDate: v.workoutDate,
+                    distanceKm: distM / 1000.0,
+                    durationS: dur,
+                    shouldHedge: v.shouldHedge ?? false,
+                    paceBeforeSPerKm: cp?.paceBeforeSPerKm,
+                    paceAfterSPerKm: cp?.paceAfterSPerKm,
+                    raceDistanceLabel: cp?.raceDistanceLabel,
+                    raceTimeBeforeS: cp?.raceTimeBeforeS,
+                    raceTimeAfterS: cp?.raceTimeAfterS,
+                    vdotBefore: cp?.vdotBefore,
+                    vdotAfter: cp?.vdotAfter
+                )
+            }
+        default:
+            break
+        }
+        return item
     }
+
+    #if DEBUG
+    static func testMapAdjustmentItem(_ dto: AdjustmentItemV2DTO) -> AdjustmentItemV2 {
+        toAdjustmentItem(from: dto)
+    }
+    #endif
 
     // toCustomizationRecommendation 已移除（2026-04-05）— customization_recommendations 廢棄
 
