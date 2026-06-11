@@ -3679,4 +3679,44 @@
 "benchmark.detail.all_out" = "全力跑、不用追配速";
 "training.type.benchmark.chip" = "BENCHMARK · 全力測量";
 
+// MARK: - Strength Completion
+"strength.completion.title" = "完成回報";
+"strength.completion.instructions" = "逐項標記完成或略過，再評估整體感受";
+"strength.completion.completed" = "已完成";
+"strength.completion.skipped" = "略過";
+"strength.completion.submit" = "完成訓練";
+"strength.completion.rpe_prompt" = "這次整體感覺如何？";
+"strength.completion.rpe_selected" = "整體體感 %d/10";
+"strength.completion.rpe_feedback_low" = "輕巧地完成 ✓";
+"strength.completion.rpe_feedback_medium" = "節奏掌握得不錯 ✓";
+"strength.completion.rpe_feedback_high" = "紮實的一次 ✓";
+"strength.completion.rpe_feedback_max" = "硬仗打完了 💪";
+"strength.completion.done_rpe" = "已完成 · RPE %d";
+"strength.completion.upgrade_title" = "做得輕鬆漂亮 💪";
+"strength.completion.upgrade_detail" = "%@ 升級 L%d→L%d";
+"strength.completion.upgrade_next" = "下次課表會幫你進階";
+"strength.completion.downgrade_title" = "這次偏吃力";
+"strength.completion.downgrade_detail" = "%@ 調整為 L%d，下次回到適合的強度";
+"strength.completion.entry_cta" = "完成力量訓練";
+"strength.completion.locked" = "已完成 · RPE %d";
+
+// MARK: - Strength Series Names
+"strength.series.generic" = "力量動作";
+"strength.series.plank_series" = "棒式系列";
+"strength.series.dead_bug_series" = "死蟲系列";
+"strength.series.bird_dog_series" = "鳥狗系列";
+"strength.series.side_plank_series" = "側棒系列";
+"strength.series.bridge_series" = "臀橋系列";
+"strength.series.clamshell_series" = "蚌殼系列";
+"strength.series.squat_series" = "深蹲系列";
+"strength.series.lunge_series" = "弓箭步系列";
+"strength.series.calf_series" = "小腿系列";
+"strength.series.deadlift_series" = "硬舉系列";
+"strength.series.vertical_jump_series" = "垂直跳系列";
+"strength.series.lateral_series" = "側向跳系列";
+"strength.series.hop_series" = "單腳跳系列";
+"strength.series.hip_flexor_series" = "髖屈肌系列";
+"strength.series.thoracic_series" = "胸椎活動系列";
+"strength.series.stretch_series" = "伸展系列";
+
 "benchmark.readiness.attributed" = "實力評估已由你 %@ 的指標跑校準";

@@ -3637,4 +3637,44 @@
 "benchmark.detail.all_out" = "ペースを追わず全力で";
 "training.type.benchmark.chip" = "BENCHMARK · 全力測定";
 
+// MARK: - Strength Completion
+"strength.completion.title" = "記録する";
+"strength.completion.instructions" = "各種目を完了/スキップで記録し、全体のきつさを評価してください";
+"strength.completion.completed" = "完了";
+"strength.completion.skipped" = "スキップ";
+"strength.completion.submit" = "完了する";
+"strength.completion.rpe_prompt" = "全体的にどうでしたか？";
+"strength.completion.rpe_selected" = "全体のきつさ %d/10";
+"strength.completion.rpe_feedback_low" = "余裕でこなせた ✓";
+"strength.completion.rpe_feedback_medium" = "良いペース ✓";
+"strength.completion.rpe_feedback_high" = "しっかりこなした ✓";
+"strength.completion.rpe_feedback_max" = "やりきった 💪";
+"strength.completion.done_rpe" = "完了 · RPE %d";
+"strength.completion.upgrade_title" = "見事です 💪";
+"strength.completion.upgrade_detail" = "%@ がレベルアップ L%d→L%d";
+"strength.completion.upgrade_next" = "次回のプランが進化します";
+"strength.completion.downgrade_title" = "今回はきつめ";
+"strength.completion.downgrade_detail" = "%@ を L%d に調整、次回は適切な強度に戻します";
+"strength.completion.entry_cta" = "筋トレを記録";
+"strength.completion.locked" = "完了 · RPE %d";
+
+// MARK: - Strength Series Names
+"strength.series.generic" = "筋トレ";
+"strength.series.plank_series" = "プランク系";
+"strength.series.dead_bug_series" = "デッドバグ系";
+"strength.series.bird_dog_series" = "バードドッグ系";
+"strength.series.side_plank_series" = "サイドプランク系";
+"strength.series.bridge_series" = "グルートブリッジ系";
+"strength.series.clamshell_series" = "クラムシェル系";
+"strength.series.squat_series" = "スクワット系";
+"strength.series.lunge_series" = "ランジ系";
+"strength.series.calf_series" = "カーフレイズ系";
+"strength.series.deadlift_series" = "デッドリフト系";
+"strength.series.vertical_jump_series" = "垂直ジャンプ系";
+"strength.series.lateral_series" = "ラテラルジャンプ系";
+"strength.series.hop_series" = "ホップ系";
+"strength.series.hip_flexor_series" = "股関節屈筋系";
+"strength.series.thoracic_series" = "胸椎モビリティ系";
+"strength.series.stretch_series" = "ストレッチ系";
+
 "benchmark.readiness.attributed" = "実力評価は %@ のベンチマーク走で校正済み";

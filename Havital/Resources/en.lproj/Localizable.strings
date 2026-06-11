@@ -3640,4 +3640,44 @@
 "benchmark.detail.all_out" = "Run all-out — don't chase a pace";
 "training.type.benchmark.chip" = "BENCHMARK · All-out";
 
+// MARK: - Strength Completion
+"strength.completion.title" = "Log Session";
+"strength.completion.instructions" = "Mark each exercise done or skipped, then rate overall effort";
+"strength.completion.completed" = "Done";
+"strength.completion.skipped" = "Skipped";
+"strength.completion.submit" = "Complete";
+"strength.completion.rpe_prompt" = "How did it feel overall?";
+"strength.completion.rpe_selected" = "Overall effort %d/10";
+"strength.completion.rpe_feedback_low" = "Breezed through it ✓";
+"strength.completion.rpe_feedback_medium" = "Nicely paced ✓";
+"strength.completion.rpe_feedback_high" = "Solid effort ✓";
+"strength.completion.rpe_feedback_max" = "Tough one — done 💪";
+"strength.completion.done_rpe" = "Done · RPE %d";
+"strength.completion.upgrade_title" = "Crushed it 💪";
+"strength.completion.upgrade_detail" = "%@ leveled up L%d→L%d";
+"strength.completion.upgrade_next" = "Your next plan steps up";
+"strength.completion.downgrade_title" = "That was tough";
+"strength.completion.downgrade_detail" = "%@ set to L%d — back to the right intensity next time";
+"strength.completion.entry_cta" = "Log Strength Session";
+"strength.completion.locked" = "Done · RPE %d";
+
+// MARK: - Strength Series Names
+"strength.series.generic" = "Strength";
+"strength.series.plank_series" = "Plank series";
+"strength.series.dead_bug_series" = "Dead bug series";
+"strength.series.bird_dog_series" = "Bird dog series";
+"strength.series.side_plank_series" = "Side plank series";
+"strength.series.bridge_series" = "Glute bridge series";
+"strength.series.clamshell_series" = "Clamshell series";
+"strength.series.squat_series" = "Squat series";
+"strength.series.lunge_series" = "Lunge series";
+"strength.series.calf_series" = "Calf raise series";
+"strength.series.deadlift_series" = "Deadlift series";
+"strength.series.vertical_jump_series" = "Vertical jump series";
+"strength.series.lateral_series" = "Lateral jump series";
+"strength.series.hop_series" = "Hop series";
+"strength.series.hip_flexor_series" = "Hip flexor series";
+"strength.series.thoracic_series" = "Thoracic mobility series";
+"strength.series.stretch_series" = "Stretch series";
+
 "benchmark.readiness.attributed" = "Fitness assessment calibrated by your benchmark on %@";
