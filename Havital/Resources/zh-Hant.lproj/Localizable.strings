@@ -3699,6 +3699,9 @@
 "strength.completion.downgrade_detail" = "%@ 調整為 L%d，下次回到適合的強度";
 "strength.completion.entry_cta" = "完成力量訓練";
 "strength.completion.locked" = "已完成 · RPE %d";
+"strength.completion.error_title" = "送出失敗";
+"strength.completion.retry" = "重試";
+"strength.completion.error_generic" = "請稍後再試";
 
 // MARK: - Strength Series Names
 "strength.series.generic" = "力量動作";

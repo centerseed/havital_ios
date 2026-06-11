@@ -3660,6 +3660,9 @@
 "strength.completion.downgrade_detail" = "%@ set to L%d — back to the right intensity next time";
 "strength.completion.entry_cta" = "Log Strength Session";
 "strength.completion.locked" = "Done · RPE %d";
+"strength.completion.error_title" = "Submission failed";
+"strength.completion.retry" = "Retry";
+"strength.completion.error_generic" = "Please try again later";
 
 // MARK: - Strength Series Names
 "strength.series.generic" = "Strength";

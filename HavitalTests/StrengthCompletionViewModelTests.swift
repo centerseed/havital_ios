@@ -120,4 +120,15 @@ final class StrengthCompletionViewModelTests: XCTestCase {
         XCTAssertFalse(store.isCompleted(dayDate: "2026-06-12", strengthType: "core_stability"))
         guard case .failed = vm.phase else { return XCTFail("expected failed") }
     }
+
+    func test_dismissError_returns_to_form() async {
+        let repo = MockStrengthCompletionRepository()
+        repo.stubError = DomainError.networkFailure("boom")
+        let vm = makeVM(repo: repo, store: .init())
+        vm.selectedRPE = 4
+        await vm.submit()
+        guard case .failed = vm.phase else { return XCTFail("expected failed") }
+        vm.dismissError()
+        guard case .form = vm.phase else { return XCTFail("expected form after dismiss") }
+    }
 }

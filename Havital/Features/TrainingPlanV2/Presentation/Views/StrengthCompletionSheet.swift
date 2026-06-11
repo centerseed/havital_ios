@@ -4,6 +4,18 @@ struct StrengthCompletionSheet: View {
     @StateObject var viewModel: StrengthCompletionViewModel
     var onClose: () -> Void
 
+    private var errorMessage: String {
+        if case .failed(let e) = viewModel.phase {
+            return e.errorDescription ?? NSLocalizedString("strength.completion.error_generic", comment: "請稍後再試")
+        }
+        return ""
+    }
+
+    private var isError: Bool {
+        if case .failed = viewModel.phase { return true }
+        return false
+    }
+
     var body: some View {
         NavigationStack {
             Group {
@@ -20,6 +32,15 @@ struct StrengthCompletionSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(NSLocalizedString("common.close", comment: "關閉")) { onClose() }
                 }
+            }
+            .alert(isPresented: Binding(get: { isError }, set: { _ in })) {
+                Alert(
+                    title: Text(NSLocalizedString("strength.completion.error_title", comment: "送出失敗")),
+                    message: Text(errorMessage),
+                    dismissButton: .default(Text(NSLocalizedString("strength.completion.retry", comment: "重試"))) {
+                        viewModel.dismissError()
+                    }
+                )
             }
         }
     }
@@ -102,7 +123,7 @@ struct StrengthCompletionSheet: View {
 
     private var submitBar: some View {
         Button {
-            Task { await viewModel.submit() }
+            viewModel.startSubmit()
         } label: {
             HStack {
                 if case .submitting = viewModel.phase {

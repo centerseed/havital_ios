@@ -3657,6 +3657,9 @@
 "strength.completion.downgrade_detail" = "%@ を L%d に調整、次回は適切な強度に戻します";
 "strength.completion.entry_cta" = "筋トレを記録";
 "strength.completion.locked" = "完了 · RPE %d";
+"strength.completion.error_title" = "送信に失敗しました";
+"strength.completion.retry" = "再試行";
+"strength.completion.error_generic" = "後でもう一度お試しください";
 
 // MARK: - Strength Series Names
 "strength.series.generic" = "筋トレ";

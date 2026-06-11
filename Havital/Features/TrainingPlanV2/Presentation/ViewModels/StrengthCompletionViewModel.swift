@@ -2,9 +2,12 @@ import Foundation
 import SwiftUI
 
 @MainActor
-final class StrengthCompletionViewModel: ObservableObject, Identifiable {
+final class StrengthCompletionViewModel: ObservableObject, Identifiable, TaskManageable {
 
     let id = UUID()
+
+    // MARK: - TaskManageable
+    nonisolated let taskRegistry = TaskRegistry()
 
     struct Feedback: Equatable {
         let rpe: Int
@@ -62,6 +65,10 @@ final class StrengthCompletionViewModel: ObservableObject, Identifiable {
         return selectedRPE != nil
     }
 
+    func dismissError() {
+        if case .failed = phase { phase = .form }
+    }
+
     func submit() async {
         guard let rpe = selectedRPE else { return }
         phase = .submitting
@@ -87,5 +94,17 @@ final class StrengthCompletionViewModel: ObservableObject, Identifiable {
         } catch {
             phase = .failed(error.toDomainError())
         }
+    }
+
+    func startSubmit() {
+        Task { [weak self] in
+            await self?.executeTask(id: TaskID("submit")) { [weak self] in
+                await self?.submit()
+            }
+        }
+    }
+
+    deinit {
+        cancelAllTasks()
     }
 }

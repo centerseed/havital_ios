@@ -43,6 +43,7 @@ struct PlannedSessionDetailView: View {
         let f = DateFormatter()
         f.calendar = Calendar.current
         f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = .current
         f.dateFormat = "yyyy-MM-dd"
         return f.string(from: date)
     }
