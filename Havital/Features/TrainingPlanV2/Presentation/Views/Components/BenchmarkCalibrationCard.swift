@@ -7,7 +7,6 @@ struct BenchmarkCalibrationCard: View {
     let index: Int
     @Binding var isSelected: Bool
 
-    private func mmss(_ s: Int) -> String { "\(s / 60):\(String(format: "%02d", s % 60))" }
     private func hms(_ s: Int) -> String {
         let h = s / 3600, m = (s % 3600) / 60, sec = s % 60
         return h > 0 ? "\(h):\(String(format: "%02d", m)):\(String(format: "%02d", sec))"
@@ -35,10 +34,15 @@ struct BenchmarkCalibrationCard: View {
 
             // before/after 主角區（缺 calibration_preview → 整塊不顯示，卡片降級為成績+VDOT）
             if let pb = payload.paceBeforeSPerKm, let pa = payload.paceAfterSPerKm {
+                // 配速依使用者單位（公制 /km、英制 /mi）顯示；delta 也換算到對應單位。
+                let unit = UnitManager.shared
+                let deltaPerUnit = unit.currentUnitSystem == .imperial ? 1.60934 : 1.0
+                let deltaSec = Int((Double(pb - pa) * deltaPerUnit).rounded())
                 contrastRow(
                     label: NSLocalizedString("benchmark.calib.pace_label", comment: ""),
-                    before: "\(mmss(pb))/km", after: "\(mmss(pa))/km",
-                    delta: pb > pa ? String(format: NSLocalizedString("benchmark.calib.pace_delta", comment: ""), "\(pb - pa)") : nil)
+                    before: unit.formatPace(secondsPerKm: Double(pb)),
+                    after: unit.formatPace(secondsPerKm: Double(pa)),
+                    delta: (pb > pa && deltaSec > 0) ? String(format: NSLocalizedString("benchmark.calib.pace_delta", comment: ""), "\(deltaSec)") : nil)
             }
             if let rb = payload.raceTimeBeforeS, let ra = payload.raceTimeAfterS {
                 contrastRow(
