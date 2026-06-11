@@ -74,4 +74,17 @@ final class StrengthCompletionTests: XCTestCase {
         let result = StrengthCompletionMapper.toEntity(from: dto)
         XCTAssertTrue(result.progressUpdates.isEmpty)
     }
+
+    func test_store_mark_and_read_roundtrip() {
+        let defaults = UserDefaults(suiteName: "test.strength.\(UUID().uuidString)")!
+        let store = UserDefaultsStrengthCompletionStore(defaults: defaults)
+        XCTAssertFalse(store.isCompleted(dayDate: "2026-06-12", strengthType: "core_stability"))
+        XCTAssertNil(store.completedRPE(dayDate: "2026-06-12", strengthType: "core_stability"))
+
+        store.markCompleted(dayDate: "2026-06-12", strengthType: "core_stability", rpe: 4)
+
+        XCTAssertTrue(store.isCompleted(dayDate: "2026-06-12", strengthType: "core_stability"))
+        XCTAssertEqual(store.completedRPE(dayDate: "2026-06-12", strengthType: "core_stability"), 4)
+        XCTAssertFalse(store.isCompleted(dayDate: "2026-06-12", strengthType: "glutes_hip"))
+    }
 }

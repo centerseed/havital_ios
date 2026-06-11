@@ -21,6 +21,7 @@
 		A1B2C3D4E5F600000000000C /* Havital/Features/Race/Domain/Repositories/RaceRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001C /* Havital/Features/Race/Domain/Repositories/RaceRepository.swift */; };
 		A1B2C3D4E5F600000000000D /* Havital/Features/Race/Domain/Repositories/RacePickerDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001D /* Havital/Features/Race/Domain/Repositories/RacePickerDataSource.swift */; };
 		A1B2C3D4E5F600000000000E /* Havital/Features/Target/Presentation/ViewModels/TargetEditRacePickerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001E /* Havital/Features/Target/Presentation/ViewModels/TargetEditRacePickerViewModel.swift */; };
+		A1B2C3D4E5F600000000000F /* Havital/Core/Storage/StrengthCompletionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001F /* Havital/Core/Storage/StrengthCompletionStore.swift */; };
 		CF19F9892E34D87600C7E5ED /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = CF19F9882E34D87600C7E5ED /* FirebaseMessaging */; };
 		CF19F98B2E34D8D200C7E5ED /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = CF19F98A2E34D8D200C7E5ED /* FirebaseRemoteConfig */; };
 		CFCABFC22F88A07700E3D25A /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = CFCABFC12F88A07700E3D25A /* RevenueCat */; };
@@ -118,6 +119,7 @@
 		A1B2C3D4E5F600000000001C /* Havital/Features/Race/Domain/Repositories/RaceRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/Race/Domain/Repositories/RaceRepository.swift; sourceTree = SOURCE_ROOT; };
 		A1B2C3D4E5F600000000001D /* Havital/Features/Race/Domain/Repositories/RacePickerDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/Race/Domain/Repositories/RacePickerDataSource.swift; sourceTree = SOURCE_ROOT; };
 		A1B2C3D4E5F600000000001E /* Havital/Features/Target/Presentation/ViewModels/TargetEditRacePickerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/Target/Presentation/ViewModels/TargetEditRacePickerViewModel.swift; sourceTree = SOURCE_ROOT; };
+		A1B2C3D4E5F600000000001F /* Havital/Core/Storage/StrengthCompletionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Core/Storage/StrengthCompletionStore.swift; sourceTree = SOURCE_ROOT; };
 		CF1AA05B2DD84D6500569CA7 /* Havital.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Havital.xctestplan; sourceTree = "<group>"; };
 		CFB67CF02D07047500F672E3 /* paceriz_dev.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = paceriz_dev.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CFB67D022D07047800F672E3 /* HavitalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HavitalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -279,6 +281,7 @@
 				A1B2C3D4E5F600000000001C /* Havital/Features/Race/Domain/Repositories/RaceRepository.swift */,
 				A1B2C3D4E5F600000000001D /* Havital/Features/Race/Domain/Repositories/RacePickerDataSource.swift */,
 				A1B2C3D4E5F600000000001E /* Havital/Features/Target/Presentation/ViewModels/TargetEditRacePickerViewModel.swift */,
+				A1B2C3D4E5F600000000001F /* Havital/Core/Storage/StrengthCompletionStore.swift */,
 			);
 			name = "Recovered References";
 			sourceTree = "<group>";
@@ -638,6 +641,7 @@
 				A1B2C3D4E5F600000000000C /* Havital/Features/Race/Domain/Repositories/RaceRepository.swift in Sources */,
 				A1B2C3D4E5F600000000000D /* Havital/Features/Race/Domain/Repositories/RacePickerDataSource.swift in Sources */,
 				A1B2C3D4E5F600000000000E /* Havital/Features/Target/Presentation/ViewModels/TargetEditRacePickerViewModel.swift in Sources */,
+				A1B2C3D4E5F600000000000F /* Havital/Core/Storage/StrengthCompletionStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
