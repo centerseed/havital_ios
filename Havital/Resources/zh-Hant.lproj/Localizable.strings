@@ -3638,3 +3638,40 @@
 
 /* 今日狀態詳細頁：Rizo 對話區段標題 */
 "daily_state.chat_section_title" = "與 Rizo 教練聊聊";
+
+// MARK: - Benchmark Execute Card
+"benchmark.execute.chip" = "下週重點 · 實力校準";
+"benchmark.execute.title" = "%@ 公里指標跑";
+"benchmark.execute.coach" = "全力跑一次固定距離，我用它把你的配速基準和完賽預測調準。";
+"benchmark.execute.schedule_weekday" = "%@的長跑換成指標跑；前一天自動安排休息保體力。";
+"benchmark.execute.schedule_generic" = "下週的長跑換成指標跑；前一天自動安排休息保體力。";
+"benchmark.execute.toggle" = "安排這次指標跑";
+"benchmark.execute.toggle_hint" = "取消＝這週先不排，之後可請 Rizo 重排。";
+"benchmark.execute.skipped" = "這週先跳過";
+"benchmark.weekday.1" = "下週一";
+"benchmark.weekday.2" = "下週二";
+"benchmark.weekday.3" = "下週三";
+"benchmark.weekday.4" = "下週四";
+"benchmark.weekday.5" = "下週五";
+"benchmark.weekday.6" = "下週六";
+"benchmark.weekday.7" = "下週日";
+"benchmark.calib.chip" = "指標跑成果 · 實力校準";
+"benchmark.calib.headline" = "你 %1$@ 的 %2$@K 指標跑跑出 %3$@，我用它重新校準了你的實力。";
+"benchmark.calib.pace_label" = "訓練配速";
+"benchmark.calib.pace_delta" = "快了 %@ 秒";
+"benchmark.calib.race_label" = "完賽預測";
+"benchmark.calib.vdot_label" = "VDOT";
+"benchmark.calib.hedge" = "這次測量和你近期狀態有落差，可能是疲勞或設定，我先謹慎調整。";
+"benchmark.calib.lag_notice" = "課表配速會在 2-3 週逐步反映（系統刻意不追單週起伏）。";
+"benchmark.calib.toggle" = "採用這次校準";
+"benchmark.calib.toggle_hint" = "看完差異後主動勾選才套用。";
+
+"training.zone.effort" = "努力程度";
+"benchmark.detail.why_title" = "為什麼這天特別";
+"benchmark.detail.why_body" = "這是一次實力測量。全力跑完這 %@K，我會用你的成績重新校準訓練配速和完賽預測——所以盡力跑。前一天已自動安排休息，讓你保持新鮮。";
+"benchmark.detail.why_body_nodist" = "這是一次實力測量。全力跑完這段距離，我會用你的成績重新校準訓練配速和完賽預測——所以盡力跑。前一天已自動安排休息，讓你保持新鮮。";
+"benchmark.detail.loop_hint" = "跑完後，下次週回顧會給你校準成果。";
+"benchmark.detail.all_out" = "全力跑、不用追配速";
+"training.type.benchmark.chip" = "BENCHMARK · 全力測量";
+
+"benchmark.readiness.attributed" = "實力評估已由你 %@ 的指標跑校準";

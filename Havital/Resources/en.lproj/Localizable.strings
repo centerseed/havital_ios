@@ -3599,3 +3599,40 @@
 
 /* Daily state detail page: Rizo chat section title */
 "daily_state.chat_section_title" = "Chat with coach Rizo";
+
+// MARK: - Benchmark Execute Card
+"benchmark.execute.chip" = "Next week's focus · Fitness calibration";
+"benchmark.execute.title" = "%@ km benchmark run";
+"benchmark.execute.coach" = "Run a fixed distance all-out — I use it to dial in your training paces and race prediction.";
+"benchmark.execute.schedule_weekday" = "%@'s long run becomes the benchmark; the day before is auto-rested to keep you fresh.";
+"benchmark.execute.schedule_generic" = "Next week's long run becomes the benchmark; the day before is auto-rested to keep you fresh.";
+"benchmark.execute.toggle" = "Schedule this benchmark";
+"benchmark.execute.toggle_hint" = "Untick to skip it this week — you can ask Rizo to reschedule anytime.";
+"benchmark.execute.skipped" = "Skipping this week";
+"benchmark.weekday.1" = "next Monday";
+"benchmark.weekday.2" = "next Tuesday";
+"benchmark.weekday.3" = "next Wednesday";
+"benchmark.weekday.4" = "next Thursday";
+"benchmark.weekday.5" = "next Friday";
+"benchmark.weekday.6" = "next Saturday";
+"benchmark.weekday.7" = "next Sunday";
+"benchmark.calib.chip" = "Benchmark result · Fitness calibration";
+"benchmark.calib.headline" = "Your %2$@K benchmark on %1$@ came in at %3$@ — I've recalibrated your fitness from it.";
+"benchmark.calib.pace_label" = "Training pace";
+"benchmark.calib.pace_delta" = "%@s faster";
+"benchmark.calib.race_label" = "Race prediction";
+"benchmark.calib.vdot_label" = "VDOT";
+"benchmark.calib.hedge" = "This measurement differs from your recent state — possibly fatigue or settings, so I'm adjusting cautiously.";
+"benchmark.calib.lag_notice" = "Training paces will phase in over 2-3 weeks (the system deliberately ignores single-week swings).";
+"benchmark.calib.toggle" = "Apply this calibration";
+"benchmark.calib.toggle_hint" = "Review the change, then tick to apply.";
+
+"training.zone.effort" = "Effort";
+"benchmark.detail.why_title" = "Why this day matters";
+"benchmark.detail.why_body" = "This is a fitness measurement. Run this %@K all-out and I'll recalibrate your training paces and race prediction from it — so give it everything. The day before is auto-rested to keep you fresh.";
+"benchmark.detail.why_body_nodist" = "This is a fitness measurement. Run this all-out and I'll recalibrate your training paces and race prediction from it — so give it everything. The day before is auto-rested to keep you fresh.";
+"benchmark.detail.loop_hint" = "After you run it, your next weekly review shows the calibration result.";
+"benchmark.detail.all_out" = "Run all-out — don't chase a pace";
+"training.type.benchmark.chip" = "BENCHMARK · All-out";
+
+"benchmark.readiness.attributed" = "Fitness assessment calibrated by your benchmark on %@";

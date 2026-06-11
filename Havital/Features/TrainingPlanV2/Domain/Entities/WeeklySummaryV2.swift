@@ -324,6 +324,10 @@ struct RaceFitnessSummary: Codable, Equatable {
     let trend: String
     let trendData: [TrendDataPoint]
     let evaluation: String
+    /// VDOT 來源："benchmark" 表示由指標跑校準，"training" 表示由訓練資料估算
+    let vdotSource: String?
+    /// 最近指標跑日期，格式 YYYY-MM-DD（僅 vdotSource == "benchmark" 時有值）
+    let benchmarkDate: String?
 
     enum CodingKeys: String, CodingKey {
         case score
@@ -338,6 +342,8 @@ struct RaceFitnessSummary: Codable, Equatable {
         case trend
         case trendData = "trend_data"
         case evaluation
+        case vdotSource = "vdot_source"
+        case benchmarkDate = "benchmark_date"
     }
 }
 
@@ -533,6 +539,9 @@ struct AdjustmentItemV2: Codable, Equatable {
     let impact: String
     let sourceFlag: String?
     let priority: String
+    // Typed benchmark payloads — set by Mapper, not decoded from wire
+    var benchmarkExecute: BenchmarkExecutePayload? = nil
+    var benchmarkCalibration: BenchmarkCalibrationPayload? = nil
 
     enum CodingKeys: String, CodingKey {
         case content, category, apply
@@ -541,7 +550,32 @@ struct AdjustmentItemV2: Codable, Equatable {
         case reason, impact
         case sourceFlag = "source_flag"
         case priority
+        // benchmarkExecute and benchmarkCalibration are excluded intentionally:
+        // they are populated by WeeklySummaryV2Mapper, not decoded from JSON.
     }
+}
+
+// MARK: - Benchmark Payload Types
+
+/// Payload for "execute_benchmark" adjustment items.
+struct BenchmarkExecutePayload: Equatable {
+    let distanceKm: Double
+    let scheduledWeekday: Int?
+}
+
+/// Payload for "adjust_vdot" adjustment items.
+struct BenchmarkCalibrationPayload: Equatable {
+    let workoutDate: String?
+    let distanceKm: Double
+    let durationS: Double
+    let shouldHedge: Bool
+    let paceBeforeSPerKm: Int?
+    let paceAfterSPerKm: Int?
+    let raceDistanceLabel: String?
+    let raceTimeBeforeS: Int?
+    let raceTimeAfterS: Int?
+    let vdotBefore: Double?
+    let vdotAfter: Double?
 }
 
 // CustomizationRecommendation 已移除（2026-04-05）

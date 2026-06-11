@@ -3596,3 +3596,40 @@
 
 /* 今日の状態 詳細ページ：Rizo チャットセクションのタイトル */
 "daily_state.chat_section_title" = "コーチ Rizo と話す";
+
+// MARK: - Benchmark Execute Card
+"benchmark.execute.chip" = "来週の重点 · 実力校正";
+"benchmark.execute.title" = "%@ km ベンチマーク走";
+"benchmark.execute.coach" = "決まった距離を全力で走り、それでトレーニングペースと完走予測を調整します。";
+"benchmark.execute.schedule_weekday" = "%@のロング走をベンチマークに置き換え、前日は自動で休養にして調子を保ちます。";
+"benchmark.execute.schedule_generic" = "来週のロング走をベンチマークに置き換え、前日は自動で休養にして調子を保ちます。";
+"benchmark.execute.toggle" = "このベンチマークを予定する";
+"benchmark.execute.toggle_hint" = "チェックを外すと今週は組まれません（後から Rizo に再設定を頼めます）。";
+"benchmark.execute.skipped" = "今週はスキップ";
+"benchmark.weekday.1" = "来週月曜";
+"benchmark.weekday.2" = "来週火曜";
+"benchmark.weekday.3" = "来週水曜";
+"benchmark.weekday.4" = "来週木曜";
+"benchmark.weekday.5" = "来週金曜";
+"benchmark.weekday.6" = "来週土曜";
+"benchmark.weekday.7" = "来週日曜";
+"benchmark.calib.chip" = "ベンチマーク結果 · 実力校正";
+"benchmark.calib.headline" = "%1$@ の %2$@K ベンチマークは %3$@ でした。それで実力を再校正しました。";
+"benchmark.calib.pace_label" = "トレーニングペース";
+"benchmark.calib.pace_delta" = "%@秒 速く";
+"benchmark.calib.race_label" = "完走予測";
+"benchmark.calib.vdot_label" = "VDOT";
+"benchmark.calib.hedge" = "今回の測定は最近の状態と差があります。疲労や設定の可能性があるため、慎重に調整します。";
+"benchmark.calib.lag_notice" = "トレーニングペースは 2〜3 週かけて反映されます（単週の変動は意図的に追いません）。";
+"benchmark.calib.toggle" = "この校正を採用する";
+"benchmark.calib.toggle_hint" = "差分を確認してからチェックして適用します。";
+
+"training.zone.effort" = "努力度";
+"benchmark.detail.why_title" = "この日が特別な理由";
+"benchmark.detail.why_body" = "これは実力測定です。この %@K を全力で走りきれば、その記録でトレーニングペースと完走予測を再校正します——だから全力で。前日は自動で休養にして調子を保ちます。";
+"benchmark.detail.why_body_nodist" = "これは実力測定です。この距離を全力で走りきれば、その記録でトレーニングペースと完走予測を再校正します——だから全力で。前日は自動で休養にして調子を保ちます。";
+"benchmark.detail.loop_hint" = "走り終えると、次回の週次レビューで校正結果が表示されます。";
+"benchmark.detail.all_out" = "ペースを追わず全力で";
+"training.type.benchmark.chip" = "BENCHMARK · 全力測定";
+
+"benchmark.readiness.attributed" = "実力評価は %@ のベンチマーク走で校正済み";

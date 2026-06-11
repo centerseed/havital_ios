@@ -69,7 +69,7 @@ extension DayType {
         case .race:
             return .red
         case .benchmark:
-            return .indigo
+            return PacerizColor.benchmark
         case .rest:
             return .gray
         // 交叉訓練 - 紫色

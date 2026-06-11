@@ -269,14 +269,28 @@ struct TrainingReadinessView: View {
             // Race Fitness Metric — race_run only
             if viewModel.effectivePlanType.shouldShowRaceFitness,
                let raceFitness = viewModel.raceFitnessMetric {
-                metricCardWithTrend(
-                    title: NSLocalizedString("training_readiness.race_fitness", comment: ""),
-                    score: raceFitness.score,
-                    statusText: raceFitness.statusText,
-                    description: raceFitness.description,
-                    trendData: raceFitness.trendData,
-                    color: .purple
-                )
+                VStack(alignment: .leading, spacing: 4) {
+                    metricCardWithTrend(
+                        title: NSLocalizedString("training_readiness.race_fitness", comment: ""),
+                        score: raceFitness.score,
+                        statusText: raceFitness.statusText,
+                        description: raceFitness.description,
+                        trendData: raceFitness.trendData,
+                        color: .purple
+                    )
+                    // Benchmark attribution — shown only when VDOT was calibrated by a benchmark run
+                    if raceFitness.vdotSource == "benchmark", let date = raceFitness.benchmarkDate {
+                        HStack(spacing: 4) {
+                            Image(systemName: PacerizIcon.benchmark)
+                                .font(.caption2)
+                                .foregroundColor(PacerizColor.benchmark)
+                            Text(String(format: NSLocalizedString("benchmark.readiness.attributed", comment: ""), date))
+                                .font(.caption2)
+                                .foregroundColor(PacerizColor.benchmark)
+                        }
+                        .padding(.horizontal, 4)
+                    }
+                }
                 .id("race_fitness_metric")
             }
 

@@ -277,6 +277,10 @@ struct RaceFitnessSummaryDTO: Codable {
     let trend: String
     let trendData: [TrendDataPointDTO]
     let evaluation: String
+    /// VDOT 來源："benchmark" 表示由指標跑校準，"training" 表示由訓練資料估算
+    let vdotSource: String?
+    /// 最近指標跑日期，格式 YYYY-MM-DD（僅 vdotSource == "benchmark" 時有值）
+    let benchmarkDate: String?
 
     enum CodingKeys: String, CodingKey {
         case score
@@ -291,6 +295,8 @@ struct RaceFitnessSummaryDTO: Codable {
         case trend
         case trendData = "trend_data"
         case evaluation
+        case vdotSource = "vdot_source"
+        case benchmarkDate = "benchmark_date"
     }
 }
 
@@ -474,6 +480,9 @@ struct AdjustmentItemV2DTO: Codable {
     let impact: String
     let sourceFlag: String?
     let priority: String
+    // Benchmark adjustment fields (optional; absent for normal adjustment items)
+    let type: String?
+    let value: AdjustmentItemValueDTO?
 
     enum CodingKeys: String, CodingKey {
         case content, category, apply
@@ -482,6 +491,56 @@ struct AdjustmentItemV2DTO: Codable {
         case reason, impact
         case sourceFlag = "source_flag"
         case priority
+        case type
+        case value
+    }
+}
+
+struct AdjustmentItemValueDTO: Codable {
+    let week: Int?
+    let distanceKm: Double?
+    let scheduledWeekday: Int?
+    let benchmarkDistanceM: Double?
+    let benchmarkDurationS: Double?
+    let shouldHedge: Bool?
+    let suggestedChangeRounded: Double?
+    let workoutDate: String?
+    let calibrationPreview: CalibrationPreviewDTO?
+    let overviewId: String?
+
+    enum CodingKeys: String, CodingKey {
+        case week
+        case distanceKm = "distance_km"
+        case scheduledWeekday = "scheduled_weekday"
+        case benchmarkDistanceM = "benchmark_distance_m"
+        case benchmarkDurationS = "benchmark_duration_s"
+        case shouldHedge = "should_hedge"
+        case suggestedChangeRounded = "suggested_change_rounded"
+        case workoutDate = "workout_date"
+        case calibrationPreview = "calibration_preview"
+        case overviewId = "overview_id"
+    }
+}
+
+struct CalibrationPreviewDTO: Codable {
+    let paceBeforeSPerKm: Int?
+    let paceAfterSPerKm: Int?
+    let raceDistanceLabel: String?
+    let raceDistanceKm: Double?
+    let raceTimeBeforeS: Int?
+    let raceTimeAfterS: Int?
+    let vdotBefore: Double?
+    let vdotAfter: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case paceBeforeSPerKm = "pace_before_s_per_km"
+        case paceAfterSPerKm = "pace_after_s_per_km"
+        case raceDistanceLabel = "race_distance_label"
+        case raceDistanceKm = "race_distance_km"
+        case raceTimeBeforeS = "race_time_before_s"
+        case raceTimeAfterS = "race_time_after_s"
+        case vdotBefore = "vdot_before"
+        case vdotAfter = "vdot_after"
     }
 }
 

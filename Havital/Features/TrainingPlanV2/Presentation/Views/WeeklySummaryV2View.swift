@@ -817,16 +817,19 @@ private struct AdjustmentsSectionV2: View {
 
             // 建議項目列表
             ForEach(Array(adjustments.items.enumerated()), id: \.offset) { index, item in
-                AdjustmentItemCardV2(
-                    item: item,
-                    index: index,
-                    isSelected: showToggles
-                        ? Binding(
-                            get: { coordinator.adjustmentSelections[index] ?? true },
-                            set: { coordinator.adjustmentSelections[index] = $0 }
-                          )
-                        : .constant(true)
-                )
+                let binding: Binding<Bool> = showToggles
+                    ? Binding(
+                        get: { coordinator.adjustmentSelections[index] ?? true },
+                        set: { coordinator.adjustmentSelections[index] = $0 })
+                    : .constant(true)
+
+                if let exec = item.benchmarkExecute {
+                    BenchmarkExecuteCard(payload: exec, index: index, isSelected: binding)
+                } else if let calib = item.benchmarkCalibration {
+                    BenchmarkCalibrationCard(payload: calib, index: index, isSelected: binding)
+                } else {
+                    AdjustmentItemCardV2(item: item, index: index, isSelected: binding)
+                }
             }
         }
     }
