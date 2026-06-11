@@ -55,6 +55,9 @@ struct SubscriptionStatusEntity {
     /// Grace period 剩餘天數（後端計算值）。inGracePeriod=true 時後端提供。
     let graceRemainingDays: Int?
 
+    /// 有 active Starter 買斷 → 有資格買 Paceriz 早鳥 eb1。預設 false（舊後端不回此欄位時安全）。
+    let canOfferPacerizEb1: Bool
+
     // MARK: - Initialization
 
     init(
@@ -72,7 +75,8 @@ struct SubscriptionStatusEntity {
         subscribedAt: TimeInterval? = nil,
         iapGraceUntil: TimeInterval? = nil,
         inGracePeriod: Bool = false,
-        graceRemainingDays: Int? = nil
+        graceRemainingDays: Int? = nil,
+        canOfferPacerizEb1: Bool = false
     ) {
         self.status = status
         self.expiresAt = expiresAt
@@ -89,6 +93,7 @@ struct SubscriptionStatusEntity {
         self.iapGraceUntil = iapGraceUntil
         self.inGracePeriod = inGracePeriod
         self.graceRemainingDays = graceRemainingDays
+        self.canOfferPacerizEb1 = canOfferPacerizEb1
     }
 }
 
@@ -110,6 +115,7 @@ extension SubscriptionStatusEntity: Equatable {
             && lhs.iapGraceUntil == rhs.iapGraceUntil
             && lhs.inGracePeriod == rhs.inGracePeriod
             && lhs.graceRemainingDays == rhs.graceRemainingDays
+            && lhs.canOfferPacerizEb1 == rhs.canOfferPacerizEb1
     }
 }
 

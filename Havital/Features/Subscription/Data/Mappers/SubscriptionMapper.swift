@@ -54,7 +54,8 @@ enum SubscriptionMapper {
             subscribedAt: subscribedAt,
             iapGraceUntil: iapGraceUntil,
             inGracePeriod: inGracePeriod,
-            graceRemainingDays: dto.graceRemainingDays
+            graceRemainingDays: dto.graceRemainingDays,
+            canOfferPacerizEb1: dto.eligibility?.canOfferPacerizEb1 ?? false
         )
     }
 

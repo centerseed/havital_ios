@@ -99,4 +99,24 @@ final class SubscriptionStatusDTOTests: XCTestCase {
         XCTAssertNil(rizo.remaining)
         XCTAssertNil(rizo.resetsAt)
     }
+
+    func testDecodeEligibilityBlock() throws {
+        let json = """
+        {
+            "status": "none",
+            "eligibility": {"can_offer_paceriz_eb1": true, "reason": "starter_lifetime"}
+        }
+        """.data(using: .utf8)!
+
+        let dto = try decoder.decode(SubscriptionStatusDTO.self, from: json)
+        XCTAssertEqual(dto.eligibility?.canOfferPacerizEb1, true)
+        XCTAssertEqual(dto.eligibility?.reason, "starter_lifetime")
+    }
+
+    func testDecodeMissingEligibilityIsNil() throws {
+        let json = #"{"status": "none"}"#.data(using: .utf8)!
+
+        let dto = try decoder.decode(SubscriptionStatusDTO.self, from: json)
+        XCTAssertNil(dto.eligibility)
+    }
 }

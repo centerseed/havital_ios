@@ -46,6 +46,9 @@ struct SubscriptionStatusDTO: Codable {
     /// Grace period 剩餘天數（後端計算值）。inGracePeriod=true 時後端提供此欄位。
     let graceRemainingDays: Int?
 
+    /// 跨 app 購買資格（後端 API 層 compose）。舊後端不回此欄位 → nil（向後相容）。
+    let eligibility: EligibilityDTO?
+
     // MARK: - Initialization
 
     /// 顯式 init（所有新欄位預設 nil，讓既有 call site 不需修改）
@@ -64,7 +67,8 @@ struct SubscriptionStatusDTO: Codable {
         subscribedAt: String? = nil,
         iapGraceUntil: String? = nil,
         inGracePeriod: Bool? = nil,
-        graceRemainingDays: Int? = nil
+        graceRemainingDays: Int? = nil,
+        eligibility: EligibilityDTO? = nil
     ) {
         self.status = status
         self.expiresAt = expiresAt
@@ -81,6 +85,7 @@ struct SubscriptionStatusDTO: Codable {
         self.iapGraceUntil = iapGraceUntil
         self.inGracePeriod = inGracePeriod
         self.graceRemainingDays = graceRemainingDays
+        self.eligibility = eligibility
     }
 
     // MARK: - CodingKeys
@@ -101,6 +106,7 @@ struct SubscriptionStatusDTO: Codable {
         case iapGraceUntil = "iap_grace_until"
         case inGracePeriod = "in_grace_period"
         case graceRemainingDays = "grace_remaining_days"
+        case eligibility
     }
 }
 
@@ -127,5 +133,23 @@ struct RizoUsageDTO: Codable {
         case limit
         case remaining
         case resetsAt = "resets_at"
+    }
+}
+
+// MARK: - EligibilityDTO
+/// 跨 app 購買資格（後端 API 層 compose）。
+struct EligibilityDTO: Codable {
+    /// 有 active Starter 買斷 → 有資格買 Paceriz 早鳥 eb1。
+    let canOfferPacerizEb1: Bool?
+    let reason: String?
+
+    init(canOfferPacerizEb1: Bool? = nil, reason: String? = nil) {
+        self.canOfferPacerizEb1 = canOfferPacerizEb1
+        self.reason = reason
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case canOfferPacerizEb1 = "can_offer_paceriz_eb1"
+        case reason
     }
 }

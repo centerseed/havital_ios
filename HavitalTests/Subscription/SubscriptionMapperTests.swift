@@ -201,4 +201,23 @@ final class SubscriptionMapperTests: XCTestCase {
         XCTAssertEqual(rizo.remaining, 6, "remaining should fall back to max(0, limit - used)")
         XCTAssertNil(rizo.resetsAt)
     }
+
+    func testToEntity_mapsCanOfferPacerizEb1True() {
+        let dto = SubscriptionStatusDTO(
+            status: "none",
+            eligibility: EligibilityDTO(canOfferPacerizEb1: true, reason: "starter_lifetime")
+        )
+
+        let entity = SubscriptionMapper.toEntity(from: dto)
+
+        XCTAssertTrue(entity.canOfferPacerizEb1)
+    }
+
+    func testToEntity_missingEligibilityDefaultsFalse() {
+        let dto = SubscriptionStatusDTO(status: "none")
+
+        let entity = SubscriptionMapper.toEntity(from: dto)
+
+        XCTAssertFalse(entity.canOfferPacerizEb1)
+    }
 }
