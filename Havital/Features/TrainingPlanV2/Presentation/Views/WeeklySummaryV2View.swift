@@ -825,6 +825,8 @@ private struct AdjustmentsSectionV2: View {
 
                 if let exec = item.benchmarkExecute {
                     BenchmarkExecuteCard(payload: exec, index: index, isSelected: binding)
+                } else if let calib = item.benchmarkCalibration {
+                    BenchmarkCalibrationCard(payload: calib, index: index, isSelected: binding)
                 } else {
                     AdjustmentItemCardV2(item: item, index: index, isSelected: binding)
                 }
