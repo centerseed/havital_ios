@@ -315,6 +315,10 @@ private final class SpyTrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataS
     func deleteWeeklySummary(summaryId: String) async throws {
         fatalError("Unexpected: deleteWeeklySummary()")
     }
+
+    func completeStrengthSession(_ request: StrengthCompletionRequestDTO) async throws -> StrengthCompletionResponseDTO {
+        fatalError("Unexpected: completeStrengthSession()")
+    }
 }
 
 // MARK: - SpyTrainingPlanV2LocalDataSource

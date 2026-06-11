@@ -30,6 +30,9 @@ protocol TrainingPlanV2RemoteDataSourceProtocol {
     func getWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2DTO
     func applyAdjustmentItems(weekOfPlan: Int, appliedIndices: [Int]) async throws
     func deleteWeeklySummary(summaryId: String) async throws
+
+    // Strength Completion
+    func completeStrengthSession(_ request: StrengthCompletionRequestDTO) async throws -> StrengthCompletionResponseDTO
 }
 
 // MARK: - TrainingPlanV2RemoteDataSource
@@ -371,5 +374,22 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
             try await apiHelper.delete(path: "/v2/summary/weekly/\(summaryId)")
         }
         Logger.info("[TrainingPlanV2RemoteDS] ✅ [DEBUG] Weekly summary deleted: \(summaryId)")
+    }
+
+    // MARK: - Strength Completion API
+
+    /// 回報力量訓練完成
+    /// API: POST /v2/strength/complete
+    func completeStrengthSession(_ request: StrengthCompletionRequestDTO) async throws -> StrengthCompletionResponseDTO {
+        Logger.debug("[TrainingPlanV2RemoteDS] POST /v2/strength/complete date=\(request.dayDate) type=\(request.strengthType)")
+        let response = try await tracked("TrainingPlanV2RemoteDataSource: completeStrengthSession") {
+            try await apiHelper.post(
+                StrengthCompletionResponseDTO.self,
+                path: "/v2/strength/complete",
+                body: request
+            )
+        }
+        Logger.info("[TrainingPlanV2RemoteDS] strength complete ok: \(response.progressUpdates.count) updates")
+        return response
     }
 }

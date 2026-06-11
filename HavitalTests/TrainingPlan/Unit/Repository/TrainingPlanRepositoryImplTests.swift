@@ -565,4 +565,8 @@ private final class FailingTrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteD
     func deleteWeeklySummary(summaryId: String) async throws {
         fatalError("Unexpected call to deleteWeeklySummary(summaryId:)")
     }
+
+    func completeStrengthSession(_ request: StrengthCompletionRequestDTO) async throws -> StrengthCompletionResponseDTO {
+        fatalError("Unexpected call to completeStrengthSession(_:)")
+    }
 }

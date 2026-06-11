@@ -107,6 +107,10 @@ final class FakeTrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourcePr
     func deleteWeeklySummary(summaryId: String) async throws {
         fatalError("Unexpected call: deleteWeeklySummary")
     }
+
+    func completeStrengthSession(_ request: StrengthCompletionRequestDTO) async throws -> StrengthCompletionResponseDTO {
+        fatalError("Unexpected call: completeStrengthSession")
+    }
 }
 
 // MARK: - PlanStatusV2Response Stub

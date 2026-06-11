@@ -565,6 +565,34 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
     }
 }
 
+// MARK: - StrengthCompletionRepository
+extension TrainingPlanV2RepositoryImpl: StrengthCompletionRepository {
+    func completeStrengthSession(
+        dayDate: String,
+        strengthType: String,
+        inputs: [StrengthExerciseInput],
+        overallRpe: Int,
+        durationMinutes: Int?,
+        weeklyPlanId: String?
+    ) async throws -> StrengthCompletionResult {
+        do {
+            let request = StrengthCompletionMapper.toRequestDTO(
+                dayDate: dayDate,
+                strengthType: strengthType,
+                inputs: inputs,
+                overallRpe: overallRpe,
+                durationMinutes: durationMinutes,
+                weeklyPlanId: weeklyPlanId
+            )
+            let dto = try await remoteDataSource.completeStrengthSession(request)
+            return StrengthCompletionMapper.toEntity(from: dto)
+        } catch {
+            logErrorToCloud(module: "Strength", operation: "complete", error: error, context: ["date": dayDate])
+            throw error.toDomainError()
+        }
+    }
+}
+
 // MARK: - Dependency Injection
 extension DependencyContainer {
 
@@ -584,6 +612,7 @@ extension DependencyContainer {
             localDataSource: resolve() as TrainingPlanV2LocalDataSourceProtocol
         )
         register(repository as TrainingPlanV2Repository, forProtocol: TrainingPlanV2Repository.self)
+        register(repository as StrengthCompletionRepository, forProtocol: StrengthCompletionRepository.self)
 
         Logger.debug("[DI] TrainingPlanV2 module dependencies registered")
     }
