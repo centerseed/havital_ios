@@ -18,7 +18,7 @@ struct BenchmarkCalibrationCard: View {
         String(format: NSLocalizedString("benchmark.calib.headline", comment: ""),
                payload.workoutDate ?? "",
                String(format: "%g", payload.distanceKm),
-               mmss(Int(payload.durationS)))
+               hms(Int(payload.durationS)))
     }
 
     var body: some View {

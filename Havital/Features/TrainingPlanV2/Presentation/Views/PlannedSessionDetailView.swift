@@ -260,10 +260,8 @@ struct PlannedSessionDetailView: View {
                     let hr = heroHRValue(run)
                     heroMetricColumn(title: NSLocalizedString("training.zone.target_hr", comment: ""), value: hr.value, unit: hr.unit)
                 } else if day.type == .benchmark {
-                    // Benchmark: show distance + estimated time only.
+                    // Benchmark: distance (shared column above) + estimated time only.
                     // Deliberately omit pace to avoid anchoring the runner to a target pace — all-out effort matters, not zone compliance.
-                    heroMetricColumn(title: NSLocalizedString("training.detail.metric_distance", comment: ""), value: distanceString(run), unit: distanceUnit(run))
-                    heroDivider
                     heroMetricColumn(title: NSLocalizedString("training.detail.metric_estimated_time", comment: ""), value: durationString(run), unit: nil)
                 } else {
                     heroMetricColumn(title: NSLocalizedString("training.detail.metric_estimated_time", comment: ""), value: durationString(run), unit: nil)
