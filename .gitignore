@@ -47,3 +47,6 @@ Package.resolved
 
 # Superpowers brainstorm runtime
 .superpowers/
+
+# git worktrees (subagent isolated workspaces)
+.worktrees/
