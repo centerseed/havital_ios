@@ -19,11 +19,32 @@ struct PlannedSessionDetailView: View {
     // Cold-launch activation is async; a tap before it completes would otherwise dead-end.
     @State private var pendingWatchActivity: RunActivity?
     @AppStorage("climateAdjustmentEnabled") private var climateAdjustmentEnabled = false
+    @State private var strengthCompletionVM: StrengthCompletionViewModel?
+    @State private var completionRefresh = false
+    private let completionStore: StrengthCompletionStore = UserDefaultsStrengthCompletionStore.shared
 
     init(day: DayDetail, date: Date?, planId: String? = nil) {
         self.day = day
         self.date = date
         self.planId = planId
+    }
+
+    /// 取得本日力量活動：優先 primary（如為力量主項），退回補充力量的第一個。
+    private var strengthActivity: StrengthActivity? {
+        if case .strength(let s)? = day.session?.primary { return s }
+        for activity in day.effectiveSupplementary ?? [] {
+            if case .strength(let s) = activity { return s }
+        }
+        return nil
+    }
+
+    private var dayDateString: String? {
+        guard let date else { return nil }
+        let f = DateFormatter()
+        f.calendar = Calendar.current
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: date)
     }
 
     var body: some View {
@@ -35,6 +56,7 @@ struct PlannedSessionDetailView: View {
                 structureSectionIfNeeded.padding(.horizontal, 16).padding(.top, 12)
                 targetZonesSection.padding(.horizontal, 16).padding(.top, 12)
                 nonRunContentSection.padding(.horizontal, 16).padding(.top, 12)
+                strengthCompletionCTA.padding(.horizontal, 16).padding(.top, 12)
                 tipSection.padding(.horizontal, 16).padding(.top, 12)
                 supplementarySection.padding(.horizontal, 16).padding(.top, 12)
                 climateSection.padding(.horizontal, 16).padding(.top, 12)
@@ -58,6 +80,12 @@ struct PlannedSessionDetailView: View {
             if let info = TrainingTypeInfo.info(for: day.type) {
                 TrainingTypeInfoView(trainingTypeInfo: info)
             }
+        }
+        .sheet(item: $strengthCompletionVM) { vm in
+            StrengthCompletionSheet(viewModel: vm, onClose: {
+                strengthCompletionVM = nil
+                completionRefresh.toggle()
+            })
         }
         .alert(NSLocalizedString("training.detail.watch_status_title", comment: "Apple Watch"), isPresented: $showWatchTransferAlert) {
             Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
@@ -548,6 +576,47 @@ struct PlannedSessionDetailView: View {
                 }
             case .cross, .run:
                 EmptyView()
+            }
+        }
+    }
+
+    // MARK: - Strength Completion CTA
+
+    /// 力量完成 CTA：力量日（主項或補充）+ date 都存在時顯示。
+    /// 已完成：顯示鎖定態（checkmark + RPE）；未完成：顯示「記錄完成」按鈕。
+    @ViewBuilder
+    private var strengthCompletionCTA: some View {
+        if let activity = strengthActivity, let dateStr = dayDateString {
+            let _ = completionRefresh
+            if completionStore.isCompleted(dayDate: dateStr, strengthType: activity.strengthType) {
+                HStack {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(RecapPalette.rpe(3))
+                    Text(String(format: NSLocalizedString("strength.completion.locked", comment: ""),
+                                completionStore.completedRPE(dayDate: dateStr, strengthType: activity.strengthType) ?? 0))
+                        .font(AppFont.bodyRegular())
+                }
+                .frame(maxWidth: .infinity, minHeight: 50)
+                .background(Color(UIColor.secondarySystemGroupedBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            } else {
+                Button {
+                    strengthCompletionVM = StrengthCompletionViewModel(
+                        activity: activity,
+                        dayDate: dateStr,
+                        weeklyPlanId: planId,
+                        repository: DependencyContainer.shared.resolve() as StrengthCompletionRepository,
+                        store: completionStore
+                    )
+                } label: {
+                    Text(NSLocalizedString("strength.completion.entry_cta", comment: ""))
+                        .font(AppFont.bodyStrong())
+                        .frame(maxWidth: .infinity, minHeight: 50)
+                        .foregroundColor(.white)
+                        .background(PacerizColor.blue)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
             }
         }
     }
