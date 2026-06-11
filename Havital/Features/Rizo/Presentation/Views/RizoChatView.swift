@@ -33,11 +33,84 @@ struct RizoChatView: View {
                 quickReplyRow
             }
 
+            if let pending = viewModel.pendingPlanChange, !viewModel.isReplying {
+                planChangeCard(pending)
+            }
+
             inputBar
         }
         .padding(14)
         .background(Color(UIColor.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: PacerizRadius.card, style: .continuous))
+        .sheet(item: $viewModel.paywallTrigger) { trigger in
+            PaywallView(trigger: trigger)
+        }
+    }
+
+    // MARK: - Plan Change Card
+
+    /// 教練提出改課表 → 顯示摘要 + 「接受 / 繼續討論」。
+    /// 接受 → 確認套用(免費用戶走付費牆);繼續討論 → 收起、繼續聊。
+    private func planChangeCard(_ pending: PendingPlanChange) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "calendar.badge.checkmark")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(PacerizColor.blue)
+                Text(NSLocalizedString("rizo.plan_change.title", comment: "課表調整"))
+                    .font(AppFont.captionMedium())
+                    .foregroundColor(.primary)
+            }
+            if let summary = pending.summary, !summary.isEmpty {
+                Text(summary)
+                    .font(AppFont.bodyRegular())
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            HStack(spacing: 10) {
+                Button {
+                    viewModel.dismissPlanChange()
+                } label: {
+                    Text(NSLocalizedString("rizo.plan_change.discuss", comment: "繼續討論"))
+                        .font(AppFont.captionMedium())
+                        .foregroundColor(PacerizColor.blue)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .background(PacerizColor.blue12, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .disabled(viewModel.isConfirmingPlanChange)
+                .accessibilityIdentifier("rizo_plan_change_discuss")
+
+                Button {
+                    Task { await viewModel.acceptPlanChange() }
+                } label: {
+                    Group {
+                        if viewModel.isConfirmingPlanChange {
+                            ProgressView().tint(.white)
+                        } else {
+                            Text(NSLocalizedString("rizo.plan_change.accept", comment: "接受"))
+                                .font(AppFont.captionMedium())
+                        }
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(PacerizColor.blue, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .buttonStyle(.plain)
+                .disabled(viewModel.isConfirmingPlanChange)
+                .accessibilityIdentifier("rizo_plan_change_accept")
+            }
+        }
+        .padding(12)
+        .background(PacerizColor.blue.opacity(0.06), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(PacerizColor.blue.opacity(0.18), lineWidth: 1)
+        )
+        .accessibilityIdentifier("rizo_plan_change_card")
     }
 
     // MARK: - Chat Header
@@ -249,11 +322,20 @@ private final class _RizoChatPreviewRepo: RizoRepository {
             reply: "今天天氣很熱，你跑得很紮實！心率偏高是體溫調節造成的，不用擔心。有沒有哪段特別感覺到壓力？",
             sessionId: "preview",
             quota: RizoQuota(allowed: true, used: 1, limit: 3, remaining: 2, resetsAt: nil, reserved: true),
-            safety: RizoSafety(dangerClass: "none", canned: false)
+            safety: RizoSafety(dangerClass: "none", canned: false),
+            pendingPlanChange: PendingPlanChange(
+                proposalId: "preview",
+                summary: "週日 長距離慢跑 19km → 輕鬆跑 19km",
+                safetyLevel: "none",
+                requiresSubscription: true
+            )
         )
     }
     func getPresets(scenario: String) async throws -> [RizoPreset] { [] }
     func getHistory() async throws -> [RizoHistoryItem] { [] }
+    func confirmPlanChange(proposalId: String) async throws -> PlanChangeConfirmResult {
+        PlanChangeConfirmResult(applied: true, status: "applied")
+    }
 }
 
 @MainActor

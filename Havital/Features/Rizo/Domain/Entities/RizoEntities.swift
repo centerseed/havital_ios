@@ -19,6 +19,47 @@ struct RizoReply: Equatable {
 
     /// 安全分層資訊（危險分類 / 是否為罐頭回覆）。
     let safety: RizoSafety
+
+    /// 改課表:此回合若教練提出待確認的課表變更，帶提案；否則 nil。
+    let pendingPlanChange: PendingPlanChange?
+
+    /// pendingPlanChange 預設 nil → 既有建構處(無改課表)免改。
+    init(reply: String, sessionId: String, quota: RizoQuota, safety: RizoSafety,
+         pendingPlanChange: PendingPlanChange? = nil) {
+        self.reply = reply
+        self.sessionId = sessionId
+        self.quota = quota
+        self.safety = safety
+        self.pendingPlanChange = pendingPlanChange
+    }
+}
+
+// MARK: - PendingPlanChange
+
+/// 待使用者確認的改課表提案。UI 渲染「接受 / 繼續討論」。
+struct PendingPlanChange: Equatable {
+    /// 提案 ID，「接受」時回傳給 confirm 端點。
+    let proposalId: String
+
+    /// 變更摘要（如 "Day7: lsd 19km -> easy 19km"），給使用者看要改什麼。
+    let summary: String?
+
+    /// 風險分層（none / caution / …），UI 可標示風險色。
+    let safetyLevel: String?
+
+    /// 是否需訂閱（免費用戶按「接受」會走付費牆）。
+    let requiresSubscription: Bool
+}
+
+// MARK: - PlanChangeConfirmResult
+
+/// 確認改課表的結果。
+struct PlanChangeConfirmResult: Equatable {
+    /// 是否已套用。
+    let applied: Bool
+
+    /// 後端狀態（如 "applied"）。
+    let status: String?
 }
 
 // MARK: - RizoQuota

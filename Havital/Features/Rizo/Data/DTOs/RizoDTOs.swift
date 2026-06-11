@@ -33,12 +33,47 @@ struct RizoChatResponseDTO: Codable {
     let sessionId: String
     let quota: RizoQuotaDTO
     let safety: RizoSafetyDTO
+    /// 改課表:有待確認的提案時才出現（舊版後端 / 非改課表輪為 nil）。
+    let pendingPlanChange: PendingPlanChangeDTO?
 
     enum CodingKeys: String, CodingKey {
         case response
         case sessionId = "session_id"
         case quota
         case safety
+        case pendingPlanChange = "pending_plan_change"
+    }
+}
+
+// MARK: - PendingPlanChangeDTO
+
+/// chat 回應內的待確認改課表提案；UI 據此渲染「接受 / 繼續討論」。
+struct PendingPlanChangeDTO: Codable {
+    let proposalId: String
+    let summary: String?
+    let safetyLevel: String?
+    let requiresSubscription: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case proposalId = "proposal_id"
+        case summary
+        case safetyLevel = "safety_level"
+        case requiresSubscription = "requires_subscription"
+    }
+}
+
+// MARK: - PlanChangeConfirmResponseDTO
+
+/// POST /v2/agent/plan-change/confirm 成功回應的 data 物件。
+struct PlanChangeConfirmResponseDTO: Codable {
+    let proposalId: String?
+    let status: String?
+    let applied: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case proposalId = "proposal_id"
+        case status
+        case applied
     }
 }
 

@@ -44,10 +44,21 @@ protocol RizoRepository {
     /// 對應 GET /v2/agent/history。
     /// - Returns: 歷史項目清單。
     func getHistory() async throws -> [RizoHistoryItem]
+
+    /// 確認並套用先前提出的改課表提案（使用者按「接受」）。
+    /// 對應 POST /v2/agent/plan-change/confirm。
+    /// - Parameter proposalId: chat 回應 `pendingPlanChange.proposalId`。
+    /// - Returns: 確認結果（是否已套用）。
+    func confirmPlanChange(proposalId: String) async throws -> PlanChangeConfirmResult
 }
 
 // MARK: - Rizo Repository Convenience Defaults
 extension RizoRepository {
+    /// 預設實作:不測改課表的 preview/test 替身免實作(真實 RizoRepositoryImpl 已覆寫)。
+    func confirmPlanChange(proposalId: String) async throws -> PlanChangeConfirmResult {
+        throw RizoRepositoryError.dataSourceUnavailable
+    }
+
     /// 首回合便利多載：sessionId 預設為 nil。
     func sendJournalChat(
         workoutId: String,
