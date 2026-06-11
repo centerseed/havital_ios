@@ -230,6 +230,22 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
         }
     }
 
+    // MARK: - Offering Decision (graduate eb1 / public early-bird / standard)
+
+    /// 決定 paywall 呈現哪個 offering + 是否套早鳥樣式（委派給純函式 `PaywallOfferingDecision`）。
+    /// eb1 資格來自後端權威值（`status.canOfferPacerizEb1`，經 SubscriptionStateManager）。
+    /// status 還沒載入 → nil → false → fail-safe 退回 RC current（不誤給 eb1）。
+    private func offeringDecision(in allOfferings: [SubscriptionOfferingEntity]) -> PaywallOfferingDecision.Result {
+        PaywallOfferingDecision.decide(.init(
+            isEb1Eligible: SubscriptionStateManager.shared.currentStatus?.canOfferPacerizEb1 ?? false,
+            availableOfferingIds: Set(allOfferings.map { $0.id }),
+            rcCurrentOfferingId: subscriptionRepository.currentOfferingIdentifier,
+            rcIsEarlyBird: subscriptionRepository.isEarlyBirdOffering,
+            graduateId: Constants.IAP.graduateOfferingIdentifier,
+            defaultId: Constants.IAP.defaultOfferingIdentifier
+        ))
+    }
+
     // MARK: - Early Bird Display Packages
 
     /// View-ready packages for the current offering, enriched with early-bird display metadata.
@@ -241,11 +257,11 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
     /// - `isEarlyBird` = true when repository reports early-bird offering.
     var displayPackages: [PaywallDisplayPackage] {
         guard case .loaded(let allOfferings) = offerings else { return [] }
-        let isEarlyBird = subscriptionRepository.isEarlyBirdOffering
-        let currentOfferingId = subscriptionRepository.currentOfferingIdentifier ?? Constants.IAP.defaultOfferingIdentifier
+        let decision = offeringDecision(in: allOfferings)
+        let isEarlyBird = decision.isEarlyBirdDisplay
 
-        // Find the current offering
-        let currentOffering = allOfferings.first { $0.id == currentOfferingId }
+        // Find the effective offering (graduate eb1 for eligible Starter buyers, else RC current)
+        let currentOffering = allOfferings.first { $0.id == decision.offeringId }
             ?? allOfferings.first
         guard let currentOffering else { return [] }
 
@@ -302,9 +318,10 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
     }
 
     /// Whether the early-bird section should be shown in the paywall.
-    /// True only when the current offering is the early-bird offering.
+    /// True when the effective offering is early-bird styled (graduate eb1, or RC public early-bird).
     var shouldShowEarlyBirdSection: Bool {
-        isEarlyBirdOffering
+        guard case .loaded(let allOfferings) = offerings else { return false }
+        return offeringDecision(in: allOfferings).isEarlyBirdDisplay
     }
 
     /// Whether the default section should be shown in the paywall.
@@ -376,13 +393,10 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
     // MARK: - View Helpers
 
     /// Returns the offering identifier that should be passed to purchase().
-    /// Prefers the repository's current offering identifier; falls back to the first
-    /// offering that contains the given packages.
+    /// Uses the same effective-offering decision as the displayed packages so the purchase
+    /// targets exactly what the user saw (graduate eb1 for eligible Starter buyers, else RC current).
     func currentOfferingId(from offerings: [SubscriptionOfferingEntity]) -> String {
-        if let id = subscriptionRepository.currentOfferingIdentifier {
-            return id
-        }
-        return offerings.first?.id ?? Constants.IAP.defaultOfferingIdentifier
+        offeringDecision(in: offerings).offeringId
     }
 
     // MARK: - Private

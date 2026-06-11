@@ -44,5 +44,11 @@ extension Constants {
 
         /// RevenueCat offering identifier for the default (standard price) offering.
         static let defaultOfferingIdentifier = "default"
+
+        /// RevenueCat offering identifier for the graduate offering (contains eb1 SKUs, no sunset window).
+        /// Starter buyout owners (backend `can_offer_paceriz_eb1`) are shown this offering so they keep
+        /// access to early-bird pricing after the public "Early bird" offering sunsets (6/30).
+        /// NOTE: Must match the exact identifier set in RevenueCat dashboard (case-sensitive).
+        static let graduateOfferingIdentifier = "graduate"
     }
 }
