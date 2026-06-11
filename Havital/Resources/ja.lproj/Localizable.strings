@@ -3596,3 +3596,20 @@
 
 /* 今日の状態 詳細ページ：Rizo チャットセクションのタイトル */
 "daily_state.chat_section_title" = "コーチ Rizo と話す";
+
+// MARK: - Benchmark Execute Card
+"benchmark.execute.chip" = "来週の重点 · 実力校正";
+"benchmark.execute.title" = "%@ km ベンチマーク走";
+"benchmark.execute.coach" = "決まった距離を全力で走り、それでトレーニングペースと完走予測を調整します。";
+"benchmark.execute.schedule_weekday" = "%@のロング走をベンチマークに置き換え、前日は自動で休養にして調子を保ちます。";
+"benchmark.execute.schedule_generic" = "来週のロング走をベンチマークに置き換え、前日は自動で休養にして調子を保ちます。";
+"benchmark.execute.toggle" = "このベンチマークを予定する";
+"benchmark.execute.toggle_hint" = "チェックを外すと今週は組まれません（後から Rizo に再設定を頼めます）。";
+"benchmark.execute.skipped" = "今週はスキップ";
+"benchmark.weekday.1" = "来週月曜";
+"benchmark.weekday.2" = "来週火曜";
+"benchmark.weekday.3" = "来週水曜";
+"benchmark.weekday.4" = "来週木曜";
+"benchmark.weekday.5" = "来週金曜";
+"benchmark.weekday.6" = "来週土曜";
+"benchmark.weekday.7" = "来週日曜";

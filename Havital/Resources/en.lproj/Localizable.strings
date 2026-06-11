@@ -3599,3 +3599,20 @@
 
 /* Daily state detail page: Rizo chat section title */
 "daily_state.chat_section_title" = "Chat with coach Rizo";
+
+// MARK: - Benchmark Execute Card
+"benchmark.execute.chip" = "Next week's focus · Fitness calibration";
+"benchmark.execute.title" = "%@ km benchmark run";
+"benchmark.execute.coach" = "Run a fixed distance all-out — I use it to dial in your training paces and race prediction.";
+"benchmark.execute.schedule_weekday" = "%@'s long run becomes the benchmark; the day before is auto-rested to keep you fresh.";
+"benchmark.execute.schedule_generic" = "Next week's long run becomes the benchmark; the day before is auto-rested to keep you fresh.";
+"benchmark.execute.toggle" = "Schedule this benchmark";
+"benchmark.execute.toggle_hint" = "Untick to skip it this week — you can ask Rizo to reschedule anytime.";
+"benchmark.execute.skipped" = "Skipping this week";
+"benchmark.weekday.1" = "next Monday";
+"benchmark.weekday.2" = "next Tuesday";
+"benchmark.weekday.3" = "next Wednesday";
+"benchmark.weekday.4" = "next Thursday";
+"benchmark.weekday.5" = "next Friday";
+"benchmark.weekday.6" = "next Saturday";
+"benchmark.weekday.7" = "next Sunday";

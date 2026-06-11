@@ -3638,3 +3638,20 @@
 
 /* 今日狀態詳細頁：Rizo 對話區段標題 */
 "daily_state.chat_section_title" = "與 Rizo 教練聊聊";
+
+// MARK: - Benchmark Execute Card
+"benchmark.execute.chip" = "下週重點 · 實力校準";
+"benchmark.execute.title" = "%@ 公里指標跑";
+"benchmark.execute.coach" = "全力跑一次固定距離，我用它把你的配速基準和完賽預測調準。";
+"benchmark.execute.schedule_weekday" = "%@的長跑換成指標跑；前一天自動安排休息保體力。";
+"benchmark.execute.schedule_generic" = "下週的長跑換成指標跑；前一天自動安排休息保體力。";
+"benchmark.execute.toggle" = "安排這次指標跑";
+"benchmark.execute.toggle_hint" = "取消＝這週先不排，之後可請 Rizo 重排。";
+"benchmark.execute.skipped" = "這週先跳過";
+"benchmark.weekday.1" = "下週一";
+"benchmark.weekday.2" = "下週二";
+"benchmark.weekday.3" = "下週三";
+"benchmark.weekday.4" = "下週四";
+"benchmark.weekday.5" = "下週五";
+"benchmark.weekday.6" = "下週六";
+"benchmark.weekday.7" = "下週日";
