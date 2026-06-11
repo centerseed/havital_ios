@@ -3623,3 +3623,11 @@
 "benchmark.calib.lag_notice" = "トレーニングペースは 2〜3 週かけて反映されます（単週の変動は意図的に追いません）。";
 "benchmark.calib.toggle" = "この校正を採用する";
 "benchmark.calib.toggle_hint" = "差分を確認してからチェックして適用します。";
+
+"training.zone.effort" = "努力度";
+"benchmark.detail.why_title" = "この日が特別な理由";
+"benchmark.detail.why_body" = "これは実力測定です。この %@K を全力で走りきれば、その記録でトレーニングペースと完走予測を再校正します——だから全力で。前日は自動で休養にして調子を保ちます。";
+"benchmark.detail.why_body_nodist" = "これは実力測定です。この距離を全力で走りきれば、その記録でトレーニングペースと完走予測を再校正します——だから全力で。前日は自動で休養にして調子を保ちます。";
+"benchmark.detail.loop_hint" = "走り終えると、次回の週次レビューで校正結果が表示されます。";
+"benchmark.detail.all_out" = "ペースを追わず全力で";
+"training.type.benchmark.chip" = "BENCHMARK · 全力測定";

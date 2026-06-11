@@ -3665,3 +3665,11 @@
 "benchmark.calib.lag_notice" = "課表配速會在 2-3 週逐步反映（系統刻意不追單週起伏）。";
 "benchmark.calib.toggle" = "採用這次校準";
 "benchmark.calib.toggle_hint" = "看完差異後主動勾選才套用。";
+
+"training.zone.effort" = "努力程度";
+"benchmark.detail.why_title" = "為什麼這天特別";
+"benchmark.detail.why_body" = "這是一次實力測量。全力跑完這 %@K，我會用你的成績重新校準訓練配速和完賽預測——所以盡力跑。前一天已自動安排休息，讓你保持新鮮。";
+"benchmark.detail.why_body_nodist" = "這是一次實力測量。全力跑完這段距離，我會用你的成績重新校準訓練配速和完賽預測——所以盡力跑。前一天已自動安排休息，讓你保持新鮮。";
+"benchmark.detail.loop_hint" = "跑完後，下次週回顧會給你校準成果。";
+"benchmark.detail.all_out" = "全力跑、不用追配速";
+"training.type.benchmark.chip" = "BENCHMARK · 全力測量";

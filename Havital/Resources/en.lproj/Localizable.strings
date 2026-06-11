@@ -3626,3 +3626,11 @@
 "benchmark.calib.lag_notice" = "Training paces will phase in over 2-3 weeks (the system deliberately ignores single-week swings).";
 "benchmark.calib.toggle" = "Apply this calibration";
 "benchmark.calib.toggle_hint" = "Review the change, then tick to apply.";
+
+"training.zone.effort" = "Effort";
+"benchmark.detail.why_title" = "Why this day matters";
+"benchmark.detail.why_body" = "This is a fitness measurement. Run this %@K all-out and I'll recalibrate your training paces and race prediction from it — so give it everything. The day before is auto-rested to keep you fresh.";
+"benchmark.detail.why_body_nodist" = "This is a fitness measurement. Run this all-out and I'll recalibrate your training paces and race prediction from it — so give it everything. The day before is auto-rested to keep you fresh.";
+"benchmark.detail.loop_hint" = "After you run it, your next weekly review shows the calibration result.";
+"benchmark.detail.all_out" = "Run all-out — don't chase a pace";
+"training.type.benchmark.chip" = "BENCHMARK · All-out";

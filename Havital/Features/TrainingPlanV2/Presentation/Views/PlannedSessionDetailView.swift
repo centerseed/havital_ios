@@ -31,6 +31,7 @@ struct PlannedSessionDetailView: View {
             VStack(spacing: 0) {
                 heroCard.padding(.horizontal, 16).padding(.top, 12)
                 coachIntentCard.padding(.horizontal, 16).padding(.top, 12)
+                benchmarkWhyCard.padding(.horizontal, 16).padding(.top, 12)
                 structureSectionIfNeeded.padding(.horizontal, 16).padding(.top, 12)
                 targetZonesSection.padding(.horizontal, 16).padding(.top, 12)
                 nonRunContentSection.padding(.horizontal, 16).padding(.top, 12)
@@ -113,7 +114,8 @@ struct PlannedSessionDetailView: View {
             case .fastFinish:       return ("FAST FINISH · Z2 + Z3", NSLocalizedString("training.type.fast_finish", comment: ""))
             case .race:             return ("RACE · Z5",             NSLocalizedString("training.type.race", comment: ""))
             case .racePace:         return ("RACE PACE · Z4-Z5",     NSLocalizedString("training.type.race_pace", comment: ""))
-            case .benchmark:        return ("BENCHMARK · Z4-Z5",     NSLocalizedString("training.type.benchmark", comment: ""))
+            case .benchmark:        return (NSLocalizedString("training.type.benchmark.chip", comment: ""),
+                                            NSLocalizedString("training.type.benchmark", comment: ""))
             case .combination:      return ("COMBINATION",           NSLocalizedString("training.type.combination", comment: ""))
             case .strides:          return ("STRIDES · Z4-Z5",       NSLocalizedString("training.type.strides", comment: ""))
             case .hillRepeats:      return ("HILL REPEATS · Z4",     NSLocalizedString("training.type.hill_repeats", comment: ""))
@@ -257,6 +259,12 @@ struct PlannedSessionDetailView: View {
                     // Easy/long-easy runs are HR-driven → show 距離 + 心率 (pace lives in target zones as a range).
                     let hr = heroHRValue(run)
                     heroMetricColumn(title: NSLocalizedString("training.zone.target_hr", comment: ""), value: hr.value, unit: hr.unit)
+                } else if day.type == .benchmark {
+                    // Benchmark: show distance + estimated time only.
+                    // Deliberately omit pace to avoid anchoring the runner to a target pace — all-out effort matters, not zone compliance.
+                    heroMetricColumn(title: NSLocalizedString("training.detail.metric_distance", comment: ""), value: distanceString(run), unit: distanceUnit(run))
+                    heroDivider
+                    heroMetricColumn(title: NSLocalizedString("training.detail.metric_estimated_time", comment: ""), value: durationString(run), unit: nil)
                 } else {
                     heroMetricColumn(title: NSLocalizedString("training.detail.metric_estimated_time", comment: ""), value: durationString(run), unit: nil)
                     heroDivider
@@ -411,6 +419,68 @@ struct PlannedSessionDetailView: View {
         }
         .padding(14).frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(UIColor.secondarySystemGroupedBackground)).cornerRadius(PacerizRadius.card)
+    }
+
+    // MARK: - Benchmark Why-Special Card
+
+    /// Shown only on benchmark days, below the coach intent card.
+    /// Explains the purpose of the all-out measurement and plants the closed-loop expectation
+    /// ("your next weekly review will show the calibration result").
+    @ViewBuilder
+    private var benchmarkWhyCard: some View {
+        if day.type == .benchmark {
+            let distanceText: String = {
+                if let km = day.primaryRunActivity?.distanceKm ?? day.primaryRunActivity?.distanceDisplay {
+                    return String(format: "%.1f", km)
+                }
+                return "-"
+            }()
+            let bodyText = distanceText == "-"
+                ? NSLocalizedString("benchmark.detail.why_body_nodist", comment: "")
+                : String(format: NSLocalizedString("benchmark.detail.why_body", comment: ""), distanceText)
+
+            VStack(alignment: .leading, spacing: 10) {
+                // Header row: icon + title chip
+                HStack(spacing: 6) {
+                    Image(systemName: PacerizIcon.benchmark)
+                        .font(AppFont.captionRegular())
+                        .foregroundColor(PacerizColor.benchmark)
+                    Text(NSLocalizedString("benchmark.detail.why_title", comment: ""))
+                        .font(AppFont.chip())
+                        .tracking(0.04)
+                        .foregroundColor(PacerizColor.benchmark)
+                }
+
+                // Body: measurement explanation
+                Text(bodyText)
+                    .font(AppFont.micro())
+                    .foregroundColor(.primary)
+                    .lineSpacing(4)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                // Closed-loop hint: divider + loop hint text
+                Divider()
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(AppFont.micro())
+                        .foregroundColor(PacerizColor.benchmark.opacity(0.7))
+                    Text(NSLocalizedString("benchmark.detail.loop_hint", comment: ""))
+                        .font(AppFont.micro())
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: PacerizRadius.card)
+                    .fill(PacerizColor.benchmark.opacity(0.07))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: PacerizRadius.card)
+                            .strokeBorder(PacerizColor.benchmark.opacity(0.35), lineWidth: 1)
+                    )
+            )
+        }
     }
 
     // MARK: - Training Structure Section
@@ -902,28 +972,40 @@ struct PlannedSessionDetailView: View {
         guard let run = day.primaryRunActivity else { return [] }
         var pills: [TargetZonePillData] = []
 
-        // Pill 1: pace (label varies by type) — 配速依使用者單位換算。
-        if let interval = run.interval {
-            if let pace = interval.workPace {
-                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.sprint_pace", comment: ""), value: displayPace(pace) ?? pace, unit: paceSuffix, isDanger: false))
+        // Benchmark days: replace pace pill with an all-out effort cue.
+        // Showing a numeric pace target would anchor the runner to a zone, defeating calibration accuracy.
+        if day.type == .benchmark {
+            pills.append(TargetZonePillData(
+                label: NSLocalizedString("training.zone.effort", comment: ""),
+                value: NSLocalizedString("benchmark.detail.all_out", comment: ""),
+                unit: "",
+                isDanger: false
+            ))
+        } else {
+            // Pill 1: pace (label varies by type) — 配速依使用者單位換算。
+            if let interval = run.interval {
+                if let pace = interval.workPace {
+                    pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.sprint_pace", comment: ""), value: displayPace(pace) ?? pace, unit: paceSuffix, isDanger: false))
+                }
+                if let recPace = interval.recoveryPace {
+                    pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.recovery_pace", comment: ""), value: displayPace(recPace) ?? recPace, unit: paceSuffix, isDanger: false))
+                }
+            } else if let pace = run.effectivePace {
+                let paceLabel: String
+                switch day.type {
+                case .progression: paceLabel = NSLocalizedString("training.zone.start_pace", comment: "")
+                case .fastFinish: paceLabel = NSLocalizedString("training.segment.easy_pace", comment: "")
+                default: paceLabel = NSLocalizedString("training.zone.target_pace", comment: "")
+                }
+                // Easy/LSD: show original pace widened by ±20s instead of the climate-adjusted single value.
+                let paceValue = isEasyOrLSD ? (easyPaceRange(run) ?? (displayPace(pace) ?? pace)) : (displayPace(pace) ?? pace)
+                pills.append(TargetZonePillData(label: paceLabel, value: paceValue, unit: paceSuffix, isDanger: false))
             }
-            if let recPace = interval.recoveryPace {
-                pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.recovery_pace", comment: ""), value: displayPace(recPace) ?? recPace, unit: paceSuffix, isDanger: false))
-            }
-        } else if let pace = run.effectivePace {
-            let paceLabel: String
-            switch day.type {
-            case .progression: paceLabel = NSLocalizedString("training.zone.start_pace", comment: "")
-            case .fastFinish: paceLabel = NSLocalizedString("training.segment.easy_pace", comment: "")
-            default: paceLabel = NSLocalizedString("training.zone.target_pace", comment: "")
-            }
-            // Easy/LSD: show original pace widened by ±20s instead of the climate-adjusted single value.
-            let paceValue = isEasyOrLSD ? (easyPaceRange(run) ?? (displayPace(pace) ?? pace)) : (displayPace(pace) ?? pace)
-            pills.append(TargetZonePillData(label: paceLabel, value: paceValue, unit: paceSuffix, isDanger: false))
         }
 
         // Pill 2: heart-rate zone — 僅 easy/LSD（以心率為導引）顯示；質量課表（非輕鬆配速）以配速為主，不顯示心率。
-        if isEasyOrLSD {
+        // Benchmark also skips HR zone — the goal is all-out effort, not staying in a zone.
+        if isEasyOrLSD && day.type != .benchmark {
             if let hr = run.heartRateRange, hr.isValid, let hrText = hr.displayText {
                 pills.append(TargetZonePillData(label: NSLocalizedString("training.zone.target_hr", comment: ""), value: hrText, unit: "bpm", isDanger: true))
             } else {
