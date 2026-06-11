@@ -3616,3 +3616,13 @@
 "benchmark.weekday.5" = "next Friday";
 "benchmark.weekday.6" = "next Saturday";
 "benchmark.weekday.7" = "next Sunday";
+"benchmark.calib.chip" = "Benchmark result · Fitness calibration";
+"benchmark.calib.headline" = "Your %2$@K benchmark on %1$@ came in at %3$@ — I've recalibrated your fitness from it.";
+"benchmark.calib.pace_label" = "Training pace";
+"benchmark.calib.pace_delta" = "%@s faster";
+"benchmark.calib.race_label" = "Race prediction";
+"benchmark.calib.vdot_label" = "VDOT";
+"benchmark.calib.hedge" = "This measurement differs from your recent state — possibly fatigue or settings, so I'm adjusting cautiously.";
+"benchmark.calib.lag_notice" = "Training paces will phase in over 2-3 weeks (the system deliberately ignores single-week swings).";
+"benchmark.calib.toggle" = "Apply this calibration";
+"benchmark.calib.toggle_hint" = "Review the change, then tick to apply.";

@@ -3655,3 +3655,13 @@
 "benchmark.weekday.5" = "下週五";
 "benchmark.weekday.6" = "下週六";
 "benchmark.weekday.7" = "下週日";
+"benchmark.calib.chip" = "指標跑成果 · 實力校準";
+"benchmark.calib.headline" = "你 %1$@ 的 %2$@K 指標跑跑出 %3$@，我用它重新校準了你的實力。";
+"benchmark.calib.pace_label" = "訓練配速";
+"benchmark.calib.pace_delta" = "快了 %@ 秒";
+"benchmark.calib.race_label" = "完賽預測";
+"benchmark.calib.vdot_label" = "VDOT";
+"benchmark.calib.hedge" = "這次測量和你近期狀態有落差，可能是疲勞或設定，我先謹慎調整。";
+"benchmark.calib.lag_notice" = "課表配速會在 2-3 週逐步反映（系統刻意不追單週起伏）。";
+"benchmark.calib.toggle" = "採用這次校準";
+"benchmark.calib.toggle_hint" = "看完差異後主動勾選才套用。";

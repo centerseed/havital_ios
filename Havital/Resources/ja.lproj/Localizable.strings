@@ -3613,3 +3613,13 @@
 "benchmark.weekday.5" = "来週金曜";
 "benchmark.weekday.6" = "来週土曜";
 "benchmark.weekday.7" = "来週日曜";
+"benchmark.calib.chip" = "ベンチマーク結果 · 実力校正";
+"benchmark.calib.headline" = "%1$@ の %2$@K ベンチマークは %3$@ でした。それで実力を再校正しました。";
+"benchmark.calib.pace_label" = "トレーニングペース";
+"benchmark.calib.pace_delta" = "%@秒 速く";
+"benchmark.calib.race_label" = "完走予測";
+"benchmark.calib.vdot_label" = "VDOT";
+"benchmark.calib.hedge" = "今回の測定は最近の状態と差があります。疲労や設定の可能性があるため、慎重に調整します。";
+"benchmark.calib.lag_notice" = "トレーニングペースは 2〜3 週かけて反映されます（単週の変動は意図的に追いません）。";
+"benchmark.calib.toggle" = "この校正を採用する";
+"benchmark.calib.toggle_hint" = "差分を確認してからチェックして適用します。";
