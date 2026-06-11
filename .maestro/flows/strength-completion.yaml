@@ -1,0 +1,79 @@
+appId: com.havital.Havital.dev
+tags:
+  - strength
+  - completion
+---
+# 測試：力量訓練完成回報流程
+# 前置條件：已登入 + 當週課表含力量訓練日
+# 驗收：
+#   SC-1 從課表日詳細頁可找到「完成力量訓練」CTA
+#   SC-2 點 CTA 後打開「完成回報」sheet
+#   SC-3 可對動作切換略過狀態
+#   SC-4 可選擇 RPE（1-10）後提交
+#   SC-5 送出後顯示回饋畫面（無 series_id 時顯示「已完成 · RPE X」；有 series_id + 部署後顯示升/降級）
+#   SC-6 點「完成」關閉 sheet 後，CTA 區變為鎖定態（checkmark + RPE）
+#
+# 注意：升級慶祝路徑需「後端已部署 + series_id」才觸發；
+#        本 flow 只驗安靜確認路徑（empty progressUpdates → 顯示 checkmark + RPE）。
+#        若後端尚未部署，submit 會失敗 → flow 預期失敗，不算 app bug。
+
+- runFlow: ../subflows/ensure-main-training-screen.yaml
+
+# 導到週課表，找力量訓練日
+- scrollUntilVisible:
+    element:
+      text: "力量|核心|臀腿|上肢"
+    direction: DOWN
+    timeout: 15000
+
+# 點力量訓練日進入詳細頁
+- tapOn:
+    text: "力量|核心|臀腿|上肢"
+
+# 等頁面載入，確認在詳細頁
+- assertVisible:
+    text: "力量|核心穩定|臀腿肌力|上肢"
+
+# 向下滾動到 CTA 區
+- scrollUntilVisible:
+    element:
+      text: "完成力量訓練"
+    direction: DOWN
+    timeout: 10000
+
+# SC-1 + SC-2：點 CTA，sheet 打開顯示「完成回報」
+- tapOn: "完成力量訓練"
+- assertVisible: "完成回報"
+- assertVisible: "逐項標記完成或略過，再評估整體感受"
+
+# SC-3：對第一個動作切換略過（初始狀態為「已完成」→ 點後變「略過」）
+- tapOn:
+    text: "已完成"
+    index: 0
+- assertVisible: "略過"
+
+# 切回完成（再點一次同一顆 pill 恢復）
+- tapOn:
+    text: "略過"
+    index: 0
+- assertVisible: "已完成"
+
+# SC-4：選擇 RPE = 4（中等）
+- tapOn: "4"
+
+# 確認 RPE 已選（整體體感文字更新）
+- assertVisible: "整體體感 4/10"
+
+# 點「完成訓練」提交
+- tapOn: "完成訓練"
+
+# SC-5：等待回饋畫面
+# 無升降級時顯示「已完成 · RPE 4」；若後端未部署顯示 error（flow 此步失敗）
+- assertVisible:
+    text: "已完成 · RPE 4|做得輕鬆漂亮|這次偏吃力"
+
+# SC-6：點「完成」關閉 sheet
+- tapOn: "完成"
+
+# 關閉後 CTA 區應顯示鎖定態 checkmark + RPE（已完成 · RPE 4）
+- assertVisible: "已完成 · RPE 4"
