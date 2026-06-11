@@ -91,7 +91,7 @@ struct PlannedSessionDetailView: View {
             case .race, .racePace:
                 return Color(red: 0.96, green: 0.26, blue: 0.21)
             case .benchmark:
-                return .indigo
+                return PacerizColor.benchmark
             case .rest:
                 return Color(.systemGray)
             case .crossTraining, .strength, .fartlek, .swimming, .elliptical, .rowing, .yoga:
