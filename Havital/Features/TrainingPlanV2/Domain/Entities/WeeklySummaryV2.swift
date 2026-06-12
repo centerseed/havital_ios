@@ -550,21 +550,26 @@ struct AdjustmentItemV2: Codable, Equatable {
         case reason, impact
         case sourceFlag = "source_flag"
         case priority
-        // benchmarkExecute and benchmarkCalibration are excluded intentionally:
-        // they are populated by WeeklySummaryV2Mapper, not decoded from JSON.
+        // benchmarkExecute/benchmarkCalibration are NOT decoded from wire JSON
+        // (the API path uses AdjustmentItemV2DTO + Mapper). They ARE included here so
+        // the local UserDefaults cache (Codable round-trip) preserves them — otherwise a
+        // cache hit returns nil payloads and the dedicated benchmark cards degrade to the
+        // plain card. Optional with `= nil` default → old cache entries decode safely.
+        case benchmarkExecute
+        case benchmarkCalibration
     }
 }
 
 // MARK: - Benchmark Payload Types
 
 /// Payload for "execute_benchmark" adjustment items.
-struct BenchmarkExecutePayload: Equatable {
+struct BenchmarkExecutePayload: Codable, Equatable {
     let distanceKm: Double
     let scheduledWeekday: Int?
 }
 
 /// Payload for "adjust_vdot" adjustment items.
-struct BenchmarkCalibrationPayload: Equatable {
+struct BenchmarkCalibrationPayload: Codable, Equatable {
     let workoutDate: String?
     let distanceKm: Double
     let durationS: Double
