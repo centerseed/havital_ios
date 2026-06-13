@@ -34,10 +34,12 @@ struct TrainingRecordView: View {
     private var filterOptions: [FilterOption] {
         [
             FilterOption(id: "all",       localizedLabel: L10n.Record.Filter.all.localized,     trainingTypes: []),
-            FilterOption(id: "easy_run",  localizedLabel: L10n.Record.Filter.easyRun.localized,  trainingTypes: ["easy_run", "easy", "recovery_run", "recovery", "lsd"]),
+            // lsd（Long Slow Distance）顯示標籤為「長距離」(見 WorkoutV2RowView.displayNameForTrainingType)，
+            // 故歸在「長距離」filter，與卡片標籤一致（issue #101：標籤長距離卻在長距離分頁篩不到）。
+            FilterOption(id: "easy_run",  localizedLabel: L10n.Record.Filter.easyRun.localized,  trainingTypes: ["easy_run", "easy", "recovery_run", "recovery"]),
             FilterOption(id: "tempo",     localizedLabel: L10n.Record.Filter.tempo.localized,    trainingTypes: ["tempo", "threshold", "fartlek"]),
             FilterOption(id: "interval",  localizedLabel: L10n.Record.Filter.interval.localized, trainingTypes: ["interval"]),
-            FilterOption(id: "long_run",  localizedLabel: L10n.Record.Filter.longRun.localized,  trainingTypes: ["long_run", "long"]),
+            FilterOption(id: "long_run",  localizedLabel: L10n.Record.Filter.longRun.localized,  trainingTypes: ["long_run", "long", "lsd"]),
         ]
     }
 
