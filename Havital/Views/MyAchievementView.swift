@@ -2554,7 +2554,7 @@ struct TSBChartView: View {
                         Rectangle()
                             .fill(Color.red.opacity(0.3))
                             .frame(width: 12, height: 12)
-                        Text(NSLocalizedString("myachievement.text_4", comment: ""))
+                        Text(NSLocalizedString("myachievement.text_3", comment: ""))
                             .font(AppFont.captionSmall())
                             .foregroundColor(.secondary)
                     }
