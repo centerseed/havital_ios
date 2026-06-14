@@ -3626,6 +3626,7 @@
 "daily_state.evidence" = "佐證";
 "daily_state.causes" = "可能因素";
 "daily_state.action" = "今日行動";
+"daily_state.completed_today" = "今日課表已完成";
 "daily_state.locked" = "完整的今日狀態解讀是 Paceriz 會員專屬";
 "daily_state.upgrade_cta" = "升級看完整今日狀態";
 "rizo.journal.upsell.quotaExhausted" = "本月免費對話次數已用完，訂閱可無限暢聊";

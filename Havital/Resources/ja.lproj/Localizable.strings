@@ -3584,6 +3584,7 @@
 "daily_state.evidence" = "根拠";
 "daily_state.causes" = "考えられる要因";
 "daily_state.action" = "今日のアクション";
+"daily_state.completed_today" = "本日のメニュー完了";
 "daily_state.locked" = "詳しい状態の解説は Paceriz 会員限定です";
 "daily_state.upgrade_cta" = "アップグレードして全文を見る";
 "rizo.journal.upsell.quotaExhausted" = "今月の無料対話回数を使い切りました。サブスクで無制限に。";

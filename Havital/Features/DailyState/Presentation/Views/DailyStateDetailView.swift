@@ -123,14 +123,23 @@ struct DailyStateDetailView: View {
         }
     }
 
+    /// post（今天已跑）→ 綠勾「今日課表已完成 · 12K …」；pre（未跑）→ 藍箭頭待跑。
+    /// 後端 post 已改回錨「今天那堂」(非下一堂)，所以這裡顯示的就是今天完成的那堂。
     private func actionLine(_ action: String) -> some View {
-        HStack(spacing: 8) {
-            Image(systemName: "arrow.right.circle.fill")
+        let isDone = card.lens == .post
+        let symbol = isDone ? "checkmark.circle.fill" : "arrow.right.circle.fill"
+        let tint = isDone ? PacerizColor.green : PacerizColor.blue
+        let bg = isDone ? PacerizColor.green12 : PacerizColor.blue12
+        let label = isDone
+            ? "\(NSLocalizedString("daily_state.completed_today", comment: "Today's session done prefix")) · \(action)"
+            : action
+        return HStack(spacing: 8) {
+            Image(systemName: symbol)
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(PacerizColor.blue)
-            Text(action)
+                .foregroundColor(tint)
+            Text(label)
                 .font(AppFont.micro())
-                .foregroundColor(PacerizColor.blue)
+                .foregroundColor(tint)
                 .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
         }
@@ -139,7 +148,7 @@ struct DailyStateDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: PacerizRadius.inner, style: .continuous)
-                .fill(PacerizColor.blue12)
+                .fill(bg)
         )
     }
 
