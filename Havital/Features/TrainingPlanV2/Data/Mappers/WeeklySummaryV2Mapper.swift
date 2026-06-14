@@ -31,7 +31,8 @@ enum WeeklySummaryV2Mapper {
             nextWeekAdjustments: toNextWeekAdjustments(from: dto.nextWeekAdjustments),
             restWeekRecommendation: dto.restWeekRecommendation.map { toRestWeekAssessment(from: $0) },
             finalTrainingReview: dto.finalTrainingReview.map { toFinalTrainingReview(from: $0) },
-            promptAuditId: dto.promptAuditId
+            promptAuditId: dto.promptAuditId,
+            observations: dto.observations
         )
     }
 

@@ -183,7 +183,8 @@ final class WeeklyPlanFlowIntegrationTests: XCTestCase {
             nextWeekAdjustments: NextWeekAdjustmentsV2(
                 items: [], summary: "", methodologyConstraintsConsidered: true, basedOnFlags: []
             ),
-            restWeekRecommendation: nil, finalTrainingReview: nil, promptAuditId: nil
+            restWeekRecommendation: nil, finalTrainingReview: nil, promptAuditId: nil,
+            observations: nil
         )
     }
 

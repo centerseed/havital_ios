@@ -67,6 +67,9 @@ struct WeeklySummaryV2: Codable, Equatable {
     /// Prompt audit ID
     let promptAuditId: String?
 
+    /// 系統確定性觀察項（如跑量漸進敘事）
+    let observations: [String]?
+
     // MARK: - CodingKeys
 
     enum CodingKeys: String, CodingKey {
@@ -88,6 +91,7 @@ struct WeeklySummaryV2: Codable, Equatable {
         case restWeekRecommendation = "rest_week_recommendation"
         case finalTrainingReview = "final_training_review"
         case promptAuditId = "prompt_audit_id"
+        case observations
     }
 }
 

@@ -27,6 +27,7 @@ struct WeeklySummaryV2DTO: Codable {
     let restWeekRecommendation: RestWeekAssessmentDTO?
     let finalTrainingReview: FinalTrainingReviewDTO?
     let promptAuditId: String?
+    let observations: [String]?
 
     // MARK: - CodingKeys
 
@@ -49,6 +50,7 @@ struct WeeklySummaryV2DTO: Codable {
         case restWeekRecommendation = "rest_week_recommendation"
         case finalTrainingReview = "final_training_review"
         case promptAuditId = "prompt_audit_id"
+        case observations
     }
 }
 

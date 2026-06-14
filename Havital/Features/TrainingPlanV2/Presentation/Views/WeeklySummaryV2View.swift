@@ -113,6 +113,25 @@ struct WeeklySummaryV2View: View {
                         .padding(.top, 8)
                 }
 
+                // 跑量漸進等系統觀察項
+                if let observations = summary.observations, !observations.isEmpty {
+                    VStack(alignment: .leading, spacing: Layout.itemSpacing) {
+                        ForEach(observations, id: \.self) { obs in
+                            HStack(alignment: .top, spacing: Layout.iconSpacing) {
+                                Image(systemName: "chart.line.uptrend.xyaxis")
+                                    .foregroundColor(.blue)
+                                    .font(AppFont.caption())
+                                    .frame(width: 16)
+                                Text(obs)
+                                    .font(AppFont.subheadline())
+                                    .foregroundColor(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+
                 // 訓練分析（折疊）
                 CollapsibleSectionV2(
                     id: .analysis,

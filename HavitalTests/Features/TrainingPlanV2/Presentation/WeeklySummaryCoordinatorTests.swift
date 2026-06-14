@@ -82,7 +82,8 @@ final class WeeklySummaryCoordinatorTests: XCTestCase {
             ),
             restWeekRecommendation: nil,
             finalTrainingReview: nil,
-            promptAuditId: nil
+            promptAuditId: nil,
+            observations: nil
         )
     }
 

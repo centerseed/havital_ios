@@ -301,7 +301,8 @@ final class WeeklyPlanGeneratorTests: XCTestCase {
             ),
             restWeekRecommendation: nil,
             finalTrainingReview: nil,
-            promptAuditId: nil
+            promptAuditId: nil,
+            observations: nil
         )
 
         mockRepository.planStatusToReturn = status

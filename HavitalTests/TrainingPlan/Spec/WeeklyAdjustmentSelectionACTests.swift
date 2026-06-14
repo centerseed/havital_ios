@@ -258,7 +258,8 @@ final class WeeklyAdjustmentSelectionACTests: XCTestCase {
             ),
             restWeekRecommendation: nil,
             finalTrainingReview: nil,
-            promptAuditId: nil
+            promptAuditId: nil,
+            observations: nil
         )
     }
 }

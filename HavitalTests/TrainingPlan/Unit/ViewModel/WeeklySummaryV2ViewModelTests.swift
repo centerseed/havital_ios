@@ -90,7 +90,8 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
             ),
             restWeekRecommendation: nil,
             finalTrainingReview: nil,
-            promptAuditId: nil
+            promptAuditId: nil,
+            observations: nil
         )
     }
 
