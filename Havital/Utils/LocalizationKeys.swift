@@ -674,6 +674,20 @@ enum GaitAnalysisChart {
             static let recovery = "training.zone.recovery"
             static let threshold = "training.zone.threshold"
         }
+
+        // Daniels Pace Zones (顯示用，帶配速等級代碼如 [R] [T])
+        enum PaceZone {
+            static let recovery = "training.pace_zone.recovery"
+            static let easy = "training.pace_zone.easy"
+            static let tempo = "training.pace_zone.tempo"
+            static let marathon = "training.pace_zone.marathon"
+            static let threshold = "training.pace_zone.threshold"
+            static let anaerobic = "training.pace_zone.anaerobic"
+            static let interval = "training.pace_zone.interval"
+        }
+
+        // 分段課表單位（如 "3 段"）
+        static let segmentsUnit = "training.segments_unit"
     }
     
     // MARK: - Phase Roadmap (Task 2/5 — PhaseRoadmapView)

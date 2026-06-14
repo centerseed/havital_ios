@@ -567,6 +567,22 @@
 "workout.metrics.calories" = "卡路里";
 
 // MARK: - Activity Types
+/* Daniels pace zones (帶配速等級代碼) */
+"training.pace_zone.recovery" = "恢復跑配速[R]";
+"training.pace_zone.easy" = "輕鬆跑配速[Easy]";
+"training.pace_zone.tempo" = "節奏跑配速[T]";
+"training.pace_zone.marathon" = "全程馬拉松配速[M]";
+"training.pace_zone.threshold" = "閾值跑配速[TH]";
+"training.pace_zone.anaerobic" = "無氧配速[AN]";
+"training.pace_zone.interval" = "間歇跑配速[I]";
+"training.segments_unit" = "段";
+/* version / force update errors */
+"error.force_update_required" = "App 版本過舊，請前往 App Store 更新";
+"error.force_update_required_message" = "請前往 App Store 更新至最新版本後繼續使用";
+"error.incorrect_version_routing" = "版本不一致，請重新啟動 App（%@）";
+"error.incorrect_version_routing_message" = "您的帳號為 V2，但載入了舊版畫面。請重新啟動 App 後再試。";
+/* onboarding nav titles */
+"onboarding.maintenance_race_distance_nav_title" = "目標賽事";
 "activity.type.running" = "跑步";
 "activity.type.cycling" = "自行車";
 "activity.type.swimming" = "游泳";

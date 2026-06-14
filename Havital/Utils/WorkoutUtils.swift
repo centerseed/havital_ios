@@ -7,22 +7,22 @@ struct WorkoutUtils {
     static func workoutTypeString(for activityType: HKWorkoutActivityType) -> String {
         switch activityType {
         case .running:
-            return "跑步"
+            return L10n.ActivityType.running.localized
         case .walking:
-            return "步行"
+            return L10n.ActivityType.walking.localized
         case .cycling:
-            return "騎行"
+            return L10n.ActivityType.cycling.localized
         case .swimming:
-            return "游泳"
+            return L10n.ActivityType.swimming.localized
         case .hiking:
-            return "遠足"
+            return L10n.ActivityType.hiking.localized
         case .yoga:
-            return "瑜伽"
+            return L10n.ActivityType.yoga.localized
         case .functionalStrengthTraining:
-            return "力量訓練"
+            return L10n.ActivityType.strengthTraining.localized
         // Add other cases as needed
         default:
-            return "其他運動"
+            return L10n.ActivityType.other.localized
         }
     }
 

@@ -40,7 +40,7 @@ class OnboardingCoordinator: ObservableObject {
             case .startStage: return "Start Stage"
             case .methodologySelection: return NSLocalizedString("onboarding.methodology_nav_title", comment: "Training Methodology")
             case .trainingWeeksSetup: return NSLocalizedString("onboarding.training_weeks_nav_title", comment: "Training Duration")
-            case .maintenanceRaceDistance: return "目標賽事"
+            case .maintenanceRaceDistance: return NSLocalizedString("onboarding.maintenance_race_distance_nav_title", comment: "Target race")
             case .trainingDays: return "Training Days"
             case .trainingOverview: return "Training Overview"
             case .dataSync: return "Data Sync"

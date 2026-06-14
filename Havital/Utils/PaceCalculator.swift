@@ -31,7 +31,15 @@ struct PaceCalculator {
 
         /// 本地化顯示名稱
         var displayName: String {
-            return rawValue
+            switch self {
+            case .recovery:  return L10n.Training.PaceZone.recovery.localized
+            case .easy:      return L10n.Training.PaceZone.easy.localized
+            case .tempo:     return L10n.Training.PaceZone.tempo.localized
+            case .marathon:  return L10n.Training.PaceZone.marathon.localized
+            case .threshold: return L10n.Training.PaceZone.threshold.localized
+            case .anaerobic: return L10n.Training.PaceZone.anaerobic.localized
+            case .interval:  return L10n.Training.PaceZone.interval.localized
+            }
         }
     }
 

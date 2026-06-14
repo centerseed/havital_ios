@@ -578,6 +578,22 @@
 "workout.metrics.calories" = "Calories";
 
 // MARK: - Activity Types
+/* Daniels pace zones (with level codes) */
+"training.pace_zone.recovery" = "Recovery Pace [R]";
+"training.pace_zone.easy" = "Easy Pace [Easy]";
+"training.pace_zone.tempo" = "Tempo Pace [T]";
+"training.pace_zone.marathon" = "Marathon Pace [M]";
+"training.pace_zone.threshold" = "Threshold Pace [TH]";
+"training.pace_zone.anaerobic" = "Anaerobic Pace [AN]";
+"training.pace_zone.interval" = "Interval Pace [I]";
+"training.segments_unit" = "segments";
+/* version / force update errors */
+"error.force_update_required" = "App version is too old. Please update from the App Store.";
+"error.force_update_required_message" = "Please update to the latest version from the App Store to continue.";
+"error.incorrect_version_routing" = "Version mismatch. Please restart the app (%@).";
+"error.incorrect_version_routing_message" = "Your account is V2, but an old screen was loaded. Please restart the app and try again.";
+/* onboarding nav titles */
+"onboarding.maintenance_race_distance_nav_title" = "Target Race";
 "activity.type.running" = "Running";
 "activity.type.cycling" = "Cycling";
 "activity.type.swimming" = "Swimming";

@@ -259,17 +259,17 @@ struct SimplifiedDailyCard: View {
         case .combination, .progression:
             if let segments = details.segments {
                 let total = details.totalDistanceKm ?? segments.compactMap { $0.distanceKm }.reduce(0, +)
-                return "\(segments.count) 段 · \(String(format: "%.1f", total)) km"
+                return "\(segments.count) \(L10n.Training.segmentsUnit.localized) · \(String(format: "%.1f", total)) km"
             }
         case .fartlek:
             if let segments = details.segments {
                 let total = details.totalDistanceKm ?? segments.compactMap { $0.distanceKm }.reduce(0, +)
-                return "法特雷克 · \(String(format: "%.1f", total)) km"
+                return "\(L10n.Training.TrainingType.fartlek.localized) · \(String(format: "%.1f", total)) km"
             }
         case .fastFinish:
             if let segments = details.segments {
                 let total = details.totalDistanceKm ?? segments.compactMap { $0.distanceKm }.reduce(0, +)
-                return "快結尾 · \(String(format: "%.1f", total)) km"
+                return "\(L10n.Training.TrainingType.fastFinish.localized) · \(String(format: "%.1f", total)) km"
             }
         default:
             break

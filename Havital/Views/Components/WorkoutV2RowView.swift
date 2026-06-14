@@ -289,17 +289,18 @@ struct WorkoutV2RowView: View {
 
     static func displayNameForTrainingType(_ trainingType: String) -> String {
         switch trainingType.lowercased() {
-        case "easy_run", "easy": return "輕鬆跑"
-        case "recovery_run", "recovery": return "恢復跑"
-        case "long_run", "long", "lsd": return "長距離"
-        case "tempo": return "節奏跑"
-        case "threshold": return "閾值跑"
-        case "interval": return "間歇"
-        case "fartlek": return "法特雷克"
-        case "combination": return "組合跑"
-        case "hill_training", "hill": return "坡道訓練"
-        case "race": return "比賽"
-        case "rest": return "休息"
+        case "easy_run", "easy": return L10n.Training.TrainingType.easy.localized
+        case "recovery_run", "recovery": return L10n.Training.TrainingType.recovery.localized
+        case "long_run", "long": return L10n.Training.TrainingType.long.localized
+        case "lsd": return L10n.Training.TrainingType.lsd.localized
+        case "tempo": return L10n.Training.TrainingType.tempo.localized
+        case "threshold": return L10n.Training.TrainingType.threshold.localized
+        case "interval": return L10n.Training.TrainingType.interval.localized
+        case "fartlek": return L10n.Training.TrainingType.fartlek.localized
+        case "combination": return L10n.Training.TrainingType.combination.localized
+        case "hill_training", "hill": return L10n.Training.TrainingType.hill.localized
+        case "race": return L10n.Training.TrainingType.race.localized
+        case "rest": return L10n.Training.TrainingType.rest.localized
         default: return trainingType
         }
     }

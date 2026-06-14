@@ -181,7 +181,7 @@ struct SimplifiedDailyCardV2: View {
         case .combination, .progression, .fartlek, .fastFinish:
             if let segments = details.segments {
                 let total = details.totalDistanceKm ?? segments.compactMap { $0.distanceKm }.reduce(0, +)
-                return "\(segments.count) 段 · \(String(format: "%.1f", total)) km"
+                return "\(segments.count) \(L10n.Training.segmentsUnit.localized) · \(String(format: "%.1f", total)) km"
             }
         default:
             break

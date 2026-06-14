@@ -72,9 +72,9 @@ enum DomainError: Error, Equatable, LocalizedError {
         case .rizoQuotaExceeded:
             return NSLocalizedString("error.rizo_quota_exceeded", comment: "Rizo quota exceeded")
         case .forceUpdateRequired:
-            return "App 版本過舊，請前往 App Store 更新"
+            return NSLocalizedString("error.force_update_required", comment: "App version too old, please update from App Store")
         case .incorrectVersionRouting(let context):
-            return "版本不一致，請重新啟動 App（\(context)）"
+            return String(format: NSLocalizedString("error.incorrect_version_routing", comment: "Version mismatch, please restart the app (%@)"), context)
         case .cancellation:
             return nil // 取消不需要顯示
         case .unknown(let message):
@@ -98,9 +98,9 @@ enum DomainError: Error, Equatable, LocalizedError {
         case .cancellation:
             return ""
         case .forceUpdateRequired:
-            return "請前往 App Store 更新至最新版本後繼續使用"
+            return NSLocalizedString("error.force_update_required_message", comment: "Please update to the latest version from App Store to continue")
         case .incorrectVersionRouting:
-            return "您的帳號為 V2，但載入了舊版畫面。請重新啟動 App 後再試。"
+            return NSLocalizedString("error.incorrect_version_routing_message", comment: "Your account is V2 but an old screen was loaded. Please restart the app and try again.")
         default:
             return errorDescription ?? NSLocalizedString("error.unknown", comment: "An unexpected error occurred")
         }

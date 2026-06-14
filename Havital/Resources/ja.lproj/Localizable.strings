@@ -578,6 +578,22 @@
 "workout.metrics.calories" = "カロリー";
 
 // MARK: - Activity Types
+/* Daniels pace zones (配速等級コード付き) */
+"training.pace_zone.recovery" = "リカバリーペース[R]";
+"training.pace_zone.easy" = "イージーペース[Easy]";
+"training.pace_zone.tempo" = "テンポペース[T]";
+"training.pace_zone.marathon" = "マラソンペース[M]";
+"training.pace_zone.threshold" = "閾値ペース[TH]";
+"training.pace_zone.anaerobic" = "無酸素ペース[AN]";
+"training.pace_zone.interval" = "インターバルペース[I]";
+"training.segments_unit" = "区間";
+/* version / force update errors */
+"error.force_update_required" = "アプリのバージョンが古すぎます。App Store から更新してください";
+"error.force_update_required_message" = "App Store で最新バージョンに更新してから続行してください";
+"error.incorrect_version_routing" = "バージョンが一致しません。アプリを再起動してください（%@）";
+"error.incorrect_version_routing_message" = "お使いのアカウントはV2ですが、旧バージョンの画面が読み込まれました。アプリを再起動してからもう一度お試しください。";
+/* onboarding nav titles */
+"onboarding.maintenance_race_distance_nav_title" = "目標レース";
 "activity.type.running" = "ランニング";
 "activity.type.cycling" = "サイクリング";
 "activity.type.swimming" = "水泳";
