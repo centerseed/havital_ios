@@ -43,6 +43,9 @@ struct WeeklyPlanV2: Codable, Equatable {
     /// 安排理由列表
     let designReason: [String]?
 
+    /// 跑量漸進敘事（免費可見，nil = gate 未命中）
+    let mileageProgressionNote: String?
+
     /// 教練筆記（本週訓練重點 1-2 句總結）
     let coachNote: String?
 

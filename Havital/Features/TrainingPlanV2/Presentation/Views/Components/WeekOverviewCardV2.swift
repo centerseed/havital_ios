@@ -249,6 +249,7 @@ struct WeekOverviewCardV2: View {
                 WeekTargetDetailViewV2(
                     purpose: plan.purpose,
                     designReason: designReason,
+                    mileageProgressionNote: plan.mileageProgressionNote,
                     coachNote: plan.coachNote
                 )
             }
@@ -433,6 +434,7 @@ private struct WeekProgressIntensityBar: View {
 struct WeekTargetDetailViewV2: View {
     let purpose: String
     let designReason: [String]?
+    let mileageProgressionNote: String?
     let coachNote: String?
     @Environment(\.dismiss) private var dismiss
 
@@ -491,6 +493,34 @@ struct WeekTargetDetailViewV2: View {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(PacerizColor.greenDeep.opacity(0.08))
                 )
+
+                // 跑量漸進敘事（免費可見）
+                if let prog = mileageProgressionNote, !prog.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "chart.line.uptrend.xyaxis")
+                                .foregroundColor(.blue)
+                                .font(AppFont.title3())
+
+                            Text(NSLocalizedString("training.mileage_progression", comment: "Mileage Progression"))
+                                .font(AppFont.headline())
+                                .foregroundColor(.primary)
+                        }
+
+                        Text(prog)
+                            .font(AppFont.body())
+                            .foregroundColor(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .lineSpacing(3)
+                            .padding(.leading, 4)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.blue.opacity(0.08))
+                    )
+                }
 
                 // 設計原因區域（如果有的話）
                 if let designReason = designReason, !designReason.isEmpty {

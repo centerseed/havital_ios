@@ -246,6 +246,7 @@ private final class UITestTrainingPlanV2GateRepository: TrainingPlanV2Repository
             totalDistanceUnit: nil,
             totalDistanceReason: nil,
             designReason: nil,
+            mileageProgressionNote: nil,
             coachNote: nil,
             days: [],
             intensityTotalMinutes: nil,

@@ -46,6 +46,9 @@ struct WeeklyPlanV2DTO: Codable {
     /// 安排理由列表
     let designReason: [String]?
 
+    /// 跑量漸進敘事（免費可見，nil = gate 未命中）
+    let mileageProgressionNote: String?
+
     /// 教練筆記（本週訓練重點 1-2 句總結）
     let coachNote: String?
 
@@ -110,6 +113,7 @@ struct WeeklyPlanV2DTO: Codable {
         case totalDistanceUnit = "total_distance_unit"
         case totalDistanceReason = "total_distance_reason"
         case designReason = "design_reason"
+        case mileageProgressionNote = "mileage_progression_note"
         case coachNote = "coach_note"
         case days
         case intensityTotalMinutes = "intensity_total_minutes"
