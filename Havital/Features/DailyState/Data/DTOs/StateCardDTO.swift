@@ -12,6 +12,7 @@ struct StateCardDTO: Codable {
     let narrativeText: String?
     let chips: [String]?
     let causeChips: [String]?
+    let mileageProgression: String?
     let action: ActionDTO?
     let divergence: DivergenceDTO?
     let access: AccessDTO
@@ -21,6 +22,7 @@ struct StateCardDTO: Codable {
         case factType = "fact_type"
         case narrativeText = "narrative_text"
         case causeChips = "cause_chips"
+        case mileageProgression = "mileage_progression"
     }
 
     struct ActionDTO: Codable {

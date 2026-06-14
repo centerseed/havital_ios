@@ -14,7 +14,8 @@ final class DailyStateRepositoryImplTests: XCTestCase {
     func test_returns_mapped_entity() async throws {
         let remote = FakeRemote()
         remote.dto = StateCardDTO(lens: "post", source: "llm", headline: "H", factType: nil,
-            narrativeText: "n", chips: ["c"], causeChips: [], action: nil, divergence: nil,
+            narrativeText: "n", chips: ["c"], causeChips: [], mileageProgression: nil,
+            action: nil, divergence: nil,
             access: .init(isPaid: true, locked: false, upsell: nil))
         let repo = DailyStateRepositoryImpl(remoteDataSource: remote)
         let card = try await repo.fetchTodayState()

@@ -76,6 +76,19 @@ struct DailyStateDetailView: View {
                 summaryChips
             }
 
+            if let prog = card.mileageProgression {
+                Divider()
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.blue)
+                    Text(prog)
+                        .font(AppFont.bodySmall())
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
             // 輔助 narrative：付費才有；非主角，僅補充說明（鎖住時用升級塊取代）。
             if let narrative = card.narrativeText, !card.isLocked {
                 Divider()

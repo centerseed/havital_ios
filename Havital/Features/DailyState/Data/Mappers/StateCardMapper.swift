@@ -12,6 +12,7 @@ enum StateCardMapper {
             narrativeText: dto.narrativeText,
             chips: dto.chips ?? [],
             causeChips: dto.causeChips ?? [],
+            mileageProgression: dto.mileageProgression,
             actionLine: actionLine(from: dto.action),
             rizoScenario: dto.action?.rizoHandoff?.scenario ?? dto.divergence?.suggestedRizoScenario,
             divergenceFlagText: (dto.divergence?.present == true) ? dto.divergence?.flagText : nil,

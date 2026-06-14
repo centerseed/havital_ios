@@ -13,6 +13,7 @@ final class DailyStateCardViewModelTests: XCTestCase {
     private func card(locked: Bool) -> DailyStateCard {
         DailyStateCard(lens: .pre, source: "llm", headline: "H", factType: nil,
             narrativeText: locked ? nil : "n", chips: ["c"], causeChips: [],
+            mileageProgression: nil,
             actionLine: "12K easy", rizoScenario: nil, divergenceFlagText: nil,
             isPaid: !locked, isLocked: locked, upsellReason: locked ? "unlock_full_read" : nil)
     }
