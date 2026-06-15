@@ -23,7 +23,7 @@ class EmailLoginViewModel: ObservableObject, @preconcurrency TaskManageable {
         do {
             _ = try await authRepository.signInWithEmail(email: email, password: password)
         } catch AuthError.emailNotVerified {
-            errorMessage = "請點擊驗證信中的連結完成驗證後再登入。"
+            errorMessage = NSLocalizedString("auth.email_not_verified_login_message", comment: "Email sign-in blocked until the user verifies their email")
             canResendVerification = true
         } catch {
             errorMessage = error.localizedDescription
@@ -36,7 +36,7 @@ class EmailLoginViewModel: ObservableObject, @preconcurrency TaskManageable {
     func resendVerification() async {
         do {
             try await authRepository.resendEmailVerification(email: email, password: password)
-            resendSuccessMessage = "已重新發送驗證信，請至信箱查看。"
+            resendSuccessMessage = NSLocalizedString("auth.verification_email_resent", comment: "Verification email resent confirmation")
         } catch {
             resendSuccessMessage = error.localizedDescription
         }

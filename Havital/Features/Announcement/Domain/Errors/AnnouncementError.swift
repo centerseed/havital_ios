@@ -7,9 +7,9 @@ enum AnnouncementError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .fetchFailed(let message):
-            return "公告載入失敗: \(message)"
+            return String(format: NSLocalizedString("announcement.error.fetch_failed_format", comment: "Announcement fetch failed error"), message)
         case .markSeenFailed(let message):
-            return "標記已讀失敗: \(message)"
+            return String(format: NSLocalizedString("announcement.error.mark_seen_failed_format", comment: "Announcement mark seen failed error"), message)
         }
     }
 }

@@ -106,7 +106,7 @@ class HRVChartViewModel: ObservableObject, TaskManageable {
         } catch {
             print("Error loading HRV data: \(error)")
             await MainActor.run {
-                self.error = "無法載入心率變異性數據"
+                self.error = NSLocalizedString("performance.hrv.error.load_failed", comment: "Failed to load HRV data")
                 self.isLoading = false
                 self.hrvData = []
             }
@@ -159,11 +159,19 @@ class HRVChartViewModel: ObservableObject, TaskManageable {
             let diag = try await healthKitManager.fetchHRVDiagnostics(start: startDate, end: now)
             let sources = diag.sources.joined(separator: ", ")
             await MainActor.run {
-                diagnosticsText = "讀取授權: \(readStatus); 原始樣本數: \(diag.rawSampleCount); 來源: [\(sources)]"
+                diagnosticsText = String(
+                    format: NSLocalizedString("performance.hrv.diagnostics_format", comment: "HRV diagnostics detail"),
+                    "\(readStatus)",
+                    diag.rawSampleCount,
+                    sources
+                )
             }
         } catch {
             await MainActor.run {
-                diagnosticsText = "診斷失敗: \(error.localizedDescription)"
+                diagnosticsText = String(
+                    format: NSLocalizedString("performance.hrv.diagnostics_failed_format", comment: "HRV diagnostics failed"),
+                    error.localizedDescription
+                )
             }
             throw error
         }
@@ -193,7 +201,10 @@ class HRVChartViewModel: ObservableObject, TaskManageable {
             await MainActor.run {
                 readAuthStatus = nil
                 // 捕捉任意錯誤並存到 error
-                self.error = "讀取授權檢查失敗: \(error.localizedDescription)"
+                self.error = String(
+                    format: NSLocalizedString("performance.hrv.read_auth_failed_format", comment: "HRV read authorization check failed"),
+                    error.localizedDescription
+                )
             }
             throw error
         }

@@ -202,7 +202,7 @@ final class WeeklyPlanGenerator {
         guard let overviewId = loader.planOverview?.id else {
             Logger.error("[WeeklyPlanGenerator] ❌ 無法更新：overview ID 為 nil")
             onNetworkError(NSError(domain: "", code: -1, userInfo: [
-                NSLocalizedDescriptionKey: "無法更新訓練計劃"
+                NSLocalizedDescriptionKey: NSLocalizedString("training_plan.update_failed", comment: "Training plan update failed error")
             ]))
             return
         }

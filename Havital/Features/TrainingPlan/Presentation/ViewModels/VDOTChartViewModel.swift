@@ -174,7 +174,10 @@ class VDOTChartViewModel: ObservableObject, TaskManageable {
                     self.error = nil
                     print("從後端獲取VDOT數據失敗，但使用本地數據: \(error.localizedDescription)")
                 } else {
-                    self.error = "無法載入跑力數據: \(error.localizedDescription)"
+                    self.error = String(
+                        format: NSLocalizedString("performance.vdot.error.load_failed_format", comment: "Failed to load VDOT data"),
+                        error.localizedDescription
+                    )
                     print("無法載入跑力數據: \(error.localizedDescription)")
                 }
                 self.isLoading = false

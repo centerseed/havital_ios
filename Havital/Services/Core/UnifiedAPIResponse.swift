@@ -75,15 +75,15 @@ enum BusinessError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notFound(let resource):
-            return "找不到資源: \(resource)"
+            return String(format: NSLocalizedString("business_error.not_found_format", comment: "Business resource not found error"), resource)
         case .unauthorized(let message):
-            return "未授權: \(message)"
+            return String(format: NSLocalizedString("business_error.unauthorized_format", comment: "Business unauthorized error"), message)
         case .forbidden(let message):
-            return "禁止訪問: \(message)"
+            return String(format: NSLocalizedString("business_error.forbidden_format", comment: "Business forbidden error"), message)
         case .validationFailed(let errors):
-            return "驗證失敗: \(errors.joined(separator: ", "))"
+            return String(format: NSLocalizedString("business_error.validation_failed_format", comment: "Business validation failed error"), errors.joined(separator: ", "))
         case .businessLogic(let message, let code):
-            return "業務邏輯錯誤 [\(code)]: \(message)"
+            return String(format: NSLocalizedString("business_error.business_logic_format", comment: "Business logic error"), code, message)
         }
     }
 }
@@ -100,13 +100,13 @@ enum SystemError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .taskCancelled, .cancelled:
-            return "任務已取消"
+            return NSLocalizedString("system_error.task_cancelled", comment: "Task cancelled error")
         case .configurationError(let message):
-            return "配置錯誤: \(message)"
+            return String(format: NSLocalizedString("system_error.configuration_error_format", comment: "Configuration error"), message)
         case .storageError(let message):
-            return "存儲錯誤: \(message)"
+            return String(format: NSLocalizedString("system_error.storage_error_format", comment: "Storage error"), message)
         case .unknownError(let message):
-            return "未知錯誤: \(message)"
+            return String(format: NSLocalizedString("system_error.unknown_error_format", comment: "Unknown system error"), message)
         }
     }
 }

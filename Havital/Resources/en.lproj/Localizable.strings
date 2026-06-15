@@ -3701,3 +3701,114 @@
 "strength.series.stretch_series" = "Stretch series";
 
 "benchmark.readiness.attributed" = "Fitness assessment calibrated by your benchmark on %@";
+
+// MARK: - First Batch User-Visible i18n
+"auth.email_not_verified_login_message" = "Please open the verification link in your email before signing in.";
+"auth.verification_email_resent" = "Verification email resent. Please check your inbox.";
+"connect.error.feature_unavailable_format" = "%@ is temporarily unavailable. Please try again later.";
+"connect.error.initialization_failed_format" = "Failed to start connection: %@";
+"connect.error.disconnect_failed_format" = "Failed to disconnect: %@";
+"connect.error.auth_page_unavailable" = "Unable to show the authorization page.";
+"connect.error.invalid_callback_url" = "Invalid callback URL.";
+"connect.error.authorization_failed_format" = "%@ authorization failed: %@";
+"connect.error.security_verification_failed" = "Security verification failed.";
+"connect.error.connection_failed_format" = "%@ connection failed.";
+"connect.error.invalid_authorization_url_format" = "Invalid %@ authorization URL.";
+"connect.error.authorization_url_build_failed" = "Unable to build the authorization URL.";
+"connect.error.code_verifier_missing" = "Authorization setup failed. Please try again.";
+"connect.error.request_failed_status_format" = "Request failed with status %d.";
+"connect.status.reauth_required_format" = "%@ connection needs reauthorization";
+"connect.oauth.garmin_already_bound_fallback" = "This Garmin account is already connected to another user. You can choose to force connection.";
+"connect.oauth.strava_already_bound_fallback" = "This Strava account is already connected to another user. You can choose to force connection.";
+"sync.notification.started.title" = "Training data sync started";
+"sync.notification.started.body_format" = "Syncing %d training records. We'll notify you when it's done.";
+"sync.notification.history_processing.title" = "Processing historical training data";
+"sync.notification.history_processing.body_format" = "Processing your %d historical training records. This may take some time. We'll notify you when it's done.";
+"sync.notification.completed.title" = "Training data sync complete";
+"sync.notification.completed.body_format" = "Successfully synced %d training records.";
+"calendar.training_event.title" = "Paceriz Training Day";
+"calendar.training_event.notes" = "Today is a training day. Follow your plan and complete the workout.";
+
+// MARK: - Second Batch User-Visible i18n
+"auth.error.missing_client_id" = "Firebase client ID is missing.";
+"auth.error.presentation" = "Unable to show the sign-in screen.";
+"auth.error.missing_token" = "Missing token.";
+"auth.error.unknown" = "Something went wrong. Please try again later.";
+"auth.error.not_authenticated" = "You are not signed in.";
+"auth.error.email_not_verified" = "Email is not verified.";
+"announcement.error.fetch_failed_format" = "Failed to load announcements: %@";
+"announcement.error.mark_seen_failed_format" = "Failed to mark announcement as read: %@";
+"http_error.invalid_url_format" = "Invalid URL: %@";
+"http_error.no_connection" = "No network connection.";
+"http_error.timeout" = "Request timed out.";
+"http_error.cancelled" = "Request cancelled.";
+"http_error.bad_request_format" = "Request error: %@";
+"http_error.unauthorized_format" = "Unauthorized: %@";
+"http_error.forbidden_format" = "Access denied: %@";
+"http_error.subscription_required" = "A subscription is required to use this feature.";
+"http_error.rizo_quota_exceeded" = "Rizo AI usage limit reached.";
+"http_error.not_found_format" = "Resource not found: %@";
+"http_error.http_error_format" = "HTTP error %d: %@";
+"http_error.server_error_format" = "Server error %d: %@";
+"http_error.network_error_format" = "Network error: %@";
+"http_error.invalid_response_format" = "Invalid response: %@";
+"business_error.not_found_format" = "Resource not found: %@";
+"business_error.unauthorized_format" = "Unauthorized: %@";
+"business_error.forbidden_format" = "Access denied: %@";
+"business_error.validation_failed_format" = "Validation failed: %@";
+"business_error.business_logic_format" = "Business logic error [%@]: %@";
+"system_error.task_cancelled" = "Task cancelled.";
+"system_error.configuration_error_format" = "Configuration error: %@";
+"system_error.storage_error_format" = "Storage error: %@";
+"system_error.unknown_error_format" = "Unknown error: %@";
+"parse_error.decoding_failed_format" = "JSON parsing failed: %@";
+"parse_error.fallback_failed_format" = "Fallback parsing failed: %@";
+"parse_error.invalid_data_format" = "Invalid data: %@";
+"app_state.initializing" = "Initializing...";
+"app_state.authenticating" = "Verifying your account...";
+"app_state.loading_user_data" = "Loading user data...";
+"app_state.setting_up_services" = "Setting up services...";
+"app_state.ready" = "Ready";
+"app_state.error_format" = "Error: %@";
+"subscription_status.free" = "Free";
+"subscription_status.premium" = "Premium";
+"subscription_status.expired" = "Expired";
+"cache_status.empty" = "No cache";
+"cache_status.just_updated" = "Updated just now";
+"cache_status.minutes_ago_format" = "Updated %d minutes ago";
+"cache_status.hours_ago_format" = "Updated %d hours ago";
+"training_readiness.load_failed_format" = "Load failed: %@";
+"calendar.error.sync_preference_missing" = "No sync preference set.";
+"calendar.error.access_denied" = "Calendar access denied.";
+"calendar.error.event_time_creation_failed" = "Unable to create event time.";
+"calendar.error.default_calendar_missing" = "No default calendar available.";
+"training_plan.update_failed" = "Unable to update training plan.";
+"healthkit.authorization_denied" = "HealthKit authorization denied.";
+"training.intensity_distribution_format" = "%d%% Low / %d%% Moderate / %d%% High";
+
+// MARK: - Performance Chart Errors
+"performance.sleep_hr.error.healthkit_uninitialized" = "HealthKit manager was not initialized.";
+"performance.sleep_hr.error.strava_not_supported" = "Strava does not provide resting heart rate data.";
+"performance.error.select_data_source" = "Please select a data source first.";
+"performance.sleep_hr.error.load_failed" = "Unable to load sleep heart rate data.";
+"performance.hrv.error.load_failed" = "Unable to load heart rate variability data.";
+"performance.hrv.diagnostics_format" = "Read authorization: %@; raw samples: %d; sources: [%@]";
+"performance.hrv.diagnostics_failed_format" = "Diagnostics failed: %@";
+"performance.hrv.read_auth_failed_format" = "Read authorization check failed: %@";
+"performance.vdot.error.load_failed_format" = "Unable to load VDOT data: %@";
+
+// MARK: - Authentication Domain Errors
+"authentication.error.google_sign_in_failed_format" = "Google Sign-In failed: %@";
+"authentication.error.apple_sign_in_failed_format" = "Apple Sign-In failed: %@";
+"authentication.error.firebase_auth_failed_format" = "Firebase authentication failed: %@";
+"authentication.error.backend_sync_failed_format" = "Backend sync failed: %@";
+"authentication.error.invalid_credentials" = "Invalid credentials provided.";
+"authentication.error.network_failure" = "Network connection failed.";
+"authentication.error.token_expired" = "Authentication token has expired.";
+"authentication.error.user_not_found" = "User not found.";
+"authentication.error.onboarding_required" = "Onboarding must be completed.";
+
+// MARK: - Workout Formatting
+"pace.unable_to_calculate" = "Unable to calculate";
+"training.sets_reps_format" = "%d x %@ reps";
+"training.sets_only_format" = "%d sets";

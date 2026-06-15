@@ -88,6 +88,267 @@ final class LocalizationCoverageTests: XCTestCase {
         )
     }
 
+    func test_first_batch_user_visible_i18n_strings_are_not_hardcoded() throws {
+        let projectRoot = try projectRoot
+        let filesAndForbiddenSnippets: [String: [String]] = [
+            "Havital/Features/Authentication/Presentation/ViewModels/EmailLoginViewModel.swift": [
+                "請點擊驗證信中的連結完成驗證後再登入。",
+                "已重新發送驗證信，請至信箱查看。"
+            ],
+            "Havital/Core/Infrastructure/GarminManager.swift": [
+                "connectionError = \"Garmin 功能暫時不可用，請稍後再試\"",
+                "response.message.isEmpty ? \"Garmin 連接需要重新授權\"",
+                "connectionError = \"初始化連接失敗:",
+                "connectionError = \"中斷連接失敗:",
+                "connectionError = \"無法顯示授權頁面\"",
+                "handleConnectionError(\"無效的回調 URL\")",
+                "handleConnectionError(\"Garmin 授權失敗:",
+                "handleConnectionError(\"安全驗證失敗\")",
+                "handleConnectionError(\"Garmin 連接失敗\")",
+                "NSLocalizedDescriptionKey: \"中斷連接失敗\"",
+                "NSLocalizedDescriptionKey: \"無效的 Garmin 授權 URL\"",
+                "NSLocalizedDescriptionKey: \"無法建構授權 URL\"",
+                "該 Garmin Connect™ 帳號已經綁定至另一個 Paceriz 帳號。"
+            ],
+            "Havital/Core/Infrastructure/StravaManager.swift": [
+                "connectionError = \"Strava 功能暫時不可用，請稍後再試\"",
+                "response.message.isEmpty ? \"Strava 連接需要重新授權\"",
+                "connectionError = \"初始化連接失敗:",
+                "connectionError = \"中斷連接失敗:",
+                "connectionError = \"無法顯示授權頁面\"",
+                "handleConnectionError(\"無效的回調 URL\")",
+                "handleConnectionError(\"Strava 授權失敗:",
+                "handleConnectionError(\"安全驗證失敗\")",
+                "handleConnectionError(\"Strava 連接失敗\")",
+                "NSLocalizedDescriptionKey: \"Code Verifier 未生成\"",
+                "NSLocalizedDescriptionKey: \"中斷連接失敗\"",
+                "NSLocalizedDescriptionKey: \"無效的 Strava 授權 URL\"",
+                "NSLocalizedDescriptionKey: \"無法建構授權 URL\"",
+                "該 Strava 帳號已經綁定至另一個 Paceriz 帳號。"
+            ],
+            "Havital/Core/Infrastructure/SyncNotificationManager.swift": [
+                "開始同步訓練數據",
+                "正在同步",
+                "訓練數據同步完成",
+                "已成功同步"
+            ],
+            "Havital/Features/Workout/Domain/UseCases/WorkoutBackgroundManager.swift": [
+                "開始同步訓練數據",
+                "正在同步",
+                "訓練數據同步完成",
+                "已成功同步",
+                "正在處理歷史訓練數據",
+                "系統正在處理您的"
+            ],
+            "Havital/Core/Infrastructure/CalendarManager.swift": [
+                "Paceriz 訓練日",
+                "今天是訓練日，記得按照計劃完成訓練！"
+            ]
+        ]
+
+        var violations: [String] = []
+        for (relativePath, snippets) in filesAndForbiddenSnippets {
+            let content = try String(contentsOf: projectRoot.appendingPathComponent(relativePath), encoding: .utf8)
+            for snippet in snippets where content.contains(snippet) {
+                violations.append("\(relativePath): \(snippet)")
+            }
+        }
+
+        XCTAssertTrue(
+            violations.isEmpty,
+            "First-batch user-visible i18n strings must be localized, not hardcoded:\n\(violations.joined(separator: "\n"))"
+        )
+    }
+
+    func test_second_batch_user_visible_error_strings_are_not_hardcoded() throws {
+        let projectRoot = try projectRoot
+        let filesAndForbiddenSnippets: [String: [String]] = [
+            "Havital/Services/Authentication/AuthenticationService.swift": [
+                "Firebase client ID 不存在",
+                "無法顯示登入畫面",
+                "缺少 Token",
+                "發生未知錯誤，請稍後再試",
+                "用戶未登入",
+                "郵箱未驗證"
+            ],
+            "Havital/Features/Announcement/Domain/Errors/AnnouncementError.swift": [
+                "公告載入失敗:",
+                "標記已讀失敗:"
+            ],
+            "Havital/Services/Core/HTTPClient.swift": [
+                "return \"無效的 URL:",
+                "return \"無網路連接\"",
+                "return \"請求超時\"",
+                "return \"請求已取消\"",
+                "return \"請求錯誤:",
+                "return \"未授權:",
+                "return \"禁止訪問:",
+                "return \"需要訂閱才能使用此功能\"",
+                "return \"Rizo AI 使用次數已達上限\"",
+                "return \"資源不存在:",
+                "return \"HTTP 錯誤",
+                "return \"伺服器錯誤",
+                "return \"網路錯誤:",
+                "return \"無效回應:"
+            ],
+            "Havital/Services/Core/UnifiedAPIResponse.swift": [
+                "return \"找不到資源:",
+                "return \"未授權:",
+                "return \"禁止訪問:",
+                "return \"驗證失敗:",
+                "return \"業務邏輯錯誤",
+                "return \"任務已取消\"",
+                "return \"配置錯誤:",
+                "return \"存儲錯誤:",
+                "return \"未知錯誤:"
+            ],
+            "Havital/Services/Core/APIParser.swift": [
+                "return \"JSON 解析失敗:",
+                "return \"容錯解析失敗:",
+                "return \"無效數據:"
+            ],
+            "Havital/Core/Infrastructure/AppStateManager.swift": [
+                "return \"初始化中...\"",
+                "return \"驗證用戶身份...\"",
+                "return \"載入用戶資料...\"",
+                "return \"設置服務中...\"",
+                "return \"就緒\"",
+                "return \"錯誤:",
+                "return \"免費版\"",
+                "return \"付費版\"",
+                "return \"已過期\""
+            ],
+            "Havital/Storage/TrainingReadinessStorage.swift": [
+                "無緩存",
+                "剛剛更新",
+                "分鐘前更新",
+                "小時前更新"
+            ],
+            "Havital/Features/TrainingPlan/Domain/UseCases/TrainingReadinessManager.swift": [
+                "return \"載入中...\"",
+                "return \"載入失敗:",
+                "return \"暫無訓練準備度數據\"",
+                "return \"準備度分析完成\""
+            ],
+            "Havital/Core/Infrastructure/CalendarManager.swift": [
+                "NSLocalizedDescriptionKey: \"No sync preference set\"",
+                "NSLocalizedDescriptionKey: \"Calendar access denied\"",
+                "NSLocalizedDescriptionKey: \"無法創建事件時間\"",
+                "NSLocalizedDescriptionKey: \"No default calendar available\""
+            ],
+            "Havital/Features/TrainingPlanV2/Presentation/ViewModels/WeeklyPlanGenerator.swift": [
+                "無法更新訓練計劃"
+            ],
+            "Havital/Features/Workout/Domain/UseCases/WorkoutBackgroundManager.swift": [
+                "Health Kit 授權被拒絕"
+            ],
+            "Havital/Features/TrainingPlanV2/Domain/Entities/PlanOverviewV2.swift": [
+                "低強度 / \\(",
+                "中強度 / \\(",
+                "高強度\""
+            ]
+        ]
+
+        var violations: [String] = []
+        for (relativePath, snippets) in filesAndForbiddenSnippets {
+            let content = try String(contentsOf: projectRoot.appendingPathComponent(relativePath), encoding: .utf8)
+            for snippet in snippets where content.contains(snippet) {
+                violations.append("\(relativePath): \(snippet)")
+            }
+        }
+
+        XCTAssertTrue(
+            violations.isEmpty,
+            "Second-batch user-visible error/display strings must be localized, not hardcoded:\n\(violations.joined(separator: "\n"))"
+        )
+    }
+
+    func test_performance_chart_user_visible_errors_are_not_hardcoded() throws {
+        let projectRoot = try projectRoot
+        let filesAndForbiddenSnippets: [String: [String]] = [
+            "Havital/Features/UserProfile/Presentation/ViewModels/SleepHeartRateViewModel.swift": [
+                "self.error = \"HealthKit 管理器未初始化\"",
+                "self.error = \"Strava 不提供靜息心率數據\"",
+                "self.error = \"請先選擇數據來源\"",
+                "self.error = \"無法載入睡眠心率數據\""
+            ],
+            "Havital/Features/UserProfile/Presentation/ViewModels/HRVChartViewModel.swift": [
+                "self.error = \"無法載入心率變異性數據\"",
+                "diagnosticsText = \"讀取授權:",
+                "diagnosticsText = \"診斷失敗:",
+                "self.error = \"讀取授權檢查失敗:"
+            ],
+            "Havital/Features/TrainingPlan/Presentation/ViewModels/VDOTChartViewModel.swift": [
+                "self.error = \"無法載入跑力數據:"
+            ]
+        ]
+
+        var violations: [String] = []
+        for (relativePath, snippets) in filesAndForbiddenSnippets {
+            let content = try String(contentsOf: projectRoot.appendingPathComponent(relativePath), encoding: .utf8)
+            for snippet in snippets where content.contains(snippet) {
+                violations.append("\(relativePath): \(snippet)")
+            }
+        }
+
+        XCTAssertTrue(
+            violations.isEmpty,
+            "Performance chart user-visible errors must be localized, not hardcoded:\n\(violations.joined(separator: "\n"))"
+        )
+    }
+
+    func test_authentication_domain_errors_are_not_hardcoded() throws {
+        let projectRoot = try projectRoot
+        let content = try String(
+            contentsOf: projectRoot.appendingPathComponent("Havital/Features/Authentication/Domain/Errors/AuthError.swift"),
+            encoding: .utf8
+        )
+        let forbiddenSnippets = [
+            "return \"Google Sign-In failed:",
+            "return \"Apple Sign-In failed:",
+            "return \"Firebase authentication failed:",
+            "return \"Backend sync failed:",
+            "return \"Invalid credentials provided\"",
+            "return \"Network connection failed\"",
+            "return \"Authentication token has expired\"",
+            "return \"User not found\"",
+            "return \"Onboarding must be completed\"",
+            "return \"App 版本過舊，請前往 App Store 更新\""
+        ]
+        let violations = forbiddenSnippets.filter { content.contains($0) }
+
+        XCTAssertTrue(
+            violations.isEmpty,
+            "Authentication domain LocalizedError messages must be localized, not hardcoded:\n\(violations.joined(separator: "\n"))"
+        )
+    }
+
+    func test_workout_formatting_user_visible_strings_are_not_hardcoded() throws {
+        let projectRoot = try projectRoot
+        let filesAndForbiddenSnippets: [String: [String]] = [
+            "Havital/Utils/WorkoutUtils.swift": [
+                "return \"無法計算\""
+            ],
+            "Havital/Views/Training/EditSchedule/TrainingDetailEditor.swift": [
+                "\\(sets) × \\(reps)次",
+                "\\(sets) 組"
+            ]
+        ]
+
+        var violations: [String] = []
+        for (relativePath, snippets) in filesAndForbiddenSnippets {
+            let content = try String(contentsOf: projectRoot.appendingPathComponent(relativePath), encoding: .utf8)
+            for snippet in snippets where content.contains(snippet) {
+                violations.append("\(relativePath): \(snippet)")
+            }
+        }
+
+        XCTAssertTrue(
+            violations.isEmpty,
+            "Workout formatting strings must be localized, not hardcoded:\n\(violations.joined(separator: "\n"))"
+        )
+    }
+
     func test_typography_audit_harness_covers_release_gate_screens() throws {
         let app = try String(contentsOf: try projectRoot.appendingPathComponent("Havital/HavitalApp.swift"), encoding: .utf8)
         let requiredScreens = [

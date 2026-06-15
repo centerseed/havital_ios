@@ -495,8 +495,8 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
         }
         
         let content = UNMutableNotificationContent()
-        content.title = "開始同步訓練數據"
-        content.body = "正在同步 \(count) 條訓練記錄，完成後將通知您"
+        content.title = NSLocalizedString("sync.notification.started.title", comment: "Training data sync started notification title")
+        content.body = String(format: NSLocalizedString("sync.notification.started.body_format", comment: "Training data sync started notification body"), count)
         
         let request = UNNotificationRequest(
             identifier: "sync-training-data-start",
@@ -516,8 +516,8 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
     // 發送首次登入的特別通知
     private func sendFirstLoginSyncNotification(count: Int) async {
         let content = UNMutableNotificationContent()
-        content.title = "正在處理歷史訓練數據"
-        content.body = "系統正在處理您的 \(count) 條歷史訓練記錄，這可能需要一些時間，完成後將通知您"
+        content.title = NSLocalizedString("sync.notification.history_processing.title", comment: "Historical training data processing notification title")
+        content.body = String(format: NSLocalizedString("sync.notification.history_processing.body_format", comment: "Historical training data processing notification body"), count)
         
         let request = UNNotificationRequest(
             identifier: "first-login-sync",
@@ -540,8 +540,8 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
         clearAllWorkoutNotifications()
         
         let content = UNMutableNotificationContent()
-        content.title = "訓練數據同步完成"
-        content.body = "已成功同步 \(count) 條訓練記錄"
+        content.title = NSLocalizedString("sync.notification.completed.title", comment: "Training data sync completed notification title")
+        content.body = String(format: NSLocalizedString("sync.notification.completed.body_format", comment: "Training data sync completed notification body"), count)
         
         let request = UNNotificationRequest(
             identifier: "sync-training-data-completion",
@@ -622,7 +622,7 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
                 if success {
                     continuation.resume()
                 } else {
-                    continuation.resume(throwing: NSError(domain: "HealthKitAuthorization", code: -1, userInfo: [NSLocalizedDescriptionKey: "Health Kit 授權被拒絕"]))
+                    continuation.resume(throwing: NSError(domain: "HealthKitAuthorization", code: -1, userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("healthkit.authorization_denied", comment: "HealthKit authorization denied error")]))
                 }
             }
         }

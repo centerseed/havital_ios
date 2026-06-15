@@ -126,17 +126,17 @@ class TrainingReadinessStorage {
     /// Get formatted cache status
     var cacheStatusDescription: String {
         guard let age = cacheAge else {
-            return "無緩存"
+            return NSLocalizedString("cache_status.empty", comment: "No cached data status")
         }
 
         let minutes = Int(age / 60)
         if minutes < 1 {
-            return "剛剛更新"
+            return NSLocalizedString("cache_status.just_updated", comment: "Cache was just updated")
         } else if minutes < 60 {
-            return "\(minutes) 分鐘前更新"
+            return String(format: NSLocalizedString("cache_status.minutes_ago_format", comment: "Cache updated minutes ago"), minutes)
         } else {
             let hours = minutes / 60
-            return "\(hours) 小時前更新"
+            return String(format: NSLocalizedString("cache_status.hours_ago_format", comment: "Cache updated hours ago"), hours)
         }
     }
 }

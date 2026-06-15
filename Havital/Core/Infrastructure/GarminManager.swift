@@ -221,7 +221,9 @@ class GarminManager: NSObject, ObservableObject {
                         if shouldShowReconnection {
                             print("❌ 檢測到問題狀態 '\(response.status)'，設置 needsReconnection = true")
                             self.needsReconnection = true
-                            self.reconnectionMessage = response.message.isEmpty ? "Garmin 連接需要重新授權" : response.message
+                            self.reconnectionMessage = response.message.isEmpty
+                                ? String(format: NSLocalizedString("connect.status.reauth_required_format", comment: "Provider connection requires reauthorization"), "Garmin")
+                                : response.message
 
                             Logger.firebase("Garmin 需要重新綁定", level: .warn, labels: [
                                 "module": "GarminManager",
@@ -295,7 +297,7 @@ class GarminManager: NSObject, ObservableObject {
         // 檢查 Client ID 是否有效
         guard isClientIDValid else {
             await MainActor.run {
-                connectionError = "Garmin 功能暫時不可用，請稍後再試"
+                connectionError = String(format: NSLocalizedString("connect.error.feature_unavailable_format", comment: "Provider feature temporarily unavailable"), "Garmin")
                 print("❌ GarminManager: Client ID 無效，無法啟動連接流程")
             }
             return
@@ -352,7 +354,7 @@ class GarminManager: NSObject, ObservableObject {
             print("❌ GarminManager: 初始化連接失敗: \(error)")
             await MainActor.run {
                 isConnecting = false
-                connectionError = "初始化連接失敗: \(error.localizedDescription)"
+                connectionError = String(format: NSLocalizedString("connect.error.initialization_failed_format", comment: "Provider connection initialization failed"), error.localizedDescription)
             }
         }
     }
@@ -369,13 +371,14 @@ class GarminManager: NSObject, ObservableObject {
         
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let queryItems = components.queryItems else {
-            await handleConnectionError("無效的回調 URL")
+            await handleConnectionError(NSLocalizedString("connect.error.invalid_callback_url", comment: "OAuth callback URL is invalid"))
             return
         }
         
         // 提取參數 - 現在是從後端傳來的結果
         let error = queryItems.first { $0.name == "error" }?.value
-        let errorDescription = queryItems.first { $0.name == "error_description" }?.value ?? "該 Garmin Connect™ 帳號已經綁定至另一個 Paceriz 帳號。請先使用原本綁定的 Paceriz 帳號登入，並在個人資料頁解除 Garmin Connect™ 綁定後，再用本帳號進行連接。"
+        let errorDescription = queryItems.first { $0.name == "error_description" }?.value
+            ?? NSLocalizedString("connect.oauth.garmin_already_bound_fallback", comment: "Garmin account already connected fallback")
         let canForceReplace = queryItems.first { $0.name == "can_force_replace" }?.value
         let state = queryItems.first { $0.name == "state" }?.value
         let existingUserId = queryItems.first { $0.name == "existing_user_id" }?.value
@@ -397,14 +400,14 @@ class GarminManager: NSObject, ObservableObject {
         
         // 檢查是否有錯誤
         if let error = error {
-            await handleConnectionError("Garmin 授權失敗: \(error)")
+            await handleConnectionError(String(format: NSLocalizedString("connect.error.authorization_failed_format", comment: "Provider authorization failed"), "Garmin", error))
             return
         }
         
         // 驗證 state 參數（如果後端有提供的話）
         if let receivedState = state {
             guard receivedState == self.state else {
-                await handleConnectionError("安全驗證失敗")
+                await handleConnectionError(NSLocalizedString("connect.error.security_verification_failed", comment: "OAuth state security verification failed"))
                 return
             }
             print("✅ State 驗證成功")
@@ -459,7 +462,7 @@ class GarminManager: NSObject, ObservableObject {
             }
         } else {
             analyticsService.track(.onboardingGarminConnect(success: false))
-            await handleConnectionError("Garmin 連接失敗")
+            await handleConnectionError(String(format: NSLocalizedString("connect.error.connection_failed_format", comment: "Provider connection failed"), "Garmin"))
         }
     }
     
@@ -495,14 +498,17 @@ class GarminManager: NSObject, ObservableObject {
                     print("Garmin 連接已中斷")
                 }
             } else {
-                throw NSError(domain: "GarminManager", code: response.statusCode, 
-                             userInfo: [NSLocalizedDescriptionKey: "中斷連接失敗"])
+                throw NSError(
+                    domain: "GarminManager",
+                    code: response.statusCode,
+                    userInfo: [NSLocalizedDescriptionKey: String(format: NSLocalizedString("connect.error.request_failed_status_format", comment: "Provider request failed with HTTP status"), response.statusCode)]
+                )
             }
             
         } catch {
             await MainActor.run {
                 isConnecting = false
-                connectionError = "中斷連接失敗: \(error.localizedDescription)"
+                connectionError = String(format: NSLocalizedString("connect.error.disconnect_failed_format", comment: "Provider disconnect failed"), error.localizedDescription)
             }
         }
     }
@@ -539,7 +545,11 @@ class GarminManager: NSObject, ObservableObject {
         }
         
         guard var components = URLComponents(string: garminAuthURL) else {
-            throw NSError(domain: "GarminManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "無效的 Garmin 授權 URL"])
+            throw NSError(
+                domain: "GarminManager",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: String(format: NSLocalizedString("connect.error.invalid_authorization_url_format", comment: "Provider authorization URL is invalid"), "Garmin")]
+            )
         }
         
         components.queryItems = [
@@ -553,7 +563,11 @@ class GarminManager: NSObject, ObservableObject {
         ]
         
         guard let url = components.url else {
-            throw NSError(domain: "GarminManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "無法建構授權 URL"])
+            throw NSError(
+                domain: "GarminManager",
+                code: 2,
+                userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("connect.error.authorization_url_build_failed", comment: "Cannot build OAuth authorization URL")]
+            )
         }
         
         return url
@@ -584,7 +598,7 @@ class GarminManager: NSObject, ObservableObject {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let window = windowScene.windows.first else {
             print("❌ GarminManager: 無法獲取視窗場景或視窗")
-            connectionError = "無法顯示授權頁面"
+            connectionError = NSLocalizedString("connect.error.auth_page_unavailable", comment: "Cannot show OAuth authorization page")
             isConnecting = false
             return
         }
@@ -599,7 +613,7 @@ class GarminManager: NSObject, ObservableObject {
         
         guard let topViewController = presentingViewController else {
             print("❌ GarminManager: 無法找到可用的視圖控制器")
-            connectionError = "無法顯示授權頁面"
+            connectionError = NSLocalizedString("connect.error.auth_page_unavailable", comment: "Cannot show OAuth authorization page")
             isConnecting = false
             return
         }
@@ -616,7 +630,7 @@ class GarminManager: NSObject, ObservableObject {
                 "module": "GarminManager",
                 "action": "presentSafariViewController"
             ])
-            connectionError = "無法顯示授權頁面"
+            connectionError = NSLocalizedString("connect.error.auth_page_unavailable", comment: "Cannot show OAuth authorization page")
             isConnecting = false
             return
         }

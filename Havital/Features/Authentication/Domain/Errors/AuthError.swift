@@ -69,25 +69,25 @@ extension AuthenticationError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .googleSignInFailed(let message):
-            return "Google Sign-In failed: \(message)"
+            return String(format: NSLocalizedString("authentication.error.google_sign_in_failed_format", comment: "Google sign-in failed"), message)
         case .appleSignInFailed(let message):
-            return "Apple Sign-In failed: \(message)"
+            return String(format: NSLocalizedString("authentication.error.apple_sign_in_failed_format", comment: "Apple sign-in failed"), message)
         case .firebaseAuthFailed(let message):
-            return "Firebase authentication failed: \(message)"
+            return String(format: NSLocalizedString("authentication.error.firebase_auth_failed_format", comment: "Firebase authentication failed"), message)
         case .backendSyncFailed(let message):
-            return "Backend sync failed: \(message)"
+            return String(format: NSLocalizedString("authentication.error.backend_sync_failed_format", comment: "Backend sync failed"), message)
         case .invalidCredentials:
-            return "Invalid credentials provided"
+            return NSLocalizedString("authentication.error.invalid_credentials", comment: "Invalid credentials")
         case .networkFailure:
-            return "Network connection failed"
+            return NSLocalizedString("authentication.error.network_failure", comment: "Network connection failed")
         case .tokenExpired:
-            return "Authentication token has expired"
+            return NSLocalizedString("authentication.error.token_expired", comment: "Authentication token expired")
         case .userNotFound:
-            return "User not found"
+            return NSLocalizedString("authentication.error.user_not_found", comment: "User not found")
         case .onboardingRequired:
-            return "Onboarding must be completed"
+            return NSLocalizedString("authentication.error.onboarding_required", comment: "Onboarding must be completed")
         case .forceUpdateRequired:
-            return "App 版本過舊，請前往 App Store 更新"
+            return NSLocalizedString("error.force_update_required", comment: "Force app update required error")
         }
     }
 }

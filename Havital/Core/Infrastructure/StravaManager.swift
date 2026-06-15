@@ -219,7 +219,9 @@ class StravaManager: NSObject, ObservableObject {
                     if shouldShowReconnection {
                         print("❌ 檢測到問題狀態 '\(response.status)'，設置 needsReconnection = true")
                         self.needsReconnection = true
-                        self.reconnectionMessage = response.message.isEmpty ? "Strava 連接需要重新授權" : response.message
+                        self.reconnectionMessage = response.message.isEmpty
+                            ? String(format: NSLocalizedString("connect.status.reauth_required_format", comment: "Provider connection requires reauthorization"), "Strava")
+                            : response.message
 
                         Logger.firebase("Strava 需要重新綁定", level: .warn, labels: [
                             "module": "StravaManager",
@@ -303,7 +305,7 @@ class StravaManager: NSObject, ObservableObject {
         // 檢查 Client 憑證是否有效
         guard isClientCredentialsValid else {
             await MainActor.run {
-                self.connectionError = "Strava 功能暫時不可用，請稍後再試"
+                self.connectionError = String(format: NSLocalizedString("connect.error.feature_unavailable_format", comment: "Provider feature temporarily unavailable"), "Strava")
                 print("❌ StravaManager: Client 憑證無效，無法啟動連接流程")
             }
             return
@@ -344,7 +346,11 @@ class StravaManager: NSObject, ObservableObject {
 
             // ⚠️ 關鍵步驟：在重定向到 Strava 之前，先保存 PKCE 參數到後端
             guard let verifier = self.codeVerifier else {
-                throw NSError(domain: "StravaManager", code: 3, userInfo: [NSLocalizedDescriptionKey: "Code Verifier 未生成"])
+                throw NSError(
+                    domain: "StravaManager",
+                    code: 3,
+                    userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("connect.error.code_verifier_missing", comment: "OAuth code verifier was not generated")]
+                )
             }
 
             print("📝 開始保存 PKCE 參數到後端...")
@@ -369,7 +375,7 @@ class StravaManager: NSObject, ObservableObject {
             print("❌ StravaManager: 初始化連接失敗: \(error)")
             await MainActor.run {
                 self.isConnecting = false
-                self.connectionError = "初始化連接失敗: \(error.localizedDescription)"
+                self.connectionError = String(format: NSLocalizedString("connect.error.initialization_failed_format", comment: "Provider connection initialization failed"), error.localizedDescription)
             }
         }
     }
@@ -391,13 +397,14 @@ class StravaManager: NSObject, ObservableObject {
         
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let queryItems = components.queryItems else {
-            await handleConnectionError("無效的回調 URL")
+            await handleConnectionError(NSLocalizedString("connect.error.invalid_callback_url", comment: "OAuth callback URL is invalid"))
             return
         }
         
         // 提取參數 - 現在是從後端傳來的結果
         let error = queryItems.first { $0.name == "error" }?.value
-        let errorDescription = queryItems.first { $0.name == "error_description" }?.value ?? "該 Strava 帳號已經綁定至另一個 Paceriz 帳號。請先使用原本綁定的 Paceriz 帳號登入，並在個人資料頁解除 Strava 綁定後，再用本帳號進行連接。"
+        let errorDescription = queryItems.first { $0.name == "error_description" }?.value
+            ?? NSLocalizedString("connect.oauth.strava_already_bound_fallback", comment: "Strava account already connected fallback")
         let canForceReplace = queryItems.first { $0.name == "can_force_replace" }?.value
         let state = queryItems.first { $0.name == "state" }?.value
         let existingUserId = queryItems.first { $0.name == "existing_user_id" }?.value
@@ -419,14 +426,14 @@ class StravaManager: NSObject, ObservableObject {
         
         // 檢查是否有錯誤
         if let error = error {
-            await handleConnectionError("Strava 授權失敗: \(error)")
+            await handleConnectionError(String(format: NSLocalizedString("connect.error.authorization_failed_format", comment: "Provider authorization failed"), "Strava", error))
             return
         }
         
         // 驗證 state 參數（如果後端有提供的話）
         if let receivedState = state {
             guard receivedState == self.state else {
-                await handleConnectionError("安全驗證失敗")
+                await handleConnectionError(NSLocalizedString("connect.error.security_verification_failed", comment: "OAuth state security verification failed"))
                 return
             }
             print("✅ State 驗證成功")
@@ -485,7 +492,7 @@ class StravaManager: NSObject, ObservableObject {
                 ])
             }
         } else {
-            await handleConnectionError("Strava 連接失敗")
+            await handleConnectionError(String(format: NSLocalizedString("connect.error.connection_failed_format", comment: "Provider connection failed"), "Strava"))
         }
     }
     
@@ -521,14 +528,17 @@ class StravaManager: NSObject, ObservableObject {
                     print("Strava 連接已中斷")
                 }
             } else {
-                throw NSError(domain: "StravaManager", code: response.statusCode, 
-                             userInfo: [NSLocalizedDescriptionKey: "中斷連接失敗"])
+                throw NSError(
+                    domain: "StravaManager",
+                    code: response.statusCode,
+                    userInfo: [NSLocalizedDescriptionKey: String(format: NSLocalizedString("connect.error.request_failed_status_format", comment: "Provider request failed with HTTP status"), response.statusCode)]
+                )
             }
             
         } catch {
             await MainActor.run {
                 self.isConnecting = false
-                self.connectionError = "中斷連接失敗: \(error.localizedDescription)"
+                self.connectionError = String(format: NSLocalizedString("connect.error.disconnect_failed_format", comment: "Provider disconnect failed"), error.localizedDescription)
             }
         }
     }
@@ -570,7 +580,11 @@ class StravaManager: NSObject, ObservableObject {
     
     private func buildAuthorizationURL(state: String) throws -> URL {
         guard var components = URLComponents(string: stravaAuthURL) else {
-            throw NSError(domain: "StravaManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "無效的 Strava 授權 URL"])
+            throw NSError(
+                domain: "StravaManager",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: String(format: NSLocalizedString("connect.error.invalid_authorization_url_format", comment: "Provider authorization URL is invalid"), "Strava")]
+            )
         }
 
         // 生成 PKCE code verifier 和 code challenge
@@ -595,7 +609,11 @@ class StravaManager: NSObject, ObservableObject {
         ]
 
         guard let url = components.url else {
-            throw NSError(domain: "StravaManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "無法建構授權 URL"])
+            throw NSError(
+                domain: "StravaManager",
+                code: 2,
+                userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("connect.error.authorization_url_build_failed", comment: "Cannot build OAuth authorization URL")]
+            )
         }
 
         return url
@@ -607,7 +625,7 @@ class StravaManager: NSObject, ObservableObject {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let window = windowScene.windows.first else {
             print("❌ StravaManager: 無法獲取視窗場景或視窗")
-            connectionError = "無法顯示授權頁面"
+            connectionError = NSLocalizedString("connect.error.auth_page_unavailable", comment: "Cannot show OAuth authorization page")
             isConnecting = false
             return
         }
@@ -622,7 +640,7 @@ class StravaManager: NSObject, ObservableObject {
         
         guard let topViewController = presentingViewController else {
             print("❌ StravaManager: 無法找到可用的視圖控制器")
-            connectionError = "無法顯示授權頁面"
+            connectionError = NSLocalizedString("connect.error.auth_page_unavailable", comment: "Cannot show OAuth authorization page")
             isConnecting = false
             return
         }
@@ -639,7 +657,7 @@ class StravaManager: NSObject, ObservableObject {
                 "module": "StravaManager",
                 "action": "presentSafariViewController"
             ])
-            connectionError = "無法顯示授權頁面"
+            connectionError = NSLocalizedString("connect.error.auth_page_unavailable", comment: "Cannot show OAuth authorization page")
             isConnecting = false
             return
         }

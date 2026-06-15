@@ -194,7 +194,7 @@ struct MethodologyOverviewV2: Codable, Equatable {
     /// 強度風格（balanced, polarized, threshold）
     let intensityStyle: String
 
-    /// 強度分配描述（如 "75% 低強度 / 20% 中強度 / 5% 高強度"）
+    /// 強度分配描述
     let intensityDescription: String
 }
 
@@ -293,7 +293,7 @@ struct IntensityDistributionV2: Codable, Equatable {
         let lowPercent = Int(low * 100)
         let mediumPercent = Int(medium * 100)
         let highPercent = Int(high * 100)
-        return "\(lowPercent)% 低強度 / \(mediumPercent)% 中強度 / \(highPercent)% 高強度"
+        return String(format: NSLocalizedString("training.intensity_distribution_format", comment: "Intensity distribution percentages"), lowPercent, mediumPercent, highPercent)
     }
 }
 

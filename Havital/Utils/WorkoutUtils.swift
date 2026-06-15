@@ -83,7 +83,9 @@ struct WorkoutUtils {
 
     /// 格式化配速（依 UnitManager 設定決定單位）
     static func formatPace(durationInSeconds: Double, distanceInMeters: Double) -> String {
-        guard distanceInMeters > 0 else { return "無法計算" }
+        guard distanceInMeters > 0 else {
+            return NSLocalizedString("pace.unable_to_calculate", comment: "Pace cannot be calculated")
+        }
         let paceSecondsPerKm = (durationInSeconds / distanceInMeters) * 1000
         return MainActor.assumeIsolated {
             let unit = UnitManager.shared.currentUnitSystem

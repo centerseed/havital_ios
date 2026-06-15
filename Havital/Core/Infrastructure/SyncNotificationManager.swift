@@ -145,8 +145,8 @@ class SyncNotificationManager {
         removeAllSyncNotifications()
         
         let content = UNMutableNotificationContent()
-        content.title = "開始同步訓練數據"
-        content.body = "正在同步 \(count) 條訓練記錄，完成後將通知您"
+        content.title = NSLocalizedString("sync.notification.started.title", comment: "Training data sync started notification title")
+        content.body = String(format: NSLocalizedString("sync.notification.started.body_format", comment: "Training data sync started notification body"), count)
         content.sound = .default
         
         // 使用固定的識別符
@@ -170,8 +170,8 @@ class SyncNotificationManager {
         removeAllSyncNotifications()
         
         let content = UNMutableNotificationContent()
-        content.title = "訓練數據同步完成"
-        content.body = "已成功同步 \(count) 條訓練記錄"
+        content.title = NSLocalizedString("sync.notification.completed.title", comment: "Training data sync completed notification title")
+        content.body = String(format: NSLocalizedString("sync.notification.completed.body_format", comment: "Training data sync completed notification body"), count)
         content.sound = .default
         
         let request = UNNotificationRequest(

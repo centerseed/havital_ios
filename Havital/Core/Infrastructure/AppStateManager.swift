@@ -18,12 +18,12 @@ class AppStateManager: ObservableObject {
         
         var description: String {
             switch self {
-            case .initializing: return "初始化中..."
-            case .authenticating: return "驗證用戶身份..."
-            case .loadingUserData: return "載入用戶資料..."
-            case .settingUpServices: return "設置服務中..."
-            case .ready: return "就緒"
-            case .error(let message): return "錯誤: \(message)"
+            case .initializing: return NSLocalizedString("app_state.initializing", comment: "App is initializing")
+            case .authenticating: return NSLocalizedString("app_state.authenticating", comment: "App is authenticating user")
+            case .loadingUserData: return NSLocalizedString("app_state.loading_user_data", comment: "App is loading user data")
+            case .settingUpServices: return NSLocalizedString("app_state.setting_up_services", comment: "App is setting up services")
+            case .ready: return NSLocalizedString("app_state.ready", comment: "App is ready")
+            case .error(let message): return String(format: NSLocalizedString("app_state.error_format", comment: "App entered error state"), message)
             }
         }
         
@@ -41,9 +41,9 @@ class AppStateManager: ObservableObject {
         
         var displayName: String {
             switch self {
-            case .free: return "免費版"
-            case .premium: return "付費版"
-            case .expired: return "已過期"
+            case .free: return NSLocalizedString("subscription_status.free", comment: "Free subscription display name")
+            case .premium: return NSLocalizedString("subscription_status.premium", comment: "Premium subscription display name")
+            case .expired: return NSLocalizedString("subscription_status.expired", comment: "Expired subscription display name")
             }
         }
     }

@@ -3698,3 +3698,114 @@
 "strength.series.stretch_series" = "ストレッチ系";
 
 "benchmark.readiness.attributed" = "実力評価は %@ のベンチマーク走で校正済み";
+
+// MARK: - First Batch User-Visible i18n
+"auth.email_not_verified_login_message" = "メール内の確認リンクを開いて認証を完了してからログインしてください。";
+"auth.verification_email_resent" = "確認メールを再送信しました。受信箱を確認してください。";
+"connect.error.feature_unavailable_format" = "%@ は一時的に利用できません。しばらくしてからもう一度お試しください。";
+"connect.error.initialization_failed_format" = "接続の開始に失敗しました: %@";
+"connect.error.disconnect_failed_format" = "接続解除に失敗しました: %@";
+"connect.error.auth_page_unavailable" = "認証ページを表示できません。";
+"connect.error.invalid_callback_url" = "コールバックURLが無効です。";
+"connect.error.authorization_failed_format" = "%@ の認証に失敗しました: %@";
+"connect.error.security_verification_failed" = "セキュリティ確認に失敗しました。";
+"connect.error.connection_failed_format" = "%@ の接続に失敗しました。";
+"connect.error.invalid_authorization_url_format" = "%@ の認証URLが無効です。";
+"connect.error.authorization_url_build_failed" = "認証URLを作成できません。";
+"connect.error.code_verifier_missing" = "認証の準備に失敗しました。もう一度お試しください。";
+"connect.error.request_failed_status_format" = "リクエストに失敗しました（ステータス %d）。";
+"connect.status.reauth_required_format" = "%@ の接続には再認証が必要です";
+"connect.oauth.garmin_already_bound_fallback" = "この Garmin アカウントは既に別のユーザーに接続されています。強制接続を選択できます。";
+"connect.oauth.strava_already_bound_fallback" = "この Strava アカウントは既に別のユーザーに接続されています。強制接続を選択できます。";
+"sync.notification.started.title" = "トレーニングデータの同期を開始しました";
+"sync.notification.started.body_format" = "%d 件のトレーニング記録を同期中です。完了したら通知します。";
+"sync.notification.history_processing.title" = "過去のトレーニングデータを処理中";
+"sync.notification.history_processing.body_format" = "%d 件の過去のトレーニング記録を処理しています。時間がかかる場合があります。完了したら通知します。";
+"sync.notification.completed.title" = "トレーニングデータの同期が完了しました";
+"sync.notification.completed.body_format" = "%d 件のトレーニング記録を同期しました。";
+"calendar.training_event.title" = "Paceriz トレーニング日";
+"calendar.training_event.notes" = "今日はトレーニング日です。計画に沿ってワークアウトを完了しましょう。";
+
+// MARK: - Second Batch User-Visible i18n
+"auth.error.missing_client_id" = "Firebase client ID がありません。";
+"auth.error.presentation" = "ログイン画面を表示できません。";
+"auth.error.missing_token" = "Token がありません。";
+"auth.error.unknown" = "不明なエラーが発生しました。後でもう一度お試しください。";
+"auth.error.not_authenticated" = "ログインしていません。";
+"auth.error.email_not_verified" = "メールアドレスが認証されていません。";
+"announcement.error.fetch_failed_format" = "お知らせの読み込みに失敗しました: %@";
+"announcement.error.mark_seen_failed_format" = "お知らせを既読にできませんでした: %@";
+"http_error.invalid_url_format" = "無効なURLです: %@";
+"http_error.no_connection" = "ネットワークに接続されていません。";
+"http_error.timeout" = "リクエストがタイムアウトしました。";
+"http_error.cancelled" = "リクエストはキャンセルされました。";
+"http_error.bad_request_format" = "リクエストエラー: %@";
+"http_error.unauthorized_format" = "認証されていません: %@";
+"http_error.forbidden_format" = "アクセスできません: %@";
+"http_error.subscription_required" = "この機能を使うにはサブスクリプションが必要です。";
+"http_error.rizo_quota_exceeded" = "Rizo AI の利用上限に達しました。";
+"http_error.not_found_format" = "リソースが見つかりません: %@";
+"http_error.http_error_format" = "HTTP エラー %d: %@";
+"http_error.server_error_format" = "サーバーエラー %d: %@";
+"http_error.network_error_format" = "ネットワークエラー: %@";
+"http_error.invalid_response_format" = "無効なレスポンスです: %@";
+"business_error.not_found_format" = "リソースが見つかりません: %@";
+"business_error.unauthorized_format" = "認証されていません: %@";
+"business_error.forbidden_format" = "アクセスできません: %@";
+"business_error.validation_failed_format" = "入力内容を確認してください: %@";
+"business_error.business_logic_format" = "処理エラー [%@]: %@";
+"system_error.task_cancelled" = "タスクはキャンセルされました。";
+"system_error.configuration_error_format" = "設定エラー: %@";
+"system_error.storage_error_format" = "保存エラー: %@";
+"system_error.unknown_error_format" = "不明なエラー: %@";
+"parse_error.decoding_failed_format" = "JSON の解析に失敗しました: %@";
+"parse_error.fallback_failed_format" = "代替解析に失敗しました: %@";
+"parse_error.invalid_data_format" = "無効なデータです: %@";
+"app_state.initializing" = "初期化中...";
+"app_state.authenticating" = "アカウントを確認中...";
+"app_state.loading_user_data" = "ユーザーデータを読み込み中...";
+"app_state.setting_up_services" = "サービスを設定中...";
+"app_state.ready" = "準備完了";
+"app_state.error_format" = "エラー: %@";
+"subscription_status.free" = "無料";
+"subscription_status.premium" = "プレミアム";
+"subscription_status.expired" = "期限切れ";
+"cache_status.empty" = "キャッシュなし";
+"cache_status.just_updated" = "たった今更新";
+"cache_status.minutes_ago_format" = "%d 分前に更新";
+"cache_status.hours_ago_format" = "%d 時間前に更新";
+"training_readiness.load_failed_format" = "読み込みに失敗しました: %@";
+"calendar.error.sync_preference_missing" = "同期設定がありません。";
+"calendar.error.access_denied" = "カレンダーへのアクセスが拒否されました。";
+"calendar.error.event_time_creation_failed" = "イベント時刻を作成できません。";
+"calendar.error.default_calendar_missing" = "デフォルトカレンダーがありません。";
+"training_plan.update_failed" = "トレーニングプランを更新できません。";
+"healthkit.authorization_denied" = "HealthKit の認証が拒否されました。";
+"training.intensity_distribution_format" = "%d%% 低強度 / %d%% 中強度 / %d%% 高強度";
+
+// MARK: - Performance Chart Errors
+"performance.sleep_hr.error.healthkit_uninitialized" = "HealthKit マネージャーが初期化されていません。";
+"performance.sleep_hr.error.strava_not_supported" = "Strava は安静時心拍数データを提供していません。";
+"performance.error.select_data_source" = "先にデータソースを選択してください。";
+"performance.sleep_hr.error.load_failed" = "睡眠時心拍数データを読み込めません。";
+"performance.hrv.error.load_failed" = "心拍変動データを読み込めません。";
+"performance.hrv.diagnostics_format" = "読み取り認証: %@; 元サンプル数: %d; ソース: [%@]";
+"performance.hrv.diagnostics_failed_format" = "診断に失敗しました: %@";
+"performance.hrv.read_auth_failed_format" = "読み取り認証の確認に失敗しました: %@";
+"performance.vdot.error.load_failed_format" = "VDOT データを読み込めません: %@";
+
+// MARK: - Authentication Domain Errors
+"authentication.error.google_sign_in_failed_format" = "Google ログインに失敗しました: %@";
+"authentication.error.apple_sign_in_failed_format" = "Apple ログインに失敗しました: %@";
+"authentication.error.firebase_auth_failed_format" = "Firebase 認証に失敗しました: %@";
+"authentication.error.backend_sync_failed_format" = "バックエンド同期に失敗しました: %@";
+"authentication.error.invalid_credentials" = "ログイン情報が無効です。";
+"authentication.error.network_failure" = "ネットワーク接続に失敗しました。";
+"authentication.error.token_expired" = "認証トークンの有効期限が切れました。";
+"authentication.error.user_not_found" = "ユーザーが見つかりません。";
+"authentication.error.onboarding_required" = "初期設定を完了してください。";
+
+// MARK: - Workout Formatting
+"pace.unable_to_calculate" = "計算できません";
+"training.sets_reps_format" = "%d x %@ 回";
+"training.sets_only_format" = "%d セット";

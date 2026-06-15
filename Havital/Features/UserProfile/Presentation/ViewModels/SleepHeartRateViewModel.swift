@@ -118,7 +118,7 @@ class SleepHeartRateViewModel: ObservableObject, TaskManageable {
                 // 從 HealthKit 獲取數據
                 guard let healthKit = healthKitManager else {
                     await MainActor.run {
-                        self.error = "HealthKit 管理器未初始化"
+                        self.error = NSLocalizedString("performance.sleep_hr.error.healthkit_uninitialized", comment: "HealthKit manager was not initialized")
                         self.isLoading = false
                     }
                     return
@@ -160,12 +160,12 @@ class SleepHeartRateViewModel: ObservableObject, TaskManageable {
                 // ⚠️ Strava 不提供靜息心率數據
                 print("Strava 不支援靜息心率數據")
                 await MainActor.run {
-                    self.error = "Strava 不提供靜息心率數據"
+                    self.error = NSLocalizedString("performance.sleep_hr.error.strava_not_supported", comment: "Strava does not provide resting heart rate data")
                 }
                 
             case .unbound:
                 await MainActor.run {
-                    self.error = "請先選擇數據來源"
+                    self.error = NSLocalizedString("performance.error.select_data_source", comment: "Select a data source before loading chart data")
                 }
             }
             
@@ -180,7 +180,7 @@ class SleepHeartRateViewModel: ObservableObject, TaskManageable {
         } catch {
             print("Error loading sleep heart rate data: \(error)")
             await MainActor.run {
-                self.error = "無法載入睡眠心率數據"
+                self.error = NSLocalizedString("performance.sleep_hr.error.load_failed", comment: "Failed to load sleep heart rate data")
                 self.isLoading = false
                 self.heartRateData = []
             }

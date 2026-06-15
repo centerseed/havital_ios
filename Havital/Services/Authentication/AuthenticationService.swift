@@ -1111,17 +1111,17 @@ enum AuthError: Error {
     var localizedDescription: String {
         switch self {
         case .missingClientId:
-            return "Firebase client ID 不存在"
+            return NSLocalizedString("auth.error.missing_client_id", comment: "Firebase client ID is missing")
         case .presentationError:
-            return "無法顯示登入畫面"
+            return NSLocalizedString("auth.error.presentation", comment: "Unable to present sign-in screen")
         case .missingToken:
-            return "缺少 Token"
+            return NSLocalizedString("auth.error.missing_token", comment: "Required auth token is missing")
         case .unknown:
-            return "發生未知錯誤，請稍後再試"
+            return NSLocalizedString("auth.error.unknown", comment: "Unknown authentication error")
         case .notAuthenticated:
-            return "用戶未登入"
+            return NSLocalizedString("auth.error.not_authenticated", comment: "User is not authenticated")
         case .emailNotVerified:
-            return "郵箱未驗證"
+            return NSLocalizedString("auth.error.email_not_verified", comment: "Email is not verified")
         }
     }
 }

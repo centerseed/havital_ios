@@ -3740,3 +3740,114 @@
 "strength.series.stretch_series" = "伸展系列";
 
 "benchmark.readiness.attributed" = "實力評估已由你 %@ 的指標跑校準";
+
+// MARK: - First Batch User-Visible i18n
+"auth.email_not_verified_login_message" = "請點擊驗證信中的連結完成驗證後再登入。";
+"auth.verification_email_resent" = "已重新發送驗證信，請至信箱查看。";
+"connect.error.feature_unavailable_format" = "%@ 功能暫時不可用，請稍後再試";
+"connect.error.initialization_failed_format" = "初始化連接失敗: %@";
+"connect.error.disconnect_failed_format" = "中斷連接失敗: %@";
+"connect.error.auth_page_unavailable" = "無法顯示授權頁面";
+"connect.error.invalid_callback_url" = "無效的回調 URL";
+"connect.error.authorization_failed_format" = "%@ 授權失敗: %@";
+"connect.error.security_verification_failed" = "安全驗證失敗";
+"connect.error.connection_failed_format" = "%@ 連接失敗";
+"connect.error.invalid_authorization_url_format" = "無效的 %@ 授權 URL";
+"connect.error.authorization_url_build_failed" = "無法建構授權 URL";
+"connect.error.code_verifier_missing" = "授權設定失敗，請再試一次。";
+"connect.error.request_failed_status_format" = "請求失敗，狀態碼 %d。";
+"connect.status.reauth_required_format" = "%@ 連接需要重新授權";
+"connect.oauth.garmin_already_bound_fallback" = "此 Garmin 帳號已被其他用戶連接，您可以選擇強制連接。";
+"connect.oauth.strava_already_bound_fallback" = "此 Strava 帳號已被其他用戶連接，您可以選擇強制連接。";
+"sync.notification.started.title" = "開始同步訓練數據";
+"sync.notification.started.body_format" = "正在同步 %d 條訓練記錄，完成後將通知您";
+"sync.notification.history_processing.title" = "正在處理歷史訓練數據";
+"sync.notification.history_processing.body_format" = "系統正在處理您的 %d 條歷史訓練記錄，這可能需要一些時間，完成後將通知您";
+"sync.notification.completed.title" = "訓練數據同步完成";
+"sync.notification.completed.body_format" = "已成功同步 %d 條訓練記錄";
+"calendar.training_event.title" = "Paceriz 訓練日";
+"calendar.training_event.notes" = "今天是訓練日，記得按照計劃完成訓練！";
+
+// MARK: - Second Batch User-Visible i18n
+"auth.error.missing_client_id" = "Firebase client ID 不存在";
+"auth.error.presentation" = "無法顯示登入畫面";
+"auth.error.missing_token" = "缺少 Token";
+"auth.error.unknown" = "發生未知錯誤，請稍後再試";
+"auth.error.not_authenticated" = "用戶未登入";
+"auth.error.email_not_verified" = "郵箱未驗證";
+"announcement.error.fetch_failed_format" = "公告載入失敗: %@";
+"announcement.error.mark_seen_failed_format" = "標記已讀失敗: %@";
+"http_error.invalid_url_format" = "無效的 URL: %@";
+"http_error.no_connection" = "無網路連接";
+"http_error.timeout" = "請求超時";
+"http_error.cancelled" = "請求已取消";
+"http_error.bad_request_format" = "請求錯誤: %@";
+"http_error.unauthorized_format" = "未授權: %@";
+"http_error.forbidden_format" = "禁止訪問: %@";
+"http_error.subscription_required" = "需要訂閱才能使用此功能";
+"http_error.rizo_quota_exceeded" = "Rizo AI 使用次數已達上限";
+"http_error.not_found_format" = "資源不存在: %@";
+"http_error.http_error_format" = "HTTP 錯誤 %d: %@";
+"http_error.server_error_format" = "伺服器錯誤 %d: %@";
+"http_error.network_error_format" = "網路錯誤: %@";
+"http_error.invalid_response_format" = "無效回應: %@";
+"business_error.not_found_format" = "找不到資源: %@";
+"business_error.unauthorized_format" = "未授權: %@";
+"business_error.forbidden_format" = "禁止訪問: %@";
+"business_error.validation_failed_format" = "驗證失敗: %@";
+"business_error.business_logic_format" = "業務邏輯錯誤 [%@]: %@";
+"system_error.task_cancelled" = "任務已取消";
+"system_error.configuration_error_format" = "配置錯誤: %@";
+"system_error.storage_error_format" = "存儲錯誤: %@";
+"system_error.unknown_error_format" = "未知錯誤: %@";
+"parse_error.decoding_failed_format" = "JSON 解析失敗: %@";
+"parse_error.fallback_failed_format" = "容錯解析失敗: %@";
+"parse_error.invalid_data_format" = "無效數據: %@";
+"app_state.initializing" = "初始化中...";
+"app_state.authenticating" = "驗證用戶身份...";
+"app_state.loading_user_data" = "載入用戶資料...";
+"app_state.setting_up_services" = "設置服務中...";
+"app_state.ready" = "就緒";
+"app_state.error_format" = "錯誤: %@";
+"subscription_status.free" = "免費版";
+"subscription_status.premium" = "付費版";
+"subscription_status.expired" = "已過期";
+"cache_status.empty" = "無緩存";
+"cache_status.just_updated" = "剛剛更新";
+"cache_status.minutes_ago_format" = "%d 分鐘前更新";
+"cache_status.hours_ago_format" = "%d 小時前更新";
+"training_readiness.load_failed_format" = "載入失敗: %@";
+"calendar.error.sync_preference_missing" = "尚未設定同步偏好";
+"calendar.error.access_denied" = "日曆存取權限遭拒";
+"calendar.error.event_time_creation_failed" = "無法創建事件時間";
+"calendar.error.default_calendar_missing" = "找不到預設日曆";
+"training_plan.update_failed" = "無法更新訓練計劃";
+"healthkit.authorization_denied" = "HealthKit 授權被拒絕";
+"training.intensity_distribution_format" = "%d%% 低強度 / %d%% 中強度 / %d%% 高強度";
+
+// MARK: - Performance Chart Errors
+"performance.sleep_hr.error.healthkit_uninitialized" = "HealthKit 管理器未初始化";
+"performance.sleep_hr.error.strava_not_supported" = "Strava 不提供靜息心率數據";
+"performance.error.select_data_source" = "請先選擇數據來源";
+"performance.sleep_hr.error.load_failed" = "無法載入睡眠心率數據";
+"performance.hrv.error.load_failed" = "無法載入心率變異性數據";
+"performance.hrv.diagnostics_format" = "讀取授權: %@; 原始樣本數: %d; 來源: [%@]";
+"performance.hrv.diagnostics_failed_format" = "診斷失敗: %@";
+"performance.hrv.read_auth_failed_format" = "讀取授權檢查失敗: %@";
+"performance.vdot.error.load_failed_format" = "無法載入跑力數據: %@";
+
+// MARK: - Authentication Domain Errors
+"authentication.error.google_sign_in_failed_format" = "Google 登入失敗: %@";
+"authentication.error.apple_sign_in_failed_format" = "Apple 登入失敗: %@";
+"authentication.error.firebase_auth_failed_format" = "Firebase 驗證失敗: %@";
+"authentication.error.backend_sync_failed_format" = "後端同步失敗: %@";
+"authentication.error.invalid_credentials" = "登入憑證無效";
+"authentication.error.network_failure" = "網路連線失敗";
+"authentication.error.token_expired" = "登入憑證已過期";
+"authentication.error.user_not_found" = "找不到使用者";
+"authentication.error.onboarding_required" = "請先完成初始設定";
+
+// MARK: - Workout Formatting
+"pace.unable_to_calculate" = "無法計算";
+"training.sets_reps_format" = "%d × %@次";
+"training.sets_only_format" = "%d 組";

@@ -123,14 +123,14 @@ class CalendarManager: ObservableObject {
         
         // 確保已經有同步偏好設置
         guard let syncPreference = preference ?? self.syncPreference else {
-            throw NSError(domain: "CalendarManager", code: 1, userInfo: [NSLocalizedDescriptionKey: "No sync preference set"])
+            throw NSError(domain: "CalendarManager", code: 1, userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("calendar.error.sync_preference_missing", comment: "Calendar sync preference missing error")])
         }
         
         // 確保有日曆權限
         if !isCalendarAuthorized {
             let granted = await requestCalendarAccess()
             if !granted {
-                throw NSError(domain: "CalendarManager", code: 2, userInfo: [NSLocalizedDescriptionKey: "Calendar access denied"])
+                throw NSError(domain: "CalendarManager", code: 2, userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("calendar.error.access_denied", comment: "Calendar access denied error")])
             }
         }
         
@@ -152,7 +152,8 @@ class CalendarManager: ObservableObject {
                                                     calendars: [eventStore.defaultCalendarForNewEvents].compactMap { $0 })
         
         let existingEvents = eventStore.events(matching: predicate)
-        let trainingEvents = existingEvents.filter { $0.title == "Paceriz 訓練日" }
+        let localizedTitle = NSLocalizedString("calendar.training_event.title", comment: "Calendar training day event title")
+        let trainingEvents = existingEvents.filter { $0.title == localizedTitle }
 
         for event in trainingEvents {
             try eventStore.remove(event, span: .thisEvent)
@@ -161,8 +162,8 @@ class CalendarManager: ObservableObject {
 
     private func addTrainingEvent(on date: Date, preference: SyncPreference) throws {
         let event = EKEvent(eventStore: eventStore)
-        event.title = "Paceriz 訓練日"
-        event.notes = "今天是訓練日，記得按照計劃完成訓練！"
+        event.title = NSLocalizedString("calendar.training_event.title", comment: "Calendar training day event title")
+        event.notes = NSLocalizedString("calendar.training_event.notes", comment: "Calendar training day event notes")
         
         let calendar = Calendar.current
         let timeZone = TimeZone.current
@@ -200,7 +201,7 @@ class CalendarManager: ObservableObject {
             // 創建事件時間
             guard let startDate = calendar.date(from: startComponents),
                   let endDate = calendar.date(from: endComponents) else {
-                throw NSError(domain: "CalendarManager", code: 4, userInfo: [NSLocalizedDescriptionKey: "無法創建事件時間"])
+                throw NSError(domain: "CalendarManager", code: 4, userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("calendar.error.event_time_creation_failed", comment: "Calendar event time creation failed error")])
             }
             
             event.timeZone = timeZone
@@ -218,7 +219,7 @@ class CalendarManager: ObservableObject {
         }
         
         guard let calendar = eventStore.defaultCalendarForNewEvents else {
-            throw NSError(domain: "CalendarManager", code: 3, userInfo: [NSLocalizedDescriptionKey: "No default calendar available"])
+            throw NSError(domain: "CalendarManager", code: 3, userInfo: [NSLocalizedDescriptionKey: NSLocalizedString("calendar.error.default_calendar_missing", comment: "Default calendar missing error")])
         }
         
         event.calendar = calendar

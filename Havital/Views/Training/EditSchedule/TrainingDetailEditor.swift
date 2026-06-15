@@ -1521,9 +1521,9 @@ struct ExerciseRowEditor: View {
         if let duration = exercise.durationSeconds {
             return String(format: NSLocalizedString("time.sets_seconds_format", comment: "sets x seconds"), sets, duration)
         } else if let reps = exercise.reps, !reps.isEmpty {
-            return "\(sets) × \(reps)次"
+            return String(format: NSLocalizedString("training.sets_reps_format", comment: "Strength exercise sets and reps summary"), sets, reps)
         } else {
-            return "\(sets) 組"
+            return String(format: NSLocalizedString("training.sets_only_format", comment: "Strength exercise sets-only summary"), sets)
         }
     }
 

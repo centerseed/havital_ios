@@ -270,13 +270,13 @@ extension TrainingReadinessManager {
     /// Data status description for UI
     var dataStatusDescription: String {
         if isLoading {
-            return "載入中..."
+            return NSLocalizedString("common.loading", comment: "Loading status")
         } else if let error = syncError {
-            return "載入失敗: \(error)"
+            return String(format: NSLocalizedString("training_readiness.load_failed_format", comment: "Training readiness load failed status"), error)
         } else if !hasData {
-            return "暫無訓練準備度數據"
+            return NSLocalizedString("training_readiness.no_data", comment: "No training readiness data status")
         } else {
-            return "準備度分析完成"
+            return NSLocalizedString("training_readiness.data_ready", comment: "Training readiness data is ready status")
         }
     }
 }

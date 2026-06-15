@@ -383,35 +383,35 @@ enum HTTPError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL(let url):
-            return "無效的 URL: \(url)"
+            return String(format: NSLocalizedString("http_error.invalid_url_format", comment: "Invalid URL error"), url)
         case .noConnection:
-            return "無網路連接"
+            return NSLocalizedString("http_error.no_connection", comment: "No network connection error")
         case .timeout:
-            return "請求超時"
+            return NSLocalizedString("http_error.timeout", comment: "Request timed out error")
         case .cancelled:
-            return "請求已取消"
+            return NSLocalizedString("http_error.cancelled", comment: "Request was cancelled error")
         case .badRequest(let message):
-            return "請求錯誤: \(message)"
+            return String(format: NSLocalizedString("http_error.bad_request_format", comment: "Bad request error"), message)
         case .unauthorized(let message):
-            return "未授權: \(message)"
+            return String(format: NSLocalizedString("http_error.unauthorized_format", comment: "Unauthorized error"), message)
         case .forbidden(let message):
-            return "禁止訪問: \(message)"
+            return String(format: NSLocalizedString("http_error.forbidden_format", comment: "Forbidden error"), message)
         case .subscriptionRequired:
-            return "需要訂閱才能使用此功能"
+            return NSLocalizedString("http_error.subscription_required", comment: "Subscription required error")
         case .rizoQuotaExceeded:
-            return "Rizo AI 使用次數已達上限"
+            return NSLocalizedString("http_error.rizo_quota_exceeded", comment: "Rizo AI quota exceeded error")
         case .forceUpdateRequired:
-            return "App 版本過舊，請前往 App Store 更新"
+            return NSLocalizedString("error.force_update_required", comment: "Force app update required error")
         case .notFound(let message):
-            return "資源不存在: \(message)"
+            return String(format: NSLocalizedString("http_error.not_found_format", comment: "Not found error"), message)
         case .httpError(let code, let message):
-            return "HTTP 錯誤 \(code): \(message)"
+            return String(format: NSLocalizedString("http_error.http_error_format", comment: "Generic HTTP error"), code, message)
         case .serverError(let code, let message):
-            return "伺服器錯誤 \(code): \(message)"
+            return String(format: NSLocalizedString("http_error.server_error_format", comment: "Server error"), code, message)
         case .networkError(let message):
-            return "網路錯誤: \(message)"
+            return String(format: NSLocalizedString("http_error.network_error_format", comment: "Network error"), message)
         case .invalidResponse(let message):
-            return "無效回應: \(message)"
+            return String(format: NSLocalizedString("http_error.invalid_response_format", comment: "Invalid response error"), message)
         }
     }
 

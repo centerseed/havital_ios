@@ -215,11 +215,11 @@ enum ParseError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .decodingFailed(let detail):
-            return "JSON 解析失敗: \(detail.description)"
+            return String(format: NSLocalizedString("parse_error.decoding_failed_format", comment: "JSON decoding failed error"), detail.description)
         case .fallbackFailed(let message):
-            return "容錯解析失敗: \(message)"
+            return String(format: NSLocalizedString("parse_error.fallback_failed_format", comment: "Fallback parsing failed error"), message)
         case .invalidData(let message):
-            return "無效數據: \(message)"
+            return String(format: NSLocalizedString("parse_error.invalid_data_format", comment: "Invalid parsed data error"), message)
         }
     }
 }
