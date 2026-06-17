@@ -2436,6 +2436,8 @@
 "training.need_weekly_summary_title" = "需要產生週回顧";
 "training.need_weekly_summary_description" = "請先產生第 %d 週的週回顧，才能繼續產生下週課表";
 "training.generate_week_summary" = "產生第 %d 週回顧";
+"training.need_weekly_summary_before_plan_title" = "需要完成上週回顧";
+"training.need_weekly_summary_before_plan_description" = "請先取得上週回顧，才能產生本週課表";
 "training.completed_title" = "恭喜！訓練計畫已完成";
 "training.completed_description" = "準備開始新的訓練計畫嗎？";
 "training.loading_failed" = "載入失敗";

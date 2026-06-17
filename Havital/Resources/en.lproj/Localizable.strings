@@ -2514,6 +2514,8 @@
 "training.exercises" = "Exercises";
 "training.generate_week_n_plan" = "Generate Week %d Plan";
 "training.generate_week_summary" = "Generate Week %d Summary";
+"training.need_weekly_summary_before_plan_title" = "Last Week's Review Needed";
+"training.need_weekly_summary_before_plan_description" = "Please get last week's review before generating this week's plan";
 "training.highlights_count" = "%d highlights";
 "training.key_milestones" = "Key Milestones";
 "training.key_workouts" = "Key Workouts";

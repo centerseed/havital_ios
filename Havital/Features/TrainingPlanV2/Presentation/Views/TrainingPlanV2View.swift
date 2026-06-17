@@ -976,16 +976,20 @@ private struct GenerateWeeklyPlanPromptView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Image(systemName: "calendar.badge.plus")
+            Image(systemName: isWeekOne ? "calendar.badge.plus" : "chart.bar.doc.horizontal")
                 .font(AppFont.systemScaled(size: 60))
                 .foregroundColor(.blue)
                 .padding(.top, 40)
 
-            Text(NSLocalizedString("training.no_weekly_plan_title", comment: "週課表尚未產生"))
+            Text(isWeekOne
+                ? NSLocalizedString("training.no_weekly_plan_title", comment: "週課表尚未產生")
+                : NSLocalizedString("training.need_weekly_summary_before_plan_title", comment: "需要完成上週回顧"))
                 .font(AppFont.headline())
                 .foregroundColor(.primary)
 
-            Text(NSLocalizedString("training.no_weekly_plan_description", comment: "點擊下方按鈕產生本週課表"))
+            Text(isWeekOne
+                ? NSLocalizedString("training.no_weekly_plan_description", comment: "點擊下方按鈕產生本週課表")
+                : NSLocalizedString("training.need_weekly_summary_before_plan_description", comment: "請先取得上週回顧，才能產生本週課表"))
                 .font(AppFont.subheadline())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)

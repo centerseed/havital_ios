@@ -2511,6 +2511,8 @@
 "training.exercises" = "エクササイズ";
 "training.generate_week_n_plan" = "第%d週のプランを作成";
 "training.generate_week_summary" = "第%d週のレビューを作成";
+"training.need_weekly_summary_before_plan_title" = "先週のレビューが必要です";
+"training.need_weekly_summary_before_plan_description" = "今週のプランを作成する前に先週のレビューを取得してください";
 "training.highlights_count" = "%d 個のハイライト";
 "training.key_milestones" = "重要マイルストーン";
 "training.key_workouts" = "重要トレーニング";
