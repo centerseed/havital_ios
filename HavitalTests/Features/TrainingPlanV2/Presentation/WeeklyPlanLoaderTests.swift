@@ -99,6 +99,7 @@ final class WeeklyPlanLoaderTests: XCTestCase {
             totalDistanceUnit: nil,
             totalDistanceReason: nil,
             designReason: nil,
+            mileageProgressionNote: nil,
             coachNote: nil,
             days: [],
             intensityTotalMinutes: nil,

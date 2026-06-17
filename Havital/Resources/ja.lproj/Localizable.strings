@@ -2511,6 +2511,8 @@
 "training.exercises" = "エクササイズ";
 "training.generate_week_n_plan" = "第%d週のプランを作成";
 "training.generate_week_summary" = "第%d週のレビューを作成";
+"training.need_weekly_summary_before_plan_title" = "先週のレビューが必要です";
+"training.need_weekly_summary_before_plan_description" = "今週のプランを作成する前に先週のレビューを取得してください";
 "training.highlights_count" = "%d 個のハイライト";
 "training.key_milestones" = "重要マイルストーン";
 "training.key_workouts" = "重要トレーニング";
@@ -3809,3 +3811,15 @@
 "pace.unable_to_calculate" = "計算できません";
 "training.sets_reps_format" = "%d x %@ 回";
 "training.sets_only_format" = "%d セット";
+
+
+/* MARK: - Paywall Conversion (no-plan state) */
+"paywall.conversion.progress" = "%d/%d 週を完了";
+"paywall.conversion.progress_race" = "%1$d/%2$d 週完了 · %3$@ まであと %4$d 日";
+"paywall.conversion.locked_preview_title" = "第 %d 週のプラン";
+"paywall.conversion.locked_preview_body" = "目標 %@ %@%@";
+"paywall.conversion.recovery_suffix" = " · 回復週";
+"paywall.conversion.cta_trial" = "トレーニングを続ける・30日間無料体験";
+"paywall.conversion.cta_generate" = "今週のプランを作成";
+"paywall.conversion.cta_restore" = "登録済み？復元する";
+"paywall.conversion.daily_value_hint" = "登録すると毎日コーチが状態を解説";

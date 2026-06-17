@@ -123,6 +123,42 @@ struct TrainingPlanV2View: View {
         return viewModel.loader.planOverview != nil
     }
 
+    // MARK: - Conversion Gate
+
+    private var conversionGateActive: Bool {
+        subscriptionState.isEnforcementEnabled &&
+        !subscriptionState.hasPremiumAccess &&
+        viewModel.loader.planOverview != nil
+    }
+
+    @ViewBuilder
+    private func noPlanConversionView(isWeekOne: Bool, ctaTrigger: PaywallTrigger = .weeklyPlanWeek2) -> some View {
+        let overview = viewModel.loader.planOverview
+        let content = NoPlanConversionContent(
+            currentWeek: viewModel.loader.currentWeek,
+            totalWeeks: overview?.totalWeeks ?? 0,
+            raceName: (overview?.isRaceRunTarget == true) ? overview?.targetName : nil,
+            daysToRace: (overview?.isRaceRunTarget == true) ? raceHeaderVM?.daysLeft : nil,
+            upcomingWeeks: viewModel.upcomingWeeks
+        )
+        NoPlanPaywallConversionView(
+            content: content,
+            isWeekOne: isWeekOne,
+            raceHeaderVM: raceHeaderVM,
+            showRaceHeader: overview?.isRaceRunTarget == true && raceHeaderVM != nil,
+            onPrimaryCTA: {
+                if isWeekOne {
+                    Task { await viewModel.generator.generateCurrentWeekPlan() }
+                } else {
+                    _ = InterruptCoordinator.shared.enqueue(.paywall(ctaTrigger))
+                }
+            },
+            onRestore: {
+                Task { try? await (DependencyContainer.shared.resolve() as SubscriptionRepository).restorePurchases() }
+            }
+        )
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -209,32 +245,40 @@ struct TrainingPlanV2View: View {
 
 
                     case .noWeeklyPlan:
-                        GenerateWeeklyPlanPromptView(
-                            isWeekOne: viewModel.loader.currentWeek == 1,
-                            isGeneratingSummary: viewModel.summary.isGeneratingSummary
-                        ) {
-                            Task {
-                                await viewModel.generator.generateCurrentWeekPlan()
+                        if conversionGateActive {
+                            noPlanConversionView(isWeekOne: viewModel.loader.currentWeek == 1)
+                        } else {
+                            GenerateWeeklyPlanPromptView(
+                                isWeekOne: viewModel.loader.currentWeek == 1,
+                                isGeneratingSummary: viewModel.summary.isGeneratingSummary
+                            ) {
+                                Task {
+                                    await viewModel.generator.generateCurrentWeekPlan()
+                                }
                             }
                         }
 
                     case .needsWeeklySummary:
-                        GenerateWeeklySummaryPromptView(
-                            weekToSummarize: viewModel.loader.currentWeek - 1,
-                            isGenerating: viewModel.summary.isGeneratingSummary
-                        ) {
-                            viewModel.trackWeeklySummaryPromptTapped(
-                                weekOfTraining: viewModel.loader.currentWeek - 1
-                            )
-                            Task {
-                                // 產生上週回顧後，自動顯示 sheet
-                                await viewModel.summary.createWeeklySummaryAndShow(week: viewModel.loader.currentWeek - 1)
+                        if conversionGateActive {
+                            noPlanConversionView(isWeekOne: false, ctaTrigger: .weeklyReview)
+                        } else {
+                            GenerateWeeklySummaryPromptView(
+                                weekToSummarize: viewModel.loader.currentWeek - 1,
+                                isGenerating: viewModel.summary.isGeneratingSummary
+                            ) {
+                                viewModel.trackWeeklySummaryPromptTapped(
+                                    weekOfTraining: viewModel.loader.currentWeek - 1
+                                )
+                                Task {
+                                    // 產生上週回顧後，自動顯示 sheet
+                                    await viewModel.summary.createWeeklySummaryAndShow(week: viewModel.loader.currentWeek - 1)
+                                }
                             }
-                        }
-                        .onAppear {
-                            viewModel.markWeeklySummaryPromptViewed(
-                                weekOfTraining: viewModel.loader.currentWeek - 1
-                            )
+                            .onAppear {
+                                viewModel.markWeeklySummaryPromptViewed(
+                                    weekOfTraining: viewModel.loader.currentWeek - 1
+                                )
+                            }
                         }
 
                     case .noPlan:
@@ -934,16 +978,20 @@ private struct GenerateWeeklyPlanPromptView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Image(systemName: "calendar.badge.plus")
+            Image(systemName: isWeekOne ? "calendar.badge.plus" : "chart.bar.doc.horizontal")
                 .font(AppFont.systemScaled(size: 60))
                 .foregroundColor(.blue)
                 .padding(.top, 40)
 
-            Text(NSLocalizedString("training.no_weekly_plan_title", comment: "週課表尚未產生"))
+            Text(isWeekOne
+                ? NSLocalizedString("training.no_weekly_plan_title", comment: "週課表尚未產生")
+                : NSLocalizedString("training.need_weekly_summary_before_plan_title", comment: "需要完成上週回顧"))
                 .font(AppFont.headline())
                 .foregroundColor(.primary)
 
-            Text(NSLocalizedString("training.no_weekly_plan_description", comment: "點擊下方按鈕產生本週課表"))
+            Text(isWeekOne
+                ? NSLocalizedString("training.no_weekly_plan_description", comment: "點擊下方按鈕產生本週課表")
+                : NSLocalizedString("training.need_weekly_summary_before_plan_description", comment: "請先取得上週回顧，才能產生本週課表"))
                 .font(AppFont.subheadline())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)

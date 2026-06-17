@@ -2514,6 +2514,8 @@
 "training.exercises" = "Exercises";
 "training.generate_week_n_plan" = "Generate Week %d Plan";
 "training.generate_week_summary" = "Generate Week %d Summary";
+"training.need_weekly_summary_before_plan_title" = "Last Week's Review Needed";
+"training.need_weekly_summary_before_plan_description" = "Please get last week's review before generating this week's plan";
 "training.highlights_count" = "%d highlights";
 "training.key_milestones" = "Key Milestones";
 "training.key_workouts" = "Key Workouts";
@@ -3812,3 +3814,15 @@
 "pace.unable_to_calculate" = "Unable to calculate";
 "training.sets_reps_format" = "%d x %@ reps";
 "training.sets_only_format" = "%d sets";
+
+
+/* MARK: - Paywall Conversion (no-plan state) */
+"paywall.conversion.progress" = "You've completed %d/%d weeks";
+"paywall.conversion.progress_race" = "%1$d/%2$d weeks done · %4$d days to %3$@";
+"paywall.conversion.locked_preview_title" = "Your Week %d plan";
+"paywall.conversion.locked_preview_body" = "Target %@ %@%@";
+"paywall.conversion.recovery_suffix" = " · recovery week";
+"paywall.conversion.cta_trial" = "Keep training · 30-day free trial";
+"paywall.conversion.cta_generate" = "Generate this week's plan";
+"paywall.conversion.cta_restore" = "Already subscribed? Restore";
+"paywall.conversion.daily_value_hint" = "Subscribe for a daily coach read on your state";

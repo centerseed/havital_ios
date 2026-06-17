@@ -1,0 +1,32 @@
+appId: com.havital.Havital
+tags:
+  - paywall
+  - conversion
+  - no-plan
+---
+# Verify no-plan conversion gate for non-subscriber without active weekly plan.
+# Pre-condition (manual): log in as a non-subscriber account with no current weekly plan
+#   (prod E4IU account is in this state as of 2026-06-17).
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- tapOn:
+    text: "允許"
+    optional: true
+- tapOn:
+    text: "好"
+    optional: true
+
+- extendedWaitUntil:
+    visible: "免費體驗期"
+    timeout: 30000
+
+- assertVisible: "免費體驗期"
+- assertVisible:
+    id: "LockedWeekPreviewCard"
+- assertVisible:
+    id: "NoPlanConversion_PrimaryCTA"
+- assertVisible: "今日狀態"
+
+- takeScreenshot: "paywall-no-plan-conversion-screen"

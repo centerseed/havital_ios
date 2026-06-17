@@ -2436,6 +2436,8 @@
 "training.need_weekly_summary_title" = "需要產生週回顧";
 "training.need_weekly_summary_description" = "請先產生第 %d 週的週回顧，才能繼續產生下週課表";
 "training.generate_week_summary" = "產生第 %d 週回顧";
+"training.need_weekly_summary_before_plan_title" = "需要完成上週回顧";
+"training.need_weekly_summary_before_plan_description" = "請先取得上週回顧，才能產生本週課表";
 "training.completed_title" = "恭喜！訓練計畫已完成";
 "training.completed_description" = "準備開始新的訓練計畫嗎？";
 "training.loading_failed" = "載入失敗";
@@ -3851,3 +3853,15 @@
 "pace.unable_to_calculate" = "無法計算";
 "training.sets_reps_format" = "%d × %@次";
 "training.sets_only_format" = "%d 組";
+
+
+/* MARK: - Paywall Conversion (no-plan state) */
+"paywall.conversion.progress" = "你已完成 %d/%d 週";
+"paywall.conversion.progress_race" = "你已完成 %1$d/%2$d 週 · %3$@ 剩 %4$d 天";
+"paywall.conversion.locked_preview_title" = "你的第 %d 週課表";
+"paywall.conversion.locked_preview_body" = "目標 %@ %@%@";
+"paywall.conversion.recovery_suffix" = " · 恢復週";
+"paywall.conversion.cta_trial" = "繼續訓練・30 天免費試用";
+"paywall.conversion.cta_generate" = "產生本週課表";
+"paywall.conversion.cta_restore" = "已訂閱？恢復購買";
+"paywall.conversion.daily_value_hint" = "訂閱後每天有教練幫你解讀狀態";
