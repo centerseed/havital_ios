@@ -179,6 +179,7 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
             totalDistanceUnit: nil,
             totalDistanceReason: nil,
             designReason: nil,
+            mileageProgressionNote: nil,
             coachNote: nil,
             days: [day],
             intensityTotalMinutes: nil,
