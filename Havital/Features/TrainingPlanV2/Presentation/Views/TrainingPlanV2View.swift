@@ -123,6 +123,40 @@ struct TrainingPlanV2View: View {
         return viewModel.loader.planOverview != nil
     }
 
+    // MARK: - Conversion Gate
+
+    private var conversionGateActive: Bool {
+        !subscriptionState.hasPremiumAccess && viewModel.loader.planOverview != nil
+    }
+
+    @ViewBuilder
+    private func noPlanConversionView(isWeekOne: Bool) -> some View {
+        let overview = viewModel.loader.planOverview
+        let content = NoPlanConversionContent(
+            currentWeek: viewModel.loader.currentWeek,
+            totalWeeks: overview?.totalWeeks ?? 0,
+            raceName: (overview?.isRaceRunTarget == true) ? overview?.targetName : nil,
+            daysToRace: (overview?.isRaceRunTarget == true) ? raceHeaderVM?.daysLeft : nil,
+            upcomingWeeks: viewModel.upcomingWeeks
+        )
+        NoPlanPaywallConversionView(
+            content: content,
+            isWeekOne: isWeekOne,
+            raceHeaderVM: raceHeaderVM,
+            showRaceHeader: overview?.isRaceRunTarget == true && raceHeaderVM != nil,
+            onPrimaryCTA: {
+                if isWeekOne {
+                    Task { await viewModel.generator.generateCurrentWeekPlan() }
+                } else {
+                    _ = InterruptCoordinator.shared.enqueue(.paywall(.weeklyPlanWeek2))
+                }
+            },
+            onRestore: {
+                Task { try? await (DependencyContainer.shared.resolve() as SubscriptionRepository).restorePurchases() }
+            }
+        )
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -209,32 +243,40 @@ struct TrainingPlanV2View: View {
 
 
                     case .noWeeklyPlan:
-                        GenerateWeeklyPlanPromptView(
-                            isWeekOne: viewModel.loader.currentWeek == 1,
-                            isGeneratingSummary: viewModel.summary.isGeneratingSummary
-                        ) {
-                            Task {
-                                await viewModel.generator.generateCurrentWeekPlan()
+                        if conversionGateActive {
+                            noPlanConversionView(isWeekOne: viewModel.loader.currentWeek == 1)
+                        } else {
+                            GenerateWeeklyPlanPromptView(
+                                isWeekOne: viewModel.loader.currentWeek == 1,
+                                isGeneratingSummary: viewModel.summary.isGeneratingSummary
+                            ) {
+                                Task {
+                                    await viewModel.generator.generateCurrentWeekPlan()
+                                }
                             }
                         }
 
                     case .needsWeeklySummary:
-                        GenerateWeeklySummaryPromptView(
-                            weekToSummarize: viewModel.loader.currentWeek - 1,
-                            isGenerating: viewModel.summary.isGeneratingSummary
-                        ) {
-                            viewModel.trackWeeklySummaryPromptTapped(
-                                weekOfTraining: viewModel.loader.currentWeek - 1
-                            )
-                            Task {
-                                // 產生上週回顧後，自動顯示 sheet
-                                await viewModel.summary.createWeeklySummaryAndShow(week: viewModel.loader.currentWeek - 1)
+                        if conversionGateActive {
+                            noPlanConversionView(isWeekOne: false)
+                        } else {
+                            GenerateWeeklySummaryPromptView(
+                                weekToSummarize: viewModel.loader.currentWeek - 1,
+                                isGenerating: viewModel.summary.isGeneratingSummary
+                            ) {
+                                viewModel.trackWeeklySummaryPromptTapped(
+                                    weekOfTraining: viewModel.loader.currentWeek - 1
+                                )
+                                Task {
+                                    // 產生上週回顧後，自動顯示 sheet
+                                    await viewModel.summary.createWeeklySummaryAndShow(week: viewModel.loader.currentWeek - 1)
+                                }
                             }
-                        }
-                        .onAppear {
-                            viewModel.markWeeklySummaryPromptViewed(
-                                weekOfTraining: viewModel.loader.currentWeek - 1
-                            )
+                            .onAppear {
+                                viewModel.markWeeklySummaryPromptViewed(
+                                    weekOfTraining: viewModel.loader.currentWeek - 1
+                                )
+                            }
                         }
 
                     case .noPlan:
