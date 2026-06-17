@@ -3817,7 +3817,7 @@
 "paywall.conversion.progress" = "%d/%d 週を完了";
 "paywall.conversion.progress_race" = "%1$d/%2$d 週完了 · %3$@ まであと %4$d 日";
 "paywall.conversion.locked_preview_title" = "第 %d 週のプラン";
-"paywall.conversion.locked_preview_body" = "目標 %@ km%@";
+"paywall.conversion.locked_preview_body" = "目標 %@ %@%@";
 "paywall.conversion.recovery_suffix" = " · 回復週";
 "paywall.conversion.cta_trial" = "トレーニングを続ける・30日間無料体験";
 "paywall.conversion.cta_generate" = "今週のプランを作成";

@@ -126,11 +126,13 @@ struct TrainingPlanV2View: View {
     // MARK: - Conversion Gate
 
     private var conversionGateActive: Bool {
-        !subscriptionState.hasPremiumAccess && viewModel.loader.planOverview != nil
+        subscriptionState.isEnforcementEnabled &&
+        !subscriptionState.hasPremiumAccess &&
+        viewModel.loader.planOverview != nil
     }
 
     @ViewBuilder
-    private func noPlanConversionView(isWeekOne: Bool) -> some View {
+    private func noPlanConversionView(isWeekOne: Bool, ctaTrigger: PaywallTrigger = .weeklyPlanWeek2) -> some View {
         let overview = viewModel.loader.planOverview
         let content = NoPlanConversionContent(
             currentWeek: viewModel.loader.currentWeek,
@@ -148,7 +150,7 @@ struct TrainingPlanV2View: View {
                 if isWeekOne {
                     Task { await viewModel.generator.generateCurrentWeekPlan() }
                 } else {
-                    _ = InterruptCoordinator.shared.enqueue(.paywall(.weeklyPlanWeek2))
+                    _ = InterruptCoordinator.shared.enqueue(.paywall(ctaTrigger))
                 }
             },
             onRestore: {
@@ -258,7 +260,7 @@ struct TrainingPlanV2View: View {
 
                     case .needsWeeklySummary:
                         if conversionGateActive {
-                            noPlanConversionView(isWeekOne: false)
+                            noPlanConversionView(isWeekOne: false, ctaTrigger: .weeklyReview)
                         } else {
                             GenerateWeeklySummaryPromptView(
                                 weekToSummarize: viewModel.loader.currentWeek - 1,

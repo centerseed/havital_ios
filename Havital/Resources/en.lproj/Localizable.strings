@@ -3820,7 +3820,7 @@
 "paywall.conversion.progress" = "You've completed %d/%d weeks";
 "paywall.conversion.progress_race" = "%1$d/%2$d weeks done · %4$d days to %3$@";
 "paywall.conversion.locked_preview_title" = "Your Week %d plan";
-"paywall.conversion.locked_preview_body" = "Target %@ km%@";
+"paywall.conversion.locked_preview_body" = "Target %@ %@%@";
 "paywall.conversion.recovery_suffix" = " · recovery week";
 "paywall.conversion.cta_trial" = "Keep training · 30-day free trial";
 "paywall.conversion.cta_generate" = "Generate this week's plan";

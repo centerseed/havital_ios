@@ -3859,7 +3859,7 @@
 "paywall.conversion.progress" = "你已完成 %d/%d 週";
 "paywall.conversion.progress_race" = "你已完成 %1$d/%2$d 週 · %3$@ 剩 %4$d 天";
 "paywall.conversion.locked_preview_title" = "你的第 %d 週課表";
-"paywall.conversion.locked_preview_body" = "目標 %@ km%@";
+"paywall.conversion.locked_preview_body" = "目標 %@ %@%@";
 "paywall.conversion.recovery_suffix" = " · 恢復週";
 "paywall.conversion.cta_trial" = "繼續訓練・30 天免費試用";
 "paywall.conversion.cta_generate" = "產生本週課表";

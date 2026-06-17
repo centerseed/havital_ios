@@ -31,7 +31,9 @@ struct LockedWeekPreviewCard: View {
 
     private var bodyText: String {
         let recovery = preview.isRecovery ? NSLocalizedString("paywall.conversion.recovery_suffix", comment: "") : ""
-        let km = String(format: "%.0f", preview.targetKm)
-        return String(format: NSLocalizedString("paywall.conversion.locked_preview_body", comment: ""), km, recovery)
+        let displayValue = preview.targetKmDisplay ?? preview.targetKm
+        let km = String(format: "%.0f", displayValue)
+        let unit = preview.distanceUnit ?? "km"
+        return String(format: NSLocalizedString("paywall.conversion.locked_preview_body", comment: ""), km, unit, recovery)
     }
 }
