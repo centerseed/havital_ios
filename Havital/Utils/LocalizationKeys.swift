@@ -1952,4 +1952,17 @@ extension L10n {
             static let body  = "notification.sunday_reminder.body"
         }
     }
+
+    // MARK: - Paywall Conversion (no-plan state)
+    enum PaywallConversion {
+        static let progress = "paywall.conversion.progress"
+        static let progressWithRace = "paywall.conversion.progress_race"
+        static let lockedPreviewTitle = "paywall.conversion.locked_preview_title"
+        static let lockedPreviewBody = "paywall.conversion.locked_preview_body"
+        static let recoverySuffix = "paywall.conversion.recovery_suffix"
+        static let ctaStartTrial = "paywall.conversion.cta_trial"
+        static let ctaGenerateWeek1 = "paywall.conversion.cta_generate"
+        static let ctaRestore = "paywall.conversion.cta_restore"
+        static let dailyValueHint = "paywall.conversion.daily_value_hint"
+    }
 }
