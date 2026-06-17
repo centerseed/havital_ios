@@ -22,9 +22,6 @@
 		A1B2C3D4E5F600000000000D /* Havital/Features/Race/Domain/Repositories/RacePickerDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001D /* Havital/Features/Race/Domain/Repositories/RacePickerDataSource.swift */; };
 		A1B2C3D4E5F600000000000E /* Havital/Features/Target/Presentation/ViewModels/TargetEditRacePickerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001E /* Havital/Features/Target/Presentation/ViewModels/TargetEditRacePickerViewModel.swift */; };
 		A1B2C3D4E5F600000000000F /* Havital/Core/Storage/StrengthCompletionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F600000000001F /* Havital/Core/Storage/StrengthCompletionStore.swift */; };
-		B2C3D4E5F6A7000000000001 /* Havital/Features/TrainingPlanV2/Presentation/Conversion/NoPlanConversionContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6A7000000000101 /* Havital/Features/TrainingPlanV2/Presentation/Conversion/NoPlanConversionContent.swift */; };
-		B2C3D4E5F6A7000000000002 /* Havital/Features/TrainingPlanV2/Presentation/Views/Conversion/TrainingProgressNudge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6A7000000000102 /* Havital/Features/TrainingPlanV2/Presentation/Views/Conversion/TrainingProgressNudge.swift */; };
-		B2C3D4E5F6A7000000000003 /* Havital/Features/TrainingPlanV2/Presentation/Views/Conversion/LockedWeekPreviewCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6A7000000000103 /* Havital/Features/TrainingPlanV2/Presentation/Views/Conversion/LockedWeekPreviewCard.swift */; };
 		CF19F9892E34D87600C7E5ED /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = CF19F9882E34D87600C7E5ED /* FirebaseMessaging */; };
 		CF19F98B2E34D8D200C7E5ED /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = CF19F98A2E34D8D200C7E5ED /* FirebaseRemoteConfig */; };
 		CFCABFC22F88A07700E3D25A /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = CFCABFC12F88A07700E3D25A /* RevenueCat */; };
@@ -123,9 +120,6 @@
 		A1B2C3D4E5F600000000001D /* Havital/Features/Race/Domain/Repositories/RacePickerDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/Race/Domain/Repositories/RacePickerDataSource.swift; sourceTree = SOURCE_ROOT; };
 		A1B2C3D4E5F600000000001E /* Havital/Features/Target/Presentation/ViewModels/TargetEditRacePickerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/Target/Presentation/ViewModels/TargetEditRacePickerViewModel.swift; sourceTree = SOURCE_ROOT; };
 		A1B2C3D4E5F600000000001F /* Havital/Core/Storage/StrengthCompletionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Core/Storage/StrengthCompletionStore.swift; sourceTree = SOURCE_ROOT; };
-		B2C3D4E5F6A7000000000101 /* Havital/Features/TrainingPlanV2/Presentation/Conversion/NoPlanConversionContent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/TrainingPlanV2/Presentation/Conversion/NoPlanConversionContent.swift; sourceTree = SOURCE_ROOT; };
-		B2C3D4E5F6A7000000000102 /* Havital/Features/TrainingPlanV2/Presentation/Views/Conversion/TrainingProgressNudge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/TrainingPlanV2/Presentation/Views/Conversion/TrainingProgressNudge.swift; sourceTree = SOURCE_ROOT; };
-		B2C3D4E5F6A7000000000103 /* Havital/Features/TrainingPlanV2/Presentation/Views/Conversion/LockedWeekPreviewCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Havital/Features/TrainingPlanV2/Presentation/Views/Conversion/LockedWeekPreviewCard.swift; sourceTree = SOURCE_ROOT; };
 		CF1AA05B2DD84D6500569CA7 /* Havital.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Havital.xctestplan; sourceTree = "<group>"; };
 		CFB67CF02D07047500F672E3 /* paceriz_dev.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = paceriz_dev.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CFB67D022D07047800F672E3 /* HavitalTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HavitalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -648,9 +642,6 @@
 				A1B2C3D4E5F600000000000D /* Havital/Features/Race/Domain/Repositories/RacePickerDataSource.swift in Sources */,
 				A1B2C3D4E5F600000000000E /* Havital/Features/Target/Presentation/ViewModels/TargetEditRacePickerViewModel.swift in Sources */,
 				A1B2C3D4E5F600000000000F /* Havital/Core/Storage/StrengthCompletionStore.swift in Sources */,
-				B2C3D4E5F6A7000000000001 /* Havital/Features/TrainingPlanV2/Presentation/Conversion/NoPlanConversionContent.swift in Sources */,
-				B2C3D4E5F6A7000000000002 /* Havital/Features/TrainingPlanV2/Presentation/Views/Conversion/TrainingProgressNudge.swift in Sources */,
-				B2C3D4E5F6A7000000000003 /* Havital/Features/TrainingPlanV2/Presentation/Views/Conversion/LockedWeekPreviewCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
