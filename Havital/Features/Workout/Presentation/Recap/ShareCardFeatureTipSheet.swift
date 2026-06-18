@@ -13,7 +13,7 @@ struct ShareCardFeatureTipSheet: View {
     let onDismissPermanently: () -> Void
 
     private struct Feature: Identifiable {
-        let id = UUID()
+        var id: String { systemImage }   // 圖示名稱即唯一鍵，免去 per-row UUID 配置
         let systemImage: String
         let textKey: String
     }
