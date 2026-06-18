@@ -33,6 +33,9 @@ struct WorkoutRecapView: View {
     @State private var photoOffset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
 
+    // 首次進入分享畫面的功能說明卡
+    @State private var showFeatureTip = false
+
     // 同一個 view 不可掛多個 .sheet(isPresented:)（後者會壓制前者）→ 用單一 item 驅動。
     private enum RecapActiveSheet: Int, Identifiable {
         case photo, share
@@ -136,6 +139,19 @@ struct WorkoutRecapView: View {
                     .transition(.opacity)
                     .ignoresSafeArea()
             }
+
+            if showFeatureTip {
+                ShareCardFeatureTipSheet(
+                    onDismissTemporarily: {
+                        withAnimation(.easeOut(duration: 0.2)) { showFeatureTip = false }
+                    },
+                    onDismissPermanently: {
+                        ShareCardTipStorage.markDismissedPermanently()
+                        withAnimation(.easeOut(duration: 0.2)) { showFeatureTip = false }
+                    }
+                )
+                .zIndex(1)
+            }
         }
         .task {
             guard showConfetti else { return }
@@ -144,6 +160,14 @@ struct WorkoutRecapView: View {
             isConfettiVisible = true
             try? await Task.sleep(nanoseconds: 5_200_000_000)
             isConfettiVisible = false
+        }
+        .task {
+            // 首次進分享畫面 → 自動彈功能說明卡（觸發策略見 ShareCardTipStorage）
+            guard ShareCardTipStorage.shouldShow() else { return }
+            ShareCardTipStorage.markAutoShown()
+            // 等本畫面轉場稍穩再彈，避免與 sheet 進場動畫打架
+            try? await Task.sleep(nanoseconds: 450_000_000)
+            withAnimation(.easeOut(duration: 0.25)) { showFeatureTip = true }
         }
         .sheet(item: $activeSheet) { which in
             switch which {
