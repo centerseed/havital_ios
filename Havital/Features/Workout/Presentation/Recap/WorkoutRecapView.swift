@@ -164,9 +164,14 @@ struct WorkoutRecapView: View {
         .task {
             // 首次進分享畫面 → 自動彈功能說明卡（觸發策略見 ShareCardTipStorage）
             guard ShareCardTipStorage.shouldShow() else { return }
-            ShareCardTipStorage.markAutoShown()
             // 等本畫面轉場稍穩再彈，避免與 sheet 進場動畫打架
-            try? await Task.sleep(nanoseconds: 450_000_000)
+            do {
+                try await Task.sleep(nanoseconds: 450_000_000)
+            } catch {
+                return  // 使用者在說明卡出現前就離開畫面 → 不計數、不顯示
+            }
+            // 計數時機 = 說明卡「實際顯示」時（spec §4），故移到 sleep 之後
+            ShareCardTipStorage.markAutoShown()
             withAnimation(.easeOut(duration: 0.25)) { showFeatureTip = true }
         }
         .sheet(item: $activeSheet) { which in

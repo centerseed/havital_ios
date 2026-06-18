@@ -27,8 +27,9 @@ enum ShareCardTipStorage {
 
     /// 說明卡實際顯示時呼叫一次（不論之後是按按鈕或滑掉關閉）。
     static func markAutoShown() {
-        UserDefaults.standard.set(autoShownCount() + 1, forKey: autoShownCountKey)
-        Logger.debug("[ShareCardTip] auto shown count -> \(autoShownCount())")
+        let next = autoShownCount() + 1
+        UserDefaults.standard.set(next, forKey: autoShownCountKey)
+        Logger.debug("[ShareCardTip] auto shown count -> \(next)")
     }
 
     /// 使用者按下「知道了，不再顯示」→ 永久關閉。
