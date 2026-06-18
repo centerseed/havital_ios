@@ -1694,6 +1694,11 @@
 "workout.share.card.edit_title" = "Edit Title";
 "workout.share.card.add_photo" = "Add Photo";
 "workout.share.card.change_photo" = "Change Photo";
+"workout.share.tip.title" = "Your share card can do this 👋";
+"workout.share.tip.feature_title" = "Tap the title to edit the text";
+"workout.share.tip.feature_photo" = "Tap the photo to change the background";
+"workout.share.tip.feature_drag" = "Drag the photo to reframe it";
+"workout.share.tip.dismiss" = "Got it — don't show again";
 "workout.reflection.title" = "Workout Reflection";
 "workout.reflection.saveError" = "Save failed, please try again";
 "workout.rpe.prompt" = "How did it feel today?";

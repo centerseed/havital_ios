@@ -1693,6 +1693,11 @@
 "workout.share.card.edit_title" = "タイトルを編集";
 "workout.share.card.add_photo" = "写真を追加";
 "workout.share.card.change_photo" = "写真を変更";
+"workout.share.tip.title" = "シェアカードでできること 👋";
+"workout.share.tip.feature_title" = "タイトルをタップして編集できます";
+"workout.share.tip.feature_photo" = "写真をタップして背景を変更できます";
+"workout.share.tip.feature_drag" = "写真をドラッグして位置を調整できます";
+"workout.share.tip.dismiss" = "了解しました（次回から非表示）";
 "workout.reflection.title" = "トレーニング振り返り";
 "workout.reflection.saveError" = "保存に失敗しました。再試行してください";
 "workout.rpe.prompt" = "今日の感覚は？";

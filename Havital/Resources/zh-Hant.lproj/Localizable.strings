@@ -1767,6 +1767,11 @@
 "workout.share.card.edit_title" = "編輯標題";
 "workout.share.card.add_photo" = "加入照片";
 "workout.share.card.change_photo" = "換照片";
+"workout.share.tip.title" = "分享卡片有這些功能 👋";
+"workout.share.tip.feature_title" = "點標題就能改文字";
+"workout.share.tip.feature_photo" = "點照片可更換背景圖";
+"workout.share.tip.feature_drag" = "拖曳照片可調整構圖位置";
+"workout.share.tip.dismiss" = "知道了，不再顯示";
 "workout.reflection.title" = "訓練回顧";
 "workout.reflection.saveError" = "儲存失敗，請重試";
 "workout.rpe.prompt" = "今天感覺如何？";
