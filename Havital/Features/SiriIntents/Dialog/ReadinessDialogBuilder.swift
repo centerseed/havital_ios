@@ -12,9 +12,9 @@ enum ReadinessDialogBuilder {
         // TODO(i18n): localize before non-zh-TW rollout
         switch (r.overallScore, r.overallStatusText) {
         case let (score?, statusText?):
-            return "你今天的訓練準備度是 \(Int(score)) 分，\(statusText)。"
+            return "你今天的訓練準備度是 \(Int(score.rounded())) 分，\(statusText)。"
         case let (score?, nil):
-            return "你今天的訓練準備度是 \(Int(score)) 分。"
+            return "你今天的訓練準備度是 \(Int(score.rounded())) 分。"
         case let (nil, statusText?):
             return "你今天的訓練準備度資料尚未取得，\(statusText)。"
         case (nil, nil):

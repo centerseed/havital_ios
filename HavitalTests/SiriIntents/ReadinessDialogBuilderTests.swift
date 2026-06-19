@@ -27,6 +27,11 @@ final class ReadinessDialogBuilderTests: XCTestCase {
         let r = TrainingReadinessResponse.fixture(overallStatusText: nil, overallScore: nil)
         XCTAssertEqual(ReadinessDialogBuilder.build(from: r), "你今天的訓練準備度資料尚未取得。")
     }
+
+    func test_fractionalScore_rounds() {
+        let r = TrainingReadinessResponse.fixture(overallStatusText: "狀態良好", overallScore: 84.9)
+        XCTAssertEqual(ReadinessDialogBuilder.build(from: r), "你今天的訓練準備度是 85 分，狀態良好。")
+    }
 }
 
 // MARK: - Fixture
