@@ -16,7 +16,7 @@ enum NextRaceDialogBuilder {
             return "你目前沒有設定比賽目標。"
         }
 
-        let tz = TimeZone(identifier: target.timezone) ?? TimeZone(identifier: "Asia/Taipei")!
+        let tz = TimeZone(identifier: target.timezone) ?? .current
         var cal = Calendar(identifier: .gregorian)
         cal.timeZone = tz
 
