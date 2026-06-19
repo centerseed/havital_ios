@@ -5,27 +5,29 @@ struct WeeklyMileageIntent: AppIntent {
     static var description = IntentDescription("念出本週累積跑量")
     static var openAppWhenRun: Bool = false
 
-    /// Running activity types recognised by the backend.
-    /// Mirrors the trimmable-activity-types set in WorkoutV2Models + the canonical
-    /// "running" value used in AggregateWorkoutMetricsUseCase for run-distance sums.
-    private static let runningActivityTypes: Set<String> = [
-        "running",
-        "indoor_running",
-        "street_running",
-        "track_running",
-        "trail_running",
-        "treadmill_running",
-    ]
-
     @MainActor
     func perform() async throws -> some IntentResult & ProvidesDialog {
         AppIntentRuntime.ensureBootstrapped()
         let repo: WorkoutRepository = DependencyContainer.shared.resolve()
-        let cal = Calendar.current
         let now = Date()
-        let start = cal.dateInterval(of: .weekOfYear, for: now)?.start ?? now
+
+        // Use the app's Monday-start week boundary (WeekDateService.currentCalendarMonday()).
+        // Calendar.current with .weekOfYear gives Sunday-first on default locale — do NOT use it.
+        let start = WeekDateService.currentCalendarMonday() ?? now
+
         let all = await repo.getWorkoutsInDateRangeAsync(startDate: start, endDate: now)
-        let running = all.filter { Self.runningActivityTypes.contains($0.activityType.lowercased()) }
+
+        // Filter to "running" only — strict equality matching
+        // AggregateWorkoutMetricsUseCase.calculateTotalDistance() in
+        // Havital/Features/TrainingPlan/Domain/UseCases/AggregateWorkoutMetricsUseCase.swift:61.
+        // The spoken sentence uses 跑 ("ran"), so running-only is the correct semantic.
+        // NOTE: The WeekOverviewCardV2 hero card uses WeekMetricsCalculator which sums ALL
+        // activity types (no running filter) as total-distance-toward-target — that number
+        // differs from this one by design: the card tracks training load, Siri answers the
+        // question "how far did I RUN this week." A product decision is needed if the user
+        // wants Siri to match the card's total instead; see DONE_WITH_CONCERNS in task notes.
+        let running = all.filter { $0.activityType == "running" }
+
         return .result(dialog: IntentDialog(stringLiteral: WeeklyMileageDialogBuilder.build(from: running)))
     }
 }
