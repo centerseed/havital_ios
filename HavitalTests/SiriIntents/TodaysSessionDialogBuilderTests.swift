@@ -13,6 +13,11 @@ final class TodaysSessionDialogBuilderTests: XCTestCase {
         )
     }
 
+    func test_emptyActionLine_speaksRest() {
+        let card = DailyStateCard.fixture(actionLine: "")
+        XCTAssertEqual(TodaysSessionDialogBuilder.build(from: card), "今天是休息日，好好恢復。")
+    }
+
     // MARK: - Training day
 
     func test_actionLine_speaksSession() {
