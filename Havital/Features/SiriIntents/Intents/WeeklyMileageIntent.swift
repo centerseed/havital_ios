@@ -15,11 +15,15 @@ struct WeeklyMileageIntent: AppIntent {
         let router: TrainingVersionRouting = DependencyContainer.shared.resolve()
         let isV2 = await router.isV2User()
 
-        // 2. Fetch this week's workouts via Monday-start boundary (same as app UI).
+        // 2. Fetch ALL cached workouts — mirrors WeeklyPlanLoader.loadWorkoutsForCurrentWeek(),
+        //    which calls getAllWorkoutsAsync() and lets WeekMetricsCalculator filter by week
+        //    boundary.  Pre-filtering to [monday, now] was a subset that excluded future-dated
+        //    entries within the same week; using the full set ensures the number matches the
+        //    on-screen V2 card BY CONSTRUCTION.
         let repo: WorkoutRepository = DependencyContainer.shared.resolve()
         let now = Date()
         let monday = WeekDateService.currentCalendarMonday() ?? now
-        let allWeekWorkouts = await repo.getWorkoutsInDateRangeAsync(startDate: monday, endDate: now)
+        let allWorkouts = await repo.getAllWorkoutsAsync()
 
         // 3. Route by training version so Siri's number matches the on-screen number
         //    by construction — same computation path as the corresponding UI card.
@@ -41,10 +45,13 @@ struct WeeklyMileageIntent: AppIntent {
             let weekInfo = WeekDateInfo(startDate: monday, endDate: weekEnd, daysMap: daysMap)
 
             // Reuse WeekMetricsCalculator — same function the WeekOverviewCardV2 hero calls.
-            let weekMetrics = WeekMetricsCalculator.metrics(for: allWeekWorkouts, weekInfo: weekInfo)
+            // Pass the full workout set; the calculator applies its own week-boundary filter
+            // (startDate…endDate), exactly as WeeklyPlanLoader does.
+            let weekMetrics = WeekMetricsCalculator.metrics(for: allWorkouts, weekInfo: weekInfo)
 
-            // Count workouts within the week (matching the calculator's date filter).
-            let weekCount = allWeekWorkouts.filter {
+            // Count uses the same [startDate, endDate] window the calculator uses, so count
+            // and distance are always computed over the identical set of workouts.
+            let weekCount = allWorkouts.filter {
                 $0.startDate >= weekInfo.startDate && $0.startDate <= weekInfo.endDate
             }.count
 
@@ -54,6 +61,9 @@ struct WeeklyMileageIntent: AppIntent {
         } else {
             // V1 on-screen card uses AggregateWorkoutMetricsUseCase.calculateTotalDistance(),
             // which filters strictly to activityType == "running".
+            // V1 still uses a pre-filtered date range (Monday → now) for correctness with V1's
+            // cumulative-to-date semantics; only V2 switches to getAllWorkoutsAsync + calculator.
+            let allWeekWorkouts = await repo.getWorkoutsInDateRangeAsync(startDate: monday, endDate: now)
             let runningWorkouts = allWeekWorkouts.filter { $0.activityType == "running" }
             dialog = WeeklyMileageDialogBuilder.build(from: runningWorkouts)
         }
