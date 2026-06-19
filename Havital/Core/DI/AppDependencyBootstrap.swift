@@ -76,6 +76,9 @@ struct AppDependencyBootstrap {
 
         // 13. DailyState 模組 (獨立模組，今日狀態卡片，打 /v2/state/today)
         registerDailyStateModule()
+
+        // 14. Readiness 模組 (獨立模組，訓練準備度，供 Siri App Intent 使用)
+        registerReadinessModule()
     }
 
     // MARK: - Individual Module Registration
@@ -262,6 +265,19 @@ struct AppDependencyBootstrap {
 
         DependencyContainer.shared.registerDailyStateModule()
         Logger.debug("[Bootstrap] ✅ DailyState module registered")
+    }
+
+    /// 註冊 Readiness 模組
+    /// 包含: ReadinessRepository (wraps TrainingReadinessService)
+    /// 供 Siri App Intents 使用
+    private static func registerReadinessModule() {
+        guard !DependencyContainer.shared.isRegistered(ReadinessRepository.self) else {
+            Logger.debug("[Bootstrap] Readiness module already registered, skipping")
+            return
+        }
+
+        DependencyContainer.shared.registerReadinessModule()
+        Logger.debug("[Bootstrap] ✅ Readiness module registered")
     }
 
     // MARK: - Testing Support
