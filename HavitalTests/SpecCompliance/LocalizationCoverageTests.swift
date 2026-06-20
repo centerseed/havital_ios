@@ -469,7 +469,12 @@ final class LocalizationCoverageTests: XCTestCase {
             regex.enumerateMatches(in: content, range: range) { match, _, _ in
                 guard let match,
                       let keyRange = Range(match.range(at: 1), in: content) else { return }
-                keys.insert(String(content[keyRange]))
+                let key = String(content[keyRange])
+                // Skip interpolated keys (e.g. "benchmark.weekday.\(wd)"): they resolve to
+                // dynamic values at runtime and cannot be statically matched against a single
+                // strings entry. The concrete variants are covered by their own static keys.
+                if key.contains("\\(") { return }
+                keys.insert(key)
             }
         }
 

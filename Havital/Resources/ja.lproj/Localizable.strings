@@ -309,6 +309,7 @@
 "training.daily_training" = "日々のトレーニング";
 "training.design_reason" = "今週のトレーニングプラン設計理由";
 "training.weekly_volume" = "週間走行距離";
+"training.mileage_progression" = "走行距離の漸進";
 "training.training_review" = "トレーニング振り返り";
 "training.generate_plan" = "スケジュール作成";
 "training.no_plan" = "トレーニングプランなし";

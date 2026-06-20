@@ -45,7 +45,7 @@ class TrainingReadinessStorage {
     /// Load training readiness data from local storage
     func loadReadinessData() -> TrainingReadinessResponse? {
         guard let data = defaults.data(forKey: readinessDataKey) else {
-            print("[TrainingReadinessStorage] ⚠️ 無緩存數據")
+            print("[TrainingReadinessStorage] ⚠️ no cached readiness data")
             return nil
         }
 

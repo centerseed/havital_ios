@@ -309,6 +309,7 @@
 "training.daily_training" = "每日訓練";
 "training.design_reason" = "設計原因";
 "training.weekly_volume" = "週跑量";
+"training.mileage_progression" = "跑量漸進";
 "training.training_review" = "訓練回顧";
 "training.generate_plan" = "產生課表";
 "training.no_plan" = "尚無訓練計畫";
