@@ -519,7 +519,8 @@ struct PaywallView: View {
             let trialEndDate = Calendar.current.date(byAdding: .day, value: trialDays, to: Date()) ?? Date()
             let dateString = DateFormatter.localizedString(from: trialEndDate, dateStyle: .long, timeStyle: .none)
             let format = NSLocalizedString("paywall.disclosure.trial.with_links_format", comment: "")
-            fullText = String(format: format, dateString, termsText, privacyText)
+            // Day count is data-driven (yearlyFreeTrialDays), not a hardcoded 30 (compliance).
+            fullText = String(format: format, trialDays, dateString, termsText, privacyText)
         } else {
             let format = NSLocalizedString("paywall.disclosure.standard.with_links_format", comment: "")
             fullText = String(format: format, termsText, privacyText)
@@ -626,8 +627,11 @@ private struct YearlyCard: View {
     /// CTA copy derived from the package's actual offer so it never lies:
     /// free-trial → 「開始試用」, otherwise (discount / none) → 「立即訂閱」.
     private var actionTitle: String {
-        if case .freeTrial = displayPackage.offerDisplay {
-            return NSLocalizedString("paywall.premium.cta.start_trial", comment: "")
+        if case .freeTrial(let days) = displayPackage.offerDisplay {
+            return String(
+                format: NSLocalizedString("paywall.premium.cta.start_trial", comment: ""),
+                days
+            )
         }
         return NSLocalizedString("paywall.premium.cta.subscribe_now", comment: "")
     }
@@ -754,8 +758,11 @@ private struct MonthlyCard: View {
     /// CTA copy derived from the package's actual offer so it never lies:
     /// free-trial → 「開始試用」, otherwise (discount / none) → 「立即訂閱」.
     private var actionTitle: String {
-        if case .freeTrial = displayPackage.offerDisplay {
-            return NSLocalizedString("paywall.premium.cta.start_trial", comment: "")
+        if case .freeTrial(let days) = displayPackage.offerDisplay {
+            return String(
+                format: NSLocalizedString("paywall.premium.cta.start_trial", comment: ""),
+                days
+            )
         }
         return NSLocalizedString("paywall.premium.cta.subscribe_now", comment: "")
     }

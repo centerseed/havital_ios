@@ -32,9 +32,9 @@ struct InlineUpsellCardLayout: View {
                 .fixedSize(horizontal: false, vertical: true)
                 .lineSpacing(2)
 
-            // Primary CTA: Start 30-day free trial
+            // Primary CTA: neutral unlock copy (no free-trial promise — compliance)
             Button(action: onStartTrial) {
-                Text(NSLocalizedString("paywall.inline.cta.start_trial", comment: ""))
+                Text(NSLocalizedString("paywall.inline.cta.unlock", comment: ""))
                     .font(AppFont.headline())
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)

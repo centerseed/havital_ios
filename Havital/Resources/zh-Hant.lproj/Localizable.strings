@@ -2793,7 +2793,7 @@
 "paywall.premium.plan.no_trial_format" = "立即扣款，無試用期";
 
 // CTA buttons
-"paywall.premium.cta.start_trial" = "免費試用 30 天";
+"paywall.premium.cta.start_trial" = "免費試用 %d 天";
 "paywall.premium.cta.subscribe_now" = "立即訂閱";
 "paywall.premium.cta.resubscribe" = "重新訂閱";
 "paywall.premium.cta.change_plan" = "變更為此方案";
@@ -2809,7 +2809,7 @@
 // Disclosure 連結文字與格式（AC-PAYWALL-32/33/34）
 "paywall.disclosure.privacy_link_text" = "隱私政策";
 "paywall.disclosure.terms_link_text" = "服務條款";
-"paywall.disclosure.trial.with_links_format" = "30 天免費試用至 %1$@，到期後將自動扣款。請參閱 %2$@ 與 %3$@。";
+"paywall.disclosure.trial.with_links_format" = "%1$d 天免費試用至 %2$@，到期後將自動扣款。請參閱 %3$@ 與 %4$@。";
 "paywall.disclosure.standard.with_links_format" = "月訂閱將立即扣款並自動續訂。請參閱 %1$@ 與 %2$@。";
 
 // Inline upsell cards (x3)
@@ -2820,6 +2820,7 @@
 "paywall.inline.target_race.title" = "設定目標賽事是 Premium 功能";
 "paywall.inline.target_race.body" = "訂閱後可建立目標賽事與週訓練目標，由 AI 為你週期化規劃";
 "paywall.inline.cta.start_trial" = "開始 30 天免費試用";
+"paywall.inline.cta.unlock" = "解鎖完整功能";
 "paywall.inline.cta.restore" = "已訂閱？恢復購買";
 
 "profile.subscription.redeem_offer_code" = "兌換優惠碼";
@@ -3880,6 +3881,7 @@
 "paywall.conversion.locked_preview_body" = "目標 %@ %@%@";
 "paywall.conversion.recovery_suffix" = " · 恢復週";
 "paywall.conversion.cta_trial" = "繼續訓練・30 天免費試用";
+"paywall.conversion.cta_unlock" = "繼續訓練・解鎖完整功能";
 "paywall.conversion.cta_generate" = "產生本週課表";
 "paywall.conversion.cta_restore" = "已訂閱？恢復購買";
 "paywall.conversion.daily_value_hint" = "訂閱後每天有教練幫你解讀狀態";

@@ -578,8 +578,10 @@ final class PaywallACTests: XCTestCase {
         XCTAssertEqual(privacyURL?.scheme, "https", "Privacy Policy URL must use HTTPS scheme")
 
         // Verify disclosure link text appears in formatted string
+        // Trial format now takes a data-driven day count (%1$d) before date/links (compliance fix).
         let formattedTrialDisclosure = String(
             format: trialFormat,
+            30,
             "May 27, 2026",
             NSLocalizedString("paywall.disclosure.terms_link_text", bundle: bundle, comment: ""),
             privacyLinkText
@@ -616,6 +618,7 @@ final class PaywallACTests: XCTestCase {
         let privacyLinkText = NSLocalizedString("paywall.disclosure.privacy_link_text", bundle: bundle, comment: "")
         let formattedTrialDisclosure = String(
             format: trialFormat,
+            30,
             "May 27, 2026",
             termsLinkText,
             privacyLinkText
@@ -673,7 +676,7 @@ final class PaywallACTests: XCTestCase {
 
         let termsText = NSLocalizedString("paywall.disclosure.terms_link_text", bundle: bundle, comment: "")
         let privacyText = NSLocalizedString("paywall.disclosure.privacy_link_text", bundle: bundle, comment: "")
-        let formattedDisclosure = String(format: trialFormat, dateString, termsText, privacyText)
+        let formattedDisclosure = String(format: trialFormat, representativeTrialDays, dateString, termsText, privacyText)
 
         // 4. The formatted disclosure must contain the date string
         XCTAssertTrue(formattedDisclosure.contains(dateString),
@@ -1033,6 +1036,117 @@ final class PaywallACTests: XCTestCase {
         XCTAssertNil(
             sut.pendingReminder,
             "expired dialog must NOT fire for true new user (subscribedAt = nil) — they never subscribed; 'expired' is wrong messaging"
+        )
+    }
+
+    // MARK: - Compliance: entry-card CTAs must NOT promise a free trial (iOS 1.4.4)
+    //
+    // App Store §3.1.2 / consumer-law risk: prod subscription products have NO unconditional
+    // free trial (only an early-bird offer surfaced data-driven on the main PaywallView).
+    // Therefore the ENTRY surfaces (inline upsell card + no-plan conversion view) must use
+    // NEUTRAL "unlock full access" copy that makes no trial promise.
+
+    /// Locate the iOS project root by walking up from this test file.
+    private func complianceProjectRoot() throws -> URL {
+        var current = URL(fileURLWithPath: #filePath)
+        while current.path != "/" {
+            let candidate = current.deletingLastPathComponent()
+            let marker = candidate.appendingPathComponent("Havital/Resources/en.lproj/Localizable.strings")
+            if FileManager.default.fileExists(atPath: marker.path) {
+                return candidate
+            }
+            current = candidate
+        }
+        throw XCTSkip("Unable to locate project root from #filePath")
+    }
+
+    /// The neutral unlock keys must exist in all three locales and contain NO free-trial language.
+    func test_compliance_entry_card_cta_keys_make_no_trial_claim() {
+        let bundle = Bundle(for: PaywallViewModel.self)
+        // Forbidden substrings across en / zh-Hant / ja that imply a free trial.
+        let forbidden = ["trial", "試用", "免費", "無料体験", "無料トライアル"]
+
+        let neutralKeys = ["paywall.inline.cta.unlock", "paywall.conversion.cta_unlock"]
+        for key in neutralKeys {
+            let value = NSLocalizedString(key, bundle: bundle, comment: "")
+            XCTAssertNotEqual(value, key, "i18n key '\(key)' must resolve to a localized value")
+            XCTAssertFalse(value.isEmpty, "i18n key '\(key)' must not be empty")
+            let lower = value.lowercased()
+            for word in forbidden {
+                XCTAssertFalse(
+                    lower.contains(word.lowercased()),
+                    "Entry-card CTA '\(key)' must NOT promise a free trial — found '\(word)' in '\(value)'"
+                )
+            }
+        }
+    }
+
+    /// The neutral unlock keys must contain no trial language in any of the three .strings files
+    /// (NSLocalizedString only checks the runtime locale; this asserts all three on disk).
+    func test_compliance_entry_card_cta_no_trial_in_all_locales() throws {
+        let root = try complianceProjectRoot()
+        let forbidden = ["trial", "試用", "免費", "無料体験", "無料トライアル"]
+        let neutralKeys = ["paywall.inline.cta.unlock", "paywall.conversion.cta_unlock"]
+        for locale in ["en", "zh-Hant", "ja"] {
+            let url = root.appendingPathComponent("Havital/Resources/\(locale).lproj/Localizable.strings")
+            let contents = try String(contentsOf: url, encoding: .utf8)
+            for key in neutralKeys {
+                guard let line = contents
+                    .split(separator: "\n")
+                    .first(where: { $0.contains("\"\(key)\"") }) else {
+                    XCTFail("Key '\(key)' missing from \(locale).lproj/Localizable.strings")
+                    continue
+                }
+                for word in forbidden {
+                    XCTAssertFalse(
+                        line.lowercased().contains(word.lowercased()),
+                        "Entry-card CTA '\(key)' in \(locale) must NOT promise a free trial — found '\(word)' in: \(line)"
+                    )
+                }
+            }
+        }
+    }
+
+    /// Source assertion: InlineUpsellCardLayout must reference the neutral unlock key (not start_trial)
+    /// for its primary CTA, while keeping the accessibilityIdentifier unchanged.
+    func test_compliance_inline_upsell_uses_unlock_key() throws {
+        let root = try complianceProjectRoot()
+        let source = try String(
+            contentsOf: root.appendingPathComponent(
+                "Havital/Features/Subscription/Presentation/Components/InlineUpsellCardLayout.swift"
+            ),
+            encoding: .utf8
+        )
+        XCTAssertTrue(
+            source.contains("paywall.inline.cta.unlock"),
+            "InlineUpsellCardLayout primary CTA must use the neutral 'paywall.inline.cta.unlock' key"
+        )
+        XCTAssertFalse(
+            source.contains("NSLocalizedString(\"paywall.inline.cta.start_trial\""),
+            "InlineUpsellCardLayout must NOT use 'paywall.inline.cta.start_trial' (free-trial claim)"
+        )
+        XCTAssertTrue(
+            source.contains("InlineUpsell_StartTrialButton"),
+            "accessibilityIdentifier 'InlineUpsell_StartTrialButton' must remain unchanged (tests rely on it)"
+        )
+    }
+
+    /// Source assertion: NoPlanPaywallConversionView's !isWeekOne branch must use the neutral unlock key.
+    func test_compliance_conversion_view_uses_unlock_key() throws {
+        let root = try complianceProjectRoot()
+        let source = try String(
+            contentsOf: root.appendingPathComponent(
+                "Havital/Features/TrainingPlanV2/Presentation/Views/Conversion/NoPlanPaywallConversionView.swift"
+            ),
+            encoding: .utf8
+        )
+        XCTAssertTrue(
+            source.contains("paywall.conversion.cta_unlock"),
+            "NoPlanPaywallConversionView must use the neutral 'paywall.conversion.cta_unlock' key for !isWeekOne"
+        )
+        XCTAssertFalse(
+            source.contains("paywall.conversion.cta_trial"),
+            "NoPlanPaywallConversionView must NOT use 'paywall.conversion.cta_trial' (free-trial claim)"
         )
     }
 }

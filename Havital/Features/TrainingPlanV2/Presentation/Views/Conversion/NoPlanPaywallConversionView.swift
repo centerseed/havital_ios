@@ -24,7 +24,7 @@ struct NoPlanPaywallConversionView: View {
 
             VStack(spacing: 8) {
                 Button(action: onPrimaryCTA) {
-                    Text(NSLocalizedString(isWeekOne ? "paywall.conversion.cta_generate" : "paywall.conversion.cta_trial", comment: ""))
+                    Text(NSLocalizedString(isWeekOne ? "paywall.conversion.cta_generate" : "paywall.conversion.cta_unlock", comment: ""))
                         .font(AppFont.headline())
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)

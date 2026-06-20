@@ -2768,7 +2768,7 @@
 "paywall.premium.plan.no_trial_format" = "Charged immediately, no trial";
 
 // CTA buttons
-"paywall.premium.cta.start_trial" = "Try free 30 days";
+"paywall.premium.cta.start_trial" = "Try free %d days";
 "paywall.premium.cta.subscribe_now" = "Subscribe now";
 "paywall.premium.cta.resubscribe" = "Resubscribe";
 "paywall.premium.cta.change_plan" = "Switch to this plan";
@@ -2784,7 +2784,7 @@
 // Disclosure link texts and format strings (AC-PAYWALL-32/33/34)
 "paywall.disclosure.privacy_link_text" = "Privacy Policy";
 "paywall.disclosure.terms_link_text" = "Terms of Use";
-"paywall.disclosure.trial.with_links_format" = "30-day free trial ends %1$@, then auto-renews. See %2$@ and %3$@.";
+"paywall.disclosure.trial.with_links_format" = "%1$d-day free trial ends %2$@, then auto-renews. See %3$@ and %4$@.";
 "paywall.disclosure.standard.with_links_format" = "Monthly subscription billed immediately and auto-renews. See %1$@ and %2$@.";
 
 // Inline upsell cards (x3)
@@ -2795,6 +2795,7 @@
 "paywall.inline.target_race.title" = "Setting a target race is a Premium feature";
 "paywall.inline.target_race.body" = "Subscribe to set target races and weekly goals, with AI race-periodized planning";
 "paywall.inline.cta.start_trial" = "Start 30-day free trial";
+"paywall.inline.cta.unlock" = "Unlock full access";
 "paywall.inline.cta.restore" = "Already subscribed? Restore";
 
 "profile.subscription.redeem_offer_code" = "Redeem Offer Code";
@@ -3841,6 +3842,7 @@
 "paywall.conversion.locked_preview_body" = "Target %@ %@%@";
 "paywall.conversion.recovery_suffix" = " · recovery week";
 "paywall.conversion.cta_trial" = "Keep training · 30-day free trial";
+"paywall.conversion.cta_unlock" = "Keep training · Unlock full access";
 "paywall.conversion.cta_generate" = "Generate this week's plan";
 "paywall.conversion.cta_restore" = "Already subscribed? Restore";
 "paywall.conversion.daily_value_hint" = "Subscribe for a daily coach read on your state";

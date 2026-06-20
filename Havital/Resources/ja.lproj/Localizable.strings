@@ -2765,7 +2765,7 @@
 "paywall.premium.plan.no_trial_format" = "即時課金、トライアルなし";
 
 // CTA buttons
-"paywall.premium.cta.start_trial" = "30日間無料体験";
+"paywall.premium.cta.start_trial" = "%d日間無料体験";
 "paywall.premium.cta.subscribe_now" = "今すぐ登録";
 "paywall.premium.cta.resubscribe" = "再登録";
 "paywall.premium.cta.change_plan" = "このプランに変更";
@@ -2781,7 +2781,7 @@
 // Disclosure link texts and format strings (AC-PAYWALL-32/33/34)
 "paywall.disclosure.privacy_link_text" = "プライバシーポリシー";
 "paywall.disclosure.terms_link_text" = "利用規約";
-"paywall.disclosure.trial.with_links_format" = "30日間無料トライアルは %1$@ に終了、その後自動更新されます。%2$@ および %3$@ をご覧ください。";
+"paywall.disclosure.trial.with_links_format" = "%1$d日間無料トライアルは %2$@ に終了、その後自動更新されます。%3$@ および %4$@ をご覧ください。";
 "paywall.disclosure.standard.with_links_format" = "月額サブスクリプションはすぐに課金され、自動更新されます。%1$@ および %2$@ をご覧ください。";
 
 // Inline upsell cards (x3)
@@ -2792,6 +2792,7 @@
 "paywall.inline.target_race.title" = "目標レース設定はPremium機能";
 "paywall.inline.target_race.body" = "サブスク登録で目標レースと週目標を設定、AIが周期化プランを作成";
 "paywall.inline.cta.start_trial" = "30日間の無料体験を開始";
+"paywall.inline.cta.unlock" = "すべての機能を解除";
 "paywall.inline.cta.restore" = "登録済み？復元する";
 
 "profile.subscription.redeem_offer_code" = "オファーコードを利用";
@@ -3838,6 +3839,7 @@
 "paywall.conversion.locked_preview_body" = "目標 %@ %@%@";
 "paywall.conversion.recovery_suffix" = " · 回復週";
 "paywall.conversion.cta_trial" = "トレーニングを続ける・30日間無料体験";
+"paywall.conversion.cta_unlock" = "トレーニングを続ける・すべての機能を解除";
 "paywall.conversion.cta_generate" = "今週のプランを作成";
 "paywall.conversion.cta_restore" = "登録済み？復元する";
 "paywall.conversion.daily_value_hint" = "登録すると毎日コーチが状態を解説";
