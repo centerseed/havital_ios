@@ -356,6 +356,16 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
         return status.trialDaysRemaining
     }
 
+    /// 目前要顯示的年費方案（default 或促銷 effective offering 的年費）是否帶 freeTrial offer。
+    /// 非 nil = 有試用，值為試用天數；nil = 無試用（揭露/timeline 不顯示試用）。
+    /// 注意：這是「產品是否提供試用」(pre-purchase)，與 `isInAppleIntroTrial`（使用者是否正在試用）不同。
+    var yearlyFreeTrialDays: Int? {
+        let pkgs = shouldShowEarlyBirdSection ? displayPackages : defaultPackages
+        guard let yearly = pkgs.first(where: { $0.package.period == .yearly }) else { return nil }
+        if case .freeTrial(let days) = yearly.offerDisplay { return days }
+        return nil
+    }
+
     /// Whether the user is currently in an Apple intro offer trial.
     /// Used to decide whether to show Trial Banner (true) or Trial Timeline (false).
     /// AC-PAYWALL-09, AC-PAYWALL-18, AC-PAYWALL-19.

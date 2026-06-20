@@ -898,6 +898,46 @@ final class PaywallViewModelTests: XCTestCase {
         XCTAssertFalse(struck.isEmpty)
     }
 
+    func test_displayPackages_populatesOfferDisplay() async {
+        // 確保 displayPackages 的 map site 也有設 offerDisplay（與 defaultPackages 不分歧）。
+        // eb1 package 無 officialOffer → offerDisplay == .none，足以證明欄位有被填。
+        repository.offeringsToReturn = MockSubscriptionRepository.makeEarlyBirdAndDefaultOfferings()
+        await sut.loadOfferings()
+        let yearly = sut.displayPackages.first { $0.package.period == .yearly }
+        XCTAssertNotNil(yearly, "displayPackages should be non-empty")
+        XCTAssertEqual(yearly?.offerDisplay, PaywallCardOfferDisplay.none)
+    }
+
+    // MARK: - T-0003: yearlyFreeTrialDays
+
+    func test_yearlyFreeTrialDays_present_whenYearlyHasFreeTrial() async {
+        repository.offeringsToReturn = MockSubscriptionRepository.makeDefaultWithYearlyFreeTrial()
+        await sut.loadOfferings()
+        XCTAssertEqual(sut.yearlyFreeTrialDays, 30)
+    }
+
+    func test_yearlyFreeTrialDays_nil_whenNoTrial() async {
+        repository.offeringsToReturn = MockSubscriptionRepository.makeDefaultOnlyOfferings()
+        await sut.loadOfferings()
+        XCTAssertNil(sut.yearlyFreeTrialDays)
+    }
+
+    func test_yearlyFreeTrialDays_nil_whenYearlyHasDiscountNotTrial() async {
+        repository.offeringsToReturn = MockSubscriptionRepository.makeDefaultWithYearlyDiscount()
+        await sut.loadOfferings()
+        XCTAssertNil(sut.yearlyFreeTrialDays)
+    }
+
+    func test_yearlyFreeTrialDays_nil_whenEarlyBirdSectionActive() async {
+        // 早鳥分支：走 displayPackages。eb1 年費無 freeTrial offer → nil。鎖住分支契約。
+        repository.offeringsToReturn = MockSubscriptionRepository.makeEarlyBirdAndDefaultOfferings()
+        repository.isEarlyBirdOfferingResult = true
+        repository.currentOfferingIdentifierResult = "early_bird"
+        await sut.loadOfferings()
+        XCTAssertTrue(sut.shouldShowEarlyBirdSection, "precondition: early-bird section must be active")
+        XCTAssertNil(sut.yearlyFreeTrialDays)
+    }
+
     /// Done Criteria #6 (S03a P0): isEarlyBirdOffering is true when RC identifier is "Early bird"
     /// (capitalized first letter, space separator — exact match to RevenueCat dashboard value).
     func test_isEarlyBirdOffering_true_when_rc_identifier_is_capitalized_with_space() {
