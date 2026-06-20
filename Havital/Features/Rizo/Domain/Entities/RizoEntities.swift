@@ -34,6 +34,22 @@ struct RizoReply: Equatable {
     }
 }
 
+// MARK: - PlanChange diff (structured)
+
+/// 改課表單日 face（domain）。category=="run" 才有 runType/distanceKm。
+struct PlanChangeDayFace: Equatable {
+    let category: String
+    let runType: String?
+    let distanceKm: Double?
+}
+
+/// 改課表某一日的 from → to 變更。
+struct PlanChangeDiffDay: Equatable {
+    let dayIndex: Int
+    let from: PlanChangeDayFace?
+    let to: PlanChangeDayFace?
+}
+
 // MARK: - PendingPlanChange
 
 /// 待使用者確認的改課表提案。UI 渲染「接受 / 繼續討論」。
@@ -49,6 +65,9 @@ struct PendingPlanChange: Equatable {
 
     /// 是否需訂閱（免費用戶按「接受」會走付費牆）。
     let requiresSubscription: Bool
+
+    /// 結構化變更（在地化卡片用）；舊後端為 nil → fallback summary。
+    let diffDays: [PlanChangeDiffDay]?
 }
 
 // MARK: - PlanChangeConfirmResult

@@ -45,6 +45,34 @@ struct RizoChatResponseDTO: Codable {
     }
 }
 
+// MARK: - PlanChange diff (structured, for localization)
+
+/// 改課表單日的結構化 diff face（無損）。category=="run" 才有 runType/distanceKm。
+struct PlanChangeDayFaceDTO: Codable {
+    let category: String
+    let runType: String?
+    let distanceKm: Double?
+
+    enum CodingKeys: String, CodingKey {
+        case category
+        case runType = "run_type"
+        case distanceKm = "distance_km"
+    }
+}
+
+/// 改課表某一日的 from → to 結構化變更。
+struct PlanChangeDiffDayDTO: Codable {
+    let dayIndex: Int
+    let from: PlanChangeDayFaceDTO?
+    let to: PlanChangeDayFaceDTO?
+
+    enum CodingKeys: String, CodingKey {
+        case dayIndex = "day_index"
+        case from
+        case to
+    }
+}
+
 // MARK: - PendingPlanChangeDTO
 
 /// chat 回應內的待確認改課表提案；UI 據此渲染「接受 / 繼續討論」。
@@ -53,12 +81,14 @@ struct PendingPlanChangeDTO: Codable {
     let summary: String?
     let safetyLevel: String?
     let requiresSubscription: Bool
+    let diffDays: [PlanChangeDiffDayDTO]?
 
     enum CodingKeys: String, CodingKey {
         case proposalId = "proposal_id"
         case summary
         case safetyLevel = "safety_level"
         case requiresSubscription = "requires_subscription"
+        case diffDays = "diff_days"
     }
 }
 

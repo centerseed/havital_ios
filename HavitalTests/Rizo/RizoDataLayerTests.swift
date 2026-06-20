@@ -207,4 +207,46 @@ final class RizoDataLayerTests: XCTestCase {
         XCTAssertEqual(last.method, .GET)
         XCTAssertNil(last.body)
     }
+
+    // MARK: - #1 structured diff_days
+
+    func testPendingPlanChangeDecodesDiffDays() throws {
+        let json = """
+        {
+          "response": "建議減量",
+          "session_id": "s1",
+          "quota": {"allowed": true, "used": 1, "limit": null, "remaining": null, "resets_at": null, "reserved": false},
+          "safety": {"danger_class": "none", "canned": false},
+          "pending_plan_change": {
+            "proposal_id": "rpc_1",
+            "summary": "Day6: lsd 15km -> lsd 12km",
+            "safety_level": "none",
+            "requires_subscription": true,
+            "diff_days": [
+              {"day_index": 6,
+               "from": {"category": "run", "run_type": "lsd", "distance_km": 15.0},
+               "to": {"category": "run", "run_type": "lsd", "distance_km": 12.0}}
+            ]
+          }
+        }
+        """
+        let dto = try JSONDecoder().decode(RizoChatResponseDTO.self, from: Data(json.utf8))
+        let reply = RizoMapper.toReply(from: dto)
+        XCTAssertEqual(reply.pendingPlanChange?.diffDays?.count, 1)
+        XCTAssertEqual(reply.pendingPlanChange?.diffDays?.first?.dayIndex, 6)
+        XCTAssertEqual(reply.pendingPlanChange?.diffDays?.first?.to?.distanceKm, 12.0)
+        XCTAssertEqual(reply.pendingPlanChange?.diffDays?.first?.from?.runType, "lsd")
+    }
+
+    func testPendingPlanChangeWithoutDiffDaysIsNil() throws {
+        let json = """
+        {"response":"x","session_id":"s1",
+         "quota":{"allowed":true,"used":1,"limit":null,"remaining":null,"resets_at":null,"reserved":false},
+         "safety":{"danger_class":"none","canned":false},
+         "pending_plan_change":{"proposal_id":"rpc_2","summary":"x","safety_level":"none","requires_subscription":true}}
+        """
+        let dto = try JSONDecoder().decode(RizoChatResponseDTO.self, from: Data(json.utf8))
+        let reply = RizoMapper.toReply(from: dto)
+        XCTAssertNil(reply.pendingPlanChange?.diffDays)
+    }
 }

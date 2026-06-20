@@ -3624,6 +3624,15 @@
 "rizo.plan_change.discuss" = "相談を続ける";
 "rizo.plan_change.applied" = "適用しました。プランを更新しました";
 "rizo.plan_change.confirm_failed" = "適用できませんでした。後でもう一度お試しください";
+"rizo.plan_change.user_confirmed" = "プラン更新を確認しました";
+"rizo.plan_change.distance_unit" = "km";
+"rizo.plan_change.weekday.1" = "月曜日";
+"rizo.plan_change.weekday.2" = "火曜日";
+"rizo.plan_change.weekday.3" = "水曜日";
+"rizo.plan_change.weekday.4" = "木曜日";
+"rizo.plan_change.weekday.5" = "金曜日";
+"rizo.plan_change.weekday.6" = "土曜日";
+"rizo.plan_change.weekday.7" = "日曜日";
 
 /* 今日の状態 詳細ページ：Rizo チャットセクションのタイトル */
 "daily_state.chat_section_title" = "コーチ Rizo と話す";

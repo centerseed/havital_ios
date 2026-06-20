@@ -100,6 +100,8 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
                 return
             }
             pendingPlanChange = nil
+            // #3:接受成功才 append 用戶側確認泡泡（失敗路徑絕不出現，避免對話說謊）。
+            messages.append(Message(role: .user, text: Self.userConfirmedText))
             messages.append(Message(role: .coach, text: Self.appliedText))
             // 課表已變 → 通知課表頁刷新（ViewModel 可發布事件；Repository 不行）。
             CacheEventBus.shared.publish(.dataChanged(.trainingPlanV2))
@@ -130,6 +132,8 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
         "rizo.plan_change.applied", comment: "已為你套用，課表更新囉")
     private static let confirmFailedText = NSLocalizedString(
         "rizo.plan_change.confirm_failed", comment: "套用失敗，請稍後再試")
+    private static let userConfirmedText = NSLocalizedString(
+        "rizo.plan_change.user_confirmed", comment: "已確認課表更新")
 
     // MARK: - Private
 
