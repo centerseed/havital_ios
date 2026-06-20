@@ -310,6 +310,7 @@
 "training.design_reason" = "This Week's Training Plan Design Reason";
 "training.weekly_volume" = "Weekly Volume";
 "training.mileage_progression" = "Mileage Progression";
+"training.plan_default_name" = "Training Plan";
 "training.training_review" = "Training Review";
 "training.generate_plan" = "Generate Plan";
 "training.no_plan" = "No Training Plan";

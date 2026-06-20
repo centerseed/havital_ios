@@ -19,7 +19,7 @@ final class WeeklyPlanLoader {
     var weeklyPlan: WeeklyPlanV2?
     var currentWeek: Int = 1
     var selectedWeek: Int = 1
-    var trainingPlanName: String = "訓練計畫"
+    var trainingPlanName: String = NSLocalizedString("training.plan_default_name", comment: "Default training plan name")
     var weeklyPreview: WeeklyPreviewV2?
     var workoutsByDay: [Int: [WorkoutV2]] = [:]
     var currentWeekDistance: Double = 0.0
@@ -139,7 +139,7 @@ final class WeeklyPlanLoader {
 
         guard let cachedOverview = repository.getCachedOverview() else { return }
         planOverview = cachedOverview
-        trainingPlanName = cachedOverview.targetName ?? "訓練計畫"
+        trainingPlanName = cachedOverview.targetName ?? NSLocalizedString("training.plan_default_name", comment: "Default training plan name")
 
         // Plan 實體優先：有當週 cached plan 就直接顯示課表，不看 nextAction。
         // nextAction 是時間敏感 flag；API 回來後 handleNextAction 會重新判定正確狀態。
@@ -227,7 +227,7 @@ final class WeeklyPlanLoader {
         do {
             let overview = try await repository.getOverview()
             self.planOverview = overview
-            self.trainingPlanName = overview.targetName ?? "訓練計畫"
+            self.trainingPlanName = overview.targetName ?? NSLocalizedString("training.plan_default_name", comment: "Default training plan name")
 
             // Side effects: 週預覽 + 背景刷新
             await loadWeeklyPreview(overviewId: overview.id)
@@ -356,7 +356,7 @@ final class WeeklyPlanLoader {
                 return
             }
             planOverview = freshOverview
-            trainingPlanName = freshOverview.targetName ?? "訓練計畫"
+            trainingPlanName = freshOverview.targetName ?? NSLocalizedString("training.plan_default_name", comment: "Default training plan name")
         } catch {
             Logger.error("[WeeklyPlanLoader] ⚠️ Background refresh failed (ignored): \(error.localizedDescription)")
         }

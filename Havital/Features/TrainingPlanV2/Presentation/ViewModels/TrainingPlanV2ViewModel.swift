@@ -210,7 +210,7 @@ final class TrainingPlanV2ViewModel: TaskManageable {
         do {
             let freshOverview = try await repository.refreshOverview()
             loader.planOverview = freshOverview
-            loader.trainingPlanName = freshOverview.targetName ?? "訓練計畫"
+            loader.trainingPlanName = freshOverview.targetName ?? NSLocalizedString("training.plan_default_name", comment: "Default training plan name")
             await loader.loadPlanStatus()
         } catch {
             networkError = error.toDomainError()
@@ -236,7 +236,7 @@ final class TrainingPlanV2ViewModel: TaskManageable {
             do {
                 let freshOverview = try await repository.refreshOverview()
                 loader.planOverview = freshOverview
-                loader.trainingPlanName = freshOverview.targetName ?? "訓練計畫"
+                loader.trainingPlanName = freshOverview.targetName ?? NSLocalizedString("training.plan_default_name", comment: "Default training plan name")
 
                 if freshOverview.regenerationStatus == "completed" {
                     successToast = NSLocalizedString("training.plan_overview_updated", comment: "訓練總覽已更新")
