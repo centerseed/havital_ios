@@ -21,8 +21,11 @@ struct PaceCalculator {
             switch self {
             case .recovery:   return (0.52, 0.59)
             case .easy:       return (0.59, 0.74)
-            case .tempo:      return (0.75, 0.84)
-            case .marathon:   return (0.78, 0.82)
+            // 節奏跑 (tempo) ≡ 閾值 (threshold): backend anchors tempo at the lactate-threshold
+            // (LT2 ~87% HRR) band, so tempo paces correspond to the threshold band (~0.83–0.88).
+            case .tempo:      return (0.83, 0.88)
+            // The ~0.75–0.84 HRR band is the marathon / sustained-aerobic band.
+            case .marathon:   return (0.75, 0.84)
             case .threshold:  return (0.83, 0.88)
             case .anaerobic:  return (0.88, 0.95)
             case .interval:   return (0.95, 1.0)

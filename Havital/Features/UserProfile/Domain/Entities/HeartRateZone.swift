@@ -83,9 +83,9 @@ extension HeartRateZone {
         static let easyLow: Double = 0.59
         static let easyHigh: Double = 0.74
 
-        // Zone 3: Tempo
-        static let tempoLow: Double = 0.75
-        static let tempoHigh: Double = 0.84
+        // Zone 3: Marathon (~0.75–0.84 HRR band; the marathon / sustained-aerobic zone)
+        static let marathonLow: Double = 0.75
+        static let marathonHigh: Double = 0.84
 
         // Zone 4: Threshold
         static let thresholdLow: Double = 0.83
@@ -130,10 +130,10 @@ extension HeartRateZone {
             ),
             HeartRateZone(
                 zone: 3,
-                name: NSLocalizedString("hr_zone.tempo", comment: "Tempo"),
-                range: calculateRange(hrr: hrr, resting: restingHR, low: Percentages.tempoLow, high: Percentages.tempoHigh),
-                description: NSLocalizedString("hr_zone.tempo.description", comment: "Comfortably hard effort"),
-                benefit: NSLocalizedString("hr_zone.tempo.benefit", comment: "Improve aerobic efficiency")
+                name: NSLocalizedString("hr_zone.marathon", comment: "Marathon"),
+                range: calculateRange(hrr: hrr, resting: restingHR, low: Percentages.marathonLow, high: Percentages.marathonHigh),
+                description: NSLocalizedString("hr_zone.marathon.description", comment: "Marathon pace, sustained aerobic effort"),
+                benefit: NSLocalizedString("hr_zone.marathon.benefit", comment: "Build aerobic endurance and efficiency")
             ),
             HeartRateZone(
                 zone: 4,

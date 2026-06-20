@@ -521,7 +521,10 @@ struct SimplifiedDailyCardV2: View {
             day.cooldown = nil
 
         case .tempo, .threshold:
-            day.dayTarget = newType == .tempo ? "節奏跑：乳酸閾值訓練" : "閾值跑：提升乳酸清除能力"
+            // 節奏跑 (tempo) ≡ 閾值跑 (threshold): both are lactate-threshold training,
+            // matching the backend model. Keep the 節奏跑 run-type name but frame it as
+            // threshold/LT work, not a separate moderate zone.
+            day.dayTarget = newType == .tempo ? "節奏跑：乳酸閾值訓練，提升乳酸清除能力" : "閾值跑：提升乳酸清除能力"
             let pace = PaceCalculator.getSuggestedPace(for: newType.rawValue, vdot: vdot) ?? "5:00"
             day.trainingDetails = MutableTrainingDetails(distanceKm: 8.0, pace: pace)
             let wc = defaultWarmupCooldown(vdot: vdot)
