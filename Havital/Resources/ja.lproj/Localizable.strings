@@ -1172,6 +1172,9 @@
 "hr_zone.easy" = "イージー";
 "hr_zone.easy.description" = "快適な有酸素強度、有酸素ベースを構築";
 "hr_zone.easy.benefit" = "有酸素ベースを構築";
+"hr_zone.marathon" = "マラソン";
+"hr_zone.marathon.description" = "マラソンペース、持続的な有酸素強度";
+"hr_zone.marathon.benefit" = "有酸素持久力と効率を向上";
 "hr_zone.tempo" = "テンポ";
 "hr_zone.tempo.description" = "やや強い強度、有酸素効率を向上";
 "hr_zone.tempo.benefit" = "有酸素効率を向上";
@@ -1583,21 +1586,21 @@
 // Heart Rate Zone
 "performance.heart_rate_zone.zone1_name" = "リカバリー (R)";
 "performance.heart_rate_zone.zone2_name" = "イージー (E)";
-"performance.heart_rate_zone.zone3_name" = "テンポ (T)";
+"performance.heart_rate_zone.zone3_name" = "マラソン (M)";
 "performance.heart_rate_zone.zone4_name" = "閾値 (T)";
 "performance.heart_rate_zone.zone5_name" = "無酸素 (A)";
 "performance.heart_rate_zone.zone6_name" = "インターバル (I)";
 
 "performance.heart_rate_zone.zone1_description" = "非常に軽い活動、アクティブリカバリー";
 "performance.heart_rate_zone.zone2_description" = "快適な有酸素強度、有酸素ベースを構築";
-"performance.heart_rate_zone.zone3_description" = "やや強い強度、有酸素効率を向上";
+"performance.heart_rate_zone.zone3_description" = "マラソンペース、持続的な有酸素強度";
 "performance.heart_rate_zone.zone4_description" = "乳酸閾値強度、閾値ペースを向上";
 "performance.heart_rate_zone.zone5_description" = "無酸素インターバル強度、VO2Maxとスピードを向上";
 "performance.heart_rate_zone.zone6_description" = "最大スプリント強度、極限のスピードと爆発力";
 
 "performance.heart_rate_zone.zone1_benefit" = "アクティブリカバリーと適応。非常に軽い運動で疲労を解消しながら動き続けます。";
 "performance.heart_rate_zone.zone2_benefit" = "有酸素ベースを構築し、ミトコンドリア数を増加させます。十分なトレーニング時間がある場合、イージーランはトレーニングの60〜80%を占めるべきで、強度のバランスを保ちます。";
-"performance.heart_rate_zone.zone3_benefit" = "有酸素効率とランニングエコノミーを向上させます。適度なテンポ努力で、より高い強度での酸素使用能力が高まります。";
+"performance.heart_rate_zone.zone3_benefit" = "有酸素持久力とランニングエコノミーを向上させます。マラソンペースの努力で、長時間にわたり有酸素強度を維持する能力が高まります。";
 "performance.heart_rate_zone.zone4_benefit" = "有酸素循環システムの限界点をトレーニングし、適切なトレーニングで乳酸除去能力を向上させ、より高いペースでの持久力を増加させます。";
 "performance.heart_rate_zone.zone5_benefit" = "最大酸素摂取量を向上させ、ランニングフォームを改善し、筋力を強化します。無酸素インターバルでスピードと爆発力を高めます。";
 "performance.heart_rate_zone.zone6_benefit" = "無酸素能力と筋持久力を向上させ、最大酸素摂取量を増加させます。適度なインターバルトレーニングは明らかな改善をもたらしますが、過度なトレーニングは避けてください。";

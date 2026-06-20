@@ -1173,6 +1173,9 @@
 "hr_zone.easy" = "Easy";
 "hr_zone.easy.description" = "Comfortable aerobic effort, building aerobic base";
 "hr_zone.easy.benefit" = "Build aerobic base";
+"hr_zone.marathon" = "Marathon";
+"hr_zone.marathon.description" = "Marathon pace, sustained aerobic effort";
+"hr_zone.marathon.benefit" = "Build aerobic endurance and efficiency";
 "hr_zone.tempo" = "Tempo";
 "hr_zone.tempo.description" = "Moderately hard effort, improving aerobic efficiency";
 "hr_zone.tempo.benefit" = "Improve aerobic efficiency";
@@ -1584,21 +1587,21 @@
 // Heart Rate Zone
 "performance.heart_rate_zone.zone1_name" = "Recovery (R)";
 "performance.heart_rate_zone.zone2_name" = "Easy (E)";
-"performance.heart_rate_zone.zone3_name" = "Tempo (T)";
+"performance.heart_rate_zone.zone3_name" = "Marathon (M)";
 "performance.heart_rate_zone.zone4_name" = "Threshold (T)";
 "performance.heart_rate_zone.zone5_name" = "Anaerobic (A)";
 "performance.heart_rate_zone.zone6_name" = "Interval (I)";
 
 "performance.heart_rate_zone.zone1_description" = "Very light activity, active recovery";
 "performance.heart_rate_zone.zone2_description" = "Comfortable aerobic effort, building aerobic base";
-"performance.heart_rate_zone.zone3_description" = "Moderately hard effort, improving aerobic efficiency";
+"performance.heart_rate_zone.zone3_description" = "Marathon pace, sustained aerobic effort";
 "performance.heart_rate_zone.zone4_description" = "Lactate threshold intensity, improving threshold pace";
 "performance.heart_rate_zone.zone5_description" = "Anaerobic interval intensity, improving VO2Max and speed";
 "performance.heart_rate_zone.zone6_description" = "Maximum sprint intensity, peak speed and explosive power";
 
 "performance.heart_rate_zone.zone1_benefit" = "Active recovery and adaptation. Very easy effort to flush out fatigue while maintaining movement.";
 "performance.heart_rate_zone.zone2_benefit" = "Build aerobic base and increase mitochondrial count. With sufficient training time, easy runs should account for 60-80% of training to balance intensity.";
-"performance.heart_rate_zone.zone3_benefit" = "Improve aerobic efficiency and economy. Moderate tempo efforts enhance the body's ability to use oxygen at higher intensities.";
+"performance.heart_rate_zone.zone3_benefit" = "Build aerobic endurance and running economy. Marathon-pace efforts improve the body's ability to sustain aerobic intensity over long durations.";
 "performance.heart_rate_zone.zone4_benefit" = "Critical point for aerobic system training. Proper training improves lactate clearance ability and increases endurance at higher paces.";
 "performance.heart_rate_zone.zone5_benefit" = "Improve VO2 max, enhance running form and strengthen muscles. Anaerobic intervals boost speed and power.";
 "performance.heart_rate_zone.zone6_benefit" = "Improve anaerobic capacity and muscular endurance, and increase VO2 max. Moderate interval training can provide noticeable improvements, but avoid overtraining.";

@@ -1181,6 +1181,9 @@
 "hr_zone.easy" = "輕鬆";
 "hr_zone.easy.description" = "舒適有氧強度，建立有氧基礎";
 "hr_zone.easy.benefit" = "建立有氧基礎";
+"hr_zone.marathon" = "馬拉松";
+"hr_zone.marathon.description" = "馬拉松配速，持續有氧強度";
+"hr_zone.marathon.benefit" = "提升有氧耐力與效率";
 "hr_zone.tempo" = "節奏";
 "hr_zone.tempo.description" = "中等偏強，提升有氧效率";
 "hr_zone.tempo.benefit" = "提升有氧效率";
@@ -1599,21 +1602,21 @@
 // Heart Rate Zone
 "performance.heart_rate_zone.zone1_name" = "恢復 (R)";
 "performance.heart_rate_zone.zone2_name" = "輕鬆 (E)";
-"performance.heart_rate_zone.zone3_name" = "節奏 (T)";
+"performance.heart_rate_zone.zone3_name" = "馬拉松 (M)";
 "performance.heart_rate_zone.zone4_name" = "閾值 (T)";
 "performance.heart_rate_zone.zone5_name" = "無氧 (A)";
 "performance.heart_rate_zone.zone6_name" = "間歇 (I)";
 
 "performance.heart_rate_zone.zone1_description" = "非常輕鬆的活動，主動恢復";
 "performance.heart_rate_zone.zone2_description" = "舒適有氧強度，建立有氧基礎";
-"performance.heart_rate_zone.zone3_description" = "中等偏強，提升有氧效率";
+"performance.heart_rate_zone.zone3_description" = "馬拉松配速，持續有氧強度";
 "performance.heart_rate_zone.zone4_description" = "乳酸閾值強度，提升閾值速度";
 "performance.heart_rate_zone.zone5_description" = "無氧間歇強度，提升 VO2Max 與速度";
 "performance.heart_rate_zone.zone6_description" = "最大衝刺強度，極限速度與爆發力";
 
 "performance.heart_rate_zone.zone1_benefit" = "主動恢復與適應。非常輕鬆的運動有助於消除疲勞並保持身體活動。";
 "performance.heart_rate_zone.zone2_benefit" = "建立有氧基礎，增加粒線體數量。在有充足訓練時間下，輕鬆跑應該佔訓練的60~80%，以平衡訓練強度。";
-"performance.heart_rate_zone.zone3_benefit" = "提升有氧效率與跑步經濟性。中等節奏訓練增強身體在較高強度下利用氧氣的能力。";
+"performance.heart_rate_zone.zone3_benefit" = "提升有氧耐力與跑步經濟性。馬拉松配速訓練增強身體長時間維持有氧強度的能力。";
 "performance.heart_rate_zone.zone4_benefit" = "強度訓練有氧循環的臨界點，適當的訓練已提高乳酸清除能力，增加在較高配速的耐力。";
 "performance.heart_rate_zone.zone5_benefit" = "提升最大攝氧量，改善跑姿和強化肌力。無氧間歇訓練提升速度與爆發力。";
 "performance.heart_rate_zone.zone6_benefit" = "提升無氧能力與肌耐力，並提升最大攝氧量。適度的加入間歇訓練可以明顯的感受到進步，但千萬不要過量。";
