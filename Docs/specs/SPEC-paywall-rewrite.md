@@ -199,10 +199,14 @@ App 尚未在 App Store 上架，是修正訂閱策略最後的免責窗口。�
 **When** 用戶捲到 pricing 區
 **Then** Default section（Yearly + Monthly 兩張卡）永遠可見。
 
-#### AC-PAYWALL-13: Default Yearly 卡片標示 30 天免費試用
+#### AC-PAYWALL-13: Default Yearly 卡片副標由實際 offer 驅動（資料驅動，非固定 30 天）
 **Given** 用戶非 trial 中
 **When** 用戶檢視 Default Yearly 卡片
-**Then** 卡片副標渲染 `paywall.premium.plan.trial_format`（代入 30），且 CTA 顯示 `paywall.premium.cta.start_trial`（zh-TW = 「開始 30 天免費試用」）。
+**Then** 卡片副標由 `PaywallDisplayPackage.offerDisplay` 決定：
+  - 有 freeTrial offer → 渲染 `paywall.premium.plan.trial_format`（代入實際試用天數），CTA 顯示 `paywall.premium.cta.start_trial`
+  - 無 offer（`offerDisplay == .none`）→ 渲染 `paywall.premium.plan.no_trial_format`，CTA 顯示 `paywall.premium.cta.subscribe_now`
+  - 有 discount offer → 渲染折扣價格資訊（`PaywallCardOfferDisplay.discount`）
+**Note** 試用天數來自 product 的 introductory offer 設定（`SubscriptionOfficialOffer.periodValue × periodUnit`），非寫死 30 天。
 
 #### AC-PAYWALL-14: Default Monthly 卡片標示立即扣款
 **Given** paywall sheet 已開啟
@@ -218,10 +222,13 @@ App 尚未在 App Store 上架，是修正訂閱策略最後的免責窗口。�
 **And When** `isEarlyBirdOffering = false`
 **Then** Early-bird section 完全不渲染。
 
-#### AC-PAYWALL-16: Early-bird Yearly 卡片標示 30 天免費試用
+#### AC-PAYWALL-16: Early-bird Yearly 卡片副標由實際 offer 驅動（資料驅動，非固定 30 天）
 **Given** Early-bird section 顯示
 **When** 用戶檢視 Early-bird Yearly 卡片
-**Then** 卡片副標渲染 `paywall.premium.plan.trial_format`（代入 30），CTA 顯示 `paywall.premium.cta.start_trial`（早鳥 yearly 同樣享 30 天 trial）。
+**Then** 卡片副標由 `PaywallDisplayPackage.offerDisplay` 決定（與 Default Yearly 同一資料驅動邏輯）：
+  - 有 freeTrial offer → 渲染 `paywall.premium.plan.trial_format`（代入實際試用天數），CTA 顯示 `paywall.premium.cta.start_trial`
+  - 無 offer（`offerDisplay == .none`，目前 eb1 SKU 現況）→ 渲染 `paywall.premium.plan.no_trial_format`，CTA 顯示 `paywall.premium.cta.subscribe_now`
+**Note** 試用天數來自 product 的 introductory offer 設定，非寫死 30 天。若 eb1 SKU 日後掛載 intro offer，UI 將自動反映實際天數。
 
 #### AC-PAYWALL-17: Early-bird Monthly 卡片標示立即扣款
 **Given** Early-bird section 顯示
@@ -341,12 +348,14 @@ App 尚未在 App Store 上架，是修正訂閱策略最後的免責窗口。�
 **When** 用戶看到 disclosure 區
 **Then** 文字內出現可點擊的「服務條款 / Terms of Use / 利用規約」連結；點擊後以 `SFSafariViewController` 開啟既有 Terms of Use URL；不使用 in-app WebView；不離開 App。
 
-#### AC-PAYWALL-34: Yearly card focus 時 disclosure 顯示精確試用結束日期
+#### AC-PAYWALL-34: Yearly card focus 時 disclosure 顯示精確試用結束日期（資料驅動）
 **Given** 用戶不在 Apple intro offer trial 中（首次訂閱）
-**And** 用戶 focus 在 Yearly card（含 default 與 early-bird）
+**And** 用戶 focus 在 Yearly card（含 default 與 early-bird）且 offerDisplay 為 freeTrial
 **When** 用戶看到 disclosure 區
-**Then** 文字包含「**今天訂閱，試用至 {date}**」之具體結束日期；日期使用 `DateFormatter` 依 user locale 渲染（zh-TW: `2026年5月27日`；en-US: `May 27, 2026`；ja-JP: `2026年5月27日`）；計算邏輯：`now + 30 days`（與 ASC 配置一致）。
+**Then** 文字包含「**今天訂閱，試用至 {date}**」之具體結束日期；日期使用 `DateFormatter` 依 user locale 渲染（zh-TW: `2026年5月27日`；en-US: `May 27, 2026`；ja-JP: `2026年5月27日`）；計算邏輯：`now + 實際試用天數`（來自 `PaywallViewModel.yearlyFreeTrialDays`，由 product offer 設定決定）。
 **And** Monthly card focus 時 disclosure 不顯示日期（無 trial）。
+**And** Yearly card 無 freeTrial offer（`offerDisplay == .none`）時，disclosure 顯示標準版（無試用日期）。
+**Note** 試用天數來源為 `PaywallDisplayPackage.offerDisplay`，不再寫死 30 天。
 
 ### Free Tier UI（F4）
 

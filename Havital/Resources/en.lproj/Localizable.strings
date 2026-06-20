@@ -2673,6 +2673,7 @@
 "paywall.plan.savings" = "Save %@ (%d%%)";
 "paywall.offer.badge_official" = "Official Offer";
 "paywall.offer.badge_early_bird" = "Early Bird Plan";
+"paywall.offer.limited_time_badge" = "Limited-Time Offer";
 "paywall.accessibility.original_price" = "Original price %@";
 "paywall.offer.free" = "Free";
 "paywall.offer.ends_on" = "Ends on %@";

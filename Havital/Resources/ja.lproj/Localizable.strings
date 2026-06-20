@@ -2670,6 +2670,7 @@
 "paywall.plan.savings" = "%@ お得（%d%%）";
 "paywall.offer.badge_official" = "公式オファー";
 "paywall.offer.badge_early_bird" = "早割プラン";
+"paywall.offer.limited_time_badge" = "期間限定";
 "paywall.accessibility.original_price" = "通常価格 %@";
 "paywall.offer.free" = "無料";
 "paywall.offer.ends_on" = "本日開始した場合、%@ まで";

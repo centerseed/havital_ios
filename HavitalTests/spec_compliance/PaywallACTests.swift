@@ -166,16 +166,27 @@ final class PaywallACTests: XCTestCase {
         XCTSkip("Default section always-visible is UI-layer. Code: defaultSection() called unconditionally in loaded state. Verified by QA via simulator screenshot.")
     }
 
-    func test_ac_paywall_13_default_yearly_30_day_trial_label() {
-        // AC-PAYWALL-13: Default Yearly 卡片標示 30 天免費試用
-        // YearlyCard in defaultSection:
-        //   cardSubtitle = String(format: NSLocalizedString("paywall.premium.plan.trial_format"), "30")
-        //   actionTitle = NSLocalizedString("paywall.premium.cta.start_trial")
-        // Verify key resolves in current bundle
-        let trialFormat = NSLocalizedString("paywall.premium.plan.trial_format", comment: "")
-        XCTAssertFalse(trialFormat.isEmpty, "paywall.premium.plan.trial_format must exist")
-        let ctaStartTrial = NSLocalizedString("paywall.premium.cta.start_trial", comment: "")
-        XCTAssertFalse(ctaStartTrial.isEmpty, "paywall.premium.cta.start_trial must exist")
+    func test_ac_paywall_13_default_yearly_trial_label_is_offer_driven() {
+        // AC-PAYWALL-13（已更新為資料驅動）：Default Yearly 卡片副標由實際 offer 驅動，而非固定 30 天。
+        //
+        // Behavior coverage (cannot be duplicated here — MockSubscriptionRepository is private
+        // to PaywallViewModelTests):
+        //   • 有 freeTrial offer  → offerDisplay == .freeTrial(durationDays: N) → 顯示試用文字
+        //     covered by: PaywallViewModelTests.test_defaultPackages_freeTrialOffer_yieldsFreeTrialDisplay
+        //   • 無 offer           → offerDisplay == .none → 不提試用
+        //     covered by: PaywallViewModelTests.test_defaultPackages_noOffer_yieldsNoneDisplay
+        //
+        // This file asserts the i18n keys the View uses are present and resolvable, without
+        // claiming the trial duration is always 30 days.
+        let bundle = Bundle(for: PaywallViewModel.self)
+        let trialFormat = NSLocalizedString("paywall.premium.plan.trial_format", bundle: bundle, comment: "")
+        XCTAssertNotEqual(trialFormat, "paywall.premium.plan.trial_format",
+                          "paywall.premium.plan.trial_format must resolve to a localized value (used when offer has freeTrial)")
+        XCTAssertFalse(trialFormat.isEmpty, "paywall.premium.plan.trial_format must not be empty")
+        let ctaStartTrial = NSLocalizedString("paywall.premium.cta.start_trial", bundle: bundle, comment: "")
+        XCTAssertNotEqual(ctaStartTrial, "paywall.premium.cta.start_trial",
+                          "paywall.premium.cta.start_trial must resolve to a localized value")
+        XCTAssertFalse(ctaStartTrial.isEmpty, "paywall.premium.cta.start_trial must not be empty")
     }
 
     func test_ac_paywall_14_default_monthly_immediate_billing_label() {
@@ -201,15 +212,28 @@ final class PaywallACTests: XCTestCase {
         XCTAssertFalse(vm.shouldShowEarlyBirdSection)
     }
 
-    func test_ac_paywall_16_earlybird_yearly_30_day_trial_label() {
-        // AC-PAYWALL-16: Early-bird Yearly 卡片標示 30 天免費試用
-        // YearlyCard in earlyBirdSection uses same keys as defaultSection yearly:
-        //   cardSubtitle: paywall.premium.plan.trial_format (30)
-        //   actionTitle: paywall.premium.cta.start_trial
-        let trialFormat = NSLocalizedString("paywall.premium.plan.trial_format", comment: "")
-        XCTAssertFalse(trialFormat.isEmpty)
-        let startTrial = NSLocalizedString("paywall.premium.cta.start_trial", comment: "")
-        XCTAssertFalse(startTrial.isEmpty)
+    func test_ac_paywall_16_earlybird_yearly_trial_label_is_offer_driven() {
+        // AC-PAYWALL-16（已更新為資料驅動）：Early-bird Yearly 卡片副標由實際 offer 驅動，而非固定 30 天。
+        //
+        // Early-bird (eb1) packages currently carry officialOffer = nil → offerDisplay == .none.
+        // If early-bird SKUs ever gain an introductory offer, the View will surface the actual
+        // durationDays automatically via offerDisplay (same data-driven path as default yearly).
+        //
+        // Behavior coverage (MockSubscriptionRepository is private to PaywallViewModelTests):
+        //   • eb1 yearly 無 offer → offerDisplay == .none → 不提試用
+        //     covered by: PaywallViewModelTests.test_displayPackages_populatesOfferDisplay
+        //
+        // This file asserts the i18n keys the View uses are present and resolvable, without
+        // claiming the trial duration is always 30 days.
+        let bundle = Bundle(for: PaywallViewModel.self)
+        let trialFormat = NSLocalizedString("paywall.premium.plan.trial_format", bundle: bundle, comment: "")
+        XCTAssertNotEqual(trialFormat, "paywall.premium.plan.trial_format",
+                          "paywall.premium.plan.trial_format must resolve to a localized value")
+        XCTAssertFalse(trialFormat.isEmpty, "paywall.premium.plan.trial_format must not be empty")
+        let startTrial = NSLocalizedString("paywall.premium.cta.start_trial", bundle: bundle, comment: "")
+        XCTAssertNotEqual(startTrial, "paywall.premium.cta.start_trial",
+                          "paywall.premium.cta.start_trial must resolve to a localized value")
+        XCTAssertFalse(startTrial.isEmpty, "paywall.premium.cta.start_trial must not be empty")
     }
 
     func test_ac_paywall_17_earlybird_monthly_immediate_billing_label() {
@@ -610,18 +634,27 @@ final class PaywallACTests: XCTestCase {
                       "Formatted standard disclosure must contain terms link text '\(termsLinkText)'")
     }
 
-    // AC-PAYWALL-34: Yearly card focus 時 disclosure 顯示精確試用結束日期
+    // AC-PAYWALL-34: Yearly card focus 時 disclosure 顯示精確試用結束日期（資料驅動）
     func test_ac_paywall_34_disclosure_shows_trial_end_date_yearly() {
         // Given 用戶不在 Apple intro offer trial 中（首次訂閱）
-        // And 用戶 focus 在 Yearly card（含 default 與 early-bird）
+        // And 用戶 focus 在 Yearly card（含 default 與 early-bird）且 offerDisplay 為 freeTrial
         // When 用戶看到 disclosure 區
-        // Then 文字包含具體結束日期（now + 30 days，locale-aware format）
+        // Then 文字包含具體結束日期（now + 實際試用天數，locale-aware format）
         // And Monthly card focus 時不包含試用日期
+        //
+        // Trial days source: PaywallViewModel.yearlyFreeTrialDays (from PaywallDisplayPackage.offerDisplay),
+        // not hardcoded to 30. Behavior for dynamic days covered by:
+        //   PaywallViewModelTests.test_yearlyFreeTrialDays_present_whenYearlyHasFreeTrial
+        //   PaywallViewModelTests.test_yearlyFreeTrialDays_nil_whenNoTrial
+        //
+        // This test verifies the disclosure format string infrastructure (date injection + locale
+        // formatting) works for any trial duration (uses 30 as a representative value).
 
-        // 1. Verify trial end date computation: now + 30 days
+        // 1. Verify trial end date computation: now + trial days (representative: 30 days)
         let now = Date()
-        let trialEndDate = Calendar.current.date(byAdding: .day, value: 30, to: now)
-        XCTAssertNotNil(trialEndDate, "Calendar.current.date(byAdding: .day, value: 30, to: Date()) must not return nil")
+        let representativeTrialDays = 30
+        let trialEndDate = Calendar.current.date(byAdding: .day, value: representativeTrialDays, to: now)
+        XCTAssertNotNil(trialEndDate, "Calendar.current.date(byAdding:) must not return nil for \(representativeTrialDays) days")
 
         guard let trialEndDate else { return }
 

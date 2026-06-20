@@ -31,6 +31,9 @@ struct PaywallDisplayPackage: Identifiable {
     /// Whether this package belongs to the early-bird offering.
     let isEarlyBird: Bool
 
+    /// 卡片副標 view-state（試用 / 折扣 / 無）。由實際 officialOffer 決定。
+    let offerDisplay: PaywallCardOfferDisplay
+
     var id: String { package.id }
 }
 
@@ -283,7 +286,11 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
                 package: pkg,
                 displayPrice: pkg.localizedPrice,
                 originalPriceLineThrough: originalLineThrough,
-                isEarlyBird: isEarlyBird
+                isEarlyBird: isEarlyBird,
+                offerDisplay: PaywallCardOfferDisplayBuilder.make(
+                    offer: pkg.officialOffer,
+                    regularLocalizedPrice: pkg.localizedPrice
+                )
             )
         }
     }
@@ -304,7 +311,11 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
                 package: pkg,
                 displayPrice: pkg.localizedPrice,
                 originalPriceLineThrough: nil,
-                isEarlyBird: false
+                isEarlyBird: false,
+                offerDisplay: PaywallCardOfferDisplayBuilder.make(
+                    offer: pkg.officialOffer,
+                    regularLocalizedPrice: pkg.localizedPrice
+                )
             )
         }
     }
@@ -343,6 +354,16 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
         // Legacy backend trial (.trial status) — keep for backward compatibility
         guard status.status == .trial else { return nil }
         return status.trialDaysRemaining
+    }
+
+    /// 目前要顯示的年費方案（default 或促銷 effective offering 的年費）是否帶 freeTrial offer。
+    /// 非 nil = 有試用，值為試用天數；nil = 無試用（揭露/timeline 不顯示試用）。
+    /// 注意：這是「產品是否提供試用」(pre-purchase)，與 `isInAppleIntroTrial`（使用者是否正在試用）不同。
+    var yearlyFreeTrialDays: Int? {
+        let pkgs = shouldShowEarlyBirdSection ? displayPackages : defaultPackages
+        guard let yearly = pkgs.first(where: { $0.package.period == .yearly }) else { return nil }
+        if case .freeTrial(let days) = yearly.offerDisplay { return days }
+        return nil
     }
 
     /// Whether the user is currently in an Apple intro offer trial.

@@ -2698,6 +2698,7 @@
 "paywall.plan.savings" = "現省 %@（%d%%）";
 "paywall.offer.badge_official" = "官方優惠";
 "paywall.offer.badge_early_bird" = "早鳥方案";
+"paywall.offer.limited_time_badge" = "限時特價";
 "paywall.accessibility.original_price" = "原定價 %@";
 "paywall.offer.free" = "免費";
 "paywall.offer.ends_on" = "若今天開始，優惠至 %@";

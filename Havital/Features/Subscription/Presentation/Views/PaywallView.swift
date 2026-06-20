@@ -57,8 +57,8 @@ struct PaywallView: View {
                         PaywallTrialBanner(daysRemaining: viewModel.introTrialDaysRemaining ?? 0)
                             .padding(.horizontal, 20)
                             .padding(.top, 16)
-                    } else if focusedCard.isYearly {
-                        // AC-PAYWALL-07: timeline shown when yearly card is focused and not in trial
+                    } else if focusedCard.isYearly, viewModel.yearlyFreeTrialDays != nil {
+                        // AC-PAYWALL-07: timeline shown when yearly card is focused and product has a free trial
                         PaywallTrialTimelineView()
                             .padding(.horizontal, 20)
                             .padding(.top, 16)
@@ -371,11 +371,6 @@ struct PaywallView: View {
                 if let defaultYearly {
                     YearlyCard(
                         displayPackage: defaultYearly,
-                        cardSubtitle: String(
-                            format: NSLocalizedString("paywall.premium.plan.trial_format", comment: ""),
-                            "30"
-                        ),
-                        actionTitle: NSLocalizedString("paywall.premium.cta.start_trial", comment: ""),
                         isFocused: focusedCard == .defaultYearly,
                         purchaseState: viewModel.purchaseState,
                         onTap: {
@@ -396,8 +391,6 @@ struct PaywallView: View {
                 if let defaultMonthly {
                     MonthlyCard(
                         displayPackage: defaultMonthly,
-                        cardSubtitle: NSLocalizedString("paywall.premium.plan.no_trial_format", comment: ""),
-                        actionTitle: NSLocalizedString("paywall.premium.cta.subscribe_now", comment: ""),
                         isFocused: focusedCard == .defaultMonthly,
                         purchaseState: viewModel.purchaseState,
                         onTap: {
@@ -455,11 +448,6 @@ struct PaywallView: View {
                 if let yearly {
                     YearlyCard(
                         displayPackage: yearly,
-                        cardSubtitle: String(
-                            format: NSLocalizedString("paywall.premium.plan.trial_format", comment: ""),
-                            "30"
-                        ),
-                        actionTitle: NSLocalizedString("paywall.premium.cta.start_trial", comment: ""),
                         isFocused: focusedCard == .earlyBirdYearly,
                         purchaseState: viewModel.purchaseState,
                         onTap: {
@@ -480,8 +468,6 @@ struct PaywallView: View {
                 if let monthly {
                     MonthlyCard(
                         displayPackage: monthly,
-                        cardSubtitle: NSLocalizedString("paywall.premium.plan.no_trial_format", comment: ""),
-                        actionTitle: NSLocalizedString("paywall.premium.cta.subscribe_now", comment: ""),
                         isFocused: focusedCard == .earlyBirdMonthly,
                         purchaseState: viewModel.purchaseState,
                         onTap: {
@@ -528,9 +514,9 @@ struct PaywallView: View {
         let termsURL = URL(string: Constants.URLs.termsOfUse)!
 
         let fullText: String
-        if focusedCard.isYearly && !viewModel.isInAppleIntroTrial {
-            // AC-PAYWALL-34: include precise trial end date (now + 30 days, device locale format).
-            let trialEndDate = Calendar.current.date(byAdding: .day, value: 30, to: Date()) ?? Date()
+        if focusedCard.isYearly, !viewModel.isInAppleIntroTrial, let trialDays = viewModel.yearlyFreeTrialDays {
+            // AC-PAYWALL-34: include precise trial end date (now + actual trial days, device locale format).
+            let trialEndDate = Calendar.current.date(byAdding: .day, value: trialDays, to: Date()) ?? Date()
             let dateString = DateFormatter.localizedString(from: trialEndDate, dateStyle: .long, timeStyle: .none)
             let format = NSLocalizedString("paywall.disclosure.trial.with_links_format", comment: "")
             fullText = String(format: format, dateString, termsText, privacyText)
@@ -633,11 +619,18 @@ struct PaywallView: View {
 
 private struct YearlyCard: View {
     let displayPackage: PaywallDisplayPackage
-    let cardSubtitle: String
-    let actionTitle: String
     let isFocused: Bool
     let purchaseState: PurchaseState
     let onTap: () -> Void
+
+    /// CTA copy derived from the package's actual offer so it never lies:
+    /// free-trial → 「開始試用」, otherwise (discount / none) → 「立即訂閱」.
+    private var actionTitle: String {
+        if case .freeTrial = displayPackage.offerDisplay {
+            return NSLocalizedString("paywall.premium.cta.start_trial", comment: "")
+        }
+        return NSLocalizedString("paywall.premium.cta.subscribe_now", comment: "")
+    }
 
     var body: some View {
         Button(action: onTap) {
@@ -694,9 +687,10 @@ private struct YearlyCard: View {
                             .foregroundColor(.white)
                             .accessibilityIdentifier("Paywall_YearlyPrice")
 
-                        Text(cardSubtitle)
-                            .font(AppFont.caption())
-                            .foregroundColor(.white.opacity(0.85))
+                        PaywallOfferSubtitleView(
+                            display: displayPackage.offerDisplay,
+                            onDark: true
+                        )
 
                         if displayPackage.isEarlyBird {
                             Text(NSLocalizedString("paywall.section.early_bird.lock_forever_subtitle", comment: ""))
@@ -753,11 +747,18 @@ private struct YearlyCard: View {
 
 private struct MonthlyCard: View {
     let displayPackage: PaywallDisplayPackage
-    let cardSubtitle: String
-    let actionTitle: String
     let isFocused: Bool
     let purchaseState: PurchaseState
     let onTap: () -> Void
+
+    /// CTA copy derived from the package's actual offer so it never lies:
+    /// free-trial → 「開始試用」, otherwise (discount / none) → 「立即訂閱」.
+    private var actionTitle: String {
+        if case .freeTrial = displayPackage.offerDisplay {
+            return NSLocalizedString("paywall.premium.cta.start_trial", comment: "")
+        }
+        return NSLocalizedString("paywall.premium.cta.subscribe_now", comment: "")
+    }
 
     var body: some View {
         Button(action: onTap) {
@@ -799,9 +800,10 @@ private struct MonthlyCard: View {
                         .foregroundColor(.primary)
                         .accessibilityIdentifier("Paywall_MonthlyPrice")
 
-                    Text(cardSubtitle)
-                        .font(AppFont.caption())
-                        .foregroundColor(.secondary)
+                    PaywallOfferSubtitleView(
+                        display: displayPackage.offerDisplay,
+                        onDark: false
+                    )
                 }
                 Spacer()
                 if case .purchasing = purchaseState, isFocused {
