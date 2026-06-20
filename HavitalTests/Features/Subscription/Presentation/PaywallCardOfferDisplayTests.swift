@@ -45,4 +45,11 @@ final class PaywallCardOfferDisplayTests: XCTestCase {
         let result = PaywallCardOfferDisplayBuilder.make(offer: o, regularLocalizedPrice: "NT$300")
         XCTAssertEqual(result, .discount(originalPriceStruck: "NT$300", offerPrice: "NT$120", durationDays: 91))
     }
+
+    func test_winBack_payUpFront_returnsDiscount() {
+        // winBack 是真實 Apple offer 型別；builder 依 paymentMode 分流 → 付費型應為 .discount
+        let o = offer(type: .winBack, mode: .payUpFront, localizedPrice: "NT$800", periodValue: 1, periodUnit: .year, numberOfPeriods: 1)
+        let result = PaywallCardOfferDisplayBuilder.make(offer: o, regularLocalizedPrice: "NT$1500")
+        XCTAssertEqual(result, .discount(originalPriceStruck: "NT$1500", offerPrice: "NT$800", durationDays: 365))
+    }
 }

@@ -31,6 +31,9 @@ struct PaywallDisplayPackage: Identifiable {
     /// Whether this package belongs to the early-bird offering.
     let isEarlyBird: Bool
 
+    /// 卡片副標 view-state（試用 / 折扣 / 無）。由實際 officialOffer 決定。
+    let offerDisplay: PaywallCardOfferDisplay
+
     var id: String { package.id }
 }
 
@@ -283,7 +286,11 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
                 package: pkg,
                 displayPrice: pkg.localizedPrice,
                 originalPriceLineThrough: originalLineThrough,
-                isEarlyBird: isEarlyBird
+                isEarlyBird: isEarlyBird,
+                offerDisplay: PaywallCardOfferDisplayBuilder.make(
+                    offer: pkg.officialOffer,
+                    regularLocalizedPrice: pkg.localizedPrice
+                )
             )
         }
     }
@@ -304,7 +311,11 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
                 package: pkg,
                 displayPrice: pkg.localizedPrice,
                 originalPriceLineThrough: nil,
-                isEarlyBird: false
+                isEarlyBird: false,
+                offerDisplay: PaywallCardOfferDisplayBuilder.make(
+                    offer: pkg.officialOffer,
+                    regularLocalizedPrice: pkg.localizedPrice
+                )
             )
         }
     }

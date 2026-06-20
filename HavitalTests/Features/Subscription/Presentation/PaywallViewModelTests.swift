@@ -871,6 +871,33 @@ final class PaywallViewModelTests: XCTestCase {
         )
     }
 
+    // MARK: - T-0002: offerDisplay per package (TDD Step A)
+
+    func test_defaultPackages_freeTrialOffer_yieldsFreeTrialDisplay() async {
+        repository.offeringsToReturn = MockSubscriptionRepository.makeDefaultWithYearlyFreeTrial()
+        await sut.loadOfferings()
+        let yearly = sut.defaultPackages.first { $0.package.period == .yearly }
+        XCTAssertEqual(yearly?.offerDisplay, .freeTrial(durationDays: 30))
+    }
+
+    func test_defaultPackages_noOffer_yieldsNoneDisplay() async {
+        repository.offeringsToReturn = MockSubscriptionRepository.makeDefaultOnlyOfferings()
+        await sut.loadOfferings()
+        let yearly = sut.defaultPackages.first { $0.package.period == .yearly }
+        XCTAssertEqual(yearly?.offerDisplay, PaywallCardOfferDisplay.none)
+    }
+
+    func test_defaultPackages_discountOffer_yieldsDiscountDisplay() async {
+        repository.offeringsToReturn = MockSubscriptionRepository.makeDefaultWithYearlyDiscount()
+        await sut.loadOfferings()
+        let yearly = sut.defaultPackages.first { $0.package.period == .yearly }
+        guard case .discount(let struck, let offerPrice, _)? = yearly?.offerDisplay else {
+            return XCTFail("expected .discount, got \(String(describing: yearly?.offerDisplay))")
+        }
+        XCTAssertEqual(offerPrice, "NT$900")
+        XCTAssertFalse(struck.isEmpty)
+    }
+
     /// Done Criteria #6 (S03a P0): isEarlyBirdOffering is true when RC identifier is "Early bird"
     /// (capitalized first letter, space separator — exact match to RevenueCat dashboard value).
     func test_isEarlyBirdOffering_true_when_rc_identifier_is_capitalized_with_space() {
@@ -1073,6 +1100,48 @@ private final class MockSubscriptionRepository: SubscriptionRepository {
                 )
             ]
         )]
+    }
+
+    // MARK: - T-0002 Factories
+
+    static func makeDefaultWithYearlyFreeTrial() -> [SubscriptionOfferingEntity] {
+        let trial = SubscriptionOfficialOffer(
+            offerIdentifier: "trial", type: .introductory, paymentMode: .freeTrial,
+            price: 0, localizedPrice: "NT$0", periodValue: 1, periodUnit: .month, numberOfPeriods: 1
+        )
+        return [SubscriptionOfferingEntity(
+            id: "default", title: "Paceriz Premium", description: "Paceriz Premium",
+            packages: [
+                makePackage(period: .yearly, productId: "paceriz.sub.yearly", price: "NT$1500", offer: trial),
+                makePackage(period: .monthly, productId: "paceriz.sub.monthly", price: "NT$300", offer: nil)
+            ]
+        )]
+    }
+
+    static func makeDefaultWithYearlyDiscount() -> [SubscriptionOfferingEntity] {
+        let promo = SubscriptionOfficialOffer(
+            offerIdentifier: "promo", type: .promotional, paymentMode: .payUpFront,
+            price: 900, localizedPrice: "NT$900", periodValue: 1, periodUnit: .year, numberOfPeriods: 1
+        )
+        return [SubscriptionOfferingEntity(
+            id: "default", title: "Paceriz Premium", description: "Paceriz Premium",
+            packages: [
+                makePackage(period: .yearly, productId: "paceriz.sub.yearly", price: "NT$1500", offer: promo),
+                makePackage(period: .monthly, productId: "paceriz.sub.monthly", price: "NT$300", offer: nil)
+            ]
+        )]
+    }
+
+    private static func makePackage(
+        period: SubscriptionPeriod, productId: String, price: String, offer: SubscriptionOfficialOffer?
+    ) -> SubscriptionPackageEntity {
+        SubscriptionPackageEntity(
+            id: "\(productId).pkg", productId: productId, localizedPrice: price, price: 0,
+            currencyCode: "TWD", localeIdentifier: "zh_TW",
+            period: period,
+            billingPeriodValue: 1, billingPeriodUnit: period == .yearly ? .year : .month,
+            officialOffer: offer, localizedTitle: productId
+        )
     }
 
     /// Returns [graduate offering (eb1 SKUs), default offering] for graduate-eligibility tests.
