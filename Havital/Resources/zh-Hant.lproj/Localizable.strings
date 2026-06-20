@@ -3664,6 +3664,15 @@
 "rizo.plan_change.discuss" = "繼續討論";
 "rizo.plan_change.applied" = "已為你套用，課表更新囉";
 "rizo.plan_change.confirm_failed" = "套用失敗，請稍後再試";
+"rizo.plan_change.user_confirmed" = "已確認課表更新";
+"rizo.plan_change.distance_unit" = "公里";
+"rizo.plan_change.weekday.1" = "週一";
+"rizo.plan_change.weekday.2" = "週二";
+"rizo.plan_change.weekday.3" = "週三";
+"rizo.plan_change.weekday.4" = "週四";
+"rizo.plan_change.weekday.5" = "週五";
+"rizo.plan_change.weekday.6" = "週六";
+"rizo.plan_change.weekday.7" = "週日";
 
 /* 今日狀態詳細頁：Rizo 對話區段標題 */
 "daily_state.chat_section_title" = "與 Rizo 教練聊聊";

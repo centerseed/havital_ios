@@ -3625,6 +3625,15 @@
 "rizo.plan_change.discuss" = "Keep discussing";
 "rizo.plan_change.applied" = "Applied — your plan is updated";
 "rizo.plan_change.confirm_failed" = "Couldn't apply. Please try again later";
+"rizo.plan_change.user_confirmed" = "Plan update confirmed";
+"rizo.plan_change.distance_unit" = "km";
+"rizo.plan_change.weekday.1" = "Monday";
+"rizo.plan_change.weekday.2" = "Tuesday";
+"rizo.plan_change.weekday.3" = "Wednesday";
+"rizo.plan_change.weekday.4" = "Thursday";
+"rizo.plan_change.weekday.5" = "Friday";
+"rizo.plan_change.weekday.6" = "Saturday";
+"rizo.plan_change.weekday.7" = "Sunday";
 
 /* Daily state detail page: Rizo chat section title */
 "daily_state.chat_section_title" = "Chat with coach Rizo";

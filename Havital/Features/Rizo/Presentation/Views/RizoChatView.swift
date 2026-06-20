@@ -61,7 +61,13 @@ struct RizoChatView: View {
                     .font(AppFont.captionMedium())
                     .foregroundColor(.primary)
             }
-            if let summary = pending.summary, !summary.isEmpty {
+            if let diffDays = pending.diffDays, !diffDays.isEmpty {
+                Text(PlanChangeDiffFormatter.text(for: diffDays))
+                    .font(AppFont.bodyRegular())
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else if let summary = pending.summary, !summary.isEmpty {
                 Text(summary)
                     .font(AppFont.bodyRegular())
                     .foregroundColor(.secondary)
@@ -327,7 +333,14 @@ private final class _RizoChatPreviewRepo: RizoRepository {
                 proposalId: "preview",
                 summary: "週日 長距離慢跑 19km → 輕鬆跑 19km",
                 safetyLevel: "none",
-                requiresSubscription: true
+                requiresSubscription: true,
+                diffDays: [
+                    PlanChangeDiffDay(
+                        dayIndex: 7,
+                        from: PlanChangeDayFace(category: "run", runType: "lsd", distanceKm: 19),
+                        to: PlanChangeDayFace(category: "run", runType: "easy", distanceKm: 19)
+                    )
+                ]
             )
         )
     }

@@ -24,7 +24,24 @@ struct RizoMapper {
             proposalId: dto.proposalId,
             summary: dto.summary,
             safetyLevel: dto.safetyLevel,
-            requiresSubscription: dto.requiresSubscription
+            requiresSubscription: dto.requiresSubscription,
+            diffDays: dto.diffDays?.map(toDiffDay(from:))
+        )
+    }
+
+    private static func toDiffDay(from dto: PlanChangeDiffDayDTO) -> PlanChangeDiffDay {
+        return PlanChangeDiffDay(
+            dayIndex: dto.dayIndex,
+            from: dto.from.map(toDayFace(from:)),
+            to: dto.to.map(toDayFace(from:))
+        )
+    }
+
+    private static func toDayFace(from dto: PlanChangeDayFaceDTO) -> PlanChangeDayFace {
+        return PlanChangeDayFace(
+            category: dto.category,
+            runType: dto.runType,
+            distanceKm: dto.distanceKm
         )
     }
 

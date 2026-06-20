@@ -119,6 +119,51 @@ final class StateRizoChatViewModelTests: XCTestCase {
         XCTAssertFalse(vm.isReplying, "失敗後應釋放 loading 狀態")
     }
 
+    // MARK: - #3 user-confirmed bubble
+
+    func test_accept_success_appends_user_confirmed_bubble_before_coach_applied() async {
+        let pending = PendingPlanChange(proposalId: "rpc_1", summary: "x",
+                                        safetyLevel: "none", requiresSubscription: false, diffDays: nil)
+        let base = makeReply(text: "建議減量", sessionId: "s1")
+        let reply = RizoReply(reply: base.reply, sessionId: base.sessionId,
+                              quota: base.quota, safety: base.safety, pendingPlanChange: pending)
+        let fake = FakeRizoRepository(reply: reply)
+        let vm = StateRizoChatViewModel(scenario: "weekly_situation", repository: fake)
+        await vm.startOpening()
+        XCTAssertNotNil(vm.pendingPlanChange, "前置：VM 應已進入 pending 態")
+
+        await vm.acceptPlanChange()
+
+        let userConfirmed = NSLocalizedString("rizo.plan_change.user_confirmed", comment: "")
+        let applied = NSLocalizedString("rizo.plan_change.applied", comment: "")
+        let texts = vm.messages.map { $0.text }
+        let iUser = texts.firstIndex(of: userConfirmed)
+        let iApplied = texts.firstIndex(of: applied)
+        XCTAssertNotNil(iUser, "成功後應有 user 確認泡泡")
+        XCTAssertNotNil(iApplied, "成功後應有 coach 已套用")
+        XCTAssertLessThan(iUser!, iApplied!, "user 確認須在 coach 已套用之前")
+        XCTAssertEqual(vm.messages.first(where: { $0.text == userConfirmed })?.role, .user)
+        XCTAssertNil(vm.pendingPlanChange)
+    }
+
+    func test_accept_not_applied_does_not_append_user_confirmed() async {
+        let pending = PendingPlanChange(proposalId: "rpc_1", summary: "x",
+                                        safetyLevel: "none", requiresSubscription: false, diffDays: nil)
+        let base = makeReply(text: "建議減量", sessionId: "s1")
+        let reply = RizoReply(reply: base.reply, sessionId: base.sessionId,
+                              quota: base.quota, safety: base.safety, pendingPlanChange: pending)
+        let fake = FakeRizoRepository(reply: reply)
+        fake.confirmResultToReturn = PlanChangeConfirmResult(applied: false, status: "rejected")
+        let vm = StateRizoChatViewModel(scenario: "weekly_situation", repository: fake)
+        await vm.startOpening()
+
+        await vm.acceptPlanChange()
+
+        let userConfirmed = NSLocalizedString("rizo.plan_change.user_confirmed", comment: "")
+        XCTAssertFalse(vm.messages.contains { $0.text == userConfirmed },
+                       "失敗路徑不可出現 user 確認泡泡（避免對話說謊）")
+    }
+
     // MARK: - Helpers
 
     private func makeReply(text: String, sessionId: String) -> RizoReply {
@@ -186,4 +231,16 @@ final class FakeRizoRepository: RizoRepository {
     func getPresets(scenario: String) async throws -> [RizoPreset] { [] }
 
     func getHistory() async throws -> [RizoHistoryItem] { [] }
+
+    // MARK: confirmPlanChange（#3 測試用）
+
+    var confirmResultToReturn: PlanChangeConfirmResult = PlanChangeConfirmResult(applied: true, status: "applied")
+    var confirmErrorToThrow: Error?
+    private(set) var confirmCallCount = 0
+
+    func confirmPlanChange(proposalId: String) async throws -> PlanChangeConfirmResult {
+        confirmCallCount += 1
+        if let confirmErrorToThrow { throw confirmErrorToThrow }
+        return confirmResultToReturn
+    }
 }
