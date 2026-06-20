@@ -16,6 +16,7 @@ struct DailyStateDetailView: View {
     let card: DailyStateCard
     let onUpgrade: () -> Void
 
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var chatVM: StateRizoChatViewModel
 
     init(card: DailyStateCard, onUpgrade: @escaping () -> Void) {
@@ -42,6 +43,24 @@ struct DailyStateDetailView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Color(UIColor.systemGroupedBackground))
+        // 明確的關閉鈕：edge-to-edge ScrollView 會吃掉下拉手勢，只剩頂部 grabber 能關（小、難命中、
+        // 自動化也抓不到）。補一個常駐右上關閉鈕（不隨內容捲走），真實使用者與 UI 測試都能可靠關閉。
+        .overlay(alignment: .topTrailing) {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.secondary)
+                    .frame(width: 30, height: 30)
+                    .background(Circle().fill(Color(UIColor.tertiarySystemFill)))
+            }
+            .padding(.trailing, 14)
+            .padding(.top, 12)
+            .accessibilityIdentifier("daily_state_close")
+            .accessibilityLabel(Text(NSLocalizedString("daily_state.close",
+                                                       comment: "Close the daily state detail sheet")))
+        }
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .task {

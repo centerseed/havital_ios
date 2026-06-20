@@ -3645,6 +3645,7 @@
 
 // MARK: - Daily State Card
 "daily_state.title" = "今日狀態";
+"daily_state.close" = "關閉";
 "daily_state.loading" = "讀取今日狀態中…";
 "daily_state.evidence" = "佐證";
 "daily_state.causes" = "可能因素";

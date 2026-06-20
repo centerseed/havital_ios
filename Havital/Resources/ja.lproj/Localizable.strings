@@ -3603,6 +3603,7 @@
 
 // MARK: - Daily State Card
 "daily_state.title" = "今日のコンディション";
+"daily_state.close" = "閉じる";
 "daily_state.loading" = "状態を読み込み中…";
 "daily_state.evidence" = "根拠";
 "daily_state.causes" = "考えられる要因";

@@ -3606,6 +3606,7 @@
 
 // MARK: - Daily State Card
 "daily_state.title" = "Today's State";
+"daily_state.close" = "Close";
 "daily_state.loading" = "Reading your state…";
 "daily_state.evidence" = "Evidence";
 "daily_state.causes" = "Likely factors";
