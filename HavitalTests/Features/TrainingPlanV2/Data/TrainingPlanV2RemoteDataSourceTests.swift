@@ -28,6 +28,18 @@ final class TrainingPlanV2RemoteDataSourceTests: XCTestCase {
         super.tearDown()
     }
 
+    // MARK: - Helpers
+
+    /// Content-generation requests now carry an explicit `?lang=`/`&lang=` query
+    /// (see TrainingPlanV2RemoteDataSource.withLangQuery). Build the expected
+    /// suffixed path so mock keys / assertions stay in sync with the live language.
+    @MainActor
+    private func withLang(_ path: String) -> String {
+        let langQuery = "lang=\(LanguageManager.shared.currentLanguage.apiCode)"
+        let separator = path.contains("?") ? "&" : "?"
+        return path + separator + langQuery
+    }
+
     // MARK: - getPlanStatus Tests
 
     func test_getPlanStatus_success_returnsResponse() async throws {
@@ -63,7 +75,8 @@ final class TrainingPlanV2RemoteDataSourceTests: XCTestCase {
     func test_getTargetTypes_success_usesDTOAndReturnsEntities() async throws {
         // Given
         let json = targetTypesJSON()
-        mockHTTPClient.setResponse(for: "/v2/target/types", method: .GET, data: json)
+        let path = await withLang("/v2/target/types")
+        mockHTTPClient.setResponse(for: path, method: .GET, data: json)
 
         // When
         let result = try await sut.getTargetTypes()
@@ -72,7 +85,7 @@ final class TrainingPlanV2RemoteDataSourceTests: XCTestCase {
         XCTAssertEqual(result.count, 2)
         XCTAssertEqual(result[0].id, "race_run")
         XCTAssertEqual(result[1].id, "beginner")
-        XCTAssertTrue(mockHTTPClient.wasPathCalled("/v2/target/types", method: .GET))
+        XCTAssertTrue(mockHTTPClient.wasPathCalled(path, method: .GET))
     }
 
     func test_getTargetTypes_emptyList_returnsEmptyEntities() async throws {
@@ -80,7 +93,8 @@ final class TrainingPlanV2RemoteDataSourceTests: XCTestCase {
         let json = Data("""
         { "target_types": [] }
         """.utf8)
-        mockHTTPClient.setResponse(for: "/v2/target/types", method: .GET, data: json)
+        let path = await withLang("/v2/target/types")
+        mockHTTPClient.setResponse(for: path, method: .GET, data: json)
 
         // When
         let result = try await sut.getTargetTypes()
@@ -94,7 +108,8 @@ final class TrainingPlanV2RemoteDataSourceTests: XCTestCase {
     func test_getMethodologies_success_usesDTOAndReturnsEntities() async throws {
         // Given
         let json = methodologiesJSON()
-        mockHTTPClient.setResponse(for: "/v2/methodologies", method: .GET, data: json)
+        let path = await withLang("/v2/methodologies")
+        mockHTTPClient.setResponse(for: path, method: .GET, data: json)
 
         // When
         let result = try await sut.getMethodologies(targetType: nil)
@@ -103,13 +118,14 @@ final class TrainingPlanV2RemoteDataSourceTests: XCTestCase {
         XCTAssertEqual(result.count, 2)
         XCTAssertEqual(result[0].id, "paceriz")
         XCTAssertEqual(result[1].id, "polarized")
-        XCTAssertTrue(mockHTTPClient.wasPathCalled("/v2/methodologies", method: .GET))
+        XCTAssertTrue(mockHTTPClient.wasPathCalled(path, method: .GET))
     }
 
     func test_getMethodologies_withTargetType_buildsCorrectPath() async throws {
         // Given
         let json = methodologiesJSON()
-        mockHTTPClient.setResponse(for: "/v2/methodologies?target_type=race_run", method: .GET, data: json)
+        let path = await withLang("/v2/methodologies?target_type=race_run")
+        mockHTTPClient.setResponse(for: path, method: .GET, data: json)
 
         // When
         let result = try await sut.getMethodologies(targetType: "race_run")
@@ -117,7 +133,7 @@ final class TrainingPlanV2RemoteDataSourceTests: XCTestCase {
         // Then
         XCTAssertFalse(result.isEmpty)
         XCTAssertTrue(
-            mockHTTPClient.wasPathCalled("/v2/methodologies?target_type=race_run", method: .GET),
+            mockHTTPClient.wasPathCalled(path, method: .GET),
             "Path must include ?target_type= query parameter"
         )
     }

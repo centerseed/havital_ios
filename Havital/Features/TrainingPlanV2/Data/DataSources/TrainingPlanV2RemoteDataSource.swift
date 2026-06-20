@@ -58,6 +58,26 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
         )
     }
 
+    // MARK: - Content-Generation Language
+
+    /// Appends an explicit `?lang=<app language>` (or `&lang=` when a base query
+    /// already exists) to CONTENT-GENERATION request paths.
+    ///
+    /// Backend resolves content-generation language strictly as
+    /// `?lang=` query → user profile → default, and IGNORES the device
+    /// `Accept-Language` header (which lies for 台/港 users whose phone system
+    /// language is Chinese but app language is English). Sending an explicit
+    /// `?lang=` guarantees content is generated in the app's current language
+    /// regardless of device headers or profile-write timing.
+    ///
+    /// Apply ONLY to content-generation paths — never to pure READ requests.
+    @MainActor
+    private static func withLangQuery(_ path: String) -> String {
+        let langQuery = "lang=\(LanguageManager.shared.currentLanguage.apiCode)"
+        let separator = path.contains("?") ? "&" : "?"
+        return path + separator + langQuery
+    }
+
     // MARK: - Plan Status API
 
     /// 獲取計畫狀態（決定 UI 應顯示什麼）
@@ -84,10 +104,11 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
     func getTargetTypes() async throws -> [TargetTypeV2] {
         Logger.debug("[TrainingPlanV2RemoteDS] Fetching target types from /v2/target/types")
 
+        let path = await Self.withLangQuery("/v2/target/types")
         let response: TargetTypesResponseV2DTO = try await tracked("TrainingPlanV2RemoteDataSource: getTargetTypes") {
             try await apiHelper.get(
                 TargetTypesResponseV2DTO.self,
-                path: "/v2/target/types"
+                path: path
             )
         }
 
@@ -105,6 +126,8 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
         if let targetType = targetType {
             path += "?target_type=\(targetType)"
         }
+        // Content generation: append explicit lang (& if target_type query exists, ? otherwise)
+        path = await Self.withLangQuery(path)
 
         Logger.info("[TrainingPlanV2RemoteDS] 📡 API Request: GET \(path)")
 
@@ -135,10 +158,11 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
             methodologyId: methodologyId
         )
 
+        let path = await Self.withLangQuery("/v2/plan/overview")
         let overview = try await tracked("TrainingPlanV2RemoteDataSource: createOverviewForRace") {
             try await apiHelper.post(
                 PlanOverviewV2DTO.self,
-                path: "/v2/plan/overview",
+                path: path,
                 body: request
             )
         }
@@ -174,10 +198,11 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
             intendedRaceDistanceKm: intendedRaceDistanceKm
         )
 
+        let path = await Self.withLangQuery("/v2/plan/overview")
         let overview = try await tracked("TrainingPlanV2RemoteDataSource: createOverviewForNonRace") {
             try await apiHelper.post(
                 PlanOverviewV2DTO.self,
-                path: "/v2/plan/overview",
+                path: path,
                 body: request
             )
         }
@@ -205,10 +230,11 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
 
         let request = UpdateOverviewRequest(startFromStage: startFromStage, methodologyId: methodologyId)
 
+        let path = await Self.withLangQuery("/v2/plan/overview/\(overviewId)")
         let overview = try await tracked("TrainingPlanV2RemoteDataSource: updateOverview") {
             try await apiHelper.put(
                 PlanOverviewV2DTO.self,
-                path: "/v2/plan/overview/\(overviewId)",
+                path: path,
                 body: request
             )
         }
@@ -241,10 +267,11 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
             methodology: methodology
         )
 
+        let path = await Self.withLangQuery("/v2/plan/weekly")
         let weeklyPlan = try await tracked("TrainingPlanV2RemoteDataSource: generateWeeklyPlan") {
             try await apiHelper.post(
                 WeeklyPlanV2DTO.self,
-                path: "/v2/plan/weekly",
+                path: path,
                 body: request
             )
         }
