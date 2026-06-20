@@ -57,8 +57,8 @@ struct PaywallView: View {
                         PaywallTrialBanner(daysRemaining: viewModel.introTrialDaysRemaining ?? 0)
                             .padding(.horizontal, 20)
                             .padding(.top, 16)
-                    } else if focusedCard.isYearly {
-                        // AC-PAYWALL-07: timeline shown when yearly card is focused and not in trial
+                    } else if focusedCard.isYearly, viewModel.yearlyFreeTrialDays != nil {
+                        // AC-PAYWALL-07: timeline shown when yearly card is focused and product has a free trial
                         PaywallTrialTimelineView()
                             .padding(.horizontal, 20)
                             .padding(.top, 16)
@@ -514,9 +514,9 @@ struct PaywallView: View {
         let termsURL = URL(string: Constants.URLs.termsOfUse)!
 
         let fullText: String
-        if focusedCard.isYearly && !viewModel.isInAppleIntroTrial {
-            // AC-PAYWALL-34: include precise trial end date (now + 30 days, device locale format).
-            let trialEndDate = Calendar.current.date(byAdding: .day, value: 30, to: Date()) ?? Date()
+        if focusedCard.isYearly, !viewModel.isInAppleIntroTrial, let trialDays = viewModel.yearlyFreeTrialDays {
+            // AC-PAYWALL-34: include precise trial end date (now + actual trial days, device locale format).
+            let trialEndDate = Calendar.current.date(byAdding: .day, value: trialDays, to: Date()) ?? Date()
             let dateString = DateFormatter.localizedString(from: trialEndDate, dateStyle: .long, timeStyle: .none)
             let format = NSLocalizedString("paywall.disclosure.trial.with_links_format", comment: "")
             fullText = String(format: format, dateString, termsText, privacyText)
