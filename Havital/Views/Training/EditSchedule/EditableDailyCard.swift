@@ -1172,7 +1172,7 @@ struct CombinationTrainingTypeWheelPicker: View {
     // 組合訓練可用的訓練類型（不包含休息，因為組合訓練本身就是一個訓練日）
     private let trainingTypes: [String] = [
         "輕鬆跑",
-        "節奏跑",
+        "馬拉松配速",
         "閾值跑",
         "間歇跑",
         "恢復跑",

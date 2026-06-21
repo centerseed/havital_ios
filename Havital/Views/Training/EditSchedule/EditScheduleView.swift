@@ -546,7 +546,7 @@ struct SimplifiedDailyCard: View {
             day.trainingDetails = MutableTrainingDetails(distanceKm: 5.0, pace: suggestedPace)
 
         case .tempo, .threshold:
-            day.dayTarget = newType == .tempo ? "節奏跑：乳酸閾值訓練" : "閾值跑：提升乳酸清除能力"
+            day.dayTarget = newType == .tempo ? "馬拉松配速：中強度持續跑" : "閾值跑：提升乳酸清除能力"
             let suggestedPace = PaceCalculator.getSuggestedPace(for: newType.rawValue, vdot: vdot) ?? "5:00"
             day.trainingDetails = MutableTrainingDetails(distanceKm: 8.0, pace: suggestedPace)
 
@@ -670,7 +670,7 @@ struct SimplifiedDailyCard: View {
                 totalDistanceKm: 12.0,
                 segments: [
                     MutableProgressionSegment(distanceKm: 4.0, pace: easyPace, description: "輕鬆配速"),
-                    MutableProgressionSegment(distanceKm: 4.0, pace: tempoPace, description: "節奏配速"),
+                    MutableProgressionSegment(distanceKm: 4.0, pace: tempoPace, description: "馬拉松配速"),
                     MutableProgressionSegment(distanceKm: 4.0, pace: "4:30", description: "加速")
                 ]
             )
@@ -687,7 +687,7 @@ struct SimplifiedDailyCard: View {
                 totalDistanceKm: 10.0,
                 segments: [
                     MutableProgressionSegment(distanceKm: 3.0, pace: easyPace, description: "輕鬆跑"),
-                    MutableProgressionSegment(distanceKm: 5.0, pace: tempoPace, description: "節奏跑"),
+                    MutableProgressionSegment(distanceKm: 5.0, pace: tempoPace, description: "馬拉松配速"),
                     MutableProgressionSegment(distanceKm: 2.0, pace: easyPace, description: "輕鬆跑")
                 ]
             )
@@ -722,7 +722,7 @@ struct SimplifiedDailyCard: View {
                 totalDistanceKm: 16.0,
                 segments: [
                     MutableProgressionSegment(distanceKm: 11.0, pace: easyPace, description: "輕鬆跑 (70%)"),
-                    MutableProgressionSegment(distanceKm: 5.0, pace: tempoPace, description: "節奏跑 (30%)")
+                    MutableProgressionSegment(distanceKm: 5.0, pace: tempoPace, description: "馬拉松配速 (30%)")
                 ]
             )
 

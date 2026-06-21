@@ -1439,7 +1439,7 @@ private struct UITestTypographyAuditHostView: View {
 
     private static let mockCombinationDay = MutableTrainingDay(
         dayIndex: "4",
-        dayTarget: "組合訓練：由輕鬆跑逐步推進到節奏跑",
+        dayTarget: "組合訓練：由輕鬆跑逐步推進到馬拉松配速",
         trainingType: "combination",
         trainingDetails: MutableTrainingDetails(
             description: "前段控制呼吸與步頻，中段進入穩定節奏，最後一段只微幅提速，不追求爆發。",

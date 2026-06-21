@@ -521,10 +521,9 @@ struct SimplifiedDailyCardV2: View {
             day.cooldown = nil
 
         case .tempo, .threshold:
-            // 節奏跑 (tempo) ≡ 閾值跑 (threshold): both are lactate-threshold training,
-            // matching the backend model. Keep the 節奏跑 run-type name but frame it as
-            // threshold/LT work, not a separate moderate zone.
-            day.dayTarget = newType == .tempo ? "節奏跑：乳酸閾值訓練，提升乳酸清除能力" : "閾值跑：提升乳酸清除能力"
+            // T-0036: tempo 正名為「馬拉松配速」(Z3, 中強度持續跑, 與後端 0.80 對齊);
+            // 閾值跑為 LT2 (~0.85)。兩者為不同強度，分開框架。
+            day.dayTarget = newType == .tempo ? "馬拉松配速：中強度持續跑，建立有氧耐力" : "閾值跑：提升乳酸清除能力"
             let pace = PaceCalculator.getSuggestedPace(for: newType.rawValue, vdot: vdot) ?? "5:00"
             day.trainingDetails = MutableTrainingDetails(distanceKm: 8.0, pace: pace)
             let wc = defaultWarmupCooldown(vdot: vdot)
@@ -567,7 +566,7 @@ struct SimplifiedDailyCardV2: View {
                 totalDistanceKm: 12.0,
                 segments: [
                     MutableProgressionSegment(distanceKm: 4.0, pace: easyPace, description: "輕鬆配速"),
-                    MutableProgressionSegment(distanceKm: 4.0, pace: tempoPace, description: "節奏配速"),
+                    MutableProgressionSegment(distanceKm: 4.0, pace: tempoPace, description: "馬拉松配速"),
                     MutableProgressionSegment(distanceKm: 4.0, pace: "4:30", description: "加速")
                 ]
             )
@@ -583,7 +582,7 @@ struct SimplifiedDailyCardV2: View {
                 totalDistanceKm: 10.0,
                 segments: [
                     MutableProgressionSegment(distanceKm: 3.0, pace: easyPace, description: "輕鬆跑"),
-                    MutableProgressionSegment(distanceKm: 5.0, pace: tempoPace, description: "節奏跑"),
+                    MutableProgressionSegment(distanceKm: 5.0, pace: tempoPace, description: "馬拉松配速"),
                     MutableProgressionSegment(distanceKm: 2.0, pace: easyPace, description: "輕鬆跑")
                 ]
             )
@@ -617,7 +616,7 @@ struct SimplifiedDailyCardV2: View {
                 totalDistanceKm: 16.0,
                 segments: [
                     MutableProgressionSegment(distanceKm: 11.0, pace: easyPace, description: "輕鬆跑"),
-                    MutableProgressionSegment(distanceKm: 5.0, pace: tempoPace, description: "節奏跑")
+                    MutableProgressionSegment(distanceKm: 5.0, pace: tempoPace, description: "馬拉松配速")
                 ]
             )
             let wc = defaultWarmupCooldown(vdot: vdot)
