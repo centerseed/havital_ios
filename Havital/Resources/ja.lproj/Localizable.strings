@@ -1175,7 +1175,7 @@
 "hr_zone.marathon" = "マラソン";
 "hr_zone.marathon.description" = "マラソンペース、持続的な有酸素強度";
 "hr_zone.marathon.benefit" = "有酸素持久力と効率を向上";
-"hr_zone.tempo" = "テンポ";
+"hr_zone.tempo" = "マラソン";
 "hr_zone.tempo.description" = "やや強い強度、有酸素効率を向上";
 "hr_zone.tempo.benefit" = "有酸素効率を向上";
 "hr_zone.threshold" = "閾値";
@@ -1330,10 +1330,10 @@
 
 // Marathon Pace
 "training_type_info.tempo.title" = "マラソンペース";
-"training_type_info.tempo.how_to_run" = "安定した、やや困難だが持続可能なペース。「きつい、でも崩れない」と感じるべきです。";
-"training_type_info.tempo.why_run" = "マラソンペースはレースペースに慣れさせます。中高強度での呼吸とペースのコントロールを鍛え、持久力とスピードをつなぐ橋となります。";
-"training_type_info.tempo.logic" = "乳酸閾値付近（最大心拍数の約80–88%）、体の乳酸処理能力を改善し、「崩れずに高速度を維持する」パフォーマンスを向上させます。";
-"training_type_info.tempo.role" = "通常週の半ば、レースペースのシミュレーションとして、週末のロングランや週初めのイージーランと組み合わせて安定したリズムの週を形成します。";
+"training_type_info.tempo.how_to_run" = "安定して長く維持できる、目標マラソンペースに近いペース。「力は入れているが、長く続けられる」と感じるべきです。";
+"training_type_info.tempo.why_run" = "マラソンペースは目標レースのリズムに慣れさせ、有酸素持久力とランニングエコノミーを高め、レース強度を効率よく維持する力を養います。";
+"training_type_info.tempo.logic" = "マラソンペースゾーン（最大心拍数の約74–84%）、主に有酸素で、脂肪利用・グリコーゲン効率・ランニングエコノミーを高め、レースに近い速度を長時間維持できるようにします。";
+"training_type_info.tempo.role" = "通常週の半ば、またはロングランの後半に、レースペースのシミュレーションとして実施。週末のロングランや週初めのイージーランと組み合わせ、レース専門の持久力を構築します。";
 
 // Threshold Run
 "training_type_info.threshold.title" = "閾値ラン";

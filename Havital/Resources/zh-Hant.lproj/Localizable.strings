@@ -1184,7 +1184,7 @@
 "hr_zone.marathon" = "馬拉松";
 "hr_zone.marathon.description" = "馬拉松配速，持續有氧強度";
 "hr_zone.marathon.benefit" = "提升有氧耐力與效率";
-"hr_zone.tempo" = "節奏";
+"hr_zone.tempo" = "馬拉松";
 "hr_zone.tempo.description" = "中等偏強，提升有氧效率";
 "hr_zone.tempo.benefit" = "提升有氧效率";
 "hr_zone.threshold" = "閾值";
@@ -1339,10 +1339,10 @@
 
 // Marathon Pace
 "training_type_info.tempo.title" = "馬拉松配速";
-"training_type_info.tempo.how_to_run" = "穩定、有點吃力但能維持的速度。應該覺得「努力，但不會崩潰」。";
-"training_type_info.tempo.why_run" = "馬拉松配速讓你熟悉比賽時的穩定節奏。它訓練你在中高強度下保持呼吸與配速的控制，是連結耐力與速度的橋樑。";
-"training_type_info.tempo.logic" = "位於乳酸閾值附近（約最大心率的80–88%），改善身體處理乳酸的能力，提升「在不爆掉的前提下維持高速度」的表現。";
-"training_type_info.tempo.role" = "通常位於週中，作為比賽節奏的模擬課，搭配週末長跑與週初輕鬆跑，形成穩定節奏週。";
+"training_type_info.tempo.how_to_run" = "穩定、可長時間維持的中等偏強配速，接近你的目標馬拉松配速。應該覺得「有在出力，但能撐很久」。";
+"training_type_info.tempo.why_run" = "馬拉松配速讓你熟悉目標比賽的穩定節奏，建立有氧耐力與跑步經濟性，學會在比賽強度下用最省力的方式維持配速。";
+"training_type_info.tempo.logic" = "對應馬拉松配速區間（約最大心率的 74–84%），以有氧代謝為主，強化脂肪利用、肝醣效率與跑步經濟性，讓你能長時間穩定維持接近比賽的速度。";
+"training_type_info.tempo.role" = "通常安排在週中，或長跑的後段，作為比賽配速的模擬課；搭配週末長跑與週初輕鬆跑，建立比賽專項耐力。";
 
 // Threshold Run
 "training_type_info.threshold.title" = "閾值跑";

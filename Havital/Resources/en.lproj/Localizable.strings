@@ -1176,7 +1176,7 @@
 "hr_zone.marathon" = "Marathon";
 "hr_zone.marathon.description" = "Marathon pace, sustained aerobic effort";
 "hr_zone.marathon.benefit" = "Build aerobic endurance and efficiency";
-"hr_zone.tempo" = "Tempo";
+"hr_zone.tempo" = "Marathon";
 "hr_zone.tempo.description" = "Moderately hard effort, improving aerobic efficiency";
 "hr_zone.tempo.benefit" = "Improve aerobic efficiency";
 "hr_zone.threshold" = "Threshold";
@@ -1331,10 +1331,10 @@
 
 // Marathon Pace
 "training_type_info.tempo.title" = "Marathon Pace";
-"training_type_info.tempo.how_to_run" = "Steady, somewhat challenging but sustainable pace. Should feel 'hard, but not collapsing.'";
-"training_type_info.tempo.why_run" = "Marathon pace runs familiarize you with race pace. They train breath and pace control at medium-high intensity, bridging endurance and speed.";
-"training_type_info.tempo.logic" = "Near lactate threshold (about 80–88% HRmax), improves body's lactate processing ability, enhances 'maintaining high speed without breaking down.'";
-"training_type_info.tempo.role" = "Usually mid-week, simulating race pace, paired with weekend long runs and easy runs for a steady rhythm week.";
+"training_type_info.tempo.how_to_run" = "Steady, sustainable pace close to your goal marathon pace. Should feel 'working, but able to hold it for a long time.'";
+"training_type_info.tempo.why_run" = "Marathon pace runs familiarize you with your goal race rhythm, build aerobic endurance and running economy, and teach you to hold race effort efficiently.";
+"training_type_info.tempo.logic" = "Marathon pace zone (about 74–84% HRmax), primarily aerobic — builds fat utilization, glycogen efficiency, and running economy so you can sustain near-race speed for a long time.";
+"training_type_info.tempo.role" = "Usually mid-week or in the final portion of a long run, simulating race pace; paired with weekend long runs and easy runs to build race-specific endurance.";
 
 // Threshold Run
 "training_type_info.threshold.title" = "Threshold Run";
