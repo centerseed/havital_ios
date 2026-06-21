@@ -3534,7 +3534,7 @@
 // MARK: - Training Record Filter & Groups
 "record.filter.all" = "全部";
 "record.filter.easy_run" = "輕鬆跑";
-"record.filter.tempo" = "節奏跑";
+"record.filter.tempo" = "馬拉松配速";
 "record.filter.interval" = "間歇";
 "record.filter.long_run" = "長距離";
 "record.group.today" = "今天";

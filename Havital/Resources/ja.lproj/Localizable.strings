@@ -3489,7 +3489,7 @@
 // MARK: - Training Record Filter & Groups
 "record.filter.all" = "すべて";
 "record.filter.easy_run" = "イージーラン";
-"record.filter.tempo" = "テンポ走";
+"record.filter.tempo" = "マラソンペース";
 "record.filter.interval" = "インターバル";
 "record.filter.long_run" = "ロング走";
 "record.group.today" = "今日";

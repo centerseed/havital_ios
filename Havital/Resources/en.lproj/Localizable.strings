@@ -3492,7 +3492,7 @@
 // MARK: - Training Record Filter & Groups
 "record.filter.all" = "All";
 "record.filter.easy_run" = "Easy Run";
-"record.filter.tempo" = "Tempo";
+"record.filter.tempo" = "Marathon Pace";
 "record.filter.interval" = "Interval";
 "record.filter.long_run" = "Long Run";
 "record.group.today" = "Today";
