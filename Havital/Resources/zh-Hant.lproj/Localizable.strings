@@ -395,7 +395,7 @@
 // MARK: - Training Types
 "training.type.easy" = "輕鬆跑";
 "training.type.easy_run" = "輕鬆跑";
-"training.type.tempo" = "節奏跑";
+"training.type.tempo" = "馬拉松配速";
 "training.type.interval" = "間歇訓練";
 "training.type.paceriz_interval" = "間歇";
 "training.type._generic_interval" = "間歇";
@@ -448,7 +448,7 @@
 "training.type.progressive_long_run" = "漸進長跑";
 // 舊格式品質課（_day 後綴相容）
 "training.type.vo2max_day" = "VO₂max 間歇";
-"training.type.threshold_day" = "節奏跑";
+"training.type.threshold_day" = "閾值跑";
 "training.type.fartlek_day" = "法特雷克";
 "training.type.speed_day" = "速度訓練";
 "training.type.hills_day" = "爬坡訓練";
@@ -457,7 +457,7 @@
 // MARK: - Training Descriptions
 "training.descriptions.distance_training" = "維持舒適的費力配速訓練";
 "training.descriptions.easy_run" = "輕鬆跑，維持對話配速";
-"training.descriptions.tempo_run" = "節奏跑，維持穩定的費力配速";
+"training.descriptions.tempo_run" = "馬拉松配速，維持穩定的費力配速";
 "training.descriptions.interval_training" = "間歇訓練，高強度與恢復交替";
 "training.descriptions.long_run" = "長距離跑，建立耐力基礎";
 "training.descriptions.recovery_run" = "恢復跑，輕鬆慢跑促進恢復";
@@ -572,7 +572,7 @@
 /* Daniels pace zones (帶配速等級代碼) */
 "training.pace_zone.recovery" = "恢復跑配速[R]";
 "training.pace_zone.easy" = "輕鬆跑配速[Easy]";
-"training.pace_zone.tempo" = "節奏跑配速[T]";
+"training.pace_zone.tempo" = "馬拉松配速[M]";
 "training.pace_zone.marathon" = "全程馬拉松配速[M]";
 "training.pace_zone.threshold" = "閾值跑配速[TH]";
 "training.pace_zone.anaerobic" = "無氧配速[AN]";
@@ -1337,16 +1337,16 @@
 "training_type_info.recovery_run.logic" = "屬於極低強度有氧訓練（<65% HRmax），幫助清除乳酸、促進代謝與神經系統恢復。相較靜態休息，能讓你更快準備好迎接下一堂課。";
 "training_type_info.recovery_run.role" = "通常安排在高強度課或長跑後的隔天，是讓訓練成果「被吸收」的關鍵環節。";
 
-// Tempo Run
-"training_type_info.tempo.title" = "節奏跑";
+// Marathon Pace
+"training_type_info.tempo.title" = "馬拉松配速";
 "training_type_info.tempo.how_to_run" = "穩定、有點吃力但能維持的速度。應該覺得「努力，但不會崩潰」。";
-"training_type_info.tempo.why_run" = "節奏跑讓你熟悉比賽時的穩定節奏。它訓練你在中高強度下保持呼吸與配速的控制，是連結耐力與速度的橋樑。";
+"training_type_info.tempo.why_run" = "馬拉松配速讓你熟悉比賽時的穩定節奏。它訓練你在中高強度下保持呼吸與配速的控制，是連結耐力與速度的橋樑。";
 "training_type_info.tempo.logic" = "位於乳酸閾值附近（約最大心率的80–88%），改善身體處理乳酸的能力，提升「在不爆掉的前提下維持高速度」的表現。";
 "training_type_info.tempo.role" = "通常位於週中，作為比賽節奏的模擬課，搭配週末長跑與週初輕鬆跑，形成穩定節奏週。";
 
 // Threshold Run
 "training_type_info.threshold.title" = "閾值跑";
-"training_type_info.threshold.how_to_run" = "比節奏跑再吃力一點，仍能穩定維持。感覺像「有挑戰，但能撐完」，心率高但仍可控制。";
+"training_type_info.threshold.how_to_run" = "比馬拉松配速再吃力一點，仍能穩定維持。感覺像「有挑戰，但能撐完」，心率高但仍可控制。";
 "training_type_info.threshold.why_run" = "閾值跑是突破耐力瓶頸的關鍵。它讓你能更久地維持高速度，也是提升馬拉松表現的重要訓練。";
 "training_type_info.threshold.logic" = "鎖定在乳酸閾值強度（約85–90% HRmax），訓練身體延後乳酸累積、提升疲勞耐受度。長期進行能明顯提升持續速度與競賽表現。";
 "training_type_info.threshold.role" = "通常在訓練高峰期週中安排，週前以輕鬆跑熱身，週後以恢復跑吸收刺激。";
@@ -1363,7 +1363,7 @@
 "training_type_info.lsd.how_to_run" = "放慢速度、拉長時間。應該覺得可以一直跑下去，節奏穩但不吃力。";
 "training_type_info.lsd.why_run" = "長時間跑步能鍛鍊意志與耐力，讓身體學會長時間利用脂肪作為燃料，是馬拉松訓練中最經典的核心課。";
 "training_type_info.lsd.logic" = "屬於長時間低強度有氧訓練，強化心肺功能、肌肉耐力與能量利用效率。也促進毛細血管生長，提升肌肉對氧氣的運用能力。";
-"training_type_info.lsd.role" = "通常安排在週末，是整週訓練的「耐力支柱」。搭配週中節奏跑或間歇跑，共同建立完整的有氧能力。";
+"training_type_info.lsd.role" = "通常安排在週末，是整週訓練的「耐力支柱」。搭配週中馬拉松配速或間歇跑，共同建立完整的有氧能力。";
 
 // Long Run
 "training_type_info.long_run.title" = "長距離跑";
@@ -1417,7 +1417,7 @@
 "training_type_info.fartlek.role" = "可以替代結構化的間歇訓練，或作為恢復週的輕鬆變速跑。適合任何訓練階段，特別是需要調劑心情的時候。";
 
 "training_type_info.fast_finish.title" = "快結尾長跑";
-"training_type_info.fast_finish.how_to_run" = "前 70% 以輕鬆配速進行，最後 30% 逐漸加速到節奏跑或更快的配速。結束時應該覺得有挑戰但能完成。";
+"training_type_info.fast_finish.how_to_run" = "前 70% 以輕鬆配速進行，最後 30% 逐漸加速到馬拉松配速或更快的配速。結束時應該覺得有挑戰但能完成。";
 "training_type_info.fast_finish.why_run" = "快結尾長跑訓練你在疲勞時維持或加快配速——這正是比賽後半段的挑戰。它讓身體習慣「累了還要加速」的感覺。";
 "training_type_info.fast_finish.logic" = "在肝醣耗竭、肌肉疲勞的狀態下進行較高強度跑步，能提升脂肪代謝能力與疲勞耐受度。也訓練維持跑姿與專注力。";
 "training_type_info.fast_finish.role" = "通常在比賽準備期的週末長跑使用。是模擬比賽後半段的重要訓練，能建立比賽信心。";
@@ -1661,7 +1661,7 @@
 "edit_schedule.apply" = "套用";
 "edit_schedule.cannot_edit" = "無法編輯";
 "edit_schedule.easy_run" = "輕鬆跑";
-"edit_schedule.tempo_run" = "節奏跑";
+"edit_schedule.tempo_run" = "馬拉松配速";
 "edit_schedule.interval_training" = "間歇訓練";
 "edit_schedule.combination_run" = "組合訓練";
 "edit_schedule.long_distance_run" = "長距離跑";
@@ -1670,7 +1670,7 @@
 "edit_schedule.threshold_run" = "閾值跑";
 "edit_schedule.rest" = "休息";
 "edit_schedule.easy_run_settings" = "輕鬆跑設定";
-"edit_schedule.tempo_run_settings" = "節奏跑設定";
+"edit_schedule.tempo_run_settings" = "馬拉松配速設定";
 "edit_schedule.interval_settings" = "間歇訓練設定";
 "edit_schedule.combination_settings" = "組合跑設定";
 "edit_schedule.long_run_settings" = "長距離跑設定";
@@ -2491,7 +2491,7 @@
 "training.workout_type.short_interval" = "短間歇";
 "training.workout_type.long_interval" = "長間歇";
 "training.workout_type.threshold" = "門檻跑";
-"training.workout_type.tempo" = "節奏跑";
+"training.workout_type.tempo" = "馬拉松配速";
 "training.workout_type.fartlek" = "法特雷克";
 "training.workout_type.norwegian_4x4" = "挪威 4x4";
 "training.workout_type.race_pace" = "配速跑";
@@ -3589,19 +3589,19 @@
 // MARK: - Training Segment Labels
 "training.segment.sprint" = "衝刺";
 "watch.segment.rest" = "休息";
-"training.segment.progression_label" = "三段進階：輕 → 節奏 → 快";
-"training.segment.fast_finish_label" = "二段式：輕鬆 → 節奏";
+"training.segment.progression_label" = "三段進階：輕 → 馬拉松 → 快";
+"training.segment.fast_finish_label" = "二段式：輕鬆 → 馬拉松";
 "training.segment.lsd_single" = "長距離有氧";
 "training.segment.easy_single" = "輕鬆有氧";
 "training.segment.recovery_single" = "恢復慢跑";
-"training.segment.tempo_single" = "節奏跑段";
+"training.segment.tempo_single" = "馬拉松配速段";
 "training.segment.threshold_single" = "閾值段";
 "training.segment.warmup" = "暖身";
 "training.segment.cooldown" = "緩和";
 "training.segment.easy_pace" = "輕鬆配速";
-"training.segment.tempo_pace" = "節奏配速";
+"training.segment.tempo_pace" = "馬拉松配速";
 "training.segment.accelerate" = "加速";
-"training.segment.tempo_finish" = "節奏跑收尾";
+"training.segment.tempo_finish" = "馬拉松配速收尾";
 
 // MARK: - Training Zone Pills
 "training.zone.sprint_pace" = "衝刺配速";

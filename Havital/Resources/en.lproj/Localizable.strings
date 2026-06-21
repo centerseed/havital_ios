@@ -395,7 +395,7 @@
 // MARK: - Training Types
 "training.type.easy" = "Easy Run";
 "training.type.easy_run" = "Easy Run";
-"training.type.tempo" = "Tempo Run";
+"training.type.tempo" = "Marathon Pace";
 "training.type.interval" = "Interval Training";
 "training.type.paceriz_interval" = "Interval";
 "training.type._generic_interval" = "Intervals";
@@ -459,7 +459,7 @@
 "training.type.progressive_long_run" = "Progressive Long Run";
 // Legacy quality session types (_day suffix compatibility)
 "training.type.vo2max_day" = "VO₂max Intervals";
-"training.type.threshold_day" = "Tempo Run";
+"training.type.threshold_day" = "Threshold Run";
 "training.type.fartlek_day" = "Fartlek";
 "training.type.speed_day" = "Speed Work";
 "training.type.hills_day" = "Hill Training";
@@ -468,7 +468,7 @@
 // MARK: - Training Descriptions
 "training.descriptions.distance_training" = "Maintain a comfortable effort pace";
 "training.descriptions.easy_run" = "Easy run at conversational pace";
-"training.descriptions.tempo_run" = "Tempo run at steady effort pace";
+"training.descriptions.tempo_run" = "Marathon pace at steady effort pace";
 "training.descriptions.interval_training" = "Interval training with high intensity and recovery";
 "training.descriptions.long_run" = "Long run to build endurance";
 "training.descriptions.recovery_run" = "Recovery run for active recovery";
@@ -583,7 +583,7 @@
 /* Daniels pace zones (with level codes) */
 "training.pace_zone.recovery" = "Recovery Pace [R]";
 "training.pace_zone.easy" = "Easy Pace [Easy]";
-"training.pace_zone.tempo" = "Tempo Pace [T]";
+"training.pace_zone.tempo" = "Marathon Pace [M]";
 "training.pace_zone.marathon" = "Marathon Pace [M]";
 "training.pace_zone.threshold" = "Threshold Pace [TH]";
 "training.pace_zone.anaerobic" = "Anaerobic Pace [AN]";
@@ -1329,16 +1329,16 @@
 "training_type_info.recovery_run.logic" = "Very low intensity aerobic training (<65% HRmax), helps clear lactate, promotes metabolism and nervous system recovery. Compared to static rest, prepares you faster for the next session.";
 "training_type_info.recovery_run.role" = "Usually scheduled the day after high-intensity workouts or long runs, it's the key to 'absorbing' training results.";
 
-// Tempo Run
-"training_type_info.tempo.title" = "Tempo Run";
+// Marathon Pace
+"training_type_info.tempo.title" = "Marathon Pace";
 "training_type_info.tempo.how_to_run" = "Steady, somewhat challenging but sustainable pace. Should feel 'hard, but not collapsing.'";
-"training_type_info.tempo.why_run" = "Tempo runs familiarize you with race pace. They train breath and pace control at medium-high intensity, bridging endurance and speed.";
+"training_type_info.tempo.why_run" = "Marathon pace runs familiarize you with race pace. They train breath and pace control at medium-high intensity, bridging endurance and speed.";
 "training_type_info.tempo.logic" = "Near lactate threshold (about 80–88% HRmax), improves body's lactate processing ability, enhances 'maintaining high speed without breaking down.'";
 "training_type_info.tempo.role" = "Usually mid-week, simulating race pace, paired with weekend long runs and easy runs for a steady rhythm week.";
 
 // Threshold Run
 "training_type_info.threshold.title" = "Threshold Run";
-"training_type_info.threshold.how_to_run" = "Slightly harder than tempo, still sustainable. Feels 'challenging but doable,' high heart rate but controlled.";
+"training_type_info.threshold.how_to_run" = "Slightly harder than marathon pace, still sustainable. Feels 'challenging but doable,' high heart rate but controlled.";
 "training_type_info.threshold.why_run" = "Threshold runs are key to breaking endurance plateaus. They allow you to sustain higher speeds longer, crucial for marathon performance.";
 "training_type_info.threshold.logic" = "Targets lactate threshold intensity (about 85–90% HRmax), trains body to delay lactate accumulation, improves fatigue tolerance. Long-term practice significantly boosts sustained speed and race performance.";
 "training_type_info.threshold.role" = "Usually mid-week during peak training, preceded by easy runs for warm-up, followed by recovery runs to absorb stimulus.";
@@ -1355,7 +1355,7 @@
 "training_type_info.lsd.how_to_run" = "Slow down and extend time. Should feel like you can run forever, steady but not hard.";
 "training_type_info.lsd.why_run" = "Long runs build mental and physical endurance, teaching the body to use fat as fuel for extended periods—the classic core workout for marathon training.";
 "training_type_info.lsd.logic" = "Long-duration low-intensity aerobic training, strengthens cardiovascular function, muscle endurance, and energy utilization efficiency. Also promotes capillary growth, improving muscle oxygen usage.";
-"training_type_info.lsd.role" = "Usually on weekends, the 'endurance pillar' of the week. Combined with mid-week tempo or interval runs to build complete aerobic capacity.";
+"training_type_info.lsd.role" = "Usually on weekends, the 'endurance pillar' of the week. Combined with mid-week marathon pace or interval runs to build complete aerobic capacity.";
 
 // Long Run
 "training_type_info.long_run.title" = "Long Run";
@@ -1409,7 +1409,7 @@
 "training_type_info.fartlek.role" = "Can replace structured interval training or serve as an easy variable-pace run during recovery weeks. Suitable for any training phase, especially when you need a mental break.";
 
 "training_type_info.fast_finish.title" = "Fast Finish Long Run";
-"training_type_info.fast_finish.how_to_run" = "Run the first 70% at easy pace, then gradually accelerate to tempo pace or faster for the final 30%. You should feel challenged but able to finish strong.";
+"training_type_info.fast_finish.how_to_run" = "Run the first 70% at easy pace, then gradually accelerate to marathon pace or faster for the final 30%. You should feel challenged but able to finish strong.";
 "training_type_info.fast_finish.why_run" = "Fast finish runs train you to maintain or increase pace when tired—the exact challenge of late-race miles. They teach your body to 'push harder when fatigued.'";
 "training_type_info.fast_finish.logic" = "Running at higher intensity when glycogen is depleted and muscles are tired improves fat metabolism and fatigue tolerance. Also trains form and focus maintenance.";
 "training_type_info.fast_finish.role" = "Usually done during race preparation phase weekend long runs. Key training for simulating late-race conditions and building confidence.";
@@ -1867,7 +1867,7 @@
 
 // Training Types
 "edit_schedule.easy_run" = "Easy Run";
-"edit_schedule.tempo_run" = "Tempo Run";
+"edit_schedule.tempo_run" = "Marathon Pace";
 "edit_schedule.interval_training" = "Interval Training";
 "edit_schedule.combination_run" = "Combination Run";
 "edit_schedule.long_distance_run" = "Long Distance Run";
@@ -1878,7 +1878,7 @@
 
 // Training Detail Editor
 "edit_schedule.easy_run_settings" = "Easy Run Settings";
-"edit_schedule.tempo_run_settings" = "Tempo Run Settings";
+"edit_schedule.tempo_run_settings" = "Marathon Pace Settings";
 "edit_schedule.interval_settings" = "Interval Training Settings";
 "edit_schedule.combination_settings" = "Combination Run Settings";
 "edit_schedule.long_run_settings" = "Long Run Settings";
@@ -2579,7 +2579,7 @@
 "training.workout_type.norwegian_4x4" = "Norwegian 4x4";
 "training.workout_type.race_pace" = "Race Pace";
 "training.workout_type.short_interval" = "Short Interval";
-"training.workout_type.tempo" = "Tempo Run";
+"training.workout_type.tempo" = "Marathon Pace";
 "training.workout_type.threshold" = "Threshold Run";
 
 // MARK: - New Phase 1 Keys
@@ -3547,19 +3547,19 @@
 // MARK: - Training Segment Labels
 "training.segment.sprint" = "Sprint";
 "watch.segment.rest" = "Rest";
-"training.segment.progression_label" = "3-Stage: Easy → Tempo → Fast";
-"training.segment.fast_finish_label" = "2-Stage: Easy → Tempo";
+"training.segment.progression_label" = "3-Stage: Easy → Marathon → Fast";
+"training.segment.fast_finish_label" = "2-Stage: Easy → Marathon";
 "training.segment.lsd_single" = "Long Aerobic";
 "training.segment.easy_single" = "Easy Aerobic";
 "training.segment.recovery_single" = "Recovery Jog";
-"training.segment.tempo_single" = "Tempo Segment";
+"training.segment.tempo_single" = "Marathon Pace Segment";
 "training.segment.threshold_single" = "Threshold Segment";
 "training.segment.warmup" = "Warm-up";
 "training.segment.cooldown" = "Cool-down";
 "training.segment.easy_pace" = "Easy Pace";
-"training.segment.tempo_pace" = "Tempo Pace";
+"training.segment.tempo_pace" = "Marathon Pace";
 "training.segment.accelerate" = "Accelerate";
-"training.segment.tempo_finish" = "Tempo Finish";
+"training.segment.tempo_finish" = "Marathon Pace Finish";
 
 // MARK: - Training Zone Pills
 "training.zone.sprint_pace" = "Sprint Pace";

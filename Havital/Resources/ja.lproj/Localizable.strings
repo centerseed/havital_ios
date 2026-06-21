@@ -395,7 +395,7 @@
 // MARK: - Training Types
 "training.type.easy" = "イージーラン";
 "training.type.easy_run" = "イージーラン";
-"training.type.tempo" = "テンポラン";
+"training.type.tempo" = "マラソンペース";
 "training.type.interval" = "インターバル走";
 "training.type.paceriz_interval" = "インターバル";
 "training.type._generic_interval" = "インターバル";
@@ -459,7 +459,7 @@
 "training.type.progressive_long_run" = "プログレッションロングラン";
 // レガシー品質セッションタイプ（_day サフィックス互換）
 "training.type.vo2max_day" = "VO₂maxインターバル";
-"training.type.threshold_day" = "テンポラン";
+"training.type.threshold_day" = "閾値走";
 "training.type.fartlek_day" = "ファルトレク";
 "training.type.speed_day" = "スピードワーク";
 "training.type.hills_day" = "ヒルトレーニング";
@@ -468,7 +468,7 @@
 // MARK: - Training Descriptions
 "training.descriptions.distance_training" = "快適なペースでトレーニング";
 "training.descriptions.easy_run" = "会話できるペースでイージーラン";
-"training.descriptions.tempo_run" = "安定したペースでテンポラン";
+"training.descriptions.tempo_run" = "安定したペースでのマラソンペース";
 "training.descriptions.interval_training" = "高強度と回復を交互に行うインターバル";
 "training.descriptions.long_run" = "持久力を構築するロングラン";
 "training.descriptions.recovery_run" = "回復を促進するリカバリーラン";
@@ -583,7 +583,7 @@
 /* Daniels pace zones (配速等級コード付き) */
 "training.pace_zone.recovery" = "リカバリーペース[R]";
 "training.pace_zone.easy" = "イージーペース[Easy]";
-"training.pace_zone.tempo" = "テンポペース[T]";
+"training.pace_zone.tempo" = "マラソンペース[M]";
 "training.pace_zone.marathon" = "マラソンペース[M]";
 "training.pace_zone.threshold" = "閾値ペース[TH]";
 "training.pace_zone.anaerobic" = "無酸素ペース[AN]";
@@ -1328,16 +1328,16 @@
 "training_type_info.recovery_run.logic" = "非常に低強度の有酸素トレーニング（<65% HRmax）、乳酸の除去を助け、代謝と神経系の回復を促進します。静的休息と比較して、次のセッションの準備が早くなります。";
 "training_type_info.recovery_run.role" = "通常、高強度ワークアウトやロングランの翌日にスケジュールされ、トレーニング結果を「吸収」するための鍵となります。";
 
-// Tempo Run
-"training_type_info.tempo.title" = "テンポラン";
+// Marathon Pace
+"training_type_info.tempo.title" = "マラソンペース";
 "training_type_info.tempo.how_to_run" = "安定した、やや困難だが持続可能なペース。「きつい、でも崩れない」と感じるべきです。";
-"training_type_info.tempo.why_run" = "テンポランはレースペースに慣れさせます。中高強度での呼吸とペースのコントロールを鍛え、持久力とスピードをつなぐ橋となります。";
+"training_type_info.tempo.why_run" = "マラソンペースはレースペースに慣れさせます。中高強度での呼吸とペースのコントロールを鍛え、持久力とスピードをつなぐ橋となります。";
 "training_type_info.tempo.logic" = "乳酸閾値付近（最大心拍数の約80–88%）、体の乳酸処理能力を改善し、「崩れずに高速度を維持する」パフォーマンスを向上させます。";
 "training_type_info.tempo.role" = "通常週の半ば、レースペースのシミュレーションとして、週末のロングランや週初めのイージーランと組み合わせて安定したリズムの週を形成します。";
 
 // Threshold Run
 "training_type_info.threshold.title" = "閾値ラン";
-"training_type_info.threshold.how_to_run" = "テンポランよりわずかにきついが、まだ持続可能。「挑戦的だがやり遂げられる」と感じ、心拍数は高いが制御されています。";
+"training_type_info.threshold.how_to_run" = "マラソンペースよりわずかにきついが、まだ持続可能。「挑戦的だがやり遂げられる」と感じ、心拍数は高いが制御されています。";
 "training_type_info.threshold.why_run" = "閾値ランは持久力の壁を破る鍵です。より長く高速度を維持できるようにし、マラソンパフォーマンスの向上に重要です。";
 "training_type_info.threshold.logic" = "乳酸閾値強度（最大心拍数の約85–90%）をターゲットとし、体が乳酸蓄積を遅らせ、疲労耐性を向上させます。長期的な実践により、持続スピードとレースパフォーマンスが大幅に向上します。";
 "training_type_info.threshold.role" = "通常、ピークトレーニング期間の週の半ばにスケジュールされ、イージーランでウォームアップし、リカバリーランで刺激を吸収します。";
@@ -1354,7 +1354,7 @@
 "training_type_info.lsd.how_to_run" = "ペースを落として時間を延ばします。永遠に走れるように感じるべきで、安定しているがきつくありません。";
 "training_type_info.lsd.why_run" = "長時間のランニングは精神的および肉体的持久力を鍛え、体が長時間脂肪を燃料として使用することを学びます—マラソントレーニングの古典的なコアワークアウト。";
 "training_type_info.lsd.logic" = "長時間低強度有酸素トレーニング、心肺機能、筋肉持久力、エネルギー利用効率を強化します。毛細血管の成長を促進し、筋肉の酸素使用を改善します。";
-"training_type_info.lsd.role" = "通常週末、週の「持久力の柱」。週の半ばのテンポランやインターバルランと組み合わせて完全な有酸素能力を構築します。";
+"training_type_info.lsd.role" = "通常週末、週の「持久力の柱」。週の半ばのマラソンペースやインターバルランと組み合わせて完全な有酸素能力を構築します。";
 
 // Long Run
 "training_type_info.long_run.title" = "ロングラン";
@@ -1408,7 +1408,7 @@
 "training_type_info.fartlek.role" = "構造化インターバルの代替、または回復週の軽い変速走として。どのトレーニング段階にも適合、特に気分転換が必要な時に。";
 
 "training_type_info.fast_finish.title" = "ファストフィニッシュ走";
-"training_type_info.fast_finish.how_to_run" = "最初の70%はイージーペース、最後の30%でテンポペースまたはそれ以上に加速。終了時にはチャレンジを感じながらも完走できるべき。";
+"training_type_info.fast_finish.how_to_run" = "最初の70%はイージーペース、最後の30%でマラソンペースまたはそれ以上に加速。終了時にはチャレンジを感じながらも完走できるべき。";
 "training_type_info.fast_finish.why_run" = "ファストフィニッシュランは疲労時にペースを維持・加速する訓練—まさにレース後半の挑戦。「疲れても加速する」感覚を体に覚えさせます。";
 "training_type_info.fast_finish.logic" = "グリコーゲン枯渇、筋肉疲労状態での高強度走により、脂肪代謝能力と疲労耐性を向上。フォームと集中力の維持も訓練。";
 "training_type_info.fast_finish.role" = "通常、レース準備期の週末ロングランで実施。レース後半をシミュレートする重要なトレーニングで、自信構築に有効。";
@@ -1861,7 +1861,7 @@
 
 // Training Types
 "edit_schedule.easy_run" = "イージーラン";
-"edit_schedule.tempo_run" = "テンポラン";
+"edit_schedule.tempo_run" = "マラソンペース";
 "edit_schedule.interval_training" = "インターバルトレーニング";
 "edit_schedule.combination_run" = "コンビネーションラン";
 "edit_schedule.long_distance_run" = "ロングディスタンスラン";
@@ -1872,7 +1872,7 @@
 
 // Training Detail Editor
 "edit_schedule.easy_run_settings" = "イージーラン設定";
-"edit_schedule.tempo_run_settings" = "テンポラン設定";
+"edit_schedule.tempo_run_settings" = "マラソンペース設定";
 "edit_schedule.interval_settings" = "インターバルトレーニング設定";
 "edit_schedule.combination_settings" = "コンビネーションラン設定";
 "edit_schedule.long_run_settings" = "ロングラン設定";
@@ -2576,7 +2576,7 @@
 "training.workout_type.norwegian_4x4" = "ノルウェー 4x4";
 "training.workout_type.race_pace" = "レースペース走";
 "training.workout_type.short_interval" = "ショートインターバル";
-"training.workout_type.tempo" = "テンポラン";
+"training.workout_type.tempo" = "マラソンペース";
 "training.workout_type.threshold" = "閾値走";
 
 // MARK: - New Phase 1 Keys
@@ -3544,19 +3544,19 @@
 // MARK: - Training Segment Labels
 "training.segment.sprint" = "スプリント";
 "watch.segment.rest" = "レスト";
-"training.segment.progression_label" = "3段階：軽め→テンポ→速め";
-"training.segment.fast_finish_label" = "2段階：イージー → テンポ";
+"training.segment.progression_label" = "3段階：軽め→マラソン→速め";
+"training.segment.fast_finish_label" = "2段階：イージー → マラソン";
 "training.segment.lsd_single" = "ロング有酸素";
 "training.segment.easy_single" = "イージー有酸素";
 "training.segment.recovery_single" = "リカバリーJog";
-"training.segment.tempo_single" = "テンポ区間";
+"training.segment.tempo_single" = "マラソンペース区間";
 "training.segment.threshold_single" = "閾値区間";
 "training.segment.warmup" = "ウォームアップ";
 "training.segment.cooldown" = "クールダウン";
 "training.segment.easy_pace" = "イージーペース";
-"training.segment.tempo_pace" = "テンポペース";
+"training.segment.tempo_pace" = "マラソンペース";
 "training.segment.accelerate" = "加速";
-"training.segment.tempo_finish" = "テンポフィニッシュ";
+"training.segment.tempo_finish" = "マラソンペースフィニッシュ";
 
 // MARK: - Training Zone Pills
 "training.zone.sprint_pace" = "スプリントペース";
