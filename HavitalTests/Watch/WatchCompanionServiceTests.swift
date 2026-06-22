@@ -165,6 +165,63 @@ final class WatchCompanionServiceTests: XCTestCase {
         )
     }
 
+    // MARK: - Cold-launch settling (the 1.4.3 residual "next-day can't send" bug)
+    //
+    // Right after a cold-launch activation, `WCSession.isWatchAppInstalled` can read a
+    // transient `false` before the watch handshake completes. 9989b75 gave `.unavailable`
+    // a grace (keepWaiting) but still treated `.appNotInstalled` as terminal — so the
+    // transient false surfaced an "Install Paceriz" prompt and killed the queued send even
+    // though the app was installed (proven by day-1 having worked). These pin the fix:
+    // demote a transient `.appNotInstalled` to `.unavailable` until the state settles.
+
+    func test_effectiveAvailability_transientAppNotInstalled_demotedToUnavailable() {
+        XCTAssertEqual(
+            WatchCompanionService.effectiveAvailability(raw: .appNotInstalled, settled: false),
+            .unavailable
+        )
+    }
+
+    func test_effectiveAvailability_settledAppNotInstalled_staysAppNotInstalled() {
+        XCTAssertEqual(
+            WatchCompanionService.effectiveAvailability(raw: .appNotInstalled, settled: true),
+            .appNotInstalled
+        )
+    }
+
+    func test_effectiveAvailability_definitiveStatesPassThroughWhileUnsettled() {
+        XCTAssertEqual(WatchCompanionService.effectiveAvailability(raw: .ready, settled: false), .ready)
+        XCTAssertEqual(WatchCompanionService.effectiveAvailability(raw: .noWatch, settled: false), .noWatch)
+        XCTAssertEqual(WatchCompanionService.effectiveAvailability(raw: .unavailable, settled: false), .unavailable)
+    }
+
+    // The behavioral payoff: while unsettled, a queued send keeps waiting (so a later
+    // settle → ready retries and actually sends) instead of failing on a false negative.
+    func test_resolvePendingSend_transientAppNotInstalled_keepsWaiting_thenRetriesOnSettle() {
+        let transient = WatchCompanionService.effectiveAvailability(raw: .appNotInstalled, settled: false)
+        XCTAssertEqual(
+            WatchCompanionService.resolvePendingSend(hasPending: true, availability: transient),
+            .keepWaiting
+        )
+        // …then the watch state settles to installed → ready → retry → send.
+        XCTAssertEqual(
+            WatchCompanionService.resolvePendingSend(hasPending: true, availability: .ready),
+            .retry
+        )
+    }
+
+    // Integration through the service: after a cold-launch activate(), a transient
+    // not-installed read reports `.unavailable` (connecting), NOT `.appNotInstalled`.
+    func test_sendAvailability_afterActivate_transientNotInstalled_isUnavailableNotInstallPrompt() {
+        let session = SpyWatchPlanSession()
+        session.isWatchAppInstalled = false // transient false right after cold-launch activation
+        let service = WatchCompanionService(session: session)
+
+        service.activate()
+
+        XCTAssertEqual(service.sendAvailability, .unavailable)
+        XCTAssertNotEqual(service.sendAvailability, .appNotInstalled)
+    }
+
     private func makeTodayPlanDTO() -> WatchPlanSnapshotDTO {
         WatchPlanSnapshotDTO(
             date: "2026-06-05",

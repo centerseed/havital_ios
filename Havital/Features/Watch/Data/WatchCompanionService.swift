@@ -75,6 +75,17 @@ final class WatchCompanionService: NSObject, WCSessionDelegate {
     private let session: WatchPlanSessioning
     private static let logTag = "WatchCompanion"
 
+    // After a cold-launch (re)activation, WCSession's paired/installed flags can read stale
+    // for a brief window before the watch handshake completes. In that window a raw
+    // `.appNotInstalled` is a FALSE NEGATIVE — the root cause of the "next-day cold launch
+    // shows Install / can't send" report even though the watch app is installed (the 1.4.3
+    // bug that 9989b75 only half-fixed: it gave `.unavailable` a grace but still treated a
+    // transient `.appNotInstalled` as terminal). We suppress that transient until the state
+    // settles: a real `sessionWatchStateDidChange`, a positive activation, or a grace deadline.
+    private var hasSettledWatchState = true
+    private var settleDeadline: DispatchWorkItem?
+    private static let settleGrace: TimeInterval = 3.0
+
     enum WatchAvailability: Equatable {
         case ready
         case appNotInstalled
@@ -124,16 +135,54 @@ final class WatchCompanionService: NSObject, WCSessionDelegate {
     func activate() {
         guard session.isSupported else { return }
         (session as? DefaultWatchPlanSession)?.setDelegate(self)
+        // Re-entering activation: treat the watch state as unsettled again until the
+        // handshake proves otherwise, so a transient `.appNotInstalled` is not trusted.
+        hasSettledWatchState = false
+        armSettleDeadline()
         session.activate()
     }
 
-    var sendAvailability: WatchAvailability {
+    /// Live read of the session, before cold-launch settling is applied.
+    var rawAvailability: WatchAvailability {
         guard session.isSupported else { return .unavailable }
 
         guard session.activationState == .activated else { return .unavailable }
         guard session.isPaired else { return .noWatch }
         guard session.isWatchAppInstalled else { return .appNotInstalled }
         return .ready
+    }
+
+    var sendAvailability: WatchAvailability {
+        Self.effectiveAvailability(raw: rawAvailability, settled: hasSettledWatchState)
+    }
+
+    /// During the unsettled cold-launch window, demote a transient `.appNotInstalled` to
+    /// `.unavailable` ("still connecting") so the UI does not show a false "Install Paceriz"
+    /// prompt and a queued send keeps waiting (then retries on settle) instead of giving up.
+    /// Positive/definitive states (`.ready`, `.noWatch`) always pass through.
+    static func effectiveAvailability(
+        raw: WatchAvailability,
+        settled: Bool
+    ) -> WatchAvailability {
+        if !settled, raw == .appNotInstalled { return .unavailable }
+        return raw
+    }
+
+    private func armSettleDeadline() {
+        settleDeadline?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self else { return }
+            self.markWatchStateSettled()
+            NotificationCenter.default.post(name: .watchAvailabilityChanged, object: nil)
+        }
+        settleDeadline = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.settleGrace, execute: work)
+    }
+
+    private func markWatchStateSettled() {
+        settleDeadline?.cancel()
+        settleDeadline = nil
+        hasSettledWatchState = true
     }
 
     @discardableResult
@@ -197,6 +246,9 @@ final class WatchCompanionService: NSObject, WCSessionDelegate {
         activationDidCompleteWith activationState: WCSessionActivationState,
         error: Error?
     ) {
+        // A positive read at activation is authoritative; otherwise let the state settle
+        // (a later watch-state change or the grace deadline) before trusting a negative.
+        if rawAvailability == .ready { markWatchStateSettled() }
         NotificationCenter.default.post(name: .watchAvailabilityChanged, object: nil)
     }
 
@@ -213,6 +265,8 @@ final class WatchCompanionService: NSObject, WCSessionDelegate {
     }
 
     func sessionWatchStateDidChange(_ session: WCSession) {
+        // The system has reported the authoritative watch state — settling is over.
+        markWatchStateSettled()
         NotificationCenter.default.post(name: .watchAvailabilityChanged, object: nil)
     }
 }
