@@ -3859,3 +3859,5 @@
 "weekly_review.nl_input.status_pending" = "Noted - applied when next week's plan is generated";
 "weekly_review.nl_input.status_applied" = "Applied to next week's plan";
 "weekly_review.nl_input.status_failed" = "Couldn't apply - tap to tell me again";
+"weekly_review.deferred_failed.title" = "Plan adjustment not applied";
+"weekly_review.deferred_failed.body" = "Couldn't apply last week's adjustment. Open Rizo and tell me again.";

@@ -3898,3 +3898,5 @@
 "weekly_review.nl_input.status_pending" = "已記下，下次生成課表時套用";
 "weekly_review.nl_input.status_applied" = "已套用到下週課表";
 "weekly_review.nl_input.status_failed" = "沒能套用，點我再說一次";
+"weekly_review.deferred_failed.title" = "課表調整未套用";
+"weekly_review.deferred_failed.body" = "沒能套用你上週的調整，打開 Rizo 再說一次就好。";

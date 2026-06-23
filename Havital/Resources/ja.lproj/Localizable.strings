@@ -3856,3 +3856,5 @@
 "weekly_review.nl_input.status_pending" = "記録しました - 来週のプラン生成時に反映します";
 "weekly_review.nl_input.status_applied" = "来週のプランに反映済み";
 "weekly_review.nl_input.status_failed" = "反映できませんでした - タップしてもう一度教えてください";
+"weekly_review.deferred_failed.title" = "プラン調整が反映されませんでした";
+"weekly_review.deferred_failed.body" = "先週の調整を反映できませんでした。Rizoを開いてもう一度教えてください。";
