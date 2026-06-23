@@ -2365,7 +2365,7 @@
 "workoutsyncdebug.text_19" = "根據時間範圍刪除";
 "workoutsyncdebug.text_2" = "測試功能";
 "workoutsyncdebug.text_20" = "重新整理狀態";
-"workoutsyncdebug.text_21" = "測試觀察者設置";
+"workoutsyncdebug.text_21" = "測試觀察者設定";
 "workoutsyncdebug.text_23" = "找到的健身紀錄";
 "workoutsyncdebug.text_3" = "創建測試健身紀錄";
 "workoutsyncdebug.text_4" = "手動檢查並上傳";
@@ -3790,7 +3790,7 @@
 "sync.notification.completed.title" = "訓練數據同步完成";
 "sync.notification.completed.body_format" = "已成功同步 %d 條訓練記錄";
 "calendar.training_event.title" = "Paceriz 訓練日";
-"calendar.training_event.notes" = "今天是訓練日，記得按照計劃完成訓練！";
+"calendar.training_event.notes" = "今天是訓練日，記得按照計畫完成訓練！";
 
 // MARK: - Second Batch User-Visible i18n
 "auth.error.missing_client_id" = "Firebase client ID 不存在";
@@ -3830,7 +3830,7 @@
 "app_state.initializing" = "初始化中...";
 "app_state.authenticating" = "驗證用戶身份...";
 "app_state.loading_user_data" = "載入用戶資料...";
-"app_state.setting_up_services" = "設置服務中...";
+"app_state.setting_up_services" = "設定服務中...";
 "app_state.ready" = "就緒";
 "app_state.error_format" = "錯誤: %@";
 "subscription_status.free" = "免費版";
@@ -3845,7 +3845,7 @@
 "calendar.error.access_denied" = "日曆存取權限遭拒";
 "calendar.error.event_time_creation_failed" = "無法創建事件時間";
 "calendar.error.default_calendar_missing" = "找不到預設日曆";
-"training_plan.update_failed" = "無法更新訓練計劃";
+"training_plan.update_failed" = "無法更新訓練計畫";
 "healthkit.authorization_denied" = "HealthKit 授權被拒絕";
 "training.intensity_distribution_format" = "%d%% 低強度 / %d%% 中強度 / %d%% 高強度";
 
@@ -3888,3 +3888,19 @@
 "paywall.conversion.cta_generate" = "產生本週課表";
 "paywall.conversion.cta_restore" = "已訂閱？恢復購買";
 "paywall.conversion.daily_value_hint" = "訂閱後每天有教練幫你解讀狀態";
+
+// MARK: - Garmin Push (T-0044)
+"training.detail.push_to_garmin" = "傳到 Garmin";
+"garmin.push.sending" = "傳送中…";
+"garmin.push.alert_title" = "Garmin";
+"garmin.push.success" = "已傳送到 Garmin，課表會同步到你的手錶";
+"garmin.push.hint_title" = "已上傳到 Garmin";
+"garmin.push.hint_message" = "在手錶上開始一個「跑步」活動，就能看到這份課表。";
+"garmin.push.hint_dont_show_again" = "不再顯示";
+"garmin.push.removed" = "已從 Garmin 移除這堂課表";
+"garmin.push.reconnect" = "前往連結 Garmin";
+"garmin.push.later" = "稍後";
+"garmin.push.error.needs_garmin_reauth" = "請先連結 Garmin，並在 Garmin Connect 設定開啟「課表匯入(Workout Import)」權限";
+"garmin.push.error.garmin_training_unavailable" = "Garmin 課表推送即將開放，敬請期待";
+"garmin.push.error.not_a_run_workout" = "這一天不是跑步課表，無法傳到 Garmin";
+"garmin.push.error.generic" = "傳送失敗，請稍後再試";

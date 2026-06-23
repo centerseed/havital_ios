@@ -126,6 +126,9 @@ final class DependencyContainer {
         // 註冊 TrainingVersionRouter
         registerTrainingVersionRouter()
 
+        // 註冊 Garmin 推送模組（T-0044：課表詳情頁「傳到 Garmin」）
+        registerGarminPushModule()
+
         Logger.trace("[DI] TrainingPlanV2 module dependencies registered")
     }
 

@@ -3592,8 +3592,6 @@
 "tip.fastFinish" = "ラストの加速前に水分・栄養補給を · 加速中は上半身をリラックスさせてください";
 
 
-// common (added for Rizo journal retry)
-"common.retry" = "再試行";
 
 // MARK: - Rizo トレーニング日記 (SPEC-training-journal-feedback S02)
 "rizo.journal.title" = "Rizo と今回のランについて話す";
@@ -3846,3 +3844,19 @@
 "paywall.conversion.cta_generate" = "今週のプランを作成";
 "paywall.conversion.cta_restore" = "登録済み？復元する";
 "paywall.conversion.daily_value_hint" = "登録すると毎日コーチが状態を解説";
+
+// MARK: - Garmin Push (T-0044)
+"training.detail.push_to_garmin" = "Garminに送信";
+"garmin.push.sending" = "送信中…";
+"garmin.push.alert_title" = "Garmin";
+"garmin.push.success" = "Garminに送信しました。時計に同期されます";
+"garmin.push.hint_title" = "Garminにアップロードしました";
+"garmin.push.hint_message" = "時計で「ランニング」アクティビティを開始すると、このワークアウトが表示されます。";
+"garmin.push.hint_dont_show_again" = "今後表示しない";
+"garmin.push.removed" = "このワークアウトをGarminから削除しました";
+"garmin.push.reconnect" = "Garminを連携";
+"garmin.push.later" = "後で";
+"garmin.push.error.needs_garmin_reauth" = "Garminを連携し、Garmin Connectの設定で「ワークアウトのインポート」権限を有効にしてください";
+"garmin.push.error.garmin_training_unavailable" = "Garminへのワークアウト送信は近日公開予定です";
+"garmin.push.error.not_a_run_workout" = "この日はランニングではないため、Garminに送信できません";
+"garmin.push.error.generic" = "送信できませんでした。後でもう一度お試しください。";

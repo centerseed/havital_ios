@@ -22,11 +22,14 @@ struct PlannedSessionDetailView: View {
     @State private var strengthCompletionVM: StrengthCompletionViewModel?
     @State private var completionRefresh = false
     private let completionStore: StrengthCompletionStore = UserDefaultsStrengthCompletionStore.shared
+    // T-0044: "Send to Garmin" push. Depends on GarminPushRepository protocol via DI.
+    @StateObject private var garminVM: GarminPushViewModel
 
     init(day: DayDetail, date: Date?, planId: String? = nil) {
         self.day = day
         self.date = date
         self.planId = planId
+        _garminVM = StateObject(wrappedValue: GarminPushViewModel(repository: DependencyContainer.shared.resolve()))
     }
 
     /// 取得本日力量活動：優先 primary（如為力量主項），退回補充力量的第一個。
@@ -724,8 +727,50 @@ struct PlannedSessionDetailView: View {
 
             if let activity = day.primaryRunActivity {
                 watchTransferButton(for: activity)
+                garminPushButton()   // T-0044: only running days are pushable to Garmin
             }
         }
+        // Scoped to this subtree so it never collides with the watch-transfer alert above.
+        .alert(NSLocalizedString("garmin.push.alert_title", comment: "Garmin"), isPresented: $garminVM.showAlert) {
+            if garminVM.offerReconnect {
+                Button(NSLocalizedString("garmin.push.reconnect", comment: "")) {
+                    Task { await GarminManager.shared.startConnection(force: true) }
+                }
+                Button(NSLocalizedString("garmin.push.later", comment: ""), role: .cancel) { }
+            } else {
+                Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
+            }
+        } message: {
+            Text(garminVM.alertMessage ?? "")
+        }
+        // T-0044: one-time hint — the imported workout lives under a Running
+        // activity on the watch, so users don't think the push failed.
+        .alert(NSLocalizedString("garmin.push.hint_title", comment: "Garmin"), isPresented: $garminVM.showPushHint) {
+            Button(NSLocalizedString("common.ok", comment: "OK")) { }
+            Button(NSLocalizedString("garmin.push.hint_dont_show_again", comment: "")) {
+                garminVM.dismissPushHintForever()
+            }
+        } message: {
+            Text(NSLocalizedString("garmin.push.hint_message", comment: ""))
+        }
+        .sheet(item: $garminVM.paywallTrigger) { trigger in
+            PaywallView(trigger: trigger)
+        }
+    }
+
+    @ViewBuilder
+    private func garminPushButton() -> some View {
+        SecondaryActionButton(
+            icon: garminVM.uiState == .working ? "arrow.triangle.2.circlepath" : "figure.run",
+            label: garminVM.uiState == .working
+                ? NSLocalizedString("garmin.push.sending", comment: "Sending to Garmin")
+                : NSLocalizedString("training.detail.push_to_garmin", comment: "Send planned session to Garmin"),
+            action: {
+                garminVM.push(dayIndex: day.dayIndex, date: dayDateString ?? watchPlanDateString)
+            }
+        )
+        .disabled(garminVM.uiState == .working)
+        .accessibilityIdentifier("training.detail.push_to_garmin")
     }
 
     @ViewBuilder

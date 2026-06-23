@@ -3595,8 +3595,6 @@
 "tip.fastFinish" = "Fuel up before the fast finish · keep your upper body relaxed as you accelerate";
 
 
-// common (added for Rizo journal retry)
-"common.retry" = "Retry";
 
 // MARK: - Rizo Training Journal (SPEC-training-journal-feedback S02)
 "rizo.journal.title" = "Chat with Rizo about this run";
@@ -3849,3 +3847,19 @@
 "paywall.conversion.cta_generate" = "Generate this week's plan";
 "paywall.conversion.cta_restore" = "Already subscribed? Restore";
 "paywall.conversion.daily_value_hint" = "Subscribe for a daily coach read on your state";
+
+// MARK: - Garmin Push (T-0044)
+"training.detail.push_to_garmin" = "Send to Garmin";
+"garmin.push.sending" = "Sending…";
+"garmin.push.alert_title" = "Garmin";
+"garmin.push.success" = "Sent to Garmin — it'll sync to your watch";
+"garmin.push.hint_title" = "Sent to Garmin";
+"garmin.push.hint_message" = "On your watch, start a Running activity to find this workout.";
+"garmin.push.hint_dont_show_again" = "Don't show again";
+"garmin.push.removed" = "Removed this workout from Garmin";
+"garmin.push.reconnect" = "Connect Garmin";
+"garmin.push.later" = "Later";
+"garmin.push.error.needs_garmin_reauth" = "Connect Garmin and enable the Workout Import permission in your Garmin Connect settings";
+"garmin.push.error.garmin_training_unavailable" = "Garmin workout push is coming soon";
+"garmin.push.error.not_a_run_workout" = "This day isn't a running workout, so it can't be sent to Garmin";
+"garmin.push.error.generic" = "Couldn't send. Please try again later.";
