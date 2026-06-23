@@ -1342,8 +1342,7 @@ struct StrengthEditorV2: View {
         "glutes_hip": [
             MutableExercise(exerciseId: "glute_bridge", name: "臀橋", sets: 3, reps: "15"),
             MutableExercise(exerciseId: "clamshell", name: "蛤蜊式", sets: 3, reps: "15"),
-            MutableExercise(exerciseId: "single_leg_glute_bridge", name: "單腿臀橋", sets: 3, reps: "10"),
-            MutableExercise(exerciseId: "monster_walk", name: "怪物走路", sets: 3, reps: "12"),
+            MutableExercise(exerciseId: "romanian_deadlift", name: "羅馬尼亞硬舉", sets: 3, reps: "10"),
         ],
         "lower_strength": [
             MutableExercise(exerciseId: "squat", name: "深蹲", sets: 3, reps: "12"),
