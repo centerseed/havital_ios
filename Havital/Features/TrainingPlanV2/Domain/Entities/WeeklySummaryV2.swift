@@ -519,17 +519,60 @@ struct UpcomingRaceEvaluationV2: Codable, Equatable {
 }
 
 // MARK: - NextWeekAdjustmentsV2
+
+/// 使用者自然語言編輯週回顧的狀態
+enum UserNlEditStatus: String, Codable, Equatable {
+    case none, pending, applied, failed
+}
+
 /// 下週調整建議
 struct NextWeekAdjustmentsV2: Codable, Equatable {
     let items: [AdjustmentItemV2]
     let summary: String
     let methodologyConstraintsConsidered: Bool
     let basedOnFlags: [String]
+    let userNlEdit: String?
+    let userNlEditStatus: UserNlEditStatus
+    let userNlEditFailReason: String?
 
     enum CodingKeys: String, CodingKey {
         case items, summary
         case methodologyConstraintsConsidered = "methodology_constraints_considered"
         case basedOnFlags = "based_on_flags"
+        case userNlEdit = "user_nl_edit"
+        case userNlEditStatus = "user_nl_edit_status"
+        case userNlEditFailReason = "user_nl_edit_fail_reason"
+    }
+
+    init(
+        items: [AdjustmentItemV2],
+        summary: String,
+        methodologyConstraintsConsidered: Bool,
+        basedOnFlags: [String],
+        userNlEdit: String?,
+        userNlEditStatus: UserNlEditStatus,
+        userNlEditFailReason: String?
+    ) {
+        self.items = items
+        self.summary = summary
+        self.methodologyConstraintsConsidered = methodologyConstraintsConsidered
+        self.basedOnFlags = basedOnFlags
+        self.userNlEdit = userNlEdit
+        self.userNlEditStatus = userNlEditStatus
+        self.userNlEditFailReason = userNlEditFailReason
+    }
+
+    /// Custom decode so old UserDefaults cache JSON (without the user_nl_edit_* keys)
+    /// decodes safely: the non-optional `userNlEditStatus` falls back to `.none`.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.items = try container.decode([AdjustmentItemV2].self, forKey: .items)
+        self.summary = try container.decode(String.self, forKey: .summary)
+        self.methodologyConstraintsConsidered = try container.decode(Bool.self, forKey: .methodologyConstraintsConsidered)
+        self.basedOnFlags = try container.decode([String].self, forKey: .basedOnFlags)
+        self.userNlEdit = try container.decodeIfPresent(String.self, forKey: .userNlEdit)
+        self.userNlEditStatus = try container.decodeIfPresent(UserNlEditStatus.self, forKey: .userNlEditStatus) ?? .none
+        self.userNlEditFailReason = try container.decodeIfPresent(String.self, forKey: .userNlEditFailReason)
     }
 }
 

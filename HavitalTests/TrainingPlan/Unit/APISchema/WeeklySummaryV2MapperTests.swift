@@ -94,6 +94,16 @@ final class WeeklySummaryV2MapperTests: XCTestCase {
 
     // MARK: - Minimal Summary Mapping
 
+    // MARK: - user_nl_edit_status Mapping
+
+    func test_mapUserNlEditStatus_known_and_unknown() {
+        XCTAssertEqual(WeeklySummaryV2Mapper.mapUserNlEditStatus("pending"), .pending)
+        XCTAssertEqual(WeeklySummaryV2Mapper.mapUserNlEditStatus("applied"), .applied)
+        XCTAssertEqual(WeeklySummaryV2Mapper.mapUserNlEditStatus("failed"), .failed)
+        XCTAssertEqual(WeeklySummaryV2Mapper.mapUserNlEditStatus("garbage"), UserNlEditStatus.none)
+        XCTAssertEqual(WeeklySummaryV2Mapper.mapUserNlEditStatus(nil), UserNlEditStatus.none)
+    }
+
     func test_mapper_minimalSummary_nilFieldsDefaultCorrectly() throws {
         let entity = try decodeAndMap(from: "minimal_summary")
 

@@ -3849,3 +3849,15 @@
 "paywall.conversion.cta_generate" = "Generate this week's plan";
 "paywall.conversion.cta_restore" = "Already subscribed? Restore";
 "paywall.conversion.daily_value_hint" = "Subscribe for a daily coach read on your state";
+
+// MARK: - Weekly Review NL Input
+"weekly_review.nl_input.title" = "Want to tell Rizo yourself?";
+"weekly_review.nl_input.hint" = "Submitting overwrites your last note · 2000 chars max";
+"weekly_review.nl_input.placeholder" = "e.g. \"Hiking Fri-Sat next week, can't run, want more rest\"";
+"weekly_review.nl_input.submit" = "Send";
+"weekly_review.nl_input.error" = "Couldn't send, please try again";
+"weekly_review.nl_input.status_pending" = "Noted - applied when next week's plan is generated";
+"weekly_review.nl_input.status_applied" = "Applied to next week's plan";
+"weekly_review.nl_input.status_failed" = "Couldn't apply - tap to tell me again";
+"weekly_review.deferred_failed.title" = "Plan adjustment not applied";
+"weekly_review.deferred_failed.body" = "Couldn't apply last week's adjustment. Open Rizo and tell me again.";

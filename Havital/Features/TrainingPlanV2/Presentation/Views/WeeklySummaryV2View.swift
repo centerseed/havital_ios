@@ -807,6 +807,8 @@ private struct AdjustmentsSectionV2: View {
     let coordinator: WeeklySummaryCoordinator
     let showToggles: Bool
 
+    @FocusState private var nlInputFocused: Bool
+
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.contentSpacing) {
             HStack(spacing: Layout.itemSpacing) {
@@ -850,6 +852,88 @@ private struct AdjustmentsSectionV2: View {
                     AdjustmentItemCardV2(item: item, index: index, isSelected: binding)
                 }
             }
+
+            // MARK: - 自由文字 NL 子區塊（延後改下週課表）
+            Divider()
+                .padding(.vertical, 4)
+            VStack(alignment: .leading, spacing: Layout.itemSpacing) {
+                Text(NSLocalizedString("weekly_review.nl_input.title", comment: "想自己跟 Rizo 說？"))
+                    .font(AppFont.subheadline())
+                    .foregroundColor(.primary)
+                Text(NSLocalizedString("weekly_review.nl_input.hint", comment: "送出會覆蓋上次記下的調整 · 最多 2000 字"))
+                    .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+
+                TextField(
+                    NSLocalizedString("weekly_review.nl_input.placeholder", comment: ""),
+                    text: Binding(
+                        get: { coordinator.userNlDraft },
+                        set: { coordinator.userNlDraft = String($0.prefix(2000)) }
+                    ),
+                    axis: .vertical
+                )
+                .lineLimit(1...4)
+                .textFieldStyle(.roundedBorder)
+                .focused($nlInputFocused)
+                .accessibilityIdentifier("weekly_nl_input")
+                .toolbar {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button(NSLocalizedString("common.done", comment: "完成")) {
+                            nlInputFocused = false
+                        }
+                        .accessibilityIdentifier("weekly_nl_keyboard_done")
+                    }
+                }
+
+                Button {
+                    nlInputFocused = false   // 收鍵盤，讓回應/狀態進入可見範圍
+                    Task { await coordinator.submitUserNlEdit() }
+                } label: {
+                    if coordinator.userNlSubmitState.isLoading {
+                        ProgressView()
+                    } else {
+                        Text(NSLocalizedString("weekly_review.nl_input.submit", comment: "送出"))
+                    }
+                }
+                .disabled(
+                    coordinator.userNlDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    || coordinator.userNlSubmitState.isLoading
+                )
+                .accessibilityIdentifier("weekly_nl_submit")
+
+                // 本回合送出結果（暫態，來自 coordinator）
+                switch coordinator.userNlSubmitState {
+                case .loaded(let reply):
+                    Text("🤖 \(reply)")
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("weekly_nl_reply")
+                case .error:
+                    Text(NSLocalizedString("weekly_review.nl_input.error", comment: "送出失敗，請再試一次"))
+                        .font(AppFont.caption())
+                        .foregroundColor(.red)
+                default:
+                    EmptyView()
+                }
+
+                // 延後狀態（來自 entity，跨 session 持久）
+                switch adjustments.userNlEditStatus {
+                case .pending:
+                    Label(NSLocalizedString("weekly_review.nl_input.status_pending", comment: ""), systemImage: "clock.fill")
+                        .font(AppFont.caption()).foregroundColor(.blue)
+                case .applied:
+                    Label(NSLocalizedString("weekly_review.nl_input.status_applied", comment: ""), systemImage: "checkmark.circle.fill")
+                        .font(AppFont.caption()).foregroundColor(.green)
+                case .failed:
+                    Label(NSLocalizedString("weekly_review.nl_input.status_failed", comment: ""), systemImage: "exclamationmark.triangle.fill")
+                        .font(AppFont.caption()).foregroundColor(.orange)
+                case .none:
+                    EmptyView()
+                }
+            }
+            .accessibilityElement(children: .contain)
         }
     }
 }

@@ -295,8 +295,17 @@ enum WeeklySummaryV2Mapper {
             items: dto.items.map { toAdjustmentItem(from: $0) },
             summary: dto.summary,
             methodologyConstraintsConsidered: dto.methodologyConstraintsConsidered,
-            basedOnFlags: dto.basedOnFlags
+            basedOnFlags: dto.basedOnFlags,
+            userNlEdit: dto.userNlEdit,
+            userNlEditStatus: mapUserNlEditStatus(dto.userNlEditStatus),
+            userNlEditFailReason: dto.userNlEditFailReason
         )
+    }
+
+    /// Maps the raw `user_nl_edit_status` string to the typed enum, falling back
+    /// to `.none` for nil or unknown values. Static (internal) so it can be unit-tested.
+    static func mapUserNlEditStatus(_ raw: String?) -> UserNlEditStatus {
+        UserNlEditStatus(rawValue: raw ?? "") ?? .none
     }
 
     private static func toAdjustmentItem(from dto: AdjustmentItemV2DTO) -> AdjustmentItemV2 {

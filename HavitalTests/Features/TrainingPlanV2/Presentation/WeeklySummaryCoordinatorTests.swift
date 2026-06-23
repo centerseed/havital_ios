@@ -23,7 +23,8 @@ final class WeeklySummaryCoordinatorTests: XCTestCase {
         onPaywallTriggered: @escaping (PaywallTrigger) -> Void = { _ in },
         onRizoQuotaExceeded: @escaping () -> Void = {},
         onNetworkError: @escaping (Error) -> Void = { _ in },
-        isEnforcementEnabled: @escaping () -> Bool = { false }
+        isEnforcementEnabled: @escaping () -> Bool = { false },
+        rizoRepository: RizoRepository? = nil
     ) -> WeeklySummaryCoordinator {
         WeeklySummaryCoordinator(
             repository: mockRepository,
@@ -37,7 +38,20 @@ final class WeeklySummaryCoordinatorTests: XCTestCase {
             onPaywallTriggered: onPaywallTriggered,
             onRizoQuotaExceeded: onRizoQuotaExceeded,
             onNetworkError: onNetworkError,
-            isEnforcementEnabled: isEnforcementEnabled
+            isEnforcementEnabled: isEnforcementEnabled,
+            rizoRepository: rizoRepository
+        )
+    }
+
+    private func makeRizoReply(reply: String = "好，記下了", sessionId: String = "s1") -> RizoReply {
+        RizoReply(
+            reply: reply,
+            sessionId: sessionId,
+            quota: RizoQuota(
+                allowed: true, used: 1, limit: nil, remaining: nil,
+                resetsAt: nil, reserved: false
+            ),
+            safety: RizoSafety(dangerClass: "none", canned: false)
         )
     }
 
@@ -78,7 +92,10 @@ final class WeeklySummaryCoordinatorTests: XCTestCase {
                 items: [],
                 summary: "Increase volume slightly",
                 methodologyConstraintsConsidered: true,
-                basedOnFlags: []
+                basedOnFlags: [],
+                userNlEdit: nil,
+                userNlEditStatus: .none,
+                userNlEditFailReason: nil
             ),
             restWeekRecommendation: nil,
             finalTrainingReview: nil,
@@ -375,4 +392,70 @@ final class WeeklySummaryCoordinatorTests: XCTestCase {
         XCTAssertFalse(coordinator.summaryFlowActive,
                        "summaryFlowActive must remain false when gate fires")
     }
+
+    // MARK: - submitUserNlEdit: free-text weekly review NL → Rizo (weekly_situation)
+
+    func test_submitUserNlEdit_success_callsWeeklySituation_andLoaded() async {
+        // Arrange
+        let fake = FakeRizoRepo(stubReply: makeRizoReply(reply: "好，記下了", sessionId: "s1"))
+        let coord = makeCoordinator(rizoRepository: fake)
+        coord.userNlDraft = "下週減量"
+
+        // Act
+        await coord.submitUserNlEdit()
+
+        // Assert
+        XCTAssertEqual(fake.lastScenario, "weekly_situation")
+        XCTAssertEqual(fake.lastMessage, "下週減量")
+        if case .loaded(let msg) = coord.userNlSubmitState {
+            XCTAssertEqual(msg, "好，記下了")
+        } else {
+            XCTFail("expected .loaded, got \(coord.userNlSubmitState)")
+        }
+        XCTAssertEqual(coord.userNlDraft, "", "成功後應清空 draft")
+    }
+
+    func test_submitUserNlEdit_error_setsErrorState() async {
+        // Arrange
+        let fake = FakeRizoRepo(stubReply: makeRizoReply(reply: "好，記下了", sessionId: "s1"))
+        fake.shouldThrow = URLError(.notConnectedToInternet)
+        let coord = makeCoordinator(rizoRepository: fake)
+        coord.userNlDraft = "下週減量"
+
+        // Act
+        await coord.submitUserNlEdit()
+
+        // Assert
+        if case .error = coord.userNlSubmitState {
+            // expected
+        } else {
+            XCTFail("expected .error, got \(coord.userNlSubmitState)")
+        }
+    }
+}
+
+// MARK: - FakeRizoRepo
+
+private final class FakeRizoRepo: RizoRepository {
+    var lastScenario: String?
+    var lastMessage: String?
+    var shouldThrow: Error?
+    var stubReply: RizoReply
+
+    init(stubReply: RizoReply) { self.stubReply = stubReply }
+
+    func sendChat(scenario: String, message: String, sessionId: String?) async throws -> RizoReply {
+        lastScenario = scenario
+        lastMessage = message
+        if let shouldThrow { throw shouldThrow }
+        return stubReply
+    }
+
+    func sendJournalChat(workoutId: String, message: String, presetSelections: [String], sessionId: String?) async throws -> RizoReply {
+        stubReply
+    }
+
+    func getPresets(scenario: String) async throws -> [RizoPreset] { [] }
+
+    func getHistory() async throws -> [RizoHistoryItem] { [] }
 }

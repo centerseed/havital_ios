@@ -3888,3 +3888,15 @@
 "paywall.conversion.cta_generate" = "產生本週課表";
 "paywall.conversion.cta_restore" = "已訂閱？恢復購買";
 "paywall.conversion.daily_value_hint" = "訂閱後每天有教練幫你解讀狀態";
+
+// MARK: - Weekly Review NL Input
+"weekly_review.nl_input.title" = "想自己跟 Rizo 說？";
+"weekly_review.nl_input.hint" = "送出會覆蓋上次記下的調整 · 最多 2000 字";
+"weekly_review.nl_input.placeholder" = "例「下週五六爬山不能跑，想多休息」";
+"weekly_review.nl_input.submit" = "送出";
+"weekly_review.nl_input.error" = "送出失敗，請再試一次";
+"weekly_review.nl_input.status_pending" = "已記下，下次生成課表時套用";
+"weekly_review.nl_input.status_applied" = "已套用到下週課表";
+"weekly_review.nl_input.status_failed" = "沒能套用，點我再說一次";
+"weekly_review.deferred_failed.title" = "課表調整未套用";
+"weekly_review.deferred_failed.body" = "沒能套用你上週的調整，打開 Rizo 再說一次就好。";
