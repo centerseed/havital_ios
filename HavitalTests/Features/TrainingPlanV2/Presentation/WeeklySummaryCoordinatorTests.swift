@@ -78,7 +78,10 @@ final class WeeklySummaryCoordinatorTests: XCTestCase {
                 items: [],
                 summary: "Increase volume slightly",
                 methodologyConstraintsConsidered: true,
-                basedOnFlags: []
+                basedOnFlags: [],
+                userNlEdit: nil,
+                userNlEditStatus: .none,
+                userNlEditFailReason: nil
             ),
             restWeekRecommendation: nil,
             finalTrainingReview: nil,

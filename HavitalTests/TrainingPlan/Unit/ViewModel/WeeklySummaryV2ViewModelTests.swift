@@ -86,7 +86,10 @@ final class WeeklySummaryV2ViewModelTests: XCTestCase {
                 ],
                 summary: "Focus on volume increase",
                 methodologyConstraintsConsidered: true,
-                basedOnFlags: []
+                basedOnFlags: [],
+                userNlEdit: nil,
+                userNlEditStatus: .none,
+                userNlEditFailReason: nil
             ),
             restWeekRecommendation: nil,
             finalTrainingReview: nil,

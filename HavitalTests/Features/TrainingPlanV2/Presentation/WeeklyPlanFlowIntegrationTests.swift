@@ -182,7 +182,8 @@ final class WeeklyPlanFlowIntegrationTests: XCTestCase {
             weeklyHighlights: WeeklyHighlightsV2(highlights: [], achievements: [], areasForImprovement: []),
             upcomingRaceEvaluation: nil,
             nextWeekAdjustments: NextWeekAdjustmentsV2(
-                items: [], summary: "", methodologyConstraintsConsidered: true, basedOnFlags: []
+                items: [], summary: "", methodologyConstraintsConsidered: true, basedOnFlags: [],
+                userNlEdit: nil, userNlEditStatus: .none, userNlEditFailReason: nil
             ),
             restWeekRecommendation: nil, finalTrainingReview: nil, promptAuditId: nil,
             observations: nil

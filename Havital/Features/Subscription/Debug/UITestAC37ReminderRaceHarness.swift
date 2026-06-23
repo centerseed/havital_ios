@@ -402,7 +402,10 @@ final class UITestAC37MockTrainingPlanV2Repository: TrainingPlanV2Repository {
                 items: [],
                 summary: "No adjustments",
                 methodologyConstraintsConsidered: true,
-                basedOnFlags: []
+                basedOnFlags: [],
+                userNlEdit: nil,
+                userNlEditStatus: .none,
+                userNlEditFailReason: nil
             ),
             restWeekRecommendation: nil,
             finalTrainingReview: nil,
