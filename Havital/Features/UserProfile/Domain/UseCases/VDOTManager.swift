@@ -468,9 +468,9 @@ extension VDOTManager {
         
         var description: String {
             switch self {
-            case .improving: return "上升趨勢"
-            case .stable: return "穩定"
-            case .declining: return "下降趨勢"
+            case .improving: return NSLocalizedString("vdot.trend.improving", comment: "")
+            case .stable: return NSLocalizedString("vdot.trend.stable", comment: "")
+            case .declining: return NSLocalizedString("vdot.trend.declining", comment: "")
             }
         }
     }

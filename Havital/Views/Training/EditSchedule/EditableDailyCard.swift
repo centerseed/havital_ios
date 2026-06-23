@@ -1171,13 +1171,13 @@ struct CombinationTrainingTypeWheelPicker: View {
 
     // 組合訓練可用的訓練類型（不包含休息，因為組合訓練本身就是一個訓練日）
     private let trainingTypes: [String] = [
-        "輕鬆跑",
-        "馬拉松配速",
-        "閾值跑",
-        "間歇跑",
-        "恢復跑",
-        "熱身",
-        "收操"
+        NSLocalizedString("schedule_editor.segment.easy_run", comment: ""),
+        NSLocalizedString("schedule_editor.segment.marathon_pace", comment: ""),
+        NSLocalizedString("schedule_editor.segment.threshold", comment: ""),
+        NSLocalizedString("schedule_editor.segment.interval", comment: ""),
+        NSLocalizedString("schedule_editor.segment.recovery_run", comment: ""),
+        NSLocalizedString("schedule_editor.segment.warmup", comment: ""),
+        NSLocalizedString("schedule_editor.segment.cooldown", comment: "")
     ]
 
     @State private var selectedIndex: Int = 0

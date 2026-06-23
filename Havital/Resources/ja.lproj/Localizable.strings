@@ -1607,7 +1607,7 @@
 
 // MARK: - Edit Schedule
 "edit_schedule.cannot_edit_past" = "完了済みや過去のスケジュール、または当日のレースは編集できません";
-"edit_schedule.title" = "週間スケジュール編集";
+"edit_schedule.title" = "スケジュール編集";
 "edit_schedule.cancel" = "キャンセル";
 "edit_schedule.save" = "保存";
 "edit_schedule.loading_data" = "編集データを読み込み中...";
@@ -3592,9 +3592,6 @@
 "tip.fastFinish" = "ラストの加速前に水分・栄養補給を · 加速中は上半身をリラックスさせてください";
 
 
-// common (added for Rizo journal retry)
-"common.retry" = "再試行";
-
 // MARK: - Rizo トレーニング日記 (SPEC-training-journal-feedback S02)
 "rizo.journal.title" = "Rizo と今回のランについて話す";
 "rizo.journal.subtitle" = "上のトレーニングメモを書くと、Rizo がその内容とデータを見て返答します";
@@ -3846,3 +3843,205 @@
 "paywall.conversion.cta_generate" = "今週のプランを作成";
 "paywall.conversion.cta_restore" = "登録済み？復元する";
 "paywall.conversion.daily_value_hint" = "登録すると毎日コーチが状態を解説";
+
+// MARK: - Schedule Editor トレーニング種別ラベル (T-0048 i18n: EditScheduleViewV2/EditScheduleView にハードコードされていた)
+"schedule_editor.daytarget.rest" = "休養日";
+"schedule_editor.daytarget.recovery_run" = "リカバリーラン：低強度の回復走";
+"schedule_editor.daytarget.easy_run" = "イージーラン：回復と有酸素土台づくり";
+"schedule_editor.daytarget.marathon_pace" = "マラソンペース：中強度の持続走で有酸素持久力を養成";
+"schedule_editor.daytarget.threshold" = "閾値ラン：乳酸除去能力を向上";
+"schedule_editor.daytarget.interval" = "インターバルラン：VO2maxとスピードを向上";
+"schedule_editor.daytarget.long_run" = "ロングラン：持久力の土台づくり";
+"schedule_editor.daytarget.lsd" = "LSD（ロングスローディスタンス）：イージーペースで有酸素土台づくり";
+"schedule_editor.daytarget.progression" = "ペース漸進走：ゆっくりから徐々に加速";
+"schedule_editor.daytarget.combo" = "コンボワークアウト：複数ペースのミックス";
+"schedule_editor.daytarget.fartlek" = "ファルトレク：変速走でペース変換力を養成";
+"schedule_editor.daytarget.fast_finish" = "ファストフィニッシュ走：後半で加速";
+"schedule_editor.daytarget.race_pace" = "レースペース走：目標レースのリズムに慣れる";
+"schedule_editor.daytarget.strides" = "ストライド：短距離ダッシュでランニングエコノミーを向上";
+"schedule_editor.daytarget.hill_repeats" = "坂道リピート：上り坂ダッシュで脚力を強化";
+"schedule_editor.daytarget.cruise_intervals" = "クルーズインターバル：閾値ペースのインターバル";
+"schedule_editor.daytarget.short_interval" = "ショートインターバル：スピードと無酸素能力を向上";
+"schedule_editor.daytarget.long_interval" = "ロングインターバル：VO2maxとスピード持久力を向上";
+"schedule_editor.daytarget.norwegian_4x4" = "ノルウェー式4x4：4分間×4本の高強度インターバル";
+"schedule_editor.daytarget.yasso_800" = "ヤッソ800：800mリピートでVO2max強化";
+"schedule_editor.daytarget.cross_training" = "クロストレーニング：ランニング以外の運動";
+"schedule_editor.daytarget.strength" = "筋力トレーニング：筋力を強化";
+"schedule_editor.daytarget.yoga" = "ヨガ：柔軟性と回復";
+"schedule_editor.daytarget.hiking" = "ハイキング：有酸素持久力トレーニング";
+"schedule_editor.daytarget.cycling" = "サイクリング：低衝撃の有酸素トレーニング";
+"schedule_editor.daytarget.custom" = "カスタムワークアウト";
+"schedule_editor.segment.warmup" = "ウォームアップ";
+"schedule_editor.segment.cooldown" = "クールダウン";
+"schedule_editor.segment.easy_pace" = "イージーペース";
+"schedule_editor.segment.marathon_pace" = "マラソンペース";
+"schedule_editor.segment.accelerate" = "加速";
+"schedule_editor.segment.easy_run" = "イージーラン";
+"schedule_editor.segment.fast_run" = "速いペース";
+"schedule_editor.segment.recovery" = "回復";
+"schedule_editor.segment.hard_run" = "高強度走";
+"schedule_editor.segment.recovery_run" = "リカバリージョグ";
+"schedule_editor.segment.jog_downhill" = "下り坂をジョグで回復";
+"schedule_editor.segment.easy_jog_recovery" = "イージージョグで回復";
+"schedule_editor.segment.equal_time_recovery" = "同時間の回復";
+"schedule_editor.segment.rest_in_place_minutes" = "その場で%d分休憩";
+"schedule_editor.segment.recovery_run_minutes" = "%d分のリカバリージョグ";
+"schedule_editor.minutes_format" = "%d分";
+
+// MARK: - Schedule Editor V1 補足 (T-0048: EditScheduleView 固有の詳細/セグメント)
+"schedule_editor.daytarget.race_day" = "レース当日";
+"schedule_editor.segment.jog" = "ジョグ";
+"schedule_editor.segment.sprint" = "スプリント";
+"schedule_editor.segment.easy_run_70" = "イージーラン（70%）";
+"schedule_editor.segment.marathon_pace_30" = "マラソンペース（30%）";
+"schedule_editor.segment.hard_run_vo2" = "高強度走（92% VO2max）";
+"schedule_editor.segment.recovery_run_equal" = "リカバリージョグ（同時間）";
+"schedule_editor.approx_distance_format" = "（約%dm）";
+"schedule_editor.detail.hill_repeats" = "約5〜8%の勾配の坂を見つけて行う";
+"schedule_editor.detail.cruise_intervals" = "クルーズインターバル：閾値ペースの反復。ジャック・ダニエルズの原則で、Tペース5分ごとに1分の回復";
+"schedule_editor.detail.fartlek" = "変速走：感覚に合わせて速い・遅いを自由に切り替え";
+"schedule_editor.detail.fast_finish" = "ロング走の後半で加速し、疲労下でのペース維持力を鍛える";
+"schedule_editor.detail.race_pace" = "目標レースペースで練習し、レースのリズムに慣れる";
+"schedule_editor.detail.short_interval" = "短距離の高強度反復で、スピード・無酸素能力・ランニングエコノミーを向上（主な有酸素練習ではない）";
+"schedule_editor.detail.long_interval" = "ロングインターバルでVO2maxとスピード持久力を向上";
+"schedule_editor.detail.norwegian_4x4" = "ノルウェー式4x4：約4分間の高強度インターバル×4本（92% VO2max）";
+"schedule_editor.detail.yasso_800" = "ヤッソ800：800mをインターバルペースで反復。同時間の回復でマラソンタイムを予測：800mのタイム（分:秒）＝マラソン完走タイム（時:分）";
+
+// MARK: - Schedule Editor W1 補足2 (picker / TrainingDetailEditor)
+"schedule_editor.segment.threshold" = "閾値ラン";
+"schedule_editor.segment.interval" = "インターバルラン";
+"schedule_editor.segment.rest_in_place_time" = "その場で%@休憩";
+"schedule_editor.segment.recovery_run_time" = "リカバリージョグ%@";
+"schedule_editor.segment.yasso_800" = "ヤッソ800";
+
+"schedule_editor.strength.supplementary" = "補助筋力トレーニング";
+
+// MARK: - Chart 軸/series + MyAchievement empty-state (T-0048 W2)
+"chart.axis.start" = "開始";
+"chart.axis.end" = "終了";
+"chart.axis.lower" = "下限";
+"chart.axis.upper" = "上限";
+"chart.series.type" = "種類";
+"chart.series.line" = "線";
+"chart.series.fitness_index" = "フィットネス指数";
+"chart.series.training_index" = "トレーニング指数";
+"chart.series.ctl_upper" = "CTL上限";
+"chart.series.ctl_lower" = "CTL下限";
+"my_achievement.strava_no_resting_hr" = "Stravaは安静時心拍数を提供していません";
+"my_achievement.empty.no_training_index" = "トレーニング指数データがありません";
+"my_achievement.empty.no_tsb" = "TSBデータがありません";
+
+// MARK: - WeekTimeline interval バリアントラベル (T-0048 W2)
+"timeline.variant.hill_repeats" = "坂道インターバル";
+"timeline.variant.cruise_intervals" = "クルーズインターバル";
+"timeline.variant.norwegian_4x4" = "4x4インターバル";
+"timeline.variant.yasso_800" = "800mインターバル";
+"timeline.interval.reps_suffix" = "× %d 本";
+
+// MARK: - Chart 軸/series/stat (T-0048 W2 chart views)
+"chart.axis.time" = "時間";
+"chart.axis.value" = "値";
+"chart.series.heart_rate" = "心拍数";
+"chart.series.pace" = "ペース";
+"chart.series.performance_index" = "パフォーマンス指数";
+"chart.stat.average" = "平均";
+"chart.stat.max" = "最大";
+"chart.stat.min" = "最小";
+"chart.empty.no_data" = "データがありません";
+"chart.error.load_failed" = "データの読み込みに失敗しました";
+
+// MARK: - Workout Reflection プロンプトラベル (T-0048 W2)
+"workout_reflection.prompt.pace" = "ペース";
+"workout_reflection.prompt.breathing" = "呼吸";
+"workout_reflection.prompt.legs_feet" = "脚";
+"workout_reflection.prompt.heart_rate" = "心拍";
+"workout_reflection.prompt.fueling" = "補給";
+"workout_reflection.prompt.vs_last" = "前回比";
+"workout_reflection.prompt.final_stretch" = "後半";
+"workout_reflection.prompt.tomorrow" = "明日";
+
+// MARK: - Siri Intent dialog (T-0048 W3)
+"siri.next_race.no_target" = "レース目標が設定されていません。";
+"siri.next_race.today" = "%@は今日です。頑張って！";
+"siri.next_race.ended" = "%@は終了しました。";
+"siri.next_race.days_left" = "%1$@まであと%2$d日です。";
+"siri.readiness.score_status" = "今日のトレーニング準備度は%1$d点、%2$@。";
+"siri.readiness.score" = "今日のトレーニング準備度は%d点です。";
+"siri.readiness.no_data_status" = "今日のトレーニング準備度データはまだ取得できていません、%@。";
+"siri.readiness.no_data" = "今日のトレーニング準備度データはまだ取得できていません。";
+"siri.mileage.no_runs" = "今週はまだランの記録がありません。";
+"siri.mileage.summary" = "今週は%1$@km、%2$d回走りました。";
+"siri.mileage.no_training" = "今週はまだトレーニングの記録がありません。";
+"siri.mileage.training_summary" = "今週は%1$@km、%2$d回トレーニングしました。";
+"siri.session.rest" = "今日は休養日です。しっかり回復しましょう。";
+"siri.session.today" = "今日のメニューは%@です。";
+
+// MARK: - Workout reupload エラー (T-0048 W2/W4)
+"workout_reupload.error.only_apple_health" = "Apple Healthのデータのみ再アップロードできます";
+"workout_reupload.error.no_matching_hk" = "一致するHealthKitのワークアウトが見つかりません";
+"workout_reupload.error.failed" = "再アップロードに失敗しました：%@";
+"workout_reupload.error.exception" = "再アップロード中にエラーが発生しました：%@";
+
+// MARK: - 健康データ種別表示名 (T-0048 W2)
+"health_data_type.hrv" = "心拍変動";
+"health_data_type.resting_heart_rate" = "安静時心拍数";
+"health_data_type.heart_rate" = "心拍数";
+"health_data_type.sleep" = "睡眠";
+"health_data_type.steps" = "歩数";
+"health_data_type.active_energy" = "活動エネルギー";
+
+// MARK: - Workout フォーマット (T-0048 W2)
+"workout_format.duration_hm" = "%d時間%02d分";
+"workout_format.duration_ms" = "%d分%02d秒";
+"workout_format.date_pattern" = "M月d日 HH:mm";
+"workout_format.distance_km" = "%.2f km";
+"workout_format.distance_m" = "%.0f m";
+
+// MARK: - その他UI (T-0048 W2/W5)
+"plan_overview.upcoming_four_weeks" = "今後4週間";
+"chart.unit.cadence_per_min" = "%d回/分";
+"training.segment.new_default" = "新しいセグメント";
+
+// MARK: - VDOT トレンド (T-0048 W5)
+"vdot.trend.improving" = "上昇傾向";
+"vdot.trend.stable" = "安定";
+"vdot.trend.declining" = "下降傾向";
+
+// MARK: - Siri Intent タイトル/説明 (T-0048 W3)
+"siri.intent.todays_session.title" = "今日のメニューは？";
+"siri.intent.todays_session.desc" = "今日のトレーニング内容を読み上げます";
+"siri.intent.readiness.title" = "今日は練習できる？";
+"siri.intent.readiness.desc" = "今日のトレーニング準備度を読み上げます";
+"siri.intent.next_race.title" = "レースまであと何日？";
+"siri.intent.next_race.desc" = "次のレースまでの日数を読み上げます";
+"siri.intent.weekly_mileage.title" = "今週の走行距離は？";
+"siri.intent.weekly_mileage.desc" = "今週の累積走行距離を読み上げます";
+
+// MARK: - Climate 暑熱順化 (T-0048 W-cleanup)
+"climate.explanation" = "高温多湿は心拍数を上げ、同じペースでもよりきつく感じます。これは正常な生理反応で、走力の低下ではありません。本日の体感温度に合わせてペース目標を緩めてあるので、適切な強度で安全に完了できます。";
+"climate.recommendation.danger" = "室内（トレッドミル／クロストレーニング）への変更か日程の延期を強く推奨します。屋外で行う場合は最も涼しい早朝か夜間を選び、大幅にペースを落とし、距離を短くし、こまめに水分補給してください。";
+"climate.recommendation.high" = "涼しい早朝か夕方に行い、11:00〜15:00は避けてください。ロング走は20〜30%%短縮するか、屋内に変更しましょう。";
+"climate.recommendation.moderate" = "最も暑い11:00〜15:00を避け、ロング走は早朝へ。トレーニング中はこまめに水分補給を。";
+"climate.recommendation.default" = "暑めです。涼しい早朝か夕方に行い、水分補給を忘れずに。";
+"climate.recommendation_title" = "おすすめの時間帯";
+"climate.danger_outdoor_pace_title" = "屋外なら";
+"climate.short_level.mild" = "軽い暑熱";
+"climate.short_level.moderate" = "暑熱";
+"climate.short_level.high" = "高暑熱";
+"climate.short_level.danger" = "危険";
+"climate.short_level.default" = "暑熱調整";
+"climate.level.mild" = "軽度の暑熱ストレス";
+"climate.level.moderate" = "中度の暑熱ストレス";
+"climate.level.high" = "高度の暑熱ストレス";
+"climate.level.danger" = "危険な暑熱ストレス";
+"climate.level.default" = "快適";
+"climate.section_title" = "暑熱順化";
+"climate.level_title" = "レベル";
+"climate.temperature_title" = "体感";
+"climate.adjustment_title" = "調整";
+"climate.original_pace_title" = "元のペース";
+"climate.adjusted_pace_title" = "調整後";
+"climate.adjustment.pace_pct" = "ペース +%.0f%%";
+"climate.adjustment.reduce_pct" = "%.0f%%短縮";
+"climate.long_run_reduction" = "ロング走は%.0f%%短縮推奨。日程変更または屋内代替を優先してください。";
+"climate.segment_adjustment_summary" = "各セグメントのペースは当日の暑熱ストレスに合わせて調整済みです。";

@@ -908,7 +908,7 @@ private struct TrainingOverviewTabV2: View {
 
     private var upcomingWeeksSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("接下來四週")
+            sectionHeader(NSLocalizedString("plan_overview.upcoming_four_weeks", comment: ""))
 
             Text(NSLocalizedString("training.weekly_skeleton_disclaimer", comment: "The following is the weekly training skeleton"))
                 .font(AppFont.caption())

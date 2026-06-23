@@ -39,13 +39,13 @@ struct HRVTrendChartView: View {
                     Chart {
                         ForEach(viewModel.hrvData, id: \.0) { item in
                             LineMark(
-                                x: .value("日期", item.0),
+                                x: .value(NSLocalizedString("common.date", comment: ""), item.0),
                                 y: .value("HRV", item.1)
                             )
                             .foregroundStyle(.blue)
                             
                             PointMark(
-                                x: .value("日期", item.0),
+                                x: .value(NSLocalizedString("common.date", comment: ""), item.0),
                                 y: .value("HRV", item.1)
                             )
                             .foregroundStyle(.blue)

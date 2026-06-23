@@ -20,6 +20,6 @@ struct HeartRateDataPoint: ChartDataPoint {
     let value: Double
     
     var formattedValue: String {
-        "\(Int(value))次/分鐘"
+        String(format: NSLocalizedString("chart.unit.cadence_per_min", comment: ""), Int(value))
     }
 }

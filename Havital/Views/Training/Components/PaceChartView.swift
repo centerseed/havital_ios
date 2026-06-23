@@ -161,8 +161,8 @@ struct PaceChartView: View {
             // 使用 ForEach 和 LineMark 繪製折線
             ForEach(filteredPaces) { point in
                 LineMark(
-                    x: .value("時間", point.time),
-                    y: .value("配速", invertedPaceValue(point.value))
+                    x: .value(NSLocalizedString("chart.axis.time", comment: ""), point.time),
+                    y: .value(NSLocalizedString("chart.series.pace", comment: ""), invertedPaceValue(point.value))
                 )
                 .foregroundStyle(Color.green.gradient)
                 .interpolationMethod(.linear)
@@ -172,9 +172,9 @@ struct PaceChartView: View {
             let lowerBound = paceChartYRange.lowerBound
             ForEach(filteredPaces) { point in
                 AreaMark(
-                    x: .value("時間", point.time),
-                    yStart: .value("配速", lowerBound),
-                    yEnd: .value("配速", invertedPaceValue(point.value))
+                    x: .value(NSLocalizedString("chart.axis.time", comment: ""), point.time),
+                    yStart: .value(NSLocalizedString("chart.series.pace", comment: ""), lowerBound),
+                    yEnd: .value(NSLocalizedString("chart.series.pace", comment: ""), invertedPaceValue(point.value))
                 )
                 .foregroundStyle(LinearGradient(
                     colors: [.green.opacity(0.3), .green.opacity(0.05)],
@@ -322,7 +322,7 @@ struct PaceChartView_Previews: PreviewProvider {
             PaceChartView(
                 paces: [],
                 isLoading: false,
-                error: "數據加載失敗"
+                error: NSLocalizedString("chart.error.load_failed", comment: "")
             )
             .previewDisplayName("Error")
             

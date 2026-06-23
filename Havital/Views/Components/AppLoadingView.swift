@@ -11,10 +11,11 @@ struct AppLoadingView: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 24) {
-                // 應用圖示或 Logo
-                Image(systemName: "figure.run")
-                    .font(AppFont.systemScaled(size: 60))
-                    .foregroundColor(.blue)
+                // 應用圖示或 Logo（Paceriz 品牌 logomark）
+                Image("paceriz_logo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 96, height: 96)
                     .scaleEffect(appStateManager.initializationProgress > 0 ? 1.2 : 1.0)
                     .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true),
                               value: appStateManager.initializationProgress)

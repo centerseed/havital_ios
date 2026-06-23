@@ -22,7 +22,7 @@ class TrainingPlanViewModel: ObservableObject {
     @Published var planStatusResponse: PlanStatusResponse?
 
     /// 訓練計畫名稱
-    @Published var trainingPlanName: String = "訓練計畫"
+    @Published var trainingPlanName: String = NSLocalizedString("training.plan_default_name", comment: "")
 
     /// 網路錯誤（用於 Toast 顯示）
     @Published var networkError: Error?

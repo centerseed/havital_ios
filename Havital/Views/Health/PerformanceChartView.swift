@@ -47,14 +47,14 @@ struct PerformanceChartView: View {
                         Chart {
                             ForEach(performancePoints) { point in
                                 LineMark(
-                                    x: .value("日期", point.date),
-                                    y: .value("表現指數", point.performance)
+                                    x: .value(NSLocalizedString("common.date", comment: ""), point.date),
+                                    y: .value(NSLocalizedString("chart.series.performance_index", comment: ""), point.performance)
                                 )
                                 .foregroundStyle(Color.blue.gradient)
                                 
                                 PointMark(
-                                    x: .value("日期", point.date),
-                                    y: .value("表現指數", point.performance)
+                                    x: .value(NSLocalizedString("common.date", comment: ""), point.date),
+                                    y: .value(NSLocalizedString("chart.series.performance_index", comment: ""), point.performance)
                                 )
                                 .foregroundStyle(point.hasWorkout ? Color.orange : Color.blue)
                                 .symbolSize(point.hasWorkout ? 100 : 50)

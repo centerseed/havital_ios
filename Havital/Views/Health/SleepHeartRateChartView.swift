@@ -26,14 +26,14 @@ struct SleepHeartRateChartView: View {
                     Chart {
                         ForEach(viewModel.heartRateData, id: \.0) { item in
                             LineMark(
-                                x: .value("日期", item.0),
-                                y: .value("心率", item.1)
+                                x: .value(NSLocalizedString("common.date", comment: ""), item.0),
+                                y: .value(NSLocalizedString("chart.series.heart_rate", comment: ""), item.1)
                             )
                             .foregroundStyle(.purple)
 
                             PointMark(
-                                x: .value("日期", item.0),
-                                y: .value("心率", item.1)
+                                x: .value(NSLocalizedString("common.date", comment: ""), item.0),
+                                y: .value(NSLocalizedString("chart.series.heart_rate", comment: ""), item.1)
                             )
                             .foregroundStyle(.purple)
                             .symbolSize(50)
