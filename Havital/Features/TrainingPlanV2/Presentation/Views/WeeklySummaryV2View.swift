@@ -807,6 +807,8 @@ private struct AdjustmentsSectionV2: View {
     let coordinator: WeeklySummaryCoordinator
     let showToggles: Bool
 
+    @FocusState private var nlInputFocused: Bool
+
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.contentSpacing) {
             HStack(spacing: Layout.itemSpacing) {
@@ -872,9 +874,20 @@ private struct AdjustmentsSectionV2: View {
                 )
                 .lineLimit(1...4)
                 .textFieldStyle(.roundedBorder)
+                .focused($nlInputFocused)
                 .accessibilityIdentifier("weekly_nl_input")
+                .toolbar {
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button(NSLocalizedString("common.done", comment: "完成")) {
+                            nlInputFocused = false
+                        }
+                        .accessibilityIdentifier("weekly_nl_keyboard_done")
+                    }
+                }
 
                 Button {
+                    nlInputFocused = false   // 收鍵盤，讓回應/狀態進入可見範圍
                     Task { await coordinator.submitUserNlEdit() }
                 } label: {
                     if coordinator.userNlSubmitState.isLoading {
