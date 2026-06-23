@@ -854,12 +854,17 @@ private struct AdjustmentsSectionV2: View {
             }
 
             // MARK: - 自由文字 NL 子區塊（延後改下週課表）
-            Divider()
-                .padding(.vertical, 4)
-            VStack(alignment: .leading, spacing: Layout.itemSpacing) {
-                Text(NSLocalizedString("weekly_review.nl_input.title", comment: "想自己跟 Rizo 說？"))
-                    .font(AppFont.subheadline())
-                    .foregroundColor(.primary)
+            // 用獨立圓角卡片包起來，與上方調整 item、下方產生課表 CTA 視覺切開。
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 6) {
+                    Image(systemName: "bubble.left.and.text.bubble.right.fill")
+                        .font(AppFont.subheadline())
+                        .foregroundColor(.blue)
+                    Text(NSLocalizedString("weekly_review.nl_input.title", comment: "想自己跟 Rizo 說？"))
+                        .font(AppFont.subheadline())
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+                }
                 Text(NSLocalizedString("weekly_review.nl_input.hint", comment: "送出會覆蓋上次記下的調整 · 最多 2000 字"))
                     .font(AppFont.caption())
                     .foregroundColor(.secondary)
@@ -886,30 +891,48 @@ private struct AdjustmentsSectionV2: View {
                     }
                 }
 
-                Button {
-                    nlInputFocused = false   // 收鍵盤，讓回應/狀態進入可見範圍
-                    Task { await coordinator.submitUserNlEdit() }
-                } label: {
-                    if coordinator.userNlSubmitState.isLoading {
-                        ProgressView()
-                    } else {
-                        Text(NSLocalizedString("weekly_review.nl_input.submit", comment: "送出"))
+                // 送出：右對齊的膠囊按鈕（明確按鈕感，與下方全寬主 CTA 區隔）
+                HStack {
+                    Spacer()
+                    Button {
+                        nlInputFocused = false   // 收鍵盤，讓回應/狀態進入可見範圍
+                        Task { await coordinator.submitUserNlEdit() }
+                    } label: {
+                        HStack(spacing: 6) {
+                            if coordinator.userNlSubmitState.isLoading {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Image(systemName: "paperplane.fill")
+                                Text(NSLocalizedString("weekly_review.nl_input.submit", comment: "送出"))
+                            }
+                        }
+                        .font(AppFont.subheadline())
                     }
+                    .buttonStyle(.borderedProminent)
+                    .buttonBorderShape(.capsule)
+                    .controlSize(.small)
+                    .disabled(
+                        coordinator.userNlDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || coordinator.userNlSubmitState.isLoading
+                    )
+                    .accessibilityIdentifier("weekly_nl_submit")
                 }
-                .disabled(
-                    coordinator.userNlDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    || coordinator.userNlSubmitState.isLoading
-                )
-                .accessibilityIdentifier("weekly_nl_submit")
 
-                // 本回合送出結果（暫態，來自 coordinator）
+                // 本回合送出結果（暫態）：放進淡藍底氣泡，不再是飄空文字
                 switch coordinator.userNlSubmitState {
                 case .loaded(let reply):
-                    Text("🤖 \(reply)")
-                        .font(AppFont.caption())
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityIdentifier("weekly_nl_reply")
+                    HStack(alignment: .top, spacing: 6) {
+                        Text("🤖")
+                        Text(reply)
+                            .font(AppFont.caption())
+                            .foregroundColor(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(10)
+                    .background(Color.blue.opacity(0.08))
+                    .cornerRadius(10)
+                    .accessibilityIdentifier("weekly_nl_reply")
                 case .error:
                     Text(NSLocalizedString("weekly_review.nl_input.error", comment: "送出失敗，請再試一次"))
                         .font(AppFont.caption())
@@ -933,6 +956,11 @@ private struct AdjustmentsSectionV2: View {
                     EmptyView()
                 }
             }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(UIColor.secondarySystemGroupedBackground))
+            .cornerRadius(12)
+            .padding(.top, 8)
             .accessibilityElement(children: .contain)
         }
     }
