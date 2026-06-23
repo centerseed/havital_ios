@@ -1,0 +1,53 @@
+appId: com.havital.Havital.dev
+tags:
+  - weekly-summary
+  - rizo
+# 測試：週回顧自由文字 NL 輸入（延後改下週課表入口，T-0029）
+# 前提：app 已登入、主課表頁有課表資料、語言繁中
+# 流程：產生/開啟週回顧 → 捲到「下週調整建議」的自由輸入子區塊 → 打字 → 送出 → 斷言 Rizo 即時回應出現
+---
+- runFlow: ../subflows/ensure-main-training-screen.yaml
+
+# 開選單 → Debug 工具 → 產生週回顧（沿用 weekly-summary-generate 範式）
+- tapOn:
+    id: "ellipsis.circle"
+    optional: true
+- tapOn:
+    text: "更多|More|もっと見る"
+    optional: true
+- tapOn:
+    text: "🐛 Debug 工具"
+- tapOn: "🐛 產生週回顧"
+
+# 等待週回顧生成（API + LLM，可能需 45 秒）
+- extendedWaitUntil:
+    visible: "訓練完成度|Completion|Training Completion"
+    timeout: 45000
+
+# 展開「下週調整建議」區塊（若為摺疊式）
+- tapOn:
+    text: "下週調整建議|Next Week Adjustments"
+    optional: true
+
+# 捲到自由文字輸入框
+- scrollUntilVisible:
+    element:
+      id: "weekly_nl_input"
+    direction: DOWN
+    timeout: 12000
+- takeScreenshot: nl_input_visible
+
+# 打字 → 送出
+- tapOn:
+    id: "weekly_nl_input"
+- inputText: "下週五六爬山不能跑，想多休息"
+- takeScreenshot: nl_input_typed
+- tapOn:
+    id: "weekly_nl_submit"
+
+# 斷言 Rizo 即時回應出現（送出→/v2/agent/chat→回覆 round-trip）
+- extendedWaitUntil:
+    visible:
+      id: "weekly_nl_reply"
+    timeout: 30000
+- takeScreenshot: nl_reply_visible
