@@ -187,6 +187,12 @@ final class WatchCompanionService: NSObject, WCSessionDelegate {
 
     @discardableResult
     func sendTodayPlan(_ dto: WatchPlanSnapshotDTO) -> SendOutcome {
+        let outcome = performSendTodayPlan(dto)
+        emitWatchDiagnostic(reason: "send", outcome: outcome)
+        return outcome
+    }
+
+    private func performSendTodayPlan(_ dto: WatchPlanSnapshotDTO) -> SendOutcome {
         let availability = sendAvailability
         guard availability == .ready else {
             Logger.warn("sendTodayPlan blocked: availability=\(availability)", tag: Self.logTag)
@@ -213,6 +219,24 @@ final class WatchCompanionService: NSObject, WCSessionDelegate {
         }
 
         return .sent
+    }
+
+    /// Diagnostics-only: report the live WCSession booleans + send outcome to analytics so we
+    /// can see the REAL on-device state of a customer's watch send path. No behaviour change.
+    /// No-op when DI is not bootstrapped (e.g. unit tests) so existing tests are unaffected.
+    private func emitWatchDiagnostic(reason: String, outcome: SendOutcome?) {
+        guard DependencyContainer.shared.isRegistered(AnalyticsService.self) else { return }
+        let analytics: AnalyticsService = DependencyContainer.shared.resolve()
+        analytics.track(.watchSendDiagnostic(
+            reason: reason,
+            outcome: outcome.map { String(describing: $0) } ?? "n/a",
+            availability: String(describing: sendAvailability),
+            activationState: session.activationState.rawValue,
+            isPaired: session.isPaired,
+            isWatchAppInstalled: session.isWatchAppInstalled,
+            isReachable: session.isReachable,
+            settled: hasSettledWatchState
+        ))
     }
 
     @discardableResult
@@ -249,6 +273,7 @@ final class WatchCompanionService: NSObject, WCSessionDelegate {
         // A positive read at activation is authoritative; otherwise let the state settle
         // (a later watch-state change or the grace deadline) before trusting a negative.
         if rawAvailability == .ready { markWatchStateSettled() }
+        emitWatchDiagnostic(reason: "activation", outcome: nil)
         NotificationCenter.default.post(name: .watchAvailabilityChanged, object: nil)
     }
 
@@ -267,6 +292,7 @@ final class WatchCompanionService: NSObject, WCSessionDelegate {
     func sessionWatchStateDidChange(_ session: WCSession) {
         // The system has reported the authoritative watch state — settling is over.
         markWatchStateSettled()
+        emitWatchDiagnostic(reason: "state_change", outcome: nil)
         NotificationCenter.default.post(name: .watchAvailabilityChanged, object: nil)
     }
 }

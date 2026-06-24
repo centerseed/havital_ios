@@ -165,6 +165,22 @@ enum AnalyticsEvent {
 
     /// Fired each time the user taps the weekly-summary prompt CTA.
     case weeklySummaryPromptTap(weekOfTraining: Int)
+
+    // MARK: Watch Connectivity Diagnostics
+
+    /// Diagnostics-only snapshot of the Apple Watch send path. Fired on every send attempt
+    /// and on WCSession activation / watch-state change so we can see the REAL on-device
+    /// WCSession booleans from a customer's device (release logs are print-only / invisible).
+    case watchSendDiagnostic(
+        reason: String,
+        outcome: String,
+        availability: String,
+        activationState: Int,
+        isPaired: Bool,
+        isWatchAppInstalled: Bool,
+        isReachable: Bool,
+        settled: Bool
+    )
 }
 
 // MARK: - Event metadata
@@ -218,6 +234,9 @@ extension AnalyticsEvent {
         // Weekly Summary Prompt
         case .weeklySummaryPromptView:   return "weekly_summary_prompt_view"
         case .weeklySummaryPromptTap:    return "weekly_summary_prompt_tap"
+
+        // Watch Connectivity Diagnostics
+        case .watchSendDiagnostic:       return "watch_send_diagnostic"
         }
     }
 
@@ -446,6 +465,29 @@ extension AnalyticsEvent {
 
         case .weeklySummaryPromptTap(let weekOfTraining):
             return ["week_of_training": weekOfTraining]
+
+        // MARK: Watch Connectivity Diagnostics — parameters
+
+        case .watchSendDiagnostic(
+            let reason,
+            let outcome,
+            let availability,
+            let activationState,
+            let isPaired,
+            let isWatchAppInstalled,
+            let isReachable,
+            let settled
+        ):
+            return [
+                "reason": reason,
+                "outcome": outcome,
+                "availability": availability,
+                "activation_state": activationState,
+                "is_paired": isPaired,
+                "is_watch_app_installed": isWatchAppInstalled,
+                "is_reachable": isReachable,
+                "settled": settled
+            ]
         }
     }
 }
