@@ -2,8 +2,9 @@ import Foundation
 import Combine
 
 /// Drives the "Send to Garmin" button on the planned-session detail screen (T-0044).
-/// @MainActor, depends on GarminPushRepository protocol. Subscription-gated.
-/// Logs every step (gate / start / success / error + which error code) so prod
+/// @MainActor, depends on GarminPushRepository protocol. Not subscription-gated:
+/// access is gated upstream at plan generation (no subscription → no plan to push).
+/// Logs every step (start / success / error + which error code) so prod
 /// issues are traceable from Cloud Logging + Firebase.
 @MainActor
 final class GarminPushViewModel: ObservableObject, TaskManageable {
@@ -14,7 +15,6 @@ final class GarminPushViewModel: ObservableObject, TaskManageable {
     @Published var uiState: UIState = .idle
     @Published var alertMessage: String?
     @Published var showAlert = false
-    @Published var paywallTrigger: PaywallTrigger?
     /// When true the alert offers a "connect Garmin" action (needs reauth).
     @Published var offerReconnect = false
     /// One-time hint after a successful push: tells the user the imported workout
@@ -42,7 +42,6 @@ final class GarminPushViewModel: ObservableObject, TaskManageable {
     // MARK: - Actions
 
     func push(dayIndex: Int, date: String) {
-        guard ensurePremium(action: "push") else { return }
         uiState = .working
         offerReconnect = false
         Logger.firebase("[garmin-push] start day=\(dayIndex) date=\(date)",
@@ -93,14 +92,6 @@ final class GarminPushViewModel: ObservableObject, TaskManageable {
 
     // MARK: - Helpers
 
-    private func ensurePremium(action: String) -> Bool {
-        if SubscriptionStateManager.shared.hasPremiumAccess { return true }
-        Logger.firebase("[garmin-push] gated by paywall action=\(action)",
-                        level: .info, labels: ["feature": "garmin_push", "gate": "subscription"])
-        paywallTrigger = .featureLocked
-        return false
-    }
-
     private func finish(messageKey: String) {
         uiState = .idle
         alertMessage = NSLocalizedString(messageKey, comment: "")
@@ -113,10 +104,6 @@ final class GarminPushViewModel: ObservableObject, TaskManageable {
         Logger.firebase("[garmin-push] \(action) failed code=\(code ?? "?") err=\(error.localizedDescription)",
                         level: .error, labels: ["feature": "garmin_push", "action": action, "error_code": code ?? "unknown"])
 
-        if let http = error as? HTTPError, case .subscriptionRequired = http {
-            paywallTrigger = .featureLocked
-            return
-        }
         switch code {
         case "needs_garmin_reauth":
             alertMessage = NSLocalizedString("garmin.push.error.needs_garmin_reauth", comment: "")

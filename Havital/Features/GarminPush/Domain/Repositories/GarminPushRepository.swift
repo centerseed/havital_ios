@@ -1,7 +1,8 @@
 import Foundation
 
 /// Pushes a planned running workout to the user's Garmin watch (via backend →
-/// Garmin Connect) and removes it. T-0044. Manual, per-workout, subscription-gated.
+/// Garmin Connect) and removes it. T-0044. Manual, per-workout. Not subscription-gated
+/// (access is gated upstream at plan generation — no subscription → no plan to push).
 ///
 /// ViewModel depends on THIS protocol, never the concrete impl (iOS arch rule #3).
 protocol GarminPushRepository {

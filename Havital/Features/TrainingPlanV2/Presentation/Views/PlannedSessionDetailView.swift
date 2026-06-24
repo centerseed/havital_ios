@@ -753,9 +753,6 @@ struct PlannedSessionDetailView: View {
         } message: {
             Text(NSLocalizedString("garmin.push.hint_message", comment: ""))
         }
-        .sheet(item: $garminVM.paywallTrigger) { trigger in
-            PaywallView(trigger: trigger)
-        }
     }
 
     @ViewBuilder
