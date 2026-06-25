@@ -2815,6 +2815,11 @@
 "paywall.grace_period.banner.title_format" = "%d days free trial remaining";
 "paywall.grace_period.banner.subtitle" = "Subscribe to keep AI features";
 
+// Billing Issue Banner (T-0060) — auto-renewal payment failed, prompt to update payment method
+"paywall.billing_issue.banner.title" = "Subscription renewal failed";
+"paywall.billing_issue.banner.subtitle" = "Update your payment method to keep your training features";
+"paywall.billing_issue.banner.cta" = "Update Payment";
+
 // Settings Subscription Tier Indicator (AC-PAYWALL-36/40)
 "settings.subscription.tier.free_label" = "Plan: Free Preview";
 "settings.subscription.tier.trial_label_format" = "Plan: Trial (%d days left)";

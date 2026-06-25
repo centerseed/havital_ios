@@ -213,6 +213,8 @@ struct HavitalApp: App {
                 ac37UITestHarnessView
             } else if shouldLaunchAC38UITestHarness {
                 ac38UITestHarnessView
+            } else if shouldLaunchBillingIssueUITestHarness {
+                billingIssueUITestHarnessView
             } else if shouldLaunchBenchmarkCardGallery {
                 benchmarkCardGalleryView
             } else {
@@ -343,6 +345,7 @@ struct HavitalApp: App {
             || arguments.contains("-ui_testing_achievements")
             || arguments.contains("-ui_testing_ac37")
             || arguments.contains("-ui_testing_ac38")
+            || arguments.contains("-ui_testing_billing_issue")
             || arguments.contains("-BenchmarkCardGallery")
     }
 
@@ -452,6 +455,23 @@ struct HavitalApp: App {
     private var ac38UITestHarnessView: some View {
         #if DEBUG
         UITestAC38GraceHostView()
+        #else
+        EmptyView()
+        #endif
+    }
+
+    private var shouldLaunchBillingIssueUITestHarness: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-ui_testing_billing_issue")
+        #else
+        false
+        #endif
+    }
+
+    @ViewBuilder
+    private var billingIssueUITestHarnessView: some View {
+        #if DEBUG
+        UITestBillingIssueHostView()
         #else
         EmptyView()
         #endif
