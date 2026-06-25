@@ -410,7 +410,8 @@ final class UITestAC37MockTrainingPlanV2Repository: TrainingPlanV2Repository {
             restWeekRecommendation: nil,
             finalTrainingReview: nil,
             promptAuditId: nil,
-            observations: nil
+            observations: nil,
+            weeklyStory: nil
         )
     }
 }

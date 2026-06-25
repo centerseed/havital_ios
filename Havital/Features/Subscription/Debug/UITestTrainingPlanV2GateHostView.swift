@@ -317,7 +317,8 @@ private final class UITestTrainingPlanV2GateRepository: TrainingPlanV2Repository
             restWeekRecommendation: nil,
             finalTrainingReview: nil,
             promptAuditId: nil,
-            observations: nil
+            observations: nil,
+            weeklyStory: nil
         )
     }
 }

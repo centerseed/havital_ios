@@ -186,7 +186,7 @@ final class WeeklyPlanFlowIntegrationTests: XCTestCase {
                 userNlEdit: nil, userNlEditStatus: .none, userNlEditFailReason: nil
             ),
             restWeekRecommendation: nil, finalTrainingReview: nil, promptAuditId: nil,
-            observations: nil
+            observations: nil, weeklyStory: nil
         )
     }
 

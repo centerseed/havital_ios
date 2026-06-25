@@ -70,6 +70,9 @@ struct WeeklySummaryV2: Codable, Equatable {
     /// 系統確定性觀察項（如跑量漸進敘事）
     let observations: [String]?
 
+    /// 週故事化敘事（LLM 生成，三欄：本週主線、連貫主軸、行動鉤）
+    let weeklyStory: WeeklyStory?
+
     // MARK: - CodingKeys
 
     enum CodingKeys: String, CodingKey {
@@ -92,6 +95,7 @@ struct WeeklySummaryV2: Codable, Equatable {
         case finalTrainingReview = "final_training_review"
         case promptAuditId = "prompt_audit_id"
         case observations
+        case weeklyStory = "weekly_story"
     }
 }
 
@@ -628,6 +632,14 @@ struct BenchmarkCalibrationPayload: Codable, Equatable {
     let raceTimeAfterS: Int?
     let vdotBefore: Double?
     let vdotAfter: Double?
+}
+
+// MARK: - WeeklyStory
+/// 週故事化敘事 entity（對應 WeeklyStoryDTO，三欄全 optional）
+struct WeeklyStory: Codable, Equatable {
+    let text: String?
+    let thread: String?
+    let callback: String?
 }
 
 // CustomizationRecommendation 已移除（2026-04-05）
