@@ -298,7 +298,10 @@ final class WeeklyPlanGeneratorTests: XCTestCase {
                 items: [],
                 summary: "Keep it up",
                 methodologyConstraintsConsidered: true,
-                basedOnFlags: []
+                basedOnFlags: [],
+                userNlEdit: nil,
+                userNlEditStatus: .none,
+                userNlEditFailReason: nil
             ),
             restWeekRecommendation: nil,
             finalTrainingReview: nil,

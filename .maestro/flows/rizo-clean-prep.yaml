@@ -1,0 +1,30 @@
+appId: com.havital.Havital
+tags:
+  - rizo
+  - demo
+---
+# Run A（清場，不錄影）：啟動 → 消化所有彈窗 → 停在課表頁、今日狀態卡就緒。
+# 把啟動彈窗/分享卡/付費牆全部在「錄影開始之前」清掉，錄影只拍乾淨核心操作。
+
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- runFlow:
+    file: ../subflows/dismiss-permission-prompts.yaml
+    optional: true
+
+- repeat:
+    times: 4
+    commands:
+      - tapOn: { point: "7%, 7%", optional: true }
+      - tapOn: { text: "允許|好|Allow|OK|關閉|Close|Continue|繼續|稍後設定|不再提醒", optional: true }
+      - waitForAnimationToEnd: { timeout: 1200 }
+
+- extendedWaitUntil:
+    visible: "今日狀態|Today's State|今日のコンディション"
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible: "讀取今日狀態中…|Reading your state…|状態を読み込み中…"
+    timeout: 30000
+    optional: true

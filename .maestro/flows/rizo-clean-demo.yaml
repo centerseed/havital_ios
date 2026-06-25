@@ -1,0 +1,64 @@
+appId: com.havital.Havital
+tags:
+  - rizo
+  - demo
+---
+# Run B（錄影中）：乾淨核心操作，無手動下拉刷新、無捲動找日期。
+# 前提：Run A 已清場、app 停在課表頁、今日狀態卡就緒、訂閱 active。
+# 收尾靠 acceptPlanChange 發 CacheEventBus(.trainingPlanV2) 自動刷新整週；
+# 整週一頁全顯示 → 數字就地更新，不需任何捲動。
+
+# 開 Rizo
+- tapOn:
+    text: "今日狀態|Today's State|今日のコンディション"
+- extendedWaitUntil:
+    visible: { id: "rizo_chat_input" }
+    timeout: 30000
+# 等開場訊息串流結束（typing 消失）才打字，否則輸入框 disabled
+- extendedWaitUntil:
+    notVisible: { id: "rizo_chat_typing" }
+    timeout: 30000
+
+# 用自然語言講出需求
+- tapOn:
+    id: "rizo_chat_input"
+- waitForAnimationToEnd: { timeout: 2000 }
+- inputText: "這週整個人很累，可以幫我整週減量、每天都調輕一點嗎？"
+- waitForAnimationToEnd: { timeout: 1500 }
+- tapOn:
+    id: "rizo_chat_send"
+- extendedWaitUntil:
+    visible: { id: "rizo_chat_bubble_user" }
+    timeout: 10000
+
+# 等變更建議卡片（後端 propose ~25-30s）。卡片通常已在視窗內，必要時才輕捲。
+- scrollUntilVisible:
+    element: { id: "rizo_plan_change_card" }
+    direction: DOWN
+    timeout: 90000
+    centerElement: true
+- waitForAnimationToEnd: { timeout: 1500 }
+
+# 接受 → 套用 → 確認泡泡
+- tapOn:
+    text: "接受"
+- extendedWaitUntil:
+    visible: "已為你套用|課表更新囉|課表更新"
+    timeout: 30000
+    optional: true
+- waitForAnimationToEnd: { timeout: 3000 }
+
+# 關閉 sheet（右上 × 鈕，用 id 不靠 text）→ 回課表頁
+- tapOn:
+    id: "daily_state_close"
+- extendedWaitUntil:
+    notVisible: { id: "rizo_chat_input" }
+    timeout: 10000
+# 等 CacheEventBus 自動刷新落地（不手動下拉），停一拍
+- waitForAnimationToEnd: { timeout: 4000 }
+# 一次平順滑動，把「每日訓練」週列表帶進畫面看更新後的數字（單一手勢，非抽搐式 scrollUntilVisible）
+- swipe:
+    start: "50%, 78%"
+    end: "50%, 28%"
+    duration: 900
+- waitForAnimationToEnd: { timeout: 3500 }

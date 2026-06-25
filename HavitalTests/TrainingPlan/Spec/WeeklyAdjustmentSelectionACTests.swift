@@ -254,7 +254,10 @@ final class WeeklyAdjustmentSelectionACTests: XCTestCase {
                 items: items,
                 summary: "Test summary",
                 methodologyConstraintsConsidered: true,
-                basedOnFlags: []
+                basedOnFlags: [],
+                userNlEdit: nil,
+                userNlEditStatus: .none,
+                userNlEditFailReason: nil
             ),
             restWeekRecommendation: nil,
             finalTrainingReview: nil,

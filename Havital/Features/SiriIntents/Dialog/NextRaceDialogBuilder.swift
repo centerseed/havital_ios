@@ -11,9 +11,8 @@ enum NextRaceDialogBuilder {
     /// - Parameter today: 計算基準日（由外部注入，確保純函式可確定性測試；請勿傳 `Date()` 以外的值於正式流程）
     /// - Returns: zh-TW 口語句子，供 Siri 朗讀
     static func build(from target: Target?, today: Date) -> String {
-        // TODO(i18n): localize before non-zh-TW rollout
         guard let target else {
-            return "你目前沒有設定比賽目標。"
+            return NSLocalizedString("siri.next_race.no_target", comment: "")
         }
 
         let tz = TimeZone(identifier: target.timezone) ?? .current
@@ -27,8 +26,8 @@ enum NextRaceDialogBuilder {
             to: cal.startOfDay(for: raceDate)
         ).day ?? 0
 
-        if days == 0 { return "\(target.name)就是今天，加油！" }
-        if days < 0 { return "\(target.name)已經結束了。" }
-        return "距離\(target.name)還有 \(days) 天。"
+        if days == 0 { return String(format: NSLocalizedString("siri.next_race.today", comment: ""), target.name) }
+        if days < 0 { return String(format: NSLocalizedString("siri.next_race.ended", comment: ""), target.name) }
+        return String(format: NSLocalizedString("siri.next_race.days_left", comment: ""), target.name, days)
     }
 }

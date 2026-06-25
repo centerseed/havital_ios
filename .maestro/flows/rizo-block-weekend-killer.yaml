@@ -1,0 +1,155 @@
+appId: com.havital.Havital
+tags:
+  - rizo
+  - plan-change
+  - killer
+---
+# Rizo 改課表「殺手案」— 任意 NL 約束(非減量關鍵字)端到端驗收
+#
+# 驗 T-0027 殺手 bug 是否真修好:原 bug = 決定性 pipeline 只認 is_rest_week 關鍵字,
+#   「爬山/不能跑」這種任意約束被無視,兩個相反要求產出 byte-identical。
+# 預期:輸入「五六日要爬山不能跑」→ 候選課表把週五/六/日封成休息(不再排跑步)。
+#
+# 關鍵(對齊用戶要求「等有回應才捲動」):Step 6 scrollUntilVisible 邊等邊捲,
+#   卡片沒出來不會亂捲;Step 4b 等開場串流結束才打字。
+#
+# appId prod = com.havital.Havital；模擬器 UDID E8E035CC
+
+# Step 1: 啟動(保留登入,不清 state)
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- runFlow:
+    file: ../subflows/dismiss-permission-prompts.yaml
+    optional: true
+- repeat:
+    times: 3
+    commands:
+      - tapOn: { point: "7%, 7%", optional: true }
+      - tapOn: { text: "允許|好|Allow|OK|關閉|Close|Continue|繼續|稍後設定|不再提醒", optional: true }
+      - waitForAnimationToEnd: { timeout: 1200 }
+
+# Step 2: 進訓練計劃頁
+- extendedWaitUntil:
+    visible: "訓練計劃|訓練計畫|Training Plan|每日訓練|今日狀態"
+    timeout: 30000
+- tapOn:
+    text: "訓練計劃|訓練計畫|Training Plan"
+    optional: true
+
+# Step 2b: 先截「改動前」課表頁(捲到週末看現況)
+- extendedWaitUntil:
+    visible: "今日狀態|Today's State"
+    timeout: 30000
+- takeScreenshot: ".maestro/screenshots/killer_00_before_plan.png"
+
+# Step 3: 等今日狀態卡載入完成後點開
+- extendedWaitUntil:
+    notVisible: "讀取今日狀態中…|Reading your state…"
+    timeout: 30000
+    optional: true
+- tapOn:
+    text: "今日狀態|Today's State"
+
+# Step 4: 捲到 Rizo 對話(狀態摘要在上方,需捲到聊天框)
+- extendedWaitUntil:
+    notVisible: "讀取今日狀態中…|Reading your state…"
+    timeout: 20000
+    optional: true
+- scrollUntilVisible:
+    element:
+      id: "rizo_chat_input"
+    direction: DOWN
+    timeout: 30000
+    centerElement: true
+# Step 4b: 等開場串流結束(typing 消失)才可輸入
+- extendedWaitUntil:
+    notVisible:
+      id: "rizo_chat_typing"
+    timeout: 30000
+
+# Step 5: 輸入殺手案 NL(真人最短講法,非減量關鍵字)並送出
+- tapOn:
+    id: "rizo_chat_input"
+- waitForAnimationToEnd:
+    timeout: 3000
+- inputText: "我這週五六日要去爬山，沒辦法跑步，幫我把課表改一下"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "rizo_chat_send"
+# 確認訊息送出(使用者泡泡)
+- extendedWaitUntil:
+    visible:
+      id: "rizo_chat_bubble_user"
+    timeout: 10000
+
+# Step 6: 等變更建議卡片(propose ~25-30s,給 120s)——有回應才捲動
+- scrollUntilVisible:
+    element:
+      id: "rizo_plan_change_card"
+    direction: DOWN
+    timeout: 120000
+    centerElement: true
+- assertVisible:
+    id: "rizo_plan_change_card"
+- takeScreenshot: ".maestro/screenshots/killer_01_change_card.png"
+
+# Step 6b: 卡片可能多日,往下捲完整看 diff(五/六/日)
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 35%"
+    duration: 500
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: ".maestro/screenshots/killer_01b_change_card_more.png"
+
+# Step 7: 接受 → 套用
+- tapOn:
+    text: "接受"
+- extendedWaitUntil:
+    visible: "已為你套用|課表更新囉|課表更新"
+    timeout: 30000
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ".maestro/screenshots/killer_02_applied.png"
+
+# Step 8: 關 sheet 回課表頁
+- tapOn:
+    text: "Continue|繼續"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 2000
+- tapOn:
+    id: "daily_state_close"
+- extendedWaitUntil:
+    notVisible:
+      id: "rizo_chat_input"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Step 9: 下拉刷新 → 截更新後課表
+- extendedWaitUntil:
+    visible: "訓練計劃|訓練計畫|每日訓練|本週|週課表"
+    timeout: 15000
+- swipe:
+    start: "50%, 30%"
+    end: "50%, 85%"
+    duration: 700
+- waitForAnimationToEnd:
+    timeout: 4000
+- takeScreenshot: ".maestro/screenshots/killer_03_after_plan_top.png"
+
+# Step 10: 捲到週末,截五/六/日是否變休息
+- scrollUntilVisible:
+    element:
+      text: "週五|週六|週日"
+    direction: DOWN
+    timeout: 25000
+    centerElement: true
+- waitForAnimationToEnd:
+    timeout: 2000
+- takeScreenshot: ".maestro/screenshots/killer_04_weekend_after.png"

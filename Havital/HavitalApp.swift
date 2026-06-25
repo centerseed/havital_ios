@@ -1114,6 +1114,11 @@ private enum UITestTypographyAuditScreen: String {
     case trainingHome = "training_home"
     case weekTimeline = "week_timeline"
     case editCard = "edit_card"
+    case editTarget = "edit_target"
+    case editSupportingTarget = "edit_supporting_target"
+    case editTrainingDays = "edit_training_days"
+    case editStageSelection = "edit_stage_selection"
+    case hrZone = "hr_zone"
     case paywall
 
     static func current() -> UITestTypographyAuditScreen {
@@ -1192,6 +1197,26 @@ private struct UITestTypographyAuditHostView: View {
                     }
                     .background(Color(UIColor.systemGroupedBackground))
                 }
+            case .editTarget:
+                NavigationStack {
+                    EditTargetView(target: Self.mockTarget)
+                }
+            case .editSupportingTarget:
+                NavigationStack {
+                    EditSupportingTargetView(target: Self.mockTarget)
+                }
+            case .editTrainingDays:
+                NavigationStack {
+                    EditTrainingDaysView(initialWeekdays: [1, 3, 5], initialLongRunDay: 6, onSave: {})
+                }
+            case .editStageSelection:
+                NavigationStack {
+                    EditTargetStageSelectionView(weeksRemaining: 12, targetDistanceKm: 42.195, onConfirm: { _ in })
+                }
+            case .hrZone:
+                NavigationStack {
+                    HRRHeartRateZoneEditorView()
+                }
             case .paywall:
                 NavigationStack {
                     PaywallView(trigger: .featureLocked)
@@ -1199,6 +1224,18 @@ private struct UITestTypographyAuditHostView: View {
             }
         }
     }
+
+    private static let mockTarget = Target(
+        id: "audit_mock",
+        type: "race_run",
+        name: "Tokyo Marathon",
+        distanceKm: 42,
+        targetTime: 14400,
+        targetPace: "5:41",
+        raceDate: 1_790_000_000,
+        isMainRace: true,
+        trainingWeeks: 16
+    )
 
     private var tabEntrySmokeView: some View {
         TabView {

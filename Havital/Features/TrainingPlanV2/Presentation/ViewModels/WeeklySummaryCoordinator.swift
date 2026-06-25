@@ -39,6 +39,13 @@ final class WeeklySummaryCoordinator {
     /// in the Sunday-generates-current-week-summary scenario.
     var lastRequestedSummaryWeek: Int?
 
+    // MARK: - Weekly Review NL Edit
+
+    /// 使用者在週回顧自由文字輸入框打的草稿（送出後清空）。
+    var userNlDraft: String = ""
+    /// 送出週回顧自由文字給 Rizo 的狀態（.empty 初始 / .loading / .loaded(回覆) / .error）。
+    var userNlSubmitState: ViewState<String> = .empty
+
     // MARK: - Dependencies
 
     @ObservationIgnored private let repository: TrainingPlanV2Repository
@@ -56,6 +63,12 @@ final class WeeklySummaryCoordinator {
     /// S07 (AC-PAYWALL-23): called when weekly review is triggered without a subscription.
     @ObservationIgnored private let onWeeklyReviewInlineUpsellNeeded: (() -> Void)?
 
+    /// 注入用 RizoRepository（測試替身）；prod 為 nil，lazy 由 DependencyContainer 解析。
+    @ObservationIgnored private let injectedRizoRepository: RizoRepository?
+    /// 避開 init-order：lazy 解析，不在 init resolve。
+    @ObservationIgnored private lazy var rizoRepository: RizoRepository =
+        injectedRizoRepository ?? DependencyContainer.shared.resolve()
+
     // MARK: - Init
 
     init(
@@ -71,7 +84,8 @@ final class WeeklySummaryCoordinator {
         onRizoQuotaExceeded: @escaping () -> Void,
         onNetworkError: @escaping (Error) -> Void,
         isEnforcementEnabled: @escaping () -> Bool,
-        onWeeklyReviewInlineUpsellNeeded: (() -> Void)? = nil
+        onWeeklyReviewInlineUpsellNeeded: (() -> Void)? = nil,
+        rizoRepository: RizoRepository? = nil
     ) {
         self.repository = repository
         self.currentSelectedWeek = currentSelectedWeek
@@ -86,6 +100,30 @@ final class WeeklySummaryCoordinator {
         self.onNetworkError = onNetworkError
         self.isEnforcementEnabled = isEnforcementEnabled
         self.onWeeklyReviewInlineUpsellNeeded = onWeeklyReviewInlineUpsellNeeded
+        self.injectedRizoRepository = rizoRepository
+    }
+
+    // MARK: - Weekly Review NL Edit
+
+    /// 送出週回顧自由文字（userNlDraft）給 Rizo（scenario "weekly_situation"）。
+    /// 成功:狀態轉 .loaded(回覆) 並清空 draft；取消:不碰 UI；其餘錯誤:轉 .error。
+    func submitUserNlEdit() async {
+        let text = userNlDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        userNlSubmitState = .loading
+        do {
+            let reply = try await rizoRepository.sendChat(
+                scenario: "weekly_situation",
+                message: text,
+                sessionId: nil
+            )
+            userNlSubmitState = .loaded(reply.reply)
+            userNlDraft = ""
+        } catch is CancellationError {
+            return
+        } catch {
+            userNlSubmitState = .error(error.toDomainError())
+        }
     }
 
     // MARK: - AC-IOS-ANALYTICS mark methods

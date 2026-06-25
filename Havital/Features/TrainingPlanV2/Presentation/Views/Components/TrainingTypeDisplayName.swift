@@ -44,6 +44,16 @@ enum TrainingTypeDisplayName {
             let intervalName = NSLocalizedString(intervalKey, comment: "")
             return intervalName == intervalKey ? normalizedType : intervalName
         }
+        // Fallback: any unmapped "*combo/*combination" segment-quality template
+        // (e.g. "easy_surge_combo", "tempo_race_combo") is generically a 組合訓練.
+        // Backend maps these to the "combination" RunType; mirror that so the
+        // raw template ID never leaks in the plan overview.
+        let lowered = normalizedType.lowercased()
+        if lowered.contains("combo") || lowered.contains("combination") {
+            let comboKey = "training.type.combination"
+            let comboName = NSLocalizedString(comboKey, comment: "")
+            return comboName == comboKey ? normalizedType : comboName
+        }
         return normalizedType
     }
 

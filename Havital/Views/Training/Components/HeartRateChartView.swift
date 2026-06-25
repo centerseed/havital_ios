@@ -90,16 +90,16 @@ struct HeartRateChartView: View {
                 Chart {
                     ForEach(heartRates) { point in
                         LineMark(
-                            x: .value("時間", point.time),
-                            y: .value("心率", point.value)
+                            x: .value(NSLocalizedString("chart.axis.time", comment: ""), point.time),
+                            y: .value(NSLocalizedString("chart.series.heart_rate", comment: ""), point.value)
                         )
                         .foregroundStyle(Color.red.gradient)
                         .interpolationMethod(.catmullRom)
 
                         AreaMark(
-                            x: .value("時間", point.time),
-                            yStart: .value("心率", yAxisRange.min),
-                            yEnd: .value("心率", point.value)
+                            x: .value(NSLocalizedString("chart.axis.time", comment: ""), point.time),
+                            yStart: .value(NSLocalizedString("chart.series.heart_rate", comment: ""), yAxisRange.min),
+                            yEnd: .value(NSLocalizedString("chart.series.heart_rate", comment: ""), point.value)
                         )
                         .foregroundStyle(Color.red.opacity(0.1))
                         .interpolationMethod(.catmullRom)
@@ -204,7 +204,7 @@ struct HeartRateChartView_Previews: PreviewProvider {
                 minHeartRate: "--",
                 yAxisRange: (min: 0, max: 200),
                 isLoading: false,
-                error: "數據加載失敗"
+                error: NSLocalizedString("chart.error.load_failed", comment: "")
             )
             .previewDisplayName("Error")
             

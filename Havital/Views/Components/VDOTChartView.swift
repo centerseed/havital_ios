@@ -146,7 +146,7 @@ struct VDOTChartView: View {
                         y: .value(L10n.Performance.Chart.vdotValue.localized, point.value)
                     )
                     .interpolationMethod(.catmullRom)
-                    .foregroundStyle(by: .value("種類", L10n.Performance.VDOT.dynamicVdot.localized))
+                    .foregroundStyle(by: .value(NSLocalizedString("chart.series.type", comment: ""), L10n.Performance.VDOT.dynamicVdot.localized))
                     
                     // 加權跑力曲線
                     if let weight = point.weightVdot {
@@ -155,7 +155,7 @@ struct VDOTChartView: View {
                             y: .value(L10n.Performance.Chart.vdotValue.localized, weight)
                         )
                         .interpolationMethod(.catmullRom)
-                        .foregroundStyle(by: .value("種類", L10n.Performance.VDOT.weightedVdot.localized))
+                        .foregroundStyle(by: .value(NSLocalizedString("chart.series.type", comment: ""), L10n.Performance.VDOT.weightedVdot.localized))
                     }
                     
                     // 動態跑力點
@@ -163,7 +163,7 @@ struct VDOTChartView: View {
                         x: .value(L10n.Performance.Chart.date.localized, point.date),
                         y: .value(L10n.Performance.Chart.vdotValue.localized, point.value)
                     )
-                    .foregroundStyle(by: .value("種類", L10n.Performance.VDOT.dynamicVdot.localized))
+                    .foregroundStyle(by: .value(NSLocalizedString("chart.series.type", comment: ""), L10n.Performance.VDOT.dynamicVdot.localized))
                     
                     // 加權跑力點
                     if let weight = point.weightVdot {
@@ -171,7 +171,7 @@ struct VDOTChartView: View {
                             x: .value(L10n.Performance.Chart.date.localized, point.date),
                             y: .value(L10n.Performance.Chart.vdotValue.localized, weight)
                         )
-                        .foregroundStyle(by: .value("種類", L10n.Performance.VDOT.weightedVdot.localized))
+                        .foregroundStyle(by: .value(NSLocalizedString("chart.series.type", comment: ""), L10n.Performance.VDOT.weightedVdot.localized))
                     }
                 }
             }

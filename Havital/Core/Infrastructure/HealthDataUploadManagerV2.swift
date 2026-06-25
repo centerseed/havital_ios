@@ -14,12 +14,12 @@ enum HealthDataType: String, CaseIterable, Codable {
     
     var displayName: String {
         switch self {
-        case .hrv: return "心率變異性"
-        case .restingHeartRate: return "靜息心率"
-        case .heartRate: return "心率"
-        case .sleep: return "睡眠"
-        case .steps: return "步數"
-        case .activeEnergy: return "活動消耗"
+        case .hrv: return NSLocalizedString("health_data_type.hrv", comment: "")
+        case .restingHeartRate: return NSLocalizedString("health_data_type.resting_heart_rate", comment: "")
+        case .heartRate: return NSLocalizedString("health_data_type.heart_rate", comment: "")
+        case .sleep: return NSLocalizedString("health_data_type.sleep", comment: "")
+        case .steps: return NSLocalizedString("health_data_type.steps", comment: "")
+        case .activeEnergy: return NSLocalizedString("health_data_type.active_energy", comment: "")
         }
     }
 }

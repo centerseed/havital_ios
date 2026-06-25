@@ -464,11 +464,17 @@ struct NextWeekAdjustmentsV2DTO: Codable {
     let summary: String
     let methodologyConstraintsConsidered: Bool
     let basedOnFlags: [String]
+    let userNlEdit: String?
+    let userNlEditStatus: String?
+    let userNlEditFailReason: String?
 
     enum CodingKeys: String, CodingKey {
         case items, summary
         case methodologyConstraintsConsidered = "methodology_constraints_considered"
         case basedOnFlags = "based_on_flags"
+        case userNlEdit = "user_nl_edit"
+        case userNlEditStatus = "user_nl_edit_status"
+        case userNlEditFailReason = "user_nl_edit_fail_reason"
     }
 }
 

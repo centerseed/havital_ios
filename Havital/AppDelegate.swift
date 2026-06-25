@@ -118,6 +118,26 @@ class AppDelegate: NSObject, UIApplicationDelegate, MessagingDelegate {
             return
         }
 
+        // deferred_edit_failed 推播 → 發本地通知引導用戶回 Rizo 重講（深連列後續 PR）
+        if notificationType == "deferred_edit_failed" {
+            let content = UNMutableNotificationContent()
+            content.title = NSLocalizedString("weekly_review.deferred_failed.title", comment: "課表調整未套用")
+            content.body = NSLocalizedString("weekly_review.deferred_failed.body", comment: "沒能套用你上週的調整，打開 Rizo 再說一次就好。")
+            content.sound = .default
+            let request = UNNotificationRequest(
+                identifier: "weekly-review-deferred-edit-failed",
+                content: content,
+                trigger: nil
+            )
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error {
+                    print("發送 deferred_edit_failed 本地通知失敗: \(error)")
+                }
+            }
+            completionHandler(.newData)
+            return
+        }
+
         completionHandler(.noData)
     }
 }

@@ -33,12 +33,12 @@ struct WorkoutUtils {
         let seconds = Int(duration) % 60
         
         if hours > 0 {
-            return String(format: "%d時%02d分", hours, minutes)
+            return String(format: NSLocalizedString("workout_format.duration_hm", comment: ""), hours, minutes)
         } else {
-            return String(format: "%d分%02d秒", minutes, seconds)
+            return String(format: NSLocalizedString("workout_format.duration_ms", comment: ""), minutes, seconds)
         }
     }
-    
+
     static func formatDurationSimple(_ duration: TimeInterval) -> String {
         let hours = Int(duration) / 3600
         let minutes = Int(duration) / 60 % 60
@@ -54,7 +54,7 @@ struct WorkoutUtils {
     /// 格式化日期顯示
     static func formatDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "M月d日 HH:mm"
+        formatter.dateFormat = NSLocalizedString("workout_format.date_pattern", comment: "")
         return formatter.string(from: date)
     }
     
@@ -65,9 +65,9 @@ struct WorkoutUtils {
             switch unit {
             case .metric:
                 if distance >= 1000 {
-                    return String(format: "%.2f 公里", distance / 1000)
+                    return String(format: NSLocalizedString("workout_format.distance_km", comment: ""), distance / 1000)
                 } else {
-                    return String(format: "%.0f 米", distance)
+                    return String(format: NSLocalizedString("workout_format.distance_m", comment: ""), distance)
                 }
             case .imperial:
                 let miles = (distance / 1000) * 0.621371

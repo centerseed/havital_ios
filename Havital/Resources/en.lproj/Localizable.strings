@@ -1608,7 +1608,7 @@
 
 // MARK: - Edit Schedule
 "edit_schedule.cannot_edit_past" = "Completed and past schedules, or race days cannot be edited";
-"edit_schedule.title" = "Edit Weekly Schedule";
+"edit_schedule.title" = "Edit Schedule";
 "edit_schedule.cancel" = "Cancel";
 "edit_schedule.save" = "Save";
 "edit_schedule.loading_data" = "Loading edit data...";
@@ -3863,3 +3863,215 @@
 "garmin.push.error.garmin_training_unavailable" = "Garmin workout push is coming soon";
 "garmin.push.error.not_a_run_workout" = "This day isn't a running workout, so it can't be sent to Garmin";
 "garmin.push.error.generic" = "Couldn't send. Please try again later.";
+// MARK: - Weekly Review NL Input
+"weekly_review.nl_input.title" = "Want to tell Rizo yourself?";
+"weekly_review.nl_input.hint" = "Submitting overwrites your last note · 2000 chars max";
+"weekly_review.nl_input.placeholder" = "e.g. \"Hiking Fri-Sat next week, can't run, want more rest\"";
+"weekly_review.nl_input.submit" = "Send";
+"weekly_review.nl_input.error" = "Couldn't send, please try again";
+"weekly_review.nl_input.status_pending" = "Noted - applied when next week's plan is generated";
+"weekly_review.nl_input.status_applied" = "Applied to next week's plan";
+"weekly_review.nl_input.status_failed" = "Couldn't apply - tap to tell me again";
+"weekly_review.deferred_failed.title" = "Plan adjustment not applied";
+"weekly_review.deferred_failed.body" = "Couldn't apply last week's adjustment. Open Rizo and tell me again.";
+// MARK: - Schedule Editor training type labels (T-0048 i18n: was hardcoded in EditScheduleViewV2/EditScheduleView)
+"schedule_editor.daytarget.rest" = "Rest Day";
+"schedule_editor.daytarget.recovery_run" = "Recovery Run: Low-intensity recovery";
+"schedule_editor.daytarget.easy_run" = "Easy Run: Recover and build aerobic base";
+"schedule_editor.daytarget.marathon_pace" = "Marathon Pace: Moderate steady run to build aerobic endurance";
+"schedule_editor.daytarget.threshold" = "Threshold Run: Improve lactate clearance";
+"schedule_editor.daytarget.interval" = "Interval Run: Boost VO2max and speed";
+"schedule_editor.daytarget.long_run" = "Long Run: Build your endurance base";
+"schedule_editor.daytarget.lsd" = "LSD (Long Slow Distance): Easy pace to build aerobic base";
+"schedule_editor.daytarget.progression" = "Progression Run: Gradually speed up from slow to fast";
+"schedule_editor.daytarget.combo" = "Combo Workout: Mixed-pace training";
+"schedule_editor.daytarget.fartlek" = "Fartlek: Variable-pace running to train pace transitions";
+"schedule_editor.daytarget.fast_finish" = "Fast-Finish Long Run: Accelerate in the final stretch";
+"schedule_editor.daytarget.race_pace" = "Race Pace Run: Dial in your goal race rhythm";
+"schedule_editor.daytarget.strides" = "Strides: Short sprints to improve running economy";
+"schedule_editor.daytarget.hill_repeats" = "Hill Repeats: Uphill sprints to build leg power";
+"schedule_editor.daytarget.cruise_intervals" = "Cruise Intervals: Threshold-pace interval training";
+"schedule_editor.daytarget.short_interval" = "Short Intervals: Improve speed and anaerobic capacity";
+"schedule_editor.daytarget.long_interval" = "Long Intervals: Improve VO2max and speed endurance";
+"schedule_editor.daytarget.norwegian_4x4" = "Norwegian 4x4: 4 × 4-minute high-intensity intervals";
+"schedule_editor.daytarget.yasso_800" = "Yasso 800s: 800m repeats for VO2max";
+"schedule_editor.daytarget.cross_training" = "Cross-Training: Non-running exercise";
+"schedule_editor.daytarget.strength" = "Strength Training: Build muscular strength";
+"schedule_editor.daytarget.yoga" = "Yoga: Flexibility and recovery";
+"schedule_editor.daytarget.hiking" = "Hiking: Aerobic endurance training";
+"schedule_editor.daytarget.cycling" = "Cycling: Low-impact aerobic training";
+"schedule_editor.daytarget.custom" = "Custom Workout";
+"schedule_editor.segment.warmup" = "Warm-up";
+"schedule_editor.segment.cooldown" = "Cool-down";
+"schedule_editor.segment.easy_pace" = "Easy pace";
+"schedule_editor.segment.marathon_pace" = "Marathon pace";
+"schedule_editor.segment.accelerate" = "Acceleration";
+"schedule_editor.segment.easy_run" = "Easy run";
+"schedule_editor.segment.fast_run" = "Fast run";
+"schedule_editor.segment.recovery" = "Recovery";
+"schedule_editor.segment.hard_run" = "Hard run";
+"schedule_editor.segment.recovery_run" = "Recovery jog";
+"schedule_editor.segment.jog_downhill" = "Jog downhill to recover";
+"schedule_editor.segment.easy_jog_recovery" = "Easy jog recovery";
+"schedule_editor.segment.equal_time_recovery" = "Equal-time recovery";
+"schedule_editor.segment.rest_in_place_minutes" = "Rest in place for %d min";
+"schedule_editor.segment.recovery_run_minutes" = "Recovery jog for %d min";
+"schedule_editor.minutes_format" = "%d min";
+
+// MARK: - Schedule Editor V1 supplement (T-0048: EditScheduleView-only details/segments)
+"schedule_editor.daytarget.race_day" = "Race Day";
+"schedule_editor.segment.jog" = "Jog";
+"schedule_editor.segment.sprint" = "Sprint";
+"schedule_editor.segment.easy_run_70" = "Easy run (70%)";
+"schedule_editor.segment.marathon_pace_30" = "Marathon pace (30%)";
+"schedule_editor.segment.hard_run_vo2" = "Hard run (92% VO2max)";
+"schedule_editor.segment.recovery_run_equal" = "Recovery jog (equal time)";
+"schedule_editor.approx_distance_format" = " (~%dm)";
+"schedule_editor.detail.hill_repeats" = "Find a hill with about a 5-8% grade";
+"schedule_editor.detail.cruise_intervals" = "Cruise intervals: threshold-pace reps; per Jack Daniels, every 5 min at T pace needs 1 min of recovery";
+"schedule_editor.detail.fartlek" = "Fartlek: freely switch between fast and slow by feel";
+"schedule_editor.detail.fast_finish" = "Speed up late in a long run to train pace control under fatigue";
+"schedule_editor.detail.race_pace" = "Train at your goal race pace to dial in your race rhythm";
+"schedule_editor.detail.short_interval" = "Short high-intensity reps to build speed, anaerobic capacity, and running economy (not a primary aerobic session)";
+"schedule_editor.detail.long_interval" = "Long interval training to improve VO2max and speed endurance";
+"schedule_editor.detail.norwegian_4x4" = "Norwegian 4x4: four ~4-minute high-intensity intervals (92% VO2max)";
+"schedule_editor.detail.yasso_800" = "Yasso 800s: 800m interval-pace reps. With equal recovery it predicts marathon time: your 800m time (min:sec) = marathon finish (hr:min)";
+
+// MARK: - Schedule Editor W1 supplement 2 (picker / TrainingDetailEditor)
+"schedule_editor.segment.threshold" = "Threshold run";
+"schedule_editor.segment.interval" = "Interval run";
+"schedule_editor.segment.rest_in_place_time" = "Rest in place %@";
+"schedule_editor.segment.recovery_run_time" = "Recovery jog %@";
+"schedule_editor.segment.yasso_800" = "Yasso 800";
+
+"schedule_editor.strength.supplementary" = "Supplementary strength";
+
+// MARK: - Chart axis/series + MyAchievement empty-state (T-0048 W2)
+"chart.axis.start" = "Start";
+"chart.axis.end" = "End";
+"chart.axis.lower" = "Lower";
+"chart.axis.upper" = "Upper";
+"chart.series.type" = "Type";
+"chart.series.line" = "Line";
+"chart.series.fitness_index" = "Fitness";
+"chart.series.training_index" = "Training load";
+"chart.series.ctl_upper" = "CTL upper";
+"chart.series.ctl_lower" = "CTL lower";
+"my_achievement.strava_no_resting_hr" = "Strava does not provide resting heart rate data";
+"my_achievement.empty.no_training_index" = "No training load data yet";
+"my_achievement.empty.no_tsb" = "No TSB data yet";
+
+// MARK: - WeekTimeline interval variant labels (T-0048 W2)
+"timeline.variant.hill_repeats" = "Hill intervals";
+"timeline.variant.cruise_intervals" = "Cruise intervals";
+"timeline.variant.norwegian_4x4" = "4x4 intervals";
+"timeline.variant.yasso_800" = "800m intervals";
+"timeline.interval.reps_suffix" = "× %d reps";
+
+// MARK: - Chart axis/series/stat (T-0048 W2 chart views)
+"chart.axis.time" = "Time";
+"chart.axis.value" = "Value";
+"chart.series.heart_rate" = "Heart rate";
+"chart.series.pace" = "Pace";
+"chart.series.performance_index" = "Performance";
+"chart.stat.average" = "Average";
+"chart.stat.max" = "Max";
+"chart.stat.min" = "Min";
+"chart.empty.no_data" = "No data available";
+"chart.error.load_failed" = "Failed to load data";
+
+// MARK: - Workout Reflection prompt labels (T-0048 W2)
+"workout_reflection.prompt.pace" = "Pace";
+"workout_reflection.prompt.breathing" = "Breathing";
+"workout_reflection.prompt.legs_feet" = "Legs/Feet";
+"workout_reflection.prompt.heart_rate" = "Heart rate";
+"workout_reflection.prompt.fueling" = "Fueling";
+"workout_reflection.prompt.vs_last" = "vs last";
+"workout_reflection.prompt.final_stretch" = "Final stretch";
+"workout_reflection.prompt.tomorrow" = "Tomorrow";
+
+// MARK: - Siri Intent dialog (T-0048 W3)
+"siri.next_race.no_target" = "You haven't set a race goal yet.";
+"siri.next_race.today" = "%@ is today — good luck!";
+"siri.next_race.ended" = "%@ has already passed.";
+"siri.next_race.days_left" = "%2$d days until %1$@.";
+"siri.readiness.score_status" = "Your training readiness today is %1$d, %2$@.";
+"siri.readiness.score" = "Your training readiness today is %d.";
+"siri.readiness.no_data_status" = "Your training readiness data isn't available yet, %@.";
+"siri.readiness.no_data" = "Your training readiness data isn't available yet.";
+"siri.mileage.no_runs" = "You have no runs logged this week yet.";
+"siri.mileage.summary" = "You've run %1$@ km in %2$d sessions this week.";
+"siri.mileage.no_training" = "You have no workouts logged this week yet.";
+"siri.mileage.training_summary" = "You've trained %1$@ km in %2$d sessions this week.";
+"siri.session.rest" = "Today is a rest day — recover well.";
+"siri.session.today" = "Today's session is %@.";
+
+// MARK: - Workout reupload errors (T-0048 W2/W4)
+"workout_reupload.error.only_apple_health" = "Only Apple Health data can be re-uploaded";
+"workout_reupload.error.no_matching_hk" = "No matching HealthKit workout found";
+"workout_reupload.error.failed" = "Re-upload failed: %@";
+"workout_reupload.error.exception" = "An error occurred during re-upload: %@";
+
+// MARK: - Health data type display names (T-0048 W2)
+"health_data_type.hrv" = "Heart Rate Variability";
+"health_data_type.resting_heart_rate" = "Resting Heart Rate";
+"health_data_type.heart_rate" = "Heart Rate";
+"health_data_type.sleep" = "Sleep";
+"health_data_type.steps" = "Steps";
+"health_data_type.active_energy" = "Active Energy";
+
+// MARK: - Workout formatting (T-0048 W2)
+"workout_format.duration_hm" = "%dh %02dm";
+"workout_format.duration_ms" = "%dm %02ds";
+"workout_format.date_pattern" = "MMM d, HH:mm";
+"workout_format.distance_km" = "%.2f km";
+"workout_format.distance_m" = "%.0f m";
+
+// MARK: - Misc UI (T-0048 W2/W5)
+"plan_overview.upcoming_four_weeks" = "Next four weeks";
+"chart.unit.cadence_per_min" = "%d spm";
+"training.segment.new_default" = "New segment";
+
+// MARK: - VDOT trend (T-0048 W5)
+"vdot.trend.improving" = "Improving";
+"vdot.trend.stable" = "Stable";
+"vdot.trend.declining" = "Declining";
+
+// MARK: - Siri Intent title/description (T-0048 W3)
+"voice.intent.todays_session.title" = "What's today's session?";
+"voice.intent.todays_session.desc" = "Speaks today's training session";
+"voice.intent.readiness.title" = "Can I train today?";
+"voice.intent.readiness.desc" = "Speaks today's training readiness";
+"voice.intent.next_race.title" = "Days until my race";
+"voice.intent.next_race.desc" = "Speaks the days until your next race";
+"voice.intent.weekly_mileage.title" = "How much have I run this week?";
+"voice.intent.weekly_mileage.desc" = "Speaks this week's total mileage";
+
+// MARK: - Climate Heat Adaptation (T-0048 W-cleanup)
+"climate.explanation" = "Heat and humidity raise your heart rate and make the same pace feel harder — that's a normal physiological response, not a loss of fitness. Today's pace target has been eased based on the feels-like temperature so you can finish this session safely at the right effort.";
+"climate.recommendation.danger" = "Strongly consider moving indoors (treadmill / cross-training) or rescheduling. If you must go outside, pick the coolest early morning or after dark, slow down significantly, shorten the distance, and hydrate constantly.";
+"climate.recommendation.high" = "Train in the cooler early morning or evening and avoid 11:00–15:00. Shorten long runs by 20–30%%, or move them indoors.";
+"climate.recommendation.moderate" = "Avoid the hottest 11:00–15:00 window and move long runs to early morning. Hydrate throughout.";
+"climate.recommendation.default" = "It's warm — train in the cooler early morning or evening and remember to hydrate.";
+"climate.recommendation_title" = "When to train";
+"climate.danger_outdoor_pace_title" = "If outdoors";
+"climate.short_level.mild" = "Mild Heat";
+"climate.short_level.moderate" = "Heat";
+"climate.short_level.high" = "High Heat";
+"climate.short_level.danger" = "Danger";
+"climate.short_level.default" = "Heat";
+"climate.level.mild" = "Mild heat stress";
+"climate.level.moderate" = "Moderate heat stress";
+"climate.level.high" = "High heat stress";
+"climate.level.danger" = "Danger heat stress";
+"climate.level.default" = "Comfortable";
+"climate.section_title" = "Heat Adaptation";
+"climate.level_title" = "Level";
+"climate.temperature_title" = "Feels like";
+"climate.adjustment_title" = "Adjustment";
+"climate.original_pace_title" = "Base Pace";
+"climate.adjusted_pace_title" = "Adjusted";
+"climate.adjustment.pace_pct" = "Pace +%.0f%%";
+"climate.adjustment.reduce_pct" = "Reduce %.0f%%";
+"climate.long_run_reduction" = "Long run recommended reduction: %.0f%%. Prefer rescheduling or moving indoors.";
+"climate.segment_adjustment_summary" = "Segment paces were adjusted for the day's heat stress.";

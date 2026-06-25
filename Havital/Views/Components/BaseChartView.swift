@@ -6,7 +6,7 @@ struct BaseChartView<T: ChartDataPoint, VM: BaseChartViewModel<T>>: View {
     let title: String
     let emptyMessage: String
     
-    init(viewModel: VM, title: String = "", emptyMessage: String = "無可用數據") {
+    init(viewModel: VM, title: String = "", emptyMessage: String = NSLocalizedString("chart.empty.no_data", comment: "")) {
         self.viewModel = viewModel
         self.title = title
         self.emptyMessage = emptyMessage
@@ -42,15 +42,15 @@ struct BaseChartView<T: ChartDataPoint, VM: BaseChartViewModel<T>>: View {
         Chart {
             ForEach(viewModel.dataPoints, id: \.date) { point in
                 LineMark(
-                    x: .value("日期", point.date),
-                    y: .value("數值", point.value)
+                    x: .value(NSLocalizedString("common.date", comment: ""), point.date),
+                    y: .value(NSLocalizedString("chart.axis.value", comment: ""), point.value)
                 )
                 .foregroundStyle(viewModel.chartColor.gradient)
                 
                 if let selected = viewModel.selectedPoint, selected.date == point.date {
                     PointMark(
-                        x: .value("日期", point.date),
-                        y: .value("數值", point.value)
+                        x: .value(NSLocalizedString("common.date", comment: ""), point.date),
+                        y: .value(NSLocalizedString("chart.axis.value", comment: ""), point.value)
                     )
                     .foregroundStyle(viewModel.chartColor)
                     .symbolSize(100)

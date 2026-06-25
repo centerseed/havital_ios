@@ -1,0 +1,138 @@
+appId: com.havital.Havital.dev
+tags:
+  - rizo
+  - plan-change
+  - demo
+---
+# Rizo 整週減量 — 自然語言改課表 demo / 驗收
+#
+# 驗證後端修正(_backfill_from_baseline + 2.5-flash-lite):
+#   整週減量請求不再「變更建議建立失敗」,穩定產出多天 deload 卡片。
+#
+# 路徑：訓練計劃 → 點「今日狀態」卡開 sheet → 捲到「與 Rizo 教練聊聊」
+#       → rizo_chat_input 打整週減量 → rizo_chat_send → 等 rizo_plan_change_card
+#
+# Precondition（由部署/帳號保證,不在此 flow 設）：
+#   - 已登入、有付費(否則卡片 isLocked 顯示升級塊、無對話)
+#   - 當前週課表存在,且「今天之後」仍有可動的天(才看得到多天 deload)
+#
+# appId：prod = com.havital.Havital；dev build 改成 com.havital.Havital.dev
+#
+# 跑法（prod 模擬器 UDID E8E035CC）：
+#   maestro test .maestro/flows/rizo-whole-week-deload.yaml
+#   (絕不加 --no-window)
+
+# Step 1: 啟動（保留登入狀態,不清 state）
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- runFlow:
+    file: ../subflows/dismiss-permission-prompts.yaml
+    optional: true
+- tapOn:
+    text: "允許|好|Allow|OK"
+    optional: true
+
+# Step 2: 進訓練計劃頁
+- extendedWaitUntil:
+    visible: "訓練計劃|訓練計畫|Training Plan|トレーニング計画|每日訓練|今日狀態"
+    timeout: 30000
+- tapOn:
+    text: "訓練計劃|訓練計畫|Training Plan|トレーニング計画"
+    optional: true
+
+# Step 3: 等「今日狀態」卡載入完成（loading 文案消失）後點開
+- extendedWaitUntil:
+    visible: "今日狀態|Today's State|今日のコンディション"
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible: "讀取今日狀態中…|Reading your state…|状態を読み込み中…"
+    timeout: 30000
+    optional: true
+- tapOn:
+    text: "今日狀態|Today's State|今日のコンディション"
+
+# Step 4: 等 Rizo 對話載入（開場訊息 + 輸入框就緒）
+- extendedWaitUntil:
+    visible:
+      id: "rizo_chat_input"
+    timeout: 30000
+
+# Step 4b: 關鍵 — 等開場訊息「串流結束」。
+#   開場 isReplying=true 期間 rizo_chat_input 是 .disabled，
+#   此時 inputText 不會綁到 draft → 送出鈕 disabled → 訊息送不出（run2 的 flake 根因）。
+#   等 rizo_chat_typing 消失才代表 isReplying=false、輸入框可用。
+- extendedWaitUntil:
+    notVisible:
+      id: "rizo_chat_typing"
+    timeout: 30000
+
+# Step 5: 輸入整週減量請求並送出
+#   多行 TextField(axis:.vertical) inputText 有 focus race → tap 後等動畫結束再打字
+- tapOn:
+    id: "rizo_chat_input"
+- waitForAnimationToEnd:
+    timeout: 3000
+- inputText: "這週整個人很累，可以幫我整週減量、每天都調輕一點嗎？"
+- waitForAnimationToEnd:
+    timeout: 3000
+- tapOn:
+    id: "rizo_chat_send"
+# 確認訊息真的送出（使用者泡泡出現）。沒出 = inputText 沒進欄位 → 此 gate 直接擋下
+- extendedWaitUntil:
+    visible:
+      id: "rizo_chat_bubble_user"
+    timeout: 10000
+
+# Step 6: 等變更建議卡片（後端 propose ~25-30s，給足 90s）
+#   多日 deload 的 Rizo 文字較長，卡片會被擠到 fold 下緣 → 用 scrollUntilVisible 邊等邊捲。
+#   若後端壞掉會出現「變更建議建立失敗」泡泡 → 卡片永遠不出現 → timeout 失敗（正確擋住）
+- scrollUntilVisible:
+    element:
+      id: "rizo_plan_change_card"
+    direction: DOWN
+    timeout: 90000
+    centerElement: true
+
+# Step 7: 卡片出現 → 截圖卡片本體
+- assertVisible:
+    id: "rizo_plan_change_card"
+- takeScreenshot: ".maestro/screenshots/01_plan_change_card.png"
+
+# Step 8: 點「接受」→ 套用課表（用文字「接受」點，id rizo_plan_change_accept 抓不到）
+- tapOn:
+    text: "接受"
+# 套用成功 → Rizo 回「已為你套用，課表更新囉」+ 發 CacheEventBus(.trainingPlanV2) 刷新課表。
+#   optional：此 assert 是已知 false-negative（maestro hierarchy 快照時機偶爾錯過剛 render 的泡泡，
+#   但 frame 證實泡泡確實出現）。設 optional 讓流程繼續跑到「滑回課表頁」收尾，不被假失敗中止。
+- extendedWaitUntil:
+    visible: "已為你套用|課表更新囉|課表更新"
+    timeout: 30000
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ".maestro/screenshots/02_applied_confirm.png"
+
+# Step 9: 關掉 detail sheet → 回課表頁，看刷新後的更新資料。
+#   點右上關閉鈕 daily_state_close（DailyStateDetailView 新增的常駐關閉鈕）。
+#   舊版用座標下滑會被內層 ScrollView 吃掉、關不掉 —— 已改成可靠的明確按鈕。
+- tapOn:
+    id: "daily_state_close"
+# sheet 真的關掉的判據：Rizo 輸入框消失（課表頁沒有 rizo_chat_input）。
+#   比 assert「今日狀態」可靠 —— 課表頁本身也有今日狀態卡，會誤判。
+- extendedWaitUntil:
+    notVisible:
+      id: "rizo_chat_input"
+    timeout: 10000
+- waitForAnimationToEnd:
+    timeout: 5000
+# 回到課表頁，等 CacheEventBus(.trainingPlanV2) 刷新落地後截圖更新後的課表（週六 LSD 已縮短）
+- extendedWaitUntil:
+    visible: "訓練計劃|訓練計畫|Training Plan|每日訓練|本週|週課表"
+    timeout: 15000
+- waitForAnimationToEnd:
+    timeout: 5000
+- takeScreenshot: ".maestro/screenshots/03_plan_refreshed.png"
+#     timeout: 30000
+# - takeScreenshot: ".maestro/screenshots/rizo_whole_week_deload_applied.png"

@@ -3904,3 +3904,215 @@
 "garmin.push.error.garmin_training_unavailable" = "Garmin 課表推送即將開放，敬請期待";
 "garmin.push.error.not_a_run_workout" = "這一天不是跑步課表，無法傳到 Garmin";
 "garmin.push.error.generic" = "傳送失敗，請稍後再試";
+// MARK: - Weekly Review NL Input
+"weekly_review.nl_input.title" = "想自己跟 Rizo 說？";
+"weekly_review.nl_input.hint" = "送出會覆蓋上次記下的調整 · 最多 2000 字";
+"weekly_review.nl_input.placeholder" = "例「下週五六爬山不能跑，想多休息」";
+"weekly_review.nl_input.submit" = "送出";
+"weekly_review.nl_input.error" = "送出失敗，請再試一次";
+"weekly_review.nl_input.status_pending" = "已記下，下次生成課表時套用";
+"weekly_review.nl_input.status_applied" = "已套用到下週課表";
+"weekly_review.nl_input.status_failed" = "沒能套用，點我再說一次";
+"weekly_review.deferred_failed.title" = "課表調整未套用";
+"weekly_review.deferred_failed.body" = "沒能套用你上週的調整，打開 Rizo 再說一次就好。";
+// MARK: - Schedule Editor 訓練類型標籤（T-0048 i18n：原寫死於 EditScheduleViewV2/EditScheduleView，用語對齊 training_type_info）
+"schedule_editor.daytarget.rest" = "休息日";
+"schedule_editor.daytarget.recovery_run" = "恢復跑：低強度恢復訓練";
+"schedule_editor.daytarget.easy_run" = "輕鬆跑：恢復和建立有氧基礎";
+"schedule_editor.daytarget.marathon_pace" = "馬拉松配速：中強度持續跑，建立有氧耐力";
+"schedule_editor.daytarget.threshold" = "閾值跑：提升乳酸清除能力";
+"schedule_editor.daytarget.interval" = "間歇跑：提升 VO2max 和速度";
+"schedule_editor.daytarget.long_run" = "長距離跑：建立耐力基礎";
+"schedule_editor.daytarget.lsd" = "LSD 長距離輕鬆跑：輕鬆配速建立有氧基礎";
+"schedule_editor.daytarget.progression" = "漸進配速跑：從慢到快逐漸加速";
+"schedule_editor.daytarget.combo" = "組合訓練：多配速混合訓練";
+"schedule_editor.daytarget.fartlek" = "法特雷克：變速跑訓練配速轉換能力";
+"schedule_editor.daytarget.fast_finish" = "快結尾長跑：後段加速訓練";
+"schedule_editor.daytarget.race_pace" = "比賽配速跑：熟悉目標比賽節奏";
+"schedule_editor.daytarget.strides" = "大步跑：短距離衝刺，提升跑步經濟性";
+"schedule_editor.daytarget.hill_repeats" = "山坡重複跑：上坡衝刺訓練腿部力量";
+"schedule_editor.daytarget.cruise_intervals" = "巡航間歇：閾值配速間歇訓練";
+"schedule_editor.daytarget.short_interval" = "短間歇：提升速度和無氧能力";
+"schedule_editor.daytarget.long_interval" = "長間歇：提升 VO2max 和速度耐力";
+"schedule_editor.daytarget.norwegian_4x4" = "挪威 4x4：4 組 4 分鐘高強度間歇";
+"schedule_editor.daytarget.yasso_800" = "亞索 800：800m 重複跑，VO2max 訓練";
+"schedule_editor.daytarget.cross_training" = "交叉訓練：非跑步運動訓練";
+"schedule_editor.daytarget.strength" = "肌力訓練：增強肌肉力量";
+"schedule_editor.daytarget.yoga" = "瑜珈：柔軟度和恢復訓練";
+"schedule_editor.daytarget.hiking" = "登山健行：有氧耐力訓練";
+"schedule_editor.daytarget.cycling" = "騎車：低衝擊有氧訓練";
+"schedule_editor.daytarget.custom" = "自訂訓練";
+"schedule_editor.segment.warmup" = "熱身";
+"schedule_editor.segment.cooldown" = "緩和";
+"schedule_editor.segment.easy_pace" = "輕鬆配速";
+"schedule_editor.segment.marathon_pace" = "馬拉松配速";
+"schedule_editor.segment.accelerate" = "加速";
+"schedule_editor.segment.easy_run" = "輕鬆跑";
+"schedule_editor.segment.fast_run" = "快跑";
+"schedule_editor.segment.recovery" = "恢復";
+"schedule_editor.segment.hard_run" = "高強度跑";
+"schedule_editor.segment.recovery_run" = "恢復跑";
+"schedule_editor.segment.jog_downhill" = "慢跑下坡恢復";
+"schedule_editor.segment.easy_jog_recovery" = "輕鬆跑恢復";
+"schedule_editor.segment.equal_time_recovery" = "等時恢復";
+"schedule_editor.segment.rest_in_place_minutes" = "原地休息 %d 分鐘";
+"schedule_editor.segment.recovery_run_minutes" = "恢復跑 %d 分鐘";
+"schedule_editor.minutes_format" = "%d 分鐘";
+
+// MARK: - Schedule Editor V1 補充（T-0048：EditScheduleView 獨有詳述/segment）
+"schedule_editor.daytarget.race_day" = "比賽日";
+"schedule_editor.segment.jog" = "慢跑";
+"schedule_editor.segment.sprint" = "衝刺";
+"schedule_editor.segment.easy_run_70" = "輕鬆跑（70%）";
+"schedule_editor.segment.marathon_pace_30" = "馬拉松配速（30%）";
+"schedule_editor.segment.hard_run_vo2" = "高強度跑（92% VO2max）";
+"schedule_editor.segment.recovery_run_equal" = "恢復跑（等時恢復）";
+"schedule_editor.approx_distance_format" = " (約 %dm)";
+"schedule_editor.detail.hill_repeats" = "找一個約 5-8% 坡度的山坡進行訓練";
+"schedule_editor.detail.cruise_intervals" = "巡航間歇：閾值配速間歇，Jack Daniels 原則每 5 分鐘 T 配速需 1 分鐘恢復";
+"schedule_editor.detail.fartlek" = "變速跑：根據感覺自由切換快慢配速";
+"schedule_editor.detail.fast_finish" = "長跑後段加速，訓練疲勞狀態下的配速維持能力";
+"schedule_editor.detail.race_pace" = "以目標比賽配速進行訓練，熟悉比賽節奏";
+"schedule_editor.detail.short_interval" = "短距離高強度重複跑，提升速度、無氧能力和跑步經濟性（非主要有氧訓練）";
+"schedule_editor.detail.long_interval" = "長距離間歇訓練，提升 VO2max 和速度耐力";
+"schedule_editor.detail.norwegian_4x4" = "挪威 4x4 訓練：4 趟約 4 分鐘高強度間歇（92% VO2max）";
+"schedule_editor.detail.yasso_800" = "亞索 800 訓練：800m 間歇配速重複跑。等時恢復可直接預測馬拉松成績：800m 時間（分:秒）= 馬拉松完賽時間（時:分）";
+
+// MARK: - Schedule Editor W1 補充2（picker / TrainingDetailEditor）
+"schedule_editor.segment.threshold" = "閾值跑";
+"schedule_editor.segment.interval" = "間歇跑";
+"schedule_editor.segment.rest_in_place_time" = "原地休息%@";
+"schedule_editor.segment.recovery_run_time" = "恢復跑%@";
+"schedule_editor.segment.yasso_800" = "亞索800";
+
+"schedule_editor.strength.supplementary" = "補充力量訓練";
+
+// MARK: - Chart 軸/series + MyAchievement empty-state（T-0048 W2）
+"chart.axis.start" = "開始";
+"chart.axis.end" = "結束";
+"chart.axis.lower" = "下限";
+"chart.axis.upper" = "上限";
+"chart.series.type" = "類型";
+"chart.series.line" = "線條";
+"chart.series.fitness_index" = "體適能指數";
+"chart.series.training_index" = "訓練指數";
+"chart.series.ctl_upper" = "CTL上界";
+"chart.series.ctl_lower" = "CTL下界";
+"my_achievement.strava_no_resting_hr" = "Strava 不提供靜息心率數據";
+"my_achievement.empty.no_training_index" = "暫無訓練指數數據";
+"my_achievement.empty.no_tsb" = "暫無 TSB 數據";
+
+// MARK: - WeekTimeline interval 變體標籤（T-0048 W2）
+"timeline.variant.hill_repeats" = "坡度間歇";
+"timeline.variant.cruise_intervals" = "節奏間歇";
+"timeline.variant.norwegian_4x4" = "4x4間歇";
+"timeline.variant.yasso_800" = "800m間歇";
+"timeline.interval.reps_suffix" = "× %d 趟";
+
+// MARK: - Chart 軸/series/stat 補充（T-0048 W2 chart views）
+"chart.axis.time" = "時間";
+"chart.axis.value" = "數值";
+"chart.series.heart_rate" = "心率";
+"chart.series.pace" = "配速";
+"chart.series.performance_index" = "表現指數";
+"chart.stat.average" = "平均";
+"chart.stat.max" = "最大";
+"chart.stat.min" = "最小";
+"chart.empty.no_data" = "無可用數據";
+"chart.error.load_failed" = "數據載入失敗";
+
+// MARK: - Workout Reflection 提示標籤（T-0048 W2）
+"workout_reflection.prompt.pace" = "配速";
+"workout_reflection.prompt.breathing" = "呼吸";
+"workout_reflection.prompt.legs_feet" = "腿/腳";
+"workout_reflection.prompt.heart_rate" = "心率";
+"workout_reflection.prompt.fueling" = "補給";
+"workout_reflection.prompt.vs_last" = "比上次";
+"workout_reflection.prompt.final_stretch" = "後段";
+"workout_reflection.prompt.tomorrow" = "明天";
+
+// MARK: - Siri Intent dialog（T-0048 W3）
+"siri.next_race.no_target" = "你目前沒有設定比賽目標。";
+"siri.next_race.today" = "%@就是今天，加油！";
+"siri.next_race.ended" = "%@已經結束了。";
+"siri.next_race.days_left" = "距離%1$@還有 %2$d 天。";
+"siri.readiness.score_status" = "你今天的訓練準備度是 %1$d 分，%2$@。";
+"siri.readiness.score" = "你今天的訓練準備度是 %d 分。";
+"siri.readiness.no_data_status" = "你今天的訓練準備度資料尚未取得，%@。";
+"siri.readiness.no_data" = "你今天的訓練準備度資料尚未取得。";
+"siri.mileage.no_runs" = "你這週還沒有跑步紀錄。";
+"siri.mileage.summary" = "你這週已經跑了 %1$@ 公里，共 %2$d 次。";
+"siri.mileage.no_training" = "你這週還沒有訓練紀錄。";
+"siri.mileage.training_summary" = "你這週已經訓練了 %1$@ 公里，共 %2$d 次。";
+"siri.session.rest" = "今天是休息日，好好恢復。";
+"siri.session.today" = "今天的課表是 %@。";
+
+// MARK: - Workout reupload 錯誤（T-0048 W2/W4）
+"workout_reupload.error.only_apple_health" = "只有 Apple Health 資料才能重新上傳";
+"workout_reupload.error.no_matching_hk" = "找不到匹配的 HealthKit 運動記錄";
+"workout_reupload.error.failed" = "重新上傳失敗：%@";
+"workout_reupload.error.exception" = "重新上傳過程發生錯誤：%@";
+
+// MARK: - 健康資料類型顯示名（T-0048 W2）
+"health_data_type.hrv" = "心率變異性";
+"health_data_type.resting_heart_rate" = "靜息心率";
+"health_data_type.heart_rate" = "心率";
+"health_data_type.sleep" = "睡眠";
+"health_data_type.steps" = "步數";
+"health_data_type.active_energy" = "活動消耗";
+
+// MARK: - Workout 格式化（T-0048 W2）
+"workout_format.duration_hm" = "%d時%02d分";
+"workout_format.duration_ms" = "%d分%02d秒";
+"workout_format.date_pattern" = "M月d日 HH:mm";
+"workout_format.distance_km" = "%.2f 公里";
+"workout_format.distance_m" = "%.0f 米";
+
+// MARK: - 雜項 UI（T-0048 W2/W5）
+"plan_overview.upcoming_four_weeks" = "接下來四週";
+"chart.unit.cadence_per_min" = "%d次/分鐘";
+"training.segment.new_default" = "新分段";
+
+// MARK: - VDOT 趨勢（T-0048 W5）
+"vdot.trend.improving" = "上升趨勢";
+"vdot.trend.stable" = "穩定";
+"vdot.trend.declining" = "下降趨勢";
+
+// MARK: - Siri Intent title/description（T-0048 W3，LocalizedStringResource 解析）
+"voice.intent.todays_session.title" = "今天要練什麼";
+"voice.intent.todays_session.desc" = "念出今天的訓練內容";
+"voice.intent.readiness.title" = "今天能不能練";
+"voice.intent.readiness.desc" = "念出今天的訓練準備度";
+"voice.intent.next_race.title" = "離比賽還有幾天";
+"voice.intent.next_race.desc" = "念出距離下一場比賽的天數";
+"voice.intent.weekly_mileage.title" = "我這週跑多少";
+"voice.intent.weekly_mileage.desc" = "念出本週累積跑量";
+
+// MARK: - Climate 熱適應（T-0048 W-cleanup：原 WeekTimelineViewV2 ClimateMeta 手動 switch 遷入）
+"climate.explanation" = "高溫濕熱會讓心率上升、同樣配速感覺更累——這是正常生理反應，不是退步。系統已依今日體感溫度把配速目標放寬，讓你用對的強度安全完成這次訓練。";
+"climate.recommendation.danger" = "強烈建議改到室內（跑步機／交叉訓練）或改期；若一定要戶外，請選最涼的清晨或入夜後，務必大幅放慢、縮短距離並隨時補水。";
+"climate.recommendation.high" = "建議在清晨或傍晚較涼時段進行，避開 11:00–15:00 高溫；長跑可縮短 20–30%%，或改到室內。";
+"climate.recommendation.moderate" = "避開 11:00–15:00 最熱時段，長跑改到清晨；訓練全程注意補水。";
+"climate.recommendation.default" = "天氣偏熱，建議清晨或傍晚較舒適時段訓練，並記得補充水分。";
+"climate.recommendation_title" = "建議時段";
+"climate.danger_outdoor_pace_title" = "若仍戶外";
+"climate.short_level.mild" = "輕熱";
+"climate.short_level.moderate" = "中熱";
+"climate.short_level.high" = "高熱";
+"climate.short_level.danger" = "危險";
+"climate.short_level.default" = "熱調整";
+"climate.level.mild" = "輕度熱壓力";
+"climate.level.moderate" = "中度熱壓力";
+"climate.level.high" = "高度熱壓力";
+"climate.level.danger" = "危險熱壓力";
+"climate.level.default" = "舒適";
+"climate.section_title" = "熱適應";
+"climate.level_title" = "等級";
+"climate.temperature_title" = "體感";
+"climate.adjustment_title" = "調整";
+"climate.original_pace_title" = "原配速";
+"climate.adjusted_pace_title" = "調整後";
+"climate.adjustment.pace_pct" = "配速 +%.0f%%";
+"climate.adjustment.reduce_pct" = "縮量 %.0f%%";
+"climate.long_run_reduction" = "長跑建議縮減 %.0f%%，優先改期或改室內。";
+"climate.segment_adjustment_summary" = "分段配速已依當日熱壓力調整。";

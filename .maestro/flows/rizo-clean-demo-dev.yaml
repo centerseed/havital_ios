@@ -1,0 +1,63 @@
+appId: com.havital.Havital.dev
+tags:
+  - rizo
+  - demo
+---
+# Run B（錄影中）：dev app 乾淨核心操作。前提:Run A 清場、課表頁、今日狀態就緒、
+# 後端 RIZO_DEV_FAKE_TODAY_ISOWEEKDAY=1(今天=週一)→ 整週可改 → 多日 diff 卡片。
+
+# 開 Rizo
+- tapOn:
+    text: "今日狀態|Today's State|今日のコンディション"
+- extendedWaitUntil:
+    visible: { id: "rizo_chat_input" }
+    timeout: 30000
+- extendedWaitUntil:
+    notVisible: { id: "rizo_chat_typing" }
+    timeout: 60000
+
+# 自然語言講需求
+- tapOn:
+    id: "rizo_chat_input"
+- waitForAnimationToEnd: { timeout: 2000 }
+- inputText: "這週整個人很累，可以幫我整週減量、每天都調輕一點嗎？"
+- waitForAnimationToEnd: { timeout: 1500 }
+- tapOn:
+    id: "rizo_chat_send"
+- extendedWaitUntil:
+    visible: { id: "rizo_chat_bubble_user" }
+    timeout: 10000
+
+# 等多日變更卡片（後端 propose ~25-40s）
+- scrollUntilVisible:
+    element: { id: "rizo_plan_change_card" }
+    direction: DOWN
+    timeout: 90000
+    centerElement: true
+- waitForAnimationToEnd: { timeout: 1500 }
+
+# 接受 → 套用 → 確認泡泡
+- tapOn:
+    text: "接受"
+- extendedWaitUntil:
+    visible: "已為你套用|課表更新囉|課表更新|已確認課表更新"
+    timeout: 30000
+    optional: true
+- waitForAnimationToEnd: { timeout: 3000 }
+
+# 關閉 sheet（右上 × 鈕）→ 回課表頁
+- tapOn:
+    id: "daily_state_close"
+- extendedWaitUntil:
+    notVisible: { id: "rizo_chat_input" }
+    timeout: 10000
+- waitForAnimationToEnd: { timeout: 4000 }
+# 下拉刷新(課表頁 day-row 不會自動重繪,需下拉)
+- swipe: { start: "50%, 30%", end: "50%, 88%", duration: 700 }
+- waitForAnimationToEnd: { timeout: 4000 }
+# 一次平順滑動，把「每日訓練」週列表帶進畫面看更新後的數字
+- swipe:
+    start: "50%, 78%"
+    end: "50%, 28%"
+    duration: 900
+- waitForAnimationToEnd: { timeout: 3500 }

@@ -534,7 +534,7 @@ struct WeeklySummaryErrorView: View {
             Text(L10n.Training.Review.loadingError.localized)
                 .font(AppFont.headline())
             
-            Text(error.localizedDescription)
+            Text((error as? DomainError)?.userFriendlyMessage ?? error.localizedDescription)
                 .font(AppFont.bodySmall())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)

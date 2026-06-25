@@ -1074,7 +1074,7 @@ private struct ClimateAdjustmentDetailView: View {
         guard let segs = runActivity?.segments, segs.count > 1 else { return [] }
         return segs.enumerated().compactMap { idx, seg in
             guard let p = seg.pace, let adj = meta.climateAdjustedPace(forBasePace: p) else { return nil }
-            return (seg.description ?? "段 \(idx + 1)", p, adj)
+            return (seg.description ?? String(format: NSLocalizedString("training.detail.segment_index", value: "段 %d", comment: "Segment N"), idx + 1), p, adj)
         }
     }
 
@@ -1169,62 +1169,22 @@ extension ClimateMeta {
 
     /// 熱適應「為什麼調整」的說明（課表詳情用）。多語。
     var heatAdaptationExplanation: String {
-        switch currentLanguage {
-        case .traditionalChinese:
-            return "高溫濕熱會讓心率上升、同樣配速感覺更累——這是正常生理反應，不是退步。系統已依今日體感溫度把配速目標放寬，讓你用對的強度安全完成這次訓練。"
-        case .english:
-            return "Heat and humidity raise your heart rate and make the same pace feel harder — that's a normal physiological response, not a loss of fitness. Today's pace target has been eased based on the feels-like temperature so you can finish this session safely at the right effort."
-        case .japanese:
-            return "高温多湿は心拍数を上げ、同じペースでもよりきつく感じます。これは正常な生理反応で、走力の低下ではありません。本日の体感温度に合わせてペース目標を緩めてあるので、適切な強度で安全に完了できます。"
-        }
+        NSLocalizedString("climate.explanation", comment: "")
     }
 
     /// 建議訓練時段／室內（依等級，對齊 SPEC-climate-engine 附錄 A 建議時段）。多語。
     var trainingTimeRecommendation: String {
-        switch currentLanguage {
-        case .traditionalChinese:
-            switch normalizedHeatPressureLevel {
-            case "danger":
-                return "強烈建議改到室內（跑步機／交叉訓練）或改期；若一定要戶外，請選最涼的清晨或入夜後，務必大幅放慢、縮短距離並隨時補水。"
-            case "high":
-                return "建議在清晨或傍晚較涼時段進行，避開 11:00–15:00 高溫；長跑可縮短 20–30%，或改到室內。"
-            case "moderate":
-                return "避開 11:00–15:00 最熱時段，長跑改到清晨；訓練全程注意補水。"
-            default:
-                return "天氣偏熱，建議清晨或傍晚較舒適時段訓練，並記得補充水分。"
-            }
-        case .english:
-            switch normalizedHeatPressureLevel {
-            case "danger":
-                return "Strongly consider moving indoors (treadmill / cross-training) or rescheduling. If you must go outside, pick the coolest early morning or after dark, slow down significantly, shorten the distance, and hydrate constantly."
-            case "high":
-                return "Train in the cooler early morning or evening and avoid 11:00–15:00. Shorten long runs by 20–30%, or move them indoors."
-            case "moderate":
-                return "Avoid the hottest 11:00–15:00 window and move long runs to early morning. Hydrate throughout."
-            default:
-                return "It's warm — train in the cooler early morning or evening and remember to hydrate."
-            }
-        case .japanese:
-            switch normalizedHeatPressureLevel {
-            case "danger":
-                return "室内（トレッドミル／クロストレーニング）への変更か日程の延期を強く推奨します。屋外で行う場合は最も涼しい早朝か夜間を選び、大幅にペースを落とし、距離を短くし、こまめに水分補給してください。"
-            case "high":
-                return "涼しい早朝か夕方に行い、11:00〜15:00は避けてください。ロング走は20〜30%短縮するか、屋内に変更しましょう。"
-            case "moderate":
-                return "最も暑い11:00〜15:00を避け、ロング走は早朝へ。トレーニング中はこまめに水分補給を。"
-            default:
-                return "暑めです。涼しい早朝か夕方に行い、水分補給を忘れずに。"
-            }
+        switch normalizedHeatPressureLevel {
+        case "danger": return NSLocalizedString("climate.recommendation.danger", comment: "")
+        case "high": return NSLocalizedString("climate.recommendation.high", comment: "")
+        case "moderate": return NSLocalizedString("climate.recommendation.moderate", comment: "")
+        default: return NSLocalizedString("climate.recommendation.default", comment: "")
         }
     }
 
     /// 建議時段標題。多語。
     var recommendationTitle: String {
-        switch currentLanguage {
-        case .traditionalChinese: return "建議時段"
-        case .english: return "When to train"
-        case .japanese: return "おすすめの時間帯"
-        }
+        NSLocalizedString("climate.recommendation_title", comment: "")
     }
 
     var isDangerLevel: Bool { normalizedHeatPressureLevel == "danger" }
@@ -1250,11 +1210,7 @@ extension ClimateMeta {
 
     /// 危險級標題：若仍要戶外的配速建議。多語。
     var dangerOutdoorPaceTitle: String {
-        switch currentLanguage {
-        case .traditionalChinese: return "若仍戶外"
-        case .english: return "If outdoors"
-        case .japanese: return "屋外なら"
-        }
+        NSLocalizedString("climate.danger_outdoor_pace_title", comment: "")
     }
 
     var badgeAccentColor: Color {
@@ -1281,110 +1237,36 @@ extension ClimateMeta {
     }
 
     var shortLevelDisplayText: String {
-        switch currentLanguage {
-        case .traditionalChinese:
-            switch normalizedHeatPressureLevel {
-            case "mild": return "輕熱"
-            case "moderate": return "中熱"
-            case "high": return "高熱"
-            case "danger": return "危險"
-            default: return "熱調整"
-            }
-        case .english:
-            switch normalizedHeatPressureLevel {
-            case "mild": return "Mild Heat"
-            case "moderate": return "Heat"
-            case "high": return "High Heat"
-            case "danger": return "Danger"
-            default: return "Heat"
-            }
-        case .japanese:
-            switch normalizedHeatPressureLevel {
-            case "mild": return "軽い暑熱"
-            case "moderate": return "暑熱"
-            case "high": return "高暑熱"
-            case "danger": return "危険"
-            default: return "暑熱調整"
-            }
+        switch normalizedHeatPressureLevel {
+        case "mild": return NSLocalizedString("climate.short_level.mild", comment: "")
+        case "moderate": return NSLocalizedString("climate.short_level.moderate", comment: "")
+        case "high": return NSLocalizedString("climate.short_level.high", comment: "")
+        case "danger": return NSLocalizedString("climate.short_level.danger", comment: "")
+        default: return NSLocalizedString("climate.short_level.default", comment: "")
         }
     }
 
     var levelDisplayText: String {
-        switch currentLanguage {
-        case .traditionalChinese:
-            switch normalizedHeatPressureLevel {
-            case "mild": return "輕度熱壓力"
-            case "moderate": return "中度熱壓力"
-            case "high": return "高度熱壓力"
-            case "danger": return "危險熱壓力"
-            default: return "舒適"
-            }
-        case .english:
-            switch normalizedHeatPressureLevel {
-            case "mild": return "Mild heat stress"
-            case "moderate": return "Moderate heat stress"
-            case "high": return "High heat stress"
-            case "danger": return "Danger heat stress"
-            default: return "Comfortable"
-            }
-        case .japanese:
-            switch normalizedHeatPressureLevel {
-            case "mild": return "軽度の暑熱ストレス"
-            case "moderate": return "中度の暑熱ストレス"
-            case "high": return "高度の暑熱ストレス"
-            case "danger": return "危険な暑熱ストレス"
-            default: return "快適"
-            }
+        switch normalizedHeatPressureLevel {
+        case "mild": return NSLocalizedString("climate.level.mild", comment: "")
+        case "moderate": return NSLocalizedString("climate.level.moderate", comment: "")
+        case "high": return NSLocalizedString("climate.level.high", comment: "")
+        case "danger": return NSLocalizedString("climate.level.danger", comment: "")
+        default: return NSLocalizedString("climate.level.default", comment: "")
         }
     }
 
-    var sectionTitle: String {
-        switch currentLanguage {
-        case .traditionalChinese: return "熱適應"
-        case .english: return "Heat Adaptation"
-        case .japanese: return "暑熱順化"
-        }
-    }
+    var sectionTitle: String { NSLocalizedString("climate.section_title", comment: "") }
 
-    var levelTitle: String {
-        switch currentLanguage {
-        case .traditionalChinese: return "等級"
-        case .english: return "Level"
-        case .japanese: return "レベル"
-        }
-    }
+    var levelTitle: String { NSLocalizedString("climate.level_title", comment: "") }
 
-    var temperatureTitle: String {
-        switch currentLanguage {
-        case .traditionalChinese: return "體感"
-        case .english: return "Feels like"
-        case .japanese: return "体感"
-        }
-    }
+    var temperatureTitle: String { NSLocalizedString("climate.temperature_title", comment: "") }
 
-    var adjustmentTitle: String {
-        switch currentLanguage {
-        case .traditionalChinese: return "調整"
-        case .english: return "Adjustment"
-        case .japanese: return "調整"
-        }
-    }
+    var adjustmentTitle: String { NSLocalizedString("climate.adjustment_title", comment: "") }
 
-    var originalPaceTitle: String {
-        switch currentLanguage {
-        case .traditionalChinese: return "原配速"
-        case .english: return "Base Pace"
-        case .japanese: return "元のペース"
-        }
-    }
+    var originalPaceTitle: String { NSLocalizedString("climate.original_pace_title", comment: "") }
 
-    var adjustedPaceTitle: String {
-        switch currentLanguage {
-        case .traditionalChinese: return "調整後"
-        case .english: return "Adjusted"
-        case .japanese: return "調整後"
-        }
-    }
+    var adjustedPaceTitle: String { NSLocalizedString("climate.adjusted_pace_title", comment: "") }
 
     var feelsLikeTempText: String? {
         guard let feelsLikeTempC else { return nil }
@@ -1394,49 +1276,21 @@ extension ClimateMeta {
     var adjustmentText: String? {
         // 危險級（≥36°C）依 SPEC 不給百分比；修正幅度四捨五入為 0 也不顯示（避免「配速 +0%」）。
         if let paceAdjustmentPct, paceAdjustmentPct.rounded() != 0 {
-            switch currentLanguage {
-            case .traditionalChinese:
-                return String(format: "配速 +%.0f%%", paceAdjustmentPct)
-            case .english:
-                return String(format: "Pace +%.0f%%", paceAdjustmentPct)
-            case .japanese:
-                return String(format: "ペース +%.0f%%", paceAdjustmentPct)
-            }
+            return String(format: NSLocalizedString("climate.adjustment.pace_pct", comment: ""), paceAdjustmentPct)
         }
         if let longRunReductionPct, longRunReductionPct.rounded() != 0 {
-            switch currentLanguage {
-            case .traditionalChinese:
-                return String(format: "縮量 %.0f%%", longRunReductionPct)
-            case .english:
-                return String(format: "Reduce %.0f%%", longRunReductionPct)
-            case .japanese:
-                return String(format: "%.0f%%短縮", longRunReductionPct)
-            }
+            return String(format: NSLocalizedString("climate.adjustment.reduce_pct", comment: ""), longRunReductionPct)
         }
         return nil
     }
 
     var longRunReductionText: String? {
         guard let longRunReductionPct else { return nil }
-        switch currentLanguage {
-        case .traditionalChinese:
-            return String(format: "長跑建議縮減 %.0f%%，優先改期或改室內。", longRunReductionPct)
-        case .english:
-            return String(format: "Long run recommended reduction: %.0f%%. Prefer rescheduling or moving indoors.", longRunReductionPct)
-        case .japanese:
-            return String(format: "ロング走は%.0f%%短縮推奨。日程変更または屋内代替を優先してください。", longRunReductionPct)
-        }
+        return String(format: NSLocalizedString("climate.long_run_reduction", comment: ""), longRunReductionPct)
     }
 
     var segmentAdjustmentSummary: String {
-        switch currentLanguage {
-        case .traditionalChinese:
-            return "分段配速已依當日熱壓力調整。"
-        case .english:
-            return "Segment paces were adjusted for the day's heat stress."
-        case .japanese:
-            return "各セグメントのペースは当日の暑熱ストレスに合わせて調整済みです。"
-        }
+        NSLocalizedString("climate.segment_adjustment_summary", comment: "")
     }
 }
 
@@ -1614,7 +1468,7 @@ private struct RedesignedSegmentsView: View {
             let paceStr = warmup.effectivePace ?? ""
             let parts = [distStr, paceStr].filter { !$0.isEmpty }
             result.append(FlatSegment(
-                label: "\(emojiPrefix(for: "warmup")) 暖身",
+                label: "\(emojiPrefix(for: "warmup")) \(NSLocalizedString("schedule_editor.segment.warmup", comment: ""))",
                 detail: parts.joined(separator: " · "),
                 reps: nil,
                 accent: .orange
@@ -1626,12 +1480,12 @@ private struct RedesignedSegmentsView: View {
             // F12: 間歇訓練合併成一個 row（衝刺 + 恢復），顯示趟數
             let variantName: String
             switch (interval.variant ?? run.runType).lowercased() {
-            case "strides": variantName = "加速跑"
-            case "hill_repeats": variantName = "坡度間歇"
-            case "cruise_intervals": variantName = "節奏間歇"
-            case "norwegian_4x4": variantName = "4x4間歇"
-            case "yasso_800": variantName = "800m間歇"
-            default: variantName = "衝刺"
+            case "strides": variantName = NSLocalizedString("training.interval.work_label.strides", comment: "")
+            case "hill_repeats": variantName = NSLocalizedString("timeline.variant.hill_repeats", comment: "")
+            case "cruise_intervals": variantName = NSLocalizedString("timeline.variant.cruise_intervals", comment: "")
+            case "norwegian_4x4": variantName = NSLocalizedString("timeline.variant.norwegian_4x4", comment: "")
+            case "yasso_800": variantName = NSLocalizedString("timeline.variant.yasso_800", comment: "")
+            default: variantName = NSLocalizedString("training.interval.work_label.default", comment: "")
             }
 
             // 主行：工作距離 @ 配速
@@ -1686,10 +1540,10 @@ private struct RedesignedSegmentsView: View {
             }
 
             result.append(FlatSegment(
-                label: "⚡ \(variantName) + 恢復",
+                label: "⚡ \(variantName) + \(NSLocalizedString("schedule_editor.segment.recovery", comment: ""))",
                 detail: workDetail,
                 subDetail: recoverySubDetail,
-                reps: "× \(interval.repeats) 趟",
+                reps: String(format: NSLocalizedString("timeline.interval.reps_suffix", comment: ""), interval.repeats),
                 accent: .orange
             ))
         } else if let segs = run.segments, !segs.isEmpty {
@@ -1756,7 +1610,7 @@ private struct RedesignedSegmentsView: View {
             let paceStr = cooldown.effectivePace ?? ""
             let parts = [distStr, paceStr].filter { !$0.isEmpty }
             result.append(FlatSegment(
-                label: "\(emojiPrefix(for: "cooldown")) 緩和",
+                label: "\(emojiPrefix(for: "cooldown")) \(NSLocalizedString("schedule_editor.segment.cooldown", comment: ""))",
                 detail: parts.joined(separator: " · "),
                 reps: nil,
                 accent: .mint

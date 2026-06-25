@@ -108,6 +108,77 @@ struct WeeklySummaryResponse: Codable {
     let data: WeeklyTrainingSummary
 }
 
+// MARK: - 休息週 / 無訓練容錯解碼
+//
+// 後端休息週回應實況（prod 驗證）：省略 `id`、省略整個 `heart_rate` 物件、`pace.average` 回 null。
+// Swift Codable 是「全有或全無」——任一非 optional 欄位缺漏 / 為 null，整包 throw，
+// 導致該用戶週回顧頁完全開不出來（非「少顯示某個值」）。
+// 以下自訂 init(from:) 以 decodeIfPresent + 預設值容錯，語意對齊 V2 的 WeeklySummaryV2DTO（欄位皆 optional）。
+// init 放 extension：保留各 struct 的 memberwise init，供上層建構預設物件。
+
+extension WeeklyTrainingSummary {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try c.decodeIfPresent(String.self, forKey: .id) ?? ""
+        self.trainingCompletion = try c.decode(TrainingCompletion.self, forKey: .trainingCompletion)
+        self.trainingAnalysis = try c.decode(TrainingAnalysis.self, forKey: .trainingAnalysis)
+        self.nextWeekSuggestions = try c.decodeIfPresent(NextWeekSuggestions.self, forKey: .nextWeekSuggestions)
+            ?? NextWeekSuggestions(focus: "", recommendations: [])
+        self.nextWeekAdjustments = try c.decodeIfPresent(NextWeekAdjustments.self, forKey: .nextWeekAdjustments)
+            ?? NextWeekAdjustments(status: nil, modifications: nil, adjustmentReason: nil, items: nil)
+    }
+}
+
+extension TrainingAnalysis {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.heartRate = try c.decodeIfPresent(HeartRateAnalysis.self, forKey: .heartRate)
+            ?? HeartRateAnalysis(average: 0, max: 0, evaluation: "")
+        self.pace = try c.decodeIfPresent(PaceAnalysis.self, forKey: .pace)
+            ?? PaceAnalysis(average: "", trend: "", evaluation: "")
+        self.distance = try c.decodeIfPresent(DistanceAnalysis.self, forKey: .distance)
+            ?? DistanceAnalysis(total: 0, comparisonToPlan: "", evaluation: "")
+    }
+}
+
+extension HeartRateAnalysis {
+    enum CodingKeys: String, CodingKey { case average, max, evaluation }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.average = try c.decodeIfPresent(Double.self, forKey: .average) ?? 0
+        self.max = try c.decodeIfPresent(Double.self, forKey: .max) ?? 0
+        self.evaluation = try c.decodeIfPresent(String.self, forKey: .evaluation) ?? ""
+    }
+}
+
+extension PaceAnalysis {
+    enum CodingKeys: String, CodingKey { case average, trend, evaluation }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.average = try c.decodeIfPresent(String.self, forKey: .average) ?? ""
+        self.trend = try c.decodeIfPresent(String.self, forKey: .trend) ?? ""
+        self.evaluation = try c.decodeIfPresent(String.self, forKey: .evaluation) ?? ""
+    }
+}
+
+extension DistanceAnalysis {
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.total = try c.decodeIfPresent(Double.self, forKey: .total) ?? 0
+        self.comparisonToPlan = try c.decodeIfPresent(String.self, forKey: .comparisonToPlan) ?? ""
+        self.evaluation = try c.decodeIfPresent(String.self, forKey: .evaluation) ?? ""
+    }
+}
+
+extension NextWeekSuggestions {
+    enum CodingKeys: String, CodingKey { case focus, recommendations }
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.focus = try c.decodeIfPresent(String.self, forKey: .focus) ?? ""
+        self.recommendations = try c.decodeIfPresent([String].self, forKey: .recommendations) ?? []
+    }
+}
+
 // 新增對應 /summary/weekly/ API 的模型
 struct WeeklySummaryItem: Codable {
     let weekIndex: Int

@@ -1,0 +1,38 @@
+appId: com.havital.Havital.dev
+tags:
+  - rizo
+  - regression
+---
+# 驗證 DailyStateDetailView 的關閉鈕能可靠 dismiss sheet 回課表頁。
+- launchApp:
+    stopApp: true
+    clearState: false
+- runFlow:
+    file: ../subflows/dismiss-permission-prompts.yaml
+    optional: true
+- extendedWaitUntil:
+    visible: "訓練計劃|訓練計畫|Training Plan|今日狀態"
+    timeout: 60000
+- extendedWaitUntil:
+    notVisible: "讀取今日狀態中…|Reading your state…"
+    timeout: 30000
+    optional: true
+# 開 sheet
+- tapOn:
+    text: "今日狀態|Today's State"
+- extendedWaitUntil:
+    visible:
+      id: "rizo_chat_input"
+    timeout: 30000
+- takeScreenshot: ".maestro/screenshots/close_01_sheet_open.png"
+# 點關閉鈕
+- tapOn:
+    id: "daily_state_close"
+# sheet 已關的判據：rizo_chat_input 消失
+- extendedWaitUntil:
+    notVisible:
+      id: "rizo_chat_input"
+    timeout: 8000
+- waitForAnimationToEnd:
+    timeout: 3000
+- takeScreenshot: ".maestro/screenshots/close_02_back_to_plan.png"
