@@ -508,13 +508,13 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
         let provider = workout.provider.lowercased()
         guard provider.contains("apple") || provider.contains("health") || provider == "apple_health" else {
             print("⚠️ 只有 Apple Health 資料才能重新上傳")
-            return .failure(message: "只有 Apple Health 資料才能重新上傳")
+            return .failure(message: NSLocalizedString("workout_reupload.error.only_apple_health", comment: ""))
         }
 
         print("🔄 開始重新上傳運動記錄（含心率檢查）- ID: \(workout.id)")
 
         guard let hkWorkout = await findMatchingHKWorkout() else {
-            return .failure(message: "找不到匹配的 HealthKit 運動記錄")
+            return .failure(message: NSLocalizedString("workout_reupload.error.no_matching_hk", comment: ""))
         }
 
         do {
@@ -546,11 +546,11 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
 
             case .failure(let error):
                 print("❌ 運動記錄重新上傳失敗: \(error.localizedDescription)")
-                return .failure(message: "重新上傳失敗: \(error.localizedDescription)")
+                return .failure(message: String(format: NSLocalizedString("workout_reupload.error.failed", comment: ""), error.localizedDescription))
             }
         } catch {
             print("❌ 重新上傳過程發生錯誤: \(error.localizedDescription)")
-            return .failure(message: "重新上傳過程發生錯誤: \(error.localizedDescription)")
+            return .failure(message: String(format: NSLocalizedString("workout_reupload.error.exception", comment: ""), error.localizedDescription))
         }
     }
     

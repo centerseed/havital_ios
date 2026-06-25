@@ -1211,7 +1211,7 @@ private struct ErrorView: View {
                 .font(AppFont.headline())
                 .foregroundColor(.primary)
 
-            Text(error.localizedDescription)
+            Text((error as? DomainError)?.userFriendlyMessage ?? error.localizedDescription)
                 .font(AppFont.subheadline())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)

@@ -320,7 +320,7 @@ struct MutableProgressionSegment: Identifiable, Equatable {
     }
 
     /// 預設初始化（新增分段時使用）
-    init(distanceKm: Double? = 2.0, pace: String? = "5:30", description: String? = "新分段") {
+    init(distanceKm: Double? = 2.0, pace: String? = "5:30", description: String? = NSLocalizedString("training.segment.new_default", comment: "")) {
         self.distanceKm = distanceKm
         self.pace = pace
         self.description = description

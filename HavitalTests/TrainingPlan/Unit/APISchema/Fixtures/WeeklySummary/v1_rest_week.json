@@ -1,0 +1,19 @@
+{
+  "training_completion": {
+    "percentage": 0.0,
+    "evaluation": "本週課表安排為休息，您完全遵守了休息計畫。"
+  },
+  "uid": "0XwXJrE5k0gZNymwMFj39f8huLs2",
+  "training_analysis": {
+    "pace": {
+      "average": null,
+      "trend": "無訓練紀錄，無法評估配速趨勢。",
+      "evaluation": "本週無訓練紀錄，故無法進行配速分析。"
+    },
+    "distance": {
+      "total": 0.0,
+      "comparison_to_plan": "本週課表為休息日，實際距離為 0。",
+      "evaluation": "休息週符合計畫。"
+    }
+  }
+}

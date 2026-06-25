@@ -259,7 +259,7 @@ struct GaitAnalysisChartView: View {
                     ForEach(currentData) { point in
                         // Use PointMark (dots) instead of LineMark for better outlier handling
                         PointMark(
-                            x: .value("時間", point.time),
+                            x: .value(NSLocalizedString("chart.axis.time", comment: ""), point.time),
                             y: .value(selectedGaitTab.title, point.value)
                         )
                         .foregroundStyle(pointColor(for: point.value))
@@ -275,17 +275,17 @@ struct GaitAnalysisChartView: View {
                         let maxValue = values.max() ?? 0
                         
                         // 平均值線
-                        RuleMark(y: .value("平均", avgValue))
+                        RuleMark(y: .value(NSLocalizedString("chart.stat.average", comment: ""), avgValue))
                             .foregroundStyle(selectedGaitTab.color.opacity(0.7))
                             .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
                         
                         // 最大值線 
-                        RuleMark(y: .value("最大", maxValue))
+                        RuleMark(y: .value(NSLocalizedString("chart.stat.max", comment: ""), maxValue))
                             .foregroundStyle(Color(red: 1.0, green: 0.3, blue: 0.3).opacity(0.6))
                             .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                         
                         // 最小值線
-                        RuleMark(y: .value("最小", minValue))
+                        RuleMark(y: .value(NSLocalizedString("chart.stat.min", comment: ""), minValue))
                             .foregroundStyle(Color(red: 0.3, green: 0.6, blue: 1.0).opacity(0.6))
                             .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                     }

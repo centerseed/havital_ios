@@ -195,7 +195,7 @@ final class TrainingDayEditState: ObservableObject {
                 // 從分鐘轉換為秒數（只發送秒數給後端）
                 let timeSeconds = Int(round(recoveryTimeMinutes * 60))
                 recovery = MutableWorkoutSegment(
-                    description: "原地休息\(formatRecoveryTime(recoveryTimeMinutes))",
+                    description: String(format: NSLocalizedString("schedule_editor.segment.rest_in_place_time", comment: ""), formatRecoveryTime(recoveryTimeMinutes)),
                     distanceKm: nil,
                     distanceM: nil,
                     timeMinutes: nil,      // 不發送給後端
@@ -228,7 +228,7 @@ final class TrainingDayEditState: ObservableObject {
             let work: MutableWorkoutSegment
             if isTimeBased {
                 work = MutableWorkoutSegment(
-                    description: type == .norwegian4x4 ? "高強度跑（92% VO2max）" : "亞索800",
+                    description: type == .norwegian4x4 ? NSLocalizedString("schedule_editor.segment.hard_run_vo2", comment: "") : NSLocalizedString("schedule_editor.segment.yasso_800", comment: ""),
                     distanceKm: nil,
                     distanceM: nil,
                     timeMinutes: workTimeMinutes,
@@ -253,7 +253,7 @@ final class TrainingDayEditState: ObservableObject {
                 // 從分鐘轉換為秒數（只發送秒數給後端）
                 let timeSeconds = Int(round(recoveryTimeMinutes * 60))
                 recovery = MutableWorkoutSegment(
-                    description: "原地休息\(formatRecoveryTime(recoveryTimeMinutes))",
+                    description: String(format: NSLocalizedString("schedule_editor.segment.rest_in_place_time", comment: ""), formatRecoveryTime(recoveryTimeMinutes)),
                     distanceKm: nil,
                     distanceM: nil,
                     timeMinutes: nil,      // 不發送給後端
@@ -267,7 +267,7 @@ final class TrainingDayEditState: ObservableObject {
                 let recoveryDistanceM = calculateDistanceMeters(pace: recoveryPace, timeMinutes: recoveryTimeMinutes)
                 let recoveryDistanceKm = recoveryDistanceM.map { $0 / 1000.0 }  // 確保 distanceKm 與 distanceM 一致
                 recovery = MutableWorkoutSegment(
-                    description: "恢復跑\(formatRecoveryTime(recoveryTimeMinutes))",
+                    description: String(format: NSLocalizedString("schedule_editor.segment.recovery_run_time", comment: ""), formatRecoveryTime(recoveryTimeMinutes)),
                     distanceKm: recoveryDistanceKm,
                     distanceM: recoveryDistanceM,
                     timeMinutes: recoveryTimeMinutes,
@@ -362,7 +362,7 @@ final class TrainingDayEditState: ObservableObject {
                 climateMeta: nil,
                 heartRateRange: nil,
                 intensity: "easy",
-                description: "暖跑"
+                description: NSLocalizedString("schedule_editor.segment.warmup", comment: "")
             ) : nil
             result.cooldown = hasCooldown ? RunSegment(
                 distanceKm: cooldownDistance,
@@ -377,7 +377,7 @@ final class TrainingDayEditState: ObservableObject {
                 climateMeta: nil,
                 heartRateRange: nil,
                 intensity: "easy",
-                description: "緩和跑"
+                description: NSLocalizedString("schedule_editor.segment.cooldown", comment: "")
             ) : nil
         } else {
             result.warmup = nil
@@ -1325,47 +1325,47 @@ struct StrengthEditorV2: View {
     @State private var showTypeChangeAlert: Bool = false
 
     static let strengthTypeOptions: [(String, String)] = [
-        ("core_stability", "核心穩定"),
-        ("glutes_hip", "臀部髖部"),
-        ("lower_strength", "下肢力量"),
-        ("plyometric", "增強式訓練"),
-        ("mobility", "活動度訓練"),
+        ("core_stability", NSLocalizedString("training.strength_type.core_stability", comment: "")),
+        ("glutes_hip", NSLocalizedString("training.strength_type.glutes_hip", comment: "")),
+        ("lower_strength", NSLocalizedString("training.strength_type.lower_strength", comment: "")),
+        ("plyometric", NSLocalizedString("training.strength_type.plyometric", comment: "")),
+        ("mobility", NSLocalizedString("training.strength_type.mobility", comment: "")),
     ]
 
     static let defaultExercises: [String: [MutableExercise]] = [
         "core_stability": [
-            MutableExercise(exerciseId: "plank", name: "棒式", sets: 3, durationSeconds: 45),
-            MutableExercise(exerciseId: "dead_bug", name: "死蟲式", sets: 3, reps: "12"),
-            MutableExercise(exerciseId: "bird_dog", name: "鳥狗式", sets: 3, reps: "10"),
-            MutableExercise(exerciseId: "side_plank", name: "側棒式", sets: 2, durationSeconds: 30),
+            MutableExercise(exerciseId: "plank", name: NSLocalizedString("exercise.name.plank", comment: ""), sets: 3, durationSeconds: 45),
+            MutableExercise(exerciseId: "dead_bug", name: NSLocalizedString("exercise.name.dead_bug", comment: ""), sets: 3, reps: "12"),
+            MutableExercise(exerciseId: "bird_dog", name: NSLocalizedString("exercise.name.bird_dog", comment: ""), sets: 3, reps: "10"),
+            MutableExercise(exerciseId: "side_plank", name: NSLocalizedString("exercise.name.side_plank", comment: ""), sets: 2, durationSeconds: 30),
         ],
         "glutes_hip": [
-            MutableExercise(exerciseId: "glute_bridge", name: "臀橋", sets: 3, reps: "15"),
-            MutableExercise(exerciseId: "clamshell", name: "蛤蜊式", sets: 3, reps: "15"),
-            MutableExercise(exerciseId: "romanian_deadlift", name: "羅馬尼亞硬舉", sets: 3, reps: "10"),
+            MutableExercise(exerciseId: "glute_bridge", name: NSLocalizedString("exercise.name.glute_bridge", comment: ""), sets: 3, reps: "15"),
+            MutableExercise(exerciseId: "clamshell", name: NSLocalizedString("exercise.name.clamshell", comment: ""), sets: 3, reps: "15"),
+            MutableExercise(exerciseId: "romanian_deadlift", name: NSLocalizedString("exercise.name.romanian_deadlift", comment: ""), sets: 3, reps: "10"),
         ],
         "lower_strength": [
-            MutableExercise(exerciseId: "squat", name: "深蹲", sets: 3, reps: "12"),
-            MutableExercise(exerciseId: "lunge", name: "弓步蹲", sets: 3, reps: "10"),
-            MutableExercise(exerciseId: "romanian_deadlift", name: "羅馬尼亞硬舉", sets: 3, reps: "10"),
-            MutableExercise(exerciseId: "calf_raise", name: "提踵", sets: 3, reps: "20"),
+            MutableExercise(exerciseId: "squat", name: NSLocalizedString("exercise.name.squat", comment: ""), sets: 3, reps: "12"),
+            MutableExercise(exerciseId: "lunge", name: NSLocalizedString("exercise.name.lunge", comment: ""), sets: 3, reps: "10"),
+            MutableExercise(exerciseId: "romanian_deadlift", name: NSLocalizedString("exercise.name.romanian_deadlift", comment: ""), sets: 3, reps: "10"),
+            MutableExercise(exerciseId: "calf_raise", name: NSLocalizedString("exercise.name.calf_raise", comment: ""), sets: 3, reps: "20"),
         ],
         "plyometric": [
-            MutableExercise(exerciseId: "vertical_jump", name: "垂直跳", sets: 3, reps: "8"),
-            MutableExercise(exerciseId: "jump_rope", name: "跳繩", sets: 3, durationSeconds: 60),
-            MutableExercise(exerciseId: "lateral_jump", name: "側向跳", sets: 3, reps: "10"),
-            MutableExercise(exerciseId: "consecutive_hops", name: "連續跳", sets: 3, reps: "8"),
+            MutableExercise(exerciseId: "vertical_jump", name: NSLocalizedString("exercise.name.vertical_jump", comment: ""), sets: 3, reps: "8"),
+            MutableExercise(exerciseId: "jump_rope", name: NSLocalizedString("exercise.name.jump_rope", comment: ""), sets: 3, durationSeconds: 60),
+            MutableExercise(exerciseId: "lateral_jump", name: NSLocalizedString("exercise.name.lateral_jump", comment: ""), sets: 3, reps: "10"),
+            MutableExercise(exerciseId: "consecutive_hops", name: NSLocalizedString("exercise.name.consecutive_hops", comment: ""), sets: 3, reps: "8"),
         ],
         "mobility": [
-            MutableExercise(exerciseId: "hip_flexor_stretch", name: "髖屈肌伸展", sets: 2, durationSeconds: 45),
-            MutableExercise(exerciseId: "thoracic_rotation", name: "胸椎旋轉", sets: 2, reps: "10"),
-            MutableExercise(exerciseId: "seated_forward_fold", name: "坐姿前彎", sets: 2, durationSeconds: 45),
-            MutableExercise(exerciseId: "standing_quad_stretch", name: "站姿股四頭肌伸展", sets: 2, durationSeconds: 30),
+            MutableExercise(exerciseId: "hip_flexor_stretch", name: NSLocalizedString("exercise.name.hip_flexor_stretch", comment: ""), sets: 2, durationSeconds: 45),
+            MutableExercise(exerciseId: "thoracic_rotation", name: NSLocalizedString("exercise.name.thoracic_rotation", comment: ""), sets: 2, reps: "10"),
+            MutableExercise(exerciseId: "seated_forward_fold", name: NSLocalizedString("exercise.name.seated_forward_fold", comment: ""), sets: 2, durationSeconds: 45),
+            MutableExercise(exerciseId: "standing_quad_stretch", name: NSLocalizedString("exercise.name.standing_quad_stretch", comment: ""), sets: 2, durationSeconds: 30),
         ],
     ]
 
     static func label(for strengthType: String) -> String {
-        strengthTypeOptions.first { $0.0 == strengthType }?.1 ?? "補充力量訓練"
+        strengthTypeOptions.first { $0.0 == strengthType }?.1 ?? NSLocalizedString("schedule_editor.strength.supplementary", comment: "")
     }
 
     private func applyTemplate(for type: String) {

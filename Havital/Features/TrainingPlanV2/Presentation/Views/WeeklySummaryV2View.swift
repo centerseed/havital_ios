@@ -296,7 +296,7 @@ struct WeeklySummaryV2View: View {
                 .foregroundColor(.orange)
                 .padding(.top, 40)
 
-            Text(error.localizedDescription)
+            Text(error.userFriendlyMessage)
                 .font(AppFont.subheadline())
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)

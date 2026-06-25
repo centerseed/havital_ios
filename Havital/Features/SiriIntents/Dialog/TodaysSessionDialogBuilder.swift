@@ -11,9 +11,8 @@ enum TodaysSessionDialogBuilder {
     static func build(from card: DailyStateCard) -> String {
         guard let actionLine = card.actionLine,
               !actionLine.trimmingCharacters(in: .whitespaces).isEmpty else {
-            // TODO(i18n): localize before non-zh-TW rollout
-            return "今天是休息日，好好恢復。"
+            return NSLocalizedString("siri.session.rest", comment: "")
         }
-        return "今天的課表是 \(actionLine)。"
+        return String(format: NSLocalizedString("siri.session.today", comment: ""), actionLine)
     }
 }

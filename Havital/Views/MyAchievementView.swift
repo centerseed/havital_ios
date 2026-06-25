@@ -510,7 +510,7 @@ struct CombinedHeartRateChartSection: View {
 
         case .strava:
             // Strava 不提供靜息心率數據
-            EmptyDataSourceView(message: "Strava 不提供靜息心率數據")
+            EmptyDataSourceView(message: NSLocalizedString("my_achievement.strava_no_resting_hr", comment: ""))
 
         case .unbound:
             // 未綁定數據源
@@ -541,7 +541,7 @@ struct RestingHeartRateChartSection: View {
 
             case .strava:
                 // Strava: 不支援靜息心率數據
-                EmptyDataSourceView(message: "Strava 不提供靜息心率數據")
+                EmptyDataSourceView(message: NSLocalizedString("my_achievement.strava_no_resting_hr", comment: ""))
                     .padding()
 
             case .unbound:
@@ -1540,28 +1540,28 @@ struct TrainingLoadChartView: View {
                     // TSB 背景色分區（映射到fitness軸）
                     // 紅色區：TSB < -7（疲勞累積，需要休息）
                     RectangleMark(
-                        xStart: .value("開始", chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
-                        xEnd: .value("結束", chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
-                        yStart: .value("下限", mapTSBBoundaryToFitnessScale(tsbYAxisDomainIndependent.lowerBound)),
-                        yEnd: .value("上限", mapTSBBoundaryToFitnessScale(-7))
+                        xStart: .value(NSLocalizedString("chart.axis.start", comment: ""), chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
+                        xEnd: .value(NSLocalizedString("chart.axis.end", comment: ""), chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
+                        yStart: .value(NSLocalizedString("chart.axis.lower", comment: ""), mapTSBBoundaryToFitnessScale(tsbYAxisDomainIndependent.lowerBound)),
+                        yEnd: .value(NSLocalizedString("chart.axis.upper", comment: ""), mapTSBBoundaryToFitnessScale(-7))
                     )
                     .foregroundStyle(Color.red.opacity(0.1))
 
                     // 綠色區：-7 ≤ TSB ≤ +5（平衡狀態）
                     RectangleMark(
-                        xStart: .value("開始", chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
-                        xEnd: .value("結束", chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
-                        yStart: .value("下限", mapTSBBoundaryToFitnessScale(-7)),
-                        yEnd: .value("上限", mapTSBBoundaryToFitnessScale(5))
+                        xStart: .value(NSLocalizedString("chart.axis.start", comment: ""), chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
+                        xEnd: .value(NSLocalizedString("chart.axis.end", comment: ""), chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
+                        yStart: .value(NSLocalizedString("chart.axis.lower", comment: ""), mapTSBBoundaryToFitnessScale(-7)),
+                        yEnd: .value(NSLocalizedString("chart.axis.upper", comment: ""), mapTSBBoundaryToFitnessScale(5))
                     )
                     .foregroundStyle(Color.green.opacity(0.1))
 
                     // 藍色區：TSB > +4（最佳狀態）
                     RectangleMark(
-                        xStart: .value("開始", chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
-                        xEnd: .value("結束", chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
-                        yStart: .value("下限", mapTSBBoundaryToFitnessScale(5)),
-                        yEnd: .value("上限", mapTSBBoundaryToFitnessScale(tsbYAxisDomainIndependent.upperBound))
+                        xStart: .value(NSLocalizedString("chart.axis.start", comment: ""), chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
+                        xEnd: .value(NSLocalizedString("chart.axis.end", comment: ""), chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
+                        yStart: .value(NSLocalizedString("chart.axis.lower", comment: ""), mapTSBBoundaryToFitnessScale(5)),
+                        yEnd: .value(NSLocalizedString("chart.axis.upper", comment: ""), mapTSBBoundaryToFitnessScale(tsbYAxisDomainIndependent.upperBound))
                     )
                     .foregroundStyle(Color.blue.opacity(0.1))
 
@@ -1570,9 +1570,9 @@ struct TrainingLoadChartView: View {
                         let record = chartHealthData[index]
                         if let fitness = record.fitness {
                             LineMark(
-                                x: .value("日期", formatDateForChart(record.date)),
-                                y: .value("體適能指數", fitness * 10),
-                                series: .value("類型", "體適能指數")
+                                x: .value(NSLocalizedString("common.date", comment: ""), formatDateForChart(record.date)),
+                                y: .value(NSLocalizedString("chart.series.fitness_index", comment: ""), fitness * 10),
+                                series: .value(NSLocalizedString("chart.series.type", comment: ""), NSLocalizedString("chart.series.fitness_index", comment: ""))
                             )
                             .foregroundStyle(.blue)
                             .lineStyle(StrokeStyle(lineWidth: 3))
@@ -1586,16 +1586,16 @@ struct TrainingLoadChartView: View {
                             if let totalTss = record.totalTss, totalTss == 0 {
                                 // 休息日：先疊背景色實心圓蓋住底下的 LineMark，再疊空心藍環
                                 PointMark(
-                                    x: .value("日期", formatDateForChart(record.date)),
-                                    y: .value("體適能指數", fitness * 10)
+                                    x: .value(NSLocalizedString("common.date", comment: ""), formatDateForChart(record.date)),
+                                    y: .value(NSLocalizedString("chart.series.fitness_index", comment: ""), fitness * 10)
                                 )
                                 .foregroundStyle(Color(UIColor.systemBackground))
                                 .symbol(.circle)
                                 .symbolSize(CGSize(width: 10, height: 10))
 
                                 PointMark(
-                                    x: .value("日期", formatDateForChart(record.date)),
-                                    y: .value("體適能指數", fitness * 10)
+                                    x: .value(NSLocalizedString("common.date", comment: ""), formatDateForChart(record.date)),
+                                    y: .value(NSLocalizedString("chart.series.fitness_index", comment: ""), fitness * 10)
                                 )
                                 .foregroundStyle(.blue)
                                 .symbol(StrokeCircleSymbol())
@@ -1603,8 +1603,8 @@ struct TrainingLoadChartView: View {
                             } else {
                                 // 訓練日：實心圓
                                 PointMark(
-                                    x: .value("日期", formatDateForChart(record.date)),
-                                    y: .value("體適能指數", fitness * 10)
+                                    x: .value(NSLocalizedString("common.date", comment: ""), formatDateForChart(record.date)),
+                                    y: .value(NSLocalizedString("chart.series.fitness_index", comment: ""), fitness * 10)
                                 )
                                 .foregroundStyle(.blue)
                                 .symbol(.circle)
@@ -1618,9 +1618,9 @@ struct TrainingLoadChartView: View {
                         let record = chartHealthData[index]
                         if let tsb = record.tsb {
                             LineMark(
-                                x: .value("日期", formatDateForChart(record.date)),
+                                x: .value(NSLocalizedString("common.date", comment: ""), formatDateForChart(record.date)),
                                 y: .value("TSB", mapTSBToFitnessScale(tsb)),
-                                series: .value("類型", "TSB")
+                                series: .value(NSLocalizedString("chart.series.type", comment: ""), "TSB")
                             )
                             .foregroundStyle(.green)
                             .lineStyle(StrokeStyle(lineWidth: 2))
@@ -2002,7 +2002,7 @@ struct FitnessIndexChartView: View {
 
                     EmptyStateView(
                         type: .loadingFailed,
-                        customMessage: "暫無訓練指數數據"
+                        customMessage: NSLocalizedString("my_achievement.empty.no_training_index", comment: "")
                     )
                 }
                 .frame(maxWidth: .infinity, minHeight: 100)
@@ -2058,9 +2058,9 @@ struct FitnessIndexChartView: View {
                     let record = chartHealthData[index]
                     if let ctl = record.ctl {
                         AreaMark(
-                            x: .value("日期", formatDateForChart(record.date)),
-                            yStart: .value("CTL下界", max(0, (ctl * 0.7) * 10)),
-                            yEnd: .value("CTL上界", (ctl * 1.3) * 10)
+                            x: .value(NSLocalizedString("common.date", comment: ""), formatDateForChart(record.date)),
+                            yStart: .value(NSLocalizedString("chart.series.ctl_lower", comment: ""), max(0, (ctl * 0.7) * 10)),
+                            yEnd: .value(NSLocalizedString("chart.series.ctl_upper", comment: ""), (ctl * 1.3) * 10)
                         )
                         .foregroundStyle(Color.green.opacity(0.15))
                         .interpolationMethod(.catmullRom)
@@ -2072,9 +2072,9 @@ struct FitnessIndexChartView: View {
                     let record = chartHealthData[index]
                     if let ctl = record.ctl {
                         LineMark(
-                            x: .value("日期", formatDateForChart(record.date)),
-                            y: .value("CTL上界", (ctl * 1.3) * 10),
-                            series: .value("線條", "CTL上界")
+                            x: .value(NSLocalizedString("common.date", comment: ""), formatDateForChart(record.date)),
+                            y: .value(NSLocalizedString("chart.series.ctl_upper", comment: ""), (ctl * 1.3) * 10),
+                            series: .value(NSLocalizedString("chart.series.line", comment: ""), NSLocalizedString("chart.series.ctl_upper", comment: ""))
                         )
                         .foregroundStyle(.orange.opacity(0.7))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
@@ -2087,9 +2087,9 @@ struct FitnessIndexChartView: View {
                     let record = chartHealthData[index]
                     if let ctl = record.ctl {
                         LineMark(
-                            x: .value("日期", formatDateForChart(record.date)),
-                            y: .value("CTL下界", max(0, (ctl * 0.7) * 10)),
-                            series: .value("線條", "CTL下界")
+                            x: .value(NSLocalizedString("common.date", comment: ""), formatDateForChart(record.date)),
+                            y: .value(NSLocalizedString("chart.series.ctl_lower", comment: ""), max(0, (ctl * 0.7) * 10)),
+                            series: .value(NSLocalizedString("chart.series.line", comment: ""), NSLocalizedString("chart.series.ctl_lower", comment: ""))
                         )
                         .foregroundStyle(.orange.opacity(0.7))
                         .lineStyle(StrokeStyle(lineWidth: 1, dash: [5, 5]))
@@ -2102,9 +2102,9 @@ struct FitnessIndexChartView: View {
                     let record = chartHealthData[index]
                     if let atl = record.atl {
                         LineMark(
-                            x: .value("日期", formatDateForChart(record.date)),
-                            y: .value("訓練指數", atl * 10),
-                            series: .value("線條", "ATL")
+                            x: .value(NSLocalizedString("common.date", comment: ""), formatDateForChart(record.date)),
+                            y: .value(NSLocalizedString("chart.series.training_index", comment: ""), atl * 10),
+                            series: .value(NSLocalizedString("chart.series.line", comment: ""), "ATL")
                         )
                         .foregroundStyle(.blue)
                         .lineStyle(StrokeStyle(lineWidth: 3))
@@ -2119,16 +2119,16 @@ struct FitnessIndexChartView: View {
                         if let totalTss = record.totalTss, totalTss == 0 {
                             // 休息日：先疊背景色實心圓蓋住底下的 LineMark，再疊空心藍環
                             PointMark(
-                                x: .value("日期", formatDateForChart(record.date)),
-                                y: .value("訓練指數", atl * 10)
+                                x: .value(NSLocalizedString("common.date", comment: ""), formatDateForChart(record.date)),
+                                y: .value(NSLocalizedString("chart.series.training_index", comment: ""), atl * 10)
                             )
                             .foregroundStyle(Color(UIColor.systemBackground))
                             .symbol(.circle)
                             .symbolSize(CGSize(width: 10, height: 10))
 
                             PointMark(
-                                x: .value("日期", formatDateForChart(record.date)),
-                                y: .value("訓練指數", atl * 10)
+                                x: .value(NSLocalizedString("common.date", comment: ""), formatDateForChart(record.date)),
+                                y: .value(NSLocalizedString("chart.series.training_index", comment: ""), atl * 10)
                             )
                             .foregroundStyle(.blue)
                             .symbol(StrokeCircleSymbol())
@@ -2136,8 +2136,8 @@ struct FitnessIndexChartView: View {
                         } else {
                             // 訓練日：實心圓
                             PointMark(
-                                x: .value("日期", formatDateForChart(record.date)),
-                                y: .value("訓練指數", atl * 10)
+                                x: .value(NSLocalizedString("common.date", comment: ""), formatDateForChart(record.date)),
+                                y: .value(NSLocalizedString("chart.series.training_index", comment: ""), atl * 10)
                             )
                             .foregroundStyle(.blue)
                             .symbol(.circle)
@@ -2400,7 +2400,7 @@ struct TSBChartView: View {
 
                     EmptyStateView(
                         type: .loadingFailed,
-                        customMessage: "暫無TSB數據"
+                        customMessage: NSLocalizedString("my_achievement.empty.no_tsb", comment: "")
                     )
                 }
                 .frame(maxWidth: .infinity, minHeight: 100)
@@ -2454,28 +2454,28 @@ struct TSBChartView: View {
                 // TSB 背景色分區
                 // 紅色區：TSB < -7（疲勞狀態，需要休息）
                 RectangleMark(
-                    xStart: .value("開始", chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
-                    xEnd: .value("結束", chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
-                    yStart: .value("下限", tsbYAxisDomain.lowerBound),
-                    yEnd: .value("上限", -7)
+                    xStart: .value(NSLocalizedString("chart.axis.start", comment: ""), chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
+                    xEnd: .value(NSLocalizedString("chart.axis.end", comment: ""), chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
+                    yStart: .value(NSLocalizedString("chart.axis.lower", comment: ""), tsbYAxisDomain.lowerBound),
+                    yEnd: .value(NSLocalizedString("chart.axis.upper", comment: ""), -7)
                 )
                 .foregroundStyle(Color.red.opacity(0.1))
 
                 // 綠色區：-7 ≤ TSB ≤ +1（平衡狀態）
                 RectangleMark(
-                    xStart: .value("開始", chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
-                    xEnd: .value("結束", chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
-                    yStart: .value("下限", -7),
-                    yEnd: .value("上限", 1)
+                    xStart: .value(NSLocalizedString("chart.axis.start", comment: ""), chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
+                    xEnd: .value(NSLocalizedString("chart.axis.end", comment: ""), chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
+                    yStart: .value(NSLocalizedString("chart.axis.lower", comment: ""), -7),
+                    yEnd: .value(NSLocalizedString("chart.axis.upper", comment: ""), 1)
                 )
                 .foregroundStyle(Color.green.opacity(0.1))
 
                 // 藍色區：TSB > +1（最佳狀態）
                 RectangleMark(
-                    xStart: .value("開始", chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
-                    xEnd: .value("結束", chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
-                    yStart: .value("下限", 1),
-                    yEnd: .value("上限", tsbYAxisDomain.upperBound)
+                    xStart: .value(NSLocalizedString("chart.axis.start", comment: ""), chartHealthData.first.map { formatDateForChart($0.date) } ?? Date()),
+                    xEnd: .value(NSLocalizedString("chart.axis.end", comment: ""), chartHealthData.last.map { formatDateForChart($0.date) } ?? Date()),
+                    yStart: .value(NSLocalizedString("chart.axis.lower", comment: ""), 1),
+                    yEnd: .value(NSLocalizedString("chart.axis.upper", comment: ""), tsbYAxisDomain.upperBound)
                 )
                 .foregroundStyle(Color.blue.opacity(0.1))
 
@@ -2484,14 +2484,14 @@ struct TSBChartView: View {
                     let record = chartHealthData[index]
                     if let tsb = record.tsb {
                         LineMark(
-                            x: .value("日期", formatDateForChart(record.date)),
+                            x: .value(NSLocalizedString("common.date", comment: ""), formatDateForChart(record.date)),
                             y: .value("TSB", tsb)
                         )
                         .foregroundStyle(.green)
                         .lineStyle(StrokeStyle(lineWidth: 3))
 
                         PointMark(
-                            x: .value("日期", formatDateForChart(record.date)),
+                            x: .value(NSLocalizedString("common.date", comment: ""), formatDateForChart(record.date)),
                             y: .value("TSB", tsb)
                         )
                         .foregroundStyle(.green)

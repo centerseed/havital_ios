@@ -78,8 +78,14 @@ struct WorkoutReflectionView: View {
     }
 
     private let prompts: [(label: String, icon: String)] = [
-        ("配速", "🏃"), ("呼吸", "💨"), ("腿/腳", "🦵"), ("心率", "❤️"),
-        ("補給", "💧"), ("比上次", "⏮"), ("後段", "🔚"), ("明天", "🌅")
+        (NSLocalizedString("workout_reflection.prompt.pace", comment: ""), "🏃"),
+        (NSLocalizedString("workout_reflection.prompt.breathing", comment: ""), "💨"),
+        (NSLocalizedString("workout_reflection.prompt.legs_feet", comment: ""), "🦵"),
+        (NSLocalizedString("workout_reflection.prompt.heart_rate", comment: ""), "❤️"),
+        (NSLocalizedString("workout_reflection.prompt.fueling", comment: ""), "💧"),
+        (NSLocalizedString("workout_reflection.prompt.vs_last", comment: ""), "⏮"),
+        (NSLocalizedString("workout_reflection.prompt.final_stretch", comment: ""), "🔚"),
+        (NSLocalizedString("workout_reflection.prompt.tomorrow", comment: ""), "🌅")
     ]
 
     // MARK: - Body

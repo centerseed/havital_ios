@@ -1,8 +1,8 @@
 import AppIntents
 
 struct WeeklyMileageIntent: AppIntent {
-    static var title: LocalizedStringResource = "我這週跑多少"
-    static var description = IntentDescription("念出本週累積跑量")
+    static var title: LocalizedStringResource = LocalizedStringResource("siri.intent.weekly_mileage.title", defaultValue: "我這週跑多少")
+    static var description = IntentDescription(LocalizedStringResource("siri.intent.weekly_mileage.desc", defaultValue: "念出本週累積跑量"))
     static var openAppWhenRun: Bool = false
 
     @MainActor

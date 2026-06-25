@@ -238,11 +238,11 @@ struct SimplifiedDailyCard: View {
         case .norwegian4x4:
             // 挪威4x4：時間制間歇（顯示時間 + 計算出的距離）
             if let repeats = details.repeats, let work = details.work {
-                let timeText = work.timeMinutes.map { "\(Int($0))分鐘" } ?? ""
+                let timeText = work.timeMinutes.map { String(format: NSLocalizedString("schedule_editor.minutes_format", comment: ""), Int($0)) } ?? ""
                 // 顯示計算出的距離（約 XXXm）
                 let distanceText: String
                 if let distanceM = work.distanceM {
-                    distanceText = " (約\(Int(distanceM))m)"
+                    distanceText = String(format: NSLocalizedString("schedule_editor.approx_distance_format", comment: ""), Int(distanceM))
                 } else {
                     distanceText = ""
                 }
@@ -537,21 +537,21 @@ struct SimplifiedDailyCard: View {
 
         switch newType {
         case .rest:
-            day.dayTarget = "休息日"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.rest", comment: "")
             day.trainingDetails = nil
 
         case .easyRun, .easy, .recovery_run:
-            day.dayTarget = newType == .easyRun || newType == .easy ? "輕鬆跑：恢復和建立有氧基礎" : "恢復跑：低強度恢復訓練"
+            day.dayTarget = newType == .easyRun || newType == .easy ? NSLocalizedString("schedule_editor.daytarget.easy_run", comment: "") : NSLocalizedString("schedule_editor.daytarget.recovery_run", comment: "")
             let suggestedPace = PaceCalculator.getSuggestedPace(for: newType.rawValue, vdot: vdot) ?? "6:00"
             day.trainingDetails = MutableTrainingDetails(distanceKm: 5.0, pace: suggestedPace)
 
         case .tempo, .threshold:
-            day.dayTarget = newType == .tempo ? "馬拉松配速：中強度持續跑" : "閾值跑：提升乳酸清除能力"
+            day.dayTarget = newType == .tempo ? NSLocalizedString("schedule_editor.daytarget.marathon_pace", comment: "") : NSLocalizedString("schedule_editor.daytarget.threshold", comment: "")
             let suggestedPace = PaceCalculator.getSuggestedPace(for: newType.rawValue, vdot: vdot) ?? "5:00"
             day.trainingDetails = MutableTrainingDetails(distanceKm: 8.0, pace: suggestedPace)
 
         case .interval:
-            day.dayTarget = "間歇訓練：提升VO2max和速度"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.interval", comment: "")
             let intervalPace = PaceCalculator.getSuggestedPace(for: "interval", vdot: vdot) ?? "4:30"
             let recoveryPace = PaceCalculator.getSuggestedPace(for: "recovery", vdot: vdot) ?? "6:00"
             day.trainingDetails = MutableTrainingDetails(
@@ -576,7 +576,7 @@ struct SimplifiedDailyCard: View {
 
         // 🏃‍♂️ 大步跑：短距離衝刺（如 6x100m），用於提升跑步經濟性
         case .strides:
-            day.dayTarget = "大步跑：短距離衝刺，提升跑步經濟性"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.strides", comment: "")
             let intervalPace = PaceCalculator.getSuggestedPace(for: "interval", vdot: vdot) ?? "4:00"
             day.trainingDetails = MutableTrainingDetails(
                 work: MutableWorkoutSegment(
@@ -588,7 +588,7 @@ struct SimplifiedDailyCard: View {
                     heartRateRange: nil
                 ),
                 recovery: MutableWorkoutSegment(
-                    description: "原地休息1分鐘",
+                    description: String(format: NSLocalizedString("schedule_editor.segment.rest_in_place_minutes", comment: ""), 1),
                     distanceKm: nil,
                     distanceM: nil,
                     timeMinutes: 1.0,
@@ -600,10 +600,10 @@ struct SimplifiedDailyCard: View {
 
         // ⛰️ 山坡重複跑：上坡衝刺，下坡恢復，訓練腿部力量
         case .hillRepeats:
-            day.dayTarget = "山坡重複跑：上坡衝刺訓練腿部力量"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.hill_repeats", comment: "")
             let intervalPace = PaceCalculator.getSuggestedPace(for: "interval", vdot: vdot) ?? "4:30"
             day.trainingDetails = MutableTrainingDetails(
-                description: "找一個約 5-8% 坡度的山坡進行訓練",
+                description: NSLocalizedString("schedule_editor.detail.hill_repeats", comment: ""),
                 work: MutableWorkoutSegment(
                     description: nil,
                     distanceKm: 0.2,
@@ -613,7 +613,7 @@ struct SimplifiedDailyCard: View {
                     heartRateRange: nil
                 ),
                 recovery: MutableWorkoutSegment(
-                    description: "慢跑下坡恢復",
+                    description: NSLocalizedString("schedule_editor.segment.jog_downhill", comment: ""),
                     distanceKm: nil,
                     distanceM: nil,
                     timeMinutes: 2.0,
@@ -625,14 +625,14 @@ struct SimplifiedDailyCard: View {
 
         // 🚢 巡航間歇：閾值配速間歇（如 4x1000m@T配速）
         case .cruiseIntervals:
-            day.dayTarget = "巡航間歇：閾值配速間歇訓練"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.cruise_intervals", comment: "")
             let thresholdPace = PaceCalculator.getSuggestedPace(for: "threshold", vdot: vdot) ?? "4:45"
             let recoveryPaceCruise = PaceCalculator.getSuggestedPace(for: "recovery", vdot: vdot) ?? "7:00"
             // 計算恢復段距離（1分鐘恢復跑）
             let recoveryDistanceM_Cruise = calculateDistanceMeters(pace: recoveryPaceCruise, timeMinutes: 1.0)
             let recoveryDistanceKm_Cruise = recoveryDistanceM_Cruise.map { $0 / 1000.0 }  // 確保 distanceKm 與 distanceM 一致
             day.trainingDetails = MutableTrainingDetails(
-                description: "巡航間歇：閾值配速間歇，Jack Daniels 原則每5分鐘T配速需1分鐘恢復",
+                description: NSLocalizedString("schedule_editor.detail.cruise_intervals", comment: ""),
                 work: MutableWorkoutSegment(
                     description: nil,
                     distanceKm: 1.0,
@@ -642,7 +642,7 @@ struct SimplifiedDailyCard: View {
                     heartRateRange: nil
                 ),
                 recovery: MutableWorkoutSegment(
-                    description: "恢復跑1分鐘",
+                    description: String(format: NSLocalizedString("schedule_editor.segment.recovery_run_minutes", comment: ""), 1),
                     distanceKm: recoveryDistanceKm_Cruise,
                     distanceM: recoveryDistanceM_Cruise,
                     timeMinutes: 1.0,  // 改為時間基準，符合 Jack Daniels 原則
@@ -653,97 +653,97 @@ struct SimplifiedDailyCard: View {
             )
 
         case .longRun:
-            day.dayTarget = "長距離跑：建立耐力基礎"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.long_run", comment: "")
             let tempoPace = PaceCalculator.getSuggestedPace(for: "tempo", vdot: vdot) ?? "5:30"
             day.trainingDetails = MutableTrainingDetails(distanceKm: 15.0, pace: tempoPace)
 
         case .lsd:
-            day.dayTarget = "LSD長距離慢跑：輕鬆配速建立有氧基礎"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.lsd", comment: "")
             let easyPace = PaceCalculator.getSuggestedPace(for: "easy", vdot: vdot) ?? "6:00"
             day.trainingDetails = MutableTrainingDetails(distanceKm: 20.0, pace: easyPace)
 
         case .progression:
-            day.dayTarget = "漸進配速跑：從慢到快逐漸加速"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.progression", comment: "")
             let easyPace = PaceCalculator.getSuggestedPace(for: "easy", vdot: vdot) ?? "6:00"
             let tempoPace = PaceCalculator.getSuggestedPace(for: "tempo", vdot: vdot) ?? "5:00"
             day.trainingDetails = MutableTrainingDetails(
                 totalDistanceKm: 12.0,
                 segments: [
-                    MutableProgressionSegment(distanceKm: 4.0, pace: easyPace, description: "輕鬆配速"),
-                    MutableProgressionSegment(distanceKm: 4.0, pace: tempoPace, description: "馬拉松配速"),
-                    MutableProgressionSegment(distanceKm: 4.0, pace: "4:30", description: "加速")
+                    MutableProgressionSegment(distanceKm: 4.0, pace: easyPace, description: NSLocalizedString("schedule_editor.segment.easy_pace", comment: "")),
+                    MutableProgressionSegment(distanceKm: 4.0, pace: tempoPace, description: NSLocalizedString("schedule_editor.segment.marathon_pace", comment: "")),
+                    MutableProgressionSegment(distanceKm: 4.0, pace: "4:30", description: NSLocalizedString("schedule_editor.segment.accelerate", comment: ""))
                 ]
             )
 
         case .race:
-            day.dayTarget = "比賽日"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.race_day", comment: "")
             day.trainingDetails = nil
 
         case .combination:
-            day.dayTarget = "組合訓練：多配速混合訓練"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.combo", comment: "")
             let easyPace = PaceCalculator.getSuggestedPace(for: "easy", vdot: vdot) ?? "6:00"
             let tempoPace = PaceCalculator.getSuggestedPace(for: "tempo", vdot: vdot) ?? "5:30"
             day.trainingDetails = MutableTrainingDetails(
                 totalDistanceKm: 10.0,
                 segments: [
-                    MutableProgressionSegment(distanceKm: 3.0, pace: easyPace, description: "輕鬆跑"),
-                    MutableProgressionSegment(distanceKm: 5.0, pace: tempoPace, description: "馬拉松配速"),
-                    MutableProgressionSegment(distanceKm: 2.0, pace: easyPace, description: "輕鬆跑")
+                    MutableProgressionSegment(distanceKm: 3.0, pace: easyPace, description: NSLocalizedString("schedule_editor.segment.easy_run", comment: "")),
+                    MutableProgressionSegment(distanceKm: 5.0, pace: tempoPace, description: NSLocalizedString("schedule_editor.segment.marathon_pace", comment: "")),
+                    MutableProgressionSegment(distanceKm: 2.0, pace: easyPace, description: NSLocalizedString("schedule_editor.segment.easy_run", comment: ""))
                 ]
             )
 
         // 🎲 法特雷克：變速跑，快慢交替，無固定結構
         case .fartlek:
-            day.dayTarget = "法特雷克：變速跑訓練配速轉換能力"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.fartlek", comment: "")
             let easyPace = PaceCalculator.getSuggestedPace(for: "easy", vdot: vdot) ?? "6:00"
             let tempoPace = PaceCalculator.getSuggestedPace(for: "tempo", vdot: vdot) ?? "5:00"
             let intervalPace = PaceCalculator.getSuggestedPace(for: "interval", vdot: vdot) ?? "4:30"
             day.trainingDetails = MutableTrainingDetails(
-                description: "變速跑：根據感覺自由切換快慢配速",
+                description: NSLocalizedString("schedule_editor.detail.fartlek", comment: ""),
                 totalDistanceKm: 8.0,
                 segments: [
-                    MutableProgressionSegment(distanceKm: 2.0, pace: easyPace, description: "熱身"),
-                    MutableProgressionSegment(distanceKm: 1.0, pace: tempoPace, description: "快跑"),
-                    MutableProgressionSegment(distanceKm: 0.5, pace: easyPace, description: "慢跑"),
-                    MutableProgressionSegment(distanceKm: 0.5, pace: intervalPace, description: "衝刺"),
-                    MutableProgressionSegment(distanceKm: 1.0, pace: easyPace, description: "恢復"),
-                    MutableProgressionSegment(distanceKm: 1.0, pace: tempoPace, description: "快跑"),
-                    MutableProgressionSegment(distanceKm: 2.0, pace: easyPace, description: "收操")
+                    MutableProgressionSegment(distanceKm: 2.0, pace: easyPace, description: NSLocalizedString("schedule_editor.segment.warmup", comment: "")),
+                    MutableProgressionSegment(distanceKm: 1.0, pace: tempoPace, description: NSLocalizedString("schedule_editor.segment.fast_run", comment: "")),
+                    MutableProgressionSegment(distanceKm: 0.5, pace: easyPace, description: NSLocalizedString("schedule_editor.segment.jog", comment: "")),
+                    MutableProgressionSegment(distanceKm: 0.5, pace: intervalPace, description: NSLocalizedString("schedule_editor.segment.sprint", comment: "")),
+                    MutableProgressionSegment(distanceKm: 1.0, pace: easyPace, description: NSLocalizedString("schedule_editor.segment.recovery", comment: "")),
+                    MutableProgressionSegment(distanceKm: 1.0, pace: tempoPace, description: NSLocalizedString("schedule_editor.segment.fast_run", comment: "")),
+                    MutableProgressionSegment(distanceKm: 2.0, pace: easyPace, description: NSLocalizedString("schedule_editor.segment.cooldown", comment: ""))
                 ]
             )
 
         // 🚀 快結尾長跑：前 70% 輕鬆，後 30% 加速
         case .fastFinish:
-            day.dayTarget = "快結尾長跑：後段加速訓練"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.fast_finish", comment: "")
             let easyPace = PaceCalculator.getSuggestedPace(for: "easy", vdot: vdot) ?? "6:00"
             let tempoPace = PaceCalculator.getSuggestedPace(for: "tempo", vdot: vdot) ?? "5:00"
             day.trainingDetails = MutableTrainingDetails(
-                description: "長跑後段加速，訓練疲勞狀態下的配速維持能力",
+                description: NSLocalizedString("schedule_editor.detail.fast_finish", comment: ""),
                 totalDistanceKm: 16.0,
                 segments: [
-                    MutableProgressionSegment(distanceKm: 11.0, pace: easyPace, description: "輕鬆跑 (70%)"),
-                    MutableProgressionSegment(distanceKm: 5.0, pace: tempoPace, description: "馬拉松配速 (30%)")
+                    MutableProgressionSegment(distanceKm: 11.0, pace: easyPace, description: NSLocalizedString("schedule_editor.segment.easy_run_70", comment: "")),
+                    MutableProgressionSegment(distanceKm: 5.0, pace: tempoPace, description: NSLocalizedString("schedule_editor.segment.marathon_pace_30", comment: ""))
                 ]
             )
 
         // 🏁 比賽配速跑：以目標比賽配速進行的訓練（非正式比賽）
         case .racePace:
-            day.dayTarget = "比賽配速跑：熟悉目標比賽節奏"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.race_pace", comment: "")
             // 使用馬拉松配速作為預設比賽配速
             let racePace = PaceCalculator.getSuggestedPace(for: "marathon", vdot: vdot) ?? "5:15"
             day.trainingDetails = MutableTrainingDetails(
-                description: "以目標比賽配速進行訓練，熟悉比賽節奏",
+                description: NSLocalizedString("schedule_editor.detail.race_pace", comment: ""),
                 distanceKm: 10.0,
                 pace: racePace
             )
 
         // 🏃 短間歇：200-400m 快跑，提升速度和無氧能力
         case .shortInterval:
-            day.dayTarget = "短間歇：提升速度和無氧能力"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.short_interval", comment: "")
             let intervalPaceShort = PaceCalculator.getSuggestedPace(for: "interval", vdot: vdot) ?? "4:15"
             let recoveryPaceShort = PaceCalculator.getSuggestedPace(for: "recovery", vdot: vdot) ?? "7:00"
             day.trainingDetails = MutableTrainingDetails(
-                description: "短距離高強度重複跑，提升速度、無氧能力和跑步經濟性（非主要有氧訓練）",
+                description: NSLocalizedString("schedule_editor.detail.short_interval", comment: ""),
                 work: MutableWorkoutSegment(
                     description: nil,
                     distanceKm: 0.4,
@@ -753,7 +753,7 @@ struct SimplifiedDailyCard: View {
                     heartRateRange: nil
                 ),
                 recovery: MutableWorkoutSegment(
-                    description: "恢復跑",
+                    description: NSLocalizedString("schedule_editor.segment.recovery_run", comment: ""),
                     distanceKm: 0.4,
                     distanceM: 400,  // 確保 distanceM 與 distanceKm 一致
                     timeMinutes: nil,
@@ -765,7 +765,7 @@ struct SimplifiedDailyCard: View {
 
         // 🏃‍♂️ 長間歇：800-1600m 間歇，增強速耐力
         case .longInterval:
-            day.dayTarget = "長間歇：提升VO2max和速度耐力"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.long_interval", comment: "")
             let iPace = PaceCalculator.getSuggestedPace(for: "interval", vdot: vdot) ?? "4:15"
             let easyPace = PaceCalculator.getSuggestedPace(for: "easy", vdot: vdot) ?? "6:30"
 
@@ -774,7 +774,7 @@ struct SimplifiedDailyCard: View {
             let recoveryDistanceKm = recoveryDistanceM.map { $0 / 1000.0 }  // 確保 distanceKm 與 distanceM 一致
 
             day.trainingDetails = MutableTrainingDetails(
-                description: "長距離間歇訓練，提升 VO2max 和速度耐力",
+                description: NSLocalizedString("schedule_editor.detail.long_interval", comment: ""),
                 work: MutableWorkoutSegment(
                     description: nil,
                     distanceKm: 1.0,
@@ -784,7 +784,7 @@ struct SimplifiedDailyCard: View {
                     heartRateRange: nil
                 ),
                 recovery: MutableWorkoutSegment(
-                    description: "輕鬆跑恢復",
+                    description: NSLocalizedString("schedule_editor.segment.easy_jog_recovery", comment: ""),
                     distanceKm: recoveryDistanceKm,
                     distanceM: recoveryDistanceM,
                     timeMinutes: 2.5,
@@ -797,7 +797,7 @@ struct SimplifiedDailyCard: View {
         // 🇳🇴 挪威4x4訓練：4 x 4分鐘高強度間歇，提升VO2max
         case .norwegian4x4:
             // 更新 dayTarget 說明
-            day.dayTarget = "挪威4x4：4組4分鐘高強度間歇（92% VO2max），組間恢復跑3分鐘"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.norwegian_4x4", comment: "")
 
             // 使用自訂 92% VO2max 配速（介於閾值88%和間歇95%之間）
             let norwegian4x4Pace = PaceCalculator.getPaceForPercentage(0.92, vdot: vdot)
@@ -814,9 +814,9 @@ struct SimplifiedDailyCard: View {
             let recoveryDistanceKm_N4x4 = recoveryDistanceM_N4x4.map { $0 / 1000.0 }  // 確保 distanceKm 與 distanceM 一致
 
             day.trainingDetails = MutableTrainingDetails(
-                description: "挪威4x4訓練：4趟約4分鐘高強度間歇（92% VO2max）",
+                description: NSLocalizedString("schedule_editor.detail.norwegian_4x4", comment: ""),
                 work: MutableWorkoutSegment(
-                    description: "高強度跑（92% VO2max）",
+                    description: NSLocalizedString("schedule_editor.segment.hard_run_vo2", comment: ""),
                     distanceKm: workDistanceKm,
                     distanceM: workDistanceM,
                     timeMinutes: workTimeMinutes,
@@ -824,7 +824,7 @@ struct SimplifiedDailyCard: View {
                     heartRateRange: nil
                 ),
                 recovery: MutableWorkoutSegment(
-                    description: "恢復跑3分鐘",
+                    description: String(format: NSLocalizedString("schedule_editor.segment.recovery_run_minutes", comment: ""), 3),
                     distanceKm: recoveryDistanceKm_N4x4,
                     distanceM: recoveryDistanceM_N4x4,
                     timeMinutes: recoveryTimeMinutes,
@@ -837,7 +837,7 @@ struct SimplifiedDailyCard: View {
         // 🎯 亞索800：800m 重複跑，VO2max 訓練
         // 亞索800 的配速接近間歇配速（你的 800m 時間對應馬拉松完賽時間）
         case .yasso800:
-            day.dayTarget = "亞索800：800m重複跑，VO2max訓練"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.yasso_800", comment: "")
             // 使用間歇配速（800m 配速比馬拉松配速快很多）
             let intervalPace = PaceCalculator.getSuggestedPace(for: "interval", vdot: vdot) ?? "4:30"
             let recoveryPace = PaceCalculator.getSuggestedPace(for: "recovery", vdot: vdot) ?? "7:00"
@@ -850,7 +850,7 @@ struct SimplifiedDailyCard: View {
             let recoveryDistanceKm = recoveryDistanceM.map { $0 / 1000.0 }  // 確保 distanceKm 與 distanceM 一致
 
             day.trainingDetails = MutableTrainingDetails(
-                description: "亞索800訓練：800m間歇配速重複跑。等時恢復可直接預測馬拉松成績：800m時間（分:秒）= 馬拉松完賽時間（時:分）",
+                description: NSLocalizedString("schedule_editor.detail.yasso_800", comment: ""),
                 work: MutableWorkoutSegment(
                     description: nil,
                     distanceKm: 0.8,
@@ -860,7 +860,7 @@ struct SimplifiedDailyCard: View {
                     heartRateRange: nil
                 ),
                 recovery: MutableWorkoutSegment(
-                    description: "恢復跑（等時恢復）",
+                    description: NSLocalizedString("schedule_editor.segment.recovery_run_equal", comment: ""),
                     distanceKm: recoveryDistanceKm,
                     distanceM: recoveryDistanceM,
                     timeMinutes: timeForWorkSegment,
@@ -872,27 +872,27 @@ struct SimplifiedDailyCard: View {
 
         // 非跑步訓練類型
         case .crossTraining:
-            day.dayTarget = "交叉訓練：非跑步運動訓練"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.cross_training", comment: "")
             day.trainingDetails = MutableTrainingDetails(distanceKm: nil)
 
         case .strength:
-            day.dayTarget = "肌力訓練：增強肌肉力量"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.strength", comment: "")
             day.trainingDetails = MutableTrainingDetails(distanceKm: nil)
 
         case .yoga:
-            day.dayTarget = "瑜珈：柔軟度和恢復訓練"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.yoga", comment: "")
             day.trainingDetails = MutableTrainingDetails(distanceKm: nil)
 
         case .hiking:
-            day.dayTarget = "登山健行：有氧耐力訓練"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.hiking", comment: "")
             day.trainingDetails = MutableTrainingDetails(distanceKm: nil)
 
         case .cycling:
-            day.dayTarget = "騎車：低衝擊有氧訓練"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.cycling", comment: "")
             day.trainingDetails = MutableTrainingDetails(distanceKm: nil)
 
         default:
-            day.dayTarget = "自訂訓練"
+            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.custom", comment: "")
             day.trainingDetails = MutableTrainingDetails(distanceKm: 6.0)
         }
 
