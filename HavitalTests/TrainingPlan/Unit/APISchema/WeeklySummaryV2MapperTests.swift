@@ -116,4 +116,34 @@ final class WeeklySummaryV2MapperTests: XCTestCase {
         XCTAssertNil(entity.capabilityProgression)
         XCTAssertNil(entity.restWeekRecommendation)
     }
+
+    // MARK: - WeeklyStory Mapping
+
+    // MARK: - WeeklyStory Mapping
+
+    /// Minimal valid JSON satisfying all non-optional fields in nested DTOs
+    private let inlineMinimal = """
+    {
+      "id":"x_1_summary","week_of_training":1,
+      "training_completion":{"percentage":0,"planned_km":0,"completed_km":0,"planned_sessions":0,"completed_sessions":0,"evaluation":"ok"},
+      "training_analysis":{},
+      "weekly_highlights":{"highlights":[],"achievements":[],"areas_for_improvement":[]},
+      "next_week_adjustments":{"items":[],"summary":"","methodology_constraints_considered":false,"based_on_flags":[]}
+    }
+    """
+
+    func test_maps_weekly_story() throws {
+        let json = inlineMinimal.replacingOccurrences(
+            of: "\"next_week_adjustments\":{\"items\":[],\"summary\":\"\",\"methodology_constraints_considered\":false,\"based_on_flags\":[]}",
+            with: "\"next_week_adjustments\":{\"items\":[],\"summary\":\"\",\"methodology_constraints_considered\":false,\"based_on_flags\":[]},\"weekly_story\":{\"text\":\"base wk3, 13 to go\",\"thread\":\"campaign\"}")
+        let dto = try JSONDecoder().decode(WeeklySummaryV2DTO.self, from: Data(json.utf8))
+        let entity = WeeklySummaryV2Mapper.toEntity(from: dto)
+        XCTAssertEqual(entity.weeklyStory?.thread, "campaign")
+        XCTAssertEqual(entity.weeklyStory?.text, "base wk3, 13 to go")
+    }
+
+    func test_nil_weekly_story_maps_nil() throws {
+        let dto = try JSONDecoder().decode(WeeklySummaryV2DTO.self, from: Data(inlineMinimal.utf8))
+        XCTAssertNil(WeeklySummaryV2Mapper.toEntity(from: dto).weeklyStory)
+    }
 }

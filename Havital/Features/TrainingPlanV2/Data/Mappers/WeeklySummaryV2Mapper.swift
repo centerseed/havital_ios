@@ -32,7 +32,8 @@ enum WeeklySummaryV2Mapper {
             restWeekRecommendation: dto.restWeekRecommendation.map { toRestWeekAssessment(from: $0) },
             finalTrainingReview: dto.finalTrainingReview.map { toFinalTrainingReview(from: $0) },
             promptAuditId: dto.promptAuditId,
-            observations: dto.observations
+            observations: dto.observations,
+            weeklyStory: dto.weeklyStory.map { toWeeklyStory(from: $0) }
         )
     }
 
@@ -356,6 +357,10 @@ enum WeeklySummaryV2Mapper {
         toAdjustmentItem(from: dto)
     }
     #endif
+
+    private static func toWeeklyStory(from dto: WeeklyStoryDTO) -> WeeklyStory {
+        WeeklyStory(text: dto.text, thread: dto.thread, callback: dto.callback)
+    }
 
     // toCustomizationRecommendation 已移除（2026-04-05）— customization_recommendations 廢棄
 
