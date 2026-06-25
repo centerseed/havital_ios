@@ -2894,6 +2894,11 @@
 "paywall.grace_period.banner.title_format" = "免費體驗中，剩 %d 天";
 "paywall.grace_period.banner.subtitle" = "訂閱以保留 AI 功能";
 
+// Billing Issue Banner (T-0060) — auto-renewal payment failed, prompt to update payment method
+"paywall.billing_issue.banner.title" = "訂閱續訂失敗";
+"paywall.billing_issue.banner.subtitle" = "請更新付款方式，以免訓練功能中斷";
+"paywall.billing_issue.banner.cta" = "更新付款方式";
+
 // Settings Subscription Tier Indicator (AC-PAYWALL-36/40)
 "settings.subscription.tier.free_label" = "方案：免費體驗版";
 "settings.subscription.tier.trial_label_format" = "方案：試用中（剩 %d 天）";

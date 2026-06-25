@@ -2812,6 +2812,11 @@
 "paywall.grace_period.banner.title_format" = "無料体験中、残り%d日";
 "paywall.grace_period.banner.subtitle" = "AI機能を継続するにはサブスクが必要";
 
+// Billing Issue Banner (T-0060) — auto-renewal payment failed, prompt to update payment method
+"paywall.billing_issue.banner.title" = "サブスクの更新に失敗しました";
+"paywall.billing_issue.banner.subtitle" = "トレーニング機能が中断しないよう、お支払い方法を更新してください";
+"paywall.billing_issue.banner.cta" = "支払い方法を更新";
+
 // Settings Subscription Tier Indicator (AC-PAYWALL-36/40)
 "settings.subscription.tier.free_label" = "プラン：無料体験版";
 "settings.subscription.tier.trial_label_format" = "プラン：トライアル中（残り%d日）";

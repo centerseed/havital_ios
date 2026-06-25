@@ -9,6 +9,7 @@ struct TrainingPlanV2View: View {
     @EnvironmentObject private var authViewModel: AuthenticationViewModel
     @EnvironmentObject private var appViewModel: AppViewModel
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.openURL) private var openURL
     @State private var showUserProfile = false
     @State private var editScheduleVM: EditScheduleV2ViewModel?
     @State private var showContactPaceriz = false
@@ -170,6 +171,19 @@ struct TrainingPlanV2View: View {
                     .ignoresSafeArea()
             ScrollView {
                 VStack(spacing: 24) {
+                    // T-0060: Billing-issue alert — auto-renewal payment failed (involuntary
+                    // churn). Shown above the promo banner; tapping opens App Store subscription
+                    // management so the user can update their payment method during Apple's
+                    // billing grace period before access is cut off.
+                    if subscriptionState.currentStatus?.billingIssue == true {
+                        BillingIssueBanner {
+                            if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+                                openURL(url)
+                            }
+                        }
+                        .transition(.opacity)
+                    }
+
                     // AC-PAYWALL-35/38: Free tier banner — shown when user is unsubscribed
                     // (or in 7-day grace period) and has already generated Week 1.
                     if shouldShowFreeTierBanner {
