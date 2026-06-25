@@ -1,8 +1,8 @@
 import AppIntents
 
 struct NextRaceIntent: AppIntent {
-    static var title: LocalizedStringResource = LocalizedStringResource("siri.intent.next_race.title", defaultValue: "離比賽還有幾天")
-    static var description = IntentDescription(LocalizedStringResource("siri.intent.next_race.desc", defaultValue: "念出距離下一場比賽的天數"))
+    static var title: LocalizedStringResource = LocalizedStringResource("voice.intent.next_race.title", defaultValue: "離比賽還有幾天")
+    static var description = IntentDescription(LocalizedStringResource("voice.intent.next_race.desc", defaultValue: "念出距離下一場比賽的天數"))
     static var openAppWhenRun: Bool = false
 
     @MainActor

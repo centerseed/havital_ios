@@ -12,7 +12,7 @@ struct PacerizShortcuts: AppShortcutsProvider {
                 "問 \(.applicationName) 今天的課表",
                 "\(.applicationName) 今天練什麼"
             ],
-            shortTitle: LocalizedStringResource("siri.intent.todays_session.title", defaultValue: "今天要練什麼"),
+            shortTitle: LocalizedStringResource("voice.intent.todays_session.title", defaultValue: "今天要練什麼"),
             systemImageName: "figure.run"
         )
         AppShortcut(
@@ -21,7 +21,7 @@ struct PacerizShortcuts: AppShortcutsProvider {
                 "在 \(.applicationName) 我今天能練嗎",
                 "問 \(.applicationName) 我的訓練準備度"
             ],
-            shortTitle: LocalizedStringResource("siri.intent.readiness.title", defaultValue: "今天能不能練"),
+            shortTitle: LocalizedStringResource("voice.intent.readiness.title", defaultValue: "今天能不能練"),
             systemImageName: "heart.text.square"
         )
         AppShortcut(
@@ -30,7 +30,7 @@ struct PacerizShortcuts: AppShortcutsProvider {
                 "在 \(.applicationName) 離比賽還有幾天",
                 "問 \(.applicationName) 我的下一場比賽"
             ],
-            shortTitle: LocalizedStringResource("siri.intent.next_race.title", defaultValue: "離比賽還有幾天"),
+            shortTitle: LocalizedStringResource("voice.intent.next_race.title", defaultValue: "離比賽還有幾天"),
             systemImageName: "flag.checkered"
         )
         AppShortcut(
@@ -39,7 +39,7 @@ struct PacerizShortcuts: AppShortcutsProvider {
                 "在 \(.applicationName) 我這週跑多少",
                 "問 \(.applicationName) 我這週的跑量"
             ],
-            shortTitle: LocalizedStringResource("siri.intent.weekly_mileage.title", defaultValue: "我這週跑多少"),
+            shortTitle: LocalizedStringResource("voice.intent.weekly_mileage.title", defaultValue: "我這週跑多少"),
             systemImageName: "chart.bar"
         )
     }

@@ -4019,14 +4019,14 @@
 "vdot.trend.declining" = "下降傾向";
 
 // MARK: - Siri Intent タイトル/説明 (T-0048 W3)
-"siri.intent.todays_session.title" = "今日のメニューは？";
-"siri.intent.todays_session.desc" = "今日のトレーニング内容を読み上げます";
-"siri.intent.readiness.title" = "今日は練習できる？";
-"siri.intent.readiness.desc" = "今日のトレーニング準備度を読み上げます";
-"siri.intent.next_race.title" = "レースまであと何日？";
-"siri.intent.next_race.desc" = "次のレースまでの日数を読み上げます";
-"siri.intent.weekly_mileage.title" = "今週の走行距離は？";
-"siri.intent.weekly_mileage.desc" = "今週の累積走行距離を読み上げます";
+"voice.intent.todays_session.title" = "今日のメニューは？";
+"voice.intent.todays_session.desc" = "今日のトレーニング内容を読み上げます";
+"voice.intent.readiness.title" = "今日は練習できる？";
+"voice.intent.readiness.desc" = "今日のトレーニング準備度を読み上げます";
+"voice.intent.next_race.title" = "レースまであと何日？";
+"voice.intent.next_race.desc" = "次のレースまでの日数を読み上げます";
+"voice.intent.weekly_mileage.title" = "今週の走行距離は？";
+"voice.intent.weekly_mileage.desc" = "今週の累積走行距離を読み上げます";
 
 // MARK: - Climate 暑熱順化 (T-0048 W-cleanup)
 "climate.explanation" = "高温多湿は心拍数を上げ、同じペースでもよりきつく感じます。これは正常な生理反応で、走力の低下ではありません。本日の体感温度に合わせてペース目標を緩めてあるので、適切な強度で安全に完了できます。";

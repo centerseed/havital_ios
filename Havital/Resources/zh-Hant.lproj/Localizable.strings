@@ -4064,14 +4064,14 @@
 "vdot.trend.declining" = "下降趨勢";
 
 // MARK: - Siri Intent title/description（T-0048 W3，LocalizedStringResource 解析）
-"siri.intent.todays_session.title" = "今天要練什麼";
-"siri.intent.todays_session.desc" = "念出今天的訓練內容";
-"siri.intent.readiness.title" = "今天能不能練";
-"siri.intent.readiness.desc" = "念出今天的訓練準備度";
-"siri.intent.next_race.title" = "離比賽還有幾天";
-"siri.intent.next_race.desc" = "念出距離下一場比賽的天數";
-"siri.intent.weekly_mileage.title" = "我這週跑多少";
-"siri.intent.weekly_mileage.desc" = "念出本週累積跑量";
+"voice.intent.todays_session.title" = "今天要練什麼";
+"voice.intent.todays_session.desc" = "念出今天的訓練內容";
+"voice.intent.readiness.title" = "今天能不能練";
+"voice.intent.readiness.desc" = "念出今天的訓練準備度";
+"voice.intent.next_race.title" = "離比賽還有幾天";
+"voice.intent.next_race.desc" = "念出距離下一場比賽的天數";
+"voice.intent.weekly_mileage.title" = "我這週跑多少";
+"voice.intent.weekly_mileage.desc" = "念出本週累積跑量";
 
 // MARK: - Climate 熱適應（T-0048 W-cleanup：原 WeekTimelineViewV2 ClimateMeta 手動 switch 遷入）
 "climate.explanation" = "高溫濕熱會讓心率上升、同樣配速感覺更累——這是正常生理反應，不是退步。系統已依今日體感溫度把配速目標放寬，讓你用對的強度安全完成這次訓練。";

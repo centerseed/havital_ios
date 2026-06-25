@@ -4022,14 +4022,14 @@
 "vdot.trend.declining" = "Declining";
 
 // MARK: - Siri Intent title/description (T-0048 W3)
-"siri.intent.todays_session.title" = "What's today's session?";
-"siri.intent.todays_session.desc" = "Speaks today's training session";
-"siri.intent.readiness.title" = "Can I train today?";
-"siri.intent.readiness.desc" = "Speaks today's training readiness";
-"siri.intent.next_race.title" = "Days until my race";
-"siri.intent.next_race.desc" = "Speaks the days until your next race";
-"siri.intent.weekly_mileage.title" = "How much have I run this week?";
-"siri.intent.weekly_mileage.desc" = "Speaks this week's total mileage";
+"voice.intent.todays_session.title" = "What's today's session?";
+"voice.intent.todays_session.desc" = "Speaks today's training session";
+"voice.intent.readiness.title" = "Can I train today?";
+"voice.intent.readiness.desc" = "Speaks today's training readiness";
+"voice.intent.next_race.title" = "Days until my race";
+"voice.intent.next_race.desc" = "Speaks the days until your next race";
+"voice.intent.weekly_mileage.title" = "How much have I run this week?";
+"voice.intent.weekly_mileage.desc" = "Speaks this week's total mileage";
 
 // MARK: - Climate Heat Adaptation (T-0048 W-cleanup)
 "climate.explanation" = "Heat and humidity raise your heart rate and make the same pace feel harder — that's a normal physiological response, not a loss of fitness. Today's pace target has been eased based on the feels-like temperature so you can finish this session safely at the right effort.";
