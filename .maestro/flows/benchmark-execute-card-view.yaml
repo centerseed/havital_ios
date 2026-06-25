@@ -1,0 +1,52 @@
+appId: com.havital.Havital.dev
+---
+# 目的：查看 week-1 週回顧裡的 execute_benchmark 卡（只讀，不生成/刪除）
+
+- runFlow: ../subflows/ensure-main-training-screen.yaml
+- takeScreenshot: /tmp/bm_main_screen
+
+# 開選單
+- tapOn:
+    id: "ellipsis.circle"
+- extendedWaitUntil:
+    visible:
+      text: "週回顧"
+    timeout: 5000
+
+# 點「週回顧」（對 currentWeek=1 帳號，app 可能顯示 toast；對 >1 顯示 sheet）
+- tapOn:
+    text: "週回顧"
+
+# 等候 sheet 出現（如果是 week-1 帳號，可能出現 toast 而非 sheet）
+- extendedWaitUntil:
+    visible:
+      text: "第 1 週回顧|訓練完成度|第一週尚無"
+    timeout: 10000
+- takeScreenshot: /tmp/bm_after_weekly_review_tap
+
+# 點「下週調整建議」折疊按鈕展開
+- tapOn:
+    id: "v2.summary.next_week_toggle"
+- extendedWaitUntil:
+    visible:
+      id: "v2.summary.benchmark_execute_card_0"
+    timeout: 10000
+    optional: true
+
+# 捲動 sheet 到 BenchmarkExecuteCard
+- scrollUntilVisible:
+    element:
+      id: "v2.summary.benchmark_execute_card_0"
+    direction: DOWN
+    timeout: 15000
+    optional: true
+- takeScreenshot: /tmp/bm_realapp_execute
+
+# 如果 benchmark card 沒有，捲到 benchmark_execute_toggle_0
+- scrollUntilVisible:
+    element:
+      id: "v2.summary.benchmark_execute_toggle_0"
+    direction: DOWN
+    timeout: 10000
+    optional: true
+- takeScreenshot: /tmp/bm_realapp_execute_toggle

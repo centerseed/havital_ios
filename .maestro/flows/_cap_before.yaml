@@ -1,0 +1,25 @@
+appId: com.havital.Havital
+---
+- launchApp:
+    stopApp: true
+    clearState: false
+- tapOn:
+    point: "7%, 7%"
+    optional: true
+- tapOn:
+    text: "關閉|Close|繼續|Continue|好|OK|允許|Allow"
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 2000
+- extendedWaitUntil:
+    visible: "今日狀態|每日訓練"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      text: "週日|6/28"
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
+- waitForAnimationToEnd:
+    timeout: 1500
+- takeScreenshot: ".maestro/screenshots/rz_before_weekend.png"
