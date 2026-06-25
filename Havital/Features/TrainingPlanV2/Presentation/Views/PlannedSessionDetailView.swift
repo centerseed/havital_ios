@@ -24,6 +24,9 @@ struct PlannedSessionDetailView: View {
     private let completionStore: StrengthCompletionStore = UserDefaultsStrengthCompletionStore.shared
     // T-0044: "Send to Garmin" push. Depends on GarminPushRepository protocol via DI.
     @StateObject private var garminVM: GarminPushViewModel
+    // Drives the hero send CTA's destination: Garmin (if connected) vs Apple Watch.
+    // The two are mutually exclusive — a runner uses one watch ecosystem, not both.
+    @ObservedObject private var garminManager = GarminManager.shared
 
     init(day: DayDetail, date: Date?, planId: String? = nil) {
         self.day = day
@@ -277,8 +280,59 @@ struct PlannedSessionDetailView: View {
                     }
                 }
                 .padding(.top, 14)
+
+                // T-0044: send-to-device CTA lives inside the hero so it's the first
+                // thing the runner sees — no more hiding among grey secondary buttons.
+                heroSendCTA
             }
             .padding(18)
+        }
+    }
+
+    /// Prominent send CTA inside the colored hero. Only running days are pushable.
+    /// Destination is mutually exclusive: Garmin when connected, else Apple Watch.
+    @ViewBuilder
+    private var heroSendCTA: some View {
+        if let activity = day.primaryRunActivity {
+            if garminManager.isConnected {
+                HeroSendButton(
+                    icon: "figure.run",
+                    label: garminVM.uiState == .working
+                        ? NSLocalizedString("garmin.push.sending", comment: "Sending to Garmin")
+                        : NSLocalizedString("training.detail.push_to_garmin", comment: "Send planned session to Garmin"),
+                    accent: typeAccentColor,
+                    isWorking: garminVM.uiState == .working,
+                    action: { garminVM.push(dayIndex: day.dayIndex, date: dayDateString ?? watchPlanDateString) }
+                )
+                .padding(.top, 16)
+                .accessibilityIdentifier("training.detail.push_to_garmin")
+            } else {
+                switch watchAvailability {
+                case .ready:
+                    HeroSendButton(
+                        icon: "applewatch",
+                        label: NSLocalizedString("training.detail.send_to_watch", comment: "Send planned session to Apple Watch"),
+                        accent: typeAccentColor,
+                        action: { sendToWatch(activity) }
+                    )
+                    .padding(.top, 16)
+                    .accessibilityIdentifier("training.detail.send_to_watch")
+                case .appNotInstalled:
+                    HeroSendButton(
+                        icon: "applewatch.slash",
+                        label: NSLocalizedString("training.detail.install_watch_app", comment: "Install Paceriz on Apple Watch"),
+                        accent: typeAccentColor,
+                        action: {
+                            watchTransferMessage = NSLocalizedString("training.detail.install_watch_app_message", comment: "Install watch app message")
+                            showWatchTransferAlert = true
+                        }
+                    )
+                    .padding(.top, 16)
+                    .accessibilityIdentifier("training.detail.install_watch_app")
+                case .noWatch, .unavailable:
+                    EmptyView()
+                }
+            }
         }
     }
 
@@ -722,13 +776,9 @@ struct PlannedSessionDetailView: View {
 
     private var secondaryButtons: some View {
         // 「調整這一天」目前無功能，先移除避免誤導；保留「這是什麼訓練」資訊入口。
+        // The send-to-device CTA now lives in the hero card; only the info entry stays here.
         VStack(spacing: 8) {
             SecondaryActionButton(icon: "info.circle", label: String(format: NSLocalizedString("training.detail.what_is_type", comment: ""), workoutTypeName), action: { showTrainingTypeInfo = true })
-
-            if let activity = day.primaryRunActivity {
-                watchTransferButton(for: activity)
-                garminPushButton()   // T-0044: only running days are pushable to Garmin
-            }
         }
         // Scoped to this subtree so it never collides with the watch-transfer alert above.
         .alert(NSLocalizedString("garmin.push.alert_title", comment: "Garmin"), isPresented: $garminVM.showAlert) {
@@ -755,45 +805,6 @@ struct PlannedSessionDetailView: View {
         }
     }
 
-    @ViewBuilder
-    private func garminPushButton() -> some View {
-        SecondaryActionButton(
-            icon: garminVM.uiState == .working ? "arrow.triangle.2.circlepath" : "figure.run",
-            label: garminVM.uiState == .working
-                ? NSLocalizedString("garmin.push.sending", comment: "Sending to Garmin")
-                : NSLocalizedString("training.detail.push_to_garmin", comment: "Send planned session to Garmin"),
-            action: {
-                garminVM.push(dayIndex: day.dayIndex, date: dayDateString ?? watchPlanDateString)
-            }
-        )
-        .disabled(garminVM.uiState == .working)
-        .accessibilityIdentifier("training.detail.push_to_garmin")
-    }
-
-    @ViewBuilder
-    private func watchTransferButton(for activity: RunActivity) -> some View {
-        switch watchAvailability {
-        case .ready:
-            SecondaryActionButton(
-                icon: "applewatch",
-                label: NSLocalizedString("training.detail.send_to_watch", comment: "Send planned session to Apple Watch"),
-                action: { sendToWatch(activity) }
-            )
-            .accessibilityIdentifier("training.detail.send_to_watch")
-        case .appNotInstalled:
-            SecondaryActionButton(
-                icon: "applewatch.slash",
-                label: NSLocalizedString("training.detail.install_watch_app", comment: "Install Paceriz on Apple Watch"),
-                action: {
-                    watchTransferMessage = NSLocalizedString("training.detail.install_watch_app_message", comment: "Install watch app message")
-                    showWatchTransferAlert = true
-                }
-            )
-            .accessibilityIdentifier("training.detail.install_watch_app")
-        case .noWatch, .unavailable:
-            EmptyView()
-        }
-    }
 
     private func sendToWatch(_ activity: RunActivity) {
         let dto = WatchPlanProjector.project(
@@ -1218,6 +1229,40 @@ struct PlannedSessionDetailView: View {
 }
 
 // MARK: - SecondaryActionButton
+
+/// Prominent send CTA rendered inside the colored hero card. White fill with the
+/// hero's accent color so it reads as the primary action of the screen (T-0044).
+private struct HeroSendButton: View {
+    let icon: String
+    let label: String
+    let accent: Color
+    var isWorking: Bool = false
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                if isWorking {
+                    ProgressView()
+                        .progressViewStyle(.circular)
+                        .tint(accent)
+                        .scaleEffect(0.85)
+                } else {
+                    Image(systemName: icon).font(AppFont.labelStrong())
+                }
+                Text(label).font(AppFont.labelStrong())
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 46)
+            .background(Color.white)
+            .foregroundColor(accent)
+            .cornerRadius(12)
+            .shadow(color: Color.black.opacity(0.12), radius: 4, x: 0, y: 2)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .disabled(isWorking)
+    }
+}
 
 private struct SecondaryActionButton: View {
     let icon: String
