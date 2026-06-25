@@ -6,9 +6,7 @@ import Charts
 struct TrainingReadinessView: View {
     @StateObject private var viewModel = TrainingReadinessViewModel()
     @State private var showingInfo = false
-    @State private var showingMetricDescription = false
-    @State private var metricDescriptionTitle = ""
-    @State private var metricDescriptionText = ""
+    @State private var selectedMetricDetail: MetricDetailInfo?
     @State private var showingDetailedMetricsExplanation = false
     @Environment(\.colorScheme) var colorScheme
 
@@ -35,23 +33,12 @@ struct TrainingReadinessView: View {
         .refreshable {
             await viewModel.refreshData()
         }
-        .alert(metricDescriptionTitle, isPresented: $showingMetricDescription) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(metricDescriptionText)
+        .sheet(item: $selectedMetricDetail) { info in
+            MetricDetailSheet(info: info)
         }
         .sheet(isPresented: $showingDetailedMetricsExplanation) {
             TrainingReadinessMetricsExplanationView(planType: viewModel.effectivePlanType)
         }
-    }
-
-    // MARK: - Helper Methods
-
-    /// Show metric description alert
-    private func showMetricDescription(title: String, description: String) {
-        metricDescriptionTitle = title
-        metricDescriptionText = description
-        showingMetricDescription = true
     }
 
     // MARK: - Loading View
@@ -244,10 +231,17 @@ struct TrainingReadinessView: View {
                 metricCardWithTrend(
                     title: NSLocalizedString("training_readiness.speed", comment: ""),
                     score: speed.score,
-                    statusText: speed.statusText,
-                    description: speed.description,
                     trendData: speed.trendData,
-                    color: .blue
+                    color: .blue,
+                    onTap: {
+                        selectedMetricDetail = MetricDetailInfo(
+                            title: NSLocalizedString("training_readiness.speed", comment: ""),
+                            score: speed.score,
+                            color: .blue,
+                            trendData: speed.trendData,
+                            statusText: speed.statusText
+                        )
+                    }
                 )
                 .id("speed_metric")
             }
@@ -258,10 +252,17 @@ struct TrainingReadinessView: View {
                 metricCardWithTrend(
                     title: NSLocalizedString("training_readiness.endurance", comment: ""),
                     score: endurance.score,
-                    statusText: endurance.statusText,
-                    description: endurance.description,
                     trendData: endurance.trendData,
-                    color: .green
+                    color: .green,
+                    onTap: {
+                        selectedMetricDetail = MetricDetailInfo(
+                            title: NSLocalizedString("training_readiness.endurance", comment: ""),
+                            score: endurance.score,
+                            color: .green,
+                            trendData: endurance.trendData,
+                            statusText: endurance.statusText
+                        )
+                    }
                 )
                 .id("endurance_metric")
             }
@@ -273,10 +274,17 @@ struct TrainingReadinessView: View {
                     metricCardWithTrend(
                         title: NSLocalizedString("training_readiness.race_fitness", comment: ""),
                         score: raceFitness.score,
-                        statusText: raceFitness.statusText,
-                        description: raceFitness.description,
                         trendData: raceFitness.trendData,
-                        color: .purple
+                        color: .purple,
+                        onTap: {
+                            selectedMetricDetail = MetricDetailInfo(
+                                title: NSLocalizedString("training_readiness.race_fitness", comment: ""),
+                                score: raceFitness.score,
+                                color: .purple,
+                                trendData: raceFitness.trendData,
+                                statusText: raceFitness.statusText
+                            )
+                        }
                     )
                     // Benchmark attribution — shown only when VDOT was calibrated by a benchmark run
                     if raceFitness.vdotSource == "benchmark", let date = raceFitness.benchmarkDate {
@@ -296,8 +304,19 @@ struct TrainingReadinessView: View {
 
             // Training Load Metric
             if let trainingLoad = viewModel.trainingLoadMetric {
-                trainingLoadCardWithTrend(metric: trainingLoad)
-                    .id("training_load_metric")
+                trainingLoadCardWithTrend(
+                    metric: trainingLoad,
+                    onTap: {
+                        selectedMetricDetail = MetricDetailInfo(
+                            title: NSLocalizedString("training_readiness.training_load", comment: ""),
+                            score: trainingLoad.score,
+                            color: .orange,
+                            trendData: trainingLoad.trendData,
+                            statusText: trainingLoad.statusText
+                        )
+                    }
+                )
+                .id("training_load_metric")
             }
         }
     }
@@ -343,76 +362,36 @@ struct TrainingReadinessView: View {
         .cornerRadius(12)
     }
 
-    // MARK: - Metric Card with Trend Chart (New)
-    /// ✅ New metric card that displays status_text and trend chart
+    // MARK: - Metric Card with Trend Chart
     private func metricCardWithTrend(
         title: String,
         score: Double,
-        statusText: String?,
-        description: String?,
         trendData: TrendData?,
-        color: Color
+        color: Color,
+        onTap: @escaping () -> Void
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Title with info icon
-            HStack(spacing: 4) {
-                Text(title)
-                    .font(AppFont.caption())
-                    .foregroundColor(.secondary)
+            Text(title)
+                .font(AppFont.caption())
+                .foregroundColor(.secondary)
 
-                if let desc = description {
-                    Button {
-                        showMetricDescription(title: title, description: desc)
-                    } label: {
-                        Image(systemName: "info.circle")
-                            .font(AppFont.caption())
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-
-            // Score + Trend Chart (並排)
             HStack(alignment: .center, spacing: 8) {
-                // Score
                 Text(String(format: "%.0f", score))
                     .font(AppFont.systemScaled(size: 36, weight: .bold))
                     .foregroundColor(color)
                     .fixedSize()
 
-                // Trend Chart (右側，窄一點)
                 TrendChartView(trendData: trendData, color: color)
                     .frame(width: 70, height: 40)
             }
-
-            // Status Text (雙行文字)
-            if let statusText = statusText {
-                let lines = viewModel.getStatusLines(statusText)
-                if !lines.isEmpty {
-                    VStack(alignment: .leading, spacing: 2) {
-                        ForEach(lines.prefix(2), id: \.self) { line in
-                            Text(line)
-                                .font(AppFont.captionSmall())
-                                .foregroundColor(.secondary)
-                                .lineLimit(2)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .frame(minHeight: 28, alignment: .top)
-                    .padding(.top, 4)
-                }
-            } else {
-                // Placeholder to maintain consistent height
-                Spacer()
-                    .frame(height: 28)
-                    .padding(.top, 4)
-            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(minHeight: 120)
         .padding(12)
         .background(Color(.systemBackground))
         .cornerRadius(16)
         .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        .contentShape(Rectangle())
+        .onTapGesture { onTap() }
     }
 
     // MARK: - Training Load Card (Legacy)
@@ -455,72 +434,30 @@ struct TrainingReadinessView: View {
         .cornerRadius(12)
     }
 
-    // MARK: - Training Load Card with Trend Chart (New)
-    /// ✅ New training load card with trend chart
-    private func trainingLoadCardWithTrend(metric: TrainingLoadMetric) -> some View {
+    // MARK: - Training Load Card with Trend Chart
+    private func trainingLoadCardWithTrend(metric: TrainingLoadMetric, onTap: @escaping () -> Void) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Title with info icon
-            HStack(spacing: 4) {
-                Text(NSLocalizedString("training_readiness.training_load", comment: ""))
-                    .font(AppFont.caption())
-                    .foregroundColor(.secondary)
+            Text(NSLocalizedString("training_readiness.training_load", comment: ""))
+                .font(AppFont.caption())
+                .foregroundColor(.secondary)
 
-                if let description = metric.description {
-                    Button {
-                        showMetricDescription(
-                            title: NSLocalizedString("training_readiness.training_load", comment: ""),
-                            description: description
-                        )
-                    } label: {
-                        Image(systemName: "info.circle")
-                            .font(AppFont.caption())
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-
-            // Score + Trend Chart (並排)
             HStack(alignment: .center, spacing: 8) {
-                // Score
                 Text(String(format: "%.0f", metric.score))
                     .font(AppFont.systemScaled(size: 36, weight: .bold))
                     .foregroundColor(.orange)
                     .fixedSize()
 
-                // Trend Chart (右側，窄一點)
                 TrendChartView(trendData: metric.trendData, color: .orange)
                     .frame(width: 70, height: 40)
             }
-
-            // Status Text (雙行文字)
-            if let statusText = metric.statusText {
-                let lines = viewModel.getStatusLines(statusText)
-                if !lines.isEmpty {
-                    VStack(alignment: .leading, spacing: 2) {
-                        ForEach(lines.prefix(2), id: \.self) { line in
-                            Text(line)
-                                .font(AppFont.captionSmall())
-                                .foregroundColor(.secondary)
-                                .lineLimit(2)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .frame(minHeight: 28, alignment: .top)
-                    .padding(.top, 4)
-                }
-            } else {
-                // Placeholder to maintain consistent height
-                Spacer()
-                    .frame(height: 28)
-                    .padding(.top, 4)
-            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .frame(minHeight: 120)
         .padding(12)
         .background(Color(.systemBackground))
         .cornerRadius(16)
         .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        .contentShape(Rectangle())
+        .onTapGesture { onTap() }
     }
 
     // MARK: - Trend Icon
@@ -853,6 +790,72 @@ struct TrainingReadinessMetricsExplanationView: View {
             Text(text)
                 .font(AppFont.bodySmall())
                 .foregroundColor(.primary)
+        }
+    }
+}
+
+// MARK: - Metric Detail Sheet Data
+
+struct MetricDetailInfo: Identifiable {
+    let id = UUID()
+    let title: String
+    let score: Double
+    let color: Color
+    let trendData: TrendData?
+    let statusText: String?
+}
+
+// MARK: - Metric Detail Sheet
+
+struct MetricDetailSheet: View {
+    let info: MetricDetailInfo
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Score + Trend Chart
+                    HStack(alignment: .center, spacing: 16) {
+                        Text(String(format: "%.0f", info.score))
+                            .font(.system(size: 52, weight: .bold))
+                            .foregroundColor(info.color)
+
+                        Spacer()
+
+                        TrendChartView(trendData: info.trendData, color: info.color)
+                            .frame(width: 120, height: 60)
+                    }
+                    .padding(.top, 8)
+
+                    Divider()
+
+                    // Status Text
+                    if let statusText = info.statusText, !statusText.isEmpty {
+                        Text(statusText)
+                            .font(AppFont.body())
+                            .foregroundColor(.primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        Text(NSLocalizedString("training_readiness.no_data", comment: ""))
+                            .font(AppFont.body())
+                            .foregroundColor(.secondary)
+                    }
+
+                    Spacer(minLength: 20)
+                }
+                .padding(.horizontal)
+                .padding(.bottom)
+            }
+            .navigationTitle(info.title)
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(NSLocalizedString("common.done", comment: "")) {
+                        dismiss()
+                    }
+                }
+            }
         }
     }
 }
