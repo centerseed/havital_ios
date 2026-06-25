@@ -28,6 +28,7 @@ struct WeeklySummaryV2DTO: Codable {
     let finalTrainingReview: FinalTrainingReviewDTO?
     let promptAuditId: String?
     let observations: [String]?
+    let weeklyStory: WeeklyStoryDTO?
 
     // MARK: - CodingKeys
 
@@ -51,6 +52,7 @@ struct WeeklySummaryV2DTO: Codable {
         case finalTrainingReview = "final_training_review"
         case promptAuditId = "prompt_audit_id"
         case observations
+        case weeklyStory = "weekly_story"
     }
 }
 
@@ -585,6 +587,16 @@ struct FinalTrainingReviewDTO: Codable {
         case nextStepsGuidance = "next_steps_guidance"
         case postRaceRecoveryPlan = "post_race_recovery_plan"
     }
+}
+
+// MARK: - Weekly Story DTO
+
+/// 週回顧故事化敘述 (選填)
+/// `thread` decode 為 String，未知值不會 crash；`callback` 保留供未來擴充
+struct WeeklyStoryDTO: Codable {
+    let text: String?
+    let thread: String?
+    let callback: String?
 }
 
 // MARK: - API Response Wrapper
