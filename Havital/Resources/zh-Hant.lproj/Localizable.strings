@@ -2404,6 +2404,8 @@
 
 // MARK: - Weekly Summary V2
 "training.week_summary_title" = "第 %d 週回顧";
+"training.review_this_week" = "回顧本週";
+"training.plan_next_week" = "規劃下週";
 "training.completion" = "訓練完成度";
 "training.sessions" = "場";
 "training.analysis" = "訓練分析";

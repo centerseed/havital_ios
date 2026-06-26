@@ -28,6 +28,8 @@ struct WeeklySummaryV2View: View {
     var onSetNewGoal: (() -> Void)?
 
     @State private var expandedSections: Set<SectionID> = []
+    /// 兩頁分頁：0 = 回顧本週, 1 = 規劃下週。預設停第一頁。
+    @State private var currentPage = 0
     // AC-IOS-ANALYTICS-P1-11/P1-13: dedup flags lifted to WeeklySummaryCoordinator
 
     var body: some View {
@@ -93,8 +95,27 @@ struct WeeklySummaryV2View: View {
     // MARK: - Loaded View
 
     private func loadedView(summary: WeeklySummaryV2) -> some View {
+        TabView(selection: $currentPage) {
+            reviewPage(summary: summary)
+                .tag(0)
+
+            planNextPage(summary: summary)
+                .tag(1)
+        }
+        .tabViewStyle(.page(indexDisplayMode: .always))
+        .indexViewStyle(.page(backgroundDisplayMode: .always))
+        .accessibilityIdentifier("v2.summary.loaded_content")
+    }
+
+    // MARK: - Page 1: 回顧本週
+
+    /// 第一頁「回顧本週」：story hero（若有）+ 完成度 + 本週亮點 + observations + 訓練分析
+    private func reviewPage(summary: WeeklySummaryV2) -> some View {
         ScrollView {
             VStack(spacing: Layout.sectionSpacing) {
+
+                // 故事化敘事 hero（若有；text 空則降級不顯示 = 舊行為）
+                storyHeroView(summary.weeklyStory)
 
                 // Hero 成績區塊（永遠展開）
                 CompletionSectionV2(completion: summary.trainingCompletion)
@@ -145,6 +166,22 @@ struct WeeklySummaryV2View: View {
                     AnalysisSectionV2(analysis: summary.trainingAnalysis)
                         .padding(.top, 8)
                 }
+            }
+            .padding(.horizontal)
+            .padding(.top, 16)
+            // 額外底部留白，避開 TabView 的分頁指示器
+            .padding(.bottom, 48)
+        }
+        .accessibilityIdentifier("v2.summary.review_page")
+    }
+
+    // MARK: - Page 2: 規劃下週
+
+    /// 第二頁「規劃下週」：下週調整建議（含勾選）+ 行動按鈕
+    /// 紅隊耦合鐵律：AdjustmentsSectionV2 + 行動按鈕整組保留、簽名/接線不變。
+    private func planNextPage(summary: WeeklySummaryV2) -> some View {
+        ScrollView {
+            VStack(spacing: Layout.sectionSpacing) {
 
                 // 下週計劃（折疊）
                 CollapsibleSectionV2(
@@ -173,9 +210,40 @@ struct WeeklySummaryV2View: View {
                 actionButtonsView(summary: summary)
             }
             .padding(.horizontal)
-            .padding(.vertical, 16)
+            .padding(.top, 16)
+            // 額外底部留白，避開 TabView 的分頁指示器
+            .padding(.bottom, 48)
         }
-        .accessibilityIdentifier("v2.summary.loaded_content")
+        .accessibilityIdentifier("v2.summary.plan_next_page")
+    }
+
+    // MARK: - Story Hero
+
+    /// 週故事化敘事 hero（藍底卡片，放第一頁最上面）。
+    /// weeklyStory 為 nil 或 text 為空（去空白後）→ 回 EmptyView（降級 = 舊行為）。
+    @ViewBuilder
+    private func storyHeroView(_ story: WeeklyStory?) -> some View {
+        let text = story?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !text.isEmpty {
+            HStack(alignment: .top, spacing: Layout.itemSpacing) {
+                Image(systemName: "book.closed.fill")
+                    .foregroundColor(.blue)
+                    .font(AppFont.headline())
+                    .frame(width: 22)
+                Text(text)
+                    .font(AppFont.subheadline())
+                    .foregroundColor(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(Layout.cardPadding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.blue.opacity(0.08))
+            )
+            .accessibilityIdentifier("v2.summary.story_hero")
+        }
     }
 
     // MARK: - Action Buttons

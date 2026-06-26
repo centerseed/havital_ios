@@ -2393,6 +2393,8 @@
 
 // MARK: - Weekly Summary V2
 "training.week_summary_title" = "Week %d Summary";
+"training.review_this_week" = "This Week";
+"training.plan_next_week" = "Next Week";
 "training.completion" = "Completion";
 "training.sessions" = "sessions";
 "training.analysis" = "Analysis";
