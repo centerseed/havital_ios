@@ -1,0 +1,23 @@
+appId: com.havital.Havital.dev
+# 週回顧故事化 Block B 驗證:兩頁版面 + story hero
+# 前提:已登入 dev 帳號、dev 後端已部署含 weekly_story 的新 code
+---
+- launchApp: { stopApp: true, clearState: false, arguments: { -skipHealthKitAuth: "true" } }
+- tapOn: { id: "AnnouncementPopup_CloseButton", optional: true }
+- tapOn: { text: "不允許|Don't Allow|Don’t Allow|許可しない|稍後|Later|後で|好|OK", optional: true }
+- tapOn: { text: "Plan|計劃|計畫|プラン", optional: true }
+- tapOn: { text: "Plan|計劃|計畫|プラン", optional: true }
+- extendedWaitUntil: { visible: { id: "ellipsis.circle" }, timeout: 15000 }
+- tapOn: { id: "ellipsis.circle" }
+- tapOn: { text: "更多|More|もっと見る", optional: true }
+- tapOn: "🐛 Debug 工具"
+- tapOn: "🐛 產生週回顧"
+- extendedWaitUntil: { visible: "訓練完成度|Completion|Training Completion", timeout: 90000 }
+# 第一頁「回顧本週」:story hero + 完成度;下週調整不在第一頁
+- assertVisible: { id: "v2.summary.story_hero" }
+- assertVisible: "訓練完成度|Completion|Training Completion"
+- takeScreenshot: /private/tmp/claude-502/-Users-wubaizong-havital/2cefe1e9-a0e9-47b5-b3d1-7e051add8917/scratchpad/wr2_page1
+# 滑到第二頁「規劃下週」
+- swipe: { direction: LEFT }
+- extendedWaitUntil: { visible: "下週調整建議|Next Week Adjustments", timeout: 10000 }
+- takeScreenshot: /private/tmp/claude-502/-Users-wubaizong-havital/2cefe1e9-a0e9-47b5-b3d1-7e051add8917/scratchpad/wr2_page2
