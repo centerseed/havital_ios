@@ -261,9 +261,17 @@ struct PlannedSessionDetailView: View {
                 .shadow(color: accentColor.opacity(0.4), radius: 10, x: 0, y: 6)
 
             VStack(alignment: .leading, spacing: 0) {
-                Text(typeChipLabel).font(AppFont.micro()).tracking(0.06).foregroundColor(.white)
-                    .padding(.horizontal, 9).padding(.vertical, 3).background(Color.white.opacity(0.22)).clipShape(Capsule())
-                Text(workoutTypeName).font(AppFont.numberLarge()).tracking(-0.02).foregroundColor(.white).padding(.top, 10)
+                // T-0044: send-to-device CTA sits in the hero's top-right corner,
+                // aligned with the type chip — prominent but not stealing the metrics row.
+                HStack(alignment: .top, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(typeChipLabel).font(AppFont.micro()).tracking(0.06).foregroundColor(.white)
+                            .padding(.horizontal, 9).padding(.vertical, 3).background(Color.white.opacity(0.22)).clipShape(Capsule())
+                        Text(workoutTypeName).font(AppFont.numberLarge()).tracking(-0.02).foregroundColor(.white).padding(.top, 10)
+                    }
+                    Spacer(minLength: 8)
+                    heroSendCTA
+                }
 
                 Group {
                     if isNonRunSession {
@@ -280,10 +288,6 @@ struct PlannedSessionDetailView: View {
                     }
                 }
                 .padding(.top, 14)
-
-                // T-0044: send-to-device CTA lives inside the hero so it's the first
-                // thing the runner sees — no more hiding among grey secondary buttons.
-                heroSendCTA
             }
             .padding(18)
         }
@@ -304,7 +308,6 @@ struct PlannedSessionDetailView: View {
                     isWorking: garminVM.uiState == .working,
                     action: { garminVM.push(dayIndex: day.dayIndex, date: dayDateString ?? watchPlanDateString) }
                 )
-                .padding(.top, 16)
                 .accessibilityIdentifier("training.detail.push_to_garmin")
             } else {
                 switch watchAvailability {
@@ -315,7 +318,6 @@ struct PlannedSessionDetailView: View {
                         accent: typeAccentColor,
                         action: { sendToWatch(activity) }
                     )
-                    .padding(.top, 16)
                     .accessibilityIdentifier("training.detail.send_to_watch")
                 case .appNotInstalled:
                     HeroSendButton(
@@ -327,7 +329,6 @@ struct PlannedSessionDetailView: View {
                             showWatchTransferAlert = true
                         }
                     )
-                    .padding(.top, 16)
                     .accessibilityIdentifier("training.detail.install_watch_app")
                 case .noWatch, .unavailable:
                     EmptyView()
@@ -1230,8 +1231,8 @@ struct PlannedSessionDetailView: View {
 
 // MARK: - SecondaryActionButton
 
-/// Prominent send CTA rendered inside the colored hero card. White fill with the
-/// hero's accent color so it reads as the primary action of the screen (T-0044).
+/// Compact send CTA pinned to the hero card's top-right corner. White fill with the
+/// hero's accent color so it stays the obvious action without stealing the metrics row (T-0044).
 private struct HeroSendButton: View {
     let icon: String
     let label: String
@@ -1241,26 +1242,27 @@ private struct HeroSendButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 7) {
+            HStack(spacing: 5) {
                 if isWorking {
                     ProgressView()
                         .progressViewStyle(.circular)
                         .tint(accent)
-                        .scaleEffect(0.85)
+                        .scaleEffect(0.7)
                 } else {
-                    Image(systemName: icon).font(AppFont.labelStrong())
+                    Image(systemName: icon).font(AppFont.micro())
                 }
-                Text(label).font(AppFont.labelStrong())
+                Text(label).font(AppFont.micro()).lineLimit(1)
             }
-            .frame(maxWidth: .infinity)
-            .frame(height: 46)
+            .padding(.horizontal, 12)
+            .frame(height: 32)
             .background(Color.white)
             .foregroundColor(accent)
-            .cornerRadius(12)
+            .clipShape(Capsule())
             .shadow(color: Color.black.opacity(0.12), radius: 4, x: 0, y: 2)
         }
         .buttonStyle(PlainButtonStyle())
         .disabled(isWorking)
+        .fixedSize(horizontal: true, vertical: false)
     }
 }
 

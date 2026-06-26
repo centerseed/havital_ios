@@ -3,19 +3,11 @@ import SwiftUI
 struct NoPlanPaywallConversionView: View {
     let content: NoPlanConversionContent
     let isWeekOne: Bool
-    let raceHeaderVM: RaceHeaderViewModelV2?
-    let showRaceHeader: Bool
     let onPrimaryCTA: () -> Void
     let onRestore: () -> Void
 
     var body: some View {
         VStack(spacing: 16) {
-            DailyStateCardView()
-
-            if showRaceHeader, let raceVM = raceHeaderVM {
-                RaceHeaderViewV2(viewModel: raceVM)
-            }
-
             TrainingProgressNudge(content: content)
 
             if let preview = content.nextWeekPreview {
