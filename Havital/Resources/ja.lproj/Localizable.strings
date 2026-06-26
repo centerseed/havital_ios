@@ -2728,9 +2728,8 @@
 // Trial Timeline (3 steps)
 "paywall.premium.timeline.step1.label" = "今日";
 "paywall.premium.timeline.step1.desc" = "全機能をすぐに利用";
-"paywall.premium.timeline.step2.label" = "28日目";
+"paywall.premium.timeline.day_format" = "%d日目";
 "paywall.premium.timeline.step2.desc" = "課金2日前に通知";
-"paywall.premium.timeline.step3.label" = "30日目";
 "paywall.premium.timeline.step3.desc" = "いつでも解約可";
 
 // Features (4 groups)
@@ -2755,9 +2754,11 @@
 
 // Pricing section labels
 "paywall.premium.section.default.title" = "スタンダードプラン";
-"paywall.premium.section.default.subtitle" = "30日間無料体験。いつでも解約可能";
+"paywall.premium.section.default.subtitle_trial_format" = "%d日間無料体験。いつでも解約可能";
+"paywall.premium.section.default.subtitle_no_trial" = "いつでも解約可能。契約縛りなし";
 "paywall.premium.section.earlybird.title" = "アーリーバード";
-"paywall.premium.section.earlybird.subtitle" = "上場前価格、30日間無料体験付き";
+"paywall.premium.section.earlybird.subtitle_trial_format" = "上場前価格、%d日間無料体験付き";
+"paywall.premium.section.earlybird.subtitle_no_trial" = "上場前価格";
 
 // Plan card labels
 "paywall.premium.plan.annual.label" = "年額";

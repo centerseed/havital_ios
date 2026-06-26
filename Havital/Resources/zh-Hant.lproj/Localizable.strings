@@ -2756,9 +2756,8 @@
 // Trial Timeline (3 steps)
 "paywall.premium.timeline.step1.label" = "今天";
 "paywall.premium.timeline.step1.desc" = "立即解鎖全部功能";
-"paywall.premium.timeline.step2.label" = "第 28 天";
+"paywall.premium.timeline.day_format" = "第 %d 天";
 "paywall.premium.timeline.step2.desc" = "扣款前 2 天提醒";
-"paywall.premium.timeline.step3.label" = "第 30 天";
 "paywall.premium.timeline.step3.desc" = "可隨時取消";
 
 // Features (4 groups)
@@ -2783,9 +2782,11 @@
 
 // Pricing section labels
 "paywall.premium.section.default.title" = "標準方案";
-"paywall.premium.section.default.subtitle" = "30 天免費試用，隨時取消";
+"paywall.premium.section.default.subtitle_trial_format" = "%d 天免費試用，隨時取消";
+"paywall.premium.section.default.subtitle_no_trial" = "隨時取消，無綁約";
 "paywall.premium.section.earlybird.title" = "超早鳥方案";
-"paywall.premium.section.earlybird.subtitle" = "上架前優惠價，享 30 天免費試用";
+"paywall.premium.section.earlybird.subtitle_trial_format" = "上架前優惠價，享 %d 天免費試用";
+"paywall.premium.section.earlybird.subtitle_no_trial" = "上架前優惠價";
 
 // Plan card labels
 "paywall.premium.plan.annual.label" = "年訂";

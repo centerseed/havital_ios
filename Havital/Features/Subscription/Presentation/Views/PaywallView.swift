@@ -37,6 +37,16 @@ struct PaywallView: View {
     /// URL to open in SFSafariViewController (AC-PAYWALL-32/33: privacy + terms links).
     @State private var safariURL: IdentifiableURL?
 
+    /// 聚焦中 yearly 卡片的免費試用天數（按 focusedCard 取對應區塊來源；非 yearly = nil）。
+    /// 驅動 Trial Timeline 與揭露，確保兩者與聚焦卡片一致（早鳥 30 / 標準 14 不再錯置）。
+    private var focusedYearlyTrialDays: Int? {
+        switch focusedCard {
+        case .earlyBirdYearly: return viewModel.earlyBirdYearlyFreeTrialDays
+        case .defaultYearly: return viewModel.defaultYearlyFreeTrialDays
+        case .defaultMonthly, .earlyBirdMonthly: return nil
+        }
+    }
+
     init(trigger: PaywallTrigger, subSource: PaywallSource? = nil) {
         _viewModel = StateObject(wrappedValue: PaywallViewModel(trigger: trigger, subSource: subSource))
     }
@@ -57,9 +67,10 @@ struct PaywallView: View {
                         PaywallTrialBanner(daysRemaining: viewModel.introTrialDaysRemaining ?? 0)
                             .padding(.horizontal, 20)
                             .padding(.top, 16)
-                    } else if focusedCard.isYearly, viewModel.yearlyFreeTrialDays != nil {
-                        // AC-PAYWALL-07: timeline shown when yearly card is focused and product has a free trial
-                        PaywallTrialTimelineView()
+                    } else if focusedCard.isYearly, let trialDays = focusedYearlyTrialDays {
+                        // AC-PAYWALL-07: timeline shown when yearly card is focused and product has a free trial.
+                        // trialDays is data-driven (offerDisplay.durationDays) per focused card — no hardcoded 30.
+                        PaywallTrialTimelineView(trialDays: trialDays)
                             .padding(.horizontal, 20)
                             .padding(.top, 16)
                     }
@@ -349,6 +360,17 @@ struct PaywallView: View {
 
     // MARK: - Default Section (AC-12/13/14)
 
+    /// 標準區塊副標：試用天數 data-driven（offerDisplay）。無試用則改用無試用文案。
+    private var defaultSectionSubtitle: String {
+        if let days = viewModel.defaultYearlyFreeTrialDays {
+            return String(
+                format: NSLocalizedString("paywall.premium.section.default.subtitle_trial_format", comment: "%d-day free trial, cancel anytime"),
+                days
+            )
+        }
+        return NSLocalizedString("paywall.premium.section.default.subtitle_no_trial", comment: "Cancel anytime")
+    }
+
     @ViewBuilder
     private func defaultSection() -> some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -358,7 +380,7 @@ struct PaywallView: View {
                     .foregroundColor(.primary)
                     .accessibilityIdentifier("Paywall_DefaultSectionTitle")
 
-                Text(NSLocalizedString("paywall.premium.section.default.subtitle", comment: ""))
+                Text(defaultSectionSubtitle)
                     .font(AppFont.caption())
                     .foregroundColor(.secondary)
             }
@@ -414,6 +436,17 @@ struct PaywallView: View {
 
     // MARK: - Early-Bird Section (AC-15/16/17)
 
+    /// 早鳥區塊副標：試用天數 data-driven（offerDisplay）。無試用則只留優惠價框架文案。
+    private var earlyBirdSectionSubtitle: String {
+        if let days = viewModel.earlyBirdYearlyFreeTrialDays {
+            return String(
+                format: NSLocalizedString("paywall.premium.section.earlybird.subtitle_trial_format", comment: "Pre-launch price, %d-day free trial"),
+                days
+            )
+        }
+        return NSLocalizedString("paywall.premium.section.earlybird.subtitle_no_trial", comment: "Pre-launch price")
+    }
+
     @ViewBuilder
     private func earlyBirdSection(offerings: [SubscriptionOfferingEntity]) -> some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -434,7 +467,7 @@ struct PaywallView: View {
                         .accessibilityIdentifier("Paywall_LimitedTimeBadge")
                 }
 
-                Text(NSLocalizedString("paywall.premium.section.earlybird.subtitle", comment: ""))
+                Text(earlyBirdSectionSubtitle)
                     .font(AppFont.caption())
                     .foregroundColor(.secondary)
             }
@@ -514,12 +547,12 @@ struct PaywallView: View {
         let termsURL = URL(string: Constants.URLs.termsOfUse)!
 
         let fullText: String
-        if focusedCard.isYearly, !viewModel.isInAppleIntroTrial, let trialDays = viewModel.yearlyFreeTrialDays {
+        if focusedCard.isYearly, !viewModel.isInAppleIntroTrial, let trialDays = focusedYearlyTrialDays {
             // AC-PAYWALL-34: include precise trial end date (now + actual trial days, device locale format).
             let trialEndDate = Calendar.current.date(byAdding: .day, value: trialDays, to: Date()) ?? Date()
             let dateString = DateFormatter.localizedString(from: trialEndDate, dateStyle: .long, timeStyle: .none)
             let format = NSLocalizedString("paywall.disclosure.trial.with_links_format", comment: "")
-            // Day count is data-driven (yearlyFreeTrialDays), not a hardcoded 30 (compliance).
+            // Day count is data-driven (focused card's offerDisplay.durationDays), not a hardcoded 30 (compliance).
             fullText = String(format: format, trialDays, dateString, termsText, privacyText)
         } else {
             let format = NSLocalizedString("paywall.disclosure.standard.with_links_format", comment: "")

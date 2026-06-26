@@ -215,6 +215,8 @@ struct HavitalApp: App {
                 ac38UITestHarnessView
             } else if shouldLaunchBillingIssueUITestHarness {
                 billingIssueUITestHarnessView
+            } else if shouldLaunchPaywallTrialDaysUITestHarness {
+                paywallTrialDaysUITestHarnessView
             } else if shouldLaunchBenchmarkCardGallery {
                 benchmarkCardGalleryView
             } else {
@@ -346,6 +348,7 @@ struct HavitalApp: App {
             || arguments.contains("-ui_testing_ac37")
             || arguments.contains("-ui_testing_ac38")
             || arguments.contains("-ui_testing_billing_issue")
+            || arguments.contains("-ui_testing_paywall_trial_days")
             || arguments.contains("-BenchmarkCardGallery")
     }
 
@@ -472,6 +475,23 @@ struct HavitalApp: App {
     private var billingIssueUITestHarnessView: some View {
         #if DEBUG
         UITestBillingIssueHostView()
+        #else
+        EmptyView()
+        #endif
+    }
+
+    private var shouldLaunchPaywallTrialDaysUITestHarness: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-ui_testing_paywall_trial_days")
+        #else
+        false
+        #endif
+    }
+
+    @ViewBuilder
+    private var paywallTrialDaysUITestHarnessView: some View {
+        #if DEBUG
+        UITestPaywallTrialDaysHostView()
         #else
         EmptyView()
         #endif

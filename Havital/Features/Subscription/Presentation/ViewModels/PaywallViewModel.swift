@@ -361,7 +361,24 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
     /// 注意：這是「產品是否提供試用」(pre-purchase)，與 `isInAppleIntroTrial`（使用者是否正在試用）不同。
     var yearlyFreeTrialDays: Int? {
         let pkgs = shouldShowEarlyBirdSection ? displayPackages : defaultPackages
-        guard let yearly = pkgs.first(where: { $0.package.period == .yearly }) else { return nil }
+        return Self.yearlyFreeTrialDays(in: pkgs)
+    }
+
+    /// 早鳥區塊(displayPackages)yearly 方案的免費試用天數。nil = 無試用。
+    /// 與 default 區塊分開算：兩區塊可同時顯示，天數來源不同。
+    var earlyBirdYearlyFreeTrialDays: Int? {
+        Self.yearlyFreeTrialDays(in: displayPackages)
+    }
+
+    /// 標準(default)區塊 yearly 方案的免費試用天數。nil = 無試用。
+    var defaultYearlyFreeTrialDays: Int? {
+        Self.yearlyFreeTrialDays(in: defaultPackages)
+    }
+
+    /// 從一組方案中取 yearly 的免費試用天數（真相源 = Apple intro offer 的 durationDays，
+    /// 由 RevenueCat/StoreKit runtime 提供 → 後台改試用天數不需更新 app）。
+    private static func yearlyFreeTrialDays(in packages: [PaywallDisplayPackage]) -> Int? {
+        guard let yearly = packages.first(where: { $0.package.period == .yearly }) else { return nil }
         if case .freeTrial(let days) = yearly.offerDisplay { return days }
         return nil
     }

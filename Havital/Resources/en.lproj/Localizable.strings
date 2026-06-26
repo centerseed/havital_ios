@@ -2731,9 +2731,8 @@
 // Trial Timeline (3 steps)
 "paywall.premium.timeline.step1.label" = "Today";
 "paywall.premium.timeline.step1.desc" = "Unlock everything instantly";
-"paywall.premium.timeline.step2.label" = "Day 28";
+"paywall.premium.timeline.day_format" = "Day %d";
 "paywall.premium.timeline.step2.desc" = "2-day billing reminder";
-"paywall.premium.timeline.step3.label" = "Day 30";
 "paywall.premium.timeline.step3.desc" = "Cancel anytime.";
 
 // Features (4 groups)
@@ -2758,9 +2757,11 @@
 
 // Pricing section labels
 "paywall.premium.section.default.title" = "Standard Plans";
-"paywall.premium.section.default.subtitle" = "30-day free trial. Cancel anytime.";
+"paywall.premium.section.default.subtitle_trial_format" = "%d-day free trial. Cancel anytime.";
+"paywall.premium.section.default.subtitle_no_trial" = "Cancel anytime. No commitment.";
 "paywall.premium.section.earlybird.title" = "Early Bird";
-"paywall.premium.section.earlybird.subtitle" = "Pre-launch pricing with 30-day free trial";
+"paywall.premium.section.earlybird.subtitle_trial_format" = "Pre-launch pricing with %d-day free trial";
+"paywall.premium.section.earlybird.subtitle_no_trial" = "Pre-launch pricing";
 
 // Plan card labels
 "paywall.premium.plan.annual.label" = "Annual";
