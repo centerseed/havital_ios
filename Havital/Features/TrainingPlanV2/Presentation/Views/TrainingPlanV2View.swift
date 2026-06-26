@@ -145,8 +145,6 @@ struct TrainingPlanV2View: View {
         NoPlanPaywallConversionView(
             content: content,
             isWeekOne: isWeekOne,
-            raceHeaderVM: raceHeaderVM,
-            showRaceHeader: overview?.isRaceRunTarget == true && raceHeaderVM != nil,
             onPrimaryCTA: {
                 if isWeekOne {
                     Task { await viewModel.generator.generateCurrentWeekPlan() }
@@ -158,6 +156,50 @@ struct TrainingPlanV2View: View {
                 Task { try? await (DependencyContainer.shared.resolve() as SubscriptionRepository).restorePurchases() }
             }
         )
+    }
+
+    // MARK: - Goal Header (hoisted out of plan-state switch)
+
+    /// 目標 header:能見度與互動逐狀態與現況完全相同,只是位置上移到每日卡片之上。
+    /// - `.ready` 賽事(過倒數 gate):race header,帶 tap 開 overview + long-press 隱藏。
+    /// - `.ready` 新手/維持:mode header。
+    /// - 轉換 gate 的 no-plan/needs-summary 賽事:裸 race header(無 tap/contextMenu,沿用原 conversion view 行為)。
+    /// - 其餘狀態:無。
+    @ViewBuilder
+    private var goalHeader: some View {
+        switch viewModel.loader.planStatus {
+        case .ready:
+            if viewModel.loader.planOverview?.isRaceRunTarget == true,
+               let raceVM = raceHeaderVM,
+               RaceCountdownGate.shouldShow(
+                   mode: RaceCountdownDisplayMode(rawValueOrDefault: raceCountdownModeRaw),
+                   daysBefore: raceCountdownDaysBefore,
+                   daysLeft: raceVM.daysLeft
+               ) {
+                RaceHeaderViewV2(viewModel: raceVM)
+                    .contentShape(Rectangle())
+                    .onTapGesture { showOverviewV2 = true }
+                    .contextMenu {
+                        Button(role: .destructive) {
+                            raceCountdownModeRaw = RaceCountdownDisplayMode.off.rawValue
+                        } label: {
+                            Label(NSLocalizedString("training.race_countdown.hide", comment: "Hide race countdown card"), systemImage: "eye.slash")
+                        }
+                    }
+            } else if let overview = viewModel.loader.planOverview,
+                      (overview.isBeginnerTarget || overview.isMaintenanceTarget),
+                      let modeVM = modeHeaderVM {
+                TrainingModeHeaderV2(viewModel: modeVM)
+            }
+        case .noWeeklyPlan, .needsWeeklySummary:
+            if conversionGateActive,
+               viewModel.loader.planOverview?.isRaceRunTarget == true,
+               let raceVM = raceHeaderVM {
+                RaceHeaderViewV2(viewModel: raceVM)   // 裸 view,無 tap/contextMenu(沿用原 conversion view 行為)
+            }
+        default:
+            EmptyView()
+        }
     }
 
     // MARK: - Body
@@ -198,40 +240,15 @@ struct TrainingPlanV2View: View {
                         .transition(.opacity)
                     }
 
+                    goalHeader
+
+                    // 今日狀態卡片(self-contained:自帶 VM + sheet)。跨 plan 狀態一律顯示;
+                    // .error/.empty 時自身 EmptyView 隱藏;無資料新用戶顯示歡迎句(後端分流)。
+                    DailyStateCardView()
+
                     switch viewModel.loader.planStatus {
                     case .ready(let weeklyPlan):
-                        // B2: Race mode header — shows per countdown gate (default: within 42 days).
-                        // Tap opens training overview; long-press hides it (sets mode = off).
-                        if viewModel.loader.planOverview?.isRaceRunTarget == true,
-                           let raceVM = raceHeaderVM,
-                           RaceCountdownGate.shouldShow(
-                               mode: RaceCountdownDisplayMode(rawValueOrDefault: raceCountdownModeRaw),
-                               daysBefore: raceCountdownDaysBefore,
-                               daysLeft: raceVM.daysLeft
-                           ) {
-                            RaceHeaderViewV2(viewModel: raceVM)
-                                .contentShape(Rectangle())
-                                .onTapGesture { showOverviewV2 = true }
-                                .contextMenu {
-                                    Button(role: .destructive) {
-                                        raceCountdownModeRaw = RaceCountdownDisplayMode.off.rawValue
-                                    } label: {
-                                        Label(NSLocalizedString("training.race_countdown.hide", comment: "Hide race countdown card"), systemImage: "eye.slash")
-                                    }
-                                }
-                        }
-
-                        // 今日狀態卡片（self-contained：自帶 VM + sheet）。打 /v2/state/today，
-                        // 後端未回 chips 時優雅降級為僅 headline；error/empty 自動隱藏。
-                        DailyStateCardView()
-
-                        // B3: Starter / Maintenance mode header
-                        if let overview = viewModel.loader.planOverview,
-                           (overview.isBeginnerTarget || overview.isMaintenanceTarget),
-                           let modeVM = modeHeaderVM {
-                            TrainingModeHeaderV2(viewModel: modeVM)
-                        }
-
+                        // race header / 今日卡片 / mode header 已抽到 switch 上方的 goalHeader + DailyStateCardView。
                         // 1️⃣ 訓練進度卡片（與 V1 相同）
                         TrainingProgressCardV2(viewModel: viewModel, plan: weeklyPlan, onOpenOverview: { showOverviewV2 = true })
 
