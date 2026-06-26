@@ -1,0 +1,36 @@
+appId: com.havital.Havital.dev
+# #4 驗證:第二頁 Rizo NL 自由輸入 → 送出 → 產生下週課表 → NL 是否帶到下週課表
+---
+- launchApp: { stopApp: true, clearState: false, arguments: { -skipHealthKitAuth: "true" } }
+- tapOn: { id: "AnnouncementPopup_CloseButton", optional: true }
+- tapOn: { text: "Plan|計劃|計畫|プラン", optional: true }
+- tapOn: { text: "Plan|計劃|計畫|プラン", optional: true }
+- extendedWaitUntil: { visible: { id: "ellipsis.circle" }, timeout: 15000 }
+- tapOn: { id: "ellipsis.circle" }
+- tapOn: { text: "更多|More|もっと見る", optional: true }
+- tapOn: "🐛 Debug 工具"
+- tapOn: "🐛 產生週回顧"
+- extendedWaitUntil: { visible: "訓練完成度|Completion|Training Completion", timeout: 90000 }
+# 第二頁
+- swipe: { direction: LEFT }
+- extendedWaitUntil: { visible: "下週調整建議|Next Week Adjustments", timeout: 10000 }
+# 「下週調整建議」是摺疊區,先點開才看得到 NL 輸入
+- tapOn: { text: "下週調整建議|Next Week Adjustments" }
+# 找 NL 輸入框,打一句明確改課表的話
+- scrollUntilVisible: { element: { id: "weekly_nl_input" }, direction: DOWN, timeout: 15000 }
+- tapOn: { id: "weekly_nl_input" }
+- inputText: "下週把週日的長跑改成完全休息，週日不要排任何跑步"
+- tapOn: { id: "weekly_nl_keyboard_done", optional: true }
+- tapOn: { id: "weekly_nl_submit" }
+# 等 Rizo 確認(已記下 / 回覆氣泡)
+- extendedWaitUntil:
+    visible: "已記下|記下|下週|套用|已收到|Got it|recorded|🤖"
+    timeout: 60000
+- takeScreenshot: /private/tmp/claude-502/-Users-wubaizong-havital/2cefe1e9-a0e9-47b5-b3d1-7e051add8917/scratchpad/nl_submitted
+# 產生下週課表
+- scrollUntilVisible: { element: { text: ".*產生.*課表.*|.*Generate.*" }, direction: DOWN, timeout: 10000 }
+- tapOn: { text: ".*產生.*課表.*|.*Generate.*" }
+- extendedWaitUntil:
+    visible: "每日訓練|Daily Training|本週|週一|週二|已產生|產生中|Generating"
+    timeout: 180000
+- takeScreenshot: /private/tmp/claude-502/-Users-wubaizong-havital/2cefe1e9-a0e9-47b5-b3d1-7e051add8917/scratchpad/nl_generated

@@ -1,0 +1,24 @@
+appId: com.havital.Havital.dev
+# 驗證:兩頁化後,第二頁「產生下週課表」流程仍正常(紅隊 apply→generate 耦合)
+---
+- launchApp: { stopApp: true, clearState: false, arguments: { -skipHealthKitAuth: "true" } }
+- tapOn: { id: "AnnouncementPopup_CloseButton", optional: true }
+- tapOn: { text: "Plan|計劃|計畫|プラン", optional: true }
+- tapOn: { text: "Plan|計劃|計畫|プラン", optional: true }
+- extendedWaitUntil: { visible: { id: "ellipsis.circle" }, timeout: 15000 }
+- tapOn: { id: "ellipsis.circle" }
+- tapOn: { text: "更多|More|もっと見る", optional: true }
+- tapOn: "🐛 Debug 工具"
+- tapOn: "🐛 產生週回顧"
+- extendedWaitUntil: { visible: "訓練完成度|Completion|Training Completion", timeout: 90000 }
+# 切到第二頁
+- swipe: { direction: LEFT }
+- extendedWaitUntil: { visible: "下週調整建議|Next Week Adjustments", timeout: 10000 }
+# 按產生下週課表 CTA(文字含「產生課表」)
+- tapOn: { text: ".*產生.*課表.*|.*Generate.*Plan.*|.*Produce.*" }
+- takeScreenshot: /private/tmp/claude-502/-Users-wubaizong-havital/2cefe1e9-a0e9-47b5-b3d1-7e051add8917/scratchpad/gen_tapped
+# 等產生(LLM,可能 60-120s);產生後回到每日訓練(課表畫面有「每日訓練」)或顯示新課表
+- extendedWaitUntil:
+    visible: "每日訓練|Daily Training|本週|週一|週二|產生中|生成中|Generating"
+    timeout: 150000
+- takeScreenshot: /private/tmp/claude-502/-Users-wubaizong-havital/2cefe1e9-a0e9-47b5-b3d1-7e051add8917/scratchpad/gen_result
