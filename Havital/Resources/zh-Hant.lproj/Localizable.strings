@@ -3901,9 +3901,9 @@
 "training.detail.push_to_garmin" = "傳到 Garmin";
 "garmin.push.sending" = "傳送中…";
 "garmin.push.alert_title" = "Garmin";
-"garmin.push.success" = "已傳送到 Garmin，課表會同步到你的手錶";
+"garmin.push.success" = "已排進 Garmin Connect。打開手機的 Garmin Connect App 讓手錶同步，之後在手錶的「跑步」就能選用。";
 "garmin.push.hint_title" = "已上傳到 Garmin";
-"garmin.push.hint_message" = "在手錶上開始一個「跑步」活動，就能看到這份課表。";
+"garmin.push.hint_message" = "課表已排進 Garmin Connect。打開手機的 Garmin Connect App 讓手錶同步（通常幾分鐘內），之後在手錶上開始一個「跑步」活動就能選用。";
 "garmin.push.hint_dont_show_again" = "不再顯示";
 "garmin.push.removed" = "已從 Garmin 移除這堂課表";
 "garmin.push.reconnect" = "前往連結 Garmin";

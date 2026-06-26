@@ -3857,9 +3857,9 @@
 "training.detail.push_to_garmin" = "Garminに送信";
 "garmin.push.sending" = "送信中…";
 "garmin.push.alert_title" = "Garmin";
-"garmin.push.success" = "Garminに送信しました。時計に同期されます";
+"garmin.push.success" = "Garmin Connectに登録しました。スマホのGarmin Connectアプリを開いて時計を同期すると、時計の「ランニング」で選べます。";
 "garmin.push.hint_title" = "Garminにアップロードしました";
-"garmin.push.hint_message" = "時計で「ランニング」アクティビティを開始すると、このワークアウトが表示されます。";
+"garmin.push.hint_message" = "ワークアウトをGarmin Connectに登録しました。スマホのGarmin Connectアプリを開いて時計を同期すると（通常数分以内）、時計で「ランニング」アクティビティを開始したときに選べます。";
 "garmin.push.hint_dont_show_again" = "今後表示しない";
 "garmin.push.removed" = "このワークアウトをGarminから削除しました";
 "garmin.push.reconnect" = "Garminを連携";

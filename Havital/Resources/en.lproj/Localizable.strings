@@ -3860,9 +3860,9 @@
 "training.detail.push_to_garmin" = "Send to Garmin";
 "garmin.push.sending" = "Sending…";
 "garmin.push.alert_title" = "Garmin";
-"garmin.push.success" = "Sent to Garmin — it'll sync to your watch";
+"garmin.push.success" = "Added to Garmin Connect. Open the Garmin Connect app on your phone to sync your watch, then pick it under a Running activity.";
 "garmin.push.hint_title" = "Sent to Garmin";
-"garmin.push.hint_message" = "On your watch, start a Running activity to find this workout.";
+"garmin.push.hint_message" = "Added to Garmin Connect. Open the Garmin Connect app on your phone to sync your watch (usually within a few minutes), then start a Running activity to pick this workout.";
 "garmin.push.hint_dont_show_again" = "Don't show again";
 "garmin.push.removed" = "Removed this workout from Garmin";
 "garmin.push.reconnect" = "Connect Garmin";
