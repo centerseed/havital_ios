@@ -268,7 +268,9 @@ struct PlannedSessionDetailView: View {
                         Text(typeChipLabel).font(AppFont.micro()).tracking(0.06).foregroundColor(.white)
                             .padding(.horizontal, 9).padding(.vertical, 3).background(Color.white.opacity(0.22)).clipShape(Capsule())
                         Text(workoutTypeName).font(AppFont.numberLarge()).tracking(-0.02).foregroundColor(.white).padding(.top, 10)
+                            .lineLimit(1).minimumScaleFactor(0.6)
                     }
+                    .layoutPriority(1)
                     Spacer(minLength: 8)
                     heroSendCTA
                 }
@@ -1251,10 +1253,15 @@ private struct HeroSendButton: View {
                 } else {
                     Image(systemName: icon).font(AppFont.micro())
                 }
-                Text(label).font(AppFont.micro()).lineLimit(1)
+                // Wrap to as many lines as needed rather than truncate — the destination
+                // (Apple Watch / Garmin / install) must always stay fully legible; the
+                // capsule grows vertically to fit (install label needs ~3 lines).
+                Text(label).font(AppFont.micro()).lineLimit(nil).multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 12)
-            .frame(height: 32)
+            .padding(.vertical, 7)
+            .frame(minHeight: 32)
             .background(Color.white)
             .foregroundColor(accent)
             .clipShape(Capsule())
@@ -1262,7 +1269,11 @@ private struct HeroSendButton: View {
         }
         .buttonStyle(PlainButtonStyle())
         .disabled(isWorking)
-        .fixedSize(horizontal: true, vertical: false)
+        // T-0044 fix: vertical-only fixedSize lets the capsule take the height it needs
+        // (so a 2-line label fits), while staying flexible in width — the button must NOT
+        // greedily claim its full label width, otherwise a long label (e.g. "在 Apple
+        // Watch 安裝 Paceriz") steals the hero row and truncates the title.
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
