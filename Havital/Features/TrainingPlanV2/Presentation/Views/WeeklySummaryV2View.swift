@@ -95,15 +95,31 @@ struct WeeklySummaryV2View: View {
     // MARK: - Loaded View
 
     private func loadedView(summary: WeeklySummaryV2) -> some View {
-        TabView(selection: $currentPage) {
-            reviewPage(summary: summary)
-                .tag(0)
+        VStack(spacing: 0) {
+            // 頂部分段控制：一眼看見「回顧本週 / 規劃下週」兩段，點即切換。
+            // 與 TabView 共用 currentPage → 點分段 / 左右滑 雙向同步。
+            // 取代原本只有底部 page dots（又小又被內容壓住、使用者看不出能翻頁）的設計。
+            Picker("", selection: $currentPage.animation(.easeInOut(duration: 0.25))) {
+                Text(NSLocalizedString("training.review_this_week", comment: "回顧本週")).tag(0)
+                Text(NSLocalizedString("training.plan_next_week", comment: "規劃下週")).tag(1)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
+            .accessibilityIdentifier("v2.summary.page_picker")
 
-            planNextPage(summary: summary)
-                .tag(1)
+            TabView(selection: $currentPage) {
+                reviewPage(summary: summary)
+                    .tag(0)
+
+                planNextPage(summary: summary)
+                    .tag(1)
+            }
+            // 分頁指示改由頂部分段控制承擔，移除底部 page dots（避免兩個位置指示器並存）
+            .tabViewStyle(.page(indexDisplayMode: .never))
         }
-        .tabViewStyle(.page(indexDisplayMode: .always))
-        .indexViewStyle(.page(backgroundDisplayMode: .always))
+        .background(Color(UIColor.systemGroupedBackground))
         .accessibilityIdentifier("v2.summary.loaded_content")
     }
 
@@ -166,11 +182,30 @@ struct WeeklySummaryV2View: View {
                     AnalysisSectionV2(analysis: summary.trainingAnalysis)
                         .padding(.top, 8)
                 }
+
+                // 前進到第二頁「規劃下週」的明確入口（與頂部分段控制雙保險）。
+                // 主 CTA「產生下週課表」在第二頁，第一頁若無明確前進元件，
+                // 使用者會卡在這頁不知如何往下走 → 這顆按鈕直接把人帶過去。
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) { currentPage = 1 }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(NSLocalizedString("training.continue_to_plan_next", comment: "下一步：規劃下週"))
+                        Image(systemName: "arrow.right")
+                    }
+                    .font(AppFont.headline())
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.blue)
+                    .cornerRadius(12)
+                }
+                .padding(.top, 4)
+                .accessibilityIdentifier("v2.summary.continue_to_plan_button")
             }
             .padding(.horizontal)
             .padding(.top, 16)
-            // 額外底部留白，避開 TabView 的分頁指示器
-            .padding(.bottom, 48)
+            .padding(.bottom, 32)
         }
         .accessibilityIdentifier("v2.summary.review_page")
     }
@@ -990,7 +1025,20 @@ private struct AdjustmentsSectionV2: View {
                 switch coordinator.userNlSubmitState {
                 case .loaded(let reply):
                     HStack(alignment: .top, spacing: 6) {
-                        Text("🤖")
+                        // Rizo 身分頭像：與對話畫面(RizoChatView.rizoAvatar)同一漸層圓圈「R」，
+                        // 取代原本噁心的 🤖 機器人 emoji。
+                        Text("R")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 22, height: 22)
+                            .background(
+                                LinearGradient(
+                                    colors: [PacerizColor.blue, PacerizColor.green],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                in: Circle()
+                            )
                         Text(reply)
                             .font(AppFont.caption())
                             .foregroundColor(.primary)
