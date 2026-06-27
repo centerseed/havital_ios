@@ -16,6 +16,8 @@ struct RizoChatView: View {
     @ObservedObject var viewModel: StateRizoChatViewModel
     /// 快速回應選項（空陣列則不顯示）。
     var quickReplies: [String] = []
+    /// 輸入框焦點 — 用於提供「收起鍵盤」能力(原本鍵盤無法收起,難以截圖)。
+    @FocusState private var inputFocused: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -269,10 +271,23 @@ struct RizoChatView: View {
             .background(Color(UIColor.tertiarySystemFill))
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
             .disabled(viewModel.isReplying)
+            .focused($inputFocused)
             .accessibilityIdentifier("rizo_chat_input")
+            // 鍵盤上方常駐「完成」鈕 — axis:.vertical 的 TextField 沒有 return 收鍵盤,
+            // 必須補這顆,否則鍵盤收不起來、無法看完整回應或截圖。
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button(NSLocalizedString("common.done", comment: "收起鍵盤")) {
+                        inputFocused = false
+                    }
+                    .accessibilityIdentifier("rizo_chat_keyboard_done")
+                }
+            }
 
             Button {
                 let text = viewModel.draft
+                inputFocused = false // 送出後收鍵盤,直接看 Rizo 回應 / 方便截圖
                 Task { await viewModel.send(text) }
             } label: {
                 Image(systemName: "arrow.right")

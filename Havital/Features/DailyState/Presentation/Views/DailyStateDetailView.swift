@@ -42,6 +42,8 @@ struct DailyStateDetailView: View {
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        // 拖曳對話內容即可收起鍵盤(方便看完整回應 / 截圖);搭配輸入框上方的「完成」鈕。
+        .scrollDismissesKeyboard(.interactively)
         .background(Color(UIColor.systemGroupedBackground))
         // 明確的關閉鈕：edge-to-edge ScrollView 會吃掉下拉手勢，只剩頂部 grabber 能關（小、難命中、
         // 自動化也抓不到）。補一個常駐右上關閉鈕（不隨內容捲走），真實使用者與 UI 測試都能可靠關閉。
