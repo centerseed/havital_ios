@@ -101,8 +101,15 @@ final class GarminPushViewModel: ObservableObject, TaskManageable {
     private func handleError(_ error: Error, action: String) {
         uiState = .idle
         let code = Self.garminErrorCode(from: error)
+        // needs_garmin_reauth / not_a_run_workout are expected, user-recoverable
+        // states (the user is guided to reconnect, or simply picked a non-run day),
+        // not app failures — the backend already logs them at INFO. Report them at
+        // .warn so they land in WARNING, not the prod ERROR stream where they'd
+        // pollute logs and trip false health-check / alert-triage alarms. Genuine
+        // failures (garmin_training_unavailable, unknown) stay at .error.
+        let level: LogLevel = (code == "needs_garmin_reauth" || code == "not_a_run_workout") ? .warn : .error
         Logger.firebase("[garmin-push] \(action) failed code=\(code ?? "?") err=\(error.localizedDescription)",
-                        level: .error, labels: ["feature": "garmin_push", "action": action, "error_code": code ?? "unknown"])
+                        level: level, labels: ["feature": "garmin_push", "action": action, "error_code": code ?? "unknown"])
 
         switch code {
         case "needs_garmin_reauth":
