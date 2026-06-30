@@ -92,62 +92,65 @@ class TrainingCalendarViewModel: ObservableObject {
     /// 載入指定月份的訓練數據（整合 local workouts + monthly stats）
     /// ✅ Clean Architecture: 使用 MonthlyStatsRepository 獲取月度數據（自動處理緩存）
     func loadWorkoutsForMonth(month: Date) async {
-        print("🔥🔥🔥 loadWorkoutsForMonth called for: \(month) 🔥🔥🔥")
         lastLoadedMonth = month
-        isLoading = true
         let calendar = Calendar.current
 
         // 用統一的 monthRange helper：end 是最後一天 23:59:59（且尊重使用者時區），
         // 與 totalMonthDistance 用的 currentMonthRange 一致。
-        // 修正：原本 endOfMonth = 最後一天 00:00:00，會把當月最後一天（含「今天」）00:00 之後的
-        // 訓練全部排除在 getWorkoutsInDateRangeAsync（<= endDate）之外 → 月底那天不顯示。
         guard let range = DateFormatterHelper.monthRange(for: month) else {
             isLoading = false
             return
         }
         let startOfMonth = range.start
         let endOfMonth = range.end
-
-        // Extract year and month
         let year = calendar.component(.year, from: month)
         let monthNumber = calendar.component(.month, from: month)
 
-        // ✅ Track A: 獲取本地 workouts（用於詳細顯示，如心率、配速曲線等）
-        print("📊 [TrainingCalendar] 開始載入 \(year)-\(String(format: "%02d", monthNumber))")
-        // 先補滿該月（往前分頁 upsert，用 API 時間確認補滿、補滿後不重抓）→ 修日曆缺口。
-        await workoutRepository.ensureMonthLoaded(year: year, month: monthNumber)
-        let localWorkouts = await workoutRepository.getWorkoutsInDateRangeAsync(
+        // ── Track A：先用「已快取的本地 workouts」立刻渲染 ───────────────────────────
+        // getWorkoutsInDateRangeAsync 純讀 LocalDataSource（無網路）→ 重訪某月可秒填格子。
+        // 有快取就「不轉圈」；只有該月完全沒本地快取時才顯示 loading。
+        // （修：原本無條件 isLoading=true 並 await ensureMonthLoaded 的網路刷新後才更新
+        //   workouts，導致每次切月、連重訪都卡網路 round-trip。改成 SWR：快取先上、刷新丟背景。）
+        let cachedLocal = await workoutRepository.getWorkoutsInDateRangeAsync(
             startDate: startOfMonth,
             endDate: endOfMonth
         )
-        print("📊 [TrainingCalendar] 本地 workouts: \(localWorkouts.count) 筆")
+        if cachedLocal.isEmpty {
+            isLoading = true
+        } else {
+            self.workouts = cachedLocal
+        }
 
-        // ✅ Track B: 獲取月度統計（補充歷史資料 - MonthlyStatsRepository 自動處理緩存）
-        // MonthlyStatsRepositoryImpl 已實現「只同步一次」邏輯：
-        // - 如果該月已緩存 → 直接返回緩存數據，不調用 API
-        // - 如果未緩存 → 調用 /v2/workout/monthly_stats API 並緩存結果
-        print("📊 [TrainingCalendar] 🌐 開始調用 monthlyStatsRepository.getMonthlyStats(\(year), \(monthNumber))")
+        // ── Track B：背景刷新（ensureMonthLoaded 對近月仍會抓新同步的訓練；但不再擋 UI）──
+        await workoutRepository.ensureMonthLoaded(year: year, month: monthNumber)
+        let freshLocal = await workoutRepository.getWorkoutsInDateRangeAsync(
+            startDate: startOfMonth,
+            endDate: endOfMonth
+        )
+
+        // MonthlyStatsRepository 自帶快取：已緩存該月 → 直接回不打 API。
         var monthlyStats: [DailyStat] = []
         do {
             monthlyStats = try await tracked("TrainingCalendarView: loadMonthlyStats") {
                 try await monthlyStatsRepository.getMonthlyStats(year: year, month: monthNumber)
             }
-            print("📊 [TrainingCalendar] ✅ 月度統計成功: \(monthlyStats.count) 筆")
         } catch {
-            print("📊 [TrainingCalendar] ❌ 月度統計失敗: \(error.localizedDescription)")
             monthlyStats = []
         }
 
-        // ✅ 合併數據：本地優先，月度統計補充空白日期
-        let mergedWorkouts = mergeWorkoutsWithMonthlyStats(
-            localWorkouts: localWorkouts,
+        // 期間使用者可能已切到別月 → 只在仍停在同一月時才覆蓋，避免 stale 蓋掉新選月。
+        guard let last = lastLoadedMonth,
+              calendar.component(.year, from: last) == year,
+              calendar.component(.month, from: last) == monthNumber else {
+            return
+        }
+
+        // 本地優先，月度統計補充空白日期。
+        self.workouts = mergeWorkoutsWithMonthlyStats(
+            localWorkouts: freshLocal,
             monthlyStats: monthlyStats
         )
-
-        self.workouts = mergedWorkouts
         self.isLoading = false
-
-        print("📊 [TrainingCalendar] 🏁 載入完成 - 本地: \(localWorkouts.count), 月度補充: \(monthlyStats.count), 合併後: \(mergedWorkouts.count)")
     }
 
     /// 載入最近幾個月的跑量與平均配速摘要。
