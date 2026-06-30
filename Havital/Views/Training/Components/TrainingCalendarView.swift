@@ -680,38 +680,15 @@ struct TrainingCalendarView: View {
             return isInMonth && isNotRest
         }
 
-        // 先按「日 → 類型」累計距離與筆數（支援一天多種運動類型）
-        var perDayType: [TimeInterval: [String: (dist: Double, count: Int)]] = [:]
-        var perDayDuration: [TimeInterval: TimeInterval] = [:]
-        for workout in monthWorkouts {
-            let key = normalizeDate(workout.startDate).timeIntervalSince1970
-            let type = workout.activityType.lowercased()
-            let distance = (workout.distance ?? 0) / 1000.0
-            var typeMap = perDayType[key] ?? [:]
-            let cur = typeMap[type] ?? (0, 0)
-            typeMap[type] = (cur.dist + distance, cur.count + 1)
-            perDayType[key] = typeMap
-            perDayDuration[key, default: 0] += workout.duration
-        }
-
-        var grouped: [TimeInterval: DayWorkoutInfo] = [:]
-        for (key, typeMap) in perDayType {
-            // breakdown：跑步永遠排第一，其餘按距離降序
-            let breakdown = typeMap
-                .map { DayTypeBreakdown(activityType: $0.key, distanceKm: $0.value.dist, count: $0.value.count) }
-                .sorted { a, b in
-                    if a.isRunning != b.isRunning { return a.isRunning }
-                    return a.distanceKm > b.distanceKm
-                }
-            guard let primary = breakdown.max(by: { $0.distanceKm < $1.distanceKm }) else { continue }
-            grouped[key] = DayWorkoutInfo(
-                totalDistance: breakdown.reduce(0) { $0 + $1.distanceKm },
-                totalDuration: perDayDuration[key] ?? 0,
-                primaryType: primary.activityType,
-                primaryDistance: primary.distanceKm,
-                workoutCount: breakdown.reduce(0) { $0 + $1.count },
-                runningDistanceKm: breakdown.first(where: { $0.isRunning })?.distanceKm ?? 0,
-                breakdown: breakdown
+        // 依「日 → 顯示訓練類型」聚合（跑步用 run_type、非跑步用 activityType）。
+        // 色源 = w.trainingType（= advancedMetrics.training_type，Task 0 實證）；取不到 → "easy"（D5）。
+        let grouped = DayWorkoutAggregator.aggregate(workouts: monthWorkouts, calendar: calendar) { w in
+            DayWorkoutAggregator.Input(
+                startDate: w.startDate,
+                activityType: w.activityType,
+                displayTrainingType: w.trainingType,
+                distanceMeters: w.distance ?? 0,
+                duration: w.duration
             )
         }
 
@@ -772,13 +749,15 @@ struct TrainingCalendarView: View {
 
 struct DayTypeBreakdown: Identifiable {
     let id = UUID()
-    let activityType: String
+    let activityType: String     // 給 icon（running/cycling/strength…）
+    let displayType: String      // 給 bucket：跑步=run_type、非跑步=activityType
     let distanceKm: Double
     let count: Int
     var isRunning: Bool {
         let t = activityType.lowercased()
         return t == "running" || t == "run"
     }
+    var bucket: CalendarTypeBucket { calendarBucket(for: displayType) }
 }
 
 struct DayWorkoutInfo {
@@ -789,6 +768,75 @@ struct DayWorkoutInfo {
     var workoutCount: Int          // 當日總筆數（跨類型）
     var runningDistanceKm: Double  // 當日跑步距離（heatmap 分級 + 距離數字用，與 hero 月距離口徑一致）
     var breakdown: [DayTypeBreakdown]  // 各類型 (距離, 筆數)，跑步優先排序
+}
+
+/// 純聚合：把完成運動依「日 → 顯示訓練類型」累計成 DayWorkoutInfo。可單測。
+/// 顯示訓練類型：跑步用 run_type（取不到→"easy"，spec D5）；非跑步用 activityType。
+enum DayWorkoutAggregator {
+    /// 抽象輸入，讓單測不必建完整 WorkoutV2。
+    struct Input {
+        let startDate: Date
+        let activityType: String
+        let displayTrainingType: String?
+        let distanceMeters: Double
+        let duration: TimeInterval
+    }
+
+    static func aggregate<W>(
+        workouts: [W],
+        calendar: Calendar,
+        map: (W) -> Input
+    ) -> [TimeInterval: DayWorkoutInfo] {
+        // day -> displayType -> (dist, count, activity)
+        var perDayType: [TimeInterval: [String: (dist: Double, count: Int, activity: String)]] = [:]
+        var perDayDuration: [TimeInterval: TimeInterval] = [:]
+
+        for w in workouts {
+            let i = map(w)
+            let activity = i.activityType.lowercased()
+            guard activity != "rest" else { continue }
+            let isRun = activity == "running" || activity == "run"
+            let runType = i.displayTrainingType?.trimmingCharacters(in: .whitespaces).lowercased() ?? ""
+            // 顯示訓練類型 = 分組 key
+            let key: String = isRun ? (runType.isEmpty ? "easy" : runType) : activity
+            let dayKey = calendar.startOfDay(for: i.startDate).timeIntervalSince1970
+            var typeMap = perDayType[dayKey] ?? [:]
+            let cur = typeMap[key] ?? (0, 0, activity)
+            typeMap[key] = (cur.dist + i.distanceMeters / 1000.0, cur.count + 1, activity)
+            perDayType[dayKey] = typeMap
+            perDayDuration[dayKey, default: 0] += i.duration
+        }
+
+        var grouped: [TimeInterval: DayWorkoutInfo] = [:]
+        for (dayKey, typeMap) in perDayType {
+            // breakdown：跑步永遠排第一，其餘按距離降序
+            let breakdown = typeMap
+                .map { (key, v) in
+                    DayTypeBreakdown(activityType: v.activity, displayType: key,
+                                     distanceKm: v.dist, count: v.count)
+                }
+                .sorted { a, b in
+                    if a.isRunning != b.isRunning { return a.isRunning }
+                    return a.distanceKm > b.distanceKm
+                }
+            guard let primary = breakdown.max(by: { $0.distanceKm < $1.distanceKm }) else { continue }
+            grouped[dayKey] = DayWorkoutInfo(
+                totalDistance: breakdown.reduce(0) { $0 + $1.distanceKm },
+                totalDuration: perDayDuration[dayKey] ?? 0,
+                primaryType: primary.activityType,
+                primaryDistance: primary.distanceKm,
+                workoutCount: breakdown.reduce(0) { $0 + $1.count },
+                runningDistanceKm: breakdown.first(where: { $0.isRunning })?.distanceKm ?? 0,
+                breakdown: breakdown
+            )
+        }
+        return grouped
+    }
+
+    /// 薄重載：測試直接傳 [Input]。
+    static func aggregate(workouts: [Input], calendar: Calendar) -> [TimeInterval: DayWorkoutInfo] {
+        aggregate(workouts: workouts, calendar: calendar) { $0 }
+    }
 }
 
 // MARK: - Monthly Summary Row
