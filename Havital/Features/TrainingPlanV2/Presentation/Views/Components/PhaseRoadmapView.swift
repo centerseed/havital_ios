@@ -30,6 +30,7 @@ struct PhaseRoadmapView: View {
     @State private var selectedSupportingTarget: Target? = nil
     @State private var showEditSupportingTarget = false
     @State private var showEditMainTarget = false
+    @State private var showAddSupportingTarget = false
 
     var body: some View {
         if let overview = viewModel.loader.planOverview {
@@ -51,6 +52,10 @@ struct PhaseRoadmapView: View {
                 if let target = selectedSupportingTarget {
                     EditSupportingTargetView(target: target)
                 }
+            }
+            // Add supporting race (mirrors PlanOverviewSheetV2:169-171)
+            .sheet(isPresented: $showAddSupportingTarget) {
+                AddSupportingTargetView()
             }
         }
     }
@@ -119,14 +124,21 @@ struct PhaseRoadmapView: View {
 
             Spacer()
 
-            // "加賽事" entry — visual placeholder per spec (non-functional in Task 2)
-            HStack(spacing: 4) {
-                Image(systemName: "plus")
-                    .font(.system(size: 12, weight: .bold))
-                Text(L10n.PhaseRoadmap.addRace.localized)
-                    .font(AppFont.chip())
+            // "加賽事" entry — race_run target only (mirrors SupportingRacesCard gating in PlanOverviewSheetV2)
+            if overview.isRaceRunTarget {
+                Button {
+                    showAddSupportingTarget = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 12, weight: .bold))
+                        Text(L10n.PhaseRoadmap.addRace.localized)
+                            .font(AppFont.chip())
+                    }
+                    .foregroundColor(PacerizColor.blue)
+                }
+                .buttonStyle(PlainButtonStyle())
             }
-            .foregroundColor(PacerizColor.blue)
         }
         .padding(.horizontal, 14)
         .padding(.top, 14)
