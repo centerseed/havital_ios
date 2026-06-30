@@ -13,10 +13,33 @@ tags:
 - tapOn: "編輯課表"
 - assertVisible: "編輯週課表"
 
-# 點第二天的 gear（第一天可能是休息日，無 gear）
+# 找第一個有跑步訓練的天（Day 2 可能是休息日無 gear）
+# 試 Day 2 到 Day 7，找到第一個有 gear 的天
 - tapOn:
     id: "day_2_edit_gear"
-- assertVisible: "編輯訓練"
+    optional: true
+- tapOn:
+    id: "day_3_edit_gear"
+    optional: true
+
+# 如果上面兩個都沒找到，等「編輯訓練」出現並確認
+- extendedWaitUntil:
+    visible: "編輯訓練"
+    timeout: 5000
+    optional: true
+
+# 若未進入 gear editor，改試更多 day
+- tapOn:
+    id: "day_4_edit_gear"
+    optional: true
+- tapOn:
+    id: "day_5_edit_gear"
+    optional: true
+
+# 確認進入了跑步日編輯 sheet
+- extendedWaitUntil:
+    visible: "編輯訓練"
+    timeout: 10000
 - waitForAnimationToEnd
 
 # 確認是跑步編輯器：跑步日有距離設定（label 為 "距離 (公里)"）

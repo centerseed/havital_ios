@@ -1,0 +1,83 @@
+appId: com.havital.Havital.dev
+tags:
+  - regression
+  - weekly-plan
+  - daily-state
+---
+# Dev auto regression: DailyStateCardView 跨 plan 狀態顯示 (commit 00567c5e)
+#
+# 背景: TrainingPlanV2View 把 DailyStateCardView 抽到 plan 狀態 switch 之上固定渲染。
+# 本 flow 驗證「今日狀態」卡片在多個 plan 狀態都可見。
+#
+# 涵蓋的 plan 狀態:
+#   ✅ .ready (或任何已有週課表的狀態) — 登入後預設狀態
+#   ✅ .noWeeklyPlan — 透過 Debug 工具刪除週課表後進入
+#
+# 未涵蓋 (需手動或額外前置條件):
+#   ⏭  .needsWeeklySummary   — 需到達週期末時間點,無法自動驅動
+#   ⏭  .loading              — 過渡態,窗口太短難以可靠 assert
+#   ⏭  .error                — 卡片 .error/.empty 時自身 EmptyView 隱藏;此狀態跳過
+#   ⏭  conversionGate states — 需要特定訂閱方案設定
+#
+# assert 出處:
+#   「今日狀態」← zh-Hant.lproj/Localizable.strings "daily_state.title" = "今日狀態"
+#              ← DailyStateCardView.swift L50/L64 NSLocalizedString("daily_state.title")
+#   「產生週課表」← zh-Hant.lproj/Localizable.strings "training.generate_weekly_plan" = "產生週課表"
+#              ← TrainingPlanV2View.swift noWeeklyPlan branch → GenerateWeeklyPlanPromptView
+
+# ── STEP 1: 進入主訓練畫面 ──────────────────────────────────────────────────
+- runFlow:
+    file: ../subflows/ensure-main-training-screen.yaml
+
+# ── STEP 2: 確認目前在訓練計劃 tab ──────────────────────────────────────────
+- tapOn:
+    text: "訓練計劃|訓練計畫|Training Plan|トレーニング計画|日々のトレーニング"
+    optional: true
+
+- extendedWaitUntil:
+    visible: "每日訓練|Daily Training|訓練計畫|日々のトレーニング|每週課表|週課表|產生週課表"
+    timeout: 20000
+
+# ── STEP 3: [狀態 A] .ready 或既有課表狀態 ──────────────────────────────────
+# 若已有週課表 → 頁面呈現 .ready；若剛好 .noWeeklyPlan 也沒關係,下方仍 assert。
+# DailyStateCardView 固定在 switch 上方,不論哪種 plan 狀態都應可見。
+- extendedWaitUntil:
+    visible: "今日狀態|Today's State|今日の状態"
+    timeout: 30000
+
+- assertVisible:
+    text: "今日狀態|Today's State|今日の状態"
+
+- takeScreenshot: ".maestro/screenshots/daily_card_state_a.png"
+
+# ── STEP 4: 重置成 .noWeeklyPlan ─────────────────────────────────────────────
+# 使用 Debug 工具刪除當前週課表,進入 .noWeeklyPlan 狀態。
+# 若本週已是 .noWeeklyPlan,這段 optional 區塊安全跳過。
+- tapOn:
+    text: "更多|More|もっと見る"
+    optional: true
+- tapOn:
+    text: "🐛 Debug 工具|Debug 工具|Debug Tools"
+    optional: true
+- tapOn:
+    text: "🗑️ 刪除當前週課表|Delete Current Weekly Plan"
+    optional: true
+
+- waitForAnimationToEnd:
+    timeout: 1500
+
+# ── STEP 5: 等待 .noWeeklyPlan 狀態載入 ─────────────────────────────────────
+# 判斷已進入 .noWeeklyPlan 的指標: 出現「產生週課表」按鈕
+- extendedWaitUntil:
+    visible: "產生週課表|Generate Weekly Plan|週課表を生成"
+    timeout: 20000
+
+# ── STEP 6: [狀態 B] .noWeeklyPlan — 核心驗證 ──────────────────────────────
+# 這是本次改動的核心價值:以前這狀態沒有「今日狀態」卡片,現在應該有。
+- assertVisible:
+    text: "今日狀態|Today's State|今日の状態"
+
+- assertVisible:
+    text: "產生週課表|Generate Weekly Plan|週課表を生成"
+
+- takeScreenshot: ".maestro/screenshots/daily_card_state_b_no_plan.png"

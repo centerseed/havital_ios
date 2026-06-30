@@ -14,7 +14,11 @@ tags:
 
 # 確認初始狀態
 - assertVisible: "每日訓練"
-- assertVisible: "星期一|Monday"
+- scrollUntilVisible:
+    element:
+      text: "星期一|週一|Monday|月曜日"
+    direction: DOWN
+    timeout: 10000
 
 # 進編輯
 - tapOn: "更多"
@@ -40,4 +44,8 @@ tags:
 
 # 驗證
 - assertVisible: "每日訓練"
-- assertVisible: "星期一|Monday"
+- scrollUntilVisible:
+    element:
+      text: "星期一|週一|Monday|月曜日"
+    direction: DOWN
+    timeout: 10000

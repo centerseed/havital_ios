@@ -4,7 +4,11 @@ tags:
   - edit
 ---
 - runFlow: ../subflows/ensure-main-training-screen.yaml
-- assertVisible: "星期一|Monday"
+- scrollUntilVisible:
+    element:
+      text: "星期一|週一|Monday|月曜日"
+    direction: DOWN
+    timeout: 10000
 - assertVisible: "休息|長距離輕鬆跑|間歇訓練|輕鬆跑|節奏跑|恢復跑"
 - tapOn: "更多"
 - tapOn: "編輯課表"
@@ -13,4 +17,8 @@ tags:
     text: "取消"
     optional: true
 - assertVisible: "每日訓練"
-- assertVisible: "星期一|Monday"
+- scrollUntilVisible:
+    element:
+      text: "星期一|週一|Monday|月曜日"
+    direction: DOWN
+    timeout: 10000

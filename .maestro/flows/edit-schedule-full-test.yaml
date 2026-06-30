@@ -31,10 +31,12 @@ tags:
 # 點第四天訓練類型 dropdown（避免第一天可能是休息）
 - tapOn:
     id: "training_type_menu_4"
-# 選休息（文案穩定）
-- tapOn: "休息"
-# 確認已可見休息
-- assertVisible: "休息"
+# 選「恢復跑」（race_run 和 Beginner 都有；比「休息」更通用）
+- tapOn:
+    text: "恢復跑|Easy Recovery"
+# 確認已選擇
+- assertVisible:
+    text: "恢復跑|Easy Recovery"
 # 儲存
 - tapOn: "儲存"
 - extendedWaitUntil:
@@ -44,7 +46,7 @@ tags:
     text: "取消"
     optional: true
 - runFlow: ../subflows/ensure-main-training-screen.yaml
-- assertVisible: "休息|每日訓練"
+- assertVisible: "每日訓練"
 
 # === E3: 改配速（透過齒輪 sheet 套用建議配速）===
 - tapOn: "更多"
@@ -52,10 +54,22 @@ tags:
 - extendedWaitUntil:
     visible: "編輯週課表"
     timeout: 30000
-# 點第二天齒輪進入編輯 sheet（使用 stable id）
+# 點有跑步訓練的天的 gear（Day 2 可能是休息，試多個）
 - tapOn:
     id: "day_2_edit_gear"
-- assertVisible: "編輯訓練"
+    optional: true
+- tapOn:
+    id: "day_3_edit_gear"
+    optional: true
+- tapOn:
+    id: "day_4_edit_gear"
+    optional: true
+- tapOn:
+    id: "day_5_edit_gear"
+    optional: true
+- extendedWaitUntil:
+    visible: "編輯訓練"
+    timeout: 10000
 # 點套用建議配速
 - tapOn: "套用"
 # 點儲存（sheet 內）

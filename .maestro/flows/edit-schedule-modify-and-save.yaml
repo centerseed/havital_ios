@@ -19,8 +19,9 @@ tags:
 - tapOn:
     id: "training_type_menu_4"
 
-# 選休息（文案穩定）
-- tapOn: "休息"
+# 選「恢復跑」（race_run 和 Beginner 都有的類型）
+- tapOn:
+    text: "恢復跑|Easy Recovery"
 
 # 儲存（hasUnsavedChanges = true）
 - tapOn: "儲存"
@@ -34,7 +35,7 @@ tags:
     text: "取消"
     optional: true
 - runFlow: ../subflows/ensure-main-training-screen.yaml
-- assertVisible: "休息|每日訓練"
+- assertVisible: "每日訓練"
 
 # === TEARDOWN：還原資料（第四天從休息改回跑步）===
 - tapOn: "更多"

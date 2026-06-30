@@ -13,9 +13,22 @@ tags:
 - tapOn: "編輯課表"
 - assertVisible: "編輯週課表"
 
+# 找第一個有跑步訓練的天（Day 2 可能是休息日無 gear）
 - tapOn:
     id: "day_2_edit_gear"
-- assertVisible: "編輯訓練"
+    optional: true
+- tapOn:
+    id: "day_3_edit_gear"
+    optional: true
+- tapOn:
+    id: "day_4_edit_gear"
+    optional: true
+- tapOn:
+    id: "day_5_edit_gear"
+    optional: true
+- extendedWaitUntil:
+    visible: "編輯訓練"
+    timeout: 10000
 
 - tapOn:
     text: "套用"

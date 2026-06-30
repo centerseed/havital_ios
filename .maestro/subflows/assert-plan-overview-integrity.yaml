@@ -17,8 +17,10 @@ appId: com.havital.Havital.dev
 - assertVisible:
     text: "我的訓練目標|訓練總覽|訓練計畫概覽|Training Overview|Training Plan|Training Plan Overview|トレーニング概要|トレーニング計画概要"
 
+# race_run 顯示「總週數|賽事日期|目標配速」；Beginner/Maintenance 顯示「計畫路線|過渡期|基礎期|維持期」
+# 兩種計畫都必須有其中一個欄位
 - assertVisible:
-    text: "總週數|訓練週數|賽事日期|目標配速|目標完賽時間|Total Weeks|Race Date|Target Pace|Target Finish Time|総週数|レース日|目標ペース|目標タイム"
+    text: "總週數|訓練週數|賽事日期|目標配速|目標完賽時間|Total Weeks|Race Date|Target Pace|Target Finish Time|総週数|レース日|目標ペース|目標タイム|計畫路線|過渡期|基礎期|維持期|發展期|Plan Route|Transition|Base|Maintenance|Development"
 
 - assertVisible:
     id: "TrainingOverview_MethodologyLabel"

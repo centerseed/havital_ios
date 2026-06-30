@@ -25,8 +25,28 @@ tags:
     visible: "訓練完成度|Completion|Training Completion"
     timeout: 45000
 
-# 驗證週回顧內容
+# 驗證週回顧第一頁核心欄位（完成度 / 亮點 / 分析）
 - assertVisible: "本週亮點|Weekly Highlights"
 - assertVisible: "訓練分析|Analysis|Training Analysis"
-- assertVisible: "下週調整建議|Next Week Adjustments"
-- assertVisible: "不套用調整，直接產生課表|套用|不套用調整|產生下週課表|Apply|Generate Without Adjustments|Generate Next Week Plan"
+
+# 翻到第二頁「規劃下週」（週回顧為兩頁 TabView，水平翻頁；2 次 swipe 對最後一頁 no-op 無害）
+- swipe:
+    direction: LEFT
+- waitForAnimationToEnd
+- swipe:
+    direction: LEFT
+- waitForAnimationToEnd
+
+# 第二頁必須有：下週調整建議 + 產生下週課表 CTA（所有目標型態皆有，非 race 專屬；
+# 經 prod 截圖驗證 Beginner 帳號第二頁同樣渲染這兩者）
+- assertVisible:
+    text: "下週調整建議|Next Week Adjustments"
+- assertVisible:
+    text: "產生下週課表|接受調整並產生下週課表|不套用調整|Generate Next Week|Apply"
+
+# 展開「下週調整建議」折疊區塊 → 內含「想自己跟 Rizo 說？」自由文字 NL 討論輸入框
+- tapOn:
+    text: "下週調整建議"
+- waitForAnimationToEnd
+- assertVisible:
+    id: "weekly_nl_input"

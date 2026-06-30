@@ -6,16 +6,25 @@ tags:
 # 週課表顯示正確性驗證
 
 - runFlow: ../subflows/ensure-main-training-screen.yaml
-- assertVisible: "星期一|Monday|月曜日"
+
+# 主課表頁用縮寫「週一」而非「星期一」；接受兩者及英日語
+# 需要先滾動到每日課表列表區（overview 卡片在上方）
+- scrollUntilVisible:
+    element:
+      text: "星期一|週一|Monday|月曜日"
+    direction: DOWN
+    timeout: 15000
 
 # 驗證週課表結構完整（星期一~日可見），不驗證特定訓練類型（動態資料）
 - scrollUntilVisible:
-    element: "星期日|Sunday|日曜日"
+    element:
+      text: "星期日|週日|Sunday|日曜日"
     direction: DOWN
     timeout: 15000
 
 # 至少有一個休息日（合理課表必備）
 - scrollUntilVisible:
-    element: "休息|Rest"
+    element:
+      text: "休息|Rest"
     direction: UP
     timeout: 10000

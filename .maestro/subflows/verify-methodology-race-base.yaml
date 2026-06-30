@@ -42,7 +42,7 @@ appId: com.havital.Havital.dev
 
 # === 5. 七天完整 + 休息日 ===
 - scrollUntilVisible:
-    element: "星期日"
+    element: "星期日|週日"
     direction: DOWN
     timeout: 15000
 - scrollUntilVisible:

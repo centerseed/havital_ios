@@ -8,6 +8,11 @@ tags:
 
 - runFlow: ../subflows/ensure-main-training-screen.yaml
 
-- assertVisible: "星期一|Monday|月曜日"
+# 主課表頁用縮寫「週一」；同時接受「星期一」及英日語
+- scrollUntilVisible:
+    element:
+      text: "星期一|週一|Monday|月曜日"
+    direction: DOWN
+    timeout: 10000
 
 - runFlow: ../subflows/verify-plan-quality.yaml

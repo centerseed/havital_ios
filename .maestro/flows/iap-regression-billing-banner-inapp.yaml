@@ -1,0 +1,89 @@
+appId: com.havital.Havital.dev
+tags:
+  - iap
+  - regression
+  - P0
+  - billing-issue
+---
+# T-0060: BillingIssueBanner in-app smoke test
+#
+# Purpose:
+#   Verifies that the new BillingIssueBanner (T-0060) is rendered inside the
+#   UITestBillingIssueHostView debug harness — i.e. the in-app sticky banner
+#   that appears when billingIssue=true, distinct from the old Profile-page
+#   BillingIssue_Warning component tested by iap-regression-billing-banner.yaml.
+#
+# How it works:
+#   Launch arg -ui_testing_billing_issue routes HavitalApp directly to
+#   UITestBillingIssueHostView (HavitalApp.swift:216-217), bypassing auth and
+#   network entirely.  The host view calls injectBillingIssueStatus() on appear,
+#   which sets SubscriptionStatusEntity(billingIssue: true) via
+#   SubscriptionStateManager.shared.  The view then renders BillingIssueBanner
+#   inline — mirroring TrainingPlanV2View's real condition.
+#
+# Precondition: none (no backend, no login required — harness injects state)
+#
+# Critical assertions (all non-optional):
+#   1. Host ready sentinel:   id "UITest_BillingIssue_HostReady"
+#                             (UITestBillingIssueHostView.swift:29)
+#   2. billingIssue flag:     id "UITest_BillingIssue_Flag"
+#                             (UITestBillingIssueHostView.swift:34) — proves
+#                             inject succeeded (displays "billingIssue:true")
+#   3. Banner title text:     "訂閱續訂失敗" (zh-Hant) /
+#                             "Subscription renewal failed" (en) /
+#                             "サブスクの更新に失敗しました" (ja)
+#                             (BillingIssueBanner.swift:29-32,
+#                              zh-Hant.lproj/Localizable.strings:2901,
+#                              en.lproj/Localizable.strings:2822,
+#                              ja.lproj/Localizable.strings:2819)
+#   4. Banner CTA text:       "更新付款方式" (zh-Hant) /
+#                             "Update Payment" (en) /
+#                             "支払い方法を更新" (ja)
+#                             (BillingIssueBanner.swift:48-50,
+#                              zh-Hant.lproj/Localizable.strings:2903,
+#                              en.lproj/Localizable.strings:2824,
+#                              ja.lproj/Localizable.strings:2821)
+
+# ── Launch directly into billing-issue harness ──────────────────────────────
+- launchApp:
+    stopApp: true
+    clearState: false
+    arguments:
+      -ui_testing_billing_issue: "true"
+      -skipHealthKitAuth: "true"
+
+# ── Wait for host view to be fully initialized ───────────────────────────────
+- extendedWaitUntil:
+    visible:
+      id: "UITest_BillingIssue_HostReady"
+    timeout: 15000
+
+- takeScreenshot: "billing_banner_inapp_01_host_ready"
+
+# ── Assertion 1: host sentinel present ───────────────────────────────────────
+- assertVisible:
+    id: "UITest_BillingIssue_HostReady"
+
+# ── Assertion 2: billingIssue flag reads true (injection confirmed) ───────────
+- assertVisible:
+    id: "UITest_BillingIssue_Flag"
+
+- takeScreenshot: "billing_banner_inapp_02_flag_visible"
+
+# ── Assertion 3: banner title text (billingIssue=true path rendered) ─────────
+# Source: BillingIssueBanner.swift:29-32 → NSLocalizedString("paywall.billing_issue.banner.title")
+# zh-Hant.lproj/Localizable.strings:2901 | en.lproj:2822 | ja.lproj:2819
+- assertVisible:
+    text: "訂閱續訂失敗|Subscription renewal failed|サブスクの更新に失敗しました"
+
+# ── Assertion 4: banner CTA button text ──────────────────────────────────────
+# Source: BillingIssueBanner.swift:48-50 → NSLocalizedString("paywall.billing_issue.banner.cta")
+# zh-Hant.lproj/Localizable.strings:2903 | en.lproj:2824 | ja.lproj:2821
+- assertVisible:
+    text: "更新付款方式|Update Payment|支払い方法を更新"
+
+- takeScreenshot: "billing_banner_inapp_03_banner_fully_rendered"
+
+# ── Negative assertion: must NOT show paywall (this is a grace-period user) ──
+- assertNotVisible:
+    id: "Paywall_Header"
