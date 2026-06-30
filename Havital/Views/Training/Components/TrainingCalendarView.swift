@@ -1185,7 +1185,9 @@ struct DayCell: View {
     @ViewBuilder
     private func workoutRow(_ b: DayTypeBreakdown) -> some View {
         HStack(spacing: 1.5) {
-            Image(systemName: ActivityTypeStyleHelper.icon(for: b.activityType))
+            Image(systemName: isCalendarIntervalType(b.displayType)
+                    ? "stopwatch.fill"                          // 間歇家族：碼錶，與閾值/節奏的跑者 icon 區分
+                    : ActivityTypeStyleHelper.icon(for: b.activityType))
                 .font(.system(size: 9.5, weight: .medium))
                 .foregroundColor(b.bucket.deepColor)            // 依訓練類型深色（取代 activityType 4 色）
                 .frame(width: 11, alignment: .center)

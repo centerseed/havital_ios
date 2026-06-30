@@ -26,4 +26,19 @@ final class CalendarTrainingColorTests: XCTestCase {
         XCTAssertEqual(calendarBucket(for: "running"), .green)
         XCTAssertEqual(calendarBucket(for: "totally_unknown"), .green)
     }
+
+    func test_intervalFamily_getsDistinctIcon_butThresholdTempoDoNot() {
+        // 間歇家族 → 碼錶 icon
+        XCTAssertTrue(isCalendarIntervalType("interval"))
+        XCTAssertTrue(isCalendarIntervalType("short_interval"))
+        XCTAssertTrue(isCalendarIntervalType("long_interval"))
+        XCTAssertTrue(isCalendarIntervalType("hill_repeats"))
+        XCTAssertTrue(isCalendarIntervalType("yasso800"))
+        XCTAssertTrue(isCalendarIntervalType(" Interval "))
+        // 閾值 / 節奏跑同為橘色但 NOT 間歇 → 維持跑者 icon（靠 icon 形狀區分）
+        XCTAssertFalse(isCalendarIntervalType("threshold"))
+        XCTAssertFalse(isCalendarIntervalType("tempo"))
+        XCTAssertFalse(isCalendarIntervalType("easy"))
+        XCTAssertFalse(isCalendarIntervalType("long_run"))
+    }
 }

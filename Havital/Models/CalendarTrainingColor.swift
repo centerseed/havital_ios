@@ -29,6 +29,18 @@ func calendarBucket(for trainingTypeOrActivity: String) -> CalendarTypeBucket {
     }
 }
 
+/// 間歇家族（結構化反覆衝刺）——日曆給獨立 icon（碼錶），以與其他同為橘色的強度訓練
+/// （閾值 / 節奏跑）用 icon 形狀區分。純函式、與 Android isCalendarIntervalType 鏡像（SSOT）。
+func isCalendarIntervalType(_ trainingType: String) -> Bool {
+    switch trainingType.trimmingCharacters(in: .whitespaces).lowercased() {
+    case "interval", "short_interval", "long_interval", "hill_repeats",
+         "cruise_intervals", "yasso800", "norwegian_4x4", "norwegian_singles", "strides":
+        return true
+    default:
+        return false
+    }
+}
+
 extension CalendarTypeBucket {
     /// 加深、隨 light/dark 自適應的可讀文字 / icon 色（重用既有 PacerizColor 深色 token）。
     var deepColor: Color {
