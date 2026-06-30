@@ -92,62 +92,65 @@ class TrainingCalendarViewModel: ObservableObject {
     /// 載入指定月份的訓練數據（整合 local workouts + monthly stats）
     /// ✅ Clean Architecture: 使用 MonthlyStatsRepository 獲取月度數據（自動處理緩存）
     func loadWorkoutsForMonth(month: Date) async {
-        print("🔥🔥🔥 loadWorkoutsForMonth called for: \(month) 🔥🔥🔥")
         lastLoadedMonth = month
-        isLoading = true
         let calendar = Calendar.current
 
         // 用統一的 monthRange helper：end 是最後一天 23:59:59（且尊重使用者時區），
         // 與 totalMonthDistance 用的 currentMonthRange 一致。
-        // 修正：原本 endOfMonth = 最後一天 00:00:00，會把當月最後一天（含「今天」）00:00 之後的
-        // 訓練全部排除在 getWorkoutsInDateRangeAsync（<= endDate）之外 → 月底那天不顯示。
         guard let range = DateFormatterHelper.monthRange(for: month) else {
             isLoading = false
             return
         }
         let startOfMonth = range.start
         let endOfMonth = range.end
-
-        // Extract year and month
         let year = calendar.component(.year, from: month)
         let monthNumber = calendar.component(.month, from: month)
 
-        // ✅ Track A: 獲取本地 workouts（用於詳細顯示，如心率、配速曲線等）
-        print("📊 [TrainingCalendar] 開始載入 \(year)-\(String(format: "%02d", monthNumber))")
-        // 先補滿該月（往前分頁 upsert，用 API 時間確認補滿、補滿後不重抓）→ 修日曆缺口。
-        await workoutRepository.ensureMonthLoaded(year: year, month: monthNumber)
-        let localWorkouts = await workoutRepository.getWorkoutsInDateRangeAsync(
+        // ── Track A：先用「已快取的本地 workouts」立刻渲染 ───────────────────────────
+        // getWorkoutsInDateRangeAsync 純讀 LocalDataSource（無網路）→ 重訪某月可秒填格子。
+        // 有快取就「不轉圈」；只有該月完全沒本地快取時才顯示 loading。
+        // （修：原本無條件 isLoading=true 並 await ensureMonthLoaded 的網路刷新後才更新
+        //   workouts，導致每次切月、連重訪都卡網路 round-trip。改成 SWR：快取先上、刷新丟背景。）
+        let cachedLocal = await workoutRepository.getWorkoutsInDateRangeAsync(
             startDate: startOfMonth,
             endDate: endOfMonth
         )
-        print("📊 [TrainingCalendar] 本地 workouts: \(localWorkouts.count) 筆")
+        if cachedLocal.isEmpty {
+            isLoading = true
+        } else {
+            self.workouts = cachedLocal
+        }
 
-        // ✅ Track B: 獲取月度統計（補充歷史資料 - MonthlyStatsRepository 自動處理緩存）
-        // MonthlyStatsRepositoryImpl 已實現「只同步一次」邏輯：
-        // - 如果該月已緩存 → 直接返回緩存數據，不調用 API
-        // - 如果未緩存 → 調用 /v2/workout/monthly_stats API 並緩存結果
-        print("📊 [TrainingCalendar] 🌐 開始調用 monthlyStatsRepository.getMonthlyStats(\(year), \(monthNumber))")
+        // ── Track B：背景刷新（ensureMonthLoaded 對近月仍會抓新同步的訓練；但不再擋 UI）──
+        await workoutRepository.ensureMonthLoaded(year: year, month: monthNumber)
+        let freshLocal = await workoutRepository.getWorkoutsInDateRangeAsync(
+            startDate: startOfMonth,
+            endDate: endOfMonth
+        )
+
+        // MonthlyStatsRepository 自帶快取：已緩存該月 → 直接回不打 API。
         var monthlyStats: [DailyStat] = []
         do {
             monthlyStats = try await tracked("TrainingCalendarView: loadMonthlyStats") {
                 try await monthlyStatsRepository.getMonthlyStats(year: year, month: monthNumber)
             }
-            print("📊 [TrainingCalendar] ✅ 月度統計成功: \(monthlyStats.count) 筆")
         } catch {
-            print("📊 [TrainingCalendar] ❌ 月度統計失敗: \(error.localizedDescription)")
             monthlyStats = []
         }
 
-        // ✅ 合併數據：本地優先，月度統計補充空白日期
-        let mergedWorkouts = mergeWorkoutsWithMonthlyStats(
-            localWorkouts: localWorkouts,
+        // 期間使用者可能已切到別月 → 只在仍停在同一月時才覆蓋，避免 stale 蓋掉新選月。
+        guard let last = lastLoadedMonth,
+              calendar.component(.year, from: last) == year,
+              calendar.component(.month, from: last) == monthNumber else {
+            return
+        }
+
+        // 本地優先，月度統計補充空白日期。
+        self.workouts = mergeWorkoutsWithMonthlyStats(
+            localWorkouts: freshLocal,
             monthlyStats: monthlyStats
         )
-
-        self.workouts = mergedWorkouts
         self.isLoading = false
-
-        print("📊 [TrainingCalendar] 🏁 載入完成 - 本地: \(localWorkouts.count), 月度補充: \(monthlyStats.count), 合併後: \(mergedWorkouts.count)")
     }
 
     /// 載入最近幾個月的跑量與平均配速摘要。
@@ -680,38 +683,15 @@ struct TrainingCalendarView: View {
             return isInMonth && isNotRest
         }
 
-        // 先按「日 → 類型」累計距離與筆數（支援一天多種運動類型）
-        var perDayType: [TimeInterval: [String: (dist: Double, count: Int)]] = [:]
-        var perDayDuration: [TimeInterval: TimeInterval] = [:]
-        for workout in monthWorkouts {
-            let key = normalizeDate(workout.startDate).timeIntervalSince1970
-            let type = workout.activityType.lowercased()
-            let distance = (workout.distance ?? 0) / 1000.0
-            var typeMap = perDayType[key] ?? [:]
-            let cur = typeMap[type] ?? (0, 0)
-            typeMap[type] = (cur.dist + distance, cur.count + 1)
-            perDayType[key] = typeMap
-            perDayDuration[key, default: 0] += workout.duration
-        }
-
-        var grouped: [TimeInterval: DayWorkoutInfo] = [:]
-        for (key, typeMap) in perDayType {
-            // breakdown：跑步永遠排第一，其餘按距離降序
-            let breakdown = typeMap
-                .map { DayTypeBreakdown(activityType: $0.key, distanceKm: $0.value.dist, count: $0.value.count) }
-                .sorted { a, b in
-                    if a.isRunning != b.isRunning { return a.isRunning }
-                    return a.distanceKm > b.distanceKm
-                }
-            guard let primary = breakdown.max(by: { $0.distanceKm < $1.distanceKm }) else { continue }
-            grouped[key] = DayWorkoutInfo(
-                totalDistance: breakdown.reduce(0) { $0 + $1.distanceKm },
-                totalDuration: perDayDuration[key] ?? 0,
-                primaryType: primary.activityType,
-                primaryDistance: primary.distanceKm,
-                workoutCount: breakdown.reduce(0) { $0 + $1.count },
-                runningDistanceKm: breakdown.first(where: { $0.isRunning })?.distanceKm ?? 0,
-                breakdown: breakdown
+        // 依「日 → 顯示訓練類型」聚合（跑步用 run_type、非跑步用 activityType）。
+        // 色源 = w.trainingType（= advancedMetrics.training_type，Task 0 實證）；取不到 → "easy"（D5）。
+        let grouped = DayWorkoutAggregator.aggregate(workouts: monthWorkouts, calendar: calendar) { w in
+            DayWorkoutAggregator.Input(
+                startDate: w.startDate,
+                activityType: w.activityType,
+                displayTrainingType: w.trainingType,
+                distanceMeters: w.distance ?? 0,
+                duration: w.duration
             )
         }
 
@@ -772,13 +752,15 @@ struct TrainingCalendarView: View {
 
 struct DayTypeBreakdown: Identifiable {
     let id = UUID()
-    let activityType: String
+    let activityType: String     // 給 icon（running/cycling/strength…）
+    let displayType: String      // 給 bucket：跑步=run_type、非跑步=activityType
     let distanceKm: Double
     let count: Int
     var isRunning: Bool {
         let t = activityType.lowercased()
         return t == "running" || t == "run"
     }
+    var bucket: CalendarTypeBucket { calendarBucket(for: displayType) }
 }
 
 struct DayWorkoutInfo {
@@ -789,6 +771,75 @@ struct DayWorkoutInfo {
     var workoutCount: Int          // 當日總筆數（跨類型）
     var runningDistanceKm: Double  // 當日跑步距離（heatmap 分級 + 距離數字用，與 hero 月距離口徑一致）
     var breakdown: [DayTypeBreakdown]  // 各類型 (距離, 筆數)，跑步優先排序
+}
+
+/// 純聚合：把完成運動依「日 → 顯示訓練類型」累計成 DayWorkoutInfo。可單測。
+/// 顯示訓練類型：跑步用 run_type（取不到→"easy"，spec D5）；非跑步用 activityType。
+enum DayWorkoutAggregator {
+    /// 抽象輸入，讓單測不必建完整 WorkoutV2。
+    struct Input {
+        let startDate: Date
+        let activityType: String
+        let displayTrainingType: String?
+        let distanceMeters: Double
+        let duration: TimeInterval
+    }
+
+    static func aggregate<W>(
+        workouts: [W],
+        calendar: Calendar,
+        map: (W) -> Input
+    ) -> [TimeInterval: DayWorkoutInfo] {
+        // day -> displayType -> (dist, count, activity)
+        var perDayType: [TimeInterval: [String: (dist: Double, count: Int, activity: String)]] = [:]
+        var perDayDuration: [TimeInterval: TimeInterval] = [:]
+
+        for w in workouts {
+            let i = map(w)
+            let activity = i.activityType.lowercased()
+            guard activity != "rest" else { continue }
+            let isRun = activity == "running" || activity == "run"
+            let runType = i.displayTrainingType?.trimmingCharacters(in: .whitespaces).lowercased() ?? ""
+            // 顯示訓練類型 = 分組 key
+            let key: String = isRun ? (runType.isEmpty ? "easy" : runType) : activity
+            let dayKey = calendar.startOfDay(for: i.startDate).timeIntervalSince1970
+            var typeMap = perDayType[dayKey] ?? [:]
+            let cur = typeMap[key] ?? (0, 0, activity)
+            typeMap[key] = (cur.dist + i.distanceMeters / 1000.0, cur.count + 1, activity)
+            perDayType[dayKey] = typeMap
+            perDayDuration[dayKey, default: 0] += i.duration
+        }
+
+        var grouped: [TimeInterval: DayWorkoutInfo] = [:]
+        for (dayKey, typeMap) in perDayType {
+            // breakdown：跑步永遠排第一，其餘按距離降序
+            let breakdown = typeMap
+                .map { (key, v) in
+                    DayTypeBreakdown(activityType: v.activity, displayType: key,
+                                     distanceKm: v.dist, count: v.count)
+                }
+                .sorted { a, b in
+                    if a.isRunning != b.isRunning { return a.isRunning }
+                    return a.distanceKm > b.distanceKm
+                }
+            guard let primary = breakdown.max(by: { $0.distanceKm < $1.distanceKm }) else { continue }
+            grouped[dayKey] = DayWorkoutInfo(
+                totalDistance: breakdown.reduce(0) { $0 + $1.distanceKm },
+                totalDuration: perDayDuration[dayKey] ?? 0,
+                primaryType: primary.activityType,
+                primaryDistance: primary.distanceKm,
+                workoutCount: breakdown.reduce(0) { $0 + $1.count },
+                runningDistanceKm: breakdown.first(where: { $0.isRunning })?.distanceKm ?? 0,
+                breakdown: breakdown
+            )
+        }
+        return grouped
+    }
+
+    /// 薄重載：測試直接傳 [Input]。
+    static func aggregate(workouts: [Input], calendar: Calendar) -> [TimeInterval: DayWorkoutInfo] {
+        aggregate(workouts: workouts, calendar: calendar) { $0 }
+    }
 }
 
 // MARK: - Monthly Summary Row
@@ -1090,16 +1141,6 @@ struct DayCell: View {
         Calendar.current.isDateInToday(date)
     }
 
-    // 類型 → 品牌協調色（icon 用；只用 4 色相，避開 ActivityTypeStyleHelper 的 system 色撞色）
-    private func brandColor(for type: String) -> Color {
-        switch type.lowercased() {
-        case "running", "run": return PacerizColor.blue
-        case "cycling", "cycle", "bike": return PacerizColor.indigo
-        case "swimming", "swim": return PacerizColor.green
-        default: return PacerizColor.orange   // strength / yoga / hiking / walking / 其他
-        }
-    }
-
     private var emptyFill: Color { colorScheme == .dark ? Color(white: 0.16) : Color(white: 0.97) }
 
     // 有訓練的日子用極淡品牌藍底（只區分「有/無訓練」，不編碼跑量 → 不需要圖例）；空白日近乎透明。
@@ -1147,14 +1188,16 @@ struct DayCell: View {
     @ViewBuilder
     private func workoutRow(_ b: DayTypeBreakdown) -> some View {
         HStack(spacing: 1.5) {
-            Image(systemName: ActivityTypeStyleHelper.icon(for: b.activityType))
+            Image(systemName: isCalendarIntervalType(b.displayType)
+                    ? "stopwatch.fill"                          // 間歇家族：碼錶，與閾值/節奏的跑者 icon 區分
+                    : ActivityTypeStyleHelper.icon(for: b.activityType))
                 .font(.system(size: 9.5, weight: .medium))
-                .foregroundColor(brandColor(for: b.activityType))
+                .foregroundColor(b.bucket.deepColor)            // 依訓練類型深色（取代 activityType 4 色）
                 .frame(width: 11, alignment: .center)
             if b.distanceKm > 0.01 {
                 Text(distanceText(b.distanceKm))
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .foregroundColor(b.bucket.deepColor)        // 數字也上深色（D3 可讀），原為 .primary
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)
             }
