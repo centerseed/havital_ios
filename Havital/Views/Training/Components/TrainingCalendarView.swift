@@ -1138,16 +1138,6 @@ struct DayCell: View {
         Calendar.current.isDateInToday(date)
     }
 
-    // 類型 → 品牌協調色（icon 用；只用 4 色相，避開 ActivityTypeStyleHelper 的 system 色撞色）
-    private func brandColor(for type: String) -> Color {
-        switch type.lowercased() {
-        case "running", "run": return PacerizColor.blue
-        case "cycling", "cycle", "bike": return PacerizColor.indigo
-        case "swimming", "swim": return PacerizColor.green
-        default: return PacerizColor.orange   // strength / yoga / hiking / walking / 其他
-        }
-    }
-
     private var emptyFill: Color { colorScheme == .dark ? Color(white: 0.16) : Color(white: 0.97) }
 
     // 有訓練的日子用極淡品牌藍底（只區分「有/無訓練」，不編碼跑量 → 不需要圖例）；空白日近乎透明。
@@ -1197,12 +1187,12 @@ struct DayCell: View {
         HStack(spacing: 1.5) {
             Image(systemName: ActivityTypeStyleHelper.icon(for: b.activityType))
                 .font(.system(size: 9.5, weight: .medium))
-                .foregroundColor(brandColor(for: b.activityType))
+                .foregroundColor(b.bucket.deepColor)            // 依訓練類型深色（取代 activityType 4 色）
                 .frame(width: 11, alignment: .center)
             if b.distanceKm > 0.01 {
                 Text(distanceText(b.distanceKm))
                     .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.primary)
+                    .foregroundColor(b.bucket.deepColor)        // 數字也上深色（D3 可讀），原為 .primary
                     .lineLimit(1)
                     .minimumScaleFactor(0.55)
             }
