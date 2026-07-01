@@ -912,6 +912,9 @@ private struct AdjustmentsSectionV2: View {
 
     @FocusState private var nlInputFocused: Bool
 
+    // SPIKE(task2): 內嵌 RizoChatView 驗證巢狀捲動/鍵盤行為，事後依 Task 3 移除舊 NL 區塊。
+    @StateObject private var chatVM = StateRizoChatViewModel(scenario: "weekly_situation")
+
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.contentSpacing) {
             HStack(spacing: Layout.itemSpacing) {
@@ -955,6 +958,10 @@ private struct AdjustmentsSectionV2: View {
                     AdjustmentItemCardV2(item: item, index: index, isSelected: binding)
                 }
             }
+
+            // SPIKE(task2): 內嵌多輪對話，暫不移除下方舊 NL 子區塊（Task 3 才拆除）。
+            RizoChatView(viewModel: chatVM)
+                .accessibilityIdentifier("weekly_review_embedded_rizo_chat")
 
             // MARK: - 自由文字 NL 子區塊（延後改下週課表）
             // 用獨立圓角卡片包起來，與上方調整 item、下方產生課表 CTA 視覺切開。
