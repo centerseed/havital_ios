@@ -44,9 +44,15 @@ tags:
 - assertVisible:
     text: "產生下週課表|接受調整並產生下週課表|不套用調整|Generate Next Week|Apply"
 
-# 展開「下週調整建議」折疊區塊 → 內含「想自己跟 Rizo 說？」自由文字 NL 討論輸入框
+# 展開「下週調整建議」折疊區塊 → 內含內嵌 Rizo 多輪對話（懶載入，不自動開場）
 - tapOn:
     text: "下週調整建議"
 - waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: "rizo_chat_input"
+    direction: DOWN
+    timeout: 15000
+    centerElement: true
 - assertVisible:
-    id: "weekly_nl_input"
+    id: "rizo_chat_input"
