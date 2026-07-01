@@ -102,7 +102,7 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
             pendingPlanChange = nil
             // #3:接受成功才 append 用戶側確認泡泡（失敗路徑絕不出現，避免對話說謊）。
             messages.append(Message(role: .user, text: Self.userConfirmedText))
-            messages.append(Message(role: .coach, text: Self.appliedText))
+            messages.append(Message(role: .coach, text: appliedText))
             // 課表已變 → 通知課表頁刷新（ViewModel 可發布事件；Repository 不行）。
             CacheEventBus.shared.publish(.dataChanged(.trainingPlanV2))
         } catch is CancellationError {
@@ -128,8 +128,14 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
         pendingPlanChange = nil
     }
 
-    private static let appliedText = NSLocalizedString(
-        "rizo.plan_change.applied", comment: "已為你套用，課表更新囉")
+    /// confirm 成功後的教練訊息：weekly_situation（路徑 B）延後語意；其餘（body_status）即時語意。
+    private var appliedText: String {
+        scenario == "weekly_situation"
+            ? NSLocalizedString("rizo.plan_change.applied_deferred",
+                                comment: "已記下，下週生成課表時自動套用")
+            : NSLocalizedString("rizo.plan_change.applied",
+                                comment: "已為你套用，課表更新囉")
+    }
     private static let confirmFailedText = NSLocalizedString(
         "rizo.plan_change.confirm_failed", comment: "套用失敗，請稍後再試")
     private static let userConfirmedText = NSLocalizedString(

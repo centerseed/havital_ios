@@ -135,15 +135,34 @@ final class StateRizoChatViewModelTests: XCTestCase {
         await vm.acceptPlanChange()
 
         let userConfirmed = NSLocalizedString("rizo.plan_change.user_confirmed", comment: "")
-        let applied = NSLocalizedString("rizo.plan_change.applied", comment: "")
+        let applied = NSLocalizedString("rizo.plan_change.applied_deferred", comment: "")
         let texts = vm.messages.map { $0.text }
         let iUser = texts.firstIndex(of: userConfirmed)
         let iApplied = texts.firstIndex(of: applied)
         XCTAssertNotNil(iUser, "成功後應有 user 確認泡泡")
-        XCTAssertNotNil(iApplied, "成功後應有 coach 已套用")
+        XCTAssertNotNil(iApplied, "weekly_situation should use deferred semantics applied_deferred")
         XCTAssertLessThan(iUser!, iApplied!, "user 確認須在 coach 已套用之前")
         XCTAssertEqual(vm.messages.first(where: { $0.text == userConfirmed })?.role, .user)
         XCTAssertNil(vm.pendingPlanChange)
+    }
+
+    func test_accept_success_bodyStatus_uses_immediate_applied_text() async {
+        let pending = PendingPlanChange(proposalId: "rpc_2", summary: "x",
+                                        safetyLevel: "none", requiresSubscription: false, diffDays: nil)
+        let base = makeReply(text: "let's ease it up a bit", sessionId: "s1")
+        let reply = RizoReply(reply: base.reply, sessionId: base.sessionId,
+                              quota: base.quota, safety: base.safety, pendingPlanChange: pending)
+        let fake = FakeRizoRepository(reply: reply)
+        let vm = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+        await vm.startOpening()
+
+        await vm.acceptPlanChange()
+
+        let immediate = NSLocalizedString("rizo.plan_change.applied", comment: "")
+        let deferred = NSLocalizedString("rizo.plan_change.applied_deferred", comment: "")
+        let texts = vm.messages.map { $0.text }
+        XCTAssertTrue(texts.contains(immediate), "body_status should keep immediate semantics (applied now)")
+        XCTAssertFalse(texts.contains(deferred), "body_status should not show deferred semantics")
     }
 
     func test_accept_not_applied_does_not_append_user_confirmed() async {

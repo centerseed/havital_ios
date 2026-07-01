@@ -3636,6 +3636,7 @@
 "rizo.plan_change.accept" = "適用する";
 "rizo.plan_change.discuss" = "相談を続ける";
 "rizo.plan_change.applied" = "適用しました。プランを更新しました";
+"rizo.plan_change.applied_deferred" = "了解しました。来週のプランを作成するときに、この調整を自動で反映します。";
 "rizo.plan_change.confirm_failed" = "適用できませんでした。後でもう一度お試しください";
 "rizo.plan_change.user_confirmed" = "プラン更新を確認しました";
 "rizo.plan_change.distance_unit" = "km";

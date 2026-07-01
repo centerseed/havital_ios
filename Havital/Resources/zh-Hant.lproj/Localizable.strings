@@ -3680,6 +3680,7 @@
 "rizo.plan_change.accept" = "接受";
 "rizo.plan_change.discuss" = "繼續討論";
 "rizo.plan_change.applied" = "已為你套用，課表更新囉";
+"rizo.plan_change.applied_deferred" = "好，我記下了。下週課表生成時會自動幫你套用這個調整。";
 "rizo.plan_change.confirm_failed" = "套用失敗，請稍後再試";
 "rizo.plan_change.user_confirmed" = "已確認課表更新";
 "rizo.plan_change.distance_unit" = "公里";

@@ -3639,6 +3639,7 @@
 "rizo.plan_change.accept" = "Accept";
 "rizo.plan_change.discuss" = "Keep discussing";
 "rizo.plan_change.applied" = "Applied — your plan is updated";
+"rizo.plan_change.applied_deferred" = "Got it — I've noted this. It'll be applied automatically when next week's plan is generated.";
 "rizo.plan_change.confirm_failed" = "Couldn't apply. Please try again later";
 "rizo.plan_change.user_confirmed" = "Plan update confirmed";
 "rizo.plan_change.distance_unit" = "km";
