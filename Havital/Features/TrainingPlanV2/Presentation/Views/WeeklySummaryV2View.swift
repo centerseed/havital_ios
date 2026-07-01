@@ -957,7 +957,9 @@ private struct AdjustmentsSectionV2: View {
             }
 
             // MARK: - 跟 Rizo 調整下週課表（路徑 B：延後到下週生成時套用）
-            VStack(alignment: .leading, spacing: 10) {
+            // 標題+引導為無框標籤；RizoChatView 自帶卡片（padding+背景+圓角），
+            // 直接當同層 sibling 呈現，避免卡中卡雙層縮排（對齊 DailyStateDetailView 模式）。
+            VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
                     Image(systemName: "bubble.left.and.text.bubble.right.fill")
                         .font(AppFont.subheadline())
@@ -970,13 +972,10 @@ private struct AdjustmentsSectionV2: View {
                 Text(NSLocalizedString("weekly_review.rizo_chat.hint", comment: ""))
                     .font(AppFont.caption())
                     .foregroundColor(.secondary)
-
-                // 懶載入：不呼叫 startOpening()，用戶送第一句才發 chat。
-                RizoChatView(viewModel: chatVM)
             }
-            .padding(14)
-            .background(Color(UIColor.secondarySystemGroupedBackground))
-            .cornerRadius(14)
+
+            // 懶載入：不呼叫 startOpening()，用戶送第一句才發 chat。
+            RizoChatView(viewModel: chatVM)
         }
     }
 }
