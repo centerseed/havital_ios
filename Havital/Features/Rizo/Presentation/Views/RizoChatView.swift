@@ -18,6 +18,8 @@ struct RizoChatView: View {
     var quickReplies: [String] = []
     /// 輸入框焦點 — 用於提供「收起鍵盤」能力(原本鍵盤無法收起,難以截圖)。
     @FocusState private var inputFocused: Bool
+    /// 歷史對話清單 sheet 開關。
+    @State private var showHistory = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -46,6 +48,9 @@ struct RizoChatView: View {
         .clipShape(RoundedRectangle(cornerRadius: PacerizRadius.card, style: .continuous))
         .sheet(item: $viewModel.paywallTrigger) { trigger in
             PaywallView(trigger: trigger)
+        }
+        .sheet(isPresented: $showHistory) {
+            RizoHistoryView()
         }
     }
 
@@ -135,6 +140,18 @@ struct RizoChatView: View {
                     .foregroundColor(.secondary)
             }
             Spacer(minLength: 0)
+            Button {
+                showHistory = true
+            } label: {
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(PacerizColor.blue)
+                    .frame(width: 30, height: 30)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("rizo_chat_history")
+            .accessibilityLabel(Text(NSLocalizedString("rizo.history.entry",
+                                                       comment: "Open past conversations")))
             PRChip(
                 text: NSLocalizedString("rizo.chat.coachBadge", comment: "教練"),
                 fg: PacerizColor.blue,
