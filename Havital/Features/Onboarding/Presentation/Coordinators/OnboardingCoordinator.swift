@@ -30,7 +30,7 @@ class OnboardingCoordinator: ObservableObject {
         var title: String {
             switch self {
             case .intro: return "Welcome"
-            case .acquisitionChannel: return NSLocalizedString("onboarding.acquisition_channel_nav_title", comment: "認識 Paceriz 的管道")
+            case .acquisitionChannel: return "Acquisition Channel"
             case .dataSource: return "Data Source"
             case .heartRateZone: return "Heart Rate Zone"
             case .backfillPrompt: return "Backfill Prompt"

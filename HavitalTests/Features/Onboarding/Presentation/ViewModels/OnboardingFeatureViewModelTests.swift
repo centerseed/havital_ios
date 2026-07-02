@@ -685,11 +685,8 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
     // MARK: - Acquisition Channel Tests (T-0094)
 
     func testSaveAcquisitionChannel_SendsFieldToRepository() async {
-        // Given
-        sut.acquisitionChannel = "threads"
-
         // When
-        let result = await sut.saveAcquisitionChannel()
+        let result = await sut.saveAcquisitionChannel("threads")
 
         // Then
         XCTAssertTrue(result)
@@ -700,25 +697,12 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
         )
     }
 
-    func testSaveAcquisitionChannel_NoSelection_DoesNotCallRepository() async {
-        // Given
-        sut.acquisitionChannel = nil
-
-        // When
-        let result = await sut.saveAcquisitionChannel()
-
-        // Then
-        XCTAssertFalse(result)
-        XCTAssertEqual(mockUserProfileRepository.updateUserProfileCallCount, 0)
-    }
-
     func testSaveAcquisitionChannel_RepositoryError_ReturnsFalse() async {
         // Given: 自報失敗不該把錯誤丟給 UI 擋 onboarding，只回 false
-        sut.acquisitionChannel = "ad"
         mockUserProfileRepository.errorToThrow = URLError(.notConnectedToInternet)
 
         // When
-        let result = await sut.saveAcquisitionChannel()
+        let result = await sut.saveAcquisitionChannel("ad")
 
         // Then
         XCTAssertFalse(result)

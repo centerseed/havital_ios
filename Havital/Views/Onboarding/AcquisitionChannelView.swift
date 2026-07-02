@@ -44,13 +44,12 @@ struct AcquisitionChannelView: View {
     @EnvironmentObject private var viewModel: OnboardingFeatureViewModel
 
     @State private var selectedChannel: AcquisitionChannelOption?
-    @State private var isSaving = false
 
     var body: some View {
         OnboardingPageTemplate(
             ctaTitle: L10n.Onboarding.continueStep.localized,
-            ctaEnabled: selectedChannel != nil && !isSaving,
-            isLoading: isSaving,
+            ctaEnabled: selectedChannel != nil,
+            isLoading: false,
             skipTitle: L10n.Onboarding.skipForNow.localized,
             ctaAccessibilityId: "OnboardingContinueButton",
             ctaAction: {
@@ -61,7 +60,7 @@ struct AcquisitionChannelView: View {
                 coordinator.navigate(to: .dataSource)
             }
         ) {
-            VStack(spacing: 24) {
+            VStack(spacing: OnboardingLayout.sectionSpacing) {
                 VStack(spacing: 16) {
                     Image(systemName: "hand.wave")
                         .resizable()
@@ -131,20 +130,11 @@ struct AcquisitionChannelView: View {
 
     private func handleContinue() {
         guard let channel = selectedChannel else { return }
-        isSaving = true
-        viewModel.acquisitionChannel = channel.rawValue
-
-        Task {
-            let saved = await viewModel.saveAcquisitionChannel()
-            if !saved {
-                // 自報是 best-effort：失敗只記 log，不擋核心訓練設定流程
-                Logger.debug("[AcquisitionChannelView] save failed, continuing onboarding anyway")
-            }
-            await MainActor.run {
-                isSaving = false
-                coordinator.navigate(to: .dataSource)
-            }
+        // 自報是 best-effort：背景送出、立即前進，失敗（VM 內已記 log）不擋主流程
+        Task { [viewModel] in
+            await viewModel.saveAcquisitionChannel(channel.rawValue)
         }
+        coordinator.navigate(to: .dataSource)
     }
 }
 

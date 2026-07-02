@@ -67,11 +67,6 @@ final class OnboardingFeatureViewModel: ObservableObject {
     @Published var weeklyDistance: Double = 10.0
     @Published var isLoadingWeeklyHistory: Bool = false
 
-    // MARK: - Acquisition Channel State (T-0094)
-
-    /// 用戶自報的行銷渠道（backend VALID_CHANNELS 字彙）；nil = 未選/跳過
-    @Published var acquisitionChannel: String?
-
     // MARK: - Goal Type State
 
     @Published var selectedGoalType: GoalType?
@@ -381,9 +376,8 @@ final class OnboardingFeatureViewModel: ObservableObject {
 
     /// Save self-reported acquisition channel (T-0094).
     /// Best-effort：失敗只回 false 不設 error —— 自報不得擋 onboarding 主流程。
-    func saveAcquisitionChannel() async -> Bool {
-        guard let channel = acquisitionChannel else { return false }
-
+    @discardableResult
+    func saveAcquisitionChannel(_ channel: String) async -> Bool {
         do {
             _ = try await userProfileRepository.updateUserProfile(["acquisition_channel": channel])
             Logger.debug("[OnboardingFeatureVM] Acquisition channel saved: \(channel)")
