@@ -1,0 +1,13 @@
+appId: com.havital.Havital.dev
+# T-0094：onboarding intro 之後的「你從哪裡知道 Paceriz？」自報屏。
+# 出現時選 Threads 後繼續；沒出現（如 re-onboarding 從 PersonalBest 起）則整段跳過。
+---
+- runFlow:
+    when:
+      visible:
+        id: "AcquisitionChannel_Screen"
+    commands:
+      - tapOn:
+          id: "AcquisitionChannelOption_threads"
+      - tapOn:
+          id: "OnboardingContinueButton"

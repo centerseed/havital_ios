@@ -1,0 +1,55 @@
+appId: com.havital.Havital.dev
+# T-0094 E2E：fresh onboarding → 自報渠道屏選 Instagram → 進 DataSource。
+# 跑完用 fsq 查 dev Firestore：demo 帳號 users/{uid}.acquisition_channel == "instagram"。
+tags:
+  - debug
+  - onboarding
+---
+- launchApp:
+    stopApp: true
+    clearState: true
+    arguments:
+      "-ui_testing_onboarding": true
+      "-ui_testing_reviewer_demo": true
+      "-resetOnboarding": true
+      "-skipHealthKitAuth": true
+      "-reviewerAccessPressDuration": "0.5"
+
+- tapOn:
+    text: "不允許|Don't Allow|Don’t Allow|不允许"
+    optional: true
+- tapOn:
+    text: "稍後|Later|後で"
+    optional: true
+
+- runFlow:
+    file: ../subflows/reviewer-demo-login.yaml
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "OnboardingStartButton"
+    timeout: 90000
+- tapOn:
+    id: "OnboardingStartButton"
+
+# 自報渠道屏
+- extendedWaitUntil:
+    visible:
+      id: "AcquisitionChannel_Screen"
+    timeout: 15000
+- assertVisible:
+    id: "AcquisitionChannelOption_instagram"
+- takeScreenshot: acquisition-channel-e2e-screen
+- tapOn:
+    id: "AcquisitionChannelOption_instagram"
+- takeScreenshot: acquisition-channel-e2e-selected
+- tapOn:
+    id: "OnboardingContinueButton"
+
+# 送出後應抵達 DataSource
+- extendedWaitUntil:
+    visible:
+      id: "DataSource_Screen"
+    timeout: 15000
+- takeScreenshot: acquisition-channel-e2e-datasource

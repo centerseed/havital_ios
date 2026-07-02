@@ -201,6 +201,14 @@
 "onboarding.select_days" = "トレーニング日を選択";
 "onboarding.connect_data" = "データソースを接続";
 "onboarding.complete" = "設定完了";
+// Acquisition Channel (T-0094)
+"onboarding.acquisition_channel_nav_title" = "Paceriz を知ったきっかけ";
+"onboarding.acquisition_channel_title" = "Paceriz をどこで知りましたか？";
+"onboarding.acquisition_channel_subtitle" = "より多くのランナーに Paceriz を届けるためにご協力ください";
+"onboarding.channel_friend" = "友人の紹介";
+"onboarding.channel_app_store_search" = "App Store 検索";
+"onboarding.channel_ad" = "広告";
+"onboarding.channel_other" = "その他";
 "onboarding.skip_for_now" = "後で設定";
 
 // Data Source Selection

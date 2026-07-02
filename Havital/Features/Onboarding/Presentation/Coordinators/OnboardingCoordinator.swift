@@ -10,6 +10,7 @@ class OnboardingCoordinator: ObservableObject {
     /// Onboarding 步驟枚舉
     enum Step: Int, CaseIterable {
         case intro = 0
+        case acquisitionChannel
         case dataSource
         case heartRateZone
         case backfillPrompt
@@ -29,6 +30,7 @@ class OnboardingCoordinator: ObservableObject {
         var title: String {
             switch self {
             case .intro: return "Welcome"
+            case .acquisitionChannel: return NSLocalizedString("onboarding.acquisition_channel_nav_title", comment: "認識 Paceriz 的管道")
             case .dataSource: return "Data Source"
             case .heartRateZone: return "Heart Rate Zone"
             case .backfillPrompt: return "Backfill Prompt"
@@ -387,6 +389,8 @@ class OnboardingCoordinator: ObservableObject {
     func determineNextStep(from currentStep: Step) -> Step? {
         switch currentStep {
         case .intro:
+            return .acquisitionChannel
+        case .acquisitionChannel:
             return .dataSource
         case .dataSource:
             return .heartRateZone

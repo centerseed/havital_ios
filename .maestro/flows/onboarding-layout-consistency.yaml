@@ -17,6 +17,14 @@ tags:
     id: "OnboardingStartButton"
 
 # === DataSource 頁：有返回按鈕（P0-6, P0-7）===
+# T-0094：處理 intro 之後的行銷渠道自報屏（沒出現則跳過）
+- extendedWaitUntil:
+    visible:
+      id: "AcquisitionChannel_Screen"
+    timeout: 10000
+    optional: true
+- runFlow:
+    file: ../subflows/pass-acquisition-channel.yaml
 - assertVisible:
     id: "DataSourceOption_appleHealth"
     optional: true

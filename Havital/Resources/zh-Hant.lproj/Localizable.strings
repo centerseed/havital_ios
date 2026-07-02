@@ -201,6 +201,14 @@
 "onboarding.select_days" = "選擇訓練日";
 "onboarding.connect_data" = "連接資料來源";
 "onboarding.complete" = "完成設定";
+// Acquisition Channel (T-0094)
+"onboarding.acquisition_channel_nav_title" = "認識 Paceriz";
+"onboarding.acquisition_channel_title" = "你從哪裡知道 Paceriz？";
+"onboarding.acquisition_channel_subtitle" = "幫助我們把 Paceriz 帶給更多跑者";
+"onboarding.channel_friend" = "朋友推薦";
+"onboarding.channel_app_store_search" = "App Store 搜尋";
+"onboarding.channel_ad" = "廣告";
+"onboarding.channel_other" = "其他";
 "onboarding.skip_for_now" = "稍後設定";
 
 // Data Source Selection

@@ -66,6 +66,8 @@ struct OnboardingContainerView: View {
         switch step {
         case .intro:
             OnboardingIntroView()
+        case .acquisitionChannel:
+            AcquisitionChannelView()
         case .dataSource:
             DataSourceSelectionView()
         case .heartRateZone:

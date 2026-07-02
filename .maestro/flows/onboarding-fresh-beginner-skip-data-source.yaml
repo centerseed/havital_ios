@@ -70,6 +70,15 @@ tags:
     text: "開始設定|Start Setup|設定開始"
     optional: true
 
+# T-0094：處理 intro 之後的行銷渠道自報屏（沒出現則跳過）
+- extendedWaitUntil:
+    visible:
+      id: "AcquisitionChannel_Screen"
+    timeout: 10000
+    optional: true
+- runFlow:
+    file: ../subflows/pass-acquisition-channel.yaml
+
 - extendedWaitUntil:
     visible:
       id: "DataSource_Screen"
