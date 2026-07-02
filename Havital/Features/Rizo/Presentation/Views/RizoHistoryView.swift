@@ -71,7 +71,7 @@ struct RizoHistoryView: View {
             }
         }
         .padding(.vertical, 4)
-        .accessibilityIdentifier("rizo_history_row")
+        .accessibilityIdentifier("rizo_history_row_\(convo.id)")
     }
 
     /// 標題：優先用 titleSeed；純開場 session fallback = 情境標籤 · 日期。
