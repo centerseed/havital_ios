@@ -172,20 +172,20 @@ struct RizoHistoryResponseDTO: Codable {
 
 // MARK: - RizoHistoryItemDTO
 
-/// 歷史項目 DTO（骨架；欄位待後端 history 契約定版後補齊）。
-/// 全部 optional + 寬鬆解碼，避免後端欄位演進時 decode 失敗。
+/// 歷史 turn DTO。對應後端 GET /v2/agent/history data.items[]。
+/// 全欄位 optional 寬鬆解碼，避免後端欄位演進時 decode 失敗。
 struct RizoHistoryItemDTO: Codable {
-    let id: String?
+    let sessionId: String?
+    let ts: String?
     let scenario: String?
-    let message: String?
-    let response: String?
-    let createdAt: String?
+    let userInput: String?
+    let rizoResponse: String?
 
     enum CodingKeys: String, CodingKey {
-        case id
+        case sessionId = "session_id"
+        case ts
         case scenario
-        case message
-        case response
-        case createdAt = "created_at"
+        case userInput = "user_input"
+        case rizoResponse = "rizo_response"
     }
 }

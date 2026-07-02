@@ -90,19 +90,19 @@ struct RizoMapper {
     // MARK: - History
 
     /// RizoHistoryResponseDTO → [RizoHistoryItem]
-    /// 缺 id 的項目視為無效並過濾（骨架階段的保守處理）。
+    /// 缺 session_id 的項目視為無效並過濾（無分組鍵）。
     static func toHistory(from dto: RizoHistoryResponseDTO) -> [RizoHistoryItem] {
         return dto.items.compactMap(toHistoryItem(from:))
     }
 
     static func toHistoryItem(from dto: RizoHistoryItemDTO) -> RizoHistoryItem? {
-        guard let id = dto.id else { return nil }
+        guard let sessionId = dto.sessionId, !sessionId.isEmpty else { return nil }
         return RizoHistoryItem(
-            id: id,
+            sessionId: sessionId,
             scenario: dto.scenario ?? "",
-            message: dto.message ?? "",
-            response: dto.response ?? "",
-            createdAt: dto.createdAt
+            userInput: dto.userInput ?? "",
+            rizoResponse: dto.rizoResponse ?? "",
+            ts: dto.ts
         )
     }
 }

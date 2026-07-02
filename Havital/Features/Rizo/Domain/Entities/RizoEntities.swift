@@ -135,20 +135,17 @@ struct RizoPreset: Equatable, Identifiable {
 
 // MARK: - RizoHistoryItem
 
-/// 歷史對話項目（本批先建骨架，欄位待後端 history 契約定版後補齊）。
-struct RizoHistoryItem: Equatable, Identifiable {
-    /// 歷史項目唯一 ID。
-    let id: String
-
-    /// 情境（如 "journal"）。
+/// 單一對話輪次（turn 級）。對應後端 history items[] 一筆。
+/// 分組成 session 摘要由 RizoConversationSummary.group(from:) 處理。
+struct RizoHistoryItem: Equatable {
+    /// 所屬對話 session id（分組鍵）。
+    let sessionId: String
+    /// 情境（body_status / weekly_situation / journal / …）。
     let scenario: String
-
-    /// 使用者訊息。
-    let message: String
-
+    /// 使用者輸入（開場輪為空字串）。
+    let userInput: String
     /// Rizo 回覆。
-    let response: String
-
-    /// 建立時間（ISO8601 字串）。
-    let createdAt: String?
+    let rizoResponse: String
+    /// 輪次時間（ISO8601 UTC 字串）。
+    let ts: String?
 }
