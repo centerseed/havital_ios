@@ -910,7 +910,7 @@ private struct AdjustmentsSectionV2: View {
     let coordinator: WeeklySummaryCoordinator
     let showToggles: Bool
 
-    @FocusState private var nlInputFocused: Bool
+    @StateObject private var chatVM = StateRizoChatViewModel(scenario: "weekly_situation")
 
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.contentSpacing) {
@@ -956,128 +956,26 @@ private struct AdjustmentsSectionV2: View {
                 }
             }
 
-            // MARK: - 自由文字 NL 子區塊（延後改下週課表）
-            // 用獨立圓角卡片包起來，與上方調整 item、下方產生課表 CTA 視覺切開。
-            VStack(alignment: .leading, spacing: 10) {
+            // MARK: - 跟 Rizo 調整下週課表（路徑 B：延後到下週生成時套用）
+            // 標題+引導為無框標籤；RizoChatView 自帶卡片（padding+背景+圓角），
+            // 直接當同層 sibling 呈現，避免卡中卡雙層縮排（對齊 DailyStateDetailView 模式）。
+            VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
                     Image(systemName: "bubble.left.and.text.bubble.right.fill")
                         .font(AppFont.subheadline())
                         .foregroundColor(.blue)
-                    Text(NSLocalizedString("weekly_review.nl_input.title", comment: "想自己跟 Rizo 說？"))
+                    Text(NSLocalizedString("weekly_review.rizo_chat.title", comment: ""))
                         .font(AppFont.subheadline())
                         .fontWeight(.semibold)
                         .foregroundColor(.primary)
                 }
-                Text(NSLocalizedString("weekly_review.nl_input.hint", comment: "送出會覆蓋上次記下的調整 · 最多 2000 字"))
+                Text(NSLocalizedString("weekly_review.rizo_chat.hint", comment: ""))
                     .font(AppFont.caption())
                     .foregroundColor(.secondary)
-
-                TextField(
-                    NSLocalizedString("weekly_review.nl_input.placeholder", comment: ""),
-                    text: Binding(
-                        get: { coordinator.userNlDraft },
-                        set: { coordinator.userNlDraft = String($0.prefix(2000)) }
-                    ),
-                    axis: .vertical
-                )
-                .lineLimit(1...4)
-                .textFieldStyle(.roundedBorder)
-                .focused($nlInputFocused)
-                .accessibilityIdentifier("weekly_nl_input")
-                .toolbar {
-                    ToolbarItemGroup(placement: .keyboard) {
-                        Spacer()
-                        Button(NSLocalizedString("common.done", comment: "完成")) {
-                            nlInputFocused = false
-                        }
-                        .accessibilityIdentifier("weekly_nl_keyboard_done")
-                    }
-                }
-
-                // 送出：右對齊的膠囊按鈕（明確按鈕感，與下方全寬主 CTA 區隔）
-                HStack {
-                    Spacer()
-                    Button {
-                        nlInputFocused = false   // 收鍵盤，讓回應/狀態進入可見範圍
-                        Task { await coordinator.submitUserNlEdit() }
-                    } label: {
-                        HStack(spacing: 6) {
-                            if coordinator.userNlSubmitState.isLoading {
-                                ProgressView().controlSize(.small)
-                            } else {
-                                Image(systemName: "paperplane.fill")
-                                Text(NSLocalizedString("weekly_review.nl_input.submit", comment: "送出"))
-                            }
-                        }
-                        .font(AppFont.subheadline())
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .buttonBorderShape(.capsule)
-                    .controlSize(.small)
-                    .disabled(
-                        coordinator.userNlDraft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                        || coordinator.userNlSubmitState.isLoading
-                    )
-                    .accessibilityIdentifier("weekly_nl_submit")
-                }
-
-                // 本回合送出結果（暫態）：放進淡藍底氣泡，不再是飄空文字
-                switch coordinator.userNlSubmitState {
-                case .loaded(let reply):
-                    HStack(alignment: .top, spacing: 6) {
-                        // Rizo 身分頭像：與對話畫面(RizoChatView.rizoAvatar)同一漸層圓圈「R」，
-                        // 取代原本噁心的 🤖 機器人 emoji。
-                        Text("R")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(width: 22, height: 22)
-                            .background(
-                                LinearGradient(
-                                    colors: [PacerizColor.blue, PacerizColor.green],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                                in: Circle()
-                            )
-                        Text(reply)
-                            .font(AppFont.caption())
-                            .foregroundColor(.primary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(10)
-                    .background(Color.blue.opacity(0.08))
-                    .cornerRadius(10)
-                    .accessibilityIdentifier("weekly_nl_reply")
-                case .error:
-                    Text(NSLocalizedString("weekly_review.nl_input.error", comment: "送出失敗，請再試一次"))
-                        .font(AppFont.caption())
-                        .foregroundColor(.red)
-                default:
-                    EmptyView()
-                }
-
-                // 延後狀態（來自 entity，跨 session 持久）
-                switch adjustments.userNlEditStatus {
-                case .pending:
-                    Label(NSLocalizedString("weekly_review.nl_input.status_pending", comment: ""), systemImage: "clock.fill")
-                        .font(AppFont.caption()).foregroundColor(.blue)
-                case .applied:
-                    Label(NSLocalizedString("weekly_review.nl_input.status_applied", comment: ""), systemImage: "checkmark.circle.fill")
-                        .font(AppFont.caption()).foregroundColor(.green)
-                case .failed:
-                    Label(NSLocalizedString("weekly_review.nl_input.status_failed", comment: ""), systemImage: "exclamationmark.triangle.fill")
-                        .font(AppFont.caption()).foregroundColor(.orange)
-                case .none:
-                    EmptyView()
-                }
             }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(UIColor.secondarySystemGroupedBackground))
-            .cornerRadius(12)
-            .padding(.top, 8)
-            .accessibilityElement(children: .contain)
+
+            // 懶載入：不呼叫 startOpening()，用戶送第一句才發 chat。
+            RizoChatView(viewModel: chatVM)
         }
     }
 }

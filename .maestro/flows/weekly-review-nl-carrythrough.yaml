@@ -1,5 +1,5 @@
 appId: com.havital.Havital.dev
-# #4 驗證:第二頁 Rizo NL 自由輸入 → 送出 → 產生下週課表 → NL 是否帶到下週課表
+# #4 驗證：第二頁內嵌 Rizo 對話 propose → 提案卡 → confirm(deferred) → 產生下週課表是否帶入該調整
 ---
 - launchApp: { stopApp: true, clearState: false, arguments: { -skipHealthKitAuth: "true" } }
 - tapOn: { id: "AnnouncementPopup_CloseButton", optional: true }
@@ -14,23 +14,30 @@ appId: com.havital.Havital.dev
 # 第二頁
 - swipe: { direction: LEFT }
 - extendedWaitUntil: { visible: "下週調整建議|Next Week Adjustments", timeout: 10000 }
-# 「下週調整建議」是摺疊區,先點開才看得到 NL 輸入
+# 「下週調整建議」是摺疊區，先點開才看得到內嵌 RizoChatView
 - tapOn: { text: "下週調整建議|Next Week Adjustments" }
-# 找 NL 輸入框,打一句明確改課表的話
-- scrollUntilVisible: { element: { id: "weekly_nl_input" }, direction: DOWN, timeout: 15000 }
-- tapOn: { id: "weekly_nl_input" }
+- waitForAnimationToEnd
+# 找內嵌對話輸入框，打一句明確改課表的話
+- scrollUntilVisible: { element: { id: "rizo_chat_input" }, direction: DOWN, timeout: 15000, centerElement: true }
+- tapOn: { id: "rizo_chat_input" }
+- waitForAnimationToEnd: { timeout: 1500 }
 - inputText: "下週把週日的長跑改成完全休息，週日不要排任何跑步"
-- tapOn: { id: "weekly_nl_keyboard_done", optional: true }
-- tapOn: { id: "weekly_nl_submit" }
-# 等 Rizo 確認(已記下 / 回覆氣泡)
+- waitForAnimationToEnd: { timeout: 1500 }
+- tapOn: { id: "rizo_chat_send" }
+- extendedWaitUntil: { visible: { id: "rizo_chat_bubble_user" }, timeout: 10000 }
+# 等變更提案卡出現
+- scrollUntilVisible: { element: { id: "rizo_plan_change_card" }, direction: DOWN, timeout: 90000, centerElement: true }
+- takeScreenshot: carrythrough_proposal_card
+# 接受 → confirm(deferred) → 斷言 deferred-semantics 回覆(已記下 / 下週課表生成時)
+- tapOn: { text: "接受" }
 - extendedWaitUntil:
-    visible: "已記下|記下|下週|套用|已收到|Got it|recorded|🤖"
-    timeout: 60000
-- takeScreenshot: /private/tmp/claude-502/-Users-wubaizong-havital/2cefe1e9-a0e9-47b5-b3d1-7e051add8917/scratchpad/nl_submitted
-# 產生下週課表
+    visible: "已記下|下週課表生成時|下週|套用|已收到|Got it|recorded"
+    timeout: 30000
+- takeScreenshot: carrythrough_submitted
+# 產生下週課表（deferred 調整由 generate() 套用）
 - scrollUntilVisible: { element: { text: ".*產生.*課表.*|.*Generate.*" }, direction: DOWN, timeout: 10000 }
 - tapOn: { text: ".*產生.*課表.*|.*Generate.*" }
 - extendedWaitUntil:
     visible: "每日訓練|Daily Training|本週|週一|週二|已產生|產生中|Generating"
     timeout: 180000
-- takeScreenshot: /private/tmp/claude-502/-Users-wubaizong-havital/2cefe1e9-a0e9-47b5-b3d1-7e051add8917/scratchpad/nl_generated
+- takeScreenshot: carrythrough_generated

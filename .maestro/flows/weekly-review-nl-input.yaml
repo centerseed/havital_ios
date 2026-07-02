@@ -2,9 +2,10 @@ appId: com.havital.Havital.dev
 tags:
   - weekly-summary
   - rizo
-# 測試：週回顧自由文字 NL 輸入（延後改下週課表入口，T-0029）
+# 測試：週回顧路徑 B — 內嵌 Rizo 多輪對話 propose → 提案卡 → confirm（延後套用下週課表，T-0029）
 # 前提：app 已登入、帳號在 dev 有訓練計畫資料
-# 流程：回每日訓練根頁 → Debug 工具產生週回顧 → 捲到自由輸入子區塊 → 打字 → 送出 → 斷言 Rizo 即時回應
+# 流程：回每日訓練根頁 → Debug 工具產生週回顧 → 翻到第二頁「規劃下週」→ 展開「下週調整建議」
+#      → 捲到內嵌 RizoChatView → 打字送出 → 等變更提案卡 → 接受 → 斷言 deferred-semantics 回覆
 ---
 - launchApp:
     stopApp: true
@@ -28,11 +29,11 @@ tags:
     text: "Plan|計劃|計畫|プラン"
     optional: true
 
-# 確認在每日訓練根頁（有「...」選單）
+# 確認在每日訓練根頁（有「...」選單）；首次啟動可能卡在「載入用戶資料…」splash，給足時間
 - extendedWaitUntil:
     visible:
       id: "ellipsis.circle"
-    timeout: 15000
+    timeout: 45000
 
 # 開「...」選單 → Debug 工具 → 產生週回顧（debug 標籤硬編碼中文）
 - tapOn:
@@ -49,32 +50,62 @@ tags:
     visible: "訓練完成度|Completion|Training Completion"
     timeout: 60000
 
-# 展開「下週調整建議」（若為摺疊式）
-- tapOn:
-    text: "下週調整建議|Next Week Adjustments"
-    optional: true
-
-# 捲到自由文字輸入框（id-based，語言無關）
-- scrollUntilVisible:
-    element:
-      id: "weekly_nl_input"
-    direction: DOWN
-    timeout: 15000
-- takeScreenshot: nl_input_visible
-
-# 打字 → 收鍵盤（鍵盤工具列「完成」，讓送出按鈕脫離鍵盤遮擋）→ 送出
-- tapOn:
-    id: "weekly_nl_input"
-- inputText: "下週五六爬山不能跑，想多休息"
-- tapOn:
-    id: "weekly_nl_keyboard_done"
-- takeScreenshot: nl_input_typed
-- tapOn:
-    id: "weekly_nl_submit"
-
-# 斷言 Rizo 即時回應出現（送出→/v2/agent/chat weekly_situation→回覆 round-trip）
+# 翻到第二頁「規劃下週」（水平 TabView）
+- swipe:
+    direction: LEFT
+- waitForAnimationToEnd
 - extendedWaitUntil:
     visible:
-      id: "weekly_nl_reply"
-    timeout: 60000
-- takeScreenshot: nl_reply_visible
+      text: "下週調整建議|Next Week Adjustments"
+    timeout: 10000
+
+# 展開「下週調整建議」折疊區塊（內含內嵌 RizoChatView，懶載入不自動開場）
+- tapOn:
+    text: "下週調整建議|Next Week Adjustments"
+- waitForAnimationToEnd
+
+# 捲到內嵌對話輸入框（id-based，語言無關；同 rizo-clean-demo-dev.yaml 已驗證可行的目標方式）
+- scrollUntilVisible:
+    element:
+      id: "rizo_chat_input"
+    direction: DOWN
+    timeout: 15000
+    centerElement: true
+- takeScreenshot: nl_input_visible
+
+# 打字 → 送出（送出鈕與輸入框同列，不需先收鍵盤）
+- tapOn:
+    id: "rizo_chat_input"
+- waitForAnimationToEnd:
+    timeout: 1500
+- inputText: "下週五六爬山不能跑，想多休息"
+- waitForAnimationToEnd:
+    timeout: 1500
+- tapOn:
+    id: "rizo_chat_send"
+- takeScreenshot: nl_input_typed
+
+# 斷言使用者泡泡送出成功（chat round-trip 已觸發 /v2/agent/chat scenario=weekly_situation）
+- extendedWaitUntil:
+    visible:
+      id: "rizo_chat_bubble_user"
+    timeout: 10000
+
+# 等變更提案卡（propose ~25-90s，視 LLM 延遲）— 有回應才捲動
+- scrollUntilVisible:
+    element:
+      id: "rizo_plan_change_card"
+    direction: DOWN
+    timeout: 90000
+    centerElement: true
+- takeScreenshot: nl_proposal_card
+
+# 接受提案 → POST /v2/agent/plan-change/confirm（scenario=weekly_situation → deferred 語意）
+- tapOn:
+    text: "接受"
+
+# 斷言 deferred-semantics 回覆出現（i18n key rizo.plan_change.applied_deferred zh-Hant）
+- extendedWaitUntil:
+    visible: ".*下週課表生成時.*"
+    timeout: 30000
+- takeScreenshot: nl_reply_deferred

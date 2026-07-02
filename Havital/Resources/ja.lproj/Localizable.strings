@@ -3636,6 +3636,7 @@
 "rizo.plan_change.accept" = "適用する";
 "rizo.plan_change.discuss" = "相談を続ける";
 "rizo.plan_change.applied" = "適用しました。プランを更新しました";
+"rizo.plan_change.applied_deferred" = "了解しました。来週のプランを作成するときに、この調整を自動で反映します。";
 "rizo.plan_change.confirm_failed" = "適用できませんでした。後でもう一度お試しください";
 "rizo.plan_change.user_confirmed" = "プラン更新を確認しました";
 "rizo.plan_change.distance_unit" = "km";
@@ -3869,15 +3870,9 @@
 "garmin.push.error.garmin_training_unavailable" = "Garminへのワークアウト送信は近日公開予定です";
 "garmin.push.error.not_a_run_workout" = "この日はランニングではないため、Garminに送信できません";
 "garmin.push.error.generic" = "送信できませんでした。後でもう一度お試しください。";
-// MARK: - Weekly Review NL Input
-"weekly_review.nl_input.title" = "自分でRizoに伝えますか？";
-"weekly_review.nl_input.hint" = "送信すると前回のメモが上書きされます · 最大2000文字";
-"weekly_review.nl_input.placeholder" = "例「来週の金土は山登りで走れない、休みたい」";
-"weekly_review.nl_input.submit" = "送信";
-"weekly_review.nl_input.error" = "送信できませんでした。もう一度お試しください";
-"weekly_review.nl_input.status_pending" = "記録しました - 来週のプラン生成時に反映します";
-"weekly_review.nl_input.status_applied" = "来週のプランに反映済み";
-"weekly_review.nl_input.status_failed" = "反映できませんでした - タップしてもう一度教えてください";
+// MARK: - Weekly Review Rizo Chat（内蔵マルチターン会話、旧NL単発ボックスを置き換え）
+"weekly_review.rizo_chat.title" = "Rizoと来週のプランを調整";
+"weekly_review.rizo_chat.hint" = "来週のプランを調整したい？Rizoにひとこと。例：「来週の金土は山でランできない」。";
 "weekly_review.deferred_failed.title" = "プラン調整が反映されませんでした";
 "weekly_review.deferred_failed.body" = "先週の調整を反映できませんでした。Rizoを開いてもう一度教えてください。";
 // MARK: - Schedule Editor トレーニング種別ラベル (T-0048 i18n: EditScheduleViewV2/EditScheduleView にハードコードされていた)

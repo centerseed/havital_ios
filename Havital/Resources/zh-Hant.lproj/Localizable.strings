@@ -3680,6 +3680,7 @@
 "rizo.plan_change.accept" = "接受";
 "rizo.plan_change.discuss" = "繼續討論";
 "rizo.plan_change.applied" = "已為你套用，課表更新囉";
+"rizo.plan_change.applied_deferred" = "好，我記下了。下週課表生成時會自動幫你套用這個調整。";
 "rizo.plan_change.confirm_failed" = "套用失敗，請稍後再試";
 "rizo.plan_change.user_confirmed" = "已確認課表更新";
 "rizo.plan_change.distance_unit" = "公里";
@@ -3913,15 +3914,9 @@
 "garmin.push.error.garmin_training_unavailable" = "Garmin 課表推送即將開放，敬請期待";
 "garmin.push.error.not_a_run_workout" = "這一天不是跑步課表，無法傳到 Garmin";
 "garmin.push.error.generic" = "傳送失敗，請稍後再試";
-// MARK: - Weekly Review NL Input
-"weekly_review.nl_input.title" = "想自己跟 Rizo 說？";
-"weekly_review.nl_input.hint" = "送出會覆蓋上次記下的調整 · 最多 2000 字";
-"weekly_review.nl_input.placeholder" = "例「下週五六爬山不能跑，想多休息」";
-"weekly_review.nl_input.submit" = "送出";
-"weekly_review.nl_input.error" = "送出失敗，請再試一次";
-"weekly_review.nl_input.status_pending" = "已記下，下次生成課表時套用";
-"weekly_review.nl_input.status_applied" = "已套用到下週課表";
-"weekly_review.nl_input.status_failed" = "沒能套用，點我再說一次";
+// MARK: - Weekly Review Rizo Chat（內嵌多輪對話，取代舊一次性 NL 小框）
+"weekly_review.rizo_chat.title" = "跟 Rizo 調下週課表";
+"weekly_review.rizo_chat.hint" = "想調整下週課表？直接跟 Rizo 說一句，例如「下週五六爬山不能跑」。";
 "weekly_review.deferred_failed.title" = "課表調整未套用";
 "weekly_review.deferred_failed.body" = "沒能套用你上週的調整，打開 Rizo 再說一次就好。";
 // MARK: - Schedule Editor 訓練類型標籤（T-0048 i18n：原寫死於 EditScheduleViewV2/EditScheduleView，用語對齊 training_type_info）

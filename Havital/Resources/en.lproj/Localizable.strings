@@ -3639,6 +3639,7 @@
 "rizo.plan_change.accept" = "Accept";
 "rizo.plan_change.discuss" = "Keep discussing";
 "rizo.plan_change.applied" = "Applied — your plan is updated";
+"rizo.plan_change.applied_deferred" = "Got it — I've noted this. It'll be applied automatically when next week's plan is generated.";
 "rizo.plan_change.confirm_failed" = "Couldn't apply. Please try again later";
 "rizo.plan_change.user_confirmed" = "Plan update confirmed";
 "rizo.plan_change.distance_unit" = "km";
@@ -3872,15 +3873,9 @@
 "garmin.push.error.garmin_training_unavailable" = "Garmin workout push is coming soon";
 "garmin.push.error.not_a_run_workout" = "This day isn't a running workout, so it can't be sent to Garmin";
 "garmin.push.error.generic" = "Couldn't send. Please try again later.";
-// MARK: - Weekly Review NL Input
-"weekly_review.nl_input.title" = "Want to tell Rizo yourself?";
-"weekly_review.nl_input.hint" = "Submitting overwrites your last note · 2000 chars max";
-"weekly_review.nl_input.placeholder" = "e.g. \"Hiking Fri-Sat next week, can't run, want more rest\"";
-"weekly_review.nl_input.submit" = "Send";
-"weekly_review.nl_input.error" = "Couldn't send, please try again";
-"weekly_review.nl_input.status_pending" = "Noted - applied when next week's plan is generated";
-"weekly_review.nl_input.status_applied" = "Applied to next week's plan";
-"weekly_review.nl_input.status_failed" = "Couldn't apply - tap to tell me again";
+// MARK: - Weekly Review Rizo Chat (embedded multi-turn chat, replaces old one-shot NL box)
+"weekly_review.rizo_chat.title" = "Adjust next week with Rizo";
+"weekly_review.rizo_chat.hint" = "Want to tweak next week's plan? Just tell Rizo, e.g. \"Can't run Fri/Sat next week — hiking.\"";
 "weekly_review.deferred_failed.title" = "Plan adjustment not applied";
 "weekly_review.deferred_failed.body" = "Couldn't apply last week's adjustment. Open Rizo and tell me again.";
 // MARK: - Schedule Editor training type labels (T-0048 i18n: was hardcoded in EditScheduleViewV2/EditScheduleView)
