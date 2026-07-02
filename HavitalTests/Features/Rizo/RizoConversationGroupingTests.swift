@@ -47,4 +47,23 @@ final class RizoConversationGroupingTests: XCTestCase {
     func test_empty_returnsEmpty() {
         XCTAssertTrue(RizoConversationSummary.group(from: []).isEmpty)
     }
+
+    func test_nilTsSortsFirst_scenarioFallback_lastResponseSkipsEmpty() {
+        // nil ts 視為 "" → 排最前;scenario 空字串 fallback 到後續非空;lastResponse 跳過空回覆輪。
+        let items = [
+            RizoHistoryItem(sessionId: "s1", scenario: "",
+                            userInput: "", rizoResponse: "", ts: nil),
+            RizoHistoryItem(sessionId: "s1", scenario: "journal",
+                            userInput: "hi", rizoResponse: "first",
+                            ts: "2026-07-01T10:00:00+00:00"),
+            RizoHistoryItem(sessionId: "s1", scenario: "journal",
+                            userInput: "", rizoResponse: "",
+                            ts: "2026-07-01T10:05:00+00:00"),
+        ]
+        let convo = RizoConversationSummary.group(from: items)[0]
+
+        XCTAssertNil(convo.turns.first?.ts)          // nil ts 排最前
+        XCTAssertEqual(convo.scenario, "journal")    // 空字串 fallback 到後續非空
+        XCTAssertEqual(convo.lastResponse, "first")  // 跳過末筆空回覆
+    }
 }

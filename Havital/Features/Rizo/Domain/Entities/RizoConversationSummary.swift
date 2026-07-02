@@ -4,6 +4,9 @@ import Foundation
 /// 一段 Rizo 對話（同 session_id 的所有輪次分組後的顯示摘要）。
 /// Domain Entity — 無 Codable、無 UIKit/i18n/時區依賴。分組為純函式，可單測。
 struct RizoConversationSummary: Identifiable, Equatable {
+    /// 標題種子截斷長度（字元數）。
+    private static let titleSeedMaxLength = 20
+
     var id: String { sessionId }
     let sessionId: String
     let scenario: String
@@ -35,13 +38,16 @@ struct RizoConversationSummary: Identifiable, Equatable {
         }
 
         let summaries: [RizoConversationSummary] = order.compactMap { sid in
+            // 不變式:order 內每個 sid 建立 bucket 當下即 append 一筆,故此處不可能 nil/空;保留為防禦。
             guard let raw = buckets[sid], !raw.isEmpty else { return nil }
             let sorted = raw.sorted { ($0.ts ?? "") < ($1.ts ?? "") }
             let scenario = sorted.first(where: { !$0.scenario.isEmpty })?.scenario ?? ""
             let titleSeed = sorted
                 .first(where: { !$0.userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
-                .map { String($0.userInput.trimmingCharacters(in: .whitespacesAndNewlines).prefix(20)) }
-            let lastResponse = sorted.last(where: { !$0.rizoResponse.isEmpty })?.rizoResponse ?? ""
+                .map { String($0.userInput.trimmingCharacters(in: .whitespacesAndNewlines).prefix(titleSeedMaxLength)) }
+            let lastResponse = sorted
+                .last(where: { !$0.rizoResponse.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
+                .map { $0.rizoResponse.trimmingCharacters(in: .whitespacesAndNewlines) } ?? ""
             return RizoConversationSummary(
                 sessionId: sid,
                 scenario: scenario,
