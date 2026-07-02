@@ -3676,6 +3676,17 @@
 "rizo.chat.coachBadge" = "教練";
 "rizo.chat.inputPlaceholder" = "跟 Rizo 說說今天的感受…";
 "rizo.chat.error" = "Rizo 暫時無法回覆，請稍後再試";
+"rizo.history.title" = "與 Rizo 的對話";
+"rizo.history.entry" = "查看過去對話";
+"rizo.history.empty" = "還沒有和 Rizo 的對話紀錄";
+"rizo.history.error" = "載入對話紀錄失敗，請稍後再試";
+"rizo.history.retry" = "重試";
+"rizo.history.scenario.body_status" = "今日狀態";
+"rizo.history.scenario.weekly_situation" = "週回顧";
+"rizo.history.scenario.journal" = "訓練反思";
+"rizo.history.scenario.workout_question" = "訓練提問";
+"rizo.history.scenario.pace_question" = "配速提問";
+"rizo.history.scenario.generic" = "對話";
 "rizo.plan_change.title" = "課表調整";
 "rizo.plan_change.accept" = "接受";
 "rizo.plan_change.discuss" = "繼續討論";

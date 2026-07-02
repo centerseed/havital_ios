@@ -3632,6 +3632,17 @@
 "rizo.chat.coachBadge" = "コーチ";
 "rizo.chat.inputPlaceholder" = "今日の感覚を Rizo に話してみよう…";
 "rizo.chat.error" = "Rizo は今返信できません。後でもう一度お試しください";
+"rizo.history.title" = "Rizoとの会話";
+"rizo.history.entry" = "過去の会話を見る";
+"rizo.history.empty" = "Rizoとの会話履歴はまだありません";
+"rizo.history.error" = "会話履歴を読み込めませんでした。もう一度お試しください。";
+"rizo.history.retry" = "再試行";
+"rizo.history.scenario.body_status" = "今日のコンディション";
+"rizo.history.scenario.weekly_situation" = "週の振り返り";
+"rizo.history.scenario.journal" = "トレーニング振り返り";
+"rizo.history.scenario.workout_question" = "トレーニングの質問";
+"rizo.history.scenario.pace_question" = "ペースの質問";
+"rizo.history.scenario.generic" = "会話";
 "rizo.plan_change.title" = "プラン調整";
 "rizo.plan_change.accept" = "適用する";
 "rizo.plan_change.discuss" = "相談を続ける";

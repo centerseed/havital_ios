@@ -3635,6 +3635,17 @@
 "rizo.chat.coachBadge" = "Coach";
 "rizo.chat.inputPlaceholder" = "Tell Rizo how today felt…";
 "rizo.chat.error" = "Rizo can't reply right now. Please try again later";
+"rizo.history.title" = "Chats with Rizo";
+"rizo.history.entry" = "View past conversations";
+"rizo.history.empty" = "No conversations with Rizo yet";
+"rizo.history.error" = "Couldn't load your conversation history. Please try again.";
+"rizo.history.retry" = "Retry";
+"rizo.history.scenario.body_status" = "Today's State";
+"rizo.history.scenario.weekly_situation" = "Weekly Review";
+"rizo.history.scenario.journal" = "Training Reflection";
+"rizo.history.scenario.workout_question" = "Workout Question";
+"rizo.history.scenario.pace_question" = "Pace Question";
+"rizo.history.scenario.generic" = "Conversation";
 "rizo.plan_change.title" = "Plan adjustment";
 "rizo.plan_change.accept" = "Accept";
 "rizo.plan_change.discuss" = "Keep discussing";
