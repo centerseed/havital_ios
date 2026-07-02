@@ -682,6 +682,33 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
         XCTAssertEqual(mockTrainingPlanRepository.createWeeklyPlanCallCount, 0)
     }
 
+    // MARK: - Acquisition Channel Tests (T-0094)
+
+    func testSaveAcquisitionChannel_SendsFieldToRepository() async {
+        // When
+        let result = await sut.saveAcquisitionChannel("threads")
+
+        // Then
+        XCTAssertTrue(result)
+        XCTAssertEqual(mockUserProfileRepository.updateUserProfileCallCount, 1)
+        XCTAssertEqual(
+            mockUserProfileRepository.updateUserProfileLastParams?["acquisition_channel"] as? String,
+            "threads"
+        )
+    }
+
+    func testSaveAcquisitionChannel_RepositoryError_ReturnsFalse() async {
+        // Given: 自報失敗不該把錯誤丟給 UI 擋 onboarding，只回 false
+        mockUserProfileRepository.errorToThrow = URLError(.notConnectedToInternet)
+
+        // When
+        let result = await sut.saveAcquisitionChannel("ad")
+
+        // Then
+        XCTAssertFalse(result)
+        XCTAssertEqual(mockUserProfileRepository.updateUserProfileCallCount, 1)
+    }
+
     // MARK: - A-1/A-2 Helpers
 
     /// Load a real PlanOverviewV2 fixture so we rely on the same DTO → Entity path as production.

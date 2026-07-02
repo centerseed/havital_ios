@@ -201,6 +201,14 @@
 "onboarding.select_days" = "Select Training Days";
 "onboarding.connect_data" = "Connect Data Sources";
 "onboarding.complete" = "Complete Setup";
+// Acquisition Channel (T-0094)
+"onboarding.acquisition_channel_nav_title" = "How You Found Us";
+"onboarding.acquisition_channel_title" = "Where did you hear about Paceriz?";
+"onboarding.acquisition_channel_subtitle" = "Help us bring Paceriz to more runners";
+"onboarding.channel_friend" = "Friend referral";
+"onboarding.channel_app_store_search" = "App Store search";
+"onboarding.channel_ad" = "Advertisement";
+"onboarding.channel_other" = "Other";
 "onboarding.skip_for_now" = "Set Up Later";
 
 // Data Source Selection

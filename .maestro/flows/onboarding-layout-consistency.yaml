@@ -16,6 +16,10 @@ tags:
 - tapOn:
     id: "OnboardingStartButton"
 
+# T-0094：行銷渠道自報屏（wait/防衛都在 subflow 內）
+- runFlow:
+    file: ../subflows/pass-acquisition-channel.yaml
+
 # === DataSource 頁：有返回按鈕（P0-6, P0-7）===
 - assertVisible:
     id: "DataSourceOption_appleHealth"
