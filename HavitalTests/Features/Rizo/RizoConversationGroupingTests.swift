@@ -39,9 +39,20 @@ final class RizoConversationGroupingTests: XCTestCase {
         XCTAssertEqual(convo.titleSeed, String(long.prefix(20)))
     }
 
-    func test_titleSeed_nil_whenOnlyOpener() {
+    func test_openerOnlySession_isDropped() {
+        // 純開場、使用者未回覆的 session（user 全空）不列入歷史。
         let items = [ item("s1", "t1", user: "", coach: "opener") ]
-        XCTAssertNil(RizoConversationSummary.group(from: items)[0].titleSeed)
+        XCTAssertTrue(RizoConversationSummary.group(from: items).isEmpty)
+    }
+
+    func test_mixed_keepsRealDropsOpenerOnly() {
+        let items = [
+            item("s1", "2026-07-01T10:00:00+00:00", user: "", coach: "opener"),
+            item("s2", "2026-07-02T09:00:00+00:00", user: "hey", coach: "hi"),
+        ]
+        let convos = RizoConversationSummary.group(from: items)
+        XCTAssertEqual(convos.count, 1)
+        XCTAssertEqual(convos[0].sessionId, "s2")
     }
 
     func test_empty_returnsEmpty() {

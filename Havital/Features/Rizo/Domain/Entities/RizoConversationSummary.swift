@@ -60,6 +60,10 @@ struct RizoConversationSummary: Identifiable, Equatable {
             )
         }
 
-        return summaries.sorted { ($0.updatedAt ?? "") > ($1.updatedAt ?? "") }
+        // 純開場、使用者從頭到尾未回覆的 session 不列入歷史（罐頭訊息/噪音）；
+        // 這種 session 恰好 titleSeed == nil（無任何非空 userInput）。
+        return summaries
+            .filter { $0.titleSeed != nil }
+            .sorted { ($0.updatedAt ?? "") > ($1.updatedAt ?? "") }
     }
 }
