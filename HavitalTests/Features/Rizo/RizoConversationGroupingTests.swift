@@ -59,6 +59,24 @@ final class RizoConversationGroupingTests: XCTestCase {
         XCTAssertTrue(RizoConversationSummary.group(from: []).isEmpty)
     }
 
+    func test_errorOnlySession_isDropped() {
+        let items = [
+            item("s1", "t1", user: "why is my pace off", coach: "litellm.ServiceUnavailableError: GeminiException - vertex ai unavailable"),
+        ]
+        XCTAssertTrue(RizoConversationSummary.group(from: items).isEmpty)
+    }
+
+    func test_sessionWithAtLeastOneGenuineReply_isKept() {
+        let items = [
+            item("s1", "t1", user: "why is my pace off", coach: "litellm.ServiceUnavailableError: GeminiException"),
+            item("s1", "t2", user: "still there", coach: "Your pace looks fine, it was just a hot day."),
+        ]
+        let convos = RizoConversationSummary.group(from: items)
+        XCTAssertEqual(convos.count, 1)
+        // preview should prefer the genuine reply, not the error string
+        XCTAssertEqual(convos[0].lastResponse, "Your pace looks fine, it was just a hot day.")
+    }
+
     func test_nilTsSortsFirst_scenarioFallback_lastResponseSkipsEmpty() {
         // nil ts 視為 "" → 排最前;scenario 空字串 fallback 到後續非空;lastResponse 跳過空回覆輪。
         let items = [

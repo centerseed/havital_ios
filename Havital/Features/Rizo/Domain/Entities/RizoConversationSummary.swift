@@ -22,6 +22,22 @@ struct RizoConversationSummary: Identifiable, Equatable {
     /// 該 session 全部輪次（依 ts 升冪）。
     let turns: [RizoHistoryItem]
 
+    /// 判斷一則回覆是否為原始技術錯誤字串(非真正的教練回應)。
+    /// 真實教練回覆是對話式 zh-TW/ja/en,不會出現這些技術 token。清單刻意排除整段只有錯誤回覆的 session。
+    static func isErrorResponse(_ text: String) -> Bool {
+        let signatures = [
+            "litellm",
+            "Traceback (most recent call",
+            "ServiceUnavailableError",
+            "GeminiException",
+            "google.api_core",
+            "grpc._",
+            "RESOURCE_EXHAUSTED",
+            "FailedPrecondition",
+        ]
+        return signatures.contains { text.localizedCaseInsensitiveContains($0) }
+    }
+
     /// 攤平的跨 session turn 清單 → 依 session 分組的對話摘要清單。
     /// - 同 session 內 turns 依 ts 升冪。
     /// - session 之間依最晚 ts 降冪（最新在上）。
@@ -45,9 +61,14 @@ struct RizoConversationSummary: Identifiable, Equatable {
             let titleSeed = sorted
                 .first(where: { !$0.userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
                 .map { String($0.userInput.trimmingCharacters(in: .whitespacesAndNewlines).prefix(titleSeedMaxLength)) }
-            let lastResponse = sorted
-                .last(where: { !$0.rizoResponse.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty })
-                .map { $0.rizoResponse.trimmingCharacters(in: .whitespacesAndNewlines) } ?? ""
+            let genuineResponses = sorted.filter {
+                !$0.rizoResponse.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    && !isErrorResponse($0.rizoResponse)
+            }
+            let lastResponse = (genuineResponses.last?.rizoResponse
+                ?? sorted.last(where: { !$0.rizoResponse.isEmpty })?.rizoResponse
+                ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
             return RizoConversationSummary(
                 sessionId: sid,
                 scenario: scenario,
@@ -60,10 +81,17 @@ struct RizoConversationSummary: Identifiable, Equatable {
             )
         }
 
-        // 純開場、使用者從頭到尾未回覆的 session 不列入歷史（罐頭訊息/噪音）；
-        // 這種 session 恰好 titleSeed == nil（無任何非空 userInput）。
+        // 兩種噪音 session 不列入歷史:
+        // 1. 純開場、使用者從頭到尾未回覆(titleSeed == nil,無任何非空 userInput)。
+        // 2. 整段對話的教練回覆全是原始技術錯誤字串(isErrorResponse),沒有半句真正的教練回應。
         return summaries
-            .filter { $0.titleSeed != nil }
+            .filter { summary in
+                summary.titleSeed != nil
+                    && summary.turns.contains {
+                        !$0.rizoResponse.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            && !isErrorResponse($0.rizoResponse)
+                    }
+            }
             .sorted { ($0.updatedAt ?? "") > ($1.updatedAt ?? "") }
     }
 }
