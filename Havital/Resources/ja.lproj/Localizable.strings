@@ -279,7 +279,7 @@
 "profile.subscription.valid_until" = "サービス有効期限";
 "profile.subscription.grace_period" = "請求処理中、サービスに影響なし";
 "profile.subscription.manage" = "サブスクリプション管理";
-"profile.subscription.resubscribe" = "再購読";
+"profile.subscription.resubscribe" = "再登録";
 "profile.subscription.change_plan" = "プラン変更";
 "profile.subscription.plan.yearly" = "年間サブスク";
 "profile.subscription.plan.monthly" = "月間サブスク";
@@ -288,7 +288,7 @@
 "profile.subscription.plan.premium_early_bird" = "プレミアム（早割）";
 "profile.subscription.trial_ends" = "トライアル終了日";
 "profile.subscription.trial_remaining_days" = "残り%d日";
-"profile.subscription.trial_purchased_note" = "購読済み。トライアル終了後に有効化されます";
+"profile.subscription.trial_purchased_note" = "登録済み。トライアル終了後に有効化されます";
 
 // MARK: - Data Sources
 "datasource.title" = "データソース";
@@ -425,7 +425,7 @@
 "training.type.speed" = "スピードワーク";
 "training.type.lsd" = "LSDラン";
 "training.type.long_slow_distance" = "LSDラン";
-"training.type.threshold" = "閾値ラン";
+"training.type.threshold" = "閾値走";
 "training.type.progression" = "プログレッションラン";
 "training.type.progressive_run" = "プログレッシブラン";
 "training.type.long_run" = "ロング走";
@@ -480,7 +480,7 @@
 "training.descriptions.interval_training" = "高強度と回復を交互に行うインターバル";
 "training.descriptions.long_run" = "持久力を構築するロングラン";
 "training.descriptions.recovery_run" = "回復を促進するリカバリーラン";
-"training.descriptions.threshold_run" = "乳酸閾値強度で走る閾値ラン";
+"training.descriptions.threshold_run" = "乳酸閾値強度で走る閾値走";
 "training.descriptions.progression_run" = "徐々にペースを上げるプログレッションラン";
 "training.descriptions.combination_training" = "複数のトレーニングタイプを組み合わせ";
 
@@ -1344,9 +1344,9 @@
 "training_type_info.tempo.role" = "通常週の半ば、またはロングランの後半に、レースペースのシミュレーションとして実施。週末のロングランや週初めのイージーランと組み合わせ、レース専門の持久力を構築します。";
 
 // Threshold Run
-"training_type_info.threshold.title" = "閾値ラン";
+"training_type_info.threshold.title" = "閾値走";
 "training_type_info.threshold.how_to_run" = "マラソンペースよりわずかにきついが、まだ持続可能。「挑戦的だがやり遂げられる」と感じ、心拍数は高いが制御されています。";
-"training_type_info.threshold.why_run" = "閾値ランは持久力の壁を破る鍵です。より長く高速度を維持できるようにし、マラソンパフォーマンスの向上に重要です。";
+"training_type_info.threshold.why_run" = "閾値走は持久力の壁を破る鍵です。より長く高速度を維持できるようにし、マラソンパフォーマンスの向上に重要です。";
 "training_type_info.threshold.logic" = "乳酸閾値強度（最大心拍数の約85–90%）をターゲットとし、体が乳酸蓄積を遅らせ、疲労耐性を向上させます。長期的な実践により、持続スピードとレースパフォーマンスが大幅に向上します。";
 "training_type_info.threshold.role" = "通常、ピークトレーニング期間の週の半ばにスケジュールされ、イージーランでウォームアップし、リカバリーランで刺激を吸収します。";
 
@@ -1529,12 +1529,12 @@
 "performance.vdot.trend" = "トレンド";
 
 // MARK: - Training Readiness
-"training_readiness.title" = "トレーニング準備度";
-"training_readiness.description" = "トレーニング準備度は、スピード、持久力、レース適性、トレーニング負荷などの複数の指標に基づいて計算された総合スコアで、現在のトレーニング状態を把握するのに役立ちます。";
-"training_readiness.overall_score" = "総合準備度";
+"training_readiness.title" = "トレーニングレディネス";
+"training_readiness.description" = "トレーニングレディネスは、スピード、持久力、レース適性、トレーニング負荷などの複数の指標に基づいて計算された総合スコアで、現在のトレーニング状態を把握するのに役立ちます。";
+"training_readiness.overall_score" = "総合スコア";
 "training_readiness.updated" = "更新";
-"training_readiness.no_data" = "トレーニング準備度データなし";
-"training_readiness.data_ready" = "準備度分析完了";
+"training_readiness.no_data" = "トレーニングレディネスのデータなし";
+"training_readiness.data_ready" = "レディネス分析完了";
 "training_readiness.no_score" = "スコアなし";
 
 // Training Readiness Status
@@ -1875,7 +1875,7 @@
 "edit_schedule.long_distance_run" = "ロングディスタンスラン";
 "edit_schedule.long_easy_run" = "ロングイージーラン";
 "edit_schedule.recovery_run" = "リカバリーラン";
-"edit_schedule.threshold_run" = "閾値ラン";
+"edit_schedule.threshold_run" = "閾値走";
 "edit_schedule.rest" = "休息";
 
 // Training Detail Editor
@@ -2658,7 +2658,7 @@
 "paywall.header.api_gated" = "この機能を使用するにはサブスクリプションが必要です";
 "paywall.header.trial_expired" = "トライアル期間が終了しました";
 "paywall.header.feature_locked" = "アップグレードして全機能を解放";
-"paywall.header.resubscribe" = "再購読";
+"paywall.header.resubscribe" = "再登録";
 "paywall.header.change_plan" = "Paceriz Premium";
 "paywall.purchase_success_title" = "購入完了！";
 "paywall.purchase_success_start" = "使い始める";
@@ -2667,7 +2667,7 @@
 "paywall.purchase_success.plan.monthly" = "月額プラン";
 "paywall.purchase_success.plan.premium" = "Premiumプラン";
 "reminder.trial_expiring_title" = "トライアル期間まもなく終了";
-"reminder.trial_expiring_message" = "トライアル残り%1$d日（%2$@まで）。\n\n今すぐ購読してもトライアルには影響しません。請求はトライアル終了後に開始されます。";
+"reminder.trial_expiring_message" = "トライアル残り%1$d日（%2$@まで）。\n\n今すぐ登録してもトライアルには影響しません。請求はトライアル終了後に開始されます。";
 "reminder.expired_title" = "サブスクリプション期限切れ";
 "reminder.expired_message" = "サブスクリプションが期限切れです。一部の機能がご利用いただけなくなりました。";
 "paywall.trial_days_remaining" = "トライアル残り%d日";
@@ -2716,7 +2716,7 @@
 "paywall.restore_no_active_subscription" = "復元できる有効なサブスクリプションが見つかりません";
 "paywall.purchase_pending_processing" = "購入を処理中です。少し待ってから再度「購入を復元」をお試しください。";
 "paywall.redeem_offer_code" = "オファーコードを利用";
-"paywall.offer_code_pending_processing" = "オファーコードを処理中です。しばらくしてからアプリを再度開き、購読状態をご確認ください。";
+"paywall.offer_code_pending_processing" = "オファーコードを処理中です。しばらくしてからアプリを再度開き、サブスクリプションの状態をご確認ください。";
 "paywall.offer_code_identity_sync_failed" = "現在、サブスクリプションの本人確認ができません。しばらくしてから再度お試しください。";
 "paywall.offer_code_scene_unavailable" = "現在、Apple のオファーコード入力画面を開けません。しばらくしてから再度お試しください。";
 "paywall.purchase_cancelled_retry" = "Appleアカウントへのサインインは完了しました。購入を完了するには、もう一度プランをタップしてください。";
@@ -2812,12 +2812,12 @@
 
 "profile.subscription.redeem_offer_code" = "オファーコードを利用";
 "profile.subscription.redeem_alert_title" = "オファーコード";
-"profile.subscription.redeem_success" = "オファーコードを利用しました。購読状態を更新しました。";
+"profile.subscription.redeem_success" = "オファーコードを利用しました。サブスクリプションの状態を更新しました。";
 "onboarding.clear_selected_race" = "手動入力に戻る";
 
 // Free Tier Banner (AC-PAYWALL-35)
 "paywall.free_tier.banner.title" = "無料体験中";
-"paywall.free_tier.banner.subtitle" = "来週のプランは購読が必要です";
+"paywall.free_tier.banner.subtitle" = "来週のプランはPremiumで利用できます";
 "paywall.free_tier.banner.cta" = "アップグレード";
 
 // Grace Period Banner (AC-PAYWALL-38)
@@ -3332,7 +3332,7 @@
 "achievements.badge.prove.first_half.criteria" = "21 km 以上（ハーフマラソン距離）のランを完了して同期すると獲得できます。";
 "achievements.badge.prove.first_marathon.criteria" = "42 km 以上（マラソン距離）のランを完了して同期すると獲得できます。";
 "achievements.badge.prove.distance_breakthrough.criteria" = "ランを続けて、単回の最長距離を少しずつ更新していくと獲得できます。";
-"achievements.badge.prove.race_ready.criteria" = "継続したトレーニングで Paceriz の総合準備度スコアが 90% 以上になり、高リスク警告がない状態になると獲得できます。";
+"achievements.badge.prove.race_ready.criteria" = "継続したトレーニングで Paceriz のトレーニングレディネススコアが 90% 以上になり、高リスク警告がない状態になると獲得できます。";
 "achievements.badge.prove.goal_completed.criteria" = "Paceriz で設定した目標（目標距離の完走またはレースタイムの達成）を果たすと獲得できます。";
 // Chapter: Identity
 "achievements.badge.identity.5k_runner.criteria" = "5 km 以上のランを完了し、2 週以上のワークアウト記録を積み重ねると獲得できます。";
@@ -3438,7 +3438,7 @@
 // MARK: - B2 Race Header
 "training_plan.race_countdown_days" = " 日";
 "training_plan.race_countdown_label" = "残り";
-"training_plan.race_readiness_label" = "準備度";
+"training_plan.race_readiness_label" = "レディネス";
 "training_plan.race_gap_within_target" = "目標内";
 "training_plan.race_gap_diff" = "差 %@";
 
@@ -3449,7 +3449,7 @@
 "training_mode.maintain_tagline" = "体力を維持し、退化を防ぐ";
 "training_mode.streak_label" = "連続";
 "training_mode.monthly_km_label" = "今月の距離";
-"training_mode.readiness_label" = "準備度";
+"training_mode.readiness_label" = "レディネス";
 "training_mode.week_number" = "%d 週目";
 
 // MARK: - Weekly Plan Feedback
@@ -3899,7 +3899,7 @@
 "schedule_editor.daytarget.recovery_run" = "リカバリーラン：低強度の回復走";
 "schedule_editor.daytarget.easy_run" = "イージーラン：回復と有酸素土台づくり";
 "schedule_editor.daytarget.marathon_pace" = "マラソンペース：中強度の持続走で有酸素持久力を養成";
-"schedule_editor.daytarget.threshold" = "閾値ラン：乳酸除去能力を向上";
+"schedule_editor.daytarget.threshold" = "閾値走：乳酸除去能力を向上";
 "schedule_editor.daytarget.interval" = "インターバルラン：VO2maxとスピードを向上";
 "schedule_editor.daytarget.long_run" = "ロングラン：持久力の土台づくり";
 "schedule_editor.daytarget.lsd" = "LSD（ロングスローディスタンス）：イージーペースで有酸素土台づくり";
@@ -3958,7 +3958,7 @@
 "schedule_editor.detail.yasso_800" = "ヤッソ800：800mをインターバルペースで反復。同時間の回復でマラソンタイムを予測：800mのタイム（分:秒）＝マラソン完走タイム（時:分）";
 
 // MARK: - Schedule Editor W1 補足2 (picker / TrainingDetailEditor)
-"schedule_editor.segment.threshold" = "閾値ラン";
+"schedule_editor.segment.threshold" = "閾値走";
 "schedule_editor.segment.interval" = "インターバルラン";
 "schedule_editor.segment.rest_in_place_time" = "その場で%@休憩";
 "schedule_editor.segment.recovery_run_time" = "リカバリージョグ%@";
@@ -4015,10 +4015,10 @@
 "siri.next_race.today" = "%@は今日です。頑張って！";
 "siri.next_race.ended" = "%@は終了しました。";
 "siri.next_race.days_left" = "%1$@まであと%2$d日です。";
-"siri.readiness.score_status" = "今日のトレーニング準備度は%1$d点、%2$@。";
-"siri.readiness.score" = "今日のトレーニング準備度は%d点です。";
-"siri.readiness.no_data_status" = "今日のトレーニング準備度データはまだ取得できていません、%@。";
-"siri.readiness.no_data" = "今日のトレーニング準備度データはまだ取得できていません。";
+"siri.readiness.score_status" = "今日のトレーニングレディネスは%1$d点、%2$@。";
+"siri.readiness.score" = "今日のトレーニングレディネスは%d点です。";
+"siri.readiness.no_data_status" = "今日のトレーニングレディネスのデータはまだ取得できていません、%@。";
+"siri.readiness.no_data" = "今日のトレーニングレディネスのデータはまだ取得できていません。";
 "siri.mileage.no_runs" = "今週はまだランの記録がありません。";
 "siri.mileage.summary" = "今週は%1$@km、%2$d回走りました。";
 "siri.mileage.no_training" = "今週はまだトレーニングの記録がありません。";
@@ -4061,7 +4061,7 @@
 "voice.intent.todays_session.title" = "今日のメニューは？";
 "voice.intent.todays_session.desc" = "今日のトレーニング内容を読み上げます";
 "voice.intent.readiness.title" = "今日は練習できる？";
-"voice.intent.readiness.desc" = "今日のトレーニング準備度を読み上げます";
+"voice.intent.readiness.desc" = "今日のトレーニングレディネスを読み上げます";
 "voice.intent.next_race.title" = "レースまであと何日？";
 "voice.intent.next_race.desc" = "次のレースまでの日数を読み上げます";
 "voice.intent.weekly_mileage.title" = "今週の走行距離は？";
