@@ -37,9 +37,11 @@ struct BenchmarkApplyResultDTO: Codable {
 struct BenchmarkScheduleRequestDTO: Codable {
     let overviewId: String
     let currentWeek: Int
+    let weeksAhead: Int
     enum CodingKeys: String, CodingKey {
         case overviewId = "overview_id"
         case currentWeek = "current_week"
+        case weeksAhead = "weeks_ahead"
     }
 }
 

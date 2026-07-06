@@ -86,16 +86,16 @@ final class DailyStateCardViewModel: ObservableObject, TaskManageable {
         }
     }
 
-    /// 預約下次指標跑(不管有無套用都可)。成功 → 顯示「已預約(第 X 週)」。
-    func scheduleNextBenchmark() {
+    /// 預約下次指標跑(用戶選幾週後,最少 2 週)。成功 → 顯示「已預約(第 X 週)」。
+    func scheduleNextBenchmark(weeksAhead: Int) {
         guard let cal = benchmarkCalibration, !isSchedulingNext, scheduledNextWeek == nil else { return }
         isSchedulingNext = true
         Task { [weak self] in
             guard let self else { return }
             do {
-                let week = try await self.repository.scheduleNextBenchmark(cal)
+                let week = try await self.repository.scheduleNextBenchmark(cal, weeksAhead: weeksAhead)
                 await MainActor.run {
-                    self.scheduledNextWeek = week ?? cal.weekOfTraining + 2
+                    self.scheduledNextWeek = week ?? cal.weekOfTraining + weeksAhead
                     self.isSchedulingNext = false
                 }
             } catch {

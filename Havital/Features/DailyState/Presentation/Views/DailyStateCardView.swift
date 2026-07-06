@@ -25,7 +25,7 @@ struct DailyStateCardView: View {
                     scheduledNextWeek: viewModel.scheduledNextWeek,
                     onApply: { viewModel.applyBenchmark() },
                     onLater: { viewModel.dismissBenchmark() },
-                    onScheduleNext: { viewModel.scheduleNextBenchmark() }
+                    onScheduleNext: { weeks in viewModel.scheduleNextBenchmark(weeksAhead: weeks) }
                 )
             }
             stateCard

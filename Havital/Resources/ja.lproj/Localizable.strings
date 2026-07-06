@@ -3703,6 +3703,8 @@
 "benchmark.today.later" = "後で";
 "benchmark.today.schedule_next" = "次回のベンチマークを予約";
 "benchmark.today.scheduled" = "次回のベンチマークを予約済み(第%d週)";
+"benchmark.today.schedule_next_title" = "次回のベンチマークは何週間後にしますか?";
+"benchmark.today.weeks_after" = "%d週間後";
 
 "training.zone.effort" = "努力度";
 "benchmark.detail.why_title" = "この日が特別な理由";

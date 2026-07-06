@@ -11,7 +11,10 @@ struct SameDayBenchmarkCard: View {
     let scheduledNextWeek: Int?
     let onApply: () -> Void
     let onLater: () -> Void
-    let onScheduleNext: () -> Void
+    let onScheduleNext: (Int) -> Void   // 參數 = 幾週後(最少 2)
+
+    @State private var showWeeksPicker = false
+    private let weekOptions = [2, 3, 4, 6, 8]
 
     private func hms(_ s: Int) -> String {
         let h = s / 3600, m = (s % 3600) / 60, sec = s % 60
@@ -95,7 +98,7 @@ struct SameDayBenchmarkCard: View {
                     .foregroundColor(PacerizColor.green)
                     .accessibilityIdentifier("v2.today.benchmark_scheduled")
                 } else {
-                    Button(action: onScheduleNext) {
+                    Button { showWeeksPicker = true } label: {
                         HStack(spacing: 4) {
                             if isSchedulingNext {
                                 ProgressView().controlSize(.mini)
@@ -109,6 +112,18 @@ struct SameDayBenchmarkCard: View {
                     }
                     .disabled(isApplying || isSchedulingNext)
                     .accessibilityIdentifier("v2.today.benchmark_schedule_next")
+                    .confirmationDialog(
+                        NSLocalizedString("benchmark.today.schedule_next_title", comment: "Schedule how many weeks later"),
+                        isPresented: $showWeeksPicker,
+                        titleVisibility: .visible
+                    ) {
+                        ForEach(weekOptions, id: \.self) { wk in
+                            Button(String(format: NSLocalizedString("benchmark.today.weeks_after", comment: "%d weeks later"), wk)) {
+                                onScheduleNext(wk)
+                            }
+                        }
+                        Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {}
+                    }
                 }
             }
         }
@@ -133,7 +148,7 @@ struct SameDayBenchmarkCard: View {
                 paceBeforeSPerKm: nil, paceAfterSPerKm: nil, raceDistanceLabel: nil,
                 raceTimeBeforeS: 17742, raceTimeAfterS: 17260, vdotBefore: 36.4, vdotAfter: 38.6)),
         isApplying: false, isSchedulingNext: false, scheduledNextWeek: nil,
-        onApply: {}, onLater: {}, onScheduleNext: {}
+        onApply: {}, onLater: {}, onScheduleNext: { _ in }
     )
     .padding()
 }

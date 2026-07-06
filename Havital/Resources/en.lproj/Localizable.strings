@@ -3706,6 +3706,8 @@
 "benchmark.today.later" = "Later";
 "benchmark.today.schedule_next" = "Schedule next benchmark";
 "benchmark.today.scheduled" = "Next benchmark scheduled (week %d)";
+"benchmark.today.schedule_next_title" = "Schedule the next benchmark how many weeks out?";
+"benchmark.today.weeks_after" = "In %d weeks";
 
 "training.zone.effort" = "Effort";
 "benchmark.detail.why_title" = "Why this day matters";
