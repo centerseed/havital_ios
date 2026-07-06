@@ -7,6 +7,16 @@ import Foundation
 final class DailyStateCardViewModel: ObservableObject, TaskManageable {
     @Published private(set) var state: ViewState<DailyStateCard> = .loading
 
+    // T-0142 指標跑當日即時校準
+    @Published private(set) var isApplyingBenchmark = false
+    @Published private(set) var benchmarkDismissed = false
+    @Published private(set) var appliedFinishSeconds: Int?
+
+    /// 今日校準卡(套用/稍後後收起)。
+    var benchmarkCalibration: SameDayBenchmarkCalibration? {
+        benchmarkDismissed ? nil : state.data?.benchmarkCalibration
+    }
+
     nonisolated let taskRegistry = TaskRegistry()
     private let repository: DailyStateRepository
 
@@ -49,5 +59,41 @@ final class DailyStateCardViewModel: ObservableObject, TaskManageable {
                 await MainActor.run { self.state = .error(error.toDomainError()) }
             }
         }
+    }
+
+    // MARK: - T-0142 指標跑校準動作
+
+    /// 套用校準 → 即時重算 → 收起卡片。失敗保持卡片(可重試)。
+    func applyBenchmark() {
+        guard let cal = benchmarkCalibration, !isApplyingBenchmark else { return }
+        isApplyingBenchmark = true
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let finish = try await self.repository.applyBenchmark(cal)
+                await MainActor.run {
+                    self.appliedFinishSeconds = finish
+                    self.isApplyingBenchmark = false
+                    self.benchmarkDismissed = true
+                }
+            } catch let urlError as URLError where urlError.code == .cancelled {
+                await MainActor.run { self.isApplyingBenchmark = false }
+            } catch {
+                await MainActor.run { self.isApplyingBenchmark = false }
+            }
+        }
+    }
+
+    /// 預約下次指標跑(不管有無套用都可)。
+    func scheduleNextBenchmark() {
+        guard let cal = benchmarkCalibration else { return }
+        Task { [weak self] in
+            try? await self?.repository.scheduleNextBenchmark(cal)
+        }
+    }
+
+    /// 稍後:今日收起卡片(週回顧仍會 fallback 出)。
+    func dismissBenchmark() {
+        benchmarkDismissed = true
     }
 }

@@ -16,6 +16,26 @@ final class DailyStateRepositoryImpl: DailyStateRepository {
         let dto = try await remoteDataSource.fetchTodayState()
         return StateCardMapper.toEntity(from: dto)
     }
+
+    func applyBenchmark(_ calibration: SameDayBenchmarkCalibration) async throws -> Int? {
+        let request = BenchmarkApplyRequestDTO(
+            workoutId: calibration.workoutId,
+            workoutDate: calibration.workoutDate,
+            benchmarkDistanceM: calibration.benchmarkDistanceM,
+            benchmarkDurationS: calibration.benchmarkDurationS,
+            overviewId: calibration.overviewId
+        )
+        let result = try await remoteDataSource.applyBenchmark(request)
+        return result.finishPrediction?.estimatedRaceTimeSeconds
+    }
+
+    func scheduleNextBenchmark(_ calibration: SameDayBenchmarkCalibration) async throws {
+        let request = BenchmarkScheduleRequestDTO(
+            overviewId: calibration.overviewId,
+            currentWeek: calibration.weekOfTraining
+        )
+        _ = try await remoteDataSource.scheduleNextBenchmark(request)
+    }
 }
 
 // MARK: - DependencyContainer Registration

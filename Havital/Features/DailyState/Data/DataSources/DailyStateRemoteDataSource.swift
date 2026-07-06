@@ -3,6 +3,8 @@ import Foundation
 // MARK: - DailyStateRemoteDataSource Protocol
 protocol DailyStateRemoteDataSourceProtocol {
     func fetchTodayState() async throws -> StateCardDTO
+    func applyBenchmark(_ request: BenchmarkApplyRequestDTO) async throws -> BenchmarkApplyResultDTO
+    func scheduleNextBenchmark(_ request: BenchmarkScheduleRequestDTO) async throws -> BenchmarkScheduleResultDTO
 }
 
 // MARK: - DailyStateRemoteDataSource
@@ -27,6 +29,28 @@ final class DailyStateRemoteDataSource: DailyStateRemoteDataSourceProtocol {
         Logger.debug("[DailyStateRemoteDS] Fetching today state")
         return try await tracked("DailyStateRemoteDataSource: fetchTodayState") {
             try await apiHelper.get(StateCardDTO.self, path: "/v2/state/today")
+        }
+    }
+
+    func applyBenchmark(_ request: BenchmarkApplyRequestDTO) async throws -> BenchmarkApplyResultDTO {
+        Logger.debug("[DailyStateRemoteDS] Applying benchmark calibration")
+        return try await tracked("DailyStateRemoteDataSource: applyBenchmark") {
+            try await apiHelper.post(
+                BenchmarkApplyResultDTO.self,
+                path: "/v2/workouts/benchmark/apply",
+                body: request
+            )
+        }
+    }
+
+    func scheduleNextBenchmark(_ request: BenchmarkScheduleRequestDTO) async throws -> BenchmarkScheduleResultDTO {
+        Logger.debug("[DailyStateRemoteDS] Scheduling next benchmark")
+        return try await tracked("DailyStateRemoteDataSource: scheduleNextBenchmark") {
+            try await apiHelper.post(
+                BenchmarkScheduleResultDTO.self,
+                path: "/v2/workouts/benchmark/schedule-next",
+                body: request
+            )
         }
     }
 }

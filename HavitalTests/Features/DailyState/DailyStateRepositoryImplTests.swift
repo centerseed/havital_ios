@@ -9,6 +9,13 @@ final class DailyStateRepositoryImplTests: XCTestCase {
             if let error { throw error }
             return dto!
         }
+        func applyBenchmark(_ request: BenchmarkApplyRequestDTO) async throws -> BenchmarkApplyResultDTO {
+            BenchmarkApplyResultDTO(confirmed: true, vdot: 39.0,
+                                    finishPrediction: .init(estimatedRaceTimeSeconds: 17260))
+        }
+        func scheduleNextBenchmark(_ request: BenchmarkScheduleRequestDTO) async throws -> BenchmarkScheduleResultDTO {
+            BenchmarkScheduleResultDTO(scheduled: true, scheduledWeek: 6)
+        }
     }
 
     func test_returns_mapped_entity() async throws {

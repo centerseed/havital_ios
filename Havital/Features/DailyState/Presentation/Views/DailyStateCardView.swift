@@ -15,6 +15,23 @@ struct DailyStateCardView: View {
     }
 
     var body: some View {
+        VStack(spacing: 12) {
+            // T-0142：今天有合格指標跑 → 校準卡置頂(一開就看到)。
+            if let cal = viewModel.benchmarkCalibration {
+                SameDayBenchmarkCard(
+                    calibration: cal,
+                    isApplying: viewModel.isApplyingBenchmark,
+                    onApply: { viewModel.applyBenchmark() },
+                    onLater: { viewModel.dismissBenchmark() },
+                    onScheduleNext: { viewModel.scheduleNextBenchmark() }
+                )
+            }
+            stateCard
+        }
+        .task { viewModel.load() }
+    }
+
+    private var stateCard: some View {
         content
             .padding()
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -37,7 +54,6 @@ struct DailyStateCardView: View {
                     }
                 }
             }
-            .task { viewModel.load() }
     }
 
     @ViewBuilder private var content: some View {

@@ -17,7 +17,8 @@ struct StateCardDTO: Codable {
     let divergence: DivergenceDTO?
     let access: AccessDTO
     /// T-0142 指標跑當日即時校準卡(偵測到今天合格全力跑才有值,否則 nil)。
-    let benchmarkCalibration: BenchmarkCalibrationDTO?
+    /// 預設 nil:production 走 Codable decode(可缺),測試手動建構可省略此欄。
+    let benchmarkCalibration: BenchmarkCalibrationDTO? = nil
 
     enum CodingKeys: String, CodingKey {
         case lens, source, headline, chips, action, divergence, access
