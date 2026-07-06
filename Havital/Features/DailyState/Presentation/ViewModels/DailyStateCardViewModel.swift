@@ -11,6 +11,8 @@ final class DailyStateCardViewModel: ObservableObject, TaskManageable {
     @Published private(set) var isApplyingBenchmark = false
     @Published private(set) var benchmarkDismissed = false
     @Published private(set) var appliedFinishSeconds: Int?
+    @Published private(set) var isSchedulingNext = false
+    @Published private(set) var scheduledNextWeek: Int?   // 非 nil = 已預約(顯示確認)
 
     /// 今日校準卡(套用/稍後後收起)。
     var benchmarkCalibration: SameDayBenchmarkCalibration? {
@@ -84,11 +86,21 @@ final class DailyStateCardViewModel: ObservableObject, TaskManageable {
         }
     }
 
-    /// 預約下次指標跑(不管有無套用都可)。
+    /// 預約下次指標跑(不管有無套用都可)。成功 → 顯示「已預約(第 X 週)」。
     func scheduleNextBenchmark() {
-        guard let cal = benchmarkCalibration else { return }
+        guard let cal = benchmarkCalibration, !isSchedulingNext, scheduledNextWeek == nil else { return }
+        isSchedulingNext = true
         Task { [weak self] in
-            try? await self?.repository.scheduleNextBenchmark(cal)
+            guard let self else { return }
+            do {
+                let week = try await self.repository.scheduleNextBenchmark(cal)
+                await MainActor.run {
+                    self.scheduledNextWeek = week ?? cal.weekOfTraining + 2
+                    self.isSchedulingNext = false
+                }
+            } catch {
+                await MainActor.run { self.isSchedulingNext = false }
+            }
         }
     }
 

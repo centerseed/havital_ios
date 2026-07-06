@@ -3746,6 +3746,7 @@
 "benchmark.today.apply" = "套用";
 "benchmark.today.later" = "稍後";
 "benchmark.today.schedule_next" = "預約下次指標跑";
+"benchmark.today.scheduled" = "已預約下次指標跑(第 %d 週)";
 
 "training.zone.effort" = "努力程度";
 "benchmark.detail.why_title" = "為什麼這天特別";

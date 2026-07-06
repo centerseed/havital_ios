@@ -3702,6 +3702,7 @@
 "benchmark.today.apply" = "適用";
 "benchmark.today.later" = "後で";
 "benchmark.today.schedule_next" = "次回のベンチマークを予約";
+"benchmark.today.scheduled" = "次回のベンチマークを予約済み(第%d週)";
 
 "training.zone.effort" = "努力度";
 "benchmark.detail.why_title" = "この日が特別な理由";

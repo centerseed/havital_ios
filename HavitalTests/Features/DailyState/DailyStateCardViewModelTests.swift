@@ -10,7 +10,7 @@ final class DailyStateCardViewModelTests: XCTestCase {
             if let error { throw error }; return card!
         }
         func applyBenchmark(_ calibration: SameDayBenchmarkCalibration) async throws -> Int? { 17260 }
-        func scheduleNextBenchmark(_ calibration: SameDayBenchmarkCalibration) async throws {}
+        func scheduleNextBenchmark(_ calibration: SameDayBenchmarkCalibration) async throws -> Int? { 6 }
     }
     private func card(locked: Bool) -> DailyStateCard {
         DailyStateCard(lens: .pre, source: "llm", headline: "H", factType: nil,

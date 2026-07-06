@@ -7,6 +7,8 @@ import SwiftUI
 struct SameDayBenchmarkCard: View {
     let calibration: SameDayBenchmarkCalibration
     let isApplying: Bool
+    let isSchedulingNext: Bool
+    let scheduledNextWeek: Int?
     let onApply: () -> Void
     let onLater: () -> Void
     let onScheduleNext: () -> Void
@@ -83,16 +85,31 @@ struct SameDayBenchmarkCard: View {
 
             // 預約下次(不管套不套用都可)
             if calibration.canScheduleNext {
-                Button(action: onScheduleNext) {
+                if let wk = scheduledNextWeek {
+                    // 已預約 → 確認
                     HStack(spacing: 4) {
-                        Image(systemName: "calendar.badge.plus").font(AppFont.caption())
-                        Text(NSLocalizedString("benchmark.today.schedule_next", comment: "Schedule next benchmark"))
+                        Image(systemName: "checkmark.circle.fill").font(AppFont.caption())
+                        Text(String(format: NSLocalizedString("benchmark.today.scheduled", comment: "Next benchmark scheduled"), wk))
                             .font(AppFont.caption())
                     }
-                    .foregroundColor(PacerizColor.benchmark)
+                    .foregroundColor(PacerizColor.green)
+                    .accessibilityIdentifier("v2.today.benchmark_scheduled")
+                } else {
+                    Button(action: onScheduleNext) {
+                        HStack(spacing: 4) {
+                            if isSchedulingNext {
+                                ProgressView().controlSize(.mini)
+                            } else {
+                                Image(systemName: "calendar.badge.plus").font(AppFont.caption())
+                            }
+                            Text(NSLocalizedString("benchmark.today.schedule_next", comment: "Schedule next benchmark"))
+                                .font(AppFont.caption())
+                        }
+                        .foregroundColor(PacerizColor.benchmark)
+                    }
+                    .disabled(isApplying || isSchedulingNext)
+                    .accessibilityIdentifier("v2.today.benchmark_schedule_next")
                 }
-                .disabled(isApplying)
-                .accessibilityIdentifier("v2.today.benchmark_schedule_next")
             }
         }
         .padding(16)
@@ -115,7 +132,8 @@ struct SameDayBenchmarkCard: View {
                 workoutDate: "2026-07-06", distanceKm: 3.58, durationS: 1092, shouldHedge: false,
                 paceBeforeSPerKm: nil, paceAfterSPerKm: nil, raceDistanceLabel: nil,
                 raceTimeBeforeS: 17742, raceTimeAfterS: 17260, vdotBefore: 36.4, vdotAfter: 38.6)),
-        isApplying: false, onApply: {}, onLater: {}, onScheduleNext: {}
+        isApplying: false, isSchedulingNext: false, scheduledNextWeek: nil,
+        onApply: {}, onLater: {}, onScheduleNext: {}
     )
     .padding()
 }

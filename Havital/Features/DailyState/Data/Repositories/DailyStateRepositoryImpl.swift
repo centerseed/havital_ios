@@ -29,12 +29,13 @@ final class DailyStateRepositoryImpl: DailyStateRepository {
         return result.finishPrediction?.estimatedRaceTimeSeconds
     }
 
-    func scheduleNextBenchmark(_ calibration: SameDayBenchmarkCalibration) async throws {
+    func scheduleNextBenchmark(_ calibration: SameDayBenchmarkCalibration) async throws -> Int? {
         let request = BenchmarkScheduleRequestDTO(
             overviewId: calibration.overviewId,
             currentWeek: calibration.weekOfTraining
         )
-        _ = try await remoteDataSource.scheduleNextBenchmark(request)
+        let result = try await remoteDataSource.scheduleNextBenchmark(request)
+        return result.scheduledWeek
     }
 }
 

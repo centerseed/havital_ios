@@ -21,6 +21,8 @@ struct DailyStateCardView: View {
                 SameDayBenchmarkCard(
                     calibration: cal,
                     isApplying: viewModel.isApplyingBenchmark,
+                    isSchedulingNext: viewModel.isSchedulingNext,
+                    scheduledNextWeek: viewModel.scheduledNextWeek,
                     onApply: { viewModel.applyBenchmark() },
                     onLater: { viewModel.dismissBenchmark() },
                     onScheduleNext: { viewModel.scheduleNextBenchmark() }
