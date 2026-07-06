@@ -10,7 +10,8 @@ final class StateCardMapperTests: XCTestCase {
                           sessionRef: .init(runType: "easy", distanceKm: 12, pace: "6:45"),
                           rizoHandoff: nil),
             divergence: .init(present: false, flagText: nil, suggestedRizoScenario: nil),
-            access: .init(isPaid: !locked, locked: locked, upsell: locked ? .init(reason: "unlock_full_read") : nil))
+            access: .init(isPaid: !locked, locked: locked, upsell: locked ? .init(reason: "unlock_full_read") : nil),
+            benchmarkCalibration: nil)
     }
 
     func test_maps_paid() {

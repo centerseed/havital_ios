@@ -23,7 +23,8 @@ final class DailyStateRepositoryImplTests: XCTestCase {
         remote.dto = StateCardDTO(lens: "post", source: "llm", headline: "H", factType: nil,
             narrativeText: "n", chips: ["c"], causeChips: [], mileageProgression: nil,
             action: nil, divergence: nil,
-            access: .init(isPaid: true, locked: false, upsell: nil))
+            access: .init(isPaid: true, locked: false, upsell: nil),
+            benchmarkCalibration: nil)
         let repo = DailyStateRepositoryImpl(remoteDataSource: remote)
         let card = try await repo.fetchTodayState()
         XCTAssertEqual(card.lens, .post)
