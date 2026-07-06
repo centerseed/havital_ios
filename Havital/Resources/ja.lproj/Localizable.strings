@@ -3696,6 +3696,12 @@
 "benchmark.calib.lag_notice" = "トレーニングペースは 2〜3 週かけて反映されます（単週の変動は意図的に追いません）。";
 "benchmark.calib.toggle" = "この校正を採用する";
 "benchmark.calib.toggle_hint" = "差分を確認してからチェックして適用します。";
+/* T-0142 当日ベンチマーク校正カード */
+"benchmark.today.title" = "ベンチマーク校正";
+"benchmark.today.headline" = "今日のベンチマークランでレース予測を校正できます。";
+"benchmark.today.apply" = "適用";
+"benchmark.today.later" = "後で";
+"benchmark.today.schedule_next" = "次回のベンチマークを予約";
 
 "training.zone.effort" = "努力度";
 "benchmark.detail.why_title" = "この日が特別な理由";

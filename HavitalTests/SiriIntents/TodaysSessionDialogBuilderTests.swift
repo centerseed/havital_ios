@@ -56,7 +56,8 @@ extension DailyStateCard {
             divergenceFlagText: nil,
             isPaid: false,
             isLocked: false,
-            upsellReason: nil
+            upsellReason: nil,
+            benchmarkCalibration: nil
         )
     }
 }

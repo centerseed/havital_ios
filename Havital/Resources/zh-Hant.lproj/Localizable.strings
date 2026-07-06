@@ -3740,6 +3740,12 @@
 "benchmark.calib.lag_notice" = "課表配速會在 2-3 週逐步反映（系統刻意不追單週起伏）。";
 "benchmark.calib.toggle" = "採用這次校準";
 "benchmark.calib.toggle_hint" = "看完差異後主動勾選才套用。";
+/* T-0142 指標跑當日即時校準卡 */
+"benchmark.today.title" = "指標跑校準";
+"benchmark.today.headline" = "你今天的指標跑可以校準完賽預估。";
+"benchmark.today.apply" = "套用";
+"benchmark.today.later" = "稍後";
+"benchmark.today.schedule_next" = "預約下次指標跑";
 
 "training.zone.effort" = "努力程度";
 "benchmark.detail.why_title" = "為什麼這天特別";

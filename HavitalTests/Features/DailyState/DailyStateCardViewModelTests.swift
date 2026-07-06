@@ -15,7 +15,8 @@ final class DailyStateCardViewModelTests: XCTestCase {
             narrativeText: locked ? nil : "n", chips: ["c"], causeChips: [],
             mileageProgression: nil,
             actionLine: "12K easy", rizoScenario: nil, divergenceFlagText: nil,
-            isPaid: !locked, isLocked: locked, upsellReason: locked ? "unlock_full_read" : nil)
+            isPaid: !locked, isLocked: locked, upsellReason: locked ? "unlock_full_read" : nil,
+            benchmarkCalibration: nil)
     }
 
     func test_load_success_sets_loaded() async {

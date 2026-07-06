@@ -16,6 +16,8 @@ struct StateCardDTO: Codable {
     let action: ActionDTO?
     let divergence: DivergenceDTO?
     let access: AccessDTO
+    /// T-0142 指標跑當日即時校準卡(偵測到今天合格全力跑才有值,否則 nil)。
+    let benchmarkCalibration: BenchmarkCalibrationDTO?
 
     enum CodingKeys: String, CodingKey {
         case lens, source, headline, chips, action, divergence, access
@@ -23,6 +25,47 @@ struct StateCardDTO: Codable {
         case narrativeText = "narrative_text"
         case causeChips = "cause_chips"
         case mileageProgression = "mileage_progression"
+        case benchmarkCalibration = "benchmark_calibration"
+    }
+
+    // MARK: - BenchmarkCalibrationDTO (T-0142)
+    /// `benchmark_calibration` payload。calibration_preview 巢狀(對映後端);mapper 攤平成
+    /// 既有 BenchmarkCalibrationPayload 給 BenchmarkCalibrationCard 渲染。
+    struct BenchmarkCalibrationDTO: Codable {
+        let workoutId: String?
+        let workoutDate: String?
+        let distanceKm: Double?
+        let benchmarkDistanceM: Double?
+        let benchmarkDurationS: Double?
+        let overviewId: String?
+        let weekOfTraining: Int?
+        let calibrationPreview: PreviewDTO?
+        let shouldHedge: Bool?
+        let canScheduleNext: Bool?
+        enum CodingKeys: String, CodingKey {
+            case workoutId = "workout_id"
+            case workoutDate = "workout_date"
+            case distanceKm = "distance_km"
+            case benchmarkDistanceM = "benchmark_distance_m"
+            case benchmarkDurationS = "benchmark_duration_s"
+            case overviewId = "overview_id"
+            case weekOfTraining = "week_of_training"
+            case calibrationPreview = "calibration_preview"
+            case shouldHedge = "should_hedge"
+            case canScheduleNext = "can_schedule_next"
+        }
+        struct PreviewDTO: Codable {
+            let raceTimeBeforeS: Int?
+            let raceTimeAfterS: Int?
+            let vdotBefore: Double?
+            let vdotAfter: Double?
+            enum CodingKeys: String, CodingKey {
+                case raceTimeBeforeS = "race_time_before_s"
+                case raceTimeAfterS = "race_time_after_s"
+                case vdotBefore = "vdot_before"
+                case vdotAfter = "vdot_after"
+            }
+        }
     }
 
     struct ActionDTO: Codable {

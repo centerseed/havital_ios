@@ -19,6 +19,22 @@ struct DailyStateCard: Equatable {
     let isPaid: Bool
     let isLocked: Bool
     let upsellReason: String?
+    /// T-0142 指標跑當日即時校準(偵測到今天合格全力跑才有值)。
+    let benchmarkCalibration: SameDayBenchmarkCalibration?
 
     var hasChip: Bool { !chips.isEmpty }
+}
+
+// MARK: - SameDayBenchmarkCalibration (T-0142)
+/// 今日校準卡的 domain entity:渲染用 payload + apply 動作所需欄位。
+struct SameDayBenchmarkCalibration: Equatable {
+    let workoutId: String
+    let workoutDate: String
+    let benchmarkDistanceM: Double
+    let benchmarkDurationS: Double
+    let overviewId: String        // apply → confirm 寫 registry overview_id
+    let weekOfTraining: Int       // schedule-next → 算目標週(current+2)
+    let canScheduleNext: Bool
+    /// 複用既有 BenchmarkCalibrationCard 的 payload(before/after 完賽時間 + VDOT)。
+    let payload: BenchmarkCalibrationPayload
 }

@@ -3699,6 +3699,12 @@
 "benchmark.calib.lag_notice" = "Training paces will phase in over 2-3 weeks (the system deliberately ignores single-week swings).";
 "benchmark.calib.toggle" = "Apply this calibration";
 "benchmark.calib.toggle_hint" = "Review the change, then tick to apply.";
+/* T-0142 same-day benchmark calibration card */
+"benchmark.today.title" = "Benchmark calibration";
+"benchmark.today.headline" = "Today's benchmark run can recalibrate your race prediction.";
+"benchmark.today.apply" = "Apply";
+"benchmark.today.later" = "Later";
+"benchmark.today.schedule_next" = "Schedule next benchmark";
 
 "training.zone.effort" = "Effort";
 "benchmark.detail.why_title" = "Why this day matters";
