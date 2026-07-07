@@ -4,7 +4,7 @@ import XCTest
 @MainActor
 final class EditScheduleV2ViewModelFartlekTests: XCTestCase {
 
-    func test_reorderedRun_preservesClimateMetaFromSourceDay() throws {
+    func test_reorderedRun_preservesClimateMetaForDestinationDate() throws {
         let sourceClimate = ClimateMeta(
             feelsLikeTempC: 32,
             heatPressureLevel: "high",
@@ -30,12 +30,12 @@ final class EditScheduleV2ViewModelFartlekTests: XCTestCase {
         let dto = vm.debug_buildDayDetailDTO(from: movedDay)
 
         XCTAssertEqual(dto.dayIndex, 4)
-        XCTAssertEqual(dto.climateMeta?.heatPressureLevel, "high")
+        XCTAssertEqual(dto.climateMeta?.heatPressureLevel, "mild")
         guard case .run(let run) = dto.primary else {
             return XCTFail("Expected run primary")
         }
-        XCTAssertEqual(run.climateMeta?.heatPressureLevel, "high")
-        XCTAssertEqual(run.climateAdjustedPace, "6:03")
+        XCTAssertEqual(run.climateMeta?.heatPressureLevel, "mild")
+        XCTAssertEqual(run.climateAdjustedPace, "5:37")
     }
 
     func test_fartlekSegmentPaceChange_reflectedInDayDetailDTO() throws {
