@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct StrengthCompletionSheet: View {
+    @Environment(\.dismiss) private var dismiss
     @StateObject var viewModel: StrengthCompletionViewModel
     var onClose: () -> Void
 
@@ -30,7 +31,7 @@ struct StrengthCompletionSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(NSLocalizedString("common.close", comment: "關閉")) { onClose() }
+                    Button(NSLocalizedString("common.close", comment: "關閉")) { closeSheet() }
                 }
             }
             .alert(isPresented: Binding(get: { isError }, set: { _ in })) {
@@ -171,17 +172,26 @@ struct StrengthCompletionSheet: View {
                     .font(AppFont.bodyRegular())
             }
             Spacer()
-            Button(NSLocalizedString("common.done", comment: "完成")) { onClose() }
-                .frame(maxWidth: .infinity, minHeight: 50)
-                .foregroundColor(.white)
-                .background(PacerizColor.blue)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .padding(16)
+            Button {
+                closeSheet()
+            } label: {
+                Text(NSLocalizedString("common.done", comment: "完成"))
+                    .frame(maxWidth: .infinity, minHeight: 50)
+                    .foregroundColor(.white)
+                    .background(PacerizColor.blue)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+            .padding(16)
         }
         .padding()
     }
 
     // MARK: - Helpers
+
+    private func closeSheet() {
+        dismiss()
+        onClose()
+    }
 
     private func strengthTypeName(_ t: String) -> String {
         NSLocalizedString("training.strength_type.\(t)", comment: "")
