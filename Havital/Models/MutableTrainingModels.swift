@@ -109,6 +109,7 @@ struct MutableWeeklyPlan {
 struct MutableTrainingDay: Identifiable, Equatable {
     var id: String { dayIndex }
     var dayIndex: String
+    var originalDayIndex: Int?
     var dayTarget: String
     var reason: String?
     var tips: String?
@@ -123,6 +124,7 @@ struct MutableTrainingDay: Identifiable, Equatable {
     /// 從 TrainingDay 初始化
     init(from day: TrainingDay) {
         self.dayIndex = day.dayIndex
+        self.originalDayIndex = Int(day.dayIndex)
         self.dayTarget = day.dayTarget
         self.reason = day.reason
         self.tips = day.tips
@@ -135,6 +137,7 @@ struct MutableTrainingDay: Identifiable, Equatable {
     /// V2 支援：從 DayDetail 初始化（使用 V1 兼容層）
     init(from day: DayDetail) {
         self.dayIndex = "\(day.dayIndex)"
+        self.originalDayIndex = day.dayIndex
         self.dayTarget = day.dayTarget
         self.reason = day.reason
         self.tips = day.tips
@@ -206,6 +209,7 @@ struct MutableTrainingDay: Identifiable, Equatable {
     /// 自定義初始化
     init(dayIndex: String, dayTarget: String, trainingType: String, trainingDetails: MutableTrainingDetails?, warmup: RunSegment? = nil, cooldown: RunSegment? = nil, strengthExercises: [Exercise]? = nil, strengthType: String? = nil) {
         self.dayIndex = dayIndex
+        self.originalDayIndex = Int(dayIndex)
         self.dayTarget = dayTarget
         self.trainingType = trainingType
         self.tips = nil

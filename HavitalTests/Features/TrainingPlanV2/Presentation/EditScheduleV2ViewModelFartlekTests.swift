@@ -4,6 +4,40 @@ import XCTest
 @MainActor
 final class EditScheduleV2ViewModelFartlekTests: XCTestCase {
 
+    func test_reorderedRun_preservesClimateMetaFromSourceDay() throws {
+        let sourceClimate = ClimateMeta(
+            feelsLikeTempC: 32,
+            heatPressureLevel: "high",
+            paceAdjustmentPct: 10,
+            reasonText: "source heat",
+            longRunReductionPct: nil
+        )
+        let destinationClimate = ClimateMeta(
+            feelsLikeTempC: 24,
+            heatPressureLevel: "mild",
+            paceAdjustmentPct: 2,
+            reasonText: "destination heat",
+            longRunReductionPct: nil
+        )
+        let sourceDay = makeRunDay(dayIndex: 2, target: "Easy", climateMeta: sourceClimate)
+        let destinationDay = makeRunDay(dayIndex: 4, target: "Tempo", climateMeta: destinationClimate)
+        let plan = makeWeeklyPlan(days: [sourceDay, destinationDay])
+        let vm = EditScheduleV2ViewModel(weeklyPlan: plan, repository: MockTrainingPlanV2Repository())
+
+        var movedDay = MutableTrainingDay(from: sourceDay)
+        movedDay.dayIndex = "4"
+
+        let dto = vm.debug_buildDayDetailDTO(from: movedDay)
+
+        XCTAssertEqual(dto.dayIndex, 4)
+        XCTAssertEqual(dto.climateMeta?.heatPressureLevel, "high")
+        guard case .run(let run) = dto.primary else {
+            return XCTFail("Expected run primary")
+        }
+        XCTAssertEqual(run.climateMeta?.heatPressureLevel, "high")
+        XCTAssertEqual(run.climateAdjustedPace, "6:03")
+    }
+
     func test_fartlekSegmentPaceChange_reflectedInDayDetailDTO() throws {
         let segments = [
             MutableProgressionSegment(distanceKm: 3.0, pace: "5:30", description: "Fast segment"),
@@ -178,6 +212,65 @@ final class EditScheduleV2ViewModelFartlekTests: XCTestCase {
             mileageProgressionNote: nil,
             coachNote: nil,
             days: [day],
+            intensityTotalMinutes: nil,
+            currentVdot: 45,
+            vdotSource: nil,
+            createdAt: nil,
+            updatedAt: nil,
+            trainingLoadAnalysis: nil,
+            personalizedRecommendations: nil,
+            realTimeAdjustments: nil,
+            apiVersion: "2.0"
+        )
+    }
+
+    private func makeRunDay(dayIndex: Int, target: String, climateMeta: ClimateMeta) -> DayDetail {
+        let runActivity = RunActivity(
+            runType: "easy",
+            distanceKm: 5.0,
+            distanceDisplay: nil,
+            distanceUnit: nil,
+            paceUnit: nil,
+            durationMinutes: nil,
+            durationSeconds: nil,
+            pace: "5:30",
+            basePace: "5:30",
+            climateAdjustedPace: "6:03",
+            heartRateRange: nil,
+            interval: nil,
+            segments: nil,
+            description: target,
+            targetIntensity: nil,
+            climateMeta: climateMeta
+        )
+        return DayDetail(
+            dayIndex: dayIndex,
+            dayTarget: target,
+            reason: "",
+            tips: nil,
+            category: .run,
+            climateMeta: climateMeta,
+            session: TrainingSession(warmup: nil, primary: .run(runActivity), cooldown: nil, supplementary: nil),
+            supplementary: nil
+        )
+    }
+
+    private func makeWeeklyPlan(days: [DayDetail]) -> WeeklyPlanV2 {
+        WeeklyPlanV2(
+            planId: "plan_reorder",
+            weekOfTraining: 2,
+            id: "plan_reorder",
+            purpose: "test",
+            weekOfPlan: 2,
+            totalWeeks: 12,
+            totalDistance: 10,
+            totalDistanceDisplay: nil,
+            totalDistanceUnit: nil,
+            totalDistanceReason: nil,
+            designReason: nil,
+            mileageProgressionNote: nil,
+            coachNote: nil,
+            days: days,
             intensityTotalMinutes: nil,
             currentVdot: 45,
             vdotSource: nil,

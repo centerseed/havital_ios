@@ -439,7 +439,8 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
     }
 
     private func originalDay(for day: MutableTrainingDay) -> DayDetail? {
-        weeklyPlan.days.first { $0.dayIndex == day.dayIndexInt }
+        let sourceDayIndex = day.originalDayIndex ?? day.dayIndexInt
+        return weeklyPlan.days.first { $0.dayIndex == sourceDayIndex }
     }
 
     private func shouldPreserveRunClimate(
