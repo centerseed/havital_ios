@@ -1621,6 +1621,8 @@
 "edit_schedule.loading_data" = "編集データを読み込み中...";
 "edit_schedule.unsaved_changes" = "未保存の変更";
 "edit_schedule.unsaved_changes_message" = "未保存の変更があります。破棄してもよろしいですか？";
+"edit_schedule.save_failed_message" = "週間プランを同期できませんでした。しばらくしてから再度お試しください。";
+"edit_schedule.tap_toolbar_save_to_sync" = "変更は一時保存されました。右上の保存をタップしてクラウドに同期してください。";
 "edit_schedule.discard_changes" = "変更を破棄";
 
 // MARK: - Edit Value Dialogs
@@ -3936,6 +3938,7 @@
 "schedule_editor.segment.equal_time_recovery" = "同時間の回復";
 "schedule_editor.segment.rest_in_place_minutes" = "その場で%d分休憩";
 "schedule_editor.segment.recovery_run_minutes" = "%d分のリカバリージョグ";
+"schedule_editor.segment.number_format" = "第 %d 区間";
 "schedule_editor.minutes_format" = "%d分";
 
 // MARK: - Schedule Editor V1 補足 (T-0048: EditScheduleView 固有の詳細/セグメント)

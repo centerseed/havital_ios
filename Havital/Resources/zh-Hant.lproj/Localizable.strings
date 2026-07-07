@@ -1636,6 +1636,8 @@
 "edit_schedule.discard_changes" = "放棄變更";
 "edit_schedule.unsaved_changes" = "未儲存的變更";
 "edit_schedule.unsaved_changes_message" = "您有未儲存的變更，確定要放棄嗎？";
+"edit_schedule.save_failed_message" = "無法同步週課表，請稍後再試。";
+"edit_schedule.tap_toolbar_save_to_sync" = "變更已暫存，請點右上角儲存以同步到雲端";
 
 // MARK: - Edit Value Dialogs
 "edit_value.distance_title" = "編輯距離";
@@ -3980,6 +3982,7 @@
 "schedule_editor.segment.equal_time_recovery" = "等時恢復";
 "schedule_editor.segment.rest_in_place_minutes" = "原地休息 %d 分鐘";
 "schedule_editor.segment.recovery_run_minutes" = "恢復跑 %d 分鐘";
+"schedule_editor.segment.number_format" = "第 %d 段";
 "schedule_editor.minutes_format" = "%d 分鐘";
 
 // MARK: - Schedule Editor V1 補充（T-0048：EditScheduleView 獨有詳述/segment）

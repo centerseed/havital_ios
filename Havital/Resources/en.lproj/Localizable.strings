@@ -1622,6 +1622,8 @@
 "edit_schedule.loading_data" = "Loading edit data...";
 "edit_schedule.unsaved_changes" = "Unsaved Changes";
 "edit_schedule.unsaved_changes_message" = "You have unsaved changes. Are you sure you want to discard them?";
+"edit_schedule.save_failed_message" = "Could not sync your weekly plan. Please try again later.";
+"edit_schedule.tap_toolbar_save_to_sync" = "Changes saved locally. Tap Save in the top-right to sync to the cloud.";
 "edit_schedule.discard_changes" = "Discard Changes";
 
 // MARK: - Edit Value Dialogs
@@ -3939,6 +3941,7 @@
 "schedule_editor.segment.equal_time_recovery" = "Equal-time recovery";
 "schedule_editor.segment.rest_in_place_minutes" = "Rest in place for %d min";
 "schedule_editor.segment.recovery_run_minutes" = "Recovery jog for %d min";
+"schedule_editor.segment.number_format" = "Segment %d";
 "schedule_editor.minutes_format" = "%d min";
 
 // MARK: - Schedule Editor V1 supplement (T-0048: EditScheduleView-only details/segments)

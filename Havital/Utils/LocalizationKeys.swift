@@ -1510,6 +1510,8 @@ extension L10n {
 
         // Additional
         static let saveFailed = "edit_schedule.save_failed" // "保存失敗"
+        static let saveFailedMessage = "edit_schedule.save_failed_message" // "無法同步週課表，請稍後再試。"
+        static let tapToolbarSaveToSync = "edit_schedule.tap_toolbar_save_to_sync" // "變更已暫存，請點右上角儲存以同步到雲端"
         static let restInPlace = "edit_schedule.rest_in_place" // "原地休息"
         static let dragging = "edit_schedule.dragging" // "拖曳中..."
         static let dragToTarget = "edit_schedule.drag_to_target" // "拖曳到目標位置"
