@@ -387,8 +387,13 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
     func applyAdjustmentItems(weekOfPlan: Int, appliedIndices: [Int]) async throws {
         Logger.debug("[TrainingPlanV2RemoteDS] Applying \(appliedIndices.count) adjustment items for week \(weekOfPlan)")
         let request = ApplyAdjustmentItemsRequest(weekOfPlan: weekOfPlan, appliedIndices: appliedIndices)
-        _ = try await tracked("TrainingPlanV2RemoteDataSource: applyAdjustmentItems") {
-            try await apiHelper.post(ApplyAdjustmentItemsResponseDTO.self, path: "/v2/summary/weekly/apply-items", body: request)
+        let bodyData = try JSONEncoder().encode(request)
+        try await tracked("TrainingPlanV2RemoteDataSource: applyAdjustmentItems") {
+            try await apiHelper.callNoResponse(
+                path: "/v2/summary/weekly/apply-items",
+                method: .POST,
+                body: bodyData
+            )
         }
         Logger.info("[TrainingPlanV2RemoteDS] ✅ Adjustment items applied for week \(weekOfPlan)")
     }
