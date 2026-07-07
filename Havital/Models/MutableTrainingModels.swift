@@ -338,10 +338,10 @@ struct MutableProgressionSegment: Identifiable, Equatable {
     }
 
     static func == (lhs: MutableProgressionSegment, rhs: MutableProgressionSegment) -> Bool {
-        return lhs.id == rhs.id &&
-               lhs.distanceKm == rhs.distanceKm &&
+        return lhs.distanceKm == rhs.distanceKm &&
                lhs.pace == rhs.pace &&
-               lhs.description == rhs.description
+               lhs.description == rhs.description &&
+               lhs.heartRateRange == rhs.heartRateRange
     }
 }
 

@@ -393,6 +393,8 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
                     heartRateRange: originalSegment?.heartRateRange.map { TrainingSessionMapper.toDTO(from: $0) },
                     intensity: originalSegment?.intensity,
                     description: seg.description
+                        ?? originalSegment?.description
+                        ?? String(format: NSLocalizedString("schedule_editor.segment.number_format", comment: ""), index + 1)
                 )
             }
             return RunActivityDTO(
@@ -524,6 +526,14 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
         return String(format: "%d:%02d", roundedSeconds / 60, roundedSeconds % 60)
     }
 }
+
+#if DEBUG
+extension EditScheduleV2ViewModel {
+    func debug_buildDayDetailDTO(from day: MutableTrainingDay) -> DayDetailDTO {
+        buildDayDetailDTO(from: day)
+    }
+}
+#endif
 
 // MARK: - DayType → API runType mapping
 
