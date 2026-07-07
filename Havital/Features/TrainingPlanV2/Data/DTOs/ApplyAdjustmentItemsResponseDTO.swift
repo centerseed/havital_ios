@@ -2,7 +2,7 @@ import Foundation
 
 /// Response DTO for POST /v2/summary/weekly/apply-items (data field)
 struct ApplyAdjustmentItemsResponseDTO: Codable {
-    let appliesToWeek: Int
+    let appliesToWeek: Int?
     let skippedItems: [SkippedAdjustmentItemDTO]
 
     enum CodingKeys: String, CodingKey {
@@ -13,5 +13,10 @@ struct ApplyAdjustmentItemsResponseDTO: Codable {
 
 struct SkippedAdjustmentItemDTO: Codable {
     let index: Int
-    let content: String
+    let content: String?
+    let reason: String?
+
+    var displayText: String {
+        content ?? reason ?? ""
+    }
 }

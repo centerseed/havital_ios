@@ -14,23 +14,19 @@ final class ApplyAdjustmentItemsResponseDTOTests: XCTestCase {
         return try JSONDecoder().decode(Envelope.self, from: data).data
     }
 
-    func test_decodeMissingAppliesToWeek_failsWithCurrentDTO() {
+    func test_decodeMissingAppliesToWeek_succeedsWithOptionalField() throws {
         let json = """
         {"skipped_items":[],"applied_items":[]}
         """
-        XCTAssertThrowsError(try decodeDataField(json)) { error in
-            guard case DecodingError.keyNotFound(let key, _) = error else {
-                return XCTFail("Expected keyNotFound, got \(error)")
-            }
-            XCTAssertEqual(key.stringValue, "applies_to_week")
-        }
+        let dto = try decodeDataField(json)
+        XCTAssertNil(dto.appliesToWeek)
     }
 
     func test_decodeBeginnerSkippedItems_withReasonField() throws {
         let json = """
         {"applies_to_week":9,"skipped_items":[{"index":0,"reason":"beginner_engine_controlled"}],"applied_items":[]}
         """
-        // 現行 DTO 缺 content → 此測試也應 RED，Task A4 一併修
-        XCTAssertThrowsError(try decodeDataField(json))
+        let dto = try decodeDataField(json)
+        XCTAssertEqual(dto.skippedItems[0].reason, "beginner_engine_controlled")
     }
 }
