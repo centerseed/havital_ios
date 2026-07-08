@@ -1708,6 +1708,9 @@
 "workout.share.card.edit_title" = "タイトルを編集";
 "workout.share.card.add_photo" = "写真を追加";
 "workout.share.card.change_photo" = "写真を変更";
+"workout.share.add.title" = "＋タイトル";
+"workout.share.add.pace_chart" = "＋ペース曲線";
+"workout.share.add.route" = "＋ルート";
 "workout.share.tip.title" = "シェアカードでできること 👋";
 "workout.share.tip.feature_title" = "タイトルをタップして編集できます";
 "workout.share.tip.feature_photo" = "写真をタップして背景を変更できます";

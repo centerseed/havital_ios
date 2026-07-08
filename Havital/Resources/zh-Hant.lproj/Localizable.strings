@@ -1782,6 +1782,9 @@
 "workout.share.card.edit_title" = "編輯標題";
 "workout.share.card.add_photo" = "加入照片";
 "workout.share.card.change_photo" = "換照片";
+"workout.share.add.title" = "＋標題";
+"workout.share.add.pace_chart" = "＋配速曲線";
+"workout.share.add.route" = "＋路線";
 "workout.share.tip.title" = "分享卡片有這些功能 👋";
 "workout.share.tip.feature_title" = "點標題就能改文字";
 "workout.share.tip.feature_photo" = "點照片可更換背景圖";

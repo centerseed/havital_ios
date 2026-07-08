@@ -1709,6 +1709,9 @@
 "workout.share.card.edit_title" = "Edit Title";
 "workout.share.card.add_photo" = "Add Photo";
 "workout.share.card.change_photo" = "Change Photo";
+"workout.share.add.title" = "+ Title";
+"workout.share.add.pace_chart" = "+ Pace chart";
+"workout.share.add.route" = "+ Route";
 "workout.share.tip.title" = "Your share card can do this 👋";
 "workout.share.tip.feature_title" = "Tap the title to edit the text";
 "workout.share.tip.feature_photo" = "Tap the photo to change the background";
