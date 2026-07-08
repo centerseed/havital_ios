@@ -34,6 +34,52 @@ struct WorkoutV2: Codable, Identifiable, Hashable {
     let dailyPlanSummary: DailyPlanSummary?
     let aiSummary: AISummary?
     let shareCardContent: ShareCardContent?  // 分享卡內容 (optional,向後兼容)
+    let timeSeries: V2TimeSeries?
+    let routeData: V2RouteData?
+
+    init(
+        id: String,
+        provider: String,
+        activityType: String,
+        startTimeUtc: String?,
+        endTimeUtc: String?,
+        durationSeconds: Int,
+        distanceMeters: Double?,
+        distanceDisplay: Double?,
+        distanceUnit: String?,
+        deviceName: String?,
+        basicMetrics: BasicMetrics?,
+        advancedMetrics: AdvancedMetrics?,
+        createdAt: String?,
+        schemaVersion: String?,
+        storagePath: String?,
+        dailyPlanSummary: DailyPlanSummary?,
+        aiSummary: AISummary?,
+        shareCardContent: ShareCardContent?,
+        timeSeries: V2TimeSeries? = nil,
+        routeData: V2RouteData? = nil
+    ) {
+        self.id = id
+        self.provider = provider
+        self.activityType = activityType
+        self.startTimeUtc = startTimeUtc
+        self.endTimeUtc = endTimeUtc
+        self.durationSeconds = durationSeconds
+        self.distanceMeters = distanceMeters
+        self.distanceDisplay = distanceDisplay
+        self.distanceUnit = distanceUnit
+        self.deviceName = deviceName
+        self.basicMetrics = basicMetrics
+        self.advancedMetrics = advancedMetrics
+        self.createdAt = createdAt
+        self.schemaVersion = schemaVersion
+        self.storagePath = storagePath
+        self.dailyPlanSummary = dailyPlanSummary
+        self.aiSummary = aiSummary
+        self.shareCardContent = shareCardContent
+        self.timeSeries = timeSeries
+        self.routeData = routeData
+    }
 
     enum CodingKeys: String, CodingKey {
         case id, provider
@@ -53,6 +99,8 @@ struct WorkoutV2: Codable, Identifiable, Hashable {
         case dailyPlanSummary = "daily_plan_summary"
         case aiSummary = "ai_summary"
         case shareCardContent = "share_card_content"
+        case timeSeries = "time_series"
+        case routeData = "route_data"
     }
     
     // MARK: - Convenience Properties
