@@ -1785,6 +1785,13 @@
 "workout.share.add.title" = "＋標題";
 "workout.share.add.pace_chart" = "＋配速曲線";
 "workout.share.add.route" = "＋路線";
+"workout.share.route.smaller" = "縮小路線";
+"workout.share.route.larger" = "放大路線";
+"workout.share.route.color.brand" = "品牌藍";
+"workout.share.route.color.white" = "白色";
+"workout.share.route.color.green" = "綠色";
+"workout.share.route.color.gold" = "金色";
+"workout.share.route.color.peach" = "蜜桃色";
 "workout.share.tip.title" = "分享卡片有這些功能 👋";
 "workout.share.tip.feature_title" = "點標題就能改文字";
 "workout.share.tip.feature_photo" = "點照片可更換背景圖";

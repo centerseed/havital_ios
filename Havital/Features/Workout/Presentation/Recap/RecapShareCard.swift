@@ -260,7 +260,7 @@ struct RecapShareCard: View {
             positionedOverlay(
                 layout: editorState.titleLayout,
                 cardSize: cardSize,
-                cornerRadius: 8
+                showsEditBorder: false
             ) {
                 Text(title)
                     .font(.system(size: 22, weight: .bold))
@@ -276,7 +276,7 @@ struct RecapShareCard: View {
             positionedOverlay(
                 layout: editorState.paceChartLayout,
                 cardSize: cardSize,
-                cornerRadius: 8
+                showsEditBorder: false
             ) {
                 ShareCardPaceChartView(
                     samples: canvasData.paceSamples,
@@ -289,11 +289,13 @@ struct RecapShareCard: View {
             positionedOverlay(
                 layout: editorState.routeLayout,
                 cardSize: cardSize,
-                cornerRadius: 4
+                showsEditBorder: false
             ) {
                 ShareCardRouteGlyphView(
                     points: canvasData.routePoints,
-                    cardWidth: cardSize.width
+                    cardWidth: cardSize.width,
+                    routeColor: editorState.routeColor,
+                    routeScale: editorState.routeScale
                 )
             }
         }
@@ -303,12 +305,13 @@ struct RecapShareCard: View {
     private func positionedOverlay<Content: View>(
         layout: ShareCardElementLayout,
         cardSize: CGSize,
-        cornerRadius: CGFloat,
+        cornerRadius: CGFloat = 8,
+        showsEditBorder: Bool = true,
         @ViewBuilder content: () -> Content
     ) -> some View {
         content()
             .overlay {
-                if showEditChrome, layout.isVisible {
+                if showEditChrome, showsEditBorder, layout.isVisible {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                         .strokeBorder(Color.white, lineWidth: 1)
                 }

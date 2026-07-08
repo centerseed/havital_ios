@@ -34,6 +34,14 @@ enum ShareCardEditorLogic {
         assignLayout(layout, kind: kind, state: &state)
     }
 
+    static func setRouteColor(_ color: ShareCardRouteColor, state: inout ShareCardEditorState) {
+        state.routeColor = color
+    }
+
+    static func adjustRouteScale(delta: CGFloat, state: inout ShareCardEditorState) {
+        state.routeScale = ShareCardLayoutMath.clampRouteScale(state.routeScale + delta)
+    }
+
     static func layout(kind: ShareCardOverlayKind, in state: ShareCardEditorState) -> ShareCardElementLayout {
         switch kind {
         case .title: return state.titleLayout

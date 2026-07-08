@@ -9,8 +9,8 @@ enum ShareCardRouteMath {
         count > 100
     }
 
-    static func squareSize(cardWidth: CGFloat) -> CGFloat {
-        cardWidth / 6
+    static func squareSize(cardWidth: CGFloat, scale: CGFloat = 1.0) -> CGFloat {
+        (cardWidth / 6) * ShareCardLayoutMath.clampRouteScale(scale)
     }
 
     static func normalizedPoints(
@@ -99,9 +99,11 @@ enum ShareCardRouteMath {
 struct ShareCardRouteGlyphView: View {
     let points: [ShareCardRoutePoint]
     let cardWidth: CGFloat
+    var routeColor: ShareCardRouteColor = .brand
+    var routeScale: CGFloat = 1.0
 
     private var square: CGSize {
-        let side = ShareCardRouteMath.squareSize(cardWidth: cardWidth)
+        let side = ShareCardRouteMath.squareSize(cardWidth: cardWidth, scale: routeScale)
         return CGSize(width: side, height: side)
     }
 
@@ -120,7 +122,7 @@ struct ShareCardRouteGlyphView: View {
             let routePath = ShareCardRouteMath.routePath(from: normalized)
             context.stroke(
                 routePath,
-                with: .color(.white.opacity(0.85)),
+                with: .color(routeColor.strokeColor),
                 style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round)
             )
 
@@ -133,7 +135,7 @@ struct ShareCardRouteGlyphView: View {
                 )
                 context.fill(
                     Path(ellipseIn: startRect),
-                    with: .color(Color(red: 0.463, green: 0.784, blue: 0.576))
+                    with: .color(routeColor.startMarkerColor)
                 )
             }
 
@@ -146,7 +148,7 @@ struct ShareCardRouteGlyphView: View {
                 )
                 context.fill(
                     Path(ellipseIn: endRect),
-                    with: .color(RecapPalette.peach)
+                    with: .color(routeColor.endMarkerColor)
                 )
             }
         }

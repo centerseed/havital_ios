@@ -208,8 +208,52 @@ struct TrainingTypeInfo {
                 role: NSLocalizedString("training_type_info.yasso_800.role", comment: "特別適合馬拉松準備期，每週進行 1 次。是馬拉松訓練中最具預測性的課程。也常在其他距離賽事準備期使用以提升速度。")
             )
 
+        case .benchmark:
+            return TrainingTypeInfo(
+                icon: "📊",
+                title: NSLocalizedString("training_type_info.benchmark.title", comment: "指標跑"),
+                howToRun: NSLocalizedString("training_type_info.benchmark.how_to_run", comment: ""),
+                whyRun: NSLocalizedString("training_type_info.benchmark.why_run", comment: ""),
+                logic: NSLocalizedString("training_type_info.benchmark.logic", comment: ""),
+                role: NSLocalizedString("training_type_info.benchmark.role", comment: "")
+            )
+
+        case .progression:
+            return TrainingTypeInfo(
+                icon: "📈",
+                title: NSLocalizedString("training_type_info.progression.title", comment: "漸進跑"),
+                howToRun: NSLocalizedString("training_type_info.progression.how_to_run", comment: ""),
+                whyRun: NSLocalizedString("training_type_info.progression.why_run", comment: ""),
+                logic: NSLocalizedString("training_type_info.progression.logic", comment: ""),
+                role: NSLocalizedString("training_type_info.progression.role", comment: "")
+            )
+
+        case .race:
+            return TrainingTypeInfo(
+                icon: "🏆",
+                title: NSLocalizedString("training_type_info.race.title", comment: "比賽"),
+                howToRun: NSLocalizedString("training_type_info.race.how_to_run", comment: ""),
+                whyRun: NSLocalizedString("training_type_info.race.why_run", comment: ""),
+                logic: NSLocalizedString("training_type_info.race.logic", comment: ""),
+                role: NSLocalizedString("training_type_info.race.role", comment: "")
+            )
+
+        case .norwegianSingles:
+            return TrainingTypeInfo(
+                icon: "🇳🇴",
+                title: NSLocalizedString("training_type_info.norwegian_singles.title", comment: "挪威單次訓練"),
+                howToRun: NSLocalizedString("training_type_info.norwegian_singles.how_to_run", comment: ""),
+                whyRun: NSLocalizedString("training_type_info.norwegian_singles.why_run", comment: ""),
+                logic: NSLocalizedString("training_type_info.norwegian_singles.logic", comment: ""),
+                role: NSLocalizedString("training_type_info.norwegian_singles.role", comment: "")
+            )
+
         default:
             return nil
         }
+    }
+
+    static func hasInfo(for type: DayType) -> Bool {
+        info(for: type) != nil
     }
 }

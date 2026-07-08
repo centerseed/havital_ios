@@ -747,6 +747,8 @@ struct PlannedSessionDetailView: View {
             return nil  // easy runs typically no extra tip (climate section handles heat)
         case "interval", "shortInterval", "longInterval", "norwegian4x4", "yasso800", "strides", "hillRepeats":
             return WorkoutTip(icon: "⚠️", text: NSLocalizedString("tip.interval", value: "高強度日後請安排足夠睡眠與蛋白質補充", comment: "Interval tip"))
+        case "benchmark":
+            return WorkoutTip(icon: "🎯", text: NSLocalizedString("tip.benchmark", comment: "Benchmark pacing tip"))
         case "progression":
             return WorkoutTip(icon: "🌫️", text: NSLocalizedString("tip.progression", value: "前三分之一不要起太快，預留體力給最後一段", comment: "Progression tip"))
         case "fastFinish":
@@ -758,6 +760,8 @@ struct PlannedSessionDetailView: View {
                 return WorkoutTip(icon: "💧", text: NSLocalizedString("tip.lsd", value: "預計超過 60 分鐘，建議攜帶水分與能量補給", comment: "LSD tip"))
             case .interval, .shortInterval, .longInterval, .norwegian4x4, .yasso800, .strides, .hillRepeats:
                 return WorkoutTip(icon: "⚠️", text: NSLocalizedString("tip.interval", value: "高強度日後請安排足夠睡眠與蛋白質補充", comment: "Interval tip"))
+            case .benchmark:
+                return WorkoutTip(icon: "🎯", text: NSLocalizedString("tip.benchmark", comment: "Benchmark pacing tip"))
             case .progression:
                 return WorkoutTip(icon: "🌫️", text: NSLocalizedString("tip.progression", value: "前三分之一不要起太快，預留體力給最後一段", comment: "Progression tip"))
             case .fastFinish:
@@ -777,34 +781,37 @@ struct PlannedSessionDetailView: View {
 
     // MARK: - Secondary Buttons
 
+    @ViewBuilder
     private var secondaryButtons: some View {
-        // 「調整這一天」目前無功能，先移除避免誤導；保留「這是什麼訓練」資訊入口。
-        // The send-to-device CTA now lives in the hero card; only the info entry stays here.
-        VStack(spacing: 8) {
-            SecondaryActionButton(icon: "info.circle", label: String(format: NSLocalizedString("training.detail.what_is_type", comment: ""), workoutTypeName), action: { showTrainingTypeInfo = true })
-        }
-        // Scoped to this subtree so it never collides with the watch-transfer alert above.
-        .alert(NSLocalizedString("garmin.push.alert_title", comment: "Garmin"), isPresented: $garminVM.showAlert) {
-            if garminVM.offerReconnect {
-                Button(NSLocalizedString("garmin.push.reconnect", comment: "")) {
-                    Task { await GarminManager.shared.startConnection(force: true) }
+        if TrainingTypeInfo.hasInfo(for: day.type) {
+            // 「調整這一天」目前無功能，先移除避免誤導；保留「這是什麼訓練」資訊入口。
+            // The send-to-device CTA now lives in the hero card; only the info entry stays here.
+            VStack(spacing: 8) {
+                SecondaryActionButton(icon: "info.circle", label: String(format: NSLocalizedString("training.detail.what_is_type", comment: ""), workoutTypeName), action: { showTrainingTypeInfo = true })
+            }
+            // Scoped to this subtree so it never collides with the watch-transfer alert above.
+            .alert(NSLocalizedString("garmin.push.alert_title", comment: "Garmin"), isPresented: $garminVM.showAlert) {
+                if garminVM.offerReconnect {
+                    Button(NSLocalizedString("garmin.push.reconnect", comment: "")) {
+                        Task { await GarminManager.shared.startConnection(force: true) }
+                    }
+                    Button(NSLocalizedString("garmin.push.later", comment: ""), role: .cancel) { }
+                } else {
+                    Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
                 }
-                Button(NSLocalizedString("garmin.push.later", comment: ""), role: .cancel) { }
-            } else {
-                Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
+            } message: {
+                Text(garminVM.alertMessage ?? "")
             }
-        } message: {
-            Text(garminVM.alertMessage ?? "")
-        }
-        // T-0044: one-time hint — the imported workout lives under a Running
-        // activity on the watch, so users don't think the push failed.
-        .alert(NSLocalizedString("garmin.push.hint_title", comment: "Garmin"), isPresented: $garminVM.showPushHint) {
-            Button(NSLocalizedString("common.ok", comment: "OK")) { }
-            Button(NSLocalizedString("garmin.push.hint_dont_show_again", comment: "")) {
-                garminVM.dismissPushHintForever()
+            // T-0044: one-time hint — the imported workout lives under a Running
+            // activity on the watch, so users don't think the push failed.
+            .alert(NSLocalizedString("garmin.push.hint_title", comment: "Garmin"), isPresented: $garminVM.showPushHint) {
+                Button(NSLocalizedString("common.ok", comment: "OK")) { }
+                Button(NSLocalizedString("garmin.push.hint_dont_show_again", comment: "")) {
+                    garminVM.dismissPushHintForever()
+                }
+            } message: {
+                Text(NSLocalizedString("garmin.push.hint_message", comment: ""))
             }
-        } message: {
-            Text(NSLocalizedString("garmin.push.hint_message", comment: ""))
         }
     }
 

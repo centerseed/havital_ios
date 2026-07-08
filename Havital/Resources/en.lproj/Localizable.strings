@@ -1712,6 +1712,13 @@
 "workout.share.add.title" = "+ Title";
 "workout.share.add.pace_chart" = "+ Pace chart";
 "workout.share.add.route" = "+ Route";
+"workout.share.route.smaller" = "Smaller route";
+"workout.share.route.larger" = "Larger route";
+"workout.share.route.color.brand" = "Brand blue";
+"workout.share.route.color.white" = "White";
+"workout.share.route.color.green" = "Green";
+"workout.share.route.color.gold" = "Gold";
+"workout.share.route.color.peach" = "Peach";
 "workout.share.tip.title" = "Your share card can do this 👋";
 "workout.share.tip.feature_title" = "Tap the title to edit the text";
 "workout.share.tip.feature_photo" = "Tap the photo to change the background";

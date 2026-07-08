@@ -21,4 +21,19 @@ final class ShareCardEditorLogicTests: XCTestCase {
         XCTAssertEqual(state.paceChartLayout.centerX, 0.95, accuracy: 0.001)
         XCTAssertEqual(state.paceChartLayout.centerY, 0.05, accuracy: 0.001)
     }
+
+    func testAdjustRouteScale_clampsWithinBounds() {
+        var state = ShareCardEditorState.default
+        ShareCardEditorLogic.adjustRouteScale(delta: 10, state: &state)
+        XCTAssertEqual(state.routeScale, ShareCardLayoutMath.maxRouteScale, accuracy: 0.001)
+
+        ShareCardEditorLogic.adjustRouteScale(delta: -10, state: &state)
+        XCTAssertEqual(state.routeScale, ShareCardLayoutMath.minRouteScale, accuracy: 0.001)
+    }
+
+    func testSetRouteColor_updatesState() {
+        var state = ShareCardEditorState.default
+        ShareCardEditorLogic.setRouteColor(.gold, state: &state)
+        XCTAssertEqual(state.routeColor, .gold)
+    }
 }

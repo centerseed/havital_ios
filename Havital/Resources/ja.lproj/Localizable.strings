@@ -1711,6 +1711,13 @@
 "workout.share.add.title" = "＋タイトル";
 "workout.share.add.pace_chart" = "＋ペース曲線";
 "workout.share.add.route" = "＋ルート";
+"workout.share.route.smaller" = "ルートを小さく";
+"workout.share.route.larger" = "ルートを大きく";
+"workout.share.route.color.brand" = "ブランドブルー";
+"workout.share.route.color.white" = "白";
+"workout.share.route.color.green" = "緑";
+"workout.share.route.color.gold" = "ゴールド";
+"workout.share.route.color.peach" = "ピーチ";
 "workout.share.tip.title" = "シェアカードでできること 👋";
 "workout.share.tip.feature_title" = "タイトルをタップして編集できます";
 "workout.share.tip.feature_photo" = "写真をタップして背景を変更できます";

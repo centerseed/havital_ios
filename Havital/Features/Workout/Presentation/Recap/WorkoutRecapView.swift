@@ -278,7 +278,10 @@ struct WorkoutRecapView: View {
             }
 
             if editorState.routeLayout.isVisible, canvasData.hasRoute {
-                let side = ShareCardRouteMath.squareSize(cardWidth: cardSize.width)
+                let side = ShareCardRouteMath.squareSize(
+                    cardWidth: cardSize.width,
+                    scale: editorState.routeScale
+                )
                 overlayGestureTarget(
                     kind: .routeGlyph,
                     layout: editorState.routeLayout,

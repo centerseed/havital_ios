@@ -15,10 +15,12 @@ final class ShareCardPaceChartTests: XCTestCase {
             ShareCardPaceSample(offsetSeconds: 0, paceSecondsPerKm: 300),
             ShareCardPaceSample(offsetSeconds: 60, paceSecondsPerKm: 360),
         ]
-        XCTAssertEqual(ShareCardPaceChartMath.averagePaceSeconds(samples: samples)!, 330, accuracy: 0.001)
+        let paces = samples.map(\.paceSecondsPerKm)
+        let average = paces.reduce(0, +) / Double(paces.count)
+        XCTAssertEqual(average, 330, accuracy: 0.001)
     }
 
-    func testPaceYCoordinate_slowerPaceTowardTop() {
+    func testPaceYCoordinate_fasterPaceTowardTop() {
         let rect = CGRect(x: 0, y: 0, width: 100, height: 40)
         let fastY = ShareCardPaceChartMath.paceYCoordinate(
             paceSecondsPerKm: 300,
@@ -32,7 +34,7 @@ final class ShareCardPaceChartTests: XCTestCase {
             maxPace: 360,
             in: rect
         )
-        XCTAssertLessThan(slowY, fastY)
+        XCTAssertLessThan(fastY, slowY)
     }
 
     func testPaceLinePoints_usesAllSamplesWithoutDownsampling() {

@@ -4,19 +4,13 @@ import SwiftUI
 enum ShareCardPaceChartMath {
     private static let chartWidthFraction: CGFloat = 0.55
     private static let chartHeightFraction: CGFloat = 0.12
-    private static let linePadding: CGFloat = 6
+    static let linePadding: CGFloat = 6
 
     static func chartSize(cardSize: CGSize) -> CGSize {
         CGSize(
             width: cardSize.width * chartWidthFraction,
             height: cardSize.height * chartHeightFraction
         )
-    }
-
-    static func averagePaceSeconds(samples: [ShareCardPaceSample]) -> Double? {
-        guard !samples.isEmpty else { return nil }
-        let total = samples.reduce(0.0) { $0 + $1.paceSecondsPerKm }
-        return total / Double(samples.count)
     }
 
     static func paceYCoordinate(
@@ -27,7 +21,8 @@ enum ShareCardPaceChartMath {
     ) -> CGFloat {
         guard maxPace > minPace else { return rect.midY }
         let fraction = (paceSecondsPerKm - minPace) / (maxPace - minPace)
-        return rect.minY + (CGFloat(1.0 - fraction) * rect.height)
+        // Faster pace (smaller s/km) plots higher on the card.
+        return rect.minY + (CGFloat(fraction) * rect.height)
     }
 
     static func paceLinePoints(samples: [ShareCardPaceSample], in rect: CGRect) -> [CGPoint] {
@@ -90,28 +85,21 @@ struct ShareCardPaceChartView: View {
     let samples: [ShareCardPaceSample]
     let cardSize: CGSize
 
-    @ObservedObject private var unitManager = UnitManager.shared
-
     private var chartSize: CGSize {
         ShareCardPaceChartMath.chartSize(cardSize: cardSize)
     }
 
-    private var averagePaceText: String? {
-        guard let average = ShareCardPaceChartMath.averagePaceSeconds(samples: samples) else { return nil }
-        return unitManager.formatPace(secondsPerKm: average)
-    }
-
     var body: some View {
-        ZStack(alignment: .trailing) {
+        ZStack {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(Color.black.opacity(0.45))
 
             Canvas { context, size in
                 let rect = CGRect(
-                    x: 6,
-                    y: 6,
-                    width: max(0, size.width - 12),
-                    height: max(0, size.height - 12)
+                    x: ShareCardPaceChartMath.linePadding,
+                    y: ShareCardPaceChartMath.linePadding,
+                    width: max(0, size.width - ShareCardPaceChartMath.linePadding * 2),
+                    height: max(0, size.height - ShareCardPaceChartMath.linePadding * 2)
                 )
                 let path = ShareCardPaceChartMath.paceLinePath(samples: samples, in: rect)
                 context.stroke(
@@ -119,13 +107,6 @@ struct ShareCardPaceChartView: View {
                     with: .color(RecapPalette.brand),
                     style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
                 )
-            }
-
-            if let averagePaceText {
-                Text(averagePaceText)
-                    .font(.system(size: 11, weight: .semibold, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.9))
-                    .padding(.trailing, 8)
             }
         }
         .frame(width: chartSize.width, height: chartSize.height)
