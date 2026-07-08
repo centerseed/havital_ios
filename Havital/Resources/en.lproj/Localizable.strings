@@ -1716,6 +1716,7 @@
 "workout.share.tip.feature_title" = "Tap the title to edit the text";
 "workout.share.tip.feature_photo" = "Tap the photo to change the background";
 "workout.share.tip.feature_drag" = "Drag the photo to reframe it";
+"workout.share.tip.feature_overlays" = "Add pace chart and route overlays, then drag to reposition";
 "workout.share.tip.dismiss" = "Got it — don't show again";
 "workout.reflection.title" = "Workout Reflection";
 "workout.reflection.saveError" = "Save failed, please try again";

@@ -44,7 +44,7 @@ struct InterruptItem: Identifiable {
         case announcement(Announcement)
         case dataSourceBindingReminder
         case subscriptionReminder(SubscriptionReminder)
-        case workoutRecap(WorkoutRecapContent)
+        case workoutRecap(WorkoutRecapPayload)
     }
 
     static let dataSourceBindingReminderStableID = "interrupt.data_source_binding_reminder"
@@ -80,9 +80,9 @@ struct InterruptItem: Identifiable {
         return reminder
     }
 
-    var workoutRecapContent: WorkoutRecapContent? {
-        guard case .workoutRecap(let content) = payload else { return nil }
-        return content
+    var workoutRecapPayload: WorkoutRecapPayload? {
+        guard case .workoutRecap(let payload) = payload else { return nil }
+        return payload
     }
 
     var debugLabel: String {
@@ -163,13 +163,13 @@ struct InterruptItem: Identifiable {
     }
 
     static func workoutRecap(
-        _ content: WorkoutRecapContent,
+        _ payload: WorkoutRecapPayload,
         onDismiss: ((InterruptDismissReason) -> Void)? = nil
     ) -> InterruptItem {
         InterruptItem(
-            stableID: "interrupt.workout_recap.\(content.id)",
+            stableID: "interrupt.workout_recap.\(payload.id)",
             type: .workoutRecap,
-            payload: .workoutRecap(content),
+            payload: .workoutRecap(payload),
             primaryAction: nil,
             onPresented: nil,
             onDismiss: onDismiss

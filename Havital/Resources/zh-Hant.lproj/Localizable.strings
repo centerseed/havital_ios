@@ -1789,6 +1789,7 @@
 "workout.share.tip.feature_title" = "點標題就能改文字";
 "workout.share.tip.feature_photo" = "點照片可更換背景圖";
 "workout.share.tip.feature_drag" = "拖曳照片可調整構圖位置";
+"workout.share.tip.feature_overlays" = "可加入配速曲線、路線，拖曳調整位置";
 "workout.share.tip.dismiss" = "知道了，不再顯示";
 "workout.reflection.title" = "訓練回顧";
 "workout.reflection.saveError" = "儲存失敗，請重試";

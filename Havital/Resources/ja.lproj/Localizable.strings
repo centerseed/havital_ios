@@ -1715,6 +1715,7 @@
 "workout.share.tip.feature_title" = "タイトルをタップして編集できます";
 "workout.share.tip.feature_photo" = "写真をタップして背景を変更できます";
 "workout.share.tip.feature_drag" = "写真をドラッグして位置を調整できます";
+"workout.share.tip.feature_overlays" = "ペース曲線やルートを追加し、ドラッグで位置を調整できます";
 "workout.share.tip.dismiss" = "了解しました（次回から非表示）";
 "workout.reflection.title" = "トレーニング振り返り";
 "workout.reflection.saveError" = "保存に失敗しました。再試行してください";
