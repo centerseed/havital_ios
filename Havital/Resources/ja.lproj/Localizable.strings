@@ -117,7 +117,7 @@
 "training_item_detail.not_found" = "このトレーニング項目の説明が見つかりません";
 
 // MARK: - Training Progress View
-"training_progress.review" = "振り返り";
+"training_progress.review" = "週次レビュー";
 "training_progress.schedule" = "スケジュール";
 "training_progress.generate_schedule" = "スケジュール作成";
 
@@ -155,7 +155,7 @@
 
 // MARK: - Week Selector Sheet
 "week_selector.week_number" = "第%d週";
-"week_selector.review" = "振り返り";
+"week_selector.review" = "週次レビュー";
 "week_selector.schedule" = "スケジュール";
 "week_selector.close" = "閉じる";
 
@@ -186,7 +186,7 @@
 "gait_analysis_chart.minimum" = "最小値";
 "gait_analysis_chart.maximum" = "最大値";
 "gait_analysis_chart.gait_tab.stance_time" = "接地時間";
-"gait_analysis_chart.gait_tab.vertical_ratio" = "移動効率";
+"gait_analysis_chart.gait_tab.vertical_ratio" = "上下動比率";
 "gait_analysis_chart.gait_tab.cadence" = "ケイデンス";
 "gait_analysis_chart.gait_tab.stance_time_description" = "足が地面に接触する時間を示します。時間が短いほど効率的な走り方です";
 "gait_analysis_chart.gait_tab.vertical_ratio_description" = "垂直移動と総移動距離の比率を示します。比率が低いほど移動効率が良好です";
@@ -199,7 +199,7 @@
 "onboarding.training_days" = "トレーニング日";
 "onboarding.weekly_volume" = "週間走行距離";
 "onboarding.select_days" = "トレーニング日を選択";
-"onboarding.connect_data" = "データソースを接続";
+"onboarding.connect_data" = "データソースを連携";
 "onboarding.complete" = "設定完了";
 // Acquisition Channel (T-0094)
 "onboarding.acquisition_channel_nav_title" = "Paceriz を知ったきっかけ";
@@ -223,11 +223,11 @@
 
 // Garmin
 "onboarding.garmin_subtitle" = "Garminアカウントのアクティビティを同期";
-"onboarding.garmin_description" = "Garmin Connect™アカウントに接続して、スポーツウォッチ、フィットネストラッカーなどのデバイスからアクティビティデータを同期します。このオプションを使用することで、Garminの利用規約に同意したものとみなされます。";
+"onboarding.garmin_description" = "Garmin Connect™アカウントに連携して、スポーツウォッチ、フィットネストラッカーなどのデバイスからアクティビティデータを同期します。このオプションを使用することで、Garminの利用規約に同意したものとみなされます。";
 
 // Strava
 "onboarding.strava_subtitle" = "Stravaアクティビティを同期";
-"onboarding.strava_description" = "Stravaアカウントに接続して、ランニング、サイクリングなどのトレーニングアクティビティを同期します。このオプションを使用することで、Stravaの利用規約に同意したものとみなされます。";
+"onboarding.strava_description" = "Stravaアカウントに連携して、ランニング、サイクリングなどのトレーニングアクティビティを同期します。このオプションを使用することで、Stravaの利用規約に同意したものとみなされます。";
 
 // Time units
 "onboarding.hours_label" = "時間";
@@ -235,7 +235,7 @@
 
 // Alerts
 "onboarding.garmin_already_bound" = "Garmin Connect™アカウントが既にリンクされています";
-"onboarding.garmin_already_bound_message" = "このGarmin Connect™アカウントは既に他のPacerizアカウントにリンクされています。まず元々リンクされていたPacerizアカウントでログインし、プロフィールページでGarmin Connect™のリンクを解除してから、このアカウントで接続してください。";
+"onboarding.garmin_already_bound_message" = "このGarmin Connect™アカウントは既に他のPacerizアカウントにリンクされています。まず元々リンクされていたPacerizアカウントでログインし、プロフィールページでGarmin Connect™のリンクを解除してから、このアカウントで連携してください。";
 "onboarding.i_understand" = "了解しました";
 "onboarding.error" = "エラー";
 "onboarding.confirm" = "確認";
@@ -294,10 +294,10 @@
 "datasource.title" = "データソース";
 "datasource.apple_health" = "Apple Health";
 "datasource.garmin_connect" = "Garmin Connect™";
-"datasource.not_connected" = "未接続";
-"datasource.connected" = "接続済み";
-"datasource.disconnect" = "接続解除";
-"datasource.connect" = "接続";
+"datasource.not_connected" = "未連携";
+"datasource.connected" = "連携済み";
+"datasource.disconnect" = "連携解除";
+"datasource.connect" = "連携";
 "datasource.sync_now" = "今すぐ同期";
 "datasource.last_sync" = "最終同期";
 "datasource.sync_success" = "同期成功";
@@ -319,7 +319,7 @@
 "training.weekly_volume" = "週間走行距離";
 "training.mileage_progression" = "走行距離の漸進";
 "training.plan_default_name" = "トレーニングプラン";
-"training.training_review" = "トレーニング振り返り";
+"training.training_review" = "トレーニング週次レビュー";
 "training.generate_plan" = "スケジュール作成";
 "training.no_plan" = "トレーニングプランなし";
 "training.create_plan" = "トレーニングプランを作成";
@@ -340,7 +340,7 @@
 "training.loading.preparing_custom_plan" = "カスタマイズされたプランを準備中...";
 "training.loading.analyzing_training_data" = "今週のトレーニングデータを分析中...";
 "training.loading.evaluating_progress" = "今週のトレーニング状況を評価中...";
-"training.loading.preparing_review" = "素晴らしい！トレーニング振り返りが準備完了です！";
+"training.loading.preparing_review" = "素晴らしい！トレーニング週次レビューが準備完了です！";
 "training.loading.pipeline_step1_with_data" = "基礎能力を分析中 · VDOT %@ · 先週の走行距離 %@ km";
 "training.loading.pipeline_step1_vdot_only" = "基礎能力を分析中 · VDOT %@";
 "training.loading.pipeline_step1_fallback" = "トレーニング記録を分析中...";
@@ -358,9 +358,9 @@
 "notification.sunday_reminder.body" = "今日のトレーニング結果が準備できました。Pacerizによる週間評価をご確認ください";
 
 // MARK: - Training Review Sections
-"training.review.weekly_review" = "週間トレーニング振り返り";
-"training.review.last_week_review" = "先週のトレーニング振り返り";
-"training.review.week_review" = "第%d週トレーニング振り返り";
+"training.review.weekly_review" = "トレーニング週次レビュー";
+"training.review.last_week_review" = "先週のトレーニング週次レビュー";
+"training.review.week_review" = "第%d週トレーニング週次レビュー";
 "training.review.generate_next_week_plan" = "来週のプランを作成";
 "training.review.training_completion" = "トレーニング完了度";
 "training.review.training_analysis" = "トレーニング分析";
@@ -378,17 +378,17 @@
 "training.review.total_distance" = "総距離";
 "training.review.trend" = "傾向";
 "training.review.analyzing_data" = "トレーニングデータを分析中...";
-"training.review.loading_message" = "詳細なトレーニング振り返りを準備中です";
-"training.review.loading_error" = "トレーニング振り返りを読み込めませんでした";
+"training.review.loading_message" = "詳細なトレーニング週次レビューを準備中です";
+"training.review.loading_error" = "トレーニング週次レビューを読み込めませんでした";
 "training.review.retry" = "再試行";
 
 // MARK: - Generate Next Week
 "training.ready_for_next_week" = "🎯 来週のトレーニングの準備はできましたか？";
 "training.generate_week_plan" = "第%d週のプランを作成";
-"training.need_complete_review" = "今週の振り返りを先に完了する必要があります";
-"training.review_completed" = "今週の振り返りが完了しました";
+"training.need_complete_review" = "今週の週次レビューを先に完了する必要があります";
+"training.review_completed" = "今週の週次レビューが完了しました";
 "training.confirm_training_completed_title" = "トレーニング完了の確認";
-"training.confirm_training_completed_message" = "今週のトレーニングがすべて完了していることを確認してください。正確な分析のため、週次振り返りには完全なトレーニングデータが必要です。";
+"training.confirm_training_completed_message" = "今週のトレーニングがすべて完了していることを確認してください。正確な分析のため、週次レビューには完全なトレーニングデータが必要です。";
 
 // MARK: - Training Plan Info Card
 "training.plan_info" = "トレーニングプラン情報";
@@ -806,7 +806,7 @@
 // MARK: - Additional Training Strings
 "training.current_week_progress" = "現在のトレーニング進捗は第";
 "training.paceriz_plan_description" = "Pacerizがあなたのトレーニング状況に基づいて個別の週間スケジュールを作成します。今週のトレーニング状況を確認して新しいスケジュールを作成しましょう！";
-"training.get_weekly_review" = "週間振り返りを取得 ";
+"training.get_weekly_review" = "週次レビューを取得 ";
 "training.cycle_completed_message" = "素晴らしい！トレーニングサイクルが完了しました。トレーニングを振り返った後、次のトレーニング目標を設定することを忘れないでください！";
 "training.set_new_goal" = "新しい目標を設定";
 "training.loading_plan" = "トレーニングプランを読み込み中...";
@@ -819,7 +819,7 @@
 "training.cannot_load_plan" = "トレーニングプランを読み込めません";
 "training.week_schedule" = "週間スケジュール";
 "training.no_schedule_generated" = "今週のスケジュールはまだ作成されていません";
-"training.generate_review_first" = "個別トレーニング推奨事項を取得するため、まず週間振り返りを作成してください";
+"training.generate_review_first" = "個別トレーニング推奨事項を取得するため、まず週次レビューを作成してください";
 "training.loading_records" = "ワークアウト記録を読み込み中...";
 "training.loading_more_records" = "さらに記録を読み込み中...";
 "training.pace_zone" = "ペースゾーン";
@@ -863,10 +863,10 @@
 "error.cannot_load_health_data" = "ヘルスデータを読み込めません";
 
 // MARK: - Alert Additional
-"alert.garmin_disconnected" = "Garmin接続が中断されました";
-"alert.reconnect_garmin" = "Garminに再接続";
+"alert.garmin_disconnected" = "Garmin連携が中断されました";
+"alert.reconnect_garmin" = "Garminに再連携";
 "alert.switch_to_apple_health" = "Apple Healthに切り替え";
-"alert.garmin_not_connected_message" = "あなたのアカウントはGarminデータを使用する設定になっていますが、現在Garminアカウントに接続されていません。Garminに再接続するかApple Healthに戻すかを選択してください。";
+"alert.garmin_not_connected_message" = "あなたのアカウントはGarminデータを使用する設定になっていますが、現在Garminアカウントに連携されていません。Garminに再連携するかApple Healthに戻すかを選択してください。";
 
 // MARK: - Performance Chart Strings
 "performance.hrv" = "HRV";
@@ -1138,9 +1138,9 @@
 "supporting_races_card.pace_unit" = "/km";
 
 // MARK: - Garmin Reconnection Alert Component
-"garmin_reconnection_alert.title" = "Garminアカウントの再接続が必要です";
-"garmin_reconnection_alert.default_message" = "お使いのGarmin Connect™アカウントが他のアカウントに関連付けられている可能性があります。データの同期を確実にするため、再接続してください。";
-"garmin_reconnection_alert.reconnect_button" = "Garminを再接続";
+"garmin_reconnection_alert.title" = "Garminアカウントの再連携が必要です";
+"garmin_reconnection_alert.default_message" = "お使いのGarmin Connect™アカウントが他のアカウントに関連付けられている可能性があります。データの同期を確実にするため、再連携してください。";
+"garmin_reconnection_alert.reconnect_button" = "Garminを再連携";
 "garmin_reconnection_alert.remind_later_button" = "後で通知";
 
 // MARK: - Heart Rate Zone Strings
@@ -1812,14 +1812,14 @@
 "datasource.switch.title" = "データソースを切り替える";
 "datasource.switch.garmin.select_auth" = "Garmin Connect™を選択するには連携認証が必要です。GarminのWebサイトでログインし、連携を許可してください。連携が完了すると、ワークアウト記録はGarmin Connect™から読み込まれます。";
 "datasource.switch.apple_health.select" = "Apple Healthをデータソースとして選択します。ワークアウト記録はApple Healthから読み込まれ、iPhoneとApple Watchのヘルスデータが含まれます。";
-"datasource.switch.garmin_to_apple" = "Apple Healthへ切り替えるとGarmin Connect™との接続が解除され、PacerizはGarminデータを受け取らなくなります。ワークアウト記録はApple Healthから読み込まれ、現在表示されている記録は新しいデータソースの内容に置き換わります。続行しますか？";
+"datasource.switch.garmin_to_apple" = "Apple Healthへ切り替えるとGarmin Connect™との連携が解除され、PacerizはGarminデータを受け取らなくなります。ワークアウト記録はApple Healthから読み込まれ、現在表示されている記録は新しいデータソースの内容に置き換わります。続行しますか？";
 "datasource.switch.apple_to_garmin" = "Garmin Connect™へ切り替えるには連携認証が必要です。GarminのWebサイトでログインし、連携を許可してください。連携が完了すると、ワークアウト記録はGarmin Connect™から読み込まれ、現在表示されている記録は新しいデータソースの内容に置き換わります。";
 "datasource.switch.unbound_to_strava" = "Stravaを選択するには連携認証が必要です。StravaのWebサイトでログインし、連携を許可してください。連携が完了すると、ワークアウト記録はStravaから読み込まれます。";
 "datasource.switch.apple_to_strava" = "Stravaへ切り替えるには連携認証が必要です。StravaのWebサイトでログインし、連携を許可してください。連携が完了すると、ワークアウト記録はStravaから読み込まれ、現在表示されている記録は新しいデータソースの内容に置き換わります。";
-"datasource.switch.garmin_to_strava" = "Stravaへの切り替えではGarmin Connect™との接続を解除し、Stravaの連携認証が必要になります。ワークアウト記録はStravaから読み込まれ、現在表示されている記録は新しいデータソースの内容に置き換わります。";
-"datasource.switch.strava_to_apple" = "Apple Healthへ切り替えるとStravaとの接続が解除されます。ワークアウト記録はApple Healthから読み込まれ、現在表示されている記録は新しいデータソースの内容に置き換わります。";
-"datasource.switch.strava_to_garmin" = "Garmin Connect™への切り替えではStravaとの接続を解除し、Garminの連携認証が必要になります。ワークアウト記録はGarmin Connect™から読み込まれ、現在表示されている記録は新しいデータソースの内容に置き換わります。";
-"datasource.switch.to_unbound" = "未接続状態に切り替えると、すべてのローカルワークアウトデータが削除されます。後でプロフィールページからデータソースを再接続できます。";
+"datasource.switch.garmin_to_strava" = "Stravaへの切り替えではGarmin Connect™との連携を解除し、Stravaの連携認証が必要になります。ワークアウト記録はStravaから読み込まれ、現在表示されている記録は新しいデータソースの内容に置き換わります。";
+"datasource.switch.strava_to_apple" = "Apple Healthへ切り替えるとStravaとの連携が解除されます。ワークアウト記録はApple Healthから読み込まれ、現在表示されている記録は新しいデータソースの内容に置き換わります。";
+"datasource.switch.strava_to_garmin" = "Garmin Connect™への切り替えではStravaとの連携を解除し、Garminの連携認証が必要になります。ワークアウト記録はGarmin Connect™から読み込まれ、現在表示されている記録は新しいデータソースの内容に置き換わります。";
+"datasource.switch.to_unbound" = "未連携状態に切り替えると、すべてのローカルワークアウトデータが削除されます。後でプロフィールページからデータソースを再連携できます。";
 "datasource.switch.default" = "この操作を続行しますか？";
 
 // MARK: - 心拍数設定プロンプト
@@ -1843,18 +1843,18 @@
 "training_readiness.race_only_note_body" = "持久力とレース適性の指標は、トレーニング目標が「レース」に設定されている場合のみ有効になります。現在のプランは非レーストレーニングモードです。";
 
 // MARK: - Content View
-"content_view.data_source_required" = "データソースの接続が必要です";
+"content_view.data_source_required" = "データソースの連携が必要です";
 "content_view.go_to_settings" = "設定へ";
 "content_view.later" = "あとで";
-"content_view.data_source_required_message" = "データソースが接続されていません。プロフィールページで Apple Health、Garmin Connect™、または Strava をトレーニングデータソースとして選択してください。";
+"content_view.data_source_required_message" = "データソースが連携されていません。プロフィールページで Apple Health、Garmin Connect™、または Strava をトレーニングデータソースとして選択してください。";
 
 // MARK: - Profile View
 "profile_view.apple_user" = "Apple ユーザー";
-"profile_view.garmin_already_bound" = "Garmin Connect™ アカウントは既に接続されています";
-"profile_view.strava_already_bound" = "Strava アカウントは既に接続されています";
+"profile_view.garmin_already_bound" = "Garmin Connect™ アカウントは既に連携されています";
+"profile_view.strava_already_bound" = "Strava アカウントは既に連携されています";
 "profile_view.ok" = "OK";
-"profile_view.garmin_already_bound_message" = "この Garmin Connect™ アカウントは既に別の Paceriz アカウントに接続されています。元の Paceriz アカウントでログインし、プロフィールページで Garmin Connect™ の接続を解除してから、このアカウントで接続してください。";
-"profile_view.strava_already_bound_message" = "この Strava アカウントは既に別の Paceriz アカウントに接続されています。元の Paceriz アカウントでログインし、プロフィールページで Strava の接続を解除してから、このアカウントで接続してください。";
+"profile_view.garmin_already_bound_message" = "この Garmin Connect™ アカウントは既に別の Paceriz アカウントに連携されています。元の Paceriz アカウントでログインし、プロフィールページで Garmin Connect™ の連携を解除してから、このアカウントで連携してください。";
+"profile_view.strava_already_bound_message" = "この Strava アカウントは既に別の Paceriz アカウントに連携されています。元の Paceriz アカウントでログインし、プロフィールページで Strava の連携を解除してから、このアカウントで連携してください。";
 
 // Developer Section
 "profile_view.developer.section_title" = "🧪 開発者テスト";
@@ -2136,7 +2136,7 @@
 "misc.training_day" = "トレーニング日";
 "misc.main_content" = "メインコンテンツ";
 "misc.diag_hrv_issue" = "HRV 問題の診断";
-"misc.strava_account_bound" = "Strava アカウント接続済み";
+"misc.strava_account_bound" = "Strava アカウント連携済み";
 
 // MARK: - Empty State
 "empty_state.no_data_title" = "%@データなし";
@@ -3659,7 +3659,7 @@
 "rizo.history.error" = "会話履歴を読み込めませんでした。もう一度お試しください。";
 "rizo.history.retry" = "再試行";
 "rizo.history.scenario.body_status" = "今日のコンディション";
-"rizo.history.scenario.weekly_situation" = "週の振り返り";
+"rizo.history.scenario.weekly_situation" = "週次レビュー";
 "rizo.history.scenario.journal" = "トレーニング振り返り";
 "rizo.history.scenario.workout_question" = "トレーニングの質問";
 "rizo.history.scenario.pace_question" = "ペースの質問";
@@ -3777,20 +3777,20 @@
 "auth.email_not_verified_login_message" = "メール内の確認リンクを開いて認証を完了してからログインしてください。";
 "auth.verification_email_resent" = "確認メールを再送信しました。受信箱を確認してください。";
 "connect.error.feature_unavailable_format" = "%@ は一時的に利用できません。しばらくしてからもう一度お試しください。";
-"connect.error.initialization_failed_format" = "接続の開始に失敗しました: %@";
-"connect.error.disconnect_failed_format" = "接続解除に失敗しました: %@";
+"connect.error.initialization_failed_format" = "連携の開始に失敗しました: %@";
+"connect.error.disconnect_failed_format" = "連携解除に失敗しました: %@";
 "connect.error.auth_page_unavailable" = "認証ページを表示できません。";
 "connect.error.invalid_callback_url" = "コールバックURLが無効です。";
 "connect.error.authorization_failed_format" = "%@ の認証に失敗しました: %@";
 "connect.error.security_verification_failed" = "セキュリティ確認に失敗しました。";
-"connect.error.connection_failed_format" = "%@ の接続に失敗しました。";
+"connect.error.connection_failed_format" = "%@ の連携に失敗しました。";
 "connect.error.invalid_authorization_url_format" = "%@ の認証URLが無効です。";
 "connect.error.authorization_url_build_failed" = "認証URLを作成できません。";
 "connect.error.code_verifier_missing" = "認証の準備に失敗しました。もう一度お試しください。";
 "connect.error.request_failed_status_format" = "リクエストに失敗しました（ステータス %d）。";
-"connect.status.reauth_required_format" = "%@ の接続には再認証が必要です";
-"connect.oauth.garmin_already_bound_fallback" = "この Garmin アカウントは既に別のユーザーに接続されています。強制接続を選択できます。";
-"connect.oauth.strava_already_bound_fallback" = "この Strava アカウントは既に別のユーザーに接続されています。強制接続を選択できます。";
+"connect.status.reauth_required_format" = "%@ の連携には再認証が必要です";
+"connect.oauth.garmin_already_bound_fallback" = "この Garmin アカウントは既に別のユーザーに連携されています。強制連携を選択できます。";
+"connect.oauth.strava_already_bound_fallback" = "この Strava アカウントは既に別のユーザーに連携されています。強制連携を選択できます。";
 "sync.notification.started.title" = "トレーニングデータの同期を開始しました";
 "sync.notification.started.body_format" = "%d 件のトレーニング記録を同期中です。完了したら通知します。";
 "sync.notification.history_processing.title" = "過去のトレーニングデータを処理中";

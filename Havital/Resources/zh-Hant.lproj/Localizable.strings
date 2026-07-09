@@ -186,7 +186,7 @@
 "gait_analysis_chart.minimum" = "最小值";
 "gait_analysis_chart.maximum" = "最大值";
 "gait_analysis_chart.gait_tab.stance_time" = "觸地時間";
-"gait_analysis_chart.gait_tab.vertical_ratio" = "移動效率";
+"gait_analysis_chart.gait_tab.vertical_ratio" = "垂直比率";
 "gait_analysis_chart.gait_tab.cadence" = "步頻";
 "gait_analysis_chart.gait_tab.stance_time_description" = "腳部接觸地面的時間，越短代表跑姿越有效率";
 "gait_analysis_chart.gait_tab.vertical_ratio_description" = "垂直移動與總移動距離的比率，越低代表移動效率越好";
@@ -858,7 +858,7 @@
 // MARK: - Performance
 "performance.weekly_volume_trend" = "週跑量趨勢";
 "performance.weekly_volume_trend_description" = "顯示你的週跑量變化，幫助追蹤訓練量趨勢並調整訓練計畫。";
-"performance.select_data_source_resting_hr" = "請選擇資料來源以查看靜息心率趨勢";
+"performance.select_data_source_resting_hr" = "請選擇資料來源以查看安靜心率趨勢";
 
 // MARK: - Error Additional
 "error.load_failed" = "載入錯誤";
@@ -876,10 +876,10 @@
 
 // MARK: - Performance Chart Strings
 "performance.hrv" = "HRV";
-"performance.resting_hr" = "靜息心率";
-"performance.loading_resting_hr" = "載入靜息心率資料中...";
-"performance.no_resting_hr_data" = "沒有靜息心率資料";
-"performance.resting_hr_title" = "睡眠靜息心率";
+"performance.resting_hr" = "安靜心率";
+"performance.loading_resting_hr" = "載入安靜心率資料中...";
+"performance.no_resting_hr_data" = "沒有安靜心率資料";
+"performance.resting_hr_title" = "睡眠安靜心率";
 "performance.updating" = "更新中...";
 "performance.load_failed" = "載入失敗";
 "performance.cannot_load_chart_data" = "無法載入圖表資料";
@@ -1076,7 +1076,7 @@
 // MARK: - Heart Rate Setup
 "onboarding.heart_rate_title" = "心率設定";
 "onboarding.heart_rate_description" = "設定心率區間可以幫助我們建立更個人化的訓練計畫。之後可到個人資料更新心率數值，讓心率區間更加準確，提升訓練效果。";
-"onboarding.heart_rate_intro" = "請設定您的最大心率和靜息心率";
+"onboarding.heart_rate_intro" = "請設定您的最大心率和安靜心率";
 "onboarding.skip_heart_rate" = "略過（使用預設值）";
 
 // MARK: - Weekly Distance Setup
@@ -1179,7 +1179,7 @@
 "hr_zone.save_failed" = "儲存失敗：%@";
 "hr_zone.understand" = "了解";
 "hr_zone.max_heart_rate_display" = "最大心率";
-"hr_zone.resting_heart_rate_display" = "靜息心率";
+"hr_zone.resting_heart_rate_display" = "安靜心率";
 "hr_zone.default_values_hint" = "目前使用預設值，日後連接心率裝置或進行體能測試後再更新，可獲得更精準的訓練建議";
 
 // MARK: - Heart Rate Zone Names & Details
@@ -1522,7 +1522,7 @@
 
 // Performance Chart Labels
 "performance.chart.date" = "日期";
-"performance.chart.resting_heart_rate" = "靜息心率";
+"performance.chart.resting_heart_rate" = "安靜心率";
 "performance.chart.vdot_value" = "VDOT";
 "performance.chart.loading" = "載入中...";
 
@@ -1909,7 +1909,7 @@
 "hr_setup.invalid_resting_hr" = "安靜心率應介於 1-99 次/分";
 "hr_setup.at_least_one_required" = "請至少輸入一個心率值";
 "heart_rate.setup_prompt_title" = "設定心率";
-"heart_rate.setup_prompt_message" = "設定您的最大心率和靜息心率，可幫助我們提供更準確的訓練建議和心率區間分析。";
+"heart_rate.setup_prompt_message" = "設定您的最大心率和安靜心率，可幫助我們提供更準確的訓練建議和心率區間分析。";
 "heart_rate.go_to_setup" = "立即設定";
 "heart_rate.remind_tomorrow" = "明天再提醒我";
 "heart_rate.never_remind" = "不再提醒";
@@ -3903,7 +3903,7 @@
 
 // MARK: - Performance Chart Errors
 "performance.sleep_hr.error.healthkit_uninitialized" = "HealthKit 管理器未初始化";
-"performance.sleep_hr.error.strava_not_supported" = "Strava 不提供靜息心率數據";
+"performance.sleep_hr.error.strava_not_supported" = "Strava 不提供安靜心率數據";
 "performance.error.select_data_source" = "請先選擇數據來源";
 "performance.sleep_hr.error.load_failed" = "無法載入睡眠心率數據";
 "performance.hrv.error.load_failed" = "無法載入心率變異性數據";
@@ -4045,7 +4045,7 @@
 "chart.series.training_index" = "訓練指數";
 "chart.series.ctl_upper" = "CTL上界";
 "chart.series.ctl_lower" = "CTL下界";
-"my_achievement.strava_no_resting_hr" = "Strava 不提供靜息心率數據";
+"my_achievement.strava_no_resting_hr" = "Strava 不提供安靜心率數據";
 "my_achievement.empty.no_training_index" = "暫無訓練指數數據";
 "my_achievement.empty.no_tsb" = "暫無 TSB 數據";
 
@@ -4102,7 +4102,7 @@
 
 // MARK: - 健康資料類型顯示名（T-0048 W2）
 "health_data_type.hrv" = "心率變異性";
-"health_data_type.resting_heart_rate" = "靜息心率";
+"health_data_type.resting_heart_rate" = "安靜心率";
 "health_data_type.heart_rate" = "心率";
 "health_data_type.sleep" = "睡眠";
 "health_data_type.steps" = "步數";
