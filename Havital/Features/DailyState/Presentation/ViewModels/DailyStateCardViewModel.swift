@@ -11,6 +11,7 @@ final class DailyStateCardViewModel: ObservableObject, TaskManageable {
     @Published private(set) var isApplyingBenchmark = false
     @Published private(set) var benchmarkDismissed = false
     @Published private(set) var appliedFinishSeconds: Int?
+    @Published private(set) var benchmarkApplyFailed = false   // 套用失敗(卡片留著可重試)
     @Published private(set) var isSchedulingNext = false
     @Published private(set) var scheduledNextWeek: Int?   // 非 nil = 已預約(顯示確認)
 
@@ -21,8 +22,11 @@ final class DailyStateCardViewModel: ObservableObject, TaskManageable {
 
     nonisolated let taskRegistry = TaskRegistry()
     private let repository: DailyStateRepository
+    /// 套用成功後強制重抓 readiness(forceCalculate),讓比賽卡片/表現數據的完賽預估即時更新。
+    private let refreshReadiness: () async -> Void
 
-    init(repository: DailyStateRepository? = nil) {
+    init(repository: DailyStateRepository? = nil,
+         refreshReadiness: (() async -> Void)? = nil) {
         if let repository {
             self.repository = repository
         } else {
@@ -32,6 +36,7 @@ final class DailyStateCardViewModel: ObservableObject, TaskManageable {
             }
             self.repository = container.resolve() as DailyStateRepository
         }
+        self.refreshReadiness = refreshReadiness ?? { await TrainingReadinessManager.shared.forceRefresh() }
     }
 
     deinit {
@@ -65,24 +70,27 @@ final class DailyStateCardViewModel: ObservableObject, TaskManageable {
 
     // MARK: - T-0142 指標跑校準動作
 
-    /// 套用校準 → 即時重算 → 收起卡片。失敗保持卡片(可重試)。
+    /// 套用校準 → 即時重算 → 收起卡片 → 強制刷新 readiness(比賽卡片/表現數據跟著動)。
+    /// 失敗保持卡片並亮錯誤(可重試)。
     func applyBenchmark() {
+        Task { [weak self] in await self?.applyBenchmarkForTest() }
+    }
+
+    /// 可測 async 入口(View 用 applyBenchmark();測試直接 await 這支)。
+    func applyBenchmarkForTest() async {
         guard let cal = benchmarkCalibration, !isApplyingBenchmark else { return }
         isApplyingBenchmark = true
-        Task { [weak self] in
-            guard let self else { return }
-            do {
-                let finish = try await self.repository.applyBenchmark(cal)
-                await MainActor.run {
-                    self.appliedFinishSeconds = finish
-                    self.isApplyingBenchmark = false
-                    self.benchmarkDismissed = true
-                }
-            } catch let urlError as URLError where urlError.code == .cancelled {
-                await MainActor.run { self.isApplyingBenchmark = false }
-            } catch {
-                await MainActor.run { self.isApplyingBenchmark = false }
-            }
+        benchmarkApplyFailed = false
+        defer { isApplyingBenchmark = false }
+        do {
+            let finish = try await repository.applyBenchmark(cal)
+            appliedFinishSeconds = finish
+            benchmarkDismissed = true
+            await refreshReadiness()
+        } catch let urlError as URLError where urlError.code == .cancelled {
+            // cancelled = 導航離開等主動取消,不當失敗
+        } catch {
+            benchmarkApplyFailed = true
         }
     }
 

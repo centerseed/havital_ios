@@ -7,6 +7,7 @@ import SwiftUI
 struct SameDayBenchmarkCard: View {
     let calibration: SameDayBenchmarkCalibration
     let isApplying: Bool
+    let applyFailed: Bool
     let isSchedulingNext: Bool
     let scheduledNextWeek: Int?
     let onApply: () -> Void
@@ -60,6 +61,16 @@ struct SameDayBenchmarkCard: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             Divider()
+
+            if applyFailed {
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.triangle.fill").font(AppFont.caption())
+                    Text(NSLocalizedString("benchmark.today.apply_failed", comment: "Benchmark apply failed, retry hint"))
+                        .font(AppFont.caption())
+                }
+                .foregroundColor(PacerizColor.error)
+                .accessibilityIdentifier("v2.today.benchmark_apply_failed")
+            }
 
             // 套用(主) / 稍後
             HStack(spacing: 12) {
@@ -147,7 +158,7 @@ struct SameDayBenchmarkCard: View {
                 workoutDate: "2026-07-06", distanceKm: 3.58, durationS: 1092, shouldHedge: false,
                 paceBeforeSPerKm: nil, paceAfterSPerKm: nil, raceDistanceLabel: nil,
                 raceTimeBeforeS: 17742, raceTimeAfterS: 17260, vdotBefore: 36.4, vdotAfter: 38.6)),
-        isApplying: false, isSchedulingNext: false, scheduledNextWeek: nil,
+        isApplying: false, applyFailed: false, isSchedulingNext: false, scheduledNextWeek: nil,
         onApply: {}, onLater: {}, onScheduleNext: { _ in }
     )
     .padding()
