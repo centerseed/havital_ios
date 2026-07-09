@@ -16,7 +16,7 @@ struct WorkoutDetailViewV2: View {
     @State private var heartRateCount = 0
 
     // 分享卡相關狀態
-    @State private var shareRecapContent: WorkoutRecapContent?
+    @State private var shareRecapPayload: WorkoutRecapPayload?
     @State private var showPhotoPickersheet = false
     @State private var showShareMenu = false  // 分享選單狀態
     @State private var showPBMoment = false
@@ -169,12 +169,18 @@ struct WorkoutDetailViewV2: View {
                     // 分享訓練成果（recap 分享卡，不撒花）
                     Button {
                         Task { @MainActor in
-                            shareRecapContent = WorkoutRecapContent.make(
-                                from: viewModel.workout,
-                                isPremium: SubscriptionStateManager.shared.hasPremiumAccess,
-                                aiAnalysisOverride: viewModel.workoutDetail?.aiSummary?.analysis,
-                                rpeOverride: viewModel.currentRPE,
-                                shareCardContentOverride: viewModel.workoutDetail?.shareCardContent
+                            let merged = viewModel.workoutDetail.map {
+                                WorkoutRecapPayload.mergeDetail($0, onto: viewModel.workout)
+                            } ?? viewModel.workout
+                            shareRecapPayload = WorkoutRecapPayload(
+                                content: WorkoutRecapContent.make(
+                                    from: viewModel.workout,
+                                    isPremium: SubscriptionStateManager.shared.hasPremiumAccess,
+                                    aiAnalysisOverride: viewModel.workoutDetail?.aiSummary?.analysis,
+                                    rpeOverride: viewModel.currentRPE,
+                                    shareCardContentOverride: viewModel.workoutDetail?.shareCardContent
+                                ),
+                                canvasData: ShareCardCanvasDataBuilder.build(from: merged)
                             )
                         }
                     } label: {
@@ -224,8 +230,12 @@ struct WorkoutDetailViewV2: View {
                 ActivityViewController(activityItems: [shareImage])
             }
         }
-        .sheet(item: $shareRecapContent) { recapContent in
-            WorkoutRecapView(content: recapContent, showConfetti: false)
+        .sheet(item: $shareRecapPayload) { payload in
+            WorkoutRecapView(
+                content: payload.content,
+                canvasData: payload.canvasData,
+                showConfetti: false
+            )
         }
         .sheet(isPresented: $showPBShareCardSheet) {
             if let update = selectedPBShareUpdate {

@@ -56,7 +56,7 @@ struct TrainingPlanV2View: View {
 
     #if DEBUG
     // Debug 選單「觸發訓練回顧」用：本地 sheet 呈現，避開 InterruptCoordinator 跨視圖 race。
-    @State private var debugRecapContent: WorkoutRecapContent?
+    @State private var debugRecapPayload: WorkoutRecapPayload?
     #endif
 
     // MARK: - Initialization
@@ -463,8 +463,8 @@ struct TrainingPlanV2View: View {
 
                             Button(action: {
                                 Task {
-                                    let content = await WorkoutRecapCoordinator.shared.debugLatestContent()
-                                    await MainActor.run { debugRecapContent = content }
+                                    let payload = await WorkoutRecapCoordinator.shared.debugLatestPayload()
+                                    await MainActor.run { debugRecapPayload = payload }
                                 }
                             }) {
                                 Label("🐛 觸發訓練回顧", systemImage: "sparkles")
@@ -501,8 +501,12 @@ struct TrainingPlanV2View: View {
                 }
             }
             #if DEBUG
-            .sheet(item: $debugRecapContent) { content in
-                WorkoutRecapView(content: content, showConfetti: true)
+            .sheet(item: $debugRecapPayload) { payload in
+                WorkoutRecapView(
+                    content: payload.content,
+                    canvasData: payload.canvasData,
+                    showConfetti: true
+                )
             }
             #endif
             .sheet(isPresented: $showMessageCenter) {

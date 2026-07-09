@@ -1622,6 +1622,8 @@
 "edit_schedule.loading_data" = "Loading edit data...";
 "edit_schedule.unsaved_changes" = "Unsaved Changes";
 "edit_schedule.unsaved_changes_message" = "You have unsaved changes. Are you sure you want to discard them?";
+"edit_schedule.save_failed_message" = "Could not sync your weekly plan. Please try again later.";
+"edit_schedule.tap_toolbar_save_to_sync" = "Changes saved locally. Tap Save in the top-right to sync to the cloud.";
 "edit_schedule.discard_changes" = "Discard Changes";
 
 // MARK: - Edit Value Dialogs
@@ -1707,10 +1709,21 @@
 "workout.share.card.edit_title" = "Edit Title";
 "workout.share.card.add_photo" = "Add Photo";
 "workout.share.card.change_photo" = "Change Photo";
+"workout.share.add.title" = "+ Title";
+"workout.share.add.pace_chart" = "+ Pace chart";
+"workout.share.add.route" = "+ Route";
+"workout.share.route.smaller" = "Smaller route";
+"workout.share.route.larger" = "Larger route";
+"workout.share.route.color.brand" = "Brand blue";
+"workout.share.route.color.white" = "White";
+"workout.share.route.color.green" = "Green";
+"workout.share.route.color.gold" = "Gold";
+"workout.share.route.color.peach" = "Peach";
 "workout.share.tip.title" = "Your share card can do this 👋";
 "workout.share.tip.feature_title" = "Tap the title to edit the text";
 "workout.share.tip.feature_photo" = "Tap the photo to change the background";
 "workout.share.tip.feature_drag" = "Drag the photo to reframe it";
+"workout.share.tip.feature_overlays" = "Add pace chart and route overlays, then drag to reposition";
 "workout.share.tip.dismiss" = "Got it — don't show again";
 "workout.reflection.title" = "Workout Reflection";
 "workout.reflection.saveError" = "Save failed, please try again";
@@ -3949,6 +3962,7 @@
 "schedule_editor.segment.equal_time_recovery" = "Equal-time recovery";
 "schedule_editor.segment.rest_in_place_minutes" = "Rest in place for %d min";
 "schedule_editor.segment.recovery_run_minutes" = "Recovery jog for %d min";
+"schedule_editor.segment.number_format" = "Segment %d";
 "schedule_editor.minutes_format" = "%d min";
 
 // MARK: - Schedule Editor V1 supplement (T-0048: EditScheduleView-only details/segments)

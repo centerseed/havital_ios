@@ -11,6 +11,7 @@ struct WorkoutRecapPreviewView: View {
     @State private var latestWorkout: WorkoutV2?
     @State private var latestAI: String?
     @State private var latestRPE: Double?
+    @State private var latestDetail: WorkoutV2Detail?
     @State private var loading = true
     @State private var errorText: String?
     @State private var showRecap = false
@@ -60,21 +61,33 @@ struct WorkoutRecapPreviewView: View {
         .navigationTitle("訓練回顧 Preview")
         .task { await reload() }
         .sheet(isPresented: $showRecap) {
-            if let content = makeContent() {
-                WorkoutRecapView(content: content)
+            if let payload = makePayload() {
+                WorkoutRecapView(
+                    content: payload.content,
+                    canvasData: payload.canvasData
+                )
             }
         }
     }
 
-    private func makeContent() -> WorkoutRecapContent? {
+    private func makePayload() -> WorkoutRecapPayload? {
         guard let workout = latestWorkout else { return nil }
         let premium = forceFreeTier ? false : SubscriptionStateManager.shared.hasPremiumAccess
-        return WorkoutRecapContent.make(
+        let merged = latestDetail.map { WorkoutRecapPayload.mergeDetail($0, onto: workout) } ?? workout
+        let content = WorkoutRecapContent.make(
             from: workout,
             isPremium: premium,
             aiAnalysisOverride: latestAI,
             rpeOverride: latestRPE
         )
+        return WorkoutRecapPayload(
+            content: content,
+            canvasData: ShareCardCanvasDataBuilder.build(from: merged)
+        )
+    }
+
+    private func makeContent() -> WorkoutRecapContent? {
+        makePayload()?.content
     }
 
     @MainActor
@@ -90,6 +103,7 @@ struct WorkoutRecapPreviewView: View {
             }
             latestWorkout = workout
             let detail = try? await workoutRepository.getWorkoutDetail(id: workout.id)
+            latestDetail = detail
             latestAI = detail?.aiSummary?.analysis
             latestRPE = detail?.advancedMetrics?.rpe
         } catch {

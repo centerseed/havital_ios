@@ -11,6 +11,9 @@ struct EditScheduleViewV2: View {
     @State private var showingUnsavedChangesAlert = false
     @State private var hasUnsavedChanges = false
     @State private var showingPaceTable = false
+    @State private var showingSaveError = false
+    @State private var saveErrorMessage: String?
+    @State private var showSyncReminder = false
 
     var body: some View {
         NavigationView {
@@ -58,6 +61,21 @@ struct EditScheduleViewV2: View {
                 }
             }
         }
+        .overlay(alignment: .top) {
+            if showSyncReminder {
+                Text(L10n.EditSchedule.tapToolbarSaveToSync.localized)
+                    .font(AppFont.caption())
+                    .foregroundColor(.primary)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(.ultraThinMaterial)
+                    .cornerRadius(10)
+                    .shadow(radius: 4)
+                    .padding(.top, 8)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: showSyncReminder)
         .sheet(isPresented: $showingPaceTable) {
             if let vdot = editViewModel.currentVDOT {
                 PaceTableView(vdot: vdot, calculatedPaces: PaceCalculator.calculateTrainingPaces(vdot: vdot))
@@ -70,6 +88,11 @@ struct EditScheduleViewV2: View {
             Button(NSLocalizedString("edit_schedule.cancel", comment: "取消"), role: .cancel) { }
         } message: {
             Text(NSLocalizedString("edit_schedule.unsaved_changes_message", comment: "您有未儲存的變更，確定要放棄嗎？"))
+        }
+        .alert(L10n.EditSchedule.saveFailed.localized, isPresented: $showingSaveError) {
+            Button(L10n.Common.ok.localized, role: .cancel) {}
+        } message: {
+            Text(saveErrorMessage ?? L10n.EditSchedule.saveFailedMessage.localized)
         }
     }
 
@@ -84,6 +107,13 @@ struct EditScheduleViewV2: View {
                     editViewModel: editViewModel,
                     onDataChanged: {
                         hasUnsavedChanges = true
+                    },
+                    onSheetSaved: {
+                        showSyncReminder = true
+                        Task {
+                            try? await Task.sleep(nanoseconds: 3_000_000_000)
+                            showSyncReminder = false
+                        }
                     }
                 )
                 .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
@@ -110,7 +140,8 @@ struct EditScheduleViewV2: View {
             // 由父 view 在 sheet onDismiss 時讀取更新 planStatus
             dismiss()
         } catch {
-            // 錯誤已在 ViewModel 記錄，不需要額外處理
+            saveErrorMessage = error.localizedDescription
+            showingSaveError = true
             Logger.error("[EditScheduleViewV2] saveChanges failed: \(error.localizedDescription)")
         }
     }
@@ -124,6 +155,7 @@ struct SimplifiedDailyCardV2: View {
     @Binding var day: MutableTrainingDay
     let editViewModel: EditScheduleV2ViewModel
     var onDataChanged: (() -> Void)? = nil
+    var onSheetSaved: (() -> Void)? = nil
 
     @State private var showingEditSheet = false
     @State private var showingDistancePicker = false
@@ -208,6 +240,7 @@ struct SimplifiedDailyCardV2: View {
                 onSave: { updatedDay in
                     day = updatedDay
                     onDataChanged?()
+                    onSheetSaved?()
                 },
                 paceHelper: PaceCalculationHelper(vdot: editViewModel.currentVDOT)
             )

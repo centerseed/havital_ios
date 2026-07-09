@@ -20,6 +20,26 @@ enum RecapPalette {
     }
 }
 
+// MARK: - RecapShareCardLogic
+
+enum RecapShareCardLogic {
+    static func displayTitle(
+        editorState: ShareCardEditorState,
+        customTitle: String?,
+        defaultTitle: String
+    ) -> String? {
+        guard editorState.titleLayout.isVisible else { return nil }
+        switch customTitle {
+        case .none:
+            return defaultTitle
+        case .some(let s) where s.isEmpty:
+            return nil
+        case .some(let s):
+            return s
+        }
+    }
+}
+
 // MARK: - RecapShareCard
 //
 // 可分享的訓練成果卡，對齊 recap.jsx 的 ShareCardPreview：
@@ -40,6 +60,9 @@ struct RecapShareCard: View {
     var customTitle: String? = nil
     /// 照片的位置偏移（scaledToFill 後相對於卡片中心的 offset）。
     var photoOffset: CGSize = .zero
+    var canvasData: ShareCardCanvasData = .empty
+    var editorState: ShareCardEditorState = .default
+    var showEditChrome: Bool = false
 
     /// 預設標題（根據 trainingTypeName 決定）。
     private var defaultTitleText: String {
@@ -47,18 +70,6 @@ struct RecapShareCard: View {
             return String(format: NSLocalizedString("workout.share.card.completed_format", comment: ""), type)
         }
         return NSLocalizedString("workout.share.card.completed_default", comment: "")
-    }
-
-    /// 實際要顯示的標題（nil = 隱藏）。
-    private var displayTitle: String? {
-        switch customTitle {
-        case .none:
-            return defaultTitleText          // nil → 預設
-        case .some(let s) where s.isEmpty:
-            return nil                       // "" → 不顯示
-        case .some(let s):
-            return s                         // 其他 → 自訂
-        }
     }
 
     private var distanceValue: String {
@@ -87,6 +98,7 @@ struct RecapShareCard: View {
                 backgroundLayer(geo.size)
                 scrim
                 confetti(in: geo.size)
+                overlayLayer(cardSize: geo.size)
                 vdotChip
                 infoBlock
                 if let onPhotoTap {
@@ -236,25 +248,89 @@ struct RecapShareCard: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Bottom info block（置中標題 + 三項數據 + PACERIZ）
+    // MARK: - Overlays（title / pace / route）
 
-    private var infoBlock: some View {
-        VStack(spacing: 0) {
-            if let title = displayTitle {
+    @ViewBuilder
+    private func overlayLayer(cardSize: CGSize) -> some View {
+        if let title = RecapShareCardLogic.displayTitle(
+            editorState: editorState,
+            customTitle: customTitle,
+            defaultTitle: defaultTitleText
+        ) {
+            positionedOverlay(
+                layout: editorState.titleLayout,
+                cardSize: cardSize,
+                showsEditBorder: false
+            ) {
                 Text(title)
                     .font(.system(size: 22, weight: .bold))
                     .foregroundColor(.white)
                     .shadow(color: .black.opacity(0.5), radius: 8, x: 0, y: 2)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
+                    .padding(.horizontal, 8)
             }
+        }
 
+        if editorState.paceChartLayout.isVisible, canvasData.hasPaceSeries {
+            positionedOverlay(
+                layout: editorState.paceChartLayout,
+                cardSize: cardSize,
+                showsEditBorder: false
+            ) {
+                ShareCardPaceChartView(
+                    samples: canvasData.paceSamples,
+                    cardSize: cardSize
+                )
+            }
+        }
+
+        if editorState.routeLayout.isVisible, canvasData.hasRoute {
+            positionedOverlay(
+                layout: editorState.routeLayout,
+                cardSize: cardSize,
+                showsEditBorder: false
+            ) {
+                ShareCardRouteGlyphView(
+                    points: canvasData.routePoints,
+                    cardWidth: cardSize.width,
+                    routeColor: editorState.routeColor,
+                    routeScale: editorState.routeScale
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func positionedOverlay<Content: View>(
+        layout: ShareCardElementLayout,
+        cardSize: CGSize,
+        cornerRadius: CGFloat = 8,
+        showsEditBorder: Bool = true,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        content()
+            .overlay {
+                if showEditChrome, showsEditBorder, layout.isVisible {
+                    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                        .strokeBorder(Color.white, lineWidth: 1)
+                }
+            }
+            .position(
+                x: cardSize.width * layout.centerX,
+                y: cardSize.height * layout.centerY
+            )
+    }
+
+    // MARK: - Bottom info block（三項數據 + PACERIZ）
+
+    private var infoBlock: some View {
+        VStack(spacing: 0) {
             HStack(alignment: .top, spacing: 4) {
                 metric(distanceValue, "KM")
                 metric(content.durationText, NSLocalizedString("workout.share.card.metric_time", comment: ""))
                 metric(paceValue, NSLocalizedString("workout.share.card.metric_pace", comment: ""))
             }
-            .padding(.top, 12)
 
             Rectangle()
                 .fill(Color.white.opacity(0.3))

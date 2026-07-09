@@ -3,7 +3,7 @@ import Foundation
 // MARK: - WorkoutRecapCoordinator
 //
 // 訓練完成 Recap 時刻的觸發中樞（底層流程，與視覺解耦）。
-// 流程：app 前景/啟動 → 取最新訓練 → 若「未看過且有 AI 內容」→ 建 WorkoutRecapContent
+// 流程：app 前景/啟動 → 取最新訓練 → 若「未看過且有 AI 內容」→ 建 WorkoutRecapPayload
 //       → enqueue 進 InterruptCoordinator（全 App 級彈窗佇列，與 paywall / 提醒共用排程）。
 // 看過後由 InterruptItem.onDismiss 標記已讀，確保每筆只彈一次。
 
@@ -61,41 +61,44 @@ final class WorkoutRecapCoordinator {
         // 需有基本數據，避免空殼紀錄。
         guard (workout.distanceMeters ?? 0) > 0 else { return }
 
-        let content = await buildContent(for: workout)
-        enqueue(content)
+        let payload = await buildPayload(for: workout)
+        enqueue(payload)
     }
 
-    /// 由 list workout 取 metrics + 補抓 detail 取 AI 分析 / RPE（list endpoint 通常不帶這些）。
-    private func buildContent(for workout: WorkoutV2) async -> WorkoutRecapContent {
+    /// 由 list workout 取 metrics + 補抓 detail 取 AI 分析 / RPE / canvas 資料。
+    private func buildPayload(for workout: WorkoutV2) async -> WorkoutRecapPayload {
         let detail = try? await workoutRepository.getWorkoutDetail(id: workout.id)
-        return WorkoutRecapContent.make(
+        let merged = detail.map { WorkoutRecapPayload.mergeDetail($0, onto: workout) } ?? workout
+        let content = WorkoutRecapContent.make(
             from: workout,
             isPremium: SubscriptionStateManager.shared.hasPremiumAccess,
             aiAnalysisOverride: detail?.aiSummary?.analysis,
             rpeOverride: detail?.advancedMetrics?.rpe,
             shareCardContentOverride: detail?.shareCardContent
         )
+        let canvas = ShareCardCanvasDataBuilder.build(from: merged)
+        return WorkoutRecapPayload(content: content, canvasData: canvas)
     }
 
-    private func enqueue(_ content: WorkoutRecapContent) {
+    private func enqueue(_ payload: WorkoutRecapPayload) {
         let didEnqueue = interruptCoordinator.enqueue(
-            .workoutRecap(content) { _ in
-                WorkoutRecapStorage.markSeen(content.id)
+            .workoutRecap(payload) { _ in
+                WorkoutRecapStorage.markSeen(payload.id)
             }
         )
         if didEnqueue {
-            Logger.debug("[WorkoutRecap] enqueued recap for \(content.id)")
+            Logger.debug("[WorkoutRecap] enqueued recap for \(payload.id)")
         }
     }
 
     #if DEBUG
-    /// 測試用：只建構最新一筆的 recap 內容（不 enqueue），供 debug 選單以本地 sheet 直接呈現。
-    func debugLatestContent() async -> WorkoutRecapContent? {
+    /// 測試用：只建構最新一筆的 recap payload（不 enqueue），供 debug 選單以本地 sheet 直接呈現。
+    func debugLatestPayload() async -> WorkoutRecapPayload? {
         guard let workout = try? await workoutRepository.getWorkouts(limit: 1, offset: nil).first else {
             Logger.debug("[WorkoutRecap] debug: no workout available")
             return nil
         }
-        return await buildContent(for: workout)
+        return await buildPayload(for: workout)
     }
 
     /// 測試用：取最新一筆，繞過已讀 + 內容門檻，直接 enqueue（驗證 view/interrupt 渲染）。
@@ -105,9 +108,9 @@ final class WorkoutRecapCoordinator {
             return
         }
         WorkoutRecapStorage.clearSeen(workout.id)
-        let content = await buildContent(for: workout)
-        Logger.debug("[WorkoutRecap] debug: force enqueue \(workout.id) hasAI=\(content.hasAIAnalysis)")
-        enqueue(content)
+        let payload = await buildPayload(for: workout)
+        Logger.debug("[WorkoutRecap] debug: force enqueue \(workout.id) hasAI=\(payload.content.hasAIAnalysis)")
+        enqueue(payload)
     }
     #endif
 }

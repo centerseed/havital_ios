@@ -21,7 +21,8 @@ struct ShareCardFeatureTipSheet: View {
     private let features: [Feature] = [
         Feature(systemImage: "pencil", textKey: "workout.share.tip.feature_title"),
         Feature(systemImage: "photo", textKey: "workout.share.tip.feature_photo"),
-        Feature(systemImage: "hand.draw", textKey: "workout.share.tip.feature_drag")
+        Feature(systemImage: "hand.draw", textKey: "workout.share.tip.feature_drag"),
+        Feature(systemImage: "chart.line.uptrend.xyaxis", textKey: "workout.share.tip.feature_overlays")
     ]
 
     var body: some View {

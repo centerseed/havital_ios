@@ -62,8 +62,15 @@ struct StravaConnectionStatusResponse: Codable {
     
     /// 檢查連線是否為活躍狀態
     var isActive: Bool {
-        // 如果 status 為 "active"，就認為連接是活躍的
-        // 不依賴 connected 欄位，因為後端可能沒有正確設置該欄位
-        return status == "active"
+        status == "active" || status == "connected"
+    }
+
+    /// 是否需要使用者重新授權
+    var requiresReauthorization: Bool {
+        let problemStatuses = [
+            "bound_to_other_user", "inactive", "expired", "revoked", "suspended", "error",
+            "error_requires_reauth", "disconnected"
+        ]
+        return problemStatuses.contains { status.lowercased().contains($0.lowercased()) }
     }
 }

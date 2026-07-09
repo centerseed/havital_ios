@@ -78,6 +78,17 @@
 	<string>$(REVENUECAT_API_KEY)</string>
 	<key>REVENUECAT_PREMIUM_ENTITLEMENT</key>
 	<string>$(REVENUECAT_PREMIUM_ENTITLEMENT)</string>
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>v9wttpbfk9.skadnetwork</string>
+		</dict>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>n38lu8286q.skadnetwork</string>
+		</dict>
+	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

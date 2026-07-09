@@ -12,6 +12,7 @@ import SwiftUI
 
 struct WorkoutRecapView: View {
     let content: WorkoutRecapContent
+    var canvasData: ShareCardCanvasData = .empty
     var showConfetti: Bool = false
     var onWriteDiary: (() -> Void)? = nil
     var onUpgrade: (() -> Void)? = nil
@@ -28,6 +29,10 @@ struct WorkoutRecapView: View {
     @State private var customTitle: String? = nil
     @State private var editingTitle: String = ""
     @State private var showTitleEditor = false
+
+    // Overlay 編輯狀態（標題 / 配速曲線 / 路線）
+    @State private var editorState = ShareCardEditorState.default
+    @State private var overlayDragStart: (kind: ShareCardOverlayKind, layout: ShareCardElementLayout)?
 
     // 功能 3：照片拖曳定位
     @State private var photoOffset: CGSize = .zero
@@ -51,39 +56,39 @@ struct WorkoutRecapView: View {
                         let cardWidth = geo.size.width
                         let cardHeight = cardWidth * (5.0 / 4.0)
 
-                        RecapShareCard(
-                            content: content,
-                            photo: selectedPhoto,
-                            onPhotoTap: { activeSheet = .photo },
-                            customTitle: customTitle,
-                            photoOffset: photoOffset
-                        )
-                        // 點標題文字 → 彈 alert 編輯
-                        .onTapGesture { location in
-                            // 底部 info block 大約在下方 30% 高度範圍
-                            if location.y > cardHeight * 0.65 {
-                                editingTitle = customTitle ?? ""
-                                showTitleEditor = true
-                            }
+                        let cardSize = CGSize(width: cardWidth, height: cardHeight)
+
+                        ZStack {
+                            RecapShareCard(
+                                content: content,
+                                photo: selectedPhoto,
+                                onPhotoTap: { activeSheet = .photo },
+                                customTitle: customTitle,
+                                photoOffset: photoOffset,
+                                canvasData: canvasData,
+                                editorState: editorState,
+                                showEditChrome: true
+                            )
+                            // 有照片時掛 DragGesture 供定位（overlay 手勢層在上層優先）
+                            .gesture(
+                                selectedPhoto != nil
+                                ? DragGesture()
+                                    .onChanged { value in
+                                        photoOffset = clampedOffset(
+                                            base: lastOffset,
+                                            translation: value.translation,
+                                            photo: selectedPhoto,
+                                            cardSize: cardSize
+                                        )
+                                    }
+                                    .onEnded { _ in
+                                        lastOffset = photoOffset
+                                    }
+                                : nil
+                            )
+
+                            shareCardOverlayGestures(cardSize: cardSize)
                         }
-                        // 有照片時掛 DragGesture 供定位（不用 MagnificationGesture）
-                        .gesture(
-                            selectedPhoto != nil
-                            ? DragGesture()
-                                .onChanged { value in
-                                    // 只更新 offset，不呼叫 ImageRenderer，避免卡頓
-                                    photoOffset = clampedOffset(
-                                        base: lastOffset,
-                                        translation: value.translation,
-                                        photo: selectedPhoto,
-                                        cardSize: CGSize(width: cardWidth, height: cardHeight)
-                                    )
-                                }
-                                .onEnded { _ in
-                                    lastOffset = photoOffset
-                                }
-                            : nil
-                        )
                         .frame(width: cardWidth, height: cardHeight)
                         .shadow(color: RecapPalette.brand.opacity(0.20), radius: 16, x: 0, y: 10)
                     }
@@ -110,7 +115,15 @@ struct WorkoutRecapView: View {
                         }
                     }
                 }
-                .safeAreaInset(edge: .bottom) { shareBar }
+                .safeAreaInset(edge: .bottom) {
+                    VStack(spacing: 0) {
+                        ShareCardEditorControls(
+                            canvasData: canvasData,
+                            editorState: $editorState
+                        )
+                        shareBar
+                    }
+                }
                 // 標題編輯 Alert
                 .alert(
                     NSLocalizedString("workout.share.card.edit_title", comment: ""),
@@ -238,6 +251,139 @@ struct WorkoutRecapView: View {
         )
     }
 
+    // MARK: - Overlay 拖曳 / 標題短按
+
+    @ViewBuilder
+    private func shareCardOverlayGestures(cardSize: CGSize) -> some View {
+        ZStack {
+            if editorState.titleLayout.isVisible,
+               recapDisplayTitle != nil {
+                overlayGestureTarget(
+                    kind: .title,
+                    layout: editorState.titleLayout,
+                    size: titleHitSize(cardSize: cardSize),
+                    cardSize: cardSize
+                )
+                .gesture(titleOverlayGesture(cardSize: cardSize))
+            }
+
+            if editorState.paceChartLayout.isVisible, canvasData.hasPaceSeries {
+                overlayGestureTarget(
+                    kind: .paceChart,
+                    layout: editorState.paceChartLayout,
+                    size: ShareCardPaceChartMath.chartSize(cardSize: cardSize),
+                    cardSize: cardSize
+                )
+                .gesture(overlayDragGesture(kind: .paceChart, cardSize: cardSize))
+            }
+
+            if editorState.routeLayout.isVisible, canvasData.hasRoute {
+                let side = ShareCardRouteMath.squareSize(
+                    cardWidth: cardSize.width,
+                    scale: editorState.routeScale
+                )
+                overlayGestureTarget(
+                    kind: .routeGlyph,
+                    layout: editorState.routeLayout,
+                    size: CGSize(width: side, height: side),
+                    cardSize: cardSize
+                )
+                .gesture(overlayDragGesture(kind: .routeGlyph, cardSize: cardSize))
+            }
+        }
+        .frame(width: cardSize.width, height: cardSize.height)
+        .allowsHitTesting(true)
+    }
+
+    private func overlayGestureTarget(
+        kind: ShareCardOverlayKind,
+        layout: ShareCardElementLayout,
+        size: CGSize,
+        cardSize: CGSize
+    ) -> some View {
+        Color.clear
+            .frame(width: size.width, height: size.height)
+            .contentShape(Rectangle())
+            .position(
+                x: cardSize.width * layout.centerX,
+                y: cardSize.height * layout.centerY
+            )
+            .accessibilityIdentifier("share-card-overlay-\(kind)")
+    }
+
+    private func titleHitSize(cardSize: CGSize) -> CGSize {
+        CGSize(width: cardSize.width * 0.80, height: 40)
+    }
+
+    private var recapDisplayTitle: String? {
+        let defaultTitle: String
+        if let type = content.trainingTypeName, !type.isEmpty {
+            defaultTitle = String(
+                format: NSLocalizedString("workout.share.card.completed_format", comment: ""),
+                type
+            )
+        } else {
+            defaultTitle = NSLocalizedString("workout.share.card.completed_default", comment: "")
+        }
+        return RecapShareCardLogic.displayTitle(
+            editorState: editorState,
+            customTitle: customTitle,
+            defaultTitle: defaultTitle
+        )
+    }
+
+    private func overlayDragGesture(kind: ShareCardOverlayKind, cardSize: CGSize) -> some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                applyOverlayDrag(kind: kind, translation: value.translation, cardSize: cardSize)
+            }
+            .onEnded { _ in
+                overlayDragStart = nil
+            }
+    }
+
+    private func titleOverlayGesture(cardSize: CGSize) -> some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { value in
+                let distance = hypot(value.translation.width, value.translation.height)
+                guard distance >= 8 else { return }
+                applyOverlayDrag(kind: .title, translation: value.translation, cardSize: cardSize)
+            }
+            .onEnded { value in
+                let distance = hypot(value.translation.width, value.translation.height)
+                if distance < 8 {
+                    editingTitle = customTitle ?? ""
+                    showTitleEditor = true
+                }
+                overlayDragStart = nil
+            }
+    }
+
+    private func applyOverlayDrag(
+        kind: ShareCardOverlayKind,
+        translation: CGSize,
+        cardSize: CGSize
+    ) {
+        if overlayDragStart?.kind != kind {
+            overlayDragStart = (kind, ShareCardEditorLogic.layout(kind: kind, in: editorState))
+        }
+        guard let start = overlayDragStart else { return }
+
+        var temp = editorState
+        switch kind {
+        case .title: temp.titleLayout = start.layout
+        case .paceChart: temp.paceChartLayout = start.layout
+        case .routeGlyph: temp.routeLayout = start.layout
+        }
+        ShareCardEditorLogic.dragOverlay(
+            kind: kind,
+            translation: translation,
+            cardSize: cardSize,
+            state: &temp
+        )
+        editorState = temp
+    }
+
     // MARK: - Share（底部主要動作）
 
     private var shareBar: some View {
@@ -292,7 +438,10 @@ struct WorkoutRecapView: View {
             photo: selectedPhoto,
             cornerRadius: 0,
             customTitle: customTitle,
-            photoOffset: photoOffset
+            photoOffset: photoOffset,
+            canvasData: canvasData,
+            editorState: editorState,
+            showEditChrome: false
         )
         .frame(width: exportSize.width, height: exportSize.height)
 

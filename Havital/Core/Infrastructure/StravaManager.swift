@@ -206,12 +206,29 @@ class StravaManager: NSObject, ObservableObject {
                         "action": "checkConnectionStatus",
                         "status": response.status
                     ])
+                } else if response.requiresReauthorization {
+                    print("❌ 檢測到需要重授權狀態 '\(response.status)'，設置 needsReconnection = true")
+                    self.needsReconnection = true
+                    self.reconnectionMessage = response.message.isEmpty
+                        ? String(format: NSLocalizedString("connect.status.reauth_required_format", comment: "Provider connection requires reauthorization"), "Strava")
+                        : response.message
+                    self.saveConnectionStatus(false)
+
+                    Logger.firebase("Strava 需要重新綁定", level: .warn, labels: [
+                        "module": "StravaManager",
+                        "action": "checkConnectionStatus",
+                        "status": response.status,
+                        "connected": "\(response.connected)"
+                    ])
                 } else {
                     // 狀態不是 "active"，檢查是否需要重連
                     print("⚠️ Strava 狀態不是 active: '\(response.status)'")
 
                     // 只對真正的錯誤狀態顯示對話框
-                    let problemStatuses = ["bound_to_other_user", "inactive", "expired", "revoked", "suspended", "error"]
+                    let problemStatuses = [
+                        "bound_to_other_user", "inactive", "expired", "revoked", "suspended", "error",
+                        "error_requires_reauth", "disconnected"
+                    ]
                     let shouldShowReconnection = problemStatuses.contains { problemStatus in
                         response.status.lowercased().contains(problemStatus.lowercased())
                     }
@@ -666,7 +683,13 @@ class StravaManager: NSObject, ObservableObject {
         }
     }
     
-    private func handleConnectionError(_ message: String) async {
+    private func handleConnectionError(_ message: String, step: String = "complete_connection") async {
+        Logger.firebase("Strava 連接失敗: \(message)", level: .error, labels: [
+            "module": "StravaManager",
+            "action": "handleCallback",
+            "step": step,
+            "provider": "strava"
+        ])
         await MainActor.run {
             self.isConnecting = false
             self.connectionError = message

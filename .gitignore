@@ -29,6 +29,9 @@ Havital/Resources/APIKeys.plist
 # Claude Code & ZenOS governance (local tooling, not product code)
 .claude/
 skills/
+
+# Codex local config and skills
+.codex/
 .maestro/.env.local
 
 # QA screenshots (temporary test artifacts)
@@ -41,6 +44,8 @@ Package.resolved
 
 # Maestro runtime cache
 .maestro/.last_failed_flows.txt
+.maestro/**/*.png
+.maestro/screenshots/
 
 # Python bytecode
 **/__pycache__/

@@ -148,6 +148,7 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
 
     private func buildDayDetailDTO(from day: MutableTrainingDay) -> DayDetailDTO {
         let originalDay = originalDay(for: day)
+        let calendarDay = calendarDay(for: day)
 
         // 使用者沒動這天 → 直接用無損的 Domain→DTO mapper 回傳後端原本的 day，
         // 完整保留熱適應卡、心率區間、目標強度、顯示單位、segment 等編輯器沒有
@@ -159,7 +160,7 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
 
         let dayType = DayType(rawValue: day.trainingType) ?? .rest
         let dayClimateMeta = dayType.isRunningActivity
-            ? originalDay?.effectiveClimateMeta.map { TrainingSessionMapper.toDTO(from: $0) }
+            ? calendarDay?.effectiveClimateMeta.map { TrainingSessionMapper.toDTO(from: $0) }
             : nil
         let category: String?
         let primary: PrimaryActivityDTO?
@@ -210,7 +211,11 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
         } else {
             // 跑步類型
             category = "run"
-            primary = .run(buildRunActivityDTO(from: day, dayType: dayType))
+            primary = .run(buildRunActivityDTO(
+                from: day,
+                dayType: dayType,
+                calendarDay: calendarDay
+            ))
         }
 
         // Convert warmup/cooldown to DTOs for run category only
@@ -279,11 +284,15 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
         )
     }
 
-    private func buildRunActivityDTO(from day: MutableTrainingDay, dayType: DayType) -> RunActivityDTO {
+    private func buildRunActivityDTO(
+        from day: MutableTrainingDay,
+        dayType: DayType,
+        calendarDay: DayDetail?
+    ) -> RunActivityDTO {
         let runType = dayType.apiRunType
         let originalDay = originalDay(for: day)
         let originalRun = originalDay?.primaryRunActivity
-        let runClimateMeta = originalRun?.climateMeta ?? originalDay?.effectiveClimateMeta
+        let runClimateMeta = calendarDay?.effectiveClimateMeta
         let preserveRunClimate = shouldPreserveRunClimate(day: day, runType: runType, originalRun: originalRun)
         // runType 未變時，把編輯器沒有模型化的欄位（心率區間、目標強度）從原始 run 帶回，
         // 否則存檔後整週的心率區間 / 目標強度會被洗成空白。runType 改變則交給後端重算。
@@ -372,7 +381,7 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
             let segDTOs: [RunSegmentDTO] = segs.enumerated().map { index, seg -> RunSegmentDTO in
                 let originalSegment = index < originalSegments.count ? originalSegments[index] : nil
                 let preserveSegmentClimate = preserveRunClimate && seg.pace == originalSegment?.pace
-                let segmentClimateMeta = originalSegment?.climateMeta ?? runClimateMeta
+                let segmentClimateMeta = runClimateMeta
                 let segmentClimatePace = climatePaceValues(
                     currentPace: seg.pace,
                     climateMeta: segmentClimateMeta,
@@ -393,6 +402,8 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
                     heartRateRange: originalSegment?.heartRateRange.map { TrainingSessionMapper.toDTO(from: $0) },
                     intensity: originalSegment?.intensity,
                     description: seg.description
+                        ?? originalSegment?.description
+                        ?? String(format: NSLocalizedString("schedule_editor.segment.number_format", comment: ""), index + 1)
                 )
             }
             return RunActivityDTO(
@@ -437,6 +448,11 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
     }
 
     private func originalDay(for day: MutableTrainingDay) -> DayDetail? {
+        let sourceDayIndex = day.originalDayIndex ?? day.dayIndexInt
+        return weeklyPlan.days.first { $0.dayIndex == sourceDayIndex }
+    }
+
+    private func calendarDay(for day: MutableTrainingDay) -> DayDetail? {
         weeklyPlan.days.first { $0.dayIndex == day.dayIndexInt }
     }
 
@@ -524,6 +540,14 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
         return String(format: "%d:%02d", roundedSeconds / 60, roundedSeconds % 60)
     }
 }
+
+#if DEBUG
+extension EditScheduleV2ViewModel {
+    func debug_buildDayDetailDTO(from day: MutableTrainingDay) -> DayDetailDTO {
+        buildDayDetailDTO(from: day)
+    }
+}
+#endif
 
 // MARK: - DayType → API runType mapping
 

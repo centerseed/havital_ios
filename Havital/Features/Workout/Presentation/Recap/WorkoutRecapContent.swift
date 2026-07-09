@@ -9,6 +9,41 @@ import Foundation
 // AI 目前後端僅回純文字（AISummary.analysis）；rich 化（分段 / chip）由 design 決定呈現方式，
 // 資料來源不變。celebration* 欄位來自 ShareCardContent（若後端有提供）。
 
+struct WorkoutRecapPayload: Equatable, Identifiable {
+    let content: WorkoutRecapContent
+    let canvasData: ShareCardCanvasData
+
+    var id: String { content.id }
+}
+
+extension WorkoutRecapPayload {
+    /// 將 detail endpoint 的 timeSeries / routeData 疊到 list workout 上，供 canvas builder 使用。
+    static func mergeDetail(_ detail: WorkoutV2Detail, onto workout: WorkoutV2) -> WorkoutV2 {
+        WorkoutV2(
+            id: workout.id,
+            provider: workout.provider,
+            activityType: workout.activityType,
+            startTimeUtc: workout.startTimeUtc,
+            endTimeUtc: workout.endTimeUtc,
+            durationSeconds: workout.durationSeconds,
+            distanceMeters: workout.distanceMeters,
+            distanceDisplay: workout.distanceDisplay,
+            distanceUnit: workout.distanceUnit,
+            deviceName: workout.deviceName,
+            basicMetrics: workout.basicMetrics,
+            advancedMetrics: workout.advancedMetrics,
+            createdAt: workout.createdAt,
+            schemaVersion: workout.schemaVersion,
+            storagePath: workout.storagePath,
+            dailyPlanSummary: workout.dailyPlanSummary,
+            aiSummary: workout.aiSummary,
+            shareCardContent: workout.shareCardContent,
+            timeSeries: detail.timeSeries ?? workout.timeSeries,
+            routeData: detail.routeData ?? workout.routeData
+        )
+    }
+}
+
 struct WorkoutRecapContent: Identifiable, Equatable {
     /// workoutId — 同時作為去重 / 已讀鍵。
     let id: String

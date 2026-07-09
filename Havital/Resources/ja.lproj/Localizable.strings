@@ -1621,6 +1621,8 @@
 "edit_schedule.loading_data" = "編集データを読み込み中...";
 "edit_schedule.unsaved_changes" = "未保存の変更";
 "edit_schedule.unsaved_changes_message" = "未保存の変更があります。破棄してもよろしいですか？";
+"edit_schedule.save_failed_message" = "週間プランを同期できませんでした。しばらくしてから再度お試しください。";
+"edit_schedule.tap_toolbar_save_to_sync" = "変更は一時保存されました。右上の保存をタップしてクラウドに同期してください。";
 "edit_schedule.discard_changes" = "変更を破棄";
 
 // MARK: - Edit Value Dialogs
@@ -1706,10 +1708,21 @@
 "workout.share.card.edit_title" = "タイトルを編集";
 "workout.share.card.add_photo" = "写真を追加";
 "workout.share.card.change_photo" = "写真を変更";
+"workout.share.add.title" = "＋タイトル";
+"workout.share.add.pace_chart" = "＋ペース曲線";
+"workout.share.add.route" = "＋ルート";
+"workout.share.route.smaller" = "ルートを小さく";
+"workout.share.route.larger" = "ルートを大きく";
+"workout.share.route.color.brand" = "ブランドブルー";
+"workout.share.route.color.white" = "白";
+"workout.share.route.color.green" = "緑";
+"workout.share.route.color.gold" = "ゴールド";
+"workout.share.route.color.peach" = "ピーチ";
 "workout.share.tip.title" = "シェアカードでできること 👋";
 "workout.share.tip.feature_title" = "タイトルをタップして編集できます";
 "workout.share.tip.feature_photo" = "写真をタップして背景を変更できます";
 "workout.share.tip.feature_drag" = "写真をドラッグして位置を調整できます";
+"workout.share.tip.feature_overlays" = "ペース曲線やルートを追加し、ドラッグで位置を調整できます";
 "workout.share.tip.dismiss" = "了解しました（次回から非表示）";
 "workout.reflection.title" = "トレーニング振り返り";
 "workout.reflection.saveError" = "保存に失敗しました。再試行してください";
@@ -3946,6 +3959,7 @@
 "schedule_editor.segment.equal_time_recovery" = "同時間の回復";
 "schedule_editor.segment.rest_in_place_minutes" = "その場で%d分休憩";
 "schedule_editor.segment.recovery_run_minutes" = "%d分のリカバリージョグ";
+"schedule_editor.segment.number_format" = "第 %d 区間";
 "schedule_editor.minutes_format" = "%d分";
 
 // MARK: - Schedule Editor V1 補足 (T-0048: EditScheduleView 固有の詳細/セグメント)
