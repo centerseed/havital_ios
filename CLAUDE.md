@@ -47,6 +47,14 @@ maestro test .maestro/flows/<flow>.yaml
 grep -r "Dictionary.*Date\|Date.*Dictionary" Havital/ --include="*.swift"
 ```
 
+## 發版 (Release pipeline)
+
+fastlane 已串好並實測(build+簽章含 Watch 已驗)。完整步驟 → **`fastlane/RELEASE.md`**。
+- **正式發版(自動直接上傳)**:`cd apps/ios/Havital && fastlane ios release` — 自動 bump build 號(App Store/TF 最大+1)→ archive+簽章(Watch+complication,API key 自動 provisioning、本機免 profile)→ 上傳 App Store → 推 release notes → 送審(`automatic_release=false`,過審後手動 Release)。
+- 只 build 給手動上傳:`fastlane ios build`(→ 開 Finder,Transporter 上傳)。查現行版本:`fastlane ios info`。
+- **唯一人工關**:填 `fastlane/metadata/{zh-Hant,ja,en-US}/release_notes.txt` 三語文案並確認。
+- 憑證:ASC 團隊金鑰自動載入自 `fastlane/.env.default`(不進 git);`.p8` 在 `~/.appstoreconnect/`。
+
 ## Architecture
 
 Full rules: @.claude/rules/architecture.md

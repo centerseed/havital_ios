@@ -38,9 +38,15 @@ def next_build_number(key)
 end
 
 # archive + 匯出 app-store IPA。回傳 IPA 路徑。build 號用 xcargs 覆寫(免 agvtool)。
-def build_ipa(key)
-  build_no = next_build_number(key)
+# 簽章:gym 不收 api_key;改把 ASC API key 經 xcodebuild 認證旗標傳給 archive/export,
+# 讓 `-allowProvisioningUpdates` 能自動產生/下載 app-store profile(watch+complication)。
+def build_ipa(_key)
+  build_no = next_build_number(_key)
   UI.important("build number → #{build_no}(App Store/TestFlight 最大 + 1)")
+  p8     = ENV["ASC_KEY_FILEPATH"] || "#{ENV['HOME']}/.appstoreconnect/AuthKey_NG4N2CCQY5.p8"
+  key_id = ENV["ASC_KEY_ID"] || "NG4N2CCQY5"
+  issuer = ENV["ASC_ISSUER_ID"]
+  auth   = "-authenticationKeyPath #{p8.shellescape} -authenticationKeyID #{key_id} -authenticationKeyIssuerID #{issuer}"
   gym(
     scheme: SCHEME,
     project: PROJECT,
@@ -49,14 +55,14 @@ def build_ipa(key)
     output_directory: IPA_DIR,
     output_name: IPA_NAME,
     clean: true,
-    xcargs: "-allowProvisioningUpdates CURRENT_PROJECT_VERSION=#{build_no}",
+    # 認證旗標只放 xcargs;gym 會把 xcargs 一併帶到 export,重複給會被 xcodebuild 拒。
+    xcargs: "-allowProvisioningUpdates #{auth} CURRENT_PROJECT_VERSION=#{build_no}",
     export_options: {
       method: "app-store",
       teamID: "779277J4JQ",
       signingStyle: "automatic",
       uploadSymbols: true,
     },
-    api_key: key,
   )
   File.join(IPA_DIR, IPA_NAME)
 end
@@ -87,14 +93,17 @@ platform :ios do
     upload_to_testflight(api_key: key, ipa: ipa, skip_waiting_for_build_processing: true)
   end
 
-  desc "(選配)build → 上傳 App Store + 送審(automatic_release=false)"
+  desc "【iOS 正式發版】build → 直接上傳 App Store + 送審(automatic_release=false,過審後手動 release)"
+  desc "release notes 取自 fastlane/metadata/<locale>/release_notes.txt(唯一要人工確認的文案關)。"
   lane :release do
     key = asc_key
     ipa = build_ipa(key)
     upload_to_app_store(
       api_key: key, ipa: ipa,
       submit_for_review: true, automatic_release: false, force: true,
-      run_precheck_before_submit: false, skip_screenshots: true,
+      run_precheck_before_submit: false,
+      skip_screenshots: true,            # 截圖不動
+      skip_metadata: false,              # 推 metadata,但只有 release_notes.txt 存在 → 只更新 release notes
       submission_information: { export_compliance_uses_encryption: false },
     )
   end
