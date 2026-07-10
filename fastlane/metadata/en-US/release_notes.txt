@@ -1,1 +1,11 @@
-（發版前填入本版新功能文案，這是唯一要人工確認的關）
+・See the whole week's weather
+Every day now shows how hot it feels, rest days included. When it's hot, the app tells you exactly how much to slow down.
+Move your workouts around and nothing breaks — the temperature stays with the date, not with the run.
+
+・Benchmark results the same day
+Finish a benchmark run and your race prediction updates right away. No waiting for the weekly review.
+
+・Turn a run into a share card
+Route, pace, heart rate — one tap to make an image worth posting.
+
+Other fixes and improvements.
