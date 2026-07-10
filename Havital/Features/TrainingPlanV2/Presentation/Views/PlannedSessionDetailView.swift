@@ -118,7 +118,7 @@ struct PlannedSessionDetailView: View {
                 return PacerizColor.green
             case .lsd:
                 return PacerizColor.blue
-            case .interval, .tempo, .progression, .threshold, .combination,
+            case .interval, .tempo, .progression, .threshold, .combination, .steadyIntervals,
                  .strides, .hillRepeats, .cruiseIntervals, .shortInterval,
                  .longInterval, .norwegian4x4, .norwegianSingles, .yasso800:
                 return PacerizColor.orange
@@ -152,6 +152,8 @@ struct PlannedSessionDetailView: View {
             case .benchmark:        return (NSLocalizedString("training.type.benchmark.chip", comment: ""),
                                             NSLocalizedString("training.type.benchmark", comment: ""))
             case .combination:      return ("COMBINATION",           NSLocalizedString("training.type.combination", comment: ""))
+            case .steadyIntervals:  return ("STEADY + INTERVALS · Z3 → Z5",
+                                            NSLocalizedString("training.type.steady_intervals", comment: ""))
             case .strides:          return ("STRIDES · Z4-Z5",       NSLocalizedString("training.type.strides", comment: ""))
             case .hillRepeats:      return ("HILL REPEATS · Z4",     NSLocalizedString("training.type.hill_repeats", comment: ""))
             case .cruiseIntervals:  return ("CRUISE · Z3-Z4",        NSLocalizedString("training.type.cruise_intervals", comment: ""))

@@ -127,4 +127,12 @@ final class SteadyIntervalsContractTests: XCTestCase {
         XCTAssertEqual(roundTripped.segments?[1].work?.distanceM, 400)
         XCTAssertEqual(roundTripped.segments?[2].recovery?.recoveryType, "static")
     }
+
+    // MARK: - DayType
+
+    func test_steadyIntervals_inferredAsOwnType() throws {
+        let run = try loadRunActivityEntity()
+        XCTAssertEqual(DayType(rawValue: "steady_intervals"), .steadyIntervals)
+        XCTAssertEqual(run.runType, "steady_intervals")
+    }
 }

@@ -486,6 +486,8 @@ extension DayDetail {
             return .fartlek
         case "fast_finish":
             return .fastFinish
+        case "steady_intervals":
+            return .steadyIntervals
         case "combination":
             return .combination
 

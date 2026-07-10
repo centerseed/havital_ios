@@ -639,7 +639,7 @@ struct TrainingEditSheetV2: View {
         switch editState.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return .green
-        case .interval, .tempo, .progression, .threshold, .combination,
+        case .interval, .tempo, .progression, .threshold, .combination, .steadyIntervals,
              .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .norwegianSingles, .yasso800:
             // 間歇/強度訓練類型
             return .orange
