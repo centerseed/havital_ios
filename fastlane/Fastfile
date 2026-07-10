@@ -38,9 +38,15 @@ def next_build_number(key)
 end
 
 # archive + 匯出 app-store IPA。回傳 IPA 路徑。build 號用 xcargs 覆寫(免 agvtool)。
-def build_ipa(key)
-  build_no = next_build_number(key)
+# 簽章:gym 不收 api_key;改把 ASC API key 經 xcodebuild 認證旗標傳給 archive/export,
+# 讓 `-allowProvisioningUpdates` 能自動產生/下載 app-store profile(watch+complication)。
+def build_ipa(_key)
+  build_no = next_build_number(_key)
   UI.important("build number → #{build_no}(App Store/TestFlight 最大 + 1)")
+  p8     = ENV["ASC_KEY_FILEPATH"] || "#{ENV['HOME']}/.appstoreconnect/AuthKey_NG4N2CCQY5.p8"
+  key_id = ENV["ASC_KEY_ID"] || "NG4N2CCQY5"
+  issuer = ENV["ASC_ISSUER_ID"]
+  auth   = "-authenticationKeyPath #{p8.shellescape} -authenticationKeyID #{key_id} -authenticationKeyIssuerID #{issuer}"
   gym(
     scheme: SCHEME,
     project: PROJECT,
@@ -49,14 +55,14 @@ def build_ipa(key)
     output_directory: IPA_DIR,
     output_name: IPA_NAME,
     clean: true,
-    xcargs: "-allowProvisioningUpdates CURRENT_PROJECT_VERSION=#{build_no}",
+    # 認證旗標只放 xcargs;gym 會把 xcargs 一併帶到 export,重複給會被 xcodebuild 拒。
+    xcargs: "-allowProvisioningUpdates #{auth} CURRENT_PROJECT_VERSION=#{build_no}",
     export_options: {
       method: "app-store",
       teamID: "779277J4JQ",
       signingStyle: "automatic",
       uploadSymbols: true,
     },
-    api_key: key,
   )
   File.join(IPA_DIR, IPA_NAME)
 end
