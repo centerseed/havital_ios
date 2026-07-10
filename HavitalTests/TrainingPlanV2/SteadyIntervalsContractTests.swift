@@ -68,4 +68,63 @@ final class SteadyIntervalsContractTests: XCTestCase {
         XCTAssertNil(segs[3].repeats)
         XCTAssertNil(segs[3].work)
     }
+
+    // MARK: - Domain mapping
+
+    private func loadRunActivityEntity() throws -> RunActivity {
+        TrainingSessionMapper.toEntity(from: try loadRunActivityDTO())
+    }
+
+    func test_missingKind_mapsToSteady() throws {
+        let segs = try XCTUnwrap(loadRunActivityEntity().segments)
+        XCTAssertEqual(segs[0].segmentKind, .steady)
+        XCTAssertNil(segs[0].kind, "raw value is preserved as-is")
+    }
+
+    func test_unknownKind_degradesToSteady() {
+        XCTAssertEqual(SegmentKind.from("pyramid"), .steady,
+                       "unknown kind must degrade, otherwise a new backend type blanks the whole page")
+        XCTAssertEqual(SegmentKind.from(nil), .steady)
+        XCTAssertEqual(SegmentKind.from("interval"), .interval)
+    }
+
+    // MARK: - Cache compatibility (RunSegment is Codable and goes through the local cache)
+
+    func test_entityDecodes_whenKindKeyMissing() throws {
+        // Old cached documents have no "kind" key. Decoding must not throw.
+        let json = #"{"distance_km":5.0,"pace":"5:30"}"#.data(using: .utf8)!
+        let seg = try JSONDecoder().decode(RunSegment.self, from: json)
+        XCTAssertNil(seg.kind)
+        XCTAssertEqual(seg.segmentKind, .steady)
+    }
+
+    func test_entityDecodes_whenKindIsUnknown_andRoundTripsVerbatim() throws {
+        // A future backend kind such as "pyramid" must not throw, and the raw value must survive.
+        let json = #"{"distance_km":5.0,"pace":"5:30","kind":"pyramid"}"#.data(using: .utf8)!
+        let seg = try JSONDecoder().decode(RunSegment.self, from: json)
+        XCTAssertEqual(seg.kind, "pyramid", "raw value must round-trip verbatim")
+        XCTAssertEqual(seg.segmentKind, .steady, "display degrades to steady")
+
+        let reencoded = try JSONEncoder().encode(seg)
+        let again = try JSONDecoder().decode(RunSegment.self, from: reencoded)
+        XCTAssertEqual(again.kind, "pyramid", "raw value survives a cache round-trip")
+    }
+
+    func test_intervalSegment_mapsToEntity() throws {
+        let segs = try XCTUnwrap(loadRunActivityEntity().segments)
+        let s = segs[1]
+        XCTAssertEqual(s.segmentKind, .interval)
+        XCTAssertEqual(s.repeats, 6)
+        XCTAssertEqual(s.work?.distanceM, 400)
+        XCTAssertEqual(s.recovery?.recoveryType, "jog")
+    }
+
+    func test_mapperRoundTrip_preservesSequence() throws {
+        let dto = try loadRunActivityDTO()
+        let roundTripped = TrainingSessionMapper.toDTO(from: TrainingSessionMapper.toEntity(from: dto))
+        XCTAssertEqual(roundTripped.segments?[1].kind, "interval")
+        XCTAssertEqual(roundTripped.segments?[1].repeats, 6)
+        XCTAssertEqual(roundTripped.segments?[1].work?.distanceM, 400)
+        XCTAssertEqual(roundTripped.segments?[2].recovery?.recoveryType, "static")
+    }
 }

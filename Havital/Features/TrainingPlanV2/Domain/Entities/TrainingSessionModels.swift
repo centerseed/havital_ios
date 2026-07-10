@@ -35,6 +35,39 @@ struct HeartRateRangeV2: Codable, Equatable {
     }
 }
 
+// MARK: - SegmentKind
+
+/// 段落型態。`from(_:)` 對缺席與未知值一律降級為 `.steady`，
+/// 讓後端新增型態時舊 app 仍能顯示（降級摘要欄位保證有距離與配速）。
+///
+/// 刻意**不是** `Codable`：它從不作為 stored property 被序列化。
+/// `RunSegment.kind` 存原始字串，本型別只由 computed `segmentKind` 產生。
+enum SegmentKind: String, Equatable {
+    case steady
+    case interval
+
+    static func from(_ raw: String?) -> SegmentKind {
+        guard let raw else { return .steady }
+        return SegmentKind(rawValue: raw) ?? .steady
+    }
+}
+
+// MARK: - SegmentEffort
+
+/// 一組間歇的工作段或恢復段規格。葉節點，不可再巢套。
+struct SegmentEffort: Codable, Equatable {
+    let distanceKm: Double?
+    let distanceM: Int?
+    let durationMinutes: Int?
+    let durationSeconds: Int?
+    let pace: String?
+    let basePace: String?
+    let paceZone: String?
+    let targetHrr: [Double]?
+    /// "static" | "jog" | "walk_jog"。只有 recovery 會有值。
+    let recoveryType: String?
+}
+
 // MARK: - RunSegment (暖身/緩和/分段)
 
 /// 跑步分段 - 用於暖身、緩和或漸速跑的分段
@@ -52,12 +85,30 @@ struct RunSegment: Codable, Equatable {
     let heartRateRange: HeartRateRangeV2?
     let intensity: String?
     let description: String?
+    /// 段落型態的**原始字串**。刻意不存 `SegmentKind` enum。
+    ///
+    /// `RunSegment` 是 `Codable` 且會被 encode/decode 進本機快取
+    /// （`TrainingPlanV2LocalDataSource.swift:187` decode `WeeklyPlanV2.self`、`:198` encode）。
+    /// enum 對「缺 key」與「未知 raw value」都會 throw：前者讓升級後的舊快取解不開，
+    /// 後者讓後端新增型態時整份課表壞掉。連 `SegmentKind?` 都救不了未知值。
+    ///
+    /// 存字串還能讓未知值（如未來的 "pyramid"）在快取往返後原樣保留，
+    /// 不會被降級成 "steady" 永久遺失。
+    ///
+    /// 消費端請一律用 `segmentKind`，不要自己比對字串。
+    let kind: String?
+    let repeats: Int?
+    let work: SegmentEffort?
+    let recovery: SegmentEffort?
 
     // 計畫一律顯示原始配速；熱調整後配速只在「溫度補償卡」呈現（使用者決策 2026-05）。
     // 勿改回 climateAdjustedPace ?? pace，否則主畫面又會被氣候值蓋掉。
     var effectivePace: String? {
         pace
     }
+
+    /// 顯示用的段落型態。缺席與未知值一律降級為 `.steady`。
+    var segmentKind: SegmentKind { SegmentKind.from(kind) }
 }
 
 // MARK: - IntervalBlock (間歇訓練)

@@ -524,13 +524,15 @@ struct SimplifiedDailyCardV2: View {
             distanceKm: 2.0, distanceM: nil, distanceDisplay: nil, distanceUnit: nil,
             durationMinutes: nil, durationSeconds: nil,
             pace: recoveryPace, basePace: nil, climateAdjustedPace: nil, climateMeta: nil, heartRateRange: nil,
-            intensity: "easy", description: NSLocalizedString("schedule_editor.segment.warmup", comment: "")
+            intensity: "easy", description: NSLocalizedString("schedule_editor.segment.warmup", comment: ""),
+            kind: nil, repeats: nil, work: nil, recovery: nil
         )
         let cooldown = RunSegment(
             distanceKm: 1.0, distanceM: nil, distanceDisplay: nil, distanceUnit: nil,
             durationMinutes: nil, durationSeconds: nil,
             pace: recoveryPace, basePace: nil, climateAdjustedPace: nil, climateMeta: nil, heartRateRange: nil,
-            intensity: "easy", description: NSLocalizedString("schedule_editor.segment.cooldown", comment: "")
+            intensity: "easy", description: NSLocalizedString("schedule_editor.segment.cooldown", comment: ""),
+            kind: nil, repeats: nil, work: nil, recovery: nil
         )
         return (warmup, cooldown)
     }

@@ -362,7 +362,8 @@ private extension RunSegment {
             climateMeta: nil,
             heartRateRange: nil,
             intensity: intensity,
-            description: nil
+            description: nil,
+            kind: nil, repeats: nil, work: nil, recovery: nil
         )
     }
 }

@@ -362,7 +362,8 @@ final class TrainingDayEditState: ObservableObject {
                 climateMeta: nil,
                 heartRateRange: nil,
                 intensity: "easy",
-                description: NSLocalizedString("schedule_editor.segment.warmup", comment: "")
+                description: NSLocalizedString("schedule_editor.segment.warmup", comment: ""),
+                kind: nil, repeats: nil, work: nil, recovery: nil
             ) : nil
             result.cooldown = hasCooldown ? RunSegment(
                 distanceKm: cooldownDistance,
@@ -377,7 +378,8 @@ final class TrainingDayEditState: ObservableObject {
                 climateMeta: nil,
                 heartRateRange: nil,
                 intensity: "easy",
-                description: NSLocalizedString("schedule_editor.segment.cooldown", comment: "")
+                description: NSLocalizedString("schedule_editor.segment.cooldown", comment: ""),
+                kind: nil, repeats: nil, work: nil, recovery: nil
             ) : nil
         } else {
             result.warmup = nil

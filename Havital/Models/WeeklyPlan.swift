@@ -194,7 +194,8 @@ private struct V3WarmupCooldown: Decodable {
             climateMeta: nil,
             heartRateRange: nil,
             intensity: nil,
-            description: description
+            description: description,
+            kind: nil, repeats: nil, work: nil, recovery: nil
         )
     }
 }
