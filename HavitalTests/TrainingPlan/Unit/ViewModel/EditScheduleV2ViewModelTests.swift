@@ -4,7 +4,12 @@ import XCTest
 @MainActor
 final class EditScheduleV2ViewModelTests: XCTestCase {
 
-    func testSaveEdits_preservesClimateMetaAndAdjustedPaceWhenRunUnchanged() async throws {
+    /// T-0165：編輯送出**不得攜帶任何 climate 欄位**。
+    ///
+    /// 舊契約是「編輯時把 climate_meta / climate_adjusted_pace 一起送回去，讓後端保留」。
+    /// 那讓氣候變成課表的屬性 —— 搬動課表就會把 A 天的溫度帶到 B 天。
+    /// 新契約：課表裡只有原始處方，氣候由後端讀取時依日期現算並投影。
+    func testSaveEdits_neverSendsClimateFields() async throws {
         let repository = MockTrainingPlanV2Repository()
         let weeklyPlan = makeWeeklyPlan()
         repository.weeklyPlanV2ToReturn = weeklyPlan
@@ -17,17 +22,20 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
         _ = try await viewModel.saveEdits()
 
         let savedDay = try XCTUnwrap(repository.lastUpdateWeeklyPlanRequest?.days?.first)
-        XCTAssertEqual(savedDay.climateMeta?.heatPressureLevel, "high")
+        XCTAssertNil(savedDay.climateMeta)
 
         guard case .run(let runActivity) = savedDay.primary else {
             return XCTFail("Expected run activity")
         }
-        XCTAssertEqual(runActivity.basePace, "5:40")
-        XCTAssertEqual(runActivity.climateAdjustedPace, "6:02")
-        XCTAssertEqual(runActivity.climateMeta?.paceAdjustmentPct, 6.5)
+        XCTAssertNil(runActivity.basePace)
+        XCTAssertNil(runActivity.climateAdjustedPace)
+        XCTAssertNil(runActivity.climateMeta)
+        // 剝的是氣候，不是處方
+        XCTAssertEqual(runActivity.pace, "5:40")
     }
 
-    func testSaveEdits_recalculatesAdjustedPaceWhenPaceChanges() async throws {
+    /// 改配速後仍不得送 climate；處方配速本身要如實送出。
+    func testSaveEdits_paceChangeSendsPrescriptionWithoutClimate() async throws {
         let repository = MockTrainingPlanV2Repository()
         let weeklyPlan = makeWeeklyPlan()
         repository.weeklyPlanV2ToReturn = weeklyPlan
@@ -41,14 +49,14 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
         _ = try await viewModel.saveEdits()
 
         let savedDay = try XCTUnwrap(repository.lastUpdateWeeklyPlanRequest?.days?.first)
-        XCTAssertEqual(savedDay.climateMeta?.heatPressureLevel, "high")
+        XCTAssertNil(savedDay.climateMeta)
 
         guard case .run(let runActivity) = savedDay.primary else {
             return XCTFail("Expected run activity")
         }
-        XCTAssertEqual(runActivity.basePace, "5:20")
-        XCTAssertEqual(runActivity.climateAdjustedPace, "5:41")
-        XCTAssertEqual(runActivity.climateMeta?.paceAdjustmentPct, 6.5)
+        XCTAssertEqual(runActivity.pace, "5:20")
+        XCTAssertNil(runActivity.basePace)
+        XCTAssertNil(runActivity.climateAdjustedPace)
     }
 
     func testSaveEdits_clearsClimateMetaWhenRunChangedToStrength() async throws {
@@ -96,9 +104,9 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
         XCTAssertEqual(runActivity.heartRateRange?.min, 140)
         XCTAssertEqual(runActivity.heartRateRange?.max, 155)
         XCTAssertEqual(runActivity.targetIntensity, "easy")
-        // 熱適應仍在
-        XCTAssertEqual(savedDay.climateMeta?.heatPressureLevel, "high")
-        XCTAssertEqual(runActivity.climateMeta?.paceAdjustmentPct, 6.5)
+        // 保住的是後端 enrichment，不是氣候（T-0165）
+        XCTAssertNil(savedDay.climateMeta)
+        XCTAssertNil(runActivity.climateMeta)
     }
 
     /// 回歸：只改配速（runType 不變）時，心率區間 / 目標強度應從原始 run 帶回，不可消失。
@@ -122,7 +130,8 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
         XCTAssertEqual(runActivity.heartRateRange?.min, 140)
         XCTAssertEqual(runActivity.heartRateRange?.max, 155)
         XCTAssertEqual(runActivity.targetIntensity, "easy")
-        XCTAssertEqual(runActivity.basePace, "5:20")
+        XCTAssertEqual(runActivity.pace, "5:20")
+        XCTAssertNil(runActivity.basePace)
     }
 
     private func makeWeeklyPlan() -> WeeklyPlanV2 {

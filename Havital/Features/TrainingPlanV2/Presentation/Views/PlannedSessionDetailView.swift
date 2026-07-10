@@ -9,6 +9,9 @@ import SwiftUI
 
 struct PlannedSessionDetailView: View {
     let day: DayDetail
+    /// 該天的氣候（T-0165）。綁日期不綁課表，由呼叫端從 plan-level climate[7] 依 day_index 取出。
+    /// nil = 用戶關閉氣候調整或預報缺失。**不要退回讀 `day.climateMeta`** —— 那是給舊 App 的投影。
+    let climate: ClimateDay?
     let date: Date?
     let planId: String?
     @State private var showTrainingTypeInfo = false
@@ -28,8 +31,9 @@ struct PlannedSessionDetailView: View {
     // The two are mutually exclusive — a runner uses one watch ecosystem, not both.
     @ObservedObject private var garminManager = GarminManager.shared
 
-    init(day: DayDetail, date: Date?, planId: String? = nil) {
+    init(day: DayDetail, climate: ClimateDay? = nil, date: Date?, planId: String? = nil) {
         self.day = day
+        self.climate = climate
         self.date = date
         self.planId = planId
         _garminVM = StateObject(wrappedValue: GarminPushViewModel(repository: DependencyContainer.shared.resolve()))
@@ -695,18 +699,24 @@ struct PlannedSessionDetailView: View {
             ?? run.segments?.first?.pace
     }
 
+    /// 詳情頁三態（T-0165）：
+    /// - `mild+` 且跑步日 → `ClimateTipCard`，配速當場算。
+    /// - `mild+` 且休息／力量日 → 低調提示文字（補水、避開午後）。
+    /// - `comfortable` → 無卡片（涼爽日不說話）。
     @ViewBuilder
     private var climateSection: some View {
-        if climateAdjustmentEnabled, let climateMeta = day.effectiveClimateMeta {
-            ClimateTipCard(
-                meta: climateMeta,
-                // 危險級後端不給 climate_adjusted_pace，用原本 pace 當基準算「若仍戶外」放慢配速。
-                // 間歇／法特雷克的配速在 interval.workPace，run 層 pace 為 nil → 退回 workPace，
-                // 否則熱適應卡會因 basePace 缺失而不顯示配速調整。
-                basePace: climateBasePace,
-                adjustedPace: day.primaryRunActivity?.climateAdjustedPace,
-                segmentBasePaces: climateSegmentBasePaces
-            )
+        if climateAdjustmentEnabled, let climate, climate.hasHeatAdvice {
+            if day.type == .rest || day.primaryRunActivity == nil {
+                ClimateRestDayNote(climate: climate)
+            } else {
+                ClimateTipCard(
+                    climate: climate,
+                    // 間歇／法特雷克的配速在 interval.workPace，run 層 pace 為 nil → 退回 workPace，
+                    // 否則熱適應卡會因 basePace 缺失而不顯示配速調整。
+                    basePace: climateBasePace,
+                    segmentBasePaces: climateSegmentBasePaces
+                )
+            }
         }
     }
 
@@ -1395,23 +1405,48 @@ private struct TargetZonePill: View {
 
 // MARK: - ClimateTipCard
 
+/// 休息／力量日的低調提示：沒有配速可調，只提醒補水與避開午後。
+private struct ClimateRestDayNote: View {
+    let climate: ClimateDay
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "sun.haze.fill")
+                .font(AppFont.caption())
+                .foregroundColor(climate.badgeForegroundColor)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(climate.headerChipText)
+                    .font(AppFont.micro())
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                Text(climate.trainingTimeRecommendation)
+                    .font(AppFont.micro())
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(climate.badgeBackgroundColor.opacity(0.6))
+        .clipShape(RoundedRectangle(cornerRadius: PacerizRadius.card))
+        .accessibilityIdentifier("v2.session.climate_rest_note")
+    }
+}
+
 private struct ClimateTipCard: View {
-    let meta: ClimateMeta
+    let climate: ClimateDay
     var basePace: String? = nil
-    var adjustedPace: String? = nil
-    // 分段型課表（progression/fast_finish/combination）後端不給調整配速，逐段在卡片補算顯示。
+    // 分段型課表（progression/fast_finish/combination）逐段在卡片補算顯示。
     var segmentBasePaces: [(title: String, base: String)] = []
 
     // Climate tip uses its OWN heat-alert level colour (mild/moderate/high/danger),
     // not the workout type colour — the warning severity should drive the colour.
-    private var climateColor: Color { meta.badgeForegroundColor }
+    private var climateColor: Color { climate.badgeForegroundColor }
 
     private var headerChip: String {
         // 溫度需明確標示為「體感」，避免被誤會成實際氣溫。
-        if let t = meta.feelsLikeTempText {
-            return "\(meta.shortLevelDisplayText) · \(meta.temperatureTitle) \(t)"
-        }
-        return meta.shortLevelDisplayText
+        climate.headerChipText
     }
 
     var body: some View {
@@ -1421,7 +1456,7 @@ private struct ClimateTipCard: View {
                 Image(systemName: "thermometer.sun.fill")
                     .font(AppFont.bodyRegular())
                     .foregroundColor(climateColor)
-                Text(meta.sectionTitle)
+                Text(climate.sectionTitle)
                     .font(AppFont.bodyStrong())
                     .foregroundColor(.primary)
                 Spacer()
@@ -1436,13 +1471,13 @@ private struct ClimateTipCard: View {
             }
 
             // 為什麼調整（說明）
-            Text(meta.heatAdaptationExplanation)
+            Text(climate.heatAdaptationExplanation)
                 .font(AppFont.micro())
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            // 配速建議：非危險顯示「原 → 今日（調整後）」；危險即使後端不給百分比，
-            // 也算出「若仍戶外」至少放慢的具體配速（依知識庫：放慢 ≥ 一個配速等級）。
+            // 配速建議：「原 → 今日（調整後）」。danger 也走同一條 ——
+            // heat_profile 的 danger policy 給 pace_adjustment_pct=9.0，不是 nil。
             paceGuidanceRow
 
             // 建議時段／室內
@@ -1451,11 +1486,11 @@ private struct ClimateTipCard: View {
                     .font(AppFont.caption())
                     .foregroundColor(climateColor)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(meta.recommendationTitle)
+                    Text(climate.recommendationTitle)
                         .font(AppFont.micro())
                         .fontWeight(.bold)
                         .foregroundColor(.primary)
-                    Text(meta.trainingTimeRecommendation)
+                    Text(climate.trainingTimeRecommendation)
                         .font(AppFont.micro())
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -1478,31 +1513,24 @@ private struct ClimateTipCard: View {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(segmentBasePaces.indices, id: \.self) { i in
                     let seg = segmentBasePaces[i]
-                    if let adj = meta.climateAdjustedPace(forBasePace: seg.base) {
+                    if let adj = climate.climateAdjustedPace(forBasePace: seg.base) {
                         HStack(spacing: 10) {
                             paceChip(seg.title, seg.base, .secondary)
                             Image(systemName: "arrow.right").font(.caption2).foregroundColor(.secondary)
-                            paceChip(meta.adjustedPaceTitle, adj, climateColor)
+                            paceChip(climate.adjustedPaceTitle, adj, climateColor)
                             Spacer()
                         }
                     }
                 }
             }
-        } else if meta.normalizedHeatPressureLevel == "danger",
-           let b = basePace, let bs = paceStringToSeconds(b) {
-            // 危險：原配速 → 至少放慢一個配速等級（約 base + 60 秒/km）。
-            let floorPace = secondsToPaceString(bs + meta.dangerOutdoorMinSlowdownSeconds)
+        } else if let b = basePace, let adj = climate.climateAdjustedPace(forBasePace: b), adj != b {
+            // T-0165：後端不再送 climate_adjusted_pace，App 當場算 pace × (1 + pct/100)。
+            // 改版前這裡有一條 danger 專用 fallback（「後端不給百分比 → 至少放慢一個配速等級」）。
+            // 那是死 code：`heat_profile.py` 的 danger policy 是 pace_adjustment_pct=9.0，不是 nil。
             HStack(spacing: 10) {
-                paceChip(meta.originalPaceTitle, b, .secondary)
+                paceChip(climate.originalPaceTitle, b, .secondary)
                 Image(systemName: "arrow.right").font(.caption2).foregroundColor(.secondary)
-                paceChip(meta.dangerOutdoorPaceTitle, "\(floorPace)+", climateColor)
-                Spacer()
-            }
-        } else if let b = basePace, let a = adjustedPace, b != a {
-            HStack(spacing: 10) {
-                paceChip(meta.originalPaceTitle, b, .secondary)
-                Image(systemName: "arrow.right").font(.caption2).foregroundColor(.secondary)
-                paceChip(meta.adjustedPaceTitle, a, climateColor)
+                paceChip(climate.adjustedPaceTitle, adj, climateColor)
                 Spacer()
             }
         }
