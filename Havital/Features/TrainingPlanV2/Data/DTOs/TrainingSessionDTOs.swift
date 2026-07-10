@@ -33,6 +33,37 @@ struct HeartRateRangeDTO: Codable, Equatable {
     }
 }
 
+// MARK: - SegmentEffortDTO
+
+/// 段落序列中，一組間歇的工作段或恢復段規格（contract: steady-intervals-v1）。
+///
+/// 刻意不含 kind / repeats / work / recovery —— 結構上不可能巢套第二層。
+/// `recoveryType` 存 String 而非 enum：後端未來新增恢復型態時，
+/// enum 解碼會 throw 並讓整份週課表變空白。
+struct SegmentEffortDTO: Codable, Equatable {
+    let distanceKm: Double?
+    let distanceM: Int?
+    let durationMinutes: Int?
+    let durationSeconds: Int?
+    let pace: String?
+    let basePace: String?
+    let paceZone: String?
+    let targetHrr: [Double]?
+    let recoveryType: String?
+
+    enum CodingKeys: String, CodingKey {
+        case distanceKm = "distance_km"
+        case distanceM = "distance_m"
+        case durationMinutes = "duration_minutes"
+        case durationSeconds = "duration_seconds"
+        case pace
+        case basePace = "base_pace"
+        case paceZone = "pace_zone"
+        case targetHrr = "target_hrr"
+        case recoveryType = "recovery_type"
+    }
+}
+
 // MARK: - RunSegmentDTO
 
 struct RunSegmentDTO: Codable, Equatable {
@@ -49,6 +80,11 @@ struct RunSegmentDTO: Codable, Equatable {
     let heartRateRange: HeartRateRangeDTO?
     let intensity: String?
     let description: String?
+    /// 段落型態。缺席 = "steady"（既有文件）。存 String，未知值由 Domain 層降級。
+    let kind: String?
+    let repeats: Int?
+    let work: SegmentEffortDTO?
+    let recovery: SegmentEffortDTO?
 
     enum CodingKeys: String, CodingKey {
         case distanceKm = "distance_km"
@@ -64,6 +100,10 @@ struct RunSegmentDTO: Codable, Equatable {
         case heartRateRange = "heart_rate_range"
         case intensity
         case description
+        case kind
+        case repeats
+        case work
+        case recovery
     }
 }
 

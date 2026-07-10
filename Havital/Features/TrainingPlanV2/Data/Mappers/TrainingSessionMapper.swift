@@ -77,7 +77,11 @@ enum TrainingSessionMapper {
             climateMeta: entity.climateMeta.map { toDTO(from: $0) },
             heartRateRange: entity.heartRateRange.map { toDTO(from: $0) },
             intensity: entity.intensity,
-            description: entity.description
+            description: entity.description,
+            kind: nil,
+            repeats: nil,
+            work: nil,
+            recovery: nil
         )
     }
 

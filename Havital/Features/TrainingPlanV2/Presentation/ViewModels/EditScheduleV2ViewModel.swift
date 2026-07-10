@@ -403,7 +403,11 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
                     intensity: originalSegment?.intensity,
                     description: seg.description
                         ?? originalSegment?.description
-                        ?? String(format: NSLocalizedString("schedule_editor.segment.number_format", comment: ""), index + 1)
+                        ?? String(format: NSLocalizedString("schedule_editor.segment.number_format", comment: ""), index + 1),
+                    kind: nil,
+                    repeats: nil,
+                    work: nil,
+                    recovery: nil
                 )
             }
             return RunActivityDTO(
