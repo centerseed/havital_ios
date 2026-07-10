@@ -64,6 +64,23 @@ struct WeeklyPlanV2: Codable, Equatable {
     /// 七天氣候，缺席時為空陣列。UI 一律用這個，別直接解 optional。
     var climateDays: [ClimateDay] { climate ?? [] }
 
+    /// 該天的氣候 —— **UI 唯一入口**。
+    ///
+    /// 1. `climate[7]` 有 → 用它（七天恆滿，含休息日與涼爽日）。
+    /// 2. `climate[7]` 缺席 → 退回該天的 legacy `climate_meta`（只有 mild+ 跑步日有）。
+    ///
+    /// 為什麼要退路：後端只對帶 `week_start_date` 錨點的 doc 現算 `climate[7]`，而錨點是
+    /// 新管線生成時才寫進去的。上線那一秒，所有現存用戶的當週課表都還是舊 doc → 沒有
+    /// `climate[7]`。少了這條退路，熱適應會整個空白到下次課表生成為止。
+    func climate(forDayIndex dayIndex: Int) -> ClimateDay? {
+        if let fresh = climateDays.forDayIndex(dayIndex) {
+            return fresh
+        }
+        guard let day = days.first(where: { $0.dayIndexInt == dayIndex }),
+              let meta = day.effectiveClimateMeta else { return nil }
+        return ClimateDay(legacyMeta: meta, dayIndex: dayIndex)
+    }
+
     /// 強度分鐘數分布 - 重用 V1 的 IntensityTotalMinutes
     let intensityTotalMinutes: WeeklyPlan.IntensityTotalMinutes?
 

@@ -60,7 +60,7 @@ struct WeekTimelineViewV2: View {
                     TimelineItemViewV2(
                         viewModel: viewModel,
                         day: day,
-                        climate: plan.climateDays.forDayIndex(day.dayIndexInt),
+                        climate: plan.climate(forDayIndex: day.dayIndexInt),
                         onDestinationSelect: onDestinationSelect,
                         todayTrigger: todayTrigger
                     )
@@ -1111,7 +1111,9 @@ private struct ClimateAdjustmentDetailView: View {
 
             HStack(spacing: 8) {
                 ClimateValueChip(title: climate.levelTitle, value: climate.levelDisplayText)
-                ClimateValueChip(title: climate.temperatureTitle, value: climate.feelsLikeTempText)
+                if let temp = climate.feelsLikeTempText {
+                    ClimateValueChip(title: climate.temperatureTitle, value: temp)
+                }
                 if let adjustment = climate.adjustmentText {
                     ClimateValueChip(title: climate.adjustmentTitle, value: adjustment)
                 }

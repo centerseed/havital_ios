@@ -147,6 +147,83 @@ final class ClimateDayTests: XCTestCase {
         XCTAssertNil(makeClimateDay(level: "mild", pct: 2.0).longRunReductionText)
     }
 
+    // MARK: - 過渡期退路：response 沒有 climate[7] 時退回 legacy climate_meta
+
+    /// 後端只對帶 week_start_date 錨點的 doc 現算 climate[7]，錨點是新管線生成時才寫入的。
+    /// 上線那一秒所有現存用戶的當週課表都是舊 doc → 沒有 climate[7]。少了這條退路，
+    /// 熱適應會整個空白到下次課表生成為止。
+    func testFallsBackToLegacyClimateMetaWhenPlanHasNoClimateArray() throws {
+        let json = """
+        {
+          "id": "ov_1", "purpose": "base", "total_distance_km": 30.0,
+          "days": [
+            {"day_index": 1, "day_target": "easy", "reason": "r", "category": "run",
+             "climate_meta": {"heat_pressure_level": "high", "feels_like_temp_c": 34.0,
+                              "pace_adjustment_pct": 6.5, "reason_text": "hot"},
+             "primary": {"run_type": "easy_run", "pace": "6:00"}}
+          ]
+        }
+        """
+        let plan = try decodePlan(json)
+        XCTAssertNil(plan.climate, "a legacy doc yields no climate[7] in the response")
+
+        let day = try XCTUnwrap(plan.climate(forDayIndex: 1), "must fall back to legacy climate_meta, not nil")
+        XCTAssertEqual(day.heatPressureLevel, "high")
+        XCTAssertEqual(day.feelsLikeTempC, 34.0)
+        XCTAssertEqual(day.climateAdjustedPace(forBasePace: "6:00"), "6:23")
+    }
+
+    func testFreshClimateWinsOverLegacyMeta() throws {
+        let json = """
+        {
+          "id": "ov_1", "purpose": "base", "total_distance_km": 30.0,
+          "days": [
+            {"day_index": 1, "day_target": "easy", "reason": "r", "category": "run",
+             "climate_meta": {"heat_pressure_level": "danger", "feels_like_temp_c": 41.0,
+                              "pace_adjustment_pct": 9.0, "reason_text": "stale"},
+             "primary": {"run_type": "easy_run", "pace": "6:00"}}
+          ],
+          "climate": [
+            {"day_index": 1, "date": "2026-07-13", "feels_like_temp_c": 26.0,
+             "heat_pressure_level": "comfortable", "pace_adjustment_pct": 0.0,
+             "reason_text": "cool", "region_key": "taiwan"}
+          ]
+        }
+        """
+        let plan = try decodePlan(json)
+        // climate[7] 是現算的真相；doc 裡殘留的 climate_meta 是過期投影，不得勝出。
+        XCTAssertEqual(plan.climate(forDayIndex: 1)?.heatPressureLevel, "comfortable")
+        XCTAssertEqual(plan.climate(forDayIndex: 1)?.feelsLikeTempC, 26.0)
+    }
+
+    func testNoClimateAnywhereReturnsNil() throws {
+        let json = """
+        {"id": "ov_1", "purpose": "base", "total_distance_km": 30.0,
+         "days": [{"day_index": 1, "day_target": "e", "reason": "r", "category": "run",
+                   "primary": {"run_type": "easy_run", "pace": "6:00"}}]}
+        """
+        let plan = try decodePlan(json)
+        XCTAssertNil(plan.climate(forDayIndex: 1))
+    }
+
+    func testRestDayHasNoLegacyFallback() throws {
+        // legacy climate_meta 只存在於 mild+ 的跑步日 —— 這正是為何它不能當主要來源。
+        let json = """
+        {"id": "ov_1", "purpose": "base", "total_distance_km": 30.0,
+         "days": [{"day_index": 3, "day_target": "rest", "reason": "r", "category": "rest"}]}
+        """
+        let plan = try decodePlan(json)
+        XCTAssertNil(plan.climate(forDayIndex: 3))
+    }
+
+    func testCapsuleTextIsNilWhenLegacyMetaHasNoTemperature() {
+        let meta = ClimateMeta(feelsLikeTempC: nil, heatPressureLevel: "high",
+                               paceAdjustmentPct: 6.5, reasonText: "r", longRunReductionPct: nil)
+        let day = ClimateDay(legacyMeta: meta, dayIndex: 1)
+        XCTAssertNil(day.temperatureText, "no temperature -> capsule degrades to icon only")
+        XCTAssertNotNil(day.badgeSystemImageName)
+    }
+
     // MARK: - Helper
 
     private func makeClimateDay(
