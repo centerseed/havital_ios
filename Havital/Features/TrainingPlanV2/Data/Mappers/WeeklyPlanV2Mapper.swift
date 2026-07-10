@@ -33,6 +33,7 @@ enum WeeklyPlanV2Mapper {
             mileageProgressionNote: dto.mileageProgressionNote,
             coachNote: dto.coachNote,
             days: dto.days.map { TrainingSessionMapper.toEntity(from: $0) },  // V2.1+ 使用 TrainingSessionMapper
+            climate: dto.climate.map { $0.map { TrainingSessionMapper.toEntity(from: $0) } },
             intensityTotalMinutes: dto.intensityTotalMinutes,  // 直接使用 V1 的 IntensityTotalMinutes
             currentVdot: dto.currentVdot ?? dto.vdot,
             vdotSource: dto.vdotSource,
@@ -67,6 +68,9 @@ enum WeeklyPlanV2Mapper {
             mileageProgressionNote: entity.mileageProgressionNote,
             coachNote: entity.coachNote,
             days: entity.days.map { TrainingSessionMapper.toDTO(from: $0) },  // V2.1+ 使用 TrainingSessionMapper
+            // T-0165：編輯送出時不攜帶氣候。氣候綁日期不綁課表，後端讀取時現算。
+            // （後端 strip_climate 也會擋，但沒理由把它送上網路。）
+            climate: nil,
             intensityTotalMinutes: entity.intensityTotalMinutes,
             currentVdot: entity.currentVdot,
             vdot: entity.currentVdot,

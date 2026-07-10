@@ -60,6 +60,7 @@ struct WeekTimelineViewV2: View {
                     TimelineItemViewV2(
                         viewModel: viewModel,
                         day: day,
+                        climate: plan.climateDays.forDayIndex(day.dayIndexInt),
                         onDestinationSelect: onDestinationSelect,
                         todayTrigger: todayTrigger
                     )
@@ -95,6 +96,9 @@ struct WeekTimelineViewV2: View {
 struct TimelineItemViewV2: View {
     var viewModel: TrainingPlanV2ViewModel
     let day: DayDetail
+    /// 該天的氣候（T-0165）。由父層依 day_index 從 plan-level climate[7] 取出注入。
+    /// nil = 用戶關閉氣候調整或預報缺失。
+    let climate: ClimateDay?
     let onDestinationSelect: (WorkoutDetailDestination) -> Void
     let todayTrigger: Date
 
@@ -224,9 +228,11 @@ struct TimelineItemViewV2: View {
                                     .cornerRadius(8)
                                     .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).run_type")
 
-                                if climateAdjustmentEnabled, let climateMeta = day.effectiveClimateMeta {
-                                    // day card 只放溫度計圖示，詳細調整建議在課表詳情。
-                                    ClimateBadgeView(meta: climateMeta)
+                                // T-0165：七天一律溫度膠囊（含休息日與涼爽日）。
+                                // 氣候綁日期，所以用 day_index 對 plan-level climate[7]，
+                                // 不讀 day.climateMeta（那是給舊 App 的投影，只有 mild+ 跑步日才有）。
+                                if climateAdjustmentEnabled, let climate {
+                                    ClimateCapsuleView(climate: climate)
                                         .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_badge")
                                 }
                             }
@@ -314,8 +320,9 @@ struct TimelineItemViewV2: View {
                                 }
                             }
 
-                            if climateAdjustmentEnabled, let climateMeta = day.effectiveClimateMeta {
-                                ClimateAdjustmentDetailView(day: day, meta: climateMeta)
+                            // 展開卡的調整明細只在 mild 以上才講話（comfortable 不說話）。
+                            if climateAdjustmentEnabled, let climate, climate.hasHeatAdvice {
+                                ClimateAdjustmentDetailView(day: day, climate: climate)
                                     .accessibilityIdentifier("v2.weekly.day_\(day.dayIndexInt).climate_detail")
                             }
 
@@ -1063,17 +1070,28 @@ private struct ClimateBadgeView: View {
 
 private struct ClimateAdjustmentDetailView: View {
     let day: DayDetail
-    let meta: ClimateMeta
+    let climate: ClimateDay
 
     private var runActivity: RunActivity? {
         day.primaryRunActivity
     }
 
-    /// 分段型課表逐段「原 → 今日」配速（後端不給分段調整，app 端補算）。
+    /// 主課表「原 → 今日」配速。後端不再送 climate_adjusted_pace，App 當場算。
+    private var adjustedPaceRow: (base: String, adjusted: String)? {
+        guard let base = runActivity?.pace,
+              let adjusted = climate.climateAdjustedPace(forBasePace: base) else { return nil }
+        return (base, adjusted)
+    }
+
+    private var isLongRunDay: Bool {
+        day.type == .lsd || day.type == .longRun
+    }
+
+    /// 分段型課表逐段「原 → 今日」配速。
     private var segmentAdjustedRows: [(title: String, base: String, adjusted: String)] {
         guard let segs = runActivity?.segments, segs.count > 1 else { return [] }
         return segs.enumerated().compactMap { idx, seg in
-            guard let p = seg.pace, let adj = meta.climateAdjustedPace(forBasePace: p) else { return nil }
+            guard let p = seg.pace, let adj = climate.climateAdjustedPace(forBasePace: p) else { return nil }
             return (seg.description ?? String(format: NSLocalizedString("training.detail.segment_index", value: "段 %d", comment: "Segment N"), idx + 1), p, adj)
         }
     }
@@ -1083,8 +1101,8 @@ private struct ClimateAdjustmentDetailView: View {
             HStack(spacing: 6) {
                 Image(systemName: "thermometer.sun.fill")
                     .font(AppFont.caption())
-                    .foregroundColor(meta.badgeAccentColor)
-                Text(meta.sectionTitle)
+                    .foregroundColor(climate.badgeAccentColor)
+                Text(climate.sectionTitle)
                     .font(AppFont.bodySmall())
                     .fontWeight(.semibold)
                     .foregroundColor(.primary)
@@ -1092,20 +1110,17 @@ private struct ClimateAdjustmentDetailView: View {
             }
 
             HStack(spacing: 8) {
-                ClimateValueChip(title: meta.levelTitle, value: meta.levelDisplayText)
-                if let temp = meta.feelsLikeTempText {
-                    ClimateValueChip(title: meta.temperatureTitle, value: temp)
-                }
-                if let adjustment = meta.adjustmentText {
-                    ClimateValueChip(title: meta.adjustmentTitle, value: adjustment)
+                ClimateValueChip(title: climate.levelTitle, value: climate.levelDisplayText)
+                ClimateValueChip(title: climate.temperatureTitle, value: climate.feelsLikeTempText)
+                if let adjustment = climate.adjustmentText {
+                    ClimateValueChip(title: climate.adjustmentTitle, value: adjustment)
                 }
             }
 
-            if let basePace = runActivity?.basePace,
-               let adjustedPace = runActivity?.climateAdjustedPace {
+            if let row = adjustedPaceRow {
                 HStack(spacing: 8) {
-                    ClimateValueChip(title: meta.originalPaceTitle, value: basePace)
-                    ClimateValueChip(title: meta.adjustedPaceTitle, value: adjustedPace)
+                    ClimateValueChip(title: climate.originalPaceTitle, value: row.base)
+                    ClimateValueChip(title: climate.adjustedPaceTitle, value: row.adjusted)
                 }
             } else if !segmentAdjustedRows.isEmpty {
                 // 分段型課表：逐段顯示「原 → 今日」。
@@ -1117,13 +1132,14 @@ private struct ClimateAdjustmentDetailView: View {
                 }
             }
 
-            if let reduction = meta.longRunReductionText {
+            // 長跑建議縮減只對長跑日講。DayDetail 不帶 slot_type，用 run_type 推。
+            if let reduction = climate.longRunReductionText, isLongRunDay {
                 Text(reduction)
                     .font(AppFont.caption())
                     .foregroundColor(.secondary)
             }
 
-            Text(meta.reasonText)
+            Text(climate.reasonText)
                 .font(AppFont.caption())
                 .foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -1131,11 +1147,11 @@ private struct ClimateAdjustmentDetailView: View {
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: 10)
-                .fill(meta.badgeBackgroundColor.opacity(0.22))
+                .fill(climate.badgeBackgroundColor.opacity(0.22))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 10)
-                .stroke(meta.badgeAccentColor.opacity(0.25), lineWidth: 1)
+                .stroke(climate.badgeAccentColor.opacity(0.25), lineWidth: 1)
         )
     }
 }

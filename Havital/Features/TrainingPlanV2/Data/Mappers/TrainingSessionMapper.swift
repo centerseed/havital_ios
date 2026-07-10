@@ -7,6 +7,24 @@ enum TrainingSessionMapper {
 
     // MARK: - ClimateMeta
 
+    /// plan-level climate[7] 的單日條目 → Domain。
+    /// 缺欄位一律給安全預設（後端 exclude_none 會省略 null 欄位）。
+    static func toEntity(from dto: ClimateDayDTO) -> ClimateDay {
+        ClimateDay(
+            dayIndex: dto.dayIndex,
+            date: dto.date,
+            feelsLikeTempC: dto.feelsLikeTempC,
+            heatPressureLevel: dto.heatPressureLevel,
+            paceAdjustmentPct: dto.paceAdjustmentPct ?? 0,
+            longRunKeepRatio: dto.longRunKeepRatio,
+            reasonText: dto.reasonText,
+            source: dto.source,
+            warningLabel: dto.warningLabel,
+            regionKey: dto.regionKey,
+            suggestedTrainingWindows: dto.suggestedTrainingWindows ?? []
+        )
+    }
+
     static func toEntity(from dto: ClimateMetaDTO) -> ClimateMeta {
         ClimateMeta(
             feelsLikeTempC: dto.feelsLikeTempC,

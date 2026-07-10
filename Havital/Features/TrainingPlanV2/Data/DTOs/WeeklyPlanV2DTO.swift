@@ -55,6 +55,12 @@ struct WeeklyPlanV2DTO: Codable {
     /// 訓練日陣列（7 天完整資料）- V2.1+ 使用 DayDetailDTO
     let days: [DayDetailDTO]
 
+    /// 一週七天的氣候資訊（T-0165）。七天恆滿，含休息日與涼爽日。
+    ///
+    /// 綁日期不綁課表：後端讀取時依 `week_start_date` 現算，不存 Firestore。
+    /// 用戶關閉氣候調整、或預報缺失 → 後端不送此欄位（nil，非空陣列）。
+    let climate: [ClimateDayDTO]?
+
     /// 強度分鐘數分布 {low, medium, high}
     let intensityTotalMinutes: WeeklyPlan.IntensityTotalMinutes?
 
@@ -116,6 +122,7 @@ struct WeeklyPlanV2DTO: Codable {
         case mileageProgressionNote = "mileage_progression_note"
         case coachNote = "coach_note"
         case days
+        case climate
         case intensityTotalMinutes = "intensity_total_minutes"
         case currentVdot = "current_vdot"
         case vdot
