@@ -135,4 +135,27 @@ final class SteadyIntervalsContractTests: XCTestCase {
         XCTAssertEqual(DayType(rawValue: "steady_intervals"), .steadyIntervals)
         XCTAssertEqual(run.runType, "steady_intervals")
     }
+
+    // MARK: - Display name
+
+    /// TrainingTypeDisplayName resolves "training.type.<type>" and, when the key is missing,
+    /// silently falls back to the generic interval name for anything containing "interval".
+    /// Without a real .strings entry this type would surface as a plain "interval" workout,
+    /// which is exactly the confusion the dedicated run_type exists to prevent.
+    func test_steadyIntervals_hasItsOwnDisplayName_notGenericIntervalFallback() {
+        let name = TrainingTypeDisplayName.qualityOptionName("steady_intervals")
+
+        XCTAssertNotEqual(name, "training.type.steady_intervals",
+                          "localization key must resolve to a real value")
+        XCTAssertNotEqual(name, "steady_intervals",
+                          "raw run_type id must never leak to the UI")
+
+        let genericInterval = NSLocalizedString("training.type._generic_interval", comment: "")
+        XCTAssertNotEqual(name, genericInterval,
+                          "must not collapse into the generic interval name")
+
+        let combination = NSLocalizedString("training.type.combination", comment: "")
+        XCTAssertNotEqual(name, combination,
+                          "must not collapse into the combination name")
+    }
 }

@@ -430,6 +430,7 @@
 "training.type.progressive_run" = "プログレッシブラン";
 "training.type.long_run" = "ロング走";
 "training.type.combination" = "コンビネーションラン";
+"training.type.steady_intervals" = "ステディ＋インターバル";
 "training.type.rest" = "レスト";
 "training.type.cross_training" = "クロストレーニング";
 "training.type.hiking" = "ハイキング";
