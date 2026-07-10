@@ -1,0 +1,4 @@
+# App Store Connect 身分 — Paceriz 主 app（iOS Havital）
+# 認證走 App Store Connect API key（Fastfile 內 app_store_connect_api_key），不需 apple_id。
+app_identifier("com.havital.Havital")
+team_id("779277J4JQ")            # Apple Developer Portal Team ID（與 paceriz-starter 同 team）

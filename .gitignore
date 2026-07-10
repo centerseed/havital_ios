@@ -55,3 +55,8 @@ Package.resolved
 
 # git worktrees (subagent isolated workspaces)
 .worktrees/
+
+# fastlane secrets
+fastlane/.env.default
+fastlane/report.xml
+fastlane/README.md

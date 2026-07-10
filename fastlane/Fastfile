@@ -1,0 +1,101 @@
+# Paceriz 主 app（iOS Havital）— fastlane 發版 pipeline
+# ─────────────────────────────────────────────────────────────────────────────
+# 認證:App Store Connect API key(團隊金鑰,需 issuer_id)。座標由 fastlane/.env.default
+#   自動載入(ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_FILEPATH),.env.default 不進 git。
+# 簽章:本機有 Apple Distribution 憑證、無 provisioning profile → archive/export 走
+#   `-allowProvisioningUpdates`,由 API key 自動產生/下載 app-store profile
+#   (主 app + HavitalWatch + complication 三個 bundle)。
+#
+# Lanes:
+#   info    唯讀,列 App Store 現行版本(定版號 / 驗證權限)
+#   build   自動 bump build 號 → archive → 匯出 app-store IPA → 開 Finder(給你手動 Transporter 上傳)
+#   beta    (選配)build 後直接上傳 TestFlight
+#   release (選配)build 後上傳 App Store + 送審(automatic_release=false,過審後你手動 release)
+# ─────────────────────────────────────────────────────────────────────────────
+default_platform(:ios)
+
+APP_ID    = "com.havital.Havital"
+SCHEME    = "Havital"            # 對應 Havital.xcscheme(prod)
+PROJECT   = "Havital.xcodeproj"
+IPA_DIR   = File.expand_path("../build/ipa", __dir__)   # apps/ios/Havital/build/ipa
+IPA_NAME  = "Havital.ipa"
+
+def asc_key
+  app_store_connect_api_key(
+    key_id: ENV["ASC_KEY_ID"] || "NG4N2CCQY5",
+    issuer_id: ENV["ASC_ISSUER_ID"],
+    key_filepath: ENV["ASC_KEY_FILEPATH"] || "#{ENV['HOME']}/.appstoreconnect/AuthKey_NG4N2CCQY5.p8",
+    in_house: false,
+  )
+end
+
+# 下一個 build 號 = 目前 App Store/TestFlight 見過的最大 build + 1(跨版本唯一遞增)。
+def next_build_number(key)
+  latest = latest_testflight_build_number(
+    api_key: key, app_identifier: APP_ID, initial_build_number: 0,
+  ) rescue 0
+  latest.to_i + 1
+end
+
+# archive + 匯出 app-store IPA。回傳 IPA 路徑。build 號用 xcargs 覆寫(免 agvtool)。
+def build_ipa(key)
+  build_no = next_build_number(key)
+  UI.important("build number → #{build_no}(App Store/TestFlight 最大 + 1)")
+  gym(
+    scheme: SCHEME,
+    project: PROJECT,
+    configuration: "Release",
+    export_method: "app-store",
+    output_directory: IPA_DIR,
+    output_name: IPA_NAME,
+    clean: true,
+    xcargs: "-allowProvisioningUpdates CURRENT_PROJECT_VERSION=#{build_no}",
+    export_options: {
+      method: "app-store",
+      teamID: "779277J4JQ",
+      signingStyle: "automatic",
+      uploadSymbols: true,
+    },
+    api_key: key,
+  )
+  File.join(IPA_DIR, IPA_NAME)
+end
+
+platform :ios do
+  desc "唯讀:列 App Store 現行版本(定版號 / 驗證 API key 權限)"
+  lane :info do
+    asc_key
+    app = Spaceship::ConnectAPI::App.find(APP_ID)
+    UI.user_error!("API key 找不到 app #{APP_ID}") if app.nil?
+    UI.success("app:#{app.name}(#{app.bundle_id}) id=#{app.id}")
+    app.get_app_store_versions.first(6).each { |v| UI.message("  #{v.version_string}  #{v.app_store_state}") }
+  end
+
+  desc "自動 build → 匯出 app-store IPA → 開 Finder(手動 Transporter 上傳)"
+  lane :build do
+    key = asc_key
+    ipa = build_ipa(key)
+    UI.success("IPA 完成:#{ipa}")
+    sh("open", IPA_DIR)   # 打開 Finder 到 IPA 目錄
+    UI.important("下一步:用 Transporter 或 App Store Connect 上傳這顆 IPA;release notes 見 fastlane/metadata。")
+  end
+
+  desc "(選配)build → 直接上傳 TestFlight"
+  lane :beta do
+    key = asc_key
+    ipa = build_ipa(key)
+    upload_to_testflight(api_key: key, ipa: ipa, skip_waiting_for_build_processing: true)
+  end
+
+  desc "(選配)build → 上傳 App Store + 送審(automatic_release=false)"
+  lane :release do
+    key = asc_key
+    ipa = build_ipa(key)
+    upload_to_app_store(
+      api_key: key, ipa: ipa,
+      submit_for_review: true, automatic_release: false, force: true,
+      run_precheck_before_submit: false, skip_screenshots: true,
+      submission_information: { export_compliance_uses_encryption: false },
+    )
+  end
+end
