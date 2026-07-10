@@ -52,6 +52,18 @@ struct WeeklyPlanV2: Codable, Equatable {
     /// 訓練日陣列（7 天完整資料）- V2.1+ 使用 DayDetail
     let days: [DayDetail]
 
+    /// 一週七天的氣候資訊（T-0165）。七天恆滿，含休息日與涼爽日。
+    ///
+    /// Optional 而非 `[]` 預設值：本型別會被序列化進本地快取，舊快取沒有這個 key，
+    /// 合成的 `init(from:)` 對非 optional 欄位會直接 throw。nil = 無氣候（用戶關閉 / 預報缺失）。
+    ///
+    /// `var` 而非 `let`：Swift 只對 optional **var** 在 memberwise init 給 nil 預設值。
+    /// 用 `let` 會逼 15 個既有建構點（含測試 fixture）全部補參數。
+    var climate: [ClimateDay]?
+
+    /// 七天氣候，缺席時為空陣列。UI 一律用這個，別直接解 optional。
+    var climateDays: [ClimateDay] { climate ?? [] }
+
     /// 強度分鐘數分布 - 重用 V1 的 IntensityTotalMinutes
     let intensityTotalMinutes: WeeklyPlan.IntensityTotalMinutes?
 

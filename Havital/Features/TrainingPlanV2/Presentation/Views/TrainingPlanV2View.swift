@@ -78,6 +78,35 @@ struct TrainingPlanV2View: View {
         return weeklyPlan.effectivePlanId
     }
 
+    /// 抽出 navigationDestination 的內容 —— 內聯的 switch 會讓 body 的 type-checker 超時。
+    @ViewBuilder
+    private func workoutDetailDestinationView(_ dest: WorkoutDetailDestination) -> some View {
+        switch dest.kind {
+        case .history(let workout):
+            WorkoutDetailViewV2(workout: workout)
+        case .planned(let day, let date):
+            PlannedSessionDetailView(
+                day: day,
+                climate: climate(forDayIndex: day.dayIndexInt),
+                date: date,
+                planId: currentWeeklyPlanId
+            )
+        }
+    }
+
+    /// analytics：那天有沒有熱適應建議可講（comfortable 不算）。
+    /// 抽成 static func —— 內聯在 WeekTimelineViewV2 的建構參數裡會讓 SwiftUI 的
+    /// type-checker 在該 body 超時（error: unable to type-check this expression in reasonable time）。
+    private static func hasHeatAdvice(_ plan: WeeklyPlanV2, _ dayIndex: Int) -> Bool {
+        plan.climateDays.forDayIndex(dayIndex)?.hasHeatAdvice ?? false
+    }
+
+    /// 該天的氣候（T-0165）。氣候綁日期，所以永遠用 day_index 對 plan-level climate[7]。
+    private func climate(forDayIndex dayIndex: Int) -> ClimateDay? {
+        guard case .ready(let weeklyPlan) = viewModel.loader.planStatus else { return nil }
+        return weeklyPlan.climateDays.forDayIndex(dayIndex)
+    }
+
     static func shouldShowNextWeekButton(
         nextWeekInfo: NextWeekInfoV2?,
         selectedWeek: Int,
@@ -267,7 +296,7 @@ struct TrainingPlanV2View: View {
                                         dayIndex: day.dayIndexInt,
                                         dayType: day.type.rawValue,
                                         hasReason: !day.reason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                                        hasClimateAdjustment: day.effectiveClimateMeta != nil
+                                        hasClimateAdjustment: Self.hasHeatAdvice(weeklyPlan, day.dayIndexInt)
                                     )
                                 }
                                 workoutDetailDestination = dest
@@ -622,12 +651,7 @@ struct TrainingPlanV2View: View {
             }
         } // ZStack
         .navigationDestination(item: $workoutDetailDestination) { dest in
-            switch dest.kind {
-            case .history(let workout):
-                WorkoutDetailViewV2(workout: workout)
-            case .planned(let day, let date):
-                PlannedSessionDetailView(day: day, date: date, planId: currentWeeklyPlanId)
-            }
+            workoutDetailDestinationView(dest)
         }
         .navigationDestination(isPresented: $showOverviewV2) {
             TrainingOverviewV2View(viewModel: viewModel)
