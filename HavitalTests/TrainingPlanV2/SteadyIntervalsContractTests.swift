@@ -136,6 +136,36 @@ final class SteadyIntervalsContractTests: XCTestCase {
         XCTAssertEqual(run.runType, "steady_intervals")
     }
 
+    // MARK: - stripClimate round-trip
+
+    /// `stripClimate` rebuilds every RunSegmentDTO in order to null out the climate fields.
+    /// A rebuild that forgets kind/repeats/work/recovery silently flattens "6x400m intervals"
+    /// into a single steady segment. The compiler cannot catch that, so pin it here.
+    @MainActor
+    func test_stripClimate_preservesSegmentSequence() throws {
+        let run = try loadRunActivityDTO()
+        let day = DayDetailDTO(dayIndex: 3, dayTarget: "t", reason: "r", tips: nil,
+                               category: "run", climateMeta: nil, primary: .run(run),
+                               warmup: nil, cooldown: nil, supplementary: nil)
+
+        let stripped = EditScheduleV2ViewModel.stripClimate(day)
+
+        guard case .run(let strippedRun)? = stripped.primary else {
+            return XCTFail("primary must survive stripClimate as a run activity")
+        }
+        let segs = try XCTUnwrap(strippedRun.segments)
+        XCTAssertEqual(segs.count, 4)
+
+        XCTAssertEqual(segs[1].kind, "interval", "kind must survive stripClimate")
+        XCTAssertEqual(segs[1].repeats, 6, "repeats must survive stripClimate")
+        XCTAssertEqual(segs[1].work?.distanceM, 400, "work must survive stripClimate")
+        XCTAssertEqual(segs[1].recovery?.durationSeconds, 90, "recovery must survive stripClimate")
+        XCTAssertEqual(segs[1].recovery?.recoveryType, "jog")
+
+        XCTAssertEqual(segs[2].recovery?.recoveryType, "static")
+        XCTAssertNil(segs[1].climateMeta, "climate is what stripClimate is supposed to remove")
+    }
+
     // MARK: - Display name
 
     /// TrainingTypeDisplayName resolves "training.type.<type>" and, when the key is missing,

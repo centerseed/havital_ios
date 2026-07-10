@@ -466,7 +466,15 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
                         climateMeta: nil,
                         heartRateRange: seg.heartRateRange,
                         intensity: seg.intensity,
-                        description: seg.description
+                        description: seg.description,
+                        // 段落序列必須原樣 round-trip。這裡只剝 climate，
+                        // 若讓 kind/work/recovery 掉成 nil，任何走 stripClimate 的
+                        // 寫回都會把「6×400m 間歇」抹成一段勻速跑。
+                        // SegmentEffortDTO 不含 climate 欄位，故無須遞迴剝除。
+                        kind: seg.kind,
+                        repeats: seg.repeats,
+                        work: seg.work,
+                        recovery: seg.recovery
                     )
                 },
                 description: run.description,
