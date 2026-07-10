@@ -98,13 +98,13 @@ struct TrainingPlanV2View: View {
     /// 抽成 static func —— 內聯在 WeekTimelineViewV2 的建構參數裡會讓 SwiftUI 的
     /// type-checker 在該 body 超時（error: unable to type-check this expression in reasonable time）。
     private static func hasHeatAdvice(_ plan: WeeklyPlanV2, _ dayIndex: Int) -> Bool {
-        plan.climateDays.forDayIndex(dayIndex)?.hasHeatAdvice ?? false
+        plan.climate(forDayIndex: dayIndex)?.hasHeatAdvice ?? false
     }
 
     /// 該天的氣候（T-0165）。氣候綁日期，所以永遠用 day_index 對 plan-level climate[7]。
     private func climate(forDayIndex dayIndex: Int) -> ClimateDay? {
         guard case .ready(let weeklyPlan) = viewModel.loader.planStatus else { return nil }
-        return weeklyPlan.climateDays.forDayIndex(dayIndex)
+        return weeklyPlan.climate(forDayIndex: dayIndex)
     }
 
     static func shouldShowNextWeekButton(

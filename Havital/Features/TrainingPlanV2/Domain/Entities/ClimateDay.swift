@@ -16,7 +16,8 @@ struct ClimateDay: Codable, Equatable {
     let dayIndex: Int
     /// YYYY-MM-DD，用戶本地日期
     let date: String
-    let feelsLikeTempC: Double
+    /// Optional：`climate[7]` 一定有溫度，但 legacy `climate_meta` 的溫度可能缺。
+    let feelsLikeTempC: Double?
     /// comfortable / mild / moderate / high / danger
     let heatPressureLevel: String
     /// 建議配速下修百分比；comfortable 為 0
@@ -45,9 +46,10 @@ struct ClimateDay: Codable, Equatable {
         !isComfortable
     }
 
-    /// 週視圖膠囊上的溫度文字。
-    var temperatureText: String {
-        String(format: "%.0f°", feelsLikeTempC)
+    /// 週視圖膠囊上的溫度文字。溫度缺席時為 nil —— 膠囊退化成只有圖示。
+    var temperatureText: String? {
+        guard let feelsLikeTempC else { return nil }
+        return String(format: "%.0f°", feelsLikeTempC)
     }
 
     /// 熱調整後的配速。後端不再送 `climate_adjusted_pace`，App 當場算。
@@ -77,6 +79,33 @@ struct ClimateDay: Codable, Equatable {
 
     static func secondsToPace(_ seconds: Int) -> String {
         String(format: "%d:%02d", seconds / 60, seconds % 60)
+    }
+}
+
+extension ClimateDay {
+    /// 過渡期退路（T-0165）：由舊 App 讀的 `day.climate_meta` 構造。
+    ///
+    /// 後端 `attach_climate()` 對「沒有 `week_start_date` 錨點」的舊 doc 原樣回傳 ——
+    /// 那些 doc 是新管線上線前生成的，response 不會有 `climate[7]`。部署那一秒，所有現存
+    /// 用戶的當週課表都是這種 doc；要等下一次課表生成才有錨點。
+    ///
+    /// 這條退路給的就是**改版前的畫面**（只有 mild 以上的跑步日有溫度），比空白好。
+    /// 課表被搬動時它會跟著課表走 —— 那正是舊模型的 bug，但那也正是這些舊 doc 現在的樣子，
+    /// 我們不會因為多顯示了什麼而讓它變得更錯。下一次生成後自動升級成七天恆滿。
+    init(legacyMeta meta: ClimateMeta, dayIndex: Int) {
+        self.init(
+            dayIndex: dayIndex,
+            date: "",
+            feelsLikeTempC: meta.feelsLikeTempC,
+            heatPressureLevel: meta.heatPressureLevel,
+            paceAdjustmentPct: meta.paceAdjustmentPct ?? 0,
+            longRunKeepRatio: meta.longRunReductionPct,
+            reasonText: meta.reasonText,
+            source: nil,
+            warningLabel: nil,
+            regionKey: nil,
+            suggestedTrainingWindows: []
+        )
     }
 }
 

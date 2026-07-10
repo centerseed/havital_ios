@@ -79,8 +79,9 @@ extension ClimateDay {
     var originalPaceTitle: String { NSLocalizedString("climate.original_pace_title", comment: "") }
     var adjustedPaceTitle: String { NSLocalizedString("climate.adjusted_pace_title", comment: "") }
 
-    var feelsLikeTempText: String {
-        String(format: "%.1f°C", feelsLikeTempC)
+    var feelsLikeTempText: String? {
+        guard let feelsLikeTempC else { return nil }
+        return String(format: "%.1f°C", feelsLikeTempC)
     }
 
     /// 「配速 +5%」。四捨五入為 0 不顯示（避免「配速 +0%」）。
@@ -117,37 +118,52 @@ extension ClimateDay {
         }
     }
 
-    /// 詳情頁 header 上的「等級 · 體感 32.0°C」。
+    /// 詳情頁 header 上的「等級 · 體感 32.0°C」。溫度缺席時只顯示等級。
     var headerChipText: String {
-        "\(shortLevelDisplayText) · \(temperatureTitle) \(feelsLikeTempText)"
+        guard let feelsLikeTempText else { return shortLevelDisplayText }
+        return "\(shortLevelDisplayText) · \(temperatureTitle) \(feelsLikeTempText)"
     }
 }
 
 // MARK: - 週視圖膠囊
 
 /// 七天恆滿的溫度膠囊。休息日、力量日、涼爽日都有 —— 溫度是日期的屬性。
+///
+/// 過渡期（response 無 `climate[7]`，退回 legacy `climate_meta`）可能沒有溫度值：
+/// 此時退化成只有圖示，等同改版前的徽章。涼爽日又沒溫度 → 什麼都不畫。
 struct ClimateCapsuleView: View {
     let climate: ClimateDay
 
     var body: some View {
+        if climate.temperatureText != nil || climate.badgeSystemImageName != nil {
+            content
+        }
+    }
+
+    private var content: some View {
         HStack(spacing: 3) {
             if let icon = climate.badgeSystemImageName {
                 Image(systemName: icon)
                     .font(.system(size: 10, weight: .bold))
             }
-            Text(climate.temperatureText)
-                .font(AppFont.micro())
-                .fontWeight(.semibold)
+            if let temp = climate.temperatureText {
+                Text(temp)
+                    .font(AppFont.micro())
+                    .fontWeight(.semibold)
+            }
         }
         .foregroundColor(climate.badgeForegroundColor)
         .padding(.horizontal, 7)
         .frame(height: 22)
         .background(climate.badgeBackgroundColor)
         .clipShape(Capsule())
-        .accessibilityLabel(
-            climate.isComfortable
-                ? climate.temperatureText
-                : "\(climate.temperatureText) \(climate.shortLevelDisplayText)"
-        )
+        .accessibilityLabel(accessibilityText)
+    }
+
+    private var accessibilityText: String {
+        let temp = climate.temperatureText
+        if climate.isComfortable { return temp ?? "" }
+        guard let temp else { return climate.shortLevelDisplayText }
+        return "\(temp) \(climate.shortLevelDisplayText)"
     }
 }
