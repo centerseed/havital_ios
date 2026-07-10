@@ -76,13 +76,15 @@ final class EditScheduleV2ViewModelFartlekTests: XCTestCase {
                 distanceKm: 3.0, distanceM: nil, distanceDisplay: nil, distanceUnit: nil,
                 durationMinutes: nil, durationSeconds: nil,
                 pace: "5:30", basePace: nil, climateAdjustedPace: nil, climateMeta: nil,
-                heartRateRange: nil, intensity: nil, description: "Fast segment"
+                heartRateRange: nil, intensity: nil, description: "Fast segment",
+                kind: nil, repeats: nil, work: nil, recovery: nil
             ),
             RunSegment(
                 distanceKm: 2.0, distanceM: nil, distanceDisplay: nil, distanceUnit: nil,
                 durationMinutes: nil, durationSeconds: nil,
                 pace: "6:00", basePace: nil, climateAdjustedPace: nil, climateMeta: nil,
-                heartRateRange: nil, intensity: nil, description: "Slow segment"
+                heartRateRange: nil, intensity: nil, description: "Slow segment",
+                kind: nil, repeats: nil, work: nil, recovery: nil
             ),
         ]
         let runActivity = RunActivity(
@@ -159,13 +161,15 @@ final class EditScheduleV2ViewModelFartlekTests: XCTestCase {
                 distanceKm: 3.0, distanceM: nil, distanceDisplay: nil, distanceUnit: nil,
                 durationMinutes: nil, durationSeconds: nil,
                 pace: "5:30", basePace: nil, climateAdjustedPace: nil, climateMeta: nil,
-                heartRateRange: nil, intensity: nil, description: "Fast segment"
+                heartRateRange: nil, intensity: nil, description: "Fast segment",
+                kind: nil, repeats: nil, work: nil, recovery: nil
             ),
             RunSegment(
                 distanceKm: 2.0, distanceM: nil, distanceDisplay: nil, distanceUnit: nil,
                 durationMinutes: nil, durationSeconds: nil,
                 pace: "6:00", basePace: nil, climateAdjustedPace: nil, climateMeta: nil,
-                heartRateRange: nil, intensity: nil, description: "Slow segment"
+                heartRateRange: nil, intensity: nil, description: "Slow segment",
+                kind: nil, repeats: nil, work: nil, recovery: nil
             ),
         ]
         let runActivity = RunActivity(

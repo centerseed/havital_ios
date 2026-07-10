@@ -28,7 +28,8 @@ extension RunSegment {
             climateMeta: nil,
             heartRateRange: heartRateRange,
             intensity: intensity,
-            description: description
+            description: description,
+            kind: nil, repeats: nil, work: nil, recovery: nil
         )
     }
 }

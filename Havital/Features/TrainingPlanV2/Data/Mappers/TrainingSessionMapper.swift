@@ -61,6 +61,36 @@ enum TrainingSessionMapper {
         )
     }
 
+    // MARK: - SegmentEffort
+
+    static func toEntity(from dto: SegmentEffortDTO) -> SegmentEffort {
+        return SegmentEffort(
+            distanceKm: dto.distanceKm,
+            distanceM: dto.distanceM,
+            durationMinutes: dto.durationMinutes,
+            durationSeconds: dto.durationSeconds,
+            pace: dto.pace,
+            basePace: dto.basePace,
+            paceZone: dto.paceZone,
+            targetHrr: dto.targetHrr,
+            recoveryType: dto.recoveryType
+        )
+    }
+
+    static func toDTO(from entity: SegmentEffort) -> SegmentEffortDTO {
+        return SegmentEffortDTO(
+            distanceKm: entity.distanceKm,
+            distanceM: entity.distanceM,
+            durationMinutes: entity.durationMinutes,
+            durationSeconds: entity.durationSeconds,
+            pace: entity.pace,
+            basePace: entity.basePace,
+            paceZone: entity.paceZone,
+            targetHrr: entity.targetHrr,
+            recoveryType: entity.recoveryType
+        )
+    }
+
     // MARK: - RunSegment
 
     static func toEntity(from dto: RunSegmentDTO) -> RunSegment {
@@ -77,7 +107,11 @@ enum TrainingSessionMapper {
             climateMeta: dto.climateMeta.map { toEntity(from: $0) },
             heartRateRange: dto.heartRateRange.map { toEntity(from: $0) },
             intensity: dto.intensity,
-            description: dto.description
+            description: dto.description,
+            kind: dto.kind,                                  // 原始字串原樣傳遞
+            repeats: dto.repeats,
+            work: dto.work.map { toEntity(from: $0) },
+            recovery: dto.recovery.map { toEntity(from: $0) }
         )
     }
 
@@ -95,7 +129,11 @@ enum TrainingSessionMapper {
             climateMeta: entity.climateMeta.map { toDTO(from: $0) },
             heartRateRange: entity.heartRateRange.map { toDTO(from: $0) },
             intensity: entity.intensity,
-            description: entity.description
+            description: entity.description,
+            kind: entity.kind,                               // 原樣寫回，未知值不遺失
+            repeats: entity.repeats,
+            work: entity.work.map { toDTO(from: $0) },
+            recovery: entity.recovery.map { toDTO(from: $0) }
         )
     }
 

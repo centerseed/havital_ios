@@ -1,0 +1,98 @@
+{
+  "$contract": "steady-intervals-v1",
+  "$description": "段落序列（segment sequence）contract 的 canonical fixture。iOS / Android / api_service 三方各自對此檔做 golden test。設計文件：docs/superpowers/specs/2026-07-10-steady-intervals-segment-sequence-design.md",
+  "$rules": [
+    "kind 缺席時視為 'steady'（既有文件零遷移）。",
+    "kind='interval' 時 repeats >= 1 且 work 必填。",
+    "kind='steady' 時不得出現 repeats / work / recovery。",
+    "work / recovery 是葉節點（SegmentEffort），不含 kind / repeats / work / recovery，故不可能巢套第二層。",
+    "segment 上的 distance_km / pace / description 是給舊版 app 的降級摘要，新版 app 應優先讀 work / recovery。",
+    "摘要 distance_km = repeats × (work 距離 + recovery 距離)；recovery_type='static' 時恢復距離為 0。",
+    "時間制段落以 pace 換算距離。",
+    "run_type='steady_intervals' 是獨立的訓練型，不是 combination 的細型態。不使用 source_run_type。",
+    "warmup / cooldown 在 session level（day.warmup / day.cooldown），不在 primary.segments 內。",
+    "primary.distance_km 不含 warmup / cooldown（它們在 session level 各自計入週里程）。",
+    "'$' 前綴欄位（$contract / $description / $rules / $case）純為註解，golden test 前需遞迴剝除。"
+  ],
+
+  "day_index": 3,
+  "category": "run",
+  "day_target": "一次課表同時刺激有氧與無氧系統",
+  "reason": "訓練時間有限時，前段勻速累積有氧刺激，後段間歇補足 VO2max。",
+
+  "warmup": {
+    "distance_km": 1.0,
+    "pace": "6:30",
+    "description": "輕鬆跑熱身"
+  },
+
+  "primary": {
+    "run_type": "steady_intervals",
+    "distance_km": 10.6,
+    "duration_minutes": 59,
+    "description": "5K 勻速 + 6×400m 間歇 + 4×200m 快步",
+    "target_intensity": "high",
+
+    "segments": [
+      {
+        "$case": "kind 缺席 → 視為 steady（向後相容，既有文件即此形狀）",
+        "distance_km": 5.0,
+        "pace": "5:30",
+        "intensity": "moderate",
+        "description": "勻速段"
+      },
+      {
+        "$case": "距離制 work + 時間制 jog recovery",
+        "kind": "interval",
+        "repeats": 6,
+        "work": {
+          "distance_m": 400,
+          "pace": "4:05",
+          "pace_zone": "interval",
+          "target_hrr": [0.88, 0.92]
+        },
+        "recovery": {
+          "duration_seconds": 90,
+          "recovery_type": "jog",
+          "pace": "6:30"
+        },
+        "distance_km": 3.8,
+        "pace": "4:05",
+        "intensity": "hard",
+        "description": "6×400m 間歇，慢跑恢復 90 秒"
+      },
+      {
+        "$case": "static 恢復（原地休息）→ 恢復距離為 0，摘要 distance_km = 4 × 200m = 0.8",
+        "kind": "interval",
+        "repeats": 4,
+        "work": {
+          "distance_m": 200,
+          "pace": "3:50",
+          "pace_zone": "repetition"
+        },
+        "recovery": {
+          "duration_seconds": 60,
+          "recovery_type": "static"
+        },
+        "distance_km": 0.8,
+        "pace": "3:50",
+        "intensity": "max",
+        "description": "4×200m 快步，原地休息 60 秒"
+      },
+      {
+        "$case": "顯式 kind=steady",
+        "kind": "steady",
+        "distance_km": 1.0,
+        "pace": "5:45",
+        "intensity": "easy",
+        "description": "緩和勻速段"
+      }
+    ]
+  },
+
+  "cooldown": {
+    "distance_km": 1.0,
+    "pace": "6:30",
+    "description": "輕鬆跑緩和"
+  }
+}

@@ -34,6 +34,7 @@ extension DayType {
         // 新增組合訓練類型
         case .fartlek: return L10n.Training.TrainingType.fartlek.localized
         case .fastFinish: return L10n.Training.TrainingType.fastFinish.localized
+        case .steadyIntervals: return L10n.Training.TrainingType.steadyIntervals.localized
         // 新增比賽配速訓練
         case .racePace: return L10n.Training.TrainingType.racePace.localized
         // V3 交叉訓練新增類型
@@ -60,6 +61,7 @@ extension DayType {
         case .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .norwegianSingles, .yasso800:
             return .orange
         case .fartlek: return .orange      // 法特雷克 - 橘色（變速訓練，屬強度訓練）
+        case .steadyIntervals: return .orange   // 勻速轉間歇 - 橘色（後段為間歇，屬強度訓練）
         case .racePace:
             return .red
         // 長距離訓練 - 藍色

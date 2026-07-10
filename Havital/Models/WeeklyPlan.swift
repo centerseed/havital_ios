@@ -194,7 +194,8 @@ private struct V3WarmupCooldown: Decodable {
             climateMeta: nil,
             heartRateRange: nil,
             intensity: nil,
-            description: description
+            description: description,
+            kind: nil, repeats: nil, work: nil, recovery: nil
         )
     }
 }
@@ -589,13 +590,14 @@ struct TrainingDay: Codable, Identifiable, Equatable {
                     return [item]
                 }
             // 組合訓練類型（包含新增的法特雷克、快結尾長跑）
-            case .combination, .fartlek, .fastFinish:
+            case .combination, .fartlek, .fastFinish, .steadyIntervals:
                 if let _ = details.segments, let totalDistance = details.totalDistanceKm {
                     let description = details.description ?? ""
                     let typeName: String = {
                         switch type {
                         case .fartlek: return L10n.Training.TrainingType.fartlek.localized
                         case .fastFinish: return L10n.Training.TrainingType.fastFinish.localized
+                        case .steadyIntervals: return L10n.Training.TrainingType.steadyIntervals.localized
                         default: return L10n.Training.TrainingType.combination.localized
                         }
                     }()
@@ -879,6 +881,7 @@ enum DayType: String, Codable {
     // 新增組合訓練類型
     case fartlek = "fartlek"                    // 法特雷克
     case fastFinish = "fast_finish"             // 快結尾長跑
+    case steadyIntervals = "steady_intervals"   // 勻速轉間歇（前段勻速 + 後段間歇）
 
     // 新增比賽配速訓練
     case racePace = "race_pace"                 // 比賽配速跑

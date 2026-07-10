@@ -430,6 +430,7 @@
 "training.type.progressive_run" = "Progressive Run";
 "training.type.long_run" = "Long Run";
 "training.type.combination" = "Combination Run";
+"training.type.steady_intervals" = "Steady + Intervals";
 "training.type.rest" = "Rest";
 "training.type.cross_training" = "Cross Training";
 "training.type.hiking" = "Hiking";

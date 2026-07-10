@@ -430,6 +430,7 @@
 "training.type.progressive_run" = "漸進跑";
 "training.type.long_run" = "長距離跑";
 "training.type.combination" = "組合訓練";
+"training.type.steady_intervals" = "勻速轉間歇";
 "training.type.rest" = "休息";
 "training.type.cross_training" = "交叉訓練";
 "training.type.hiking" = "健走";

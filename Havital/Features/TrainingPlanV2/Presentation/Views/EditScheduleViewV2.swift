@@ -168,7 +168,7 @@ struct SimplifiedDailyCardV2: View {
         switch day.type {
         case .easyRun, .easy, .recovery_run, .yoga, .lsd:
             return .green
-        case .interval, .tempo, .progression, .threshold, .combination, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .norwegianSingles, .yasso800:
+        case .interval, .tempo, .progression, .threshold, .combination, .steadyIntervals, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .norwegianSingles, .yasso800:
             return .orange
         case .longRun, .hiking, .cycling, .fastFinish:
             return .blue
@@ -524,13 +524,15 @@ struct SimplifiedDailyCardV2: View {
             distanceKm: 2.0, distanceM: nil, distanceDisplay: nil, distanceUnit: nil,
             durationMinutes: nil, durationSeconds: nil,
             pace: recoveryPace, basePace: nil, climateAdjustedPace: nil, climateMeta: nil, heartRateRange: nil,
-            intensity: "easy", description: NSLocalizedString("schedule_editor.segment.warmup", comment: "")
+            intensity: "easy", description: NSLocalizedString("schedule_editor.segment.warmup", comment: ""),
+            kind: nil, repeats: nil, work: nil, recovery: nil
         )
         let cooldown = RunSegment(
             distanceKm: 1.0, distanceM: nil, distanceDisplay: nil, distanceUnit: nil,
             durationMinutes: nil, durationSeconds: nil,
             pace: recoveryPace, basePace: nil, climateAdjustedPace: nil, climateMeta: nil, heartRateRange: nil,
-            intensity: "easy", description: NSLocalizedString("schedule_editor.segment.cooldown", comment: "")
+            intensity: "easy", description: NSLocalizedString("schedule_editor.segment.cooldown", comment: ""),
+            kind: nil, repeats: nil, work: nil, recovery: nil
         )
         return (warmup, cooldown)
     }
