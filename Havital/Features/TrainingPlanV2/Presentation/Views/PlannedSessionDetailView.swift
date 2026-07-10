@@ -1620,3 +1620,78 @@ private struct WorkoutTipBox: View {
         )
     }
 }
+
+// Mirrors docs/contracts/steady-intervals-v1.json so the rendered screen can be
+// verified against the same fixture the golden tests decode.
+// Strings are English on purpose: preview fixtures are developer-facing, and the
+// i18n pre-commit gate blocks newly added CJK string literals in Swift.
+#Preview("SteadyIntervals") {
+    func effort(distanceM: Int? = nil, durationSeconds: Int? = nil,
+                pace: String? = nil, paceZone: String? = nil,
+                targetHrr: [Double]? = nil, recoveryType: String? = nil) -> SegmentEffort {
+        SegmentEffort(distanceKm: nil, distanceM: distanceM, durationMinutes: nil,
+                      durationSeconds: durationSeconds, pace: pace, basePace: nil,
+                      paceZone: paceZone, targetHrr: targetHrr, recoveryType: recoveryType)
+    }
+
+    func seg(_ kind: String?, km: Double, pace: String, desc: String,
+             repeats: Int? = nil, work: SegmentEffort? = nil,
+             recovery: SegmentEffort? = nil) -> RunSegment {
+        RunSegment(distanceKm: km, distanceM: nil, distanceDisplay: nil, distanceUnit: nil,
+                   durationMinutes: nil, durationSeconds: nil, pace: pace, basePace: nil,
+                   climateAdjustedPace: nil, climateMeta: nil, heartRateRange: nil,
+                   intensity: nil, description: desc,
+                   kind: kind, repeats: repeats, work: work, recovery: recovery)
+    }
+
+    let segments = [
+        seg(nil, km: 5.0, pace: "5:30", desc: "Steady segment"),
+        seg("interval", km: 3.8, pace: "4:05", desc: "6x400m intervals, 90s jog recovery",
+            repeats: 6,
+            work: effort(distanceM: 400, pace: "4:05", paceZone: "interval", targetHrr: [0.88, 0.92]),
+            recovery: effort(durationSeconds: 90, pace: "6:30", recoveryType: "jog")),
+        seg("interval", km: 0.8, pace: "3:50", desc: "4x200m strides, 60s standing rest",
+            repeats: 4,
+            work: effort(distanceM: 200, pace: "3:50", paceZone: "repetition"),
+            recovery: effort(durationSeconds: 60, recoveryType: "static")),
+        seg("steady", km: 1.0, pace: "5:45", desc: "Steady cool segment"),
+    ]
+
+    return NavigationStack {
+        PlannedSessionDetailView(
+            day: DayDetail(
+                dayIndex: 3,
+                dayTarget: "One session, two systems",
+                reason: "Steady work builds the aerobic base; the intervals sharpen speed.",
+                tips: nil,
+                category: .run,
+                climateMeta: nil,
+                session: TrainingSession(
+                    warmup: seg(nil, km: 1.0, pace: "6:30", desc: "Easy warmup"),
+                    primary: .run(RunActivity(
+                        runType: "steady_intervals",
+                        distanceKm: 10.6,
+                        distanceDisplay: nil,
+                        distanceUnit: nil,
+                        paceUnit: nil,
+                        durationMinutes: 59,
+                        durationSeconds: nil,
+                        pace: nil,
+                        basePace: nil,
+                        climateAdjustedPace: nil,
+                        heartRateRange: nil,
+                        interval: nil,
+                        segments: segments,
+                        description: "5K steady + 6x400m + 4x200m",
+                        targetIntensity: "high",
+                        climateMeta: nil
+                    )),
+                    cooldown: seg(nil, km: 1.0, pace: "6:30", desc: "Easy cooldown"),
+                    supplementary: nil
+                ),
+                supplementary: nil
+            ),
+            date: Date()
+        )
+    }
+}
