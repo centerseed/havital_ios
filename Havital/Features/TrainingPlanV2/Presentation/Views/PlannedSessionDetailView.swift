@@ -990,9 +990,12 @@ struct PlannedSessionDetailView: View {
             for (segIdx, seg) in segs.enumerated() {
                 // 質量課表的結構不顯示心率（以配速為主）；easy/LSD 才保留。
                 let segHR: String? = isEasyOrLSD ? seg.heartRateRange?.displayText.map { "\($0) bpm" } : nil
+                // 間歇段顯示工作段距離（400m），而非整組摘要距離（3.8km，含恢復段）。
+                let distance = SegmentIntervalDisplay.workLabel(seg) ?? segmentDistanceString(seg)
                 result.append(DetailSegmentData(index: idx, label: segmentLabel(index: segIdx, total: segs.count),
-                    distance: segmentDistanceString(seg), pace: segmentPaceLabel(seg.effectivePace),
-                    hr: segHR, reps: nil, rest: nil, isMain: segIdx == segs.count - 1))
+                    distance: distance, pace: segmentPaceLabel(segmentWorkPace(seg)),
+                    hr: segHR, reps: SegmentIntervalDisplay.reps(seg), rest: segmentRestText(seg),
+                    isMain: segIdx == segs.count - 1))
                 idx += 1
             }
         }
@@ -1002,6 +1005,26 @@ struct PlannedSessionDetailView: View {
         }
 
         return result.isEmpty ? nil : result
+    }
+
+    /// 間歇段以工作段配速為準；勻速段用段落自身配速。
+    private func segmentWorkPace(_ seg: RunSegment) -> String? {
+        seg.work?.pace ?? seg.effectivePace
+    }
+
+    /// 段落序列中 interval 段的恢復文案。沿用 IntervalBlock 既有的四個 i18n key
+    /// （"%d秒 慢跑" / "%d秒 原地休息" / 分鐘版），只有 static 走「原地休息」。
+    /// 判斷邏輯在 `SegmentIntervalDisplay.rest`，此處只負責轉字串。
+    private func segmentRestText(_ seg: RunSegment) -> String? {
+        guard let rest = SegmentIntervalDisplay.rest(seg) else { return nil }
+        let key: String
+        switch (rest.unit, rest.isMoving) {
+        case (.seconds, true):  key = "training.detail.rest_seconds_jog"
+        case (.seconds, false): key = "training.detail.rest_seconds_static"
+        case (.minutes, true):  key = "training.detail.rest_minutes_jog"
+        case (.minutes, false): key = "training.detail.rest_minutes_static"
+        }
+        return String(format: NSLocalizedString(key, comment: ""), rest.value)
     }
 
     private func intervalRecoveryRestText(_ interval: IntervalBlock) -> String? {
