@@ -800,7 +800,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4.9;
+				MARKETING_VERSION = 1.4.10;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev;
 				PRODUCT_NAME = paceriz_dev;
 				REVENUECAT_API_KEY = appl_goEmxlWDniAtziTzdXeOpmgNkEt;
@@ -930,7 +930,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4.9;
+				MARKETING_VERSION = 1.4.10;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz;
 				REVENUECAT_API_KEY = appl_goEmxlWDniAtziTzdXeOpmgNkEt;
@@ -1123,7 +1123,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4.9;
+				MARKETING_VERSION = 1.4.10;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev;
 				PRODUCT_NAME = paceriz_dev;
 				REVENUECAT_API_KEY = appl_goEmxlWDniAtziTzdXeOpmgNkEt;
@@ -1161,7 +1161,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4.9;
+				MARKETING_VERSION = 1.4.10;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital;
 				PRODUCT_NAME = paceriz;
 				REVENUECAT_API_KEY = appl_goEmxlWDniAtziTzdXeOpmgNkEt;
@@ -1267,7 +1267,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4.9;
+				MARKETING_VERSION = 1.4.10;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1303,7 +1303,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4.9;
+				MARKETING_VERSION = 1.4.10;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1339,7 +1339,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4.9;
+				MARKETING_VERSION = 1.4.10;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1375,7 +1375,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.4.9;
+				MARKETING_VERSION = 1.4.10;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1507,7 +1507,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.4.9;
+				MARKETING_VERSION = 1.4.10;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev.watchkitapp.pacerizcomplication;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1535,7 +1535,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.4.9;
+				MARKETING_VERSION = 1.4.10;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.dev.watchkitapp.pacerizcomplication;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1563,7 +1563,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.4.9;
+				MARKETING_VERSION = 1.4.10;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.watchkitapp.pacerizcomplication;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1591,7 +1591,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.4.9;
+				MARKETING_VERSION = 1.4.10;
 				PRODUCT_BUNDLE_IDENTIFIER = com.havital.Havital.watchkitapp.pacerizcomplication;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
