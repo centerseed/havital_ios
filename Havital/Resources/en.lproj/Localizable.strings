@@ -1432,7 +1432,7 @@
 
 /* MARK: - Benchmark / Progression / Race / Norwegian Singles */
 "training_type_info.benchmark.title" = "Benchmark Run";
-"training_type_info.benchmark.how_to_run" = "Run 3K or 5K at close to your full effort. Don't blast the start — hold a pace you can defend, then empty the tank over the last stretch.";
+"training_type_info.benchmark.how_to_run" = "Run 3K or 5K at close to your full effort. Don't blast the start — hold a steady pace you can defend the whole way, then empty the tank over the last stretch.";
 "training_type_info.benchmark.why_run" = "This is where you measure yourself against yourself. Everyday runs get muddied by weather, fatigue and terrain. A benchmark is one clean result you can compare over time.";
 "training_type_info.benchmark.logic" = "We recalibrate your VDOT from this performance instead of inferring it from scattered easy runs. Your race prediction updates the same day you finish.";
 "training_type_info.benchmark.role" = "Scheduled periodically. It answers \"has the training been working?\" — and it sets the paces for everything that follows.";
