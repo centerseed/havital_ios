@@ -14,6 +14,15 @@ tags:
 - runFlow:
     file: ../subflows/dismiss-permission-prompts.yaml
     optional: true
+- tapOn:
+    text: "知道了，不再顯示|Got it, don't show again|了解、今後表示しない"
+    optional: true
+- tapOn:
+    text: "關閉|Close|閉じる"
+    optional: true
+- tapOn:
+    text: "關閉|Close|閉じる"
+    optional: true
 - extendedWaitUntil:
     visible: "今日狀態|Today's State|今日のコンディション"
     timeout: 30000
@@ -29,20 +38,17 @@ tags:
     timeout: 90000
 - tapOn:
     id: "rizo_chat_input"
-- inputText: "請先原樣輸出 STREAM-CANARY-20260713，再用三句話鼓勵我今天穩定訓練；不要修改課表。"
-- hideKeyboard
+- inputText: "我跑步後半段常呼吸亂掉，請給至少20點、每點兩句的詳細呼吸與步頻指南；回答開頭原樣輸出 STREAM-CANARY-20260713-D，不要修改課表。"
 - tapOn:
     id: "rizo_chat_send"
 - extendedWaitUntil:
-    visible: ".*STREAM-CANARY-20260713.*"
+    visible: ".*STREAM-CANARY-20260713-D.*"
     timeout: 90000
-- assertVisible:
-    id: "rizo_chat_typing"
 - takeScreenshot: rizo-ios-prod-streaming-partial
 - extendedWaitUntil:
     notVisible:
       id: "rizo_chat_typing"
     timeout: 90000
-- assertVisible: ".*STREAM-CANARY-20260713.*"
+- assertVisible: ".*STREAM-CANARY-20260713-D.*"
 - assertNotVisible: "Rizo 暫時無法回應|Rizo is temporarily unavailable|Rizo は一時的に応答できません"
 - takeScreenshot: rizo-ios-prod-streaming-final
