@@ -1,11 +1,10 @@
-・See the whole week's weather
-Every day now shows how hot it feels, rest days included. When it's hot, the app tells you exactly how much to slow down.
-Move your workouts around and nothing breaks — the temperature stays with the date, not with the run.
+・Rizo answers as it thinks
+Ask a question and the words appear one by one. No more staring at a blank screen.
 
-・Benchmark results the same day
-Finish a benchmark run and your race prediction updates right away. No waiting for the weekly review.
+・Trail runs stop dragging down your numbers
+Mark any day in your plan as "Trail" and that run stays out of your VDOT.
 
-・Turn a run into a share card
-Route, pace, heart rate — one tap to make an image worth posting.
+・You choose which runs count
+Every run can be included, or excluded (trail, manual entry, other). Your race prediction only uses the runs you stand behind.
 
 Other fixes and improvements.
