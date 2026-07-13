@@ -9,6 +9,14 @@ final class RizoJournalSnapshotTests: XCTestCase {
 
     private let outDir = "/tmp/rizo_journal_shots"
 
+    override func setUp() {
+        super.setUp()
+        // The PNG write fails outright if the directory is missing, and nothing else creates it.
+        try? FileManager.default.createDirectory(
+            atPath: outDir, withIntermediateDirectories: true
+        )
+    }
+
     private func render(_ view: some View, name: String, height: CGFloat) {
         let host = view
             .frame(width: 390)

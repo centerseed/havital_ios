@@ -1,7 +1,7 @@
 import XCTest
 @testable import paceriz_dev
 
-final class WeeklyMileageDialogBuilderTests: XCTestCase {
+final class WeeklyMileageDialogBuilderTests: ZhHantLocalizedTestCase {
 
     // MARK: - V1 path (running array)
 

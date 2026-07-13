@@ -3,27 +3,33 @@ import XCTest
 
 /// Zone naming / mapping alignment with the (authoritative) backend model.
 ///
-/// Backend ground truth:
-/// - `tempo` (節奏跑) ≡ `threshold` (閾值): tempo is anchored at the lactate-threshold
-///   (LT2 ~87% HRR) band, so 節奏跑 belongs to the THRESHOLD zone.
-/// - `marathon` (~76%) / `half_marathon` (~82%) → the ~0.75–0.84 HRR band is the
-///   MARATHON / Zone-3 band.
+/// Backend ground truth — `prompts/sections/training_type_section.py:272`:
+///     "tempo": get_pace_range(vdot, 0.75, 0.84)
+/// and `intensity_calculator.py:665`: medium_intensity_types = {'tempo', 'race_pace', ...}.
 ///
-/// Correct 6-zone model:
-///   recovery / easy / marathon (Z3, ~0.75–0.84) / threshold (Z4, ~0.83–0.88) /
-///   anaerobic / interval.
+/// So `tempo` is the MEDIUM / marathon band, NOT the lactate-threshold band. It was renamed
+/// to 「馬拉松配速」 on the client (hr_zone.tempo now localizes to 馬拉松), and the threshold
+/// effort lives in its own `threshold` zone. An earlier version of this file asserted the
+/// opposite (`tempo ≡ threshold`); that premise contradicted both the backend table above and
+/// PaceCalculator, which is why it went red.
+///
+/// 6-zone model, as shipped:
+///   recovery (0.52–0.59) / easy (0.59–0.74) / marathon ≡ tempo (Z3, 0.75–0.84) /
+///   threshold (Z4, 0.83–0.88) / anaerobic (0.88–0.95) / interval (0.95–1.0)
 final class ZoneNamingModelTests: XCTestCase {
 
     // MARK: - HR Zones (HeartRateZone)
 
-    func test_hrZone3_isMarathon_not_tempo() {
+    func test_hrZone3_isMarathon_not_threshold() {
         let zones = HeartRateZone.calculateZones(maxHR: 180, restingHR: 60)
         let z3 = zones.first { $0.zone == 3 }
         XCTAssertNotNil(z3)
-        // Zone 3 resolves to the Marathon name, NOT 節奏/Tempo.
+        // Zone 3 is the marathon band. Comparing against hr_zone.tempo would be vacuous —
+        // that key is an alias whose value is now 「馬拉松」 too. The band it must NOT be
+        // confused with is threshold (Z4).
         XCTAssertEqual(z3?.name, NSLocalizedString("hr_zone.marathon", comment: ""))
-        XCTAssertNotEqual(z3?.name, NSLocalizedString("hr_zone.tempo", comment: ""),
-                          "Zone 3 (~0.75–0.84) is the marathon band, not tempo")
+        XCTAssertNotEqual(z3?.name, NSLocalizedString("hr_zone.threshold", comment: ""),
+                          "Zone 3 (~0.75–0.84) is the marathon band, not threshold")
     }
 
     func test_hrZone3_marathonName_localizesToMarathonText() {
@@ -53,11 +59,18 @@ final class ZoneNamingModelTests: XCTestCase {
 
     // MARK: - Pace Zones (PaceCalculator)
 
-    func test_paceZone_tempo_isThresholdBand() {
-        // 節奏跑 / tempo paces correspond to the threshold band (~0.83–0.88).
+    func test_paceZone_tempo_isMarathonBand() {
+        // tempo mirrors the backend's medium band (0.75–0.84), i.e. the marathon band.
         let (low, high) = PaceCalculator.PaceZone.tempo.percentageRange
-        XCTAssertEqual(low, 0.83, accuracy: 0.001, "tempo low must align to threshold band")
-        XCTAssertEqual(high, 0.88, accuracy: 0.001, "tempo high must align to threshold band")
+        XCTAssertEqual(low, 0.75, accuracy: 0.001, "tempo low must align to the backend's 0.75")
+        XCTAssertEqual(high, 0.84, accuracy: 0.001, "tempo high must align to the backend's 0.84")
+    }
+
+    func test_paceZone_threshold_isThresholdBand() {
+        // The lactate-threshold effort has its own zone; it is NOT what `tempo` means here.
+        let (low, high) = PaceCalculator.PaceZone.threshold.percentageRange
+        XCTAssertEqual(low, 0.83, accuracy: 0.001, "threshold low must be the LT2 band")
+        XCTAssertEqual(high, 0.88, accuracy: 0.001, "threshold high must be the LT2 band")
     }
 
     func test_paceZone_marathon_isModerateBand() {
@@ -67,14 +80,15 @@ final class ZoneNamingModelTests: XCTestCase {
         XCTAssertEqual(high, 0.84, accuracy: 0.001, "marathon high must be the M band")
     }
 
-    func test_paceZone_tempo_fasterThan_marathon() {
-        // Tempo (threshold effort) must be a faster pace than marathon effort.
+    func test_paceZone_threshold_fasterThan_marathon() {
+        // The invariant that actually matters: threshold effort is faster than marathon effort.
+        // (Comparing tempo vs marathon would be vacuous — they are the same band by design.)
         let vdot = 45.0
-        let tempo = PaceCalculator.getSuggestedPace(for: "tempo", vdot: vdot)!
+        let threshold = PaceCalculator.getSuggestedPace(for: "threshold", vdot: vdot)!
         let marathon = PaceCalculator.getSuggestedPace(for: "marathon", vdot: vdot)!
-        let tempoSec = PaceFormatterHelper.paceToSeconds(tempo) ?? 0
+        let thresholdSec = PaceFormatterHelper.paceToSeconds(threshold) ?? 0
         let marathonSec = PaceFormatterHelper.paceToSeconds(marathon) ?? 0
-        XCTAssertLessThan(tempoSec, marathonSec,
-                          "Tempo (threshold band) must be faster than marathon band")
+        XCTAssertLessThan(thresholdSec, marathonSec,
+                          "Threshold (LT2 band) must be faster than the marathon band")
     }
 }
