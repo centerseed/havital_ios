@@ -1438,6 +1438,33 @@
 "training_type_info.race_pace.logic" = "透過重複練習目標配速，建立神經肌肉記憶與配速感知能力。也讓你評估當前體能是否能達成目標，適時調整訓練計畫。";
 "training_type_info.race_pace.role" = "通常在比賽前 4-8 週開始安排，距離從短到長逐漸增加。是賽前最重要的專項訓練之一。";
 
+/* MARK: - 指標跑 / 漸進跑 / 比賽 / 挪威單閾值間歇 */
+"training_type_info.benchmark.title" = "指標跑";
+"training_type_info.benchmark.how_to_run" = "用接近全力的強度跑完 3 公里或 5 公里。前面別衝太快，讓後段還能守得住，最後一段再把剩下的交出去。";
+"training_type_info.benchmark.why_run" = "這是你跟自己比的基準點。平常的跑步會被天氣、疲勞和路線影響，指標跑是一次乾淨、可以拿來前後對照的成績。";
+"training_type_info.benchmark.logic" = "系統會用這次的表現重新校正你的跑力，取代平常從零散跑步推估出來的數字。跑完當天，完賽預估就會更新。";
+"training_type_info.benchmark.role" = "每隔一段時間安排一次。它是「這陣子的訓練有沒有效」的答案，也是之後所有配速的依據。";
+
+"training_type_info.progression.title" = "漸進跑";
+"training_type_info.progression.how_to_run" = "從輕鬆配速開始，一路慢慢加速，最後一段接近節奏配速。全程只加速、不減速。";
+"training_type_info.progression.why_run" = "練的是「越跑越有節奏」的能力。比賽後段最需要的，就是已經有點累了還能把速度提起來。";
+"training_type_info.progression.logic" = "前段累積有氧刺激，後段在疲勞狀態下逼近閾值強度。一堂課同時練到耐力和配速控制。";
+"training_type_info.progression.role" = "常安排在長跑日或週末。是培養配速感最直接的一堂課。";
+
+"training_type_info.race.title" = "比賽";
+"training_type_info.race.how_to_run" = "照你的比賽計畫跑。起跑別被人群帶快，前段守住配速，後段再全部交出去。";
+"training_type_info.race.why_run" = "比賽是驗收，也是最好的訓練。真實的壓力、對手和現場氣氛，是平常練不到的。";
+"training_type_info.race.logic" = "比賽當天的表現會回寫成你的能力數據，接下來的課表與完賽預估都會跟著調整。";
+"training_type_info.race.role" = "整個訓練週期的目標點。賽前減量與賽後恢復，都是圍繞著這一天安排的。";
+
+"training_type_info.norwegian_singles.title" = "挪威單閾值間歇";
+"training_type_info.norwegian_singles.how_to_run" = "用「有點喘、但還能講短句」的強度，跑多趟中短距離（例如 1000 公尺跑 5 到 8 趟），每趟之間只短暫慢跑恢復。重點是每趟都一樣穩，不是越跑越快。";
+"training_type_info.norwegian_singles.why_run" = "刻意壓在閾值下方一點點，讓你能累積很多這種強度的量，卻不會把自己操垮。累積的量，才是進步的來源。";
+"training_type_info.norwegian_singles.logic" = "強度控制在乳酸開始堆積的邊界之下，身體能維持得久、也清得掉。比起少數幾趟拼到底，這種練法恢復更快，因此可以更常練。";
+"training_type_info.norwegian_singles.role" = "挪威訓練法的核心課程。適合跑量穩定、想把耐力天花板往上推的跑者。";
+
+"tip.benchmark" = "前面別衝，把力氣留給後半段。這次的成績會決定你接下來的配速。";
+
 // MARK: - 新增VO2max提升訓練說明
 "training_type_info.norwegian_4x4.title" = "挪威4x4";
 "training_type_info.norwegian_4x4.how_to_run" = "進行4組4分鐘的高強度跑，每組之間休息3分鐘。保持穩定的VO₂max配速（92% 最大心率），衝刺但控制節奏——應該覺得「非常努力，但能撐完所有組」。";
