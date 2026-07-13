@@ -4164,3 +4164,10 @@
 "climate.adjustment.reduce_pct" = "縮量 %.0f%%";
 "climate.long_run_reduction" = "長跑建議縮減 %.0f%%，優先改期或改室內。";
 "climate.segment_adjustment_summary" = "分段配速已依當日熱壓力調整。";
+"edit_schedule.trail" = "越野";
+"workout.vdot_calculation" = "跑力計算";
+"workout.vdot.automatic" = "自動判定";
+"workout.vdot.included" = "納入計算";
+"workout.vdot.reason.trail" = "排除：越野跑";
+"workout.vdot.reason.manual_entry" = "排除：手動輸入";
+"workout.vdot.reason.other" = "排除：其他";

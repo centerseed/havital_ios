@@ -318,7 +318,8 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
                 segments: nil,
                 description: day.dayTarget,
                 targetIntensity: preservedTargetIntensity,
-                climateMeta: nil
+                climateMeta: nil,
+                isTrail: day.isTrail
             )
         }
 
@@ -358,7 +359,8 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
                 segments: nil,
                 description: details.description ?? day.dayTarget,
                 targetIntensity: preservedTargetIntensity,
-                climateMeta: nil
+                climateMeta: nil,
+                isTrail: day.isTrail
             )
         }
 
@@ -405,7 +407,8 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
                 segments: segDTOs,
                 description: details.description ?? day.dayTarget,
                 targetIntensity: preservedTargetIntensity,
-                climateMeta: nil
+                climateMeta: nil,
+                isTrail: day.isTrail
             )
         }
 
@@ -426,7 +429,8 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
             segments: nil,
             description: details.description ?? day.dayTarget,
             targetIntensity: preservedTargetIntensity,
-            climateMeta: nil
+            climateMeta: nil,
+            isTrail: day.isTrail
         )
     }
 
@@ -479,7 +483,8 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
                 },
                 description: run.description,
                 targetIntensity: run.targetIntensity,
-                climateMeta: nil
+                climateMeta: nil,
+                isTrail: run.isTrail
             ))
         }
         return DayDetailDTO(

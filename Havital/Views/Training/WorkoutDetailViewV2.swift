@@ -35,6 +35,7 @@ struct WorkoutDetailViewV2: View {
     @State private var didAutoPromptReflection = false
     @State private var displayedTrainingNotes: String? = nil  // 用於樂觀 UI 更新
     @State private var displayedRPE: Int? = nil
+    @State private var isUpdatingVDOTOverride = false
     private let rizoRepositoryOverride: RizoRepository?
     private let rizoMinimumReplyLoadingDurationNanoseconds: UInt64
 
@@ -89,6 +90,10 @@ struct WorkoutDetailViewV2: View {
                         showReflection = true
                     }
                 )
+
+                if viewModel.workout.activityType.lowercased() == "running" {
+                    vdotCalculationCard
+                }
 
                 // 載入狀態或錯誤訊息
                 if viewModel.isLoading {
@@ -354,6 +359,47 @@ struct WorkoutDetailViewV2: View {
                 )
                 .transition(.opacity)
                 .zIndex(999)
+            }
+        }
+    }
+
+    private var vdotCalculationCard: some View {
+        HStack {
+            Label(NSLocalizedString("workout.vdot_calculation", comment: "VDOT calculation"), systemImage: "gauge.with.dots.needle.50percent")
+            Spacer()
+            Menu(vdotStatusText) {
+                vdotAction(NSLocalizedString("workout.vdot.automatic", comment: "Automatic"), request: nil)
+                vdotAction(NSLocalizedString("workout.vdot.included", comment: "Included"), request: VDOTOverrideRequest(excluded: false, reason: nil))
+                Divider()
+                vdotAction(NSLocalizedString("workout.vdot.reason.trail", comment: "Trail"), request: VDOTOverrideRequest(excluded: true, reason: "trail"))
+                vdotAction(NSLocalizedString("workout.vdot.reason.manual_entry", comment: "Manual entry"), request: VDOTOverrideRequest(excluded: true, reason: "manual_entry"))
+                vdotAction(NSLocalizedString("workout.vdot.reason.other", comment: "Other"), request: VDOTOverrideRequest(excluded: true, reason: "other"))
+            }
+            .disabled(isUpdatingVDOTOverride)
+            .accessibilityIdentifier("vdot_calculation_menu")
+        }
+        .padding()
+        .background(RoundedRectangle(cornerRadius: 12).fill(Color(.secondarySystemBackground)))
+    }
+
+    private var vdotStatusText: String {
+        guard let value = viewModel.workoutDetail?.vdotOverride else {
+            return NSLocalizedString("workout.vdot.automatic", comment: "Automatic")
+        }
+        if !value.excluded { return NSLocalizedString("workout.vdot.included", comment: "Included") }
+        switch value.reason {
+        case "trail": return NSLocalizedString("workout.vdot.reason.trail", comment: "Trail")
+        case "manual_entry": return NSLocalizedString("workout.vdot.reason.manual_entry", comment: "Manual entry")
+        default: return NSLocalizedString("workout.vdot.reason.other", comment: "Other")
+        }
+    }
+
+    private func vdotAction(_ title: String, request: VDOTOverrideRequest?) -> some View {
+        Button(title) {
+            isUpdatingVDOTOverride = true
+            Task {
+                _ = await viewModel.updateVDOTOverride(request)
+                await MainActor.run { isUpdatingVDOTOverride = false }
             }
         }
     }

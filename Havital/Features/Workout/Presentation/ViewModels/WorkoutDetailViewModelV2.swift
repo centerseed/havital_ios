@@ -198,6 +198,19 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
 
     // MARK: - 訓練心得更新功能
 
+    func updateVDOTOverride(_ override: VDOTOverrideRequest?) async -> Bool {
+        do {
+            try await repository.updateVDOTOverride(id: workout.id, override: override)
+            await refreshWorkoutDetail()
+            return state.data != nil && state.error == nil
+        } catch is CancellationError {
+            return false
+        } catch {
+            Logger.error("[WorkoutDetailViewModelV2] updateVDOTOverride failed: \(error.localizedDescription)")
+            return false
+        }
+    }
+
     /// 更新訓練心得
     /// - Parameter notes: 訓練心得文本（最多 \(WorkoutConstants.maxTrainingNotesLength) 字符）
     /// - Returns: 是否更新成功

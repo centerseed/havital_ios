@@ -509,6 +509,8 @@ struct WorkoutV2Detail: Codable {
     let trainingNotes: String?  // 訓練心得 (optional,向後兼容)
     let correction: TreadmillCorrection?  // 跑步機里程校正 (optional,向後兼容)
     let edits: [WorkoutEdit]?  // 宣告式可重播編輯清單（trim 等，optional,向後兼容）
+    var isTrail: Bool? = nil
+    var vdotOverride: VDOTOverride? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, provider, source
@@ -539,7 +541,25 @@ struct WorkoutV2Detail: Codable {
         case trainingNotes = "training_notes"
         case correction = "correction"
         case edits = "edits"
+        case isTrail = "is_trail"
+        case vdotOverride = "vdot_override"
     }
+}
+
+struct VDOTOverride: Codable, Hashable {
+    let excluded: Bool
+    let reason: String?
+    let updatedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case excluded, reason
+        case updatedAt = "updated_at"
+    }
+}
+
+struct VDOTOverrideRequest: Equatable {
+    let excluded: Bool
+    let reason: String?
 }
 
 // MARK: - Workout Edit Model (Trim)

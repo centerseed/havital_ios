@@ -45,11 +45,30 @@ final class WorkoutDetailRPEUITests: XCTestCase {
         XCTAssertTrue(waitLabelContains("UITest_RPE_UpdateCallCount", "update_call_count:1", timeout: 5))
     }
 
+    func testVDOTCalculationMenu_RendersAutomaticAndAllChoices() {
+        launchApp(initialRPE: nil)
+        let reflectionCancel = app.buttons["Cancel"]
+        if reflectionCancel.waitForExistence(timeout: 2) { reflectionCancel.tap() }
+
+        let menu = app.buttons["vdot_calculation_menu"]
+        for _ in 0..<8 where !menu.isHittable { app.swipeUp() }
+        XCTAssertTrue(menu.waitForExistence(timeout: 5))
+        XCTAssertEqual(menu.label, "Automatic")
+        menu.tap()
+
+        XCTAssertTrue(app.buttons["Included"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Exclude: Trail run"].exists)
+        XCTAssertTrue(app.buttons["Exclude: Manual entry"].exists)
+        XCTAssertTrue(app.buttons["Exclude: Other"].exists)
+    }
+
     private func launchApp(initialRPE: Int?) {
         app = XCUIApplication()
         app.launchArguments = [
             "-ui_testing",
-            "-ui_testing_workout_detail_rpe"
+            "-ui_testing_workout_detail_rpe",
+            "-AppleLanguages",
+            "(en)"
         ]
         app.launchEnvironment["UITEST_RPE_INITIAL"] = initialRPE.map(String.init) ?? "none"
         app.launch()

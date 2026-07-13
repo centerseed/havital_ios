@@ -190,6 +190,7 @@ struct RunActivityDTO: Codable, Equatable {
     let description: String?
     let targetIntensity: String?
     let climateMeta: ClimateMetaDTO?
+    var isTrail: Bool? = nil
 
     enum CodingKeys: String, CodingKey {
         case runType = "run_type"
@@ -208,6 +209,7 @@ struct RunActivityDTO: Codable, Equatable {
         case description
         case targetIntensity = "target_intensity"
         case climateMeta = "climate_meta"
+        case isTrail = "is_trail"
     }
 }
 

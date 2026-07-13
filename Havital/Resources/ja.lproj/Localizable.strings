@@ -4120,3 +4120,10 @@
 "climate.adjustment.reduce_pct" = "%.0f%%短縮";
 "climate.long_run_reduction" = "ロング走は%.0f%%短縮推奨。日程変更または屋内代替を優先してください。";
 "climate.segment_adjustment_summary" = "各セグメントのペースは当日の暑熱ストレスに合わせて調整済みです。";
+"edit_schedule.trail" = "トレイル";
+"workout.vdot_calculation" = "VDOT 計算";
+"workout.vdot.automatic" = "自動判定";
+"workout.vdot.included" = "計算に含める";
+"workout.vdot.reason.trail" = "除外：トレイルラン";
+"workout.vdot.reason.manual_entry" = "除外：手動入力";
+"workout.vdot.reason.other" = "除外：その他";

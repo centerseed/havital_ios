@@ -4123,3 +4123,10 @@
 "climate.adjustment.reduce_pct" = "Reduce %.0f%%";
 "climate.long_run_reduction" = "Long run recommended reduction: %.0f%%. Prefer rescheduling or moving indoors.";
 "climate.segment_adjustment_summary" = "Segment paces were adjusted for the day's heat stress.";
+"edit_schedule.trail" = "Trail";
+"workout.vdot_calculation" = "VDOT calculation";
+"workout.vdot.automatic" = "Automatic";
+"workout.vdot.included" = "Included";
+"workout.vdot.reason.trail" = "Exclude: Trail run";
+"workout.vdot.reason.manual_entry" = "Exclude: Manual entry";
+"workout.vdot.reason.other" = "Exclude: Other";

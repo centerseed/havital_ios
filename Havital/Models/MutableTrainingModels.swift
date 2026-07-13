@@ -120,6 +120,7 @@ struct MutableTrainingDay: Identifiable, Equatable {
     var strengthExercises: [Exercise]?
     var strengthType: String?
     var supplementaryActivities: [SupplementaryActivity]?
+    var isTrail: Bool = false
 
     /// 從 TrainingDay 初始化
     init(from day: TrainingDay) {
@@ -132,6 +133,7 @@ struct MutableTrainingDay: Identifiable, Equatable {
         self.trainingDetails = day.trainingDetails.map { MutableTrainingDetails(from: $0) }
         self.warmup = day.trainingDetails?.warmup
         self.cooldown = day.trainingDetails?.cooldown
+        self.isTrail = false
     }
 
     /// V2 支援：從 DayDetail 初始化（使用 V1 兼容層）
@@ -146,6 +148,7 @@ struct MutableTrainingDay: Identifiable, Equatable {
         self.trainingDetails = day.trainingDetails.map { MutableTrainingDetails(from: $0) }
         self.warmup = day.session?.warmup
         self.cooldown = day.session?.cooldown
+        self.isTrail = day.primaryRunActivity?.isTrail ?? false
         // 保留力量訓練的 exercises 和 strengthType
         if case .strength(let strengthActivity) = day.session?.primary {
             self.strengthExercises = strengthActivity.exercises
@@ -187,6 +190,7 @@ struct MutableTrainingDay: Identifiable, Equatable {
                lhs.dayTarget == rhs.dayTarget &&
                lhs.trainingType == rhs.trainingType &&
                lhs.trainingDetails == rhs.trainingDetails &&
+               lhs.isTrail == rhs.isTrail &&
                lhs.warmup == rhs.warmup &&
                lhs.cooldown == rhs.cooldown &&
                lhs.strengthExercises == rhs.strengthExercises &&

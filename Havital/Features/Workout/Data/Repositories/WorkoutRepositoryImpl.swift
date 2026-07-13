@@ -478,6 +478,19 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         Logger.debug("[WorkoutRepositoryImpl] updateTrainingNotes - 完成")
     }
 
+    func updateVDOTOverride(id: String, override: VDOTOverrideRequest?) async throws {
+        let value: Any
+        if let override {
+            var payload: [String: Any] = ["excluded": override.excluded]
+            if override.excluded, let reason = override.reason { payload["reason"] = reason }
+            value = payload
+        } else {
+            value = NSNull()
+        }
+        try await remoteDataSource.updateWorkout(id: id, body: ["vdot_override": value])
+        localDataSource.clearWorkoutDetailCache(id: id)
+    }
+
     func updateRPE(id: String, rpe: Int?) async throws {
         Logger.debug("[WorkoutRepositoryImpl] updateRPE - id: \(id)")
 

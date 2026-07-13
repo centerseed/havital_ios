@@ -200,7 +200,8 @@ enum TrainingSessionMapper {
             segments: dto.segments?.map { toEntity(from: $0) },
             description: dto.description,
             targetIntensity: dto.targetIntensity,
-            climateMeta: dto.climateMeta.map { toEntity(from: $0) }
+            climateMeta: dto.climateMeta.map { toEntity(from: $0) },
+            isTrail: dto.isTrail
         )
     }
 
@@ -221,7 +222,8 @@ enum TrainingSessionMapper {
             segments: entity.segments?.map { toDTO(from: $0) },
             description: entity.description,
             targetIntensity: entity.targetIntensity,
-            climateMeta: entity.climateMeta.map { toDTO(from: $0) }
+            climateMeta: entity.climateMeta.map { toDTO(from: $0) },
+            isTrail: entity.isTrail
         )
     }
 

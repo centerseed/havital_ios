@@ -80,6 +80,24 @@ final class TreadmillCorrectionTests: XCTestCase {
 
         XCTAssertNil(detail.correction, "correction should be nil for old records without this field")
         XCTAssertFalse(detail.isTreadmillCorrected, "isTreadmillCorrected should be false when correction is nil")
+        XCTAssertNil(detail.vdotOverride)
+        XCTAssertNil(detail.isTrail)
+    }
+
+    func testWorkoutV2Detail_Decode_ForcedIncludePreservesFalse() throws {
+        let json = """
+        {
+            "id":"workout_abc","provider":"garmin","activity_type":"running",
+            "start_time":"2026-05-29T08:00:00Z","end_time":"2026-05-29T09:00:00Z",
+            "user_id":"user_1","schema_version":"2.0","source":"garmin",
+            "storage_path":"/workouts/abc","original_id":"orig_abc","provider_user_id":"garmin_user_1",
+            "is_trail":false,"vdot_override":{"excluded":false}
+        }
+        """
+        let detail = try JSONDecoder().decode(WorkoutV2Detail.self, from: Data(json.utf8))
+        XCTAssertEqual(detail.isTrail, false)
+        XCTAssertEqual(detail.vdotOverride?.excluded, false)
+        XCTAssertNil(detail.vdotOverride?.reason)
     }
 
     func testWorkoutV2Detail_Decode_WithCorrectionField_CorrectionPresent() throws {

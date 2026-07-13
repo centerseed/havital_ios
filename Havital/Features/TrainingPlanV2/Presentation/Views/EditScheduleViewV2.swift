@@ -349,6 +349,18 @@ struct SimplifiedDailyCardV2: View {
                 if let supplementary = day.supplementaryActivities, !supplementary.isEmpty {
                     supplementaryActivitiesSummary(supplementary)
                 }
+
+                if day.trainingDetails != nil {
+                    Toggle(isOn: $day.isTrail) {
+                        Label(NSLocalizedString("edit_schedule.trail", comment: "Trail terrain"), systemImage: "mountain.2")
+                            .font(AppFont.caption())
+                    }
+                    .tint(.orange)
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 10)
+                    .accessibilityIdentifier("day_\(displayDayIndex)_trail_toggle")
+                    .onChange(of: day.isTrail) { _ in onDataChanged?() }
+                }
             }
         }
     }

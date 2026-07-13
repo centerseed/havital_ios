@@ -153,6 +153,16 @@ struct RunActivity: Codable, Equatable {
     let description: String?
     let targetIntensity: String?
     let climateMeta: ClimateMeta?
+    var isTrail: Bool? = nil
+
+    enum CodingKeys: String, CodingKey {
+        case runType = "run_type", distanceKm = "distance_km", distanceDisplay = "distance_display"
+        case distanceUnit = "distance_unit", paceUnit = "pace_unit", durationMinutes = "duration_minutes"
+        case durationSeconds = "duration_seconds", pace, basePace = "base_pace"
+        case climateAdjustedPace = "climate_adjusted_pace", heartRateRange = "heart_rate_range"
+        case interval, segments, description, targetIntensity = "target_intensity", climateMeta = "climate_meta"
+        case isTrail = "is_trail"
+    }
 
     // 計畫一律顯示原始配速；熱調整後配速只在「溫度補償卡」呈現（使用者決策 2026-05）。
     // 勿改回 climateAdjustedPace ?? pace，否則主畫面又會被氣候值蓋掉。

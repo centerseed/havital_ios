@@ -157,6 +157,9 @@ protocol WorkoutRepository {
     ///   - notes: 心得內容
     func updateTrainingNotes(id: String, notes: String) async throws
 
+    /// nil clears the manual override and restores automatic terrain detection.
+    func updateVDOTOverride(id: String, override: VDOTOverrideRequest?) async throws
+
     /// 更新主觀強度 RPE
     /// - Parameters:
     ///   - id: 訓練 ID
@@ -224,6 +227,10 @@ extension WorkoutRepository {
     }
 
     func updateRPE(id: String, rpe: Int?) async throws {
+        throw WorkoutRepositoryError.dataSourceUnavailable
+    }
+
+    func updateVDOTOverride(id: String, override: VDOTOverrideRequest?) async throws {
         throw WorkoutRepositoryError.dataSourceUnavailable
     }
 

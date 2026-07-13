@@ -25,6 +25,19 @@ final class SteadyIntervalsContractTests: XCTestCase {
         XCTAssertEqual(run.runType, "steady_intervals")
     }
 
+    func test_missingTrailFlag_defaultsToFalse() throws {
+        let dto = try JSONDecoder().decode(RunActivityDTO.self, from: Data(#"{"run_type":"easy"}"#.utf8))
+        XCTAssertFalse(dto.isTrail ?? false)
+    }
+
+    func test_trailFlag_roundTripsTrue() throws {
+        let dto = try JSONDecoder().decode(RunActivityDTO.self, from: Data(#"{"run_type":"lsd","is_trail":true}"#.utf8))
+        XCTAssertEqual(dto.isTrail, true)
+        let encoded = try JSONEncoder().encode(dto)
+        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        XCTAssertEqual(object["is_trail"] as? Bool, true)
+    }
+
     func test_decodesFourSegments() throws {
         let run = try loadRunActivityDTO()
         XCTAssertEqual(run.segments?.count, 4)
