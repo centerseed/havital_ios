@@ -4,7 +4,15 @@ import XCTest
 @MainActor
 final class EditScheduleV2ViewModelFartlekTests: XCTestCase {
 
-    func test_reorderedRun_preservesClimateMetaForDestinationDate() throws {
+    /// T-0165 (64c9a47a): climate is plan-level `climate[7]`, keyed by DATE and recomputed by the
+    /// backend on read. The edit payload therefore carries **no** climate at all — that is exactly
+    /// what stops a moved workout from dragging its old day's temperature along with it, and it is
+    /// why `shouldPreserveRunClimate` / `climatePaceValues` were deleted rather than fixed.
+    ///
+    /// This test used to assert the pre-T-0165 design (client re-attaches the destination day's
+    /// `climate_meta`). That code is gone on purpose, so the assertion is now the contract itself:
+    /// nothing climate-shaped may leave the editor.
+    func test_reorderedRun_sendsNoClimate() throws {
         let sourceClimate = ClimateMeta(
             feelsLikeTempC: 32,
             heatPressureLevel: "high",
@@ -30,12 +38,14 @@ final class EditScheduleV2ViewModelFartlekTests: XCTestCase {
         let dto = vm.debug_buildDayDetailDTO(from: movedDay)
 
         XCTAssertEqual(dto.dayIndex, 4)
-        XCTAssertEqual(dto.climateMeta?.heatPressureLevel, "mild")
+        XCTAssertNil(dto.climateMeta, "T-0165: the edit payload must not carry climate")
         guard case .run(let run) = dto.primary else {
             return XCTFail("Expected run primary")
         }
-        XCTAssertEqual(run.climateMeta?.heatPressureLevel, "mild")
-        XCTAssertEqual(run.climateAdjustedPace, "5:37")
+        // In particular it must not carry the SOURCE day's heat ("high" / "source heat"), which
+        // is the regression this test has always been about.
+        XCTAssertNil(run.climateMeta, "T-0165: the edit payload must not carry climate")
+        XCTAssertNil(run.climateAdjustedPace, "T-0165: no climate-adjusted pace leaves the editor")
     }
 
     func test_fartlekSegmentPaceChange_reflectedInDayDetailDTO() throws {

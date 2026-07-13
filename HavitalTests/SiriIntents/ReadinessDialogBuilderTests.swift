@@ -1,7 +1,7 @@
 import XCTest
 @testable import paceriz_dev
 
-final class ReadinessDialogBuilderTests: XCTestCase {
+final class ReadinessDialogBuilderTests: ZhHantLocalizedTestCase {
 
     func test_highReadiness_speaksGo() {
         let r = TrainingReadinessResponse.fixture(overallStatusText: "狀態良好", overallScore: 85)

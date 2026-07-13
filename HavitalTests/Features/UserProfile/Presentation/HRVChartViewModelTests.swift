@@ -11,6 +11,7 @@ final class HRVChartViewModelTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
+        AppLanguagePin.traditionalChinese()
         UserDefaults.standard.removeObject(forKey: cacheKey)
         UserDefaults.standard.removeObject(forKey: cacheTimeKey)
         healthKitManager = MockHRVHealthKitManager()

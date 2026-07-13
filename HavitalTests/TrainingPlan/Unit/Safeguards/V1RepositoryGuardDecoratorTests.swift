@@ -227,7 +227,7 @@ final class V1RepositoryGuardDecoratorTests: XCTestCase {
 
 // MARK: - DomainError coverage for incorrectVersionRouting (A-4 ships the case)
 
-final class DomainErrorIncorrectVersionRoutingTests: XCTestCase {
+final class DomainErrorIncorrectVersionRoutingTests: ZhHantLocalizedTestCase {
 
     func test_incorrectVersionRouting_shouldShowErrorView_true() {
         let error = DomainError.incorrectVersionRouting(context: "ctx")

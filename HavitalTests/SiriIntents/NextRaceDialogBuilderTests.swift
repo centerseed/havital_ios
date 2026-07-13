@@ -1,7 +1,7 @@
 import XCTest
 @testable import paceriz_dev
 
-final class NextRaceDialogBuilderTests: XCTestCase {
+final class NextRaceDialogBuilderTests: ZhHantLocalizedTestCase {
 
     // MARK: - Helpers
 

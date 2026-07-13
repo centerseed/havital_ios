@@ -484,9 +484,11 @@ final class PaywallACTests: XCTestCase {
             "paywall.premium.hero.change.subtitle",
             "paywall.premium.timeline.step1.label",
             "paywall.premium.timeline.step1.desc",
-            "paywall.premium.timeline.step2.label",
+            // step2/step3 labels are rendered from day_format ("第 %d 天") so the timeline
+            // tracks the trial length the backend actually grants (T-0061). There are no
+            // static step2.label / step3.label keys any more.
+            "paywall.premium.timeline.day_format",
             "paywall.premium.timeline.step2.desc",
-            "paywall.premium.timeline.step3.label",
             "paywall.premium.timeline.step3.desc",
             "paywall.premium.features.plan.title",
             "paywall.premium.features.plan.bullet1",
@@ -502,9 +504,13 @@ final class PaywallACTests: XCTestCase {
             "paywall.premium.features.race.bullet1",
             "paywall.premium.features.race.bullet2",
             "paywall.premium.section.default.title",
-            "paywall.premium.section.default.subtitle",
+            // Subtitles split into trial / no-trial variants when the trial became dynamic
+            // (T-0061); the flat `.subtitle` key no longer exists in code or in .strings.
+            "paywall.premium.section.default.subtitle_trial_format",
+            "paywall.premium.section.default.subtitle_no_trial",
             "paywall.premium.section.earlybird.title",
-            "paywall.premium.section.earlybird.subtitle",
+            "paywall.premium.section.earlybird.subtitle_trial_format",
+            "paywall.premium.section.earlybird.subtitle_no_trial",
             "paywall.premium.plan.annual.label",
             "paywall.premium.plan.annual.badge_recommended",
             "paywall.premium.plan.monthly.label",

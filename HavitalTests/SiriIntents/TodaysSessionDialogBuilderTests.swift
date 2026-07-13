@@ -1,7 +1,7 @@
 import XCTest
 @testable import paceriz_dev
 
-final class TodaysSessionDialogBuilderTests: XCTestCase {
+final class TodaysSessionDialogBuilderTests: ZhHantLocalizedTestCase {
 
     // MARK: - Rest day
 

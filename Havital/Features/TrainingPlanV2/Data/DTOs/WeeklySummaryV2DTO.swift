@@ -506,6 +506,18 @@ struct AdjustmentItemV2DTO: Codable {
     }
 }
 
+/// `AdjustmentItemV2.value` is polymorphic on the backend — its shape is decided by the item's
+/// `type` (`data_models/weekly_summary_v2.py:542`):
+///
+///   adjust_volume / adjust_intensity / adjust_rest_week → float  (e.g. -10.0)
+///   replace_training_type                               → String
+///   set_recovery_day                                    → Int or [Int]
+///   benchmark / calibration items                       → object (the keyed fields below)
+///
+/// Synthesised `Codable` only understood the object case, so a perfectly ordinary
+/// "reduce next week's volume by 10%" item (`value: -10.0`) threw `typeMismatch` and took the
+/// WHOLE weekly summary down with it — the review screen would fail to load, not degrade.
+/// Decoding therefore has to accept every shape the backend is allowed to send.
 struct AdjustmentItemValueDTO: Codable {
     let week: Int?
     let distanceKm: Double?
@@ -518,6 +530,11 @@ struct AdjustmentItemValueDTO: Codable {
     let calibrationPreview: CalibrationPreviewDTO?
     let overviewId: String?
 
+    /// Set when the backend sent a scalar instead of an object (adjust_volume, etc.).
+    let numeric: Double?
+    let text: String?
+    let intList: [Int]?
+
     enum CodingKeys: String, CodingKey {
         case week
         case distanceKm = "distance_km"
@@ -529,6 +546,59 @@ struct AdjustmentItemValueDTO: Codable {
         case workoutDate = "workout_date"
         case calibrationPreview = "calibration_preview"
         case overviewId = "overview_id"
+    }
+
+    init(from decoder: Decoder) throws {
+        if let c = try? decoder.container(keyedBy: CodingKeys.self) {
+            week = try c.decodeIfPresent(Int.self, forKey: .week)
+            distanceKm = try c.decodeIfPresent(Double.self, forKey: .distanceKm)
+            scheduledWeekday = try c.decodeIfPresent(Int.self, forKey: .scheduledWeekday)
+            benchmarkDistanceM = try c.decodeIfPresent(Double.self, forKey: .benchmarkDistanceM)
+            benchmarkDurationS = try c.decodeIfPresent(Double.self, forKey: .benchmarkDurationS)
+            shouldHedge = try c.decodeIfPresent(Bool.self, forKey: .shouldHedge)
+            suggestedChangeRounded = try c.decodeIfPresent(Double.self, forKey: .suggestedChangeRounded)
+            workoutDate = try c.decodeIfPresent(String.self, forKey: .workoutDate)
+            calibrationPreview = try c.decodeIfPresent(CalibrationPreviewDTO.self, forKey: .calibrationPreview)
+            overviewId = try c.decodeIfPresent(String.self, forKey: .overviewId)
+            numeric = nil
+            text = nil
+            intList = nil
+            return
+        }
+
+        week = nil; distanceKm = nil; scheduledWeekday = nil
+        benchmarkDistanceM = nil; benchmarkDurationS = nil; shouldHedge = nil
+        suggestedChangeRounded = nil; workoutDate = nil; calibrationPreview = nil; overviewId = nil
+
+        let single = try decoder.singleValueContainer()
+        if let d = try? single.decode(Double.self) {
+            numeric = d; text = nil; intList = nil
+        } else if let s = try? single.decode(String.self) {
+            numeric = nil; text = s; intList = nil
+        } else if let a = try? single.decode([Int].self) {
+            numeric = nil; text = nil; intList = a
+        } else {
+            // An unknown future shape must not sink the whole summary.
+            numeric = nil; text = nil; intList = nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        if let numeric { var c = encoder.singleValueContainer(); try c.encode(numeric); return }
+        if let text { var c = encoder.singleValueContainer(); try c.encode(text); return }
+        if let intList { var c = encoder.singleValueContainer(); try c.encode(intList); return }
+
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encodeIfPresent(week, forKey: .week)
+        try c.encodeIfPresent(distanceKm, forKey: .distanceKm)
+        try c.encodeIfPresent(scheduledWeekday, forKey: .scheduledWeekday)
+        try c.encodeIfPresent(benchmarkDistanceM, forKey: .benchmarkDistanceM)
+        try c.encodeIfPresent(benchmarkDurationS, forKey: .benchmarkDurationS)
+        try c.encodeIfPresent(shouldHedge, forKey: .shouldHedge)
+        try c.encodeIfPresent(suggestedChangeRounded, forKey: .suggestedChangeRounded)
+        try c.encodeIfPresent(workoutDate, forKey: .workoutDate)
+        try c.encodeIfPresent(calibrationPreview, forKey: .calibrationPreview)
+        try c.encodeIfPresent(overviewId, forKey: .overviewId)
     }
 }
 

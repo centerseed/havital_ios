@@ -74,10 +74,12 @@ final class QARegressionTests: XCTestCase {
         XCTAssertFalse(DayType.benchmark.localizedName.isEmpty)
     }
 
-    /// labelColor must be distinct from race's .red.
+    /// labelColor must be distinct from race's .red, and must come from the design-system SSOT.
     func testBenchmark_labelColorNotRace() {
         XCTAssertNotEqual(DayType.benchmark.labelColor, DayType.race.labelColor)
-        XCTAssertEqual(DayType.benchmark.labelColor, .indigo)
+        // PacerizColor.benchmark (#6366F1), not SwiftUI's system `.indigo` — PacerizDesignSystem
+        // declares itself the SSOT for this colour precisely so `.indigo` does not get scattered.
+        XCTAssertEqual(DayType.benchmark.labelColor, PacerizColor.benchmark)
     }
 
     /// benchmark shows pace (it is a measured effort), so shouldHidePace is false.

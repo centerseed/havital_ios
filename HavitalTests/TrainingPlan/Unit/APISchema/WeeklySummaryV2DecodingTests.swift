@@ -160,5 +160,37 @@ final class WeeklySummaryV2DecodingTests: XCTestCase {
         XCTAssertEqual(dto.nextWeekAdjustments.items[0].sourceFlag, "race_week")
         XCTAssertEqual(dto.nextWeekAdjustments.methodologyConstraintsConsidered, true)
         XCTAssertEqual(dto.restWeekRecommendation?.recommended, true)
+
+        // The golden item is `type: adjust_volume, value: -10.0` — a bare number. Decoding it as
+        // an object threw and took the entire summary with it.
+        XCTAssertEqual(dto.nextWeekAdjustments.items[0].type, "adjust_volume")
+        XCTAssertEqual(dto.nextWeekAdjustments.items[0].value?.numeric, -10.0)
+    }
+
+    // MARK: - AdjustmentItemV2.value is polymorphic (backend: weekly_summary_v2.py:542)
+
+    /// Every shape the backend is allowed to send must decode. A `typeMismatch` here does not
+    /// degrade one item — it aborts the whole `WeeklySummaryV2DTO`, so the review screen dies.
+    func test_decode_adjustmentItemValue_acceptsEveryBackendShape() throws {
+        func decodeValue(_ json: String) throws -> AdjustmentItemValueDTO? {
+            struct Wrapper: Codable { let value: AdjustmentItemValueDTO? }
+            let data = #"{"value": \#(json)}"#.data(using: .utf8)!
+            return try JSONDecoder().decode(Wrapper.self, from: data).value
+        }
+
+        // adjust_volume / adjust_intensity / adjust_rest_week
+        XCTAssertEqual(try decodeValue("-10.0")?.numeric, -10.0)
+        XCTAssertEqual(try decodeValue("15")?.numeric, 15.0)
+        // replace_training_type
+        XCTAssertEqual(try decodeValue("\"tempo\"")?.text, "tempo")
+        // set_recovery_day (Int or [Int])
+        XCTAssertEqual(try decodeValue("3")?.numeric, 3.0)
+        XCTAssertEqual(try decodeValue("[2, 5]")?.intList, [2, 5])
+        // benchmark / calibration items keep the object shape
+        XCTAssertEqual(try decodeValue(#"{"week": 4, "distance_km": 5.0}"#)?.week, 4)
+        // null stays nil
+        XCTAssertNil(try decodeValue("null"))
+        // An unknown future shape must not throw
+        XCTAssertNoThrow(try decodeValue("true"))
     }
 }
