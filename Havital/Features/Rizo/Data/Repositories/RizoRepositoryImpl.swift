@@ -56,6 +56,16 @@ final class RizoRepositoryImpl: RizoRepository {
         )
     }
 
+    func streamChat(scenario: String, message: String, sessionId: String?) -> AsyncThrowingStream<RizoChatUpdate, Error> {
+        remoteDataSource.streamChat(scenario: scenario, message: message, sessionId: sessionId,
+                                    workoutId: nil, presetSelections: [])
+    }
+
+    func streamJournalChat(workoutId: String, message: String, presetSelections: [String], sessionId: String?) -> AsyncThrowingStream<RizoChatUpdate, Error> {
+        remoteDataSource.streamChat(scenario: "journal", message: message, sessionId: sessionId,
+                                    workoutId: workoutId, presetSelections: presetSelections)
+    }
+
     func getPresets(scenario: String) async throws -> [RizoPreset] {
         return try await remoteDataSource.fetchPresets(scenario: scenario)
     }

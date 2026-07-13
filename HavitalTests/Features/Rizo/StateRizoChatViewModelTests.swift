@@ -67,6 +67,21 @@ final class StateRizoChatViewModelTests: XCTestCase {
         XCTAssertEqual(vm.messages.count, 1)
     }
 
+    func test_streamingShowsPartialBeforeFinalThenFinalOverwritesIt() async throws {
+        let fake = FakeRizoRepository(reply: makeReply(text: "Authoritative answer", sessionId: "s1"))
+        fake.streamPartial = "Partial answer"
+        fake.streamPauseNanoseconds = 200_000_000
+        let vm = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+
+        let task = Task { await vm.startOpening() }
+        try await Task.sleep(nanoseconds: 50_000_000)
+        XCTAssertEqual(vm.messages.last?.text, "Partial answer")
+        XCTAssertTrue(vm.isReplying)
+        await task.value
+        XCTAssertEqual(vm.messages.count, 1)
+        XCTAssertEqual(vm.messages.last?.text, "Authoritative answer")
+    }
+
     func test_send_threadsSessionIdOnSecondTurn() async {
         let fake = FakeRizoRepository(
             reply: makeReply(text: "了解", sessionId: "sess-9")
@@ -209,6 +224,8 @@ final class FakeRizoRepository: RizoRepository {
     var replyToReturn: RizoReply
     var errorToThrow: Error?
     var sendDelayNanoseconds: UInt64 = 0
+    var streamPartial: String?
+    var streamPauseNanoseconds: UInt64 = 0
 
     private(set) var sendChatCallCount = 0
     private(set) var lastScenario: String?
@@ -233,6 +250,27 @@ final class FakeRizoRepository: RizoRepository {
         }
         if let errorToThrow { throw errorToThrow }
         return replyToReturn
+    }
+
+    func streamChat(scenario: String, message: String, sessionId: String?) -> AsyncThrowingStream<RizoChatUpdate, Error> {
+        guard let streamPartial else {
+            return AsyncThrowingStream { continuation in
+                let task = Task {
+                    do { continuation.yield(.final(try await sendChat(scenario: scenario, message: message, sessionId: sessionId))); continuation.finish() }
+                    catch { continuation.finish(throwing: error) }
+                }
+                continuation.onTermination = { _ in task.cancel() }
+            }
+        }
+        return AsyncThrowingStream { continuation in
+            let task = Task {
+                continuation.yield(.partial(streamPartial))
+                try? await Task.sleep(nanoseconds: streamPauseNanoseconds)
+                continuation.yield(.final(replyToReturn))
+                continuation.finish()
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
     }
 
     // MARK: Unused protocol surface（本批只用 sendChat）

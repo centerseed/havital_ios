@@ -249,4 +249,41 @@ final class RizoDataLayerTests: XCTestCase {
         let reply = RizoMapper.toReply(from: dto)
         XCTAssertNil(reply.pendingPlanChange?.diffDays)
     }
+
+    func testSSEDeltaResetAndFinalUsesAuthoritativeResponse() throws {
+        let sse = """
+        event: delta\r
+        data: {"text":"old"}\r
+        \r
+        event: reset\r
+        data: {}\r
+        \r
+        event: delta\r
+        data: {"text":"new"}\r
+        \r
+        event: final\r
+        data: {"success":true,"data":{"response":"new final","session_id":"s1","quota":{"allowed":true,"used":1,"limit":null,"remaining":null,"resets_at":null,"reserved":false},"safety":{"danger_class":"none","canned":false}}}\r
+        \r
+        """
+        var partials: [String] = []
+        var final: RizoReply?
+        try RizoRemoteDataSource.parseSSE(Data(sse.utf8)) { update in
+            switch update {
+            case .partial(let text): partials.append(text)
+            case .final(let reply): final = reply
+            }
+        }
+        XCTAssertEqual(partials, ["old", "", "new"])
+        XCTAssertEqual(final?.reply, "new final")
+        XCTAssertEqual(final?.sessionId, "s1")
+    }
+
+    func testSSESupportsMultilineDataAndTrailingFrameWithoutBlankLine() throws {
+        let sse = "event: delta\ndata: {\ndata: \"text\": \"hi\"\ndata: }"
+        var partials: [String] = []
+        try RizoRemoteDataSource.parseSSE(Data(sse.utf8)) { update in
+            if case .partial(let text) = update { partials.append(text) }
+        }
+        XCTAssertEqual(partials, ["hi"])
+    }
 }

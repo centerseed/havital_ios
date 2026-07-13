@@ -34,6 +34,9 @@ protocol RizoRepository {
         sessionId: String?
     ) async throws -> RizoReply
 
+    func streamChat(scenario: String, message: String, sessionId: String?) -> AsyncThrowingStream<RizoChatUpdate, Error>
+    func streamJournalChat(workoutId: String, message: String, presetSelections: [String], sessionId: String?) -> AsyncThrowingStream<RizoChatUpdate, Error>
+
     /// 取得指定情境的預設快捷選項。
     /// 對應 GET /v2/agent/presets?scenario=...
     /// - Parameter scenario: 情境（如 "journal"）。
@@ -54,6 +57,29 @@ protocol RizoRepository {
 
 // MARK: - Rizo Repository Convenience Defaults
 extension RizoRepository {
+    func streamJournalChat(workoutId: String, message: String, presetSelections: [String], sessionId: String?) -> AsyncThrowingStream<RizoChatUpdate, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    continuation.yield(.final(try await sendJournalChat(workoutId: workoutId, message: message,
+                                                                        presetSelections: presetSelections, sessionId: sessionId)))
+                    continuation.finish()
+                } catch { continuation.finish(throwing: error) }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+    func streamChat(scenario: String, message: String, sessionId: String?) -> AsyncThrowingStream<RizoChatUpdate, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    continuation.yield(.final(try await sendChat(scenario: scenario, message: message, sessionId: sessionId)))
+                    continuation.finish()
+                } catch { continuation.finish(throwing: error) }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
     /// 預設實作:不測改課表的 preview/test 替身免實作(真實 RizoRepositoryImpl 已覆寫)。
     func confirmPlanChange(proposalId: String) async throws -> PlanChangeConfirmResult {
         throw RizoRepositoryError.dataSourceUnavailable
@@ -72,6 +98,11 @@ extension RizoRepository {
             sessionId: nil
         )
     }
+}
+
+enum RizoChatUpdate {
+    case partial(String)
+    case final(RizoReply)
 }
 
 // MARK: - Rizo Repository Errors

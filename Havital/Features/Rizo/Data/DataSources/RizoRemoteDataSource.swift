@@ -6,6 +6,11 @@ import Foundation
 /// 每個呼叫包 tracked(...) → ResponseProcessor.extractData(DTO) → RizoMapper。
 final class RizoRemoteDataSource {
 
+    private struct SSEFrame {
+        var event: String?
+        var data: [String] = []
+    }
+
     // MARK: - Properties
 
     private let httpClient: any HTTPClient
@@ -48,6 +53,94 @@ final class RizoRemoteDataSource {
         }
         let dto = try ResponseProcessor.extractData(RizoChatResponseDTO.self, from: rawData, using: parser)
         return RizoMapper.toReply(from: dto)
+    }
+
+    func streamChat(
+        scenario: String,
+        message: String,
+        sessionId: String?,
+        workoutId: String?,
+        presetSelections: [String]
+    ) -> AsyncThrowingStream<RizoChatUpdate, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                do {
+                    let request = RizoChatRequest(scenario: scenario, message: message, sessionId: sessionId,
+                                                  workoutId: workoutId, presetSelections: presetSelections)
+                    let body = try JSONEncoder().encode(request)
+                    let response = try await tracked("RizoRemoteDataSource: streamChat") {
+                        try await httpClient.stream(
+                            path: "/v2/agent/chat/stream", method: .POST, body: body,
+                            customHeaders: ["Accept": "text/event-stream"]
+                        )
+                    }
+                    if !response.contentType.hasPrefix("text/event-stream") {
+                        var data = Data()
+                        for try await byte in response.bytes { data.append(byte) }
+                        let dto = try ResponseProcessor.extractData(RizoChatResponseDTO.self, from: data, using: parser)
+                        continuation.yield(.final(RizoMapper.toReply(from: dto)))
+                        continuation.finish()
+                        return
+                    }
+                    var frame = SSEFrame()
+                    var partial = ""
+                    var line = Data()
+                    for try await byte in response.bytes {
+                        if byte == 10 {
+                            var value = String(data: line, encoding: .utf8) ?? ""
+                            if value.last == "\r" { value.removeLast() }
+                            line.removeAll(keepingCapacity: true)
+                            if value.isEmpty {
+                                try Self.dispatch(frame: frame, partial: &partial) { continuation.yield($0) }
+                                frame = SSEFrame()
+                            } else if value.hasPrefix("event:") {
+                                frame.event = value.dropFirst(6).trimmingCharacters(in: .whitespaces)
+                            } else if value.hasPrefix("data:") {
+                                frame.data.append(String(value.dropFirst(5)).trimmingCharacters(in: .whitespaces))
+                            }
+                        } else { line.append(byte) }
+                    }
+                    try Self.dispatch(frame: frame, partial: &partial) { continuation.yield($0) }
+                    continuation.finish()
+                } catch is CancellationError {
+                    continuation.finish(throwing: CancellationError())
+                } catch let error as URLError where error.code == .cancelled {
+                    continuation.finish(throwing: CancellationError())
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+    }
+
+    static func parseSSE(_ data: Data, emit: (RizoChatUpdate) -> Void) throws {
+        guard let text = String(data: data, encoding: .utf8) else { throw RizoRepositoryError.invalidDataFormat("SSE UTF-8") }
+        var partial = ""
+        var frame = SSEFrame()
+        for rawLine in text.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: "\n") {
+            if rawLine.isEmpty { try dispatch(frame: frame, partial: &partial, emit: emit); frame = SSEFrame() }
+            else if rawLine.hasPrefix("event:") { frame.event = rawLine.dropFirst(6).trimmingCharacters(in: .whitespaces) }
+            else if rawLine.hasPrefix("data:") { frame.data.append(String(rawLine.dropFirst(5)).trimmingCharacters(in: .whitespaces)) }
+        }
+        try dispatch(frame: frame, partial: &partial, emit: emit)
+    }
+
+    private static func dispatch(frame: SSEFrame, partial: inout String,
+                                 emit: (RizoChatUpdate) -> Void) throws {
+        guard let event = frame.event, !frame.data.isEmpty else { return }
+        let payload = Data(frame.data.joined(separator: "\n").utf8)
+        let object = try JSONSerialization.jsonObject(with: payload) as? [String: Any] ?? [:]
+        switch event {
+        case "delta": partial += object["text"] as? String ?? ""; emit(.partial(partial))
+        case "reset": partial = ""; emit(.partial(""))
+        case "final":
+            let wrapper = try JSONSerialization.data(withJSONObject: object)
+            let dto = try ResponseProcessor.extractData(RizoChatResponseDTO.self, from: wrapper, using: DefaultAPIParser.shared)
+            emit(.final(RizoMapper.toReply(from: dto)))
+        case "error": throw RizoRepositoryError.dataSourceUnavailable
+        default: break
+        }
     }
 
     // MARK: - Plan Change

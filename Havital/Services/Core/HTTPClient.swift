@@ -13,6 +13,13 @@ protocol HTTPClient {
     ///   - customHeaders: 自定義 HTTP 標頭（可選）
     /// - Returns: 原始 JSON 數據
     func request(path: String, method: HTTPMethod, body: Data?, customHeaders: [String: String]?) async throws -> Data
+
+    func stream(path: String, method: HTTPMethod, body: Data?, customHeaders: [String: String]?) async throws -> HTTPByteStreamResponse
+}
+
+struct HTTPByteStreamResponse {
+    let contentType: String
+    let bytes: AsyncThrowingStream<UInt8, Error>
 }
 
 // MARK: - HTTPClient Extension
@@ -21,6 +28,14 @@ extension HTTPClient {
     /// 向後相容的請求方法，不使用自定義 headers
     func request(path: String, method: HTTPMethod = .GET, body: Data? = nil) async throws -> Data {
         return try await request(path: path, method: method, body: body, customHeaders: nil)
+    }
+
+    func stream(path: String, method: HTTPMethod, body: Data?, customHeaders: [String: String]?) async throws -> HTTPByteStreamResponse {
+        let data = try await request(path: path, method: method, body: body, customHeaders: customHeaders)
+        return HTTPByteStreamResponse(contentType: "application/json", bytes: AsyncThrowingStream { continuation in
+            data.forEach { continuation.yield($0) }
+            continuation.finish()
+        })
     }
 }
 
@@ -53,6 +68,42 @@ actor DefaultHTTPClient: HTTPClient {
     private let baseRetryDelay: TimeInterval = 1.0  // 指數退避：1s, 2s, 4s
 
     private init() {}
+
+    func stream(path: String, method: HTTPMethod, body: Data?, customHeaders: [String: String]?) async throws -> HTTPByteStreamResponse {
+        var request = try await buildRequest(path: path, method: method, body: body, customHeaders: customHeaders)
+        var result = try await URLSession.shared.bytes(for: request)
+        if let response = result.1 as? HTTPURLResponse,
+           response.statusCode == 401, !isAuthenticationEndpoint(path: path) {
+            _ = try await authSessionRepository?.refreshIdToken()
+            request = try await buildRequest(path: path, method: method, body: body, customHeaders: customHeaders)
+            result = try await URLSession.shared.bytes(for: request)
+        }
+        let asyncBytes = result.0
+        guard let httpResponse = result.1 as? HTTPURLResponse else {
+            throw HTTPError.invalidResponse("Invalid HTTP response")
+        }
+        guard (200...299).contains(httpResponse.statusCode) else {
+            var data = Data()
+            for try await byte in asyncBytes { data.append(byte) }
+            try validateHTTPResponse(httpResponse, data: data)
+            throw HTTPError.invalidResponse("Invalid streaming response")
+        }
+        let byteStream = AsyncThrowingStream<UInt8, Error> { continuation in
+            let task = Task {
+                do {
+                    for try await byte in asyncBytes { continuation.yield(byte) }
+                    continuation.finish()
+                } catch let error as URLError where error.code == .cancelled {
+                    continuation.finish(throwing: CancellationError())
+                } catch { continuation.finish(throwing: error) }
+            }
+            continuation.onTermination = { _ in task.cancel() }
+        }
+        return HTTPByteStreamResponse(
+            contentType: httpResponse.value(forHTTPHeaderField: "Content-Type") ?? "",
+            bytes: byteStream
+        )
+    }
     
     func request(path: String, method: HTTPMethod, body: Data?, customHeaders: [String: String]?) async throws -> Data {
         let request = try await buildRequest(path: path, method: method, body: body, customHeaders: customHeaders)

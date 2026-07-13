@@ -22,9 +22,15 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
 
     /// 單則對話訊息（UI 渲染用）。
     struct Message: Identifiable {
-        let id = UUID()
+        let id: UUID
         let role: Role
         let text: String
+
+        init(id: UUID = UUID(), role: Role, text: String) {
+            self.id = id
+            self.role = role
+            self.text = text
+        }
     }
 
     // MARK: - Published State
@@ -147,20 +153,36 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
     private func exchange(userText: String?) async {
         isReplying = true
         defer { isReplying = false }
+        var streamingMessageId: UUID?
         do {
-            let reply = try await repository.sendChat(
+            for try await update in repository.streamChat(
                 scenario: scenario,
                 message: userText ?? "",
                 sessionId: sessionId
-            )
-            sessionId = reply.sessionId
-            messages.append(Message(role: .coach, text: reply.reply))
-            // 改課表:這一回合若帶待確認提案 → 顯示按鈕(取代上一個未決提案)。
-            pendingPlanChange = reply.pendingPlanChange
+            ) {
+                switch update {
+                case .partial(let text):
+                    if let id = streamingMessageId, let index = messages.firstIndex(where: { $0.id == id }) {
+                        messages[index] = Message(id: id, role: .coach, text: text)
+                    } else {
+                        guard !text.isEmpty else { continue }
+                        let message = Message(role: .coach, text: text)
+                        streamingMessageId = message.id
+                        messages.append(message)
+                    }
+                case .final(let reply):
+                    if let id = streamingMessageId, let index = messages.firstIndex(where: { $0.id == id }) {
+                        messages[index] = Message(id: id, role: .coach, text: reply.reply)
+                    } else { messages.append(Message(role: .coach, text: reply.reply)) }
+                    sessionId = reply.sessionId
+                    pendingPlanChange = reply.pendingPlanChange
+                }
+            }
         } catch is CancellationError {
             // 取消為主動導航，不顯示錯誤（iOS 規範：取消事件不碰 UI 錯誤狀態）。
             return
         } catch {
+            if let id = streamingMessageId { messages.removeAll { $0.id == id } }
             messages.append(Message(
                 role: .coach,
                 text: NSLocalizedString("rizo.chat.error", comment: "Rizo 暫時無法回覆")

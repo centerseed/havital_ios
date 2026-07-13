@@ -131,6 +131,8 @@ struct RizoJournalSection: View {
 
             if viewModel.isReplyLoading {
                 replyLoadingRow
+            } else if !viewModel.partialReplyText.isEmpty {
+                partialReplyBubble(viewModel.partialReplyText)
             } else if let reply = viewModel.reply,
                       !reply.reply.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 replyBubble(reply: reply)
@@ -138,6 +140,19 @@ struct RizoJournalSection: View {
 
             upsellRow
         }
+    }
+
+    private func partialReplyBubble(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Text(text)
+                .font(AppFont.bodyRegular())
+                .foregroundColor(.primary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(12)
+        .background(PacerizColor.blue.opacity(0.08))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .accessibilityIdentifier("rizo_journal_reply_streaming")
     }
 
     private var replyLoadingRow: some View {

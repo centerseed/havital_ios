@@ -46,6 +46,7 @@ final class RizoJournalViewModel: ObservableObject, TaskManageable {
 
     /// Rizo 回應（解耦：可能為 nil 但 isRecorded 仍可為 true）。
     @Published private(set) var reply: RizoReply?
+    @Published private(set) var partialReplyText = ""
 
     /// 送出進行中。
     @Published private(set) var isSubmitting = false
@@ -193,20 +194,29 @@ final class RizoJournalViewModel: ObservableObject, TaskManageable {
 
         // STEP 2 — Rizo 回應（解耦，可失敗）。任何結果都不回頭動 isRecorded。
         do {
-            let reply = try await rizoRepository.sendJournalChat(
+            for try await update in rizoRepository.streamJournalChat(
                 workoutId: workoutId,
                 message: noteForCapture,
                 presetSelections: presetIDs,
                 sessionId: sessionId
-            )
-            await waitForMinimumReplyLoadingDuration(startedAtNanoseconds: replyLoadingStartedAtNanoseconds)
-            applyReply(reply)
+            ) {
+                switch update {
+                case .partial(let text):
+                    partialReplyText = text
+                    if !text.isEmpty { isReplyLoading = false }
+                case .final(let reply):
+                    partialReplyText = ""
+                    await waitForMinimumReplyLoadingDuration(startedAtNanoseconds: replyLoadingStartedAtNanoseconds)
+                    applyReply(reply)
+                }
+            }
             isReplyLoading = false
         } catch {
             // AC-TJF-11 / 16：回應失敗，資料捕捉仍成功，UI 永遠「已記錄」。
             await waitForMinimumReplyLoadingDuration(startedAtNanoseconds: replyLoadingStartedAtNanoseconds)
             Logger.debug("[RizoJournalViewModel] Rizo 回應失敗（不影響已記錄）: \(error.localizedDescription)")
             reply = nil
+            partialReplyText = ""
             quotaState = .none
             isReplyLoading = false
         }
