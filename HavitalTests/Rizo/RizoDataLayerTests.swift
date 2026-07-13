@@ -286,4 +286,35 @@ final class RizoDataLayerTests: XCTestCase {
         }
         XCTAssertEqual(partials, ["hi"])
     }
+
+    func testStreamEndpointMissingFallsBackToLegacyChat() async throws {
+        let wrappedJSON = """
+        {"success":true,"data":{"response":"Legacy answer","session_id":"s3","quota":{"allowed":true,"used":1,"limit":null,"remaining":null,"resets_at":null,"reserved":false},"safety":{"danger_class":"none","canned":false}}}
+        """.data(using: .utf8)!
+        mockHTTPClient.setError(
+            for: "/v2/agent/chat/stream",
+            method: .POST,
+            error: HTTPError.notFound("stream endpoint missing")
+        )
+        mockHTTPClient.setResponse(for: "/v2/agent/chat", method: .POST, data: wrappedJSON)
+
+        var updates: [RizoChatUpdate] = []
+        for try await update in sut.streamChat(
+            scenario: "body_status",
+            message: "hello",
+            sessionId: nil,
+            workoutId: nil,
+            presetSelections: []
+        ) {
+            updates.append(update)
+        }
+
+        guard case .final(let reply) = updates.first else {
+            return XCTFail("Expected one legacy final reply")
+        }
+        XCTAssertEqual(updates.count, 1)
+        XCTAssertEqual(reply.reply, "Legacy answer")
+        XCTAssertTrue(mockHTTPClient.wasPathCalled("/v2/agent/chat/stream", method: .POST))
+        XCTAssertTrue(mockHTTPClient.wasPathCalled("/v2/agent/chat", method: .POST))
+    }
 }

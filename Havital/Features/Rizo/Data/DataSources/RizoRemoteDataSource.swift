@@ -106,6 +106,20 @@ final class RizoRemoteDataSource {
                     continuation.finish(throwing: CancellationError())
                 } catch let error as URLError where error.code == .cancelled {
                     continuation.finish(throwing: CancellationError())
+                } catch let error as HTTPError where error.statusCode == 404 || error.statusCode == 405 {
+                    do {
+                        let reply = try await self.sendChat(
+                            scenario: scenario,
+                            message: message,
+                            sessionId: sessionId,
+                            workoutId: workoutId,
+                            presetSelections: presetSelections
+                        )
+                        continuation.yield(.final(reply))
+                        continuation.finish()
+                    } catch {
+                        continuation.finish(throwing: error)
+                    }
                 } catch {
                     continuation.finish(throwing: error)
                 }
