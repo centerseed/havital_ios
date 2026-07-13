@@ -1431,7 +1431,7 @@
 
 /* MARK: - ベンチマークラン / プログレッションラン / レース / ノルウェー式シングル */
 "training_type_info.benchmark.title" = "ベンチマークラン";
-"training_type_info.benchmark.how_to_run" = "3km または 5km を、ほぼ全力で走りきります。序盤で突っ込まず、守れるペースを保ち、最後の区間で出し切りましょう。";
+"training_type_info.benchmark.how_to_run" = "3km または 5km を、ほぼ全力で走りきります。序盤で突っ込まず、最後まで一定のペースを保ち、最後の区間で出し切りましょう。";
 "training_type_info.benchmark.why_run" = "自分自身と比べるための基準点です。普段のランは天候・疲労・コースに左右されますが、ベンチマークは前後で比較できる「きれいな」結果になります。";
 "training_type_info.benchmark.logic" = "この走りをもとに VDOT を再校正します。普段のランからの推定値を置き換えるため、走り終えたその日に完走予測が更新されます。";
 "training_type_info.benchmark.role" = "定期的に組み込まれます。「この期間のトレーニングは効いていたか」への答えであり、以降のすべてのペースの土台になります。";

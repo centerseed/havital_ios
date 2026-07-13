@@ -1440,7 +1440,7 @@
 
 /* MARK: - 指標跑 / 漸進跑 / 比賽 / 挪威單閾值間歇 */
 "training_type_info.benchmark.title" = "指標跑";
-"training_type_info.benchmark.how_to_run" = "用接近全力的強度跑完 3 公里或 5 公里。前面別衝太快，讓後段還能守得住，最後一段再把剩下的交出去。";
+"training_type_info.benchmark.how_to_run" = "用接近全力的強度跑完 3 公里或 5 公里。前面別衝，全程盡量維持均勻的配速，最後一段再把剩下的交出去。";
 "training_type_info.benchmark.why_run" = "這是你跟自己比的基準點。平常的跑步會被天氣、疲勞和路線影響，指標跑是一次乾淨、可以拿來前後對照的成績。";
 "training_type_info.benchmark.logic" = "系統會用這次的表現重新校正你的跑力，取代平常從零散跑步推估出來的數字。跑完當天，完賽預估就會更新。";
 "training_type_info.benchmark.role" = "每隔一段時間安排一次。它是「這陣子的訓練有沒有效」的答案，也是之後所有配速的依據。";
