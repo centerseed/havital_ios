@@ -1429,6 +1429,33 @@
 "training_type_info.race_pace.logic" = "目標ペースを繰り返し練習することで、神経筋記憶とペース知覚能力を構築。現在のフィットネスで目標達成可能かの評価にも役立ちます。";
 "training_type_info.race_pace.role" = "通常、レース4-8週前から配置し、距離は徐々に増加。最も重要なレース特化トレーニングの一つ。";
 
+/* MARK: - ベンチマークラン / プログレッションラン / レース / ノルウェー式シングル */
+"training_type_info.benchmark.title" = "ベンチマークラン";
+"training_type_info.benchmark.how_to_run" = "3km または 5km を、ほぼ全力で走りきります。序盤で突っ込まず、守れるペースを保ち、最後の区間で出し切りましょう。";
+"training_type_info.benchmark.why_run" = "自分自身と比べるための基準点です。普段のランは天候・疲労・コースに左右されますが、ベンチマークは前後で比較できる「きれいな」結果になります。";
+"training_type_info.benchmark.logic" = "この走りをもとに VDOT を再校正します。普段のランからの推定値を置き換えるため、走り終えたその日に完走予測が更新されます。";
+"training_type_info.benchmark.role" = "定期的に組み込まれます。「この期間のトレーニングは効いていたか」への答えであり、以降のすべてのペースの土台になります。";
+
+"training_type_info.progression.title" = "プログレッションラン";
+"training_type_info.progression.how_to_run" = "イージーペースから始め、少しずつ加速し、最後はテンポペース近くまで上げます。最後まで加速のみ、減速はしません。";
+"training_type_info.progression.why_run" = "走るほどリズムに乗る力を養います。レース終盤に本当に必要なのは、すでに疲れた状態でペースを上げられることです。";
+"training_type_info.progression.logic" = "前半で有酸素の刺激を積み、後半は疲労下で閾値強度に近づけます。1本で持久力とペース管理の両方を鍛えられます。";
+"training_type_info.progression.role" = "ロング走の日や週末に置かれることが多い、ペース感覚を養う最も直接的な練習です。";
+
+"training_type_info.race.title" = "レース";
+"training_type_info.race.how_to_run" = "自分のプラン通りに走ります。集団に引っぱられて突っ込まないこと。序盤はペースを守り、終盤で出し切りましょう。";
+"training_type_info.race.why_run" = "レースは成果の確認であり、同時に最高のトレーニングでもあります。本番の緊張感・競争相手・会場の空気は、練習では再現できません。";
+"training_type_info.race.logic" = "レース当日のパフォーマンスは能力データに反映され、その後のプランと完走予測が調整されます。";
+"training_type_info.race.role" = "トレーニング周期全体の目標地点です。前のテーパリングも、後の回復も、この日を中心に組まれています。";
+
+"training_type_info.norwegian_singles.title" = "ノルウェー式シングル閾値インターバル";
+"training_type_info.norwegian_singles.how_to_run" = "「息は上がるが短い文なら話せる」強度で、中短距離を複数本（例：1000m × 5〜8 本）走ります。本と本の間は短いジョグのみ。毎本を同じように安定させることが重要で、後半で上げる練習ではありません。";
+"training_type_info.norwegian_singles.why_run" = "あえて閾値のわずか手前に抑えることで、この強度の量を多く積み上げても潰れません。積み上げた量こそが、速さにつながります。";
+"training_type_info.norwegian_singles.logic" = "乳酸が溜まり始める境界の少し下に強度を保つため、身体は長く維持でき、除去も追いつきます。数本を全力で走るより回復が早く、その分だけ高い頻度で実施できます。";
+"training_type_info.norwegian_singles.role" = "ノルウェー式の中核となる練習です。週間走行距離が安定していて、持久力の上限を引き上げたいランナーに向いています。";
+
+"tip.benchmark" = "序盤で突っ込まず、後半に力を残しましょう。この結果が、次のトレーニングペースを決めます。";
+
 // MARK: - 新しいVO2max向上トレーニング情報
 "training_type_info.norwegian_4x4.title" = "ノルウェー4×4";
 "training_type_info.norwegian_4x4.how_to_run" = "4分間の高強度走を4セット行い（92% 最大心拍数）、各セット間に3分間のイージーラン回復を挟む。VO₂max ペースを安定して維持します。「非常に大変だけれど全セット完走できる」という感覚が目安です。";

@@ -1430,6 +1430,33 @@
 "training_type_info.race_pace.logic" = "By repeatedly practicing target pace, you build neuromuscular memory and pace awareness. It also helps evaluate if your current fitness can achieve your goal.";
 "training_type_info.race_pace.role" = "Usually scheduled starting 4-8 weeks before race day, with distances increasing over time. One of the most important race-specific workouts.";
 
+/* MARK: - Benchmark / Progression / Race / Norwegian Singles */
+"training_type_info.benchmark.title" = "Benchmark Run";
+"training_type_info.benchmark.how_to_run" = "Run 3K or 5K at close to your full effort. Don't blast the start — hold a pace you can defend, then empty the tank over the last stretch.";
+"training_type_info.benchmark.why_run" = "This is where you measure yourself against yourself. Everyday runs get muddied by weather, fatigue and terrain. A benchmark is one clean result you can compare over time.";
+"training_type_info.benchmark.logic" = "We recalibrate your VDOT from this performance instead of inferring it from scattered easy runs. Your race prediction updates the same day you finish.";
+"training_type_info.benchmark.role" = "Scheduled periodically. It answers \"has the training been working?\" — and it sets the paces for everything that follows.";
+
+"training_type_info.progression.title" = "Progression Run";
+"training_type_info.progression.how_to_run" = "Start easy and get gradually faster, finishing close to tempo pace. Speed up throughout — never slow down.";
+"training_type_info.progression.why_run" = "This builds the ability to find your rhythm as the run goes on. Late in a race, that's exactly what you need: lifting the pace when you're already tired.";
+"training_type_info.progression.logic" = "The early miles build aerobic stimulus; the later ones push toward threshold under fatigue. One session, both endurance and pace control.";
+"training_type_info.progression.role" = "Often placed on a long-run day or the weekend. It's the most direct way to build a feel for pace.";
+
+"training_type_info.race.title" = "Race";
+"training_type_info.race.how_to_run" = "Run your plan. Don't let the crowd pull you out fast — hold your pace early, then give everything you have left.";
+"training_type_info.race.why_run" = "A race is both the test and the best training you can get. The pressure, the competitors, the atmosphere — you can't reproduce that on a training run.";
+"training_type_info.race.logic" = "Race-day performance feeds back into your fitness data, and your plan and race prediction adjust from there.";
+"training_type_info.race.role" = "The target of the whole training cycle. The taper before and the recovery after are both built around this day.";
+
+"training_type_info.norwegian_singles.title" = "Norwegian Singles";
+"training_type_info.norwegian_singles.how_to_run" = "Run several medium-short reps (for example 1000m × 5–8) at an effort where you're breathing hard but can still say a short sentence, with only a brief jog between them. Every rep should look the same — don't get faster as you go.";
+"training_type_info.norwegian_singles.why_run" = "By deliberately staying just below threshold, you can accumulate a lot of work at this intensity without wrecking yourself. The accumulated volume is what makes you faster.";
+"training_type_info.norwegian_singles.logic" = "The effort sits below the point where lactate starts to pile up, so your body can hold it and clear it. Compared with a few all-out reps, you recover faster — which means you can do it more often.";
+"training_type_info.norwegian_singles.role" = "The core session of the Norwegian method. Best suited to runners with steady weekly volume who want to raise their endurance ceiling.";
+
+"tip.benchmark" = "Don't blast the start — save it for the second half. This result sets the paces you'll train at next.";
+
 // MARK: - New VO2max Improvement Training Info
 "training_type_info.norwegian_4x4.title" = "Norwegian 4x4";
 "training_type_info.norwegian_4x4.how_to_run" = "Perform 4 intervals of 4 minutes at high intensity (92% max heart rate), with 3 minutes of easy running recovery between each. Maintain a steady VO₂max pace—you should feel \"very hard but able to complete all intervals.\"";
