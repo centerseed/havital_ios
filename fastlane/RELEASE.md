@@ -22,8 +22,9 @@
 - `fastlane ios beta` — build 後直接上 TestFlight。
 - `fastlane ios info` — 唯讀列 App Store 現行版本。
 
-## 現況 / 首次真 archive 要盯的風險
-- **App Store live = 1.4.7**；本地 = 1.4.9 → iOS 落後 Android 兩版，第一發等於送出 1.4.8+1.4.9 的累積。
-- 主 app 有 **HavitalWatch + complication** 三個 bundle 要簽；本機無 profile → 首次 archive 由 API key 自動產生，**第一次要盯它有沒有簽過**。
-- 注意 pbxproj 有 `MARKETING_VERSION = 1.0`（watch/extension target）與 1.4.9 並存；上傳前確認 watch 版號不會被 App Store 擋。
-- 本 pipeline 的 lane 語法已驗；**真 archive 尚未跑過**（等新功能完成後首發時驗證）。
+## 現況
+- **App Store live = 1.4.9**；**1.4.10 已於 2026-07-14 送審**（build 8，`WAITING_FOR_REVIEW`）。
+- **真 archive 已跑過**（2026-07-14 首發 1.4.10）：`fastlane ios release` 全程成功 —— archive → 簽章
+  （HavitalWatch + complication 共 10 個 bundle 由 API key 自動 provisioning，無需本機 profile）
+  → 上傳 → 推三語 release notes → 送審。原本標記的「首次 archive 簽章可能卡住」風險**未發生**。
+- `automatic_release=false` → 過審後仍需在 App Store Connect **手動按 Release**。
