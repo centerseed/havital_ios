@@ -34,9 +34,14 @@ struct WorkoutRecapView: View {
     @State private var editorState = ShareCardEditorState.default
     @State private var overlayDragStart: (kind: ShareCardOverlayKind, layout: ShareCardElementLayout)?
 
-    // 功能 3：照片拖曳定位
+    // 功能 3：照片拖曳定位 + pinch 縮放
     @State private var photoOffset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
+    @State private var photoScale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
+
+    // 卡片比例（4:5 預設）。刻意不持久化：每次開分享畫面都回到 4:5。
+    @State private var selectedAspect: ShareCardAspect = .portrait45
 
     // 首次進入分享畫面的功能說明卡
     @State private var showFeatureTip = false
@@ -51,10 +56,10 @@ struct WorkoutRecapView: View {
         ZStack {
             NavigationStack {
                 VStack(spacing: 14) {
-                    // 卡片尺寸（對齊 exportAndShare 的 4:5 比例）
+                    // 卡片尺寸（與 exportAndShare 共用 selectedAspect，預覽＝匯出）
                     GeometryReader { geo in
                         let cardWidth = geo.size.width
-                        let cardHeight = cardWidth * (5.0 / 4.0)
+                        let cardHeight = cardWidth / selectedAspect.ratio
 
                         let cardSize = CGSize(width: cardWidth, height: cardHeight)
 
@@ -65,25 +70,17 @@ struct WorkoutRecapView: View {
                                 onPhotoTap: { activeSheet = .photo },
                                 customTitle: customTitle,
                                 photoOffset: photoOffset,
+                                photoScale: photoScale,
+                                aspect: selectedAspect,
                                 canvasData: canvasData,
                                 editorState: editorState,
                                 showEditChrome: true
                             )
-                            // 有照片時掛 DragGesture 供定位（overlay 手勢層在上層優先）
+                            // 有照片時掛「拖曳 + 縮放」（overlay 手勢層在上層優先）。
+                            // SimultaneousGesture：兩指縮放的同時仍可拖曳，不必先放開再拖。
                             .gesture(
                                 selectedPhoto != nil
-                                ? DragGesture()
-                                    .onChanged { value in
-                                        photoOffset = clampedOffset(
-                                            base: lastOffset,
-                                            translation: value.translation,
-                                            photo: selectedPhoto,
-                                            cardSize: cardSize
-                                        )
-                                    }
-                                    .onEnded { _ in
-                                        lastOffset = photoOffset
-                                    }
+                                ? photoGesture(cardSize: cardSize)
                                 : nil
                             )
 
@@ -92,7 +89,7 @@ struct WorkoutRecapView: View {
                         .frame(width: cardWidth, height: cardHeight)
                         .shadow(color: RecapPalette.brand.opacity(0.20), radius: 16, x: 0, y: 10)
                     }
-                    .aspectRatio(4.0 / 5.0, contentMode: .fit)
+                    .aspectRatio(selectedAspect.ratio, contentMode: .fit)
 
                     Spacer(minLength: 0)
                 }
@@ -117,12 +114,16 @@ struct WorkoutRecapView: View {
                 }
                 .safeAreaInset(edge: .bottom) {
                     VStack(spacing: 0) {
+                        ShareCardAspectPicker(selection: $selectedAspect)
+                            .padding(.horizontal, 18)
+                            .padding(.bottom, 6)
                         ShareCardEditorControls(
                             canvasData: canvasData,
                             editorState: $editorState
                         )
                         shareBar
                     }
+                    .background(Color(UIColor.systemGroupedBackground))
                 }
                 // 標題編輯 Alert
                 .alert(
@@ -192,9 +193,8 @@ struct WorkoutRecapView: View {
             case .photo:
                 PhotoPicker(selectedImage: $selectedPhoto)
                     .onChange(of: selectedPhoto) { _, _ in
-                        // 換照片時重置 offset
-                        photoOffset = .zero
-                        lastOffset = .zero
+                        // 換照片時重置平移與縮放（舊照片的位移套在新照片上會亂跑）
+                        resetPhotoTransform()
                     }
             case .share:
                 if let shareImage = shareImage {
@@ -205,50 +205,50 @@ struct WorkoutRecapView: View {
         .presentationDetents([.large])
     }
 
-    // MARK: - Clamp 夾制算法
+    // MARK: - 照片手勢（拖曳 + pinch 縮放）
     //
-    // scaledToFill 時，photo 在 cardSize 上的實際渲染尺寸：
-    //   scale = max(cardW / imgW, cardH / imgH)   ← 選較大的縮放比才能填滿
-    //   scaledW = imgW * scale,  scaledH = imgH * scale
-    //
-    // 溢出量（每軸溢出卡片的總像素）：
-    //   overflowX = scaledW - cardW（≥ 0）
-    //   overflowY = scaledH - cardH（≥ 0）
-    //
-    // 可偏移範圍（± 一半溢出量）：
-    //   maxOffsetX = overflowX / 2,  maxOffsetY = overflowY / 2
-    //
-    // 不溢出的軸 overflow = 0 → maxOffset = 0 → offset 強制夾 0，避免黑邊。
+    // 夾制算法本身在 ShareCardPhotoMath（與匯出共用同一份，預覽＝分享圖）。
 
-    private func clampedOffset(
-        base: CGSize,
-        translation: CGSize,
-        photo: UIImage?,
-        cardSize: CGSize
-    ) -> CGSize {
-        guard let photo = photo, photo.size.width > 0, photo.size.height > 0 else {
-            return .zero
-        }
-
-        let imgW = photo.size.width
-        let imgH = photo.size.height
-        let cardW = cardSize.width
-        let cardH = cardSize.height
-
-        let scale = max(cardW / imgW, cardH / imgH)
-        let scaledW = imgW * scale
-        let scaledH = imgH * scale
-
-        let maxOffsetX = max(0, (scaledW - cardW) / 2)
-        let maxOffsetY = max(0, (scaledH - cardH) / 2)
-
-        let rawX = base.width + translation.width
-        let rawY = base.height + translation.height
-
-        return CGSize(
-            width:  min(max(rawX, -maxOffsetX), maxOffsetX),
-            height: min(max(rawY, -maxOffsetY), maxOffsetY)
+    private func photoGesture(cardSize: CGSize) -> some Gesture {
+        SimultaneousGesture(
+            DragGesture()
+                .onChanged { value in
+                    guard let photo = selectedPhoto else { return }
+                    photoOffset = ShareCardPhotoMath.clampOffset(
+                        base: lastOffset,
+                        translation: value.translation,
+                        image: photo.size,
+                        card: cardSize,
+                        photoScale: photoScale
+                    )
+                }
+                .onEnded { _ in
+                    lastOffset = photoOffset
+                },
+            MagnifyGesture()
+                .onChanged { value in
+                    guard let photo = selectedPhoto else { return }
+                    photoScale = ShareCardPhotoMath.clampScale(lastScale * value.magnification)
+                    // 縮小後可偏移範圍變小 → 立刻把 offset 夾回界內，否則會露白。
+                    photoOffset = ShareCardPhotoMath.clampOffset(
+                        photoOffset,
+                        image: photo.size,
+                        card: cardSize,
+                        photoScale: photoScale
+                    )
+                }
+                .onEnded { _ in
+                    lastScale = photoScale
+                    lastOffset = photoOffset
+                }
         )
+    }
+
+    private func resetPhotoTransform() {
+        photoOffset = .zero
+        lastOffset = .zero
+        photoScale = 1.0
+        lastScale = 1.0
     }
 
     // MARK: - Overlay 拖曳 / 標題短按
@@ -430,15 +430,18 @@ struct WorkoutRecapView: View {
         isExporting = true
         defer { isExporting = false }
 
-        let exportSize = CGSize(width: 360, height: 450)  // 4:5
-        // 渲染時帶入同樣的 customTitle 與 photoOffset，確保分享圖與畫面一致。
+        // 4:5 → 360×450；9:16 → 360×640。比例、照片縮放與位移全部沿用預覽的值，
+        // 確保分享出去的圖跟畫面上看到的一模一樣。
         // cornerRadius: 0 → 全出血矩形，避免縮圖透明棋盤。
+        let exportSize = selectedAspect.exportSize(width: 360)
         let card = RecapShareCard(
             content: content,
             photo: selectedPhoto,
             cornerRadius: 0,
             customTitle: customTitle,
             photoOffset: photoOffset,
+            photoScale: photoScale,
+            aspect: selectedAspect,
             canvasData: canvasData,
             editorState: editorState,
             showEditChrome: false
@@ -446,7 +449,7 @@ struct WorkoutRecapView: View {
         .frame(width: exportSize.width, height: exportSize.height)
 
         let renderer = ImageRenderer(content: card)
-        renderer.scale = 4.0  // → 1440 x 1800
+        renderer.scale = 4.0  // 4:5 → 1440×1800；9:16 → 1440×2560
 
         if let image = renderer.uiImage {
             shareImage = image

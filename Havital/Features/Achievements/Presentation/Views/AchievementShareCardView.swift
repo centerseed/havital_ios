@@ -19,11 +19,25 @@ struct AchievementShareCardView: View {
     /// App 內預覽用圓角卡片（true）；匯出分享圖時用 false → 滿版直角矩形，
     /// 讓 Threads/IG 等平台用「自己的」圓角去裁，不會出現雙重圓角對不齊的缺角/白邊。
     var roundedCorners: Bool = true
+    /// 卡片比例。`.portrait45` = 既有的 340×460 版面，一像素不動。
+    var aspect: ShareCardAspect = .portrait45
 
     // MARK: - Layout constants（固定尺寸 — ImageRenderer 匯出用，絕不可隨裝置縮放）
 
     private let cardWidth: CGFloat = 340
     private let cardHeight: CGFloat = 460
+
+    /// 外層高度。9:16 時把背景往上下延伸（340 × ≈604），內容區維持 340×460 垂直居中。
+    ///
+    /// `.portrait45` 刻意回傳既有的 460 而不是 `cardWidth / ratio`(=425) —— 現有版面
+    /// 就是 340×460，內容是照著這個高度排的；為了讓數字「真的是 4:5」而把它壓到 425
+    /// 會把既有卡片擠掉 35pt，那是回歸不是修正。
+    private var outerHeight: CGFloat {
+        switch aspect {
+        case .portrait45: return cardHeight
+        case .story916:   return (cardWidth / aspect.ratio).rounded()
+        }
+    }
     private let cardRadius: CGFloat = 26
     private let badgeSize: CGFloat = 168
     private let badgePlatePadding: CGFloat = 24        // 底板比徽章大多少（plate = badgeSize + padding）
@@ -66,8 +80,34 @@ struct AchievementShareCardView: View {
 
     var body: some View {
         ZStack {
+            // 背景填滿外層（9:16 時自動往上下延伸），內容區維持原尺寸置中 → letterbox。
             backgroundGradient
 
+            contentColumn
+                .frame(width: cardWidth, height: cardHeight)
+        }
+        .frame(width: cardWidth, height: outerHeight)
+        // 預覽：圓角卡片；匯出：直角滿版（cornerRadius 0 → 無透明角落）
+        .clipShape(RoundedRectangle(cornerRadius: roundedCorners ? cardRadius : 0, style: .continuous))
+        // 內描邊只在預覽圓角時加（滿版匯出不需要邊框，避免變成貼邊白線）
+        .overlay {
+            if roundedCorners {
+                RoundedRectangle(cornerRadius: cardRadius, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [Color.white.opacity(0.22), Color.white.opacity(0.04)],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 1
+                    )
+            }
+        }
+    }
+
+    /// 原本的 340×460 內容版面。9:16 時整組垂直居中，背景在其上下延伸（letterbox）。
+    private var contentColumn: some View {
+        ZStack {
             VStack(spacing: 0) {
                 topRow
                     .padding(.top, 22)
@@ -99,23 +139,6 @@ struct AchievementShareCardView: View {
                 footer
                     .padding(.horizontal, 22)
                     .padding(.bottom, 18)
-            }
-        }
-        .frame(width: cardWidth, height: cardHeight)
-        // 預覽：圓角卡片；匯出：直角滿版（cornerRadius 0 → 無透明角落）
-        .clipShape(RoundedRectangle(cornerRadius: roundedCorners ? cardRadius : 0, style: .continuous))
-        // 內描邊只在預覽圓角時加（滿版匯出不需要邊框，避免變成貼邊白線）
-        .overlay {
-            if roundedCorners {
-                RoundedRectangle(cornerRadius: cardRadius, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.22), Color.white.opacity(0.04)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        ),
-                        lineWidth: 1
-                    )
             }
         }
     }
@@ -432,6 +455,8 @@ struct AchievementSharePreviewSheet: View {
     let onShared: () -> Void
 
     @State private var activityItem: AchievementActivityItem?
+    /// 不持久化：每次開分享預覽都回到 4:5。
+    @State private var selectedAspect: ShareCardAspect = .portrait45
 
     // dateString 在 init 時產生，保持呼叫端 API 不變
     private let dateString: String
@@ -455,10 +480,13 @@ struct AchievementSharePreviewSheet: View {
                     AchievementShareCardView(
                         shareable: shareable,
                         dateString: dateString,
-                        badgeAssetName: badgeAssetName
+                        badgeAssetName: badgeAssetName,
+                        aspect: selectedAspect
                     )
                     .shadow(color: Color.black.opacity(0.18), radius: 12, x: 0, y: 6)
                     .padding(.top)
+
+                    ShareCardAspectPicker(selection: $selectedAspect)
 
                     Button {
                         if let image = renderCard() {
@@ -500,7 +528,8 @@ struct AchievementSharePreviewSheet: View {
             shareable: shareable,
             dateString: dateString,
             badgeAssetName: badgeAssetName,
-            roundedCorners: false   // 匯出滿版直角，交給目的平台自己圓角
+            roundedCorners: false,   // 匯出滿版直角，交給目的平台自己圓角
+            aspect: selectedAspect   // 匯出比例跟著預覽走
         )
         let renderer = ImageRenderer(content: card)
         renderer.scale = UIScreen.main.scale
