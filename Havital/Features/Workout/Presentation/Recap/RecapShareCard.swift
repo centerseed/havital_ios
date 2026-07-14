@@ -60,6 +60,10 @@ struct RecapShareCard: View {
     var customTitle: String? = nil
     /// 照片的位置偏移（scaledToFill 後相對於卡片中心的 offset）。
     var photoOffset: CGSize = .zero
+    /// 使用者 pinch 的縮放倍率（1.0 = 剛好填滿）。匯出必須帶入同一值，否則分享圖與預覽不一致。
+    var photoScale: CGFloat = 1.0
+    /// 卡片比例。預設 4:5 = 既有版面。
+    var aspect: ShareCardAspect = .portrait45
     var canvasData: ShareCardCanvasData = .empty
     var editorState: ShareCardEditorState = .default
     var showEditChrome: Bool = false
@@ -108,41 +112,31 @@ struct RecapShareCard: View {
             }
             .frame(width: w, height: h)
         }
-        .aspectRatio(4.0 / 5.0, contentMode: .fit)
+        .aspectRatio(aspect.ratio, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
     }
 
     // MARK: - Background
 
-    /// 計算 photo 在 cardSize 上 scaledToFill 之後，套用 photoOffset 的夾制值。
-    /// 確保任何位置都不會露出卡片以外的黑邊。
-    private func clampedPhotoOffset(photo: UIImage, cardSize: CGSize) -> CGSize {
-        let imgW = photo.size.width
-        let imgH = photo.size.height
-        guard imgW > 0, imgH > 0 else { return .zero }
-
-        // scaledToFill scale = max(cardW/imgW, cardH/imgH)
-        let scale = max(cardSize.width / imgW, cardSize.height / imgH)
-        let scaledW = imgW * scale
-        let scaledH = imgH * scale
-
-        let maxOffsetX = max(0, (scaledW - cardSize.width)  / 2)
-        let maxOffsetY = max(0, (scaledH - cardSize.height) / 2)
-
-        return CGSize(
-            width:  min(max(photoOffset.width,  -maxOffsetX), maxOffsetX),
-            height: min(max(photoOffset.height, -maxOffsetY), maxOffsetY)
-        )
-    }
-
     @ViewBuilder
     private func backgroundLayer(_ size: CGSize) -> some View {
         if let photo {
+            let scale = ShareCardPhotoMath.clampScale(photoScale)
             Image(uiImage: photo)
                 .resizable()
                 .scaledToFill()
                 .frame(width: size.width, height: size.height)
-                .offset(clampedPhotoOffset(photo: photo, cardSize: size))
+                // scaleEffect 以中心縮放 → 疊在 scaledToFill 之上就是「再放大」，
+                // 而 offset 在其後套用，與 ShareCardPhotoMath 的夾制假設一致。
+                .scaleEffect(scale)
+                .offset(
+                    ShareCardPhotoMath.clampOffset(
+                        photoOffset,
+                        image: photo.size,
+                        card: size,
+                        photoScale: scale
+                    )
+                )
                 .frame(width: size.width, height: size.height, alignment: .center)
                 .clipped()
         } else {
