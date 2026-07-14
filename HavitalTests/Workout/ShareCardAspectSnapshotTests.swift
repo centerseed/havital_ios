@@ -123,6 +123,84 @@ final class ShareCardAspectSnapshotTests: XCTestCase {
         }
     }
 
+    // MARK: - 三個 overlay（標題 / 配速曲線 / 路線）在 9:16 下是否還正常
+    //
+    // 這三個是使用者可開關、可拖曳的元件。座標是正規化的（centerX/Y × cardSize），
+    // 但「座標會自動重排」不等於「畫出來沒事」——尺寸算法各自不同：
+    //   route  = cardWidth / 6        → 只吃寬度，兩種比例同大小
+    //   chart  = (w × wf, h × hf)     → 吃高度，9:16 會被拉高約 42%
+    // 所以必須真的畫出來看，不能只信正規化這句話。
+
+    private var canvasWithBoth: ShareCardCanvasData {
+        let pace = (0..<40).map { i in
+            ShareCardPaceSample(
+                offsetSeconds: i * 60,
+                paceSecondsPerKm: 300 + 40 * sin(Double(i) / 4.0)
+            )
+        }
+        let route = (0..<60).map { i -> ShareCardRoutePoint in
+            let t = Double(i) / 59.0
+            return ShareCardRoutePoint(
+                latitude: 25.03 + 0.01 * sin(t * .pi * 2),
+                longitude: 121.56 + 0.014 * t
+            )
+        }
+        return ShareCardCanvasData(paceSamples: pace, routePoints: route)
+    }
+
+    private var allOverlaysVisible: ShareCardEditorState {
+        var state = ShareCardEditorState.default
+        state.titleLayout.isVisible = true
+        state.paceChartLayout.isVisible = true
+        state.routeLayout.isVisible = true
+        return state
+    }
+
+    func test_recapCard_allOverlaysVisible_bothAspects() throws {
+        let photo = makePhoto(width: 1200, height: 900)
+
+        for aspect in ShareCardAspect.allCases {
+            let size = aspect.exportSize(width: 360)
+            render(
+                RecapShareCard(
+                    content: recapContent,
+                    photo: photo,
+                    cornerRadius: 0,
+                    photoScale: 1.0,
+                    aspect: aspect,
+                    canvasData: canvasWithBoth,
+                    editorState: allOverlaysVisible
+                ),
+                size: size,
+                name: "recap_overlays_\(aspect.rawValue)"
+            )
+        }
+    }
+
+    /// 路線是正方形且只吃寬度 → 兩種比例必須一樣大（不能因為卡變高就變形）。
+    func test_routeGlyphSize_isIndependentOfAspect() {
+        let w: CGFloat = 360
+        XCTAssertEqual(
+            ShareCardRouteMath.squareSize(cardWidth: w, scale: 1.0),
+            ShareCardRouteMath.squareSize(cardWidth: w, scale: 1.0),
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(ShareCardRouteMath.squareSize(cardWidth: w, scale: 1.0), w / 6, accuracy: 0.0001)
+    }
+
+    /// 配速曲線吃高度 → 9:16 會變高。這條把「變高多少」釘住，避免哪天悄悄變成滿版。
+    func test_paceChartSize_growsWithHeight_butStaysWithinCard() {
+        let s45 = ShareCardPaceChartMath.chartSize(cardSize: ShareCardAspect.portrait45.exportSize(width: 360))
+        let s916 = ShareCardPaceChartMath.chartSize(cardSize: ShareCardAspect.story916.exportSize(width: 360))
+
+        XCTAssertEqual(s45.width, s916.width, accuracy: 0.0001, "chart width must not change with aspect")
+        XCTAssertGreaterThan(s916.height, s45.height, "9:16 is taller, so the chart is taller")
+
+        let card916 = ShareCardAspect.story916.exportSize(width: 360)
+        XCTAssertLessThan(s916.height, card916.height * 0.5, "chart must not take over the card")
+        XCTAssertLessThan(s916.width, card916.width, "chart must stay inside the card")
+    }
+
     // MARK: - 成就卡（letterbox）
 
     func test_achievementCard_bothAspects() throws {
