@@ -103,7 +103,9 @@ enum ShareCardLayoutMath {
         switch kind {
         case .title: return (0.50, 0.25)
         case .paceChart: return (0.50, 0.55)
-        case .routeGlyph: return (0.25, 0.20)
+        // 路線原本預設在 (0.25, 0.20) —— 與標題(0.50, 0.25，寬 0.80w)垂直重疊，
+        // 一打開就壓在標題上。移到標題上方的左上角，兩者預設不再相撞（使用者仍可自由拖曳）。
+        case .routeGlyph: return (0.16, 0.13)
         }
     }
 }

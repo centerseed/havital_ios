@@ -188,17 +188,40 @@ final class ShareCardAspectSnapshotTests: XCTestCase {
         XCTAssertEqual(ShareCardRouteMath.squareSize(cardWidth: w, scale: 1.0), w / 6, accuracy: 0.0001)
     }
 
-    /// 配速曲線吃高度 → 9:16 會變高。這條把「變高多少」釘住，避免哪天悄悄變成滿版。
-    func test_paceChartSize_growsWithHeight_butStaysWithinCard() {
+    /// 配速曲線的尺寸只吃寬度 → 兩種比例下完全一樣大，同一段配速不會在 9:16 裡看起來更陡。
+    func test_paceChartSize_isIdenticalAcrossAspects() {
         let s45 = ShareCardPaceChartMath.chartSize(cardSize: ShareCardAspect.portrait45.exportSize(width: 360))
         let s916 = ShareCardPaceChartMath.chartSize(cardSize: ShareCardAspect.story916.exportSize(width: 360))
 
-        XCTAssertEqual(s45.width, s916.width, accuracy: 0.0001, "chart width must not change with aspect")
-        XCTAssertGreaterThan(s916.height, s45.height, "9:16 is taller, so the chart is taller")
+        XCTAssertEqual(s45.width, s916.width, accuracy: 0.0001)
+        XCTAssertEqual(s45.height, s916.height, accuracy: 0.0001,
+                       "chart height must not follow the card height, or the same run looks steeper at 9:16")
 
-        let card916 = ShareCardAspect.story916.exportSize(width: 360)
-        XCTAssertLessThan(s916.height, card916.height * 0.5, "chart must not take over the card")
-        XCTAssertLessThan(s916.width, card916.width, "chart must stay inside the card")
+        // 4:5 的尺寸必須跟改動前一模一樣：舊式 0.12 x cardHeight（450）= 54
+        XCTAssertEqual(s45.height, 54, accuracy: 0.0001, "4:5 chart size must be unchanged")
+        XCTAssertEqual(s45.width, 198, accuracy: 0.0001)
+    }
+
+    /// 路線的預設位置不得與標題重疊（兩者都可見時，一打開就撞在一起）。
+    func test_routeAndTitleDefaults_doNotOverlap() {
+        let card = ShareCardAspect.portrait45.exportSize(width: 360)
+        let route = ShareCardLayoutMath.defaultPosition(for: .routeGlyph)
+        let title = ShareCardLayoutMath.defaultPosition(for: .title)
+
+        let routeSide = ShareCardRouteMath.squareSize(cardWidth: card.width, scale: 1.0)
+        let routeRect = CGRect(
+            x: card.width * route.x - routeSide / 2,
+            y: card.height * route.y - routeSide / 2,
+            width: routeSide, height: routeSide
+        )
+        // 標題的命中/佔位區：寬 0.80w、高 40（同 WorkoutRecapView.titleHitSize）
+        let titleRect = CGRect(
+            x: card.width * title.x - card.width * 0.40,
+            y: card.height * title.y - 20,
+            width: card.width * 0.80, height: 40
+        )
+        XCTAssertFalse(routeRect.intersects(titleRect),
+                       "route default \(routeRect) must not sit on top of the title \(titleRect)")
     }
 
     // MARK: - 成就卡（letterbox）

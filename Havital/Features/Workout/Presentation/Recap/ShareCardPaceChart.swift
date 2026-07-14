@@ -3,13 +3,18 @@ import SwiftUI
 
 enum ShareCardPaceChartMath {
     private static let chartWidthFraction: CGFloat = 0.55
-    private static let chartHeightFraction: CGFloat = 0.12
+    /// 高度也以「卡片寬度」為基準，不是高度 —— 否則 9:16 的卡變高 42%，圖表跟著拉高，
+    /// 同一段配速在 9:16 裡看起來就比 4:5 陡，等於同一次跑步講出兩種故事。
+    ///
+    /// 0.15 是從舊值換算來的：4:5 時 h = 1.25w，舊的 0.12 × h = 0.15 × w。
+    /// 所以 4:5 的圖表尺寸一像素不變，只有 9:16 不再被拉長。
+    private static let chartHeightFractionOfWidth: CGFloat = 0.15
     static let linePadding: CGFloat = 6
 
     static func chartSize(cardSize: CGSize) -> CGSize {
         CGSize(
             width: cardSize.width * chartWidthFraction,
-            height: cardSize.height * chartHeightFraction
+            height: cardSize.width * chartHeightFractionOfWidth
         )
     }
 
