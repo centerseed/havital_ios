@@ -21,11 +21,17 @@ struct VDOTResponse: Codable {
 struct VDOTEntry: Codable {
     let datetime: TimeInterval
     let dynamicVdot: Double
-    let weightVdot: Double
+    let paceVdot: Double?
+    let liveVdot: Double?
+    let weightVdot: Double?
+
+    var resolvedPaceVdot: Double { paceVdot ?? dynamicVdot }
     
     enum CodingKeys: String, CodingKey {
         case datetime
         case dynamicVdot = "dynamic_vdot"
+        case paceVdot = "pace_vdot"
+        case liveVdot = "live_vdot"
         case weightVdot = "weight_vdot"
     }
 }

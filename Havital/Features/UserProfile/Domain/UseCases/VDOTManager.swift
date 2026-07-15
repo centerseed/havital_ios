@@ -4,25 +4,31 @@ import SwiftUI
 // MARK: - VDOT 數據擴展結構
 struct EnhancedVDOTDataPoint: Codable {
     let date: Date
-    let dynamicVdot: Double    // 動態跑力
-    let weightVdot: Double?    // 加權跑力
+    let dynamicVdot: Double    // 相容欄位：使用 pace VDOT
+    let paceVdot: Double?      // 課表與所有用戶畫面的 VDOT；nil 僅限舊快取
+    let liveVdot: Double?      // 原始單次 workout VDOT
+    let weightVdot: Double?    // 舊快取相容，不供 UI／配速使用
     let source: String?        // 數據來源
     let workoutId: String?     // 關聯的運動記錄 ID
     
     // 為了向後兼容，保留原始 VDOTDataPoint 介面
-    var value: Double { dynamicVdot }
+    var value: Double { paceVdot ?? dynamicVdot }
     
     init(from vdotEntry: VDOTEntry) {
         self.date = Date(timeIntervalSince1970: vdotEntry.datetime)
-        self.dynamicVdot = vdotEntry.dynamicVdot
+        self.dynamicVdot = vdotEntry.resolvedPaceVdot
+        self.paceVdot = vdotEntry.resolvedPaceVdot
+        self.liveVdot = vdotEntry.liveVdot
         self.weightVdot = vdotEntry.weightVdot
         self.source = "API"
         self.workoutId = nil // 如果 API 提供的話，可以添加
     }
     
-    init(date: Date, dynamicVdot: Double, weightVdot: Double?, source: String? = nil, workoutId: String? = nil) {
+    init(date: Date, dynamicVdot: Double, weightVdot: Double?, source: String? = nil, workoutId: String? = nil, paceVdot: Double? = nil, liveVdot: Double? = nil) {
         self.date = date
-        self.dynamicVdot = dynamicVdot
+        self.dynamicVdot = paceVdot ?? dynamicVdot
+        self.paceVdot = paceVdot ?? dynamicVdot
+        self.liveVdot = liveVdot
         self.weightVdot = weightVdot
         self.source = source
         self.workoutId = workoutId
@@ -57,15 +63,15 @@ struct VDOTStatistics: Codable {
             return
         }
         
-        self.latestDynamicVdot = latest.dynamicVdot
-        self.averageWeightedVdot = latest.weightVdot ?? 0
+        self.latestDynamicVdot = latest.value
+        self.averageWeightedVdot = dataPoints.map(\.value).reduce(0, +) / Double(dataPoints.count)
         self.dataPointCount = dataPoints.count
         
         let dates = dataPoints.map { $0.date }
         self.dateRange = VDOTDateRange(start: dates.min() ?? Date(), end: dates.max() ?? Date())
         
         // 計算 Y 軸範圍
-        let values = dataPoints.map { $0.dynamicVdot }
+        let values = dataPoints.map(\.value)
         if let minValue = values.min(), let maxValue = values.max() {
             let padding = (maxValue - minValue) * 0.05
             let yMin = Swift.max(minValue - padding, 0)
@@ -339,11 +345,11 @@ class VDOTManager: ObservableObject, DataManageable {
         
         for point in sortedPoints {
             if point.date <= date {
-                return point.dynamicVdot
+                return point.value
             }
         }
         
-        return sortedPoints.last?.dynamicVdot
+        return sortedPoints.last?.value
     }
     
     /// 獲取當前（最新）VDOT 值
