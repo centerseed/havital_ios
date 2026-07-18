@@ -67,13 +67,7 @@ struct DataSourceSelectionView: View {
                         description: L10n.Onboarding.garminDescription.localized
                     )
 
-                    dataSourceCard(
-                        type: .strava,
-                        icon: "figure.run",
-                        title: "Strava",
-                        subtitle: L10n.Onboarding.stravaSubtitle.localized,
-                        description: L10n.Onboarding.stravaDescription.localized
-                    )
+                    // Strava 卡已移除 — T-0238 Strava 下架。
                 }
             }
         }
