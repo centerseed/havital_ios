@@ -1491,19 +1491,23 @@ struct UserProfileView: View {
                     subtitle: NSLocalizedString("datasource.garmin_subtitle", comment: "Sync your Garmin account activities")
                 )
                 .id("garmin-row")
-                
-                // Strava 選項（總是顯示）
-                Divider()
-                    .padding(.vertical, 8)
-                
-                dataSourceRow(
-                    type: .strava,
-                    icon: "figure.run",
-                    title: "Strava",
-                    subtitle: NSLocalizedString("datasource.strava_subtitle", comment: "Sync your activities from Strava")
-                )
-                .id("strava-row")
-                
+
+                // Strava — T-0238 下架：不再是可綁定的新選項。
+                // 只有「已綁定 Strava」的既有用戶才顯示（供其查看/切換離開）；
+                // 切換到 Garmin/Apple Health（即解綁）後 currentDataSource 改變 → 此列自動消失。
+                if viewModel.currentDataSource == .strava {
+                    Divider()
+                        .padding(.vertical, 8)
+
+                    dataSourceRow(
+                        type: .strava,
+                        icon: "figure.run",
+                        title: "Strava",
+                        subtitle: NSLocalizedString("datasource.strava_subtitle", comment: "Sync your activities from Strava")
+                    )
+                    .id("strava-row")
+                }
+
                 // 已隱藏 Garmin 連接錯誤訊息（使用者需求）
             }
             .padding(.vertical, 4)
