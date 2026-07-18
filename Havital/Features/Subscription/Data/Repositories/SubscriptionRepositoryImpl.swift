@@ -118,8 +118,15 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
                     let eligibleOfferIdentifiers = await eligibleOfferIdentifiers(for: storeProduct)
 
                     var candidateDiscounts: [StoreProductDiscount] = []
+                    var introEligibilityStatus: IntroEligibilityStatus = .noIntroOfferExists
                     if let intro = storeProduct.introductoryDiscount {
-                        candidateDiscounts.append(intro)
+                        // T-0236: introductoryDiscount 是產品靜態 metadata,不含用戶資格
+                        // (資格是 subscription group 層級);未確定 eligible 一律不顯示,
+                        // 避免曾訂閱過的用戶看到優惠價卻被收原價。
+                        introEligibilityStatus = await introEligibility(for: storeProduct)
+                        if Self.shouldDisplayIntroDiscount(status: introEligibilityStatus) {
+                            candidateDiscounts.append(intro)
+                        }
                     }
                     candidateDiscounts.append(
                         contentsOf: storeProduct.discounts.filter { discount in
@@ -131,6 +138,7 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
                     Logger.debug(
                         "[SubscriptionRepositoryImpl] product=\(storeProduct.productIdentifier) " +
                         "base=\(package.localizedPriceString) intro=\(storeProduct.introductoryDiscount != nil) " +
+                        "introEligibility=\(introEligibilityStatus) " +
                         "eligibleOfferIdentifiers=\(eligibleOfferIdentifiers.count) displayDiscountCount=\(candidateDiscounts.count)"
                     )
 
@@ -468,6 +476,19 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
 
         Logger.debug("[SubscriptionRepositoryImpl] purchase: preferred promotional offer not found, using first eligible offer")
         return eligibleOffers.first
+    }
+
+    /// T-0236: 只有明確 .eligible 才顯示 intro offer;.unknown 保守隱藏
+    /// (顯示了但實扣原價的傷害 > 少顯示一次優惠)。
+    static func shouldDisplayIntroDiscount(status: IntroEligibilityStatus) -> Bool {
+        status == .eligible
+    }
+
+    private func introEligibility(for product: StoreProduct) async -> IntroEligibilityStatus {
+        let eligibility = await Purchases.shared.checkTrialOrIntroDiscountEligibility(
+            productIdentifiers: [product.productIdentifier]
+        )
+        return eligibility[product.productIdentifier]?.status ?? .unknown
     }
 
     private func eligibleOfferIdentifiers(for product: StoreProduct) async -> Set<String> {
