@@ -134,6 +134,11 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
             // savedPlan 供父 view 在 sheet onDismiss 時讀取更新
             self.savedPlan = savedPlan
 
+            // T-0239（havital_ios #10）：通知訂閱者課表已變更（成就頁 PersonalAchievementsViewModel
+            // 等訂閱 .dataChanged(.trainingPlanV2)），否則手動改課表後不會刷新。
+            // iOS 約束 #4：事件由 ViewModel 發布，非 Repository。
+            CacheEventBus.shared.publish(.dataChanged(.trainingPlanV2))
+
             Logger.debug("[EditScheduleV2VM] ✅ Saved plan: \(savedPlan.effectivePlanId)")
             return savedPlan
 

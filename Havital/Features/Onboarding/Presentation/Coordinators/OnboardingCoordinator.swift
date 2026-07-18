@@ -321,9 +321,11 @@ class OnboardingCoordinator: ObservableObject {
             localDS.clearUserProfile()
 
             if output.wasReonboarding {
-                // Re-onboarding 模式：關閉 sheet 並通知所有訂閱者刷新資料
-                AuthenticationViewModel.shared.isReonboardingMode = false
-                print("[OnboardingCoordinator] Re-onboarding 完成，關閉 sheet 並發布 onboardingCompleted 事件")
+                // Re-onboarding 模式：發 .reonboardingCompleted（AuthenticationViewModel 訂閱後關閉 sheet）
+                // 取代直改 AuthenticationViewModel.shared.isReonboardingMode，解耦 Coordinator↔ViewModel
+                // （T-0239 / havital_ios #12：原本直改導致該訂閱成死碼）。再發 onboardingCompleted 刷新資料。
+                print("[OnboardingCoordinator] Re-onboarding 完成，發布 reonboardingCompleted + onboardingCompleted 事件")
+                CacheEventBus.shared.publish(.reonboardingCompleted)
                 CacheEventBus.shared.publish(.onboardingCompleted)
             } else {
                 // 新用戶 onboarding：重置所有狀態並發布事件

@@ -4,6 +4,32 @@ import XCTest
 @MainActor
 final class EditScheduleV2ViewModelTests: XCTestCase {
 
+    /// T-0239（havital_ios #10）：存檔成功後必須 publish `.dataChanged(.trainingPlanV2)`，
+    /// 否則訂閱該事件的成就頁（PersonalAchievementsViewModel）等在改課表後不會刷新。
+    func testSaveEdits_publishesTrainingPlanV2DataChanged() async throws {
+        let repository = MockTrainingPlanV2Repository()
+        let weeklyPlan = makeWeeklyPlan()
+        repository.weeklyPlanV2ToReturn = weeklyPlan
+
+        let viewModel = EditScheduleV2ViewModel(
+            weeklyPlan: weeklyPlan,
+            repository: repository
+        )
+
+        let published = expectation(description: "publishes .dataChanged(.trainingPlanV2)")
+        let subscriberId = "test-editv2-\(UUID().uuidString)"
+        CacheEventBus.shared.subscribe(forIdentifier: subscriberId) { reason in
+            if case .dataChanged(.trainingPlanV2) = reason {
+                published.fulfill()
+            }
+        }
+        defer { CacheEventBus.shared.unsubscribe(forIdentifier: subscriberId) }
+
+        _ = try await viewModel.saveEdits()
+
+        await fulfillment(of: [published], timeout: 2.0)
+    }
+
     /// T-0165：編輯送出**不得攜帶任何 climate 欄位**。
     ///
     /// 舊契約是「編輯時把 climate_meta / climate_adjusted_pace 一起送回去，讓後端保留」。
