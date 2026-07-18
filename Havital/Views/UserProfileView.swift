@@ -1492,8 +1492,21 @@ struct UserProfileView: View {
                 )
                 .id("garmin-row")
 
-                // Strava 選項已移除 — T-0238 Strava 下架（Standard Tier 10-athlete
-                // 上限對 Paceriz 規模不可行）。DataSourceType.strava enum 保留供既有資料映射。
+                // Strava — T-0238 下架：不再是可綁定的新選項。
+                // 只有「已綁定 Strava」的既有用戶才顯示（供其查看/切換離開）；
+                // 切換到 Garmin/Apple Health（即解綁）後 currentDataSource 改變 → 此列自動消失。
+                if viewModel.currentDataSource == .strava {
+                    Divider()
+                        .padding(.vertical, 8)
+
+                    dataSourceRow(
+                        type: .strava,
+                        icon: "figure.run",
+                        title: "Strava",
+                        subtitle: NSLocalizedString("datasource.strava_subtitle", comment: "Sync your activities from Strava")
+                    )
+                    .id("strava-row")
+                }
 
                 // 已隱藏 Garmin 連接錯誤訊息（使用者需求）
             }
