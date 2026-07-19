@@ -87,7 +87,9 @@ struct DailyStateCardView: View {
                         .font(.caption.bold())
                         .foregroundColor(.secondary)
                 }
-                Text(card.headline)
+                // T-0241:第一眼給「建議＋因為＋真實數字」融合句(displayHeadline),
+                // 無理由句時退回確定性 headline。
+                Text(card.displayHeadline)
                     .font(AppFont.body())
                     .foregroundColor(.primary)
                 if let chip = card.chips.first {
