@@ -9,8 +9,9 @@ import SwiftUI
 //   上半 = 狀態摘要卡（icon + lens tag + headline + chips + supporting narrative + action line）
 //   下半 = 「與 Rizo 教練聊聊」區段標題 + RizoChatView 多輪對話
 //
-// 設計取捨：靜態 narrative 在詳細頁不再是主角（Rizo 開場對話才是互動主體），
-// 僅作為狀態卡的輔助說明文字保留（與 mockup state-card 一致）。
+// T-0241：narrative 是「教練給理由」的主體文字，在狀態摘要卡內緊接 headline 以 .primary
+// 主角呈現（展示式科學的最小可見單位）；chips/cause_chips 退居其後的證據區。
+// Rizo 對話仍是下半部的互動主體，兩者不互斥。
 // isLocked 時隱藏對話，改顯示升級塊（沿用舊 DailyStateSheet 邏輯）。
 struct DailyStateDetailView: View {
     let card: DailyStateCard
@@ -93,7 +94,16 @@ struct DailyStateDetailView: View {
                 Spacer(minLength: 0)
             }
 
+            // T-0241:narrative 升主角 — 緊接 headline、.primary 主體字;chips 退證據區。
+            if let narrative = card.narrativeText, !card.isLocked {
+                Text(narrative)
+                    .font(AppFont.bodyRegular())
+                    .foregroundColor(.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             if card.hasChip || !card.causeChips.isEmpty {
+                Divider()
                 summaryChips
             }
 
@@ -108,15 +118,6 @@ struct DailyStateDetailView: View {
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-            }
-
-            // 輔助 narrative：付費才有；非主角，僅補充說明（鎖住時用升級塊取代）。
-            if let narrative = card.narrativeText, !card.isLocked {
-                Divider()
-                Text(narrative)
-                    .font(AppFont.bodyRegular())
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
 
             if let action = card.actionLine {

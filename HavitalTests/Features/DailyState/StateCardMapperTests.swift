@@ -4,7 +4,7 @@ import XCTest
 final class StateCardMapperTests: XCTestCase {
     private func dto(narrative: String?, chips: [String]?, locked: Bool, mileageProgression: String? = nil) -> StateCardDTO {
         StateCardDTO(lens: "pre", source: "llm", headline: "H", factType: "trait_surfacing",
-            narrativeText: narrative, chips: chips, causeChips: ["疲勞累積"],
+            narrativeText: narrative, collapsedReason: nil, chips: chips, causeChips: ["cause-chip"],
             mileageProgression: mileageProgression,
             action: .init(kind: "affirm",
                           sessionRef: .init(runType: "easy", distanceKm: 12, pace: "6:45"),
@@ -20,7 +20,7 @@ final class StateCardMapperTests: XCTestCase {
         XCTAssertEqual(e.headline, "H")
         XCTAssertEqual(e.narrativeText, "五段")
         XCTAssertEqual(e.chips, ["輕鬆跑紀律"])
-        XCTAssertEqual(e.causeChips, ["疲勞累積"])
+        XCTAssertEqual(e.causeChips, ["cause-chip"])
         XCTAssertEqual(e.actionLine, "12K easy · 6:45")
         XCTAssertFalse(e.isLocked)
     }
@@ -40,5 +40,25 @@ final class StateCardMapperTests: XCTestCase {
     func test_mapper_nil_mileage_progression() {
         let e = StateCardMapper.toEntity(from: dto(narrative: nil, chips: nil, locked: false))
         XCTAssertNil(e.mileageProgression)
+    }
+
+    // T-0241:collapsed_reason 有值 → displayHeadline 用理由句;nil/空 → 退 headline。
+    func test_collapsed_reason_replaces_display_headline() {
+        var d = dto(narrative: nil, chips: nil, locked: false)
+        d = StateCardDTO(lens: d.lens, source: d.source, headline: d.headline, factType: d.factType,
+                         narrativeText: d.narrativeText,
+                         collapsedReason: "Take it easy today - 34 km this week already",
+                         chips: d.chips, causeChips: d.causeChips,
+                         mileageProgression: d.mileageProgression, action: d.action,
+                         divergence: d.divergence, access: d.access, benchmarkCalibration: nil)
+        let e = StateCardMapper.toEntity(from: d)
+        XCTAssertEqual(e.collapsedReason, "Take it easy today - 34 km this week already")
+        XCTAssertEqual(e.displayHeadline, "Take it easy today - 34 km this week already")
+    }
+
+    func test_display_headline_falls_back_when_no_reason() {
+        let e = StateCardMapper.toEntity(from: dto(narrative: nil, chips: nil, locked: false))
+        XCTAssertNil(e.collapsedReason)
+        XCTAssertEqual(e.displayHeadline, "H")
     }
 }

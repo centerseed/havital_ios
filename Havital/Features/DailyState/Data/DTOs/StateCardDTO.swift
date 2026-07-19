@@ -10,6 +10,8 @@ struct StateCardDTO: Codable {
     let headline: String
     let factType: String?
     let narrativeText: String?
+    /// T-0241 收合卡融合理由句(建議＋因為＋真實數字);免費/護欄 fallback → nil。
+    let collapsedReason: String?
     let chips: [String]?
     let causeChips: [String]?
     let mileageProgression: String?
@@ -25,6 +27,7 @@ struct StateCardDTO: Codable {
         case lens, source, headline, chips, action, divergence, access
         case factType = "fact_type"
         case narrativeText = "narrative_text"
+        case collapsedReason = "collapsed_reason"
         case causeChips = "cause_chips"
         case mileageProgression = "mileage_progression"
         case benchmarkCalibration = "benchmark_calibration"

@@ -48,6 +48,7 @@ extension DailyStateCard {
             headline: "今日訓練",
             factType: nil,
             narrativeText: nil,
+            collapsedReason: nil,
             chips: [],
             causeChips: [],
             mileageProgression: nil,

@@ -10,6 +10,7 @@ enum StateCardMapper {
             headline: dto.headline,
             factType: dto.factType,
             narrativeText: dto.narrativeText,
+            collapsedReason: dto.collapsedReason,
             chips: dto.chips ?? [],
             causeChips: dto.causeChips ?? [],
             mileageProgression: dto.mileageProgression,

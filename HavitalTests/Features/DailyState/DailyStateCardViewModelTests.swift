@@ -21,7 +21,7 @@ final class DailyStateCardViewModelTests: XCTestCase {
     }
     private func card(locked: Bool, calibration: SameDayBenchmarkCalibration? = nil) -> DailyStateCard {
         DailyStateCard(lens: .pre, source: "llm", headline: "H", factType: nil,
-            narrativeText: locked ? nil : "n", chips: ["c"], causeChips: [],
+            narrativeText: locked ? nil : "n", collapsedReason: nil, chips: ["c"], causeChips: [],
             mileageProgression: nil,
             actionLine: "12K easy", rizoScenario: nil, divergenceFlagText: nil,
             isPaid: !locked, isLocked: locked, upsellReason: locked ? "unlock_full_read" : nil,

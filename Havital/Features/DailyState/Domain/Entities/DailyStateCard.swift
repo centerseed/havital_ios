@@ -10,6 +10,7 @@ struct DailyStateCard: Equatable {
     let headline: String
     let factType: String?
     let narrativeText: String?        // nil = 鎖/無
+    let collapsedReason: String?      // T-0241 收合卡融合理由句;nil = 免費/護欄退 headline
     let chips: [String]               // 佐證(已格式化,可空)
     let causeChips: [String]          // 可能因素(質性)
     let mileageProgression: String?   // 跑量漸進行（免費可見）
@@ -23,6 +24,12 @@ struct DailyStateCard: Equatable {
     let benchmarkCalibration: SameDayBenchmarkCalibration?
 
     var hasChip: Bool { !chips.isEmpty }
+
+    /// 收合卡第一眼主句:理由句在 → 取代 headline 位置(不同時顯示兩句);否則退 headline。
+    var displayHeadline: String {
+        if let reason = collapsedReason, !reason.isEmpty { return reason }
+        return headline
+    }
 }
 
 // MARK: - SameDayBenchmarkCalibration (T-0142)
