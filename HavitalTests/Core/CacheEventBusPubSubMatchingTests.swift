@@ -15,6 +15,9 @@ import XCTest
 /// for enum-keyed subscriptions, so handlers accumulate across tests. Each test
 /// therefore asserts only on ITS OWN locally-captured flag — never on global
 /// state — which makes the assertions immune to handlers left by other tests.
+/// (This is also why we keep flag boxes rather than `XCTestExpectation`: accumulated
+/// handlers from prior tests would re-`fulfill()` a finished test's expectation and
+/// trip an XCTest API violation. Flags are re-flippable and harmless.)
 final class CacheEventBusPubSubMatchingTests: XCTestCase {
 
     // MARK: - Current contract: matching keys deliver
@@ -27,7 +30,7 @@ final class CacheEventBusPubSubMatchingTests: XCTestCase {
         }
 
         CacheEventBus.shared.publish(.onboardingCompleted)
-        await Self.drainMainActor()
+        await Self.drain(until: { received.flag })
 
         XCTAssertTrue(received.flag, "Exact-key subscriber did not receive its event")
     }
@@ -40,7 +43,7 @@ final class CacheEventBusPubSubMatchingTests: XCTestCase {
         }
 
         CacheEventBus.shared.publish(.dataChanged(.trainingPlanV2))
-        await Self.drainMainActor()
+        await Self.drain(until: { received.flag })
 
         XCTAssertTrue(received.flag, "dataChanged exact-key subscriber did not fire")
     }
@@ -53,9 +56,16 @@ final class CacheEventBusPubSubMatchingTests: XCTestCase {
         CacheEventBus.shared.subscribe(for: .dataChanged(.workouts)) {
             workoutsReceived.flag = true
         }
+        // Positive control on the event we DO publish: draining until this fires proves
+        // the publish notification Task actually ran, so the negative assertion below is
+        // deterministic (not just "we didn't wait long enough").
+        let userControl = Received()
+        CacheEventBus.shared.subscribe(for: .dataChanged(.user)) {
+            userControl.flag = true
+        }
 
         CacheEventBus.shared.publish(.dataChanged(.user))
-        await Self.drainMainActor()
+        await Self.drain(until: { userControl.flag })
 
         XCTAssertFalse(
             workoutsReceived.flag,
@@ -69,9 +79,14 @@ final class CacheEventBusPubSubMatchingTests: XCTestCase {
         CacheEventBus.shared.subscribe(for: .userLogout) {
             logoutReceived.flag = true
         }
+        // Positive control on the published event — see note above.
+        let onboardingControl = Received()
+        CacheEventBus.shared.subscribe(for: .onboardingCompleted) {
+            onboardingControl.flag = true
+        }
 
         CacheEventBus.shared.publish(.onboardingCompleted)
-        await Self.drainMainActor()
+        await Self.drain(until: { onboardingControl.flag })
 
         XCTAssertFalse(
             logoutReceived.flag,
@@ -86,10 +101,20 @@ final class CacheEventBusPubSubMatchingTests: XCTestCase {
         var flag = false
     }
 
-    /// `publish` schedules subscriber notification on a detached `@MainActor` Task,
-    /// so the test must yield to let that Task run before asserting.
-    private static func drainMainActor() async {
-        try? await Task.sleep(nanoseconds: 50_000_000)
+    /// Deterministically wait for a `publish`-triggered subscriber to run.
+    ///
+    /// `publish` schedules subscriber notification on a detached `@MainActor` Task, so the
+    /// test must yield until that Task has run. Replaces the previous fixed 50ms sleep
+    /// (havital_ios #9: flaky under CI load) with a bounded poll — it returns the moment the
+    /// condition holds and only falls back to the timeout if delivery never happens.
+    private static func drain(
+        until condition: @escaping () -> Bool,
+        timeout: TimeInterval = 2.0
+    ) async {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !condition() && Date() < deadline {
+            await Task.yield()
+        }
         await MainActor.run {}
     }
 }
