@@ -66,6 +66,9 @@ final class OnboardingFeatureViewModel: ObservableObject {
 
     @Published var weeklyDistance: Double = 10.0
     @Published var isLoadingWeeklyHistory: Bool = false
+    /// 已從同步的訓練紀錄推得的週跑量平均（nil = 目前沒有可用紀錄）。
+    /// 用戶按「略過」時：有這個值就存它（別把已知資訊丟掉存 0），沒有才存 0 交給後端保守起步。
+    @Published var historicalWeeklyAverage: Double? = nil
 
     // MARK: - Goal Type State
 
@@ -338,6 +341,7 @@ final class OnboardingFeatureViewModel: ObservableObject {
 
                 if !distances.isEmpty {
                     let average = distances.reduce(0, +) / Double(distances.count)
+                    historicalWeeklyAverage = average
                     weeklyDistance = min(max(average, 5.0), 30.0)
                     Logger.debug("[OnboardingFeatureVM] Updated weekly distance from history: \(weeklyDistance)km")
                 } else {
@@ -390,9 +394,8 @@ final class OnboardingFeatureViewModel: ObservableObject {
 
     /// Determine next step after weekly distance based on user data
     func determineNextStepAfterWeeklyDistance() -> OnboardingCoordinator.Step {
-        // V2 Flow: Always go to Goal Type first to let user choose their training target
-        // Goal Type will then navigate to appropriate next step based on selection
-        return .goalType
+        // 週跑量已移到所有目標分支收斂後、訓練日之前（生成前最後輸入）
+        return .trainingDays
     }
 
     // MARK: - Goal Type Methods

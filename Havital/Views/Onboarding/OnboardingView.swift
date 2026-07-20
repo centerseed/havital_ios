@@ -641,7 +641,7 @@ struct OnboardingView: View {
             if isRaceV2Flow {
                 coordinator.navigate(to: .methodologySelection)
             } else {
-                coordinator.navigate(to: .trainingDays)
+                coordinator.navigate(to: .weeklyDistance)
             }
         } else {
             coordinator.weeksRemaining = trainingWeeks

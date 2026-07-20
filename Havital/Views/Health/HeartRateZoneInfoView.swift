@@ -17,8 +17,6 @@ struct HeartRateZoneInfoView: View {
     @State private var isSaving = false
     @State private var navigateToPersonalBest = false
     @State private var navigateToBackfillPrompt = false
-    /// true = 用戶尚未手動設定過心率，目前顯示的是基於年齡的預設值（僅 onboarding 模式使用）
-    @State private var isUsingDefaultHeartRate = false
 
     /// 心率區間從目前的最大/靜息心率即時計算 — picker 一變動，下方區間就跟著更新。
     private var zones: [HeartRateZone] {
@@ -93,12 +91,7 @@ struct HeartRateZoneInfoView: View {
                 heartRateEditCards
 
                 if isOnboardingMode {
-                    if isUsingDefaultHeartRate {
-                        Text(NSLocalizedString("hr_zone.default_values_hint", comment: "Default heart rate values hint"))
-                            .font(AppFont.caption())
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal)
-                    }
+                    howToKnowSection
                 } else {
                     zoneSpectrumBar
                     zoneList
@@ -119,6 +112,45 @@ struct HeartRateZoneInfoView: View {
             .foregroundColor(.secondary)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal)
+    }
+
+    // MARK: - How To Know (Onboarding only)
+
+    /// Onboarding 專用：告訴用戶這兩個數字要去哪裡拿，以及填準了對他有什麼好處。
+    /// 常駐顯示（不只在用預設值時），因為改過一次數值後仍可能想確認自己填得對不對。
+    @ViewBuilder
+    private var howToKnowSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            howToRow(
+                title: NSLocalizedString("hr_zone.max_hr", comment: "Max HR"),
+                body: NSLocalizedString("hr_zone.how_to_max_hr", comment: "How to find max HR")
+            )
+            howToRow(
+                title: NSLocalizedString("hr_zone.resting_hr", comment: "Resting HR"),
+                body: NSLocalizedString("hr_zone.how_to_resting_hr", comment: "How to find resting HR")
+            )
+
+            Text(NSLocalizedString("hr_zone.accuracy_note", comment: "Why accuracy matters"))
+                .font(AppFont.caption())
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 2)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal)
+    }
+
+    @ViewBuilder
+    private func howToRow(title: String, body: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(AppFont.caption())
+                .foregroundColor(.primary)
+            Text(body)
+                .font(AppFont.caption())
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 
     // MARK: - HR Edit Cards (Hero)
@@ -173,11 +205,6 @@ struct HeartRateZoneInfoView: View {
             Stepper("", value: value, in: range)
                 .labelsHidden()
                 .controlSize(.regular)
-                .onChange(of: value.wrappedValue) { _ in
-                    if isOnboardingMode {
-                        isUsingDefaultHeartRate = false
-                    }
-                }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 18)
@@ -363,11 +390,9 @@ struct HeartRateZoneInfoView: View {
         if let maxHR = viewModel.maxHeartRate {
             // 用戶已手動設定過心率，直接使用儲存值
             maxHeartRate = maxHR
-            isUsingDefaultHeartRate = false
         } else if isOnboardingMode {
             // Onboarding 首次進入且無心率記錄：使用基於年齡的預設值（220 - 年齡）
             maxHeartRate = max(100, 220 - userAgeFromLocalStorage)
-            isUsingDefaultHeartRate = true
         } else {
             maxHeartRate = 190
         }

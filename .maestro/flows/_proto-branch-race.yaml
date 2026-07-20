@@ -1,0 +1,49 @@
+appId: com.havital.Havital.dev
+env:
+  DEMO_REVIEWER_PASSCODE: app_paceriz_tester
+tags: [debug]
+---
+- runFlow: ../subflows/logout-and-demo-login.yaml
+- runFlow: ../subflows/pass-pb-step.yaml
+- assertVisible:
+    id: "GoalType_NextButton"
+- tapOn:
+    id: "GoalType_race_run"
+- tapOn:
+    id: "GoalType_NextButton"
+- extendedWaitUntil:
+    visible:
+      id: "RaceSetup_SaveButton"
+    timeout: 15000
+- tapOn:
+    id: "RaceSetup_SaveButton"
+- extendedWaitUntil:
+    visible:
+      id: "Methodology_paceriz"
+    timeout: 15000
+- tapOn:
+    id: "Methodology_paceriz"
+- tapOn:
+    id: "Methodology_NextButton"
+- tapOn:
+    id: "StartStage_NextButton"
+    optional: true
+# ✅ 新順序：週跑量在訓練日前，且無略過
+- extendedWaitUntil:
+    visible:
+      id: "WeeklyDistance_Screen"
+    timeout: 15000
+- assertVisible:
+    id: "WeeklyDistance_AnchorExplain"
+- assertNotVisible:
+    text: "略過"
+- takeScreenshot: ../screenshots/proto-wd-race
+- tapOn:
+    id: "WeeklyDistance_ContinueButton"
+- extendedWaitUntil:
+    visible:
+      id: "TrainingDays_SaveButton"
+    timeout: 15000
+- tapOn:
+    id: "TrainingDays_SaveButton"
+- runFlow: ../subflows/verify-plan-generated.yaml

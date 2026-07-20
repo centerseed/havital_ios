@@ -25,7 +25,7 @@ struct WeeklyDistanceSetupView: View {
             ctaTitle: NSLocalizedString("onboarding.next_step", comment: "Next Step"),
             ctaEnabled: !viewModel.isLoading && !viewModel.isLoadingWeeklyHistory,
             isLoading: viewModel.isLoading || viewModel.isLoadingWeeklyHistory,
-            skipTitle: NSLocalizedString("onboarding.skip", comment: "Skip"),
+            skipTitle: nil,
             ctaAccessibilityId: "WeeklyDistance_ContinueButton",
             ctaAction: {
                 Task {
@@ -35,15 +35,7 @@ struct WeeklyDistanceSetupView: View {
                     }
                 }
             },
-            skipAction: {
-                Task {
-                    viewModel.weeklyDistance = 0
-                    let success = await viewModel.saveWeeklyDistance()
-                    if success {
-                        navigateToNextStep()
-                    }
-                }
-            }
+            skipAction: nil
         ) {
             VStack(alignment: .leading, spacing: OnboardingLayout.sectionSpacing) {
                 VStack(alignment: .leading, spacing: 8) {
@@ -118,6 +110,38 @@ struct WeeklyDistanceSetupView: View {
                         .font(AppFont.caption())
                         .foregroundColor(.secondary)
                 }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "info.circle.fill")
+                            .font(.system(size: 15))
+                            .foregroundColor(.accentColor)
+                            .padding(.top, 1)
+                        Text(NSLocalizedString("onboarding.weekly_distance_anchor_explain", comment: "Plan uses this as key reference"))
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    if coordinator.selectedTargetTypeId == "maintenance" {
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: "leaf.fill")
+                                .font(.system(size: 15))
+                                .foregroundColor(.accentColor)
+                                .padding(.top, 1)
+                            Text(NSLocalizedString("onboarding.weekly_distance_maintenance_note", comment: "Maintenance volume note"))
+                                .font(AppFont.caption())
+                                .foregroundColor(.secondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.accentColor.opacity(0.08))
+                )
+                .accessibilityIdentifier("WeeklyDistance_AnchorExplain")
 
                 if let error = viewModel.error {
                     Text(error)

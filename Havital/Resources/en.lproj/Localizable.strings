@@ -1174,6 +1174,9 @@
 "hr_zone.max_heart_rate_display" = "Max Heart Rate";
 "hr_zone.resting_heart_rate_display" = "Resting Heart Rate";
 "hr_zone.default_values_hint" = "Using estimated values for now. Update after connecting a heart rate device or fitness test for more accurate training recommendations";
+"hr_zone.how_to_max_hr" = "Open your watch app and look for your highest recorded heart rate. No records? Estimate it with 220 − your age.";
+"hr_zone.how_to_resting_hr" = "Your watch app usually shows this directly. No watch? Take your pulse for one minute right after waking, before getting out of bed.";
+"hr_zone.accuracy_note" = "The more accurate these two numbers are, the closer our training intensity and fitness estimates will be to the real you.";
 
 // MARK: - Heart Rate Zone Names & Details
 "hr_zone.recovery" = "Recovery";
@@ -4167,3 +4170,19 @@
 "mileage_chart.legend_long_run" = "Long run";
 "mileage_chart.legend_race_threshold" = "Race";
 "mileage_chart.legend_safety_ceiling" = "Ceiling";
+
+/* Onboarding intro — training architecture (prototype) */
+"onboarding.intro_title" = "How Paceriz Coaches You";
+"onboarding.intro_overview_title" = "Training Overview";
+"onboarding.intro_overview_desc" = "Your whole plan, mapped from today to race day";
+"onboarding.intro_weekly_plan_title" = "Weekly Plan";
+"onboarding.intro_weekly_plan_desc" = "Generated each week around your condition";
+"onboarding.intro_weekly_review_title" = "Weekly Review";
+"onboarding.intro_weekly_review_desc" = "See how the week went, adjust the next";
+"onboarding.intro_loop_caption" = "The overview sets the direction; plan and review cycle weekly — steady progress without injury";
+"onboarding.intro_cycle_label" = "Repeats every week";
+
+"onboarding.intro_feature_data" = "Intensity guided by your heart-rate and training data";
+"onboarding.intro_feature_rizo" = "Rizo, your AI coach, adjusts the plan with you anytime";
+"onboarding.weekly_distance_anchor_explain" = "Your plan starts from this number as its key reference point: the first week begins close to what you enter. Please fill in your actual current mileage.";
+"onboarding.weekly_distance_maintenance_note" = "For maintenance training, the planned weekly volume is usually slightly lower than what you enter, leaving room for recovery and adjustment.";

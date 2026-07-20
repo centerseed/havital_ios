@@ -183,7 +183,7 @@ struct GoalTypeSelectionView: View {
                 let success = await viewModel.createBeginner5kGoal()
                 if success {
                     coordinator.isBeginner = true
-                    coordinator.navigate(to: .trainingDays)
+                    coordinator.navigate(to: .weeklyDistance)
                 }
             }
         }

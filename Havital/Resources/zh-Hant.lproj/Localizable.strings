@@ -1182,6 +1182,9 @@
 "hr_zone.max_heart_rate_display" = "最大心率";
 "hr_zone.resting_heart_rate_display" = "安靜心率";
 "hr_zone.default_values_hint" = "目前使用預設值，日後連接心率裝置或進行體能測試後再更新，可獲得更精準的訓練建議";
+"hr_zone.how_to_max_hr" = "打開手錶的 App 看你的最高心率紀錄；沒有紀錄就用「220 − 年齡」粗估。";
+"hr_zone.how_to_resting_hr" = "手錶的 App 通常直接顯示；沒戴手錶就早上剛醒、還沒下床時量 1 分鐘脈搏。";
+"hr_zone.accuracy_note" = "這兩個數字越準，我們算出來的訓練強度和體能評估就越貼近你本人。";
 
 // MARK: - Heart Rate Zone Names & Details
 "hr_zone.recovery" = "恢復";
@@ -4208,3 +4211,19 @@
 "mileage_chart.legend_long_run" = "長跑";
 "mileage_chart.legend_race_threshold" = "門檻";
 "mileage_chart.legend_safety_ceiling" = "上限";
+
+/* Onboarding intro — training architecture (prototype) */
+"onboarding.intro_title" = "Paceriz 怎麼帶你練";
+"onboarding.intro_overview_title" = "訓練總覽";
+"onboarding.intro_overview_desc" = "從現在到比賽日，整段計畫先畫好";
+"onboarding.intro_weekly_plan_title" = "週課表";
+"onboarding.intro_weekly_plan_desc" = "每週依你的狀況產生";
+"onboarding.intro_weekly_review_title" = "週回顧";
+"onboarding.intro_weekly_review_desc" = "看這週練得如何，調整下週";
+"onboarding.intro_loop_caption" = "總覽定方向，課表與回顧每週循環——循序漸進，進步不受傷";
+"onboarding.intro_cycle_label" = "每週循環一次";
+
+"onboarding.intro_feature_data" = "心率與訓練資料，科學調整強度";
+"onboarding.intro_feature_rizo" = "Rizo AI 教練隨時陪你調課表";
+"onboarding.weekly_distance_anchor_explain" = "課表一開始會把你的週跑量當作重要參考點：你填多少，第一份課表就從接近多少開始。請依你目前的實際情況填寫。";
+"onboarding.weekly_distance_maintenance_note" = "維持訓練的課表週量通常會比你填的略低，讓身體有恢復與調整的空間。";

@@ -1,0 +1,69 @@
+appId: com.havital.Havital.dev
+tags: [debug]
+---
+- launchApp:
+    stopApp: true
+    clearState: false
+    arguments:
+      "-ui_testing_onboarding": true
+      "-skipHealthKitAuth": true
+# 接續 re-onboarding：可能落在 PB 或 goalType
+- tapOn:
+    id: "PersonalBest_ContinueButton"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "GoalType_NextButton"
+    timeout: 10000
+- tapOn:
+    id: "GoalType_maintenance"
+- tapOn:
+    id: "GoalType_NextButton"
+    optional: true
+- tapOn:
+    text: "下一步"
+    optional: true
+# 方法論（可能出現）
+- tapOn:
+    id: "Methodology_paceriz"
+    optional: true
+- tapOn:
+    id: "Methodology_NextButton"
+    optional: true
+- tapOn:
+    text: "下一步"
+    optional: true
+- runFlow: ../subflows/pass-maintenance-race-distance.yaml
+# 訓練週數/起始（可能出現）
+- tapOn:
+    id: "TrainingWeeks_NextButton"
+    optional: true
+- tapOn:
+    text: "下一步"
+    optional: true
+- tapOn:
+    id: "StartStage_NextButton"
+    optional: true
+- tapOn:
+    text: "繼續"
+    optional: true
+# ✅ 新順序：此刻應該出現週跑量頁（含維持訓練說明、無略過）
+- extendedWaitUntil:
+    visible:
+      id: "WeeklyDistance_Screen"
+    timeout: 10000
+- assertVisible:
+    id: "WeeklyDistance_AnchorExplain"
+- assertNotVisible:
+    text: "略過"
+- takeScreenshot: ../screenshots/proto-wd-maintenance
+- tapOn:
+    id: "WeeklyDistance_ContinueButton"
+# 訓練日
+- extendedWaitUntil:
+    visible:
+      id: "TrainingDays_SaveButton"
+    timeout: 10000
+- tapOn:
+    id: "TrainingDays_SaveButton"
+- runFlow: ../subflows/verify-plan-generated.yaml

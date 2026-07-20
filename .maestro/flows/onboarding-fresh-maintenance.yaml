@@ -14,7 +14,6 @@ tags:
 
 # === Step 1: PB + 週跑量 ===
 - runFlow: ../subflows/pass-pb-step.yaml
-- runFlow: ../subflows/pass-weekly-distance.yaml
 
 # === Step 2: 選維持訓練 ===
 - assertVisible:
@@ -61,6 +60,9 @@ tags:
 - runFlow: ../subflows/pass-maintenance-race-distance.yaml
 
 # === Step 5: 訓練偏好 ===
+# === 週跑量已移到訓練日之前（生成前最後輸入） ===
+- runFlow: ../subflows/pass-weekly-distance.yaml
+
 - assertVisible:
     id: "TrainingDays_SaveButton"
 - tapOn:

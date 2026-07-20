@@ -1173,6 +1173,9 @@
 "hr_zone.max_heart_rate_display" = "最大心拍数";
 "hr_zone.resting_heart_rate_display" = "安静時心拍数";
 "hr_zone.default_values_hint" = "現在は推定値を使用しています。心拍計デバイスの接続または体力テスト後に更新すると、より精度の高いトレーニング提案が得られます";
+"hr_zone.how_to_max_hr" = "時計のアプリで最高心拍数の記録を確認しましょう。記録がなければ「220 − 年齢」で概算できます。";
+"hr_zone.how_to_resting_hr" = "時計のアプリに表示されていることが多いです。時計がなければ、朝起きてベッドから出る前に1分間脈拍を測ってください。";
+"hr_zone.accuracy_note" = "この2つの数値が正確なほど、トレーニング強度と体力の評価があなた自身に近づきます。";
 
 // MARK: - Heart Rate Zone Names & Details
 "hr_zone.recovery" = "リカバリー";
@@ -4164,3 +4167,19 @@
 "mileage_chart.legend_long_run" = "ロング走";
 "mileage_chart.legend_race_threshold" = "レース";
 "mileage_chart.legend_safety_ceiling" = "上限";
+
+/* Onboarding intro — training architecture (prototype) */
+"onboarding.intro_title" = "Pacerizのトレーニングの流れ";
+"onboarding.intro_overview_title" = "トレーニング概要";
+"onboarding.intro_overview_desc" = "今日からレース当日までの計画をまず設計";
+"onboarding.intro_weekly_plan_title" = "週間プラン";
+"onboarding.intro_weekly_plan_desc" = "毎週あなたの状態に合わせて作成";
+"onboarding.intro_weekly_review_title" = "週次レビュー";
+"onboarding.intro_weekly_review_desc" = "1週間を振り返り、次週に反映";
+"onboarding.intro_loop_caption" = "概要が方向を決め、プランとレビューが毎週めぐる——けがを防ぎながら段階的に前進";
+"onboarding.intro_cycle_label" = "毎週くり返し";
+
+"onboarding.intro_feature_data" = "心拍とトレーニングデータで強度を調整";
+"onboarding.intro_feature_rizo" = "AIコーチRizoがいつでもプランを一緒に調整";
+"onboarding.weekly_distance_anchor_explain" = "プランはこの数値を重要な基準点として始まります：入力した距離に近いところから第1週が始まります。現在の実際の週間走行距離を入力してください。";
+"onboarding.weekly_distance_maintenance_note" = "体力維持トレーニングでは、回復と調整の余裕を持たせるため、プランの週間距離は入力値よりやや少なめになります。";
