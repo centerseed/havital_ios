@@ -203,6 +203,60 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
         try assertLosslessMove(submitted: otherDay, original: weeklyPlan.days[0])
     }
 
+    /// 回歸（T-0149 / T-0245）：**編輯**一天的配速，不得破壞該天其餘任何欄位。
+    ///
+    /// 前一支測試守的是「純搬移」（無損路徑）。這支守的是真正被編輯過、
+    /// 因而落入重建路徑的那條線 —— 六次 regression 全部發生在這裡。
+    ///
+    /// 修復前：重建路徑對 segment 寫死 `kind/repeats/work/recovery = nil`，
+    /// 於是使用者只是把 fartlek 那天的配速從 4:30 改成 4:20，
+    /// 「5×1000m 間歇」的段落結構就整個被打平成一段勻速跑。
+    func testSaveEdits_editingPacePreservesEverythingElseOnStructuredDay() async throws {
+        let repository = MockTrainingPlanV2Repository()
+        let weeklyPlan = makeTwoDayPlanWithStructuredSecondDay()
+        repository.weeklyPlanV2ToReturn = weeklyPlan
+
+        let viewModel = EditScheduleV2ViewModel(
+            weeklyPlan: weeklyPlan,
+            repository: repository
+        )
+
+        // 只改配速，其他一律不動
+        let structuredIndex = try XCTUnwrap(viewModel.editingDays.firstIndex { $0.dayIndexInt == 2 })
+        viewModel.editingDays[structuredIndex].trainingDetails?.pace = "4:20"
+
+        _ = try await viewModel.saveEdits()
+
+        let days = try XCTUnwrap(repository.lastUpdateWeeklyPlanRequest?.days)
+        let submitted = try XCTUnwrap(days.first { $0.dayIndex == 2 })
+
+        // 段落結構必須完整存活，這是本 bug 的核心
+        guard case .run(let run) = submitted.primary else {
+            return XCTFail("Expected run activity")
+        }
+        let segment = try XCTUnwrap(run.segments?.first)
+        XCTAssertEqual(segment.kind, "steady_intervals")
+        XCTAssertEqual(segment.repeats, 5)
+        XCTAssertEqual(segment.work?.distanceM, 1000)
+        XCTAssertEqual(segment.recovery?.durationSeconds, 90)
+        XCTAssertEqual(segment.recovery?.recoveryType, "jog")
+        // 編輯器沒有模型化的欄位同樣不可被洗掉
+        XCTAssertEqual(run.targetIntensity, "threshold")
+        XCTAssertEqual(run.heartRateRange?.min, 150)
+        XCTAssertEqual(run.paceUnit, "min_per_km")
+        // 距離沒改，顯示單位偏好就不該被丟掉
+        XCTAssertEqual(run.distanceDisplay, 8)
+        XCTAssertEqual(run.distanceUnit, "km")
+
+        // 全欄位守恆：只有 pace 這一個欄位可以不同。
+        // 同樣刻意不手列欄位 —— 日後新增的欄位自動納入保護。
+        try assertOnlyExpectedFieldsChanged(
+            submitted: submitted,
+            original: weeklyPlan.days[1],
+            allowedDifferingPaths: ["primary.pace"]
+        )
+    }
+
     // MARK: - 全欄位守恆斷言（model 驅動，非手列欄位）
 
     /// 「純搬移」的契約：送出的 DTO 除了 `day_index` 與**刻意剝除的氣候欄位**之外，
@@ -224,25 +278,47 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
         file: StaticString = #filePath,
         line: UInt = #line
     ) throws {
-        let allowedDifferingPaths: Set<String> = [
+        try assertOnlyExpectedFieldsChanged(
+            submitted: submitted,
+            original: original,
+            allowedDifferingPaths: [],
+            file: file,
+            line: line
+        )
+    }
+
+    /// 通用的全欄位守恆斷言：送出的 DTO 除了白名單路徑外，必須與原始那天逐欄位相同。
+    ///
+    /// `day_index` 與 climate 系列（T-0165）是所有情境共通的刻意契約，故內建於基礎白名單；
+    /// 呼叫端只需補上該情境**額外**允許改變的欄位（例如「使用者改了配速」）。
+    private func assertOnlyExpectedFieldsChanged(
+        submitted: DayDetailDTO,
+        original: DayDetail,
+        allowedDifferingPaths: Set<String>,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) throws {
+        let baseAllowed: Set<String> = [
             "day_index",
             "climate_meta",
             "primary.climate_meta",
             "primary.base_pace",
             "primary.climate_adjusted_pace",
         ]
+        let allowed = baseAllowed.union(allowedDifferingPaths)
 
         let expected = try jsonObject(TrainingSessionMapper.toDTO(from: original))
         let actual = try jsonObject(submitted)
 
         let diffs = deepDiff(expected, actual, path: "")
             .filter { diff in
-                !allowedDifferingPaths.contains { diff.hasPrefix($0) }
+                !allowed.contains { diff.hasPrefix($0) }
             }
 
         XCTAssertTrue(
             diffs.isEmpty,
-            "moving a day must not change any field. Unexpected differences:\n" + diffs.joined(separator: "\n"),
+            "saving must not change any field outside the allowlist. Unexpected differences:\n"
+                + diffs.joined(separator: "\n"),
             file: file,
             line: line
         )

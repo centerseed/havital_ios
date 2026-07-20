@@ -67,24 +67,24 @@ struct SegmentEffortDTO: Codable, Equatable {
 // MARK: - RunSegmentDTO
 
 struct RunSegmentDTO: Codable, Equatable {
-    let distanceKm: Double?
-    let distanceM: Int?
-    let distanceDisplay: Double?
-    let distanceUnit: String?
-    let durationMinutes: Int?
-    let durationSeconds: Int?
-    let pace: String?
-    let basePace: String?
-    let climateAdjustedPace: String?
-    let climateMeta: ClimateMetaDTO?
-    let heartRateRange: HeartRateRangeDTO?
-    let intensity: String?
-    let description: String?
+    var distanceKm: Double?
+    var distanceM: Int?
+    var distanceDisplay: Double?
+    var distanceUnit: String?
+    var durationMinutes: Int?
+    var durationSeconds: Int?
+    var pace: String?
+    var basePace: String?
+    var climateAdjustedPace: String?
+    var climateMeta: ClimateMetaDTO?
+    var heartRateRange: HeartRateRangeDTO?
+    var intensity: String?
+    var description: String?
     /// 段落型態。缺席 = "steady"（既有文件）。存 String，未知值由 Domain 層降級。
-    let kind: String?
-    let repeats: Int?
-    let work: SegmentEffortDTO?
-    let recovery: SegmentEffortDTO?
+    var kind: String?
+    var repeats: Int?
+    var work: SegmentEffortDTO?
+    var recovery: SegmentEffortDTO?
 
     enum CodingKeys: String, CodingKey {
         case distanceKm = "distance_km"
@@ -110,22 +110,22 @@ struct RunSegmentDTO: Codable, Equatable {
 // MARK: - IntervalBlockDTO
 
 struct IntervalBlockDTO: Codable, Equatable {
-    let repeats: Int
-    let workDistanceKm: Double?
-    let workDistanceM: Int?
-    let workDistanceDisplay: Double?
-    let workDistanceUnit: String?
-    let workPaceUnit: String?
-    let workDurationMinutes: Int?
-    let workPace: String?
-    let workDescription: String?
-    let recoveryDistanceKm: Double?
-    let recoveryDistanceM: Int?
-    let recoveryDurationMinutes: Int?
-    let recoveryPace: String?
-    let recoveryDescription: String?
-    let recoveryDurationSeconds: Int?
-    let variant: String?
+    var repeats: Int
+    var workDistanceKm: Double?
+    var workDistanceM: Int?
+    var workDistanceDisplay: Double?
+    var workDistanceUnit: String?
+    var workPaceUnit: String?
+    var workDurationMinutes: Int?
+    var workPace: String?
+    var workDescription: String?
+    var recoveryDistanceKm: Double?
+    var recoveryDistanceM: Int?
+    var recoveryDurationMinutes: Int?
+    var recoveryPace: String?
+    var recoveryDescription: String?
+    var recoveryDurationSeconds: Int?
+    var variant: String?
 
     enum CodingKeys: String, CodingKey {
         case repeats
@@ -174,22 +174,22 @@ struct IntervalBlockDTO: Codable, Equatable {
 // MARK: - RunActivityDTO
 
 struct RunActivityDTO: Codable, Equatable {
-    let runType: String
-    let distanceKm: Double?
-    let distanceDisplay: Double?
-    let distanceUnit: String?
-    let paceUnit: String?
-    let durationMinutes: Int?
-    let durationSeconds: Int?
-    let pace: String?
-    let basePace: String?
-    let climateAdjustedPace: String?
-    let heartRateRange: HeartRateRangeDTO?
-    let interval: IntervalBlockDTO?
-    let segments: [RunSegmentDTO]?
-    let description: String?
-    let targetIntensity: String?
-    let climateMeta: ClimateMetaDTO?
+    var runType: String
+    var distanceKm: Double?
+    var distanceDisplay: Double?
+    var distanceUnit: String?
+    var paceUnit: String?
+    var durationMinutes: Int?
+    var durationSeconds: Int?
+    var pace: String?
+    var basePace: String?
+    var climateAdjustedPace: String?
+    var heartRateRange: HeartRateRangeDTO?
+    var interval: IntervalBlockDTO?
+    var segments: [RunSegmentDTO]?
+    var description: String?
+    var targetIntensity: String?
+    var climateMeta: ClimateMetaDTO?
     var isTrail: Bool? = nil
 
     enum CodingKeys: String, CodingKey {
@@ -397,16 +397,16 @@ struct SessionWrapperDTO: Codable, Equatable {
 /// 2. 包裝結構：session.primary + warmup/cooldown 在 day 層級
 
 struct DayDetailDTO: Codable, Equatable {
-    let dayIndex: Int
-    let dayTarget: String
-    let reason: String
-    let tips: String?
-    let category: String?
-    let climateMeta: ClimateMetaDTO?
-    let primary: PrimaryActivityDTO?
-    let warmup: RunSegmentDTO?
-    let cooldown: RunSegmentDTO?
-    let supplementary: [SupplementaryActivityDTO]?
+    var dayIndex: Int
+    var dayTarget: String
+    var reason: String
+    var tips: String?
+    var category: String?
+    var climateMeta: ClimateMetaDTO?
+    var primary: PrimaryActivityDTO?
+    var warmup: RunSegmentDTO?
+    var cooldown: RunSegmentDTO?
+    var supplementary: [SupplementaryActivityDTO]?
 
     enum CodingKeys: String, CodingKey {
         case dayIndex = "day_index"
