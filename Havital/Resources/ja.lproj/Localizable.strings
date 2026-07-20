@@ -4163,5 +4163,8 @@
 "onboarding.intro_weekly_plan_desc" = "毎週あなたの状態に合わせて作成";
 "onboarding.intro_weekly_review_title" = "週次レビュー";
 "onboarding.intro_weekly_review_desc" = "1週間を振り返り、次週に反映";
-"onboarding.intro_loop_caption" = "概要が方向を決め、プランとレビューが毎週めぐります";
+"onboarding.intro_loop_caption" = "概要が方向を決め、プランとレビューが毎週めぐる——けがを防ぎながら段階的に前進";
 "onboarding.intro_cycle_label" = "毎週くり返し";
+
+"onboarding.intro_feature_data" = "心拍とトレーニングデータで強度を調整";
+"onboarding.intro_feature_rizo" = "AIコーチRizoがいつでもプランを一緒に調整";

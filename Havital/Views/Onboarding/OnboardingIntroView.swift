@@ -85,6 +85,28 @@ struct OnboardingIntroView: View {
                 .padding(.top, 20)
                 .opacity(showCycleChip ? 1 : 0)
                 .scaleEffect(showCycleChip ? 1 : 0.8)
+
+            VStack(alignment: .leading, spacing: 10) {
+                featureRow(icon: "waveform.path.ecg",
+                           text: NSLocalizedString("onboarding.intro_feature_data", comment: "Data feature"))
+                featureRow(icon: "bubble.left.and.text.bubble.right.fill",
+                           text: NSLocalizedString("onboarding.intro_feature_rizo", comment: "Rizo feature"))
+            }
+            .padding(.top, 24)
+            .opacity(showCycleChip ? 1 : 0)
+        }
+    }
+
+    private func featureRow(icon: String, text: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(blueDeep)
+                .frame(width: 22)
+            Text(text)
+                .font(AppFont.bodySmall())
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 

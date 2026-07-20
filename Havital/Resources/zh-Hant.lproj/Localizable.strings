@@ -4207,5 +4207,8 @@
 "onboarding.intro_weekly_plan_desc" = "每週依你的狀況產生";
 "onboarding.intro_weekly_review_title" = "週回顧";
 "onboarding.intro_weekly_review_desc" = "看這週練得如何，調整下週";
-"onboarding.intro_loop_caption" = "總覽定方向，課表與回顧每週循環，越練越貼近你";
+"onboarding.intro_loop_caption" = "總覽定方向，課表與回顧每週循環——循序漸進，進步不受傷";
 "onboarding.intro_cycle_label" = "每週循環一次";
+
+"onboarding.intro_feature_data" = "心率與訓練資料，科學調整強度";
+"onboarding.intro_feature_rizo" = "Rizo AI 教練隨時陪你調課表";
