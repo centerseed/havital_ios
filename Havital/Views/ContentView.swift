@@ -46,6 +46,15 @@ struct ContentView: View {
                 OnboardingContainerView(isReonboarding: false)
                     .environmentObject(authViewModel)
                     .environmentObject(FeatureFlagManager.shared)
+                    .onAppear {
+                        #if DEBUG
+                        if CommandLine.arguments.contains("-ui_testing_jump_weekly_distance") {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                OnboardingCoordinator.shared.navigate(to: .weeklyDistance)
+                            }
+                        }
+                        #endif
+                    }
             }
             // 如果 App 正在初始化，顯示載入畫面
             else if appStateManager.shouldShowLoadingScreen {

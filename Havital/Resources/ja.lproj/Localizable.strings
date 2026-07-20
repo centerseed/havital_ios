@@ -4168,3 +4168,4 @@
 
 "onboarding.intro_feature_data" = "心拍とトレーニングデータで強度を調整";
 "onboarding.intro_feature_rizo" = "AIコーチRizoがいつでもプランを一緒に調整";
+"onboarding.weekly_distance_skip_explain" = "スキップした場合：ウォッチやアプリを連携していれば、直近数週間の実際の走行距離を起点にします。記録がない場合は、記録と目標レースに基づき控えめな距離から始め、週ごとに約10%まで増やします。";

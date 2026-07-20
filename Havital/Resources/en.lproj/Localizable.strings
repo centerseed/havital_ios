@@ -4171,3 +4171,4 @@
 
 "onboarding.intro_feature_data" = "Intensity guided by your heart-rate and training data";
 "onboarding.intro_feature_rizo" = "Rizo, your AI coach, adjusts the plan with you anytime";
+"onboarding.weekly_distance_skip_explain" = "If you skip: with a connected watch or app, we start from your actual mileage in recent weeks. Without records, we start conservatively based on your results and goal race, then increase by up to about 10% per week.";

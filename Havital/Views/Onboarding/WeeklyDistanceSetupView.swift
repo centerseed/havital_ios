@@ -119,6 +119,23 @@ struct WeeklyDistanceSetupView: View {
                         .foregroundColor(.secondary)
                 }
 
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.system(size: 15))
+                        .foregroundColor(.accentColor)
+                        .padding(.top, 1)
+                    Text(NSLocalizedString("onboarding.weekly_distance_skip_explain", comment: "What happens if you skip"))
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.accentColor.opacity(0.08))
+                )
+                .accessibilityIdentifier("WeeklyDistance_SkipExplain")
+
                 if let error = viewModel.error {
                     Text(error)
                         .foregroundColor(.red)

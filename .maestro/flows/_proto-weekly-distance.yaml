@@ -1,0 +1,13 @@
+appId: com.havital.Havital.dev
+env:
+  DEMO_REVIEWER_PASSCODE: app_paceriz_tester
+tags:
+  - debug
+---
+- runFlow: ../subflows/logout-and-demo-login.yaml
+- runFlow: ../subflows/pass-pb-step.yaml
+- extendedWaitUntil:
+    visible:
+      id: "WeeklyDistance_Screen"
+    timeout: 15000
+- takeScreenshot: ../screenshots/proto-weekly-distance
