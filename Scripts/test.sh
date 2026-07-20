@@ -284,8 +284,50 @@ ACTUAL_TEST_RUNS=$(grep "Executed [1-9][0-9]* tests" "$LOG_FILE" || true)
 if [ -z "$TOTAL_TESTS" ] || [ "$TOTAL_TESTS" = "0" ]; then TOTAL_TESTS=0; fi
 if [ -z "$FAILED_TESTS" ] || [ "$FAILED_TESTS" = "0" ]; then FAILED_TESTS=0; fi
 
+# 5b. 測試數量地板 (T-0176)
+#
+# 只看 exit code 會被「測試靜默消失」騙過去：T-0176 那次 LoginViewModelTests 一個重複
+# fulfill 丟出 NSInternalInconsistencyException，一口氣吞掉約 400 條測試，而回報是綠的。
+# 綠燈若不附帶「到底跑了幾條」，它的意義是未知的。
+#
+# 因此：只在**無 filter 的完整 unit 跑**（唯一數量可比的情境）比對地板值。
+# 地板值存在 scripts/.test-count-baseline.<type>，用 --update-baseline 更新。
+BASELINE_FILE="$SCRIPT_DIR/.test-count-baseline.$TYPE"
+COUNT_FLOOR_FAILED=0
+if [ -z "$FILTER" ] && [ "$EXIT_CODE" -eq 0 ] && [ "$TOTAL_TESTS" -gt 0 ]; then
+    if [ "${UPDATE_BASELINE:-0}" = "1" ]; then
+        echo "$TOTAL_TESTS" > "$BASELINE_FILE"
+        echo -e "${GREEN}📌 測試數量地板已更新為 $TOTAL_TESTS（$BASELINE_FILE）${NC}"
+    elif [ -f "$BASELINE_FILE" ]; then
+        BASELINE=$(cat "$BASELINE_FILE")
+        if [ "$TOTAL_TESTS" -lt "$BASELINE" ]; then
+            COUNT_FLOOR_FAILED=1
+            MISSING=$((BASELINE - TOTAL_TESTS))
+        elif [ "$TOTAL_TESTS" -gt "$BASELINE" ]; then
+            echo "$TOTAL_TESTS" > "$BASELINE_FILE"
+            echo -e "${GREEN}📌 測試數量成長 $BASELINE → $TOTAL_TESTS，地板已自動抬升${NC}"
+        fi
+    else
+        echo "$TOTAL_TESTS" > "$BASELINE_FILE"
+        echo -e "${YELLOW}📌 已建立測試數量地板：$TOTAL_TESTS（$BASELINE_FILE）${NC}"
+    fi
+fi
+
 # 6. Report
-if [ $EXIT_CODE -eq 0 ] && [ "$FAILED_TESTS" -eq 0 ]; then
+if [ "$COUNT_FLOOR_FAILED" -eq 1 ]; then
+    print_header "❌ 測試數量低於地板（有測試靜默消失）"
+    echo -e "📊 Summary:"
+    echo -e "   Total Tests: ${RED}$TOTAL_TESTS${NC}   (地板 $BASELINE，少了 $MISSING 條)"
+    echo -e "   Failures:    ${GREEN}0${NC}"
+    echo ""
+    echo -e "${RED}測試全部通過，但跑的條數比基準少 —— 這正是 T-0176 的形狀：${NC}"
+    echo -e "${RED}某個 test case crash 後吞掉整批測試，回報卻是綠的。${NC}"
+    echo ""
+    echo -e "   先確認是否有 test bundle 中途爆掉：grep -n 'crash\\|Inconsistency' $LOG_FILE"
+    echo -e "   若是刻意刪除測試，更新地板：UPDATE_BASELINE=1 $0 $TYPE"
+    echo ""
+    exit 1
+elif [ $EXIT_CODE -eq 0 ] && [ "$FAILED_TESTS" -eq 0 ]; then
     print_header "✅ All Tests Passed in ${DURATION}s"
     echo -e "📊 Summary:"
     echo -e "   Total Tests: ${GREEN}$TOTAL_TESTS${NC}"

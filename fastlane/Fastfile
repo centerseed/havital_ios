@@ -77,6 +77,15 @@ platform :ios do
     app.get_app_store_versions.first(6).each { |v| UI.message("  #{v.version_string}  #{v.app_store_state}") }
   end
 
+  desc "跑 unit tests(含測試數量地板)。與 pre-push hook 同一條路徑。"
+  lane :test do
+    # 刻意包裝既有的 scripts/test.sh 而不是改用 fastlane 的 scan:
+    # 模擬器選擇、iPhone 17 Pro、-parallel-testing-enabled NO 等規則都已經編碼在
+    # scripts/test.sh + scripts/run_xcodebuild.sh 裡(見 .claude/rules/testing.md)。
+    # 再寫一份 scan 設定就會有兩個真相源,遲早飄移。
+    sh("../scripts/test.sh", "unit")
+  end
+
   desc "自動 build → 匯出 app-store IPA → 開 Finder(手動 Transporter 上傳)"
   lane :build do
     key = asc_key
