@@ -159,10 +159,16 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
         // 完整保留熱適應卡、心率區間、目標強度、顯示單位、segment 等編輯器沒有
         // 模型化的欄位。只有真的被改動的日子才進入下面從 MutableTrainingDay 重建
         // 的有損路徑（重建本身仍盡量從 original 帶回非編輯欄位）。
-        if let originalDay, MutableTrainingDay(from: originalDay) == day {
+        // 比的是**內容**不是位置：純互換日期（onMove 只改 dayIndex）必須留在無損路徑，
+        // 否則被搬動的天會白白掉一堆編輯器沒模型化的欄位。搬移後要把 DTO 的 dayIndex
+        // 改寫成新位置，原始 DTO 帶的是舊位置。
+        if let originalDay, MutableTrainingDay(from: originalDay).hasSameContent(as: day) {
             // 沒被編輯的那天最容易漏：直接回傳原始 DTO 會把舊 doc 殘留的 climate
             // 原封不動送回後端。氣候一律不上網路（T-0165）。
-            return Self.stripClimate(TrainingSessionMapper.toDTO(from: originalDay))
+            return Self.renumber(
+                Self.stripClimate(TrainingSessionMapper.toDTO(from: originalDay)),
+                to: day.dayIndexInt
+            )
         }
 
         let dayType = DayType(rawValue: day.trainingType) ?? .rest
@@ -436,6 +442,25 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
             targetIntensity: preservedTargetIntensity,
             climateMeta: nil,
             isTrail: day.isTrail
+        )
+    }
+
+    /// 把 DTO 搬到新的 day_index。內容原封不動，只換位置。
+    ///
+    /// DTO 全是 `let`，所以用重建而非 mutate（與 `stripClimate` 同理由）。
+    static func renumber(_ dto: DayDetailDTO, to dayIndex: Int) -> DayDetailDTO {
+        guard dto.dayIndex != dayIndex else { return dto }
+        return DayDetailDTO(
+            dayIndex: dayIndex,
+            dayTarget: dto.dayTarget,
+            reason: dto.reason,
+            tips: dto.tips,
+            category: dto.category,
+            climateMeta: dto.climateMeta,
+            primary: dto.primary,
+            warmup: dto.warmup,
+            cooldown: dto.cooldown,
+            supplementary: dto.supplementary
         )
     }
 

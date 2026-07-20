@@ -160,6 +160,171 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
         XCTAssertNil(runActivity.basePace)
     }
 
+    // MARK: - 互換日期（onMove）必須無損
+
+    /// 回歸：純互換兩天（內容一個字都沒改）必須無損搬移。
+    ///
+    /// `buildDayDetailDTO` 的無損捷徑靠 `MutableTrainingDay(from: originalDay) == day`，
+    /// 而 `==` 第一項就比 `dayIndex`。onMove 會重編 dayIndex，`originalDay` 卻是用
+    /// 不變的 `originalDayIndex` 撈的 → 被移動過的天恆不相等 → 一律墜入有損重建路徑。
+    /// 有損路徑對 segment 寫死 `kind/repeats/work/recovery = nil`，於是使用者只是把
+    /// 週二週四對調，週四的 steadyIntervals 結構就被打平成一堆無型態的段落。
+    func testSaveEdits_swappingTwoDaysPreservesSegmentStructureLosslessly() async throws {
+        let repository = MockTrainingPlanV2Repository()
+        let weeklyPlan = makeTwoDayPlanWithStructuredSecondDay()
+        repository.weeklyPlanV2ToReturn = weeklyPlan
+
+        let viewModel = EditScheduleV2ViewModel(
+            weeklyPlan: weeklyPlan,
+            repository: repository
+        )
+
+        // 完全比照 EditScheduleViewV2.onMove：重排後把 dayIndex 重編為新位置
+        viewModel.editingDays.move(fromOffsets: IndexSet(integer: 1), toOffset: 0)
+        for i in viewModel.editingDays.indices {
+            viewModel.editingDays[i].dayIndex = "\(i + 1)"
+        }
+
+        _ = try await viewModel.saveEdits()
+
+        let days = try XCTUnwrap(repository.lastUpdateWeeklyPlanRequest?.days)
+        XCTAssertEqual(days.count, 2)
+
+        // 原本 day 2 的 steadyIntervals 現在應該落在 day 1，且結構完整
+        let movedDay = try XCTUnwrap(days.first { $0.dayIndex == 1 })
+        XCTAssertEqual(movedDay.dayTarget, "Steady intervals")
+        guard case .run(let run) = movedDay.primary else {
+            return XCTFail("Expected run activity at day 1 after swap")
+        }
+        let segment = try XCTUnwrap(run.segments?.first)
+        XCTAssertEqual(segment.kind, "steady_intervals", "swap must not flatten segment kind")
+        XCTAssertEqual(segment.repeats, 5, "swap must not drop repeats")
+        XCTAssertEqual(segment.work?.distanceM, 1000, "swap must not drop work effort")
+        XCTAssertEqual(segment.recovery?.durationSeconds, 90, "swap must not drop recovery effort")
+
+        // 編輯器沒有模型化的顯示欄位同樣不該在純搬移時消失
+        XCTAssertEqual(run.distanceDisplay, 8.0)
+        XCTAssertEqual(run.distanceUnit, "km")
+        XCTAssertEqual(run.paceUnit, "min_per_km")
+        XCTAssertEqual(run.heartRateRange?.min, 150)
+        XCTAssertEqual(run.targetIntensity, "threshold")
+
+        // 另一天同樣無損，且落在 day 2
+        let otherDay = try XCTUnwrap(days.first { $0.dayIndex == 2 })
+        XCTAssertEqual(otherDay.dayTarget, "Easy")
+
+        // 搬移仍不得攜帶氣候（T-0165）
+        XCTAssertNil(movedDay.climateMeta)
+        XCTAssertNil(run.climateMeta)
+        XCTAssertNil(run.climateAdjustedPace)
+        XCTAssertNil(run.basePace)
+    }
+
+    private func makeTwoDayPlanWithStructuredSecondDay() -> WeeklyPlanV2 {
+        let base = makeWeeklyPlan()
+
+        let steadySegment = RunSegment(
+            distanceKm: 8,
+            distanceM: nil,
+            distanceDisplay: 8,
+            distanceUnit: "km",
+            durationMinutes: nil,
+            durationSeconds: nil,
+            pace: "4:30",
+            basePace: nil,
+            climateAdjustedPace: nil,
+            climateMeta: nil,
+            heartRateRange: HeartRateRangeV2(min: 150, max: 165),
+            intensity: "threshold",
+            description: "5 x 1000m",
+            kind: "steady_intervals",
+            repeats: 5,
+            work: SegmentEffort(
+                distanceKm: 1,
+                distanceM: 1000,
+                durationMinutes: nil,
+                durationSeconds: nil,
+                pace: "4:00",
+                basePace: nil,
+                paceZone: nil,
+                targetHrr: nil,
+                recoveryType: nil
+            ),
+            recovery: SegmentEffort(
+                distanceKm: nil,
+                distanceM: nil,
+                durationMinutes: nil,
+                durationSeconds: 90,
+                pace: nil,
+                basePace: nil,
+                paceZone: nil,
+                targetHrr: nil,
+                recoveryType: "jog"
+            )
+        )
+
+        let steadyRun = RunActivity(
+            runType: "steady_intervals",
+            distanceKm: 8,
+            distanceDisplay: 8,
+            distanceUnit: "km",
+            paceUnit: "min_per_km",
+            durationMinutes: nil,
+            durationSeconds: nil,
+            pace: "4:30",
+            basePace: nil,
+            climateAdjustedPace: nil,
+            heartRateRange: HeartRateRangeV2(min: 150, max: 165),
+            interval: nil,
+            segments: [steadySegment],
+            description: "Steady intervals",
+            targetIntensity: "threshold",
+            climateMeta: nil
+        )
+
+        let day2 = DayDetail(
+            dayIndex: 2,
+            dayTarget: "Steady intervals",
+            reason: "Threshold development",
+            tips: nil,
+            category: .run,
+            climateMeta: nil,
+            session: TrainingSession(
+                warmup: nil,
+                primary: .run(steadyRun),
+                cooldown: nil,
+                supplementary: nil
+            ),
+            supplementary: nil
+        )
+
+        return WeeklyPlanV2(
+            planId: base.planId,
+            weekOfTraining: base.weekOfTraining,
+            id: base.id,
+            purpose: base.purpose,
+            weekOfPlan: base.weekOfPlan,
+            totalWeeks: base.totalWeeks,
+            totalDistance: base.totalDistance,
+            totalDistanceDisplay: base.totalDistanceDisplay,
+            totalDistanceUnit: base.totalDistanceUnit,
+            totalDistanceReason: base.totalDistanceReason,
+            designReason: base.designReason,
+            mileageProgressionNote: base.mileageProgressionNote,
+            coachNote: base.coachNote,
+            days: base.days + [day2],
+            intensityTotalMinutes: base.intensityTotalMinutes,
+            currentVdot: base.currentVdot,
+            vdotSource: base.vdotSource,
+            createdAt: base.createdAt,
+            updatedAt: base.updatedAt,
+            trainingLoadAnalysis: base.trainingLoadAnalysis,
+            personalizedRecommendations: base.personalizedRecommendations,
+            realTimeAdjustments: base.realTimeAdjustments,
+            apiVersion: base.apiVersion
+        )
+    }
+
     private func makeWeeklyPlan() -> WeeklyPlanV2 {
         let climateMeta = ClimateMeta(
             feelsLikeTempC: 33.6,
