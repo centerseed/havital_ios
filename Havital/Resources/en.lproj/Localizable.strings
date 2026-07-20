@@ -4157,3 +4157,14 @@
 "workout.vdot.reason.trail" = "Exclude: Trail run";
 "workout.vdot.reason.manual_entry" = "Exclude: Manual entry";
 "workout.vdot.reason.other" = "Exclude: Other";
+
+/* Onboarding intro — training architecture (prototype) */
+"onboarding.intro_title" = "How Paceriz Coaches You";
+"onboarding.intro_overview_title" = "Training Overview";
+"onboarding.intro_overview_desc" = "Your whole plan, mapped from today to race day";
+"onboarding.intro_weekly_plan_title" = "Weekly Plan";
+"onboarding.intro_weekly_plan_desc" = "Generated each week around your condition";
+"onboarding.intro_weekly_review_title" = "Weekly Review";
+"onboarding.intro_weekly_review_desc" = "See how the week went, adjust the next";
+"onboarding.intro_loop_caption" = "The overview sets the direction; plan and review feed each other every week";
+"onboarding.intro_cycle_label" = "Repeats every week";

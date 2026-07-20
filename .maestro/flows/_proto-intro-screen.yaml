@@ -1,0 +1,15 @@
+appId: com.havital.Havital.dev
+env:
+  DEMO_REVIEWER_PASSCODE: app_paceriz_tester
+tags:
+  - debug
+---
+- runFlow: ../subflows/logout-and-demo-login.yaml
+- tapOn:
+    text: "稍後|Later|後で|不再提醒|Not Now|Skip"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "OnboardingStartButton"
+    timeout: 30000
+- takeScreenshot: ../screenshots/proto-intro-screen

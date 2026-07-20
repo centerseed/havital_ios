@@ -4154,3 +4154,14 @@
 "workout.vdot.reason.trail" = "除外：トレイルラン";
 "workout.vdot.reason.manual_entry" = "除外：手動入力";
 "workout.vdot.reason.other" = "除外：その他";
+
+/* Onboarding intro — training architecture (prototype) */
+"onboarding.intro_title" = "Pacerizのトレーニングの流れ";
+"onboarding.intro_overview_title" = "トレーニング概要";
+"onboarding.intro_overview_desc" = "今日からレース当日までの計画をまず設計";
+"onboarding.intro_weekly_plan_title" = "週間プラン";
+"onboarding.intro_weekly_plan_desc" = "毎週あなたの状態に合わせて作成";
+"onboarding.intro_weekly_review_title" = "週次レビュー";
+"onboarding.intro_weekly_review_desc" = "1週間を振り返り、次週に反映";
+"onboarding.intro_loop_caption" = "概要が方向を決め、プランとレビューが毎週めぐります";
+"onboarding.intro_cycle_label" = "毎週くり返し";

@@ -4198,3 +4198,14 @@
 "workout.vdot.reason.trail" = "排除：越野跑";
 "workout.vdot.reason.manual_entry" = "排除：手動輸入";
 "workout.vdot.reason.other" = "排除：其他";
+
+/* Onboarding intro — training architecture (prototype) */
+"onboarding.intro_title" = "Paceriz 怎麼帶你練";
+"onboarding.intro_overview_title" = "訓練總覽";
+"onboarding.intro_overview_desc" = "從現在到比賽日，整段計畫先畫好";
+"onboarding.intro_weekly_plan_title" = "週課表";
+"onboarding.intro_weekly_plan_desc" = "每週依你的狀況產生";
+"onboarding.intro_weekly_review_title" = "週回顧";
+"onboarding.intro_weekly_review_desc" = "看這週練得如何，調整下週";
+"onboarding.intro_loop_caption" = "總覽定方向，課表與回顧每週循環，越練越貼近你";
+"onboarding.intro_cycle_label" = "每週循環一次";

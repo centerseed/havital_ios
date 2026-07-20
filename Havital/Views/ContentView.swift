@@ -29,12 +29,26 @@ struct ContentView: View {
     // WeeklyPlanLoader can call PlanOverviewObserver.shared.confirmNoPlan() directly.
     @ObservedObject private var planOverviewObserver = PlanOverviewObserver.shared
 
+    private var isDebugShowIntro: Bool {
+        #if DEBUG
+        return CommandLine.arguments.contains("-ui_testing_show_intro")
+        #else
+        return false
+        #endif
+    }
+
     var body: some View {
         // 移除高頻日誌：body 每次重新評估都會觸發
 
         Group {
+            // [UI Preview] -ui_testing_show_intro 直接顯示 fresh onboarding（intro 為根視圖）
+            if isDebugShowIntro {
+                OnboardingContainerView(isReonboarding: false)
+                    .environmentObject(authViewModel)
+                    .environmentObject(FeatureFlagManager.shared)
+            }
             // 如果 App 正在初始化，顯示載入畫面
-            if appStateManager.shouldShowLoadingScreen {
+            else if appStateManager.shouldShowLoadingScreen {
                 AppLoadingView()
                     .onAppear {
                         Logger.firebase(
