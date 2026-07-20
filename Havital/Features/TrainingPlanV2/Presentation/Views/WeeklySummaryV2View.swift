@@ -212,9 +212,6 @@ struct WeeklySummaryV2View: View {
     @ViewBuilder
     private func nextWeekOutlookCard() -> some View {
         if let week = nextWeekSkeleton() {
-            let unit = week.distanceUnit ?? "km"
-            let km = week.targetKmDisplay ?? week.targetKm
-
             VStack(alignment: .leading, spacing: Layout.itemSpacing) {
                 HStack(spacing: Layout.itemSpacing) {
                     Image(systemName: week.isRecovery ? "leaf.fill" : "figure.run")
@@ -230,13 +227,6 @@ struct WeeklySummaryV2View: View {
 
                     Spacer()
                 }
-
-                Text(String(
-                    format: NSLocalizedString("training.next_week_target_volume", comment: "預計週跑量 %@ %@"),
-                    formattedVolume(km), unit
-                ))
-                .font(AppFont.subheadline())
-                .foregroundColor(.primary)
 
                 if week.isRecovery {
                     Text(NSLocalizedString("training.recovery_week_rationale", comment: "恢復週會刻意降低跑量，讓身體把訓練吸收成進步。跑量下降是計畫的一部分，不是退步。"))
@@ -266,13 +256,6 @@ struct WeeklySummaryV2View: View {
         let backendWeek = viewModel.loader.planStatusResponse?.nextWeekInfo?.weekNumber
         let targetWeek = (backendWeek.map { $0 > 0 ? $0 : nil } ?? nil) ?? max(1, weekOfPlan + 1)
         return viewModel.loader.weeklyPreview?.weeks.first { $0.week == targetWeek }
-    }
-
-    /// 跑量顯示：整數不帶小數點，非整數保留一位。
-    private func formattedVolume(_ value: Double) -> String {
-        value.rounded() == value
-            ? String(format: "%.0f", value)
-            : String(format: "%.1f", value)
     }
 
     // MARK: - Story Hero
