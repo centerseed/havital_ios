@@ -19,6 +19,13 @@ struct WeeklyPreviewV2: Codable, Equatable {
 
     /// 更新時間
     let updatedAt: Date?
+
+    /// 週跑量安全上限（km）；backend 未提供時為 nil，圖表不畫該參考線
+    /// `var` + 預設值：讓 memberwise init 對既有呼叫點保持相容（additive）
+    var safetyCeilingKm: Double? = nil
+
+    /// 賽事距離門檻（km）；backend 未提供時為 nil，圖表不畫該參考線
+    var raceThresholdKm: Double? = nil
 }
 
 // MARK: - WeekPreview Entity
@@ -57,4 +64,8 @@ struct WeekPreview: Codable, Equatable, Identifiable {
 
     /// 長跑類型（nil 表示無長跑）
     let longRun: String?
+
+    /// 長跑最長距離（km）；backend 未提供時為 nil，圖表跳過該週的長跑點
+    /// `var` + 預設值：讓 memberwise init 對既有呼叫點保持相容（additive）
+    var longRunKm: Double? = nil
 }

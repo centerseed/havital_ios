@@ -4200,3 +4200,11 @@
 "workout.vdot.reason.trail" = "排除：越野跑";
 "workout.vdot.reason.manual_entry" = "排除：手動輸入";
 "workout.vdot.reason.other" = "排除：其他";
+/* Weekly Mileage Chart */
+"mileage_chart.title" = "週跑量曲線";
+"mileage_chart.subtitle" = "%d 週 · 單位 %@";
+"mileage_chart.axis_week" = "週";
+"mileage_chart.legend_weekly" = "每週跑量";
+"mileage_chart.legend_long_run" = "長跑";
+"mileage_chart.legend_race_threshold" = "門檻";
+"mileage_chart.legend_safety_ceiling" = "上限";

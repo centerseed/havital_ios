@@ -4156,3 +4156,11 @@
 "workout.vdot.reason.trail" = "除外：トレイルラン";
 "workout.vdot.reason.manual_entry" = "除外：手動入力";
 "workout.vdot.reason.other" = "除外：その他";
+/* Weekly Mileage Chart */
+"mileage_chart.title" = "週間走行距離の推移";
+"mileage_chart.subtitle" = "%d 週 · 単位 %@";
+"mileage_chart.axis_week" = "週";
+"mileage_chart.legend_weekly" = "週間走行距離";
+"mileage_chart.legend_long_run" = "ロング走";
+"mileage_chart.legend_race_threshold" = "レース";
+"mileage_chart.legend_safety_ceiling" = "上限";
