@@ -190,34 +190,91 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
         let days = try XCTUnwrap(repository.lastUpdateWeeklyPlanRequest?.days)
         XCTAssertEqual(days.count, 2)
 
-        // 原本 day 2 的 steadyIntervals 現在應該落在 day 1，且結構完整
+        // 原本 day 2 的 steadyIntervals 現在應該落在 day 1
         let movedDay = try XCTUnwrap(days.first { $0.dayIndex == 1 })
         XCTAssertEqual(movedDay.dayTarget, "Steady intervals")
-        guard case .run(let run) = movedDay.primary else {
-            return XCTFail("Expected run activity at day 1 after swap")
-        }
-        let segment = try XCTUnwrap(run.segments?.first)
-        XCTAssertEqual(segment.kind, "steady_intervals", "swap must not flatten segment kind")
-        XCTAssertEqual(segment.repeats, 5, "swap must not drop repeats")
-        XCTAssertEqual(segment.work?.distanceM, 1000, "swap must not drop work effort")
-        XCTAssertEqual(segment.recovery?.durationSeconds, 90, "swap must not drop recovery effort")
 
-        // 編輯器沒有模型化的顯示欄位同樣不該在純搬移時消失
-        XCTAssertEqual(run.distanceDisplay, 8.0)
-        XCTAssertEqual(run.distanceUnit, "km")
-        XCTAssertEqual(run.paceUnit, "min_per_km")
-        XCTAssertEqual(run.heartRateRange?.min, 150)
-        XCTAssertEqual(run.targetIntensity, "threshold")
+        // 全欄位守恆：不逐欄位手列，直接 deep-diff 整份 DTO。
+        try assertLosslessMove(submitted: movedDay, original: weeklyPlan.days[1])
 
         // 另一天同樣無損，且落在 day 2
         let otherDay = try XCTUnwrap(days.first { $0.dayIndex == 2 })
         XCTAssertEqual(otherDay.dayTarget, "Easy")
+        try assertLosslessMove(submitted: otherDay, original: weeklyPlan.days[0])
+    }
 
-        // 搬移仍不得攜帶氣候（T-0165）
-        XCTAssertNil(movedDay.climateMeta)
-        XCTAssertNil(run.climateMeta)
-        XCTAssertNil(run.climateAdjustedPace)
-        XCTAssertNil(run.basePace)
+    // MARK: - 全欄位守恆斷言（model 驅動，非手列欄位）
+
+    /// 「純搬移」的契約：送出的 DTO 除了 `day_index` 與**刻意剝除的氣候欄位**之外，
+    /// 必須與後端原本給的那天**逐欄位相同**。
+    ///
+    /// 這裡刻意不手列欄位。手列是這個 bug 反覆復發的根本形狀 ——
+    /// `bd1e4d48` 只補 climate、後來 isTrail / SegmentKind / work / recovery 各自
+    /// 又開新破口，因為每次都只斷言「這次想到的那幾個」。
+    ///
+    /// 改為把兩份 DTO 各自 encode 成 JSON 後整份 deep-diff：**日後 DayDetailDTO 新增
+    /// 任何欄位都自動納入保護**，沒有人需要記得回來補測試。
+    ///
+    /// `allowedDifferingPaths` 是唯一的白名單，且必須是**刻意的契約**：
+    /// - `day_index`：搬移的定義本身
+    /// - climate 系列：T-0165，氣候綁日期不綁課表，一律不上網路
+    private func assertLosslessMove(
+        submitted: DayDetailDTO,
+        original: DayDetail,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) throws {
+        let allowedDifferingPaths: Set<String> = [
+            "day_index",
+            "climate_meta",
+            "primary.climate_meta",
+            "primary.base_pace",
+            "primary.climate_adjusted_pace",
+        ]
+
+        let expected = try jsonObject(TrainingSessionMapper.toDTO(from: original))
+        let actual = try jsonObject(submitted)
+
+        let diffs = deepDiff(expected, actual, path: "")
+            .filter { diff in
+                !allowedDifferingPaths.contains { diff.hasPrefix($0) }
+            }
+
+        XCTAssertTrue(
+            diffs.isEmpty,
+            "moving a day must not change any field. Unexpected differences:\n" + diffs.joined(separator: "\n"),
+            file: file,
+            line: line
+        )
+    }
+
+    private func jsonObject(_ dto: DayDetailDTO) throws -> [String: Any] {
+        let data = try JSONEncoder().encode(dto)
+        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+    }
+
+    /// 回傳所有值不同的 JSON 路徑。缺 key 視為 null，因此「欄位被靜默丟掉」會被抓到。
+    private func deepDiff(_ lhs: Any, _ rhs: Any, path: String) -> [String] {
+        if let l = lhs as? [String: Any], let r = rhs as? [String: Any] {
+            return Set(l.keys).union(r.keys).sorted().flatMap { key -> [String] in
+                deepDiff(
+                    l[key] ?? NSNull(),
+                    r[key] ?? NSNull(),
+                    path: path.isEmpty ? key : "\(path).\(key)"
+                )
+            }
+        }
+        if let l = lhs as? [Any], let r = rhs as? [Any] {
+            guard l.count == r.count else {
+                return ["\(path): array count \(l.count) != \(r.count)"]
+            }
+            return zip(l, r).enumerated().flatMap { index, pair in
+                deepDiff(pair.0, pair.1, path: "\(path)[\(index)]")
+            }
+        }
+        if lhs is NSNull && rhs is NSNull { return [] }
+        if let l = lhs as? NSObject, let r = rhs as? NSObject, l.isEqual(r) { return [] }
+        return ["\(path): expected \(lhs), got \(rhs)"]
     }
 
     private func makeTwoDayPlanWithStructuredSecondDay() -> WeeklyPlanV2 {
