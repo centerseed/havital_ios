@@ -318,6 +318,9 @@ struct WeeklySummaryV2View: View {
                     .background(Color.blue)
                     .cornerRadius(12)
             }
+            // T-0259：這顆是整個畫面唯一會改動用戶課表的按鈕，必須可被回歸測試鎖定，
+            // 用來斷言「下週型態揭示」永遠排在它前面。
+            .accessibilityIdentifier("v2.summary.generate_next_week_button")
         }
 
         if let onSetNewGoal {
