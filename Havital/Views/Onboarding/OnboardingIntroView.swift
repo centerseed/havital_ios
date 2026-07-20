@@ -132,13 +132,10 @@ struct OnboardingIntroView: View {
             .fixedSize(horizontal: false, vertical: true)
             .padding(.vertical, 34)
 
-            VStack {
-                cycleArrow(pointingRight: true)
-                Spacer()
-                cycleArrow(pointingRight: false)
-            }
-            .padding(.vertical, 8)
-            .opacity(showCycleChip ? 1 : 0)
+            cycleArrow(pointingRight: true)
+                .frame(maxHeight: .infinity, alignment: .top)
+                .padding(.top, 8)
+                .opacity(showCycleChip ? 1 : 0)
 
             Text(NSLocalizedString("onboarding.intro_cycle_label", comment: "Repeats every week"))
                 .font(AppFont.captionMedium())
