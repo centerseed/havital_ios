@@ -106,6 +106,6 @@ struct MaintenanceRaceDistanceView: View {
                 distanceKm: option.distanceKm.map { Double($0) }
             )
         }
-        coordinator.navigate(to: .trainingDays)
+        coordinator.navigate(to: .weeklyDistance)
     }
 }

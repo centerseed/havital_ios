@@ -4168,4 +4168,5 @@
 
 "onboarding.intro_feature_data" = "心拍とトレーニングデータで強度を調整";
 "onboarding.intro_feature_rizo" = "AIコーチRizoがいつでもプランを一緒に調整";
-"onboarding.weekly_distance_skip_explain" = "スキップした場合：ウォッチやアプリを連携していれば、直近数週間の実際の走行距離を起点にします。記録がない場合は、記録と目標レースに基づき控えめな距離から始め、週ごとに約10%まで増やします。";
+"onboarding.weekly_distance_anchor_explain" = "プランはこの数値を重要な基準点として始まります：入力した距離に近いところから第1週が始まります。現在の実際の週間走行距離を入力してください。";
+"onboarding.weekly_distance_maintenance_note" = "体力維持トレーニングでは、回復と調整の余裕を持たせるため、プランの週間距離は入力値よりやや少なめになります。";

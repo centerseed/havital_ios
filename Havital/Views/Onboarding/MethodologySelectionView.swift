@@ -128,7 +128,7 @@ struct MethodologySelectionView: View {
                 coordinator.navigate(to: .startStage)
             } else {
                 Logger.debug("[MethodologySelectionView] Race target with sufficient schedule, navigating to trainingDays")
-                coordinator.navigate(to: .trainingDays)
+                coordinator.navigate(to: .weeklyDistance)
             }
         } else {
             Logger.debug("[MethodologySelectionView] Non-race target, navigating to trainingWeeksSetup")

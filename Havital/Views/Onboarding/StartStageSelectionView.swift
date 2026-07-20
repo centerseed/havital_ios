@@ -45,7 +45,7 @@ struct StartStageSelectionView: View {
                 } else {
                     UserDefaults.standard.removeObject(forKey: OnboardingCoordinator.startStageUserDefaultsKey)
                 }
-                coordinator.navigate(to: .trainingDays)
+                coordinator.navigate(to: .weeklyDistance)
             },
             skipAction: nil
         ) {

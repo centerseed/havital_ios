@@ -405,9 +405,10 @@ class OnboardingCoordinator: ObservableObject {
         case .dataSync:
             return .personalBest
         case .personalBest:
-            return .weeklyDistance
-        case .weeklyDistance:
             return .goalType
+        case .weeklyDistance:
+            // 週跑量已移到所有目標分支收斂後、訓練日之前
+            return .trainingDays
         case .goalType:
             // 注意：GoalTypeSelectionView 會處理選擇邏輯
             // 如果選 5km，它會直接 navigate 到 .trainingDays (beginner)
@@ -420,7 +421,7 @@ class OnboardingCoordinator: ObservableObject {
             // RaceEventListView 選完後呼叫 goBack() 返回 raceSetup
             return nil
         case .startStage:
-            return .trainingDays
+            return .weeklyDistance
         case .methodologySelection:
             // MethodologySelectionView 會處理導航邏輯
             return nil
@@ -428,7 +429,7 @@ class OnboardingCoordinator: ObservableObject {
             // TrainingWeeksSetupView 會處理導航邏輯（根據方法論數量決定）
             return nil
         case .maintenanceRaceDistance:
-            return .trainingDays
+            return .weeklyDistance
         case .trainingDays:
             return .trainingOverview
         case .trainingOverview:

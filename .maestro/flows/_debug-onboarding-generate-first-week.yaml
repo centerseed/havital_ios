@@ -63,8 +63,6 @@ tags:
       visible:
         id: "PersonalBest_ContinueButton"
 
-- runFlow:
-    file: ../subflows/pass-weekly-distance.yaml
     when:
       visible:
         id: "WeeklyDistance_ContinueButton"
@@ -97,6 +95,9 @@ tags:
 - tapOn:
     text: "下一步|Next Step|次のステップ"
     optional: true
+
+# === 週跑量已移到訓練日之前（生成前最後輸入） ===
+- runFlow: ../subflows/pass-weekly-distance.yaml
 
 - assertVisible:
     id: "TrainingDays_SaveButton"

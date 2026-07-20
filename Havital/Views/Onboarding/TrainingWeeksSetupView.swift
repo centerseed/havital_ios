@@ -369,7 +369,7 @@ struct TrainingWeeksSetupView: View {
         if coordinator.selectedTargetTypeId == "maintenance" {
             coordinator.navigate(to: .maintenanceRaceDistance)
         } else {
-            coordinator.navigate(to: .trainingDays)
+            coordinator.navigate(to: .weeklyDistance)
         }
     }
 }

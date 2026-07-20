@@ -14,7 +14,6 @@ tags:
 
 # === Step 1: PB + 週跑量 ===
 - runFlow: ../subflows/pass-pb-step.yaml
-- runFlow: ../subflows/pass-weekly-distance.yaml
 
 # === Step 2: 選新手入門 ===
 - assertVisible:
@@ -29,26 +28,21 @@ tags:
     optional: true
 
 # === Step 3: 跳過可能出現的中間步驟 ===
-- tapOn:
-    id: "TrainingWeeks_NextButton"
-    optional: true
-- tapOn:
-    text: "下一步"
-    optional: true
-- tapOn:
-    id: "StartStage_NextButton"
-    optional: true
-- tapOn:
-    text: "繼續"
-    optional: true
+# 只用 id 點中繼頁 CTA;不可用「下一步/繼續」文字備援——新順序下會誤點掉週跑量頁
 - tapOn:
     id: "Methodology_NextButton"
     optional: true
 - tapOn:
-    text: "下一步"
+    id: "TrainingWeeks_NextButton"
+    optional: true
+- tapOn:
+    id: "StartStage_NextButton"
     optional: true
 
 # === Step 4: 訓練偏好 ===
+# === 週跑量已移到訓練日之前（生成前最後輸入） ===
+- runFlow: ../subflows/pass-weekly-distance.yaml
+
 - assertVisible:
     id: "TrainingDays_SaveButton"
 - tapOn:

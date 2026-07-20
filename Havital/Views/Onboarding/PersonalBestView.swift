@@ -26,7 +26,7 @@ struct PersonalBestView: View {
                 Task {
                     let success = await viewModel.updatePersonalBest()
                     if success {
-                        coordinator.navigate(to: .weeklyDistance)
+                        coordinator.navigate(to: .goalType)
                     }
                 }
             },

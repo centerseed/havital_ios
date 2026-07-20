@@ -4212,4 +4212,5 @@
 
 "onboarding.intro_feature_data" = "心率與訓練資料，科學調整強度";
 "onboarding.intro_feature_rizo" = "Rizo AI 教練隨時陪你調課表";
-"onboarding.weekly_distance_skip_explain" = "略過的話：若你已連接手錶或運動 App，系統會以你最近幾週的實際跑量當起點；沒有紀錄則依你的成績與目標賽事，從保守跑量開始，之後每週最多增加約 10%。";
+"onboarding.weekly_distance_anchor_explain" = "課表一開始會把你的週跑量當作重要參考點：你填多少，第一份課表就從接近多少開始。請依你目前的實際情況填寫。";
+"onboarding.weekly_distance_maintenance_note" = "維持訓練的課表週量通常會比你填的略低，讓身體有恢復與調整的空間。";
