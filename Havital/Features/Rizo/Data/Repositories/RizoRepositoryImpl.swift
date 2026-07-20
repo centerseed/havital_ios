@@ -74,6 +74,13 @@ final class RizoRepositoryImpl: RizoRepository {
         return try await remoteDataSource.fetchHistory()
     }
 
+    func forkHistory(sourceSessionId: String, throughTurnIndex: Int) async throws -> RizoHistoryFork {
+        try await remoteDataSource.forkHistory(
+            sourceSessionId: sourceSessionId,
+            throughTurnIndex: throughTurnIndex
+        )
+    }
+
     func confirmPlanChange(proposalId: String) async throws -> PlanChangeConfirmResult {
         return try await remoteDataSource.confirmPlanChange(proposalId: proposalId)
     }

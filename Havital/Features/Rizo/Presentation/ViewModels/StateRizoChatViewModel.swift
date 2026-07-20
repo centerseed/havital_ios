@@ -54,7 +54,7 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
 
     // MARK: - Dependencies
 
-    private let scenario: String
+    private var scenario: String
     private let repository: RizoRepository
     private var sessionId: String?
 
@@ -88,6 +88,26 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
         messages.append(Message(role: .user, text: trimmed))
         draft = ""
         await exchange(userText: trimmed)
+    }
+
+    /// 把後端建立完成的 fork 載入目前聊天室。只切換到新的 session id，並用後端
+    /// 回傳的 prefix 畫出上下文；不重新送出任何舊訊息，因此不重複扣額度或觸發動作。
+    func resumeFromHistory(_ fork: RizoHistoryFork) {
+        cancelAllTasks()
+        scenario = fork.scenario
+        sessionId = fork.sessionId
+        pendingPlanChange = nil
+        isConfirmingPlanChange = false
+        isReplying = false
+        draft = ""
+        messages = fork.turns.flatMap { turn -> [Message] in
+            var rendered: [Message] = []
+            let user = turn.userInput.trimmingCharacters(in: .whitespacesAndNewlines)
+            let coach = turn.rizoResponse.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !user.isEmpty { rendered.append(Message(role: .user, text: user)) }
+            if !coach.isEmpty { rendered.append(Message(role: .coach, text: coach)) }
+            return rendered
+        }
     }
 
     // MARK: - Plan Change

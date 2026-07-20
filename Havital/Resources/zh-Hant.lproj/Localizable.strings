@@ -3730,6 +3730,8 @@
 "rizo.history.empty" = "還沒有和 Rizo 的對話紀錄";
 "rizo.history.error" = "載入對話紀錄失敗，請稍後再試";
 "rizo.history.retry" = "重試";
+"rizo.history.resume" = "從這裡繼續";
+"rizo.history.resume.error" = "無法接續這段對話，請再試一次";
 "rizo.history.scenario.body_status" = "今日狀態";
 "rizo.history.scenario.weekly_situation" = "週回顧";
 "rizo.history.scenario.journal" = "訓練反思";

@@ -209,4 +209,22 @@ final class RizoRemoteDataSource {
         let dto = try ResponseProcessor.extractData(RizoHistoryResponseDTO.self, from: rawData, using: parser)
         return RizoMapper.toHistory(from: dto)
     }
+
+    /// 以已擁有的歷史 session 某一回合為錨點建立新 session；不重播 LLM。
+    /// API: POST /v2/agent/history/fork
+    func forkHistory(sourceSessionId: String, throughTurnIndex: Int) async throws -> RizoHistoryFork {
+        let path = "/v2/agent/history/fork"
+        let request = RizoHistoryForkRequest(
+            sourceSessionId: sourceSessionId,
+            throughTurnIndex: throughTurnIndex
+        )
+        let bodyData = try JSONEncoder().encode(request)
+        let rawData = try await tracked("RizoRemoteDataSource: forkHistory") {
+            try await httpClient.request(path: path, method: .POST, body: bodyData)
+        }
+        let dto = try ResponseProcessor.extractData(
+            RizoHistoryForkResponseDTO.self, from: rawData, using: parser
+        )
+        return RizoMapper.toHistoryFork(from: dto)
+    }
 }

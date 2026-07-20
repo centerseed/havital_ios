@@ -3689,6 +3689,8 @@
 "rizo.history.empty" = "No conversations with Rizo yet";
 "rizo.history.error" = "Couldn't load your conversation history. Please try again.";
 "rizo.history.retry" = "Retry";
+"rizo.history.resume" = "Continue from here";
+"rizo.history.resume.error" = "Couldn't continue this conversation. Please try again.";
 "rizo.history.scenario.body_status" = "Today's State";
 "rizo.history.scenario.weekly_situation" = "Weekly Review";
 "rizo.history.scenario.journal" = "Training Reflection";

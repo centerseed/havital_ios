@@ -4,18 +4,33 @@ import SwiftUI
 /// 單段 Rizo 對話唯讀逐字稿。無輸入框、無改課表卡、無任何寫入動作。
 struct RizoHistoryDetailView: View {
     let conversation: RizoConversationSummary
+    let onResume: (Int) async -> Bool
+    @State private var resumingTurnIndex: Int?
+    @State private var resumeFailed = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
                 header
-                ForEach(Array(conversation.turns.enumerated()), id: \.offset) { _, turn in
-                    if !turn.userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        userBubble(text: turn.userInput)
+                ForEach(Array(conversation.turns.enumerated()), id: \.offset) { index, turn in
+                    VStack(alignment: .leading, spacing: 8) {
+                        if !turn.userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            userBubble(text: turn.userInput)
+                        }
+                        if !turn.rizoResponse.isEmpty {
+                            coachBubble(text: turn.rizoResponse)
+                        }
+                        if canResume(from: turn) {
+                            resumeButton(turnIndex: index)
+                        }
                     }
-                    if !turn.rizoResponse.isEmpty {
-                        coachBubble(text: turn.rizoResponse)
-                    }
+                }
+                if resumeFailed {
+                    Text(NSLocalizedString("rizo.history.resume.error",
+                                           comment: "Could not continue history"))
+                        .font(AppFont.bodySmall())
+                        .foregroundColor(.red)
+                        .accessibilityIdentifier("rizo_history_resume_error")
                 }
             }
             .padding(16)
@@ -25,6 +40,42 @@ struct RizoHistoryDetailView: View {
         .navigationTitle(RizoScenarioLabel.text(conversation.scenario))
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier("rizo_history_detail")
+    }
+
+    private func canResume(from turn: RizoHistoryItem) -> Bool {
+        !turn.userInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !turn.rizoResponse.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !RizoConversationSummary.isErrorResponse(turn.rizoResponse)
+    }
+
+    private func resumeButton(turnIndex: Int) -> some View {
+        Button {
+            guard resumingTurnIndex == nil else { return }
+            resumeFailed = false
+            resumingTurnIndex = turnIndex
+            Task {
+                let succeeded = await onResume(turnIndex)
+                if !succeeded {
+                    resumeFailed = true
+                    resumingTurnIndex = nil
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                if resumingTurnIndex == turnIndex {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: "arrow.uturn.forward.circle")
+                }
+                Text(NSLocalizedString("rizo.history.resume", comment: "Continue from here"))
+            }
+            .font(AppFont.captionMedium())
+            .foregroundColor(PacerizColor.blue)
+        }
+        .buttonStyle(.plain)
+        .disabled(resumingTurnIndex != nil)
+        .frame(maxWidth: .infinity, alignment: .trailing)
+        .accessibilityIdentifier("rizo_history_resume_\(turnIndex)")
     }
 
     private var header: some View {

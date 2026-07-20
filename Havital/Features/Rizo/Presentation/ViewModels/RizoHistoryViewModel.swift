@@ -36,4 +36,15 @@ final class RizoHistoryViewModel: ObservableObject, TaskManageable {
             state = .error(error.toDomainError())
         }
     }
+
+    /// 後端原子建立新 session；來源歷史不變，也不重新呼叫教練模型。
+    func fork(_ conversation: RizoConversationSummary, throughTurnIndex: Int) async throws -> RizoHistoryFork {
+        guard conversation.turns.indices.contains(throughTurnIndex) else {
+            throw RizoRepositoryError.invalidInput("history turn index out of range")
+        }
+        return try await repository.forkHistory(
+            sourceSessionId: conversation.sessionId,
+            throughTurnIndex: throughTurnIndex
+        )
+    }
 }

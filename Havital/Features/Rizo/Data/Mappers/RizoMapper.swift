@@ -105,4 +105,12 @@ struct RizoMapper {
             ts: dto.ts
         )
     }
+
+    static func toHistoryFork(from dto: RizoHistoryForkResponseDTO) -> RizoHistoryFork {
+        RizoHistoryFork(
+            sessionId: dto.sessionId,
+            scenario: dto.scenario,
+            turns: dto.turns.compactMap(toHistoryItem(from:))
+        )
+    }
 }

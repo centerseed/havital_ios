@@ -50,7 +50,9 @@ struct RizoChatView: View {
             PaywallView(trigger: trigger)
         }
         .sheet(isPresented: $showHistory) {
-            RizoHistoryView()
+            RizoHistoryView { fork in
+                viewModel.resumeFromHistory(fork)
+            }
         }
     }
 

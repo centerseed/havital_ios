@@ -3686,6 +3686,8 @@
 "rizo.history.empty" = "Rizoとの会話履歴はまだありません";
 "rizo.history.error" = "会話履歴を読み込めませんでした。もう一度お試しください。";
 "rizo.history.retry" = "再試行";
+"rizo.history.resume" = "ここから続ける";
+"rizo.history.resume.error" = "この会話を続けられませんでした。もう一度お試しください。";
 "rizo.history.scenario.body_status" = "今日のコンディション";
 "rizo.history.scenario.weekly_situation" = "週次レビュー";
 "rizo.history.scenario.journal" = "トレーニング振り返り";

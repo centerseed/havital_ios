@@ -189,3 +189,28 @@ struct RizoHistoryItemDTO: Codable {
         case rizoResponse = "rizo_response"
     }
 }
+
+// MARK: - Rizo History Fork
+
+struct RizoHistoryForkRequest: Codable {
+    let sourceSessionId: String
+    let throughTurnIndex: Int
+
+    enum CodingKeys: String, CodingKey {
+        case sourceSessionId = "source_session_id"
+        case throughTurnIndex = "through_turn_index"
+    }
+}
+
+/// POST /v2/agent/history/fork 回應的 data 物件。
+struct RizoHistoryForkResponseDTO: Codable {
+    let sessionId: String
+    let scenario: String
+    let turns: [RizoHistoryItemDTO]
+
+    enum CodingKeys: String, CodingKey {
+        case sessionId = "session_id"
+        case scenario
+        case turns
+    }
+}

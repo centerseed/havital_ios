@@ -149,3 +149,13 @@ struct RizoHistoryItem: Equatable {
     /// 輪次時間（ISO8601 UTC 字串）。
     let ts: String?
 }
+
+// MARK: - RizoHistoryFork
+
+/// 從歷史某一回合建立的新對話。`turns` 是來源 session 到錨點（含）為止的
+/// 唯讀快照；下一則訊息必須使用新的 `sessionId`，不可再寫回來源 session。
+struct RizoHistoryFork: Equatable {
+    let sessionId: String
+    let scenario: String
+    let turns: [RizoHistoryItem]
+}
