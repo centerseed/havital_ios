@@ -707,6 +707,17 @@ enum GaitAnalysisChart {
         static let targetTimePrefix = "phase_roadmap.target_time_prefix" // "目標 "
     }
 
+    // MARK: - Weekly Mileage Chart (WeeklyMileageChartView)
+    enum MileageChart {
+        static let title = "mileage_chart.title"                         // "週跑量曲線"
+        static let subtitle = "mileage_chart.subtitle"                   // "%d 週 · 單位 %@"
+        static let axisWeek = "mileage_chart.axis_week"                  // "週"
+        static let legendWeekly = "mileage_chart.legend_weekly"          // "每週跑量"
+        static let legendLongRun = "mileage_chart.legend_long_run"       // "長跑"
+        static let legendRaceThreshold = "mileage_chart.legend_race_threshold"   // "門檻"
+        static let legendSafetyCeiling = "mileage_chart.legend_safety_ceiling"   // "上限"
+    }
+
     // MARK: - Workout Detail
     enum WorkoutDetail {
         // Upload Actions

@@ -219,6 +219,8 @@ struct HavitalApp: App {
                 paywallTrialDaysUITestHarnessView
             } else if shouldLaunchBenchmarkCardGallery {
                 benchmarkCardGalleryView
+            } else if shouldLaunchMileageChartGallery {
+                mileageChartGalleryView
             } else {
                 Group {
                     if let featureFlagManager = featureFlagManager {
@@ -350,6 +352,7 @@ struct HavitalApp: App {
             || arguments.contains("-ui_testing_billing_issue")
             || arguments.contains("-ui_testing_paywall_trial_days")
             || arguments.contains("-BenchmarkCardGallery")
+            || arguments.contains("-MileageChartGallery")
     }
 
     private var shouldLaunchPaywallUITestHarness: Bool {
@@ -454,6 +457,14 @@ struct HavitalApp: App {
         #endif
     }
 
+    private var shouldLaunchMileageChartGallery: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-MileageChartGallery")
+        #else
+        false
+        #endif
+    }
+
     @ViewBuilder
     private var ac38UITestHarnessView: some View {
         #if DEBUG
@@ -501,6 +512,15 @@ struct HavitalApp: App {
     private var benchmarkCardGalleryView: some View {
         #if DEBUG
         BenchmarkCardGalleryHost()
+        #else
+        EmptyView()
+        #endif
+    }
+
+    @ViewBuilder
+    private var mileageChartGalleryView: some View {
+        #if DEBUG
+        MileageChartGalleryHost()
         #else
         EmptyView()
         #endif

@@ -16,7 +16,9 @@ enum WeeklyPreviewV2Mapper {
             methodologyId: dto.methodologyId,
             weeks: dto.weeks.map { toWeekPreview(from: $0) },
             createdAt: dto.createdAt.flatMap { Double($0) }.map { Date(timeIntervalSince1970: $0) },
-            updatedAt: dto.updatedAt.flatMap { Double($0) }.map { Date(timeIntervalSince1970: $0) }
+            updatedAt: dto.updatedAt.flatMap { Double($0) }.map { Date(timeIntervalSince1970: $0) },
+            safetyCeilingKm: dto.safetyCeilingKm,
+            raceThresholdKm: dto.raceThresholdKm
         )
     }
 
@@ -33,7 +35,8 @@ enum WeeklyPreviewV2Mapper {
             milestoneRef: dto.milestoneRef,
             intensityRatio: dto.intensityRatio.map { toIntensityDistribution(from: $0) },
             qualityOptions: dto.qualityOptions?.map { displayType(for: $0) } ?? [],
-            longRun: dto.longRun?.trainingType
+            longRun: dto.longRun?.trainingType,
+            longRunKm: dto.longRun?.maxKm
         )
     }
 

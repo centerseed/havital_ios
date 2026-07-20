@@ -10,6 +10,10 @@ struct WeeklyPreviewResponseDTO: Codable {
     let weeks: [WeekPreviewDTO]
     let createdAt: String?
     let updatedAt: String?
+    /// 週跑量安全上限（km）— backend additive 欄位，舊 response 無此 key
+    let safetyCeilingKm: Double?
+    /// 賽事距離門檻（km）— backend additive 欄位，舊 response 無此 key
+    let raceThresholdKm: Double?
 
     enum CodingKeys: String, CodingKey {
         case planId = "plan_id"
@@ -18,6 +22,8 @@ struct WeeklyPreviewResponseDTO: Codable {
         case weeks
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+        case safetyCeilingKm = "safety_ceiling_km"
+        case raceThresholdKm = "race_threshold_km"
     }
 }
 

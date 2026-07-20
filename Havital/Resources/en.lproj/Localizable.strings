@@ -4159,3 +4159,11 @@
 "workout.vdot.reason.trail" = "Exclude: Trail run";
 "workout.vdot.reason.manual_entry" = "Exclude: Manual entry";
 "workout.vdot.reason.other" = "Exclude: Other";
+/* Weekly Mileage Chart */
+"mileage_chart.title" = "Weekly Mileage Curve";
+"mileage_chart.subtitle" = "%d weeks · in %@";
+"mileage_chart.axis_week" = "Week";
+"mileage_chart.legend_weekly" = "Weekly mileage";
+"mileage_chart.legend_long_run" = "Long run";
+"mileage_chart.legend_race_threshold" = "Race";
+"mileage_chart.legend_safety_ceiling" = "Ceiling";
