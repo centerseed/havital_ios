@@ -2473,6 +2473,10 @@
 "training.achievements" = "成就";
 "training.areas_for_improvement" = "待改善";
 "training.next_week_adjustments" = "下週調整建議";
+"training.next_week_is_recovery" = "下週是恢復週";
+"training.next_week_is_normal" = "下週是一般訓練週";
+"training.next_week_target_volume" = "預計週跑量 %@ %@";
+"training.recovery_week_rationale" = "恢復週會刻意降低跑量，讓身體把訓練吸收成進步。跑量下降是計畫的一部分，不是退步。";
 "training.no_weekly_summary" = "尚無週回顧";
 "training.no_weekly_summary_hint" = "本週回顧將在訓練結束後自動產生";
 "training.accept_adjustments_and_generate" = "接受調整並產生下週課表";

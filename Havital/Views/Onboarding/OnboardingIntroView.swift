@@ -22,7 +22,7 @@ struct OnboardingIntroView: View {
             skipTitle: nil,
             ctaAccessibilityId: "OnboardingStartButton",
             ctaAction: {
-                coordinator.navigate(to: .acquisitionChannel)
+                coordinator.navigate(to: .dataSource)
             },
             skipAction: nil
         ) {

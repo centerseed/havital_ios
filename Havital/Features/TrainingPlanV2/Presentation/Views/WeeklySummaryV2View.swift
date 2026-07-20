@@ -16,7 +16,6 @@ private enum Layout {
 private enum SectionID: Hashable {
     case highlights
     case analysis
-    case nextWeek
 }
 
 /// V2 週訓練摘要畫面（漸進式揭露單頁 ScrollView）
@@ -28,8 +27,6 @@ struct WeeklySummaryV2View: View {
     var onSetNewGoal: (() -> Void)?
 
     @State private var expandedSections: Set<SectionID> = []
-    /// 兩頁分頁：0 = 回顧本週, 1 = 規劃下週。預設停第一頁。
-    @State private var currentPage = 0
     // AC-IOS-ANALYTICS-P1-11/P1-13: dedup flags lifted to WeeklySummaryCoordinator
 
     var body: some View {
@@ -94,39 +91,14 @@ struct WeeklySummaryV2View: View {
 
     // MARK: - Loaded View
 
+    /// 單頁週回顧：回顧本週 → 下週型態揭示 → 下週調整建議 → 行動按鈕。
+    ///
+    /// 設計鐵律（T-0259）：使用者按下「產生下週課表」之前，**不需要任何額外動作**
+    /// （不翻頁、不展開）就必須看見系統替他做的決定 —— 下週型態（恢復週/一般週）、
+    /// 預計跑量、以及所有會被套用的調整項目。
+    /// 2026-06 曾把本畫面拆成兩頁（commit fb8d9daa），導致 CTA 在第一層、
+    /// 它要套用的內容在「翻頁 + 展開」兩層之下。此處還原為單頁並禁止再折疊這兩塊。
     private func loadedView(summary: WeeklySummaryV2) -> some View {
-        VStack(spacing: 0) {
-            // 頂部分段控制：一眼看見「回顧本週 / 規劃下週」兩段，點即切換。
-            // 與 TabView 共用 currentPage → 點分段 / 左右滑 雙向同步。
-            // 取代原本只有底部 page dots（又小又被內容壓住、使用者看不出能翻頁）的設計。
-            Picker("", selection: $currentPage.animation(.easeInOut(duration: 0.25))) {
-                Text(NSLocalizedString("training.review_this_week", comment: "回顧本週")).tag(0)
-                Text(NSLocalizedString("training.plan_next_week", comment: "規劃下週")).tag(1)
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal)
-            .padding(.top, 8)
-            .padding(.bottom, 4)
-            .accessibilityIdentifier("v2.summary.page_picker")
-
-            TabView(selection: $currentPage) {
-                reviewPage(summary: summary)
-                    .tag(0)
-
-                planNextPage(summary: summary)
-                    .tag(1)
-            }
-            // 分頁指示改由頂部分段控制承擔，移除底部 page dots（避免兩個位置指示器並存）
-            .tabViewStyle(.page(indexDisplayMode: .never))
-        }
-        .background(Color(UIColor.systemGroupedBackground))
-        .accessibilityIdentifier("v2.summary.loaded_content")
-    }
-
-    // MARK: - Page 1: 回顧本週
-
-    /// 第一頁「回顧本週」：story hero（若有）+ 完成度 + 本週亮點 + observations + 訓練分析
-    private func reviewPage(summary: WeeklySummaryV2) -> some View {
         ScrollView {
             VStack(spacing: Layout.sectionSpacing) {
 
@@ -183,73 +155,124 @@ struct WeeklySummaryV2View: View {
                         .padding(.top, 8)
                 }
 
-                // 前進到第二頁「規劃下週」的明確入口（與頂部分段控制雙保險）。
-                // 主 CTA「產生下週課表」在第二頁，第一頁若無明確前進元件，
-                // 使用者會卡在這頁不知如何往下走 → 這顆按鈕直接把人帶過去。
-                Button {
-                    withAnimation(.easeInOut(duration: 0.25)) { currentPage = 1 }
-                } label: {
-                    HStack(spacing: 6) {
-                        Text(NSLocalizedString("training.continue_to_plan_next", comment: "下一步：規劃下週"))
-                        Image(systemName: "arrow.right")
+                // ── 以下為「下週」區塊：全部不可折疊 ──────────────────────
+                // 產生下週課表的 CTA 就在這底下，使用者必須在按下去之前
+                // 先看見「下週是什麼型態、跑量多少、會套用哪些調整」。
+
+                // 下週型態揭示（恢復週/一般週 + 預計跑量）
+                nextWeekOutlookCard()
+
+                // 下週調整建議（攤開，不折疊）
+                VStack(alignment: .leading, spacing: Layout.contentSpacing) {
+                    HStack(spacing: Layout.itemSpacing) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .foregroundColor(.blue)
+                            .font(AppFont.headline())
+                            .frame(width: 22)
+                        Text(NSLocalizedString("training.next_week_adjustments", comment: "下週調整建議"))
+                            .font(AppFont.headline())
+                            .foregroundColor(.primary)
+                        Spacer()
                     }
-                    .font(AppFont.headline())
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color.blue)
-                    .cornerRadius(12)
-                }
-                .padding(.top, 4)
-                .accessibilityIdentifier("v2.summary.continue_to_plan_button")
-            }
-            .padding(.horizontal)
-            .padding(.top, 16)
-            .padding(.bottom, 32)
-        }
-        .accessibilityIdentifier("v2.summary.review_page")
-    }
 
-    // MARK: - Page 2: 規劃下週
-
-    /// 第二頁「規劃下週」：下週調整建議（含勾選）+ 行動按鈕
-    /// 紅隊耦合鐵律：AdjustmentsSectionV2 + 行動按鈕整組保留、簽名/接線不變。
-    private func planNextPage(summary: WeeklySummaryV2) -> some View {
-        ScrollView {
-            VStack(spacing: Layout.sectionSpacing) {
-
-                // 下週計劃（折疊）
-                CollapsibleSectionV2(
-                    id: .nextWeek,
-                    icon: "arrow.triangle.2.circlepath",
-                    iconColor: .blue,
-                    title: NSLocalizedString("training.next_week_adjustments", comment: "下週調整建議"),
-                    preview: nextWeekPreview(summary.nextWeekAdjustments),
-                    accessibilityIdentifier: "v2.summary.next_week_toggle",
-                    expandedSections: $expandedSections
-                ) {
-                    VStack(spacing: Layout.contentSpacing) {
-                        if !summary.weeklyHighlights.areasForImprovement.isEmpty {
-                            ImprovementsSectionV2(areas: summary.weeklyHighlights.areasForImprovement)
-                        }
-                        AdjustmentsSectionV2(
-                            adjustments: summary.nextWeekAdjustments,
-                            coordinator: viewModel.summary,
-                            showToggles: onGenerateNextWeek != nil
-                        )
+                    if !summary.weeklyHighlights.areasForImprovement.isEmpty {
+                        ImprovementsSectionV2(areas: summary.weeklyHighlights.areasForImprovement)
                     }
-                    .padding(.top, 8)
+                    AdjustmentsSectionV2(
+                        adjustments: summary.nextWeekAdjustments,
+                        coordinator: viewModel.summary,
+                        showToggles: onGenerateNextWeek != nil
+                    )
                 }
+                .padding(Layout.cardPadding)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(UIColor.tertiarySystemBackground))
+                        .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+                )
+                .accessibilityIdentifier("v2.summary.next_week_section")
 
-                // 行動按鈕（永遠可見）
+                // 行動按鈕
                 actionButtonsView(summary: summary)
             }
             .padding(.horizontal)
             .padding(.top, 16)
-            // 額外底部留白，避開 TabView 的分頁指示器
             .padding(.bottom, 48)
         }
-        .accessibilityIdentifier("v2.summary.plan_next_page")
+        .background(Color(UIColor.systemGroupedBackground))
+        .accessibilityIdentifier("v2.summary.loaded_content")
+    }
+
+    // MARK: - Next Week Outlook（系統決定揭示，不可折疊）
+
+    /// 下週型態與預計跑量。資料來源為計畫骨架（`loader.weeklyPreview`），
+    /// 週次以後端 `nextWeekInfo.weekNumber` 為準、退回 `weekOfPlan + 1`
+    /// （與 `WeeklyPlanGenerator.resolveWeekToGenerateAfterSummary` 同一套規則）。
+    /// 骨架尚未載入（靜默載入可能為 nil）時整塊不顯示 —— 寧可不講，不講錯。
+    @ViewBuilder
+    private func nextWeekOutlookCard() -> some View {
+        if let week = nextWeekSkeleton() {
+            let unit = week.distanceUnit ?? "km"
+            let km = week.targetKmDisplay ?? week.targetKm
+
+            VStack(alignment: .leading, spacing: Layout.itemSpacing) {
+                HStack(spacing: Layout.itemSpacing) {
+                    Image(systemName: week.isRecovery ? "leaf.fill" : "figure.run")
+                        .foregroundColor(week.isRecovery ? .green : .blue)
+                        .font(AppFont.headline())
+                        .frame(width: 22)
+
+                    Text(week.isRecovery
+                         ? NSLocalizedString("training.next_week_is_recovery", comment: "下週是恢復週")
+                         : NSLocalizedString("training.next_week_is_normal", comment: "下週是一般訓練週"))
+                        .font(AppFont.headline())
+                        .foregroundColor(.primary)
+
+                    Spacer()
+                }
+
+                Text(String(
+                    format: NSLocalizedString("training.next_week_target_volume", comment: "預計週跑量 %@ %@"),
+                    formattedVolume(km), unit
+                ))
+                .font(AppFont.subheadline())
+                .foregroundColor(.primary)
+
+                if week.isRecovery {
+                    Text(NSLocalizedString("training.recovery_week_rationale", comment: "恢復週會刻意降低跑量，讓身體把訓練吸收成進步。跑量下降是計畫的一部分，不是退步。"))
+                        .font(AppFont.caption())
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(Layout.cardPadding)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(week.isRecovery
+                          ? Color.green.opacity(0.12)
+                          : Color(UIColor.tertiarySystemBackground))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(week.isRecovery ? Color.green.opacity(0.45) : Color.clear, lineWidth: 1)
+            )
+            .accessibilityIdentifier("v2.summary.next_week_outlook")
+        }
+    }
+
+    /// 解析下週骨架；週次規則與 generator 對齊，骨架不存在時回 nil。
+    private func nextWeekSkeleton() -> WeekPreview? {
+        let backendWeek = viewModel.loader.planStatusResponse?.nextWeekInfo?.weekNumber
+        let targetWeek = (backendWeek.map { $0 > 0 ? $0 : nil } ?? nil) ?? max(1, weekOfPlan + 1)
+        return viewModel.loader.weeklyPreview?.weeks.first { $0.week == targetWeek }
+    }
+
+    /// 跑量顯示：整數不帶小數點，非整數保留一位。
+    private func formattedVolume(_ value: Double) -> String {
+        value.rounded() == value
+            ? String(format: "%.0f", value)
+            : String(format: "%.1f", value)
     }
 
     // MARK: - Story Hero
@@ -295,6 +318,9 @@ struct WeeklySummaryV2View: View {
                     .background(Color.blue)
                     .cornerRadius(12)
             }
+            // T-0259：這顆是整個畫面唯一會改動用戶課表的按鈕，必須可被回歸測試鎖定，
+            // 用來斷言「下週型態揭示」永遠排在它前面。
+            .accessibilityIdentifier("v2.summary.generate_next_week_button")
         }
 
         if let onSetNewGoal {
@@ -366,14 +392,6 @@ struct WeeklySummaryV2View: View {
             return String(format: NSLocalizedString("training.avg_pace_preview", comment: "平均配速 %@"), avg)
         }
         return NSLocalizedString("training.view_analysis", comment: "查看數據分析")
-    }
-
-    private func nextWeekPreview(_ adjustments: NextWeekAdjustmentsV2) -> String {
-        let summary = adjustments.summary
-        if summary.count <= 30 {
-            return summary
-        }
-        return String(summary.prefix(30)) + "..."
     }
 
     // MARK: - Loading Placeholder
