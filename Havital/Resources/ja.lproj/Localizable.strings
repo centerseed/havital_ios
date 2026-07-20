@@ -2448,6 +2448,10 @@
 "training.achievements" = "達成";
 "training.areas_for_improvement" = "改善点";
 "training.next_week_adjustments" = "来週の調整提案";
+"training.next_week_is_recovery" = "来週は回復週です";
+"training.next_week_is_normal" = "来週は通常のトレーニング週です";
+"training.next_week_target_volume" = "予定週間走行距離 %@ %@";
+"training.recovery_week_rationale" = "回復週は意図的に走行距離を落とし、これまでのトレーニングを体に定着させる期間です。距離が減るのは計画どおりで、後退ではありません。";
 "training.no_weekly_summary" = "週次レビューなし";
 "training.no_weekly_summary_hint" = "週次レビューはトレーニング終了後に自動作成されます";
 

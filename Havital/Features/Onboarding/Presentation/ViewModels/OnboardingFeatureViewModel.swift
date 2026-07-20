@@ -374,20 +374,6 @@ final class OnboardingFeatureViewModel: ObservableObject {
         }
     }
 
-    /// Save self-reported acquisition channel (T-0094).
-    /// Best-effort：失敗只回 false 不設 error —— 自報不得擋 onboarding 主流程。
-    @discardableResult
-    func saveAcquisitionChannel(_ channel: String) async -> Bool {
-        do {
-            _ = try await userProfileRepository.updateUserProfile(["acquisition_channel": channel])
-            Logger.debug("[OnboardingFeatureVM] Acquisition channel saved: \(channel)")
-            return true
-        } catch {
-            Logger.debug("[OnboardingFeatureVM] Failed to save acquisition channel: \(error.localizedDescription)")
-            return false
-        }
-    }
-
     /// Determine next step after weekly distance based on user data
     func determineNextStepAfterWeeklyDistance() -> OnboardingCoordinator.Step {
         // V2 Flow: Always go to Goal Type first to let user choose their training target

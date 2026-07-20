@@ -36,10 +36,6 @@ tags:
 - tapOn:
     id: "OnboardingStartButton"
     optional: true
-# T-0094：行銷渠道自報屏（wait/防衛都在 subflow 內）
-- runFlow:
-    file: ../subflows/pass-acquisition-channel.yaml
-
 - extendedWaitUntil:
     visible:
       id: "DataSource_Screen"
