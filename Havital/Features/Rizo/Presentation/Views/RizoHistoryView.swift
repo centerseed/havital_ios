@@ -6,6 +6,7 @@ import SwiftUI
 struct RizoHistoryView: View {
     @StateObject private var viewModel = RizoHistoryViewModel()
     @Environment(\.dismiss) private var dismiss
+    var onResume: ((RizoHistoryFork) -> Void)?
 
     var body: some View {
         NavigationStack {
@@ -41,7 +42,16 @@ struct RizoHistoryView: View {
     private func listView(_ conversations: [RizoConversationSummary]) -> some View {
         List(conversations) { convo in
             NavigationLink {
-                RizoHistoryDetailView(conversation: convo)
+                RizoHistoryDetailView(conversation: convo) { turnIndex in
+                    do {
+                        let fork = try await viewModel.fork(convo, throughTurnIndex: turnIndex)
+                        onResume?(fork)
+                        dismiss()
+                        return true
+                    } catch {
+                        return false
+                    }
+                }
             } label: {
                 row(convo)
             }

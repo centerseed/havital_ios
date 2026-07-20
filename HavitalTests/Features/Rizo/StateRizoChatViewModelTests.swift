@@ -119,6 +119,27 @@ final class StateRizoChatViewModelTests: XCTestCase {
         XCTAssertEqual(vm.draft, "")
     }
 
+    func test_resumeFromHistoryRendersPrefixAndSendsNextTurnToForkSession() async {
+        let fake = FakeRizoRepository(reply: makeReply(text: "Continuing answer", sessionId: "fork-1"))
+        let vm = StateRizoChatViewModel(scenario: "weekly_situation", repository: fake)
+        let fork = RizoHistoryFork(
+            sessionId: "fork-1",
+            scenario: "body_status",
+            turns: [RizoHistoryItem(
+                sessionId: "fork-1", scenario: "body_status",
+                userInput: "How far did I run yesterday?", rizoResponse: "You ran 5 km yesterday.",
+                ts: "2026-07-20T01:00:00+00:00"
+            )]
+        )
+
+        vm.resumeFromHistory(fork)
+        XCTAssertEqual(vm.messages.map(\.text), ["How far did I run yesterday?", "You ran 5 km yesterday."])
+
+        await vm.send("What about the pace?")
+        XCTAssertEqual(fake.lastSessionId, "fork-1")
+        XCTAssertEqual(fake.lastScenario, "body_status", "Resumed chat must preserve the source scenario")
+    }
+
     func test_send_failure_appendsCoachFallbackMessage() async {
         let fake = FakeRizoRepository(
             reply: makeReply(text: "不會用到", sessionId: "s1")

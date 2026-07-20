@@ -48,6 +48,9 @@ protocol RizoRepository {
     /// - Returns: 歷史項目清單。
     func getHistory() async throws -> [RizoHistoryItem]
 
+    /// 以來源 session 的第 `throughTurnIndex` 回合（0-based，含該回合）建立新對話。
+    func forkHistory(sourceSessionId: String, throughTurnIndex: Int) async throws -> RizoHistoryFork
+
     /// 確認並套用先前提出的改課表提案（使用者按「接受」）。
     /// 對應 POST /v2/agent/plan-change/confirm。
     /// - Parameter proposalId: chat 回應 `pendingPlanChange.proposalId`。
@@ -57,6 +60,10 @@ protocol RizoRepository {
 
 // MARK: - Rizo Repository Convenience Defaults
 extension RizoRepository {
+    func forkHistory(sourceSessionId: String, throughTurnIndex: Int) async throws -> RizoHistoryFork {
+        throw RizoRepositoryError.dataSourceUnavailable
+    }
+
     func streamJournalChat(workoutId: String, message: String, presetSelections: [String], sessionId: String?) -> AsyncThrowingStream<RizoChatUpdate, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {

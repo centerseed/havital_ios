@@ -208,6 +208,43 @@ final class RizoDataLayerTests: XCTestCase {
         XCTAssertNil(last.body)
     }
 
+    func testForkHistoryPostsAnchorAndMapsNewSessionPrefix() async throws {
+        let wrappedJSON = """
+        {
+          "success": true,
+          "data": {
+            "session_id": "fork-new",
+            "scenario": "body_status",
+            "turns": [{
+              "session_id": "fork-new",
+              "ts": "2026-07-20T01:00:00+00:00",
+              "scenario": "body_status",
+              "user_input": "How was yesterday's run?",
+              "rizo_response": "You completed 5 km yesterday."
+            }]
+          }
+        }
+        """.data(using: .utf8)!
+        mockHTTPClient.setResponse(
+            for: "/v2/agent/history/fork", method: .POST, data: wrappedJSON
+        )
+
+        let fork = try await sut.forkHistory(
+            sourceSessionId: "source-old", throughTurnIndex: 0
+        )
+
+        XCTAssertEqual(fork.sessionId, "fork-new")
+        XCTAssertEqual(fork.scenario, "body_status")
+        XCTAssertEqual(fork.turns.map(\.userInput), ["How was yesterday's run?"])
+        let request = try XCTUnwrap(mockHTTPClient.lastRequest)
+        XCTAssertEqual(request.path, "/v2/agent/history/fork")
+        XCTAssertEqual(request.method, .POST)
+        let body = try XCTUnwrap(request.body)
+        let json = try XCTUnwrap(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["source_session_id"] as? String, "source-old")
+        XCTAssertEqual(json["through_turn_index"] as? Int, 0)
+    }
+
     // MARK: - #1 structured diff_days
 
     func testPendingPlanChangeDecodesDiffDays() throws {

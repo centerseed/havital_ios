@@ -24,9 +24,7 @@ appId: com.havital.Havital.dev
     timeout: 10000
 - takeScreenshot: /tmp/bm_after_weekly_review_tap
 
-# 點「下週調整建議」折疊按鈕展開
-- tapOn:
-    id: "v2.summary.next_week_toggle"
+# T-0259：下週調整建議改為單頁常駐、不再折疊 → 無需點擊展開，直接等內容
 - extendedWaitUntil:
     visible:
       id: "v2.summary.benchmark_execute_card_0"
