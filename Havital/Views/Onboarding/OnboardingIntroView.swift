@@ -70,6 +70,21 @@ struct OnboardingIntroView: View {
             weeklyLoop
                 .opacity(showWeeklyPair ? 1 : 0)
                 .offset(y: showWeeklyPair ? 0 : 12)
+
+            Text(NSLocalizedString("onboarding.intro_cycle_label", comment: "Repeats every week"))
+                .font(AppFont.captionMedium())
+                .foregroundColor(.white)
+                .padding(.vertical, 7)
+                .padding(.horizontal, 16)
+                .background(
+                    Capsule()
+                        .fill(LinearGradient(colors: [blueDeep, blueLight], startPoint: .leading, endPoint: .trailing))
+                        .shadow(color: blueDeep.opacity(0.3), radius: 8, x: 0, y: 4)
+                )
+                .frame(maxWidth: .infinity)
+                .padding(.top, 20)
+                .opacity(showCycleChip ? 1 : 0)
+                .scaleEffect(showCycleChip ? 1 : 0.8)
         }
     }
 
@@ -132,25 +147,13 @@ struct OnboardingIntroView: View {
             .fixedSize(horizontal: false, vertical: true)
             .padding(.vertical, 34)
 
-            cycleArrow(pointingRight: true)
-                .frame(maxHeight: .infinity, alignment: .top)
-                .padding(.top, 8)
-                .opacity(showCycleChip ? 1 : 0)
-
-            Text(NSLocalizedString("onboarding.intro_cycle_label", comment: "Repeats every week"))
-                .font(AppFont.captionMedium())
-                .foregroundColor(.white)
-                .padding(.vertical, 7)
-                .padding(.horizontal, 16)
-                .background(
-                    Capsule()
-                        .fill(LinearGradient(colors: [blueDeep, blueLight], startPoint: .leading, endPoint: .trailing))
-                        .shadow(color: blueDeep.opacity(0.3), radius: 8, x: 0, y: 4)
-                )
-                .frame(maxHeight: .infinity, alignment: .bottom)
-                .offset(y: 14)
-                .opacity(showCycleChip ? 1 : 0)
-                .scaleEffect(showCycleChip ? 1 : 0.8)
+            VStack {
+                cycleArrow(pointingRight: true)
+                Spacer()
+                cycleArrow(pointingRight: false)
+            }
+            .padding(.vertical, 10)
+            .opacity(showCycleChip ? 1 : 0)
         }
     }
 
