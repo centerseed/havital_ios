@@ -47,6 +47,8 @@ maestro test .maestro/flows/<flow>.yaml
 grep -r "Dictionary.*Date\|Date.*Dictionary" Havital/ --include="*.swift"
 ```
 
+**Merge gate**：branch merge 進 main 需先 `/judge ios <branch>` 取得獨立裁判 verdict（root `scripts/hooks/merge_gate.py` 硬擋，實作 session 不能自己蓋章）。
+
 ## 發版 (Release pipeline)
 
 fastlane 已串好並實測(build+簽章含 Watch 已驗)。完整步驟 → **`fastlane/RELEASE.md`**。
