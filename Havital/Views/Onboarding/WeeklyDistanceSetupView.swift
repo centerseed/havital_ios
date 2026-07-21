@@ -14,9 +14,9 @@ struct WeeklyDistanceSetupView: View {
 
     let targetDistance: Double?
 
-    private let minimumWeeklyDistance = 0.0
+    private let minimumWeeklyDistance = 5.0
     private let maxWeeklyDistance = 180.0
-    private let stepperStep = 5.0
+    private let stepperStep = 1.0
 
     private let presetDistances: [Double] = [10, 20, 30, 50, 70, 100]
 
