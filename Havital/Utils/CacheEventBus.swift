@@ -132,6 +132,29 @@ class CacheEventBus {
         Logger.trace("[CacheEventBus] 訂閱者取消註冊: \(identifier)")
     }
 
+    #if DEBUG
+    /// 測試隔離用：先讓已排隊的 publish 跑完，再清空所有訂閱與監聽者。
+    ///
+    /// `publish` 走 `Task { @MainActor in ... }`，是非同步的 fire-and-forget，
+    /// 而本類是 process-wide singleton —— 於是「上一條測試發的事件落進下一條測試的
+    /// handler」是常態而非例外。這正是 T-0176 的根因：一個 stray 事件造成
+    /// over-fulfill，丟出 NSInternalInconsistencyException，一口氣吞掉約 400 條測試。
+    ///
+    /// 各測試自己「容忍 stray」只是治標且仍在飄；正解是每條測試開始前把 bus 清乾淨。
+    /// 順序很重要：一定要先排空再清空，否則清完又被前一條的事件灌進來。
+    func resetForTesting() async {
+        // 讓已排入 MainActor 佇列的 publish 先執行完畢
+        await MainActor.run {}
+        await Task.yield()
+        await MainActor.run {}
+        stateQueue.sync {
+            eventSubscriptions.removeAll()
+            identifierBasedSubscriptions.removeAll()
+            listeners.removeAll()
+        }
+    }
+    #endif
+
     /// 通知事件訂閱者
     private func notifyEventSubscribers(for event: CacheInvalidationReason) async {
         let (handlers, identifierSubscribers) = stateQueue.sync {

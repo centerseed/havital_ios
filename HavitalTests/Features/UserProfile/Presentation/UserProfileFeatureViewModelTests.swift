@@ -22,7 +22,11 @@ final class UserProfileFeatureViewModelTests: XCTestCase {
     
     override func setUp() async throws {
         try await super.setUp()
-        
+
+        // 見 LoginViewModelTests：CacheEventBus 的跨測試事件外洩會讓本類的
+        // userChanged / userLogout 斷言隨機失敗。每條測試開始前先把 bus 清乾淨。
+        await CacheEventBus.shared.resetForTesting()
+
         mockUserRepository = MockUserProfileRepository()
         mockPrefsRepository = MockUserPreferencesRepository()
         mockAuthService = MockAuthenticationService()

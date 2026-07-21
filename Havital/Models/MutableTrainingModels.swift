@@ -185,6 +185,22 @@ struct MutableTrainingDay: Identifiable, Equatable {
         type != .rest
     }
 
+    /// 內容是否相同 —— **刻意忽略 `dayIndex` / `originalDayIndex`**。
+    ///
+    /// `dayIndex` 是「這天排在週幾」的**位置**，不是課表**內容**。互換日期時 `dayIndex`
+    /// 必然改變，但處方一個字都沒動；若拿 `==`（含 dayIndex）去判斷「使用者有沒有編輯過」，
+    /// 被搬動的天會恆判為「已編輯」，於是墜入有損重建路徑，把編輯器沒有模型化的欄位
+    /// （segment 的 kind/repeats/work/recovery、distance_display、pace_unit …）洗成 nil。
+    ///
+    /// 實作刻意複用 `==`：日後在 `==` 新增比較欄位，這裡自動跟上，不會再出現
+    /// 「加了新欄位 → 互換就把它弄丟」的破口。
+    func hasSameContent(as other: MutableTrainingDay) -> Bool {
+        var normalized = self
+        normalized.dayIndex = other.dayIndex
+        normalized.originalDayIndex = other.originalDayIndex
+        return normalized == other
+    }
+
     static func == (lhs: MutableTrainingDay, rhs: MutableTrainingDay) -> Bool {
         return lhs.dayIndex == rhs.dayIndex &&
                lhs.dayTarget == rhs.dayTarget &&

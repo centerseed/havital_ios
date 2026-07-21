@@ -14,8 +14,12 @@ final class LoginViewModelTests: XCTestCase {
     var mockAuthRepository: MockAuthRepository!
     var mockAuthSessionRepository: MockAuthSessionRepository!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
+        // CacheEventBus 是 process-wide singleton 且 publish 為非同步 fire-and-forget，
+        // 上一條測試的事件會落進這條測試的 handler（T-0176：一個 stray 事件 over-fulfill
+        // 後丟出 NSInternalInconsistencyException，吞掉約 400 條測試）。先把 bus 清乾淨。
+        await CacheEventBus.shared.resetForTesting()
         mockAuthRepository = MockAuthRepository()
         mockAuthSessionRepository = MockAuthSessionRepository()
 

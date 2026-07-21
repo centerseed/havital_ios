@@ -159,10 +159,16 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
         // 完整保留熱適應卡、心率區間、目標強度、顯示單位、segment 等編輯器沒有
         // 模型化的欄位。只有真的被改動的日子才進入下面從 MutableTrainingDay 重建
         // 的有損路徑（重建本身仍盡量從 original 帶回非編輯欄位）。
-        if let originalDay, MutableTrainingDay(from: originalDay) == day {
+        // 比的是**內容**不是位置：純互換日期（onMove 只改 dayIndex）必須留在無損路徑，
+        // 否則被搬動的天會白白掉一堆編輯器沒模型化的欄位。搬移後要把 DTO 的 dayIndex
+        // 改寫成新位置，原始 DTO 帶的是舊位置。
+        if let originalDay, MutableTrainingDay(from: originalDay).hasSameContent(as: day) {
             // 沒被編輯的那天最容易漏：直接回傳原始 DTO 會把舊 doc 殘留的 climate
             // 原封不動送回後端。氣候一律不上網路（T-0165）。
-            return Self.stripClimate(TrainingSessionMapper.toDTO(from: originalDay))
+            return Self.renumber(
+                Self.stripClimate(TrainingSessionMapper.toDTO(from: originalDay)),
+                to: day.dayIndexInt
+            )
         }
 
         let dayType = DayType(rawValue: day.trainingType) ?? .rest
@@ -299,33 +305,34 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
         let runType = dayType.apiRunType
         let originalDay = originalDay(for: day)
         let originalRun = originalDay?.primaryRunActivity
-        // runType 未變時，把編輯器沒有模型化的欄位（心率區間、目標強度）從原始 run 帶回，
-        // 否則存檔後整週的心率區間 / 目標強度會被洗成空白。runType 改變則交給後端重算。
         let sameRunType = originalRun.map { normalizedRunType($0.runType) == normalizedRunType(runType) } ?? false
-        let preservedHeartRate = sameRunType
-            ? originalRun?.heartRateRange.map { TrainingSessionMapper.toDTO(from: $0) }
-            : nil
-        let preservedTargetIntensity = sameRunType ? originalRun?.targetIntensity : nil
+
+        // 基底 overlay：runType 沒變就從原始 run 的**無損** DTO 出發，只覆寫編輯器真正
+        // 擁有的欄位。方向性是關鍵 —— 舊版是逐欄重建、預設「沒寫到就變 nil」，於是心率
+        // 區間、目標強度、segment 的 kind/work/recovery 一個一個被靜默洗掉，每補一個欄位
+        // 就再漏下一個（24529353 → 72561b1a → f696f05e）。改成 overlay 之後，DTO 日後
+        // 新增任何欄位預設就是被保留的，不需要有人記得回來補這裡。
+        // runType 有變 = 換了一種課，處方本身要交給後端重算，故從空白基底出發。
+        var base = sameRunType && originalRun != nil
+            ? Self.stripRunClimate(TrainingSessionMapper.toDTO(from: originalRun!))
+            : Self.emptyRunActivityDTO(runType: runType)
+        base.runType = runType
+        // MutableTrainingDay.isTrail 是非 optional Bool（nil 會被讀成 false），
+        // 無條件寫回會把後端原本的 null 憑空變成 false —— 有損路徑不只會丟欄位，
+        // 也會塞入原本不存在的值。只有使用者真的切換過才寫。
+        if day.isTrail != (base.isTrail ?? false) {
+            base.isTrail = day.isTrail
+        }
+        // 清空前先留一份快照，供 setDistanceKm 判斷距離有沒有真的改變。
+        let baseline = base
+        // 處方形狀由編輯器全權決定：先清空，再由下面各分支填回自己擁有的部分。
+        // 沒被清掉的欄位（heart_rate_range / target_intensity / pace_unit …）就是
+        // 「編輯器沒有模型化」的那一類，一律沿用基底。
+        Self.clearPrescriptionShape(&base)
+
         guard let details = day.trainingDetails else {
-            return RunActivityDTO(
-                runType: runType,
-                distanceKm: nil,
-                distanceDisplay: nil,
-                distanceUnit: nil,
-                paceUnit: nil,
-                durationMinutes: nil,
-                durationSeconds: nil,
-                pace: nil,
-                basePace: nil,
-                climateAdjustedPace: nil,
-                heartRateRange: preservedHeartRate,
-                interval: nil,
-                segments: nil,
-                description: day.dayTarget,
-                targetIntensity: preservedTargetIntensity,
-                climateMeta: nil,
-                isTrail: day.isTrail
-            )
+            base.description = day.dayTarget
+            return base
         }
 
         // 間歇訓練
@@ -348,95 +355,56 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
                 recoveryDurationSeconds: recovery.timeSeconds,
                 variant: nil
             )
-            return RunActivityDTO(
-                runType: runType,
-                distanceKm: details.totalDistanceKm ?? details.distanceKm,
-                distanceDisplay: nil,
-                distanceUnit: nil,
-                paceUnit: nil,
-                durationMinutes: details.timeMinutes.map { Int($0) },
-                durationSeconds: nil,
-                pace: details.pace,
-                basePace: nil,
-                climateAdjustedPace: nil,
-                heartRateRange: preservedHeartRate,
-                interval: intervalDTO,
-                segments: nil,
-                description: details.description ?? day.dayTarget,
-                targetIntensity: preservedTargetIntensity,
-                climateMeta: nil,
-                isTrail: day.isTrail
-            )
+            Self.setDistanceKm(&base, details.totalDistanceKm ?? details.distanceKm, base: baseline)
+            base.durationMinutes = details.timeMinutes.map { Int($0) }
+            base.pace = details.pace
+            base.interval = intervalDTO
+            base.description = details.description ?? day.dayTarget
+            return base
         }
 
         // 分段訓練（progression, combination, fartlek, fastFinish）
         if let segs = details.segments, !segs.isEmpty {
-            let originalSegments = originalRun?.segments ?? []
+            let originalSegments = (sameRunType ? originalRun?.segments : nil) ?? []
             let segDTOs: [RunSegmentDTO] = segs.enumerated().map { index, seg -> RunSegmentDTO in
                 let originalSegment = index < originalSegments.count ? originalSegments[index] : nil
-                return RunSegmentDTO(
-                    distanceKm: seg.distanceKm,
-                    distanceM: nil,
-                    distanceDisplay: nil,
-                    distanceUnit: nil,
-                    durationMinutes: nil,
-                    durationSeconds: nil,
-                    pace: seg.pace,
-                    basePace: nil,
-                    climateAdjustedPace: nil,
-                    climateMeta: nil,
-                    heartRateRange: originalSegment?.heartRateRange.map { TrainingSessionMapper.toDTO(from: $0) },
-                    intensity: originalSegment?.intensity,
-                    description: seg.description
-                        ?? originalSegment?.description
-                        ?? String(format: NSLocalizedString("schedule_editor.segment.number_format", comment: ""), index + 1),
-                    kind: nil,
-                    repeats: nil,
-                    work: nil,
-                    recovery: nil
-                )
+                // 同樣走 overlay：段落的基底是原始 segment，編輯器只覆寫距離 / 配速 / 描述。
+                // kind / repeats / work / recovery 等段落結構就靠「沒被覆寫」而原樣留下 ——
+                // 舊版把它們寫死 nil，於是只要編輯 fartlek 那天的配速，
+                // 「6×400m 間歇」就會被打平成一段勻速跑（T-0149 / T-0245）。
+                var out = originalSegment.map { Self.stripSegmentClimate(TrainingSessionMapper.toDTO(from: $0)) }
+                    ?? Self.emptyRunSegmentDTO()
+                out.distanceKm = seg.distanceKm
+                // distance_m 與 distance_km 是同一個距離的兩種單位，只覆寫其一會自相矛盾。
+                out.distanceM = nil
+                out.pace = seg.pace
+                out.description = seg.description
+                    ?? originalSegment?.description
+                    ?? String(format: NSLocalizedString("schedule_editor.segment.number_format", comment: ""), index + 1)
+                return out
             }
-            return RunActivityDTO(
-                runType: runType,
-                distanceKm: details.totalDistanceKm,
-                distanceDisplay: nil,
-                distanceUnit: nil,
-                paceUnit: nil,
-                durationMinutes: details.timeMinutes.map { Int($0) },
-                durationSeconds: nil,
-                pace: details.pace,
-                basePace: nil,
-                climateAdjustedPace: nil,
-                heartRateRange: preservedHeartRate,
-                interval: nil,
-                segments: segDTOs,
-                description: details.description ?? day.dayTarget,
-                targetIntensity: preservedTargetIntensity,
-                climateMeta: nil,
-                isTrail: day.isTrail
-            )
+            Self.setDistanceKm(&base, details.totalDistanceKm, base: baseline)
+            base.durationMinutes = details.timeMinutes.map { Int($0) }
+            base.pace = details.pace
+            base.segments = segDTOs
+            base.description = details.description ?? day.dayTarget
+            return base
         }
 
         // 一般跑步
-        return RunActivityDTO(
-            runType: runType,
-            distanceKm: details.distanceKm,
-            distanceDisplay: nil,
-            distanceUnit: nil,
-            paceUnit: nil,
-            durationMinutes: details.timeMinutes.map { Int($0) },
-            durationSeconds: nil,
-            pace: details.pace,
-            basePace: nil,
-            climateAdjustedPace: nil,
-            heartRateRange: preservedHeartRate,
-            interval: nil,
-            segments: nil,
-            description: details.description ?? day.dayTarget,
-            targetIntensity: preservedTargetIntensity,
-            climateMeta: nil,
-            isTrail: day.isTrail
-        )
+        Self.setDistanceKm(&base, details.distanceKm, base: baseline)
+        base.durationMinutes = details.timeMinutes.map { Int($0) }
+        base.pace = details.pace
+        base.description = details.description ?? day.dayTarget
+        return base
+    }
+
+    /// 把 DTO 搬到新的 day_index。內容原封不動，只換位置。
+    static func renumber(_ dto: DayDetailDTO, to dayIndex: Int) -> DayDetailDTO {
+        guard dto.dayIndex != dayIndex else { return dto }
+        var out = dto
+        out.dayIndex = dayIndex
+        return out
     }
 
     /// 剝除 DayDetailDTO 上所有 climate 欄位。剝的是氣候，不是處方。
@@ -444,65 +412,114 @@ final class EditScheduleV2ViewModel: ObservableObject, Identifiable, TaskManagea
     /// 後端 `strip_climate` 也會擋，但沒理由把它送上網路 —— 而且靜默送回去會讓
     /// 「App 到底有沒有遵守新契約」變得無法用測試斷言。
     ///
-    /// DTO 全是 `let`，所以用重建而非 mutate。IntervalBlockDTO 不帶 climate 欄位，原樣帶過。
+    /// 實作刻意用 mutate 而非重建：**只列出要清掉的欄位，沒列到的一律原樣留著**。
+    /// 這個方向性是關鍵 —— 舊版逐欄重建的預設是「沒寫到就變 nil」，於是每次 DTO 新增欄位
+    /// 都會靜默掉資料（bd1e4d48 補了 climate、f696f05e 又漏掉 kind/work/recovery）。
+    /// 改成 mutate 之後，新增欄位預設就是被保留的，不需要任何人記得回來補這裡。
+    /// IntervalBlockDTO 不帶 climate 欄位，原樣帶過。
     static func stripClimate(_ dto: DayDetailDTO) -> DayDetailDTO {
-        var primary = dto.primary
-        if case .run(let run) = dto.primary {
-            primary = .run(RunActivityDTO(
-                runType: run.runType,
-                distanceKm: run.distanceKm,
-                distanceDisplay: run.distanceDisplay,
-                distanceUnit: run.distanceUnit,
-                paceUnit: run.paceUnit,
-                durationMinutes: run.durationMinutes,
-                durationSeconds: run.durationSeconds,
-                pace: run.pace,
-                basePace: nil,
-                climateAdjustedPace: nil,
-                heartRateRange: run.heartRateRange,
-                interval: run.interval,
-                segments: run.segments?.map { seg in
-                    RunSegmentDTO(
-                        distanceKm: seg.distanceKm,
-                        distanceM: seg.distanceM,
-                        distanceDisplay: seg.distanceDisplay,
-                        distanceUnit: seg.distanceUnit,
-                        durationMinutes: seg.durationMinutes,
-                        durationSeconds: seg.durationSeconds,
-                        pace: seg.pace,
-                        basePace: nil,
-                        climateAdjustedPace: nil,
-                        climateMeta: nil,
-                        heartRateRange: seg.heartRateRange,
-                        intensity: seg.intensity,
-                        description: seg.description,
-                        // 段落序列必須原樣 round-trip。這裡只剝 climate，
-                        // 若讓 kind/work/recovery 掉成 nil，任何走 stripClimate 的
-                        // 寫回都會把「6×400m 間歇」抹成一段勻速跑。
-                        // SegmentEffortDTO 不含 climate 欄位，故無須遞迴剝除。
-                        kind: seg.kind,
-                        repeats: seg.repeats,
-                        work: seg.work,
-                        recovery: seg.recovery
-                    )
-                },
-                description: run.description,
-                targetIntensity: run.targetIntensity,
-                climateMeta: nil,
-                isTrail: run.isTrail
-            ))
+        var out = dto
+        out.climateMeta = nil
+        if case .run(var run) = out.primary {
+            run.basePace = nil
+            run.climateAdjustedPace = nil
+            run.climateMeta = nil
+            run.segments = run.segments?.map(stripSegmentClimate)
+            out.primary = .run(run)
         }
-        return DayDetailDTO(
-            dayIndex: dto.dayIndex,
-            dayTarget: dto.dayTarget,
-            reason: dto.reason,
-            tips: dto.tips,
-            category: dto.category,
+        return out
+    }
+
+    /// 剝除單一 segment 的 climate 欄位。SegmentEffortDTO 不含 climate，故無須遞迴。
+    static func stripSegmentClimate(_ segment: RunSegmentDTO) -> RunSegmentDTO {
+        var out = segment
+        out.basePace = nil
+        out.climateAdjustedPace = nil
+        out.climateMeta = nil
+        return out
+    }
+
+    /// 剝除 run 層（含其 segments）的 climate 欄位，不碰 DayDetail 層。
+    static func stripRunClimate(_ run: RunActivityDTO) -> RunActivityDTO {
+        var out = run
+        out.basePace = nil
+        out.climateAdjustedPace = nil
+        out.climateMeta = nil
+        out.segments = out.segments?.map(stripSegmentClimate)
+        return out
+    }
+
+    /// 清空「處方形狀」欄位 —— 這些由編輯器全權決定，各分支會填回自己擁有的部分。
+    ///
+    /// 這是 overlay 寫法唯一需要小心的地方：保留是預設，所以**互斥的形狀必須明確清掉**，
+    /// 否則把間歇改成一般跑步時，舊的 interval / segments 會殘留下來。
+    /// distance_display / distance_unit 不在這裡清 —— 它們由 `setDistanceKm` 依「距離有沒有
+    /// 真的改變」決定，否則使用者只改配速也會被洗掉顯示單位（純搬移那條路徑的已知 bug 形狀）。
+    private static func clearPrescriptionShape(_ dto: inout RunActivityDTO) {
+        dto.distanceKm = nil
+        dto.durationMinutes = nil
+        dto.durationSeconds = nil
+        dto.pace = nil
+        dto.interval = nil
+        dto.segments = nil
+    }
+
+    /// 設定距離，並在距離**真的改變**時一併作廢其衍生顯示值。
+    ///
+    /// distance_display / distance_unit 是同一個距離的另一種單位表述（8 km ↔ 5 mi）。
+    /// 距離變了卻留著舊的顯示值，UI 會出現「10 公里 / 5.0 mi」這種自相矛盾；
+    /// 距離沒變卻清掉它們，則是白白丟失使用者的單位偏好。兩種都是實際出過的 bug。
+    private static func setDistanceKm(_ dto: inout RunActivityDTO, _ km: Double?, base: RunActivityDTO) {
+        dto.distanceKm = km
+        if km != base.distanceKm {
+            dto.distanceDisplay = nil
+            dto.distanceUnit = nil
+        }
+    }
+
+    /// runType 改變時的空白基底：處方交給後端重算，不從舊課帶任何欄位過來。
+    private static func emptyRunActivityDTO(runType: String) -> RunActivityDTO {
+        RunActivityDTO(
+            runType: runType,
+            distanceKm: nil,
+            distanceDisplay: nil,
+            distanceUnit: nil,
+            paceUnit: nil,
+            durationMinutes: nil,
+            durationSeconds: nil,
+            pace: nil,
+            basePace: nil,
+            climateAdjustedPace: nil,
+            heartRateRange: nil,
+            interval: nil,
+            segments: nil,
+            description: nil,
+            targetIntensity: nil,
             climateMeta: nil,
-            primary: primary,
-            warmup: dto.warmup,
-            cooldown: dto.cooldown,
-            supplementary: dto.supplementary
+            isTrail: nil
+        )
+    }
+
+    /// 新增的段落（原始課表沒有對應 index）用的空白基底。
+    private static func emptyRunSegmentDTO() -> RunSegmentDTO {
+        RunSegmentDTO(
+            distanceKm: nil,
+            distanceM: nil,
+            distanceDisplay: nil,
+            distanceUnit: nil,
+            durationMinutes: nil,
+            durationSeconds: nil,
+            pace: nil,
+            basePace: nil,
+            climateAdjustedPace: nil,
+            climateMeta: nil,
+            heartRateRange: nil,
+            intensity: nil,
+            description: nil,
+            kind: nil,
+            repeats: nil,
+            work: nil,
+            recovery: nil
         )
     }
 

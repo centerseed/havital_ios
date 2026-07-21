@@ -160,6 +160,304 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
         XCTAssertNil(runActivity.basePace)
     }
 
+    // MARK: - 互換日期（onMove）必須無損
+
+    /// 回歸：純互換兩天（內容一個字都沒改）必須無損搬移。
+    ///
+    /// `buildDayDetailDTO` 的無損捷徑靠 `MutableTrainingDay(from: originalDay) == day`，
+    /// 而 `==` 第一項就比 `dayIndex`。onMove 會重編 dayIndex，`originalDay` 卻是用
+    /// 不變的 `originalDayIndex` 撈的 → 被移動過的天恆不相等 → 一律墜入有損重建路徑。
+    /// 有損路徑對 segment 寫死 `kind/repeats/work/recovery = nil`，於是使用者只是把
+    /// 週二週四對調，週四的 steadyIntervals 結構就被打平成一堆無型態的段落。
+    func testSaveEdits_swappingTwoDaysPreservesSegmentStructureLosslessly() async throws {
+        let repository = MockTrainingPlanV2Repository()
+        let weeklyPlan = makeTwoDayPlanWithStructuredSecondDay()
+        repository.weeklyPlanV2ToReturn = weeklyPlan
+
+        let viewModel = EditScheduleV2ViewModel(
+            weeklyPlan: weeklyPlan,
+            repository: repository
+        )
+
+        // 完全比照 EditScheduleViewV2.onMove：重排後把 dayIndex 重編為新位置
+        viewModel.editingDays.move(fromOffsets: IndexSet(integer: 1), toOffset: 0)
+        for i in viewModel.editingDays.indices {
+            viewModel.editingDays[i].dayIndex = "\(i + 1)"
+        }
+
+        _ = try await viewModel.saveEdits()
+
+        let days = try XCTUnwrap(repository.lastUpdateWeeklyPlanRequest?.days)
+        XCTAssertEqual(days.count, 2)
+
+        // 原本 day 2 的 steadyIntervals 現在應該落在 day 1
+        let movedDay = try XCTUnwrap(days.first { $0.dayIndex == 1 })
+        XCTAssertEqual(movedDay.dayTarget, "Steady intervals")
+
+        // 全欄位守恆：不逐欄位手列，直接 deep-diff 整份 DTO。
+        try assertLosslessMove(submitted: movedDay, original: weeklyPlan.days[1])
+
+        // 另一天同樣無損，且落在 day 2
+        let otherDay = try XCTUnwrap(days.first { $0.dayIndex == 2 })
+        XCTAssertEqual(otherDay.dayTarget, "Easy")
+        try assertLosslessMove(submitted: otherDay, original: weeklyPlan.days[0])
+    }
+
+    /// 回歸（T-0149 / T-0245）：**編輯**一天的配速，不得破壞該天其餘任何欄位。
+    ///
+    /// 前一支測試守的是「純搬移」（無損路徑）。這支守的是真正被編輯過、
+    /// 因而落入重建路徑的那條線 —— 六次 regression 全部發生在這裡。
+    ///
+    /// 修復前：重建路徑對 segment 寫死 `kind/repeats/work/recovery = nil`，
+    /// 於是使用者只是把 fartlek 那天的配速從 4:30 改成 4:20，
+    /// 「5×1000m 間歇」的段落結構就整個被打平成一段勻速跑。
+    func testSaveEdits_editingPacePreservesEverythingElseOnStructuredDay() async throws {
+        let repository = MockTrainingPlanV2Repository()
+        let weeklyPlan = makeTwoDayPlanWithStructuredSecondDay()
+        repository.weeklyPlanV2ToReturn = weeklyPlan
+
+        let viewModel = EditScheduleV2ViewModel(
+            weeklyPlan: weeklyPlan,
+            repository: repository
+        )
+
+        // 只改配速，其他一律不動
+        let structuredIndex = try XCTUnwrap(viewModel.editingDays.firstIndex { $0.dayIndexInt == 2 })
+        viewModel.editingDays[structuredIndex].trainingDetails?.pace = "4:20"
+
+        _ = try await viewModel.saveEdits()
+
+        let days = try XCTUnwrap(repository.lastUpdateWeeklyPlanRequest?.days)
+        let submitted = try XCTUnwrap(days.first { $0.dayIndex == 2 })
+
+        // 段落結構必須完整存活，這是本 bug 的核心
+        guard case .run(let run) = submitted.primary else {
+            return XCTFail("Expected run activity")
+        }
+        let segment = try XCTUnwrap(run.segments?.first)
+        XCTAssertEqual(segment.kind, "steady_intervals")
+        XCTAssertEqual(segment.repeats, 5)
+        XCTAssertEqual(segment.work?.distanceM, 1000)
+        XCTAssertEqual(segment.recovery?.durationSeconds, 90)
+        XCTAssertEqual(segment.recovery?.recoveryType, "jog")
+        // 編輯器沒有模型化的欄位同樣不可被洗掉
+        XCTAssertEqual(run.targetIntensity, "threshold")
+        XCTAssertEqual(run.heartRateRange?.min, 150)
+        XCTAssertEqual(run.paceUnit, "min_per_km")
+        // 距離沒改，顯示單位偏好就不該被丟掉
+        XCTAssertEqual(run.distanceDisplay, 8)
+        XCTAssertEqual(run.distanceUnit, "km")
+
+        // 全欄位守恆：只有 pace 這一個欄位可以不同。
+        // 同樣刻意不手列欄位 —— 日後新增的欄位自動納入保護。
+        try assertOnlyExpectedFieldsChanged(
+            submitted: submitted,
+            original: weeklyPlan.days[1],
+            allowedDifferingPaths: ["primary.pace"]
+        )
+    }
+
+    // MARK: - 全欄位守恆斷言（model 驅動，非手列欄位）
+
+    /// 「純搬移」的契約：送出的 DTO 除了 `day_index` 與**刻意剝除的氣候欄位**之外，
+    /// 必須與後端原本給的那天**逐欄位相同**。
+    ///
+    /// 這裡刻意不手列欄位。手列是這個 bug 反覆復發的根本形狀 ——
+    /// `bd1e4d48` 只補 climate、後來 isTrail / SegmentKind / work / recovery 各自
+    /// 又開新破口，因為每次都只斷言「這次想到的那幾個」。
+    ///
+    /// 改為把兩份 DTO 各自 encode 成 JSON 後整份 deep-diff：**日後 DayDetailDTO 新增
+    /// 任何欄位都自動納入保護**，沒有人需要記得回來補測試。
+    ///
+    /// `allowedDifferingPaths` 是唯一的白名單，且必須是**刻意的契約**：
+    /// - `day_index`：搬移的定義本身
+    /// - climate 系列：T-0165，氣候綁日期不綁課表，一律不上網路
+    private func assertLosslessMove(
+        submitted: DayDetailDTO,
+        original: DayDetail,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) throws {
+        try assertOnlyExpectedFieldsChanged(
+            submitted: submitted,
+            original: original,
+            allowedDifferingPaths: [],
+            file: file,
+            line: line
+        )
+    }
+
+    /// 通用的全欄位守恆斷言：送出的 DTO 除了白名單路徑外，必須與原始那天逐欄位相同。
+    ///
+    /// `day_index` 與 climate 系列（T-0165）是所有情境共通的刻意契約，故內建於基礎白名單；
+    /// 呼叫端只需補上該情境**額外**允許改變的欄位（例如「使用者改了配速」）。
+    private func assertOnlyExpectedFieldsChanged(
+        submitted: DayDetailDTO,
+        original: DayDetail,
+        allowedDifferingPaths: Set<String>,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) throws {
+        let baseAllowed: Set<String> = [
+            "day_index",
+            "climate_meta",
+            "primary.climate_meta",
+            "primary.base_pace",
+            "primary.climate_adjusted_pace",
+        ]
+        let allowed = baseAllowed.union(allowedDifferingPaths)
+
+        let expected = try jsonObject(TrainingSessionMapper.toDTO(from: original))
+        let actual = try jsonObject(submitted)
+
+        let diffs = deepDiff(expected, actual, path: "")
+            .filter { diff in
+                !allowed.contains { diff.hasPrefix($0) }
+            }
+
+        XCTAssertTrue(
+            diffs.isEmpty,
+            "saving must not change any field outside the allowlist. Unexpected differences:\n"
+                + diffs.joined(separator: "\n"),
+            file: file,
+            line: line
+        )
+    }
+
+    private func jsonObject(_ dto: DayDetailDTO) throws -> [String: Any] {
+        let data = try JSONEncoder().encode(dto)
+        return try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
+    }
+
+    /// 回傳所有值不同的 JSON 路徑。缺 key 視為 null，因此「欄位被靜默丟掉」會被抓到。
+    private func deepDiff(_ lhs: Any, _ rhs: Any, path: String) -> [String] {
+        if let l = lhs as? [String: Any], let r = rhs as? [String: Any] {
+            return Set(l.keys).union(r.keys).sorted().flatMap { key -> [String] in
+                deepDiff(
+                    l[key] ?? NSNull(),
+                    r[key] ?? NSNull(),
+                    path: path.isEmpty ? key : "\(path).\(key)"
+                )
+            }
+        }
+        if let l = lhs as? [Any], let r = rhs as? [Any] {
+            guard l.count == r.count else {
+                return ["\(path): array count \(l.count) != \(r.count)"]
+            }
+            return zip(l, r).enumerated().flatMap { index, pair in
+                deepDiff(pair.0, pair.1, path: "\(path)[\(index)]")
+            }
+        }
+        if lhs is NSNull && rhs is NSNull { return [] }
+        if let l = lhs as? NSObject, let r = rhs as? NSObject, l.isEqual(r) { return [] }
+        return ["\(path): expected \(lhs), got \(rhs)"]
+    }
+
+    private func makeTwoDayPlanWithStructuredSecondDay() -> WeeklyPlanV2 {
+        let base = makeWeeklyPlan()
+
+        let steadySegment = RunSegment(
+            distanceKm: 8,
+            distanceM: nil,
+            distanceDisplay: 8,
+            distanceUnit: "km",
+            durationMinutes: nil,
+            durationSeconds: nil,
+            pace: "4:30",
+            basePace: nil,
+            climateAdjustedPace: nil,
+            climateMeta: nil,
+            heartRateRange: HeartRateRangeV2(min: 150, max: 165),
+            intensity: "threshold",
+            description: "5 x 1000m",
+            kind: "steady_intervals",
+            repeats: 5,
+            work: SegmentEffort(
+                distanceKm: 1,
+                distanceM: 1000,
+                durationMinutes: nil,
+                durationSeconds: nil,
+                pace: "4:00",
+                basePace: nil,
+                paceZone: nil,
+                targetHrr: nil,
+                recoveryType: nil
+            ),
+            recovery: SegmentEffort(
+                distanceKm: nil,
+                distanceM: nil,
+                durationMinutes: nil,
+                durationSeconds: 90,
+                pace: nil,
+                basePace: nil,
+                paceZone: nil,
+                targetHrr: nil,
+                recoveryType: "jog"
+            )
+        )
+
+        let steadyRun = RunActivity(
+            runType: "steady_intervals",
+            distanceKm: 8,
+            distanceDisplay: 8,
+            distanceUnit: "km",
+            paceUnit: "min_per_km",
+            durationMinutes: nil,
+            durationSeconds: nil,
+            pace: "4:30",
+            basePace: nil,
+            climateAdjustedPace: nil,
+            heartRateRange: HeartRateRangeV2(min: 150, max: 165),
+            interval: nil,
+            segments: [steadySegment],
+            description: "Steady intervals",
+            targetIntensity: "threshold",
+            climateMeta: nil
+        )
+
+        let day2 = DayDetail(
+            dayIndex: 2,
+            dayTarget: "Steady intervals",
+            reason: "Threshold development",
+            tips: nil,
+            category: .run,
+            climateMeta: nil,
+            session: TrainingSession(
+                warmup: nil,
+                primary: .run(steadyRun),
+                cooldown: nil,
+                supplementary: nil
+            ),
+            supplementary: nil
+        )
+
+        return WeeklyPlanV2(
+            planId: base.planId,
+            weekOfTraining: base.weekOfTraining,
+            id: base.id,
+            purpose: base.purpose,
+            weekOfPlan: base.weekOfPlan,
+            totalWeeks: base.totalWeeks,
+            totalDistance: base.totalDistance,
+            totalDistanceDisplay: base.totalDistanceDisplay,
+            totalDistanceUnit: base.totalDistanceUnit,
+            totalDistanceReason: base.totalDistanceReason,
+            designReason: base.designReason,
+            mileageProgressionNote: base.mileageProgressionNote,
+            coachNote: base.coachNote,
+            days: base.days + [day2],
+            intensityTotalMinutes: base.intensityTotalMinutes,
+            currentVdot: base.currentVdot,
+            vdotSource: base.vdotSource,
+            createdAt: base.createdAt,
+            updatedAt: base.updatedAt,
+            trainingLoadAnalysis: base.trainingLoadAnalysis,
+            personalizedRecommendations: base.personalizedRecommendations,
+            realTimeAdjustments: base.realTimeAdjustments,
+            apiVersion: base.apiVersion
+        )
+    }
+
     private func makeWeeklyPlan() -> WeeklyPlanV2 {
         let climateMeta = ClimateMeta(
             feelsLikeTempC: 33.6,
