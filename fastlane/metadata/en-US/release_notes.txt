@@ -1,7 +1,7 @@
 ・Rizo responds faster
 Rizo now answers as it thinks, so text starts appearing right after you ask.
 
-・Fixed schedule editing issues
-Editing and saving your schedule is now more reliable.
+・Refined onboarding flow
+Setup before you start training is clearer and easier to follow.
 
-Other improvements and fixes.
+・Bug fixes
