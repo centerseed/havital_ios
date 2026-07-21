@@ -213,7 +213,7 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
         XCTAssertEqual(mockUserProfileRepository.updateUserProfileCallCount, 1)
     }
     
-    func testDetermineNextStep_NoHistory_ReturnsGoalType() {
+    func testDetermineNextStep_NoHistory_ReturnsTrainingDays() {
         // Given
         UserDefaults.standard.set(false, forKey: "onboarding_hasPersonalBest")
         sut.weeklyDistance = 0
@@ -222,19 +222,19 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
         let nextStep = sut.determineNextStepAfterWeeklyDistance()
         
         // Then
-        XCTAssertEqual(nextStep, .goalType)
+        XCTAssertEqual(nextStep, .trainingDays)
     }
     
-    func testDetermineNextStep_HasHistory_ReturnsGoalType() {
-        // Given: V2 Flow - Always go to Goal Type first
+    func testDetermineNextStep_HasHistory_ReturnsTrainingDays() {
+        // Given: goal selection is already complete when weekly distance is collected
         UserDefaults.standard.set(true, forKey: "onboarding_hasPersonalBest")
         sut.weeklyDistance = 20
 
         // When
         let nextStep = sut.determineNextStepAfterWeeklyDistance()
 
-        // Then: V2 Flow 總是先進入 Goal Type 選擇
-        XCTAssertEqual(nextStep, .goalType)
+        // Then: weekly distance now flows directly into training-day selection
+        XCTAssertEqual(nextStep, .trainingDays)
     }
     
     // MARK: - Goal Type Tests
