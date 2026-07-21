@@ -5,6 +5,7 @@ import SwiftUI
 struct BenchmarkExecuteCard: View {
     let payload: BenchmarkExecutePayload
     let index: Int
+    var showsToggle: Bool = true
     @Binding var isSelected: Bool
 
     private var weekdayText: String {
@@ -38,31 +39,29 @@ struct BenchmarkExecuteCard: View {
                 .font(AppFont.caption()).foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Divider()
+            if showsToggle {
+                Divider()
 
-            HStack {
-                Text(NSLocalizedString("benchmark.execute.toggle", comment: ""))
-                    .font(AppFont.subheadline()).fontWeight(.medium)
-                Spacer()
-                Toggle("", isOn: $isSelected).labelsHidden()
-                    .accessibilityIdentifier("v2.summary.benchmark_execute_toggle_\(index)")
+                HStack {
+                    Text(NSLocalizedString("benchmark.execute.toggle", comment: ""))
+                        .font(AppFont.subheadline()).fontWeight(.medium)
+                    Spacer()
+                    Toggle("", isOn: $isSelected).labelsHidden()
+                        .accessibilityIdentifier("v2.summary.benchmark_execute_toggle_\(index)")
+                }
+                Text(isSelected
+                     ? NSLocalizedString("benchmark.execute.toggle_hint", comment: "")
+                     : NSLocalizedString("benchmark.execute.skipped", comment: ""))
+                    .font(AppFont.caption()).foregroundColor(.secondary)
             }
-            Text(isSelected
-                 ? NSLocalizedString("benchmark.execute.toggle_hint", comment: "")
-                 : NSLocalizedString("benchmark.execute.skipped", comment: ""))
-                .font(AppFont.caption()).foregroundColor(.secondary)
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: PacerizRadius.card)
-                .stroke(PacerizColor.benchmark.opacity(0.5), lineWidth: 1.5)
-                .background(
-                    RoundedRectangle(cornerRadius: PacerizRadius.card)
-                        .fill(PacerizColor.benchmark.opacity(0.06))
-                )
+        .adjustmentSelectionStyle(
+            isSelected: isSelected,
+            fill: PacerizColor.benchmark.opacity(0.06),
+            accent: PacerizColor.benchmark,
+            cornerRadius: PacerizRadius.card
         )
-        .opacity(isSelected ? 1.0 : 0.5)
-        .animation(.easeInOut(duration: 0.2), value: isSelected)
         .accessibilityIdentifier("v2.summary.benchmark_execute_card_\(index)")
     }
 }
