@@ -26,7 +26,10 @@ struct WeeklySummaryV2View: View {
     var onGenerateNextWeek: (() -> Void)?
     var onSetNewGoal: (() -> Void)?
 
-    @State private var expandedSections: Set<SectionID> = []
+    /// 預設全部攤開。2026-06 的問題是「預設收折」把內容藏起來，不是拆兩頁本身；
+    /// 使用者仍可自行收起，但不再需要多按一下才看得到系統做的決定。
+    @State private var expandedSections: Set<SectionID> = [.highlights, .analysis]
+    @State private var currentPage: Int = 0
     // AC-IOS-ANALYTICS-P1-11/P1-13: dedup flags lifted to WeeklySummaryCoordinator
 
     var body: some View {
@@ -91,14 +94,41 @@ struct WeeklySummaryV2View: View {
 
     // MARK: - Loaded View
 
-    /// 單頁週回顧：回顧本週 → 下週型態揭示 → 下週調整建議 → 行動按鈕。
+    /// 兩頁週回顧：第一頁「回顧本週」、第二頁「規劃下週」。
     ///
-    /// 設計鐵律（T-0259）：使用者按下「產生下週課表」之前，**不需要任何額外動作**
-    /// （不翻頁、不展開）就必須看見系統替他做的決定 —— 下週型態（恢復週/一般週）、
-    /// 預計跑量、以及所有會被套用的調整項目。
-    /// 2026-06 曾把本畫面拆成兩頁（commit fb8d9daa），導致 CTA 在第一層、
-    /// 它要套用的內容在「翻頁 + 展開」兩層之下。此處還原為單頁並禁止再折疊這兩塊。
+    /// 設計鐵律（T-0259 修訂）：使用者按下「產生下週課表」之前，必須看見系統替他做的
+    /// 決定 —— 下週型態（恢復週/一般週）、預計跑量、以及所有會被套用的調整項目。
+    /// 這條規則要求的是「CTA 與它要套用的內容同頁且攤開」，**不是**禁止分頁：
+    /// 2026-06 的真正缺陷是內容預設收折（還要多按一次才看得到），
+    /// 一度連分頁一起移除是過度修正，反而把所有區塊擠成一條過長的捲軸。
+    /// 現在下週型態 + 調整建議 + CTA 全在第二頁且攤開，規則仍然成立。
     private func loadedView(summary: WeeklySummaryV2) -> some View {
+        VStack(spacing: 0) {
+            // 頂部分段控制：一眼看見「回顧本週 / 規劃下週」，點即切換；與 TabView 雙向同步。
+            Picker("", selection: $currentPage.animation(.easeInOut(duration: 0.25))) {
+                Text(NSLocalizedString("training.review_this_week", comment: "回顧本週")).tag(0)
+                Text(NSLocalizedString("training.plan_next_week", comment: "規劃下週")).tag(1)
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            .padding(.top, 8)
+            .padding(.bottom, 4)
+            .accessibilityIdentifier("v2.summary.page_picker")
+
+            TabView(selection: $currentPage) {
+                reviewPage(summary: summary).tag(0)
+                planNextPage(summary: summary).tag(1)
+            }
+            // 分頁指示由頂部分段控制承擔，移除底部 page dots（避免兩處指示器並存）
+            .tabViewStyle(.page(indexDisplayMode: .never))
+        }
+        .background(Color(UIColor.systemGroupedBackground))
+        .accessibilityIdentifier("v2.summary.loaded_content")
+    }
+
+    // MARK: - Page 1: 回顧本週
+
+    private func reviewPage(summary: WeeklySummaryV2) -> some View {
         ScrollView {
             VStack(spacing: Layout.sectionSpacing) {
 
@@ -155,9 +185,39 @@ struct WeeklySummaryV2View: View {
                         .padding(.top, 8)
                 }
 
-                // ── 以下為「下週」區塊：全部不可折疊 ──────────────────────
-                // 產生下週課表的 CTA 就在這底下，使用者必須在按下去之前
-                // 先看見「下週是什麼型態、跑量多少、會套用哪些調整」。
+                // 前進到第二頁的明確入口（與頂部分段控制雙保險）：
+                // 主 CTA 在第二頁，第一頁若無明確前進元件，使用者會卡在這裡。
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) { currentPage = 1 }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(NSLocalizedString("training.continue_to_plan_next", comment: "下一步：規劃下週"))
+                        Image(systemName: "arrow.right")
+                    }
+                    .font(AppFont.headline())
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.blue)
+                    .cornerRadius(12)
+                }
+                .padding(.top, 4)
+                .accessibilityIdentifier("v2.summary.continue_to_plan_button")
+            }
+            .padding(.horizontal)
+            .padding(.top, 16)
+            .padding(.bottom, 32)
+        }
+        .accessibilityIdentifier("v2.summary.review_page")
+    }
+
+    // MARK: - Page 2: 規劃下週
+
+    /// 第二頁「規劃下週」：下週型態 + 調整建議 + CTA，全部攤開不折疊。
+    /// CTA 與它要套用的內容同頁同層 —— T-0259 的「按下去之前必須看見」在此成立。
+    private func planNextPage(summary: WeeklySummaryV2) -> some View {
+        ScrollView {
+            VStack(spacing: Layout.sectionSpacing) {
 
                 // 下週型態揭示（恢復週/一般週 + 預計跑量）
                 nextWeekOutlookCard()
@@ -173,6 +233,23 @@ struct WeeklySummaryV2View: View {
                             .font(AppFont.headline())
                             .foregroundColor(.primary)
                         Spacer()
+
+                        if onGenerateNextWeek != nil, !summary.nextWeekAdjustments.items.isEmpty {
+                            Text(String(format: NSLocalizedString(
+                                "training.adjustment_selected_count",
+                                comment: "已選 %d / %d 條"
+                            ), viewModel.summary.selectedCount, summary.nextWeekAdjustments.items.count))
+                                .font(AppFont.caption())
+                                .foregroundColor(.secondary)
+                        }
+                    }
+
+                    // 講清楚 Toggle 的語意，避免未勾選的卡片被誤讀成「功能不可用」。
+                    if onGenerateNextWeek != nil, !summary.nextWeekAdjustments.items.isEmpty {
+                        Text(NSLocalizedString("training.adjustment_toggle_hint", comment: ""))
+                            .font(AppFont.caption())
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
 
                     if !summary.weeklyHighlights.areasForImprovement.isEmpty {
@@ -199,8 +276,7 @@ struct WeeklySummaryV2View: View {
             .padding(.top, 16)
             .padding(.bottom, 48)
         }
-        .background(Color(UIColor.systemGroupedBackground))
-        .accessibilityIdentifier("v2.summary.loaded_content")
+        .accessibilityIdentifier("v2.summary.plan_next_page")
     }
 
     // MARK: - Next Week Outlook（系統決定揭示，不可折疊）
@@ -932,25 +1008,7 @@ private struct AdjustmentsSectionV2: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.contentSpacing) {
-            HStack(spacing: Layout.itemSpacing) {
-                Image(systemName: "arrow.triangle.2.circlepath")
-                    .foregroundColor(.blue)
-                    .font(AppFont.headline())
-                Text(NSLocalizedString("training.next_week_adjustments", comment: "下週調整建議"))
-                    .font(AppFont.headline())
-                    .foregroundColor(.primary)
-                Spacer()
-
-                if showToggles && !adjustments.items.isEmpty {
-                    Text(String(format: NSLocalizedString(
-                        "training.adjustment_selected_count",
-                        comment: "已選 %d / %d 條"
-                    ), coordinator.selectedCount, adjustments.items.count))
-                        .font(AppFont.caption())
-                        .foregroundColor(.secondary)
-                }
-            }
-
+            // 標題已由外層 loadedView 繪製，此處不再重複一次。
             // 摘要
             Text(adjustments.summary)
                 .font(AppFont.subheadline())
@@ -966,11 +1024,14 @@ private struct AdjustmentsSectionV2: View {
                     : .constant(true)
 
                 if let exec = item.benchmarkExecute {
-                    BenchmarkExecuteCard(payload: exec, index: index, isSelected: binding)
+                    BenchmarkExecuteCard(
+                        payload: exec, index: index, showsToggle: showToggles, isSelected: binding)
                 } else if let calib = item.benchmarkCalibration {
-                    BenchmarkCalibrationCard(payload: calib, index: index, isSelected: binding)
+                    BenchmarkCalibrationCard(
+                        payload: calib, index: index, showsToggle: showToggles, isSelected: binding)
                 } else {
-                    AdjustmentItemCardV2(item: item, index: index, isSelected: binding)
+                    AdjustmentItemCardV2(
+                        item: item, index: index, showsToggle: showToggles, isSelected: binding)
                 }
             }
 
@@ -1002,7 +1063,12 @@ private struct AdjustmentsSectionV2: View {
 private struct AdjustmentItemCardV2: View {
     let item: AdjustmentItemV2
     let index: Int
+    /// 唯讀模式（僅檢視歷史回顧）不顯示 Toggle 與選取狀態標記——
+    /// 顯示一個永遠打開、按了沒反應的 Toggle 只會讓人誤解。
+    let showsToggle: Bool
     @Binding var isSelected: Bool
+
+    private var showsSelectionLabel: Bool { showsToggle }
 
     private var priorityColor: Color {
         switch item.priority.lowercased() {
@@ -1024,16 +1090,11 @@ private struct AdjustmentItemCardV2: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.itemSpacing) {
-            HStack {
+            // 一列一件事：左邊是「這是什麼調整」，右邊是「要不要套用」。
+            HStack(spacing: 8) {
                 Image(systemName: categoryIcon)
                     .foregroundColor(priorityColor)
                     .font(AppFont.subheadline())
-
-                Spacer()
-
-                Toggle("", isOn: $isSelected)
-                    .labelsHidden()
-                    .accessibilityIdentifier("v2.summary.adjustment_toggle_\(index)")
 
                 Text(item.priority.uppercased())
                     .font(AppFont.systemScaled(size: 12, weight: .bold))
@@ -1042,6 +1103,14 @@ private struct AdjustmentItemCardV2: View {
                     .padding(.vertical, 2)
                     .background(priorityColor)
                     .cornerRadius(4)
+
+                Spacer(minLength: 8)
+
+                if showsToggle {
+                    Toggle("", isOn: $isSelected)
+                        .labelsHidden()
+                        .accessibilityIdentifier("v2.summary.adjustment_toggle_\(index)")
+                }
             }
 
             Text(item.content)
@@ -1066,13 +1135,13 @@ private struct AdjustmentItemCardV2: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
+
+            if showsSelectionLabel {
+                AdjustmentSelectionLabel(isSelected: isSelected)
+            }
         }
         .padding(Layout.subCardPadding)
-        .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(8)
-        .opacity(isSelected ? 1.0 : 0.4)
-        .grayscale(isSelected ? 0.0 : 1.0)
-        .animation(.easeInOut(duration: 0.2), value: isSelected)
+        .adjustmentSelectionStyle(isSelected: isSelected)
         .accessibilityIdentifier("v2.summary.adjustment_item_\(index)")
     }
 }

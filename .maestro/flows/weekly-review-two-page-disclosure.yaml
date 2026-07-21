@@ -1,0 +1,50 @@
+appId: com.havital.Havital.dev
+# T-0274 回歸防線：週回顧「兩頁但預設攤開」。
+#
+# 歷史：fb8d9daa（1.4.10）把週回顧拆成兩頁；T-0259 的 8a9cf4d7 一度整個還原成單頁
+# （過度修正）。本次（T-0274）採用戶要求：回到兩頁，但兩頁內容預設攤開、
+# 修改建議不反灰。設計鐵律仍成立：「產生下週課表」CTA 與它要套用的內容
+# （下週型態、跑量、調整項目）同在第二頁且攤開，使用者按下去之前一定看得見。
+#
+# 本 flow 斷言：
+#   1. 頂端有「回顧本週 / 規劃下週」分段控制（page_picker）→ 兩頁存在
+#   2. 第一頁 highlights/analysis 預設攤開（不點展開鈕即見內容）
+#   3. 切到第二頁：下週型態 + 下週調整建議 + CTA 皆常駐攤開（不需點任何折疊鈕）
+#
+# 前提：已登入 dev 帳號、該帳號有可產生週回顧的訓練計畫。
+---
+- launchApp: { stopApp: true, clearState: false, arguments: { -skipHealthKitAuth: "true" } }
+- tapOn: { id: "AnnouncementPopup_CloseButton", optional: true }
+- tapOn: { text: "不允許|Don't Allow|Don’t Allow|許可しない|稍後|Later|後で|好|OK", optional: true }
+- tapOn: { text: "Plan|計劃|計畫|プラン", optional: true }
+- tapOn: { text: "Plan|計劃|計畫|プラン", optional: true }
+- extendedWaitUntil: { visible: { id: "ellipsis.circle" }, timeout: 15000 }
+- tapOn: { id: "ellipsis.circle" }
+- tapOn: { text: "更多|More|もっと見る", optional: true }
+- tapOn: "🐛 Debug 工具"
+- tapOn: "🐛 產生週回顧"
+- extendedWaitUntil: { visible: "訓練完成度|Completion|Training Completion", timeout: 90000 }
+
+# 1. 兩頁：分段控制必須存在
+- assertVisible: { id: "v2.summary.page_picker" }
+
+# 2. 第一頁預設攤開：highlights/analysis 章節內容不點即見
+- assertVisible: { text: "本週亮點|Highlights" }
+- assertVisible: { text: "訓練分析|Analysis|分析" }
+- takeScreenshot: /private/tmp/claude-502/-Users-wubaizong-havital/6ddd2493-9a3c-4209-a10e-bcc4a2b9b3f7/scratchpad/wr_page1_review_expanded
+
+# 前往第二頁的明確入口存在
+- assertVisible: { id: "v2.summary.continue_to_plan_button" }
+
+# 3. 切到第二頁「規劃下週」
+- tapOn: { text: "規劃下週|Next Week|来週" }
+- extendedWaitUntil: { visible: { id: "v2.summary.next_week_outlook" }, timeout: 15000 }
+- takeScreenshot: /private/tmp/claude-502/-Users-wubaizong-havital/6ddd2493-9a3c-4209-a10e-bcc4a2b9b3f7/scratchpad/wr_page2_outlook
+
+# 下週調整建議：常駐攤開，捲動即見（不點任何折疊鈕）
+- scrollUntilVisible:
+    element:
+      text: "下週調整建議|Next Week Adjustments|来週の調整提案"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: /private/tmp/claude-502/-Users-wubaizong-havital/6ddd2493-9a3c-4209-a10e-bcc4a2b9b3f7/scratchpad/wr_page2_adjustments

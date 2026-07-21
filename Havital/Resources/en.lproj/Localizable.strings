@@ -2557,6 +2557,9 @@
 "training.apply_n_adjustments_and_generate" = "Apply %d Suggestions & Generate Next Week";
 "training.generate_without_adjustments" = "Generate Without Adjustments";
 "training.adjustment_selected_count" = "%d / %d selected";
+"training.adjustment_will_apply" = "Will apply";
+"training.adjustment_not_applied" = "Not applied this time";
+"training.adjustment_toggle_hint" = "All adjustments apply by default. Switch off any you don't want — switching off doesn't mean it's unavailable.";
 "training.achievements_count" = "%d achievements";
 "training.areas_for_improvement_title" = "Areas to Improve";
 "training.avg_heart_rate_preview" = "Avg HR %.0f bpm";

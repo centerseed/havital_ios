@@ -74,9 +74,9 @@ final class WeeklyAdjustmentSelectionACTests: XCTestCase {
     // MARK: - P0: Toggle off 視覺弱化 (AC-WKADJ-02)
 
     /// AC-WKADJ-02: Given 用戶切換某條建議的 toggle off，
-    /// Then 該卡片視覺弱化（opacity + grayscale），其餘建議不受影響
+    /// Then 該卡片改用選取態視覺（邊框/底色，非反灰），其餘建議不受影響
     func test_ac_wkadj_02_toggle_off_does_not_affect_others() {
-        // NOTE: 視覺效果（opacity/grayscale）由 View 依 isSelected 驅動，此 test 驗證 coordinator 邏輯
+        // NOTE: 選取態視覺由 View 的 adjustmentSelectionStyle 依 isSelected 驅動（不再用 grayscale），此 test 驗證 coordinator 邏輯
         let coordinator = makeCoordinator()
         let items = makeItems(applyFlags: [true, true])
 
@@ -117,7 +117,21 @@ final class WeeklyAdjustmentSelectionACTests: XCTestCase {
         let success = await coordinator.applySelectedAdjustments(weekOfPlan: 8)
 
         XCTAssertTrue(success)
+        // 舊實作全部取消時直接 return true 不送 API，lastAppliedIndices 保持初始 [] → 此 test 假綠。
+        // 必須斷言 API 真的被呼叫，才鎖得住「空選擇送出撤銷」的行為（外部 review P1，2026-07-21）。
+        XCTAssertEqual(mockRepo.applyAdjustmentItemsCallCount, 1, "clearing all selections must still call API to revoke prior adoption")
         XCTAssertEqual(mockRepo.lastAppliedIndices, [])
+    }
+
+    /// AC-WKADJ-05 邊界：真的沒有任何調整項時，不送出無意義的 API 請求。
+    func test_ac_wkadj_04b_no_items_does_not_call_api() async {
+        let coordinator = makeCoordinator()
+        coordinator.initializeSelections(from: [])
+
+        let success = await coordinator.applySelectedAdjustments(weekOfPlan: 8)
+
+        XCTAssertTrue(success)
+        XCTAssertEqual(mockRepo.applyAdjustmentItemsCallCount, 0, "no adjustment items should not call API")
     }
 
     // MARK: - P0: 空清單不顯示 toggle (AC-WKADJ-05)
