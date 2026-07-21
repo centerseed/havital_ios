@@ -117,7 +117,21 @@ final class WeeklyAdjustmentSelectionACTests: XCTestCase {
         let success = await coordinator.applySelectedAdjustments(weekOfPlan: 8)
 
         XCTAssertTrue(success)
+        // 舊實作全部取消時直接 return true 不送 API，lastAppliedIndices 保持初始 [] → 此 test 假綠。
+        // 必須斷言 API 真的被呼叫，才鎖得住「空選擇送出撤銷」的行為（外部 review P1，2026-07-21）。
+        XCTAssertEqual(mockRepo.applyAdjustmentItemsCallCount, 1, "clearing all selections must still call the API to revoke the existing adoption")
         XCTAssertEqual(mockRepo.lastAppliedIndices, [])
+    }
+
+    /// AC-WKADJ-05 邊界：真的沒有任何調整項時，不送出無意義的 API 請求。
+    func test_ac_wkadj_04b_no_items_does_not_call_api() async {
+        let coordinator = makeCoordinator()
+        coordinator.initializeSelections(from: [])
+
+        let success = await coordinator.applySelectedAdjustments(weekOfPlan: 8)
+
+        XCTAssertTrue(success)
+        XCTAssertEqual(mockRepo.applyAdjustmentItemsCallCount, 0, "no adjustment items means no API call")
     }
 
     // MARK: - P0: 空清單不顯示 toggle (AC-WKADJ-05)
