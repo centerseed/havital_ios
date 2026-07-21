@@ -13,6 +13,8 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
 
     private let remoteDataSource: SubscriptionRemoteDataSourceProtocol
     private let localDataSource: SubscriptionLocalDataSourceProtocol
+    private let introOfferEligibilityResolver: IntroOfferEligibilityResolver
+    private let revenueCatIdentitySync: () async -> Bool
 
     /// 快取最近一次 fetchOfferings 結果，避免 purchase 時重複拉取
     private var cachedOfferings: Offerings?
@@ -32,10 +34,18 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
 
     init(
         remoteDataSource: SubscriptionRemoteDataSourceProtocol = SubscriptionRemoteDataSource(),
-        localDataSource: SubscriptionLocalDataSourceProtocol = SubscriptionLocalDataSource()
+        localDataSource: SubscriptionLocalDataSourceProtocol = SubscriptionLocalDataSource(),
+        introOfferEligibilityProvider: IntroOfferEligibilityProviding = StoreKitIntroOfferEligibilityProvider(),
+        revenueCatIdentitySync: @escaping () async -> Bool = {
+            await AuthenticationViewModel.shared.ensureRevenueCatIdentitySynced()
+        }
     ) {
         self.remoteDataSource = remoteDataSource
         self.localDataSource = localDataSource
+        self.introOfferEligibilityResolver = IntroOfferEligibilityResolver(
+            provider: introOfferEligibilityProvider
+        )
+        self.revenueCatIdentitySync = revenueCatIdentitySync
         Logger.debug("[SubscriptionRepositoryImpl] 初始化完成")
     }
 
@@ -101,6 +111,13 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
 
     func fetchOfferings() async throws -> [SubscriptionOfferingEntity] {
         Logger.debug("[SubscriptionRepositoryImpl] fetchOfferings: calling RevenueCat")
+        let revenueCatIdentityIsSynced = await revenueCatIdentitySync()
+        if !revenueCatIdentityIsSynced {
+            Logger.debug(
+                "[SubscriptionRepositoryImpl] fetchOfferings: RevenueCat identity not synced; " +
+                "user-specific offers will be hidden"
+            )
+        }
         do {
             let offerings = try await Purchases.shared.offerings()
             cachedOfferings = offerings
@@ -115,16 +132,19 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
                     let billingPeriodValue = storeProduct.subscriptionPeriod?.value ?? 1
                     let billingPeriodUnit = storeProduct.subscriptionPeriod.map { self.mapOfferPeriodUnit($0.unit) }
                         ?? (period == .yearly ? .year : .month)
-                    let eligibleOfferIdentifiers = await eligibleOfferIdentifiers(for: storeProduct)
+                    let eligibleOfferIdentifiers = revenueCatIdentityIsSynced
+                        ? await eligibleOfferIdentifiers(for: storeProduct)
+                        : []
 
                     var candidateDiscounts: [StoreProductDiscount] = []
-                    var introEligibilityStatus: IntroEligibilityStatus = .noIntroOfferExists
+                    var introEligibilityDiagnostic = "no_intro_offer"
                     if let intro = storeProduct.introductoryDiscount {
-                        // T-0236: introductoryDiscount 是產品靜態 metadata,不含用戶資格
-                        // (資格是 subscription group 層級);未確定 eligible 一律不顯示,
-                        // 避免曾訂閱過的用戶看到優惠價卻被收原價。
-                        introEligibilityStatus = await introEligibility(for: storeProduct)
-                        if Self.shouldDisplayIntroDiscount(status: introEligibilityStatus) {
+                        let introEligibility = await introOfferEligibilityResolver.resolve(
+                            subscriptionGroupIdentifier: storeProduct.subscriptionGroupIdentifier,
+                            revenueCatIdentityIsSynced: revenueCatIdentityIsSynced
+                        )
+                        introEligibilityDiagnostic = introEligibility.diagnosticValue
+                        if introEligibility.shouldDisplayIntro {
                             candidateDiscounts.append(intro)
                         }
                     }
@@ -138,7 +158,7 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
                     Logger.debug(
                         "[SubscriptionRepositoryImpl] product=\(storeProduct.productIdentifier) " +
                         "base=\(package.localizedPriceString) intro=\(storeProduct.introductoryDiscount != nil) " +
-                        "introEligibility=\(introEligibilityStatus) " +
+                        "introEligibility=\(introEligibilityDiagnostic) " +
                         "eligibleOfferIdentifiers=\(eligibleOfferIdentifiers.count) displayDiscountCount=\(candidateDiscounts.count)"
                     )
 
@@ -476,19 +496,6 @@ final class SubscriptionRepositoryImpl: SubscriptionRepository {
 
         Logger.debug("[SubscriptionRepositoryImpl] purchase: preferred promotional offer not found, using first eligible offer")
         return eligibleOffers.first
-    }
-
-    /// T-0236: 只有明確 .eligible 才顯示 intro offer;.unknown 保守隱藏
-    /// (顯示了但實扣原價的傷害 > 少顯示一次優惠)。
-    static func shouldDisplayIntroDiscount(status: IntroEligibilityStatus) -> Bool {
-        status == .eligible
-    }
-
-    private func introEligibility(for product: StoreProduct) async -> IntroEligibilityStatus {
-        let eligibility = await Purchases.shared.checkTrialOrIntroDiscountEligibility(
-            productIdentifiers: [product.productIdentifier]
-        )
-        return eligibility[product.productIdentifier]?.status ?? .unknown
     }
 
     private func eligibleOfferIdentifiers(for product: StoreProduct) async -> Set<String> {
