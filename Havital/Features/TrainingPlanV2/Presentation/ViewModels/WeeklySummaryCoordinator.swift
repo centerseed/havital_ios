@@ -131,7 +131,12 @@ final class WeeklySummaryCoordinator {
     }
 
     func applySelectedAdjustments(weekOfPlan: Int) async -> Bool {
-        guard !selectedIndices.isEmpty else { return true }
+        // AC-WKADJ-04：空陣列 = 全不套用。即使使用者把調整項全部取消勾選
+        // （selectedIndices 為空），也必須送出 applied_indices=[] 讓後端撤銷既有採納，
+        // 否則舊的休息週採納不會被清除、下週仍會觸發。
+        // adjustmentSelections 由 initializeSelections 依建議項數建立；全部取消只是 value 全 false，
+        // keys 仍在（非空）。僅在「根本沒有調整項」時 adjustmentSelections 才為空 → 略過送出。
+        guard !adjustmentSelections.isEmpty else { return true }
         do {
             try await repository.applyAdjustmentItems(weekOfPlan: weekOfPlan, appliedIndices: selectedIndices)
             return true
