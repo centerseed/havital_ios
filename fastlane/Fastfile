@@ -96,6 +96,8 @@ platform :ios do
   desc "【iOS 正式發版】build → 直接上傳 App Store + 送審(automatic_release=false,過審後手動 release)"
   desc "release notes 取自 fastlane/metadata/<locale>/release_notes.txt(唯一要人工確認的文案關)。"
   lane :release do
+    ensure_git_branch(branch: "main")
+    ensure_git_status_clean
     key = asc_key
     ipa = build_ipa(key)
     upload_to_app_store(
