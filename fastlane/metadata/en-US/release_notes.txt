@@ -1,13 +1,7 @@
-・Start training with a clearer path
-We redesigned onboarding to show how your overview, weekly plan, and weekly review work together, with clearer mileage setup along the way.
+・Rizo responds faster
+Rizo now answers as it thinks, so text starts appearing right after you ask.
 
-・See your weekly mileage at a glance
-The plan overview now charts planned and completed mileage, so your progress toward the goal is easy to follow.
+・Fixed schedule editing issues
+Editing and saving your schedule is now more reliable.
 
-・A more direct weekly review
-Review the week and adjust the next one on a single page, with a clear explanation of whether the upcoming week is for recovery, maintenance, or growth.
-
-・Today's training stays in sync
-After resetting your plan or updating your subscription, today's card refreshes its content and access immediately—no app restart needed.
-
-Other fixes and improvements.
+Other improvements and fixes.

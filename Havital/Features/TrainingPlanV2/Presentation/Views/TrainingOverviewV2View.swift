@@ -45,11 +45,6 @@ struct TrainingOverviewV2View: View {
                             // Task 2 — PhaseRoadmap (JSX lines 724–1035)
                             PhaseRoadmapView(viewModel: viewModel, targetViewModel: targetViewModel)
 
-                            // 週跑量曲線圖 — preview 為 nil 時整張卡不顯示（不畫空圖）
-                            if let weeklyPreview = viewModel.loader.weeklyPreview {
-                                WeeklyMileageChartView(preview: weeklyPreview)
-                            }
-
                             // Task 3 — MethodologyCardB (JSX 1357–1390) + MilestonesCardB (JSX 1258–1291)
                             if let methodology = overview.methodologyOverview {
                                 methodologyStrategyCard(overview: overview, methodology: methodology)
