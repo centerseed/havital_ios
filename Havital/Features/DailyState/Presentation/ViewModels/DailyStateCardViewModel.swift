@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 // MARK: - DailyStateCardViewModel
@@ -22,6 +23,8 @@ final class DailyStateCardViewModel: ObservableObject, TaskManageable {
 
     nonisolated let taskRegistry = TaskRegistry()
     private let repository: DailyStateRepository
+    private var cancellables = Set<AnyCancellable>()
+    private var cacheSubscriberId: String?
     /// 套用成功後強制重抓 readiness(forceCalculate),讓比賽卡片/表現數據的完賽預估即時更新。
     private let refreshReadiness: () async -> Void
 
@@ -37,10 +40,43 @@ final class DailyStateCardViewModel: ObservableObject, TaskManageable {
             self.repository = container.resolve() as DailyStateRepository
         }
         self.refreshReadiness = refreshReadiness ?? { await TrainingReadinessManager.shared.forceRefresh() }
+        setupInvalidationSubscriptions()
     }
 
     deinit {
+        if let cacheSubscriberId {
+            CacheEventBus.shared.unsubscribe(forIdentifier: cacheSubscriberId)
+        }
         cancelAllTasks()
+    }
+
+    // MARK: - Invalidation
+
+    /// 今日狀態由訓練方案與訂閱權限共同決定；任一來源改變都必須重抓 server DTO。
+    private func setupInvalidationSubscriptions() {
+        let subscriberId = "DailyStateCardViewModel_\(UUID().uuidString)"
+        cacheSubscriberId = subscriberId
+        CacheEventBus.shared.subscribe(forIdentifier: subscriberId) { [weak self] reason in
+            guard reason == .onboardingCompleted || reason == .dataChanged(.trainingPlanV2) else { return }
+            Task { @MainActor [weak self] in
+                await self?.refreshAfterInvalidation()
+            }
+        }
+
+        SubscriptionStateManager.shared.$currentStatus
+            .removeDuplicates()
+            .dropFirst()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                Task { @MainActor [weak self] in
+                    await self?.refreshAfterInvalidation()
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    private func refreshAfterInvalidation() async {
+        await fetchTodayState(taskId: TaskID("daily_state_refresh"))
     }
 
     /// View 入口（fire-and-forget）。
@@ -50,7 +86,11 @@ final class DailyStateCardViewModel: ObservableObject, TaskManageable {
 
     /// 可測 async 入口（View 用 load()；測試直接 await 這支）。
     func loadForTest() async {
-        await executeTask(id: TaskID("daily_state_load"), cooldownSeconds: 1) { [weak self] in
+        await fetchTodayState(taskId: TaskID("daily_state_load"))
+    }
+
+    private func fetchTodayState(taskId: TaskID) async {
+        await executeTask(id: taskId) { [weak self] in
             guard let self else { return }
             await MainActor.run {
                 if self.state.data == nil { self.state = .loading }

@@ -7,7 +7,9 @@ final class DailyStateCardViewModelTests: XCTestCase {
         var card: DailyStateCard?
         var error: Error?
         var applyError: Error?
+        private(set) var fetchCount = 0
         func fetchTodayState() async throws -> DailyStateCard {
+            fetchCount += 1
             if let error { throw error }; return card!
         }
         func applyBenchmark(_ calibration: SameDayBenchmarkCalibration) async throws -> Int? {
@@ -38,6 +40,19 @@ final class DailyStateCardViewModelTests: XCTestCase {
                 raceTimeBeforeS: 17742, raceTimeAfterS: 17260, vdotBefore: 36.4, vdotAfter: 38.6))
     }
 
+    private func waitForFetchCount(
+        _ expected: Int,
+        repository: FakeRepo,
+        timeoutNanoseconds: UInt64 = 1_000_000_000
+    ) async {
+        let pollNanoseconds: UInt64 = 10_000_000
+        var elapsed: UInt64 = 0
+        while repository.fetchCount < expected, elapsed < timeoutNanoseconds {
+            try? await Task.sleep(nanoseconds: pollNanoseconds)
+            elapsed += pollNanoseconds
+        }
+    }
+
     func test_load_success_sets_loaded() async {
         let repo = FakeRepo(); repo.card = card(locked: false)
         let vm = DailyStateCardViewModel(repository: repo)
@@ -57,6 +72,68 @@ final class DailyStateCardViewModelTests: XCTestCase {
         let vm = DailyStateCardViewModel(repository: repo)
         await vm.loadForTest()
         XCTAssertFalse(vm.state.hasError)   // cancelled 過濾
+    }
+
+    // MARK: - T-0258 今日卡片失效重抓
+
+    func test_trainingPlanV2Changed_refetchesTodayState() async {
+        let repo = FakeRepo(); repo.card = card(locked: false)
+        let vm = DailyStateCardViewModel(repository: repo)
+        await vm.loadForTest()
+        XCTAssertEqual(repo.fetchCount, 1)
+
+        CacheEventBus.shared.publish(.dataChanged(.trainingPlanV2))
+        await waitForFetchCount(2, repository: repo)
+
+        XCTAssertEqual(repo.fetchCount, 2)
+    }
+
+    func test_onboardingCompleted_refetchesTodayState() async {
+        let repo = FakeRepo(); repo.card = card(locked: false)
+        let vm = DailyStateCardViewModel(repository: repo)
+        await vm.loadForTest()
+        XCTAssertEqual(repo.fetchCount, 1)
+
+        CacheEventBus.shared.publish(.onboardingCompleted)
+        await waitForFetchCount(2, repository: repo)
+
+        XCTAssertEqual(repo.fetchCount, 2)
+    }
+
+    func test_subscriptionAccessChange_refetchesLockedState() async {
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none))
+        let repo = FakeRepo(); repo.card = card(locked: true)
+        let vm = DailyStateCardViewModel(repository: repo)
+        await vm.loadForTest()
+        XCTAssertEqual(repo.fetchCount, 1)
+
+        repo.card = card(locked: false)
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active))
+        await waitForFetchCount(2, repository: repo)
+
+        XCTAssertEqual(repo.fetchCount, 2)
+        XCTAssertEqual(vm.state.data?.isLocked, false)
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none))
+    }
+
+    func test_subscriptionBackendConfirmation_refetchesWhenAccessRemainsPremium() async {
+        SubscriptionStateManager.shared.update(
+            SubscriptionStatusEntity(status: .active, planType: "monthly")
+        )
+        let repo = FakeRepo(); repo.card = card(locked: true)
+        let vm = DailyStateCardViewModel(repository: repo)
+        await vm.loadForTest()
+        XCTAssertEqual(repo.fetchCount, 1)
+
+        repo.card = card(locked: false)
+        SubscriptionStateManager.shared.update(
+            SubscriptionStatusEntity(status: .active, planType: "yearly")
+        )
+        await waitForFetchCount(2, repository: repo)
+
+        XCTAssertEqual(repo.fetchCount, 2)
+        XCTAssertEqual(vm.state.data?.isLocked, false)
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .none))
     }
 
     // MARK: - T-0142 套用後即時 sync 完賽預估（readiness force refresh）
