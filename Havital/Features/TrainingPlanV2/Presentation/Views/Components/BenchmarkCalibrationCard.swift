@@ -5,6 +5,7 @@ import SwiftUI
 struct BenchmarkCalibrationCard: View {
     let payload: BenchmarkCalibrationPayload
     let index: Int
+    var showsToggle: Bool = true
     @Binding var isSelected: Bool
 
     private func hms(_ s: Int) -> String {
@@ -60,21 +61,25 @@ struct BenchmarkCalibrationCard: View {
                 .font(AppFont.caption()).foregroundColor(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Divider()
-            HStack {
-                Text(NSLocalizedString("benchmark.calib.toggle", comment: "")).font(AppFont.subheadline()).fontWeight(.medium)
-                Spacer()
-                Toggle("", isOn: $isSelected).labelsHidden()
-                    .accessibilityIdentifier("v2.summary.benchmark_calib_toggle_\(index)")
+            if showsToggle {
+                Divider()
+                HStack {
+                    Text(NSLocalizedString("benchmark.calib.toggle", comment: "")).font(AppFont.subheadline()).fontWeight(.medium)
+                    Spacer()
+                    Toggle("", isOn: $isSelected).labelsHidden()
+                        .accessibilityIdentifier("v2.summary.benchmark_calib_toggle_\(index)")
+                }
+                Text(NSLocalizedString("benchmark.calib.toggle_hint", comment: ""))
+                    .font(AppFont.caption()).foregroundColor(.secondary)
             }
-            Text(NSLocalizedString("benchmark.calib.toggle_hint", comment: ""))
-                .font(AppFont.caption()).foregroundColor(.secondary)
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: PacerizRadius.card)
-                .stroke(PacerizColor.benchmark.opacity(0.5), lineWidth: 1.5)
-                .background(RoundedRectangle(cornerRadius: PacerizRadius.card).fill(PacerizColor.benchmark.opacity(0.06))))
+        .adjustmentSelectionStyle(
+            isSelected: isSelected,
+            fill: PacerizColor.benchmark.opacity(0.06),
+            accent: PacerizColor.benchmark,
+            cornerRadius: PacerizRadius.card
+        )
         .accessibilityIdentifier("v2.summary.benchmark_calib_card_\(index)")
     }
 

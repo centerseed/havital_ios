@@ -2557,6 +2557,9 @@
 "training.apply_n_adjustments_and_generate" = "%d 件の提案を適用して来週のプランを作成";
 "training.generate_without_adjustments" = "調整なしで直接プランを作成";
 "training.adjustment_selected_count" = "%d / %d 件選択中";
+"training.adjustment_will_apply" = "適用します";
+"training.adjustment_not_applied" = "今回は適用しません";
+"training.adjustment_toggle_hint" = "既定ではすべて適用されます。不要な項目はスイッチをオフに（オフ＝利用不可という意味ではありません）。";
 "training.achievements_count" = "%d 個の達成";
 "training.areas_for_improvement_title" = "改善点";
 "training.avg_heart_rate_preview" = "平均心拍 %.0f bpm";
