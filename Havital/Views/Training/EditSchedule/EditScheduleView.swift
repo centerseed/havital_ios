@@ -213,25 +213,19 @@ struct SimplifiedDailyCard: View {
 
     /// 是否為複雜訓練類型（需要進入詳細編輯）
     private var isComplexTraining: Bool {
-        switch day.type {
-        case .interval, .combination, .progression,
-             .strides, .hillRepeats, .cruiseIntervals,
-             .shortInterval, .longInterval, .norwegian4x4, .yasso800,
-             .fartlek, .fastFinish:
-            return true
-        default:
-            return false
-        }
+        day.type.isComplexScheduleTraining
     }
 
     /// 複雜訓練的摘要文字
     private var complexTrainingSummary: String {
         guard let details = day.trainingDetails else { return "" }
 
-        switch day.type {
-        case .interval, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval:
+        switch day.type.scheduleEditorFamily {
+        case .intervalDistance:
             if let repeats = details.repeats, let work = details.work {
-                let distanceText = work.distanceKm.map { String(format: "%.0fm", $0 * 1000) } ?? ""
+                let distanceText = work.distanceKm.map { String(format: "%.0fm", $0 * 1000) }
+                    ?? work.distanceM.map { String(format: "%.0fm", $0) }
+                    ?? ""
                 let paceText = work.pace ?? ""
                 return "\(repeats) × \(distanceText)" + (paceText.isEmpty ? "" : " @ \(paceText)")
             }
@@ -256,22 +250,19 @@ struct SimplifiedDailyCard: View {
                 let paceText = work.pace ?? ""
                 return "\(repeats) × \(distanceText)" + (paceText.isEmpty ? "" : " @ \(paceText)")
             }
-        case .combination, .progression:
+        case .combination:
             if let segments = details.segments {
                 let total = details.totalDistanceKm ?? segments.compactMap { $0.distanceKm }.reduce(0, +)
-                return "\(segments.count) \(L10n.Training.segmentsUnit.localized) · \(String(format: "%.1f", total)) km"
+                switch day.type {
+                case .fartlek:
+                    return "\(L10n.Training.TrainingType.fartlek.localized) · \(String(format: "%.1f", total)) km"
+                case .fastFinish:
+                    return "\(L10n.Training.TrainingType.fastFinish.localized) · \(String(format: "%.1f", total)) km"
+                default:
+                    return "\(segments.count) \(L10n.Training.segmentsUnit.localized) · \(String(format: "%.1f", total)) km"
+                }
             }
-        case .fartlek:
-            if let segments = details.segments {
-                let total = details.totalDistanceKm ?? segments.compactMap { $0.distanceKm }.reduce(0, +)
-                return "\(L10n.Training.TrainingType.fartlek.localized) · \(String(format: "%.1f", total)) km"
-            }
-        case .fastFinish:
-            if let segments = details.segments {
-                let total = details.totalDistanceKm ?? segments.compactMap { $0.distanceKm }.reduce(0, +)
-                return "\(L10n.Training.TrainingType.fastFinish.localized) · \(String(format: "%.1f", total)) km"
-            }
-        default:
+        case .easy, .tempo, .longRun, .strength, .rest, .cross:
             break
         }
         return ""

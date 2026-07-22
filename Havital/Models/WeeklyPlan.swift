@@ -334,12 +334,14 @@ struct TrainingDay: Codable, Identifiable, Equatable {
             if let variant = run.interval?.variant {
                 // variant 可能是複合格式 "template_id:variation"（如 "norwegian_singles:kilometer"）。
                 // 取 ":" 前主型態;只有「本身就是 DayType rawValue」的 variant 直接用,
-                // 其餘(如 paceriz_interval / norwegian_singles)回退通用 .interval——
+                // 其餘(如 paceriz_interval)回退通用 .interval——
                 // 絕不可讓未知 variant 透過 `?? .rest` 變成休息日。
+                // norwegian_singles 必須保留細型態，否則編輯器會找不到正確家族（T-0280）。
                 let base = variant.lowercased().split(separator: ":").first.map(String.init) ?? variant.lowercased()
                 let knownIntervalVariants: Set<String> = [
                     "strides", "hill_repeats", "cruise_intervals",
-                    "short_interval", "long_interval", "norwegian_4x4", "yasso_800",
+                    "short_interval", "long_interval", "norwegian_4x4",
+                    "norwegian_singles", "yasso_800",
                 ]
                 mappedType = knownIntervalVariants.contains(base) ? base : "interval"
             } else {
@@ -848,7 +850,7 @@ struct ProgressionSegment: Codable, Equatable {
     }
 }
 
-enum DayType: String, Codable {
+enum DayType: String, Codable, CaseIterable {
     case easyRun = "easy_run"
     case easy = "easy"
     case interval = "interval"

@@ -9,25 +9,21 @@ struct TrainingDetailsEditView: View {
 
     var body: some View {
         if let details = day.trainingDetails {
-            switch day.type {
-            case .easyRun, .easy, .recovery_run, .lsd:
+            // 與 TrainingEditSheetV2 同一套 scheduleEditorFamily，避免卡片／sheet 分叉漏型別
+            switch day.type.scheduleEditorFamily {
+            case .easy:
                 EasyRunEditView(day: day, details: details, isEditable: isEditable, onEdit: onEdit)
             case .norwegian4x4:
-                // 挪威4x4 專用卡片
                 Norwegian4x4CardView(day: day, details: details, isEditable: isEditable, onEdit: onEdit)
             case .yasso800:
-                // 亞索800 專用卡片
                 Yasso800CardView(day: day, details: details, isEditable: isEditable, onEdit: onEdit)
-            case .interval, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval:
-                // 一般間歇訓練類型（大步跑、山坡重複跑、巡航間歇、短間歇、長間歇）
+            case .intervalDistance:
                 IntervalEditView(day: day, details: details, isEditable: isEditable, onEdit: onEdit)
-            case .tempo, .threshold, .longRun, .racePace:
-                // 節奏/閾值/長跑類型（包含新增的比賽配速跑）
+            case .tempo, .longRun:
                 TempoRunEditView(day: day, details: details, isEditable: isEditable, onEdit: onEdit)
-            case .progression, .combination, .fartlek, .fastFinish:
-                // 組合訓練類型（包含新增的法特雷克、快結尾長跑）
+            case .combination:
                 CombinationEditView(day: day, details: details, isEditable: isEditable, onEdit: onEdit)
-            default:
+            case .strength, .rest, .cross:
                 SimpleTrainingEditView(day: day, details: details, isEditable: isEditable, onEdit: onEdit)
             }
         }

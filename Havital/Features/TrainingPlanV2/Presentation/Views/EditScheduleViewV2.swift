@@ -184,23 +184,17 @@ struct SimplifiedDailyCardV2: View {
     }
 
     private var isComplexTraining: Bool {
-        switch day.type {
-        case .interval, .combination, .progression,
-             .strides, .hillRepeats, .cruiseIntervals,
-             .shortInterval, .longInterval, .norwegian4x4, .norwegianSingles, .yasso800,
-             .fartlek, .fastFinish:
-            return true
-        default:
-            return false
-        }
+        day.type.isComplexScheduleTraining
     }
 
     private var complexTrainingSummary: String {
         guard let details = day.trainingDetails else { return "" }
-        switch day.type {
-        case .interval, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegianSingles:
+        switch day.type.scheduleEditorFamily {
+        case .intervalDistance:
             if let repeats = details.repeats, let work = details.work {
-                let distText = work.distanceKm.map { String(format: "%.0fm", $0 * 1000) } ?? ""
+                let distText = work.distanceKm.map { String(format: "%.0fm", $0 * 1000) }
+                    ?? work.distanceM.map { String(format: "%.0fm", $0) }
+                    ?? ""
                 let paceText = work.pace ?? ""
                 return "\(repeats) × \(distText)" + (paceText.isEmpty ? "" : " @ \(paceText)")
             }
@@ -210,12 +204,12 @@ struct SimplifiedDailyCardV2: View {
                 let paceText = work.pace ?? ""
                 return "\(repeats) × \(timeText)" + (paceText.isEmpty ? "" : " @ \(paceText)")
             }
-        case .combination, .progression, .fartlek, .fastFinish:
+        case .combination:
             if let segments = details.segments {
                 let total = details.totalDistanceKm ?? segments.compactMap { $0.distanceKm }.reduce(0, +)
                 return "\(segments.count) \(L10n.Training.segmentsUnit.localized) · \(String(format: "%.1f", total)) km"
             }
-        default:
+        case .easy, .tempo, .longRun, .strength, .rest, .cross:
             break
         }
         return ""

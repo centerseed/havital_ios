@@ -103,4 +103,64 @@ extension DayType {
             return true
         }
     }
+
+    /// 課表編輯器 UI 家族。**必須 exhaustively 覆蓋全部 DayType**——新增 raw value 時編譯器會強迫接線，
+    /// 避免再出現 norwegian_singles / steady_intervals 落 SimpleEditor、結構全看不到的回歸。
+    var scheduleEditorFamily: TrainingScheduleEditorFamily {
+        switch self {
+        case .easyRun, .easy, .recovery_run, .lsd:
+            return .easy
+        case .tempo, .threshold, .racePace, .race, .benchmark:
+            return .tempo
+        case .longRun:
+            return .longRun
+        case .interval, .strides, .hillRepeats, .cruiseIntervals,
+             .shortInterval, .longInterval, .norwegianSingles:
+            return .intervalDistance
+        case .norwegian4x4:
+            return .norwegian4x4
+        case .yasso800:
+            return .yasso800
+        case .combination, .progression, .fartlek, .fastFinish, .steadyIntervals:
+            return .combination
+        case .strength:
+            return .strength
+        case .rest:
+            return .rest
+        case .crossTraining, .yoga, .hiking, .cycling, .swimming, .elliptical, .rowing:
+            return .cross
+        }
+    }
+
+    /// 列表卡片是否以「複雜訓練摘要」顯示（間歇／分段），而非直接 inline 距離控件。
+    var isComplexScheduleTraining: Bool {
+        switch scheduleEditorFamily {
+        case .intervalDistance, .norwegian4x4, .yasso800, .combination:
+            return true
+        case .easy, .tempo, .longRun, .strength, .rest, .cross:
+            return false
+        }
+    }
+}
+
+/// 課表編輯 sheet / 卡片細節 / 存檔寫回共用的 UI 家族。
+enum TrainingScheduleEditorFamily: Equatable {
+    /// 輕鬆跑家族：距離為主
+    case easy
+    /// 節奏／閾值／比賽配速／比賽／指標跑：距離 + 配速
+    case tempo
+    /// 長跑
+    case longRun
+    /// 距離制間歇（含挪威單次訓練）
+    case intervalDistance
+    /// 挪威 4x4（時間制）
+    case norwegian4x4
+    /// 亞索 800
+    case yasso800
+    /// 分段／組合／法特雷克／快結尾／勻速轉間歇
+    case combination
+    case strength
+    case rest
+    /// 交叉訓練（游泳／橢圓等）
+    case cross
 }

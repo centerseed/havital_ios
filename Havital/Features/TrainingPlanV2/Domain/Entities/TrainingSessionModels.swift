@@ -488,6 +488,8 @@ extension DayDetail {
             return .longInterval
         case "norwegian_4x4":
             return .norwegian4x4
+        case "norwegian_singles":
+            return .norwegianSingles
         case "yasso_800":
             return .yasso800
 

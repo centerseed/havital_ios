@@ -157,28 +157,28 @@ final class TrainingDayEditState: ObservableObject {
         result.dayTarget = dayTarget
         result.trainingType = trainingType
 
-        // 根據訓練類型建立 trainingDetails
-        switch type {
+        // 根據訓練類型建立 trainingDetails（走 scheduleEditorFamily，禁止 default 漏型別）
+        switch type.scheduleEditorFamily {
         case .rest:
             result.trainingDetails = nil
 
-        case .easyRun, .easy, .recovery_run, .lsd:
+        case .easy:
             result.trainingDetails = MutableTrainingDetails(
                 description: description,
                 distanceKm: distance,
                 pace: pace.isEmpty ? nil : pace
             )
 
-        case .tempo, .threshold, .longRun, .racePace:
-            // 節奏/閾值/長跑/比賽配速跑
+        case .tempo, .longRun:
+            // 節奏/閾值/比賽配速/比賽/指標跑/長跑
             result.trainingDetails = MutableTrainingDetails(
                 description: description,
                 distanceKm: distance,
                 pace: pace.isEmpty ? nil : pace
             )
 
-        // 間歇訓練類型（包含新增的大步跑、山坡重複跑、巡航間歇）
-        case .interval, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval:
+        case .intervalDistance:
+            // 距離制間歇（含 norwegian_singles、strides、hill_repeats…）
             let work = MutableWorkoutSegment(
                 description: nil,
                 distanceKm: workDistance,
@@ -222,7 +222,6 @@ final class TrainingDayEditState: ObservableObject {
                 repeats: repeats
             )
 
-        // 時間制間歇訓練：挪威4x4、亞索800
         case .norwegian4x4, .yasso800:
             // 時間制間歇：使用 timeMinutes 而非 distanceKm
             let work: MutableWorkoutSegment
@@ -296,8 +295,8 @@ final class TrainingDayEditState: ObservableObject {
                 repeats: repeats
             )
 
-        // 組合訓練類型（包含新增的法特雷克、快結尾長跑）
-        case .combination, .progression, .fartlek, .fastFinish:
+        case .combination:
+            // 分段／組合／法特雷克／快結尾／勻速轉間歇
             let mutableSegments = segments.map { seg in
                 MutableProgressionSegment(
                     distanceKm: seg.distance,
@@ -320,17 +319,10 @@ final class TrainingDayEditState: ObservableObject {
             result.strengthType = strengthType
             result.strengthExercises = strengthExercises.map { $0.toExercise() }
 
-        case .crossTraining, .yoga, .hiking, .cycling,
-             .swimming, .elliptical, .rowing:
+        case .cross:
             result.trainingDetails = MutableTrainingDetails(
                 description: description,
                 distanceKm: nil
-            )
-
-        default:
-            result.trainingDetails = MutableTrainingDetails(
-                description: description,
-                distanceKm: distance
             )
         }
 
@@ -548,32 +540,31 @@ struct TrainingEditSheetV2: View {
 
     @ViewBuilder
     private var editorSection: some View {
-        switch editState.type {
-        case .easyRun, .easy, .recovery_run, .lsd:
+        // 走 scheduleEditorFamily：全部 DayType 必須有家族，禁止 default 把結構化課表打成 Simple
+        switch editState.type.scheduleEditorFamily {
+        case .easy:
             EasyRunEditorV2(editState: editState, paceHelper: paceHelper)
             supplementaryStrengthSection
-        case .tempo, .threshold, .racePace:
-            // 節奏/閾值/比賽配速跑 - 需要配速和距離
+        case .tempo:
+            // 節奏/閾值/比賽配速/比賽/指標跑
             TempoEditorV2(editState: editState, paceHelper: paceHelper)
             WarmupCooldownEditorV2(editState: editState)
             supplementaryStrengthSection
         case .norwegian4x4:
-            // 挪威4x4 專屬編輯器
             Norwegian4x4EditorV2(editState: editState, paceHelper: paceHelper)
             WarmupCooldownEditorV2(editState: editState)
             supplementaryStrengthSection
         case .yasso800:
-            // 亞索800 專屬編輯器
             Yasso800EditorV2(editState: editState, paceHelper: paceHelper)
             WarmupCooldownEditorV2(editState: editState)
             supplementaryStrengthSection
-        case .interval, .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval:
-            // 一般間歇訓練類型（大步跑、山坡重複跑、巡航間歇）
+        case .intervalDistance:
+            // 距離制間歇（含 norwegian_singles）
             IntervalEditorV2(editState: editState, paceHelper: paceHelper)
             WarmupCooldownEditorV2(editState: editState)
             supplementaryStrengthSection
-        case .combination, .progression, .fartlek, .fastFinish:
-            // 組合訓練類型（包含新增的法特雷克、快結尾長跑）
+        case .combination:
+            // 分段／組合／法特雷克／快結尾／勻速轉間歇
             CombinationEditorV2(editState: editState, paceHelper: paceHelper)
             WarmupCooldownEditorV2(editState: editState)
             supplementaryStrengthSection
@@ -585,7 +576,7 @@ struct TrainingEditSheetV2: View {
             StrengthEditorV2(editState: editState)
         case .rest:
             restDaySection
-        default:
+        case .cross:
             SimpleEditorV2(editState: editState, paceHelper: paceHelper)
             supplementaryStrengthSection
         }
