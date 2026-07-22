@@ -10,7 +10,7 @@
 
 ## 每次發版（iOS = 自動直接上傳 + 送審）
 0. **只能從 main 發版**：feature branch 上的改動必須先過 `/judge ios <branch>` merge 回 main 才能出貨（root `scripts/hooks/merge_gate.py` 硬擋非 main 的 `fastlane ios release`）。
-1. **定版號**：Xcode 改 `MARKETING_VERSION`（目前 pbxproj = 1.4.9）。build 號**免手動**，lane 自動取 App Store/TestFlight 最大 build + 1。
+1. **定版號**：Xcode 改 `MARKETING_VERSION`（目前 pbxproj = 1.4.11）。build 號**免手動**，lane 自動取 App Store/TestFlight 最大 build + 1。
 2. **確認 release notes**（唯一要人工過的關）：填 `fastlane/metadata/{zh-Hant,ja,en-US}/release_notes.txt` 三語文案並確認。
 3. **出版**：
    ```bash
@@ -24,8 +24,8 @@
 - `fastlane ios info` — 唯讀列 App Store 現行版本。
 
 ## 現況
-- **App Store live = 1.4.9**；**1.4.10 已於 2026-07-14 送審**（build 8，`WAITING_FOR_REVIEW`）。
-- **真 archive 已跑過**（2026-07-14 首發 1.4.10）：`fastlane ios release` 全程成功 —— archive → 簽章
-  （HavitalWatch + complication 共 10 個 bundle 由 API key 自動 provisioning，無需本機 profile）
-  → 上傳 → 推三語 release notes → 送審。原本標記的「首次 archive 簽章可能卡住」風險**未發生**。
+- **App Store live = 1.4.10**（`READY_FOR_SALE`）。
+- **1.4.11 已於 2026-07-22 送審**（build **10**，`fastlane ios release` 全程成功：archive → 簽章 → 上傳 → 三語 release notes → 送審）。
+  - git main: `7f14b437`（含 T-0280 課表編輯 DayType 補齊等）。
+  - release notes：Rizo 更快 / 調整 onboarding / 修復錯誤。
 - `automatic_release=false` → 過審後仍需在 App Store Connect **手動按 Release**。
