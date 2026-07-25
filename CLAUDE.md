@@ -1,84 +1,49 @@
 # CLAUDE.md — iOS App (Swift)
 
-> **Shared project-wide constraints** (never fabricate, evidence-first, mock boundaries, no deploy, no auto-commit, own problems, i18n/timezone, environment table, cross-repo architecture) live in `../../../CLAUDE.md` and load automatically via stacking. This file is iOS-specific only.
+專案共通限制（證據優先、mock 邊界、不部署、i18n/時區、環境表、跨 repo 架構）在 `../../../CLAUDE.md`，會 stacking 自動載入。本檔只放 iOS 特有的。
 
-## iOS-Specific Constraints
+## iOS 特有的坑
 
-1. **`Date` is NOT a valid Dictionary key.** Use `TimeInterval`. `Date`'s `Hashable` is time-dependent → silent runtime crash, no compile error.
+1. **`Date` 不能當 Dictionary key** — 用 `TimeInterval`。`Date` 的 `Hashable` 與時間相關，編譯不會擋，直接 runtime 靜默出錯。查回歸：`grep -r "Dictionary.*Date\|Date.*Dictionary" Havital/ --include="*.swift"`
+2. **碰 UI state 前先濾掉 `NSURLErrorCancelled`** — 取消的 task 是使用者正常導航，對它顯示 `ErrorView` 是在騙人。
+3. **Repository 不 publish 到 `CacheEventBus`** — Repository 是被動資料存取，事件流屬於 ViewModel/Service。正確寫法與回歸 grep 見 `.claude/rules/architecture.md`。
+4. **HealthKit → Backend → UI**，不可 `HealthKit → UI`，否則 HealthKit 與 Firestore 兩份真相打架。
+5. **初始化順序很敏感**，單元測試看不出來的 race 都在這裡：`App Launch → Auth → User Data → Training Overview → Weekly Plan → UI Ready`
+6. **每個 API 呼叫串 `.tracked(from: "ViewName: functionName")`** — 沒串的話 production 事故追不到來源。
+7. **每個 ViewModel/Manager 都實作 `TaskManageable`**（`TaskRegistry` + deinit 呼叫 `cancelAllTasks()`）。
+8. **命名陷阱**：產品叫 Paceriz，但 bundle ID 是 `com.havital.*`、目錄是 `Havital`，不要改。
 
-2. **Filter `NSURLErrorCancelled` before touching UI state.** Cancelled tasks are intentional navigation; showing `ErrorView` for them is a UX lie.
-
-3. **ViewModel depends on Repository Protocol, never `RepositoryImpl`.** Concrete impl breaks DI and forces unit tests to wire the full stack.
-
-4. **Repository never publishes to `CacheEventBus`.** Repository is passive data access; event flow belongs to ViewModels/Services. Correct pattern:
-
-   ```swift
-   // Data layer
-   private let refreshSubject = PassthroughSubject<Void, Never>()
-   var workoutsDidRefresh: AnyPublisher<Void, Never> { refreshSubject.eraseToAnyPublisher() }
-   refreshSubject.send()   // ← NOT CacheEventBus.shared.publish
-
-   // Presentation layer
-   repository.workoutsDidRefresh
-       .sink { CacheEventBus.shared.publish(.dataChanged(.workouts)) }
-       .store(in: &cancellables)
-   ```
-
-   Regression check (matches actual usage, not explanatory comments — the bus is a
-   private-init singleton so every real coupling goes through `CacheEventBus.shared`):
-   ```bash
-   grep -rn "CacheEventBus\.shared" Havital/Features/*/Data/ Havital/Features/*/Domain/ Havital/Core/Data/
-   # expected: no matches (registration/subscription lives in Core/DI/CacheRegistrationCoordinator)
-   ```
-
-5. **HealthKit → Backend → UI.** Never `HealthKit → UI` directly — creates split truth between HealthKit and Firestore.
-
-## Commands
+## 指令
 
 ```bash
-# Build (always iPhone 17 Pro — UDID BEC21B6F-4CCF-4596-A600-ECFBE32B3FB4)
+# Build（固定用 iPhone 17 Pro；UDID 別寫死，現查：
+#   xcrun simctl list devices | grep "iPhone 17 Pro" ）
 xcodebuild clean build -project Havital.xcodeproj -scheme Havital \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 
-# Maestro UI tests (never use --no-window; user needs to see the screen)
+# Maestro UI 測試（不要加 --no-window，用戶要看到畫面）
 maestro test .maestro/flows/<flow>.yaml
-
-# Find Date-as-key regressions
-grep -r "Dictionary.*Date\|Date.*Dictionary" Havital/ --include="*.swift"
 ```
 
-**Merge gate**：branch merge 進 main 需先 `/judge ios <branch>` 取得獨立裁判 verdict（root `scripts/hooks/merge_gate.py` 硬擋，實作 session 不能自己蓋章）。
+Merge 進 main 前需 `/judge ios <branch>` 取得裁判 verdict（root `scripts/hooks/merge_gate.py` 硬擋）。
 
-## 發版 (Release pipeline)
+## 架構
 
-fastlane 已串好並實測(build+簽章含 Watch 已驗)。完整步驟 → **`fastlane/RELEASE.md`**。
-- **正式發版(自動直接上傳)**:`cd apps/ios/Havital && fastlane ios release` — 自動 bump build 號(App Store/TF 最大+1)→ archive+簽章(Watch+complication,API key 自動 provisioning、本機免 profile)→ 上傳 App Store → 推 release notes → 送審(`automatic_release=false`,過審後手動 Release)。
-- 只 build 給手動上傳:`fastlane ios build`(→ 開 Finder,Transporter 上傳)。查現行版本:`fastlane ios info`。
-- **唯一人工關**:填 `fastlane/metadata/{zh-Hant,ja,en-US}/release_notes.txt` 三語文案並確認。
-- 憑證:ASC 團隊金鑰自動載入自 `fastlane/.env.default`(不進 git);`.p8` 在 `~/.appstoreconnect/`。
+`Presentation → Domain → Data → Core`，依賴只能向內。DTO 在 Data（snake_case + `CodingKeys`）、Entity 在 Domain（camelCase，不 Codable，避免 Domain 綁死序列化格式）。ViewModel 依賴 Repository protocol，不依賴 `RepositoryImpl`。單例：HTTPClient / Logger / DataSource / Mapper / RepositoryImpl；ViewModel 每次使用新建。
 
-## Architecture
+完整規則：`.claude/rules/architecture.md`
 
-Full rules: @.claude/rules/architecture.md
+## 發版
 
-Layering: `Presentation → Domain → Data → Core` (inward only).
+fastlane 已串好並實測。完整步驟 → `fastlane/RELEASE.md`。
+- 正式發版：`fastlane ios release`（自動 bump build 號 → archive+簽章含 Watch → 上傳 → 推 release notes → 送審，過審後手動 Release）
+- 只 build 給手動上傳：`fastlane ios build`；查現行版本：`fastlane ios info`
+- 唯一人工關：填 `fastlane/metadata/{zh-Hant,ja,en-US}/release_notes.txt` 三語文案
+- 憑證：ASC 金鑰自動載入自 `fastlane/.env.default`（不進 git），`.p8` 在 `~/.appstoreconnect/`
 
-- **DTO** in Data layer (snake_case + `CodingKeys`).
-- **Entity** in Domain (camelCase, no Codable — couples Domain to serialization format).
-- **Singleton**: HTTPClient, Logger, DataSource, Mapper, RepositoryImpl.
-- **Factory** (new per use): ViewModel.
+## 需要時再讀（不預載）
 
-## Known Gotchas
-
-- **TaskManageable** — every ViewModel/Manager implements it. `TaskRegistry` with unique `TaskID`. `cancelAllTasks()` in deinit. Never update UI state for cancelled tasks.
-- **Init order** is strict — race conditions invisible in unit tests:
-  `App Launch → Auth → User Data → Training Overview → Weekly Plan → UI Ready`
-- **API call tracking** — chain `.tracked(from: "ViewName: functionName")` on every API call. Without this, production incidents are unattributable.
-- **Naming trap** — product name is **Paceriz**, bundle ID stays `com.havital.*`, directory stays `Havital`.
-
-## Role-Specific Rules
-
-@.claude/rules/debugging.md — bug triage, root cause protocol
-@.claude/rules/delivery.md — build gate, new feature checklist
-@.claude/rules/testing.md — QA protocol, simulator rules, Maestro usage
-@.claude/rules/multi-agent.md — agent role boundaries
+- `.claude/rules/architecture.md` — 分層與 Repository 事件流的完整規則＋回歸 grep
+- `.claude/rules/testing.md` — 模擬器環境限制、Maestro 前置條件與腳本品質規則（跑 UI 測試前讀）
+- `.claude/rules/delivery.md` — build gate 與新功能檢查表（要宣稱完成前讀）
+- `.claude/rules/debugging.md` — bug 分流：怎麼確認「畫面上真正被 render 的是哪個 view」、失敗分類（app bug / script bug / 環境問題）
