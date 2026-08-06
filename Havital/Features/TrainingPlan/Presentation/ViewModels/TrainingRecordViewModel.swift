@@ -116,20 +116,29 @@ class TrainingRecordViewModel: ObservableObject, @preconcurrency TaskManageable 
             }
 
             do {
-                // 強制刷新（跳過緩存）
-                let workouts = try await self.repository.refreshWorkouts()
+                // 強制刷新（跳過緩存）—— 只回後端第一頁
+                let freshWorkouts = try await self.repository.refreshWorkouts()
 
                 await MainActor.run {
-                    if workouts.isEmpty {
+                    // 刷新回來的是第一頁，不是全部。直接取代會把「載入更多」已堆出的
+                    // 較舊紀錄砍掉（T-0460），所以與現有列表合併；新資料在前，
+                    // 去重時勝出，等於同一筆被刷新成最新版本。
+                    let mergedWorkouts = self.mergeWorkouts(
+                        existing: self.workouts,
+                        new: freshWorkouts,
+                        insertAtTop: true
+                    )
+
+                    if mergedWorkouts.isEmpty {
                         self.state = .empty
                         self.hasMoreData = false
                     } else {
-                        self.state = .loaded(workouts.sorted { $0.endDate > $1.endDate })
-                        self.applyServerOrEstimatedHasMore(fetchedCount: workouts.count)
+                        self.state = .loaded(mergedWorkouts.sorted { $0.endDate > $1.endDate })
+                        self.applyServerOrEstimatedHasMore(fetchedCount: freshWorkouts.count)
                         self.updatePaginationState()
                     }
                     self.isRefreshing = false
-                    Logger.debug("[TrainingRecordViewModel] 刷新完成，數量: \(workouts.count)")
+                    Logger.debug("[TrainingRecordViewModel] 刷新完成，本次取得: \(freshWorkouts.count)，合併後總計: \(mergedWorkouts.count)")
                 }
 
             } catch is CancellationError {
