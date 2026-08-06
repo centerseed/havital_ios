@@ -79,7 +79,9 @@ final class WeeklyPlanFlowIntegrationTests: XCTestCase {
             shouldSuppressError: { _, _, _ in false },
             onSuccessToast: { _ in },
             onRizoQuotaExceeded: { },
-            onNetworkError: { _ in }
+            onNetworkError: { _ in },
+            // 同 WeeklyPlanGeneratorTests：不讓測試真的睡滿載入動畫的 10 秒（T-0461）。
+            minimumLoadingDuration: 0
         )
     }
 

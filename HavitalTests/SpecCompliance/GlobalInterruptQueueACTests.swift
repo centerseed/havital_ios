@@ -208,22 +208,6 @@ final class GlobalInterruptQueueACTests: XCTestCase {
         XCTAssertEqual(coordinator.pendingItems.map(\.type), [.announcement, .dataSourceBindingReminder])
     }
 
-    private func waitUntil(
-        timeout: TimeInterval = 1.5,
-        pollInterval: UInt64 = 50_000_000,
-        condition: @escaping @MainActor () async -> Bool
-    ) async {
-        let deadline = Date().addingTimeInterval(timeout)
-        while Date() < deadline {
-            if await condition() {
-                return
-            }
-            try? await Task.sleep(nanoseconds: pollInterval)
-        }
-
-        XCTFail("Timed out waiting for condition")
-    }
-
     private func makeAnnouncement(
         id: String,
         publishedAt: Date,

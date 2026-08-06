@@ -31,6 +31,13 @@ final class WeeklyPlanGenerator {
     @ObservationIgnored private let onWeeklyPlanInlineUpsellNeeded: ((_ isRegenerate: Bool) -> Void)?
     @ObservationIgnored private let onPlanGenerated: (() -> Void)?
 
+    /// 課表產生時載入動畫的最短顯示時間。產品行為預設 10 秒（見 `Self.defaultMinimumLoadingDuration`）；
+    /// 可注入是為了讓測試不必真的睡滿 10 秒——那會讓 suite 變慢且在負載下不穩（T-0461）。
+    @ObservationIgnored private let minimumLoadingDuration: TimeInterval
+
+    /// 產品預設的載入動畫最短顯示時間。
+    static let defaultMinimumLoadingDuration: TimeInterval = 10.0
+
     // MARK: - Init
 
     init(
@@ -45,7 +52,8 @@ final class WeeklyPlanGenerator {
         onRizoQuotaExceeded: @escaping () -> Void,
         onNetworkError: @escaping (Error) -> Void,
         onWeeklyPlanInlineUpsellNeeded: ((_ isRegenerate: Bool) -> Void)? = nil,
-        onPlanGenerated: (() -> Void)? = nil
+        onPlanGenerated: (() -> Void)? = nil,
+        minimumLoadingDuration: TimeInterval = WeeklyPlanGenerator.defaultMinimumLoadingDuration
     ) {
         self.repository = repository
         self.loader = loader
@@ -59,6 +67,15 @@ final class WeeklyPlanGenerator {
         self.onNetworkError = onNetworkError
         self.onWeeklyPlanInlineUpsellNeeded = onWeeklyPlanInlineUpsellNeeded
         self.onPlanGenerated = onPlanGenerated
+        self.minimumLoadingDuration = minimumLoadingDuration
+    }
+
+    /// 補足載入動畫的最短顯示時間：課表回得比動畫快時，把差額睡掉。
+    private func padToMinimumLoadingDuration(since start: Date) async throws {
+        let elapsed = Date().timeIntervalSince(start)
+        let remaining = max(0.0, minimumLoadingDuration - elapsed)
+        guard remaining > 0 else { return }
+        try await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
     }
 
     // MARK: - Generate Current Week Plan
@@ -79,12 +96,7 @@ final class WeeklyPlanGenerator {
                 methodology: nil
             )
 
-            // 補足 10 秒最短顯示時間
-            let elapsed = Date().timeIntervalSince(planLoadStart)
-            let remaining = max(0.0, 10.0 - elapsed)
-            if remaining > 0 {
-                try await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
-            }
+            try await padToMinimumLoadingDuration(since: planLoadStart)
 
             setLoadingAnimation(false, nil)
             loader.currentWeek = loader.selectedWeek
@@ -166,12 +178,7 @@ final class WeeklyPlanGenerator {
                 methodology: nil
             )
 
-            // 補足 10 秒最短顯示時間
-            let elapsed = Date().timeIntervalSince(planLoadStart)
-            let remaining = max(0.0, 10.0 - elapsed)
-            if remaining > 0 {
-                try await Task.sleep(nanoseconds: UInt64(remaining * 1_000_000_000))
-            }
+            try await padToMinimumLoadingDuration(since: planLoadStart)
 
             if !managedLoadingExternally { setLoadingAnimation(false, nil) }
             loader.currentWeek = weekNumber
