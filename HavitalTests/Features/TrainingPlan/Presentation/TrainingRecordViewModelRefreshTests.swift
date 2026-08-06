@@ -70,6 +70,9 @@ final class TrainingRecordViewModelRefreshTests: XCTestCase {
 
     /// 刷新那一頁涵蓋的範圍內，後端已刪除的紀錄必須跟著消失，不得留成幽靈。
     /// （T-0460 judge 回合 1 的 P1：只做 union 會讓刪掉的近期紀錄永遠留在列表上。）
+    ///
+    /// fixture 照真實後端行為：第一頁是「最新 N 筆」，刪掉一筆之後由更舊的遞補，
+    /// 不會憑空少一筆。這裡 pageSize=3，workout_3 被刪 → 第一頁回 4/2/1。
     func testRefreshDropsWorkoutsDeletedWithinRefreshedPage() async {
         let loaded = makeWorkouts(count: 5)   // workout_0 最舊 … workout_4 最新
         mockRepository.workoutsToReturn = loaded
@@ -78,8 +81,8 @@ final class TrainingRecordViewModelRefreshTests: XCTestCase {
         await viewModel.loadWorkouts()
         XCTAssertEqual(viewModel.workouts.count, 5, "precondition: list should hold 5 workouts")
 
-        // 後端把 workout_3 刪了：第一頁涵蓋 workout_4…workout_3 的時間範圍，但只回 workout_4
-        mockRepository.workoutsToReturn = [loaded[4]]
+        // 後端刪掉 workout_3，第一頁（3 筆）遞補成 workout_4 / workout_2 / workout_1
+        mockRepository.workoutsToReturn = [loaded[4], loaded[2], loaded[1]]
         await viewModel.refreshWorkouts()
 
         XCTAssertFalse(
@@ -89,6 +92,27 @@ final class TrainingRecordViewModelRefreshTests: XCTestCase {
         XCTAssertEqual(
             viewModel.workouts.map(\.id), ["workout_4", "workout_2", "workout_1", "workout_0"],
             "older workouts outside the refreshed page must survive"
+        )
+    }
+
+    /// 邊界同一刻的第二筆活動（endDate 與刷新頁最舊一筆相同、但不在該頁裡）不得被誤刪。
+    /// （judge 回合 2 的 P2：嚴格小於會把同秒的另一筆當成段內已刪除。）
+    func testRefreshKeepsSameTimestampWorkoutOutsidePage() async {
+        let base = makeWorkouts(count: 3)                       // day1, day2, day3
+        let twin = makeWorkout(id: "workout_twin", day: 2)      // 與 workout_1 同一刻
+        mockRepository.workoutsToReturn = base + [twin]
+
+        let viewModel = TrainingRecordViewModel(repository: mockRepository)
+        await viewModel.loadWorkouts()
+        XCTAssertEqual(viewModel.workouts.count, 4, "precondition: list should hold 4 workouts")
+
+        // 第一頁回到 workout_1 為止，沒有涵蓋同一刻的 twin
+        mockRepository.workoutsToReturn = [base[2], base[1]]
+        await viewModel.refreshWorkouts()
+
+        XCTAssertTrue(
+            viewModel.workouts.contains { $0.id == "workout_twin" },
+            "a same-timestamp workout outside the refreshed page must not be dropped"
         )
     }
 
