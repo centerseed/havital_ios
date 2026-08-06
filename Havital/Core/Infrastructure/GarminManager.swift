@@ -447,8 +447,9 @@ class GarminManager: NSObject, ObservableObject {
                         try await self.userProfileRepository.updateDataSource(DataSourceType.garmin.rawValue)
                         print("數據源設定已同步到後端: Garmin")
 
-                        // 🔄 觸發 Onboarding Backfill（背景執行，不影響用戶體驗）
-                        BackfillService.shared.triggerOnboardingBackfill(provider: .garmin)
+                        // 🔄 請求初始回填（背景執行）。是否真的打 Garmin 由後端 coverage guard 決定，
+                        //    App 不得直接呼叫 raw /garmin/backfill（AC-GARMIN-BF-01/02）。
+                        BackfillService.shared.ensureInitialGarminBackfill()
 
                         // Assume history exists when backfill is triggered.
                         // Refine if BackfillService ever returns an async result.

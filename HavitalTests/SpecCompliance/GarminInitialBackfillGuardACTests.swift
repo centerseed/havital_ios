@@ -6,10 +6,9 @@ import XCTest
 /// AC-GARMIN-BF-02: OAuth callback must call the ensure-initial guard endpoint instead.
 /// AC-GARMIN-BF-03: Non-started decisions (already_requested, already_has_data, in_progress) must not block the UI.
 ///
-/// Implementation status per TD-garmin-initial-backfill-guard.md:
-/// S02 is in STUB state — iOS callback still calls triggerOnboardingBackfill (raw path),
-/// and BackfillService.ensureInitialGarminBackfill does not yet exist.
-/// These tests verify the source-level contract required by the TD.
+/// S02 已實作（T-0463）：callback 改呼叫 `BackfillService.ensureInitialGarminBackfill`，
+/// raw `/garmin/backfill` 路徑已從 App 端移除。
+/// 這些測試鎖的是 TD 要求的原始碼層契約；decision 的行為驗證在 `BackfillServiceTests`。
 final class GarminInitialBackfillGuardACTests: XCTestCase {
 
     // MARK: - Project Root
@@ -39,30 +38,51 @@ final class GarminInitialBackfillGuardACTests: XCTestCase {
     // MARK: - AC-GARMIN-BF-01: OAuth callback must NOT call raw /garmin/backfill directly
 
     func test_ac_garmin_bf_01_callback_does_not_call_raw_backfill() throws {
-        // S02 backend ensure-initial integration not yet implemented.
-        // TODO: when S02 lands, verify GarminManager.handleCallback calls ensureInitialGarminBackfill
-        // instead of triggerOnboardingBackfill (raw /garmin/backfill path).
-        throw XCTSkip("Pending AC-GARMIN-BF-01/02 — S02 backend ensure-initial integration not implemented")
+        let manager = try readSource(at: "Havital/Core/Infrastructure/GarminManager.swift")
+        XCTAssertFalse(
+            sourceContains(manager, withinFunction: "handleCallback", callTo: "triggerOnboardingBackfill"),
+            "AC-GARMIN-BF-01: handleCallback must not use triggerOnboardingBackfill (raw /garmin/backfill)"
+        )
+
+        let service = try readSource(at: "Havital/Features/Workout/Infrastructure/BackfillService.swift")
+        XCTAssertFalse(
+            service.contains("path: \"/garmin/backfill\""),
+            "AC-GARMIN-BF-01: the app must not call raw POST /garmin/backfill"
+        )
     }
 
     // MARK: - AC-GARMIN-BF-02: OAuth callback must call the ensure-initial guard
 
     func test_ac_garmin_bf_02_callback_calls_ensure_initial() throws {
-        // S02 backend ensure-initial integration not yet implemented.
-        // TODO: when S02 lands, verify BackfillService exposes ensureInitialGarminBackfill and
-        // GarminManager.handleCallback calls it instead of triggerOnboardingBackfill.
-        throw XCTSkip("Pending AC-GARMIN-BF-01/02 — S02 backend ensure-initial integration not implemented")
+        let manager = try readSource(at: "Havital/Core/Infrastructure/GarminManager.swift")
+        XCTAssertTrue(
+            sourceContains(manager, withinFunction: "handleCallback", callTo: "ensureInitialGarminBackfill"),
+            "AC-GARMIN-BF-02: handleCallback must call ensureInitialGarminBackfill"
+        )
+
+        let service = try readSource(at: "Havital/Features/Workout/Infrastructure/BackfillService.swift")
+        XCTAssertTrue(
+            service.contains("path: \"/garmin/backfill/ensure-initial\""),
+            "AC-GARMIN-BF-02: BackfillService must call the guard endpoint"
+        )
     }
 
     // MARK: - AC-GARMIN-BF-03: Non-started decisions must be non-blocking
 
     func test_ac_garmin_bf_03_non_started_decision_is_non_blocking() throws {
-        // S02 ensureInitialGarminBackfill not yet implemented.
-        // Previous revision verified triggerOnboardingBackfill (old path) — wrong contract.
-        // TODO: when S02 lands, verify ensureInitialGarminBackfill handles non-started decisions
-        // (already_requested, already_has_data, in_progress, not_eligible) without throwing
-        // and without blocking the UI flow.
-        throw XCTSkip("Pending AC-GARMIN-BF-03 — ensureInitialGarminBackfill (S02) not implemented")
+        let service = try readSource(at: "Havital/Features/Workout/Infrastructure/BackfillService.swift")
+
+        // callback 端呼叫的入口不得是 throwing 的：任何 decision 都不能往上拋去阻斷 OAuth 流程。
+        XCTAssertTrue(
+            service.contains("func ensureInitialGarminBackfill(days: Int = defaultBackfillDays) {"),
+            "AC-GARMIN-BF-03: ensureInitialGarminBackfill must be a non-throwing background entry point"
+        )
+
+        // 只有 started 才算真的啟動了新 job，其餘 decision 一律當正常結果。
+        XCTAssertTrue(
+            service.contains("var startedNewBackfill: Bool { decision == Self.startedDecision }"),
+            "AC-GARMIN-BF-03: a non-started decision must not count as a newly started backfill"
+        )
     }
 
     // MARK: - Source Analysis Helpers

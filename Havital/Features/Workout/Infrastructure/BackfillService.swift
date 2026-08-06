@@ -167,75 +167,88 @@ class BackfillService {
 
     // MARK: - Garmin Backfill
 
-    /// 觸發 Garmin 資料回填
-    /// - Parameters:
-    ///   - days: 回填天數，預設 14 天（Garmin 限制最多 90 天）
-    /// - Returns: 回填 ID，用於查詢狀態，若遇到 429 則返回 nil
-    func triggerGarminBackfill(days: Int = defaultBackfillDays) async throws -> String? {
-        // Garmin 限制最多 90 天
-        let actualDays = min(days, 90)
-
-        let startDate = Calendar.current.date(byAdding: .day, value: -actualDays, to: Date()) ?? Date()
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd"
-        let startDateString = dateFormatter.string(from: startDate)
-
-        let request = BackfillRequest(startDate: startDateString, days: actualDays)
-        let bodyData = try JSONEncoder().encode(request)
-
-        do {
-            let response: BackfillTriggerResponse = try await makeBackgroundAPICall(
-                BackfillTriggerResponse.self,
-                path: "/garmin/backfill",
-                method: .POST,
-                body: bodyData,
-                operationName: "Garmin Backfill 觸發"
-            )
-
-            Logger.firebase(
-                "Garmin Backfill 觸發成功",
-                level: .info,
-                labels: [
-                    "module": "BackfillService",
-                    "action": "trigger_garmin_backfill",
-                    "cloud_logging": "true"
-                ],
-                jsonPayload: [
-                    "backfill_id": response.data.backfillId,
-                    "status": response.data.status,
-                    "days": actualDays,
-                    "start_date": startDateString
-                ]
-            )
-
-            return response.data.backfillId
-
-        } catch let error as HTTPError {
-            // 429 錯誤表示已經有一個 backfill 正在進行，這不算錯誤
-            if case .httpError(let statusCode, _) = error, statusCode == 429 {
+    /// 請求 Garmin 初始回填（背景執行，不阻斷 OAuth 後的主流程）
+    ///
+    /// AC-GARMIN-BF-01/02：App 不得自行判定「首次綁定」並直接呼叫 raw `POST /garmin/backfill`；
+    /// 是否真的向 Garmin 發請求，一律由後端依 durable coverage record 決定。
+    /// - Parameter days: 初始回填天數，預設 14 天（Garmin 限制最多 90 天）
+    func ensureInitialGarminBackfill(days: Int = defaultBackfillDays) {
+        Task.detached(priority: .background) { [weak self] in
+            guard let self = self else { return }
+            do {
+                _ = try await self.performEnsureInitialGarminBackfill(days: days)
+            } catch {
+                // 背景判定失敗不影響用戶，只記錄日誌
                 Logger.firebase(
-                    "Garmin Backfill 已在進行中 (429)",
-                    level: .info,
+                    "Onboarding Garmin backfill guard failed",
+                    level: .warn,
                     labels: [
                         "module": "BackfillService",
-                        "action": "trigger_garmin_backfill",
+                        "action": "onboarding_backfill_failed",
                         "cloud_logging": "true"
                     ],
                     jsonPayload: [
-                        "status": "rate_limited",
-                        "days": actualDays,
-                        "message": "Garmin backfill already in progress, skipping"
+                        "provider": DataSourceType.garmin.rawValue,
+                        "days": days,
+                        "error": error.localizedDescription
                     ]
                 )
-                return nil
             }
-            // 記錄其他 HTTP 錯誤
+        }
+    }
+
+    /// `ensureInitialGarminBackfill` 的實作本體，回傳後端的判定結果。
+    ///
+    /// AC-GARMIN-BF-03：`already_requested` / `already_has_data` / `in_progress` / `not_eligible`
+    /// 都是正常判定結果，後端以 HTTP 200 回傳，這裡不得當成錯誤拋出去阻斷流程。
+    @discardableResult
+    func performEnsureInitialGarminBackfill(days: Int = defaultBackfillDays) async throws -> GarminEnsureInitialData {
+        // Garmin 限制最多 90 天
+        let actualDays = min(days, 90)
+
+        let request = EnsureInitialBackfillRequest(days: actualDays)
+        let bodyData = try JSONEncoder().encode(request)
+
+        do {
+            let response: GarminEnsureInitialResponse = try await makeBackgroundAPICall(
+                GarminEnsureInitialResponse.self,
+                path: "/garmin/backfill/ensure-initial",
+                method: .POST,
+                body: bodyData,
+                operationName: "Garmin ensure-initial backfill"
+            )
+
+            let decision = response.data.decision
             Logger.firebase(
-                "Garmin Backfill 觸發 HTTP 錯誤",
+                "Garmin ensure-initial backfill decision",
+                level: decision == GarminEnsureInitialData.failedDecision ? .warn : .info,
+                labels: [
+                    "module": "BackfillService",
+                    "action": "ensure_initial_garmin_backfill",
+                    "cloud_logging": "true"
+                ],
+                jsonPayload: [
+                    "decision": decision,
+                    "backfill_id": response.data.backfillId ?? "",
+                    "days": actualDays,
+                    "trigger_source": "onboarding"
+                ]
+            )
+
+            // 只有真的建立了新 job 才需要記住 id 供後續狀態查詢
+            if response.data.startedNewBackfill, let backfillId = response.data.backfillId {
+                self.saveBackfillId(backfillId, for: .garmin)
+            }
+
+            return response.data
+
+        } catch let error as HTTPError {
+            Logger.firebase(
+                "Garmin ensure-initial backfill HTTP error",
                 level: .warn,
                 labels: [
                     "module": "BackfillService",
-                    "action": "trigger_garmin_backfill",
+                    "action": "ensure_initial_garmin_backfill",
                     "cloud_logging": "true"
                 ],
                 jsonPayload: [
@@ -281,8 +294,11 @@ class BackfillService {
     // MARK: - Onboarding Backfill (Background)
 
     /// 在 onboarding 時觸發背景回填（不影響用戶體驗）
+    ///
+    /// Garmin 不走這裡：它必須經後端 coverage guard（`ensureInitialGarminBackfill`），
+    /// 見 AC-GARMIN-BF-01/02。
     /// - Parameters:
-    ///   - provider: 資料來源類型 (.strava 或 .garmin)
+    ///   - provider: 資料來源類型（目前只有 .strava）
     ///   - days: 回填天數，預設 14 天
     func triggerOnboardingBackfill(provider: DataSourceType, days: Int = defaultBackfillDays) {
         // 使用 detached 確保不會影響主要用戶流程
@@ -314,26 +330,8 @@ class BackfillService {
                     // 如果 backfillId 為 nil，表示遇到 429，已在 triggerStravaBackfill 中記錄日誌
 
                 case .garmin:
-                    if let backfillId = try await self.triggerGarminBackfill(days: days) {
-                        Logger.firebase(
-                            "Onboarding Garmin Backfill 已觸發",
-                            level: .info,
-                            labels: [
-                                "module": "BackfillService",
-                                "action": "onboarding_garmin_backfill",
-                                "cloud_logging": "true"
-                            ],
-                            jsonPayload: [
-                                "backfill_id": backfillId,
-                                "days": days,
-                                "trigger_source": "onboarding"
-                            ]
-                        )
-
-                        // 保存 backfill_id 供後續狀態檢查
-                        self.saveBackfillId(backfillId, for: .garmin)
-                    }
-                    // 如果 backfillId 為 nil，表示遇到 429，已在 triggerGarminBackfill 中記錄日誌
+                    // Garmin 一律經後端 guard 判定，不從這裡直接打 raw backfill
+                    try await self.performEnsureInitialGarminBackfill(days: days)
 
                 default:
                     // Apple Health 或 unbound 不需要 backfill
@@ -343,7 +341,7 @@ class BackfillService {
             } catch {
                 // 背景 backfill 失敗不影響用戶，只記錄日誌
                 Logger.firebase(
-                    "Onboarding Backfill 觸發失敗",
+                    "Onboarding Garmin backfill guard failed",
                     level: .warn,
                     labels: [
                         "module": "BackfillService",
@@ -488,6 +486,36 @@ struct BackfillRequest: Codable {
 struct BackfillTriggerResponse: Codable {
     let success: Bool
     let data: BackfillTriggerData
+}
+
+// MARK: - Garmin Ensure-Initial Response (AC-GARMIN-BF-02/03)
+
+struct EnsureInitialBackfillRequest: Codable {
+    let days: Int
+}
+
+struct GarminEnsureInitialResponse: Codable {
+    let success: Bool
+    let data: GarminEnsureInitialData
+}
+
+struct GarminEnsureInitialData: Codable {
+    /// `started` / `already_requested` / `already_has_data` / `in_progress` / `not_eligible` / `failed`
+    let decision: String
+    let backfillId: String?
+    let message: String?
+
+    static let startedDecision = "started"
+    static let failedDecision = "failed"
+
+    /// 只有這個值代表後端真的向 Garmin 送出了新的 backfill 請求。
+    var startedNewBackfill: Bool { decision == Self.startedDecision }
+
+    enum CodingKeys: String, CodingKey {
+        case decision
+        case backfillId = "backfill_id"
+        case message
+    }
 }
 
 struct BackfillTriggerData: Codable {
