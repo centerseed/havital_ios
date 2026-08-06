@@ -31,15 +31,15 @@ final class TrainingRecordViewModelRefreshTests: XCTestCase {
 
     /// AC-RECORD-02：已載入 5 筆時刷新只回最新 2 筆，列表仍須保有 5 筆。
     func testRefreshDoesNotTruncateAlreadyLoadedWorkouts() async {
-        let loaded = makeWorkouts(count: 5)
+        let loaded = makeWorkouts(count: 5)   // workout_0 最舊 … workout_4 最新
         mockRepository.workoutsToReturn = loaded
 
         let viewModel = TrainingRecordViewModel(repository: mockRepository)
         await viewModel.loadWorkouts()
         XCTAssertEqual(viewModel.workouts.count, 5, "precondition: list should hold 5 workouts")
 
-        // 刷新只回後端第一頁（最新 2 筆）
-        mockRepository.workoutsToReturn = Array(loaded.prefix(2))
+        // 刷新只回後端第一頁 = 最新的 2 筆
+        mockRepository.workoutsToReturn = [loaded[4], loaded[3]]
         await viewModel.refreshWorkouts()
 
         XCTAssertEqual(
@@ -66,6 +66,30 @@ final class TrainingRecordViewModelRefreshTests: XCTestCase {
 
         XCTAssertEqual(viewModel.workouts.count, 4, "new workout should be merged in, not replace the list")
         XCTAssertEqual(viewModel.workouts.first?.id, "workout_new", "newest workout should sort first")
+    }
+
+    /// 刷新那一頁涵蓋的範圍內，後端已刪除的紀錄必須跟著消失，不得留成幽靈。
+    /// （T-0460 judge 回合 1 的 P1：只做 union 會讓刪掉的近期紀錄永遠留在列表上。）
+    func testRefreshDropsWorkoutsDeletedWithinRefreshedPage() async {
+        let loaded = makeWorkouts(count: 5)   // workout_0 最舊 … workout_4 最新
+        mockRepository.workoutsToReturn = loaded
+
+        let viewModel = TrainingRecordViewModel(repository: mockRepository)
+        await viewModel.loadWorkouts()
+        XCTAssertEqual(viewModel.workouts.count, 5, "precondition: list should hold 5 workouts")
+
+        // 後端把 workout_3 刪了：第一頁涵蓋 workout_4…workout_3 的時間範圍，但只回 workout_4
+        mockRepository.workoutsToReturn = [loaded[4]]
+        await viewModel.refreshWorkouts()
+
+        XCTAssertFalse(
+            viewModel.workouts.contains { $0.id == "workout_3" },
+            "workout deleted server-side within the refreshed page must disappear"
+        )
+        XCTAssertEqual(
+            viewModel.workouts.map(\.id), ["workout_4", "workout_2", "workout_1", "workout_0"],
+            "older workouts outside the refreshed page must survive"
+        )
     }
 
     /// 刷新回空（例如後端暫時無資料）時，不得把已載入的列表清成 empty。

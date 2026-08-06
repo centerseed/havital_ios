@@ -121,13 +121,10 @@ class TrainingRecordViewModel: ObservableObject, @preconcurrency TaskManageable 
 
                 await MainActor.run {
                     // 刷新回來的是第一頁，不是全部。直接取代會把「載入更多」已堆出的
-                    // 較舊紀錄砍掉（T-0460），所以與現有列表合併；新資料在前，
-                    // 去重時勝出，等於同一筆被刷新成最新版本。
-                    let mergedWorkouts = self.mergeWorkouts(
-                        existing: self.workouts,
-                        new: freshWorkouts,
-                        insertAtTop: true
-                    )
+                    // 較舊紀錄砍掉（T-0460），所以只在「這一頁涵蓋的時間範圍內」以後端為準，
+                    // 更舊的既有紀錄保留。這樣後端刪掉近期某筆時該筆會消失（不留幽靈），
+                    // 又不會犧牲已載入的歷史。
+                    let mergedWorkouts = self.mergeRefreshedPage(freshWorkouts, into: self.workouts)
 
                     if mergedWorkouts.isEmpty {
                         self.state = .empty
@@ -268,6 +265,21 @@ class TrainingRecordViewModel: ObservableObject, @preconcurrency TaskManageable 
         return removeDuplicateWorkouts(allWorkouts)
     }
     
+    /// 把「下拉刷新取得的第一頁」併回現有列表（T-0460）。
+    ///
+    /// 第一頁是後端對「最新這一段」的權威答案，所以該段以它為準——段內在後端已被刪除的
+    /// 紀錄不會被留下來變幽靈；比這一頁最舊一筆還舊的既有紀錄（「載入更多」堆出來的歷史）
+    /// 則原樣保留，不隨刷新蒸發。
+    ///
+    /// 刷新回空時視為「這次沒有權威資訊」，保留現有列表，不清空。
+    private func mergeRefreshedPage(_ fresh: [WorkoutV2], into existing: [WorkoutV2]) -> [WorkoutV2] {
+        guard let pageOldestDate = fresh.map({ $0.endDate }).min() else {
+            return existing
+        }
+        let olderThanPage = existing.filter { $0.endDate < pageOldestDate }
+        return removeDuplicateWorkouts(fresh + olderThanPage)
+    }
+
     /// 去除重複的運動記錄（基於 ID）
     private func removeDuplicateWorkouts(_ workouts: [WorkoutV2]) -> [WorkoutV2] {
         var uniqueWorkouts: [WorkoutV2] = []
