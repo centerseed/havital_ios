@@ -77,6 +77,10 @@ final class AnnouncementViewModelTests: XCTestCase {
 
         sut.loadAnnouncementsIfNeeded()
         await waitUntil { self.sut.currentPopup?.id == "fresh" }
+        // popup 出現與 markSeen 是兩個非同步動作；等前者就讀後者是在賭時序（T-0461）。
+        await waitUntil(message: "fresh announcement should be marked seen") {
+            await self.repository.markSeenIDsSnapshot() == ["fresh"]
+        }
         let markSeenIDs = await repository.markSeenIDsSnapshot()
 
         XCTAssertEqual(markSeenIDs, ["fresh"])
@@ -111,22 +115,6 @@ final class AnnouncementViewModelTests: XCTestCase {
         sut.dismissSelectedMessageCenterAnnouncement()
 
         XCTAssertNil(sut.selectedMessageCenterAnnouncement)
-    }
-
-    private func waitUntil(
-        timeout: TimeInterval = 1.5,
-        pollInterval: UInt64 = 50_000_000,
-        condition: @escaping @MainActor () async -> Bool
-    ) async {
-        let deadline = Date().addingTimeInterval(timeout)
-        while Date() < deadline {
-            if await condition() {
-                return
-            }
-            try? await Task.sleep(nanoseconds: pollInterval)
-        }
-
-        XCTFail("Timed out waiting for condition")
     }
 
     private func makeAnnouncement(

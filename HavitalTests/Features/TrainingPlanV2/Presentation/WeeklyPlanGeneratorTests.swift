@@ -76,7 +76,10 @@ final class WeeklyPlanGeneratorTests: XCTestCase {
             shouldSuppressError: { _, _, _ in false },
             onSuccessToast: onSuccessToast,
             onRizoQuotaExceeded: onRizoQuotaExceeded,
-            onNetworkError: onNetworkError
+            onNetworkError: onNetworkError,
+            // 載入動畫的最短顯示時間是 UX 決定，不是這裡要驗的行為。
+            // 不歸零的話每支測試都真的睡滿 10 秒，suite 變慢且在負載下不穩（T-0461）。
+            minimumLoadingDuration: 0
         )
     }
 

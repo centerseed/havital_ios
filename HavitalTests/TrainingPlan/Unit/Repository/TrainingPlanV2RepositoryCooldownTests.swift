@@ -207,9 +207,10 @@ final class TrainingPlanV2RepositoryCooldownTests: XCTestCase {
         // When
         let result = try await sut.getPlanStatus(forceRefresh: false)
 
-        // Wait for background refresh to complete.
-        // background priority tasks may take longer in simulator — use a generous 2s window.
-        try await Task.sleep(nanoseconds: 2_000_000_000)  // 2s
+        // 等背景刷新真的打到 remote，而不是賭一個固定秒數（T-0461）。
+        await waitUntil(message: "Background refresh should have hit remote") {
+            self.fakeRemote.getPlanStatusCallCount == 1
+        }
 
         // Then: cache returned immediately; background hit remote once
         XCTAssertEqual(result.currentWeek, 2, "Should return cached value immediately")
@@ -261,7 +262,10 @@ final class TrainingPlanV2RepositoryCooldownTests: XCTestCase {
 
         // When: first call triggers background refresh which fails
         _ = try await sut.getPlanStatus(forceRefresh: false)
-        try await Task.sleep(nanoseconds: 2_000_000_000)  // 2s — allow background task to finish
+        // 失敗的背景刷新一樣會打到 remote；等那件事發生，再檢查 cooldown 沒被 mark（T-0461）。
+        await waitUntil(message: "Failing background refresh should still have hit remote") {
+            self.fakeRemote.getPlanStatusCallCount >= 1
+        }
 
         // Then: shouldRefresh must still be true (cooldown NOT marked on failure)
         XCTAssertTrue(localDataSource.shouldRefresh(.planStatus),
@@ -271,7 +275,9 @@ final class TrainingPlanV2RepositoryCooldownTests: XCTestCase {
         fakeRemote.planStatusError = nil
         fakeRemote.planStatusToReturn = .stub(currentWeek: 7)
         _ = try await sut.getPlanStatus(forceRefresh: false)
-        try await Task.sleep(nanoseconds: 2_000_000_000)  // 2s
+        await waitUntil(message: "Remote should be hit again after a failed refresh") {
+            self.fakeRemote.getPlanStatusCallCount >= 2
+        }
 
         XCTAssertGreaterThanOrEqual(fakeRemote.getPlanStatusCallCount, 1,
                                     "Remote should be called again since cooldown was never marked")
@@ -310,8 +316,10 @@ final class TrainingPlanV2RepositoryCooldownTests: XCTestCase {
         // When
         let result = try await sut.getPlanStatus(forceRefresh: false)
 
-        // Wait for background refresh — use 2s window for background priority task
-        try await Task.sleep(nanoseconds: 2_000_000_000)
+        // 等背景刷新真的發生（T-0461）。
+        await waitUntil(message: "Background refresh should be triggered after app restart") {
+            self.fakeRemote.getPlanStatusCallCount == 1
+        }
 
         // Then: cache was returned immediately, and background refresh was triggered
         XCTAssertEqual(result.currentWeek, 8, "Should return cached value from previous session")
