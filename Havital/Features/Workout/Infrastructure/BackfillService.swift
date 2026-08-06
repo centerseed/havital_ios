@@ -235,8 +235,10 @@ class BackfillService {
                 ]
             )
 
-            // 只有真的建立了新 job 才需要記住 id 供後續狀態查詢
-            if response.data.startedNewBackfill, let backfillId = response.data.backfillId {
+            // 後端在 already_requested / in_progress 時也會回既有 job 的 id。
+            // 這裡只要拿得到 id 就存，否則換裝置或重裝後本地沒有 id，
+            // `checkAndLogBackfillResult` 會直接退出，後續狀態查詢等於失效。
+            if let backfillId = response.data.backfillId {
                 self.saveBackfillId(backfillId, for: .garmin)
             }
 

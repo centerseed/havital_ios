@@ -44,10 +44,12 @@ final class GarminInitialBackfillGuardACTests: XCTestCase {
             "AC-GARMIN-BF-01: handleCallback must not use triggerOnboardingBackfill (raw /garmin/backfill)"
         )
 
-        let service = try readSource(at: "Havital/Features/Workout/Infrastructure/BackfillService.swift")
-        XCTAssertFalse(
-            service.contains("path: \"/garmin/backfill\""),
-            "AC-GARMIN-BF-01: the app must not call raw POST /garmin/backfill"
+        // 掃整個 App 原始碼，而不是只看 BackfillService —— raw caller 曾經也存在於
+        // Havital/Services/Integrations/Garmin/GarminService.swift（已於本次移除）。
+        let offenders = try swiftSourcesContaining("path: \"/garmin/backfill\"")
+        XCTAssertTrue(
+            offenders.isEmpty,
+            "AC-GARMIN-BF-01: the app must not call raw POST /garmin/backfill; offenders: \(offenders)"
         )
     }
 
@@ -73,19 +75,36 @@ final class GarminInitialBackfillGuardACTests: XCTestCase {
         let service = try readSource(at: "Havital/Features/Workout/Infrastructure/BackfillService.swift")
 
         // callback 端呼叫的入口不得是 throwing 的：任何 decision 都不能往上拋去阻斷 OAuth 流程。
-        XCTAssertTrue(
-            service.contains("func ensureInitialGarminBackfill(days: Int = defaultBackfillDays) {"),
-            "AC-GARMIN-BF-03: ensureInitialGarminBackfill must be a non-throwing background entry point"
+        // 只鎖「這個宣告沒有 throws」，不綁完整簽名字面，簽名調整不該讓這條假紅。
+        let declaration = try XCTUnwrap(
+            service
+                .split(separator: "\n", omittingEmptySubsequences: false)
+                .first { $0.contains("func ensureInitialGarminBackfill(") },
+            "AC-GARMIN-BF-03: ensureInitialGarminBackfill must exist"
         )
-
-        // 只有 started 才算真的啟動了新 job，其餘 decision 一律當正常結果。
-        XCTAssertTrue(
-            service.contains("var startedNewBackfill: Bool { decision == Self.startedDecision }"),
-            "AC-GARMIN-BF-03: a non-started decision must not count as a newly started backfill"
+        XCTAssertFalse(
+            declaration.contains("throws"),
+            "AC-GARMIN-BF-03: ensureInitialGarminBackfill must be a non-throwing background entry point, got: \(declaration)"
         )
     }
 
     // MARK: - Source Analysis Helpers
+
+    /// 掃 `Havital/` 底下所有 Swift 檔，回傳含有 `needle` 的相對路徑。
+    private func swiftSourcesContaining(_ needle: String) throws -> [String] {
+        let root = try projectRoot.appendingPathComponent("Havital")
+        guard let walker = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil) else {
+            throw XCTSkip("Unable to enumerate Havital sources")
+        }
+        var hits: [String] = []
+        for case let url as URL in walker where url.pathExtension == "swift" {
+            guard let text = try? String(contentsOf: url, encoding: .utf8) else { continue }
+            if text.contains(needle) {
+                hits.append(url.lastPathComponent)
+            }
+        }
+        return hits.sorted()
+    }
 
     /// Returns true if `callName` appears between the declaration of `functionName` and the
     /// next top-level `func ` declaration (or end of file). This is a conservative range search:
