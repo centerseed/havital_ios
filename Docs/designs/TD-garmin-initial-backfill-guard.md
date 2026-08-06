@@ -42,9 +42,9 @@ updated: 2026-05-01
 
 | AC ID | AC 描述 | 實作位置 | Test Function | 狀態 |
 |---|---|---|---|---|
-| AC-GARMIN-BF-01 | OAuth 成功後 App 不直接呼叫 raw `/garmin/backfill` | `GarminManager.handleCallback` | `test_ac_garmin_bf_01_callback_does_not_call_raw_backfill` | STUB |
-| AC-GARMIN-BF-02 | OAuth 成功後 App 呼叫 guard endpoint | `BackfillService.ensureInitialGarminBackfill` | `test_ac_garmin_bf_02_callback_calls_ensure_initial` | STUB |
-| AC-GARMIN-BF-03 | already/in_progress 類 response 不阻斷 App | `BackfillService` / `GarminManager` | `test_ac_garmin_bf_03_non_started_decision_is_non_blocking` | STUB |
+| AC-GARMIN-BF-01 | OAuth 成功後 App 不直接呼叫 raw `/garmin/backfill` | `GarminManager.handleCallback` | `test_ac_garmin_bf_01_callback_does_not_call_raw_backfill` | DONE (T-0463) |
+| AC-GARMIN-BF-02 | OAuth 成功後 App 呼叫 guard endpoint | `BackfillService.ensureInitialGarminBackfill` | `test_ac_garmin_bf_02_callback_calls_ensure_initial` | DONE (T-0463) |
+| AC-GARMIN-BF-03 | already/in_progress 類 response 不阻斷 App | `BackfillService` / `GarminManager` | `test_ac_garmin_bf_03_non_started_decision_is_non_blocking` | DONE (T-0463) |
 | AC-GARMIN-BF-04 | 無 coverage 且 connected 時建立 initial backfill | `GarminBackfillService.ensure_initial_backfill` | `test_ac_garmin_bf_04_ensure_initial_starts_without_coverage` | STUB |
 | AC-GARMIN-BF-05 | 有重疊 coverage 時不呼叫 Garmin API | `GarminBackfillRepository` / service guard | `test_ac_garmin_bf_05_overlap_coverage_skips_garmin_api` | STUB |
 | AC-GARMIN-BF-06 | Garmin accepted 後立即記錄 coverage requested | `GarminBackfillService.trigger_backfill` | `test_ac_garmin_bf_06_accepted_writes_requested_coverage` | STUB |

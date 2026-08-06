@@ -69,36 +69,62 @@ final class BackfillServiceTests: XCTestCase {
         XCTAssertEqual(mockParser.parseCount, 0)
     }
 
-    func testTriggerGarminBackfillCapsDaysAt90InRequestBody() async throws {
-        let path = "/garmin/backfill"
+    /// AC-GARMIN-BF-02：初始 backfill 只能打 guard endpoint，且天數上限 90。
+    func testEnsureInitialGarminBackfillCallsGuardEndpointAndCapsDaysAt90() async throws {
+        let path = "/garmin/backfill/ensure-initial"
         try mockHTTPClient.setJSONResponse(
             for: path,
             method: .POST,
-            response: BackfillTriggerResponse(
+            response: GarminEnsureInitialResponse(
                 success: true,
-                data: BackfillTriggerData(
+                data: GarminEnsureInitialData(
+                    decision: "started",
                     backfillId: "garmin-backfill-1",
-                    status: "monitoring",
-                    message: "ok"
+                    message: "Initial Garmin backfill started"
                 )
             )
         )
 
-        let backfillId = try await sut.triggerGarminBackfill(days: 120)
+        let result = try await sut.performEnsureInitialGarminBackfill(days: 120)
 
-        XCTAssertEqual(backfillId, "garmin-backfill-1")
+        XCTAssertEqual(result.decision, "started")
+        XCTAssertTrue(result.startedNewBackfill)
+        XCTAssertEqual(result.backfillId, "garmin-backfill-1")
         XCTAssertEqual(mockHTTPClient.lastRequest?.path, path)
         XCTAssertEqual(mockHTTPClient.lastRequest?.method, .POST)
 
         let body = try XCTUnwrap(mockHTTPClient.lastRequest?.body)
         let payload = try XCTUnwrap(try JSONSerialization.jsonObject(with: body) as? [String: Any])
         XCTAssertEqual(payload["days"] as? Int, 90)
+        // AC-GARMIN-BF-01：不得再自行計算區間送 raw backfill
+        XCTAssertNil(payload["start_date"])
+    }
 
-        let startDate = try XCTUnwrap(payload["start_date"] as? String)
-        let expectedDate = DateFormatter.backfillRequestDate.string(
-            from: Calendar.current.date(byAdding: .day, value: -90, to: Date()) ?? Date()
-        )
-        XCTAssertEqual(startDate, expectedDate)
+    /// AC-GARMIN-BF-03：非 started 的判定都是正常結果，不得拋錯阻斷流程。
+    func testEnsureInitialGarminBackfillDoesNotThrowOnNonStartedDecisions() async throws {
+        let path = "/garmin/backfill/ensure-initial"
+
+        for decision in ["already_requested", "already_has_data", "in_progress", "not_eligible"] {
+            mockHTTPClient.reset()
+            mockParser.reset()
+            try mockHTTPClient.setJSONResponse(
+                for: path,
+                method: .POST,
+                response: GarminEnsureInitialResponse(
+                    success: true,
+                    data: GarminEnsureInitialData(
+                        decision: decision,
+                        backfillId: nil,
+                        message: "non-blocking"
+                    )
+                )
+            )
+
+            let result = try await sut.performEnsureInitialGarminBackfill()
+
+            XCTAssertEqual(result.decision, decision)
+            XCTAssertFalse(result.startedNewBackfill, "\(decision) must not count as a newly started backfill")
+        }
     }
 
     func testGetGarminBackfillStatusBuildsPathAndParsesResponse() async throws {
