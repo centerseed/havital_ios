@@ -118,6 +118,14 @@ struct TrainingRecordView: View {
                     Color.clear
                 }
             }
+            // 篩選結果為空時畫面上沒有任何 row，checkForLoadMore 的 onAppear 永遠不會發生，
+            // 後面幾頁裡符合該分類的紀錄就再也載不到（T-0460）。改由已載入總數的變化驅動：
+            // 每載進一頁就再判斷一次，直到篩到東西或後端說沒有更多（hasMoreData 為 false）。
+            .task(id: loadMoreProbe) {
+                if selectedFilter != nil && filteredWorkouts.isEmpty {
+                    loadMoreIfNeeded()
+                }
+            }
         }
         .alert(NSLocalizedString("error.load_failed", comment: "Load Error"), isPresented: errorBinding) {
             Button(NSLocalizedString("common.confirm", comment: "Confirm")) {
@@ -331,8 +339,15 @@ struct TrainingRecordView: View {
         }
     }
 
+    /// 空篩選續載的驅動值：已載入總數或所選分類一變就重新判斷一次。
+    private var loadMoreProbe: String {
+        "\(selectedFilter ?? "all")-\(viewModel.workouts.count)"
+    }
+
     private func checkForLoadMore(_ workout: WorkoutV2) {
-        let isLastItem = workout.id == viewModel.workouts.last?.id
+        // 以「目前實際渲染的清單」最後一筆為觸發點。比對未篩選的 viewModel.workouts.last
+        // 會讓分類分頁幾乎不觸發分頁載入——那一筆通常被篩掉、不會 onAppear（T-0460）。
+        let isLastItem = workout.id == filteredWorkouts.last?.id
         if isLastItem { loadMoreIfNeeded() }
     }
 

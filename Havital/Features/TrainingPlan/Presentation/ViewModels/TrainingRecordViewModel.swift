@@ -116,20 +116,26 @@ class TrainingRecordViewModel: ObservableObject, @preconcurrency TaskManageable 
             }
 
             do {
-                // 強制刷新（跳過緩存）
-                let workouts = try await self.repository.refreshWorkouts()
+                // 強制刷新（跳過緩存）—— 只回後端第一頁
+                let freshWorkouts = try await self.repository.refreshWorkouts()
 
                 await MainActor.run {
-                    if workouts.isEmpty {
+                    // 刷新回來的是第一頁，不是全部。直接取代會把「載入更多」已堆出的
+                    // 較舊紀錄砍掉（T-0460），所以只在「這一頁涵蓋的時間範圍內」以後端為準，
+                    // 更舊的既有紀錄保留。這樣後端刪掉近期某筆時該筆會消失（不留幽靈），
+                    // 又不會犧牲已載入的歷史。
+                    let mergedWorkouts = self.mergeRefreshedPage(freshWorkouts, into: self.workouts)
+
+                    if mergedWorkouts.isEmpty {
                         self.state = .empty
                         self.hasMoreData = false
                     } else {
-                        self.state = .loaded(workouts.sorted { $0.endDate > $1.endDate })
-                        self.applyServerOrEstimatedHasMore(fetchedCount: workouts.count)
+                        self.state = .loaded(mergedWorkouts.sorted { $0.endDate > $1.endDate })
+                        self.applyServerOrEstimatedHasMore(fetchedCount: freshWorkouts.count)
                         self.updatePaginationState()
                     }
                     self.isRefreshing = false
-                    Logger.debug("[TrainingRecordViewModel] 刷新完成，數量: \(workouts.count)")
+                    Logger.debug("[TrainingRecordViewModel] 刷新完成，本次取得: \(freshWorkouts.count)，合併後總計: \(mergedWorkouts.count)")
                 }
 
             } catch is CancellationError {
@@ -259,6 +265,29 @@ class TrainingRecordViewModel: ObservableObject, @preconcurrency TaskManageable 
         return removeDuplicateWorkouts(allWorkouts)
     }
     
+    /// 把「下拉刷新取得的第一頁」併回現有列表（T-0460）。
+    ///
+    /// 第一頁是後端對「最新這一段」的權威答案，所以該段以它為準——段內在後端已被刪除的
+    /// 紀錄不會被留下來變幽靈；比這一頁最舊一筆還舊的既有紀錄（「載入更多」堆出來的歷史）
+    /// 則原樣保留，不隨刷新蒸發。
+    ///
+    /// 權威只到這一頁涵蓋的範圍為止：比 `pageOldestDate` 更舊的紀錄若在後端被刪，這次刷新
+    /// 看不到、也就無從判斷，會留到下次該範圍被重新讀取時才清掉。這是分頁本身的資訊限制，
+    /// 不是可以在這裡補上的東西。
+    ///
+    /// 邊界那一刻（`endDate == pageOldestDate`）一律保留：同一秒可能有第二筆活動而它不在
+    /// 這一頁裡，寧可多留一輪（下次刷新邊界移動就會清），也不要把使用者真實存在的紀錄誤刪。
+    ///
+    /// 刷新回空時視為「這次沒有權威資訊」，保留現有列表，不清空。
+    private func mergeRefreshedPage(_ fresh: [WorkoutV2], into existing: [WorkoutV2]) -> [WorkoutV2] {
+        guard let pageOldestDate = fresh.map({ $0.endDate }).min() else {
+            return existing
+        }
+        let outsideAuthoritativeWindow = existing.filter { $0.endDate <= pageOldestDate }
+        // fresh 在前：同 id 由刷新版本勝出（去重保留先出現者）。
+        return removeDuplicateWorkouts(fresh + outsideAuthoritativeWindow)
+    }
+
     /// 去除重複的運動記錄（基於 ID）
     private func removeDuplicateWorkouts(_ workouts: [WorkoutV2]) -> [WorkoutV2] {
         var uniqueWorkouts: [WorkoutV2] = []
