@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-dual-track-cache-and-background-refresh
 status: Draft
+layer: architecture
 ontology_entity: dual-track-cache-strategy
 created: 2026-04-15
 updated: 2026-04-15

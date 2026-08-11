@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-authentication-and-session-entry
 status: Draft
+layer: product
 ontology_entity: authentication-session-entry
 created: 2026-04-15
 updated: 2026-04-16

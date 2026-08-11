@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-app-shell-routing-and-global-guardrails
 status: Draft
+layer: architecture
 ontology_entity: app-shell-routing-guardrails
 created: 2026-04-15
 updated: 2026-04-15

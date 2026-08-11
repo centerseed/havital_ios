@@ -3,7 +3,8 @@ doc_id: SPEC-apple-watch-app-mvp
 title: Apple Watch App 主線（MVP）
 type: SPEC
 ontology_entity: apple-watch-app
-status: draft
+status: Draft
+layer: product
 version: "0.5"
 date: 2026-05-07
 supersedes: null

@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-training-hub-and-weekly-plan-lifecycle
 status: Draft
+layer: product
 ontology_entity: training-hub-lifecycle
 created: 2026-04-15
 updated: 2026-04-15

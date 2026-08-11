@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-demo-reviewer-access-gate
 status: Draft
+layer: product
 ontology_entity: demo-reviewer-access-gate
 created: 2026-04-16
 updated: 2026-04-16

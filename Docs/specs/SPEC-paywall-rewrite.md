@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-paywall-rewrite
 status: Draft
+layer: product
 related_designs:
   - TD-paywall-rewrite
 related_acs: []

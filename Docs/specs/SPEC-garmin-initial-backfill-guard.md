@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-garmin-initial-backfill-guard
 status: Draft
+layer: architecture
 ontology_entity: 運動數據接入
 created: 2026-05-01
 updated: 2026-05-01

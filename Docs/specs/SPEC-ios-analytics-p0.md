@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-ios-analytics-p0
 status: Implemented
+layer: product
 parent: SPEC-analytics-event-tracking
 created: 2026-04-15
 updated: 2026-04-24

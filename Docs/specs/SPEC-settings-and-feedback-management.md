@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-settings-and-feedback-management
 status: Draft
+layer: product
 ontology_entity: settings-feedback-management
 created: 2026-04-15
 updated: 2026-04-15

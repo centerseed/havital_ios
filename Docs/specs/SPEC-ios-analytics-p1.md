@@ -1,7 +1,8 @@
 ---
 type: SPEC
 id: SPEC-ios-analytics-p1
-status: Under Review
+status: Draft
+layer: product
 parent: SPEC-analytics-event-tracking
 ontology_entity: Analytics Event Tracking
 created: 2026-05-05

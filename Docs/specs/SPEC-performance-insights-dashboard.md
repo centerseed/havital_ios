@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-performance-insights-dashboard
 status: Draft
+layer: product
 ontology_entity: performance-insights-dashboard
 created: 2026-04-15
 updated: 2026-04-15

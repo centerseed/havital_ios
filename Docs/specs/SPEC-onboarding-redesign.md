@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-onboarding-redesign
 status: Implemented
+layer: product
 ontology_entity: TBD
 created: 2026-04-15
 updated: 2026-04-24

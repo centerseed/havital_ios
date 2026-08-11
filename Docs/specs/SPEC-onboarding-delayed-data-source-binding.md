@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-onboarding-delayed-data-source-binding
 status: Implemented
+layer: architecture
 ontology_entity: 訓練計畫系統
 created: 2026-04-22
 updated: 2026-04-24

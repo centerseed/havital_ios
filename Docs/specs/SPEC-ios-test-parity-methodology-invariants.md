@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-ios-test-parity-methodology-invariants
 status: Draft
+layer: architecture
 ontology_entity: ios-test-parity-methodology-invariants
 created: 2026-04-18
 updated: 2026-04-18

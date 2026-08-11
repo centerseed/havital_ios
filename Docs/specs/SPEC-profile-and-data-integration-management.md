@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-profile-and-data-integration-management
 status: Draft
+layer: product
 ontology_entity: profile-data-integration-management
 created: 2026-04-15
 updated: 2026-04-15

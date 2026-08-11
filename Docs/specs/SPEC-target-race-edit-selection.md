@@ -1,7 +1,8 @@
 ---
 type: SPEC
 id: SPEC-target-race-edit-selection
-status: Under Review
+status: Draft
+layer: product
 ontology_entity: target-race-edit-selection
 created: 2026-04-22
 updated: 2026-04-24

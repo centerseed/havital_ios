@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-workout-upload-error-noise-filtering
 status: Draft
+layer: product
 ontology_entity: workout-upload-error-noise-filtering
 created: 2026-04-17
 updated: 2026-04-17

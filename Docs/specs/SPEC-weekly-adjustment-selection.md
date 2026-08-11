@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-weekly-adjustment-selection
 status: Implemented
+layer: product
 l2_entity: TBD
 created: 2026-04-18
 updated: 2026-04-18

@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-target-lifecycle-and-supporting-races
 status: Draft
+layer: product
 ontology_entity: target-lifecycle
 created: 2026-04-15
 updated: 2026-04-15

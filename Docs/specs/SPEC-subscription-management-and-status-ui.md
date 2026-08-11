@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-subscription-management-and-status-ui
 status: Draft
+layer: product
 l2_entity: iap-subscription
 created: 2026-04-13
 updated: 2026-04-13

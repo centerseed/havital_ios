@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-global-interrupt-queue-and-presentation-priority
 status: Implemented
+layer: architecture
 ontology_entity: app-shell-routing-guardrails
 created: 2026-04-23
 updated: 2026-04-24

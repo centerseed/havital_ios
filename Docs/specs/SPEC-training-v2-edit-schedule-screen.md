@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-training-v2-edit-schedule-screen
 status: Draft
+layer: product
 ontology_entity: training-plan-v2-edit-experience
 created: 2026-03-27
 updated: 2026-03-29

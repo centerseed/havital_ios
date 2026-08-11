@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-training-plan-v1-legacy-boundary
 status: Draft
+layer: architecture
 ontology_entity: training-plan-v1-legacy-boundary
 created: 2026-04-15
 updated: 2026-04-15

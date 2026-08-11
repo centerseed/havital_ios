@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-workout-post-actions-and-share-card
 status: Draft
+layer: product
 ontology_entity: workout-post-actions-share-card
 created: 2026-04-15
 updated: 2026-04-15

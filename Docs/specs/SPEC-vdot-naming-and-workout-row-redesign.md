@@ -1,7 +1,8 @@
 ---
 type: SPEC
 id: SPEC-vdot-naming-and-workout-row-redesign
-status: Under Review
+status: Draft
+layer: product
 l2_entity: 跑步科學指標
 created: 2026-04-28
 updated: 2026-04-28 (v3: 全 7 開放問題收斂，僅留 1 項 Architect-scope + 1 項跨團隊確認)

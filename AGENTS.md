@@ -1,112 +1,42 @@
-# AGENTS.md — Paceriz iOS
+# iOS — Havital shared rules
 
-## Workspace Map
+This file is the canonical repo-local entrypoint for Codex and Claude Code.
+`CLAUDE.md` imports it and may add Claude-only behavior; it is not a shared
+policy source. Also read `/Users/wubaizong/havital/AGENTS.md` and the shared
+protocol in `/Users/wubaizong/havital/docs/development/LOCAL-DEVELOPMENT-HARNESS.md`.
 
-- iOS app: `/Users/wubaizong/havital/apps/ios/Havital`
-- Backend API service: `/Users/wubaizong/havital/cloud/api_service`
-- When a feature crosses app/backend boundaries, inspect and update both paths in the same task unless the user explicitly scopes the work to one side.
+## 成規
 
-## Codex Skill Policy
+- 持久化訓練真相走 **backend**。HealthKit 權限／純裝置展示可 local；禁 UI 第二份 persisted 真相。
+- 穿戴：`HealthKit → backend → UI`，禁 `HealthKit → UI`。
+- 用戶字串：`Localizable.strings`（zh-Hant／en／ja），三語齊。
+- 有 repository protocol → ViewModel 依 protocol。Repository **被動**，不 publish `CacheEventBus`。
+- API DTO 在 data；domain 不綁 wire format（既有契約例外除外）。
+- App UI：app 設計語言。行銷深板岩藍面板只限 `marketing/`。
+- 跨邊界契約先查兩邊；只在需求與證據要求時改兩邊。
+- Bug 先真實 path repro。自己引入的紅必須清。
+- **查出 backend 問題 → 開票給 backend**，不在 app 硬繞。
 
-- Canonical shared agent skills live in `~/.codex/skills`.
-- This iOS repo keeps only project-specific Codex skills in `.codex/skills/`:
-  - `audit-prod-health`
-  - `audit-gemini-usage`
-  - `audit-weekly-plan`
-- Do not add duplicate role/workflow skills under `.agents/skills/` or `skills/**/SKILL.md`; those copies are intentionally disabled as `SKILL.md.disabled`.
-- Keep governance reference docs under `skills/governance/` as plain docs, not loadable Codex skills.
+## 陷阱
 
-## Hard Constraints
+1. 算出來的 `Date` 當 Dictionary key 可能 miss → 當 key 先正規化（日起點／`TimeInterval`）。
+2. UI error 前濾 `NSURLErrorCancelled`。
+3. 初始化順序：`Launch → Auth → User Data → Training Overview → Weekly Plan → UI Ready`。
+4. API 呼叫串 `.tracked(from: "ViewName: functionName")`。
+5. 可取消 async：lifecycle 邊界 cancel；取消後不更新 UI。既有 `TaskManageable` 沿用。
 
-1. **Never fabricate results.** If you haven't run it, you don't know. Say "unverified" — not "should work" or PASS. Fabricated results cost 10x more to debug than honest unknowns.
-
-2. **Own all problems.** Build fails: fix it. QA fails: find root cause. "I don't have simulator access" is false — you have MCP tools (`mcp__ios-simulator__*`). Never push investigation back to the user.
-
-3. **`Date` is not a valid Dictionary key.** Use `TimeInterval`. Date's Hashable is time-dependent — silent runtime crash, no compile error.
-
-4. **HealthKit data must go through backend.** `HealthKit → Backend API → UI`, never `HealthKit → UI`. Bypassing backend creates split truth between HealthKit and Firestore.
-
-5. **Filter `NSURLErrorCancelled` before touching UI state.** Cancelled tasks are intentional navigation — showing ErrorView for them is a UX lie.
-
-6. **ViewModel depends on Repository Protocol, never RepositoryImpl.** Concrete impl breaks DI and makes unit testing require full wiring rewrite.
-
-7. **Repository never touches CacheEventBus.** Repository is passive data access. Event flow belongs to ViewModels/Services — mixing it in creates hidden coupling that breaks layer independence.
-
-   **Correct pattern** — Repository exposes a Combine publisher; ViewModel subscribes and republishes:
-   ```swift
-   // Repository (Data layer)
-   private let refreshSubject = PassthroughSubject<Void, Never>()
-   var workoutsDidRefresh: AnyPublisher<Void, Never> { refreshSubject.eraseToAnyPublisher() }
-   // on background refresh success:
-   refreshSubject.send()   // ← NOT CacheEventBus.shared.publish
-
-   // ViewModel (Presentation layer)
-   repository.workoutsDidRefresh
-       .sink { CacheEventBus.shared.publish(.dataChanged(.workouts)) }
-       .store(in: &cancellables)
-   ```
-
-   **Check for regressions:**
-   ```bash
-   grep -rn "CacheEventBus" Havital/Features/*/Data/ Havital/Features/*/Domain/ Havital/Core/Data/
-   # expected: no matches
-   ```
-
-8. **Firestore Python SDK always requires native DNS.** Before any backend command that imports `firebase_admin`, creates a Firestore client, or calls user/training services, set `GRPC_DNS_RESOLVER=native`. This is mandatory for prod/dev reads and writes; missing it causes hangs that look like Firestore slowness.
-
-   ```bash
-   GRPC_DNS_RESOLVER=native .venv/bin/python <script>
-   GRPC_DNS_RESOLVER=native conda run -n api python <script>
-   ```
-
-9. **For local prod Firestore batch reads, reuse the proven REST path.** The successful Firestore → SQL migrations do not rely on ad hoc Firebase SDK setup. Follow `cloud/api_service/scripts/backfill_workout_v2_sql_all_users.py`: set `GRPC_DNS_RESOLVER=native`, build `google.auth.default(scopes=["https://www.googleapis.com/auth/datastore"])`, wrap it in `google.auth.transport.requests.AuthorizedSession`, then call Firestore REST with decode helpers. Do not infer that Firestore is unreadable from one service-account JSON or from a hanging SDK call.
-
-## Commands
+## 指令
 
 ```bash
-# Build (always iPhone 17 Pro)
-xcodebuild clean build -project Havital.xcodeproj -scheme Havital \
+# 優先 booted simulator；UDID 別寫死
+xcodebuild build -project Havital.xcodeproj -scheme Havital \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
-
-# Find Date-as-key crashes
-grep -r "Dictionary.*Date\|Date.*Dictionary" Havital/ --include="*.swift"
+maestro test .maestro/flows/<flow>.yaml    # 禁 --no-window
 ```
 
-## 發版 (Release pipeline)
+發版前遵守 `fastlane/RELEASE.md`，確認三語 notes 並取得使用者批准。Merge 前先完成 shared
+external verdict contract，再從該 repo checkout 執行 shared merge gate。
 
-fastlane 已串好並實測(build+簽章含 Watch 已驗)。完整步驟 → **`fastlane/RELEASE.md`**。
-- **正式發版(自動直接上傳)**:`cd apps/ios/Havital && fastlane ios release` — 自動 bump build 號(App Store/TF 最大+1)→ archive+簽章(Watch+complication,API key 自動 provisioning、本機免 profile)→ 上傳 App Store → 推 release notes → 送審(`automatic_release=false`,過審後手動 Release)。
-- 只 build 給手動上傳:`fastlane ios build`(→ 開 Finder,Transporter 上傳)。查現行版本:`fastlane ios info`。
-- **唯一人工關**:填 `fastlane/metadata/{zh-Hant,ja,en-US}/release_notes.txt` 三語文案並確認。
-- 憑證:ASC 團隊金鑰自動載入自 `fastlane/.env.default`(不進 git);`.p8` 在 `~/.appstoreconnect/`。
+## 需要時再讀
 
-## Architecture
-
-Full rules: @.Codex/rules/architecture.md
-
-```
-Presentation → Domain → Data → Core  (dependencies always inward)
-```
-
-- DTO in Data layer (snake_case + CodingKeys), Entity in Domain (camelCase). Never add Codable to Entity — couples Domain to serialization format.
-- Singleton: HTTPClient, Logger, DataSource, Mapper, RepositoryImpl. Factory (new per use): ViewModel.
-
-## Known Gotchas
-
-**TaskManageable** — every ViewModel/Manager must implement it. `TaskRegistry` with unique `TaskID`. `cancelAllTasks()` in deinit. Never update UI state for cancelled tasks.
-
-**Init order is strict — race conditions are invisible in unit tests:**
-```
-App Launch → Auth → User Data → Training Overview → Weekly Plan → UI Ready
-```
-
-**API call tracking** — chain `.tracked(from: "ViewName: functionName")` on every API call. Without this, production incidents are unattributable.
-
-**Naming trap** — product name is **Paceriz** (user-facing), bundle ID stays `com.havital.*` (App Store continuity), directory stays `Havital`.
-
-## Role-Specific Rules
-
-@.Codex/rules/debugging.md — bug triage, root cause protocol
-@.Codex/rules/delivery.md — build gate, new feature checklist
-@.Codex/rules/testing.md — QA protocol, simulator rules, Maestro usage
-@.Codex/rules/multi-agent.md — agent role boundaries
+`fastlane/RELEASE.md` · `.Codex/rules/architecture.md`（若存在）· root `docs/` 的相關 spec/decision。

@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-monthly-stats-and-calendar-performance-surfaces
 status: Draft
+layer: product
 ontology_entity: monthly-stats-performance-surface
 created: 2026-04-15
 updated: 2026-04-15

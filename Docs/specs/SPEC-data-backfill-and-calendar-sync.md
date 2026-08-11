@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-data-backfill-and-calendar-sync
 status: Draft
+layer: architecture
 ontology_entity: data-backfill-calendar-sync
 created: 2026-04-15
 updated: 2026-04-15

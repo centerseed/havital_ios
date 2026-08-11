@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-readiness-v2-conditional-display
 status: Draft
+layer: product
 ontology_entity: readiness-v2-conditional-display
 created: 2026-04-28
 updated: 2026-04-28

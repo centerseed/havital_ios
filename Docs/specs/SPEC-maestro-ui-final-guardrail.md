@@ -4,6 +4,7 @@ title: 功能規格：Maestro UI 最後防線測試
 type: SPEC
 ontology_entity: 訓練計畫系統
 status: Implemented
+layer: architecture
 version: "1.0"
 date: 2026-04-10
 supersedes: null

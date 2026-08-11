@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-onboarding-race-selection
 status: Draft
+layer: product
 ontology_entity: onboarding-race-selection
 created: 2026-04-15
 updated: 2026-04-15

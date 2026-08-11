@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-heart-rate-and-training-readiness-surfaces
 status: Draft
+layer: product
 ontology_entity: heart-rate-training-readiness-surfaces
 created: 2026-04-15
 updated: 2026-04-15

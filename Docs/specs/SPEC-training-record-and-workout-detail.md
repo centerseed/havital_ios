@@ -2,6 +2,7 @@
 type: SPEC
 id: SPEC-training-record-and-workout-detail
 status: Draft
+layer: product
 ontology_entity: training-record-detail
 created: 2026-04-15
 updated: 2026-04-15
