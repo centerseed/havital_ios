@@ -1,7 +1,7 @@
-・Rizo responds faster
-Rizo now answers as it thinks, so text starts appearing right after you ask.
+・Fixed activity history shrinking after pull-to-refresh
+Pull-to-refresh no longer drops records you already loaded, and filtered tabs keep loading more.
 
-・Refined onboarding flow
-Setup before you start training is clearer and easier to follow.
+・Fixed missing history import on first Garmin connection
+History import after connecting Garmin is now handled entirely on the server, fixing cases where it previously failed.
 
 ・Bug fixes
