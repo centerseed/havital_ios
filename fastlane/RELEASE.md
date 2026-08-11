@@ -24,8 +24,11 @@
 - `fastlane ios info` — 唯讀列 App Store 現行版本。
 
 ## 現況
-- **App Store live = 1.4.10**（`READY_FOR_SALE`）。
-- **1.4.11 已於 2026-07-22 送審**（build **10**，`fastlane ios release` 全程成功：archive → 簽章 → 上傳 → 三語 release notes → 送審）。
-  - git main: `7f14b437`（含 T-0280 課表編輯 DayType 補齊等）。
-  - release notes：Rizo 更快 / 調整 onboarding / 修復錯誤。
+- **App Store live = 1.4.11**（`READY_FOR_SALE`；1.4.12 為 `WAITING_FOR_REVIEW`）。
+- **1.4.12 已於 2026-08-11 送審**（build **11**，`fastlane ios release` 全程成功：archive → 簽章 → 上傳 → 三語 release notes → 送審）。
+  - git main: `fca4bb9b`。
+  - 內容：T-0460（紀錄頁下拉刷新截斷已載入清單、分類分頁無法續載）、T-0463（onboarding Garmin 歷史匯入改走後端 `ensure-initial` guard）。
+  - release notes：刷新後紀錄變少 / Garmin 首次綁定沒匯入歷史 / 修復錯誤。
+- **1.4.11 於 2026-07-22 送審**（build **10**）。git main `7f14b437`（含 T-0280 課表編輯 DayType 補齊等）；
+  release notes：Rizo 更快 / 調整 onboarding / 修復錯誤。
 - `automatic_release=false` → 過審後仍需在 App Store Connect **手動按 Release**。
