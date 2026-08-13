@@ -25,6 +25,13 @@ protocol in `/Users/wubaizong/havital/docs/development/LOCAL-DEVELOPMENT-HARNESS
 4. API 呼叫串 `.tracked(from: "ViewName: functionName")`。
 5. 可取消 async：lifecycle 邊界 cancel；取消後不更新 UI。既有 `TaskManageable` 沿用。
 
+## Delivery gate
+
+Merge to local `main` requires these commands, recorded on the task with `exit 0` and the worktree HEAD SHA.
+
+- `./Scripts/test.sh unit`
+- `python3 Scripts/i18n_lint.py`
+
 ## 指令
 
 ```bash
@@ -34,8 +41,7 @@ xcodebuild build -project Havital.xcodeproj -scheme Havital \
 maestro test .maestro/flows/<flow>.yaml    # 禁 --no-window
 ```
 
-發版前遵守 `fastlane/RELEASE.md`，確認三語 notes 並取得使用者批准。Merge 前先完成 shared
-external verdict contract，再從該 repo checkout 執行 shared merge gate。
+發版前遵守 `fastlane/RELEASE.md`，確認三語 notes 並取得使用者批准。
 
 ## 需要時再讀
 
