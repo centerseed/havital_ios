@@ -1,11 +1,11 @@
 ---
 type: SPEC
 id: SPEC-garmin-initial-backfill-guard
-status: Draft
+status: Partial
 layer: architecture
 ontology_entity: 運動數據接入
 created: 2026-05-01
-updated: 2026-05-01
+updated: 2026-08-18
 ---
 
 # Feature Spec: Garmin Initial Backfill Guard
@@ -68,6 +68,40 @@ Garmin backfill 的主鏈路在 prod 已確認可運作：`/garmin/backfill` 曾
   - `AC-GARMIN-BF-11`: Given raw `/garmin/backfill` request 的區間與歷史 coverage 重疊, When request 抵達後端, Then 後端回傳既有 coverage / backfill 狀態或可理解錯誤，且不呼叫 Garmin API。
   - `AC-GARMIN-BF-12`: Given raw `/garmin/backfill` request 未重疊且通過驗證, When Garmin API accepted, Then 回傳 backfill id 並寫入 coverage。
 
+### P1-1: Provider 暫時性拒絕必須由後端退避重試
+
+- **描述**：Garmin 在 OAuth 完成後的數十秒內會對 backfill 回 403（`User not registered with consumer`）
+  或 412（`Access denied for ... required ...`）。同一用戶、同一區間稍後重送即成功。單次拒絕
+  不代表這個用戶不能回填，後端不得把它寫成終局失敗。
+- **證據**：2026-08-18 prod `backfill/garmin/items` 分析。2026-05 之前零失敗，2026-05 起約五成失敗；
+  115 位綁定用戶中 69 位從未成功回填，其中 59 位只嘗試過一次。同區間短時間重送成功的實例 5 組
+  （17～36 秒）：`majGyhWWVbZi`、`hmdnlWmk13a4`、`TjYBkUaCv9XU`、`4Whgl5NSeCds`、`Ihpr1equTidK`。
+- **Acceptance Criteria**：
+  - `AC-GARMIN-BF-13`: Given `ensure-initial` 送出後 Garmin 回 retryable rejection（`error_code`
+    不在 `NON_RETRYABLE_ERROR_CODES` 內）, When 後端處理該拒絕, Then 後端必須退避重送同一區間，
+    重試耗盡後才回 `failed`。
+  - `AC-GARMIN-BF-14`: Given 重試進行中, When 後端重送同一區間, Then 不得產生第二筆 coverage record。
+  - `AC-GARMIN-BF-15`: Given `ensure-initial` 回 `decision: failed`, When 呼叫端收到 response,
+    Then response 必須包含 `retryable` 與 `decision_hint`，讓呼叫端能區分「會自己好」與
+    「要用戶重新授權」。現況把所有例外壓成 `error_code: unknown_error` 且回應不含這兩個欄位。
+
+### P1-2: 初次回填最終失敗不得對用戶靜默
+
+- **描述**：重試耗盡後仍失敗時，用戶必須知道歷史資料沒補到，並且有辦法重試。現況是 iOS
+  只寫一行 warn log，`backfill_id` 為 nil，用戶不知情也查不到。
+- **Acceptance Criteria**：
+  - `AC-GARMIN-BF-16`: Given 初次回填在重試耗盡後仍失敗, When 用戶回到 App,
+    Then 用戶必須能看到回填未完成，且能手動重新觸發。
+
+### P1 條款到程式碼（2026-08-18 現況）
+
+| 條款 | 落點 | 狀態 |
+|---|---|---|
+| `AC-GARMIN-BF-13` | `cloud/api_service/application/provider_sync.py:367`（`except Exception` 直接寫成 `failed`） | 未實作 |
+| `AC-GARMIN-BF-14` | `cloud/api_service/domains/integrations/connect/garmin_backfill_service.py:400`（`decide_initial_backfill_after_count` 的 overlap 檢查） | 未實作 |
+| `AC-GARMIN-BF-15` | `cloud/api_service/application/provider_sync.py:380`；retryable 判定在 `cloud/api_service/core/constants/garmin_backfill_constants.py:64` | 未實作 |
+| `AC-GARMIN-BF-16` | `apps/ios/Havital/Havital/Features/Workout/Infrastructure/BackfillService.swift:175`（失敗只寫 warn log） | 未實作 |
+
 ## 明確不包含
 
 - 不改 Garmin OAuth 本身的授權流程。
@@ -83,5 +117,11 @@ Garmin backfill 的主鏈路在 prod 已確認可運作：`/garmin/backfill` 曾
 - iOS OAuth callback 不可阻塞主流程等待 backfill 完整完成。
 
 ## 開放問題
+
+- `AC-GARMIN-BF-16` 的呈現位置未定：(a) 綁定完成頁顯示回填狀態與重試按鈕；(b) 純後端排程重試、
+  不做 UI；(c) 兩者都做。代價分別是 onboarding 多一個狀態、後端多一個排程器、以及兩者。**需產品決定。**
+- 412 缺的是哪個 Garmin 權限查不出來：回應是 `Access denied for <redacted> required <redacted>`，
+  權限名被 `_redact_secrets` 的 `[A-Za-z0-9._\-+/=]{16,}` 規則遮掉（`ACTIVITY_SUMMARY` /
+  `ACTIVITY_DETAILS` 剛好 16 字元）。是否把 Garmin 權限名加進 allowlist 例外，未決。
 
 - `ensure-initial` 的回傳 payload 最終欄位命名由 Developer 依現有 response pattern 決定，但必須包含 decision/status 與 backfill/coverage reference。
