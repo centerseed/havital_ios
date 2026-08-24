@@ -27,8 +27,12 @@ tags:
     visible:
       id: "App2_RootView"
     timeout: 20000
-- assertVisible:
-    id: "App2_GoalCard"
+# 目標賽事卡要等：它先打 `/user/targets` 把快取填起來才決定 live／樣本，
+# 在這個沒有 token 的 harness 下必須等那次呼叫失敗才會落到樣本。
+- extendedWaitUntil:
+    visible:
+      id: "App2_GoalCard"
+    timeout: 30000
 - assertVisible:
     id: "App2_TrainingStatusCard"
 - assertVisible:

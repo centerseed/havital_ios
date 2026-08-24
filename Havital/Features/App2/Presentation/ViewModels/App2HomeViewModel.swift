@@ -165,6 +165,15 @@ final class App2HomeViewModel: ObservableObject, TaskManageable {
             Logger.debug("[App2HomeVM] plan status（goal card）取得失敗: \(error)")
         }
 
+        // `getMainTarget()` 只讀本機快取。1.x 的 tab 由別處先打過 `/user/targets`，
+        // 2.0 的 App2RootView 沒有那條路徑，所以冷啟後快取是空的、卡片永遠退樣本。
+        // 這裡先走檔頭表列的既有出口 `getTargets()`（dual-track，會填快取），不新增第二條路。
+        do {
+            _ = try await targetRepository.getTargets()
+        } catch {
+            Logger.debug("[App2HomeVM] targets 取得失敗,改讀既有快取: \(error)")
+        }
+
         guard let main = await targetRepository.getMainTarget() else {
             Logger.debug("[App2HomeVM] 無主要賽事目標,退樣本")
             goalCard = App2Sourced(

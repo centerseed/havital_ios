@@ -1,0 +1,13 @@
+appId: com.havital.Havital.dev
+env:
+  DEMO_REVIEWER_PASSCODE: ${DEMO_REVIEWER_PASSCODE}
+---
+# T-0306 卡點 1 驗證用：走 reviewer demo 登入，讓 App2 四畫面拿 dev 真資料。
+# dev 環境的 /login/demo 不驗 passcode（core/auth/auth_service.py 的 dev 捷徑），
+# 任意非空值即可；app 端仍照原本的 UI 路徑走，不繞過登入。
+- runFlow: ../subflows/reviewer-demo-login.yaml
+- extendedWaitUntil:
+    visible:
+      id: "App2_TabBar"
+    timeout: 60000
+    optional: true
