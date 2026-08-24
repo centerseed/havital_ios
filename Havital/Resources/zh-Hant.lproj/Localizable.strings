@@ -4234,3 +4234,61 @@
 "onboarding.intro_feature_rizo" = "Rizo AI 教練隨時陪你調課表";
 "onboarding.weekly_distance_anchor_explain" = "課表一開始會把你的週跑量當作重要參考點：你填多少，第一份課表就從接近多少開始。請依你目前的實際情況填寫。";
 "onboarding.weekly_distance_maintenance_note" = "維持訓練的課表週量通常會比你填的略低，讓身體有恢復與調整的空間。";
+
+/* MARK: - App 2.0 骨架（DESIGN-app2-decision-chain-api.md §3） */
+"app2.tab.state" = "狀態";
+"app2.tab.plan" = "課表";
+"app2.tab.records" = "紀錄";
+"app2.tab.settings" = "設定";
+
+"app2.home.greeting" = "早安";
+"app2.home.goal_section" = "目標賽事";
+"app2.home.goal_target" = "目標";
+"app2.home.goal_estimate" = "預估完賽";
+"app2.home.goal_week" = "週次";
+"app2.home.status_section" = "訓練狀況";
+"app2.home.track_behind" = "落後";
+"app2.home.track_on_track" = "正常軌道";
+"app2.home.track_ahead" = "超乎預期";
+"app2.home.insights_section" = "指標";
+"app2.home.today_section" = "今日課表";
+"app2.home.intent_section" = "這一段在追什麼";
+"app2.home.intent_pursuing" = "追求";
+"app2.home.intent_maintaining" = "維持";
+"app2.home.intent_deferring" = "暫緩";
+"app2.home.rizo_entry" = "跟 Rizo 討論";
+"app2.home.week_review_entry" = "本週回顧";
+
+"app2.plan.week_volume" = "週目標量";
+"app2.plan.completed" = "已完成";
+"app2.plan.intensity_section" = "強度分布";
+"app2.plan.intensity_low" = "低";
+"app2.plan.intensity_medium" = "中";
+"app2.plan.intensity_high" = "高";
+"app2.plan.purpose" = "本週目的";
+"app2.plan.days_section" = "每日安排";
+"app2.plan.rest" = "休息";
+
+"app2.records.window_section" = "近 30 天";
+"app2.records.ytd_section" = "今年累積";
+"app2.records.distance" = "跑量";
+"app2.records.workouts" = "次數";
+"app2.records.weekly_section" = "近 8 週跑量";
+"app2.records.list_section" = "訓練紀錄";
+
+"app2.settings.account_section" = "帳號";
+"app2.settings.subscription_section" = "訂閱";
+"app2.settings.data_source_section" = "數據來源";
+"app2.settings.training_section" = "訓練設定";
+"app2.settings.weekly_distance" = "週跑量";
+"app2.settings.training_days" = "訓練日";
+"app2.settings.race_countdown" = "賽事倒數卡";
+"app2.settings.not_connected" = "未連結";
+"app2.settings.connected" = "已連結";
+
+"app2.common.stub_badge" = "樣本";
+"app2.common.stub_footer" = "此區塊為固定樣本資料，後端端點尚未落地（%@）。";
+"app2.common.no_data" = "尚無資料";
+"app2.common.load_failed" = "資料載入失敗";
+"app2.common.retry" = "重試";
+"app2.common.using_sample" = "已改用樣本資料顯示";

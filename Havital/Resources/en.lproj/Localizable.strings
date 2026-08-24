@@ -4193,3 +4193,61 @@
 "onboarding.intro_feature_rizo" = "Rizo, your AI coach, adjusts the plan with you anytime";
 "onboarding.weekly_distance_anchor_explain" = "Your plan starts from this number as its key reference point: the first week begins close to what you enter. Please fill in your actual current mileage.";
 "onboarding.weekly_distance_maintenance_note" = "For maintenance training, the planned weekly volume is usually slightly lower than what you enter, leaving room for recovery and adjustment.";
+
+/* MARK: - App 2.0 skeleton (DESIGN-app2-decision-chain-api.md §3) */
+"app2.tab.state" = "State";
+"app2.tab.plan" = "Plan";
+"app2.tab.records" = "Records";
+"app2.tab.settings" = "Settings";
+
+"app2.home.greeting" = "Good morning";
+"app2.home.goal_section" = "Target race";
+"app2.home.goal_target" = "Target";
+"app2.home.goal_estimate" = "Projected";
+"app2.home.goal_week" = "Week";
+"app2.home.status_section" = "Training status";
+"app2.home.track_behind" = "Behind";
+"app2.home.track_on_track" = "On track";
+"app2.home.track_ahead" = "Ahead";
+"app2.home.insights_section" = "Metrics";
+"app2.home.today_section" = "Today's session";
+"app2.home.intent_section" = "What this block is chasing";
+"app2.home.intent_pursuing" = "Pursuing";
+"app2.home.intent_maintaining" = "Maintaining";
+"app2.home.intent_deferring" = "Deferring";
+"app2.home.rizo_entry" = "Talk to Rizo";
+"app2.home.week_review_entry" = "This week's review";
+
+"app2.plan.week_volume" = "Weekly target";
+"app2.plan.completed" = "Completed";
+"app2.plan.intensity_section" = "Intensity split";
+"app2.plan.intensity_low" = "Low";
+"app2.plan.intensity_medium" = "Med";
+"app2.plan.intensity_high" = "High";
+"app2.plan.purpose" = "Purpose of the week";
+"app2.plan.days_section" = "Daily schedule";
+"app2.plan.rest" = "Rest";
+
+"app2.records.window_section" = "Last 30 days";
+"app2.records.ytd_section" = "Year to date";
+"app2.records.distance" = "Distance";
+"app2.records.workouts" = "Sessions";
+"app2.records.weekly_section" = "Last 8 weeks";
+"app2.records.list_section" = "Training log";
+
+"app2.settings.account_section" = "Account";
+"app2.settings.subscription_section" = "Subscription";
+"app2.settings.data_source_section" = "Data sources";
+"app2.settings.training_section" = "Training settings";
+"app2.settings.weekly_distance" = "Weekly distance";
+"app2.settings.training_days" = "Training days";
+"app2.settings.race_countdown" = "Race countdown card";
+"app2.settings.not_connected" = "Not connected";
+"app2.settings.connected" = "Connected";
+
+"app2.common.stub_badge" = "Sample";
+"app2.common.stub_footer" = "This block shows fixed sample data; the backend endpoint is not live yet (%@).";
+"app2.common.no_data" = "No data yet";
+"app2.common.load_failed" = "Could not load data";
+"app2.common.retry" = "Retry";
+"app2.common.using_sample" = "Showing sample data instead";

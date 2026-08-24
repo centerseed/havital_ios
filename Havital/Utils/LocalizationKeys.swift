@@ -1979,4 +1979,76 @@ extension L10n {
         static let ctaRestore = "paywall.conversion.cta_restore"
         static let dailyValueHint = "paywall.conversion.daily_value_hint"
     }
+
+    // MARK: - App 2.0 骨架（DESIGN-app2-decision-chain-api.md §3）
+    enum App2 {
+        enum Tab {
+            static let state = "app2.tab.state"
+            static let plan = "app2.tab.plan"
+            static let records = "app2.tab.records"
+            static let settings = "app2.tab.settings"
+        }
+
+        enum Home {
+            static let greeting = "app2.home.greeting"
+            static let goalSection = "app2.home.goal_section"
+            static let goalTarget = "app2.home.goal_target"
+            static let goalEstimate = "app2.home.goal_estimate"
+            static let goalWeek = "app2.home.goal_week"
+            static let statusSection = "app2.home.status_section"
+            static let trackBehind = "app2.home.track_behind"
+            static let trackOnTrack = "app2.home.track_on_track"
+            static let trackAhead = "app2.home.track_ahead"
+            static let insightsSection = "app2.home.insights_section"
+            static let todaySection = "app2.home.today_section"
+            static let intentSection = "app2.home.intent_section"
+            static let intentPursuing = "app2.home.intent_pursuing"
+            static let intentMaintaining = "app2.home.intent_maintaining"
+            static let intentDeferring = "app2.home.intent_deferring"
+            static let rizoEntry = "app2.home.rizo_entry"
+            static let weekReviewEntry = "app2.home.week_review_entry"
+        }
+
+        enum Plan {
+            static let weekVolume = "app2.plan.week_volume"
+            static let completed = "app2.plan.completed"
+            static let intensitySection = "app2.plan.intensity_section"
+            static let intensityLow = "app2.plan.intensity_low"
+            static let intensityMedium = "app2.plan.intensity_medium"
+            static let intensityHigh = "app2.plan.intensity_high"
+            static let purpose = "app2.plan.purpose"
+            static let daysSection = "app2.plan.days_section"
+            static let rest = "app2.plan.rest"
+        }
+
+        enum Records {
+            static let windowSection = "app2.records.window_section"
+            static let ytdSection = "app2.records.ytd_section"
+            static let distance = "app2.records.distance"
+            static let workouts = "app2.records.workouts"
+            static let weeklySection = "app2.records.weekly_section"
+            static let listSection = "app2.records.list_section"
+        }
+
+        enum Settings {
+            static let accountSection = "app2.settings.account_section"
+            static let subscriptionSection = "app2.settings.subscription_section"
+            static let dataSourceSection = "app2.settings.data_source_section"
+            static let trainingSection = "app2.settings.training_section"
+            static let weeklyDistance = "app2.settings.weekly_distance"
+            static let trainingDays = "app2.settings.training_days"
+            static let raceCountdown = "app2.settings.race_countdown"
+            static let notConnected = "app2.settings.not_connected"
+            static let connected = "app2.settings.connected"
+        }
+
+        enum Common {
+            static let stubBadge = "app2.common.stub_badge"
+            static let stubFooter = "app2.common.stub_footer"
+            static let noData = "app2.common.no_data"
+            static let loadFailed = "app2.common.load_failed"
+            static let retry = "app2.common.retry"
+            static let usingSample = "app2.common.using_sample"
+        }
+    }
 }

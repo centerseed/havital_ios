@@ -258,12 +258,17 @@ class WorkoutRemoteDataSource {
     // MARK: - Stats
 
     /// 獲取訓練統計數據
-    /// - Parameter days: 統計天數
+    /// - Parameters:
+    ///   - days: 滾動視窗天數
+    ///   - weeks: 週跑量序列的週數（T-0304；後端預設 8，1…MAX_STATS_WEEKS）
     /// - Returns: 統計響應
-    func fetchWorkoutStats(days: Int = 30) async throws -> WorkoutStatsResponse {
-        let path = "/v2/workouts/stats?days=\(days)"
+    func fetchWorkoutStats(days: Int = 30, weeks: Int? = nil) async throws -> WorkoutStatsResponse {
+        var path = "/v2/workouts/stats?days=\(days)"
+        if let weeks {
+            path += "&weeks=\(weeks)"
+        }
 
-        Logger.debug("[WorkoutRemoteDataSource] fetchWorkoutStats - days: \(days)")
+        Logger.debug("[WorkoutRemoteDataSource] fetchWorkoutStats - days: \(days), weeks: \(weeks.map(String.init) ?? "default")")
 
         let rawData = try await tracked("WorkoutRemoteDataSource: fetchWorkoutStats") {
             try await httpClient.request(path: path, method: .GET, body: nil)

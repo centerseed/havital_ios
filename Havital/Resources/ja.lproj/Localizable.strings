@@ -4190,3 +4190,61 @@
 "onboarding.intro_feature_rizo" = "AIコーチRizoがいつでもプランを一緒に調整";
 "onboarding.weekly_distance_anchor_explain" = "プランはこの数値を重要な基準点として始まります：入力した距離に近いところから第1週が始まります。現在の実際の週間走行距離を入力してください。";
 "onboarding.weekly_distance_maintenance_note" = "体力維持トレーニングでは、回復と調整の余裕を持たせるため、プランの週間距離は入力値よりやや少なめになります。";
+
+/* MARK: - App 2.0 スケルトン（DESIGN-app2-decision-chain-api.md §3） */
+"app2.tab.state" = "状態";
+"app2.tab.plan" = "プラン";
+"app2.tab.records" = "記録";
+"app2.tab.settings" = "設定";
+
+"app2.home.greeting" = "おはようございます";
+"app2.home.goal_section" = "目標レース";
+"app2.home.goal_target" = "目標";
+"app2.home.goal_estimate" = "予測タイム";
+"app2.home.goal_week" = "週";
+"app2.home.status_section" = "トレーニング状況";
+"app2.home.track_behind" = "遅れ";
+"app2.home.track_on_track" = "順調";
+"app2.home.track_ahead" = "想定以上";
+"app2.home.insights_section" = "指標";
+"app2.home.today_section" = "今日のセッション";
+"app2.home.intent_section" = "この期間で狙うこと";
+"app2.home.intent_pursuing" = "狙う";
+"app2.home.intent_maintaining" = "維持";
+"app2.home.intent_deferring" = "見送り";
+"app2.home.rizo_entry" = "Rizoに相談";
+"app2.home.week_review_entry" = "今週のレビュー";
+
+"app2.plan.week_volume" = "週間目標距離";
+"app2.plan.completed" = "実施済み";
+"app2.plan.intensity_section" = "強度の内訳";
+"app2.plan.intensity_low" = "低";
+"app2.plan.intensity_medium" = "中";
+"app2.plan.intensity_high" = "高";
+"app2.plan.purpose" = "今週の狙い";
+"app2.plan.days_section" = "日別メニュー";
+"app2.plan.rest" = "休養";
+
+"app2.records.window_section" = "直近30日";
+"app2.records.ytd_section" = "今年の累計";
+"app2.records.distance" = "走行距離";
+"app2.records.workouts" = "回数";
+"app2.records.weekly_section" = "直近8週の走行距離";
+"app2.records.list_section" = "トレーニング記録";
+
+"app2.settings.account_section" = "アカウント";
+"app2.settings.subscription_section" = "サブスクリプション";
+"app2.settings.data_source_section" = "データソース";
+"app2.settings.training_section" = "トレーニング設定";
+"app2.settings.weekly_distance" = "週間走行距離";
+"app2.settings.training_days" = "トレーニング日";
+"app2.settings.race_countdown" = "レースカウントダウン";
+"app2.settings.not_connected" = "未接続";
+"app2.settings.connected" = "接続済み";
+
+"app2.common.stub_badge" = "サンプル";
+"app2.common.stub_footer" = "このブロックは固定サンプルです。バックエンドのエンドポイントは未実装です（%@）。";
+"app2.common.no_data" = "データがありません";
+"app2.common.load_failed" = "データを読み込めませんでした";
+"app2.common.retry" = "再試行";
+"app2.common.using_sample" = "サンプルデータを表示しています";

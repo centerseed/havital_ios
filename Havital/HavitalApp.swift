@@ -221,6 +221,8 @@ struct HavitalApp: App {
                 benchmarkCardGalleryView
             } else if shouldLaunchMileageChartGallery {
                 mileageChartGalleryView
+            } else if shouldLaunchApp2SkeletonHarness {
+                app2SkeletonHarnessView
             } else {
                 Group {
                     if let featureFlagManager = featureFlagManager {
@@ -353,6 +355,32 @@ struct HavitalApp: App {
             || arguments.contains("-ui_testing_paywall_trial_days")
             || arguments.contains("-BenchmarkCardGallery")
             || arguments.contains("-MileageChartGallery")
+            || arguments.contains("-ui_testing_app2")
+    }
+
+    /// T-0306：直接掛 2.0 骨架的主 tab 結構，跳過 auth／onboarding。
+    ///
+    /// 沿用 repo 既有的 `-ui_testing_*` harness 慣例（見上面十來個同型旗標），
+    /// 不是新機制。用途是讓截圖與 maestro flow 在沒有 dev 憑證時仍能跑完
+    /// 四個 tab；此時 API 呼叫沒有 token，各區塊會依 `App2DataOrigin` 退到樣本
+    /// 並在畫面上掛徽章 —— 那正是要被看見的事實，不是被藏起來的降級。
+    ///
+    /// 正常啟動（已登入）走 `ContentView` → 同一支 `App2RootView`，資料是真的。
+    private var shouldLaunchApp2SkeletonHarness: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-ui_testing_app2")
+        #else
+        false
+        #endif
+    }
+
+    @ViewBuilder
+    private var app2SkeletonHarnessView: some View {
+        #if DEBUG
+        App2RootView()
+        #else
+        EmptyView()
+        #endif
     }
 
     private var shouldLaunchPaywallUITestHarness: Bool {

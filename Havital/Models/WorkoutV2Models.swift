@@ -1354,7 +1354,16 @@ struct WorkoutStatsData: Codable {
     let providerDistribution: [String: Int]
     let activityTypeDistribution: [String: Int]
     let periodDays: Int
-    
+
+    /// 週跑量序列（T-0304 落地）。週一起算的當地週、含當週、舊→新。
+    /// 語意在 `SPEC-workout-processing` §4.5；producer 是
+    /// `domains/workout/training_facts.py::get_workout_stats`。
+    /// 舊 app 版本不讀此欄，故 optional。
+    let weeklySeries: [WorkoutStatsWeeklyEntry]?
+
+    /// 當地年 1/1 起的跑步距離與次數（T-0304 落地）。
+    let yearToDate: WorkoutStatsYearToDate?
+
     enum CodingKeys: String, CodingKey {
         case totalWorkouts = "total_workouts"
         case totalDistanceKm = "total_distance_km"
@@ -1362,6 +1371,44 @@ struct WorkoutStatsData: Codable {
         case providerDistribution = "provider_distribution"
         case activityTypeDistribution = "activity_type_distribution"
         case periodDays = "period_days"
+        case weeklySeries = "weekly_series"
+        case yearToDate = "year_to_date"
+    }
+}
+
+/// `GET /v2/workouts/stats` 的 `weekly_series[]` 一筆。
+struct WorkoutStatsWeeklyEntry: Codable {
+    /// 當地週一，`YYYY-MM-DD`。
+    let weekStart: String
+    /// 當地週日，`YYYY-MM-DD`。
+    let weekEnd: String
+    let distanceKm: Double
+    let isCurrentWeek: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case weekStart = "week_start"
+        case weekEnd = "week_end"
+        case distanceKm = "distance_km"
+        case isCurrentWeek = "is_current_week"
+    }
+}
+
+/// `GET /v2/workouts/stats` 的 `year_to_date`。
+struct WorkoutStatsYearToDate: Codable {
+    let year: Int
+    /// 當地 1/1，`YYYY-MM-DD`。
+    let startDate: String
+    /// 當地今天，`YYYY-MM-DD`。
+    let throughDate: String
+    let distanceKm: Double
+    let workoutCount: Int
+
+    enum CodingKeys: String, CodingKey {
+        case year
+        case startDate = "start_date"
+        case throughDate = "through_date"
+        case distanceKm = "distance_km"
+        case workoutCount = "workout_count"
     }
 }
 

@@ -251,37 +251,15 @@ struct ContentView: View {
     // 抽取主應用內容，方便管理
     @ViewBuilder
     private func mainAppContent() -> some View {
-        // 從 HavitalApp.swift 遷移過來的 TabView
+        // T-0306：2.0 分支的主 tab 結構。這條分支就是 2.0 線，不合回 main，
+        // 所以直接換掉 1.x 的四個 tab，而不是加一個 feature flag 分岔
+        // （`DESIGN-app2-decision-chain-api.md` §1 第 1 條：2.0 app beta 本身就是 canary，
+        //  更新到 2.0 即走 decision-chain，不另加 feature flag）。
+        //
+        // 1.x 的 `trainingPlanTab()`／`TrainingRecordView`／`MyAchievementView`／
+        // `PersonalAchievementsView` 仍在 repo 內，由 `main` 的發版線使用。
         ZStack {
-            TabView {
-                // 根據訓練版本顯示對應的訓練計劃視圖
-                trainingPlanTab()
-                    .tabItem {
-                        Image(systemName: "figure.run")
-                        Text(L10n.Tab.trainingPlan.localized)
-                    }
-
-                TrainingRecordView()
-                    // .environmentObject(healthKitManager) // healthKitManager 已在 ContentView 層級注入
-                    .tabItem {
-                        Image(systemName: "chart.line.text.clipboard")
-                        Text(L10n.Tab.trainingRecord.localized)
-                    }
-
-                MyAchievementView()
-                    // .environmentObject(healthKitManager) // healthKitManager 已在 ContentView 層級注入
-                    .tabItem {
-                        Image(systemName: "gauge.with.dots.needle.bottom.50percent")
-                        Text(L10n.Tab.performanceData.localized)
-                    }
-
-                PersonalAchievementsView()
-                    .tabItem {
-                        Image(systemName: "medal.fill")
-                        Text(L10n.Tab.achievement.localized)
-                    }
-
-            }
+            App2RootView()
 
             InterruptHostView(
                 coordinator: interruptCoordinator,
