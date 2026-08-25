@@ -1408,6 +1408,10 @@ extension L10n {
     // MARK: - Edit Schedule
     enum EditSchedule {
         // General
+        static let title = "edit_schedule.title" // "編輯週課表"
+        static let unsavedChanges = "edit_schedule.unsaved_changes" // "未儲存的變更"
+        static let unsavedChangesMessage = "edit_schedule.unsaved_changes_message"
+        static let discardChanges = "edit_schedule.discard_changes" // "放棄變更"
         static let editTraining = "edit_schedule.edit_training" // "編輯訓練"
         static let cancel = "edit_schedule.cancel" // "取消"
         static let save = "edit_schedule.save" // "儲存"
@@ -2063,6 +2067,19 @@ extension L10n {
         enum Session {
             /// 長距離課的補給建議 —— 設計稿文案，不是 payload 欄位。
             static let fuelingNote = "app2.session.fueling_note"
+        }
+
+        /// 編輯週課表（設計 frame-03～09）。
+        enum PlanEdit {
+            static let selectType = "app2.plan_edit.select_type"
+            static let adjacentWarning = "app2.plan_edit.adjacent_warning"
+            static let distanceChip = "app2.plan_edit.distance_chip"
+            static let paceChip = "app2.plan_edit.pace_chip"
+            static let detailChip = "app2.plan_edit.detail_chip"
+            static let deltaUp = "app2.plan_edit.delta_up"
+            static let deltaDown = "app2.plan_edit.delta_down"
+            static let deltaSame = "app2.plan_edit.delta_same"
+            static let loadFailed = "app2.plan_edit.load_failed"
         }
 
         /// 訓練詳情（設計 frame-02／dc.html「課表詳細 · …」）。

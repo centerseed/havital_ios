@@ -4337,6 +4337,17 @@
 "app2.home.menu_edit_plan" = "修改課表";
 "app2.home.insights_more" = "展開全部指標";
 
+/* ===== App2 · 編輯週課表（設計 frame-03～09） ===== */
+"app2.plan_edit.select_type" = "選擇課型";
+"app2.plan_edit.adjacent_warning" = "連續兩天安排強度課，中間沒有恢復日。";
+"app2.plan_edit.distance_chip" = "距離";
+"app2.plan_edit.pace_chip" = "配速";
+"app2.plan_edit.detail_chip" = "編輯內容";
+"app2.plan_edit.delta_up" = "比原本多 %@ km";
+"app2.plan_edit.delta_down" = "比原本少 %@ km";
+"app2.plan_edit.delta_same" = "與原本相同";
+"app2.plan_edit.load_failed" = "讀不到本週課表，無法進入編輯。";
+
 /* ===== App2 · 訓練詳情（設計 frame-02） ===== */
 "app2.detail.title" = "訓練詳情";
 "app2.detail.distance" = "總距離";

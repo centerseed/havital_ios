@@ -95,8 +95,18 @@ struct TrainingTypeMenu: View {
         DayType(rawValue: selectedType) ?? .rest
     }
 
-    private let easyTypes: [DayType] = [.easyRun, .easy, .recovery_run]
-    private let intensityTypes: [DayType] = [
+    private var easyTypes: [DayType] { Self.easyTypes }
+    private var intensityTypes: [DayType] { Self.intensityTypes }
+    private var longDistanceTypes: [DayType] { Self.longDistanceTypes }
+    private var otherTypes: [DayType] { Self.otherTypes }
+
+    // MARK: - 課型分組（唯一一份）
+    //
+    // 2.0 的課型選單是 bottom sheet（設計 frame-04），版面不同但**分組是同一份**。
+    // 抽成 static 之後兩邊共用，不會出現「1.4 有的課型 2.0 選不到」。
+
+    static let easyTypes: [DayType] = [.easyRun, .easy, .recovery_run]
+    static let intensityTypes: [DayType] = [
         .tempo, .threshold, .interval,
         // 新增間歇訓練類型
         .strides, .hillRepeats, .cruiseIntervals, .shortInterval, .longInterval, .norwegian4x4, .yasso800,
@@ -105,8 +115,8 @@ struct TrainingTypeMenu: View {
         // 新增比賽配速訓練
         .racePace, .combination
     ]
-    private let longDistanceTypes: [DayType] = [
+    static let longDistanceTypes: [DayType] = [
         .lsd, .longRun, .progression, .fastFinish
     ]
-    private let otherTypes: [DayType] = [.strength, .rest]
+    static let otherTypes: [DayType] = [.strength, .rest]
 }

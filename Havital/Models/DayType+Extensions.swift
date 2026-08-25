@@ -132,6 +132,19 @@ extension DayType {
         }
     }
 
+    /// 品質課（強度日）。
+    ///
+    /// **從既有的 `scheduleEditorFamily` 導出，不另立一套強度分類。**
+    /// 2.0 的編輯週課表用它做「強度日相鄰」提醒（設計 frame-03）。
+    var isQualitySession: Bool {
+        switch scheduleEditorFamily {
+        case .intervalDistance, .norwegian4x4, .yasso800, .combination, .tempo:
+            return true
+        case .easy, .longRun, .strength, .rest, .cross:
+            return false
+        }
+    }
+
     /// 列表卡片是否以「複雜訓練摘要」顯示（間歇／分段），而非直接 inline 距離控件。
     var isComplexScheduleTraining: Bool {
         switch scheduleEditorFamily {

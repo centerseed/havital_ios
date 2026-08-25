@@ -4296,6 +4296,17 @@
 "app2.home.menu_edit_plan" = "Edit plan";
 "app2.home.insights_more" = "Show all metrics";
 
+/* ===== App2 · weekly plan editor (design frame-03…09) ===== */
+"app2.plan_edit.select_type" = "Choose workout type";
+"app2.plan_edit.adjacent_warning" = "Two hard days back to back, with no recovery day between them.";
+"app2.plan_edit.distance_chip" = "Distance";
+"app2.plan_edit.pace_chip" = "Pace";
+"app2.plan_edit.detail_chip" = "Edit details";
+"app2.plan_edit.delta_up" = "%@ km more than planned";
+"app2.plan_edit.delta_down" = "%@ km less than planned";
+"app2.plan_edit.delta_same" = "Same as planned";
+"app2.plan_edit.load_failed" = "Couldn't load this week's plan, so it can't be edited.";
+
 /* ===== App2 · session detail (design frame-02) ===== */
 "app2.detail.title" = "Session detail";
 "app2.detail.distance" = "Total distance";

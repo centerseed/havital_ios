@@ -35,6 +35,8 @@ struct App2HomeView: View {
     @StateObject private var announcementViewModel = AnnouncementViewModel(
         repository: DependencyContainer.shared.resolve()
     )
+    /// 編輯週課表（「…」選單的「修改課表」，設計 frame-03～09）。
+    @State private var isShowingPlanEdit = false
     /// 模態頁的 ViewModel 在這裡持有（tab 才由 `App2RootView` 持有）——
     /// 沒被打開過就不會 fetch（載入在被呈現那一頁的 `.task`）。
     @StateObject private var planOverviewViewModel = App2PlanOverviewViewModel()
@@ -80,6 +82,13 @@ struct App2HomeView: View {
                         }
                     }
             }
+        }
+        .fullScreenCover(isPresented: $isShowingPlanEdit) {
+            App2PlanEditGate(
+                onClose: { isShowingPlanEdit = false },
+                // 課表改了，首頁的今日課表卡與週跑量要跟著換。
+                onSaved: { Task { await viewModel.forceRefresh() } }
+            )
         }
         .fullScreenCover(item: $detailSession) { detail in
             App2SessionDetailView(detail: detail) { detailSession = nil }
@@ -141,6 +150,11 @@ struct App2HomeView: View {
                 onOpenSettings()
             } label: {
                 Label(L10n.App2.Home.menuProfile.localized, systemImage: "person.crop.circle")
+            }
+            Button {
+                isShowingPlanEdit = true
+            } label: {
+                Label(L10n.App2.Home.menuEditPlan.localized, systemImage: "square.and.pencil")
             }
         } label: {
             roundButtonSurface(symbol: "ellipsis")
