@@ -4608,3 +4608,32 @@
 "app2.races.no_result_title" = "No races found";
 "app2.races.no_result_body" = "Try another keyword or type";
 "app2.races.countdown_unit" = "days";
+
+// MARK: - App2 Weekly Review (design frame-18 / frame-19)
+"app2.weekly_review.title" = "Weekly Review";
+"app2.weekly_review.tab_review" = "This Week";
+"app2.weekly_review.tab_plan" = "Next Week";
+"app2.weekly_review.week_kicker" = "Week %d";
+"app2.weekly_review.stats_section" = "This Week's Numbers";
+"app2.weekly_review.sessions" = "Runs";
+"app2.weekly_review.completion_rate" = "Plan Completion";
+"app2.weekly_review.planned_km_footnote" = "planned %.1f km";
+"app2.weekly_review.highlights_section" = "Highlights";
+"app2.weekly_review.observations_section" = "What Rizo Observed";
+"app2.weekly_review.analysis_section" = "Training Analysis";
+"app2.weekly_review.intensity_distribution" = "Intensity Mix";
+"app2.weekly_review.capability" = "Capability Progress";
+"app2.weekly_review.next_week_title" = "Next Week's Plan";
+"app2.weekly_review.suggestions_section" = "Suggestions · %d";
+"app2.weekly_review.no_suggestions" = "Nothing to adjust this week — run the plan as it stands.";
+"app2.weekly_review.accept" = "Accept";
+"app2.weekly_review.skip" = "Skip";
+"app2.weekly_review.apply_to_next_week" = "Apply %d to next week";
+"app2.weekly_review.applied" = "Applied to next week's plan";
+"app2.weekly_review.not_generated_body" = "This week's review hasn't been generated yet.";
+"app2.weekly_review.generate" = "Generate Weekly Review";
+"app2.weekly_review.generation_window_closed" = "This week's review can't be generated yet — it becomes available once the week is over.";
+"app2.weekly_review.quota_title" = "Rizo Usage Limit Reached";
+"app2.weekly_review.quota_body" = "You've used this month's Rizo allowance. It resets next month.";
+"app2.weekly_review.upsell_title" = "Weekly Review is a Pro Feature";
+"app2.weekly_review.upsell_body" = "Upgrade to Paceriz Pro to generate weekly reviews and next-week suggestions.";

@@ -4649,3 +4649,32 @@
 "app2.races.no_result_title" = "找不到符合的賽事";
 "app2.races.no_result_body" = "試試其他關鍵字或類型";
 "app2.races.countdown_unit" = "天";
+
+// MARK: - App2 週回顧（設計 frame-18／frame-19）
+"app2.weekly_review.title" = "週回顧";
+"app2.weekly_review.tab_review" = "回顧本週";
+"app2.weekly_review.tab_plan" = "規劃下週";
+"app2.weekly_review.week_kicker" = "第 %d 週";
+"app2.weekly_review.stats_section" = "本週成績";
+"app2.weekly_review.sessions" = "跑次";
+"app2.weekly_review.completion_rate" = "課表達成";
+"app2.weekly_review.planned_km_footnote" = "計畫 %.1f km";
+"app2.weekly_review.highlights_section" = "本週亮點";
+"app2.weekly_review.observations_section" = "Rizo 觀察到的事實";
+"app2.weekly_review.analysis_section" = "訓練分析";
+"app2.weekly_review.intensity_distribution" = "強度分配";
+"app2.weekly_review.capability" = "能力進展";
+"app2.weekly_review.next_week_title" = "下週規劃";
+"app2.weekly_review.suggestions_section" = "建議項目 · %d";
+"app2.weekly_review.no_suggestions" = "這週沒有需要調整的項目，照原課表跑就好。";
+"app2.weekly_review.accept" = "接受";
+"app2.weekly_review.skip" = "略過";
+"app2.weekly_review.apply_to_next_week" = "套用 %d 項到下週課表";
+"app2.weekly_review.applied" = "已套用到下週課表";
+"app2.weekly_review.not_generated_body" = "這一週的回顧還沒產生。";
+"app2.weekly_review.generate" = "產生週回顧";
+"app2.weekly_review.generation_window_closed" = "這一週還不能產生回顧，要等這一週跑完。";
+"app2.weekly_review.quota_title" = "Rizo 用量已達上限";
+"app2.weekly_review.quota_body" = "這個月的 Rizo 用量已用完，下個月會重置。";
+"app2.weekly_review.upsell_title" = "週回顧是 Pro 功能";
+"app2.weekly_review.upsell_body" = "升級 Paceriz Pro 才能產生每週的訓練回顧與下週建議。";

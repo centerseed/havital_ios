@@ -2186,6 +2186,43 @@ extension L10n {
             static let activityTrack = "app2.workout_detail.activity_track"
         }
 
+        /// 週回顧（設計 frame-18／frame-19）。
+        enum WeeklyReview {
+            static let title = "app2.weekly_review.title"
+            static let tabReview = "app2.weekly_review.tab_review"
+            static let tabPlan = "app2.weekly_review.tab_plan"
+            /// `第 %d 週`
+            static let weekKicker = "app2.weekly_review.week_kicker"
+            static let statsSection = "app2.weekly_review.stats_section"
+            static let sessions = "app2.weekly_review.sessions"
+            static let completionRate = "app2.weekly_review.completion_rate"
+            /// `計畫 %.1f km`
+            static let plannedKmFootnote = "app2.weekly_review.planned_km_footnote"
+            static let highlightsSection = "app2.weekly_review.highlights_section"
+            static let observationsSection = "app2.weekly_review.observations_section"
+            static let analysisSection = "app2.weekly_review.analysis_section"
+            static let intensityDistribution = "app2.weekly_review.intensity_distribution"
+            static let capability = "app2.weekly_review.capability"
+
+            static let nextWeekTitle = "app2.weekly_review.next_week_title"
+            /// `建議項目 · %d`
+            static let suggestionsSection = "app2.weekly_review.suggestions_section"
+            static let noSuggestions = "app2.weekly_review.no_suggestions"
+            static let accept = "app2.weekly_review.accept"
+            static let skip = "app2.weekly_review.skip"
+            /// `套用 %d 項到下週課表`
+            static let applyToNextWeek = "app2.weekly_review.apply_to_next_week"
+            static let applied = "app2.weekly_review.applied"
+
+            static let notGeneratedBody = "app2.weekly_review.not_generated_body"
+            static let generate = "app2.weekly_review.generate"
+            static let generationWindowClosed = "app2.weekly_review.generation_window_closed"
+            static let quotaTitle = "app2.weekly_review.quota_title"
+            static let quotaBody = "app2.weekly_review.quota_body"
+            static let upsellTitle = "app2.weekly_review.upsell_title"
+            static let upsellBody = "app2.weekly_review.upsell_body"
+        }
+
         enum Plan {
             static let title = "app2.plan.title"
             static let volumeTitle = "app2.plan.volume_title"

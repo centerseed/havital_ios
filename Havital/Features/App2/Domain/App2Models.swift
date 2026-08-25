@@ -316,9 +316,17 @@ enum App2TodaySessionState: Equatable {
 /// 目標週的回顧已存在時整張卡改成「查看回顧」。
 enum App2WeekReviewState: Equatable {
     /// 目標週的回顧還沒產生。`isCurrentWeek` = 目標週是本週（週日）。
-    case notGenerated(isCurrentWeek: Bool)
+    case notGenerated(isCurrentWeek: Bool, targetWeek: Int)
     /// 目標週的回顧已存在，帶著它的 id 供導頁。
-    case available(summaryId: String, isCurrentWeek: Bool)
+    case available(summaryId: String, isCurrentWeek: Bool, targetWeek: Int)
+
+    /// 要看的是第幾週的回顧。**週日看本週、平日看上週**（`weekReviewState` 定的），
+    /// 週回顧頁要拿它去打 `GET /v2/summary/weekly?week_of_plan=`。
+    var targetWeek: Int {
+        switch self {
+        case .notGenerated(_, let week), .available(_, _, let week): return week
+        }
+    }
 }
 
 // MARK: - 課表（§3.3）

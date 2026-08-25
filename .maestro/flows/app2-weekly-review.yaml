@@ -1,0 +1,34 @@
+appId: com.havital.Havital.dev
+tags:
+  - app2
+---
+# T-0306 wave4 §2 —— 週回顧（設計 frame-18／19）實走證據。
+#
+# 入口是首頁的週回顧 CTA（狀態驅動時機卡）。`clearState: false` 是必要的：
+# 這台模擬器是用戶本人在用，不得清 keychain 或資料。
+
+- launchApp:
+    clearState: false
+    arguments:
+      "-skipHealthKitAuth": true
+
+- tapOn:
+    text: "知道了，不再顯示"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "App2_TodaySessionCard"
+    timeout: 60000
+- scrollUntilVisible:
+    element:
+      id: "App2_WeekReviewEntry"
+    direction: DOWN
+- takeScreenshot: wave4-11-home-week-review-cta
+- tapOn:
+    id: "App2_WeekReviewEntry"
+- extendedWaitUntil:
+    visible:
+      id: "App2_WeeklyReviewView"
+    timeout: 40000
+- takeScreenshot: wave4-12-weekly-review-entered

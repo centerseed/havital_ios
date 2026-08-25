@@ -223,6 +223,8 @@ struct HavitalApp: App {
                 mileageChartGalleryView
             } else if shouldLaunchApp2SkeletonHarness {
                 app2SkeletonHarnessView
+            } else if shouldLaunchApp2WeeklyReviewHarness {
+                app2WeeklyReviewHarnessView
             } else {
                 Group {
                     if let featureFlagManager = featureFlagManager {
@@ -378,6 +380,31 @@ struct HavitalApp: App {
     private var app2SkeletonHarnessView: some View {
         #if DEBUG
         App2RootView()
+        #else
+        EmptyView()
+        #endif
+    }
+
+    /// 週回顧（設計 frame-18／19）直接開。
+    ///
+    /// **為什麼需要它**：首頁的週回顧 CTA 是狀態驅動的時機卡（目標週要有課表且
+    /// 回顧未生成才顯示），所以第 1 週的帳號在平日根本走不到這一頁 —— 那是正確行為，
+    /// 但也讓這一頁沒有實走入口可截圖。這個 harness 只換入口，資料仍走真實 API。
+    private var shouldLaunchApp2WeeklyReviewHarness: Bool {
+        #if DEBUG
+        CommandLine.arguments.contains("-ui_testing_app2_weekly_review")
+        #else
+        false
+        #endif
+    }
+
+    @ViewBuilder
+    private var app2WeeklyReviewHarnessView: some View {
+        #if DEBUG
+        App2WeeklyReviewView(
+            weekOfPlan: Int(ProcessInfo.processInfo.environment["UITEST_WEEKLY_REVIEW_WEEK"] ?? "") ?? 1,
+            onClose: { }
+        )
         #else
         EmptyView()
         #endif

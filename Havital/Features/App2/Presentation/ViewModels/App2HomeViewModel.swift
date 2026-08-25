@@ -480,10 +480,13 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             : planStatus.currentWeek > 1
         guard targetWeekHasPlan else { return nil }
 
+        // 週日看本週，平日看上週。
+        let targetWeek = isSunday ? planStatus.currentWeek : planStatus.currentWeek - 1
+
         if let summaryId, !summaryId.isEmpty {
-            return .available(summaryId: summaryId, isCurrentWeek: isSunday)
+            return .available(summaryId: summaryId, isCurrentWeek: isSunday, targetWeek: targetWeek)
         }
-        return .notGenerated(isCurrentWeek: isSunday)
+        return .notGenerated(isCurrentWeek: isSunday, targetWeek: targetWeek)
     }
 
     static func isSunday(date: Date = Date(), calendar: Calendar = .current) -> Bool {

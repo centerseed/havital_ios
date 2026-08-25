@@ -28,6 +28,8 @@ struct App2HomeView: View {
     @State private var detailSession: App2SessionDetail?
     /// 今天已跑完那一筆的訓練詳情（設計 frame-15）。nil = 沒開。
     @State private var detailWorkout: WorkoutV2?
+    /// 週回顧（設計 frame-18／19）。存的是要看第幾週。nil = 沒開。
+    @State private var weeklyReviewWeek: App2WeeklyReviewTarget?
     /// 通知清單（首頁 v2 的鈴鐺）。
     ///
     /// **開的是既有的訊息中心** `MessageCenterView`（公告模組，AC-ANN-03），
@@ -94,6 +96,14 @@ struct App2HomeView: View {
         }
         .fullScreenCover(item: $detailSession) { detail in
             App2SessionDetailView(detail: detail) { detailSession = nil }
+        }
+        .fullScreenCover(item: $weeklyReviewWeek) { target in
+            App2WeeklyReviewView(
+                weekOfPlan: target.weekOfPlan,
+                onClose: { weeklyReviewWeek = nil },
+                // 建議套用到下週課表之後，首頁的今日課表卡與週次要跟著換。
+                onApplied: { Task { await viewModel.forceRefresh() } }
+            )
         }
         .fullScreenCover(item: $detailWorkout) { workout in
             App2WorkoutDetailView(
@@ -816,7 +826,7 @@ struct App2HomeView: View {
     @ViewBuilder
     private var weeklyReviewRow: some View {
         switch viewModel.weekReview {
-        case .notGenerated(let isCurrentWeek):
+        case .notGenerated(let isCurrentWeek, let targetWeek):
             entryRow(
                 symbol: "chart.line.uptrend.xyaxis",
                 title: isCurrentWeek
@@ -827,13 +837,19 @@ struct App2HomeView: View {
                     : L10n.App2.Home.weekReviewSubLast.localized,
                 identifier: "App2_WeekReviewEntry"
             )
-        case .available:
+            .contentShape(Rectangle())
+            .onTapGesture { weeklyReviewWeek = App2WeeklyReviewTarget(weekOfPlan: targetWeek) }
+            .accessibilityAddTraits(.isButton)
+        case .available(_, _, let targetWeek):
             entryRow(
                 symbol: "chart.line.uptrend.xyaxis",
                 title: L10n.App2.Home.weekReviewView.localized,
                 subtitle: L10n.App2.Home.weekReviewViewSub.localized,
                 identifier: "App2_WeekReviewEntry"
             )
+            .contentShape(Rectangle())
+            .onTapGesture { weeklyReviewWeek = App2WeeklyReviewTarget(weekOfPlan: targetWeek) }
+            .accessibilityAddTraits(.isButton)
         case .none:
             EmptyView()
         }

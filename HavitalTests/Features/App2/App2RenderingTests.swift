@@ -209,7 +209,7 @@ final class App2RenderingTests: XCTestCase {
             trainingStatus: App2Sourced(status(currentWeek: 1, totalWeeks: 17), origin: live),
             insights: App2Sourced(insights(count: 5), origin: live),
             todayState: .session(session),
-            weekReview: .notGenerated(isCurrentWeek: false),
+            weekReview: .notGenerated(isCurrentWeek: false, targetWeek: 0),
             rizoOpeningLine: "今天安排休息日，請好好放鬆，本週訓練完成 0/3。"
         )
         render(App2HomeView(onOpenSettings: {}, viewModel: vm),
@@ -240,7 +240,7 @@ final class App2RenderingTests: XCTestCase {
             trainingStatus: App2Sourced(status(currentWeek: 1, totalWeeks: 17), origin: live),
             insights: App2Sourced(insights(count: 5), origin: live),
             todayState: .session(session),
-            weekReview: .notGenerated(isCurrentWeek: false),
+            weekReview: .notGenerated(isCurrentWeek: false, targetWeek: 0),
             rizoOpeningLine: "今天長跑訓練請按照計畫進行。"
         )
         render(App2HomeView(onOpenSettings: {}, viewModel: vm),

@@ -341,7 +341,7 @@ final class App2HomeProjectionTests: XCTestCase {
         let status = planStatus(currentWeek: 5, planId: "ov_5")
         XCTAssertEqual(
             App2HomeViewModel.weekReviewState(planStatus: status, isSunday: false, summaryId: nil),
-            .notGenerated(isCurrentWeek: false)
+            .notGenerated(isCurrentWeek: false, targetWeek: 4)
         )
     }
 
@@ -352,7 +352,21 @@ final class App2HomeProjectionTests: XCTestCase {
             App2HomeViewModel.weekReviewState(
                 planStatus: status, isSunday: false, summaryId: status.previousWeekSummaryId
             ),
-            .available(summaryId: "ov_4_summary", isCurrentWeek: false)
+            .available(summaryId: "ov_4_summary", isCurrentWeek: false, targetWeek: 4)
+        )
+    }
+
+    /// **平日看上週、週日看本週** —— `targetWeek` 就是週回顧頁要打的
+    /// `week_of_plan`。算錯一週＝看到別週的回顧。
+    func test_weekReview_targetWeekIsPreviousWeekOnWeekdays() {
+        let status = planStatus(currentWeek: 5, planId: "ov_5")
+        XCTAssertEqual(
+            App2HomeViewModel.weekReviewState(planStatus: status, isSunday: false, summaryId: nil)?.targetWeek,
+            4
+        )
+        XCTAssertEqual(
+            App2HomeViewModel.weekReviewState(planStatus: status, isSunday: true, summaryId: nil)?.targetWeek,
+            5
         )
     }
 
@@ -361,7 +375,7 @@ final class App2HomeProjectionTests: XCTestCase {
         let withPlan = planStatus(currentWeek: 1, planId: "ov_1")
         XCTAssertEqual(
             App2HomeViewModel.weekReviewState(planStatus: withPlan, isSunday: true, summaryId: nil),
-            .notGenerated(isCurrentWeek: true)
+            .notGenerated(isCurrentWeek: true, targetWeek: 1)
         )
         let withoutPlan = planStatus(currentWeek: 1, planId: nil)
         XCTAssertNil(

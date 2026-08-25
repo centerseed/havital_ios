@@ -4605,3 +4605,32 @@
 "app2.races.no_result_title" = "該当するレースがありません";
 "app2.races.no_result_body" = "別のキーワードや種別をお試しください";
 "app2.races.countdown_unit" = "日";
+
+// MARK: - App2 週次レビュー（デザイン frame-18／frame-19）
+"app2.weekly_review.title" = "週次レビュー";
+"app2.weekly_review.tab_review" = "今週の振り返り";
+"app2.weekly_review.tab_plan" = "来週の計画";
+"app2.weekly_review.week_kicker" = "第 %d 週";
+"app2.weekly_review.stats_section" = "今週の記録";
+"app2.weekly_review.sessions" = "ラン回数";
+"app2.weekly_review.completion_rate" = "計画達成率";
+"app2.weekly_review.planned_km_footnote" = "計画 %.1f km";
+"app2.weekly_review.highlights_section" = "今週のハイライト";
+"app2.weekly_review.observations_section" = "Rizo が観測した事実";
+"app2.weekly_review.analysis_section" = "トレーニング分析";
+"app2.weekly_review.intensity_distribution" = "強度配分";
+"app2.weekly_review.capability" = "能力の推移";
+"app2.weekly_review.next_week_title" = "来週のプラン";
+"app2.weekly_review.suggestions_section" = "提案項目 · %d";
+"app2.weekly_review.no_suggestions" = "今週は調整が必要な項目はありません。今の計画のまま走りましょう。";
+"app2.weekly_review.accept" = "採用";
+"app2.weekly_review.skip" = "見送る";
+"app2.weekly_review.apply_to_next_week" = "%d 件を来週の計画に反映";
+"app2.weekly_review.applied" = "来週の計画に反映しました";
+"app2.weekly_review.not_generated_body" = "この週のレビューはまだ作成されていません。";
+"app2.weekly_review.generate" = "週次レビューを作成";
+"app2.weekly_review.generation_window_closed" = "この週のレビューはまだ作成できません。週が終わってから作成できるようになります。";
+"app2.weekly_review.quota_title" = "Rizo の利用上限に達しました";
+"app2.weekly_review.quota_body" = "今月の Rizo 利用枠を使い切りました。来月にリセットされます。";
+"app2.weekly_review.upsell_title" = "週次レビューは Pro 機能です";
+"app2.weekly_review.upsell_body" = "Paceriz Pro にアップグレードすると、週次レビューと来週の提案を作成できます。";
