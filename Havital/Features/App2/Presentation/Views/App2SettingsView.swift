@@ -100,35 +100,15 @@ struct App2SettingsView: View {
         }
     }
 
+    /// 頁首走共用的 `App2PageHeader`（設計 frame-12／20／21 是同一個構造），
+    /// 不在這裡留第二份返回鍵樣式。
     private var header: some View {
-        HStack(spacing: 12) {
-            Group {
-                RoundedRectangle(cornerRadius: 11, style: .continuous)
-                    .fill(App2Theme.cardBackground)
-                    .frame(width: 34, height: 34)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 11, style: .continuous)
-                            .strokeBorder(App2Theme.shadowInk.opacity(0.08), lineWidth: 1)
-                    )
-                    .overlay {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 14, weight: .heavy))
-                            .foregroundStyle(App2Theme.inkSubtle)
-                    }
-                    .shadow(color: App2Theme.shadowInk.opacity(0.12), radius: 3, x: 0, y: 3)
-            }
-            .contentShape(Rectangle())
-            .onTapGesture(perform: onClose)
-            .accessibilityAddTraits(.isButton)
-            .accessibilityIdentifier("App2_SettingsClose")
-
-            Text(L10n.App2.Settings.title.localized)
-                .font(.system(size: 22, weight: .black))
-                .tracking(0.5)
-                .foregroundStyle(App2Theme.inkPrimary)
-            Spacer()
-        }
-        .padding(.horizontal, 4)
+        App2PageHeader(
+            title: L10n.App2.Settings.title.localized,
+            titleSize: 22,
+            onBack: onClose,
+            backIdentifier: "App2_SettingsClose"
+        ) { EmptyView() }
     }
 
     // MARK: - Profile

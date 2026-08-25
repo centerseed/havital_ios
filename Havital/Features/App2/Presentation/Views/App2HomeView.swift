@@ -17,6 +17,16 @@ struct App2HomeView: View {
     /// 內嵌 Rizo 卡點下去開的既有對話（`RizoChatView`，不另寫一份）。
     @State private var isShowingRizoChat = false
     @State private var rizoChatViewModel: StateRizoChatViewModel?
+    /// 訓練計畫總覽（設計 frame-20）。
+    ///
+    /// **入口是目標賽事卡。** 設計包沒有替 frame-20 定義入口（它的頁首是返回鍵，
+    /// 表示是被推出來的頁），而首頁的目標賽事卡就是這份計畫在首頁的臉 —— 期別、
+    /// 第 N / M 週都在這張卡上，點它看完整期程是最短的路徑。卡片右側加了一個
+    /// chevron，不然這是一個看不出來的點擊區。
+    @State private var isShowingPlanOverview = false
+    /// 模態頁的 ViewModel 在這裡持有（tab 才由 `App2RootView` 持有）——
+    /// 沒被打開過就不會 fetch（載入在被呈現那一頁的 `.task`）。
+    @StateObject private var planOverviewViewModel = App2PlanOverviewViewModel()
 
     private let insightColumns = [
         GridItem(.flexible(), spacing: 9),
@@ -41,6 +51,16 @@ struct App2HomeView: View {
         .task { await viewModel.loadIfNeeded() }
         // 下拉刷新＝強制重驗（跳過 60 秒門檻）。不清畫面、不進 loading。
         .refreshable { await viewModel.forceRefresh() }
+        .fullScreenCover(isPresented: $isShowingPlanOverview) {
+            App2PlanOverviewView(
+                onClose: {
+                    isShowingPlanOverview = false
+                    // 在計畫頁改過賽事／重設目標時，首頁的目標卡與週次要跟著換。
+                    Task { await viewModel.forceRefresh() }
+                },
+                viewModel: planOverviewViewModel
+            )
+        }
         .sheet(isPresented: $isShowingRizoChat) {
             if let rizoChatViewModel {
                 NavigationView {
@@ -112,6 +132,11 @@ struct App2HomeView: View {
                     if let stage = goal.stageLabel {
                         App2Pill(text: stage)
                     }
+                    // 點整張卡進訓練計畫總覽（frame-20）。沒有這顆 chevron 的話，
+                    // 這個點擊區在畫面上看不出來。
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundStyle(App2Theme.chevron)
                 }
 
                 HStack(alignment: .firstTextBaseline, spacing: 9) {
@@ -145,6 +170,9 @@ struct App2HomeView: View {
                     Spacer(minLength: 0)
                 }
             }
+            .contentShape(Rectangle())
+            .onTapGesture { isShowingPlanOverview = true }
+            .accessibilityAddTraits(.isButton)
             .accessibilityIdentifier("App2_GoalCard")
         } else if viewModel.isLoading {
             loadingCard

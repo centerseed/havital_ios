@@ -53,6 +53,25 @@ enum App2Theme {
     /// `1px solid rgba(24,144,255,0.28)`
     static let accentCardBorder = Color(hex: "#1890FF").opacity(0.28)
 
+    /// 深藍 hero（訓練計畫總覽的目標賽事卡，設計 frame-20）：
+    /// `linear-gradient(150deg,#0b5fb0 0%, #123a72 58%, #0b0d16 100%)`。
+    /// 與 `accentCardGradient`（淺藍→白）不是同一張卡的兩種寫法：那是白底卡上的強調色，
+    /// 這是整張深色卡，字全部是白的。
+    static var heroDarkGradient: LinearGradient {
+        LinearGradient(
+            stops: [
+                .init(color: Color(hex: "#0B5FB0"), location: 0),
+                .init(color: Color(hex: "#123A72"), location: 0.58),
+                .init(color: Color(hex: "#0B0D16"), location: 1)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    /// 深藍 hero 的光暈：`0 20px 44px -18px rgba(11,95,176,0.75)`。
+    static let shadowHeroColor = Color(hex: "#0B5FB0").opacity(0.6)
+
     /// 舊呼叫點別名。
     static let goalCardBackground = Color(hex: "#EAF2FE")
 

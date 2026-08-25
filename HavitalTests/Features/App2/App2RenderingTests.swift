@@ -329,6 +329,213 @@ final class App2RenderingTests: XCTestCase {
         render(App2PlanView(viewModel: vm), name: "plan-empty")
     }
 
+    // MARK: - 訓練計畫總覽（設計 frame-20）
+
+    private func planOverview(
+        raceName: String? = "松本マラソン 2026",
+        estimate: String? = "4:12:30",
+        weeklyKm: Double? = 32,
+        stages: [App2PlanStage] = App2RenderingTests.sampleStages,
+        rhythm: App2PlanRhythm = App2PlanRhythm(
+            runDaysPerWeek: 4, longRunDayLabel: "週日", methodologyName: "Paceriz 平衡訓練法"
+        )
+    ) -> App2PlanOverview {
+        App2PlanOverview(
+            raceName: raceName,
+            raceDateLabel: raceName == nil ? nil : "2026-12-06",
+            distanceLabel: raceName == nil ? nil : "全馬",
+            weeksUntilRace: raceName == nil ? nil : 17,
+            currentEstimatedFinish: estimate,
+            currentWeeklyKm: weeklyKm,
+            targetTime: raceName == nil ? nil : "4:00:00",
+            currentWeek: raceName == nil ? nil : 5,
+            totalWeeks: raceName == nil ? nil : 22,
+            currentStageName: stages.first(where: { $0.state == .active })?.name,
+            stages: stages,
+            rhythm: rhythm
+        )
+    }
+
+    private static let sampleStages: [App2PlanStage] = [
+        App2PlanStage(id: "s1", name: "建立耐力", focus: "先把週跑量穩到 45–50 km",
+                      weekStart: 1, weekEnd: 6, state: .active, weeksElapsed: 5),
+        App2PlanStage(id: "s2", name: "練出速耐力", focus: "加入節奏跑與閾值訓練",
+                      weekStart: 7, weekEnd: 14, state: .upcoming, weeksElapsed: nil),
+        App2PlanStage(id: "s3", name: "減量收尾", focus: "降量、養精神",
+                      weekStart: 15, weekEnd: 22, state: .upcoming, weeksElapsed: nil)
+    ]
+
+    func test_planOverview_full_renders() {
+        let vm = App2PlanOverviewViewModel()
+        vm.applyForTesting(overview: App2Sourced(planOverview(), origin: live))
+        render(App2PlanOverviewView(onClose: {}, viewModel: vm), name: "plan-overview-full")
+    }
+
+    /// 沒有主要賽事、沒有期程、沒有節奏偏好 —— 每一格都要能空著畫。
+    func test_planOverview_empty_renders() {
+        let vm = App2PlanOverviewViewModel()
+        vm.applyForTesting(
+            overview: App2Sourced(
+                planOverview(
+                    raceName: nil, estimate: nil, weeklyKm: nil, stages: [],
+                    rhythm: App2PlanRhythm(
+                        runDaysPerWeek: nil, longRunDayLabel: nil, methodologyName: nil
+                    )
+                ),
+                origin: live
+            )
+        )
+        render(App2PlanOverviewView(onClose: {}, viewModel: vm), name: "plan-overview-empty")
+    }
+
+    /// overview 與本週課表不同源：期程整段換成說明，不畫別份計畫的階段。
+    func test_planOverview_stagesUnbound_renders() {
+        let vm = App2PlanOverviewViewModel()
+        vm.applyForTesting(
+            overview: App2Sourced(planOverview(stages: []), origin: live),
+            stagesUnbound: true
+        )
+        render(App2PlanOverviewView(onClose: {}, viewModel: vm), name: "plan-overview-unbound")
+    }
+
+    /// 長字串：賽名、階段名與 focus 都塞爆 390pt 寬時不得截掉別人或推爆版面。
+    func test_planOverview_longStrings_render() {
+        let long = String(repeating: "超長賽事名稱", count: 6)
+        let vm = App2PlanOverviewViewModel()
+        vm.applyForTesting(
+            overview: App2Sourced(
+                planOverview(
+                    raceName: long,
+                    stages: [
+                        App2PlanStage(
+                            id: "s1", name: String(repeating: "建立耐力", count: 4),
+                            focus: String(repeating: "先把週跑量穩到 45–50 km，", count: 4),
+                            weekStart: 1, weekEnd: 6, state: .active, weeksElapsed: 5
+                        )
+                    ],
+                    rhythm: App2PlanRhythm(
+                        runDaysPerWeek: 7,
+                        longRunDayLabel: "週日",
+                        methodologyName: String(repeating: "Paceriz 平衡訓練法", count: 3)
+                    )
+                ),
+                origin: live
+            )
+        )
+        render(App2PlanOverviewView(onClose: {}, viewModel: vm), name: "plan-overview-long")
+    }
+
+    // MARK: - 賽事管理（設計 frame-12／13／14）
+
+    private func raceTarget(
+        id: String,
+        name: String,
+        km: Int,
+        days: Int,
+        isMain: Bool,
+        targetTime: Int = 14_400
+    ) -> Target {
+        Target(
+            id: id, type: "race_run", name: name, distanceKm: km,
+            targetTime: targetTime, targetPace: "5:41",
+            raceDate: Int(Date().addingTimeInterval(Double(days) * 86_400).timeIntervalSince1970),
+            isMainRace: isMain, trainingWeeks: 16, timezone: "Asia/Taipei", raceId: nil
+        )
+    }
+
+    func test_raceManagement_mainAndSupports_render() {
+        let vm = App2RaceManagementViewModel()
+        vm.applyForTesting(targets: [
+            raceTarget(id: "m", name: "Hofu Marathon", km: 42, days: 114, isMain: true),
+            raceTarget(id: "s1", name: "秋季 10K 挑戰賽", km: 10, days: 37, isMain: false,
+                       targetTime: 2_340),
+            raceTarget(id: "s2", name: "台北半程馬拉松", km: 21, days: 72, isMain: false,
+                       targetTime: 4_500)
+        ])
+        render(App2RaceManagementView(onClose: {}, viewModel: vm), name: "races-full")
+    }
+
+    /// 一場賽事都沒有：主要賽事是虛線 CTA，支援賽事是「尚無支援賽事」。
+    func test_raceManagement_empty_renders() {
+        let vm = App2RaceManagementViewModel()
+        vm.applyForTesting(targets: [])
+        render(App2RaceManagementView(onClose: {}, viewModel: vm), name: "races-empty")
+    }
+
+    /// 長賽名 ＋ 已過期的支援賽事（倒數是負的，畫面要說「已結束」）。
+    func test_raceManagement_longNameAndPastRace_render() {
+        let vm = App2RaceManagementViewModel()
+        vm.applyForTesting(targets: [
+            raceTarget(id: "m", name: String(repeating: "超長賽事名稱", count: 5),
+                       km: 42, days: 200, isMain: true),
+            raceTarget(id: "s1", name: "上週跑完的練習賽", km: 10, days: -5, isMain: false,
+                       targetTime: 0)
+        ])
+        render(App2RaceManagementView(onClose: {}, viewModel: vm), name: "races-long")
+    }
+
+    func test_raceEditSheet_newAndEditing_render() {
+        render(
+            App2RaceEditSheet(
+                form: App2RaceForm(),
+                isSaving: false,
+                onSave: { _ in }, onDelete: { _ in }, onClose: {}
+            ),
+            name: "race-form-new"
+        )
+
+        var editing = App2RaceForm()
+        editing.targetId = "m"
+        editing.name = "Hofu Marathon"
+        editing.distanceKey = "42.195"
+        editing.hours = 2
+        editing.minutes = 34
+        editing.makeMain = true
+        editing.isCurrentMain = true
+        render(
+            App2RaceEditSheet(
+                form: editing,
+                isSaving: false,
+                onSave: { _ in }, onDelete: { _ in }, onClose: {}
+            ),
+            name: "race-form-editing-main"
+        )
+    }
+
+    func test_raceDatabase_resultsAndStates_render() {
+        let events = ["東京マラソン", "大阪マラソン", "神戸マラソン"].enumerated().map { index, name in
+            RaceEvent(
+                raceId: "jp_\(index)", name: name, region: "jp",
+                eventDate: Date().addingTimeInterval(Double(100 + index * 30) * 86_400),
+                city: "東京", location: nil,
+                distances: [RaceDistance(distanceKm: 42.195, name: "マラソン")],
+                entryStatus: nil, isCurated: true, courseType: nil, tags: []
+            )
+        }
+
+        let filled = App2RaceDatabaseViewModel()
+        filled.applyForTesting(results: events)
+        render(
+            App2RaceDatabaseView(onPick: { _, _ in }, onClose: {}, viewModel: filled),
+            name: "race-db-results"
+        )
+
+        let empty = App2RaceDatabaseViewModel()
+        empty.applyForTesting(results: [])
+        render(
+            App2RaceDatabaseView(onPick: { _, _ in }, onClose: {}, viewModel: empty),
+            name: "race-db-empty"
+        )
+
+        // 讀不到 ≠ 沒有符合的賽事。
+        let broken = App2RaceDatabaseViewModel()
+        broken.applyForTesting(results: [], isUnavailable: true)
+        render(
+            App2RaceDatabaseView(onPick: { _, _ in }, onClose: {}, viewModel: broken),
+            name: "race-db-unavailable"
+        )
+    }
+
     /// 最末週：週次標籤與總週數相同，切換鍵仍是停用態。
     func test_plan_lastWeek_renders() {
         let vm = App2PlanViewModel()

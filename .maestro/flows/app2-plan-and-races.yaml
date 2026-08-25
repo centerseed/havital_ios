@@ -1,0 +1,72 @@
+appId: com.havital.Havital.dev
+tags:
+  - app2
+---
+# T-0306 wave 2 —— 訓練計畫總覽（frame-20）與賽事管理（frame-12／13／14）的截圖證據。
+#
+# 走**正常啟動**（模擬器已登入創辦人 dev 帳號），四頁拿的是 dev 真資料。
+# `clearState: false` 是必要的：這台模擬器是用戶本人在用，不得清 keychain 或資料。
+#
+# **這條流程只讀不寫**：開到新增賽事表單就退出，不按儲存、不按刪除、不設為主要。
+
+- launchApp:
+    clearState: false
+    arguments:
+      "-skipHealthKitAuth": true
+
+# 重啟後可能停在上一次留下的頁 —— 先把可能的殘留關掉，不清資料、不登出。
+- tapOn:
+    text: "知道了，不再顯示"
+    optional: true
+
+# === 訓練計畫總覽（入口＝首頁目標賽事卡）===
+- extendedWaitUntil:
+    visible:
+      id: "App2_GoalCard"
+    timeout: 60000
+- tapOn:
+    id: "App2_GoalCard"
+- extendedWaitUntil:
+    visible:
+      id: "App2_PlanOverviewHero"
+    timeout: 30000
+- takeScreenshot: wave2-plan-overview
+
+# === 賽事管理（入口＝計畫總覽右上「調整」）===
+- tapOn:
+    id: "App2_PlanOverviewAdjust"
+- extendedWaitUntil:
+    visible:
+      id: "App2_RaceManagementView"
+    timeout: 30000
+- takeScreenshot: wave2-race-management
+
+# === 新增賽事（frame-13 的表單 sheet）===
+- tapOn:
+    id: "App2_RacesAddCta"
+- extendedWaitUntil:
+    visible:
+      id: "App2_RaceFormName"
+    timeout: 20000
+- takeScreenshot: wave2-race-form
+
+# === 賽事資料庫（frame-14）===
+- tapOn:
+    id: "App2_RaceFormOpenDatabase"
+- extendedWaitUntil:
+    visible:
+      id: "App2_RaceDatabaseView"
+    timeout: 30000
+- takeScreenshot: wave2-race-database
+
+# === 收尾：一路退回首頁，不留在半開的表單上 ===
+- tapOn:
+    id: "App2_RaceDatabaseClose"
+- tapOn:
+    id: "App2_RaceFormCancel"
+- tapOn:
+    id: "App2_RacesClose"
+- tapOn:
+    id: "App2_PlanOverviewClose"
+- assertVisible:
+    id: "App2_GoalCard"

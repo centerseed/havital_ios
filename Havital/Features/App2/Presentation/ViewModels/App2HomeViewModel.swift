@@ -644,9 +644,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         let currentWeek = planStatus.currentWeek
         do {
             let overview = try await planV2DataSource.getOverview()
-            if let planId = planStatus.currentWeekPlanId,
-               let boundOverviewId = planId.split(separator: "_").first.map(String.init),
-               overview.id != boundOverviewId {
+            guard Self.isOverview(overview.id, boundTo: planStatus) else {
                 Logger.debug("[App2HomeVM] overview 與本週課表不同源,不顯示期別")
                 return nil
             }
@@ -657,6 +655,24 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             }
             return nil
         }
+    }
+
+    /// 這份 overview 是不是 plan status 指向的那一份。
+    ///
+    /// `current_week_plan_id` 的前綴就是 overview id（dev 實測：plan `e1289e60f251_1`
+    /// ↔ overview `e1289e60f251`）。`GET /v2/plan/overview` 只交當前那一份，拿回來要先比對
+    /// —— 對不上就什麼都不顯示，不要把另一份計畫的期別／期程畫成這一份的。
+    ///
+    /// **本週課表還沒產生時（`current_week_plan_id == nil`）綁不了**，一律回 false：
+    /// 那時沒有任何東西能證明手上這份 overview 就是要跑的那份。
+    ///
+    /// 首頁的期別膠囊與訓練計畫總覽頁的期程列表共用這一支，不各寫一份。
+    static func isOverview(_ overviewId: String, boundTo planStatus: PlanStatusV2Response) -> Bool {
+        guard let planId = planStatus.currentWeekPlanId,
+              let boundOverviewId = planId.split(separator: "_").first.map(String.init) else {
+            return false
+        }
+        return overviewId == boundOverviewId
     }
 
     /// 當前週落在哪一段 `training_stages`。落不進任何一段就沒有期別（不猜最近的那段）。

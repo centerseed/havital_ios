@@ -320,6 +320,100 @@ struct App2WorkoutRow: Identifiable, Equatable {
     let vdot: String?
 }
 
+// MARK: - 訓練計畫總覽（設計 frame-20）
+
+/// 訓練計畫總覽頁的一整份投影。
+///
+/// **週次／期別／賽事三者同源**：`GET /v2/plan/status` 取週次，並用它的
+/// `current_week_plan_id` 前綴綁定 overview（`GET /v2/plan/overview` 拿回來先比對 id）。
+/// 綁不上就沒有期程 —— 寧可少一段，也不要把別份計畫的階段畫成這一份的。
+struct App2PlanOverview: Equatable {
+    /// 目標賽事（來自 `GET /user/targets` 的主要賽事）。沒有主要賽事就整張 hero 換空狀態。
+    let raceName: String?
+    /// `2026-12-06`（賽事時區）。
+    let raceDateLabel: String?
+    /// `全馬`／`半馬`…
+    let distanceLabel: String?
+    /// `還有 N 週`。
+    let weeksUntilRace: Int?
+    /// 「現在的你」——`GET /plan/readiness/{date}` 的 `race_fitness.estimated_race_time`。
+    /// 這個帳號還沒有這個量時是 nil，畫面說「尚未有預估」，不本機推一個。
+    let currentEstimatedFinish: String?
+    /// 「約 N km / 週」——近 4 週實際週跑量平均（`GET /summary/weekly/all`）。
+    let currentWeeklyKm: Double?
+    /// `2:34:00`。目標未設成績就是 nil。
+    let targetTime: String?
+    let currentWeek: Int?
+    let totalWeeks: Int?
+    /// 當前所在階段名（`建立耐力期`）。落不進任何一段就沒有。
+    let currentStageName: String?
+    let stages: [App2PlanStage]
+    let rhythm: App2PlanRhythm
+
+    /// 進度條落點（0…1）。週次不齊就沒有進度條。
+    var progress: Double? {
+        guard let currentWeek, let totalWeeks, totalWeeks > 0 else { return nil }
+        return min(1, max(0, Double(currentWeek) / Double(totalWeeks)))
+    }
+}
+
+/// 期程列表的一段（`training_stages[]`）。
+struct App2PlanStage: Identifiable, Equatable {
+    enum State: Equatable {
+        case done, active, upcoming
+    }
+
+    let id: String
+    /// `建立耐力`
+    let name: String
+    /// `先把週跑量穩到 45–50 km`——後端的 `training_focus`（已在地化）。
+    let focus: String?
+    let weekStart: Int
+    let weekEnd: Int
+    let state: State
+    /// 進行中那一段走到第幾週（`5 / 6 週`）。其餘段為 nil。
+    let weeksElapsed: Int?
+
+    var weekCount: Int { max(1, weekEnd - weekStart + 1) }
+
+    /// `W1–6`
+    var weekRangeLabel: String {
+        weekStart == weekEnd ? "W\(weekStart)" : "W\(weekStart)–\(weekEnd)"
+    }
+}
+
+/// 訓練節奏（設計 frame-20 下半）。三格都是真值，缺就那一列不出現。
+struct App2PlanRhythm: Equatable {
+    /// 每週跑步天數 —— `prefer_week_days` 的長度。
+    let runDaysPerWeek: Int?
+    /// 長跑日 —— `prefer_week_days_longrun` 的第一天。
+    let longRunDayLabel: String?
+    /// 訓練方法顯示名 —— overview 的 `methodology_overview.name`（後端已在地化）。
+    /// **不印 `methodology_id`**：那是識別字。
+    let methodologyName: String?
+
+    var isEmpty: Bool {
+        runDaysPerWeek == nil && longRunDayLabel == nil && methodologyName == nil
+    }
+}
+
+// MARK: - 賽事管理（設計 frame-12／13／14）
+
+/// 賽事管理頁的一張賽事卡。主要賽事與支援賽事同一個型別，用 `isMain` 分。
+struct App2RaceCard: Identifiable, Equatable {
+    let id: String
+    let name: String
+    /// `2026-12-06`（賽事時區）。
+    let dateLabel: String
+    /// `全馬`／`半馬`…
+    let distanceLabel: String
+    /// 倒數天數。已過期的賽事為負數 —— 畫面只在 >= 0 時顯示倒數。
+    let countdownDays: Int
+    /// `2:34:00`；目標未設成績就是 nil。
+    let goalTime: String?
+    let isMain: Bool
+}
+
 // MARK: - 設定（§3.9a）
 
 struct App2SettingsSnapshot: Equatable {

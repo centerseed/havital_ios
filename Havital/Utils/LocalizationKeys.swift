@@ -2060,6 +2060,111 @@ extension L10n {
             static let rest = "app2.plan.rest"
         }
 
+        /// 訓練計畫總覽（設計 frame-20）。
+        enum PlanOverview {
+            static let title = "app2.plan_overview.title"
+            static let adjust = "app2.plan_overview.adjust"
+            static let goalSection = "app2.plan_overview.goal_section"
+            /// `還有 %d 週`
+            static let weeksUntilRace = "app2.plan_overview.weeks_until_race"
+            static let currentYou = "app2.plan_overview.current_you"
+            static let target = "app2.plan_overview.target"
+            /// `約 %@ km / 週`
+            static let weeklyVolume = "app2.plan_overview.weekly_volume"
+            static let noEstimate = "app2.plan_overview.no_estimate"
+            static let progressLabel = "app2.plan_overview.progress_label"
+            /// `第 %1$d / %2$d 週`
+            static let weekOfTotal = "app2.plan_overview.week_of_total"
+            /// `%d 個階段`
+            static let stagesSection = "app2.plan_overview.stages_section"
+            static let stagesSubtitle = "app2.plan_overview.stages_subtitle"
+            static let stageActive = "app2.plan_overview.stage_active"
+            static let stageUpcoming = "app2.plan_overview.stage_upcoming"
+            static let stageDone = "app2.plan_overview.stage_done"
+            /// `%1$d / %2$d 週`
+            static let stageProgress = "app2.plan_overview.stage_progress"
+            static let rhythmSection = "app2.plan_overview.rhythm_section"
+            static let runDays = "app2.plan_overview.run_days"
+            /// `%d 天`
+            static let runDaysValue = "app2.plan_overview.run_days_value"
+            static let longRunDay = "app2.plan_overview.long_run_day"
+            static let methodology = "app2.plan_overview.methodology"
+            static let manageSection = "app2.plan_overview.manage_section"
+            static let manageRaces = "app2.plan_overview.manage_races"
+            static let manageRacesSub = "app2.plan_overview.manage_races_sub"
+            static let resetGoal = "app2.plan_overview.reset_goal"
+            static let resetGoalSub = "app2.plan_overview.reset_goal_sub"
+            static let autoAdjustNote = "app2.plan_overview.auto_adjust_note"
+            static let rizoCta = "app2.plan_overview.rizo_cta"
+            static let noPlanTitle = "app2.plan_overview.no_plan_title"
+            static let noPlanBody = "app2.plan_overview.no_plan_body"
+            /// overview 綁不上本週課表 → 期程整段不顯示，畫面要說明原因。
+            static let stagesUnavailable = "app2.plan_overview.stages_unavailable"
+        }
+
+        /// 賽事管理（設計 frame-12／13／14）。
+        enum Races {
+            static let title = "app2.races.title"
+            static let subtitle = "app2.races.subtitle"
+            static let mainSection = "app2.races.main_section"
+            static let mainBadge = "app2.races.main_badge"
+            static let supportSection = "app2.races.support_section"
+            static let sortedByDate = "app2.races.sorted_by_date"
+            static let countdown = "app2.races.countdown"
+            /// `%d 天`
+            static let countdownDays = "app2.races.countdown_days"
+            static let countdownPast = "app2.races.countdown_past"
+            /// 大數字後面的單位（`天`／`days`／`日`），與 `countdownDays` 是同一個詞的兩種排版。
+            static let countdownUnit = "app2.races.countdown_unit"
+            static let goalTime = "app2.races.goal_time"
+            /// `%d 場`
+            static let supportCountValue = "app2.races.support_count_value"
+            static let supportCount = "app2.races.support_count"
+            static let edit = "app2.races.edit"
+            static let delete = "app2.races.delete"
+            static let setAsMain = "app2.races.set_as_main"
+            static let noSupport = "app2.races.no_support"
+            static let noMainTitle = "app2.races.no_main_title"
+            static let noMainBody = "app2.races.no_main_body"
+            static let addRace = "app2.races.add_race"
+            static let deleteConfirmTitle = "app2.races.delete_confirm_title"
+            /// `確定要刪除「%@」嗎？`
+            static let deleteConfirmBody = "app2.races.delete_confirm_body"
+
+            // frame-13 新增／編輯
+            static let addTitle = "app2.races.add_title"
+            static let editTitle = "app2.races.edit_title"
+            static let fromDatabase = "app2.races.from_database"
+            static let fromDatabaseSub = "app2.races.from_database_sub"
+            static let nameLabel = "app2.races.name_label"
+            static let namePlaceholder = "app2.races.name_placeholder"
+            static let typeLabel = "app2.races.type_label"
+            static let distanceLabel = "app2.races.distance_label"
+            static let dateLabel = "app2.races.date_label"
+            static let targetTimeLabel = "app2.races.target_time_label"
+            static let paceLabel = "app2.races.pace_label"
+            static let paceHint = "app2.races.pace_hint"
+            static let makeMain = "app2.races.make_main"
+            static let makeMainSub = "app2.races.make_main_sub"
+            static let makeMainNote = "app2.races.make_main_note"
+            static let mainLockNote = "app2.races.main_lock_note"
+            static let save = "app2.races.save"
+
+            // frame-14 賽事資料庫
+            static let databaseTitle = "app2.races.database_title"
+            static let searchPlaceholder = "app2.races.search_placeholder"
+            static let regionLabel = "app2.races.region_label"
+            static let regionAll = "app2.races.region_all"
+            static let regionTw = "app2.races.region_tw"
+            static let regionJp = "app2.races.region_jp"
+            static let filterLabel = "app2.races.filter_label"
+            static let filterAll = "app2.races.filter_all"
+            /// `%d 場賽事`
+            static let resultCount = "app2.races.result_count"
+            static let noResultTitle = "app2.races.no_result_title"
+            static let noResultBody = "app2.races.no_result_body"
+        }
+
         enum Records {
             static let title = "app2.records.title"
             static let trendTitle = "app2.records.trend_title"
