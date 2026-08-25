@@ -400,7 +400,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             dayLabel: dayLabel,
             title: dayType?.localizedName ?? (day.category ?? L10n.App2.Plan.rest.localized),
             intensityLabel: App2PlanViewModel.intensityLabel(day.primary),
-            summary: App2PlanViewModel.contentLine(day.primary),
+            summary: App2PlanViewModel.contentLine(day.primary, totalDistanceKm: day.distanceKm),
             segments: segments,
             structureBars: Self.structureBars(day: day),
             strengthLabel: Self.strengthLabel(day: day),
@@ -518,7 +518,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         )
 
         if case .run(let run) = day.primary {
-            let runSegments = run.segments ?? []
+            let runSegments = App2PlanViewModel.effectiveSegments(run)
             if runSegments.isEmpty {
                 // 單段課（輕鬆跑／長跑）也有結構，只是只有一段主課。
                 append(L10n.App2.Home.segmentMain.localized,
@@ -585,7 +585,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         if day.warmup != nil { append(.support, height: 0.35, width: 1) }
 
         if case .run(let run) = day.primary {
-            let runSegments = run.segments ?? []
+            let runSegments = App2PlanViewModel.effectiveSegments(run)
             if runSegments.isEmpty {
                 // 單段課（輕鬆跑／長跑）：一整塊穩定段，配速標在塊上。
                 // 標註列的量直接用卡片「課表」那一行的同一支（`contentLine`），

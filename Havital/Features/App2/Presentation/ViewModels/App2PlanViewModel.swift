@@ -140,7 +140,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 dayType: dayType,
                 // 設計 frame-01 的「課表」行是「量 · 配速」（`4.0 km · 7:17/km`），
                 // 不是裸距離；與今日課表卡走同一支 `contentLine`，不另做一份格式。
-                planned: Self.contentLine(day.primary),
+                planned: Self.contentLine(day.primary, totalDistanceKm: day.distanceKm),
                 description: Self.descriptionLine(day),
                 // 實際值要按日期對齊 workouts；骨架階段僅在週總量層合併（見 completedKm）。
                 actual: nil,
@@ -252,8 +252,65 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 全部從 payload 的結構欄位組出來，沒有一個字是編的：
     /// - 有間歇段 → `6 × 200m · 5:25/km · 組間 90 秒`
     /// - 一般跑   → `9.0 km · 7:55/km`
+    /// 課表分段列表 —— 卡片摘要、配速結構圖、分段列三個投影共用的那一份。
+    ///
+    /// **後端對間歇課不送 `segments[]`**：dev 實測 4×400m 那天 `primary` 只有
+    /// `interval`（`repeats` / `work_*` / `recovery_*`），`segments` 整個缺席。
+    /// 下游全都只認 `segments[].kind == "interval"`，於是間歇課被畫成一整塊
+    /// 綠色穩定段、分段列也不展開衝刺與組間恢復（2026-08-26 使用者截圖）。
+    /// 這裡把 `interval` 攤平成同一種段，讓三個投影繼續走同一條路徑，
+    /// 不在各自的分支裡再判一次 payload 形狀。
+    static func effectiveSegments(_ run: RunActivityDTO) -> [RunSegmentDTO] {
+        if let segments = run.segments, !segments.isEmpty { return segments }
+        guard let interval = run.interval, interval.repeats > 0 else { return [] }
+        return [RunSegmentDTO(
+            distanceKm: interval.workDistanceKm,
+            distanceM: interval.workDistanceM,
+            distanceDisplay: nil,
+            distanceUnit: nil,
+            durationMinutes: interval.workDurationMinutes,
+            durationSeconds: nil,
+            pace: interval.workPace,
+            basePace: nil,
+            climateAdjustedPace: nil,
+            climateMeta: nil,
+            heartRateRange: nil,
+            intensity: nil,
+            description: interval.workDescription,
+            kind: "interval",
+            repeats: interval.repeats,
+            work: SegmentEffortDTO(
+                distanceKm: interval.workDistanceKm,
+                distanceM: interval.workDistanceM,
+                durationMinutes: interval.workDurationMinutes,
+                durationSeconds: nil,
+                pace: interval.workPace,
+                basePace: nil,
+                paceZone: nil,
+                targetHrr: nil,
+                recoveryType: nil
+            ),
+            recovery: SegmentEffortDTO(
+                distanceKm: interval.recoveryDistanceKm,
+                distanceM: interval.recoveryDistanceM,
+                durationMinutes: interval.recoveryDurationMinutes,
+                durationSeconds: interval.recoveryDurationSeconds,
+                pace: interval.recoveryPace,
+                basePace: nil,
+                paceZone: nil,
+                targetHrr: nil,
+                recoveryType: nil
+            )
+        )]
+    }
+
     /// 兩者都拿不到 → nil（畫面就不顯示這一行，不用 placeholder 充數）。
-    static func contentLine(_ primary: PrimaryActivityDTO?) -> String? {
+    ///
+    /// `totalDistanceKm` ＝ 這一天的總量（payload 的日層 `distance_km`）。給了就用它，
+    /// 因為 `primary.distance_km` 在間歇課只算主課段（dev 實測 `2.2`＝4×400m 加組間
+    /// 恢復），跟下面分段列的熱身 2.0 ＋ 衝刺 1.6 ＋ 緩和 1.0 加不起來
+    /// （2026-08-26 使用者回報）。日層 `5.2` 才是那張卡在講的量。
+    static func contentLine(_ primary: PrimaryActivityDTO?, totalDistanceKm: Double? = nil) -> String? {
         guard case .run(let run) = primary else { return nil }
 
         if let interval = run.segments?.first(where: { $0.kind == "interval" }),
@@ -278,7 +335,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         }
 
         var parts: [String] = []
-        if let km = run.distanceKm, km > 0 {
+        if let km = totalDistanceKm ?? run.distanceKm, km > 0 {
             parts.append(String(format: "%.1f km", km))
         } else if let minutes = run.durationMinutes {
             parts.append("\(minutes) min")

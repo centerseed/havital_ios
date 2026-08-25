@@ -400,6 +400,9 @@ struct DayDetailDTO: Codable, Equatable {
     var dayIndex: Int
     var dayTarget: String
     var reason: String
+    /// 這一天的**總量**（熱身＋主課＋緩和）。`primary.distance_km` 在間歇課只算主課段，
+    /// 兩者不同（dev 實測：日層 5.2、`primary` 2.2）。
+    var distanceKm: Double?
     var tips: String?
     var category: String?
     var climateMeta: ClimateMetaDTO?
@@ -412,6 +415,7 @@ struct DayDetailDTO: Codable, Equatable {
         case dayIndex = "day_index"
         case dayTarget = "day_target"
         case reason
+        case distanceKm = "distance_km"
         case tips
         case category
         case climateMeta = "climate_meta"
@@ -427,6 +431,7 @@ struct DayDetailDTO: Codable, Equatable {
         dayIndex = try container.decode(Int.self, forKey: .dayIndex)
         dayTarget = try container.decode(String.self, forKey: .dayTarget)
         reason = try container.decode(String.self, forKey: .reason)
+        distanceKm = try container.decodeIfPresent(Double.self, forKey: .distanceKm)
         tips = try container.decodeIfPresent(String.self, forKey: .tips)
         category = try container.decodeIfPresent(String.self, forKey: .category)
         climateMeta = try container.decodeIfPresent(ClimateMetaDTO.self, forKey: .climateMeta)
@@ -453,6 +458,7 @@ struct DayDetailDTO: Codable, Equatable {
         try container.encode(dayIndex, forKey: .dayIndex)
         try container.encode(dayTarget, forKey: .dayTarget)
         try container.encode(reason, forKey: .reason)
+        try container.encodeIfPresent(distanceKm, forKey: .distanceKm)
         try container.encodeIfPresent(tips, forKey: .tips)
         try container.encodeIfPresent(category, forKey: .category)
         try container.encodeIfPresent(climateMeta, forKey: .climateMeta)
@@ -462,10 +468,11 @@ struct DayDetailDTO: Codable, Equatable {
         try container.encodeIfPresent(supplementary, forKey: .supplementary)
     }
 
-    init(dayIndex: Int, dayTarget: String, reason: String, tips: String?, category: String?, climateMeta: ClimateMetaDTO?, primary: PrimaryActivityDTO?, warmup: RunSegmentDTO?, cooldown: RunSegmentDTO?, supplementary: [SupplementaryActivityDTO]?) {
+    init(dayIndex: Int, dayTarget: String, reason: String, distanceKm: Double? = nil, tips: String?, category: String?, climateMeta: ClimateMetaDTO?, primary: PrimaryActivityDTO?, warmup: RunSegmentDTO?, cooldown: RunSegmentDTO?, supplementary: [SupplementaryActivityDTO]?) {
         self.dayIndex = dayIndex
         self.dayTarget = dayTarget
         self.reason = reason
+        self.distanceKm = distanceKm
         self.tips = tips
         self.category = category
         self.climateMeta = climateMeta

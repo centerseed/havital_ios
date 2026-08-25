@@ -35,7 +35,10 @@ enum App2SessionDetailProjection {
         switch day.primary {
         case .run(let run):
             isRun = true
-            distanceKm = run.distanceKm
+            // 日層 `distance_km` 是這一天的總量（熱身＋主課＋緩和）。`primary.distance_km`
+            // 在間歇課只算主課段（dev 實測 2.2 vs 日層 5.2），拿它當 hero 的「總距離」
+            // 會跟下面的分段列加不起來（2026-08-26 使用者回報）。
+            distanceKm = day.distanceKm ?? run.distanceKm
             durationMinutes = run.durationMinutes
         case .cross(let cross):
             durationMinutes = cross.durationMinutes
@@ -73,7 +76,7 @@ enum App2SessionDetailProjection {
         guard case .run(let run) = day.primary else {
             return App2PlanViewModel.intensityLabel(day.primary)
         }
-        let zones = (run.segments ?? []).compactMap { $0.work?.paceZone ?? $0.pace }
+        let zones = App2PlanViewModel.effectiveSegments(run).compactMap { $0.work?.paceZone ?? $0.pace }
         if let zone = zones.first(where: { $0.uppercased().hasPrefix("Z") }) {
             return zone.uppercased()
         }
@@ -108,7 +111,7 @@ enum App2SessionDetailProjection {
 
         switch day.primary {
         case .run(let run):
-            let runSegments = run.segments ?? []
+            let runSegments = App2PlanViewModel.effectiveSegments(run)
             if runSegments.isEmpty {
                 // **不掛 `run.description`**：那一欄是後端組出來的機器回音
                 // （dev 實測 `"lsd 6.0 km"` —— 識別字 ＋ 已經在同一列上的量），
