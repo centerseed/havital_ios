@@ -65,19 +65,24 @@ struct App2WeeklyVolumeChart: View {
 /// 今日課表卡右側的「趟數 × N 趟」結構預覽（設計 frame-00 下半，與 frame-02
 /// 「預計配速」同一視覺家族）。
 ///
-/// **不是趨勢圖**：橫軸是這一堂課的段落順序，不是時間。橘柱＝衝刺／主課那幾趟，
-/// 淺色矮柱＝熱身、恢復、緩和。柱數由 payload 的 `repeats` 決定，畫不出結構
-/// （只有一根柱）時呼叫端就不給資料，這裡也不會出現。
+/// **不是趨勢圖**：橫軸是這一堂課的段落順序，不是時間。**橘柱＝衝刺（interval
+/// 的 work）那幾趟，只有它算「趟」**；熱身、主課穩定段、組間恢復、緩和都是淺色
+/// 矮柱，不計趟。柱數由 payload 的 `repeats` 決定，畫不出結構（只有一根柱）時
+/// 呼叫端就不給資料，這裡也不會出現。
 struct App2SessionStructureChart: View {
     let bars: [App2SessionStructureBar]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
-            Text(String(format: L10n.App2.Home.structureReps.localized, bars.filter(\.isWork).count))
-                .font(.system(size: 10, weight: .heavy))
-                .foregroundStyle(App2Theme.inkMuted)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
+            // 只有 work 柱算「趟」。沒有衝刺段的課（輕鬆跑／長跑）就不寫趟數。
+            let reps = bars.filter(\.isWork).count
+            if reps > 0 {
+                Text(String(format: L10n.App2.Home.structureReps.localized, reps))
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundStyle(App2Theme.inkMuted)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
 
             HStack(alignment: .bottom, spacing: 2) {
                 ForEach(bars) { bar in

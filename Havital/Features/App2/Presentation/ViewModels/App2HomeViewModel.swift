@@ -462,8 +462,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     /// 右側「趟數 × N 趟」結構預覽（設計 frame-02「預計配速」同一視覺家族）。
     ///
-    /// 橘（work）＝衝刺／主課那幾趟，淺色矮柱＝熱身／恢復／緩和。
-    /// 間歇段的柱數由 `repeats` 決定。
+    /// **橘柱＝衝刺（interval 的 work）那幾趟，只有它算「趟」。** 熱身、主課的
+    /// 穩定段、組間恢復、緩和都是淺色矮柱，不計趟 —— 把穩定段也算進去會讓
+    /// 「6 × 200m」的課寫成「趟數 × 7 趟」（2026-08-25 用戶在截圖上抓到）。
     static func structureBars(day: DayDetailDTO) -> [App2SessionStructureBar] {
         var bars: [App2SessionStructureBar] = []
         func append(_ height: Double, isWork: Bool) {
@@ -475,21 +476,22 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         if case .run(let run) = day.primary {
             let runSegments = run.segments ?? []
             if runSegments.isEmpty {
-                append(0.85, isWork: true)
+                append(0.85, isWork: false)
             }
             for segment in runSegments {
                 if segment.kind == "interval", let repeats = segment.repeats, repeats > 0 {
                     // 太多趟就不畫滿，畫面上那格只有幾十 pt 寬。
-                    for index in 0..<min(repeats, 10) {
+                    let drawn = min(repeats, 10)
+                    for index in 0..<drawn {
                         append(1.0, isWork: true)
-                        if index < min(repeats, 10) - 1 { append(0.3, isWork: false) }
+                        if index < drawn - 1 { append(0.3, isWork: false) }
                     }
                 } else {
-                    append(0.6, isWork: true)
+                    append(0.6, isWork: false)
                 }
             }
         } else if day.primary != nil {
-            append(0.7, isWork: true)
+            append(0.7, isWork: false)
         }
 
         if day.cooldown != nil { append(0.35, isWork: false) }

@@ -80,6 +80,9 @@ struct App2HomeView: View {
             App2LevelBadge()
                 .contentShape(Rectangle())
                 .onTapGesture(perform: onOpenSettings)
+                // 併成單一葉節點，否則 identifier 掛在容器上、a11y tree 只看得到
+                // 裡面的 "LV" 字（同頁 insightHandle 踩過同一個坑）。
+                .accessibilityElement(children: .ignore)
                 .accessibilityAddTraits(.isButton)
                 .accessibilityLabel(L10n.App2.Tab.settings.localized)
                 .accessibilityIdentifier("App2_HomeSettingsEntry")

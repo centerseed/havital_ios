@@ -421,11 +421,27 @@ final class App2HomeProjectionTests: XCTestCase {
         XCTAssertEqual(segments[4].detail, "1.0 km @ 7:55")
     }
 
-    func test_structureBars_qualityDay_hasWarmupRepsAndCooldown() throws {
+    /// 回歸：**只有衝刺的 repeat 算「趟」**。`6 × 200m` 的課要畫 6 根橘柱，
+    /// 主課穩定段／熱身／恢復／緩和都是淺柱 —— 之前把穩定段也算進去，
+    /// 卡上寫成「趟數 × 7 趟」（2026-08-25 用戶在截圖上抓到）。
+    func test_structureBars_qualityDay_countsOnlySprintReps() throws {
         let bars = App2HomeViewModel.structureBars(day: try day(qualityDay))
         XCTAssertFalse(bars.first?.isWork ?? true)      // 熱身
         XCTAssertFalse(bars.last?.isWork ?? true)       // 緩和
-        XCTAssertEqual(bars.filter(\.isWork).count, 7) // 穩定段 ＋ 6 趟
+        XCTAssertEqual(bars.filter(\.isWork).count, 6) // 只有 6 趟衝刺
+    }
+
+    /// 沒有衝刺段的課（輕鬆跑＋熱身緩和）→ 一根橘柱都沒有，畫面也不寫趟數。
+    func test_structureBars_nonIntervalDay_hasNoWorkBars() throws {
+        let json = """
+        { "day_index": 2, "day_target": "輕鬆跑", "reason": "有氧",
+          "warmup": { "distance_km": 1.0, "pace": "7:55" },
+          "cooldown": { "distance_km": 1.0, "pace": "7:55" },
+          "primary": { "run_type": "easy", "distance_km": 8.0, "pace": "7:55" } }
+        """
+        let bars = App2HomeViewModel.structureBars(day: try day(json))
+        XCTAssertFalse(bars.isEmpty)
+        XCTAssertEqual(bars.filter(\.isWork).count, 0)
     }
 
     func test_structureBars_restDay_isEmpty() throws {
