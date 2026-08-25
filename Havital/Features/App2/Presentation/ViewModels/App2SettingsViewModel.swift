@@ -47,12 +47,15 @@ final class App2SettingsViewModel: ObservableObject {
 
     func load() {
         let stub = App2StubFixtures.settings
+        // email 沒有就是沒有 —— profile 卡不得出現編造值（樣本 email 已從 fixture 刪掉）。
         let email = authViewModel.currentUser?.email
+            .flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .flatMap { $0.isEmpty ? nil : $0 }
 
         snapshot = App2Sourced(
             App2SettingsSnapshot(
-                accountEmail: email ?? stub.accountEmail,
-                subscriptionLabel: subscriptionLabel() ?? stub.subscriptionLabel,
+                accountEmail: email,
+                subscriptionLabel: subscriptionLabel(),
                 // 連接狀態／訓練設定尚未接讀口 → 樣本。
                 dataSources: stub.dataSources,
                 weeklyDistanceKm: stub.weeklyDistanceKm,
@@ -67,19 +70,14 @@ final class App2SettingsViewModel: ObservableObject {
         )
     }
 
-    /// 訂閱狀態顯示字。到期時間是 Unix timestamp（UTC），換算剩餘天數用裝置日曆。
-    private func subscriptionLabel() -> String? {
-        guard let status = subscriptionState.currentStatus else { return nil }
-        guard let expiresAt = status.expiresAt else {
-            return status.planType
-        }
-        let expiry = Date(timeIntervalSince1970: expiresAt)
-        let days = Calendar.current.dateComponents(
-            [.day],
-            from: Calendar.current.startOfDay(for: Date()),
-            to: Calendar.current.startOfDay(for: expiry)
-        ).day ?? 0
-        let plan = status.planType ?? status.status.rawValue
-        return "\(plan) · \(max(0, days))d"
+    /// 訂閱狀態顯示字（三語）。
+    ///
+    /// 原本這裡直接印 `status.planType ?? status.status.rawValue` ＋硬寫的 `d`，
+    /// 畫面會出現 `expired · 0d` —— 後端識別字上畫面、天數單位沒有在地化。
+    /// 現在走 `SubscriptionStatusEntity.compactStateLabel`（1.x 設定頁的
+    /// tier label 也已收斂到同一支），剩餘天數用既有的
+    /// `profile.subscription.trial_remaining_days` 格式字。
+    private func subscriptionLabel() -> String {
+        SubscriptionStatusEntity.compactStateLabel(for: subscriptionState.currentStatus)
     }
 }

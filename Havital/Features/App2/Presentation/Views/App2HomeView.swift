@@ -35,6 +35,8 @@ struct App2HomeView: View {
         .background(App2Theme.pageGradient.ignoresSafeArea())
         .accessibilityIdentifier("App2_HomeView")
         .task { await viewModel.loadIfNeeded() }
+        // 下拉刷新＝強制重驗（跳過 60 秒門檻）。不清畫面、不進 loading。
+        .refreshable { await viewModel.forceRefresh() }
     }
 
     // MARK: - Header（字標 ＋ LV 六角徽章）
@@ -46,8 +48,8 @@ struct App2HomeView: View {
                 .tracking(0.5)
                 .foregroundStyle(App2Theme.inkPrimary)
             Spacer()
-            // §7-1：等級語意在設計稿裡沒有定義，已裁決為「徽章佔位」。
-            App2LevelBadge(level: "—")
+            // §7-1：backend 沒有等級讀口 → 徽章只留字標，不顯示數字（票面剩餘差異）。
+            App2LevelBadge()
         }
         .padding(.horizontal, 4)
         .padding(.bottom, 0)
@@ -214,6 +216,8 @@ struct App2HomeView: View {
                         }
                     }
                     Spacer(minLength: 4)
+                    // 收合態也要標樣本來源 —— 否則只有展開後才看得出這排膠囊不是真值。
+                    App2StubBadge(origin: sourced.origin)
                     Image(systemName: "chevron.down")
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(App2Theme.inkMuted)

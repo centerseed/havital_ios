@@ -411,8 +411,11 @@ struct App2HexagonShape: Shape {
 }
 
 /// 首頁右上的 LV 六角徽章（44×48）。
+///
+/// **不顯示等級數字。** 設計 frame-00 畫的是 `LV 7`，但 backend 沒有任何等級讀口
+/// （§7-1 的語意缺口），先前硬寫的 `—` 看起來像「載入失敗」而不是「還沒有這個量」。
+/// 這裡改成只留字標的乾淨樣式；等級落地後再把數字接上來。
 struct App2LevelBadge: View {
-    let level: String
 
     var body: some View {
         ZStack {
@@ -427,15 +430,10 @@ struct App2LevelBadge: View {
             App2HexagonShape()
                 .stroke(Color.white.opacity(0.3), lineWidth: 1.5)
                 .padding(3)
-            VStack(spacing: 0) {
-                Text(verbatim: "LV")
-                    .font(.system(size: 8, weight: .heavy))
-                    .tracking(1)
-                    .opacity(0.85)
-                Text(level)
-                    .font(.app2Mono(20))
-            }
-            .foregroundStyle(.white)
+            Text(verbatim: "LV")
+                .font(.system(size: 15, weight: .heavy))
+                .tracking(1.5)
+                .foregroundStyle(.white)
         }
         .frame(width: 44, height: 48)
         .shadow(color: App2Theme.accentBlue.opacity(0.4), radius: 6, x: 0, y: 6)

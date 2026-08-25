@@ -342,7 +342,10 @@ class WorkoutRemoteDataSourceTests: XCTestCase {
                 avgPacePerKm: "6:00",
                 providerDistribution: ["apple_health": 100],
                 activityTypeDistribution: ["running": 100],
-                periodDays: 30
+                periodDays: 30,
+                // T-0304 落地的兩個 additive 欄位（`weeks` 未帶時後端不回）。
+                weeklySeries: nil,
+                yearToDate: nil
             )
         )
     }

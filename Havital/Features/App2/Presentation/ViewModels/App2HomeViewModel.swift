@@ -80,7 +80,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     // MARK: - Loading
 
-    func load() async {
+    func revalidate() async {
         // 只有「從未載過」才出 loading —— 重驗時畫面保留上一次的資料，不閃白。
         isLoading = !hasLoaded
         // 各區塊獨立：一條失敗不阻斷其他。
@@ -101,23 +101,25 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         do {
             planStatus = try await planV2DataSource.getPlanStatus()
         } catch {
+            // 取消 → 這一輪沒有新資料，保留畫面上既有的卡（週次不退成 `—`）。
+            if error.isCancellationError, trainingStatus != nil { return }
             Logger.debug("[App2HomeVM] plan status 取得失敗: \(error)")
         }
 
         do {
             let card = try await dailyStateRepository.fetchTodayState()
             trainingStatus = App2Sourced(
-                App2TrainingStatus(
-                    headline: card.displayHeadline,
-                    narrative: card.narrativeText,
-                    // 軌道落點目前沒有 producer（§7-2 同一批評級語意），先置中。
-                    trackPosition: 0.5,
+                Self.trainingStatus(
+                    card: card,
                     currentWeek: planStatus?.currentWeek,
                     totalWeeks: planStatus?.totalWeeks
                 ),
                 origin: .live(endpoint: "GET /v2/state/today")
             )
         } catch {
+            // 取消不是失敗（`AGENTS.md` 陷阱 2）。下拉刷新的 task 被 SwiftUI 收掉時
+            // 每一條 in-flight 請求都會回 -999；當成失敗會把畫面上的真資料換成樣本。
+            guard !error.isCancellationError else { return }
             Logger.debug("[App2HomeVM] state/today 取得失敗,退樣本: \(error)")
             guard trainingStatus == nil else { return }
             trainingStatus = App2Sourced(
@@ -146,26 +148,106 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 return
             }
             let plan = try await planV2DataSource.getWeeklyPlan(planId: planId)
-            let todayIndex = App2PlanViewModel.todayDayIndex()
-            guard let day = plan.days.first(where: { $0.dayIndex == todayIndex }) else {
+            guard let session = Self.todaySession(
+                days: plan.days,
+                todayIndex: App2PlanViewModel.todayDayIndex(),
+                dayLabel: Self.todayLabel()
+            ) else {
                 todaySession = nil
                 return
             }
-
-            let dayType = day.primary == nil ? DayType.rest : App2PlanViewModel.dayType(day.primary)
             todaySession = App2Sourced(
-                App2TodaySession(
-                    dayLabel: Self.todayLabel(),
-                    title: dayType?.localizedName
-                        ?? (day.category ?? L10n.App2.Plan.rest.localized),
-                    intensityLabel: App2PlanViewModel.intensityLabel(day.primary),
-                    summary: App2PlanViewModel.contentLine(day.primary)
-                ),
+                session,
                 origin: .live(endpoint: "GET /v2/plan/status + GET /v2/plan/weekly/{plan_id}")
             )
         } catch {
+            // 取消 → 保留上一次的今日課表，不清成空狀態。
+            guard !error.isCancellationError else { return }
             Logger.debug("[App2HomeVM] 今日課表取得失敗: \(error)")
             todaySession = nil
+        }
+    }
+
+    #if DEBUG
+    /// 測試／預覽用：直接填入各區塊狀態，不打網路。
+    /// （沿用 repo 既有的 `DailyStateCardViewModel.loadForTest()` 慣例。）
+    func applyForTesting(
+        goalCard: App2Sourced<App2GoalCard>? = nil,
+        trainingStatus: App2Sourced<App2TrainingStatus>? = nil,
+        insights: App2Sourced<[App2Insight]>? = nil,
+        todaySession: App2Sourced<App2TodaySession>? = nil
+    ) {
+        self.goalCard = goalCard
+        self.trainingStatus = trainingStatus
+        self.insights = insights
+        self.todaySession = todaySession
+        isLoading = false
+        hasLoaded = true
+        lastLoadedAt = Date()
+    }
+    #endif
+
+    // MARK: - 投影（純函式，可單獨測）
+    //
+    // 兩張卡的「payload → 畫面欄位」抽成 static：載入路徑要網路，投影不用。
+    // 輸入矩陣（休息日／無 primary／無強度／無距離／今天不在 days 裡／欄位缺失）
+    // 全部鎖在 `App2HomeProjectionTests`。
+
+    /// 訓練狀況卡（§3.1a）。
+    /// `trackPosition` 目前沒有 producer（§7-2 同一批評級語意），恆置中。
+    static func trainingStatus(
+        card: DailyStateCard,
+        currentWeek: Int?,
+        totalWeeks: Int?
+    ) -> App2TrainingStatus {
+        App2TrainingStatus(
+            headline: card.displayHeadline,
+            narrative: card.narrativeText,
+            trackPosition: 0.5,
+            currentWeek: currentWeek,
+            totalWeeks: totalWeeks
+        )
+    }
+
+    /// 今日課表卡（§3.1）。今天不在 `days` 裡就回 nil —— 畫面顯示空狀態，不退樣本。
+    static func todaySession(
+        days: [DayDetailDTO],
+        todayIndex: Int,
+        dayLabel: String
+    ) -> App2TodaySession? {
+        guard let day = days.first(where: { $0.dayIndex == todayIndex }) else { return nil }
+        let dayType = day.primary == nil ? DayType.rest : App2PlanViewModel.dayType(day.primary)
+        return App2TodaySession(
+            dayLabel: dayLabel,
+            title: dayType?.localizedName ?? (day.category ?? L10n.App2.Plan.rest.localized),
+            intensityLabel: App2PlanViewModel.intensityLabel(day.primary),
+            summary: App2PlanViewModel.contentLine(day.primary)
+        )
+    }
+
+    /// 指標網格（§3.1a）。順序固定；未知的 key 略過，全部略過就回空陣列
+    /// （呼叫端據此退樣本）。
+    static func insights(rows: [String: AthleteStateMetricRowDTO]) -> [App2Insight] {
+        // 網格拿掉「一致性」後為 5 格（2026-08-24 裁決）。
+        let order = [
+            "capability_baseline",
+            "recovery_index",
+            "aerobic_endurance",
+            "speed_endurance",
+            "heat_sensitivity"
+        ]
+        let stubByID = Dictionary(uniqueKeysWithValues: App2StubFixtures.insights.map { ($0.id, $0) })
+        return order.compactMap { key in
+            guard let row = rows[key] else { return nil }
+            return App2Insight(
+                id: key,
+                // label 與 verdict 都是評級／文案層，端點依規格不產生（ME-INV-05 → §7-2）。
+                label: stubByID[key]?.label ?? key,
+                value: row.pointEstimate.map { String(format: "%.0f", $0) },
+                // 方向同樣需要序列對照，envelope 只存當下值。
+                direction: .unknown,
+                verdict: nil
+            )
         }
     }
 
@@ -190,6 +272,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         do {
             planStatus = try await planV2DataSource.getPlanStatus()
         } catch {
+            if error.isCancellationError, goalCard != nil { return }
             Logger.debug("[App2HomeVM] plan status（goal card）取得失敗: \(error)")
         }
 
@@ -199,6 +282,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         do {
             _ = try await targetRepository.getTargets()
         } catch {
+            if error.isCancellationError, goalCard != nil { return }
             Logger.debug("[App2HomeVM] targets 取得失敗,改讀既有快取: \(error)")
         }
 
@@ -234,32 +318,12 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             let rows = dto.metrics ?? [:]
             guard !rows.isEmpty else { throw DomainError.unknown("empty metrics") }
 
-            // 網格拿掉「一致性」後為 5 格（2026-08-24 裁決）。順序固定，避免每次載入跳位。
-            let order = [
-                "capability_baseline",
-                "recovery_index",
-                "aerobic_endurance",
-                "speed_endurance",
-                "heat_sensitivity"
-            ]
-            let stubByID = Dictionary(uniqueKeysWithValues: App2StubFixtures.insights.map { ($0.id, $0) })
-
-            let items: [App2Insight] = order.compactMap { key in
-                guard let row = rows[key] else { return nil }
-                let value = row.pointEstimate.map { String(format: "%.0f", $0) }
-                return App2Insight(
-                    id: key,
-                    // label 與 verdict 都是評級／文案層，端點依規格不產生（ME-INV-05 → §7-2）。
-                    label: stubByID[key]?.label ?? key,
-                    value: value,
-                    // 方向同樣需要序列對照，envelope 只存當下值。
-                    direction: .unknown,
-                    verdict: nil
-                )
-            }
+            let items = Self.insights(rows: rows)
             guard !items.isEmpty else { throw DomainError.unknown("no known metric keys") }
             insights = App2Sourced(items, origin: .live(endpoint: "GET /v2/athlete-state/metrics"))
         } catch {
+            // 取消 → 保留上一次的指標，不把 live 換成樣本。
+            guard !error.isCancellationError || insights == nil else { return }
             Logger.debug("[App2HomeVM] athlete-state metrics 取得失敗,退樣本: \(error)")
             insights = App2Sourced(
                 App2StubFixtures.insights,

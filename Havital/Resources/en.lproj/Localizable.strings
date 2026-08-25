@@ -4217,11 +4217,9 @@
 "app2.plan.intensity_low" = "Easy";
 "app2.plan.intensity_medium" = "Moderate";
 "app2.plan.intensity_high" = "Hard";
-"app2.plan.purpose" = "Purpose of the week";
 "app2.plan.days_section" = "Daily schedule";
 "app2.plan.rest" = "Rest";
 
-"app2.records.window_section" = "Last 30 days";
 "app2.records.ytd_section" = "Year to date";
 "app2.records.distance" = "Distance";
 "app2.records.workouts" = "Sessions";
@@ -4283,3 +4281,10 @@
 "app2.settings.redeem_code" = "Redeem a code";
 "app2.settings.training_days_separator" = " · ";
 "app2.common.settings_entry" = "Open settings";
+
+
+// T-0306 獨立審查退回項修正
+"app2.records.month_section" = "This Month";
+"app2.records.vs_last_month" = "vs. last month %@";
+"app2.achievements.remaining_format" = "%@ to go";
+"app2.settings.subscription_active" = "Renewing";

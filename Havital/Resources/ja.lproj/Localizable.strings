@@ -4214,11 +4214,9 @@
 "app2.plan.intensity_low" = "イージー";
 "app2.plan.intensity_medium" = "ミドル";
 "app2.plan.intensity_high" = "ハード";
-"app2.plan.purpose" = "今週の狙い";
 "app2.plan.days_section" = "日別メニュー";
 "app2.plan.rest" = "休養";
 
-"app2.records.window_section" = "直近30日";
 "app2.records.ytd_section" = "今年の累計";
 "app2.records.distance" = "走行距離";
 "app2.records.workouts" = "回数";
@@ -4280,3 +4278,10 @@
 "app2.settings.redeem_code" = "コードを利用";
 "app2.settings.training_days_separator" = "・";
 "app2.common.settings_entry" = "設定を開く";
+
+
+// T-0306 獨立審查退回項修正
+"app2.records.month_section" = "今月の走行距離";
+"app2.records.vs_last_month" = "先月比 %@";
+"app2.achievements.remaining_format" = "残り %@";
+"app2.settings.subscription_active" = "更新中";

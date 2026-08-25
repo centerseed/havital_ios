@@ -179,7 +179,6 @@ enum App2StubFixtures {
         let totalWeeks: Int?
         let targetDistanceKm: Double
         let completedDistanceKm: Double?
-        let purpose: String
         let intensityLowMinutes: Int?
         let intensityMediumMinutes: Int?
         let intensityHighMinutes: Int?
@@ -187,14 +186,14 @@ enum App2StubFixtures {
 
         static let empty = PlanWeekFixture(
             weekLabel: "—", totalWeeks: nil, targetDistanceKm: 0, completedDistanceKm: nil,
-            purpose: "—", intensityLowMinutes: nil, intensityMediumMinutes: nil,
+            intensityLowMinutes: nil, intensityMediumMinutes: nil,
             intensityHighMinutes: nil, days: []
         )
 
         var domain: App2PlanWeek {
             App2PlanWeek(
                 weekLabel: weekLabel, totalWeeks: totalWeeks, targetDistanceKm: targetDistanceKm,
-                completedDistanceKm: completedDistanceKm, purpose: purpose,
+                completedDistanceKm: completedDistanceKm,
                 intensityLowMinutes: intensityLowMinutes,
                 intensityMediumMinutes: intensityMediumMinutes,
                 intensityHighMinutes: intensityHighMinutes,
@@ -225,9 +224,9 @@ enum App2StubFixtures {
     }
 
     private struct RecordsFixture: Codable {
-        let windowDays: Int
-        let windowDistanceKm: Double
-        let windowWorkouts: Int
+        let monthDistanceKm: Double
+        let monthWorkouts: Int
+        let monthDeltaKm: Double?
         let ytdYear: Int?
         let ytdDistanceKm: Double?
         let ytdWorkouts: Int?
@@ -235,15 +234,15 @@ enum App2StubFixtures {
         let recentWorkouts: [WorkoutRowFixture]
 
         static let empty = RecordsFixture(
-            windowDays: 30, windowDistanceKm: 0, windowWorkouts: 0,
+            monthDistanceKm: 0, monthWorkouts: 0, monthDeltaKm: nil,
             ytdYear: nil, ytdDistanceKm: nil, ytdWorkouts: nil,
             weeklySeries: [], recentWorkouts: []
         )
 
         var domain: App2Records {
             App2Records(
-                windowDays: windowDays, windowDistanceKm: windowDistanceKm,
-                windowWorkouts: windowWorkouts, ytdYear: ytdYear,
+                monthDistanceKm: monthDistanceKm, monthWorkouts: monthWorkouts,
+                monthDeltaKm: monthDeltaKm, ytdYear: ytdYear,
                 ytdDistanceKm: ytdDistanceKm, ytdWorkouts: ytdWorkouts,
                 weeklySeries: weeklySeries.map(\.domain),
                 recentWorkouts: recentWorkouts.map(\.domain)
@@ -284,22 +283,22 @@ enum App2StubFixtures {
         }
     }
 
+    /// 帳號 email 與訂閱狀態**不在樣本裡**：兩者都有既有讀口
+    /// （`AuthenticationViewModel` / `SubscriptionStateManager`），拿不到就顯示空，
+    /// 不用編造值填 profile 卡。
     private struct SettingsFixture: Codable {
-        let accountEmail: String?
-        let subscriptionLabel: String?
         let dataSources: [DataSourceFixture]
         let weeklyDistanceKm: Double?
         let trainingDays: [String]
         let raceCountdownDays: Int
 
         static let empty = SettingsFixture(
-            accountEmail: nil, subscriptionLabel: nil, dataSources: [],
-            weeklyDistanceKm: nil, trainingDays: [], raceCountdownDays: 30
+            dataSources: [], weeklyDistanceKm: nil, trainingDays: [], raceCountdownDays: 30
         )
 
         var domain: App2SettingsSnapshot {
             App2SettingsSnapshot(
-                accountEmail: accountEmail, subscriptionLabel: subscriptionLabel,
+                accountEmail: nil, subscriptionLabel: nil,
                 dataSources: dataSources.map(\.domain), weeklyDistanceKm: weeklyDistanceKm,
                 trainingDays: trainingDays, raceCountdownDays: raceCountdownDays
             )

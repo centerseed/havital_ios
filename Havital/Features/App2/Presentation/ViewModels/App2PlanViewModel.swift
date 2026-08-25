@@ -39,7 +39,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         cancelAllTasks()
     }
 
-    func load() async {
+    func revalidate() async {
         isLoading = !hasLoaded
         defer {
             isLoading = false
@@ -63,10 +63,13 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             let completed = await completedDistanceKmThisWeek()
 
             week = App2Sourced(
-                map(dto: dto, planStatus: status, completedKm: completed),
+                Self.planWeek(dto: dto, planStatus: status, completedKm: completed),
                 origin: .live(endpoint: "GET /v2/plan/weekly/{plan_id} + GET /v2/workouts")
             )
         } catch {
+            // 取消不是失敗（`AGENTS.md` 陷阱 2）：下拉刷新的 task 被收掉時
+            // in-flight 請求會回 -999，當成失敗會把真課表換成樣本。
+            guard !error.isCancellationError else { return }
             Logger.debug("[App2PlanVM] 週課表取得失敗,退樣本: \(error)")
             guard week == nil else { return }       // SWR：重驗失敗時保留舊資料
             week = App2Sourced(
@@ -76,19 +79,33 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         }
     }
 
+    #if DEBUG
+    /// 測試／預覽用：直接填入本週課表，不打網路。
+    func applyForTesting(week: App2Sourced<App2PlanWeek>?) {
+        self.week = week
+        isLoading = false
+        hasLoaded = true
+        lastLoadedAt = Date()
+    }
+    #endif
+
     // MARK: - Mapping
 
-    private func map(
+    /// 週課表投影。`map` 原本是 instance method 但沒用到任何 instance 狀態 ——
+    /// 改成 static 之後可以單獨測（`App2PlanProjectionTests`）。
+    static func planWeek(
         dto: WeeklyPlanV2DTO,
         planStatus: PlanStatusV2Response,
-        completedKm: Double?
+        completedKm: Double?,
+        /// 測試可指定「今天」；nil = 用裝置日曆。
+        todayIndex: Int? = nil
     ) -> App2PlanWeek {
+        let today = todayIndex ?? Self.todayDayIndex()
         let weekNumber = dto.weekOfTraining ?? dto.weekOfPlan ?? planStatus.currentWeek
         let climateByDayIndex = Dictionary(
             (dto.climate ?? []).map { ($0.dayIndex, $0) },
             uniquingKeysWith: { first, _ in first }
         )
-        let todayIndex = Self.todayDayIndex()
 
         let days: [App2PlanDay] = dto.days.map { day in
             // 沒有 primary activity ＝ 休息日。
@@ -107,16 +124,17 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 // 實際值要按日期對齊 workouts；骨架階段僅在週總量層合併（見 completedKm）。
                 actual: nil,
                 temp: Self.temperatureLabel(climateByDayIndex[day.dayIndex]),
-                isToday: day.dayIndex == todayIndex
+                isToday: day.dayIndex == today
             )
         }
 
         return App2PlanWeek(
-            weekLabel: String(weekNumber),
+            // 設計 frame-01 的週次切換器是「第 N 週 / M」，不是裸數字。
+            // 「第 N 週」三語已有（1.x 週次選單在用同一條），不另開 app2 命名空間的重複字串。
+            weekLabel: String(format: L10n.WeekSelector.weekNumber.localized, weekNumber),
             totalWeeks: dto.totalWeeks ?? planStatus.totalWeeks,
             targetDistanceKm: dto.totalDistance,
             completedDistanceKm: completedKm,
-            purpose: dto.coachNote ?? dto.purpose,
             intensityLowMinutes: dto.intensityTotalMinutes.map { Int($0.low.rounded()) },
             intensityMediumMinutes: dto.intensityTotalMinutes.map { Int($0.medium.rounded()) },
             intensityHighMinutes: dto.intensityTotalMinutes.map { Int($0.high.rounded()) },

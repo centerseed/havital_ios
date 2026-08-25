@@ -1,0 +1,74 @@
+appId: com.havital.Havital.dev
+tags:
+  - app2
+---
+# T-0306 — 四個 tab 的下拉刷新（`.refreshable` → `App2Revalidating.forceRefresh()`）。
+#
+# 判準是**靜默更新**：下拉後畫面保留原本的內容，不清空、不閃 loading 骨架。
+# 所以每一段都在下拉之後立刻斷言同一張卡還在。
+#
+# 用 `-ui_testing_app2` 直接掛 App2RootView（同 app2-skeleton-tabs.yaml）；
+# 此模式沒有 token，重驗會失敗，而「重驗失敗保留舊資料」正是要驗的那一半。
+# 有 token 的真資料路徑見票面的實機驗證段落。
+
+- launchApp:
+    clearState: false
+    arguments:
+      "-ui_testing_app2": true
+      "-skipHealthKitAuth": true
+
+# === 狀態 ===
+- extendedWaitUntil:
+    visible:
+      id: "App2_GoalCard"
+    timeout: 30000
+- swipe:
+    start: 50%, 35%
+    end: 50%, 80%
+- assertVisible:
+    id: "App2_TrainingStatusCard"
+- assertVisible:
+    id: "App2_GoalCard"
+- takeScreenshot: app2-refresh-01-home
+
+# === 課表 ===
+- tapOn:
+    id: "App2_Tab_Plan"
+- extendedWaitUntil:
+    visible:
+      id: "App2_PlanSummaryCard"
+    timeout: 15000
+- swipe:
+    start: 50%, 35%
+    end: 50%, 80%
+- assertVisible:
+    id: "App2_PlanSummaryCard"
+- takeScreenshot: app2-refresh-02-plan
+
+# === 紀錄 ===
+- tapOn:
+    id: "App2_Tab_Records"
+- extendedWaitUntil:
+    visible:
+      id: "App2_RecordsTotalsCard"
+    timeout: 15000
+- swipe:
+    start: 50%, 35%
+    end: 50%, 80%
+- assertVisible:
+    id: "App2_RecordsTotalsCard"
+- takeScreenshot: app2-refresh-03-records
+
+# === 成就 ===
+- tapOn:
+    id: "App2_Tab_Achievements"
+- extendedWaitUntil:
+    visible:
+      id: "App2_Tab_State"
+    timeout: 15000
+- swipe:
+    start: 50%, 35%
+    end: 50%, 80%
+- assertVisible:
+    id: "App2_Tab_Achievements"
+- takeScreenshot: app2-refresh-04-achievements

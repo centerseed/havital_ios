@@ -4258,11 +4258,9 @@
 "app2.plan.intensity_low" = "輕鬆";
 "app2.plan.intensity_medium" = "中等";
 "app2.plan.intensity_high" = "強度";
-"app2.plan.purpose" = "本週目的";
 "app2.plan.days_section" = "每日安排";
 "app2.plan.rest" = "休息";
 
-"app2.records.window_section" = "近 30 天";
 "app2.records.ytd_section" = "今年累積";
 "app2.records.distance" = "跑量";
 "app2.records.workouts" = "次數";
@@ -4324,3 +4322,10 @@
 "app2.settings.redeem_code" = "兌換優惠碼";
 "app2.settings.training_days_separator" = "・";
 "app2.common.settings_entry" = "開啟設定";
+
+
+// T-0306 獨立審查退回項修正
+"app2.records.month_section" = "本月跑量";
+"app2.records.vs_last_month" = "較上月 %@";
+"app2.achievements.remaining_format" = "還差 %@";
+"app2.settings.subscription_active" = "續訂中";

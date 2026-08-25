@@ -43,7 +43,8 @@ struct App2AchievementsView: View {
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
         .accessibilityIdentifier("App2_AchievementsView")
-        .task { await viewModel.load() }
+        .task { await viewModel.loadIfNeeded() }
+        .refreshable { await viewModel.forceRefresh() }
     }
 
     // MARK: - 最新解鎖 hero
@@ -133,12 +134,23 @@ struct App2AchievementsView: View {
 
             App2ProgressBar(progress: progress)
 
+            // 設計 frame-11 的量化列：`1,141.5 / 2,400 km · 還差 1,258.5 km`。
+            // 單位取 badge 自己的 `unitKey`（沒有就不加單位，不假設是公里）。
             if let detail = track.nextBadge?.progress,
                let current = detail.current, let target = detail.target {
-                Text(verbatim: "\(Self.grouped(current)) / \(Self.grouped(target))")
-                    .font(.app2Mono(13, weight: .semibold))
-                    .foregroundStyle(App2Theme.inkTertiary)
-                    .padding(.top, 7)
+                let unit = detail.unitKey?.localizedOrFallback(default: "") ?? ""
+                let suffix = unit.isEmpty ? "" : " \(unit)"
+                let remaining = max(0, target - current)
+                Text(
+                    verbatim: "\(Self.grouped(current)) / \(Self.grouped(target))\(suffix) · "
+                        + String(
+                            format: L10n.App2.Achievements.remainingFormat.localized,
+                            "\(Self.grouped(remaining))\(suffix)"
+                        )
+                )
+                .font(.app2Mono(13, weight: .semibold))
+                .foregroundStyle(App2Theme.inkTertiary)
+                .padding(.top, 7)
             }
         }
     }
@@ -195,9 +207,17 @@ struct App2AchievementsView: View {
                     .tracking(0.5)
                     .foregroundStyle(App2Theme.inkPrimary)
                 Spacer()
-                Text(verbatim: "\(summary.storySummary.unlockedCount)/\(summary.storySummary.totalCount)")
-                    .font(.app2Mono(12, weight: .bold))
-                    .foregroundStyle(App2Theme.inkTertiary)
+                // 設計 frame-11 是「18/20 已解鎖」，不是裸的比例。
+                // 這條字串 1.x 的徽章收藏已經有（三語齊），沿用不另建。
+                Text(
+                    String(
+                        format: L10n.Achievements.BadgeCollection.unlockedCountFormat.localized,
+                        summary.storySummary.unlockedCount,
+                        summary.storySummary.totalCount
+                    )
+                )
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundStyle(App2Theme.inkMuted)
             }
             .padding(.horizontal, 4)
             .padding(.bottom, 12)

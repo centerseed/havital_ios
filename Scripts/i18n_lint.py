@@ -126,6 +126,11 @@ def _staged_swift_added_lines():
             continue
         if any(x in f for x in ("/build/", "/.worktrees/", "/Tests/", "/PreviewHelpers/", "/Features/Debug/")):
             continue
+        # 測試碼不受 i18n 約束：wire payload fixture 與 XCTAssert 訊息本來就是寫死字面值，
+        # 沒有「顯示給用戶」這回事。上面那條 "/Tests/" 只擋得到巢狀的測試目錄，
+        # 抓不到 target 根目錄（`HavitalTests/`、`HavitalUITests/`、`HavitalWatchTests/`）。
+        if re.match(r'^[^/]*Tests/', f):
+            continue
         # 跳過純 Preview 檔(PreviewProvider 範例 mock)
         try:
             head = subprocess.check_output(["git", "show", ":%s" % f], cwd=ROOT, text=True)

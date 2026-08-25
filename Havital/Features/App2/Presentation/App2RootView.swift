@@ -11,7 +11,8 @@ import SwiftUI
 protocol App2Revalidating: AnyObject {
     var hasLoaded: Bool { get }
     var lastLoadedAt: Date? { get }
-    func load() async
+    /// 向後端重取一次。已經有資料時**不清畫面、不進 loading**。
+    func revalidate() async
 }
 
 extension App2Revalidating {
@@ -19,11 +20,29 @@ extension App2Revalidating {
     /// 之後再進來 → 只有超過 `staleAfter` 才在背景重驗，畫面保留舊資料。
     func loadIfNeeded(staleAfter: TimeInterval = 60) async {
         guard hasLoaded else {
-            await load()
+            await revalidate()
             return
         }
         guard let lastLoadedAt, Date().timeIntervalSince(lastLoadedAt) > staleAfter else { return }
-        await load()
+        await revalidate()
+    }
+
+    /// 下拉刷新：跳過 60 秒門檻直接重驗。語意與 `loadIfNeeded` 同一條
+    /// （同一份資料、同一個 ViewModel 狀態），不是第二套快取。
+    func forceRefresh() async {
+        await revalidate()
+    }
+}
+
+// MARK: - PersonalAchievementsViewModel + App2Revalidating
+/// 成就頁在 2.0 只是**第二個版面**，ViewModel／Repository／端點都沿用 1.x
+/// （`GET /v2/achievements/summary`）。這裡把既有的載入路徑接上同一條 SWR 語意，
+/// 四個 tab 的「進頁重驗」與「下拉刷新」才是同一套：兩者都落到既有的 `refresh()`
+/// → `performLoad(forceRefresh: true)`（繞過 repository 快取重取，但 `summary`
+/// 不清空、`state` 不退回 `.loading`，畫面不閃）。**沒有第二份快取。**
+extension PersonalAchievementsViewModel: App2Revalidating {
+    func revalidate() async {
+        await refresh()
     }
 }
 

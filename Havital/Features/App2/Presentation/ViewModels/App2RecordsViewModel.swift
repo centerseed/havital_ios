@@ -26,7 +26,7 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
         cancelAllTasks()
     }
 
-    func load() async {
+    func revalidate() async {
         isLoading = !hasLoaded
         defer {
             isLoading = false
@@ -36,22 +36,29 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
 
         do {
             let stats = try await workoutDataSource.fetchWorkoutStats(days: 30, weeks: 8)
-            let rows = (try? await workoutDataSource.fetchRecentWorkouts(pageSize: 20)) ?? []
+            // 月比要看到「上個月」，所以取回的筆數比清單顯示的多。
+            // `/v2/workouts/stats` 只給滾動視窗（days）與 YTD，沒有日曆月的分桶，
+            // 月量與月比在 client 端從同一批紀錄算，不新增端點。
+            let rows = (try? await workoutDataSource.fetchRecentWorkouts(pageSize: Self.aggregationPageSize)) ?? []
+            let month = Self.monthlyTotals(rows)
 
             records = App2Sourced(
                 App2Records(
-                    windowDays: stats.data.periodDays,
-                    windowDistanceKm: stats.data.totalDistanceKm,
-                    windowWorkouts: stats.data.totalWorkouts,
+                    monthDistanceKm: month.distanceKm,
+                    monthWorkouts: month.workouts,
+                    monthDeltaKm: month.deltaKm,
                     ytdYear: stats.data.yearToDate?.year,
                     ytdDistanceKm: stats.data.yearToDate?.distanceKm,
                     ytdWorkouts: stats.data.yearToDate?.workoutCount,
                     weeklySeries: (stats.data.weeklySeries ?? []).map(Self.map(entry:)),
-                    recentWorkouts: rows.map(Self.map(workout:))
+                    recentWorkouts: rows.prefix(Self.listPageSize).map(Self.map(workout:))
                 ),
                 origin: .live(endpoint: "GET /v2/workouts/stats + GET /v2/workouts")
             )
         } catch {
+            // 取消不是失敗（`AGENTS.md` 陷阱 2）—— 下拉刷新的 task 被收掉時
+            // in-flight 請求會回 -999。
+            guard !error.isCancellationError else { return }
             Logger.debug("[App2RecordsVM] stats 取得失敗,退樣本: \(error)")
             guard records == nil else { return }    // SWR：重驗失敗時保留舊資料
             records = App2Sourced(
@@ -59,6 +66,61 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
                 origin: .stub(pendingSection: App2StubFixtures.Section.offline)
             )
         }
+    }
+
+    // MARK: - 月量與月比
+
+    /// 清單顯示筆數。
+    private static let listPageSize = 20
+    /// 為了算「較上月」而取回的筆數 —— 要涵蓋兩個完整日曆月。
+    private static let aggregationPageSize = 100
+
+    struct MonthlyTotals {
+        let distanceKm: Double
+        let workouts: Int
+        let deltaKm: Double?
+    }
+
+    /// 以裝置當地日曆切月。`start_time_utc` 是 UTC instant，換算成當地時間再分桶。
+    ///
+    /// `deltaKm` 只在**確定看得到整個上個月**時才給值：取回的最舊一筆比上月月初還早，
+    /// 或這次根本沒取滿（代表已經是全部）。否則回 nil —— 分不出「上月沒跑」與
+    /// 「上月的紀錄沒被取回來」，就不要畫那一列。
+    static func monthlyTotals(_ workouts: [WorkoutV2], now: Date = Date()) -> MonthlyTotals {
+        let calendar = Calendar.current
+        guard let thisMonth = calendar.dateInterval(of: .month, for: now),
+              let lastMonthAnchor = calendar.date(byAdding: .month, value: -1, to: thisMonth.start),
+              let lastMonth = calendar.dateInterval(of: .month, for: lastMonthAnchor)
+        else {
+            return MonthlyTotals(distanceKm: 0, workouts: 0, deltaKm: nil)
+        }
+
+        let runs: [(date: Date, km: Double)] = workouts.compactMap { workout in
+            guard workout.activityType.lowercased().contains("run"),
+                  let date = parseDate(workout.startTimeUtc) else { return nil }
+            return (date, (workout.distanceMeters ?? 0) / 1000)
+        }
+
+        let thisMonthRuns = runs.filter { thisMonth.contains($0.date) }
+        let lastMonthKm = runs.filter { lastMonth.contains($0.date) }.reduce(0) { $0 + $1.km }
+        let thisMonthKm = thisMonthRuns.reduce(0) { $0 + $1.km }
+
+        let oldestFetched = runs.map(\.date).min()
+        let coversLastMonth = workouts.count < aggregationPageSize
+            || (oldestFetched.map { $0 < lastMonth.start } ?? false)
+
+        return MonthlyTotals(
+            distanceKm: thisMonthKm,
+            workouts: thisMonthRuns.count,
+            deltaKm: coversLastMonth ? thisMonthKm - lastMonthKm : nil
+        )
+    }
+
+    private static func parseDate(_ isoDateTime: String?) -> Date? {
+        guard let isoDateTime else { return nil }
+        let withFraction = ISO8601DateFormatter()
+        withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return withFraction.date(from: isoDateTime) ?? ISO8601DateFormatter().date(from: isoDateTime)
     }
 
     // MARK: - Mapping
@@ -104,12 +166,7 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
 
     /// workout 的 `start_time_utc` 是 UTC instant → 換成裝置當地日期再顯示。
     private static func shortLabel(isoDateTime: String?) -> String {
-        guard let isoDateTime else { return "—" }
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let date = formatter.date(from: isoDateTime)
-            ?? ISO8601DateFormatter().date(from: isoDateTime)
-        guard let date else { return "—" }
+        guard let date = parseDate(isoDateTime) else { return "—" }
         let components = Calendar.current.dateComponents([.month, .day], from: date)
         guard let month = components.month, let day = components.day else { return "—" }
         return "\(month)/\(day)"

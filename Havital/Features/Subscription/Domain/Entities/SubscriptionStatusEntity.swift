@@ -148,6 +148,124 @@ extension SubscriptionStatusEntity {
     }
 }
 
+// MARK: - Display labels
+/// 訂閱狀態的**顯示文案**。原本只長在 `UserProfileView` 裡（1.x 設定頁的
+/// `subscriptionTierLabel`／`subscriptionPlanName`），2.0 設定頁也要同一組字，
+/// 所以收斂到實體本身：兩個畫面共用一份，不各自拼一次。
+///
+/// 三語走 `Localizable.strings` 的既有 `profile.subscription.*`／
+/// `settings.subscription.tier.*`。**後端識別字（`planType`、`status.rawValue`）
+/// 一律不上畫面**——`default` 分支給的是產品名或既有在地化字串。
+extension SubscriptionStatusEntity {
+
+    /// 方案名（`年訂閱`／`月訂閱（早鳥）`／`Paceriz Premium`）。
+    var planDisplayName: String {
+        let earlyBird = isEarlyBird == true
+        switch planType {
+        case "yearly":
+            return earlyBird
+                ? NSLocalizedString("profile.subscription.plan.yearly_early_bird", comment: "Annual Early Bird")
+                : NSLocalizedString("profile.subscription.plan.yearly", comment: "Annual")
+        case "monthly":
+            return earlyBird
+                ? NSLocalizedString("profile.subscription.plan.monthly_early_bird", comment: "Monthly Early Bird")
+                : NSLocalizedString("profile.subscription.plan.monthly", comment: "Monthly")
+        default:
+            return earlyBird
+                ? NSLocalizedString("profile.subscription.plan.premium_early_bird", comment: "Premium Early Bird")
+                : "Paceriz Premium"
+        }
+    }
+
+    /// 設定頁的「方案：…」整行（AC-PAYWALL-36/40）。
+    /// 狀態：免費 / Apple intro trial / 7 天 grace period / 已訂閱。
+    static func tierLabel(for status: SubscriptionStatusEntity?) -> String {
+        let freeLabel = NSLocalizedString(
+            "settings.subscription.tier.free_label",
+            comment: "Current plan: Free Preview"
+        )
+        guard let status else { return freeLabel }
+
+        if status.inGracePeriod, let days = status.graceRemainingDays {
+            return String(
+                format: NSLocalizedString(
+                    "settings.subscription.tier.grace_label_format",
+                    comment: "Current plan: Free trial (%d days left)"
+                ),
+                days
+            )
+        }
+        if status.inIntroTrial == true, let days = status.trialDaysRemaining {
+            return String(
+                format: NSLocalizedString(
+                    "settings.subscription.tier.trial_label_format",
+                    comment: "Current plan: Trial (%d days left)"
+                ),
+                days
+            )
+        }
+        switch status.status {
+        case .active, .gracePeriod:
+            return String(
+                format: NSLocalizedString(
+                    "settings.subscription.tier.premium_label_format",
+                    comment: "Current plan: Premium (%@)"
+                ),
+                status.planDisplayName
+            )
+        case .trial:
+            guard let days = status.trialDaysRemaining else { return freeLabel }
+            return String(
+                format: NSLocalizedString(
+                    "settings.subscription.tier.trial_label_format",
+                    comment: "Current plan: Trial (%d days left)"
+                ),
+                days
+            )
+        case .cancelled, .expired, .none:
+            return freeLabel
+        }
+    }
+
+    /// 2.0 設定頁訂閱卡右上的狀態膠囊（設計 frame-21／「訂閱狀態變體」）。
+    /// 比 `tierLabel` 短，因為卡片標題已經寫了產品名。
+    static func compactStateLabel(for status: SubscriptionStatusEntity?) -> String {
+        guard let status else {
+            return NSLocalizedString("profile.subscription.free", comment: "Free")
+        }
+        if status.billingIssue {
+            return NSLocalizedString("profile.subscription.billing_issue", comment: "Billing issue")
+        }
+        let remaining: (Int) -> String = { days in
+            String(
+                format: NSLocalizedString(
+                    "profile.subscription.trial_remaining_days",
+                    comment: "%d days left"
+                ),
+                days
+            )
+        }
+        if status.inGracePeriod, let days = status.graceRemainingDays {
+            return remaining(days)
+        }
+        switch status.status {
+        case .active, .gracePeriod:
+            return "\(status.planDisplayName) · "
+                + NSLocalizedString("app2.settings.subscription_active", comment: "Renewing")
+        case .trial:
+            let trial = NSLocalizedString("profile.subscription.trial", comment: "Trial")
+            guard let days = status.trialDaysRemaining else { return trial }
+            return "\(trial) · \(remaining(days))"
+        case .cancelled:
+            return NSLocalizedString("profile.subscription.cancelled", comment: "Cancelled")
+        case .expired:
+            return NSLocalizedString("profile.subscription.expired", comment: "Expired")
+        case .none:
+            return NSLocalizedString("profile.subscription.free", comment: "Free")
+        }
+    }
+}
+
 // MARK: - SubscriptionStatus
 enum SubscriptionStatus: String {
     case active

@@ -18,11 +18,10 @@
   ],
 
   "planWeek": {
-    "weekLabel": "5",
+    "weekLabel": "第 5 週",
     "totalWeeks": 22,
     "targetDistanceKm": 49.0,
     "completedDistanceKm": 11.0,
-    "purpose": "把有氧基礎鋪穩，長跑拉到 18 km，質量課只留一次節奏跑。",
     "intensityLowMinutes": 236,
     "intensityMediumMinutes": 42,
     "intensityHighMinutes": 18,
@@ -38,9 +37,9 @@
   },
 
   "records": {
-    "windowDays": 30,
-    "windowDistanceKm": 186.4,
-    "windowWorkouts": 19,
+    "monthDistanceKm": 142.0,
+    "monthWorkouts": 15,
+    "monthDeltaKm": 18.0,
     "ytdYear": 2026,
     "ytdDistanceKm": 1482.7,
     "ytdWorkouts": 168,
@@ -64,8 +63,6 @@
   },
 
   "settings": {
-    "accountEmail": "runner@example.com",
-    "subscriptionLabel": "試用中 · 剩 6 天",
     "dataSources": [
       { "name": "Garmin", "statusLabel": "已連結 · 同步中", "isConnected": true },
       { "name": "Apple Health", "statusLabel": "未連結", "isConnected": false }

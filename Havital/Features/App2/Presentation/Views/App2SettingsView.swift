@@ -77,17 +77,20 @@ struct App2SettingsView: View {
         HStack(spacing: 14) {
             App2Avatar(initial: viewModel.avatarInitial, size: 56, showsRing: false)
             VStack(alignment: .leading, spacing: 2) {
-                Text(viewModel.displayName ?? sourced.value.accountEmail ?? "—")
+                Text(viewModel.displayName ?? "—")
                     .font(.system(size: 18, weight: .black))
                     .tracking(0.3)
                     .foregroundStyle(App2Theme.inkPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
-                Text(sourced.value.accountEmail ?? "—")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(App2Theme.inkMuted)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                // email 拿不到就不渲染這一行 —— 不用 `—` 佔位，更不用樣本 email。
+                if let email = sourced.value.accountEmail {
+                    Text(email)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(App2Theme.inkMuted)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
             }
             Spacer(minLength: 8)
             Image(systemName: "chevron.right")
@@ -192,7 +195,11 @@ struct App2SettingsView: View {
                 App2SettingsRow(
                     systemImage: "flag.checkered",
                     title: L10n.App2.Settings.raceCountdown.localized,
-                    value: "\(snapshot.raceCountdownDays) d",
+                    // 天數走既有的三語格式字，不硬寫 `d`（與訂閱膠囊同一個缺陷）。
+                    value: String(
+                        format: NSLocalizedString("profile.subscription.days_remaining", comment: ""),
+                        snapshot.raceCountdownDays
+                    ),
                     monospaced: true,
                     showsDivider: false
                 )

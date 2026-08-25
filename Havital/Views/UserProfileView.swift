@@ -579,44 +579,9 @@ struct UserProfileView: View {
 
     // AC-PAYWALL-36/40: Tier label string shown in the Subscription section.
     // States: free / Apple intro trial / 7-day grace period / subscribed.
+    // 文案本體收斂在 `SubscriptionStatusEntity`（2.0 設定頁共用同一份）。
     private var subscriptionTierLabel: String {
-        guard let status = subscriptionState.currentStatus else {
-            return NSLocalizedString("settings.subscription.tier.free_label", comment: "Current plan: Free Preview")
-        }
-        // AC-PAYWALL-40: 7-day grace period — show remaining days label
-        if status.inGracePeriod, let days = status.graceRemainingDays {
-            return String(
-                format: NSLocalizedString(
-                    "settings.subscription.tier.grace_label_format",
-                    comment: "Current plan: Free trial (%d days left)"
-                ),
-                days
-            )
-        }
-        // Apple intro trial state
-        if status.inIntroTrial == true, let days = status.trialDaysRemaining {
-            return String(
-                format: NSLocalizedString("settings.subscription.tier.trial_label_format", comment: "Current plan: Trial (%d days left)"),
-                days
-            )
-        }
-        switch status.status {
-        case .active, .gracePeriod:
-            return String(
-                format: NSLocalizedString("settings.subscription.tier.premium_label_format", comment: "Current plan: Premium (%@)"),
-                subscriptionPlanName(for: status)
-            )
-        case .trial:
-            guard let days = status.trialDaysRemaining else {
-                return NSLocalizedString("settings.subscription.tier.free_label", comment: "Current plan: Free Preview")
-            }
-            return String(
-                format: NSLocalizedString("settings.subscription.tier.trial_label_format", comment: "Current plan: Trial (%d days left)"),
-                days
-            )
-        case .cancelled, .expired, .none:
-            return NSLocalizedString("settings.subscription.tier.free_label", comment: "Current plan: Free Preview")
-        }
+        SubscriptionStatusEntity.tierLabel(for: subscriptionState.currentStatus)
     }
 
     private var subscriptionPlanDisplayName: String {
@@ -638,21 +603,7 @@ struct UserProfileView: View {
     }
 
     private func subscriptionPlanName(for status: SubscriptionStatusEntity) -> String {
-        let isEarlyBird = status.isEarlyBird == true
-        switch status.planType {
-        case "yearly":
-            return isEarlyBird
-                ? NSLocalizedString("profile.subscription.plan.yearly_early_bird", comment: "Annual Early Bird")
-                : NSLocalizedString("profile.subscription.plan.yearly", comment: "Annual")
-        case "monthly":
-            return isEarlyBird
-                ? NSLocalizedString("profile.subscription.plan.monthly_early_bird", comment: "Monthly Early Bird")
-                : NSLocalizedString("profile.subscription.plan.monthly", comment: "Monthly")
-        default:
-            return isEarlyBird
-                ? NSLocalizedString("profile.subscription.plan.premium_early_bird", comment: "Premium Early Bird")
-                : "Paceriz Premium"
-        }
+        status.planDisplayName
     }
 
     private func redeemOfferCode(from entryPoint: OfferEntryPoint) {

@@ -16,6 +16,11 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
     @Published var selectedBadge: AchievementBadge?
     @Published var selectedShareable: AchievementShareable?
 
+    /// 這一頁成功載過至少一次。2.0 的 SWR 策略（`App2Revalidating`）用它決定
+    /// 「重驗還是首載」；1.x 不讀這兩個值，行為不變。
+    private(set) var hasLoaded = false
+    private(set) var lastLoadedAt: Date?
+
     nonisolated let taskRegistry = TaskRegistry()
 
     private let repository: AchievementRepository
@@ -92,6 +97,8 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
                 await MainActor.run {
                     self.summary = summary
                     self.state = summary.hasVisibleContent ? .loaded : .empty
+                    self.hasLoaded = true
+                    self.lastLoadedAt = Date()
                     Self.diagnostic(
                         "load success state=\(summary.hasVisibleContent ? "loaded" : "empty") catalog=\(summary.catalogVersion) groups=\(summary.badgeGroups.count) unlocked=\(summary.storySummary.unlockedCount)/\(summary.storySummary.totalCount)"
                     )

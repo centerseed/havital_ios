@@ -50,6 +50,7 @@ struct App2RecordsView: View {
         .background(App2Theme.pageGradient.ignoresSafeArea())
         .accessibilityIdentifier("App2_RecordsView")
         .task { await viewModel.loadIfNeeded() }
+        .refreshable { await viewModel.forceRefresh() }
     }
 
     // MARK: - hero（雙欄總量 ＋ 近 8 週趨勢）
@@ -65,11 +66,13 @@ struct App2RecordsView: View {
 
             HStack(alignment: .top, spacing: 14) {
                 totalsColumn(
-                    title: L10n.App2.Records.windowSection.localized,
+                    title: L10n.App2.Records.monthSection.localized,
                     titleColor: App2Theme.accentBlueDeep,
-                    value: String(format: "%.0f", records.windowDistanceKm),
+                    value: Self.grouped(records.monthDistanceKm),
                     unit: "km",
-                    footnote: String(format: L10n.App2.Records.runsCount.localized, records.windowWorkouts)
+                    footnote: Self.monthComparison(records.monthDeltaKm)
+                        ?? String(format: L10n.App2.Records.runsCount.localized, records.monthWorkouts),
+                    footnoteColor: records.monthDeltaKm.map(Self.deltaColor)
                 )
                 Rectangle()
                     .fill(App2Theme.shadowInk.opacity(0.1))
@@ -110,7 +113,8 @@ struct App2RecordsView: View {
         titleColor: Color,
         value: String,
         unit: String,
-        footnote: String
+        footnote: String,
+        footnoteColor: Color? = nil
     ) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(title)
@@ -130,7 +134,7 @@ struct App2RecordsView: View {
             .padding(.top, 6)
             Text(footnote)
                 .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(App2Theme.inkTertiary)
+                .foregroundStyle(footnoteColor ?? App2Theme.inkTertiary)
                 .padding(.top, 5)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -210,6 +214,22 @@ struct App2RecordsView: View {
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(App2Theme.inkMuted)
         }
+    }
+
+    /// 設計 hero 左欄的「↑ 較上月 +18」。上月資料不齊時 VM 給 nil，這一列就不出現。
+    private static func monthComparison(_ deltaKm: Double?) -> String? {
+        guard let deltaKm else { return nil }
+        let rounded = Int(deltaKm.rounded())
+        let arrow = rounded > 0 ? "↑" : (rounded < 0 ? "↓" : "→")
+        let signed = rounded > 0 ? "+\(rounded)" : String(rounded)
+        return "\(arrow) " + String(format: L10n.App2.Records.vsLastMonth.localized, signed)
+    }
+
+    private static func deltaColor(_ deltaKm: Double) -> Color {
+        let rounded = Int(deltaKm.rounded())
+        if rounded > 0 { return App2Theme.accentGreen }
+        if rounded < 0 { return App2Theme.accentOrangeText }
+        return App2Theme.inkTertiary
     }
 
     /// `1,284` 這種千分位（設計 hero 的今年累積）。

@@ -24,8 +24,6 @@ struct App2PlanView: View {
 
                 if let sourced = viewModel.week {
                     volumeCard(sourced)
-                        .padding(.bottom, 20)
-                    purposeCard(sourced)
                         .padding(.bottom, 14)
                     ForEach(sourced.value.days) { day in
                         dayCard(day).padding(.bottom, 11)
@@ -46,6 +44,7 @@ struct App2PlanView: View {
         .background(App2Theme.pageGradient.ignoresSafeArea())
         .accessibilityIdentifier("App2_PlanView")
         .task { await viewModel.loadIfNeeded() }
+        .refreshable { await viewModel.forceRefresh() }
     }
 
     // MARK: - Header（標題 ＋ 週次切換器 ＋ 頭像）
@@ -66,7 +65,7 @@ struct App2PlanView: View {
                             .foregroundStyle(App2Theme.inkMuted)
                     }
                 }
-                .frame(minWidth: 58)
+                .frame(minWidth: 76)
                 weekStepButton(symbol: "chevron.right", enabled: false)
 
                 Rectangle()
@@ -195,20 +194,6 @@ struct App2PlanView: View {
                 .font(.system(size: 14, weight: .bold))
                 .foregroundStyle(App2Theme.inkSecondary)
         }
-    }
-
-    // MARK: - 本週目的
-
-    private func purposeCard(_ sourced: App2Sourced<App2PlanWeek>) -> some View {
-        App2Card(padding: 15, spacing: 8) {
-            App2SectionLabel(text: L10n.App2.Plan.purpose.localized, tracking: 1)
-            Text(sourced.value.purpose)
-                .font(.system(size: 14, weight: .medium))
-                .lineSpacing(3)
-                .foregroundStyle(App2Theme.inkSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .accessibilityIdentifier("App2_PlanPurposeCard")
     }
 
     // MARK: - 每日卡（設計：白卡 ＋ 左緣 3px 課型色）

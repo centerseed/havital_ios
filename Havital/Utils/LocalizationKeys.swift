@@ -2029,7 +2029,6 @@ extension L10n {
             static let intensityLow = "app2.plan.intensity_low"
             static let intensityMedium = "app2.plan.intensity_medium"
             static let intensityHigh = "app2.plan.intensity_high"
-            static let purpose = "app2.plan.purpose"
             static let daysSection = "app2.plan.days_section"
             static let rest = "app2.plan.rest"
         }
@@ -2041,7 +2040,9 @@ extension L10n {
             static let pace = "app2.records.pace"
             static let time = "app2.records.time"
             static let runsCount = "app2.records.runs_count"
-            static let windowSection = "app2.records.window_section"
+            /// hero 左欄（設計 frame-10：「本月跑量」＋「較上月 ±N」）。
+            static let monthSection = "app2.records.month_section"
+            static let vsLastMonth = "app2.records.vs_last_month"
             static let ytdSection = "app2.records.ytd_section"
             static let distance = "app2.records.distance"
             static let workouts = "app2.records.workouts"
@@ -2055,6 +2056,9 @@ extension L10n {
             static let nextGoal = "app2.achievements.next_goal"
             static let personalBests = "app2.achievements.personal_bests"
             static let badges = "app2.achievements.badges"
+            /// 「還差 %@」（設計 frame-11 的量化列）。既有的 `achievements.hero_card.remaining`
+            /// 是單獨的詞，英文當前綴不成句，所以這裡是 format 而不是重複那個詞。
+            static let remainingFormat = "app2.achievements.remaining_format"
             static let seeMore = "app2.achievements.see_more"
         }
 
@@ -2074,6 +2078,8 @@ extension L10n {
             static let raceCountdown = "app2.settings.race_countdown"
             static let notConnected = "app2.settings.not_connected"
             static let connected = "app2.settings.connected"
+            /// 訂閱卡的「續訂中」狀態；其餘狀態沿用既有的 `profile.subscription.*`。
+            static let subscriptionActive = "app2.settings.subscription_active"
         }
 
         enum Common {
