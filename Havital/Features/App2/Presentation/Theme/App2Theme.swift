@@ -211,6 +211,18 @@ extension DayType {
 
 extension Color {
     /// 徽章字色用的加深版（淺底上要壓得住）。
+    /// 訓練詳情 hero 漸層的上緣（設計 frame-02 的 `#ff8a4c → #f4622e → #e8500f`
+    /// 三段漸層，起點比課型主色亮一階）。
+    var app2Lightened: Color {
+        #if canImport(UIKit)
+        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        if UIColor(self).getHue(&h, saturation: &s, brightness: &b, alpha: &a) {
+            return Color(hue: h, saturation: max(0, s * 0.82), brightness: min(1, b * 1.12), opacity: a)
+        }
+        #endif
+        return self
+    }
+
     var app2Darkened: Color {
         #if canImport(UIKit)
         var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0

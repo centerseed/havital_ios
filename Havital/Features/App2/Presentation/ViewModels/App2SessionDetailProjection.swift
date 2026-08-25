@@ -31,15 +31,21 @@ enum App2SessionDetailProjection {
 
         var distanceKm: Double?
         var durationMinutes: Int?
+        var durationSeconds: Double?
         var isRun = false
         switch day.primary {
         case .run(let run):
             isRun = true
+            // 間歇課的 `duration_minutes` 缺席（dev 實測 4×400m 那天沒有這一欄），
+            // hero 的「預計時間」那一格就會整格消失。從處方分段推：
+            // 熱身 ＋ 主課（含組間恢復）＋ 緩和。推不出來才留白。
+            durationMinutes = run.durationMinutes
+            durationSeconds = run.durationMinutes.map { Double($0) * 60 }
+                ?? plannedSeconds(day: day, run: run)
             // 日層 `distance_km` 是這一天的總量（熱身＋主課＋緩和）。`primary.distance_km`
             // 在間歇課只算主課段（dev 實測 2.2 vs 日層 5.2），拿它當 hero 的「總距離」
             // 會跟下面的分段列加不起來（2026-08-26 使用者回報）。
             distanceKm = day.distanceKm ?? run.distanceKm
-            durationMinutes = run.durationMinutes
         case .cross(let cross):
             durationMinutes = cross.durationMinutes
         case .strength(let strength):
@@ -56,11 +62,15 @@ enum App2SessionDetailProjection {
             dayType: dayType,
             kicker: kicker(day: day),
             distanceKm: (distanceKm ?? 0) > 0 ? distanceKm : nil,
-            durationLabel: durationMinutes.map { String(format: L10n.App2.Home.minutes.localized, $0) },
+            // 設計 frame-02 的「預計時間」是 `24:00`／`54:40`／`2:36`（等寬數字），
+            // 不是「41 分鐘」。有秒數就用秒數格式，只有分鐘就補成 `mm:00`。
+            durationLabel: (durationSeconds ?? durationMinutes.map { Double($0) * 60 })
+                .map { App2PlanViewModel.durationLabel(seconds: $0) },
             phaseCount: max(segments.count, 1),
             structureBars: App2HomeViewModel.structureBars(day: day),
-            goalText: nonEmpty(day.dayTarget),
-            reasonText: nonEmpty(day.reason),
+            // 逐日敘述只在證明得出它仍對應現在這一天時才交出去。
+            goalText: isDayNarrativeConsistent(day: day) ? nonEmpty(day.dayTarget) : nil,
+            reasonText: isDayNarrativeConsistent(day: day) ? nonEmpty(day.reason) : nil,
             segments: segments,
             climate: climate(meta: day.climateMeta),
             showsFuelingNote: showsFuelingNote(dayType: dayType, durationMinutes: durationMinutes),
@@ -70,17 +80,122 @@ enum App2SessionDetailProjection {
 
     // MARK: - Hero
 
-    /// `Z2`／`高強度`。payload 兩個欄位都沒有就沒有這一行。
-    /// **不印 `run_type`** —— 那是識別字，不是文案。
+    /// Hero 第一行的 kicker（設計 `STEADY + INTERVALS · Z3 → Z5`）。
+    ///
+    /// **這一行不得消失**（2026-08-26 裁決）：payload 有 `pace_zone` 就用它，
+    /// 沒有就退到課型的區間對照（`TrainingEffortScale.zone`），再退到結構詞。
+    /// 結構詞是 `DayType` 的英文大寫短語，不是把 `run_type` 識別字原樣印出去。
     static func kicker(day: DayDetailDTO) -> String? {
-        guard case .run(let run) = day.primary else {
-            return App2PlanViewModel.intensityLabel(day.primary)
+        let dayType = day.primary == nil ? DayType.rest : App2PlanViewModel.dayType(day.primary)
+        var parts: [String] = []
+        if let word = structureWord(dayType) { parts.append(word) }
+
+        if case .run(let run) = day.primary {
+            let zones = App2PlanViewModel.effectiveSegments(run).compactMap { $0.work?.paceZone ?? $0.pace }
+            if let zone = zones.first(where: { $0.uppercased().hasPrefix("Z") }) {
+                parts.append(zone.uppercased())
+            } else if let dayType, let zone = TrainingEffortScale.value(for: dayType)?.zone {
+                parts.append(zone)
+            }
         }
-        let zones = App2PlanViewModel.effectiveSegments(run).compactMap { $0.work?.paceZone ?? $0.pace }
-        if let zone = zones.first(where: { $0.uppercased().hasPrefix("Z") }) {
-            return zone.uppercased()
+        if parts.isEmpty { return App2PlanViewModel.intensityLabel(day.primary) }
+        return parts.joined(separator: " · ")
+    }
+
+    /// 課型的結構詞（`EASY RUN`／`INTERVALS`／`STEADY + INTERVALS`）。
+    /// 是 `DayType` 的型別對照，不是對顯示字做詞表比對；對不上就 nil。
+    static func structureWord(_ dayType: DayType?) -> String? {
+        switch dayType {
+        case .easy, .easyRun:            return "EASY RUN"
+        case .recovery_run:              return "RECOVERY"
+        case .lsd, .longRun:             return "LONG RUN"
+        case .hiking:                    return "HIKE"
+        case .tempo:                     return "TEMPO"
+        case .threshold:                 return "THRESHOLD"
+        case .cruiseIntervals:           return "CRUISE INTERVALS"
+        case .norwegianSingles:          return "SUB-THRESHOLD"
+        case .norwegian4x4:              return "NORWEGIAN 4×4"
+        case .interval:                  return "INTERVALS"
+        case .shortInterval:             return "SHORT INTERVALS"
+        case .longInterval:              return "LONG INTERVALS"
+        case .yasso800:                  return "YASSO 800"
+        case .hillRepeats:               return "HILL REPEATS"
+        case .strides:                   return "STRIDES"
+        case .fartlek:                   return "FARTLEK"
+        case .steadyIntervals:           return "STEADY + INTERVALS"
+        case .progression:               return "PROGRESSION"
+        case .fastFinish:                return "FAST FINISH"
+        case .racePace:                  return "RACE PACE"
+        case .race:                      return "RACE"
+        case .benchmark:                 return "BENCHMARK"
+        case .combination:               return "COMBINATION"
+        case .strength:                  return "STRENGTH"
+        case .crossTraining, .yoga, .cycling, .swimming, .elliptical, .rowing:
+            return "CROSS TRAINING"
+        case .rest, .none:               return nil
         }
-        return App2PlanViewModel.intensityLabel(day.primary)
+    }
+
+    /// 這一堂課的預計時間（秒）：熱身 ＋ 主課（間歇含組間恢復）＋ 緩和。
+    /// 每一段都用處方值推（明寫時長優先，否則距離 ÷ 處方配速）；
+    /// 主課段推不出來就整個回 nil —— 少一格數據，不編一個數字。
+    static func plannedSeconds(day: DayDetailDTO, run: RunActivityDTO) -> Double? {
+        func seconds(_ segment: RunSegmentDTO?) -> Double? {
+            guard let segment else { return nil }
+            return App2PlanViewModel.effortSeconds(SegmentEffortDTO(
+                distanceKm: segment.distanceKm,
+                distanceM: segment.distanceM,
+                durationMinutes: segment.durationMinutes,
+                durationSeconds: segment.durationSeconds,
+                pace: segment.pace,
+                basePace: segment.basePace,
+                paceZone: nil,
+                targetHrr: nil,
+                recoveryType: nil
+            ))
+        }
+
+        var total: Double = 0
+        var hasMain = false
+        for segment in App2PlanViewModel.effectiveSegments(run) {
+            if segment.kind == "interval", let repeats = segment.repeats, repeats > 0,
+               let work = segment.work, let workSeconds = App2PlanViewModel.effortSeconds(work) {
+                let recovery = segment.recovery.flatMap(App2PlanViewModel.effortSeconds) ?? 0
+                total += workSeconds * Double(repeats) + recovery * Double(max(repeats - 1, 0))
+                hasMain = true
+            } else if let value = seconds(segment) {
+                total += value
+                hasMain = true
+            }
+        }
+        guard hasMain else { return nil }
+        total += seconds(day.warmup) ?? 0
+        total += seconds(day.cooldown) ?? 0
+        return total
+    }
+
+    /// `day_target`／`reason` 這兩段**逐日生成的敘述**還對得上現在這一天嗎？
+    ///
+    /// 用戶在編輯器改過課型之後後端不重生那兩段，畫面上就會出現與當日課表矛盾的話
+    /// （2026-08-26 使用者截圖：間歇課的「本次訓練目標」寫著週三休息）。
+    ///
+    /// payload 內唯一能拿來證明的結構訊號是 `primary.description`：課表生成時它被
+    /// 寫成與 `day_target` 同一句，而編輯器換課型時會用新課型的描述覆寫它
+    /// （`EditScheduleV2ViewModel.swift:334/362/390/398`）。所以兩者相等＝這一段
+    /// 敘述與現在的 primary 同一次產出；不相等＝證明不了，就不顯示。
+    ///
+    /// **這是字串相等比對，不是語意判斷** —— 不去猜敘述在講哪一種課。
+    static func isDayNarrativeConsistent(day: DayDetailDTO) -> Bool {
+        let target = day.dayTarget.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !target.isEmpty else { return false }
+        let description: String?
+        switch day.primary {
+        case .run(let run):           description = run.description
+        case .strength(let strength): description = strength.description
+        case .cross(let cross):       description = cross.description
+        case .none:                   return false
+        }
+        return description?.trimmingCharacters(in: .whitespacesAndNewlines) == target
     }
 
     // MARK: - 訓練結構

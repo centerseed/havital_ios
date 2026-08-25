@@ -40,8 +40,12 @@ struct App2SessionDetailView: View {
                 VStack(spacing: 14) {
                     heroCard
                     if !detail.structureBars.isEmpty { paceCard }
-                    if let info = trainingTypeInfo { purposeCard(info) }
-                    if detail.goalText != nil || detail.reasonText != nil { goalCard }
+                    // 「本次訓練目標」與「這堂課練什麼」曾經是兩張卡，內容重疊。
+                    // 收成一張：課型目的（既有 `TrainingTypeInfo`）為主體，
+                    // 逐日敘述只在證明得出它仍對應現在這一天時附加（見投影層）。
+                    if trainingTypeInfo != nil || detail.goalText != nil || detail.reasonText != nil {
+                        goalCard
+                    }
                     if detail.showsFuelingNote { fuelingCard }
                     if !detail.segments.isEmpty { structureCard }
                     if let climate = detail.climate { climateCard(climate) }
@@ -103,25 +107,36 @@ struct App2SessionDetailView: View {
 
     // MARK: - Hero（課型色卡：kicker ＋ 標題 ＋ 傳到 Garmin ＋ 三格數字）
 
+    /// Hero（設計 frame-02）：課型色實心漸層 ＋ 白字，**三行**——
+    /// ① kicker 膠囊 ＋ 正方形「傳到 Garmin」白鈕；② 課型大標；
+    /// ③ 三格數據（總距離／預計時間／段數），等寬並以半透明白直線分隔。
+    /// 右上角另有一層溢出畫布的半透明大圓 blob。
     private var heroCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 13) {
             HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 3) {
-                    if let kicker = detail.kicker {
-                        Text(kicker)
-                            .font(.system(size: 12, weight: .heavy))
-                            .tracking(1.4)
-                            .foregroundStyle(accent.app2Darkened.opacity(0.85))
-                    }
-                    Text(detail.title)
-                        .font(.system(size: 26, weight: .black))
-                        .foregroundStyle(App2Theme.inkPrimary)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.6)
+                // **這一行不得消失**：`kicker` 在 payload 缺 `pace_zone`／
+                // `target_intensity` 時退成課型的結構詞（見 `App2SessionDetailProjection`）。
+                if let kicker = detail.kicker {
+                    Text(kicker)
+                        .font(.system(size: 11, weight: .heavy))
+                        .tracking(1.4)
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(Capsule().fill(Color.white.opacity(0.22)))
                 }
                 Spacer(minLength: 4)
                 garminButton
             }
+
+            Text(detail.title)
+                .font(.system(size: 30, weight: .black))
+                .tracking(0.5)
+                .foregroundStyle(.white)
+                .lineLimit(2)
+                .minimumScaleFactor(0.6)
 
             HStack(alignment: .bottom, spacing: 0) {
                 if let km = detail.distanceKm {
@@ -141,29 +156,32 @@ struct App2SessionDetailView: View {
                     value: String(format: L10n.App2.Detail.phaseCount.localized, detail.phaseCount),
                     unit: nil
                 )
-                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity)
         }
         .padding(App2Theme.heroPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            RoundedRectangle(cornerRadius: App2Theme.cardCornerRadius, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        stops: [
-                            .init(color: accent.opacity(0.16), location: 0),
-                            .init(color: accent.opacity(0.03), location: 0.6),
-                            .init(color: .white, location: 1)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+            LinearGradient(
+                stops: [
+                    .init(color: accent.app2Lightened, location: 0),
+                    .init(color: accent, location: 0.6),
+                    .init(color: accent.app2Darkened, location: 1)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: App2Theme.cardCornerRadius, style: .continuous)
-                .strokeBorder(accent.opacity(0.28), lineWidth: 1)
-        )
+        // 右上角溢出的半透明大圓（設計 `right:-40 top:-40 170×170 rgba(255,255,255,0.1)`）。
+        .overlay(alignment: .topTrailing) {
+            Circle()
+                .fill(Color.white.opacity(0.1))
+                .frame(width: 170, height: 170)
+                .offset(x: 40, y: -40)
+                .allowsHitTesting(false)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: App2Theme.cardCornerRadius, style: .continuous))
+        .shadow(color: accent.opacity(0.42), radius: 16, x: 0, y: 12)
         .accessibilityIdentifier("App2_SessionDetailHero")
     }
 
@@ -172,27 +190,29 @@ struct App2SessionDetailView: View {
             HStack(spacing: 3) {
                 Text(label)
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(App2Theme.inkMuted)
+                    .foregroundStyle(.white.opacity(0.75))
                 if let unit {
                     Text(unit)
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(App2Theme.inkFaint)
+                        .foregroundStyle(.white.opacity(0.6))
                 }
             }
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
             Text(value)
-                .font(.app2Mono(21))
-                .foregroundStyle(App2Theme.inkPrimary)
+                .font(.app2Mono(24))
+                .foregroundStyle(.white)
                 .lineLimit(1)
-                .minimumScaleFactor(0.6)
+                .minimumScaleFactor(0.5)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var heroDivider: some View {
         Rectangle()
-            .fill(App2Theme.insetBorder)
-            .frame(width: 1, height: 30)
-            .padding(.horizontal, 4)
+            .fill(Color.white.opacity(0.28))
+            .frame(width: 1, height: 34)
+            .padding(.horizontal, 6)
     }
 
     /// 「傳到 Garmin」只在**真的推得動**時出現：跑步課 ＋ Garmin 已連結 ＋ 推得出日期。
@@ -208,16 +228,15 @@ struct App2SessionDetailView: View {
                     .multilineTextAlignment(.center)
                     .lineLimit(2)
             }
+            // 設計 frame-02：**白底、圓角 16 的近正方形方塊**，圖示在上、
+            // 兩行文字在下，icon 與文字同色＝該課型主色。不是圓形、不是純文字鈕。
             .foregroundStyle(accent.app2Darkened)
-            .frame(width: 62, height: 58)
+            .frame(width: 60, height: 60)
             .background(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(App2Theme.cardBackground)
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color.white)
             )
-            .overlay(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(accent.opacity(0.28), lineWidth: 1)
-            )
+            .shadow(color: App2Theme.shadowInk.opacity(0.28), radius: 9, x: 0, y: 8)
             .contentShape(Rectangle())
             .onTapGesture {
                 guard garminViewModel.uiState != .working else { return }
@@ -258,43 +277,15 @@ struct App2SessionDetailView: View {
         return TrainingTypeInfo.info(for: dayType)
     }
 
-    /// 「本次訓練目標」上方那張卡：課型的設計目的一句話 ＋ 進完整說明。
-    private func purposeCard(_ info: TrainingTypeInfo) -> some View {
-        App2Card(padding: 15, spacing: 8) {
-            HStack(spacing: 7) {
-                Text(info.icon)
-                    .font(.system(size: 15))
-                Text(L10n.App2.Detail.purposeSection.localized)
-                    .font(.system(size: 15, weight: .black))
-                    .foregroundStyle(App2Theme.inkPrimary)
-                Spacer(minLength: 6)
-                Text(info.title)
-                    .font(.system(size: 12, weight: .heavy))
-                    .foregroundStyle(App2Theme.inkTertiary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-            }
-            Text(info.whyRun)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(App2Theme.inkSecondary)
-                .lineSpacing(4)
-                .fixedSize(horizontal: false, vertical: true)
-            HStack(spacing: 5) {
-                Text(L10n.App2.Detail.purposeMore.localized)
-                    .font(.system(size: 13, weight: .heavy))
-                    .foregroundStyle(accent)
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .heavy))
-                    .foregroundStyle(accent)
-            }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture { isShowingTypeInfo = true }
-        .accessibilityElement(children: .contain)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityIdentifier("App2_SessionPurposeCard")
-    }
-
+    /// 「本次訓練目標」。
+    ///
+    /// **主體是課型目的**（既有的 `TrainingTypeInfo.whyRun`，`training_type_info.*`
+    /// 三語已齊）——它跟著當日課型走，改了課型就跟著換。
+    ///
+    /// `day_target`／`reason` 是**逐日生成**的敘述，用戶在編輯器改過課型之後
+    /// 後端不重生，會與當日課表矛盾（2026-08-26 使用者截圖）。所以它們只在
+    /// 投影層證明得出「仍對應現在這一天」時才附在下面（見
+    /// `App2SessionDetailProjection.isDayNarrativeConsistent`）。
     private var goalCard: some View {
         App2Card(padding: 15, spacing: 8) {
             HStack(spacing: 7) {
@@ -304,12 +295,27 @@ struct App2SessionDetailView: View {
                 Text(L10n.App2.Detail.goal.localized)
                     .font(.system(size: 15, weight: .black))
                     .foregroundStyle(App2Theme.inkPrimary)
+                Spacer(minLength: 6)
+                if let info = trainingTypeInfo {
+                    Text("\(info.icon) \(info.title)")
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundStyle(App2Theme.inkTertiary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                }
+            }
+            if let info = trainingTypeInfo {
+                Text(info.whyRun)
+                    .font(.system(size: 14, weight: .semibold))
+                    .lineSpacing(4)
+                    .foregroundStyle(App2Theme.inkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             if let goal = detail.goalText {
                 Text(goal)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 13, weight: .medium))
                     .lineSpacing(3)
-                    .foregroundStyle(App2Theme.inkSecondary)
+                    .foregroundStyle(App2Theme.inkTertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let reason = detail.reasonText {
@@ -319,7 +325,19 @@ struct App2SessionDetailView: View {
                     .foregroundStyle(App2Theme.inkTertiary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            if trainingTypeInfo != nil {
+                HStack(spacing: 5) {
+                    Text(L10n.App2.Detail.purposeMore.localized)
+                        .font(.system(size: 13, weight: .heavy))
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .heavy))
+                }
+                .foregroundStyle(accent)
+            }
         }
+        .contentShape(Rectangle())
+        .onTapGesture { if trainingTypeInfo != nil { isShowingTypeInfo = true } }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("App2_SessionDetailGoalCard")
     }
 
