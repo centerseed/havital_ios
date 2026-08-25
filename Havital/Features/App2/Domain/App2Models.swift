@@ -263,8 +263,11 @@ struct App2PlanDay: Identifiable, Equatable {
     /// `DayType` 是 repo 既有的課型分類（`Havital/Models/WeeklyPlan.swift`），
     /// 對應後端 `run_type` taxonomy（`domains/plan_week/generation/run_type_taxonomy.py`）。
     let dayType: DayType?
-    /// 計畫值（`12 km`）。
+    /// 計畫值（`4.0 km · 7:17/km`）—— 量 ＋ 配速，與設計 frame-01 的「課表」行同一組內容。
     let planned: String?
+    /// 當日課表敘述（後端 `day_target`：`輕鬆跑：保持舒適配速，專注於有氧建立 4 km`／
+    /// 休息日的 `休息與恢復`）。設計 frame-01 的休息日只有這一行，有課日則在課表行下方。
+    let description: String?
     /// 實際值（`11.4 km`）；nil = 尚未執行。
     let actual: String?
     /// 體感溫度（§3.3 `d.temp`），來自週課表 doc 的 climate 投影。

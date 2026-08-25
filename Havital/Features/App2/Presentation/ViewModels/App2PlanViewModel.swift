@@ -127,7 +127,10 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 tag: dayType?.localizedName
                     ?? (isRest ? L10n.App2.Plan.rest.localized : (day.category ?? day.dayTarget)),
                 dayType: dayType,
-                planned: Self.plannedDistanceLabel(day.primary),
+                // 設計 frame-01 的「課表」行是「量 · 配速」（`4.0 km · 7:17/km`），
+                // 不是裸距離；與今日課表卡走同一支 `contentLine`，不另做一份格式。
+                planned: Self.contentLine(day.primary),
+                description: Self.descriptionLine(day),
                 // 實際值要按日期對齊 workouts；骨架階段僅在週總量層合併（見 completedKm）。
                 actual: nil,
                 temp: Self.temperatureLabel(climateByDayIndex[day.dayIndex]),
@@ -208,6 +211,13 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     static func plannedDistanceLabel(_ primary: PrimaryActivityDTO?) -> String? {
         guard case .run(let run) = primary, let km = run.distanceKm, km > 0 else { return nil }
         return String(format: "%.1f km", km)
+    }
+
+    /// 每日卡的敘述行 —— 後端 `day_target`（已在地化、三語由後端 `content_lang` 決定）。
+    /// 空字串當成沒有，不畫空行。
+    static func descriptionLine(_ day: DayDetailDTO) -> String? {
+        let text = day.dayTarget.trimmingCharacters(in: .whitespacesAndNewlines)
+        return text.isEmpty ? nil : text
     }
 
     /// `run_type` → 既有的 `DayType`。肌力／交叉訓練沒有跑步課型，各自映到對應的 case。

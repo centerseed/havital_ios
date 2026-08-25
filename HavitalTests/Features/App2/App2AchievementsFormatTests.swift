@@ -51,9 +51,35 @@ final class App2AchievementsFormatTests: XCTestCase {
         XCTAssertEqual(App2AchievementsView.grouped(37.3), "37.3")
     }
 
-    /// 破百之後只給整數 —— 但整數本來就不帶小數點，兩條規則不衝突。
-    func test_achievementsGrouped_dropsFractionAboveHundred() {
-        XCTAssertEqual(App2AchievementsView.grouped(263), "263")
-        XCTAssertEqual(App2AchievementsView.grouped(300), "300")
+    /// 同一行的三個數字同精度。原本按大小切精度（<100 一位、其餘取整），
+    /// hero 量化列就出現 `263 / 300 公里 · 還差 37.3 公里` —— 263 + 37.3 ≠ 300。
+    func test_achievementsGrouped_sameRowKeepsConsistentPrecision() {
+        let current = 262.7, target = 300.0
+        XCTAssertEqual(App2AchievementsView.grouped(current), "262.7")
+        XCTAssertEqual(App2AchievementsView.grouped(target), "300")
+        XCTAssertEqual(App2AchievementsView.grouped(target - current), "37.3")
+    }
+
+    // MARK: - 紀錄頁的呼叫點
+
+    /// 本月跑量／今年累積保留一位小數 —— 四捨五入成 `73` 會跟同一份資料在
+    /// Android 上顯示的 `72.6` 對不上。
+    func test_recordsGrouped_keepsOneFraction() {
+        XCTAssertEqual(App2RecordsView.grouped(72.6), "72.6")
+        XCTAssertEqual(App2RecordsView.grouped(585.5), "585.5")
+        XCTAssertEqual(App2RecordsView.grouped(1_284), "1,284")
+    }
+
+    /// 「較上月」與上方的本月跑量同精度 —— 否則同一欄出現 `77.9 km` 配 `+78`。
+    func test_recordsMonthComparison_matchesTotalsPrecision() throws {
+        let up = try XCTUnwrap(App2RecordsView.monthComparison(77.9))
+        XCTAssertTrue(up.contains("+77.9"), up)
+        XCTAssertTrue(up.hasPrefix("↑"), up)
+
+        let down = try XCTUnwrap(App2RecordsView.monthComparison(-12.4))
+        XCTAssertTrue(down.contains("-12.4"), down)
+        XCTAssertTrue(down.hasPrefix("↓"), down)
+
+        XCTAssertNil(App2RecordsView.monthComparison(nil))
     }
 }

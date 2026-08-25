@@ -314,23 +314,27 @@ struct App2RecordsView: View {
     }
 
     /// 設計 hero 左欄的「↑ 較上月 +18」。上月資料不齊時 VM 給 nil，這一列就不出現。
-    private static func monthComparison(_ deltaKm: Double?) -> String? {
+    ///
+    /// 精度跟上方的本月跑量同一條規則 —— 否則同一欄會出現 `77.9 km` 配 `+78`。
+    static func monthComparison(_ deltaKm: Double?) -> String? {
         guard let deltaKm else { return nil }
-        let rounded = Int(deltaKm.rounded())
-        let arrow = rounded > 0 ? "↑" : (rounded < 0 ? "↓" : "→")
-        let signed = rounded > 0 ? "+\(rounded)" : String(rounded)
+        let arrow = deltaKm > 0 ? "↑" : (deltaKm < 0 ? "↓" : "→")
+        let magnitude = grouped(abs(deltaKm))
+        let signed = deltaKm > 0 ? "+\(magnitude)" : (deltaKm < 0 ? "-\(magnitude)" : magnitude)
         return "\(arrow) " + String(format: L10n.App2.Records.vsLastMonth.localized, signed)
     }
 
     private static func deltaColor(_ deltaKm: Double) -> Color {
-        let rounded = Int(deltaKm.rounded())
-        if rounded > 0 { return App2Theme.accentGreen }
-        if rounded < 0 { return App2Theme.accentOrangeText }
+        if deltaKm > 0 { return App2Theme.accentGreen }
+        if deltaKm < 0 { return App2Theme.accentOrangeText }
         return App2Theme.inkTertiary
     }
 
     /// `1,284` 這種千分位（設計 hero 的今年累積）——走共用的 `App2NumberFormat`。
-    private static func grouped(_ km: Double) -> String {
-        App2NumberFormat.grouped(km)
+    ///
+    /// **保留一位小數**：跑量的真值就是 `72.6`，四捨五入成 `73` 會跟同一份資料在
+    /// Android 上顯示的數字對不上（2026-08-25 兩平台實走）。整數值不帶 `.0`。
+    static func grouped(_ km: Double) -> String {
+        App2NumberFormat.grouped(km, maximumFractionDigits: 1)
     }
 }

@@ -210,6 +210,7 @@ enum App2StubFixtures {
         let weekdayLabel: String
         let tag: String
         let planned: String?
+        let description: String?
         let actual: String?
         let temp: String?
         let isToday: Bool
@@ -223,7 +224,8 @@ enum App2StubFixtures {
                 ),
                 tag: tag,
                 dayType: dayType.flatMap { DayType(rawValue: $0) },
-                planned: planned, actual: actual, temp: temp, isToday: isToday
+                planned: planned, description: description,
+                actual: actual, temp: temp, isToday: isToday
             )
         }
     }

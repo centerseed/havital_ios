@@ -611,20 +611,57 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             return
         }
 
+        let stage = await stageLabel(planStatus: planStatus)
+
         goalCard = App2Sourced(
             App2GoalCard(
                 raceName: main.name,
                 raceDate: Self.localDateString(fromEpochSeconds: main.raceDate, timezone: main.timezone),
                 distanceLabel: Self.distanceLabel(km: main.distanceKm),
-                // 階段標籤住在 plan overview（TrainingStage），§3.9a 註明出口待實作時確認。
-                stageLabel: nil,
+                // 階段標籤（設計 frame-00 右上的藍膠囊）住在 plan overview 的
+                // `training_stages[]`，用 plan status 的當前週落在哪一段來挑。
+                stageLabel: stage,
                 targetTime: main.targetTime > 0 ? Self.formatSeconds(main.targetTime) : nil,
                 estimatedFinish: estimated,
                 currentWeek: planStatus?.currentWeek,
                 totalWeeks: planStatus?.totalWeeks ?? (main.trainingWeeks > 0 ? main.trainingWeeks : nil)
             ),
-            origin: .live(endpoint: "GET /user/targets + GET /v2/plan/status + GET /plan/readiness")
+            origin: .live(
+                endpoint: "GET /user/targets + GET /v2/plan/status + GET /plan/readiness"
+                    + " + GET /v2/plan/overview"
+            )
         )
+    }
+
+    /// 期別膠囊的字（`基礎期`）。
+    ///
+    /// **綁的是 plan status 指向的那份 overview，不是「最新的 overview」。**
+    /// `current_week_plan_id` 的前綴就是 overview id（dev 實測：plan `e1289e60f251_1`
+    /// ↔ overview `e1289e60f251`）；`GET /v2/plan/overview` 只交當前那一份，所以拿回來
+    /// 先比對 id，對不上就不顯示 —— 寧可少一個膠囊，也不要標一個別的計畫的期別。
+    private func stageLabel(planStatus: PlanStatusV2Response?) async -> String? {
+        guard let planStatus else { return nil }
+        let currentWeek = planStatus.currentWeek
+        do {
+            let overview = try await planV2DataSource.getOverview()
+            if let planId = planStatus.currentWeekPlanId,
+               let boundOverviewId = planId.split(separator: "_").first.map(String.init),
+               overview.id != boundOverviewId {
+                Logger.debug("[App2HomeVM] overview 與本週課表不同源,不顯示期別")
+                return nil
+            }
+            return Self.stageName(stages: overview.trainingStages, currentWeek: currentWeek)
+        } catch {
+            if !error.isCancellationError {
+                Logger.debug("[App2HomeVM] overview 取得失敗,期別留白: \(error)")
+            }
+            return nil
+        }
+    }
+
+    /// 當前週落在哪一段 `training_stages`。落不進任何一段就沒有期別（不猜最近的那段）。
+    static func stageName(stages: [TrainingStageDTO]?, currentWeek: Int) -> String? {
+        stages?.first { currentWeek >= $0.weekStart && currentWeek <= $0.weekEnd }?.stageName
     }
 
     // MARK: - Formatting

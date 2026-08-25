@@ -229,8 +229,9 @@ struct App2PlanView: View {
                 }
             }
 
-            // 設計 frame-01 的日卡只有：標題列（星期＋日期＋課型／溫度徽章）＋課表／實際行。
-            // 後端 `day_target` 那句敘述不上 UI。
+            // 設計 frame-01 的日卡：標題列（星期＋日期＋課型／溫度徽章）→ 課表／實際行
+            // → 敘述行。休息日沒有課表行，敘述行就是那張卡唯一的內容（設計稿的
+            // 「主動恢復日」那一行）。
             if let planned = day.planned {
                 labelledValue(
                     label: L10n.App2.Home.planRow.localized,
@@ -248,6 +249,14 @@ struct App2PlanView: View {
                     valueColor: App2Theme.inkPrimary,
                     valueWeight: .heavy
                 )
+            }
+            if let description = day.description {
+                Text(description)
+                    .font(.system(size: 13, weight: .medium))
+                    .lineSpacing(2)
+                    .foregroundStyle(App2Theme.inkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("App2_PlanDayDescription_\(day.id)")
             }
         }
         .accessibilityIdentifier("App2_PlanDay_\(day.id)")

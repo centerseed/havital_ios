@@ -280,37 +280,27 @@ struct App2AchievementsView: View {
         .app2CardSurface(cornerRadius: 20)
     }
 
+    /// 收藏牆的一格 —— **徽章美術用既有 asset**，與 hero 及 1.4 的收藏區同一支
+    /// （`AchievementBadgeImage`：已解鎖畫 art，未解鎖是灰底問號）。
+    /// 原本畫的是 2.0 自己的銅色圓章＋通用 `rosette` icon，等於在收藏牆另立一套
+    /// 徽章視覺，每一顆看起來都一樣 —— 2026-08-25 兩平台實走時的差異就是這個。
     private func badgeTile(_ badge: AchievementBadge) -> some View {
         let unlocked = badge.status == .unlocked
+        let tileSize: CGFloat = 60
         return VStack(spacing: 7) {
             ZStack(alignment: .bottomTrailing) {
-                Circle()
-                    .fill(
-                        // 設計 frame-11 的徽章圓章是銅色，不是品牌藍 —— 與 hero 的
-                        // 大圓章同一顆漸層，收藏牆才看得出是「獎章」。
-                        unlocked
-                        ? LinearGradient(
-                            colors: [App2Theme.medalGradient.from, App2Theme.medalGradient.to],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                          )
-                        : LinearGradient(
-                            colors: [App2Theme.insetBackground, App2Theme.insetBackgroundCool],
-                            startPoint: .topLeading, endPoint: .bottomTrailing
-                          )
-                    )
-                    .frame(width: 60, height: 60)
-                    .overlay(
-                        Circle().strokeBorder(
-                            unlocked ? Color.white.opacity(0.5) : App2Theme.insetBorder,
-                            lineWidth: unlocked ? 2 : 1
-                        )
-                    )
-                    .overlay {
-                        Image(systemName: unlocked ? "rosette" : "lock.fill")
-                            .font(.system(size: unlocked ? 23 : 18, weight: .semibold))
-                            .foregroundStyle(unlocked ? .white : App2Theme.chevron)
-                    }
-                    .shadow(color: App2Theme.shadowInk.opacity(0.22), radius: 6, x: 0, y: 5)
+                AchievementBadgeImage(
+                    assetName: AchievementBadgeArtwork.assetName(for: badge),
+                    status: badge.status,
+                    size: tileSize
+                )
+                .clipShape(RoundedRectangle(cornerRadius: tileSize * 0.22, style: .continuous))
+                .shadow(
+                    color: App2Theme.shadowInk.opacity(unlocked ? 0.22 : 0.08),
+                    radius: unlocked ? 6 : 2,
+                    x: 0, y: unlocked ? 5 : 1
+                )
+                .accessibilityIdentifier("App2_AchievementsBadge_\(badge.badgeId)")
 
                 if unlocked {
                     Circle()
@@ -374,8 +364,11 @@ struct App2AchievementsView: View {
     }
 
     /// 量化列的數字格式 —— 走共用的 `App2NumberFormat`（整數不帶 `.0`）。
-    /// 累積里程這種真的有小數的量保留一位；破百之後只給整數。
+    ///
+    /// **同一行的三個數字必須同精度。** 原本按大小切精度（<100 給一位、其餘取整），
+    /// 於是同一行出現 `263 / 300 公里 · 還差 37.3 公里` —— 263 + 37.3 ≠ 300，
+    /// 讀者一眼看得出來是錯的。一律保留一位，整數自然不帶 `.0`。
     static func grouped(_ value: Double) -> String {
-        App2NumberFormat.grouped(value, maximumFractionDigits: value < 100 ? 1 : 0)
+        App2NumberFormat.grouped(value, maximumFractionDigits: 1)
     }
 }

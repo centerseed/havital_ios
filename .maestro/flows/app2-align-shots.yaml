@@ -1,0 +1,61 @@
+appId: com.havital.Havital.dev
+tags:
+  - app2
+---
+# T-0306 —— 雙平台對齊修正的截圖證據（首頁 hero／課表／紀錄／成就）。
+#
+# 走**正常啟動**（模擬器已登入創辦人 dev 帳號），所以四頁拿的是 dev 真資料，
+# 不是 `-ui_testing_app2` harness 的樣本。`clearState: false` 是必要的：
+# 這台模擬器是用戶本人在用，不得清 keychain 或資料。
+
+- launchApp:
+    clearState: false
+    arguments:
+      "-skipHealthKitAuth": true
+
+# 這台模擬器是用戶本人在用，重啟後可能停在上一次留下的頁（例如分享卡）。
+# 先把可能的殘留關掉再截圖 —— 不清資料、不登出。
+- tapOn:
+    text: "知道了，不再顯示"
+    optional: true
+- tapOn:
+    point: "9%,11%"
+    optional: true
+
+# === 首頁 hero（期別膠囊）===
+- extendedWaitUntil:
+    visible:
+      id: "App2_GoalCard"
+    timeout: 60000
+- takeScreenshot: align-home-vs-design
+
+# === 課表（日卡：課表行帶配速 ＋ 敘述行）===
+- tapOn:
+    id: "App2_Tab_Plan"
+- extendedWaitUntil:
+    visible:
+      id: "App2_PlanSummaryCard"
+    timeout: 30000
+- takeScreenshot: align-plan-vs-design
+
+# === 紀錄（本月跑量／今年累積保留一位小數）===
+- tapOn:
+    id: "App2_Tab_Records"
+- extendedWaitUntil:
+    visible:
+      id: "App2_RecordsTotalsCard"
+    timeout: 30000
+- takeScreenshot: align-records-vs-design
+
+# === 成就（hero 量化列精度 ＋ 收藏牆徽章美術）===
+- tapOn:
+    id: "App2_Tab_Achievements"
+- extendedWaitUntil:
+    visible:
+      id: "App2_AchievementsHero"
+    timeout: 30000
+- takeScreenshot: align-achievements-vs-design
+# 收藏牆在頁面下半 —— 徽章美術要另外一張才看得到。
+- scroll
+- scroll
+- takeScreenshot: align-achievements-badges

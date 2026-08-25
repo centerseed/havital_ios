@@ -506,4 +506,32 @@ final class App2HomeProjectionTests: XCTestCase {
     func test_rizoOpeningLine_withoutSentences_isNil() {
         XCTAssertNil(App2HomeViewModel.rizoOpeningLine(card: card(narrative: nil)))
     }
+
+    // MARK: - 期別膠囊（設計 frame-00 右上「基礎期」）
+
+    private func stages(_ json: String) throws -> [TrainingStageDTO] {
+        try JSONDecoder().decode([TrainingStageDTO].self, from: Data(json.utf8))
+    }
+
+    private let threeStagesJSON = """
+    [ { "stage_id": "base",  "stage_name": "基礎期", "stage_description": "d",
+        "week_start": 1, "week_end": 1, "training_focus": "f", "target_weekly_km_range": { "low": 8, "high": 10 } },
+      { "stage_id": "build", "stage_name": "強化期", "stage_description": "d",
+        "week_start": 2, "week_end": 3, "training_focus": "f", "target_weekly_km_range": { "low": 8, "high": 10 } },
+      { "stage_id": "peak",  "stage_name": "巔峰期", "stage_description": "d",
+        "week_start": 4, "week_end": 6, "training_focus": "f", "target_weekly_km_range": { "low": 8, "high": 10 } } ]
+    """
+
+    func test_stageName_picksStageContainingCurrentWeek() throws {
+        let stages = try stages(threeStagesJSON)
+        XCTAssertEqual(App2HomeViewModel.stageName(stages: stages, currentWeek: 1), "基礎期")
+        XCTAssertEqual(App2HomeViewModel.stageName(stages: stages, currentWeek: 3), "強化期")
+        XCTAssertEqual(App2HomeViewModel.stageName(stages: stages, currentWeek: 6), "巔峰期")
+    }
+
+    /// 落不進任何一段就沒有期別 —— 不猜最近的那一段。
+    func test_stageName_weekOutsideEveryStage_isNil() throws {
+        XCTAssertNil(App2HomeViewModel.stageName(stages: try stages(threeStagesJSON), currentWeek: 9))
+        XCTAssertNil(App2HomeViewModel.stageName(stages: nil, currentWeek: 1))
+    }
 }

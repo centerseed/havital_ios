@@ -101,11 +101,18 @@ final class App2RenderingTests: XCTestCase {
         )
     }
 
-    private func planDay(_ index: Int, type: DayType, planned: String?, isToday: Bool = false) -> App2PlanDay {
+    private func planDay(
+        _ index: Int,
+        type: DayType,
+        planned: String?,
+        description: String? = nil,
+        isToday: Bool = false
+    ) -> App2PlanDay {
         App2PlanDay(
             id: index, weekdayLabel: "D\(index)", dateLabel: "8/\(index)",
             tag: type.localizedName, dayType: type,
-            planned: planned, actual: nil, temp: nil, isToday: isToday
+            planned: planned, description: description,
+            actual: nil, temp: nil, isToday: isToday
         )
     }
 

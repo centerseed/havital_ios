@@ -234,6 +234,56 @@ final class App2PlanProjectionTests: XCTestCase {
         XCTAssertEqual(week.days.first?.planned, "8.0 km")
     }
 
+    // MARK: - 日卡內容（設計 frame-01：課表行 ＝ 量 · 配速；敘述行 ＝ day_target）
+
+    /// 設計 frame-01 的課表行是「課表 4.0 km · 7:17/km」，不是裸距離。
+    /// 有 `climate_adjusted_pace` 就用它（那才是當天實際要跑的配速）。
+    func test_planWeek_plannedRowCarriesPace() throws {
+        let json = """
+        { "purpose": "p", "week_of_training": 1, "total_weeks": 6, "total_distance_km": 8,
+          "days": [ { "day_index": 2,
+                      "day_target": "輕鬆跑：保持舒適配速，專注於有氧建立 4 km", "reason": "r",
+                      "primary": { "run_type": "easy", "distance_km": 4.0,
+                                   "pace": "6:50", "climate_adjusted_pace": "7:17" } } ] }
+        """
+        let day = try XCTUnwrap(
+            App2PlanViewModel.planWeek(
+                dto: try plan(json), planStatus: try status(), completedKm: nil, todayIndex: 2
+            ).days.first
+        )
+        XCTAssertEqual(day.planned, "4.0 km · 7:17/km")
+        XCTAssertEqual(day.description, "輕鬆跑：保持舒適配速，專注於有氧建立 4 km")
+    }
+
+    /// 休息日沒有課表行，敘述行（`休息與恢復`）就是那張卡唯一的內容。
+    func test_planWeek_restDayKeepsDescriptionRow() throws {
+        let json = """
+        { "purpose": "p", "week_of_training": 1, "total_weeks": 6, "total_distance_km": 0,
+          "days": [ { "day_index": 3, "day_target": "休息與恢復", "reason": "r" } ] }
+        """
+        let day = try XCTUnwrap(
+            App2PlanViewModel.planWeek(
+                dto: try plan(json), planStatus: try status(), completedKm: nil, todayIndex: 1
+            ).days.first
+        )
+        XCTAssertNil(day.planned)
+        XCTAssertEqual(day.description, "休息與恢復")
+    }
+
+    /// 空 `day_target` 不畫空行。
+    func test_planWeek_blankDayTargetHasNoDescription() throws {
+        let json = """
+        { "purpose": "p", "week_of_training": 1, "total_weeks": 6, "total_distance_km": 0,
+          "days": [ { "day_index": 3, "day_target": "   ", "reason": "r" } ] }
+        """
+        let day = try XCTUnwrap(
+            App2PlanViewModel.planWeek(
+                dto: try plan(json), planStatus: try status(), completedKm: nil, todayIndex: 1
+            ).days.first
+        )
+        XCTAssertNil(day.description)
+    }
+
     // MARK: - 課型與識別字
 
     func test_dayType_mapsRunStrengthCrossAndRest() throws {
