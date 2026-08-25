@@ -35,6 +35,7 @@ enum StateCardMapper {
             verdict: dto.verdict,
             change: dto.change,
             evidence: dto.evidence,
+            dot: dto.dot,
             status: dto.status
         )
     }

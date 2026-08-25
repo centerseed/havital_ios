@@ -4289,6 +4289,13 @@
 "app2.home.cross_body" = "Swimming, cycling or yoga — cross training doesn't count toward mileage";
 "app2.session.fueling_note" = "Fuel about every 45 minutes and carry roughly 500 ml of water.";
 
+/* ===== App2 · home v2 header (notifications / menu) ===== */
+"app2.home.notifications" = "Notifications";
+"app2.home.menu" = "More";
+"app2.home.menu_profile" = "Profile";
+"app2.home.menu_edit_plan" = "Edit plan";
+"app2.home.insights_more" = "Show all metrics";
+
 /* ===== App2 · session detail (design frame-02) ===== */
 "app2.detail.title" = "Session detail";
 "app2.detail.distance" = "Total distance";

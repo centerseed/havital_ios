@@ -4286,6 +4286,13 @@
 "app2.home.cross_body" = "水泳・バイク・ヨガなどのクロストレーニングは走行距離に含みません";
 "app2.session.fueling_note" = "45 分ごとの補給と、500ml 程度の水の携帯をおすすめします。";
 
+/* ===== App2 · ホーム v2 ヘッダー（通知／メニュー） ===== */
+"app2.home.notifications" = "通知";
+"app2.home.menu" = "その他";
+"app2.home.menu_profile" = "プロフィール";
+"app2.home.menu_edit_plan" = "プランを編集";
+"app2.home.insights_more" = "すべての指標を表示";
+
 /* ===== App2 · トレーニング詳細（デザイン frame-02） ===== */
 "app2.detail.title" = "トレーニング詳細";
 "app2.detail.distance" = "総距離";

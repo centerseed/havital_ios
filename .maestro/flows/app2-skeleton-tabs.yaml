@@ -43,10 +43,8 @@ tags:
     id: "App2_LevelBadge"
 - takeScreenshot: app2-01-home
 
-# 指標列預設收合（設計 frame-00 就是那一排彩色膠囊）。展開列本身不做斷言：
-# 它是一整排無文字的膠囊，SwiftUI 不把它曝進 accessibility tree
-# （2026-08-25 用 maestro hierarchy dump 確認，`.combine`／`.ignore` 都不行），
-# 與檔頭那條 ScrollView 的限制同一類。
+# 首頁 v2：LV 徽章在訓練狀況卡裡（不再是 header 的設定入口），
+# 指標區預設只展開最值得看的 2–3 列，其餘收在 `App2_InsightHandle` 後面。
 
 # 首頁下半（今日課表卡 ＋ 週回顧／Rizo 入口）
 - scroll

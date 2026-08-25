@@ -90,6 +90,10 @@ struct App2Insight: Identifiable, Equatable {
     let change: String?
     /// 後端明說 `not_computed` —— 畫面要說出「尚未計算」，不是靜靜地灰掉。
     let isNotComputed: Bool
+    /// 後端真的評出來了（`status == "graded"`）。
+    let isGraded: Bool
+    /// 後端判為正向（`dot == "positive"`）—— 首頁「最強項保底」用的就是這一欄。
+    let isPositive: Bool
 
     init(
         id: String,
@@ -98,7 +102,9 @@ struct App2Insight: Identifiable, Equatable {
         direction: Direction,
         verdict: String?,
         change: String? = nil,
-        isNotComputed: Bool = false
+        isNotComputed: Bool = false,
+        isGraded: Bool = true,
+        isPositive: Bool = false
     ) {
         self.id = id
         self.label = label
@@ -107,6 +113,8 @@ struct App2Insight: Identifiable, Equatable {
         self.verdict = verdict
         self.change = change
         self.isNotComputed = isNotComputed
+        self.isGraded = isGraded
+        self.isPositive = isPositive
     }
 
     enum Direction: String, Equatable {

@@ -26,14 +26,18 @@ struct App2HomeView: View {
     @State private var isShowingPlanOverview = false
     /// 今日課表卡點下去開的訓練詳情（設計 frame-02）。nil = 沒開。
     @State private var detailSession: App2SessionDetail?
+    /// 通知清單（首頁 v2 的鈴鐺）。
+    ///
+    /// **開的是既有的訊息中心** `MessageCenterView`（公告模組，AC-ANN-03），
+    /// 不另做一頁 2.0 專用的通知清單 —— 那會是同一件事的第二份實作，
+    /// 而且它已經有真的 producer（未讀數就是那顆紅點的來源）。
+    @State private var isShowingNotifications = false
+    @StateObject private var announcementViewModel = AnnouncementViewModel(
+        repository: DependencyContainer.shared.resolve()
+    )
     /// 模態頁的 ViewModel 在這裡持有（tab 才由 `App2RootView` 持有）——
     /// 沒被打開過就不會 fetch（載入在被呈現那一頁的 `.task`）。
     @StateObject private var planOverviewViewModel = App2PlanOverviewViewModel()
-
-    private let insightColumns = [
-        GridItem(.flexible(), spacing: 9),
-        GridItem(.flexible(), spacing: 9)
-    ]
 
     var body: some View {
         ScrollView {
@@ -50,7 +54,11 @@ struct App2HomeView: View {
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
         .accessibilityIdentifier("App2_HomeView")
-        .task { await viewModel.loadIfNeeded() }
+        .task {
+            // 未讀數要先載才算得出鈴鐺上那顆紅點（沿用 1.4 的同一支）。
+            announcementViewModel.loadAnnouncementsIfNeeded()
+            await viewModel.loadIfNeeded()
+        }
         // 下拉刷新＝強制重驗（跳過 60 秒門檻）。不清畫面、不進 loading。
         .refreshable { await viewModel.forceRefresh() }
         .fullScreenCover(isPresented: $isShowingPlanOverview) {
@@ -62,6 +70,16 @@ struct App2HomeView: View {
                 },
                 viewModel: planOverviewViewModel
             )
+        }
+        .sheet(isPresented: $isShowingNotifications) {
+            NavigationStack {
+                MessageCenterView(viewModel: announcementViewModel)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            Button(L10n.Common.close.localized) { isShowingNotifications = false }
+                        }
+                    }
+            }
         }
         .fullScreenCover(item: $detailSession) { detail in
             App2SessionDetailView(detail: detail) { detailSession = nil }
@@ -90,31 +108,85 @@ struct App2HomeView: View {
 
     // MARK: - Header（字標 ＋ LV 六角徽章）
 
+    /// 首頁 v2 的 header（設計 `screens/frame-00b-home-v2.png`）：
+    /// 字標 ＋ 右上兩顆 40pt 白色圓鈕（通知鈴鐺、「…」選單）。
+    ///
+    /// **LV 徽章不再是設定入口**（2026-08-25 裁決）——它搬進訓練狀況卡，
+    /// 設定改走「…」選單的「個人資料」。
     private var header: some View {
-        HStack(alignment: .center) {
+        HStack(alignment: .center, spacing: 10) {
             Text(verbatim: "Paceriz")
                 .font(.system(size: 24, weight: .black))
                 .tracking(0.5)
                 .foregroundStyle(App2Theme.inkPrimary)
             Spacer()
-            // §7-1：backend 沒有等級讀口 → 徽章只留字標，不顯示數字（票面剩餘差異）。
-            // 徽章同時是首頁的**設定入口**（其他頁是頭像）。
-            // Button 會吃掉 label 上的 identifier（同頁 insightHandle 的註解），
-            // 所以用容器 ＋ onTapGesture。
-            App2LevelBadge()
-                .contentShape(Rectangle())
-                .onTapGesture(perform: onOpenSettings)
-                // 併成單一葉節點，否則 identifier 掛在容器上、a11y tree 只看得到
-                // 裡面的 "LV" 字（同頁 insightHandle 踩過同一個坑）。
-                .accessibilityElement(children: .ignore)
-                .accessibilityAddTraits(.isButton)
-                .accessibilityLabel(L10n.App2.Tab.settings.localized)
-                // 併節點會蓋掉徽章自己掛的 identifier，所以整個入口就叫
-                // `App2_LevelBadge`（設定入口＝這顆徽章，只有一個名字）。
-                .accessibilityIdentifier("App2_LevelBadge")
+            roundButton(
+                symbol: "bell",
+                label: L10n.App2.Home.notifications.localized,
+                identifier: "App2_NotificationsEntry",
+                // 紅點是真的：`unreadCount` 來自既有的公告模組，不是裝飾。
+                showsBadge: announcementViewModel.unreadCount > 0
+            ) { isShowingNotifications = true }
+            homeMenu
         }
         .padding(.horizontal, 4)
         .padding(.bottom, 0)
+    }
+
+    /// 「…」選單。**兩個 item 都有真的目的地**：個人資料 → 既有的 2.0 設定頁，
+    /// 修改課表 → 編輯週課表。沒有目的地的項目不放進來。
+    private var homeMenu: some View {
+        Menu {
+            Button {
+                onOpenSettings()
+            } label: {
+                Label(L10n.App2.Home.menuProfile.localized, systemImage: "person.crop.circle")
+            }
+        } label: {
+            roundButtonSurface(symbol: "ellipsis")
+        }
+        .accessibilityLabel(L10n.App2.Home.menu.localized)
+        .accessibilityIdentifier("App2_HomeMenu")
+    }
+
+    private func roundButton(
+        symbol: String,
+        label: String,
+        identifier: String,
+        showsBadge: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
+        // Button 會吃掉 label 上的 accessibilityIdentifier（同頁 insightHandle 的註解），
+        // 所以用容器 ＋ onTapGesture ＋ 單一葉節點。
+        roundButtonSurface(symbol: symbol)
+            .overlay(alignment: .topTrailing) {
+                if showsBadge {
+                    Circle()
+                        .fill(App2Theme.accentRed)
+                        .frame(width: 8, height: 8)
+                        .overlay(Circle().strokeBorder(.white, lineWidth: 1.5))
+                        .offset(x: -8, y: 8)
+                }
+            }
+            .contentShape(Circle())
+            .onTapGesture(perform: action)
+            .accessibilityElement(children: .ignore)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel(label)
+            .accessibilityIdentifier(identifier)
+    }
+
+    private func roundButtonSurface(symbol: String) -> some View {
+        Circle()
+            .fill(App2Theme.cardBackground)
+            .frame(width: 40, height: 40)
+            .overlay(Circle().strokeBorder(App2Theme.shadowInk.opacity(0.08), lineWidth: 1))
+            .overlay {
+                Image(systemName: symbol)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(App2Theme.inkPrimary)
+            }
+            .shadow(color: App2Theme.shadowInk.opacity(0.16), radius: 5, x: 0, y: 4)
     }
 
     // MARK: - §3.1 目標賽事卡（設計：藍漸層卡）
@@ -210,34 +282,49 @@ struct App2HomeView: View {
                         .font(.app2CardTitle)
                         .tracking(0.5)
                         .foregroundStyle(App2Theme.inkPrimary)
+                        // 卡片標記掛在標題這顆葉節點上 —— 掛在容器上 SwiftUI 會把
+                        // identifier 蓋到每一個子節點，卡內的 LV 徽章、指標 handle
+                        // 在 a11y tree 裡就全部叫 `App2_TrainingStatusCard`
+                        // （2026-08-25 maestro 實測，同 `App2PageHeader` 的註解）。
+                        .accessibilityIdentifier("App2_TrainingStatusCard")
                     Spacer()
                     App2StubBadge(origin: sourced.origin)
                 }
 
                 statusBanner(status)
                 insightHandle
-                if isGridExpanded { insightsGrid }
+                insightsGrid
             }
-            .accessibilityIdentifier("App2_TrainingStatusCard")
         }
     }
 
-    /// 設計的 headline 區塊：淺藍底 inset，內含 headline 句、敘事句、軌跡圖、圖例。
+    /// 設計 v2 的 headline 區塊：淺藍底 inset，**左邊是 LV 六角徽章、右邊是教練洞察**
+    /// （2026-08-25 裁決：LV 徽章從 header 搬進訓練狀況卡，與教練洞察同一列），
+    /// 下面接軌跡圖與圖例。
     private func statusBanner(_ status: App2TrainingStatus) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(status.headline)
-                .font(.system(size: 16, weight: .black))
-                .tracking(0.3)
-                .foregroundStyle(App2Theme.accentBlueDeep)
-                .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .center, spacing: 13) {
+                // §7-1：backend 沒有等級讀口 → 徽章只有字標，不顯示數字。
+                App2LevelBadge()
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(L10n.App2.Home.statusSection.localized)
+                    .accessibilityIdentifier("App2_LevelBadge")
 
-            if let narrative = status.narrative {
-                Text(narrative)
-                    .font(.system(size: 14, weight: .semibold))
-                    .lineSpacing(3)
-                    .foregroundStyle(App2Theme.inkSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 2)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(status.headline)
+                        .font(.system(size: 17, weight: .black))
+                        .tracking(0.3)
+                        .foregroundStyle(App2Theme.accentBlueDeep)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if let narrative = status.narrative {
+                        Text(narrative)
+                            .font(.system(size: 14, weight: .semibold))
+                            .lineSpacing(3)
+                            .foregroundStyle(App2Theme.inkSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
             }
 
             App2TrajectoryChart(
@@ -271,64 +358,103 @@ struct App2HomeView: View {
         )
     }
 
-    /// 收合列：一排彩色指標膠囊 ＋ 展開箭頭（設計 frame-00 那一排）。
+    /// 指標區的標題列（設計 v2：小標 ＋ 右側 chevron，整列可點展開／收合）。
     @ViewBuilder
     private var insightHandle: some View {
         if let sourced = viewModel.insights {
             // 用容器＋onTapGesture 而不是 Button：Button 會吃掉 label 上的
             // accessibilityIdentifier，maestro 在 accessibility tree 抓不到
             // （2026-08-25 實測，同頁的非 Button 卡片 id 都抓得到）。
-            Group {
-                HStack(spacing: 8) {
-                    HStack(spacing: 6) {
-                        ForEach(sourced.value) { insight in
-                            App2InsightChip(insight: insight)
-                        }
-                    }
-                    Spacer(minLength: 4)
-                    // 收合態也要標樣本來源 —— 否則只有展開後才看得出這排膠囊不是真值。
-                    App2StubBadge(origin: sourced.origin)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(App2Theme.inkMuted)
-                        .rotationEffect(.degrees(isGridExpanded ? 180 : 0))
-                }
-                .padding(.horizontal, 11)
-                .padding(.vertical, 9)
-                .frame(maxWidth: .infinity)
-                .app2InsetSurface(cornerRadius: 13)
+            HStack(spacing: 8) {
+                Text(L10n.App2.Home.insightsSection.localized)
+                    .font(.system(size: 14, weight: .black))
+                    .tracking(0.5)
+                    .foregroundStyle(App2Theme.inkPrimary)
+                Spacer(minLength: 4)
+                App2StubBadge(origin: sourced.origin)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(App2Theme.inkMuted)
+                    .rotationEffect(.degrees(isGridExpanded ? 180 : 0))
             }
+            .padding(.horizontal, 2)
+            .frame(maxWidth: .infinity)
             .contentShape(Rectangle())
             .onTapGesture {
                 withAnimation(.easeInOut(duration: 0.2)) { isGridExpanded.toggle() }
             }
-            // 做成單一 accessibility 葉節點：這一列全是彩色膠囊（SF Symbol ＋ 箭頭符號），
-            // 沒有可讀文字，`.combine` 併出來的元素標籤是空的會被丟掉，identifier 也跟著
-            // 不出現在 tree 上（2026-08-25 用 maestro 的 hierarchy dump 確認）。
-            // 改成 `.ignore` ＋ 明確 label。
+            // 做成單一 accessibility 葉節點 ＋ 明確 label：`.combine` 併出來的元素
+            // 標籤可能是空的而被丟掉，identifier 也跟著不出現在 tree 上
+            // （2026-08-25 用 maestro 的 hierarchy dump 確認）。
             .accessibilityElement(children: .ignore)
             .accessibilityAddTraits(.isButton)
-            .accessibilityLabel(L10n.App2.Home.insightsSection.localized)
+            .accessibilityLabel(
+                isGridExpanded
+                    ? L10n.App2.Home.insightsSection.localized
+                    : L10n.App2.Home.insightsMore.localized
+            )
             .accessibilityIdentifier("App2_InsightHandle")
         }
     }
 
+    /// 指標列（設計 v2：icon ＋ 指標名 ＋ 判語 ＋ 右側分數變化與箭頭）。
+    ///
+    /// **預設只展開最值得看的 2–3 列**（2026-08-25 裁決），其餘收在 chevron 後。
+    /// 挑哪幾列由 `App2HomeViewModel.highlightedInsights` 決定，用的是後端的
+    /// `arrow`／`dot`／`status`，不在畫面層推。
     @ViewBuilder
     private var insightsGrid: some View {
         if let sourced = viewModel.insights {
-            VStack(alignment: .leading, spacing: 9) {
-                LazyVGrid(columns: insightColumns, spacing: 9) {
-                    ForEach(sourced.value) { insight in
-                        App2InsightCell(insight: insight)
+            let rows = isGridExpanded
+                ? sourced.value
+                : App2HomeViewModel.highlightedInsights(sourced.value)
+            VStack(spacing: 0) {
+                ForEach(Array(rows.enumerated()), id: \.element.id) { index, insight in
+                    if index > 0 {
+                        Rectangle()
+                            .fill(App2Theme.insetBorder)
+                            .frame(height: 1)
                     }
-                }
-                HStack {
-                    Spacer()
-                    App2StubBadge(origin: sourced.origin)
+                    insightRow(insight)
                 }
             }
             .accessibilityIdentifier("App2_InsightsGrid")
         }
+    }
+
+    private func insightRow(_ insight: App2Insight) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: insight.symbolName)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(insight.tint)
+                .frame(width: 20)
+            Text(insight.label)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(App2Theme.inkSubtle)
+                .lineLimit(1)
+            if let verdict = insight.verdict {
+                Text(verdict)
+                    .font(.system(size: 14, weight: .heavy))
+                    .foregroundStyle(insight.tint)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 6)
+            if let change = insight.change {
+                Text(change)
+                    .font(.app2Mono(12, weight: .bold))
+                    .foregroundStyle(App2Theme.inkFaint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            Text(insight.arrowGlyph)
+                .font(.app2Mono(15))
+                .foregroundStyle(insight.tint)
+                .frame(width: 13)
+        }
+        .padding(.vertical, 9)
+        .padding(.horizontal, 2)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("App2_InsightRow_\(insight.id)")
     }
 
     // MARK: - §3.1 今日課表卡（設計 frame-00 下半，完整版）

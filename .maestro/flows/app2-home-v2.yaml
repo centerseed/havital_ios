@@ -1,0 +1,55 @@
+appId: com.havital.Havital.dev
+tags:
+  - app2
+---
+# T-0306 wave3 §2 —— 首頁 v2（header 兩顆圓鈕、LV 徽章進訓練狀況卡、指標列）的實走證據。
+#
+# 走正常啟動（模擬器已登入創辦人 dev 帳號），拿 dev 真資料。
+# `clearState: false`：這台模擬器是用戶本人在用，不得清 keychain 或資料。
+
+- launchApp:
+    clearState: false
+    arguments:
+      "-skipHealthKitAuth": true
+
+- tapOn:
+    text: "知道了，不再顯示"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "App2_TrainingStatusCard"
+    timeout: 60000
+- assertVisible:
+    id: "App2_NotificationsEntry"
+- assertVisible:
+    id: "App2_HomeMenu"
+- assertVisible:
+    id: "App2_LevelBadge"
+- takeScreenshot: wave3-08-home-v2-header
+
+# 指標區：預設 2–3 列，點 handle 展開全部。
+- tapOn:
+    id: "App2_InsightHandle"
+- takeScreenshot: wave3-09-home-v2-insights-expanded
+- tapOn:
+    id: "App2_InsightHandle"
+
+# 通知鈴鐺 → 既有的訊息中心。
+- tapOn:
+    id: "App2_NotificationsEntry"
+- takeScreenshot: wave3-10-message-center
+- tapOn:
+    text: "關閉"
+
+# 「…」選單 → 個人資料（既有的 2.0 設定頁）。
+- tapOn:
+    id: "App2_HomeMenu"
+- takeScreenshot: wave3-11-home-menu
+- tapOn:
+    text: "個人資料"
+- extendedWaitUntil:
+    visible:
+      id: "App2_SettingsView"
+    timeout: 30000
+- takeScreenshot: wave3-12-settings-from-menu

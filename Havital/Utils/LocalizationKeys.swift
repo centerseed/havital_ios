@@ -2050,7 +2050,14 @@ extension L10n {
             static let restBody = "app2.home.rest_body"
             static let crossTitle = "app2.home.cross_title"
             static let crossBody = "app2.home.cross_body"
+            /// 首頁 v2 header（設計 `screens/frame-00b-home-v2.png`）。
+            static let notifications = "app2.home.notifications"
+            static let menu = "app2.home.menu"
+            static let menuProfile = "app2.home.menu_profile"
+            static let menuEditPlan = "app2.home.menu_edit_plan"
+            static let insightsMore = "app2.home.insights_more"
         }
+
 
         /// 今日課表卡與訓練詳情共用的設計稿靜態文案。
         enum Session {

@@ -50,11 +50,19 @@ struct DailyStateInsight: Equatable {
     let verdict: String?
     let change: String?
     let evidence: String?
-    /// `graded`／`not_computed`。
+    /// 後端對這一列的正負判定（`positive`／`neutral`／`unknown`）。
+    ///
+    /// **這是評級層的結論，app 端不自己推。** 2.0 首頁只展開最值得看的幾列
+    /// （`App2HomeViewModel.highlightedInsights`），「哪一列算強項」用的就是這一欄，
+    /// 不拿 `verdict` 的字面去比對詞表。
+    var dot: String? = nil
+    /// `graded`／`insufficient_data`／`not_computed`。
     let status: String?
 
     /// 後端明說「還沒算」。畫面要說出這件事,不是靜靜地灰掉。
     var isNotComputed: Bool { status == "not_computed" }
+    /// 後端真的評出來了（`insufficient_data`／`not_computed` 都不算）。
+    var isGraded: Bool { status == "graded" }
 }
 
 // MARK: - SameDayBenchmarkCalibration (T-0142)

@@ -388,9 +388,33 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 direction: App2Insight.Direction(rawValue: row.arrow.rawValue) ?? .unknown,
                 verdict: row.verdict,
                 change: row.change,
-                isNotComputed: row.isNotComputed
+                isNotComputed: row.isNotComputed,
+                isGraded: row.isGraded,
+                isPositive: row.dot == "positive"
             )
         }
+    }
+
+    /// 首頁預設展開的指標列（2026-08-25 裁決：只展開最值得看的 2–3 列，
+    /// **變化最大者優先、最強項保底**，其餘收在 chevron 後）。
+    ///
+    /// 「變化最大」與「最強項」都用**後端的判定**，不在 app 端推：
+    /// - 有方向的變化 ＝ `arrow` 是 up／down（`flat`／缺席不算變化）
+    /// - 最強項 ＝ `dot == "positive"`
+    ///
+    /// 分三層取前 `limit` 列，層內維持後端給的順序（排序是評級層的決定，不是呈現層的）：
+    /// 1. 已評級 ＋ 有方向 → 這一週真的動了的
+    /// 2. 已評級 ＋ 正向 → 沒動但是強項，保底
+    /// 3. 其餘已評級
+    ///
+    /// `insufficient_data`／`not_computed` **一列都不進**：預設展開的位置要留給
+    /// 有話可說的指標，「還看不準」放在 chevron 後面就好。
+    static func highlightedInsights(_ rows: [App2Insight], limit: Int = 3) -> [App2Insight] {
+        let graded = rows.filter(\.isGraded)
+        let changed = graded.filter { $0.direction == .up || $0.direction == .down }
+        let strong = graded.filter { $0.isPositive && !changed.contains($0) }
+        let rest = graded.filter { !changed.contains($0) && !strong.contains($0) }
+        return Array((changed + strong + rest).prefix(limit))
     }
 
     /// Rizo 卡的開場句。**用既有的狀態句組，不生成新文案。**
