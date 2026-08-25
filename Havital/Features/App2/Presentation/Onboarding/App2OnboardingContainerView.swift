@@ -790,23 +790,15 @@ struct App2OnboardingDeviceLinkView: View {
     }
 
     private var garminRow: some View {
-        sourceRow(
-            leading: AnyView(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(App2Theme.sourceDarkTile)
-                    .frame(width: 46, height: 46)
-                    .overlay(
-                        Image(systemName: "applewatch")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(.white)
-                    )
-            ),
+        App2DataSourceRow(
+            leading: { App2DataSourceTile.garmin },
             title: "Garmin",
-            subtitle: garmin.isConnected ? nil : L10n.App2.Onboarding.deviceGarminSub.localized,
+            subtitle: L10n.App2.Onboarding.deviceGarminSub.localized,
             isConnected: garmin.isConnected,
             actionTitle: garmin.isConnected
                 ? L10n.App2.Onboarding.deviceDisconnect.localized
                 : L10n.App2.Onboarding.deviceConnect.localized,
+            actionIdentifier: "App2_OnboardingDeviceGarminAction",
             action: {
                 Task {
                     if garmin.isConnected {
@@ -822,86 +814,16 @@ struct App2OnboardingDeviceLinkView: View {
 
     private var appleHealthRow: some View {
         let connected = viewModel.profile.currentDataSource == .appleHealth
-        return sourceRow(
-            leading: AnyView(
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(App2Theme.sourceLightTile)
-                    .frame(width: 46, height: 46)
-                    .overlay(
-                        Image(systemName: "heart.fill")
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(App2Theme.appleHealthRed)
-                    )
-            ),
+        return App2DataSourceRow(
+            leading: { App2DataSourceTile.appleHealth },
             title: "Apple Health",
-            subtitle: connected ? nil : L10n.App2.Onboarding.deviceAppleHealthSub.localized,
+            subtitle: L10n.App2.Onboarding.deviceAppleHealthSub.localized,
             isConnected: connected,
             actionTitle: connected ? nil : L10n.App2.Onboarding.deviceConnect.localized,
+            actionIdentifier: "App2_OnboardingDeviceAppleHealthAction",
             action: { Task { await viewModel.connectAppleHealth() } }
         )
         .accessibilityIdentifier("App2_OnboardingDeviceAppleHealthRow")
-    }
-
-    private func sourceRow(
-        leading: AnyView,
-        title: String,
-        subtitle: String?,
-        isConnected: Bool,
-        actionTitle: String?,
-        action: @escaping () -> Void
-    ) -> some View {
-        HStack(spacing: 14) {
-            leading
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.system(size: 18, weight: .black))
-                    .foregroundStyle(App2Theme.inkPrimary)
-                if isConnected {
-                    HStack(spacing: 6) {
-                        Circle().fill(App2Theme.accentGreenDot).frame(width: 6, height: 6)
-                        Text(L10n.App2.Onboarding.deviceConnected.localized)
-                            .font(.system(size: 13, weight: .heavy))
-                            .foregroundStyle(App2Theme.accentGreenDot)
-                    }
-                } else if let subtitle {
-                    Text(subtitle)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(App2Theme.inkSubtle)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            if let actionTitle {
-                Button(action: action) {
-                    Text(actionTitle)
-                        .font(.system(size: 14, weight: .heavy))
-                        .foregroundStyle(isConnected ? App2Theme.inkSubtle : .white)
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 10)
-                        .background(
-                            Capsule().fill(isConnected ? Color(hex: "#EEF2F7") : App2Theme.accentBlue)
-                        )
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(isConnected
-                      ? AnyShapeStyle(App2Theme.accentGreenBright.opacity(0.07))
-                      : AnyShapeStyle(App2Theme.cardBackground))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(
-                    isConnected
-                        ? App2Theme.accentGreenBright.opacity(0.35)
-                        : Color(hex: "#0F172A").opacity(0.07),
-                    lineWidth: 1
-                )
-        )
     }
 
     private var syncNote: some View {

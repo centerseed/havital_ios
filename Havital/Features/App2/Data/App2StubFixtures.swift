@@ -30,7 +30,6 @@ enum App2StubFixtures {
         static let trajectory = "§7-16"
         static let insightVerdict = "§7-2"
         static let levelBadge = "§7-1"
-        static let raceCountdownPref = "§3.9a"
         /// 端點存在但本機取不到資料。
         static let offline = "offline"
     }
@@ -41,7 +40,6 @@ enum App2StubFixtures {
     static var insights: [App2Insight] { payload.insights.map(\.domain) }
     static var planWeek: App2PlanWeek { payload.planWeek.domain }
     static var records: App2Records { payload.records.domain }
-    static var settings: App2SettingsSnapshot { payload.settings.domain }
 
     /// §7-16 軌跡圖序列 —— 沒有 HTTP 出口，永遠是樣本。
     ///
@@ -126,14 +124,12 @@ enum App2StubFixtures {
         let insights: [InsightFixture]
         let planWeek: PlanWeekFixture
         let records: RecordsFixture
-        let settings: SettingsFixture
 
         static let empty = Payload(
             trainingStatus: .empty,
             insights: [],
             planWeek: .empty,
-            records: .empty,
-            settings: .empty
+            records: .empty
         )
     }
 
@@ -290,35 +286,4 @@ enum App2StubFixtures {
         }
     }
 
-    /// 帳號 email 與訂閱狀態**不在樣本裡**：兩者都有既有讀口
-    /// （`AuthenticationViewModel` / `SubscriptionStateManager`），拿不到就顯示空，
-    /// 不用編造值填 profile 卡。
-    private struct SettingsFixture: Codable {
-        let dataSources: [DataSourceFixture]
-        let weeklyDistanceKm: Double?
-        let trainingDays: [String]
-        let raceCountdownDays: Int
-
-        static let empty = SettingsFixture(
-            dataSources: [], weeklyDistanceKm: nil, trainingDays: [], raceCountdownDays: 30
-        )
-
-        var domain: App2SettingsSnapshot {
-            App2SettingsSnapshot(
-                accountEmail: nil, subscriptionLabel: nil,
-                dataSources: dataSources.map(\.domain), weeklyDistanceKm: weeklyDistanceKm,
-                trainingDays: trainingDays, raceCountdownDays: raceCountdownDays
-            )
-        }
-    }
-
-    private struct DataSourceFixture: Codable {
-        let name: String
-        let statusLabel: String
-        let isConnected: Bool
-
-        var domain: App2DataSourceStatus {
-            App2DataSourceStatus(name: name, statusLabel: statusLabel, isConnected: isConnected)
-        }
-    }
 }

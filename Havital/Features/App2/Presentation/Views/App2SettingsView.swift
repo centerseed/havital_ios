@@ -1,25 +1,43 @@
 import SwiftUI
 
+// MARK: - App2SettingsDestination
+/// 設定首頁能推出去的子頁（設計 frame-22 ~ frame-29）。
+enum App2SettingsDestination: String, Identifiable {
+    case plans          // frame-22
+    case training       // frame-23
+    case dataSource     // frame-24／25
+    case heartRate      // frame-26
+    case paceZones      // frame-27
+    case system         // frame-28
+    case deleteAccount  // frame-29
+    case climate        // 高溫適應（1.4 既有頁）
+    case reonboarding   // 重設目標（既有 onboarding 流程）
+
+    var id: String { rawValue }
+}
+
 // MARK: - App2SettingsView
 /// 2.0 設定頁 —— 設計 **frame-21「設定 · 首頁」**（語意見
 /// `DESIGN-app2-decision-chain-api.md` §3.9a）。
 ///
-/// **不是 tab**：設計把第四格留給成就，設定改由課表頁右上角的頭像進入，
-/// 左上是返回鍵（設計 frame-21 第一列）。
+/// **不是 tab**：入口是首頁右上「…」menu 的「個人資料」（2026-08-25 裁決），
+/// 左上是返回鍵。
 ///
-/// 版面：profile 卡 → 訂閱（藍卡 ＋ 兩顆按鈕）→ 訓練設定（分組清單）
-/// → 數據來源（分組清單，右側連接狀態）。
-/// 設計另有「生理指標」「系統」兩組（frame-26／27／28），app 端目前沒有讀口，
-/// 本輪不擺空殼 —— 列在票面剩餘差異。
+/// 版面（照 dc.html「設定 · 首頁」逐段）：profile 卡 → 訂閱 → 訓練設定 →
+/// 數據來源 → 生理指標 → 系統 → 帳戶 → 版本 ＋ 刪除帳戶。
+/// 每一列都推到對應子頁，子頁的讀寫全部落在 1.4 既有出口（見各子頁檔首）。
 struct App2SettingsView: View {
 
     let onClose: () -> Void
 
     @ObservedObject var viewModel: App2SettingsViewModel
-    /// 「重新設定目標賽事」走 2.0 的 onboarding 流程（`App2OnboardingContainerView`，
-    /// 設計 frame-31 起）。**邏輯不是第二份**：它底下仍是 `OnboardingCoordinator` /
-    /// `OnboardingFeatureViewModel`，與首次 onboarding 同一條提交路徑。
-    @State private var isShowingGoalSetup = false
+    @State private var destination: App2SettingsDestination?
+
+    private var appVersion: String {
+        let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
+        return "Paceriz v\(short) (\(build))"
+    }
 
     var body: some View {
         ScrollView {
@@ -28,11 +46,13 @@ struct App2SettingsView: View {
 
                 if let sourced = viewModel.snapshot {
                     profileCard(sourced)
-                    goalSection
                     subscriptionSection(sourced)
                     trainingSection(sourced)
                     dataSourceSection(sourced)
+                    physiologySection
+                    systemSection
                     accountSection
+                    footer
                 } else {
                     ProgressView().frame(maxWidth: .infinity, minHeight: 200)
                 }
@@ -42,72 +62,49 @@ struct App2SettingsView: View {
             .padding(.bottom, 40)
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
-        .accessibilityIdentifier("App2_SettingsView")
         .onAppear { viewModel.loadIfNeeded() }
-        .fullScreenCover(isPresented: $isShowingGoalSetup) {
-            App2OnboardingContainerView(isReonboarding: true) {
-                isShowingGoalSetup = false
-            }
+        // 子頁一律 `fullScreenCover`：這一頁自己就開在 fullScreenCover 裡，
+        // 巢狀 sheet 不會進 accessibility tree（repo 既有坑）。
+        .fullScreenCover(item: $destination) { destination in
+            subpage(destination)
         }
     }
 
-    // MARK: - 目標賽事
-
-    private var goalSection: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            App2SectionCaption(text: L10n.App2.Settings.goalSection.localized)
-                .padding(.top, 20)
-
-            App2GroupedList {
-                App2SettingsRow(
-                    systemImage: "flag.checkered.2.crossed",
-                    title: L10n.App2.Settings.resetGoalRace.localized,
-                    value: "",
-                    showsDivider: false
-                )
-            }
-            // Button 會吃掉 identifier（同 repo 既有註解），用容器 + onTapGesture。
-            .contentShape(Rectangle())
-            .onTapGesture { isShowingGoalSetup = true }
-            .accessibilityAddTraits(.isButton)
-            .accessibilityIdentifier("App2_SettingsResetGoalRace")
+    @ViewBuilder
+    private func subpage(_ destination: App2SettingsDestination) -> some View {
+        let dismiss = { self.destination = nil }
+        switch destination {
+        case .plans:
+            App2PlansView(onClose: dismiss)
+        case .training:
+            App2TrainingSettingsView(onClose: dismiss, viewModel: viewModel)
+        case .dataSource:
+            App2DataSourceSettingsView(onClose: dismiss, viewModel: viewModel)
+        case .heartRate:
+            App2HeartRateZoneSettingsView(onClose: dismiss, viewModel: viewModel)
+        case .paceZones:
+            App2PaceZoneSettingsView(onClose: dismiss, viewModel: viewModel)
+        case .system:
+            App2SystemSettingsView(onClose: dismiss, viewModel: viewModel)
+        case .deleteAccount:
+            App2DeleteAccountView(onClose: dismiss, viewModel: viewModel)
+        case .climate:
+            // 1.4 既有頁，不在 2.0 重做一份。
+            ClimateSettingsView()
+        case .reonboarding:
+            // 「重設目標」走 2.0 版面的 onboarding，底下仍是 `OnboardingCoordinator`。
+            App2OnboardingContainerView(isReonboarding: true, onFinished: dismiss)
         }
     }
 
-    // MARK: - 帳號（登出）
-
-    /// 登出走既有的 `AuthenticationViewModel.shared.signOut()`，不另寫一份 2.0 版。
-    /// 這一列在 1.x 是在個人檔案頁；2.0 的設定頁沒有它就換不了帳號。
-    private var accountSection: some View {
-        VStack(alignment: .leading, spacing: 9) {
-            App2GroupedList {
-                App2SettingsRow(
-                    systemImage: "rectangle.portrait.and.arrow.right",
-                    iconTint: App2Theme.accentRed,
-                    iconBackground: App2Theme.accentRed.opacity(0.1),
-                    title: NSLocalizedString("common.logout", comment: ""),
-                    value: "",
-                    showsDivider: false
-                )
-            }
-            .padding(.top, 20)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                Task { await AuthenticationViewModel.shared.signOut() }
-            }
-            .accessibilityAddTraits(.isButton)
-            .accessibilityIdentifier("App2_SettingsLogout")
-        }
-    }
-
-    /// 頁首走共用的 `App2PageHeader`（設計 frame-12／20／21 是同一個構造），
-    /// 不在這裡留第二份返回鍵樣式。
+    /// 頁首走共用的 `App2PageHeader`（設計 frame-12／20／21 是同一個構造）。
     private var header: some View {
         App2PageHeader(
             title: L10n.App2.Settings.title.localized,
             titleSize: 22,
             onBack: onClose,
-            backIdentifier: "App2_SettingsClose"
+            backIdentifier: "App2_SettingsClose",
+            titleIdentifier: "App2_SettingsView"
         ) { EmptyView() }
     }
 
@@ -133,9 +130,6 @@ struct App2SettingsView: View {
                 }
             }
             Spacer(minLength: 8)
-            Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .heavy))
-                .foregroundStyle(App2Theme.chevron)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 15)
@@ -168,25 +162,32 @@ struct App2SettingsView: View {
                 HStack(spacing: 10) {
                     subscriptionButton(
                         title: L10n.App2.Settings.manageSubscription.localized,
-                        filled: false
-                    )
+                        filled: false,
+                        identifier: "App2_SettingsManageSubscription"
+                    ) {
+                        guard let url = URL(string: "https://apps.apple.com/account/subscriptions")
+                        else { return }
+                        UIApplication.shared.open(url)
+                    }
                     subscriptionButton(
                         title: L10n.App2.Settings.viewPlans.localized,
-                        filled: true
-                    )
+                        filled: true,
+                        identifier: "App2_SettingsViewPlans"
+                    ) {
+                        destination = .plans
+                    }
                 }
                 .padding(.top, 14)
-
-                Text(L10n.App2.Settings.redeemCode.localized)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(App2Theme.accentBlueDeep)
-                    .frame(maxWidth: .infinity)
-                    .padding(.top, 13)
             }
         }
     }
 
-    private func subscriptionButton(title: String, filled: Bool) -> some View {
+    private func subscriptionButton(
+        title: String,
+        filled: Bool,
+        identifier: String,
+        action: @escaping () -> Void
+    ) -> some View {
         Text(title)
             .font(.system(size: 14, weight: .heavy))
             .foregroundStyle(filled ? .white : App2Theme.accentBlueDeep)
@@ -203,6 +204,10 @@ struct App2SettingsView: View {
                         lineWidth: 1
                     )
             )
+            .contentShape(Rectangle())
+            .onTapGesture(perform: action)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityIdentifier(identifier)
     }
 
     // MARK: - 訓練設定
@@ -210,11 +215,8 @@ struct App2SettingsView: View {
     private func trainingSection(_ sourced: App2Sourced<App2SettingsSnapshot>) -> some View {
         let snapshot = sourced.value
         return VStack(alignment: .leading, spacing: 9) {
-            HStack {
-                App2SectionCaption(text: L10n.App2.Settings.trainingSection.localized)
-                App2StubBadge(origin: sourced.origin)
-            }
-            .padding(.top, 20)
+            App2SectionCaption(text: L10n.App2.Settings.trainingSection.localized)
+                .padding(.top, 20)
 
             App2GroupedList {
                 App2SettingsRow(
@@ -235,17 +237,23 @@ struct App2SettingsView: View {
                 App2SettingsRow(
                     systemImage: "flag.checkered",
                     title: L10n.App2.Settings.raceCountdown.localized,
-                    // 天數走既有的三語格式字，不硬寫 `d`（與訂閱膠囊同一個缺陷）。
+                    // 天數走既有的三語格式字，不硬寫 `d`。
                     value: String(
-                        format: NSLocalizedString("profile.subscription.days_remaining", comment: ""),
+                        format: NSLocalizedString("profile.race_countdown.days_value", comment: ""),
                         snapshot.raceCountdownDays
                     ),
                     monospaced: true,
                     showsDivider: false
                 )
             }
+            // 三列共用同一個目的地：設計 frame-23 就是把週跑量與訓練日放在同一頁。
+            // 賽事倒數卡的偏好目前只有 1.4 設定頁能改（`@AppStorage`），
+            // 2.0 這一列先只顯示現值，列在票面缺口。
+            .contentShape(Rectangle())
+            .onTapGesture { destination = .training }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityIdentifier("App2_SettingsTrainingCard")
         }
-        .accessibilityIdentifier("App2_SettingsTrainingCard")
     }
 
     // MARK: - 數據來源
@@ -253,20 +261,17 @@ struct App2SettingsView: View {
     private func dataSourceSection(_ sourced: App2Sourced<App2SettingsSnapshot>) -> some View {
         let sources = sourced.value.dataSources
         return VStack(alignment: .leading, spacing: 9) {
-            HStack {
-                App2SectionCaption(text: L10n.App2.Settings.dataSourceSection.localized)
-                App2StubBadge(origin: sourced.origin)
-            }
-            .padding(.top, 20)
+            App2SectionCaption(text: L10n.App2.Settings.dataSourceSection.localized)
+                .padding(.top, 20)
 
             App2GroupedList {
                 ForEach(Array(sources.enumerated()), id: \.element.id) { index, source in
                     App2SettingsRow(
-                        systemImage: source.isConnected ? "applewatch" : "heart.fill",
-                        iconTint: source.isConnected ? .white : App2Theme.appleHealthRed,
-                        iconBackground: source.isConnected
-                            ? App2Theme.sourceDarkTile
-                            : App2Theme.sourceLightTile,
+                        systemImage: source.name == "Apple Health" ? "heart.fill" : "applewatch",
+                        iconTint: source.name == "Apple Health" ? App2Theme.appleHealthRed : .white,
+                        iconBackground: source.name == "Apple Health"
+                            ? App2Theme.sourceLightTile
+                            : App2Theme.sourceDarkTile,
                         title: source.name,
                         showsDivider: index < sources.count - 1
                     ) {
@@ -274,8 +279,11 @@ struct App2SettingsView: View {
                     }
                 }
             }
+            .contentShape(Rectangle())
+            .onTapGesture { destination = .dataSource }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityIdentifier("App2_SettingsDataSourceCard")
         }
-        .accessibilityIdentifier("App2_SettingsDataSourceCard")
     }
 
     @ViewBuilder
@@ -288,9 +296,156 @@ struct App2SettingsView: View {
             .font(.system(size: 13, weight: .heavy))
             .foregroundStyle(App2Theme.accentGreenDot)
         } else {
-            Text(L10n.App2.Settings.notConnected.localized)
+            Text(NSLocalizedString("datasource.connect", comment: "Connect"))
                 .font(.system(size: 13, weight: .heavy))
                 .foregroundStyle(App2Theme.accentBlueDeep)
         }
+    }
+
+    // MARK: - 生理指標
+
+    private var physiologySection: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            App2SectionCaption(text: NSLocalizedString("profile.physiology", comment: ""))
+                .padding(.top, 20)
+
+            App2GroupedList {
+                App2SettingsRow(
+                    systemImage: "heart.fill",
+                    iconTint: App2Theme.appleHealthRed,
+                    iconBackground: App2Theme.appleHealthRed.opacity(0.1),
+                    title: NSLocalizedString("training.heart_rate_zone", comment: ""),
+                    value: heartRateSummary,
+                    monospaced: true
+                )
+                .contentShape(Rectangle())
+                .onTapGesture { destination = .heartRate }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("App2_SettingsHeartRateRow")
+
+                App2SettingsRow(
+                    systemImage: "timer",
+                    title: NSLocalizedString("profile.pace_zones", comment: ""),
+                    value: paceSummary,
+                    monospaced: true,
+                    showsDivider: false
+                )
+                .contentShape(Rectangle())
+                .onTapGesture { destination = .paceZones }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("App2_SettingsPaceZoneRow")
+            }
+        }
+    }
+
+    private var heartRateSummary: String {
+        guard let max = viewModel.maxHeartRate, let rest = viewModel.restingHeartRate,
+              max > 0, rest > 0 else { return "—" }
+        return "\(rest)–\(max) bpm"
+    }
+
+    private var paceSummary: String {
+        viewModel.currentVDOT > 0 ? String(format: "VDOT %.1f", viewModel.currentVDOT) : "—"
+    }
+
+    // MARK: - 系統
+
+    private var systemSection: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            App2SectionCaption(text: L10n.App2.Settings.systemSection.localized)
+                .padding(.top, 20)
+
+            App2GroupedList {
+                App2SettingsRow(
+                    systemImage: "globe",
+                    title: NSLocalizedString("settings.language", comment: ""),
+                    value: LanguageManager.shared.currentLanguage.displayName
+                )
+                .contentShape(Rectangle())
+                .onTapGesture { destination = .system }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("App2_SettingsLanguageRow")
+
+                App2SettingsRow(
+                    systemImage: "clock",
+                    title: NSLocalizedString("settings.timezone", comment: ""),
+                    value: timezoneSummary
+                )
+                .contentShape(Rectangle())
+                .onTapGesture { destination = .system }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("App2_SettingsTimezoneRow")
+
+                App2SettingsRow(
+                    systemImage: "thermometer.sun",
+                    title: L10n.Performance.heatAdaptation.localized,
+                    value: "",
+                    showsDivider: false
+                )
+                .contentShape(Rectangle())
+                .onTapGesture { destination = .climate }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("App2_SettingsClimateRow")
+            }
+        }
+    }
+
+    private var timezoneSummary: String {
+        let identifier = viewModel.profile.timezonePreference ?? TimezoneOption.getDeviceTimezoneId()
+        return "\(TimezoneOption.getDisplayName(for: identifier)) \(TimezoneOption.getCurrentOffset(for: identifier))"
+    }
+
+    // MARK: - 帳戶
+
+    private var accountSection: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            App2SectionCaption(text: L10n.App2.Settings.accountSection.localized)
+                .padding(.top, 20)
+
+            App2GroupedList {
+                App2SettingsRow(
+                    systemImage: "arrow.clockwise",
+                    title: L10n.App2.PlanOverview.resetGoal.localized,
+                    value: ""
+                )
+                .contentShape(Rectangle())
+                .onTapGesture { destination = .reonboarding }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("App2_SettingsResetGoalRace")
+
+                App2SettingsRow(
+                    systemImage: "rectangle.portrait.and.arrow.right",
+                    iconTint: App2Theme.accentRed,
+                    iconBackground: App2Theme.accentRed.opacity(0.1),
+                    title: NSLocalizedString("common.logout", comment: ""),
+                    value: "",
+                    showsDivider: false
+                )
+                .contentShape(Rectangle())
+                .onTapGesture { Task { await viewModel.signOut() } }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("App2_SettingsLogout")
+            }
+        }
+    }
+
+    // MARK: - 版本 ＋ 刪除帳戶
+
+    private var footer: some View {
+        VStack(spacing: 12) {
+            Text(appVersion)
+                .font(.app2Mono(12, weight: .bold))
+                .foregroundStyle(App2Theme.inkFaint)
+
+            Text(NSLocalizedString("settings.delete_account", comment: ""))
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundStyle(App2Theme.accentRed)
+                .contentShape(Rectangle())
+                .onTapGesture { destination = .deleteAccount }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("App2_SettingsDeleteAccount")
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 28)
     }
 }

@@ -1,0 +1,162 @@
+appId: com.havital.Havital.dev
+tags:
+  - app2
+---
+# T-0306 wave5 §1 —— 2.0 設定子頁（設計 frame-22 ~ frame-29）的實走證據。
+#
+# 走正常啟動（模擬器已登入創辦人 dev 帳號），拿 dev 真資料。
+# `clearState: false`：這台模擬器是用戶本人在用，不得清 keychain 或資料。
+#
+# 子頁一律 `fullScreenCover`（不是 sheet）—— 巢狀 sheet 不進 accessibility tree。
+
+- launchApp:
+    clearState: false
+    arguments:
+      "-skipHealthKitAuth": true
+
+- tapOn:
+    text: "知道了，不再顯示"
+    optional: true
+- tapOn:
+    text: "Got it, don't show again"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "App2_TrainingStatusCard"
+    timeout: 60000
+
+# 設定入口＝首頁「…」menu 的「個人資料」（2026-08-25 裁決）。
+- tapOn:
+    id: "App2_HomeMenu"
+# menu item 是 SwiftUI `Menu` 的 label，沒有自己的 identifier；三語各點一次（其餘會 warn）。
+- tapOn:
+    text: "個人資料"
+    optional: true
+- tapOn:
+    text: "Profile"
+    optional: true
+- tapOn:
+    text: "プロフィール"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "App2_SettingsView"
+    timeout: 30000
+- takeScreenshot: wave5-01-settings-home-top
+- scroll
+- scroll
+- takeScreenshot: wave5-02-settings-home-bottom
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsAccountCard"
+    direction: UP
+
+# frame-22 方案與訂閱
+- tapOn:
+    id: "App2_SettingsViewPlans"
+- extendedWaitUntil:
+    visible:
+      id: "App2_PlansView"
+    timeout: 20000
+- takeScreenshot: wave5-03-plans
+- tapOn:
+    id: "App2_PlansClose"
+
+# frame-23 訓練設定
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsTrainingCard"
+    direction: DOWN
+- tapOn:
+    id: "App2_SettingsTrainingCard"
+- extendedWaitUntil:
+    visible:
+      id: "App2_TrainingSettingsView"
+    timeout: 20000
+- takeScreenshot: wave5-04-training-settings
+- tapOn:
+    id: "App2_TrainingSettingsClose"
+
+# frame-24／25 數據來源
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsDataSourceCard"
+    direction: DOWN
+- tapOn:
+    id: "App2_SettingsDataSourceCard"
+- extendedWaitUntil:
+    visible:
+      id: "App2_DataSourceView"
+    timeout: 20000
+- takeScreenshot: wave5-05-data-source
+- tapOn:
+    id: "App2_DataSourceClose"
+
+# frame-26 心率區間
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsHeartRateRow"
+    direction: DOWN
+- tapOn:
+    id: "App2_SettingsHeartRateRow"
+- extendedWaitUntil:
+    visible:
+      id: "App2_HeartRateZoneView"
+    timeout: 20000
+- takeScreenshot: wave5-06-heart-rate-zones
+- tapOn:
+    id: "App2_HeartRateZoneClose"
+
+# frame-27 配速區間
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsPaceZoneRow"
+    direction: DOWN
+- tapOn:
+    id: "App2_SettingsPaceZoneRow"
+- extendedWaitUntil:
+    visible:
+      id: "App2_PaceZoneView"
+    timeout: 20000
+- takeScreenshot: wave5-07-pace-zones
+- tapOn:
+    id: "App2_PaceZoneClose"
+
+# frame-28 系統（語言／時區／單位）
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsLanguageRow"
+    direction: DOWN
+- tapOn:
+    id: "App2_SettingsLanguageRow"
+- extendedWaitUntil:
+    visible:
+      id: "App2_SystemSettingsView"
+    timeout: 20000
+- takeScreenshot: wave5-08-system-settings
+- tapOn:
+    id: "App2_SystemSettingsClose"
+
+# frame-29 刪除帳戶（只看畫面，不按「永久刪除帳戶」）
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsDeleteAccount"
+    direction: DOWN
+- tapOn:
+    id: "App2_SettingsDeleteAccount"
+- extendedWaitUntil:
+    visible:
+      id: "App2_DeleteAccountView"
+    timeout: 20000
+- takeScreenshot: wave5-09-delete-account
+- tapOn:
+    id: "App2_DeleteAccountCancel"
+
+# 回到設定首頁時捲軸還停在底部，返回鍵在畫面外 → 先捲回頂端。
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsClose"
+    direction: UP
+- tapOn:
+    id: "App2_SettingsClose"

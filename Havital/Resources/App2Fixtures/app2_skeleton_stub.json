@@ -232,28 +232,5 @@
         "vdot": "63.5"
       }
     ]
-  },
-  "settings": {
-    "dataSources": [
-      {
-        "name": "Garmin",
-        "statusLabel": "已連結 · 同步中",
-        "isConnected": true
-      },
-      {
-        "name": "Apple Health",
-        "statusLabel": "未連結",
-        "isConnected": false
-      }
-    ],
-    "weeklyDistanceKm": 49.0,
-    "trainingDays": [
-      "週一",
-      "週三",
-      "週四",
-      "週五",
-      "週日"
-    ],
-    "raceCountdownDays": 30
   }
 }

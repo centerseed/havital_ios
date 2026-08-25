@@ -2392,6 +2392,67 @@ extension L10n {
             /// 「重新設定目標賽事」——導既有的目標設定流程，不重做一份。
             static let resetGoalRace = "app2.settings.reset_goal_race"
             static let goalSection = "app2.settings.goal_section"
+            static let systemSection = "app2.settings.system_section"
+            static let heatAdaptationSub = "app2.settings.heat_adaptation_sub"
+
+            // MARK: 方案與訂閱（frame-22）
+            static let plansTitle = "app2.settings.plans_title"
+            static let planFree = "app2.settings.plan_free"
+            static let planFreePrice = "app2.settings.plan_free_price"
+            static let planFreeFeature1 = "app2.settings.plan_free_feature1"
+            static let planFreeFeature2 = "app2.settings.plan_free_feature2"
+            static let planFreeFeature3 = "app2.settings.plan_free_feature3"
+            static let planProFeature1 = "app2.settings.plan_pro_feature1"
+            static let planProFeature2 = "app2.settings.plan_pro_feature2"
+            static let planProFeature3 = "app2.settings.plan_pro_feature3"
+            static let planCurrentBadge = "app2.settings.plan_current_badge"
+            static let currentSubscription = "app2.settings.current_subscription"
+            static let planRow = "app2.settings.plan_row"
+            static let cancelSubscription = "app2.settings.cancel_subscription"
+
+            // MARK: 訓練設定（frame-23）
+            /// 單位、建議帶、天數提示、長跑日一律沿用 `app2.onboarding.*` 既有字
+            /// （frame-23 與 frame-37／38 是同一組詞），不另造第二份。
+            static let targetWeeklyDistance = "app2.settings.target_weekly_distance"
+
+            // MARK: 數據來源（frame-24／25）
+            static let dataSourceIntro = "app2.settings.data_source_intro"
+            static let dataSourcePrivacy = "app2.settings.data_source_privacy"
+            static let disconnect = "app2.settings.disconnect"
+            static let noSourceTitle = "app2.settings.no_source_title"
+            static let noSourceBody = "app2.settings.no_source_body"
+
+            // MARK: 心率區間（frame-26）
+            static let hrIntro = "app2.settings.hr_intro"
+            static let hrZonesTitle = "app2.settings.hr_zones_title"
+            static let hrFootnote = "app2.settings.hr_footnote"
+
+            // MARK: 配速區間（frame-27）
+            static let vdotValue = "app2.settings.vdot_value"
+            static let vdotNote = "app2.settings.vdot_note"
+            static let paceListTitle = "app2.settings.pace_list_title"
+            static let vdotUnavailable = "app2.settings.vdot_unavailable"
+
+            // MARK: 系統（frame-28）
+            static let unitSection = "app2.settings.unit_section"
+            static let distanceUnit = "app2.settings.distance_unit"
+            static let unitNote = "app2.settings.unit_note"
+            /// 切換鈕上的短標（既有的 `unit.metric` 是「公制（公里）」，塞不進膠囊）。
+            static let unitMetric = "app2.settings.unit_metric"
+            static let unitImperial = "app2.settings.unit_imperial"
+
+            // MARK: 刪除帳戶（frame-29）
+            static let deleteConfirmTitle = "app2.settings.delete_confirm_title"
+            static let deleteConfirmBody = "app2.settings.delete_confirm_body"
+            static let deleteItemWorkouts = "app2.settings.delete_item_workouts"
+            static let deleteItemAchievements = "app2.settings.delete_item_achievements"
+            static let deleteItemDataSources = "app2.settings.delete_item_data_sources"
+            static let deleteSubscriptionNote = "app2.settings.delete_subscription_note"
+            /// `輸入 %@ 以確認`
+            static let deleteTypeHint = "app2.settings.delete_type_hint"
+            /// 使用者要輸入的確認詞（三語各自不同，所以是可在地化字串）。
+            static let deleteKeyword = "app2.settings.delete_keyword"
+            static let deletePermanent = "app2.settings.delete_permanent"
         }
 
         /// 2.0 onboarding（設計 frame-30 ~ frame-39）。
