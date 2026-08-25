@@ -216,8 +216,9 @@ final class App2RenderingTests: XCTestCase {
                name: "today-card-quality-day", height: 1400)
     }
 
-    /// 單段輕鬆跑：沒有分段表，但**仍然要有配速結構圖**（一整塊綠色穩定段，
-    /// 塊上標配速）。2026-08-25 用戶裁決：結構圖不是間歇專屬。
+    /// 單段輕鬆跑：卡片上有一列分段（「主課 9.0 km · 7:55/km」），
+    /// 並且**仍然要有配速結構圖**（一整塊綠色穩定段，塊上標配速）交給訓練詳情頁。
+    /// 2026-08-25 用戶裁決：結構圖不是間歇專屬。
     func test_home_singleSegmentSession_rendersPaceBlock() throws {
         let json = """
         { "day_index": 2, "day_target": "長距離輕鬆跑", "reason": "有氧基礎",
@@ -228,7 +229,8 @@ final class App2RenderingTests: XCTestCase {
         let session = try XCTUnwrap(
             App2HomeViewModel.todaySession(days: [day], todayIndex: 2, dayLabel: "週二 · 8/25")
         )
-        XCTAssertTrue(session.segments.isEmpty)
+        XCTAssertEqual(session.segments.count, 1)
+        XCTAssertEqual(session.segments.first?.detail, "9.0 km · 7:55/km")
         XCTAssertEqual(session.structureBars.count, 1)
         XCTAssertEqual(session.structureBars.first?.paceLabel, "7:55")
 
