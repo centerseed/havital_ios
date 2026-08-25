@@ -137,21 +137,24 @@ enum App2StubFixtures {
         )
     }
 
+    /// **樣本不帶週數。**「第 N / M 週」是畫面上的真實斷言，只能來自
+    /// `GET /v2/plan/status`；樣本只准填敘事句與軌道落點。
+    /// 2026-08-25 用戶在同一屏看到目標卡「1 / 17」與狀況卡「6 / 18」，
+    /// 就是因為 state/today 掛掉時整個卡連週數一起退成樣本。
+    /// 欄位直接從 fixture 型別移除，這樣「把週數塞回樣本」會編不過，而不是靠註解約束。
     private struct TrainingStatusFixture: Codable {
         let headline: String
         let narrative: String?
         let trackPosition: Double
-        let currentWeek: Int?
-        let totalWeeks: Int?
 
         static let empty = TrainingStatusFixture(
-            headline: "—", narrative: nil, trackPosition: 0.5, currentWeek: nil, totalWeeks: nil
+            headline: "—", narrative: nil, trackPosition: 0.5
         )
 
         var domain: App2TrainingStatus {
             App2TrainingStatus(
                 headline: headline, narrative: narrative, trackPosition: trackPosition,
-                currentWeek: currentWeek, totalWeeks: totalWeeks
+                currentWeek: nil, totalWeeks: nil
             )
         }
     }

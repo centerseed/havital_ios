@@ -5,7 +5,11 @@ import Foundation
 /// Presentation Layer — 2.0 首頁（`DESIGN-app2-decision-chain-api.md` §3.1／§3.1a）。
 ///
 /// 每個區塊各自載入、各自失敗、各自標來源：一條端點掛掉不該讓整個首頁空白。
-/// 拿不到真資料的區塊退到 `App2StubFixtures` 並把 origin 標成 stub，畫面掛徽章。
+///
+/// **同一個事實只讀一次。** `current_week`／`total_weeks`／`current_week_plan_id`
+/// 全部來自同一次 `GET /v2/plan/status`，由 `revalidate()` 取一次後傳給各區塊。
+/// 之前三個區塊各打各的，三個回應可以彼此不一致 —— 2026-08-25 用戶截圖上「目標卡
+/// 1/17、狀況卡 6/18、今日課表說尚未產生」就是同一屏三份答案。
 @MainActor
 final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidating {
 
@@ -18,15 +22,30 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     @Published private(set) var goalCard: App2Sourced<App2GoalCard>?
     @Published private(set) var trainingStatus: App2Sourced<App2TrainingStatus>?
     @Published private(set) var insights: App2Sourced<[App2Insight]>?
-    @Published private(set) var todaySession: App2Sourced<App2TodaySession>?
+    /// 今日課表卡。nil = 這一輪還沒載完；其餘四態見 `App2TodaySessionState`。
+    @Published private(set) var todayState: App2TodaySessionState?
+    @Published private(set) var weekReview: App2WeekReviewState?
+    /// 內嵌 Rizo 卡的教練推話。**由 `/v2/state/today` 的句子組出來**，
+    /// 組不出來就是 nil ——那時 Rizo 區退成純入口，不顯示假對話。
+    @Published private(set) var rizoOpeningLine: String?
+    /// 交棒情境（`card.rizoScenario`）。開對話時帶給既有的 `StateRizoChatViewModel`。
+    @Published private(set) var rizoScenario: String?
 
-    /// §7-16 軌跡圖序列 —— 同樣沒有 HTTP 出口。
+    /// §7-16 軌跡圖序列 —— 沒有 HTTP 出口，永遠是樣本。
+    ///
+    /// **週數用真的**：樣本只准填曲線形狀，不准連週數一起編。拿不到真週數時
+    /// 用一段中性的長度畫形狀（圖上沒有任何週數字），不外溢成畫面上的「第 N / M 週」。
     var trajectoryPoints: [App2TrajectoryChart.Point] {
         App2StubFixtures.trajectoryPoints(
-            currentWeek: trainingStatus?.value.currentWeek ?? 5,
-            totalWeeks: trainingStatus?.value.totalWeeks ?? 22
+            currentWeek: trainingStatus?.value.currentWeek ?? Self.neutralTrajectoryCurrentWeek,
+            totalWeeks: trainingStatus?.value.totalWeeks ?? Self.neutralTrajectoryTotalWeeks
         )
     }
+
+    /// 真週數缺席時的中性圖形長度。**不是週數**：圖上不畫任何週數字，
+    /// 圖例的「第 N / M 週」另外走 `trainingStatus.currentWeek/totalWeeks`（缺就不顯示）。
+    private static let neutralTrajectoryCurrentWeek = 6
+    private static let neutralTrajectoryTotalWeeks = 16
 
     let trajectoryOrigin = App2DataOrigin.stub(pendingSection: App2StubFixtures.Section.trajectory)
 
@@ -37,7 +56,6 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     private let dailyStateRepository: DailyStateRepository
     private let targetRepository: TargetRepository
     private let planV2DataSource: TrainingPlanV2RemoteDataSourceProtocol
-    private let app2DataSource: App2RemoteDataSourceProtocol
     private let readinessViewModel: TrainingReadinessViewModel
 
     // MARK: - Init
@@ -46,7 +64,6 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         dailyStateRepository: DailyStateRepository? = nil,
         targetRepository: TargetRepository? = nil,
         planV2DataSource: TrainingPlanV2RemoteDataSourceProtocol? = nil,
-        app2DataSource: App2RemoteDataSourceProtocol? = nil,
         readinessViewModel: TrainingReadinessViewModel? = nil
     ) {
         let container = DependencyContainer.shared
@@ -70,7 +87,6 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         }
 
         self.planV2DataSource = planV2DataSource ?? TrainingPlanV2RemoteDataSource()
-        self.app2DataSource = app2DataSource ?? App2RemoteDataSource()
         self.readinessViewModel = readinessViewModel ?? TrainingReadinessViewModel()
     }
 
@@ -83,31 +99,62 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     func revalidate() async {
         // 只有「從未載過」才出 loading —— 重驗時畫面保留上一次的資料，不閃白。
         isLoading = !hasLoaded
-        // 各區塊獨立：一條失敗不阻斷其他。
-        async let status: Void = loadTrainingStatus()
-        async let goal: Void = loadGoalCard()
-        async let metrics: Void = loadInsights()
-        async let today: Void = loadTodaySession()
-        _ = await (status, goal, metrics, today)
+
+        // 全頁共用的一次 plan status。三張卡都從這一份取週數與本週課表 id。
+        let planStatus = await fetchPlanStatus()
+
+        // 其餘區塊獨立：一條失敗不阻斷其他。
+        async let state: Void = loadDailyState(planStatus: planStatus.value)
+        async let goal: Void = loadGoalCard(planStatus: planStatus.value)
+        async let today: Void = loadTodaySession(planStatus: planStatus)
+        async let review: Void = loadWeekReview(planStatus: planStatus.value)
+        _ = await (state, goal, today, review)
+
         isLoading = false
         hasLoaded = true
         lastLoadedAt = Date()
     }
 
-    // MARK: - §3.1a 訓練狀況卡
+    /// 一次 plan status 的結果。`.failed` 與「拿到了但沒有本週課表」是兩件事，
+    /// 今日課表卡要分得出來才不會把讀取失敗說成「尚未產生」。
+    enum PlanStatusOutcome {
+        case loaded(PlanStatusV2Response)
+        case failed
+        /// 這一輪被取消：不要動畫面上的既有資料。
+        case cancelled
 
-    private func loadTrainingStatus() async {
-        var planStatus: PlanStatusV2Response?
-        do {
-            planStatus = try await planV2DataSource.getPlanStatus()
-        } catch {
-            // 取消 → 這一輪沒有新資料，保留畫面上既有的卡（週次不退成 `—`）。
-            if error.isCancellationError, trainingStatus != nil { return }
-            Logger.debug("[App2HomeVM] plan status 取得失敗: \(error)")
+        var value: PlanStatusV2Response? {
+            if case .loaded(let status) = self { return status }
+            return nil
         }
+    }
 
+    private func fetchPlanStatus() async -> PlanStatusOutcome {
+        do {
+            return .loaded(try await planV2DataSource.getPlanStatus())
+        } catch {
+            // 取消不是失敗（`AGENTS.md` 陷阱 2）：下拉刷新的 task 被 SwiftUI 收掉時
+            // in-flight 請求會回 -999。
+            if error.isCancellationError { return .cancelled }
+            Logger.debug("[App2HomeVM] plan status 取得失敗: \(error)")
+            return .failed
+        }
+    }
+
+    // MARK: - §3.1a 訓練狀況卡 ＋ 指標膠囊列 ＋ Rizo 推話
+    //
+    // 三者同一個來源：`GET /v2/state/today`。
+    //
+    // **指標列不再打 `/v2/athlete-state/metrics`。** 那條端點依規格只交 envelope、
+    // 不評級也不渲染句子（ME-INV-05），所以綁它的膠囊永遠沒有 verdict 也沒有箭頭
+    // ——2026-08-25 在 dev 上實測就是整排灰 icon ＋ 小點。`state/today` 的
+    // `insights[]` 才是已評級、已在地化的那一份（`label`／`arrow`／`verdict`／
+    // `change`／`dot`／`status`），設計文件 §3.1a 指到前者是判定錯誤，票面已記。
+
+    private func loadDailyState(planStatus: PlanStatusV2Response?) async {
         do {
             let card = try await dailyStateRepository.fetchTodayState()
+
             trainingStatus = App2Sourced(
                 Self.trainingStatus(
                     card: card,
@@ -116,16 +163,43 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 ),
                 origin: .live(endpoint: "GET /v2/state/today")
             )
+
+            let rows = Self.insights(rows: card.insights)
+            if rows.isEmpty {
+                // 端點沒帶 insights（舊版後端）→ 這一列先退樣本並掛徽章。
+                Logger.debug("[App2HomeVM] state/today 沒有 insights,指標列退樣本")
+                insights = App2Sourced(
+                    App2StubFixtures.insights,
+                    origin: .stub(pendingSection: App2StubFixtures.Section.insightVerdict)
+                )
+            } else {
+                insights = App2Sourced(rows, origin: .live(endpoint: "GET /v2/state/today"))
+            }
+
+            rizoOpeningLine = Self.rizoOpeningLine(card: card)
+            rizoScenario = card.rizoScenario
         } catch {
             // 取消不是失敗（`AGENTS.md` 陷阱 2）。下拉刷新的 task 被 SwiftUI 收掉時
             // 每一條 in-flight 請求都會回 -999；當成失敗會把畫面上的真資料換成樣本。
             guard !error.isCancellationError else { return }
             Logger.debug("[App2HomeVM] state/today 取得失敗,退樣本: \(error)")
-            guard trainingStatus == nil else { return }
-            trainingStatus = App2Sourced(
-                App2StubFixtures.trainingStatus,
-                origin: .stub(pendingSection: App2StubFixtures.Section.offline)
-            )
+            if trainingStatus == nil {
+                trainingStatus = App2Sourced(
+                    // **樣本只填敘事，週數一律用真的。** 樣本檔已經不帶週數欄位，
+                    // 這裡再明寫一次來源，避免日後有人把週數塞回樣本。
+                    Self.offlineTrainingStatus(
+                        currentWeek: planStatus?.currentWeek,
+                        totalWeeks: planStatus?.totalWeeks
+                    ),
+                    origin: .stub(pendingSection: App2StubFixtures.Section.offline)
+                )
+            }
+            if insights == nil {
+                insights = App2Sourced(
+                    App2StubFixtures.insights,
+                    origin: .stub(pendingSection: App2StubFixtures.Section.offline)
+                )
+            }
         }
     }
 
@@ -136,36 +210,73 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     // ——後者是一行已渲染的字（`8K easy`），拆不出課型／強度／內容三個欄位，
     // 也不會在地化。
     //
-    // 本週課表沒生成時 `todaySession` 保持 nil，畫面顯示「本週課表尚未產生」的空狀態；
-    // **不退樣本**，因為設計稿的示範值會被誤讀成用戶自己的課表。
+    // 「本週課表尚未產生」只有在 `current_week_plan_id` 真的是 nil 時才准講。
 
-    private func loadTodaySession() async {
-        do {
-            let status = try await planV2DataSource.getPlanStatus()
+    private func loadTodaySession(planStatus: PlanStatusOutcome) async {
+        switch planStatus {
+        case .cancelled:
+            return  // 保留上一次的今日課表，不清成空狀態。
+        case .failed:
+            if todayState == nil { todayState = .unavailable }
+            return
+        case .loaded(let status):
             guard let planId = status.currentWeekPlanId else {
                 Logger.debug("[App2HomeVM] 本週課表尚未產生 (next_action=\(status.nextAction))")
-                todaySession = nil
+                todayState = .notGenerated
                 return
             }
-            let plan = try await planV2DataSource.getWeeklyPlan(planId: planId)
-            guard let session = Self.todaySession(
-                days: plan.days,
-                todayIndex: App2PlanViewModel.todayDayIndex(),
-                dayLabel: Self.todayLabel()
-            ) else {
-                todaySession = nil
-                return
+            do {
+                let plan = try await planV2DataSource.getWeeklyPlan(planId: planId)
+                guard let session = Self.todaySession(
+                    days: plan.days,
+                    todayIndex: App2PlanViewModel.todayDayIndex(),
+                    dayLabel: Self.todayLabel()
+                ) else {
+                    todayState = .noSessionToday
+                    return
+                }
+                todayState = .session(session)
+            } catch {
+                guard !error.isCancellationError else { return }
+                Logger.debug("[App2HomeVM] 今日課表取得失敗（plan_id=\(planId)）: \(error)")
+                todayState = .unavailable
             }
-            todaySession = App2Sourced(
-                session,
-                origin: .live(endpoint: "GET /v2/plan/status + GET /v2/plan/weekly/{plan_id}")
-            )
-        } catch {
-            // 取消 → 保留上一次的今日課表，不清成空狀態。
-            guard !error.isCancellationError else { return }
-            Logger.debug("[App2HomeVM] 今日課表取得失敗: \(error)")
-            todaySession = nil
         }
+    }
+
+    // MARK: - 週回顧 CTA
+    //
+    // 設計 dc.html:5112：週日＝「產生本週回顧」，週一～六＝「產生上週回顧」。
+    // 目標週的回顧已經在了就改成「查看回顧」。
+
+    private func loadWeekReview(planStatus: PlanStatusV2Response?) async {
+        guard let planStatus else { return }
+        let isSunday = Self.isSunday()
+
+        if !isSunday {
+            // 上週回顧的存在與否，`/v2/plan/status` 已經直接給了，不必多打一條。
+            weekReview = Self.weekReviewState(
+                planStatus: planStatus,
+                isSunday: false,
+                summaryId: planStatus.previousWeekSummaryId
+            )
+            return
+        }
+
+        // 週日看的是「本週」，plan status 沒有「本週回顧 id」這一欄 → 問既有的週摘要出口。
+        // `next_action == create_summary` 已經明說本週還沒產生，那就不用問了。
+        if planStatus.nextAction == "create_summary" {
+            weekReview = Self.weekReviewState(planStatus: planStatus, isSunday: true, summaryId: nil)
+            return
+        }
+        var summaryId: String?
+        do {
+            summaryId = try await planV2DataSource.getWeeklySummary(weekOfPlan: planStatus.currentWeek).id
+        } catch {
+            guard !error.isCancellationError else { return }
+            Logger.debug("[App2HomeVM] 本週回顧查詢失敗,視為尚未產生: \(error)")
+        }
+        weekReview = Self.weekReviewState(planStatus: planStatus, isSunday: true, summaryId: summaryId)
     }
 
     #if DEBUG
@@ -175,12 +286,16 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         goalCard: App2Sourced<App2GoalCard>? = nil,
         trainingStatus: App2Sourced<App2TrainingStatus>? = nil,
         insights: App2Sourced<[App2Insight]>? = nil,
-        todaySession: App2Sourced<App2TodaySession>? = nil
+        todayState: App2TodaySessionState? = nil,
+        weekReview: App2WeekReviewState? = nil,
+        rizoOpeningLine: String? = nil
     ) {
         self.goalCard = goalCard
         self.trainingStatus = trainingStatus
         self.insights = insights
-        self.todaySession = todaySession
+        self.todayState = todayState
+        self.weekReview = weekReview
+        self.rizoOpeningLine = rizoOpeningLine
         isLoading = false
         hasLoaded = true
         lastLoadedAt = Date()
@@ -189,9 +304,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     // MARK: - 投影（純函式，可單獨測）
     //
-    // 兩張卡的「payload → 畫面欄位」抽成 static：載入路徑要網路，投影不用。
-    // 輸入矩陣（休息日／無 primary／無強度／無距離／今天不在 days 裡／欄位缺失）
-    // 全部鎖在 `App2HomeProjectionTests`。
+    // 「payload → 畫面欄位」全部抽成 static：載入路徑要網路，投影不用。
 
     /// 訓練狀況卡（§3.1a）。
     /// `trackPosition` 目前沒有 producer（§7-2 同一批評級語意），恆置中。
@@ -209,7 +322,19 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         )
     }
 
-    /// 今日課表卡（§3.1）。今天不在 `days` 裡就回 nil —— 畫面顯示空狀態，不退樣本。
+    /// `state/today` 掛掉時的訓練狀況卡：敘事退樣本，**週數仍然是真的**。
+    static func offlineTrainingStatus(currentWeek: Int?, totalWeeks: Int?) -> App2TrainingStatus {
+        let stub = App2StubFixtures.trainingStatus
+        return App2TrainingStatus(
+            headline: stub.headline,
+            narrative: stub.narrative,
+            trackPosition: stub.trackPosition,
+            currentWeek: currentWeek,
+            totalWeeks: totalWeeks
+        )
+    }
+
+    /// 今日課表卡（§3.1）。今天不在 `days` 裡就回 nil —— 呼叫端據此走 `.noSessionToday`。
     static func todaySession(
         days: [DayDetailDTO],
         todayIndex: Int,
@@ -217,38 +342,202 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     ) -> App2TodaySession? {
         guard let day = days.first(where: { $0.dayIndex == todayIndex }) else { return nil }
         let dayType = day.primary == nil ? DayType.rest : App2PlanViewModel.dayType(day.primary)
+        let segments = Self.segments(day: day)
         return App2TodaySession(
             dayLabel: dayLabel,
             title: dayType?.localizedName ?? (day.category ?? L10n.App2.Plan.rest.localized),
             intensityLabel: App2PlanViewModel.intensityLabel(day.primary),
-            summary: App2PlanViewModel.contentLine(day.primary)
+            summary: App2PlanViewModel.contentLine(day.primary),
+            segments: segments,
+            structureBars: Self.structureBars(day: day),
+            strengthLabel: Self.strengthLabel(day: day)
         )
     }
 
-    /// 指標網格（§3.1a）。順序固定；未知的 key 略過，全部略過就回空陣列
-    /// （呼叫端據此退樣本）。
-    static func insights(rows: [String: AthleteStateMetricRowDTO]) -> [App2Insight] {
-        // 網格拿掉「一致性」後為 5 格（2026-08-24 裁決）。
-        let order = [
-            "capability_baseline",
-            "recovery_index",
-            "aerobic_endurance",
-            "speed_endurance",
-            "heat_sensitivity"
-        ]
-        let stubByID = Dictionary(uniqueKeysWithValues: App2StubFixtures.insights.map { ($0.id, $0) })
-        return order.compactMap { key in
-            guard let row = rows[key] else { return nil }
-            return App2Insight(
-                id: key,
-                // label 與 verdict 都是評級／文案層，端點依規格不產生（ME-INV-05 → §7-2）。
-                label: stubByID[key]?.label ?? key,
-                value: row.pointEstimate.map { String(format: "%.0f", $0) },
-                // 方向同樣需要序列對照，envelope 只存當下值。
-                direction: .unknown,
-                verdict: nil
+    /// 指標膠囊列（§3.1a）。**順序、名稱、評級全部照後端給的來**，
+    /// app 端不排序也不改名 —— 那是評級層的決定，不是呈現層的。
+    static func insights(rows: [DailyStateInsight]) -> [App2Insight] {
+        rows.map { row in
+            App2Insight(
+                id: row.key,
+                label: row.label,
+                value: row.valueText,
+                direction: App2Insight.Direction(rawValue: row.arrow.rawValue) ?? .unknown,
+                verdict: row.verdict,
+                change: row.change,
+                isNotComputed: row.isNotComputed
             )
         }
+    }
+
+    /// Rizo 卡的開場句。**用既有的狀態句組，不生成新文案。**
+    /// `collapsed_reason`（融合了建議＋理由＋數字）最貼近設計的推話；沒有就退
+    /// `narrative_text`；兩者都沒有 → nil，畫面把 Rizo 區退成純入口。
+    static func rizoOpeningLine(card: DailyStateCard) -> String? {
+        let candidates = [card.collapsedReason, card.narrativeText]
+        return candidates.compactMap { $0 }.first { !$0.isEmpty }
+    }
+
+    /// 週回顧 CTA 狀態。**回 nil ＝整張卡不顯示。**
+    ///
+    /// 出現條件只有一條：**目標週是一個「可回顧的訓練週」**。
+    /// - 平日：目標週＝上一個訓練週（`current_week - 1`）。課表從第 1 週才開始的帳號
+    ///   沒有上一週可回顧 —— 2026-08-25 demo 帳號正是這個狀態，畫面卻掛著
+    ///   「產生上週回顧」，那是一張按下去無事可做的卡。
+    /// - 週日：目標週＝本週，前提是本週真的有課表（`current_week_plan_id` 非 nil）。
+    ///
+    /// `summaryId` 有值＝目標週的回顧已存在 → 改成「查看回顧」。
+    static func weekReviewState(
+        planStatus: PlanStatusV2Response,
+        isSunday: Bool,
+        summaryId: String?
+    ) -> App2WeekReviewState? {
+        let targetWeekHasPlan = isSunday
+            ? planStatus.currentWeekPlanId != nil
+            : planStatus.currentWeek > 1
+        guard targetWeekHasPlan else { return nil }
+
+        if let summaryId, !summaryId.isEmpty {
+            return .available(summaryId: summaryId, isCurrentWeek: isSunday)
+        }
+        return .notGenerated(isCurrentWeek: isSunday)
+    }
+
+    static func isSunday(date: Date = Date(), calendar: Calendar = .current) -> Bool {
+        calendar.component(.weekday, from: date) == 1
+    }
+
+    // MARK: - 今日課表卡的分段與結構
+
+    /// 分段表（設計 frame-00 的「熱身／衝刺／恢復／緩和」）。
+    ///
+    /// 依 payload 的實際順序走一遍：`warmup` → `primary.segments[]` → `cooldown`。
+    /// 間歇段展開成「衝刺 ＋ 恢復」兩行，其餘段落各一行。組不出值的那一行**不出現**，
+    /// 不用 placeholder 補。
+    static func segments(day: DayDetailDTO) -> [App2SessionSegment] {
+        var result: [App2SessionSegment] = []
+        func append(_ name: String, _ detail: String?, isWork: Bool) {
+            guard let detail else { return }
+            result.append(.init(id: result.count, name: name, detail: detail, isWork: isWork))
+        }
+
+        append(
+            NSLocalizedString("training.segment.warmup", comment: ""),
+            day.warmup.flatMap(effortLabel(segment:)),
+            isWork: false
+        )
+
+        if case .run(let run) = day.primary {
+            let runSegments = run.segments ?? []
+            if runSegments.isEmpty {
+                // 單段課（輕鬆跑／長跑）也有結構，只是只有一段主課。
+                append(L10n.App2.Home.segmentMain.localized,
+                       App2PlanViewModel.contentLine(day.primary), isWork: true)
+            }
+            for segment in runSegments {
+                if segment.kind == "interval" {
+                    if let work = segment.work, let detail = effortLabel(effort: work) {
+                        let repeats = segment.repeats ?? 0
+                        append(NSLocalizedString("training.segment.sprint", comment: ""),
+                               repeats > 1 ? "\(repeats) × \(detail)" : detail, isWork: true)
+                    }
+                    append(L10n.App2.Home.segmentRecovery.localized,
+                           segment.recovery.flatMap(effortLabel(effort:)), isWork: false)
+                } else {
+                    append(L10n.App2.Home.segmentMain.localized,
+                           effortLabel(segment: segment), isWork: true)
+                }
+            }
+        }
+
+        append(
+            NSLocalizedString("training.segment.cooldown", comment: ""),
+            day.cooldown.flatMap(effortLabel(segment:)),
+            isWork: false
+        )
+
+        // 只有一行主課、前後都沒有熱身緩和 → 那一行跟卡片上的「課表」列重複，不顯示表格。
+        return result.count > 1 ? result : []
+    }
+
+    /// 右側「趟數 × N 趟」結構預覽（設計 frame-02「預計配速」同一視覺家族）。
+    ///
+    /// 橘（work）＝衝刺／主課那幾趟，淺色矮柱＝熱身／恢復／緩和。
+    /// 間歇段的柱數由 `repeats` 決定。
+    static func structureBars(day: DayDetailDTO) -> [App2SessionStructureBar] {
+        var bars: [App2SessionStructureBar] = []
+        func append(_ height: Double, isWork: Bool) {
+            bars.append(.init(id: bars.count, height: height, isWork: isWork))
+        }
+
+        if day.warmup != nil { append(0.35, isWork: false) }
+
+        if case .run(let run) = day.primary {
+            let runSegments = run.segments ?? []
+            if runSegments.isEmpty {
+                append(0.85, isWork: true)
+            }
+            for segment in runSegments {
+                if segment.kind == "interval", let repeats = segment.repeats, repeats > 0 {
+                    // 太多趟就不畫滿，畫面上那格只有幾十 pt 寬。
+                    for index in 0..<min(repeats, 10) {
+                        append(1.0, isWork: true)
+                        if index < min(repeats, 10) - 1 { append(0.3, isWork: false) }
+                    }
+                } else {
+                    append(0.6, isWork: true)
+                }
+            }
+        } else if day.primary != nil {
+            append(0.7, isWork: true)
+        }
+
+        if day.cooldown != nil { append(0.35, isWork: false) }
+
+        // 只有一根柱子畫不出「結構」，不畫。
+        return bars.count > 1 ? bars : []
+    }
+
+    /// `力量 · 3 個動作`。今天沒有肌力補充項目就回 nil。
+    static func strengthLabel(day: DayDetailDTO) -> String? {
+        let exercises = (day.supplementary ?? []).reduce(into: 0) { total, activity in
+            if case .strength(let strength) = activity { total += strength.exercises.count }
+        }
+        guard exercises > 0 else { return nil }
+        return String(format: L10n.App2.Home.strengthRow.localized, exercises)
+    }
+
+    /// `400m @ 4:30`／`10 分鐘`。組不出來就回 nil（那一行不顯示）。
+    static func effortLabel(effort: SegmentEffortDTO) -> String? {
+        var parts: [String] = []
+        if let metres = effort.distanceM {
+            parts.append("\(metres)m")
+        } else if let km = effort.distanceKm, km > 0 {
+            parts.append(String(format: "%.1f km", km))
+        } else if let minutes = effort.durationMinutes {
+            parts.append(String(format: L10n.App2.Home.minutes.localized, minutes))
+        } else if let seconds = effort.durationSeconds {
+            parts.append(String(format: L10n.App2.Home.recoverySeconds.localized, seconds))
+        }
+        if let pace = effort.pace ?? effort.basePace {
+            parts.append("@ \(pace)")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
+    }
+
+    static func effortLabel(segment: RunSegmentDTO) -> String? {
+        var parts: [String] = []
+        if let km = segment.distanceKm, km > 0 {
+            parts.append(String(format: "%.1f km", km))
+        } else if let metres = segment.distanceM {
+            parts.append("\(metres)m")
+        } else if let minutes = segment.durationMinutes {
+            parts.append(String(format: L10n.App2.Home.minutes.localized, minutes))
+        }
+        if let pace = segment.climateAdjustedPace ?? segment.pace ?? segment.basePace {
+            parts.append("@ \(pace)")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " ")
     }
 
     /// `週二 · 8/25` —— 裝置當地日期，不是後端字串。
@@ -264,17 +553,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     // MARK: - §3.1 目標賽事卡
 
-    private func loadGoalCard() async {
+    private func loadGoalCard(planStatus: PlanStatusV2Response?) async {
         await readinessViewModel.loadData()
         let estimated = readinessViewModel.estimatedRaceTime
-
-        var planStatus: PlanStatusV2Response?
-        do {
-            planStatus = try await planV2DataSource.getPlanStatus()
-        } catch {
-            if error.isCancellationError, goalCard != nil { return }
-            Logger.debug("[App2HomeVM] plan status（goal card）取得失敗: \(error)")
-        }
 
         // `getMainTarget()` 只讀本機快取。1.x 的 tab 由別處先打過 `/user/targets`，
         // 2.0 的 App2RootView 沒有那條路徑，所以冷啟後快取是空的、卡片永遠退樣本。
@@ -308,28 +589,6 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             ),
             origin: .live(endpoint: "GET /user/targets + GET /v2/plan/status + GET /plan/readiness")
         )
-    }
-
-    // MARK: - §3.1a 指標網格
-
-    private func loadInsights() async {
-        do {
-            let dto = try await app2DataSource.fetchAthleteStateMetrics()
-            let rows = dto.metrics ?? [:]
-            guard !rows.isEmpty else { throw DomainError.unknown("empty metrics") }
-
-            let items = Self.insights(rows: rows)
-            guard !items.isEmpty else { throw DomainError.unknown("no known metric keys") }
-            insights = App2Sourced(items, origin: .live(endpoint: "GET /v2/athlete-state/metrics"))
-        } catch {
-            // 取消 → 保留上一次的指標，不把 live 換成樣本。
-            guard !error.isCancellationError || insights == nil else { return }
-            Logger.debug("[App2HomeVM] athlete-state metrics 取得失敗,退樣本: \(error)")
-            insights = App2Sourced(
-                App2StubFixtures.insights,
-                origin: .stub(pendingSection: App2StubFixtures.Section.offline)
-            )
-        }
     }
 
     // MARK: - Formatting

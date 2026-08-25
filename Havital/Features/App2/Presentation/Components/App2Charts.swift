@@ -61,6 +61,42 @@ struct App2WeeklyVolumeChart: View {
     }
 }
 
+// MARK: - App2SessionStructureChart
+/// 今日課表卡右側的「趟數 × N 趟」結構預覽（設計 frame-00 下半，與 frame-02
+/// 「預計配速」同一視覺家族）。
+///
+/// **不是趨勢圖**：橫軸是這一堂課的段落順序，不是時間。橘柱＝衝刺／主課那幾趟，
+/// 淺色矮柱＝熱身、恢復、緩和。柱數由 payload 的 `repeats` 決定，畫不出結構
+/// （只有一根柱）時呼叫端就不給資料，這裡也不會出現。
+struct App2SessionStructureChart: View {
+    let bars: [App2SessionStructureBar]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(String(format: L10n.App2.Home.structureReps.localized, bars.filter(\.isWork).count))
+                .font(.system(size: 10, weight: .heavy))
+                .foregroundStyle(App2Theme.inkMuted)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+
+            HStack(alignment: .bottom, spacing: 2) {
+                ForEach(bars) { bar in
+                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        .fill(
+                            bar.isWork
+                                ? App2Theme.accentOrangeBright
+                                : App2Theme.accentBlue.opacity(0.28)
+                        )
+                        .frame(height: max(3, 34 * bar.height))
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .frame(height: 34, alignment: .bottom)
+        }
+        .accessibilityIdentifier("App2_SessionStructureChart")
+    }
+}
+
 // MARK: - App2TrajectoryChart
 /// §3.1a 軌跡圖：實際線（pace_vdot 歷史，實線）＋ 預估線（虛線）＋ 三色容差帶
 /// ＋「現在」錨線。設計 frame-00 的訓練狀況卡中段。

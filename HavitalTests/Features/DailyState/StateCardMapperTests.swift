@@ -11,7 +11,7 @@ final class StateCardMapperTests: XCTestCase {
                           rizoHandoff: nil),
             divergence: .init(present: false, flagText: nil, suggestedRizoScenario: nil),
             access: .init(isPaid: !locked, locked: locked, upsell: locked ? .init(reason: "unlock_full_read") : nil),
-            benchmarkCalibration: nil)
+            benchmarkCalibration: nil, insights: nil)
     }
 
     func test_maps_paid() {
@@ -50,7 +50,7 @@ final class StateCardMapperTests: XCTestCase {
                          collapsedReason: "Take it easy today - 34 km this week already",
                          chips: d.chips, causeChips: d.causeChips,
                          mileageProgression: d.mileageProgression, action: d.action,
-                         divergence: d.divergence, access: d.access, benchmarkCalibration: nil)
+                         divergence: d.divergence, access: d.access, benchmarkCalibration: nil, insights: nil)
         let e = StateCardMapper.toEntity(from: d)
         XCTAssertEqual(e.collapsedReason, "Take it easy today - 34 km this week already")
         XCTAssertEqual(e.displayHeadline, "Take it easy today - 34 km this week already")

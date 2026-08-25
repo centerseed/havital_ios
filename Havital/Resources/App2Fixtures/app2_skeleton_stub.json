@@ -1,22 +1,47 @@
 {
   "_note": "2.0 骨架的固定樣本資料。每一筆都不是真資料。兩種用途：(1) 決策鏈端點尚未落地的區塊（意圖確認卡 §4.1、週回顧裁決 §4.2、軌跡圖序列 §7-16、指標評級文案 §7-2）——端點落地前永遠是樣本；(2) 端點在但本機取不到（未登入／dev 無資料）時的退路。文字目前只有 zh-Hant：這些字位在正式版由後端產生並由後端在地化，不是 app 端的 UI chrome，所以不進 Localizable.strings。端點落地後整份刪除。來源對照見 docs/designs/DESIGN-app2-decision-chain-api.md §3。",
-
   "trainingStatus": {
     "headline": "在軌道上，恢復再顧一下",
     "narrative": "你正在變強，但恢復落後了 —— 這週先把它撿回來。",
-    "trackPosition": 0.46,
-    "currentWeek": 5,
-    "totalWeeks": 22
+    "trackPosition": 0.46
   },
-
   "insights": [
-    { "id": "capability_baseline", "label": "體能", "value": "64", "direction": "up", "verdict": "上升" },
-    { "id": "recovery_index", "label": "恢復", "value": "58", "direction": "down", "verdict": "落後" },
-    { "id": "aerobic_endurance", "label": "有氧耐力", "value": "71", "direction": "flat", "verdict": "維持" },
-    { "id": "speed_endurance", "label": "速耐力", "value": "62", "direction": "up", "verdict": "上升" },
-    { "id": "heat_sensitivity", "label": "熱適應", "value": null, "direction": "unknown", "verdict": "資料不足" }
+    {
+      "id": "capability_baseline",
+      "label": "體能",
+      "value": "64",
+      "direction": "up",
+      "verdict": "上升"
+    },
+    {
+      "id": "recovery_index",
+      "label": "恢復",
+      "value": "58",
+      "direction": "down",
+      "verdict": "落後"
+    },
+    {
+      "id": "aerobic_endurance",
+      "label": "有氧耐力",
+      "value": "71",
+      "direction": "flat",
+      "verdict": "維持"
+    },
+    {
+      "id": "speed_endurance",
+      "label": "速耐力",
+      "value": "62",
+      "direction": "up",
+      "verdict": "上升"
+    },
+    {
+      "id": "heat_sensitivity",
+      "label": "熱適應",
+      "value": null,
+      "direction": "unknown",
+      "verdict": "資料不足"
+    }
   ],
-
   "planWeek": {
     "weekLabel": "第 5 週",
     "totalWeeks": 22,
@@ -26,16 +51,85 @@
     "intensityMediumMinutes": 42,
     "intensityHighMinutes": 18,
     "days": [
-      { "id": 0, "dayType": "easy", "weekdayLabel": "週一", "tag": "輕鬆跑", "summary": "8 km 輕鬆跑", "planned": "8.0 km", "actual": "8.2 km", "temp": "26°C", "isToday": false },
-      { "id": 1, "dayType": "rest", "weekdayLabel": "週二", "tag": "休息", "summary": "完全休息", "planned": null, "actual": null, "temp": null, "isToday": false },
-      { "id": 2, "dayType": "tempo", "weekdayLabel": "週三", "tag": "節奏跑", "summary": "熱身 2 km ＋ 6 km 節奏 ＋ 緩和 2 km", "planned": "10.0 km", "actual": "2.8 km", "temp": "29°C", "isToday": false },
-      { "id": 3, "dayType": "easy", "weekdayLabel": "週四", "tag": "輕鬆跑", "summary": "6 km 恢復跑", "planned": "6.0 km", "actual": null, "temp": "28°C", "isToday": false },
-      { "id": 4, "dayType": "interval", "weekdayLabel": "週五", "tag": "間歇", "summary": "6 × 1000m · 3:52/km", "planned": "11.0 km", "actual": null, "temp": "31°C", "isToday": true },
-      { "id": 5, "dayType": "rest", "weekdayLabel": "週六", "tag": "休息", "summary": "肌力訓練 40 分鐘", "planned": null, "actual": null, "temp": null, "isToday": false },
-      { "id": 6, "dayType": "lsd", "weekdayLabel": "週日", "tag": "長跑", "summary": "18 km 有氧長跑", "planned": "18.0 km", "actual": null, "temp": "27°C", "isToday": false }
+      {
+        "id": 0,
+        "dayType": "easy",
+        "weekdayLabel": "週一",
+        "tag": "輕鬆跑",
+        "summary": "8 km 輕鬆跑",
+        "planned": "8.0 km",
+        "actual": "8.2 km",
+        "temp": "26°C",
+        "isToday": false
+      },
+      {
+        "id": 1,
+        "dayType": "rest",
+        "weekdayLabel": "週二",
+        "tag": "休息",
+        "summary": "完全休息",
+        "planned": null,
+        "actual": null,
+        "temp": null,
+        "isToday": false
+      },
+      {
+        "id": 2,
+        "dayType": "tempo",
+        "weekdayLabel": "週三",
+        "tag": "節奏跑",
+        "summary": "熱身 2 km ＋ 6 km 節奏 ＋ 緩和 2 km",
+        "planned": "10.0 km",
+        "actual": "2.8 km",
+        "temp": "29°C",
+        "isToday": false
+      },
+      {
+        "id": 3,
+        "dayType": "easy",
+        "weekdayLabel": "週四",
+        "tag": "輕鬆跑",
+        "summary": "6 km 恢復跑",
+        "planned": "6.0 km",
+        "actual": null,
+        "temp": "28°C",
+        "isToday": false
+      },
+      {
+        "id": 4,
+        "dayType": "interval",
+        "weekdayLabel": "週五",
+        "tag": "間歇",
+        "summary": "6 × 1000m · 3:52/km",
+        "planned": "11.0 km",
+        "actual": null,
+        "temp": "31°C",
+        "isToday": true
+      },
+      {
+        "id": 5,
+        "dayType": "rest",
+        "weekdayLabel": "週六",
+        "tag": "休息",
+        "summary": "肌力訓練 40 分鐘",
+        "planned": null,
+        "actual": null,
+        "temp": null,
+        "isToday": false
+      },
+      {
+        "id": 6,
+        "dayType": "lsd",
+        "weekdayLabel": "週日",
+        "tag": "長跑",
+        "summary": "18 km 有氧長跑",
+        "planned": "18.0 km",
+        "actual": null,
+        "temp": "27°C",
+        "isToday": false
+      }
     ]
   },
-
   "records": {
     "monthDistanceKm": 142.0,
     "monthWorkouts": 15,
@@ -44,31 +138,129 @@
     "ytdDistanceKm": 1482.7,
     "ytdWorkouts": 168,
     "weeklySeries": [
-      { "weekStart": "2026-07-06", "distanceKm": 38.2, "isCurrentWeek": false, "shortLabel": "7/6" },
-      { "weekStart": "2026-07-13", "distanceKm": 44.6, "isCurrentWeek": false, "shortLabel": "7/13" },
-      { "weekStart": "2026-07-20", "distanceKm": 41.0, "isCurrentWeek": false, "shortLabel": "7/20" },
-      { "weekStart": "2026-07-27", "distanceKm": 49.8, "isCurrentWeek": false, "shortLabel": "7/27" },
-      { "weekStart": "2026-08-03", "distanceKm": 52.3, "isCurrentWeek": false, "shortLabel": "8/3" },
-      { "weekStart": "2026-08-10", "distanceKm": 46.1, "isCurrentWeek": false, "shortLabel": "8/10" },
-      { "weekStart": "2026-08-17", "distanceKm": 54.7, "isCurrentWeek": false, "shortLabel": "8/17" },
-      { "weekStart": "2026-08-24", "distanceKm": 11.0, "isCurrentWeek": true, "shortLabel": "8/24" }
+      {
+        "weekStart": "2026-07-06",
+        "distanceKm": 38.2,
+        "isCurrentWeek": false,
+        "shortLabel": "7/6"
+      },
+      {
+        "weekStart": "2026-07-13",
+        "distanceKm": 44.6,
+        "isCurrentWeek": false,
+        "shortLabel": "7/13"
+      },
+      {
+        "weekStart": "2026-07-20",
+        "distanceKm": 41.0,
+        "isCurrentWeek": false,
+        "shortLabel": "7/20"
+      },
+      {
+        "weekStart": "2026-07-27",
+        "distanceKm": 49.8,
+        "isCurrentWeek": false,
+        "shortLabel": "7/27"
+      },
+      {
+        "weekStart": "2026-08-03",
+        "distanceKm": 52.3,
+        "isCurrentWeek": false,
+        "shortLabel": "8/3"
+      },
+      {
+        "weekStart": "2026-08-10",
+        "distanceKm": 46.1,
+        "isCurrentWeek": false,
+        "shortLabel": "8/10"
+      },
+      {
+        "weekStart": "2026-08-17",
+        "distanceKm": 54.7,
+        "isCurrentWeek": false,
+        "shortLabel": "8/17"
+      },
+      {
+        "weekStart": "2026-08-24",
+        "distanceKm": 11.0,
+        "isCurrentWeek": true,
+        "shortLabel": "8/24"
+      }
     ],
     "recentWorkouts": [
-      { "id": "stub-1", "dayType": "easy", "dateLabel": "8/24", "tag": "輕鬆跑", "distance": "11.0 km", "pace": "5:12/km", "duration": "57:12", "vdot": "63.8" },
-      { "id": "stub-2", "dayType": "lsd", "dateLabel": "8/22", "tag": "長跑", "distance": "22.4 km", "pace": "4:58/km", "duration": "1:51:15", "vdot": "64.2" },
-      { "id": "stub-3", "dayType": "tempo", "dateLabel": "8/21", "tag": "節奏跑", "distance": "12.0 km", "pace": "4:12/km", "duration": "50:24", "vdot": "65.1" },
-      { "id": "stub-4", "dayType": "interval", "dateLabel": "8/19", "tag": "間歇", "distance": "10.6 km", "pace": "4:26/km", "duration": "47:00", "vdot": "64.9" },
-      { "id": "stub-5", "dayType": "easy", "dateLabel": "8/18", "tag": "輕鬆跑", "distance": "8.4 km", "pace": "5:20/km", "duration": "44:48", "vdot": "63.5" }
+      {
+        "id": "stub-1",
+        "dayType": "easy",
+        "dateLabel": "8/24",
+        "tag": "輕鬆跑",
+        "distance": "11.0 km",
+        "pace": "5:12/km",
+        "duration": "57:12",
+        "vdot": "63.8"
+      },
+      {
+        "id": "stub-2",
+        "dayType": "lsd",
+        "dateLabel": "8/22",
+        "tag": "長跑",
+        "distance": "22.4 km",
+        "pace": "4:58/km",
+        "duration": "1:51:15",
+        "vdot": "64.2"
+      },
+      {
+        "id": "stub-3",
+        "dayType": "tempo",
+        "dateLabel": "8/21",
+        "tag": "節奏跑",
+        "distance": "12.0 km",
+        "pace": "4:12/km",
+        "duration": "50:24",
+        "vdot": "65.1"
+      },
+      {
+        "id": "stub-4",
+        "dayType": "interval",
+        "dateLabel": "8/19",
+        "tag": "間歇",
+        "distance": "10.6 km",
+        "pace": "4:26/km",
+        "duration": "47:00",
+        "vdot": "64.9"
+      },
+      {
+        "id": "stub-5",
+        "dayType": "easy",
+        "dateLabel": "8/18",
+        "tag": "輕鬆跑",
+        "distance": "8.4 km",
+        "pace": "5:20/km",
+        "duration": "44:48",
+        "vdot": "63.5"
+      }
     ]
   },
-
   "settings": {
     "dataSources": [
-      { "name": "Garmin", "statusLabel": "已連結 · 同步中", "isConnected": true },
-      { "name": "Apple Health", "statusLabel": "未連結", "isConnected": false }
+      {
+        "name": "Garmin",
+        "statusLabel": "已連結 · 同步中",
+        "isConnected": true
+      },
+      {
+        "name": "Apple Health",
+        "statusLabel": "未連結",
+        "isConnected": false
+      }
     ],
     "weeklyDistanceKm": 49.0,
-    "trainingDays": ["週一", "週三", "週四", "週五", "週日"],
+    "trainingDays": [
+      "週一",
+      "週三",
+      "週四",
+      "週五",
+      "週日"
+    ],
     "raceCountdownDays": 30
   }
 }

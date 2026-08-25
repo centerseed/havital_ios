@@ -112,6 +112,180 @@ final class App2RecordsViewModelTests: XCTestCase {
         XCTAssertEqual(totals.workouts, 0)
     }
 
+    // MARK: - 分組／小計／篩選（設計 frame-10 的 recTabs 與 g.group/g.count/g.sum）
+
+    /// 固定一個週三中午當「現在」，讓分組邊界不隨執行日飄動。
+    private var fixedNow: Date {
+        var components = DateComponents()
+        components.year = 2026
+        components.month = 8
+        components.day = 26      // 週三
+        components.hour = 12
+        return Calendar.current.date(from: components) ?? Date()
+    }
+
+    private func item(
+        id: String,
+        daysBeforeNow: Int,
+        km: Double?,
+        type: DayType? = nil
+    ) -> App2RecordItem {
+        let date = Calendar.current.date(byAdding: .day, value: -daysBeforeNow, to: fixedNow)
+        return App2RecordItem(
+            row: App2WorkoutRow(
+                id: id,
+                dateLabel: "8/\(26 - daysBeforeNow)",
+                tag: type?.localizedName,
+                dayType: type,
+                distance: km.map { String(format: "%.1f km", $0) } ?? "—",
+                pace: nil,
+                duration: "30:00",
+                vdot: nil
+            ),
+            date: date,
+            distanceKm: km,
+            whenLabel: "—"
+        )
+    }
+
+    func test_groups_splitsTodayYesterdayThisWeekAndLastWeek() {
+        let groups = App2RecordsViewModel.groups(
+            [
+                item(id: "today", daysBeforeNow: 0, km: 5),
+                item(id: "yesterday", daysBeforeNow: 1, km: 6),
+                item(id: "earlier", daysBeforeNow: 2, km: 7),   // 週一，仍在本週
+                item(id: "lastweek", daysBeforeNow: 8, km: 8)
+            ],
+            now: fixedNow
+        )
+
+        XCTAssertEqual(groups.count, 4)
+        XCTAssertEqual(groups[0].items.map(\.id), ["today"])
+        XCTAssertEqual(groups[1].items.map(\.id), ["yesterday"])
+        XCTAssertEqual(groups[2].items.map(\.id), ["earlier"])
+        XCTAssertEqual(groups[3].items.map(\.id), ["lastweek"])
+        XCTAssertEqual(groups[0].title, L10n.Record.Group.today.localized)
+        XCTAssertEqual(groups[1].title, L10n.Record.Group.yesterday.localized)
+        XCTAssertEqual(groups[2].title, L10n.Record.Group.earlierThisWeek.localized)
+        XCTAssertEqual(groups[3].title, L10n.Record.Group.lastWeek.localized)
+    }
+
+    /// 更早的紀錄按月分桶：同一個月一定落在同一組（月初當 key，已正規化）。
+    func test_groups_bucketsOlderRecordsByMonth() {
+        let groups = App2RecordsViewModel.groups(
+            [
+                item(id: "jun-a", daysBeforeNow: 70, km: 5),
+                item(id: "jun-b", daysBeforeNow: 80, km: 5),
+                item(id: "jul", daysBeforeNow: 45, km: 5)
+            ],
+            now: fixedNow
+        )
+
+        XCTAssertEqual(groups.count, 2, "6 月兩筆要合成同一組")
+        XCTAssertEqual(groups[0].items.map(\.id), ["jul"])          // 新的在前
+        XCTAssertEqual(groups[1].items.map(\.id), ["jun-a", "jun-b"])
+    }
+
+    func test_groups_subtotalSumsDistanceAndCount() {
+        let groups = App2RecordsViewModel.groups(
+            [
+                item(id: "a", daysBeforeNow: 0, km: 5.5),
+                item(id: "b", daysBeforeNow: 0, km: 4.5)
+            ],
+            now: fixedNow
+        )
+
+        let today = groups.first
+        XCTAssertEqual(today?.count, 2)
+        XCTAssertEqual(today?.totalKm ?? 0, 10, accuracy: 0.001)
+    }
+
+    /// 沒有距離的紀錄（樣本）不計入小計，也不讓小計變成 0 以外的假數字。
+    func test_groups_subtotalIgnoresUnknownDistance() {
+        let groups = App2RecordsViewModel.groups(
+            [item(id: "a", daysBeforeNow: 0, km: nil)],
+            now: fixedNow
+        )
+        XCTAssertEqual(groups.first?.count, 1)
+        XCTAssertEqual(groups.first?.totalKm ?? -1, 0, accuracy: 0.001)
+    }
+
+    /// chip 只列出資料裡真的存在的課型 —— 沒有間歇就沒有間歇 chip。
+    func test_filters_onlyIncludeTypesPresentInData() {
+        let filters = App2RecordsViewModel.filters(for: [
+            item(id: "a", daysBeforeNow: 0, km: 5, type: .easy),
+            item(id: "b", daysBeforeNow: 1, km: 5, type: .longRun)
+        ])
+
+        XCTAssertEqual(filters.first?.id, "all")
+        let labels = filters.map(\.label)
+        XCTAssertTrue(labels.contains(DayType.easy.localizedName))
+        XCTAssertTrue(labels.contains(DayType.longRun.localizedName))
+        XCTAssertFalse(labels.contains(DayType.interval.localizedName), "資料裡沒有間歇就不該出現 chip")
+    }
+
+    /// 同顯示名的多個 raw value（`easy` / `easy_run`）合成一顆 chip，不重複兩顆。
+    func test_filters_mergesTypesSharingTheSameLabel() {
+        let filters = App2RecordsViewModel.filters(for: [
+            item(id: "a", daysBeforeNow: 0, km: 5, type: .easy),
+            item(id: "b", daysBeforeNow: 1, km: 5, type: .easyRun),
+            item(id: "c", daysBeforeNow: 2, km: 5, type: .interval)
+        ])
+
+        XCTAssertEqual(filters.count, 3, "全部 ＋ 輕鬆跑 ＋ 間歇")
+        let easyFilter = filters.first { $0.label == DayType.easy.localizedName }
+        XCTAssertEqual(easyFilter?.types, [.easy, .easyRun])
+    }
+
+    /// 只有一種課型時整列 chip 沒有作用 → 不出現。
+    func test_filters_singleTypeProducesNoChips() {
+        let filters = App2RecordsViewModel.filters(for: [
+            item(id: "a", daysBeforeNow: 0, km: 5, type: .easy)
+        ])
+        XCTAssertTrue(filters.isEmpty)
+    }
+
+    func test_filtered_keepsOnlySelectedTypes() throws {
+        let items = [
+            item(id: "easy", daysBeforeNow: 0, km: 5, type: .easy),
+            item(id: "easyRun", daysBeforeNow: 1, km: 5, type: .easyRun),
+            item(id: "interval", daysBeforeNow: 2, km: 5, type: .interval),
+            item(id: "untyped", daysBeforeNow: 3, km: 5, type: nil)
+        ]
+        let filters = App2RecordsViewModel.filters(for: items)
+        let easyFilter = try XCTUnwrap(filters.first { $0.label == DayType.easy.localizedName })
+
+        XCTAssertEqual(
+            App2RecordsViewModel.filtered(items, by: easyFilter).map(\.id),
+            ["easy", "easyRun"]
+        )
+        // 「全部」不過濾，沒有課型的那一筆仍在。
+        XCTAssertEqual(App2RecordsViewModel.filtered(items, by: App2RecordFilter.all).count, 4)
+        XCTAssertEqual(App2RecordsViewModel.filtered(items, by: nil).count, 4)
+    }
+
+    // MARK: - 相對日期（設計 r.when）
+
+    /// 今天的紀錄顯示「今天 HH:mm」，幾天前的顯示「N 天前」—— 兩者不同、且只有
+    /// 今天那一筆帶時間。走既有的 `DateFormatterHelper`，不另做一份格式。
+    func test_load_usesRelativeWhenLabels() async throws {
+        let source = FakeStatsSource()
+        source.workouts = [
+            run(id: "today", at: Date().addingTimeInterval(-3600), km: 5),
+            run(id: "old", at: Date().addingTimeInterval(-3 * 86_400), km: 5)
+        ]
+        let vm = App2RecordsViewModel(workoutDataSource: source)
+
+        await vm.loadIfNeeded()
+
+        XCTAssertEqual(vm.items.count, 2)
+        let todayLabel = try XCTUnwrap(vm.items.first { $0.id == "today" }?.whenLabel)
+        let oldLabel = try XCTUnwrap(vm.items.first { $0.id == "old" }?.whenLabel)
+        XCTAssertNotEqual(todayLabel, oldLabel)
+        XCTAssertTrue(todayLabel.contains(":"), "今天那一筆要帶時間：\(todayLabel)")
+        XCTAssertFalse(oldLabel.contains(":"), "「N 天前」不帶時間：\(oldLabel)")
+    }
+
     // MARK: - 載入與 SWR
 
     func test_load_mapsStatsAndMonthlyTotals() async throws {

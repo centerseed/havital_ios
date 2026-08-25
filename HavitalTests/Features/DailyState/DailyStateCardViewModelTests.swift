@@ -27,7 +27,7 @@ final class DailyStateCardViewModelTests: XCTestCase {
             mileageProgression: nil,
             actionLine: "12K easy", rizoScenario: nil, divergenceFlagText: nil,
             isPaid: !locked, isLocked: locked, upsellReason: locked ? "unlock_full_read" : nil,
-            benchmarkCalibration: calibration)
+            benchmarkCalibration: calibration, insights: [])
     }
     private func calibration() -> SameDayBenchmarkCalibration {
         SameDayBenchmarkCalibration(

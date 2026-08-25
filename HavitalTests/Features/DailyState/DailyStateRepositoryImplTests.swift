@@ -24,7 +24,7 @@ final class DailyStateRepositoryImplTests: XCTestCase {
             narrativeText: "n", collapsedReason: nil, chips: ["c"], causeChips: [], mileageProgression: nil,
             action: nil, divergence: nil,
             access: .init(isPaid: true, locked: false, upsell: nil),
-            benchmarkCalibration: nil)
+            benchmarkCalibration: nil, insights: nil)
         let repo = DailyStateRepositoryImpl(remoteDataSource: remote)
         let card = try await repo.fetchTodayState()
         XCTAssertEqual(card.lens, .post)

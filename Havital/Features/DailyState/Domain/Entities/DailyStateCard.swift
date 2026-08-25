@@ -22,6 +22,8 @@ struct DailyStateCard: Equatable {
     let upsellReason: String?
     /// T-0142 指標跑當日即時校準(偵測到今天合格全力跑才有值)。
     let benchmarkCalibration: SameDayBenchmarkCalibration?
+    /// 已評級的指標列。空陣列 = 端點沒帶(舊版後端),不是「全部尚未計算」。
+    let insights: [DailyStateInsight]
 
     var hasChip: Bool { !chips.isEmpty }
 
@@ -30,6 +32,29 @@ struct DailyStateCard: Equatable {
         if let reason = collapsedReason, !reason.isEmpty { return reason }
         return headline
     }
+}
+
+// MARK: - DailyStateInsight
+/// Domain Entity — 已評級的指標列(`GET /v2/state/today` 的 `insights[]`)。
+///
+/// **評級與文案都在後端做完**:`label`／`verdict`／`change` 已在地化,`arrow`／`dot`
+/// 是後端的判斷。app 端只做「有沒有值」的呈現分支,不自己推方向、不自己取名。
+struct DailyStateInsight: Equatable {
+    enum Arrow: String, Equatable { case up, down, flat, unknown }
+
+    let key: String
+    let label: String
+    /// `64`／`23 km`;`nil` = 這一列還沒有值。
+    let valueText: String?
+    let arrow: Arrow
+    let verdict: String?
+    let change: String?
+    let evidence: String?
+    /// `graded`／`not_computed`。
+    let status: String?
+
+    /// 後端明說「還沒算」。畫面要說出這件事,不是靜靜地灰掉。
+    var isNotComputed: Bool { status == "not_computed" }
 }
 
 // MARK: - SameDayBenchmarkCalibration (T-0142)

@@ -70,19 +70,44 @@ struct App2TrainingStatus: Equatable {
 
 /// 指標網格一格（§3.1a `insights[]`）。
 ///
-/// `verdict`／`change`／`evidence` 是已評級的文案，`/v2/athlete-state/metrics`
-/// 依規格不產生（ME-INV-05，設計文件 §7-2）。因此本結構把「值」與「評級文案」
-/// 分成兩個欄位，各帶各的來源。
+/// **producer 是 `GET /v2/state/today` 的 `insights[]`**，不是
+/// `GET /v2/athlete-state/metrics`。後者依規格只交 envelope、不評級也不渲染句子
+/// （ME-INV-05），所以綁它的畫面永遠沒有 `verdict`／`arrow` ——2026-08-25 在 dev
+/// 上實測到的「整排灰 icon ＋ 小點」就是這件事，設計文件 §3.1a 那一列的判定有誤。
+/// `state/today` 交出來的是已評級、已在地化的列（`label`／`arrow`／`verdict`／
+/// `change`／`dot`／`status`），app 端不再自己推導。
 struct App2Insight: Identifiable, Equatable {
     let id: String
-    /// 指標名（`體能`／`恢復`）。
+    /// 指標名（`能力基準`／`訓練量`）。後端已在地化。
     let label: String
-    /// envelope 的點估計，已格式化；nil = `not_computed`。
+    /// `64`／`23 km`；nil = 這一列還沒有值。
     let value: String?
-    /// 方向箭頭。
+    /// 方向箭頭（後端的 `arrow`）。
     let direction: Direction
-    /// 評級文案（`維持`／`落後`）。§7-2 未落地 → 目前恆為樣本。
+    /// 評級文案（`上升`／`尚未計算`）。後端已在地化。
     let verdict: String?
+    /// `23 vs 上週 0 km` 這種對照句；nil = 後端沒帶。
+    let change: String?
+    /// 後端明說 `not_computed` —— 畫面要說出「尚未計算」，不是靜靜地灰掉。
+    let isNotComputed: Bool
+
+    init(
+        id: String,
+        label: String,
+        value: String?,
+        direction: Direction,
+        verdict: String?,
+        change: String? = nil,
+        isNotComputed: Bool = false
+    ) {
+        self.id = id
+        self.label = label
+        self.value = value
+        self.direction = direction
+        self.verdict = verdict
+        self.change = change
+        self.isNotComputed = isNotComputed
+    }
 
     enum Direction: String, Equatable {
         case up, down, flat, unknown
@@ -100,6 +125,9 @@ extension App2Insight {
         case "speed_endurance":     return "bolt.fill"
         case "heat_sensitivity":    return "thermometer.medium"
         case "consistency":         return "calendar"
+        case "weekly_volume":       return "figure.run"
+        case "load_index":          return "gauge.with.dots.needle.50percent"
+        case "threshold_endurance": return "speedometer"
         default:                    return "circle.fill"
         }
     }
@@ -114,7 +142,7 @@ extension App2Insight {
     }
 }
 
-/// 今日課表卡（§3.1 倒數第 3 列）。
+/// 今日課表卡（§3.1 倒數第 3 列；設計 frame-00 下半）。
 struct App2TodaySession: Equatable {
     /// `週五 · 8/14`
     let dayLabel: String
@@ -124,6 +152,61 @@ struct App2TodaySession: Equatable {
     let intensityLabel: String?
     /// `12 km · 6:45/km`
     let summary: String?
+    /// 分段表（熱身／衝刺／恢復／緩和）。payload 沒有 segments 就是空陣列，
+    /// 畫面整段不出現 —— 不用 placeholder 補行。
+    let segments: [App2SessionSegment]
+    /// 右側「趟數 × N 趟」結構預覽的柱子。空 = 這堂課的結構畫不出來，不畫。
+    let structureBars: [App2SessionStructureBar]
+    /// `力量 · 3 個動作`。nil = 今天沒有 supplementary 肌力項目。
+    let strengthLabel: String?
+}
+
+/// 今日課表卡的一行分段（設計 frame-00：左名稱、右值）。
+struct App2SessionSegment: Identifiable, Equatable {
+    /// 分段在課表裡的位置（穩定排序用）。
+    let id: Int
+    /// 已在地化的分段名（`熱身`／`衝刺`／`恢復`／`緩和`）。
+    let name: String
+    /// `400m @ 4:30`／`10 分鐘`。組不出來就不要有這一行（呼叫端已過濾）。
+    let detail: String
+    /// 這一段算不算「主課」——決定結構預覽的柱色。
+    let isWork: Bool
+}
+
+/// 結構預覽的一根柱（設計 frame-02「預計配速」同一視覺家族）。
+struct App2SessionStructureBar: Identifiable, Equatable {
+    let id: Int
+    /// 0…1 的相對高度。
+    let height: Double
+    let isWork: Bool
+}
+
+/// 今日課表卡的四種狀態。
+///
+/// **「本週課表尚未產生」是一個斷言，不是預設值。** 只有 `/v2/plan/status` 明說
+/// `current_week_plan_id` 是 nil 才准講這句；讀取失敗、被取消、解析失敗一律走
+/// `.unavailable`（畫面說「暫時讀不到」＋可重試）。2026-08-25 用戶在同一屏同時
+/// 看到「本週課表尚未產生」與課表頁的一整週課，就是把失敗當成「沒有」的結果。
+enum App2TodaySessionState: Equatable {
+    /// 今天有課（或今天是休息日，由 `App2TodaySession.title` 表達）。
+    case session(App2TodaySession)
+    /// 後端明說本週還沒有課表。
+    case notGenerated
+    /// 本週課表在，但今天不在 `days` 裡。
+    case noSessionToday
+    /// 讀不到 —— 不得宣稱「尚未產生」。
+    case unavailable
+}
+
+/// 週回顧 CTA 的狀態（設計 dc.html:5112 的 `reviewLabel`／`reviewSub`）。
+///
+/// 標籤依「今天是不是週日」切換目標週：週日＝本週、週一～六＝上週。
+/// 目標週的回顧已存在時整張卡改成「查看回顧」。
+enum App2WeekReviewState: Equatable {
+    /// 目標週的回顧還沒產生。`isCurrentWeek` = 目標週是本週（週日）。
+    case notGenerated(isCurrentWeek: Bool)
+    /// 目標週的回顧已存在，帶著它的 id 供導頁。
+    case available(summaryId: String, isCurrentWeek: Bool)
 }
 
 // MARK: - 課表（§3.3）

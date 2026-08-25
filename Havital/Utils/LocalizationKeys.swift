@@ -2017,6 +2017,30 @@ extension L10n {
             static let todaySection = "app2.home.today_section"
             static let rizoEntry = "app2.home.rizo_entry"
             static let weekReviewEntry = "app2.home.week_review_entry"
+            /// 今日課表卡的分段表。`熱身`／`衝刺`／`緩和` 走既有的 `training.segment.*`
+            /// （三語已齊），只有這兩個沒有現成的詞。
+            static let segmentRecovery = "app2.home.segment_recovery"
+            static let segmentMain = "app2.home.segment_main"
+            /// `%d 分鐘`
+            static let minutes = "app2.home.minutes"
+            /// `力量 · %d 個動作`
+            static let strengthRow = "app2.home.strength_row"
+            /// 結構預覽的標題：`趟數 × %d 趟`
+            static let structureReps = "app2.home.structure_reps"
+            /// 今日課表讀不到（**不是**「尚未產生」）。
+            static let planUnavailableBody = "app2.home.plan_unavailable_body"
+            /// 本週課表在，但今天不在裡面。
+            static let noSessionTodayBody = "app2.home.no_session_today_body"
+            /// 週回顧 CTA 的四組文案（設計 dc.html:5112：週日＝本週、其餘＝上週）。
+            static let weekReviewGenerateCurrent = "app2.home.week_review_generate_current"
+            static let weekReviewGenerateLast = "app2.home.week_review_generate_last"
+            static let weekReviewSubCurrent = "app2.home.week_review_sub_current"
+            static let weekReviewSubLast = "app2.home.week_review_sub_last"
+            static let weekReviewView = "app2.home.week_review_view"
+            static let weekReviewViewSub = "app2.home.week_review_view_sub"
+            /// 內嵌 Rizo 卡。
+            static let rizoCoachTitle = "app2.home.rizo_coach_title"
+            static let rizoInputPlaceholder = "app2.home.rizo_input_placeholder"
         }
 
         enum Plan {
@@ -2080,6 +2104,9 @@ extension L10n {
             static let connected = "app2.settings.connected"
             /// 訂閱卡的「續訂中」狀態；其餘狀態沿用既有的 `profile.subscription.*`。
             static let subscriptionActive = "app2.settings.subscription_active"
+            /// 「重新設定目標賽事」——導既有的目標設定流程，不重做一份。
+            static let resetGoalRace = "app2.settings.reset_goal_race"
+            static let goalSection = "app2.settings.goal_section"
         }
 
         enum Common {

@@ -4210,6 +4210,24 @@
 "app2.home.today_section" = "Today's session";
 "app2.home.rizo_entry" = "Talk to Rizo";
 "app2.home.week_review_entry" = "This week's review";
+/* T-0306 full today-session card / week review CTA states / inline Rizo card */
+"app2.home.segment_recovery" = "Recovery";
+"app2.home.segment_main" = "Main set";
+"app2.home.minutes" = "%d min";
+"app2.home.strength_row" = "Strength · %d exercises";
+"app2.home.structure_reps" = "Reps × %d";
+"app2.home.plan_unavailable_body" = "Couldn't load today's session. Pull down to refresh and try again.";
+"app2.home.no_session_today_body" = "Nothing scheduled for today in this week's plan. Open Plan to see the full week.";
+"app2.home.week_review_generate_current" = "Generate this week's review";
+"app2.home.week_review_generate_last" = "Generate last week's review";
+"app2.home.week_review_sub_current" = "This training week is wrapping up — let Rizo pull it together";
+"app2.home.week_review_sub_last" = "Review last week's training and trends, and find the next step";
+"app2.home.week_review_view" = "View review";
+"app2.home.week_review_view_sub" = "See how this stretch went";
+"app2.home.rizo_coach_title" = "Your AI running coach";
+"app2.home.rizo_input_placeholder" = "Tell Rizo how you feel before heading out…";
+"app2.settings.goal_section" = "Goal race";
+"app2.settings.reset_goal_race" = "Set a new goal race";
 
 "app2.plan.week_volume" = "Weekly target";
 "app2.plan.completed" = "Completed";

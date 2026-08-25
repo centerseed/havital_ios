@@ -32,6 +32,13 @@ final class App2RenderingTests: XCTestCase {
         attachment.name = "t0306-\(name)"
         attachment.lifetime = .keepAlways
         add(attachment)
+
+        // 收尾要把畫面貼進票面時，用 `APP2_EVIDENCE_DIR=<path>` 跑這個 target，
+        // 圖就會直接落在那個資料夾（不設就只有 xcresult 附件，行為不變）。
+        if let dir = ProcessInfo.processInfo.environment["APP2_EVIDENCE_DIR"],
+           let png = image.pngData() {
+            try? png.write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(name).png"))
+        }
         return image
     }
 
@@ -62,7 +69,10 @@ final class App2RenderingTests: XCTestCase {
         intensity: String? = "輕鬆",
         summary: String? = "9.0 km · 7:55/km"
     ) -> App2TodaySession {
-        App2TodaySession(dayLabel: "週二 · 8/25", title: title, intensityLabel: intensity, summary: summary)
+        App2TodaySession(
+            dayLabel: "週二 · 8/25", title: title, intensityLabel: intensity, summary: summary,
+            segments: [], structureBars: [], strengthLabel: nil
+        )
     }
 
     private func insights(count: Int) -> [App2Insight] {
@@ -106,16 +116,16 @@ final class App2RenderingTests: XCTestCase {
             goalCard: App2Sourced(goal(), origin: live),
             trainingStatus: App2Sourced(status(), origin: live),
             insights: App2Sourced(insights(count: 5), origin: stub),
-            todaySession: App2Sourced(session(), origin: live)
+            todayState: .session(session())
         )
-        render(App2HomeView(viewModel: vm), name: "home-full")
+        render(App2HomeView(onOpenSettings: {}, viewModel: vm), name: "home-full")
     }
 
     /// 全空：沒有目標賽事、沒有今日課、沒有狀態卡、沒有指標。
     func test_home_emptyState_renders() {
         let vm = App2HomeViewModel()
         vm.applyForTesting()
-        render(App2HomeView(viewModel: vm), name: "home-empty")
+        render(App2HomeView(onOpenSettings: {}, viewModel: vm), name: "home-empty")
     }
 
     /// 休息日：課型有字、強度與內容行都沒有。
@@ -124,12 +134,11 @@ final class App2RenderingTests: XCTestCase {
         vm.applyForTesting(
             trainingStatus: App2Sourced(status(), origin: live),
             insights: App2Sourced(insights(count: 5), origin: stub),
-            todaySession: App2Sourced(
-                session(title: DayType.rest.localizedName, intensity: nil, summary: nil),
-                origin: live
+            todayState: .session(
+                session(title: DayType.rest.localizedName, intensity: nil, summary: nil)
             )
         )
-        render(App2HomeView(viewModel: vm), name: "home-rest-day")
+        render(App2HomeView(onOpenSettings: {}, viewModel: vm), name: "home-rest-day")
     }
 
     /// 超長 headline（兩行以上）＋ 超長課型名：不得把卡片撐破或把字吃掉。
@@ -145,12 +154,11 @@ final class App2RenderingTests: XCTestCase {
                 origin: live
             ),
             insights: App2Sourced(insights(count: 5), origin: stub),
-            todaySession: App2Sourced(
-                session(title: String(repeating: "長距離輕鬆跑", count: 4)),
-                origin: live
+            todayState: .session(
+                session(title: String(repeating: "長距離輕鬆跑", count: 4))
             )
         )
-        render(App2HomeView(viewModel: vm), name: "home-long-strings")
+        render(App2HomeView(onOpenSettings: {}, viewModel: vm), name: "home-long-strings")
     }
 
     /// 只有部分指標（後端只算出兩列）。
@@ -159,9 +167,45 @@ final class App2RenderingTests: XCTestCase {
         vm.applyForTesting(
             trainingStatus: App2Sourced(status(), origin: live),
             insights: App2Sourced(insights(count: 2), origin: live),
-            todaySession: App2Sourced(session(), origin: live)
+            todayState: .session(session())
         )
-        render(App2HomeView(viewModel: vm), name: "home-partial-insights")
+        render(App2HomeView(onOpenSettings: {}, viewModel: vm), name: "home-partial-insights")
+    }
+
+    /// dev `a60e2c6cb83a_1` 的質課日（day_index 5）：熱身 ＋ 穩定段 ＋ 6×200m ＋ 恢復 ＋ 緩和。
+    /// 用**真的 payload** 走 `todaySession(...)` 投影，驗證完整版今日課表卡
+    /// （分段表 ＋ 右側「趟數 × N 趟」結構預覽）畫得出來。
+    func test_home_qualityDaySession_rendersSegmentsAndStructure() throws {
+        let json = """
+        { "day_index": 5, "day_target": "組合訓練", "reason": "基礎期第一週",
+          "warmup": { "distance_km": 1.0, "pace": "7:55" },
+          "cooldown": { "distance_km": 1.0, "pace": "7:55" },
+          "primary": { "run_type": "steady_intervals", "distance_km": 4.2,
+            "target_intensity": "high",
+            "segments": [
+              { "kind": "steady", "distance_km": 3.0, "pace": "7:55" },
+              { "kind": "interval", "repeats": 6,
+                "work": { "distance_m": 200, "pace": "5:25" },
+                "recovery": { "duration_seconds": 90 } } ] } }
+        """
+        let day = try JSONDecoder().decode(DayDetailDTO.self, from: Data(json.utf8))
+        let session = try XCTUnwrap(
+            App2HomeViewModel.todaySession(days: [day], todayIndex: 5, dayLabel: "星期五 · 8/29")
+        )
+        XCTAssertEqual(session.segments.count, 5)
+        XCTAssertFalse(session.structureBars.isEmpty)
+
+        let vm = App2HomeViewModel()
+        vm.applyForTesting(
+            goalCard: App2Sourced(goal(), origin: live),
+            trainingStatus: App2Sourced(status(currentWeek: 1, totalWeeks: 17), origin: live),
+            insights: App2Sourced(insights(count: 5), origin: live),
+            todayState: .session(session),
+            weekReview: .notGenerated(isCurrentWeek: false),
+            rizoOpeningLine: "今天安排休息日，請好好放鬆，本週訓練完成 0/3。"
+        )
+        render(App2HomeView(onOpenSettings: {}, viewModel: vm),
+               name: "today-card-quality-day", height: 1400)
     }
 
     // MARK: - 軌跡圖退化態
@@ -226,7 +270,7 @@ final class App2RenderingTests: XCTestCase {
         let vm = App2PlanViewModel()
         let days = (1...7).map { planDay($0, type: .rest, planned: nil, isToday: $0 == 3) }
         vm.applyForTesting(week: App2Sourced(planWeek(days: days, target: 0, completed: nil), origin: live))
-        render(App2PlanView(onOpenSettings: {}, avatarInitial: "P", viewModel: vm), name: "plan-all-rest")
+        render(App2PlanView(viewModel: vm), name: "plan-all-rest")
     }
 
     func test_plan_completionZeroAndFull_render() {
@@ -234,18 +278,18 @@ final class App2RenderingTests: XCTestCase {
 
         let zero = App2PlanViewModel()
         zero.applyForTesting(week: App2Sourced(planWeek(days: days, target: 30, completed: 0), origin: live))
-        render(App2PlanView(onOpenSettings: {}, avatarInitial: "P", viewModel: zero), name: "plan-0-of-3")
+        render(App2PlanView(viewModel: zero), name: "plan-0-of-3")
 
         let full = App2PlanViewModel()
         full.applyForTesting(week: App2Sourced(planWeek(days: days, target: 30, completed: 30), origin: live))
-        render(App2PlanView(onOpenSettings: {}, avatarInitial: "P", viewModel: full), name: "plan-3-of-3")
+        render(App2PlanView(viewModel: full), name: "plan-3-of-3")
     }
 
     /// 本週課表尚未產生 → 空狀態，不是樣本。
     func test_plan_noWeek_rendersEmptyState() {
         let vm = App2PlanViewModel()
         vm.applyForTesting(week: nil)
-        render(App2PlanView(onOpenSettings: {}, avatarInitial: "P", viewModel: vm), name: "plan-empty")
+        render(App2PlanView(viewModel: vm), name: "plan-empty")
     }
 
     /// 最末週：週次標籤與總週數相同，切換鍵仍是停用態。
@@ -258,6 +302,6 @@ final class App2RenderingTests: XCTestCase {
                 origin: live
             )
         )
-        render(App2PlanView(onOpenSettings: {}, avatarInitial: "P", viewModel: vm), name: "plan-last-week")
+        render(App2PlanView(viewModel: vm), name: "plan-last-week")
     }
 }

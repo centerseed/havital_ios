@@ -58,7 +58,8 @@ extension DailyStateCard {
             isPaid: false,
             isLocked: false,
             upsellReason: nil,
-            benchmarkCalibration: nil
+            benchmarkCalibration: nil,
+            insights: []
         )
     }
 }

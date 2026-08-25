@@ -4,15 +4,13 @@ import SwiftUI
 /// 2.0 課表頁 —— 設計 **frame-01「課表」**（語意／端點見
 /// `DESIGN-app2-decision-chain-api.md` §3.3）。
 ///
-/// 版面：標題「訓練課表」＋ 週次切換器 ＋ 頭像（＝設定入口）→ 本週跑量藍卡
+/// 版面：標題「訓練課表」＋ 週次切換器 → 本週跑量藍卡
 /// （大 mono 數字、完成百分比膠囊、三色強度分段條）→ 每日卡（左緣彩色邊、
 /// 課型徽章＋體感溫度徽章、課表／實際兩行）。
+///
+/// **這一頁沒有設定入口**（2026-08-25 設計更新：header 只剩標題＋週次切換器）。
+/// 設定改由首頁右上角的 LV 徽章進入。
 struct App2PlanView: View {
-
-    /// 設定的入口在這一頁的右上角頭像（設計 frame-01）。
-    let onOpenSettings: () -> Void
-    /// 頭像縮寫由殼層帶進來 —— View 不直接抓 `AuthenticationViewModel.shared`。
-    let avatarInitial: String
 
     @ObservedObject var viewModel: App2PlanViewModel
 
@@ -31,10 +29,19 @@ struct App2PlanView: View {
                 } else if viewModel.isLoading {
                     ProgressView().frame(maxWidth: .infinity, minHeight: 200)
                 } else {
-                    Text(L10n.App2.Common.noData.localized)
+                    // 首頁與這一頁講同一句話：本週沒有課表就都說沒有。
+                    App2Card(padding: 16, spacing: 8) {
+                        Text(
+                            viewModel.isPlanGenerated
+                                ? L10n.App2.Common.noData.localized
+                                : L10n.App2.Home.noPlanBody.localized
+                        )
                         .font(.app2Body)
-                        .foregroundStyle(App2Theme.inkTertiary)
-                        .frame(maxWidth: .infinity, minHeight: 200)
+                        .lineSpacing(2)
+                        .foregroundStyle(App2Theme.inkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .accessibilityIdentifier("App2_PlanEmptyState")
                 }
             }
             .padding(.horizontal, App2Theme.pagePadding)
@@ -47,7 +54,7 @@ struct App2PlanView: View {
         .refreshable { await viewModel.forceRefresh() }
     }
 
-    // MARK: - Header（標題 ＋ 週次切換器 ＋ 頭像）
+    // MARK: - Header（標題 ＋ 週次切換器）
 
     private var header: some View {
         App2PageHeader(title: L10n.App2.Plan.title.localized) {
@@ -67,19 +74,6 @@ struct App2PlanView: View {
                 }
                 .frame(minWidth: 76)
                 weekStepButton(symbol: "chevron.right", enabled: false)
-
-                Rectangle()
-                    .fill(App2Theme.shadowInk.opacity(0.12))
-                    .frame(width: 1, height: 22)
-                    .padding(.horizontal, 5)
-
-                // 同上：Button 會吃掉 identifier，改用容器 + onTapGesture。
-                App2Avatar(initial: avatarInitial)
-                    .contentShape(Circle())
-                    .onTapGesture(perform: onOpenSettings)
-                    .accessibilityAddTraits(.isButton)
-                    .accessibilityLabel(L10n.App2.Common.settingsEntry.localized)
-                    .accessibilityIdentifier("App2_SettingsEntry")
             }
         }
     }

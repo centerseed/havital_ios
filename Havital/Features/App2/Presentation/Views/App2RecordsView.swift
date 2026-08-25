@@ -4,35 +4,41 @@ import SwiftUI
 /// 2.0 紀錄頁 —— 設計 **frame-10「紀錄」**（語意／端點見
 /// `DESIGN-app2-decision-chain-api.md` §3.6）。
 ///
-/// 版面：標題「訓練紀錄」→ hero 藍卡（近 30 天／今年累積雙欄 ＋ 近 8 週趨勢柱）
-/// → 每筆紀錄白卡（左緣課型色、課型徽章 ＋ VDOT 徽章、距離／配速／時間三欄大 mono 數字）。
+/// 版面：標題「訓練紀錄」＋ 右上日曆鈕 → hero 藍卡（近 30 天／今年累積雙欄 ＋
+/// 近 8 週趨勢柱）→ 課型篩選 chip 列 → 依日期分組的紀錄（組標題帶「N 次跑步 ·
+/// 共 X km」小計）→ 每筆紀錄白卡（左緣課型色、課型徽章 ＋ VDOT 徽章、距離／配速／
+/// 時間三欄大 mono 數字）。
 struct App2RecordsView: View {
 
     @ObservedObject var viewModel: App2RecordsViewModel
+
+    /// 右上日曆鈕開的是 1.x 既有的 `TrainingCalendarView`（`WeekOverviewCardV2`
+    /// 也是以 sheet + NavigationView 開它）—— 不另做一份月曆。
+    @State private var showTrainingCalendar = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 0) {
                 App2PageHeader(title: L10n.App2.Records.title.localized) {
-                    EmptyView()
+                    calendarButton
                 }
                 .padding(.bottom, 14)
 
                 if let sourced = viewModel.records {
                     heroCard(sourced).padding(.bottom, 20)
+                    filterChips
                     HStack {
-                        Text(L10n.App2.Records.listSection.localized)
-                            .font(.system(size: 17, weight: .black))
-                            .foregroundStyle(App2Theme.inkPrimary)
                         Spacer()
                         App2StubBadge(origin: sourced.origin)
                     }
+                    .frame(height: sourced.origin.isStub ? nil : 0)
                     .padding(.horizontal, 4)
-                    .padding(.bottom, 10)
-                    .accessibilityIdentifier("App2_RecordsListCard")
 
-                    ForEach(sourced.value.recentWorkouts) { row in
-                        workoutCard(row).padding(.bottom, 11)
+                    ForEach(viewModel.visibleGroups) { group in
+                        groupHeader(group)
+                        ForEach(group.items) { item in
+                            workoutCard(item).padding(.bottom, 11)
+                        }
                     }
                 } else if viewModel.isLoading {
                     ProgressView().frame(maxWidth: .infinity, minHeight: 200)
@@ -51,6 +57,94 @@ struct App2RecordsView: View {
         .accessibilityIdentifier("App2_RecordsView")
         .task { await viewModel.loadIfNeeded() }
         .refreshable { await viewModel.forceRefresh() }
+        .sheet(isPresented: $showTrainingCalendar) {
+            NavigationView {
+                TrainingCalendarView()
+            }
+        }
+    }
+
+    // MARK: - 右上日曆鈕（設計 `openCal`）
+
+    /// `Button` 會吃掉 label 上的 identifier，所以可點元素用
+    /// 容器 ＋ `contentShape` ＋ `onTapGesture` ＋ `.isButton` trait。
+    private var calendarButton: some View {
+        Image(systemName: "calendar")
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(App2Theme.accentBlueDeep)
+            .frame(width: 34, height: 34)
+            .background(
+                Circle()
+                    .fill(App2Theme.cardBackground)
+                    .overlay(Circle().stroke(App2Theme.cardBorder, lineWidth: 1))
+            )
+            .contentShape(Circle())
+            .onTapGesture { showTrainingCalendar = true }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityIdentifier("App2_RecordsCalendarButton")
+    }
+
+    // MARK: - 課型篩選 chip 列（設計 `recTabs`）
+
+    @ViewBuilder
+    private var filterChips: some View {
+        if viewModel.filters.isEmpty {
+            EmptyView()
+        } else {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(viewModel.filters) { filter in
+                        filterChip(filter, isSelected: filter.id == viewModel.selectedFilterID)
+                    }
+                }
+                .padding(.horizontal, 4)
+            }
+            .padding(.bottom, 18)
+            .accessibilityIdentifier("App2_RecordsFilterChips")
+        }
+    }
+
+    private func filterChip(_ filter: App2RecordFilter, isSelected: Bool) -> some View {
+        Text(filter.label)
+            .font(.system(size: 15, weight: .heavy))
+            .foregroundStyle(isSelected ? Color.white : App2Theme.inkSecondary)
+            .padding(.horizontal, 15)
+            .padding(.vertical, 8)
+            .background(
+                Capsule().fill(isSelected ? App2Theme.accentBlue : App2Theme.cardBackground)
+            )
+            .overlay(
+                Capsule().stroke(
+                    isSelected ? Color.clear : App2Theme.cardBorder,
+                    lineWidth: 1
+                )
+            )
+            .contentShape(Capsule())
+            .onTapGesture { viewModel.select(filterID: filter.id) }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityIdentifier("App2_RecordsFilterChip_\(filter.id)")
+    }
+
+    // MARK: - 分組標題 ＋ 小計（設計 `g.group` / `g.count` / `g.sum`）
+
+    private func groupHeader(_ group: App2RecordGroup) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(group.title)
+                .font(.system(size: 17, weight: .black))
+                .foregroundStyle(App2Theme.inkPrimary)
+            Text(L10n.Record.Group.runCountFormat.localized(with: group.count))
+                .font(.system(size: 11.5, weight: .semibold))
+                .foregroundStyle(App2Theme.inkTertiary)
+            Spacer(minLength: 8)
+            if group.totalKm > 0 {
+                Text(L10n.Record.Group.totalKmFormat.localized(with: group.totalKm))
+                    .font(.app2Mono(11.5, weight: .bold))
+                    .foregroundStyle(App2Theme.inkTertiary)
+            }
+        }
+        .padding(.horizontal, 4)
+        .padding(.bottom, 10)
+        .accessibilityIdentifier("App2_RecordsGroupHeader")
     }
 
     // MARK: - hero（雙欄總量 ＋ 近 8 週趨勢）
@@ -142,7 +236,8 @@ struct App2RecordsView: View {
 
     // MARK: - 每筆紀錄卡
 
-    private func workoutCard(_ row: App2WorkoutRow) -> some View {
+    private func workoutCard(_ item: App2RecordItem) -> some View {
+        let row = item.row
         let type = row.dayType
         return App2LeftStripCard(
             strip: type?.app2StripColor ?? App2Theme.accentBlue,
@@ -156,7 +251,9 @@ struct App2RecordsView: View {
                         background: type?.app2ChipBackground ?? App2Theme.accentBlue.opacity(0.12)
                     )
                 }
-                Text(row.dateLabel)
+                // 設計 `r.when` 是相對時間（「今天 08:07」／「3 天前」），
+                // 不是 `8/22`。走既有的 `DateFormatterHelper`（VM 已算好）。
+                Text(item.whenLabel)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(App2Theme.inkTertiary)
                 Spacer(minLength: 6)

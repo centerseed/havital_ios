@@ -51,7 +51,8 @@ extension PersonalAchievementsViewModel: App2Revalidating {
 ///
 /// 對照 1.x 的四個 tab（訓練計畫／訓練紀錄／表現數據／成就），2.0 把「表現數據」
 /// 收進首頁的訓練狀況卡（§3.1a 指標網格），第四格留給成就（設計 frame-11）。
-/// **設定不是 tab** —— 入口是課表頁右上角的頭像（設計 frame-01），開成一張全螢幕頁
+/// **設定不是 tab** —— 入口是首頁右上角的 LV 六角徽章（2026-08-25 設計更新：
+/// 課表頁 header 只剩標題＋週次切換器，頭像鈕拿掉），開成一張全螢幕頁
 /// （設計 frame-21 的左上有返回鍵，是被推出來的頁而不是 tab）。
 ///
 /// tab bar 是懸浮膠囊（`App2TabBar`），所以頁面在 `ZStack` 裡疊而不是走 `TabView`；
@@ -83,14 +84,13 @@ struct App2RootView: View {
             App2Theme.pageGradient.ignoresSafeArea()
 
             ZStack {
-                page(.state) { App2HomeView(viewModel: homeViewModel) }
-                page(.plan) {
-                    App2PlanView(
+                page(.state) {
+                    App2HomeView(
                         onOpenSettings: { isShowingSettings = true },
-                        avatarInitial: settingsViewModel.avatarInitial,
-                        viewModel: planViewModel
+                        viewModel: homeViewModel
                     )
                 }
+                page(.plan) { App2PlanView(viewModel: planViewModel) }
                 page(.records) { App2RecordsView(viewModel: recordsViewModel) }
                 page(.achievements) { App2AchievementsView(viewModel: achievementsViewModel) }
             }

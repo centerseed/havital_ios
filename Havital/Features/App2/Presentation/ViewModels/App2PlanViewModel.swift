@@ -10,6 +10,9 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     @Published private(set) var isLoading = true
     @Published private(set) var week: App2Sourced<App2PlanWeek>?
+    /// 後端明說本週還沒有課表（`current_week_plan_id == nil`）。
+    /// 讀取失敗不算 —— 那時 `week` 保持舊值或退樣本，這個旗標維持 true。
+    @Published private(set) var isPlanGenerated = true
     private(set) var hasLoaded = false
     private(set) var lastLoadedAt: Date?
 
@@ -50,14 +53,15 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         do {
             let status = try await planV2DataSource.getPlanStatus()
             guard let planId = status.currentWeekPlanId else {
-                Logger.debug("[App2PlanVM] 本週尚無課表 (next_action=\(status.nextAction)),退樣本")
-                guard week == nil else { return }   // SWR：重驗失敗時保留舊資料
-                week = App2Sourced(
-                    App2StubFixtures.planWeek,
-                    origin: .stub(pendingSection: App2StubFixtures.Section.offline)
-                )
+                // **本週沒有課表就說沒有。** 這裡原本退樣本，畫面上會出現一整週
+                // 「第 5 週 / 22」的假課表，而首頁同時說「本週課表尚未產生」——
+                // 2026-08-25 用戶截圖上那組矛盾就是這麼來的。
+                Logger.debug("[App2PlanVM] 本週尚無課表 (next_action=\(status.nextAction))")
+                week = nil
+                isPlanGenerated = false
                 return
             }
+            isPlanGenerated = true
 
             let dto = try await planV2DataSource.getWeeklyPlan(planId: planId)
             let completed = await completedDistanceKmThisWeek()

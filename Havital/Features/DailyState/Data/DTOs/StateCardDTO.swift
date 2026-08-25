@@ -22,9 +22,13 @@ struct StateCardDTO: Codable {
     /// ⚠️ 不給預設值:`let + 預設值` 會讓 synthesized Decodable 不 decode 此 key(永遠 nil)。
     /// Optional 本身即 decodeIfPresent(缺 → nil、有 → decode),測試手動建構需明給 nil。
     let benchmarkCalibration: BenchmarkCalibrationDTO?
+    /// 已評級的指標列(`label`／`arrow`／`verdict`／`change`／`evidence`／`dot`／`status`)。
+    /// 這條就是 2.0 指標膠囊列要的東西——`/v2/athlete-state/metrics` 依規格只交
+    /// envelope、不評級(ME-INV-05),所以綁那一條的畫面永遠是灰的。
+    let insights: [InsightDTO]?
 
     enum CodingKeys: String, CodingKey {
-        case lens, source, headline, chips, action, divergence, access
+        case lens, source, headline, chips, action, divergence, access, insights
         case factType = "fact_type"
         case narrativeText = "narrative_text"
         case collapsedReason = "collapsed_reason"
@@ -70,6 +74,25 @@ struct StateCardDTO: Codable {
                 case vdotBefore = "vdot_before"
                 case vdotAfter = "vdot_after"
             }
+        }
+    }
+
+    /// `insights[]` 的一列。後端已做完評級與在地化,app 端不再自己推導文案。
+    struct InsightDTO: Codable {
+        let key: String
+        let label: String?
+        let valueText: String?
+        let arrow: String?
+        let verdict: String?
+        let change: String?
+        let evidence: String?
+        let dot: String?
+        /// `graded`／`not_computed`。
+        let status: String?
+
+        enum CodingKeys: String, CodingKey {
+            case key, label, arrow, verdict, change, evidence, dot, status
+            case valueText = "value_text"
         }
     }
 

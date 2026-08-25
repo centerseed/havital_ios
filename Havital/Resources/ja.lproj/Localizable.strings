@@ -4207,6 +4207,24 @@
 "app2.home.today_section" = "今日のセッション";
 "app2.home.rizo_entry" = "Rizoに相談";
 "app2.home.week_review_entry" = "今週のレビュー";
+/* T-0306 今日のセッションカード完全版／週次レビュー CTA／Rizo カード */
+"app2.home.segment_recovery" = "リカバリー";
+"app2.home.segment_main" = "メイン";
+"app2.home.minutes" = "%d 分";
+"app2.home.strength_row" = "筋力 · %d 種目";
+"app2.home.structure_reps" = "本数 × %d 本";
+"app2.home.plan_unavailable_body" = "今日のメニューを読み込めませんでした。下に引いて再読み込みしてください。";
+"app2.home.no_session_today_body" = "今週のプランに今日の予定はありません。「プラン」で週全体を確認できます。";
+"app2.home.week_review_generate_current" = "今週のレビューを作成";
+"app2.home.week_review_generate_last" = "先週のレビューを作成";
+"app2.home.week_review_sub_current" = "今週のトレーニングが一区切り。Rizo がまとめます";
+"app2.home.week_review_sub_last" = "先週のトレーニングと傾向を振り返り、次の一歩を見つけます";
+"app2.home.week_review_view" = "レビューを見る";
+"app2.home.week_review_view_sub" = "この期間の走りを確認";
+"app2.home.rizo_coach_title" = "あなたの AI ランニングコーチ";
+"app2.home.rizo_input_placeholder" = "出発前の調子を Rizo に伝えよう…";
+"app2.settings.goal_section" = "目標レース";
+"app2.settings.reset_goal_race" = "目標レースを設定し直す";
 
 "app2.plan.week_volume" = "週間目標距離";
 "app2.plan.completed" = "実施済み";

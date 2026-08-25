@@ -1,5 +1,70 @@
 import Foundation
 
+// MARK: - 紀錄頁的分組／篩選型別
+//
+// 這三個型別只有紀錄頁在用，且都是 **presentation 投影**（分組標題、小計、
+// 相對日期都是畫面語彙，不是後端交出來的事實），所以放在這個 ViewModel 檔，
+// 不進 `App2Models.swift`（那裡放的是端點交出來的 domain 形狀）。
+
+/// 清單上的一筆紀錄 ＝ 已格式化的卡片內容（`App2WorkoutRow`）＋ 分組／小計需要的原始量。
+///
+/// `App2WorkoutRow` 只帶已格式化的字串（`8/22`、`12.4 km`），分組要的是 `Date`、
+/// 小計要的是數值 —— 從字串反推是錯的方向，所以在這裡把原始量一起帶著走。
+struct App2RecordItem: Identifiable, Equatable {
+    var id: String { row.id }
+    let row: App2WorkoutRow
+    /// 裝置當地時區的實際發生時刻。樣本資料沒有時間 → nil。
+    let date: Date?
+    /// 這筆的距離（km），給每組小計加總用。nil = 不確定，不計入小計。
+    let distanceKm: Double?
+    /// 設計 frame-10 的 `r.when`（「今天 08:07」／「3 天前」）。
+    /// 走既有的 `DateFormatterHelper.formatRelativeForWorkoutCard`，三語已齊。
+    let whenLabel: String
+}
+
+/// 日期分組 ＋ 該組小計（設計 frame-10 的 `g.group` / `g.count` / `g.sum`）。
+struct App2RecordGroup: Identifiable, Equatable {
+    var id: String { title }
+    let title: String
+    let items: [App2RecordItem]
+
+    var count: Int { items.count }
+    /// 小計距離；沒有任何一筆帶得出距離時是 0（畫面就不顯示這一欄）。
+    var totalKm: Double { items.compactMap(\.distanceKm).reduce(0, +) }
+}
+
+/// 課型篩選 chip（設計 frame-10 的 `recTabs`）。
+///
+/// **過濾條件是結構化的 `DayType` 集合，不是顯示字**。同一個顯示名可能對應多個
+/// raw value（`easy` 與 `easy_run` 都是「輕鬆跑」），所以一顆 chip 帶一組 `DayType`。
+struct App2RecordFilter: Identifiable, Equatable {
+    /// 空集合 ＝「全部」。
+    let types: Set<DayType>
+    /// 顯示字。課型走 `DayType.localizedName`（三語已齊），「全部」走既有的
+    /// `record.filter.all` —— 1.x 的紀錄頁已經有這顆，不再開第二份。
+    let label: String
+
+    var isAll: Bool { types.isEmpty }
+    var id: String { isAll ? "all" : types.map(\.rawValue).sorted().joined(separator: "+") }
+
+    static var all: App2RecordFilter {
+        App2RecordFilter(types: [], label: L10n.Record.Filter.all.localized)
+    }
+}
+
+/// `groups(_:)` 的內部分桶鍵。宣告在 file scope 是為了讓 `Hashable` 合成成立。
+private enum App2RecordBucket: Hashable {
+    case today
+    case yesterday
+    case earlierThisWeek
+    case lastWeek
+    /// 更早：以「該月的月初」當鍵。**算出來的 `Date` 當 key 一定先正規化**
+    /// （`AGENTS.md` 陷阱 1）。
+    case month(Date)
+    /// 沒有時間的紀錄（樣本資料）。
+    case undated
+}
+
 // MARK: - App2RecordsViewModel
 /// Presentation Layer — 2.0 紀錄頁（`DESIGN-app2-decision-chain-api.md` §3.6）。
 ///
@@ -11,6 +76,12 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
 
     @Published private(set) var isLoading = true
     @Published private(set) var records: App2Sourced<App2Records>?
+    /// 清單的分組／篩選來源。`records.value.recentWorkouts` 是它的卡片內容，
+    /// 這裡多帶時間與距離原始量 —— 不是第二份清單。
+    @Published private(set) var items: [App2RecordItem] = []
+    /// 目前資料裡真的存在的課型 chip（含「全部」）。只有一種課型時是空的。
+    @Published private(set) var filters: [App2RecordFilter] = []
+    @Published private(set) var selectedFilterID = "all"
     private(set) var hasLoaded = false
     private(set) var lastLoadedAt: Date?
 
@@ -41,6 +112,8 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
             // 月量與月比在 client 端從同一批紀錄算，不新增端點。
             let rows = (try? await workoutDataSource.fetchRecentWorkouts(pageSize: Self.aggregationPageSize)) ?? []
             let month = Self.monthlyTotals(rows)
+            let listItems = rows.prefix(Self.listPageSize).map(Self.map(item:))
+            apply(items: listItems)
 
             records = App2Sourced(
                 App2Records(
@@ -51,7 +124,7 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
                     ytdDistanceKm: stats.data.yearToDate?.distanceKm,
                     ytdWorkouts: stats.data.yearToDate?.workoutCount,
                     weeklySeries: (stats.data.weeklySeries ?? []).map(Self.map(entry:)),
-                    recentWorkouts: rows.prefix(Self.listPageSize).map(Self.map(workout:))
+                    recentWorkouts: listItems.map(\.row)
                 ),
                 origin: .live(endpoint: "GET /v2/workouts/stats + GET /v2/workouts")
             )
@@ -61,10 +134,35 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
             guard !error.isCancellationError else { return }
             Logger.debug("[App2RecordsVM] stats 取得失敗,退樣本: \(error)")
             guard records == nil else { return }    // SWR：重驗失敗時保留舊資料
-            records = App2Sourced(
-                App2StubFixtures.records,
-                origin: .stub(pendingSection: App2StubFixtures.Section.offline)
-            )
+            let stub = App2StubFixtures.records
+            // 樣本沒有時間戳 → date/distanceKm 為 nil，全部落在「更早」那一組、
+            // 不參與小計。畫面上同時掛 stub 徽章，不會被誤讀成真資料。
+            apply(items: stub.recentWorkouts.map {
+                App2RecordItem(row: $0, date: nil, distanceKm: nil, whenLabel: $0.dateLabel)
+            })
+            records = App2Sourced(stub, origin: .stub(pendingSection: App2StubFixtures.Section.offline))
+        }
+    }
+
+    // MARK: - 篩選
+
+    func select(filterID: String) {
+        guard filters.contains(where: { $0.id == filterID }) else { return }
+        selectedFilterID = filterID
+    }
+
+    /// 套用目前 chip 後的分組清單。View 直接 render 這個，不自己算。
+    var visibleGroups: [App2RecordGroup] {
+        let filter = filters.first { $0.id == selectedFilterID }
+        return Self.groups(Self.filtered(items, by: filter))
+    }
+
+    private func apply(items newItems: [App2RecordItem]) {
+        items = newItems
+        filters = Self.filters(for: newItems)
+        // 資料換了之後原本選的課型可能不存在了 —— 退回「全部」，不要停在空清單。
+        if !filters.contains(where: { $0.id == selectedFilterID }) {
+            selectedFilterID = "all"
         }
     }
 
@@ -123,7 +221,127 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
         return withFraction.date(from: isoDateTime) ?? ISO8601DateFormatter().date(from: isoDateTime)
     }
 
+    // MARK: - chip 列（設計 `recTabs`）
+
+    /// 只交出**目前資料裡真的存在**的課型 —— 沒有間歇就不出現間歇 chip。
+    ///
+    /// 同一個顯示名可能對應多個 `DayType` raw value（`easy`／`easy_run` 都是
+    /// 「輕鬆跑」），所以同名的合成一顆 chip、帶一組 `DayType`。這是對顯示字做
+    /// **相等去重**，不是拿顯示字做關鍵字比對 —— 過濾條件仍然是結構化的 `DayType`。
+    /// 順序沿用 `DayType.allCases`（＝ taxonomy 的宣告順序），不隨資料抖動。
+    static func filters(for items: [App2RecordItem]) -> [App2RecordFilter] {
+        let present = Set(items.compactMap { $0.row.dayType })
+        guard present.count > 1 else { return [] }  // 只有一種課型時，chip 列沒有作用
+
+        var order: [String] = []
+        var buckets: [String: Set<DayType>] = [:]
+        for type in DayType.allCases where present.contains(type) {
+            let label = type.localizedName
+            if buckets[label] == nil {
+                order.append(label)
+                buckets[label] = []
+            }
+            buckets[label]?.insert(type)
+        }
+
+        return [.all] + order.map { App2RecordFilter(types: buckets[$0] ?? [], label: $0) }
+    }
+
+    /// nil 或「全部」＝不過濾。沒有 `dayType` 的紀錄在選了課型後不出現。
+    static func filtered(_ items: [App2RecordItem], by filter: App2RecordFilter?) -> [App2RecordItem] {
+        guard let filter, !filter.isAll else { return items }
+        return items.filter { item in
+            guard let type = item.row.dayType else { return false }
+            return filter.types.contains(type)
+        }
+    }
+
+    // MARK: - 日期分組（設計 `g.group` / `g.count` / `g.sum`）
+
+    /// 今天／昨天／本週稍早／上週／各月份。分組標題與小計格式沿用 1.x 紀錄頁
+    /// 既有的 `record.group.*`（`TrainingRecordView` 也用這一組），不開第二份字串。
+    ///
+    /// 用裝置當地日曆；月份桶的 key 正規化到「月初」再當 Dictionary key。
+    static func groups(
+        _ items: [App2RecordItem],
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [App2RecordGroup] {
+        let sorted = items.sorted { lhs, rhs in
+            switch (lhs.date, rhs.date) {
+            case let (l?, r?): return l > r
+            case (_?, nil):    return true
+            default:           return false
+            }
+        }
+
+        let thisWeek = calendar.dateInterval(of: .weekOfYear, for: now)
+        let lastWeek = thisWeek
+            .flatMap { calendar.date(byAdding: .weekOfYear, value: -1, to: $0.start) }
+            .flatMap { calendar.dateInterval(of: .weekOfYear, for: $0) }
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: now)
+
+        var order: [App2RecordBucket] = []
+        var buckets: [App2RecordBucket: [App2RecordItem]] = [:]
+
+        for item in sorted {
+            let bucket: App2RecordBucket
+            if let date = item.date {
+                if calendar.isDate(date, inSameDayAs: now) {
+                    bucket = .today
+                } else if let yesterday, calendar.isDate(date, inSameDayAs: yesterday) {
+                    bucket = .yesterday
+                } else if let thisWeek, thisWeek.contains(date) {
+                    bucket = .earlierThisWeek
+                } else if let lastWeek, lastWeek.contains(date) {
+                    bucket = .lastWeek
+                } else {
+                    bucket = .month(calendar.dateInterval(of: .month, for: date)?.start ?? date)
+                }
+            } else {
+                bucket = .undated
+            }
+
+            if buckets[bucket] == nil {
+                order.append(bucket)
+                buckets[bucket] = []
+            }
+            buckets[bucket]?.append(item)
+        }
+
+        return order.compactMap { bucket in
+            guard let items = buckets[bucket], !items.isEmpty else { return nil }
+            return App2RecordGroup(title: title(for: bucket, calendar: calendar), items: items)
+        }
+    }
+
+    private static func title(for bucket: App2RecordBucket, calendar: Calendar) -> String {
+        switch bucket {
+        case .today:            return L10n.Record.Group.today.localized
+        case .yesterday:        return L10n.Record.Group.yesterday.localized
+        case .earlierThisWeek:  return L10n.Record.Group.earlierThisWeek.localized
+        case .lastWeek:         return L10n.Record.Group.lastWeek.localized
+        case .undated:          return L10n.Record.Group.older.localized
+        case .month(let start):
+            let parts = calendar.dateComponents([.year, .month], from: start)
+            guard let year = parts.year, let month = parts.month else {
+                return L10n.Record.Group.older.localized
+            }
+            return L10n.Record.Group.monthGroupFormat.localized(with: year, month)
+        }
+    }
+
     // MARK: - Mapping
+
+    private static func map(item workout: WorkoutV2) -> App2RecordItem {
+        let date = parseDate(workout.startTimeUtc)
+        return App2RecordItem(
+            row: map(workout: workout),
+            date: date,
+            distanceKm: workout.distanceMeters.map { $0 / 1000 },
+            whenLabel: date.map(DateFormatterHelper.formatRelativeForWorkoutCard) ?? "—"
+        )
+    }
 
     private static func map(entry: WorkoutStatsWeeklyEntry) -> App2WeeklyBar {
         App2WeeklyBar(

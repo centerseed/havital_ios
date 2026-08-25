@@ -8,10 +8,15 @@ import SwiftUI
 /// 語意／端點對照仍是 `DESIGN-app2-decision-chain-api.md` §3.1／§3.1a／§3.2。
 struct App2HomeView: View {
 
+    /// 設定入口 —— 首頁是右上角的 LV 六角徽章（其他頁是頭像）。
+    let onOpenSettings: () -> Void
     /// 由 `App2RootView` 持有 —— 切 tab 不重建、不重打 API（見 `App2Revalidating`）。
     @ObservedObject var viewModel: App2HomeViewModel
     /// 指標網格預設收合（設計的收合列就是一排彩色膠囊），點一下展開成 2 欄。
     @State private var isGridExpanded = false
+    /// 內嵌 Rizo 卡點下去開的既有對話（`RizoChatView`，不另寫一份）。
+    @State private var isShowingRizoChat = false
+    @State private var rizoChatViewModel: StateRizoChatViewModel?
 
     private let insightColumns = [
         GridItem(.flexible(), spacing: 9),
@@ -25,8 +30,8 @@ struct App2HomeView: View {
                 goalSection
                 trainingStatusSection
                 todaySection
+                rizoCard
                 weeklyReviewRow
-                rizoRow
             }
             .padding(.horizontal, App2Theme.pagePadding)
             .padding(.top, 4)
@@ -37,6 +42,26 @@ struct App2HomeView: View {
         .task { await viewModel.loadIfNeeded() }
         // 下拉刷新＝強制重驗（跳過 60 秒門檻）。不清畫面、不進 loading。
         .refreshable { await viewModel.forceRefresh() }
+        .sheet(isPresented: $isShowingRizoChat) {
+            if let rizoChatViewModel {
+                NavigationView {
+                    ScrollView {
+                        // 既有的對話元件，不另寫一份 2.0 版。
+                        RizoChatView(viewModel: rizoChatViewModel)
+                            .padding(16)
+                    }
+                    .background(App2Theme.pageGradient.ignoresSafeArea())
+                }
+            }
+        }
+    }
+
+    private func openRizoChat() {
+        let viewModelToUse = rizoChatViewModel
+            ?? StateRizoChatViewModel(scenario: viewModel.rizoScenario ?? "body_status")
+        rizoChatViewModel = viewModelToUse
+        isShowingRizoChat = true
+        Task { await viewModelToUse.startOpening() }
     }
 
     // MARK: - Header（字標 ＋ LV 六角徽章）
@@ -49,7 +74,15 @@ struct App2HomeView: View {
                 .foregroundStyle(App2Theme.inkPrimary)
             Spacer()
             // §7-1：backend 沒有等級讀口 → 徽章只留字標，不顯示數字（票面剩餘差異）。
+            // 徽章同時是首頁的**設定入口**（其他頁是頭像）。
+            // Button 會吃掉 label 上的 identifier（同頁 insightHandle 的註解），
+            // 所以用容器 ＋ onTapGesture。
             App2LevelBadge()
+                .contentShape(Rectangle())
+                .onTapGesture(perform: onOpenSettings)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel(L10n.App2.Tab.settings.localized)
+                .accessibilityIdentifier("App2_HomeSettingsEntry")
         }
         .padding(.horizontal, 4)
         .padding(.bottom, 0)
@@ -261,70 +294,134 @@ struct App2HomeView: View {
         }
     }
 
-    // MARK: - §3.1 今日課表卡
+    // MARK: - §3.1 今日課表卡（設計 frame-00 下半，完整版）
 
     @ViewBuilder
     private var todaySection: some View {
-        if let sourced = viewModel.todaySession {
-            let session = sourced.value
-            App2Card(padding: 16, spacing: 11) {
-                HStack {
-                    Text(L10n.App2.Home.todaySection.localized)
-                        .font(.system(size: 13, weight: .heavy))
-                        .tracking(1.5)
-                        .foregroundStyle(App2Theme.inkMuted)
-                    Spacer()
-                    App2StubBadge(origin: sourced.origin)
-                    Text(session.dayLabel)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(App2Theme.inkTertiary)
-                }
+        switch viewModel.todayState {
+        case .session(let session):
+            todaySessionCard(session)
+        case .notGenerated:
+            todayEmptyCard(L10n.App2.Home.noPlanBody.localized)
+        case .noSessionToday:
+            todayEmptyCard(L10n.App2.Home.noSessionTodayBody.localized)
+        case .unavailable:
+            // **讀不到 ≠ 尚未產生。** 說錯這句話的代價是用戶以為課表沒生成
+            // （2026-08-25 用戶截圖：首頁說沒有、課表頁一整週都在）。
+            todayEmptyCard(L10n.App2.Home.planUnavailableBody.localized)
+        case .none:
+            if viewModel.isLoading { loadingCard }
+        }
+    }
 
-                HStack(alignment: .center, spacing: 9) {
-                    Text(session.title)
-                        .font(.system(size: 24, weight: .black))
-                        .foregroundStyle(App2Theme.inkPrimary)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.6)
-                    if let intensity = session.intensityLabel {
-                        App2Chip(
-                            text: intensity,
-                            foreground: App2Theme.accentOrangeText,
-                            background: App2Theme.accentOrangeSoft.opacity(0.16)
-                        )
-                    }
-                    Spacer(minLength: 4)
-                    todayStatusPill
-                }
-
-                if let summary = session.summary {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(L10n.App2.Home.planRow.localized)
-                            .font(.system(size: 13, weight: .heavy))
-                            .tracking(0.5)
-                            .foregroundStyle(App2Theme.inkMuted)
-                        Text(summary)
-                            .font(.app2Mono(15, weight: .bold))
-                            .foregroundStyle(App2Theme.inkSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-            }
-            .accessibilityIdentifier("App2_TodaySessionCard")
-        } else if !viewModel.isLoading {
-            App2Card(padding: 16, spacing: 11) {
+    private func todaySessionCard(_ session: App2TodaySession) -> some View {
+        App2Card(padding: 16, spacing: 11) {
+            HStack {
                 Text(L10n.App2.Home.todaySection.localized)
                     .font(.system(size: 13, weight: .heavy))
                     .tracking(1.5)
                     .foregroundStyle(App2Theme.inkMuted)
-                Text(L10n.App2.Home.noPlanBody.localized)
-                    .font(.system(size: 14, weight: .medium))
-                    .lineSpacing(2)
-                    .foregroundStyle(App2Theme.inkSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                Spacer()
+                Text(session.dayLabel)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(App2Theme.inkTertiary)
             }
-            .accessibilityIdentifier("App2_TodaySessionCard")
+
+            HStack(alignment: .center, spacing: 9) {
+                Text(session.title)
+                    .font(.system(size: 24, weight: .black))
+                    .foregroundStyle(App2Theme.inkPrimary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.6)
+                if let intensity = session.intensityLabel {
+                    App2Chip(
+                        text: intensity,
+                        foreground: App2Theme.accentOrangeText,
+                        background: App2Theme.accentOrangeSoft.opacity(0.16)
+                    )
+                }
+                Spacer(minLength: 4)
+                todayStatusPill
+            }
+
+            if let summary = session.summary {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(L10n.App2.Home.planRow.localized)
+                        .font(.system(size: 13, weight: .heavy))
+                        .tracking(0.5)
+                        .foregroundStyle(App2Theme.inkMuted)
+                    Text(summary)
+                        .font(.app2Mono(15, weight: .bold))
+                        .foregroundStyle(App2Theme.inkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+
+            // 分段表 ＋ 右側結構預覽。payload 沒有結構就整段不出現。
+            if !session.segments.isEmpty || !session.structureBars.isEmpty {
+                HStack(alignment: .top, spacing: 12) {
+                    if !session.segments.isEmpty {
+                        VStack(spacing: 6) {
+                            ForEach(session.segments) { segment in
+                                HStack(alignment: .firstTextBaseline) {
+                                    Text(segment.name)
+                                        .font(.system(size: 13, weight: .heavy))
+                                        .foregroundStyle(
+                                            segment.isWork
+                                                ? App2Theme.accentOrangeText
+                                                : App2Theme.inkMuted
+                                        )
+                                    Spacer(minLength: 8)
+                                    Text(segment.detail)
+                                        .font(.app2Mono(13, weight: .bold))
+                                        .foregroundStyle(App2Theme.inkSecondary)
+                                }
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityIdentifier("App2_TodaySegments")
+                    }
+                    if !session.structureBars.isEmpty {
+                        App2SessionStructureChart(bars: session.structureBars)
+                            .frame(width: 96)
+                    }
+                }
+                .padding(EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12))
+                .app2InsetSurface(cornerRadius: 13)
+            }
+
+            if let strength = session.strengthLabel {
+                HStack(spacing: 8) {
+                    Image(systemName: "dumbbell.fill")
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundStyle(App2Theme.accentBlueDeep)
+                    Text(strength)
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundStyle(App2Theme.inkPrimary)
+                    Spacer(minLength: 4)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundStyle(App2Theme.chevron)
+                }
+                .accessibilityIdentifier("App2_TodayStrengthRow")
+            }
         }
+        .accessibilityIdentifier("App2_TodaySessionCard")
+    }
+
+    private func todayEmptyCard(_ body: String) -> some View {
+        App2Card(padding: 16, spacing: 11) {
+            Text(L10n.App2.Home.todaySection.localized)
+                .font(.system(size: 13, weight: .heavy))
+                .tracking(1.5)
+                .foregroundStyle(App2Theme.inkMuted)
+            Text(body)
+                .font(.system(size: 14, weight: .medium))
+                .lineSpacing(2)
+                .foregroundStyle(App2Theme.inkSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityIdentifier("App2_TodaySessionCard")
     }
 
     /// 「今天還沒跑 / 今天已跑」狀態點。完成與否目前沒有 producer
@@ -343,24 +440,87 @@ struct App2HomeView: View {
         .background(Capsule().fill(App2Theme.accentOrangeSoft.opacity(0.16)))
     }
 
-    // MARK: - 週回顧 ／ Rizo 入口（設計 frame-00 末列的 CTA 卡）
+    // MARK: - 內嵌 Rizo 卡（設計 frame-00 今日課表卡下方）
 
-    private var weeklyReviewRow: some View {
-        entryRow(
-            symbol: "chart.line.uptrend.xyaxis",
-            title: L10n.App2.Home.weekReviewEntry.localized,
-            subtitle: L10n.App2.Home.weekReviewSub.localized,
-            identifier: "App2_WeekReviewEntry"
-        )
+    private var rizoCard: some View {
+        App2Card(padding: 15, spacing: 11) {
+            HStack(spacing: 10) {
+                App2Avatar(initial: "R", size: 34, showsRing: false)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(L10n.App2.Home.rizoEntry.localized)
+                        .font(.system(size: 16, weight: .black))
+                        .foregroundStyle(App2Theme.inkPrimary)
+                    Text(L10n.App2.Home.rizoCoachTitle.localized)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(App2Theme.inkTertiary)
+                }
+                Spacer(minLength: 4)
+            }
+
+            // 泡泡只在「組得出狀態句」時出現 —— 組不出來就退成純入口，不寫假對話。
+            if let line = viewModel.rizoOpeningLine {
+                Text(line)
+                    .font(.system(size: 14, weight: .medium))
+                    .lineSpacing(3)
+                    .foregroundStyle(App2Theme.inkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(EdgeInsets(top: 11, leading: 13, bottom: 11, trailing: 13))
+                    .app2InsetSurface(cornerRadius: 14)
+                    .accessibilityIdentifier("App2_RizoBubble")
+            }
+
+            HStack(spacing: 8) {
+                Text(L10n.App2.Home.rizoInputPlaceholder.localized)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(App2Theme.inkMuted)
+                    .lineLimit(1)
+                Spacer(minLength: 6)
+                Circle()
+                    .fill(App2Theme.accentBlue)
+                    .frame(width: 30, height: 30)
+                    .overlay {
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 13, weight: .heavy))
+                            .foregroundStyle(.white)
+                    }
+            }
+            .padding(EdgeInsets(top: 7, leading: 13, bottom: 7, trailing: 7))
+            .app2InsetSurface(cornerRadius: 20)
+        }
+        .contentShape(Rectangle())
+        .onTapGesture(perform: openRizoChat)
+        .accessibilityElement(children: .contain)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("App2_RizoEntry")
     }
 
-    private var rizoRow: some View {
-        entryRow(
-            symbol: "bubble.left.and.text.bubble.right.fill",
-            title: L10n.App2.Home.rizoEntry.localized,
-            subtitle: L10n.App2.Home.rizoSub.localized,
-            identifier: "App2_RizoEntry"
-        )
+    // MARK: - 週回顧 CTA（設計 dc.html:272／5112 的狀態驅動時機卡）
+
+    @ViewBuilder
+    private var weeklyReviewRow: some View {
+        switch viewModel.weekReview {
+        case .notGenerated(let isCurrentWeek):
+            entryRow(
+                symbol: "chart.line.uptrend.xyaxis",
+                title: isCurrentWeek
+                    ? L10n.App2.Home.weekReviewGenerateCurrent.localized
+                    : L10n.App2.Home.weekReviewGenerateLast.localized,
+                subtitle: isCurrentWeek
+                    ? L10n.App2.Home.weekReviewSubCurrent.localized
+                    : L10n.App2.Home.weekReviewSubLast.localized,
+                identifier: "App2_WeekReviewEntry"
+            )
+        case .available:
+            entryRow(
+                symbol: "chart.line.uptrend.xyaxis",
+                title: L10n.App2.Home.weekReviewView.localized,
+                subtitle: L10n.App2.Home.weekReviewViewSub.localized,
+                identifier: "App2_WeekReviewEntry"
+            )
+        case .none:
+            EmptyView()
+        }
     }
 
     private func entryRow(symbol: String, title: String, subtitle: String, identifier: String) -> some View {

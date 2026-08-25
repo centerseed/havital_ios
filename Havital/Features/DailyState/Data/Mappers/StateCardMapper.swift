@@ -20,7 +20,22 @@ enum StateCardMapper {
             isPaid: dto.access.isPaid,
             isLocked: dto.access.locked,
             upsellReason: dto.access.upsell?.reason,
-            benchmarkCalibration: benchmark(from: dto.benchmarkCalibration)
+            benchmarkCalibration: benchmark(from: dto.benchmarkCalibration),
+            insights: (dto.insights ?? []).map(insight(from:))
+        )
+    }
+
+    /// `insights[]` 的一列。`label` 缺就退 `key`（不編一個顯示名出來）。
+    private static func insight(from dto: StateCardDTO.InsightDTO) -> DailyStateInsight {
+        DailyStateInsight(
+            key: dto.key,
+            label: dto.label ?? dto.key,
+            valueText: dto.valueText,
+            arrow: dto.arrow.flatMap { DailyStateInsight.Arrow(rawValue: $0) } ?? .unknown,
+            verdict: dto.verdict,
+            change: dto.change,
+            evidence: dto.evidence,
+            status: dto.status
         )
     }
 

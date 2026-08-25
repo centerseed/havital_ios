@@ -16,6 +16,9 @@ struct App2SettingsView: View {
     let onClose: () -> Void
 
     @ObservedObject var viewModel: App2SettingsViewModel
+    /// 「重新設定目標賽事」開的是**既有的**目標設定流程（`GoalTypeSelectionView`），
+    /// 不在 2.0 重做一份。
+    @State private var isShowingGoalSetup = false
 
     var body: some View {
         ScrollView {
@@ -24,6 +27,7 @@ struct App2SettingsView: View {
 
                 if let sourced = viewModel.snapshot {
                     profileCard(sourced)
+                    goalSection
                     subscriptionSection(sourced)
                     trainingSection(sourced)
                     dataSourceSection(sourced)
@@ -38,6 +42,32 @@ struct App2SettingsView: View {
         .background(App2Theme.pageGradient.ignoresSafeArea())
         .accessibilityIdentifier("App2_SettingsView")
         .onAppear { viewModel.loadIfNeeded() }
+        .fullScreenCover(isPresented: $isShowingGoalSetup) {
+            GoalTypeSelectionView()
+        }
+    }
+
+    // MARK: - 目標賽事
+
+    private var goalSection: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            App2SectionCaption(text: L10n.App2.Settings.goalSection.localized)
+                .padding(.top, 20)
+
+            App2GroupedList {
+                App2SettingsRow(
+                    systemImage: "flag.checkered.2.crossed",
+                    title: L10n.App2.Settings.resetGoalRace.localized,
+                    value: "",
+                    showsDivider: false
+                )
+            }
+            // Button 會吃掉 identifier（同 repo 既有註解），用容器 + onTapGesture。
+            .contentShape(Rectangle())
+            .onTapGesture { isShowingGoalSetup = true }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityIdentifier("App2_SettingsResetGoalRace")
+        }
     }
 
     private var header: some View {
