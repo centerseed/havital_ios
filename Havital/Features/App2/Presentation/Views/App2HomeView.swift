@@ -109,6 +109,20 @@ struct App2HomeView: View {
             .accessibilityIdentifier("App2_GoalCard")
         } else if viewModel.isLoading {
             loadingCard
+        } else {
+            // 沒有目標賽事就明說沒有 —— 不拿設計稿的示範賽事假裝成用戶的資料。
+            App2AccentCard(padding: 18, spacing: 8) {
+                App2SectionLabel(text: L10n.App2.Home.goalSection.localized)
+                Text(L10n.App2.Home.noGoalTitle.localized)
+                    .font(.system(size: 20, weight: .black))
+                    .foregroundStyle(App2Theme.inkPrimary)
+                Text(L10n.App2.Home.noGoalBody.localized)
+                    .font(.system(size: 14, weight: .medium))
+                    .lineSpacing(2)
+                    .foregroundStyle(App2Theme.inkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .accessibilityIdentifier("App2_GoalCard")
         }
     }
 
@@ -291,6 +305,19 @@ struct App2HomeView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
+            }
+            .accessibilityIdentifier("App2_TodaySessionCard")
+        } else if !viewModel.isLoading {
+            App2Card(padding: 16, spacing: 11) {
+                Text(L10n.App2.Home.todaySection.localized)
+                    .font(.system(size: 13, weight: .heavy))
+                    .tracking(1.5)
+                    .foregroundStyle(App2Theme.inkMuted)
+                Text(L10n.App2.Home.noPlanBody.localized)
+                    .font(.system(size: 14, weight: .medium))
+                    .lineSpacing(2)
+                    .foregroundStyle(App2Theme.inkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .accessibilityIdentifier("App2_TodaySessionCard")
         }

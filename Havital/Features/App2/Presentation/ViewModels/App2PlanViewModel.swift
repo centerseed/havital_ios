@@ -142,27 +142,32 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     // MARK: - Formatting
 
-    /// `day_index` 0 = 週一（與週課表 doc 的週一起算一致）。
-    private static func weekdayLabel(dayIndex: Int) -> String {
+    /// `day_index` **1 = 週一 … 7 = 週日**。
+    ///
+    /// 原本這裡當成 0-based（`(dayIndex + 1) % 7`），星期與「今天」整整差一天。
+    /// 2026-08-25 對 dev 的真實 payload 確認：`day_index: 2` 的 `reason` 寫的是
+    /// 「週二安排長距離慢跑」，所以 1 = 週一。
+    static func weekdayLabel(dayIndex: Int) -> String {
         let symbols = Calendar.current.shortWeekdaySymbols
-        // shortWeekdaySymbols[0] 是週日；day_index 0 是週一 → 位移 1。
-        let index = (dayIndex + 1) % 7
+        // shortWeekdaySymbols[0] 是週日；day_index 7（週日）→ 0，1…6 → 1…6。
+        let index = dayIndex % 7
         return symbols.indices.contains(index) ? symbols[index] : "—"
     }
 
-    private static func todayDayIndex() -> Int {
-        // Calendar.weekday: 1 = 週日 … 7 = 週六；day_index 0 = 週一。
+    /// 今天的 `day_index`（1 = 週一 … 7 = 週日）。
+    static func todayDayIndex() -> Int {
+        // Calendar.weekday: 1 = 週日 … 7 = 週六。
         let weekday = Calendar.current.component(.weekday, from: Date())
-        return (weekday + 5) % 7
+        return weekday == 1 ? 7 : weekday - 1
     }
 
-    private static func plannedDistanceLabel(_ primary: PrimaryActivityDTO?) -> String? {
+    static func plannedDistanceLabel(_ primary: PrimaryActivityDTO?) -> String? {
         guard case .run(let run) = primary, let km = run.distanceKm, km > 0 else { return nil }
         return String(format: "%.1f km", km)
     }
 
     /// `run_type` → 既有的 `DayType`。肌力／交叉訓練沒有跑步課型，各自映到對應的 case。
-    private static func dayType(_ primary: PrimaryActivityDTO?) -> DayType? {
+    static func dayType(_ primary: PrimaryActivityDTO?) -> DayType? {
         switch primary {
         case .run(let run):
             return DayType(rawValue: run.runType.lowercased())
@@ -174,6 +179,60 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             return .rest
         @unknown default:
             return nil
+        }
+    }
+
+    /// 「課表」那一行的結構化內容（設計 frame-00 今日課表卡、frame-01 每日卡）。
+    ///
+    /// 全部從 payload 的結構欄位組出來，沒有一個字是編的：
+    /// - 有間歇段 → `6 × 200m · 5:25/km · 組間 90 秒`
+    /// - 一般跑   → `9.0 km · 7:55/km`
+    /// 兩者都拿不到 → nil（畫面就不顯示這一行，不用 placeholder 充數）。
+    static func contentLine(_ primary: PrimaryActivityDTO?) -> String? {
+        guard case .run(let run) = primary else { return nil }
+
+        if let interval = run.segments?.first(where: { $0.kind == "interval" }),
+           let repeats = interval.repeats, repeats > 0 {
+            var parts: [String] = []
+            if let metres = interval.work?.distanceM ?? interval.distanceM {
+                parts.append("\(repeats) × \(metres)m")
+            } else if let minutes = interval.work?.durationMinutes {
+                parts.append("\(repeats) × \(minutes) min")
+            } else {
+                parts.append("× \(repeats)")
+            }
+            if let pace = interval.work?.pace ?? interval.pace {
+                parts.append("\(pace)/km")
+            }
+            if let seconds = interval.recovery?.durationSeconds {
+                parts.append(String(format: L10n.App2.Home.recoverySeconds.localized, seconds))
+            } else if let metres = interval.recovery?.distanceM {
+                parts.append(String(format: L10n.App2.Home.recoveryMetres.localized, metres))
+            }
+            return parts.joined(separator: " · ")
+        }
+
+        var parts: [String] = []
+        if let km = run.distanceKm, km > 0 {
+            parts.append(String(format: "%.1f km", km))
+        } else if let minutes = run.durationMinutes {
+            parts.append("\(minutes) min")
+        }
+        if let pace = run.climateAdjustedPace ?? run.pace {
+            parts.append("\(pace)/km")
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    /// 強度徽章。只有 payload 真的帶 `target_intensity` 才顯示 —— 沒有就不顯示，
+    /// 不從課型自己推一個出來。
+    static func intensityLabel(_ primary: PrimaryActivityDTO?) -> String? {
+        guard case .run(let run) = primary, let raw = run.targetIntensity else { return nil }
+        switch raw.lowercased() {
+        case "low":    return L10n.App2.Plan.intensityLow.localized
+        case "medium": return L10n.App2.Plan.intensityMedium.localized
+        case "high":   return L10n.App2.Plan.intensityHigh.localized
+        default:       return nil
         }
     }
 

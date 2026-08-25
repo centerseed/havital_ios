@@ -87,7 +87,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         async let status: Void = loadTrainingStatus()
         async let goal: Void = loadGoalCard()
         async let metrics: Void = loadInsights()
-        _ = await (status, goal, metrics)
+        async let today: Void = loadTodaySession()
+        _ = await (status, goal, metrics, today)
         isLoading = false
         hasLoaded = true
         lastLoadedAt = Date()
@@ -116,40 +117,67 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 ),
                 origin: .live(endpoint: "GET /v2/state/today")
             )
-            todaySession = todaySessionFromCard(card)
         } catch {
             Logger.debug("[App2HomeVM] state/today 取得失敗,退樣本: \(error)")
+            guard trainingStatus == nil else { return }
             trainingStatus = App2Sourced(
                 App2StubFixtures.trainingStatus,
-                origin: .stub(pendingSection: App2StubFixtures.Section.offline)
-            )
-            todaySession = App2Sourced(
-                App2StubFixtures.todaySession,
                 origin: .stub(pendingSection: App2StubFixtures.Section.offline)
             )
         }
     }
 
-    /// 今日課表卡：`StateCard.action_line` 已是「12K easy · 6:45」這種一行摘要。
-    private func todaySessionFromCard(_ card: DailyStateCard) -> App2Sourced<App2TodaySession> {
-        guard let actionLine = card.actionLine, !actionLine.isEmpty else {
-            return App2Sourced(
-                App2StubFixtures.todaySession,
-                origin: .stub(pendingSection: App2StubFixtures.Section.offline)
+    // MARK: - §3.1 今日課表卡
+    //
+    // 資料來源是**本週課表的今日項目**（`GET /v2/plan/status` → `GET /v2/plan/weekly/{id}`
+    // 的 `days[day_index == 今天]`），不是 `/v2/state/today` 的 `action_line`
+    // ——後者是一行已渲染的字（`8K easy`），拆不出課型／強度／內容三個欄位，
+    // 也不會在地化。
+    //
+    // 本週課表沒生成時 `todaySession` 保持 nil，畫面顯示「本週課表尚未產生」的空狀態；
+    // **不退樣本**，因為設計稿的示範值會被誤讀成用戶自己的課表。
+
+    private func loadTodaySession() async {
+        do {
+            let status = try await planV2DataSource.getPlanStatus()
+            guard let planId = status.currentWeekPlanId else {
+                Logger.debug("[App2HomeVM] 本週課表尚未產生 (next_action=\(status.nextAction))")
+                todaySession = nil
+                return
+            }
+            let plan = try await planV2DataSource.getWeeklyPlan(planId: planId)
+            let todayIndex = App2PlanViewModel.todayDayIndex()
+            guard let day = plan.days.first(where: { $0.dayIndex == todayIndex }) else {
+                todaySession = nil
+                return
+            }
+
+            let dayType = day.primary == nil ? DayType.rest : App2PlanViewModel.dayType(day.primary)
+            todaySession = App2Sourced(
+                App2TodaySession(
+                    dayLabel: Self.todayLabel(),
+                    title: dayType?.localizedName
+                        ?? (day.category ?? L10n.App2.Plan.rest.localized),
+                    intensityLabel: App2PlanViewModel.intensityLabel(day.primary),
+                    summary: App2PlanViewModel.contentLine(day.primary)
+                ),
+                origin: .live(endpoint: "GET /v2/plan/status + GET /v2/plan/weekly/{plan_id}")
             )
+        } catch {
+            Logger.debug("[App2HomeVM] 今日課表取得失敗: \(error)")
+            todaySession = nil
         }
-        let formatter = DateFormatter()
-        formatter.locale = Locale.current
-        formatter.setLocalizedDateFormatFromTemplate("EEEEMd")
-        return App2Sourced(
-            App2TodaySession(
-                dayLabel: formatter.string(from: Date()),
-                title: actionLine,
-                intensityLabel: nil,
-                summary: card.mileageProgression
-            ),
-            origin: .live(endpoint: "GET /v2/state/today")
-        )
+    }
+
+    /// `週二 · 8/25` —— 裝置當地日期，不是後端字串。
+    private static func todayLabel() -> String {
+        let weekday = DateFormatter()
+        weekday.locale = Locale.current
+        weekday.setLocalizedDateFormatFromTemplate("EEEE")
+        let date = DateFormatter()
+        date.locale = Locale.current
+        date.setLocalizedDateFormatFromTemplate("Md")
+        return "\(weekday.string(from: Date())) · \(date.string(from: Date()))"
     }
 
     // MARK: - §3.1 目標賽事卡
@@ -174,12 +202,11 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             Logger.debug("[App2HomeVM] targets 取得失敗,改讀既有快取: \(error)")
         }
 
+        // 沒有主要賽事目標 → 卡片留空（畫面顯示「尚未設定目標賽事」），
+        // **不拿設計稿的示範賽事充數**。
         guard let main = await targetRepository.getMainTarget() else {
-            Logger.debug("[App2HomeVM] 無主要賽事目標,退樣本")
-            goalCard = App2Sourced(
-                App2StubFixtures.goalCard,
-                origin: .stub(pendingSection: App2StubFixtures.Section.offline)
-            )
+            Logger.debug("[App2HomeVM] 無主要賽事目標,顯示空狀態")
+            goalCard = nil
             return
         }
 
@@ -260,10 +287,14 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             : String(format: "%d:%02d", m, s)
     }
 
+    /// 距離標籤走既有的 `race_filter.*`（三語已齊，賽事清單頁在用同一組），
+    /// 不把 `distance_km` 或 `type` 這種識別字直接印到畫面上。
     private static func distanceLabel(km: Int) -> String {
         switch km {
-        case 42: return "42.195 km"
-        case 21: return "21.1 km"
+        case 42: return NSLocalizedString("race_filter.full_marathon", comment: "")
+        case 21: return NSLocalizedString("race_filter.half_marathon", comment: "")
+        case 10: return NSLocalizedString("race_filter.10k", comment: "")
+        case 5:  return NSLocalizedString("race_filter.5k", comment: "")
         default: return "\(km) km"
         }
     }

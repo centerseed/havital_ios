@@ -7,6 +7,10 @@ import Foundation
 /// `Havital/Resources/App2Fixtures/app2_skeleton_stub.json`（沿用 repo 既有的
 /// `Resources/*Fixtures/` 放法），Swift 這一層只負責 decode 與型別轉換。
 ///
+/// **目標賽事卡與今日課表卡不在這裡。** 那兩張卡只渲染真資料：目標賽事來自
+/// `/user/targets`、今日課表來自本週課表的今日項目；拿不到就顯示明說「還沒有」的空狀態，
+/// 不拿設計稿的示範值（Hofu Marathon／2:34:00）假裝成用戶的資料。
+///
 /// 兩種用途：
 ///
 /// 1. **後端根本沒有這條端點** —— 決策鏈專屬區塊（意圖確認卡 §4.1、週回顧裁決 §4.2、
@@ -33,10 +37,8 @@ enum App2StubFixtures {
 
     // MARK: - Public accessors
 
-    static var goalCard: App2GoalCard { payload.goalCard.domain }
     static var trainingStatus: App2TrainingStatus { payload.trainingStatus.domain }
     static var insights: [App2Insight] { payload.insights.map(\.domain) }
-    static var todaySession: App2TodaySession { payload.todaySession.domain }
     static var planWeek: App2PlanWeek { payload.planWeek.domain }
     static var records: App2Records { payload.records.domain }
     static var settings: App2SettingsSnapshot { payload.settings.domain }
@@ -120,47 +122,19 @@ enum App2StubFixtures {
     // MARK: - Wire shapes（與 JSON 一一對應）
 
     private struct Payload: Codable {
-        let goalCard: GoalCardFixture
         let trainingStatus: TrainingStatusFixture
         let insights: [InsightFixture]
-        let todaySession: TodaySessionFixture
         let planWeek: PlanWeekFixture
         let records: RecordsFixture
         let settings: SettingsFixture
 
         static let empty = Payload(
-            goalCard: .empty,
             trainingStatus: .empty,
             insights: [],
-            todaySession: .empty,
             planWeek: .empty,
             records: .empty,
             settings: .empty
         )
-    }
-
-    private struct GoalCardFixture: Codable {
-        let raceName: String
-        let raceDate: String
-        let distanceLabel: String
-        let stageLabel: String?
-        let targetTime: String?
-        let estimatedFinish: String?
-        let currentWeek: Int?
-        let totalWeeks: Int?
-
-        static let empty = GoalCardFixture(
-            raceName: "—", raceDate: "—", distanceLabel: "—", stageLabel: nil,
-            targetTime: nil, estimatedFinish: nil, currentWeek: nil, totalWeeks: nil
-        )
-
-        var domain: App2GoalCard {
-            App2GoalCard(
-                raceName: raceName, raceDate: raceDate, distanceLabel: distanceLabel,
-                stageLabel: stageLabel, targetTime: targetTime, estimatedFinish: estimatedFinish,
-                currentWeek: currentWeek, totalWeeks: totalWeeks
-            )
-        }
     }
 
     private struct TrainingStatusFixture: Codable {
@@ -197,19 +171,6 @@ enum App2StubFixtures {
                 direction: App2Insight.Direction(rawValue: direction) ?? .unknown,
                 verdict: verdict
             )
-        }
-    }
-
-    private struct TodaySessionFixture: Codable {
-        let dayLabel: String
-        let title: String
-        let intensityLabel: String?
-        let summary: String?
-
-        static let empty = TodaySessionFixture(dayLabel: "—", title: "—", intensityLabel: nil, summary: nil)
-
-        var domain: App2TodaySession {
-            App2TodaySession(dayLabel: dayLabel, title: title, intensityLabel: intensityLabel, summary: summary)
         }
     }
 

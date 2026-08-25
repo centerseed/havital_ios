@@ -1,17 +1,6 @@
 {
   "_note": "2.0 骨架的固定樣本資料。每一筆都不是真資料。兩種用途：(1) 決策鏈端點尚未落地的區塊（意圖確認卡 §4.1、週回顧裁決 §4.2、軌跡圖序列 §7-16、指標評級文案 §7-2）——端點落地前永遠是樣本；(2) 端點在但本機取不到（未登入／dev 無資料）時的退路。文字目前只有 zh-Hant：這些字位在正式版由後端產生並由後端在地化，不是 app 端的 UI chrome，所以不進 Localizable.strings。端點落地後整份刪除。來源對照見 docs/designs/DESIGN-app2-decision-chain-api.md §3。",
 
-  "goalCard": {
-    "raceName": "Hofu Marathon",
-    "raceDate": "2026-12-06",
-    "distanceLabel": "全馬",
-    "stageLabel": "基礎期",
-    "targetTime": "2:34:00",
-    "estimatedFinish": "2:41:30",
-    "currentWeek": 5,
-    "totalWeeks": 22
-  },
-
   "trainingStatus": {
     "headline": "在軌道上，恢復再顧一下",
     "narrative": "你正在變強，但恢復落後了 —— 這週先把它撿回來。",
@@ -27,13 +16,6 @@
     { "id": "speed_endurance", "label": "速耐力", "value": "62", "direction": "up", "verdict": "上升" },
     { "id": "heat_sensitivity", "label": "熱適應", "value": null, "direction": "unknown", "verdict": "資料不足" }
   ],
-
-  "todaySession": {
-    "dayLabel": "週五 · 8/14",
-    "title": "間歇訓練",
-    "intensityLabel": "高強度",
-    "summary": "6 × 1000m · 3:52/km · 組間慢跑 400m"
-  },
 
   "planWeek": {
     "weekLabel": "5",

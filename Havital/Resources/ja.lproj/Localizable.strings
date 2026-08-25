@@ -4254,6 +4254,11 @@
 "app2.home.actual_row" = "実測";
 "app2.home.week_review_sub" = "今週の走りを振り返る";
 "app2.home.rizo_sub" = "あなたのAIランニングコーチ";
+"app2.home.recovery_seconds" = "レスト %d 秒";
+"app2.home.recovery_metres" = "つなぎジョグ %d m";
+"app2.home.no_goal_title" = "目標レース未設定";
+"app2.home.no_goal_body" = "目標レースを設定すると、目標タイム・予測タイム・トレーニング週がここに表示されます。";
+"app2.home.no_plan_body" = "今週のプランはまだ生成されていません。プランタブで生成すると、今日のメニューがここに表示されます。";
 "app2.plan.title" = "トレーニングプラン";
 "app2.plan.volume_title" = "今週の走行距離";
 "app2.plan.today" = "今日";
