@@ -460,44 +460,58 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         return result.count > 1 ? result : []
     }
 
-    /// 右側「趟數 × N 趟」結構預覽（設計 frame-02「預計配速」同一視覺家族）。
+    /// 配速結構示意（設計 frame-02「預計配速」同一視覺家族）。
+    ///
+    /// **每一種課型都要畫得出來**（2026-08-25 用戶裁決）：單段輕鬆跑＝一整塊綠色
+    /// 穩定段（塊上標配速），有暖身／緩和就前後加淺色塊，間歇課維持橘色趟柱。
     ///
     /// **橘柱＝衝刺（interval 的 work）那幾趟，只有它算「趟」。** 熱身、主課的
-    /// 穩定段、組間恢復、緩和都是淺色矮柱，不計趟 —— 把穩定段也算進去會讓
+    /// 穩定段、組間恢復、緩和都不計趟 —— 把穩定段也算進去會讓
     /// 「6 × 200m」的課寫成「趟數 × 7 趟」（2026-08-25 用戶在截圖上抓到）。
     static func structureBars(day: DayDetailDTO) -> [App2SessionStructureBar] {
         var bars: [App2SessionStructureBar] = []
-        func append(_ height: Double, isWork: Bool) {
-            bars.append(.init(id: bars.count, height: height, isWork: isWork))
+        func append(
+            _ kind: App2SessionStructureBar.Kind,
+            height: Double,
+            width: Double,
+            pace: String? = nil
+        ) {
+            bars.append(.init(
+                id: bars.count, kind: kind, height: height, widthWeight: width, paceLabel: pace
+            ))
         }
 
-        if day.warmup != nil { append(0.35, isWork: false) }
+        if day.warmup != nil { append(.support, height: 0.35, width: 1) }
 
         if case .run(let run) = day.primary {
             let runSegments = run.segments ?? []
             if runSegments.isEmpty {
-                append(0.85, isWork: false)
+                // 單段課（輕鬆跑／長跑）：一整塊穩定段，配速標在塊上。
+                append(.steady, height: 0.8, width: 4, pace: run.climateAdjustedPace ?? run.pace)
             }
             for segment in runSegments {
                 if segment.kind == "interval", let repeats = segment.repeats, repeats > 0 {
                     // 太多趟就不畫滿，畫面上那格只有幾十 pt 寬。
                     let drawn = min(repeats, 10)
                     for index in 0..<drawn {
-                        append(1.0, isWork: true)
-                        if index < drawn - 1 { append(0.3, isWork: false) }
+                        append(.interval, height: 1.0, width: 1)
+                        if index < drawn - 1 { append(.support, height: 0.3, width: 0.6) }
                     }
                 } else {
-                    append(0.6, isWork: false)
+                    append(
+                        .steady, height: 0.65, width: 3,
+                        pace: segment.work?.pace ?? segment.pace
+                    )
                 }
             }
         } else if day.primary != nil {
-            append(0.7, isWork: false)
+            // 肌力／交叉訓練沒有配速，但仍然有「一段課」的結構。
+            append(.steady, height: 0.7, width: 4)
         }
 
-        if day.cooldown != nil { append(0.35, isWork: false) }
+        if day.cooldown != nil { append(.support, height: 0.35, width: 1) }
 
-        // 只有一根柱子畫不出「結構」，不畫。
-        return bars.count > 1 ? bars : []
+        return bars
     }
 
     /// `力量 · 3 個動作`。今天沒有肌力補充項目就回 nil。

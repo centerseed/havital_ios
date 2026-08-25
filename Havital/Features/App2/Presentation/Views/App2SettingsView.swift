@@ -31,6 +31,7 @@ struct App2SettingsView: View {
                     subscriptionSection(sourced)
                     trainingSection(sourced)
                     dataSourceSection(sourced)
+                    accountSection
                 } else {
                     ProgressView().frame(maxWidth: .infinity, minHeight: 200)
                 }
@@ -67,6 +68,32 @@ struct App2SettingsView: View {
             .onTapGesture { isShowingGoalSetup = true }
             .accessibilityAddTraits(.isButton)
             .accessibilityIdentifier("App2_SettingsResetGoalRace")
+        }
+    }
+
+    // MARK: - 帳號（登出）
+
+    /// 登出走既有的 `AuthenticationViewModel.shared.signOut()`，不另寫一份 2.0 版。
+    /// 這一列在 1.x 是在個人檔案頁；2.0 的設定頁沒有它就換不了帳號。
+    private var accountSection: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            App2GroupedList {
+                App2SettingsRow(
+                    systemImage: "rectangle.portrait.and.arrow.right",
+                    iconTint: App2Theme.accentRed,
+                    iconBackground: App2Theme.accentRed.opacity(0.1),
+                    title: NSLocalizedString("common.logout", comment: ""),
+                    value: "",
+                    showsDivider: false
+                )
+            }
+            .padding(.top, 20)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                Task { await AuthenticationViewModel.shared.signOut() }
+            }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityIdentifier("App2_SettingsLogout")
         }
     }
 

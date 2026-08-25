@@ -340,7 +340,18 @@ final class AuthRepositoryImpl: AuthRepository {
 
     /// Demo login for development/testing
     /// Calls backend /login/demo API and returns authenticated user
+    ///
+    /// DEBUG build 多一條路：passcode 欄位填的若是 Firebase UID，就用**那個帳號**登入
+    /// dev（不是 demo 帳號）。dev 後端的 `verify_id_token` 直接接受 UID 字串當 token，
+    /// `/login/demo` 只是「固定回 demo UID」的捷徑，所以要換帳號測只需要換 token。
+    /// RELEASE build 不編這條（`#if DEBUG`，而 DEBUG ＝ dev base URL，見 `APIConfig`）。
     func demoLogin(reviewerPasscode: String) async throws -> AuthUser {
+        #if DEBUG
+        if Self.looksLikeFirebaseUID(reviewerPasscode) {
+            return try await devUIDLogin(uid: reviewerPasscode)
+        }
+        #endif
+
         do {
             Logger.debug("[AuthRepository] Starting demo login")
 
@@ -383,6 +394,50 @@ final class AuthRepositoryImpl: AuthRepository {
         }
     }
 
+    #if DEBUG
+    /// Firebase UID ＝ 28 碼英數。用形狀判斷而不是「試 demo 失敗再退」：
+    /// dev 的 `/login/demo` 對任何 passcode 都會成功（固定回 demo 帳號），
+    /// 失敗退回這條永遠不會觸發。
+    static func looksLikeFirebaseUID(_ value: String) -> Bool {
+        value.count == 28 && value.allSatisfy { $0.isLetter || $0.isNumber }
+    }
+
+    /// 以指定 UID 登入 dev：UID 當 token 存進 session，再同步一次拿該帳號的真實資料。
+    private func devUIDLogin(uid: String) async throws -> AuthUser {
+        Logger.debug("[AuthRepository] DEBUG UID login: \(uid)")
+        authSessionRepository.setDemoToken(uid)
+
+        let appLanguageCode = await selectedAppLanguageCode()
+        let syncRequest = UserSyncRequest(
+            firebaseUid: uid,
+            idToken: uid,
+            fcmToken: nil,
+            language: appLanguageCode,
+            deviceInfo: DeviceInfo(
+                model: UIDevice.current.model,
+                osVersion: UIDevice.current.systemVersion,
+                appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
+                locale: Locale.current.identifier
+            )
+        )
+
+        do {
+            let syncResponse = try await backendAuth.syncUserWithBackend(request: syncRequest)
+            let authUser = FirebaseUserMapper.toDomain(syncResponse: syncResponse)
+            authCache.saveUser(authUser)
+            authSessionRepository.setDemoUser(authUser)
+            Logger.debug("[AuthRepository] DEBUG UID login succeeded: \(authUser.uid)")
+            return authUser
+        } catch {
+            // 失敗就把 token 收回去，別留下半登入狀態。
+            authSessionRepository.setDemoToken(nil)
+            authSessionRepository.setDemoUser(nil)
+            Logger.error("[AuthRepository] DEBUG UID login failed: \(error.localizedDescription)")
+            throw AuthenticationError.firebaseAuthFailed("UID login failed: \(error.localizedDescription)")
+        }
+    }
+    #endif
+
     // MARK: - Sign-Out Operations
 
     /// Sign out current user
@@ -395,7 +450,9 @@ final class AuthRepositoryImpl: AuthRepository {
             try await firebaseAuth.signOut()
 
             // Demo reviewer login uses a backend token without Firebase session.
+            // 持久化的 demo／UID user 也要清 —— 留著會讓登出後又自己恢復登入。
             authSessionRepository.setDemoToken(nil)
+            authSessionRepository.setDemoUser(nil)
 
             // Clear local cache
             authCache.clearCache()

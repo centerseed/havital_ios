@@ -156,6 +156,15 @@ struct LoginView: View {
                         .font(AppFont.body())
                         .foregroundColor(AppTheme.TextColors.secondary)
 
+                    #if DEBUG
+                    // dev 專用捷徑：dev 後端接受 UID 當 token，所以這裡填 UID
+                    // 就是「以那個帳號登入 dev」。RELEASE build 不編這段。
+                    // 英文字面：這是 dev-only 除錯提示，不是面向用戶的字串，不進 .strings。
+                    Text(verbatim: "DEBUG: enter a 28-char Firebase UID to sign in as that dev account")
+                        .font(.caption)
+                        .foregroundColor(AppTheme.TextColors.secondary)
+                    #endif
+
                     SecureField(NSLocalizedString("login.reviewer_passcode_placeholder", comment: ""), text: $reviewerPasscode)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled(true)

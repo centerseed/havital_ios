@@ -437,7 +437,8 @@ struct App2LevelBadge: View {
         }
         .frame(width: 44, height: 48)
         .shadow(color: App2Theme.accentBlue.opacity(0.4), radius: 6, x: 0, y: 6)
-        .accessibilityIdentifier("App2_LevelBadge")
+        // identifier 掛在呼叫端（首頁 header 把它併成單一可點節點），這裡不重複掛：
+        // 內層的會被外層的 `.accessibilityElement(children: .ignore)` 吃掉。
     }
 }
 

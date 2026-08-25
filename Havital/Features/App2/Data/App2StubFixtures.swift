@@ -209,7 +209,6 @@ enum App2StubFixtures {
         let id: Int
         let weekdayLabel: String
         let tag: String
-        let summary: String
         let planned: String?
         let actual: String?
         let temp: String?
@@ -218,9 +217,12 @@ enum App2StubFixtures {
 
         var domain: App2PlanDay {
             App2PlanDay(
-                id: id, weekdayLabel: weekdayLabel, tag: tag,
+                id: id, weekdayLabel: weekdayLabel,
+                dateLabel: App2PlanViewModel.dateLabel(
+                    dayIndex: id, weekStart: App2PlanViewModel.currentWeekStart()
+                ),
+                tag: tag,
                 dayType: dayType.flatMap { DayType(rawValue: $0) },
-                summary: summary,
                 planned: planned, actual: actual, temp: temp, isToday: isToday
             )
         }

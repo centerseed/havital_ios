@@ -173,12 +173,31 @@ struct App2SessionSegment: Identifiable, Equatable {
     let isWork: Bool
 }
 
-/// 結構預覽的一根柱（設計 frame-02「預計配速」同一視覺家族）。
+/// 結構預覽的一塊（設計 frame-02「預計配速」同一視覺家族）。
+///
+/// **每一種課型都畫得出來**：單段穩定課＝一整塊綠色（塊上標配速），有暖身／緩和
+/// 就前後加淺色塊，間歇課是一排橘色細柱＋組間淺柱。寬度按該段的量佔比，
+/// 高度按強度 —— 兩者都從 payload 的結構欄位來，沒有一段是編的。
 struct App2SessionStructureBar: Identifiable, Equatable {
+    enum Kind: Equatable {
+        /// 暖身／緩和／組間恢復 —— 淺色矮塊，不計趟。
+        case support
+        /// 穩定段（輕鬆跑／長跑／節奏跑的主課）—— 綠色寬塊。
+        case steady
+        /// 間歇的衝刺趟 —— 橘色細柱，只有它算「趟」。
+        case interval
+    }
+
     let id: Int
-    /// 0…1 的相對高度。
+    let kind: Kind
+    /// 0…1 的相對高度（強度）。
     let height: Double
-    let isWork: Bool
+    /// 相對寬度權重（該段的量佔比）。
+    let widthWeight: Double
+    /// 塊上標的配速（`7:55`）。細柱標不下，所以只有寬塊會有值。
+    let paceLabel: String?
+
+    var isWork: Bool { kind != .support }
 }
 
 /// 今日課表卡的四種狀態。
@@ -230,14 +249,15 @@ struct App2PlanDay: Identifiable, Equatable {
     let id: Int
     /// `週一`
     let weekdayLabel: String
+    /// `8/10` —— 週起點 ＋ `day_index` 現算（設計 frame-01 每卡標題是「週一 8/10」）。
+    /// 後端週課表 payload 沒有 `week_start_date`，所以由裝置日曆推當週週一。
+    let dateLabel: String
     /// 已在地化的課型標籤（`輕鬆跑`／`間歇跑`／`休息`），來自 `DayType.localizedName`。
     let tag: String
     /// 結構化課型。左緣色條與課型徽章的顏色由它決定 —— 不對顯示字串做詞表比對。
     /// `DayType` 是 repo 既有的課型分類（`Havital/Models/WeeklyPlan.swift`），
     /// 對應後端 `run_type` taxonomy（`domains/plan_week/generation/run_type_taxonomy.py`）。
     let dayType: DayType?
-    /// 一行摘要。
-    let summary: String
     /// 計畫值（`12 km`）。
     let planned: String?
     /// 實際值（`11.4 km`）；nil = 尚未執行。

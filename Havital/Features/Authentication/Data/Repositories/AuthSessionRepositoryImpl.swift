@@ -49,7 +49,7 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
     /// Cache expires after 5 minutes (business data only, no tokens)
     func getCurrentUser() -> AuthUser? {
         // Return cached user if valid
-        let cachedUser = authCache.getCurrentUser()
+        let cachedUser = authCache.getCurrentUser() ?? restoredDemoUser()
 
         if let user = cachedUser {
             Logger.debug("[AuthSession] Returning cached user: \(user.uid)")
@@ -199,9 +199,11 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
     func isAuthenticated() -> Bool {
         // Check if in demo mode
         if demoToken != nil {
-            let hasCachedUser = authCache.getCurrentUser() != nil
-            Logger.debug("[AuthSession] Demo mode authentication: \(hasCachedUser)")
-            return hasCachedUser
+            // authCache 5 分鐘就過期，只看它會讓「重開 app」＝被登出。
+            // demo／UID token 本身是持久的，配上持久化的 demo user 就能續 session。
+            let hasUser = (authCache.getCurrentUser() ?? restoredDemoUser()) != nil
+            Logger.debug("[AuthSession] Demo mode authentication: \(hasUser)")
+            return hasUser
         }
 
         let authenticated = firebaseAuth.isAuthenticated()
@@ -282,6 +284,14 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
             UserDefaults.standard.removeObject(forKey: Self.demoUserKey)
             Logger.debug("[AuthSession] 🎯 Demo user cleared")
         }
+    }
+
+    /// 有 demo／UID token 時，把持久化的那個 user 放回 5 分鐘快取，讓重開 app 仍是登入態。
+    /// 沒有 token 就什麼都不做（正常 Firebase 登入不走這條）。
+    private func restoredDemoUser() -> AuthUser? {
+        guard demoToken != nil, let user = getPersistedDemoUser() else { return nil }
+        authCache.saveUser(user)
+        return user
     }
 
     private func getPersistedDemoUser() -> AuthUser? {

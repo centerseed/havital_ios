@@ -30,7 +30,6 @@ struct App2HomeView: View {
                 goalSection
                 trainingStatusSection
                 todaySection
-                rizoCard
                 weeklyReviewRow
             }
             .padding(.horizontal, App2Theme.pagePadding)
@@ -85,7 +84,9 @@ struct App2HomeView: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityAddTraits(.isButton)
                 .accessibilityLabel(L10n.App2.Tab.settings.localized)
-                .accessibilityIdentifier("App2_HomeSettingsEntry")
+                // 併節點會蓋掉徽章自己掛的 identifier，所以整個入口就叫
+                // `App2_LevelBadge`（設定入口＝這顆徽章，只有一個名字）。
+                .accessibilityIdentifier("App2_LevelBadge")
         }
         .padding(.horizontal, 4)
         .padding(.bottom, 0)
@@ -299,26 +300,43 @@ struct App2HomeView: View {
 
     // MARK: - §3.1 今日課表卡（設計 frame-00 下半，完整版）
 
+    /// 今日課表卡是**一張卡**：課表內容 ＋（分隔）＋ 卡內的 Rizo 對話帶
+    /// （2026-08-25 用戶更正：Rizo 不是下面另一張卡）。
     @ViewBuilder
     private var todaySection: some View {
-        switch viewModel.todayState {
-        case .session(let session):
-            todaySessionCard(session)
-        case .notGenerated:
-            todayEmptyCard(L10n.App2.Home.noPlanBody.localized)
-        case .noSessionToday:
-            todayEmptyCard(L10n.App2.Home.noSessionTodayBody.localized)
-        case .unavailable:
-            // **讀不到 ≠ 尚未產生。** 說錯這句話的代價是用戶以為課表沒生成
-            // （2026-08-25 用戶截圖：首頁說沒有、課表頁一整週都在）。
-            todayEmptyCard(L10n.App2.Home.planUnavailableBody.localized)
-        case .none:
+        if viewModel.todayState == nil {
             if viewModel.isLoading { loadingCard }
+        } else {
+            App2Card(padding: 16, spacing: 11) {
+                switch viewModel.todayState {
+                case .session(let session):
+                    todaySessionContent(session)
+                case .notGenerated:
+                    todayEmptyContent(L10n.App2.Home.noPlanBody.localized)
+                case .noSessionToday:
+                    todayEmptyContent(L10n.App2.Home.noSessionTodayBody.localized)
+                case .unavailable:
+                    // **讀不到 ≠ 尚未產生。** 說錯這句話的代價是用戶以為課表沒生成
+                    // （2026-08-25 用戶截圖：首頁說沒有、課表頁一整週都在）。
+                    todayEmptyContent(L10n.App2.Home.planUnavailableBody.localized)
+                case .none:
+                    EmptyView()
+                }
+
+                Rectangle()
+                    .fill(App2Theme.insetBorder)
+                    .frame(height: 1)
+                    .padding(.top, 2)
+
+                rizoBand
+            }
+            .accessibilityIdentifier("App2_TodaySessionCard")
         }
     }
 
-    private func todaySessionCard(_ session: App2TodaySession) -> some View {
-        App2Card(padding: 16, spacing: 11) {
+    @ViewBuilder
+    private func todaySessionContent(_ session: App2TodaySession) -> some View {
+        Group {
             HStack {
                 Text(L10n.App2.Home.todaySection.localized)
                     .font(.system(size: 13, weight: .heavy))
@@ -385,8 +403,11 @@ struct App2HomeView: View {
                         .accessibilityIdentifier("App2_TodaySegments")
                     }
                     if !session.structureBars.isEmpty {
+                        // 分段表在旁邊時圖縮成右欄；單段課沒有分段表，圖就佔滿整條
+                        // （配速標得下）。
                         App2SessionStructureChart(bars: session.structureBars)
-                            .frame(width: 96)
+                            .frame(width: session.segments.isEmpty ? nil : 96)
+                            .frame(maxWidth: session.segments.isEmpty ? .infinity : nil)
                     }
                 }
                 .padding(EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12))
@@ -409,22 +430,19 @@ struct App2HomeView: View {
                 .accessibilityIdentifier("App2_TodayStrengthRow")
             }
         }
-        .accessibilityIdentifier("App2_TodaySessionCard")
     }
 
-    private func todayEmptyCard(_ body: String) -> some View {
-        App2Card(padding: 16, spacing: 11) {
-            Text(L10n.App2.Home.todaySection.localized)
-                .font(.system(size: 13, weight: .heavy))
-                .tracking(1.5)
-                .foregroundStyle(App2Theme.inkMuted)
-            Text(body)
-                .font(.system(size: 14, weight: .medium))
-                .lineSpacing(2)
-                .foregroundStyle(App2Theme.inkSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .accessibilityIdentifier("App2_TodaySessionCard")
+    @ViewBuilder
+    private func todayEmptyContent(_ body: String) -> some View {
+        Text(L10n.App2.Home.todaySection.localized)
+            .font(.system(size: 13, weight: .heavy))
+            .tracking(1.5)
+            .foregroundStyle(App2Theme.inkMuted)
+        Text(body)
+            .font(.system(size: 14, weight: .medium))
+            .lineSpacing(2)
+            .foregroundStyle(App2Theme.inkSecondary)
+            .fixedSize(horizontal: false, vertical: true)
     }
 
     /// 「今天還沒跑 / 今天已跑」狀態點。完成與否目前沒有 producer
@@ -443,10 +461,10 @@ struct App2HomeView: View {
         .background(Capsule().fill(App2Theme.accentOrangeSoft.opacity(0.16)))
     }
 
-    // MARK: - 內嵌 Rizo 卡（設計 frame-00 今日課表卡下方）
+    // MARK: - 卡內 Rizo 對話帶（設計 frame-00：今日課表卡的最後一段，不是另一張卡）
 
-    private var rizoCard: some View {
-        App2Card(padding: 15, spacing: 11) {
+    private var rizoBand: some View {
+        VStack(alignment: .leading, spacing: 11) {
             HStack(spacing: 10) {
                 App2Avatar(initial: "R", size: 34, showsRing: false)
                 VStack(alignment: .leading, spacing: 1) {
@@ -491,6 +509,7 @@ struct App2HomeView: View {
             .padding(EdgeInsets(top: 7, leading: 13, bottom: 7, trailing: 7))
             .app2InsetSurface(cornerRadius: 20)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
         .onTapGesture(perform: openRizoChat)
         .accessibilityElement(children: .contain)

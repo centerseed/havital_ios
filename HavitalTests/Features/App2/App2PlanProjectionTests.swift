@@ -62,6 +62,42 @@ final class App2PlanProjectionTests: XCTestCase {
         XCTAssertEqual(App2PlanViewModel.weekdayLabel(dayIndex: 7), symbols[0]) // 週日
     }
 
+    // MARK: - 日期（設計 frame-01 每卡標題「週一 8/10」）
+
+    func test_currentWeekStart_isMondayOfThatWeek() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Taipei")!
+        // 2026-08-23 是週日 → 當週週一是 2026-08-17。
+        let sunday = calendar.date(from: DateComponents(year: 2026, month: 8, day: 23, hour: 9))!
+        let start = App2PlanViewModel.currentWeekStart(reference: sunday, calendar: calendar)
+        XCTAssertEqual(calendar.component(.month, from: start), 8)
+        XCTAssertEqual(calendar.component(.day, from: start), 17)
+        XCTAssertEqual(calendar.component(.weekday, from: start), 2)  // 2 = 週一
+    }
+
+    func test_dateLabel_isWeekStartPlusOneBasedDayIndex() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Taipei")!
+        let monday = calendar.date(from: DateComponents(year: 2026, month: 8, day: 10))!
+        XCTAssertEqual(App2PlanViewModel.dateLabel(dayIndex: 1, weekStart: monday, calendar: calendar), "8/10")
+        XCTAssertEqual(App2PlanViewModel.dateLabel(dayIndex: 7, weekStart: monday, calendar: calendar), "8/16")
+    }
+
+    func test_planWeek_fillsDateLabelForEveryDay() throws {
+        // 投影內部用 `Calendar.current`，所以週起點也用它建，避免跨時區飄一天。
+        let calendar = Calendar.current
+        let monday = calendar.date(from: DateComponents(year: 2026, month: 8, day: 10))!
+        let week = App2PlanViewModel.planWeek(
+            dto: try plan(fullWeekJSON(weekOfTraining: 7, totalWeeks: 8)),
+            planStatus: try status(),
+            completedKm: nil,
+            todayIndex: 3,
+            weekStart: monday
+        )
+        XCTAssertEqual(week.days.map(\.dateLabel).first, "8/10")
+        XCTAssertFalse(week.days.contains { $0.dateLabel.isEmpty })
+    }
+
     func test_todayDayIndex_matchesCalendarWeekdayWithMondayFirst() {
         let weekday = Calendar.current.component(.weekday, from: Date())  // 1 = 週日
         let expected = weekday == 1 ? 7 : weekday - 1

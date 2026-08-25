@@ -103,8 +103,9 @@ final class App2RenderingTests: XCTestCase {
 
     private func planDay(_ index: Int, type: DayType, planned: String?, isToday: Bool = false) -> App2PlanDay {
         App2PlanDay(
-            id: index, weekdayLabel: "D\(index)", tag: type.localizedName, dayType: type,
-            summary: "s", planned: planned, actual: nil, temp: nil, isToday: isToday
+            id: index, weekdayLabel: "D\(index)", dateLabel: "8/\(index)",
+            tag: type.localizedName, dayType: type,
+            planned: planned, actual: nil, temp: nil, isToday: isToday
         )
     }
 
@@ -206,6 +207,35 @@ final class App2RenderingTests: XCTestCase {
         )
         render(App2HomeView(onOpenSettings: {}, viewModel: vm),
                name: "today-card-quality-day", height: 1400)
+    }
+
+    /// 單段輕鬆跑：沒有分段表，但**仍然要有配速結構圖**（一整塊綠色穩定段，
+    /// 塊上標配速）。2026-08-25 用戶裁決：結構圖不是間歇專屬。
+    func test_home_singleSegmentSession_rendersPaceBlock() throws {
+        let json = """
+        { "day_index": 2, "day_target": "長距離輕鬆跑", "reason": "有氧基礎",
+          "primary": { "run_type": "lsd", "distance_km": 9.0, "pace": "7:55",
+            "target_intensity": "low" } }
+        """
+        let day = try JSONDecoder().decode(DayDetailDTO.self, from: Data(json.utf8))
+        let session = try XCTUnwrap(
+            App2HomeViewModel.todaySession(days: [day], todayIndex: 2, dayLabel: "週二 · 8/25")
+        )
+        XCTAssertTrue(session.segments.isEmpty)
+        XCTAssertEqual(session.structureBars.count, 1)
+        XCTAssertEqual(session.structureBars.first?.paceLabel, "7:55")
+
+        let vm = App2HomeViewModel()
+        vm.applyForTesting(
+            goalCard: App2Sourced(goal(), origin: live),
+            trainingStatus: App2Sourced(status(currentWeek: 1, totalWeeks: 17), origin: live),
+            insights: App2Sourced(insights(count: 5), origin: live),
+            todayState: .session(session),
+            weekReview: .notGenerated(isCurrentWeek: false),
+            rizoOpeningLine: "今天長跑訓練請按照計畫進行。"
+        )
+        render(App2HomeView(onOpenSettings: {}, viewModel: vm),
+               name: "today-card-easy-run", height: 1400)
     }
 
     // MARK: - 軌跡圖退化態

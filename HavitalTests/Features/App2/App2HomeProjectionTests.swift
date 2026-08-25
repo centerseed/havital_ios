@@ -405,9 +405,9 @@ final class App2HomeProjectionTests: XCTestCase {
 
     func test_structureBars_intervalDay_hasOneWorkBarPerRep() throws {
         let bars = App2HomeViewModel.structureBars(day: try day(intervalDay))
-        XCTAssertEqual(bars.filter(\.isWork).count, 6)
+        XCTAssertEqual(bars.filter { $0.kind == .interval }.count, 6)
         // 最後一趟後面不接恢復柱。
-        XCTAssertTrue(bars.last?.isWork ?? false)
+        XCTAssertEqual(bars.last?.kind, .interval)
     }
 
     /// dev 第 1 週的質課日（day_index 5）：熱身 ＋ 穩定段 ＋ 6×200m ＋ 恢復 ＋ 緩和。
@@ -426,9 +426,18 @@ final class App2HomeProjectionTests: XCTestCase {
     /// 卡上寫成「趟數 × 7 趟」（2026-08-25 用戶在截圖上抓到）。
     func test_structureBars_qualityDay_countsOnlySprintReps() throws {
         let bars = App2HomeViewModel.structureBars(day: try day(qualityDay))
-        XCTAssertFalse(bars.first?.isWork ?? true)      // 熱身
-        XCTAssertFalse(bars.last?.isWork ?? true)       // 緩和
-        XCTAssertEqual(bars.filter(\.isWork).count, 6) // 只有 6 趟衝刺
+        XCTAssertEqual(bars.first?.kind, .support)      // 熱身
+        XCTAssertEqual(bars.last?.kind, .support)       // 緩和
+        XCTAssertEqual(bars.filter { $0.kind == .interval }.count, 6) // 只有 6 趟衝刺
+    }
+
+    /// 單段輕鬆跑（沒有熱身緩和）也要畫得出配速結構：一整塊綠色穩定段，塊上標配速。
+    /// 2026-08-25 用戶裁決：結構圖不是間歇專屬。
+    func test_structureBars_singleSegmentEasyRun_isOneSteadyBlockWithPace() throws {
+        let bars = App2HomeViewModel.structureBars(day: try day(easyRunDay))
+        XCTAssertEqual(bars.count, 1)
+        XCTAssertEqual(bars.first?.kind, .steady)
+        XCTAssertNotNil(bars.first?.paceLabel)
     }
 
     /// 沒有衝刺段的課（輕鬆跑＋熱身緩和）→ 一根橘柱都沒有，畫面也不寫趟數。
@@ -441,7 +450,9 @@ final class App2HomeProjectionTests: XCTestCase {
         """
         let bars = App2HomeViewModel.structureBars(day: try day(json))
         XCTAssertFalse(bars.isEmpty)
-        XCTAssertEqual(bars.filter(\.isWork).count, 0)
+        XCTAssertEqual(bars.filter { $0.kind == .interval }.count, 0)
+        // 前後淺色塊 ＋ 中間一塊綠色穩定段。
+        XCTAssertEqual(bars.map(\.kind), [.support, .steady, .support])
     }
 
     func test_structureBars_restDay_isEmpty() throws {

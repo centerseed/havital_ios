@@ -203,6 +203,10 @@ struct App2PlanView: View {
                     Text(day.weekdayLabel)
                         .font(.system(size: 17, weight: .black))
                         .foregroundStyle(day.isToday ? App2Theme.accentBlueDeep : App2Theme.inkPrimary)
+                    // 設計 frame-01 每卡標題是「週一 8/10」。
+                    Text(day.dateLabel)
+                        .font(.app2Mono(14, weight: .bold))
+                        .foregroundStyle(App2Theme.inkMuted)
                     if day.isToday {
                         App2Pill(text: L10n.App2.Plan.today.localized)
                     }
@@ -225,11 +229,8 @@ struct App2PlanView: View {
                 }
             }
 
-            Text(day.summary)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(App2Theme.inkSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-
+            // 設計 frame-01 的日卡只有：標題列（星期＋日期＋課型／溫度徽章）＋課表／實際行。
+            // 後端 `day_target` 那句敘述不上 UI。
             if let planned = day.planned {
                 labelledValue(
                     label: L10n.App2.Home.planRow.localized,

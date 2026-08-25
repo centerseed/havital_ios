@@ -102,9 +102,12 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         planStatus: PlanStatusV2Response,
         completedKm: Double?,
         /// 測試可指定「今天」；nil = 用裝置日曆。
-        todayIndex: Int? = nil
+        todayIndex: Int? = nil,
+        /// 測試可指定當週週一（日起點）；nil = 用裝置日曆推。
+        weekStart: Date? = nil
     ) -> App2PlanWeek {
         let today = todayIndex ?? Self.todayDayIndex()
+        let start = weekStart ?? Self.currentWeekStart()
         let weekNumber = dto.weekOfTraining ?? dto.weekOfPlan ?? planStatus.currentWeek
         let climateByDayIndex = Dictionary(
             (dto.climate ?? []).map { ($0.dayIndex, $0) },
@@ -118,12 +121,12 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             return App2PlanDay(
                 id: day.dayIndex,
                 weekdayLabel: Self.weekdayLabel(dayIndex: day.dayIndex),
+                dateLabel: Self.dateLabel(dayIndex: day.dayIndex, weekStart: start),
                 // 課型顯示字走既有的 `DayType.localizedName`（三語已齊），
                 // 不再把後端的 `run_type` 識別字（`easy`／`lsd`）直接印到畫面上。
                 tag: dayType?.localizedName
                     ?? (isRest ? L10n.App2.Plan.rest.localized : (day.category ?? day.dayTarget)),
                 dayType: dayType,
-                summary: day.dayTarget,
                 planned: Self.plannedDistanceLabel(day.primary),
                 // 實際值要按日期對齊 workouts；骨架階段僅在週總量層合併（見 completedKm）。
                 actual: nil,
@@ -181,6 +184,25 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         // Calendar.weekday: 1 = 週日 … 7 = 週六。
         let weekday = Calendar.current.component(.weekday, from: Date())
         return weekday == 1 ? 7 : weekday - 1
+    }
+
+    /// 當週週一的日起點（裝置日曆）。
+    ///
+    /// 不用 `dateInterval(of: .weekOfYear)`：那條的週首隨 locale 變（zh-TW 是週日），
+    /// 而 `day_index` 的週首固定是週一。
+    nonisolated static func currentWeekStart(reference: Date = Date(), calendar: Calendar = .current) -> Date {
+        let weekday = calendar.component(.weekday, from: reference)     // 1 = 週日
+        let mondayBased = weekday == 1 ? 7 : weekday - 1                // 1 = 週一
+        let startOfToday = calendar.startOfDay(for: reference)
+        return calendar.date(byAdding: .day, value: -(mondayBased - 1), to: startOfToday) ?? startOfToday
+    }
+
+    /// 每日卡標題的日期（設計 frame-01：`週一 8/10`）。週起點 ＋ `day_index - 1` 天。
+    nonisolated static func dateLabel(dayIndex: Int, weekStart: Date, calendar: Calendar = .current) -> String {
+        guard let date = calendar.date(byAdding: .day, value: dayIndex - 1, to: weekStart) else { return "" }
+        let month = calendar.component(.month, from: date)
+        let day = calendar.component(.day, from: date)
+        return "\(month)/\(day)"
     }
 
     static func plannedDistanceLabel(_ primary: PrimaryActivityDTO?) -> String? {
