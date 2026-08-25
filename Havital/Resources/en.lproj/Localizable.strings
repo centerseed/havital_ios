@@ -4233,7 +4233,7 @@
 "app2.home.week_review_view_sub" = "See how this stretch went";
 "app2.home.rizo_coach_title" = "Your AI running coach";
 "app2.home.rizo_input_placeholder" = "Tell Rizo how you feel before heading out…";
-"app2.settings.goal_section" = "Goal race";
+"app2.settings.goal_section" = "Target race";
 "app2.settings.reset_goal_race" = "Set a new goal race";
 "app2.settings.system_section" = "System";
 "app2.settings.heat_adaptation_sub" = "Fine-tune session paces for the temperature";
@@ -4251,10 +4251,6 @@
 "app2.settings.plan_row" = "Plan";
 "app2.settings.cancel_subscription" = "Cancel subscription";
 "app2.settings.target_weekly_distance" = "Target weekly distance";
-"app2.settings.weekly_distance_unit" = "km / week";
-"app2.settings.recommended_range" = "Suggested %1$d–%2$d";
-"app2.settings.training_days_summary" = "%1$d days a week · %2$d–%3$d suggested";
-"app2.settings.long_run_day" = "Long run day";
 "app2.settings.data_source_intro" = "Once connected, Rizo syncs your runs in the background and keeps your plan calibrated.";
 "app2.settings.data_source_privacy" = "Your data is only used to generate training suggestions. You can disconnect at any time.";
 "app2.settings.disconnect" = "Disconnect";
@@ -4377,7 +4373,7 @@
 "app2.detail.purpose_more" = "Read the full explanation";
 
 // MARK: - App2 Workout Detail (completed record, design frame-15~17)
-"app2.workout_detail.title" = "Workout Detail";
+"app2.workout_detail.title" = "Workout detail";
 "app2.workout_detail.new_pb" = "New PB · %@";
 "app2.workout_detail.coach_section" = "Rizo Coach Analysis";
 "app2.workout_detail.planned" = "Planned";
@@ -4412,7 +4408,7 @@
 "app2.plan.today" = "Today";
 "app2.records.title" = "Training log";
 "app2.records.trend_title" = "Weekly volume · last 8 weeks";
-"app2.records.trend_unit" = "km / wk";
+"app2.records.trend_unit" = "km / week";
 "app2.records.pace" = "Pace";
 "app2.records.time" = "Time";
 "app2.records.runs_count" = "%d runs";
@@ -4463,7 +4459,7 @@
 "app2.onboarding.race_supported" = "Supported races";
 "app2.onboarding.race_search" = "Search races";
 "app2.onboarding.race_set_as_goal" = "Set as goal";
-"app2.onboarding.race_goal_badge" = "Goal";
+"app2.onboarding.race_goal_badge" = "Target";
 "app2.onboarding.race_weeks_away" = "in %d weeks";
 "app2.onboarding.race_manual_divider" = "Or enter your own";
 "app2.onboarding.race_name_placeholder" = "Race name";
@@ -4556,7 +4552,7 @@
 "app2.onboarding.done_generating" = "Building your first week…";
 "app2.onboarding.done_finish_suffix" = "%@ finish";
 "app2.onboarding.done_rhythm_title" = "Your training rhythm";
-"app2.onboarding.done_rhythm_days" = "Running days per week";
+"app2.onboarding.done_rhythm_days" = "Run days per week";
 "app2.onboarding.done_rhythm_days_format" = "%d days";
 "app2.onboarding.done_rhythm_long_run" = "Long run scheduled on";
 "app2.onboarding.done_rhythm_method" = "Training method";
@@ -4575,7 +4571,7 @@
 "app2.plan_overview.adjust" = "Adjust";
 "app2.plan_overview.goal_section" = "GOAL RACE";
 "app2.plan_overview.weeks_until_race" = "%d weeks to go";
-"app2.plan_overview.current_you" = "Where you are";
+"app2.plan_overview.current_you" = "You now";
 "app2.plan_overview.target" = "Target";
 "app2.plan_overview.weekly_volume" = "~%@ km / week";
 "app2.plan_overview.no_estimate" = "No finish estimate yet";
@@ -4591,13 +4587,13 @@
 "app2.plan_overview.run_days" = "Run days per week";
 "app2.plan_overview.run_days_value" = "%d days";
 "app2.plan_overview.long_run_day" = "Long run day";
-"app2.plan_overview.methodology" = "Methodology";
+"app2.plan_overview.methodology" = "Training method";
 "app2.plan_overview.manage_section" = "Manage plan";
 "app2.plan_overview.manage_races" = "Races";
 "app2.plan_overview.manage_races_sub" = "Goal race and supporting races";
 "app2.plan_overview.reset_goal" = "Reset goal";
 "app2.plan_overview.reset_goal_sub" = "Set a new goal and build a new plan";
-"app2.plan_overview.auto_adjust_note" = "Your plan adapts each week to what you actually ran and how you recovered.";
+"app2.plan_overview.auto_adjust_note" = "Your plan adjusts itself each week based on what you actually run and how you recover — you do not have to do the maths.";
 "app2.plan_overview.rizo_cta" = "Talk to Rizo about the plan";
 "app2.plan_overview.no_plan_title" = "No training plan yet";
 "app2.plan_overview.no_plan_body" = "Set a goal race and you will get the full phase timeline.";
@@ -4607,7 +4603,7 @@
 "app2.races.title" = "Races";
 "app2.races.subtitle" = "Manage your goal race and tune-up races. Setting a new main race turns the previous one into a supporting race.";
 "app2.races.main_section" = "Main race";
-"app2.races.main_badge" = "Goal";
+"app2.races.main_badge" = "Target";
 "app2.races.support_section" = "Supporting races";
 "app2.races.sorted_by_date" = "By date";
 "app2.races.countdown" = "Countdown";
@@ -4634,7 +4630,7 @@
 "app2.races.type_label" = "Race type";
 "app2.races.distance_label" = "Distance";
 "app2.races.date_label" = "Race date";
-"app2.races.target_time_label" = "Goal finish time";
+"app2.races.target_time_label" = "Target finish time";
 "app2.races.pace_label" = "Average pace";
 "app2.races.pace_hint" = "Enter distance and finish time to see the average pace.";
 "app2.races.make_main" = "Set as main race";

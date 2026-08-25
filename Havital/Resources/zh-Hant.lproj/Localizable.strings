@@ -4292,10 +4292,6 @@
 "app2.settings.plan_row" = "方案";
 "app2.settings.cancel_subscription" = "取消訂閱";
 "app2.settings.target_weekly_distance" = "目標週跑量";
-"app2.settings.weekly_distance_unit" = "km / 週";
-"app2.settings.recommended_range" = "建議 %1$d–%2$d";
-"app2.settings.training_days_summary" = "每週 %1$d 天 · 建議 %2$d–%3$d 天";
-"app2.settings.long_run_day" = "長跑日";
 "app2.settings.data_source_intro" = "連接後 Rizo 會在背景同步你的跑步紀錄，自動校準課表。";
 "app2.settings.data_source_privacy" = "你的數據僅用於產生訓練建議，可隨時中斷連接。";
 "app2.settings.disconnect" = "中斷";
@@ -4346,7 +4342,7 @@
 "app2.settings.training_days" = "訓練日";
 "app2.settings.race_countdown" = "賽事倒數卡";
 "app2.settings.not_connected" = "未連結";
-"app2.settings.connected" = "已連結";
+"app2.settings.connected" = "已連接";
 
 "app2.common.stub_badge" = "樣本";
 "app2.common.stub_footer" = "此區塊為固定樣本資料，後端端點尚未落地（%@）。";

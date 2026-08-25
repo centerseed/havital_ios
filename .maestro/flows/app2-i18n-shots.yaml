@@ -1,0 +1,130 @@
+appId: com.havital.Havital.dev
+tags:
+  - app2
+---
+# T-0306 wave5 §2 —— App2 三語實走證據。
+#
+# 語言切換走 2.0 系統頁（frame-28）→ `LanguageManager.performLanguageChangeWithRestart`
+# （先 PUT /user/preferences，成功才套用本地並重啟）。所以這支同時是段 1 語言流程的驗證。
+#
+# `clearState: false`：這台模擬器是用戶本人在用，不得清 keychain 或資料。
+
+- launchApp:
+    clearState: false
+    arguments:
+      "-skipHealthKitAuth": true
+- extendedWaitUntil:
+    visible:
+      id: "App2_TrainingStatusCard"
+    timeout: 60000
+
+# ── 切到日本語 ────────────────────────────────────────────
+- tapOn:
+    id: "App2_HomeMenu"
+- tapOn:
+    text: "個人資料"
+    optional: true
+- tapOn:
+    text: "Profile"
+    optional: true
+- tapOn:
+    text: "プロフィール"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "App2_SettingsView"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsLanguageRow"
+    direction: DOWN
+- tapOn:
+    id: "App2_SettingsLanguageRow"
+- extendedWaitUntil:
+    visible:
+      id: "App2_SystemSettingsView"
+    timeout: 20000
+- tapOn:
+    id: "App2_SystemLanguage_ja"
+- extendedWaitUntil:
+    visible:
+      id: "App2_SystemLanguage_ja"
+    timeout: 20000
+    optional: true
+
+- launchApp:
+    clearState: false
+    arguments:
+      "-skipHealthKitAuth": true
+- extendedWaitUntil:
+    visible:
+      id: "App2_TrainingStatusCard"
+    timeout: 60000
+- takeScreenshot: wave5-10-ja-home
+- tapOn:
+    id: "App2_Tab_Plan"
+    optional: true
+- takeScreenshot: wave5-11-ja-plan
+- tapOn:
+    id: "App2_Tab_State"
+- tapOn:
+    id: "App2_HomeMenu"
+- tapOn:
+    text: "プロフィール"
+- extendedWaitUntil:
+    visible:
+      id: "App2_SettingsView"
+    timeout: 30000
+- takeScreenshot: wave5-12-ja-settings
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsHeartRateRow"
+    direction: DOWN
+- tapOn:
+    id: "App2_SettingsHeartRateRow"
+- extendedWaitUntil:
+    visible:
+      id: "App2_HeartRateZoneView"
+    timeout: 20000
+- takeScreenshot: wave5-13-ja-heart-rate
+- tapOn:
+    id: "App2_HeartRateZoneClose"
+
+# ── 切回繁體中文 ──────────────────────────────────────────
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsLanguageRow"
+    direction: DOWN
+- tapOn:
+    id: "App2_SettingsLanguageRow"
+- extendedWaitUntil:
+    visible:
+      id: "App2_SystemSettingsView"
+    timeout: 20000
+- takeScreenshot: wave5-14-ja-system
+- tapOn:
+    id: "App2_SystemLanguage_zh-Hant"
+- extendedWaitUntil:
+    visible:
+      id: "App2_SystemLanguage_zh-Hant"
+    timeout: 20000
+    optional: true
+
+- launchApp:
+    clearState: false
+    arguments:
+      "-skipHealthKitAuth": true
+- extendedWaitUntil:
+    visible:
+      id: "App2_TrainingStatusCard"
+    timeout: 60000
+- takeScreenshot: wave5-15-zh-home
+- tapOn:
+    id: "App2_HomeMenu"
+- tapOn:
+    text: "個人資料"
+- extendedWaitUntil:
+    visible:
+      id: "App2_SettingsView"
+    timeout: 30000
+- takeScreenshot: wave5-16-zh-settings

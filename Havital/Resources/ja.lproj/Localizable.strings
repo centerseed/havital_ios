@@ -4248,10 +4248,6 @@
 "app2.settings.plan_row" = "プラン";
 "app2.settings.cancel_subscription" = "購読を解約";
 "app2.settings.target_weekly_distance" = "週間目標距離";
-"app2.settings.weekly_distance_unit" = "km / 週";
-"app2.settings.recommended_range" = "推奨 %1$d–%2$d";
-"app2.settings.training_days_summary" = "週 %1$d 日 ・ 推奨 %2$d〜%3$d 日";
-"app2.settings.long_run_day" = "ロング走の日";
 "app2.settings.data_source_intro" = "連携すると、Rizo がバックグラウンドで走行記録を同期し、メニューを自動で調整します。";
 "app2.settings.data_source_privacy" = "データはトレーニング提案の作成にのみ使用します。連携はいつでも解除できます。";
 "app2.settings.disconnect" = "解除";
@@ -4266,7 +4262,7 @@
 "app2.settings.vdot_unavailable" = "VDOT を推定できる走行記録がまだ足りません。";
 "app2.settings.unit_section" = "単位";
 "app2.settings.distance_unit" = "距離の単位";
-"app2.settings.unit_note" = "メートル法はキロメートルと min/km、ヤード・ポンド法はマイルと min/mi で表示します。";
+"app2.settings.unit_note" = "メートル法はキロメートルと min/km、マイル法はマイルと min/mi で表示します。";
 "app2.settings.unit_metric" = "メートル法";
 "app2.settings.unit_imperial" = "マイル法";
 "app2.settings.delete_confirm_title" = "アカウントを削除しますか？";
@@ -4302,7 +4298,7 @@
 "app2.settings.training_days" = "トレーニング日";
 "app2.settings.race_countdown" = "レースカウントダウン";
 "app2.settings.not_connected" = "未接続";
-"app2.settings.connected" = "接続済み";
+"app2.settings.connected" = "連携済み";
 
 "app2.common.stub_badge" = "サンプル";
 "app2.common.stub_footer" = "このブロックは固定サンプルです。バックエンドのエンドポイントは未実装です（%@）。";
@@ -4322,7 +4318,7 @@
 "app2.home.plan_row" = "プラン";
 "app2.home.actual_row" = "実測";
 "app2.home.week_review_sub" = "今週の走りを振り返る";
-"app2.home.rizo_sub" = "あなたのAIランニングコーチ";
+"app2.home.rizo_sub" = "あなたの AI ランニングコーチ";
 "app2.home.recovery_seconds" = "レスト %d 秒";
 "app2.home.recovery_metres" = "つなぎジョグ %d m";
 "app2.home.no_goal_title" = "目標レース未設定";
@@ -4378,7 +4374,7 @@
 "app2.workout_detail.new_pb" = "新記録 · %@";
 "app2.workout_detail.coach_section" = "Rizo コーチ分析";
 "app2.workout_detail.planned" = "予定";
-"app2.workout_detail.actual" = "実際";
+"app2.workout_detail.actual" = "実測";
 "app2.workout_detail.avg_hr_short" = "平均心拍 %d";
 "app2.workout_detail.vertical_ratio" = "上下動比";
 "app2.workout_detail.trend_section" = "推移";
@@ -4572,7 +4568,7 @@
 "app2.plan_overview.adjust" = "調整";
 "app2.plan_overview.goal_section" = "目標レース";
 "app2.plan_overview.weeks_until_race" = "あと %d 週";
-"app2.plan_overview.current_you" = "現在のあなた";
+"app2.plan_overview.current_you" = "今のあなた";
 "app2.plan_overview.target" = "目標";
 "app2.plan_overview.weekly_volume" = "約 %@ km / 週";
 "app2.plan_overview.no_estimate" = "完走予測はまだありません";
@@ -4588,13 +4584,13 @@
 "app2.plan_overview.run_days" = "週あたりのラン日数";
 "app2.plan_overview.run_days_value" = "%d 日";
 "app2.plan_overview.long_run_day" = "ロング走の日";
-"app2.plan_overview.methodology" = "トレーニング方法";
+"app2.plan_overview.methodology" = "トレーニング手法";
 "app2.plan_overview.manage_section" = "計画の管理";
 "app2.plan_overview.manage_races" = "レース管理";
 "app2.plan_overview.manage_races_sub" = "目標レースとサポートレース";
 "app2.plan_overview.reset_goal" = "目標をリセット";
 "app2.plan_overview.reset_goal_sub" = "目標を設定し直して新しい計画を作る";
-"app2.plan_overview.auto_adjust_note" = "計画は毎週の実際のトレーニングと回復状況に応じて自動で微調整されます。";
+"app2.plan_overview.auto_adjust_note" = "プランは毎週の実際の練習と回復状況に合わせて自動で微調整されます。自分で計算する必要はありません。";
 "app2.plan_overview.rizo_cta" = "Rizo に計画を相談する";
 "app2.plan_overview.no_plan_title" = "トレーニング計画がまだありません";
 "app2.plan_overview.no_plan_body" = "目標レースを設定すると、フェーズの全体像が表示されます。";
