@@ -40,8 +40,11 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
 
     // MARK: - Session State Operations
 
-    private func selectedAppLanguageCode() async -> String {
-        await MainActor.run { LanguageManager.shared.currentLanguage.apiCode }
+    /// 送去 `POST /auth/sync` 的語言。**只送使用者／後端確認過的值**；本機只有系統
+    /// 語言猜測值時回 `nil`，讓後端保留它自己的語言（後端是語言 SSOT）。
+    /// 送猜測值等於每次冷啟都先覆寫後端，再把自己剛寫的值讀回來。
+    private func selectedAppLanguageCode() async -> String? {
+        await MainActor.run { LanguageManager.shared.explicitLanguage?.apiCode }
     }
 
     /// Get currently cached user (synchronous)

@@ -16,6 +16,19 @@ class LanguageManager: ObservableObject {
 
     @Published private(set) var currentLanguage: SupportedLanguage
 
+    /// 已經被確認過的語言（使用者設定過，或從後端讀回來套用過），`nil` ＝ 這台裝置
+    /// 目前只有 `resolveFromSystem()` 猜出來的值。
+    ///
+    /// **後端是語言的 SSOT**，所以猜測值不得被送去覆寫後端 —— `POST /auth/sync` 每次
+    /// 冷啟都會帶 `language`，帶的若是猜測值就會先把後端寫成裝置語言，隨後
+    /// `AppStateManager.applyBackendLanguagePreference()` 再讀回自己剛寫進去的值，
+    /// 使用者在別台裝置設過的語言永遠回不來（2026-08-26 dev 實測：後端 zh-TW，
+    /// 冷啟一次就變成 en-US）。
+    var explicitLanguage: SupportedLanguage? {
+        guard let saved = UserDefaults.standard.string(forKey: Self.languageKey) else { return nil }
+        return SupportedLanguage(rawValue: saved)
+    }
+
     private var cancellables = Set<AnyCancellable>()
 
     private init() {
