@@ -240,6 +240,21 @@ class AppStateManager: ObservableObject {
         print("✅ AppStateManager: 認證檢查完成 - 已認證: \(isUserAuthenticated)")
     }
     
+    /// 把後端的語言偏好套回本地。
+    ///
+    /// 走 `LanguageManager.fetchUserPreferences()`（既有方法，先前沒有任何呼叫點）——
+    /// 不另寫一份 `/user/preferences` 的讀取。
+    private func applyBackendLanguagePreference() async {
+        do {
+            try await tracked("AppStateManager: applyBackendLanguagePreference") {
+                try await LanguageManager.shared.fetchUserPreferences()
+            }
+        } catch {
+            guard !error.isCancellationError else { return }
+            Logger.debug("[AppStateManager] 後端語言偏好套用失敗，維持本地語言: \(error)")
+        }
+    }
+
     /// Phase 2: 載入用戶資料
     private func loadUserData() async {
         print("📥 AppStateManager: 開始載入用戶資料")
@@ -267,6 +282,12 @@ class AppStateManager: ObservableObject {
 
             // 同步用戶偏好設定（包括數據源）
             UserService.shared.syncUserPreferences(with: user)
+
+            // **後端是語言的 SSOT。** 登入後把 `/user/preferences` 的 language 套回本地
+            // ——沒有這一步，首啟時依系統語言猜出來的值會一直贏過使用者在別台裝置上
+            // 設過的語言（2026-08-25：後端 zh-TW、app 顯示英文）。失敗不擋初始化：
+            // 語言不對是體驗問題，不是啟動不了。
+            await applyBackendLanguagePreference()
 
             // 使用同步後的數據源設定
             userDataSource = UserPreferencesManager.shared.dataSourcePreference

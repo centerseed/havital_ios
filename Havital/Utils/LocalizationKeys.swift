@@ -1325,9 +1325,48 @@ enum SupportedLanguage: String, CaseIterable {
         }
     }
     
+    /// 系統語言 → app 支援語言。
+    ///
+    /// **不要用 `SupportedLanguage(rawValue:)` 直接吃系統回來的字串。** raw value 是
+    /// `zh-Hant`／`en`／`ja` 這三個 lproj 目錄名，而系統給的是 BCP-47 標籤，帶地區
+    /// 甚至帶書寫系統（`zh-Hant-TW`／`zh-TW`／`en-GB`／`ja-JP`）。exact match 一定
+    /// miss，然後靜默落到 `?? .traditionalChinese` —— 對日本用戶就是「系統日文、
+    /// app 中文」，而且完全沒有 log 說它 miss 了。
+    ///
+    /// **候選順序：`Locale.preferredLanguages` 在前。** 那是使用者在系統設定裡排的
+    /// 真實順序；`Bundle.main.preferredLocalizations` 是「bundle 有哪些語言」比對過
+    /// 之後的結果，而且會被本 app 自己寫進 UserDefaults 的 `AppleLanguages` 蓋掉
+    /// （`LanguageManager.applyLocalLanguage` 就在寫它）——首啟時那是一個先有雞
+    /// 還是先有蛋的順序問題，不該當成系統語言的唯一來源。
+    static func resolveFromSystem(
+        preferredLanguages: [String] = Locale.preferredLanguages,
+        preferredLocalizations: [String] = Bundle.main.preferredLocalizations
+    ) -> SupportedLanguage {
+        for tag in preferredLanguages + preferredLocalizations {
+            if let matched = SupportedLanguage(languageTag: tag) { return matched }
+        }
+        // 一個都對不上（例如系統只設了韓文）→ 走 `CFBundleDevelopmentRegion`
+        // 的語言，也就是繁中。
+        return .traditionalChinese
+    }
+
+    /// BCP-47 語言標籤 → app 支援語言。看的是語言 subtag，不是整串。
+    ///
+    /// 中文只出 `zh-Hant` 一份，所以任何 `zh`（含 `zh-Hans`）都收斂到繁中 ——
+    /// 沒有簡體資源，硬要分只會讓簡中用戶掉到英文。
+    init?(languageTag: String) {
+        let subtags = languageTag.lowercased().split(separator: "-", omittingEmptySubsequences: true)
+        guard let language = subtags.first else { return nil }
+        switch language {
+        case "zh":  self = .traditionalChinese
+        case "en":  self = .english
+        case "ja":  self = .japanese
+        default:    return nil
+        }
+    }
+
     static var current: SupportedLanguage {
-        let preferredLanguage = Bundle.main.preferredLocalizations.first ?? "zh-Hant"
-        return SupportedLanguage(rawValue: preferredLanguage) ?? .traditionalChinese
+        resolveFromSystem()
     }
 }
 

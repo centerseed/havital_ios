@@ -24,9 +24,13 @@ class LanguageManager: ObservableObject {
            let language = SupportedLanguage(rawValue: savedLanguage) {
             self.currentLanguage = language
         } else {
-            // Use system's preferred language
-            let preferredLanguage = Bundle.main.preferredLocalizations.first ?? "zh-Hant"
-            self.currentLanguage = SupportedLanguage(rawValue: preferredLanguage) ?? .traditionalChinese
+            // 首啟（全新 container）：依系統語言解析。
+            //
+            // **不要用 `SupportedLanguage(rawValue:)` 直接吃系統字串** —— 系統給的是
+            // BCP-47 標籤（`zh-Hant-TW`／`ja-JP`），raw value 是 lproj 目錄名
+            // （`zh-Hant`／`ja`），exact match 一定 miss 然後靜默落到繁中。
+            // 解析規則與候選順序在 `SupportedLanguage.resolveFromSystem()`。
+            self.currentLanguage = SupportedLanguage.resolveFromSystem()
         }
 
         // Apply the language on init (but don't sync with backend during init)
