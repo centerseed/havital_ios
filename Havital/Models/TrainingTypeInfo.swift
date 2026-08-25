@@ -238,6 +238,16 @@ struct TrainingTypeInfo {
                 role: NSLocalizedString("training_type_info.race.role", comment: "")
             )
 
+        case .steadyIntervals:
+            return TrainingTypeInfo(
+                icon: "🧱",
+                title: NSLocalizedString("training_type_info.steady_intervals.title", comment: "穩定間歇 Steady Intervals"),
+                howToRun: NSLocalizedString("training_type_info.steady_intervals.how_to_run", comment: ""),
+                whyRun: NSLocalizedString("training_type_info.steady_intervals.why_run", comment: ""),
+                logic: NSLocalizedString("training_type_info.steady_intervals.logic", comment: ""),
+                role: NSLocalizedString("training_type_info.steady_intervals.role", comment: "")
+            )
+
         case .norwegianSingles:
             return TrainingTypeInfo(
                 icon: "🇳🇴",

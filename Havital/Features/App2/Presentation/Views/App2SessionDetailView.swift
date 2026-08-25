@@ -20,6 +20,8 @@ struct App2SessionDetailView: View {
     @StateObject private var garminViewModel: GarminPushViewModel
     /// 沒連 Garmin 就沒有這顆鈕（不做死鈕）。
     @ObservedObject private var garminManager = GarminManager.shared
+    /// 課型說明的完整版（怎麼跑／為什麼／訓練邏輯／週課表角色）。
+    @State private var isShowingTypeInfo = false
 
     init(detail: App2SessionDetail, onClose: @escaping () -> Void) {
         self.detail = detail
@@ -38,6 +40,7 @@ struct App2SessionDetailView: View {
                 VStack(spacing: 14) {
                     heroCard
                     if !detail.structureBars.isEmpty { paceCard }
+                    if let info = trainingTypeInfo { purposeCard(info) }
                     if detail.goalText != nil || detail.reasonText != nil { goalCard }
                     if detail.showsFuelingNote { fuelingCard }
                     if !detail.segments.isEmpty { structureCard }
@@ -48,6 +51,13 @@ struct App2SessionDetailView: View {
             }
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
+        .sheet(isPresented: $isShowingTypeInfo) {
+            if let info = trainingTypeInfo {
+                // 完整說明沿用 1.4 既有的 `TrainingTypeInfoView`（四段式），
+                // 不另做一份 2.0 版的說明頁。
+                TrainingTypeInfoView(trainingTypeInfo: info)
+            }
+        }
         .alert(NSLocalizedString("garmin.push.alert_title", comment: "Garmin"), isPresented: $garminViewModel.showAlert) {
             if garminViewModel.offerReconnect {
                 Button(NSLocalizedString("garmin.push.reconnect", comment: "")) {
@@ -233,6 +243,57 @@ struct App2SessionDetailView: View {
     }
 
     // MARK: - 本次訓練目標
+
+    // MARK: - 這堂課練什麼（課型的設計目的）
+
+    /// 課型說明的來源是既有的 `TrainingTypeInfo`（`Havital/Models/TrainingTypeInfo.swift`
+    /// ＋ `training_type_info.*` 三語字串），**不在 App2 再寫一份文案**。
+    ///
+    /// 課型判定走 `detail.dayType` —— 它是 `App2SessionDetailProjection` 依 payload
+    /// 的 `training_type`（V2）或 `category` ＋ `primary.run_type` / `interval.variant`
+    /// （V3）解出來的結構化 `DayType`，不是對顯示字做詞表比對。變體對不上已知集合時
+    /// 會退成 `.interval`，那時顯示的就是「間歇跑」的通用說明。
+    private var trainingTypeInfo: TrainingTypeInfo? {
+        guard let dayType = detail.dayType else { return nil }
+        return TrainingTypeInfo.info(for: dayType)
+    }
+
+    /// 「本次訓練目標」上方那張卡：課型的設計目的一句話 ＋ 進完整說明。
+    private func purposeCard(_ info: TrainingTypeInfo) -> some View {
+        App2Card(padding: 15, spacing: 8) {
+            HStack(spacing: 7) {
+                Text(info.icon)
+                    .font(.system(size: 15))
+                Text(L10n.App2.Detail.purposeSection.localized)
+                    .font(.system(size: 15, weight: .black))
+                    .foregroundStyle(App2Theme.inkPrimary)
+                Spacer(minLength: 6)
+                Text(info.title)
+                    .font(.system(size: 12, weight: .heavy))
+                    .foregroundStyle(App2Theme.inkTertiary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+            Text(info.whyRun)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(App2Theme.inkSecondary)
+                .lineSpacing(4)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 5) {
+                Text(L10n.App2.Detail.purposeMore.localized)
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundStyle(accent)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .heavy))
+                    .foregroundStyle(accent)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { isShowingTypeInfo = true }
+        .accessibilityElement(children: .contain)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("App2_SessionPurposeCard")
+    }
 
     private var goalCard: some View {
         App2Card(padding: 15, spacing: 8) {
