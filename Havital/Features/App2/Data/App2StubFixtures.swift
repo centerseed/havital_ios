@@ -22,7 +22,6 @@ enum App2StubFixtures {
     // MARK: - Pending section labels（指向設計文件段落，畫面上會顯示）
 
     enum Section {
-        static let intent = "§4.1"
         static let weekReview = "§4.2"
         static let trajectory = "§7-16"
         static let insightVerdict = "§7-2"
@@ -38,44 +37,71 @@ enum App2StubFixtures {
     static var trainingStatus: App2TrainingStatus { payload.trainingStatus.domain }
     static var insights: [App2Insight] { payload.insights.map(\.domain) }
     static var todaySession: App2TodaySession { payload.todaySession.domain }
-    static var intentCard: App2IntentCard { payload.intentCard.domain }
     static var planWeek: App2PlanWeek { payload.planWeek.domain }
     static var records: App2Records { payload.records.domain }
     static var settings: App2SettingsSnapshot { payload.settings.domain }
 
     /// §7-16 軌跡圖序列 —— 沒有 HTTP 出口，永遠是樣本。
-    /// 兩端錨定（現在的 pace_vdot → 比賽日的完賽預估）線性內插，實際線帶輕微起伏
-    /// 讓「實際 vs 預估」在畫面上分得開。
+    ///
+    /// **不用線性內插**：兩端錨定的等差數列畫出來是一條直線，跟真實的體能軌跡
+    /// 完全不像（2026-08-25 用戶在模擬器上直接點名）。設計 frame-00 畫的是
+    /// 「前段爬升快、中段有起伏與小回落、接近現在時趨緩」的曲線，所以這裡手寫
+    /// 一組正規化的成長剖面（0=起點、1=現在的水準），依實際週數重取樣。
+    ///
+    /// 預估段是緩彎而非直線：用 ease-out（`1-(1-p)^1.8`），一開始還有增益、
+    /// 越接近比賽日越平 —— 與「訓練效果邊際遞減」的形狀一致。
+    ///
+    /// 端點落地後整段刪除。
+    private static let growthProfile: [Double] = [
+        0.00, 0.09, 0.17, 0.15, 0.26, 0.35,
+        0.41, 0.38, 0.49, 0.58, 0.63, 0.61,
+        0.70, 0.78, 0.83, 0.86
+    ]
+
     static func trajectoryPoints(currentWeek: Int, totalWeeks: Int) -> [App2TrajectoryChart.Point] {
         let safeCurrent = max(currentWeek, 1)
         let safeTotal = max(totalWeeks, safeCurrent + 1)
         let startValue = 55.0
         let projectedEnd = 73.0
-        let span = Double(safeTotal - 1)
+        let range = projectedEnd - startValue
 
         var points: [App2TrajectoryChart.Point] = []
+
+        // 實際段：把成長剖面重取樣到 1...safeCurrent。
         for week in 1...safeCurrent {
-            let progress = Double(week - 1) / span
-            let wobble = sin(Double(week) * 0.9) * 0.8
+            let position = safeCurrent > 1
+                ? Double(week - 1) / Double(safeCurrent - 1)
+                : 0
             points.append(
-                .init(
-                    week: week,
-                    value: startValue + (projectedEnd - startValue) * progress * 0.9 + wobble,
-                    isProjected: false
-                )
+                .init(week: week, value: startValue + range * sample(position), isProjected: false)
             )
         }
+
+        // 預估段：從「現在」的水準緩彎到比賽日的預估。
+        guard safeCurrent < safeTotal else { return points }
+        let current = points.last?.value ?? startValue
         for week in safeCurrent...safeTotal {
-            let progress = Double(week - 1) / span
+            let position = Double(week - safeCurrent) / Double(safeTotal - safeCurrent)
+            let eased = 1 - pow(1 - position, 1.8)
             points.append(
                 .init(
                     week: week,
-                    value: startValue + (projectedEnd - startValue) * progress,
+                    value: current + (projectedEnd - current) * eased,
                     isProjected: true
                 )
             )
         }
         return points
+    }
+
+    /// 在成長剖面上取值（`position` 0…1），兩個節點之間線性內插。
+    private static func sample(_ position: Double) -> Double {
+        let clamped = min(max(position, 0), 1)
+        let scaled = clamped * Double(growthProfile.count - 1)
+        let lower = Int(scaled.rounded(.down))
+        let upper = min(lower + 1, growthProfile.count - 1)
+        let fraction = scaled - Double(lower)
+        return growthProfile[lower] + (growthProfile[upper] - growthProfile[lower]) * fraction
     }
 
     // MARK: - Loading
@@ -98,7 +124,6 @@ enum App2StubFixtures {
         let trainingStatus: TrainingStatusFixture
         let insights: [InsightFixture]
         let todaySession: TodaySessionFixture
-        let intentCard: IntentCardFixture
         let planWeek: PlanWeekFixture
         let records: RecordsFixture
         let settings: SettingsFixture
@@ -108,7 +133,6 @@ enum App2StubFixtures {
             trainingStatus: .empty,
             insights: [],
             todaySession: .empty,
-            intentCard: .empty,
             planWeek: .empty,
             records: .empty,
             settings: .empty
@@ -189,18 +213,6 @@ enum App2StubFixtures {
         }
     }
 
-    private struct IntentCardFixture: Codable {
-        let pursuing: String
-        let maintaining: String
-        let deferring: String
-
-        static let empty = IntentCardFixture(pursuing: "—", maintaining: "—", deferring: "—")
-
-        var domain: App2IntentCard {
-            App2IntentCard(pursuing: pursuing, maintaining: maintaining, deferring: deferring)
-        }
-    }
-
     private struct PlanWeekFixture: Codable {
         let weekLabel: String
         let totalWeeks: Int?
@@ -239,10 +251,13 @@ enum App2StubFixtures {
         let actual: String?
         let temp: String?
         let isToday: Bool
+        let dayType: String?
 
         var domain: App2PlanDay {
             App2PlanDay(
-                id: id, weekdayLabel: weekdayLabel, tag: tag, summary: summary,
+                id: id, weekdayLabel: weekdayLabel, tag: tag,
+                dayType: dayType.flatMap { DayType(rawValue: $0) },
+                summary: summary,
                 planned: planned, actual: actual, temp: temp, isToday: isToday
             )
         }
@@ -293,6 +308,7 @@ enum App2StubFixtures {
         let id: String
         let dateLabel: String
         let tag: String?
+        let dayType: String?
         let distance: String
         let pace: String?
         let duration: String
@@ -300,8 +316,9 @@ enum App2StubFixtures {
 
         var domain: App2WorkoutRow {
             App2WorkoutRow(
-                id: id, dateLabel: dateLabel, tag: tag, distance: distance,
-                pace: pace, duration: duration, vdot: vdot
+                id: id, dateLabel: dateLabel, tag: tag,
+                dayType: dayType.flatMap { DayType(rawValue: $0) },
+                distance: distance, pace: pace, duration: duration, vdot: vdot
             )
         }
     }

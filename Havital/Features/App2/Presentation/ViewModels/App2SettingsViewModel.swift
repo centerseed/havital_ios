@@ -15,6 +15,19 @@ final class App2SettingsViewModel: ObservableObject {
 
     @Published private(set) var snapshot: App2Sourced<App2SettingsSnapshot>?
 
+    /// 頭像／profile 卡要顯示的名字。身分只在這一支 ViewModel 讀 —— View 與其他頁
+    /// 都從這裡拿，不各自去碰 `AuthenticationViewModel.shared`。
+    var displayName: String? {
+        if let name = authViewModel.currentUser?.displayName, !name.isEmpty { return name }
+        return authViewModel.currentUser?.email
+    }
+
+    /// 頭像上的單字（設計 frame-01／21 是姓氏首字）。
+    var avatarInitial: String {
+        guard let first = displayName?.first else { return "P" }
+        return String(first).uppercased()
+    }
+
     private let authViewModel: AuthenticationViewModel
     private let subscriptionState: SubscriptionStateManager
 
@@ -24,6 +37,12 @@ final class App2SettingsViewModel: ObservableObject {
     ) {
         self.authViewModel = authViewModel
         self.subscriptionState = subscriptionState
+    }
+
+    /// 首次進頁載入；已經有快照就不重算（切 tab 回來不閃）。
+    func loadIfNeeded() {
+        guard snapshot == nil else { return }
+        load()
     }
 
     func load() {

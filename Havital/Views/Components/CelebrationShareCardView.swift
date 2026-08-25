@@ -260,8 +260,6 @@ extension CelebrationShareCardView {
 // MARK: - String Extension (local)
 
 private extension String {
-    func localizedOrFallback(default fallback: String) -> String {
-        let localized = NSLocalizedString(self, comment: "")
-        return localized == self ? fallback : localized
-    }
+    // `localizedOrFallback` 收斂到 `PersonalAchievementsView.swift`（module 內可見），
+    // 原本這裡有一份行為相同的複本，已刪。
 }

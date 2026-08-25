@@ -7,21 +7,18 @@ import Foundation
 /// 每個區塊各自載入、各自失敗、各自標來源：一條端點掛掉不該讓整個首頁空白。
 /// 拿不到真資料的區塊退到 `App2StubFixtures` 並把 origin 標成 stub，畫面掛徽章。
 @MainActor
-final class App2HomeViewModel: ObservableObject, TaskManageable {
+final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidating {
 
     // MARK: - Published
 
     @Published private(set) var isLoading = true
+    /// 這一頁載成功過至少一次。SWR 用：載過就不再出 loading 骨架。
+    private(set) var hasLoaded = false
+    private(set) var lastLoadedAt: Date?
     @Published private(set) var goalCard: App2Sourced<App2GoalCard>?
     @Published private(set) var trainingStatus: App2Sourced<App2TrainingStatus>?
     @Published private(set) var insights: App2Sourced<[App2Insight]>?
     @Published private(set) var todaySession: App2Sourced<App2TodaySession>?
-
-    /// §4.1 端點未落地 —— 恆為樣本，不隨載入結果改變。
-    let intentCard = App2Sourced(
-        App2StubFixtures.intentCard,
-        origin: .stub(pendingSection: App2StubFixtures.Section.intent)
-    )
 
     /// §7-16 軌跡圖序列 —— 同樣沒有 HTTP 出口。
     var trajectoryPoints: [App2TrajectoryChart.Point] {
@@ -84,13 +81,16 @@ final class App2HomeViewModel: ObservableObject, TaskManageable {
     // MARK: - Loading
 
     func load() async {
-        isLoading = true
+        // 只有「從未載過」才出 loading —— 重驗時畫面保留上一次的資料，不閃白。
+        isLoading = !hasLoaded
         // 各區塊獨立：一條失敗不阻斷其他。
         async let status: Void = loadTrainingStatus()
         async let goal: Void = loadGoalCard()
         async let metrics: Void = loadInsights()
         _ = await (status, goal, metrics)
         isLoading = false
+        hasLoaded = true
+        lastLoadedAt = Date()
     }
 
     // MARK: - §3.1a 訓練狀況卡

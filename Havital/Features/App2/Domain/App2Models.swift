@@ -89,6 +89,31 @@ struct App2Insight: Identifiable, Equatable {
     }
 }
 
+extension App2Insight {
+    /// 設計的指標膠囊是「每個指標一個 icon」（frame-00 那一排），icon 綁指標身分、
+    /// 顏色綁方向。兩者分開，才不會在 `not_computed` 時整排變成同一顆灰點。
+    var symbolName: String {
+        switch id {
+        case "capability_baseline": return "waveform.path.ecg"
+        case "recovery_index":      return "arrow.triangle.2.circlepath"
+        case "aerobic_endurance":   return "chart.bar.fill"
+        case "speed_endurance":     return "bolt.fill"
+        case "heat_sensitivity":    return "thermometer.medium"
+        case "consistency":         return "calendar"
+        default:                    return "circle.fill"
+        }
+    }
+
+    var arrowGlyph: String {
+        switch direction {
+        case .up:      return "↑"
+        case .down:    return "↓"
+        case .flat:    return "→"
+        case .unknown: return "·"
+        }
+    }
+}
+
 /// 今日課表卡（§3.1 倒數第 3 列）。
 struct App2TodaySession: Equatable {
     /// `週五 · 8/14`
@@ -99,16 +124,6 @@ struct App2TodaySession: Equatable {
     let intensityLabel: String?
     /// `12 km · 6:45/km`
     let summary: String?
-}
-
-/// 意圖確認卡（§3.10／§4.1）。**端點未落地**，恆為樣本。
-struct App2IntentCard: Equatable {
-    /// 「這一段在追什麼」。
-    let pursuing: String
-    /// 「維持什麼」。
-    let maintaining: String
-    /// 「放棄什麼」。
-    let deferring: String
 }
 
 // MARK: - 課表（§3.3）
@@ -132,8 +147,12 @@ struct App2PlanDay: Identifiable, Equatable {
     let id: Int
     /// `週一`
     let weekdayLabel: String
-    /// 課型標籤（`輕鬆跑`／`間歇`／`休息`）。
+    /// 已在地化的課型標籤（`輕鬆跑`／`間歇跑`／`休息`），來自 `DayType.localizedName`。
     let tag: String
+    /// 結構化課型。左緣色條與課型徽章的顏色由它決定 —— 不對顯示字串做詞表比對。
+    /// `DayType` 是 repo 既有的課型分類（`Havital/Models/WeeklyPlan.swift`），
+    /// 對應後端 `run_type` taxonomy（`domains/plan_week/generation/run_type_taxonomy.py`）。
+    let dayType: DayType?
     /// 一行摘要。
     let summary: String
     /// 計畫值（`12 km`）。
@@ -174,8 +193,10 @@ struct App2WorkoutRow: Identifiable, Equatable {
     let id: String
     /// `8/22`
     let dateLabel: String
-    /// 課型標籤，來自 row 的 `training_type`（§3.6 末列：後端已抬到頂層）。
+    /// 已在地化的課型標籤，來自 row 的 `training_type`（§3.6 末列：後端已抬到頂層）。
     let tag: String?
+    /// 結構化課型（同 `App2PlanDay.dayType`）：徽章與左緣色條的顏色由它決定。
+    let dayType: DayType?
     /// `12.4 km`
     let distance: String
     /// `4:42/km`

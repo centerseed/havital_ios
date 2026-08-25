@@ -339,9 +339,5 @@ struct AchievementDetailView: View {
     }
 }
 
-private extension String {
-    func localizedOrFallback(default fallback: String) -> String {
-        let value = NSLocalizedString(self, comment: "")
-        return value == self ? fallback : value
-    }
-}
+// `localizedOrFallback` 收斂到 `PersonalAchievementsView.swift`（module 內可見），
+// 原本這裡有一份逐字相同的 `fileprivate` 複本，已刪。

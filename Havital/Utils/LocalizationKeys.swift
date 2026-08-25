@@ -1986,6 +1986,8 @@ extension L10n {
             static let state = "app2.tab.state"
             static let plan = "app2.tab.plan"
             static let records = "app2.tab.records"
+            static let achievements = "app2.tab.achievements"
+            /// 設定不再是 tab（設計 frame-00 第四格是成就），這條保留給頭像開的設定頁標題。
             static let settings = "app2.tab.settings"
         }
 
@@ -1996,20 +1998,26 @@ extension L10n {
             static let goalEstimate = "app2.home.goal_estimate"
             static let goalWeek = "app2.home.goal_week"
             static let statusSection = "app2.home.status_section"
-            static let trackBehind = "app2.home.track_behind"
-            static let trackOnTrack = "app2.home.track_on_track"
-            static let trackAhead = "app2.home.track_ahead"
+            static let chartActual = "app2.home.chart_actual"
+            static let chartForecast = "app2.home.chart_forecast"
+            static let chartNow = "app2.home.chart_now"
+            static let weekProgress = "app2.home.week_progress"
+            static let todayTodo = "app2.home.today_todo"
+            static let todayDone = "app2.home.today_done"
+            static let planRow = "app2.home.plan_row"
+            static let actualRow = "app2.home.actual_row"
+            static let weekReviewSub = "app2.home.week_review_sub"
+            static let rizoSub = "app2.home.rizo_sub"
             static let insightsSection = "app2.home.insights_section"
             static let todaySection = "app2.home.today_section"
-            static let intentSection = "app2.home.intent_section"
-            static let intentPursuing = "app2.home.intent_pursuing"
-            static let intentMaintaining = "app2.home.intent_maintaining"
-            static let intentDeferring = "app2.home.intent_deferring"
             static let rizoEntry = "app2.home.rizo_entry"
             static let weekReviewEntry = "app2.home.week_review_entry"
         }
 
         enum Plan {
+            static let title = "app2.plan.title"
+            static let volumeTitle = "app2.plan.volume_title"
+            static let today = "app2.plan.today"
             static let weekVolume = "app2.plan.week_volume"
             static let completed = "app2.plan.completed"
             static let intensitySection = "app2.plan.intensity_section"
@@ -2022,6 +2030,12 @@ extension L10n {
         }
 
         enum Records {
+            static let title = "app2.records.title"
+            static let trendTitle = "app2.records.trend_title"
+            static let trendUnit = "app2.records.trend_unit"
+            static let pace = "app2.records.pace"
+            static let time = "app2.records.time"
+            static let runsCount = "app2.records.runs_count"
             static let windowSection = "app2.records.window_section"
             static let ytdSection = "app2.records.ytd_section"
             static let distance = "app2.records.distance"
@@ -2030,7 +2044,22 @@ extension L10n {
             static let listSection = "app2.records.list_section"
         }
 
+        enum Achievements {
+            static let title = "app2.achievements.title"
+            static let latestUnlock = "app2.achievements.latest_unlock"
+            static let nextGoal = "app2.achievements.next_goal"
+            static let personalBests = "app2.achievements.personal_bests"
+            static let badges = "app2.achievements.badges"
+            static let seeMore = "app2.achievements.see_more"
+        }
+
         enum Settings {
+            static let title = "app2.settings.title"
+            static let manageSubscription = "app2.settings.manage_subscription"
+            static let viewPlans = "app2.settings.view_plans"
+            static let redeemCode = "app2.settings.redeem_code"
+            /// 訓練日之間的分隔符（設計 frame-21 是「一・三・四」）。
+            static let trainingDaysSeparator = "app2.settings.training_days_separator"
             static let accountSection = "app2.settings.account_section"
             static let subscriptionSection = "app2.settings.subscription_section"
             static let dataSourceSection = "app2.settings.data_source_section"
@@ -2049,6 +2078,7 @@ extension L10n {
             static let loadFailed = "app2.common.load_failed"
             static let retry = "app2.common.retry"
             static let usingSample = "app2.common.using_sample"
+            static let settingsEntry = "app2.common.settings_entry"
         }
     }
 }

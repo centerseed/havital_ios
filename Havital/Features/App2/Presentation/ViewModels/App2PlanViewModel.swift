@@ -6,10 +6,12 @@ import Foundation
 /// 週目標量／每日安排來自 `GET /v2/plan/weekly/{plan_id}`；**已完成量不在該 payload 裡**
 /// （§3.3 第 2 列），要另外從 `GET /v2/workouts` 的本週紀錄合併計算。
 @MainActor
-final class App2PlanViewModel: ObservableObject, TaskManageable {
+final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidating {
 
     @Published private(set) var isLoading = true
     @Published private(set) var week: App2Sourced<App2PlanWeek>?
+    private(set) var hasLoaded = false
+    private(set) var lastLoadedAt: Date?
 
     nonisolated let taskRegistry = TaskRegistry()
 
@@ -38,13 +40,18 @@ final class App2PlanViewModel: ObservableObject, TaskManageable {
     }
 
     func load() async {
-        isLoading = true
-        defer { isLoading = false }
+        isLoading = !hasLoaded
+        defer {
+            isLoading = false
+            hasLoaded = true
+            lastLoadedAt = Date()
+        }
 
         do {
             let status = try await planV2DataSource.getPlanStatus()
             guard let planId = status.currentWeekPlanId else {
                 Logger.debug("[App2PlanVM] 本週尚無課表 (next_action=\(status.nextAction)),退樣本")
+                guard week == nil else { return }   // SWR：重驗失敗時保留舊資料
                 week = App2Sourced(
                     App2StubFixtures.planWeek,
                     origin: .stub(pendingSection: App2StubFixtures.Section.offline)
@@ -61,6 +68,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable {
             )
         } catch {
             Logger.debug("[App2PlanVM] 週課表取得失敗,退樣本: \(error)")
+            guard week == nil else { return }       // SWR：重驗失敗時保留舊資料
             week = App2Sourced(
                 App2StubFixtures.planWeek,
                 origin: .stub(pendingSection: App2StubFixtures.Section.offline)
@@ -85,12 +93,15 @@ final class App2PlanViewModel: ObservableObject, TaskManageable {
         let days: [App2PlanDay] = dto.days.map { day in
             // 沒有 primary activity ＝ 休息日。
             let isRest = day.primary == nil
+            let dayType = isRest ? DayType.rest : Self.dayType(day.primary)
             return App2PlanDay(
                 id: day.dayIndex,
                 weekdayLabel: Self.weekdayLabel(dayIndex: day.dayIndex),
-                tag: isRest
-                    ? L10n.App2.Plan.rest.localized
-                    : (Self.runTypeLabel(day.primary) ?? day.category ?? day.dayTarget),
+                // 課型顯示字走既有的 `DayType.localizedName`（三語已齊），
+                // 不再把後端的 `run_type` 識別字（`easy`／`lsd`）直接印到畫面上。
+                tag: dayType?.localizedName
+                    ?? (isRest ? L10n.App2.Plan.rest.localized : (day.category ?? day.dayTarget)),
+                dayType: dayType,
                 summary: day.dayTarget,
                 planned: Self.plannedDistanceLabel(day.primary),
                 // 實際值要按日期對齊 workouts；骨架階段僅在週總量層合併（見 completedKm）。
@@ -150,10 +161,20 @@ final class App2PlanViewModel: ObservableObject, TaskManageable {
         return String(format: "%.1f km", km)
     }
 
-    /// 課型標籤取 `run_type`；肌力／交叉訓練沒有跑步課型，回 nil 讓 caller 退到 `category`。
-    private static func runTypeLabel(_ primary: PrimaryActivityDTO?) -> String? {
-        guard case .run(let run) = primary else { return nil }
-        return run.runType.isEmpty ? nil : run.runType
+    /// `run_type` → 既有的 `DayType`。肌力／交叉訓練沒有跑步課型，各自映到對應的 case。
+    private static func dayType(_ primary: PrimaryActivityDTO?) -> DayType? {
+        switch primary {
+        case .run(let run):
+            return DayType(rawValue: run.runType.lowercased())
+        case .strength:
+            return .strength
+        case .cross:
+            return .crossTraining
+        case .none:
+            return .rest
+        @unknown default:
+            return nil
+        }
     }
 
     private static func temperatureLabel(_ climate: ClimateDayDTO?) -> String? {

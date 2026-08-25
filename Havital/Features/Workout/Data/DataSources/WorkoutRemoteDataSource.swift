@@ -32,7 +32,20 @@ private struct TrimRequest: Encodable {
 // MARK: - Workout Remote Data Source
 /// 負責從遠端 API 獲取 Workout 數據
 /// Data Layer - Remote Data Source
-class WorkoutRemoteDataSource {
+// MARK: - WorkoutStatsDataSourceProtocol
+/// 紀錄頁需要的兩條讀取（滾動視窗統計 ＋ 最近訓練清單）。
+///
+/// 為什麼是「加 protocol」而不是「走 `WorkoutRepository`」：`WorkoutRepository`
+/// 沒有 stats 這條語意（它管的是 workout 清單與快取），把 stats 塞進去等於擴張它的
+/// 職責；而 ViewModel 直接依賴具體 class 又違反 `.claude/rules/architecture.md`
+/// 的「ViewModel depends on repository protocols, never concrete implementations」。
+/// 所以在 Data 層對既有實作補一個窄介面 —— **沒有第二份實作**，只是把依賴方向立起來。
+protocol WorkoutStatsDataSourceProtocol {
+    func fetchWorkoutStats(days: Int, weeks: Int?) async throws -> WorkoutStatsResponse
+    func fetchRecentWorkouts(pageSize: Int) async throws -> [WorkoutV2]
+}
+
+class WorkoutRemoteDataSource: WorkoutStatsDataSourceProtocol {
 
     // MARK: - Properties
 

@@ -7,16 +7,18 @@ import Foundation
 /// `GET /v2/workouts/stats`（T-0304 把 `weekly_series`／`year_to_date` 做實）。
 /// 清單另走 `GET /v2/workouts`；課型標籤在 row 的 `training_type`（後端已抬到頂層）。
 @MainActor
-final class App2RecordsViewModel: ObservableObject, TaskManageable {
+final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalidating {
 
     @Published private(set) var isLoading = true
     @Published private(set) var records: App2Sourced<App2Records>?
+    private(set) var hasLoaded = false
+    private(set) var lastLoadedAt: Date?
 
     nonisolated let taskRegistry = TaskRegistry()
 
-    private let workoutDataSource: WorkoutRemoteDataSource
+    private let workoutDataSource: WorkoutStatsDataSourceProtocol
 
-    init(workoutDataSource: WorkoutRemoteDataSource? = nil) {
+    init(workoutDataSource: WorkoutStatsDataSourceProtocol? = nil) {
         self.workoutDataSource = workoutDataSource ?? WorkoutRemoteDataSource()
     }
 
@@ -25,8 +27,12 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable {
     }
 
     func load() async {
-        isLoading = true
-        defer { isLoading = false }
+        isLoading = !hasLoaded
+        defer {
+            isLoading = false
+            hasLoaded = true
+            lastLoadedAt = Date()
+        }
 
         do {
             let stats = try await workoutDataSource.fetchWorkoutStats(days: 30, weeks: 8)
@@ -47,6 +53,7 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable {
             )
         } catch {
             Logger.debug("[App2RecordsVM] stats 取得失敗,退樣本: \(error)")
+            guard records == nil else { return }    // SWR：重驗失敗時保留舊資料
             records = App2Sourced(
                 App2StubFixtures.records,
                 origin: .stub(pendingSection: App2StubFixtures.Section.offline)
@@ -67,10 +74,15 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable {
 
     private static func map(workout: WorkoutV2) -> App2WorkoutRow {
         let distanceKm = (workout.distanceMeters ?? 0) / 1000
+        let dayType = workout.advancedMetrics?.trainingType
+            .flatMap { DayType(rawValue: $0.lowercased()) }
         return App2WorkoutRow(
             id: workout.id,
             dateLabel: Self.shortLabel(isoDateTime: workout.startTimeUtc),
-            tag: workout.advancedMetrics?.trainingType,
+            // `training_type` 是後端識別字（`easy`／`interval`）。顯示字與顏色都走既有的
+            // `DayType`，不把識別字直接印出來，也不對顯示字做詞表比對。
+            tag: dayType?.localizedName ?? workout.advancedMetrics?.trainingType,
+            dayType: dayType,
             distance: String(format: "%.1f km", distanceKm),
             pace: workout.basicMetrics?.avgPaceSPerKm.map(Self.paceLabel(secondsPerKm:)),
             duration: Self.durationLabel(seconds: workout.durationSeconds),

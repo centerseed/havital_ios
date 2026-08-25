@@ -1171,7 +1171,9 @@ private struct AchievementBadgeTile: View {
 
 // MARK: - String helpers
 
-private extension String {
+// `fileprivate` 放寬成 module 內可見：2.0 的成就頁（`App2AchievementsView`）
+// 解同一批 `nameKey`／`storyKey`／`titleKey`，共用這一支而不是複製第二份。
+extension String {
     func localizedOrFallback(default fallback: String) -> String {
         let value = NSLocalizedString(self, comment: "")
         return value == self ? fallback : value
