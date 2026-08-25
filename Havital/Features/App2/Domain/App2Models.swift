@@ -165,8 +165,8 @@ struct App2TodaySession: Equatable {
     /// 設計把它畫成一排帶色點的膠囊列，主課段帶課型色、暖身緩和是中性灰。
     /// payload 組不出任何一段就是空陣列，整段不出現 —— 不用 placeholder 補行。
     let segments: [App2SessionSegment]
-    /// 配速結構示意（**訓練詳情頁**的「預計配速」圖）。今日卡不畫這張圖，
-    /// 但它與卡片同源，一起投影出來交給詳情頁。
+    /// 配速結構示意。訓練詳情頁的「預計配速」圖用整份；**今日卡只有間歇課畫**
+    /// （設計 dc.html「今日課表 · 間歇」右欄的趟數圖，見 `hasIntervalStructure`）。
     let structureBars: [App2SessionStructureBar]
     /// `力量 · 3 個動作`。nil = 今天沒有 supplementary 肌力項目。
     let strengthLabel: String?
@@ -180,6 +180,10 @@ struct App2TodaySession: Equatable {
     var showsFuelingNote: Bool = false
 
     var isRest: Bool { dayType == .rest }
+
+    /// 這一天有沒有衝刺趟 —— 今日卡右欄的趟數圖只有間歇課有
+    /// （2026-08-26 裁決；8/25 版設計把柱狀圖從其餘三張今日卡上拿掉了）。
+    var hasIntervalStructure: Bool { structureBars.contains { $0.kind == .interval } }
 }
 
 // MARK: - 訓練詳情（設計 frame-02／dc.html「課表詳細 · …」四版）

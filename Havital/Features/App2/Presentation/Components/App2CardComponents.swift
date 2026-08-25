@@ -268,6 +268,65 @@ struct App2PhaseRow: View {
     }
 }
 
+// MARK: - App2EffortCard
+/// 體感強度卡（設計 dc.html「今日課表 · …」四張卡的第 5 塊）：
+/// 行1 左「體感強度 · Z2」右「3 / 10」→ 行2 膠囊進度條（寬度＝分數／10）→
+/// 行3 一句話「今天該有什麼感覺」。
+///
+/// **值與句子都不是這裡生成的**：級距來自 `TrainingEffortScale`（課型對照），
+/// 句子來自既有的 `TrainingTypeInfo.howToRun`。逐日生成的敘述不進這張卡 ——
+/// 那會出現「間歇＋週三休息」這種與當日課型矛盾的句子。
+struct App2EffortCard: View {
+    let value: TrainingEffortScale.Value
+    let sentence: String?
+    let accent: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 6) {
+                Text("\(L10n.App2.Session.effortTitle.localized) · \(value.zone)")
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundStyle(accent.app2Darkened)
+                Spacer(minLength: 6)
+                Text(String(format: L10n.App2.Session.effortScore.localized, value.rpeText))
+                    .font(.app2Mono(13, weight: .heavy))
+                    .foregroundStyle(accent.app2Darkened)
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(App2Theme.shadowInk.opacity(0.06))
+                    Capsule()
+                        .fill(
+                            LinearGradient(
+                                colors: [accent.opacity(0.65), accent],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: geo.size.width * min(max(Double(value.barScore) / 10, 0), 1))
+                }
+            }
+            .frame(height: 7)
+
+            if let sentence {
+                Text(sentence)
+                    .font(.system(size: 13, weight: .semibold))
+                    .lineSpacing(3)
+                    .foregroundStyle(App2Theme.inkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(EdgeInsets(top: 11, leading: 13, bottom: 11, trailing: 13))
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(accent.opacity(0.06))
+        )
+        .accessibilityIdentifier("App2_EffortCard")
+    }
+}
+
 // MARK: - App2NoteBox
 /// 帶 icon 的提示框（長距離補給建議、熱適應說明）。
 struct App2NoteBox<Content: View>: View {

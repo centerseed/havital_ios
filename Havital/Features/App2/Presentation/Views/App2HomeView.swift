@@ -618,19 +618,45 @@ struct App2HomeView: View {
                     }
                 }
 
-                // 分段列。payload 組不出任何一段就整段不出現（不用 placeholder 補行）。
+                // 分段區。payload 組不出任何一段就整段不出現（不用 placeholder 補行）。
+                //
+                // **間歇卡是左右兩欄**（設計 dc.html「今日課表 · 間歇」）：左邊分段列、
+                // 右邊 132pt 的趟數結構圖。輕鬆跑／節奏跑／長距離的今日卡**只有分段列**
+                // ——8/25 版設計把柱狀圖從那三張卡上拿掉了，不要補回去
+                // （2026-08-26 覆蓋 8/25 早上的「每課型都要示意圖」）。
                 if !session.segments.isEmpty {
-                    VStack(spacing: 6) {
-                        ForEach(session.segments) { segment in
-                            App2PhaseRow(
-                                name: segment.name,
-                                detail: segment.detail,
-                                accent: sessionAccent(session),
-                                isMain: segment.isWork
-                            )
+                    HStack(alignment: .top, spacing: 9) {
+                        VStack(spacing: 6) {
+                            ForEach(session.segments) { segment in
+                                App2PhaseRow(
+                                    name: segment.name,
+                                    detail: segment.detail,
+                                    accent: sessionAccent(session),
+                                    isMain: segment.isWork
+                                )
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        if session.hasIntervalStructure {
+                            App2SessionStructureChart(bars: session.structureBars, showsNotes: false)
+                                .frame(width: 118)
+                                .accessibilityIdentifier("App2_TodayStructureChart")
                         }
                     }
                     .accessibilityIdentifier("App2_TodaySegments")
+                }
+
+                // 體感強度卡（設計 dc.html「今日課表 · …」第 5 塊）。
+                // 值與句子都走課型對照（`TrainingEffortScale`），**不吃逐日生成的敘述**
+                // ——那一段在用戶改過課表後不重生，會出現「間歇＋週三休息」這種
+                // 與當日課型矛盾的句子（2026-08-26 使用者截圖）。
+                if let effort = TrainingEffortScale.value(for: session.dayType) {
+                    App2EffortCard(
+                        value: effort,
+                        sentence: TrainingEffortScale.sentence(for: session.dayType),
+                        accent: sessionAccent(session)
+                    )
                 }
 
                 if session.showsFuelingNote {

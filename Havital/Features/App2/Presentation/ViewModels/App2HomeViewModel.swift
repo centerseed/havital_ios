@@ -576,8 +576,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 // 標註列的量直接用卡片「課表」那一行的同一支（`contentLine`），
                 // 不另組一份字串 —— 兩處出現同一個量卻長得不一樣就是矛盾。
                 append(
+                    // 配速裁決：一律標處方配速，熱調整值只出現在熱適應卡。
                     .steady, height: 0.6, width: 4,
-                    pace: run.climateAdjustedPace ?? run.pace,
+                    pace: App2PlanViewModel.dayPace(run),
                     noteLabel: L10n.App2.Home.structureNoteSteady.localized,
                     noteDetail: App2PlanViewModel.contentLine(day.primary)
                 )
@@ -653,7 +654,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         } else if let minutes = segment.durationMinutes {
             parts.append(String(format: L10n.App2.Home.minutes.localized, minutes))
         }
-        if let pace = segment.climateAdjustedPace ?? segment.pace ?? segment.basePace {
+        // 配速裁決（2026-05 使用者裁決，2026-08-26 起 App2 全面適用）：
+        // 分段列一律顯示處方配速；`climate_adjusted_pace` 只出現在熱適應卡。
+        if let pace = segment.pace ?? segment.basePace {
             parts.append("@ \(pace)")
         }
         return parts.isEmpty ? nil : parts.joined(separator: " ")

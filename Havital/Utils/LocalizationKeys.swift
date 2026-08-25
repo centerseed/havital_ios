@@ -2105,6 +2105,16 @@ extension L10n {
         enum Session {
             /// 長距離課的補給建議 —— 設計稿文案，不是 payload 欄位。
             static let fuelingNote = "app2.session.fueling_note"
+            /// 體感強度卡的標題（設計「體感強度 · Z2」）。
+            static let effortTitle = "app2.session.effort_title"
+            /// 體感分數 `3 / 10`。
+            static let effortScore = "app2.session.effort_score"
+            /// 標題列的強度 chip（`低強度`／`中強度`／`高強度`／`耐力`／`恢復`）。
+            static let effortChipLow = "app2.session.effort_chip_low"
+            static let effortChipMedium = "app2.session.effort_chip_medium"
+            static let effortChipHigh = "app2.session.effort_chip_high"
+            static let effortChipEndurance = "app2.session.effort_chip_endurance"
+            static let effortChipRecovery = "app2.session.effort_chip_recovery"
         }
 
         /// 編輯週課表（設計 frame-03～09）。

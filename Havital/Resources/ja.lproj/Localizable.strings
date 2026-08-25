@@ -4328,6 +4328,13 @@
 "app2.home.cross_title" = "少し動きたい？";
 "app2.home.cross_body" = "水泳・バイク・ヨガなどのクロストレーニングは走行距離に含みません";
 "app2.session.fueling_note" = "45 分ごとの補給と、500ml 程度の水の携帯をおすすめします。";
+"app2.session.effort_title" = "体感強度";
+"app2.session.effort_score" = "%d / 10";
+"app2.session.effort_chip_low" = "低強度";
+"app2.session.effort_chip_medium" = "中強度";
+"app2.session.effort_chip_high" = "高強度";
+"app2.session.effort_chip_endurance" = "持久系";
+"app2.session.effort_chip_recovery" = "リカバリー";
 
 /* ===== App2 · ホーム v2 ヘッダー（通知／メニュー） ===== */
 "app2.home.notifications" = "通知";

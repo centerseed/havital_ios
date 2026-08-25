@@ -313,26 +313,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     static func contentLine(_ primary: PrimaryActivityDTO?, totalDistanceKm: Double? = nil) -> String? {
         guard case .run(let run) = primary else { return nil }
 
-        if let interval = run.segments?.first(where: { $0.kind == "interval" }),
-           let repeats = interval.repeats, repeats > 0 {
-            var parts: [String] = []
-            if let metres = interval.work?.distanceM ?? interval.distanceM {
-                parts.append("\(repeats) × \(metres)m")
-            } else if let minutes = interval.work?.durationMinutes {
-                parts.append("\(repeats) × \(minutes) min")
-            } else {
-                parts.append("× \(repeats)")
-            }
-            if let pace = interval.work?.pace ?? interval.pace {
-                parts.append("\(pace)/km")
-            }
-            if let seconds = interval.recovery?.durationSeconds {
-                parts.append(String(format: L10n.App2.Home.recoverySeconds.localized, seconds))
-            } else if let metres = interval.recovery?.distanceM {
-                parts.append(String(format: L10n.App2.Home.recoveryMetres.localized, metres))
-            }
-            return parts.joined(separator: " · ")
-        }
+        if let line = intervalContentLine(run) { return line }
 
         var parts: [String] = []
         if let km = totalDistanceKm ?? run.distanceKm, km > 0 {
@@ -340,22 +321,99 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         } else if let minutes = run.durationMinutes {
             parts.append("\(minutes) min")
         }
-        if let pace = run.climateAdjustedPace ?? run.pace {
+        if let pace = dayPace(run) {
             parts.append("\(pace)/km")
         }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
-    /// 強度徽章。只有 payload 真的帶 `target_intensity` 才顯示 —— 沒有就不顯示，
-    /// 不從課型自己推一個出來。
-    static func intensityLabel(_ primary: PrimaryActivityDTO?) -> String? {
-        guard case .run(let run) = primary, let raw = run.targetIntensity else { return nil }
-        switch raw.lowercased() {
-        case "low":    return L10n.App2.Plan.intensityLow.localized
-        case "medium": return L10n.App2.Plan.intensityMedium.localized
-        case "high":   return L10n.App2.Plan.intensityHigh.localized
-        default:       return nil
+    /// 日級配速。**一律是處方配速**（2026-05 使用者裁決，2026-08-26 起 App2 全面適用）：
+    /// 熱調整後的值只出現在訓練詳情的熱適應卡，不得在課表／卡片上頂替處方值。
+    ///
+    /// 間歇課的 `primary.pace` 缺席（dev 實測只有 `climate_adjusted_pace`），
+    /// 這時從處方分段推導 —— 主課段的 `work_pace`（4×400m 那天是 `4:50`）。
+    /// 推不出來就回 nil（那一段不顯示），不拿熱調整值充數。
+    static func dayPace(_ run: RunActivityDTO) -> String? {
+        if let pace = run.pace { return pace }
+        return effectiveSegments(run)
+            .first { $0.kind == "interval" }
+            .flatMap { $0.work?.pace ?? $0.pace }
+    }
+
+    /// 間歇日的「課表」行 ＝ **主課段（含組間恢復）總距離 ＋ 該段總時間**
+    /// （2026-08-26 使用者裁決；設計 dc.html「今日課表 · 間歇」的 `1.6 km · 11:00`
+    /// 那一行）。不是全程距離、也不是均配。
+    ///
+    /// 組間恢復的段數是 `repeats - 1`（最後一趟跑完就進緩和）—— dev 實測
+    /// 4×400m ＋ 200m 恢復的 `primary.distance_km` 是 `2.2`＝`1.6 + 3×0.2`，
+    /// 與這個算法一致。組不出距離或時間就少那一欄，兩欄都組不出就整行不顯示。
+    static func intervalContentLine(_ run: RunActivityDTO) -> String? {
+        guard let segment = effectiveSegments(run).first(where: { $0.kind == "interval" }),
+              let repeats = segment.repeats, repeats > 0,
+              let work = segment.work else { return nil }
+        let recoveryCount = Double(max(repeats - 1, 0))
+
+        var parts: [String] = []
+        if let workKm = effortDistanceKm(work) {
+            let recoveryKm = segment.recovery.flatMap(effortDistanceKm) ?? 0
+            parts.append(String(format: "%.1f km", workKm * Double(repeats) + recoveryKm * recoveryCount))
         }
+        if let workSeconds = effortSeconds(work) {
+            let recoverySeconds = segment.recovery.flatMap(effortSeconds) ?? 0
+            parts.append(durationLabel(seconds: workSeconds * Double(repeats) + recoverySeconds * recoveryCount))
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
+    }
+
+    /// 一段 effort 的距離（km）。距離缺席時回 nil —— 不用時長換算，那需要配速。
+    static func effortDistanceKm(_ effort: SegmentEffortDTO) -> Double? {
+        if let km = effort.distanceKm, km > 0 { return km }
+        if let metres = effort.distanceM, metres > 0 { return Double(metres) / 1000 }
+        return nil
+    }
+
+    /// 一段 effort 的時間（秒）。明寫的時長優先；只有距離＋配速時才換算。
+    static func effortSeconds(_ effort: SegmentEffortDTO) -> Double? {
+        if let seconds = effort.durationSeconds, seconds > 0 { return Double(seconds) }
+        if let minutes = effort.durationMinutes, minutes > 0 { return Double(minutes) * 60 }
+        guard let km = effortDistanceKm(effort),
+              let perKm = paceSeconds(effort.pace ?? effort.basePace) else { return nil }
+        return km * perKm
+    }
+
+    /// `4:50` → 290 秒／km。格式對不上就回 nil，不猜。
+    static func paceSeconds(_ pace: String?) -> Double? {
+        guard let pace else { return nil }
+        let parts = pace.split(separator: ":")
+        guard parts.count == 2,
+              let minutes = Double(parts[0]), let seconds = Double(parts[1]) else { return nil }
+        return minutes * 60 + seconds
+    }
+
+    /// `12:17`／`1:02:30`（設計的數字一律等寬 mono，這裡只管字串形狀）。
+    static func durationLabel(seconds: Double) -> String {
+        let total = Int(seconds.rounded())
+        let h = total / 3600, m = (total % 3600) / 60, s = total % 60
+        return h > 0
+            ? String(format: "%d:%02d:%02d", h, m, s)
+            : String(format: "%d:%02d", m, s)
+    }
+
+    /// 強度徽章（設計 dc.html 今日課表卡標題列右側的方角 chip）。
+    ///
+    /// payload 的 `target_intensity` 優先；**缺席時退到課型**（2026-08-26 裁決：
+    /// 這顆 chip 每張今日卡都要有）。退法是結構化的 `DayType` → 強度級距對照，
+    /// 不是對顯示字做詞表比對；課型也判不出來才回 nil。
+    static func intensityLabel(_ primary: PrimaryActivityDTO?) -> String? {
+        if case .run(let run) = primary, let raw = run.targetIntensity {
+            switch raw.lowercased() {
+            case "low":    return L10n.App2.Session.effortChipLow.localized
+            case "medium": return L10n.App2.Session.effortChipMedium.localized
+            case "high":   return L10n.App2.Session.effortChipHigh.localized
+            default:       break
+            }
+        }
+        return TrainingEffortScale.chipLabel(for: dayType(primary))
     }
 
     private static func temperatureLabel(_ climate: ClimateDayDTO?) -> String? {

@@ -1092,46 +1092,14 @@ struct PlannedSessionDetailView: View {
         let isDanger: Bool
     }
 
-    // Infer heart-rate zone string from run type (used when no explicit HR data is present).
+    // 課型 → 心率區間／體感值：對照表已抬成共用的 `TrainingEffortScale`
+    // （2.0 的體感強度卡要的是同一組值），這兩支只留呼叫端的語意名。
     private func inferredHRZone(for type: DayType) -> String {
-        switch type {
-        case .easy, .easyRun, .recovery_run:
-            return "Z2"
-        case .lsd, .longRun:
-            return "Z2-Z3"
-        case .tempo, .cruiseIntervals, .norwegianSingles, .fastFinish:
-            return "Z3-Z4"
-        case .threshold, .progression:
-            return "Z4"
-        case .interval, .shortInterval, .longInterval, .norwegian4x4, .yasso800, .strides, .hillRepeats:
-            return "Z4-Z5"
-        case .race, .racePace:
-            return "Z5"
-        default:
-            return "Z2-Z3"
-        }
+        TrainingEffortScale.zone(for: type)
     }
 
-    // Infer RPE (1-10) from run type (used when targetIntensity is nil).
     private func inferredRPE(for type: DayType) -> String {
-        switch type {
-        case .easy, .easyRun, .recovery_run:
-            return "3"
-        case .lsd, .longRun:
-            return "4-5"
-        case .fastFinish:
-            return "4-7"
-        case .tempo, .cruiseIntervals, .norwegianSingles:
-            return "6"
-        case .threshold, .progression:
-            return "7"
-        case .interval, .shortInterval, .longInterval, .norwegian4x4, .yasso800, .strides, .hillRepeats:
-            return "8"
-        case .race, .racePace:
-            return "9"
-        default:
-            return "5"
-        }
+        TrainingEffortScale.rpeText(for: type)
     }
 
     private func buildTargetZonePills() -> [TargetZonePillData] {
