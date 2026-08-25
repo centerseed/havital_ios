@@ -174,12 +174,16 @@ extension App2WorkoutDetailProjection {
             )
         )
         // 0 kcal 是「沒算出來」，不是「這趟燒了 0 大卡」——不畫這一格。
+        //
+        // **`caloriesKcal` 永遠不是 nil**：`BasicMetrics.caloriesKcal` 的實作是
+        // `Int(_caloriesKcal?.value ?? 0)`，欄位缺席時回 0 而不是 nil。所以只看
+        // `!= nil` 會畫出一格「0 kcal」，一定要看值。
         if let calories, calories >= 1 {
             metrics.append(
                 Metric(
                     key: "calories",
                     label: NSLocalizedString("workout.metrics.calories", comment: "卡路里"),
-                    value: String(format: "%.0f", calories),
+                    value: "\(calories)",
                     unit: "kcal"
                 )
             )
