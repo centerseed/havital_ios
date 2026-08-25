@@ -142,7 +142,8 @@ extension App2Insight {
     }
 }
 
-/// 今日課表卡（§3.1 倒數第 3 列；設計 frame-00 下半）。
+/// 今日課表卡（§3.1 倒數第 3 列；設計 dc.html「今日課表 · 輕鬆跑／節奏跑／長距離／
+/// 休息日卡片」四版，＝`screens/frame-02b-noninterval.png` 上半）。
 struct App2TodaySession: Equatable {
     /// `週五 · 8/14`
     let dayLabel: String
@@ -152,13 +153,92 @@ struct App2TodaySession: Equatable {
     let intensityLabel: String?
     /// `12 km · 6:45/km`
     let summary: String?
-    /// 分段表（熱身／衝刺／恢復／緩和）。payload 沒有 segments 就是空陣列，
-    /// 畫面整段不出現 —— 不用 placeholder 補行。
+    /// 分段列（熱身／節奏段／緩和；單段課只有一列「主課」）。
+    /// 設計把它畫成一排帶色點的膠囊列，主課段帶課型色、暖身緩和是中性灰。
+    /// payload 組不出任何一段就是空陣列，整段不出現 —— 不用 placeholder 補行。
     let segments: [App2SessionSegment]
-    /// 右側「趟數 × N 趟」結構預覽的柱子。空 = 這堂課的結構畫不出來，不畫。
+    /// 配速結構示意（**訓練詳情頁**的「預計配速」圖）。今日卡不畫這張圖，
+    /// 但它與卡片同源，一起投影出來交給詳情頁。
     let structureBars: [App2SessionStructureBar]
     /// `力量 · 3 個動作`。nil = 今天沒有 supplementary 肌力項目。
     let strengthLabel: String?
+    /// `day_index`（1 = 週一）。點進訓練詳情、推 Garmin 都要它。
+    var dayIndex: Int = 0
+    /// 結構化課型。休息日＝`.rest`（卡片改成月亮回充版式）。
+    var dayType: DayType?
+    /// 長距離課的補給建議框（設計 dc.html「今日課表 · 長距離卡片」）。
+    /// **文案是設計稿的靜態教練建議，不是 payload 欄位**；只在真的是長距離課
+    /// 且時長夠長時才出現，短課掛這句話沒有意義。
+    var showsFuelingNote: Bool = false
+
+    var isRest: Bool { dayType == .rest }
+}
+
+// MARK: - 訓練詳情（設計 frame-02／dc.html「課表詳細 · …」四版）
+
+/// 訓練詳情頁的一整份投影。**全部來自本週課表 payload 的同一天**，
+/// 詳情頁自己不打任何一條端點 —— 它是首頁／課表頁手上那份 `DayDetailDTO` 的第二個版面。
+struct App2SessionDetail: Identifiable, Equatable {
+    var id: Int { dayIndex }
+    let dayIndex: Int
+    /// `2026-08-25`（裝置當地日期）。推 Garmin 需要它；推不出來就不擺按鈕。
+    let dateString: String?
+    /// 頁首副標：`星期一 · 8/10`
+    let dateTitle: String
+    /// `輕鬆跑`
+    let title: String
+    let dayType: DayType?
+    /// hero 上方的小字（設計是 `EASY RUN · Z2`）。
+    /// 只有 payload 真的帶得出來才有 —— 配速區間（`pace_zone`）或強度（`target_intensity`）。
+    /// 兩者都沒有就沒有這一行，**不把 `run_type` 識別字印上去**。
+    let kicker: String?
+    /// hero 三格：總距離 / 預計時間 / 配速變化段數。
+    let distanceKm: Double?
+    let durationLabel: String?
+    let phaseCount: Int
+    /// 「預計配速」示意圖。每種課型都畫得出來（2026-08-25 裁決）。
+    let structureBars: [App2SessionStructureBar]
+    /// 「本次訓練目標」——後端 `day_target`（已在地化）。
+    let goalText: String?
+    /// 目標卡下方的理由句 —— 後端 `reason`。
+    let reasonText: String?
+    /// 「訓練結構」逐段列。
+    let segments: [App2SessionDetailSegment]
+    /// 「熱適應」卡（`climate_meta`，真資料）。
+    let climate: App2SessionClimate?
+    /// 長距離補給建議框（同 `App2TodaySession.showsFuelingNote`，設計稿靜態文案）。
+    let showsFuelingNote: Bool
+    /// 跑步課才有「傳到 Garmin」（後端 push 只收 run workout）。
+    let isRunSession: Bool
+}
+
+/// 訓練詳情的「訓練結構」一列（設計：序號 ＋ 名稱 ＋ 量／配速 ＋ 一句說明）。
+struct App2SessionDetailSegment: Identifiable, Equatable {
+    let id: Int
+    /// 1-based 序號（設計的圓形數字）。
+    let index: Int
+    /// `熱身`／`節奏段`／`緩和`
+    let name: String
+    /// `2.0 km · 6:50/km`
+    let detail: String?
+    /// `× 10`（間歇趟數）。
+    let repeatsLabel: String?
+    /// `組間休息：90 秒`／段落描述。
+    let note: String?
+    /// 主課段 —— 決定序號圓與底色是否上課型色。
+    let isWork: Bool
+}
+
+/// 熱適應卡（`climate_meta`）。文案沿用既有的 `climate.*` 三語，不新增第二套。
+struct App2SessionClimate: Equatable {
+    /// `危險`
+    let shortLevel: String
+    /// `體感 41.2°C`；溫度缺席時 nil。
+    let feelsLike: String?
+    /// 後端 `reason_text`（已在地化）。
+    let reason: String
+    /// `heat_pressure_level` 正規化值，決定卡片顏色。
+    let level: String
 }
 
 /// 今日課表卡的一行分段（設計 frame-00：左名稱、右值）。

@@ -24,6 +24,8 @@ struct App2HomeView: View {
     /// 第 N / M 週都在這張卡上，點它看完整期程是最短的路徑。卡片右側加了一個
     /// chevron，不然這是一個看不出來的點擊區。
     @State private var isShowingPlanOverview = false
+    /// 今日課表卡點下去開的訓練詳情（設計 frame-02）。nil = 沒開。
+    @State private var detailSession: App2SessionDetail?
     /// 模態頁的 ViewModel 在這裡持有（tab 才由 `App2RootView` 持有）——
     /// 沒被打開過就不會 fetch（載入在被呈現那一頁的 `.task`）。
     @StateObject private var planOverviewViewModel = App2PlanOverviewViewModel()
@@ -60,6 +62,9 @@ struct App2HomeView: View {
                 },
                 viewModel: planOverviewViewModel
             )
+        }
+        .fullScreenCover(item: $detailSession) { detail in
+            App2SessionDetailView(detail: detail) { detailSession = nil }
         }
         .sheet(isPresented: $isShowingRizoChat) {
             if let rizoChatViewModel {
@@ -338,7 +343,15 @@ struct App2HomeView: View {
             App2Card(padding: 16, spacing: 11) {
                 switch viewModel.todayState {
                 case .session(let session):
+                    // 點課表內容進訓練詳情（frame-02）。**只有課表那一段可點** ——
+                    // 卡片下半的 Rizo 對話帶有自己的目的地，整張卡一起可點會互吃。
+                    // 休息日沒有詳情（`todayDetail` 為 nil），那時就只是靜態內容。
                     todaySessionContent(session)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            guard let detail = viewModel.todayDetail else { return }
+                            detailSession = detail
+                        }
                 case .notGenerated:
                     todayEmptyContent(L10n.App2.Home.noPlanBody.localized)
                 case .noSessionToday:
@@ -362,6 +375,15 @@ struct App2HomeView: View {
         }
     }
 
+    /// 今日課表卡的內容（設計 dc.html「今日課表 · 輕鬆跑／節奏跑／長距離／休息日卡片」）。
+    ///
+    /// 四張卡是**同一個版式的四種課型**，不是四支 view：課型標題 ＋ 強度 chip ＋ 狀態 chip
+    /// → 課表摘要行 → 分段列 →（長距離）補給建議框 → Rizo。休息日換成月亮回充帶 ＋
+    /// 「想動一下？」交叉訓練列。
+    ///
+    /// **設計的「體感強度 n/10 · Z 區」那張卡沒有做**：週課表 payload 沒有 RPE 也沒有
+    /// 訓練區間欄位（只有 `heart_rate_range` 的心率上下限與 `climate_meta`），
+    /// 本機推一個 3/10 出來就是編的。缺口已記在票面。
     @ViewBuilder
     private func todaySessionContent(_ session: App2TodaySession) -> some View {
         Group {
@@ -385,82 +407,125 @@ struct App2HomeView: View {
                 if let intensity = session.intensityLabel {
                     App2Chip(
                         text: intensity,
-                        foreground: App2Theme.accentOrangeText,
-                        background: App2Theme.accentOrangeSoft.opacity(0.16)
+                        foreground: sessionAccent(session).app2Darkened,
+                        background: sessionAccent(session).opacity(0.14)
                     )
                 }
                 Spacer(minLength: 4)
-                todayStatusPill
+                todayStatusPill(isRest: session.isRest)
             }
 
-            if let summary = session.summary {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(L10n.App2.Home.planRow.localized)
-                        .font(.system(size: 13, weight: .heavy))
-                        .tracking(0.5)
-                        .foregroundStyle(App2Theme.inkMuted)
-                    Text(summary)
-                        .font(.app2Mono(15, weight: .bold))
-                        .foregroundStyle(App2Theme.inkSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+            if session.isRest {
+                restBand
+                crossTrainingRow
+            } else {
+                if let summary = session.summary {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(L10n.App2.Home.planRow.localized)
+                            .font(.system(size: 13, weight: .heavy))
+                            .tracking(0.5)
+                            .foregroundStyle(App2Theme.inkMuted)
+                        Text(summary)
+                            .font(.app2Mono(15, weight: .bold))
+                            .foregroundStyle(App2Theme.inkSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
-            }
 
-            // 分段表 ＋ 右側結構預覽。payload 沒有結構就整段不出現。
-            if !session.segments.isEmpty || !session.structureBars.isEmpty {
-                HStack(alignment: .top, spacing: 12) {
-                    if !session.segments.isEmpty {
-                        VStack(spacing: 6) {
-                            ForEach(session.segments) { segment in
-                                HStack(alignment: .firstTextBaseline) {
-                                    Text(segment.name)
-                                        .font(.system(size: 13, weight: .heavy))
-                                        .foregroundStyle(
-                                            segment.isWork
-                                                ? App2Theme.accentOrangeText
-                                                : App2Theme.inkMuted
-                                        )
-                                    Spacer(minLength: 8)
-                                    Text(segment.detail)
-                                        .font(.app2Mono(13, weight: .bold))
-                                        .foregroundStyle(App2Theme.inkSecondary)
-                                }
-                            }
+                // 分段列。payload 組不出任何一段就整段不出現（不用 placeholder 補行）。
+                if !session.segments.isEmpty {
+                    VStack(spacing: 6) {
+                        ForEach(session.segments) { segment in
+                            App2PhaseRow(
+                                name: segment.name,
+                                detail: segment.detail,
+                                accent: sessionAccent(session),
+                                isMain: segment.isWork
+                            )
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .accessibilityIdentifier("App2_TodaySegments")
                     }
-                    if !session.structureBars.isEmpty {
-                        // 分段表在旁邊時圖縮成右欄；單段課沒有分段表，圖就佔滿整條
-                        // （配速標得下）。
-                        App2SessionStructureChart(
-                            bars: session.structureBars,
-                            showsNotes: session.segments.isEmpty
-                        )
-                            .frame(width: session.segments.isEmpty ? nil : 96)
-                            .frame(maxWidth: session.segments.isEmpty ? .infinity : nil)
-                    }
+                    .accessibilityIdentifier("App2_TodaySegments")
                 }
-                .padding(EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12))
-                .app2InsetSurface(cornerRadius: 13)
-            }
 
-            if let strength = session.strengthLabel {
-                HStack(spacing: 8) {
-                    Image(systemName: "dumbbell.fill")
-                        .font(.system(size: 13, weight: .heavy))
-                        .foregroundStyle(App2Theme.accentBlueDeep)
-                    Text(strength)
-                        .font(.system(size: 14, weight: .heavy))
-                        .foregroundStyle(App2Theme.inkPrimary)
-                    Spacer(minLength: 4)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 12, weight: .heavy))
-                        .foregroundStyle(App2Theme.chevron)
+                if session.showsFuelingNote {
+                    App2NoteBox(symbol: "cup.and.saucer.fill") {
+                        Text(L10n.App2.Session.fuelingNote.localized)
+                            .font(.system(size: 13, weight: .semibold))
+                            .lineSpacing(3)
+                            .foregroundStyle(App2Theme.inkSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .accessibilityIdentifier("App2_TodayFuelingNote")
                 }
-                .accessibilityIdentifier("App2_TodayStrengthRow")
+
+                if let strength = session.strengthLabel {
+                    HStack(spacing: 8) {
+                        Image(systemName: "dumbbell.fill")
+                            .font(.system(size: 13, weight: .heavy))
+                            .foregroundStyle(App2Theme.accentBlueDeep)
+                        Text(strength)
+                            .font(.system(size: 14, weight: .heavy))
+                            .foregroundStyle(App2Theme.inkPrimary)
+                        Spacer(minLength: 4)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .heavy))
+                            .foregroundStyle(App2Theme.chevron)
+                    }
+                    .accessibilityIdentifier("App2_TodayStrengthRow")
+                }
             }
         }
+    }
+
+    private func sessionAccent(_ session: App2TodaySession) -> Color {
+        session.dayType?.app2StripColor ?? App2Theme.accentGreenBright
+    }
+
+    /// 休息日的月亮回充帶（設計 dc.html「今日課表 · 休息日卡片」）。
+    private var restBand: some View {
+        VStack(spacing: 6) {
+            Image(systemName: "moon.zzz.fill")
+                .font(.system(size: 21, weight: .medium))
+                .foregroundStyle(App2Theme.inkSubtle)
+            Text(L10n.App2.Home.restTitle.localized)
+                .font(.system(size: 16, weight: .black))
+                .foregroundStyle(App2Theme.inkPrimary)
+            Text(L10n.App2.Home.restBody.localized)
+                .font(.system(size: 13, weight: .semibold))
+                .lineSpacing(3)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(App2Theme.inkSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 18)
+        .app2InsetSurface(cornerRadius: 14)
+        .accessibilityIdentifier("App2_TodayRestBand")
+    }
+
+    /// 「想動一下？」交叉訓練列。
+    /// **目前沒有目的地**：交叉訓練的挑選／記錄在 2.0 還沒有出口，所以這一列不可點
+    /// （設計的 chevron 保留為視覺，不做按下去什麼都不發生的鈕）。
+    private var crossTrainingRow: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "figure.mixed.cardio")
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(App2Theme.inkSubtle)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L10n.App2.Home.crossTitle.localized)
+                    .font(.system(size: 14, weight: .heavy))
+                    .foregroundStyle(App2Theme.inkPrimary)
+                Text(L10n.App2.Home.crossBody.localized)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(App2Theme.inkTertiary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 4)
+        }
+        .padding(EdgeInsets(top: 10, leading: 12, bottom: 10, trailing: 12))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .app2InsetSurface(cornerRadius: 13)
+        .accessibilityIdentifier("App2_TodayCrossRow")
     }
 
     @ViewBuilder
@@ -476,20 +541,32 @@ struct App2HomeView: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// 「今天還沒跑 / 今天已跑」狀態點。完成與否目前沒有 producer
-    /// （`/v2/state/today` 不帶當日完成旗標），一律顯示未完成態。
-    private var todayStatusPill: some View {
+    /// 狀態 chip：有課的日子是「今天還沒跑」（橘點），休息日是「安排休息」（綠勾）。
+    /// 完成與否目前沒有 producer（`/v2/state/today` 不帶當日完成旗標），
+    /// 有課的日子一律顯示未完成態。
+    private func todayStatusPill(isRest: Bool) -> some View {
         HStack(spacing: 5) {
-            Circle()
-                .fill(App2Theme.accentOrangeBright)
-                .frame(width: 6, height: 6)
-            Text(L10n.App2.Home.todayTodo.localized)
+            if isRest {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .black))
+            } else {
+                Circle()
+                    .fill(App2Theme.accentOrangeBright)
+                    .frame(width: 6, height: 6)
+            }
+            Text(isRest
+                 ? L10n.App2.Home.todayRest.localized
+                 : L10n.App2.Home.todayTodo.localized)
                 .font(.system(size: 13, weight: .heavy))
         }
-        .foregroundStyle(App2Theme.accentOrangeText)
+        .foregroundStyle(isRest ? App2Theme.accentGreen : App2Theme.accentOrangeText)
         .padding(.horizontal, 10)
         .padding(.vertical, 4)
-        .background(Capsule().fill(App2Theme.accentOrangeSoft.opacity(0.16)))
+        .background(
+            Capsule().fill(
+                (isRest ? App2Theme.accentGreenBright : App2Theme.accentOrangeSoft).opacity(0.16)
+            )
+        )
     }
 
     // MARK: - 卡內 Rizo 對話帶（設計 frame-00：今日課表卡的最後一段，不是另一張卡）

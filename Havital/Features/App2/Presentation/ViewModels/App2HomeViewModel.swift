@@ -24,6 +24,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     @Published private(set) var insights: App2Sourced<[App2Insight]>?
     /// 今日課表卡。nil = 這一輪還沒載完；其餘四態見 `App2TodaySessionState`。
     @Published private(set) var todayState: App2TodaySessionState?
+    /// 今日課表卡點下去要開的訓練詳情（設計 frame-02）。
+    /// **與卡片同一份 payload**，詳情頁不再打任何端點；休息日為 nil（不進詳情）。
+    @Published private(set) var todayDetail: App2SessionDetail?
     @Published private(set) var weekReview: App2WeekReviewState?
     /// 內嵌 Rizo 卡的教練推話。**由 `/v2/state/today` 的句子組出來**，
     /// 組不出來就是 nil ——那時 Rizo 區退成純入口，不顯示假對話。
@@ -227,15 +230,25 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             }
             do {
                 let plan = try await planV2DataSource.getWeeklyPlan(planId: planId)
+                let todayIndex = App2PlanViewModel.todayDayIndex()
                 guard let session = Self.todaySession(
                     days: plan.days,
-                    todayIndex: App2PlanViewModel.todayDayIndex(),
+                    todayIndex: todayIndex,
                     dayLabel: Self.todayLabel()
                 ) else {
                     todayState = .noSessionToday
+                    todayDetail = nil
                     return
                 }
                 todayState = .session(session)
+                todayDetail = plan.days
+                    .first { $0.dayIndex == todayIndex }
+                    .flatMap {
+                        App2SessionDetailProjection.detail(
+                            day: $0,
+                            weekStart: App2PlanViewModel.currentWeekStart()
+                        )
+                    }
             } catch {
                 guard !error.isCancellationError else { return }
                 Logger.debug("[App2HomeVM] 今日課表取得失敗（plan_id=\(planId)）: \(error)")
@@ -343,6 +356,10 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         guard let day = days.first(where: { $0.dayIndex == todayIndex }) else { return nil }
         let dayType = day.primary == nil ? DayType.rest : App2PlanViewModel.dayType(day.primary)
         let segments = Self.segments(day: day)
+        let durationMinutes: Int? = {
+            if case .run(let run) = day.primary { return run.durationMinutes }
+            return nil
+        }()
         return App2TodaySession(
             dayLabel: dayLabel,
             title: dayType?.localizedName ?? (day.category ?? L10n.App2.Plan.rest.localized),
@@ -350,7 +367,13 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             summary: App2PlanViewModel.contentLine(day.primary),
             segments: segments,
             structureBars: Self.structureBars(day: day),
-            strengthLabel: Self.strengthLabel(day: day)
+            strengthLabel: Self.strengthLabel(day: day),
+            dayIndex: day.dayIndex,
+            dayType: dayType,
+            showsFuelingNote: App2SessionDetailProjection.showsFuelingNote(
+                dayType: dayType,
+                durationMinutes: durationMinutes
+            )
         )
     }
 
@@ -409,11 +432,15 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     // MARK: - 今日課表卡的分段與結構
 
-    /// 分段表（設計 frame-00 的「熱身／衝刺／恢復／緩和」）。
+    /// 分段列（設計 dc.html 今日課表卡的「全程勻速」／「熱身＋節奏段＋緩和」那一排）。
     ///
     /// 依 payload 的實際順序走一遍：`warmup` → `primary.segments[]` → `cooldown`。
     /// 間歇段展開成「衝刺 ＋ 恢復」兩行，其餘段落各一行。組不出值的那一行**不出現**，
     /// 不用 placeholder 補。
+    ///
+    /// **單段課也有一列。** 8/25 版設計的四張今日課表卡裡，輕鬆跑與長距離都是一列
+    /// （「全程勻速 8.0 km · 6:50」／「穩定耐力 24 km · 6:30」），與節奏跑的三列
+    /// 同一組視覺；舊版把單列濾掉是因為當時卡片沒有這一排，只有右側的結構圖。
     static func segments(day: DayDetailDTO) -> [App2SessionSegment] {
         var result: [App2SessionSegment] = []
         func append(_ name: String, _ detail: String?, isWork: Bool) {
@@ -450,14 +477,22 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             }
         }
 
+        if case .cross(let cross) = day.primary {
+            // 交叉訓練沒有配速，但仍然是一段課 —— 用時長當那一列的量。
+            append(
+                L10n.App2.Home.segmentMain.localized,
+                String(format: L10n.App2.Home.minutes.localized, cross.durationMinutes),
+                isWork: true
+            )
+        }
+
         append(
             NSLocalizedString("training.segment.cooldown", comment: ""),
             day.cooldown.flatMap(effortLabel(segment:)),
             isWork: false
         )
 
-        // 只有一行主課、前後都沒有熱身緩和 → 那一行跟卡片上的「課表」列重複，不顯示表格。
-        return result.count > 1 ? result : []
+        return result
     }
 
     /// 配速結構示意（設計 frame-02「預計配速」同一視覺家族）。

@@ -226,6 +226,71 @@ struct App2Chip: View {
     }
 }
 
+// MARK: - App2PhaseRow
+/// 今日課表卡的一列分段（設計 dc.html 今日課表卡的「熱身／節奏段／緩和」那一排）。
+///
+/// 主課段上課型色（底 6%、邊 20%、圓點實心），暖身／緩和／組間是中性灰底。
+/// 兩者的差別不是裝飾：一眼分得出「今天真正在練的是哪一段」。
+struct App2PhaseRow: View {
+    let name: String
+    let detail: String
+    let accent: Color
+    let isMain: Bool
+
+    var body: some View {
+        HStack(spacing: 9) {
+            Circle()
+                .fill(isMain ? accent : App2Theme.accentGreenBright)
+                .frame(width: 8, height: 8)
+            Text(name)
+                .font(.system(size: 14, weight: isMain ? .black : .heavy))
+                .foregroundStyle(isMain ? accent.app2Darkened : App2Theme.inkSecondary)
+            Spacer(minLength: 8)
+            Text(detail)
+                .font(.app2Mono(13, weight: isMain ? .heavy : .bold))
+                .foregroundStyle(isMain ? accent.app2Darkened : App2Theme.inkTertiary)
+        }
+        .padding(.horizontal, 11)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(isMain ? accent.opacity(0.06) : App2Theme.insetBackground)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .strokeBorder(isMain ? accent.opacity(0.2) : App2Theme.insetBorder, lineWidth: 1)
+        )
+    }
+}
+
+// MARK: - App2NoteBox
+/// 帶 icon 的提示框（長距離補給建議、熱適應說明）。
+struct App2NoteBox<Content: View>: View {
+    let symbol: String
+    var accent: Color = App2Theme.accentViolet
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 9) {
+            Image(systemName: symbol)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundStyle(accent)
+            content()
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(EdgeInsets(top: 11, leading: 13, bottom: 11, trailing: 13))
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(accent.opacity(0.06))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(accent.opacity(0.18), lineWidth: 1)
+        )
+    }
+}
+
 // MARK: - App2StubBadge
 /// 「這格是樣本」的可見標記。
 ///

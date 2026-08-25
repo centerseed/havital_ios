@@ -2044,6 +2044,34 @@ extension L10n {
             /// 內嵌 Rizo 卡。
             static let rizoCoachTitle = "app2.home.rizo_coach_title"
             static let rizoInputPlaceholder = "app2.home.rizo_input_placeholder"
+            /// 休息日卡（設計 dc.html「今日課表 · 休息日卡片」）。
+            static let todayRest = "app2.home.today_rest"
+            static let restTitle = "app2.home.rest_title"
+            static let restBody = "app2.home.rest_body"
+            static let crossTitle = "app2.home.cross_title"
+            static let crossBody = "app2.home.cross_body"
+        }
+
+        /// 今日課表卡與訓練詳情共用的設計稿靜態文案。
+        enum Session {
+            /// 長距離課的補給建議 —— 設計稿文案，不是 payload 欄位。
+            static let fuelingNote = "app2.session.fueling_note"
+        }
+
+        /// 訓練詳情（設計 frame-02／dc.html「課表詳細 · …」）。
+        enum Detail {
+            static let title = "app2.detail.title"
+            static let distance = "app2.detail.distance"
+            static let duration = "app2.detail.duration"
+            static let phases = "app2.detail.phases"
+            static let phaseCount = "app2.detail.phase_count"
+            static let pacePreview = "app2.detail.pace_preview"
+            static let goal = "app2.detail.goal"
+            static let structure = "app2.detail.structure"
+            static let recoveryNote = "app2.detail.recovery_note"
+            static let strengthSetsReps = "app2.detail.strength_sets_reps"
+            static let strengthSetsSeconds = "app2.detail.strength_sets_seconds"
+            static let strengthSets = "app2.detail.strength_sets"
         }
 
         enum Plan {

@@ -398,9 +398,13 @@ final class App2HomeProjectionTests: XCTestCase {
         XCTAssertFalse(segments.last?.isWork ?? true)
     }
 
-    /// 單段課只有一行主課、前後沒有熱身緩和 → 與卡片上的「課表」列重複，不畫表。
-    func test_segments_singleSegmentDay_isEmpty() throws {
-        XCTAssertTrue(App2HomeViewModel.segments(day: try day(easyRunDay)).isEmpty)
+    /// 單段課也有一列分段（8/25 版設計的「全程勻速 8.0 km · 6:50」那一列）。
+    /// 舊版把單列濾掉，是因為當時卡片沒有這一排分段列、只有右側的結構圖。
+    func test_segments_singleSegmentDay_hasOneMainRow() throws {
+        let segments = App2HomeViewModel.segments(day: try day(easyRunDay))
+        XCTAssertEqual(segments.count, 1)
+        XCTAssertTrue(segments.first?.isWork ?? false)
+        XCTAssertEqual(segments.first?.detail, "9.0 km · 7:55/km")
     }
 
     func test_structureBars_intervalDay_hasOneWorkBarPerRep() throws {

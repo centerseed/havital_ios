@@ -13,6 +13,8 @@ import SwiftUI
 struct App2PlanView: View {
 
     @ObservedObject var viewModel: App2PlanViewModel
+    /// 日卡點下去開的訓練詳情（設計 frame-02）。休息日不在 `dayDetails` 裡 → 點不開。
+    @State private var detailSession: App2SessionDetail?
 
     var body: some View {
         ScrollView {
@@ -52,6 +54,9 @@ struct App2PlanView: View {
         .accessibilityIdentifier("App2_PlanView")
         .task { await viewModel.loadIfNeeded() }
         .refreshable { await viewModel.forceRefresh() }
+        .fullScreenCover(item: $detailSession) { detail in
+            App2SessionDetailView(detail: detail) { detailSession = nil }
+        }
     }
 
     // MARK: - Header（標題 ＋ 週次切換器）
@@ -258,6 +263,13 @@ struct App2PlanView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("App2_PlanDayDescription_\(day.id)")
             }
+        }
+        // 點日卡進訓練詳情（設計 frame-02）。休息日沒有詳情版式 —— `dayDetails`
+        // 裡本來就沒有那一天，所以點下去不會開一頁空卡。
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard let detail = viewModel.dayDetails[day.id] else { return }
+            detailSession = detail
         }
         .accessibilityIdentifier("App2_PlanDay_\(day.id)")
     }

@@ -13,6 +13,9 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 後端明說本週還沒有課表（`current_week_plan_id == nil`）。
     /// 讀取失敗不算 —— 那時 `week` 保持舊值或退樣本，這個旗標維持 true。
     @Published private(set) var isPlanGenerated = true
+    /// 每日卡點下去要開的訓練詳情（設計 frame-02），key = `day_index`。
+    /// **與課表頁同一份 payload**，詳情頁不再打端點；休息日不在這張表裡（不進詳情）。
+    @Published private(set) var dayDetails: [Int: App2SessionDetail] = [:]
     private(set) var hasLoaded = false
     private(set) var lastLoadedAt: Date?
 
@@ -69,6 +72,14 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             week = App2Sourced(
                 Self.planWeek(dto: dto, planStatus: status, completedKm: completed),
                 origin: .live(endpoint: "GET /v2/plan/weekly/{plan_id} + GET /v2/workouts")
+            )
+            let weekStart = Self.currentWeekStart()
+            dayDetails = Dictionary(
+                uniqueKeysWithValues: dto.days.compactMap { day -> (Int, App2SessionDetail)? in
+                    guard let detail = App2SessionDetailProjection.detail(day: day, weekStart: weekStart)
+                    else { return nil }
+                    return (day.dayIndex, detail)
+                }
             )
         } catch {
             // 取消不是失敗（`AGENTS.md` 陷阱 2）：下拉刷新的 task 被收掉時

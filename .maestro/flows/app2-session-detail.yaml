@@ -1,0 +1,54 @@
+appId: com.havital.Havital.dev
+tags:
+  - app2
+---
+# T-0306 wave3 §1 —— 今日課表卡（休息日版式）與訓練詳情頁的實走證據。
+#
+# 走正常啟動（模擬器已登入創辦人 dev 帳號），拿 dev 真資料。
+# `clearState: false` 是必要的：這台模擬器是用戶本人在用，不得清 keychain 或資料。
+
+- launchApp:
+    clearState: false
+    arguments:
+      "-skipHealthKitAuth": true
+
+- tapOn:
+    text: "知道了，不再顯示"
+    optional: true
+
+# === 首頁：今日課表卡 ===
+- extendedWaitUntil:
+    visible:
+      id: "App2_TodaySessionCard"
+    timeout: 60000
+- scroll
+- takeScreenshot: wave3-02-home-today-card
+- scroll
+- takeScreenshot: wave3-03-home-today-rizo
+
+# === 課表頁：日卡 → 訓練詳情 ===
+- tapOn:
+    id: "App2_Tab_Plan"
+- extendedWaitUntil:
+    visible:
+      id: "App2_PlanSummaryCard"
+    timeout: 30000
+- takeScreenshot: wave3-04-plan-days
+# day_index 1（週一）是本週唯一的跑步課 —— 休息／交叉日沒有詳情。
+- tapOn:
+    id: "App2_PlanDay_1"
+- extendedWaitUntil:
+    visible:
+      id: "App2_SessionDetailHero"
+    timeout: 30000
+- takeScreenshot: wave3-05-session-detail-hero
+- scroll
+- takeScreenshot: wave3-06-session-detail-structure
+- scroll
+- takeScreenshot: wave3-07-session-detail-climate
+- tapOn:
+    id: "App2_SessionDetailBack"
+- extendedWaitUntil:
+    visible:
+      id: "App2_PlanSummaryCard"
+    timeout: 30000

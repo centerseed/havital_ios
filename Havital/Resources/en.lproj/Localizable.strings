@@ -4280,6 +4280,28 @@
 "app2.home.no_goal_title" = "No target race yet";
 "app2.home.no_goal_body" = "Set a target race and this card will show your goal time, projected finish and training week.";
 "app2.home.no_plan_body" = "This week's plan hasn't been generated yet. Generate it on the Plan tab and today's session will show up here.";
+
+/* ===== App2 · today session card (rest / cross training / fueling) ===== */
+"app2.home.today_rest" = "Rest day";
+"app2.home.rest_title" = "Let your body recharge today";
+"app2.home.rest_body" = "Sleep well, stretch, take an easy walk. Recovery is part of training.";
+"app2.home.cross_title" = "Feel like moving?";
+"app2.home.cross_body" = "Swimming, cycling or yoga — cross training doesn't count toward mileage";
+"app2.session.fueling_note" = "Fuel about every 45 minutes and carry roughly 500 ml of water.";
+
+/* ===== App2 · session detail (design frame-02) ===== */
+"app2.detail.title" = "Session detail";
+"app2.detail.distance" = "Total distance";
+"app2.detail.duration" = "Estimated time";
+"app2.detail.phases" = "Pace phases";
+"app2.detail.phase_count" = "%d phases";
+"app2.detail.pace_preview" = "Planned pace";
+"app2.detail.goal" = "Goal of this session";
+"app2.detail.structure" = "Session structure";
+"app2.detail.recovery_note" = "Recovery: %@";
+"app2.detail.strength_sets_reps" = "%1$d sets × %2$d reps";
+"app2.detail.strength_sets_seconds" = "%1$d sets × %2$d s";
+"app2.detail.strength_sets" = "%d sets";
 "app2.plan.title" = "Training plan";
 "app2.plan.volume_title" = "This week's volume";
 "app2.plan.today" = "Today";

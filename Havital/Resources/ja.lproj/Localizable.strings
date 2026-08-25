@@ -4277,6 +4277,28 @@
 "app2.home.no_goal_title" = "目標レース未設定";
 "app2.home.no_goal_body" = "目標レースを設定すると、目標タイム・予測タイム・トレーニング週がここに表示されます。";
 "app2.home.no_plan_body" = "今週のプランはまだ生成されていません。プランタブで生成すると、今日のメニューがここに表示されます。";
+
+/* ===== App2 · 今日のメニューカード（休養／クロストレーニング／補給） ===== */
+"app2.home.today_rest" = "休養日";
+"app2.home.rest_title" = "今日は体を回復させましょう";
+"app2.home.rest_body" = "しっかり眠る、ストレッチ、軽く歩く。回復もトレーニングの一部です。";
+"app2.home.cross_title" = "少し動きたい？";
+"app2.home.cross_body" = "水泳・バイク・ヨガなどのクロストレーニングは走行距離に含みません";
+"app2.session.fueling_note" = "45 分ごとの補給と、500ml 程度の水の携帯をおすすめします。";
+
+/* ===== App2 · トレーニング詳細（デザイン frame-02） ===== */
+"app2.detail.title" = "トレーニング詳細";
+"app2.detail.distance" = "総距離";
+"app2.detail.duration" = "予定時間";
+"app2.detail.phases" = "ペース区間";
+"app2.detail.phase_count" = "%d 区間";
+"app2.detail.pace_preview" = "予定ペース";
+"app2.detail.goal" = "今回の目的";
+"app2.detail.structure" = "トレーニング構成";
+"app2.detail.recovery_note" = "レスト：%@";
+"app2.detail.strength_sets_reps" = "%1$d セット × %2$d 回";
+"app2.detail.strength_sets_seconds" = "%1$d セット × %2$d 秒";
+"app2.detail.strength_sets" = "%d セット";
 "app2.plan.title" = "トレーニングプラン";
 "app2.plan.volume_title" = "今週の走行距離";
 "app2.plan.today" = "今日";

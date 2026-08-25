@@ -4321,6 +4321,28 @@
 "app2.home.no_goal_title" = "尚未設定目標賽事";
 "app2.home.no_goal_body" = "設定一場目標賽事後，這裡會顯示目標成績、預估完賽與訓練週次。";
 "app2.home.no_plan_body" = "本週課表尚未產生，到「課表」頁產生後這裡就會顯示今天的訓練。";
+
+/* ===== App2 · 今日課表卡（休息日／交叉訓練／補給） ===== */
+"app2.home.today_rest" = "安排休息";
+"app2.home.rest_title" = "今天讓身體回充";
+"app2.home.rest_body" = "睡好、伸展、輕鬆走走都算數。恢復是訓練的一部分。";
+"app2.home.cross_title" = "想動一下？";
+"app2.home.cross_body" = "游泳、騎車、瑜伽等交叉訓練不計跑量";
+"app2.session.fueling_note" = "建議每 45 分鐘補給一次，並攜帶約 500 ml 水。";
+
+/* ===== App2 · 訓練詳情（設計 frame-02） ===== */
+"app2.detail.title" = "訓練詳情";
+"app2.detail.distance" = "總距離";
+"app2.detail.duration" = "預計時間";
+"app2.detail.phases" = "配速變化";
+"app2.detail.phase_count" = "%d 段";
+"app2.detail.pace_preview" = "預計配速";
+"app2.detail.goal" = "本次訓練目標";
+"app2.detail.structure" = "訓練結構";
+"app2.detail.recovery_note" = "組間休息：%@";
+"app2.detail.strength_sets_reps" = "%1$d 組 × %2$d 下";
+"app2.detail.strength_sets_seconds" = "%1$d 組 × %2$d 秒";
+"app2.detail.strength_sets" = "%d 組";
 "app2.plan.title" = "訓練課表";
 "app2.plan.volume_title" = "本週跑量";
 "app2.plan.today" = "今日";
