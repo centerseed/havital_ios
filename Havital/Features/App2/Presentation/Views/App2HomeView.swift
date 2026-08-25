@@ -12,6 +12,10 @@ struct App2HomeView: View {
     let onOpenSettings: () -> Void
     /// 由 `App2RootView` 持有 —— 切 tab 不重建、不重打 API（見 `App2Revalidating`）。
     @ObservedObject var viewModel: App2HomeViewModel
+    /// 訓練狀況卡左側那顆徽章的來源 —— **與成就 tab 同一個 ViewModel**
+    /// （`GET /v2/achievements/summary`），所以兩處顯示的一定是同一顆，
+    /// 也不會為了首頁多打一次端點（`loadIfNeeded` 是 SWR）。
+    @ObservedObject var achievementsViewModel: PersonalAchievementsViewModel
     /// 指標網格預設收合（設計的收合列就是一排彩色膠囊），點一下展開成 2 欄。
     @State private var isGridExpanded = false
     /// 內嵌 Rizo 卡點下去開的既有對話（`RizoChatView`，不另寫一份）。
@@ -63,6 +67,9 @@ struct App2HomeView: View {
         .task {
             // 未讀數要先載才算得出鈴鐺上那顆紅點（沿用 1.4 的同一支）。
             announcementViewModel.loadAnnouncementsIfNeeded()
+            // 訓練狀況卡的徽章要用成就頁那一顆，所以首頁也要確保它載過一次。
+            // `loadIfNeeded` 有 SWR 門檻，成就 tab 進過就不會再打一次。
+            Task { await achievementsViewModel.loadIfNeeded() }
             await viewModel.loadIfNeeded()
         }
         // 下拉刷新＝強制重驗（跳過 60 秒門檻）。不清畫面、不進 loading。
@@ -260,25 +267,30 @@ struct App2HomeView: View {
                         .foregroundStyle(App2Theme.inkSubtle)
                 }
 
-                HStack(alignment: .bottom, spacing: 22) {
+                // 三格**等寬水平均分鋪滿卡寬**（2026-08-26 裁決），不再靠 spacing
+                // ＋ 尾端 Spacer 把三格擠在左半邊。
+                HStack(alignment: .bottom, spacing: 8) {
                     App2FieldColumn(
                         label: L10n.App2.Home.goalTarget.localized,
                         value: goal.targetTime ?? "—",
                         valueColor: App2Theme.accentBlueDark
                     )
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     App2FieldColumn(
                         label: L10n.App2.Home.goalEstimate.localized,
                         value: goal.estimatedFinish ?? "—",
                         valueColor: App2Theme.accentOrange
                     )
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     App2FieldColumn(
                         label: L10n.App2.Home.goalWeek.localized,
                         value: goal.currentWeek.map(String.init) ?? "—",
                         valueColor: App2Theme.inkPrimary,
                         suffix: goal.totalWeeks.map { "/\($0)" }
                     )
-                    Spacer(minLength: 0)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .frame(maxWidth: .infinity)
             }
             .contentShape(Rectangle())
             .onTapGesture { isShowingPlanOverview = true }
@@ -331,55 +343,36 @@ struct App2HomeView: View {
         }
     }
 
-    /// 設計 v2 的 headline 區塊：淺藍底 inset，**左邊是 LV 六角徽章、右邊是教練洞察**
-    /// （2026-08-25 裁決：LV 徽章從 header 搬進訓練狀況卡，與教練洞察同一列），
-    /// 下面接軌跡圖與圖例。
+    /// 設計 v2 的 headline 區塊：淺藍底 inset，**左邊是徽章、右邊是教練洞察**
+    /// （2026-08-25 裁決：徽章從 header 搬進訓練狀況卡，與教練洞察同一列）。
+    ///
+    /// **軌跡趨勢圖已整塊移除**（2026-08-26 裁決）：`Actual／Projected` 序列在
+    /// backend 沒有任何端點交得出來，畫面上一直掛著 `Sample §7-16` 徽章的樣本圖。
+    /// 有真序列端點時再依當時的設計重議，不留樣本圖佔位。
     private func statusBanner(_ status: App2TrainingStatus) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .center, spacing: 13) {
-                // §7-1：backend 沒有等級讀口 → 徽章只有字標，不顯示數字。
-                App2LevelBadge()
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(L10n.App2.Home.statusSection.localized)
-                    .accessibilityIdentifier("App2_LevelBadge")
+        HStack(alignment: .center, spacing: 13) {
+            // 2026-08-26 裁決：這一顆＝**用戶成就頁預設顯示的那一顆徽章**
+            // （最新解鎖），沿用既有徽章美術與 `AchievementBadgeImage` renderer。
+            // 設計稿的「LV 7」六角只是樣本，不做成等級系統、也不畫成空殼。
+            statusBadge
 
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(status.headline)
-                        .font(.system(size: 17, weight: .black))
-                        .tracking(0.3)
-                        .foregroundStyle(App2Theme.accentBlueDeep)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(status.headline)
+                    .font(.system(size: 17, weight: .black))
+                    .tracking(0.3)
+                    .foregroundStyle(App2Theme.accentBlueDeep)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let narrative = status.narrative {
+                    Text(narrative)
+                        .font(.system(size: 14, weight: .semibold))
+                        .lineSpacing(3)
+                        .foregroundStyle(App2Theme.inkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
-
-                    if let narrative = status.narrative {
-                        Text(narrative)
-                            .font(.system(size: 14, weight: .semibold))
-                            .lineSpacing(3)
-                            .foregroundStyle(App2Theme.inkSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
                 }
             }
-
-            App2TrajectoryChart(
-                points: viewModel.trajectoryPoints,
-                currentWeek: status.currentWeek
-            )
-            .padding(.top, 12)
-
-            HStack {
-                App2TrajectoryLegend(
-                    currentWeek: status.currentWeek,
-                    totalWeeks: status.totalWeeks
-                )
-            }
-            .padding(.top, 8)
-
-            HStack {
-                App2StubBadge(origin: viewModel.trajectoryOrigin)
-                Spacer()
-            }
-            .padding(.top, 6)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(EdgeInsets(top: 12, leading: 13, bottom: 12, trailing: 13))
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -389,6 +382,33 @@ struct App2HomeView: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(App2Theme.accentBlue.opacity(0.16), lineWidth: 1)
         )
+    }
+
+    /// 訓練狀況卡左側的徽章 —— **成就頁那一顆**。
+    ///
+    /// 資料走的是成就頁自己的 ViewModel（`GET /v2/achievements/summary`，由
+    /// `App2RootView` 持有），挑選規則直接用 `App2AchievementsView.latestUnlocked`
+    /// —— 首頁與成就頁顯示同一顆是這條裁決的重點，所以不另寫一份挑法。
+    /// 還沒載到／一顆都沒解鎖時留一個中性的圓角方塊，不畫假徽章。
+    @ViewBuilder
+    private var statusBadge: some View {
+        let badge = achievementsViewModel.summary.flatMap(App2AchievementsView.latestUnlocked)
+        Group {
+            if let badge {
+                AchievementBadgeImage(
+                    assetName: AchievementBadgeArtwork.assetName(for: badge),
+                    status: badge.status,
+                    size: 54
+                )
+            } else {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(App2Theme.accentBlue.opacity(0.12))
+                    .frame(width: 54, height: 54)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(L10n.App2.Achievements.latestUnlock.localized)
+        .accessibilityIdentifier("App2_LevelBadge")
     }
 
     /// 指標區的標題列（設計 v2：小標 ＋ 右側 chevron，整列可點展開／收合）。

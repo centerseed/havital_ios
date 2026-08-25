@@ -126,14 +126,14 @@ final class App2RenderingTests: XCTestCase {
             insights: App2Sourced(insights(count: 5), origin: stub),
             todayState: .session(session())
         )
-        render(App2HomeView(onOpenSettings: {}, viewModel: vm), name: "home-full")
+        render(App2HomeView(onOpenSettings: {}, viewModel: vm, achievementsViewModel: PersonalAchievementsViewModel()), name: "home-full")
     }
 
     /// 全空：沒有目標賽事、沒有今日課、沒有狀態卡、沒有指標。
     func test_home_emptyState_renders() {
         let vm = App2HomeViewModel()
         vm.applyForTesting()
-        render(App2HomeView(onOpenSettings: {}, viewModel: vm), name: "home-empty")
+        render(App2HomeView(onOpenSettings: {}, viewModel: vm, achievementsViewModel: PersonalAchievementsViewModel()), name: "home-empty")
     }
 
     /// 休息日：課型有字、強度與內容行都沒有。
@@ -146,7 +146,7 @@ final class App2RenderingTests: XCTestCase {
                 session(title: DayType.rest.localizedName, intensity: nil, summary: nil)
             )
         )
-        render(App2HomeView(onOpenSettings: {}, viewModel: vm), name: "home-rest-day")
+        render(App2HomeView(onOpenSettings: {}, viewModel: vm, achievementsViewModel: PersonalAchievementsViewModel()), name: "home-rest-day")
     }
 
     /// 超長 headline（兩行以上）＋ 超長課型名：不得把卡片撐破或把字吃掉。
@@ -166,7 +166,7 @@ final class App2RenderingTests: XCTestCase {
                 session(title: String(repeating: "長距離輕鬆跑", count: 4))
             )
         )
-        render(App2HomeView(onOpenSettings: {}, viewModel: vm), name: "home-long-strings")
+        render(App2HomeView(onOpenSettings: {}, viewModel: vm, achievementsViewModel: PersonalAchievementsViewModel()), name: "home-long-strings")
     }
 
     /// 只有部分指標（後端只算出兩列）。
@@ -177,7 +177,7 @@ final class App2RenderingTests: XCTestCase {
             insights: App2Sourced(insights(count: 2), origin: live),
             todayState: .session(session())
         )
-        render(App2HomeView(onOpenSettings: {}, viewModel: vm), name: "home-partial-insights")
+        render(App2HomeView(onOpenSettings: {}, viewModel: vm, achievementsViewModel: PersonalAchievementsViewModel()), name: "home-partial-insights")
     }
 
     /// dev `a60e2c6cb83a_1` 的質課日（day_index 5）：熱身 ＋ 穩定段 ＋ 6×200m ＋ 恢復 ＋ 緩和。
@@ -212,7 +212,7 @@ final class App2RenderingTests: XCTestCase {
             weekReview: .notGenerated(isCurrentWeek: false, targetWeek: 0),
             rizoOpeningLine: "今天安排休息日，請好好放鬆，本週訓練完成 0/3。"
         )
-        render(App2HomeView(onOpenSettings: {}, viewModel: vm),
+        render(App2HomeView(onOpenSettings: {}, viewModel: vm, achievementsViewModel: PersonalAchievementsViewModel()),
                name: "today-card-quality-day", height: 1400)
     }
 
@@ -243,53 +243,8 @@ final class App2RenderingTests: XCTestCase {
             weekReview: .notGenerated(isCurrentWeek: false, targetWeek: 0),
             rizoOpeningLine: "今天長跑訓練請按照計畫進行。"
         )
-        render(App2HomeView(onOpenSettings: {}, viewModel: vm),
+        render(App2HomeView(onOpenSettings: {}, viewModel: vm, achievementsViewModel: PersonalAchievementsViewModel()),
                name: "today-card-easy-run", height: 1400)
-    }
-
-    // MARK: - 軌跡圖退化態
-
-    /// 第 1 週：實際序列只有一個點。線畫不出來（兩點才成線），但「現在」的錨點
-    /// 與預估虛線仍要出現，而且不 crash。
-    func test_trajectoryChart_firstWeek_singleActualPoint_renders() {
-        let points = App2StubFixtures.trajectoryPoints(currentWeek: 1, totalWeeks: 18)
-        XCTAssertEqual(points.filter { !$0.isProjected }.count, 1)
-        XCTAssertGreaterThan(points.filter(\.isProjected).count, 1)
-        render(
-            App2TrajectoryChart(points: points, currentWeek: 1).padding(),
-            name: "trajectory-week-1", height: 140
-        )
-    }
-
-    /// 最末週：實際段鋪滿整份課表。
-    /// 樣本產生器把總週數夾成 `max(total, current + 1)`（避免分母為 0），
-    /// 所以還會留一小段預估尾巴 —— 這是現況契約，鎖住它才看得出何時被改。
-    func test_trajectoryChart_lastWeek_actualCoversWholePlan() {
-        let points = App2StubFixtures.trajectoryPoints(currentWeek: 18, totalWeeks: 18)
-        XCTAssertEqual(points.filter { !$0.isProjected }.count, 18)
-        XCTAssertEqual(points.filter(\.isProjected).map(\.week), [18, 19])
-        render(
-            App2TrajectoryChart(points: points, currentWeek: 18).padding(),
-            name: "trajectory-last-week", height: 140
-        )
-    }
-
-    func test_trajectoryChart_emptySeries_renders() {
-        render(
-            App2TrajectoryChart(points: [], currentWeek: nil).padding(),
-            name: "trajectory-empty", height: 140
-        )
-    }
-
-    /// 值全部一樣（分母會退化成 0）→ 仍要畫得出來。
-    func test_trajectoryChart_flatSeries_renders() {
-        let points = (1...6).map {
-            App2TrajectoryChart.Point(week: $0, value: 60, isProjected: $0 > 3)
-        }
-        render(
-            App2TrajectoryChart(points: points, currentWeek: 3).padding(),
-            name: "trajectory-flat", height: 140
-        )
     }
 
     func test_weeklyVolumeChart_emptyAndAllZero_render() {

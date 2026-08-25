@@ -87,7 +87,9 @@ struct App2RootView: View {
                 page(.state) {
                     App2HomeView(
                         onOpenSettings: { isShowingSettings = true },
-                        viewModel: homeViewModel
+                        viewModel: homeViewModel,
+                        // 訓練狀況卡的徽章＝成就頁那一顆，所以共用同一個 ViewModel。
+                        achievementsViewModel: achievementsViewModel
                     )
                 }
                 page(.plan) { App2PlanView(viewModel: planViewModel) }

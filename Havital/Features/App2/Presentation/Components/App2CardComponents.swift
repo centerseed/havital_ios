@@ -192,6 +192,10 @@ struct App2Pill: View {
         Text(text)
             .font(.system(size: 13, weight: .bold))
             .foregroundStyle(foreground)
+            // 膠囊一律單行（2026-08-26 裁決）：譯名已經改成跑圈短詞，
+            // 折行的話那顆膠囊會把目標卡的標題列撐成兩層。
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, 11)
             .padding(.vertical, 4)
             .background(Capsule().fill(background))
@@ -405,54 +409,6 @@ struct App2Avatar: View {
     }
 }
 
-// MARK: - App2HexagonShape / App2LevelBadge
-/// `clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%)`。
-struct App2HexagonShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let w = rect.width, h = rect.height
-        path.move(to: CGPoint(x: w * 0.5, y: 0))
-        path.addLine(to: CGPoint(x: w, y: h * 0.25))
-        path.addLine(to: CGPoint(x: w, y: h * 0.75))
-        path.addLine(to: CGPoint(x: w * 0.5, y: h))
-        path.addLine(to: CGPoint(x: 0, y: h * 0.75))
-        path.addLine(to: CGPoint(x: 0, y: h * 0.25))
-        path.closeSubpath()
-        return path
-    }
-}
-
-/// 首頁右上的 LV 六角徽章（44×48）。
-///
-/// **不顯示等級數字。** 設計 frame-00 畫的是 `LV 7`，但 backend 沒有任何等級讀口
-/// （§7-1 的語意缺口），先前硬寫的 `—` 看起來像「載入失敗」而不是「還沒有這個量」。
-/// 這裡改成只留字標的乾淨樣式；等級落地後再把數字接上來。
-struct App2LevelBadge: View {
-
-    var body: some View {
-        ZStack {
-            App2HexagonShape()
-                .fill(
-                    LinearGradient(
-                        colors: [App2Theme.accentBlueLight, App2Theme.accentBlueDark],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-            App2HexagonShape()
-                .stroke(Color.white.opacity(0.3), lineWidth: 1.5)
-                .padding(3)
-            Text(verbatim: "LV")
-                .font(.system(size: 15, weight: .heavy))
-                .tracking(1.5)
-                .foregroundStyle(.white)
-        }
-        .frame(width: 44, height: 48)
-        .shadow(color: App2Theme.accentBlue.opacity(0.4), radius: 6, x: 0, y: 6)
-        // identifier 掛在呼叫端（首頁 header 把它併成單一可點節點），這裡不重複掛：
-        // 內層的會被外層的 `.accessibilityElement(children: .ignore)` 吃掉。
-    }
-}
 
 // MARK: - App2GroupedList
 /// 設定頁的分組白卡：圓角 20、內部列以 1px 分隔線（左縮 59pt）相連。

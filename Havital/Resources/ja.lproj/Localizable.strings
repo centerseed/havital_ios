@@ -348,11 +348,11 @@
 "training.loading.pipeline_step2_fallback" = "トレーニング履歴から週間距離を計算中...";
 "training.loading.pipeline_step3_with_week" = "第%d週のパーソナライズプランを生成中 · 強度配分を最適化中";
 "training.loading.pipeline_step3_fallback" = "パーソナライズされたトレーニングプランを生成中...";
-"training.stage.base" = "ベース期";
-"training.stage.build" = "ビルド期";
+"training.stage.base" = "基礎期";
+"training.stage.build" = "強化期";
 "training.stage.peak" = "ピーク期";
-"training.stage.taper" = "テーパー期";
-"training.stage.conversion" = "アダプテーション期";
+"training.stage.taper" = "調整期";
+"training.stage.conversion" = "転換期";
 "training.stage.unknown" = "トレーニング中";
 "notification.sunday_reminder.title" = "今週のトレーニング完了 💪";
 "notification.sunday_reminder.body" = "今日のトレーニング結果が準備できました。Pacerizによる週間評価をご確認ください";
@@ -3007,8 +3007,8 @@
 "race_filter.10k" = "10K";
 "race_filter.5k" = "5K";
 "race_filter.all" = "すべて";
-"race_filter.full_marathon" = "フルマラソン";
-"race_filter.half_marathon" = "ハーフマラソン";
+"race_filter.full_marathon" = "フル";
+"race_filter.half_marathon" = "ハーフ";
 "race_filter.other" = "その他";
 "race_picker.api_failure_hint" = "手動入力を使用するか、後でもう一度お試しください。";
 "race_picker.api_failure_title" = "レースデータベースを読み込めません";
@@ -4309,10 +4309,6 @@
 
 // T-0306 視覺對齊（設計包 Paceriz Home.dc.html）新增
 "app2.tab.achievements" = "実績";
-"app2.home.chart_actual" = "実測";
-"app2.home.chart_forecast" = "予測";
-"app2.home.chart_now" = "現在";
-"app2.home.week_progress" = "第 %1$d / %2$d 週";
 "app2.home.today_todo" = "今日はまだ走っていません";
 "app2.home.today_done" = "今日は完了";
 "app2.home.plan_row" = "プラン";

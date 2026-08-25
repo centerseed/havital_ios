@@ -349,7 +349,7 @@
 "training.loading.pipeline_step3_with_week" = "生成第 %d 週個人化課表 · 最佳化強度分配中";
 "training.loading.pipeline_step3_fallback" = "生成個人化訓練課表中...";
 "training.stage.base" = "基礎期";
-"training.stage.build" = "進展期";
+"training.stage.build" = "強化期";
 "training.stage.peak" = "巔峰期";
 "training.stage.taper" = "減量期";
 "training.stage.conversion" = "適應期";
@@ -4353,10 +4353,6 @@
 
 // T-0306 視覺對齊（設計包 Paceriz Home.dc.html）新增
 "app2.tab.achievements" = "成就";
-"app2.home.chart_actual" = "實際";
-"app2.home.chart_forecast" = "預估";
-"app2.home.chart_now" = "現在";
-"app2.home.week_progress" = "第 %1$d / %2$d 週";
 "app2.home.today_todo" = "今天還沒跑";
 "app2.home.today_done" = "今天已跑";
 "app2.home.plan_row" = "課表";

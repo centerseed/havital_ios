@@ -27,9 +27,7 @@ enum App2StubFixtures {
 
     enum Section {
         static let weekReview = "§4.2"
-        static let trajectory = "§7-16"
         static let insightVerdict = "§7-2"
-        static let levelBadge = "§7-1"
         /// 端點存在但本機取不到資料。
         static let offline = "offline"
     }
@@ -40,69 +38,6 @@ enum App2StubFixtures {
     static var insights: [App2Insight] { payload.insights.map(\.domain) }
     static var planWeek: App2PlanWeek { payload.planWeek.domain }
     static var records: App2Records { payload.records.domain }
-
-    /// §7-16 軌跡圖序列 —— 沒有 HTTP 出口，永遠是樣本。
-    ///
-    /// **不用線性內插**：兩端錨定的等差數列畫出來是一條直線，跟真實的體能軌跡
-    /// 完全不像（2026-08-25 用戶在模擬器上直接點名）。設計 frame-00 畫的是
-    /// 「前段爬升快、中段有起伏與小回落、接近現在時趨緩」的曲線，所以這裡手寫
-    /// 一組正規化的成長剖面（0=起點、1=現在的水準），依實際週數重取樣。
-    ///
-    /// 預估段是緩彎而非直線：用 ease-out（`1-(1-p)^1.8`），一開始還有增益、
-    /// 越接近比賽日越平 —— 與「訓練效果邊際遞減」的形狀一致。
-    ///
-    /// 端點落地後整段刪除。
-    private static let growthProfile: [Double] = [
-        0.00, 0.09, 0.17, 0.15, 0.26, 0.35,
-        0.41, 0.38, 0.49, 0.58, 0.63, 0.61,
-        0.70, 0.78, 0.83, 0.86
-    ]
-
-    static func trajectoryPoints(currentWeek: Int, totalWeeks: Int) -> [App2TrajectoryChart.Point] {
-        let safeCurrent = max(currentWeek, 1)
-        let safeTotal = max(totalWeeks, safeCurrent + 1)
-        let startValue = 55.0
-        let projectedEnd = 73.0
-        let range = projectedEnd - startValue
-
-        var points: [App2TrajectoryChart.Point] = []
-
-        // 實際段：把成長剖面重取樣到 1...safeCurrent。
-        for week in 1...safeCurrent {
-            let position = safeCurrent > 1
-                ? Double(week - 1) / Double(safeCurrent - 1)
-                : 0
-            points.append(
-                .init(week: week, value: startValue + range * sample(position), isProjected: false)
-            )
-        }
-
-        // 預估段：從「現在」的水準緩彎到比賽日的預估。
-        guard safeCurrent < safeTotal else { return points }
-        let current = points.last?.value ?? startValue
-        for week in safeCurrent...safeTotal {
-            let position = Double(week - safeCurrent) / Double(safeTotal - safeCurrent)
-            let eased = 1 - pow(1 - position, 1.8)
-            points.append(
-                .init(
-                    week: week,
-                    value: current + (projectedEnd - current) * eased,
-                    isProjected: true
-                )
-            )
-        }
-        return points
-    }
-
-    /// 在成長剖面上取值（`position` 0…1），兩個節點之間線性內插。
-    private static func sample(_ position: Double) -> Double {
-        let clamped = min(max(position, 0), 1)
-        let scaled = clamped * Double(growthProfile.count - 1)
-        let lower = Int(scaled.rounded(.down))
-        let upper = min(lower + 1, growthProfile.count - 1)
-        let fraction = scaled - Double(lower)
-        return growthProfile[lower] + (growthProfile[upper] - growthProfile[lower]) * fraction
-    }
 
     // MARK: - Loading
 

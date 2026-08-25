@@ -37,23 +37,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 交棒情境（`card.rizoScenario`）。開對話時帶給既有的 `StateRizoChatViewModel`。
     @Published private(set) var rizoScenario: String?
 
-    /// §7-16 軌跡圖序列 —— 沒有 HTTP 出口，永遠是樣本。
-    ///
-    /// **週數用真的**：樣本只准填曲線形狀，不准連週數一起編。拿不到真週數時
-    /// 用一段中性的長度畫形狀（圖上沒有任何週數字），不外溢成畫面上的「第 N / M 週」。
-    var trajectoryPoints: [App2TrajectoryChart.Point] {
-        App2StubFixtures.trajectoryPoints(
-            currentWeek: trainingStatus?.value.currentWeek ?? Self.neutralTrajectoryCurrentWeek,
-            totalWeeks: trainingStatus?.value.totalWeeks ?? Self.neutralTrajectoryTotalWeeks
-        )
-    }
-
-    /// 真週數缺席時的中性圖形長度。**不是週數**：圖上不畫任何週數字，
-    /// 圖例的「第 N / M 週」另外走 `trainingStatus.currentWeek/totalWeeks`（缺就不顯示）。
-    private static let neutralTrajectoryCurrentWeek = 6
-    private static let neutralTrajectoryTotalWeeks = 16
-
-    let trajectoryOrigin = App2DataOrigin.stub(pendingSection: App2StubFixtures.Section.trajectory)
+    // §7-16 軌跡圖序列已整塊移除（2026-08-26 裁決）：backend 沒有序列端點，
+    // 畫面上掛的是永遠不會變成真資料的樣本圖。等端點落地再依當時的設計重議。
 
     nonisolated let taskRegistry = TaskRegistry()
 
@@ -774,8 +759,15 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     }
 
     /// 當前週落在哪一段 `training_stages`。落不進任何一段就沒有期別（不猜最近的那段）。
+    ///
+    /// **顯示字走 `stage_id` 的既有在地化表**（`PlanGenerationContext
+    /// .stageIdToLocalizationKey` → `training.stage.*`），不是 payload 的
+    /// `stage_name`：後者由後端依 `content_lang` 生成，App 切語言時不會跟著換，
+    /// 三語用字也與 1.4 的期程列表對不上（2026-08-26 裁決：chip 譯名全 App 同一份）。
     static func stageName(stages: [TrainingStageDTO]?, currentWeek: Int) -> String? {
-        stages?.first { currentWeek >= $0.weekStart && currentWeek <= $0.weekEnd }?.stageName
+        guard let stage = stages?.first(where: { currentWeek >= $0.weekStart && currentWeek <= $0.weekEnd })
+        else { return nil }
+        return PlanGenerationContext.stageIdToLocalizationKey(stage.stageId).localized
     }
 
     // MARK: - Formatting

@@ -348,11 +348,11 @@
 "training.loading.pipeline_step2_fallback" = "Calculating weekly volume from training history...";
 "training.loading.pipeline_step3_with_week" = "Generating Week %d personalized plan · Optimizing intensity";
 "training.loading.pipeline_step3_fallback" = "Generating personalized training plan...";
-"training.stage.base" = "Base Phase";
-"training.stage.build" = "Build Phase";
-"training.stage.peak" = "Peak Phase";
-"training.stage.taper" = "Taper Phase";
-"training.stage.conversion" = "Conversion Phase";
+"training.stage.base" = "Base";
+"training.stage.build" = "Build";
+"training.stage.peak" = "Peak";
+"training.stage.taper" = "Taper";
+"training.stage.conversion" = "Conversion";
 "training.stage.unknown" = "Training";
 "notification.sunday_reminder.title" = "Week complete 💪";
 "notification.sunday_reminder.body" = "Your training results are ready. See how Paceriz evaluates your week";
@@ -3010,8 +3010,8 @@
 "race_filter.10k" = "10K";
 "race_filter.5k" = "5K";
 "race_filter.all" = "All";
-"race_filter.full_marathon" = "Full Marathon";
-"race_filter.half_marathon" = "Half Marathon";
+"race_filter.full_marathon" = "Marathon";
+"race_filter.half_marathon" = "Half";
 "race_filter.other" = "Other";
 "race_picker.api_failure_hint" = "Use manual entry or try again later.";
 "race_picker.api_failure_title" = "Unable to load race database";
@@ -4312,10 +4312,6 @@
 
 // T-0306 視覺對齊（設計包 Paceriz Home.dc.html）新增
 "app2.tab.achievements" = "Awards";
-"app2.home.chart_actual" = "Actual";
-"app2.home.chart_forecast" = "Projected";
-"app2.home.chart_now" = "Now";
-"app2.home.week_progress" = "Week %1$d / %2$d";
 "app2.home.today_todo" = "Not run yet today";
 "app2.home.today_done" = "Done today";
 "app2.home.plan_row" = "Plan";
