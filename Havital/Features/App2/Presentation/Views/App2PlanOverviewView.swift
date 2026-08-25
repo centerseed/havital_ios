@@ -30,7 +30,8 @@ struct App2PlanOverviewView: View {
                 title: L10n.App2.PlanOverview.title.localized,
                 titleSize: 19,
                 onBack: onClose,
-                backIdentifier: "App2_PlanOverviewClose"
+                backIdentifier: "App2_PlanOverviewClose",
+                titleIdentifier: "App2_PlanOverviewView"
             ) {
                 // 設計 frame-20 右上角的「調整」。目的地是賽事管理（frame-12）——
                 // 週跑量／訓練日的編輯在設定頁，這裡不開第二條寫入路徑。
@@ -39,7 +40,11 @@ struct App2PlanOverviewView: View {
                     .foregroundStyle(App2Theme.accentBlueDeep)
                     .contentShape(Rectangle())
                     .onTapGesture { isShowingRaces = true }
+                    // 併成單一葉節點 —— 不併的話 a11y tree 上只看得到那一顆 Text，
+                    // identifier 掛不上去（2026-08-25 maestro 實測找不到這顆）。
+                    .accessibilityElement(children: .ignore)
                     .accessibilityAddTraits(.isButton)
+                    .accessibilityLabel(L10n.App2.PlanOverview.adjust.localized)
                     .accessibilityIdentifier("App2_PlanOverviewAdjust")
             }
             .padding(.horizontal, App2Theme.pagePadding)
@@ -64,7 +69,6 @@ struct App2PlanOverviewView: View {
             rizoCta
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
-        .accessibilityIdentifier("App2_PlanOverviewView")
         .task { await viewModel.loadIfNeeded() }
         .refreshable { await viewModel.forceRefresh() }
         .fullScreenCover(isPresented: $isShowingRaces) {

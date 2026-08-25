@@ -47,7 +47,6 @@ struct App2RaceEditSheet: View {
                 }
             }
         }
-        .accessibilityIdentifier("App2_RaceEditSheet")
         .fullScreenCover(isPresented: $isShowingDatabase) {
             App2RaceDatabaseView(
                 onPick: { event, database in

@@ -27,7 +27,8 @@ struct App2RaceManagementView: View {
                 App2PageHeader(
                     title: L10n.App2.Races.title.localized,
                     onBack: onClose,
-                    backIdentifier: "App2_RacesClose"
+                    backIdentifier: "App2_RacesClose",
+                    titleIdentifier: "App2_RaceManagementView"
                 ) { EmptyView() }
 
                 Text(L10n.App2.Races.subtitle.localized)
@@ -50,7 +51,6 @@ struct App2RaceManagementView: View {
             .padding(.bottom, 40)
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
-        .accessibilityIdentifier("App2_RaceManagementView")
         .task { await viewModel.loadIfNeeded() }
         .refreshable { await viewModel.reload() }
         .sheet(item: $editingForm) { form in
@@ -190,7 +190,6 @@ struct App2RaceManagementView: View {
             }
             .padding(.top, 16)
         }
-        .accessibilityIdentifier("App2_RacesMainCard")
     }
 
     /// 倒數：已過期的賽事說「已結束」，不印負數。

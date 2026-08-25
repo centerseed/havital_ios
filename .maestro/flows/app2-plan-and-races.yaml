@@ -1,6 +1,8 @@
 appId: com.havital.Havital.dev
 tags:
   - app2
+env:
+  DEMO_REVIEWER_PASSCODE: ${DEMO_REVIEWER_PASSCODE}
 ---
 # T-0306 wave 2 —— 訓練計畫總覽（frame-20）與賽事管理（frame-12／13／14）的截圖證據。
 #
@@ -18,6 +20,15 @@ tags:
 - tapOn:
     text: "知道了，不再顯示"
     optional: true
+
+# 落在登入頁才登入（跑過 `./Scripts/test.sh unit` 之後 session 會掉）。
+# 走既有的 reviewer demo 路徑，不清 keychain、不重裝。
+- runFlow:
+    when:
+      visible:
+        id: "Login_LanguagePicker"
+    commands:
+      - runFlow: ../subflows/reviewer-demo-login.yaml
 
 # === 訓練計畫總覽（入口＝首頁目標賽事卡）===
 - extendedWaitUntil:

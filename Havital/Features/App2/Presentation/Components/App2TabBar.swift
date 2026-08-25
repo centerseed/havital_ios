@@ -111,6 +111,13 @@ struct App2PageHeader<Trailing: View>: View {
     var onBack: (() -> Void)?
     /// 返回鍵的 accessibility identifier —— 每一頁各自命名，UI 測試才點得到正確那一顆。
     var backIdentifier: String?
+    /// 頁面標記掛在標題這顆葉節點上。
+    ///
+    /// **不要掛在頁面最外層的容器**：SwiftUI 會把容器的 identifier 蓋到每一個
+    /// 子節點上，整頁的按鈕在 a11y tree 裡就全部叫同一個名字
+    /// （2026-08-25 maestro 實測：訓練計畫總覽的返回鍵與「調整」都變成
+    /// `App2_PlanOverviewView`，於是一顆都點不到）。
+    var titleIdentifier: String?
     @ViewBuilder let trailing: () -> Trailing
 
     var body: some View {
@@ -141,6 +148,7 @@ struct App2PageHeader<Trailing: View>: View {
                 .foregroundStyle(App2Theme.inkPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
+                .accessibilityIdentifier(titleIdentifier ?? "")
             Spacer(minLength: 8)
             trailing()
         }

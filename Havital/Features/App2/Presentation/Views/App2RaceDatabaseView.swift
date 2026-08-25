@@ -28,7 +28,6 @@ struct App2RaceDatabaseView: View {
             resultList
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
-        .accessibilityIdentifier("App2_RaceDatabaseView")
         .task { await viewModel.load() }
     }
 
@@ -40,7 +39,8 @@ struct App2RaceDatabaseView: View {
                 title: L10n.App2.Races.databaseTitle.localized,
                 titleSize: 22,
                 onBack: onClose,
-                backIdentifier: "App2_RaceDatabaseClose"
+                backIdentifier: "App2_RaceDatabaseClose",
+                titleIdentifier: "App2_RaceDatabaseView"
             ) { EmptyView() }
             .padding(.bottom, 14)
 
