@@ -20,6 +20,10 @@ struct App2RecordItem: Identifiable, Equatable {
     /// 設計 frame-10 的 `r.when`（「今天 08:07」／「3 天前」）。
     /// 走既有的 `DateFormatterHelper.formatRelativeForWorkoutCard`，三語已齊。
     let whenLabel: String
+    /// 這筆的後端原始紀錄 —— 點進訓練詳情要拿它去建 1.4 的
+    /// `WorkoutDetailViewModelV2`。樣本資料沒有原始紀錄 → nil，那一列就不可點
+    /// （不做點下去什麼都沒有的死列）。
+    let workout: WorkoutV2?
 }
 
 /// 日期分組 ＋ 該組小計（設計 frame-10 的 `g.group` / `g.count` / `g.sum`）。
@@ -138,7 +142,13 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
             // 樣本沒有時間戳 → date/distanceKm 為 nil，全部落在「更早」那一組、
             // 不參與小計。畫面上同時掛 stub 徽章，不會被誤讀成真資料。
             apply(items: stub.recentWorkouts.map {
-                App2RecordItem(row: $0, date: nil, distanceKm: nil, whenLabel: $0.dateLabel)
+                App2RecordItem(
+                    row: $0,
+                    date: nil,
+                    distanceKm: nil,
+                    whenLabel: $0.dateLabel,
+                    workout: nil
+                )
             })
             records = App2Sourced(stub, origin: .stub(pendingSection: App2StubFixtures.Section.offline))
         }
@@ -339,7 +349,8 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
             row: map(workout: workout),
             date: date,
             distanceKm: workout.distanceMeters.map { $0 / 1000 },
-            whenLabel: date.map(DateFormatterHelper.formatRelativeForWorkoutCard) ?? "—"
+            whenLabel: date.map(DateFormatterHelper.formatRelativeForWorkoutCard) ?? "—",
+            workout: workout
         )
     }
 

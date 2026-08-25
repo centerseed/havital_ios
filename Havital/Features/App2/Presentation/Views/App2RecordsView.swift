@@ -15,6 +15,8 @@ struct App2RecordsView: View {
     /// 右上日曆鈕開的是 1.x 既有的 `TrainingCalendarView`（`WeekOverviewCardV2`
     /// 也是以 sheet + NavigationView 開它）—— 不另做一份月曆。
     @State private var showTrainingCalendar = false
+    /// 點某一列開的訓練詳情（設計 frame-15）。nil = 沒開。
+    @State private var detailWorkout: WorkoutV2?
 
     var body: some View {
         ScrollView {
@@ -61,6 +63,14 @@ struct App2RecordsView: View {
             NavigationView {
                 TrainingCalendarView()
             }
+        }
+        .fullScreenCover(item: $detailWorkout) { workout in
+            App2WorkoutDetailView(
+                workout: workout,
+                onClose: { detailWorkout = nil },
+                // 刪掉的那一筆不能還留在清單上。
+                onDeleted: { Task { await viewModel.forceRefresh() } }
+            )
         }
     }
 
@@ -292,6 +302,13 @@ struct App2RecordsView: View {
             }
             .padding(.top, 4)
         }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            // 樣本資料沒有原始紀錄 → 不可點（不做點下去什麼都沒有的死列）。
+            guard let workout = item.workout else { return }
+            detailWorkout = workout
+        }
+        .accessibilityAddTraits(item.workout == nil ? [] : .isButton)
         .accessibilityIdentifier("App2_RecordRow")
     }
 

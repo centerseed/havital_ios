@@ -1451,6 +1451,11 @@
 "training_type_info.progression.title" = "漸進跑";
 "training_type_info.progression.how_to_run" = "從輕鬆配速開始，一路慢慢加速，最後一段接近節奏配速。全程只加速、不減速。";
 "training_type_info.progression.why_run" = "練的是「越跑越有節奏」的能力。比賽後段最需要的，就是已經有點累了還能把速度提起來。";
+"training_type_info.steady_intervals.title" = "穩定間歇 Steady Intervals";
+"training_type_info.steady_intervals.how_to_run" = "把一段較長的距離拆成 3–6 趟，每趟用穩定、可控的中高強度跑完，趟間只慢跑 60–90 秒。全程配速要一樣穩，最後一趟不能明顯掉速。";
+"training_type_info.steady_intervals.why_run" = "練的是「在有點吃力的強度下維持很久」的能力。它比連續跑更容易累積訓練量，又比高強度間歇溫和，是把有氧底子往上推的主力課。";
+"training_type_info.steady_intervals.logic" = "強度落在乳酸閾值附近或略低（約 82–88% 最大心率）。短恢復讓乳酸來不及清光，身體整堂課都在練「邊產生邊清除」的平衡，提升乳酸穩態速度。";
+"training_type_info.steady_intervals.role" = "通常安排在週中，是基礎期與強化期的主課。前後接輕鬆跑或休息日，一週最多 1–2 次。";
 "training_type_info.progression.logic" = "前段累積有氧刺激，後段在疲勞狀態下逼近閾值強度。一堂課同時練到耐力和配速控制。";
 "training_type_info.progression.role" = "常安排在長跑日或週末。是培養配速感最直接的一堂課。";
 
@@ -4336,6 +4341,8 @@
 "app2.home.menu_profile" = "個人資料";
 "app2.home.menu_edit_plan" = "修改課表";
 "app2.home.insights_more" = "展開全部指標";
+"app2.home.today_completed_title" = "今天已經跑完了";
+"app2.home.today_completed_sub" = "看這次的訓練詳情";
 
 /* ===== App2 · 編輯週課表（設計 frame-03～09） ===== */
 "app2.plan_edit.select_type" = "選擇課型";
@@ -4361,6 +4368,40 @@
 "app2.detail.strength_sets_reps" = "%1$d 組 × %2$d 下";
 "app2.detail.strength_sets_seconds" = "%1$d 組 × %2$d 秒";
 "app2.detail.strength_sets" = "%d 組";
+"app2.detail.purpose_section" = "這堂課練什麼";
+"app2.detail.purpose_more" = "看完整說明";
+
+// MARK: - App2 訓練詳情（已完成紀錄，設計 frame-15～17）
+"app2.workout_detail.title" = "訓練詳情";
+"app2.workout_detail.new_pb" = "新 PB · %@";
+"app2.workout_detail.coach_section" = "Rizo 教練分析";
+"app2.workout_detail.planned" = "課表";
+"app2.workout_detail.actual" = "實際";
+"app2.workout_detail.avg_hr_short" = "均心 %d";
+"app2.workout_detail.vertical_ratio" = "垂直振幅比";
+"app2.workout_detail.trend_section" = "趨勢圖";
+"app2.workout_detail.trend_heart_rate" = "心率";
+"app2.workout_detail.trend_pace" = "配速";
+"app2.workout_detail.record_section" = "這筆紀錄";
+"app2.workout_detail.vdot_row" = "納入 VDOT 計算";
+"app2.workout_detail.vdot_subtitle" = "這筆紀錄要不要納入配速能力估算";
+"app2.workout_detail.vdot_automatic" = "自動";
+"app2.workout_detail.vdot_automatic_desc" = "由 Paceriz 判斷此筆是否適合納入配速能力估算。";
+"app2.workout_detail.vdot_included" = "一定納入";
+"app2.workout_detail.vdot_included_desc" = "把這筆的配速表現算進能力估算。";
+"app2.workout_detail.vdot_excluded" = "排除";
+"app2.workout_detail.vdot_excluded_desc" = "跑步機、亂配速或異常紀錄，不列入估算。";
+"app2.workout_detail.tools_row" = "編輯與工具";
+"app2.workout_detail.tools_row_sub" = "時間裁剪・重新上傳・刪除";
+"app2.workout_detail.tool_mileage_sub" = "僅跑步機紀錄可用";
+"app2.workout_detail.tool_trim_sub" = "重新選擇要保留的區間";
+"app2.workout_detail.tool_reupload_sub" = "重新解析原始檔";
+"app2.workout_detail.tool_delete_sub" = "無法復原";
+"app2.workout_detail.activity_running" = "戶外跑步";
+"app2.workout_detail.activity_treadmill" = "跑步機";
+"app2.workout_detail.activity_trail" = "越野跑";
+"app2.workout_detail.activity_track" = "田徑場";
+
 "app2.plan.title" = "訓練課表";
 "app2.plan.volume_title" = "本週跑量";
 "app2.plan.today" = "今日";

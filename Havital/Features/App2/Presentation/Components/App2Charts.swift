@@ -423,3 +423,89 @@ struct App2TrajectoryLegend: View {
         }
     }
 }
+
+// MARK: - App2Sparkline
+/// 訓練詳情的心率／配速走勢（設計 frame-15「趨勢圖」的那兩張面積折線）。
+///
+/// 資料是 `WorkoutDetailViewModelV2` 已經降採樣好的 `[DataPoint]`（同一支 VM 餵
+/// 1.4 的 Swift Charts 圖表），這裡不重新抽樣、不重新換算單位——只是把同一組值
+/// 畫成設計稿那個尺寸的縮圖。折線圖只有一種，所以心率與配速共用這一支。
+///
+/// 配速要 `isInverted`：配速數字越小越快，直接畫會讓「變快」看起來像往下掉。
+struct App2Sparkline: View {
+    let points: [Double]
+    let tint: Color
+    /// true = 值越小畫越高（配速）。
+    var isInverted: Bool = false
+    var height: CGFloat = 72
+
+    var body: some View {
+        GeometryReader { geo in
+            let normalized = Self.normalize(points, isInverted: isInverted)
+            if normalized.count >= 2 {
+                let line = Self.path(normalized, in: geo.size)
+                ZStack {
+                    Self.filled(normalized, in: geo.size)
+                        .fill(
+                            LinearGradient(
+                                colors: [tint.opacity(0.26), tint.opacity(0)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                    line.stroke(tint, style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
+                }
+            }
+        }
+        .frame(height: height)
+        .background(
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .fill(App2Theme.insetBackgroundCool)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .strokeBorder(App2Theme.shadowInk.opacity(0.05), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+    }
+
+    /// 把原始值壓到 0…1（0 = 圖底、1 = 圖頂）。全部一樣高時回中線，不要除以零。
+    static func normalize(_ values: [Double], isInverted: Bool) -> [Double] {
+        guard let min = values.min(), let max = values.max() else { return [] }
+        let span = max - min
+        guard span > 0 else { return values.map { _ in 0.5 } }
+        return values.map { value in
+            let ratio = (value - min) / span
+            return isInverted ? 1 - ratio : ratio
+        }
+    }
+
+    private static func points(_ normalized: [Double], in size: CGSize) -> [CGPoint] {
+        let stepX = normalized.count > 1 ? size.width / CGFloat(normalized.count - 1) : 0
+        // 上下各留 6pt，折線不要貼著邊框。
+        let inset: CGFloat = 6
+        let usable = max(1, size.height - inset * 2)
+        return normalized.enumerated().map { index, value in
+            CGPoint(x: CGFloat(index) * stepX, y: inset + usable * (1 - CGFloat(value)))
+        }
+    }
+
+    private static func path(_ normalized: [Double], in size: CGSize) -> Path {
+        var path = Path()
+        let pts = points(normalized, in: size)
+        guard let first = pts.first else { return path }
+        path.move(to: first)
+        for point in pts.dropFirst() { path.addLine(to: point) }
+        return path
+    }
+
+    private static func filled(_ normalized: [Double], in size: CGSize) -> Path {
+        var path = path(normalized, in: size)
+        let pts = points(normalized, in: size)
+        guard let first = pts.first, let last = pts.last else { return path }
+        path.addLine(to: CGPoint(x: last.x, y: size.height))
+        path.addLine(to: CGPoint(x: first.x, y: size.height))
+        path.closeSubpath()
+        return path
+    }
+}

@@ -1,0 +1,69 @@
+appId: com.havital.Havital.dev
+tags:
+  - app2
+---
+# T-0306 wave4 §1 —— 已完成跑步的訓練詳情（設計 frame-15～17）實走證據。
+#
+# 入口走紀錄頁的紀錄列。`clearState: false` 是必要的：這台模擬器是用戶本人在用，
+# 不得清 keychain 或資料。
+
+- launchApp:
+    clearState: false
+    arguments:
+      "-skipHealthKitAuth": true
+
+- tapOn:
+    text: "知道了，不再顯示"
+    optional: true
+
+# === 紀錄頁 → 訓練詳情 ===
+- tapOn:
+    id: "App2_Tab_Records"
+- extendedWaitUntil:
+    visible:
+      id: "App2_RecordRow"
+    timeout: 60000
+- takeScreenshot: wave4-01-records-list
+- tapOn:
+    id: "App2_RecordRow"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: "App2_WorkoutDetailHero"
+    timeout: 40000
+- takeScreenshot: wave4-02-workout-detail-hero
+- scroll
+- takeScreenshot: wave4-03-workout-detail-coach
+- scroll
+- takeScreenshot: wave4-04-workout-detail-advanced
+- scroll
+- takeScreenshot: wave4-05-workout-detail-record
+
+# === 納入 VDOT 計算 sheet（frame-16）===
+- tapOn:
+    id: "App2_WorkoutVDOTRow"
+- extendedWaitUntil:
+    visible:
+      id: "App2_VDOTInclusionPanel"
+    timeout: 20000
+- takeScreenshot: wave4-06-vdot-sheet
+- tapOn:
+    id: "App2_VDOTInclusionPanel_Done"
+
+# === 編輯與工具 sheet（frame-17）===
+- tapOn:
+    id: "App2_WorkoutToolsRow"
+- extendedWaitUntil:
+    visible:
+      id: "App2_WorkoutToolsPanel"
+    timeout: 20000
+- takeScreenshot: wave4-07-tools-sheet
+- tapOn:
+    id: "App2_WorkoutToolsPanel_Done"
+
+- tapOn:
+    id: "App2_WorkoutDetailBack"
+- extendedWaitUntil:
+    visible:
+      id: "App2_RecordRow"
+    timeout: 20000

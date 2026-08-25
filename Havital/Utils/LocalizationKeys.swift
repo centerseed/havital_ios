@@ -2060,6 +2060,9 @@ extension L10n {
             static let menuProfile = "app2.home.menu_profile"
             static let menuEditPlan = "app2.home.menu_edit_plan"
             static let insightsMore = "app2.home.insights_more"
+            /// 今日課表卡下方的「已完成 → 看訓練詳情」列。
+            static let todayCompletedTitle = "app2.home.today_completed_title"
+            static let todayCompletedSub = "app2.home.today_completed_sub"
         }
 
 
@@ -2096,6 +2099,52 @@ extension L10n {
             static let strengthSetsReps = "app2.detail.strength_sets_reps"
             static let strengthSetsSeconds = "app2.detail.strength_sets_seconds"
             static let strengthSets = "app2.detail.strength_sets"
+            /// 課型說明區塊的小標（「這堂課練什麼」）。內文本體是既有的
+            /// `TrainingTypeInfo`（`training_type_info.<type>.*`），不另建一份文案。
+            static let purposeSection = "app2.detail.purpose_section"
+            static let purposeMore = "app2.detail.purpose_more"
+        }
+
+        /// 訓練詳情（**已完成的一筆紀錄**，設計 frame-15～17）。
+        ///
+        /// 只放設計稿新增的字。距離／時長／卡路里／平均配速／平均心率／最大心率／
+        /// 進階指標／訓練心得／里程校正／時間裁剪／重新上傳／刪除，全部沿用 1.4 既有的
+        /// `workout.*` 鍵（三語已齊），不在這裡開第二份同義詞。
+        enum WorkoutDetail {
+            static let title = "app2.workout_detail.title"
+            /// `新 PB · %@`
+            static let newPersonalBest = "app2.workout_detail.new_pb"
+            static let coachSection = "app2.workout_detail.coach_section"
+            static let planned = "app2.workout_detail.planned"
+            static let actual = "app2.workout_detail.actual"
+            /// `均心 %d`
+            static let avgHeartRateShort = "app2.workout_detail.avg_hr_short"
+            static let verticalRatio = "app2.workout_detail.vertical_ratio"
+            static let trendSection = "app2.workout_detail.trend_section"
+            static let trendHeartRate = "app2.workout_detail.trend_heart_rate"
+            static let trendPace = "app2.workout_detail.trend_pace"
+            static let recordSection = "app2.workout_detail.record_section"
+
+            static let vdotRow = "app2.workout_detail.vdot_row"
+            static let vdotSubtitle = "app2.workout_detail.vdot_subtitle"
+            static let vdotAutomatic = "app2.workout_detail.vdot_automatic"
+            static let vdotAutomaticDesc = "app2.workout_detail.vdot_automatic_desc"
+            static let vdotIncluded = "app2.workout_detail.vdot_included"
+            static let vdotIncludedDesc = "app2.workout_detail.vdot_included_desc"
+            static let vdotExcluded = "app2.workout_detail.vdot_excluded"
+            static let vdotExcludedDesc = "app2.workout_detail.vdot_excluded_desc"
+
+            static let toolsRow = "app2.workout_detail.tools_row"
+            static let toolsRowSub = "app2.workout_detail.tools_row_sub"
+            static let toolMileageSub = "app2.workout_detail.tool_mileage_sub"
+            static let toolTrimSub = "app2.workout_detail.tool_trim_sub"
+            static let toolReuploadSub = "app2.workout_detail.tool_reupload_sub"
+            static let toolDeleteSub = "app2.workout_detail.tool_delete_sub"
+
+            static let activityRunning = "app2.workout_detail.activity_running"
+            static let activityTreadmill = "app2.workout_detail.activity_treadmill"
+            static let activityTrail = "app2.workout_detail.activity_trail"
+            static let activityTrack = "app2.workout_detail.activity_track"
         }
 
         enum Plan {

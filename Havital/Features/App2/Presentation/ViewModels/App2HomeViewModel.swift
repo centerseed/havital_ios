@@ -28,6 +28,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// **與卡片同一份 payload**，詳情頁不再打任何端點；休息日為 nil（不進詳情）。
     @Published private(set) var todayDetail: App2SessionDetail?
     @Published private(set) var weekReview: App2WeekReviewState?
+    /// 今天已經跑完的那一筆紀錄（裝置當地日曆的今天）。有值時今日課表卡多一列
+    /// 「看這次的訓練詳情」（設計 frame-15 的入口之一）。沒跑就是 nil。
+    @Published private(set) var todayCompletedWorkout: WorkoutV2?
     /// 內嵌 Rizo 卡的教練推話。**由 `/v2/state/today` 的句子組出來**，
     /// 組不出來就是 nil ——那時 Rizo 區退成純入口，不顯示假對話。
     @Published private(set) var rizoOpeningLine: String?
@@ -60,6 +63,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     private let targetRepository: TargetRepository
     private let planV2DataSource: TrainingPlanV2RemoteDataSourceProtocol
     private let readinessViewModel: TrainingReadinessViewModel
+    /// 紀錄頁用的同一支 `GET /v2/workouts`，不另開端點。
+    private let workoutDataSource: WorkoutStatsDataSourceProtocol
 
     // MARK: - Init
 
@@ -67,7 +72,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         dailyStateRepository: DailyStateRepository? = nil,
         targetRepository: TargetRepository? = nil,
         planV2DataSource: TrainingPlanV2RemoteDataSourceProtocol? = nil,
-        readinessViewModel: TrainingReadinessViewModel? = nil
+        readinessViewModel: TrainingReadinessViewModel? = nil,
+        workoutDataSource: WorkoutStatsDataSourceProtocol? = nil
     ) {
         let container = DependencyContainer.shared
 
@@ -91,6 +97,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
         self.planV2DataSource = planV2DataSource ?? TrainingPlanV2RemoteDataSource()
         self.readinessViewModel = readinessViewModel ?? TrainingReadinessViewModel()
+        self.workoutDataSource = workoutDataSource ?? WorkoutRemoteDataSource()
     }
 
     deinit {
@@ -111,7 +118,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         async let goal: Void = loadGoalCard(planStatus: planStatus.value)
         async let today: Void = loadTodaySession(planStatus: planStatus)
         async let review: Void = loadWeekReview(planStatus: planStatus.value)
-        _ = await (state, goal, today, review)
+        async let completed: Void = loadTodayCompletedWorkout()
+        _ = await (state, goal, today, review, completed)
 
         isLoading = false
         hasLoaded = true
@@ -254,6 +262,34 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 Logger.debug("[App2HomeVM] 今日課表取得失敗（plan_id=\(planId)）: \(error)")
                 todayState = .unavailable
             }
+        }
+    }
+
+    // MARK: - 今天已跑完的那一筆
+
+    /// 今天有沒有跑完一筆。**判準是裝置當地日曆的今天**（`start_time_utc` 是 UTC
+    /// instant，先換算成當地時間再比），不是 UTC 的今天 —— 台北清晨 06:32 的跑步
+    /// 在 UTC 還是昨天。
+    ///
+    /// 只取最近幾筆就夠：今天的紀錄一定在最前面。
+    private func loadTodayCompletedWorkout() async {
+        do {
+            let rows = try await workoutDataSource.fetchRecentWorkouts(pageSize: 10)
+            todayCompletedWorkout = Self.todayWorkout(rows)
+        } catch {
+            guard !error.isCancellationError else { return }
+            Logger.debug("[App2HomeVM] 今日紀錄查詢失敗: \(error)")
+        }
+    }
+
+    static func todayWorkout(
+        _ rows: [WorkoutV2],
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> WorkoutV2? {
+        rows.first { workout in
+            guard workout.startTimeUtc != nil else { return false }
+            return calendar.isDate(workout.startDate, inSameDayAs: now)
         }
     }
 

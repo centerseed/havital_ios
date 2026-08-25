@@ -1443,6 +1443,11 @@
 "training_type_info.progression.title" = "Progression Run";
 "training_type_info.progression.how_to_run" = "Start easy and get gradually faster, finishing close to tempo pace. Speed up throughout — never slow down.";
 "training_type_info.progression.why_run" = "This builds the ability to find your rhythm as the run goes on. Late in a race, that's exactly what you need: lifting the pace when you're already tired.";
+"training_type_info.steady_intervals.title" = "Steady Intervals";
+"training_type_info.steady_intervals.how_to_run" = "Break a longer distance into 3-6 reps, each run at a steady, controlled moderately-hard effort with only 60-90 seconds of jogging between. Hold the same pace throughout — the last rep should not fall off.";
+"training_type_info.steady_intervals.why_run" = "This trains your ability to hold a mildly uncomfortable effort for a long time. It accumulates more quality volume than a continuous run while staying gentler than hard intervals — the workhorse for raising your aerobic ceiling.";
+"training_type_info.steady_intervals.logic" = "The effort sits at or just below lactate threshold (roughly 82-88% of max heart rate). The short recoveries keep lactate from fully clearing, so the whole session trains the produce-and-clear balance, raising the speed you can sustain at steady state.";
+"training_type_info.steady_intervals.role" = "Usually mid-week, as the main session of base and build phases. Sandwich it between easy runs or rest days; at most 1-2 per week.";
 "training_type_info.progression.logic" = "The early miles build aerobic stimulus; the later ones push toward threshold under fatigue. One session, both endurance and pace control.";
 "training_type_info.progression.role" = "Often placed on a long-run day or the weekend. It's the most direct way to build a feel for pace.";
 
@@ -4295,6 +4300,8 @@
 "app2.home.menu_profile" = "Profile";
 "app2.home.menu_edit_plan" = "Edit plan";
 "app2.home.insights_more" = "Show all metrics";
+"app2.home.today_completed_title" = "You already ran today";
+"app2.home.today_completed_sub" = "See this workout's details";
 
 /* ===== App2 · weekly plan editor (design frame-03…09) ===== */
 "app2.plan_edit.select_type" = "Choose workout type";
@@ -4320,6 +4327,40 @@
 "app2.detail.strength_sets_reps" = "%1$d sets × %2$d reps";
 "app2.detail.strength_sets_seconds" = "%1$d sets × %2$d s";
 "app2.detail.strength_sets" = "%d sets";
+"app2.detail.purpose_section" = "What this session trains";
+"app2.detail.purpose_more" = "Read the full explanation";
+
+// MARK: - App2 Workout Detail (completed record, design frame-15~17)
+"app2.workout_detail.title" = "Workout Detail";
+"app2.workout_detail.new_pb" = "New PB · %@";
+"app2.workout_detail.coach_section" = "Rizo Coach Analysis";
+"app2.workout_detail.planned" = "Planned";
+"app2.workout_detail.actual" = "Actual";
+"app2.workout_detail.avg_hr_short" = "Avg HR %d";
+"app2.workout_detail.vertical_ratio" = "Vertical Ratio";
+"app2.workout_detail.trend_section" = "Trends";
+"app2.workout_detail.trend_heart_rate" = "Heart Rate";
+"app2.workout_detail.trend_pace" = "Pace";
+"app2.workout_detail.record_section" = "This Record";
+"app2.workout_detail.vdot_row" = "Include in VDOT";
+"app2.workout_detail.vdot_subtitle" = "Should this record count toward your pace ability estimate?";
+"app2.workout_detail.vdot_automatic" = "Automatic";
+"app2.workout_detail.vdot_automatic_desc" = "Let Paceriz decide whether this record fits the pace ability estimate.";
+"app2.workout_detail.vdot_included" = "Always include";
+"app2.workout_detail.vdot_included_desc" = "Count this run's pace toward your ability estimate.";
+"app2.workout_detail.vdot_excluded" = "Exclude";
+"app2.workout_detail.vdot_excluded_desc" = "Treadmill runs, uneven pacing or bad data — leave it out of the estimate.";
+"app2.workout_detail.tools_row" = "Edit & Tools";
+"app2.workout_detail.tools_row_sub" = "Trim · Re-upload · Delete";
+"app2.workout_detail.tool_mileage_sub" = "Treadmill records only";
+"app2.workout_detail.tool_trim_sub" = "Pick the range to keep";
+"app2.workout_detail.tool_reupload_sub" = "Re-parse the original file";
+"app2.workout_detail.tool_delete_sub" = "Cannot be undone";
+"app2.workout_detail.activity_running" = "Outdoor Run";
+"app2.workout_detail.activity_treadmill" = "Treadmill";
+"app2.workout_detail.activity_trail" = "Trail Run";
+"app2.workout_detail.activity_track" = "Track Run";
+
 "app2.plan.title" = "Training plan";
 "app2.plan.volume_title" = "This week's volume";
 "app2.plan.today" = "Today";

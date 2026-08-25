@@ -144,7 +144,9 @@ final class App2RecordsViewModelTests: XCTestCase {
             ),
             date: date,
             distanceKm: km,
-            whenLabel: "—"
+            whenLabel: "—",
+            // 分組／小計不看原始紀錄，這裡不需要它。
+            workout: nil
         )
     }
 

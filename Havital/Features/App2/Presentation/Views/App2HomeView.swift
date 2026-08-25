@@ -26,6 +26,8 @@ struct App2HomeView: View {
     @State private var isShowingPlanOverview = false
     /// 今日課表卡點下去開的訓練詳情（設計 frame-02）。nil = 沒開。
     @State private var detailSession: App2SessionDetail?
+    /// 今天已跑完那一筆的訓練詳情（設計 frame-15）。nil = 沒開。
+    @State private var detailWorkout: WorkoutV2?
     /// 通知清單（首頁 v2 的鈴鐺）。
     ///
     /// **開的是既有的訊息中心** `MessageCenterView`（公告模組，AC-ANN-03），
@@ -92,6 +94,13 @@ struct App2HomeView: View {
         }
         .fullScreenCover(item: $detailSession) { detail in
             App2SessionDetailView(detail: detail) { detailSession = nil }
+        }
+        .fullScreenCover(item: $detailWorkout) { workout in
+            App2WorkoutDetailView(
+                workout: workout,
+                onClose: { detailWorkout = nil },
+                onDeleted: { Task { await viewModel.forceRefresh() } }
+            )
         }
         .sheet(isPresented: $isShowingRizoChat) {
             if let rizoChatViewModel {
@@ -504,6 +513,13 @@ struct App2HomeView: View {
                     EmptyView()
                 }
 
+                // 今天已經跑完了 —— 課表卡下面多一列進「已完成」那筆的訓練詳情
+                // （設計 frame-15）。這是另一個目的地，所以是自己一列，
+                // 不與上面「點課表看課表詳情」的點擊區重疊。
+                if let completed = viewModel.todayCompletedWorkout {
+                    completedWorkoutRow(completed)
+                }
+
                 Rectangle()
                     .fill(App2Theme.insetBorder)
                     .frame(height: 1)
@@ -615,6 +631,36 @@ struct App2HomeView: View {
                 }
             }
         }
+    }
+
+    /// 「今天已完成 · 看訓練詳情」那一列。
+    private func completedWorkoutRow(_ workout: WorkoutV2) -> some View {
+        HStack(spacing: 9) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 15, weight: .heavy))
+                .foregroundStyle(App2Theme.accentGreen)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(L10n.App2.Home.todayCompletedTitle.localized)
+                    .font(.system(size: 14, weight: .heavy))
+                    .foregroundStyle(App2Theme.inkPrimary)
+                Text(L10n.App2.Home.todayCompletedSub.localized)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(App2Theme.inkTertiary)
+            }
+            Spacer(minLength: 4)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .heavy))
+                .foregroundStyle(App2Theme.chevron)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .app2InsetSurface()
+        .contentShape(Rectangle())
+        .onTapGesture { detailWorkout = workout }
+        .accessibilityElement(children: .contain)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("App2_TodayCompletedRow")
     }
 
     private func sessionAccent(_ session: App2TodaySession) -> Color {
