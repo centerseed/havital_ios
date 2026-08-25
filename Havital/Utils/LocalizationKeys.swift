@@ -2027,6 +2027,9 @@ extension L10n {
             static let strengthRow = "app2.home.strength_row"
             /// 結構預覽的標題：`趟數 × %d 趟`
             static let structureReps = "app2.home.structure_reps"
+            /// 配速結構圖下方的段落標註列（設計 frame-02 的圖例）。
+            static let structureNoteSteady = "app2.home.structure_note_steady"
+            static let structureNoteInterval = "app2.home.structure_note_interval"
             /// 今日課表讀不到（**不是**「尚未產生」）。
             static let planUnavailableBody = "app2.home.plan_unavailable_body"
             /// 本週課表在，但今天不在裡面。
@@ -2107,6 +2110,170 @@ extension L10n {
             /// 「重新設定目標賽事」——導既有的目標設定流程，不重做一份。
             static let resetGoalRace = "app2.settings.reset_goal_race"
             static let goalSection = "app2.settings.goal_section"
+        }
+
+        /// 2.0 onboarding（設計 frame-30 ~ frame-39）。
+        /// 流程邏輯沿用既有 `OnboardingCoordinator`／`OnboardingFeatureViewModel`，
+        /// 這裡只有 2.0 版面新出現的字。既有詞（weekday.*、distance.*、
+        /// onboarding.analyzing_preferences…）不重造。
+        enum Onboarding {
+            // 共用外殼
+            static let segGoal = "app2.onboarding.seg_goal"
+            static let segTraining = "app2.onboarding.seg_training"
+            static let segPlan = "app2.onboarding.seg_plan"
+            /// `第 %1$d / %2$d 段`
+            static let stepFormat = "app2.onboarding.step_format"
+            static let continueCta = "app2.onboarding.continue"
+            static let back = "app2.onboarding.back"
+
+            // frame-30 開場
+            static let welcomeTitle = "app2.onboarding.welcome_title"
+            static let welcomeSubtitle = "app2.onboarding.welcome_subtitle"
+            static let welcomeStep1Title = "app2.onboarding.welcome_step1_title"
+            static let welcomeStep1Body = "app2.onboarding.welcome_step1_body"
+            static let welcomeStep2Title = "app2.onboarding.welcome_step2_title"
+            static let welcomeStep2Body = "app2.onboarding.welcome_step2_body"
+            static let welcomeStep3Title = "app2.onboarding.welcome_step3_title"
+            static let welcomeStep3Body = "app2.onboarding.welcome_step3_body"
+            static let welcomeNote = "app2.onboarding.welcome_note"
+            static let welcomeCta = "app2.onboarding.welcome_cta"
+            static let welcomeDuration = "app2.onboarding.welcome_duration"
+
+            // frame-31 目標類型
+            static let goalTitle = "app2.onboarding.goal_title"
+            static let goalSubtitle = "app2.onboarding.goal_subtitle"
+            static let goalRaceTitle = "app2.onboarding.goal_race_title"
+            static let goalRaceBody = "app2.onboarding.goal_race_body"
+            static let goalMaintenanceTitle = "app2.onboarding.goal_maintenance_title"
+            static let goalMaintenanceBody = "app2.onboarding.goal_maintenance_body"
+            static let goalBeginnerTitle = "app2.onboarding.goal_beginner_title"
+            static let goalBeginnerBody = "app2.onboarding.goal_beginner_body"
+
+            // frame-32 目標賽事
+            static let raceTitle = "app2.onboarding.race_title"
+            static let raceSubtitle = "app2.onboarding.race_subtitle"
+            static let raceSupported = "app2.onboarding.race_supported"
+            static let raceSearch = "app2.onboarding.race_search"
+            static let raceSetAsGoal = "app2.onboarding.race_set_as_goal"
+            static let raceGoalBadge = "app2.onboarding.race_goal_badge"
+            /// `%d 週後`
+            static let raceWeeksAway = "app2.onboarding.race_weeks_away"
+            static let raceManualDivider = "app2.onboarding.race_manual_divider"
+            static let raceNamePlaceholder = "app2.onboarding.race_name_placeholder"
+            static let raceTargetTime = "app2.onboarding.race_target_time"
+            static let raceHour = "app2.onboarding.race_hour"
+            static let raceMinute = "app2.onboarding.race_minute"
+            static let raceSecond = "app2.onboarding.race_second"
+            static let raceCustomDistance = "app2.onboarding.race_custom_distance"
+
+            // frame-33 心率
+            static let hrTitle = "app2.onboarding.hr_title"
+            static let hrSubtitle = "app2.onboarding.hr_subtitle"
+            static let hrMax = "app2.onboarding.hr_max"
+            static let hrResting = "app2.onboarding.hr_resting"
+            static let hrBpm = "app2.onboarding.hr_bpm"
+            static let hrMaxHint = "app2.onboarding.hr_max_hint"
+            static let hrRestingHint = "app2.onboarding.hr_resting_hint"
+            static let hrBandsTitle = "app2.onboarding.hr_bands_title"
+            static let hrBandsFooter = "app2.onboarding.hr_bands_footer"
+            static let hrBandRecovery = "app2.onboarding.hr_band_recovery"
+            static let hrBandEndurance = "app2.onboarding.hr_band_endurance"
+            static let hrBandTempo = "app2.onboarding.hr_band_tempo"
+            static let hrBandThreshold = "app2.onboarding.hr_band_threshold"
+            static let hrBandAnaerobic = "app2.onboarding.hr_band_anaerobic"
+
+            // frame-34 連結裝置
+            static let deviceTitle = "app2.onboarding.device_title"
+            static let deviceSubtitle = "app2.onboarding.device_subtitle"
+            static let deviceConnected = "app2.onboarding.device_connected"
+            static let deviceDisconnect = "app2.onboarding.device_disconnect"
+            static let deviceConnect = "app2.onboarding.device_connect"
+            static let deviceAppleHealthSub = "app2.onboarding.device_apple_health_sub"
+            static let deviceGarminSub = "app2.onboarding.device_garmin_sub"
+            static let deviceSyncing = "app2.onboarding.device_syncing"
+            /// `%@ 已連結`
+            static let deviceSyncNoteTitle = "app2.onboarding.device_sync_note_title"
+            static let deviceSyncNoteBody = "app2.onboarding.device_sync_note_body"
+            static let devicePrivacy = "app2.onboarding.device_privacy"
+            static let deviceSkip = "app2.onboarding.device_skip"
+
+            // frame-35 近期成績
+            static let resultTitle = "app2.onboarding.result_title"
+            static let resultSubtitle = "app2.onboarding.result_subtitle"
+            static let resultDistance = "app2.onboarding.result_distance"
+            static let resultFinishTime = "app2.onboarding.result_finish_time"
+            static let resultAvgPace = "app2.onboarding.result_avg_pace"
+            static let resultVdot = "app2.onboarding.result_vdot"
+            static let resultWhen = "app2.onboarding.result_when"
+            static let resultWithinYear = "app2.onboarding.result_within_year"
+            static let resultOverYear = "app2.onboarding.result_over_year"
+            static let resultOverYearNote = "app2.onboarding.result_over_year_note"
+            static let resultSkip = "app2.onboarding.result_skip"
+
+            // frame-36 訓練方法
+            static let methodTitle = "app2.onboarding.method_title"
+            static let methodSubtitle = "app2.onboarding.method_subtitle"
+            static let methodRecommended = "app2.onboarding.method_recommended"
+            static let methodPickOwn = "app2.onboarding.method_pick_own"
+
+            // frame-37 訓練日
+            static let daysTitle = "app2.onboarding.days_title"
+            static let daysSubtitle = "app2.onboarding.days_subtitle"
+            /// `已選 %1$d 天 · 建議每週 %2$d–%3$d 天`
+            static let daysSelectedFormat = "app2.onboarding.days_selected_format"
+            static let daysLongRun = "app2.onboarding.days_long_run"
+            static let daysLongRunNote = "app2.onboarding.days_long_run_note"
+            static let daysNote = "app2.onboarding.days_note"
+
+            // frame-38 跑量確認
+            static let mileageTitle = "app2.onboarding.mileage_title"
+            static let mileageSubtitle = "app2.onboarding.mileage_subtitle"
+            /// `來自你的 %@ 跑步紀錄`
+            static let mileageSourceFormat = "app2.onboarding.mileage_source_format"
+            static let mileageRecentAvg = "app2.onboarding.mileage_recent_avg"
+            /// 沒有同步紀錄時的替代標題（那個數字是預設值，不是平均）。
+            static let mileageManualLabel = "app2.onboarding.mileage_manual_label"
+            static let mileageUnit = "app2.onboarding.mileage_unit"
+            static let mileageConfirmQuestion = "app2.onboarding.mileage_confirm_question"
+            static let mileageAboutRight = "app2.onboarding.mileage_about_right"
+            static let mileageAdjust = "app2.onboarding.mileage_adjust"
+            static let mileageSliderTitle = "app2.onboarding.mileage_slider_title"
+            /// `建議 %1$d–%2$d`
+            static let mileageSuggestedFormat = "app2.onboarding.mileage_suggested_format"
+            static let mileageStart = "app2.onboarding.mileage_start"
+            static let mileagePeak = "app2.onboarding.mileage_peak"
+            static let mileageNote = "app2.onboarding.mileage_note"
+            static let mileageCta = "app2.onboarding.mileage_cta"
+            static let mileageNoHistory = "app2.onboarding.mileage_no_history"
+
+            // frame-39 完成
+            static let doneBadge = "app2.onboarding.done_badge"
+            static let doneKicker = "app2.onboarding.done_kicker"
+            /// `%d 週的訓練計畫`
+            static let doneWeeksFormat = "app2.onboarding.done_weeks_format"
+            static let doneGoalRace = "app2.onboarding.done_goal_race"
+            /// `還有 %d 週`
+            static let doneRemainingWeeksFormat = "app2.onboarding.done_remaining_weeks_format"
+            static let doneNow = "app2.onboarding.done_now"
+            static let doneTarget = "app2.onboarding.done_target"
+            /// `這 %d 週怎麼安排`
+            static let doneStagesTitleFormat = "app2.onboarding.done_stages_title_format"
+            static let doneStagesSubtitle = "app2.onboarding.done_stages_subtitle"
+            /// `W%1$d–%2$d`
+            static let doneWeekRangeFormat = "app2.onboarding.done_week_range_format"
+            static let doneCta = "app2.onboarding.done_cta"
+            static let doneGenerating = "app2.onboarding.done_generating"
+            /// `%@ 完賽`
+            static let doneFinishSuffix = "app2.onboarding.done_finish_suffix"
+            static let doneRhythmTitle = "app2.onboarding.done_rhythm_title"
+            static let doneRhythmDays = "app2.onboarding.done_rhythm_days"
+            /// `%d 天`
+            static let doneRhythmDaysFormat = "app2.onboarding.done_rhythm_days_format"
+            static let doneRhythmLongRun = "app2.onboarding.done_rhythm_long_run"
+            static let doneRhythmMethod = "app2.onboarding.done_rhythm_method"
+            static let doneFooterNote = "app2.onboarding.done_footer_note"
+            /// `約 %d km / 週`
+            static let doneWeeklyKmFormat = "app2.onboarding.done_weekly_km_format"
         }
 
         enum Common {

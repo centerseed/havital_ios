@@ -1,0 +1,175 @@
+appId: com.havital.Havital.dev
+---
+# T-0306：2.0 onboarding（設計 frame-30 ~ frame-39）整條實走。
+#
+# **前置（這支不自己 launch，因為它需要啟動參數）**：
+#
+#   xcrun simctl launch <UDID> com.havital.Havital.dev -resetOnboarding -ui_testing_reviewer_demo
+#   maestro --device <UDID> test .maestro/flows/app2-onboarding.yaml
+#
+# - `-resetOnboarding` 讓已完成 onboarding 的帳號重新走一次（`AuthenticationViewModel` 既有旗標）。
+# - `-ui_testing_reviewer_demo` 顯示 reviewer 入口，`DEV_UID` 填 28 碼 Firebase UID 即以該帳號登入 dev。
+# - `--device <UDID>` 不能省：本機同時有 Android emulator，maestro 預設可能挑到它。
+#
+# 這支守的是**十個畫面依序可達、CTA 可按、race 分支正確**——版面重做後最容易壞的就是這條。
+# 它不改時間欄位：maestro 的 `eraseText` 在 SwiftUI `TextField` 上會靜默失敗
+# （新輸入接在舊值後面，`4` ＋ `3` 變成 `43` 再被夾成 `23`），所以目標完賽時間走預設值。
+# 也不 assert 後端生成的數字（那要真帳號真資料，屬人工實走，證據在票面）。
+
+# --- 登入（已登入就跳過整段）-------------------------------------------------
+- runFlow:
+    when:
+      visible:
+        id: "Login_UITestReviewerAccessButton"
+    commands:
+      - tapOn:
+          id: "Login_UITestReviewerAccessButton"
+      - extendedWaitUntil:
+          visible:
+            id: "Login_ReviewerPasscodeField"
+          timeout: 10000
+      - tapOn:
+          id: "Login_ReviewerPasscodeField"
+      - inputText: ${DEV_UID}
+      - tapOn:
+          id: "Login_ReviewerActivateButton"
+
+# --- frame-30 開場 -----------------------------------------------------------
+- extendedWaitUntil:
+    visible:
+      id: "App2_OnboardingWelcome"
+    timeout: 90000
+- tapOn:
+    id: "App2_OnboardingWelcomeCta"
+
+# --- frame-31 目標類型 -------------------------------------------------------
+- extendedWaitUntil:
+    visible:
+      id: "App2_OnboardingGoalType"
+    timeout: 40000
+- assertVisible:
+    id: "App2_OnboardingHeader"
+- tapOn:
+    id: "App2_OnboardingGoalOption_race_run"
+- tapOn:
+    id: "App2_OnboardingGoalTypeCta"
+
+# --- frame-32 目標賽事（race_run 分支才有）-----------------------------------
+- extendedWaitUntil:
+    visible:
+      id: "App2_OnboardingRaceSetup"
+    timeout: 40000
+- assertVisible:
+    id: "App2_OnboardingRaceNameField"
+# 從既有的賽事庫挑一場（`RaceEventListView`，2.0 沒有重做一份搜尋頁）。
+- tapOn:
+    id: "App2_OnboardingRaceSearchButton"
+- extendedWaitUntil:
+    visible: "選擇賽事"
+    timeout: 20000
+- tapOn: "日本"
+- tapOn: "全馬"
+- extendedWaitUntil:
+    visible: "松本マラソン 2026"
+    timeout: 20000
+- tapOn: "松本マラソン 2026"
+- extendedWaitUntil:
+    visible:
+      id: "App2_OnboardingRaceSearchButton"
+    timeout: 25000
+- assertVisible:
+    id: "App2_OnboardingRacePaceChip"
+- tapOn:
+    id: "App2_OnboardingRaceSetupCta"
+
+# --- frame-33 心率 -----------------------------------------------------------
+- extendedWaitUntil:
+    visible:
+      id: "App2_OnboardingHeartRate"
+    timeout: 60000
+- assertVisible:
+    id: "App2_OnboardingHrMaxWheel"
+- assertVisible:
+    id: "App2_OnboardingHrRestingWheel"
+- assertVisible:
+    id: "App2_OnboardingHrBands"
+- tapOn:
+    id: "App2_OnboardingHeartRateCta"
+
+# --- frame-34 連結裝置 -------------------------------------------------------
+- extendedWaitUntil:
+    visible:
+      id: "App2_OnboardingDeviceLink"
+    timeout: 60000
+- assertVisible:
+    id: "App2_OnboardingDeviceGarminRow"
+- assertVisible:
+    id: "App2_OnboardingDeviceAppleHealthRow"
+- tapOn:
+    id: "App2_OnboardingDeviceLinkCta"
+
+# --- frame-35 近期成績 -------------------------------------------------------
+- extendedWaitUntil:
+    visible:
+      id: "App2_OnboardingRecentResult"
+    timeout: 60000
+- tapOn:
+    id: "App2_OnboardingResultDistance_5"
+- assertVisible:
+    id: "App2_OnboardingResultEstimateCard"
+- tapOn:
+    id: "App2_OnboardingRecentResultCta"
+
+# --- frame-36 訓練方法 -------------------------------------------------------
+- extendedWaitUntil:
+    visible:
+      id: "App2_OnboardingMethodology"
+    timeout: 60000
+- assertVisible:
+    id: "App2_OnboardingMethodologyRecommended"
+- tapOn:
+    id: "App2_OnboardingMethodologyCta"
+
+# --- frame-37 訓練日 ---------------------------------------------------------
+- extendedWaitUntil:
+    visible:
+      id: "App2_OnboardingTrainingDays"
+    timeout: 60000
+- assertVisible:
+    id: "App2_OnboardingDaysCountHint"
+- tapOn:
+    id: "App2_OnboardingTrainingDaysCta"
+
+# --- frame-38 跑量確認 -------------------------------------------------------
+- extendedWaitUntil:
+    visible:
+      id: "App2_OnboardingMileage"
+    timeout: 60000
+- assertVisible:
+    id: "App2_OnboardingMileageAverage"
+- assertVisible:
+    id: "App2_OnboardingMileageStartCard"
+- assertVisible:
+    id: "App2_OnboardingMileagePeakCard"
+- tapOn:
+    id: "App2_OnboardingMileageCta"
+
+# --- frame-39 完成 -----------------------------------------------------------
+# overview 是真的打後端（LLM 生成），給足時間。
+- extendedWaitUntil:
+    visible:
+      id: "App2_OnboardingCompletionHeader"
+    timeout: 240000
+- assertVisible:
+    id: "App2_OnboardingCompletionStages"
+- tapOn:
+    id: "App2_OnboardingCompletionCta"
+
+# --- 首頁 --------------------------------------------------------------------
+# 第一週課表也是真的生成，比 overview 更久。
+- extendedWaitUntil:
+    visible:
+      id: "App2_TabBar"
+    timeout: 300000
+- assertVisible:
+    id: "App2_RootView"

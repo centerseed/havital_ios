@@ -1,5 +1,24 @@
 import SwiftUI
 
+// MARK: - App2NumberFormat
+/// 2.0 畫面上「帶千分位的量」只有這一支格式器。
+///
+/// 之前 `App2RecordsView` 與 `App2AchievementsView` 各自帶一份私有 `grouped(_:)`，
+/// 規則還不一樣：紀錄頁永遠 0 位小數，成就頁對 `value < 100` 給 1 位小數。
+/// 後者讓週數印成 **`11.0 / 24.0 週 · 還差 13.0 週`**（2026-08-25 用戶截圖退件）。
+/// 收斂成一支之後規則只講一次：
+///
+/// - **值是整數 → 絕不帶小數點**（`24` 不是 `24.0`）；
+/// - 有小數才顯示，最多 `maximumFractionDigits` 位。
+enum App2NumberFormat {
+    static func grouped(_ value: Double, maximumFractionDigits: Int = 0) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = value == value.rounded() ? 0 : max(0, maximumFractionDigits)
+        return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.0f", value)
+    }
+}
+
 // MARK: - App2Card
 /// 2.0 的卡片容器：白底、圓角 22、細邊、雙層陰影。
 ///

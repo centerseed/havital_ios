@@ -4213,6 +4213,8 @@
 "app2.home.minutes" = "%d 分";
 "app2.home.strength_row" = "筋力 · %d 種目";
 "app2.home.structure_reps" = "本数 × %d 本";
+"app2.home.structure_note_steady" = "イージー（一定）";
+"app2.home.structure_note_interval" = "インターバル";
 "app2.home.plan_unavailable_body" = "今日のメニューを読み込めませんでした。下に引いて再読み込みしてください。";
 "app2.home.no_session_today_body" = "今週のプランに今日の予定はありません。「プラン」で週全体を確認できます。";
 "app2.home.week_review_generate_current" = "今週のレビューを作成";
@@ -4296,6 +4298,140 @@
 "app2.settings.redeem_code" = "コードを利用";
 "app2.settings.training_days_separator" = "・";
 "app2.common.settings_entry" = "設定を開く";
+
+/* MARK: - App2 Onboarding（デザイン frame-30 ~ frame-39） */
+"app2.onboarding.seg_goal" = "あなたの目標";
+"app2.onboarding.seg_training" = "あなたのラン";
+"app2.onboarding.seg_plan" = "あなたのプラン";
+"app2.onboarding.step_format" = "ステップ %1$d / %2$d";
+"app2.onboarding.continue" = "続ける";
+"app2.onboarding.back" = "戻る";
+
+"app2.onboarding.welcome_title" = "Paceriz があなた専用のトレーニングプランを作ります";
+"app2.onboarding.welcome_subtitle" = "3 つの簡単なステップ、数分で完了します。";
+"app2.onboarding.welcome_step1_title" = "目標を決める";
+"app2.onboarding.welcome_step1_body" = "出たいレース、または目指したい状態";
+"app2.onboarding.welcome_step2_title" = "ランのことを教えて";
+"app2.onboarding.welcome_step2_body" = "実力・デバイス・練習しやすい曜日";
+"app2.onboarding.welcome_step3_title" = "プランを作る";
+"app2.onboarding.welcome_step3_body" = "Paceriz が専用の期分けメニューを生成します";
+"app2.onboarding.welcome_note" = "ここで入力した内容は、あとからいつでも変更できます。";
+"app2.onboarding.welcome_cta" = "はじめる";
+"app2.onboarding.welcome_duration" = "所要時間 約 3 分";
+
+"app2.onboarding.goal_title" = "あなたの目標は？";
+"app2.onboarding.goal_subtitle" = "これに合わせてプランと手法を組み立てます。";
+"app2.onboarding.goal_race_title" = "目標レース";
+"app2.onboarding.goal_race_body" = "特定のレースに向けて期分けし、PB を狙う";
+"app2.onboarding.goal_maintenance_title" = "オフシーズン";
+"app2.onboarding.goal_maintenance_body" = "体力とスピードを維持して次のシーズンへ";
+"app2.onboarding.goal_beginner_title" = "はじめてのラン";
+"app2.onboarding.goal_beginner_body" = "ゼロから走る習慣をつくる";
+
+"app2.onboarding.race_title" = "目標レースを設定";
+"app2.onboarding.race_subtitle" = "対応レースから選ぶか、自分で入力してください。";
+"app2.onboarding.race_supported" = "対応しているレース";
+"app2.onboarding.race_search" = "レースを検索";
+"app2.onboarding.race_set_as_goal" = "目標にする";
+"app2.onboarding.race_goal_badge" = "目標";
+"app2.onboarding.race_weeks_away" = "%d 週間後";
+"app2.onboarding.race_manual_divider" = "または自分で入力";
+"app2.onboarding.race_name_placeholder" = "レース名";
+"app2.onboarding.race_target_time" = "目標完走タイム";
+"app2.onboarding.race_hour" = "時";
+"app2.onboarding.race_minute" = "分";
+"app2.onboarding.race_second" = "秒";
+"app2.onboarding.race_custom_distance" = "距離を指定";
+
+"app2.onboarding.hr_title" = "心拍数の設定";
+"app2.onboarding.hr_subtitle" = "予備心拍数（HRR）でゾーンを分けるため、最大心拍数と安静時心拍数が必要です。";
+"app2.onboarding.hr_max" = "最大心拍数";
+"app2.onboarding.hr_resting" = "安静時心拍数";
+"app2.onboarding.hr_bpm" = "BPM";
+"app2.onboarding.hr_max_hint" = "「220 − 年齢」から推定";
+"app2.onboarding.hr_resting_hint" = "起床直後の計測がもっとも正確です";
+"app2.onboarding.hr_bands_title" = "あなたの心拍ゾーン";
+"app2.onboarding.hr_bands_footer" = "HRR（安静時心拍数 ＋ 割合 × 予備）で換算した各ゾーンの上限心拍数（bpm）。";
+"app2.onboarding.hr_band_recovery" = "回復";
+"app2.onboarding.hr_band_endurance" = "持久";
+"app2.onboarding.hr_band_tempo" = "テンポ";
+"app2.onboarding.hr_band_threshold" = "閾値";
+"app2.onboarding.hr_band_anaerobic" = "無酸素";
+
+"app2.onboarding.device_title" = "デバイスを連携";
+"app2.onboarding.device_subtitle" = "連携するとバックグラウンドでランの記録を同期します。";
+"app2.onboarding.device_connected" = "連携済み";
+"app2.onboarding.device_disconnect" = "解除";
+"app2.onboarding.device_connect" = "連携する";
+"app2.onboarding.device_apple_health_sub" = "アクティビティ・心拍・睡眠を同期";
+"app2.onboarding.device_garmin_sub" = "時計のランの記録を同期";
+"app2.onboarding.device_syncing" = "バックグラウンドで同期中";
+"app2.onboarding.device_sync_note_title" = "%@ 連携済み";
+"app2.onboarding.device_sync_note_body" = "最近のランを同期しています。待たずにそのまま設定を続けてください。設定中に完了します。";
+"app2.onboarding.device_privacy" = "データはトレーニング提案のみに使用します。設定からいつでも連携を解除できます。";
+"app2.onboarding.device_skip" = "あとで連携する";
+
+"app2.onboarding.result_title" = "今の実力に近い記録を 1 つ選んでください";
+"app2.onboarding.result_subtitle" = "1 件で十分です。トレーニングペースの調整に使います。";
+"app2.onboarding.result_distance" = "距離";
+"app2.onboarding.result_finish_time" = "完走タイム";
+"app2.onboarding.result_avg_pace" = "平均ペース";
+"app2.onboarding.result_vdot" = "推定 VDOT";
+"app2.onboarding.result_when" = "この記録の時期";
+"app2.onboarding.result_within_year" = "1 年以内";
+"app2.onboarding.result_over_year" = "1 年以上前";
+"app2.onboarding.result_over_year_note" = "1 年以上前の記録は、現在の実力をやや控えめに見積もります。";
+"app2.onboarding.result_skip" = "最近の記録がない";
+
+"app2.onboarding.method_title" = "トレーニング手法を選ぶ";
+"app2.onboarding.method_subtitle" = "決まっていなくても大丈夫。あとから変更できます。";
+"app2.onboarding.method_recommended" = "おすすめ";
+"app2.onboarding.method_pick_own" = "自分で選びたい方は";
+
+"app2.onboarding.days_title" = "ふだん走りやすい曜日は？";
+"app2.onboarding.days_subtitle" = "空いている曜日を教えてください。Rizo がそこにメニューを入れます。あとから調整できます。";
+"app2.onboarding.days_selected_format" = "%1$d 日選択中 ・ 週 %2$d–%3$d 日がおすすめ";
+"app2.onboarding.days_long_run" = "ロング走の日";
+"app2.onboarding.days_long_run_note" = "週末を優先して選んでいます。ほかの練習日に変更もできます。";
+"app2.onboarding.days_note" = "選んでいない曜日は避けてメニューを組みます。予定が変わればいつでも調整できます。";
+
+"app2.onboarding.mileage_title" = "ふだんの走行距離はこれくらいですか？";
+"app2.onboarding.mileage_subtitle" = "同期したランの記録から推定しました。確認するだけで大丈夫です。";
+"app2.onboarding.mileage_source_format" = "%@ のランの記録より";
+"app2.onboarding.mileage_recent_avg" = "直近 4 週間の平均";
+"app2.onboarding.mileage_manual_label" = "ふだんの週間走行距離";
+"app2.onboarding.mileage_unit" = "km / 週";
+"app2.onboarding.mileage_confirm_question" = "ふだんの走行距離と合っていますか？";
+"app2.onboarding.mileage_about_right" = "だいたい合ってる";
+"app2.onboarding.mileage_adjust" = "調整したい";
+"app2.onboarding.mileage_slider_title" = "開始時の週間走行距離を微調整";
+"app2.onboarding.mileage_suggested_format" = "推奨 %1$d–%2$d";
+"app2.onboarding.mileage_start" = "開始週の距離";
+"app2.onboarding.mileage_peak" = "ピーク週の目安";
+"app2.onboarding.mileage_note" = "この距離から始め、最初の 2 週間はゆるやかに増やして故障リスクを下げます。";
+"app2.onboarding.mileage_cta" = "トレーニングプランを作成";
+"app2.onboarding.mileage_no_history" = "まだランの記録が同期されていません。ふだんの週間走行距離を入力してください。";
+
+"app2.onboarding.done_badge" = "設定完了";
+"app2.onboarding.done_kicker" = "Paceriz が用意したのは";
+"app2.onboarding.done_weeks_format" = "%d 週間のトレーニングプラン";
+"app2.onboarding.done_goal_race" = "目標レース";
+"app2.onboarding.done_remaining_weeks_format" = "あと %d 週";
+"app2.onboarding.done_now" = "今のあなた";
+"app2.onboarding.done_target" = "目標";
+"app2.onboarding.done_stages_title_format" = "この %d 週間の組み立て";
+"app2.onboarding.done_stages_subtitle" = "どの段階にも、はっきりした狙いがあります。";
+"app2.onboarding.done_week_range_format" = "W%1$d–%2$d";
+"app2.onboarding.done_cta" = "第 1 週をはじめる";
+"app2.onboarding.done_generating" = "第 1 週のメニューを作成中…";
+"app2.onboarding.done_finish_suffix" = "%@ 完走";
+"app2.onboarding.done_rhythm_title" = "あなたのトレーニングリズム";
+"app2.onboarding.done_rhythm_days" = "週あたりのラン日数";
+"app2.onboarding.done_rhythm_days_format" = "%d 日";
+"app2.onboarding.done_rhythm_long_run" = "ロング走の予定日";
+"app2.onboarding.done_rhythm_method" = "トレーニング手法";
+"app2.onboarding.done_footer_note" = "プランは毎週の実際の練習と回復状況に合わせて自動で微調整されます。自分で計算する必要はありません。";
+"app2.onboarding.done_weekly_km_format" = "約 %d km / 週";
 
 
 // T-0306 獨立審查退回項修正

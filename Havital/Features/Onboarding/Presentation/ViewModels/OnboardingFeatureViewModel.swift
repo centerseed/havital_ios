@@ -621,14 +621,25 @@ final class OnboardingFeatureViewModel: ObservableObject {
                let longrunDay = longrunDays.first {
                 selectedLongRunDay = longrunDay
                 Logger.debug("[OnboardingFeatureVM] Loaded long run day: \(longrunDay)")
-            } else if !selectedWeekdays.isEmpty {
-                selectedLongRunDay = selectedWeekdays.contains(6) ? 6 : (selectedWeekdays.sorted().first ?? 6)
+            } else {
+                normalizeLongRunDaySelection()
             }
         } catch {
             Logger.debug("[OnboardingFeatureVM] Failed to load training days: \(error.localizedDescription)")
         }
 
         isLoadingPreferences = false
+    }
+
+    /// 長跑日落在已選訓練日之內：優先週六，其次已選日中最早的一天。
+    ///
+    /// 這條規則原本在 `loadTrainingDayPreferences()` 裡是一行 inline，2.0 的訓練日頁
+    /// 每次改勾選也要套同一條 —— 收斂成一支方法，兩處呼叫，不再有第二份表述。
+    /// 已在選取範圍內就不動（尊重使用者已做的選擇）。
+    func normalizeLongRunDaySelection() {
+        guard !selectedWeekdays.isEmpty else { return }
+        guard !selectedWeekdays.contains(selectedLongRunDay) else { return }
+        selectedLongRunDay = selectedWeekdays.contains(6) ? 6 : (selectedWeekdays.sorted().first ?? 6)
     }
 
     /// Save training day preferences and generate overview

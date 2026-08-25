@@ -16,8 +16,9 @@ struct App2SettingsView: View {
     let onClose: () -> Void
 
     @ObservedObject var viewModel: App2SettingsViewModel
-    /// 「重新設定目標賽事」開的是**既有的**目標設定流程（`GoalTypeSelectionView`），
-    /// 不在 2.0 重做一份。
+    /// 「重新設定目標賽事」走 2.0 的 onboarding 流程（`App2OnboardingContainerView`，
+    /// 設計 frame-31 起）。**邏輯不是第二份**：它底下仍是 `OnboardingCoordinator` /
+    /// `OnboardingFeatureViewModel`，與首次 onboarding 同一條提交路徑。
     @State private var isShowingGoalSetup = false
 
     var body: some View {
@@ -44,7 +45,9 @@ struct App2SettingsView: View {
         .accessibilityIdentifier("App2_SettingsView")
         .onAppear { viewModel.loadIfNeeded() }
         .fullScreenCover(isPresented: $isShowingGoalSetup) {
-            GoalTypeSelectionView()
+            App2OnboardingContainerView(isReonboarding: true) {
+                isShowingGoalSetup = false
+            }
         }
     }
 

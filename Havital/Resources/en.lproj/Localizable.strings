@@ -4216,6 +4216,8 @@
 "app2.home.minutes" = "%d min";
 "app2.home.strength_row" = "Strength · %d exercises";
 "app2.home.structure_reps" = "Reps × %d";
+"app2.home.structure_note_steady" = "Steady";
+"app2.home.structure_note_interval" = "Intervals";
 "app2.home.plan_unavailable_body" = "Couldn't load today's session. Pull down to refresh and try again.";
 "app2.home.no_session_today_body" = "Nothing scheduled for today in this week's plan. Open Plan to see the full week.";
 "app2.home.week_review_generate_current" = "Generate this week's review";
@@ -4299,6 +4301,140 @@
 "app2.settings.redeem_code" = "Redeem a code";
 "app2.settings.training_days_separator" = " · ";
 "app2.common.settings_entry" = "Open settings";
+
+/* MARK: - App2 Onboarding (design frame-30 ~ frame-39) */
+"app2.onboarding.seg_goal" = "Your goal";
+"app2.onboarding.seg_training" = "Your running";
+"app2.onboarding.seg_plan" = "Your plan";
+"app2.onboarding.step_format" = "Step %1$d of %2$d";
+"app2.onboarding.continue" = "Continue";
+"app2.onboarding.back" = "Back";
+
+"app2.onboarding.welcome_title" = "Let Paceriz build a training plan just for you";
+"app2.onboarding.welcome_subtitle" = "It only takes a few minutes, in three short steps.";
+"app2.onboarding.welcome_step1_title" = "Set your goal";
+"app2.onboarding.welcome_step1_body" = "A race you want to finish, or a state you want to reach";
+"app2.onboarding.welcome_step2_title" = "Tell us about your running";
+"app2.onboarding.welcome_step2_body" = "Your fitness, your devices and when you can train";
+"app2.onboarding.welcome_step3_title" = "Build your plan";
+"app2.onboarding.welcome_step3_body" = "Paceriz generates your periodised training plan";
+"app2.onboarding.welcome_note" = "Everything you enter here can be changed later.";
+"app2.onboarding.welcome_cta" = "Get started";
+"app2.onboarding.welcome_duration" = "About 3 minutes";
+
+"app2.onboarding.goal_title" = "What is your goal?";
+"app2.onboarding.goal_subtitle" = "We build your plan and method around it.";
+"app2.onboarding.goal_race_title" = "Target race";
+"app2.onboarding.goal_race_body" = "Train for a specific race and chase a PB";
+"app2.onboarding.goal_maintenance_title" = "Off-season";
+"app2.onboarding.goal_maintenance_body" = "Keep your fitness and speed until next season";
+"app2.onboarding.goal_beginner_title" = "New to running";
+"app2.onboarding.goal_beginner_body" = "Start from zero and build a steady habit";
+
+"app2.onboarding.race_title" = "Set your target race";
+"app2.onboarding.race_subtitle" = "Pick a supported race, or enter your own.";
+"app2.onboarding.race_supported" = "Supported races";
+"app2.onboarding.race_search" = "Search races";
+"app2.onboarding.race_set_as_goal" = "Set as goal";
+"app2.onboarding.race_goal_badge" = "Goal";
+"app2.onboarding.race_weeks_away" = "in %d weeks";
+"app2.onboarding.race_manual_divider" = "Or enter your own";
+"app2.onboarding.race_name_placeholder" = "Race name";
+"app2.onboarding.race_target_time" = "Target finish time";
+"app2.onboarding.race_hour" = "h";
+"app2.onboarding.race_minute" = "m";
+"app2.onboarding.race_second" = "s";
+"app2.onboarding.race_custom_distance" = "Custom distance";
+
+"app2.onboarding.hr_title" = "Your heart rate settings";
+"app2.onboarding.hr_subtitle" = "We use heart rate reserve (HRR) for zones, so we need your max and resting values.";
+"app2.onboarding.hr_max" = "Max heart rate";
+"app2.onboarding.hr_resting" = "Resting heart rate";
+"app2.onboarding.hr_bpm" = "BPM";
+"app2.onboarding.hr_max_hint" = "Estimated from 220 − age";
+"app2.onboarding.hr_resting_hint" = "Most accurate first thing in the morning";
+"app2.onboarding.hr_bands_title" = "Your heart rate zones";
+"app2.onboarding.hr_bands_footer" = "Upper heart rate limit of each zone (bpm), from HRR (resting + percent × reserve).";
+"app2.onboarding.hr_band_recovery" = "Recovery";
+"app2.onboarding.hr_band_endurance" = "Endurance";
+"app2.onboarding.hr_band_tempo" = "Tempo";
+"app2.onboarding.hr_band_threshold" = "Threshold";
+"app2.onboarding.hr_band_anaerobic" = "Anaerobic";
+
+"app2.onboarding.device_title" = "Connect your device";
+"app2.onboarding.device_subtitle" = "Once connected we start syncing your runs in the background.";
+"app2.onboarding.device_connected" = "Connected";
+"app2.onboarding.device_disconnect" = "Disconnect";
+"app2.onboarding.device_connect" = "Connect";
+"app2.onboarding.device_apple_health_sub" = "Sync activity, heart rate and sleep";
+"app2.onboarding.device_garmin_sub" = "Sync the runs from your watch";
+"app2.onboarding.device_syncing" = "Syncing in background";
+"app2.onboarding.device_sync_note_title" = "%@ connected";
+"app2.onboarding.device_sync_note_body" = "We are syncing your recent runs. Carry on with the setup — it finishes while you go, you do not have to wait.";
+"app2.onboarding.device_privacy" = "Your data is only used to generate training advice. You can disconnect any time in Settings.";
+"app2.onboarding.device_skip" = "Connect later";
+
+"app2.onboarding.result_title" = "Pick the result that best reflects your current fitness";
+"app2.onboarding.result_subtitle" = "One is enough — we use it to calibrate your training paces.";
+"app2.onboarding.result_distance" = "Distance";
+"app2.onboarding.result_finish_time" = "Finish time";
+"app2.onboarding.result_avg_pace" = "Average pace";
+"app2.onboarding.result_vdot" = "Estimated VDOT";
+"app2.onboarding.result_when" = "When was this result?";
+"app2.onboarding.result_within_year" = "Within a year";
+"app2.onboarding.result_over_year" = "Over a year ago";
+"app2.onboarding.result_over_year_note" = "Older results are used to estimate your current fitness more conservatively.";
+"app2.onboarding.result_skip" = "I have no recent result";
+
+"app2.onboarding.method_title" = "Choose a training method";
+"app2.onboarding.method_subtitle" = "Not sure? That is fine — you can switch any time.";
+"app2.onboarding.method_recommended" = "Recommended";
+"app2.onboarding.method_pick_own" = "Prefer to choose yourself?";
+
+"app2.onboarding.days_title" = "Which days do you usually run?";
+"app2.onboarding.days_subtitle" = "Just tell us when you are free and Rizo schedules around it. You can adjust any time.";
+"app2.onboarding.days_selected_format" = "%1$d days selected · %2$d–%3$d per week recommended";
+"app2.onboarding.days_long_run" = "Long run day";
+"app2.onboarding.days_long_run_note" = "We preselect a weekend day, but you can pick any training day.";
+"app2.onboarding.days_note" = "Your plan avoids the days you did not select, and you can adjust it any time.";
+
+"app2.onboarding.mileage_title" = "Is this your usual weekly mileage?";
+"app2.onboarding.mileage_subtitle" = "We estimated it from your synced runs — just confirm it.";
+"app2.onboarding.mileage_source_format" = "From your %@ runs";
+"app2.onboarding.mileage_recent_avg" = "Last 4 weeks average";
+"app2.onboarding.mileage_manual_label" = "Your usual weekly mileage";
+"app2.onboarding.mileage_unit" = "km / week";
+"app2.onboarding.mileage_confirm_question" = "Does that match your usual mileage?";
+"app2.onboarding.mileage_about_right" = "About right";
+"app2.onboarding.mileage_adjust" = "Let me adjust";
+"app2.onboarding.mileage_slider_title" = "Fine-tune the starting weekly mileage";
+"app2.onboarding.mileage_suggested_format" = "Suggested %1$d–%2$d";
+"app2.onboarding.mileage_start" = "Starting week";
+"app2.onboarding.mileage_peak" = "Peak week (est.)";
+"app2.onboarding.mileage_note" = "Your plan starts here and ramps up gently over the first two weeks to lower injury risk.";
+"app2.onboarding.mileage_cta" = "Generate my plan";
+"app2.onboarding.mileage_no_history" = "No runs synced yet — just enter your usual weekly mileage.";
+
+"app2.onboarding.done_badge" = "Setup complete";
+"app2.onboarding.done_kicker" = "Paceriz has planned";
+"app2.onboarding.done_weeks_format" = "%d weeks of training";
+"app2.onboarding.done_goal_race" = "Target race";
+"app2.onboarding.done_remaining_weeks_format" = "%d weeks to go";
+"app2.onboarding.done_now" = "You now";
+"app2.onboarding.done_target" = "Target";
+"app2.onboarding.done_stages_title_format" = "How the %d weeks are laid out";
+"app2.onboarding.done_stages_subtitle" = "Every phase has something specific to work on.";
+"app2.onboarding.done_week_range_format" = "W%1$d–%2$d";
+"app2.onboarding.done_cta" = "Start week one";
+"app2.onboarding.done_generating" = "Building your first week…";
+"app2.onboarding.done_finish_suffix" = "%@ finish";
+"app2.onboarding.done_rhythm_title" = "Your training rhythm";
+"app2.onboarding.done_rhythm_days" = "Running days per week";
+"app2.onboarding.done_rhythm_days_format" = "%d days";
+"app2.onboarding.done_rhythm_long_run" = "Long run scheduled on";
+"app2.onboarding.done_rhythm_method" = "Training method";
+"app2.onboarding.done_footer_note" = "Your plan adjusts itself each week based on what you actually run and how you recover — you do not have to do the maths.";
+"app2.onboarding.done_weekly_km_format" = "about %d km / week";
 
 
 // T-0306 獨立審查退回項修正

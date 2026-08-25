@@ -196,6 +196,11 @@ struct App2SessionStructureBar: Identifiable, Equatable {
     let widthWeight: Double
     /// 塊上標的配速（`7:55`）。細柱標不下，所以只有寬塊會有值。
     let paceLabel: String?
+    /// 圖下方段落標註列的名稱（`輕鬆（穩定）`／`間歇`）。
+    /// 只有主課段有值 —— 暖身／組間／緩和不進標註列（設計 frame-02 的圖例只列有意義的段）。
+    var noteLabel: String? = nil
+    /// 段落標註列右側的量（`4.0 km · 7:17/km`）。
+    var noteDetail: String? = nil
 
     var isWork: Bool { kind != .support }
 }

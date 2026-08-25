@@ -391,8 +391,9 @@ struct HeartRateZoneInfoView: View {
             // 用戶已手動設定過心率，直接使用儲存值
             maxHeartRate = maxHR
         } else if isOnboardingMode {
-            // Onboarding 首次進入且無心率記錄：使用基於年齡的預設值（220 - 年齡）
-            maxHeartRate = max(100, 220 - userAgeFromLocalStorage)
+            // Onboarding 首次進入且無心率記錄：使用基於年齡的預設值（220 - 年齡）。
+            // 規則本體收斂在 App2OnboardingProjection.estimatedMaxHR —— 2.0 的心率頁用同一條。
+            maxHeartRate = App2OnboardingProjection.estimatedMaxHR(age: userAgeFromLocalStorage)
         } else {
             maxHeartRate = 190
         }

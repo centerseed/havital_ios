@@ -10,8 +10,12 @@ import SwiftUI
 /// **第二個版面**，不是第二套成就系統 —— ViewModel、Repository、端點、
 /// 徽章語意政策（`AchievementBadgeSemanticPolicy`）全部沿用。
 ///
-/// 版面對照設計：最新解鎖 hero（圓章 ＋ 名稱 ＋ 敘事 ＋ 下一個目標進度條）
+/// 版面對照設計：最新解鎖 hero（徽章圖 ＋ 名稱 ＋ 敘事 ＋ 下一個目標進度條）
 /// → 個人最佳 2 欄 → 徽章收藏（每條主線一張卡：標題列 ＋ 進度條 ＋ 橫向徽章列）。
+///
+/// **2026-08-25 用戶裁決：這一頁基本上跟 1.4 一樣。** API、徽章美術 asset、
+/// 「最新解鎖／下一個目標」的挑選邏輯全部沿用 1.4；2.0 只調外型
+/// （間距、圓角、字級對齊 app2 視覺語言）與數字格式（整數不帶 `.0`）。
 struct App2AchievementsView: View {
 
     /// 既有成就 feature 的 ViewModel（`GET /v2/achievements/summary`），
@@ -50,8 +54,8 @@ struct App2AchievementsView: View {
     // MARK: - 最新解鎖 hero
 
     private func heroCard(_ summary: AchievementSummary) -> some View {
-        let latest = latestUnlocked(summary)
-        let track = nextTrack(summary)
+        let latest = Self.latestUnlocked(summary)
+        let track = Self.nextTrack(summary)
 
         return App2AccentCard(strength: 0.14, padding: 18, spacing: 0) {
             HStack(alignment: .top, spacing: 15) {
@@ -84,35 +88,30 @@ struct App2AchievementsView: View {
         .accessibilityIdentifier("App2_AchievementsHero")
     }
 
-    /// 設計的銅色圓章：主數字 ＋ 單位。數字取 nextBadge 的目標值不合適（那是「下一個」），
-    /// 這裡取**已解鎖徽章自己的進度目標**，沒有就退成徽章代號的首段。
+    /// hero 的徽章圖 —— **用既有的正式徽章美術 asset**，與 1.4 同一支
+    /// （`AchievementBadgeImage` ＋ `AchievementBadgeArtwork.assetName(for:)`）。
+    ///
+    /// 原本畫成 2.0 自己的銅色圓章＋目標數字，等於在成就頁另立一套徽章視覺；
+    /// 2026-08-25 用戶裁決：徽章圖沿用既有 asset、完整呈現（`scaledToFit`，不裁切）。
+    @ViewBuilder
     private func medal(_ badge: AchievementBadge?) -> some View {
-        let target = badge?.progress?.target
-        return Circle()
-            .fill(
-                LinearGradient(
-                    colors: [App2Theme.medalGradient.from, App2Theme.medalGradient.to],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+        if let badge {
+            AchievementBadgeImage(
+                assetName: AchievementBadgeArtwork.assetName(for: badge),
+                status: badge.status,
+                size: 96
             )
-            .frame(width: 96, height: 96)
-            .overlay(Circle().strokeBorder(Color.white.opacity(0.6), lineWidth: 3))
-            .overlay {
-                VStack(spacing: 1) {
-                    Text(target.map { Self.grouped($0) } ?? "★")
+            .accessibilityIdentifier("App2_AchievementsHeroBadge")
+        } else {
+            RoundedRectangle(cornerRadius: 21, style: .continuous)
+                .fill(App2Theme.insetBackground)
+                .frame(width: 96, height: 96)
+                .overlay(
+                    Text(verbatim: "—")
                         .font(.app2Mono(22))
-                    if let unit = badge?.progress?.unitKey?.localizedOrFallback(default: "") ,
-                       !unit.isEmpty {
-                        Text(unit)
-                            .font(.system(size: 13, weight: .heavy))
-                            .opacity(0.9)
-                    }
-                }
-                .foregroundStyle(.white)
-                .shadow(color: .black.opacity(0.3), radius: 1, x: 0, y: 1)
-            }
-            .shadow(color: App2Theme.medalGradient.to.opacity(0.6), radius: 9, x: 0, y: 8)
+                        .foregroundStyle(App2Theme.inkTertiary)
+                )
+        }
     }
 
     private func nextGoal(_ track: AchievementTrack) -> some View {
@@ -343,7 +342,17 @@ struct App2AchievementsView: View {
     // 「最新解鎖」與「下一個目標」的挑法與 1.x 的 `PersonalAchievementsView` 相同
     // （最近解鎖時間最大者／未完成主線中進度比例最高者）。
 
-    private func latestUnlocked(_ summary: AchievementSummary) -> AchievementBadge? {
+    // MARK: - 挑選邏輯：與 1.4 完全相同，不另立一套
+    //
+    // 2026-08-25 用戶裁決：**成就頁基本上跟 1.4 一樣** —— API、徽章資源、
+    // 「最新解鎖」與「下一個目標」的挑法全部沿用 `PersonalAchievementsView` 的既有行為。
+    // 2.0 只做外型（間距／圓角／字級對齊 app2 視覺語言）。
+    //
+    // 這兩支刻意與 `PersonalAchievementsView.latestUnlockedBadge`／`nextTargetBadge`
+    // 逐行對齊；那邊改了這邊要跟著改。
+
+    /// 全域最近解鎖的一顆（與 1.4 同：不看 pin、只看 `unlockedAt`）。
+    static func latestUnlocked(_ summary: AchievementSummary) -> AchievementBadge? {
         let all = summary.achievementTracks.isEmpty
             ? summary.badgeGroups.flatMap(\.badges)
             : summary.achievementTracks.flatMap(\.badges)
@@ -354,7 +363,8 @@ struct App2AchievementsView: View {
             .first
     }
 
-    private func nextTrack(_ summary: AchievementSummary) -> AchievementTrack? {
+    /// 下一個目標：尚未完成的主線中，進度比例最高的那條（與 1.4 同）。
+    static func nextTrack(_ summary: AchievementSummary) -> AchievementTrack? {
         summary.achievementTracks
             .filter { ($0.nextBadge?.status ?? .unlocked) != .unlocked }
             .max {
@@ -363,10 +373,9 @@ struct App2AchievementsView: View {
             }
     }
 
-    private static func grouped(_ value: Double) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = value < 100 ? 1 : 0
-        return formatter.string(from: NSNumber(value: value)) ?? String(format: "%.0f", value)
+    /// 量化列的數字格式 —— 走共用的 `App2NumberFormat`（整數不帶 `.0`）。
+    /// 累積里程這種真的有小數的量保留一位；破百之後只給整數。
+    static func grouped(_ value: Double) -> String {
+        App2NumberFormat.grouped(value, maximumFractionDigits: value < 100 ? 1 : 0)
     }
 }

@@ -4257,6 +4257,8 @@
 "app2.home.minutes" = "%d 分鐘";
 "app2.home.strength_row" = "力量 · %d 個動作";
 "app2.home.structure_reps" = "趟數 × %d 趟";
+"app2.home.structure_note_steady" = "輕鬆（穩定）";
+"app2.home.structure_note_interval" = "間歇";
 "app2.home.plan_unavailable_body" = "今天的課表暫時讀不到，下拉重新整理再試一次。";
 "app2.home.no_session_today_body" = "本週課表裡今天沒有安排，到「課表」頁看整週。";
 "app2.home.week_review_generate_current" = "產生本週回顧";
@@ -4340,6 +4342,140 @@
 "app2.settings.redeem_code" = "兌換優惠碼";
 "app2.settings.training_days_separator" = "・";
 "app2.common.settings_entry" = "開啟設定";
+
+/* MARK: - App2 Onboarding（設計 frame-30 ~ frame-39） */
+"app2.onboarding.seg_goal" = "你的目標";
+"app2.onboarding.seg_training" = "你的訓練";
+"app2.onboarding.seg_plan" = "你的計畫";
+"app2.onboarding.step_format" = "第 %1$d / %2$d 段";
+"app2.onboarding.continue" = "繼續";
+"app2.onboarding.back" = "返回上一步";
+
+"app2.onboarding.welcome_title" = "讓 Paceriz 為你打造一份專屬訓練計畫";
+"app2.onboarding.welcome_subtitle" = "只要幾分鐘，分成三個小步驟就完成。";
+"app2.onboarding.welcome_step1_title" = "設定目標";
+"app2.onboarding.welcome_step1_body" = "你想完成的比賽，或想達到的狀態";
+"app2.onboarding.welcome_step2_title" = "了解你的跑步";
+"app2.onboarding.welcome_step2_body" = "你的能力、裝置與方便訓練的時間";
+"app2.onboarding.welcome_step3_title" = "建立訓練計畫";
+"app2.onboarding.welcome_step3_body" = "Paceriz 產生你的專屬週期化課表";
+"app2.onboarding.welcome_note" = "過程中填的內容，之後都能隨時修改。";
+"app2.onboarding.welcome_cta" = "開始";
+"app2.onboarding.welcome_duration" = "大約 3 分鐘";
+
+"app2.onboarding.goal_title" = "你的目標是什麼？";
+"app2.onboarding.goal_subtitle" = "我們會依此打造你的訓練計畫與方法。";
+"app2.onboarding.goal_race_title" = "目標賽事";
+"app2.onboarding.goal_race_body" = "為特定比賽備戰，週期化衝刺 PB";
+"app2.onboarding.goal_maintenance_title" = "休賽季";
+"app2.onboarding.goal_maintenance_body" = "維持體能與速度，等待下個賽季";
+"app2.onboarding.goal_beginner_title" = "新手入門";
+"app2.onboarding.goal_beginner_body" = "從零開始，建立穩定跑步習慣";
+
+"app2.onboarding.race_title" = "設定目標賽事";
+"app2.onboarding.race_subtitle" = "選一場已支援的賽事，或自行填寫。";
+"app2.onboarding.race_supported" = "目前的支援賽事";
+"app2.onboarding.race_search" = "搜尋賽事";
+"app2.onboarding.race_set_as_goal" = "設為目標";
+"app2.onboarding.race_goal_badge" = "目標";
+"app2.onboarding.race_weeks_away" = "%d 週後";
+"app2.onboarding.race_manual_divider" = "或自行填寫";
+"app2.onboarding.race_name_placeholder" = "賽事名稱";
+"app2.onboarding.race_target_time" = "目標完賽時間";
+"app2.onboarding.race_hour" = "時";
+"app2.onboarding.race_minute" = "分";
+"app2.onboarding.race_second" = "秒";
+"app2.onboarding.race_custom_distance" = "自訂距離";
+
+"app2.onboarding.hr_title" = "你的心率設定";
+"app2.onboarding.hr_subtitle" = "我們用儲備心率（HRR）劃分區間，因此需要最大與靜息兩個數值。";
+"app2.onboarding.hr_max" = "最大心率";
+"app2.onboarding.hr_resting" = "靜息心率";
+"app2.onboarding.hr_bpm" = "BPM";
+"app2.onboarding.hr_max_hint" = "依「220 − 年齡」估算";
+"app2.onboarding.hr_resting_hint" = "晨起量測最準確";
+"app2.onboarding.hr_bands_title" = "你的心率訓練區間";
+"app2.onboarding.hr_bands_footer" = "依 HRR（靜息心率 ＋ 百分比 × 儲備）換算的各區間心率上限（bpm）。";
+"app2.onboarding.hr_band_recovery" = "恢復";
+"app2.onboarding.hr_band_endurance" = "耐力";
+"app2.onboarding.hr_band_tempo" = "節奏";
+"app2.onboarding.hr_band_threshold" = "閾值";
+"app2.onboarding.hr_band_anaerobic" = "無氧";
+
+"app2.onboarding.device_title" = "連結你的裝置";
+"app2.onboarding.device_subtitle" = "連接後我們就開始在背景同步你的跑步紀錄。";
+"app2.onboarding.device_connected" = "已連結";
+"app2.onboarding.device_disconnect" = "中斷";
+"app2.onboarding.device_connect" = "連結";
+"app2.onboarding.device_apple_health_sub" = "同步活動、心率與睡眠";
+"app2.onboarding.device_garmin_sub" = "同步手錶上的跑步紀錄";
+"app2.onboarding.device_syncing" = "背景同步中";
+"app2.onboarding.device_sync_note_title" = "%@ 已連結";
+"app2.onboarding.device_sync_note_body" = "正在同步你最近的跑步紀錄。你可以直接繼續設定，我們會在你設定的同時完成，不用等它跑完。";
+"app2.onboarding.device_privacy" = "你的數據僅用於產生訓練建議，可隨時在設定中中斷連結。";
+"app2.onboarding.device_skip" = "稍後再連結";
+
+"app2.onboarding.result_title" = "選一個最能代表你目前能力的成績";
+"app2.onboarding.result_subtitle" = "只要一筆就好，我們會用它校準你的訓練配速。";
+"app2.onboarding.result_distance" = "距離";
+"app2.onboarding.result_finish_time" = "完成時間";
+"app2.onboarding.result_avg_pace" = "平均配速";
+"app2.onboarding.result_vdot" = "估算 VDOT";
+"app2.onboarding.result_when" = "這筆成績的時間";
+"app2.onboarding.result_within_year" = "一年內";
+"app2.onboarding.result_over_year" = "一年前";
+"app2.onboarding.result_over_year_note" = "一年前的成績會以較保守的方式估算你目前的能力。";
+"app2.onboarding.result_skip" = "我沒有近期成績";
+
+"app2.onboarding.method_title" = "選擇訓練方法";
+"app2.onboarding.method_subtitle" = "不確定也沒關係，之後隨時能換";
+"app2.onboarding.method_recommended" = "推薦";
+"app2.onboarding.method_pick_own" = "想自己選？";
+
+"app2.onboarding.days_title" = "你通常哪些日子方便跑？";
+"app2.onboarding.days_subtitle" = "告訴我們你方便的空檔就好，Rizo 會把課表排進去，日期有變動隨時能調。";
+"app2.onboarding.days_selected_format" = "已選 %1$d 天 · 建議每週 %2$d–%3$d 天";
+"app2.onboarding.days_long_run" = "長跑日";
+"app2.onboarding.days_long_run_note" = "已優先預選假日，你也可以改成其他可訓練的日子。";
+"app2.onboarding.days_note" = "課表會避開未勾選的日子；行程有變動時可隨時在課表中調整。";
+
+"app2.onboarding.mileage_title" = "這是你平常的跑量嗎？";
+"app2.onboarding.mileage_subtitle" = "我們從你同步的跑步紀錄估出來，確認一下就好。";
+"app2.onboarding.mileage_source_format" = "來自你的 %@ 跑步紀錄";
+"app2.onboarding.mileage_recent_avg" = "最近 4 週平均";
+"app2.onboarding.mileage_manual_label" = "你平常的週跑量";
+"app2.onboarding.mileage_unit" = "km / 週";
+"app2.onboarding.mileage_confirm_question" = "這符合你平常的跑量嗎？";
+"app2.onboarding.mileage_about_right" = "差不多";
+"app2.onboarding.mileage_adjust" = "我想調整";
+"app2.onboarding.mileage_slider_title" = "微調起始週跑量";
+"app2.onboarding.mileage_suggested_format" = "建議 %1$d–%2$d";
+"app2.onboarding.mileage_start" = "起始週跑量";
+"app2.onboarding.mileage_peak" = "巔峰週預估";
+"app2.onboarding.mileage_note" = "計畫會從這個量開始，前兩週以較緩的坡度爬升，降低受傷風險。";
+"app2.onboarding.mileage_cta" = "產生訓練計畫";
+"app2.onboarding.mileage_no_history" = "還沒有同步到跑步紀錄，直接填你平常的週跑量就好。";
+
+"app2.onboarding.done_badge" = "設定完成";
+"app2.onboarding.done_kicker" = "Paceriz 已為你規劃好";
+"app2.onboarding.done_weeks_format" = "%d 週的訓練計畫";
+"app2.onboarding.done_goal_race" = "目標賽事";
+"app2.onboarding.done_remaining_weeks_format" = "還有 %d 週";
+"app2.onboarding.done_now" = "現在的你";
+"app2.onboarding.done_target" = "目標";
+"app2.onboarding.done_stages_title_format" = "這 %d 週怎麼安排";
+"app2.onboarding.done_stages_subtitle" = "每一段都有明確要練的東西。";
+"app2.onboarding.done_week_range_format" = "W%1$d–%2$d";
+"app2.onboarding.done_cta" = "開始第一週";
+"app2.onboarding.done_generating" = "正在為你建立第一週課表…";
+"app2.onboarding.done_finish_suffix" = "%@ 完賽";
+"app2.onboarding.done_rhythm_title" = "你的訓練節奏";
+"app2.onboarding.done_rhythm_days" = "每週跑步天數";
+"app2.onboarding.done_rhythm_days_format" = "%d 天";
+"app2.onboarding.done_rhythm_long_run" = "長跑優先安排在";
+"app2.onboarding.done_rhythm_method" = "訓練方法";
+"app2.onboarding.done_footer_note" = "計畫會依你每週的實際訓練與恢復狀況自動微調，你不用自己算。";
+"app2.onboarding.done_weekly_km_format" = "約 %d km / 週";
 
 
 // T-0306 獨立審查退回項修正

@@ -441,6 +441,40 @@ final class App2HomeProjectionTests: XCTestCase {
     }
 
     /// 沒有衝刺段的課（輕鬆跑＋熱身緩和）→ 一根橘柱都沒有，畫面也不寫趟數。
+    /// 配速結構圖下方的段落標註列（2026-08-25 用戶退件：單段課看起來像按鈕，
+    /// 補上圖表容器與標註列後才讀得出是圖）。單段課要有一列、量與卡片「課表」那一行同字串。
+    func test_structureBars_singleSegmentEasyRun_carriesOneAnnotationRow() throws {
+        let detail = try day(easyRunDay)
+        let bars = App2HomeViewModel.structureBars(day: detail)
+        let notes = bars.filter { $0.noteLabel != nil }
+
+        XCTAssertEqual(notes.count, 1, "單段課只該有一列標註")
+        XCTAssertEqual(notes.first?.kind, .steady)
+        XCTAssertEqual(
+            notes.first?.noteDetail,
+            App2PlanViewModel.contentLine(detail.primary),
+            "標註列的量必須與卡片「課表」那一行同一支字串，不得另組一份"
+        )
+    }
+
+    /// 間歇課：十根橘柱只掛一列標註（去重後畫面上不會出現十行「間歇」）。
+    func test_structureBars_intervalDay_annotatesFirstRepOnly() throws {
+        let bars = App2HomeViewModel.structureBars(day: try day(intervalDay))
+        let intervalNotes = bars.filter { $0.kind == .interval && $0.noteLabel != nil }
+
+        XCTAssertEqual(intervalNotes.count, 1, "間歇的每一趟不各自掛一列")
+        XCTAssertGreaterThan(bars.filter { $0.kind == .interval }.count, 1)
+    }
+
+    /// 暖身／組間／緩和不進標註列。
+    func test_structureBars_supportBarsHaveNoAnnotation() throws {
+        let bars = App2HomeViewModel.structureBars(day: try day(qualityDay))
+        XCTAssertTrue(
+            bars.filter { $0.kind == .support }.allSatisfy { $0.noteLabel == nil },
+            "輔助段不進標註列"
+        )
+    }
+
     func test_structureBars_nonIntervalDay_hasNoWorkBars() throws {
         let json = """
         { "day_index": 2, "day_target": "輕鬆跑", "reason": "有氧",

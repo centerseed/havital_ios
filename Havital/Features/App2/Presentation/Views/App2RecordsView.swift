@@ -329,11 +329,8 @@ struct App2RecordsView: View {
         return App2Theme.inkTertiary
     }
 
-    /// `1,284` 這種千分位（設計 hero 的今年累積）。
+    /// `1,284` 這種千分位（設計 hero 的今年累積）——走共用的 `App2NumberFormat`。
     private static func grouped(_ km: Double) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 0
-        return formatter.string(from: NSNumber(value: km)) ?? String(format: "%.0f", km)
+        App2NumberFormat.grouped(km)
     }
 }

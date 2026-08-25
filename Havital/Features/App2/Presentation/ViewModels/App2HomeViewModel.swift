@@ -474,10 +474,13 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             _ kind: App2SessionStructureBar.Kind,
             height: Double,
             width: Double,
-            pace: String? = nil
+            pace: String? = nil,
+            noteLabel: String? = nil,
+            noteDetail: String? = nil
         ) {
             bars.append(.init(
-                id: bars.count, kind: kind, height: height, widthWeight: width, paceLabel: pace
+                id: bars.count, kind: kind, height: height, widthWeight: width, paceLabel: pace,
+                noteLabel: noteLabel, noteDetail: noteDetail
             ))
         }
 
@@ -487,26 +490,43 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             let runSegments = run.segments ?? []
             if runSegments.isEmpty {
                 // 單段課（輕鬆跑／長跑）：一整塊穩定段，配速標在塊上。
-                append(.steady, height: 0.8, width: 4, pace: run.climateAdjustedPace ?? run.pace)
+                // 標註列的量直接用卡片「課表」那一行的同一支（`contentLine`），
+                // 不另組一份字串 —— 兩處出現同一個量卻長得不一樣就是矛盾。
+                append(
+                    .steady, height: 0.6, width: 4,
+                    pace: run.climateAdjustedPace ?? run.pace,
+                    noteLabel: L10n.App2.Home.structureNoteSteady.localized,
+                    noteDetail: App2PlanViewModel.contentLine(day.primary)
+                )
             }
             for segment in runSegments {
                 if segment.kind == "interval", let repeats = segment.repeats, repeats > 0 {
                     // 太多趟就不畫滿，畫面上那格只有幾十 pt 寬。
                     let drawn = min(repeats, 10)
+                    let detail = segment.work.flatMap(effortLabel(effort:))
                     for index in 0..<drawn {
-                        append(.interval, height: 1.0, width: 1)
+                        append(
+                            .interval, height: 1.0, width: 1,
+                            // 標註列只掛第一根柱，後面的柱共用同一條說明（下面 chart 會去重）。
+                            noteLabel: index == 0 ? L10n.App2.Home.structureNoteInterval.localized : nil,
+                            noteDetail: index == 0
+                                ? detail.map { repeats > 1 ? "\(repeats) × \($0)" : $0 }
+                                : nil
+                        )
                         if index < drawn - 1 { append(.support, height: 0.3, width: 0.6) }
                     }
                 } else {
                     append(
-                        .steady, height: 0.65, width: 3,
-                        pace: segment.work?.pace ?? segment.pace
+                        .steady, height: 0.6, width: 3,
+                        pace: segment.work?.pace ?? segment.pace,
+                        noteLabel: L10n.App2.Home.structureNoteSteady.localized,
+                        noteDetail: effortLabel(segment: segment)
                     )
                 }
             }
         } else if day.primary != nil {
             // 肌力／交叉訓練沒有配速，但仍然有「一段課」的結構。
-            append(.steady, height: 0.7, width: 4)
+            append(.steady, height: 0.6, width: 4)
         }
 
         if day.cooldown != nil { append(.support, height: 0.35, width: 1) }

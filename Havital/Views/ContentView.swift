@@ -42,6 +42,9 @@ struct ContentView: View {
 
         Group {
             // [UI Preview] -ui_testing_show_intro 直接顯示 fresh onboarding（intro 為根視圖）
+            // `-ui_testing_show_intro` 仍指向 1.x 容器：它是既有 1.x onboarding 流程
+            // 的預覽／UI 測試入口（含 `-ui_testing_jump_weekly_distance`），2.0 換的是
+            // 下面兩個**真正的**入口。
             if isDebugShowIntro {
                 OnboardingContainerView(isReonboarding: false)
                     .environmentObject(authViewModel)
@@ -112,8 +115,11 @@ struct ContentView: View {
             }
             // 如果用戶未完成引導，顯示引導畫面
             else if !authViewModel.hasCompletedOnboarding && !authViewModel.isReonboardingMode {
-                // 首次使用，顯示完整 onboarding 流程（使用新的統一容器）
-                OnboardingContainerView(isReonboarding: false)
+                // 首次使用，顯示完整 onboarding 流程。
+                // T-0306：2.0 分支換成 `App2OnboardingContainerView`（設計 frame-30 ~ 39）；
+                // 流程邏輯仍是 `OnboardingCoordinator` / `OnboardingFeatureViewModel` 那一套，
+                // 只換 View 層。1.x 的 `OnboardingContainerView` 留給 `main` 發版線。
+                App2OnboardingContainerView(isReonboarding: false)
                     .environmentObject(authViewModel)
                     .environmentObject(FeatureFlagManager.shared)
                     .onAppear {
@@ -135,7 +141,7 @@ struct ContentView: View {
             }
             // Re-onboarding：直接替換 mainAppContent，避免 sheet 衝突
             else if authViewModel.isReonboardingMode {
-                OnboardingContainerView(isReonboarding: true)
+                App2OnboardingContainerView(isReonboarding: true)
                     .environmentObject(authViewModel)
                     .environmentObject(FeatureFlagManager.shared)
             }

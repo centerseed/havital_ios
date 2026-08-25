@@ -405,7 +405,10 @@ struct App2HomeView: View {
                     if !session.structureBars.isEmpty {
                         // 分段表在旁邊時圖縮成右欄；單段課沒有分段表，圖就佔滿整條
                         // （配速標得下）。
-                        App2SessionStructureChart(bars: session.structureBars)
+                        App2SessionStructureChart(
+                            bars: session.structureBars,
+                            showsNotes: session.segments.isEmpty
+                        )
                             .frame(width: session.segments.isEmpty ? nil : 96)
                             .frame(maxWidth: session.segments.isEmpty ? .infinity : nil)
                     }
