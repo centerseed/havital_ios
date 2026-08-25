@@ -114,10 +114,10 @@ struct App2PlanView: View {
 
             HStack(alignment: .firstTextBaseline) {
                 HStack(alignment: .firstTextBaseline, spacing: 0) {
-                    Text(week.completedDistanceKm.map { String(format: "%.0f", $0) } ?? "0")
+                    Text(week.completedDistanceKm.map { App2NumberFormat.grouped($0, maximumFractionDigits: 1) } ?? "0")
                         .font(.app2Mono(28))
                         .foregroundStyle(App2Theme.inkPrimary)
-                    Text(verbatim: " / \(String(format: "%.0f", week.targetDistanceKm)) km")
+                    Text(verbatim: " / \(App2NumberFormat.grouped(week.targetDistanceKm, maximumFractionDigits: 1)) km")
                         .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(App2Theme.inkTertiary)
                 }
