@@ -21,8 +21,40 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 每日卡點下去要開的訓練詳情（設計 frame-02），key = `day_index`。
     /// **與課表頁同一份 payload**，詳情頁不再打端點；休息日不在這張表裡（不進詳情）。
     @Published private(set) var dayDetails: [Int: App2SessionDetail] = [:]
+    /// 歷史回看正在看第幾週（裁決（e））。nil ＝ 沒在歷史模式。
+    ///
+    /// 走的是**既有**的 `getWeeklyPlan(weekOfTraining:overviewId:)`
+    /// （`GET /v2/plan/weekly/{overviewId}_{week}`），不新開端點也不新開頁面。
+    @Published private(set) var historyWeek: Int?
+    /// 這一週後端沒有課表（404）。**那不是錯誤**：計畫可能有幾週從沒生成過，
+    /// 那幾週顯示空態，其他週照走。
+    @Published private(set) var isHistoryWeekMissing = false
     private(set) var hasLoaded = false
     private(set) var lastLoadedAt: Date?
+
+    /// 最近一次讀到的 plan status —— 歷史週的週起點與週次上限都從它推。
+    private var latestPlanStatus: PlanStatusV2Response?
+    /// `planId` ＝ `{overviewId}_{week}`，所以歷史回看要 overview id。
+    /// **只在真的進歷史模式時才解**（正常路徑仍然不為了這一頁多打 overview）。
+    private var overviewId: String?
+
+    // MARK: - 結束態 ／ 歷史回看的狀態判準
+
+    /// 現在畫的是不是結束卡。歷史模式時結束卡讓位給週課表。
+    var isHistoryMode: Bool { historyWeek != nil }
+    var showsPlanEnd: Bool { planEnd != nil && historyWeek == nil }
+
+    /// 課表還能不能編輯（裁決（b））。**結束了就一路唯讀，歷史模式也一樣。**
+    var allowsEditing: Bool { App2PlanEndProjection.allowsEditing(planEnd: planEnd) }
+
+    /// 這期共幾週 —— 歷史回看的上限。
+    var historyTotalWeeks: Int? { planEnd?.totalWeeks ?? latestPlanStatus?.totalWeeks }
+
+    var canGoPreviousHistoryWeek: Bool { (historyWeek ?? 1) > 1 }
+    var canGoNextHistoryWeek: Bool {
+        guard let historyWeek, let total = historyTotalWeeks else { return false }
+        return historyWeek < total
+    }
 
     nonisolated let taskRegistry = TaskRegistry()
 
@@ -87,9 +119,15 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             // `forceRefresh` ＝ 這一輪一定走網路。SWR 的「先舊後新」由上面那一行
             // 的快取渲染負責，不是靠 repository 的 cooldown 決定要不要重驗。
             let status = try await planRepository.getPlanStatus(forceRefresh: true)
+            latestPlanStatus = status
 
             await applyPlanEnd(planStatus: status)
             if planEnd != nil {
+                if let historyWeek {
+                    // 歷史回看中：這一輪重驗的是**那一週**，不是本週。
+                    await loadHistoryWeek(historyWeek)
+                    return
+                }
                 // 結束態：**不再交出週課表**。留著它畫面上就會同時出現
                 // 「計畫完成」與「第 6 / 6 週」的日卡 —— 設計 frame-00g2（c）明定
                 // 這一頁不能再顯示第 N/M 週。
@@ -98,6 +136,9 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 isPlanGenerated = true
                 return
             }
+            // 計畫沒結束就沒有「歷史回看」這回事（重設目標之後會走到這裡）。
+            historyWeek = nil
+            isHistoryWeekMissing = false
 
             guard let planId = status.currentWeekPlanId else {
                 // **本週沒有課表就說沒有。** 這裡原本退樣本，畫面上會出現一整週
@@ -120,6 +161,9 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             guard !error.isCancellationError else { return }
             Logger.debug("[App2PlanVM] 週課表取得失敗,退樣本: \(error)")
             guard week == nil else { return }       // SWR：重驗失敗時保留舊資料
+            // 歷史回看不退樣本 —— 使用者要看的是**那一週真的排了什麼**，
+            // 拿一份假課表頂上去比空著更糟。
+            guard !isHistoryMode else { return }
             week = App2Sourced(
                 App2StubFixtures.planWeek,
                 origin: .stub(pendingSection: App2StubFixtures.Section.offline)
@@ -154,6 +198,103 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             overview: nil,
             target: target,
             estimatedFinish: nil
+        )
+    }
+
+    // MARK: - 歷史課表回看（裁決（e））
+
+    /// 進歷史模式，從**最後一週**開始（那是使用者剛走完的那一週，離結束畫面最近）。
+    func enterHistoryMode() async {
+        guard let target = App2PlanEndProjection.clampHistoryWeek(
+            historyTotalWeeks ?? 0, totalWeeks: historyTotalWeeks
+        ) else { return }
+        await loadHistoryWeek(target)
+    }
+
+    /// 回到計畫完成畫面。**要有這條返程**，否則按下「瀏覽歷史課表」之後就回不去了。
+    func exitHistoryMode() {
+        historyWeek = nil
+        isHistoryWeekMissing = false
+        week = nil
+        dayDetails = [:]
+    }
+
+    /// 上一週／下一週（`offset` ＝ ±1）。**只在歷史模式有效**；夾在 `1…total_weeks` 內。
+    func goToHistoryWeek(offset: Int) async {
+        guard let current = historyWeek,
+              let next = App2PlanEndProjection.clampHistoryWeek(
+                  current + offset, totalWeeks: historyTotalWeeks
+              ),
+              next != current else { return }
+        await loadHistoryWeek(next)
+    }
+
+    /// 取第 N 週的課表。
+    ///
+    /// 走既有的 `getWeeklyPlan(weekOfTraining:overviewId:)`（快取優先，miss 才打
+    /// `GET /v2/plan/weekly/{overviewId}_{week}`）。**404 ＝ 該週從沒生成過課表**，
+    /// 那不是錯誤：這一週顯示空態，週次切換照常，其他週照走。
+    private func loadHistoryWeek(_ target: Int) async {
+        historyWeek = target
+        isHistoryWeekMissing = false
+
+        guard let status = latestPlanStatus, let overviewId = await resolveOverviewId() else {
+            week = nil
+            dayDetails = [:]
+            isHistoryWeekMissing = true
+            return
+        }
+
+        do {
+            let plan = try await planRepository.getWeeklyPlan(
+                weekOfTraining: target,
+                overviewId: overviewId
+            )
+            await applyHistory(plan: plan, planStatus: status, week: target)
+        } catch {
+            guard !error.isCancellationError else { return }
+            Logger.debug("[App2PlanVM] 歷史第 \(target) 週無課表: \(error)")
+            week = nil
+            dayDetails = [:]
+            isHistoryWeekMissing = true
+        }
+    }
+
+    /// `planId` ＝ `{overviewId}_{week}`，所以歷史回看要 overview id。
+    /// 快取有就用快取；沒有才打一次 `GET /v2/plan/overview`，之後這個 session 不再打。
+    private func resolveOverviewId() async -> String? {
+        if let overviewId { return overviewId }
+        if let cached = planRepository.getCachedOverview()?.id {
+            overviewId = cached
+            return cached
+        }
+        overviewId = try? await planRepository.getOverview().id
+        return overviewId
+    }
+
+    /// 歷史週的組裝。與本週走同一支 `planWeek`，只換兩個錨點：
+    /// - `weekStart` ＝ **那一週**的週一（日卡日期要標那一週）。
+    /// - `todayIndex: 0` ＝ 沒有任何一天是「今天」（`day_index` 是 1…7）——
+    ///   已走完的那一週上不該掛「今天」膠囊。
+    private func applyHistory(plan: WeeklyPlanV2, planStatus: PlanStatusV2Response, week target: Int) async {
+        isPlanGenerated = true
+        let start = App2PlanEndProjection.historyWeekStart(week: target, planStatus: planStatus)
+        week = App2Sourced(
+            Self.planWeek(
+                plan: plan,
+                planStatus: planStatus,
+                completedKm: await completedDistanceKm(weekStart: start),
+                todayIndex: 0,
+                weekStart: start
+            ),
+            origin: .live(endpoint: "GET /v2/plan/weekly/{plan_id} + GET /v2/workouts")
+        )
+        dayDetails = Dictionary(
+            uniqueKeysWithValues: plan.days.compactMap { day -> (Int, App2SessionDetail)? in
+                guard let detail = App2SessionDetailProjection.detail(day: day, weekStart: start)
+                else { return nil }
+                return (day.dayIndex, detail)
+            }
         )
     }
 
@@ -262,9 +403,21 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         let calendar = Calendar.current
         let now = Date()
         guard let interval = calendar.dateInterval(of: .weekOfYear, for: now) else { return nil }
+        return await completedDistanceKm(from: interval.start, to: now)
+    }
+
+    /// 歷史週的已完成量 —— 範圍是**那一整週**（週一 00:00 到週日 23:59），
+    /// 不是「到今天為止」：那一週早就走完了，沒有「還沒到的日子」。
+    private func completedDistanceKm(weekStart: Date) async -> Double? {
+        let calendar = Calendar.current
+        guard let end = calendar.date(byAdding: .day, value: 7, to: weekStart) else { return nil }
+        return await completedDistanceKm(from: weekStart, to: end)
+    }
+
+    private func completedDistanceKm(from start: Date, to end: Date) async -> Double? {
         let workouts = await workoutRepository.getWorkoutsInDateRangeAsync(
-            startDate: interval.start,
-            endDate: now
+            startDate: start,
+            endDate: end
         )
         guard !workouts.isEmpty else { return nil }
         let meters = workouts

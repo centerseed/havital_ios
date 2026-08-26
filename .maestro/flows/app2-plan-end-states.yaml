@@ -122,6 +122,58 @@ appId: com.havital.Havital.dev
 - takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/pe-06-plan-tab-end
 - scroll
 - takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/pe-07-plan-tab-end-entries
+
+# --- ③b 歷史課表回看（2026-08-27 裁決（e））-----------------------------------
+# 走的是既有的 `getWeeklyPlan(weekOfTraining:overviewId:)`，不開新頁：週次切換器
+# 在同一頁回來，鉛筆**不**回來（裁決（b）：結束了就一路唯讀）。
+- scrollUntilVisible:
+    element:
+      id: "App2_PlanEndTabHistoryEntry"
+    direction: DOWN
+    timeout: 12000
+- tapOn:
+    id: "App2_PlanEndTabHistoryEntry"
+- extendedWaitUntil:
+    visible:
+      id: "App2_PlanEndHistoryBack"
+    timeout: 30000
+# 結束卡讓位給週課表，但編輯入口仍然收著。
+- assertNotVisible:
+    id: "App2_PlanEndTabCard"
+- assertNotVisible:
+    id: "App2_PlanEditEntry"
+- assertVisible:
+    id: "App2_PlanWeekLabel"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/pe-07b-history-last-week
+# 往回走到第 1 週 —— dev 帳號只有第 1 週真的生成過課表，後面幾週是 404 空態
+# （**那不是錯誤**：那一週顯示空態，切換照常）。
+- repeat:
+    times: 20
+    commands:
+      - tapOn:
+          id: "App2_PlanWeekPrevious"
+          optional: true
+- extendedWaitUntil:
+    visible:
+      id: "App2_PlanSummaryCard"
+    timeout: 30000
+- assertNotVisible:
+    id: "App2_PlanEditEntry"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/pe-07c-history-week-1
+# 返程：回到計畫完成畫面。
+- scrollUntilVisible:
+    element:
+      id: "App2_PlanEndHistoryBack"
+    direction: UP
+    timeout: 12000
+- tapOn:
+    id: "App2_PlanEndHistoryBack"
+- extendedWaitUntil:
+    visible:
+      id: "App2_PlanEndTabCard"
+    timeout: 20000
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/pe-07d-history-back
+
 - tapOn:
     id: "App2_Tab_State"
 - extendedWaitUntil:

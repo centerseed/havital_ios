@@ -106,7 +106,12 @@ final class App2PeriodSummaryViewModel: ObservableObject, TaskManageable, App2Re
 
         #if DEBUG
         // 故事版預覽（DEBUG-only fixture）。production 這一行不存在，`story` 恆 nil。
-        story = App2DevSettings.shared.planEndStory
+        //
+        // fixture 的週數在**這裡**才決定 —— `weeks` 是這一頁真實的 `total_weeks`，
+        // hero 句與章節標籤於是跟同屏的「N 週」講同一個數（2026-08-27 補修）。
+        story = App2DevSettings.shared.planEndStoryPreview
+            ? App2PlanEndStoryFixture.make(weeks: weeks)
+            : nil
         #endif
     }
 

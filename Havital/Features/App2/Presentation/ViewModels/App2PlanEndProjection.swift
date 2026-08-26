@@ -123,6 +123,68 @@ enum App2PlanEndProjection {
         return nil
     }
 
+    // MARK: - 歷史課表回看（2026-08-27 裁決（b）（e））
+
+    /// 課表 tab 還能不能編輯。
+    ///
+    /// 判準是**「這份計畫結束了沒」**，不是「現在畫的是不是結束卡」——按下
+    /// 「瀏覽這期的歷史課表」之後結束卡讓位給週課表，若判準看的是結束卡，鉛筆就會
+    /// 跟著回來，而那些週是**已完結**的課表，編不得（裁決（b））。與 Android 的
+    /// `planEndAllowsEditing` 同一條。
+    static func allowsEditing(planEnd: App2PlanEndCard?) -> Bool { planEnd == nil }
+
+    /// 歷史回看走得到的週次區間 ＝ `1…total_weeks`。
+    ///
+    /// 週數缺席（或非正）→ nil：那時連「這期有幾週」都講不出來，整條入口不該出現，
+    /// 而不是給一個猜的上限讓使用者一路撞 404。
+    static func historyWeekRange(totalWeeks: Int?) -> ClosedRange<Int>? {
+        guard let totalWeeks, totalWeeks > 0 else { return nil }
+        return 1...totalWeeks
+    }
+
+    /// 把週次夾進區間。區間不存在 → nil（呼叫端不進歷史模式）。
+    static func clampHistoryWeek(_ week: Int, totalWeeks: Int?) -> Int? {
+        guard let range = historyWeekRange(totalWeeks: totalWeeks) else { return nil }
+        return min(max(week, range.lowerBound), range.upperBound)
+    }
+
+    /// 第 N 週的週一（裝置日曆的日起點）——歷史週的日卡日期要按**那一週**標，
+    /// 不是按本週。
+    ///
+    /// 權威是 `metadata.training_start_date`（第 1 週所在的那一天，使用者當地日）：
+    /// 第 N 週 ＝ 它所屬那週的週一 ＋ (N−1) 週。
+    ///
+    /// 它缺席時退「本週週一往回推 `current_week − N` 週」——那是**近似**
+    /// （假設中間沒有斷週），只在真的拿不到起始日時走。兩條算出來的形狀一樣
+    /// （一個週一），下游不必分辨。
+    static func historyWeekStart(
+        week: Int,
+        planStatus: PlanStatusV2Response?,
+        reference: Date = Date(),
+        calendar: Calendar = .current
+    ) -> Date {
+        if let raw = planStatus?.metadata?.trainingStartDate,
+           let start = parsePlanDate(raw, calendar: calendar) {
+            let firstMonday = App2WeekCalendar.currentWeekStart(reference: start, calendar: calendar)
+            return calendar.date(byAdding: .day, value: (week - 1) * 7, to: firstMonday) ?? firstMonday
+        }
+        let thisMonday = App2WeekCalendar.currentWeekStart(reference: reference, calendar: calendar)
+        let offset = (planStatus?.currentWeek ?? week) - week
+        return calendar.date(byAdding: .day, value: -offset * 7, to: thisMonday) ?? thisMonday
+    }
+
+    /// `training_start_date` 兩種形狀都吃：完整 ISO8601（後端 metadata 的宣告形狀）
+    /// 與裸 `YYYY-MM-DD`（實測有些 payload 是這一種）。都解不開 → nil。
+    static func parsePlanDate(_ raw: String, calendar: Calendar = .current) -> Date? {
+        if let date = App2WeekCalendar.parseISO8601(raw) { return date }
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.date(from: String(raw.prefix(10)))
+    }
+
     // MARK: - 整期總結
 
     /// 整期總結的確定性數字版。

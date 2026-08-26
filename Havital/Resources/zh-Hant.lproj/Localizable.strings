@@ -4911,3 +4911,6 @@
 "app2.plan_end.completion_rate_format" = "完成率 %d%%";
 "app2.plan_end.peak_format" = "峰值 %@";
 "app2.plan_end.rizo_line" = "課表停在這裡是正常的。想繼續跑，就設一個新目標，我再幫你排下一期的課表。";
+"app2.plan_end.history_entry" = "瀏覽這期的歷史課表";
+"app2.plan_end.history_back" = "回到計畫完成畫面";
+"app2.plan_end.history_week_empty" = "這一週沒有課表紀錄。";

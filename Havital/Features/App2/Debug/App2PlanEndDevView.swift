@@ -71,9 +71,27 @@ enum App2DevPlanEndOverride: String, CaseIterable, Identifiable {
 /// **production 路徑不得出現假造的敘事** —— 那條路上 `story` 恆為 nil，畫面走數字版。
 enum App2PlanEndStoryFixture {
 
+    /// 四個章節落在整期的哪幾週。
+    ///
+    /// 比例取自稿面那份 22 週的示範（1／9／18／22）：`ceil(22×0.4)=9`、
+    /// `ceil(22×0.8)=18`，所以 N=22 時與稿面逐字相同，N 小的時候一起縮。
+    /// **hero 句與章節標籤吃的是同一個 N** —— 先前 hero 寫死 22 而同屏的
+    /// 章節標籤是真實週數，走查時兩個數字互相打臉（2026-08-27 補修，
+    /// 與 Android `App2PlanEndFixture.narrative(totalWeeks)` 同一組比例）。
+    /// 單調不遞減用 `max` 保住：N 很小時節點會擠在同幾週，但不會出現
+    /// 「第 3 週」排在「第 5 週」前面。
+    static func chapterWeeks(totalWeeks: Int) -> [Int] {
+        let last = max(totalWeeks, 1)
+        let mid1 = min(max(Int(ceil(Double(last) * 0.4)), 1), last)
+        let mid2 = min(max(Int(ceil(Double(last) * 0.8)), mid1), last)
+        return [1, mid1, mid2, last]
+    }
+
     static func make(weeks: Int) -> App2PeriodStory {
-        App2PeriodStory(
-            heroLine: "\(weeks) 週，你把自己重新跑了一遍",
+        let chapters = chapterWeeks(totalWeeks: weeks)
+        let last = chapters[3]
+        return App2PeriodStory(
+            heroLine: "\(last) 週，你把自己重新跑了一遍",
             heroSubline: "從報名時的「我是不是太衝動」，到站上 Hofu 起跑線的篤定"
                 + "——這一段，你是一步一步跑出來的。",
             // **刻意留 nil。** `finish` 引用的是 race-result-binding 的讀口
@@ -85,37 +103,37 @@ enum App2PlanEndStoryFixture {
             chapters: [
                 App2PeriodStory.Chapter(
                     id: 0,
-                    weekLabel: "第 1 週 · 起點",
+                    weekLabel: "第 \(chapters[0]) 週 · 起點",
                     title: "一切從「我是不是太衝動」開始",
                     quote: App2PeriodStory.Chapter.Quote(
                         text: "6:50 配速跑 8K 就喘到不行，開始懷疑報全馬是不是太衝動了。",
-                        sessionSummary: "第 1 週 · 輕鬆跑 8.0 km"
+                        sessionSummary: "第 \(chapters[0]) 週 · 輕鬆跑 8.0 km"
                     ),
                     rizoLine: "第一週不用急，先讓身體記得規律就好。底子是慢慢疊出來的。"
                 ),
                 App2PeriodStory.Chapter(
                     id: 1,
-                    weekLabel: "第 9 週 · 低谷",
+                    weekLabel: "第 \(chapters[1]) 週 · 低谷",
                     title: "撞牆的那一週",
                     quote: App2PeriodStory.Chapter.Quote(
                         text: "長跑跑到 25K 整個垮掉，後面用走的回家。",
-                        sessionSummary: "第 9 週 · 長距離 30 km"
+                        sessionSummary: "第 \(chapters[1]) 週 · 長距離 30 km"
                     ),
                     rizoLine: "掉速的那一段其實是熱與累積負荷疊在一起，不是能力退步。"
                 ),
                 App2PeriodStory.Chapter(
                     id: 2,
-                    weekLabel: "第 18 週 · 突破",
+                    weekLabel: "第 \(chapters[2]) 週 · 突破",
                     title: "第一次把 32K 跑完還有餘力",
                     quote: App2PeriodStory.Chapter.Quote(
                         text: "鞋子換了新的，落地更穩，最後 5K 還能加速。",
-                        sessionSummary: "第 18 週 · 長距離 32 km"
+                        sessionSummary: "第 \(chapters[2]) 週 · 長距離 32 km"
                     ),
                     rizoLine: "配速與心率整場守在耐力區間——這一趟就是賽事日的預演。"
                 ),
                 App2PeriodStory.Chapter(
                     id: 3,
-                    weekLabel: "第 22 週 · 賽事日",
+                    weekLabel: "第 \(last) 週 · 賽事日",
                     title: "當初喘不過氣的配速，現在是你的恢復跑",
                     quote: nil,
                     rizoLine: "起跑到 30K 幾乎零波動，最後那段是你自己咬下來的。"
@@ -172,7 +190,7 @@ struct App2PlanEndDevView: View {
                         dev.planEndOverride = option
                         // 結束態關掉時故事版預覽也一起關 —— 留著它會讓下一次走查
                         // 在「沒有結束態」的情況下還掛著一份敘事。
-                        if option == .off { dev.planEndStory = nil }
+                        if option == .off { dev.planEndStoryPreview = false }
                     }
                 }
                 Text("Forces the home end state (goal card + today card replaced) and the "
@@ -194,21 +212,23 @@ struct App2PlanEndDevView: View {
                 .padding(.top, 20)
             App2Card(padding: 15, spacing: 12) {
                 radioRow(
-                    isOn: dev.planEndStory == nil,
+                    isOn: !dev.planEndStoryPreview,
                     label: "Numeric v1 (production path — narrative absent)",
                     identifier: "App2_DevPlanEndStory_off"
-                ) { dev.planEndStory = nil }
+                ) { dev.planEndStoryPreview = false }
 
                 radioRow(
-                    isOn: dev.planEndStory != nil,
+                    isOn: dev.planEndStoryPreview,
                     label: "Story v2 (DEBUG fixture)",
                     identifier: "App2_DevPlanEndStory_on"
-                ) { dev.planEndStory = App2PlanEndStoryFixture.make(weeks: 22) }
+                ) { dev.planEndStoryPreview = true }
 
                 Text("The narrative endpoint does not exist yet (SPEC-plan-period-summary is "
                      + "Draft), so production always renders the numeric version with the "
                      + "\"narrative not generated\" chip. The story fixture only ever lives in "
-                     + "this DEBUG build — nothing is fabricated on the production path.")
+                     + "this DEBUG build — nothing is fabricated on the production path. Its "
+                     + "week count follows the real total_weeks, so the hero line and the "
+                     + "chapter labels always agree.")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(App2Theme.inkFaint)
                     .fixedSize(horizontal: false, vertical: true)

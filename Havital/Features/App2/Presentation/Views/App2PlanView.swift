@@ -28,14 +28,33 @@ struct App2PlanView: View {
                 header
                     .padding(.bottom, 16)
 
-                if let planEnd = viewModel.planEnd {
+                if viewModel.showsPlanEnd, let planEnd = viewModel.planEnd {
                     // 計畫走完（設計 frame-00g2（c））：**不再顯示第 N/M 週**。
                     // header 的週次切換器也跟著收掉（見 `header`）。
                     App2PlanEndTabCard(
                         card: planEnd,
                         onOpenSummary: { isShowingPeriodSummary = true },
-                        onSetNewGoal: { isShowingReonboarding = true }
+                        onSetNewGoal: { isShowingReonboarding = true },
+                        onBrowseHistory: viewModel.historyTotalWeeks == nil
+                            ? nil
+                            : { Task { await viewModel.enterHistoryMode() } }
                     )
+                } else if viewModel.isHistoryMode {
+                    // 歷史回看（裁決（e））：週次切換器回來了（見 `header`），
+                    // 但要有一條路回到結束畫面 —— 否則按下去就出不來。
+                    historyBackRow
+                        .padding(.bottom, 14)
+                    if let sourced = viewModel.week {
+                        volumeCard(sourced)
+                            .padding(.bottom, 14)
+                        ForEach(sourced.value.days) { day in
+                            dayCard(day).padding(.bottom, 11)
+                        }
+                    } else if viewModel.isHistoryWeekMissing {
+                        historyEmptyCard
+                    } else {
+                        ProgressView().frame(maxWidth: .infinity, minHeight: 200)
+                    }
                 } else if let sourced = viewModel.week {
                     volumeCard(sourced)
                         .padding(.bottom, 14)
@@ -99,30 +118,83 @@ struct App2PlanView: View {
 
     private var header: some View {
         App2PageHeader(title: L10n.App2.Plan.title.localized) {
-            // 結束態：**整組週次切換器與鉛筆鈕都不出現**（設計 frame-00g2（c）的
-            // header 只有標題＋副句）。計畫走完之後既沒有「第 N/M 週」可標，
-            // 也沒有課表可改。
-            if viewModel.planEnd == nil {
+            // 結束卡在畫時：**整組週次切換器與鉛筆鈕都不出現**（設計 frame-00g2（c）
+            // 的 header 只有標題＋副句）。歷史回看時切換器回來（那些週確實存在，
+            // 只是不再是「本週」），但鉛筆**不會**跟著回來 —— 判準是
+            // `allowsEditing`（裁決（b）：結束了就一路唯讀）。
+            if !viewModel.showsPlanEnd {
                 HStack(spacing: 5) {
-                    // 週次切換目前只呈現當前週：`/v2/plan/status` 只給 current_week，
-                    // 換週要另一條「取指定週」的出口（票面剩餘差異）。
-                    weekStepButton(symbol: "chevron.left", enabled: false)
+                    // 本週模式的週次切換仍然停用：`/v2/plan/status` 只給 current_week。
+                    // 歷史模式才走得動（走 `getWeeklyPlan(weekOfTraining:overviewId:)`）。
+                    weekStepButton(symbol: "chevron.left", enabled: viewModel.canGoPreviousHistoryWeek) {
+                        Task { await viewModel.goToHistoryWeek(offset: -1) }
+                    }
+                    .accessibilityIdentifier("App2_PlanWeekPrevious")
                     HStack(alignment: .firstTextBaseline, spacing: 0) {
-                        Text(viewModel.week?.value.weekLabel ?? "—")
+                        Text(weekLabelText)
                             .font(.system(size: 15, weight: .black))
                             .foregroundStyle(App2Theme.inkPrimary)
-                        if let total = viewModel.week?.value.totalWeeks {
+                        if let total = shownTotalWeeks {
                             Text(verbatim: " / \(total)")
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundStyle(App2Theme.inkMuted)
                         }
                     }
                     .frame(minWidth: 76)
-                    weekStepButton(symbol: "chevron.right", enabled: false)
-                    editButton
+                    .accessibilityIdentifier("App2_PlanWeekLabel")
+                    weekStepButton(symbol: "chevron.right", enabled: viewModel.canGoNextHistoryWeek) {
+                        Task { await viewModel.goToHistoryWeek(offset: 1) }
+                    }
+                    .accessibilityIdentifier("App2_PlanWeekNext")
+                    if viewModel.allowsEditing { editButton }
                 }
             }
         }
+    }
+
+    /// 週次標。歷史模式下那一週 404 時 `week` 是 nil，這時仍要標得出
+    /// 「第 N 週」——否則使用者不知道自己停在哪一週。
+    private var weekLabelText: String {
+        if let label = viewModel.week?.value.weekLabel { return label }
+        if let historyWeek = viewModel.historyWeek {
+            return String(format: L10n.WeekSelector.weekNumber.localized, historyWeek)
+        }
+        return "—"
+    }
+
+    private var shownTotalWeeks: Int? {
+        viewModel.week?.value.totalWeeks ?? (viewModel.isHistoryMode ? viewModel.historyTotalWeeks : nil)
+    }
+
+    // MARK: - 歷史回看（裁決（e））
+
+    /// 返程列。**歷史模式唯一的導航出口**（tab 切走再回來會保留這個模式）。
+    private var historyBackRow: some View {
+        App2GroupedList {
+            App2SettingsRow(
+                systemImage: "arrow.uturn.backward",
+                title: L10n.App2.PlanEnd.historyBack.localized,
+                value: "",
+                showsDivider: false
+            )
+            .contentShape(Rectangle())
+            .onTapGesture { viewModel.exitHistoryMode() }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityIdentifier("App2_PlanEndHistoryBack")
+        }
+    }
+
+    /// 該週沒生成過課表（404）。**不是錯誤**，所以講的是「這一週沒有課表」
+    /// 而不是「讀取失敗」。
+    private var historyEmptyCard: some View {
+        App2Card(padding: 16, spacing: 8) {
+            Text(L10n.App2.PlanEnd.historyWeekEmpty.localized)
+                .font(.app2Body)
+                .lineSpacing(2)
+                .foregroundStyle(App2Theme.inkSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .accessibilityIdentifier("App2_PlanEndHistoryEmpty")
     }
 
     /// 修改課表（設計裁決 2026-08-26：週次切換器同列右側的鉛筆 icon 鈕）。
@@ -152,7 +224,11 @@ struct App2PlanView: View {
         }
     }
 
-    private func weekStepButton(symbol: String, enabled: Bool) -> some View {
+    private func weekStepButton(
+        symbol: String,
+        enabled: Bool,
+        action: @escaping () -> Void = {}
+    ) -> some View {
         RoundedRectangle(cornerRadius: 9, style: .continuous)
             .fill(App2Theme.cardBackground)
             .frame(width: 30, height: 30)
@@ -166,6 +242,9 @@ struct App2PlanView: View {
                     .foregroundStyle(enabled ? App2Theme.inkSecondary : App2Theme.chevron)
             }
             .shadow(color: App2Theme.shadowInk.opacity(0.12), radius: 3, x: 0, y: 3)
+            .contentShape(Rectangle())
+            .onTapGesture { if enabled { action() } }
+            .accessibilityAddTraits(.isButton)
     }
 
     // MARK: - 本週跑量（設計：藍卡 ＋ 大 mono 數字 ＋ 百分比膠囊 ＋ 三色分段條）

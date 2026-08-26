@@ -18,7 +18,8 @@ final class App2PlanEndProjectionTests: XCTestCase {
         currentWeek: Int = 23,
         totalWeeks: Int = 22,
         targetType: String? = "race_run",
-        planId: String? = nil
+        planId: String? = nil,
+        startDate: String? = nil
     ) -> PlanStatusV2Response {
         PlanStatusV2Response(
             currentWeek: currentWeek,
@@ -30,7 +31,15 @@ final class App2PlanEndProjectionTests: XCTestCase {
             targetType: targetType,
             methodologyId: "paceriz",
             nextWeekInfo: nil,
-            metadata: nil
+            metadata: startDate.map {
+                PlanStatusV2Metadata(
+                    trainingStartDate: $0,
+                    currentWeekStartDate: nil,
+                    currentWeekEndDate: nil,
+                    userTimezone: "Asia/Tokyo",
+                    serverTime: nil
+                )
+            }
         )
     }
 
@@ -521,4 +530,248 @@ final class App2PlanEndProjectionTests: XCTestCase {
             [false, false, false]
         )
     }
+
+    // MARK: - 6. 歷史課表回看（2026-08-27 裁決（b）（e））
+
+    /// 唯讀的判準是**「這份計畫結束了沒」**，不是「現在畫的是不是結束卡」。
+    ///
+    /// 這一條是裁決（b）的本體：按下「瀏覽這期的歷史課表」之後結束卡讓位給週課表，
+    /// 若判準看的是結束卡，鉛筆就會跟著回來，而那些週是已完結的課表。
+    func test_allowsEditing_isFalseForTheWholePlanEndState_historyModeIncluded() {
+        XCTAssertTrue(App2PlanEndProjection.allowsEditing(planEnd: nil))
+        // 結束卡在畫時唯讀。
+        XCTAssertFalse(App2PlanEndProjection.allowsEditing(planEnd: card()))
+        // 歷史模式時結束卡不畫，但 `planEnd` 還在 —— 判準不變，仍然唯讀。
+        XCTAssertFalse(App2PlanEndProjection.allowsEditing(planEnd: card(kind: .maintenance)))
+    }
+
+    /// 回看區間 ＝ `1…total_weeks`。週數缺席／非正 → nil：那時整條入口不該出現，
+    /// 而不是給一個猜的上限讓使用者一路撞 404。
+    func test_historyWeekRange_isOneThroughTotalWeeks() {
+        XCTAssertEqual(App2PlanEndProjection.historyWeekRange(totalWeeks: 22), 1...22)
+        XCTAssertNil(App2PlanEndProjection.historyWeekRange(totalWeeks: nil))
+        XCTAssertNil(App2PlanEndProjection.historyWeekRange(totalWeeks: 0))
+        XCTAssertNil(App2PlanEndProjection.historyWeekRange(totalWeeks: -3))
+    }
+
+    func test_clampHistoryWeek_staysInsideTheRange() {
+        XCTAssertEqual(App2PlanEndProjection.clampHistoryWeek(0, totalWeeks: 17), 1)
+        XCTAssertEqual(App2PlanEndProjection.clampHistoryWeek(9, totalWeeks: 17), 9)
+        XCTAssertEqual(App2PlanEndProjection.clampHistoryWeek(99, totalWeeks: 17), 17)
+        XCTAssertNil(App2PlanEndProjection.clampHistoryWeek(3, totalWeeks: nil))
+    }
+
+    /// 歷史週的日卡日期要按**那一週**標。權威是 `training_start_date`。
+    func test_historyWeekStart_anchorsOnTrainingStartDate() {
+        let status = planStatus(currentWeek: 18, totalWeeks: 17, startDate: "2026-01-05")
+        let calendar = Calendar(identifier: .gregorian)
+        let week1 = App2PlanEndProjection.historyWeekStart(
+            week: 1, planStatus: status, calendar: calendar
+        )
+        let week3 = App2PlanEndProjection.historyWeekStart(
+            week: 3, planStatus: status, calendar: calendar
+        )
+        // 2026-01-05 是週一 → 第 1 週就是它，第 3 週是 +14 天。
+        XCTAssertEqual(calendar.dateComponents([.month, .day], from: week1).day, 5)
+        XCTAssertEqual(calendar.dateComponents([.month, .day], from: week3).day, 19)
+        XCTAssertEqual(
+            week3.timeIntervalSince(week1), 14 * 24 * 3600, accuracy: 3600
+        )
+    }
+
+    /// `training_start_date` 缺席 → 退「本週週一往回推 `current_week − N` 週」。
+    /// 那是近似，但形狀一樣（一個週一），下游不必分辨。
+    func test_historyWeekStart_fallsBackToCurrentWeekOffset() {
+        let status = planStatus(currentWeek: 18, totalWeeks: 17)
+        let calendar = Calendar(identifier: .gregorian)
+        let reference = Date(timeIntervalSince1970: 1_787_000_000)
+        let thisMonday = App2WeekCalendar.currentWeekStart(reference: reference, calendar: calendar)
+        let week17 = App2PlanEndProjection.historyWeekStart(
+            week: 17, planStatus: status, reference: reference, calendar: calendar
+        )
+        // current_week 18、看第 17 週 → 往回一週。
+        XCTAssertEqual(thisMonday.timeIntervalSince(week17), 7 * 24 * 3600, accuracy: 3600)
+    }
 }
+
+// MARK: - App2PlanViewModel 的歷史回看
+/// 課表 tab 的歷史模式（裁決（e））—— **走既有的
+/// `getWeeklyPlan(weekOfTraining:overviewId:)`**，唯讀，且 404 是空態不是錯誤。
+@MainActor
+final class App2PlanHistoryModeTests: XCTestCase {
+
+    private func planStatus(currentWeek: Int = 18, totalWeeks: Int = 17) -> PlanStatusV2Response {
+        PlanStatusV2Response(
+            currentWeek: currentWeek,
+            totalWeeks: totalWeeks,
+            nextAction: "training_completed",
+            canGenerateNextWeek: false,
+            currentWeekPlanId: nil,
+            previousWeekSummaryId: nil,
+            targetType: "maintenance",
+            methodologyId: "paceriz",
+            nextWeekInfo: nil,
+            metadata: nil
+        )
+    }
+
+    private func overview(id: String = "overview-1") -> PlanOverviewV2 {
+        PlanOverviewV2(
+            id: id, targetId: nil, targetType: "maintenance", targetDescription: nil,
+            methodologyId: "paceriz", totalWeeks: 17, startFromStage: "base",
+            raceDate: nil, distanceKm: nil, distanceKmDisplay: nil, distanceUnit: nil,
+            targetPace: nil, targetTime: nil, isMainRace: nil, targetName: nil,
+            methodologyOverview: nil, targetEvaluate: nil, approachSummary: nil,
+            trainingStages: [], milestones: [], createdAt: Date(),
+            methodologyVersion: nil, milestoneBasis: nil
+        )
+    }
+
+    private func weeklyPlan(week: Int) -> WeeklyPlanV2 {
+        WeeklyPlanV2(
+            planId: "overview-1_\(week)", weekOfTraining: week, id: "overview-1_\(week)",
+            purpose: "history", weekOfPlan: week, totalWeeks: 17, totalDistance: 42,
+            totalDistanceDisplay: nil, totalDistanceUnit: nil, totalDistanceReason: nil,
+            designReason: nil, mileageProgressionNote: nil, coachNote: nil, days: [],
+            intensityTotalMinutes: nil, currentVdot: nil, vdotSource: nil,
+            createdAt: Date(), updatedAt: Date(), trainingLoadAnalysis: nil,
+            personalizedRecommendations: nil, realTimeAdjustments: nil, apiVersion: "2.0"
+        )
+    }
+
+    private func makeViewModel(
+        plan: WeeklyPlanV2?
+    ) -> (App2PlanViewModel, MockTrainingPlanV2Repository) {
+        let repository = MockTrainingPlanV2Repository()
+        repository.planStatusToReturn = planStatus()
+        repository.overviewToReturn = overview()
+        repository.weeklyPlanV2ToReturn = plan
+        let viewModel = App2PlanViewModel(
+            planRepository: repository,
+            workoutRepository: MockWorkoutRepository(),
+            targetRepository: nil
+        )
+        return (viewModel, repository)
+    }
+
+    /// 結束態預設不在歷史模式；進去之後從**最後一週**開始，且結束卡讓位給週課表。
+    func test_enterHistoryMode_startsAtTheLastWeekAndYieldsTheEndCard() async {
+        let (viewModel, repository) = makeViewModel(plan: weeklyPlan(week: 17))
+        await viewModel.revalidate()
+
+        XCTAssertNotNil(viewModel.planEnd)
+        XCTAssertTrue(viewModel.showsPlanEnd)
+        XCTAssertFalse(viewModel.isHistoryMode)
+
+        await viewModel.enterHistoryMode()
+
+        XCTAssertEqual(viewModel.historyWeek, 17)
+        XCTAssertTrue(viewModel.isHistoryMode)
+        XCTAssertFalse(viewModel.showsPlanEnd)          // 結束卡讓位
+        XCTAssertNotNil(viewModel.planEnd)              // 但結束態本身還在
+        XCTAssertEqual(repository.lastRequestedWeeklyPlanWeekOfTraining, 17)
+        XCTAssertNotNil(viewModel.week)
+    }
+
+    /// **唯讀**（裁決（b））：歷史模式下結束卡不畫，但 `allowsEditing` 仍為 false ——
+    /// 鉛筆不會跟著週次切換器一起回來。
+    func test_historyMode_isReadOnly() async {
+        let (viewModel, _) = makeViewModel(plan: weeklyPlan(week: 17))
+        await viewModel.revalidate()
+        XCTAssertFalse(viewModel.allowsEditing)
+
+        await viewModel.enterHistoryMode()
+        XCTAssertFalse(viewModel.allowsEditing)
+
+        await viewModel.goToHistoryWeek(offset: -1)
+        XCTAssertEqual(viewModel.historyWeek, 16)
+        XCTAssertFalse(viewModel.allowsEditing)
+    }
+
+    /// 週次切換夾在 `1…total_weeks`：第 1 週不能再往前，最後一週不能再往後。
+    func test_historyWeekStepping_isClampedToThePlanLength() async {
+        let (viewModel, _) = makeViewModel(plan: weeklyPlan(week: 1))
+        await viewModel.revalidate()
+        await viewModel.enterHistoryMode()
+
+        XCTAssertFalse(viewModel.canGoNextHistoryWeek)   // 已在最後一週
+        XCTAssertTrue(viewModel.canGoPreviousHistoryWeek)
+
+        for _ in 0..<20 { await viewModel.goToHistoryWeek(offset: -1) }
+        XCTAssertEqual(viewModel.historyWeek, 1)
+        XCTAssertFalse(viewModel.canGoPreviousHistoryWeek)
+    }
+
+    /// **404 ＝ 該週從沒生成過課表，不是錯誤**：那一週顯示空態，模式與週次都留著，
+    /// 而且**不退樣本**（拿一份假課表頂上去比空著更糟）。
+    func test_historyWeek404_showsAnEmptyWeekWithoutFallingBackToStubs() async {
+        let (viewModel, repository) = makeViewModel(plan: weeklyPlan(week: 17))
+        await viewModel.revalidate()
+        await viewModel.enterHistoryMode()
+        XCTAssertNotNil(viewModel.week)
+
+        // 第 16 週後端沒有 → `getWeeklyPlan` 丟 `weeklyPlanNotFound`。
+        repository.weeklyPlanV2ToReturn = nil
+        await viewModel.goToHistoryWeek(offset: -1)
+
+        XCTAssertEqual(viewModel.historyWeek, 16)
+        XCTAssertTrue(viewModel.isHistoryMode)
+        XCTAssertTrue(viewModel.isHistoryWeekMissing)
+        XCTAssertNil(viewModel.week)                     // 空態，沒有樣本課表
+        XCTAssertTrue(viewModel.dayDetails.isEmpty)
+        XCTAssertFalse(viewModel.allowsEditing)          // 空態也唯讀
+
+        // 有課表的那一週回得去，空態不會卡住整個模式。
+        repository.weeklyPlanV2ToReturn = weeklyPlan(week: 17)
+        await viewModel.goToHistoryWeek(offset: 1)
+        XCTAssertFalse(viewModel.isHistoryWeekMissing)
+        XCTAssertNotNil(viewModel.week)
+    }
+
+    /// 返程：回到計畫完成畫面 —— 結束卡回來，週課表收掉。
+    func test_exitHistoryMode_returnsToTheCompletionScreen() async {
+        let (viewModel, _) = makeViewModel(plan: weeklyPlan(week: 17))
+        await viewModel.revalidate()
+        await viewModel.enterHistoryMode()
+        XCTAssertFalse(viewModel.showsPlanEnd)
+
+        viewModel.exitHistoryMode()
+
+        XCTAssertNil(viewModel.historyWeek)
+        XCTAssertFalse(viewModel.isHistoryMode)
+        XCTAssertTrue(viewModel.showsPlanEnd)
+        XCTAssertNil(viewModel.week)
+    }
+}
+
+// MARK: - DEBUG fixture 的 N
+#if DEBUG
+/// 故事版 fixture 的 hero 句與章節標籤**吃同一個 N**（2026-08-27 補修）。
+final class App2PlanEndStoryFixtureTests: XCTestCase {
+
+    /// 稿面那份是 22 週的 1／9／18／22 —— N=22 時逐字相同。
+    func test_chapterWeeks_matchesTheDesignAtTwentyTwo() {
+        XCTAssertEqual(App2PlanEndStoryFixture.chapterWeeks(totalWeeks: 22), [1, 9, 18, 22])
+    }
+
+    /// N 變小時一起縮，且單調不遞減 —— 不會出現「第 3 週」排在「第 5 週」前面。
+    func test_chapterWeeks_scaleDownAndStayMonotonic() {
+        for weeks in 1...40 {
+            let chapters = App2PlanEndStoryFixture.chapterWeeks(totalWeeks: weeks)
+            XCTAssertEqual(chapters.count, 4)
+            XCTAssertEqual(chapters.first, 1)
+            XCTAssertEqual(chapters.last, max(weeks, 1))
+            XCTAssertEqual(chapters, chapters.sorted(), "weeks=\(weeks)")
+        }
+    }
+
+    /// hero 句的 N 就是章節最後一週的 N —— 先前 hero 寫死 22、同屏章節是 17。
+    func test_make_heroLineAndChapterLabelsAgreeOnN() {
+        let story = App2PlanEndStoryFixture.make(weeks: 17)
+        XCTAssertTrue(story.heroLine.hasPrefix("17 週"), story.heroLine)
+        XCTAssertEqual(story.chapters.last?.weekLabel, "第 17 週 · 賽事日")
+        XCTAssertEqual(story.chapters.first?.weekLabel, "第 1 週 · 起點")
+        XCTAssertFalse(story.chapters.contains { $0.weekLabel.contains("22") })
+    }
+}
+#endif

@@ -2644,6 +2644,12 @@ extension L10n {
             /// 課表 tab 結束態的 Rizo 一句話。**設計稿的靜態教練建議**，不是 payload
             /// 欄位（同 `app2.session.fueling_note` 的先例）。
             static let rizoLine = "app2.plan_end.rizo_line"
+            /// 歷史課表回看（2026-08-27 裁決（e））：結束卡上的入口列、歷史模式的返程列，
+            /// 以及該週從沒生成過課表（404）時的空態。三條與 Android 的
+            /// `app2_plan_end_tab_history` / `_history_back` 同文案。
+            static let historyEntry = "app2.plan_end.history_entry"
+            static let historyBack = "app2.plan_end.history_back"
+            static let historyWeekEmpty = "app2.plan_end.history_week_empty"
         }
 
         enum Achievements {

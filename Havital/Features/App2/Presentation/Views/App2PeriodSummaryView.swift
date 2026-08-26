@@ -642,25 +642,30 @@ struct App2PeriodSummaryView: View {
 /// 取的是 `App2PeriodSummary.strip`（同一份投影的子集）——兩個畫面上的
 /// 「完成率 91%」不可能長得不一樣。
 ///
-/// **「瀏覽這期的歷史課表」那一列沒有做**：換週要一條「取指定週課表」的出口，
-/// 而 2.0 現在沒有（課表頁的週次切換器就是因此停用的）。做成點下去沒反應的死列
-/// 不如不畫（同 `App2HomeView.crossTrainingRow` 的先例）；缺口回報在票面。
+/// 「瀏覽這期的歷史課表」走的是**既有**的
+/// `TrainingPlanV2Repository.getWeeklyPlan(weekOfTraining:overviewId:)`
+/// （`GET /v2/plan/weekly/{overviewId}_{week}`，2026-08-27 裁決（e））——不新開頁面，
+/// 就在這一頁把週次切換器放回來。`onBrowseHistory` 為 nil ＝ 這期的週數講不出來
+/// （`total_weeks` 缺席），那一列整條不畫，不做點下去沒反應的死列。
 struct App2PlanEndTabCard: View {
 
     @StateObject private var viewModel: App2PeriodSummaryViewModel
     private let card: App2PlanEndCard
     let onOpenSummary: () -> Void
     let onSetNewGoal: () -> Void
+    let onBrowseHistory: (() -> Void)?
 
     init(
         card: App2PlanEndCard,
         onOpenSummary: @escaping () -> Void,
-        onSetNewGoal: @escaping () -> Void
+        onSetNewGoal: @escaping () -> Void,
+        onBrowseHistory: (() -> Void)? = nil
     ) {
         self.card = card
         _viewModel = StateObject(wrappedValue: App2PeriodSummaryViewModel(card: card))
         self.onOpenSummary = onOpenSummary
         self.onSetNewGoal = onSetNewGoal
+        self.onBrowseHistory = onBrowseHistory
     }
 
     var body: some View {
@@ -681,12 +686,25 @@ struct App2PlanEndTabCard: View {
                     systemImage: "chart.line.uptrend.xyaxis",
                     title: L10n.App2.PlanEnd.summaryEntry.localized,
                     value: "",
-                    showsDivider: false
+                    showsDivider: onBrowseHistory != nil
                 )
                 .contentShape(Rectangle())
                 .onTapGesture(perform: onOpenSummary)
                 .accessibilityAddTraits(.isButton)
                 .accessibilityIdentifier("App2_PlanEndTabSummaryEntry")
+
+                if let onBrowseHistory {
+                    App2SettingsRow(
+                        systemImage: "clock.arrow.circlepath",
+                        title: L10n.App2.PlanEnd.historyEntry.localized,
+                        value: "",
+                        showsDivider: false
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: onBrowseHistory)
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityIdentifier("App2_PlanEndTabHistoryEntry")
+                }
             }
         }
         .task { await viewModel.loadIfNeeded() }

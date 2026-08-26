@@ -80,9 +80,14 @@ final class App2DevSettings: ObservableObject {
     /// 開關互斥（結束態一開，週回顧時機卡就該收掉），放在一起才看得出這件事。
     @Published var planEndOverride: App2DevPlanEndOverride = .off
 
-    /// 整期總結故事版的 fixture。**production 恆為 nil** —— 敘事端點未落地，
-    /// 這裡是唯一的 producer，而它整段在 `#if DEBUG` 裡。
-    @Published var planEndStory: App2PeriodStory?
+    /// 整期總結要不要走故事版 fixture。**production 恆為 false** —— 敘事端點未落地，
+    /// `App2PlanEndStoryFixture` 是唯一的 producer，而它整段在 `#if DEBUG` 裡。
+    ///
+    /// 存的是**開關**而不是組好的 `App2PeriodStory`：fixture 的週數要跟真實
+    /// `total_weeks` 走（2026-08-27 補修），而那個值只有消費端
+    /// （`App2PeriodSummaryViewModel.weeks`）知道 —— 在開關這裡就把故事組好，
+    /// hero 句的 N 只能寫死，於是同屏的章節標籤與它對不上。
+    @Published var planEndStoryPreview = false
 }
 
 // MARK: - App2WeeklyReviewDevView
