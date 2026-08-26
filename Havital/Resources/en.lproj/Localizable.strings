@@ -585,7 +585,7 @@
 
 // MARK: - Workout Metrics
 "workout.metrics.distance" = "Distance";
-"workout.metrics.time" = "Time";
+"workout.metrics.time" = "Duration";
 "workout.metrics.calories" = "Calories";
 
 // MARK: - Activity Types
@@ -4377,7 +4377,7 @@
 
 // MARK: App2 weekly plan editing, frames 03/04 (2.0)
 "app2.plan_edit.pace_table" = "Pace table";
-"app2.plan_edit.edit_mode_banner" = "Edit mode · press and hold a card, then drag up or down to swap it with another day";
+"app2.plan_edit.edit_mode_banner" = "Edit mode · hold the handle on the left and drag up or down to swap days";
 "app2.plan_edit.volume_title" = "This week (adjusted)";
 "app2.plan_edit.warning_title" = "Hard day next to the long run";
 "app2.plan_edit.today" = "Today";

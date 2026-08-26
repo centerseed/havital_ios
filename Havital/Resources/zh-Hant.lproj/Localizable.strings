@@ -574,7 +574,7 @@
 
 // MARK: - Workout Metrics
 "workout.metrics.distance" = "距離";
-"workout.metrics.time" = "時間";
+"workout.metrics.time" = "時長";
 "workout.metrics.calories" = "卡路里";
 
 // MARK: - Activity Types
@@ -4418,7 +4418,7 @@
 
 // MARK: App2 編輯週課表 frame-03／04（2.0）
 "app2.plan_edit.pace_table" = "配速表";
-"app2.plan_edit.edit_mode_banner" = "編輯模式 · 按住卡片上下拖曳，即可與另一天對調課表";
+"app2.plan_edit.edit_mode_banner" = "編輯模式 · 按住左側握把上下拖曳，即可與另一天對調課表";
 "app2.plan_edit.volume_title" = "本週跑量（調整後）";
 "app2.plan_edit.warning_title" = "強度日與長跑相鄰";
 "app2.plan_edit.today" = "今日";

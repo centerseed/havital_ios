@@ -4374,7 +4374,7 @@
 
 // MARK: App2 週間プラン編集 frame-03／04（2.0）
 "app2.plan_edit.pace_table" = "ペース表";
-"app2.plan_edit.edit_mode_banner" = "編集モード · カードを長押しして上下にドラッグすると、別の日と入れ替えられます";
+"app2.plan_edit.edit_mode_banner" = "編集モード · 左のハンドルを長押しして上下にドラッグすると、別の日と入れ替えられます";
 "app2.plan_edit.volume_title" = "今週の走行距離（調整後）";
 "app2.plan_edit.warning_title" = "強度日とロング走が連続しています";
 "app2.plan_edit.today" = "今日";
