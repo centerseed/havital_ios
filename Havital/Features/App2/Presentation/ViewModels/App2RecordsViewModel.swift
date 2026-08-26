@@ -247,10 +247,7 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
     }
 
     private static func parseDate(_ isoDateTime: String?) -> Date? {
-        guard let isoDateTime else { return nil }
-        let withFraction = ISO8601DateFormatter()
-        withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return withFraction.date(from: isoDateTime) ?? ISO8601DateFormatter().date(from: isoDateTime)
+        App2WeekCalendar.parseISO8601(isoDateTime)
     }
 
     // MARK: - chip 列（設計 `recTabs`）

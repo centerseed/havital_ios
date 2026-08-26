@@ -1093,35 +1093,22 @@ struct App2HomeView: View {
 
     // MARK: - 週回顧 CTA（設計 dc.html:272／5112 的狀態驅動時機卡）
 
+    /// **文案與目標週都由 `App2WeekReviewState` 給**（`title`／`subtitle`／`targetWeek`），
+    /// 這一段只負責畫。狀態是 nil ＝ 整卡隱藏（§A.5 第 1 列與計畫結束態）。
     @ViewBuilder
     private var weeklyReviewRow: some View {
-        switch viewModel.weekReview {
-        case .notGenerated(let isCurrentWeek, let targetWeek):
+        if let state = viewModel.weekReview {
             entryRow(
                 symbol: "chart.line.uptrend.xyaxis",
-                title: isCurrentWeek
-                    ? L10n.App2.Home.weekReviewGenerateCurrent.localized
-                    : L10n.App2.Home.weekReviewGenerateLast.localized,
-                subtitle: isCurrentWeek
-                    ? L10n.App2.Home.weekReviewSubCurrent.localized
-                    : L10n.App2.Home.weekReviewSubLast.localized,
+                title: state.title,
+                subtitle: state.subtitle,
                 identifier: "App2_WeekReviewEntry"
             )
             .contentShape(Rectangle())
-            .onTapGesture { weeklyReviewWeek = App2WeeklyReviewTarget(weekOfPlan: targetWeek) }
+            .onTapGesture {
+                weeklyReviewWeek = App2WeeklyReviewTarget(weekOfPlan: state.targetWeek)
+            }
             .accessibilityAddTraits(.isButton)
-        case .available(_, _, let targetWeek):
-            entryRow(
-                symbol: "chart.line.uptrend.xyaxis",
-                title: L10n.App2.Home.weekReviewView.localized,
-                subtitle: L10n.App2.Home.weekReviewViewSub.localized,
-                identifier: "App2_WeekReviewEntry"
-            )
-            .contentShape(Rectangle())
-            .onTapGesture { weeklyReviewWeek = App2WeeklyReviewTarget(weekOfPlan: targetWeek) }
-            .accessibilityAddTraits(.isButton)
-        case .none:
-            EmptyView()
         }
     }
 

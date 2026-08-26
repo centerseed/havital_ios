@@ -98,7 +98,30 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
         self.readinessViewModel = readinessViewModel ?? TrainingReadinessViewModel()
         self.workoutDataSource = workoutDataSource ?? WorkoutRemoteDataSource()
+
+        #if DEBUG
+        // 開發者走查：切了 override 就要立刻看到那一格，不必先下拉刷新
+        // （見 `Features/App2/Debug/App2WeeklyReviewDevView.swift`）。
+        devOverrideSubscription = App2DevSettings.shared.$weekReviewOverride
+            .dropFirst()
+            .sink { [weak self] override in
+                guard let self, let status = self.lastPlanStatus else { return }
+                if let forced = override.resolve(planStatus: status) {
+                    self.weekReview = forced
+                } else {
+                    // 關掉覆寫 → 回到真實判斷，不用等下一輪網路。
+                    Task { await self.loadWeekReview(planStatus: status) }
+                }
+            }
+        #endif
     }
+
+    #if DEBUG
+    /// 最後一次拿到的 plan status。**只給開發者走查用**：override 要用它的
+    /// `current_week` 算目標週，關掉 override 時也要靠它重算真實那一格。
+    private var lastPlanStatus: PlanStatusV2Response?
+    private var devOverrideSubscription: AnyCancellable?
+    #endif
 
     deinit {
         cancelAllTasks()
@@ -173,7 +196,11 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         // 週回顧：平日的目標週是上一週，`plan status` 自己就帶了摘要 id，
         // 快照夠用。週日看的是「本週」，那要另打一支 `getWeeklySummary()`，
         // 不在快照裡 —— 那天冷啟就等網路，不猜。
-        if let status, !App2WeekCalendar.isSunday() {
+        //
+        // **快取的 status 是時間敏感的**（坑 `576c60e6`：`next_action` 過期會讓
+        // 冷啟按鈕閃爍）。這裡只拿它先畫一次，`revalidate()` 這一輪的網路值回來
+        // 就整個覆蓋 —— `weekReview` 不做「有值就不更新」的合併。
+        if let status, !Self.isSundayInUserTimezone(status) {
             weekReview = Self.weekReviewState(
                 planStatus: status,
                 isSunday: false,
@@ -371,12 +398,25 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     // MARK: - 週回顧 CTA
     //
-    // 設計 dc.html:5112：週日＝「產生本週回顧」，週一～六＝「產生上週回顧」。
-    // 目標週的回顧已經在了就改成「查看回顧」。
+    // 設計 `DESIGN-app2-weekly-review-and-plan-end-inventory` §A.5 的狀態機表：
+    // 週日＝「產生本週回顧」，週一～六＝「產生上週回顧」，目標週的回顧已經在了
+    // 就改成「查看回顧」。**「今天是不是週日」由後端的使用者時區決定**（§A.1），
+    // 不看裝置星期。
 
     private func loadWeekReview(planStatus: PlanStatusV2Response?) async {
         guard let planStatus else { return }
-        let isSunday = App2WeekCalendar.isSunday()
+
+        #if DEBUG
+        lastPlanStatus = planStatus
+        // 開發者走查（設定 → Developer (DEBUG) → Weekly Review Dev Tools）。
+        // **只換呈現的那一格**，下面真實的判斷路徑照跑不誤，關掉就恢復。
+        if let forced = App2DevSettings.shared.weekReviewOverride.resolve(planStatus: planStatus) {
+            weekReview = forced
+            return
+        }
+        #endif
+
+        let isSunday = Self.isSundayInUserTimezone(planStatus)
 
         if !isSunday {
             // 上週回顧的存在與否，`/v2/plan/status` 已經直接給了，不必多打一條。
@@ -388,12 +428,26 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             return
         }
 
-        // 週日看的是「本週」，plan status 沒有「本週回顧 id」這一欄 → 問既有的週摘要出口。
-        // `next_action == create_summary` 已經明說本週還沒產生，那就不用問了。
-        if planStatus.nextAction == "create_summary" {
+        // 週日看的是「本週」，plan status 沒有「本週回顧 id」這一欄。
+        //
+        // **後端在週日已經把答案放進 `next_week_info.requires_current_week_summary`**
+        // （`service.py:1245`，值＝`not has_current_summary`）——那是持久化事實，
+        // 不必為了同一個問題再打一次 `GET /v2/summary/weekly`。
+        if let requiresSummary = planStatus.nextWeekInfo?.requiresCurrentWeekSummary {
+            if requiresSummary {
+                weekReview = Self.weekReviewState(planStatus: planStatus, isSunday: true, summaryId: nil)
+                return
+            }
+            // 已生成 —— id 的組法是後端的（`{overview}_{week}_summary`），
+            // client 不拼；問一次拿真的那顆。
+        } else if planStatus.nextAction == "create_summary" {
+            // `next_week_info` 是 null 的週日（最後一週：後端的
+            // `can_generate_next_week` 壓了 `current_week < total_weeks`）。
+            // `create_summary` 已經明說回顧還沒產生。
             weekReview = Self.weekReviewState(planStatus: planStatus, isSunday: true, summaryId: nil)
             return
         }
+
         var summaryId: String?
         do {
             summaryId = try await planRepository.getWeeklySummary(weekOfPlan: planStatus.currentWeek).id
@@ -551,13 +605,53 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         return candidates.compactMap { $0 }.first { !$0.isEmpty }
     }
 
+    /// 今天是不是**使用者時區**的週日。
+    ///
+    /// **不看裝置星期**（`DESIGN-app2-weekly-review-and-plan-end-inventory` §A.1／§A.5：
+    /// 時區權威是 `metadata.user_timezone`，dev 實查是 `Asia/Tokyo`，與裝置時區無關）。
+    /// 兩層判準：
+    ///
+    /// 1. `can_generate_next_week == true` ＝ 後端已經在使用者時區判過今天是週日
+    ///    （`domains/plan_week/service.py:1228-1236`）。最直接的訊號，直接採信。
+    /// 2. **它是 false 不等於不是週日。** 後端在同一個 if 多壓了
+    ///    `current_week < total_weeks`，所以**最後一週的週日固定是 false**
+    ///    （§A.5 必測清單第 1 條就是這一格）。這時用 `metadata.server_time`
+    ///    換算到 `metadata.user_timezone` 自己判 —— 這不是重算週界，是讀後端給的
+    ///    兩個權威欄位。
+    /// 3. 兩者都缺（舊 payload／時區名解不開）才退回裝置日曆，並留 log。
+    static func isSundayInUserTimezone(
+        _ status: PlanStatusV2Response,
+        deviceNow: Date = Date(),
+        deviceCalendar: Calendar = .current
+    ) -> Bool {
+        if status.canGenerateNextWeek { return true }
+        if let calendar = App2WeekCalendar.calendar(inTimezone: status.metadata?.userTimezone) {
+            // `server_time` 缺就用裝置的「現在」—— 那只是個瞬間（UTC），
+            // 星期仍然是在使用者時區的日曆上算出來的。
+            let instant = App2WeekCalendar.parseISO8601(status.metadata?.serverTime) ?? deviceNow
+            return App2WeekCalendar.isSunday(date: instant, calendar: calendar)
+        }
+        Logger.debug("[App2HomeVM] plan status 缺 user_timezone，週日判定退回裝置日曆")
+        return App2WeekCalendar.isSunday(date: deviceNow, calendar: deviceCalendar)
+    }
+
     /// 週回顧 CTA 狀態。**回 nil ＝整張卡不顯示。**
     ///
-    /// 出現條件只有一條：**目標週是一個「可回顧的訓練週」**。
-    /// - 平日：目標週＝上一個訓練週（`current_week - 1`）。課表從第 1 週才開始的帳號
-    ///   沒有上一週可回顧 —— 2026-08-25 demo 帳號正是這個狀態，畫面卻掛著
-    ///   「產生上週回顧」，那是一張按下去無事可做的卡。
-    /// - 週日：目標週＝本週，前提是本週真的有課表（`current_week_plan_id` 非 nil）。
+    /// 這是 `DESIGN-app2-weekly-review-and-plan-end-inventory` §A.5 那張狀態機表的實作，
+    /// 每一格都只讀 `/v2/plan/status` 的欄位 —— client 不算週界。
+    ///
+    /// | 條件 | 結果 | 週次 |
+    /// |---|---|---|
+    /// | `next_action == training_completed` | nil（進「計畫結束」狀態，§B） | — |
+    /// | `current_week == 1` 且非週日 | nil（無可回顧週） | — |
+    /// | 平日、`current_week ≥ 2`、`previous_week_summary_id == null` | 產生上週回顧 | `current_week − 1` |
+    /// | 平日、`previous_week_summary_id != null` | 查看回顧 | `current_week − 1` |
+    /// | 週日、本週有課表、本週回顧未生成 | 產生本週回顧 | `current_week` |
+    /// | 週日、本週回顧已生成 | 查看回顧 | `current_week` |
+    ///
+    /// 平日那三列**不分 `next_action` 是 `create_summary` 還是 `view_plan`**：兩者
+    /// 都是「上週回顧沒做」的同一個事實，1.4 只在 `create_summary` 給入口（擋課表時），
+    /// 2.0 的 8/25 裁決把它做成主動時機卡。
     ///
     /// `summaryId` 有值＝目標週的回顧已存在 → 改成「查看回顧」。
     static func weekReviewState(
@@ -565,6 +659,10 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         isSunday: Bool,
         summaryId: String?
     ) -> App2WeekReviewState? {
+        // 計畫已結束 —— 週回顧的時機語意在這裡就不成立了，卡整張收掉。
+        // 結束態是另一條路（§B 的 `TrainingCompletedView`），不是這張卡的第五個狀態。
+        guard planStatus.nextAction != "training_completed" else { return nil }
+
         let targetWeekHasPlan = isSunday
             ? planStatus.currentWeekPlanId != nil
             : planStatus.currentWeek > 1

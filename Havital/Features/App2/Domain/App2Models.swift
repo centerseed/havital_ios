@@ -382,6 +382,34 @@ enum App2WeekReviewState: Equatable {
         case .notGenerated(_, let week), .available(_, _, let week): return week
         }
     }
+
+    /// 卡上的主標。
+    ///
+    /// **文案綁在狀態上，不由 View 自己判。** 坑 `cdab0b79` 就是提示文案與實際動作
+    /// 對不上（卡上寫「產生上週回顧」，按下去做的是別件事）—— 兩者出自同一個
+    /// `switch` 之後，它們只能一起錯或一起對，而測試測得到這個 switch。
+    var title: String {
+        switch self {
+        case .notGenerated(let isCurrentWeek, _):
+            return isCurrentWeek
+                ? L10n.App2.Home.weekReviewGenerateCurrent.localized
+                : L10n.App2.Home.weekReviewGenerateLast.localized
+        case .available:
+            return L10n.App2.Home.weekReviewView.localized
+        }
+    }
+
+    /// 卡上的副標。
+    var subtitle: String {
+        switch self {
+        case .notGenerated(let isCurrentWeek, _):
+            return isCurrentWeek
+                ? L10n.App2.Home.weekReviewSubCurrent.localized
+                : L10n.App2.Home.weekReviewSubLast.localized
+        case .available:
+            return L10n.App2.Home.weekReviewViewSub.localized
+        }
+    }
 }
 
 // MARK: - 課表（§3.3）

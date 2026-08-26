@@ -31,9 +31,32 @@ enum App2WeekCalendar {
         return weekday == 1 ? 7 : weekday - 1
     }
 
-    /// 週日嗎（裝置日曆）。首頁的週回顧 CTA 依它分「本週／上週」。
+    /// 週日嗎。**呼叫端要自己決定 `calendar` 的時區。**
+    ///
+    /// 週回顧的時機**不得**用裝置時區判（`DESIGN-app2-weekly-review-and-plan-end-inventory`
+    /// §A.1：時區權威是 `/v2/plan/status` 的 `metadata.user_timezone`）——那條路徑走
+    /// `App2HomeViewModel.isSundayInUserTimezone(_:)`，它會把使用者時區的日曆餵進來。
+    /// 這支只做「這個瞬間在這本日曆上是不是週日」的算術。
     static func isSunday(date: Date = Date(), calendar: Calendar = .current) -> Bool {
         calendar.component(.weekday, from: date) == 1
+    }
+
+    /// 使用者時區的 gregorian 日曆。時區名解不開（後端給了 app 不認得的 identifier）
+    /// 回 nil —— **不默默退回裝置時區**，那正是 §A.1 要擋的事，呼叫端要自己決定怎麼降級。
+    static func calendar(inTimezone identifier: String?) -> Calendar? {
+        guard let identifier, let timezone = TimeZone(identifier: identifier) else { return nil }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timezone
+        return calendar
+    }
+
+    /// ISO8601（帶不帶小數秒都吃）。後端的 `server_time` 帶小數秒、
+    /// `current_week_start_date` 不帶，同一支要能解兩種。
+    static func parseISO8601(_ value: String?) -> Date? {
+        guard let value else { return nil }
+        let withFraction = ISO8601DateFormatter()
+        withFraction.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return withFraction.date(from: value) ?? ISO8601DateFormatter().date(from: value)
     }
 
     /// 每日卡標題的日期（設計 frame-01：`週一 8/10`）。週起點 ＋ `day_index - 1` 天。
