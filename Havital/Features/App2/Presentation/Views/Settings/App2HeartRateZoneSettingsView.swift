@@ -102,34 +102,25 @@ struct App2HeartRateZoneSettingsView: View {
                     }
                 }
                 Spacer(minLength: 8)
-                stepperButton(systemImage: "minus", filled: false, identifier: "\(identifier)Minus") {
+                // 形狀走共用的 `App2StepperButton`（`App2EditComponents`）——這一頁只是
+                // 尺寸不同（52×46／圓角 14），不是第二顆 stepper 鈕。
+                App2StepperButton(
+                    systemImage: "minus",
+                    width: 52, height: 46, cornerRadius: 14, glyphSize: 17,
+                    identifier: "\(identifier)Minus"
+                ) {
                     value.wrappedValue = max(range.lowerBound, value.wrappedValue - 1)
                 }
-                stepperButton(systemImage: "plus", filled: true, identifier: "\(identifier)Plus") {
+                App2StepperButton(
+                    systemImage: "plus",
+                    filled: true,
+                    width: 52, height: 46, cornerRadius: 14, glyphSize: 17,
+                    identifier: "\(identifier)Plus"
+                ) {
                     value.wrappedValue = min(range.upperBound, value.wrappedValue + 1)
                 }
             }
         }
-        .accessibilityIdentifier(identifier)
-    }
-
-    private func stepperButton(
-        systemImage: String,
-        filled: Bool,
-        identifier: String,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(filled ? App2Theme.accentBlue : App2Theme.insetBackground)
-                .frame(width: 52, height: 46)
-                .overlay(
-                    Image(systemName: systemImage)
-                        .font(.system(size: 17, weight: .black))
-                        .foregroundStyle(filled ? Color.white : App2Theme.inkSubtle)
-                )
-        }
-        .buttonStyle(.plain)
         .accessibilityIdentifier(identifier)
     }
 

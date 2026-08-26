@@ -346,6 +346,8 @@ struct App2RaceManagementView: View {
         .padding(.horizontal, 2)
     }
 
+    /// 形狀走共用的 `App2DashedAddButton`（`App2EditComponents`）——這一頁只是白底、
+    /// 圓角與內距不同，不是第二顆虛線新增鈕。
     private func dashedButton(
         title: String,
         subtitle: String?,
@@ -354,32 +356,17 @@ struct App2RaceManagementView: View {
         identifier: String,
         action: @escaping () -> Void
     ) -> some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 7) {
-                Image(systemName: "plus")
-                    .font(.system(size: 14, weight: .black))
-                Text(title)
-                    .font(.system(size: 15, weight: .heavy))
-            }
-            .foregroundStyle(tint)
-            if let subtitle {
-                Text(subtitle)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(App2Theme.inkMuted)
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, subtitle == nil ? 15 : 26)
-        .background(
-            RoundedRectangle(cornerRadius: subtitle == nil ? 16 : 22, style: .continuous)
-                .fill(Color.white.opacity(0.5))
+        App2DashedAddButton(
+            title: title,
+            subtitle: subtitle,
+            tint: tint,
+            border: border,
+            background: Color.white.opacity(0.5),
+            cornerRadius: subtitle == nil ? 16 : 22,
+            verticalPadding: subtitle == nil ? 15 : 26,
+            identifier: identifier,
+            action: action
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: subtitle == nil ? 16 : 22, style: .continuous)
-                .strokeBorder(border, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
-        )
-        .contentShape(Rectangle())
-        .onTapGesture(perform: action)
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(title)

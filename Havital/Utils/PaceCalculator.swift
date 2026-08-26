@@ -43,6 +43,23 @@ struct PaceCalculator {
             case .interval:  return L10n.Training.PaceZone.interval.localized
             }
         }
+
+        /// Daniels 強度代碼（E／M／T／I／R）。輪盤 sheet 的「配速表建議 **I** 強度」
+        /// 用它（設計 §18）。代碼不隨語言變，所以不是 localized 字串。
+        ///
+        /// 這套 zone 比 Daniels 原本的五格多兩格：`recovery` 比 E 更慢、`anaerobic`
+        /// 落在 I 與 R 之間。對照到最近的原始代碼，不另立一套字母。
+        var danielsCode: String {
+            switch self {
+            case .recovery:  return "E"
+            case .easy:      return "E"
+            case .tempo:     return "M"
+            case .marathon:  return "M"
+            case .threshold: return "T"
+            case .anaerobic: return "I"
+            case .interval:  return "I"
+            }
+        }
     }
 
     // MARK: - 配速計算方法
@@ -187,7 +204,10 @@ struct PaceCalculator {
     /// 將訓練類型字串映射到配速區間
     /// - Parameter trainingType: 訓練類型（例如："easy"、"tempo"、"interval"）
     /// - Returns: 對應的配速區間，如果無法映射則返回 nil
-    private static func mapTrainingTypeToZone(_ trainingType: String) -> PaceZone? {
+    /// 對外開放的理由：2.0 的輪盤 sheet 要在建議條上印 Daniels 代碼
+    /// （`配速表建議 I 強度 …`），代碼由 zone 決定。開放的是既有的這一份對照表，
+    /// 不是另建一份 type → 代碼的映射。
+    static func mapTrainingTypeToZone(_ trainingType: String) -> PaceZone? {
         let type = trainingType.lowercased()
 
         switch type {
