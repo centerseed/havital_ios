@@ -2083,6 +2083,22 @@ extension L10n {
             /// 內嵌 Rizo 卡。
             static let rizoCoachTitle = "app2.home.rizo_coach_title"
             static let rizoInputPlaceholder = "app2.home.rizo_input_placeholder"
+            /// 訓練狀況卡（frame-00c）：收合態右下的展開連結、展開態的 Rizo 佔位字。
+            static let statusWhy = "app2.home.status_why"
+            static let statusRizoPlaceholder = "app2.home.status_rizo_placeholder"
+
+            /// Rizo 對話 sheet（frame-00d）：主題卡、開場白、建議問題 chips。
+            static let rizoTopicLabel = "app2.home.rizo_topic_label"
+            static let rizoTopicAdvice = "app2.home.rizo_topic_advice"
+            static let rizoTopicPlan = "app2.home.rizo_topic_plan"
+            static let rizoOpening = "app2.home.rizo_opening"
+            static let rizoOpeningPrompt = "app2.home.rizo_opening_prompt"
+            static let rizoChipAdvice1 = "app2.home.rizo_chip_advice_1"
+            static let rizoChipAdvice2 = "app2.home.rizo_chip_advice_2"
+            static let rizoChipAdvice3 = "app2.home.rizo_chip_advice_3"
+            static let rizoChipPlan1 = "app2.home.rizo_chip_plan_1"
+            static let rizoChipPlan2 = "app2.home.rizo_chip_plan_2"
+            static let rizoChipPlan3 = "app2.home.rizo_chip_plan_3"
             /// 休息日卡（設計 dc.html「今日課表 · 休息日卡片」）。
             static let todayRest = "app2.home.today_rest"
             static let restTitle = "app2.home.rest_title"

@@ -16,6 +16,11 @@ struct RizoChatView: View {
     @ObservedObject var viewModel: StateRizoChatViewModel
     /// 快速回應選項（空陣列則不顯示）。
     var quickReplies: [String] = []
+    /// 是否畫自己的 chat header。2.0 首頁的 Rizo sheet（設計 frame-00d）已經有
+    /// sheet 自己的頭（R 頭像＋名稱＋關閉鈕），再畫一次會有兩排 Rizo。
+    var showsHeader: Bool = true
+    /// 是否畫自己的卡面（底色＋圓角＋內距）。嵌在 2.0 sheet 裡時由 sheet 提供背景。
+    var showsSurface: Bool = true
     /// 輸入框焦點 — 用於提供「收起鍵盤」能力(原本鍵盤無法收起,難以截圖)。
     @FocusState private var inputFocused: Bool
     /// 歷史對話清單 sheet 開關。
@@ -23,7 +28,9 @@ struct RizoChatView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            chatHeader
+            if showsHeader {
+                chatHeader
+            }
 
             ForEach(viewModel.messages) { message in
                 bubble(message)
@@ -43,9 +50,9 @@ struct RizoChatView: View {
 
             inputBar
         }
-        .padding(14)
-        .background(Color(UIColor.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: PacerizRadius.card, style: .continuous))
+        .padding(showsSurface ? 14 : 0)
+        .background(showsSurface ? Color(UIColor.secondarySystemGroupedBackground) : Color.clear)
+        .clipShape(RoundedRectangle(cornerRadius: showsSurface ? PacerizRadius.card : 0, style: .continuous))
         .sheet(item: $viewModel.paywallTrigger) { trigger in
             PaywallView(trigger: trigger)
         }

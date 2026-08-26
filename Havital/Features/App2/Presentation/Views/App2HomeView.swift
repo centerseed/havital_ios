@@ -18,8 +18,12 @@ struct App2HomeView: View {
     @ObservedObject var achievementsViewModel: PersonalAchievementsViewModel
     /// 指標網格預設收合（設計的收合列就是一排彩色膠囊），點一下展開成 2 欄。
     @State private var isGridExpanded = false
-    /// 內嵌 Rizo 卡點下去開的既有對話（`RizoChatView`，不另寫一份）。
-    @State private var isShowingRizoChat = false
+    /// 訓練狀況卡預設收合（設計 frame-00c-status-collapsed：徽章＋headline＋
+    /// 「為什麼？」）；展開後才補 `narrative_text` 與內嵌 Rizo 輸入列。
+    @State private var isStatusExpanded = false
+    /// 內嵌 Rizo 入口點下去開的對話 sheet（設計 frame-00d）。有值＝sheet 開著，
+    /// 值本身就是這次對話的 context（今日建議／今日課表）。
+    @State private var rizoSheetContext: App2RizoChatSheet.Context?
     @State private var rizoChatViewModel: StateRizoChatViewModel?
     /// 訓練計畫總覽（設計 frame-20）。
     ///
@@ -119,26 +123,65 @@ struct App2HomeView: View {
                 onDeleted: { Task { await viewModel.forceRefresh() } }
             )
         }
-        .sheet(isPresented: $isShowingRizoChat) {
+        .sheet(item: $rizoSheetContext) { context in
             if let rizoChatViewModel {
-                NavigationView {
-                    ScrollView {
-                        // 既有的對話元件，不另寫一份 2.0 版。
-                        RizoChatView(viewModel: rizoChatViewModel)
-                            .padding(16)
-                    }
-                    .background(App2Theme.pageGradient.ignoresSafeArea())
-                }
+                App2RizoChatSheet(context: context, viewModel: rizoChatViewModel)
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.hidden)
+                    .presentationCornerRadius(26)
             }
         }
     }
 
-    private func openRizoChat() {
+    /// 首頁兩個 Rizo 入口都開同一個 bottom sheet（設計 frame-00d），只有 context 不同。
+    /// 對話狀態與送出仍是既有的 `StateRizoChatViewModel`／既有 Rizo API。
+    private func openRizoChat(_ context: App2RizoChatSheet.Context) {
         let viewModelToUse = rizoChatViewModel
             ?? StateRizoChatViewModel(scenario: viewModel.rizoScenario ?? "body_status")
         rizoChatViewModel = viewModelToUse
-        isShowingRizoChat = true
-        Task { await viewModelToUse.startOpening() }
+        // 開場白在本機組（context 那兩句話畫面上已經有了），不多打一次 LLM。
+        viewModelToUse.seedOpening(context.opening)
+        rizoSheetContext = context
+    }
+
+    /// 訓練狀況卡（展開態）的 Rizo 入口 → 「聊天主題 · 今日建議」。
+    private func openRizoChatFromStatus(_ status: App2TrainingStatus) {
+        openRizoChat(
+            App2RizoChatSheet.Context(
+                topic: L10n.App2.Home.rizoTopicAdvice.localized,
+                title: status.headline,
+                detail: status.narrative,
+                opening: Self.rizoOpening(from: status.narrative ?? status.headline),
+                quickReplies: [
+                    L10n.App2.Home.rizoChipAdvice1.localized,
+                    L10n.App2.Home.rizoChipAdvice2.localized,
+                    L10n.App2.Home.rizoChipAdvice3.localized
+                ]
+            )
+        )
+    }
+
+    /// 今日課表卡的 Rizo 入口 → 「聊天主題 · 今日課表」。
+    private func openRizoChatFromSession(_ session: App2TodaySession) {
+        openRizoChat(
+            App2RizoChatSheet.Context(
+                topic: L10n.App2.Home.rizoTopicPlan.localized,
+                title: session.title,
+                detail: session.summary,
+                opening: Self.rizoOpening(from: viewModel.rizoOpeningLine),
+                quickReplies: [
+                    L10n.App2.Home.rizoChipPlan1.localized,
+                    L10n.App2.Home.rizoChipPlan2.localized,
+                    L10n.App2.Home.rizoChipPlan3.localized
+                ]
+            )
+        )
+    }
+
+    /// 開場白＝context 那句話 ＋ 一句引導。組不出 context 句就只給引導，不編一句。
+    static func rizoOpening(from line: String?) -> String {
+        guard let line, !line.isEmpty else { return L10n.App2.Home.rizoOpeningPrompt.localized }
+        return String(format: L10n.App2.Home.rizoOpening.localized, line)
     }
 
     // MARK: - Header（字標 ＋ LV 六角徽章）
@@ -350,25 +393,61 @@ struct App2HomeView: View {
     /// backend 沒有任何端點交得出來，畫面上一直掛著 `Sample §7-16` 徽章的樣本圖。
     /// 有真序列端點時再依當時的設計重議，不留樣本圖佔位。
     private func statusBanner(_ status: App2TrainingStatus) -> some View {
-        HStack(alignment: .center, spacing: 13) {
-            // 2026-08-26 裁決：這一顆＝**用戶成就頁預設顯示的那一顆徽章**
-            // （最新解鎖），沿用既有徽章美術與 `AchievementBadgeImage` renderer。
-            // 設計稿的「LV 7」六角只是樣本，不做成等級系統、也不畫成空殼。
-            statusBadge
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .center, spacing: 13) {
+                // 2026-08-26 裁決：這一顆＝**用戶成就頁預設顯示的那一顆徽章**
+                // （最新解鎖），沿用既有徽章美術與 `AchievementBadgeImage` renderer。
+                // 設計稿的「LV 7」六角只是樣本，不做成等級系統、也不畫成空殼。
+                statusBadge
 
-            VStack(alignment: .leading, spacing: 3) {
                 Text(status.headline)
                     .font(.system(size: 17, weight: .black))
                     .tracking(0.3)
                     .foregroundStyle(App2Theme.accentBlueDeep)
                     .fixedSize(horizontal: false, vertical: true)
+            }
 
-                if let narrative = status.narrative {
+            // 敘述是付費內容：免費用戶 `narrative_text` 為 nil，這時沒有東西可展開，
+            // 整顆「為什麼？」不出現（不做成點了沒反應的死連結）。
+            if let narrative = status.narrative {
+                HStack(spacing: 4) {
+                    Spacer(minLength: 0)
+                    Text(L10n.App2.Home.statusWhy.localized)
+                        .font(.system(size: 14, weight: .black))
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 11, weight: .black))
+                        .rotationEffect(.degrees(isStatusExpanded ? 180 : 0))
+                }
+                .foregroundStyle(App2Theme.accentBlueDeep)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    withAnimation(.easeInOut(duration: 0.2)) { isStatusExpanded.toggle() }
+                }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("App2_StatusWhyToggle")
+
+                if isStatusExpanded {
+                    Rectangle()
+                        .fill(App2Theme.accentBlue.opacity(0.16))
+                        .frame(height: 1)
+
                     Text(narrative)
                         .font(.system(size: 14, weight: .semibold))
                         .lineSpacing(3)
                         .foregroundStyle(App2Theme.inkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("App2_StatusNarrative")
+
+                    // 內嵌 Rizo 輸入列。點下去**開 frame-00d 的對話 sheet**（帶
+                    // 「今日建議」context），與今日課表卡同一條入口、同一個 ViewModel。
+                    rizoInputRow(
+                        placeholder: L10n.App2.Home.statusRizoPlaceholder.localized,
+                        showsAvatar: true,
+                        identifier: "App2_StatusRizoInput"
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture { openRizoChatFromStatus(status) }
+                    .accessibilityAddTraits(.isButton)
                 }
             }
         }
@@ -846,30 +925,82 @@ struct App2HomeView: View {
                     .accessibilityIdentifier("App2_RizoBubble")
             }
 
-            HStack(spacing: 8) {
-                Text(L10n.App2.Home.rizoInputPlaceholder.localized)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(App2Theme.inkMuted)
-                    .lineLimit(1)
-                Spacer(minLength: 6)
-                Circle()
-                    .fill(App2Theme.accentBlue)
-                    .frame(width: 30, height: 30)
-                    .overlay {
-                        Image(systemName: "arrow.up")
-                            .font(.system(size: 13, weight: .heavy))
-                            .foregroundStyle(.white)
-                    }
-            }
-            .padding(EdgeInsets(top: 7, leading: 13, bottom: 7, trailing: 7))
-            .app2InsetSurface(cornerRadius: 20)
+            rizoInputRow(
+                placeholder: L10n.App2.Home.rizoInputPlaceholder.localized,
+                showsAvatar: false,
+                identifier: "App2_RizoInput"
+            )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
-        .onTapGesture(perform: openRizoChat)
+        .onTapGesture {
+            // 今日課表卡的入口 → frame-00d 對話 sheet，帶「今日課表」context。
+            if case .session(let session) = viewModel.todayState {
+                openRizoChatFromSession(session)
+            } else {
+                openRizoChat(
+                    App2RizoChatSheet.Context(
+                        topic: L10n.App2.Home.rizoTopicPlan.localized,
+                        title: L10n.App2.Home.todaySection.localized,
+                        detail: nil,
+                        opening: Self.rizoOpening(from: viewModel.rizoOpeningLine),
+                        quickReplies: [
+                            L10n.App2.Home.rizoChipPlan1.localized,
+                            L10n.App2.Home.rizoChipPlan2.localized,
+                            L10n.App2.Home.rizoChipPlan3.localized
+                        ]
+                    )
+                )
+            }
+        }
         .accessibilityElement(children: .contain)
         .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("App2_RizoEntry")
+    }
+
+    /// Rizo 輸入列：（可選）R 頭像 ＋ 佔位字 ＋ 圓形送出鈕。
+    ///
+    /// 今日課表卡與訓練狀況卡（frame-00c 展開態）用**同一份**：兩張卡的差別只有
+    /// 佔位字與要不要帶頭像。送出的目的地也是同一個（`openRizoChat`）。
+    private func rizoInputRow(
+        placeholder: String,
+        showsAvatar: Bool,
+        identifier: String
+    ) -> some View {
+        HStack(spacing: 9) {
+            if showsAvatar {
+                App2Avatar(initial: "R", size: 34, showsRing: false)
+            }
+            HStack(spacing: 8) {
+                Text(placeholder)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(App2Theme.inkMuted)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Spacer(minLength: 6)
+                if !showsAvatar {
+                    sendButton(symbol: "arrow.up")
+                }
+            }
+            .padding(EdgeInsets(top: 7, leading: 13, bottom: 7, trailing: showsAvatar ? 13 : 7))
+            .app2InsetSurface(cornerRadius: 20)
+            // 頭像版（frame-00c）的送出鈕在欄位**外面**、箭頭朝右，照稿。
+            if showsAvatar {
+                sendButton(symbol: "arrow.right")
+            }
+        }
+        .accessibilityIdentifier(identifier)
+    }
+
+    private func sendButton(symbol: String) -> some View {
+        Circle()
+            .fill(App2Theme.accentBlue)
+            .frame(width: 30, height: 30)
+            .overlay {
+                Image(systemName: symbol)
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundStyle(.white)
+            }
     }
 
     // MARK: - 週回顧 CTA（設計 dc.html:272／5112 的狀態驅動時機卡）
@@ -959,5 +1090,120 @@ struct App2HomeView: View {
             }
             .frame(height: 80)
         }
+    }
+}
+
+// MARK: - App2RizoChatSheet
+/// 首頁兩個 Rizo 入口共用的對話 sheet（設計 **frame-00d**）。
+///
+/// sheet 頭（R 頭像＋「Rizo · 你的 AI 跑步教練」＋關閉鈕）→ context 卡
+/// （「聊天主題 · 今日建議」或「· 今日課表」）→ 對話本體。
+///
+/// **對話本體是既有的 `RizoChatView`**（泡泡、typing、建議問題 chips、改課表提案卡、
+/// 付費牆、歷史對話全都在裡面），只是關掉它自己的 header 與卡面，由 sheet 提供。
+/// 狀態與送出是既有的 `StateRizoChatViewModel` → 既有 Rizo API，沒有第二套對話狀態。
+struct App2RizoChatSheet: View {
+
+    /// 這次對話的主題。`Identifiable` 是因為 `sheet(item:)` 要它——同時也讓
+    /// 「換了 context 就是換一次 sheet」這件事由型別表達。
+    struct Context: Identifiable, Equatable {
+        var id: String { topic + title }
+        /// 「今日建議」／「今日課表」。
+        let topic: String
+        let title: String
+        let detail: String?
+        /// 本機組好的開場白（不打 LLM）。
+        let opening: String
+        let quickReplies: [String]
+    }
+
+    let context: Context
+    @ObservedObject var viewModel: StateRizoChatViewModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Capsule()
+                .fill(App2Theme.shadowInk.opacity(0.14))
+                .frame(width: 38, height: 5)
+                .padding(.top, 9)
+
+            header
+            Rectangle()
+                .fill(App2Theme.insetBorder)
+                .frame(height: 1)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    contextCard
+                    RizoChatView(
+                        viewModel: viewModel,
+                        quickReplies: context.quickReplies,
+                        showsHeader: false,
+                        showsSurface: false
+                    )
+                }
+                .padding(.horizontal, App2Theme.pagePadding)
+                .padding(.top, 14)
+                .padding(.bottom, 24)
+            }
+        }
+        .background(App2Theme.pageGradient.ignoresSafeArea())
+        .accessibilityIdentifier("App2_RizoChatSheet")
+    }
+
+    private var header: some View {
+        HStack(spacing: 11) {
+            App2Avatar(initial: "R", size: 44, showsRing: false)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(verbatim: "Rizo")
+                    .font(.system(size: 19, weight: .black))
+                    .foregroundStyle(App2Theme.inkPrimary)
+                Text(L10n.App2.Home.rizoCoachTitle.localized)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(App2Theme.inkTertiary)
+            }
+            Spacer(minLength: 6)
+            Circle()
+                .fill(App2Theme.insetBackground)
+                .frame(width: 34, height: 34)
+                .overlay {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .black))
+                        .foregroundStyle(App2Theme.inkSubtle)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture { dismiss() }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("App2_RizoChatClose")
+        }
+        .padding(.horizontal, App2Theme.pagePadding)
+        .padding(.vertical, 12)
+    }
+
+    private var contextCard: some View {
+        App2Card(padding: 14, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: "text.alignleft")
+                    .font(.system(size: 11, weight: .bold))
+                Text("\(L10n.App2.Home.rizoTopicLabel.localized) · \(context.topic)")
+                    .font(.system(size: 13, weight: .black))
+            }
+            .foregroundStyle(App2Theme.accentBlueDeep)
+
+            Text(context.title)
+                .font(.system(size: 16, weight: .black))
+                .foregroundStyle(App2Theme.inkPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            if let detail = context.detail, !detail.isEmpty {
+                Text(detail)
+                    .font(.system(size: 14, weight: .semibold))
+                    .lineSpacing(3)
+                    .foregroundStyle(App2Theme.inkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .accessibilityIdentifier("App2_RizoChatContext")
     }
 }

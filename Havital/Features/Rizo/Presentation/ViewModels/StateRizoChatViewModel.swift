@@ -81,6 +81,20 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
         await exchange(userText: nil)
     }
 
+    /// 用**本機組好的**開場白起頭，不打後端。
+    ///
+    /// 2.0 首頁的 Rizo sheet（設計 frame-00d）帶著 context 進來（今日建議／今日課表），
+    /// 開場白就是那段 context 加一句引導 —— 句子在畫面上已經有了，再叫 LLM 生一次
+    /// 只是多一次 latency 與一次不一定講一樣的話。真正的對話從使用者第一句開始，
+    /// 之後全部走 `send(_:)`（既有 API），不是第二套對話。
+    ///
+    /// 已有訊息時為 no-op，與 `startOpening()` 一致。
+    func seedOpening(_ text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard messages.isEmpty, !trimmed.isEmpty else { return }
+        messages.append(Message(role: .coach, text: trimmed))
+    }
+
     /// 送出一則用戶訊息並等待教練回覆。
     func send(_ text: String) async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
