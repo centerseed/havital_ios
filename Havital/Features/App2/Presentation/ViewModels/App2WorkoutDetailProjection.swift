@@ -147,11 +147,17 @@ extension App2WorkoutDetailProjection {
     ///   - detail: `GET /v2/workouts/{id}` 的完整 payload。
     ///   - personalBestLabel: 破 PB 徽章文字，由 View 從 VM 的
     ///     `personalBestUpdatesForWorkout` 給（PB 判定不在這裡重做一份）。
+    ///   - maxHR／restingHR：用戶心率區間設定（既有 profile 的 `max_hr`／`relaxing_hr`），
+    ///     只在 `hr_zone_distribution` 缺席或全零時，用來把 avgHR 換算成區間 chip
+    ///     （設計 frame-02f：區間 chip 由實際均心對用戶心率區間推得）。這裡不做 IO，
+    ///     值由呼叫端（View）先從 profile 讀好傳入。
     static func make(
         workout: WorkoutV2,
         detail: WorkoutV2Detail?,
         personalBestLabel: String?,
         unitSystem: UnitSystem,
+        maxHR: Int? = nil,
+        restingHR: Int? = nil,
         now: Date = Date()
     ) -> App2WorkoutDetailProjection {
         let basic = detail?.basicMetrics
@@ -279,7 +285,8 @@ extension App2WorkoutDetailProjection {
             dayType: dayType(workout: workout, detail: detail),
             subtitle: subtitleLabel(workout: workout, now: now),
             providerLabel: providerLabel(workout.provider),
-            dominantZoneLabel: dominantZoneLabel(advanced?.hrZoneDistribution),
+            dominantZoneLabel: dominantZoneLabel(advanced?.hrZoneDistribution)
+                ?? fallbackZoneLabel(avgHR: avgHR, maxHR: maxHR, restingHR: restingHR),
             personalBestLabel: personalBestLabel,
             metrics: metrics,
             plannedSummary: plannedSummary(detail?.dailyPlanSummary ?? workout.dailyPlanSummary),
@@ -378,6 +385,29 @@ extension App2WorkoutDetailProjection {
             .max { $0.1 < $1.1 }
         guard let best else { return nil }
         return NSLocalizedString(best.0, comment: "")
+    }
+
+    /// `hr_zone_distribution` 缺席（或全零）時的退路：拿這一趟的 avgHR 對用戶心率
+    /// 區間（既有 `HeartRateZone.calculateZones`，HRR／Karvonen 六區）推落點。
+    /// Android 已是這樣算（avg HR 對六區），這裡補齊 iOS 對應行為。
+    ///
+    /// 拿不到 avgHR 或拿不到用戶 profile 的 max／resting HR 就沒有這顆 chip
+    /// ——不臆測預設值。
+    static func fallbackZoneLabel(avgHR: Int?, maxHR: Int?, restingHR: Int?) -> String? {
+        guard let avgHR, avgHR > 0 else { return nil }
+        guard let maxHR, let restingHR, maxHR > restingHR else { return nil }
+        let zones = HeartRateZone.calculateZones(maxHR: maxHR, restingHR: restingHR)
+        let zoneNumber = HeartRateZone.zoneFor(heartRate: Double(avgHR), in: zones)
+        let keys = [
+            1: "workout.detail.recovery_zone",
+            2: "workout.detail.aerobic_zone",
+            3: "workout.detail.marathon_zone",
+            4: "workout.detail.threshold_zone",
+            5: "workout.detail.anaerobic_zone",
+            6: "workout.detail.interval_zone"
+        ]
+        guard let key = keys[zoneNumber] else { return nil }
+        return NSLocalizedString(key, comment: "")
     }
 
     /// 課表那一格。有課型／距離／配速就串起來，一項都沒有＝這天沒課表。

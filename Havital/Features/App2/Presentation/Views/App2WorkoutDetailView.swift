@@ -14,6 +14,10 @@ struct App2WorkoutDetailView: View {
 
     @StateObject private var viewModel: WorkoutDetailViewModelV2
     @ObservedObject private var unitManager = UnitManager.shared
+    /// 只為區間 chip 的 fallback（`hr_zone_distribution` 缺席時用 avgHR 對用戶心率
+    /// 區間推落點，設計 frame-02f）讀 profile 的 `max_hr`／`relaxing_hr`——這一頁
+    /// 不新增第二份 profile 讀寫路徑，用的是既有 `UserProfileFeatureViewModel`。
+    @StateObject private var profileViewModel = UserProfileFeatureViewModel()
     let onClose: () -> Void
     /// 刪除成功時通知呼叫端刷新清單（刪掉的那一筆不能還留在紀錄頁上）。
     var onDeleted: (() -> Void)?
@@ -61,7 +65,9 @@ struct App2WorkoutDetailView: View {
             workout: viewModel.workout,
             detail: viewModel.workoutDetail,
             personalBestLabel: personalBestLabel,
-            unitSystem: unitManager.currentUnitSystem
+            unitSystem: unitManager.currentUnitSystem,
+            maxHR: profileViewModel.userData?.maxHr,
+            restingHR: profileViewModel.userData?.relaxingHr
         )
     }
 
@@ -146,6 +152,7 @@ struct App2WorkoutDetailView: View {
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
         .task { await viewModel.loadWorkoutDetail() }
+        .task { await profileViewModel.loadUserProfile() }
         .refreshable { await viewModel.refreshWorkoutDetail() }
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
