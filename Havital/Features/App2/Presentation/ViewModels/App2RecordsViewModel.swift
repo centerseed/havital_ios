@@ -359,7 +359,7 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
             weekStart: entry.weekStart,
             distanceKm: entry.distanceKm,
             isCurrentWeek: entry.isCurrentWeek,
-            shortLabel: Self.shortLabel(isoDate: entry.weekStart)
+            shortLabel: App2DateLabel.short(isoDate: entry.weekStart)
         )
     }
 
@@ -382,16 +382,6 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
     }
 
     // MARK: - Formatting
-
-    /// `2026-08-24` → `8/24`。weekly_series 的 `week_start` 已是用戶當地日期字串，
-    /// 不再過時區換算（數字 timestamp 才是 UTC）。
-    private static func shortLabel(isoDate: String) -> String {
-        let parts = isoDate.split(separator: "-")
-        guard parts.count == 3,
-              let month = Int(parts[1]),
-              let day = Int(parts[2]) else { return isoDate }
-        return "\(month)/\(day)"
-    }
 
     /// workout 的 `start_time_utc` 是 UTC instant → 換成裝置當地日期再顯示。
     private static func shortLabel(isoDateTime: String?) -> String {

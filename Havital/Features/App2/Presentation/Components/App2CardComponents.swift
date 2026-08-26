@@ -19,6 +19,24 @@ enum App2NumberFormat {
     }
 }
 
+// MARK: - App2DateLabel
+/// 2.0 圖表 x 軸與列表上的短日期標。
+///
+/// `weekly_series.week_start`／`health_daily.date`／`vdots.date` 全部已經是
+/// **用戶當地日期字串**（`YYYY-MM-DD`），不再過時區換算 —— 只有數字 timestamp 才是
+/// UTC instant（`AGENTS.md` i18n 與時區規則）。
+/// 紀錄頁與三個指標詳情頁共用這一支，不各自帶一份私有格式器。
+enum App2DateLabel {
+    /// `2026-08-24` → `8/24`。解不開就原樣回傳，不假裝格式化過。
+    static func short(isoDate: String) -> String {
+        let parts = isoDate.split(separator: "-")
+        guard parts.count == 3,
+              let month = Int(parts[1]),
+              let day = Int(parts[2]) else { return isoDate }
+        return "\(month)/\(day)"
+    }
+}
+
 // MARK: - App2Card
 /// 2.0 的卡片容器：白底、圓角 22、細邊、雙層陰影。
 ///

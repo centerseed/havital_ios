@@ -62,6 +62,11 @@ struct App2TrainingStatus: Equatable {
     let headline: String
     /// `StateCard.narrative_text`；免費用戶為 nil（§3.1 paywall 註記）。
     let narrative: String?
+    /// `StateCard.mileage_progression`（跑量漸進敘事，免費也看得到）。
+    ///
+    /// 首頁本身不畫它 —— 它是**訓練量詳情頁 hero 的那一句**（checklist §51-2）。
+    /// 從這裡帶下去，詳情頁就不必為了一句話再打一次 `/v2/state/today`。
+    let mileageProgression: String?
     /// 軌道條落點，0（落後）～1（超乎預期）。
     let trackPosition: Double
     let currentWeek: Int?
@@ -88,6 +93,9 @@ struct App2Insight: Identifiable, Equatable {
     let verdict: String?
     /// `23 vs 上週 0 km` 這種對照句；nil = 後端沒帶。
     let change: String?
+    /// 後端給這一列的證據句（`參考資料有限`／`資料不足　僅 0 堂（需 6 堂）`）。
+    /// 首頁那一排放不下，是**指標詳情頁 hero 的敘事**（checklist §52-1／§53-1）。
+    let evidence: String?
     /// 後端明說 `not_computed` —— 畫面要說出「尚未計算」，不是靜靜地灰掉。
     let isNotComputed: Bool
     /// 後端真的評出來了（`status == "graded"`）。
@@ -102,6 +110,7 @@ struct App2Insight: Identifiable, Equatable {
         direction: Direction,
         verdict: String?,
         change: String? = nil,
+        evidence: String? = nil,
         isNotComputed: Bool = false,
         isGraded: Bool = true,
         isPositive: Bool = false
@@ -112,6 +121,7 @@ struct App2Insight: Identifiable, Equatable {
         self.direction = direction
         self.verdict = verdict
         self.change = change
+        self.evidence = evidence
         self.isNotComputed = isNotComputed
         self.isGraded = isGraded
         self.isPositive = isPositive
@@ -119,6 +129,17 @@ struct App2Insight: Identifiable, Equatable {
 
     enum Direction: String, Equatable {
         case up, down, flat, unknown
+
+        /// 方向的字形。**掛在方向上而不是掛在列上** —— 指標詳情頁的 hero chip
+        /// 只拿得到方向，沒有整列。
+        var arrowGlyph: String {
+            switch self {
+            case .up:      return "↑"
+            case .down:    return "↓"
+            case .flat:    return "→"
+            case .unknown: return "·"
+            }
+        }
     }
 }
 
@@ -140,14 +161,7 @@ extension App2Insight {
         }
     }
 
-    var arrowGlyph: String {
-        switch direction {
-        case .up:      return "↑"
-        case .down:    return "↓"
-        case .flat:    return "→"
-        case .unknown: return "·"
-        }
-    }
+    var arrowGlyph: String { direction.arrowGlyph }
 }
 
 /// 今日課表卡（§3.1 倒數第 3 列；設計 dc.html「今日課表 · 輕鬆跑／節奏跑／長距離／
@@ -569,4 +583,114 @@ struct App2DataSourceStatus: Identifiable, Equatable {
     /// `已連結 · 同步中`／`未連結`
     let statusLabel: String
     let isConnected: Bool
+}
+
+// MARK: - 指標第二層（checklist §51–53）
+//
+// 首頁指標列點下去進的整頁詳情（2026-08-26 導航裁決：直接進頁，不做 §55／56 的
+// sheet 快視圖）。三頁共用 hero ＋ 統計三欄的形狀，圖與診斷各自不同。
+//
+// **兩條資料流**：這一組全部吃 decision-chain（`/v2/state/today` 的 insights）
+// ＋ workouts 序列（stats／vdots／health_daily）。**不得**用 readiness
+// `/plan/readiness/latest` 的 28 天 `trend_data` 頂替任何一張圖。
+
+/// 有詳情稿的指標。**只有這三個可點**（沒有詳情稿的不可點、不畫 chevron）。
+enum App2MetricDetailKind: String, Identifiable, Equatable {
+    case weeklyVolume = "weekly_volume"
+    case capabilityBaseline = "capability_baseline"
+    case recoveryIndex = "recovery_index"
+
+    var id: String { rawValue }
+
+    /// 首頁那一列的 `insight.id` 是不是這三個之一。
+    static func from(insightID: String) -> App2MetricDetailKind? {
+        App2MetricDetailKind(rawValue: insightID)
+    }
+}
+
+/// 三頁共用的 hero（§51-2／§52-1／§53-1）。
+///
+/// 大數字與判語**一律來自首頁那一列的 `insights[]`**——同一個量在兩個畫面上必須是
+/// 同一個字，詳情頁不重新算一次也不重新評級。
+struct App2MetricHero: Equatable {
+    /// 「本週跑量」／「目前跑力 VDOT」／「恢復狀態」。
+    let title: String
+    /// `11 km`／`38.7`／`100`。nil = 後端這一列沒有值 → 畫「–」。
+    let valueText: String?
+    /// 判語 chip（`下修`／`維持住`／`正常`）。
+    let verdict: String?
+    let direction: App2Insight.Direction
+    /// 右側對照的標籤（`目標`／`30 天前`／`7 日基線`）。
+    let compareLabel: String
+    /// 右側對照的值；nil = 沒有這個量（畫「–」，不編數字）。
+    let compareValue: String?
+    /// 一句敘事。組不出來就 nil，那一行不出現。
+    let narrative: String?
+}
+
+/// 統計三欄的一格（§51-5／§53-3）。值缺席就是 nil → 畫「–」。
+struct App2MetricStat: Identifiable, Equatable {
+    let id: String
+    let label: String
+    let value: String?
+}
+
+/// 折線圖的一點（VDOT 歷史、HRV／RHR 雙線、TSB）。
+struct App2MetricPoint: Equatable {
+    /// x 軸落點的日期（`YYYY-MM-DD`，用戶當地日）。
+    let date: String
+    let value: Double
+}
+
+/// §51 訓練量詳情。
+struct App2VolumeDetail: Equatable {
+    let hero: App2MetricHero
+    /// 週跑量柱狀圖（舊→新，含本週）。
+    let bars: [App2WeeklyBar]
+    /// 目標線（用戶設定的目標週跑量）。nil = 不畫 dashed 線、右側對照也是「–」。
+    let targetKm: Double?
+    let stats: [App2MetricStat]
+    /// 訓練負荷（TSB）。**nil = 整塊隱藏**（dev 的 `tsb_metrics` 全 null，
+    /// 2026-08-26 裁決：資料缺席時不畫空圖，prod 有資料自然出現）。
+    let load: App2LoadBlock?
+}
+
+/// §51-6／§51-7 訓練負荷區塊。
+struct App2LoadBlock: Equatable {
+    /// TSB 日序列（舊→新）。
+    let series: [App2MetricPoint]
+    /// 當日 CTL／ATL／TSB。
+    let ctl: Double?
+    let atl: Double?
+    let tsb: Double?
+}
+
+/// §52 能力基準詳情。
+struct App2CapabilityDetail: Equatable {
+    let hero: App2MetricHero
+    /// `pace_vdot` 日序列（舊→新）。
+    let series: [App2MetricPoint]
+    /// 錨定日（圖上的垂直 dashed 標記）。序列裡沒有這一天就不畫。
+    let anchorDate: String?
+    /// §52-4「這個值怎麼來的」。**資料驅動**：組不出來的列不出現。
+    let diagnostics: [App2MetricDiagnosticRow]
+}
+
+/// §52-4 的一列：名稱／值／右緣狀態。
+struct App2MetricDiagnosticRow: Identifiable, Equatable {
+    let id: String
+    let label: String
+    let value: String
+    /// 右緣的狀態小字（`benchmark`／`n = 9`／`未觸發`）。nil = 這一列沒有。
+    let detail: String?
+}
+
+/// §53 恢復詳情。
+struct App2RecoveryDetail: Equatable {
+    let hero: App2MetricHero
+    /// HRV 日序列（舊→新）。
+    let hrv: [App2MetricPoint]
+    /// 靜息心率日序列（舊→新）。
+    let restingHR: [App2MetricPoint]
+    let stats: [App2MetricStat]
 }

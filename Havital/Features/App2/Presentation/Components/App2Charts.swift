@@ -13,10 +13,24 @@ import SwiftUI
 /// 設計文件 §3.6 指定的 producer 是 `GET /v2/workouts/stats` 的 `weekly_series`
 /// （T-0304 落地，語意在 `SPEC-workout-processing` §4.5）。接不同的 producer，
 /// 不是同一個問題的第二份答案。
+/// **§51-4（指標詳情 · 訓練量）用的是同一支**，只是多帶目標線與更高的繪圖區：
+/// 首頁／紀錄頁的迷你版與詳情頁的大圖是同一個 producer、同一組柱子語意，
+/// 分成兩支就是同一件事的第二份答案。差異全部走參數：
+/// `barHeight`（繪圖區高）、`targetKm`（橘色 dashed 目標線）、`currentWeekTint`
+/// （§51 的本週柱是橘的，首頁是藍的）。
 struct App2WeeklyVolumeChart: View {
     let bars: [App2WeeklyBar]
+    /// 繪圖區高度（首頁迷你版 40，§51 大圖 118）。
+    var barHeight: CGFloat = 40
+    /// 目標週跑量。有值才畫 dashed 線與標籤；nil = 不畫（不編一條假目標）。
+    var targetKm: Double?
+    /// 本週那根柱的顏色。
+    var currentWeekTint: Color = App2Theme.accentBlue
+    /// 柱頂的數字。週數多的時候（近 26 週）擠不下，呼叫端關掉。
+    var showsValueLabels: Bool = true
 
-    private var peak: Double { max(bars.map(\.distanceKm).max() ?? 0, 1) }
+    /// 柱高的分母：把目標線也算進去，否則目標高於所有柱子時線會畫到圖外。
+    private var peak: Double { max(max(bars.map(\.distanceKm).max() ?? 0, targetKm ?? 0), 1) }
 
     var body: some View {
         if bars.isEmpty {
@@ -26,38 +40,324 @@ struct App2WeeklyVolumeChart: View {
                 .frame(maxWidth: .infinity, minHeight: 70)
         } else {
             VStack(spacing: 5) {
-                HStack(alignment: .bottom, spacing: 6) {
-                    ForEach(bars) { bar in
-                        VStack(spacing: 4) {
-                            Spacer(minLength: 0)
-                            Text(bar.distanceKm > 0 ? String(format: "%.0f", bar.distanceKm) : "0")
-                                .font(.app2Mono(9))
-                                .foregroundStyle(bar.isCurrentWeek
-                                                 ? App2Theme.accentBlueDeep
-                                                 : App2Theme.inkTertiary)
-                            RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                .fill(bar.isCurrentWeek
-                                      ? App2Theme.accentBlue
-                                      : App2Theme.accentBlue.opacity(0.32))
-                                // 最矮 3pt：全 0 的一週仍要看得到基線，不能整排消失。
-                                .frame(height: max(3, 40 * bar.distanceKm / peak))
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                }
-                .frame(height: 54)
-
-                HStack(spacing: 6) {
-                    ForEach(bars) { bar in
-                        Text(bar.shortLabel)
-                            .font(.app2Mono(9, weight: .semibold))
-                            .foregroundStyle(App2Theme.inkFaint)
+                ZStack(alignment: .bottom) {
+                    HStack(alignment: .bottom, spacing: bars.count > 10 ? 2 : 6) {
+                        ForEach(bars) { bar in
+                            VStack(spacing: 4) {
+                                Spacer(minLength: 0)
+                                if showsValueLabels {
+                                    Text(bar.distanceKm > 0 ? String(format: "%.0f", bar.distanceKm) : "0")
+                                        .font(.app2Mono(9))
+                                        .foregroundStyle(bar.isCurrentWeek
+                                                         ? currentWeekTint.app2Darkened
+                                                         : App2Theme.inkTertiary)
+                                }
+                                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                    .fill(bar.isCurrentWeek
+                                          ? currentWeekTint
+                                          : App2Theme.accentBlue.opacity(0.32))
+                                    // 最矮 3pt：全 0 的一週仍要看得到基線，不能整排消失。
+                                    .frame(height: max(3, barHeight * bar.distanceKm / peak))
+                            }
                             .frame(maxWidth: .infinity)
+                        }
                     }
+                    .frame(height: barHeight + 14)
+
+                    targetLine
                 }
+
+                xLabelRow
             }
             .accessibilityIdentifier("App2_WeeklyVolumeChart")
         }
+    }
+
+    /// x 軸標籤列。
+    ///
+    /// **柱子多的時候不能一格一個標籤**：26 根柱時每格只有十幾 pt 寬，`8/24`
+    /// 會被折成三行（2026-08-26 模擬器實測）。所以超過 10 根就改成「頭・中・尾
+    /// 三顆 ＋ Spacer」，每顆各自 `fixedSize` 不換行。
+    @ViewBuilder
+    private var xLabelRow: some View {
+        if bars.count > 10 {
+            let picked = [bars[0], bars[bars.count / 2], bars[bars.count - 1]]
+            HStack(spacing: 4) {
+                ForEach(Array(picked.enumerated()), id: \.offset) { index, bar in
+                    Text(bar.shortLabel)
+                        .font(.app2Mono(9, weight: .semibold))
+                        .foregroundStyle(App2Theme.inkFaint)
+                        .fixedSize()
+                    if index < picked.count - 1 { Spacer(minLength: 4) }
+                }
+            }
+        } else {
+            HStack(spacing: 6) {
+                ForEach(bars) { bar in
+                    Text(bar.shortLabel)
+                        .font(.app2Mono(9, weight: .semibold))
+                        .foregroundStyle(App2Theme.inkFaint)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+        }
+    }
+
+    /// §51-4 的橘色 dashed 目標線 ＋ 右緣「目標 N」。
+    @ViewBuilder
+    private var targetLine: some View {
+        if let targetKm, targetKm > 0 {
+            let ratio = min(targetKm / peak, 1)
+            HStack(spacing: 6) {
+                App2DashedLine()
+                    .stroke(App2Theme.accentOrange.opacity(0.7),
+                            style: StrokeStyle(lineWidth: 1.4, dash: [4, 4]))
+                    .frame(height: 1)
+                Text(String(format: L10n.App2.Metric.volumeTargetLineFormat.localized,
+                            App2NumberFormat.grouped(targetKm)))
+                    .font(.app2Mono(9, weight: .bold))
+                    .foregroundStyle(App2Theme.accentOrangeText)
+                    .fixedSize()
+            }
+            .padding(.bottom, barHeight * ratio)
+            .accessibilityIdentifier("App2_WeeklyVolumeTargetLine")
+        }
+    }
+}
+
+// MARK: - App2DashedLine
+/// 一條水平線（`Divider` 畫不出虛線）。目標線、基準線共用。
+struct App2DashedLine: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.minX, y: rect.midY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+        return path
+    }
+}
+
+// MARK: - App2MetricLineChart
+/// 指標第二層的折線圖（checklist §52-3 VDOT 歷史、§53-2 HRV × 靜息心率雙線、
+/// §51-6 TSB）。
+///
+/// **為什麼不接 1.4 既有的三張圖**：
+/// - `VDOTChartView`（`Havital/Views/Components/VDOTChartView.swift:5`）與
+///   `HRVTrendChartView`（`Havital/Views/Health/HRVTrendChartView.swift:4`）都自己
+///   `@StateObject` 持有 ViewModel、自己去抓資料——傳不進 App2 這邊已經取好的序列；
+///   後者更是直接讀 `HealthKitManager.shared`（`HealthKit → UI`，`AGENTS.md` 明令禁止）。
+/// - `WeeklyVolumeChartView` 綁 `WeeklyVolumeManager.shared`（同檔頂端已記）。
+/// - 三張都是 Swift Charts ＋ 1.4 的座標軸 chrome；2.0 的圖是零 chrome 的手繪家族
+///   （刻度是圖外的三顆小字，不是 `AxisMarks`）。
+///
+/// 一支支援 1–2 條線：一條就是 VDOT／TSB，兩條就是 HRV × RHR（各自正規化，
+/// 所以左右兩組刻度可以是完全不同的量綱）。
+struct App2MetricLineChart: View {
+    struct Series: Identifiable {
+        let id: String
+        let points: [App2MetricPoint]
+        let tint: Color
+        /// 圖例上的字（`HRV`／`RHR`）。nil = 不進圖例（單線圖不需要）。
+        var legend: String?
+    }
+
+    let series: [Series]
+    /// 圖上的 x 標籤（3 顆：最舊／中間／最新）。由呼叫端給，因為「今晨」「本週」
+    /// 這種字是頁面語境，不是圖表的知識。
+    var xLabels: [String] = []
+    /// 垂直 dashed 標記的日期（§52-3 的錨定線）。序列裡沒有這一天就不畫。
+    var markerDate: String?
+    /// 標記旁的註記（`指標跑錨定`）。
+    var markerLabel: String?
+    /// 水平 dashed 基準線的值（§51-6 的「TSB 0」），用第一條線的量綱。
+    var baselineValue: Double?
+    var baselineLabel: String?
+    var height: CGFloat = 132
+
+    var body: some View {
+        VStack(spacing: 6) {
+            HStack(alignment: .top, spacing: 8) {
+                yAxis(series.first)
+                plot
+                // 兩條線各有自己的量綱（HRV 是 ms、RHR 是 bpm），所以**右邊要有
+                // 第二組刻度**——沒有它，紅線就是一條沒有單位的裝飾（設計 §53-2
+                // 明寫「雙 y 軸刻度」）。
+                if series.count > 1 {
+                    yAxis(series[1], alignment: .leading, tint: series[1].tint)
+                }
+            }
+            xAxis
+            legendRow
+        }
+        .accessibilityIdentifier("App2_MetricLineChart")
+    }
+
+    // MARK: - 刻度
+
+    /// 三顆刻度（最高／中間／最低）。每條線各有自己的量綱，所以刻度綁的是那條線。
+    @ViewBuilder
+    private func yAxis(
+        _ line: Series?,
+        alignment: HorizontalAlignment = .trailing,
+        tint: Color? = nil
+    ) -> some View {
+        if let bounds = Self.bounds(line?.points ?? []) {
+            VStack(alignment: alignment, spacing: 0) {
+                tick(bounds.upper, tint: tint)
+                Spacer(minLength: 0)
+                tick((bounds.upper + bounds.lower) / 2, tint: tint)
+                Spacer(minLength: 0)
+                tick(bounds.lower, tint: tint)
+            }
+            .frame(height: height)
+        }
+    }
+
+    private func tick(_ value: Double, tint: Color?) -> some View {
+        Text(App2NumberFormat.grouped(value, maximumFractionDigits: 1))
+            .font(.app2Mono(9, weight: .semibold))
+            .foregroundStyle(tint ?? App2Theme.inkFaint)
+    }
+
+    // MARK: - 繪圖區
+
+    private var plot: some View {
+        GeometryReader { geo in
+            ZStack(alignment: .topLeading) {
+                // 基準線落在資料範圍外就不畫：畫在框外只會多一條看不到的線
+                // 與一顆飄在圖旁的標籤。
+                if let baselineValue,
+                   let bounds = Self.bounds(series.first?.points ?? []),
+                   baselineValue >= bounds.lower, baselineValue <= bounds.upper {
+                    let y = Self.y(baselineValue, in: bounds, height: geo.size.height)
+                    App2DashedLine()
+                        .stroke(App2Theme.shadowInk.opacity(0.28),
+                                style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                        .frame(width: geo.size.width, height: 1)
+                        .offset(y: y)
+                    if let baselineLabel {
+                        Text(baselineLabel)
+                            .font(.app2Mono(9, weight: .semibold))
+                            .foregroundStyle(App2Theme.inkFaint)
+                            .offset(x: 2, y: y - 12)
+                    }
+                }
+
+                marker(in: geo.size)
+
+                ForEach(series) { line in
+                    Self.path(line.points, in: geo.size)
+                        .stroke(line.tint,
+                                style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
+                }
+            }
+        }
+        .frame(height: height)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(App2Theme.insetBackgroundCool)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(App2Theme.insetBorder, lineWidth: 1)
+        )
+    }
+
+    /// §52-3 的錨定標記：一條垂直 dashed 線 ＋ 圖上註記。
+    @ViewBuilder
+    private func marker(in size: CGSize) -> some View {
+        if let markerDate,
+           let points = series.first?.points,
+           let index = points.firstIndex(where: { $0.date >= markerDate }),
+           points.count > 1 {
+            let x = size.width * CGFloat(index) / CGFloat(points.count - 1)
+            Rectangle()
+                .fill(App2Theme.accentViolet.opacity(0.55))
+                .frame(width: 1, height: size.height)
+                .offset(x: x)
+            if let markerLabel {
+                Text(markerLabel)
+                    .font(.system(size: 10, weight: .heavy))
+                    .foregroundStyle(App2Theme.accentViolet)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .fill(App2Theme.accentViolet.opacity(0.12))
+                    )
+                    .fixedSize()
+                    .offset(x: max(0, min(x - 20, size.width - 70)), y: 0)
+            }
+        }
+    }
+
+    // MARK: - x 軸與圖例
+
+    @ViewBuilder
+    private var xAxis: some View {
+        if !xLabels.isEmpty {
+            HStack {
+                ForEach(Array(xLabels.enumerated()), id: \.offset) { index, label in
+                    Text(label)
+                        .font(.app2Mono(9, weight: .semibold))
+                        .foregroundStyle(App2Theme.inkFaint)
+                    if index < xLabels.count - 1 { Spacer(minLength: 4) }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var legendRow: some View {
+        let items = series.filter { $0.legend != nil }
+        if !items.isEmpty {
+            HStack(spacing: 10) {
+                ForEach(items) { line in
+                    HStack(spacing: 5) {
+                        Circle().fill(line.tint).frame(width: 7, height: 7)
+                        Text(line.legend ?? "")
+                            .font(.system(size: 11, weight: .heavy))
+                            .foregroundStyle(line.tint.app2Darkened)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(line.tint.opacity(0.12)))
+                }
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    // MARK: - 幾何（純函式）
+
+    /// 一條線的上下界。全部一樣高時上下各撐 1，避免除以零把線畫到邊框上。
+    static func bounds(_ points: [App2MetricPoint]) -> (lower: Double, upper: Double)? {
+        guard let min = points.map(\.value).min(), let max = points.map(\.value).max() else { return nil }
+        guard max > min else { return (min - 1, max + 1) }
+        let padding = (max - min) * 0.12
+        return (min - padding, max + padding)
+    }
+
+    static func y(_ value: Double, in bounds: (lower: Double, upper: Double), height: CGFloat) -> CGFloat {
+        let span = bounds.upper - bounds.lower
+        guard span > 0 else { return height / 2 }
+        return height * CGFloat(1 - (value - bounds.lower) / span)
+    }
+
+    static func path(_ points: [App2MetricPoint], in size: CGSize) -> Path {
+        var path = Path()
+        guard points.count >= 2, let bounds = bounds(points) else { return path }
+        let stepX = size.width / CGFloat(points.count - 1)
+        for (index, point) in points.enumerated() {
+            let position = CGPoint(x: CGFloat(index) * stepX,
+                                   y: y(point.value, in: bounds, height: size.height))
+            if index == 0 { path.move(to: position) } else { path.addLine(to: position) }
+        }
+        return path
     }
 }
 

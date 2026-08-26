@@ -84,8 +84,8 @@ enum App2StubFixtures {
 
         var domain: App2TrainingStatus {
             App2TrainingStatus(
-                headline: headline, narrative: narrative, trackPosition: trackPosition,
-                currentWeek: nil, totalWeeks: nil
+                headline: headline, narrative: narrative, mileageProgression: nil,
+                trackPosition: trackPosition, currentWeek: nil, totalWeeks: nil
             )
         }
     }

@@ -51,8 +51,8 @@ final class App2RenderingTests: XCTestCase {
         totalWeeks: Int? = 22
     ) -> App2TrainingStatus {
         App2TrainingStatus(
-            headline: headline, narrative: narrative, trackPosition: 0.5,
-            currentWeek: currentWeek, totalWeeks: totalWeeks
+            headline: headline, narrative: narrative, mileageProgression: nil,
+            trackPosition: 0.5, currentWeek: currentWeek, totalWeeks: totalWeeks
         )
     }
 

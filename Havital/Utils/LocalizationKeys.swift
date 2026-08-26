@@ -2494,6 +2494,76 @@ extension L10n {
             static let listSection = "app2.records.list_section"
         }
 
+        // MARK: 指標第二層（checklist §51–53）
+        /// 首頁指標列點進去的三頁詳情。**只有訓練量／能力基準／恢復有稿**，
+        /// 其餘指標不可點，所以這裡不放它們的字。
+        enum Metric {
+            /// top bar 右緣的「指標詳情」。
+            static let pageSuffix = "app2.metric.page_suffix"
+
+            // 範圍 tabs
+            static let rangeWeeks8 = "app2.metric.range_weeks8"
+            static let rangeWeeks26 = "app2.metric.range_weeks26"
+            static let rangeYear = "app2.metric.range_year"
+            static let rangeDays60 = "app2.metric.range_days60"
+            static let rangeMonths6 = "app2.metric.range_months6"
+            static let rangeAll = "app2.metric.range_all"
+
+            // §51 訓練量
+            static let volumeHeroTitle = "app2.metric.volume_hero_title"
+            static let volumeTarget = "app2.metric.volume_target"
+            /// 圖上目標線的標籤（`目標 30`）。
+            static let volumeTargetLineFormat = "app2.metric.volume_target_line_format"
+            /// `%d 週平均` —— 週數是**完整週的實際數量**，不寫死 8。
+            static let volumeAverageFormat = "app2.metric.volume_average_format"
+            static let volumeYtd = "app2.metric.volume_ytd"
+            static let volumePeak = "app2.metric.volume_peak"
+            static let volumeLoadTitle = "app2.metric.volume_load_title"
+            static let volumeTsbBaseline = "app2.metric.volume_tsb_baseline"
+            static let volumeCtl = "app2.metric.volume_ctl"
+            static let volumeAtl = "app2.metric.volume_atl"
+            static let volumeTsb = "app2.metric.volume_tsb"
+            static let volumeSource = "app2.metric.volume_source"
+
+            // §52 能力基準
+            static let capabilityHeroTitle = "app2.metric.capability_hero_title"
+            static let capabilityCompare = "app2.metric.capability_compare"
+            /// `39.0（−0.3）`
+            static let capabilityCompareFormat = "app2.metric.capability_compare_format"
+            static let capabilityChartTitle = "app2.metric.capability_chart_title"
+            static let capabilityAnchorMarker = "app2.metric.capability_anchor_marker"
+            /// `指標跑（8/2）`
+            static let capabilityAnchorFormat = "app2.metric.capability_anchor_format"
+            static let capabilityHowTitle = "app2.metric.capability_how_title"
+            static let capabilityRowAnchor = "app2.metric.capability_row_anchor"
+            static let capabilityRowDecision = "app2.metric.capability_row_decision"
+            static let capabilityRowEvidence = "app2.metric.capability_row_evidence"
+            static let capabilityRowConfidence = "app2.metric.capability_row_confidence"
+            static let capabilityEvidenceCountFormat = "app2.metric.capability_evidence_count_format"
+            static let capabilitySource = "app2.metric.capability_source"
+
+            static let confidenceHigh = "app2.metric.confidence_high"
+            static let confidenceMedium = "app2.metric.confidence_medium"
+            static let confidenceLow = "app2.metric.confidence_low"
+            static let vdotSourceBenchmark = "app2.metric.vdot_source_benchmark"
+            static let vdotSourcePersonalBest = "app2.metric.vdot_source_personal_best"
+            static let vdotSourceEstimated = "app2.metric.vdot_source_estimated"
+
+            // §53 恢復
+            static let recoveryHeroTitle = "app2.metric.recovery_hero_title"
+            static let recoveryBaseline = "app2.metric.recovery_baseline"
+            static let recoveryChartTitle = "app2.metric.recovery_chart_title"
+            static let recoveryHrv = "app2.metric.recovery_hrv"
+            static let recoveryRhr = "app2.metric.recovery_rhr"
+            static let recoveryStatHrv = "app2.metric.recovery_stat_hrv"
+            static let recoveryStatRhr = "app2.metric.recovery_stat_rhr"
+            static let recoveryStatTrend = "app2.metric.recovery_stat_trend"
+            static let recoveryTrendUp = "app2.metric.recovery_trend_up"
+            static let recoveryTrendFlat = "app2.metric.recovery_trend_flat"
+            static let recoveryTrendDown = "app2.metric.recovery_trend_down"
+            static let recoverySource = "app2.metric.recovery_source"
+        }
+
         enum Achievements {
             static let title = "app2.achievements.title"
             static let latestUnlock = "app2.achievements.latest_unlock"
