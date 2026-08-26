@@ -16,6 +16,11 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
     @Published var selectedBadge: AchievementBadge?
     @Published var selectedShareable: AchievementShareable?
 
+    /// 使用者選定要展示的徽章 id（`nil` ＝ 沿用「最近解鎖」自動挑選）。
+    /// **持久化在既有的 `AchievementRepository`**（`PinnedBadgeStorage`），
+    /// 與課表首頁展示位共用同一個值，不另建一份偏好。
+    @Published private(set) var pinnedBadgeId: String?
+
     /// 這一頁成功載過至少一次。2.0 的 SWR 策略（`App2Revalidating`）用它決定
     /// 「重驗還是首載」；1.x 不讀這兩個值，行為不變。
     private(set) var hasLoaded = false
@@ -41,6 +46,7 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
             self.repository = container.resolve() as AchievementRepository
         }
         self.analyticsService = analyticsService ?? (container.resolve() as AnalyticsService)
+        self.pinnedBadgeId = self.repository.getPinnedBadgeId()
         subscribeToEvents()
     }
 
@@ -133,6 +139,13 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
             chapter: badge.chapter.analyticsValue,
             status: badge.status.rawValue
         ))
+    }
+
+    /// 指定要展示的徽章（成就頁 hero ＋ 首頁訓練狀況卡共用這一顆）。
+    /// 傳 `nil` ＝ 回到自動挑「最近解鎖」。只允許已解鎖的徽章。
+    func setPinnedBadge(_ badgeId: String?) {
+        repository.setPinnedBadgeId(badgeId)
+        pinnedBadgeId = badgeId
     }
 
     func selectShareable(_ shareable: AchievementShareable, entry: String = "share_center") {

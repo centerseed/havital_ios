@@ -22,6 +22,8 @@ struct App2SessionDetailView: View {
     @ObservedObject private var garminManager = GarminManager.shared
     /// 課型說明的完整版（怎麼跑／為什麼／訓練邏輯／週課表角色）。
     @State private var isShowingTypeInfo = false
+    /// 傳到 Garmin 的二次確認。
+    @State private var isConfirmingGarminPush = false
 
     init(detail: App2SessionDetail, onClose: @escaping () -> Void) {
         self.detail = detail
@@ -43,10 +45,12 @@ struct App2SessionDetailView: View {
                     // 「本次訓練目標」與「這堂課練什麼」曾經是兩張卡，內容重疊。
                     // 收成一張：課型目的（既有 `TrainingTypeInfo`）為主體，
                     // 逐日敘述只在證明得出它仍對應現在這一天時附加（見投影層）。
+                    // 設計 frame-02c：長距離的補給提示卡夾在「預計配速」與
+                    // 「本次訓練目標」之間。
+                    if detail.showsFuelingNote { fuelingCard }
                     if trainingTypeInfo != nil || detail.goalText != nil || detail.reasonText != nil {
                         goalCard
                     }
-                    if detail.showsFuelingNote { fuelingCard }
                     if !detail.segments.isEmpty { structureCard }
                     if let climate = detail.climate { climateCard(climate) }
                 }
@@ -55,12 +59,35 @@ struct App2SessionDetailView: View {
             }
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
-        .sheet(isPresented: $isShowingTypeInfo) {
+        // **`fullScreenCover` 不是 `sheet`。** 這一頁自己就開在 fullScreenCover 裡，
+        // 巢狀 sheet 在這個 repo 不會進 accessibility tree，實測是「看完整說明」點下去
+        // 沒反應（2026-08-26 QA）。同 `App2SettingsView` 子頁的既有處置。
+        .fullScreenCover(isPresented: $isShowingTypeInfo) {
             if let info = trainingTypeInfo {
                 // 完整說明沿用 1.4 既有的 `TrainingTypeInfoView`（四段式），
                 // 不另做一份 2.0 版的說明頁。
                 TrainingTypeInfoView(trainingTypeInfo: info)
+                    .accessibilityIdentifier("App2_TrainingTypeInfoView")
             }
+        }
+        // 傳到 Garmin 前先確認（標題 ＋ 課表摘要 ＋ 確認／取消）。Android 側同步在加，
+        // 兩平台一致 —— 這顆鈕會真的把課表寫進使用者的 Garmin Connect 帳號。
+        .alert(
+            NSLocalizedString("garmin.push.confirm_title", comment: "Send to Garmin"),
+            isPresented: $isConfirmingGarminPush
+        ) {
+            Button(NSLocalizedString("garmin.push.confirm_action", comment: "Send")) {
+                guard let date = detail.dateString else { return }
+                garminViewModel.push(dayIndex: detail.dayIndex, date: date)
+            }
+            .accessibilityIdentifier("App2_SessionDetailGarminPushConfirm")
+            Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {}
+                .accessibilityIdentifier("App2_SessionDetailGarminPushCancel")
+        } message: {
+            Text(String(
+                format: NSLocalizedString("garmin.push.confirm_message", comment: ""),
+                garminPushSummary
+            ))
         }
         .alert(NSLocalizedString("garmin.push.alert_title", comment: "Garmin"), isPresented: $garminViewModel.showAlert) {
             if garminViewModel.offerReconnect {
@@ -208,6 +235,19 @@ struct App2SessionDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// 確認框裡那一行課表摘要 —— 課型 ＋ 日期 ＋ 拿得到的距離／時間。
+    /// **只組拿得到的欄位**，缺的不編。
+    private var garminPushSummary: String {
+        var parts: [String] = [detail.title, detail.dateTitle]
+        if let km = detail.distanceKm {
+            parts.append(App2NumberFormat.grouped(km, maximumFractionDigits: 1) + " km")
+        }
+        if let duration = detail.durationLabel {
+            parts.append(duration)
+        }
+        return parts.joined(separator: " · ")
+    }
+
     private var heroDivider: some View {
         Rectangle()
             .fill(Color.white.opacity(0.28))
@@ -240,8 +280,9 @@ struct App2SessionDetailView: View {
             .contentShape(Rectangle())
             .onTapGesture {
                 guard garminViewModel.uiState != .working else { return }
-                garminViewModel.push(dayIndex: detail.dayIndex, date: date)
+                isConfirmingGarminPush = true
             }
+            .id(date)
             .accessibilityElement(children: .ignore)
             .accessibilityAddTraits(.isButton)
             .accessibilityLabel(NSLocalizedString("training.detail.push_to_garmin", comment: ""))
@@ -256,7 +297,13 @@ struct App2SessionDetailView: View {
             Text(L10n.App2.Detail.pacePreview.localized)
                 .font(.system(size: 15, weight: .black))
                 .foregroundStyle(App2Theme.inkPrimary)
-            App2SessionStructureChart(bars: detail.structureBars, showsNotes: true)
+            // **單段勻速課畫配速帶，不畫長條圖**（設計 frame-02c，2026-08-26 裁決）：
+            // 一根柱的長條圖看不出任何配速變化，圖裡沒有資訊。多段課維持長條圖。
+            if let band = detail.paceBand {
+                App2SessionPaceBandChart(band: band, accent: accent)
+            } else {
+                App2SessionStructureChart(bars: detail.structureBars, showsNotes: true)
+            }
         }
         .accessibilityIdentifier("App2_SessionDetailPaceCard")
     }
@@ -363,7 +410,8 @@ struct App2SessionDetailView: View {
                     .font(.system(size: 15, weight: .black))
                     .foregroundStyle(App2Theme.inkPrimary)
                 Spacer()
-                Text(String(format: L10n.App2.Detail.phaseCount.localized, detail.segments.count))
+                // 設計 frame-02c：header 是「N 段 · M 分鐘」。推不出分鐘就只留段數。
+                Text(structureMetaLabel)
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(App2Theme.inkMuted)
             }
@@ -372,6 +420,23 @@ struct App2SessionDetailView: View {
             }
         }
         .accessibilityIdentifier("App2_SessionDetailStructure")
+    }
+
+    /// `1 段 · 55 分鐘`。分鐘從 hero 的「預計時間」推（同一個值，不另算一份）；
+    /// 推不出來就只印段數。
+    private var structureMetaLabel: String {
+        let count = detail.segments.count
+        guard let minutes = detail.durationMinutes else {
+            return String(format: L10n.App2.Detail.phaseCount.localized, count)
+        }
+        return String(format: L10n.App2.Detail.structureMeta.localized, count, minutes)
+    }
+
+    /// 單段勻速課的首列補充句（設計 frame-02c）。payload 自己帶了描述就用它的。
+    private func segmentNote(_ segment: App2SessionDetailSegment) -> String? {
+        if let note = segment.note { return note }
+        guard detail.paceBand != nil, segment.isWork else { return nil }
+        return L10n.App2.Detail.structureSteadyNote.localized
     }
 
     private func segmentRow(_ segment: App2SessionDetailSegment) -> some View {
@@ -405,7 +470,7 @@ struct App2SessionDetailView: View {
                         .minimumScaleFactor(0.8)
                         .foregroundStyle(App2Theme.inkSecondary)
                 }
-                if let note = segment.note {
+                if let note = segmentNote(segment) {
                     Text(note)
                         .font(.system(size: 13, weight: .medium))
                         .lineSpacing(2)

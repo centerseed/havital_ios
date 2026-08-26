@@ -9,6 +9,10 @@ class LanguageManager: ObservableObject {
     static let shared = LanguageManager()
 
     private static let languageKey = "app_language_preference"
+    /// 使用者**在這個 app 裡親手選過**語言時才寫的旗標。
+    /// 與 `languageKey` 分開：後者也會被「從後端套回來」寫入，拿它當「使用者選過」
+    /// 用會讓上一次被寫壞的值變成下一次的權威。
+    private static let userSelectedLanguageKey = "app_language_user_selected"
     private static let languageChangedNotification = NSNotification.Name("LanguageDidChange")
 
     /// 語言同步失敗時發布，LanguageSettingsView 監聽後顯示 alert
@@ -16,18 +20,24 @@ class LanguageManager: ObservableObject {
 
     @Published private(set) var currentLanguage: SupportedLanguage
 
-    /// 已經被確認過的語言（使用者設定過，或從後端讀回來套用過），`nil` ＝ 這台裝置
-    /// 目前只有 `resolveFromSystem()` 猜出來的值。
+    /// **使用者在這個 app 裡親手選過**的語言，`nil` ＝ 沒選過（不論本地現在顯示什麼）。
     ///
-    /// **後端是語言的 SSOT**，所以猜測值不得被送去覆寫後端 —— `POST /auth/sync` 每次
-    /// 冷啟都會帶 `language`，帶的若是猜測值就會先把後端寫成裝置語言，隨後
-    /// `AppStateManager.applyBackendLanguagePreference()` 再讀回自己剛寫進去的值，
-    /// 使用者在別台裝置設過的語言永遠回不來（2026-08-26 dev 實測：後端 zh-TW，
-    /// 冷啟一次就變成 en-US）。
+    /// **後端是語言的 SSOT**，所以只有這一種值可以被送去 `POST /auth/sync` 覆寫後端。
+    /// 裝置猜測值不行（`resolveFromSystem()`），**從後端套回來的值也不行** ——
+    /// 後者會讓「上一次被寫壞的 en-US」在下一次冷啟變成權威，外部改成 zh-TW 之後
+    /// app 一啟動又蓋回 en（2026-08-26 dev 實測）。
+    ///
+    /// 沒選過就不帶 `language`，後端保留自己的值，隨後
+    /// `AppStateManager.applyBackendLanguagePreference()` 把它套回本地。
     var explicitLanguage: SupportedLanguage? {
-        guard let saved = UserDefaults.standard.string(forKey: Self.languageKey) else { return nil }
+        guard UserDefaults.standard.bool(forKey: Self.userSelectedLanguageKey),
+              let saved = UserDefaults.standard.string(forKey: Self.languageKey) else { return nil }
         return SupportedLanguage(rawValue: saved)
     }
+
+    /// 日期／數字格式要用的 locale。**不是 `Locale.current`** —— app 換語言是換
+    /// bundle，`Locale.current` 要重啟才跟上，所以切語言後畫面上的日期會停在舊語系。
+    var locale: Locale { currentLanguage.locale }
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -60,7 +70,14 @@ class LanguageManager: ObservableObject {
     /// This is intentionally local-only because there is no account to sync yet.
     func applyPreLoginLanguage(_ language: SupportedLanguage) {
         applyLocalLanguage(language)
+        markUserSelected()
         Logger.firebase("Pre-login language applied locally: \(language.rawValue)", level: .info)
+    }
+
+    /// 記下「這是使用者親手選的」。只有這兩條路徑會呼叫：登入前的語言鈕、
+    /// 設定頁的語言切換。`applyFromBackend` **不呼叫**。
+    private func markUserSelected() {
+        UserDefaults.standard.set(true, forKey: Self.userSelectedLanguageKey)
     }
 
     // MARK: - Language Change (Single Path)
@@ -75,6 +92,7 @@ class LanguageManager: ObservableObject {
             try await syncLanguageToBackend(newLanguage.apiCode)
             // 後端成功 → 套用本地
             applyLocalLanguage(newLanguage)
+            markUserSelected()
             Logger.firebase("Language changed and synced: \(newLanguage.apiCode)", level: .info)
         } catch {
             if error.isCancellationError {

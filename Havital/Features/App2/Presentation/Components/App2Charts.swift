@@ -321,3 +321,129 @@ struct App2Sparkline: View {
         return path
     }
 }
+
+// MARK: - App2SessionPaceBandChart
+/// 單段勻速課的「配速帶」（設計 **frame-02c**，2026-08-26 裁決）。
+///
+/// 一段課的長條圖只有一根柱 —— 圖裡沒有任何「變化」可看。配速帶改成把同一組數字
+/// 講成「你要落在這個窗裡」：上緣虛線＝快邊界、下緣虛線＝慢邊界、中央課型色橫帶上
+/// 一顆白字配速 pill。
+struct App2SessionPaceBandChart: View {
+    let band: App2SessionPaceBand
+    /// 課型主色（帶與 legend 都用它）。
+    let accent: Color
+
+    private let plotHeight: CGFloat = 96
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            plot
+            footerRow
+            legend
+        }
+    }
+
+    // MARK: - 圖區
+
+    private var plot: some View {
+        ZStack {
+            VStack(spacing: 0) {
+                boundary(label: band.fastLabel, suffixKey: L10n.App2.Detail.paceBandFast.localized)
+                Spacer(minLength: 0)
+                centreBand
+                Spacer(minLength: 0)
+                boundary(label: band.slowLabel, suffixKey: L10n.App2.Detail.paceBandSlow.localized)
+            }
+            .padding(.vertical, 10)
+        }
+        .frame(height: plotHeight)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, 12)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(App2Theme.insetBackground)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(App2Theme.cardBorder, lineWidth: 1)
+        )
+        .accessibilityIdentifier("App2_SessionPaceBand")
+    }
+
+    /// 快／慢邊界：一條虛線 ＋ 左上角的 `6:35 · 快`。
+    private func boundary(label: String, suffixKey: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("\(label) · \(suffixKey)")
+                .font(.app2Mono(11, weight: .semibold))
+                .foregroundStyle(App2Theme.inkFaint)
+            Line()
+                .stroke(
+                    App2Theme.shadowInk.opacity(0.18),
+                    style: StrokeStyle(lineWidth: 1, dash: [4, 4])
+                )
+                .frame(height: 1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// 中央橫帶 ＋ 白字配速 pill。
+    private var centreBand: some View {
+        ZStack {
+            Capsule()
+                .fill(accent.opacity(0.28))
+                .frame(height: 8)
+            Text(band.paceLabel + " /km")
+                .font(.app2Mono(14, weight: .bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+                .background(Capsule().fill(accent))
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // MARK: - 圖下三欄
+
+    private var footerRow: some View {
+        HStack(spacing: 8) {
+            Text(L10n.App2.Detail.paceBandStart.localized + " 0.0")
+                .font(.app2Mono(11, weight: .semibold))
+                .foregroundStyle(App2Theme.inkFaint)
+            Spacer(minLength: 4)
+            Text(L10n.App2.Detail.paceBandHold.localized + " · "
+                 + String(format: L10n.App2.Detail.paceBandWindow.localized, band.windowLabel))
+                .font(.system(size: 12, weight: .heavy))
+                .foregroundStyle(accent.app2Darkened)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Spacer(minLength: 4)
+            if let end = band.endKmLabel {
+                Text(L10n.App2.Detail.paceBandEnd.localized + " \(end) km")
+                    .font(.app2Mono(11, weight: .semibold))
+                    .foregroundStyle(App2Theme.inkFaint)
+            }
+        }
+        .accessibilityIdentifier("App2_SessionPaceBandFooter")
+    }
+
+    private var legend: some View {
+        HStack(spacing: 6) {
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(accent)
+                .frame(width: 9, height: 9)
+            Text(band.legendLabel)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(App2Theme.inkTertiary)
+        }
+    }
+
+    /// 一條水平線（`Divider` 畫不出虛線）。
+    private struct Line: Shape {
+        func path(in rect: CGRect) -> Path {
+            var path = Path()
+            path.move(to: CGPoint(x: rect.minX, y: rect.midY))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+            return path
+        }
+    }
+}

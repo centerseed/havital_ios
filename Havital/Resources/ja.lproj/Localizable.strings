@@ -3946,6 +3946,9 @@
 "training.detail.push_to_garmin" = "Garminに送信";
 "garmin.push.sending" = "送信中…";
 "garmin.push.alert_title" = "Garmin";
+"garmin.push.confirm_title" = "Garmin に送信";
+"garmin.push.confirm_message" = "このワークアウトを Garmin Connect に送信しますか？\n\n%@";
+"garmin.push.confirm_action" = "送信";
 "garmin.push.success" = "Garmin Connectに登録しました。スマホのGarmin Connectアプリを開いて時計を同期すると、時計の「ランニング」で選べます。";
 "garmin.push.hint_title" = "Garminにアップロードしました";
 "garmin.push.hint_message" = "ワークアウトをGarmin Connectに登録しました。スマホのGarmin Connectアプリを開いて時計を同期すると（通常数分以内）、時計で「ランニング」アクティビティを開始したときに選べます。";
@@ -4444,6 +4447,14 @@
 "app2.detail.strength_sets" = "%d セット";
 "app2.detail.purpose_section" = "このセッションで鍛えるもの";
 "app2.detail.purpose_more" = "詳しい説明を見る";
+"app2.detail.pace_band_fast" = "速い";
+"app2.detail.pace_band_slow" = "遅い";
+"app2.detail.pace_band_start" = "開始";
+"app2.detail.pace_band_end" = "終了";
+"app2.detail.pace_band_hold" = "全区間キープ";
+"app2.detail.pace_band_window" = "目標レンジ %@";
+"app2.detail.structure_meta" = "%1$d 区間 · %2$d 分";
+"app2.detail.structure_steady_note" = "インターバルも休息もなし、一定ペースで。";
 
 // MARK: - App2 トレーニング詳細（完了記録、デザイン frame-15〜17）
 "app2.workout_detail.title" = "トレーニング詳細";
@@ -4491,6 +4502,9 @@
 "app2.achievements.personal_bests" = "自己ベスト";
 "app2.achievements.badges" = "バッジコレクション";
 "app2.achievements.see_more" = "もっと見る";
+"app2.achievements.set_display_title" = "表示するバッジに設定";
+"app2.achievements.set_display_body" = "「%@」をホームと実績画面に表示するバッジに設定しますか？";
+"app2.achievements.set_display_action" = "表示に設定";
 "app2.settings.title" = "設定";
 "app2.settings.manage_subscription" = "管理";
 "app2.settings.view_plans" = "プランを見る";

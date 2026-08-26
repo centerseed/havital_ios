@@ -32,6 +32,8 @@ struct App2SettingsView: View {
 
     @ObservedObject var viewModel: App2SettingsViewModel
     @State private var destination: App2SettingsDestination?
+    /// 登出前的二次確認（破壞性樣式）。
+    @State private var isConfirmingLogout = false
 
     private var appVersion: String {
         let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
@@ -67,6 +69,19 @@ struct App2SettingsView: View {
         // 巢狀 sheet 不會進 accessibility tree（repo 既有坑）。
         .fullScreenCover(item: $destination) { destination in
             subpage(destination)
+        }
+        .alert(
+            NSLocalizedString("auth.logout_title", comment: "Log out"),
+            isPresented: $isConfirmingLogout
+        ) {
+            Button(NSLocalizedString("common.logout", comment: "Log out"), role: .destructive) {
+                Task { await viewModel.signOut() }
+            }
+            .accessibilityIdentifier("App2_SettingsLogoutConfirm")
+            Button(NSLocalizedString("common.cancel", comment: "Cancel"), role: .cancel) {}
+                .accessibilityIdentifier("App2_SettingsLogoutCancel")
+        } message: {
+            Text(NSLocalizedString("auth.logout_confirm", comment: "Are you sure you want to log out?"))
         }
     }
 
@@ -422,7 +437,9 @@ struct App2SettingsView: View {
                     showsDivider: false
                 )
                 .contentShape(Rectangle())
-                .onTapGesture { Task { await viewModel.signOut() } }
+                // 登出是破壞性動作（回到登入頁、本機 session 清掉），設計 §30.8 那一列
+                // 沒有 chevron 也不代表按一下就該直接執行 —— 先確認。
+                .onTapGesture { isConfirmingLogout = true }
                 .accessibilityAddTraits(.isButton)
                 .accessibilityIdentifier("App2_SettingsLogout")
             }

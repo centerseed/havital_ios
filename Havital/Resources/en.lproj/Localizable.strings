@@ -3949,6 +3949,9 @@
 "training.detail.push_to_garmin" = "Send to Garmin";
 "garmin.push.sending" = "Sending…";
 "garmin.push.alert_title" = "Garmin";
+"garmin.push.confirm_title" = "Send to Garmin";
+"garmin.push.confirm_message" = "Send this workout to your Garmin Connect account?\n\n%@";
+"garmin.push.confirm_action" = "Send";
 "garmin.push.success" = "Added to Garmin Connect. Open the Garmin Connect app on your phone to sync your watch, then pick it under a Running activity.";
 "garmin.push.hint_title" = "Sent to Garmin";
 "garmin.push.hint_message" = "Added to Garmin Connect. Open the Garmin Connect app on your phone to sync your watch (usually within a few minutes), then start a Running activity to pick this workout.";
@@ -4447,6 +4450,14 @@
 "app2.detail.strength_sets" = "%d sets";
 "app2.detail.purpose_section" = "What this session trains";
 "app2.detail.purpose_more" = "Read the full explanation";
+"app2.detail.pace_band_fast" = "fast";
+"app2.detail.pace_band_slow" = "slow";
+"app2.detail.pace_band_start" = "start";
+"app2.detail.pace_band_end" = "end";
+"app2.detail.pace_band_hold" = "Hold throughout";
+"app2.detail.pace_band_window" = "target window %@";
+"app2.detail.structure_meta" = "%1$d phases · %2$d min";
+"app2.detail.structure_steady_note" = "No intervals, no rests — just keep it even.";
 
 // MARK: - App2 Workout Detail (completed record, design frame-15~17)
 "app2.workout_detail.title" = "Workout detail";
@@ -4494,6 +4505,9 @@
 "app2.achievements.personal_bests" = "Personal bests";
 "app2.achievements.badges" = "Badge collection";
 "app2.achievements.see_more" = "See more";
+"app2.achievements.set_display_title" = "Set as Featured Badge";
+"app2.achievements.set_display_body" = "Show \"%@\" as your featured badge on the home and achievements screens?";
+"app2.achievements.set_display_action" = "Set as Featured";
 "app2.settings.title" = "Settings";
 "app2.settings.manage_subscription" = "Manage";
 "app2.settings.view_plans" = "See plans";

@@ -100,6 +100,15 @@ struct App2RootView: View {
             App2TabBar(selection: $selection)
                 .padding(.bottom, 4)
         }
+        .task {
+            // **Garmin 連結狀態要在殼層恢復一次。**
+            // `GarminManager.isConnected` 開機時是從 UserDefaults(`garmin_connected`)
+            // 讀回來的，登出會把它清掉；1.4 靠 `AuthenticationService` 在載完 user 之後
+            // 補打一次 `/connect/garmin/status`，而 2.0 的殼沒有那條路徑 —— 結果是
+            // 重新登入後 Garmin 明明還連著，訓練詳情的「傳到 Garmin」鈕卻不出現
+            //（2026-08-26 QA）。這裡不是第二份狀態，打的是既有的同一支。
+            await GarminManager.shared.checkConnectionStatusIfNeeded()
+        }
         .onChange(of: selection) { _, newValue in
             visited.insert(newValue)
         }

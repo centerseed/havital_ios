@@ -36,8 +36,16 @@ final class AuthRepositoryImpl: AuthRepository {
 
     // MARK: - Sign-In Operations
 
-    private func selectedAppLanguageCode() async -> String {
-        await MainActor.run { LanguageManager.shared.currentLanguage.apiCode }
+    /// 送去 `POST /auth/sync` 的語言。**只送使用者親手選過的值**；沒選過就回 `nil`，
+    /// 讓後端保留它自己的語言（後端是語言 SSOT，同
+    /// `AuthSessionRepositoryImpl.selectedAppLanguageCode`）。
+    ///
+    /// 這裡原本用 `currentLanguage`（＝首啟時依系統語言猜出來的值），於是
+    /// **登出→重新登入**這條路徑把 device guess 寫回後端：dev 後端 zh-TW，
+    /// 重登一次就變 en-US，之後每次冷啟再把它讀回來當「本地偏好」送出去
+    /// （2026-08-26 QA 實測）。
+    private func selectedAppLanguageCode() async -> String? {
+        await MainActor.run { LanguageManager.shared.explicitLanguage?.apiCode }
     }
 
     /// Sign in with Google account

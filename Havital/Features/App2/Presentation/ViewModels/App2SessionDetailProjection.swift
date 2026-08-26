@@ -28,6 +28,7 @@ enum App2SessionDetailProjection {
 
         let date = calendar.date(byAdding: .day, value: day.dayIndex - 1, to: weekStart)
         let segments = detailSegments(day: day)
+        let bars = App2HomeViewModel.structureBars(day: day)
 
         var distanceKm: Double?
         var durationMinutes: Int?
@@ -66,8 +67,11 @@ enum App2SessionDetailProjection {
             // 不是「41 分鐘」。有秒數就用秒數格式，只有分鐘就補成 `mm:00`。
             durationLabel: (durationSeconds ?? durationMinutes.map { Double($0) * 60 })
                 .map { App2PlanViewModel.durationLabel(seconds: $0) },
+            durationMinutes: durationMinutes
+                ?? durationSeconds.map { Int(($0 / 60).rounded()) },
             phaseCount: max(segments.count, 1),
-            structureBars: App2HomeViewModel.structureBars(day: day),
+            structureBars: bars,
+            paceBand: paceBand(bars: bars, distanceKm: distanceKm),
             // 逐日敘述只在證明得出它仍對應現在這一天時才交出去。
             goalText: isDayNarrativeConsistent(day: day) ? nonEmpty(day.dayTarget) : nil,
             // **`reason` 一律不顯示。** 它與 `day_target` 是分開生成的兩段，
@@ -349,6 +353,48 @@ enum App2SessionDetailProjection {
         return durationMinutes >= fuelingMinimumMinutes
     }
 
+    // MARK: - 配速帶（單段勻速課）
+
+    /// 只有**整堂課就一段穩定跑**時才有配速帶（設計 frame-02c）。
+    /// 有暖身／緩和／間歇＝多段，維持長條圖。
+    ///
+    /// 邊界目前用處方配速 ±15 秒、目標窗 ±10 秒 —— payload 沒有配速區間欄位
+    /// （見 `App2SessionPaceBand` 的註解）。
+    static func paceBand(
+        bars: [App2SessionStructureBar],
+        distanceKm: Double?
+    ) -> App2SessionPaceBand? {
+        guard bars.count == 1,
+              let bar = bars.first,
+              bar.kind == .steady,
+              let pace = bar.paceLabel,
+              let seconds = App2PlanViewModel.paceSeconds(pace),
+              let legend = bar.noteLabel
+        else { return nil }
+
+        return App2SessionPaceBand(
+            paceLabel: pace,
+            fastLabel: paceLabel(seconds - boundaryToleranceSeconds),
+            slowLabel: paceLabel(seconds + boundaryToleranceSeconds),
+            windowLabel: paceLabel(seconds - windowToleranceSeconds)
+                + "-" + paceLabel(seconds + windowToleranceSeconds),
+            endKmLabel: (distanceKm ?? 0) > 0
+                ? App2NumberFormat.grouped(distanceKm ?? 0, maximumFractionDigits: 1)
+                : nil,
+            legendLabel: legend
+        )
+    }
+
+    /// 快／慢邊界離處方配速多遠。
+    static let boundaryToleranceSeconds: Double = 15
+    /// 目標窗離處方配速多遠。
+    static let windowToleranceSeconds: Double = 10
+
+    private static func paceLabel(_ seconds: Double) -> String {
+        let total = max(Int(seconds.rounded()), 0)
+        return String(format: "%d:%02d", total / 60, total % 60)
+    }
+
     // MARK: - Formatting
 
     /// `星期一 · 8/10`
@@ -361,7 +407,8 @@ enum App2SessionDetailProjection {
         let dayLabel = App2PlanViewModel.dateLabel(dayIndex: dayIndex, weekStart: weekStart, calendar: calendar)
         guard let date else { return dayLabel }
         let weekday = DateFormatter()
-        weekday.locale = Locale.current
+        // 跟著 app 語言走，不是 `Locale.current`（見 `SupportedLanguage.locale`）。
+        weekday.locale = LanguageManager.shared.locale
         weekday.calendar = calendar
         weekday.setLocalizedDateFormatFromTemplate("EEEE")
         return "\(weekday.string(from: date)) · \(dayLabel)"

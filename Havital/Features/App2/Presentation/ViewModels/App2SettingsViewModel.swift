@@ -178,7 +178,7 @@ final class App2SettingsViewModel: ObservableObject {
     }
 
     /// 心率區間 —— 走既有的 `UpdateHeartRateZonesUseCase`。
-    /// 它底下的 repository 已經把 `max_heart_rate`／`resting_heart_rate` 寫進 profile
+    /// 它底下的 repository 已經把 `max_hr`／`relaxing_hr` 寫進 profile
     /// 並重算快取區間，所以這裡**不再另外 PATCH 一次**，只重讀 profile 讓摘要跟上。
     func saveHeartRate(maxHR: Int, restingHR: Int) async -> Bool {
         let ok = await profile.updateHeartRateZones(maxHR: maxHR, restingHR: restingHR)

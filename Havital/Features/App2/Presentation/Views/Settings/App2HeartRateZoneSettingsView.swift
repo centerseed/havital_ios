@@ -6,7 +6,8 @@ import SwiftUI
 /// - 區間換算沿用 `App2OnboardingProjection.heartRateBands`（frame-33 同一支），
 ///   它底下是既有的 `HeartRateZone.calculateZones`。
 /// - 儲存走 `App2SettingsViewModel.saveHeartRate` → 既有的 `UpdateHeartRateZonesUseCase`
-///   （repository 會寫 `max_heart_rate`／`resting_heart_rate` 並重算快取區間）。
+///   （repository 會寫 profile 的 canonical 欄位 `max_hr`／`relaxing_hr` 並重算快取區間；
+///   讀回來的也是同一組，所以存完重進來看到的是新值）。
 struct App2HeartRateZoneSettingsView: View {
 
     let onClose: () -> Void

@@ -668,12 +668,18 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     }
 
     /// `週二 · 8/25` —— 裝置當地日期，不是後端字串。
+    ///
+    /// locale 走 `LanguageManager.shared.locale`（app 目前的語言），**不是
+    /// `Locale.current`** —— 後者是行程啟動時決定的，切語言後不會跟著換，
+    /// 症狀是字串都翻了只有這一行日期還是舊語系（2026-08-26 QA）。
+    @MainActor
     private static func todayLabel() -> String {
+        let locale = LanguageManager.shared.locale
         let weekday = DateFormatter()
-        weekday.locale = Locale.current
+        weekday.locale = locale
         weekday.setLocalizedDateFormatFromTemplate("EEEE")
         let date = DateFormatter()
-        date.locale = Locale.current
+        date.locale = locale
         date.setLocalizedDateFormatFromTemplate("Md")
         return "\(weekday.string(from: Date())) · \(date.string(from: Date()))"
     }

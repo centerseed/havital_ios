@@ -29,10 +29,12 @@ struct UpdateUserProfileUseCase {
             Input(updates: ["data_source": source])
         }
 
+        /// canonical 欄位名是 `max_hr` / `relaxing_hr`（見
+        /// `UserProfileRepositoryImpl.updateHeartRateZones` 的註解）。
         static func heartRate(maxHR: Int, restingHR: Int) -> Input {
             Input(updates: [
-                "max_heart_rate": maxHR,
-                "resting_heart_rate": restingHR
+                "max_hr": maxHR,
+                "relaxing_hr": restingHR
             ])
         }
     }

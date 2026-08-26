@@ -21,6 +21,15 @@ struct App2TrainingSettingsView: View {
     @State private var isSaving = false
     @State private var didLoadInitial = false
 
+    /// 賽事倒數卡的顯示偏好。**寫入面就是 1.4 那兩個 `@AppStorage` key**
+    /// （`RaceCountdownDisplayMode` / `RaceCountdownGate` 是既有型別），不是第二份設定。
+    ///
+    /// 為什麼放這一頁：設定首頁把「賽事倒數卡」跟週跑量、訓練日放在同一張卡
+    /// （設計 §30.4），而那張卡整片點下去就是這一頁。原本這一頁沒有這個控制項，
+    /// 於是那一列點下去等於落到一個跟它無關的頁面（2026-08-26 QA）。
+    @AppStorage("raceCountdownMode") private var raceCountdownModeRaw = RaceCountdownDisplayMode.default.rawValue
+    @AppStorage("raceCountdownDaysBefore") private var raceCountdownDaysBefore = RaceCountdownGate.defaultDaysBefore
+
     /// 錨點：已存檔的週跑量。0（尚未設定）時退回 30 km，滑桿才不會塌成一個點。
     private var anchorKm: Double {
         let saved = Double(viewModel.weeklyDistanceKm)
@@ -48,6 +57,7 @@ struct App2TrainingSettingsView: View {
             VStack(alignment: .leading, spacing: 20) {
                 distanceSection
                 daysSection
+                raceCountdownSection
             }
         }
         .onAppear(perform: loadInitialIfNeeded)
@@ -161,6 +171,59 @@ struct App2TrainingSettingsView: View {
             }
         }
         .padding(.top, 4)
+    }
+
+    // MARK: - 賽事倒數卡
+
+    /// 顯示模式（一律／賽前 N 天／不顯示）＋ 天數。`@AppStorage` 是即時生效的，
+    /// 所以這一段不進「儲存」鈕（那顆只寫 profile 的三個欄位）。
+    private var raceCountdownSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            App2SectionCaption(text: NSLocalizedString("profile.race_countdown.title", comment: ""))
+
+            App2Card(spacing: 12) {
+                Picker("", selection: $raceCountdownModeRaw) {
+                    Text(NSLocalizedString("profile.race_countdown.always", comment: ""))
+                        .tag(RaceCountdownDisplayMode.always.rawValue)
+                    Text(NSLocalizedString("profile.race_countdown.auto", comment: ""))
+                        .tag(RaceCountdownDisplayMode.auto.rawValue)
+                    Text(NSLocalizedString("profile.race_countdown.off", comment: ""))
+                        .tag(RaceCountdownDisplayMode.off.rawValue)
+                }
+                .labelsHidden()
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("App2_TrainingSettingsRaceCountdownMode")
+
+                if raceCountdownModeRaw == RaceCountdownDisplayMode.auto.rawValue {
+                    HStack(spacing: 10) {
+                        Text(NSLocalizedString("profile.race_countdown.days_before", comment: ""))
+                            .font(.system(size: 14, weight: .heavy))
+                            .foregroundStyle(App2Theme.inkSecondary)
+                        Spacer(minLength: 6)
+                        Text(String(
+                            format: NSLocalizedString("profile.race_countdown.days_value", comment: ""),
+                            raceCountdownDaysBefore
+                        ))
+                        .font(.app2Mono(15, weight: .bold))
+                        .foregroundStyle(App2Theme.inkPrimary)
+                        App2StepperButton(
+                            systemImage: "minus",
+                            identifier: "App2_TrainingSettingsRaceCountdownDaysMinus"
+                        ) {
+                            raceCountdownDaysBefore = max(7, raceCountdownDaysBefore - 7)
+                        }
+                        App2StepperButton(
+                            systemImage: "plus",
+                            filled: true,
+                            identifier: "App2_TrainingSettingsRaceCountdownDaysPlus"
+                        ) {
+                            raceCountdownDaysBefore = min(180, raceCountdownDaysBefore + 7)
+                        }
+                    }
+                    .accessibilityIdentifier("App2_TrainingSettingsRaceCountdownDays")
+                }
+            }
+        }
     }
 
     // MARK: - 狀態

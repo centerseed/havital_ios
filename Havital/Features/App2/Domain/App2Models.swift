@@ -207,9 +207,15 @@ struct App2SessionDetail: Identifiable, Equatable {
     /// hero 三格：總距離 / 預計時間 / 配速變化段數。
     let distanceKm: Double?
     let durationLabel: String?
+    /// 「訓練結構」header 的 `M 分鐘`。與 `durationLabel` 同一個值的另一種投影，
+    /// 不另算一份。推不出來就 nil，header 只印段數。
+    let durationMinutes: Int?
     let phaseCount: Int
     /// 「預計配速」示意圖。每種課型都畫得出來（2026-08-25 裁決）。
     let structureBars: [App2SessionStructureBar]
+    /// 單段（勻速）課的配速帶（設計 frame-02c，2026-08-26 裁決）。
+    /// 有值時「預計配速」畫配速帶而不是長條圖；多段課這裡是 `nil`。
+    let paceBand: App2SessionPaceBand?
     /// 「本次訓練目標」——後端 `day_target`（已在地化）。
     let goalText: String?
     /// 目標卡下方的理由句 —— 後端 `reason`。
@@ -222,6 +228,30 @@ struct App2SessionDetail: Identifiable, Equatable {
     let showsFuelingNote: Bool
     /// 跑步課才有「傳到 Garmin」（後端 push 只收 run workout）。
     let isRunSession: Bool
+}
+
+// MARK: - App2SessionPaceBand
+/// 單段勻速課的「配速帶」（設計 **frame-02c**）。
+///
+/// 為什麼不是長條圖：一段課的長條圖只有一根柱，看不出任何「變化」，圖裡沒有資訊。
+/// 配速帶把同一組數字換成「你要落在這個窗裡」——上緣是快邊界、下緣是慢邊界。
+///
+/// **邊界的來源**：後端 payload 目前沒有配速區間欄位（`primary` 只有 `pace`／
+/// `base_pace`／`climate_adjusted_pace`，2026-08-26 dev 實測 `e1289e60f251_1`），
+/// 所以邊界＝處方配速 ±15 秒、目標窗＝±10 秒。後端補上區間欄位後改讀那個欄位。
+struct App2SessionPaceBand: Equatable {
+    /// 帶上那顆白 pill 的處方配速（`6:50`）。
+    let paceLabel: String
+    /// 上緣虛線（`6:35`）。
+    let fastLabel: String
+    /// 下緣虛線（`7:05`）。
+    let slowLabel: String
+    /// 圖下中央那句的目標窗（`6:40-7:00`）。
+    let windowLabel: String
+    /// 圖下左（`0.0`）／右（`8.0`）。右邊推不出距離時是 `nil`，整個右欄不出現。
+    let endKmLabel: String?
+    /// legend chip 的名稱（`輕鬆（穩定）`）——與長條圖的標註列同一支字串。
+    let legendLabel: String
 }
 
 /// 訓練詳情的「訓練結構」一列（設計：序號 ＋ 名稱 ＋ 量／配速 ＋ 一句說明）。

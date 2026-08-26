@@ -1300,6 +1300,19 @@ enum SupportedLanguage: String, CaseIterable {
         }
     }
 
+    /// 日期／數字格式用的 locale。
+    ///
+    /// **不要在 UI 用 `Locale.current`。** app 切語言換的是 bundle（`Bundle.setLanguage`），
+    /// `Locale.current` 是行程啟動時決定的，要重啟才跟得上 —— 症狀是切完語言字串都翻了、
+    /// 只有日期還停在舊語系（2026-08-26 QA）。
+    var locale: Locale {
+        switch self {
+        case .traditionalChinese: return Locale(identifier: "zh_Hant_TW")
+        case .english: return Locale(identifier: "en_US")
+        case .japanese: return Locale(identifier: "ja_JP")
+        }
+    }
+
     /// 緊湊縮寫（登入畫面右上角語言切換用）
     var shortCode: String {
         switch self {
@@ -2240,6 +2253,17 @@ extension L10n {
             /// `TrainingTypeInfo`（`training_type_info.<type>.*`），不另建一份文案。
             static let purposeSection = "app2.detail.purpose_section"
             static let purposeMore = "app2.detail.purpose_more"
+            /// 單段課的配速帶（設計 frame-02c）。
+            static let paceBandFast = "app2.detail.pace_band_fast"
+            static let paceBandSlow = "app2.detail.pace_band_slow"
+            static let paceBandStart = "app2.detail.pace_band_start"
+            static let paceBandEnd = "app2.detail.pace_band_end"
+            static let paceBandHold = "app2.detail.pace_band_hold"
+            static let paceBandWindow = "app2.detail.pace_band_window"
+            /// 訓練結構 header 的「N 段 · M 分鐘」。
+            static let structureMeta = "app2.detail.structure_meta"
+            /// 單段課結構首列的補充句。
+            static let structureSteadyNote = "app2.detail.structure_steady_note"
         }
 
         /// 訓練詳情（**已完成的一筆紀錄**，設計 frame-15～17）。
@@ -2467,6 +2491,10 @@ extension L10n {
             /// 是單獨的詞，英文當前綴不成句，所以這裡是 format 而不是重複那個詞。
             static let remainingFormat = "app2.achievements.remaining_format"
             static let seeMore = "app2.achievements.see_more"
+            /// 換展示徽章的確認框（設計包沒定義，是補缺口；與 Android 對齊）。
+            static let setDisplayTitle = "app2.achievements.set_display_title"
+            static let setDisplayBody = "app2.achievements.set_display_body"
+            static let setDisplayAction = "app2.achievements.set_display_action"
         }
 
         enum Settings {

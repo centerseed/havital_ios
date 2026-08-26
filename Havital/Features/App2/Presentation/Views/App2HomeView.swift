@@ -465,12 +465,15 @@ struct App2HomeView: View {
     /// 訓練狀況卡左側的徽章 —— **成就頁那一顆**。
     ///
     /// 資料走的是成就頁自己的 ViewModel（`GET /v2/achievements/summary`，由
-    /// `App2RootView` 持有），挑選規則直接用 `App2AchievementsView.latestUnlocked`
+    /// `App2RootView` 持有），挑選規則直接用 `App2AchievementsView.displayBadge`
     /// —— 首頁與成就頁顯示同一顆是這條裁決的重點，所以不另寫一份挑法。
+    /// 使用者在成就頁換過展示徽章（pin）之後，這裡也跟著換。
     /// 還沒載到／一顆都沒解鎖時留一個中性的圓角方塊，不畫假徽章。
     @ViewBuilder
     private var statusBadge: some View {
-        let badge = achievementsViewModel.summary.flatMap(App2AchievementsView.latestUnlocked)
+        let badge = achievementsViewModel.summary.flatMap {
+            App2AchievementsView.displayBadge($0, pinnedBadgeId: achievementsViewModel.pinnedBadgeId)
+        }
         Group {
             if let badge {
                 AchievementBadgeImage(

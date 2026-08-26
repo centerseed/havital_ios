@@ -126,10 +126,16 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
     func updateHeartRateZones(maxHR: Int, restingHR: Int) async throws -> [HeartRateZone] {
         Logger.debug("[UserProfileRepo] Updating HR zones (max: \(maxHR), resting: \(restingHR))")
 
-        // Update user profile with new HR values
+        // Update user profile with new HR values.
+        //
+        // **欄位名必須是 `max_hr` / `relaxing_hr`。** 那是 profile 文件的 canonical 名
+        // （`GET /user` 回的鍵、`User.CodingKeys`、後端 `domains/identity/service.py`
+        // 的 `_hr_parameter(profile, "max_hr")` 都是這一組），而 `PUT /user` 是整包
+        // merge —— 送 `max_heart_rate` 只會在文件旁邊多一個沒人讀的欄位，讀回來還是
+        // 舊的 `max_hr`，UI 於是永遠顯示存檔前的值（2026-08-26 QA）。
         let updates: [String: Any] = [
-            "max_heart_rate": maxHR,
-            "resting_heart_rate": restingHR
+            "max_hr": maxHR,
+            "relaxing_hr": restingHR
         ]
         _ = try await updateUserProfile(updates)
 

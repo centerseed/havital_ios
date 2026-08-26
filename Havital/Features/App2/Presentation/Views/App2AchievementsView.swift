@@ -22,10 +22,20 @@ struct App2AchievementsView: View {
     /// 由 `App2RootView` 持有。這一頁只是第二個版面，不是第二套成就系統。
     @ObservedObject var viewModel: PersonalAchievementsViewModel
 
+    /// 使用者點了收藏牆的某一顆、等待確認要不要設為展示徽章。
+    @State private var pendingDisplayBadge: AchievementBadge?
+
     private let pbColumns = [
         GridItem(.flexible(), spacing: 10),
         GridItem(.flexible(), spacing: 10)
     ]
+
+    /// 目前實際展示的那一顆（pin 優先，否則最近解鎖）。
+    private var displayedBadgeId: String? {
+        viewModel.summary
+            .flatMap { Self.displayBadge($0, pinnedBadgeId: viewModel.pinnedBadgeId) }?
+            .badgeId
+    }
 
     var body: some View {
         ScrollView {
@@ -49,12 +59,32 @@ struct App2AchievementsView: View {
         .accessibilityIdentifier("App2_AchievementsView")
         .task { await viewModel.loadIfNeeded() }
         .refreshable { await viewModel.forceRefresh() }
+        .alert(
+            L10n.App2.Achievements.setDisplayTitle.localized,
+            isPresented: Binding(
+                get: { pendingDisplayBadge != nil },
+                set: { if !$0 { pendingDisplayBadge = nil } }
+            ),
+            presenting: pendingDisplayBadge
+        ) { badge in
+            Button(L10n.App2.Achievements.setDisplayAction.localized) {
+                viewModel.setPinnedBadge(badge.badgeId)
+            }
+            .accessibilityIdentifier("App2_AchievementsSetDisplayConfirm")
+            Button(NSLocalizedString("common.cancel", comment: ""), role: .cancel) {}
+        } message: { badge in
+            Text(String(
+                format: L10n.App2.Achievements.setDisplayBody.localized,
+                badge.nameKey.localizedOrFallback(default: badge.badgeId)
+            ))
+        }
     }
 
     // MARK: - 最新解鎖 hero
 
     private func heroCard(_ summary: AchievementSummary) -> some View {
-        let latest = Self.latestUnlocked(summary)
+        // 使用者選過就顯示他選的那一顆，沒選過才自動挑最近解鎖（`displayBadge`）。
+        let latest = Self.displayBadge(summary, pinnedBadgeId: viewModel.pinnedBadgeId)
         let track = Self.nextTrack(summary)
 
         return App2AccentCard(strength: 0.14, padding: 18, spacing: 0) {
@@ -286,6 +316,7 @@ struct App2AchievementsView: View {
     /// 徽章視覺，每一顆看起來都一樣 —— 2026-08-25 兩平台實走時的差異就是這個。
     private func badgeTile(_ badge: AchievementBadge) -> some View {
         let unlocked = badge.status == .unlocked
+        let isDisplayed = badge.badgeId == displayedBadgeId
         let tileSize: CGFloat = 60
         return VStack(spacing: 7) {
             ZStack(alignment: .bottomTrailing) {
@@ -300,6 +331,13 @@ struct App2AchievementsView: View {
                     radius: unlocked ? 6 : 2,
                     x: 0, y: unlocked ? 5 : 1
                 )
+                .overlay {
+                    // 目前展示中的那一顆給一圈藍框（未解鎖的不會有）。
+                    if isDisplayed {
+                        RoundedRectangle(cornerRadius: tileSize * 0.22, style: .continuous)
+                            .strokeBorder(App2Theme.accentBlue, lineWidth: 2.5)
+                    }
+                }
                 .accessibilityIdentifier("App2_AchievementsBadge_\(badge.badgeId)")
 
                 if unlocked {
@@ -325,6 +363,17 @@ struct App2AchievementsView: View {
                 .foregroundStyle(App2Theme.inkFaint)
         }
         .frame(width: 66)
+        .contentShape(Rectangle())
+        // **補缺口**：設計包沒有替成就頁定義「換一顆展示徽章」的入口，
+        // 但 pin 這件事在 repo 裡早就有（`AchievementRepository.setPinnedBadgeId`
+        // ＋ 1.4 的 `BadgeShowcasePickerView`），Android 也有。這裡把入口補在
+        // 收藏牆的 tile 上：點已解鎖的徽章 → 確認 → 設為展示徽章。
+        // 未解鎖的不可點（點了也沒有東西可展示）。
+        .onTapGesture {
+            guard unlocked else { return }
+            pendingDisplayBadge = badge
+        }
+        .accessibilityAddTraits(unlocked ? [.isButton] : [])
     }
 
     // MARK: - Helpers
@@ -351,6 +400,20 @@ struct App2AchievementsView: View {
             .filter { $0.status == .unlocked }
             .sorted { ($0.unlockedAt ?? "") > ($1.unlockedAt ?? "") }
             .first
+    }
+
+    /// 實際要展示的那一顆：**使用者 pin 過的優先，否則退回最近解鎖**。
+    /// 挑選規則走既有的 `SelectDisplayBadgeUseCase`（課表首頁展示位同一支），
+    /// 不另寫一份。
+    static func displayBadge(
+        _ summary: AchievementSummary,
+        pinnedBadgeId: String?
+    ) -> AchievementBadge? {
+        let all = (summary.achievementTracks.isEmpty
+            ? summary.badgeGroups.flatMap(\.badges)
+            : summary.achievementTracks.flatMap(\.badges))
+            .filter(AchievementBadgeSemanticPolicy.isDisplayable)
+        return SelectDisplayBadgeUseCase().execute(pinnedBadgeId: pinnedBadgeId, allBadges: all)
     }
 
     /// 下一個目標：尚未完成的主線中，進度比例最高的那條（與 1.4 同）。

@@ -1,4 +1,51 @@
 import SwiftUI
+import UIKit
+
+// MARK: - App2Keyboard
+/// 收鍵盤。**數字鍵盤沒有 return 鍵**，所以任何用 `.numberPad`／`.decimalPad` 的表單
+/// 都必須自己提供出路，否則 focus 進去就出不來（2026-08-26 QA：新增賽事表單死鎖）。
+///
+/// 走 responder chain 而不是 `@FocusState`：一張表單裡有多個各自持有 `@FocusState`
+/// 的元件（三個 `App2OnboardingTimeField` ＋ 兩個 `TextField`），要一顆鈕收掉全部，
+/// 就不能綁在其中任何一個的焦點狀態上。
+enum App2Keyboard {
+    static func dismiss() {
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil, from: nil, for: nil
+        )
+    }
+}
+
+// MARK: - App2RaceDateSheet
+/// 賽事日期選擇 —— **獨立 sheet ＋ `.graphical`**，選到日期就自己關。
+///
+/// 不用 `.compact` 的內建 popover：它點日期不關、只能點外面關，而它的遮罩會蓋掉
+/// 底下 sheet 的導覽列（連「取消」都按不到）。
+struct App2RaceDateSheet: View {
+    @Binding var date: Date
+    let onClose: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            DatePicker("", selection: $date, displayedComponents: .date)
+                .labelsHidden()
+                .datePickerStyle(.graphical)
+                .padding(.horizontal, App2Theme.pagePadding)
+                .accessibilityIdentifier("App2_RaceFormDatePicker")
+                .navigationTitle(L10n.App2.Races.dateLabel.localized)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button(NSLocalizedString("common.done", comment: "Done"), action: onClose)
+                            .accessibilityIdentifier("App2_RaceFormDateDone")
+                    }
+                }
+                // 選到日期就關 —— 少一步「還要按完成」。
+                .onChange(of: date) { _, _ in onClose() }
+        }
+    }
+}
 
 // MARK: - App2RaceEditSheet
 /// 新增／編輯賽事 —— 設計 **frame-13「新增賽事」**（編輯時只有標題與刪除鍵不同）。
@@ -15,6 +62,12 @@ struct App2RaceEditSheet: View {
     let onClose: () -> Void
 
     @State private var isShowingDatabase = false
+    /// 賽事日期用**自己的 sheet**，不是 `.compact` DatePicker 的內建 popover。
+    /// 內建那顆的 popover 點日期不會關、而且它的遮罩蓋住整個 sheet（含導覽列的
+    /// 「取消」），配上收不掉的數字鍵盤就變成整張表單卡死、只能砍 app（2026-08-26 QA）。
+    @State private var isShowingDatePicker = false
+    /// 表單內的刪除也要二次確認（賽事管理頁的垃圾桶已經有，這裡原本沒有）。
+    @State private var isConfirmingDelete = false
 
     /// 設計 frame-13 的五顆類型 chip。前四顆是標準距離，「其他」＝距離自己填。
     private static let standardDistanceKeys = App2OnboardingFormat.raceDistanceKeys
@@ -35,7 +88,23 @@ struct App2RaceEditSheet: View {
                 .padding(.horizontal, App2Theme.pagePadding)
                 .padding(.vertical, 14)
             }
+            // 數字鍵盤沒有 return 鍵，所以這張表單必須自己提供出路：
+            // ① 捲動就收（`.interactively`）② 點空白處就收 ③ 鍵盤上方一顆「完成」。
+            // 三條缺一都會回到「focus 之後收不掉」的死鎖。
+            .scrollDismissesKeyboard(.interactively)
             .background(App2Theme.pageGradient.ignoresSafeArea())
+            .contentShape(Rectangle())
+            .onTapGesture { App2Keyboard.dismiss() }
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button(NSLocalizedString("common.done", comment: "Done")) {
+                        App2Keyboard.dismiss()
+                    }
+                    .font(.system(size: 16, weight: .heavy))
+                    .accessibilityIdentifier("App2_RaceFormKeyboardDone")
+                }
+            }
             .navigationTitle(form.targetId == nil
                              ? L10n.App2.Races.addTitle.localized
                              : L10n.App2.Races.editTitle.localized)
@@ -46,6 +115,22 @@ struct App2RaceEditSheet: View {
                         .accessibilityIdentifier("App2_RaceFormCancel")
                 }
             }
+        }
+        .sheet(isPresented: $isShowingDatePicker) {
+            App2RaceDateSheet(date: $form.date) { isShowingDatePicker = false }
+                .presentationDetents([.medium])
+        }
+        .alert(
+            L10n.App2.Races.deleteConfirmTitle.localized,
+            isPresented: $isConfirmingDelete
+        ) {
+            Button(L10n.App2.Races.delete.localized, role: .destructive) {
+                if let id = form.targetId { onDelete(id) }
+            }
+            .accessibilityIdentifier("App2_RaceFormDeleteConfirm")
+            Button(NSLocalizedString("common.cancel", comment: ""), role: .cancel) {}
+        } message: {
+            Text(String(format: L10n.App2.Races.deleteConfirmBody.localized, form.name))
         }
         .fullScreenCover(isPresented: $isShowingDatabase) {
             App2RaceDatabaseView(
@@ -160,13 +245,28 @@ struct App2RaceEditSheet: View {
 
             VStack(alignment: .leading, spacing: 7) {
                 fieldLabel(L10n.App2.Races.dateLabel.localized)
-                DatePicker("", selection: $form.date, displayedComponents: .date)
-                    .labelsHidden()
-                    .datePickerStyle(.compact)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(EdgeInsets(top: 8, leading: 10, bottom: 8, trailing: 10))
-                    .background(fieldSurface)
-                    .accessibilityIdentifier("App2_RaceFormDate")
+                HStack(spacing: 6) {
+                    Text(Self.dateLabel(form.date))
+                        .font(.app2Mono(15, weight: .bold))
+                        .foregroundStyle(App2Theme.inkPrimary)
+                    Spacer(minLength: 0)
+                    Image(systemName: "calendar")
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundStyle(App2Theme.inkMuted)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(EdgeInsets(top: 12, leading: 13, bottom: 12, trailing: 13))
+                .background(fieldSurface)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    // 先收鍵盤再開日期 sheet，否則關掉 sheet 之後鍵盤會彈回來。
+                    App2Keyboard.dismiss()
+                    isShowingDatePicker = true
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel(L10n.App2.Races.dateLabel.localized)
+                .accessibilityIdentifier("App2_RaceFormDate")
             }
         }
         .padding(.bottom, 16)
@@ -300,9 +400,10 @@ struct App2RaceEditSheet: View {
                             .strokeBorder(App2Theme.accentRed.opacity(0.25), lineWidth: 1)
                     )
                     .contentShape(Rectangle())
-                    .onTapGesture { onDelete(id) }
+                    .onTapGesture { isConfirmingDelete = true }
                     .accessibilityAddTraits(.isButton)
                     .accessibilityIdentifier("App2_RaceFormDelete")
+                    .id(id)
             }
 
             Group {
@@ -345,6 +446,17 @@ struct App2RaceEditSheet: View {
                 form.clearRaceBinding()
             }
         )
+    }
+
+    /// 欄位上顯示的日期。locale 跟著 app 的語言走（不是 `Locale.current`，見
+    /// `SupportedLanguage.locale`）。
+    @MainActor
+    private static func dateLabel(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = LanguageManager.shared.locale
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
     }
 
     private func fieldLabel(_ text: String) -> some View {
