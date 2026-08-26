@@ -236,9 +236,10 @@ final class App2PlanProjectionTests: XCTestCase {
 
     // MARK: - 日卡內容（設計 frame-01：課表行 ＝ 量 · 配速；敘述行 ＝ day_target）
 
-    /// 設計 frame-01 的課表行是「課表 4.0 km · 7:17/km」，不是裸距離。
-    /// 有 `climate_adjusted_pace` 就用它（那才是當天實際要跑的配速）。
-    func test_planWeek_plannedRowCarriesPace() throws {
+    /// 設計 frame-01 的課表行是「課表 4.0 km · 6:50/km」，不是裸距離。
+    /// **一律顯示處方配速**（2026-05 使用者裁決，2026-08-26 起 App2 全面適用）：
+    /// 課表行不得被 `climate_adjusted_pace` 蓋掉，熱調整值只出現在熱適應卡。
+    func test_planWeek_plannedRowCarriesPrescribedPaceNotClimateAdjusted() throws {
         let json = """
         { "purpose": "p", "week_of_training": 1, "total_weeks": 6, "total_distance_km": 8,
           "days": [ { "day_index": 2,
@@ -251,7 +252,7 @@ final class App2PlanProjectionTests: XCTestCase {
                 dto: try plan(json), planStatus: try status(), completedKm: nil, todayIndex: 2
             ).days.first
         )
-        XCTAssertEqual(day.planned, "4.0 km · 7:17/km")
+        XCTAssertEqual(day.planned, "4.0 km · 6:50/km")
         XCTAssertEqual(day.description, "輕鬆跑：保持舒適配速，專注於有氧建立 4 km")
     }
 

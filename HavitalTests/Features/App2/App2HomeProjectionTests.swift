@@ -147,7 +147,8 @@ final class App2HomeProjectionTests: XCTestCase {
             days: [try day(restDay)], todayIndex: 3, dayLabel: "週三 · 8/26"
         )
         XCTAssertEqual(session?.title, DayType.rest.localizedName)
-        XCTAssertNil(session?.intensityLabel)
+        // 休息日的 chip 是「恢復」（設計 dc.html「今日課表 · 休息日卡片」）。
+        XCTAssertEqual(session?.intensityLabel, L10n.App2.Session.effortChipRecovery.localized)
         XCTAssertNil(session?.summary)
         XCTAssertEqual(session?.dayLabel, "週三 · 8/26")
     }
@@ -157,16 +158,17 @@ final class App2HomeProjectionTests: XCTestCase {
             days: [try day(easyRunDay)], todayIndex: 2, dayLabel: "週二"
         )
         XCTAssertEqual(session?.summary, "9.0 km · 7:55/km")
-        XCTAssertEqual(session?.intensityLabel, L10n.App2.Plan.intensityLow.localized)
+        XCTAssertEqual(session?.intensityLabel, L10n.App2.Session.effortChipLow.localized)
     }
 
     func test_todaySession_interval_buildsStructuredLine() throws {
         let session = App2HomeViewModel.todaySession(
             days: [try day(intervalDay)], todayIndex: 5, dayLabel: "週五"
         )
-        let summary = try XCTUnwrap(session?.summary)
-        XCTAssertTrue(summary.hasPrefix("6 × 200m · 5:25/km · "), summary)
-        XCTAssertEqual(session?.intensityLabel, L10n.App2.Plan.intensityHigh.localized)
+        // 2026-08-26 裁決：間歇日的「課表」行＝主課段（含組間恢復）總距離 ＋ 該段總時間。
+        // 6 × 200m @ 5:25 ＝ 1.2 km、6×65s ＋ 5×90s 組間 ＝ 840 秒。
+        XCTAssertEqual(session?.summary, "1.2 km · 14:00")
+        XCTAssertEqual(session?.intensityLabel, L10n.App2.Session.effortChipHigh.localized)
     }
 
     func test_todaySession_todayNotInDays_returnsNil() throws {
@@ -180,8 +182,9 @@ final class App2HomeProjectionTests: XCTestCase {
         XCTAssertNil(App2HomeViewModel.todaySession(days: [], todayIndex: 1, dayLabel: "週一"))
     }
 
-    /// 沒有 `target_intensity` 就不顯示強度徽章 —— 不從課型自己推一個出來。
-    func test_todaySession_missingIntensity_hasNoBadge() throws {
+    /// 沒有 `target_intensity` 時強度 chip 退到**課型**（2026-08-26 裁決：
+    /// 這顆 chip 每張今日卡都要有）。退法是 `DayType` 對照，不是對顯示字比對。
+    func test_todaySession_missingIntensity_fallsBackToDayType() throws {
         let json = """
         { "day_index": 1, "day_target": "輕鬆跑", "reason": "r",
           "primary": { "run_type": "easy", "distance_km": 5.0 } }
@@ -189,7 +192,7 @@ final class App2HomeProjectionTests: XCTestCase {
         let session = App2HomeViewModel.todaySession(
             days: [try day(json)], todayIndex: 1, dayLabel: "週一"
         )
-        XCTAssertNil(session?.intensityLabel)
+        XCTAssertEqual(session?.intensityLabel, L10n.App2.Session.effortChipLow.localized)
         XCTAssertEqual(session?.summary, "5.0 km")
     }
 
@@ -444,8 +447,8 @@ final class App2HomeProjectionTests: XCTestCase {
     /// 卡上寫成「趟數 × 7 趟」（2026-08-25 用戶在截圖上抓到）。
     func test_structureBars_qualityDay_countsOnlySprintReps() throws {
         let bars = App2HomeViewModel.structureBars(day: try day(qualityDay))
-        XCTAssertEqual(bars.first?.kind, .support)      // 熱身
-        XCTAssertEqual(bars.last?.kind, .support)       // 緩和
+        XCTAssertEqual(bars.first?.kind, .warmup)       // 熱身（綠柱）
+        XCTAssertEqual(bars.last?.kind, .warmup)        // 緩和（綠柱）
         XCTAssertEqual(bars.filter { $0.kind == .interval }.count, 6) // 只有 6 趟衝刺
     }
 
@@ -488,7 +491,8 @@ final class App2HomeProjectionTests: XCTestCase {
     func test_structureBars_supportBarsHaveNoAnnotation() throws {
         let bars = App2HomeViewModel.structureBars(day: try day(qualityDay))
         XCTAssertTrue(
-            bars.filter { $0.kind == .support }.allSatisfy { $0.noteLabel == nil },
+            bars.filter { $0.kind == .support || $0.kind == .warmup }
+                .allSatisfy { $0.noteLabel == nil },
             "輔助段不進標註列"
         )
     }
@@ -503,8 +507,8 @@ final class App2HomeProjectionTests: XCTestCase {
         let bars = App2HomeViewModel.structureBars(day: try day(json))
         XCTAssertFalse(bars.isEmpty)
         XCTAssertEqual(bars.filter { $0.kind == .interval }.count, 0)
-        // 前後淺色塊 ＋ 中間一塊綠色穩定段。
-        XCTAssertEqual(bars.map(\.kind), [.support, .steady, .support])
+        // 前後綠色熱身／緩和塊 ＋ 中間一塊綠色穩定段（灰柱只留給組間恢復）。
+        XCTAssertEqual(bars.map(\.kind), [.warmup, .steady, .warmup])
     }
 
     func test_structureBars_restDay_isEmpty() throws {
@@ -540,11 +544,23 @@ final class App2HomeProjectionTests: XCTestCase {
         "week_start": 4, "week_end": 6, "training_focus": "f", "target_weekly_km_range": { "low": 8, "high": 10 } } ]
     """
 
-    func test_stageName_picksStageContainingCurrentWeek() throws {
+    /// 期別顯示字走 `stage_id` 的既有在地化表（`training.stage.*`），
+    /// **不是 payload 的 `stage_name`** —— 後者由後端依 `content_lang` 生成，
+    /// App 切語言時不會跟著換（2026-08-26 裁決：chip 譯名全 App 同一份）。
+    func test_stageName_localizesByStageIdNotBackendString() throws {
         let stages = try stages(threeStagesJSON)
-        XCTAssertEqual(App2HomeViewModel.stageName(stages: stages, currentWeek: 1), "基礎期")
-        XCTAssertEqual(App2HomeViewModel.stageName(stages: stages, currentWeek: 3), "強化期")
-        XCTAssertEqual(App2HomeViewModel.stageName(stages: stages, currentWeek: 6), "巔峰期")
+        XCTAssertEqual(
+            App2HomeViewModel.stageName(stages: stages, currentWeek: 1),
+            L10n.Training.Stage.base.localized
+        )
+        XCTAssertEqual(
+            App2HomeViewModel.stageName(stages: stages, currentWeek: 3),
+            L10n.Training.Stage.build.localized
+        )
+        XCTAssertEqual(
+            App2HomeViewModel.stageName(stages: stages, currentWeek: 6),
+            L10n.Training.Stage.peak.localized
+        )
     }
 
     /// 落不進任何一段就沒有期別 —— 不猜最近的那一段。
