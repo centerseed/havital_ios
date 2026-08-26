@@ -14,6 +14,7 @@ enum App2SettingsDestination: String, Identifiable {
     case reonboarding   // 重設目標（既有 onboarding 流程）
     #if DEBUG
     case weeklyReviewDev  // 週回顧開發工具（DEBUG-only，Release build 沒有這一格）
+    case planEndDev       // 計畫結束態開發工具（同上）
     #endif
 
     var id: String { rawValue }
@@ -118,6 +119,8 @@ struct App2SettingsView: View {
         #if DEBUG
         case .weeklyReviewDev:
             App2WeeklyReviewDevView(onClose: dismiss)
+        case .planEndDev:
+            App2PlanEndDevView(onClose: dismiss)
         #endif
         }
     }
@@ -470,13 +473,23 @@ struct App2SettingsView: View {
                 App2SettingsRow(
                     systemImage: "wrench.and.screwdriver",
                     title: "Weekly Review Dev Tools",
-                    value: "",
-                    showsDivider: false
+                    value: ""
                 )
                 .contentShape(Rectangle())
                 .onTapGesture { destination = .weeklyReviewDev }
                 .accessibilityAddTraits(.isButton)
                 .accessibilityIdentifier("App2_SettingsWeeklyReviewDev")
+
+                App2SettingsRow(
+                    systemImage: "flag.checkered",
+                    title: "Plan End Dev Tools",
+                    value: "",
+                    showsDivider: false
+                )
+                .contentShape(Rectangle())
+                .onTapGesture { destination = .planEndDev }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("App2_SettingsPlanEndDev")
             }
         }
     }

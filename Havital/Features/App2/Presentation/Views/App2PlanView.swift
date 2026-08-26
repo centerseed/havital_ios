@@ -18,6 +18,9 @@ struct App2PlanView: View {
     @State private var detailSession: App2SessionDetail?
     /// 修改課表（與首頁「…」menu 同一個入口殼）。
     @State private var isShowingPlanEdit = false
+    /// 結束態的兩個目的地。與首頁那兩個是同一頁、同一條既有流程，不是這一頁專屬的。
+    @State private var isShowingPeriodSummary = false
+    @State private var isShowingReonboarding = false
 
     var body: some View {
         ScrollView {
@@ -25,7 +28,15 @@ struct App2PlanView: View {
                 header
                     .padding(.bottom, 16)
 
-                if let sourced = viewModel.week {
+                if let planEnd = viewModel.planEnd {
+                    // 計畫走完（設計 frame-00g2（c））：**不再顯示第 N/M 週**。
+                    // header 的週次切換器也跟著收掉（見 `header`）。
+                    App2PlanEndTabCard(
+                        card: planEnd,
+                        onOpenSummary: { isShowingPeriodSummary = true },
+                        onSetNewGoal: { isShowingReonboarding = true }
+                    )
+                } else if let sourced = viewModel.week {
                     volumeCard(sourced)
                         .padding(.bottom, 14)
                     ForEach(sourced.value.days) { day in
@@ -67,29 +78,49 @@ struct App2PlanView: View {
                 onSaved: { Task { await viewModel.forceRefresh() } }
             )
         }
+        .fullScreenCover(isPresented: $isShowingPeriodSummary) {
+            if let planEnd = viewModel.planEnd {
+                App2PeriodSummaryView(
+                    card: planEnd,
+                    onClose: { isShowingPeriodSummary = false }
+                )
+            }
+        }
+        .fullScreenCover(isPresented: $isShowingReonboarding) {
+            App2OnboardingContainerView(isReonboarding: true) {
+                isShowingReonboarding = false
+                // 重設完目標，這一頁要從結束態回到新計畫的第 1 週。
+                Task { await viewModel.forceRefresh() }
+            }
+        }
     }
 
     // MARK: - Header（標題 ＋ 週次切換器）
 
     private var header: some View {
         App2PageHeader(title: L10n.App2.Plan.title.localized) {
-            HStack(spacing: 5) {
-                // 週次切換目前只呈現當前週：`/v2/plan/status` 只給 current_week，
-                // 換週要另一條「取指定週」的出口（票面剩餘差異）。
-                weekStepButton(symbol: "chevron.left", enabled: false)
-                HStack(alignment: .firstTextBaseline, spacing: 0) {
-                    Text(viewModel.week?.value.weekLabel ?? "—")
-                        .font(.system(size: 15, weight: .black))
-                        .foregroundStyle(App2Theme.inkPrimary)
-                    if let total = viewModel.week?.value.totalWeeks {
-                        Text(verbatim: " / \(total)")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(App2Theme.inkMuted)
+            // 結束態：**整組週次切換器與鉛筆鈕都不出現**（設計 frame-00g2（c）的
+            // header 只有標題＋副句）。計畫走完之後既沒有「第 N/M 週」可標，
+            // 也沒有課表可改。
+            if viewModel.planEnd == nil {
+                HStack(spacing: 5) {
+                    // 週次切換目前只呈現當前週：`/v2/plan/status` 只給 current_week，
+                    // 換週要另一條「取指定週」的出口（票面剩餘差異）。
+                    weekStepButton(symbol: "chevron.left", enabled: false)
+                    HStack(alignment: .firstTextBaseline, spacing: 0) {
+                        Text(viewModel.week?.value.weekLabel ?? "—")
+                            .font(.system(size: 15, weight: .black))
+                            .foregroundStyle(App2Theme.inkPrimary)
+                        if let total = viewModel.week?.value.totalWeeks {
+                            Text(verbatim: " / \(total)")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(App2Theme.inkMuted)
+                        }
                     }
+                    .frame(minWidth: 76)
+                    weekStepButton(symbol: "chevron.right", enabled: false)
+                    editButton
                 }
-                .frame(minWidth: 76)
-                weekStepButton(symbol: "chevron.right", enabled: false)
-                editButton
             }
         }
     }

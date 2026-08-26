@@ -73,6 +73,16 @@ final class App2DevSettings: ObservableObject {
     private init() {}
 
     @Published var weekReviewOverride: App2DevWeekReviewOverride = .off
+
+    /// 計畫結束態走查（`Features/App2/Debug/App2PlanEndDevView.swift`）。
+    ///
+    /// 與 `weekReviewOverride` 同一個物件而不是第二個 dev flag store —— 兩個走查
+    /// 開關互斥（結束態一開，週回顧時機卡就該收掉），放在一起才看得出這件事。
+    @Published var planEndOverride: App2DevPlanEndOverride = .off
+
+    /// 整期總結故事版的 fixture。**production 恆為 nil** —— 敘事端點未落地，
+    /// 這裡是唯一的 producer，而它整段在 `#if DEBUG` 裡。
+    @Published var planEndStory: App2PeriodStory?
 }
 
 // MARK: - App2WeeklyReviewDevView

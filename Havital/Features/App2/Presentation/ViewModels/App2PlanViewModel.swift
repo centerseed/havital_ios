@@ -13,6 +13,11 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 後端明說本週還沒有課表（`current_week_plan_id == nil`）。
     /// 讀取失敗不算 —— 那時 `week` 保持舊值或退樣本，這個旗標維持 true。
     @Published private(set) var isPlanGenerated = true
+    /// 計畫結束態（設計 frame-00g2（c））。**有值時這一頁不再顯示第 N/M 週**
+    /// —— 計畫已經走完，週次切換器與日卡整段換成結束態卡。
+    ///
+    /// 判準與首頁同一條（`App2PlanEndProjection.card`），不是這一頁自己再判一次。
+    @Published private(set) var planEnd: App2PlanEndCard?
     /// 每日卡點下去要開的訓練詳情（設計 frame-02），key = `day_index`。
     /// **與課表頁同一份 payload**，詳情頁不再打端點；休息日不在這張表裡（不進詳情）。
     @Published private(set) var dayDetails: [Int: App2SessionDetail] = [:]
@@ -26,10 +31,14 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// `TrainingPlanV2RemoteDataSource`，也不再另存一份週課表快照。
     private let planRepository: TrainingPlanV2Repository
     private let workoutRepository: WorkoutRepository
+    /// 結束態卡的賽名來源（只讀本機快取的 `getMainTarget()`）。
+    /// **沒註冊就不強行註冊** —— 那時只是結束態卡少一個賽名，不該讓整頁掛掉。
+    private let targetRepository: TargetRepository?
 
     init(
         planRepository: TrainingPlanV2Repository? = nil,
-        workoutRepository: WorkoutRepository? = nil
+        workoutRepository: WorkoutRepository? = nil,
+        targetRepository: TargetRepository? = nil
     ) {
         let container = DependencyContainer.shared
 
@@ -49,6 +58,14 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 container.registerWorkoutModule()
             }
             self.workoutRepository = container.resolve() as WorkoutRepository
+        }
+
+        if let targetRepository {
+            self.targetRepository = targetRepository
+        } else {
+            self.targetRepository = container.isRegistered(TargetRepository.self)
+                ? (container.resolve() as TargetRepository)
+                : nil
         }
     }
 
@@ -70,6 +87,18 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             // `forceRefresh` ＝ 這一輪一定走網路。SWR 的「先舊後新」由上面那一行
             // 的快取渲染負責，不是靠 repository 的 cooldown 決定要不要重驗。
             let status = try await planRepository.getPlanStatus(forceRefresh: true)
+
+            await applyPlanEnd(planStatus: status)
+            if planEnd != nil {
+                // 結束態：**不再交出週課表**。留著它畫面上就會同時出現
+                // 「計畫完成」與「第 6 / 6 週」的日卡 —— 設計 frame-00g2（c）明定
+                // 這一頁不能再顯示第 N/M 週。
+                week = nil
+                dayDetails = [:]
+                isPlanGenerated = true
+                return
+            }
+
             guard let planId = status.currentWeekPlanId else {
                 // **本週沒有課表就說沒有。** 這裡原本退樣本，畫面上會出現一整週
                 // 「第 5 週 / 22」的假課表，而首頁同時說「本週課表尚未產生」——
@@ -96,6 +125,36 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 origin: .stub(pendingSection: App2StubFixtures.Section.offline)
             )
         }
+    }
+
+    /// 結束態卡。與首頁走**同一支投影**（`App2PlanEndProjection.card`），
+    /// 所以兩個 tab 上的變體、週數、賽名一定一致。
+    ///
+    /// 變體來自 `plan status` 自己的 `target_type`（與 overview 同一份文件的同一欄），
+    /// **所以這一頁不為了判變體多打一次 `GET /v2/plan/overview`**。
+    private func applyPlanEnd(planStatus: PlanStatusV2Response) async {
+        let target = await targetRepository?.getMainTarget()
+
+        #if DEBUG
+        if let forced = App2DevSettings.shared.planEndOverride.resolve(
+            planStatus: planStatus,
+            overview: nil,
+            target: target,
+            // 課表 tab 的結束態卡不畫完賽預估（frame-00g2（c）沒有那一格），
+            // 所以這一頁不為它多打一次 readiness。
+            estimatedFinish: nil
+        ) {
+            planEnd = forced
+            return
+        }
+        #endif
+
+        planEnd = App2PlanEndProjection.card(
+            planStatus: planStatus,
+            overview: nil,
+            target: target,
+            estimatedFinish: nil
+        )
     }
 
     /// 週課表 ＋ 每日詳情的組裝。網路回應與冷啟快取都走這一支。

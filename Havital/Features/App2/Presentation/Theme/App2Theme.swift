@@ -72,6 +72,25 @@ enum App2Theme {
     /// 深藍 hero 的光暈：`0 20px 44px -18px rgba(11,95,176,0.75)`。
     static let shadowHeroColor = Color(hex: "#0B5FB0").opacity(0.6)
 
+    /// 深綠 hero —— **maintenance 計畫的結束態**（設計 frame-00g（b）右卡）。
+    ///
+    /// 與 `heroDarkGradient` 是同一種構造只換色：兩張卡的差別是**語意**
+    /// （備賽完成 vs 訓練期完成），不是版式。2026-08-27 裁決：顏色跟語意變體走，
+    /// 首頁 hero、整期總結 hero、課表 tab 結束態卡三處一致，且與 Android 對齊。
+    static var heroGreenGradient: LinearGradient {
+        LinearGradient(
+            stops: [
+                .init(color: Color(hex: "#1E7A47"), location: 0),
+                .init(color: Color(hex: "#14532D"), location: 0.58),
+                .init(color: Color(hex: "#0B1F13"), location: 1)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    static let shadowHeroGreenColor = Color(hex: "#1E7A47").opacity(0.55)
+
     /// 舊呼叫點別名。
     static let goalCardBackground = Color(hex: "#EAF2FE")
 
@@ -262,6 +281,22 @@ extension Color {
         }
         #endif
         return self
+    }
+}
+
+// MARK: - 計畫結束態配色
+/// 顏色跟**語意變體**走（2026-08-27 裁決，與 Android 一致）：race 深藍、
+/// maintenance 深綠。
+///
+/// 首頁 hero、整期總結 hero、課表 tab 結束態卡是同一個語意的三個版位 ——
+/// 分岔只能有一份，不在各畫面各寫一次三元式。
+extension App2PlanEndKind {
+    var heroGradient: LinearGradient {
+        self == .race ? App2Theme.heroDarkGradient : App2Theme.heroGreenGradient
+    }
+
+    var heroShadow: Color {
+        self == .race ? App2Theme.shadowHeroColor : App2Theme.shadowHeroGreenColor
     }
 }
 

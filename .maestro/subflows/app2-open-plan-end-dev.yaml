@@ -1,0 +1,25 @@
+# 從首頁進到 DEBUG-only 的「Plan End Dev Tools」。
+# 與 `app2-open-weekly-review-dev.yaml` 同一條路徑，只是最後點的那一列不同。
+appId: com.havital.Havital.dev
+---
+- scrollUntilVisible:
+    element:
+      id: "App2_HomeMenu"
+    direction: UP
+    timeout: 8000
+- tapOn:
+    id: "App2_HomeMenu"
+# 「…」menu 的項目沒有 a11y id（SwiftUI `Menu` 的 item 不進 accessibility tree
+# 的可控節點），只能用文字選 —— 所以三語都要列，不然換個帳號語系走查就掛。
+- tapOn: "個人資料|Profile|プロフィール"
+- assertVisible:
+    id: "App2_SettingsView"
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsPlanEndDev"
+    direction: DOWN
+    timeout: 12000
+- tapOn:
+    id: "App2_SettingsPlanEndDev"
+- assertVisible:
+    id: "App2_PlanEndDevView"

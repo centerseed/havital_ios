@@ -1,0 +1,17 @@
+# 從「Plan End Dev Tools」回到首頁。
+# 回到設定頁時捲軸還停在開發者區，關閉鍵在頁首 —— 先捲上去再點。
+appId: com.havital.Havital.dev
+---
+- tapOn:
+    id: "App2_PlanEndDevBack"
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsClose"
+    direction: UP
+    timeout: 12000
+- tapOn:
+    id: "App2_SettingsClose"
+- extendedWaitUntil:
+    visible:
+      id: "App2_HomeView"
+    timeout: 20000

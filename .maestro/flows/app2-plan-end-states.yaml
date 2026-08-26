@@ -1,0 +1,202 @@
+# App2 計畫結束態 · 四塊逐一走查（設計 frame-00g／frame-00g2）
+#
+# dev 帳號在第 1/6 週，實機到不了 `training_completed` —— 所以每一格都靠
+# 「Plan End Dev Tools」的強制狀態（DEBUG-only）走查，見
+# `Features/App2/Debug/App2PlanEndDevView.swift`。
+#
+# 四塊：① 首頁結束態（race／maintenance 兩變體）② 整期總結頁（數字版＋故事版）
+#       ③ 課表 tab 結束態 ④ CTA「設定新目標」導既有重設目標流程
+appId: com.havital.Havital.dev
+---
+# 冷啟：上一輪可能停在子頁上，`launchApp` 只是 resume。
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "App2_HomeView"
+    timeout: 30000
+# Garmin 重新授權的 alert 會蓋住整頁（含「…」menu）—— 冷啟後偶發，先關掉它。
+# `optional` 是因為它不一定出現：沒出現時這一步不該讓整支走查失敗。
+- tapOn:
+    text: "稍後提醒|Remind Later|後で通知"
+    optional: true
+
+# --- ① 首頁結束態 · race（深藍「備賽完成」）------------------------------------
+- runFlow:
+    file: ../subflows/app2-open-plan-end-dev.yaml
+- tapOn:
+    id: "App2_DevPlanEndOverride_race"
+- runFlow:
+    file: ../subflows/app2-close-plan-end-dev.yaml
+- extendedWaitUntil:
+    visible:
+      id: "App2_PlanEndCard"
+    timeout: 20000
+# 結束態取代目標卡＋今日課表卡 —— 兩張都不該還在畫面上。
+- assertNotVisible:
+    id: "App2_GoalCard"
+- assertNotVisible:
+    id: "App2_TodaySessionCard"
+# 降級：沒有賽事實際成績 → 右欄是「當時預估」，不畫差值。
+- assertVisible:
+    id: "App2_PlanEndFinish"
+# 敘事端點未落地 → Rizo 敘事子卡整卡不出現。
+- assertNotVisible:
+    id: "App2_PlanEndNarrative"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/pe-01-home-race
+
+# 結束態與週回顧時機卡互斥 —— 捲到底也不該看到時機卡。
+- scroll
+- scroll
+- assertNotVisible:
+    id: "App2_WeekReviewEntry"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/pe-02-home-race-scrolled
+
+# 2026-08-27 裁決：結束態下歷史課表唯讀 —— 首頁「…」menu 的「修改課表」要收起來。
+- scrollUntilVisible:
+    element:
+      id: "App2_HomeMenu"
+    direction: UP
+    timeout: 8000
+- tapOn:
+    id: "App2_HomeMenu"
+- assertNotVisible: "修改課表|Edit plan|プランを編集"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/pe-02b-home-menu-readonly
+- tapOn: "個人資料|Profile|プロフィール"
+- assertVisible:
+    id: "App2_SettingsView"
+- tapOn:
+    id: "App2_SettingsClose"
+- extendedWaitUntil:
+    visible:
+      id: "App2_HomeView"
+    timeout: 20000
+
+# --- ② 整期總結頁 · 數字版（production 路徑）----------------------------------
+- scrollUntilVisible:
+    element:
+      id: "App2_PeriodSummaryEntry"
+    direction: UP
+    timeout: 12000
+- tapOn:
+    id: "App2_PeriodSummaryEntry"
+- extendedWaitUntil:
+    visible:
+      id: "App2_PeriodSummaryView"
+    timeout: 30000
+# 敘事未生成 → header 掛降級 chip，走數字版 hero（不是故事版）。
+- extendedWaitUntil:
+    visible:
+      id: "App2_PeriodSummaryDegradedChip"
+    timeout: 30000
+- assertVisible:
+    id: "App2_PeriodSummaryHero"
+- assertNotVisible:
+    id: "App2_PeriodStoryHero"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/pe-03-summary-numeric-hero
+- scroll
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/pe-04-summary-numeric-stats
+- scroll
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/pe-05-summary-numeric-chart
+- tapOn:
+    id: "App2_PeriodSummaryBack"
+- extendedWaitUntil:
+    visible:
+      id: "App2_HomeView"
+    timeout: 20000
+
+# --- ③ 課表 tab 結束態（不再顯示第 N/M 週）------------------------------------
+- tapOn:
+    id: "App2_Tab_Plan"
+- extendedWaitUntil:
+    visible:
+      id: "App2_PlanEndTabCard"
+    timeout: 30000
+- assertVisible:
+    id: "App2_PlanEndTabSubtitle"
+# 週次切換器與鉛筆鈕在結束態整組收掉。
+- assertNotVisible:
+    id: "App2_PlanEditEntry"
+- assertNotVisible:
+    id: "App2_PlanSummaryCard"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/pe-06-plan-tab-end
+- scroll
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/pe-07-plan-tab-end-entries
+- tapOn:
+    id: "App2_Tab_State"
+- extendedWaitUntil:
+    visible:
+      id: "App2_HomeView"
+    timeout: 20000
+
+# --- ④ 首頁結束態 · maintenance（綠「訓練期完成」，不提賽事成績）---------------
+- runFlow:
+    file: ../subflows/app2-open-plan-end-dev.yaml
+- tapOn:
+    id: "App2_DevPlanEndOverride_maintenance"
+- runFlow:
+    file: ../subflows/app2-close-plan-end-dev.yaml
+- extendedWaitUntil:
+    visible:
+      id: "App2_PlanEndCard"
+    timeout: 20000
+# maintenance 一個賽事欄位都不帶 —— 目標／完賽那一組整塊不畫。
+- assertNotVisible:
+    id: "App2_PlanEndFinish"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/pe-08-home-maintenance
+
+# --- ⑤ 整期總結頁 · 故事版（DEBUG fixture，production 走不到）------------------
+- runFlow:
+    file: ../subflows/app2-open-plan-end-dev.yaml
+- tapOn:
+    id: "App2_DevPlanEndOverride_race"
+- tapOn:
+    id: "App2_DevPlanEndStory_on"
+- runFlow:
+    file: ../subflows/app2-close-plan-end-dev.yaml
+- scrollUntilVisible:
+    element:
+      id: "App2_PeriodSummaryEntry"
+    direction: UP
+    timeout: 12000
+- tapOn:
+    id: "App2_PeriodSummaryEntry"
+- extendedWaitUntil:
+    visible:
+      id: "App2_PeriodStoryHero"
+    timeout: 30000
+# 故事版在時不掛降級 chip —— 那顆 chip 講的是「這頁本來該有敘事」。
+- assertNotVisible:
+    id: "App2_PeriodSummaryDegradedChip"
+# 2026-08-27 裁決：賽果 backend 未上線期間，故事版 hero 的完賽數字卡**不得整塊省略**
+# —— 退成與首頁 hero 同一組降級形（目標＋當時預估）。fixture 的 `finish` 刻意留 nil
+# 走的就是這一格。
+- assertVisible:
+    id: "App2_PeriodStoryFinish"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/pe-09-summary-story-hero
+- scroll
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/pe-10-summary-story-chapters
+- tapOn:
+    id: "App2_PeriodSummaryBack"
+- extendedWaitUntil:
+    visible:
+      id: "App2_HomeView"
+    timeout: 20000
+
+# --- ⑥ CTA「設定新目標」→ 既有的重設目標流程 ---------------------------------
+- scrollUntilVisible:
+    element:
+      id: "App2_PlanEndNewGoal"
+    direction: UP
+    timeout: 12000
+- tapOn:
+    id: "App2_PlanEndNewGoal"
+# 導到的是**既有**的 onboarding 殼（重設目標），不是為結束態新做的目標選擇 UI。
+- extendedWaitUntil:
+    visible:
+      id: "App2_OnboardingGoalType"
+    timeout: 30000
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/pe-11-cta-reonboarding
+
+# --- 收尾：把 override 關掉，免得下一輪走查拿假狀態當現況 ----------------------
+- stopApp

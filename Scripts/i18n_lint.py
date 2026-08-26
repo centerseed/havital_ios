@@ -124,7 +124,13 @@ def _staged_swift_added_lines():
     for f in files:
         if not f.endswith(".swift"):
             continue
-        if any(x in f for x in ("/build/", "/.worktrees/", "/Tests/", "/PreviewHelpers/", "/Features/Debug/")):
+        # `/Debug/`（不是 `/Features/Debug/`）：DEBUG-only 開發面板的落點慣例是
+        # `Features/<Feature>/Debug/`（`Subscription/Debug/IAPTestHarness.swift`、
+        # `App2/Debug/App2PlanEndDevView.swift`…），repo 裡 7 個 Debug 目錄只有 1 個
+        # 真的叫 `Features/Debug/`，所以原本那條規則只豁免得到其中一個。
+        # 這些檔整份包在 `#if DEBUG` 裡、Release build 不存在，讀者是我們自己 ——
+        # 走查用的標籤與 fixture 翻三語只會讓 .strings 多出沒有人會看到的 key。
+        if any(x in f for x in ("/build/", "/.worktrees/", "/Tests/", "/PreviewHelpers/", "/Debug/")):
             continue
         # 測試碼不受 i18n 約束：wire payload fixture 與 XCTAssert 訊息本來就是寫死字面值，
         # 沒有「顯示給用戶」這回事。上面那條 "/Tests/" 只擋得到巢狀的測試目錄，

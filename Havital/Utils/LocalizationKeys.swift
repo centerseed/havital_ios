@@ -2567,6 +2567,85 @@ extension L10n {
             static let recoverySource = "app2.metric.recovery_source"
         }
 
+        /// 計畫結束態（設計 frame-00g 首頁結束態／兩種語意，frame-00g2 整期總結
+        /// 故事版＋課表 tab 結束態）。
+        ///
+        /// 沿用既有詞的不在這裡開第二份：`目標` 走 `app2.home.goal_target`、
+        /// `完成率` 走 `app2.weekly_review.completion_rate`、`VDOT` 是專有名詞
+        /// （`Text(verbatim:)`，不進 .strings）。
+        enum PlanEnd {
+            /// 結束語意 chip：race＝「備賽完成」、maintenance＝「訓練期完成」。
+            static let chipRace = "app2.plan_end.chip_race"
+            static let chipMaintenance = "app2.plan_end.chip_maintenance"
+            /// race 大標下的那一行：`%d 週備賽完成`。
+            static let raceHeadlineFormat = "app2.plan_end.race_headline_format"
+            /// maintenance 沒有賽名，大標是 `%d 週維持計畫`＋副標「訓練期完成」。
+            static let maintenanceTitleFormat = "app2.plan_end.maintenance_title_format"
+            static let maintenanceHeadline = "app2.plan_end.maintenance_headline"
+
+            /// hero 右欄：有實際成績時的標籤。**目前沒有 producer**（無賽事成績綁定），
+            /// 留著是因為降級規則要指得出「降級到什麼」。
+            static let actualFinish = "app2.plan_end.actual_finish"
+            /// 降級後的右欄標籤。**不是 `app2.home.goal_estimate`（預估完賽）**：
+            /// 計畫已經走完，這個量講的是「當時推到哪」，不是「現在能跑幾分」。
+            static let estimateThen = "app2.plan_end.estimate_then"
+            /// 標明它屬 readiness 流（`AGENTS.md` 兩條資料流：跨流不得互相佐證）。
+            static let estimateNote = "app2.plan_end.estimate_note"
+            /// `距目標 %@`
+            static let deltaTargetFormat = "app2.plan_end.delta_target_format"
+            /// `目標 %@`
+            static let targetTimeFormat = "app2.plan_end.target_time_format"
+            /// 實際成績的來源 chip（隨成績一起出現，成績缺席時整組不畫）。
+            static let finishSource = "app2.plan_end.finish_source"
+
+            /// CTA：導**既有**的重設目標流程，不做新的目標選擇 UI。
+            static let ctaNewGoal = "app2.plan_end.cta_new_goal"
+            static let ctaNewGoalSub = "app2.plan_end.cta_new_goal_sub"
+            static let summaryEntry = "app2.plan_end.summary_entry"
+            static let summaryEntrySub = "app2.plan_end.summary_entry_sub"
+
+            // MARK: 整期總結頁
+            static let summaryTitle = "app2.plan_end.summary_title"
+            /// 降級 chip：敘事端點未落地時掛在 header 右上。
+            static let degradedChip = "app2.plan_end.degraded_chip"
+            static let statTotalDistance = "app2.plan_end.stat_total_distance"
+            static let statSessions = "app2.plan_end.stat_sessions"
+            static let statTotalTime = "app2.plan_end.stat_total_time"
+            static let statLongest = "app2.plan_end.stat_longest"
+            static let statPeakWeek = "app2.plan_end.stat_peak_week"
+            /// `每週跑量 · %d 週`
+            static let weeklyChartTitleFormat = "app2.plan_end.weekly_chart_title_format"
+            /// 柱狀圖底行：`峰值週 %@` / `累積 %@`
+            static let peakWeekFormat = "app2.plan_end.peak_week_format"
+            static let cumulativeFormat = "app2.plan_end.cumulative_format"
+            static let capabilityTitle = "app2.plan_end.capability_title"
+
+            // MARK: 故事版（frame-00g2（a））
+            /// `這 %d 週的故事`
+            static let storySectionFormat = "app2.plan_end.story_section_format"
+            static let storySectionSub = "app2.plan_end.story_section_sub"
+            /// 心得引用卡的標（琥珀底）。
+            static let quoteLabel = "app2.plan_end.quote_label"
+            /// 首頁 Rizo 敘事子卡的標。
+            static let narrativeChip = "app2.plan_end.narrative_chip"
+
+            // MARK: 課表 tab 結束態（frame-00g2（c producer））
+            static let planTabSubtitle = "app2.plan_end.plan_tab_subtitle"
+            static let planCompleteChip = "app2.plan_end.plan_complete_chip"
+            static let planCompleteRace = "app2.plan_end.plan_complete_race"
+            static let planCompleteMaintenance = "app2.plan_end.plan_complete_maintenance"
+            /// `%1$d / %2$d 週`
+            static let weeksProgressFormat = "app2.plan_end.weeks_progress_format"
+            /// 三段小計各自一個 format，畫面上用 ` · ` 串 —— 缺哪一段就少那一段，
+            /// 不用一個帶三個佔位符的長字串（那樣缺一個就整行不能出）。
+            static let sessionsCountFormat = "app2.plan_end.sessions_count_format"
+            static let completionRateFormat = "app2.plan_end.completion_rate_format"
+            static let peakFormat = "app2.plan_end.peak_format"
+            /// 課表 tab 結束態的 Rizo 一句話。**設計稿的靜態教練建議**，不是 payload
+            /// 欄位（同 `app2.session.fueling_note` 的先例）。
+            static let rizoLine = "app2.plan_end.rizo_line"
+        }
+
         enum Achievements {
             static let title = "app2.achievements.title"
             static let latestUnlock = "app2.achievements.latest_unlock"

@@ -20,6 +20,12 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     private(set) var hasLoaded = false
     private(set) var lastLoadedAt: Date?
     @Published private(set) var goalCard: App2Sourced<App2GoalCard>?
+    /// 計畫結束態（設計 frame-00g）。**有值時首頁的目標卡＋今日課表卡整段換掉**
+    /// —— 那是同一塊版位的另一種內容，不是多一張卡。
+    ///
+    /// 判準只有 `next_action == "training_completed"`，與週回顧時機卡收掉的判準是
+    /// **同一欄**（`weekReviewState` 的第一道 guard）—— 所以兩張卡不會同屏。
+    @Published private(set) var planEnd: App2PlanEndCard?
     @Published private(set) var trainingStatus: App2Sourced<App2TrainingStatus>?
     @Published private(set) var insights: App2Sourced<[App2Insight]>?
     /// 今日課表卡。nil = 這一輪還沒載完；其餘四態見 `App2TodaySessionState`。
@@ -51,6 +57,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 也是它的快取，不另存一份 App2 專屬快照。
     private let planRepository: TrainingPlanV2Repository
     private let readinessViewModel: TrainingReadinessViewModel
+    /// 結束態的「當時預估」要**指定日期**那一筆（賽事日），`TrainingReadinessViewModel`
+    /// 只交最新的那一筆，所以直接走它底下的同一支既有服務，不新增第二條路徑。
+    private let readinessService: TrainingReadinessService
     /// 紀錄頁用的同一支 `GET /v2/workouts`，不另開端點。
     private let workoutDataSource: WorkoutStatsDataSourceProtocol
     /// 冷啟快照。只剩「今天跑完沒」那一頁 workouts —— 課表那幾支已收進 repository 快取。
@@ -63,6 +72,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         targetRepository: TargetRepository? = nil,
         planRepository: TrainingPlanV2Repository? = nil,
         readinessViewModel: TrainingReadinessViewModel? = nil,
+        readinessService: TrainingReadinessService? = nil,
         workoutDataSource: WorkoutStatsDataSourceProtocol? = nil,
         snapshots: (any App2SnapshotStoring)? = nil
     ) {
@@ -97,6 +107,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         }
 
         self.readinessViewModel = readinessViewModel ?? TrainingReadinessViewModel()
+        self.readinessService = readinessService ?? TrainingReadinessService.shared
         self.workoutDataSource = workoutDataSource ?? WorkoutRemoteDataSource()
 
         #if DEBUG
@@ -113,6 +124,34 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                     Task { await self.loadWeekReview(planStatus: status) }
                 }
             }
+
+        // 結束態走查（設定 → Developer (DEBUG) → Plan End Dev Tools）。
+        // 切了變體要立刻看到，而且**週回顧時機卡要跟著收掉** —— 兩張卡互斥，
+        // 這裡與 production 走的是同一條互斥規則，不是走查專屬的特例。
+        devPlanEndSubscription = App2DevSettings.shared.$planEndOverride
+            .dropFirst()
+            .sink { [weak self] override in
+                guard let self, let inputs = self.lastPlanEndInputs else { return }
+                // `@Published` 在 willSet 送值 —— 這時 `shared.planEndOverride` 還是舊值，
+                // 所以把 sink 收到的那個記下來再重算（同 `weekReviewOverride` 的寫法）。
+                self.devPlanEndOverride = override
+                // 先用手上的輸入畫一次 —— 切了變體要立刻看到，不必等網路。
+                self.applyPlanEnd(
+                    planStatus: inputs.planStatus,
+                    overview: inputs.overview,
+                    target: inputs.target,
+                    estimatedFinish: inputs.estimatedFinish
+                )
+                Task {
+                    // 「當時預估」是**開啟 race 走查後才會去打**的那一條
+                    // （`raceDayEstimate` 的 `shouldFetch`），所以要重跑一次目標卡
+                    // 那條路徑，否則走查看到的永遠是空的預估欄。
+                    await self.loadGoalCard(planStatus: inputs.planStatus)
+                    if let status = self.lastPlanStatus {
+                        await self.loadWeekReview(planStatus: status)
+                    }
+                }
+            }
         #endif
     }
 
@@ -121,6 +160,19 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// `current_week` 算目標週，關掉 override 時也要靠它重算真實那一格。
     private var lastPlanStatus: PlanStatusV2Response?
     private var devOverrideSubscription: AnyCancellable?
+
+    /// 最後一次結束態投影用的那組輸入。切 override 時要靠它立刻重算，不必等下一輪網路。
+    private var lastPlanEndInputs: (
+        planStatus: PlanStatusV2Response?,
+        overview: PlanOverviewV2?,
+        target: Target?,
+        estimatedFinish: String?
+    )?
+    private var devPlanEndSubscription: AnyCancellable?
+
+    /// 走查用的結束態覆寫。**由 sink 保持同步**（`@Published` 在 willSet 送值，
+    /// 直接讀 `shared` 會拿到上一格）。初值與 `App2DevSettings` 一致。
+    private var devPlanEndOverride: App2DevPlanEndOverride = .off
     #endif
 
     deinit {
@@ -408,6 +460,14 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
         #if DEBUG
         lastPlanStatus = planStatus
+        // 結束態走查一開，時機卡就收掉 —— 與 production 的互斥規則同一條
+        // （`weekReviewState` 的第一道 guard 讀的是同一個事實）。
+        // 擺在週回顧 override 之前：兩個走查同時開時，結束態贏，
+        // 免得走查出一個真實資料上不可能出現的組合。
+        if devPlanEndOverride.isForcing {
+            weekReview = nil
+            return
+        }
         // 開發者走查（設定 → Developer (DEBUG) → Weekly Review Dev Tools）。
         // **只換呈現的那一格**，下面真實的判斷路徑照跑不誤，關掉就恢復。
         if let forced = App2DevSettings.shared.weekReviewOverride.resolve(planStatus: planStatus) {
@@ -467,8 +527,10 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         insights: App2Sourced<[App2Insight]>? = nil,
         todayState: App2TodaySessionState? = nil,
         weekReview: App2WeekReviewState? = nil,
-        rizoOpeningLine: String? = nil
+        rizoOpeningLine: String? = nil,
+        planEnd: App2PlanEndCard? = nil
     ) {
+        self.planEnd = planEnd
         self.goalCard = goalCard
         self.trainingStatus = trainingStatus
         self.insights = insights
@@ -894,28 +956,132 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             Logger.debug("[App2HomeVM] targets 取得失敗,改讀既有快取: \(error)")
         }
 
+        let main = await targetRepository.getMainTarget()
+        // overview 一次取用兩處：期別膠囊（目標卡）與 `target_type`（結束態的語意分岔）。
+        // **不為了結束態再打一次** —— 同一個事實只讀一次（見檔頭）。
+        let overview = await currentOverview(planStatus: planStatus)
+
+        applyPlanEnd(
+            planStatus: planStatus,
+            overview: overview,
+            target: main,
+            // **結束態的「當時預估」不是 `estimated`**（那是最新那一筆，講的是「現在」）。
+            // 2026-08-27 裁決：要賽事日當天那一筆，取不到就整欄不畫。
+            estimatedFinish: await raceDayEstimate(planStatus: planStatus, target: main)
+        )
+
         // 沒有主要賽事目標 → 卡片留空（畫面顯示「尚未設定目標賽事」），
         // **不拿設計稿的示範賽事充數**。
-        guard let main = await targetRepository.getMainTarget() else {
+        guard let main else {
             Logger.debug("[App2HomeVM] 無主要賽事目標,顯示空狀態")
             goalCard = nil
             return
         }
-
-        let stage = await stageLabel(planStatus: planStatus)
 
         goalCard = Self.goalCard(
             target: main,
             planStatus: planStatus,
             // 階段標籤（設計 frame-00 右上的藍膠囊）住在 plan overview 的
             // `training_stages[]`，用 plan status 的當前週落在哪一段來挑。
-            stageLabel: stage,
+            stageLabel: planStatus.flatMap { status in
+                overview.flatMap { overview in
+                    Self.isOverview(overview.id, boundTo: status)
+                        ? Self.stageName(stages: overview.trainingStages, currentWeek: status.currentWeek)
+                        : nil
+                }
+            },
             estimatedFinish: estimated,
             origin: .live(
                 endpoint: "GET /user/targets + GET /v2/plan/status + GET /plan/readiness"
                     + " + GET /v2/plan/overview"
             )
         )
+    }
+
+    /// 結束態 hero 右欄那個「當時預估」（2026-08-27 裁決）。
+    ///
+    /// **打的是賽事日那一天的 readiness**（`GET /plan/readiness/{race_date}`，
+    /// 後端 `api/v1/training_plan.py:803`；該端點的 docstring 明寫
+    /// "Readiness is date-specific: never substitute a different date"）。
+    ///
+    /// 為什麼不能用 `readinessViewModel.estimatedRaceTime`：那是**最新**那一筆，
+    /// 講的是「你現在能跑幾分」。計畫已經走完，畫面上那一格要講的是「這段備賽把
+    /// 預估推到哪」——拿今天的值冒充當時的值，數字會隨著賽後掉練一路往回走。
+    ///
+    /// **取不到就回 nil**（整欄不畫）：寧可少一格，也不要標一個別的日子的預估。
+    /// 只有 race 語意的結束態才打這一條 —— maintenance 沒有賽事日，也不提成績。
+    private func raceDayEstimate(
+        planStatus: PlanStatusV2Response?,
+        target: Target?
+    ) async -> String? {
+        guard let target else { return nil }
+
+        var shouldFetch = App2PlanEndProjection.isCompleted(planStatus)
+            && App2PlanEndProjection.kind(planStatus: planStatus, overview: nil) == .race
+        #if DEBUG
+        // 走查：強制 race 結束態時也要真的去取那一天的值，否則走查看到的是空欄，
+        // 驗不到「有值長什麼樣」。
+        if devPlanEndOverride == .race { shouldFetch = true }
+        #endif
+        guard shouldFetch else { return nil }
+
+        do {
+            // 賽事日期以**賽事時區**換算成當地日字串 —— 與卡片上印的那個日期同一支，
+            // 不另算一份（`YYYY-MM-DD` 是當地日，不是 UTC）。
+            let raceDate = App2PlanEndProjection.raceDateLabel(target)
+            let readiness = try await readinessService.getReadiness(date: raceDate)
+            return readiness.metrics?.raceFitness?.estimatedRaceTime
+        } catch {
+            if !error.isCancellationError {
+                Logger.debug("[App2HomeVM] 賽事日 readiness 取不到,結束態不畫預估欄: \(error)")
+            }
+            return nil
+        }
+    }
+
+    /// 結束態卡的組裝 ＋ DEBUG 走查覆寫。
+    ///
+    /// 覆寫**只換呈現的那一格**：`App2PlanEndProjection.card` 的真實判斷照跑，
+    /// 關掉就恢復（同週回顧時機卡的走查機制）。
+    private func applyPlanEnd(
+        planStatus: PlanStatusV2Response?,
+        overview: PlanOverviewV2?,
+        target: Target?,
+        estimatedFinish: String?
+    ) {
+        #if DEBUG
+        lastPlanEndInputs = (planStatus, overview, target, estimatedFinish)
+        if let forced = devPlanEndOverride.resolve(
+            planStatus: planStatus,
+            overview: overview,
+            target: target,
+            estimatedFinish: estimatedFinish
+        ) {
+            planEnd = forced
+            return
+        }
+        #endif
+
+        planEnd = App2PlanEndProjection.card(
+            planStatus: planStatus,
+            overview: overview,
+            target: target,
+            estimatedFinish: estimatedFinish
+        )
+    }
+
+    /// plan status 指向的那一份 overview。取不到就 nil —— 呼叫端據此少一個膠囊／
+    /// 退保守的結束語意，不阻斷其他區塊。
+    private func currentOverview(planStatus: PlanStatusV2Response?) async -> PlanOverviewV2? {
+        guard planStatus != nil else { return nil }
+        do {
+            return try await planRepository.refreshOverview()
+        } catch {
+            if !error.isCancellationError {
+                Logger.debug("[App2HomeVM] overview 取得失敗: \(error)")
+            }
+            return nil
+        }
     }
 
     /// 目標賽事卡的組裝。網路回應與冷啟快照都走這一支（快照那條沒有期別與完賽預估，
@@ -946,31 +1112,10 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         )
     }
 
-    /// 期別膠囊的字（`基礎期`）。
-    ///
-    /// **綁的是 plan status 指向的那份 overview，不是「最新的 overview」。**
-    /// `current_week_plan_id` 的前綴就是 overview id（dev 實測：plan `e1289e60f251_1`
-    /// ↔ overview `e1289e60f251`）；`GET /v2/plan/overview` 只交當前那一份，所以拿回來
-    /// 先比對 id，對不上就不顯示 —— 寧可少一個膠囊，也不要標一個別的計畫的期別。
-    private func stageLabel(planStatus: PlanStatusV2Response?) async -> String? {
-        guard let planStatus else { return nil }
-        let currentWeek = planStatus.currentWeek
-        do {
-            let overview = try await planRepository.refreshOverview()
-            guard Self.isOverview(overview.id, boundTo: planStatus) else {
-                Logger.debug("[App2HomeVM] overview 與本週課表不同源,不顯示期別")
-                return nil
-            }
-            return Self.stageName(stages: overview.trainingStages, currentWeek: currentWeek)
-        } catch {
-            if !error.isCancellationError {
-                Logger.debug("[App2HomeVM] overview 取得失敗,期別留白: \(error)")
-            }
-            return nil
-        }
-    }
-
     /// 這份 overview 是不是 plan status 指向的那一份。
+    ///
+    /// 期別膠囊**綁的是 plan status 指向的那份 overview，不是「最新的 overview」** ——
+    /// 對不上就不顯示期別（寧可少一個膠囊，也不要標一個別的計畫的期別）。
     ///
     /// `current_week_plan_id` 的前綴就是 overview id（dev 實測：plan `e1289e60f251_1`
     /// ↔ overview `e1289e60f251`）。`GET /v2/plan/overview` 只交當前那一份，拿回來要先比對

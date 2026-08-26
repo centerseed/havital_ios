@@ -57,14 +57,27 @@ struct App2HomeView: View {
     /// 模態頁的 ViewModel 在這裡持有（tab 才由 `App2RootView` 持有）——
     /// 沒被打開過就不會 fetch（載入在被呈現那一頁的 `.task`）。
     @StateObject private var planOverviewViewModel = App2PlanOverviewViewModel()
+    /// 整期總結（設計 frame-00g2）。入口是結束態卡下方那張入口卡。
+    @State private var isShowingPeriodSummary = false
+    /// 「設定新目標」——**既有**的重設目標流程（`App2SettingsView` 的 `.reonboarding`
+    /// 走的是同一支），不是為結束態新做的目標選擇 UI。
+    @State private var isShowingReonboarding = false
 
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
                 header
-                goalSection
-                trainingStatusSection
-                todaySection
+                // 計畫走完時，目標卡＋今日課表卡整段換成結束態內容（設計 frame-00g）
+                // —— 那是同一塊版位的另一種內容，不是多加一張卡。訓練狀況卡留著：
+                // 身體狀態與計畫有沒有走完是兩件事。
+                if let planEnd = viewModel.planEnd {
+                    planEndSection(planEnd)
+                    trainingStatusSection
+                } else {
+                    goalSection
+                    trainingStatusSection
+                    todaySection
+                }
                 weeklyReviewRow
             }
             .padding(.horizontal, App2Theme.pagePadding)
@@ -92,6 +105,21 @@ struct App2HomeView: View {
                 },
                 viewModel: planOverviewViewModel
             )
+        }
+        .fullScreenCover(isPresented: $isShowingPeriodSummary) {
+            if let planEnd = viewModel.planEnd {
+                App2PeriodSummaryView(
+                    card: planEnd,
+                    onClose: { isShowingPeriodSummary = false }
+                )
+            }
+        }
+        .fullScreenCover(isPresented: $isShowingReonboarding) {
+            App2OnboardingContainerView(isReonboarding: true) {
+                isShowingReonboarding = false
+                // 重設完目標，首頁整組（結束態／目標卡／今日課表）都要換掉。
+                Task { await viewModel.forceRefresh() }
+            }
         }
         .sheet(isPresented: $isShowingNotifications) {
             NavigationStack {
@@ -240,10 +268,15 @@ struct App2HomeView: View {
             } label: {
                 Label(L10n.App2.Home.menuProfile.localized, systemImage: "person.crop.circle")
             }
-            Button {
-                isShowingPlanEdit = true
-            } label: {
-                Label(L10n.App2.Home.menuEditPlan.localized, systemImage: "square.and.pencil")
+            // **計畫走完後不再提供編輯入口**（2026-08-27 裁決：結束態下歷史課表唯讀）。
+            // 課表頁的鉛筆鈕同一條規則，兩邊一起收 —— 只收一邊的話，用戶還是能從
+            // 這裡改到一份已經結束的計畫。
+            if viewModel.planEnd == nil {
+                Button {
+                    isShowingPlanEdit = true
+                } label: {
+                    Label(L10n.App2.Home.menuEditPlan.localized, systemImage: "square.and.pencil")
+                }
             }
         } label: {
             roundButtonSurface(symbol: "ellipsis")
@@ -290,6 +323,270 @@ struct App2HomeView: View {
                     .foregroundStyle(App2Theme.inkPrimary)
             }
             .shadow(color: App2Theme.shadowInk.opacity(0.16), radius: 5, x: 0, y: 4)
+    }
+
+    // MARK: - 計畫結束態（設計 frame-00g（a）（b））
+
+    /// 結束態 ＝ **一張 hero 卡 ＋ 一張「看整期總結」入口卡**。
+    ///
+    /// 兩種語意共用同一個版式，差在配色與內容（frame-00g（b））：
+    /// - race：深藍，聚焦賽事 —— 賽名／賽日／目標 vs 完賽。
+    /// - maintenance：綠，聚焦維持成果，**一個字都不提賽事成績**。
+    ///
+    /// **兩處降級**（backend 缺口，見 `App2PlanEndModels` 檔頭）：
+    /// 1. 沒有賽事實際成績 → 右欄退「當時預估」並隱藏差值，另加一句說明它是預估。
+    /// 2. 沒有 LLM 敘事 → Rizo 敘事子卡**整卡不畫**（不畫空卡、不編一句）。
+    @ViewBuilder
+    private func planEndSection(_ planEnd: App2PlanEndCard) -> some View {
+        VStack(spacing: 12) {
+            planEndHero(planEnd)
+            entryRow(
+                symbol: "chart.line.uptrend.xyaxis",
+                title: L10n.App2.PlanEnd.summaryEntry.localized,
+                subtitle: L10n.App2.PlanEnd.summaryEntrySub.localized,
+                identifier: "App2_PeriodSummaryEntry"
+            )
+            .contentShape(Rectangle())
+            .onTapGesture { isShowingPeriodSummary = true }
+            .accessibilityAddTraits(.isButton)
+        }
+    }
+
+    private func planEndHero(_ planEnd: App2PlanEndCard) -> some View {
+        let isRace = planEnd.kind == .race
+        return VStack(alignment: .leading, spacing: 13) {
+            HStack(spacing: 8) {
+                HStack(spacing: 5) {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .black))
+                    Text(isRace
+                         ? L10n.App2.PlanEnd.chipRace.localized
+                         : L10n.App2.PlanEnd.chipMaintenance.localized)
+                        .font(.system(size: 13, weight: .heavy))
+                        .lineLimit(1)
+                }
+                .foregroundStyle(.white)
+                .padding(.horizontal, 11)
+                .padding(.vertical, 4)
+                .background(Capsule().fill(Color.white.opacity(0.16)))
+                .overlay(Capsule().strokeBorder(Color.white.opacity(0.28), lineWidth: 1))
+
+                Spacer(minLength: 4)
+
+                if let distance = planEnd.distanceLabel {
+                    App2Pill(
+                        text: distance,
+                        foreground: .white,
+                        background: Color.white.opacity(0.16),
+                        border: Color.white.opacity(0.28)
+                    )
+                }
+            }
+
+            HStack(alignment: .center, spacing: 13) {
+                trophyBadge
+                VStack(alignment: .leading, spacing: 3) {
+                    // 卡片標記掛在標題這顆葉節點上 —— 掛在最外層容器時 SwiftUI 會把
+                    // identifier 蓋到**每一個子節點**，卡內的降級說明、CTA 在 a11y
+                    // tree 上就全部叫 `App2_PlanEndCard`，一顆都抓不到
+                    // （2026-08-27 maestro 實測；同 `App2_TrainingStatusCard` 的註解）。
+                    Text(planEndTitle(planEnd))
+                        .font(.system(size: 22, weight: .black))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .accessibilityIdentifier("App2_PlanEndCard")
+                    Text(planEndSubtitle(planEnd))
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(Color.white.opacity(0.72))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+
+            // 目標 vs 完賽兩欄。**maintenance 不畫**（不提賽事成績）。
+            // race 走與整期總結頁**同一條降級階梯**（`degradedFinish`）：
+            // 成績 → 當時預估 → 目標，一路退到最後一個講得出來的量；
+            // 全都沒有時才整塊不畫（不畫一排「—」）。
+            if let degraded = App2PeriodSummaryView.degradedFinish(planEnd) {
+                VStack(alignment: .leading, spacing: 7) {
+                    HStack(alignment: .bottom, spacing: 10) {
+                        // 左欄是目標。**只有在右欄不是目標本身時才畫** ——
+                        // 退到最後一格（連預估都沒有）時右欄就是目標，
+                        // 兩欄都畫會變成同一個數字並排兩次。
+                        if let target = planEnd.targetTime, degraded.target != nil {
+                            planEndColumn(
+                                label: L10n.App2.Home.goalTarget.localized,
+                                value: target
+                            )
+                        }
+                        // **identifier 掛在這一欄上，不掛外層的 VStack**：純容器
+                        // （沒有自己的背景）不會被 SwiftUI 交進 accessibility tree，
+                        // maestro 就抓不到（2026-08-27 實測，同 `insightHandle` 的既有坑）。
+                        // 這一欄有自己的底色，而且它就是降級階梯落在哪一格的證據。
+                        planEndColumn(
+                            label: degraded.label,
+                            value: degraded.value,
+                            // 差值只有「目標 ＋ 實際成績」都在時才成立 ——
+                            // 不拿預估去減目標，那個差值講的不是同一件事。
+                            trailing: planEnd.showsFinishDelta ? planEnd.targetTime : nil,
+                            identifier: "App2_PlanEndFinish"
+                        )
+                    }
+                    // 退到「只剩目標」那一格時沒有話要補 —— 那一行整個不出現。
+                    if let note = degraded.note {
+                        Text(note)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(Color.white.opacity(0.58))
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+
+            // Rizo 整期敘事子卡：**端點未落地 → `narrative` 恆 nil → 整卡不出現**。
+            // 版面照稿留著，等端點來就自然接上（不畫空卡、不編一句）。
+            if let narrative = planEnd.narrative {
+                VStack(alignment: .leading, spacing: 7) {
+                    HStack(spacing: 7) {
+                        App2Avatar(initial: "R", size: 22, showsRing: false)
+                        Text(L10n.App2.PlanEnd.narrativeChip.localized)
+                            .font(.system(size: 12, weight: .heavy))
+                            .foregroundStyle(.white)
+                    }
+                    Text(narrative)
+                        .font(.system(size: 14, weight: .semibold))
+                        .lineSpacing(3)
+                        .foregroundStyle(Color.white.opacity(0.9))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(13)
+                .background(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color.white.opacity(0.1))
+                )
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("App2_PlanEndNarrative")
+            }
+
+            planEndCTA
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: App2Theme.cardCornerRadius, style: .continuous)
+                .fill(planEnd.kind.heroGradient)
+        )
+        .shadow(color: planEnd.kind.heroShadow, radius: 22, x: 0, y: 14)
+    }
+
+    /// 獎盃徽章。
+    ///
+    /// **不綁成就系統的某一顆徽章**：`plan_finished` 的 fact 已經在 ingest
+    /// （`application/plan_status.py:100`），但它對應到哪一顆徽章的語意還沒確認
+    /// （盤點 §B.3 記為「hook 在，徽章語意未確認」）。所以這裡畫的是版式上的獎盃，
+    /// 不是一顆會被讀成「你解鎖了這個成就」的真徽章。
+    private var trophyBadge: some View {
+        RoundedRectangle(cornerRadius: 15, style: .continuous)
+            .fill(
+                LinearGradient(
+                    colors: [App2Theme.medalGradient.from, App2Theme.medalGradient.to],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
+            .frame(width: 52, height: 52)
+            .overlay {
+                Image(systemName: "trophy.fill")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+            .accessibilityHidden(true)
+    }
+
+    private func planEndColumn(
+        label: String,
+        value: String,
+        trailing: String? = nil,
+        identifier: String? = nil
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.app2FieldLabel)
+                .tracking(1)
+                .foregroundStyle(Color.white.opacity(0.66))
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(value)
+                    .font(.app2Mono(23))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                if let trailing {
+                    Text(trailing)
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundStyle(App2Theme.accentRed)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .background(
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .fill(Color.white.opacity(0.1))
+        )
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(identifier ?? "")
+    }
+
+    /// 白底 CTA ＋ 小字。**導既有的重設目標流程**（race／beginner／maintenance 三出口），
+    /// 不做新的目標選擇 UI（2026-08-26 產品裁決）。
+    private var planEndCTA: some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 7) {
+                Image(systemName: "star")
+                    .font(.system(size: 14, weight: .black))
+                Text(L10n.App2.PlanEnd.ctaNewGoal.localized)
+                    .font(.system(size: 16, weight: .black))
+            }
+            .foregroundStyle(App2Theme.inkPrimary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 13)
+            .background(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(Color.white)
+            )
+            .contentShape(Rectangle())
+            .onTapGesture { isShowingReonboarding = true }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityIdentifier("App2_PlanEndNewGoal")
+
+            Text(L10n.App2.PlanEnd.ctaNewGoalSub.localized)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(Color.white.opacity(0.6))
+        }
+        .padding(.top, 2)
+    }
+
+    /// race＝賽名；maintenance 沒有賽事 → `N 週維持計畫`。
+    private func planEndTitle(_ planEnd: App2PlanEndCard) -> String {
+        if planEnd.kind == .race, let name = planEnd.raceName, !name.isEmpty { return name }
+        guard let weeks = planEnd.totalWeeks else {
+            return L10n.App2.PlanEnd.maintenanceHeadline.localized
+        }
+        return String(format: L10n.App2.PlanEnd.maintenanceTitleFormat.localized, weeks)
+    }
+
+    /// race＝`2026-12-06 · N 週備賽完成`；maintenance＝`訓練期完成`。
+    /// 週數缺席時只留得出來的那一段（不印一個空的「 週」）。
+    private func planEndSubtitle(_ planEnd: App2PlanEndCard) -> String {
+        guard planEnd.kind == .race else {
+            return L10n.App2.PlanEnd.maintenanceHeadline.localized
+        }
+        let headline = planEnd.totalWeeks.map {
+            String(format: L10n.App2.PlanEnd.raceHeadlineFormat.localized, $0)
+        }
+        return [planEnd.raceDate, headline].compactMap { $0 }.joined(separator: " · ")
     }
 
     // MARK: - §3.1 目標賽事卡（設計：藍漸層卡）
