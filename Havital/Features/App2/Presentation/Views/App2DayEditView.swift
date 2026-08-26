@@ -89,7 +89,10 @@ struct App2DayEditView: View {
             }
             Button(L10n.EditSchedule.cancel.localized, role: .cancel) { pendingStrengthType = nil }
         }
-        .accessibilityIdentifier("App2_DayEditView")
+        // **不在這個根容器掛 identifier。** SwiftUI 會把容器的 identifier 蓋到底下
+        // 每一個子節點，top bar 的 `App2_DayEditCancel`／`Save`／`Title` 就整組不見了
+        // （2026-08-26 maestro hierarchy 實測；同 `App2HomeView` 訓練狀況卡的註解）。
+        // 要判斷「這一頁開了沒」用 `App2_DayEditTitle`。
     }
 
     // MARK: - Hero

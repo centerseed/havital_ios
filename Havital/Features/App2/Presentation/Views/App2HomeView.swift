@@ -24,7 +24,6 @@ struct App2HomeView: View {
     /// 內嵌 Rizo 入口點下去開的對話 sheet（設計 frame-00d）。有值＝sheet 開著，
     /// 值本身就是這次對話的 context（今日建議／今日課表）。
     @State private var rizoSheetContext: App2RizoChatSheet.Context?
-    @State private var rizoChatViewModel: StateRizoChatViewModel?
     /// 訓練計畫總覽（設計 frame-20）。
     ///
     /// **入口是目標賽事卡。** 設計包沒有替 frame-20 定義入口（它的頁首是返回鍵，
@@ -123,24 +122,24 @@ struct App2HomeView: View {
                 onDeleted: { Task { await viewModel.forceRefresh() } }
             )
         }
+        // sheet 的內容**不依賴任何在同一個 tick 才寫進去的 optional state**：
+        // 那樣 content closure 會拿到還沒更新的 view struct，`if let` 全部落空，
+        // 開出來是一片空白（2026-08-26 實測，`isPresented` 與 `item` 兩種寫法都中）。
+        // 對話 ViewModel 由 sheet 自己以 `@StateObject` 持有（見 `App2RizoChatSheet`）。
         .sheet(item: $rizoSheetContext) { context in
-            if let rizoChatViewModel {
-                App2RizoChatSheet(context: context, viewModel: rizoChatViewModel)
-                    .presentationDetents([.large])
-                    .presentationDragIndicator(.hidden)
-                    .presentationCornerRadius(26)
-            }
+            App2RizoChatSheet(
+                context: context,
+                scenario: viewModel.rizoScenario ?? "body_status"
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.hidden)
+            .presentationCornerRadius(26)
         }
     }
 
     /// 首頁兩個 Rizo 入口都開同一個 bottom sheet（設計 frame-00d），只有 context 不同。
     /// 對話狀態與送出仍是既有的 `StateRizoChatViewModel`／既有 Rizo API。
     private func openRizoChat(_ context: App2RizoChatSheet.Context) {
-        let viewModelToUse = rizoChatViewModel
-            ?? StateRizoChatViewModel(scenario: viewModel.rizoScenario ?? "body_status")
-        rizoChatViewModel = viewModelToUse
-        // 開場白在本機組（context 那兩句話畫面上已經有了），不多打一次 LLM。
-        viewModelToUse.seedOpening(context.opening)
         rizoSheetContext = context
     }
 
@@ -1118,8 +1117,16 @@ struct App2RizoChatSheet: View {
     }
 
     let context: Context
-    @ObservedObject var viewModel: StateRizoChatViewModel
+    /// 對話 ViewModel 由 sheet 自己持有。`@StateObject` 的 autoclosure 是**第一次
+    /// render 才求值**，所以 `DependencyContainer` 解 `RizoRepository` 的時機仍在
+    /// sheet 被打開之後，不是首頁一出現就解。
+    @StateObject private var viewModel: StateRizoChatViewModel
     @Environment(\.dismiss) private var dismiss
+
+    init(context: Context, scenario: String) {
+        self.context = context
+        _viewModel = StateObject(wrappedValue: StateRizoChatViewModel(scenario: scenario))
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -1149,7 +1156,8 @@ struct App2RizoChatSheet: View {
             }
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
-        .accessibilityIdentifier("App2_RizoChatSheet")
+        // 開場白在本機組（context 那兩句話畫面上已經有了），不多打一次 LLM。
+        .onAppear { viewModel.seedOpening(context.opening) }
     }
 
     private var header: some View {
