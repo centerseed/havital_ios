@@ -401,6 +401,8 @@ struct App2SessionDetailView: View {
                 if let value = segment.detail {
                     Text(value)
                         .font(.app2Mono(14, weight: .bold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                         .foregroundStyle(App2Theme.inkSecondary)
                 }
                 if let note = segment.note {

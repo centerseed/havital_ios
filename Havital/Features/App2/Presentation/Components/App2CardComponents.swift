@@ -220,6 +220,10 @@ struct App2Chip: View {
             .font(monospaced
                   ? .app2Mono(13, weight: .heavy)
                   : .system(size: 13, weight: .heavy))
+            // chip 是一顆固定高度的膠囊：字長（en 的課型／強度詞比中文長很多）只准縮，
+            // 不准把膠囊撐成兩行。
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
             .foregroundStyle(foreground)
             .padding(.horizontal, 9)
             .padding(.vertical, 4)
@@ -241,18 +245,48 @@ struct App2PhaseRow: View {
     let accent: Color
     let isMain: Bool
 
+    private var dot: some View {
+        Circle()
+            .fill(isMain ? accent : App2Theme.accentGreenBright)
+            .frame(width: 8, height: 8)
+    }
+
+    private var nameText: some View {
+        Text(name)
+            .font(.system(size: 14, weight: isMain ? .black : .heavy))
+            .lineLimit(1)
+            .foregroundStyle(isMain ? accent.app2Darkened : App2Theme.inkSecondary)
+    }
+
+    /// 右側的量（`2.0 km @ 7:35`／`4 × 400m @ 4:50`）**永遠一行、不縮到看不清**：
+    /// 它是這一列的內容本身，截掉就沒有資訊了。
+    private var detailText: some View {
+        Text(detail)
+            .font(.app2Mono(13, weight: isMain ? .heavy : .bold))
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            .foregroundStyle(isMain ? accent.app2Darkened : App2Theme.inkTertiary)
+    }
+
+    // 段名在左、量在右——**擠不下就整列改成上下兩行**，不是把段名截成 `Sp…`。
+    // 間歇卡右側還有 118pt 的結構圖，en 的 `Sprint 4 × 400m @ 4:50` 在中文版式下
+    // 剛好過不去；`ViewThatFits` 讓中文維持單行、英文自動退兩行，不用為語言分支。
     var body: some View {
-        HStack(spacing: 9) {
-            Circle()
-                .fill(isMain ? accent : App2Theme.accentGreenBright)
-                .frame(width: 8, height: 8)
-            Text(name)
-                .font(.system(size: 14, weight: isMain ? .black : .heavy))
-                .foregroundStyle(isMain ? accent.app2Darkened : App2Theme.inkSecondary)
-            Spacer(minLength: 8)
-            Text(detail)
-                .font(.app2Mono(13, weight: isMain ? .heavy : .bold))
-                .foregroundStyle(isMain ? accent.app2Darkened : App2Theme.inkTertiary)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 9) {
+                dot
+                nameText
+                Spacer(minLength: 8)
+                detailText
+            }
+            HStack(alignment: .top, spacing: 9) {
+                dot.padding(.top, 5)
+                VStack(alignment: .leading, spacing: 2) {
+                    nameText
+                    detailText
+                }
+                Spacer(minLength: 0)
+            }
         }
         .padding(.horizontal, 11)
         .padding(.vertical, 8)

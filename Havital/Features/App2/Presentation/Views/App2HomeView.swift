@@ -585,10 +585,12 @@ struct App2HomeView: View {
             }
 
             HStack(alignment: .center, spacing: 9) {
+                // 課型大標與同一列的兩顆 chip 共用一行：字長只准縮，折行會把 chip
+                // 擠掉一行（en 的 `Interval Training` 曾折成兩行）。
                 Text(session.title)
                     .font(.system(size: 24, weight: .black))
                     .foregroundStyle(App2Theme.inkPrimary)
-                    .lineLimit(2)
+                    .lineLimit(1)
                     .minimumScaleFactor(0.6)
                 if let intensity = session.intensityLabel {
                     App2Chip(
@@ -800,6 +802,9 @@ struct App2HomeView: View {
                  ? L10n.App2.Home.todayRest.localized
                  : L10n.App2.Home.todayTodo.localized)
                 .font(.system(size: 13, weight: .heavy))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .fixedSize(horizontal: true, vertical: false)
         }
         .foregroundStyle(isRest ? App2Theme.accentGreen : App2Theme.accentOrangeText)
         .padding(.horizontal, 10)

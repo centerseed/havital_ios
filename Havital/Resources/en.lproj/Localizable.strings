@@ -404,7 +404,7 @@
 "training.type.easy" = "Easy Run";
 "training.type.easy_run" = "Easy Run";
 "training.type.tempo" = "Marathon Pace";
-"training.type.interval" = "Interval Training";
+"training.type.interval" = "Intervals";
 "training.type.paceriz_interval" = "Interval";
 "training.type._generic_interval" = "Intervals";
 "training.race_countdown.hide" = "Hide Race Countdown";
@@ -425,16 +425,16 @@
 "training.type.speed" = "Speed Work";
 "training.type.lsd" = "LSD Run";
 "training.type.long_slow_distance" = "LSD Run";
-"training.type.threshold" = "Threshold Run";
-"training.type.progression" = "Progression Run";
+"training.type.threshold" = "Threshold";
+"training.type.progression" = "Progression";
 "training.type.progressive_run" = "Progressive Run";
 "training.type.long_run" = "Long Run";
-"training.type.combination" = "Combination Run";
+"training.type.combination" = "Combination";
 "training.type.steady_intervals" = "Steady + Intervals";
 "training.type.rest" = "Rest";
 "training.type.cross_training" = "Cross Training";
 "training.type.hiking" = "Hiking";
-"training.type.strength" = "Strength Training";
+"training.type.strength" = "Strength";
 "training.type.yoga" = "Yoga";
 
 // MARK: - Strength Training Types
@@ -4312,14 +4312,14 @@
 
 // T-0306 視覺對齊（設計包 Paceriz Home.dc.html）新增
 "app2.tab.achievements" = "Awards";
-"app2.home.today_todo" = "Not run yet today";
+"app2.home.today_todo" = "Not run yet";
 "app2.home.today_done" = "Done today";
 "app2.home.plan_row" = "Plan";
 "app2.home.actual_row" = "Actual";
 "app2.home.week_review_sub" = "See how the week went";
 "app2.home.rizo_sub" = "Your AI running coach";
-"app2.home.recovery_seconds" = "%d s recovery";
-"app2.home.recovery_metres" = "%d m jog recovery";
+"app2.home.recovery_seconds" = "%d s rest";
+"app2.home.recovery_metres" = "%d m jog";
 "app2.home.no_goal_title" = "No target race yet";
 "app2.home.no_goal_body" = "Set a target race and this card will show your goal time, projected finish and training week.";
 "app2.home.no_plan_body" = "This week's plan hasn't been generated yet. Generate it on the Plan tab and today's session will show up here.";
