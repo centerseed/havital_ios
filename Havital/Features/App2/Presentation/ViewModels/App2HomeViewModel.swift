@@ -355,6 +355,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         App2TrainingStatus(
             headline: card.headline,
             narrative: card.narrativeText,
+            // 首頁不畫這一句，它是訓練量詳情頁 hero 的敘事（checklist §51-2）。
+            mileageProgression: card.mileageProgression,
             trackPosition: 0.5,
             currentWeek: currentWeek,
             totalWeeks: totalWeeks
@@ -367,6 +369,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         return App2TrainingStatus(
             headline: stub.headline,
             narrative: stub.narrative,
+            mileageProgression: nil,
             trackPosition: stub.trackPosition,
             currentWeek: currentWeek,
             totalWeeks: totalWeeks
@@ -414,6 +417,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 direction: App2Insight.Direction(rawValue: row.arrow.rawValue) ?? .unknown,
                 verdict: row.verdict,
                 change: row.change,
+                evidence: row.evidence,
                 isNotComputed: row.isNotComputed,
                 isGraded: row.isGraded,
                 isPositive: row.dot == "positive"

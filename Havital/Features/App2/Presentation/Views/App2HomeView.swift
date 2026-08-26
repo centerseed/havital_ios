@@ -48,6 +48,12 @@ struct App2HomeView: View {
     )
     /// 編輯週課表（「…」選單的「修改課表」，設計 frame-03～09）。
     @State private var isShowingPlanEdit = false
+    /// 指標第二層（checklist §51–53）。nil = 沒開。
+    ///
+    /// **2026-08-26 晚裁決：指標列每一項點擊直接進對應詳情頁**，不經 §55／§56 的
+    /// sheet 快視圖（那兩張暫不接入任何入口）。訓練狀況卡的「為什麼？」維持
+    /// frame-00c 的 inline 展開，不動。
+    @State private var metricDetail: App2MetricDetailKind?
     /// 模態頁的 ViewModel 在這裡持有（tab 才由 `App2RootView` 持有）——
     /// 沒被打開過就不會 fetch（載入在被呈現那一頁的 `.task`）。
     @StateObject private var planOverviewViewModel = App2PlanOverviewViewModel()
@@ -103,6 +109,21 @@ struct App2HomeView: View {
                 // 課表改了，首頁的今日課表卡與週跑量要跟著換。
                 onSaved: { Task { await viewModel.forceRefresh() } }
             )
+        }
+        .fullScreenCover(item: $metricDetail) { kind in
+            // 大數字與判語**用首頁這一列的同一份 insight**，詳情頁不重新評級。
+            if let insight = viewModel.insights?.value.first(where: { $0.id == kind.rawValue }) {
+                App2MetricDetailView(
+                    kind: kind,
+                    insight: insight,
+                    // 訓練量的敘事是 `mileage_progression`（跑量漸進那一段）；
+                    // 其餘兩頁用該列自己的 evidence 句。
+                    narrative: kind == .weeklyVolume
+                        ? viewModel.trainingStatus?.value.mileageProgression
+                        : insight.evidence,
+                    onClose: { metricDetail = nil }
+                )
+            }
         }
         .fullScreenCover(item: $detailSession) { detail in
             App2SessionDetailView(detail: detail) { detailSession = nil }
@@ -552,11 +573,42 @@ struct App2HomeView: View {
                     insightRow(insight)
                 }
             }
-            .accessibilityIdentifier("App2_InsightsGrid")
+            // **容器上不掛 identifier**：SwiftUI 會把它蓋到每一個子節點，三列指標在
+            // a11y tree 裡就全部叫 `App2_InsightsGrid`，逐列的 id 一個都抓不到
+            // （2026-08-26 maestro hierarchy dump 實測）。列的 id 掛在列自己身上。
         }
     }
 
+    /// 一列指標。**有詳情稿的三個（訓練量／能力基準／恢復）可點進第二層**；
+    /// 其餘（有氧續航／速度耐力…）不可點也不畫 chevron ——
+    /// 2026-08-26 晚的導航裁決，把關在 `App2MetricDetailKind.from(insightID:)`。
+    @ViewBuilder
     private func insightRow(_ insight: App2Insight) -> some View {
+        let kind = App2MetricDetailKind.from(insightID: insight.id)
+        insightRowContent(insight, isTappable: kind != nil)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                guard let kind else { return }
+                metricDetail = kind
+            }
+            // 做成單一 a11y 葉節點 ＋ 明確 label ＋ identifier，**全部掛在有手勢的
+            // 這一層**：掛在裡面那一層時，外層的 `onTapGesture` 會把 identifier
+            // 從 accessibility tree 上蓋掉（2026-08-26 maestro 實測抓不到
+            // `App2_InsightRow_weekly_volume`；同頁 `App2_InsightHandle` 的註解）。
+            .accessibilityElement(children: .ignore)
+            .accessibilityAddTraits(kind != nil ? [.isButton] : [])
+            .accessibilityLabel(Self.insightAccessibilityLabel(insight))
+            .accessibilityIdentifier("App2_InsightRow_\(insight.id)")
+    }
+
+    /// 一列指標唸出來的字（`訓練量 下修 11 vs 上週 30 km`）。
+    static func insightAccessibilityLabel(_ insight: App2Insight) -> String {
+        [insight.label, insight.verdict, insight.change]
+            .compactMap { $0 }
+            .joined(separator: " ")
+    }
+
+    private func insightRowContent(_ insight: App2Insight, isTappable: Bool) -> some View {
         HStack(spacing: 10) {
             Image(systemName: insight.symbolName)
                 .font(.system(size: 14, weight: .bold))
@@ -584,11 +636,16 @@ struct App2HomeView: View {
                 .font(.app2Mono(15))
                 .foregroundStyle(insight.tint)
                 .frame(width: 13)
+            // 可點的那三列才有 chevron —— 沒有詳情稿的指標不畫，
+            // 免得畫出一個按下去沒反應的入口。
+            if isTappable {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .black))
+                    .foregroundStyle(App2Theme.chevron)
+            }
         }
         .padding(.vertical, 9)
         .padding(.horizontal, 2)
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("App2_InsightRow_\(insight.id)")
     }
 
     // MARK: - §3.1 今日課表卡（設計 frame-00 下半，完整版）
