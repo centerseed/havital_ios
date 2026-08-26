@@ -236,12 +236,59 @@ struct App2SessionDetail: Identifiable, Equatable {
     let reasonText: String?
     /// 「訓練結構」逐段列。
     let segments: [App2SessionDetailSegment]
+    /// 「力量訓練」區塊。來源是這一天的 strength 內容：day 層
+    /// `supplementary[]` 的肌力項目，以及 primary 本身就是肌力課時的那一份。
+    /// **2026-08-27 晚走查裁決（d）之前 `supplementary[]` 整段被丟掉**（缺陷）。
+    /// 今天沒有肌力內容就是 nil，整塊不出現。
+    let strength: App2SessionStrength?
     /// 「熱適應」卡（`climate_meta`，真資料）。
     let climate: App2SessionClimate?
     /// 長距離補給建議框（同 `App2TodaySession.showsFuelingNote`，設計稿靜態文案）。
     let showsFuelingNote: Bool
     /// 跑步課才有「傳到 Garmin」（後端 push 只收 run workout）。
     let isRunSession: Bool
+
+    /// 這一天有沒有**配速值**可講（2026-08-27 晚走查裁決（j））。
+    ///
+    /// 輕鬆跑／恢復跑的 payload 常常整天沒有 `pace`（後端不開處方配速），
+    /// 那時「預計配速」卡畫出來是一張沒有任何數字的圖 —— 整張卡不出現，
+    /// 版面自然收攏。**不畫「—」、不補樣板字、不在 app 端推算配速。**
+    var hasPaceData: Bool {
+        if paceBand != nil { return true }
+        return structureBars.contains { $0.paceLabel != nil }
+    }
+}
+
+// MARK: - App2SessionStrength
+/// 課表日詳情的「力量訓練」區塊。
+///
+/// 一天可能有多份肌力內容（primary 是肌力課、或跑步課掛 `supplementary[]`），
+/// 這裡攤成一組，每一組帶自己的類型名與動作列。
+struct App2SessionStrength: Equatable {
+    let groups: [App2SessionStrengthGroup]
+
+    /// 全部動作數（區塊小標的「N 個動作」）。
+    var exerciseCount: Int { groups.reduce(0) { $0 + $1.exercises.count } }
+}
+
+struct App2SessionStrengthGroup: Identifiable, Equatable {
+    let id: Int
+    /// `核心穩定訓練` —— 既有的 `training.strength_type.*`（三語已齊），
+    /// 對不到的識別字就沒有這一行，**不把 `strength_type` 原樣印出去**。
+    let typeLabel: String?
+    /// 後端的 `description`。空白就沒有。
+    let note: String?
+    /// `30 分鐘`。沒有 `duration_minutes` 就沒有。
+    let durationLabel: String?
+    let exercises: [App2SessionStrengthExercise]
+}
+
+struct App2SessionStrengthExercise: Identifiable, Equatable {
+    let id: Int
+    /// `棒式`
+    let name: String
+    /// `3 組 × 45 秒`（沿用既有的 `app2.detail.strength_*`）。組不出量就沒有。
+    let detail: String?
 }
 
 // MARK: - App2SessionPaceBand
@@ -527,6 +574,8 @@ struct App2PlanOverview: Equatable {
     /// 當前所在階段名（`建立耐力期`）。落不進任何一段就沒有。
     let currentStageName: String?
     let stages: [App2PlanStage]
+    /// 里程碑（overview 的 `milestones[]`）。空陣列＝整塊不顯示。
+    let milestones: [App2PlanMilestone]
     let rhythm: App2PlanRhythm
 
     /// 進度條落點（0…1）。週次不齊就沒有進度條。
@@ -559,6 +608,25 @@ struct App2PlanStage: Identifiable, Equatable {
     var weekRangeLabel: String {
         weekStart == weekEnd ? "W\(weekStart)" : "W\(weekStart)–\(weekEnd)"
     }
+}
+
+/// 里程碑列表的一筆（overview 的 `milestones[]`）。
+///
+/// 1.x 一直在顯示這一段，App2 漏掉＝缺陷（2026-08-27 晚走查裁決（c）），
+/// 不是新發明的區塊。內容（`title`／`description`）後端已在地化，App 端不改寫。
+struct App2PlanMilestone: Identifiable, Equatable {
+    /// 第幾週。同一週可能有多筆，所以 id 另給。
+    let week: Int
+    let title: String
+    /// 說明句。後端可能給空字串 —— 那時這一列只有標題。
+    let description: String?
+    /// 關鍵里程碑用主色點綴。
+    let isKey: Bool
+
+    var id: String { "\(week)-\(title)" }
+
+    /// `W2`
+    var weekLabel: String { "W\(week)" }
 }
 
 /// 訓練節奏（設計 frame-20 下半）。三格都是真值，缺就那一列不出現。
@@ -700,8 +768,13 @@ struct App2LoadBlock: Equatable {
 /// §52 能力基準詳情。
 struct App2CapabilityDetail: Equatable {
     let hero: App2MetricHero
-    /// `pace_vdot` 日序列（舊→新）。
+    /// `pace_vdot` 日序列（舊→新）。**含建計畫時生成的未來每日預估**
+    /// —— 圖要整條畫才連得起來，哪一段是預估看 `projectedFromIndex`。
     let series: [App2MetricPoint]
+    /// 第一個「未來日」的索引（2026-08-27 晚走查裁決（f））。
+    /// 這一點之後畫虛線；hero 現值與「30 天前」只吃這一點**之前**的段。
+    /// nil ＝整條都是已經發生的。
+    let projectedFromIndex: Int?
     /// 錨定日（圖上的垂直 dashed 標記）。序列裡沒有這一天就不畫。
     let anchorDate: String?
     /// §52-4「這個值怎麼來的」。**資料驅動**：組不出來的列不出現。

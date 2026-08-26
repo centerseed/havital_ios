@@ -3,8 +3,12 @@ import SwiftUI
 // MARK: - App2PlanOverviewView
 /// 2.0 訓練計畫總覽 —— 設計 **frame-20「訓練計劃」**。
 ///
-/// 版面與設計一致：返回／標題／「調整」→ 深藍目標賽事 hero（現況→目標、計畫進度）
-/// → 階段期程 → 訓練節奏 → 管理計畫 → 底部「跟 Rizo 討論計畫」。
+/// 版面：返回／標題 → 深藍目標賽事 hero（現況→目標、計畫進度）→ 階段期程
+/// → 里程碑 → 訓練節奏 → 管理計畫。
+///
+/// **右上「調整」與底部「跟 Rizo 討論計畫」已移除**（2026-08-27 晚實機走查裁決（b））：
+/// 「調整」的目的地是賽事管理，而「管理計畫 · 賽事管理」那一列已經是同一個入口 ——
+/// 同一個目的地不留兩個門。
 ///
 /// **兩處與設計不同，都是「不擺死鈕」的取捨**：
 /// - 訓練節奏三列是**唯讀**（沒有 chevron）。設計畫了 chevron，但週跑量／訓練日的
@@ -16,13 +20,12 @@ struct App2PlanOverviewView: View {
     let onClose: () -> Void
     @ObservedObject var viewModel: App2PlanOverviewViewModel
 
-    /// 賽事管理（設計 frame-12）—— 由「調整」與「管理計畫 · 賽事管理」進入。
+    /// 賽事管理（設計 frame-12）—— 唯一入口是「管理計畫 · 賽事管理」那一列。
     @State private var isShowingRaces = false
     /// 重設目標走 2.0 的 onboarding（與設定頁同一條路徑，不另寫一份）。
     @State private var isShowingGoalSetup = false
-    /// 「跟 Rizo 討論計畫」開既有的對話元件。
-    @State private var isShowingRizoChat = false
-    @State private var rizoChatViewModel: StateRizoChatViewModel?
+    /// 更換訓練方法的清單 sheet（2026-08-27 晚走查裁決（e））。
+    @State private var isShowingMethodologies = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,19 +36,8 @@ struct App2PlanOverviewView: View {
                 backIdentifier: "App2_PlanOverviewClose",
                 titleIdentifier: "App2_PlanOverviewView"
             ) {
-                // 設計 frame-20 右上角的「調整」。目的地是賽事管理（frame-12）——
-                // 週跑量／訓練日的編輯在設定頁，這裡不開第二條寫入路徑。
-                Text(L10n.App2.PlanOverview.adjust.localized)
-                    .font(.system(size: 13, weight: .heavy))
-                    .foregroundStyle(App2Theme.accentBlueDeep)
-                    .contentShape(Rectangle())
-                    .onTapGesture { isShowingRaces = true }
-                    // 併成單一葉節點 —— 不併的話 a11y tree 上只看得到那一顆 Text，
-                    // identifier 掛不上去（2026-08-25 maestro 實測找不到這顆）。
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityAddTraits(.isButton)
-                    .accessibilityLabel(L10n.App2.PlanOverview.adjust.localized)
-                    .accessibilityIdentifier("App2_PlanOverviewAdjust")
+                // 右上角沒有動作（2026-08-27 晚走查裁決（b）移除「調整」）。
+                EmptyView()
             }
             .padding(.horizontal, App2Theme.pagePadding)
             .padding(.bottom, 12)
@@ -55,6 +47,7 @@ struct App2PlanOverviewView: View {
                     if let sourced = viewModel.overview {
                         heroCard(sourced.value)
                         stagesSection(sourced.value)
+                        milestonesSection(sourced.value)
                         rhythmSection(sourced.value.rhythm)
                         manageSection
                         autoAdjustNote
@@ -65,8 +58,6 @@ struct App2PlanOverviewView: View {
                 .padding(.horizontal, App2Theme.pagePadding)
                 .padding(.bottom, 20)
             }
-
-            rizoCta
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
         .task { await viewModel.loadIfNeeded() }
@@ -84,16 +75,34 @@ struct App2PlanOverviewView: View {
                 Task { await viewModel.forceRefresh() }
             }
         }
-        .sheet(isPresented: $isShowingRizoChat) {
-            if let rizoChatViewModel {
-                NavigationView {
-                    ScrollView {
-                        RizoChatView(viewModel: rizoChatViewModel)
-                            .padding(16)
+        // 巢狀 sheet 在這個 repo 不進 accessibility tree（同 `App2SessionDetailView`
+        // 的既有處置），所以子頁一律 fullScreenCover。
+        .fullScreenCover(isPresented: $isShowingMethodologies) {
+            App2MethodologySheet(
+                methodologies: viewModel.methodologies,
+                currentName: viewModel.overview?.value.rhythm.methodologyName,
+                isBusy: viewModel.isChangingMethodology,
+                onSelect: { methodology in
+                    Task {
+                        if await viewModel.changeMethodology(to: methodology.id) {
+                            isShowingMethodologies = false
+                        }
                     }
-                    .background(App2Theme.pageGradient.ignoresSafeArea())
-                }
-            }
+                },
+                onClose: { isShowingMethodologies = false }
+            )
+        }
+        .alert(
+            L10n.App2.PlanOverview.changeMethodologyFailed.localized,
+            isPresented: Binding(
+                get: { viewModel.methodologyError != nil },
+                set: { if !$0 { viewModel.methodologyError = nil } }
+            ),
+            presenting: viewModel.methodologyError
+        ) { _ in
+            Button(L10n.Common.done.localized, role: .cancel) {}
+        } message: { message in
+            Text(message)
         }
     }
 
@@ -452,6 +461,73 @@ struct App2PlanOverviewView: View {
             .fixedSize()
     }
 
+    // MARK: - 里程碑（overview 的 `milestones[]`）
+
+    /// 2026-08-27 晚走查裁決（c）：1.x 一直有、App2 漏掉。
+    /// 空陣列＝整塊隱藏（沒有里程碑就不要擺一張空卡）。
+    @ViewBuilder
+    private func milestonesSection(_ overview: App2PlanOverview) -> some View {
+        if !overview.milestones.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                App2SectionCaption(text: L10n.App2.PlanOverview.milestonesSection.localized)
+
+                App2GroupedList {
+                    ForEach(Array(overview.milestones.enumerated()), id: \.element.id) { index, milestone in
+                        milestoneRow(milestone, showsDivider: index < overview.milestones.count - 1)
+                    }
+                }
+            }
+            .padding(.top, 18)
+            .accessibilityIdentifier("App2_PlanOverviewMilestones")
+        }
+    }
+
+    private func milestoneRow(_ milestone: App2PlanMilestone, showsDivider: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top, spacing: 11) {
+                // 關鍵里程碑：主色實心週次膠囊；其餘是灰底。
+                Text(milestone.weekLabel)
+                    .font(.app2Mono(11))
+                    .foregroundStyle(milestone.isKey ? Color.white : App2Theme.inkTertiary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(
+                        Capsule().fill(
+                            milestone.isKey
+                                ? App2Theme.accentBlue
+                                : App2Theme.shadowInk.opacity(0.06)
+                        )
+                    )
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(milestone.title)
+                        .font(.system(size: 15, weight: .heavy))
+                        .foregroundStyle(milestone.isKey ? App2Theme.accentBlueDeep : App2Theme.inkPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if let description = milestone.description {
+                        Text(description)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(App2Theme.inkTertiary)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 15)
+            .padding(.vertical, 12)
+
+            if showsDivider {
+                Rectangle()
+                    .fill(App2Theme.shadowInk.opacity(0.06))
+                    .frame(height: 1)
+                    .padding(.leading, 15)
+            }
+        }
+    }
+
     // MARK: - 訓練節奏（唯讀，見檔頭）
 
     @ViewBuilder
@@ -512,6 +588,26 @@ struct App2PlanOverviewView: View {
                 .accessibilityAddTraits(.isButton)
                 .accessibilityIdentifier("App2_PlanOverviewManageRaces")
 
+                // 更換訓練方法（2026-08-27 晚走查裁決（e））—— 1.4 在訓練總覽就能換，
+                // App2 漏接。overview 綁不上本週課表時沒有這一列：換錯計畫比不能換更糟。
+                if viewModel.overviewId != nil {
+                    App2SettingsRow(
+                        systemImage: "arrow.triangle.2.circlepath",
+                        iconTint: App2Theme.accentViolet,
+                        iconBackground: App2Theme.accentViolet.opacity(0.12),
+                        title: L10n.App2.PlanOverview.changeMethodology.localized,
+                        // 方法名還沒讀到就留白 —— 不把欄位名當成值印第二次。
+                        value: viewModel.overview?.value.rhythm.methodologyName ?? ""
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        isShowingMethodologies = true
+                        Task { await viewModel.loadMethodologies() }
+                    }
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityIdentifier("App2_PlanOverviewChangeMethodology")
+                }
+
                 App2SettingsRow(
                     systemImage: "arrow.counterclockwise",
                     iconTint: App2Theme.accentOrange,
@@ -529,48 +625,128 @@ struct App2PlanOverviewView: View {
         .padding(.top, 20)
     }
 
+    @ViewBuilder
     private var autoAdjustNote: some View {
+        // 換完方法論的小字提示。後端換完會重生 overview，但**週課表要下週才依新方法產生**
+        // —— 這句話必須講明，不然用戶會以為本週課表馬上會變。
+        if viewModel.didChangeMethodology {
+            App2InlineNotice(text: L10n.App2.PlanOverview.methodologyChanged.localized)
+                .padding(.top, 14)
+                .accessibilityIdentifier("App2_PlanOverviewMethodologyChanged")
+        }
         App2InlineNotice(text: L10n.App2.PlanOverview.autoAdjustNote.localized)
             .padding(.top, 14)
     }
+}
 
-    // MARK: - 跟 Rizo 討論計畫
+// MARK: - App2MethodologySheet
+/// 更換訓練方法的清單 sheet（2026-08-27 晚走查裁決（e））。
+///
+/// 清單與寫入都走既有的 `TrainingPlanV2Repository`，這一層只管挑哪一個。
+struct App2MethodologySheet: View {
 
-    private var rizoCta: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "bubble.left.and.text.bubble.right.fill")
-                .font(.system(size: 15, weight: .bold))
-            Text(L10n.App2.PlanOverview.rizoCta.localized)
-                .font(.system(size: 16, weight: .heavy))
+    let methodologies: [MethodologyV2]
+    /// 目前用的那一個（名字比對不了 id 時就沒有勾）。
+    let currentName: String?
+    let isBusy: Bool
+    let onSelect: (MethodologyV2) -> Void
+    let onClose: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Capsule()
+                .fill(App2Theme.shadowInk.opacity(0.14))
+                .frame(width: 38, height: 5)
+                .padding(.top, 9)
+
+            HStack {
+                Text(L10n.EditSchedule.cancel.localized)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(App2Theme.inkSubtle)
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: onClose)
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityIdentifier("App2_MethodologySheetCancel")
+
+                Spacer(minLength: 6)
+
+                Text(L10n.App2.PlanOverview.changeMethodology.localized)
+                    .font(.system(size: 17, weight: .black))
+                    .foregroundStyle(App2Theme.inkPrimary)
+                    .accessibilityIdentifier("App2_MethodologySheet")
+
+                Spacer(minLength: 6)
+
+                // 右側留白對稱「取消」，不擺第二顆會寫入的鈕 —— 點一列就是選定。
+                Text(L10n.EditSchedule.cancel.localized)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(.clear)
+                    .accessibilityHidden(true)
+            }
+            .padding(.horizontal, App2Theme.pagePadding)
+            .padding(.top, 14)
+            .padding(.bottom, 12)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(L10n.App2.PlanOverview.changeMethodologyNote.localized)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(App2Theme.inkTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.horizontal, 2)
+
+                    if methodologies.isEmpty {
+                        ProgressView().frame(maxWidth: .infinity, minHeight: 160)
+                    }
+
+                    ForEach(methodologies) { methodology in
+                        methodologyCard(methodology)
+                    }
+                }
+                .padding(.horizontal, App2Theme.pagePadding)
+                .padding(.bottom, 24)
+            }
         }
-        .foregroundStyle(.white)
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 15, style: .continuous).fill(App2Theme.accentBlue)
-        )
-        .shadow(color: App2Theme.accentBlue.opacity(0.55), radius: 10, x: 0, y: 8)
-        .padding(.horizontal, App2Theme.pagePadding)
-        .padding(.top, 11)
-        .padding(.bottom, 8)
-        .contentShape(Rectangle())
-        .onTapGesture(perform: openRizoChat)
-        .accessibilityElement(children: .ignore)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityLabel(L10n.App2.PlanOverview.rizoCta.localized)
-        .accessibilityIdentifier("App2_PlanOverviewRizoCta")
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(App2Theme.pageGradient.ignoresSafeArea())
+        .overlay {
+            if isBusy {
+                ProgressView()
+                    .padding(20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(App2Theme.cardBackground)
+                    )
+            }
+        }
     }
 
-    /// 開既有的 Rizo 對話（不另寫 2.0 版）。
-    ///
-    /// 情境用 **`plan_adjustment`** —— 這一頁談的是計畫，不是今天的身體狀況。
-    /// 值取自後端的白名單 `domains/coach/rizo_outcome.py: ALLOWED_SCENARIOS`，
-    /// 不自己造一個字串（造出來的會被後端當未知情境）。
-    private func openRizoChat() {
-        let viewModelToUse = rizoChatViewModel ?? StateRizoChatViewModel(scenario: "plan_adjustment")
-        rizoChatViewModel = viewModelToUse
-        isShowingRizoChat = true
-        Task { await viewModelToUse.startOpening() }
+    private func methodologyCard(_ methodology: MethodologyV2) -> some View {
+        let isCurrent = currentName == methodology.name
+        return App2Card(padding: 14, spacing: 6) {
+            HStack(spacing: 8) {
+                Text(methodology.name)
+                    .font(.system(size: 16, weight: .black))
+                    .foregroundStyle(isCurrent ? App2Theme.accentBlueDeep : App2Theme.inkPrimary)
+                Spacer(minLength: 6)
+                if isCurrent {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(App2Theme.accentBlue)
+                }
+            }
+            if !methodology.description.isEmpty {
+                Text(methodology.description)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(App2Theme.inkSecondary)
+                    .lineSpacing(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture { if !isCurrent && !isBusy { onSelect(methodology) } }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("App2_MethodologyOption_\(methodology.id)")
     }
 }
 

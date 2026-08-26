@@ -367,7 +367,14 @@ private struct App2CapabilityDetailPage: View {
                     }
                     App2MetricLineChart(
                         series: [
-                            .init(id: "vdot", points: detail.series, tint: App2Theme.accentViolet)
+                            // 未來每日預估段畫虛線＋「預估」chip（2026-08-27 晚走查裁決（f））。
+                            .init(
+                                id: "vdot",
+                                points: detail.series,
+                                tint: App2Theme.accentViolet,
+                                projectedFromIndex: detail.projectedFromIndex,
+                                projectedLegend: L10n.App2.Metric.projectedLegend.localized
+                            )
                         ],
                         xLabels: App2VolumeDetailPage.xLabels(detail.series),
                         markerDate: detail.anchorDate,

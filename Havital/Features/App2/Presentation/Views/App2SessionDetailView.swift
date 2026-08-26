@@ -44,7 +44,12 @@ struct App2SessionDetailView: View {
                     // 配速是跑步課的語意：肌力／交叉訓練的 payload 沒有配速
                     // （cross DTO 只有 cross_type/duration/intensity），畫「預計配速」
                     // 就是替瑜伽編一個配速（2026-08-26 使用者回報）。
-                    if detail.isRunSession, !detail.structureBars.isEmpty { paceCard }
+                    // 沒有配速值就整張卡不出現（2026-08-27 晚走查裁決（j））：
+                    // 輕鬆跑／恢復跑常常整天沒有 `pace`，那時這張卡是一張沒有
+                    // 任何數字的圖。不畫「—」，也不在 app 端推算一個配速。
+                    if detail.isRunSession, !detail.structureBars.isEmpty, detail.hasPaceData {
+                        paceCard
+                    }
                     // 「本次訓練目標」與「這堂課練什麼」曾經是兩張卡，內容重疊。
                     // 收成一張：課型目的（既有 `TrainingTypeInfo`）為主體，
                     // 逐日敘述只在證明得出它仍對應現在這一天時附加（見投影層）。
@@ -55,6 +60,8 @@ struct App2SessionDetailView: View {
                         goalCard
                     }
                     if !detail.segments.isEmpty { structureCard }
+                    // 主課結構之後接「力量訓練」（2026-08-27 晚走查裁決（d））。
+                    if let strength = detail.strength { strengthCard(strength) }
                     // 設計 frame-02d 的下半部順序：訓練結構 → 目標區間 → 熱適應。
                     if targetZoneEffort != nil || estimatedRangeLabel != nil { targetZoneSection }
                     if let climate = detail.climate { climateCard(climate) }
@@ -181,9 +188,11 @@ struct App2SessionDetailView: View {
                 }
                 if let duration = detail.durationLabel {
                     heroStat(label: L10n.App2.Detail.duration.localized, value: duration, unit: nil)
-                    if detail.isRunSession { heroDivider }
+                    if showsPhasesStat { heroDivider }
                 }
-                if detail.isRunSession {
+                // 「配速變化 N 段」是配速格：整天沒有配速值時它講不出任何東西，
+                // 整格不出現（2026-08-27 晚走查裁決（j））。
+                if showsPhasesStat {
                     heroStat(
                         label: L10n.App2.Detail.phases.localized,
                         value: String(format: L10n.App2.Detail.phaseCount.localized, detail.phaseCount),
@@ -218,6 +227,9 @@ struct App2SessionDetailView: View {
         .shadow(color: accent.opacity(0.42), radius: 16, x: 0, y: 12)
         .accessibilityIdentifier("App2_SessionDetailHero")
     }
+
+    /// hero 第三格（配速變化段數）只在跑步課且真的有配速值時出現。
+    private var showsPhasesStat: Bool { detail.isRunSession && detail.hasPaceData }
 
     private func heroStat(label: String, value: String, unit: String?) -> some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -429,6 +441,75 @@ struct App2SessionDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityIdentifier("App2_SessionDetailStructure")
+    }
+
+    // MARK: - 力量訓練
+
+    /// 動作清單（名稱 ＋ `3 組 × 45 秒`）。版式沿用訓練結構那一組小標＋卡片，
+    /// 顏色用肌力的紫（`App2Theme.accentViolet`，與課表頁的肌力列同一顆）。
+    private func strengthCard(_ strength: App2SessionStrength) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text(L10n.App2.Detail.strengthSection.localized)
+                    .font(.system(size: 15, weight: .black))
+                    .foregroundStyle(App2Theme.inkPrimary)
+                Text(String(
+                    format: L10n.App2.Home.strengthRow.localized,
+                    strength.exerciseCount
+                ))
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(App2Theme.inkMuted)
+                Spacer(minLength: 0)
+            }
+
+            ForEach(strength.groups) { group in
+                App2Card(padding: 14, spacing: 9) {
+                    if group.typeLabel != nil || group.durationLabel != nil {
+                        HStack(spacing: 8) {
+                            if let typeLabel = group.typeLabel {
+                                Text(typeLabel)
+                                    .font(.system(size: 14, weight: .heavy))
+                                    .foregroundStyle(App2Theme.accentViolet)
+                            }
+                            Spacer(minLength: 0)
+                            if let durationLabel = group.durationLabel {
+                                Text(durationLabel)
+                                    .font(.app2Mono(12))
+                                    .foregroundStyle(App2Theme.inkTertiary)
+                            }
+                        }
+                    }
+
+                    if let note = group.note {
+                        Text(note)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(App2Theme.inkSecondary)
+                            .lineSpacing(2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    ForEach(group.exercises) { exercise in
+                        HStack(alignment: .firstTextBaseline, spacing: 10) {
+                            Circle()
+                                .fill(App2Theme.accentViolet)
+                                .frame(width: 5, height: 5)
+                            Text(exercise.name)
+                                .font(.system(size: 14, weight: .bold))
+                                .foregroundStyle(App2Theme.inkPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 6)
+                            if let detailText = exercise.detail {
+                                Text(detailText)
+                                    .font(.app2Mono(12))
+                                    .foregroundStyle(App2Theme.inkSubtle)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityIdentifier("App2_SessionDetailStrength")
     }
 
     /// `1 段 · 55 分鐘`。分鐘從 hero 的「預計時間」推（同一個值，不另算一份）；

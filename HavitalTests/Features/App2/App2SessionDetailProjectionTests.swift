@@ -78,6 +78,21 @@ final class App2SessionDetailProjectionTests: XCTestCase {
                        { "name": "棒式", "sets": 3, "duration_seconds": 45 } ] } }
     """
 
+    /// 輕鬆跑 ＋ 日層 `supplementary[]` 的核心穩定訓練
+    /// （dev 帳號 `Cv5ADE73tiZMpEyD80Yh1BAqYch2` 本週 `day_index` 4 的形狀，
+    /// 2026-08-27 實測：棒式 3×45s／死蟲式 3×12／鳥狗式 3×10／側棒式 2×30s）。
+    private let runWithSupplementaryStrengthDay = """
+    { "day_index": 4, "day_target": "輕鬆跑", "reason": "有氧維持", "distance_km": 6.0,
+      "primary": { "run_type": "easy", "distance_km": 6.0, "pace": "6:50",
+                   "duration_minutes": 41, "description": "輕鬆跑" },
+      "supplementary": [ { "strength_type": "core_stability", "duration_minutes": 15,
+        "description": "跑後做，維持軀幹穩定",
+        "exercises": [ { "name": "棒式", "sets": 3, "duration_seconds": 45 },
+                       { "name": "死蟲式", "sets": 3, "reps": 12 },
+                       { "name": "鳥狗式", "sets": 3, "reps": 10 },
+                       { "name": "側棒式", "sets": 2, "duration_seconds": 30 } ] } ] }
+    """
+
     private let crossDay = """
     { "day_index": 7, "day_target": "交叉訓練", "reason": "低衝擊",
       "primary": { "cross_type": "cycling", "duration_minutes": 45,
@@ -225,14 +240,99 @@ final class App2SessionDetailProjectionTests: XCTestCase {
 
     // MARK: - 非跑步課沒有配速語意
 
-    func test_detail_strengthDay_hasNoPaceAndListsExercises() throws {
+    /// 獨立力量日：動作清單走「力量訓練」區塊（2026-08-27 晚走查裁決（d）之後
+    /// 不再擠在訓練結構裡 —— 同一份內容不擺兩處）。
+    func test_detail_strengthDay_hasNoPaceAndListsExercisesInStrengthSection() throws {
         let detail = try XCTUnwrap(try detail(strengthDay))
         XCTAssertFalse(detail.isRunSession)
         XCTAssertNil(detail.paceBand)
         XCTAssertNil(detail.distanceKm)
-        XCTAssertEqual(detail.segments.map(\.name), ["深蹲", "棒式"])
+        XCTAssertTrue(detail.segments.isEmpty, "肌力課的動作不進訓練結構")
+        let strength = try XCTUnwrap(detail.strength)
+        XCTAssertEqual(strength.groups.count, 1)
+        XCTAssertEqual(strength.groups[0].exercises.map(\.name), ["深蹲", "棒式"])
+        XCTAssertEqual(strength.exerciseCount, 2)
         XCTAssertEqual(detail.durationMinutes, 30, "肌力課的時間來自 duration_minutes，不是配速推導")
         XCTAssertTrue(detail.structureBars.allSatisfy { $0.paceLabel == nil })
+    }
+
+    // MARK: - 沒有配速值就不畫配速欄（2026-08-27 晚走查裁決（j））
+
+    /// 輕鬆跑整天沒有 `pace`：配速帶、柱上配速標籤、分段列的配速欄全部缺席，
+    /// `hasPaceData` 為 false（畫面上「預計配速」卡與 hero 的配速格整個不出現）。
+    /// **不畫「—」、不補樣板字、不在 app 端推算配速。**
+    func test_detail_easyRunWithoutPace_hasNoPaceFields() throws {
+        let json = """
+        { "day_index": 2, "day_target": "輕鬆跑", "reason": "有氧維持", "distance_km": 8.0,
+          "primary": { "run_type": "easy", "distance_km": 8.0,
+                       "duration_minutes": 55, "description": "輕鬆跑" } }
+        """
+        let detail = try XCTUnwrap(try detail(json))
+
+        XCTAssertFalse(detail.hasPaceData)
+        XCTAssertNil(detail.paceBand, "沒有配速就沒有配速帶")
+        XCTAssertTrue(detail.structureBars.allSatisfy { $0.paceLabel == nil })
+        XCTAssertTrue(
+            detail.segments.allSatisfy { !($0.detail ?? "").contains("@") },
+            "分段列不得出現空的配速欄"
+        )
+        // 量還在：距離與時間不受影響。
+        XCTAssertEqual(detail.distanceKm ?? 0, 8.0, accuracy: 0.001)
+        XCTAssertEqual(detail.durationMinutes, 55)
+    }
+
+    /// 同一課型有配速時照常畫（不要為了修 A 把 B 也關掉）。
+    func test_detail_easyRunWithPace_keepsPaceFields() throws {
+        let detail = try XCTUnwrap(try detail(easyRunDay))
+        XCTAssertTrue(detail.hasPaceData)
+        XCTAssertNotNil(detail.paceBand)
+    }
+
+    // MARK: - 力量訓練（2026-08-27 晚走查裁決（d））
+
+    /// 跑步日掛的 `supplementary[]` 肌力內容必須進投影 —— 裁決前整段被丟掉。
+    func test_detail_runDay_projectsSupplementaryStrength() throws {
+        let detail = try XCTUnwrap(try detail(runWithSupplementaryStrengthDay))
+        let strength = try XCTUnwrap(detail.strength, "supplementary[] 不得被丟掉")
+
+        XCTAssertEqual(strength.groups.count, 1)
+        XCTAssertEqual(strength.exerciseCount, 4)
+
+        let group = strength.groups[0]
+        XCTAssertEqual(group.typeLabel, NSLocalizedString("training.strength_type.core_stability", comment: ""))
+        XCTAssertEqual(group.note, "跑後做，維持軀幹穩定")
+        XCTAssertEqual(group.exercises.map(\.name), ["棒式", "死蟲式", "鳥狗式", "側棒式"])
+
+        // 組數×秒／組數×次都要格式化得出來（沿用既有 `app2.detail.strength_*`）。
+        XCTAssertEqual(
+            group.exercises[0].detail,
+            String(format: L10n.App2.Detail.strengthSetsSeconds.localized, 3, 45)
+        )
+        // `reps` 是字串（後端可能給 `8-12` 範圍），格式化不得印出指標值。
+        XCTAssertEqual(
+            group.exercises[1].detail,
+            String(format: L10n.App2.Detail.strengthSetsReps.localized, 3, "12")
+        )
+        XCTAssertEqual(group.exercises[1].detail?.contains("12"), true)
+
+        // 跑步課的主課結構不受影響。
+        XCTAssertTrue(detail.isRunSession)
+        XCTAssertFalse(detail.segments.isEmpty)
+    }
+
+    /// 今天沒有肌力內容 → 整塊不出現。
+    func test_detail_runDayWithoutStrength_hasNoStrengthSection() throws {
+        XCTAssertNil(try detail(easyRunDay)?.strength)
+    }
+
+    /// 未知的 `strength_type` 不得把識別字原樣印給用戶（`NSLocalizedString`
+    /// 找不到 key 會回 key 本身）。動作清單仍然要出現。
+    func test_strength_unknownType_hasNoTypeLabelButKeepsExercises() throws {
+        let strength = try XCTUnwrap(
+            App2SessionDetailProjection.strength(day: try day(strengthDay))
+        )
+        XCTAssertNil(strength.groups[0].typeLabel, "`core` 不在既有的 strength_type 對照裡")
+        XCTAssertEqual(strength.exerciseCount, 2)
     }
 
     func test_detail_crossDay_hasNoPaceAndUsesDurationAsOnlyQuantity() throws {

@@ -4485,7 +4485,8 @@
 "app2.detail.goal" = "本次訓練目標";
 "app2.detail.structure" = "訓練結構";
 "app2.detail.recovery_note" = "組間休息：%@";
-"app2.detail.strength_sets_reps" = "%1$d 組 × %2$d 下";
+"app2.detail.strength_section" = "力量訓練";
+"app2.detail.strength_sets_reps" = "%1$d 組 × %2$@ 下";
 "app2.detail.strength_sets_seconds" = "%1$d 組 × %2$d 秒";
 "app2.detail.strength_sets" = "%d 組";
 "app2.detail.purpose_section" = "這堂課練什麼";
@@ -4540,6 +4541,9 @@
 "app2.workout_detail.activity_track" = "田徑場";
 
 "app2.plan.title" = "訓練課表";
+"app2.plan.generate_week" = "產生本週課表";
+"app2.plan.generating_week" = "課表產生中…";
+"app2.plan.generate_failed" = "產生本週課表失敗";
 "app2.plan.volume_title" = "本週跑量";
 "app2.plan.today" = "今日";
 "app2.records.title" = "訓練紀錄";
@@ -4559,6 +4563,7 @@
 "app2.achievements.set_display_action" = "設為顯示";
 "app2.settings.title" = "設定";
 "app2.settings.manage_subscription" = "管理訂閱";
+"app2.settings.next_renewal" = "下次續訂";
 "app2.settings.view_plans" = "查看方案";
 "app2.settings.redeem_code" = "兌換優惠碼";
 "app2.settings.training_days_separator" = "・";
@@ -4707,7 +4712,6 @@
 
 /* MARK: - App2 訓練計畫總覽（設計 frame-20） */
 "app2.plan_overview.title" = "訓練計畫";
-"app2.plan_overview.adjust" = "調整";
 "app2.plan_overview.goal_section" = "目標賽事";
 "app2.plan_overview.weeks_until_race" = "還有 %d 週";
 "app2.plan_overview.current_you" = "現在的你";
@@ -4718,6 +4722,7 @@
 "app2.plan_overview.week_of_total" = "第 %1$d / %2$d 週";
 "app2.plan_overview.stages_section" = "%d 個階段";
 "app2.plan_overview.stages_subtitle" = "階段會自動接續，你不用自己切換。";
+"app2.plan_overview.milestones_section" = "里程碑";
 "app2.plan_overview.stage_active" = "進行中";
 "app2.plan_overview.stage_upcoming" = "待進行";
 "app2.plan_overview.stage_done" = "已完成";
@@ -4728,12 +4733,15 @@
 "app2.plan_overview.long_run_day" = "長跑日";
 "app2.plan_overview.methodology" = "訓練方法";
 "app2.plan_overview.manage_section" = "管理計畫";
+"app2.plan_overview.change_methodology" = "更換訓練方法";
+"app2.plan_overview.change_methodology_note" = "換過之後，週課表會從下週開始依新方法產生，本週已生成的課表不變。";
+"app2.plan_overview.change_methodology_failed" = "更換訓練方法失敗";
+"app2.plan_overview.methodology_changed" = "已更換訓練方法，週課表將於下週依新方法產生。";
 "app2.plan_overview.manage_races" = "賽事管理";
 "app2.plan_overview.manage_races_sub" = "主要賽事與支援賽事";
 "app2.plan_overview.reset_goal" = "重設目標";
 "app2.plan_overview.reset_goal_sub" = "重新設定目標，建立新計畫";
 "app2.plan_overview.auto_adjust_note" = "計畫會依你每週的實際訓練與恢復狀況自動微調，你不用自己算。";
-"app2.plan_overview.rizo_cta" = "跟 Rizo 討論計畫";
 "app2.plan_overview.no_plan_title" = "尚未建立訓練計畫";
 "app2.plan_overview.no_plan_body" = "設定一場目標賽事後，就會有完整的階段期程。";
 "app2.plan_overview.stages_unavailable" = "本週課表與目前的計畫概覽不同源，階段期程暫不顯示。";
@@ -4844,6 +4852,7 @@
 "app2.metric.capability_compare_format" = "%@（%@）";
 "app2.metric.capability_chart_title" = "VDOT 歷史";
 "app2.metric.capability_anchor_marker" = "錨定";
+"app2.metric.projected_legend" = "預估";
 "app2.metric.capability_anchor_format" = "%@（%@）";
 "app2.metric.capability_how_title" = "這個值怎麼來的";
 "app2.metric.capability_row_anchor" = "錨定來源";

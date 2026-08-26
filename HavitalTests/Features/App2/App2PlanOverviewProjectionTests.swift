@@ -159,6 +159,191 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
         XCTAssertNil(stages[0].focus)
     }
 
+    // MARK: - 更換訓練方法（2026-08-27 晚走查裁決（e））
+
+    private func overviewEntity(id: String, methodologyName: String) -> PlanOverviewV2 {
+        PlanOverviewV2(
+            id: id,
+            targetId: "t1",
+            targetType: "race_run",
+            targetDescription: nil,
+            methodologyId: methodologyName,
+            totalWeeks: 22,
+            startFromStage: nil,
+            raceDate: nil,
+            distanceKm: nil,
+            distanceKmDisplay: nil,
+            distanceUnit: nil,
+            targetPace: nil,
+            targetTime: nil,
+            isMainRace: true,
+            targetName: nil,
+            methodologyOverview: MethodologyOverviewV2(
+                name: methodologyName,
+                philosophy: "",
+                intensityStyle: "",
+                intensityDescription: ""
+            ),
+            targetEvaluate: nil,
+            approachSummary: nil,
+            trainingStages: [],
+            milestones: [],
+            createdAt: nil,
+            methodologyVersion: nil,
+            milestoneBasis: nil
+        )
+    }
+
+    private func overviewViewModel(
+        repository: MockTrainingPlanV2Repository
+    ) -> App2PlanOverviewViewModel {
+        App2PlanOverviewViewModel(
+            planRepository: repository,
+            targetRepository: MockTargetRepository(),
+            userProfileRepository: MockUserProfileRepository(),
+            weeklyVolumesLoader: { [] }
+        )
+    }
+
+    /// 換成功＝**重載 overview**，畫面上的方法名跟著變（不是只改本機一份字串）。
+    func testChangeMethodologyReloadsOverview() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.planStatusToReturn = planStatus(planId: "e1289e60f251_5")
+        repository.overviewToReturn = overviewEntity(id: "e1289e60f251", methodologyName: "Paceriz 平衡訓練法")
+
+        let viewModel = overviewViewModel(repository: repository)
+        await viewModel.revalidate()
+        XCTAssertEqual(viewModel.overviewId, "e1289e60f251")
+
+        // 換完之後後端回的是新方法名的 overview。
+        repository.overviewToReturn = overviewEntity(id: "e1289e60f251", methodologyName: "極化訓練")
+        let refreshesBefore = repository.refreshOverviewCallCount
+
+        let ok = await viewModel.changeMethodology(to: "polarized")
+
+        XCTAssertTrue(ok)
+        XCTAssertEqual(repository.updateOverviewCallCount, 1)
+        XCTAssertEqual(repository.lastUpdatedOverviewId, "e1289e60f251")
+        XCTAssertEqual(repository.lastUpdatedOverviewMethodologyId, "polarized")
+        XCTAssertGreaterThan(repository.refreshOverviewCallCount, refreshesBefore, "換完要重載 overview")
+        XCTAssertEqual(viewModel.overview?.value.rhythm.methodologyName, "極化訓練")
+        XCTAssertTrue(viewModel.didChangeMethodology, "畫面要出『下週依新方法產生』的小字")
+        XCTAssertNil(viewModel.methodologyError)
+    }
+
+    /// 失敗不改變現值：方法名仍是舊的，只出錯誤訊息。
+    func testChangeMethodologyFailureKeepsCurrentValue() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.planStatusToReturn = planStatus(planId: "e1289e60f251_5")
+        repository.overviewToReturn = overviewEntity(id: "e1289e60f251", methodologyName: "Paceriz 平衡訓練法")
+
+        let viewModel = overviewViewModel(repository: repository)
+        await viewModel.revalidate()
+
+        repository.errorToThrow = TrainingPlanV2Error.unknown("boom")
+        let ok = await viewModel.changeMethodology(to: "polarized")
+
+        XCTAssertFalse(ok)
+        XCTAssertFalse(viewModel.didChangeMethodology)
+        XCTAssertNotNil(viewModel.methodologyError)
+        XCTAssertEqual(viewModel.overview?.value.rhythm.methodologyName, "Paceriz 平衡訓練法")
+    }
+
+    /// **不同源不擋更換**：`isUnbound` 只代表本週課表比 overview 舊
+    /// （換過方法論之後必然如此）。曾經在這裡把 id 清掉，結果是換完那一刻
+    /// 「更換訓練方法」整列消失、換不回來（2026-08-27 模擬器實測）。
+    func testUnboundOverviewStillAllowsMethodologyChange() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.planStatusToReturn = planStatus(planId: "other_plan_5")
+        repository.overviewToReturn = overviewEntity(id: "e1289e60f251", methodologyName: "Paceriz 平衡訓練法")
+
+        let viewModel = overviewViewModel(repository: repository)
+        await viewModel.revalidate()
+
+        XCTAssertTrue(viewModel.stagesUnbound, "期程不顯示")
+        XCTAssertEqual(viewModel.overviewId, "e1289e60f251", "但入口仍在")
+
+        let ok = await viewModel.changeMethodology(to: "polarized")
+        XCTAssertTrue(ok)
+        XCTAssertEqual(repository.updateOverviewCallCount, 1)
+    }
+
+    // MARK: - 里程碑（2026-08-27 晚走查裁決（c））
+
+    private func milestone(
+        week: Int,
+        title: String,
+        description: String = "說明",
+        isKey: Bool = false
+    ) -> MilestoneV2 {
+        MilestoneV2(
+            week: week,
+            milestoneType: "benchmark",
+            title: title,
+            description: description,
+            isKeyMilestone: isKey
+        )
+    }
+
+    /// dev 帳號實測回三筆（第 2 週 5K 測試跑／第 4 週 17K 長距離跑／第 6 週 比賽週），
+    /// 三筆都要出現、照週次排、`is_key_milestone` 原樣帶出去。
+    func testMilestonesProjectInWeekOrder() {
+        let projected = App2PlanOverviewViewModel.milestones([
+            milestone(week: 6, title: "比賽週", isKey: true),
+            milestone(week: 2, title: "5K 測試跑"),
+            milestone(week: 4, title: "17K 長距離跑")
+        ])
+
+        XCTAssertEqual(projected.map(\.week), [2, 4, 6])
+        XCTAssertEqual(projected.map(\.title), ["5K 測試跑", "17K 長距離跑", "比賽週"])
+        XCTAssertEqual(projected.map(\.isKey), [false, false, true])
+        XCTAssertEqual(projected[0].weekLabel, "W2")
+    }
+
+    /// 標題空白的那一筆整筆丟掉（印一列空白比不印更糟）；
+    /// `description` 空白只是少一行小字，那一筆仍然留著。
+    func testMilestonesDropBlankTitleButKeepBlankDescription() {
+        let projected = App2PlanOverviewViewModel.milestones([
+            milestone(week: 1, title: "   "),
+            milestone(week: 2, title: "5K 測試跑", description: "  ")
+        ])
+
+        XCTAssertEqual(projected.count, 1)
+        XCTAssertEqual(projected[0].title, "5K 測試跑")
+        XCTAssertNil(projected[0].description)
+    }
+
+    /// overview 沒有 `milestones[]` → 空陣列（畫面整塊隱藏）。
+    func testProjectionWithoutMilestonesIsEmpty() {
+        let projected = App2PlanOverviewViewModel.project(
+            planStatus: planStatus(),
+            mainTarget: nil,
+            stages: [],
+            methodologyName: nil,
+            estimatedFinish: nil,
+            weeklyVolumes: [],
+            preferWeekDays: nil,
+            longRunWeekday: nil
+        )
+        XCTAssertTrue(projected.milestones.isEmpty)
+    }
+
+    /// 里程碑與期程同源：`project` 要把它帶進 `App2PlanOverview`。
+    func testProjectionCarriesMilestones() {
+        let projected = App2PlanOverviewViewModel.project(
+            planStatus: planStatus(),
+            mainTarget: nil,
+            stages: [],
+            milestones: [milestone(week: 2, title: "5K 測試跑")],
+            methodologyName: nil,
+            estimatedFinish: nil,
+            weeklyVolumes: [],
+            preferWeekDays: nil,
+            longRunWeekday: nil
+        )
+        XCTAssertEqual(projected.milestones.map(\.title), ["5K 測試跑"])
+    }
+
     // MARK: - 近期週跑量
 
     /// 當週（還沒跑完）不算進平均；0 的週照算。

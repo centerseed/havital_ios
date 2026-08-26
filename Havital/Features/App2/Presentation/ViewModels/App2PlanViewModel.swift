@@ -29,6 +29,17 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 這一週後端沒有課表（404）。**那不是錯誤**：計畫可能有幾週從沒生成過，
     /// 那幾週顯示空態，其他週照走。
     @Published private(set) var isHistoryWeekMissing = false
+
+    // MARK: - 產生本週課表（2026-08-27 晚走查裁決（i））
+    //
+    // **裁決前是死循環**：首頁說「到『課表』頁產生」，課表頁的未產生態卻只有同一句
+    // 文字卡、沒有任何產生入口（1.4 有 `training.generate_weekly_plan` 那顆鈕，
+    // App2 漏接）。生成要數十秒，所以要有 loading 態並擋住重複點擊。
+
+    @Published private(set) var isGeneratingPlan = false
+    /// 產生失敗的訊息（可重試）。
+    @Published var generateError: String?
+
     private(set) var hasLoaded = false
     private(set) var lastLoadedAt: Date?
 
@@ -169,6 +180,48 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 origin: .stub(pendingSection: App2StubFixtures.Section.offline)
             )
         }
+    }
+
+    /// 產生本週課表（`POST /v2/plan/weekly`，既有出口，不新開路徑）。
+    ///
+    /// 週次取 plan status 的 `current_week` —— 這一頁的週次骨幹本來就是它，
+    /// 不自己從日期推一個。沒有 plan status 就產不了（那時連第幾週都不知道）。
+    ///
+    /// 成功後**重跑 `revalidate()`**：`isPlanGenerated` 與日卡都由那一支決定，
+    /// 不在這裡自己把旗標翻真（翻了但課表沒下來，畫面會空著卻宣稱已產生）。
+    @discardableResult
+    func generateCurrentWeekPlan() async -> Bool {
+        guard !isGeneratingPlan else { return false }
+        guard let week = latestPlanStatus?.currentWeek else {
+            Logger.debug("[App2PlanVM] 沒有 plan status,產不了本週課表")
+            return false
+        }
+
+        isGeneratingPlan = true
+        generateError = nil
+        defer { isGeneratingPlan = false }
+
+        do {
+            _ = try await planRepository.generateWeeklyPlan(
+                weekOfTraining: week,
+                forceGenerate: nil,
+                promptVersion: nil,
+                methodology: nil
+            )
+        } catch {
+            guard !error.isCancellationError else { return false }
+            let domainError = error.toDomainError()
+            Logger.debug("[App2PlanVM] 產生本週課表失敗: \(domainError)")
+            generateError = domainError.localizedDescription
+            return false
+        }
+
+        // 課表下來了 —— 這一頁與首頁今日課表都要換成新的那一份。
+        await revalidate()
+        // 首頁的今日課表吃同一份週課表 —— 用既有的失效事件把它叫醒
+        // （同 `EditScheduleV2ViewModel` 存檔後的處置，不新開通知路徑）。
+        CacheEventBus.shared.publish(.dataChanged(.trainingPlanV2))
+        return isPlanGenerated
     }
 
     /// 結束態卡。與首頁走**同一支投影**（`App2PlanEndProjection.card`），

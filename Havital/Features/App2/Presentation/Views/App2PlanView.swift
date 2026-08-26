@@ -75,6 +75,12 @@ struct App2PlanView: View {
                         .lineSpacing(2)
                         .foregroundStyle(App2Theme.inkSecondary)
                         .fixedSize(horizontal: false, vertical: true)
+
+                        // 產生入口（2026-08-27 晚走查裁決（i））：裁決前首頁叫用戶
+                        // 「到課表頁產生」，這一頁卻只有同一句話 —— 走不出去。
+                        if !viewModel.isPlanGenerated {
+                            generatePlanButton
+                        }
                     }
                     .accessibilityIdentifier("App2_PlanEmptyState")
                 }
@@ -112,6 +118,55 @@ struct App2PlanView: View {
                 Task { await viewModel.forceRefresh() }
             }
         }
+        // 產生失敗可重試（按鈕仍在，狀態沒有被改掉）。
+        .alert(
+            L10n.App2.Plan.generateFailed.localized,
+            isPresented: Binding(
+                get: { viewModel.generateError != nil },
+                set: { if !$0 { viewModel.generateError = nil } }
+            ),
+            presenting: viewModel.generateError
+        ) { _ in
+            Button(L10n.Common.done.localized, role: .cancel) {}
+        } message: { message in
+            Text(message)
+        }
+    }
+
+    // MARK: - 產生本週課表（2026-08-27 晚走查裁決（i））
+
+    /// 生成要數十秒，所以按下去就換成 loading 態並擋住重複點擊
+    /// （`isGeneratingPlan` 由 VM 持有，不是 view 自己的 `@State` ——
+    /// 換 tab 回來時 view 會重建，本機旗標會把 loading 態弄丟）。
+    private var generatePlanButton: some View {
+        HStack(spacing: 8) {
+            if viewModel.isGeneratingPlan {
+                ProgressView().tint(.white)
+                Text(L10n.App2.Plan.generatingWeek.localized)
+            } else {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 15, weight: .bold))
+                Text(L10n.App2.Plan.generateWeek.localized)
+            }
+        }
+        .font(.system(size: 16, weight: .heavy))
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 13)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(viewModel.isGeneratingPlan ? App2Theme.accentBlue.opacity(0.6) : App2Theme.accentBlue)
+        )
+        .padding(.top, 6)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard !viewModel.isGeneratingPlan else { return }
+            Task { await viewModel.generateCurrentWeekPlan() }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityAddTraits(.isButton)
+        .accessibilityLabel(L10n.App2.Plan.generateWeek.localized)
+        .accessibilityIdentifier("App2_PlanGenerateWeek")
     }
 
     // MARK: - Header（標題 ＋ 週次切換器）

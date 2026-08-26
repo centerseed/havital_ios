@@ -774,4 +774,87 @@ final class App2PlanEndStoryFixtureTests: XCTestCase {
         XCTAssertFalse(story.chapters.contains { $0.weekLabel.contains("22") })
     }
 }
+
+// MARK: - 產生本週課表（2026-08-27 晚走查裁決（i））
+/// 裁決前的死循環：首頁叫用戶「到課表頁產生」，課表頁的未產生態卻沒有任何入口。
+@MainActor
+final class App2PlanGenerateWeekTests: XCTestCase {
+
+    private func planStatus(planId: String?) -> PlanStatusV2Response {
+        PlanStatusV2Response(
+            currentWeek: 2,
+            totalWeeks: 6,
+            nextAction: planId == nil ? "generate_weekly_plan" : "view_plan",
+            canGenerateNextWeek: true,
+            currentWeekPlanId: planId,
+            previousWeekSummaryId: nil,
+            targetType: "race_run",
+            methodologyId: "paceriz",
+            nextWeekInfo: nil,
+            metadata: nil
+        )
+    }
+
+    private func weeklyPlan() -> WeeklyPlanV2 {
+        WeeklyPlanV2(
+            planId: "e1289e60f251_2", weekOfTraining: 2, id: "e1289e60f251_2",
+            purpose: "base", weekOfPlan: 2, totalWeeks: 6, totalDistance: 30,
+            totalDistanceDisplay: nil, totalDistanceUnit: nil, totalDistanceReason: nil,
+            designReason: nil, mileageProgressionNote: nil, coachNote: nil, days: [],
+            intensityTotalMinutes: nil, currentVdot: nil, vdotSource: nil,
+            createdAt: Date(), updatedAt: Date(), trainingLoadAnalysis: nil,
+            personalizedRecommendations: nil, realTimeAdjustments: nil, apiVersion: "2.0"
+        )
+    }
+
+    private func makeViewModel(
+        _ repository: MockTrainingPlanV2Repository
+    ) -> App2PlanViewModel {
+        App2PlanViewModel(
+            planRepository: repository,
+            workoutRepository: MockWorkoutRepository(),
+            targetRepository: nil
+        )
+    }
+
+    /// 未產生 → 按下去 → `isPlanGenerated` 翻真，且週次取自 plan status。
+    func test_generateCurrentWeekPlan_flipsIsPlanGenerated() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.planStatusToReturn = planStatus(planId: nil)
+        repository.weeklyPlanV2ToReturn = weeklyPlan()
+
+        let viewModel = makeViewModel(repository)
+        await viewModel.revalidate()
+        XCTAssertFalse(viewModel.isPlanGenerated, "本週沒有課表 → 未產生態")
+
+        // 產生成功之後後端就有本週課表了。
+        repository.planStatusToReturn = planStatus(planId: "e1289e60f251_2")
+        let ok = await viewModel.generateCurrentWeekPlan()
+
+        XCTAssertTrue(ok)
+        XCTAssertEqual(repository.generateWeeklyPlanCallCount, 1)
+        XCTAssertTrue(viewModel.isPlanGenerated)
+        XCTAssertFalse(viewModel.isGeneratingPlan)
+        XCTAssertNil(viewModel.generateError)
+        XCTAssertNotNil(viewModel.week)
+    }
+
+    /// 失敗可重試：狀態不變、錯誤訊息出得來、按鈕沒有被鎖住。
+    func test_generateCurrentWeekPlan_failureKeepsEmptyStateAndReportsError() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.planStatusToReturn = planStatus(planId: nil)
+
+        let viewModel = makeViewModel(repository)
+        await viewModel.revalidate()
+
+        repository.generateWeeklyPlanErrors = [TrainingPlanV2Error.unknown("boom")]
+        let ok = await viewModel.generateCurrentWeekPlan()
+
+        XCTAssertFalse(ok)
+        XCTAssertFalse(viewModel.isPlanGenerated)
+        XCTAssertFalse(viewModel.isGeneratingPlan, "失敗之後不得卡在 loading")
+        XCTAssertNotNil(viewModel.generateError)
+    }
+}
+
 #endif

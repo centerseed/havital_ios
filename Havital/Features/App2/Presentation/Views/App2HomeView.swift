@@ -683,10 +683,12 @@ struct App2HomeView: View {
             let status = sourced.value
             App2Card(padding: 15, spacing: 13) {
                 HStack {
+                    // 標題弱化（2026-08-27 晚走查裁決（a））：深灰、w600、16px。
+                    // 只有這一顆換 —— 「個人最佳」等仍是 `app2CardTitle`。
                     Text(L10n.App2.Home.statusSection.localized)
-                        .font(.app2CardTitle)
+                        .font(.app2CardTitleMuted)
                         .tracking(0.5)
-                        .foregroundStyle(App2Theme.inkPrimary)
+                        .foregroundStyle(App2Theme.inkSecondary)
                         // 卡片標記掛在標題這顆葉節點上 —— 掛在容器上 SwiftUI 會把
                         // identifier 蓋到每一個子節點，卡內的 LV 徽章、指標 handle
                         // 在 a11y tree 裡就全部叫 `App2_TrainingStatusCard`
@@ -729,29 +731,42 @@ struct App2HomeView: View {
 
         Group {
             if canExpand {
-                (
+                // **連結釘在同一列最右緣**（2026-08-27 晚走查裁決（g））：
+                // headline 靠左、可換行，連結右對齊。用 `.lastTextBaseline` 對齊，
+                // headline 多行時連結跟著末行走，不會浮在第一行旁邊。
+                // 8/26 的 inline 相加版（`Text + Text`）做不到右對齊 —— 那是同一段
+                // 文字流，連結只會接在句尾。
+                HStack(alignment: .lastTextBaseline, spacing: 8) {
                     headline
-                        + Text(" ")
-                        + Text(label)
+                        .tracking(0.3)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                    (
+                        Text(label)
                             .font(.system(size: 14, weight: .black))
                             .foregroundColor(App2Theme.accentBlue)
-                        + Text(" ")
-                        + Text(Image(systemName: isStatusExpanded ? "chevron.up" : "chevron.down"))
-                            .font(.system(size: 11, weight: .black))
-                            .foregroundColor(App2Theme.accentBlue)
-                )
+                            + Text(" ")
+                            + Text(Image(systemName: isStatusExpanded ? "chevron.up" : "chevron.down"))
+                                .font(.system(size: 11, weight: .black))
+                                .foregroundColor(App2Theme.accentBlue)
+                    )
+                    .lineLimit(1)
+                    .fixedSize()
+                }
                 .contentShape(Rectangle())
                 .onTapGesture {
                     withAnimation(.easeInOut(duration: 0.2)) { isStatusExpanded.toggle() }
                 }
+                .accessibilityElement(children: .combine)
                 .accessibilityAddTraits(.isButton)
                 .accessibilityIdentifier("App2_StatusWhyToggle")
             } else {
                 headline
+                    .tracking(0.3)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .tracking(0.3)
-        .fixedSize(horizontal: false, vertical: true)
     }
 
     private func statusBanner(_ status: App2TrainingStatus) -> some View {

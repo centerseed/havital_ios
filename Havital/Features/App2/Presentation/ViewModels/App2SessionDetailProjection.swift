@@ -83,6 +83,7 @@ enum App2SessionDetailProjection {
             // 已回報，App 端先不把矛盾的話印在用戶眼前（不在 app 硬繞成別的內容）。
             reasonText: nil,
             segments: segments,
+            strength: strength(day: day),
             climate: climate(meta: day.climateMeta),
             showsFuelingNote: showsFuelingNote(dayType: dayType, durationMinutes: durationMinutes),
             isRunSession: isRun
@@ -269,10 +270,10 @@ enum App2SessionDetailProjection {
                     )
                 }
             }
-        case .strength(let strength):
-            for exercise in strength.exercises {
-                append(exercise.name, detail: strengthDetail(exercise), isWork: true)
-            }
+        case .strength:
+            // 肌力課的動作清單走「力量訓練」區塊（`strength(day:)`），不在這裡再列一次
+            // —— 同一份內容不擺兩處（2026-08-27 晚走查裁決（d）收斂）。
+            break
         case .cross(let cross):
             append(
                 L10n.App2.Home.segmentMain.localized,
@@ -310,10 +311,77 @@ enum App2SessionDetailProjection {
         return value.map { String(format: L10n.App2.Detail.recoveryNote.localized, $0) }
     }
 
-    /// `3 組 × 12 下`／`3 組 × 45 秒`。
+    // MARK: - 力量訓練（2026-08-27 晚走查裁決（d））
+
+    /// 這一天的肌力內容 → 「力量訓練」區塊。
+    ///
+    /// **來源兩處，順序固定**：primary 本身是肌力課的那一份在前（那是今天的主課），
+    /// 再接 day 層 `effectiveSupplementary` 的肌力項目（跑步日附加的那幾個動作）。
+    /// 交叉訓練的 supplementary 不進這裡 —— 那不是力量訓練。
+    ///
+    /// 一個動作都排不出來（動作清單空、也沒有類型名可講）就整組丟掉；
+    /// 全部都丟掉就回 nil，畫面整塊不出現。
+    static func strength(day: DayDetail) -> App2SessionStrength? {
+        var activities: [StrengthActivity] = []
+        if case .strength(let primary)? = day.session?.primary {
+            activities.append(primary)
+        }
+        for activity in day.effectiveSupplementary ?? [] {
+            if case .strength(let supplementary) = activity {
+                activities.append(supplementary)
+            }
+        }
+
+        let groups = activities.enumerated().compactMap { index, activity -> App2SessionStrengthGroup? in
+            let exercises = activity.exercises.enumerated().compactMap { position, exercise -> App2SessionStrengthExercise? in
+                let name = exercise.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !name.isEmpty else { return nil }
+                return App2SessionStrengthExercise(
+                    id: position,
+                    name: name,
+                    detail: strengthDetail(exercise)
+                )
+            }
+            let typeLabel = strengthTypeLabel(activity.strengthType)
+            guard !exercises.isEmpty || typeLabel != nil else { return nil }
+            return App2SessionStrengthGroup(
+                id: index,
+                typeLabel: typeLabel,
+                note: activity.description.flatMap(nonEmpty),
+                durationLabel: activity.durationMinutes.map {
+                    String(format: L10n.App2.Home.minutes.localized, $0)
+                },
+                exercises: exercises
+            )
+        }
+
+        guard !groups.isEmpty else { return nil }
+        return App2SessionStrength(groups: groups)
+    }
+
+    /// 後端已支援的肌力類型。**對不上就回 nil** —— 直接把 `strength_type` 插進
+    /// `training.strength_type.<t>` 會在未知類型時把識別字原樣印給用戶
+    /// （`NSLocalizedString` 找不到 key 就回 key 本身）。
+    static let strengthTypeKeys: Set<String> = [
+        "core_stability", "glutes_hip", "lower_strength",
+        "upper_strength", "full_body", "plyometric", "mobility"
+    ]
+
+    static func strengthTypeLabel(_ rawType: String) -> String? {
+        let key = rawType.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard strengthTypeKeys.contains(key) else { return nil }
+        return NSLocalizedString("training.strength_type.\(key)", comment: "")
+    }
+
+    /// `3 組 × 12 下`／`3 組 × 8-12 下`／`3 組 × 45 秒`。
+    ///
+    /// **`reps` 是字串不是數字**（後端可能給 `8-12` 這種範圍，見
+    /// `TrainingSessionMapper.swift:234` 的 `reps_range` 合併），所以那一格是 `%2$@`。
+    /// 之前用 `%2$d` 餵一個 String，印出來是指標值
+    /// （2026-08-27 補投影測試時發現的既有缺陷）。
     static func strengthDetail(_ exercise: Exercise) -> String? {
         guard let sets = exercise.sets else { return nil }
-        if let reps = exercise.reps {
+        if let reps = exercise.reps?.trimmingCharacters(in: .whitespacesAndNewlines), !reps.isEmpty {
             return String(format: L10n.App2.Detail.strengthSetsReps.localized, sets, reps)
         }
         if let seconds = exercise.durationSeconds {

@@ -101,6 +101,94 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         )
     }
 
+    // MARK: - §52 未來預估段（2026-08-27 晚走查裁決（f））
+
+    /// `vdots` 一條序列同時裝歷史與「建計畫時生成的未來每日預估」
+    /// （dev 帳號實測 45 筆中 28 筆是未來日）。切點是用戶當地的今天。
+    func testSplitProjectedSeparatesFutureEstimates() {
+        let series = [
+            point("2026-08-24", 38.4),
+            point("2026-08-26", 38.6),
+            point("2026-08-27", 38.6),   // 今天仍算歷史
+            point("2026-08-28", 38.7),
+            point("2026-10-04", 39.6)
+        ]
+
+        let split = App2MetricDetailProjection.splitProjected(series, today: "2026-08-27")
+
+        XCTAssertEqual(split.history.map(\.date), ["2026-08-24", "2026-08-26", "2026-08-27"])
+        XCTAssertEqual(split.projectedFromIndex, 3, "索引是整條序列上的位置，圖表要用它畫")
+    }
+
+    /// 全是歷史（沒有計畫在跑）→ 不切，也不畫虛線。
+    func testSplitProjectedWithoutFutureKeepsWholeSeries() {
+        let series = [point("2026-08-24", 38.4), point("2026-08-26", 38.6)]
+        let split = App2MetricDetailProjection.splitProjected(series, today: "2026-08-27")
+
+        XCTAssertEqual(split.history.count, 2)
+        XCTAssertNil(split.projectedFromIndex)
+    }
+
+    /// hero 的「目前跑力」與「30 天前」**只吃歷史段**。
+    /// 之前取 `series.last` ＝ 顯示賽事日的預估值（bug）。
+    func testHeroAndThirtyDaysAgoIgnoreFutureEstimates() {
+        let series = [
+            point("2026-07-20", 38.0),
+            point("2026-07-27", 38.2),
+            point("2026-08-27", 38.6),
+            point("2026-10-04", 39.6)   // 賽事日預估，不得冒充現值
+        ]
+        let split = App2MetricDetailProjection.splitProjected(series, today: "2026-08-27")
+
+        XCTAssertEqual(split.history.last?.value ?? 0, 38.6, accuracy: 0.001)
+        XCTAssertEqual(
+            App2MetricDetailProjection.value(in: split.history, daysAgo: 30, from: "2026-08-27") ?? 0,
+            38.2,
+            accuracy: 0.001
+        )
+    }
+
+    /// 圖表兩段共用整條序列的座標系：實線 `0...start-1`、虛線含交界點。
+    func testChartRangesCoverBothSegmentsWithoutGap() {
+        let line = App2MetricLineChart.Series(
+            id: "vdot",
+            points: [
+                point("2026-08-24", 38.4),
+                point("2026-08-26", 38.6),
+                point("2026-08-27", 38.6),
+                point("2026-08-28", 38.7),
+                point("2026-10-04", 39.6)
+            ],
+            tint: .blue,
+            projectedFromIndex: 3
+        )
+
+        XCTAssertEqual(App2MetricLineChart.historyRange(line), 0...2)
+        XCTAssertEqual(App2MetricLineChart.projectedRange(line), 2...4, "虛線要含交界那一點才接得上")
+    }
+
+    /// **兩個顯示點必須一致**：能力基準 hero 與配速區間頁的 VDOT
+    /// （`VDOTManager.statistics.latestDynamicVdot`）都是「今天以前的最後一筆」。
+    /// 修正前配速區間顯示 39.6（賽事日預估）、能力基準顯示 38.5（使用者回報）。
+    func testVdotStatisticsLatestIgnoresFutureEstimates() {
+        let now = Date(timeIntervalSince1970: 1_787_000_000)   // 切點
+        func dataPoint(_ offsetDays: Double, _ value: Double) -> EnhancedVDOTDataPoint {
+            EnhancedVDOTDataPoint(
+                date: now.addingTimeInterval(offsetDays * 86_400),
+                dynamicVdot: value,
+                weightVdot: nil
+            )
+        }
+
+        let statistics = VDOTStatistics(
+            from: [dataPoint(-7, 38.2), dataPoint(-1, 38.5), dataPoint(1, 38.7), dataPoint(38, 39.6)],
+            now: now
+        )
+
+        XCTAssertEqual(statistics.latestDynamicVdot, 38.5, accuracy: 0.001)
+        XCTAssertEqual(statistics.dataPointCount, 4, "圖仍畫整條序列，只有『最新值』不吃未來")
+    }
+
     // MARK: - §52-4 診斷列
 
     func testDiagnosticsAreDataDriven() {

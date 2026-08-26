@@ -39,6 +39,41 @@ struct App2SettingsView: View {
     /// 登出前的二次確認（破壞性樣式）。
     @State private var isConfirmingLogout = false
 
+    // MARK: - 訂閱卡的第二行（2026-08-27 晚走查裁決（h））
+    //
+    // **不自建第二條訂閱資料路徑**：狀態走 `SubscriptionStateManager.shared`
+    // （設定 VM 的訂閱狀態字也是它），在地化價格走 `PaywallViewModel.displayPackages`
+    // ——與「方案與訂閱」頁（`App2PlansView`）同一組出口。
+
+    @ObservedObject private var subscriptionState = SubscriptionStateManager.shared
+    @StateObject private var paywallViewModel = PaywallViewModel(trigger: .settingsTier)
+
+    private var subscriptionStatus: SubscriptionStatusEntity? { subscriptionState.currentStatus }
+
+    /// 續訂中＝這一卡只留「管理訂閱」一顆鈕（設計稿）。其餘狀態維持原本兩顆。
+    private var isRenewing: Bool {
+        switch subscriptionStatus?.status {
+        case .active, .gracePeriod: return true
+        default: return false
+        }
+    }
+
+    /// `2026-09-15`。沒有到期日就沒有這一段（不畫空字串）。
+    private var nextRenewalDate: String? {
+        guard isRenewing, let timestamp = subscriptionStatus?.expiresAt else { return nil }
+        return DateFormatterHelper.formatSubscriptionExpiryDate(
+            Date(timeIntervalSince1970: timestamp)
+        )
+    }
+
+    /// `NT$1,790/年` —— RevenueCat 的在地化字串已經帶週期，不自己補。
+    /// 還沒載到 offerings 就沒有這一段（不填樣本價）。
+    private var renewalPrice: String? {
+        paywallViewModel.displayPackages
+            .first { $0.package.period == .yearly }?
+            .displayPrice
+    }
+
     private var appVersion: String {
         let short = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
@@ -72,6 +107,8 @@ struct App2SettingsView: View {
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
         .onAppear { viewModel.loadIfNeeded() }
+        // 訂閱卡第二行的價格要在地化字串，來源同「方案與訂閱」頁。
+        .task { await paywallViewModel.loadOfferings() }
         // 子頁一律 `fullScreenCover`：這一頁自己就開在 fullScreenCover 裡，
         // 巢狀 sheet 不會進 accessibility tree（repo 既有坑）。
         .fullScreenCover(item: $destination) { destination in
@@ -187,22 +224,31 @@ struct App2SettingsView: View {
                     }
                 }
 
+                // 第二行「下次續訂 2026-09-15 · NT$1,790/年」（設計稿）。
+                // 日期與價格各自可缺：兩段都拿不到就整行不出現（不畫空字串）。
+                renewalLine
+
                 HStack(spacing: 10) {
                     subscriptionButton(
                         title: L10n.App2.Settings.manageSubscription.localized,
                         filled: false,
+                        bordered: !isRenewing,
                         identifier: "App2_SettingsManageSubscription"
                     ) {
                         guard let url = URL(string: "https://apps.apple.com/account/subscriptions")
                         else { return }
                         UIApplication.shared.open(url)
                     }
-                    subscriptionButton(
-                        title: L10n.App2.Settings.viewPlans.localized,
-                        filled: true,
-                        identifier: "App2_SettingsViewPlans"
-                    ) {
-                        destination = .plans
+                    // 續訂中只留一顆鈕（設計稿）——「查看方案」在那個狀態沒有事情可做。
+                    // 未訂閱／已到期仍是兩顆（那時「查看方案」是主要動作）。
+                    if !isRenewing {
+                        subscriptionButton(
+                            title: L10n.App2.Settings.viewPlans.localized,
+                            filled: true,
+                            identifier: "App2_SettingsViewPlans"
+                        ) {
+                            destination = .plans
+                        }
                     }
                 }
                 .padding(.top, 14)
@@ -210,9 +256,43 @@ struct App2SettingsView: View {
         }
     }
 
+    /// `下次續訂 2026-09-15 · NT$1,790/年`。日期粗體等寬（設計稿），價格接在中點後。
+    @ViewBuilder
+    private var renewalLine: some View {
+        if nextRenewalDate != nil || (isRenewing && renewalPrice != nil) {
+            HStack(spacing: 5) {
+                if let nextRenewalDate {
+                    Text(L10n.App2.Settings.nextRenewal.localized)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(App2Theme.inkTertiary)
+                    Text(nextRenewalDate)
+                        .font(.app2Mono(13, weight: .heavy))
+                        .foregroundStyle(App2Theme.inkSecondary)
+                }
+                if let renewalPrice, isRenewing {
+                    if nextRenewalDate != nil {
+                        Text(verbatim: "·")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(App2Theme.inkFaint)
+                    }
+                    Text(renewalPrice)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(App2Theme.inkTertiary)
+                }
+                Spacer(minLength: 0)
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .padding(.top, 6)
+            .accessibilityIdentifier("App2_SettingsRenewalLine")
+        }
+    }
+
     private func subscriptionButton(
         title: String,
         filled: Bool,
+        /// 續訂中那顆是**純白底無外框**（設計稿）；未訂閱態的次要鈕仍有藍描邊。
+        bordered: Bool = true,
         identifier: String,
         action: @escaping () -> Void
     ) -> some View {
@@ -228,7 +308,7 @@ struct App2SettingsView: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .strokeBorder(
-                        filled ? Color.clear : App2Theme.accentBlue.opacity(0.32),
+                        (filled || !bordered) ? Color.clear : App2Theme.accentBlue.opacity(0.32),
                         lineWidth: 1
                     )
             )

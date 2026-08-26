@@ -297,6 +297,7 @@ final class App2RenderingTests: XCTestCase {
         estimate: String? = "4:12:30",
         weeklyKm: Double? = 32,
         stages: [App2PlanStage] = App2RenderingTests.sampleStages,
+        milestones: [App2PlanMilestone] = App2RenderingTests.sampleMilestones,
         rhythm: App2PlanRhythm = App2PlanRhythm(
             runDaysPerWeek: 4, longRunDayLabel: "週日", methodologyName: "Paceriz 平衡訓練法"
         )
@@ -313,9 +314,15 @@ final class App2RenderingTests: XCTestCase {
             totalWeeks: raceName == nil ? nil : 22,
             currentStageName: stages.first(where: { $0.state == .active })?.name,
             stages: stages,
+            milestones: milestones,
             rhythm: rhythm
         )
     }
+
+    private static let sampleMilestones: [App2PlanMilestone] = [
+        App2PlanMilestone(week: 2, title: "5K 測試跑", description: "確認目前的體能基準", isKey: false),
+        App2PlanMilestone(week: 6, title: "比賽週", description: "目標賽事", isKey: true)
+    ]
 
     private static let sampleStages: [App2PlanStage] = [
         App2PlanStage(id: "s1", name: "建立耐力", focus: "先把週跑量穩到 45–50 km",
@@ -338,7 +345,7 @@ final class App2RenderingTests: XCTestCase {
         vm.applyForTesting(
             overview: App2Sourced(
                 planOverview(
-                    raceName: nil, estimate: nil, weeklyKm: nil, stages: [],
+                    raceName: nil, estimate: nil, weeklyKm: nil, stages: [], milestones: [],
                     rhythm: App2PlanRhythm(
                         runDaysPerWeek: nil, longRunDayLabel: nil, methodologyName: nil
                     )

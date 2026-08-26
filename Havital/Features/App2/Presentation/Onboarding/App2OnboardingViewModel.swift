@@ -348,9 +348,27 @@ final class App2OnboardingViewModel: ObservableObject {
 
     // MARK: - frame-36 訓練方法
 
-    /// 推薦項＝該目標型態的 `defaultMethodology`（既有欄位），沒有就取清單第一個。
+    /// 這一輪的**有效目標型態 id**。
+    ///
+    /// 重設目標（re-onboarding）不經過「選目標型態」那一頁，`flow.selectedTargetTypeV2`
+    /// 是 nil —— 但 coordinator 手上仍有上一次選定的型態。兩處都空才是真的不知道。
+    var effectiveTargetTypeId: String? {
+        coordinator.selectedTargetTypeId ?? flow.selectedTargetTypeV2?.id
+    }
+
+    /// 推薦項＝該目標型態的 `defaultMethodology`（`GET /v2/target/types` 的既有欄位；
+    /// dev 實測 `race_run` → `paceriz`）。
+    ///
+    /// **不能只看 `flow.selectedTargetTypeV2`**：重設目標時它是 nil，推薦就退成
+    /// 「清單第一個」＝ Hansons，畫面上把漢森標成推薦（2026-08-27 使用者實機截圖）。
+    /// 這裡改成用有效型態 id 去查已載入的型態清單；查不到才退清單第一個。
     var recommendedMethodologyId: String? {
-        flow.selectedTargetTypeV2?.defaultMethodology ?? flow.availableMethodologies.first?.id
+        if let targetTypeId = effectiveTargetTypeId,
+           let targetType = flow.availableTargetTypes.first(where: { $0.id == targetTypeId }) {
+            return targetType.defaultMethodology
+        }
+        return flow.selectedTargetTypeV2?.defaultMethodology
+            ?? flow.availableMethodologies.first?.id
     }
 
     func selectMethodology(_ methodology: MethodologyV2) {

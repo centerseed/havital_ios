@@ -2249,6 +2249,8 @@ extension L10n {
             static let goal = "app2.detail.goal"
             static let structure = "app2.detail.structure"
             static let recoveryNote = "app2.detail.recovery_note"
+            /// 「力量訓練」區塊小標（2026-08-27 晚走查裁決（d））。
+            static let strengthSection = "app2.detail.strength_section"
             static let strengthSetsReps = "app2.detail.strength_sets_reps"
             static let strengthSetsSeconds = "app2.detail.strength_sets_seconds"
             static let strengthSets = "app2.detail.strength_sets"
@@ -2373,12 +2375,15 @@ extension L10n {
             static let intensityHigh = "app2.plan.intensity_high"
             static let daysSection = "app2.plan.days_section"
             static let rest = "app2.plan.rest"
+            /// 未產生態的產生入口（2026-08-27 晚走查裁決（i））。
+            static let generateWeek = "app2.plan.generate_week"
+            static let generatingWeek = "app2.plan.generating_week"
+            static let generateFailed = "app2.plan.generate_failed"
         }
 
         /// 訓練計畫總覽（設計 frame-20）。
         enum PlanOverview {
             static let title = "app2.plan_overview.title"
-            static let adjust = "app2.plan_overview.adjust"
             static let goalSection = "app2.plan_overview.goal_section"
             /// `還有 %d 週`
             static let weeksUntilRace = "app2.plan_overview.weeks_until_race"
@@ -2393,6 +2398,8 @@ extension L10n {
             /// `%d 個階段`
             static let stagesSection = "app2.plan_overview.stages_section"
             static let stagesSubtitle = "app2.plan_overview.stages_subtitle"
+            /// 里程碑區塊小標（2026-08-27 晚走查裁決（c））。
+            static let milestonesSection = "app2.plan_overview.milestones_section"
             static let stageActive = "app2.plan_overview.stage_active"
             static let stageUpcoming = "app2.plan_overview.stage_upcoming"
             static let stageDone = "app2.plan_overview.stage_done"
@@ -2404,13 +2411,17 @@ extension L10n {
             static let runDaysValue = "app2.plan_overview.run_days_value"
             static let longRunDay = "app2.plan_overview.long_run_day"
             static let methodology = "app2.plan_overview.methodology"
+            /// 更換訓練方法（2026-08-27 晚走查裁決（e））。
+            static let changeMethodology = "app2.plan_overview.change_methodology"
+            static let changeMethodologyNote = "app2.plan_overview.change_methodology_note"
+            static let changeMethodologyFailed = "app2.plan_overview.change_methodology_failed"
+            static let methodologyChanged = "app2.plan_overview.methodology_changed"
             static let manageSection = "app2.plan_overview.manage_section"
             static let manageRaces = "app2.plan_overview.manage_races"
             static let manageRacesSub = "app2.plan_overview.manage_races_sub"
             static let resetGoal = "app2.plan_overview.reset_goal"
             static let resetGoalSub = "app2.plan_overview.reset_goal_sub"
             static let autoAdjustNote = "app2.plan_overview.auto_adjust_note"
-            static let rizoCta = "app2.plan_overview.rizo_cta"
             static let noPlanTitle = "app2.plan_overview.no_plan_title"
             static let noPlanBody = "app2.plan_overview.no_plan_body"
             /// overview 綁不上本週課表 → 期程整段不顯示，畫面要說明原因。
@@ -2535,6 +2546,8 @@ extension L10n {
             static let capabilityCompareFormat = "app2.metric.capability_compare_format"
             static let capabilityChartTitle = "app2.metric.capability_chart_title"
             static let capabilityAnchorMarker = "app2.metric.capability_anchor_marker"
+            /// 圖上虛線段（未來預估）的圖例（2026-08-27 晚走查裁決（f））。
+            static let projectedLegend = "app2.metric.projected_legend"
             /// `指標跑（8/2）`
             static let capabilityAnchorFormat = "app2.metric.capability_anchor_format"
             static let capabilityHowTitle = "app2.metric.capability_how_title"
@@ -2671,6 +2684,8 @@ extension L10n {
         enum Settings {
             static let title = "app2.settings.title"
             static let manageSubscription = "app2.settings.manage_subscription"
+            /// 訂閱卡第二行的前綴（2026-08-27 晚走查裁決（h））。
+            static let nextRenewal = "app2.settings.next_renewal"
             static let viewPlans = "app2.settings.view_plans"
             static let redeemCode = "app2.settings.redeem_code"
             /// 訓練日之間的分隔符（設計 frame-21 是「一・三・四」）。

@@ -160,6 +160,13 @@ struct App2MetricLineChart: View {
         let tint: Color
         /// 圖例上的字（`HRV`／`RHR`）。nil = 不進圖例（單線圖不需要）。
         var legend: String?
+        /// 從第幾點開始是**未來預估**（`points` 的索引）。這一段畫虛線＋降透明度，
+        /// 與已經發生的歷史分開（2026-08-27 晚走查裁決（f）：VDOT 序列含建計畫時
+        /// 生成的未來每日預估，畫成實線等於宣稱那些天已經量到了）。
+        /// nil ＝整條都是歷史。
+        var projectedFromIndex: Int?
+        /// 虛線段的圖例字（`預估`）。
+        var projectedLegend: String?
     }
 
     let series: [Series]
@@ -247,9 +254,17 @@ struct App2MetricLineChart: View {
                 marker(in: geo.size)
 
                 ForEach(series) { line in
-                    Self.path(line.points, in: geo.size)
+                    // 歷史段（實線）與預估段（虛線）共用**同一份 points 的座標系**：
+                    // 各自用自己的陣列畫，x 間距與 y 上下界都會跑掉。
+                    Self.path(line.points, in: geo.size, range: Self.historyRange(line))
                         .stroke(line.tint,
                                 style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
+                    if let projectedRange = Self.projectedRange(line) {
+                        Self.path(line.points, in: geo.size, range: projectedRange)
+                            .stroke(line.tint.opacity(0.55),
+                                    style: StrokeStyle(lineWidth: 2.4, lineCap: .round,
+                                                       lineJoin: .round, dash: [5, 4]))
+                    }
                 }
             }
         }
@@ -314,7 +329,9 @@ struct App2MetricLineChart: View {
     @ViewBuilder
     private var legendRow: some View {
         let items = series.filter { $0.legend != nil }
-        if !items.isEmpty {
+        // 有虛線段就一定要有「預估」chip —— 一條沒有標示的虛線讀不出它是什麼。
+        let projected = series.first { $0.projectedLegend != nil && Self.projectedRange($0) != nil }
+        if !items.isEmpty || projected != nil {
             HStack(spacing: 10) {
                 ForEach(items) { line in
                     HStack(spacing: 5) {
@@ -326,6 +343,21 @@ struct App2MetricLineChart: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(Capsule().fill(line.tint.opacity(0.12)))
+                }
+                if let projected {
+                    HStack(spacing: 5) {
+                        App2DashedLine()
+                            .stroke(projected.tint.opacity(0.55),
+                                    style: StrokeStyle(lineWidth: 2, dash: [3, 3]))
+                            .frame(width: 14, height: 2)
+                        Text(projected.projectedLegend ?? "")
+                            .font(.system(size: 11, weight: .heavy))
+                            .foregroundStyle(projected.tint.app2Darkened)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Capsule().fill(projected.tint.opacity(0.10)))
+                    .accessibilityIdentifier("App2_MetricChartProjectedLegend")
                 }
                 Spacer(minLength: 0)
             }
@@ -348,16 +380,37 @@ struct App2MetricLineChart: View {
         return height * CGFloat(1 - (value - bounds.lower) / span)
     }
 
-    static func path(_ points: [App2MetricPoint], in size: CGSize) -> Path {
+    /// 畫 `points[range]`，但 **x 間距與 y 上下界都用整條 `points` 算** ——
+    /// 這樣實線段與虛線段接得起來。
+    static func path(_ points: [App2MetricPoint], in size: CGSize, range: ClosedRange<Int>? = nil) -> Path {
         var path = Path()
         guard points.count >= 2, let bounds = bounds(points) else { return path }
         let stepX = size.width / CGFloat(points.count - 1)
-        for (index, point) in points.enumerated() {
+        let drawn = range ?? 0...(points.count - 1)
+        guard drawn.lowerBound >= 0, drawn.upperBound < points.count,
+              drawn.count >= 2 else { return path }
+        for index in drawn {
             let position = CGPoint(x: CGFloat(index) * stepX,
-                                   y: y(point.value, in: bounds, height: size.height))
-            if index == 0 { path.move(to: position) } else { path.addLine(to: position) }
+                                   y: y(points[index].value, in: bounds, height: size.height))
+            if index == drawn.lowerBound { path.move(to: position) } else { path.addLine(to: position) }
         }
         return path
+    }
+
+    /// 實線段的索引範圍（`projectedFromIndex` ＝ 第一個未來點）。
+    /// 沒有預估段＝整條（回 nil，`path` 自己補整段）。
+    static func historyRange(_ line: Series) -> ClosedRange<Int>? {
+        guard let start = line.projectedFromIndex, start < line.points.count else { return nil }
+        guard start >= 2 else { return 0...0 }   // 歷史不足兩點：畫不出線
+        return 0...(start - 1)
+    }
+
+    /// 虛線段的索引範圍。**含交界那一點**，不然兩段之間會缺一節。
+    static func projectedRange(_ line: Series) -> ClosedRange<Int>? {
+        guard let start = line.projectedFromIndex,
+              start >= 0, start < line.points.count,
+              line.points.count - start >= 2 else { return nil }
+        return max(0, start - 1)...(line.points.count - 1)
     }
 }
 

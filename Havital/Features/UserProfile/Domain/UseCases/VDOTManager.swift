@@ -51,8 +51,15 @@ struct VDOTStatistics: Codable {
     let yAxisMax: Double
     let lastUpdated: Date
     
-    init(from dataPoints: [EnhancedVDOTDataPoint]) {
-        guard let latest = dataPoints.max(by: { $0.date < $1.date }) else {
+    init(from dataPoints: [EnhancedVDOTDataPoint], now: Date = Date()) {
+        // **「最新」不得是未來值**（2026-08-27 晚走查裁決（f））：`/v2/workouts/vdots`
+        // 的序列含建計畫時一路排到賽事日的每日預估（dev 實測 45 筆裡 28 筆是未來日），
+        // 取整條的 max 會把賽事日預估當成「目前跑力」——配速區間頁顯示 39.6、
+        // 能力基準頁顯示 38.5，同一個量兩個數字。
+        // 全部都是未來（理論上不會發生）才退回整條的最後一筆，不顯示 0。
+        let settled = dataPoints.filter { $0.date <= now }
+        let latestSettled = settled.max(by: { $0.date < $1.date })
+        guard let latest = latestSettled ?? dataPoints.max(by: { $0.date < $1.date }) else {
             self.latestDynamicVdot = 0
             self.averageWeightedVdot = 0
             self.dataPointCount = 0

@@ -4444,7 +4444,8 @@
 "app2.detail.goal" = "Goal of this session";
 "app2.detail.structure" = "Session structure";
 "app2.detail.recovery_note" = "Recovery: %@";
-"app2.detail.strength_sets_reps" = "%1$d sets × %2$d reps";
+"app2.detail.strength_section" = "Strength";
+"app2.detail.strength_sets_reps" = "%1$d sets × %2$@ reps";
 "app2.detail.strength_sets_seconds" = "%1$d sets × %2$d s";
 "app2.detail.strength_sets" = "%d sets";
 "app2.detail.purpose_section" = "What this session trains";
@@ -4499,6 +4500,9 @@
 "app2.workout_detail.activity_track" = "Track Run";
 
 "app2.plan.title" = "Training plan";
+"app2.plan.generate_week" = "Generate this week's plan";
+"app2.plan.generating_week" = "Generating…";
+"app2.plan.generate_failed" = "Could not generate this week's plan";
 "app2.plan.volume_title" = "This week's volume";
 "app2.plan.today" = "Today";
 "app2.records.title" = "Training log";
@@ -4518,6 +4522,7 @@
 "app2.achievements.set_display_action" = "Set as Featured";
 "app2.settings.title" = "Settings";
 "app2.settings.manage_subscription" = "Manage";
+"app2.settings.next_renewal" = "Next renewal";
 "app2.settings.view_plans" = "See plans";
 "app2.settings.redeem_code" = "Redeem a code";
 "app2.settings.training_days_separator" = " · ";
@@ -4666,7 +4671,6 @@
 
 /* MARK: - App2 plan overview (design frame-20) */
 "app2.plan_overview.title" = "Training Plan";
-"app2.plan_overview.adjust" = "Adjust";
 "app2.plan_overview.goal_section" = "GOAL RACE";
 "app2.plan_overview.weeks_until_race" = "%d weeks to go";
 "app2.plan_overview.current_you" = "You now";
@@ -4677,6 +4681,7 @@
 "app2.plan_overview.week_of_total" = "Week %1$d / %2$d";
 "app2.plan_overview.stages_section" = "%d phases";
 "app2.plan_overview.stages_subtitle" = "Phases advance automatically — nothing to switch.";
+"app2.plan_overview.milestones_section" = "Milestones";
 "app2.plan_overview.stage_active" = "In progress";
 "app2.plan_overview.stage_upcoming" = "Upcoming";
 "app2.plan_overview.stage_done" = "Done";
@@ -4687,12 +4692,15 @@
 "app2.plan_overview.long_run_day" = "Long run day";
 "app2.plan_overview.methodology" = "Training method";
 "app2.plan_overview.manage_section" = "Manage plan";
+"app2.plan_overview.change_methodology" = "Change training method";
+"app2.plan_overview.change_methodology_note" = "After switching, weekly plans follow the new method from next week. This week's plan stays as it is.";
+"app2.plan_overview.change_methodology_failed" = "Could not change the training method";
+"app2.plan_overview.methodology_changed" = "Training method changed. Next week's plan will follow the new method.";
 "app2.plan_overview.manage_races" = "Races";
 "app2.plan_overview.manage_races_sub" = "Goal race and supporting races";
 "app2.plan_overview.reset_goal" = "Reset goal";
 "app2.plan_overview.reset_goal_sub" = "Set a new goal and build a new plan";
 "app2.plan_overview.auto_adjust_note" = "Your plan adjusts itself each week based on what you actually run and how you recover — you do not have to do the maths.";
-"app2.plan_overview.rizo_cta" = "Talk to Rizo about the plan";
 "app2.plan_overview.no_plan_title" = "No training plan yet";
 "app2.plan_overview.no_plan_body" = "Set a goal race and you will get the full phase timeline.";
 "app2.plan_overview.stages_unavailable" = "This week's plan does not match the current overview, so the phase timeline is hidden.";
@@ -4803,6 +4811,7 @@
 "app2.metric.capability_compare_format" = "%@ (%@)";
 "app2.metric.capability_chart_title" = "VDOT history";
 "app2.metric.capability_anchor_marker" = "Anchor";
+"app2.metric.projected_legend" = "Projected";
 "app2.metric.capability_anchor_format" = "%@ (%@)";
 "app2.metric.capability_how_title" = "Where this number comes from";
 "app2.metric.capability_row_anchor" = "Anchor source";

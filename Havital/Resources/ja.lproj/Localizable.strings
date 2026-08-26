@@ -4441,7 +4441,8 @@
 "app2.detail.goal" = "今回の目的";
 "app2.detail.structure" = "トレーニング構成";
 "app2.detail.recovery_note" = "レスト：%@";
-"app2.detail.strength_sets_reps" = "%1$d セット × %2$d 回";
+"app2.detail.strength_section" = "筋力トレーニング";
+"app2.detail.strength_sets_reps" = "%1$d セット × %2$@ 回";
 "app2.detail.strength_sets_seconds" = "%1$d セット × %2$d 秒";
 "app2.detail.strength_sets" = "%d セット";
 "app2.detail.purpose_section" = "このセッションで鍛えるもの";
@@ -4496,6 +4497,9 @@
 "app2.workout_detail.activity_track" = "トラック";
 
 "app2.plan.title" = "トレーニングプラン";
+"app2.plan.generate_week" = "今週のプランを作成";
+"app2.plan.generating_week" = "作成中…";
+"app2.plan.generate_failed" = "今週のプランを作成できませんでした";
 "app2.plan.volume_title" = "今週の走行距離";
 "app2.plan.today" = "今日";
 "app2.records.title" = "トレーニング記録";
@@ -4515,6 +4519,7 @@
 "app2.achievements.set_display_action" = "表示に設定";
 "app2.settings.title" = "設定";
 "app2.settings.manage_subscription" = "管理";
+"app2.settings.next_renewal" = "次回更新";
 "app2.settings.view_plans" = "プランを見る";
 "app2.settings.redeem_code" = "コードを利用";
 "app2.settings.training_days_separator" = "・";
@@ -4663,7 +4668,6 @@
 
 /* MARK: - App2 トレーニング計画（design frame-20） */
 "app2.plan_overview.title" = "トレーニング計画";
-"app2.plan_overview.adjust" = "調整";
 "app2.plan_overview.goal_section" = "目標レース";
 "app2.plan_overview.weeks_until_race" = "あと %d 週";
 "app2.plan_overview.current_you" = "今のあなた";
@@ -4674,6 +4678,7 @@
 "app2.plan_overview.week_of_total" = "第 %1$d / %2$d 週";
 "app2.plan_overview.stages_section" = "%d つのフェーズ";
 "app2.plan_overview.stages_subtitle" = "フェーズは自動で切り替わります。";
+"app2.plan_overview.milestones_section" = "マイルストーン";
 "app2.plan_overview.stage_active" = "進行中";
 "app2.plan_overview.stage_upcoming" = "予定";
 "app2.plan_overview.stage_done" = "完了";
@@ -4684,12 +4689,15 @@
 "app2.plan_overview.long_run_day" = "ロング走の日";
 "app2.plan_overview.methodology" = "トレーニング手法";
 "app2.plan_overview.manage_section" = "計画の管理";
+"app2.plan_overview.change_methodology" = "トレーニング方法を変更";
+"app2.plan_overview.change_methodology_note" = "変更後、週間プランは来週から新しい方法で作成されます。今週のプランは変わりません。";
+"app2.plan_overview.change_methodology_failed" = "トレーニング方法を変更できませんでした";
+"app2.plan_overview.methodology_changed" = "トレーニング方法を変更しました。来週のプランから新しい方法で作成されます。";
 "app2.plan_overview.manage_races" = "レース管理";
 "app2.plan_overview.manage_races_sub" = "目標レースとサポートレース";
 "app2.plan_overview.reset_goal" = "目標をリセット";
 "app2.plan_overview.reset_goal_sub" = "目標を設定し直して新しい計画を作る";
 "app2.plan_overview.auto_adjust_note" = "プランは毎週の実際の練習と回復状況に合わせて自動で微調整されます。自分で計算する必要はありません。";
-"app2.plan_overview.rizo_cta" = "Rizo に計画を相談する";
 "app2.plan_overview.no_plan_title" = "トレーニング計画がまだありません";
 "app2.plan_overview.no_plan_body" = "目標レースを設定すると、フェーズの全体像が表示されます。";
 "app2.plan_overview.stages_unavailable" = "今週のプランと現在の計画概要が一致しないため、フェーズを表示していません。";
@@ -4800,6 +4808,7 @@
 "app2.metric.capability_compare_format" = "%@（%@）";
 "app2.metric.capability_chart_title" = "VDOTの推移";
 "app2.metric.capability_anchor_marker" = "基準点";
+"app2.metric.projected_legend" = "予測";
 "app2.metric.capability_anchor_format" = "%@（%@）";
 "app2.metric.capability_how_title" = "この値の根拠";
 "app2.metric.capability_row_anchor" = "基準の出どころ";

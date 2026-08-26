@@ -134,3 +134,63 @@ final class App2OnboardingProjectionTests: XCTestCase {
         XCTAssertLessThan(preview.sliderRange.lowerBound, preview.sliderRange.upperBound)
     }
 }
+
+// MARK: - 訓練方法推薦項（2026-08-27 走查裁決（k））
+/// 重設目標不經過「選目標型態」那一頁，`flow.selectedTargetTypeV2` 是 nil。
+/// 推薦項如果只看它，就會退成「清單第一個」＝ Hansons，畫面上把漢森標成推薦
+/// （2026-08-27 使用者實機截圖）。
+@MainActor
+final class App2OnboardingMethodologyRecommendationTests: XCTestCase {
+
+    private func targetType(
+        id: String,
+        defaultMethodology: String
+    ) -> TargetTypeV2 {
+        TargetTypeV2(
+            id: id,
+            name: id,
+            description: "",
+            defaultMethodology: defaultMethodology,
+            availableMethodologies: ["hanson", "paceriz", "polarized"]
+        )
+    }
+
+    private func methodology(_ id: String) -> MethodologyV2 {
+        MethodologyV2(
+            id: id, name: id, description: "",
+            targetTypes: ["race_run"], phases: [], crossTrainingEnabled: false
+        )
+    }
+
+    override func tearDown() {
+        OnboardingCoordinator.shared.selectedTargetTypeId = nil
+        super.tearDown()
+    }
+
+    /// re-onboarding：型態頁沒走過，但 coordinator 記得是 race_run
+    /// → 推薦必須是後端給的 `default_methodology`（dev 實測 `paceriz`），不是清單第一個。
+    func test_recommendation_usesCoordinatorTargetTypeWhenFlowSelectionIsNil() {
+        let viewModel = App2OnboardingViewModel(isReonboarding: true)
+        viewModel.flow.availableTargetTypes = [
+            targetType(id: "beginner", defaultMethodology: "hanson"),
+            targetType(id: "race_run", defaultMethodology: "paceriz")
+        ]
+        // 清單第一個刻意是 hanson —— 退化路徑會選到它。
+        viewModel.flow.availableMethodologies = [methodology("hanson"), methodology("paceriz")]
+        viewModel.flow.selectedTargetTypeV2 = nil
+        OnboardingCoordinator.shared.selectedTargetTypeId = "race_run"
+
+        XCTAssertEqual(viewModel.recommendedMethodologyId, "paceriz")
+    }
+
+    /// 兩處都不知道型態才退清單第一個。
+    func test_recommendation_fallsBackToFirstOnlyWhenTargetTypeUnknown() {
+        let viewModel = App2OnboardingViewModel(isReonboarding: true)
+        viewModel.flow.availableTargetTypes = []
+        viewModel.flow.availableMethodologies = [methodology("hanson"), methodology("paceriz")]
+        viewModel.flow.selectedTargetTypeV2 = nil
+        OnboardingCoordinator.shared.selectedTargetTypeId = nil
+
+        XCTAssertEqual(viewModel.recommendedMethodologyId, "hanson")
+    }
+}

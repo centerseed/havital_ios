@@ -337,6 +337,12 @@ extension Font {
     /// 卡片標題（`訓練狀況`／`個人最佳`）：18px / w900。
     static let app2CardTitle = Font.system(size: 18, weight: .black)
 
+    /// 弱化的卡片標題：16px / w600。**只有首頁「訓練狀況」用**
+    /// （2026-08-27 晚實機走查裁決（a）：那張卡的主角是 headline 與指標，
+    /// 標題本身壓下去）。其餘卡標題維持 `app2CardTitle` —— 這是變體，
+    /// 不是把共用值改掉。
+    static let app2CardTitleMuted = Font.system(size: 16, weight: .semibold)
+
     /// 區塊小標（`目標賽事`／`數據來源`）：13px / w700–800。
     static let app2SectionLabel = Font.system(size: 13, weight: .bold)
 

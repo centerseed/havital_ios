@@ -114,6 +114,26 @@ enum App2MetricDetailProjection {
             .sorted { $0.date < $1.date }
     }
 
+    /// 把 `vdots` 序列切成「已經發生的」與「建計畫時生成的未來每日預估」兩段
+    /// （2026-08-27 晚走查裁決（f））。
+    ///
+    /// **後端一條序列同時裝兩種東西**：dev 帳號實測 45 筆裡 28 筆是未來日期
+    /// （2026-08-28 → 10-04，`pace_vdot` 38.6→39.6，建計畫時一路排到賽事日）。
+    /// 把它們畫成同一條實線＝宣稱那些天已經量到了。切點是**用戶當地的今天**：
+    /// `date <= today` 是歷史，其餘是預估。
+    ///
+    /// 回傳的 `projectedFromIndex` 是**整條序列**裡第一個未來點的索引
+    /// （圖表要用整條的座標系畫，見 `App2MetricLineChart.path`）；全是歷史就 nil。
+    static func splitProjected(
+        _ series: [App2MetricPoint],
+        today: String
+    ) -> (history: [App2MetricPoint], projectedFromIndex: Int?) {
+        guard let index = series.firstIndex(where: { $0.date > today }) else {
+            return (series, nil)
+        }
+        return (Array(series[..<index]), index)
+    }
+
     /// 「30 天前」那一格：序列裡**不晚於 30 天前**的最後一筆。
     ///
     /// 序列還不到 30 天長（新帳號）→ nil，畫「–」。不拿最舊那一筆冒充「30 天前」：

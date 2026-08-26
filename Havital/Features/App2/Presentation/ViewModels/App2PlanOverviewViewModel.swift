@@ -33,6 +33,20 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     /// 讀取失敗不算（那時不宣稱「不同源」，只是沒有期程）。
     @Published private(set) var stagesUnbound = false
 
+    // MARK: - 更換訓練方法（2026-08-27 晚走查裁決（e））
+
+    /// 可選的方法論。**只有取得 overview 之後才有值**（要用它的 `target_type` 過濾）。
+    @Published private(set) var methodologies: [MethodologyV2] = []
+    @Published private(set) var isChangingMethodology = false
+    /// 換成功了 —— 畫面上出一行小字說「週課表下週依新方法產生」。
+    @Published private(set) var didChangeMethodology = false
+    /// 換失敗的訊息。**失敗不改變現值**（畫面上的方法名仍是舊的）。
+    @Published var methodologyError: String?
+
+    /// 更換方法論要打在哪一份 overview 上。取不到就沒有這一列。
+    private(set) var overviewId: String?
+    private(set) var targetType: String?
+
     private(set) var hasLoaded = false
     private(set) var lastLoadedAt: Date?
 
@@ -133,6 +147,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
                 planStatus: planStatus,
                 mainTarget: mainTarget,
                 stages: stageBundle.stages,
+                milestones: stageBundle.milestones,
                 methodologyName: stageBundle.methodologyName,
                 estimatedFinish: estimate,
                 weeklyVolumes: weeklyItems,
@@ -149,6 +164,8 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     /// 期程 ＋ 訓練方法名 —— 兩者住在同一份 overview，一次取。
     private struct StageBundle {
         var stages: [TrainingStageV2] = []
+        /// 里程碑與期程同住一份 overview，同一次取，不另打端點。
+        var milestones: [MilestoneV2] = []
         var methodologyName: String?
         var isUnbound = false
     }
@@ -157,12 +174,21 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         guard let planStatus else { return StageBundle() }
         do {
             let overview = try await planRepository.refreshOverview()
+            // 更換方法論打在**目前這一份 overview** 上。
+            //
+            // **不同源時這個 id 仍然有效**：`isUnbound` 只代表本週課表比 overview 舊
+            // （換過方法論或改過目標之後必然如此），不代表拿到了別人的計畫。
+            // 這裡曾經在不同源時把 id 清掉，結果是換完方法論那一刻「更換訓練方法」
+            // 整列消失、換不回來（2026-08-27 模擬器實測）。
+            overviewId = overview.id
+            targetType = overview.targetType
             guard App2HomeViewModel.isOverview(overview.id, boundTo: planStatus) else {
                 Logger.debug("[App2PlanOverviewVM] overview 與本週課表不同源,期程不顯示")
                 return StageBundle(isUnbound: true)
             }
             return StageBundle(
                 stages: overview.trainingStages,
+                milestones: overview.milestones,
                 methodologyName: overview.methodologyOverview?.name
             )
         } catch {
@@ -171,6 +197,57 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
             }
             return StageBundle()
         }
+    }
+
+    // MARK: - 更換訓練方法
+
+    /// 可換的方法論清單（`GET /v2/methodologies`，依 `target_type` 過濾）。
+    /// **1.4 在訓練總覽就能換，App2 漏接＝功能缺口**（2026-08-27 晚走查裁決（e））。
+    func loadMethodologies() async {
+        guard methodologies.isEmpty else { return }
+        do {
+            methodologies = try await planRepository.getMethodologies(targetType: targetType)
+        } catch {
+            if !error.isCancellationError {
+                Logger.debug("[App2PlanOverviewVM] 方法論清單取得失敗: \(error)")
+                methodologyError = error.toDomainError().localizedDescription
+            }
+        }
+    }
+
+    /// 換方法論。成功＝**重載 overview**（後端換完會重生），畫面上的方法名跟著變；
+    /// 失敗不改變現值，只出錯誤訊息。
+    ///
+    /// 寫入路徑走既有的 `TrainingPlanV2Repository.updateOverview` —— 與 1.4 的
+    /// `MethodologyCoordinator.changeMethodology` 同一條，不另開第二份。
+    @discardableResult
+    func changeMethodology(to methodologyId: String) async -> Bool {
+        guard let overviewId, !isChangingMethodology else { return false }
+        isChangingMethodology = true
+        didChangeMethodology = false
+        methodologyError = nil
+        defer { isChangingMethodology = false }
+
+        do {
+            _ = try await planRepository.updateOverview(
+                overviewId: overviewId,
+                startFromStage: nil,
+                methodologyId: methodologyId
+            )
+        } catch {
+            let domainError = error.toDomainError()
+            Logger.debug("[App2PlanOverviewVM] 更換方法論失敗: \(domainError)")
+            methodologyError = domainError.localizedDescription
+            return false
+        }
+
+        await forceRefresh()
+        didChangeMethodology = true
+        return true
+    }
+
+    func dismissMethodologyNotice() {
+        didChangeMethodology = false
     }
 
     private func loadMainTarget() async -> Target? {
@@ -205,9 +282,16 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
 
     #if DEBUG
     /// 測試／預覽用：直接填投影結果，不打網路。
-    func applyForTesting(overview: App2Sourced<App2PlanOverview>?, stagesUnbound: Bool = false) {
+    func applyForTesting(
+        overview: App2Sourced<App2PlanOverview>?,
+        stagesUnbound: Bool = false,
+        overviewId: String? = nil,
+        methodologies: [MethodologyV2] = []
+    ) {
         self.overview = overview
         self.stagesUnbound = stagesUnbound
+        self.overviewId = overviewId
+        self.methodologies = methodologies
         isLoading = false
         hasLoaded = true
         lastLoadedAt = Date()
@@ -220,6 +304,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         planStatus: PlanStatusV2Response?,
         mainTarget: Target?,
         stages: [TrainingStageV2],
+        milestones: [MilestoneV2] = [],
         methodologyName: String?,
         estimatedFinish: String?,
         weeklyVolumes: [WeeklySummaryItem],
@@ -254,6 +339,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
             totalWeeks: totalWeeks,
             currentStageName: projectedStages.first(where: { $0.state == .active })?.name,
             stages: projectedStages,
+            milestones: Self.milestones(milestones),
             rhythm: App2PlanRhythm(
                 runDaysPerWeek: preferWeekDays.flatMap { $0.isEmpty ? nil : $0.count },
                 longRunDayLabel: longRunWeekday.flatMap {
@@ -297,6 +383,32 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
                 weeksElapsed: weeksElapsed
             )
         }
+    }
+
+    /// `milestones[]` → 畫面上的里程碑列（2026-08-27 晚走查裁決（c））。
+    ///
+    /// 順序照週次；**標題空白的那一筆整筆丟掉** —— 沒有標題就沒有可讀的內容，
+    /// 印一列空白比不印更糟。`description` 空白只是少一行小字，那一筆仍然留著。
+    /// 文字本身後端已在地化，App 端不改寫也不補預設句。
+    /// 同一週的多筆維持 payload 原順序（`Array.sorted` 不保證穩定，所以帶原索引比）。
+    static func milestones(_ dtos: [MilestoneV2]) -> [App2PlanMilestone] {
+        dtos
+            .enumerated()
+            .compactMap { index, dto -> (Int, App2PlanMilestone)? in
+                let title = dto.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !title.isEmpty else { return nil }
+                let description = dto.description.trimmingCharacters(in: .whitespacesAndNewlines)
+                return (index, App2PlanMilestone(
+                    week: dto.week,
+                    title: title,
+                    description: description.isEmpty ? nil : description,
+                    isKey: dto.isKeyMilestone
+                ))
+            }
+            .sorted { lhs, rhs in
+                lhs.1.week == rhs.1.week ? lhs.0 < rhs.0 : lhs.1.week < rhs.1.week
+            }
+            .map { $0.1 }
     }
 
     /// 「約 N km / 週」＝**最近 4 個已結束的週**的實際跑量平均。

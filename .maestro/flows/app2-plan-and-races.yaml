@@ -43,9 +43,14 @@ env:
     timeout: 30000
 - takeScreenshot: wave2-plan-overview
 
-# === 賽事管理（入口＝計畫總覽右上「調整」）===
+# === 賽事管理（唯一入口＝「管理計畫 · 賽事管理」列；
+#     右上「調整」已於 2026-08-27 晚走查裁決（b）移除）===
+- scrollUntilVisible:
+    element:
+      id: "App2_PlanOverviewManageRaces"
+    direction: DOWN
 - tapOn:
-    id: "App2_PlanOverviewAdjust"
+    id: "App2_PlanOverviewManageRaces"
 - extendedWaitUntil:
     visible:
       id: "App2_RaceManagementView"
