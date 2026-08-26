@@ -35,6 +35,8 @@ struct App2WorkoutDetailView: View {
     @State private var isDeleting = false
     @State private var showDeleteConfirmation = false
     @State private var resultMessage: String?
+    /// Rizo 教練分析預設截斷（設計 frame-02f 的「展開完整分析 ∨」）。
+    @State private var isCoachAnalysisExpanded = false
 
     enum Panel: String, Identifiable {
         case vdotInclusion
@@ -199,32 +201,43 @@ struct App2WorkoutDetailView: View {
         }
     }
 
-    // MARK: - Hero（設計 frame-15 的綠卡）
+    // MARK: - Hero（設計 frame-02f：課型色淡底描邊 ＋ icon 圓章 ＋ chip 列）
+
+    /// hero 與 icon 圓章的主色＝課型色。對不出課型（`training_type` 缺席或不在
+    /// 已知集合）就退成中性藍，不猜一個課型。
+    private func accent(_ projection: App2WorkoutDetailProjection) -> Color {
+        projection.dayType?.app2StripColor ?? App2Theme.accentBlue
+    }
 
     private func heroCard(_ projection: App2WorkoutDetailProjection) -> some View {
-        VStack(alignment: .leading, spacing: 13) {
+        let accent = accent(projection)
+        return VStack(alignment: .leading, spacing: 13) {
             HStack(spacing: 13) {
                 RoundedRectangle(cornerRadius: 15, style: .continuous)
                     .fill(
                         LinearGradient(
-                            colors: [App2Theme.accentGreenBright, App2Theme.accentGreenDot],
+                            colors: [accent, accent.app2Darkened],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
                     .frame(width: 48, height: 48)
                     .overlay {
-                        Image(systemName: "figure.run")
+                        Image(systemName: projection.dayType?.app2SymbolName ?? "figure.run")
                             .font(.system(size: 22, weight: .bold))
                             .foregroundStyle(.white)
                     }
-                    .shadow(color: App2Theme.accentGreenDot.opacity(0.6), radius: 8, x: 0, y: 8)
+                    .shadow(color: accent.opacity(0.6), radius: 8, x: 0, y: 8)
 
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 8) {
                         Text(projection.title)
                             .font(.system(size: 24, weight: .black))
                             .foregroundStyle(App2Theme.inkPrimary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                        // **只有這一趟真的破 PB 才畫**（判定來自成就系統的
+                        // `personalBestUpdatesForWorkout`，不是這裡推的）。
                         if let pb = projection.personalBestLabel {
                             App2Pill(
                                 text: pb,
@@ -233,6 +246,7 @@ struct App2WorkoutDetailView: View {
                             )
                             .accessibilityIdentifier("App2_WorkoutDetailPB")
                         }
+                        Spacer(minLength: 0)
                     }
                     Text(projection.subtitle)
                         .font(.system(size: 13, weight: .semibold))
@@ -247,12 +261,15 @@ struct App2WorkoutDetailView: View {
                     foreground: App2Theme.inkSecondary,
                     background: App2Theme.shadowInk.opacity(0.05)
                 )
+                // 區間 chip 由實際均心對用戶心率區間分布推得（`hr_zone_distribution`
+                // 佔比最大的那一段）。算不出來就沒有這顆 chip。
                 if let zone = projection.dominantZoneLabel {
                     App2Chip(
                         text: zone,
-                        foreground: App2Theme.accentGreenDot.app2Darkened,
-                        background: App2Theme.accentGreenBright.opacity(0.12)
+                        foreground: accent.app2Darkened,
+                        background: accent.opacity(0.13)
                     )
+                    .accessibilityIdentifier("App2_WorkoutDetailZoneChip")
                 }
             }
         }
@@ -263,8 +280,8 @@ struct App2WorkoutDetailView: View {
                 .fill(
                     LinearGradient(
                         stops: [
-                            .init(color: App2Theme.accentGreenBright.opacity(0.13), location: 0),
-                            .init(color: App2Theme.accentGreenBright.opacity(0.02), location: 0.6),
+                            .init(color: accent.opacity(0.13), location: 0),
+                            .init(color: accent.opacity(0.02), location: 0.6),
                             .init(color: .white, location: 1)
                         ],
                         startPoint: .topLeading,
@@ -274,31 +291,31 @@ struct App2WorkoutDetailView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: App2Theme.cardCornerRadius, style: .continuous)
-                .strokeBorder(App2Theme.accentGreenBright.opacity(0.3), lineWidth: 1)
+                .strokeBorder(accent.opacity(0.3), lineWidth: 1)
         )
-        .shadow(color: App2Theme.accentGreenDot.opacity(0.28), radius: 12, x: 0, y: 8)
+        .shadow(color: accent.opacity(0.28), radius: 12, x: 0, y: 8)
         .accessibilityIdentifier("App2_WorkoutDetailHero")
     }
 
-    // MARK: - 六格核心數據（設計是 3 欄格線，格線就是 1px 的底色透出來）
+    // MARK: - 指標磚（設計 frame-02f：2 欄、各自獨立的白底圓角磚）
 
     private func metricsGrid(_ projection: App2WorkoutDetailProjection) -> some View {
-        let columns = Array(repeating: GridItem(.flexible(), spacing: 1), count: 3)
-        return LazyVGrid(columns: columns, spacing: 1) {
+        LazyVGrid(
+            columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)],
+            spacing: 10
+        ) {
             ForEach(projection.metrics) { metric in
                 metricCell(metric, valueSize: 22)
+                    .app2CardSurface(cornerRadius: 16)
+                    .accessibilityIdentifier("App2_WorkoutMetric_\(metric.key)")
             }
         }
-        .background(App2Theme.shadowInk.opacity(0.07))
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .strokeBorder(App2Theme.shadowInk.opacity(0.07), lineWidth: 1)
-        )
-        .shadow(color: App2Theme.shadowSoftColor, radius: 11, x: 0, y: 8)
         .accessibilityIdentifier("App2_WorkoutDetailMetrics")
     }
 
+    /// **這一格不畫自己的底。** 底由呼叫端用 `app2CardSurface` 給——格子自己再蓋一層
+    /// 方形白底的話，會直接把圓角覆蓋掉（2026-08-26 使用者指出「進階指標沒有圓角」
+    /// 就是這個原因）。
     private func metricCell(_ metric: App2WorkoutDetailProjection.Metric, valueSize: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(metric.label)
@@ -320,10 +337,8 @@ struct App2WorkoutDetailView: View {
             .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 14)
         .padding(.vertical, 13)
-        .background(App2Theme.cardBackground)
-        .accessibilityIdentifier("App2_WorkoutMetric_\(metric.key)")
     }
 
     private func color(for tone: App2WorkoutDetailProjection.Metric.Tone) -> Color {
@@ -344,6 +359,11 @@ struct App2WorkoutDetailView: View {
                     .font(.system(size: 15, weight: .black))
                     .foregroundStyle(App2Theme.inkPrimary)
                 Spacer(minLength: 0)
+                // 設計 frame-02f 右上有一顆判定 chip（「符合課表」）。
+                // **後端沒有這個欄位**：`AISummary` 只有 `analysis` 一個 String，
+                // `DailyPlanSummary` 也沒有達成度／判定欄（2026-08-26 查過整份
+                // `WorkoutV2Models.swift`）。自己用課表 vs 實際去推一個判定就是
+                // 在 app 端發明一則教練判斷 —— 依既有裁決，缺欄位就不畫空 chip。
             }
 
             if projection.plannedSummary != nil || projection.actualSummary != nil {
@@ -370,11 +390,42 @@ struct App2WorkoutDetailView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(App2Theme.inkSecondary)
                     .lineSpacing(4)
+                    .lineLimit(isCoachAnalysisExpanded ? nil : Self.coachAnalysisCollapsedLines)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("App2_WorkoutDetailCoachAnalysis")
+
+                // 「展開完整分析 ∨」。**沒有截斷就沒有這一列** —— 三行以內的分析
+                // 掛一顆展開鈕是個假動作。
+                if analysis.count > Self.coachAnalysisCollapseThreshold {
+                    HStack(spacing: 5) {
+                        Text(
+                            (isCoachAnalysisExpanded
+                                ? L10n.App2.WorkoutDetail.collapseAnalysis
+                                : L10n.App2.WorkoutDetail.expandAnalysis).localized
+                        )
+                        .font(.system(size: 13, weight: .heavy))
+                        Image(systemName: isCoachAnalysisExpanded ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 11, weight: .heavy))
+                    }
+                    .foregroundStyle(App2Theme.accentBlueDeep)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation(.easeOut(duration: 0.18)) {
+                            isCoachAnalysisExpanded.toggle()
+                        }
+                    }
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityIdentifier("App2_WorkoutDetailCoachExpand")
+                }
             }
         }
         .accessibilityIdentifier("App2_WorkoutDetailCoach")
     }
+
+    /// 收合時顯示幾行（設計 frame-02f 是 2–3 行）。
+    private static let coachAnalysisCollapsedLines = 3
+    /// 超過這個字數才可能被截斷 —— 低於就不畫展開鈕。
+    private static let coachAnalysisCollapseThreshold = 60
 
     private func comparisonBox(label: String, value: String, valueColor: Color) -> some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -389,16 +440,18 @@ struct App2WorkoutDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .app2InsetSurface()
+        // 設計 frame-02f：藍淡底卡上的兩張小卡是**白底**，不是灰的卡中卡。
+        .app2InsetSurface(cornerRadius: 13, fill: App2Theme.cardBackground)
     }
 
-    // MARK: - 進階指標
+    // MARK: - 進階指標（設計 frame-02e：白底大圓角卡）
 
     private func advancedGrid(_ projection: App2WorkoutDetailProjection) -> some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
             ForEach(projection.advancedMetrics) { metric in
                 metricCell(metric, valueSize: 21)
-                    .app2CardSurface(cornerRadius: 15)
+                    .app2CardSurface(cornerRadius: 16)
+                    .accessibilityIdentifier("App2_WorkoutAdvancedMetric_\(metric.key)")
             }
         }
     }

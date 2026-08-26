@@ -23,8 +23,6 @@ struct App2PlanEditView: View {
     @State private var showingSaveError = false
     @State private var saveErrorMessage: String?
     @State private var showingPaceTable = false
-    /// 正在選課型的那一天（`day_index`）。nil = sheet 沒開。
-    @State private var typeSheetDay: App2EditingDayRef?
     /// 「已更新 · 請按右上儲存同步」的暫態 toast（設計 §12）。
     @State private var showingSavedToast = false
 
@@ -65,22 +63,6 @@ struct App2PlanEditView: View {
             }
         }
         .background(App2EditStripeBackground())
-        .sheet(item: $typeSheetDay) { ref in
-            App2TrainingTypeSheet(
-                day: day(at: ref.id),
-                weekdayLabel: App2PlanViewModel.weekdayLabel(dayIndex: ref.id),
-                dateLabel: App2PlanViewModel.dateLabel(
-                    dayIndex: ref.id,
-                    weekStart: App2PlanViewModel.currentWeekStart()
-                ),
-                onSelect: { newType in
-                    applyType(newType, toDayIndex: ref.id)
-                    typeSheetDay = nil
-                }
-            )
-            .presentationDetents([.large])
-            .presentationDragIndicator(.hidden)
-        }
         .sheet(isPresented: $showingPaceTable) {
             if let vdot = editViewModel.currentVDOT {
                 PaceTableView(
@@ -269,8 +251,8 @@ struct App2PlanEditView: View {
                         weekStart: App2PlanViewModel.currentWeekStart()
                     ),
                     isToday: isToday(dayIndex: editViewModel.editingDays[index].dayIndexInt),
-                    onOpenTypeSheet: {
-                        typeSheetDay = App2EditingDayRef(id: editViewModel.editingDays[index].dayIndexInt)
+                    onSelectType: { [dayIndex = editViewModel.editingDays[index].dayIndexInt] newType in
+                        applyType(newType, toDayIndex: dayIndex)
                     },
                     onChanged: markChanged
                 )
@@ -326,10 +308,6 @@ struct App2PlanEditView: View {
 
     // MARK: - Actions
 
-    private func day(at dayIndex: Int) -> MutableTrainingDay? {
-        editViewModel.editingDays.first { $0.dayIndexInt == dayIndex }
-    }
-
     private func markChanged() {
         hasUnsavedChanges = true
         guard !showingSavedToast else { return }
@@ -365,13 +343,6 @@ struct App2PlanEditView: View {
     }
 }
 
-// MARK: - App2EditingDayRef
-/// `sheet(item:)` 要 Identifiable，而 `Int` 不是（也不該為了這個對 `Int` 加
-/// retroactive conformance —— 那會影響整個 app）。
-struct App2EditingDayRef: Identifiable, Equatable {
-    let id: Int
-}
-
 // MARK: - App2PlanEditDayCard
 /// 編輯模式的一張日卡（設計 §12）。
 ///
@@ -384,7 +355,8 @@ struct App2PlanEditDayCard: View {
     let weekdayLabel: String
     let dateLabel: String
     var isToday: Bool = false
-    let onOpenTypeSheet: () -> Void
+    /// 選了新課型（套 `ScheduleTypeDefaults` 的預設處方）。
+    let onSelectType: (DayType) -> Void
     let onChanged: () -> Void
 
     @State private var showingDetailSheet = false
@@ -453,15 +425,16 @@ struct App2PlanEditDayCard: View {
 
             Spacer(minLength: 4)
 
-            App2EditDropdownChip(
-                text: day.type.localizedName,
-                foreground: day.type.app2ChipForeground,
-                background: day.type.app2ChipBackground,
-                border: day.type.app2StripColor.opacity(0.3)
-            )
-            .contentShape(Rectangle())
-            .onTapGesture(perform: onOpenTypeSheet)
-            .accessibilityAddTraits(.isButton)
+            // 課型選擇＝平台標準下拉（2026-08-26 裁決），不是自繪的遮罩 sheet。
+            App2TrainingTypeMenu(current: day.type, onSelect: onSelectType) {
+                App2EditDropdownChip(
+                    text: day.type.localizedName,
+                    foreground: day.type.app2ChipForeground,
+                    background: day.type.app2ChipBackground,
+                    border: day.type.app2StripColor.opacity(0.3)
+                )
+            }
+            .accessibilityLabel(L10n.App2.PlanEdit.selectType.localized)
             .accessibilityIdentifier("App2_PlanEditType_\(day.dayIndexInt)")
 
             // 休息日沒有齒輪鈕（設計 §12）。
@@ -785,179 +758,6 @@ struct App2PlanEditDayCard: View {
             zone.danielsCode,
             "\(range.min)–\(range.max)"
         )
-    }
-}
-
-// MARK: - App2TrainingTypeSheet
-/// 課型選單（設計 **frame-04** / 清單 §13）。
-///
-/// **分組沿用 `TrainingTypeMenu` 的 static 清單**——版面不同，但「有哪些課型、
-/// 分成哪幾組」只有一份，不會出現 1.4 選得到、2.0 選不到的課型。
-///
-/// 版面：上方是**錨點日卡**（重現該日標題列，課型 chip 轉白底橘實邊＋外光暈、
-/// chevron 朝上），下方是白底面板，四組分組，選中列整列淡橘底＋橘字＋右側打勾。
-struct App2TrainingTypeSheet: View {
-
-    /// 錨點日卡要重現的那一天。取不到就只顯示面板。
-    let day: MutableTrainingDay?
-    let weekdayLabel: String
-    let dateLabel: String
-    let onSelect: (DayType) -> Void
-
-    @Environment(\.dismiss) private var dismiss
-
-    private struct TypeGroup: Identifiable {
-        let id: String
-        let title: String
-        let color: Color
-        let types: [DayType]
-    }
-
-    private var groups: [TypeGroup] {
-        [
-            TypeGroup(
-                id: "easy",
-                title: L10n.EditSchedule.easyTrainingSection.localized,
-                color: App2Theme.accentGreen,
-                types: TrainingTypeMenu.easyTypes
-            ),
-            TypeGroup(
-                id: "intensity",
-                title: L10n.EditSchedule.intensityTrainingSection.localized,
-                color: App2Theme.accentOrangeText,
-                types: TrainingTypeMenu.intensityTypes
-            ),
-            TypeGroup(
-                id: "long",
-                title: L10n.EditSchedule.longDistanceTrainingSection.localized,
-                color: App2Theme.accentBlueDeep,
-                types: TrainingTypeMenu.longDistanceTypes
-            ),
-            TypeGroup(
-                id: "other",
-                title: L10n.EditSchedule.otherTrainingSection.localized,
-                color: App2Theme.inkSubtle,
-                types: TrainingTypeMenu.otherTypes
-            )
-        ]
-    }
-
-    private var current: DayType { day?.type ?? .rest }
-
-    var body: some View {
-        VStack(spacing: 12) {
-            if day != nil {
-                anchorCard
-                    .padding(.horizontal, App2Theme.pagePadding)
-                    .padding(.top, 14)
-            }
-            panel
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Color(hex: "#10151C").opacity(0.5))
-        .accessibilityIdentifier("App2_TrainingTypeSheet")
-    }
-
-    private var anchorCard: some View {
-        App2LeftStripCard(strip: current.app2StripColor) {
-            HStack(spacing: 8) {
-                App2DragHandle(filled: false)
-                Text(weekdayLabel)
-                    .font(.system(size: 16, weight: .black))
-                    .foregroundStyle(App2Theme.inkPrimary)
-                Text(dateLabel)
-                    .font(.app2Mono(13, weight: .bold))
-                    .foregroundStyle(App2Theme.inkMuted)
-                Spacer(minLength: 4)
-                App2EditDropdownChip(
-                    text: current.localizedName,
-                    foreground: App2Theme.accentOrangeText,
-                    background: .white,
-                    border: App2Theme.accentOrangeSoft,
-                    chevronUp: true,
-                    glow: true
-                )
-            }
-        }
-    }
-
-    private var panel: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(L10n.App2.PlanEdit.selectType.localized)
-                    .font(.system(size: 17, weight: .black))
-                    .foregroundStyle(App2Theme.inkPrimary)
-                Text(L10n.App2.PlanEdit.typeSheetSubtitle.localized)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(App2Theme.inkTertiary)
-            }
-            .padding(.horizontal, App2Theme.pagePadding)
-            .padding(.top, 16)
-            .padding(.bottom, 12)
-
-            ScrollView {
-                LazyVStack(alignment: .leading, spacing: 0) {
-                    ForEach(groups) { group in
-                        Text(group.title)
-                            .font(.system(size: 12, weight: .black))
-                            .tracking(1)
-                            .foregroundStyle(group.color)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, App2Theme.pagePadding)
-                            .padding(.vertical, 8)
-                            .background(App2Theme.insetBackgroundCool)
-
-                        ForEach(group.types, id: \.rawValue) { type in
-                            typeRow(type, group: group)
-                        }
-                    }
-                }
-                .padding(.bottom, 26)
-            }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color.white)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .shadow(color: App2Theme.shadowInk.opacity(0.35), radius: 24, x: 0, y: 18)
-        .padding(.horizontal, App2Theme.pagePadding)
-        .padding(.bottom, 26)
-    }
-
-    private func typeRow(_ type: DayType, group: TypeGroup) -> some View {
-        let isSelected = type == current
-        return HStack(spacing: 10) {
-            Circle()
-                .fill(dotColor(for: type, in: group))
-                .frame(width: 9, height: 9)
-            Text(type.localizedName)
-                .font(.system(size: 15, weight: isSelected ? .black : .bold))
-                .foregroundStyle(isSelected ? App2Theme.accentOrangeText : App2Theme.inkPrimary)
-            Spacer(minLength: 6)
-            if isSelected {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 14, weight: .black))
-                    .foregroundStyle(App2Theme.accentOrangeText)
-            }
-        }
-        .padding(.horizontal, App2Theme.pagePadding)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(isSelected ? App2Theme.accentOrangeSoft.opacity(0.1) : .clear)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            onSelect(type)
-            dismiss()
-        }
-        .accessibilityAddTraits(.isButton)
-        .accessibilityIdentifier("App2_TrainingType_\(type.rawValue)")
-    }
-
-    /// 圓點顏色＝組色；「其他」組例外：休息用灰、其餘（力量／交叉／瑜伽／健走／騎車）用紫。
-    private func dotColor(for type: DayType, in group: TypeGroup) -> Color {
-        guard group.id == "other" else { return group.color }
-        return type == .rest ? App2Theme.chevron : App2Theme.accentViolet
     }
 }
 

@@ -8,13 +8,16 @@ import SwiftUI
 /// （大 mono 數字、完成百分比膠囊、三色強度分段條）→ 每日卡（左緣彩色邊、
 /// 課型徽章＋體感溫度徽章、課表／實際兩行）。
 ///
-/// **這一頁沒有設定入口**（2026-08-25 設計更新：header 只剩標題＋週次切換器）。
-/// 設定改由首頁右上角的 LV 徽章進入。
+/// **這一頁沒有設定入口**（2026-08-25 設計更新）。設定改由首頁右上角的「…」menu 進入。
+/// header 右側是週次切換器 ＋ 一顆鉛筆鈕（2026-08-26 裁決）——它開的是**與首頁
+/// 「…」menu 的「修改課表」同一個** `App2PlanEditGate`，不是第二條入口。
 struct App2PlanView: View {
 
     @ObservedObject var viewModel: App2PlanViewModel
     /// 日卡點下去開的訓練詳情（設計 frame-02）。休息日不在 `dayDetails` 裡 → 點不開。
     @State private var detailSession: App2SessionDetail?
+    /// 修改課表（與首頁「…」menu 同一個入口殼）。
+    @State private var isShowingPlanEdit = false
 
     var body: some View {
         ScrollView {
@@ -57,6 +60,13 @@ struct App2PlanView: View {
         .fullScreenCover(item: $detailSession) { detail in
             App2SessionDetailView(detail: detail) { detailSession = nil }
         }
+        .fullScreenCover(isPresented: $isShowingPlanEdit) {
+            App2PlanEditGate(
+                onClose: { isShowingPlanEdit = false },
+                // 課表改了，這一頁的週跑量與日卡要跟著換。
+                onSaved: { Task { await viewModel.forceRefresh() } }
+            )
+        }
     }
 
     // MARK: - Header（標題 ＋ 週次切換器）
@@ -79,7 +89,35 @@ struct App2PlanView: View {
                 }
                 .frame(minWidth: 76)
                 weekStepButton(symbol: "chevron.right", enabled: false)
+                editButton
             }
+        }
+    }
+
+    /// 修改課表（設計裁決 2026-08-26：週次切換器同列右側的鉛筆 icon 鈕）。
+    /// 只有真的有課表可改時才出現 —— 沒課表按下去只會開一頁「讀不到」。
+    @ViewBuilder
+    private var editButton: some View {
+        if viewModel.week != nil {
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(App2Theme.cardBackground)
+                .frame(width: 30, height: 30)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .strokeBorder(App2Theme.shadowInk.opacity(0.08), lineWidth: 1)
+                )
+                .overlay {
+                    Image(systemName: "square.and.pencil")
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundStyle(App2Theme.accentBlueDeep)
+                }
+                .shadow(color: App2Theme.shadowInk.opacity(0.12), radius: 3, x: 0, y: 3)
+                .padding(.leading, 3)
+                .contentShape(Rectangle())
+                .onTapGesture { isShowingPlanEdit = true }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel(L10n.App2.Home.menuEditPlan.localized)
+                .accessibilityIdentifier("App2_PlanEditEntry")
         }
     }
 

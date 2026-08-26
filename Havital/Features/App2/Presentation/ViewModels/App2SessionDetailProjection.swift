@@ -338,6 +338,57 @@ enum App2SessionDetailProjection {
         )
     }
 
+    // MARK: - 目標區間（設計 frame-02d 的兩張並排卡）
+
+    /// 預估時間的**範圍**（設計 frame-02d：`24-28 分`／`53-57 分`／`2:30-2:42`）。
+    ///
+    /// 處方時長是一個點值，但實際跑起來不會落在那個點上；設計刻意把它畫成一段區間。
+    /// 寬度＝處方時長的 ±4%，最少 ±2 分鐘（對回設計稿的四個例子：26→24-28、
+    /// 55→53-57、42→40-44、156→2:30-2:42）。**推不出處方時長就沒有這一格。**
+    static func estimatedRangeLabel(durationMinutes: Int?) -> String? {
+        guard let durationMinutes, durationMinutes > 0 else { return nil }
+        let tolerance = max(2, Int((Double(durationMinutes) * estimatedRangeRatio).rounded()))
+        let low = max(1, durationMinutes - tolerance)
+        let high = durationMinutes + tolerance
+        return "\(minuteLabel(low))-\(minuteLabel(high))"
+    }
+
+    static let estimatedRangeRatio: Double = 0.04
+
+    /// 60 分鐘以內印分鐘數，超過印 `h:mm`（設計 frame-02d 的 `2:30`）。
+    private static func minuteLabel(_ minutes: Int) -> String {
+        guard minutes >= 60 else { return "\(minutes)" }
+        return String(format: "%d:%02d", minutes / 60, minutes % 60)
+    }
+
+    /// 預估時間那一格的單位小字。60 分以內是「分」，超過就沒有單位（值本身是 `h:mm`）。
+    static func estimatedRangeUnit(durationMinutes: Int?) -> String? {
+        guard let durationMinutes, durationMinutes > 0 else { return nil }
+        let tolerance = max(2, Int((Double(durationMinutes) * estimatedRangeRatio).rounded()))
+        return durationMinutes + tolerance < 60 ? L10n.App2.Detail.minutesUnit.localized : nil
+    }
+
+    // MARK: - 段附註句
+
+    /// 主課段的附註句（設計 frame-02d：「連續不中斷，維持穩定閾值配速」
+    /// 「全程勻速，最後 5 公里才是重點」）。
+    ///
+    /// **來源是課型的確定性文案，不是逐日生成敘述** —— 逐日敘述在編輯器改過課型之後
+    /// 後端不重生，會與當日課表矛盾（同 `isDayNarrativeConsistent` 的理由）。
+    /// 這是 `DayType` 的型別對照，對不上的課型就沒有這一句。
+    static func workSegmentNoteKey(_ dayType: DayType?) -> String? {
+        switch dayType {
+        case .tempo, .threshold, .cruiseIntervals, .norwegianSingles, .progression:
+            return L10n.App2.Detail.structureNoteThreshold
+        case .lsd, .longRun, .hiking:
+            return L10n.App2.Detail.structureNoteLong
+        case .easy, .easyRun, .recovery_run:
+            return L10n.App2.Detail.structureSteadyNote
+        default:
+            return nil
+        }
+    }
+
     // MARK: - 補給建議
 
     /// 長距離課的補給建議框。

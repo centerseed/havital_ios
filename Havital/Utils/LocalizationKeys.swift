@@ -2264,6 +2264,14 @@ extension L10n {
             static let structureMeta = "app2.detail.structure_meta"
             /// 單段課結構首列的補充句。
             static let structureSteadyNote = "app2.detail.structure_steady_note"
+            /// 主課段的課型確定性附註句（設計 frame-02d）。
+            static let structureNoteThreshold = "app2.detail.structure_note_threshold"
+            static let structureNoteLong = "app2.detail.structure_note_long"
+            /// 目標區間兩張卡（設計 frame-02d）。
+            static let targetZone = "app2.detail.target_zone"
+            static let effortLabel = "app2.detail.effort_label"
+            static let estimatedTime = "app2.detail.estimated_time"
+            static let minutesUnit = "app2.detail.minutes_unit"
         }
 
         /// 訓練詳情（**已完成的一筆紀錄**，設計 frame-15～17）。
@@ -2276,6 +2284,11 @@ extension L10n {
             /// `新 PB · %@`
             static let newPersonalBest = "app2.workout_detail.new_pb"
             static let coachSection = "app2.workout_detail.coach_section"
+            /// Rizo 分析的展開／收合（設計 frame-02f）。
+            static let expandAnalysis = "app2.workout_detail.expand_analysis"
+            static let collapseAnalysis = "app2.workout_detail.collapse_analysis"
+            /// 指標磚的「跑力」（設計 frame-02f 的 `跑力 57.2 VDOT`）。
+            static let runningPower = "app2.workout_detail.running_power"
             static let planned = "app2.workout_detail.planned"
             static let actual = "app2.workout_detail.actual"
             /// `均心 %d`

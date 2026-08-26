@@ -55,20 +55,19 @@ extension PersonalAchievementsViewModel: App2Revalidating {
 /// 課表頁 header 只剩標題＋週次切換器，頭像鈕拿掉），開成一張全螢幕頁
 /// （設計 frame-21 的左上有返回鍵，是被推出來的頁而不是 tab）。
 ///
-/// tab bar 是懸浮膠囊（`App2TabBar`），所以頁面在 `ZStack` 裡疊而不是走 `TabView`；
-/// 每一頁自己留 `App2Theme.tabBarClearance` 的底部空間。
+/// **底部導航是系統原生 `TabView`**（2026-08-26 使用者裁決）：高度、safe-area 貼底、
+/// 選中態都交給系統，不再自繪懸浮膠囊。頁面內容的底部留白因此縮到
+/// `App2Theme.tabBarClearance` 的小值 —— 系統 tab bar 已經自己 inset 了 scroll view。
 ///
-/// **四個 ViewModel 由這一層持有**：`switch` 換頁會把子 view 連同它的
-/// `@StateObject` 一起丟掉，切回來就重打 API。把 ViewModel 提到殼層 ＋ 已造訪的頁
-/// 留在 `ZStack` 裡（用 opacity 切換），切換就不重建、不重新 fetch、捲動位置也保留。
+/// **四個 ViewModel 由這一層持有**：`TabView` 換頁在某些情境會重建子 view 連同它的
+/// `@StateObject`，切回來就重打 API。把 ViewModel 提到殼層之後，切換不重建、
+/// 不重新 fetch、捲動位置也保留。
 ///
 /// **這支只在 2.0 分支取代 `ContentView.mainAppContent()` 的 TabView。**
 /// 1.x 發版線（`main`）不受影響 —— 本票不合回 main。
 struct App2RootView: View {
 
     @State private var selection: App2Tab = .state
-    /// 已造訪過的 tab —— 沒進過的頁不預先建立（省掉冷啟時四頁一起打 API）。
-    @State private var visited: Set<App2Tab> = [.state]
     @State private var isShowingSettings = false
 
     @StateObject private var homeViewModel = App2HomeViewModel()
@@ -80,26 +79,29 @@ struct App2RootView: View {
     @StateObject private var achievementsViewModel = PersonalAchievementsViewModel()
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            App2Theme.pageGradient.ignoresSafeArea()
+        TabView(selection: $selection) {
+            App2HomeView(
+                onOpenSettings: { isShowingSettings = true },
+                viewModel: homeViewModel,
+                // 訓練狀況卡的徽章＝成就頁那一顆，所以共用同一個 ViewModel。
+                achievementsViewModel: achievementsViewModel
+            )
+            .tabItem { tabLabel(.state) }
+            .tag(App2Tab.state)
 
-            ZStack {
-                page(.state) {
-                    App2HomeView(
-                        onOpenSettings: { isShowingSettings = true },
-                        viewModel: homeViewModel,
-                        // 訓練狀況卡的徽章＝成就頁那一顆，所以共用同一個 ViewModel。
-                        achievementsViewModel: achievementsViewModel
-                    )
-                }
-                page(.plan) { App2PlanView(viewModel: planViewModel) }
-                page(.records) { App2RecordsView(viewModel: recordsViewModel) }
-                page(.achievements) { App2AchievementsView(viewModel: achievementsViewModel) }
-            }
+            App2PlanView(viewModel: planViewModel)
+                .tabItem { tabLabel(.plan) }
+                .tag(App2Tab.plan)
 
-            App2TabBar(selection: $selection)
-                .padding(.bottom, 4)
+            App2RecordsView(viewModel: recordsViewModel)
+                .tabItem { tabLabel(.records) }
+                .tag(App2Tab.records)
+
+            App2AchievementsView(viewModel: achievementsViewModel)
+                .tabItem { tabLabel(.achievements) }
+                .tag(App2Tab.achievements)
         }
+        .tint(App2Theme.accentBlue)
         .task {
             // **Garmin 連結狀態要在殼層恢復一次。**
             // `GarminManager.isConnected` 開機時是從 UserDefaults(`garmin_connected`)
@@ -108,9 +110,6 @@ struct App2RootView: View {
             // 重新登入後 Garmin 明明還連著，訓練詳情的「傳到 Garmin」鈕卻不出現
             //（2026-08-26 QA）。這裡不是第二份狀態，打的是既有的同一支。
             await GarminManager.shared.checkConnectionStatusIfNeeded()
-        }
-        .onChange(of: selection) { _, newValue in
-            visited.insert(newValue)
         }
         .fullScreenCover(isPresented: $isShowingSettings) {
             App2SettingsView(
@@ -121,19 +120,12 @@ struct App2RootView: View {
         .accessibilityIdentifier("App2_RootView")
     }
 
-    /// 已造訪的頁一律留在階層裡（保留 ViewModel 與捲動位置），只切可見度。
-    /// 隱藏的頁同時退出 accessibility tree，否則 UI 測試會抓到背景頁的元素。
-    @ViewBuilder
-    private func page<Content: View>(
-        _ tab: App2Tab,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        if visited.contains(tab) {
-            content()
-                .opacity(selection == tab ? 1 : 0)
-                .allowsHitTesting(selection == tab)
-                .accessibilityHidden(selection != tab)
-        }
+    /// tab item 的圖與字。identifier 掛在 `Label` 上 —— 系統 tab bar 會把它帶到
+    /// `UITabBarItem`，maestro 才點得到（用文字選 tab 不行：首頁今日課表卡裡就有
+    /// 「課表」兩個字，會先被選中）。
+    private func tabLabel(_ tab: App2Tab) -> some View {
+        Label(tab.titleKey.localized, systemImage: tab.symbolName)
+            .accessibilityIdentifier("App2_Tab_\(tab.rawValue.capitalized)")
     }
 }
 

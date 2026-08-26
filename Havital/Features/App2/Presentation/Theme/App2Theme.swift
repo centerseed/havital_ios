@@ -133,15 +133,19 @@ enum App2Theme {
     static let dayCardCornerRadius: CGFloat = 16
     static let insetCornerRadius: CGFloat = 12
     static let chipCornerRadius: CGFloat = 8
-    static let tabBarCornerRadius: CGFloat = 27
 
     static let cardPadding: CGFloat = 16        // padding:16px
     static let heroPadding: CGFloat = 18        // hero 卡 padding:18px
     static let pagePadding: CGFloat = 18        // scroll area padding:… 18px
     static let sectionSpacing: CGFloat = 16
 
-    /// 懸浮 tab bar 佔用的高度（bottom:20 + height:66）＋ 呼吸空間。
-    static let tabBarClearance: CGFloat = 110
+    /// 頁面內容底部的呼吸空間。
+    ///
+    /// 2026-08-26 起底部導航是系統原生 `TabView`：tab bar 的高度與 safe area 由系統
+    /// inset 進 scroll view，頁面**不再**需要自己空出一條 bar 的高度（原本是 110，
+    /// 那是自繪懸浮膠囊的 bottom:20 + height:66）。留 16 只是最後一張卡與 tab bar
+    /// 之間的間距。
+    static let tabBarClearance: CGFloat = 16
 
     // MARK: - Shadow
     // 設計是雙層陰影：`0 1px 2px rgba(16,24,40,0.04), 0 10px 26px -16px rgba(16,24,40,0.22)`。
@@ -193,6 +197,33 @@ extension DayType {
             return App2Theme.accentViolet
         case .rest:
             return App2Theme.chevron
+        }
+    }
+
+    /// 課型的 icon 圓章符號（設計 frame-02d 單段課首卡、frame-02f workout hero）。
+    /// 是 `DayType` 的型別對照，不是對顯示字比對。
+    var app2SymbolName: String {
+        switch self {
+        case .strength:
+            return "dumbbell.fill"
+        case .yoga:
+            return "figure.mind.and.body"
+        case .cycling:
+            return "bicycle"
+        case .swimming:
+            return "figure.pool.swim"
+        case .rowing:
+            return "figure.rower"
+        case .elliptical:
+            return "figure.elliptical"
+        case .crossTraining:
+            return "figure.cross.training"
+        case .hiking:
+            return "figure.hiking"
+        case .rest:
+            return "moon.zzz.fill"
+        default:
+            return "figure.run"
         }
     }
 

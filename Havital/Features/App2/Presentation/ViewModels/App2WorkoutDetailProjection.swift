@@ -21,6 +21,9 @@ struct App2WorkoutDetailProjection: Equatable {
 
     /// 課型標題（`輕鬆跑`）。沒有課型時退成活動型別的在地化名。
     let title: String
+    /// 這一筆對應的課型。hero 卡的主色與 icon 圓章跟著它走（設計 frame-02f）；
+    /// 對不出課型就是 nil，hero 退成中性藍。
+    let dayType: DayType?
     /// `戶外跑步 · 今天 06:32`
     let subtitle: String
     /// 資料來源徽章文字（`Garmin`／`Strava`／`Apple Health`）。
@@ -162,6 +165,12 @@ extension App2WorkoutDetailProjection {
         let avgHR = basic?.avgHeartRateBpm ?? workout.basicMetrics?.avgHeartRateBpm
         let maxHR = basic?.maxHeartRateBpm ?? workout.basicMetrics?.maxHeartRateBpm
 
+        let vdotValue = advanced?.dynamicVdot ?? workout.advancedMetrics?.dynamicVdot
+        let tssValue = advanced?.tss ?? workout.advancedMetrics?.tss
+
+        // 指標磚的順序照設計 frame-02f 的 2×3：
+        // 距離／時長／跑力 VDOT ／ 平均配速／平均心率／訓練負荷 TSS。
+        // 卡路里與最大心率不在那六格裡，但它們是真資料 —— 接在後面續排，不丟掉。
         var metrics: [Metric] = []
         if let distanceM, distanceM > 0 {
             metrics.append(distanceMetric(meters: distanceM, unitSystem: unitSystem))
@@ -173,18 +182,13 @@ extension App2WorkoutDetailProjection {
                 value: formatDuration(seconds: durationS)
             )
         )
-        // 0 kcal 是「沒算出來」，不是「這趟燒了 0 大卡」——不畫這一格。
-        //
-        // **`caloriesKcal` 永遠不是 nil**：`BasicMetrics.caloriesKcal` 的實作是
-        // `Int(_caloriesKcal?.value ?? 0)`，欄位缺席時回 0 而不是 nil。所以只看
-        // `!= nil` 會畫出一格「0 kcal」，一定要看值。
-        if let calories, calories >= 1 {
+        if let vdotValue {
             metrics.append(
                 Metric(
-                    key: "calories",
-                    label: NSLocalizedString("workout.metrics.calories", comment: "卡路里"),
-                    value: "\(calories)",
-                    unit: "kcal"
+                    key: "vdot",
+                    label: L10n.App2.WorkoutDetail.runningPower.localized,
+                    value: String(format: "%.1f", vdotValue),
+                    unit: "VDOT"
                 )
             )
         }
@@ -210,6 +214,31 @@ extension App2WorkoutDetailProjection {
                 )
             )
         }
+        if let tssValue {
+            metrics.append(
+                Metric(
+                    key: "load",
+                    label: NSLocalizedString("workout.detail.training_load", comment: "訓練負荷"),
+                    value: String(format: "%.0f", tssValue),
+                    unit: "TSS"
+                )
+            )
+        }
+        // 0 kcal 是「沒算出來」，不是「這趟燒了 0 大卡」——不畫這一格。
+        //
+        // **`caloriesKcal` 永遠不是 nil**：`BasicMetrics.caloriesKcal` 的實作是
+        // `Int(_caloriesKcal?.value ?? 0)`，欄位缺席時回 0 而不是 nil。所以只看
+        // `!= nil` 會畫出一格「0 kcal」，一定要看值。
+        if let calories, calories >= 1 {
+            metrics.append(
+                Metric(
+                    key: "calories",
+                    label: NSLocalizedString("workout.metrics.calories", comment: "卡路里"),
+                    value: "\(calories)",
+                    unit: "kcal"
+                )
+            )
+        }
         if let maxHR, maxHR > 0 {
             metrics.append(
                 Metric(
@@ -223,7 +252,7 @@ extension App2WorkoutDetailProjection {
         }
 
         var advancedMetrics: [Metric] = []
-        if let vdot = advanced?.dynamicVdot ?? workout.advancedMetrics?.dynamicVdot {
+        if let vdot = vdotValue {
             advancedMetrics.append(
                 Metric(
                     key: "dynamic_vdot",
@@ -232,7 +261,7 @@ extension App2WorkoutDetailProjection {
                 )
             )
         }
-        if let tss = advanced?.tss ?? workout.advancedMetrics?.tss {
+        if let tss = tssValue {
             advancedMetrics.append(
                 Metric(
                     key: "tss",
@@ -264,6 +293,7 @@ extension App2WorkoutDetailProjection {
 
         return App2WorkoutDetailProjection(
             title: titleLabel(workout: workout, detail: detail),
+            dayType: dayType(workout: workout, detail: detail),
             subtitle: subtitleLabel(workout: workout, now: now),
             providerLabel: providerLabel(workout.provider),
             dominantZoneLabel: dominantZoneLabel(advanced?.hrZoneDistribution),
@@ -286,17 +316,27 @@ extension App2WorkoutDetailProjection {
     /// 大標「輕鬆跑」是前者。課型顯示字走既有的 `DayType.localizedName`（三語已齊），
     /// 不另建一份對照表。
     static func titleLabel(workout: WorkoutV2, detail: WorkoutV2Detail?) -> String {
-        let rawType = detail?.advancedMetrics?.trainingType
-            ?? workout.advancedMetrics?.trainingType
-            ?? detail?.dailyPlanSummary?.trainingType
-            ?? workout.dailyPlanSummary?.trainingType
-        if let rawType, let dayType = DayType(rawValue: rawType) {
+        if let dayType = dayType(workout: workout, detail: detail) {
             return dayType.localizedName
         }
-        if let rawType, !rawType.isEmpty {
+        if let rawType = rawTrainingType(workout: workout, detail: detail), !rawType.isEmpty {
             return rawType
         }
         return activityTypeLabel(workout.activityType)
+    }
+
+    static func rawTrainingType(workout: WorkoutV2, detail: WorkoutV2Detail?) -> String? {
+        detail?.advancedMetrics?.trainingType
+            ?? workout.advancedMetrics?.trainingType
+            ?? detail?.dailyPlanSummary?.trainingType
+            ?? workout.dailyPlanSummary?.trainingType
+    }
+
+    /// 這一筆的課型。**是 `run_type` 識別字的型別解析**，不是對顯示字做詞表比對；
+    /// 對不上已知集合就 nil（hero 退成中性色）。
+    static func dayType(workout: WorkoutV2, detail: WorkoutV2Detail?) -> DayType? {
+        guard let raw = rawTrainingType(workout: workout, detail: detail) else { return nil }
+        return DayType(rawValue: raw)
     }
 
     static func subtitleLabel(workout: WorkoutV2, now: Date) -> String {

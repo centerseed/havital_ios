@@ -4458,6 +4458,15 @@
 "app2.detail.pace_band_window" = "target window %@";
 "app2.detail.structure_meta" = "%1$d phases · %2$d min";
 "app2.detail.structure_steady_note" = "No intervals, no rests — just keep it even.";
+"app2.detail.structure_note_threshold" = "Continuous — hold a steady threshold pace.";
+"app2.detail.structure_note_long" = "Even pace throughout; the last few kilometres are what count.";
+"app2.detail.target_zone" = "Target Range";
+"app2.detail.effort_label" = "Effort";
+"app2.detail.estimated_time" = "Est. time";
+"app2.detail.minutes_unit" = "min";
+"app2.workout_detail.expand_analysis" = "Show full analysis";
+"app2.workout_detail.collapse_analysis" = "Show less";
+"app2.workout_detail.running_power" = "Running power";
 
 // MARK: - App2 Workout Detail (completed record, design frame-15~17)
 "app2.workout_detail.title" = "Workout detail";

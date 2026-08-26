@@ -599,6 +599,76 @@ struct App2DragReorderList<Content: View>: View {
     }
 }
 
+// MARK: - App2TrainingTypeMenu
+/// 課型選擇 —— **平台標準下拉**（2026-08-26 使用者裁決：frame-04 的深遮罩＋錨點卡
+/// ＋橘底打勾是 Claude Design 的示意，不實作）。原本的 `App2TrainingTypeSheet`
+/// 已刪除，這是唯一一條課型選擇路徑。
+///
+/// **分組沿用 `TrainingTypeMenu` 的 static 清單**——版面換了，但「有哪些課型、
+/// 分成哪幾組」只有一份，不會出現 1.4 選得到、2.0 選不到的課型。
+/// 分組順序：輕鬆／強度／長距離／其他；目前課型帶系統勾選標記。
+struct App2TrainingTypeMenu<Label: View>: View {
+
+    let current: DayType
+    let onSelect: (DayType) -> Void
+    @ViewBuilder let label: () -> Label
+
+    private struct TypeGroup: Identifiable {
+        let id: String
+        let title: String
+        let types: [DayType]
+    }
+
+    private var groups: [TypeGroup] {
+        [
+            TypeGroup(
+                id: "easy",
+                title: L10n.EditSchedule.easyTrainingSection.localized,
+                types: TrainingTypeMenu.easyTypes
+            ),
+            TypeGroup(
+                id: "intensity",
+                title: L10n.EditSchedule.intensityTrainingSection.localized,
+                types: TrainingTypeMenu.intensityTypes
+            ),
+            TypeGroup(
+                id: "long",
+                title: L10n.EditSchedule.longDistanceTrainingSection.localized,
+                types: TrainingTypeMenu.longDistanceTypes
+            ),
+            TypeGroup(
+                id: "other",
+                title: L10n.EditSchedule.otherTrainingSection.localized,
+                types: TrainingTypeMenu.otherTypes
+            )
+        ]
+    }
+
+    var body: some View {
+        Menu {
+            ForEach(groups) { group in
+                Section(group.title) {
+                    ForEach(group.types, id: \.rawValue) { type in
+                        Button {
+                            onSelect(type)
+                        } label: {
+                            // 現值的勾選交給系統的 `checkmark`，不自繪橘底打勾。
+                            if type == current {
+                                SwiftUI.Label(type.localizedName, systemImage: "checkmark")
+                            } else {
+                                Text(type.localizedName)
+                            }
+                        }
+                        .accessibilityIdentifier("App2_TrainingType_\(type.rawValue)")
+                    }
+                }
+            }
+        } label: {
+            label()
+        }
+    }
+}
+
 // MARK: - 下拉 chip（課型／力量類型）
 struct App2EditDropdownChip: View {
     let text: String

@@ -4499,6 +4499,15 @@
 "app2.detail.pace_band_window" = "目標窗 %@";
 "app2.detail.structure_meta" = "%1$d 段 · %2$d 分鐘";
 "app2.detail.structure_steady_note" = "無間歇、無休息，保持均速即可";
+"app2.detail.structure_note_threshold" = "連續不中斷，維持穩定閾值配速";
+"app2.detail.structure_note_long" = "全程勻速，最後幾公里才是重點";
+"app2.detail.target_zone" = "目標區間";
+"app2.detail.effort_label" = "體感";
+"app2.detail.estimated_time" = "預估時間";
+"app2.detail.minutes_unit" = "分";
+"app2.workout_detail.expand_analysis" = "展開完整分析";
+"app2.workout_detail.collapse_analysis" = "收合分析";
+"app2.workout_detail.running_power" = "跑力";
 
 // MARK: - App2 訓練詳情（已完成紀錄，設計 frame-15～17）
 "app2.workout_detail.title" = "訓練詳情";

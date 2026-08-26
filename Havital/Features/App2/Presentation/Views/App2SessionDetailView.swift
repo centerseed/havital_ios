@@ -55,6 +55,8 @@ struct App2SessionDetailView: View {
                         goalCard
                     }
                     if !detail.segments.isEmpty { structureCard }
+                    // 設計 frame-02d 的下半部順序：訓練結構 → 目標區間 → 熱適應。
+                    if targetZoneEffort != nil || estimatedRangeLabel != nil { targetZoneSection }
                     if let climate = detail.climate { climateCard(climate) }
                 }
                 .padding(.horizontal, App2Theme.pagePadding)
@@ -408,22 +410,24 @@ struct App2SessionDetailView: View {
 
     // MARK: - 訓練結構
 
+    /// 設計 frame-02d：訓練結構**不是一張大卡**，是「區塊小標 ＋ 每段各自一張圓角卡」。
     private var structureCard: some View {
-        App2Card(padding: 15, spacing: 10) {
-            HStack {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
                 Text(L10n.App2.Detail.structure.localized)
                     .font(.system(size: 15, weight: .black))
                     .foregroundStyle(App2Theme.inkPrimary)
-                Spacer()
                 // 設計 frame-02c：header 是「N 段 · M 分鐘」。推不出分鐘就只留段數。
                 Text(structureMetaLabel)
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(App2Theme.inkMuted)
+                Spacer(minLength: 0)
             }
             ForEach(detail.segments) { segment in
                 segmentRow(segment)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityIdentifier("App2_SessionDetailStructure")
     }
 
@@ -437,37 +441,59 @@ struct App2SessionDetailView: View {
         return String(format: L10n.App2.Detail.structureMeta.localized, count, minutes)
     }
 
-    /// 單段勻速課的首列補充句（設計 frame-02c）。payload 自己帶了描述就用它的。
+    /// 段附註句。payload 自己帶了描述就用它的；沒有就用課型的確定性文案
+    /// （設計 frame-02d：「連續不中斷，維持穩定閾值配速」「全程勻速，最後幾公里
+    /// 才是重點」）。逐日生成的敘述不進這裡 —— 理由見投影層。
     private func segmentNote(_ segment: App2SessionDetailSegment) -> String? {
         if let note = segment.note { return note }
-        guard detail.paceBand != nil, segment.isWork else { return nil }
-        return L10n.App2.Detail.structureSteadyNote.localized
+        guard segment.isWork else { return nil }
+        return App2SessionDetailProjection.workSegmentNoteKey(detail.dayType)?.localized
+    }
+
+    /// 單段課的首卡帶課型 icon 圓章，多段課是序號色圈（設計 frame-02d）。
+    private var showsSegmentTypeIcon: Bool { detail.segments.count == 1 }
+
+    /// 序號色圈：主段＝實心課型色白字；暖身／緩和＝白底色描邊（設計 frame-02d 的綠圈）。
+    private func segmentColor(_ segment: App2SessionDetailSegment) -> Color {
+        segment.isWork ? accent : App2Theme.accentGreenBright
+    }
+
+    @ViewBuilder
+    private func segmentBadge(_ segment: App2SessionDetailSegment) -> some View {
+        let color = segmentColor(segment)
+        if showsSegmentTypeIcon, let dayType = detail.dayType {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(color)
+                .frame(width: 30, height: 30)
+                .overlay {
+                    Image(systemName: dayType.app2SymbolName)
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(.white)
+                }
+        } else if segment.isWork {
+            Text(verbatim: "\(segment.index)")
+                .font(.app2Mono(13))
+                .foregroundStyle(.white)
+                .frame(width: 28, height: 28)
+                .background(Circle().fill(color))
+        } else {
+            Text(verbatim: "\(segment.index)")
+                .font(.app2Mono(13))
+                .foregroundStyle(color.app2Darkened)
+                .frame(width: 28, height: 28)
+                .background(Circle().fill(App2Theme.cardBackground))
+                .overlay(Circle().strokeBorder(color.opacity(0.55), lineWidth: 1.5))
+        }
     }
 
     private func segmentRow(_ segment: App2SessionDetailSegment) -> some View {
         HStack(alignment: .top, spacing: 11) {
-            Text(verbatim: "\(segment.index)")
-                .font(.app2Mono(13))
-                .foregroundStyle(segment.isWork ? .white : App2Theme.inkTertiary)
-                .frame(width: 26, height: 26)
-                .background(
-                    Circle().fill(segment.isWork ? accent : App2Theme.insetBackground)
-                )
+            segmentBadge(segment)
 
             VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 7) {
-                    Text(segment.name)
-                        .font(.system(size: 15, weight: .heavy))
-                        .foregroundStyle(App2Theme.inkPrimary)
-                    if let repeats = segment.repeatsLabel {
-                        App2Chip(
-                            text: repeats,
-                            foreground: accent.app2Darkened,
-                            background: accent.opacity(0.13),
-                            monospaced: true
-                        )
-                    }
-                }
+                Text(segment.name)
+                    .font(.system(size: 15, weight: .heavy))
+                    .foregroundStyle(App2Theme.inkPrimary)
                 if let value = segment.detail {
                     Text(value)
                         .font(.app2Mono(14, weight: .bold))
@@ -483,30 +509,142 @@ struct App2SessionDetailView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            Spacer(minLength: 0)
+            Spacer(minLength: 6)
+            // 間歇主段的趟數 chip 靠右上（設計 frame-02d 的「× 10」）。
+            if let repeats = segment.repeatsLabel {
+                App2Chip(
+                    text: repeats,
+                    foreground: .white,
+                    background: accent,
+                    monospaced: true
+                )
+            }
         }
-        .padding(EdgeInsets(top: 10, leading: 11, bottom: 10, trailing: 11))
+        .padding(EdgeInsets(top: 11, leading: 11, bottom: 11, trailing: 11))
         .frame(maxWidth: .infinity, alignment: .leading)
-        .app2InsetSurface(cornerRadius: 12)
+        // **主段卡淡底高亮**（設計 frame-02d：間歇橘、節奏藍、耐力紫＝課型色）；
+        // 暖身／緩和維持白底圓角卡。
+        .background(
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .fill(segment.isWork ? accent.opacity(0.09) : App2Theme.cardBackground)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .strokeBorder(
+                    segment.isWork ? accent.opacity(0.28) : App2Theme.insetBorder,
+                    lineWidth: 1
+                )
+        )
         .accessibilityIdentifier("App2_SessionDetailSegment_\(segment.id)")
+    }
+
+    // MARK: - 目標區間（設計 frame-02d 的兩張並排卡）
+
+    /// 體感級距走既有的 `TrainingEffortScale`（課型對照，1.4 訓練詳情同一張表），
+    /// **不在這裡再寫一份**。跑步課以外（休息／肌力／交叉）沒有這個語意 → nil。
+    private var targetZoneEffort: TrainingEffortScale.Value? {
+        TrainingEffortScale.value(for: detail.dayType)
+    }
+
+    private var estimatedRangeLabel: String? {
+        App2SessionDetailProjection.estimatedRangeLabel(durationMinutes: detail.durationMinutes)
+    }
+
+    private var targetZoneSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            App2SectionCaption(text: L10n.App2.Detail.targetZone.localized)
+            HStack(spacing: 11) {
+                if let effort = targetZoneEffort {
+                    targetZoneCard(
+                        label: L10n.App2.Detail.effortLabel.localized,
+                        unit: nil,
+                        value: effort.rpeText,
+                        suffix: "/10",
+                        identifier: "App2_SessionDetailEffort"
+                    )
+                }
+                if let range = estimatedRangeLabel {
+                    targetZoneCard(
+                        label: L10n.App2.Detail.estimatedTime.localized,
+                        unit: App2SessionDetailProjection.estimatedRangeUnit(
+                            durationMinutes: detail.durationMinutes
+                        ),
+                        value: range,
+                        suffix: nil,
+                        identifier: "App2_SessionDetailEstimatedTime"
+                    )
+                }
+            }
+        }
+        .accessibilityIdentifier("App2_SessionDetailTargetZone")
+    }
+
+    private func targetZoneCard(
+        label: String,
+        unit: String?,
+        value: String,
+        suffix: String?,
+        identifier: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Text(label)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(App2Theme.inkMuted)
+                if let unit {
+                    Text(unit)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(App2Theme.inkMuted)
+                }
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+
+            HStack(alignment: .firstTextBaseline, spacing: 1) {
+                Text(value)
+                    .font(.app2Mono(26))
+                    .foregroundStyle(accent.app2Darkened)
+                if let suffix {
+                    Text(suffix)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(App2Theme.inkMuted)
+                }
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 13)
+        .app2CardSurface(cornerRadius: 16)
+        .accessibilityIdentifier(identifier)
     }
 
     // MARK: - 熱適應（`climate_meta`，真資料）
 
+    /// 熱壓力等級的顏色。`danger` 是紅（設計 frame-02d 的危險級示例），
+    /// 其餘留在橘色階 —— 等級本身是後端給的 `heat_pressure_level`，不是這裡判的。
+    private func climateTint(_ level: String) -> Color {
+        level == "danger" ? App2Theme.accentRed : App2Theme.accentOrangeBright
+    }
+
     private func climateCard(_ climate: App2SessionClimate) -> some View {
-        App2NoteBox(symbol: "thermometer.sun.fill", accent: App2Theme.accentOrangeBright) {
-            VStack(alignment: .leading, spacing: 5) {
+        let tint = climateTint(climate.level)
+        return App2NoteBox(symbol: "thermometer.sun.fill", accent: tint) {
+            VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 7) {
                     Text(NSLocalizedString("climate.section_title", comment: ""))
                         .font(.system(size: 14, weight: .black))
                         .foregroundStyle(App2Theme.inkPrimary)
-                    Text(
-                        [climate.shortLevel, climate.feelsLike]
+                    Spacer(minLength: 6)
+                    // 設計 frame-02d：等級 ＋ 體感溫度是右側一顆 chip，不是標題後的散字。
+                    App2Chip(
+                        text: [climate.shortLevel, climate.feelsLike]
                             .compactMap { $0 }
-                            .joined(separator: " · ")
+                            .joined(separator: " · "),
+                        foreground: tint.app2Darkened,
+                        background: tint.opacity(0.13)
                     )
-                    .font(.system(size: 13, weight: .heavy))
-                    .foregroundStyle(App2Theme.accentOrangeText)
                 }
                 Text(climate.reason)
                     .font(.system(size: 13, weight: .semibold))

@@ -4455,6 +4455,15 @@
 "app2.detail.pace_band_window" = "目標レンジ %@";
 "app2.detail.structure_meta" = "%1$d 区間 · %2$d 分";
 "app2.detail.structure_steady_note" = "インターバルも休息もなし、一定ペースで。";
+"app2.detail.structure_note_threshold" = "中断なしで、安定した閾値ペースを維持";
+"app2.detail.structure_note_long" = "全体を一定ペースで。勝負は最後の数キロ";
+"app2.detail.target_zone" = "目標レンジ";
+"app2.detail.effort_label" = "体感";
+"app2.detail.estimated_time" = "予想タイム";
+"app2.detail.minutes_unit" = "分";
+"app2.workout_detail.expand_analysis" = "分析をすべて表示";
+"app2.workout_detail.collapse_analysis" = "折りたたむ";
+"app2.workout_detail.running_power" = "ランニングパワー";
 
 // MARK: - App2 トレーニング詳細（完了記録、デザイン frame-15〜17）
 "app2.workout_detail.title" = "トレーニング詳細";
