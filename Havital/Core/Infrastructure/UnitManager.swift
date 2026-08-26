@@ -31,6 +31,16 @@ enum UnitSystem: String, CaseIterable {
         case .imperial: return "/mi"
         }
     }
+
+    /// 秒／km → 秒／(km 或 mi)。**配速換算的唯一係數住在這裡**，
+    /// 呼叫端不得自己乘 1.60934（2026-08-26 收斂：原本 `UnitManager`、
+    /// `App2WorkoutDetailProjection`、`App2SessionDetailProjection` 各寫一份）。
+    func convertedPaceSeconds(_ secondsPerKm: Double) -> Double {
+        switch self {
+        case .metric: return secondsPerKm
+        case .imperial: return secondsPerKm * 1.60934
+        }
+    }
 }
 
 // MARK: - UnitManager
@@ -77,12 +87,7 @@ class UnitManager: ObservableObject {
 
     /// 格式化配速（輸入：秒/km，輸出：含單位的配速字串如 "5:30 /km" 或 "8:51 /mi"）
     func formatPace(secondsPerKm: Double) -> String {
-        let converted: Double
-        switch currentUnitSystem {
-        case .metric: converted = secondsPerKm
-        case .imperial: converted = secondsPerKm * 1.60934
-        }
-        let rounded = Int(converted.rounded())
+        let rounded = Int(currentUnitSystem.convertedPaceSeconds(secondsPerKm).rounded())
         let minutes = rounded / 60
         let seconds = rounded % 60
         return String(format: "%d:%02d%@", minutes, seconds, currentUnitSystem.paceSuffix)

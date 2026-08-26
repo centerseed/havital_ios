@@ -617,16 +617,14 @@ struct App2DayEditView: View {
 
     /// 分段是不是「快」的那一段：比輕鬆配速快就是。沒有 VDOT 時全部當輕鬆段。
     static func isFastSegment(_ segment: EditableSegment, easyPace: String?) -> Bool {
-        guard let easyPace, let easy = paceSeconds(easyPace), let value = paceSeconds(segment.pace) else {
+        // `"4:50"` → 秒走 `PaceFormatterHelper.paceToSeconds`（`Havital/Utils/` 的既有出口），
+        // App2 不再各留一份解析（2026-08-26 收斂）。
+        guard let easyPace,
+              let easy = PaceFormatterHelper.paceToSeconds(easyPace),
+              let value = PaceFormatterHelper.paceToSeconds(segment.pace) else {
             return false
         }
         return value < easy - 15
-    }
-
-    static func paceSeconds(_ pace: String) -> Int? {
-        let parts = pace.split(separator: ":")
-        guard parts.count == 2, let m = Int(parts[0]), let s = Int(parts[1]) else { return nil }
-        return m * 60 + s
     }
 
     /// 總距離＝**只加分段清單**，不含暖身緩和（設計 §15 明寫）。

@@ -398,7 +398,7 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
             dayType: dayType,
             distance: String(format: "%.1f km", distanceKm),
             pace: workout.basicMetrics?.avgPaceSPerKm.map(Self.paceLabel(secondsPerKm:)),
-            duration: Self.durationLabel(seconds: workout.durationSeconds),
+            duration: TimeFormatting.formatTime(workout.durationSeconds),
             vdot: workout.advancedMetrics?.dynamicVdot.map { String(format: "%.1f", $0) }
         )
     }
@@ -413,17 +413,9 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
         return "\(month)/\(day)"
     }
 
+    /// 配速跟著用戶的單位制走（`/km`／`/mi`）。這裡原本寫死 `/km` 且不換算，
+    /// 英制用戶看到的是公里配速掛著 `/km`（2026-08-26 架構收斂順修）。
     private static func paceLabel(secondsPerKm: Double) -> String {
-        let total = Int(secondsPerKm.rounded())
-        return String(format: "%d:%02d/km", total / 60, total % 60)
-    }
-
-    private static func durationLabel(seconds: Int) -> String {
-        let h = seconds / 3600
-        let m = (seconds % 3600) / 60
-        let s = seconds % 60
-        return h > 0
-            ? String(format: "%d:%02d:%02d", h, m, s)
-            : String(format: "%d:%02d", m, s)
+        UnitManager.shared.formatPace(secondsPerKm: secondsPerKm)
     }
 }

@@ -456,19 +456,11 @@ extension App2WorkoutDetailProjection {
     }
 
     static func formatDuration(seconds: Int?) -> String {
-        let total = max(0, seconds ?? 0)
-        let hours = total / 3600
-        let minutes = (total % 3600) / 60
-        let secs = total % 60
-        if hours > 0 {
-            return String(format: "%d:%02d:%02d", hours, minutes, secs)
-        }
-        return String(format: "%d:%02d", minutes, secs)
+        TimeFormatting.formatTime(max(0, seconds ?? 0))
     }
 
     static func formatPace(secondsPerKm: Double, unitSystem: UnitSystem) -> String {
-        let converted = unitSystem == .metric ? secondsPerKm : secondsPerKm * 1.60934
-        let rounded = Int(converted.rounded())
+        let rounded = Int(unitSystem.convertedPaceSeconds(secondsPerKm).rounded())
         return String(format: "%d:%02d", rounded / 60, rounded % 60)
     }
 }
