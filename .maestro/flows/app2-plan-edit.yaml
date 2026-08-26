@@ -2,16 +2,16 @@ appId: com.havital.Havital.dev
 tags:
   - app2
 ---
-# T-0306 wave3 §3 —— 編輯週課表（設計 frame-03～09）的實走證據。
+# T-0306 —— 修改課表（設計 frame-03～09）的實走證據。
 #
-# **只走到「改了但不儲存」為止。** 這台模擬器登的是創辦人本人的 dev 帳號，
-# flow 不按儲存，避免把真的週課表改掉。
-# `clearState: false`：不得清 keychain 或資料。
+# **只走到「改了但不儲存」為止。** 這台模擬器登的是真的 dev 帳號，
+# flow 不按儲存，避免把週課表改掉。`clearState: false`：不得清 keychain 或資料。
 #
-# ⚠️ 課型 sheet / 單日編輯 sheet 是**從 fullScreenCover 裡再開的 sheet**，
-# SwiftUI 不把這一層曝進 accessibility tree（2026-08-25 用 `maestro hierarchy`
-# 確認：編輯頁本身的 id 全在，sheet 內一個都沒有）。所以這幾步用座標點擊，
-# 斷言則回到主層看得到的 id（換成間歇後日卡會長出 `App2_PlanEditDetail_2`）。
+# ⚠️ 兩個 a11y 陷阱（2026-08-26 用 `maestro hierarchy` 確認，都寫在對應的 view 註解裡）：
+# 1. 容器掛 `accessibilityIdentifier` 會蓋掉底下每一個子節點 —— 所以判斷「單日編輯開了沒」
+#    用 top bar 的 `App2_DayEditTitle`，不是整頁的 id。
+# 2. 整卡加手勢會把卡收成單一 a11y element；日卡靠 `.accessibilityElement(children: .contain)`
+#    才留得住卡內的課型 chip 與齒輪鈕。
 
 - launchApp:
     clearState: false
@@ -25,7 +25,7 @@ tags:
 - extendedWaitUntil:
     visible:
       id: "App2_TrainingStatusCard"
-    timeout: 60000
+    timeout: 120000
 
 # 「…」選單 → 修改課表
 - tapOn:
@@ -35,26 +35,53 @@ tags:
 - extendedWaitUntil:
     visible:
       id: "App2_PlanEditSummary"
-    timeout: 30000
-- takeScreenshot: wave3-13-plan-edit-week
+    timeout: 40000
+- takeScreenshot: editfix-01-week
 
 # 課型選單 sheet（frame-04）
 - tapOn:
-    id: "App2_PlanEditType_2"
-- takeScreenshot: wave3-14-type-sheet
-# 「間歇訓練」那一列（強度訓練組第三項）
-- tapOn:
-    point: "50%,87%"
+    id: "App2_PlanEditType_3"
 - extendedWaitUntil:
     visible:
-      id: "App2_PlanEditDetail_2"
-    timeout: 15000
-# 換成間歇後：跑量變了、日卡改成「編輯內容」摘要、相鄰強度日提醒可能出現
-- takeScreenshot: wave3-15-after-type-change
+      id: "App2_TrainingTypeSheet"
+    timeout: 10000
+- takeScreenshot: editfix-02-type-sheet
+- swipe:
+    start: "50%, 18%"
+    end: "50%, 95%"
 
-# 單日細部編輯（frame-05 距離制間歇）
+# 單日編輯 · 距離制間歇（frame-05）＋ 配速輪盤（frame-09）
 - tapOn:
-    id: "App2_PlanEditDetail_2"
-- takeScreenshot: wave3-16-interval-editor
+    id: "App2_PlanEditDetail_3"
+- extendedWaitUntil:
+    visible:
+      id: "App2_DayEditTitle"
+    timeout: 15000
+- takeScreenshot: editfix-03-interval
+- tapOn:
+    text: "配速"
+    index: 0
+- takeScreenshot: editfix-04-pace-wheel
+- swipe:
+    start: "50%, 55%"
+    end: "50%, 98%"
+- tapOn:
+    id: "App2_DayEditCancel"
 
-# 不儲存 —— 這裡結束，週課表維持原狀
+# 單日編輯 · 休息日（frame-08）—— 休息日卡沒有齒輪鈕，整張卡就是入口
+- tapOn:
+    id: "App2_PlanEditDay_2"
+- extendedWaitUntil:
+    visible:
+      id: "App2_DayEditTitle"
+    timeout: 15000
+- takeScreenshot: editfix-05-rest
+- tapOn:
+    id: "App2_DayEditCancel"
+
+# 不儲存 —— 放棄變更，週課表維持原狀
+- tapOn:
+    id: "App2_PlanEditCancel"
+- tapOn:
+    text: "放棄變更"
+    optional: true
