@@ -96,14 +96,25 @@ final class App2HomeProjectionTests: XCTestCase {
 
     // MARK: - 訓練狀況卡（§3.1a）
 
-    func test_trainingStatus_usesCollapsedReasonAsHeadline() {
+    /// 2026-08-26 裁決：2.0 的訓練狀況卡標題一律是 `/v2/state/today` 的 `headline`。
+    /// `collapsed_reason` 的融合句規則（T-0241）只留給 1.4 的 `DailyStateCardView`
+    /// ——Android 沒有那條規則，2.0 跟著用會讓同一份 payload 兩平台標題不同。
+    func test_trainingStatus_usesHeadlineNotCollapsedReason() {
         let status = App2HomeViewModel.trainingStatus(
             card: card(headline: "H", collapsedReason: "收合句"),
             currentWeek: 5, totalWeeks: 22
         )
-        XCTAssertEqual(status.headline, "收合句")
+        XCTAssertEqual(status.headline, "H")
         XCTAssertEqual(status.currentWeek, 5)
         XCTAssertEqual(status.totalWeeks, 22)
+    }
+
+    func test_trainingStatus_narrativeComesFromNarrativeText() {
+        let status = App2HomeViewModel.trainingStatus(
+            card: card(headline: "H", collapsedReason: "收合句", narrative: "本週穩定累積"),
+            currentWeek: 5, totalWeeks: 22
+        )
+        XCTAssertEqual(status.narrative, "本週穩定累積")
     }
 
     func test_trainingStatus_freeUser_hasNoNarrative() {

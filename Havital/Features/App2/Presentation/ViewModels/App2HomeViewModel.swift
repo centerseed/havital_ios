@@ -347,8 +347,13 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         currentWeek: Int?,
         totalWeeks: Int?
     ) -> App2TrainingStatus {
+        // 標題綁 `/v2/state/today` 的 `headline`，**不是 `displayHeadline`**
+        // （2026-08-26 使用者裁決）。`displayHeadline` 是 T-0241 給 1.4 收合卡的融合句
+        // 規則（`collapsed_reason` 優先），會把標題變成「調整句」，而且 Android 沒有這條
+        // ——同一個 payload 兩個平台印出不同的標題。融合句規則留在
+        // `DailyStateCardView`（1.4）那一個呼叫點。
         App2TrainingStatus(
-            headline: card.displayHeadline,
+            headline: card.headline,
             narrative: card.narrativeText,
             trackPosition: 0.5,
             currentWeek: currentWeek,

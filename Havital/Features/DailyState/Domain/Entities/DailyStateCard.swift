@@ -28,6 +28,10 @@ struct DailyStateCard: Equatable {
     var hasChip: Bool { !chips.isEmpty }
 
     /// 收合卡第一眼主句:理由句在 → 取代 headline 位置(不同時顯示兩句);否則退 headline。
+    ///
+    /// **只給 1.4 的 `DailyStateCardView` 用。** 2.0 的訓練狀況卡直接綁 `headline`
+    /// （2026-08-26 使用者裁決）——這條融合句規則 Android 沒有，2.0 跟著用會讓同一份
+    /// payload 在兩個平台印出不同的標題。
     var displayHeadline: String {
         if let reason = collapsedReason, !reason.isEmpty { return reason }
         return headline
