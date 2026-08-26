@@ -1,0 +1,167 @@
+# App2 週回顧時機卡 · §A.5 四態逐格走查 ＋ 週回顧兩頁
+#
+# 前置：先跑 `app2-weekly-review-walkthrough.yaml`（或自行進到開發工具）。
+# 這一支每換一格 override 就回首頁截一張，最後從 CTA 進週回顧兩頁。
+appId: com.havital.Havital.dev
+---
+# 冷啟：上一輪可能停在子頁上，`launchApp` 只是 resume。
+- stopApp
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "App2_HomeView"
+    timeout: 30000
+
+# --- 「產生上週回顧」（平日） -------------------------------------------------
+- runFlow:
+    file: ../subflows/app2-open-weekly-review-dev.yaml
+- tapOn:
+    id: "App2_DevWeekReviewOverride_generatePreviousWeek"
+- tapOn:
+    id: "App2_WeeklyReviewDevBack"
+# 回到設定頁時捲軸還停在開發者區，關閉鍵在頁首。
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsClose"
+    direction: UP
+    timeout: 12000
+- tapOn:
+    id: "App2_SettingsClose"
+- extendedWaitUntil:
+    visible:
+      id: "App2_HomeView"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "App2_WeekReviewEntry"
+    direction: DOWN
+    timeout: 12000
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/wr-06-cta-generate-previous
+
+# --- 「產生本週回顧」（週日） -------------------------------------------------
+- runFlow:
+    file: ../subflows/app2-open-weekly-review-dev.yaml
+- tapOn:
+    id: "App2_DevWeekReviewOverride_generateCurrentWeek"
+- tapOn:
+    id: "App2_WeeklyReviewDevBack"
+# 回到設定頁時捲軸還停在開發者區，關閉鍵在頁首。
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsClose"
+    direction: UP
+    timeout: 12000
+- tapOn:
+    id: "App2_SettingsClose"
+- extendedWaitUntil:
+    visible:
+      id: "App2_HomeView"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "App2_WeekReviewEntry"
+    direction: DOWN
+    timeout: 12000
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/wr-07-cta-generate-current
+
+# --- 「查看回顧」 -------------------------------------------------------------
+- runFlow:
+    file: ../subflows/app2-open-weekly-review-dev.yaml
+- tapOn:
+    id: "App2_DevWeekReviewOverride_viewReview"
+- tapOn:
+    id: "App2_WeeklyReviewDevBack"
+# 回到設定頁時捲軸還停在開發者區，關閉鍵在頁首。
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsClose"
+    direction: UP
+    timeout: 12000
+- tapOn:
+    id: "App2_SettingsClose"
+- extendedWaitUntil:
+    visible:
+      id: "App2_HomeView"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "App2_WeekReviewEntry"
+    direction: DOWN
+    timeout: 12000
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/wr-08-cta-view-review
+
+# --- 整卡隱藏 ---------------------------------------------------------------
+- runFlow:
+    file: ../subflows/app2-open-weekly-review-dev.yaml
+- tapOn:
+    id: "App2_DevWeekReviewOverride_hidden"
+- tapOn:
+    id: "App2_WeeklyReviewDevBack"
+# 回到設定頁時捲軸還停在開發者區，關閉鍵在頁首。
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsClose"
+    direction: UP
+    timeout: 12000
+- tapOn:
+    id: "App2_SettingsClose"
+- extendedWaitUntil:
+    visible:
+      id: "App2_HomeView"
+    timeout: 20000
+- scroll
+- scroll
+- assertNotVisible:
+    id: "App2_WeekReviewEntry"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/wr-09-cta-hidden
+
+# --- 從 CTA 進週回顧兩頁 ------------------------------------------------------
+- runFlow:
+    file: ../subflows/app2-open-weekly-review-dev.yaml
+- tapOn:
+    id: "App2_DevWeekReviewOverride_generateCurrentWeek"
+- tapOn:
+    id: "App2_WeeklyReviewDevBack"
+# 回到設定頁時捲軸還停在開發者區，關閉鍵在頁首。
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsClose"
+    direction: UP
+    timeout: 12000
+- tapOn:
+    id: "App2_SettingsClose"
+- extendedWaitUntil:
+    visible:
+      id: "App2_HomeView"
+    timeout: 20000
+- scrollUntilVisible:
+    element:
+      id: "App2_WeekReviewEntry"
+    direction: DOWN
+    timeout: 12000
+- tapOn:
+    id: "App2_WeekReviewEntry"
+- assertVisible:
+    id: "App2_WeeklyReviewView"
+- extendedWaitUntil:
+    visible:
+      id: "App2_WeeklyReviewTab_review"
+    timeout: 20000
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/wr-10-review-tab
+- tapOn:
+    id: "App2_WeeklyReviewTab_plan"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/wr-11-plan-tab
+
+# --- 頁內「產生週回顧」：後端的生成視窗未開 → 要顯示在地化的一句話,不是紅字錯誤 ---
+- tapOn:
+    id: "App2_WeeklyReviewTab_review"
+- extendedWaitUntil:
+    visible:
+      id: "App2_WeeklyReviewNotGenerated"
+    timeout: 20000
+- tapOn: "產生週回顧"
+- extendedWaitUntil:
+    visible:
+      id: "App2_WeeklyReviewError"
+    timeout: 60000
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/wr-12-generate-window-closed

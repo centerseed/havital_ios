@@ -1,0 +1,22 @@
+# 從首頁進到 DEBUG-only 的「Weekly Review Dev Tools」。
+appId: com.havital.Havital.dev
+---
+- scrollUntilVisible:
+    element:
+      id: "App2_HomeMenu"
+    direction: UP
+    timeout: 8000
+- tapOn:
+    id: "App2_HomeMenu"
+- tapOn: "個人資料"
+- assertVisible:
+    id: "App2_SettingsView"
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsWeeklyReviewDev"
+    direction: DOWN
+    timeout: 12000
+- tapOn:
+    id: "App2_SettingsWeeklyReviewDev"
+- assertVisible:
+    id: "App2_WeeklyReviewDevView"

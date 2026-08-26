@@ -12,6 +12,9 @@ enum App2SettingsDestination: String, Identifiable {
     case deleteAccount  // frame-29
     case climate        // 高溫適應（1.4 既有頁）
     case reonboarding   // 重設目標（既有 onboarding 流程）
+    #if DEBUG
+    case weeklyReviewDev  // 週回顧開發工具（DEBUG-only，Release build 沒有這一格）
+    #endif
 
     var id: String { rawValue }
 }
@@ -54,6 +57,9 @@ struct App2SettingsView: View {
                     physiologySection
                     systemSection
                     accountSection
+                    #if DEBUG
+                    developerSection
+                    #endif
                     footer
                 } else {
                     ProgressView().frame(maxWidth: .infinity, minHeight: 200)
@@ -109,6 +115,10 @@ struct App2SettingsView: View {
         case .reonboarding:
             // 「重設目標」走 2.0 版面的 onboarding，底下仍是 `OnboardingCoordinator`。
             App2OnboardingContainerView(isReonboarding: true, onFinished: dismiss)
+        #if DEBUG
+        case .weeklyReviewDev:
+            App2WeeklyReviewDevView(onClose: dismiss)
+        #endif
         }
     }
 
@@ -447,6 +457,30 @@ struct App2SettingsView: View {
     }
 
     // MARK: - 版本 ＋ 刪除帳戶
+
+    /// 開發者區。**整段在 `#if DEBUG` 內，Release build 連這一列都不存在。**
+    /// 內容見 `Features/App2/Debug/App2WeeklyReviewDevView.swift`。
+    #if DEBUG
+    private var developerSection: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            App2SectionCaption(text: "Developer (DEBUG)")
+                .padding(.top, 20)
+
+            App2GroupedList {
+                App2SettingsRow(
+                    systemImage: "wrench.and.screwdriver",
+                    title: "Weekly Review Dev Tools",
+                    value: "",
+                    showsDivider: false
+                )
+                .contentShape(Rectangle())
+                .onTapGesture { destination = .weeklyReviewDev }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("App2_SettingsWeeklyReviewDev")
+            }
+        }
+    }
+    #endif
 
     private var footer: some View {
         VStack(spacing: 12) {

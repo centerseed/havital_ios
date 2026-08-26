@@ -1,0 +1,55 @@
+# App2 週回顧時機卡 · 四態走查 ＋ 週回顧兩頁
+#
+# 走查用 DEBUG-only 的「Weekly Review Dev Tools」（設定 → Developer (DEBUG)）強制
+# 首頁時機卡的每一格 —— §A.5 的四個狀態各自只在特定的日子＋資料組合下出現，
+# 真實資料上等不到（後端不接受用戶端指定「今天是週幾」）。
+appId: com.havital.Havital.dev
+---
+- launchApp
+- assertVisible:
+    id: "App2_HomeView"
+
+# 1) 真實狀態：dev 帳號是 current_week=1 的平日 → §A.5 第 1 列，整卡隱藏。
+- scroll
+- scroll
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/wr-02-home-real-hidden
+- assertNotVisible:
+    id: "App2_WeekReviewEntry"
+
+# 2) 進開發工具。
+- scrollUntilVisible:
+    element:
+      id: "App2_HomeMenu"
+    direction: UP
+    timeout: 8000
+- tapOn:
+    id: "App2_HomeMenu"
+- tapOn: "個人資料"
+- assertVisible:
+    id: "App2_SettingsView"
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsWeeklyReviewDev"
+    direction: DOWN
+    timeout: 12000
+- tapOn:
+    id: "App2_SettingsWeeklyReviewDev"
+- assertVisible:
+    id: "App2_WeeklyReviewDevView"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/wr-03-dev-tools
+
+# 3) 實查後端是否擋平日生成：POST /v2/summary/weekly week_of_plan=1。
+- tapOn:
+    id: "App2_DevStatus"
+- extendedWaitUntil:
+    visible:
+      id: "App2_DevLog"
+    timeout: 15000
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/wr-04-dev-plan-status
+- tapOn:
+    id: "App2_DevGenerate"
+- extendedWaitUntil:
+    visible:
+      id: "App2_DevLog"
+    timeout: 60000
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/wr-05-dev-generate-denied
