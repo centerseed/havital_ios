@@ -2096,8 +2096,11 @@ extension L10n {
             /// 內嵌 Rizo 卡。
             static let rizoCoachTitle = "app2.home.rizo_coach_title"
             static let rizoInputPlaceholder = "app2.home.rizo_input_placeholder"
-            /// 訓練狀況卡（frame-00c）：收合態右下的展開連結、展開態的 Rizo 佔位字。
-            static let statusWhy = "app2.home.status_why"
+            /// 訓練狀況卡展開態的 Rizo 佔位字。
+            ///
+            /// 收合／展開連結的字（`看更多`／`收起`）走既有的
+            /// `app2.achievements.see_more` 與 `training.collapse`（frame-00c2，
+            /// 2026-08-26 裁決把它接進 headline 句尾），不開第二份同義字串。
             static let statusRizoPlaceholder = "app2.home.status_rizo_placeholder"
 
             /// Rizo 對話 sheet（frame-00d）：主題卡、開場白、建議問題 chips。

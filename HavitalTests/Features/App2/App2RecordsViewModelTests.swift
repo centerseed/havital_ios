@@ -11,6 +11,39 @@ final class App2RecordsViewModelTests: XCTestCase {
 
     // MARK: - Fake
 
+    /// 記憶體版的冷啟快照。
+    ///
+    /// **測試一定要注入它。** 不注入就會落到 `App2FileSnapshotStore.shared`，
+    /// 那支讀的是這台裝置／模擬器上這個帳號真正的落地檔 —— 於是「首載失敗要退樣本」
+    /// 這種斷言會因為機器上剛好有快照而變成綠燈假象（2026-08-26 實際踩到）。
+    private final class InMemorySnapshotStore: App2SnapshotStoring {
+        private var storage: [App2SnapshotKey: Data] = [:]
+
+        func load<Value: Decodable>(_ type: Value.Type, for key: App2SnapshotKey) -> App2Snapshot<Value>? {
+            guard let data = storage[key], let value = try? JSONDecoder().decode(Value.self, from: data) else {
+                return nil
+            }
+            return App2Snapshot(value: value, fetchedAt: Date())
+        }
+
+        func save<Value: Encodable>(_ value: Value, for key: App2SnapshotKey) {
+            storage[key] = try? JSONEncoder().encode(value)
+        }
+
+        func invalidate(_ keys: Set<App2SnapshotKey>) { keys.forEach { storage[$0] = nil } }
+        func clearAll() { storage.removeAll() }
+    }
+
+    private func makeViewModel(
+        _ source: WorkoutStatsDataSourceProtocol,
+        snapshots: App2SnapshotStoring? = nil
+    ) -> App2RecordsViewModel {
+        App2RecordsViewModel(
+            workoutDataSource: source,
+            snapshots: snapshots ?? InMemorySnapshotStore()
+        )
+    }
+
     private final class FakeStatsSource: WorkoutStatsDataSourceProtocol {
         var statsJSON = """
         { "data": { "total_workouts": 3, "total_distance_km": 30.0,
@@ -276,7 +309,7 @@ final class App2RecordsViewModelTests: XCTestCase {
             run(id: "today", at: Date().addingTimeInterval(-3600), km: 5),
             run(id: "old", at: Date().addingTimeInterval(-3 * 86_400), km: 5)
         ]
-        let vm = App2RecordsViewModel(workoutDataSource: source)
+        let vm = makeViewModel(source)
 
         await vm.loadIfNeeded()
 
@@ -293,7 +326,7 @@ final class App2RecordsViewModelTests: XCTestCase {
     func test_load_mapsStatsAndMonthlyTotals() async throws {
         let source = FakeStatsSource()
         source.workouts = [run(id: "a", at: dayOfThisMonth(4), km: 7)]
-        let vm = App2RecordsViewModel(workoutDataSource: source)
+        let vm = makeViewModel(source)
 
         await vm.loadIfNeeded()
 
@@ -310,7 +343,7 @@ final class App2RecordsViewModelTests: XCTestCase {
 
     func test_loadIfNeeded_withinStaleWindow_doesNotRefetch() async {
         let source = FakeStatsSource()
-        let vm = App2RecordsViewModel(workoutDataSource: source)
+        let vm = makeViewModel(source)
 
         await vm.loadIfNeeded()
         await vm.loadIfNeeded()
@@ -321,7 +354,7 @@ final class App2RecordsViewModelTests: XCTestCase {
 
     func test_loadIfNeeded_pastStaleWindow_refetches() async {
         let source = FakeStatsSource()
-        let vm = App2RecordsViewModel(workoutDataSource: source)
+        let vm = makeViewModel(source)
 
         await vm.loadIfNeeded()
         // 門檻是參數，不用真的等 60 秒。
@@ -332,7 +365,7 @@ final class App2RecordsViewModelTests: XCTestCase {
 
     func test_forceRefresh_ignoresStaleWindow() async {
         let source = FakeStatsSource()
-        let vm = App2RecordsViewModel(workoutDataSource: source)
+        let vm = makeViewModel(source)
 
         await vm.loadIfNeeded()
         await vm.forceRefresh()
@@ -345,7 +378,7 @@ final class App2RecordsViewModelTests: XCTestCase {
     func test_revalidateFailure_keepsPreviousData() async throws {
         let source = FakeStatsSource()
         source.workouts = [run(id: "a", at: dayOfThisMonth(4), km: 7)]
-        let vm = App2RecordsViewModel(workoutDataSource: source)
+        let vm = makeViewModel(source)
         await vm.loadIfNeeded()
         let before = try XCTUnwrap(vm.records?.value)
 
@@ -362,7 +395,7 @@ final class App2RecordsViewModelTests: XCTestCase {
     func test_cancellationDuringRevalidate_keepsLiveData() async throws {
         let source = FakeStatsSource()
         source.workouts = [run(id: "a", at: dayOfThisMonth(4), km: 7)]
-        let vm = App2RecordsViewModel(workoutDataSource: source)
+        let vm = makeViewModel(source)
         await vm.loadIfNeeded()
         let before = try XCTUnwrap(vm.records?.value)
 
@@ -377,7 +410,7 @@ final class App2RecordsViewModelTests: XCTestCase {
     func test_cancellationOnFirstLoad_doesNotFallBackToStub() async {
         let source = FakeStatsSource()
         source.statsError = URLError(.cancelled)
-        let vm = App2RecordsViewModel(workoutDataSource: source)
+        let vm = makeViewModel(source)
 
         await vm.loadIfNeeded()
 
@@ -389,7 +422,7 @@ final class App2RecordsViewModelTests: XCTestCase {
     func test_firstLoadFailure_fallsBackToStub() async {
         let source = FakeStatsSource()
         source.statsError = URLError(.notConnectedToInternet)
-        let vm = App2RecordsViewModel(workoutDataSource: source)
+        let vm = makeViewModel(source)
 
         await vm.loadIfNeeded()
 

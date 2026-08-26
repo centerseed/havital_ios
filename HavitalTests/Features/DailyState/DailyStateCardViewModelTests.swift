@@ -12,6 +12,8 @@ final class DailyStateCardViewModelTests: XCTestCase {
             fetchCount += 1
             if let error { throw error }; return card!
         }
+        var cached: DailyStateCard?
+        func cachedTodayState() -> DailyStateCard? { cached }
         func applyBenchmark(_ calibration: SameDayBenchmarkCalibration) async throws -> Int? {
             if let applyError { throw applyError }; return 17260
         }

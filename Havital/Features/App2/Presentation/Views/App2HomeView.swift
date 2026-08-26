@@ -412,6 +412,51 @@ struct App2HomeView: View {
     /// **軌跡趨勢圖已整塊移除**（2026-08-26 裁決）：`Actual／Projected` 序列在
     /// backend 沒有任何端點交得出來，畫面上一直掛著 `Sample §7-16` 徽章的樣本圖。
     /// 有真序列端點時再依當時的設計重議，不留樣本圖佔位。
+    /// headline ＋ 句尾的展開／收起連結（設計 frame-00c2，2026-08-26 裁決）。
+    ///
+    /// **連結接在 headline 尾端、同一個段落**，不是獨立一行 —— 所以是 `Text`
+    /// 相加而不是 `HStack`：`HStack` 只能把它擺成同一列的另一個元件，
+    /// headline 換行時就散開了。`Text(Image(...))` 讓 chevron 跟著文字排版走。
+    ///
+    /// 沒有敘述可展開時（免費用戶 `narrative_text` 為 nil）只有 headline，
+    /// 不掛連結也不吃點擊。
+    @ViewBuilder
+    private func statusHeadline(_ status: App2TrainingStatus) -> some View {
+        let canExpand = status.narrative != nil
+        let label = isStatusExpanded
+            ? L10n.Training.collapse.localized          // 「收起」三語已齊，不開第二份
+            : L10n.App2.Achievements.seeMore.localized  // 「看更多」同上
+        let headline = Text(status.headline)
+            .font(.system(size: 17, weight: .black))
+            .foregroundColor(App2Theme.accentBlueDeep)
+
+        Group {
+            if canExpand {
+                (
+                    headline
+                        + Text(" ")
+                        + Text(label)
+                            .font(.system(size: 14, weight: .black))
+                            .foregroundColor(App2Theme.accentBlue)
+                        + Text(" ")
+                        + Text(Image(systemName: isStatusExpanded ? "chevron.up" : "chevron.down"))
+                            .font(.system(size: 11, weight: .black))
+                            .foregroundColor(App2Theme.accentBlue)
+                )
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    withAnimation(.easeInOut(duration: 0.2)) { isStatusExpanded.toggle() }
+                }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("App2_StatusWhyToggle")
+            } else {
+                headline
+            }
+        }
+        .tracking(0.3)
+        .fixedSize(horizontal: false, vertical: true)
+    }
+
     private func statusBanner(_ status: App2TrainingStatus) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .center, spacing: 13) {
@@ -420,32 +465,12 @@ struct App2HomeView: View {
                 // 設計稿的「LV 7」六角只是樣本，不做成等級系統、也不畫成空殼。
                 statusBadge
 
-                Text(status.headline)
-                    .font(.system(size: 17, weight: .black))
-                    .tracking(0.3)
-                    .foregroundStyle(App2Theme.accentBlueDeep)
-                    .fixedSize(horizontal: false, vertical: true)
+                statusHeadline(status)
             }
 
             // 敘述是付費內容：免費用戶 `narrative_text` 為 nil，這時沒有東西可展開，
-            // 整顆「為什麼？」不出現（不做成點了沒反應的死連結）。
+            // 展開連結整個不出現（不做成點了沒反應的死連結），headline 就是純文字。
             if let narrative = status.narrative {
-                HStack(spacing: 4) {
-                    Spacer(minLength: 0)
-                    Text(L10n.App2.Home.statusWhy.localized)
-                        .font(.system(size: 14, weight: .black))
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 11, weight: .black))
-                        .rotationEffect(.degrees(isStatusExpanded ? 180 : 0))
-                }
-                .foregroundStyle(App2Theme.accentBlueDeep)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    withAnimation(.easeInOut(duration: 0.2)) { isStatusExpanded.toggle() }
-                }
-                .accessibilityAddTraits(.isButton)
-                .accessibilityIdentifier("App2_StatusWhyToggle")
-
                 if isStatusExpanded {
                     Rectangle()
                         .fill(App2Theme.accentBlue.opacity(0.16))
@@ -492,9 +517,9 @@ struct App2HomeView: View {
     /// 還沒載到／一顆都沒解鎖時留一個中性的圓角方塊，不畫假徽章。
     @ViewBuilder
     private var statusBadge: some View {
-        let badge = achievementsViewModel.summary.flatMap {
-            App2AchievementsView.displayBadge($0, pinnedBadgeId: achievementsViewModel.pinnedBadgeId)
-        }
+        // 冷啟時 `summary` 還沒回來 —— `displayBadge` 會退到既有的持久化快照
+        // （`DisplayBadgeStorage`），所以這一顆不會先空一格再跳出來。
+        let badge = achievementsViewModel.displayBadge
         Group {
             if let badge {
                 AchievementBadgeImage(

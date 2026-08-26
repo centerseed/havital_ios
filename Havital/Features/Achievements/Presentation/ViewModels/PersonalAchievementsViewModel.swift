@@ -125,6 +125,19 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
         }
     }
 
+    /// 要展示的那一顆徽章（成就頁 hero ＋ 2.0 首頁訓練狀況卡共用）。
+    ///
+    /// `summary` 還沒回來時（冷啟第一秒）**退既有的
+    /// `AchievementRepository.getDisplayBadge()`** —— 它本來就會讀
+    /// `DisplayBadgeStorage` 的持久化快照，正是為了「冷啟即時渲染、不閃暫代值」
+    /// 而存在。這裡不另存第二份成就快照。
+    var displayBadge: AchievementBadge? {
+        // 讀一下 `summary`／`pinnedBadgeId` 是為了讓 SwiftUI 訂到這兩個 published
+        // 值：載完或換 pin 之後這顆要跟著換。挑法本身只有一份，在 repository。
+        _ = (summary, pinnedBadgeId)
+        return repository.getDisplayBadge()
+    }
+
     func trackTabOpenIfNeeded() {
         guard !hasTrackedTabOpen else { return }
         hasTrackedTabOpen = true

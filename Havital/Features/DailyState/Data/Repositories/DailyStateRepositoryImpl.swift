@@ -6,15 +6,28 @@ import Foundation
 final class DailyStateRepositoryImpl: DailyStateRepository {
 
     private let remoteDataSource: DailyStateRemoteDataSourceProtocol
+    /// 顯示層快照的落點。**存 DTO 不存 entity** —— 落地格式是 Data 層的事，
+    /// domain entity 不因為要落地而綁上序列化。
+    private let snapshots: any App2SnapshotStoring
 
-    init(remoteDataSource: DailyStateRemoteDataSourceProtocol = DailyStateRemoteDataSource()) {
+    init(
+        remoteDataSource: DailyStateRemoteDataSourceProtocol = DailyStateRemoteDataSource(),
+        snapshots: (any App2SnapshotStoring)? = nil
+    ) {
         self.remoteDataSource = remoteDataSource
+        self.snapshots = snapshots ?? App2FileSnapshotStore.shared
         Logger.debug("[DailyStateRepositoryImpl] 初始化完成")
     }
 
     func fetchTodayState() async throws -> DailyStateCard {
         let dto = try await remoteDataSource.fetchTodayState()
+        snapshots.save(dto, for: .stateToday)
         return StateCardMapper.toEntity(from: dto)
+    }
+
+    func cachedTodayState() -> DailyStateCard? {
+        snapshots.load(StateCardDTO.self, for: .stateToday)
+            .map { StateCardMapper.toEntity(from: $0.value) }
     }
 
     func applyBenchmark(_ calibration: SameDayBenchmarkCalibration) async throws -> Int? {

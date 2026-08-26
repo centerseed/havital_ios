@@ -92,9 +92,15 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
     nonisolated let taskRegistry = TaskRegistry()
 
     private let workoutDataSource: WorkoutStatsDataSourceProtocol
+    /// 冷啟快照。
+    private let snapshots: any App2SnapshotStoring
 
-    init(workoutDataSource: WorkoutStatsDataSourceProtocol? = nil) {
+    init(
+        workoutDataSource: WorkoutStatsDataSourceProtocol? = nil,
+        snapshots: (any App2SnapshotStoring)? = nil
+    ) {
         self.workoutDataSource = workoutDataSource ?? WorkoutRemoteDataSource()
+        self.snapshots = snapshots ?? App2FileSnapshotStore.shared
     }
 
     deinit {
@@ -102,7 +108,9 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
     }
 
     func revalidate() async {
-        isLoading = !hasLoaded
+        // 冷啟第一輪：先把上一次的清單與統計渲染出來，這一輪的網路變成背景刷新。
+        if !hasLoaded { hydrateFromSnapshot() }
+        isLoading = !hasLoaded && records == nil
         defer {
             isLoading = false
             hasLoaded = true
@@ -111,27 +119,13 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
 
         do {
             let stats = try await workoutDataSource.fetchWorkoutStats(days: 30, weeks: 8)
+            snapshots.save(stats, for: .workoutStats)
             // 月比要看到「上個月」，所以取回的筆數比清單顯示的多。
             // `/v2/workouts/stats` 只給滾動視窗（days）與 YTD，沒有日曆月的分桶，
             // 月量與月比在 client 端從同一批紀錄算，不新增端點。
             let rows = (try? await workoutDataSource.fetchRecentWorkouts(pageSize: Self.aggregationPageSize)) ?? []
-            let month = Self.monthlyTotals(rows)
-            let listItems = rows.prefix(Self.listPageSize).map(Self.map(item:))
-            apply(items: listItems)
-
-            records = App2Sourced(
-                App2Records(
-                    monthDistanceKm: month.distanceKm,
-                    monthWorkouts: month.workouts,
-                    monthDeltaKm: month.deltaKm,
-                    ytdYear: stats.data.yearToDate?.year,
-                    ytdDistanceKm: stats.data.yearToDate?.distanceKm,
-                    ytdWorkouts: stats.data.yearToDate?.workoutCount,
-                    weeklySeries: (stats.data.weeklySeries ?? []).map(Self.map(entry:)),
-                    recentWorkouts: listItems.map(\.row)
-                ),
-                origin: .live(endpoint: "GET /v2/workouts/stats + GET /v2/workouts")
-            )
+            if !rows.isEmpty { snapshots.save(rows, for: .recentWorkouts) }
+            apply(stats: stats, rows: rows)
         } catch {
             // 取消不是失敗（`AGENTS.md` 陷阱 2）—— 下拉刷新的 task 被收掉時
             // in-flight 請求會回 -999。
@@ -152,6 +146,34 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
             })
             records = App2Sourced(stub, origin: .stub(pendingSection: App2StubFixtures.Section.offline))
         }
+    }
+
+    /// 統計 ＋ 清單的組裝。網路回應與冷啟快照都走這一支。
+    private func apply(stats: WorkoutStatsResponse, rows: [WorkoutV2]) {
+        let month = Self.monthlyTotals(rows)
+        let listItems = rows.prefix(Self.listPageSize).map(Self.map(item:))
+        apply(items: listItems)
+
+        records = App2Sourced(
+            App2Records(
+                monthDistanceKm: month.distanceKm,
+                monthWorkouts: month.workouts,
+                monthDeltaKm: month.deltaKm,
+                ytdYear: stats.data.yearToDate?.year,
+                ytdDistanceKm: stats.data.yearToDate?.distanceKm,
+                ytdWorkouts: stats.data.yearToDate?.workoutCount,
+                weeklySeries: (stats.data.weeklySeries ?? []).map(Self.map(entry:)),
+                recentWorkouts: listItems.map(\.row)
+            ),
+            origin: .live(endpoint: "GET /v2/workouts/stats + GET /v2/workouts")
+        )
+    }
+
+    /// 冷啟：統計與清單兩份快照都在才渲染 —— 只有其中一份會讓卡片頭與清單各說各話。
+    private func hydrateFromSnapshot() {
+        guard let stats = snapshots.load(WorkoutStatsResponse.self, for: .workoutStats)?.value,
+              let rows = snapshots.load([WorkoutV2].self, for: .recentWorkouts)?.value else { return }
+        apply(stats: stats, rows: rows)
     }
 
     // MARK: - 篩選

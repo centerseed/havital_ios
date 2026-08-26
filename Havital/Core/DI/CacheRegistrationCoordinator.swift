@@ -67,6 +67,33 @@ enum CacheRegistrationCoordinator {
             }
         }
 
+        // 4. 2.0 冷啟快照（`App2FileSnapshotStore`）的失效。
+        //
+        // **刻意不註冊成 `Cacheable`。** `invalidateAllCaches()` 會被
+        // `.dataChanged(.user)` 帶到，而那條事件每次啟動 auth 狀態變化就會發 ——
+        // 註冊進去等於每次冷啟前先把快照清光，這支功能就沒有了
+        // （這正是 `CacheEventBus` 為 `TrainingPlanV2LocalDataSource` 開 preserved
+        // 名單的同一個坑）。這裡逐事件明列要清哪幾個 key。
+        CacheEventBus.shared.subscribe(forIdentifier: "App2FileSnapshotStore") { reason in
+            let keys: Set<App2SnapshotKey>
+            switch reason {
+            case .userLogout, .manualClear, .onboardingCompleted:
+                // 登出／換帳號／重設目標完成（re-onboarding 也走 onboardingCompleted）：全清。
+                keys = Set(App2SnapshotKey.allCases)
+            case .dataChanged(.targets):
+                // 目標變更會重生課表與狀態敘事，整組都不能再用。
+                keys = Set(App2SnapshotKey.allCases)
+            case .dataChanged(.trainingPlanV2), .dataChanged(.trainingPlan):
+                // 課表存檔（`EditScheduleV2ViewModel.saveEdits()` 成功後發這條）。
+                keys = [.planStatus, .weeklyPlan]
+            case .dataChanged(.workouts):
+                keys = [.recentWorkouts, .homeRecentWorkouts, .workoutStats, .stateToday]
+            default:
+                return
+            }
+            App2FileSnapshotStore.shared.invalidate(keys)
+        }
+
         Logger.debug("[CacheRegistrationCoordinator] All cache registrations complete")
     }
 

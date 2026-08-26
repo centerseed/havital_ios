@@ -23,13 +23,17 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     private let planV2DataSource: TrainingPlanV2RemoteDataSourceProtocol
     private let workoutRepository: WorkoutRepository
+    /// 冷啟快照。與首頁今日課表卡讀寫**同一組 key**，不各存一份週課表。
+    private let snapshots: any App2SnapshotStoring
 
     init(
         planV2DataSource: TrainingPlanV2RemoteDataSourceProtocol? = nil,
-        workoutRepository: WorkoutRepository? = nil
+        workoutRepository: WorkoutRepository? = nil,
+        snapshots: (any App2SnapshotStoring)? = nil
     ) {
         let container = DependencyContainer.shared
         self.planV2DataSource = planV2DataSource ?? TrainingPlanV2RemoteDataSource()
+        self.snapshots = snapshots ?? App2FileSnapshotStore.shared
 
         if let workoutRepository {
             self.workoutRepository = workoutRepository
@@ -46,7 +50,9 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     }
 
     func revalidate() async {
-        isLoading = !hasLoaded
+        // 冷啟第一輪：先把上一次的週課表渲染出來，這一輪的網路變成背景刷新。
+        if !hasLoaded { hydrateFromSnapshot() }
+        isLoading = !hasLoaded && week == nil
         defer {
             isLoading = false
             hasLoaded = true
@@ -55,6 +61,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
         do {
             let status = try await planV2DataSource.getPlanStatus()
+            snapshots.save(status, for: .planStatus)
             guard let planId = status.currentWeekPlanId else {
                 // **本週沒有課表就說沒有。** 這裡原本退樣本，畫面上會出現一整週
                 // 「第 5 週 / 22」的假課表，而首頁同時說「本週課表尚未產生」——
@@ -67,20 +74,9 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             isPlanGenerated = true
 
             let dto = try await planV2DataSource.getWeeklyPlan(planId: planId)
+            snapshots.save(dto, for: .weeklyPlan)
             let completed = await completedDistanceKmThisWeek()
-
-            week = App2Sourced(
-                Self.planWeek(dto: dto, planStatus: status, completedKm: completed),
-                origin: .live(endpoint: "GET /v2/plan/weekly/{plan_id} + GET /v2/workouts")
-            )
-            let weekStart = Self.currentWeekStart()
-            dayDetails = Dictionary(
-                uniqueKeysWithValues: dto.days.compactMap { day -> (Int, App2SessionDetail)? in
-                    guard let detail = App2SessionDetailProjection.detail(day: day, weekStart: weekStart)
-                    else { return nil }
-                    return (day.dayIndex, detail)
-                }
-            )
+            apply(dto: dto, planStatus: status, completedKm: completed)
         } catch {
             // 取消不是失敗（`AGENTS.md` 陷阱 2）：下拉刷新的 task 被收掉時
             // in-flight 請求會回 -999，當成失敗會把真課表換成樣本。
@@ -92,6 +88,35 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 origin: .stub(pendingSection: App2StubFixtures.Section.offline)
             )
         }
+    }
+
+    /// 週課表 ＋ 每日詳情的組裝。網路回應與冷啟快照都走這一支。
+    private func apply(dto: WeeklyPlanV2DTO, planStatus: PlanStatusV2Response, completedKm: Double?) {
+        isPlanGenerated = true
+        week = App2Sourced(
+            Self.planWeek(dto: dto, planStatus: planStatus, completedKm: completedKm),
+            origin: .live(endpoint: "GET /v2/plan/weekly/{plan_id} + GET /v2/workouts")
+        )
+        let weekStart = Self.currentWeekStart()
+        dayDetails = Dictionary(
+            uniqueKeysWithValues: dto.days.compactMap { day -> (Int, App2SessionDetail)? in
+                guard let detail = App2SessionDetailProjection.detail(day: day, weekStart: weekStart)
+                else { return nil }
+                return (day.dayIndex, detail)
+            }
+        )
+    }
+
+    /// 冷啟：plan status ＋ 本週課表都在快照裡才渲染。
+    ///
+    /// **已完成量（`completedKm`）不進快照**：它是本週紀錄現算出來的，冷啟給的是
+    /// 「上一次算的值」而不是「上一次的回應」，兩者的腐爛速度不一樣。先留白，
+    /// 這一輪網路回來就有了。
+    private func hydrateFromSnapshot() {
+        guard let status = snapshots.load(PlanStatusV2Response.self, for: .planStatus)?.value,
+              let dto = snapshots.load(WeeklyPlanV2DTO.self, for: .weeklyPlan)?.value,
+              App2HomeViewModel.isWeeklyPlan(dto, boundTo: status) else { return }
+        apply(dto: dto, planStatus: status, completedKm: nil)
     }
 
     #if DEBUG
