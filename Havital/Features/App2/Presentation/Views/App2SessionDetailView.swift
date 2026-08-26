@@ -41,7 +41,10 @@ struct App2SessionDetailView: View {
             ScrollView {
                 VStack(spacing: 14) {
                     heroCard
-                    if !detail.structureBars.isEmpty { paceCard }
+                    // 配速是跑步課的語意：肌力／交叉訓練的 payload 沒有配速
+                    // （cross DTO 只有 cross_type/duration/intensity），畫「預計配速」
+                    // 就是替瑜伽編一個配速（2026-08-26 使用者回報）。
+                    if detail.isRunSession, !detail.structureBars.isEmpty { paceCard }
                     // 「本次訓練目標」與「這堂課練什麼」曾經是兩張卡，內容重疊。
                     // 收成一張：課型目的（既有 `TrainingTypeInfo`）為主體，
                     // 逐日敘述只在證明得出它仍對應現在這一天時附加（見投影層）。
@@ -176,13 +179,15 @@ struct App2SessionDetailView: View {
                 }
                 if let duration = detail.durationLabel {
                     heroStat(label: L10n.App2.Detail.duration.localized, value: duration, unit: nil)
-                    heroDivider
+                    if detail.isRunSession { heroDivider }
                 }
-                heroStat(
-                    label: L10n.App2.Detail.phases.localized,
-                    value: String(format: L10n.App2.Detail.phaseCount.localized, detail.phaseCount),
-                    unit: nil
-                )
+                if detail.isRunSession {
+                    heroStat(
+                        label: L10n.App2.Detail.phases.localized,
+                        value: String(format: L10n.App2.Detail.phaseCount.localized, detail.phaseCount),
+                        unit: nil
+                    )
+                }
             }
             .frame(maxWidth: .infinity)
         }
