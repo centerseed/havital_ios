@@ -119,4 +119,61 @@ final class LanguageManagerPreLoginTests: XCTestCase {
         XCTAssertNil(SupportedLanguage(languageTag: "ko-KR"))
         XCTAssertNil(SupportedLanguage(languageTag: ""))
     }
+
+    // MARK: - 後端語言偏好的回程（backend → 本地）
+    //
+    // 後端是語言的 SSOT，但只有「讀得到、且真的寫進本地」整條鏈子才成立。
+    // 這一段鎖的是唯一會**靜默**失敗的兩處：回應形狀（包不包 `data` envelope）、
+    // 以及語言碼（後端給 `zh-TW`，`SupportedLanguage` 的 raw value 是 lproj 名 `zh-Hant`）。
+
+    private func preferencesResponse(_ json: String) -> Data {
+        Data(json.utf8)
+    }
+
+    func test_parseLanguage_readsEnvelopedBackendShape() {
+        let data = preferencesResponse(#"{"success":true,"data":{"language":"ja-JP","timezone":"Asia/Tokyo"}}"#)
+        XCTAssertEqual(LanguageManager.parseLanguage(fromPreferencesResponse: data), .japanese)
+    }
+
+    func test_parseLanguage_readsTopLevelBackendShape() {
+        let data = preferencesResponse(#"{"language":"en-US","timezone":"Asia/Taipei"}"#)
+        XCTAssertEqual(LanguageManager.parseLanguage(fromPreferencesResponse: data), .english)
+    }
+
+    /// 後端送的是 API code（`zh-TW`），不是 lproj 目錄名（`zh-Hant`）。
+    /// 用 `init?(rawValue:)` 讀它會恆為 nil —— 看起來就像「後端沒設語言」。
+    func test_parseLanguage_mapsApiCodeNotRawValue() {
+        let data = preferencesResponse(#"{"data":{"language":"zh-TW"}}"#)
+        XCTAssertEqual(LanguageManager.parseLanguage(fromPreferencesResponse: data), .traditionalChinese)
+        XCTAssertNil(SupportedLanguage(rawValue: "zh-TW"))
+    }
+
+    func test_parseLanguage_returnsNilWhenLanguageMissingOrUnknown() {
+        XCTAssertNil(LanguageManager.parseLanguage(
+            fromPreferencesResponse: preferencesResponse(#"{"data":{"timezone":"Asia/Taipei"}}"#)
+        ))
+        XCTAssertNil(LanguageManager.parseLanguage(
+            fromPreferencesResponse: preferencesResponse(#"{"data":{"language":"ko-KR"}}"#)
+        ))
+        XCTAssertNil(LanguageManager.parseLanguage(fromPreferencesResponse: Data("not json".utf8)))
+    }
+
+    /// 讀到值之後真的要寫進本地：`app_language_preference` 換掉、`AppleLanguages` 換掉、
+    /// `currentLanguage` 換掉。少任何一項，下次冷啟就又是舊語言。
+    func test_applyFromBackend_writesLocalPreferenceWhenBackendDiffers() {
+        LanguageManager.shared.applyPreLoginLanguage(.traditionalChinese)
+        XCTAssertEqual(UserDefaults.standard.string(forKey: languageKey), "zh-Hant")
+
+        LanguageManager.shared.applyFromBackend(.japanese)
+
+        XCTAssertEqual(LanguageManager.shared.currentLanguage, .japanese)
+        XCTAssertEqual(UserDefaults.standard.string(forKey: languageKey), "ja")
+        XCTAssertEqual(UserDefaults.standard.stringArray(forKey: "AppleLanguages"), ["ja"])
+    }
+
+    /// 套用過的語言即成為「已確認」，才不會被 `POST /auth/sync` 當成猜測值丟掉。
+    func test_applyFromBackend_marksLanguageAsExplicit() {
+        LanguageManager.shared.applyFromBackend(.english)
+        XCTAssertEqual(LanguageManager.shared.explicitLanguage, .english)
+    }
 }

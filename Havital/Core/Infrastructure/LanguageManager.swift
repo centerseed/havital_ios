@@ -89,16 +89,37 @@ class LanguageManager: ObservableObject {
 
     /// Fetch user preferences from backend and apply language locally
     func fetchUserPreferences() async throws {
+        guard let language = try await backendLanguagePreference() else { return }
+        applyFromBackend(language)
+    }
+
+    /// 只讀後端的語言偏好，**不套用**。
+    ///
+    /// 讀與套分開，是為了讓呼叫端能先比較「後端值 vs 本地值」再決定要不要動。
+    /// 兩者相同時什麼都不做——省下的不只是一次 `UserDefaults` 寫入，還有
+    /// `LanguageDidChange` 通知造成的整棵 view tree 重建（冷啟時每次都放一次煙火）。
+    func backendLanguagePreference() async throws -> SupportedLanguage? {
         let httpClient = DefaultHTTPClient.shared
         let data = try await httpClient.request(
             path: "/user/preferences",
             method: .GET
         )
+        return Self.parseLanguage(fromPreferencesResponse: data)
+    }
 
-        // 後端回傳結構: { "language": "zh-TW", ... } 或巢狀在 "data" 裡
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            Logger.firebase("fetchUserPreferences: response is not a JSON object", level: .warn)
-            return
+    /// `GET /user/preferences` 的回應 → 語言。
+    ///
+    /// 抽成純函式的理由：整條「後端是語言 SSOT」的鏈子上，唯一會**靜默**失敗的
+    /// 就是這裡——回應包了一層 `data`、或語言碼是 `zh-TW` 而不是 lproj 名 `zh-Hant`，
+    /// 兩者都只會 return nil，然後看起來就像「後端沒設語言」。純函式才驗得到。
+    ///
+    /// 後端契約（`cloud/api_service` `api/v1/user.py`）是
+    /// `{"success":true,"data":{"language":"zh-TW", …}}`；歷史上也出現過不包 envelope
+    /// 的頂層形狀，兩種都收。
+    static func parseLanguage(fromPreferencesResponse data: Data) -> SupportedLanguage? {
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            Logger.firebase("parseLanguage: response is not a JSON object", level: .warn)
+            return nil
         }
 
         // 嘗試頂層 language，再嘗試 data.language
@@ -109,13 +130,15 @@ class LanguageManager: ObservableObject {
             return nil
         }()
 
-        guard let code = languageCode,
-              let language = SupportedLanguage(apiCode: code) else {
-            Logger.firebase("fetchUserPreferences: unrecognised language in response", level: .warn)
-            return
+        guard let code = languageCode else {
+            Logger.firebase("parseLanguage: response carries no language field", level: .warn)
+            return nil
         }
-
-        applyLocalLanguage(language)
+        guard let language = SupportedLanguage(apiCode: code) else {
+            Logger.firebase("parseLanguage: unrecognised language code \(code)", level: .warn)
+            return nil
+        }
+        return language
     }
 
     // MARK: - Apply from External Source

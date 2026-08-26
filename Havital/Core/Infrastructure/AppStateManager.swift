@@ -242,13 +242,30 @@ class AppStateManager: ObservableObject {
     
     /// 把後端的語言偏好套回本地。
     ///
-    /// 走 `LanguageManager.fetchUserPreferences()`（既有方法，先前沒有任何呼叫點）——
+    /// 走 `LanguageManager.backendLanguagePreference()` 讀值、`applyFromBackend()` 套用——
     /// 不另寫一份 `/user/preferences` 的讀取。
+    ///
+    /// **比較後才套。** 相同時什麼都不做；不同時一定要套進本地
+    /// （`app_language_preference` ＋ `AppleLanguages` ＋ bundle ＋ `LanguageDidChange`），
+    /// 否則「後端是語言的 SSOT」只是一句話：使用者在別台裝置設過的語言永遠回不來。
+    /// 兩邊的值都寫進 log，因為這條鏈子唯一的失敗樣態是**靜默**（讀不到 language 欄位
+    /// 就跟「後端沒設」長得一模一樣）。
     private func applyBackendLanguagePreference() async {
         do {
-            try await tracked("AppStateManager: applyBackendLanguagePreference") {
-                try await LanguageManager.shared.fetchUserPreferences()
+            let backendLanguage = try await tracked("AppStateManager: applyBackendLanguagePreference") {
+                try await LanguageManager.shared.backendLanguagePreference()
             }
+            guard let backendLanguage else {
+                Logger.debug("[AppStateManager] 後端沒有可用的語言偏好，維持本地語言")
+                return
+            }
+            let localLanguage = LanguageManager.shared.currentLanguage
+            guard backendLanguage != localLanguage else {
+                Logger.debug("[AppStateManager] 語言偏好一致（\(localLanguage.rawValue)），不重複套用")
+                return
+            }
+            Logger.debug("[AppStateManager] 套用後端語言偏好: \(localLanguage.rawValue) → \(backendLanguage.rawValue)")
+            LanguageManager.shared.applyFromBackend(backendLanguage)
         } catch {
             guard !error.isCancellationError else { return }
             Logger.debug("[AppStateManager] 後端語言偏好套用失敗，維持本地語言: \(error)")
