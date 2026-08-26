@@ -4190,3 +4190,13 @@
 "onboarding.intro_feature_rizo" = "AIコーチRizoがいつでもプランを一緒に調整";
 "onboarding.weekly_distance_anchor_explain" = "プランはこの数値を重要な基準点として始まります：入力した距離に近いところから第1週が始まります。現在の実際の週間走行距離を入力してください。";
 "onboarding.weekly_distance_maintenance_note" = "体力維持トレーニングでは、回復と調整の余裕を持たせるため、プランの週間距離は入力値よりやや少なめになります。";
+
+/* T-0322 workout upload failure classification */
+"workout_upload.error.invalid_data" = "無効なワークアウトデータ";
+"workout_upload.error.data_source_not_apple_health" = "現在のデータソースがApple Healthではないため、アップロードをスキップしました";
+"workout_upload.error.timed_out" = "アップロードがタイムアウトしました。後で自動的に再試行します";
+"workout_upload.error.interrupted" = "アップロードが中断されました。後で自動的に再試行します";
+"workout_upload.error.retry_limit_reached" = "このワークアウトは再試行の上限に達したため、自動アップロードを停止しました";
+"workout_upload.error.no_heart_rate" = "心拍数データがありません";
+"workout_upload.error.failed_format" = "アップロードに失敗しました: %@";
+"workout_upload.error.network_format" = "ネットワークエラー: %@";

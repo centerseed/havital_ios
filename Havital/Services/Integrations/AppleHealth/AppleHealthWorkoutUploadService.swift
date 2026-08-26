@@ -22,6 +22,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
     struct BatchUploadErrorHandling {
         let shouldLogToCloud: Bool
         let shouldMarkWorkoutFailed: Bool
+        let failureKind: WorkoutUploadFailureKind
         let diagnosticMessage: String
     }
 
@@ -180,7 +181,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         print("🚀 [TaskRegistry] 開始上傳任務 - WorkoutID: \(workoutId), Force: \(force), RetryHeartRate: \(retryHeartRate)")
         
         let taskResult = await executeTask(id: taskId, operation: { [weak self] in
-            guard let self = self else { return Result<UploadResult, Error>.failure(WorkoutV2ServiceError.invalidWorkoutData) }
+            guard let self = self else { return Result<UploadResult, Error>.failure(WorkoutV2ServiceError.uploadInterrupted) }
             print("🔄 [TaskRegistry] 執行上傳操作 - WorkoutID: \(workoutId)")
             do {
                 let result = try await self.performUploadWorkout(
@@ -218,7 +219,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                 labels: ["module": "AppleHealthUpload", "action": "upload_skipped_datasource", "cloud_logging": "true"],
                 jsonPayload: ["prefs": prefsDS.rawValue, "appState": appStateDS.rawValue]
             )
-            throw WorkoutV2ServiceError.invalidWorkoutData
+            throw WorkoutV2ServiceError.dataSourceNotAppleHealth
         }
         
         // 檢查是否已經上傳（除非強制上傳）
@@ -409,10 +410,10 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         
         return await executeTask(id: batchTaskId, operation: { [weak self] in
             guard let self = self else { 
-                return UploadBatchResult(total: workouts.count, success: 0, failed: workouts.count, failedWorkouts: workouts.map { FailedWorkout(workout: $0, error: WorkoutV2ServiceError.invalidWorkoutData) })
+                return UploadBatchResult(total: workouts.count, success: 0, failed: workouts.count, failedWorkouts: workouts.map { FailedWorkout(workout: $0, error: WorkoutV2ServiceError.uploadInterrupted) })
             }
             return await self.performBatchUpload(workouts, force: force, retryHeartRate: retryHeartRate)
-        }) ?? UploadBatchResult(total: workouts.count, success: 0, failed: workouts.count, failedWorkouts: workouts.map { FailedWorkout(workout: $0, error: WorkoutV2ServiceError.invalidWorkoutData) })
+        }) ?? UploadBatchResult(total: workouts.count, success: 0, failed: workouts.count, failedWorkouts: workouts.map { FailedWorkout(workout: $0, error: WorkoutV2ServiceError.uploadInterrupted) })
     }
     
     // MARK: - Internal Batch Upload Implementation
@@ -432,7 +433,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             guard force || workoutUploadTracker.shouldRetryUpload(w) else {
                 failed += 1
                 print("⚠️ [批次上傳] \(workoutId) 已達重試上限，永久跳過")
-                failedList.append(FailedWorkout(workout: w, error: WorkoutV2ServiceError.invalidWorkoutData))
+                failedList.append(FailedWorkout(workout: w, error: WorkoutV2ServiceError.retryLimitReached))
                 continue
             }
 
@@ -449,13 +450,13 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                     // 任務 2: 60 秒超時
                     group.addTask {
                         try await Task.sleep(nanoseconds: 60_000_000_000)
-                        throw WorkoutV2ServiceError.invalidWorkoutData
+                        throw WorkoutV2ServiceError.uploadTimedOut
                     }
 
                     // 返回第一個完成的任務結果（安全處理 nil）
                     guard let result = try await group.next() else {
                         group.cancelAll()
-                        throw WorkoutV2ServiceError.invalidWorkoutData
+                        throw WorkoutV2ServiceError.uploadInterrupted
                     }
                     group.cancelAll()
                     return result
@@ -471,20 +472,15 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                 failed += 1
                 let handling = Self.reportBatchUploadFailure(error, workoutId: workoutId)
 
+                let errorMsg = error.localizedDescription
                 if handling.shouldLogToCloud {
-                    let errorMsg = error.localizedDescription
                     print("❌ [批次上傳] \(workoutId) 上傳失敗: \(errorMsg)")
-                    // ★ 修復 Bug 1：記錄失敗，避免無限重試
-                    if handling.shouldMarkWorkoutFailed {
-                        workoutUploadTracker.markWorkoutAsFailed(w, reason: errorMsg, apiVersion: .v2)
-                    }
                 } else {
                     print("ℹ️ [批次上傳] \(workoutId) \(handling.diagnosticMessage)")
                 }
 
-                if handling.shouldMarkWorkoutFailed && !handling.shouldLogToCloud {
-                    let errorMsg = error.localizedDescription
-                    workoutUploadTracker.markWorkoutAsFailed(w, reason: errorMsg, apiVersion: .v2)
+                if handling.shouldMarkWorkoutFailed {
+                    workoutUploadTracker.markWorkoutAsFailed(w, reason: errorMsg, kind: handling.failureKind, apiVersion: .v2)
                 }
 
                 failedList.append(FailedWorkout(workout: w, error: error))
@@ -860,7 +856,10 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         } catch {
             // 記錄上傳失敗
             let errorDescription = error.localizedDescription
-            workoutUploadTracker.markWorkoutAsFailed(workout, reason: "API 上傳失敗: \(errorDescription)", apiVersion: .v2)
+            workoutUploadTracker.markWorkoutAsFailed(workout,
+                                                     reason: "API upload failed: \(errorDescription)",
+                                                     kind: Self.classifyUploadFailureKind(error),
+                                                     apiVersion: .v2)
 
             // 如果失敗，記錄詳細錯誤
             await reportDetailedUploadError(
@@ -1281,18 +1280,69 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
         return false
     }
 
+    /// 只有「重試不會改變結果」的資料驗證失敗算 permanent；其餘一律 transient。
+    ///
+    /// 預設 transient 是刻意的：未知錯誤若被當成 permanent，使用者的真實訓練紀錄
+    /// 會在重試上限用完後被永久丟棄（T-0322）。
+    static func classifyUploadFailureKind(_ error: Error) -> WorkoutUploadFailureKind {
+        if let serviceError = error as? WorkoutV2ServiceError {
+            if case .invalidWorkoutData = serviceError { return .permanent }
+            return .transient
+        }
+        if let httpError = error as? HTTPError, case .badRequest = httpError {
+            return .permanent
+        }
+        if let businessError = error as? BusinessError, case .validationFailed = businessError {
+            return .permanent
+        }
+        if let domainError = error as? DomainError, case .badRequest = domainError {
+            return .permanent
+        }
+        if let domainError = error as? DomainError, case .validationFailure = domainError {
+            return .permanent
+        }
+        if let apiError = error as? APIError {
+            switch apiError {
+            case .http(let httpError):
+                return classifyUploadFailureKind(httpError)
+            case .business(let businessError):
+                return classifyUploadFailureKind(businessError)
+            case .parsing, .system:
+                return .transient
+            }
+        }
+        return .transient
+    }
+
     static func classifyBatchUploadError(_ error: Error) -> BatchUploadErrorHandling {
         if error.isCancellationError {
             return BatchUploadErrorHandling(
                 shouldLogToCloud: false,
                 shouldMarkWorkoutFailed: false,
+                failureKind: .transient,
                 diagnosticMessage: "上傳已取消，跳過 error reporting"
             )
+        }
+
+        // 跳過與「本輪根本沒嘗試」不是失敗，不進失敗帳本也不上報。
+        if let serviceError = error as? WorkoutV2ServiceError {
+            switch serviceError {
+            case .dataSourceNotAppleHealth, .retryLimitReached:
+                return BatchUploadErrorHandling(
+                    shouldLogToCloud: false,
+                    shouldMarkWorkoutFailed: false,
+                    failureKind: .transient,
+                    diagnosticMessage: "skipped this round, no upload attempted"
+                )
+            default:
+                break
+            }
         }
 
         return BatchUploadErrorHandling(
             shouldLogToCloud: true,
             shouldMarkWorkoutFailed: true,
+            failureKind: classifyUploadFailureKind(error),
             diagnosticMessage: "上傳失敗"
         )
     }
@@ -1370,7 +1420,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
     static func resolveUploadTaskResult(_ taskResult: Result<UploadResult, Error>?, workoutId: String) throws -> UploadResult {
         guard let taskResult else {
             print("❌ [TaskRegistry] 上傳任務返回nil - WorkoutID: \(workoutId)")
-            throw WorkoutV2ServiceError.invalidWorkoutData
+            throw WorkoutV2ServiceError.uploadInterrupted
         }
 
         switch taskResult {
