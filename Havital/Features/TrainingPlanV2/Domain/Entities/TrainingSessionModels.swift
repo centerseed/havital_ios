@@ -334,6 +334,15 @@ struct DayDetail: Codable, Identifiable, Equatable {
     let dayIndex: Int  // 1-7
     let dayTarget: String
     let reason: String
+    /// 這一天的**總量**（熱身＋主課＋緩和），來自 payload 的日層 `distance_km`。
+    ///
+    /// 與 `session.primary` 的 `distanceKm` 是兩個量：後者在間歇課只算主課段
+    /// （dev 實測 4×400m 那天 `primary` 2.2、日層 5.2）。卡片上的「今天要跑多少」
+    /// 講的是日層那一個，拿 primary 去畫會跟分段列加不起來。
+    ///
+    /// `var` 而非 `let`：本型別會被序列化進本機快取，且有十餘個既有建構點；
+    /// optional **var** 才會在 memberwise init 拿到 nil 預設值（同 `WeeklyPlanV2.climate`）。
+    var distanceKm: Double?
     let tips: String?
     let category: TrainingCategory?  // ✅ 改為可選，API 可能返回 null
     let climateMeta: ClimateMeta?

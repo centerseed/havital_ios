@@ -52,6 +52,8 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     // MARK: - Constants
 
     private enum Keys {
+        /// 這批快取是誰寫的。讀之前先比對，對不上就整批丟掉。
+        static let ownerUid = "training_plan_v2_cache_owner_uid"
         static let planStatus = "training_plan_v2_plan_status_cache"
         static let overview = "training_plan_v2_overview_cache"
         static let weeklyPlanPrefix = "training_plan_v2_weekly_"
@@ -73,6 +75,9 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
     private let clock: V2Clock
+    /// 快照的擁有者判定。注入是為了測試能演換帳號，正式路徑一律走
+    /// `CurrentUserIdentity.uid`（含 demo 登入退路）。
+    private let currentUserID: () -> String?
 
     /// In-memory cooldown timestamps keyed by resource.
     /// Uses TimeInterval (not Date) as value to comply with project constraints.
@@ -82,9 +87,14 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
 
     // MARK: - Initialization
 
-    init(defaults: UserDefaults = .standard, clock: V2Clock = SystemV2Clock()) {
+    init(
+        defaults: UserDefaults = .standard,
+        clock: V2Clock = SystemV2Clock(),
+        currentUserID: @escaping () -> String? = CurrentUserIdentity.uid
+    ) {
         self.defaults = defaults
         self.clock = clock
+        self.currentUserID = currentUserID
         self.encoder = JSONEncoder()
         self.decoder = JSONDecoder()
 
@@ -95,9 +105,38 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
         // CacheEventBus registration moved to CacheRegistrationCoordinator (App layer)
     }
 
+    // MARK: - 帳號隔離
+    //
+    // 這一組快取的 key 是靜態的、不帶 uid，而 `.dataChanged(.user)` 又刻意保留它
+    // （`CacheEventBus.getRelatedCacheIdentifiers` 的 `preservedCaches`，修 relaunch 卡 loading）。
+    // 兩者相加＝換帳號時如果 `.userLogout` 那條清空路徑沒跑到（清空失敗、或清空前就被讀），
+    // B 帳號會讀到 A 帳號的課表。這裡蓋一個擁有者戳當第二道保險：
+    // **讀之前先比對 uid，對不上就整批丟掉**，而不是靠「登出時一定會清乾淨」。
+    //
+    // 沒有 uid（尚未登入／auth 還沒恢復）時不讀也不寫 —— 來源不明的快取不進畫面。
+
+    /// 這批快取是不是現在這個帳號寫的。不是就地清掉，並回 false。
+    private func isOwnedByCurrentUser() -> Bool {
+        guard let uid = currentUserID() else { return false }
+        guard let owner = defaults.string(forKey: Keys.ownerUid) else { return false }
+        guard owner == uid else {
+            Logger.info("[TrainingPlanV2LocalDS] 快取擁有者不符,整批丟棄")
+            clearAll()
+            return false
+        }
+        return true
+    }
+
+    /// 寫入時蓋上擁有者戳。沒有 uid 就不寫（呼叫端已先擋一次）。
+    private func stampOwner() {
+        guard let uid = currentUserID() else { return }
+        defaults.set(uid, forKey: Keys.ownerUid)
+    }
+
     // MARK: - Overview Cache
 
     func getPlanStatus() -> PlanStatusV2Response? {
+        guard isOwnedByCurrentUser() else { return nil }
         guard let data = defaults.data(forKey: Keys.planStatus) else {
             return nil
         }
@@ -112,6 +151,8 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     }
 
     func savePlanStatus(_ status: PlanStatusV2Response) {
+        guard currentUserID() != nil else { return }
+        stampOwner()
         do {
             let data = try encoder.encode(status)
             defaults.set(data, forKey: Keys.planStatus)
@@ -138,6 +179,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     // MARK: - Overview Cache
 
     func getOverview() -> PlanOverviewV2? {
+        guard isOwnedByCurrentUser() else { return nil }
         guard let data = defaults.data(forKey: Keys.overview) else {
             return nil
         }
@@ -152,6 +194,8 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     }
 
     func saveOverview(_ overview: PlanOverviewV2) {
+        guard currentUserID() != nil else { return }
+        stampOwner()
         do {
             let data = try encoder.encode(overview)
             defaults.set(data, forKey: Keys.overview)
@@ -178,6 +222,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     // MARK: - Weekly Plan Cache
 
     func getWeeklyPlan(week: Int) -> WeeklyPlanV2? {
+        guard isOwnedByCurrentUser() else { return nil }
         let key = Keys.weeklyPlanPrefix + "\(week)"
         guard let data = defaults.data(forKey: key) else {
             return nil
@@ -193,6 +238,8 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     }
 
     func saveWeeklyPlan(_ plan: WeeklyPlanV2, week: Int) {
+        guard currentUserID() != nil else { return }
+        stampOwner()
         do {
             let key = Keys.weeklyPlanPrefix + "\(week)"
             let data = try encoder.encode(plan)
@@ -230,6 +277,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     // MARK: - Weekly Summary Cache
 
     func getWeeklySummary(week: Int) -> WeeklySummaryV2? {
+        guard isOwnedByCurrentUser() else { return nil }
         let key = Keys.weeklySummaryPrefix + "\(week)"
         guard let data = defaults.data(forKey: key) else {
             return nil
@@ -245,6 +293,8 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     }
 
     func saveWeeklySummary(_ summary: WeeklySummaryV2, week: Int) {
+        guard currentUserID() != nil else { return }
+        stampOwner()
         do {
             let key = Keys.weeklySummaryPrefix + "\(week)"
             let data = try encoder.encode(summary)
@@ -282,6 +332,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     // MARK: - Weekly Preview Cache
 
     func getWeeklyPreview(overviewId: String) -> WeeklyPreviewV2? {
+        guard isOwnedByCurrentUser() else { return nil }
         let key = Keys.weeklyPreviewPrefix + overviewId
         guard let data = defaults.data(forKey: key) else {
             return nil
@@ -297,6 +348,8 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     }
 
     func saveWeeklyPreview(_ preview: WeeklyPreviewV2, overviewId: String) {
+        guard currentUserID() != nil else { return }
+        stampOwner()
         do {
             let key = Keys.weeklyPreviewPrefix + overviewId
             let data = try encoder.encode(preview)
@@ -326,6 +379,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     // MARK: - Utility
 
     func clearAll() {
+        defaults.removeObject(forKey: Keys.ownerUid)
         clearPlanStatus()
         clearOverview()
         clearAllWeeklyPlans()

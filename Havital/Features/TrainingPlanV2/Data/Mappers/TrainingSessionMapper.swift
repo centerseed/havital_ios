@@ -390,6 +390,9 @@ enum TrainingSessionMapper {
             dayIndex: dto.dayIndex,
             dayTarget: dto.dayTarget,
             reason: dto.reason,
+            // 日層總量。少了它，間歇課的卡片會退到 `primary.distance_km`（只算主課段），
+            // 與分段列加不起來（2026-08-26 使用者回報）。
+            distanceKm: dto.distanceKm,
             tips: dto.tips,
             category: dto.category.flatMap { TrainingCategory(rawValue: $0) },  // ✅ 處理可選值
             climateMeta: dto.climateMeta.map { toEntity(from: $0) },
@@ -404,6 +407,7 @@ enum TrainingSessionMapper {
             dayIndex: entity.dayIndex,
             dayTarget: entity.dayTarget,
             reason: entity.reason,
+            distanceKm: entity.distanceKm,
             tips: entity.tips,
             category: entity.category?.rawValue,  // ✅ 處理可選值
             climateMeta: entity.climateMeta.map { toDTO(from: $0) },
