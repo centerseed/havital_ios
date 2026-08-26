@@ -4359,6 +4359,66 @@
 "app2.plan_edit.delta_same" = "Same as planned";
 "app2.plan_edit.load_failed" = "Couldn't load this week's plan, so it can't be edited.";
 
+// MARK: App2 weekly plan editing, frames 03/04 (2.0)
+"app2.plan_edit.pace_table" = "Pace table";
+"app2.plan_edit.edit_mode_banner" = "Edit mode · press and hold a card, then drag up or down to swap it with another day";
+"app2.plan_edit.volume_title" = "This week (adjusted)";
+"app2.plan_edit.warning_title" = "Hard day next to the long run";
+"app2.plan_edit.today" = "Today";
+"app2.plan_edit.drop_here" = "Release to move here · swap with %@";
+"app2.plan_edit.advanced_edit" = "Advanced";
+"app2.plan_edit.plan_row" = "Workout";
+"app2.plan_edit.strength_summary" = "%1$d min · %2$d exercises";
+"app2.plan_edit.supplementary_note" = "＋ %@";
+"app2.plan_edit.supplementary_note_minutes" = "＋ %1$@ · %2$d min";
+"app2.plan_edit.heart_rate_summary" = "%1$@ km · %2$d–%3$d bpm";
+"app2.plan_edit.saved_toast" = "Updated · tap Save to sync";
+"app2.plan_edit.type_sheet_subtitle" = "Switching type updates this day's contents";
+
+// MARK: App2 single-day editing, frames 05-09 (2.0)
+"app2.day_edit.kicker_easy" = "Easy · aerobic base";
+"app2.day_edit.kicker_tempo" = "Quality · steady pace";
+"app2.day_edit.kicker_long_run" = "Long · endurance";
+"app2.day_edit.kicker_interval_distance" = "Quality · distance-based · Z4-Z5";
+"app2.day_edit.kicker_interval_time" = "Quality · time-based · Z4-Z5";
+"app2.day_edit.kicker_combination" = "Quality · segment mix";
+"app2.day_edit.kicker_strength" = "Other · strength day";
+"app2.day_edit.kicker_rest" = "Other · recovery";
+"app2.day_edit.kicker_cross" = "Other · cross-training";
+"app2.day_edit.quick_templates" = "Quick presets";
+"app2.day_edit.quick_templates_hint" = "You can still fine-tune";
+"app2.day_edit.repeats_unit" = "reps";
+"app2.day_edit.recovery_note" = "With rest in place on, you only set the rest seconds; turn it off to set recovery pace and distance instead.";
+"app2.day_edit.warmup_cooldown" = "Warm-up & cool-down";
+"app2.day_edit.supplementary_strength" = "Supplementary strength";
+"app2.day_edit.supplementary_strength_sub" = "Added to a run day";
+"app2.day_edit.add_exercise" = "＋ Add exercise";
+"app2.day_edit.add_supplementary_strength" = "Add supplementary strength";
+"app2.day_edit.combination_hint" = "Progression runs, fast-finish runs and steady-to-interval sessions all use this segment editor.";
+"app2.day_edit.segment_list" = "Segments";
+"app2.day_edit.segment_count" = "%d segments";
+"app2.day_edit.drag_to_reorder" = "Drag to reorder";
+"app2.day_edit.not_added" = "Not added";
+"app2.day_edit.segment_easy" = "Easy";
+"app2.day_edit.segment_fast" = "Fast";
+"app2.day_edit.strength_type_warning" = "Switching type clears the current exercise list (we'll ask first).";
+"app2.day_edit.exercise_count" = "%d exercises";
+"app2.day_edit.add_from_library" = "Add from library";
+"app2.day_edit.strength_empty_hint" = "The exercise list can't be empty, or it won't save.";
+"app2.day_edit.rest_active_title" = "Active recovery day";
+"app2.day_edit.rest_active_sub" = "Sleep, stretching and an easy walk all count.";
+"app2.day_edit.rest_convert_section" = "Turn into a training day";
+"app2.day_edit.rest_to_strength_title" = "Make it a strength day";
+"app2.day_edit.rest_to_strength_sub" = "Opens the exercise list - pick a type and build it.";
+"app2.day_edit.rest_to_cross_title" = "Make it a cross-training day";
+"app2.day_edit.rest_to_cross_sub" = "Swim, bike, yoga and other alternatives.";
+"app2.day_edit.rest_footer_hint" = "You can also pick Strength training from this day's type menu on the weekly plan - no strength day needed first.";
+"app2.day_edit.wheel_pace_title" = "%@ pace";
+"app2.day_edit.wheel_distance_title" = "%@ distance";
+"app2.day_edit.wheel_rest_title" = "Rest time";
+"app2.day_edit.pace_table_suggestion" = "Pace table suggests %1$@ intensity %2$@／km";
+"app2.day_edit.seconds_unit" = "sec";
+
 /* ===== App2 · session detail (design frame-02) ===== */
 "app2.detail.title" = "Session detail";
 "app2.detail.distance" = "Total distance";

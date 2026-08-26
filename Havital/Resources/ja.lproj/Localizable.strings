@@ -4356,6 +4356,66 @@
 "app2.plan_edit.delta_same" = "元と同じ";
 "app2.plan_edit.load_failed" = "今週のプランを読み込めないため、編集できません。";
 
+// MARK: App2 週間プラン編集 frame-03／04（2.0）
+"app2.plan_edit.pace_table" = "ペース表";
+"app2.plan_edit.edit_mode_banner" = "編集モード · カードを長押しして上下にドラッグすると、別の日と入れ替えられます";
+"app2.plan_edit.volume_title" = "今週の走行距離（調整後）";
+"app2.plan_edit.warning_title" = "強度日とロング走が連続しています";
+"app2.plan_edit.today" = "今日";
+"app2.plan_edit.drop_here" = "離すとここへ · %@と入れ替え";
+"app2.plan_edit.advanced_edit" = "詳細編集";
+"app2.plan_edit.plan_row" = "メニュー";
+"app2.plan_edit.strength_summary" = "%1$d 分 · %2$d 種目";
+"app2.plan_edit.supplementary_note" = "＋ %@";
+"app2.plan_edit.supplementary_note_minutes" = "＋ %1$@ · %2$d 分";
+"app2.plan_edit.heart_rate_summary" = "%1$@ km · %2$d–%3$d bpm";
+"app2.plan_edit.saved_toast" = "更新しました · 右上の「保存」で同期";
+"app2.plan_edit.type_sheet_subtitle" = "メニューを切り替えるとこの日の内容が更新されます";
+
+// MARK: App2 単日編集 frame-05～09（2.0）
+"app2.day_edit.kicker_easy" = "イージー · 有酸素ベース";
+"app2.day_edit.kicker_tempo" = "ポイント練習 · 一定ペース";
+"app2.day_edit.kicker_long_run" = "ロング · 持久力";
+"app2.day_edit.kicker_interval_distance" = "ポイント練習 · 距離設定 · Z4–Z5";
+"app2.day_edit.kicker_interval_time" = "ポイント練習 · 時間設定 · Z4–Z5";
+"app2.day_edit.kicker_combination" = "ポイント練習 · 分割メニュー";
+"app2.day_edit.kicker_strength" = "その他 · 単独の筋力日";
+"app2.day_edit.kicker_rest" = "その他 · 回復";
+"app2.day_edit.kicker_cross" = "その他 · クロストレーニング";
+"app2.day_edit.quick_templates" = "クイック設定";
+"app2.day_edit.quick_templates_hint" = "適用後も微調整できます";
+"app2.day_edit.repeats_unit" = "本";
+"app2.day_edit.recovery_note" = "「その場で休む」をオンにすると休憩秒数だけを設定します。オフにすると回復ペースと距離を設定します。";
+"app2.day_edit.warmup_cooldown" = "ウォームアップとクールダウン";
+"app2.day_edit.supplementary_strength" = "補助筋力トレーニング";
+"app2.day_edit.supplementary_strength_sub" = "ラン日に追加";
+"app2.day_edit.add_exercise" = "＋ 種目を追加";
+"app2.day_edit.add_supplementary_strength" = "補助筋力を追加";
+"app2.day_edit.combination_hint" = "ビルドアップ走、ファストフィニッシュ、ペース走からのインターバルもこの分割エディタを使います。";
+"app2.day_edit.segment_list" = "セグメント一覧";
+"app2.day_edit.segment_count" = "%d 区間";
+"app2.day_edit.drag_to_reorder" = "ドラッグで並べ替え";
+"app2.day_edit.not_added" = "未設定";
+"app2.day_edit.segment_easy" = "イージー";
+"app2.day_edit.segment_fast" = "速い";
+"app2.day_edit.strength_type_warning" = "種類を切り替えると現在の種目リストが消去されます（先に確認します）。";
+"app2.day_edit.exercise_count" = "%d 種目";
+"app2.day_edit.add_from_library" = "種目ライブラリから追加";
+"app2.day_edit.strength_empty_hint" = "種目リストが空だと保存できません。";
+"app2.day_edit.rest_active_title" = "アクティブレスト日";
+"app2.day_edit.rest_active_sub" = "睡眠、ストレッチ、軽いウォーキングも回復のうちです。";
+"app2.day_edit.rest_convert_section" = "トレーニング日に変更";
+"app2.day_edit.rest_to_strength_title" = "筋力トレーニング日にする";
+"app2.day_edit.rest_to_strength_sub" = "種目リストを開き、種類を選ぶと編成できます。";
+"app2.day_edit.rest_to_cross_title" = "クロストレーニング日にする";
+"app2.day_edit.rest_to_cross_sub" = "水泳、バイク、ヨガなどの代替メニュー。";
+"app2.day_edit.rest_footer_hint" = "週間プランでこの日のメニュー選択から「筋力トレーニング」を選ぶこともできます——先に筋力日を用意する必要はありません。";
+"app2.day_edit.wheel_pace_title" = "%@のペース";
+"app2.day_edit.wheel_distance_title" = "%@の距離";
+"app2.day_edit.wheel_rest_title" = "休憩時間";
+"app2.day_edit.pace_table_suggestion" = "ペース表の目安 %1$@ 強度 %2$@／km";
+"app2.day_edit.seconds_unit" = "秒";
+
 /* ===== App2 · トレーニング詳細（デザイン frame-02） ===== */
 "app2.detail.title" = "トレーニング詳細";
 "app2.detail.distance" = "総距離";

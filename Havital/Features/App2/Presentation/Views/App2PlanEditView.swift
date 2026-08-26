@@ -1,18 +1,16 @@
 import SwiftUI
 
 // MARK: - App2PlanEditView
-/// 2.0 編輯週課表 —— 設計 **frame-03**（整週）／**frame-04**（課型選單 sheet）。
+/// 2.0 編輯週課表 —— 設計 **frame-03**（整週）。
 ///
 /// **這是既有編輯器的第二個版面，不是第二套編輯器。** 狀態、換課型的預設處方、
 /// 送出與寫入全部沿用既有實作：
 /// - 編輯狀態與儲存：`EditScheduleV2ViewModel`（`saveEdits()` →
 ///   `TrainingPlanV2Repository.updateWeeklyPlan` → `PUT /v2/plan/weekly/{plan_id}`）
 /// - 換課型的預設距離／配速／間歇結構／暖身緩和：`ScheduleTypeDefaults`
-/// - 單日細部編輯（frame-05 距離制間歇／frame-06 組合訓練／frame-07 肌力／
-///   frame-08 休息日）：`TrainingEditSheetV2`，它已經依 `scheduleEditorFamily` 分流
-/// - 配速輪盤（frame-09）／距離輪盤：`PaceWheelPicker`／`DistanceWheelPicker`
-///
-/// 這一層只負責 2.0 的版面：週跑量摘要、強度日相鄰提醒、日卡、拖曳排序、課型 sheet。
+/// - 單日細部編輯（frame-05／06／07／08）：`App2DayEditView`，它用的是 1.4 同一個
+///   `TrainingDayEditState` 與 `toMutableTrainingDay(originalDay:)`
+/// - 配速／距離輪盤（frame-09）：`App2PaceWheelSheet`／`App2ValueWheelSheet`
 struct App2PlanEditView: View {
 
     @ObservedObject var editViewModel: EditScheduleV2ViewModel
@@ -24,32 +22,72 @@ struct App2PlanEditView: View {
     @State private var showingDiscardAlert = false
     @State private var showingSaveError = false
     @State private var saveErrorMessage: String?
+    @State private var showingPaceTable = false
     /// 正在選課型的那一天（`day_index`）。nil = sheet 沒開。
     @State private var typeSheetDay: App2EditingDayRef?
+    /// 「已更新 · 請按右上儲存同步」的暫態 toast（設計 §12）。
+    @State private var showingSavedToast = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            topBar
-            summaryCard
-                .padding(.horizontal, App2Theme.pagePadding)
-                .padding(.bottom, 10)
-            if let warning = adjacentQualityWarning {
-                warningBanner(warning)
+        ZStack(alignment: .bottom) {
+            VStack(spacing: 0) {
+                App2EditTopBar(
+                    title: L10n.EditSchedule.title.localized,
+                    onCancel: {
+                        if hasUnsavedChanges { showingDiscardAlert = true } else { onClose() }
+                    },
+                    onPaceTable: showsPaceTable ? { showingPaceTable = true } : nil,
+                    isSaving: editViewModel.isSaving,
+                    saveEnabled: hasUnsavedChanges,
+                    onSave: { Task { await save() }.tracked(from: "App2PlanEditView: save") },
+                    identifierPrefix: "App2_PlanEdit"
+                )
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 10) {
+                        editModeBanner
+                        summaryCard
+                        if adjacentQualityWarning {
+                            warningCard
+                        }
+                        dayList
+                            .padding(.top, 2)
+                    }
                     .padding(.horizontal, App2Theme.pagePadding)
-                    .padding(.bottom, 10)
+                    .padding(.bottom, 32)
+                }
             }
-            dayList
+
+            if showingSavedToast {
+                savedToast
+                    .padding(.bottom, 26)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
         }
-        .background(App2Theme.pageGradient.ignoresSafeArea())
+        .background(App2EditStripeBackground())
         .sheet(item: $typeSheetDay) { ref in
             App2TrainingTypeSheet(
-                current: day(at: ref.id)?.type ?? .rest,
+                day: day(at: ref.id),
+                weekdayLabel: App2PlanViewModel.weekdayLabel(dayIndex: ref.id),
+                dateLabel: App2PlanViewModel.dateLabel(
+                    dayIndex: ref.id,
+                    weekStart: App2PlanViewModel.currentWeekStart()
+                ),
                 onSelect: { newType in
                     applyType(newType, toDayIndex: ref.id)
                     typeSheetDay = nil
                 }
             )
-            .presentationDetents([.medium, .large])
+            .presentationDetents([.large])
+            .presentationDragIndicator(.hidden)
+        }
+        .sheet(isPresented: $showingPaceTable) {
+            if let vdot = editViewModel.currentVDOT {
+                PaceTableView(
+                    vdot: vdot,
+                    calculatedPaces: PaceCalculator.calculateTrainingPaces(vdot: vdot)
+                )
+            }
         }
         .alert(L10n.EditSchedule.unsavedChanges.localized, isPresented: $showingDiscardAlert) {
             Button(L10n.EditSchedule.discardChanges.localized, role: .destructive) { onClose() }
@@ -64,73 +102,54 @@ struct App2PlanEditView: View {
         }
     }
 
-    // MARK: - 頁首（取消 ＋ 標題 ＋ 儲存）
+    private var showsPaceTable: Bool { editViewModel.currentVDOT != nil }
 
-    private var topBar: some View {
-        HStack(spacing: 10) {
-            Text(L10n.EditSchedule.cancel.localized)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(App2Theme.inkSubtle)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    if hasUnsavedChanges { showingDiscardAlert = true } else { onClose() }
-                }
-                .accessibilityAddTraits(.isButton)
-                .accessibilityIdentifier("App2_PlanEditCancel")
+    // MARK: - 編輯模式橫幅（虛線藍框＝「暫態」的視覺語彙）
 
-            Spacer(minLength: 4)
-
-            Text(L10n.EditSchedule.title.localized)
-                .font(.system(size: 17, weight: .black))
-                .foregroundStyle(App2Theme.inkPrimary)
-                .accessibilityIdentifier("App2_PlanEditView")
-
-            Spacer(minLength: 4)
-
-            Group {
-                if editViewModel.isSaving {
-                    ProgressView().frame(width: 46)
-                } else {
-                    Text(L10n.EditSchedule.save.localized)
-                        .font(.system(size: 15, weight: .black))
-                        .foregroundStyle(hasUnsavedChanges ? App2Theme.accentBlue : App2Theme.chevron)
-                        .frame(minWidth: 46, alignment: .trailing)
-                }
-            }
-            .contentShape(Rectangle())
-            .onTapGesture {
-                guard hasUnsavedChanges, !editViewModel.isSaving else { return }
-                Task { await save() }.tracked(from: "App2PlanEditView: save")
-            }
-            .accessibilityAddTraits(.isButton)
-            .accessibilityLabel(L10n.EditSchedule.save.localized)
-            .accessibilityIdentifier("App2_PlanEditSave")
+    private var editModeBanner: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "arrow.up.arrow.down")
+                .font(.system(size: 13, weight: .black))
+                .foregroundStyle(App2Theme.accentBlueDeep)
+            Text(L10n.App2.PlanEdit.editModeBanner.localized)
+                .font(.system(size: 13, weight: .semibold))
+                .lineSpacing(2)
+                .foregroundStyle(App2Theme.inkSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, App2Theme.pagePadding)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(App2Theme.accentBlue.opacity(0.1))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(
+                    App2Theme.accentBlue.opacity(0.55),
+                    style: StrokeStyle(lineWidth: 1, dash: [5, 4])
+                )
+        )
+        .accessibilityIdentifier("App2_PlanEditModeBanner")
     }
 
-    // MARK: - 本週跑量（設計 frame-03 上方：調整後的量 ＋ 與原本的差）
+    // MARK: - 本週跑量（調整後）
+    /// 設計 §12：**只有一個數字**，沒有進度條、沒有百分比、沒有目標分母。
 
     private var summaryCard: some View {
-        App2AccentCard(padding: 15, spacing: 6) {
-            HStack {
-                Text(L10n.App2.Plan.volumeTitle.localized)
-                    .font(.system(size: 15, weight: .black))
-                    .foregroundStyle(App2Theme.accentBlueDeep)
-                Spacer()
-            }
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+        App2AccentCard(padding: 15, spacing: 4) {
+            Text(L10n.App2.PlanEdit.volumeTitle.localized)
+                .font(.system(size: 14, weight: .black))
+                .foregroundStyle(App2Theme.accentBlueDeep)
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
                 Text(App2NumberFormat.grouped(editedDistanceKm, maximumFractionDigits: 1))
-                    .font(.app2Mono(26))
+                    .font(.app2Mono(30))
                     .foregroundStyle(App2Theme.inkPrimary)
                 Text(verbatim: "km")
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(App2Theme.inkTertiary)
-                Spacer(minLength: 6)
-                Text(deltaLabel)
-                    .font(.system(size: 13, weight: .heavy))
-                    .foregroundStyle(deltaColor)
+                Spacer(minLength: 0)
             }
         }
         .accessibilityIdentifier("App2_PlanEditSummary")
@@ -168,86 +187,157 @@ struct App2PlanEditView: View {
         return total
     }
 
-    private var originalDistanceKm: Double { editViewModel.weeklyPlan.totalDistance }
+    // MARK: - 強度日相鄰提醒（條件顯示）
 
-    private var deltaLabel: String {
-        let delta = editedDistanceKm - originalDistanceKm
-        let magnitude = App2NumberFormat.grouped(abs(delta), maximumFractionDigits: 1)
-        if abs(delta) < 0.05 { return L10n.App2.PlanEdit.deltaSame.localized }
-        return delta > 0
-            ? String(format: L10n.App2.PlanEdit.deltaUp.localized, magnitude)
-            : String(format: L10n.App2.PlanEdit.deltaDown.localized, magnitude)
-    }
-
-    private var deltaColor: Color {
-        let delta = editedDistanceKm - originalDistanceKm
-        if abs(delta) < 0.05 { return App2Theme.inkTertiary }
-        return delta > 0 ? App2Theme.accentOrangeText : App2Theme.accentBlueDeep
-    }
-
-    // MARK: - 強度日相鄰提醒（設計 frame-03）
-
-    /// 相鄰兩天都是品質課 —— 回傳第一組的星期字串。
+    /// 相鄰兩天都是品質課。
     /// `isQualitySession` 從既有的 `scheduleEditorFamily` 導出，不另立強度分類。
-    private var adjacentQualityWarning: String? {
+    private var adjacentQualityWarning: Bool {
         let days = editViewModel.editingDays
-        for index in days.indices.dropLast() where
-            days[index].type.isQualitySession && days[index + 1].type.isQualitySession {
-            return L10n.App2.PlanEdit.adjacentWarning.localized
+        for index in days.indices.dropLast()
+        where days[index].type.isQualitySession && days[index + 1].type.isQualitySession {
+            return true
         }
-        return nil
+        return false
     }
 
-    private func warningBanner(_ text: String) -> some View {
-        App2NoteBox(symbol: "exclamationmark.triangle.fill", accent: App2Theme.accentOrangeBright) {
-            Text(text)
-                .font(.system(size: 13, weight: .semibold))
-                .lineSpacing(2)
-                .foregroundStyle(App2Theme.inkSecondary)
-                .fixedSize(horizontal: false, vertical: true)
+    private var warningCard: some View {
+        HStack(alignment: .top, spacing: 10) {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color(hex: "#EAB308").opacity(0.18))
+                .frame(width: 26, height: 26)
+                .overlay {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 12, weight: .black))
+                        .foregroundStyle(Color(hex: "#A16207"))
+                }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L10n.App2.PlanEdit.warningTitle.localized)
+                    .font(.system(size: 14, weight: .black))
+                    .foregroundStyle(App2Theme.inkPrimary)
+                Text(L10n.App2.PlanEdit.adjacentWarning.localized)
+                    .font(.system(size: 13, weight: .semibold))
+                    .lineSpacing(2)
+                    .foregroundStyle(App2Theme.inkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
         }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: Color(hex: "#EAB308").opacity(0.12), location: 0),
+                            .init(color: .white, location: 0.78)
+                        ],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    )
+                )
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color(hex: "#EAB308").opacity(0.32), lineWidth: 1)
+        )
         .accessibilityIdentifier("App2_PlanEditAdjacentWarning")
     }
 
-    // MARK: - 日卡清單（可拖曳排序）
+    // MARK: - 七張日編輯卡（可拖曳對調）
 
     private var dayList: some View {
-        // 拖曳排序要 `List` 的 `onMove`（SwiftUI 沒有 ScrollView 版），
-        // 所以這一段用 List ＋ 透明列背景維持 2.0 的卡片語彙。
-        List {
-            ForEach($editViewModel.editingDays) { $day in
+        App2DragReorderList(
+            count: editViewModel.editingDays.count,
+            spacing: 10,
+            placeholderText: { index in
+                guard editViewModel.editingDays.indices.contains(index) else { return nil }
+                let weekday = App2PlanViewModel.weekdayLabel(
+                    dayIndex: editViewModel.editingDays[index].dayIndexInt
+                )
+                return String(format: L10n.App2.PlanEdit.dropHere.localized, weekday)
+            },
+            onCommit: { source, target in swapDays(source, target) }
+        ) { index in
+            if editViewModel.editingDays.indices.contains(index) {
                 App2PlanEditDayCard(
-                    day: $day,
+                    day: $editViewModel.editingDays[index],
                     vdot: editViewModel.currentVDOT,
-                    weekdayLabel: App2PlanViewModel.weekdayLabel(dayIndex: day.dayIndexInt),
+                    weekdayLabel: App2PlanViewModel.weekdayLabel(
+                        dayIndex: editViewModel.editingDays[index].dayIndexInt
+                    ),
                     dateLabel: App2PlanViewModel.dateLabel(
-                        dayIndex: day.dayIndexInt,
+                        dayIndex: editViewModel.editingDays[index].dayIndexInt,
                         weekStart: App2PlanViewModel.currentWeekStart()
                     ),
-                    onOpenTypeSheet: { typeSheetDay = App2EditingDayRef(id: day.dayIndexInt) },
-                    onChanged: { hasUnsavedChanges = true }
+                    isToday: isToday(dayIndex: editViewModel.editingDays[index].dayIndexInt),
+                    onOpenTypeSheet: {
+                        typeSheetDay = App2EditingDayRef(id: editViewModel.editingDays[index].dayIndexInt)
+                    },
+                    onChanged: markChanged
                 )
-                .listRowInsets(EdgeInsets(top: 6, leading: App2Theme.pagePadding, bottom: 6, trailing: App2Theme.pagePadding))
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-            }
-            .onMove { source, destination in
-                editViewModel.editingDays.move(fromOffsets: source, toOffset: destination)
-                for index in editViewModel.editingDays.indices {
-                    editViewModel.editingDays[index].dayIndex = "\(index + 1)"
-                }
-                hasUnsavedChanges = true
             }
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
-        .environment(\.editMode, .constant(.active))
+    }
+
+    private func isToday(dayIndex: Int) -> Bool {
+        let calendar = Calendar.current
+        guard let date = calendar.date(
+            byAdding: .day,
+            value: dayIndex - 1,
+            to: App2PlanViewModel.currentWeekStart()
+        ) else { return false }
+        return calendar.isDateInToday(date)
+    }
+
+    /// 放開＝**兩天對調**（設計 §12 的橫幅與落點文字都是「對調」）。
+    ///
+    /// 對調只換位置、不動處方，所以 `day_index` 互換之後 `saveEdits` 仍走無損路徑
+    /// （`hasSameContent` 刻意忽略 `dayIndex`），編輯器沒有模型化的欄位不會被洗掉。
+    private func swapDays(_ source: Int, _ target: Int) {
+        guard editViewModel.editingDays.indices.contains(source),
+              editViewModel.editingDays.indices.contains(target),
+              source != target else { return }
+        let sourceIndex = editViewModel.editingDays[source].dayIndex
+        let targetIndex = editViewModel.editingDays[target].dayIndex
+        editViewModel.editingDays.swapAt(source, target)
+        editViewModel.editingDays[source].dayIndex = sourceIndex
+        editViewModel.editingDays[target].dayIndex = targetIndex
+        markChanged()
+    }
+
+    // MARK: - Toast
+
+    private var savedToast: some View {
+        HStack(spacing: 7) {
+            Image(systemName: "arrow.up.circle.fill")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(App2Theme.accentBlueLight)
+            Text(L10n.App2.PlanEdit.savedToast.localized)
+                .font(.system(size: 14, weight: .heavy))
+                .foregroundStyle(.white)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(Color(hex: "#10151C").opacity(0.92))
+        )
+        .accessibilityIdentifier("App2_PlanEditToast")
     }
 
     // MARK: - Actions
 
     private func day(at dayIndex: Int) -> MutableTrainingDay? {
         editViewModel.editingDays.first { $0.dayIndexInt == dayIndex }
+    }
+
+    private func markChanged() {
+        hasUnsavedChanges = true
+        guard !showingSavedToast else { return }
+        withAnimation(.easeOut(duration: 0.2)) { showingSavedToast = true }
+        Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            withAnimation(.easeIn(duration: 0.2)) { showingSavedToast = false }
+        }
     }
 
     private func applyType(_ newType: DayType, toDayIndex dayIndex: Int) {
@@ -258,10 +348,11 @@ struct App2PlanEditView: View {
             to: &editViewModel.editingDays[index],
             vdot: editViewModel.currentVDOT ?? PaceCalculator.defaultVDOT
         )
-        hasUnsavedChanges = true
+        markChanged()
     }
 
     private func save() async {
+        guard hasUnsavedChanges, !editViewModel.isSaving else { return }
         do {
             _ = try await editViewModel.saveEdits()
             onSaved()
@@ -282,135 +373,340 @@ struct App2EditingDayRef: Identifiable, Equatable {
 }
 
 // MARK: - App2PlanEditDayCard
-/// 編輯模式的一張日卡（設計 frame-03）：星期／日期 ＋ 課型徽章（點開 frame-04 sheet）
-/// ＋ 距離／配速快改 ＋ 複雜課型的「編輯內容」入口。
+/// 編輯模式的一張日卡（設計 §12）。
+///
+/// 標題列由左到右：握把 → 週幾 → 日期 →（今日）膠囊 → 撐開 → 課型下拉 chip → 齒輪鈕。
+/// **握把在最左、齒輪在最右**；休息日沒有齒輪（只有課型下拉）。
 struct App2PlanEditDayCard: View {
 
     @Binding var day: MutableTrainingDay
     let vdot: Double?
     let weekdayLabel: String
     let dateLabel: String
+    var isToday: Bool = false
     let onOpenTypeSheet: () -> Void
     let onChanged: () -> Void
 
     @State private var showingDetailSheet = false
-    @State private var showingPacePicker = false
-    @State private var showingDistancePicker = false
+    @State private var wheel: Wheel?
+
+    private enum Wheel: String, Identifiable {
+        case pace, distance
+        var id: String { rawValue }
+    }
 
     private var accent: Color { day.type.app2StripColor }
 
     var body: some View {
         App2LeftStripCard(strip: accent) {
-            HStack(alignment: .center, spacing: 8) {
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(weekdayLabel)
-                        .font(.system(size: 15, weight: .black))
-                        .foregroundStyle(App2Theme.inkPrimary)
-                    Text(dateLabel)
-                        .font(.app2Mono(12, weight: .bold))
-                        .foregroundStyle(App2Theme.inkMuted)
-                }
-                .frame(width: 48, alignment: .leading)
-
-                App2Chip(
-                    text: day.type.localizedName,
-                    foreground: day.type.app2ChipForeground,
-                    background: day.type.app2ChipBackground
-                )
-                .overlay(alignment: .trailing) {
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 9, weight: .heavy))
-                        .foregroundStyle(day.type.app2ChipForeground)
-                        .offset(x: 9)
-                }
-                .contentShape(Rectangle())
-                .onTapGesture(perform: onOpenTypeSheet)
-                .accessibilityAddTraits(.isButton)
-                .accessibilityIdentifier("App2_PlanEditType_\(day.dayIndexInt)")
-
-                Spacer(minLength: 4)
-            }
-
-            if day.type != .rest {
-                controls
-            }
+            header
+            fields
+            supplementaryNote
         }
-        .sheet(isPresented: $showingDetailSheet) {
-            TrainingEditSheetV2(
+        .fullScreenCover(isPresented: $showingDetailSheet) {
+            App2DayEditView(
                 day: day,
+                paceHelper: PaceCalculationHelper(vdot: vdot),
                 onSave: { updated in
                     day = updated
                     onChanged()
-                },
-                paceHelper: PaceCalculationHelper(vdot: vdot)
-            )
-        }
-        .sheet(isPresented: $showingPacePicker) {
-            PaceWheelPicker(
-                selectedPace: Binding(
-                    get: { day.trainingDetails?.pace ?? "5:00" },
-                    set: { newValue in
-                        guard var details = day.trainingDetails else { return }
-                        details.pace = newValue
-                        day.trainingDetails = details
-                        onChanged()
-                    }
-                ),
-                referenceDistance: day.trainingDetails?.distanceKm
-            )
-            .presentationDetents([.height(380)])
-        }
-        .sheet(isPresented: $showingDistancePicker) {
-            DistanceWheelPicker(selectedDistance: Binding(
-                get: { day.trainingDetails?.distanceKm ?? 5.0 },
-                set: { newValue in
-                    guard var details = day.trainingDetails else { return }
-                    details.distanceKm = newValue
-                    day.trainingDetails = details
-                    onChanged()
                 }
-            ))
-            .presentationDetents([.height(320)])
+            )
+        }
+        .sheet(item: $wheel) { target in
+            wheelSheet(for: target)
+                .presentationDetents([.fraction(0.56)])
+                .presentationDragIndicator(.hidden)
+                .presentationCornerRadius(26)
         }
     }
 
-    /// 簡單課型直接改距離／配速；間歇與分段課的結構改不動一行，走既有的細部編輯 sheet
-    /// （frame-05／06／07 就是那幾張）。
-    @ViewBuilder
-    private var controls: some View {
-        HStack(spacing: 8) {
-            if day.type.isComplexScheduleTraining || day.type == .strength {
-                editChip(
-                    symbol: "slider.horizontal.3",
-                    label: L10n.App2.PlanEdit.detailChip.localized,
-                    value: complexSummary
-                ) { showingDetailSheet = true }
-                    .accessibilityIdentifier("App2_PlanEditDetail_\(day.dayIndexInt)")
-            } else {
-                if let distance = day.trainingDetails?.distanceKm ?? day.trainingDetails?.totalDistanceKm {
-                    editChip(
-                        symbol: "ruler",
-                        label: L10n.App2.PlanEdit.distanceChip.localized,
-                        value: "\(App2NumberFormat.grouped(distance, maximumFractionDigits: 1)) km"
-                    ) { showingDistancePicker = true }
-                        .accessibilityIdentifier("App2_PlanEditDistance_\(day.dayIndexInt)")
-                }
-                if let pace = day.trainingDetails?.pace {
-                    editChip(
-                        symbol: "speedometer",
-                        label: L10n.App2.PlanEdit.paceChip.localized,
-                        value: pace
-                    ) { showingPacePicker = true }
-                        .accessibilityIdentifier("App2_PlanEditPace_\(day.dayIndexInt)")
+    // MARK: - 標題列
+
+    private var header: some View {
+        HStack(alignment: .center, spacing: 8) {
+            App2DragHandle()
+
+            Text(weekdayLabel)
+                .font(.system(size: 16, weight: .black))
+                .foregroundStyle(App2Theme.inkPrimary)
+
+            Text(dateLabel)
+                .font(.app2Mono(13, weight: .bold))
+                .foregroundStyle(App2Theme.inkMuted)
+
+            if isToday {
+                App2Pill(text: L10n.App2.PlanEdit.today.localized)
+            }
+
+            Spacer(minLength: 4)
+
+            App2EditDropdownChip(
+                text: day.type.localizedName,
+                foreground: day.type.app2ChipForeground,
+                background: day.type.app2ChipBackground,
+                border: day.type.app2StripColor.opacity(0.3)
+            )
+            .contentShape(Rectangle())
+            .onTapGesture(perform: onOpenTypeSheet)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityIdentifier("App2_PlanEditType_\(day.dayIndexInt)")
+
+            // 休息日沒有齒輪鈕（設計 §12）。
+            if day.type != .rest {
+                App2GearButton(identifier: "App2_PlanEditDetail_\(day.dayIndexInt)") {
+                    showingDetailSheet = true
                 }
             }
+        }
+    }
+
+    // MARK: - 下方欄位（依課型不同）
+
+    @ViewBuilder
+    private var fields: some View {
+        switch day.type.scheduleEditorFamily {
+        case .rest:
+            // 休息日：只有標題列，沒有任何下方欄位。
+            EmptyView()
+
+        case .intervalDistance, .norwegian4x4, .yasso800, .combination:
+            structuredRow
+            warmupCooldownLines
+
+        case .strength:
+            strengthRow
+
+        case .cross:
+            crossRow
+
+        case .easy where heartRateSummary != nil:
+            // 心率制輕鬆跑：單一整寬欄位「距離 6.0km · 140–161 bpm」。
+            App2EditFieldBlock(
+                label: L10n.App2.PlanEdit.distanceChip.localized,
+                value: heartRateSummary ?? ""
+            ) { wheel = .distance }
+
+        default:
+            HStack(spacing: 9) {
+                App2EditFieldBlock(
+                    label: L10n.App2.PlanEdit.paceChip.localized,
+                    value: paceText
+                ) { wheel = .pace }
+                    .accessibilityIdentifier("App2_PlanEditPace_\(day.dayIndexInt)")
+                App2EditFieldBlock(
+                    label: L10n.App2.PlanEdit.distanceChip.localized,
+                    value: distanceText
+                ) { wheel = .distance }
+                    .accessibilityIdentifier("App2_PlanEditDistance_\(day.dayIndexInt)")
+            }
+        }
+    }
+
+    /// 間歇／組合：單一「課表」列 ＋ 右側「進階編輯」橘膠囊 ＋ `›`。
+    private var structuredRow: some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L10n.App2.PlanEdit.planRow.localized)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(App2Theme.inkTertiary)
+                Text(structuredSummary ?? L10n.App2.PlanEdit.detailChip.localized)
+                    .font(.app2Mono(15, weight: .black))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                    .foregroundStyle(App2Theme.inkPrimary)
+            }
+            Spacer(minLength: 6)
+            advancedEditPill(tint: App2Theme.accentOrangeSoft)
+        }
+        .padding(.horizontal, 11)
+        .padding(.vertical, 9)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .fill(App2Theme.insetBackgroundCool)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture { showingDetailSheet = true }
+    }
+
+    private var strengthRow: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "dumbbell")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(App2Theme.accentViolet.app2Darkened)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(StrengthEditorV2.label(for: day.strengthType ?? "core_stability"))
+                    .font(.system(size: 15, weight: .heavy))
+                    .foregroundStyle(App2Theme.inkPrimary)
+                Text(strengthSummary)
+                    .font(.app2Mono(13, weight: .semibold))
+                    .foregroundStyle(App2Theme.inkTertiary)
+            }
+            Spacer(minLength: 6)
+            advancedEditPill(tint: App2Theme.accentViolet)
+        }
+        .padding(.horizontal, 11)
+        .padding(.vertical, 9)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .fill(App2Theme.insetBackgroundCool)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture { showingDetailSheet = true }
+    }
+
+    private var crossRow: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "figure.run")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(App2Theme.accentViolet.app2Darkened)
+            Text(day.dayTarget.isEmpty ? day.type.localizedName : day.dayTarget)
+                .font(.system(size: 15, weight: .heavy))
+                .lineLimit(1)
+                .foregroundStyle(App2Theme.inkPrimary)
+            Spacer(minLength: 6)
+            advancedEditPill(tint: App2Theme.accentViolet)
+        }
+        .padding(.horizontal, 11)
+        .padding(.vertical, 9)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .fill(App2Theme.insetBackgroundCool)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture { showingDetailSheet = true }
+    }
+
+    private func advancedEditPill(tint: Color) -> some View {
+        HStack(spacing: 4) {
+            Text(L10n.App2.PlanEdit.advancedEdit.localized)
+                .font(.system(size: 12, weight: .black))
+                .lineLimit(1)
+            Image(systemName: "chevron.right")
+                .font(.system(size: 9, weight: .black))
+        }
+        .foregroundStyle(tint.app2Darkened)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 5)
+        .background(Capsule().fill(tint.opacity(0.14)))
+    }
+
+    /// 結構課下方兩行灰字：`暖身 1.0 km · 7:55/km`／`緩和 …`（帶火焰／風 icon，綠 stroke）。
+    @ViewBuilder
+    private var warmupCooldownLines: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            if let warmup = day.warmup {
+                segmentLine(
+                    symbol: "flame",
+                    name: NSLocalizedString("schedule_editor.segment.warmup", comment: ""),
+                    segment: warmup
+                )
+            }
+            if let cooldown = day.cooldown {
+                segmentLine(
+                    symbol: "wind",
+                    name: NSLocalizedString("schedule_editor.segment.cooldown", comment: ""),
+                    segment: cooldown
+                )
+            }
+        }
+    }
+
+    private func segmentLine(symbol: String, name: String, segment: RunSegment) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: symbol)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(App2Theme.accentGreen)
+            Text(name)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(App2Theme.inkTertiary)
+            Text(Self.segmentDetail(segment))
+                .font(.app2Mono(12, weight: .semibold))
+                .lineLimit(1)
+                .foregroundStyle(App2Theme.inkTertiary)
             Spacer(minLength: 0)
         }
     }
 
-    /// 複雜課型的一行摘要（`6 × 400m @ 4:30`／`3 段 · 10.0 km`）。
-    /// 組不出來就只顯示「編輯內容」，不編一個。
-    private var complexSummary: String? {
+    static func segmentDetail(_ segment: RunSegment) -> String {
+        var parts: [String] = []
+        if let km = segment.distanceKm {
+            parts.append("\(App2NumberFormat.grouped(km, maximumFractionDigits: 1)) km")
+        }
+        if let pace = segment.pace, !pace.isEmpty {
+            parts.append("\(pace)/km")
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    /// 跑步日附加力量的註記行。編輯情境用紫（力量 owner 色）。
+    @ViewBuilder
+    private var supplementaryNote: some View {
+        if let note = supplementaryStrengthNote {
+            HStack(spacing: 5) {
+                Image(systemName: "dumbbell")
+                    .font(.system(size: 11, weight: .bold))
+                Text(note)
+                    .font(.system(size: 13, weight: .heavy))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(App2Theme.accentViolet.app2Darkened)
+        }
+    }
+
+    private var supplementaryStrengthNote: String? {
+        guard let activities = day.supplementaryActivities else { return nil }
+        for activity in activities {
+            guard case .strength(let strength) = activity else { continue }
+            let label = StrengthEditorV2.label(for: strength.strengthType)
+            if let minutes = strength.durationMinutes {
+                return String(
+                    format: L10n.App2.PlanEdit.supplementaryNoteMinutes.localized,
+                    label, minutes
+                )
+            }
+            return String(format: L10n.App2.PlanEdit.supplementaryNote.localized, label)
+        }
+        return nil
+    }
+
+    // MARK: - 值
+
+    private var paceText: String {
+        guard let pace = day.trainingDetails?.pace, !pace.isEmpty else { return "--:--" }
+        return "\(pace)/km"
+    }
+
+    private var distanceText: String {
+        let km = day.trainingDetails?.distanceKm ?? day.trainingDetails?.totalDistanceKm ?? 0
+        return "\(App2NumberFormat.grouped(km, maximumFractionDigits: 1)) km"
+    }
+
+    /// 心率制輕鬆跑才有值：`6.0 km · 140–161 bpm`。
+    private var heartRateSummary: String? {
+        guard let range = day.trainingDetails?.heartRateRange,
+              let min = range.min, let max = range.max else { return nil }
+        let km = day.trainingDetails?.distanceKm ?? day.trainingDetails?.totalDistanceKm ?? 0
+        return String(
+            format: L10n.App2.PlanEdit.heartRateSummary.localized,
+            App2NumberFormat.grouped(km, maximumFractionDigits: 1), min, max
+        )
+    }
+
+    private var strengthSummary: String {
+        let minutes = Int(day.trainingDetails?.timeMinutes ?? 30)
+        let count = day.strengthExercises?.count ?? 0
+        return String(format: L10n.App2.PlanEdit.strengthSummary.localized, minutes, count)
+    }
+
+    /// 結構課的一行摘要（`8 × 400m @ 4:20`／`3 段 · 10.0 km`）。
+    /// 組不出來就顯示「編輯內容」，不編一個。
+    private var structuredSummary: String? {
         guard let details = day.trainingDetails else { return nil }
         if let repeats = details.repeats, let work = details.work {
             let distance = work.distanceM.map { String(format: "%.0fm", $0) }
@@ -428,101 +724,228 @@ struct App2PlanEditDayCard: View {
         return nil
     }
 
-    private func editChip(
-        symbol: String,
-        label: String,
-        value: String?,
-        action: @escaping () -> Void
-    ) -> some View {
-        HStack(spacing: 5) {
-            Image(systemName: symbol)
-                .font(.system(size: 11, weight: .bold))
-            Text(value ?? label)
-                .font(.app2Mono(13, weight: .bold))
-                .lineLimit(1)
-            Image(systemName: "chevron.up.chevron.down")
-                .font(.system(size: 9, weight: .heavy))
+    // MARK: - 輪盤
+
+    @ViewBuilder
+    private func wheelSheet(for target: Wheel) -> some View {
+        switch target {
+        case .pace:
+            App2PaceWheelSheet(
+                title: String(
+                    format: L10n.App2.DayEdit.wheelPaceTitle.localized,
+                    day.type.localizedName
+                ),
+                suggestion: paceSuggestion,
+                initialPace: day.trainingDetails?.pace ?? "5:30"
+            ) { newValue in
+                guard var details = day.trainingDetails else { return }
+                details.pace = newValue
+                day.trainingDetails = details
+                onChanged()
+            }
+        case .distance:
+            App2ValueWheelSheet(
+                title: String(
+                    format: L10n.App2.DayEdit.wheelDistanceTitle.localized,
+                    day.type.localizedName
+                ),
+                options: App2ValueWheelSheet.runDistanceOptions,
+                label: { String(format: "%.1f", $0) },
+                unit: "km",
+                initialValue: day.trainingDetails?.distanceKm
+                    ?? day.trainingDetails?.totalDistanceKm ?? 5.0
+            ) { newValue in
+                guard var details = day.trainingDetails else { return }
+                details.distanceKm = newValue
+                day.trainingDetails = details
+                onChanged()
+            }
         }
-        .foregroundStyle(App2Theme.accentBlueDeep)
-        .padding(.horizontal, 9)
-        .padding(.vertical, 5)
-        .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(App2Theme.accentBlue.opacity(0.1))
+    }
+
+    /// 沒有 VDOT／課型對不到 zone → 建議列整條省略。
+    private var paceSuggestion: String? {
+        guard let vdot,
+              let range = PaceCalculator.getPaceRange(for: day.trainingType, vdot: vdot),
+              let zone = PaceCalculator.mapTrainingTypeToZone(day.trainingType) else { return nil }
+        return String(
+            format: L10n.App2.DayEdit.paceTableSuggestion.localized,
+            zone.danielsCode,
+            "\(range.min)–\(range.max)"
         )
-        .contentShape(Rectangle())
-        .onTapGesture(perform: action)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityLabel(label)
     }
 }
 
 // MARK: - App2TrainingTypeSheet
-/// 課型選單（設計 frame-04）：bottom sheet 版的課型清單。
+/// 課型選單（設計 **frame-04** / 清單 §13）。
 ///
 /// **分組沿用 `TrainingTypeMenu` 的 static 清單**——版面不同，但「有哪些課型、
 /// 分成哪幾組」只有一份，不會出現 1.4 選得到、2.0 選不到的課型。
+///
+/// 版面：上方是**錨點日卡**（重現該日標題列，課型 chip 轉白底橘實邊＋外光暈、
+/// chevron 朝上），下方是白底面板，四組分組，選中列整列淡橘底＋橘字＋右側打勾。
 struct App2TrainingTypeSheet: View {
 
-    let current: DayType
+    /// 錨點日卡要重現的那一天。取不到就只顯示面板。
+    let day: MutableTrainingDay?
+    let weekdayLabel: String
+    let dateLabel: String
     let onSelect: (DayType) -> Void
 
-    private var groups: [(title: String, types: [DayType])] {
+    @Environment(\.dismiss) private var dismiss
+
+    private struct TypeGroup: Identifiable {
+        let id: String
+        let title: String
+        let color: Color
+        let types: [DayType]
+    }
+
+    private var groups: [TypeGroup] {
         [
-            (L10n.EditSchedule.easyTrainingSection.localized, TrainingTypeMenu.easyTypes),
-            (L10n.EditSchedule.intensityTrainingSection.localized, TrainingTypeMenu.intensityTypes),
-            (L10n.EditSchedule.longDistanceTrainingSection.localized, TrainingTypeMenu.longDistanceTypes),
-            (L10n.EditSchedule.otherTrainingSection.localized, TrainingTypeMenu.otherTypes)
+            TypeGroup(
+                id: "easy",
+                title: L10n.EditSchedule.easyTrainingSection.localized,
+                color: App2Theme.accentGreen,
+                types: TrainingTypeMenu.easyTypes
+            ),
+            TypeGroup(
+                id: "intensity",
+                title: L10n.EditSchedule.intensityTrainingSection.localized,
+                color: App2Theme.accentOrangeText,
+                types: TrainingTypeMenu.intensityTypes
+            ),
+            TypeGroup(
+                id: "long",
+                title: L10n.EditSchedule.longDistanceTrainingSection.localized,
+                color: App2Theme.accentBlueDeep,
+                types: TrainingTypeMenu.longDistanceTypes
+            ),
+            TypeGroup(
+                id: "other",
+                title: L10n.EditSchedule.otherTrainingSection.localized,
+                color: App2Theme.inkSubtle,
+                types: TrainingTypeMenu.otherTypes
+            )
         ]
     }
 
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text(L10n.App2.PlanEdit.selectType.localized)
-                    .font(.system(size: 19, weight: .black))
-                    .foregroundStyle(App2Theme.inkPrimary)
-                    .padding(.top, 6)
-                    .accessibilityIdentifier("App2_TrainingTypeSheet")
+    private var current: DayType { day?.type ?? .rest }
 
-                ForEach(Array(groups.enumerated()), id: \.offset) { _, group in
-                    VStack(alignment: .leading, spacing: 8) {
-                        App2SectionCaption(text: group.title)
+    var body: some View {
+        VStack(spacing: 12) {
+            if day != nil {
+                anchorCard
+                    .padding(.horizontal, App2Theme.pagePadding)
+                    .padding(.top, 14)
+            }
+            panel
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color(hex: "#10151C").opacity(0.5))
+        .accessibilityIdentifier("App2_TrainingTypeSheet")
+    }
+
+    private var anchorCard: some View {
+        App2LeftStripCard(strip: current.app2StripColor) {
+            HStack(spacing: 8) {
+                App2DragHandle(filled: false)
+                Text(weekdayLabel)
+                    .font(.system(size: 16, weight: .black))
+                    .foregroundStyle(App2Theme.inkPrimary)
+                Text(dateLabel)
+                    .font(.app2Mono(13, weight: .bold))
+                    .foregroundStyle(App2Theme.inkMuted)
+                Spacer(minLength: 4)
+                App2EditDropdownChip(
+                    text: current.localizedName,
+                    foreground: App2Theme.accentOrangeText,
+                    background: .white,
+                    border: App2Theme.accentOrangeSoft,
+                    chevronUp: true,
+                    glow: true
+                )
+            }
+        }
+    }
+
+    private var panel: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(L10n.App2.PlanEdit.selectType.localized)
+                    .font(.system(size: 17, weight: .black))
+                    .foregroundStyle(App2Theme.inkPrimary)
+                Text(L10n.App2.PlanEdit.typeSheetSubtitle.localized)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(App2Theme.inkTertiary)
+            }
+            .padding(.horizontal, App2Theme.pagePadding)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(groups) { group in
+                        Text(group.title)
+                            .font(.system(size: 12, weight: .black))
+                            .tracking(1)
+                            .foregroundStyle(group.color)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, App2Theme.pagePadding)
+                            .padding(.vertical, 8)
+                            .background(App2Theme.insetBackgroundCool)
+
                         ForEach(group.types, id: \.rawValue) { type in
-                            typeRow(type)
+                            typeRow(type, group: group)
                         }
                     }
                 }
+                .padding(.bottom, 26)
             }
-            .padding(.horizontal, App2Theme.pagePadding)
-            .padding(.bottom, 24)
         }
-        .background(App2Theme.pageGradient.ignoresSafeArea())
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous).fill(Color.white)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .shadow(color: App2Theme.shadowInk.opacity(0.35), radius: 24, x: 0, y: 18)
+        .padding(.horizontal, App2Theme.pagePadding)
+        .padding(.bottom, 26)
     }
 
-    private func typeRow(_ type: DayType) -> some View {
-        HStack(spacing: 10) {
+    private func typeRow(_ type: DayType, group: TypeGroup) -> some View {
+        let isSelected = type == current
+        return HStack(spacing: 10) {
             Circle()
-                .fill(type.app2StripColor)
-                .frame(width: 8, height: 8)
+                .fill(dotColor(for: type, in: group))
+                .frame(width: 9, height: 9)
             Text(type.localizedName)
-                .font(.system(size: 15, weight: .heavy))
-                .foregroundStyle(App2Theme.inkPrimary)
+                .font(.system(size: 15, weight: isSelected ? .black : .bold))
+                .foregroundStyle(isSelected ? App2Theme.accentOrangeText : App2Theme.inkPrimary)
             Spacer(minLength: 6)
-            if type == current {
+            if isSelected {
                 Image(systemName: "checkmark")
-                    .font(.system(size: 13, weight: .black))
-                    .foregroundStyle(App2Theme.accentBlue)
+                    .font(.system(size: 14, weight: .black))
+                    .foregroundStyle(App2Theme.accentOrangeText)
             }
         }
-        .padding(.horizontal, 13)
-        .padding(.vertical, 11)
+        .padding(.horizontal, App2Theme.pagePadding)
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .app2CardSurface(cornerRadius: 13)
+        .background(isSelected ? App2Theme.accentOrangeSoft.opacity(0.1) : .clear)
         .contentShape(Rectangle())
-        .onTapGesture { onSelect(type) }
+        .onTapGesture {
+            onSelect(type)
+            dismiss()
+        }
         .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("App2_TrainingType_\(type.rawValue)")
+    }
+
+    /// 圓點顏色＝組色；「其他」組例外：休息用灰、其餘（力量／交叉／瑜伽／健走／騎車）用紫。
+    private func dotColor(for type: DayType, in group: TypeGroup) -> Color {
+        guard group.id == "other" else { return group.color }
+        return type == .rest ? App2Theme.chevron : App2Theme.accentViolet
     }
 }
 
@@ -554,7 +977,7 @@ struct App2PlanEditGate: View {
             } else {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(App2Theme.pageGradient.ignoresSafeArea())
+                    .background(App2EditStripeBackground())
             }
         }
         .task { await load() }
@@ -581,7 +1004,7 @@ struct App2PlanEditGate: View {
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(App2Theme.pageGradient.ignoresSafeArea())
+        .background(App2EditStripeBackground())
     }
 
     private func load() async {

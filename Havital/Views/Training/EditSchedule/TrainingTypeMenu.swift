@@ -105,7 +105,14 @@ struct TrainingTypeMenu: View {
     // 2.0 的課型選單是 bottom sheet（設計 frame-04），版面不同但**分組是同一份**。
     // 抽成 static 之後兩邊共用，不會出現「1.4 有的課型 2.0 選不到」。
 
-    static let easyTypes: [DayType] = [.easyRun, .easy, .recovery_run]
+    // 這四份清單是「使用者能選哪些課型」的唯一來源，1.4 的 Menu 與 2.0 的
+    // 課型選單 sheet（設計 frame-04）共用。
+    //
+    // `easy` 與 `easyRun` 的 `localizedName` 是同一個字串（「輕鬆跑」），
+    // 兩個都列會在選單裡出現兩行一模一樣的「輕鬆跑」。清單只留 `easyRun`；
+    // `DayType.easy` 仍然是合法的課型（後端回傳得到、卡片顯示得出來），
+    // 只是不再重複出現在選單裡。設計 §13 這一組也是 2 項。
+    static let easyTypes: [DayType] = [.easyRun, .recovery_run]
     static let intensityTypes: [DayType] = [
         .tempo, .threshold, .interval,
         // 新增間歇訓練類型
@@ -118,5 +125,8 @@ struct TrainingTypeMenu: View {
     static let longDistanceTypes: [DayType] = [
         .lsd, .longRun, .progression, .fastFinish
     ]
-    static let otherTypes: [DayType] = [.strength, .rest]
+    /// 設計 §13 的「其他」是 6 項。交叉／瑜伽／健走／騎車在 `ScheduleTypeDefaults.apply`
+    /// 與 `EditScheduleV2ViewModel.buildDayDetailDTO`（`category: "cross"`）都已經接好，
+    /// 之前只是沒出現在選單裡，使用者選不到。
+    static let otherTypes: [DayType] = [.rest, .crossTraining, .strength, .yoga, .hiking, .cycling]
 }

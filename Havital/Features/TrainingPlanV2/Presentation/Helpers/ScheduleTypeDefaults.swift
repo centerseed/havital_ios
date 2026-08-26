@@ -12,6 +12,29 @@ import Foundation
 /// （那在後端），也不是儲存邏輯（那在 `EditScheduleV2ViewModel.saveEdits`）。
 enum ScheduleTypeDefaults {
 
+    // MARK: - 距離制間歇的快選模板
+    /// 設計 frame-05 的 6 顆快選模板（`400m×8`…）。
+    ///
+    /// 原本這份清單住在 `IntervalEditorV2`（1.4 編輯 sheet）的 private `templates`。
+    /// 2.0 的單日編輯頁也要同一組，抽成共用之後「快選模板有哪幾顆」只有一份答案。
+    struct IntervalTemplate: Identifiable, Equatable {
+        var id: String { "\(distanceM)x\(repeats)" }
+        let repeats: Int
+        let distanceM: Int
+        /// 全部是數字與單位，不進 i18n。
+        var name: String { "\(distanceM)m × \(repeats)" }
+        var distanceKm: Double { Double(distanceM) / 1000.0 }
+    }
+
+    static let intervalQuickTemplates: [IntervalTemplate] = [
+        IntervalTemplate(repeats: 8, distanceM: 400),
+        IntervalTemplate(repeats: 10, distanceM: 400),
+        IntervalTemplate(repeats: 5, distanceM: 800),
+        IntervalTemplate(repeats: 6, distanceM: 800),
+        IntervalTemplate(repeats: 4, distanceM: 1000),
+        IntervalTemplate(repeats: 5, distanceM: 1000)
+    ]
+
     // MARK: - Warmup/cooldown type classification
 
     static func typeNeedsWarmupCooldown(_ type: DayType) -> Bool {

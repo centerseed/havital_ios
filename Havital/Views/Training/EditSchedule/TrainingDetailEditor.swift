@@ -749,14 +749,10 @@ struct IntervalEditorV2: View {
 
     @State private var selectedTemplate: Int? = nil
 
-    private let templates = [
-        (name: "400m × 8", repeats: 8, distanceM: 400),
-        (name: "400m × 10", repeats: 10, distanceM: 400),
-        (name: "800m × 5", repeats: 5, distanceM: 800),
-        (name: "800m × 6", repeats: 6, distanceM: 800),
-        (name: "1000m × 4", repeats: 4, distanceM: 1000),
-        (name: "1000m × 5", repeats: 5, distanceM: 1000),
-    ]
+    /// 清單本體在 `ScheduleTypeDefaults.intervalQuickTemplates`（1.4 與 2.0 共用）。
+    private var templates: [ScheduleTypeDefaults.IntervalTemplate] {
+        ScheduleTypeDefaults.intervalQuickTemplates
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {

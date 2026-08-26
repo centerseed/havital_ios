@@ -2128,6 +2128,82 @@ extension L10n {
             static let deltaDown = "app2.plan_edit.delta_down"
             static let deltaSame = "app2.plan_edit.delta_same"
             static let loadFailed = "app2.plan_edit.load_failed"
+
+            // frame-03 版面
+            static let paceTable = "app2.plan_edit.pace_table"
+            static let editModeBanner = "app2.plan_edit.edit_mode_banner"
+            static let volumeTitle = "app2.plan_edit.volume_title"
+            static let warningTitle = "app2.plan_edit.warning_title"
+            static let today = "app2.plan_edit.today"
+            /// 拖曳落點佔位的文字（`放開以移到這裡 · 與週三對調`）。
+            static let dropHere = "app2.plan_edit.drop_here"
+            static let advancedEdit = "app2.plan_edit.advanced_edit"
+            static let planRow = "app2.plan_edit.plan_row"
+            static let strengthSummary = "app2.plan_edit.strength_summary"
+            static let supplementaryNote = "app2.plan_edit.supplementary_note"
+            static let supplementaryNoteMinutes = "app2.plan_edit.supplementary_note_minutes"
+            static let heartRateSummary = "app2.plan_edit.heart_rate_summary"
+            static let savedToast = "app2.plan_edit.saved_toast"
+            /// frame-04 課型選單的副標。
+            static let typeSheetSubtitle = "app2.plan_edit.type_sheet_subtitle"
+        }
+
+        /// 編輯單日（設計 frame-05 間歇／frame-06 組合／frame-07 肌力／frame-08 休息／frame-09 輪盤）。
+        enum DayEdit {
+            // Hero kicker（依 `TrainingScheduleEditorFamily` 分）
+            static let kickerEasy = "app2.day_edit.kicker_easy"
+            static let kickerTempo = "app2.day_edit.kicker_tempo"
+            static let kickerLongRun = "app2.day_edit.kicker_long_run"
+            static let kickerIntervalDistance = "app2.day_edit.kicker_interval_distance"
+            static let kickerIntervalTime = "app2.day_edit.kicker_interval_time"
+            static let kickerCombination = "app2.day_edit.kicker_combination"
+            static let kickerStrength = "app2.day_edit.kicker_strength"
+            static let kickerRest = "app2.day_edit.kicker_rest"
+            static let kickerCross = "app2.day_edit.kicker_cross"
+
+            // frame-05 距離制間歇
+            static let quickTemplates = "app2.day_edit.quick_templates"
+            static let quickTemplatesHint = "app2.day_edit.quick_templates_hint"
+            static let repeatsUnit = "app2.day_edit.repeats_unit"
+            static let recoveryNote = "app2.day_edit.recovery_note"
+            static let warmupCooldown = "app2.day_edit.warmup_cooldown"
+            static let supplementaryStrength = "app2.day_edit.supplementary_strength"
+            static let supplementaryStrengthSub = "app2.day_edit.supplementary_strength_sub"
+            static let addExercise = "app2.day_edit.add_exercise"
+            static let addSupplementaryStrength = "app2.day_edit.add_supplementary_strength"
+
+            // frame-06 組合訓練
+            static let combinationHint = "app2.day_edit.combination_hint"
+            static let segmentList = "app2.day_edit.segment_list"
+            static let segmentCount = "app2.day_edit.segment_count"
+            static let dragToReorder = "app2.day_edit.drag_to_reorder"
+            static let notAdded = "app2.day_edit.not_added"
+            static let segmentEasy = "app2.day_edit.segment_easy"
+            static let segmentFast = "app2.day_edit.segment_fast"
+
+            // frame-07 肌力
+            static let strengthTypeWarning = "app2.day_edit.strength_type_warning"
+            static let exerciseCount = "app2.day_edit.exercise_count"
+            static let addFromLibrary = "app2.day_edit.add_from_library"
+            static let strengthEmptyHint = "app2.day_edit.strength_empty_hint"
+
+            // frame-08 休息日
+            static let restActiveTitle = "app2.day_edit.rest_active_title"
+            static let restActiveSub = "app2.day_edit.rest_active_sub"
+            static let restConvertSection = "app2.day_edit.rest_convert_section"
+            static let restToStrengthTitle = "app2.day_edit.rest_to_strength_title"
+            static let restToStrengthSub = "app2.day_edit.rest_to_strength_sub"
+            static let restToCrossTitle = "app2.day_edit.rest_to_cross_title"
+            static let restToCrossSub = "app2.day_edit.rest_to_cross_sub"
+            static let restFooterHint = "app2.day_edit.rest_footer_hint"
+
+            // frame-09 輪盤
+            static let wheelPaceTitle = "app2.day_edit.wheel_pace_title"
+            static let wheelDistanceTitle = "app2.day_edit.wheel_distance_title"
+            static let wheelRestTitle = "app2.day_edit.wheel_rest_title"
+            /// `配速表建議 I 強度 4:18–4:25／km`。區間算不出來時整列不出現。
+            static let paceTableSuggestion = "app2.day_edit.pace_table_suggestion"
+            static let secondsUnit = "app2.day_edit.seconds_unit"
         }
 
         /// 訓練詳情（設計 frame-02／dc.html「課表詳細 · …」）。
