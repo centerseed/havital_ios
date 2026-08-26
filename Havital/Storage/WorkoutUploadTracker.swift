@@ -344,11 +344,10 @@ class WorkoutUploadTracker {
     /// 檢查 workout 是否應該重試上傳
     /// - Parameter workout: 要檢查的 workout
     /// - Returns: true 表示應該重試，false 表示不應該重試
-    func shouldRetryUpload(_ workout: HKWorkout) -> Bool {
+    func shouldRetryUpload(_ workout: HKWorkout, now: Date = Date()) -> Bool {
         let stableId = generateStableWorkoutId(workout)
-        let failedWorkouts = getFailedWorkouts()
 
-        guard let failureInfo = failedWorkouts[stableId] as? [String: Any] else {
+        guard let failureInfo = failureRecord(for: workout) else {
             // 沒有失敗記錄，可以重試
             return true
         }
@@ -356,7 +355,7 @@ class WorkoutUploadTracker {
         let retryCount = failureInfo["retryCount"] as? Int ?? 0
         let kind = Self.failureKind(from: failureInfo)
         let secondsSinceLastFailure = (failureInfo["lastFailureTime"] as? TimeInterval)
-            .map { Date().timeIntervalSince1970 - $0 }
+            .map { now.timeIntervalSince1970 - $0 }
 
         let allowed = Self.shouldRetryUpload(
             retryCount: retryCount,
@@ -408,6 +407,12 @@ class WorkoutUploadTracker {
             return .transient
         }
         return kind
+    }
+
+    /// 讀取某筆 workout 目前的失敗記錄（沒有失敗過則為 nil）
+    func failureRecord(for workout: HKWorkout) -> [String: Any]? {
+        let stableId = generateStableWorkoutId(workout)
+        return getFailedWorkouts()[stableId] as? [String: Any]
     }
 
     /// 清除 workout 的失敗記錄（上傳成功後調用）

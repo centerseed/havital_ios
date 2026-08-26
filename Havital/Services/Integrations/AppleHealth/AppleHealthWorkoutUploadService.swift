@@ -13,11 +13,19 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
     private static let pacerizRPEMetadataKey = "com.paceriz.rpe"
     private let workoutRepository: WorkoutRepository
 
-    private init(workoutRepository: WorkoutRepository = WorkoutRepositoryImpl.shared) {
+    init(workoutRepository: WorkoutRepository = WorkoutRepositoryImpl.shared) {
         self.workoutRepository = workoutRepository
     }
 
     typealias FirebaseLogHandler = (_ message: String, _ level: LogLevel, _ labels: [String: String], _ jsonPayload: [String: Any]?) -> Void
+
+    /// 批次自己丟出的失敗（逾時、task group 無結果）。
+    ///
+    /// 它們沒有經過 `uploadWorkout` 的失敗記帳，所以只有這一類要在批次層寫失敗帳本；
+    /// 其餘錯誤都是從 `uploadWorkout` 冒出來的，記過一次了。
+    private struct BatchStageFailure: Error {
+        let underlying: WorkoutV2ServiceError
+    }
 
     struct BatchUploadErrorHandling {
         let shouldLogToCloud: Bool
@@ -197,10 +205,26 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             }
         })
 
-        let result = try Self.resolveUploadTaskResult(taskResult, workoutId: workoutId)
-        
-        print("✅ [TaskRegistry] 上傳任務完成 - WorkoutID: \(workoutId), 結果: \(result)")
-        return result
+        do {
+            let result = try Self.resolveUploadTaskResult(taskResult, workoutId: workoutId)
+            print("✅ [TaskRegistry] 上傳任務完成 - WorkoutID: \(workoutId), 結果: \(result)")
+            return result
+        } catch {
+            recordUploadFailureIfNeeded(workout, error: error)
+            throw error
+        }
+    }
+
+    /// 一次上傳嘗試只寫一筆失敗帳。跳過與取消不算失敗，不寫。
+    private func recordUploadFailureIfNeeded(_ workout: HKWorkout, error: Error) {
+        let handling = Self.classifyBatchUploadError(error)
+        guard handling.shouldMarkWorkoutFailed else { return }
+        workoutUploadTracker.markWorkoutAsFailed(
+            workout,
+            reason: error.localizedDescription,
+            kind: handling.failureKind,
+            apiVersion: .v2
+        )
     }
     
     // MARK: - Internal Upload Implementation
@@ -450,13 +474,13 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                     // 任務 2: 60 秒超時
                     group.addTask {
                         try await Task.sleep(nanoseconds: 60_000_000_000)
-                        throw WorkoutV2ServiceError.uploadTimedOut
+                        throw BatchStageFailure(underlying: .uploadTimedOut)
                     }
 
                     // 返回第一個完成的任務結果（安全處理 nil）
                     guard let result = try await group.next() else {
                         group.cancelAll()
-                        throw WorkoutV2ServiceError.uploadInterrupted
+                        throw BatchStageFailure(underlying: .uploadInterrupted)
                     }
                     group.cancelAll()
                     return result
@@ -470,20 +494,23 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
                 try? await Task.sleep(nanoseconds: 200_000_000)
             } catch {
                 failed += 1
-                let handling = Self.reportBatchUploadFailure(error, workoutId: workoutId)
+                let stageFailure = error as? BatchStageFailure
+                let effectiveError: Error = stageFailure?.underlying ?? error
+                let handling = Self.reportBatchUploadFailure(effectiveError, workoutId: workoutId)
 
-                let errorMsg = error.localizedDescription
+                let errorMsg = effectiveError.localizedDescription
                 if handling.shouldLogToCloud {
                     print("❌ [批次上傳] \(workoutId) 上傳失敗: \(errorMsg)")
                 } else {
                     print("ℹ️ [批次上傳] \(workoutId) \(handling.diagnosticMessage)")
                 }
 
-                if handling.shouldMarkWorkoutFailed {
-                    workoutUploadTracker.markWorkoutAsFailed(w, reason: errorMsg, kind: handling.failureKind, apiVersion: .v2)
+                // 只有批次自己丟出的失敗還沒記帳；其餘已由 uploadWorkout 記過一次。
+                if stageFailure != nil {
+                    recordUploadFailureIfNeeded(w, error: effectiveError)
                 }
 
-                failedList.append(FailedWorkout(workout: w, error: error))
+                failedList.append(FailedWorkout(workout: w, error: effectiveError))
             }
         }
 
@@ -854,14 +881,7 @@ class AppleHealthWorkoutUploadService: @preconcurrency TaskManageable {
             // 先嘗試上傳，如果成功就結束
             try await workoutRepository.uploadWorkout(workoutData)
         } catch {
-            // 記錄上傳失敗
-            let errorDescription = error.localizedDescription
-            workoutUploadTracker.markWorkoutAsFailed(workout,
-                                                     reason: "API upload failed: \(errorDescription)",
-                                                     kind: Self.classifyUploadFailureKind(error),
-                                                     apiVersion: .v2)
-
-            // 如果失敗，記錄詳細錯誤
+            // 失敗帳本由 uploadWorkout 統一記一次，這裡只做詳細錯誤上報。
             await reportDetailedUploadError(
                 workout: workout,
                 workoutData: workoutData,

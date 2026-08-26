@@ -1,7 +1,7 @@
 ---
 type: SPEC
 id: SPEC-workout-upload-error-noise-filtering
-status: Draft
+status: Implemented
 layer: product
 ontology_entity: workout-upload-error-noise-filtering
 owns: Apple Health workout 上傳失敗的分類、對使用者呈現的失敗原因，以及失敗後的重試／放棄處置
@@ -113,3 +113,21 @@ Then 每一種情境必須有各自可辨識的三語訊息，「無效的運動
 | AC-WORKOUT-LOG-07 | 暫時性失敗不設次數上限，只用退避冷卻節流 |
 | AC-WORKOUT-LOG-08 | 舊版無分類記錄視為暫時性 |
 | AC-WORKOUT-LOG-09 | 失敗原因三語可辨識；跳過不進失敗帳本 |
+
+## 實作證據（2026-08-27）
+
+AC-01 ~ AC-05 於 2026-04 落地；AC-06 ~ AC-09 由 T-0322 落地，產品裁決記於該票 `expected_surface`。
+
+| AC | 實作 |
+|---|---|
+| AC-WORKOUT-LOG-01/02 | `Havital/Features/Workout/Domain/UseCases/WorkoutBackgroundManager.swift`（`isProtectedDataUnavailableError`、`reportPendingWorkoutCheckError`） |
+| AC-WORKOUT-LOG-03/04/05 | `Havital/Services/Integrations/AppleHealth/AppleHealthWorkoutUploadService.swift`（`classifyBatchUploadError`、`classifyDetailedUploadError`、`isExpectedUploadError`） |
+| AC-WORKOUT-LOG-06 | `AppleHealthWorkoutUploadService.classifyUploadFailureKind` |
+| AC-WORKOUT-LOG-07 | `Havital/Storage/WorkoutUploadTracker.swift`（`shouldRetryUpload(retryCount:kind:secondsSinceLastFailure:)`、`retryCooldownSeconds(retryCount:kind:)`） |
+| AC-WORKOUT-LOG-08 | `WorkoutUploadTracker.failureKind(from:)` |
+| AC-WORKOUT-LOG-09 | `WorkoutV2ServiceError.errorDescription`＋`Localizable.strings` 的 `workout_upload.error.*`；跳過分支在 `classifyBatchUploadError` |
+
+驗收：`HavitalTests/SpecCompliance/WorkoutUploadErrorNoiseFilteringACTests.swift`、
+`HavitalTests/SpecCompliance/WorkoutUploadFailureDispositionACTests.swift`。
+
+**已知文件債（先於本次改動）**：本份仍缺 `MAP-spec-governance` §2.2 要求的 11 節骨架。
