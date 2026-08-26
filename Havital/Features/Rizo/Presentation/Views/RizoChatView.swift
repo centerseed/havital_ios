@@ -190,7 +190,7 @@ struct RizoChatView: View {
         HStack(alignment: .top, spacing: 8) {
             rizoAvatar(size: 24, fontSize: 11)
                 .padding(.top, 2)
-            Text(text)
+            Text(Self.markdown(text))
                 .font(AppFont.bodyRegular())
                 .foregroundColor(.primary)
                 .multilineTextAlignment(.leading)
@@ -201,6 +201,16 @@ struct RizoChatView: View {
             Spacer(minLength: 40)
         }
         .accessibilityIdentifier("rizo_chat_bubble_coach")
+    }
+
+    /// Rizo 的回覆本來就是 Markdown（`**粗體**`／`*斜體*`），以前直接丟給 `Text` 會把
+    /// 星號原樣顯示。用 `.inlineOnlyPreservingWhitespace` 解析：只吃行內語法，
+    /// **換行與空白照原樣保留**（預設的 `.full` 會把段落內的換行吃掉）。
+    /// 解析失敗就退回純文字，不讓一則訊息炸掉整個對話。
+    static func markdown(_ text: String) -> AttributedString {
+        var options = AttributedString.MarkdownParsingOptions()
+        options.interpretedSyntax = .inlineOnlyPreservingWhitespace
+        return (try? AttributedString(markdown: text, options: options)) ?? AttributedString(text)
     }
 
     private func userBubble(text: String) -> some View {

@@ -988,6 +988,10 @@ struct App2HomeView: View {
                 sendButton(symbol: "arrow.right")
             }
         }
+        // 視覺上的膠囊只有 ~32pt 高，低於 44pt 的最小可點區域（實測：以文字或座標點按
+        // 常常沒開 sheet，只有用 a11y id 點才開）。把可點區域撐到 44pt，外觀不變。
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
         .accessibilityIdentifier(identifier)
     }
 

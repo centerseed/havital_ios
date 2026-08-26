@@ -38,6 +38,29 @@ tags:
     timeout: 40000
 - takeScreenshot: editfix-01-week
 
+# 迴歸：**起手點落在日卡上**也要捲得動。
+# 日卡佔畫面大部分面積，拖曳排序的手勢一旦掛在整列上就會吃掉 ScrollView 的 pan，
+# 整頁完全捲不動（2026-08-26 實測，連 5 次 swipe 畫面零位移）。
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 30%"
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 30%"
+- swipe:
+    start: "50%, 70%"
+    end: "50%, 30%"
+- assertVisible: "週日"
+- swipe:
+    start: "50%, 30%"
+    end: "50%, 85%"
+- swipe:
+    start: "50%, 30%"
+    end: "50%, 85%"
+- swipe:
+    start: "50%, 30%"
+    end: "50%, 85%"
+
 # 課型選單 sheet（frame-04）
 - tapOn:
     id: "App2_PlanEditType_3"

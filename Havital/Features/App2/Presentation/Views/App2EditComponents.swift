@@ -468,6 +468,9 @@ struct App2EditDivider: View {
 struct App2DragReorderList<Content: View>: View {
     let count: Int
     var spacing: CGFloat = 12
+    /// 拖曳熱區（每列左上角、對齊 `App2DragHandle` 的那塊）的大小。
+    /// **手勢只掛在這裡，不掛整列** —— 見 `dragHotspot(for:)` 的註解。
+    var handleHotspot: CGSize = CGSize(width: 48, height: 60)
     /// 落點佔位要寫的字（參數是目的地 index）。回傳 nil 就只畫虛線框。
     var placeholderText: (Int) -> String?
     /// (來源 index, 目的 index)
@@ -511,7 +514,7 @@ struct App2DragReorderList<Content: View>: View {
                     )
                     .offset(y: dragIndex == index ? translationY : 0)
                     .zIndex(dragIndex == index ? 10 : 0)
-                    .simultaneousGesture(gesture(for: index))
+                    .overlay(alignment: .topLeading) { dragHotspot(for: index) }
             }
         }
         .onPreferenceChange(HeightKey.self) { heights = $0 }
@@ -542,6 +545,20 @@ struct App2DragReorderList<Content: View>: View {
                 }
             }
             .accessibilityIdentifier("App2_DragPlaceholder")
+    }
+
+    /// 拖曳只從**左上角的握把**起手（設計 §12：「按住左側握把上下拖曳」）。
+    ///
+    /// 手勢原本掛在整列上，而 `LongPressGesture.sequenced(before: DragGesture(minimumDistance: 0))`
+    /// 的 drag 從按下那一刻就開始收事件，`ScrollView` 的 pan 因此永遠搶不到 ——
+    /// 日卡佔畫面大部分面積，實測（2026-08-26 maestro 連 5 次 swipe）整頁完全捲不動，
+    /// 只有起手在跑量卡才捲得了。把熱區收窄成握把那塊，其餘面積回歸捲動。
+    private func dragHotspot(for index: Int) -> some View {
+        Color.clear
+            .frame(width: handleHotspot.width, height: handleHotspot.height)
+            .contentShape(Rectangle())
+            .gesture(gesture(for: index))
+            .accessibilityHidden(true)
     }
 
     private func gesture(for index: Int) -> some Gesture {
