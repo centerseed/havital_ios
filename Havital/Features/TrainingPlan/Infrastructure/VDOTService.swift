@@ -1,6 +1,16 @@
 import Foundation
 
-class VDOTService {
+// MARK: - VDOTDataSourceProtocol
+/// `GET /v2/workouts/vdots` 的窄介面（讀取）。
+///
+/// 2.0 的「能力基準」指標詳情（checklist §52）要 VDOT 日序列＋同一筆的診斷欄。
+/// 既有出口就是 `VDOTService.getVDOTs`，所以**不新開 data source**，只補一個 protocol
+/// 讓 ViewModel 依介面而非 singleton（`.claude/rules/architecture.md`）。
+protocol VDOTDataSourceProtocol {
+    func getVDOTs(limit: Int) async throws -> VDOTResponse
+}
+
+class VDOTService: VDOTDataSourceProtocol {
     static let shared = VDOTService()
     
     // MARK: - New Architecture Dependencies
