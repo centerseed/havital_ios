@@ -196,7 +196,9 @@ final class App2RenderingTests: XCTestCase {
                 "work": { "distance_m": 200, "pace": "5:25" },
                 "recovery": { "duration_seconds": 90 } } ] } }
         """
-        let day = try JSONDecoder().decode(DayDetailDTO.self, from: Data(json.utf8))
+        let day = TrainingSessionMapper.toEntity(
+            from: try JSONDecoder().decode(DayDetailDTO.self, from: Data(json.utf8))
+        )
         let session = try XCTUnwrap(
             App2HomeViewModel.todaySession(days: [day], todayIndex: 5, dayLabel: "星期五 · 8/29")
         )
@@ -225,7 +227,9 @@ final class App2RenderingTests: XCTestCase {
           "primary": { "run_type": "lsd", "distance_km": 9.0, "pace": "7:55",
             "target_intensity": "low" } }
         """
-        let day = try JSONDecoder().decode(DayDetailDTO.self, from: Data(json.utf8))
+        let day = TrainingSessionMapper.toEntity(
+            from: try JSONDecoder().decode(DayDetailDTO.self, from: Data(json.utf8))
+        )
         let session = try XCTUnwrap(
             App2HomeViewModel.todaySession(days: [day], todayIndex: 2, dayLabel: "週二 · 8/25")
         )

@@ -85,7 +85,11 @@ enum CacheRegistrationCoordinator {
                 keys = Set(App2SnapshotKey.allCases)
             case .dataChanged(.trainingPlanV2), .dataChanged(.trainingPlan):
                 // 課表存檔（`EditScheduleV2ViewModel.saveEdits()` 成功後發這條）。
-                keys = [.planStatus, .weeklyPlan]
+                // **這裡已經沒有課表的快照可清**（2026-08-26 架構收斂：plan status／週課表
+                // 回到 `TrainingPlanV2LocalDataSource`），而那一份由存檔路徑本身
+                // （`TrainingPlanV2Repository.updateWeeklyPlan` 寫回快取）就地更新，
+                // 不靠這條事件失效。
+                return
             case .dataChanged(.workouts):
                 keys = [.recentWorkouts, .homeRecentWorkouts, .workoutStats, .stateToday]
             default:

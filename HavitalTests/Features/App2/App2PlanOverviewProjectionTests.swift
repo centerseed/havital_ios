@@ -45,15 +45,15 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
         start: Int,
         end: Int,
         focus: String = "有氧耐力"
-    ) -> TrainingStageDTO {
-        TrainingStageDTO(
+    ) -> TrainingStageV2 {
+        TrainingStageV2(
             stageId: id,
             stageName: name,
             stageDescription: "",
             weekStart: start,
             weekEnd: end,
             trainingFocus: focus,
-            targetWeeklyKmRange: TargetWeeklyKmRangeDTO(low: 40, high: 50),
+            targetWeeklyKmRange: TargetWeeklyKmRangeV2(low: 40, high: 50),
             targetWeeklyKmRangeDisplay: nil,
             intensityRatio: nil,
             keyWorkouts: nil

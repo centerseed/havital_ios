@@ -252,7 +252,8 @@ struct App2SessionDetail: Identifiable, Equatable {
 ///
 /// **邊界的來源**：後端 payload 目前沒有配速區間欄位（`primary` 只有 `pace`／
 /// `base_pace`／`climate_adjusted_pace`，2026-08-26 dev 實測 `e1289e60f251_1`），
-/// 所以邊界＝處方配速 ±15 秒、目標窗＝±10 秒。後端補上區間欄位後改讀那個欄位。
+/// 所以邊界＝處方配速 ±15 秒、目標窗＝±10 秒（**以秒／km 為準再換算成用戶單位**）。
+/// 後端補上區間欄位後改讀那個欄位。
 struct App2SessionPaceBand: Equatable {
     /// 帶上那顆白 pill 的處方配速（`6:50`）。
     let paceLabel: String
@@ -262,6 +263,9 @@ struct App2SessionPaceBand: Equatable {
     let slowLabel: String
     /// 圖下中央那句的目標窗（`6:40-7:00`）。
     let windowLabel: String
+    /// 上面四個值的單位（`/km`／`/mi`）。**值本身不含單位** —— 設計上那個字是分開排版的，
+    /// 而單位由用戶的 `UnitManager` 設定決定，不是寫死公制。
+    let paceUnitLabel: String
     /// 圖下左（`0.0`）／右（`8.0`）。右邊推不出距離時是 `nil`，整個右欄不出現。
     let endKmLabel: String?
     /// legend chip 的名稱（`輕鬆（穩定）`）——與長條圖的標註列同一支字串。

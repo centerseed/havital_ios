@@ -3,27 +3,28 @@ import Foundation
 // MARK: - App2SessionDetailProjection
 /// Presentation Layer — 訓練詳情頁的投影（設計 frame-02／dc.html「課表詳細 · …」四版）。
 ///
-/// **這一頁不打端點。** 首頁與課表頁手上已經有本週課表的 `DayDetailDTO`，詳情頁
+/// **這一頁不打端點。** 首頁與課表頁手上已經有本週課表的 `DayDetail`，詳情頁
 /// 只是同一份 payload 的第二個版面。分段列、配速結構圖、熱適應卡全部從那一份組出來，
 /// 組不出來的區塊整塊不出現 —— 不用 placeholder，也不本機推一個值。
 ///
 /// **為什麼不接 1.4 的那一份**：`PlannedSessionDetailView` 內的
-/// `buildDetailSegments()`／`DetailSegmentData`（同檔 927–1018 行）與
-/// `SegmentIntervalDisplay` 都吃 **Domain entity**（`DayDetail`／`RunSegment`），
-/// 而 2.0 這條線從 `TrainingPlanV2RemoteDataSource` 直接讀 **DTO**，中間沒有 mapper。
-/// 這裡復用的是 2.0 自己那一份 DTO 投影（`App2HomeViewModel.segments/structureBars/
-/// effortLabel`、`App2PlanViewModel.contentLine/dayType/intensityLabel`），不另立第三套
-/// 拆段規則。
+/// `buildDetailSegments()`／`DetailSegmentData` 與 `SegmentIntervalDisplay` 是 1.4 的版面，
+/// 拆段規則綁著那一版的視覺。2.0 復用的是自己這一份投影
+/// （`App2HomeViewModel.segments/structureBars/effortLabel`、
+/// `App2PlanViewModel.contentLine/dayType/intensityLabel`），不另立第三套拆段規則。
+/// **型別與 1.4 已經同源**：兩邊都吃 domain entity（`DayDetail`／`RunSegment`），
+/// 2.0 不再從 `TrainingPlanV2RemoteDataSource` 直讀 DTO（2026-08-26 架構收斂）。
 @MainActor
 enum App2SessionDetailProjection {
 
     /// 休息日不進詳情（設計沒有休息日的詳情版式；點下去只會看到一頁空卡）。
     static func detail(
-        day: DayDetailDTO,
+        day: DayDetail,
         weekStart: Date,
         calendar: Calendar = .current
     ) -> App2SessionDetail? {
-        let dayType = day.primary == nil ? DayType.rest : App2PlanViewModel.dayType(day.primary)
+        let primary = day.session?.primary
+        let dayType = primary == nil ? DayType.rest : App2PlanViewModel.dayType(primary)
         guard dayType != .rest else { return nil }
 
         let date = calendar.date(byAdding: .day, value: day.dayIndex - 1, to: weekStart)
@@ -34,7 +35,7 @@ enum App2SessionDetailProjection {
         var durationMinutes: Int?
         var durationSeconds: Double?
         var isRun = false
-        switch day.primary {
+        switch primary {
         case .run(let run):
             isRun = true
             // 間歇課的 `duration_minutes` 缺席（dev 實測 4×400m 那天沒有這一欄），
@@ -59,14 +60,15 @@ enum App2SessionDetailProjection {
             dayIndex: day.dayIndex,
             dateString: date.map { dateKey($0, calendar: calendar) },
             dateTitle: dateTitle(date: date, dayIndex: day.dayIndex, weekStart: weekStart, calendar: calendar),
-            title: dayType?.localizedName ?? (day.category ?? day.dayTarget),
+            // 同 `App2HomeViewModel.todaySession`：對不到課型就退 `day_target`，不印識別字。
+            title: dayType?.localizedName ?? day.dayTarget,
             dayType: dayType,
             kicker: kicker(day: day),
             distanceKm: (distanceKm ?? 0) > 0 ? distanceKm : nil,
             // 設計 frame-02 的「預計時間」是 `24:00`／`54:40`／`2:36`（等寬數字），
             // 不是「41 分鐘」。有秒數就用秒數格式，只有分鐘就補成 `mm:00`。
             durationLabel: (durationSeconds ?? durationMinutes.map { Double($0) * 60 })
-                .map { App2PlanViewModel.durationLabel(seconds: $0) },
+                .map { TimeFormatting.formatTime(Int($0.rounded())) },
             durationMinutes: durationMinutes
                 ?? durationSeconds.map { Int(($0 / 60).rounded()) },
             phaseCount: max(segments.count, 1),
@@ -94,12 +96,13 @@ enum App2SessionDetailProjection {
     /// **這一行不得消失**（2026-08-26 裁決）：payload 有 `pace_zone` 就用它，
     /// 沒有就退到課型的區間對照（`TrainingEffortScale.zone`），再退到結構詞。
     /// 結構詞是 `DayType` 的英文大寫短語，不是把 `run_type` 識別字原樣印出去。
-    static func kicker(day: DayDetailDTO) -> String? {
-        let dayType = day.primary == nil ? DayType.rest : App2PlanViewModel.dayType(day.primary)
+    static func kicker(day: DayDetail) -> String? {
+        let primary = day.session?.primary
+        let dayType = primary == nil ? DayType.rest : App2PlanViewModel.dayType(primary)
         var parts: [String] = []
         if let word = structureWord(dayType) { parts.append(word) }
 
-        if case .run(let run) = day.primary {
+        if case .run(let run) = primary {
             let zones = App2PlanViewModel.effectiveSegments(run).compactMap { $0.work?.paceZone ?? $0.pace }
             if let zone = zones.first(where: { $0.uppercased().hasPrefix("Z") }) {
                 parts.append(zone.uppercased())
@@ -107,7 +110,7 @@ enum App2SessionDetailProjection {
                 parts.append(zone)
             }
         }
-        if parts.isEmpty { return App2PlanViewModel.intensityLabel(day.primary) }
+        if parts.isEmpty { return App2PlanViewModel.intensityLabel(primary) }
         return parts.joined(separator: " · ")
     }
 
@@ -148,10 +151,10 @@ enum App2SessionDetailProjection {
     /// 這一堂課的預計時間（秒）：熱身 ＋ 主課（間歇含組間恢復）＋ 緩和。
     /// 每一段都用處方值推（明寫時長優先，否則距離 ÷ 處方配速）；
     /// 主課段推不出來就整個回 nil —— 少一格數據，不編一個數字。
-    static func plannedSeconds(day: DayDetailDTO, run: RunActivityDTO) -> Double? {
-        func seconds(_ segment: RunSegmentDTO?) -> Double? {
+    static func plannedSeconds(day: DayDetail, run: RunActivity) -> Double? {
+        func seconds(_ segment: RunSegment?) -> Double? {
             guard let segment else { return nil }
-            return App2PlanViewModel.effortSeconds(SegmentEffortDTO(
+            return App2PlanViewModel.effortSeconds(SegmentEffort(
                 distanceKm: segment.distanceKm,
                 distanceM: segment.distanceM,
                 durationMinutes: segment.durationMinutes,
@@ -167,7 +170,7 @@ enum App2SessionDetailProjection {
         var total: Double = 0
         var hasMain = false
         for segment in App2PlanViewModel.effectiveSegments(run) {
-            if segment.kind == "interval", let repeats = segment.repeats, repeats > 0,
+            if segment.segmentKind == .interval, let repeats = segment.repeats, repeats > 0,
                let work = segment.work, let workSeconds = App2PlanViewModel.effortSeconds(work) {
                 let recovery = segment.recovery.flatMap(App2PlanViewModel.effortSeconds) ?? 0
                 total += workSeconds * Double(repeats) + recovery * Double(max(repeats - 1, 0))
@@ -178,8 +181,8 @@ enum App2SessionDetailProjection {
             }
         }
         guard hasMain else { return nil }
-        total += seconds(day.warmup) ?? 0
-        total += seconds(day.cooldown) ?? 0
+        total += seconds(day.session?.warmup) ?? 0
+        total += seconds(day.session?.cooldown) ?? 0
         return total
     }
 
@@ -194,11 +197,11 @@ enum App2SessionDetailProjection {
     /// 敘述與現在的 primary 同一次產出；不相等＝證明不了，就不顯示。
     ///
     /// **這是字串相等比對，不是語意判斷** —— 不去猜敘述在講哪一種課。
-    static func isDayNarrativeConsistent(day: DayDetailDTO) -> Bool {
+    static func isDayNarrativeConsistent(day: DayDetail) -> Bool {
         let target = day.dayTarget.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !target.isEmpty else { return false }
         let description: String?
-        switch day.primary {
+        switch day.session?.primary {
         case .run(let run):           description = run.description
         case .strength(let strength): description = strength.description
         case .cross(let cross):       description = cross.description
@@ -211,7 +214,7 @@ enum App2SessionDetailProjection {
 
     /// 逐段列。順序照 payload：`warmup` → `primary.segments[]` → `cooldown`。
     /// 單段課（輕鬆跑／長跑）只有一列主課 —— 那也是結構，不是「沒有結構」。
-    static func detailSegments(day: DayDetailDTO) -> [App2SessionDetailSegment] {
+    static func detailSegments(day: DayDetail) -> [App2SessionDetailSegment] {
         var rows: [App2SessionDetailSegment] = []
         func append(_ name: String, detail: String?, repeats: String? = nil, note: String? = nil, isWork: Bool) {
             guard detail != nil || note != nil else { return }
@@ -228,12 +231,12 @@ enum App2SessionDetailProjection {
 
         append(
             NSLocalizedString("training.segment.warmup", comment: ""),
-            detail: day.warmup.flatMap(App2HomeViewModel.effortLabel(segment:)),
-            note: day.warmup?.description.flatMap(nonEmpty),
+            detail: day.session?.warmup.flatMap(App2HomeViewModel.effortLabel(segment:)),
+            note: day.session?.warmup?.description.flatMap(nonEmpty),
             isWork: false
         )
 
-        switch day.primary {
+        switch day.session?.primary {
         case .run(let run):
             let runSegments = App2PlanViewModel.effectiveSegments(run)
             if runSegments.isEmpty {
@@ -243,12 +246,12 @@ enum App2SessionDetailProjection {
                 // 已經在上面的「本次訓練目標」卡。
                 append(
                     L10n.App2.Home.segmentMain.localized,
-                    detail: App2PlanViewModel.contentLine(day.primary),
+                    detail: App2PlanViewModel.contentLine(day.session?.primary),
                     isWork: true
                 )
             }
             for segment in runSegments {
-                if segment.kind == "interval" {
+                if segment.segmentKind == .interval {
                     let repeats = segment.repeats ?? 0
                     append(
                         NSLocalizedString("training.segment.sprint", comment: ""),
@@ -283,8 +286,8 @@ enum App2SessionDetailProjection {
 
         append(
             NSLocalizedString("training.segment.cooldown", comment: ""),
-            detail: day.cooldown.flatMap(App2HomeViewModel.effortLabel(segment:)),
-            note: day.cooldown?.description.flatMap(nonEmpty),
+            detail: day.session?.cooldown.flatMap(App2HomeViewModel.effortLabel(segment:)),
+            note: day.session?.cooldown?.description.flatMap(nonEmpty),
             isWork: false
         )
 
@@ -292,7 +295,7 @@ enum App2SessionDetailProjection {
     }
 
     /// `組間休息：90 秒`。組不出量就沒有這一句。
-    static func recoveryNote(_ recovery: SegmentEffortDTO?) -> String? {
+    static func recoveryNote(_ recovery: SegmentEffort?) -> String? {
         guard let recovery else { return nil }
         let value: String?
         if let seconds = recovery.durationSeconds {
@@ -308,7 +311,7 @@ enum App2SessionDetailProjection {
     }
 
     /// `3 組 × 12 下`／`3 組 × 45 秒`。
-    static func strengthDetail(_ exercise: ExerciseDTO) -> String? {
+    static func strengthDetail(_ exercise: Exercise) -> String? {
         guard let sets = exercise.sets else { return nil }
         if let reps = exercise.reps {
             return String(format: L10n.App2.Detail.strengthSetsReps.localized, sets, reps)
@@ -322,7 +325,7 @@ enum App2SessionDetailProjection {
     // MARK: - 熱適應
 
     /// 熱適應卡。`comfortable` 不說話（沿用 `ClimateDay+Display` 的規則與同一組 `climate.*` 文案）。
-    static func climate(meta: ClimateMetaDTO?) -> App2SessionClimate? {
+    static func climate(meta: ClimateMeta?) -> App2SessionClimate? {
         guard let meta else { return nil }
         let level = meta.heatPressureLevel.lowercased()
         guard ["mild", "moderate", "high", "danger"].contains(level) else { return nil }
@@ -419,16 +422,21 @@ enum App2SessionDetailProjection {
               let bar = bars.first,
               bar.kind == .steady,
               let pace = bar.paceLabel,
-              let seconds = App2PlanViewModel.paceSeconds(pace),
+              let seconds = PaceFormatterHelper.paceToSeconds(pace),
               let legend = bar.noteLabel
         else { return nil }
 
+        // 配速一律換算成用戶的單位制。這幾格原本一律當公制、由圖表寫死 `/km` 補單位，
+        // 英制用戶看到的是「公里配速掛著 /km」（2026-08-26 架構收斂順修）。
+        // 值本身不含單位，單位由 `paceUnitLabel` 交給圖表 —— 設計上那個字是分開排版的。
+        let unitSystem = UnitManager.shared.currentUnitSystem
         return App2SessionPaceBand(
-            paceLabel: pace,
-            fastLabel: paceLabel(seconds - boundaryToleranceSeconds),
-            slowLabel: paceLabel(seconds + boundaryToleranceSeconds),
-            windowLabel: paceLabel(seconds - windowToleranceSeconds)
-                + "-" + paceLabel(seconds + windowToleranceSeconds),
+            paceLabel: paceLabel(seconds, unitSystem: unitSystem),
+            fastLabel: paceLabel(seconds - boundaryToleranceSeconds, unitSystem: unitSystem),
+            slowLabel: paceLabel(seconds + boundaryToleranceSeconds, unitSystem: unitSystem),
+            windowLabel: paceLabel(seconds - windowToleranceSeconds, unitSystem: unitSystem)
+                + "-" + paceLabel(seconds + windowToleranceSeconds, unitSystem: unitSystem),
+            paceUnitLabel: unitSystem.paceSuffix,
             endKmLabel: (distanceKm ?? 0) > 0
                 ? App2NumberFormat.grouped(distanceKm ?? 0, maximumFractionDigits: 1)
                 : nil,
@@ -441,8 +449,10 @@ enum App2SessionDetailProjection {
     /// 目標窗離處方配速多遠。
     static let windowToleranceSeconds: Double = 10
 
-    private static func paceLabel(_ seconds: Double) -> String {
-        let total = max(Int(seconds.rounded()), 0)
+    /// 秒／km → 用戶單位制的配速值（**不含**單位字，單位由 `paceUnitLabel` 給）。
+    /// 換算係數走 `UnitSystem`，與 `UnitManager.formatPace` 同一份，不另訂。
+    static func paceLabel(_ secondsPerKm: Double, unitSystem: UnitSystem) -> String {
+        let total = max(Int(unitSystem.convertedPaceSeconds(secondsPerKm).rounded()), 0)
         return String(format: "%d:%02d", total / 60, total % 60)
     }
 
@@ -455,7 +465,7 @@ enum App2SessionDetailProjection {
         weekStart: Date,
         calendar: Calendar = .current
     ) -> String {
-        let dayLabel = App2PlanViewModel.dateLabel(dayIndex: dayIndex, weekStart: weekStart, calendar: calendar)
+        let dayLabel = App2WeekCalendar.dateLabel(dayIndex: dayIndex, weekStart: weekStart, calendar: calendar)
         guard let date else { return dayLabel }
         let weekday = DateFormatter()
         // 跟著 app 語言走，不是 `Locale.current`（見 `SupportedLanguage.locale`）。

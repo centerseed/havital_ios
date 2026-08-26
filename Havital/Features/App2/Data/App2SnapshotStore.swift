@@ -1,4 +1,3 @@
-import FirebaseAuth
 import Foundation
 
 // MARK: - App2SnapshotKey
@@ -7,19 +6,23 @@ import Foundation
 /// 快照只是顯示層快取：冷啟先把上一次的畫面渲染出來，背景重驗成功後靜默替換。
 /// 它不是第二份真相 —— 沒有任何寫入路徑讀它，也不做離線編輯。
 ///
-/// **為什麼不沿用既有的 LocalDataSource 快取**（`TrainingPlanV2LocalDataSource`
-/// 等，全在 UserDefaults）：那一組是 repository 的 dual-track 快取，key 是靜態的、
-/// 不帶 uid，且 `.dataChanged(.user)` 每次啟動都會清掉大部分（`CacheEventBus`
-/// 的 `preservedCaches` 只留課表那一份）。冷啟先渲染需要的是「不隨啟動被清、
-/// 且換帳號一定讀不到」，兩條都不成立，所以這裡是一份獨立的顯示層落地，
-/// 不是把既有快取抄一遍。
+/// **課表那三支（plan status／週課表／overview）不在這裡。**（2026-08-26 架構收斂）
+/// 它們的落地已經回到 `TrainingPlanV2LocalDataSource`（repository 的既有快取）——
+/// 當初繞道的兩個理由都已就地修掉：
+/// 「`.dataChanged(.user)` 每次啟動清光」由 `CacheEventBus` 的 `preservedCaches`
+/// 保留該快取解決，「key 不帶 uid」由該 data source 的擁有者戳解決。
+///
+/// **這裡剩下的 owner 是誰、什麼時候退場**：
+/// - `stateToday` → `DailyStateRepositoryImpl`（`GET /v2/state/today`）。它自己就是
+///   這一份的 owner，沒有第二份落地；`DailyStateRepository` 沒有 UserDefaults 快取，
+///   所以留在這一層。
+/// - `recentWorkouts`／`homeRecentWorkouts`／`workoutStats` → `App2RecordsViewModel`
+///   與 `App2HomeViewModel`（`GET /v2/workouts`、`/v2/workouts/stats`）。
+///   `WorkoutRepository` 目前沒有可同步讀的落地快取，等它有了就把這三支併過去、
+///   本檔隨之退場。
 enum App2SnapshotKey: String, CaseIterable {
-    /// `GET /v2/plan/status`
-    case planStatus = "v2_plan_status"
     /// `GET /v2/state/today`（由 `DailyStateRepositoryImpl` 落地 DTO，不落 entity）
     case stateToday = "v2_state_today"
-    /// `GET /v2/plan/weekly/{plan_id}` —— 本週那一份。首頁今日卡與課表頁共用同一份。
-    case weeklyPlan = "v2_plan_weekly_current"
     /// `GET /v2/workouts` 的紀錄頁那一頁（含月量彙總需要的筆數）。
     case recentWorkouts = "v2_workouts_recent"
     /// `GET /v2/workouts` 的首頁那一頁（只為了判「今天跑完沒」）。
@@ -56,8 +59,9 @@ protocol App2SnapshotStoring: AnyObject {
 /// **每一筆都蓋上寫入當下的 uid**，讀取時 uid 對不上就當作沒有快照 ——
 /// 換帳號絕不能吃到前一個帳號的畫面。登出另有一條清空路徑
 /// （`CacheRegistrationCoordinator` 訂閱 `.userLogout`），uid 戳是它的第二道保險：
-/// 清空失敗、或清空前就被讀到，都還有這一層擋著。既有的 LocalDataSource 快取
-/// 全部沒有這一層，所以這裡不沿用它們的 key 慣例。
+/// 清空失敗、或清空前就被讀到，都還有這一層擋著。
+/// 同一道保險現在也在 `TrainingPlanV2LocalDataSource`（擁有者戳），兩邊同一個判定
+/// （`CurrentUserIdentity.uid`）。
 ///
 /// 沒有 uid（尚未登入／auth 還沒恢復）時**不讀也不寫**：來源不明的快照不進畫面。
 final class App2FileSnapshotStore: App2SnapshotStoring, @unchecked Sendable {
@@ -162,14 +166,9 @@ final class App2FileSnapshotStore: App2SnapshotStoring, @unchecked Sendable {
         return base.appendingPathComponent("App2Snapshots", isDirectory: true)
     }
 
-    /// 目前登入者的 uid。Demo 登入沒有 Firebase session，走既有的 auth session 快取
-    /// （`AuthSessionRepositoryImpl.getCurrentUser()` 會補上持久化的 demo user）。
+    /// 目前登入者的 uid —— 與 `TrainingPlanV2LocalDataSource` 同一支判定。
     static func defaultUserID() -> String? {
-        if let uid = Auth.auth().currentUser?.uid, !uid.isEmpty { return uid }
-        let container = DependencyContainer.shared
-        guard container.isRegistered(AuthSessionRepository.self) else { return nil }
-        let repository = container.resolve() as AuthSessionRepository
-        return repository.getCurrentUser()?.uid
+        CurrentUserIdentity.uid()
     }
 
     // MARK: - Envelope

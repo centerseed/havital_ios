@@ -150,8 +150,8 @@ enum App2StubFixtures {
         var domain: App2PlanDay {
             App2PlanDay(
                 id: id, weekdayLabel: weekdayLabel,
-                dateLabel: App2PlanViewModel.dateLabel(
-                    dayIndex: id, weekStart: App2PlanViewModel.currentWeekStart()
+                dateLabel: App2WeekCalendar.dateLabel(
+                    dayIndex: id, weekStart: App2WeekCalendar.currentWeekStart()
                 ),
                 tag: tag,
                 dayType: dayType.flatMap { DayType(rawValue: $0) },

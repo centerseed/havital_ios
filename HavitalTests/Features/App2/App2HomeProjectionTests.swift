@@ -11,8 +11,12 @@ final class App2HomeProjectionTests: XCTestCase {
 
     // MARK: - Helpers
 
-    private func day(_ json: String) throws -> DayDetailDTO {
-        try JSONDecoder().decode(DayDetailDTO.self, from: Data(json.utf8))
+    /// 真實 payload 形狀 → domain entity。走的是正式路徑上的同一支 mapper
+    /// （`TrainingSessionMapper`），投影測到的東西才跟 App 看到的一致。
+    private func day(_ json: String) throws -> DayDetail {
+        TrainingSessionMapper.toEntity(
+            from: try JSONDecoder().decode(DayDetailDTO.self, from: Data(json.utf8))
+        )
     }
 
     /// `GET /v2/state/today` 的 `insights[]` 一列（wire → domain 走既有 mapper 的形狀）。
@@ -231,16 +235,18 @@ final class App2HomeProjectionTests: XCTestCase {
         )
     }
 
-    /// 未知的 `run_type` 不得把識別字印上畫面：`DayType` 對不到就退 `category`。
-    func test_todaySession_unknownRunType_fallsBackToCategory() throws {
+    /// 未知的 `run_type` 不得把識別字印上畫面：`DayType` 對不到就退 `day_target`
+    /// （後端已在地化的人話）。**不得退成「休息」** —— 那會把一堂未知的課說成休息日。
+    func test_todaySession_unknownRunType_fallsBackToDayTarget() throws {
         let json = """
-        { "day_index": 1, "day_target": "t", "reason": "r", "category": "特殊課",
+        { "day_index": 1, "day_target": "特殊課", "reason": "r", "category": "run",
           "primary": { "run_type": "totally_new_type", "distance_km": 3 } }
         """
         let session = App2HomeViewModel.todaySession(
             days: [try day(json)], todayIndex: 1, dayLabel: "週一"
         )
         XCTAssertEqual(session?.title, "特殊課")
+        XCTAssertNotEqual(session?.title, DayType.rest.localizedName)
     }
 
     // MARK: - 指標網格（§3.1a）
@@ -408,11 +414,11 @@ final class App2HomeProjectionTests: XCTestCase {
 
         components.day = 30            // 2026-08-30 是週日
         if let sunday = calendar.date(from: components) {
-            XCTAssertTrue(App2HomeViewModel.isSunday(date: sunday, calendar: calendar))
+            XCTAssertTrue(App2WeekCalendar.isSunday(date: sunday, calendar: calendar))
         }
         components.day = 25            // 2026-08-25 是週二
         if let tuesday = calendar.date(from: components) {
-            XCTAssertFalse(App2HomeViewModel.isSunday(date: tuesday, calendar: calendar))
+            XCTAssertFalse(App2WeekCalendar.isSunday(date: tuesday, calendar: calendar))
         }
     }
 
@@ -484,7 +490,7 @@ final class App2HomeProjectionTests: XCTestCase {
         XCTAssertEqual(notes.first?.kind, .steady)
         XCTAssertEqual(
             notes.first?.noteDetail,
-            App2PlanViewModel.contentLine(detail.primary),
+            App2PlanViewModel.contentLine(detail.session?.primary),
             "標註列的量必須與卡片「課表」那一行同一支字串，不得另組一份"
         )
     }
@@ -542,8 +548,23 @@ final class App2HomeProjectionTests: XCTestCase {
 
     // MARK: - 期別膠囊（設計 frame-00 右上「基礎期」）
 
-    private func stages(_ json: String) throws -> [TrainingStageDTO] {
-        try JSONDecoder().decode([TrainingStageDTO].self, from: Data(json.utf8))
+    private func stages(_ json: String) throws -> [TrainingStageV2] {
+        try JSONDecoder().decode([TrainingStageDTO].self, from: Data(json.utf8)).map {
+            TrainingStageV2(
+                stageId: $0.stageId,
+                stageName: $0.stageName,
+                stageDescription: $0.stageDescription,
+                weekStart: $0.weekStart,
+                weekEnd: $0.weekEnd,
+                trainingFocus: $0.trainingFocus,
+                targetWeeklyKmRange: TargetWeeklyKmRangeV2(
+                    low: $0.targetWeeklyKmRange.low, high: $0.targetWeeklyKmRange.high
+                ),
+                targetWeeklyKmRangeDisplay: nil,
+                intensityRatio: nil,
+                keyWorkouts: nil
+            )
+        }
     }
 
     private let threeStagesJSON = """
@@ -577,6 +598,6 @@ final class App2HomeProjectionTests: XCTestCase {
     /// 落不進任何一段就沒有期別 —— 不猜最近的那一段。
     func test_stageName_weekOutsideEveryStage_isNil() throws {
         XCTAssertNil(App2HomeViewModel.stageName(stages: try stages(threeStagesJSON), currentWeek: 9))
-        XCTAssertNil(App2HomeViewModel.stageName(stages: nil, currentWeek: 1))
+        XCTAssertNil(App2HomeViewModel.stageName(stages: [], currentWeek: 1))
     }
 }

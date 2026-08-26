@@ -45,15 +45,15 @@ final class App2SnapshotStoreTests: XCTestCase {
     }
 
     func testLoadReturnsNilWhenNothingSaved() {
-        XCTAssertNil(makeStore().load(Payload.self, for: .planStatus))
+        XCTAssertNil(makeStore().load(Payload.self, for: .recentWorkouts))
     }
 
     func testFetchedAtIsStamped() throws {
         let store = makeStore()
         let before = Date().addingTimeInterval(-1)
-        store.save(Payload(headline: "H", week: 1), for: .planStatus)
+        store.save(Payload(headline: "H", week: 1), for: .recentWorkouts)
 
-        let fetchedAt = try XCTUnwrap(store.load(Payload.self, for: .planStatus)?.fetchedAt)
+        let fetchedAt = try XCTUnwrap(store.load(Payload.self, for: .recentWorkouts)?.fetchedAt)
         // 目前不做 TTL 淘汰，只確認落地格式帶得動時間戳。
         XCTAssertGreaterThanOrEqual(fetchedAt, before)
         XCTAssertLessThanOrEqual(fetchedAt, Date().addingTimeInterval(1))
@@ -62,10 +62,10 @@ final class App2SnapshotStoreTests: XCTestCase {
     func testKeysDoNotCollide() {
         let store = makeStore()
         store.save(Payload(headline: "狀態", week: 1), for: .stateToday)
-        store.save(Payload(headline: "課表", week: 2), for: .weeklyPlan)
+        store.save(Payload(headline: "課表", week: 2), for: .homeRecentWorkouts)
 
         XCTAssertEqual(store.load(Payload.self, for: .stateToday)?.value.headline, "狀態")
-        XCTAssertEqual(store.load(Payload.self, for: .weeklyPlan)?.value.headline, "課表")
+        XCTAssertEqual(store.load(Payload.self, for: .homeRecentWorkouts)?.value.headline, "課表")
     }
 
     // MARK: - uid 隔離
@@ -108,10 +108,10 @@ final class App2SnapshotStoreTests: XCTestCase {
 
         uid = nil
         XCTAssertNil(store.load(Payload.self, for: .stateToday))
-        store.save(Payload(headline: "不該寫進去", week: 9), for: .planStatus)
+        store.save(Payload(headline: "不該寫進去", week: 9), for: .recentWorkouts)
 
         uid = "uid-A"
-        XCTAssertNil(store.load(Payload.self, for: .planStatus))
+        XCTAssertNil(store.load(Payload.self, for: .recentWorkouts))
         XCTAssertEqual(store.load(Payload.self, for: .stateToday)?.value.headline, "H")
     }
 
@@ -120,14 +120,14 @@ final class App2SnapshotStoreTests: XCTestCase {
     func testInvalidateRemovesOnlyTheGivenKeys() {
         let store = makeStore()
         store.save(Payload(headline: "狀態", week: 1), for: .stateToday)
-        store.save(Payload(headline: "課表", week: 2), for: .weeklyPlan)
-        store.save(Payload(headline: "計畫狀態", week: 3), for: .planStatus)
+        store.save(Payload(headline: "課表", week: 2), for: .homeRecentWorkouts)
+        store.save(Payload(headline: "計畫狀態", week: 3), for: .recentWorkouts)
 
-        store.invalidate([.weeklyPlan, .planStatus])
+        store.invalidate([.homeRecentWorkouts, .recentWorkouts])
 
         XCTAssertEqual(store.load(Payload.self, for: .stateToday)?.value.headline, "狀態")
-        XCTAssertNil(store.load(Payload.self, for: .weeklyPlan))
-        XCTAssertNil(store.load(Payload.self, for: .planStatus))
+        XCTAssertNil(store.load(Payload.self, for: .homeRecentWorkouts))
+        XCTAssertNil(store.load(Payload.self, for: .recentWorkouts))
     }
 
     func testClearAllRemovesEveryKey() {

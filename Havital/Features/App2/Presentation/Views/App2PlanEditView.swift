@@ -246,9 +246,9 @@ struct App2PlanEditView: View {
                     weekdayLabel: App2PlanViewModel.weekdayLabel(
                         dayIndex: editViewModel.editingDays[index].dayIndexInt
                     ),
-                    dateLabel: App2PlanViewModel.dateLabel(
+                    dateLabel: App2WeekCalendar.dateLabel(
                         dayIndex: editViewModel.editingDays[index].dayIndexInt,
-                        weekStart: App2PlanViewModel.currentWeekStart()
+                        weekStart: App2WeekCalendar.currentWeekStart()
                     ),
                     isToday: isToday(dayIndex: editViewModel.editingDays[index].dayIndexInt),
                     onSelectType: { [dayIndex = editViewModel.editingDays[index].dayIndexInt] newType in
@@ -265,7 +265,7 @@ struct App2PlanEditView: View {
         guard let date = calendar.date(
             byAdding: .day,
             value: dayIndex - 1,
-            to: App2PlanViewModel.currentWeekStart()
+            to: App2WeekCalendar.currentWeekStart()
         ) else { return false }
         return calendar.isDateInToday(date)
     }
@@ -837,7 +837,7 @@ struct App2PlanEditGate: View {
             editViewModel = EditScheduleV2ViewModel(
                 weeklyPlan: plan,
                 // 日卡的日期與課表頁同一支週起點（裝置日曆的週一）。
-                startDate: App2PlanViewModel.currentWeekStart(),
+                startDate: App2WeekCalendar.currentWeekStart(),
                 repository: repository
             )
         } catch {

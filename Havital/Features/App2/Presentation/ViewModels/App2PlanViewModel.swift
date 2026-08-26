@@ -21,19 +21,26 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     nonisolated let taskRegistry = TaskRegistry()
 
-    private let planV2DataSource: TrainingPlanV2RemoteDataSourceProtocol
+    /// **課表資料只有這一個入口。**（2026-08-26 架構收斂）
+    /// 冷啟先渲染的那一份與這一輪要重驗的那一份，都從它拿 —— App2 不再自己持有
+    /// `TrainingPlanV2RemoteDataSource`，也不再另存一份週課表快照。
+    private let planRepository: TrainingPlanV2Repository
     private let workoutRepository: WorkoutRepository
-    /// 冷啟快照。與首頁今日課表卡讀寫**同一組 key**，不各存一份週課表。
-    private let snapshots: any App2SnapshotStoring
 
     init(
-        planV2DataSource: TrainingPlanV2RemoteDataSourceProtocol? = nil,
-        workoutRepository: WorkoutRepository? = nil,
-        snapshots: (any App2SnapshotStoring)? = nil
+        planRepository: TrainingPlanV2Repository? = nil,
+        workoutRepository: WorkoutRepository? = nil
     ) {
         let container = DependencyContainer.shared
-        self.planV2DataSource = planV2DataSource ?? TrainingPlanV2RemoteDataSource()
-        self.snapshots = snapshots ?? App2FileSnapshotStore.shared
+
+        if let planRepository {
+            self.planRepository = planRepository
+        } else {
+            if !container.isRegistered(TrainingPlanV2Repository.self) {
+                container.registerTrainingPlanV2Module()
+            }
+            self.planRepository = container.resolve() as TrainingPlanV2Repository
+        }
 
         if let workoutRepository {
             self.workoutRepository = workoutRepository
@@ -51,7 +58,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     func revalidate() async {
         // 冷啟第一輪：先把上一次的週課表渲染出來，這一輪的網路變成背景刷新。
-        if !hasLoaded { hydrateFromSnapshot() }
+        if !hasLoaded { hydrateFromCache() }
         isLoading = !hasLoaded && week == nil
         defer {
             isLoading = false
@@ -60,8 +67,9 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         }
 
         do {
-            let status = try await planV2DataSource.getPlanStatus()
-            snapshots.save(status, for: .planStatus)
+            // `forceRefresh` ＝ 這一輪一定走網路。SWR 的「先舊後新」由上面那一行
+            // 的快取渲染負責，不是靠 repository 的 cooldown 決定要不要重驗。
+            let status = try await planRepository.getPlanStatus(forceRefresh: true)
             guard let planId = status.currentWeekPlanId else {
                 // **本週沒有課表就說沒有。** 這裡原本退樣本，畫面上會出現一整週
                 // 「第 5 週 / 22」的假課表，而首頁同時說「本週課表尚未產生」——
@@ -73,10 +81,10 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             }
             isPlanGenerated = true
 
-            let dto = try await planV2DataSource.getWeeklyPlan(planId: planId)
-            snapshots.save(dto, for: .weeklyPlan)
+            // `fetchWeeklyPlan` ＝ 走網路並寫回 repository 快取（下一次冷啟就是它）。
+            let plan = try await planRepository.fetchWeeklyPlan(planId: planId)
             let completed = await completedDistanceKmThisWeek()
-            apply(dto: dto, planStatus: status, completedKm: completed)
+            apply(plan: plan, planStatus: status, completedKm: completed)
         } catch {
             // 取消不是失敗（`AGENTS.md` 陷阱 2）：下拉刷新的 task 被收掉時
             // in-flight 請求會回 -999，當成失敗會把真課表換成樣本。
@@ -90,16 +98,16 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         }
     }
 
-    /// 週課表 ＋ 每日詳情的組裝。網路回應與冷啟快照都走這一支。
-    private func apply(dto: WeeklyPlanV2DTO, planStatus: PlanStatusV2Response, completedKm: Double?) {
+    /// 週課表 ＋ 每日詳情的組裝。網路回應與冷啟快取都走這一支。
+    private func apply(plan: WeeklyPlanV2, planStatus: PlanStatusV2Response, completedKm: Double?) {
         isPlanGenerated = true
         week = App2Sourced(
-            Self.planWeek(dto: dto, planStatus: planStatus, completedKm: completedKm),
+            Self.planWeek(plan: plan, planStatus: planStatus, completedKm: completedKm),
             origin: .live(endpoint: "GET /v2/plan/weekly/{plan_id} + GET /v2/workouts")
         )
-        let weekStart = Self.currentWeekStart()
+        let weekStart = App2WeekCalendar.currentWeekStart()
         dayDetails = Dictionary(
-            uniqueKeysWithValues: dto.days.compactMap { day -> (Int, App2SessionDetail)? in
+            uniqueKeysWithValues: plan.days.compactMap { day -> (Int, App2SessionDetail)? in
                 guard let detail = App2SessionDetailProjection.detail(day: day, weekStart: weekStart)
                 else { return nil }
                 return (day.dayIndex, detail)
@@ -107,16 +115,16 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         )
     }
 
-    /// 冷啟：plan status ＋ 本週課表都在快照裡才渲染。
+    /// 冷啟：plan status ＋ 本週課表都在 repository 快取裡才渲染。
     ///
-    /// **已完成量（`completedKm`）不進快照**：它是本週紀錄現算出來的，冷啟給的是
+    /// **已完成量（`completedKm`）不進快取**：它是本週紀錄現算出來的，冷啟給的是
     /// 「上一次算的值」而不是「上一次的回應」，兩者的腐爛速度不一樣。先留白，
     /// 這一輪網路回來就有了。
-    private func hydrateFromSnapshot() {
-        guard let status = snapshots.load(PlanStatusV2Response.self, for: .planStatus)?.value,
-              let dto = snapshots.load(WeeklyPlanV2DTO.self, for: .weeklyPlan)?.value,
-              App2HomeViewModel.isWeeklyPlan(dto, boundTo: status) else { return }
-        apply(dto: dto, planStatus: status, completedKm: nil)
+    private func hydrateFromCache() {
+        guard let status = planRepository.getCachedPlanStatus(),
+              let plan = planRepository.getCachedWeeklyPlan(week: status.currentWeek),
+              App2HomeViewModel.isWeeklyPlan(plan, boundTo: status) else { return }
+        apply(plan: plan, planStatus: status, completedKm: nil)
     }
 
     #if DEBUG
@@ -134,7 +142,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 週課表投影。`map` 原本是 instance method 但沒用到任何 instance 狀態 ——
     /// 改成 static 之後可以單獨測（`App2PlanProjectionTests`）。
     static func planWeek(
-        dto: WeeklyPlanV2DTO,
+        plan: WeeklyPlanV2,
         planStatus: PlanStatusV2Response,
         completedKm: Double?,
         /// 測試可指定「今天」；nil = 用裝置日曆。
@@ -142,30 +150,33 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         /// 測試可指定當週週一（日起點）；nil = 用裝置日曆推。
         weekStart: Date? = nil
     ) -> App2PlanWeek {
-        let today = todayIndex ?? Self.todayDayIndex()
-        let start = weekStart ?? Self.currentWeekStart()
-        let weekNumber = dto.weekOfTraining ?? dto.weekOfPlan ?? planStatus.currentWeek
+        let today = todayIndex ?? App2WeekCalendar.todayDayIndex()
+        let start = weekStart ?? App2WeekCalendar.currentWeekStart()
+        let weekNumber = plan.weekOfTraining ?? plan.weekOfPlan ?? planStatus.currentWeek
         let climateByDayIndex = Dictionary(
-            (dto.climate ?? []).map { ($0.dayIndex, $0) },
+            plan.climateDays.map { ($0.dayIndex, $0) },
             uniquingKeysWith: { first, _ in first }
         )
 
-        let days: [App2PlanDay] = dto.days.map { day in
+        let days: [App2PlanDay] = plan.days.map { day in
             // 沒有 primary activity ＝ 休息日。
-            let isRest = day.primary == nil
-            let dayType = isRest ? DayType.rest : Self.dayType(day.primary)
+            let primary = day.session?.primary
+            let isRest = primary == nil
+            let dayType = isRest ? DayType.rest : Self.dayType(primary)
             return App2PlanDay(
                 id: day.dayIndex,
                 weekdayLabel: Self.weekdayLabel(dayIndex: day.dayIndex),
-                dateLabel: Self.dateLabel(dayIndex: day.dayIndex, weekStart: start),
+                dateLabel: App2WeekCalendar.dateLabel(dayIndex: day.dayIndex, weekStart: start),
                 // 課型顯示字走既有的 `DayType.localizedName`（三語已齊），
                 // 不再把後端的 `run_type` 識別字（`easy`／`lsd`）直接印到畫面上。
+                // 對不到課型就退 `day_target`（後端已在地化）。不退 `category` ——
+                // 那是 run／strength／cross／rest 四值 enum，rawValue 是識別字。
                 tag: dayType?.localizedName
-                    ?? (isRest ? L10n.App2.Plan.rest.localized : (day.category ?? day.dayTarget)),
+                    ?? (isRest ? L10n.App2.Plan.rest.localized : day.dayTarget),
                 dayType: dayType,
                 // 設計 frame-01 的「課表」行是「量 · 配速」（`4.0 km · 7:17/km`），
                 // 不是裸距離；與今日課表卡走同一支 `contentLine`，不另做一份格式。
-                planned: Self.contentLine(day.primary, totalDistanceKm: day.distanceKm),
+                planned: Self.contentLine(primary, totalDistanceKm: day.distanceKm),
                 description: Self.descriptionLine(day),
                 // 實際值要按日期對齊 workouts；骨架階段僅在週總量層合併（見 completedKm）。
                 actual: nil,
@@ -178,12 +189,12 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             // 設計 frame-01 的週次切換器是「第 N 週 / M」，不是裸數字。
             // 「第 N 週」三語已有（1.x 週次選單在用同一條），不另開 app2 命名空間的重複字串。
             weekLabel: String(format: L10n.WeekSelector.weekNumber.localized, weekNumber),
-            totalWeeks: dto.totalWeeks ?? planStatus.totalWeeks,
-            targetDistanceKm: dto.totalDistance,
+            totalWeeks: plan.totalWeeks ?? planStatus.totalWeeks,
+            targetDistanceKm: plan.totalDistance,
             completedDistanceKm: completedKm,
-            intensityLowMinutes: dto.intensityTotalMinutes.map { Int($0.low.rounded()) },
-            intensityMediumMinutes: dto.intensityTotalMinutes.map { Int($0.medium.rounded()) },
-            intensityHighMinutes: dto.intensityTotalMinutes.map { Int($0.high.rounded()) },
+            intensityLowMinutes: plan.intensityTotalMinutes.map { Int($0.low.rounded()) },
+            intensityMediumMinutes: plan.intensityTotalMinutes.map { Int($0.medium.rounded()) },
+            intensityHighMinutes: plan.intensityTotalMinutes.map { Int($0.high.rounded()) },
             days: days
         )
     }
@@ -218,46 +229,23 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         return symbols.indices.contains(index) ? symbols[index] : "—"
     }
 
-    /// 今天的 `day_index`（1 = 週一 … 7 = 週日）。
-    static func todayDayIndex() -> Int {
-        // Calendar.weekday: 1 = 週日 … 7 = 週六。
-        let weekday = Calendar.current.component(.weekday, from: Date())
-        return weekday == 1 ? 7 : weekday - 1
-    }
+    // `todayDayIndex` / `currentWeekStart` / `dateLabel` 已搬到 `App2WeekCalendar`
+    // （Domain，層中立）—— `App2StubFixtures` 在 Data 層要用同一組換算。
 
-    /// 當週週一的日起點（裝置日曆）。
-    ///
-    /// 不用 `dateInterval(of: .weekOfYear)`：那條的週首隨 locale 變（zh-TW 是週日），
-    /// 而 `day_index` 的週首固定是週一。
-    nonisolated static func currentWeekStart(reference: Date = Date(), calendar: Calendar = .current) -> Date {
-        let weekday = calendar.component(.weekday, from: reference)     // 1 = 週日
-        let mondayBased = weekday == 1 ? 7 : weekday - 1                // 1 = 週一
-        let startOfToday = calendar.startOfDay(for: reference)
-        return calendar.date(byAdding: .day, value: -(mondayBased - 1), to: startOfToday) ?? startOfToday
-    }
-
-    /// 每日卡標題的日期（設計 frame-01：`週一 8/10`）。週起點 ＋ `day_index - 1` 天。
-    nonisolated static func dateLabel(dayIndex: Int, weekStart: Date, calendar: Calendar = .current) -> String {
-        guard let date = calendar.date(byAdding: .day, value: dayIndex - 1, to: weekStart) else { return "" }
-        let month = calendar.component(.month, from: date)
-        let day = calendar.component(.day, from: date)
-        return "\(month)/\(day)"
-    }
-
-    static func plannedDistanceLabel(_ primary: PrimaryActivityDTO?) -> String? {
+    static func plannedDistanceLabel(_ primary: PrimaryActivity?) -> String? {
         guard case .run(let run) = primary, let km = run.distanceKm, km > 0 else { return nil }
         return String(format: "%.1f km", km)
     }
 
     /// 每日卡的敘述行 —— 後端 `day_target`（已在地化、三語由後端 `content_lang` 決定）。
     /// 空字串當成沒有，不畫空行。
-    static func descriptionLine(_ day: DayDetailDTO) -> String? {
+    static func descriptionLine(_ day: DayDetail) -> String? {
         let text = day.dayTarget.trimmingCharacters(in: .whitespacesAndNewlines)
         return text.isEmpty ? nil : text
     }
 
     /// `run_type` → 既有的 `DayType`。肌力／交叉訓練沒有跑步課型，各自映到對應的 case。
-    static func dayType(_ primary: PrimaryActivityDTO?) -> DayType? {
+    static func dayType(_ primary: PrimaryActivity?) -> DayType? {
         switch primary {
         case .run(let run):
             return DayType(rawValue: run.runType.lowercased())
@@ -285,10 +273,10 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 綠色穩定段、分段列也不展開衝刺與組間恢復（2026-08-26 使用者截圖）。
     /// 這裡把 `interval` 攤平成同一種段，讓三個投影繼續走同一條路徑，
     /// 不在各自的分支裡再判一次 payload 形狀。
-    static func effectiveSegments(_ run: RunActivityDTO) -> [RunSegmentDTO] {
+    static func effectiveSegments(_ run: RunActivity) -> [RunSegment] {
         if let segments = run.segments, !segments.isEmpty { return segments }
         guard let interval = run.interval, interval.repeats > 0 else { return [] }
-        return [RunSegmentDTO(
+        return [RunSegment(
             distanceKm: interval.workDistanceKm,
             distanceM: interval.workDistanceM,
             distanceDisplay: nil,
@@ -304,7 +292,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             description: interval.workDescription,
             kind: "interval",
             repeats: interval.repeats,
-            work: SegmentEffortDTO(
+            work: SegmentEffort(
                 distanceKm: interval.workDistanceKm,
                 distanceM: interval.workDistanceM,
                 durationMinutes: interval.workDurationMinutes,
@@ -315,7 +303,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 targetHrr: nil,
                 recoveryType: nil
             ),
-            recovery: SegmentEffortDTO(
+            recovery: SegmentEffort(
                 distanceKm: interval.recoveryDistanceKm,
                 distanceM: interval.recoveryDistanceM,
                 durationMinutes: interval.recoveryDurationMinutes,
@@ -335,7 +323,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 因為 `primary.distance_km` 在間歇課只算主課段（dev 實測 `2.2`＝4×400m 加組間
     /// 恢復），跟下面分段列的熱身 2.0 ＋ 衝刺 1.6 ＋ 緩和 1.0 加不起來
     /// （2026-08-26 使用者回報）。日層 `5.2` 才是那張卡在講的量。
-    static func contentLine(_ primary: PrimaryActivityDTO?, totalDistanceKm: Double? = nil) -> String? {
+    static func contentLine(_ primary: PrimaryActivity?, totalDistanceKm: Double? = nil) -> String? {
         guard case .run(let run) = primary else { return nil }
 
         if let line = intervalContentLine(run) { return line }
@@ -346,8 +334,10 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         } else if let minutes = run.durationMinutes {
             parts.append("\(minutes) min")
         }
+        // 單位跟著用戶設定走（公制 `/km`／英制 `/mi`），走既有的 `UnitManager`，
+        // 不在這裡寫死 `/km`。
         if let pace = dayPace(run) {
-            parts.append("\(pace)/km")
+            parts.append(UnitManager.shared.formatPaceString(pace))
         }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
@@ -358,10 +348,10 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 間歇課的 `primary.pace` 缺席（dev 實測只有 `climate_adjusted_pace`），
     /// 這時從處方分段推導 —— 主課段的 `work_pace`（4×400m 那天是 `4:50`）。
     /// 推不出來就回 nil（那一段不顯示），不拿熱調整值充數。
-    static func dayPace(_ run: RunActivityDTO) -> String? {
+    static func dayPace(_ run: RunActivity) -> String? {
         if let pace = run.pace { return pace }
         return effectiveSegments(run)
-            .first { $0.kind == "interval" }
+            .first { $0.segmentKind == .interval }
             .flatMap { $0.work?.pace ?? $0.pace }
     }
 
@@ -372,8 +362,8 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 組間恢復的段數是 `repeats - 1`（最後一趟跑完就進緩和）—— dev 實測
     /// 4×400m ＋ 200m 恢復的 `primary.distance_km` 是 `2.2`＝`1.6 + 3×0.2`，
     /// 與這個算法一致。組不出距離或時間就少那一欄，兩欄都組不出就整行不顯示。
-    static func intervalContentLine(_ run: RunActivityDTO) -> String? {
-        guard let segment = effectiveSegments(run).first(where: { $0.kind == "interval" }),
+    static func intervalContentLine(_ run: RunActivity) -> String? {
+        guard let segment = effectiveSegments(run).first(where: { $0.segmentKind == .interval }),
               let repeats = segment.repeats, repeats > 0,
               let work = segment.work else { return nil }
         let recoveryCount = Double(max(repeats - 1, 0))
@@ -385,51 +375,40 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         }
         if let workSeconds = effortSeconds(work) {
             let recoverySeconds = segment.recovery.flatMap(effortSeconds) ?? 0
-            parts.append(durationLabel(seconds: workSeconds * Double(repeats) + recoverySeconds * recoveryCount))
+            parts.append(TimeFormatting.formatTime(
+                Int((workSeconds * Double(repeats) + recoverySeconds * recoveryCount).rounded())
+            ))
         }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     /// 一段 effort 的距離（km）。距離缺席時回 nil —— 不用時長換算，那需要配速。
-    static func effortDistanceKm(_ effort: SegmentEffortDTO) -> Double? {
+    static func effortDistanceKm(_ effort: SegmentEffort) -> Double? {
         if let km = effort.distanceKm, km > 0 { return km }
         if let metres = effort.distanceM, metres > 0 { return Double(metres) / 1000 }
         return nil
     }
 
     /// 一段 effort 的時間（秒）。明寫的時長優先；只有距離＋配速時才換算。
-    static func effortSeconds(_ effort: SegmentEffortDTO) -> Double? {
+    static func effortSeconds(_ effort: SegmentEffort) -> Double? {
         if let seconds = effort.durationSeconds, seconds > 0 { return Double(seconds) }
         if let minutes = effort.durationMinutes, minutes > 0 { return Double(minutes) * 60 }
         guard let km = effortDistanceKm(effort),
-              let perKm = paceSeconds(effort.pace ?? effort.basePace) else { return nil }
+              let perKm = (effort.pace ?? effort.basePace).flatMap(PaceFormatterHelper.paceToSeconds)
+        else { return nil }
         return km * perKm
     }
 
-    /// `4:50` → 290 秒／km。格式對不上就回 nil，不猜。
-    static func paceSeconds(_ pace: String?) -> Double? {
-        guard let pace else { return nil }
-        let parts = pace.split(separator: ":")
-        guard parts.count == 2,
-              let minutes = Double(parts[0]), let seconds = Double(parts[1]) else { return nil }
-        return minutes * 60 + seconds
-    }
-
-    /// `12:17`／`1:02:30`（設計的數字一律等寬 mono，這裡只管字串形狀）。
-    static func durationLabel(seconds: Double) -> String {
-        let total = Int(seconds.rounded())
-        let h = total / 3600, m = (total % 3600) / 60, s = total % 60
-        return h > 0
-            ? String(format: "%d:%02d:%02d", h, m, s)
-            : String(format: "%d:%02d", m, s)
-    }
+    // `4:50` → 290 秒的解析走 `PaceFormatterHelper.paceToSeconds`，
+    // `m:ss`／`h:mm:ss` 走 `TimeFormatting.formatTime` —— 兩支都是 `Havital/Utils/`
+    // 的既有共用出口，App2 不再各留一份（2026-08-26 收斂）。
 
     /// 強度徽章（設計 dc.html 今日課表卡標題列右側的方角 chip）。
     ///
     /// payload 的 `target_intensity` 優先；**缺席時退到課型**（2026-08-26 裁決：
     /// 這顆 chip 每張今日卡都要有）。退法是結構化的 `DayType` → 強度級距對照，
     /// 不是對顯示字做詞表比對；課型也判不出來才回 nil。
-    static func intensityLabel(_ primary: PrimaryActivityDTO?) -> String? {
+    static func intensityLabel(_ primary: PrimaryActivity?) -> String? {
         if case .run(let run) = primary, let raw = run.targetIntensity {
             switch raw.lowercased() {
             case "low":    return L10n.App2.Session.effortChipLow.localized
@@ -441,8 +420,9 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         return TrainingEffortScale.chipLabel(for: dayType(primary))
     }
 
-    private static func temperatureLabel(_ climate: ClimateDayDTO?) -> String? {
-        guard let climate else { return nil }
-        return String(format: "%.0f°C", climate.feelsLikeTempC)
+    /// 溫度缺席時整格不顯示（`climate[7]` 一定有溫度，legacy `climate_meta` 可能沒有）。
+    private static func temperatureLabel(_ climate: ClimateDay?) -> String? {
+        guard let temp = climate?.feelsLikeTempC else { return nil }
+        return String(format: "%.0f°C", temp)
     }
 }

@@ -692,7 +692,7 @@ struct App2SessionPaceBandChart: View {
             Capsule()
                 .fill(accent.opacity(0.28))
                 .frame(height: 8)
-            Text(band.paceLabel + " /km")
+            Text(band.paceLabel + " " + band.paceUnitLabel)
                 .font(.app2Mono(14, weight: .bold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 12)

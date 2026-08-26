@@ -11,8 +11,12 @@ final class App2PlanProjectionTests: XCTestCase {
 
     // MARK: - Helpers
 
-    private func plan(_ json: String) throws -> WeeklyPlanV2DTO {
-        try JSONDecoder().decode(WeeklyPlanV2DTO.self, from: Data(json.utf8))
+    /// 真實 payload 形狀 → domain entity。走的是正式路徑上的同一支 mapper
+    /// （`WeeklyPlanV2Mapper`），投影測到的東西才跟 App 看到的一致。
+    private func plan(_ json: String) throws -> WeeklyPlanV2 {
+        WeeklyPlanV2Mapper.toEntity(
+            from: try JSONDecoder().decode(WeeklyPlanV2DTO.self, from: Data(json.utf8))
+        )
     }
 
     private func status(currentWeek: Int = 7, totalWeeks: Int = 8) throws -> PlanStatusV2Response {
@@ -69,7 +73,7 @@ final class App2PlanProjectionTests: XCTestCase {
         calendar.timeZone = TimeZone(identifier: "Asia/Taipei")!
         // 2026-08-23 是週日 → 當週週一是 2026-08-17。
         let sunday = calendar.date(from: DateComponents(year: 2026, month: 8, day: 23, hour: 9))!
-        let start = App2PlanViewModel.currentWeekStart(reference: sunday, calendar: calendar)
+        let start = App2WeekCalendar.currentWeekStart(reference: sunday, calendar: calendar)
         XCTAssertEqual(calendar.component(.month, from: start), 8)
         XCTAssertEqual(calendar.component(.day, from: start), 17)
         XCTAssertEqual(calendar.component(.weekday, from: start), 2)  // 2 = 週一
@@ -79,8 +83,8 @@ final class App2PlanProjectionTests: XCTestCase {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Taipei")!
         let monday = calendar.date(from: DateComponents(year: 2026, month: 8, day: 10))!
-        XCTAssertEqual(App2PlanViewModel.dateLabel(dayIndex: 1, weekStart: monday, calendar: calendar), "8/10")
-        XCTAssertEqual(App2PlanViewModel.dateLabel(dayIndex: 7, weekStart: monday, calendar: calendar), "8/16")
+        XCTAssertEqual(App2WeekCalendar.dateLabel(dayIndex: 1, weekStart: monday, calendar: calendar), "8/10")
+        XCTAssertEqual(App2WeekCalendar.dateLabel(dayIndex: 7, weekStart: monday, calendar: calendar), "8/16")
     }
 
     func test_planWeek_fillsDateLabelForEveryDay() throws {
@@ -88,7 +92,7 @@ final class App2PlanProjectionTests: XCTestCase {
         let calendar = Calendar.current
         let monday = calendar.date(from: DateComponents(year: 2026, month: 8, day: 10))!
         let week = App2PlanViewModel.planWeek(
-            dto: try plan(fullWeekJSON(weekOfTraining: 7, totalWeeks: 8)),
+            plan: try plan(fullWeekJSON(weekOfTraining: 7, totalWeeks: 8)),
             planStatus: try status(),
             completedKm: nil,
             todayIndex: 3,
@@ -101,13 +105,13 @@ final class App2PlanProjectionTests: XCTestCase {
     func test_todayDayIndex_matchesCalendarWeekdayWithMondayFirst() {
         let weekday = Calendar.current.component(.weekday, from: Date())  // 1 = 週日
         let expected = weekday == 1 ? 7 : weekday - 1
-        XCTAssertEqual(App2PlanViewModel.todayDayIndex(), expected)
-        XCTAssertTrue((1...7).contains(App2PlanViewModel.todayDayIndex()))
+        XCTAssertEqual(App2WeekCalendar.todayDayIndex(), expected)
+        XCTAssertTrue((1...7).contains(App2WeekCalendar.todayDayIndex()))
     }
 
     func test_planWeek_highlightsExactlyOneToday() throws {
         let week = App2PlanViewModel.planWeek(
-            dto: try plan(fullWeekJSON(weekOfTraining: 7, totalWeeks: 8)),
+            plan: try plan(fullWeekJSON(weekOfTraining: 7, totalWeeks: 8)),
             planStatus: try status(),
             completedKm: 11,
             todayIndex: 4
@@ -128,7 +132,7 @@ final class App2PlanProjectionTests: XCTestCase {
           "days": [ { "day_index": 1, "day_target": "t", "reason": "r" } ] }
         """
         let week = App2PlanViewModel.planWeek(
-            dto: try plan(json), planStatus: try status(), completedKm: nil, todayIndex: 5
+            plan: try plan(json), planStatus: try status(), completedKm: nil, todayIndex: 5
         )
         XCTAssertTrue(week.days.allSatisfy { !$0.isToday })
     }
@@ -137,7 +141,7 @@ final class App2PlanProjectionTests: XCTestCase {
 
     func test_planWeek_firstWeek_labelIsLocalizedWeekNumber() throws {
         let week = App2PlanViewModel.planWeek(
-            dto: try plan(fullWeekJSON(weekOfTraining: 1, totalWeeks: 18)),
+            plan: try plan(fullWeekJSON(weekOfTraining: 1, totalWeeks: 18)),
             planStatus: try status(currentWeek: 1, totalWeeks: 18),
             completedKm: 0,
             todayIndex: 1
@@ -150,7 +154,7 @@ final class App2PlanProjectionTests: XCTestCase {
 
     func test_planWeek_lastWeek_usesDTOWeekNumber() throws {
         let week = App2PlanViewModel.planWeek(
-            dto: try plan(fullWeekJSON(weekOfTraining: 18, totalWeeks: 18)),
+            plan: try plan(fullWeekJSON(weekOfTraining: 18, totalWeeks: 18)),
             planStatus: try status(currentWeek: 18, totalWeeks: 18),
             completedKm: 40,
             todayIndex: 7
@@ -166,7 +170,7 @@ final class App2PlanProjectionTests: XCTestCase {
           "days": [ { "day_index": 1, "day_target": "t", "reason": "r" } ] }
         """
         let week = App2PlanViewModel.planWeek(
-            dto: try plan(json),
+            plan: try plan(json),
             planStatus: try status(currentWeek: 9, totalWeeks: 12),
             completedKm: nil,
             todayIndex: 1
@@ -179,7 +183,7 @@ final class App2PlanProjectionTests: XCTestCase {
 
     func test_planWeek_allRestWeek_hasSevenRestDaysAndNoPlannedDistance() throws {
         let week = App2PlanViewModel.planWeek(
-            dto: try plan(allRestWeekJSON), planStatus: try status(), completedKm: nil, todayIndex: 3
+            plan: try plan(allRestWeekJSON), planStatus: try status(), completedKm: nil, todayIndex: 3
         )
         XCTAssertEqual(week.days.count, 7)
         XCTAssertTrue(week.days.allSatisfy { $0.dayType == .rest })
@@ -189,30 +193,30 @@ final class App2PlanProjectionTests: XCTestCase {
     }
 
     func test_planWeek_completion_zeroAndFull() throws {
-        let dto = try plan(fullWeekJSON(weekOfTraining: 4, totalWeeks: 8))
+        let weekPlan = try plan(fullWeekJSON(weekOfTraining: 4, totalWeeks: 8))
         let planStatus = try status()
 
         let zero = App2PlanViewModel.planWeek(
-            dto: dto, planStatus: planStatus, completedKm: 0, todayIndex: 1
+            plan: weekPlan, planStatus: planStatus, completedKm: 0, todayIndex: 1
         )
         XCTAssertEqual(zero.completedDistanceKm, 0)
 
         let full = App2PlanViewModel.planWeek(
-            dto: dto, planStatus: planStatus, completedKm: 35, todayIndex: 1
+            plan: weekPlan, planStatus: planStatus, completedKm: 35, todayIndex: 1
         )
         XCTAssertEqual(full.completedDistanceKm, 35)
         XCTAssertEqual(full.targetDistanceKm, 35)
 
         // 尚未取得 workouts → nil，畫面顯示 0 而不是假裝已完成。
         let unknown = App2PlanViewModel.planWeek(
-            dto: dto, planStatus: planStatus, completedKm: nil, todayIndex: 1
+            plan: weekPlan, planStatus: planStatus, completedKm: nil, todayIndex: 1
         )
         XCTAssertNil(unknown.completedDistanceKm)
     }
 
     func test_planWeek_missingIntensityDistribution_staysNil() throws {
         let week = App2PlanViewModel.planWeek(
-            dto: try plan(allRestWeekJSON), planStatus: try status(), completedKm: nil, todayIndex: 1
+            plan: try plan(allRestWeekJSON), planStatus: try status(), completedKm: nil, todayIndex: 1
         )
         XCTAssertNil(week.intensityLowMinutes)
         XCTAssertNil(week.intensityMediumMinutes)
@@ -228,7 +232,7 @@ final class App2PlanProjectionTests: XCTestCase {
                          "heat_pressure_level": "moderate", "reason_text": "r" } ] }
         """
         let week = App2PlanViewModel.planWeek(
-            dto: try plan(json), planStatus: try status(), completedKm: nil, todayIndex: 2
+            plan: try plan(json), planStatus: try status(), completedKm: nil, todayIndex: 2
         )
         XCTAssertEqual(week.days.first?.temp, "29°C")
         XCTAssertEqual(week.days.first?.planned, "8.0 km")
@@ -249,7 +253,7 @@ final class App2PlanProjectionTests: XCTestCase {
         """
         let day = try XCTUnwrap(
             App2PlanViewModel.planWeek(
-                dto: try plan(json), planStatus: try status(), completedKm: nil, todayIndex: 2
+                plan: try plan(json), planStatus: try status(), completedKm: nil, todayIndex: 2
             ).days.first
         )
         XCTAssertEqual(day.planned, "4.0 km · 6:50/km")
@@ -264,7 +268,7 @@ final class App2PlanProjectionTests: XCTestCase {
         """
         let day = try XCTUnwrap(
             App2PlanViewModel.planWeek(
-                dto: try plan(json), planStatus: try status(), completedKm: nil, todayIndex: 1
+                plan: try plan(json), planStatus: try status(), completedKm: nil, todayIndex: 1
             ).days.first
         )
         XCTAssertNil(day.planned)
@@ -279,7 +283,7 @@ final class App2PlanProjectionTests: XCTestCase {
         """
         let day = try XCTUnwrap(
             App2PlanViewModel.planWeek(
-                dto: try plan(json), planStatus: try status(), completedKm: nil, todayIndex: 1
+                plan: try plan(json), planStatus: try status(), completedKm: nil, todayIndex: 1
             ).days.first
         )
         XCTAssertNil(day.description)
@@ -288,8 +292,10 @@ final class App2PlanProjectionTests: XCTestCase {
     // MARK: - 課型與識別字
 
     func test_dayType_mapsRunStrengthCrossAndRest() throws {
-        func primary(_ json: String) throws -> PrimaryActivityDTO? {
-            try JSONDecoder().decode(DayDetailDTO.self, from: Data(json.utf8)).primary
+        func primary(_ json: String) throws -> PrimaryActivity? {
+            TrainingSessionMapper.toEntity(
+                from: try JSONDecoder().decode(DayDetailDTO.self, from: Data(json.utf8))
+            ).session?.primary
         }
         let easy = try primary(#"{"day_index":1,"day_target":"t","reason":"r","primary":{"run_type":"easy"}}"#)
         XCTAssertEqual(App2PlanViewModel.dayType(easy), .easy)
@@ -299,7 +305,7 @@ final class App2PlanProjectionTests: XCTestCase {
     /// 後端識別字不得上畫面：`tag` 一律是 `DayType.localizedName`。
     func test_planWeek_tagNeverExposesRawRunType() throws {
         let week = App2PlanViewModel.planWeek(
-            dto: try plan(fullWeekJSON(weekOfTraining: 1, totalWeeks: 8)),
+            plan: try plan(fullWeekJSON(weekOfTraining: 1, totalWeeks: 8)),
             planStatus: try status(), completedKm: nil, todayIndex: 1
         )
         XCTAssertTrue(week.days.allSatisfy { $0.tag != "easy" })

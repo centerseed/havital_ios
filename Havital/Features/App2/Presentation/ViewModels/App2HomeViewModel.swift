@@ -46,11 +46,14 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     private let dailyStateRepository: DailyStateRepository
     private let targetRepository: TargetRepository
-    private let planV2DataSource: TrainingPlanV2RemoteDataSourceProtocol
+    /// **課表資料只有這一個入口。**（2026-08-26 架構收斂）plan status／週課表／overview
+    /// 全部走它，App2 不再自己持有 `TrainingPlanV2RemoteDataSource`，冷啟先渲染的那一份
+    /// 也是它的快取，不另存一份 App2 專屬快照。
+    private let planRepository: TrainingPlanV2Repository
     private let readinessViewModel: TrainingReadinessViewModel
     /// 紀錄頁用的同一支 `GET /v2/workouts`，不另開端點。
     private let workoutDataSource: WorkoutStatsDataSourceProtocol
-    /// 冷啟快照。只做「先渲染上一次的畫面」，不參與任何寫入判斷。
+    /// 冷啟快照。只剩「今天跑完沒」那一頁 workouts —— 課表那幾支已收進 repository 快取。
     private let snapshots: any App2SnapshotStoring
 
     // MARK: - Init
@@ -58,13 +61,22 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     init(
         dailyStateRepository: DailyStateRepository? = nil,
         targetRepository: TargetRepository? = nil,
-        planV2DataSource: TrainingPlanV2RemoteDataSourceProtocol? = nil,
+        planRepository: TrainingPlanV2Repository? = nil,
         readinessViewModel: TrainingReadinessViewModel? = nil,
         workoutDataSource: WorkoutStatsDataSourceProtocol? = nil,
         snapshots: (any App2SnapshotStoring)? = nil
     ) {
         let container = DependencyContainer.shared
         self.snapshots = snapshots ?? App2FileSnapshotStore.shared
+
+        if let planRepository {
+            self.planRepository = planRepository
+        } else {
+            if !container.isRegistered(TrainingPlanV2Repository.self) {
+                container.registerTrainingPlanV2Module()
+            }
+            self.planRepository = container.resolve() as TrainingPlanV2Repository
+        }
 
         if let dailyStateRepository {
             self.dailyStateRepository = dailyStateRepository
@@ -84,7 +96,6 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             self.targetRepository = container.resolve() as TargetRepository
         }
 
-        self.planV2DataSource = planV2DataSource ?? TrainingPlanV2RemoteDataSource()
         self.readinessViewModel = readinessViewModel ?? TrainingReadinessViewModel()
         self.workoutDataSource = workoutDataSource ?? WorkoutRemoteDataSource()
     }
@@ -143,14 +154,14 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     // 不用樣本補：樣本是「後端沒給」時的降級，不是「還沒載完」的填充。
 
     private func hydrateFromSnapshot() async {
-        let status = snapshots.load(PlanStatusV2Response.self, for: .planStatus)?.value
+        let status = planRepository.getCachedPlanStatus()
 
         if let card = dailyStateRepository.cachedTodayState() {
             applyDailyState(card: card, planStatus: status)
         }
 
         if let status,
-           let plan = snapshots.load(WeeklyPlanV2DTO.self, for: .weeklyPlan)?.value,
+           let plan = planRepository.getCachedWeeklyPlan(week: status.currentWeek),
            Self.isWeeklyPlan(plan, boundTo: status) {
             applyTodaySession(plan: plan)
         }
@@ -162,7 +173,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         // 週回顧：平日的目標週是上一週，`plan status` 自己就帶了摘要 id，
         // 快照夠用。週日看的是「本週」，那要另打一支 `getWeeklySummary()`，
         // 不在快照裡 —— 那天冷啟就等網路，不猜。
-        if let status, !Self.isSunday() {
+        if let status, !App2WeekCalendar.isSunday() {
             weekReview = Self.weekReviewState(
                 planStatus: status,
                 isSunday: false,
@@ -186,16 +197,16 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     /// 這份快取的週課表是不是 plan status 指向的那一份。
     /// 對不上（跨週、或換了計畫）就不拿它當今天的課 —— 寧可等網路。
-    static func isWeeklyPlan(_ plan: WeeklyPlanV2DTO, boundTo status: PlanStatusV2Response) -> Bool {
+    static func isWeeklyPlan(_ plan: WeeklyPlanV2, boundTo status: PlanStatusV2Response) -> Bool {
         guard let currentId = status.currentWeekPlanId else { return false }
-        guard let cachedId = plan.planId ?? plan.id else { return true }
-        return cachedId == currentId
+        return plan.effectivePlanId == currentId
     }
 
     private func fetchPlanStatus() async -> PlanStatusOutcome {
         do {
-            let status = try await planV2DataSource.getPlanStatus()
-            snapshots.save(status, for: .planStatus)
+            // `forceRefresh` ＝ 這一輪一定走網路（落地由 repository 做，供下次冷啟用）。
+            // SWR 的「先舊後新」由 `hydrateFromSnapshot` 負責，不靠 repository 的 cooldown。
+            let status = try await planRepository.getPlanStatus(forceRefresh: true)
             return .loaded(status)
         } catch {
             // 取消不是失敗（`AGENTS.md` 陷阱 2）：下拉刷新的 task 被 SwiftUI 收掉時
@@ -296,8 +307,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 return
             }
             do {
-                let plan = try await planV2DataSource.getWeeklyPlan(planId: planId)
-                snapshots.save(plan, for: .weeklyPlan)
+                let plan = try await planRepository.fetchWeeklyPlan(planId: planId)
                 applyTodaySession(plan: plan)
             } catch {
                 guard !error.isCancellationError else { return }
@@ -308,8 +318,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     }
 
     /// 今日課表卡 ＋ 它的詳情。網路回應與冷啟快照都走這一支。
-    private func applyTodaySession(plan: WeeklyPlanV2DTO) {
-        let todayIndex = App2PlanViewModel.todayDayIndex()
+    private func applyTodaySession(plan: WeeklyPlanV2) {
+        let todayIndex = App2WeekCalendar.todayDayIndex()
         guard let session = Self.todaySession(
             days: plan.days,
             todayIndex: todayIndex,
@@ -325,7 +335,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             .flatMap {
                 App2SessionDetailProjection.detail(
                     day: $0,
-                    weekStart: App2PlanViewModel.currentWeekStart()
+                    weekStart: App2WeekCalendar.currentWeekStart()
                 )
             }
     }
@@ -366,7 +376,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     private func loadWeekReview(planStatus: PlanStatusV2Response?) async {
         guard let planStatus else { return }
-        let isSunday = Self.isSunday()
+        let isSunday = App2WeekCalendar.isSunday()
 
         if !isSunday {
             // 上週回顧的存在與否，`/v2/plan/status` 已經直接給了，不必多打一條。
@@ -386,7 +396,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         }
         var summaryId: String?
         do {
-            summaryId = try await planV2DataSource.getWeeklySummary(weekOfPlan: planStatus.currentWeek).id
+            summaryId = try await planRepository.getWeeklySummary(weekOfPlan: planStatus.currentWeek).id
         } catch {
             guard !error.isCancellationError else { return }
             Logger.debug("[App2HomeVM] 本週回顧查詢失敗,視為尚未產生: \(error)")
@@ -459,22 +469,27 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     /// 今日課表卡（§3.1）。今天不在 `days` 裡就回 nil —— 呼叫端據此走 `.noSessionToday`。
     static func todaySession(
-        days: [DayDetailDTO],
+        days: [DayDetail],
         todayIndex: Int,
         dayLabel: String
     ) -> App2TodaySession? {
         guard let day = days.first(where: { $0.dayIndex == todayIndex }) else { return nil }
-        let dayType = day.primary == nil ? DayType.rest : App2PlanViewModel.dayType(day.primary)
+        let primary = day.session?.primary
+        let dayType = primary == nil ? DayType.rest : App2PlanViewModel.dayType(primary)
         let segments = Self.segments(day: day)
         let durationMinutes: Int? = {
-            if case .run(let run) = day.primary { return run.durationMinutes }
+            if case .run(let run) = primary { return run.durationMinutes }
             return nil
         }()
         return App2TodaySession(
             dayLabel: dayLabel,
-            title: dayType?.localizedName ?? (day.category ?? L10n.App2.Plan.rest.localized),
-            intensityLabel: App2PlanViewModel.intensityLabel(day.primary),
-            summary: App2PlanViewModel.contentLine(day.primary, totalDistanceKm: day.distanceKm),
+            // 課型對不到（後端新增了 `run_type`）→ 退到 `day_target`（後端已在地化的人話）。
+            // **不退 `category`**：domain 的 `category` 是 run／strength／cross／rest 四值 enum，
+            // 印它的 rawValue 等於把識別字放上畫面；也不退「休息」——那會把一堂未知的課
+            // 說成休息日（2026-08-26 架構收斂時發現，DTO 時代退的是後端的自由字串）。
+            title: dayType?.localizedName ?? day.dayTarget,
+            intensityLabel: App2PlanViewModel.intensityLabel(primary),
+            summary: App2PlanViewModel.contentLine(primary, totalDistanceKm: day.distanceKm),
             segments: segments,
             structureBars: Self.structureBars(day: day),
             strengthLabel: Self.strengthLabel(day: day),
@@ -564,10 +579,6 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         return .notGenerated(isCurrentWeek: isSunday, targetWeek: targetWeek)
     }
 
-    static func isSunday(date: Date = Date(), calendar: Calendar = .current) -> Bool {
-        calendar.component(.weekday, from: date) == 1
-    }
-
     // MARK: - 今日課表卡的分段與結構
 
     /// 分段列（設計 dc.html 今日課表卡的「全程勻速」／「熱身＋節奏段＋緩和」那一排）。
@@ -579,7 +590,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// **單段課也有一列。** 8/25 版設計的四張今日課表卡裡，輕鬆跑與長距離都是一列
     /// （「全程勻速 8.0 km · 6:50」／「穩定耐力 24 km · 6:30」），與節奏跑的三列
     /// 同一組視覺；舊版把單列濾掉是因為當時卡片沒有這一排，只有右側的結構圖。
-    static func segments(day: DayDetailDTO) -> [App2SessionSegment] {
+    static func segments(day: DayDetail) -> [App2SessionSegment] {
         var result: [App2SessionSegment] = []
         func append(_ name: String, _ detail: String?, isWork: Bool) {
             guard let detail else { return }
@@ -588,19 +599,19 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
         append(
             NSLocalizedString("training.segment.warmup", comment: ""),
-            day.warmup.flatMap(effortLabel(segment:)),
+            day.session?.warmup.flatMap(effortLabel(segment:)),
             isWork: false
         )
 
-        if case .run(let run) = day.primary {
+        if case .run(let run) = day.session?.primary {
             let runSegments = App2PlanViewModel.effectiveSegments(run)
             if runSegments.isEmpty {
                 // 單段課（輕鬆跑／長跑）也有結構，只是只有一段主課。
                 append(L10n.App2.Home.segmentMain.localized,
-                       App2PlanViewModel.contentLine(day.primary), isWork: true)
+                       App2PlanViewModel.contentLine(day.session?.primary), isWork: true)
             }
             for segment in runSegments {
-                if segment.kind == "interval" {
+                if segment.segmentKind == .interval {
                     if let work = segment.work, let detail = effortLabel(effort: work) {
                         let repeats = segment.repeats ?? 0
                         append(NSLocalizedString("training.segment.sprint", comment: ""),
@@ -615,7 +626,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             }
         }
 
-        if case .cross(let cross) = day.primary {
+        if case .cross(let cross) = day.session?.primary {
             // 交叉訓練沒有配速，但仍然是一段課 —— 用時長當那一列的量。
             append(
                 L10n.App2.Home.segmentMain.localized,
@@ -626,7 +637,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
         append(
             NSLocalizedString("training.segment.cooldown", comment: ""),
-            day.cooldown.flatMap(effortLabel(segment:)),
+            day.session?.cooldown.flatMap(effortLabel(segment:)),
             isWork: false
         )
 
@@ -641,7 +652,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// **橘柱＝衝刺（interval 的 work）那幾趟，只有它算「趟」。** 熱身、主課的
     /// 穩定段、組間恢復、緩和都不計趟 —— 把穩定段也算進去會讓
     /// 「6 × 200m」的課寫成「趟數 × 7 趟」（2026-08-25 用戶在截圖上抓到）。
-    static func structureBars(day: DayDetailDTO) -> [App2SessionStructureBar] {
+    static func structureBars(day: DayDetail) -> [App2SessionStructureBar] {
         var bars: [App2SessionStructureBar] = []
         func append(
             _ kind: App2SessionStructureBar.Kind,
@@ -657,9 +668,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             ))
         }
 
-        if day.warmup != nil { append(.warmup, height: 0.35, width: 1) }
+        if day.session?.warmup != nil { append(.warmup, height: 0.35, width: 1) }
 
-        if case .run(let run) = day.primary {
+        if case .run(let run) = day.session?.primary {
             let runSegments = App2PlanViewModel.effectiveSegments(run)
             if runSegments.isEmpty {
                 // 單段課（輕鬆跑／長跑）：一整塊穩定段，配速標在塊上。
@@ -670,11 +681,11 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                     .steady, height: 0.6, width: 4,
                     pace: App2PlanViewModel.dayPace(run),
                     noteLabel: L10n.App2.Home.structureNoteSteady.localized,
-                    noteDetail: App2PlanViewModel.contentLine(day.primary)
+                    noteDetail: App2PlanViewModel.contentLine(day.session?.primary)
                 )
             }
             for segment in runSegments {
-                if segment.kind == "interval", let repeats = segment.repeats, repeats > 0 {
+                if segment.segmentKind == .interval, let repeats = segment.repeats, repeats > 0 {
                     // 太多趟就不畫滿，畫面上那格只有幾十 pt 寬。
                     let drawn = min(repeats, 10)
                     let detail = segment.work.flatMap(effortLabel(effort:))
@@ -698,19 +709,19 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                     )
                 }
             }
-        } else if day.primary != nil {
+        } else if day.session?.primary != nil {
             // 肌力／交叉訓練沒有配速，但仍然有「一段課」的結構。
             append(.steady, height: 0.6, width: 4)
         }
 
-        if day.cooldown != nil { append(.warmup, height: 0.35, width: 1) }
+        if day.session?.cooldown != nil { append(.warmup, height: 0.35, width: 1) }
 
         return bars
     }
 
     /// `力量 · 3 個動作`。今天沒有肌力補充項目就回 nil。
-    static func strengthLabel(day: DayDetailDTO) -> String? {
-        let exercises = (day.supplementary ?? []).reduce(into: 0) { total, activity in
+    static func strengthLabel(day: DayDetail) -> String? {
+        let exercises = (day.effectiveSupplementary ?? []).reduce(into: 0) { total, activity in
             if case .strength(let strength) = activity { total += strength.exercises.count }
         }
         guard exercises > 0 else { return nil }
@@ -718,7 +729,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     }
 
     /// `400m @ 4:30`／`10 分鐘`。組不出來就回 nil（那一行不顯示）。
-    static func effortLabel(effort: SegmentEffortDTO) -> String? {
+    static func effortLabel(effort: SegmentEffort) -> String? {
         var parts: [String] = []
         if let metres = effort.distanceM {
             parts.append("\(metres)m")
@@ -735,7 +746,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         return parts.isEmpty ? nil : parts.joined(separator: " ")
     }
 
-    static func effortLabel(segment: RunSegmentDTO) -> String? {
+    static func effortLabel(segment: RunSegment) -> String? {
         var parts: [String] = []
         if let km = segment.distanceKm, km > 0 {
             parts.append(String(format: "%.1f km", km))
@@ -827,7 +838,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 ),
                 distanceLabel: Self.distanceLabel(km: target.distanceKm),
                 stageLabel: stageLabel,
-                targetTime: target.targetTime > 0 ? Self.formatSeconds(target.targetTime) : nil,
+                targetTime: target.targetTime > 0 ? TimeFormatting.formatTime(target.targetTime) : nil,
                 estimatedFinish: estimatedFinish,
                 currentWeek: planStatus?.currentWeek,
                 totalWeeks: planStatus?.totalWeeks
@@ -847,7 +858,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         guard let planStatus else { return nil }
         let currentWeek = planStatus.currentWeek
         do {
-            let overview = try await planV2DataSource.getOverview()
+            let overview = try await planRepository.refreshOverview()
             guard Self.isOverview(overview.id, boundTo: planStatus) else {
                 Logger.debug("[App2HomeVM] overview 與本週課表不同源,不顯示期別")
                 return nil
@@ -885,8 +896,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// .stageIdToLocalizationKey` → `training.stage.*`），不是 payload 的
     /// `stage_name`：後者由後端依 `content_lang` 生成，App 切語言時不會跟著換，
     /// 三語用字也與 1.4 的期程列表對不上（2026-08-26 裁決：chip 譯名全 App 同一份）。
-    static func stageName(stages: [TrainingStageDTO]?, currentWeek: Int) -> String? {
-        guard let stage = stages?.first(where: { currentWeek >= $0.weekStart && currentWeek <= $0.weekEnd })
+    static func stageName(stages: [TrainingStageV2], currentWeek: Int) -> String? {
+        guard let stage = stages.first(where: { currentWeek >= $0.weekStart && currentWeek <= $0.weekEnd })
         else { return nil }
         return PlanGenerationContext.stageIdToLocalizationKey(stage.stageId).localized
     }
@@ -899,15 +910,6 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         formatter.dateFormat = "yyyy-MM-dd"
         formatter.timeZone = TimeZone(identifier: timezone) ?? .current
         return formatter.string(from: Date(timeIntervalSince1970: TimeInterval(seconds)))
-    }
-
-    private static func formatSeconds(_ seconds: Int) -> String {
-        let h = seconds / 3600
-        let m = (seconds % 3600) / 60
-        let s = seconds % 60
-        return h > 0
-            ? String(format: "%d:%02d:%02d", h, m, s)
-            : String(format: "%d:%02d", m, s)
     }
 
     /// 距離標籤走既有的 `race_filter.*`（三語已齊，賽事清單頁在用同一組），

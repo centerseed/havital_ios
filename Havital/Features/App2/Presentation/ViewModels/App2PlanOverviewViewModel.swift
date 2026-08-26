@@ -40,7 +40,8 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
 
     // MARK: - Dependencies
 
-    private let planV2DataSource: TrainingPlanV2RemoteDataSourceProtocol
+    /// **課表資料只有這一個入口**（2026-08-26 架構收斂）。
+    private let planRepository: TrainingPlanV2Repository
     private let targetRepository: TargetRepository
     private let userProfileRepository: UserProfileRepository
     private let readinessViewModel: TrainingReadinessViewModel
@@ -51,7 +52,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     // MARK: - Init
 
     init(
-        planV2DataSource: TrainingPlanV2RemoteDataSourceProtocol? = nil,
+        planRepository: TrainingPlanV2Repository? = nil,
         targetRepository: TargetRepository? = nil,
         userProfileRepository: UserProfileRepository? = nil,
         readinessViewModel: TrainingReadinessViewModel? = nil,
@@ -59,7 +60,14 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     ) {
         let container = DependencyContainer.shared
 
-        self.planV2DataSource = planV2DataSource ?? TrainingPlanV2RemoteDataSource()
+        if let planRepository {
+            self.planRepository = planRepository
+        } else {
+            if !container.isRegistered(TrainingPlanV2Repository.self) {
+                container.registerTrainingPlanV2Module()
+            }
+            self.planRepository = container.resolve() as TrainingPlanV2Repository
+        }
 
         if let targetRepository {
             self.targetRepository = targetRepository
@@ -107,7 +115,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         }
 
         // 週次是這一頁的骨幹：沒有 plan status 就沒有「第 N / M 週」，也綁不了 overview。
-        let planStatus = try? await planV2DataSource.getPlanStatus()
+        let planStatus = try? await planRepository.getPlanStatus(forceRefresh: true)
 
         async let stagesTask = loadStages(planStatus: planStatus)
         async let mainTargetTask = loadMainTarget()
@@ -140,7 +148,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
 
     /// 期程 ＋ 訓練方法名 —— 兩者住在同一份 overview，一次取。
     private struct StageBundle {
-        var stages: [TrainingStageDTO] = []
+        var stages: [TrainingStageV2] = []
         var methodologyName: String?
         var isUnbound = false
     }
@@ -148,14 +156,14 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     private func loadStages(planStatus: PlanStatusV2Response?) async -> StageBundle {
         guard let planStatus else { return StageBundle() }
         do {
-            let dto = try await planV2DataSource.getOverview()
-            guard App2HomeViewModel.isOverview(dto.id, boundTo: planStatus) else {
+            let overview = try await planRepository.refreshOverview()
+            guard App2HomeViewModel.isOverview(overview.id, boundTo: planStatus) else {
                 Logger.debug("[App2PlanOverviewVM] overview 與本週課表不同源,期程不顯示")
                 return StageBundle(isUnbound: true)
             }
             return StageBundle(
-                stages: dto.trainingStages ?? [],
-                methodologyName: dto.methodologyOverview?.name
+                stages: overview.trainingStages,
+                methodologyName: overview.methodologyOverview?.name
             )
         } catch {
             if !error.isCancellationError {
@@ -211,7 +219,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     static func project(
         planStatus: PlanStatusV2Response?,
         mainTarget: Target?,
-        stages: [TrainingStageDTO],
+        stages: [TrainingStageV2],
         methodologyName: String?,
         estimatedFinish: String?,
         weeklyVolumes: [WeeklySummaryItem],
@@ -261,7 +269,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     ///
     /// 狀態只看週次落點：當前週在區間內＝進行中，整段在當前週之前＝已完成，其餘＝待進行。
     /// **沒有當前週就沒有狀態可判** —— 那時每一段都是「待進行」，不猜第一段正在跑。
-    static func stages(_ dtos: [TrainingStageDTO], currentWeek: Int?) -> [App2PlanStage] {
+    static func stages(_ dtos: [TrainingStageV2], currentWeek: Int?) -> [App2PlanStage] {
         dtos.map { dto in
             let state: App2PlanStage.State
             var weeksElapsed: Int?
@@ -301,7 +309,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     /// payload（`/summary/weekly/all`）是新到舊，但這裡不靠它的順序 —— 用
     /// `week_start_timestamp` 自己排，順序換了也不會靜靜地取到最舊的四週。
     static func averageWeeklyKm(_ items: [WeeklySummaryItem], now: Date = Date()) -> Double? {
-        let currentWeekStart = App2PlanViewModel.currentWeekStart(reference: now)
+        let currentWeekStart = App2WeekCalendar.currentWeekStart(reference: now)
         let completed = items
             .filter { item in
                 guard let timestamp = item.weekStartTimestamp else { return true }
