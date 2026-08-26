@@ -50,21 +50,46 @@ final class App2HomeProjectionTests: XCTestCase {
         )
     }
 
-    /// `GET /v2/plan/status` 的最小 fixture（只有這幾欄影響週回顧 CTA）。
+    /// `GET /v2/plan/status` 的 fixture。欄位名照後端 wire format 並走正式路徑上的
+    /// 同一個 `Codable` —— 這樣 decode 容錯也一併被測到（§A.4 坑 `dd07409f`）。
+    ///
+    /// `metadata` 預設帶 `Asia/Tokyo`（dev 實查值）＋ 可指定的 `server_time`：
+    /// 週回顧的時機**只能**由這兩欄決定，不看裝置星期。
     private func planStatus(
         currentWeek: Int,
         planId: String?,
-        previousSummaryId: String? = nil
+        previousSummaryId: String? = nil,
+        totalWeeks: Int = 17,
+        nextAction: String = "view_plan",
+        canGenerateNextWeek: Bool = false,
+        userTimezone: String? = "Asia/Tokyo",
+        serverTime: String? = nil,
+        nextWeekInfoJSON: String = "null",
+        includeMetadata: Bool = true
     ) -> PlanStatusV2Response {
+        func quoted(_ value: String?) -> String { value.map { "\"\($0)\"" } ?? "null" }
+        let metadata = includeMetadata
+            ? "{ \"user_timezone\": \(quoted(userTimezone)), \"server_time\": \(quoted(serverTime)) }"
+            : "null"
         let json = """
-        { "current_week": \(currentWeek), "total_weeks": 17, "next_action": "view_plan",
-          "can_generate_next_week": false,
-          "current_week_plan_id": \(planId.map { "\"\($0)\"" } ?? "null"),
-          "previous_week_summary_id": \(previousSummaryId.map { "\"\($0)\"" } ?? "null") }
+        { "current_week": \(currentWeek), "total_weeks": \(totalWeeks),
+          "next_action": "\(nextAction)",
+          "can_generate_next_week": \(canGenerateNextWeek),
+          "current_week_plan_id": \(quoted(planId)),
+          "previous_week_summary_id": \(quoted(previousSummaryId)),
+          "next_week_info": \(nextWeekInfoJSON),
+          "metadata": \(metadata) }
         """
         // 解不出來就讓測試爆在這裡 —— fixture 壞掉不該靜靜跳過。
         // swiftlint:disable:next force_try
         return try! JSONDecoder().decode(PlanStatusV2Response.self, from: Data(json.utf8))
+    }
+
+    /// 使用者時區 `Asia/Tokyo` 的某一天中午，寫成後端會給的 UTC ISO `server_time`。
+    /// 2026-08 的 Tokyo 是 UTC+9 且無日光節約，所以當地 12:00 ＝ UTC 03:00。
+    /// 2026-08：24 一 · 25 二 · 26 三 · 27 四 · 28 五 · 29 六 · 30 日。
+    private func tokyoNoon(day: Int) -> String {
+        String(format: "2026-08-%02dT03:00:00.000000+00:00", day)
     }
 
     private let restDay = """
@@ -343,31 +368,174 @@ final class App2HomeProjectionTests: XCTestCase {
         XCTAssertNotEqual(App2TodaySessionState.noSessionToday, .notGenerated)
     }
 
-    // MARK: - 週回顧 CTA 的時機與狀態
+    // MARK: - 週回顧 CTA：週日判定的權威是後端時區,不是裝置
+    //
+    // 規格：`docs/designs/DESIGN-app2-weekly-review-and-plan-end-inventory.md` §A.1。
+    // 時機與週次全部由 `/v2/plan/status` 決定，client 不算週界、不看裝置星期。
 
-    /// 出現條件只有一條：目標週是「可回顧的訓練週」，而且回顧還沒生成。
-    /// 三態各鎖一條。
+    /// 週一～週六：使用者時區判出來都不是週日。
+    func test_isSunday_weekdaysAreNotSunday() {
+        for day in 24...29 {
+            XCTAssertFalse(
+                App2HomeViewModel.isSundayInUserTimezone(
+                    planStatus(currentWeek: 3, planId: "ov_3", serverTime: tokyoNoon(day: day))
+                ),
+                "2026-08-\(day) 在 Asia/Tokyo 不是週日"
+            )
+        }
+    }
 
-    /// demo 帳號現況：課表第 1 週才開始，平日看的上週根本沒有課表 → 整張卡不顯示。
-    func test_weekReview_targetWeekHasNoPlan_cardIsHidden() {
-        let status = planStatus(currentWeek: 1, planId: "a60e2c6cb83a_1")
+    /// 週日：判出來是週日。
+    func test_isSunday_sundayIsSunday() {
+        XCTAssertTrue(
+            App2HomeViewModel.isSundayInUserTimezone(
+                planStatus(currentWeek: 3, planId: "ov_3", serverTime: tokyoNoon(day: 30))
+            )
+        )
+    }
+
+    /// **裝置時區與使用者時區不同時,以使用者時區為準**（§A.1；dev 實查
+    /// `metadata.user_timezone == "Asia/Tokyo"`，與裝置時區無關）。
+    ///
+    /// 取一個 Tokyo 已經是週日、洛杉磯還在週六的瞬間：Tokyo 08/30 08:00
+    /// ＝ UTC 08/29 23:00 ＝ LA 08/29 16:00。裝置日曆刻意傳 LA。
+    func test_isSunday_usesUserTimezoneNotDeviceTimezone() throws {
+        let status = planStatus(
+            currentWeek: 3, planId: "ov_3", serverTime: "2026-08-29T23:00:00.000000+00:00"
+        )
+        var losAngeles = Calendar(identifier: .gregorian)
+        losAngeles.timeZone = try XCTUnwrap(TimeZone(identifier: "America/Los_Angeles"))
+        let instant = try XCTUnwrap(App2WeekCalendar.parseISO8601(status.metadata?.serverTime))
+
+        XCTAssertFalse(
+            App2WeekCalendar.isSunday(date: instant, calendar: losAngeles),
+            "前提檢查：這個瞬間在洛杉磯是週六"
+        )
+        XCTAssertTrue(
+            App2HomeViewModel.isSundayInUserTimezone(status, deviceCalendar: losAngeles),
+            "時區權威是 metadata.user_timezone，不是裝置時區"
+        )
+    }
+
+    /// 反向：Tokyo 已經是週一、UTC 還在週日。裝置若跑 UTC 會誤判成週日。
+    func test_isSunday_mondayInUserTimezoneWhileSundayElsewhere() throws {
+        // Tokyo 08/31 07:00（週一）＝ UTC 08/30 22:00（週日）。
+        let status = planStatus(
+            currentWeek: 3, planId: "ov_3", serverTime: "2026-08-30T22:00:00.000000+00:00"
+        )
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let instant = try XCTUnwrap(App2WeekCalendar.parseISO8601(status.metadata?.serverTime))
+
+        XCTAssertTrue(
+            App2WeekCalendar.isSunday(date: instant, calendar: utc),
+            "前提檢查：這個瞬間在 UTC 是週日"
+        )
+        XCTAssertFalse(App2HomeViewModel.isSundayInUserTimezone(status, deviceCalendar: utc))
+    }
+
+    /// 跨週界：Tokyo 週日 23:59:59 仍是週日，往後一秒（週一 00:00:00）就不是。
+    /// 那個 UTC 邊界值就是 dev 實查到的 `current_week_end_date` 形狀。
+    func test_isSunday_weekBoundaryToTheSecond() {
+        XCTAssertTrue(
+            App2HomeViewModel.isSundayInUserTimezone(
+                planStatus(currentWeek: 3, planId: "ov_3",
+                           serverTime: "2026-08-30T14:59:59.999999+00:00")
+            ),
+            "Tokyo 08/30 23:59:59 還是週日"
+        )
+        XCTAssertFalse(
+            App2HomeViewModel.isSundayInUserTimezone(
+                planStatus(currentWeek: 3, planId: "ov_3",
+                           serverTime: "2026-08-30T15:00:00.000000+00:00")
+            ),
+            "Tokyo 08/31 00:00:00 已經是週一"
+        )
+    }
+
+    /// **`can_generate_next_week == false` 不等於不是週日。**
+    /// 後端在同一個 if 多壓了 `current_week < total_weeks`
+    /// （`domains/plan_week/service.py:1227-1230`），所以**最後一週的週日**那個
+    /// flag 固定是 false。§A.5 必測清單第 1 條。
+    func test_isSunday_lastWeekSundayStillDetected() {
+        XCTAssertTrue(
+            App2HomeViewModel.isSundayInUserTimezone(
+                planStatus(currentWeek: 6, planId: "ov_6", totalWeeks: 6,
+                           canGenerateNextWeek: false, serverTime: tokyoNoon(day: 30))
+            ),
+            "最後一週的週日不得因為 can_generate_next_week=false 就被當成平日"
+        )
+    }
+
+    /// `can_generate_next_week == true` 本身就是後端在使用者時區判過的週日訊號，
+    /// 即使 `server_time` 缺席也採信。
+    func test_isSunday_trustsCanGenerateNextWeekFlag() {
+        XCTAssertTrue(
+            App2HomeViewModel.isSundayInUserTimezone(
+                planStatus(currentWeek: 3, planId: "ov_3",
+                           canGenerateNextWeek: true, serverTime: nil)
+            )
+        )
+    }
+
+    /// 時區名解不開（後端給了 app 不認得的 identifier）→ 退回裝置日曆，
+    /// **不得整段崩掉或硬當成平日**。
+    func test_isSunday_unknownTimezoneFallsBackToDeviceCalendar() throws {
+        let status = planStatus(
+            currentWeek: 3, planId: "ov_3",
+            userTimezone: "Mars/Olympus_Mons", serverTime: tokyoNoon(day: 30)
+        )
+        var tokyo = Calendar(identifier: .gregorian)
+        tokyo.timeZone = try XCTUnwrap(TimeZone(identifier: "Asia/Tokyo"))
+        let sunday = try XCTUnwrap(App2WeekCalendar.parseISO8601(tokyoNoon(day: 30)))
+        XCTAssertTrue(
+            App2HomeViewModel.isSundayInUserTimezone(
+                status, deviceNow: sunday, deviceCalendar: tokyo
+            )
+        )
+    }
+
+    // MARK: - 週回顧 CTA：§A.5 狀態機表逐格
+
+    /// 第 1 列：`current_week == 1` 且非週日 → 沒有可回顧的週,**整卡隱藏**。
+    /// 2026-08-25 的 demo 帳號正是這一格，畫面卻掛著一張按下去無事可做的卡。
+    func test_weekReview_row1_week1OnWeekdayIsHidden() {
+        let status = planStatus(currentWeek: 1, planId: "a60e2c6cb83a_1",
+                                serverTime: tokyoNoon(day: 26))
         XCTAssertNil(
             App2HomeViewModel.weekReviewState(planStatus: status, isSunday: false, summaryId: nil)
         )
     }
 
-    /// 上週有課表、回顧還沒生成 → 「產生上週回顧」。
-    func test_weekReview_lastWeekHasPlanNoSummary_offersGenerate() {
-        let status = planStatus(currentWeek: 5, planId: "ov_5")
+    /// 第 2 列：`next_action == create_summary`（回顧擋著課表）→「產生上週回顧」，
+    /// 週次＝`current_week − 1`。
+    func test_weekReview_row2_createSummaryOffersPreviousWeek() {
+        let status = planStatus(currentWeek: 4, planId: nil, nextAction: "create_summary",
+                                serverTime: tokyoNoon(day: 26))
         XCTAssertEqual(
             App2HomeViewModel.weekReviewState(planStatus: status, isSunday: false, summaryId: nil),
+            .notGenerated(isCurrentWeek: false, targetWeek: 3)
+        )
+    }
+
+    /// 第 3 列：平日、有本週課表、`previous_week_summary_id == null`、`current_week ≥ 2`
+    /// →「產生上週回顧」。**這是 2.0 新增的主動時機卡**（1.4 這一格不給入口，
+    /// 只在 `create_summary` 擋課表時才給）。
+    func test_weekReview_row3_weekdayWithPlanButNoSummaryStillOffers() {
+        let status = planStatus(currentWeek: 5, planId: "ov_5", serverTime: tokyoNoon(day: 26))
+        XCTAssertEqual(
+            App2HomeViewModel.weekReviewState(
+                planStatus: status, isSunday: false, summaryId: status.previousWeekSummaryId
+            ),
             .notGenerated(isCurrentWeek: false, targetWeek: 4)
         )
     }
 
-    /// 已生成 → 「查看回顧」。
-    func test_weekReview_summaryExists_offersView() {
-        let status = planStatus(currentWeek: 5, planId: "ov_5", previousSummaryId: "ov_4_summary")
+    /// 第 4 列：平日、`previous_week_summary_id != null` →「查看回顧」。
+    func test_weekReview_row4_weekdayWithSummaryOffersView() {
+        let status = planStatus(currentWeek: 5, planId: "ov_5",
+                                previousSummaryId: "ov_4_summary",
+                                serverTime: tokyoNoon(day: 26))
         XCTAssertEqual(
             App2HomeViewModel.weekReviewState(
                 planStatus: status, isSunday: false, summaryId: status.previousWeekSummaryId
@@ -376,50 +544,253 @@ final class App2HomeProjectionTests: XCTestCase {
         )
     }
 
+    /// 第 5 列：週日、`next_week_info.requires_current_week_summary == true`
+    /// →「產生**本週**回顧」，週次＝`current_week`。
+    func test_weekReview_row5_sundayRequiringCurrentWeekSummary() {
+        let status = planStatus(
+            currentWeek: 4, planId: "ov_4", canGenerateNextWeek: true,
+            serverTime: tokyoNoon(day: 30),
+            nextWeekInfoJSON: """
+            { "week_number": 5, "has_plan": false, "can_generate": true,
+              "requires_current_week_summary": true,
+              "next_action": "create_summary_for_week_4" }
+            """
+        )
+        XCTAssertTrue(App2HomeViewModel.isSundayInUserTimezone(status))
+        XCTAssertEqual(status.nextWeekInfo?.requiresCurrentWeekSummary, true)
+        XCTAssertEqual(
+            App2HomeViewModel.weekReviewState(planStatus: status, isSunday: true, summaryId: nil),
+            .notGenerated(isCurrentWeek: true, targetWeek: 4)
+        )
+    }
+
+    /// 第 6 列：週日、本週回顧已完成 →「查看回顧」，週次仍是 `current_week`。
+    func test_weekReview_row6_sundayWithCurrentWeekSummary() {
+        let status = planStatus(
+            currentWeek: 4, planId: "ov_4", canGenerateNextWeek: true,
+            serverTime: tokyoNoon(day: 30),
+            nextWeekInfoJSON: """
+            { "week_number": 5, "has_plan": false, "can_generate": true,
+              "requires_current_week_summary": false,
+              "next_action": "create_plan_for_week_5" }
+            """
+        )
+        XCTAssertEqual(
+            App2HomeViewModel.weekReviewState(
+                planStatus: status, isSunday: true, summaryId: "ov_4_summary"
+            ),
+            .available(summaryId: "ov_4_summary", isCurrentWeek: true, targetWeek: 4)
+        )
+    }
+
+    /// 第 7 列：`next_action == training_completed` → 進「計畫結束」狀態（§B），
+    /// **時機卡整張收掉**。計畫結束後首頁不得還掛著「產生上週回顧」。
+    func test_weekReview_row7_trainingCompletedHidesCard() {
+        let status = planStatus(
+            currentWeek: 7, planId: nil, previousSummaryId: "ov_6_summary",
+            totalWeeks: 6, nextAction: "training_completed", serverTime: tokyoNoon(day: 26)
+        )
+        XCTAssertNil(
+            App2HomeViewModel.weekReviewState(
+                planStatus: status, isSunday: false, summaryId: status.previousWeekSummaryId
+            ),
+            "計畫結束是另一條路（§B），不是時機卡的第五個狀態"
+        )
+        XCTAssertNil(
+            App2HomeViewModel.weekReviewState(
+                planStatus: status, isSunday: true, summaryId: "ov_6_summary"
+            ),
+            "週日也一樣收掉"
+        )
+    }
+
     /// **平日看上週、週日看本週** —— `targetWeek` 就是週回顧頁要打的
     /// `week_of_plan`。算錯一週＝看到別週的回顧。
     func test_weekReview_targetWeekIsPreviousWeekOnWeekdays() {
         let status = planStatus(currentWeek: 5, planId: "ov_5")
         XCTAssertEqual(
-            App2HomeViewModel.weekReviewState(planStatus: status, isSunday: false, summaryId: nil)?.targetWeek,
+            App2HomeViewModel.weekReviewState(
+                planStatus: status, isSunday: false, summaryId: nil
+            )?.targetWeek,
             4
         )
         XCTAssertEqual(
-            App2HomeViewModel.weekReviewState(planStatus: status, isSunday: true, summaryId: nil)?.targetWeek,
+            App2HomeViewModel.weekReviewState(
+                planStatus: status, isSunday: true, summaryId: nil
+            )?.targetWeek,
             5
         )
     }
 
-    /// 週日看的是本週；本週沒有課表一樣不顯示。
-    func test_weekReview_sunday_usesCurrentWeekAndNeedsPlan() {
-        let withPlan = planStatus(currentWeek: 1, planId: "ov_1")
+    /// `current_week == 1` 的週日：本週有課表就給「產生本週回顧」，沒有就整卡隱藏。
+    func test_weekReview_week1Sunday() {
+        let withPlan = planStatus(currentWeek: 1, planId: "ov_1", canGenerateNextWeek: true,
+                                  serverTime: tokyoNoon(day: 30))
         XCTAssertEqual(
             App2HomeViewModel.weekReviewState(planStatus: withPlan, isSunday: true, summaryId: nil),
             .notGenerated(isCurrentWeek: true, targetWeek: 1)
         )
-        let withoutPlan = planStatus(currentWeek: 1, planId: nil)
+        let withoutPlan = planStatus(currentWeek: 1, planId: nil, canGenerateNextWeek: true,
+                                     serverTime: tokyoNoon(day: 30))
         XCTAssertNil(
             App2HomeViewModel.weekReviewState(planStatus: withoutPlan, isSunday: true, summaryId: nil)
         )
     }
 
-    /// 設計 dc.html:5112：週日看本週，週一～週六看上週。
-    func test_isSunday_matchesDesignRule() {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Taipei") ?? .current
-        var components = DateComponents()
-        components.year = 2026
-        components.month = 8
-        components.hour = 12
+    /// 最後一週的週日：`can_generate_next_week=false`、`next_week_info=null`，
+    /// 但**本週回顧仍然可以做**（§A.5 必測清單）。
+    func test_weekReview_lastWeekSundayStillOffersCurrentWeekReview() {
+        let status = planStatus(currentWeek: 6, planId: "ov_6", totalWeeks: 6,
+                                canGenerateNextWeek: false, serverTime: tokyoNoon(day: 30))
+        let isSunday = App2HomeViewModel.isSundayInUserTimezone(status)
+        XCTAssertTrue(isSunday)
+        XCTAssertEqual(
+            App2HomeViewModel.weekReviewState(
+                planStatus: status, isSunday: isSunday, summaryId: nil
+            ),
+            .notGenerated(isCurrentWeek: true, targetWeek: 6)
+        )
+    }
 
-        components.day = 30            // 2026-08-30 是週日
-        if let sunday = calendar.date(from: components) {
-            XCTAssertTrue(App2WeekCalendar.isSunday(date: sunday, calendar: calendar))
+    // MARK: - 週回顧 CTA：§A.4 七個歷史坑的回歸 case
+
+    /// 坑 `90fee63e` —— 快取帶回 stale `current_week=1`，API 已經刷到 13，
+    /// 而 `selectedWeek` 永遠卡在 1。
+    ///
+    /// 斷言：同一支 `weekReviewState` 餵新舊兩份 status 會得到不同的週次 ——
+    /// 它完全跟著傳進來的那一份走，沒有任何被記住的狀態。
+    func test_weekReviewPit_90fee63e_staleCurrentWeekDoesNotStick() {
+        let stale = planStatus(currentWeek: 1, planId: "ov_1", serverTime: tokyoNoon(day: 26))
+        let fresh = planStatus(currentWeek: 13, planId: "ov_13", serverTime: tokyoNoon(day: 26))
+
+        XCTAssertNil(
+            App2HomeViewModel.weekReviewState(planStatus: stale, isSunday: false, summaryId: nil)
+        )
+        XCTAssertEqual(
+            App2HomeViewModel.weekReviewState(planStatus: fresh, isSunday: false, summaryId: nil),
+            .notGenerated(isCurrentWeek: false, targetWeek: 12),
+            "新的 status 一定要贏過先前那一份"
+        )
+    }
+
+    /// 坑 `576c60e6` —— `next_action` 是**時間敏感 flag**，快取的那一份會過期，
+    /// 冷啟時按鈕閃爍；修法是 plan entity 優先於 nextAction flag。
+    ///
+    /// 斷言：`view_plan` 與 `create_summary` 在同一組實體事實（有上週、回顧未生成）
+    /// 下給出**同一格**。flag 過期就不再改變畫面，也就不會閃。
+    func test_weekReviewPit_576c60e6_nextActionFlagDoesNotFlipTheCard() {
+        let asCreateSummary = planStatus(currentWeek: 4, planId: nil,
+                                         nextAction: "create_summary",
+                                         serverTime: tokyoNoon(day: 26))
+        let asViewPlan = planStatus(currentWeek: 4, planId: "ov_4",
+                                    nextAction: "view_plan",
+                                    serverTime: tokyoNoon(day: 26))
+        XCTAssertEqual(
+            App2HomeViewModel.weekReviewState(
+                planStatus: asCreateSummary, isSunday: false, summaryId: nil
+            ),
+            App2HomeViewModel.weekReviewState(
+                planStatus: asViewPlan, isSunday: false, summaryId: nil
+            )
+        )
+    }
+
+    /// 坑 `dd07409f`／`59fd1aff` —— 解碼 bug 讓週回顧**整頁掛掉**（1.4.10 發版前）。
+    ///
+    /// 斷言：只有必填欄的最小 payload 也要解得開，且沒有時區可依據時不得崩。
+    func test_weekReviewPit_dd07409f_minimalPayloadStillDecodes() throws {
+        let json = """
+        { "current_week": 2, "total_weeks": 6, "next_action": "create_summary",
+          "can_generate_next_week": false,
+          "current_week_plan_id": null, "previous_week_summary_id": null }
+        """
+        let status = try JSONDecoder().decode(PlanStatusV2Response.self, from: Data(json.utf8))
+        XCTAssertNil(status.metadata)
+        XCTAssertNil(status.nextWeekInfo)
+        _ = App2HomeViewModel.isSundayInUserTimezone(status)   // 不得丟例外
+        XCTAssertEqual(
+            App2HomeViewModel.weekReviewState(planStatus: status, isSunday: false, summaryId: nil),
+            .notGenerated(isCurrentWeek: false, targetWeek: 1)
+        )
+    }
+
+    /// 坑 `422aa744` —— **休息週的 summary 欄位是 null**，decode 不容忍就炸。
+    ///
+    /// 斷言：週回顧 payload 的可選區塊全給 null 時，投影仍組得出來（只是內容少），
+    /// 而不是丟例外或整頁空白。
+    ///
+    /// 休息週的真實形狀：量全是 0、亮點與建議都空、所有 optional 區塊是 null。
+    /// `weekly_highlights.achievements` 刻意給 null（後端 validator 會把它壓成
+    /// `[]`，但 client 不該賭上游一定有壓）。
+    func test_weekReviewPit_422aa744_restWeekNullSectionsStillProject() throws {
+        let json = """
+        {
+          "id": "ov_3_summary", "week_of_training": 3,
+          "training_completion": { "completed_km": 0, "planned_km": 0,
+            "completed_sessions": 0, "planned_sessions": 0, "percentage": 0,
+            "evaluation": "本週是排定的休息週" },
+          "training_analysis": { "pace": null, "heart_rate": null, "distance": null,
+            "intensity_distribution": null },
+          "weekly_highlights": { "highlights": [], "achievements": null,
+            "areas_for_improvement": [] },
+          "next_week_adjustments": { "items": [], "summary": "",
+            "methodology_constraints_considered": false, "based_on_flags": [] },
+          "weekly_story": null, "observations": null,
+          "capability_progression": null, "plan_context": null
         }
-        components.day = 25            // 2026-08-25 是週二
-        if let tuesday = calendar.date(from: components) {
-            XCTAssertFalse(App2WeekCalendar.isSunday(date: tuesday, calendar: calendar))
-        }
+        """
+        let dto = try JSONDecoder().decode(WeeklySummaryV2DTO.self, from: Data(json.utf8))
+        let projection = App2WeeklyReviewProjection.make(WeeklySummaryV2Mapper.toEntity(from: dto))
+
+        XCTAssertEqual(projection.storyBody, "本週是排定的休息週", "null 敘事要退到完成度評語")
+        XCTAssertNil(projection.storyHeadline)
+        XCTAssertTrue(projection.highlights.isEmpty)
+        XCTAssertTrue(projection.observations.isEmpty)
+        XCTAssertTrue(projection.analysisNotes.isEmpty)
+        XCTAssertTrue(projection.suggestions.isEmpty)
+        XCTAssertNil(projection.phaseLabel)
+    }
+
+    /// 坑 `2451e5be` —— 無訂閱時 paywall 蓋在 sheet teardown 上，Close 失效。
+    ///
+    /// 斷言：付費閘門旗標與「這一頁能不能關掉」是**兩件事**。`onClose` 是呼叫端
+    /// 持有的 closure，不經過任何 gate 旗標，所以旗標亮著也關得掉。
+    func test_weekReviewPit_2451e5be_closeIsIndependentOfPaywallFlags() {
+        var closed = false
+        let view = App2WeeklyReviewView(weekOfPlan: 3, onClose: { closed = true })
+        view.onClose()
+        XCTAssertTrue(closed, "關閉不得被 paywall／額度旗標攔住")
+    }
+
+    /// 坑 `cdab0b79` —— needsWeeklySummary 的**提示文案與實際動作不一致**。
+    ///
+    /// 斷言：文案與週次出自同一個狀態值 —— `isCurrentWeek` 決定講「本週」還是
+    /// 「上週」，`targetWeek` 決定按下去打哪一週，兩者不可能各自為政。
+    func test_weekReviewPit_cdab0b79_copyMatchesTheAction() {
+        let previousWeek = App2WeekReviewState.notGenerated(isCurrentWeek: false, targetWeek: 3)
+        let currentWeek = App2WeekReviewState.notGenerated(isCurrentWeek: true, targetWeek: 4)
+        let generated = App2WeekReviewState.available(
+            summaryId: "ov_3_summary", isCurrentWeek: false, targetWeek: 3
+        )
+
+        XCTAssertEqual(previousWeek.title, L10n.App2.Home.weekReviewGenerateLast.localized)
+        XCTAssertEqual(previousWeek.subtitle, L10n.App2.Home.weekReviewSubLast.localized)
+        XCTAssertEqual(currentWeek.title, L10n.App2.Home.weekReviewGenerateCurrent.localized)
+        XCTAssertEqual(currentWeek.subtitle, L10n.App2.Home.weekReviewSubCurrent.localized)
+        XCTAssertEqual(generated.title, L10n.App2.Home.weekReviewView.localized)
+        XCTAssertEqual(generated.subtitle, L10n.App2.Home.weekReviewViewSub.localized)
+
+        // 三態的文案必須互相不同,否則「一致」是靠巧合成立的。
+        XCTAssertNotEqual(previousWeek.title, currentWeek.title)
+        XCTAssertNotEqual(previousWeek.title, generated.title)
+    }
+
+    /// 坑 `8a9cf4d7`→`1c2cdb21` —— 單頁／兩頁版式反覆改。
+    /// 2.0 定案是 8/26 設計包的**兩張稿**（frame-18 回顧本週／frame-19 規劃下週）。
+    func test_weekReviewPit_1c2cdb21_exactlyTwoTabs() {
+        XCTAssertEqual(
+            App2WeeklyReviewView.Tab.allCases.map(\.rawValue), ["review", "plan"]
+        )
     }
 
     // MARK: - 今日課表卡的分段與結構預覽
