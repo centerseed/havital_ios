@@ -223,7 +223,10 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 2026-08-25 對 dev 的真實 payload 確認：`day_index: 2` 的 `reason` 寫的是
     /// 「週二安排長距離慢跑」，所以 1 = 週一。
     static func weekdayLabel(dayIndex: Int) -> String {
-        let symbols = Calendar.current.shortWeekdaySymbols
+        // 跟著 app 語言走，不是系統 locale（app 語言＝繁中、系統＝英文時會露出 Wed/Sun）。
+        var calendar = Calendar.current
+        calendar.locale = LanguageManager.shared.locale
+        let symbols = calendar.shortWeekdaySymbols
         // shortWeekdaySymbols[0] 是週日；day_index 7（週日）→ 0，1…6 → 1…6。
         let index = dayIndex % 7
         return symbols.indices.contains(index) ? symbols[index] : "—"
