@@ -288,7 +288,7 @@ struct App2EffortCard: View {
                     .font(.system(size: 13, weight: .heavy))
                     .foregroundStyle(accent.app2Darkened)
                 Spacer(minLength: 6)
-                Text(String(format: L10n.App2.Session.effortScore.localized, value.rpeText))
+                Text(String(format: L10n.App2.Session.effortScore.localized, value.rpeText as NSString))
                     .font(.app2Mono(13, weight: .heavy))
                     .foregroundStyle(accent.app2Darkened)
             }

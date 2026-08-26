@@ -272,8 +272,11 @@ struct App2SessionSegment: Identifiable, Equatable {
 /// 高度按強度 —— 兩者都從 payload 的結構欄位來，沒有一段是編的。
 struct App2SessionStructureBar: Identifiable, Equatable {
     enum Kind: Equatable {
-        /// 暖身／緩和／組間恢復 —— 淺色矮塊，不計趟。
+        /// 組間恢復 —— 灰色矮塊，不計趟。
         case support
+        /// 暖身／緩和 —— **綠色**矮塊（設計 dc.html「今日課表 · 間歇」的三色：
+        /// 綠＝熱身緩和、橘＝衝刺、灰＝組間恢復）。不計趟。
+        case warmup
         /// 穩定段（輕鬆跑／長跑／節奏跑的主課）—— 綠色寬塊。
         case steady
         /// 間歇的衝刺趟 —— 橘色細柱，只有它算「趟」。
@@ -294,7 +297,7 @@ struct App2SessionStructureBar: Identifiable, Equatable {
     /// 段落標註列右側的量（`4.0 km · 7:17/km`）。
     var noteDetail: String? = nil
 
-    var isWork: Bool { kind != .support }
+    var isWork: Bool { kind == .steady || kind == .interval }
 }
 
 /// 今日課表卡的四種狀態。

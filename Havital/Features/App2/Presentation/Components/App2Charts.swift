@@ -212,6 +212,7 @@ struct App2SessionStructureChart: View {
         switch kind {
         case .steady:   return App2Theme.accentGreenBright
         case .interval: return App2Theme.accentOrangeBright
+        case .warmup:   return App2Theme.accentGreenBright
         case .support:  return Color(hex: "#CFD6DF")
         }
     }
@@ -224,6 +225,9 @@ struct App2SessionStructureChart: View {
                                   startPoint: .top, endPoint: .bottom)
         case .interval:
             return LinearGradient(colors: [Color(hex: "#FB7A3C"), Color(hex: "#E8500F")],
+                                  startPoint: .top, endPoint: .bottom)
+        case .warmup:
+            return LinearGradient(colors: [Color(hex: "#7BD79C"), Color(hex: "#63C98A")],
                                   startPoint: .top, endPoint: .bottom)
         case .support:
             return LinearGradient(colors: [Color(hex: "#CFD6DF"), Color(hex: "#CFD6DF")],

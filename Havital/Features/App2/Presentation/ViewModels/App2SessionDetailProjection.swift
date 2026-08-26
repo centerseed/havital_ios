@@ -70,7 +70,12 @@ enum App2SessionDetailProjection {
             structureBars: App2HomeViewModel.structureBars(day: day),
             // 逐日敘述只在證明得出它仍對應現在這一天時才交出去。
             goalText: isDayNarrativeConsistent(day: day) ? nonEmpty(day.dayTarget) : nil,
-            reasonText: isDayNarrativeConsistent(day: day) ? nonEmpty(day.reason) : nil,
+            // **`reason` 一律不顯示。** 它與 `day_target` 是分開生成的兩段，
+            // payload 裡沒有任何欄位能證明它對應現在這一天，而 dev 上它本身就是錯的：
+            // 2026-08-26 創辦人帳號 `e1289e60f251_1` 的 day_index 3 是 4×400m 間歇，
+            // `reason` 卻寫「週三休息，為接下來的訓練儲備能量。」——後端缺陷，
+            // 已回報，App 端先不把矛盾的話印在用戶眼前（不在 app 硬繞成別的內容）。
+            reasonText: nil,
             segments: segments,
             climate: climate(meta: day.climateMeta),
             showsFuelingNote: showsFuelingNote(dayType: dayType, durationMinutes: durationMinutes),

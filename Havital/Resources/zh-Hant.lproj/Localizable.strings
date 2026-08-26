@@ -4373,7 +4373,7 @@
 "app2.home.cross_body" = "游泳、騎車、瑜伽等交叉訓練不計跑量";
 "app2.session.fueling_note" = "建議每 45 分鐘補給一次，並攜帶約 500 ml 水。";
 "app2.session.effort_title" = "體感強度";
-"app2.session.effort_score" = "%d / 10";
+"app2.session.effort_score" = "%@ / 10";
 "app2.session.effort_chip_low" = "低強度";
 "app2.session.effort_chip_medium" = "中強度";
 "app2.session.effort_chip_high" = "高強度";

@@ -4332,7 +4332,7 @@
 "app2.home.cross_body" = "Swimming, cycling or yoga — cross training doesn't count toward mileage";
 "app2.session.fueling_note" = "Fuel about every 45 minutes and carry roughly 500 ml of water.";
 "app2.session.effort_title" = "Perceived effort";
-"app2.session.effort_score" = "%d / 10";
+"app2.session.effort_score" = "%@ / 10";
 "app2.session.effort_chip_low" = "Easy";
 "app2.session.effort_chip_medium" = "Moderate";
 "app2.session.effort_chip_high" = "Hard";

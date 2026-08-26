@@ -567,7 +567,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             ))
         }
 
-        if day.warmup != nil { append(.support, height: 0.35, width: 1) }
+        if day.warmup != nil { append(.warmup, height: 0.35, width: 1) }
 
         if case .run(let run) = day.primary {
             let runSegments = App2PlanViewModel.effectiveSegments(run)
@@ -613,7 +613,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             append(.steady, height: 0.6, width: 4)
         }
 
-        if day.cooldown != nil { append(.support, height: 0.35, width: 1) }
+        if day.cooldown != nil { append(.warmup, height: 0.35, width: 1) }
 
         return bars
     }
