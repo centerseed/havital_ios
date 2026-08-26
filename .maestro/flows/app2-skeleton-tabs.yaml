@@ -11,7 +11,7 @@ tags:
 # 已登入的真實資料路徑走正常啟動（ContentView → 同一支 App2RootView），
 # 本 flow 不涵蓋——見票面「dev 真資料驗證」。
 #
-# **tab 是懸浮膠囊（`App2TabBar`），不是系統 TabView**（2026-08-25 視覺對齊）。
+# **tab 是系統原生 TabView**（2026-08-26 裁決；`App2_Tab_*` id 掛在 tabItem Label 上）。
 # 第四格是**成就**；設定不再是 tab，入口是課表頁右上角的頭像（設計 frame-01／21）。
 #
 # 斷言一律用**卡片**或 **tab 文字**的 accessibilityIdentifier，不用畫面容器的：

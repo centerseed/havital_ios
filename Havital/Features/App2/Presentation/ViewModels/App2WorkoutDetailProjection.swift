@@ -251,25 +251,8 @@ extension App2WorkoutDetailProjection {
             )
         }
 
+        // VDOT／TSS 已在上方指標磚呈現，這裡不重複（frame index 2026-08-26 去重裁定）。
         var advancedMetrics: [Metric] = []
-        if let vdot = vdotValue {
-            advancedMetrics.append(
-                Metric(
-                    key: "dynamic_vdot",
-                    label: NSLocalizedString("workout.detail.dynamic_vdot", comment: "VDOT"),
-                    value: String(format: "%.1f", vdot)
-                )
-            )
-        }
-        if let tss = tssValue {
-            advancedMetrics.append(
-                Metric(
-                    key: "tss",
-                    label: NSLocalizedString("workout.detail.training_load", comment: "訓練負荷"),
-                    value: String(format: "%.0f", tss)
-                )
-            )
-        }
         if let rpe = advanced?.rpe ?? workout.advancedMetrics?.rpe {
             advancedMetrics.append(
                 Metric(
