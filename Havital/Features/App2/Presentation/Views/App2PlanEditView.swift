@@ -403,6 +403,18 @@ struct App2PlanEditDayCard: View {
             fields
             supplementaryNote
         }
+        // 休息日卡沒有齒輪鈕（設計 §12），但休息日的單日編輯頁（frame-08：主動恢復、
+        // 轉為力量／交叉訓練日）還是要進得去 —— 整張卡就是入口。
+        .contentShape(Rectangle())
+        .onTapGesture {
+            guard day.type == .rest else { return }
+            showingDetailSheet = true
+        }
+        // 整卡加手勢會讓 SwiftUI 把這張卡收成**單一** accessibility element，
+        // 卡內的課型 chip 與齒輪鈕就整組消失（2026-08-26 用 maestro hierarchy 確認）。
+        // `.contain` 明確保留子元素。
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("App2_PlanEditDay_\(day.dayIndexInt)")
         .fullScreenCover(isPresented: $showingDetailSheet) {
             App2DayEditView(
                 day: day,

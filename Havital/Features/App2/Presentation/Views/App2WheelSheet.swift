@@ -22,6 +22,11 @@ struct App2WheelColumn: View {
     var visibleHeight: CGFloat = 230
     var identifier: String?
 
+    /// 開場對位。`scrollPosition(id:)` 只在**綁定值改變**時才捲；初始值是在
+    /// `init` 就寫好的，ScrollView 出現時不會自己捲過去——結果是選中項被畫在
+    /// 高亮帶下面（2026-08-26 模擬器實測）。出現後把值放掉再設回去，強迫它捲。
+    @State private var didCenter = false
+
     var body: some View {
         ScrollView(.vertical) {
             LazyVStack(spacing: 0) {
@@ -47,6 +52,13 @@ struct App2WheelColumn: View {
         .scrollPosition(id: $selection, anchor: .center)
         .scrollIndicators(.hidden)
         .animation(.easeOut(duration: 0.15), value: selection)
+        .onAppear {
+            guard !didCenter else { return }
+            didCenter = true
+            let target = selection
+            selection = nil
+            DispatchQueue.main.async { selection = target }
+        }
         .accessibilityIdentifier(identifier ?? "")
     }
 }
