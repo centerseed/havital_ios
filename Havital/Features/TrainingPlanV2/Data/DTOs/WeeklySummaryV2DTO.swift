@@ -428,6 +428,13 @@ struct HistoricalComparisonSummaryDTO: Codable {
     }
 }
 
+/// 三個欄位都是**缺席／null 就當空陣列**，不是必填。
+///
+/// 後端現行契約確實三個都會給（`data_models/weekly_summary_v2.py:462`
+/// 是 `default_factory=list` ＋ `mode="before"` 的 None→[] validator），
+/// 但**一個空陣列欄位不值得讓整頁掛掉**：`422aa744`（休息週欄位是 null）與
+/// `dd07409f`／`59fd1aff`（解碼 bug 讓週回顧整頁掛掉，1.4.10 發版前）都是
+/// 這個形狀。少一句話 vs 白畫面，代價不對等。
 struct WeeklyHighlightsV2DTO: Codable {
     let highlights: [String]
     let achievements: [String]
@@ -436,6 +443,14 @@ struct WeeklyHighlightsV2DTO: Codable {
     enum CodingKeys: String, CodingKey {
         case highlights, achievements
         case areasForImprovement = "areas_for_improvement"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        highlights = try container.decodeIfPresent([String].self, forKey: .highlights) ?? []
+        achievements = try container.decodeIfPresent([String].self, forKey: .achievements) ?? []
+        areasForImprovement = try container
+            .decodeIfPresent([String].self, forKey: .areasForImprovement) ?? []
     }
 }
 

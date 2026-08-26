@@ -52,6 +52,28 @@ final class WeeklySummaryV2DTODecodeTests: XCTestCase {
         XCTAssertEqual(dto.weeklyStory?.thread, "consistency")
     }
 
+    /// `weekly_highlights` 的三個陣列缺席或給 null 時當空陣列，**不得讓整頁掛掉**。
+    ///
+    /// 後端現行契約三個都會給（`data_models/weekly_summary_v2.py:462`），但
+    /// `422aa744`（休息週欄位 null）與 `dd07409f`／`59fd1aff`（解碼 bug 讓週回顧
+    /// 整頁掛掉）都是這個形狀 —— 少一句話 vs 白畫面，代價不對等。
+    func test_weekly_highlights_missing_or_null_arrays_default_to_empty() throws {
+        let tolerant = minimal.replacingOccurrences(
+            of: """
+            "weekly_highlights": {
+                "highlights": [],
+                "achievements": [],
+                "areas_for_improvement": []
+              }
+            """,
+            with: "\"weekly_highlights\": { \"achievements\": null }"
+        )
+        let highlights = try decode(tolerant).weeklyHighlights
+        XCTAssertEqual(highlights.highlights, [])       // 整個欄位缺席
+        XCTAssertEqual(highlights.achievements, [])     // 給了 null
+        XCTAssertEqual(highlights.areasForImprovement, [])
+    }
+
     func test_unknown_thread_does_not_crash() throws {
         let withStory = minimal.replacingOccurrences(
             of: "}",
