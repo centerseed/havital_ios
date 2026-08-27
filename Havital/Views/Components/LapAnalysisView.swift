@@ -8,6 +8,11 @@ struct LapAnalysisView: View {
     var titleFont: Font = AppFont.headline().weight(.semibold)
     var titleColor: Color = .primary
     var drawsContainer: Bool = true
+    var headerFont: Font = AppFont.captionSmall().weight(.medium)
+    var headerColor: Color = .secondary
+    var rowFont: Font = AppFont.caption()
+    var rowColor: Color = .primary
+    var paceColor: Color = .blue
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -47,33 +52,28 @@ struct LapAnalysisView: View {
                         // Table header
                         HStack(spacing: 4) {
                             Text(L10n.LapAnalysisView.lapColumn.localized)
-                                .font(AppFont.captionSmall())
-                                .fontWeight(.medium)
-                                .foregroundColor(.secondary)
+                                .font(headerFont)
+                                .foregroundColor(headerColor)
                                 .frame(width: geometry.size.width * 0.1, alignment: .center)
                             
                             Text(L10n.LapAnalysisView.distanceColumn.localized)
-                                .font(AppFont.captionSmall())
-                                .fontWeight(.medium)
-                                .foregroundColor(.secondary)
+                                .font(headerFont)
+                                .foregroundColor(headerColor)
                                 .frame(width: geometry.size.width * 0.225, alignment: .center)
                             
                             Text(L10n.LapAnalysisView.timeColumn.localized)
-                                .font(AppFont.captionSmall())
-                                .fontWeight(.medium)
-                                .foregroundColor(.secondary)
+                                .font(headerFont)
+                                .foregroundColor(headerColor)
                                 .frame(width: geometry.size.width * 0.225, alignment: .center)
                             
                             Text(L10n.LapAnalysisView.paceColumn.localized)
-                                .font(AppFont.captionSmall())
-                                .fontWeight(.medium)
-                                .foregroundColor(.secondary)
+                                .font(headerFont)
+                                .foregroundColor(headerColor)
                                 .frame(width: geometry.size.width * 0.225, alignment: .center)
                             
                             Text(L10n.LapAnalysisView.heartRateColumn.localized)
-                                .font(AppFont.captionSmall())
-                                .fontWeight(.medium)
-                                .foregroundColor(.secondary)
+                                .font(headerFont)
+                                .foregroundColor(headerColor)
                                 .frame(width: geometry.size.width * 0.225, alignment: .center)
                         }
                         .padding(.vertical, 8)
@@ -82,7 +82,10 @@ struct LapAnalysisView: View {
                         // Table rows - 移除 ScrollView 讓長截圖能完整顯示所有資料
                         VStack(spacing: 0) {
                             ForEach(Array(laps.enumerated()), id: \.element.id) { index, lap in
-                                LapRowView(lap: lap, isEven: index % 2 == 0, width: geometry.size.width)
+                                LapRowView(
+                                    lap: lap, isEven: index % 2 == 0, width: geometry.size.width,
+                                    rowFont: rowFont, rowColor: rowColor, paceColor: paceColor
+                                )
                                     .id(lap.id)
                             }
                         }
@@ -106,34 +109,42 @@ struct LapRowView: View {
     let lap: LapData
     let isEven: Bool
     let width: CGFloat
-    
+    // App2 復用時對齊宿主頁字型（預設維持 1.4 現狀）
+    var rowFont: Font = AppFont.caption()
+    var rowColor: Color = .primary
+    var paceColor: Color = .blue
+
     var body: some View {
         HStack(spacing: 4) {
             // Lap number
             Text("\(lap.lapNumber)")
-                .font(AppFont.caption())
+                .font(rowFont)
+                .foregroundColor(rowColor)
                 .frame(width: width * 0.1, alignment: .center)
             
             // Distance - 精簡顯示
             Text(lap.totalDistanceM != nil ? String(format: "%.2f", lap.totalDistanceM! / 1000) : "--")
-                .font(AppFont.caption())
+                .font(rowFont)
+                .foregroundColor(rowColor)
                 .frame(width: width * 0.225, alignment: .center)
             
             // Time
             Text(lap.formattedTime)
-                .font(AppFont.caption())
+                .font(rowFont)
+                .foregroundColor(rowColor)
                 .frame(width: width * 0.225, alignment: .center)
             
             // Pace
             Text(lap.formattedPace)
-                .font(AppFont.caption())
+                .font(rowFont)
                 .fontWeight(.medium)
-                .foregroundColor(.blue)
+                .foregroundColor(paceColor)
                 .frame(width: width * 0.225, alignment: .center)
             
             // Heart rate - 只顯示數字
             Text(lap.avgHeartRateBpm != nil ? "\(lap.avgHeartRateBpm!)" : "--")
-                .font(AppFont.caption())
+                .font(rowFont)
+                .foregroundColor(rowColor)
                 .frame(width: width * 0.225, alignment: .center)
         }
         .frame(height: 35)

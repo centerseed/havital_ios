@@ -312,20 +312,43 @@ struct App2WorkoutDetailView: View {
 
     /// 一張白卡裝下全部基礎指標，不是每個指標一塊大磚 —— 2 欄大磚版被使用者
     /// 打回（「很醜」，畫面被拉得又鬆又長，奇數個還會落單一塊）。
+    ///
+    /// 與進階指標卡**同一種構造**（卡內小標 ＋ 3 欄格，2026-08-27 走查：
+    /// 「兩塊指標排列方式不一樣、只有下面有標題很奇怪」）。
     private func metricsGrid(_ projection: App2WorkoutDetailProjection) -> some View {
-        LazyVGrid(
-            columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3),
-            spacing: 15
-        ) {
-            ForEach(projection.metrics) { metric in
-                metricCell(metric, valueSize: 17)
-                    .accessibilityIdentifier("App2_WorkoutMetric_\(metric.key)")
+        metricsCard(
+            title: NSLocalizedString("workout.detail.basic_metrics", comment: "基礎指標"),
+            metrics: projection.metrics,
+            cellIdentifierPrefix: "App2_WorkoutMetric_"
+        )
+        .accessibilityIdentifier("App2_WorkoutDetailMetrics")
+    }
+
+    /// 基礎／進階共用的指標卡構造：卡內小標 ＋ 3 欄緊湊格。
+    private func metricsCard(
+        title: String,
+        metrics: [App2WorkoutDetailProjection.Metric],
+        cellIdentifierPrefix: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 13) {
+            Text(title)
+                .font(.system(size: 13, weight: .heavy))
+                .tracking(0.4)
+                .foregroundStyle(App2Theme.inkMuted)
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3),
+                spacing: 15
+            ) {
+                ForEach(metrics) { metric in
+                    metricCell(metric, valueSize: 17)
+                        .accessibilityIdentifier(cellIdentifierPrefix + metric.key)
+                }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 15)
         .padding(.vertical, 14)
         .app2CardSurface(cornerRadius: 18)
-        .accessibilityIdentifier("App2_WorkoutDetailMetrics")
     }
 
     /// **這一格不畫自己的底。** 底由呼叫端用 `app2CardSurface` 給——格子自己再蓋一層
@@ -459,56 +482,15 @@ struct App2WorkoutDetailView: View {
 
     // MARK: - 進階指標（2026-08-27（m）：訓練負荷 TSS／跑力 VDOT／垂直振幅比）
 
-    /// **一張卡、一列並排**，不是四塊跟基礎指標長得一模一樣的磚。
-    ///
-    /// 使用者 2026-08-27 走查指出「基礎／進階混排的版面效果很差」：兩區用同一種
-    /// 白底磚時，畫面上看不出誰是誰。呈現方式改參考 1.4 `WorkoutDetailViewV2`
-    /// 的 `advancedMetricsCard`——標題收進卡內、指標橫排、細直線分隔，緊湊但有質感。
-    /// 圓角在**外層這張卡**上（2026-08-26「進階卡圓角」裁決不變：格子自己不畫底，
-    /// 畫了就會把圓角蓋掉）。
+    /// 與基礎指標卡**同一種構造**（卡內小標 ＋ 3 欄格 ＋ 同一種格子字型），
+    /// 差別只有標題與內容（2026-08-27 走查：兩塊排列方式不一致看起來很怪）。
     private func advancedCard(_ projection: App2WorkoutDetailProjection) -> some View {
-        App2Card(cornerRadius: 18, padding: 15, spacing: 13) {
-            Text(NSLocalizedString("workout.detail.advanced_metrics", comment: "進階指標"))
-                .font(.system(size: 13, weight: .heavy))
-                .tracking(0.4)
-                .foregroundStyle(App2Theme.inkMuted)
-
-            HStack(alignment: .top, spacing: 0) {
-                ForEach(Array(projection.advancedMetrics.enumerated()), id: \.element.id) { index, metric in
-                    if index > 0 {
-                        Rectangle()
-                            .fill(App2Theme.insetBorder)
-                            .frame(width: 1, height: 34)
-                    }
-                    advancedCell(metric)
-                        .accessibilityIdentifier("App2_WorkoutAdvancedMetric_\(metric.key)")
-                }
-            }
-        }
+        metricsCard(
+            title: NSLocalizedString("workout.detail.advanced_metrics", comment: "進階指標"),
+            metrics: projection.advancedMetrics,
+            cellIdentifierPrefix: "App2_WorkoutAdvancedMetric_"
+        )
         .accessibilityIdentifier("App2_WorkoutDetailAdvanced")
-    }
-
-    private func advancedCell(_ metric: App2WorkoutDetailProjection.Metric) -> some View {
-        VStack(spacing: 4) {
-            Text(metric.label)
-                .font(.system(size: 11, weight: .bold))
-                .foregroundStyle(App2Theme.inkMuted)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text(metric.value)
-                    .font(.app2Mono(20))
-                    .foregroundStyle(color(for: metric.tone))
-                if let unit = metric.unit {
-                    Text(unit)
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(App2Theme.inkMuted)
-                }
-            }
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
-        }
-        .frame(maxWidth: .infinity)
     }
 
     private func notesCard(_ notes: String) -> some View {
@@ -570,7 +552,10 @@ struct App2WorkoutDetailView: View {
             forceShowStanceTimeTab: viewModel.hasStanceTimeStream,
             titleFont: .system(size: 15, weight: .black),
             titleColor: App2Theme.inkPrimary,
-            drawsContainer: false
+            drawsContainer: false,
+            captionFont: .system(size: 12, weight: .semibold),
+            captionColor: App2Theme.inkMuted,
+            statValueFont: .app2Mono(15)
         )
         .app2CardSurface(cornerRadius: 18)
         .accessibilityIdentifier("App2_WorkoutDetailGait")
@@ -596,7 +581,12 @@ struct App2WorkoutDetailView: View {
                 deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName,
                 titleFont: .system(size: 15, weight: .black),
                 titleColor: App2Theme.inkPrimary,
-                drawsContainer: false
+                drawsContainer: false,
+                headerFont: .system(size: 12, weight: .bold),
+                headerColor: App2Theme.inkMuted,
+                rowFont: .app2Mono(13),
+                rowColor: App2Theme.inkPrimary,
+                paceColor: App2Theme.accentBlueDeep
             )
             .app2CardSurface(cornerRadius: 18)
             .accessibilityIdentifier("App2_WorkoutDetailLaps")

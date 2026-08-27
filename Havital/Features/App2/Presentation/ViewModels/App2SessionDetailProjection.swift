@@ -86,7 +86,6 @@ enum App2SessionDetailProjection {
             structureBars: bars,
             paceBand: paceBand(
                 bars: bars,
-                distanceKm: distanceKm,
                 dayType: dayType,
                 vdot: vdot ?? nonZeroVDOT(),
                 climate: climateDay,
@@ -510,14 +509,13 @@ enum App2SessionDetailProjection {
     /// - **輕鬆跑／恢復跑**：用戶自己的配速區間（`easyPaceRangeSeconds`，與設定頁
     ///   「配速區間」同一支 `PaceCalculator.getPaceRange(for:vdot:)`）。處方配速仍是
     ///   帶上那顆 pill —— 換掉的是帶寬，不是處方。
-    /// - **其餘課型**：維持處方配速 ±15 秒、目標窗 ±10 秒（payload 沒有配速區間欄位）。
+    /// - **其餘課型**：維持處方配速 ±15 秒（payload 沒有配速區間欄位）。
     ///
-    /// 溫度補償開啟且當日帶 `pace_adjustment_pct` 時，整條帶（pill 與上下緣）都換算成
-    /// 補償後配速，原始處方配速改由 `originalPaceLabel` 一起交出去 —— 裁決（n）要的是
-    /// 兩個值同時可見，不是拿補償後把原始蓋掉。
+    /// 溫度補償開啟且當日帶 `pace_adjustment_pct` 時，帶上的值**維持原始處方配速**，
+    /// 補償額度換算成「每公里（或每英里）可慢 N 秒」一句話交出去
+    /// （2026-08-27 走查改版：用戶要看的是原配速＋允許慢多少，不是被換算過的配速）。
     static func paceBand(
         bars: [App2SessionStructureBar],
-        distanceKm: Double?,
         dayType: DayType? = nil,
         vdot: Double? = nil,
         climate: ClimateDay? = nil,
@@ -533,41 +531,50 @@ enum App2SessionDetailProjection {
 
         var fastSeconds = seconds - boundaryToleranceSeconds
         var slowSeconds = seconds + boundaryToleranceSeconds
-        var windowFastSeconds = seconds - windowToleranceSeconds
-        var windowSlowSeconds = seconds + windowToleranceSeconds
         if let range = easyPaceRangeSeconds(dayType: dayType, vdot: vdot) {
             // 處方配速落在區間外時把帶撐開到含住它 —— 否則 pill 會畫在自己的帶外面。
             fastSeconds = min(range.fast, seconds)
             slowSeconds = max(range.slow, seconds)
-            windowFastSeconds = fastSeconds
-            windowSlowSeconds = slowSeconds
         }
 
         // 溫度補償：`pace × (1 + pct/100)`，與 1.4 熱適應卡
         // （`ClimateDay.climateAdjustedPace(forBasePace:)`）同一條公式，不另算一份。
+        // 帶上的值**不換算** —— 補償只出現在下面那句「每公里可慢 N 秒」。
         let adjustmentPct = isClimateAdjustmentEnabled ? (climate?.paceAdjustmentPct ?? 0) : 0
-        let factor = adjustmentPct > 0 ? 1 + adjustmentPct / 100 : 1
 
         // 配速一律換算成用戶的單位制。這幾格原本一律當公制、由圖表寫死 `/km` 補單位，
         // 英制用戶看到的是「公里配速掛著 /km」（2026-08-26 架構收斂順修）。
         // 值本身不含單位，單位由 `paceUnitLabel` 交給圖表 —— 設計上那個字是分開排版的。
         let unitSystem = UnitManager.shared.currentUnitSystem
         return App2SessionPaceBand(
-            paceLabel: paceLabel(seconds * factor, unitSystem: unitSystem),
-            fastLabel: paceLabel(fastSeconds * factor, unitSystem: unitSystem),
-            slowLabel: paceLabel(slowSeconds * factor, unitSystem: unitSystem),
-            windowLabel: paceLabel(windowFastSeconds * factor, unitSystem: unitSystem)
-                + "-" + paceLabel(windowSlowSeconds * factor, unitSystem: unitSystem),
+            paceLabel: paceLabel(seconds, unitSystem: unitSystem),
+            fastLabel: paceLabel(fastSeconds, unitSystem: unitSystem),
+            slowLabel: paceLabel(slowSeconds, unitSystem: unitSystem),
             paceUnitLabel: unitSystem.paceSuffix,
-            endKmLabel: (distanceKm ?? 0) > 0
-                ? App2NumberFormat.grouped(distanceKm ?? 0, maximumFractionDigits: 1)
-                : nil,
             legendLabel: legend,
-            originalPaceLabel: factor > 1 ? paceLabel(seconds, unitSystem: unitSystem) : nil,
-            climateAdjustmentLabel: factor > 1
-                ? String(format: NSLocalizedString("climate.adjustment.pace_pct", comment: ""), adjustmentPct)
-                : nil
+            climateAllowanceLabel: climateAllowanceLabel(
+                prescribedSecondsPerKm: seconds,
+                adjustmentPct: adjustmentPct,
+                unitSystem: unitSystem
+            )
         )
+    }
+
+    /// 「溫度補償 · 每公里可慢 N 秒」。N ＝ 補償後配速 − 處方配速，**依單位制換算**
+    /// （英制是每英里的秒數）。補償沒開、pct ≤ 0 或算出來不足 1 秒都回 nil（整列不出現）。
+    static func climateAllowanceLabel(
+        prescribedSecondsPerKm: Double,
+        adjustmentPct: Double,
+        unitSystem: UnitSystem
+    ) -> String? {
+        guard adjustmentPct > 0 else { return nil }
+        let slackPerKm = prescribedSecondsPerKm * adjustmentPct / 100
+        let slack = Int(unitSystem.convertedPaceSeconds(slackPerKm).rounded())
+        guard slack >= 1 else { return nil }
+        let key = unitSystem == .imperial
+            ? "app2.detail.pace_band_climate_slack_mi"
+            : "app2.detail.pace_band_climate_slack_km"
+        return String(format: NSLocalizedString(key, comment: ""), slack)
     }
 
     /// 輕鬆／恢復課的配速區間（秒／km），裁決（n）的帶寬來源。
@@ -598,8 +605,6 @@ enum App2SessionDetailProjection {
 
     /// 快／慢邊界離處方配速多遠。
     static let boundaryToleranceSeconds: Double = 15
-    /// 目標窗離處方配速多遠。
-    static let windowToleranceSeconds: Double = 10
 
     /// 秒／km → 用戶單位制的配速值（**不含**單位字，單位由 `paceUnitLabel` 給）。
     /// 換算係數走 `UnitSystem`，與 `UnitManager.formatPace` 同一份，不另訂。

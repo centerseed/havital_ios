@@ -16,6 +16,9 @@ struct GaitAnalysisChartView: View {
     var titleFont: Font = AppFont.headline().weight(.semibold)
     var titleColor: Color = .primary
     var drawsContainer: Bool = true
+    var captionFont: Font = AppFont.caption()
+    var captionColor: Color = .secondary
+    var statValueFont: Font = AppFont.bodySmall().weight(.medium)
 
     @State private var selectedGaitTab: GaitTab = .stanceTime
     
@@ -55,7 +58,7 @@ struct GaitAnalysisChartView: View {
         }
     }
     
-    init(stanceTimes: [DataPoint], verticalRatios: [DataPoint], cadences: [DataPoint], isLoading: Bool, error: String?, dataProvider: String? = nil, deviceModel: String? = nil, deviceManufacturer: String? = nil, forceShowStanceTimeTab: Bool = false, titleFont: Font = AppFont.headline().weight(.semibold), titleColor: Color = .primary, drawsContainer: Bool = true) {
+    init(stanceTimes: [DataPoint], verticalRatios: [DataPoint], cadences: [DataPoint], isLoading: Bool, error: String?, dataProvider: String? = nil, deviceModel: String? = nil, deviceManufacturer: String? = nil, forceShowStanceTimeTab: Bool = false, titleFont: Font = AppFont.headline().weight(.semibold), titleColor: Color = .primary, drawsContainer: Bool = true, captionFont: Font = AppFont.caption(), captionColor: Color = .secondary, statValueFont: Font = AppFont.bodySmall().weight(.medium)) {
         self.stanceTimes = stanceTimes
         self.verticalRatios = verticalRatios
         self.cadences = cadences
@@ -68,6 +71,9 @@ struct GaitAnalysisChartView: View {
         self.titleFont = titleFont
         self.titleColor = titleColor
         self.drawsContainer = drawsContainer
+        self.captionFont = captionFont
+        self.captionColor = captionColor
+        self.statValueFont = statValueFont
     }
     
     // MARK: - Data Processing
@@ -246,15 +252,15 @@ struct GaitAnalysisChartView: View {
                 // Current metric description
                 VStack(alignment: .leading, spacing: 8) {
                     Text(selectedGaitTab.description)
-                        .font(AppFont.caption())
-                        .foregroundColor(.secondary)
+                        .font(captionFont)
+                        .foregroundColor(captionColor)
                         .multilineTextAlignment(.leading)
                     
                     // Statistics row
                     HStack(spacing: 24) {
-                        StatItem(title: L10n.GaitAnalysisChart.average.localized, value: currentStats.average, color: selectedGaitTab.color)
-                        StatItem(title: L10n.GaitAnalysisChart.minimum.localized, value: currentStats.min, color: selectedGaitTab.color)
-                        StatItem(title: L10n.GaitAnalysisChart.maximum.localized, value: currentStats.max, color: selectedGaitTab.color)
+                        StatItem(title: L10n.GaitAnalysisChart.average.localized, value: currentStats.average, color: selectedGaitTab.color, titleFont: captionFont, titleColor: captionColor, valueFont: statValueFont)
+                        StatItem(title: L10n.GaitAnalysisChart.minimum.localized, value: currentStats.min, color: selectedGaitTab.color, titleFont: captionFont, titleColor: captionColor, valueFont: statValueFont)
+                        StatItem(title: L10n.GaitAnalysisChart.maximum.localized, value: currentStats.max, color: selectedGaitTab.color, titleFont: captionFont, titleColor: captionColor, valueFont: statValueFont)
                         
                         Spacer()
                     }
@@ -552,15 +558,18 @@ struct StatItem: View {
     let title: String
     let value: String
     let color: Color
-    
+    // App2 復用時對齊宿主頁字型（預設維持 1.4 現狀）
+    var titleFont: Font = AppFont.caption()
+    var titleColor: Color = .secondary
+    var valueFont: Font = AppFont.bodySmall().weight(.medium)
+
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(AppFont.caption())
-                .foregroundColor(.secondary)
+                .font(titleFont)
+                .foregroundColor(titleColor)
             Text(value)
-                .font(AppFont.bodySmall())
-                .fontWeight(.medium)
+                .font(valueFont)
                 .foregroundColor(color)
         }
     }

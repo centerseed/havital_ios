@@ -113,16 +113,10 @@ final class App2WorkoutDetailProjectionTests: XCTestCase {
 
     // MARK: - 組不出值的格子不出現
 
-    func test_metrics_omitsZeroCalories() {
-        let projection = make(workout(basicMetrics: BasicMetrics(caloriesKcal: 0)))
-        XCTAssertFalse(projection.metrics.contains { $0.key == "calories" })
-    }
-
-    func test_metrics_keepsRealCalories() {
+    /// 卡路里整項拿掉（2026-08-27 走查使用者拍板）——有值也不畫。
+    func test_metrics_neverShowsCalories() {
         let projection = make(workout(basicMetrics: BasicMetrics(caloriesKcal: 742)))
-        let calories = projection.metrics.first { $0.key == "calories" }
-        XCTAssertEqual(calories?.value, "742")
-        XCTAssertEqual(calories?.unit, "kcal")
+        XCTAssertFalse(projection.metrics.contains { $0.key == "calories" })
     }
 
     func test_metrics_omitsMissingHeartRate() {
@@ -190,11 +184,11 @@ final class App2WorkoutDetailProjectionTests: XCTestCase {
         XCTAssertFalse(projection.advancedMetrics.contains { $0.key == "rpe" })
     }
 
-    /// 基礎指標磚的順序：距離／時長 · 平均配速／平均心率 · 卡路里／最大心率 · RPE。
+    /// 基礎指標磚的順序：距離／時長 · 平均配速／平均心率 · 最大心率／RPE（無卡路里）。
     func test_metrics_orderAfterReclassification() {
         XCTAssertEqual(
             make(fullyLoadedWorkout()).metrics.map(\.key),
-            ["distance", "duration", "pace", "avg_hr", "calories", "max_hr", "rpe"]
+            ["distance", "duration", "pace", "avg_hr", "max_hr", "rpe"]
         )
     }
 

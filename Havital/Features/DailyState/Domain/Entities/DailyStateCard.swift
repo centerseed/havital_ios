@@ -11,6 +11,9 @@ struct DailyStateCard: Equatable {
     let factType: String?
     let narrativeText: String?        // nil = 鎖/無
     let collapsedReason: String?      // T-0241 收合卡融合理由句;nil = 免費/護欄退 headline
+    /// 付費 synthesis 的擔憂等級(`normal`｜`watch`｜`caution`);免費/steady = nil。
+    /// 2.0 訓練狀況卡的標題顏色跟它走(nil 視同 normal)。
+    var worry: String? = nil
     let chips: [String]               // 佐證(已格式化,可空)
     let causeChips: [String]          // 可能因素(質性)
     let mileageProgression: String?   // 跑量漸進行（免費可見）

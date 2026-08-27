@@ -692,36 +692,25 @@ struct App2SessionPaceBandChart: View {
         VStack(alignment: .leading, spacing: 9) {
             plot
             climateRow
-            footerRow
             legend
         }
     }
 
-    /// 溫度補償列（2026-08-27 走查裁決（n））。帶上的配速已經是補償後的值，
-    /// 這一列講清楚「已含溫度補償」並把**原始處方配速**再標一次 ——
-    /// 裁決要的是兩個值同時可見。沒有補償時整列不出現。
+    /// 溫度補償列（2026-08-27 走查改版）。帶上的配速一律是**原始處方配速**，
+    /// 這一列只講「天氣熱，每公里可以慢多少秒」——整句由投影層算好交進來。
+    /// 沒有補償時整列不出現。
     ///
     /// 熱適應卡的完整說明（等級、體感溫度、建議時段）不受影響，仍在它自己那張卡。
     @ViewBuilder
     private var climateRow: some View {
-        if let adjustment = band.climateAdjustmentLabel {
+        if let allowance = band.climateAllowanceLabel {
             HStack(spacing: 5) {
                 Image(systemName: "thermometer.sun.fill")
                     .font(.system(size: 11, weight: .bold))
                     .foregroundStyle(App2Theme.accentOrangeText)
-                Text(L10n.App2.Detail.paceBandClimate.localized)
+                Text(allowance)
                     .font(.system(size: 11.5, weight: .heavy))
                     .foregroundStyle(App2Theme.accentOrangeText)
-                Text(verbatim: "· \(adjustment)")
-                    .font(.system(size: 11.5, weight: .bold))
-                    .foregroundStyle(App2Theme.inkTertiary)
-                if let original = band.originalPaceLabel {
-                    Text(verbatim: "· "
-                         + NSLocalizedString("climate.original_pace_title", comment: "")
-                         + " \(original)\(band.paceUnitLabel)")
-                        .font(.app2Mono(11.5, weight: .semibold))
-                        .foregroundStyle(App2Theme.inkTertiary)
-                }
                 Spacer(minLength: 0)
             }
             .lineLimit(1)
@@ -788,30 +777,6 @@ struct App2SessionPaceBandChart: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.vertical, 5)
-    }
-
-    // MARK: - 圖下三欄
-
-    private var footerRow: some View {
-        HStack(spacing: 8) {
-            Text(L10n.App2.Detail.paceBandStart.localized + " 0.0")
-                .font(.app2Mono(11, weight: .semibold))
-                .foregroundStyle(App2Theme.inkFaint)
-            Spacer(minLength: 4)
-            Text(L10n.App2.Detail.paceBandHold.localized + " · "
-                 + String(format: L10n.App2.Detail.paceBandWindow.localized, band.windowLabel))
-                .font(.system(size: 12, weight: .heavy))
-                .foregroundStyle(accent.app2Darkened)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Spacer(minLength: 4)
-            if let end = band.endKmLabel {
-                Text(L10n.App2.Detail.paceBandEnd.localized + " \(end) km")
-                    .font(.app2Mono(11, weight: .semibold))
-                    .foregroundStyle(App2Theme.inkFaint)
-            }
-        }
-        .accessibilityIdentifier("App2_SessionPaceBandFooter")
     }
 
     private var legend: some View {

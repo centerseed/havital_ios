@@ -21,7 +21,7 @@ final class DailyStateRepositoryImplTests: XCTestCase {
     func test_returns_mapped_entity() async throws {
         let remote = FakeRemote()
         remote.dto = StateCardDTO(lens: "post", source: "llm", headline: "H", factType: nil,
-            narrativeText: "n", collapsedReason: nil, chips: ["c"], causeChips: [], mileageProgression: nil,
+            narrativeText: "n", collapsedReason: nil, worry: nil, chips: ["c"], causeChips: [], mileageProgression: nil,
             action: nil, divergence: nil,
             access: .init(isPaid: true, locked: false, upsell: nil),
             benchmarkCalibration: nil, insights: nil)

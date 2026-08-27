@@ -2261,12 +2261,6 @@ extension L10n {
             /// 單段課的配速帶（設計 frame-02c）。
             static let paceBandFast = "app2.detail.pace_band_fast"
             static let paceBandSlow = "app2.detail.pace_band_slow"
-            static let paceBandStart = "app2.detail.pace_band_start"
-            static let paceBandEnd = "app2.detail.pace_band_end"
-            static let paceBandHold = "app2.detail.pace_band_hold"
-            static let paceBandWindow = "app2.detail.pace_band_window"
-            /// 配速帶已換算成溫度補償後配速（2026-08-27 走查裁決（n））。
-            static let paceBandClimate = "app2.detail.pace_band_climate"
             /// 訓練結構 header 的「N 段 · M 分鐘」。
             static let structureMeta = "app2.detail.structure_meta"
             /// 單段課結構首列的補充句。

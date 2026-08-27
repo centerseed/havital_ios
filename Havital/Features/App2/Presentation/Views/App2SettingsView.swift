@@ -46,6 +46,9 @@ struct App2SettingsView: View {
     // ——與「方案與訂閱」頁（`App2PlansView`）同一組出口。
 
     @ObservedObject private var subscriptionState = SubscriptionStateManager.shared
+    /// 訂閱卡「兌換優惠碼」（設計稿）的兌換流程 —— 與方案頁同一條。
+    @State private var redemptionMessage: String?
+    private let redemptionCoordinator = OfferRedemptionCoordinator()
     @StateObject private var paywallViewModel = PaywallViewModel(trigger: .settingsTier)
 
     private var subscriptionStatus: SubscriptionStatusEntity? { subscriptionState.currentStatus }
@@ -165,7 +168,9 @@ struct App2SettingsView: View {
     /// 頁首走共用的 `App2PageHeader`（設計 frame-12／20／21 是同一個構造）。
     private var header: some View {
         App2PageHeader(
-            title: L10n.App2.Settings.title.localized,
+            // 入口叫「個人資料」（首頁「…」menu），頁首要跟入口同名
+            // （2026-08-27 走查：點「個人資料」進來標題卻是「設定」）。
+            title: L10n.Profile.title.localized,
             titleSize: 22,
             onBack: onClose,
             backIdentifier: "App2_SettingsClose",
@@ -228,31 +233,56 @@ struct App2SettingsView: View {
                 // 日期與價格各自可缺：兩段都拿不到就整行不出現（不畫空字串）。
                 renewalLine
 
+                // 兩顆鈕**恆在**（設計稿：管理訂閱＝白底藍框、查看方案＝藍底），
+                // 2026-08-27 走查退掉「續訂中只留一顆」的舊裁定 —— 卡片要跟設計稿一致。
                 HStack(spacing: 10) {
                     subscriptionButton(
                         title: L10n.App2.Settings.manageSubscription.localized,
                         filled: false,
-                        bordered: !isRenewing,
                         identifier: "App2_SettingsManageSubscription"
                     ) {
                         guard let url = URL(string: "https://apps.apple.com/account/subscriptions")
                         else { return }
                         UIApplication.shared.open(url)
                     }
-                    // 續訂中只留一顆鈕（設計稿）——「查看方案」在那個狀態沒有事情可做。
-                    // 未訂閱／已到期仍是兩顆（那時「查看方案」是主要動作）。
-                    if !isRenewing {
-                        subscriptionButton(
-                            title: L10n.App2.Settings.viewPlans.localized,
-                            filled: true,
-                            identifier: "App2_SettingsViewPlans"
-                        ) {
-                            destination = .plans
-                        }
+                    subscriptionButton(
+                        title: L10n.App2.Settings.viewPlans.localized,
+                        filled: true,
+                        identifier: "App2_SettingsViewPlans"
+                    ) {
+                        destination = .plans
                     }
                 }
                 .padding(.top, 14)
+
+                // 「兌換優惠碼」置中連結（設計稿）。兌換流程與方案頁同一條
+                // （`OfferRedemptionCoordinator` → Apple 系統 sheet）。
+                Text(L10n.App2.Settings.redeemCode.localized)
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundStyle(App2Theme.accentBlueDeep)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 13)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        Task {
+                            let result = await redemptionCoordinator.redeem(entryPoint: .profile)
+                            redemptionMessage = App2OfferRedemptionMessage.text(for: result)
+                        }
+                    }
+                    .accessibilityAddTraits(.isButton)
+                    .accessibilityIdentifier("App2_SettingsRedeemCode")
             }
+        }
+        .alert(
+            NSLocalizedString("profile.subscription.redeem_alert_title", comment: "Offer Code"),
+            isPresented: Binding(
+                get: { redemptionMessage != nil },
+                set: { if !$0 { redemptionMessage = nil } }
+            )
+        ) {
+            Button(NSLocalizedString("common.ok", comment: "OK")) { redemptionMessage = nil }
+        } message: {
+            Text(redemptionMessage ?? "")
         }
     }
 
@@ -291,8 +321,6 @@ struct App2SettingsView: View {
     private func subscriptionButton(
         title: String,
         filled: Bool,
-        /// 續訂中那顆是**純白底無外框**（設計稿）；未訂閱態的次要鈕仍有藍描邊。
-        bordered: Bool = true,
         identifier: String,
         action: @escaping () -> Void
     ) -> some View {
@@ -308,7 +336,7 @@ struct App2SettingsView: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                     .strokeBorder(
-                        (filled || !bordered) ? Color.clear : App2Theme.accentBlue.opacity(0.32),
+                        filled ? Color.clear : App2Theme.accentBlue.opacity(0.32),
                         lineWidth: 1
                     )
             )
@@ -366,24 +394,31 @@ struct App2SettingsView: View {
 
     // MARK: - 數據來源
 
+    /// **一列**，不是每個來源一列（2026-08-27 走查：兩列點進去都是同一頁，
+    /// 沒必要擺成兩個項目）。列上顯示**目前連接中的來源**；一個都沒連＝「連接」。
     private func dataSourceSection(_ sourced: App2Sourced<App2SettingsSnapshot>) -> some View {
-        let sources = sourced.value.dataSources
+        let connected = sourced.value.dataSources.first { $0.isConnected }
+        let isAppleHealth = connected?.name == "Apple Health"
         return VStack(alignment: .leading, spacing: 9) {
             App2SectionCaption(text: L10n.App2.Settings.dataSourceSection.localized)
                 .padding(.top, 20)
 
             App2GroupedList {
-                ForEach(Array(sources.enumerated()), id: \.element.id) { index, source in
-                    App2SettingsRow(
-                        systemImage: source.name == "Apple Health" ? "heart.fill" : "applewatch",
-                        iconTint: source.name == "Apple Health" ? App2Theme.appleHealthRed : .white,
-                        iconBackground: source.name == "Apple Health"
-                            ? App2Theme.sourceLightTile
-                            : App2Theme.sourceDarkTile,
-                        title: source.name,
-                        showsDivider: index < sources.count - 1
-                    ) {
-                        connectionStatus(source)
+                App2SettingsRow(
+                    systemImage: isAppleHealth ? "heart.fill" : "applewatch",
+                    iconTint: isAppleHealth ? App2Theme.appleHealthRed : .white,
+                    iconBackground: isAppleHealth
+                        ? App2Theme.sourceLightTile
+                        : App2Theme.sourceDarkTile,
+                    title: connected?.name ?? L10n.App2.Settings.dataSourceSection.localized,
+                    showsDivider: false
+                ) {
+                    if let connected {
+                        connectionStatus(connected)
+                    } else {
+                        Text(NSLocalizedString("datasource.connect", comment: "Connect"))
+                            .font(.system(size: 13, weight: .heavy))
+                            .foregroundStyle(App2Theme.accentBlueDeep)
                     }
                 }
             }
@@ -483,6 +518,18 @@ struct App2SettingsView: View {
                 .onTapGesture { destination = .system }
                 .accessibilityAddTraits(.isButton)
                 .accessibilityIdentifier("App2_SettingsTimezoneRow")
+
+                // 英制／公制切換住在「系統」子頁，但首層要有一列讓人找得到
+                // （2026-08-27 走查：「沒看到英制/公制的轉換設定」）。
+                App2SettingsRow(
+                    systemImage: "ruler",
+                    title: L10n.App2.Settings.unitSection.localized,
+                    value: UnitManager.shared.currentUnitSystem.displayName
+                )
+                .contentShape(Rectangle())
+                .onTapGesture { destination = .system }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("App2_SettingsUnitRow")
 
                 App2SettingsRow(
                     systemImage: "thermometer.sun",

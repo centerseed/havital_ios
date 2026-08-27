@@ -60,6 +60,10 @@ struct App2GoalCard: Equatable {
 struct App2TrainingStatus: Equatable {
     /// `StateCard.headline`。
     let headline: String
+    /// `StateCard.worry`（`normal`｜`watch`｜`caution`；免費/steady 為 nil）。
+    /// headline 的顏色跟它走：nil／normal＝深灰、watch＝橘、caution＝紅
+    /// （2026-08-27 走查：headline 不得恆藍）。
+    var worry: String? = nil
     /// `StateCard.narrative_text`；免費用戶為 nil（§3.1 paywall 註記）。
     let narrative: String?
     /// `StateCard.mileage_progression`（跑量漸進敘事，免費也看得到）。
@@ -307,27 +311,21 @@ struct App2SessionStrengthExercise: Identifiable, Equatable {
 ///
 /// 值一律**以秒／km 為準再換算成用戶單位**。
 struct App2SessionPaceBand: Equatable {
-    /// 帶上那顆白 pill 的處方配速（`6:50`）。
+    /// 帶上那顆白 pill 的處方配速（`6:50`）。**一律是原始處方配速** ——
+    /// 溫度補償不改帶上的值，補償額度另外一句話講（2026-08-27 走查改版）。
     let paceLabel: String
     /// 上緣虛線（`6:35`）。
     let fastLabel: String
     /// 下緣虛線（`7:05`）。
     let slowLabel: String
-    /// 圖下中央那句的目標窗（`6:40-7:00`）。
-    let windowLabel: String
-    /// 上面四個值的單位（`/km`／`/mi`）。**值本身不含單位** —— 設計上那個字是分開排版的，
+    /// 上面三個值的單位（`/km`／`/mi`）。**值本身不含單位** —— 設計上那個字是分開排版的，
     /// 而單位由用戶的 `UnitManager` 設定決定，不是寫死公制。
     let paceUnitLabel: String
-    /// 圖下左（`0.0`）／右（`8.0`）。右邊推不出距離時是 `nil`，整個右欄不出現。
-    let endKmLabel: String?
     /// legend chip 的名稱（`輕鬆（穩定）`）——與長條圖的標註列同一支字串。
     let legendLabel: String
-    /// 溫度補償生效時的**原始處方配速**（`6:50`）。裁決（n）要的是原始與補償後同時
-    /// 可見，所以帶上的值換成補償後，原始值從這裡再顯示一次。沒有補償就是 nil。
-    var originalPaceLabel: String? = nil
-    /// 補償幅度（`配速 +5%`，走既有的 `climate.adjustment.pace_pct` 三語）。
+    /// 溫度補償生效時的整句提示（`溫度補償 · 每公里可慢 26 秒`，已依單位制換算）。
     /// 沒有補償就是 nil，整列不出現。
-    var climateAdjustmentLabel: String? = nil
+    var climateAllowanceLabel: String? = nil
 }
 
 /// 訓練詳情的「訓練結構」一列（設計：序號 ＋ 名稱 ＋ 量／配速 ＋ 一句說明）。

@@ -195,7 +195,7 @@ final class App2SessionDetailProjectionTests: XCTestCase {
 
     // MARK: - 配速帶邊界（設計 frame-02c）
 
-    /// 只有「整堂課就一段穩定跑」才有配速帶，邊界＝處方配速 ±15 秒、目標窗 ±10 秒。
+    /// 只有「整堂課就一段穩定跑」才有配速帶，邊界＝處方配速 ±15 秒。
     func test_paceBand_singleSteadyBar_bracketsPrescribedPace() throws {
         let band = try XCTUnwrap(try detail(easyRunDay)?.paceBand)
         let unitSystem = UnitManager.shared.currentUnitSystem
@@ -209,11 +209,6 @@ final class App2SessionDetailProjectionTests: XCTestCase {
         XCTAssertEqual(
             band.slowLabel,
             App2SessionDetailProjection.paceLabel(410 + 15, unitSystem: unitSystem)
-        )
-        XCTAssertEqual(
-            band.windowLabel,
-            App2SessionDetailProjection.paceLabel(400, unitSystem: unitSystem)
-                + "-" + App2SessionDetailProjection.paceLabel(420, unitSystem: unitSystem)
         )
     }
 
@@ -237,11 +232,6 @@ final class App2SessionDetailProjectionTests: XCTestCase {
         )
         XCTAssertEqual(band.fastLabel, App2SessionDetailProjection.paceLabel(400, unitSystem: unitSystem))
         XCTAssertEqual(band.slowLabel, App2SessionDetailProjection.paceLabel(480, unitSystem: unitSystem))
-        XCTAssertEqual(
-            band.windowLabel,
-            App2SessionDetailProjection.paceLabel(400, unitSystem: unitSystem)
-                + "-" + App2SessionDetailProjection.paceLabel(480, unitSystem: unitSystem)
-        )
     }
 
     /// 沒有 VDOT 就沒有「用戶的輕鬆區間」——退回處方 ±15 秒，不本機編一個區間。
@@ -261,11 +251,11 @@ final class App2SessionDetailProjectionTests: XCTestCase {
         XCTAssertNil(App2SessionDetailProjection.easyPaceTrainingType(.tempo))
     }
 
-    // MARK: - 配速帶：溫度補償（2026-08-27 走查裁決（n））
+    // MARK: - 配速帶：溫度補償（2026-08-27 走查改版：帶上一律原配速）
 
-    /// 溫度補償開啟 ＋ 當日帶 `pace_adjustment_pct` → 帶上是補償後配速，
-    /// **原始處方配速同時可見**（裁決（n）對 2026-05「只在溫度補償卡」的放寬）。
-    func test_paceBand_climateAdjustmentEnabled_showsAdjustedAndOriginal() throws {
+    /// 溫度補償開啟 ＋ 當日帶 `pace_adjustment_pct` → 帶上**維持原始處方配速**，
+    /// 補償額度變成「每公里可慢 N 秒」一句話（N ＝ 處方秒數 × pct%，依單位制換算）。
+    func test_paceBand_climateAdjustmentEnabled_keepsOriginalPaceAndShowsSlack() throws {
         let band = try XCTUnwrap(
             try detail(
                 easyRunDay,
@@ -275,19 +265,22 @@ final class App2SessionDetailProjectionTests: XCTestCase {
             )?.paceBand
         )
         let unitSystem = UnitManager.shared.currentUnitSystem
-        // 換算公式與 1.4 熱適應卡同一條：`pace × (1 + pct/100)`。
-        XCTAssertEqual(band.paceLabel, App2SessionDetailProjection.paceLabel(410 * 1.05, unitSystem: unitSystem))
-        XCTAssertEqual(band.fastLabel, App2SessionDetailProjection.paceLabel(400 * 1.05, unitSystem: unitSystem))
-        XCTAssertEqual(band.slowLabel, App2SessionDetailProjection.paceLabel(480 * 1.05, unitSystem: unitSystem))
-        XCTAssertEqual(
-            band.originalPaceLabel,
-            App2SessionDetailProjection.paceLabel(410, unitSystem: unitSystem)
+        XCTAssertEqual(band.paceLabel, App2SessionDetailProjection.paceLabel(410, unitSystem: unitSystem))
+        XCTAssertEqual(band.fastLabel, App2SessionDetailProjection.paceLabel(400, unitSystem: unitSystem))
+        XCTAssertEqual(band.slowLabel, App2SessionDetailProjection.paceLabel(480, unitSystem: unitSystem))
+        let expected = try XCTUnwrap(
+            App2SessionDetailProjection.climateAllowanceLabel(
+                prescribedSecondsPerKm: 410, adjustmentPct: 5, unitSystem: unitSystem
+            )
         )
-        XCTAssertNotNil(band.climateAdjustmentLabel, "要標明已含溫度補償的幅度")
+        XCTAssertEqual(band.climateAllowanceLabel, expected)
+        // 410 × 5% ≈ 21 秒（公制）；句子要含換算後的秒數。
+        if unitSystem == .metric {
+            XCTAssertTrue(expected.contains("21"), "實際句子：\(expected)")
+        }
     }
 
-    /// 溫度補償**關閉**時 `pace_adjustment_pct` 完全不參與 —— 帶上是原始處方配速，
-    /// 也不掛補償註記。
+    /// 溫度補償**關閉**時 `pace_adjustment_pct` 完全不參與。
     func test_paceBand_climateAdjustmentDisabled_ignoresAdjustment() throws {
         let band = try XCTUnwrap(
             try detail(
@@ -299,8 +292,7 @@ final class App2SessionDetailProjectionTests: XCTestCase {
         )
         let unitSystem = UnitManager.shared.currentUnitSystem
         XCTAssertEqual(band.paceLabel, App2SessionDetailProjection.paceLabel(410, unitSystem: unitSystem))
-        XCTAssertNil(band.originalPaceLabel)
-        XCTAssertNil(band.climateAdjustmentLabel)
+        XCTAssertNil(band.climateAllowanceLabel)
     }
 
     /// 涼爽日（`pace_adjustment_pct == 0`）即使開著補償也沒有東西可換算。
@@ -313,8 +305,7 @@ final class App2SessionDetailProjectionTests: XCTestCase {
                 isClimateAdjustmentEnabled: true
             )?.paceBand
         )
-        XCTAssertNil(band.climateAdjustmentLabel)
-        XCTAssertNil(band.originalPaceLabel)
+        XCTAssertNil(band.climateAllowanceLabel)
     }
 
     /// 有暖身／緩和／間歇＝多段，維持長條圖，沒有配速帶。

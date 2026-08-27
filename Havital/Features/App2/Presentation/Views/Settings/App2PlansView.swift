@@ -217,20 +217,7 @@ struct App2PlansView: View {
         Button {
             Task {
                 let result = await redemptionCoordinator.redeem(entryPoint: .profile)
-                switch result {
-                case .success:
-                    redemptionMessage = NSLocalizedString(
-                        "profile.subscription.redeem_success", comment: ""
-                    )
-                case .cancelled:
-                    break
-                case .pendingProcessing:
-                    redemptionMessage = NSLocalizedString(
-                        "paywall.offer_code_pending_processing", comment: ""
-                    )
-                case .failed(let error):
-                    redemptionMessage = error.localizedDescription
-                }
+                redemptionMessage = App2OfferRedemptionMessage.text(for: result)
             }
         } label: {
             HStack(spacing: 10) {
@@ -330,5 +317,23 @@ struct App2PlansView: View {
     private func openAppleSubscriptions() {
         guard let url = URL(string: "https://apps.apple.com/account/subscriptions") else { return }
         UIApplication.shared.open(url)
+    }
+}
+
+// MARK: - 兌換結果 → 提示訊息
+/// 方案頁與設定頁訂閱卡（設計稿的「兌換優惠碼」連結）共用的結果文案對照。
+/// `cancelled` 回 nil ＝ 用戶自己關掉系統 sheet，不彈提示。
+enum App2OfferRedemptionMessage {
+    static func text(for result: PurchaseResultEntity) -> String? {
+        switch result {
+        case .success:
+            return NSLocalizedString("profile.subscription.redeem_success", comment: "")
+        case .cancelled:
+            return nil
+        case .pendingProcessing:
+            return NSLocalizedString("paywall.offer_code_pending_processing", comment: "")
+        case .failed(let error):
+            return error.localizedDescription
+        }
     }
 }

@@ -4,7 +4,7 @@ import XCTest
 final class StateCardMapperTests: XCTestCase {
     private func dto(narrative: String?, chips: [String]?, locked: Bool, mileageProgression: String? = nil) -> StateCardDTO {
         StateCardDTO(lens: "pre", source: "llm", headline: "H", factType: "trait_surfacing",
-            narrativeText: narrative, collapsedReason: nil, chips: chips, causeChips: ["cause-chip"],
+            narrativeText: narrative, collapsedReason: nil, worry: nil, chips: chips, causeChips: ["cause-chip"],
             mileageProgression: mileageProgression,
             action: .init(kind: "affirm",
                           sessionRef: .init(runType: "easy", distanceKm: 12, pace: "6:45"),
@@ -48,7 +48,7 @@ final class StateCardMapperTests: XCTestCase {
         d = StateCardDTO(lens: d.lens, source: d.source, headline: d.headline, factType: d.factType,
                          narrativeText: d.narrativeText,
                          collapsedReason: "Take it easy today - 34 km this week already",
-                         chips: d.chips, causeChips: d.causeChips,
+                         worry: nil, chips: d.chips, causeChips: d.causeChips,
                          mileageProgression: d.mileageProgression, action: d.action,
                          divergence: d.divergence, access: d.access, benchmarkCalibration: nil, insights: nil)
         let e = StateCardMapper.toEntity(from: d)

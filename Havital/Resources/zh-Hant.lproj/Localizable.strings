@@ -502,6 +502,7 @@
 "workout.detail.no_heart_rate_data" = "無心率資料";
 "workout.detail.gait_analysis" = "步態分析";
 "workout.detail.no_gait_data" = "無步態資料";
+"workout.detail.basic_metrics" = "基礎指標";
 "workout.detail.advanced_metrics" = "進階指標";
 "workout.detail.heart_rate_zones" = "心率區間分佈";
 "workout.detail.pace_zones" = "配速區間分佈";
@@ -4493,11 +4494,8 @@
 "app2.detail.purpose_more" = "看完整說明";
 "app2.detail.pace_band_fast" = "快";
 "app2.detail.pace_band_slow" = "慢";
-"app2.detail.pace_band_start" = "起";
-"app2.detail.pace_band_end" = "終";
-"app2.detail.pace_band_hold" = "全程維持";
-"app2.detail.pace_band_window" = "目標窗 %@";
-"app2.detail.pace_band_climate" = "已含溫度補償";
+"app2.detail.pace_band_climate_slack_km" = "溫度補償 · 每公里可慢 %d 秒";
+"app2.detail.pace_band_climate_slack_mi" = "溫度補償 · 每英里可慢 %d 秒";
 "app2.detail.structure_meta" = "%1$d 段 · %2$d 分鐘";
 "app2.detail.structure_steady_note" = "無間歇、無休息，保持均速即可";
 "app2.detail.structure_note_threshold" = "連續不中斷，維持穩定閾值配速";

@@ -513,6 +513,7 @@
 "workout.detail.no_heart_rate_data" = "No Heart Rate Data";
 "workout.detail.gait_analysis" = "Gait Analysis";
 "workout.detail.no_gait_data" = "No Gait Data";
+"workout.detail.basic_metrics" = "Basic Metrics";
 "workout.detail.advanced_metrics" = "Advanced Metrics";
 "workout.detail.heart_rate_zones" = "Heart Rate Zone Distribution";
 "workout.detail.pace_zones" = "Pace Zone Distribution";
@@ -4452,11 +4453,8 @@
 "app2.detail.purpose_more" = "Read the full explanation";
 "app2.detail.pace_band_fast" = "fast";
 "app2.detail.pace_band_slow" = "slow";
-"app2.detail.pace_band_start" = "start";
-"app2.detail.pace_band_end" = "end";
-"app2.detail.pace_band_hold" = "Hold throughout";
-"app2.detail.pace_band_window" = "target window %@";
-"app2.detail.pace_band_climate" = "Heat-adjusted";
+"app2.detail.pace_band_climate_slack_km" = "Heat adjustment · OK to run %d s/km slower";
+"app2.detail.pace_band_climate_slack_mi" = "Heat adjustment · OK to run %d s/mi slower";
 "app2.detail.structure_meta" = "%1$d phases · %2$d min";
 "app2.detail.structure_steady_note" = "No intervals, no rests — just keep it even.";
 "app2.detail.structure_note_threshold" = "Continuous — hold a steady threshold pace.";

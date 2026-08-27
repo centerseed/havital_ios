@@ -12,6 +12,8 @@ struct StateCardDTO: Codable {
     let narrativeText: String?
     /// T-0241 收合卡融合理由句(建議＋因為＋真實數字);免費/護欄 fallback → nil。
     let collapsedReason: String?
+    /// 付費 synthesis 的擔憂等級:`normal`｜`watch`｜`caution`;免費/steady → nil。
+    let worry: String?
     let chips: [String]?
     let causeChips: [String]?
     let mileageProgression: String?
@@ -28,7 +30,7 @@ struct StateCardDTO: Codable {
     let insights: [InsightDTO]?
 
     enum CodingKeys: String, CodingKey {
-        case lens, source, headline, chips, action, divergence, access, insights
+        case lens, source, headline, chips, action, divergence, access, insights, worry
         case factType = "fact_type"
         case narrativeText = "narrative_text"
         case collapsedReason = "collapsed_reason"

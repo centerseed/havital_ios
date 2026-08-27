@@ -35,8 +35,8 @@ struct App2WorkoutDetailProjection: Equatable {
 
     // MARK: - 基礎指標
 
-    /// 距離／時長／平均配速／平均心率／卡路里／最大心率／RPE
-    /// （2026-08-27（l）（m）使用者重分類：**進階三項不在這裡**）。
+    /// 距離／時長／平均配速／平均心率／最大心率／RPE
+    /// （2026-08-27（l）（m）使用者重分類：**進階三項不在這裡**；卡路里已拿掉）。
     let metrics: [Metric]
 
     // MARK: - Rizo 教練分析（課表 vs 實際）
@@ -171,7 +171,6 @@ extension App2WorkoutDetailProjection {
         // detail 優先（它是校正／裁剪後的值），沒有才用清單那筆。
         let distanceM = basic?.totalDistanceM ?? workout.distanceMeters
         let durationS = basic?.totalDurationS ?? workout.durationSeconds
-        let calories = basic?.caloriesKcal ?? workout.basicMetrics?.caloriesKcal
         let paceSPerKm = basic?.avgPaceSPerKm ?? workout.displayPaceSecondsPerKm
         let avgHR = basic?.avgHeartRateBpm ?? workout.basicMetrics?.avgHeartRateBpm
         let maxHR = basic?.maxHeartRateBpm ?? workout.basicMetrics?.maxHeartRateBpm
@@ -179,8 +178,8 @@ extension App2WorkoutDetailProjection {
         let vdotValue = advanced?.dynamicVdot ?? workout.advancedMetrics?.dynamicVdot
         let tssValue = advanced?.tss ?? workout.advancedMetrics?.tss
 
-        // 基礎指標磚的順序（2026-08-27（m）重分類後的 frame-02f 2 欄磚）：
-        // 距離／時長 · 平均配速／平均心率 · 卡路里／最大心率 · RPE。
+        // 基礎指標磚的順序（2026-08-27（m）重分類）：
+        // 距離／時長 · 平均配速／平均心率 · 最大心率／RPE（卡路里已拿掉）。
         // **跑力 VDOT 與訓練負荷 TSS 不在這裡**——它們搬到進階指標區（見下）。
         var metrics: [Metric] = []
         if let distanceM, distanceM > 0 {
@@ -215,21 +214,8 @@ extension App2WorkoutDetailProjection {
                 )
             )
         }
-        // 0 kcal 是「沒算出來」，不是「這趟燒了 0 大卡」——不畫這一格。
-        //
-        // **`caloriesKcal` 永遠不是 nil**：`BasicMetrics.caloriesKcal` 的實作是
-        // `Int(_caloriesKcal?.value ?? 0)`，欄位缺席時回 0 而不是 nil。所以只看
-        // `!= nil` 會畫出一格「0 kcal」，一定要看值。
-        if let calories, calories >= 1 {
-            metrics.append(
-                Metric(
-                    key: "calories",
-                    label: NSLocalizedString("workout.metrics.calories", comment: "卡路里"),
-                    value: "\(calories)",
-                    unit: "kcal"
-                )
-            )
-        }
+        // 卡路里不畫（2026-08-27 走查：使用者拍板拿掉——訓練詳情看的是課表達成，
+        // 不是消耗量）。
         if let maxHR, maxHR > 0 {
             metrics.append(
                 Metric(
