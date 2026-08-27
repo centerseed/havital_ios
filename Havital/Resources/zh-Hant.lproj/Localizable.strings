@@ -4497,6 +4497,7 @@
 "app2.detail.pace_band_end" = "終";
 "app2.detail.pace_band_hold" = "全程維持";
 "app2.detail.pace_band_window" = "目標窗 %@";
+"app2.detail.pace_band_climate" = "已含溫度補償";
 "app2.detail.structure_meta" = "%1$d 段 · %2$d 分鐘";
 "app2.detail.structure_steady_note" = "無間歇、無休息，保持均速即可";
 "app2.detail.structure_note_threshold" = "連續不中斷，維持穩定閾值配速";
@@ -4540,11 +4541,12 @@
 "app2.workout_detail.activity_trail" = "越野跑";
 "app2.workout_detail.activity_track" = "田徑場";
 
-"app2.plan.title" = "訓練課表";
+"app2.plan.title" = "課表";
 "app2.plan.generate_week" = "產生本週課表";
 "app2.plan.generating_week" = "課表產生中…";
 "app2.plan.generate_failed" = "產生本週課表失敗";
 "app2.plan.complete_review_first" = "先完成週回顧";
+"app2.plan.open_weekly_review" = "查看這一週的回顧";
 "app2.plan.volume_title" = "本週跑量";
 "app2.plan.today" = "今日";
 "app2.records.title" = "訓練紀錄";
@@ -4821,6 +4823,7 @@
 "app2.weekly_review.apply_to_next_week" = "套用 %d 項到下週課表";
 "app2.weekly_review.applied" = "已套用到下週課表";
 "app2.weekly_review.not_generated_body" = "這一週的回顧還沒產生。";
+"app2.weekly_review.history_not_generated_body" = "這一週沒有產生過回顧。";
 "app2.weekly_review.generate" = "產生週回顧";
 "app2.weekly_review.generation_window_closed" = "這一週還不能產生回顧，要等這一週跑完。";
 "app2.weekly_review.quota_title" = "Rizo 用量已達上限";

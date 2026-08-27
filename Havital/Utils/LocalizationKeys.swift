@@ -2265,6 +2265,8 @@ extension L10n {
             static let paceBandEnd = "app2.detail.pace_band_end"
             static let paceBandHold = "app2.detail.pace_band_hold"
             static let paceBandWindow = "app2.detail.pace_band_window"
+            /// 配速帶已換算成溫度補償後配速（2026-08-27 走查裁決（n））。
+            static let paceBandClimate = "app2.detail.pace_band_climate"
             /// 訓練結構 header 的「N 段 · M 分鐘」。
             static let structureMeta = "app2.detail.structure_meta"
             /// 單段課結構首列的補充句。
@@ -2355,6 +2357,8 @@ extension L10n {
             static let applied = "app2.weekly_review.applied"
 
             static let notGeneratedBody = "app2.weekly_review.not_generated_body"
+            /// 歷史週唯讀回看且那一週沒有回顧（2026-08-27 走查裁決（q））。
+            static let historyNotGeneratedBody = "app2.weekly_review.history_not_generated_body"
             static let generate = "app2.weekly_review.generate"
             static let generationWindowClosed = "app2.weekly_review.generation_window_closed"
             static let quotaTitle = "app2.weekly_review.quota_title"
@@ -2381,6 +2385,8 @@ extension L10n {
             static let generateFailed = "app2.plan.generate_failed"
             /// 上週回顧未完成時的 CTA（2026-08-27 晚走查裁決（k））。
             static let completeReviewFirst = "app2.plan.complete_review_first"
+            /// header 的週回顧入口（2026-08-27 走查裁決（q））。
+            static let openWeeklyReview = "app2.plan.open_weekly_review"
         }
 
         /// 訓練計畫總覽（設計 frame-20）。

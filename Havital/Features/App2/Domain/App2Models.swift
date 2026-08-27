@@ -297,10 +297,15 @@ struct App2SessionStrengthExercise: Identifiable, Equatable {
 /// 為什麼不是長條圖：一段課的長條圖只有一根柱，看不出任何「變化」，圖裡沒有資訊。
 /// 配速帶把同一組數字換成「你要落在這個窗裡」——上緣是快邊界、下緣是慢邊界。
 ///
-/// **邊界的來源**：後端 payload 目前沒有配速區間欄位（`primary` 只有 `pace`／
-/// `base_pace`／`climate_adjusted_pace`，2026-08-26 dev 實測 `e1289e60f251_1`），
-/// 所以邊界＝處方配速 ±15 秒、目標窗＝±10 秒（**以秒／km 為準再換算成用戶單位**）。
-/// 後端補上區間欄位後改讀那個欄位。
+/// **邊界的來源**（2026-08-27 走查裁決（n））：
+/// - 輕鬆跑／恢復跑 → 用戶自己的配速區間（`PaceCalculator.getPaceRange(for:vdot:)`，
+///   與設定頁「配速區間」同一支）。原本的 ±15 秒窄窗是 client 寫死的，跟用戶實際
+///   跑得動的輕鬆區間無關。
+/// - 其餘課型 → 仍是處方配速 ±15 秒、目標窗 ±10 秒（後端 payload 沒有配速區間欄位：
+///   `primary` 只有 `pace`／`base_pace`／`climate_adjusted_pace`，2026-08-26 dev
+///   實測 `e1289e60f251_1`）。後端補上區間欄位後改讀那個欄位。
+///
+/// 值一律**以秒／km 為準再換算成用戶單位**。
 struct App2SessionPaceBand: Equatable {
     /// 帶上那顆白 pill 的處方配速（`6:50`）。
     let paceLabel: String
@@ -317,6 +322,12 @@ struct App2SessionPaceBand: Equatable {
     let endKmLabel: String?
     /// legend chip 的名稱（`輕鬆（穩定）`）——與長條圖的標註列同一支字串。
     let legendLabel: String
+    /// 溫度補償生效時的**原始處方配速**（`6:50`）。裁決（n）要的是原始與補償後同時
+    /// 可見，所以帶上的值換成補償後，原始值從這裡再顯示一次。沒有補償就是 nil。
+    var originalPaceLabel: String? = nil
+    /// 補償幅度（`配速 +5%`，走既有的 `climate.adjustment.pace_pct` 三語）。
+    /// 沒有補償就是 nil，整列不出現。
+    var climateAdjustmentLabel: String? = nil
 }
 
 /// 訓練詳情的「訓練結構」一列（設計：序號 ＋ 名稱 ＋ 量／配速 ＋ 一句說明）。

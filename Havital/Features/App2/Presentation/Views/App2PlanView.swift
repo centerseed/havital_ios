@@ -117,6 +117,7 @@ struct App2PlanView: View {
         .fullScreenCover(item: $weeklyReviewWeek) { target in
             App2WeeklyReviewView(
                 weekOfPlan: target.weekOfPlan,
+                isReadOnly: target.isReadOnly,
                 onClose: {
                     weeklyReviewWeek = nil
                     // 回顧做完之後 `next_action` 會從 `create_summary` 變成 `create_plan`，
@@ -207,38 +208,94 @@ struct App2PlanView: View {
     // MARK: - Header（標題 ＋ 週次切換器）
 
     private var header: some View {
-        App2PageHeader(title: L10n.App2.Plan.title.localized) {
-            // 結束卡在畫時：**整組週次切換器與鉛筆鈕都不出現**（設計 frame-00g2（c）
-            // 的 header 只有標題＋副句）。歷史回看時切換器回來（那些週確實存在，
-            // 只是不再是「本週」），但鉛筆**不會**跟著回來 —— 判準是
-            // `allowsEditing`（裁決（b）：結束了就一路唯讀）。
-            if !viewModel.showsPlanEnd {
-                HStack(spacing: 5) {
-                    // 本週模式的週次切換仍然停用：`/v2/plan/status` 只給 current_week。
-                    // 歷史模式才走得動（走 `getWeeklyPlan(weekOfTraining:overviewId:)`）。
-                    weekStepButton(symbol: "chevron.left", enabled: viewModel.canGoPreviousHistoryWeek) {
-                        Task { await viewModel.goToHistoryWeek(offset: -1) }
+        App2PageHeader(
+            title: L10n.App2.Plan.title.localized,
+            centre: {
+                // 週次切換器置中（2026-08-27 走查裁決（q））。
+                // 結束卡在畫時整組不出現（設計 frame-00g2（c）的 header 只有標題＋副句）；
+                // 歷史回看時回來 —— 那些週確實存在，只是不再是「本週」。
+                if !viewModel.showsPlanEnd { weekStepper }
+            },
+            trailing: {
+                // 鉛筆**不隨歷史模式回來** —— 判準是 `allowsEditing`
+                //（裁決（b）：結束了就一路唯讀）。
+                if !viewModel.showsPlanEnd {
+                    HStack(spacing: 5) {
+                        weeklyReviewButton
+                        if viewModel.allowsEditing { editButton }
                     }
-                    .accessibilityIdentifier("App2_PlanWeekPrevious")
-                    HStack(alignment: .firstTextBaseline, spacing: 0) {
-                        Text(weekLabelText)
-                            .font(.system(size: 15, weight: .black))
-                            .foregroundStyle(App2Theme.inkPrimary)
-                        if let total = shownTotalWeeks {
-                            Text(verbatim: " / \(total)")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(App2Theme.inkMuted)
-                        }
-                    }
-                    .frame(minWidth: 76)
-                    .accessibilityIdentifier("App2_PlanWeekLabel")
-                    weekStepButton(symbol: "chevron.right", enabled: viewModel.canGoNextHistoryWeek) {
-                        Task { await viewModel.goToHistoryWeek(offset: 1) }
-                    }
-                    .accessibilityIdentifier("App2_PlanWeekNext")
-                    if viewModel.allowsEditing { editButton }
                 }
             }
+        )
+    }
+
+    /// `‹ 第 7 週 / 12 ›`。本週模式的左右鍵停用：`/v2/plan/status` 只給 current_week，
+    /// 歷史模式才走得動（`getWeeklyPlan(weekOfTraining:overviewId:)`）。
+    private var weekStepper: some View {
+        HStack(spacing: 5) {
+            weekStepButton(symbol: "chevron.left", enabled: viewModel.canGoPreviousHistoryWeek) {
+                Task { await viewModel.goToHistoryWeek(offset: -1) }
+            }
+            .accessibilityIdentifier("App2_PlanWeekPrevious")
+            HStack(alignment: .firstTextBaseline, spacing: 0) {
+                Text(weekLabelText)
+                    .font(.system(size: 15, weight: .black))
+                    .foregroundStyle(App2Theme.inkPrimary)
+                if let total = shownTotalWeeks {
+                    Text(verbatim: " / \(total)")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(App2Theme.inkMuted)
+                }
+            }
+            .frame(minWidth: 76)
+            .accessibilityIdentifier("App2_PlanWeekLabel")
+            weekStepButton(symbol: "chevron.right", enabled: viewModel.canGoNextHistoryWeek) {
+                Task { await viewModel.goToHistoryWeek(offset: 1) }
+            }
+            .accessibilityIdentifier("App2_PlanWeekNext")
+        }
+    }
+
+    // MARK: - 週回顧入口（2026-08-27 走查裁決（q））
+
+    /// 鉛筆左邊那一顆：點進**當前所選那一週**的週回顧。
+    ///
+    /// 起因是裁決（q）記的那句「現在沒有任何地方能看之前的週回顧」——歷史週的回顧
+    /// 生成完就再也回不去了。
+    ///
+    /// **不造第二條路**：開的是既有的 `App2WeeklyReviewView`（同首頁 CTA、同課表頁
+    /// 未產生態 CTA 那一頁），資料走既有的 `getWeeklySummary(weekOfPlan:)`
+    /// ＝ `GET /v2/summary/weekly`。
+    ///
+    /// **不先探測那一週有沒有回顧**：探測就得多打一次同一支端點，而那一頁本來就有
+    /// 「還沒產生」的正常態（`App2WeeklyReviewViewModel.meansNotGeneratedYet`：
+    /// 404 與產生視窗未開都不是錯誤）。歷史週進去是唯讀 —— 那一頁的「產生」走的是
+    /// `generateWeeklySummary()`，它產的是**當週**，對過去那一週按下去只會產錯週。
+    @ViewBuilder
+    private var weeklyReviewButton: some View {
+        if let week = viewModel.selectedWeekOfPlan {
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(App2Theme.cardBackground)
+                .frame(width: 30, height: 30)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .stroke(App2Theme.cardBorder, lineWidth: 1)
+                )
+                .overlay(
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundStyle(App2Theme.accentBlueDeep)
+                )
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    weeklyReviewWeek = App2WeeklyReviewTarget(
+                        weekOfPlan: week,
+                        isReadOnly: viewModel.isHistoryMode
+                    )
+                }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel(L10n.App2.Plan.openWeeklyReview.localized)
+                .accessibilityIdentifier("App2_PlanWeeklyReviewButton")
         }
     }
 

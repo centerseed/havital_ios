@@ -4453,6 +4453,7 @@
 "app2.detail.pace_band_end" = "終了";
 "app2.detail.pace_band_hold" = "全区間キープ";
 "app2.detail.pace_band_window" = "目標レンジ %@";
+"app2.detail.pace_band_climate" = "暑熱補正込み";
 "app2.detail.structure_meta" = "%1$d 区間 · %2$d 分";
 "app2.detail.structure_steady_note" = "インターバルも休息もなし、一定ペースで。";
 "app2.detail.structure_note_threshold" = "中断なしで、安定した閾値ペースを維持";
@@ -4496,11 +4497,12 @@
 "app2.workout_detail.activity_trail" = "トレイルランニング";
 "app2.workout_detail.activity_track" = "トラック";
 
-"app2.plan.title" = "トレーニングプラン";
+"app2.plan.title" = "プラン";
 "app2.plan.generate_week" = "今週のプランを作成";
 "app2.plan.generating_week" = "作成中…";
 "app2.plan.generate_failed" = "今週のプランを作成できませんでした";
 "app2.plan.complete_review_first" = "先に週次レビューを完了";
+"app2.plan.open_weekly_review" = "この週のレビューを見る";
 "app2.plan.volume_title" = "今週の走行距離";
 "app2.plan.today" = "今日";
 "app2.records.title" = "トレーニング記録";
@@ -4777,6 +4779,7 @@
 "app2.weekly_review.apply_to_next_week" = "%d 件を来週の計画に反映";
 "app2.weekly_review.applied" = "来週の計画に反映しました";
 "app2.weekly_review.not_generated_body" = "この週のレビューはまだ作成されていません。";
+"app2.weekly_review.history_not_generated_body" = "この週のレビューは作成されていません。";
 "app2.weekly_review.generate" = "週次レビューを作成";
 "app2.weekly_review.generation_window_closed" = "この週のレビューはまだ作成できません。週が終わってから作成できるようになります。";
 "app2.weekly_review.quota_title" = "Rizo の利用上限に達しました";

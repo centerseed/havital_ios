@@ -691,8 +691,42 @@ struct App2SessionPaceBandChart: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
             plot
+            climateRow
             footerRow
             legend
+        }
+    }
+
+    /// 溫度補償列（2026-08-27 走查裁決（n））。帶上的配速已經是補償後的值，
+    /// 這一列講清楚「已含溫度補償」並把**原始處方配速**再標一次 ——
+    /// 裁決要的是兩個值同時可見。沒有補償時整列不出現。
+    ///
+    /// 熱適應卡的完整說明（等級、體感溫度、建議時段）不受影響，仍在它自己那張卡。
+    @ViewBuilder
+    private var climateRow: some View {
+        if let adjustment = band.climateAdjustmentLabel {
+            HStack(spacing: 5) {
+                Image(systemName: "thermometer.sun.fill")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(App2Theme.accentOrangeText)
+                Text(L10n.App2.Detail.paceBandClimate.localized)
+                    .font(.system(size: 11.5, weight: .heavy))
+                    .foregroundStyle(App2Theme.accentOrangeText)
+                Text(verbatim: "· \(adjustment)")
+                    .font(.system(size: 11.5, weight: .bold))
+                    .foregroundStyle(App2Theme.inkTertiary)
+                if let original = band.originalPaceLabel {
+                    Text(verbatim: "· "
+                         + NSLocalizedString("climate.original_pace_title", comment: "")
+                         + " \(original)\(band.paceUnitLabel)")
+                        .font(.app2Mono(11.5, weight: .semibold))
+                        .foregroundStyle(App2Theme.inkTertiary)
+                }
+                Spacer(minLength: 0)
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .accessibilityIdentifier("App2_SessionPaceBandClimate")
         }
     }
 

@@ -414,7 +414,10 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             .flatMap {
                 App2SessionDetailProjection.detail(
                     day: $0,
-                    weekStart: App2WeekCalendar.currentWeekStart()
+                    weekStart: App2WeekCalendar.currentWeekStart(),
+                    // 配速帶的溫度補償（裁決（n））要今天的氣候，走 `WeeklyPlanV2` 的
+                    // UI 唯一入口，不在這裡自己解 `climate_meta`。
+                    climateDay: plan.climate(forDayIndex: todayIndex)
                 )
             }
     }

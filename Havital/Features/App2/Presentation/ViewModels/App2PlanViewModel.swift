@@ -67,6 +67,11 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         return current - 1
     }
 
+    /// 現在畫的是**哪一週**。歷史模式＝那一週，否則＝本週。
+    /// header 的週回顧鈕用它決定要開哪一週的回顧（2026-08-27 走查裁決（q））。
+    /// 推不出週次（plan status 還沒回來）時 nil，那顆鈕就不出現。
+    var selectedWeekOfPlan: Int? { historyWeek ?? latestPlanStatus?.currentWeek }
+
     private(set) var hasLoaded = false
     private(set) var lastLoadedAt: Date?
 
@@ -378,8 +383,13 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         )
         dayDetails = Dictionary(
             uniqueKeysWithValues: plan.days.compactMap { day -> (Int, App2SessionDetail)? in
-                guard let detail = App2SessionDetailProjection.detail(day: day, weekStart: start)
-                else { return nil }
+                guard let detail = App2SessionDetailProjection.detail(
+                    day: day,
+                    weekStart: start,
+                    // 氣候的 UI 唯一入口（`climate[7]` 優先、缺席退 legacy `climate_meta`）。
+                    // 配速帶的溫度補償要它（裁決（n））。
+                    climateDay: plan.climate(forDayIndex: day.dayIndex)
+                ) else { return nil }
                 return (day.dayIndex, detail)
             }
         )
@@ -395,8 +405,11 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         let weekStart = App2WeekCalendar.currentWeekStart()
         dayDetails = Dictionary(
             uniqueKeysWithValues: plan.days.compactMap { day -> (Int, App2SessionDetail)? in
-                guard let detail = App2SessionDetailProjection.detail(day: day, weekStart: weekStart)
-                else { return nil }
+                guard let detail = App2SessionDetailProjection.detail(
+                    day: day,
+                    weekStart: weekStart,
+                    climateDay: plan.climate(forDayIndex: day.dayIndex)
+                ) else { return nil }
                 return (day.dayIndex, detail)
             }
         )

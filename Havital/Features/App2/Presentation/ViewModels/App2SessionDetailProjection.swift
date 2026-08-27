@@ -18,10 +18,21 @@ import Foundation
 enum App2SessionDetailProjection {
 
     /// 休息日不進詳情（設計沒有休息日的詳情版式；點下去只會看到一頁空卡）。
+    ///
+    /// - Parameters:
+    ///   - climateDay: 這一天的氣候。呼叫端一律給 `WeeklyPlanV2.climate(forDayIndex:)`
+    ///     的結果 —— 那是氣候的 UI 唯一入口（`climate[7]` 優先、缺席才退 legacy
+    ///     `climate_meta`）。只有配速帶的溫度補償用它（裁決（n））。
+    ///   - vdot: 用戶 VDOT。nil ＝ 現場向 `VDOTManager` 要（測試才會明給）。
+    ///   - isClimateAdjustmentEnabled: 溫度補償開關。nil ＝ 讀既有的
+    ///     `ClimateAdjustmentSyncStore`（1.4 `climateAdjustmentEnabled` 同一個 key）。
     static func detail(
         day: DayDetail,
         weekStart: Date,
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        climateDay: ClimateDay? = nil,
+        vdot: Double? = nil,
+        isClimateAdjustmentEnabled: Bool? = nil
     ) -> App2SessionDetail? {
         let primary = day.session?.primary
         let dayType = primary == nil ? DayType.rest : App2PlanViewModel.dayType(primary)
@@ -73,7 +84,15 @@ enum App2SessionDetailProjection {
                 ?? durationSeconds.map { Int(($0 / 60).rounded()) },
             phaseCount: max(segments.count, 1),
             structureBars: bars,
-            paceBand: paceBand(bars: bars, distanceKm: distanceKm),
+            paceBand: paceBand(
+                bars: bars,
+                distanceKm: distanceKm,
+                dayType: dayType,
+                vdot: vdot ?? nonZeroVDOT(),
+                climate: climateDay,
+                isClimateAdjustmentEnabled: isClimateAdjustmentEnabled
+                    ?? (ClimateAdjustmentSyncStore.read() ?? false)
+            ),
             // 逐日敘述只在證明得出它仍對應現在這一天時才交出去。
             goalText: isDayNarrativeConsistent(day: day) ? nonEmpty(day.dayTarget) : nil,
             // **`reason` 一律不顯示。** 它與 `day_target` 是分開生成的兩段，
@@ -88,6 +107,13 @@ enum App2SessionDetailProjection {
             showsFuelingNote: showsFuelingNote(dayType: dayType, durationMinutes: durationMinutes),
             isRunSession: isRun
         )
+    }
+
+    /// 用戶 VDOT。`VDOTManager` 沒有值時給 0，這裡把 0 當成「沒有」——
+    /// 拿 0 去算配速區間會得到荒謬的配速。
+    private static func nonZeroVDOT() -> Double? {
+        let value = VDOTManager.shared.currentVDOT
+        return value > 0 ? value : nil
     }
 
     // MARK: - Hero
@@ -480,11 +506,22 @@ enum App2SessionDetailProjection {
     /// 只有**整堂課就一段穩定跑**時才有配速帶（設計 frame-02c）。
     /// 有暖身／緩和／間歇＝多段，維持長條圖。
     ///
-    /// 邊界目前用處方配速 ±15 秒、目標窗 ±10 秒 —— payload 沒有配速區間欄位
-    /// （見 `App2SessionPaceBand` 的註解）。
+    /// 邊界有兩種來源（2026-08-27 走查裁決（n））：
+    /// - **輕鬆跑／恢復跑**：用戶自己的配速區間（`easyPaceRangeSeconds`，與設定頁
+    ///   「配速區間」同一支 `PaceCalculator.getPaceRange(for:vdot:)`）。處方配速仍是
+    ///   帶上那顆 pill —— 換掉的是帶寬，不是處方。
+    /// - **其餘課型**：維持處方配速 ±15 秒、目標窗 ±10 秒（payload 沒有配速區間欄位）。
+    ///
+    /// 溫度補償開啟且當日帶 `pace_adjustment_pct` 時，整條帶（pill 與上下緣）都換算成
+    /// 補償後配速，原始處方配速改由 `originalPaceLabel` 一起交出去 —— 裁決（n）要的是
+    /// 兩個值同時可見，不是拿補償後把原始蓋掉。
     static func paceBand(
         bars: [App2SessionStructureBar],
-        distanceKm: Double?
+        distanceKm: Double?,
+        dayType: DayType? = nil,
+        vdot: Double? = nil,
+        climate: ClimateDay? = nil,
+        isClimateAdjustmentEnabled: Bool = false
     ) -> App2SessionPaceBand? {
         guard bars.count == 1,
               let bar = bars.first,
@@ -494,22 +531,69 @@ enum App2SessionDetailProjection {
               let legend = bar.noteLabel
         else { return nil }
 
+        var fastSeconds = seconds - boundaryToleranceSeconds
+        var slowSeconds = seconds + boundaryToleranceSeconds
+        var windowFastSeconds = seconds - windowToleranceSeconds
+        var windowSlowSeconds = seconds + windowToleranceSeconds
+        if let range = easyPaceRangeSeconds(dayType: dayType, vdot: vdot) {
+            // 處方配速落在區間外時把帶撐開到含住它 —— 否則 pill 會畫在自己的帶外面。
+            fastSeconds = min(range.fast, seconds)
+            slowSeconds = max(range.slow, seconds)
+            windowFastSeconds = fastSeconds
+            windowSlowSeconds = slowSeconds
+        }
+
+        // 溫度補償：`pace × (1 + pct/100)`，與 1.4 熱適應卡
+        // （`ClimateDay.climateAdjustedPace(forBasePace:)`）同一條公式，不另算一份。
+        let adjustmentPct = isClimateAdjustmentEnabled ? (climate?.paceAdjustmentPct ?? 0) : 0
+        let factor = adjustmentPct > 0 ? 1 + adjustmentPct / 100 : 1
+
         // 配速一律換算成用戶的單位制。這幾格原本一律當公制、由圖表寫死 `/km` 補單位，
         // 英制用戶看到的是「公里配速掛著 /km」（2026-08-26 架構收斂順修）。
         // 值本身不含單位，單位由 `paceUnitLabel` 交給圖表 —— 設計上那個字是分開排版的。
         let unitSystem = UnitManager.shared.currentUnitSystem
         return App2SessionPaceBand(
-            paceLabel: paceLabel(seconds, unitSystem: unitSystem),
-            fastLabel: paceLabel(seconds - boundaryToleranceSeconds, unitSystem: unitSystem),
-            slowLabel: paceLabel(seconds + boundaryToleranceSeconds, unitSystem: unitSystem),
-            windowLabel: paceLabel(seconds - windowToleranceSeconds, unitSystem: unitSystem)
-                + "-" + paceLabel(seconds + windowToleranceSeconds, unitSystem: unitSystem),
+            paceLabel: paceLabel(seconds * factor, unitSystem: unitSystem),
+            fastLabel: paceLabel(fastSeconds * factor, unitSystem: unitSystem),
+            slowLabel: paceLabel(slowSeconds * factor, unitSystem: unitSystem),
+            windowLabel: paceLabel(windowFastSeconds * factor, unitSystem: unitSystem)
+                + "-" + paceLabel(windowSlowSeconds * factor, unitSystem: unitSystem),
             paceUnitLabel: unitSystem.paceSuffix,
             endKmLabel: (distanceKm ?? 0) > 0
                 ? App2NumberFormat.grouped(distanceKm ?? 0, maximumFractionDigits: 1)
                 : nil,
-            legendLabel: legend
+            legendLabel: legend,
+            originalPaceLabel: factor > 1 ? paceLabel(seconds, unitSystem: unitSystem) : nil,
+            climateAdjustmentLabel: factor > 1
+                ? String(format: NSLocalizedString("climate.adjustment.pace_pct", comment: ""), adjustmentPct)
+                : nil
         )
+    }
+
+    /// 輕鬆／恢復課的配速區間（秒／km），裁決（n）的帶寬來源。
+    ///
+    /// **與設定頁「配速區間」同一支** `PaceCalculator.getPaceRange(for:vdot:)`
+    /// （`App2PaceZoneSettingsView.paceText(for:)` 也是它）——不在這裡另訂第二份區間。
+    /// 沒有 VDOT、課型不是輕鬆／恢復、或區間退化成一個點時回 nil，帶就退回處方 ±15 秒。
+    static func easyPaceRangeSeconds(dayType: DayType?, vdot: Double?) -> (fast: Double, slow: Double)? {
+        guard let vdot, vdot > 0,
+              let trainingType = easyPaceTrainingType(dayType),
+              let range = PaceCalculator.getPaceRange(for: trainingType, vdot: vdot),
+              let fast = PaceFormatterHelper.paceToSeconds(range.min),
+              let slow = PaceFormatterHelper.paceToSeconds(range.max),
+              slow > fast
+        else { return nil }
+        return (fast: fast, slow: slow)
+    }
+
+    /// 課型 → `PaceCalculator` 的訓練類型鍵。**只有輕鬆跑與恢復跑**適用裁決（n）；
+    /// 其餘課型（長跑、節奏、閾值…）維持處方窄窗，不在這裡擴充。
+    static func easyPaceTrainingType(_ dayType: DayType?) -> String? {
+        switch dayType {
+        case .easy, .easyRun:  return "easy"
+        case .recovery_run:    return "recovery"
+        default:               return nil
+        }
     }
 
     /// 快／慢邊界離處方配速多遠。

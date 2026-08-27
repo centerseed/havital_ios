@@ -5,6 +5,8 @@ import SwiftUI
 /// 包一層而不是給 `Int` 加 `Identifiable` extension —— 那會汙染全 app 的 `Int`。
 struct App2WeeklyReviewTarget: Identifiable, Equatable {
     let weekOfPlan: Int
+    /// 歷史週的唯讀回看（2026-08-27 走查裁決（q））。見 `App2WeeklyReviewView.isReadOnly`。
+    var isReadOnly: Bool = false
     var id: Int { weekOfPlan }
 }
 
@@ -20,6 +22,13 @@ struct App2WeeklyReviewView: View {
     let onClose: () -> Void
     /// 套用建議後通知呼叫端刷新（下週課表換了，首頁的卡要跟著換）。
     var onApplied: (() -> Void)?
+    /// 歷史週的唯讀回看（2026-08-27 走查裁決（q）：課表頁 header 的週回顧入口）。
+    ///
+    /// 唯讀時收掉兩個寫入動作：
+    /// - 「產生回顧」——`generateWeeklySummary()` 產的是**當週**，對過去那一週按下去
+    ///   會產錯週；那一週沒有回顧就是沒有，說清楚即可。
+    /// - 「套用到下週課表」——過去那一週的建議套到下週是錯的時間軸。
+    private let isReadOnly: Bool
 
     @State private var tab: Tab = .review
 
@@ -35,8 +44,14 @@ struct App2WeeklyReviewView: View {
         }
     }
 
-    init(weekOfPlan: Int, onClose: @escaping () -> Void, onApplied: (() -> Void)? = nil) {
+    init(
+        weekOfPlan: Int,
+        isReadOnly: Bool = false,
+        onClose: @escaping () -> Void,
+        onApplied: (() -> Void)? = nil
+    ) {
         _viewModel = StateObject(wrappedValue: App2WeeklyReviewViewModel(weekOfPlan: weekOfPlan))
+        self.isReadOnly = isReadOnly
         self.onClose = onClose
         self.onApplied = onApplied
     }
@@ -60,7 +75,9 @@ struct App2WeeklyReviewView: View {
             content
 
             // 「套用到下週課表」只在規劃分頁出現 —— 回顧分頁沒有可套用的東西。
-            if tab == .plan, let projection = viewModel.projection, !projection.suggestions.isEmpty {
+            // 歷史週唯讀回看也沒有（裁決（q））。
+            if !isReadOnly, tab == .plan, let projection = viewModel.projection,
+               !projection.suggestions.isEmpty {
                 applyFooter
             }
         }
@@ -156,24 +173,32 @@ struct App2WeeklyReviewView: View {
     }
 
     /// 這一週還沒有回顧。**這不是錯誤畫面** —— 只是還沒按產生。
+    ///
+    /// 唯讀回看（歷史週）沒有產生鈕：那顆鈕產的是當週，對過去那一週按下去會產錯週。
     private var generatePrompt: some View {
         VStack(spacing: 14) {
             Spacer()
             Image(systemName: "chart.line.uptrend.xyaxis")
                 .font(.system(size: 34, weight: .semibold))
                 .foregroundStyle(App2Theme.accentBlue)
-            Text(L10n.App2.WeeklyReview.notGeneratedBody.localized)
-                .font(.app2Body)
-                .foregroundStyle(App2Theme.inkTertiary)
-                .multilineTextAlignment(.center)
-            primaryButton(
-                title: L10n.App2.WeeklyReview.generate.localized,
-                isBusy: viewModel.isLoading,
-                identifier: "App2_WeeklyReviewGenerate"
-            ) {
-                Task { await viewModel.generate() }
+            Text(
+                isReadOnly
+                    ? L10n.App2.WeeklyReview.historyNotGeneratedBody.localized
+                    : L10n.App2.WeeklyReview.notGeneratedBody.localized
+            )
+            .font(.app2Body)
+            .foregroundStyle(App2Theme.inkTertiary)
+            .multilineTextAlignment(.center)
+            if !isReadOnly {
+                primaryButton(
+                    title: L10n.App2.WeeklyReview.generate.localized,
+                    isBusy: viewModel.isLoading,
+                    identifier: "App2_WeeklyReviewGenerate"
+                ) {
+                    Task { await viewModel.generate() }
+                }
+                .padding(.horizontal, App2Theme.pagePadding)
             }
-            .padding(.horizontal, App2Theme.pagePadding)
             Spacer()
         }
         .accessibilityIdentifier("App2_WeeklyReviewNotGenerated")

@@ -28,11 +28,40 @@ final class App2SessionDetailProjectionTests: XCTestCase {
     /// 固定的週一（UTC），讓日期斷言不隨執行日漂移。
     private let weekStart = Date(timeIntervalSince1970: 1_754_784_000)
 
-    private func detail(_ json: String) throws -> App2SessionDetail? {
+    /// `vdot: 0` ＝ 這個帳號沒有 VDOT（`App2SessionDetailProjection` 對 0 的處置與缺席
+    /// 相同）。**測試一律明給**，不然配速帶會跟著執行機器上的 `VDOTManager` 漂。
+    private func detail(
+        _ json: String,
+        vdot: Double = 0,
+        climateDay: ClimateDay? = nil,
+        isClimateAdjustmentEnabled: Bool = false
+    ) throws -> App2SessionDetail? {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .current
         return App2SessionDetailProjection.detail(
-            day: try day(json), weekStart: weekStart, calendar: calendar
+            day: try day(json),
+            weekStart: weekStart,
+            calendar: calendar,
+            climateDay: climateDay,
+            vdot: vdot,
+            isClimateAdjustmentEnabled: isClimateAdjustmentEnabled
+        )
+    }
+
+    /// 熱調整（`climate[7]` 的一天）。只有 `paceAdjustmentPct` 對配速帶有意義。
+    private func climate(pct: Double) -> ClimateDay {
+        ClimateDay(
+            dayIndex: 2,
+            date: "2026-08-11",
+            feelsLikeTempC: 32,
+            heatPressureLevel: "moderate",
+            paceAdjustmentPct: pct,
+            longRunKeepRatio: nil,
+            reasonText: "體感偏熱",
+            source: nil,
+            warningLabel: nil,
+            regionKey: nil,
+            suggestedTrainingWindows: []
         )
     }
 
@@ -48,6 +77,14 @@ final class App2SessionDetailProjectionTests: XCTestCase {
       "primary": { "run_type": "easy", "distance_km": 8.0, "pace": "6:50",
                    "duration_minutes": 55, "target_intensity": "low",
                    "description": "輕鬆跑" } }
+    """
+
+    /// 單段節奏跑：同樣是一整塊 steady，但**不是**輕鬆／恢復課。`5:00` ＝ 300 秒／km。
+    private let tempoSteadyDay = """
+    { "day_index": 4, "day_target": "節奏跑", "reason": "乳酸閾值", "distance_km": 8.0,
+      "primary": { "run_type": "tempo", "distance_km": 8.0, "pace": "5:00",
+                   "duration_minutes": 40, "target_intensity": "medium",
+                   "description": "節奏跑" } }
     """
 
     /// **後端對間歇課不送 `segments[]`**（dev 實測）：只有 `primary.interval`。
@@ -178,6 +215,106 @@ final class App2SessionDetailProjectionTests: XCTestCase {
             App2SessionDetailProjection.paceLabel(400, unitSystem: unitSystem)
                 + "-" + App2SessionDetailProjection.paceLabel(420, unitSystem: unitSystem)
         )
+    }
+
+    // MARK: - 配速帶：輕鬆跑取用戶配速區間（2026-08-27 走查裁決（n））
+
+    /// 輕鬆跑的帶寬改成**用戶自己的輕鬆配速區間**，不是處方 ±15 秒的窄窗。
+    ///
+    /// VDOT 32 的輕鬆區間是 `6:40`–`8:00`（`PaceCalculator.getPaceRange(for:"easy",…)`，
+    /// 與設定頁「配速區間」同一支），處方 `6:50` 落在區間內 —— pill 仍標處方配速。
+    func test_paceBand_easyRun_usesUserEasyPaceRange() throws {
+        let band = try XCTUnwrap(try detail(easyRunDay, vdot: 32)?.paceBand)
+        let unitSystem = UnitManager.shared.currentUnitSystem
+        let range = try XCTUnwrap(PaceCalculator.getPaceRange(for: "easy", vdot: 32))
+        XCTAssertEqual(range.min, "6:40")
+        XCTAssertEqual(range.max, "8:00")
+
+        XCTAssertEqual(
+            band.paceLabel,
+            App2SessionDetailProjection.paceLabel(410, unitSystem: unitSystem),
+            "處方配速仍標在帶上"
+        )
+        XCTAssertEqual(band.fastLabel, App2SessionDetailProjection.paceLabel(400, unitSystem: unitSystem))
+        XCTAssertEqual(band.slowLabel, App2SessionDetailProjection.paceLabel(480, unitSystem: unitSystem))
+        XCTAssertEqual(
+            band.windowLabel,
+            App2SessionDetailProjection.paceLabel(400, unitSystem: unitSystem)
+                + "-" + App2SessionDetailProjection.paceLabel(480, unitSystem: unitSystem)
+        )
+    }
+
+    /// 沒有 VDOT 就沒有「用戶的輕鬆區間」——退回處方 ±15 秒，不本機編一個區間。
+    func test_paceBand_easyRunWithoutVDOT_fallsBackToPrescribedWindow() throws {
+        let band = try XCTUnwrap(try detail(easyRunDay, vdot: 0)?.paceBand)
+        let unitSystem = UnitManager.shared.currentUnitSystem
+        XCTAssertEqual(band.fastLabel, App2SessionDetailProjection.paceLabel(410 - 15, unitSystem: unitSystem))
+        XCTAssertEqual(band.slowLabel, App2SessionDetailProjection.paceLabel(410 + 15, unitSystem: unitSystem))
+    }
+
+    /// **只有輕鬆跑／恢復跑**適用裁決（n）。節奏跑有 VDOT 也維持處方窄窗。
+    func test_paceBand_nonEasyDayType_keepsPrescribedWindow() throws {
+        let band = try XCTUnwrap(try detail(tempoSteadyDay, vdot: 32)?.paceBand)
+        let unitSystem = UnitManager.shared.currentUnitSystem
+        XCTAssertEqual(band.fastLabel, App2SessionDetailProjection.paceLabel(300 - 15, unitSystem: unitSystem))
+        XCTAssertEqual(band.slowLabel, App2SessionDetailProjection.paceLabel(300 + 15, unitSystem: unitSystem))
+        XCTAssertNil(App2SessionDetailProjection.easyPaceTrainingType(.tempo))
+    }
+
+    // MARK: - 配速帶：溫度補償（2026-08-27 走查裁決（n））
+
+    /// 溫度補償開啟 ＋ 當日帶 `pace_adjustment_pct` → 帶上是補償後配速，
+    /// **原始處方配速同時可見**（裁決（n）對 2026-05「只在溫度補償卡」的放寬）。
+    func test_paceBand_climateAdjustmentEnabled_showsAdjustedAndOriginal() throws {
+        let band = try XCTUnwrap(
+            try detail(
+                easyRunDay,
+                vdot: 32,
+                climateDay: climate(pct: 5),
+                isClimateAdjustmentEnabled: true
+            )?.paceBand
+        )
+        let unitSystem = UnitManager.shared.currentUnitSystem
+        // 換算公式與 1.4 熱適應卡同一條：`pace × (1 + pct/100)`。
+        XCTAssertEqual(band.paceLabel, App2SessionDetailProjection.paceLabel(410 * 1.05, unitSystem: unitSystem))
+        XCTAssertEqual(band.fastLabel, App2SessionDetailProjection.paceLabel(400 * 1.05, unitSystem: unitSystem))
+        XCTAssertEqual(band.slowLabel, App2SessionDetailProjection.paceLabel(480 * 1.05, unitSystem: unitSystem))
+        XCTAssertEqual(
+            band.originalPaceLabel,
+            App2SessionDetailProjection.paceLabel(410, unitSystem: unitSystem)
+        )
+        XCTAssertNotNil(band.climateAdjustmentLabel, "要標明已含溫度補償的幅度")
+    }
+
+    /// 溫度補償**關閉**時 `pace_adjustment_pct` 完全不參與 —— 帶上是原始處方配速，
+    /// 也不掛補償註記。
+    func test_paceBand_climateAdjustmentDisabled_ignoresAdjustment() throws {
+        let band = try XCTUnwrap(
+            try detail(
+                easyRunDay,
+                vdot: 32,
+                climateDay: climate(pct: 5),
+                isClimateAdjustmentEnabled: false
+            )?.paceBand
+        )
+        let unitSystem = UnitManager.shared.currentUnitSystem
+        XCTAssertEqual(band.paceLabel, App2SessionDetailProjection.paceLabel(410, unitSystem: unitSystem))
+        XCTAssertNil(band.originalPaceLabel)
+        XCTAssertNil(band.climateAdjustmentLabel)
+    }
+
+    /// 涼爽日（`pace_adjustment_pct == 0`）即使開著補償也沒有東西可換算。
+    func test_paceBand_comfortableDay_hasNoAdjustment() throws {
+        let band = try XCTUnwrap(
+            try detail(
+                easyRunDay,
+                vdot: 32,
+                climateDay: climate(pct: 0),
+                isClimateAdjustmentEnabled: true
+            )?.paceBand
+        )
+        XCTAssertNil(band.climateAdjustmentLabel)
+        XCTAssertNil(band.originalPaceLabel)
     }
 
     /// 有暖身／緩和／間歇＝多段，維持長條圖，沒有配速帶。

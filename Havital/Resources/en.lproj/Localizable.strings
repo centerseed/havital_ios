@@ -4456,6 +4456,7 @@
 "app2.detail.pace_band_end" = "end";
 "app2.detail.pace_band_hold" = "Hold throughout";
 "app2.detail.pace_band_window" = "target window %@";
+"app2.detail.pace_band_climate" = "Heat-adjusted";
 "app2.detail.structure_meta" = "%1$d phases · %2$d min";
 "app2.detail.structure_steady_note" = "No intervals, no rests — just keep it even.";
 "app2.detail.structure_note_threshold" = "Continuous — hold a steady threshold pace.";
@@ -4499,11 +4500,12 @@
 "app2.workout_detail.activity_trail" = "Trail Run";
 "app2.workout_detail.activity_track" = "Track Run";
 
-"app2.plan.title" = "Training plan";
+"app2.plan.title" = "Plan";
 "app2.plan.generate_week" = "Generate this week's plan";
 "app2.plan.generating_week" = "Generating…";
 "app2.plan.generate_failed" = "Could not generate this week's plan";
 "app2.plan.complete_review_first" = "Complete weekly review first";
+"app2.plan.open_weekly_review" = "View this week's review";
 "app2.plan.volume_title" = "This week's volume";
 "app2.plan.today" = "Today";
 "app2.records.title" = "Training log";
@@ -4780,6 +4782,7 @@
 "app2.weekly_review.apply_to_next_week" = "Apply %d to next week";
 "app2.weekly_review.applied" = "Applied to next week's plan";
 "app2.weekly_review.not_generated_body" = "This week's review hasn't been generated yet.";
+"app2.weekly_review.history_not_generated_body" = "No review was generated for this week.";
 "app2.weekly_review.generate" = "Generate Weekly Review";
 "app2.weekly_review.generation_window_closed" = "This week's review can't be generated yet — it becomes available once the week is over.";
 "app2.weekly_review.quota_title" = "Rizo Usage Limit Reached";

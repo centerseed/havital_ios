@@ -41,7 +41,12 @@ enum App2Tab: String, CaseIterable, Identifiable {
 /// **被推出來的頁**（設定 frame-21、訓練計畫 frame-20、賽事管理 frame-12）第一列多一顆
 /// 34×34 的白底返回鍵，其餘構造完全一樣 —— 所以是同一個型別多一個選填的 `onBack`，
 /// 不是第二個 header。
-struct App2PageHeader<Trailing: View>: View {
+///
+/// `centre` 是選填的**置中**內容（課表頁的週次切換器，2026-08-27 走查裁決（q））。
+/// 它是 overlay 而不是 HStack 的第三格 —— 標題與右側動作的寬度不對稱，排進 HStack
+/// 只會「看起來像置中」。沒給 `centre` 的頁面（14 個呼叫點裡的其他 13 個）走
+/// `Centre == EmptyView` 那支 init，簽名與原本一模一樣。
+struct App2PageHeader<Centre: View, Trailing: View>: View {
     let title: String
     /// 設計 frame-20 的標題是 19px，tab 頁與賽事管理是 24px。
     var titleSize: CGFloat = 24
@@ -56,7 +61,27 @@ struct App2PageHeader<Trailing: View>: View {
     /// （2026-08-25 maestro 實測：訓練計畫總覽的返回鍵與「調整」都變成
     /// `App2_PlanOverviewView`，於是一顆都點不到）。
     var titleIdentifier: String?
+    /// 置中內容（選填）。
+    @ViewBuilder let centre: () -> Centre
     @ViewBuilder let trailing: () -> Trailing
+
+    init(
+        title: String,
+        titleSize: CGFloat = 24,
+        onBack: (() -> Void)? = nil,
+        backIdentifier: String? = nil,
+        titleIdentifier: String? = nil,
+        @ViewBuilder centre: @escaping () -> Centre,
+        @ViewBuilder trailing: @escaping () -> Trailing
+    ) {
+        self.title = title
+        self.titleSize = titleSize
+        self.onBack = onBack
+        self.backIdentifier = backIdentifier
+        self.titleIdentifier = titleIdentifier
+        self.centre = centre
+        self.trailing = trailing
+    }
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
@@ -90,6 +115,29 @@ struct App2PageHeader<Trailing: View>: View {
             Spacer(minLength: 8)
             trailing()
         }
+        .overlay(alignment: .center) { centre() }
         .padding(.horizontal, 4)
+    }
+}
+
+extension App2PageHeader where Centre == EmptyView {
+    /// 沒有置中內容的頁面用這一支 —— 簽名與加 `centre` 之前完全相同。
+    init(
+        title: String,
+        titleSize: CGFloat = 24,
+        onBack: (() -> Void)? = nil,
+        backIdentifier: String? = nil,
+        titleIdentifier: String? = nil,
+        @ViewBuilder trailing: @escaping () -> Trailing
+    ) {
+        self.init(
+            title: title,
+            titleSize: titleSize,
+            onBack: onBack,
+            backIdentifier: backIdentifier,
+            titleIdentifier: titleIdentifier,
+            centre: { EmptyView() },
+            trailing: trailing
+        )
     }
 }
