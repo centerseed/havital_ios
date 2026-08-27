@@ -509,7 +509,9 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             // 設計 frame-01 的週次切換器是「第 N 週 / M」，不是裸數字。
             // 「第 N 週」三語已有（1.x 週次選單在用同一條），不另開 app2 命名空間的重複字串。
             weekLabel: String(format: L10n.WeekSelector.weekNumber.localized, weekNumber),
-            totalWeeks: plan.totalWeeks ?? planStatus.totalWeeks,
+            // planStatus 優先：per-week doc 的 total_weeks 是生成當下的快照，計畫改期後
+            // 不回填（dev 實測第 1 週 doc 停在 6、現行計畫是 7 → 歷史回看標成「第 1 週 / 6」）。
+            totalWeeks: planStatus.totalWeeks ?? plan.totalWeeks,
             targetDistanceKm: plan.totalDistance,
             completedDistanceKm: completedKm,
             intensityLowMinutes: plan.intensityTotalMinutes.map { Int($0.low.rounded()) },

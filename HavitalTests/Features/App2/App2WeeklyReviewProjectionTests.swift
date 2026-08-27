@@ -159,15 +159,14 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
     /// `weekly_story` 缺席時退成完成度評語 —— 那也是後端寫的句子，不是 client 拼的。
     func test_story_fallsBackToCompletionEvaluation() {
         let projection = App2WeeklyReviewProjection.make(summary())
-        XCTAssertNil(projection.storyHeadline)
         XCTAssertEqual(projection.storyBody, "全達成")
     }
 
+    /// `thread` 是機器分類 key（dev 實測值 `campaign`），不得上畫面。
     func test_story_usesWeeklyStoryWhenPresent() {
         let projection = App2WeeklyReviewProjection.make(
-            summary(story: WeeklyStory(text: "本文", thread: "大標", callback: nil))
+            summary(story: WeeklyStory(text: "本文", thread: "campaign", callback: nil))
         )
-        XCTAssertEqual(projection.storyHeadline, "大標")
         XCTAssertEqual(projection.storyBody, "本文")
     }
 

@@ -82,6 +82,29 @@ struct App2WeeklyReviewView: View {
             }
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
+        // 套用成功的回饋。VM 一直有在發 `toast`，但這裡先前沒有渲染它 ——
+        // 按下「套用」畫面毫無反應，只有 Firestore 知道成功了。
+        .overlay(alignment: .bottom) {
+            if let toast = viewModel.toast {
+                Text(toast)
+                    .font(.system(size: 14, weight: .heavy))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 11)
+                    .background(Capsule().fill(App2Theme.inkPrimary.opacity(0.92)))
+                    .padding(.bottom, 96)
+                    .transition(.opacity)
+                    .accessibilityIdentifier("App2_WeeklyReviewToast")
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: viewModel.toast)
+        .onChange(of: viewModel.toast) { _, value in
+            guard value != nil else { return }
+            Task {
+                try? await Task.sleep(nanoseconds: 2_200_000_000)
+                viewModel.toast = nil
+            }
+        }
         .task { await viewModel.loadIfNeeded() }
         .alert(
             L10n.App2.WeeklyReview.quotaTitle.localized,
@@ -252,13 +275,6 @@ struct App2WeeklyReviewView: View {
                 .font(.system(size: 13, weight: .heavy))
                 .tracking(1.2)
                 .foregroundStyle(App2Theme.accentBlueDeep)
-            if let headline = projection.storyHeadline {
-                Text(headline)
-                    .font(.system(size: 22, weight: .black))
-                    .foregroundStyle(App2Theme.inkPrimary)
-                    .lineSpacing(3)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
             if let body = projection.storyBody {
                 Text(body)
                     .font(.system(size: 14, weight: .semibold))
@@ -289,15 +305,18 @@ struct App2WeeklyReviewView: View {
                                 .font(.system(size: 12, weight: .bold))
                                 .foregroundStyle(App2Theme.inkMuted)
                         }
-                        if let footnote = stat.footnote {
-                            Text(footnote)
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundStyle(App2Theme.inkTertiary)
-                                .padding(.leading, 4)
-                        }
                     }
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
+                    // footnote 自成一行：跟數值擠同一行時（`planned 15.6 km`）
+                    // 在兩欄格寬裡一定被截尾。
+                    if let footnote = stat.footnote {
+                        Text(footnote)
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(App2Theme.inkTertiary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 14)
@@ -423,7 +442,13 @@ struct App2WeeklyReviewView: View {
             }
             .padding(.top, 4)
             .contentShape(Rectangle())
-            .onTapGesture { viewModel.toggle(suggestionIndex: suggestion.index) }
+            // 唯讀回看不可切換：footer 已收掉，能切卻送不出去是死路（切了也只會被
+            // 靜默丟棄）。
+            .onTapGesture {
+                guard !isReadOnly else { return }
+                viewModel.toggle(suggestionIndex: suggestion.index)
+            }
+            .opacity(isReadOnly ? 0.55 : 1)
             .accessibilityAddTraits(.isButton)
         }
         .accessibilityIdentifier("App2_WeeklyReviewSuggestion_\(suggestion.index)")

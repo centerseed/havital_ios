@@ -743,7 +743,6 @@ final class App2HomeProjectionTests: XCTestCase {
         let projection = App2WeeklyReviewProjection.make(WeeklySummaryV2Mapper.toEntity(from: dto))
 
         XCTAssertEqual(projection.storyBody, "本週是排定的休息週", "null 敘事要退到完成度評語")
-        XCTAssertNil(projection.storyHeadline)
         XCTAssertTrue(projection.highlights.isEmpty)
         XCTAssertTrue(projection.observations.isEmpty)
         XCTAssertTrue(projection.analysisNotes.isEmpty)

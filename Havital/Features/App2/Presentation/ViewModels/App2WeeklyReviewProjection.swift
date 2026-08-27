@@ -24,9 +24,9 @@ struct App2WeeklyReviewProjection: Equatable {
 
     /// `第 5 週`
     let weekKicker: String
-    /// 敘事卡的大標。組不出來就沒有大標（不編一句）。
-    let storyHeadline: String?
-    /// 敘事卡的內文（`weekly_story.text`）。
+    /// 敘事卡的內文（`weekly_story.text`）。設計稿的大標沒有對應欄位——
+    /// `weekly_story.thread` 是機器分類 key（`campaign` 之類），不是顯示文字，
+    /// 1.4 也只渲染 `text`。沒有就沒有大標，不拿 key 充數。
     let storyBody: String?
     /// 本週成績格（總距離／跑次／完成率）。
     let stats: [Stat]
@@ -90,7 +90,6 @@ extension App2WeeklyReviewProjection {
                 format: L10n.App2.WeeklyReview.weekKicker.localized,
                 summary.weekOfTraining
             ),
-            storyHeadline: summary.weeklyStory?.thread?.app2NonEmpty,
             // `weekly_story` 是 LLM 產的敘事，沒有時退成完成度評語 —— 那也是後端寫的
             // 句子，不是 client 端拼的。
             storyBody: summary.weeklyStory?.text?.app2NonEmpty
