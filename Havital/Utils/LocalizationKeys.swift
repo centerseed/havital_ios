@@ -2379,6 +2379,8 @@ extension L10n {
             static let generateWeek = "app2.plan.generate_week"
             static let generatingWeek = "app2.plan.generating_week"
             static let generateFailed = "app2.plan.generate_failed"
+            /// 上週回顧未完成時的 CTA（2026-08-27 晚走查裁決（k））。
+            static let completeReviewFirst = "app2.plan.complete_review_first"
         }
 
         /// 訓練計畫總覽（設計 frame-20）。

@@ -780,11 +780,11 @@ final class App2PlanEndStoryFixtureTests: XCTestCase {
 @MainActor
 final class App2PlanGenerateWeekTests: XCTestCase {
 
-    private func planStatus(planId: String?) -> PlanStatusV2Response {
+    private func planStatus(planId: String?, nextAction: String? = nil) -> PlanStatusV2Response {
         PlanStatusV2Response(
             currentWeek: 2,
             totalWeeks: 6,
-            nextAction: planId == nil ? "generate_weekly_plan" : "view_plan",
+            nextAction: nextAction ?? (planId == nil ? "create_plan" : "view_plan"),
             canGenerateNextWeek: true,
             currentWeekPlanId: planId,
             previousWeekSummaryId: nil,
@@ -854,6 +854,46 @@ final class App2PlanGenerateWeekTests: XCTestCase {
         XCTAssertFalse(viewModel.isPlanGenerated)
         XCTAssertFalse(viewModel.isGeneratingPlan, "失敗之後不得卡在 loading")
         XCTAssertNotNil(viewModel.generateError)
+    }
+
+    // MARK: - CTA 依 next_action 分流（2026-08-27 晚走查裁決（k））
+
+    /// `create_summary`（上週回顧未生成，`service.py:1242`）→ CTA 語意換成週回顧，
+    /// **且按下去不得呼叫 generate**（那條路在這個狀態下只會走進失敗重試）。
+    func test_needsWeeklySummary_routesToReviewAndSkipsGenerate() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.planStatusToReturn = planStatus(planId: nil, nextAction: "create_summary")
+
+        let viewModel = makeViewModel(repository)
+        await viewModel.revalidate()
+
+        XCTAssertFalse(viewModel.isPlanGenerated, "本週沒有課表 → 未產生態")
+        XCTAssertTrue(viewModel.requiresWeeklyReviewBeforeGenerate, "CTA 要換成「先完成週回顧」")
+        // 目標是上一週（current_week 2 → 第 1 週的回顧）。
+        XCTAssertEqual(viewModel.weeklyReviewTargetWeek, 1)
+
+        let ok = await viewModel.generateCurrentWeekPlan()
+        XCTAssertFalse(ok)
+        XCTAssertEqual(repository.generateWeeklyPlanCallCount, 0, "不得呼叫產生課表")
+        XCTAssertNil(viewModel.generateError, "沒送出請求就不該有失敗訊息")
+    }
+
+    /// 其他未產生態（`create_plan`）維持原行為：CTA 是「產生本週課表」，按下去真的產。
+    func test_createPlanAction_keepsGenerateCTA() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.planStatusToReturn = planStatus(planId: nil, nextAction: "create_plan")
+        repository.weeklyPlanV2ToReturn = weeklyPlan()
+
+        let viewModel = makeViewModel(repository)
+        await viewModel.revalidate()
+
+        XCTAssertFalse(viewModel.requiresWeeklyReviewBeforeGenerate)
+        XCTAssertNil(viewModel.weeklyReviewTargetWeek)
+
+        repository.planStatusToReturn = planStatus(planId: "e1289e60f251_2")
+        let ok = await viewModel.generateCurrentWeekPlan()
+        XCTAssertTrue(ok)
+        XCTAssertEqual(repository.generateWeeklyPlanCallCount, 1)
     }
 }
 

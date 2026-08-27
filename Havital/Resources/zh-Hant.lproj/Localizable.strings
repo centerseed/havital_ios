@@ -4544,6 +4544,7 @@
 "app2.plan.generate_week" = "產生本週課表";
 "app2.plan.generating_week" = "課表產生中…";
 "app2.plan.generate_failed" = "產生本週課表失敗";
+"app2.plan.complete_review_first" = "先完成週回顧";
 "app2.plan.volume_title" = "本週跑量";
 "app2.plan.today" = "今日";
 "app2.records.title" = "訓練紀錄";

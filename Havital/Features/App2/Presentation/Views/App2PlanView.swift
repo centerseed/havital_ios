@@ -21,6 +21,9 @@ struct App2PlanView: View {
     /// 結束態的兩個目的地。與首頁那兩個是同一頁、同一條既有流程，不是這一頁專屬的。
     @State private var isShowingPeriodSummary = false
     @State private var isShowingReonboarding = false
+    /// 「先完成週回顧」開的那一頁（裁決（k））。**與首頁週回顧 CTA 同一條入口**
+    /// （`App2HomeView` 的 `weeklyReviewWeek`），不是課表頁專屬的第二條路。
+    @State private var weeklyReviewWeek: App2WeeklyReviewTarget?
 
     var body: some View {
         ScrollView {
@@ -111,6 +114,18 @@ struct App2PlanView: View {
                 )
             }
         }
+        .fullScreenCover(item: $weeklyReviewWeek) { target in
+            App2WeeklyReviewView(
+                weekOfPlan: target.weekOfPlan,
+                onClose: {
+                    weeklyReviewWeek = nil
+                    // 回顧做完之後 `next_action` 會從 `create_summary` 變成 `create_plan`，
+                    // CTA 要跟著換回「產生本週課表」——所以關閉就重驗。
+                    Task { await viewModel.forceRefresh() }
+                },
+                onApplied: { Task { await viewModel.forceRefresh() } }
+            )
+        }
         .fullScreenCover(isPresented: $isShowingReonboarding) {
             App2OnboardingContainerView(isReonboarding: true) {
                 isShowingReonboarding = false
@@ -138,11 +153,19 @@ struct App2PlanView: View {
     /// 生成要數十秒，所以按下去就換成 loading 態並擋住重複點擊
     /// （`isGeneratingPlan` 由 VM 持有，不是 view 自己的 `@State` ——
     /// 換 tab 回來時 view 會重建，本機旗標會把 loading 態弄丟）。
+    ///
+    /// 裁決（k）：後端說「先做上週回顧」（`next_action == create_summary`）時，
+    /// 這顆鈕換成「先完成週回顧」並導去週回顧頁 —— **不呼叫 generate**，
+    /// 那條路在這個狀態下只會走進失敗重試。
     private var generatePlanButton: some View {
         HStack(spacing: 8) {
             if viewModel.isGeneratingPlan {
                 ProgressView().tint(.white)
                 Text(L10n.App2.Plan.generatingWeek.localized)
+            } else if viewModel.requiresWeeklyReviewBeforeGenerate {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.system(size: 15, weight: .bold))
+                Text(L10n.App2.Plan.completeReviewFirst.localized)
             } else {
                 Image(systemName: "sparkles")
                     .font(.system(size: 15, weight: .bold))
@@ -161,12 +184,24 @@ struct App2PlanView: View {
         .contentShape(Rectangle())
         .onTapGesture {
             guard !viewModel.isGeneratingPlan else { return }
+            if let week = viewModel.weeklyReviewTargetWeek {
+                weeklyReviewWeek = App2WeeklyReviewTarget(weekOfPlan: week)
+                return
+            }
             Task { await viewModel.generateCurrentWeekPlan() }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
-        .accessibilityLabel(L10n.App2.Plan.generateWeek.localized)
-        .accessibilityIdentifier("App2_PlanGenerateWeek")
+        .accessibilityLabel(
+            viewModel.requiresWeeklyReviewBeforeGenerate
+                ? L10n.App2.Plan.completeReviewFirst.localized
+                : L10n.App2.Plan.generateWeek.localized
+        )
+        .accessibilityIdentifier(
+            viewModel.requiresWeeklyReviewBeforeGenerate
+                ? "App2_PlanCompleteReviewFirst"
+                : "App2_PlanGenerateWeek"
+        )
     }
 
     // MARK: - Header（標題 ＋ 週次切換器）

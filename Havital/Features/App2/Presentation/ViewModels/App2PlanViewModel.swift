@@ -40,6 +40,33 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 產生失敗的訊息（可重試）。
     @Published var generateError: String?
 
+    // MARK: - 未產生態 CTA 分流（2026-08-27 晚走查裁決（k））
+    //
+    // 上一週的回顧還沒生成時，後端的 plan status 給的是 `next_action == "create_summary"`
+    // （`domains/plan_week/service.py:1242`：`current_week ≥ 2`、本週無課表、上週無回顧）。
+    // 那個狀態下「產生本週課表」是**走不通的一步**——1.4 正是在 `create_summary` 時把
+    // 產生鈕換成回顧入口。這裡沿用同一條判準，讓 CTA 指向真正的下一步。
+    //
+    // ⚠️ 裁決（k）的文字寫的是 `needs_weekly_summary`，後端沒有這個值；實際的
+    // 阻擋值是 `create_summary`（上面的 file:line）。以後端事實為準。
+
+    /// 這個 `next_action` 表示「先做上週回顧」，不是「可以產生課表」。
+    private static let needsWeeklySummaryAction = "create_summary"
+
+    /// 未產生態的 CTA 該指向週回顧而不是產生課表。
+    var requiresWeeklyReviewBeforeGenerate: Bool {
+        latestPlanStatus?.nextAction == Self.needsWeeklySummaryAction
+    }
+
+    /// 要先完成的是**哪一週**的回顧。`create_summary` 只在 `current_week ≥ 2` 且
+    /// 上週回顧缺席時出現，所以目標一律是 `current_week − 1`
+    /// （與首頁週回顧 CTA 平日那三列同一個算法）。
+    var weeklyReviewTargetWeek: Int? {
+        guard requiresWeeklyReviewBeforeGenerate,
+              let current = latestPlanStatus?.currentWeek, current > 1 else { return nil }
+        return current - 1
+    }
+
     private(set) var hasLoaded = false
     private(set) var lastLoadedAt: Date?
 
@@ -189,9 +216,16 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     ///
     /// 成功後**重跑 `revalidate()`**：`isPlanGenerated` 與日卡都由那一支決定，
     /// 不在這裡自己把旗標翻真（翻了但課表沒下來，畫面會空著卻宣稱已產生）。
+    ///
+    /// **上週回顧沒做時這一支直接不動作**（裁決（k））：那時 CTA 畫的是「先完成週回顧」，
+    /// 呼叫這裡只會走進失敗重試的死路。
     @discardableResult
     func generateCurrentWeekPlan() async -> Bool {
         guard !isGeneratingPlan else { return false }
+        guard !requiresWeeklyReviewBeforeGenerate else {
+            Logger.debug("[App2PlanVM] 上週回顧未完成 (next_action=create_summary)，不產生本週課表")
+            return false
+        }
         guard let week = latestPlanStatus?.currentWeek else {
             Logger.debug("[App2PlanVM] 沒有 plan status,產不了本週課表")
             return false
