@@ -628,8 +628,8 @@ struct App2HomeView: View {
                         .foregroundStyle(App2Theme.inkSubtle)
                 }
 
-                // 三格**等寬水平均分鋪滿卡寬**（2026-08-26 裁決），不再靠 spacing
-                // ＋ 尾端 Spacer 把三格擠在左半邊。
+                // 三格**水平分散鋪滿卡寬**（2026-08-28 走查：左／中／右對齊，
+                // 不是三格都靠左——那樣右側 1/3 是空的，看起來擠在左邊）。
                 HStack(alignment: .bottom, spacing: 8) {
                     App2FieldColumn(
                         label: L10n.App2.Home.goalTarget.localized,
@@ -642,14 +642,14 @@ struct App2HomeView: View {
                         value: goal.estimatedFinish ?? "—",
                         valueColor: App2Theme.accentOrange
                     )
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .center)
                     App2FieldColumn(
                         label: L10n.App2.Home.goalWeek.localized,
                         value: goal.currentWeek.map(String.init) ?? "—",
                         valueColor: App2Theme.inkPrimary,
                         suffix: goal.totalWeeks.map { "/\($0)" }
                     )
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
                 }
                 .frame(maxWidth: .infinity)
             }

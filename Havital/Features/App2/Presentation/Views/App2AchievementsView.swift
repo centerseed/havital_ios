@@ -208,7 +208,7 @@ struct App2AchievementsView: View {
                             .tracking(0.5)
                             .foregroundStyle(App2Theme.inkMuted)
                         Text(record.time)
-                            .font(.app2Mono(24))
+                            .font(.app2Mono(21, weight: .bold))
                             .foregroundStyle(App2Theme.accentBlueDeep)
                             .lineLimit(1)
                             .minimumScaleFactor(0.6)

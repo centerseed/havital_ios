@@ -236,7 +236,7 @@ struct App2RecordsView: View {
                 .foregroundStyle(titleColor)
             HStack(alignment: .firstTextBaseline, spacing: 0) {
                 Text(value)
-                    .font(.app2Mono(30))
+                    .font(.app2Mono(30, weight: .bold))
                     .foregroundStyle(App2Theme.inkPrimary)
                 Text(verbatim: " \(unit)")
                     .font(.system(size: 15, weight: .bold))
@@ -289,7 +289,7 @@ struct App2RecordsView: View {
             HStack(alignment: .bottom, spacing: 20) {
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
                     Text(row.distance.replacingOccurrences(of: " km", with: ""))
-                        .font(.app2Mono(28))
+                        .font(.app2Mono(28, weight: .bold))
                         .foregroundStyle(App2Theme.inkPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
@@ -361,7 +361,7 @@ struct App2RecordsView: View {
         VStack(alignment: .leading, spacing: 3) {
             HStack(alignment: .firstTextBaseline, spacing: 0) {
                 Text(value)
-                    .font(.app2Mono(20))
+                    .font(.app2Mono(20, weight: .bold))
                     .foregroundStyle(App2Theme.inkPrimary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
