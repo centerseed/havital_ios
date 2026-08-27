@@ -4885,4 +4885,5 @@
 "app2.plan_end.rizo_line" = "It's normal for the plan to stop here. Set a new goal whenever you're ready and I'll build the next block for you.";
 "app2.plan_end.history_entry" = "Browse this block's past weeks";
 "app2.plan_end.history_back" = "Back to the completion screen";
+"app2.plan_end.history_back_current_week" = "Back to this week";
 "app2.plan_end.history_week_empty" = "No plan was generated for this week.";

@@ -308,19 +308,23 @@ struct App2WorkoutDetailView: View {
         .accessibilityIdentifier("App2_WorkoutDetailHero")
     }
 
-    // MARK: - 指標磚（設計 frame-02f：2 欄、各自獨立的白底圓角磚）
+    // MARK: - 指標磚（2026-08-27（m）：單卡 3 欄緊湊格，照 1.4 運動數據網格）
 
+    /// 一張白卡裝下全部基礎指標，不是每個指標一塊大磚 —— 2 欄大磚版被使用者
+    /// 打回（「很醜」，畫面被拉得又鬆又長，奇數個還會落單一塊）。
     private func metricsGrid(_ projection: App2WorkoutDetailProjection) -> some View {
         LazyVGrid(
-            columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)],
-            spacing: 10
+            columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3),
+            spacing: 15
         ) {
             ForEach(projection.metrics) { metric in
-                metricCell(metric, valueSize: 22)
-                    .app2CardSurface(cornerRadius: 16)
+                metricCell(metric, valueSize: 17)
                     .accessibilityIdentifier("App2_WorkoutMetric_\(metric.key)")
             }
         }
+        .padding(.horizontal, 15)
+        .padding(.vertical, 14)
+        .app2CardSurface(cornerRadius: 18)
         .accessibilityIdentifier("App2_WorkoutDetailMetrics")
     }
 
@@ -348,8 +352,6 @@ struct App2WorkoutDetailView: View {
             .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 14)
-        .padding(.vertical, 13)
     }
 
     private func color(for tone: App2WorkoutDetailProjection.Metric.Tone) -> Color {
@@ -554,6 +556,8 @@ struct App2WorkoutDetailView: View {
     /// 這一頁本來就用那支 VM，所以這是純粹的接線缺口，不是新資料路徑
     /// ——**沒有 device → UI 直讀**。
     private var gaitAnalysisCard: some View {
+        // 標題字型與卡面交給 App2（使用者 8/27：1.4 原樣塞進來像拼湊畫面）；
+        // 圖表本體不動。
         GaitAnalysisChartView(
             stanceTimes: viewModel.stanceTimes,
             verticalRatios: viewModel.verticalRatios,
@@ -563,8 +567,12 @@ struct App2WorkoutDetailView: View {
             dataProvider: viewModel.workout.provider,
             deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName,
             deviceManufacturer: viewModel.workoutDetail?.deviceInfo?.deviceManufacturer,
-            forceShowStanceTimeTab: viewModel.hasStanceTimeStream
+            forceShowStanceTimeTab: viewModel.hasStanceTimeStream,
+            titleFont: .system(size: 15, weight: .black),
+            titleColor: App2Theme.inkPrimary,
+            drawsContainer: false
         )
+        .app2CardSurface(cornerRadius: 18)
         .accessibilityIdentifier("App2_WorkoutDetailGait")
     }
 
@@ -581,11 +589,16 @@ struct App2WorkoutDetailView: View {
     @ViewBuilder
     private var lapAnalysisCard: some View {
         if let laps = viewModel.workoutDetail?.laps, !laps.isEmpty {
+            // 標題字型與卡面交給 App2（同步態圖的處置），表格本體不動。
             LapAnalysisView(
                 laps: laps,
                 dataProvider: viewModel.workout.provider,
-                deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName
+                deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName,
+                titleFont: .system(size: 15, weight: .black),
+                titleColor: App2Theme.inkPrimary,
+                drawsContainer: false
             )
+            .app2CardSurface(cornerRadius: 18)
             .accessibilityIdentifier("App2_WorkoutDetailLaps")
         }
     }

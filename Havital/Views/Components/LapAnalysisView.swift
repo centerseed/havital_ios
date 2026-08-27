@@ -4,14 +4,18 @@ struct LapAnalysisView: View {
     let laps: [LapData]
     let dataProvider: String
     let deviceModel: String?
-    
+    // App2 復用時對齊宿主頁字型／卡面（預設維持 1.4 現狀）
+    var titleFont: Font = AppFont.headline().weight(.semibold)
+    var titleColor: Color = .primary
+    var drawsContainer: Bool = true
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // Header with Garmin attribution
             HStack {
                 Text(L10n.LapAnalysisView.title.localized)
-                    .font(AppFont.headline())
-                    .fontWeight(.semibold)
+                    .font(titleFont)
+                    .foregroundColor(titleColor)
                 
                 Spacer()
 
@@ -89,9 +93,12 @@ struct LapAnalysisView: View {
             }
         }
         .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
+        .background(drawsContainer ? Color(.secondarySystemGroupedBackground) : Color.clear)
+        .cornerRadius(drawsContainer ? 12 : 0)
+        .shadow(
+            color: drawsContainer ? Color.black.opacity(0.1) : Color.clear,
+            radius: 1, x: 0, y: 1
+        )
     }
 }
 

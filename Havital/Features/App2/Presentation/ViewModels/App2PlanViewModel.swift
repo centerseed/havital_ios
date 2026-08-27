@@ -86,6 +86,8 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 現在畫的是不是結束卡。歷史模式時結束卡讓位給週課表。
     var isHistoryMode: Bool { historyWeek != nil }
     var showsPlanEnd: Bool { planEnd != nil && historyWeek == nil }
+    /// 歷史回看退出後會落在哪：結束畫面（結束態）或本週課表（進行中）。
+    var showsPlanEndAfterExit: Bool { planEnd != nil }
 
     /// 課表還能不能編輯（裁決（b））。**結束了就一路唯讀，歷史模式也一樣。**
     var allowsEditing: Bool { App2PlanEndProjection.allowsEditing(planEnd: planEnd) }
@@ -93,10 +95,17 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 這期共幾週 —— 歷史回看的上限。
     var historyTotalWeeks: Int? { planEnd?.totalWeeks ?? latestPlanStatus?.totalWeeks }
 
-    var canGoPreviousHistoryWeek: Bool { (historyWeek ?? 1) > 1 }
+    /// 進行中也能從當週往回翻（8/27 走查：第 9 週的用戶左箭頭永遠停用＝缺陷）。
+    var canGoPreviousHistoryWeek: Bool {
+        ((historyWeek ?? latestPlanStatus?.currentWeek) ?? 1) > 1
+    }
     var canGoNextHistoryWeek: Bool {
-        guard let historyWeek, let total = historyTotalWeeks else { return false }
-        return historyWeek < total
+        guard let historyWeek else { return false }
+        // 進行中往後翻的上限＝當週（回到當週就退回現行畫面）；結束態＝總週數。
+        let cap = planEnd == nil
+            ? (latestPlanStatus?.currentWeek ?? historyTotalWeeks ?? historyWeek)
+            : (historyTotalWeeks ?? historyWeek)
+        return historyWeek < cap
     }
 
     nonisolated let taskRegistry = TaskRegistry()
@@ -165,12 +174,14 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             latestPlanStatus = status
 
             await applyPlanEnd(planStatus: status)
+            if let historyWeek {
+                // 歷史回看中（結束態或進行中都可以往回翻）：這一輪重驗的是
+                // **那一週**，不是本週。進行中不能回看是 8/27 實機走查抓到的缺陷
+                // ——第 9 週的用戶按左箭頭永遠沒反應。
+                await loadHistoryWeek(historyWeek)
+                return
+            }
             if planEnd != nil {
-                if let historyWeek {
-                    // 歷史回看中：這一輪重驗的是**那一週**，不是本週。
-                    await loadHistoryWeek(historyWeek)
-                    return
-                }
                 // 結束態：**不再交出週課表**。留著它畫面上就會同時出現
                 // 「計畫完成」與「第 6 / 6 週」的日卡 —— 設計 frame-00g2（c）明定
                 // 這一頁不能再顯示第 N/M 週。
@@ -179,8 +190,6 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 isPlanGenerated = true
                 return
             }
-            // 計畫沒結束就沒有「歷史回看」這回事（重設目標之後會走到這裡）。
-            historyWeek = nil
             isHistoryWeekMissing = false
 
             guard let planId = status.currentWeekPlanId else {
@@ -311,13 +320,24 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         dayDetails = [:]
     }
 
-    /// 上一週／下一週（`offset` ＝ ±1）。**只在歷史模式有效**；夾在 `1…total_weeks` 內。
+    /// 上一週／下一週（`offset` ＝ ±1）。夾在 `1…total_weeks` 內。
+    ///
+    /// 非歷史模式（看本週）按左箭頭＝從當週的前一週進歷史模式；
+    /// 進行中的計畫往後翻回到當週＝退出歷史模式回到現行畫面。
     func goToHistoryWeek(offset: Int) async {
-        guard let current = historyWeek,
-              let next = App2PlanEndProjection.clampHistoryWeek(
+        guard let current = historyWeek ?? latestPlanStatus?.currentWeek else { return }
+        if planEnd == nil,
+           let currentWeek = latestPlanStatus?.currentWeek,
+           current + offset >= currentWeek {
+            guard historyWeek != nil else { return }
+            exitHistoryMode()
+            await revalidate()
+            return
+        }
+        guard let next = App2PlanEndProjection.clampHistoryWeek(
                   current + offset, totalWeeks: historyTotalWeeks
               ),
-              next != current else { return }
+              next != historyWeek else { return }
         await loadHistoryWeek(next)
     }
 

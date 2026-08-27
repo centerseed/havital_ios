@@ -2670,6 +2670,7 @@ extension L10n {
             /// `app2_plan_end_tab_history` / `_history_back` 同文案。
             static let historyEntry = "app2.plan_end.history_entry"
             static let historyBack = "app2.plan_end.history_back"
+            static let historyBackCurrentWeek = "app2.plan_end.history_back_current_week"
             static let historyWeekEmpty = "app2.plan_end.history_week_empty"
         }
 

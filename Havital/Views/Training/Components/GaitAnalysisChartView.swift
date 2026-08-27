@@ -12,6 +12,10 @@ struct GaitAnalysisChartView: View {
     let deviceModel: String?
     let deviceManufacturer: String?
     let forceShowStanceTimeTab: Bool
+    // App2 復用時對齊宿主頁字型／卡面（預設維持 1.4 現狀）
+    var titleFont: Font = AppFont.headline().weight(.semibold)
+    var titleColor: Color = .primary
+    var drawsContainer: Bool = true
 
     @State private var selectedGaitTab: GaitTab = .stanceTime
     
@@ -51,7 +55,7 @@ struct GaitAnalysisChartView: View {
         }
     }
     
-    init(stanceTimes: [DataPoint], verticalRatios: [DataPoint], cadences: [DataPoint], isLoading: Bool, error: String?, dataProvider: String? = nil, deviceModel: String? = nil, deviceManufacturer: String? = nil, forceShowStanceTimeTab: Bool = false) {
+    init(stanceTimes: [DataPoint], verticalRatios: [DataPoint], cadences: [DataPoint], isLoading: Bool, error: String?, dataProvider: String? = nil, deviceModel: String? = nil, deviceManufacturer: String? = nil, forceShowStanceTimeTab: Bool = false, titleFont: Font = AppFont.headline().weight(.semibold), titleColor: Color = .primary, drawsContainer: Bool = true) {
         self.stanceTimes = stanceTimes
         self.verticalRatios = verticalRatios
         self.cadences = cadences
@@ -61,6 +65,9 @@ struct GaitAnalysisChartView: View {
         self.deviceModel = deviceModel
         self.deviceManufacturer = deviceManufacturer
         self.forceShowStanceTimeTab = forceShowStanceTimeTab
+        self.titleFont = titleFont
+        self.titleColor = titleColor
+        self.drawsContainer = drawsContainer
     }
     
     // MARK: - Data Processing
@@ -179,8 +186,8 @@ struct GaitAnalysisChartView: View {
         VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text(L10n.GaitAnalysisChart.title.localized)
-                    .font(AppFont.headline())
-                    .fontWeight(.semibold)
+                    .font(titleFont)
+                    .foregroundColor(titleColor)
 
                 Spacer()
 
@@ -321,11 +328,11 @@ struct GaitAnalysisChartView: View {
             }
         }
         .padding()
-        .background(Color(UIColor.secondarySystemGroupedBackground))
-        .cornerRadius(12)
-        .shadow(radius: 2)
+        .background(drawsContainer ? Color(UIColor.secondarySystemGroupedBackground) : Color.clear)
+        .cornerRadius(drawsContainer ? 12 : 0)
+        .shadow(radius: drawsContainer ? 2 : 0)
     }
-    
+
     // MARK: - Helper Methods
     
     private func pointSize(for value: Double) -> CGFloat {

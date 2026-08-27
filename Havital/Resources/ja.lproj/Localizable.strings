@@ -4882,4 +4882,5 @@
 "app2.plan_end.rizo_line" = "ここでメニューが止まるのは正常です。続けたくなったら新しい目標を設定してください。次の期間のメニューを作ります。";
 "app2.plan_end.history_entry" = "この期の過去のメニューを見る";
 "app2.plan_end.history_back" = "完了画面に戻る";
+"app2.plan_end.history_back_current_week" = "今週に戻る";
 "app2.plan_end.history_week_empty" = "この週のメニューは作成されていません。";

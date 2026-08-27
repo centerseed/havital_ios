@@ -105,7 +105,9 @@ final class App2RaceDatabaseViewModel: ObservableObject, TaskManageable {
                 region: region.apiValue,
                 distanceMin: km.map { $0 - Self.distanceTolerance },
                 distanceMax: km.map { $0 + Self.distanceTolerance },
-                dateFrom: nil,
+                // 已結束超過兩週的賽事不再列出（2026-08-27 使用者裁決）：
+                // 報不了名的過期賽事只是噪音；剛結束兩週內保留，補登剛跑完的賽果用。
+                dateFrom: Self.endedRaceCutoff(),
                 dateTo: nil,
                 query: query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : query,
                 curatedOnly: true,
@@ -161,6 +163,16 @@ final class App2RaceDatabaseViewModel: ObservableObject, TaskManageable {
             updated.distanceKey = App2RaceManagementViewModel.distanceKey(forKm: Int(picked.distanceKm))
         }
         return updated
+    }
+
+    /// 今天（用戶時區）往回 14 天的 `YYYY-MM-DD`——`dateFrom` 是伺服器端過濾，
+    /// 賽事日早於這條線＝已結束超過兩週，不進列表。
+    static func endedRaceCutoff(now: Date = Date()) -> String {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -14, to: now) ?? now
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter.string(from: cutoff)
     }
 
     static func pickedDistance(event: RaceEvent, filter: DistanceFilter) -> RaceDistance? {

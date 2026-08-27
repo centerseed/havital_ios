@@ -217,20 +217,22 @@ struct App2PlanView: View {
                 if !viewModel.showsPlanEnd { weekStepper }
             },
             trailing: {
-                // 鉛筆**不隨歷史模式回來** —— 判準是 `allowsEditing`
-                //（裁決（b）：結束了就一路唯讀）。
+                // 鉛筆**不隨歷史模式回來** —— 結束態判準是 `allowsEditing`
+                //（裁決（b）：結束了就一路唯讀）；進行中的歷史回看同樣唯讀
+                //（編輯走的是當週端點，對過去週按下去只會改錯週）。
                 if !viewModel.showsPlanEnd {
                     HStack(spacing: 5) {
                         weeklyReviewButton
-                        if viewModel.allowsEditing { editButton }
+                        if viewModel.allowsEditing && !viewModel.isHistoryMode { editButton }
                     }
                 }
             }
         )
     }
 
-    /// `‹ 第 7 週 / 12 ›`。本週模式的左右鍵停用：`/v2/plan/status` 只給 current_week，
-    /// 歷史模式才走得動（`getWeeklyPlan(weekOfTraining:overviewId:)`）。
+    /// `‹ 第 7 週 / 12 ›`。看本週時左鍵＝進歷史回看（前一週）、右鍵停用；
+    /// 歷史回看往後翻回到當週＝自動退回現行畫面。
+    /// 資料走 `getWeeklyPlan(weekOfTraining:overviewId:)`。
     private var weekStepper: some View {
         HStack(spacing: 5) {
             weekStepButton(symbol: "chevron.left", enabled: viewModel.canGoPreviousHistoryWeek) {
@@ -320,12 +322,19 @@ struct App2PlanView: View {
         App2GroupedList {
             App2SettingsRow(
                 systemImage: "arrow.uturn.backward",
-                title: L10n.App2.PlanEnd.historyBack.localized,
+                // 結束態＝回結束畫面；進行中＝回本週（8/27：進行中也能歷史回看）。
+                title: viewModel.showsPlanEndAfterExit
+                    ? L10n.App2.PlanEnd.historyBack.localized
+                    : L10n.App2.PlanEnd.historyBackCurrentWeek.localized,
                 value: "",
                 showsDivider: false
             )
             .contentShape(Rectangle())
-            .onTapGesture { viewModel.exitHistoryMode() }
+            .onTapGesture {
+                viewModel.exitHistoryMode()
+                // 進行中退出後 `week` 是空的，要重載本週；結束態不需要，但重驗無害。
+                Task { await viewModel.revalidate() }
+            }
             .accessibilityAddTraits(.isButton)
             .accessibilityIdentifier("App2_PlanEndHistoryBack")
         }

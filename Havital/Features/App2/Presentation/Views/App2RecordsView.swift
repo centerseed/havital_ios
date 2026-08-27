@@ -282,6 +282,8 @@ struct App2RecordsView: View {
                     Text(row.distance.replacingOccurrences(of: " km", with: ""))
                         .font(.app2Mono(28))
                         .foregroundStyle(App2Theme.inkPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                     Text(verbatim: "km")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(App2Theme.inkTertiary)
@@ -299,12 +301,18 @@ struct App2RecordsView: View {
                     caption: L10n.App2.Records.time.localized
                 )
                 Spacer(minLength: 0)
-                // Garmin badge（2026-08-27 走查裁決（o））：**品牌合規要求，不是美觀選擇**。
-                // 1.4 的紀錄列（`WorkoutV2RowView.sourceAttributionView`）早就有，
-                // App2 這一頁漏接。判定與 asset 都沿用 1.4 那一份。
-                garminBadge(item.workout)
             }
             .padding(.top, 4)
+        }
+        // Garmin badge（2026-08-27 走查裁決（o））：**品牌合規要求，不是美觀選擇**。
+        // 1.4 的紀錄列（`WorkoutV2RowView.sourceAttributionView`）早就有，App2 漏接。
+        // 用 overlay 釘右下角而不是塞進數字那一列 —— 放進 HStack 會把配速／時間
+        // 欄擠到換行（實機破版）。
+        .overlay(alignment: .bottomTrailing) {
+            garminBadge(item.workout)
+                .padding(.trailing, 12)
+                .padding(.bottom, 10)
+                .allowsHitTesting(false)
         }
         .contentShape(Rectangle())
         .onTapGesture {
@@ -346,6 +354,8 @@ struct App2RecordsView: View {
                 Text(value)
                     .font(.app2Mono(20))
                     .foregroundStyle(App2Theme.inkPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                 if let suffix {
                     Text(suffix)
                         .font(.system(size: 13, weight: .semibold))
