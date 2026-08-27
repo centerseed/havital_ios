@@ -145,6 +145,7 @@ struct App2WorkoutDetailView: View {
                             if hasGaitAnalysis { gaitAnalysisCard }
                         }
                     }
+                    lapAnalysisCard
                     section(L10n.App2.WorkoutDetail.recordSection.localized) {
                         recordActions(projection)
                     }
@@ -565,6 +566,28 @@ struct App2WorkoutDetailView: View {
             forceShowStanceTimeTab: viewModel.hasStanceTimeStream
         )
         .accessibilityIdentifier("App2_WorkoutDetailGait")
+    }
+
+    // MARK: - 分圈（2026-08-27（p）：補 1.4 既有的分圈列表）
+
+    /// **直接用 1.4 既有的 `LapAnalysisView`，不做第二份分圈表。**
+    ///
+    /// 資料是 1.4 同一條路：`GET /v2/workouts/{id}` 回應的 `laps`，由這一頁本來就在用的
+    /// `WorkoutDetailViewModelV2` 持有（1.4 `WorkoutDetailViewV2:130` 也是讀
+    /// `viewModel.workoutDetail?.laps`）。所以這是純粹的接線缺口，不是新資料路徑。
+    ///
+    /// **分圈缺席（非 Garmin 來源等）＝整塊不出現**（裁決（p））——刻意不走 1.4 那個
+    /// 「沒資料就畫一張『無分圈資料』空卡」的分支，同（l）步態圖的處置。
+    @ViewBuilder
+    private var lapAnalysisCard: some View {
+        if let laps = viewModel.workoutDetail?.laps, !laps.isEmpty {
+            LapAnalysisView(
+                laps: laps,
+                dataProvider: viewModel.workout.provider,
+                deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName
+            )
+            .accessibilityIdentifier("App2_WorkoutDetailLaps")
+        }
     }
 
     private var trendCard: some View {

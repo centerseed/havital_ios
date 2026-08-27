@@ -299,6 +299,10 @@ struct App2RecordsView: View {
                     caption: L10n.App2.Records.time.localized
                 )
                 Spacer(minLength: 0)
+                // Garmin badge（2026-08-27 走查裁決（o））：**品牌合規要求，不是美觀選擇**。
+                // 1.4 的紀錄列（`WorkoutV2RowView.sourceAttributionView`）早就有，
+                // App2 這一頁漏接。判定與 asset 都沿用 1.4 那一份。
+                garminBadge(item.workout)
             }
             .padding(.top, 4)
         }
@@ -310,6 +314,30 @@ struct App2RecordsView: View {
         }
         .accessibilityAddTraits(item.workout == nil ? [] : .isButton)
         .accessibilityIdentifier("App2_RecordRow")
+    }
+
+    /// Garmin 來源的紀錄在列的**右下角**掛官方 badge（裁決（o））。
+    ///
+    /// 判定與 1.4 `WorkoutV2RowView` 同一條：`provider == "garmin"`，或裝置名字看得出
+    /// 是 Garmin（Apple Health 轉進來的那批 `provider` 是 `apple_health`，只有
+    /// `device_name` 說得出來源）。asset 也是同一份（`GarminAttributionView` 的
+    /// `Garmin Tag-*-high-res`），不另存一張圖。
+    ///
+    /// 這一頁**只放 Garmin**：裁決（o）講的是 Garmin 品牌規範的合規缺口，
+    /// 不是把 1.4 那組三選一的來源標記整組搬過來。
+    @ViewBuilder
+    private func garminBadge(_ workout: WorkoutV2?) -> some View {
+        if let workout, Self.isGarminSourced(workout) {
+            GarminAttributionView(deviceModel: nil, displayStyle: .compact)
+                .scaleEffect(0.82, anchor: .bottomTrailing)
+                .accessibilityIdentifier("App2_RecordRowGarminBadge")
+        }
+    }
+
+    static func isGarminSourced(_ workout: WorkoutV2) -> Bool {
+        if workout.provider.lowercased() == "garmin" { return true }
+        let device = workout.deviceName?.lowercased() ?? ""
+        return device.contains("garmin") || device.contains("forerunner")
     }
 
     private func metricColumn(value: String, suffix: String?, caption: String) -> some View {

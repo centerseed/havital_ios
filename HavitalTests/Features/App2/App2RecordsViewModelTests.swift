@@ -429,4 +429,38 @@ final class App2RecordsViewModelTests: XCTestCase {
         XCTAssertTrue(vm.records?.origin.isStub ?? false)
         XCTAssertFalse(vm.isLoading)
     }
+
+    // MARK: - Garmin badge（2026-08-27 走查裁決（o））
+
+    /// Garmin 來源的判定與 1.4 `WorkoutV2RowView` 同一條 —— badge 是品牌合規要求，
+    /// 判錯就是該掛沒掛。Apple Health 轉進來的那批 `provider` 是 `apple_health`，
+    /// 只有 `device_name` 說得出來源，所以裝置名也要認。
+    func test_isGarminSourced_matchesProviderOrDeviceName() {
+        XCTAssertTrue(App2RecordsView.isGarminSourced(
+            Self.workout(provider: "garmin", deviceName: nil)
+        ))
+        XCTAssertTrue(App2RecordsView.isGarminSourced(
+            Self.workout(provider: "apple_health", deviceName: "Forerunner 965")
+        ))
+        XCTAssertTrue(App2RecordsView.isGarminSourced(
+            Self.workout(provider: "apple_health", deviceName: "Garmin Fenix 7")
+        ))
+        XCTAssertFalse(App2RecordsView.isGarminSourced(
+            Self.workout(provider: "strava", deviceName: nil)
+        ))
+        XCTAssertFalse(App2RecordsView.isGarminSourced(
+            Self.workout(provider: "apple_health", deviceName: "Apple Watch")
+        ))
+    }
+
+    private static func workout(provider: String, deviceName: String?) -> WorkoutV2 {
+        WorkoutV2(
+            id: "w", provider: provider, activityType: "running",
+            startTimeUtc: nil, endTimeUtc: nil, durationSeconds: 1800,
+            distanceMeters: 5000, distanceDisplay: nil, distanceUnit: nil,
+            deviceName: deviceName, basicMetrics: nil, advancedMetrics: nil,
+            createdAt: nil, schemaVersion: nil, storagePath: nil,
+            dailyPlanSummary: nil, aiSummary: nil, shareCardContent: nil
+        )
+    }
 }
