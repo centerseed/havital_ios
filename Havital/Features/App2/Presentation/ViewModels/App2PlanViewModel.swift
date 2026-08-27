@@ -530,9 +530,25 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     /// 歷史週的已完成量 —— 範圍是**那一整週**（週一 00:00 到週日 23:59），
     /// 不是「到今天為止」：那一週早就走完了，沒有「還沒到的日子」。
+    ///
+    /// 本地 workout 快取只涵蓋最近抓過的頁，較早的週可能整週不在快取裡——
+    /// 先走訓練日曆同一支 `ensureMonthLoaded` 補史（已涵蓋／已到底時是 no-op），
+    /// 否則已完成量會因為「快取沒涵蓋」被讀成 0。
     private func completedDistanceKm(weekStart: Date) async -> Double? {
         let calendar = Calendar.current
         guard let end = calendar.date(byAdding: .day, value: 7, to: weekStart) else { return nil }
+        // 一週最多橫跨兩個月（週一與週日各取一次，去重）。
+        let sunday = calendar.date(byAdding: .day, value: 6, to: weekStart) ?? weekStart
+        var months: [(year: Int, month: Int)] = []
+        for anchor in [weekStart, sunday] {
+            let parts = calendar.dateComponents([.year, .month], from: anchor)
+            guard let year = parts.year, let month = parts.month,
+                  !months.contains(where: { $0.year == year && $0.month == month }) else { continue }
+            months.append((year, month))
+        }
+        for entry in months {
+            await workoutRepository.ensureMonthLoaded(year: entry.year, month: entry.month)
+        }
         return await completedDistanceKm(from: weekStart, to: end)
     }
 

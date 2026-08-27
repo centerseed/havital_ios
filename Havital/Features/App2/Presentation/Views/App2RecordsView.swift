@@ -36,10 +36,19 @@ struct App2RecordsView: View {
                     .frame(height: sourced.origin.isStub ? nil : 0)
                     .padding(.horizontal, 4)
 
-                    ForEach(viewModel.visibleGroups) { group in
-                        groupHeader(group)
-                        ForEach(group.items) { item in
-                            workoutCard(item).padding(.bottom, 11)
+                    // LazyVStack：讓底部 sentinel 只在真的捲到底時才 onAppear
+                    //（外層是普通 VStack，會一次 compose 全部、sentinel 立刻觸發）。
+                    LazyVStack(spacing: 0) {
+                        ForEach(viewModel.visibleGroups) { group in
+                            groupHeader(group)
+                            ForEach(group.items) { item in
+                                workoutCard(item).padding(.bottom, 11)
+                            }
+                        }
+                        if viewModel.canLoadMore {
+                            ProgressView()
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                                .onAppear { Task { await viewModel.loadMore() } }
                         }
                     }
                 } else if viewModel.isLoading {

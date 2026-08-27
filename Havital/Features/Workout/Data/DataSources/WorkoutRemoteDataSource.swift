@@ -43,6 +43,8 @@ private struct TrimRequest: Encodable {
 protocol WorkoutStatsDataSourceProtocol {
     func fetchWorkoutStats(days: Int, weeks: Int?) async throws -> WorkoutStatsResponse
     func fetchRecentWorkouts(pageSize: Int) async throws -> [WorkoutV2]
+    /// 帶游標的分頁（`cursor` nil ＝ 最新一頁）—— 紀錄頁捲到底往更舊載入用。
+    func fetchWorkoutsPage(pageSize: Int?, cursor: String?) async throws -> WorkoutListResponse
 }
 
 class WorkoutRemoteDataSource: WorkoutStatsDataSourceProtocol {

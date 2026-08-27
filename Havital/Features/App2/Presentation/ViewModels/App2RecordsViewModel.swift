@@ -86,8 +86,18 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
     /// 目前資料裡真的存在的課型 chip（含「全部」）。只有一種課型時是空的。
     @Published private(set) var filters: [App2RecordFilter] = []
     @Published private(set) var selectedFilterID = "all"
+    /// 捲到底往更舊載入中（sentinel 的 spinner 狀態）。
+    @Published private(set) var isLoadingMore = false
     private(set) var hasLoaded = false
     private(set) var lastLoadedAt: Date?
+
+    /// 目前取回的全部列（依後端排序，最新在前）。清單只顯示前 `visibleCount` 筆。
+    private var rows: [WorkoutV2] = []
+    private var lastStats: WorkoutStatsResponse?
+    /// 後端分頁游標與「還有更舊」旗標（`GET /v2/workouts` 的 pagination）。
+    private var nextCursor: String?
+    private var backendHasMore = false
+    private var visibleCount = App2RecordsViewModel.listPageSize
 
     nonisolated let taskRegistry = TaskRegistry()
 
@@ -123,7 +133,12 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
             // 月比要看到「上個月」，所以取回的筆數比清單顯示的多。
             // `/v2/workouts/stats` 只給滾動視窗（days）與 YTD，沒有日曆月的分桶，
             // 月量與月比在 client 端從同一批紀錄算，不新增端點。
-            let rows = (try? await workoutDataSource.fetchRecentWorkouts(pageSize: Self.aggregationPageSize)) ?? []
+            let page = try? await workoutDataSource.fetchWorkoutsPage(
+                pageSize: Self.aggregationPageSize, cursor: nil
+            )
+            let rows = page?.workouts ?? []
+            nextCursor = page?.pagination.nextCursor
+            backendHasMore = page?.pagination.hasMore ?? false
             if !rows.isEmpty { snapshots.save(rows, for: .recentWorkouts) }
             apply(stats: stats, rows: rows)
         } catch {
@@ -149,9 +164,17 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
     }
 
     /// 統計 ＋ 清單的組裝。網路回應與冷啟快照都走這一支。
-    private func apply(stats: WorkoutStatsResponse, rows: [WorkoutV2]) {
+    private func apply(stats: WorkoutStatsResponse, rows newRows: [WorkoutV2]) {
+        lastStats = stats
+        rows = newRows
+        render()
+    }
+
+    /// 從目前的 `rows`／`visibleCount` 重繪（初載與 loadMore 共用）。
+    private func render() {
+        guard let stats = lastStats else { return }
         let month = Self.monthlyTotals(rows)
-        let listItems = rows.prefix(Self.listPageSize).map(Self.map(item:))
+        let listItems = rows.prefix(visibleCount).map(Self.map(item:))
         apply(items: listItems)
 
         records = App2Sourced(
@@ -174,6 +197,34 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
         guard let stats = snapshots.load(WorkoutStatsResponse.self, for: .workoutStats)?.value,
               let rows = snapshots.load([WorkoutV2].self, for: .recentWorkouts)?.value else { return }
         apply(stats: stats, rows: rows)
+    }
+
+    // MARK: - 往更舊分頁（捲到底載入）
+
+    /// 還有更舊的可以載：本地已取回但未顯示，或後端還有下一頁。樣本資料不分頁。
+    var canLoadMore: Bool {
+        guard let records, !records.origin.isStub else { return false }
+        return visibleCount < rows.count || (backendHasMore && nextCursor != nil)
+    }
+
+    /// 捲到底：先展開已取回的列；用完才拿游標向後端要更舊的一頁。
+    /// 單次失敗不推進游標——sentinel 再次出現時自動重試。
+    func loadMore() async {
+        guard !isLoadingMore, canLoadMore else { return }
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+
+        if visibleCount >= rows.count, backendHasMore, let cursor = nextCursor {
+            guard let page = try? await workoutDataSource.fetchWorkoutsPage(
+                pageSize: Self.aggregationPageSize, cursor: cursor
+            ) else { return }
+            let known = Set(rows.map(\.id))
+            rows.append(contentsOf: page.workouts.filter { !known.contains($0.id) })
+            nextCursor = page.pagination.nextCursor
+            backendHasMore = page.pagination.hasMore
+        }
+        visibleCount = min(visibleCount + Self.listPageSize, max(rows.count, visibleCount))
+        render()
     }
 
     // MARK: - 篩選

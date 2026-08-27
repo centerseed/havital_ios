@@ -68,6 +68,28 @@ final class App2RecordsViewModelTests: XCTestCase {
         func fetchRecentWorkouts(pageSize: Int) async throws -> [WorkoutV2] {
             workouts
         }
+
+        /// cursor nil ＝ 回 `workouts`；有 cursor ＝ 回 `olderPages[cursor]`（更舊的一頁）。
+        var olderPages: [String: [WorkoutV2]] = [:]
+        var nextCursorAfterFirstPage: String?
+
+        func fetchWorkoutsPage(pageSize: Int?, cursor: String?) async throws -> WorkoutListResponse {
+            let pageWorkouts = cursor.map { olderPages[$0] ?? [] } ?? workouts
+            let next = cursor == nil ? nextCursorAfterFirstPage : nil
+            return WorkoutListResponse(
+                workouts: pageWorkouts,
+                pagination: PaginationInfo(
+                    nextCursor: next,
+                    prevCursor: nil,
+                    hasMore: next != nil,
+                    hasNewer: false,
+                    oldestId: nil,
+                    newestId: nil,
+                    totalItems: nil,
+                    pageSize: pageSize
+                )
+            )
+        }
     }
 
     // MARK: - Helpers
@@ -339,6 +361,46 @@ final class App2RecordsViewModelTests: XCTestCase {
         XCTAssertFalse(records.origin.isStub)
         XCTAssertTrue(vm.hasLoaded)
         XCTAssertFalse(vm.isLoading)
+    }
+
+    // MARK: - 往更舊分頁（捲到底載入）
+
+    /// 首屏只顯示 `listPageSize` 筆；捲到底先展開本地已取回的列。
+    func test_loadMore_expandsLocallyFetchedRows() async {
+        let source = FakeStatsSource()
+        source.workouts = (0..<25).map {
+            run(id: "w\($0)", at: Date().addingTimeInterval(Double(-$0) * 86_400), km: 5)
+        }
+        let vm = makeViewModel(source)
+
+        await vm.loadIfNeeded()
+        XCTAssertEqual(vm.items.count, 20)
+        XCTAssertTrue(vm.canLoadMore)
+
+        await vm.loadMore()
+        XCTAssertEqual(vm.items.count, 25)
+        XCTAssertFalse(vm.canLoadMore, "本地展開完、後端也沒更舊 → sentinel 要消失")
+    }
+
+    /// 本地展開完但後端還有更舊 → 拿游標往後端要下一頁。
+    func test_loadMore_fetchesOlderPageWithCursor() async {
+        let source = FakeStatsSource()
+        source.workouts = (0..<20).map {
+            run(id: "w\($0)", at: Date().addingTimeInterval(Double(-$0) * 86_400), km: 5)
+        }
+        source.nextCursorAfterFirstPage = "c1"
+        source.olderPages["c1"] = (20..<25).map {
+            run(id: "w\($0)", at: Date().addingTimeInterval(Double(-$0) * 86_400), km: 5)
+        }
+        let vm = makeViewModel(source)
+
+        await vm.loadIfNeeded()
+        XCTAssertEqual(vm.items.count, 20)
+        XCTAssertTrue(vm.canLoadMore, "後端 hasMore → 還能往前")
+
+        await vm.loadMore()
+        XCTAssertEqual(vm.items.count, 25)
+        XCTAssertFalse(vm.canLoadMore)
     }
 
     func test_loadIfNeeded_withinStaleWindow_doesNotRefetch() async {
