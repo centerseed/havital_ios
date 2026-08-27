@@ -224,6 +224,26 @@ class WorkoutRemoteDataSourceTests: XCTestCase {
         XCTAssertEqual(stats.data.totalDistanceKm, 100.0, "Total distance should match")
     }
 
+    func testFetchWorkoutStats_Success_UnwrapsProductionEnvelope() async throws {
+        // Prod 2026-08-27: `{success, data: {period_days, weekly_series, ...}}`.
+        // Extra keys (`timezone`, `as_of`) are ignored; additive T-0304 fields decode.
+        let envelope = """
+        {"success":true,"data":{"period_days":30,"timezone":"Asia/Tokyo","as_of":"2026-08-27",
+         "total_workouts":36,"total_distance_km":177.43,"avg_pace_per_km":"06:39",
+         "provider_distribution":{"garmin":36},"activity_type_distribution":{"running":31,"other":5},
+         "weekly_series":[{"week_start":"2026-07-06","week_end":"2026-07-12","distance_km":40.07,"is_current_week":false}],
+         "year_to_date":{"year":2026,"start_date":"2026-01-01","through_date":"2026-08-27","distance_km":1223.87,"workout_count":187}}}
+        """.data(using: .utf8)!
+        mockHTTPClient.setResponse(for: "/v2/workouts/stats?days=30&weeks=8", method: .GET, data: envelope)
+
+        let stats = try await sut.fetchWorkoutStats(days: 30, weeks: 8)
+
+        XCTAssertEqual(stats.data.totalWorkouts, 36)
+        XCTAssertEqual(stats.data.totalDistanceKm, 177.43, accuracy: 0.001)
+        XCTAssertEqual(stats.data.weeklySeries?.count, 1)
+        XCTAssertEqual(stats.data.yearToDate?.workoutCount, 187)
+    }
+
     // MARK: - Error Handling Tests
 
     func testFetchWorkout_ParserError_ThrowsError() async {

@@ -10,6 +10,16 @@ protocol APIParser {
     ///   - data: JSON 原始數據
     /// - Returns: 解析後的對象
     func parse<T: Codable>(_ type: T.Type, from data: Data) throws -> T
+
+    /// Decode without logging or Firebase. `ResponseProcessor.extractData` tries
+    /// several envelope shapes; a miss is not a product failure.
+    func tryParse<T: Codable>(_ type: T.Type, from data: Data) -> T?
+}
+
+extension APIParser {
+    func tryParse<T: Codable>(_ type: T.Type, from data: Data) -> T? {
+        try? parse(type, from: data)
+    }
 }
 
 // MARK: - Default API Parser
@@ -25,6 +35,10 @@ struct DefaultAPIParser: APIParser {
         configureDateDecoding()
     }
     
+    func tryParse<T: Codable>(_ type: T.Type, from data: Data) -> T? {
+        try? decoder.decode(type, from: data)
+    }
+
     func parse<T: Codable>(_ type: T.Type, from data: Data) throws -> T {
         // 增強日誌：記錄正在解析的類型和數據大小
         Logger.trace("[APIParser] 開始解析類型: \(String(describing: type)), 數據大小: \(data.count) bytes")

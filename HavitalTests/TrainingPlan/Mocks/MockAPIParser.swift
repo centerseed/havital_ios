@@ -36,6 +36,12 @@ final class MockAPIParser: APIParser {
         return try decoder.decode(T.self, from: data)
     }
 
+    func tryParse<T: Codable>(_ type: T.Type, from data: Data) -> T? {
+        parseCalls.append((type, data.count))
+        if errorToThrow != nil { return nil }
+        return try? JSONDecoder().decode(type, from: data)
+    }
+
     // MARK: - Helper Methods
 
     /// Reset mock state

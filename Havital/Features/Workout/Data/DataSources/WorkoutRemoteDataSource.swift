@@ -286,9 +286,12 @@ class WorkoutRemoteDataSource: WorkoutStatsDataSourceProtocol {
         let rawData = try await tracked("WorkoutRemoteDataSource: fetchWorkoutStats") {
             try await httpClient.request(path: path, method: .GET, body: nil)
         }
-        let response = try ResponseProcessor.extractData(WorkoutStatsResponse.self, from: rawData, using: parser)
-
-        return response
+        // Envelope is `{success, data: <stats fields>}` (`success_response(data=stats)`).
+        // `WorkoutStatsResponse` itself is `{data: WorkoutStatsData}`; extracting that
+        // type double-wraps, so Codable looks for `data.data` and reports missingKey
+        // `data` even though the payload is valid (prod 2026-08-27, founder UID).
+        let stats = try ResponseProcessor.extractData(WorkoutStatsData.self, from: rawData, using: parser)
+        return WorkoutStatsResponse(data: stats)
     }
 
 }
