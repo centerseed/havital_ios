@@ -264,7 +264,11 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     }
 
     private func loadEstimatedFinish() async -> String? {
-        await readinessViewModel.loadData()
+        // `loadData()` 是 cache-first：讀到舊快取就立刻返回、背景刷新落在投影
+        // 組完**之後**——換了主賽事再進這一頁，「現在的你」永遠是上一場的預估
+        // （2026-08-27 使用者實機回報：換半馬後預估沒跟著換）。這一頁要的是
+        // 當下的預估，直接向 API 取。
+        await readinessViewModel.refreshData()
         return readinessViewModel.estimatedRaceTime
     }
 
