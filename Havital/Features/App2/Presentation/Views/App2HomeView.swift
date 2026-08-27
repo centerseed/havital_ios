@@ -719,25 +719,17 @@ struct App2HomeView: View {
     ///
     /// 沒有敘述可展開時（免費用戶 `narrative_text` 為 nil）只有 headline，
     /// 不掛連結也不吃點擊。
-    /// headline 顏色跟 `StateCard.worry` 走（2026-08-27 走查：不得恆藍）。
-    /// `worry` 是後端 synthesis 的三值枚舉；缺席（免費／steady）視同 normal。
-    private func headlineColor(_ status: App2TrainingStatus) -> Color {
-        switch status.worry {
-        case "watch":   return App2Theme.accentOrangeText
-        case "caution": return App2Theme.accentRed
-        default:        return App2Theme.inkPrimary
-        }
-    }
-
     @ViewBuilder
     private func statusHeadline(_ status: App2TrainingStatus) -> some View {
         let canExpand = status.narrative != nil
         let label = isStatusExpanded
             ? L10n.Training.collapse.localized          // 「收起」三語已齊，不開第二份
             : L10n.App2.Achievements.seeMore.localized  // 「看更多」同上
+        // 固定深灰、不隨狀態換色（2026-08-27 使用者：「不要換色，細一點」，
+        // 撤掉同日稍早的 worry 換色）。
         let headline = Text(status.headline)
-            .font(.system(size: 17, weight: .black))
-            .foregroundColor(headlineColor(status))
+            .font(.system(size: 17, weight: .semibold))
+            .foregroundColor(App2Theme.inkPrimary)
 
         Group {
             if canExpand {

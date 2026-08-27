@@ -800,14 +800,19 @@ struct App2WorkoutDetailView: View {
                     isDestructive: false
                 ) { present(.trim) }
 
-                toolRow(
-                    systemImage: "arrow.clockwise",
-                    title: NSLocalizedString("workout.detail.reupload", comment: "重新上傳"),
-                    detail: L10n.App2.WorkoutDetail.toolReuploadSub.localized,
-                    identifier: "App2_ToolReupload",
-                    isEnabled: !isReuploading,
-                    isDestructive: false
-                ) { Task { await reupload() } }
+                // 重新上傳＝從 HealthKit 重讀再上傳，**只對 Apple Health 來源有意義**
+                // （`WorkoutDetailViewModelV2.reuploadWorkout` 對其他來源直接拒絕；
+                // 1.4 有同一個顯示判斷、App2 原本漏接——Garmin 紀錄按了只會失敗）。
+                if isAppleHealthSource {
+                    toolRow(
+                        systemImage: "arrow.clockwise",
+                        title: NSLocalizedString("workout.detail.reupload", comment: "重新上傳"),
+                        detail: L10n.App2.WorkoutDetail.toolReuploadSub.localized,
+                        identifier: "App2_ToolReupload",
+                        isEnabled: !isReuploading,
+                        isDestructive: false
+                    ) { Task { await reupload() } }
+                }
 
                 toolRow(
                     systemImage: "trash",
@@ -881,6 +886,12 @@ struct App2WorkoutDetailView: View {
     }
 
     // MARK: - 工具的可用條件（與 1.4 同一組判斷，不放寬）
+
+    /// 與 1.4 `WorkoutDetailViewV2.isAppleHealthSource` 同一組判定。
+    private var isAppleHealthSource: Bool {
+        let provider = viewModel.workout.provider.lowercased()
+        return provider.contains("apple") || provider.contains("health") || provider == "apple_health"
+    }
 
     private var isTreadmillRun: Bool {
         let type = (viewModel.workoutDetail?.activityType ?? viewModel.workout.activityType).lowercased()

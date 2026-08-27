@@ -571,26 +571,14 @@ struct App2OnboardingRaceSetupView: View {
                 paceChip
             }
 
-            HStack(spacing: 10) {
-                App2OnboardingTimeField(
-                    unit: L10n.App2.Onboarding.raceHour.localized,
-                    value: $flow.targetHours,
-                    range: 0...23,
-                    identifier: "App2_OnboardingRaceHours"
-                )
-                App2OnboardingTimeField(
-                    unit: L10n.App2.Onboarding.raceMinute.localized,
-                    value: $flow.targetMinutes,
-                    range: 0...59,
-                    identifier: "App2_OnboardingRaceMinutes"
-                )
-                App2OnboardingTimeField(
-                    unit: L10n.App2.Onboarding.raceSecond.localized,
-                    value: $viewModel.raceTargetSeconds,
-                    range: 0...59,
-                    identifier: "App2_OnboardingRaceSeconds"
-                )
-            }
+            // 輪盤取代三個自由輸入框（2026-08-27 使用者回報游標問題，
+            // 與賽事表單同一顆 `App2FinishTimeRow`）。
+            App2FinishTimeRow(
+                hours: $flow.targetHours,
+                minutes: $flow.targetMinutes,
+                seconds: $viewModel.raceTargetSeconds,
+                identifier: "App2_OnboardingRaceTargetTime"
+            )
         }
     }
 
@@ -912,26 +900,12 @@ struct App2OnboardingRecentResultView: View {
 
                 VStack(alignment: .leading, spacing: 10) {
                     App2OnboardingFieldLabel(text: L10n.App2.Onboarding.resultFinishTime.localized)
-                    HStack(spacing: 10) {
-                        App2OnboardingTimeField(
-                            unit: L10n.App2.Onboarding.raceHour.localized,
-                            value: $flow.personalBestHours,
-                            range: 0...23,
-                            identifier: "App2_OnboardingResultHours"
-                        )
-                        App2OnboardingTimeField(
-                            unit: L10n.App2.Onboarding.raceMinute.localized,
-                            value: $flow.personalBestMinutes,
-                            range: 0...59,
-                            identifier: "App2_OnboardingResultMinutes"
-                        )
-                        App2OnboardingTimeField(
-                            unit: L10n.App2.Onboarding.raceSecond.localized,
-                            value: $flow.personalBestSeconds,
-                            range: 0...59,
-                            identifier: "App2_OnboardingResultSeconds"
-                        )
-                    }
+                    App2FinishTimeRow(
+                        hours: $flow.personalBestHours,
+                        minutes: $flow.personalBestMinutes,
+                        seconds: $flow.personalBestSeconds,
+                        identifier: "App2_OnboardingResultFinishTime"
+                    )
                 }
 
                 estimateCard

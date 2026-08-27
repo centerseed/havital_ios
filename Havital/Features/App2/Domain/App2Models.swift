@@ -60,10 +60,6 @@ struct App2GoalCard: Equatable {
 struct App2TrainingStatus: Equatable {
     /// `StateCard.headline`。
     let headline: String
-    /// `StateCard.worry`（`normal`｜`watch`｜`caution`；免費/steady 為 nil）。
-    /// headline 的顏色跟它走：nil／normal＝深灰、watch＝橘、caution＝紅
-    /// （2026-08-27 走查：headline 不得恆藍）。
-    var worry: String? = nil
     /// `StateCard.narrative_text`；免費用戶為 nil（§3.1 paywall 註記）。
     let narrative: String?
     /// `StateCard.mileage_progression`（跑量漸進敘事，免費也看得到）。

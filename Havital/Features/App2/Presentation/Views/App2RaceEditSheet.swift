@@ -274,29 +274,18 @@ struct App2RaceEditSheet: View {
 
     // MARK: - 目標完賽時間
 
+    /// 點開輪盤選（`App2FinishTimeWheelSheet`），**不再用三個自由輸入框**：
+    /// 自製數字框的輸入過濾會重寫緩衝、游標被重設到左邊，實機上幾乎不可編輯
+    /// （2026-08-27 使用者回報「連游標都移不到數字右邊」）。
     private var targetTime: some View {
         VStack(alignment: .leading, spacing: 8) {
             fieldLabel(L10n.App2.Races.targetTimeLabel.localized)
-            HStack(spacing: 10) {
-                App2OnboardingTimeField(
-                    unit: L10n.App2.Onboarding.raceHour.localized,
-                    value: $form.hours,
-                    range: 0...23,
-                    identifier: "App2_RaceFormHours"
-                )
-                App2OnboardingTimeField(
-                    unit: L10n.App2.Onboarding.raceMinute.localized,
-                    value: $form.minutes,
-                    range: 0...59,
-                    identifier: "App2_RaceFormMinutes"
-                )
-                App2OnboardingTimeField(
-                    unit: L10n.App2.Onboarding.raceSecond.localized,
-                    value: $form.seconds,
-                    range: 0...59,
-                    identifier: "App2_RaceFormSeconds"
-                )
-            }
+            App2FinishTimeRow(
+                hours: $form.hours,
+                minutes: $form.minutes,
+                seconds: $form.seconds,
+                identifier: "App2_RaceFormTargetTime"
+            )
         }
         .padding(.bottom, 12)
     }

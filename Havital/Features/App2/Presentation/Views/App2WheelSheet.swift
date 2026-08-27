@@ -321,3 +321,148 @@ struct App2ValueWheelSheet: View {
     static let restSecondsOptions: [Double] = stride(from: 10.0, through: 600.0, by: 5.0).map { $0 }
     static let strengthMinutesOptions: [Double] = stride(from: 5.0, through: 120.0, by: 5.0).map { $0 }
 }
+
+// MARK: - 完賽時間輪盤（時／分／秒）
+/// 賽事表單的「目標完賽時間」。原本是三個自由輸入的數字框
+/// （`App2OnboardingTimeField`），過濾＋重寫輸入緩衝會把游標重設，
+/// 實機上連游標都移不動（2026-08-27 使用者回報）——改成與配速輪同一套輪盤。
+struct App2FinishTimeWheelSheet: View {
+    let initialHours: Int
+    let initialMinutes: Int
+    let initialSeconds: Int
+    let onDone: (_ hours: Int, _ minutes: Int, _ seconds: Int) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var hours: Double?
+    @State private var minutes: Double?
+    @State private var seconds: Double?
+
+    private let hourOptions: [Double] = (0...15).map(Double.init)
+    private let minuteOptions: [Double] = (0...59).map(Double.init)
+    /// 秒欄以 5 為級距（同配速輪，設計 §18）。
+    private let secondOptions: [Double] = stride(from: 0, to: 60, by: 5).map(Double.init)
+
+    init(
+        initialHours: Int,
+        initialMinutes: Int,
+        initialSeconds: Int,
+        onDone: @escaping (_ hours: Int, _ minutes: Int, _ seconds: Int) -> Void
+    ) {
+        self.initialHours = initialHours
+        self.initialMinutes = initialMinutes
+        self.initialSeconds = initialSeconds
+        self.onDone = onDone
+        _hours = State(initialValue: Double(min(max(initialHours, 0), 15)))
+        _minutes = State(initialValue: Double(min(max(initialMinutes, 0), 59)))
+        // 秒吸到最近的 5 級距（59 → 55，避免吸成不存在的 60）。
+        let snapped = min((Double(initialSeconds) / 5).rounded() * 5, 55)
+        _seconds = State(initialValue: snapped)
+    }
+
+    var body: some View {
+        App2WheelSheetChrome(
+            title: L10n.App2.Races.targetTimeLabel.localized,
+            suggestion: nil,
+            onCancel: { dismiss() },
+            onDone: {
+                onDone(
+                    Int(hours ?? Double(initialHours)),
+                    Int(minutes ?? Double(initialMinutes)),
+                    Int(seconds ?? Double(initialSeconds))
+                )
+                dismiss()
+            },
+            identifierPrefix: "App2_FinishTimeWheel"
+        ) {
+            HStack(spacing: 0) {
+                Spacer(minLength: 0)
+                App2WheelColumn(
+                    options: hourOptions,
+                    selection: $hours,
+                    label: { String(format: "%.0f", $0) },
+                    width: 58,
+                    identifier: "App2_FinishTimeWheelHours"
+                )
+                colon
+                App2WheelColumn(
+                    options: minuteOptions,
+                    selection: $minutes,
+                    label: { String(format: "%02.0f", $0) },
+                    width: 58,
+                    identifier: "App2_FinishTimeWheelMinutes"
+                )
+                colon
+                App2WheelColumn(
+                    options: secondOptions,
+                    selection: $seconds,
+                    label: { String(format: "%02.0f", $0) },
+                    width: 58,
+                    identifier: "App2_FinishTimeWheelSeconds"
+                )
+                Spacer(minLength: 0)
+            }
+        }
+        .accessibilityIdentifier("App2_FinishTimeWheelSheet")
+    }
+
+    private var colon: some View {
+        Text(verbatim: ":")
+            .font(.app2Mono(30, weight: .black))
+            .foregroundStyle(App2Theme.inkPrimary)
+            .frame(width: 14)
+    }
+}
+
+// MARK: - 完賽時間列（顯示 + 點開輪盤）
+/// 賽事表單與 onboarding 共用的「時:分:秒」輸入列。顯示現值，點下去開
+/// `App2FinishTimeWheelSheet`——不再讓使用者跟自由輸入框的游標搏鬥。
+struct App2FinishTimeRow: View {
+    @Binding var hours: Int
+    @Binding var minutes: Int
+    @Binding var seconds: Int
+    let identifier: String
+
+    @State private var isShowingWheel = false
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            Text(String(format: "%d:%02d:%02d", hours, minutes, seconds))
+                .font(.app2Mono(28, weight: .black))
+                .foregroundStyle(App2Theme.inkPrimary)
+            Spacer(minLength: 8)
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundStyle(App2Theme.chevron)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(App2Theme.cardBackground)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .strokeBorder(Color(hex: "#0F172A").opacity(0.07), lineWidth: 1)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            App2Keyboard.dismiss()
+            isShowingWheel = true
+        }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier(identifier)
+        .sheet(isPresented: $isShowingWheel) {
+            App2FinishTimeWheelSheet(
+                initialHours: hours,
+                initialMinutes: minutes,
+                initialSeconds: seconds
+            ) { h, m, s in
+                hours = h
+                minutes = m
+                seconds = s
+            }
+            .presentationDetents([.height(430)])
+        }
+    }
+}

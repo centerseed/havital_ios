@@ -564,7 +564,6 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         // `DailyStateCardView`（1.4）那一個呼叫點。
         App2TrainingStatus(
             headline: card.headline,
-            worry: card.worry,
             narrative: card.narrativeText,
             // 首頁不畫這一句，它是訓練量詳情頁 hero 的敘事（checklist §51-2）。
             mileageProgression: card.mileageProgression,
