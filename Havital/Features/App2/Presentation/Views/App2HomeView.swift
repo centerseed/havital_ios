@@ -159,6 +159,7 @@ struct App2HomeView: View {
         .fullScreenCover(item: $weeklyReviewWeek) { target in
             App2WeeklyReviewView(
                 weekOfPlan: target.weekOfPlan,
+                isCurrentWeek: target.isCurrentWeek,
                 onClose: { weeklyReviewWeek = nil },
                 // 建議套用到下週課表之後，首頁的今日課表卡與週次要跟著換。
                 onApplied: { Task { await viewModel.forceRefresh() } }
@@ -1420,7 +1421,10 @@ struct App2HomeView: View {
             )
             .contentShape(Rectangle())
             .onTapGesture {
-                weeklyReviewWeek = App2WeeklyReviewTarget(weekOfPlan: state.targetWeek)
+                weeklyReviewWeek = App2WeeklyReviewTarget(
+                    weekOfPlan: state.targetWeek,
+                    isCurrentWeek: state.isCurrentWeek
+                )
             }
             .accessibilityAddTraits(.isButton)
         }

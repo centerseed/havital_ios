@@ -160,7 +160,9 @@ struct App2PeriodSummaryView: View {
             HStack(spacing: 8) {
                 heroTile(
                     label: L10n.App2.PlanEnd.statTotalDistance.localized,
-                    value: summary.totalDistanceKm.map { App2NumberFormat.grouped($0) }
+                    // 帶單位——下方圖表寫「81.5 km」，這裡裸數字會被讀成另一個量
+                    // （dev QA D7）。
+                    value: summary.totalDistanceKm.map { App2NumberFormat.grouped($0) + " km" }
                 )
                 heroTile(
                     label: "VDOT",
@@ -482,6 +484,23 @@ struct App2PeriodSummaryView: View {
                     suffix: summary.peakWeekKm == nil ? nil : "km",
                     valueColor: App2Theme.accentBlueDeep
                 )
+            }
+            // 同一張卡上總跑量／總時間是全期、次數與完成率只有讀得到週回顧的那幾週
+            // ——分母不同，不標會被讀成同一個（dev QA D4）。
+            if let covered = summary.summaryWeekCount,
+               let total = summary.totalWeeks, covered < total {
+                Text(
+                    String(
+                        format: L10n.App2.PlanEnd.summaryCoverage.localized,
+                        covered,
+                        total
+                    )
+                )
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(App2Theme.inkTertiary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("App2_PeriodSummaryCoverage")
             }
         }
         .accessibilityIdentifier("App2_PeriodSummaryStats")

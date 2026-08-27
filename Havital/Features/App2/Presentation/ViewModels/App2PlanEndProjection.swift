@@ -210,8 +210,9 @@ enum App2PlanEndProjection {
     ) -> App2PeriodSummary {
         let bars = App2MetricDetailProjection.bars(weeklySeries)
         let periodStart = bars.first?.weekStart
-        let periodWorkouts = runs(workouts, onOrAfter: periodStart)
-        let series = vdotSeries(vdots, onOrAfter: periodStart)
+        let periodEnd = periodEndDate(lastWeekStart: bars.last?.weekStart)
+        let periodWorkouts = runs(workouts, onOrAfter: periodStart, through: periodEnd)
+        let series = vdotSeries(vdots, onOrAfter: periodStart, through: periodEnd)
 
         return App2PeriodSummary(
             kind: card.kind,
@@ -225,6 +226,7 @@ enum App2PlanEndProjection {
             completionRate: completionRate(weeklySummaries),
             sessionCount: completedSessions(weeklySummaries),
             plannedSessionCount: plannedSessions(weeklySummaries),
+            summaryWeekCount: weeklySummaries.isEmpty ? nil : weeklySummaries.count,
             totalDurationSeconds: totalDurationSeconds(periodWorkouts),
             longestRunKm: longestRunKm(periodWorkouts),
             peakWeekKm: peakWeekKm(bars),
@@ -279,14 +281,31 @@ enum App2PlanEndProjection {
     /// `YYYY-MM-DD`），而 workout 的 `start_time_utc` 是 UTC instant —— 所以先把
     /// 後者換算成裝置當地日再比字串（`AGENTS.md` i18n 與時區規則）。
     /// `periodStart` 缺席（沒有序列）→ 不濾，交回全部，由呼叫端的其他格自行降級。
-    static func runs(_ workouts: [WorkoutV2], onOrAfter periodStart: String?) -> [WorkoutV2] {
+    static func runs(
+        _ workouts: [WorkoutV2], onOrAfter periodStart: String?, through periodEnd: String? = nil
+    ) -> [WorkoutV2] {
         let runs = workouts.filter { $0.activityType.lowercased().contains("run") }
         guard let periodStart else { return runs }
         return runs.filter { workout in
             guard let date = App2WeekCalendar.parseISO8601(workout.startTimeUtc) else { return false }
-            return App2MetricDetailProjection.isoDate(epochSeconds: date.timeIntervalSince1970)
-                >= periodStart
+            let day = App2MetricDetailProjection.isoDate(epochSeconds: date.timeIntervalSince1970)
+            guard day >= periodStart else { return false }
+            guard let periodEnd else { return true }
+            return day <= periodEnd
         }
+    }
+
+    /// 期末＝最後一根柱的 `week_start` ＋ 6 天（該週的最後一天，當地日字串）。
+    /// 沒有這個上界，計畫結束後仍在進來的資料會被算進「這一期」
+    /// （dev QA D6：VDOT 序列畫到計畫結束後五週）。算不出來 → nil ＝ 不設上界。
+    static func periodEndDate(lastWeekStart: String?) -> String? {
+        guard let lastWeekStart else { return nil }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        guard let start = formatter.date(from: lastWeekStart),
+              let end = Calendar.current.date(byAdding: .day, value: 6, to: start) else { return nil }
+        return formatter.string(from: end)
     }
 
     static func totalDurationSeconds(_ workouts: [WorkoutV2]) -> Int? {
@@ -303,10 +322,16 @@ enum App2PlanEndProjection {
     ///
     /// 窗口內一筆都沒有時**不退回全序列**：那會把「這段沒有能力資料」講成
     /// 「這段從 39 長到 45」，而那兩個值可能來自完全不同的訓練期。
-    static func vdotSeries(_ entries: [VDOTEntry], onOrAfter periodStart: String?) -> [App2MetricPoint] {
+    static func vdotSeries(
+        _ entries: [VDOTEntry], onOrAfter periodStart: String?, through periodEnd: String? = nil
+    ) -> [App2MetricPoint] {
         let series = App2MetricDetailProjection.vdotSeries(entries)
         guard let periodStart else { return series }
-        return series.filter { $0.date >= periodStart }
+        return series.filter { point in
+            guard point.date >= periodStart else { return false }
+            guard let periodEnd else { return true }
+            return point.date <= periodEnd
+        }
     }
 
     /// VDOT 增量 ＝ 終點 − 起點。序列少於兩點就沒有「變化」可講 → nil。

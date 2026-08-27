@@ -67,12 +67,13 @@ struct App2PlanView: View {
                 } else if viewModel.isLoading {
                     ProgressView().frame(maxWidth: .infinity, minHeight: 200)
                 } else {
-                    // 首頁與這一頁講同一句話：本週沒有課表就都說沒有。
+                    // 首頁那句叫人「到課表頁產生」——在這一頁自己身上是繞圈，
+                    // 用這頁自己的文案（dev QA D3），產生鈕就在下面。
                     App2Card(padding: 16, spacing: 8) {
                         Text(
                             viewModel.isPlanGenerated
                                 ? L10n.App2.Common.noData.localized
-                                : L10n.App2.Home.noPlanBody.localized
+                                : L10n.App2.Plan.noPlanBody.localized
                         )
                         .font(.app2Body)
                         .lineSpacing(2)
@@ -118,6 +119,7 @@ struct App2PlanView: View {
             App2WeeklyReviewView(
                 weekOfPlan: target.weekOfPlan,
                 isReadOnly: target.isReadOnly,
+                isCurrentWeek: target.isCurrentWeek,
                 onClose: {
                     weeklyReviewWeek = nil
                     // 回顧做完之後 `next_action` 會從 `create_summary` 變成 `create_plan`，
@@ -186,7 +188,8 @@ struct App2PlanView: View {
         .onTapGesture {
             guard !viewModel.isGeneratingPlan else { return }
             if let week = viewModel.weeklyReviewTargetWeek {
-                weeklyReviewWeek = App2WeeklyReviewTarget(weekOfPlan: week)
+                // 這條 CTA 的語意是「先完成上週回顧才產本週課表」——目標是上週。
+                weeklyReviewWeek = App2WeeklyReviewTarget(weekOfPlan: week, isCurrentWeek: false)
                 return
             }
             Task { await viewModel.generateCurrentWeekPlan() }
@@ -292,7 +295,8 @@ struct App2PlanView: View {
                 .onTapGesture {
                     weeklyReviewWeek = App2WeeklyReviewTarget(
                         weekOfPlan: week,
-                        isReadOnly: viewModel.isHistoryMode
+                        isReadOnly: viewModel.isHistoryMode,
+                        isCurrentWeek: !viewModel.isHistoryMode
                     )
                 }
                 .accessibilityAddTraits(.isButton)
@@ -301,18 +305,19 @@ struct App2PlanView: View {
         }
     }
 
-    /// 週次標。歷史模式下那一週 404 時 `week` 是 nil，這時仍要標得出
-    /// 「第 N 週」——否則使用者不知道自己停在哪一週。
+    /// 週次標。那一週的課表 doc 缺席（歷史 404、本週還沒產生）時 `week` 是 nil，
+    /// 但 plan status 知道現在第幾週——仍要標得出「第 N 週」，否則使用者不知道
+    /// 自己停在哪一週（dev QA D1：新週一早上顯示成「—」）。
     private var weekLabelText: String {
         if let label = viewModel.week?.value.weekLabel { return label }
-        if let historyWeek = viewModel.historyWeek {
-            return String(format: L10n.WeekSelector.weekNumber.localized, historyWeek)
+        if let week = viewModel.selectedWeekOfPlan {
+            return String(format: L10n.WeekSelector.weekNumber.localized, week)
         }
         return "—"
     }
 
     private var shownTotalWeeks: Int? {
-        viewModel.week?.value.totalWeeks ?? (viewModel.isHistoryMode ? viewModel.historyTotalWeeks : nil)
+        viewModel.week?.value.totalWeeks ?? viewModel.historyTotalWeeks
     }
 
     // MARK: - 歷史回看（裁決（e））

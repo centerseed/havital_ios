@@ -7,6 +7,9 @@ struct App2WeeklyReviewTarget: Identifiable, Equatable {
     let weekOfPlan: Int
     /// 歷史週的唯讀回看（2026-08-27 走查裁決（q））。見 `App2WeeklyReviewView.isReadOnly`。
     var isReadOnly: Bool = false
+    /// 目標週是不是本週。非本週時分頁與套用鈕改用「第 N 週」措辭（dev QA D2：
+    /// 對上週的回顧寫「回顧本週」）。預設 false——說錯週次比說錯「本週」輕。
+    var isCurrentWeek: Bool = false
     var id: Int { weekOfPlan }
 }
 
@@ -29,29 +32,42 @@ struct App2WeeklyReviewView: View {
     ///   會產錯週；那一週沒有回顧就是沒有，說清楚即可。
     /// - 「套用到下週課表」——過去那一週的建議套到下週是錯的時間軸。
     private let isReadOnly: Bool
+    /// 看的是哪一週、它是不是本週——非本週時「回顧本週／規劃下週／套用到下週」
+    /// 全是錯的相對詞（平日 CTA 開的是上週回顧），改用「第 N 週」措辭（dev QA D2）。
+    private let weekOfPlan: Int
+    private let isCurrentWeek: Bool
 
     @State private var tab: Tab = .review
 
     enum Tab: String, CaseIterable {
         case review
         case plan
+    }
 
-        var title: String {
-            switch self {
-            case .review: return L10n.App2.WeeklyReview.tabReview.localized
-            case .plan:   return L10n.App2.WeeklyReview.tabPlan.localized
-            }
+    private func tabTitle(_ item: Tab) -> String {
+        switch item {
+        case .review:
+            return isCurrentWeek
+                ? L10n.App2.WeeklyReview.tabReview.localized
+                : String(format: L10n.App2.WeeklyReview.tabReviewWeek.localized, weekOfPlan)
+        case .plan:
+            return isCurrentWeek
+                ? L10n.App2.WeeklyReview.tabPlan.localized
+                : String(format: L10n.App2.WeeklyReview.tabPlanWeek.localized, weekOfPlan + 1)
         }
     }
 
     init(
         weekOfPlan: Int,
         isReadOnly: Bool = false,
+        isCurrentWeek: Bool = false,
         onClose: @escaping () -> Void,
         onApplied: (() -> Void)? = nil
     ) {
         _viewModel = StateObject(wrappedValue: App2WeeklyReviewViewModel(weekOfPlan: weekOfPlan))
+        self.weekOfPlan = weekOfPlan
         self.isReadOnly = isReadOnly
+        self.isCurrentWeek = isCurrentWeek
         self.onClose = onClose
         self.onApplied = onApplied
     }
@@ -129,7 +145,7 @@ struct App2WeeklyReviewView: View {
     private var segmentedTabs: some View {
         HStack(spacing: 4) {
             ForEach(Tab.allCases, id: \.rawValue) { item in
-                Text(item.title)
+                Text(tabTitle(item))
                     .font(.system(size: 14, weight: .heavy))
                     .foregroundStyle(tab == item ? App2Theme.inkPrimary : App2Theme.inkTertiary)
                     .frame(maxWidth: .infinity)
@@ -481,10 +497,16 @@ struct App2WeeklyReviewView: View {
     private var applyFooter: some View {
         VStack(spacing: 0) {
             primaryButton(
-                title: String(
-                    format: L10n.App2.WeeklyReview.applyToNextWeek.localized,
-                    viewModel.selectedCount
-                ),
+                title: isCurrentWeek
+                    ? String(
+                        format: L10n.App2.WeeklyReview.applyToNextWeek.localized,
+                        viewModel.selectedCount
+                    )
+                    : String(
+                        format: L10n.App2.WeeklyReview.applyToWeek.localized,
+                        viewModel.selectedCount,
+                        weekOfPlan + 1
+                    ),
                 isBusy: viewModel.isApplying,
                 identifier: "App2_WeeklyReviewApply"
             ) {

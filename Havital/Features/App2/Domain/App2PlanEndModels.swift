@@ -91,6 +91,10 @@ struct App2PeriodSummary: Equatable {
     // 統計磚 2×2：訓練次數 / 總時間 / 最長單次 / 峰值週
     let sessionCount: Int?
     let plannedSessionCount: Int?
+    /// 讀得到週回顧的週數。次數／完成率的分母只有這幾週（沒生成回顧的週拿不出
+    /// 數字），小於 `totalWeeks` 時畫面要標覆蓋範圍——同一張卡上總跑量是全 N 週、
+    /// 完成率卻只有 1 週，不標會被讀成同一個分母（dev QA D4）。
+    let summaryWeekCount: Int?
     let totalDurationSeconds: Int?
     let longestRunKm: Double?
     let peakWeekKm: Double?

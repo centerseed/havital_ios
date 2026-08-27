@@ -2327,6 +2327,10 @@ extension L10n {
             static let title = "app2.weekly_review.title"
             static let tabReview = "app2.weekly_review.tab_review"
             static let tabPlan = "app2.weekly_review.tab_plan"
+            /// 非本週的回顧分頁：`第 %d 週回顧`（相對詞「本週」對過去的週是謊）。
+            static let tabReviewWeek = "app2.weekly_review.tab_review_week"
+            /// 非本週的規劃分頁：`第 %d 週規劃`（帶的是目標週＝回顧週＋1）。
+            static let tabPlanWeek = "app2.weekly_review.tab_plan_week"
             /// `第 %d 週`
             static let weekKicker = "app2.weekly_review.week_kicker"
             static let statsSection = "app2.weekly_review.stats_section"
@@ -2348,6 +2352,8 @@ extension L10n {
             static let skip = "app2.weekly_review.skip"
             /// `套用 %d 項到下週課表`
             static let applyToNextWeek = "app2.weekly_review.apply_to_next_week"
+            /// 非本週：`套用 %1$d 項到第 %2$d 週課表`。
+            static let applyToWeek = "app2.weekly_review.apply_to_week"
             static let applied = "app2.weekly_review.applied"
 
             static let notGeneratedBody = "app2.weekly_review.not_generated_body"
@@ -2363,6 +2369,8 @@ extension L10n {
 
         enum Plan {
             static let title = "app2.plan.title"
+            /// 課表頁自己的未產生文案（首頁那句叫人「去課表頁產生」，在這頁是繞圈）。
+            static let noPlanBody = "app2.plan.no_plan_body"
             static let volumeTitle = "app2.plan.volume_title"
             static let today = "app2.plan.today"
             static let weekVolume = "app2.plan.week_volume"
@@ -2589,6 +2597,8 @@ extension L10n {
         /// `完成率` 走 `app2.weekly_review.completion_rate`、`VDOT` 是專有名詞
         /// （`Text(verbatim:)`，不進 .strings）。
         enum PlanEnd {
+            /// 統計覆蓋註腳：`…僅含已產生週回顧的 %1$d/%2$d 週`。
+            static let summaryCoverage = "app2.plan_end.summary_coverage"
             /// 結束語意 chip：race＝「備賽完成」、maintenance＝「訓練期完成」。
             static let chipRace = "app2.plan_end.chip_race"
             static let chipMaintenance = "app2.plan_end.chip_maintenance"

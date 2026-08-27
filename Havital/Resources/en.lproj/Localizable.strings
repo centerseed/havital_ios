@@ -4499,6 +4499,7 @@
 "app2.workout_detail.activity_track" = "Track Run";
 
 "app2.plan.title" = "Plan";
+"app2.plan.no_plan_body" = "This week's plan hasn't been generated yet.";
 "app2.plan.generate_week" = "Generate this week's plan";
 "app2.plan.generating_week" = "Generating…";
 "app2.plan.generate_failed" = "Could not generate this week's plan";
@@ -4762,6 +4763,8 @@
 "app2.weekly_review.title" = "Weekly Review";
 "app2.weekly_review.tab_review" = "This Week";
 "app2.weekly_review.tab_plan" = "Next Week";
+"app2.weekly_review.tab_review_week" = "Week %d Review";
+"app2.weekly_review.tab_plan_week" = "Week %d Plan";
 "app2.weekly_review.week_kicker" = "Week %d";
 "app2.weekly_review.stats_section" = "This Week's Numbers";
 "app2.weekly_review.sessions" = "Runs";
@@ -4778,6 +4781,7 @@
 "app2.weekly_review.accept" = "Accept";
 "app2.weekly_review.skip" = "Skip";
 "app2.weekly_review.apply_to_next_week" = "Apply %d to next week";
+"app2.weekly_review.apply_to_week" = "Apply %1$d to week %2$d";
 "app2.weekly_review.applied" = "Applied to next week's plan";
 "app2.weekly_review.not_generated_body" = "This week's review hasn't been generated yet.";
 "app2.weekly_review.history_not_generated_body" = "No review was generated for this week.";
@@ -4860,6 +4864,7 @@
 "app2.plan_end.summary_title" = "Full recap";
 "app2.plan_end.degraded_chip" = "No story yet · numbers";
 "app2.plan_end.stat_total_distance" = "Total distance";
+"app2.plan_end.summary_coverage" = "Sessions and completion cover the %1$d of %2$d weeks with a generated review";
 "app2.plan_end.stat_sessions" = "Sessions";
 "app2.plan_end.stat_total_time" = "Total time";
 "app2.plan_end.stat_longest" = "Longest run";

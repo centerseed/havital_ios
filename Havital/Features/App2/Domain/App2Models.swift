@@ -435,6 +435,15 @@ enum App2WeekReviewState: Equatable {
         }
     }
 
+    /// 目標週是不是本週。週回顧頁拿它決定分頁與套用鈕的措辭——對上週的回顧
+    /// 說「回顧本週」是謊（dev QA D2）。
+    var isCurrentWeek: Bool {
+        switch self {
+        case .notGenerated(let isCurrentWeek, _), .available(_, let isCurrentWeek, _):
+            return isCurrentWeek
+        }
+    }
+
     /// 卡上的主標。
     ///
     /// **文案綁在狀態上，不由 View 自己判。** 坑 `cdab0b79` 就是提示文案與實際動作

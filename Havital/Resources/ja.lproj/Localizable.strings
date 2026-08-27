@@ -4496,6 +4496,7 @@
 "app2.workout_detail.activity_track" = "トラック";
 
 "app2.plan.title" = "プラン";
+"app2.plan.no_plan_body" = "今週のプランはまだ生成されていません。";
 "app2.plan.generate_week" = "今週のプランを作成";
 "app2.plan.generating_week" = "作成中…";
 "app2.plan.generate_failed" = "今週のプランを作成できませんでした";
@@ -4759,6 +4760,8 @@
 "app2.weekly_review.title" = "週次レビュー";
 "app2.weekly_review.tab_review" = "今週の振り返り";
 "app2.weekly_review.tab_plan" = "来週の計画";
+"app2.weekly_review.tab_review_week" = "第%d週の振り返り";
+"app2.weekly_review.tab_plan_week" = "第%d週の計画";
 "app2.weekly_review.week_kicker" = "第 %d 週";
 "app2.weekly_review.stats_section" = "今週の記録";
 "app2.weekly_review.sessions" = "ラン回数";
@@ -4775,6 +4778,7 @@
 "app2.weekly_review.accept" = "採用";
 "app2.weekly_review.skip" = "見送る";
 "app2.weekly_review.apply_to_next_week" = "%d 件を来週の計画に反映";
+"app2.weekly_review.apply_to_week" = "%1$d件を第%2$d週のプランに適用";
 "app2.weekly_review.applied" = "来週の計画に反映しました";
 "app2.weekly_review.not_generated_body" = "この週のレビューはまだ作成されていません。";
 "app2.weekly_review.history_not_generated_body" = "この週のレビューは作成されていません。";
@@ -4857,6 +4861,7 @@
 "app2.plan_end.summary_title" = "期間全体のまとめ";
 "app2.plan_end.degraded_chip" = "ストーリー未生成 · 数値で表示";
 "app2.plan_end.stat_total_distance" = "総走行距離";
+"app2.plan_end.summary_coverage" = "回数と達成率は振り返りが生成された%1$d/%2$d週のみ集計";
 "app2.plan_end.stat_sessions" = "トレーニング回数";
 "app2.plan_end.stat_total_time" = "合計時間";
 "app2.plan_end.stat_longest" = "最長の1回";
