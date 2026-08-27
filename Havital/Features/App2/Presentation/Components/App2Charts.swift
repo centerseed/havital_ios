@@ -773,12 +773,12 @@ struct App2SessionPaceBandChart: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// 中央橫帶 ＋ 白字配速 pill。
+    /// 中央色帶 ＋ 白字配速 pill。色帶上下撐滿快／慢邊界之間 ——
+    /// 它代表整段可接受配速區間，不是裝飾細帶（2026-08-27 走查裁決（r））。
     private var centreBand: some View {
         ZStack {
-            Capsule()
-                .fill(accent.opacity(0.28))
-                .frame(height: 8)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(accent.opacity(0.16))
             Text(band.paceLabel + " " + band.paceUnitLabel)
                 .font(.app2Mono(14, weight: .bold))
                 .foregroundStyle(.white)
@@ -786,7 +786,8 @@ struct App2SessionPaceBandChart: View {
                 .padding(.vertical, 5)
                 .background(Capsule().fill(accent))
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.vertical, 5)
     }
 
     // MARK: - 圖下三欄
