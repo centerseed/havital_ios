@@ -33,8 +33,10 @@ struct App2WorkoutDetailProjection: Equatable {
     /// 新 PB 徽章文字（`新 PB · 10K`）。沒破 PB 就是 nil。
     let personalBestLabel: String?
 
-    // MARK: - 六格核心數據
+    // MARK: - 基礎指標
 
+    /// 距離／時長／平均配速／平均心率／卡路里／最大心率／RPE
+    /// （2026-08-27（l）（m）使用者重分類：**進階三項不在這裡**）。
     let metrics: [Metric]
 
     // MARK: - Rizo 教練分析（課表 vs 實際）
@@ -48,6 +50,9 @@ struct App2WorkoutDetailProjection: Equatable {
 
     // MARK: - 進階指標
 
+    /// **只有三項**：訓練負荷 TSS、跑力 Dynamic VDOT、垂直振幅比
+    /// （2026-08-27（m）使用者拍板，取代 2026-08-26「進階指標區去掉 VDOT／TSS」
+    /// 那條 Claude 裁定）。這三項**不再出現在 `metrics`**——同一頁列兩次就是重複。
     let advancedMetrics: [Metric]
 
     /// 訓練心得（`training_notes`）。
@@ -174,9 +179,9 @@ extension App2WorkoutDetailProjection {
         let vdotValue = advanced?.dynamicVdot ?? workout.advancedMetrics?.dynamicVdot
         let tssValue = advanced?.tss ?? workout.advancedMetrics?.tss
 
-        // 指標磚的順序照設計 frame-02f 的 2×3：
-        // 距離／時長／跑力 VDOT ／ 平均配速／平均心率／訓練負荷 TSS。
-        // 卡路里與最大心率不在那六格裡，但它們是真資料 —— 接在後面續排，不丟掉。
+        // 基礎指標磚的順序（2026-08-27（m）重分類後的 frame-02f 2 欄磚）：
+        // 距離／時長 · 平均配速／平均心率 · 卡路里／最大心率 · RPE。
+        // **跑力 VDOT 與訓練負荷 TSS 不在這裡**——它們搬到進階指標區（見下）。
         var metrics: [Metric] = []
         if let distanceM, distanceM > 0 {
             metrics.append(distanceMetric(meters: distanceM, unitSystem: unitSystem))
@@ -188,16 +193,6 @@ extension App2WorkoutDetailProjection {
                 value: formatDuration(seconds: durationS)
             )
         )
-        if let vdotValue {
-            metrics.append(
-                Metric(
-                    key: "vdot",
-                    label: L10n.App2.WorkoutDetail.runningPower.localized,
-                    value: String(format: "%.1f", vdotValue),
-                    unit: "VDOT"
-                )
-            )
-        }
         if let paceSPerKm, paceSPerKm > 0 {
             metrics.append(
                 Metric(
@@ -217,16 +212,6 @@ extension App2WorkoutDetailProjection {
                     value: "\(avgHR)",
                     unit: "bpm",
                     tone: .heartRate
-                )
-            )
-        }
-        if let tssValue {
-            metrics.append(
-                Metric(
-                    key: "load",
-                    label: NSLocalizedString("workout.detail.training_load", comment: "訓練負荷"),
-                    value: String(format: "%.0f", tssValue),
-                    unit: "TSS"
                 )
             )
         }
@@ -257,15 +242,37 @@ extension App2WorkoutDetailProjection {
             )
         }
 
-        // VDOT／TSS 已在上方指標磚呈現，這裡不重複（frame index 2026-08-26 去重裁定）。
-        var advancedMetrics: [Metric] = []
         if let rpe = advanced?.rpe ?? workout.advancedMetrics?.rpe {
-            advancedMetrics.append(
+            metrics.append(
                 Metric(
                     key: "rpe",
                     label: NSLocalizedString("workout.detail.rpe_editor_title", comment: "主觀強度"),
                     value: String(format: "%.0f", rpe),
                     unit: "/10"
+                )
+            )
+        }
+
+        // 進階指標＝訓練負荷 TSS、跑力 Dynamic VDOT、垂直振幅比，順序照
+        // 2026-08-27（m）使用者拍板的那三項。上面的基礎指標磚不再列這三項。
+        var advancedMetrics: [Metric] = []
+        if let tssValue {
+            advancedMetrics.append(
+                Metric(
+                    key: "load",
+                    label: NSLocalizedString("workout.detail.training_load", comment: "訓練負荷"),
+                    value: String(format: "%.0f", tssValue),
+                    unit: "TSS"
+                )
+            )
+        }
+        if let vdotValue {
+            advancedMetrics.append(
+                Metric(
+                    key: "vdot",
+                    label: L10n.App2.WorkoutDetail.runningPower.localized,
+                    value: String(format: "%.1f", vdotValue),
+                    unit: "VDOT"
                 )
             )
         }

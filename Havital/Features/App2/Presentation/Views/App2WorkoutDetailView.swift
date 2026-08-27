@@ -124,23 +124,26 @@ struct App2WorkoutDetailView: View {
                     let projection = projection
                     heroCard(projection)
                     metricsGrid(projection)
+                    // 進階指標在 Rizo 教練分析卡**之上**（2026-08-27（m）使用者拍板：
+                    // 基礎／進階混排的版面效果很差，依分類重排）。
+                    if !projection.advancedMetrics.isEmpty {
+                        advancedCard(projection)
+                    }
                     if projection.coachAnalysis != nil
                         || projection.plannedSummary != nil
                         || projection.actualSummary != nil {
                         coachCard(projection)
-                    }
-                    if !projection.advancedMetrics.isEmpty {
-                        section(NSLocalizedString("workout.detail.advanced_metrics", comment: "進階指標")) {
-                            advancedGrid(projection)
-                        }
                     }
                     if let notes = projection.trainingNotes {
                         section(NSLocalizedString("workout.detail.training_notes_title", comment: "訓練心得")) {
                             notesCard(notes)
                         }
                     }
-                    if hasTrend {
-                        section(L10n.App2.WorkoutDetail.trendSection.localized) { trendCard }
+                    if hasTrend || hasGaitAnalysis {
+                        section(L10n.App2.WorkoutDetail.trendSection.localized) {
+                            if hasTrend { trendCard }
+                            if hasGaitAnalysis { gaitAnalysisCard }
+                        }
                     }
                     section(L10n.App2.WorkoutDetail.recordSection.localized) {
                         recordActions(projection)
@@ -451,16 +454,58 @@ struct App2WorkoutDetailView: View {
         .app2InsetSurface(cornerRadius: 13, fill: App2Theme.cardBackground)
     }
 
-    // MARK: - 進階指標（設計 frame-02e：白底大圓角卡）
+    // MARK: - 進階指標（2026-08-27（m）：訓練負荷 TSS／跑力 VDOT／垂直振幅比）
 
-    private func advancedGrid(_ projection: App2WorkoutDetailProjection) -> some View {
-        LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-            ForEach(projection.advancedMetrics) { metric in
-                metricCell(metric, valueSize: 21)
-                    .app2CardSurface(cornerRadius: 16)
-                    .accessibilityIdentifier("App2_WorkoutAdvancedMetric_\(metric.key)")
+    /// **一張卡、一列並排**，不是四塊跟基礎指標長得一模一樣的磚。
+    ///
+    /// 使用者 2026-08-27 走查指出「基礎／進階混排的版面效果很差」：兩區用同一種
+    /// 白底磚時，畫面上看不出誰是誰。呈現方式改參考 1.4 `WorkoutDetailViewV2`
+    /// 的 `advancedMetricsCard`——標題收進卡內、指標橫排、細直線分隔，緊湊但有質感。
+    /// 圓角在**外層這張卡**上（2026-08-26「進階卡圓角」裁決不變：格子自己不畫底，
+    /// 畫了就會把圓角蓋掉）。
+    private func advancedCard(_ projection: App2WorkoutDetailProjection) -> some View {
+        App2Card(cornerRadius: 18, padding: 15, spacing: 13) {
+            Text(NSLocalizedString("workout.detail.advanced_metrics", comment: "進階指標"))
+                .font(.system(size: 13, weight: .heavy))
+                .tracking(0.4)
+                .foregroundStyle(App2Theme.inkMuted)
+
+            HStack(alignment: .top, spacing: 0) {
+                ForEach(Array(projection.advancedMetrics.enumerated()), id: \.element.id) { index, metric in
+                    if index > 0 {
+                        Rectangle()
+                            .fill(App2Theme.insetBorder)
+                            .frame(width: 1, height: 34)
+                    }
+                    advancedCell(metric)
+                        .accessibilityIdentifier("App2_WorkoutAdvancedMetric_\(metric.key)")
+                }
             }
         }
+        .accessibilityIdentifier("App2_WorkoutDetailAdvanced")
+    }
+
+    private func advancedCell(_ metric: App2WorkoutDetailProjection.Metric) -> some View {
+        VStack(spacing: 4) {
+            Text(metric.label)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(App2Theme.inkMuted)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(metric.value)
+                    .font(.app2Mono(20))
+                    .foregroundStyle(color(for: metric.tone))
+                if let unit = metric.unit {
+                    Text(unit)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(App2Theme.inkMuted)
+                }
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     private func notesCard(_ notes: String) -> some View {
@@ -486,6 +531,40 @@ struct App2WorkoutDetailView: View {
 
     private var hasTrend: Bool {
         viewModel.heartRates.count >= 2 || viewModel.paces.count >= 2
+    }
+
+    // MARK: - 步態分析（2026-08-27（l）：補 1.4 既有的進階步態圖表）
+
+    /// 有沒有任何一條步態序列。三條都空＝**整塊不出現**（裁決（l）：資料缺席時
+    /// 整塊隱藏，不畫空圖）。這裡刻意不走 1.4 `WorkoutDetailViewV2` 那個
+    /// 「沒資料就畫一張『無步態資料』空卡」的分支。
+    private var hasGaitAnalysis: Bool {
+        !viewModel.stanceTimes.isEmpty
+            || !viewModel.verticalRatios.isEmpty
+            || !viewModel.cadences.isEmpty
+    }
+
+    /// **直接用 1.4 既有的 `GaitAnalysisChartView`，不做第二份步態圖。**
+    ///
+    /// 資料也是 1.4 同一條路：`GET /v2/workouts/{id}` 的 `time_series`
+    /// （`stance_times_ms`／缺席時退 `ground_contact_times_ms`、`vertical_ratios`、
+    /// `cadences_spm`，各自對 `timestamps_s`）由 `WorkoutDetailViewModelV2`
+    /// 過濾＋降採樣成 `stanceTimes`／`verticalRatios`／`cadences`。
+    /// 這一頁本來就用那支 VM，所以這是純粹的接線缺口，不是新資料路徑
+    /// ——**沒有 device → UI 直讀**。
+    private var gaitAnalysisCard: some View {
+        GaitAnalysisChartView(
+            stanceTimes: viewModel.stanceTimes,
+            verticalRatios: viewModel.verticalRatios,
+            cadences: viewModel.cadences,
+            isLoading: viewModel.isLoading,
+            error: viewModel.error,
+            dataProvider: viewModel.workout.provider,
+            deviceModel: viewModel.workoutDetail?.deviceInfo?.deviceName,
+            deviceManufacturer: viewModel.workoutDetail?.deviceInfo?.deviceManufacturer,
+            forceShowStanceTimeTab: viewModel.hasStanceTimeStream
+        )
+        .accessibilityIdentifier("App2_WorkoutDetailGait")
     }
 
     private var trendCard: some View {

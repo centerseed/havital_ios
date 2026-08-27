@@ -142,6 +142,70 @@ final class App2WorkoutDetailProjectionTests: XCTestCase {
         XCTAssertTrue(make(workout()).advancedMetrics.isEmpty)
     }
 
+    // MARK: - 基礎／進階分類（2026-08-27（m）使用者拍板）
+    //
+    // 進階＝訓練負荷 TSS、跑力 Dynamic VDOT、垂直振幅比，**就這三項**；其餘（含 RPE）
+    // 是基礎指標。這一組測試鎖的是「同一項不得在兩區各出現一次」——2026-08-26
+    // 那條「進階區去掉 VDOT／TSS」的舊裁定已被取代，改成把它們從**基礎磚**移出。
+
+    private func fullyLoadedWorkout() -> WorkoutV2 {
+        workout(
+            basicMetrics: BasicMetrics(
+                avgHeartRateBpm: 148,
+                maxHeartRateBpm: 172,
+                avgPaceSPerKm: 291,
+                caloriesKcal: 742
+            ),
+            advancedMetrics: AdvancedMetrics(
+                dynamicVdot: 57.2,
+                tss: 78,
+                rpe: 4,
+                avgVerticalRatioPercent: 8.2
+            )
+        )
+    }
+
+    func test_advancedMetrics_isTssThenVdotThenVerticalRatio() {
+        let projection = make(fullyLoadedWorkout())
+        XCTAssertEqual(projection.advancedMetrics.map(\.key), ["load", "vdot", "vertical_ratio"])
+        XCTAssertEqual(projection.advancedMetrics.first { $0.key == "load" }?.value, "78")
+        XCTAssertEqual(projection.advancedMetrics.first { $0.key == "vdot" }?.value, "57.2")
+        XCTAssertEqual(projection.advancedMetrics.first { $0.key == "vertical_ratio" }?.unit, "%")
+    }
+
+    /// 進階那三項不得再出現在基礎指標磚上。
+    func test_metrics_excludeAdvancedTrio() {
+        let keys = make(fullyLoadedWorkout()).metrics.map(\.key)
+        XCTAssertFalse(keys.contains("vdot"))
+        XCTAssertFalse(keys.contains("load"))
+        XCTAssertFalse(keys.contains("vertical_ratio"))
+    }
+
+    /// RPE 是基礎指標（不是進階）——(m) 的分類把它留在基礎那一區。
+    func test_metrics_includeRPE() {
+        let projection = make(fullyLoadedWorkout())
+        let rpe = projection.metrics.first { $0.key == "rpe" }
+        XCTAssertEqual(rpe?.value, "4")
+        XCTAssertEqual(rpe?.unit, "/10")
+        XCTAssertFalse(projection.advancedMetrics.contains { $0.key == "rpe" })
+    }
+
+    /// 基礎指標磚的順序：距離／時長 · 平均配速／平均心率 · 卡路里／最大心率 · RPE。
+    func test_metrics_orderAfterReclassification() {
+        XCTAssertEqual(
+            make(fullyLoadedWorkout()).metrics.map(\.key),
+            ["distance", "duration", "pace", "avg_hr", "calories", "max_hr", "rpe"]
+        )
+    }
+
+    /// 缺哪一項就少哪一格，不補 placeholder（進階區同樣規則）。
+    func test_advancedMetrics_omitsMissingValues() {
+        let projection = make(
+            workout(advancedMetrics: AdvancedMetrics(dynamicVdot: 57.2))
+        )
+        XCTAssertEqual(projection.advancedMetrics.map(\.key), ["vdot"])
+    }
+
     // MARK: - 單位與格式
 
     func test_distance_metricIsKilometres() {
