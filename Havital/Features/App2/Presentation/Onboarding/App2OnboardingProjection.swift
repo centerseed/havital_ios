@@ -123,8 +123,11 @@ enum App2OnboardingProjection {
     ///
     /// - 建議帶 ＝ 起始量 ±10%（同一個刻度，四捨五入到整數 km）。
     /// - 巔峰週 ＝ `宣告值 × 1.10^k`，`k = clamp(總週數 / 4, 1, 5)` —— 每個四週訓練塊
-    ///   往上推一階，最多五階，並以 120 km 封頂（與後端 `declared_weekly_km` 的正規化上限同值）。
-    /// - 滑桿 ＝ 下界取起始量一半、上界取「起始量推出的巔峰」，各自對齊到 5 km 刻度。
+    ///   往上推一階，最多五階，並以 150 km 封頂（＝宣告上限，2026-08-28 使用者裁決
+    ///   120→150；後端 `MAX_REASONABLE_WEEKLY_MILEAGE` 同步改）。
+    /// - 滑桿 ＝ 下界取起始量一半（對齊 5 km 刻度）、上界固定 150（宣告上限；
+    ///   2026-08-28 裁決取代 frame-38 的「上界＝巔峰」——上界跟人推會擋住
+    ///   實際量遠高於建議值的跑者）。
     ///
     /// **滑桿範圍與建議帶吃 `anchorKm`（進頁當下的起始量），只有巔峰預估吃
     /// `declaredKm`（滑桿現值）。** 舊版三者全吃滑桿現值：往右拉→值變大→上界
@@ -134,14 +137,13 @@ enum App2OnboardingProjection {
         let anchor = max(1, anchorKm)
         let declared = max(1, declaredKm)
         let steps = min(5, max(1, totalWeeks / 4))
-        let peak = min(120.0, declared * pow(1.10, Double(steps)))
-        let anchorPeak = min(120.0, anchor * pow(1.10, Double(steps)))
+        let peak = min(150.0, declared * pow(1.10, Double(steps)))
 
         let lowerBand = Int((anchor * 0.9).rounded())
         let upperBand = Int((anchor * 1.1).rounded())
 
         let sliderLower = max(5.0, (anchor * 0.5 / 5).rounded(.down) * 5)
-        let sliderUpper = max(sliderLower + 5, (anchorPeak / 5).rounded(.up) * 5)
+        let sliderUpper = 150.0
 
         return MileagePreview(
             sliderRange: sliderLower...sliderUpper,

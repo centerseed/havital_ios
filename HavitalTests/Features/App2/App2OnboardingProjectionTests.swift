@@ -94,14 +94,15 @@ final class App2OnboardingProjectionTests: XCTestCase {
 
     // MARK: - 跑量預覽
 
-    /// 設計 frame-38 的那一張（起始 42 km、22 週）：建議帶 38–46、巔峰 68、滑桿 20–70。
+    /// frame-38 參考值（起始 42 km、22 週）：建議帶 38–46、巔峰 68；滑桿上界
+    /// 依 2026-08-28 裁決固定 150（宣告上限），不再是巔峰 70。
     func test_mileagePreview_reproducesDesignReferenceNumbers() {
         let preview = App2OnboardingProjection.mileagePreview(anchorKm: 42, declaredKm: 42, totalWeeks: 22)
 
         XCTAssertEqual(preview.suggestedBand, 38...46)
         XCTAssertEqual(preview.peakKm, 68)
         XCTAssertEqual(preview.sliderRange.lowerBound, 20, accuracy: 0.001)
-        XCTAssertEqual(preview.sliderRange.upperBound, 70, accuracy: 0.001)
+        XCTAssertEqual(preview.sliderRange.upperBound, 150, accuracy: 0.001)
     }
 
     func test_mileagePreview_peakGrowsWithPlanLengthButSaturatesAtFiveSteps() {
@@ -123,9 +124,9 @@ final class App2OnboardingProjectionTests: XCTestCase {
         }
     }
 
-    func test_mileagePreview_peakIsCappedAt120() {
-        let preview = App2OnboardingProjection.mileagePreview(anchorKm: 110, declaredKm: 110, totalWeeks: 24)
-        XCTAssertEqual(preview.peakKm, 120, "與後端 declared_weekly_km 的正規化上限同值")
+    func test_mileagePreview_peakIsCappedAt150() {
+        let preview = App2OnboardingProjection.mileagePreview(anchorKm: 140, declaredKm: 140, totalWeeks: 24)
+        XCTAssertEqual(preview.peakKm, 150, "與後端宣告上限同值（2026-08-28 裁決 120→150）")
     }
 
     func test_mileagePreview_handlesTinyStart() {
