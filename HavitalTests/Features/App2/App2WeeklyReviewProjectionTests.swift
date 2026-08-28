@@ -217,6 +217,44 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         XCTAssertNil(App2WeeklyReviewProjection.phaseLabel(nil))
     }
 
+    /// 回歸（2026-08-28 走查 D22）：後端有時給的是**識別字**（dev 實查 `base`），
+    /// 直接印就變成「base W2」＝把識別字端到用戶面前。認得出來的走全 App 同一份
+    /// 期別譯名（`training.stage.*`）。
+    func test_phaseLabel_translatesRawStageId() {
+        XCTAssertEqual(
+            App2WeeklyReviewProjection.phaseLabel(planContext(currentPhase: "base", week: 2)),
+            "\(L10n.Training.Stage.base.localized) W2"
+        )
+        XCTAssertEqual(
+            App2WeeklyReviewProjection.phaseLabel(planContext(currentPhase: "BUILD", week: 1)),
+            "\(L10n.Training.Stage.build.localized) W1",
+            "大小寫不影響對照"
+        )
+    }
+
+    /// 認不出來的是後端的自由文字，原樣留著 —— 不得一律翻成「訓練中」。
+    func test_phaseLabel_keepsUnknownPhaseTextAsIs() {
+        XCTAssertEqual(
+            App2WeeklyReviewProjection.phaseLabel(planContext(currentPhase: "賽前調整", week: 3)),
+            "賽前調整 W3"
+        )
+    }
+
+    private func planContext(currentPhase: String, week: Int) -> PlanContextSummary {
+        PlanContextSummary(
+            targetType: "race_run",
+            methodologyId: "paceriz",
+            methodologyName: "Paceriz",
+            currentPhase: currentPhase,
+            phaseWeek: week,
+            phaseTotalWeeks: 6,
+            totalWeeks: 22,
+            weeksRemaining: 17,
+            currentStageDescription: "",
+            upcomingMilestone: nil
+        )
+    }
+
     // MARK: - 「還沒產生」不是錯誤
 
     /// 後端對還沒產生的週回 404，對「還不到能產生的時候」回 400 + 穩定的 code。

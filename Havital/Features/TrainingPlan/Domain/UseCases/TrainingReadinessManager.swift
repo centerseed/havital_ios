@@ -82,14 +82,18 @@ class TrainingReadinessManager: ObservableObject, @preconcurrency TaskManageable
         await executeTask(id: TaskID("load_readiness_data")) { [weak self] in
             guard let self = self else { return }
 
-            // Track A: Load cache immediately
-            if let cachedData = self.storage.loadReadinessData() {
-                await MainActor.run {
-                    self.readinessData = cachedData
-                    self.isLoading = false
-                    self.lastSyncTime = self.storage.getLastFetchTime()
-                }
+            // Track A: Load cache immediately（**只認今天那筆**，見
+            // `cachedReadinessForToday`）。整段在 MainActor 上做完再回報有沒有命中
+            // —— 快取判斷與寫 `@Published` 是同一個 actor 的事，不跨邊界搬 response。
+            let servedCache = await MainActor.run { () -> Bool in
+                guard let cachedData = self.cachedReadinessForToday() else { return false }
+                self.readinessData = cachedData
+                self.isLoading = false
+                self.lastSyncTime = self.storage.getLastFetchTime()
+                return true
+            }
 
+            if servedCache {
                 // Track B: Refresh in background
                 Task.detached { [weak self] in
                     await self?.backgroundRefresh()
@@ -141,11 +145,33 @@ class TrainingReadinessManager: ObservableObject, @preconcurrency TaskManageable
 
     /// Load data from local cache
     private func loadLocalData() {
-        if let cachedData = storage.loadReadinessData() {
+        if let cachedData = cachedReadinessForToday() {
             readinessData = cachedData
             lastSyncTime = storage.getLastFetchTime()
             Logger.debug("[TrainingReadinessManager] loaded from cache")
         }
+    }
+
+    /// 本機快取，**只在它講的就是今天時才算數**。
+    ///
+    /// readiness 是 date-specific 的資源（後端 `GET /plan/readiness/{date}` 的
+    /// docstring 明寫 "Readiness is date-specific: never substitute a different
+    /// date"），但這一層原本是無條件 cache-first、沒有任何時效判斷 —— 隔夜再開
+    /// app 會先畫昨天那筆分數與預估完賽，背景刷新失敗時就一直停在昨天，而畫面上
+    /// 沒有任何字說它是昨天的（2026-08-28 走查）。
+    ///
+    /// 判準用**日期欄位本身**，不用「幾分鐘沒更新」的門檻：同一天內舊一點的值仍是
+    /// 今天的值，先畫出來再背景刷新（SWR）是刻意的；跨日的值則是另一天的量，不能
+    /// 拿來冒充。日界沿用 `TrainingReadinessService.formatDate`（＝
+    /// `getTodayReadiness` 打的那一天），不另訂一套。
+    private func cachedReadinessForToday() -> TrainingReadinessResponse? {
+        guard let cached = storage.loadReadinessData() else { return nil }
+        let today = TrainingReadinessService.formatDate(Date())
+        guard cached.date == today else {
+            Logger.debug("[TrainingReadinessManager] 快取是 \(cached.date)，今天是 \(today)，不採用")
+            return nil
+        }
+        return cached
     }
 
     /// Background refresh (no loading state)

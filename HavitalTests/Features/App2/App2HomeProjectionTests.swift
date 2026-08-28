@@ -322,6 +322,40 @@ final class App2HomeProjectionTests: XCTestCase {
         XCTAssertTrue(App2HomeViewModel.insights(rows: []).isEmpty)
     }
 
+    // MARK: - 收合態預設展開哪幾列
+
+    /// 有評級的優先，且**只出評級的** —— 未評級的不拿來補位。
+    func test_highlightedInsights_prefersGradedAndDoesNotPadWithUngraded() {
+        let rows = App2HomeViewModel.insights(rows: [
+            insightRow(key: "capability_baseline", label: "能力基準", status: "not_computed"),
+            insightRow(key: "weekly_volume", label: "訓練量", valueText: "23 km",
+                       arrow: .up, verdict: "上升"),
+            insightRow(key: "aerobic_endurance", label: "有氧續航",
+                       status: "insufficient_data")
+        ])
+        let highlighted = App2HomeViewModel.highlightedInsights(rows)
+        XCTAssertEqual(highlighted.map(\.id), ["weekly_volume"])
+    }
+
+    /// 回歸（2026-08-28 走查 F12）：一列都評不出來時**收合態不得是空的**。
+    /// dev 帳號整組 `not_computed`，iOS 收合後指標區 0 列、Android 同畫面 2 列；
+    /// 裁決要的是「預設展開 2–3 列」，不是「有評級才展開」。
+    func test_highlightedInsights_allUngraded_stillShowsRows() {
+        let rows = App2HomeViewModel.insights(rows: [
+            insightRow(key: "capability_baseline", label: "能力基準", status: "not_computed"),
+            insightRow(key: "recovery_index", label: "恢復", status: "not_computed"),
+            insightRow(key: "weekly_volume", label: "訓練量", status: "insufficient_data"),
+            insightRow(key: "aerobic_endurance", label: "有氧續航", status: "not_computed")
+        ])
+        let highlighted = App2HomeViewModel.highlightedInsights(rows)
+        XCTAssertEqual(highlighted.count, 3, "上限仍是 3 列")
+        XCTAssertEqual(
+            highlighted.map(\.id),
+            ["capability_baseline", "recovery_index", "weekly_volume"],
+            "順序照後端給的，app 端不重排"
+        )
+    }
+
     // MARK: - 回歸：週數 chrome 不得來自樣本
 
     /// 樣本檔已經不帶週數欄位，`offlineTrainingStatus` 只准把真週數填進去。

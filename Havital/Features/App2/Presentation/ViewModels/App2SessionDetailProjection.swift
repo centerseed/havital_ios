@@ -255,10 +255,14 @@ enum App2SessionDetailProjection {
             ))
         }
 
+        // **暖身／緩和不掛 payload 的 `description`。** dev 實查那兩欄就是
+        // 「熱身」「緩和」——段名的回音，一個字的新資訊都沒有（2026-08-28 走查 D27）。
+        // 設計 frame-02d 的段附註句本來就規定「來源＝課型／段語意的確定性文案，
+        // 不是逐日生成敘述」（同 `workSegmentNoteKey` 的理由）；這兩段沒有確定性
+        // 文案，就不畫附註，而不是拿逐日敘述來填。
         append(
             NSLocalizedString("training.segment.warmup", comment: ""),
             detail: day.session?.warmup.flatMap(App2HomeViewModel.effortLabel(segment:)),
-            note: day.session?.warmup?.description.flatMap(nonEmpty),
             isWork: false
         )
 
@@ -310,10 +314,10 @@ enum App2SessionDetailProjection {
             break
         }
 
+        // 同上：緩和段的 `description` 也只是段名回音，不掛。
         append(
             NSLocalizedString("training.segment.cooldown", comment: ""),
             detail: day.session?.cooldown.flatMap(App2HomeViewModel.effortLabel(segment:)),
-            note: day.session?.cooldown?.description.flatMap(nonEmpty),
             isWork: false
         )
 
@@ -321,15 +325,26 @@ enum App2SessionDetailProjection {
     }
 
     /// `組間休息：90 秒`。組不出量就沒有這一句。
+    ///
+    /// **量的部分用純數量字串**，不用首頁那組 chip（`app2.home.recovery_*`）——
+    /// 那組自己就帶「組間」前綴，塞進「組間休息：」之後會變成
+    /// 「組間休息：組間 120 秒」（2026-08-28 走查 D27）。秒／分沿用 1.4 分段列
+    /// 在用的 `training.recovery.amount_*`，不另立第二份數量格式。
     static func recoveryNote(_ recovery: SegmentEffort?) -> String? {
         guard let recovery else { return nil }
         let value: String?
         if let seconds = recovery.durationSeconds {
-            value = String(format: L10n.App2.Home.recoverySeconds.localized, seconds)
+            value = String(
+                format: NSLocalizedString("training.recovery.amount_seconds", comment: ""),
+                seconds
+            )
         } else if let metres = recovery.distanceM {
-            value = String(format: L10n.App2.Home.recoveryMetres.localized, metres)
+            value = String(format: L10n.App2.Detail.recoveryMetres.localized, metres)
         } else if let minutes = recovery.durationMinutes {
-            value = String(format: L10n.App2.Home.minutes.localized, minutes)
+            value = String(
+                format: NSLocalizedString("training.recovery.amount_minutes", comment: ""),
+                minutes
+            )
         } else {
             value = nil
         }

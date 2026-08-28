@@ -2061,7 +2061,6 @@ extension L10n {
             static let weekReviewSub = "app2.home.week_review_sub"
             static let rizoSub = "app2.home.rizo_sub"
             static let recoverySeconds = "app2.home.recovery_seconds"
-            static let recoveryMetres = "app2.home.recovery_metres"
             static let noGoalTitle = "app2.home.no_goal_title"
             static let noGoalBody = "app2.home.no_goal_body"
             static let noPlanBody = "app2.home.no_plan_body"
@@ -2249,6 +2248,9 @@ extension L10n {
             static let goal = "app2.detail.goal"
             static let structure = "app2.detail.structure"
             static let recoveryNote = "app2.detail.recovery_note"
+            /// 組間慢跑的距離量（純數量，不帶「組間」前綴 —— 前綴在
+            /// `recovery_note` 那一句上，見 `App2SessionDetailProjection.recoveryNote`）。
+            static let recoveryMetres = "app2.detail.recovery_metres"
             /// 「力量訓練」區塊小標（2026-08-27 晚走查裁決（d））。
             static let strengthSection = "app2.detail.strength_section"
             static let strengthSetsReps = "app2.detail.strength_sets_reps"

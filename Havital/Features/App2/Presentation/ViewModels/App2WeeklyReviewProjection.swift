@@ -174,9 +174,15 @@ extension App2WeeklyReviewProjection {
         return notes
     }
 
-    /// `強化期 W1`。期別名是後端給的自由文字，不在 client 端翻譯或分類。
+    /// `基礎期 W2`。
+    ///
+    /// `current_phase` 後端**有時給識別字**（dev 實查 `base`，畫面上就長出
+    /// 「base W2」＝把識別字印給用戶，2026-08-28 走查 D22）、**有時給自由文字**。
+    /// 認得出來的識別字走全 App 同一份期別譯名（`training.stage.*`，2026-08-26
+    /// chip 譯名裁決用的也是這一份）；認不出來的原樣留著，不猜也不分類。
     static func phaseLabel(_ context: PlanContextSummary?) -> String? {
-        guard let context, let phase = context.currentPhase.app2NonEmpty else { return nil }
+        guard let context, let raw = context.currentPhase.app2NonEmpty else { return nil }
+        let phase = PlanGenerationContext.localizationKey(forStageId: raw)?.localized ?? raw
         guard context.phaseWeek > 0 else { return phase }
         return "\(phase) W\(context.phaseWeek)"
     }

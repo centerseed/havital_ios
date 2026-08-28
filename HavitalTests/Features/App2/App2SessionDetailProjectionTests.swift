@@ -99,6 +99,18 @@ final class App2SessionDetailProjectionTests: XCTestCase {
                       "recovery_distance_m": 200, "recovery_pace": "7:30" } } }
     """
 
+    /// 暖身／緩和帶著後端逐日生成的 `description` —— dev 實查那兩欄就是段名的回音
+    /// （「熱身」「緩和」）。組間用秒數，會走 `recovery_note` 那一句。
+    private let intervalWithEchoNotesDay = """
+    { "day_index": 3, "day_target": "間歇", "reason": "速耐力", "distance_km": 5.2,
+      "warmup": { "distance_km": 2.0, "pace": "7:35", "description": "熱身" },
+      "cooldown": { "distance_km": 1.0, "pace": "7:35", "description": "緩和" },
+      "primary": { "run_type": "interval", "distance_km": 2.2, "target_intensity": "high",
+        "interval": { "repeats": 4,
+                      "work_distance_m": 400, "work_pace": "4:50",
+                      "recovery_duration_seconds": 120 } } }
+    """
+
     /// 趟數多到畫不滿（柱數上限 10）。
     private let manyRepeatsDay = """
     { "day_index": 4, "day_target": "短間歇", "reason": "神經肌肉",
@@ -161,6 +173,40 @@ final class App2SessionDetailProjectionTests: XCTestCase {
 
         XCTAssertFalse(rows[0].isWork, "熱身不是主課")
         XCTAssertFalse(rows[2].isWork, "緩和不是主課")
+    }
+
+    /// 回歸（2026-08-28 走查 D27）：暖身／緩和列**不掛 payload 的 `description`**。
+    /// dev 實查那兩欄就是段名的回音（「熱身」「緩和」），印出來是重複段名的空話；
+    /// 設計 frame-02d 規定段附註句的來源是課型／段語意的確定性文案，不是逐日敘述。
+    func test_detailSegments_warmupAndCooldown_dropEchoedPayloadNote() throws {
+        let rows = App2SessionDetailProjection.detailSegments(day: try day(intervalWithEchoNotesDay))
+
+        XCTAssertEqual(rows.count, 3)
+        XCTAssertNil(rows[0].note, "暖身列不掛逐日敘述")
+        XCTAssertNil(rows[2].note, "緩和列不掛逐日敘述")
+        XCTAssertNotNil(rows[0].detail, "拿掉附註之後這一列還在（量與配速仍要顯示）")
+        XCTAssertNotNil(rows[2].detail)
+    }
+
+    /// 回歸（同上）：組間那一句不得重複「組間」。
+    /// 首頁那組 chip（`app2.home.recovery_*`）自己帶前綴，塞進「組間休息：」
+    /// 之後會變成「組間休息：組間 120 秒」。
+    func test_recoveryNote_doesNotRepeatRecoveryWord() throws {
+        let rows = App2SessionDetailProjection.detailSegments(day: try day(intervalWithEchoNotesDay))
+        let note = try XCTUnwrap(rows[1].note)
+
+        let prefix = String(
+            format: L10n.App2.Detail.recoveryNote.localized,
+            String(
+                format: NSLocalizedString("training.recovery.amount_seconds", comment: ""),
+                120
+            )
+        )
+        XCTAssertEqual(note, prefix)
+        XCTAssertFalse(
+            note.contains(String(format: L10n.App2.Home.recoverySeconds.localized, 120)),
+            "不得把首頁的『組間 120 秒』chip 整串塞進『組間休息：』後面：\(note)"
+        )
     }
 
     /// 同一份 payload 的結構圖也要拆得出趟（不攤平就只有一根穩定柱）。

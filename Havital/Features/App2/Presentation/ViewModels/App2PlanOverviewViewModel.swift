@@ -184,7 +184,16 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
             targetType = overview.targetType
             guard App2HomeViewModel.isOverview(overview.id, boundTo: planStatus) else {
                 Logger.debug("[App2PlanOverviewVM] overview 與本週課表不同源,期程不顯示")
-                return StageBundle(isUnbound: true)
+                // **方法論名仍然要帶出來。** 不同源擋掉的是「第 N 週落在哪一段」
+                // 這種綁週次的東西（stages／milestones）；訓練方法不綁週次，它就是
+                // 這份 overview 現在用的方法，也正是「更換訓練方法」寫回去的那一份
+                // （上面 `overviewId` 在不同源時同樣保留，理由相同）。
+                // 之前一起清掉的後果：「更換訓練方法」列的值變空、sheet 裡目前那一項
+                // 沒有勾（2026-08-28 走查 F10／D13-iOS）。
+                return StageBundle(
+                    methodologyName: overview.methodologyOverview?.name,
+                    isUnbound: true
+                )
             }
             return StageBundle(
                 stages: overview.trainingStages,

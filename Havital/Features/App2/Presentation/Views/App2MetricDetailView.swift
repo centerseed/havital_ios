@@ -356,15 +356,14 @@ private struct App2CapabilityDetailPage: View {
 
             if let detail = viewModel.detail?.value {
                 App2Card(spacing: 12) {
-                    HStack {
-                        Text(L10n.App2.Metric.capabilityChartTitle.localized)
-                            .font(.system(size: 14, weight: .heavy))
-                            .foregroundStyle(App2Theme.inkPrimary)
-                        Spacer(minLength: 6)
-                        Text("pace_vdot")
-                            .font(.app2Mono(11, weight: .semibold))
-                            .foregroundStyle(App2Theme.inkFaint)
-                    }
+                    // 標題右側曾經印後端欄位名 `pace_vdot`（2026-08-28 走查 D11）。
+                    // 卡標題已經是「VDOT 歷史」，那一格既沒有新資訊，又把識別字
+                    // 露給用戶 —— 同 2026-08-27 裁決（a）「附註不得對用戶露出
+                    // 工程詞」的同一條線，整格拿掉。
+                    Text(L10n.App2.Metric.capabilityChartTitle.localized)
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundStyle(App2Theme.inkPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     App2MetricLineChart(
                         series: [
                             // 未來每日預估段畫虛線＋「預估」chip（2026-08-27 晚走查裁決（f））。

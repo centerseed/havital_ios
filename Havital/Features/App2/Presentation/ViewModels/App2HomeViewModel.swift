@@ -669,14 +669,23 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 2. 已評級 ＋ 正向 → 沒動但是強項，保底
     /// 3. 其餘已評級
     ///
-    /// `insufficient_data`／`not_computed` **一列都不進**：預設展開的位置要留給
-    /// 有話可說的指標，「還看不準」放在 chevron 後面就好。
+    /// `insufficient_data`／`not_computed` **排到最後**：預設展開的位置要留給
+    /// 有話可說的指標，「還看不準」能收就收在 chevron 後面。
+    ///
+    /// **但收合態不得是空的**（2026-08-28 走查 F12：dev 帳號一列已評級都沒有，
+    /// iOS 收合後整區 0 列，Android 同一畫面有 2 列）。裁決要的是「預設展開
+    /// 2–3 列」，不是「有評級才展開」——一列都評不出來時，寧可先畫未評級的那幾列
+    /// （它們自己會說「參考資料有限」），也不要讓指標區看起來不存在。
     static func highlightedInsights(_ rows: [App2Insight], limit: Int = 3) -> [App2Insight] {
         let graded = rows.filter(\.isGraded)
         let changed = graded.filter { $0.direction == .up || $0.direction == .down }
         let strong = graded.filter { $0.isPositive && !changed.contains($0) }
         let rest = graded.filter { !changed.contains($0) && !strong.contains($0) }
-        return Array((changed + strong + rest).prefix(limit))
+        let ordered = changed + strong + rest
+        // 有評級的就只出評級的（一列也算）；一列都沒有才退未評級的那幾列。
+        // **不混著補位** —— 那會把「參考資料有限」擠掉真的有話說的那一列。
+        guard ordered.isEmpty else { return Array(ordered.prefix(limit)) }
+        return Array(rows.prefix(limit))
     }
 
     /// Rizo 卡的開場句。**用既有的狀態句組，不生成新文案。**

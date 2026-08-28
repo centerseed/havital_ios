@@ -26,7 +26,10 @@ struct WeeklyDistanceEditorView: View {
                                     editingDistance = newValue
                                 }
                             }
-                        ), in: 5...120 ) {
+                        // 上界＝宣告上限 150 km（2026-08-28 使用者裁決，後端
+                        // `MAX_REASONABLE_WEEKLY_MILEAGE` 與 App2 onboarding 的
+                        // `App2OnboardingProjection.mileagePreview` 同一個值）。
+                        ), in: 5...150 ) {
                             Text(L10n.WeeklyDistanceEditor.weeklyDistance.localized(with: editingDistance))
                         }
                         
@@ -38,7 +41,7 @@ struct WeeklyDistanceEditorView: View {
                                     editingDistance = Int(newValue)
                                 }
                             }
-                        ), in: 1...100, step: 1)
+                        ), in: 1...150, step: 1)
                         .padding(.vertical)
                     }
                     
