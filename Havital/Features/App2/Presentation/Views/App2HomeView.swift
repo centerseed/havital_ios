@@ -732,30 +732,49 @@ struct App2HomeView: View {
             .font(.system(size: 17, weight: .semibold))
             .foregroundColor(App2Theme.inkPrimary)
 
+        let link =
+            (
+                Text(label)
+                    .font(.system(size: 14, weight: .black))
+                    .foregroundColor(App2Theme.accentBlue)
+                    + Text(" ")
+                    + Text(Image(systemName: isStatusExpanded ? "chevron.up" : "chevron.down"))
+                        .font(.system(size: 11, weight: .black))
+                        .foregroundColor(App2Theme.accentBlue)
+            )
+            .lineLimit(1)
+            .fixedSize()
+
         Group {
             if canExpand {
-                // **連結釘在同一列最右緣**（2026-08-27 晚走查裁決（g））：
-                // headline 靠左、可換行，連結右對齊。用 `.lastTextBaseline` 對齊，
-                // headline 多行時連結跟著末行走，不會浮在第一行旁邊。
+                // **連結釘在同一列最右緣**（2026-08-27 晚走查裁決（g））。
+                // 8/27 的單一 HStack 版有個坑：headline 一換行，連結欄位的寬度會被
+                // 整個高度保留，右側空出一大塊（2026-08-28 走查、英文長 headline 實測）。
+                // 所以改 `ViewThatFits`：裝得下就同列右緣；裝不下（headline 需換行）
+                // 就讓 headline 吃滿寬換行、連結自己一行靠右——右緣語意不變。
                 // 8/26 的 inline 相加版（`Text + Text`）做不到右對齊 —— 那是同一段
                 // 文字流，連結只會接在句尾。
-                HStack(alignment: .lastTextBaseline, spacing: 8) {
-                    headline
-                        .tracking(0.3)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .lastTextBaseline, spacing: 8) {
+                        headline
+                            .tracking(0.3)
+                            .lineLimit(1)
+                            .fixedSize(horizontal: true, vertical: false)
 
-                    (
-                        Text(label)
-                            .font(.system(size: 14, weight: .black))
-                            .foregroundColor(App2Theme.accentBlue)
-                            + Text(" ")
-                            + Text(Image(systemName: isStatusExpanded ? "chevron.up" : "chevron.down"))
-                                .font(.system(size: 11, weight: .black))
-                                .foregroundColor(App2Theme.accentBlue)
-                    )
-                    .lineLimit(1)
-                    .fixedSize()
+                        Spacer(minLength: 8)
+
+                        link
+                    }
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        headline
+                            .tracking(0.3)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        link
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
                 }
                 .contentShape(Rectangle())
                 .onTapGesture {
