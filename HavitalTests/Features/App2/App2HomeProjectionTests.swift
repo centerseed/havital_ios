@@ -518,16 +518,15 @@ final class App2HomeProjectionTests: XCTestCase {
         )
     }
 
-    /// 第 3 列：平日、有本週課表、`previous_week_summary_id == null`、`current_week ≥ 2`
-    /// →「產生上週回顧」。**這是 2.0 新增的主動時機卡**（1.4 這一格不給入口，
-    /// 只在 `create_summary` 擋課表時才給）。
-    func test_weekReview_row3_weekdayWithPlanButNoSummaryStillOffers() {
+    /// 第 3 列：平日、有本週課表、回顧沒做但**沒擋課表**（`view_plan`）→ **不出卡**。
+    /// 2026-08-28 使用者裁決收回 8/25 的平日主動時機卡：不是產生回顧的時機
+    /// 就不出卡，產生型 CTA 平日只剩 `create_summary`（第 2 列）。
+    func test_weekReview_row3_weekdayWithPlanButNoSummaryIsHidden() {
         let status = planStatus(currentWeek: 5, planId: "ov_5", serverTime: tokyoNoon(day: 26))
-        XCTAssertEqual(
+        XCTAssertNil(
             App2HomeViewModel.weekReviewState(
                 planStatus: status, isSunday: false, summaryId: status.previousWeekSummaryId
-            ),
-            .notGenerated(isCurrentWeek: false, targetWeek: 4)
+            )
         )
     }
 
@@ -607,13 +606,15 @@ final class App2HomeProjectionTests: XCTestCase {
     /// **平日看上週、週日看本週** —— `targetWeek` 就是週回顧頁要打的
     /// `week_of_plan`。算錯一週＝看到別週的回顧。
     func test_weekReview_targetWeekIsPreviousWeekOnWeekdays() {
-        let status = planStatus(currentWeek: 5, planId: "ov_5")
+        // 平日的產生卡只剩 create_summary 那一格（2026-08-28 裁決），目標週仍是上週。
+        let blocked = planStatus(currentWeek: 5, planId: nil, nextAction: "create_summary")
         XCTAssertEqual(
             App2HomeViewModel.weekReviewState(
-                planStatus: status, isSunday: false, summaryId: nil
+                planStatus: blocked, isSunday: false, summaryId: nil
             )?.targetWeek,
             4
         )
+        let status = planStatus(currentWeek: 5, planId: "ov_5")
         XCTAssertEqual(
             App2HomeViewModel.weekReviewState(
                 planStatus: status, isSunday: true, summaryId: nil
@@ -661,7 +662,8 @@ final class App2HomeProjectionTests: XCTestCase {
     /// 它完全跟著傳進來的那一份走，沒有任何被記住的狀態。
     func test_weekReviewPit_90fee63e_staleCurrentWeekDoesNotStick() {
         let stale = planStatus(currentWeek: 1, planId: "ov_1", serverTime: tokyoNoon(day: 26))
-        let fresh = planStatus(currentWeek: 13, planId: "ov_13", serverTime: tokyoNoon(day: 26))
+        let fresh = planStatus(currentWeek: 13, planId: nil, nextAction: "create_summary",
+                               serverTime: tokyoNoon(day: 26))
 
         XCTAssertNil(
             App2HomeViewModel.weekReviewState(planStatus: stale, isSunday: false, summaryId: nil)
@@ -673,12 +675,11 @@ final class App2HomeProjectionTests: XCTestCase {
         )
     }
 
-    /// 坑 `576c60e6` —— `next_action` 是**時間敏感 flag**，快取的那一份會過期，
-    /// 冷啟時按鈕閃爍；修法是 plan entity 優先於 nextAction flag。
-    ///
-    /// 斷言：`view_plan` 與 `create_summary` 在同一組實體事實（有上週、回顧未生成）
-    /// 下給出**同一格**。flag 過期就不再改變畫面，也就不會閃。
-    func test_weekReviewPit_576c60e6_nextActionFlagDoesNotFlipTheCard() {
+    /// 坑 `576c60e6` 的 2026-08-28 改判 —— 平日的產生卡**就是跟著 `next_action` 走**：
+    /// `create_summary`（回顧擋課表）才出卡，`view_plan` 不出卡。原坑擔心的
+    /// 快取 flag 過期閃爍，代價是「短暫多顯示一張卡直到刷新」，用戶裁決接受；
+    /// 不能接受的是平日常駐一張「還不是時機」的產生卡。
+    func test_weekReviewPit_576c60e6_weekdayGenerateFollowsNextAction() {
         let asCreateSummary = planStatus(currentWeek: 4, planId: nil,
                                          nextAction: "create_summary",
                                          serverTime: tokyoNoon(day: 26))
@@ -689,6 +690,9 @@ final class App2HomeProjectionTests: XCTestCase {
             App2HomeViewModel.weekReviewState(
                 planStatus: asCreateSummary, isSunday: false, summaryId: nil
             ),
+            .notGenerated(isCurrentWeek: false, targetWeek: 3)
+        )
+        XCTAssertNil(
             App2HomeViewModel.weekReviewState(
                 planStatus: asViewPlan, isSunday: false, summaryId: nil
             )
