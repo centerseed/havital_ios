@@ -17,7 +17,9 @@ struct App2WheelColumn: View {
     let options: [Double]
     @Binding var selection: Double?
     let label: (Double) -> String
-    var width: CGFloat = 70
+    // 76：兩位數在 26pt heavy mono × 2.05 選中放大後約 66pt 寬，70/58 會被
+    // 欄位固定寬的 ScrollView 水平裁掉（2026-08-28 onboarding 完賽時間實機回報）。
+    var width: CGFloat = 76
     var itemHeight: CGFloat = 46
     var visibleHeight: CGFloat = 230
     var identifier: String?
@@ -380,7 +382,7 @@ struct App2FinishTimeWheelSheet: View {
                     options: hourOptions,
                     selection: $hours,
                     label: { String(format: "%.0f", $0) },
-                    width: 58,
+                    width: 76,
                     identifier: "App2_FinishTimeWheelHours"
                 )
                 colon
@@ -388,7 +390,7 @@ struct App2FinishTimeWheelSheet: View {
                     options: minuteOptions,
                     selection: $minutes,
                     label: { String(format: "%02.0f", $0) },
-                    width: 58,
+                    width: 76,
                     identifier: "App2_FinishTimeWheelMinutes"
                 )
                 colon
@@ -396,7 +398,7 @@ struct App2FinishTimeWheelSheet: View {
                     options: secondOptions,
                     selection: $seconds,
                     label: { String(format: "%02.0f", $0) },
-                    width: 58,
+                    width: 76,
                     identifier: "App2_FinishTimeWheelSeconds"
                 )
                 Spacer(minLength: 0)

@@ -151,6 +151,21 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 ? (container.resolve() as TargetRepository)
                 : nil
         }
+
+        // 目標變更後計畫會整份重生——與 `App2HomeViewModel` 同一組事件、同一個理由
+        // （常駐 VM 的 60 秒 SWR 門檻擋住跨頁寫入），收到就作廢時戳並立即重驗。
+        CacheEventBus.shared.subscribe(forIdentifier: "App2PlanViewModel.targets") { [weak self] reason in
+            switch reason {
+            case .reonboardingCompleted, .dataChanged(.targets):
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.lastLoadedAt = nil
+                    if self.hasLoaded { await self.revalidate() }
+                }
+            default:
+                break
+            }
+        }
     }
 
     deinit {

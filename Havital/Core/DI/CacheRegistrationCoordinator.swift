@@ -77,8 +77,11 @@ enum CacheRegistrationCoordinator {
         CacheEventBus.shared.subscribe(forIdentifier: "App2FileSnapshotStore") { reason in
             let keys: Set<App2SnapshotKey>
             switch reason {
-            case .userLogout, .manualClear, .onboardingCompleted:
-                // 登出／換帳號／重設目標完成（re-onboarding 也走 onboardingCompleted）：全清。
+            case .userLogout, .manualClear, .onboardingCompleted, .reonboardingCompleted:
+                // 登出／換帳號／首次或重新完成目標設定：全清。
+                // 重設目標實際發的是 `.reonboardingCompleted`（`OnboardingCoordinator`），
+                // 舊註解以為它共用 `.onboardingCompleted`——漏在名單外＝重設完快照不清，
+                // 首頁目標卡要重開 app 才換（2026-08-28 用戶實機回報）。
                 keys = Set(App2SnapshotKey.allCases)
             case .dataChanged(.targets):
                 // 目標變更會重生課表與狀態敘事，整組都不能再用。

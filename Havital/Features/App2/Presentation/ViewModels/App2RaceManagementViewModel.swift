@@ -219,6 +219,9 @@ final class App2RaceManagementViewModel: ObservableObject, TaskManageable {
             guard !error.isCancellationError else { return }
             Logger.debug("[App2RaceMgmtVM] 寫入後重取失敗: \(error)")
         }
+        // 目標變更會換掉首頁目標卡與課表語意——用既有失效事件叫醒常駐的
+        // 首頁／課表 ViewModel（它們的 60 秒 SWR 門檻擋不住這種跨頁寫入）。
+        CacheEventBus.shared.publish(.dataChanged(.targets))
     }
 
     #if DEBUG

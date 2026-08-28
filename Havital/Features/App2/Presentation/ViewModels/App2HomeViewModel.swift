@@ -153,6 +153,23 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 }
             }
         #endif
+
+        // 目標變更（賽事管理寫入＝`.dataChanged(.targets)`、重設目標＝
+        // `.reonboardingCompleted`）：這顆 VM 常駐在 `App2RootView` 殼層，
+        // 60 秒 SWR 門檻會把「改完馬上回首頁」擋在舊資料上（用戶要重開 app
+        // 才看得到新目標卡，2026-08-28 實機回報）。收到事件就作廢時戳並立即重驗。
+        CacheEventBus.shared.subscribe(forIdentifier: "App2HomeViewModel.targets") { [weak self] reason in
+            switch reason {
+            case .reonboardingCompleted, .dataChanged(.targets):
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.lastLoadedAt = nil
+                    if self.hasLoaded { await self.revalidate() }
+                }
+            default:
+                break
+            }
+        }
     }
 
     #if DEBUG
