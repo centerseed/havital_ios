@@ -122,19 +122,26 @@ enum App2OnboardingProjection {
     /// （錨 × 1.10）做逐週外推：
     ///
     /// - 建議帶 ＝ 起始量 ±10%（同一個刻度，四捨五入到整數 km）。
-    /// - 巔峰週 ＝ `起始 × 1.10^k`，`k = clamp(總週數 / 4, 1, 5)` —— 每個四週訓練塊
+    /// - 巔峰週 ＝ `宣告值 × 1.10^k`，`k = clamp(總週數 / 4, 1, 5)` —— 每個四週訓練塊
     ///   往上推一階，最多五階，並以 120 km 封頂（與後端 `declared_weekly_km` 的正規化上限同值）。
-    /// - 滑桿 ＝ 下界取起始量一半、上界取巔峰，各自對齊到 5 km 刻度。
-    static func mileagePreview(startKm: Double, totalWeeks: Int) -> MileagePreview {
-        let start = max(1, startKm)
+    /// - 滑桿 ＝ 下界取起始量一半、上界取「起始量推出的巔峰」，各自對齊到 5 km 刻度。
+    ///
+    /// **滑桿範圍與建議帶吃 `anchorKm`（進頁當下的起始量），只有巔峰預估吃
+    /// `declaredKm`（滑桿現值）。** 舊版三者全吃滑桿現值：往右拉→值變大→上界
+    /// 跟著擴→同一個拇指位置映射到更大的值→再擴——正回饋讓右半段增速失控
+    /// （2026-08-28 用戶實機回報「拉到右邊明顯跑量增的超快」）。
+    static func mileagePreview(anchorKm: Double, declaredKm: Double, totalWeeks: Int) -> MileagePreview {
+        let anchor = max(1, anchorKm)
+        let declared = max(1, declaredKm)
         let steps = min(5, max(1, totalWeeks / 4))
-        let peak = min(120.0, start * pow(1.10, Double(steps)))
+        let peak = min(120.0, declared * pow(1.10, Double(steps)))
+        let anchorPeak = min(120.0, anchor * pow(1.10, Double(steps)))
 
-        let lowerBand = Int((start * 0.9).rounded())
-        let upperBand = Int((start * 1.1).rounded())
+        let lowerBand = Int((anchor * 0.9).rounded())
+        let upperBand = Int((anchor * 1.1).rounded())
 
-        let sliderLower = max(5.0, (start * 0.5 / 5).rounded(.down) * 5)
-        let sliderUpper = max(sliderLower + 5, (peak / 5).rounded(.up) * 5)
+        let sliderLower = max(5.0, (anchor * 0.5 / 5).rounded(.down) * 5)
+        let sliderUpper = max(sliderLower + 5, (anchorPeak / 5).rounded(.up) * 5)
 
         return MileagePreview(
             sliderRange: sliderLower...sliderUpper,

@@ -406,14 +406,21 @@ final class App2OnboardingViewModel: ObservableObject {
         }
         coordinator.availableDays = flow.selectedWeekdays.count
         coordinator.trackScheduleSet(availableDays: flow.selectedWeekdays.count)
+        // 每次進頁重新錨定：滑桿範圍在停留期間固定，回上一步再進來才重算。
+        mileageAnchorKm = flow.weeklyDistance
         push(.mileage)
     }
 
     // MARK: - frame-38 跑量確認
 
+    /// 滑桿範圍的錨：進跑量頁當下的起始量。不跟著滑桿現值動（見
+    /// `mileagePreview` docstring 的正回饋坑）。
+    private var mileageAnchorKm: Double?
+
     var mileagePreview: App2OnboardingProjection.MileagePreview {
         App2OnboardingProjection.mileagePreview(
-            startKm: flow.weeklyDistance,
+            anchorKm: mileageAnchorKm ?? flow.weeklyDistance,
+            declaredKm: flow.weeklyDistance,
             totalWeeks: totalWeeksForPreview
         )
     }

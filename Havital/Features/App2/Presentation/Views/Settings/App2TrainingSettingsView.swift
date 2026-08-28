@@ -39,7 +39,8 @@ struct App2TrainingSettingsView: View {
     /// `totalWeeks: 20` ＝ 取滿五個四週訓練塊（`mileagePreview` 的 `steps` 上限），
     /// 讓設定頁的滑桿上界穩定；建議帶只取錨點 ±10%，與週數無關。
     private var preview: App2OnboardingProjection.MileagePreview {
-        App2OnboardingProjection.mileagePreview(startKm: anchorKm, totalWeeks: 20)
+        // 這一頁本來就整份錨定已存檔值（無正回饋坑），宣告值也傳錨點維持原行為。
+        App2OnboardingProjection.mileagePreview(anchorKm: anchorKm, declaredKm: anchorKm, totalWeeks: 20)
     }
 
     var body: some View {

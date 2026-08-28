@@ -96,7 +96,7 @@ final class App2OnboardingProjectionTests: XCTestCase {
 
     /// 設計 frame-38 的那一張（起始 42 km、22 週）：建議帶 38–46、巔峰 68、滑桿 20–70。
     func test_mileagePreview_reproducesDesignReferenceNumbers() {
-        let preview = App2OnboardingProjection.mileagePreview(startKm: 42, totalWeeks: 22)
+        let preview = App2OnboardingProjection.mileagePreview(anchorKm: 42, declaredKm: 42, totalWeeks: 22)
 
         XCTAssertEqual(preview.suggestedBand, 38...46)
         XCTAssertEqual(preview.peakKm, 68)
@@ -105,10 +105,10 @@ final class App2OnboardingProjectionTests: XCTestCase {
     }
 
     func test_mileagePreview_peakGrowsWithPlanLengthButSaturatesAtFiveSteps() {
-        let short = App2OnboardingProjection.mileagePreview(startKm: 40, totalWeeks: 4)
-        let medium = App2OnboardingProjection.mileagePreview(startKm: 40, totalWeeks: 12)
-        let long = App2OnboardingProjection.mileagePreview(startKm: 40, totalWeeks: 20)
-        let veryLong = App2OnboardingProjection.mileagePreview(startKm: 40, totalWeeks: 40)
+        let short = App2OnboardingProjection.mileagePreview(anchorKm: 40, declaredKm: 40, totalWeeks: 4)
+        let medium = App2OnboardingProjection.mileagePreview(anchorKm: 40, declaredKm: 40, totalWeeks: 12)
+        let long = App2OnboardingProjection.mileagePreview(anchorKm: 40, declaredKm: 40, totalWeeks: 20)
+        let veryLong = App2OnboardingProjection.mileagePreview(anchorKm: 40, declaredKm: 40, totalWeeks: 40)
 
         XCTAssertLessThan(short.peakKm, medium.peakKm)
         XCTAssertLessThan(medium.peakKm, long.peakKm)
@@ -117,23 +117,34 @@ final class App2OnboardingProjectionTests: XCTestCase {
 
     func test_mileagePreview_startAlwaysInsideSliderRange() {
         for start in stride(from: 5.0, through: 120.0, by: 5.0) {
-            let preview = App2OnboardingProjection.mileagePreview(startKm: start, totalWeeks: 16)
+            let preview = App2OnboardingProjection.mileagePreview(anchorKm: start, declaredKm: start, totalWeeks: 16)
             XCTAssertTrue(preview.sliderRange.contains(start),
                           "起始 \(start) km 落在滑桿範圍外：\(preview.sliderRange)")
         }
     }
 
     func test_mileagePreview_peakIsCappedAt120() {
-        let preview = App2OnboardingProjection.mileagePreview(startKm: 110, totalWeeks: 24)
+        let preview = App2OnboardingProjection.mileagePreview(anchorKm: 110, declaredKm: 110, totalWeeks: 24)
         XCTAssertEqual(preview.peakKm, 120, "與後端 declared_weekly_km 的正規化上限同值")
     }
 
     func test_mileagePreview_handlesTinyStart() {
-        let preview = App2OnboardingProjection.mileagePreview(startKm: 0, totalWeeks: 8)
+        let preview = App2OnboardingProjection.mileagePreview(anchorKm: 0, declaredKm: 0, totalWeeks: 8)
         XCTAssertGreaterThanOrEqual(preview.sliderRange.lowerBound, 5)
         XCTAssertLessThan(preview.sliderRange.lowerBound, preview.sliderRange.upperBound)
     }
+
+    /// 2026-08-28 實機回報的正回饋坑：滑桿範圍必須錨定，不得跟著宣告值擴張。
+    func test_mileagePreview_sliderRangeIsAnchoredWhileDeclaredMoves() {
+        let atAnchor = App2OnboardingProjection.mileagePreview(anchorKm: 20, declaredKm: 20, totalWeeks: 16)
+        let draggedRight = App2OnboardingProjection.mileagePreview(anchorKm: 20, declaredKm: 32, totalWeeks: 16)
+
+        XCTAssertEqual(atAnchor.sliderRange, draggedRight.sliderRange, "範圍不得隨滑桿現值變動")
+        XCTAssertEqual(atAnchor.suggestedBand, draggedRight.suggestedBand, "建議帶錨定起始量")
+        XCTAssertGreaterThan(draggedRight.peakKm, atAnchor.peakKm, "巔峰預估跟著宣告值動")
+    }
 }
+
 
 // MARK: - 訓練方法推薦項（2026-08-27 走查裁決（k））
 /// 重設目標不經過「選目標型態」那一頁，`flow.selectedTargetTypeV2` 是 nil。
