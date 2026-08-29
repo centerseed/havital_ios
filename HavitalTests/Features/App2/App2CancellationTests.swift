@@ -520,6 +520,31 @@ final class App2CancellationTests: XCTestCase {
         XCTAssertTrue(vm.hasLoaded)
     }
 
+    func test_volumeVM_teardown_cancelsInflightRangeReload_andReleasesVM() async {
+        // 離開畫面（view onDisappear → cancelRangeReload）要取消 in-flight 的
+        // range 重載；task 收掉後不得再抓著 VM（外審第十一輪 D04/E08）。
+        let source = FirstHangsThenImmediateStatsSource()
+        var vm: App2VolumeDetailViewModel? = App2VolumeDetailViewModel(
+            insight: App2Insight(id: "volume", label: "訓練量", value: nil, direction: .unknown, verdict: nil),
+            narrative: nil,
+            workoutDataSource: source,
+            healthDataSource: FailingHealthSource(),
+            profileRepository: nil
+        )
+        weak var weakVM = vm
+
+        vm?.select(range: .weeks26)
+        let reload = vm?.rangeReloadTask
+        try? await Task.sleep(nanoseconds: 200_000_000)
+
+        vm?.cancelRangeReload()
+        vm = nil
+        await reload?.value
+
+        XCTAssertTrue(source.firstCallWasCancelled, "teardown 必須取消 in-flight 的 range 重載")
+        XCTAssertNil(weakVM, "重載 task 收掉後 VM 要能釋放，不得被 task 抓著")
+    }
+
     func test_homeVM_cancelledPlanStatusDoesNotMarkLoaded() async {
         let repository = MockTrainingPlanV2Repository()
         repository.errorToThrow = URLError(.cancelled)

@@ -112,6 +112,13 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         rangeReloadTask = Task { [weak self] in await self?.revalidate() }
     }
 
+    /// 離開畫面時由 view 的 `onDisappear` 呼叫：取消 in-flight 的 range 重載，
+    /// task 才不會抓著 VM 撐過畫面生命週期（外審第十一輪 D04）。
+    func cancelRangeReload() {
+        rangeReloadTask?.cancel()
+        rangeReloadTask = nil
+    }
+
     func revalidate() async {
         isLoading = !hasLoaded
         var finishedRound = false
@@ -232,6 +239,12 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
         range = newRange
         rangeReloadTask?.cancel()
         rangeReloadTask = Task { [weak self] in await self?.revalidate() }
+    }
+
+    /// 同訓練量 VM：離開畫面時取消 in-flight 的 range 重載（外審第十一輪 D04）。
+    func cancelRangeReload() {
+        rangeReloadTask?.cancel()
+        rangeReloadTask = nil
     }
 
     func revalidate() async {
