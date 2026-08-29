@@ -302,6 +302,53 @@ final class App2CancellationTests: XCTestCase {
         XCTAssertFalse(vm.hasLoaded)
     }
 
+    func test_periodSummary_cancelledWeeklySummaries_doesNotPublishNorMarkLoaded() async {
+        let card = App2PlanEndCard(
+            kind: .race, raceName: "測試賽", raceDate: "2026-12-06",
+            distanceLabel: nil, totalWeeks: 2, targetTime: nil,
+            estimatedFinish: nil, actualFinish: nil, narrative: nil
+        )
+        // 逐週回顧被取消（404 折 nil 是常態，取消不是）→ 整輪作廢。
+        let planRepo = MockTrainingPlanV2Repository()
+        planRepo.errorToThrow = URLError(.cancelled)
+        let vm = App2PeriodSummaryViewModel(
+            card: card,
+            planRepository: planRepo,
+            workoutDataSource: ImmediateStatsSource(),
+            vdotDataSource: HangingVdotSource()
+        )
+
+        let load = Task { await vm.revalidate() }
+        try? await Task.sleep(nanoseconds: 200_000_000)
+        load.cancel()
+        await load.value
+
+        XCTAssertNil(vm.summary)
+        XCTAssertFalse(vm.hasLoaded)
+    }
+
+    func test_homeVM_cancelledChildLoad_doesNotMarkLoaded() async {
+        // plan status 成功、targets 子載被取消（-999）→ 部分取消，不算載過。
+        let planRepo = MockTrainingPlanV2Repository()
+        planRepo.planStatusToReturn = makePlanStatus(planId: nil)
+        let targetRepo = MockTargetRepository()
+        targetRepo.errorToThrow = URLError(.cancelled)
+        let vm = App2HomeViewModel(
+            dailyStateRepository: nil,
+            targetRepository: targetRepo,
+            planRepository: planRepo,
+            readinessViewModel: nil,
+            readinessService: nil,
+            workoutDataSource: ImmediateStatsSource(),
+            snapshots: SnapshotSpy()
+        )
+
+        await vm.revalidate()
+
+        XCTAssertFalse(vm.hasLoaded, "子載入被取消＝這一輪不算載過")
+        XCTAssertNil(vm.lastLoadedAt)
+    }
+
     func test_homeVM_cancelledPlanStatusDoesNotMarkLoaded() async {
         let repository = MockTrainingPlanV2Repository()
         repository.errorToThrow = URLError(.cancelled)

@@ -19,6 +19,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 這一頁載成功過至少一次。SWR 用：載過就不再出 loading 骨架。
     private(set) var hasLoaded = false
     private(set) var lastLoadedAt: Date?
+    /// 這一輪的子載入是否吃到取消（-999 取消錯誤不設 `Task.isCancelled`）。
+    /// 有＝整輪不標載過，下次 SWR 重試（外審第八輪 D04/E03）。
+    private var roundSawCancellation = false
     @Published private(set) var goalCard: App2Sourced<App2GoalCard>?
     /// 計畫結束態（設計 frame-00g）。**有值時首頁的目標卡＋今日課表卡整段換掉**
     /// —— 那是同一塊版位的另一種內容，不是多一張卡。
@@ -206,6 +209,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         // 重驗時畫面保留上一次的資料，不閃白。
         isLoading = !hasLoaded && trainingStatus == nil && todayState == nil && goalCard == nil
 
+        roundSawCancellation = false
         // 全頁共用的一次 plan status。三張卡都從這一份取週數與本週課表 id。
         let planStatus = await fetchPlanStatus()
 
@@ -223,7 +227,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         // 取消有兩種形態：task 本身被取消，或 in-flight 請求回 -999 被折成
         // `.cancelled` outcome（`URLError(.cancelled)` 不會設 `Task.isCancelled`）——兩種都算。
         if case .cancelled = planStatus { return }
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled, !roundSawCancellation else { return }
         hasLoaded = true
         lastLoadedAt = Date()
     }
@@ -337,7 +341,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         } catch {
             // 取消不是失敗（`AGENTS.md` 陷阱 2）。下拉刷新的 task 被 SwiftUI 收掉時
             // 每一條 in-flight 請求都會回 -999；當成失敗會把畫面上的真資料換成樣本。
-            guard !error.isCancellationError else { return }
+            guard !error.isCancellationError else { roundSawCancellation = true; return }
             Logger.debug("[App2HomeVM] state/today 取得失敗,退樣本: \(error)")
             if trainingStatus == nil {
                 trainingStatus = App2Sourced(
@@ -412,7 +416,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 let plan = try await planRepository.fetchWeeklyPlan(planId: planId)
                 applyTodaySession(plan: plan)
             } catch {
-                guard !error.isCancellationError else { return }
+                guard !error.isCancellationError else { roundSawCancellation = true; return }
                 Logger.debug("[App2HomeVM] 今日課表取得失敗（plan_id=\(planId)）: \(error)")
                 todayState = .unavailable
             }
@@ -458,7 +462,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             snapshots.save(rows, for: .homeRecentWorkouts)
             todayCompletedWorkout = Self.todayWorkout(rows)
         } catch {
-            guard !error.isCancellationError else { return }
+            guard !error.isCancellationError else { roundSawCancellation = true; return }
             Logger.debug("[App2HomeVM] 今日紀錄查詢失敗: \(error)")
         }
     }
@@ -538,7 +542,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         do {
             summaryId = try await planRepository.getWeeklySummary(weekOfPlan: planStatus.currentWeek).id
         } catch {
-            guard !error.isCancellationError else { return }
+            guard !error.isCancellationError else { roundSawCancellation = true; return }
             Logger.debug("[App2HomeVM] 本週回顧查詢失敗,視為尚未產生: \(error)")
         }
         weekReview = Self.weekReviewState(planStatus: planStatus, isSunday: true, summaryId: summaryId)
@@ -990,8 +994,12 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         do {
             _ = try await targetRepository.getTargets()
         } catch {
-            if error.isCancellationError, goalCard != nil { return }
-            Logger.debug("[App2HomeVM] targets 取得失敗,改讀既有快取: \(error)")
+            if error.isCancellationError {
+                roundSawCancellation = true
+                if goalCard != nil { return }
+            } else {
+                Logger.debug("[App2HomeVM] targets 取得失敗,改讀既有快取: \(error)")
+            }
         }
 
         let main = await targetRepository.getMainTarget()
@@ -1070,7 +1078,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             let readiness = try await readinessService.getReadiness(date: raceDate)
             return readiness.metrics?.raceFitness?.estimatedRaceTime
         } catch {
-            if !error.isCancellationError {
+            if error.isCancellationError {
+                roundSawCancellation = true
+            } else {
                 Logger.debug("[App2HomeVM] 賽事日 readiness 取不到,結束態不畫預估欄: \(error)")
             }
             return nil
@@ -1115,7 +1125,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         do {
             return try await planRepository.refreshOverview()
         } catch {
-            if !error.isCancellationError {
+            if error.isCancellationError {
+                roundSawCancellation = true
+            } else {
                 Logger.debug("[App2HomeVM] overview 取得失敗: \(error)")
             }
             return nil

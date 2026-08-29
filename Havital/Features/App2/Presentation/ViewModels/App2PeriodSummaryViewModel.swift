@@ -166,17 +166,32 @@ final class App2PeriodSummaryViewModel: ObservableObject, TaskManageable, App2Re
     private func weeklySummaries() async -> [WeeklySummaryV2] {
         let repository = planRepository
         let total = weeks
-        return await withTaskGroup(of: WeeklySummaryV2?.self) { group in
+        // 404（那週沒生成回顧）是常態折 nil；**取消**要讓整輪作廢，不能折 nil
+        // 混進「沒生成」（外審第八輪 D04）。
+        let outcome = await withTaskGroup(
+            of: Result<WeeklySummaryV2?, Error>.self
+        ) { group -> (rows: [WeeklySummaryV2], cancelled: Bool) in
             for week in 1...total {
-                group.addTask { try? await repository.getWeeklySummary(weekOfPlan: week) }
+                group.addTask {
+                    do { return .success(try await repository.getWeeklySummary(weekOfPlan: week)) }
+                    catch { return .failure(error) }
+                }
             }
             var rows: [WeeklySummaryV2] = []
-            for await row in group {
-                if let row { rows.append(row) }
+            var cancelled = false
+            for await result in group {
+                switch result {
+                case .success(let row):
+                    if let row { rows.append(row) }
+                case .failure(let error):
+                    if error.isCancellationError { cancelled = true }
+                }
             }
             // 週次順序是身分（畫面上不列出來，但加總與平均要穩定可重現）。
-            return rows.sorted { $0.weekOfTraining < $1.weekOfTraining }
+            return (rows.sorted { $0.weekOfTraining < $1.weekOfTraining }, cancelled)
         }
+        if outcome.cancelled { roundSawCancellation = true }
+        return outcome.rows
     }
 
     #if DEBUG

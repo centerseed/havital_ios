@@ -64,7 +64,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     private let readinessViewModel: TrainingReadinessViewModel
     /// 近幾週的實際週跑量。既有出口是 `WeeklySummaryService`（singleton），
     /// 包成 closure 讓測試塞值 —— 不新增第二條 HTTP 路徑。
-    private let weeklyVolumesLoader: () async -> [WeeklySummaryItem]
+    private let weeklyVolumesLoader: (() async -> [WeeklySummaryItem])?
 
     // MARK: - Init
 
@@ -105,15 +105,24 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         }
 
         self.readinessViewModel = readinessViewModel ?? TrainingReadinessViewModel()
-        self.weeklyVolumesLoader = weeklyVolumesLoader ?? {
-            do {
-                // `/summary/weekly/` 這條在 dev 上回空陣列；帶跑量的是 `/summary/weekly/all`
-                // （2026-08-25 對創辦人 dev 帳號實測），所以用既有 service 的這一支。
-                return try await WeeklySummaryService.shared.fetchAllWeeklyVolumes(limit: 8)
-            } catch {
+        self.weeklyVolumesLoader = weeklyVolumesLoader
+    }
+
+    /// 週跑量歷史。取消要記進 `roundSawCancellation`（外審第八輪 E03），
+    /// 所以預設實作是實例方法而不是 init 裡的 escaping 預設 closure。
+    private func loadWeeklyVolumes() async -> [WeeklySummaryItem] {
+        if let weeklyVolumesLoader { return await weeklyVolumesLoader() }
+        do {
+            // `/summary/weekly/` 這條在 dev 上回空陣列；帶跑量的是 `/summary/weekly/all`
+            // （2026-08-25 對創辦人 dev 帳號實測），所以用既有 service 的這一支。
+            return try await WeeklySummaryService.shared.fetchAllWeeklyVolumes(limit: 8)
+        } catch {
+            if error.isCancellationError {
+                roundSawCancellation = true
+            } else {
                 Logger.debug("[App2PlanOverviewVM] 週跑量歷史取得失敗: \(error)")
-                return []
             }
+            return []
         }
     }
 
@@ -150,7 +159,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         async let stagesTask = loadStages(planStatus: planStatus)
         async let mainTargetTask = loadMainTarget()
         async let estimateTask = loadEstimatedFinish()
-        async let weeklyTask = weeklyVolumesLoader()
+        async let weeklyTask = loadWeeklyVolumes()
         async let rhythmTask = loadRhythmPreferences()
 
         let (stageBundle, mainTarget, estimate, weeklyItems, preferences) =
