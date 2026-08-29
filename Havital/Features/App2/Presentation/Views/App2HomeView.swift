@@ -938,12 +938,13 @@ struct App2HomeView: View {
         }
     }
 
-    /// 一列指標。**有詳情稿的三個（訓練量／能力基準／恢復）可點進第二層**；
-    /// 其餘（有氧續航／速度耐力…）不可點也不畫 chevron ——
-    /// 2026-08-26 晚的導航裁決，把關在 `App2MetricDetailKind.from(insightID:)`。
+    /// 一列指標。**有詳情頁的五個可點進第二層**（訓練量／能力基準／恢復恆可點；
+    /// 有氧續航／速度耐力只要不是 `not_computed` 就可點 —— 2026-08-29 創辦人裁決
+    /// 取代 2026-08-26「無詳情稿不可點」那一條）。其餘不可點也不畫 chevron，
+    /// 把關在 `App2MetricDetailKind.from(insight:)`。
     @ViewBuilder
     private func insightRow(_ insight: App2Insight) -> some View {
-        let kind = App2MetricDetailKind.from(insightID: insight.id)
+        let kind = App2MetricDetailKind.from(insight: insight)
         insightRowContent(insight, isTappable: kind != nil)
             .contentShape(Rectangle())
             .onTapGesture {

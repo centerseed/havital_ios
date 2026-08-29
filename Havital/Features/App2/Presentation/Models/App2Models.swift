@@ -708,17 +708,38 @@ struct App2DataSourceStatus: Identifiable, Equatable {
 // ＋ workouts 序列（stats／vdots／health_daily）。**不得**用 readiness
 // `/plan/readiness/latest` 的 28 天 `trend_data` 頂替任何一張圖。
 
-/// 有詳情稿的指標。**只有這三個可點**（沒有詳情稿的不可點、不畫 chevron）。
+/// 有詳情頁的指標。
+///
+/// 前三個各自有序列端點（stats／vdots／health_daily），所以圖與統計欄不吃首頁那一列的
+/// 狀態；後兩個（有氧續航／速度耐力）**整頁只有首頁那一列** —— 0–100 母體位置量尺的
+/// 逐週對照序列還沒有 producer（SPEC-today-state §11-7）。
+///
+/// 2026-08-29 創辦人裁決：「只要有數據就要可以展開詳細畫面，資料不足也要可以在詳細畫面
+/// 中解釋。」這條**取代** 2026-08-26 導航裁決裡「沒有詳情稿的指標不可點」那一句
+/// （範圍只有這兩個指標；heat_sensitivity 等沒上首頁網格的不在其內）。
 enum App2MetricDetailKind: String, Identifiable, Equatable {
     case weeklyVolume = "weekly_volume"
     case capabilityBaseline = "capability_baseline"
     case recoveryIndex = "recovery_index"
+    case aerobicEndurance = "aerobic_endurance"
+    case speedEndurance = "speed_endurance"
 
     var id: String { rawValue }
 
-    /// 首頁那一列的 `insight.id` 是不是這三個之一。
-    static func from(insightID: String) -> App2MetricDetailKind? {
-        App2MetricDetailKind(rawValue: insightID)
+    /// 0–100 母體位置量尺那兩格：沒有自己的序列端點，整頁內容都來自首頁那一列。
+    var isPopulationLevel: Bool {
+        self == .aerobicEndurance || self == .speedEndurance
+    }
+
+    /// 首頁那一列點不點得進來（同時決定畫不畫 chevron）。
+    ///
+    /// 母體位置那兩格在 `not_computed` 時**不可點**：那代表連 envelope 都沒有，
+    /// 而它們沒有第二個資料源 —— 開一頁只寫「尚未計算」就是一個按下去等於沒反應的入口。
+    /// 其餘三頁各自有序列端點，狀態不影響入口。
+    static func from(insight: App2Insight) -> App2MetricDetailKind? {
+        guard let kind = App2MetricDetailKind(rawValue: insight.id) else { return nil }
+        if kind.isPopulationLevel, insight.isNotComputed { return nil }
+        return kind
     }
 }
 
@@ -735,7 +756,9 @@ struct App2MetricHero: Equatable {
     let verdict: String?
     let direction: App2Insight.Direction
     /// 右側對照的標籤（`目標`／`30 天前`／`7 日基線`）。
-    let compareLabel: String
+    /// **nil = 這一頁沒有對照這回事**（母體位置兩格的逐週序列還沒有 producer）
+    /// → 整格不畫；有標籤但值缺席才是畫「–」。
+    let compareLabel: String?
     /// 右側對照的值；nil = 沒有這個量（畫「–」，不編數字）。
     let compareValue: String?
     /// 一句敘事。組不出來就 nil，那一行不出現。

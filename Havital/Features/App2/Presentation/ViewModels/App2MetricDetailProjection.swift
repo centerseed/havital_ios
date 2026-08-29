@@ -269,6 +269,47 @@ enum App2MetricDetailProjection {
         ]
     }
 
+    // MARK: - 母體位置兩格（有氧續航／速度耐力）
+
+    /// 這兩頁的 hero **完全是首頁那一列**：大數字是 `value_text`（0–100 母體位置）、
+    /// 判語 chip 是 `verdict`、敘事是 `evidence` 的限制句。
+    ///
+    /// 右側對照整格不畫：「計畫起點 vs 現在」的逐週序列還沒有 producer
+    /// （SPEC-today-state §11-7），掛一個永遠是「–」的標籤只是把缺口偽裝成欄位。
+    /// 兩格共用同一個 hero 標題（大數字是同一種量），所以這裡不吃 `kind`。
+    static func levelHero(insight: App2Insight) -> App2MetricHero {
+        App2MetricHero(
+            title: L10n.App2.Metric.levelHeroTitle.localized,
+            valueText: insight.value,
+            verdict: insight.verdict,
+            direction: insight.direction,
+            compareLabel: nil,
+            compareValue: nil,
+            narrative: insight.evidence
+        )
+    }
+
+    /// 「這個指標量什麼」。兩格量的不是同一件事，各有自己的一段。
+    static func levelAbout(_ kind: App2MetricDetailKind) -> String {
+        switch kind {
+        case .speedEndurance: return L10n.App2.Metric.levelAboutSpeed.localized
+        default:              return L10n.App2.Metric.levelAboutAerobic.localized
+        }
+    }
+
+    /// `insufficient_data` 時把 `evidence` 的限制句**展開成解釋**：這個分數要什麼樣的課
+    /// 才算得出來、補齊之後會怎樣。hero 的敘事已經在講「現在累積到哪」，這一段講的是
+    /// 「還差什麼」，兩段不重複同一句。
+    ///
+    /// 已評級 → nil（那一塊不出現）。
+    static func levelShortfall(insight: App2Insight, kind: App2MetricDetailKind) -> String? {
+        guard !insight.isGraded else { return nil }
+        switch kind {
+        case .speedEndurance: return L10n.App2.Metric.levelShortfallSpeed.localized
+        default:              return L10n.App2.Metric.levelShortfallAerobic.localized
+        }
+    }
+
     // MARK: - 共用格式
 
     /// `34.6 km`／`1,284 km`（整數不帶小數點，沿用 `App2NumberFormat`）。

@@ -4,12 +4,15 @@ import SwiftUI
 /// 指標第二層（checklist §51–53）。
 ///
 /// **導航裁決（2026-08-26 晚）**：首頁指標列每一項點擊**直接進對應的詳情頁**；
-/// §55／§56 的 sheet 快視圖暫不接入任何入口、不實作。沒有詳情稿的指標
-/// （有氧續航／速度耐力）不可點、不畫 chevron —— 入口的把關在
-/// `App2MetricDetailKind.from(insightID:)`，這一支只負責畫已經有稿的三頁。
+/// §55／§56 的 sheet 快視圖暫不接入任何入口、不實作。入口的把關在
+/// `App2MetricDetailKind.from(insight:)`。
 ///
-/// 三頁同構：top bar（返回＋標題＋右緣「指標詳情」）→ hero 卡 →（範圍 tabs）→
-/// 圖 → 統計／診斷 → 頁尾來源行。
+/// **2026-08-29 創辦人裁決**：有氧續航／速度耐力只要不是 `not_computed` 就要能展開，
+/// 資料不足也要在詳情頁解釋 —— 取代 2026-08-26 那條「沒有詳情稿的指標不可點」。
+/// 那兩頁沒有自己的序列端點，整頁內容都是首頁那一列（見 `App2LevelDetailPage`）。
+///
+/// 五頁同構：top bar（返回＋標題＋右緣「指標詳情」）→ hero 卡 →（範圍 tabs）→
+/// 圖 → 統計／診斷／解釋 → 頁尾來源行。
 struct App2MetricDetailView: View {
     let kind: App2MetricDetailKind
     /// 首頁那一列。**大數字與判語就用它**，詳情頁不重新評級。
@@ -26,6 +29,8 @@ struct App2MetricDetailView: View {
             App2CapabilityDetailPage(insight: insight, narrative: narrative, onClose: onClose)
         case .recoveryIndex:
             App2RecoveryDetailPage(insight: insight, narrative: narrative, onClose: onClose)
+        case .aerobicEndurance, .speedEndurance:
+            App2LevelDetailPage(kind: kind, insight: insight, onClose: onClose)
         }
     }
 }
@@ -115,13 +120,17 @@ private struct App2MetricHeroCard: View {
                     .minimumScaleFactor(0.6)
                     .accessibilityIdentifier("App2_MetricHeroValue")
                 Spacer(minLength: 6)
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(hero.compareLabel)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(App2Theme.inkMuted)
-                    Text(hero.compareValue ?? App2MetricDetailProjection.placeholder)
-                        .font(.app2Mono(14, weight: .bold))
-                        .foregroundStyle(App2Theme.inkSubtle)
+                // **標籤缺席＝這一頁沒有對照這回事**（母體位置兩格），整格不畫；
+                // 有標籤但值缺席才是畫「–」（那是「有這個量、現在讀不到」）。
+                if let compareLabel = hero.compareLabel {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(compareLabel)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(App2Theme.inkMuted)
+                        Text(hero.compareValue ?? App2MetricDetailProjection.placeholder)
+                            .font(.app2Mono(14, weight: .bold))
+                            .foregroundStyle(App2Theme.inkSubtle)
+                    }
                 }
             }
 
@@ -426,6 +435,75 @@ private struct App2CapabilityDetailPage: View {
             }
         }
         .accessibilityIdentifier("App2_MetricDiagnostics")
+    }
+}
+
+// MARK: - 母體位置兩格（有氧續航／速度耐力）
+
+/// 有氧續航／速度耐力的詳情頁。
+///
+/// **整頁沒有網路呼叫**：0–100 母體位置量尺的逐週對照序列還沒有 producer
+/// （SPEC-today-state §11-7），所以這一頁能講的全部在首頁那一列裡 ——
+/// hero 用 `value_text`／`verdict`／`evidence`，加上一段固定的「這個指標量什麼」。
+/// `insufficient_data` 時多一塊把限制句展開成「還差什麼」（2026-08-29 裁決）。
+///
+/// **不畫圖也不畫統計三欄**：那兩者需要序列，編一個出來就是把缺口偽裝成內容。
+private struct App2LevelDetailPage: View {
+    let kind: App2MetricDetailKind
+    let insight: App2Insight
+    let onClose: () -> Void
+
+    /// 兩格各自的色（同其他頁的作法：色綁頁，不綁方向 —— 這兩格恆無方向，
+    /// 用 `insight.tint` 會讓整頁變灰）。
+    private var tint: Color {
+        kind == .speedEndurance ? App2Theme.accentViolet : App2Theme.accentBlueDeep
+    }
+
+    var body: some View {
+        App2MetricDetailScaffold(
+            title: insight.label,
+            identifier: "App2_MetricDetail_\(kind.rawValue)",
+            onClose: onClose,
+            source: L10n.App2.Metric.levelSource.localized
+        ) {
+            App2MetricHeroCard(
+                hero: App2MetricDetailProjection.levelHero(insight: insight),
+                symbolName: insight.symbolName,
+                tint: tint
+            )
+
+            if let shortfall = App2MetricDetailProjection.levelShortfall(
+                insight: insight, kind: kind
+            ) {
+                explanationCard(
+                    title: L10n.App2.Metric.levelShortfallTitle.localized,
+                    body: shortfall,
+                    identifier: "App2_MetricLevelShortfall"
+                )
+            }
+
+            explanationCard(
+                title: L10n.App2.Metric.levelAboutTitle.localized,
+                body: App2MetricDetailProjection.levelAbout(kind),
+                identifier: "App2_MetricLevelAbout"
+            )
+        }
+    }
+
+    private func explanationCard(title: String, body: String, identifier: String) -> some View {
+        App2Card(spacing: 8) {
+            Text(title)
+                .font(.system(size: 14, weight: .heavy))
+                .foregroundStyle(App2Theme.inkPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text(body)
+                .font(.system(size: 13, weight: .semibold))
+                .lineSpacing(3)
+                .foregroundStyle(App2Theme.inkSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityIdentifier(identifier)
     }
 }
 

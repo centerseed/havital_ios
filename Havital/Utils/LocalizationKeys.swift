@@ -2590,6 +2590,19 @@ extension L10n {
             static let recoveryTrendFlat = "app2.metric.recovery_trend_flat"
             static let recoveryTrendDown = "app2.metric.recovery_trend_down"
             static let recoverySource = "app2.metric.recovery_source"
+
+            // 母體位置兩格（有氧續航／速度耐力）—— 整頁只有首頁那一列，
+            // 逐週對照序列還沒有 producer（SPEC-today-state §11-7）。
+            /// hero 標題：大數字是什麼量（`母體位置（0–100）`）。
+            static let levelHeroTitle = "app2.metric.level_hero_title"
+            static let levelAboutTitle = "app2.metric.level_about_title"
+            static let levelAboutAerobic = "app2.metric.level_about_aerobic"
+            static let levelAboutSpeed = "app2.metric.level_about_speed"
+            /// `insufficient_data` 才出現的那一塊：把限制句展開成「還差什麼」。
+            static let levelShortfallTitle = "app2.metric.level_shortfall_title"
+            static let levelShortfallAerobic = "app2.metric.level_shortfall_aerobic"
+            static let levelShortfallSpeed = "app2.metric.level_shortfall_speed"
+            static let levelSource = "app2.metric.level_source"
         }
 
         /// 計畫結束態（設計 frame-00g 首頁結束態／兩種語意，frame-00g2 整期總結

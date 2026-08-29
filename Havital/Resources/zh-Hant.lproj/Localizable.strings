@@ -4886,6 +4886,16 @@
 "app2.metric.recovery_trend_down" = "↓ 偏低";
 "app2.metric.recovery_source" = "資料來源 · workouts/health_daily";
 
+/* MARK: - App2 指標詳情 · 有氧續航／速度耐力（0–100 母體位置） */
+"app2.metric.level_hero_title" = "母體位置（0–100）";
+"app2.metric.level_about_title" = "這個指標量什麼";
+"app2.metric.level_about_aerobic" = "有氧續航量的是同樣配速下，心率隨著里程累積上升得多快——也就是長距離撐不撐得住。0–100 是你在跑者母體中的位置，50 是中間。";
+"app2.metric.level_about_speed" = "速度耐力量的是反覆接近全力時掉速多少，不是你最快能跑多快。0–100 是你在跑者母體中的位置，50 是中間。";
+"app2.metric.level_shortfall_title" = "為什麼還看不準";
+"app2.metric.level_shortfall_aerobic" = "這個分數要有夠多、而且距離拉得夠開的有氧跑才算得出來：每次都跑差不多的距離，就分不出心率是隨里程上升還是一開始就那麼高。上面那一行是目前累積到的程度，補齊後這一格就會出現分數。";
+"app2.metric.level_shortfall_speed" = "這個分數要有夠多看得出每趟掉速的課（間歇或反覆跑）才算得出來：一路穩定配速的跑步量不出「反覆接近全力時掉多少」。上面那一行是目前累積到的程度，補齊後這一格就會出現分數。";
+"app2.metric.level_source" = "資料來源 · state/today";
+
 /* MARK: - App2 計畫結束態（設計 frame-00g／frame-00g2） */
 "app2.plan_end.chip_race" = "備賽完成";
 "app2.plan_end.chip_maintenance" = "訓練期完成";

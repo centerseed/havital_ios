@@ -4842,6 +4842,16 @@
 "app2.metric.recovery_trend_down" = "↓ 低下";
 "app2.metric.recovery_source" = "データ元 · workouts/health_daily";
 
+/* MARK: - App2 指標詳細 · 有酸素持久力／スピード持久力（0–100 母集団での位置） */
+"app2.metric.level_hero_title" = "母集団での位置（0–100）";
+"app2.metric.level_about_title" = "この指標が測るもの";
+"app2.metric.level_about_aerobic" = "有酸素持久力は、同じペースで走ったときに距離が伸びるにつれて心拍がどれだけ上がるか——つまり長い距離を持ちこたえられるかを測ります。0–100 はランナー母集団の中での位置で、50 が真ん中です。";
+"app2.metric.level_about_speed" = "スピード持久力は、全力に近い走りを繰り返したときにどれだけ落ちるかを測ります。最高速度そのものではありません。0–100 はランナー母集団の中での位置で、50 が真ん中です。";
+"app2.metric.level_shortfall_title" = "まだ判定できない理由";
+"app2.metric.level_shortfall_aerobic" = "このスコアには、距離にばらつきのある有酸素ランが十分に必要です。毎回ほぼ同じ距離だと、心拍が距離とともに上がったのか最初から高かったのか区別できません。上の行が現在の蓄積で、それが揃えばスコアが出ます。";
+"app2.metric.level_shortfall_speed" = "このスコアには、各本のタイム低下が見える練習（インターバルやレペティション）が十分に必要です。一定ペースの走りだけでは「繰り返しでどれだけ落ちるか」を測れません。上の行が現在の蓄積で、それが揃えばスコアが出ます。";
+"app2.metric.level_source" = "データ元 · state/today";
+
 /* MARK: - App2 プラン終了状態（デザイン frame-00g／frame-00g2） */
 "app2.plan_end.chip_race" = "レース準備完了";
 "app2.plan_end.chip_maintenance" = "トレーニング期完了";

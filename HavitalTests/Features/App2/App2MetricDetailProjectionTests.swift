@@ -25,6 +25,27 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         App2MetricPoint(date: date, value: value)
     }
 
+    /// 首頁那一列。`graded`／`notComputed` 對應後端的 `status`。
+    private func insight(
+        _ id: String,
+        value: String? = nil,
+        verdict: String? = nil,
+        evidence: String? = nil,
+        graded: Bool = true,
+        notComputed: Bool = false
+    ) -> App2Insight {
+        App2Insight(
+            id: id,
+            label: id,
+            value: value,
+            direction: .unknown,
+            verdict: verdict,
+            evidence: evidence,
+            isNotComputed: notComputed,
+            isGraded: graded
+        )
+    }
+
     // MARK: - §51 平均／高點
 
     func testAverageAndPeakExcludeCurrentWeek() {
@@ -278,15 +299,103 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         XCTAssertEqual(App2DateLabel.short(isoDate: "n/a"), "n/a")
     }
 
-    // MARK: - 入口把關
+    // MARK: - 入口把關（2026-08-29 裁決）
 
-    func testOnlyThreeMetricsHaveDetailPages() {
-        XCTAssertEqual(App2MetricDetailKind.from(insightID: "weekly_volume"), .weeklyVolume)
-        XCTAssertEqual(App2MetricDetailKind.from(insightID: "capability_baseline"), .capabilityBaseline)
-        XCTAssertEqual(App2MetricDetailKind.from(insightID: "recovery_index"), .recoveryIndex)
-        // 沒有詳情稿的指標不可點（首頁也不畫 chevron）
-        XCTAssertNil(App2MetricDetailKind.from(insightID: "aerobic_endurance"))
-        XCTAssertNil(App2MetricDetailKind.from(insightID: "speed_endurance"))
-        XCTAssertNil(App2MetricDetailKind.from(insightID: "heat_sensitivity"))
+    /// 有序列端點的三頁**恆可點**：它們的圖與統計欄不吃 `insights[]` 的狀態，
+    /// 那一列沒評出來時頁上仍有東西可看。
+    func testSeriesBackedPagesStayTappableRegardlessOfStatus() {
+        XCTAssertEqual(
+            App2MetricDetailKind.from(insight: insight("weekly_volume", value: "23 km")),
+            .weeklyVolume
+        )
+        XCTAssertEqual(
+            App2MetricDetailKind.from(insight: insight("capability_baseline", graded: false)),
+            .capabilityBaseline
+        )
+        XCTAssertEqual(
+            App2MetricDetailKind.from(insight: insight("recovery_index", notComputed: true)),
+            .recoveryIndex
+        )
+    }
+
+    /// 母體位置那兩格整頁只有首頁那一列，所以**有值或有限制句就可點**
+    /// （2026-08-29 創辦人裁決取代 2026-08-26「無詳情稿不可點」）；
+    /// `not_computed` 連 envelope 都沒有 → 仍不可點。
+    func testLevelMetricsAreTappableUnlessNotComputed() {
+        XCTAssertEqual(
+            App2MetricDetailKind.from(insight: insight("aerobic_endurance", value: "70")),
+            .aerobicEndurance
+        )
+        XCTAssertEqual(
+            App2MetricDetailKind.from(insight: insight("aerobic_endurance", graded: false)),
+            .aerobicEndurance
+        )
+        XCTAssertEqual(
+            App2MetricDetailKind.from(insight: insight("speed_endurance", graded: false)),
+            .speedEndurance
+        )
+        XCTAssertNil(
+            App2MetricDetailKind.from(insight: insight("aerobic_endurance",
+                                                       graded: false, notComputed: true))
+        )
+        XCTAssertNil(
+            App2MetricDetailKind.from(insight: insight("speed_endurance",
+                                                       graded: false, notComputed: true))
+        )
+        // 沒有上首頁網格的指標仍然沒有頁。
+        XCTAssertNil(App2MetricDetailKind.from(insight: insight("heat_sensitivity", value: "40")))
+    }
+
+    // MARK: - 母體位置兩頁的 hero
+
+    func testLevelHeroReusesInsightFieldsWhenGraded() {
+        let row = insight("aerobic_endurance", value: "70",
+                          verdict: "strong", evidence: "limited")
+        let hero = App2MetricDetailProjection.levelHero(insight: row)
+
+        XCTAssertEqual(hero.valueText, "70")
+        XCTAssertEqual(hero.verdict, "strong")
+        XCTAssertEqual(hero.narrative, "limited")
+        // 逐週對照序列還沒有 producer（SPEC-today-state §11-7）→ 右側那一格整格不畫，
+        // 不掛一個永遠是「–」的標籤。
+        XCTAssertNil(hero.compareLabel)
+        XCTAssertNil(hero.compareValue)
+    }
+
+    func testLevelHeroHasNoNumberWhenInsufficient() {
+        let row = insight("speed_endurance", verdict: "unclear",
+                          evidence: "only 0 of 6", graded: false)
+        let hero = App2MetricDetailProjection.levelHero(insight: row)
+
+        // 值缺席 → 畫面畫 `placeholder`，不編數字。
+        XCTAssertNil(hero.valueText)
+        XCTAssertEqual(hero.verdict, "unclear")
+        XCTAssertEqual(hero.narrative, "only 0 of 6")
+    }
+
+    /// insufficient 才把限制句展開成「還需要什麼」；graded 沒有這一塊。
+    func testLevelShortfallOnlyWhenNotGraded() {
+        XCTAssertNotNil(App2MetricDetailProjection.levelShortfall(
+            insight: insight("aerobic_endurance", graded: false), kind: .aerobicEndurance
+        ))
+        XCTAssertNil(App2MetricDetailProjection.levelShortfall(
+            insight: insight("aerobic_endurance", value: "70"), kind: .aerobicEndurance
+        ))
+    }
+
+    /// 兩格量的不是同一件事，解釋不得共用同一句。
+    func testLevelCopyIsPerMetric() {
+        XCTAssertNotEqual(
+            App2MetricDetailProjection.levelAbout(.aerobicEndurance),
+            App2MetricDetailProjection.levelAbout(.speedEndurance)
+        )
+        XCTAssertNotEqual(
+            App2MetricDetailProjection.levelShortfall(
+                insight: insight("aerobic_endurance", graded: false), kind: .aerobicEndurance
+            ),
+            App2MetricDetailProjection.levelShortfall(
+                insight: insight("speed_endurance", graded: false), kind: .speedEndurance
+            )
+        )
     }
 }
