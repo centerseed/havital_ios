@@ -328,11 +328,18 @@ final class App2CancellationTests: XCTestCase {
     }
 
     func test_homeVM_cancelledChildLoad_doesNotMarkLoaded() async {
-        // plan status 成功、targets 子載被取消（-999）→ 部分取消，不算載過。
+        // plan status 成功、targets 子載被取消（-999）→ 部分取消，不算載過；
+        // **本機快取有主賽事也不得用它組卡發布**（取消＝整段停手）。
         let planRepo = MockTrainingPlanV2Repository()
         planRepo.planStatusToReturn = makePlanStatus(planId: nil)
         let targetRepo = MockTargetRepository()
         targetRepo.errorToThrow = URLError(.cancelled)
+        targetRepo.mainTargetToReturn = Target(
+            id: "t1", type: "race_run", name: "快取賽事", distanceKm: 21,
+            targetTime: 7200, targetPace: "5:41",
+            raceDate: Int(Date().addingTimeInterval(86400 * 30).timeIntervalSince1970),
+            isMainRace: true, trainingWeeks: 5, raceId: nil
+        )
         let vm = App2HomeViewModel(
             dailyStateRepository: nil,
             targetRepository: targetRepo,
@@ -347,6 +354,35 @@ final class App2CancellationTests: XCTestCase {
 
         XCTAssertFalse(vm.hasLoaded, "子載入被取消＝這一輪不算載過")
         XCTAssertNil(vm.lastLoadedAt)
+        // 冷啟 hydrate 的預渲染是設計內的 SWR「先舊後新」，卡片可以在；
+        // 但它必須停留在 hydrate 版（origin 只有 targets+status 兩端點），
+        // 不得被這一輪被取消的組裝覆蓋（組裝版 origin 會多 readiness/overview）。
+        XCTAssertEqual(
+            vm.goalCard?.origin,
+            .live(endpoint: "GET /user/targets + GET /v2/plan/status"),
+            "取消後不得走完整組裝發布，只准留冷啟預渲染"
+        )
+    }
+
+    func test_homeVM_overlappingRevalidates_runOneRoundAtATime() async {
+        // 兩輪並發會在 await 點交錯共用取消旗標與完成標記——同一時間只准一輪。
+        let planRepo = MockTrainingPlanV2Repository()
+        planRepo.planStatusToReturn = makePlanStatus(planId: nil)
+        let vm = App2HomeViewModel(
+            dailyStateRepository: nil,
+            targetRepository: MockTargetRepository(),
+            planRepository: planRepo,
+            readinessViewModel: nil,
+            readinessService: nil,
+            workoutDataSource: ImmediateStatsSource(),
+            snapshots: SnapshotSpy()
+        )
+
+        async let first: Void = vm.revalidate()
+        async let second: Void = vm.revalidate()
+        _ = await (first, second)
+
+        XCTAssertEqual(planRepo.getPlanStatusCallCount, 1, "後進的那一輪要直接跳過")
     }
 
     func test_homeVM_cancelledPlanStatusDoesNotMarkLoaded() async {

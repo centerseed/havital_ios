@@ -52,6 +52,8 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     /// 這一輪的子載入是否吃到取消（-999 取消錯誤不設 `Task.isCancelled`）。
     /// 有＝整輪作廢：不發布、不標載過（外審第七輪 E03）。
     private var roundSawCancellation = false
+    /// revalidate 的同輪互斥：兩輪並發會在 await 點交錯共用取消旗標與完成標記。
+    private var isRevalidating = false
 
     nonisolated let taskRegistry = TaskRegistry()
 
@@ -133,6 +135,10 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     // MARK: - Loading
 
     func revalidate() async {
+        guard !isRevalidating else { return }
+        isRevalidating = true
+        defer { isRevalidating = false }
+
         isLoading = !hasLoaded
         roundSawCancellation = false
         var finishedRound = false

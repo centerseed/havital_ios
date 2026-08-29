@@ -77,6 +77,8 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 這一輪是否真的完成（成功或真失敗）。取消（含子載入的 -999）會把它收回 false。
     /// 放實例層是因為 `loadHistoryWeek` 也要能收回它（部分取消，外審第七輪 D04）。
     private var finishedRound = false
+    /// revalidate 的同輪互斥：兩輪並發會在 await 點交錯共用取消旗標與完成標記。
+    private var isRevalidating = false
 
     /// 最近一次讀到的 plan status —— 歷史週的週起點與週次上限都從它推。
     private var latestPlanStatus: PlanStatusV2Response?
@@ -176,6 +178,10 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     }
 
     func revalidate() async {
+        guard !isRevalidating else { return }
+        isRevalidating = true
+        defer { isRevalidating = false }
+
         // 冷啟第一輪：先把上一次的週課表渲染出來，這一輪的網路變成背景刷新。
         if !hasLoaded { hydrateFromCache() }
         isLoading = !hasLoaded && week == nil

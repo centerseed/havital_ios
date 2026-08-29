@@ -22,6 +22,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 這一輪的子載入是否吃到取消（-999 取消錯誤不設 `Task.isCancelled`）。
     /// 有＝整輪不標載過，下次 SWR 重試（外審第八輪 D04/E03）。
     private var roundSawCancellation = false
+    /// revalidate 的同輪互斥（見 revalidate 開頭的註解）。
+    private var isRevalidating = false
     @Published private(set) var goalCard: App2Sourced<App2GoalCard>?
     /// 計畫結束態（設計 frame-00g）。**有值時首頁的目標卡＋今日課表卡整段換掉**
     /// —— 那是同一塊版位的另一種內容，不是多一張卡。
@@ -202,6 +204,12 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     // MARK: - Loading
 
     func revalidate() async {
+        // 同一時間只跑一輪：兩輪並發會在 await 點交錯共用 `roundSawCancellation`
+        // 與完成標記（外審第九輪 E08）。後進的直接跳過——SWR 下一次會再來。
+        guard !isRevalidating else { return }
+        isRevalidating = true
+        defer { isRevalidating = false }
+
         // 冷啟第一輪：先把上一次的快照渲染出來，這一輪的網路變成背景刷新。
         if !hasLoaded { await hydrateFromSnapshot() }
 
@@ -995,11 +1003,12 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             _ = try await targetRepository.getTargets()
         } catch {
             if error.isCancellationError {
+                // 被取消就整段停手：連 cache 路徑都不走，不組裝也不發布
+                // （外審第九輪 D04/E03——記了旗標卻繼續組裝＝取消後仍發布）。
                 roundSawCancellation = true
-                if goalCard != nil { return }
-            } else {
-                Logger.debug("[App2HomeVM] targets 取得失敗,改讀既有快取: \(error)")
+                return
             }
+            Logger.debug("[App2HomeVM] targets 取得失敗,改讀既有快取: \(error)")
         }
 
         let main = await targetRepository.getMainTarget()

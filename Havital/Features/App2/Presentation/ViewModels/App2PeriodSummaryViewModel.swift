@@ -68,6 +68,10 @@ final class App2PeriodSummaryViewModel: ObservableObject, TaskManageable, App2Re
     var weeks: Int { max(card.totalWeeks ?? Self.fallbackWeeks, 1) }
 
     func revalidate() async {
+        guard !isRevalidating else { return }
+        isRevalidating = true
+        defer { isRevalidating = false }
+
         isLoading = !hasLoaded
         var finishedRound = false
         defer {
@@ -144,6 +148,8 @@ final class App2PeriodSummaryViewModel: ObservableObject, TaskManageable, App2Re
 
     /// 這一輪的子載入是否吃到取消（-999 取消錯誤不設 `Task.isCancelled`）。
     private var roundSawCancellation = false
+    /// revalidate 的同輪互斥：兩輪並發會在 await 點交錯共用取消旗標與完成標記。
+    private var isRevalidating = false
 
     /// 真失敗折成 nil（少那幾格）；取消記旗標讓整輪作廢。
     private func optionalLoad<T>(_ op: @escaping () async throws -> T) async -> T? {
