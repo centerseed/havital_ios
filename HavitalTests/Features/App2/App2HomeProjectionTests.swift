@@ -322,6 +322,45 @@ final class App2HomeProjectionTests: XCTestCase {
         XCTAssertTrue(App2HomeViewModel.insights(rows: []).isEmpty)
     }
 
+    // MARK: - 一列指標右側寫什麼（T-0333）
+
+    /// 有對照句的列維持現狀：右側是 `change`，不同時擠 `value_text`。
+    func test_insightRow_withChange_showsChange() {
+        let row = App2HomeViewModel.insights(rows: [
+            insightRow(key: "capability_baseline", label: "能力基準", valueText: "38.5",
+                       arrow: .up, verdict: "變強了", change: "37.7 → 38.5")
+        ])[0]
+        XCTAssertEqual(App2HomeView.insightTrailingText(row), "37.7 → 38.5")
+        // 對照句已經含當下值；再加一次 `value_text` 只會唸成「38.5 37.7 → 38.5」。
+        XCTAssertEqual(App2HomeView.insightAccessibilityLabel(row), "能力基準 變強了 37.7 → 38.5")
+    }
+
+    /// 水準型指標（有氧續航／速度耐力／恢復）**沒有對照句**——後端明說單一時點
+    /// 推不出趨勢（SPEC-today-state §4.5），`change` 恆為 null。這一列右側要畫的是
+    /// `value_text`；沒畫的時候用戶看到的是「有氧續航　還在建立　·」，28 這個數字整個掉了
+    /// （2026-08-29 創辦人 prod 截圖）。
+    func test_insightRow_levelMetricWithoutChange_showsValueText() {
+        let rows = App2HomeViewModel.insights(rows: [
+            insightRow(key: "aerobic_endurance", label: "有氧續航", valueText: "28",
+                       verdict: "還在建立"),
+            insightRow(key: "speed_endurance", label: "速度耐力", valueText: "70",
+                       verdict: "偏強")
+        ])
+        XCTAssertEqual(rows.map { App2HomeView.insightTrailingText($0) }, ["28", "70"])
+        XCTAssertTrue(App2HomeView.insightAccessibilityLabel(rows[0]).contains("28"))
+        XCTAssertTrue(App2HomeView.insightAccessibilityLabel(rows[1]).contains("70"))
+    }
+
+    /// `not_computed`／兩者皆缺：右側維持空白。不畫空字串，也不補 0。
+    func test_insightRow_notComputed_showsNothingOnTheRight() {
+        let row = App2HomeViewModel.insights(rows: [
+            insightRow(key: "recovery_index", label: "恢復", verdict: "尚未計算",
+                       status: "not_computed")
+        ])[0]
+        XCTAssertNil(App2HomeView.insightTrailingText(row))
+        XCTAssertEqual(App2HomeView.insightAccessibilityLabel(row), "恢復 尚未計算")
+    }
+
     // MARK: - 收合態預設展開哪幾列
 
     /// 有評級的優先，且**只出評級的** —— 未評級的不拿來補位。

@@ -961,10 +961,25 @@ struct App2HomeView: View {
     }
 
     /// 一列指標唸出來的字（`訓練量 下修 11 vs 上週 30 km`）。
+    /// 右側那一格唸的跟看的是同一個字串（[insightTrailingText]）。
     static func insightAccessibilityLabel(_ insight: App2Insight) -> String {
-        [insight.label, insight.verdict, insight.change]
+        [insight.label, insight.verdict, insightTrailingText(insight)]
             .compactMap { $0 }
             .joined(separator: " ")
+    }
+
+    /// 一列指標右側那一格的字：**有對照句就畫對照句，沒有才退到當下水準**。
+    ///
+    /// 後端的 `change` 只在有序列或有對照量時才給（SPEC-today-state §4.5：單一時點
+    /// MUST NOT 推出趨勢），所以有氧續航／速度耐力／恢復這幾格恆為 null——它們給的是
+    /// `value_text`。這裡原本只畫 `change`，於是那幾列右側只剩一顆方向點，28／70／61
+    /// 整個被丟掉（2026-08-29 創辦人 prod 截圖）。
+    ///
+    /// 兩個都有時**只畫 `change`**：對照句本身已經含當下值（`37.7 → 38.5`），再擠一個
+    /// `38.5` 進同一格是同一個數字講兩次。兩個都沒有（`not_computed`）就回 nil，
+    /// 那一格不畫——不畫空字串，也不補 0。
+    static func insightTrailingText(_ insight: App2Insight) -> String? {
+        insight.change ?? insight.value
     }
 
     private func insightRowContent(_ insight: App2Insight, isTappable: Bool) -> some View {
@@ -984,8 +999,8 @@ struct App2HomeView: View {
                     .lineLimit(1)
             }
             Spacer(minLength: 6)
-            if let change = insight.change {
-                Text(change)
+            if let trailing = Self.insightTrailingText(insight) {
+                Text(trailing)
                     .font(.app2Mono(12, weight: .bold))
                     .foregroundStyle(App2Theme.inkFaint)
                     .lineLimit(1)
