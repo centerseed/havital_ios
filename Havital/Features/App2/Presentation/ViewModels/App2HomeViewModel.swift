@@ -218,6 +218,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         _ = await (state, goal, today, review, completed)
 
         isLoading = false
+        // 被取消的那一輪不算載過：子載入各自有取消 guard 不動畫面，這裡也不標
+        // hasLoaded／lastLoadedAt，下次進頁的 SWR 會重試（2026-08-29 外審 D04/E03）。
+        guard !Task.isCancelled else { return }
         hasLoaded = true
         lastLoadedAt = Date()
     }

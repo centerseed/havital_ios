@@ -71,8 +71,11 @@ final class App2PeriodSummaryViewModel: ObservableObject, TaskManageable, App2Re
         isLoading = !hasLoaded
         defer {
             isLoading = false
-            hasLoaded = true
-            lastLoadedAt = Date()
+            // 被取消的那一輪不算載過（2026-08-29 外審 D04/E03）：下次進頁的 SWR 會重試。
+            if !Task.isCancelled {
+                hasLoaded = true
+                lastLoadedAt = Date()
+            }
         }
 
         // 四條各自可缺席：`try?` 是刻意的 —— 少一條端點只是少那幾格，

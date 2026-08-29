@@ -110,7 +110,8 @@ final class App2RaceManagementViewModel: ObservableObject, TaskManageable {
         isLoading = !hasLoaded
         defer {
             isLoading = false
-            hasLoaded = true
+            // 被取消的那一輪不算載過（2026-08-29 外審 D04/E03）。
+            if !Task.isCancelled { hasLoaded = true }
         }
         do {
             apply(try await targetRepository.getTargets())

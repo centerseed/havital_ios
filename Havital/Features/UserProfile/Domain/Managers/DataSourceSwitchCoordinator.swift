@@ -12,16 +12,29 @@ import Foundation
 ///
 /// 為什麼是 Domain/Managers：它協調的是既有的 `GarminManager`／`StravaManager`／
 /// `HealthKitManager`／偏好寫入，不自己碰 HTTP，也不持有 UI 狀態。
+///
+/// 偏好寫入走 [DataSourcePreferenceWriting] 抽象——Domain 不 import presentation 型別，
+/// `UserProfileFeatureViewModel` 在 presentation 側 conform（2026-08-29 外審 C03：
+/// 依賴方向必須是 Presentation → Domain，不得反向持有 ViewModel）。
+// MARK: - DataSourcePreferenceWriting
+/// 資料來源偏好的寫入口（目前的值＋寫後端並同步）。Domain 只依賴這個抽象；
+/// presentation 的 `UserProfileFeatureViewModel` conform 它。
+@MainActor
+protocol DataSourcePreferenceWriting: AnyObject {
+    var currentDataSource: DataSourceType { get set }
+    func updateAndSyncDataSource(_ dataSource: DataSourceType) async throws
+}
+
 @MainActor
 struct DataSourceSwitchCoordinator {
 
-    private let profileViewModel: UserProfileFeatureViewModel
+    private let profileViewModel: any DataSourcePreferenceWriting
     private let garminManager: GarminManager
     private let stravaManager: StravaManager
     private let healthKitManager: HealthKitManager
 
     init(
-        profileViewModel: UserProfileFeatureViewModel,
+        profileViewModel: any DataSourcePreferenceWriting,
         garminManager: GarminManager = .shared,
         stravaManager: StravaManager = .shared,
         healthKitManager: HealthKitManager = .shared

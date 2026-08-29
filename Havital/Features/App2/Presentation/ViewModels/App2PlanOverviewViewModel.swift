@@ -124,8 +124,11 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         isLoading = !hasLoaded
         defer {
             isLoading = false
-            hasLoaded = true
-            lastLoadedAt = Date()
+            // 被取消的那一輪不算載過（2026-08-29 外審 D04/E03）：下次進頁的 SWR 會重試。
+            if !Task.isCancelled {
+                hasLoaded = true
+                lastLoadedAt = Date()
+            }
         }
 
         // 週次是這一頁的骨幹：沒有 plan status 就沒有「第 N / M 週」，也綁不了 overview。

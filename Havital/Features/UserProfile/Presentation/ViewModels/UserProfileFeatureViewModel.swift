@@ -776,3 +776,10 @@ extension DependencyContainer {
         )
     }
 }
+
+// MARK: - DataSourcePreferenceWriting
+/// `DataSourceSwitchCoordinator`（Domain）對偏好寫入的抽象由這裡實作——
+/// 依賴方向維持 Presentation → Domain（2026-08-29 外審 C03）。
+/// `currentDataSource` 與 `updateAndSyncDataSource` 本來就是本 VM 的成員，
+/// conformance 不新增行為。
+extension UserProfileFeatureViewModel: DataSourcePreferenceWriting {}
