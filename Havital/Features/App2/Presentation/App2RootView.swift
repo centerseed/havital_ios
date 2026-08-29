@@ -67,6 +67,8 @@ extension PersonalAchievementsViewModel: App2Revalidating {
 /// 1.x 發版線（`main`）不受影響 —— 本票不合回 main。
 struct App2RootView: View {
 
+    @Environment(\.scenePhase) private var scenePhase
+
     @State private var selection: App2Tab = .state
     @State private var isShowingSettings = false
 
@@ -116,6 +118,17 @@ struct App2RootView: View {
                 onClose: { isShowingSettings = false },
                 viewModel: settingsViewModel
             )
+        }
+        // 背景回前景要重驗。ViewModel 常駐殼層＋重驗只掛 `.task`（進頁才觸發）的組合，
+        // 意味著隔天從背景打開 app、停在同一個 tab 時**沒有任何東西會重打 API**——
+        // 昨天的跑步紀錄要殺掉 app 重開才進來（2026-08-29 使用者回報）。
+        // 走同一條 SWR（60 秒門檻、不清畫面不閃 loading），不是第二套載入路徑。
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            Task { await homeViewModel.loadIfNeeded() }
+            Task { await planViewModel.loadIfNeeded() }
+            Task { await recordsViewModel.loadIfNeeded() }
+            Task { await achievementsViewModel.loadIfNeeded() }
         }
         .accessibilityIdentifier("App2_RootView")
     }
