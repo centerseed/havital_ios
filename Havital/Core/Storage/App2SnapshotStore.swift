@@ -1,5 +1,9 @@
 import Foundation
 
+// 住在 Core/Storage：`DailyStateRepositoryImpl`（feature 的 data 層）也落地到這裡，
+// 依賴方向必須是 Features → Core，不能是 feature-data → App2-data
+// （2026-08-29 外審 C01/C03；Features/App2 維持 presentation-only）。
+
 // MARK: - App2SnapshotKey
 /// 一個 key ＝ **一支端點的最後一次成功回應**。
 ///

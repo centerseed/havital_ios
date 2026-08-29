@@ -185,12 +185,12 @@ struct App2PlanEditView: View {
     private var warningCard: some View {
         HStack(alignment: .top, spacing: 10) {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color(hex: "#EAB308").opacity(0.18))
+                .fill(App2Theme.editAmber.opacity(0.18))
                 .frame(width: 26, height: 26)
                 .overlay {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .font(.system(size: 12, weight: .black))
-                        .foregroundStyle(Color(hex: "#A16207"))
+                        .foregroundStyle(App2Theme.editAmberText)
                 }
             VStack(alignment: .leading, spacing: 2) {
                 Text(L10n.App2.PlanEdit.warningTitle.localized)
@@ -210,7 +210,7 @@ struct App2PlanEditView: View {
                 .fill(
                     LinearGradient(
                         stops: [
-                            .init(color: Color(hex: "#EAB308").opacity(0.12), location: 0),
+                            .init(color: App2Theme.editAmber.opacity(0.12), location: 0),
                             .init(color: .white, location: 0.78)
                         ],
                         startPoint: .topLeading, endPoint: .bottomTrailing
@@ -219,7 +219,7 @@ struct App2PlanEditView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color(hex: "#EAB308").opacity(0.32), lineWidth: 1)
+                .strokeBorder(App2Theme.editAmber.opacity(0.32), lineWidth: 1)
         )
         .accessibilityIdentifier("App2_PlanEditAdjacentWarning")
     }
@@ -301,7 +301,7 @@ struct App2PlanEditView: View {
         .padding(.vertical, 10)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(Color(hex: "#10151C").opacity(0.92))
+                .fill(App2Theme.inkPrimary.opacity(0.92))
         )
         .accessibilityIdentifier("App2_PlanEditToast")
     }

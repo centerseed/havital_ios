@@ -116,9 +116,19 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     // 沒有 uid（尚未登入／auth 還沒恢復）時不讀也不寫 —— 來源不明的快取不進畫面。
 
     /// 這批快取是不是現在這個帳號寫的。不是就地清掉，並回 false。
+    ///
+    /// **沒有擁有者戳＝擁有者戳上線前寫下的 legacy 快取**：證明不了是誰的，就地清掉、
+    /// 走網路重取（getter 回 nil → repository 打 API）。這是明確的一次性淘汰，
+    /// 不是讓 legacy blob 靜默滯留（2026-08-29 外審）。
     private func isOwnedByCurrentUser() -> Bool {
         guard let uid = currentUserID() else { return false }
-        guard let owner = defaults.string(forKey: Keys.ownerUid) else { return false }
+        guard let owner = defaults.string(forKey: Keys.ownerUid) else {
+            if defaults.data(forKey: Keys.planStatus) != nil || defaults.data(forKey: Keys.overview) != nil {
+                Logger.info("[TrainingPlanV2LocalDS] legacy 快取無擁有者戳,整批丟棄改走網路")
+                clearAll()
+            }
+            return false
+        }
         guard owner == uid else {
             Logger.info("[TrainingPlanV2LocalDS] 快取擁有者不符,整批丟棄")
             clearAll()

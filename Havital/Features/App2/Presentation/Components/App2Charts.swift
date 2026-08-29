@@ -511,7 +511,7 @@ struct App2SessionStructureChart: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .strokeBorder(Color(hex: "#0F172A").opacity(0.05), lineWidth: 1)
+                .strokeBorder(App2Theme.strokeFaint, lineWidth: 1)
         )
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
@@ -554,7 +554,7 @@ struct App2SessionStructureChart: View {
             .padding(.top, 10)
             .overlay(alignment: .top) {
                 Rectangle()
-                    .fill(Color(hex: "#0F172A").opacity(0.06))
+                    .fill(App2Theme.insetBorder)
                     .frame(height: 1)
             }
             .padding(.top, 2)
@@ -566,7 +566,7 @@ struct App2SessionStructureChart: View {
         case .steady:   return App2Theme.accentGreenBright
         case .interval: return App2Theme.accentOrangeBright
         case .warmup:   return App2Theme.accentGreenBright
-        case .support:  return Color(hex: "#CFD6DF")
+        case .support:  return App2Theme.chartSupport
         }
     }
 
@@ -574,16 +574,16 @@ struct App2SessionStructureChart: View {
     private func gradient(for kind: App2SessionStructureBar.Kind) -> LinearGradient {
         switch kind {
         case .steady:
-            return LinearGradient(colors: [Color(hex: "#5BE08A"), Color(hex: "#22C55E")],
+            return LinearGradient(colors: [App2Theme.chartGreenLight, App2Theme.accentGreenBright],
                                   startPoint: .top, endPoint: .bottom)
         case .interval:
-            return LinearGradient(colors: [Color(hex: "#FB7A3C"), Color(hex: "#E8500F")],
+            return LinearGradient(colors: [App2Theme.chartOrangeLight, App2Theme.chartOrangeDeep],
                                   startPoint: .top, endPoint: .bottom)
         case .warmup:
-            return LinearGradient(colors: [Color(hex: "#7BD79C"), Color(hex: "#63C98A")],
+            return LinearGradient(colors: [App2Theme.chartGreenSoftFrom, App2Theme.chartGreenSoftTo],
                                   startPoint: .top, endPoint: .bottom)
         case .support:
-            return LinearGradient(colors: [Color(hex: "#CFD6DF"), Color(hex: "#CFD6DF")],
+            return LinearGradient(colors: [App2Theme.chartSupport, App2Theme.chartSupport],
                                   startPoint: .top, endPoint: .bottom)
         }
     }

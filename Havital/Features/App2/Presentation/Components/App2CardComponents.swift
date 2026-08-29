@@ -607,7 +607,7 @@ extension App2SettingsRow where Trailing == Text {
                 .font(monospaced
                       ? .app2Mono(14, weight: .bold)
                       : .system(size: 14, weight: .bold))
-                .foregroundStyle(Color(hex: "#6B7581"))
+                .foregroundStyle(App2Theme.inkSubtle)
         }
     }
 }

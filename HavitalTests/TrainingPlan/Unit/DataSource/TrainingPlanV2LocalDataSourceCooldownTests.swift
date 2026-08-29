@@ -170,3 +170,40 @@ final class TrainingPlanV2LocalDataSourceCooldownTests: XCTestCase {
         XCTAssertFalse(sut.shouldRefresh(.planStatus), "Cooldown should be reset after second markRefreshed")
     }
 }
+
+// MARK: - 帳號隔離：legacy 快取（無擁有者戳）
+
+/// 擁有者戳上線前寫下的快取證明不了是誰的：讀到就**明確清掉**、getter 回 nil
+/// 走網路重取，不讓 legacy blob 靜默滯留（2026-08-29 外審）。
+final class TrainingPlanV2LocalDataSourceOwnerTests: XCTestCase {
+
+    private func makeStatus() -> PlanStatusV2Response {
+        PlanStatusV2Response(
+            currentWeek: 1, totalWeeks: 5, nextAction: "view_plan",
+            canGenerateNextWeek: false, currentWeekPlanId: "p_1",
+            previousWeekSummaryId: nil, targetType: "race_run",
+            methodologyId: "paceriz", nextWeekInfo: nil, metadata: nil
+        )
+    }
+
+    func test_legacyCacheWithoutOwnerStamp_isClearedAndFallsThroughToNetwork() {
+        let defaults = MockUserDefaults()
+        let sut = TrainingPlanV2LocalDataSource(defaults: defaults, currentUserID: { "userA" })
+
+        sut.savePlanStatus(makeStatus())
+        XCTAssertNotNil(sut.getPlanStatus(), "Precondition: 正常寫入讀得回來")
+
+        // 拔掉擁有者戳，模擬戳上線前寫下的 legacy 快取。
+        defaults.removeObject(forKey: "training_plan_v2_cache_owner_uid")
+
+        XCTAssertNil(sut.getPlanStatus(), "legacy 快取不得進畫面（getter 回 nil → 走網路）")
+        XCTAssertNil(
+            defaults.data(forKey: "training_plan_v2_plan_status_cache"),
+            "legacy 快取要被明確清掉，不是靜默滯留"
+        )
+
+        // 之後的正常寫入重新蓋戳，讀取恢復。
+        sut.savePlanStatus(makeStatus())
+        XCTAssertNotNil(sut.getPlanStatus())
+    }
+}

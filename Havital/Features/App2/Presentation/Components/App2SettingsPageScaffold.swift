@@ -150,7 +150,7 @@ struct App2DataSourceRow<Leading: View>: View {
                         .padding(.horizontal, 18)
                         .padding(.vertical, 10)
                         .background(
-                            Capsule().fill(isConnected ? Color(hex: "#EEF2F7") : App2Theme.accentBlue)
+                            Capsule().fill(isConnected ? App2Theme.neutralFill : App2Theme.accentBlue)
                         )
                 }
                 .buttonStyle(.plain)
@@ -169,7 +169,7 @@ struct App2DataSourceRow<Leading: View>: View {
                 .strokeBorder(
                     isConnected
                         ? App2Theme.accentGreenBright.opacity(0.35)
-                        : Color(hex: "#0F172A").opacity(0.07),
+                        : App2Theme.cardBorder,
                     lineWidth: 1
                 )
         )

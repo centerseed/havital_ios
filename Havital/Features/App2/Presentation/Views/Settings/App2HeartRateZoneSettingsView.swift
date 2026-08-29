@@ -21,8 +21,8 @@ struct App2HeartRateZoneSettingsView: View {
 
     /// 設計 frame-26／33 的五條色帶。
     private static let bandColors: [Color] = [
-        Color(hex: "#5AA9F0"), Color(hex: "#4FC47E"), Color(hex: "#E0B23A"),
-        Color(hex: "#EC8A4C"), Color(hex: "#E5546C")
+        App2Theme.trackAhead, App2Theme.trackOnTrack, App2Theme.bandAmber,
+        App2Theme.bandOrange, App2Theme.bandRed
     ]
 
     private var bands: [App2OnboardingProjection.HeartRateBand] {

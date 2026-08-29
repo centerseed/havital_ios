@@ -284,7 +284,7 @@ struct App2PlanOverviewView: View {
                 if let stageName {
                     Text("· \(stageName)")
                         .font(.system(size: 13, weight: .heavy))
-                        .foregroundStyle(Color(hex: "#9FCCFF"))
+                        .foregroundStyle(App2Theme.heroSkyLight)
                         .lineLimit(1)
                 }
                 Spacer(minLength: 6)
@@ -304,7 +304,7 @@ struct App2PlanOverviewView: View {
                     progress: progress,
                     height: 9,
                     fill: LinearGradient(
-                        colors: [Color(hex: "#9FCCFF"), .white],
+                        colors: [App2Theme.heroSkyLight, .white],
                         startPoint: .leading,
                         endPoint: .trailing
                     )
@@ -341,7 +341,7 @@ struct App2PlanOverviewView: View {
                     if index < overview.stages.count - 1 {
                         Image(systemName: "arrow.down")
                             .font(.system(size: 13, weight: .heavy))
-                            .foregroundStyle(Color(hex: "#C2CCD8"))
+                            .foregroundStyle(App2Theme.heroTickDim)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 3)
                     }
@@ -360,7 +360,7 @@ struct App2PlanOverviewView: View {
         let isActive = stage.state == .active
         return HStack(alignment: .top, spacing: 13) {
             RoundedRectangle(cornerRadius: 4, style: .continuous)
-                .fill(isActive ? Color(hex: "#5AA9F0") : Color(hex: "#C8D3DF"))
+                .fill(isActive ? App2Theme.trackAhead : App2Theme.dotInactive)
                 .frame(width: 8)
 
             VStack(alignment: .leading, spacing: 0) {
@@ -383,7 +383,7 @@ struct App2PlanOverviewView: View {
                 if let focus = stage.focus {
                     Text(focus)
                         .font(.system(size: 14, weight: isActive ? .heavy : .bold))
-                        .foregroundStyle(isActive ? Color(hex: "#5AA9F0") : App2Theme.inkTertiary)
+                        .foregroundStyle(isActive ? App2Theme.trackAhead : App2Theme.inkTertiary)
                         .lineSpacing(2)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.top, 6)

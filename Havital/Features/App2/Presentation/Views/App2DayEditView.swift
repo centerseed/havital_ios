@@ -336,7 +336,7 @@ struct App2DayEditView: View {
 
     private var recoveryCard: some View {
         App2Card(spacing: 0) {
-            App2EditCardHeader(dotColor: Color(hex: "#EAB308"), title: L10n.EditSchedule.recoverySegment.localized)
+            App2EditCardHeader(dotColor: App2Theme.editAmber, title: L10n.EditSchedule.recoverySegment.localized)
             App2EditToggleRow(
                 label: L10n.EditSchedule.restInPlace.localized,
                 isOn: $editState.isRestInPlace,
@@ -425,7 +425,7 @@ struct App2DayEditView: View {
                     .foregroundStyle(isOn.wrappedValue ? App2Theme.accentGreen : App2Theme.inkTertiary)
                 Text(name)
                     .font(.system(size: 16, weight: .heavy))
-                    .foregroundStyle(isOn.wrappedValue ? App2Theme.inkPrimary : Color(hex: "#8A929C"))
+                    .foregroundStyle(isOn.wrappedValue ? App2Theme.inkPrimary : App2Theme.inkTertiary)
                 if isOn.wrappedValue {
                     Text("≈ \(pace)")
                         .font(.app2Mono(13, weight: .bold))
@@ -498,10 +498,10 @@ struct App2DayEditView: View {
         HStack(spacing: 7) {
             Image(systemName: symbol)
                 .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(isOn.wrappedValue ? App2Theme.accentGreen : Color(hex: "#8A97A6"))
+                .foregroundStyle(isOn.wrappedValue ? App2Theme.accentGreen : App2Theme.controlDim)
             Text(name)
                 .font(.system(size: 15, weight: .heavy))
-                .foregroundStyle(isOn.wrappedValue ? App2Theme.inkPrimary : Color(hex: "#8A929C"))
+                .foregroundStyle(isOn.wrappedValue ? App2Theme.inkPrimary : App2Theme.inkTertiary)
             Spacer(minLength: 6)
             Text(isOn.wrappedValue ? value : L10n.App2.DayEdit.notAdded.localized)
                 .font(isOn.wrappedValue ? .app2Mono(13, weight: .bold) : .system(size: 13, weight: .bold))
@@ -589,7 +589,7 @@ struct App2DayEditView: View {
                         .overlay {
                             Image(systemName: "xmark")
                                 .font(.system(size: 11, weight: .black))
-                                .foregroundStyle(Color(hex: "#DC7676"))
+                                .foregroundStyle(App2Theme.dangerSoft)
                         }
                         .contentShape(Rectangle())
                         .onTapGesture { editState.removeSegment(at: index) }
@@ -684,7 +684,7 @@ struct App2DayEditView: View {
                 .accessibilityIdentifier("App2_DayEditStrengthType")
             }
 
-            App2NoteBox(symbol: "info.circle", accent: Color(hex: "#EAB308")) {
+            App2NoteBox(symbol: "info.circle", accent: App2Theme.editAmber) {
                 Text(L10n.App2.DayEdit.strengthTypeWarning.localized)
                     .font(.system(size: 13, weight: .semibold))
                     .lineSpacing(2)
@@ -730,7 +730,7 @@ struct App2DayEditView: View {
                         Capsule().fill(App2Theme.shadowInk.opacity(0.07))
                         Capsule()
                             .fill(LinearGradient(
-                                colors: [Color(hex: "#C084FC"), App2Theme.accentViolet],
+                                colors: [App2Theme.accentVioletLight, App2Theme.accentViolet],
                                 startPoint: .leading, endPoint: .trailing
                             ))
                             .frame(width: geo.size.width * max(0, min(1, fraction)))
@@ -843,7 +843,7 @@ struct App2DayEditView: View {
                 .overlay {
                     Image(systemName: "xmark")
                         .font(.system(size: 11, weight: .black))
-                        .foregroundStyle(Color(hex: "#DC7676"))
+                        .foregroundStyle(App2Theme.dangerSoft)
                 }
                 .contentShape(Rectangle())
                 .onTapGesture { editState.strengthExercises.remove(at: index) }
@@ -939,7 +939,7 @@ struct App2DayEditView: View {
                 title: L10n.App2.DayEdit.restToStrengthTitle.localized,
                 subtitle: L10n.App2.DayEdit.restToStrengthSub.localized,
                 titleColor: App2Theme.accentViolet.app2Darkened,
-                chevronColor: Color(hex: "#C9A6EC"),
+                chevronColor: App2Theme.chevronViolet,
                 emphasised: true,
                 identifier: "App2_DayEditToStrength"
             ) {
@@ -1080,7 +1080,7 @@ struct App2DayEditView: View {
                         .overlay {
                             Image(systemName: "xmark")
                                 .font(.system(size: 11, weight: .black))
-                                .foregroundStyle(Color(hex: "#DC7676"))
+                                .foregroundStyle(App2Theme.dangerSoft)
                         }
                         .contentShape(Rectangle())
                         .onTapGesture {

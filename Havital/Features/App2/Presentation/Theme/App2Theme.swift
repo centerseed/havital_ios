@@ -176,9 +176,42 @@ enum App2Theme {
     static let skyLightCompact = Color(hex: "#4F9AE0")
     static let skyPaleCompact = Color(hex: "#B9D3EC")
     /// frame-33 五條強度色帶（藍／綠與軌跡圖同色，不開第二個來源）。
+    /// 心率區間與配速區間設定頁的五色也是同一組。
     static let bandAmber = Color(hex: "#E0B23A")
     static let bandOrange = Color(hex: "#EC8A4C")
     static let bandRed = Color(hex: "#E5546C")
+
+    // MARK: - 深藍 hero 上的輔助色（訓練計畫頁）
+
+    static let heroSkyLight = Color(hex: "#9FCCFF")
+    static let heroTickDim = Color(hex: "#C2CCD8")
+    static let dotInactive = Color(hex: "#C8D3DF")
+
+    // MARK: - 編輯面（day edit／plan edit／edit components）
+
+    /// 警示黃（恢復段標點、提示框；深字用 `editAmberText`）。
+    static let editAmber = Color(hex: "#EAB308")
+    static let editAmberText = Color(hex: "#A16207")
+    /// 控件的關閉態灰。
+    static let controlDim = Color(hex: "#8A97A6")
+    /// 柔性危險紅（移除課表這類次要破壞動作）。
+    static let dangerSoft = Color(hex: "#DC7676")
+    static let accentVioletLight = Color(hex: "#C084FC")
+    static let chevronViolet = Color(hex: "#C9A6EC")
+    static let editBase = Color(hex: "#EEF3F8")
+    static let editStripe = Color(hex: "#EAEFF5")
+    static let editFilledChip = Color(hex: "#EEF1F6")
+    static let editDotDim = Color(hex: "#CBD3DD")
+    static let editFieldFill = Color(hex: "#F4F6FA")
+
+    // MARK: - 圖表（App2Charts 專屬漸層端點）
+
+    static let chartSupport = Color(hex: "#CFD6DF")
+    static let chartGreenLight = Color(hex: "#5BE08A")
+    static let chartOrangeLight = Color(hex: "#FB7A3C")
+    static let chartOrangeDeep = Color(hex: "#E8500F")
+    static let chartGreenSoftFrom = Color(hex: "#7BD79C")
+    static let chartGreenSoftTo = Color(hex: "#63C98A")
 
     // MARK: - Metrics（值取自設計 markup）
 

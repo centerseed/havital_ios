@@ -16,8 +16,8 @@ import SwiftUI
 /// `repeating-linear-gradient(135deg,#eef3f8 0 22px,#eaeff5 22px 44px)`。
 /// **不可換成純色**——它是「現在在編輯」唯一的整頁訊號（設計 §0）。
 struct App2EditStripeBackground: View {
-    private let base = Color(hex: "#EEF3F8")
-    private let stripe = Color(hex: "#EAEFF5")
+    private let base = App2Theme.editBase
+    private let stripe = App2Theme.editStripe
     private let band: CGFloat = 22
 
     var body: some View {
@@ -385,7 +385,7 @@ struct App2DragHandle: View {
 
     var body: some View {
         RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .fill(filled ? Color(hex: "#EEF1F6") : Color.clear)
+            .fill(filled ? App2Theme.editFilledChip : Color.clear)
             .frame(width: width, height: height)
             .overlay {
                 VStack(spacing: 4) {
@@ -393,7 +393,7 @@ struct App2DragHandle: View {
                         HStack(spacing: 4) {
                             ForEach(0..<2, id: \.self) { _ in
                                 Circle()
-                                    .fill(filled ? Color(hex: "#8A97A6") : Color(hex: "#CBD3DD"))
+                                    .fill(filled ? App2Theme.controlDim : App2Theme.editDotDim)
                                     .frame(width: 3, height: 3)
                             }
                         }
@@ -410,7 +410,7 @@ struct App2GearButton: View {
 
     var body: some View {
         RoundedRectangle(cornerRadius: 9, style: .continuous)
-            .fill(Color(hex: "#F4F6FA"))
+            .fill(App2Theme.editFieldFill)
             .frame(width: 32, height: 32)
             .overlay {
                 Image(systemName: "gearshape")

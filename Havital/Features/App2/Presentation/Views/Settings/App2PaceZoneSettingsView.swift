@@ -23,11 +23,11 @@ struct App2PaceZoneSettingsView: View {
     /// （最慢的一級）。不為了對上設計字面而發明一個不存在的配速，所以這裡照本 app 的
     /// 語意由慢到快排：恢復 → 輕鬆 → 馬拉松 → 閾值 → 間歇。
     private static let rows: [(letter: String, nameKey: String, type: String, tint: Color)] = [
-        ("R", "training.type.recovery", "recovery", Color(hex: "#5AA9F0")),
-        ("E", "training.type.easy", "easy", Color(hex: "#4FC47E")),
-        ("M", "training.type.tempo", "marathon", Color(hex: "#E0B23A")),
-        ("T", "training.type.threshold", "threshold", Color(hex: "#EC8A4C")),
-        ("I", "training.type.interval", "interval", Color(hex: "#E5546C"))
+        ("R", "training.type.recovery", "recovery", App2Theme.trackAhead),
+        ("E", "training.type.easy", "easy", App2Theme.trackOnTrack),
+        ("M", "training.type.tempo", "marathon", App2Theme.bandAmber),
+        ("T", "training.type.threshold", "threshold", App2Theme.bandOrange),
+        ("I", "training.type.interval", "interval", App2Theme.bandRed)
     ]
 
     private var vdot: Double { viewModel.currentVDOT }

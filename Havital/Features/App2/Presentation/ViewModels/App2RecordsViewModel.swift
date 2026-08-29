@@ -121,15 +121,12 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
         // 冷啟第一輪：先把上一次的清單與統計渲染出來，這一輪的網路變成背景刷新。
         if !hasLoaded { hydrateFromSnapshot() }
         isLoading = !hasLoaded && records == nil
-        defer {
-            isLoading = false
-            hasLoaded = true
-            lastLoadedAt = Date()
-        }
+        // 被取消的那一輪**不算載過**：只收 spinner，不標 hasLoaded／lastLoadedAt，
+        // 下次進頁的 SWR 會重試（2026-08-29 外審 E03）。
+        defer { isLoading = false }
 
         do {
             let stats = try await workoutDataSource.fetchWorkoutStats(days: 30, weeks: 8)
-            snapshots.save(stats, for: .workoutStats)
             // 月比要看到「上個月」，所以取回的筆數比清單顯示的多。
             // `/v2/workouts/stats` 只給滾動視窗（days）與 YTD，沒有日曆月的分桶，
             // 月量與月比在 client 端從同一批紀錄算，不新增端點。
@@ -137,9 +134,12 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
                 let page = try await workoutDataSource.fetchWorkoutsPage(
                     pageSize: Self.aggregationPageSize, cursor: nil
                 )
+                // 兩支都收齊才落快照——stats 先落、page 中途被收掉會留下
+                // 半新半舊的快照組（外審 E03）。
+                snapshots.save(stats, for: .workoutStats)
+                if !page.workouts.isEmpty { snapshots.save(page.workouts, for: .recentWorkouts) }
                 nextCursor = page.pagination.nextCursor
                 backendHasMore = page.pagination.hasMore
-                if !page.workouts.isEmpty { snapshots.save(page.workouts, for: .recentWorkouts) }
                 apply(stats: stats, rows: page.workouts)
             } catch {
                 // 清單失敗但 stats 成功：**保留既有清單**（SWR），只更新統計。
@@ -150,13 +150,19 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
                 // 一筆舊資料都沒有就沒東西可保留 —— 交給外層的整體失敗路徑
                 //（stub ＋ offline 徽章），不畫一個假的空清單。
                 guard !rows.isEmpty else { throw error }
+                snapshots.save(stats, for: .workoutStats)
                 apply(stats: stats, rows: rows)
             }
+            hasLoaded = true
+            lastLoadedAt = Date()
         } catch {
             // 取消不是失敗（`AGENTS.md` 陷阱 2）—— 下拉刷新的 task 被收掉時
             // in-flight 請求會回 -999。
             guard !error.isCancellationError else { return }
             Logger.debug("[App2RecordsVM] stats 取得失敗,退樣本: \(error)")
+            // 真失敗（非取消）仍算「這一輪回過話」——標記已載，SWR 窗內不重打。
+            hasLoaded = true
+            lastLoadedAt = Date()
             guard records == nil else { return }    // SWR：重驗失敗時保留舊資料
             let stub = App2StubFixtures.records
             // 樣本沒有時間戳 → date/distanceKm 為 nil，全部落在「更早」那一組、

@@ -89,6 +89,7 @@ final class App2CancellationTests: XCTestCase {
         await load.value
 
         XCTAssertNil(vm.detail, "被取消的載入輪不得發布 detail")
+        XCTAssertFalse(vm.isLoading, "取消後 spinner 要收掉")
     }
 
     // MARK: - 期間總結：全部載入被取消 → 不發布
@@ -112,5 +113,50 @@ final class App2CancellationTests: XCTestCase {
         await load.value
 
         XCTAssertNil(vm.summary, "被取消的載入輪不得發布 summary")
+        XCTAssertFalse(vm.isLoading, "取消後 spinner 要收掉")
+    }
+
+    // MARK: - 紀錄頁：取消不標 hasLoaded、不落半套快照
+
+    private final class SnapshotSpy: App2SnapshotStoring {
+        private(set) var saved: [App2SnapshotKey] = []
+        func load<Value: Decodable>(_ type: Value.Type, for key: App2SnapshotKey) -> App2Snapshot<Value>? { nil }
+        func save<Value: Encodable>(_ value: Value, for key: App2SnapshotKey) { saved.append(key) }
+        func invalidate(_ keys: Set<App2SnapshotKey>) {}
+        func clearAll() { saved.removeAll() }
+    }
+
+    /// stats 成功、page 掛住被取消：不得只落 stats 半套快照，也不得把這一輪標成已載
+    ///（下次進頁的 SWR 要重試；2026-08-29 外審 E03）。
+    private final class StatsOkPageHangsSource: WorkoutStatsDataSourceProtocol {
+        func fetchWorkoutStats(days: Int, weeks: Int?) async throws -> WorkoutStatsResponse {
+            let json = """
+            { "data": { "total_workouts": 0, "total_distance_km": 0.0,
+                        "provider_distribution": {}, "activity_type_distribution": {},
+                        "period_days": 30 } }
+            """
+            return try JSONDecoder().decode(WorkoutStatsResponse.self, from: Data(json.utf8))
+        }
+        func fetchRecentWorkouts(pageSize: Int) async throws -> [WorkoutV2] { [] }
+        func fetchWorkoutsPage(pageSize: Int?, cursor: String?) async throws -> WorkoutListResponse {
+            try await Task.sleep(nanoseconds: 60 * 1_000_000_000)
+            throw CancellationError()
+        }
+    }
+
+    func test_records_cancelledPageDoesNotMarkLoadedNorPersistPartialSnapshots() async {
+        let spy = SnapshotSpy()
+        let vm = App2RecordsViewModel(workoutDataSource: StatsOkPageHangsSource(), snapshots: spy)
+
+        let load = Task { await vm.revalidate() }
+        try? await Task.sleep(nanoseconds: 200_000_000)
+        load.cancel()
+        await load.value
+
+        XCTAssertNil(vm.records, "被取消的載入輪不得發布")
+        XCTAssertFalse(vm.hasLoaded, "取消不算載過——下次進頁要重試")
+        XCTAssertNil(vm.lastLoadedAt)
+        XCTAssertFalse(vm.isLoading)
+        XCTAssertTrue(spy.saved.isEmpty, "stats 先落、page 被收掉＝半套快照，不得發生")
     }
 }
