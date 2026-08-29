@@ -448,12 +448,15 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         return completed.reduce(0, +) / Double(completed.count)
     }
 
-    /// 距離賽事還有幾週（無條件進位）。已過期回 nil —— 不顯示負週數。
+    /// 距離賽事還有幾**整**週（floor），與 Android `App2RaceProjections.weeksUntil` 同一算法：
+    /// 賽事落在 7 天內（含當週）＝0 週（2026-08-29 D1 裁決）。已過期回 nil —— 不顯示負週數。
     static func weeksUntil(epochSeconds: Int, now: Date = Date()) -> Int? {
-        let raceDate = Date(timeIntervalSince1970: TimeInterval(epochSeconds))
-        let days = Calendar.current.dateComponents([.day], from: now, to: raceDate).day ?? 0
+        let calendar = Calendar.current
+        let raceDay = calendar.startOfDay(for: Date(timeIntervalSince1970: TimeInterval(epochSeconds)))
+        let today = calendar.startOfDay(for: now)
+        let days = calendar.dateComponents([.day], from: today, to: raceDay).day ?? 0
         guard days >= 0 else { return nil }
-        return max(1, Int(ceil(Double(days) / 7.0)))
+        return days / 7
     }
 
     /// 賽事日期以賽事時區顯示（數字 timestamp 是 UTC，`YYYY-MM-DD` 是當地日期）。

@@ -210,8 +210,13 @@ struct DateFormatterHelper {
             return String(format: NSLocalizedString("date.yesterday_at", bundle: bundle, comment: "昨天 %@"), formatTime(date))
         }
 
-        // Use Calendar.dateComponents for accurate day count (handles DST correctly)
-        let days = calendar.dateComponents([.day], from: date, to: Date()).day ?? 0
+        // 日曆日差，不是 24 小時桶：週二 09:12 的紀錄在週五早上看是「3 天前」，
+        // 不是 2.95 天截成 2（2026-08-29 D14 裁決，與 Android formatRelativeDateWithTime 同算法）。
+        let days = calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: date),
+            to: calendar.startOfDay(for: Date())
+        ).day ?? 0
         if days < 7 {
             return String(format: NSLocalizedString("date.days_ago", bundle: bundle, comment: "%d 天前"), days)
         }

@@ -219,13 +219,18 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
 
         do {
             let response = try await vdotDataSource.getVDOTs(limit: range.vdotLimit)
-            // 後端交來是新→舊：最新那一筆＝診斷欄的來源。
-            let latest = response.vdots.max { $0.datetime < $1.datetime }
             let series = App2MetricDetailProjection.vdotSeries(response.vdots)
             // `vdots` 一條序列同時裝「已經發生的」與「建計畫時生成的未來每日預估」
             // （2026-08-27 晚走查裁決（f））。hero 的現值與「30 天前」**只吃歷史段**
             // —— 之前取 `series.last` 等於把賽事日的預估值當成「目前跑力」顯示。
             let today = App2MetricDetailProjection.today()
+            // 診斷欄的來源＝**不晚於今天**的最新一筆。未來預估點的診斷欄是空殼
+            // （`daily_count = 0`），拿它當 latest 會把「證據 n = 0」印給用戶
+            // （2026-08-29 D9 裁決；dev 實查 8/27 歷史筆 daily_count = 11）。
+            let latest = response.vdots
+                .filter { App2MetricDetailProjection.isoDate(epochSeconds: $0.datetime) <= today }
+                .max { $0.datetime < $1.datetime }
+                ?? response.vdots.max { $0.datetime < $1.datetime }
             let split = App2MetricDetailProjection.splitProjected(series, today: today)
             let previous = App2MetricDetailProjection.value(
                 in: split.history,

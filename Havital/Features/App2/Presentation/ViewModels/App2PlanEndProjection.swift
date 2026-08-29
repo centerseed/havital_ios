@@ -260,7 +260,8 @@ enum App2PlanEndProjection {
     /// 把它們當 0 會把「沒做回顧」講成「一堂課都沒跑」。一份都讀不到 → nil。
     static func completionRate(_ summaries: [WeeklySummaryV2]) -> Double? {
         guard !summaries.isEmpty else { return nil }
-        let total = summaries.reduce(0.0) { $0 + $1.trainingCompletion.percentage }
+        // 單週封頂 100 再平均（2026-08-29 D6 裁決）：超跑的週不得補貼沒跑的週。
+        let total = summaries.reduce(0.0) { $0 + min($1.trainingCompletion.percentage, 100) }
         return total / Double(summaries.count)
     }
 

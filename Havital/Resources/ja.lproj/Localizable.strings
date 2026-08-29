@@ -4471,7 +4471,7 @@
 "app2.workout_detail.planned" = "予定";
 "app2.workout_detail.actual" = "実測";
 "app2.workout_detail.avg_hr_short" = "平均心拍 %d";
-"app2.workout_detail.vertical_ratio" = "上下動比";
+"app2.workout_detail.vertical_ratio" = "ランニング効率";
 "app2.workout_detail.trend_section" = "推移";
 "app2.workout_detail.trend_heart_rate" = "心拍数";
 "app2.workout_detail.trend_pace" = "ペース";

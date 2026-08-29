@@ -4515,7 +4515,7 @@
 "app2.workout_detail.planned" = "課表";
 "app2.workout_detail.actual" = "實際";
 "app2.workout_detail.avg_hr_short" = "均心 %d";
-"app2.workout_detail.vertical_ratio" = "垂直振幅比";
+"app2.workout_detail.vertical_ratio" = "跑步效率";
 "app2.workout_detail.trend_section" = "趨勢圖";
 "app2.workout_detail.trend_heart_rate" = "心率";
 "app2.workout_detail.trend_pace" = "配速";

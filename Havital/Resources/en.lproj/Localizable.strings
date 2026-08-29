@@ -4474,7 +4474,7 @@
 "app2.workout_detail.planned" = "Planned";
 "app2.workout_detail.actual" = "Actual";
 "app2.workout_detail.avg_hr_short" = "Avg HR %d";
-"app2.workout_detail.vertical_ratio" = "Vertical Ratio";
+"app2.workout_detail.vertical_ratio" = "Running Efficiency";
 "app2.workout_detail.trend_section" = "Trends";
 "app2.workout_detail.trend_heart_rate" = "Heart Rate";
 "app2.workout_detail.trend_pace" = "Pace";

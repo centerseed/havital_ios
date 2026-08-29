@@ -613,14 +613,16 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     }
 
     /// `run_type` → 既有的 `DayType`。肌力／交叉訓練沒有跑步課型，各自映到對應的 case。
+    /// 交叉訓練有具體 `cross_type`（yoga／cycling…）就報那一項（2026-08-29 D20 裁決，
+    /// 與 Android 同一條：課表寫了什麼就顯示什麼），認不得才退通稱。
     static func dayType(_ primary: PrimaryActivity?) -> DayType? {
         switch primary {
         case .run(let run):
             return DayType(rawValue: run.runType.lowercased())
         case .strength:
             return .strength
-        case .cross:
-            return .crossTraining
+        case .cross(let cross):
+            return DayType(rawValue: cross.crossType.lowercased()) ?? .crossTraining
         case .none:
             return .rest
         @unknown default:

@@ -130,7 +130,8 @@ extension App2WeeklyReviewProjection {
             Stat(
                 key: "completion",
                 label: L10n.App2.WeeklyReview.completionRate.localized,
-                value: String(format: "%.0f", completion.percentage),
+                // 超額完成封頂 100（2026-08-29 D6 裁決）——超過的量已在距離那格看得到。
+                value: String(format: "%.0f", min(completion.percentage, 100)),
                 unit: "%",
                 footnote: nil
             )

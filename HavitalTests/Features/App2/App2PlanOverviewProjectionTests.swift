@@ -387,10 +387,14 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
 
     // MARK: - 賽事倒數與週數
 
-    func testWeeksUntilRaceRoundsUpAndDropsPastRaces() {
+    /// floor(日差/7)，與 Android 同算法：7 天內（含當週賽事）＝0（2026-08-29 D1 裁決）。
+    func testWeeksUntilRaceFloorsAndDropsPastRaces() {
         let now = Date()
+        let inTwoDays = Int(now.addingTimeInterval(2 * 86_400).timeIntervalSince1970)
+        XCTAssertEqual(App2PlanOverviewViewModel.weeksUntil(epochSeconds: inTwoDays, now: now), 0)
+
         let inTenDays = Int(now.addingTimeInterval(10 * 86_400).timeIntervalSince1970)
-        XCTAssertEqual(App2PlanOverviewViewModel.weeksUntil(epochSeconds: inTenDays, now: now), 2)
+        XCTAssertEqual(App2PlanOverviewViewModel.weeksUntil(epochSeconds: inTenDays, now: now), 1)
 
         let yesterday = Int(now.addingTimeInterval(-2 * 86_400).timeIntervalSince1970)
         XCTAssertNil(App2PlanOverviewViewModel.weeksUntil(epochSeconds: yesterday, now: now))
