@@ -145,6 +145,41 @@ enum App2Theme {
     static let stubTint = Color(hex: "#9A7B00")
     static let stubBackground = Color(hex: "#FFF6D9")
 
+    // MARK: - 邊線與中性填色（view 內不落 hex；2026-08-29 外審 C10）
+
+    /// 比 `cardBorder`（0.07）再重一階的外框，選擇卡的常態邊線。
+    static let strokeStrong = Color(hex: "#0F172A").opacity(0.08)
+    /// 比 `insetBorder`（0.06）再淡一階，禁用態的框線。
+    static let strokeFaint = Color(hex: "#0F172A").opacity(0.05)
+    /// 分隔線／未選中膠囊底。
+    static let hairline = Color(hex: "#D9E0E8")
+    /// 未選中 chip 的中性填色（＝頁面底色深端，同一個值不開第二個來源）。
+    static let neutralFill = pageBottom
+    /// radio 圈的未選中環。
+    static let radioRing = Color(hex: "#D0D7E0")
+    /// 禁用態填色（呼叫端自帶 opacity）。
+    static let disabledFill = Color(hex: "#E6EBF1")
+
+    // MARK: - Onboarding（frame-30~39 專屬色）
+
+    /// 進度點的未到達態。
+    static let onbStepDim = Color(hex: "#B4BCC6")
+    /// 深色 hero 上的提示字。
+    static let onbHintOnDark = Color(hex: "#B4C2D2")
+    /// 深綠成功文字（頂部 hero 淺底上）。
+    static let successTextDeep = Color(hex: "#2E8A53")
+    /// onboarding 天空漸層（frame-30 backdrop／frame-39 完成頁共用的深→淺四階）。
+    static let skyDeep = Color(hex: "#0A4F96")
+    static let skyMid = Color(hex: "#1774CF")
+    static let skyLight = Color(hex: "#3F8FDB")
+    static let skyPale = Color(hex: "#CFE0F0")
+    static let skyLightCompact = Color(hex: "#4F9AE0")
+    static let skyPaleCompact = Color(hex: "#B9D3EC")
+    /// frame-33 五條強度色帶（藍／綠與軌跡圖同色，不開第二個來源）。
+    static let bandAmber = Color(hex: "#E0B23A")
+    static let bandOrange = Color(hex: "#EC8A4C")
+    static let bandRed = Color(hex: "#E5546C")
+
     // MARK: - Metrics（值取自設計 markup）
 
     static let cardCornerRadius: CGFloat = 22   // border-radius:22px

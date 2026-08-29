@@ -140,6 +140,10 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         let (stageBundle, mainTarget, estimate, weeklyItems, preferences) =
             await (stagesTask, mainTargetTask, estimateTask, weeklyTask, rhythmTask)
 
+        // planStatus 與各子載入都以 `try?`／可缺席語意收攏——取消也會被折成 nil。
+        // 被取消的那一輪不得發布殘缺 overview（AGENTS.md 陷阱 5；2026-08-29 外審）。
+        if Task.isCancelled { return }
+
         stagesUnbound = stageBundle.isUnbound
 
         overview = App2Sourced(

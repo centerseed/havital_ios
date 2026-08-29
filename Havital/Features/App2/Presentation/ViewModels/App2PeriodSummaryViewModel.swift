@@ -90,6 +90,10 @@ final class App2PeriodSummaryViewModel: ObservableObject, TaskManageable, App2Re
         // 回 -999，`AGENTS.md` 陷阱 2）→ 保留畫面上的舊資料，不把真資料換成一整頁的「–」。
         if stats == nil, workouts == nil, vdots == nil, reviews.isEmpty, summary != nil { return }
 
+        // `try?` 把取消也折成 nil——被取消的那一輪**不得發布任何結果**（AGENTS.md 陷阱 5；
+        // 2026-08-29 外審 D04）：部分成功＋部分被取消會組出殘缺的 summary 蓋掉畫面。
+        if Task.isCancelled { return }
+
         summary = App2Sourced(
             App2PlanEndProjection.summary(
                 card: card,

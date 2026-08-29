@@ -93,7 +93,7 @@ struct App2OnboardingHeader: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 11, style: .continuous)
-                        .strokeBorder(Color(hex: "#0F172A").opacity(0.08), lineWidth: 1)
+                        .strokeBorder(App2Theme.strokeStrong, lineWidth: 1)
                 )
                 .opacity(enabled ? 1 : 0.35)
         }
@@ -113,7 +113,7 @@ struct App2OnboardingHeader: View {
         return VStack(alignment: .leading, spacing: 7) {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Color(hex: "#D9E0E8"))
+                    Capsule().fill(App2Theme.hairline)
                     Capsule()
                         .fill(App2Theme.accentBlue)
                         .frame(width: max(0, geo.size.width * fill))
@@ -124,7 +124,7 @@ struct App2OnboardingHeader: View {
             Text(seg.titleKey.localized)
                 .font(.system(size: 11, weight: .bold))
                 .tracking(0.3)
-                .foregroundStyle(isCurrent ? App2Theme.accentBlueDeep : Color(hex: "#B4BCC6"))
+                .foregroundStyle(isCurrent ? App2Theme.accentBlueDeep : App2Theme.onbStepDim)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -240,7 +240,7 @@ struct App2OnboardingIconTile: View {
 
     var body: some View {
         RoundedRectangle(cornerRadius: 14, style: .continuous)
-            .fill(isSelected ? App2Theme.accentBlue : Color(hex: "#EEF2F7"))
+            .fill(isSelected ? App2Theme.accentBlue : App2Theme.neutralFill)
             .frame(width: 46, height: 46)
             .overlay(
                 Image(systemName: systemName)
@@ -327,7 +327,7 @@ struct App2OnboardingOptionCard: View {
                     )
             } else {
                 Circle()
-                    .strokeBorder(Color(hex: "#D0D7E0"), lineWidth: 2)
+                    .strokeBorder(App2Theme.radioRing, lineWidth: 2)
                     .frame(width: 24, height: 24)
             }
         }
@@ -347,7 +347,7 @@ struct App2OnboardingOptionCard: View {
     private var border: some View {
         RoundedRectangle(cornerRadius: 18, style: .continuous)
             .strokeBorder(
-                isSelected ? App2Theme.accentBlue : Color(hex: "#0F172A").opacity(0.08),
+                isSelected ? App2Theme.accentBlue : App2Theme.strokeStrong,
                 lineWidth: isSelected ? 2 : 1
             )
     }
@@ -378,7 +378,7 @@ struct App2OnboardingChip: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                         .strokeBorder(
-                            isSelected ? Color.clear : Color(hex: "#0F172A").opacity(0.07),
+                            isSelected ? Color.clear : App2Theme.cardBorder,
                             lineWidth: 1
                         )
                 )
@@ -418,7 +418,7 @@ struct App2OnboardingOutlineChip: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 13, style: .continuous)
                     .strokeBorder(
-                        isSelected ? App2Theme.accentBlue : Color(hex: "#0F172A").opacity(0.07),
+                        isSelected ? App2Theme.accentBlue : App2Theme.cardBorder,
                         lineWidth: isSelected ? 1.5 : 1
                     )
             )
@@ -559,7 +559,7 @@ struct App2OnboardingTimeField: View {
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(
-                    focused ? App2Theme.accentBlue : Color(hex: "#0F172A").opacity(0.07),
+                    focused ? App2Theme.accentBlue : App2Theme.cardBorder,
                     lineWidth: focused ? 2 : 1
                 )
         )
@@ -597,14 +597,14 @@ struct App2OnboardingNotice: View {
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(tone == .positive
                       ? App2Theme.accentGreenBright.opacity(0.09)
-                      : Color(hex: "#E6EBF1").opacity(0.85))
+                      : App2Theme.disabledFill.opacity(0.85))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .strokeBorder(
                     tone == .positive
                         ? App2Theme.accentGreenBright.opacity(0.35)
-                        : Color(hex: "#0F172A").opacity(0.05),
+                        : App2Theme.strokeFaint,
                     lineWidth: 1
                 )
         )

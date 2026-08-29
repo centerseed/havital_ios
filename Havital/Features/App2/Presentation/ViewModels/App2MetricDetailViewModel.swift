@@ -124,6 +124,9 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
             let health = try? await healthDataSource.fetchHealthDaily(limit: Self.loadWindowDays)
             let targetKm = await targetWeeklyKm()
 
+            // `try?` 把取消折成 nil——被取消的那一輪不得發布（AGENTS.md 陷阱 5；外審 E03）。
+            if Task.isCancelled { return }
+
             let bars = App2MetricDetailProjection.bars(stats.data.weeklySeries ?? [])
             detail = App2Sourced(
                 App2VolumeDetail(

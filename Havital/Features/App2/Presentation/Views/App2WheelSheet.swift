@@ -39,7 +39,7 @@ struct App2WheelColumn: View {
                         .foregroundStyle(
                             isSelected
                                 ? App2Theme.inkPrimary
-                                : Color(hex: "#94A0AD").opacity(0.5)
+                                : App2Theme.inkMuted.opacity(0.5)
                         )
                         .scaleEffect(isSelected ? 2.05 : 1)
                         .frame(width: width, height: itemHeight)
@@ -445,7 +445,7 @@ struct App2FinishTimeRow: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .strokeBorder(Color(hex: "#0F172A").opacity(0.07), lineWidth: 1)
+                .strokeBorder(App2Theme.cardBorder, lineWidth: 1)
         )
         .contentShape(Rectangle())
         .onTapGesture {

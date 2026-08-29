@@ -143,10 +143,10 @@ struct App2OnboardingWelcomeView: View {
     private var backdrop: LinearGradient {
         LinearGradient(
             stops: [
-                .init(color: Color(hex: "#0A4F96"), location: 0),
-                .init(color: Color(hex: "#1774CF"), location: 0.30),
-                .init(color: Color(hex: "#3F8FDB"), location: 0.44),
-                .init(color: Color(hex: "#CFE0F0"), location: 0.60),
+                .init(color: App2Theme.skyDeep, location: 0),
+                .init(color: App2Theme.skyMid, location: 0.30),
+                .init(color: App2Theme.skyLight, location: 0.44),
+                .init(color: App2Theme.skyPale, location: 0.60),
                 .init(color: App2Theme.pageBottom, location: 0.66),
                 .init(color: App2Theme.pageBottom, location: 1)
             ],
@@ -227,7 +227,7 @@ struct App2OnboardingWelcomeView: View {
     private var arrow: some View {
         Image(systemName: "arrow.down")
             .font(.system(size: 14, weight: .black))
-            .foregroundStyle(Color(hex: "#B4C2D2"))
+            .foregroundStyle(App2Theme.onbHintOnDark)
     }
 
     private func stepCard(_ number: Int, _ titleKey: String, _ bodyKey: String, highlighted: Bool) -> some View {
@@ -262,7 +262,7 @@ struct App2OnboardingWelcomeView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .strokeBorder(
-                    highlighted ? App2Theme.accentBlue.opacity(0.35) : Color(hex: "#0F172A").opacity(0.07),
+                    highlighted ? App2Theme.accentBlue.opacity(0.35) : App2Theme.cardBorder,
                     lineWidth: highlighted ? 1.5 : 1
                 )
         )
@@ -452,7 +452,7 @@ struct App2OnboardingRaceSetupView: View {
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
                         .background(
-                            Capsule().fill(isSelected ? App2Theme.accentBlue : Color(hex: "#EEF2F7"))
+                            Capsule().fill(isSelected ? App2Theme.accentBlue : App2Theme.neutralFill)
                         )
                 }
 
@@ -476,7 +476,7 @@ struct App2OnboardingRaceSetupView: View {
             .overlay(
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .strokeBorder(
-                        isSelected ? App2Theme.accentBlue : Color(hex: "#0F172A").opacity(0.07),
+                        isSelected ? App2Theme.accentBlue : App2Theme.cardBorder,
                         lineWidth: isSelected ? 2 : 1
                     )
             )
@@ -489,11 +489,11 @@ struct App2OnboardingRaceSetupView: View {
 
     private var divider: some View {
         HStack(spacing: 12) {
-            Rectangle().fill(Color(hex: "#D9E0E8")).frame(height: 1)
+            Rectangle().fill(App2Theme.hairline).frame(height: 1)
             Text(L10n.App2.Onboarding.raceManualDivider.localized)
                 .font(.system(size: 13, weight: .heavy))
                 .foregroundStyle(App2Theme.inkMuted)
-            Rectangle().fill(Color(hex: "#D9E0E8")).frame(height: 1)
+            Rectangle().fill(App2Theme.hairline).frame(height: 1)
         }
     }
 
@@ -509,7 +509,7 @@ struct App2OnboardingRaceSetupView: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .strokeBorder(Color(hex: "#0F172A").opacity(0.07), lineWidth: 1)
+                        .strokeBorder(App2Theme.cardBorder, lineWidth: 1)
                 )
                 .accessibilityIdentifier("App2_OnboardingRaceNameField")
 
@@ -557,7 +557,7 @@ struct App2OnboardingRaceSetupView: View {
             .fill(App2Theme.cardBackground)
             .overlay(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .strokeBorder(Color(hex: "#0F172A").opacity(0.07), lineWidth: 1)
+                    .strokeBorder(App2Theme.cardBorder, lineWidth: 1)
             )
     }
 
@@ -614,8 +614,8 @@ struct App2OnboardingHeartRateView: View {
 
     /// 設計 frame-33 的五條色帶（`rgba(...,0.95)`）。
     private static let bandColors: [Color] = [
-        Color(hex: "#5AA9F0"), Color(hex: "#4FC47E"), Color(hex: "#E0B23A"),
-        Color(hex: "#EC8A4C"), Color(hex: "#E5546C")
+        App2Theme.trackAhead, App2Theme.trackOnTrack, App2Theme.bandAmber,
+        App2Theme.bandOrange, App2Theme.bandRed
     ]
 
     var body: some View {
@@ -712,7 +712,7 @@ struct App2OnboardingHeartRateView: View {
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(Color(hex: "#0F172A").opacity(0.06), lineWidth: 1)
+                    .strokeBorder(App2Theme.insetBorder, lineWidth: 1)
             )
             .shadow(color: App2Theme.shadowInk.opacity(0.16), radius: 10, x: 0, y: 8)
             .accessibilityIdentifier("App2_OnboardingHrBands")
@@ -1034,11 +1034,11 @@ struct App2OnboardingMethodologyView: View {
 
                 if !others.isEmpty {
                     HStack(spacing: 12) {
-                        Rectangle().fill(Color(hex: "#D9E0E8")).frame(height: 1)
+                        Rectangle().fill(App2Theme.hairline).frame(height: 1)
                         Text(L10n.App2.Onboarding.methodPickOwn.localized)
                             .font(.system(size: 13, weight: .heavy))
                             .foregroundStyle(App2Theme.inkMuted)
-                        Rectangle().fill(Color(hex: "#D9E0E8")).frame(height: 1)
+                        Rectangle().fill(App2Theme.hairline).frame(height: 1)
                     }
                     .padding(.vertical, 6)
 
@@ -1216,7 +1216,7 @@ struct App2OnboardingMileageView: View {
             Text(String(format: L10n.App2.Onboarding.mileageSourceFormat.localized, source))
                 .font(.system(size: 14, weight: .heavy))
         }
-        .foregroundStyle(Color(hex: "#2E8A53"))
+        .foregroundStyle(App2Theme.successTextDeep)
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(Capsule().fill(App2Theme.accentGreenBright.opacity(0.13)))
@@ -1306,7 +1306,7 @@ struct App2OnboardingMileageView: View {
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .fill(Color(hex: "#E6EBF1").opacity(0.7))
+                .fill(App2Theme.disabledFill.opacity(0.7))
         )
         .opacity(viewModel.mileageIsConfirmed ? 0.55 : 1)
         .allowsHitTesting(!viewModel.mileageIsConfirmed)
@@ -1400,10 +1400,10 @@ struct App2OnboardingCompletionView: View {
     private var completionBackdrop: LinearGradient {
         LinearGradient(
             stops: [
-                .init(color: Color(hex: "#0A4F96"), location: 0),
-                .init(color: Color(hex: "#1774CF"), location: 0.14),
-                .init(color: Color(hex: "#4F9AE0"), location: 0.24),
-                .init(color: Color(hex: "#B9D3EC"), location: 0.30),
+                .init(color: App2Theme.skyDeep, location: 0),
+                .init(color: App2Theme.skyMid, location: 0.14),
+                .init(color: App2Theme.skyLightCompact, location: 0.24),
+                .init(color: App2Theme.skyPaleCompact, location: 0.30),
                 .init(color: App2Theme.pageBottom, location: 0.33),
                 .init(color: App2Theme.pageBottom, location: 1)
             ],
@@ -1600,7 +1600,7 @@ struct App2OnboardingCompletionView: View {
                     if index < overview.trainingStages.count - 1 {
                         Image(systemName: "arrow.down")
                             .font(.system(size: 13, weight: .black))
-                            .foregroundStyle(Color(hex: "#B4C2D2"))
+                            .foregroundStyle(App2Theme.onbHintOnDark)
                             .frame(maxWidth: .infinity)
                     }
                 }
