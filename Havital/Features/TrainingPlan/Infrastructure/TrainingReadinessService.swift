@@ -1,7 +1,12 @@
 import Foundation
 
+/// readiness 讀取的抽象面：ViewModel 依它而非具象 service，取消行為才測得到。
+protocol TrainingReadinessProviding {
+    func getReadiness(date: String, forceCalculate: Bool) async throws -> TrainingReadinessResponse
+}
+
 /// Service for fetching training readiness data
-final class TrainingReadinessService {
+final class TrainingReadinessService: TrainingReadinessProviding {
     static let shared = TrainingReadinessService()
 
     // MARK: - Dependencies

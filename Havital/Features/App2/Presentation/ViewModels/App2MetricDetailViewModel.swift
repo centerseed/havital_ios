@@ -101,10 +101,15 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         cancelAllTasks()
     }
 
+    /// 切 range 起的重載 task 由 VM 持有：快速連點時先取消上一發，
+    /// 舊 range 的慢回應才不會蓋掉新 range 的畫面（外審第十輪 D04/E08）。
+    private(set) var rangeReloadTask: Task<Void, Never>?
+
     func select(range newRange: App2MetricRange) {
         guard newRange != range else { return }
         range = newRange
-        Task { [weak self] in await self?.revalidate() }
+        rangeReloadTask?.cancel()
+        rangeReloadTask = Task { [weak self] in await self?.revalidate() }
     }
 
     func revalidate() async {
@@ -219,10 +224,14 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
         cancelAllTasks()
     }
 
+    /// 同訓練量 VM：切 range 的重載 task 由 VM 持有，後選取消前選。
+    private(set) var rangeReloadTask: Task<Void, Never>?
+
     func select(range newRange: App2MetricRange) {
         guard newRange != range else { return }
         range = newRange
-        Task { [weak self] in await self?.revalidate() }
+        rangeReloadTask?.cancel()
+        rangeReloadTask = Task { [weak self] in await self?.revalidate() }
     }
 
     func revalidate() async {

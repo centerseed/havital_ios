@@ -64,7 +64,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     private let readinessViewModel: TrainingReadinessViewModel
     /// 結束態的「當時預估」要**指定日期**那一筆（賽事日），`TrainingReadinessViewModel`
     /// 只交最新的那一筆，所以直接走它底下的同一支既有服務，不新增第二條路徑。
-    private let readinessService: TrainingReadinessService
+    private let readinessService: TrainingReadinessProviding
     /// 紀錄頁用的同一支 `GET /v2/workouts`，不另開端點。
     private let workoutDataSource: WorkoutStatsDataSourceProtocol
     /// 冷啟快照。只剩「今天跑完沒」那一頁 workouts —— 課表那幾支已收進 repository 快取。
@@ -77,7 +77,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         targetRepository: TargetRepository? = nil,
         planRepository: TrainingPlanV2Repository? = nil,
         readinessViewModel: TrainingReadinessViewModel? = nil,
-        readinessService: TrainingReadinessService? = nil,
+        readinessService: TrainingReadinessProviding? = nil,
         workoutDataSource: WorkoutStatsDataSourceProtocol? = nil,
         snapshots: (any App2SnapshotStoring)? = nil
     ) {
@@ -1015,14 +1015,20 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         // overview 一次取用兩處：期別膠囊（目標卡）與 `target_type`（結束態的語意分岔）。
         // **不為了結束態再打一次** —— 同一個事實只讀一次（見檔頭）。
         let overview = await currentOverview(planStatus: planStatus)
+        // 每個可取消子載 await 完就查旗標：取消＝整段停手，不得再組 plan-end 或
+        // 目標卡（外審第十輪 D04/E03——子載記了旗標回 nil，呼叫端不能當「沒資料」繼續）。
+        guard !roundSawCancellation else { return }
+
+        // **結束態的「當時預估」不是 `estimated`**（那是最新那一筆，講的是「現在」）。
+        // 2026-08-27 裁決：要賽事日當天那一筆，取不到就整欄不畫。
+        let estimatedAtRace = await raceDayEstimate(planStatus: planStatus, target: main)
+        guard !roundSawCancellation else { return }
 
         applyPlanEnd(
             planStatus: planStatus,
             overview: overview,
             target: main,
-            // **結束態的「當時預估」不是 `estimated`**（那是最新那一筆，講的是「現在」）。
-            // 2026-08-27 裁決：要賽事日當天那一筆，取不到就整欄不畫。
-            estimatedFinish: await raceDayEstimate(planStatus: planStatus, target: main)
+            estimatedFinish: estimatedAtRace
         )
 
         // 沒有主要賽事目標 → 卡片留空（畫面顯示「尚未設定目標賽事」），
@@ -1084,7 +1090,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             // 賽事日期以**賽事時區**換算成當地日字串 —— 與卡片上印的那個日期同一支，
             // 不另算一份（`YYYY-MM-DD` 是當地日，不是 UTC）。
             let raceDate = App2PlanEndProjection.raceDateLabel(target)
-            let readiness = try await readinessService.getReadiness(date: raceDate)
+            let readiness = try await readinessService.getReadiness(date: raceDate, forceCalculate: false)
             return readiness.metrics?.raceFitness?.estimatedRaceTime
         } catch {
             if error.isCancellationError {

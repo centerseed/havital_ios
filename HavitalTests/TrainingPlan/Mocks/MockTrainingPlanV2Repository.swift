@@ -61,6 +61,8 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     var errorToThrow: Error?
     /// 只讓 fetchWeeklyPlan 丟錯（部分取消情境：plan status 成功、週課表被收掉）。
     var fetchWeeklyPlanErrorToThrow: Error?
+    /// 只讓 refreshOverview 丟錯（部分取消情境：plan status 成功、overview 被收掉）。
+    var refreshOverviewErrorToThrow: Error?
     var generateWeeklyPlanErrors: [Error] = []
     var applyAdjustmentItemsError: Error?
 
@@ -102,6 +104,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         lastUpdatedOverviewMethodologyId = nil
         lastUpdateWeeklyPlanRequest = nil
         errorToThrow = nil
+        refreshOverviewErrorToThrow = nil
         refreshOverviewResults = []
         generateWeeklyPlanErrors = []
         applyAdjustmentItemsError = nil
@@ -162,6 +165,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
 
     func refreshOverview() async throws -> PlanOverviewV2 {
         refreshOverviewCallCount += 1
+        if let error = refreshOverviewErrorToThrow { throw error }
         if let error = errorToThrow { throw error }
         if !refreshOverviewResults.isEmpty {
             return refreshOverviewResults.removeFirst()

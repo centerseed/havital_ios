@@ -212,9 +212,12 @@ final class App2CancellationTests: XCTestCase {
 
     // MARK: - 部分取消：主載成功、子載被取消 → 一樣不算載過（外審第七輪 D04/E03）
 
-    private func makePlanStatus(planId: String? = "p_1") -> PlanStatusV2Response {
+    private func makePlanStatus(
+        planId: String? = "p_1",
+        nextAction: String = "view_plan"
+    ) -> PlanStatusV2Response {
         PlanStatusV2Response(
-            currentWeek: 2, totalWeeks: 5, nextAction: "view_plan",
+            currentWeek: 2, totalWeeks: 5, nextAction: nextAction,
             canGenerateNextWeek: false, currentWeekPlanId: planId,
             previousWeekSummaryId: nil, targetType: "race_run",
             methodologyId: "paceriz", nextWeekInfo: nil, metadata: nil
@@ -334,12 +337,7 @@ final class App2CancellationTests: XCTestCase {
         planRepo.planStatusToReturn = makePlanStatus(planId: nil)
         let targetRepo = MockTargetRepository()
         targetRepo.errorToThrow = URLError(.cancelled)
-        targetRepo.mainTargetToReturn = Target(
-            id: "t1", type: "race_run", name: "快取賽事", distanceKm: 21,
-            targetTime: 7200, targetPace: "5:41",
-            raceDate: Int(Date().addingTimeInterval(86400 * 30).timeIntervalSince1970),
-            isMainRace: true, trainingWeeks: 5, raceId: nil
-        )
+        targetRepo.mainTargetToReturn = makeCachedMainTarget()
         let vm = App2HomeViewModel(
             dailyStateRepository: nil,
             targetRepository: targetRepo,
@@ -383,6 +381,143 @@ final class App2CancellationTests: XCTestCase {
         _ = await (first, second)
 
         XCTAssertEqual(planRepo.getPlanStatusCallCount, 1, "後進的那一輪要直接跳過")
+    }
+
+    private final class CancelledReadinessService: TrainingReadinessProviding {
+        func getReadiness(date: String, forceCalculate: Bool) async throws -> TrainingReadinessResponse {
+            throw URLError(.cancelled)
+        }
+    }
+
+    private func makeCachedMainTarget() -> Target {
+        Target(
+            id: "t1", type: "race_run", name: "快取賽事", distanceKm: 21,
+            targetTime: 7200, targetPace: "5:41",
+            raceDate: Int(Date().addingTimeInterval(86400 * 30).timeIntervalSince1970),
+            isMainRace: true, trainingWeeks: 5, raceId: nil
+        )
+    }
+
+    func test_homeVM_cancelledOverview_doesNotAssembleGoalOrPlanEnd() async {
+        // overview 子載被取消（-999）→ 記旗標回 nil；呼叫端不得把 nil 當「沒資料」
+        // 繼續 applyPlanEnd／組卡（外審第十輪 D04/E03）。
+        let planRepo = MockTrainingPlanV2Repository()
+        planRepo.planStatusToReturn = makePlanStatus(planId: nil)
+        planRepo.refreshOverviewErrorToThrow = URLError(.cancelled)
+        let targetRepo = MockTargetRepository()
+        targetRepo.mainTargetToReturn = makeCachedMainTarget()
+        let vm = App2HomeViewModel(
+            dailyStateRepository: nil,
+            targetRepository: targetRepo,
+            planRepository: planRepo,
+            readinessViewModel: nil,
+            readinessService: nil,
+            workoutDataSource: ImmediateStatsSource(),
+            snapshots: SnapshotSpy()
+        )
+
+        await vm.revalidate()
+
+        XCTAssertFalse(vm.hasLoaded, "overview 被取消＝部分取消，不算載過")
+        XCTAssertNil(vm.lastLoadedAt)
+        XCTAssertNil(vm.planEnd, "取消的輪不得組結束態卡")
+        XCTAssertEqual(
+            vm.goalCard?.origin,
+            .live(endpoint: "GET /user/targets + GET /v2/plan/status"),
+            "取消後只准留冷啟預渲染，不得被該輪組裝覆蓋"
+        )
+    }
+
+    func test_homeVM_cancelledRaceDayReadiness_doesNotAssemblePlanEnd() async {
+        // 結束態（training_completed × race）要打賽事日 readiness；那一發被取消
+        // 就整段停手，不得帶著 nil 預估組結束態卡（外審第十輪 E03）。
+        let planRepo = MockTrainingPlanV2Repository()
+        planRepo.planStatusToReturn = makePlanStatus(planId: nil, nextAction: "training_completed")
+        let targetRepo = MockTargetRepository()
+        targetRepo.mainTargetToReturn = makeCachedMainTarget()
+        let vm = App2HomeViewModel(
+            dailyStateRepository: nil,
+            targetRepository: targetRepo,
+            planRepository: planRepo,
+            readinessViewModel: nil,
+            readinessService: CancelledReadinessService(),
+            workoutDataSource: ImmediateStatsSource(),
+            snapshots: SnapshotSpy()
+        )
+
+        await vm.revalidate()
+
+        XCTAssertFalse(vm.hasLoaded, "賽事日 readiness 被取消＝部分取消，不算載過")
+        XCTAssertNil(vm.lastLoadedAt)
+        XCTAssertNil(vm.planEnd, "取消的輪不得組結束態卡")
+    }
+
+    // MARK: - 指標詳情：快速切 range，後選要取消前選（外審第十輪 D04/E08）
+
+    private final class FirstHangsThenImmediateStatsSource: WorkoutStatsDataSourceProtocol {
+        private(set) var statsCalls = 0
+        private(set) var firstCallWasCancelled = false
+
+        func fetchWorkoutStats(days: Int, weeks: Int?) async throws -> WorkoutStatsResponse {
+            statsCalls += 1
+            if statsCalls == 1 {
+                do {
+                    try await Task.sleep(nanoseconds: 60 * 1_000_000_000)
+                } catch {
+                    firstCallWasCancelled = true
+                }
+                throw CancellationError()
+            }
+            let json = """
+            { "data": { "total_workouts": 0, "total_distance_km": 0.0,
+                        "provider_distribution": {}, "activity_type_distribution": {},
+                        "period_days": 30 } }
+            """
+            return try JSONDecoder().decode(WorkoutStatsResponse.self, from: Data(json.utf8))
+        }
+
+        func fetchRecentWorkouts(pageSize: Int) async throws -> [WorkoutV2] { [] }
+
+        func fetchWorkoutsPage(pageSize: Int?, cursor: String?) async throws -> WorkoutListResponse {
+            WorkoutListResponse(
+                workouts: [],
+                pagination: PaginationInfo(
+                    nextCursor: nil, prevCursor: nil, hasMore: false, hasNewer: false,
+                    oldestId: nil, newestId: nil, totalItems: nil, pageSize: pageSize
+                )
+            )
+        }
+    }
+
+    private final class FailingHealthSource: HealthDailyDataSourceProtocol {
+        func fetchHealthDaily(limit: Int) async throws -> HealthDailyResponse {
+            throw NSError(domain: "test", code: 1)
+        }
+    }
+
+    func test_volumeVM_reselectRange_cancelsPreviousReload() async {
+        let source = FirstHangsThenImmediateStatsSource()
+        let vm = App2VolumeDetailViewModel(
+            insight: App2Insight(id: "volume", label: "訓練量", value: nil, direction: .unknown, verdict: nil),
+            narrative: nil,
+            workoutDataSource: source,
+            healthDataSource: FailingHealthSource(),
+            profileRepository: nil
+        )
+
+        vm.select(range: .weeks26)
+        let firstReload = vm.rangeReloadTask
+        try? await Task.sleep(nanoseconds: 200_000_000)
+        vm.select(range: .year)
+        let secondReload = vm.rangeReloadTask
+
+        await firstReload?.value
+        await secondReload?.value
+
+        XCTAssertTrue(source.firstCallWasCancelled, "後選必須取消前選那一發")
+        XCTAssertEqual(vm.range, .year)
+        XCTAssertNotNil(vm.detail, "新 range 那一輪要正常發布")
+        XCTAssertTrue(vm.hasLoaded)
     }
 
     func test_homeVM_cancelledPlanStatusDoesNotMarkLoaded() async {
