@@ -122,17 +122,26 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
 
     func revalidate() async {
         isLoading = !hasLoaded
+        var finishedRound = false
         defer {
             isLoading = false
-            // 被取消的那一輪不算載過（2026-08-29 外審 D04/E03）：下次進頁的 SWR 會重試。
-            if !Task.isCancelled {
+            // 成功或**真失敗**才算載過；取消不標——task 取消與 -999 取消錯誤
+            // （提早 return，finishedRound 維持 false）都算取消（2026-08-29 外審 D04/E03）。
+            if finishedRound, !Task.isCancelled {
                 hasLoaded = true
                 lastLoadedAt = Date()
             }
         }
 
         // 週次是這一頁的骨幹：沒有 plan status 就沒有「第 N / M 週」，也綁不了 overview。
-        let planStatus = try? await planRepository.getPlanStatus(forceRefresh: true)
+        let planStatus: PlanStatusV2Response?
+        do {
+            planStatus = try await planRepository.getPlanStatus(forceRefresh: true)
+        } catch {
+            // 取消（task 取消或 -999 取消錯誤）不算這一輪：不發布也不標載過。
+            guard !error.isCancellationError else { return }
+            planStatus = nil
+        }
 
         async let stagesTask = loadStages(planStatus: planStatus)
         async let mainTargetTask = loadMainTarget()
@@ -146,6 +155,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         // planStatus 與各子載入都以 `try?`／可缺席語意收攏——取消也會被折成 nil。
         // 被取消的那一輪不得發布殘缺 overview（AGENTS.md 陷阱 5；2026-08-29 外審）。
         if Task.isCancelled { return }
+        finishedRound = true
 
         stagesUnbound = stageBundle.isUnbound
 

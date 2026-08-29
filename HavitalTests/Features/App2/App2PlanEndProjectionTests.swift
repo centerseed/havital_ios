@@ -179,11 +179,17 @@ final class App2PlanEndProjectionTests: XCTestCase {
         )
 
         // 反向：還在跑的計畫給時機卡、不給結束態卡。
-        let running = planStatus(nextAction: "view_plan", currentWeek: 5, totalWeeks: 22)
+        // 平日無回顧時，產生 CTA 只在後端擋課表（`create_summary`）時出現
+        // （2026-08-28 裁決）；`view_plan` 平日無回顧＝整張卡收掉。
+        let blocked = planStatus(nextAction: "create_summary", currentWeek: 5, totalWeeks: 22)
         XCTAssertNil(App2PlanEndProjection.card(
-            planStatus: running, overview: nil, target: target(), estimatedFinish: nil
+            planStatus: blocked, overview: nil, target: target(), estimatedFinish: nil
         ))
         XCTAssertNotNil(App2HomeViewModel.weekReviewState(
+            planStatus: blocked, isSunday: false, summaryId: nil
+        ))
+        let running = planStatus(nextAction: "view_plan", currentWeek: 5, totalWeeks: 22)
+        XCTAssertNil(App2HomeViewModel.weekReviewState(
             planStatus: running, isSunday: false, summaryId: nil
         ))
     }

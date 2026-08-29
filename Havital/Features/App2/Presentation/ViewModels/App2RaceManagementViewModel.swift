@@ -108,15 +108,18 @@ final class App2RaceManagementViewModel: ObservableObject, TaskManageable {
 
     func reload() async {
         isLoading = !hasLoaded
+        var finishedRound = false
         defer {
             isLoading = false
-            // 被取消的那一輪不算載過（2026-08-29 外審 D04/E03）。
-            if !Task.isCancelled { hasLoaded = true }
+            // 成功或真失敗才算載過；取消（task 或 -999 錯誤）不標（2026-08-29 外審 D04/E03）。
+            if finishedRound, !Task.isCancelled { hasLoaded = true }
         }
         do {
             apply(try await targetRepository.getTargets())
+            finishedRound = true
         } catch {
             guard !error.isCancellationError else { return }
+            finishedRound = true
             Logger.debug("[App2RaceMgmtVM] targets 取得失敗: \(error)")
             // 已經有畫面資料就保留它（SWR）；第一次就失敗才報錯。
             if !hasLoaded { errorMessage = error.localizedDescription }

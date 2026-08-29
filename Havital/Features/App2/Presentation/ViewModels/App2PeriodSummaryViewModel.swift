@@ -69,10 +69,12 @@ final class App2PeriodSummaryViewModel: ObservableObject, TaskManageable, App2Re
 
     func revalidate() async {
         isLoading = !hasLoaded
+        var finishedRound = false
         defer {
             isLoading = false
-            // 被取消的那一輪不算載過（2026-08-29 外審 D04/E03）：下次進頁的 SWR 會重試。
-            if !Task.isCancelled {
+            // 成功或**真失敗**才算載過；取消不標——task 取消與 -999 取消錯誤
+            // （提早 return，finishedRound 維持 false）都算取消（2026-08-29 外審 D04/E03）。
+            if finishedRound, !Task.isCancelled {
                 hasLoaded = true
                 lastLoadedAt = Date()
             }
@@ -96,6 +98,10 @@ final class App2PeriodSummaryViewModel: ObservableObject, TaskManageable, App2Re
         // `try?` 把取消也折成 nil——被取消的那一輪**不得發布任何結果**（AGENTS.md 陷阱 5；
         // 2026-08-29 外審 D04）：部分成功＋部分被取消會組出殘缺的 summary 蓋掉畫面。
         if Task.isCancelled { return }
+        // 首載整批落空（很可能是 -999 取消錯誤被折成 nil）→ 不發布也不標載過，
+        // 下次進頁重試；有任何一條真的回了資料才算這一輪完成。
+        if stats == nil, workouts == nil, vdots == nil, reviews.isEmpty { return }
+        finishedRound = true
 
         summary = App2Sourced(
             App2PlanEndProjection.summary(

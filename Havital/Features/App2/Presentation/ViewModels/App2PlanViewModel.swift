@@ -176,10 +176,12 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         // 冷啟第一輪：先把上一次的週課表渲染出來，這一輪的網路變成背景刷新。
         if !hasLoaded { hydrateFromCache() }
         isLoading = !hasLoaded && week == nil
+        var finishedRound = false
         defer {
             isLoading = false
-            // 被取消的那一輪不算載過（2026-08-29 外審 D04/E03）：下次進頁的 SWR 會重試。
-            if !Task.isCancelled {
+            // 成功或**真失敗**才算載過；取消不標——task 取消與 -999 取消錯誤
+            // （提早 return，finishedRound 維持 false）都算取消（2026-08-29 外審 D04/E03）。
+            if finishedRound, !Task.isCancelled {
                 hasLoaded = true
                 lastLoadedAt = Date()
             }
@@ -190,6 +192,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             // 的快取渲染負責，不是靠 repository 的 cooldown 決定要不要重驗。
             let status = try await planRepository.getPlanStatus(forceRefresh: true)
             latestPlanStatus = status
+            finishedRound = true
 
             await applyPlanEnd(planStatus: status)
             if let historyWeek {
@@ -229,6 +232,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             // 取消不是失敗（`AGENTS.md` 陷阱 2）：下拉刷新的 task 被收掉時
             // in-flight 請求會回 -999，當成失敗會把真課表換成樣本。
             guard !error.isCancellationError else { return }
+            finishedRound = true
             Logger.debug("[App2PlanVM] 週課表取得失敗,退樣本: \(error)")
             guard week == nil else { return }       // SWR：重驗失敗時保留舊資料
             // 歷史回看不退樣本 —— 使用者要看的是**那一週真的排了什麼**，

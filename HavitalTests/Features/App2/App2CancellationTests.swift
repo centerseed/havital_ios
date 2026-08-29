@@ -159,4 +159,74 @@ final class App2CancellationTests: XCTestCase {
         XCTAssertFalse(vm.isLoading)
         XCTAssertTrue(spy.saved.isEmpty, "stats 先落、page 被收掉＝半套快照，不得發生")
     }
+
+    // MARK: - 取消**錯誤**（-999）不設 Task.isCancelled——四個改過的 loader 逐一驗
+
+    /// SwiftUI 收掉 refresh task 時 in-flight 請求回 `URLError(.cancelled)`，
+    /// 但 `Task.isCancelled` 是 false——完成態標記必須兩種取消都擋（外審 D04/E03）。
+
+    func test_planVM_cancellationErrorDoesNotMarkLoaded() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.errorToThrow = URLError(.cancelled)
+        let vm = App2PlanViewModel(
+            planRepository: repository,
+            workoutRepository: MockWorkoutRepository(),
+            targetRepository: nil
+        )
+
+        await vm.revalidate()
+
+        XCTAssertFalse(vm.hasLoaded, "-999 取消錯誤不算載過")
+        XCTAssertNil(vm.lastLoadedAt)
+        XCTAssertFalse(vm.isLoading)
+    }
+
+    func test_planOverviewVM_cancellationErrorDoesNotMarkLoaded() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.errorToThrow = URLError(.cancelled)
+        let vm = App2PlanOverviewViewModel(
+            planRepository: repository,
+            targetRepository: MockTargetRepository(),
+            userProfileRepository: nil,
+            readinessViewModel: nil,
+            weeklyVolumesLoader: { [] }
+        )
+
+        await vm.revalidate()
+
+        XCTAssertFalse(vm.hasLoaded)
+        XCTAssertNil(vm.lastLoadedAt)
+        XCTAssertNil(vm.overview, "取消的那一輪不得發布殘缺 overview")
+    }
+
+    func test_raceManagementVM_cancellationErrorDoesNotMarkLoaded() async {
+        let repository = MockTargetRepository()
+        repository.errorToThrow = URLError(.cancelled)
+        let vm = App2RaceManagementViewModel(targetRepository: repository)
+
+        await vm.reload()
+
+        XCTAssertFalse(vm.hasLoaded)
+        XCTAssertNil(vm.errorMessage, "取消不是失敗，不得報錯")
+    }
+
+    func test_homeVM_cancelledPlanStatusDoesNotMarkLoaded() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.errorToThrow = URLError(.cancelled)
+        let vm = App2HomeViewModel(
+            dailyStateRepository: nil,
+            targetRepository: MockTargetRepository(),
+            planRepository: repository,
+            readinessViewModel: nil,
+            readinessService: nil,
+            workoutDataSource: ImmediateStatsSource(),
+            snapshots: SnapshotSpy()
+        )
+
+        await vm.revalidate()
+
+        XCTAssertFalse(vm.hasLoaded, "plan status 被取消＝這一輪不算載過")
+        XCTAssertNil(vm.lastLoadedAt)
+        XCTAssertFalse(vm.isLoading)
+    }
 }
