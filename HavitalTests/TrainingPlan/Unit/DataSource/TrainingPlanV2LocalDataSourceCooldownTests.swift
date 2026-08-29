@@ -206,4 +206,38 @@ final class TrainingPlanV2LocalDataSourceOwnerTests: XCTestCase {
         sut.savePlanStatus(makeStatus())
         XCTAssertNotNil(sut.getPlanStatus())
     }
+
+    /// weekly 前綴族（週課表／週回顧／週預覽）的 legacy blob 也要被偵測並整批清掉——
+    /// 只查 planStatus/overview 會讓 weekly-only 的殘留逃過清除（外審 D06）。
+    func test_legacyWeeklyOnlyBlobs_areDetectedAndCleared() {
+        let defaults = MockUserDefaults()
+        let sut = TrainingPlanV2LocalDataSource(defaults: defaults, currentUserID: { "userA" })
+
+        // 無擁有者戳，只有 weekly 族殘留（raw blob 即可，重點是 key 偵測與清除）。
+        defaults.set(Data([0x7B]), forKey: "training_plan_v2_weekly_3")
+        defaults.set(Data([0x7B]), forKey: "training_plan_v2_summary_2")
+        defaults.set(Data([0x7B]), forKey: "training_plan_v2_preview_abc")
+
+        XCTAssertNil(sut.getPlanStatus(), "讀任何一支都要觸發 legacy 偵測")
+        XCTAssertNil(defaults.data(forKey: "training_plan_v2_weekly_3"))
+        XCTAssertNil(defaults.data(forKey: "training_plan_v2_summary_2"))
+        XCTAssertNil(defaults.data(forKey: "training_plan_v2_preview_abc"))
+    }
+
+    /// post-write 情境：第一個動作是 save（網路取回直接落地）時，蓋戳不得「收養」
+    /// legacy 週資料——save 前要先整批清掉（外審 D06）。
+    func test_saveAfterLegacyBlob_doesNotAdoptOldWeeklyData() {
+        let defaults = MockUserDefaults()
+        let sut = TrainingPlanV2LocalDataSource(defaults: defaults, currentUserID: { "userA" })
+
+        defaults.set(Data([0x7B]), forKey: "training_plan_v2_weekly_3")
+
+        sut.savePlanStatus(makeStatus())
+
+        XCTAssertNil(
+            defaults.data(forKey: "training_plan_v2_weekly_3"),
+            "蓋戳前必須清掉無戳 legacy 快取，不得讓它變成現任帳號可讀"
+        )
+        XCTAssertNotNil(sut.getPlanStatus(), "本輪寫入本身要留存")
+    }
 }

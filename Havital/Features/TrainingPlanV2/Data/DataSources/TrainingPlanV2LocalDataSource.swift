@@ -123,7 +123,7 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
     private func isOwnedByCurrentUser() -> Bool {
         guard let uid = currentUserID() else { return false }
         guard let owner = defaults.string(forKey: Keys.ownerUid) else {
-            if defaults.data(forKey: Keys.planStatus) != nil || defaults.data(forKey: Keys.overview) != nil {
+            if hasAnyCachedPayload() {
                 Logger.info("[TrainingPlanV2LocalDS] legacy 快取無擁有者戳,整批丟棄改走網路")
                 clearAll()
             }
@@ -137,9 +137,29 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
         return true
     }
 
+    /// 任何一族快取有殘留就算有 payload。**只查 planStatus／overview 會漏掉 weekly
+    /// 前綴族**：weekly-only 的 legacy blob 逃過清除，之後一次 save 蓋上現任 uid，
+    /// 舊資料就變成可讀（2026-08-29 外審 D06）。
+    private func hasAnyCachedPayload() -> Bool {
+        if defaults.data(forKey: Keys.planStatus) != nil { return true }
+        if defaults.data(forKey: Keys.overview) != nil { return true }
+        let prefixes = [Keys.weeklyPlanPrefix, Keys.weeklySummaryPrefix, Keys.weeklyPreviewPrefix]
+        return defaults.dictionaryRepresentation().keys.contains { key in
+            prefixes.contains { key.hasPrefix($0) }
+        }
+    }
+
     /// 寫入時蓋上擁有者戳。沒有 uid 就不寫（呼叫端已先擋一次）。
+    ///
+    /// 蓋戳前若發現**無戳的 legacy 快取**，先整批清掉：否則第一個動作是 save 時
+    /// （網路取回直接落地），戳一蓋上去，legacy 週資料就被「收養」成現任帳號可讀
+    /// （2026-08-29 外審 D06 的 post-write 情境）。
     private func stampOwner() {
         guard let uid = currentUserID() else { return }
+        if defaults.string(forKey: Keys.ownerUid) == nil, hasAnyCachedPayload() {
+            Logger.info("[TrainingPlanV2LocalDS] save 前發現無戳 legacy 快取,先整批清掉再蓋戳")
+            clearAll()
+        }
         defaults.set(uid, forKey: Keys.ownerUid)
     }
 
