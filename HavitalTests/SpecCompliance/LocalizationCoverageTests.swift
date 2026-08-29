@@ -380,13 +380,17 @@ final class LocalizationCoverageTests: XCTestCase {
     }
 
     func test_achievement_tab_entry_hidden_for_current_release() throws {
-        // commit ae9358e: PersonalAchievementsView is now intentionally wired as the 4th tab.
-        // Guard updated to assert the current correct state.
+        // 2.0 cutover（T-0306）：ContentView 掛的是 App2RootView shell，1.x 的
+        // tab 建構子（MyAchievementView/PersonalAchievementsView）不再住這裡；
+        // 成就面由 App2RootView 內的 PersonalAchievementsViewModel 承接。
         let contentView = try String(contentsOf: try projectRoot.appendingPathComponent("Havital/Views/ContentView.swift"), encoding: .utf8)
+        XCTAssertTrue(contentView.contains("App2RootView()"), "2.0 shell must be mounted by ContentView (T-0306 cutover).")
 
-        XCTAssertTrue(contentView.contains("MyAchievementView()"), "Performance data tab must remain visible because it carries PB/performance metrics.")
-        XCTAssertTrue(contentView.contains("PersonalAchievementsView()"), "Awards tab is now wired into ContentView as the 4th tab (commit ae9358e).")
-        XCTAssertTrue(contentView.contains("L10n.Tab.achievement.localized"), "Awards tab label must be present in ContentView for this release (commit ae9358e).")
+        let rootView = try String(
+            contentsOf: try projectRoot.appendingPathComponent("Havital/Features/App2/Presentation/App2RootView.swift"),
+            encoding: .utf8
+        )
+        XCTAssertTrue(rootView.contains("PersonalAchievementsViewModel()"), "Achievements surface must stay wired inside the App2 shell.")
     }
 
     func test_login_screen_exposes_pre_auth_language_picker() throws {
@@ -419,8 +423,10 @@ final class LocalizationCoverageTests: XCTestCase {
         )
 
         XCTAssertTrue(syncRequest.contains("let language: String?"), "Auth sync request must carry an explicit account language preference.")
-        XCTAssertTrue(authRepository.contains("LanguageManager.shared.currentLanguage.apiCode"), "Auth sign-in sync must send the selected app language.")
-        XCTAssertTrue(authSessionRepository.contains("LanguageManager.shared.currentLanguage.apiCode"), "Auth session refresh must send the selected app language.")
+        // 2.0 QA 波（57da2c24 語言 clobber 修復）：只送使用者「明確選過」的語言
+        // （explicitLanguage），沒選過送 nil——不得拿裝置預設覆寫帳號語言。
+        XCTAssertTrue(authRepository.contains("LanguageManager.shared.explicitLanguage?.apiCode"), "Auth sign-in sync must send only an explicitly selected app language.")
+        XCTAssertTrue(authSessionRepository.contains("LanguageManager.shared.explicitLanguage?.apiCode"), "Auth session refresh must send only an explicitly selected app language.")
         XCTAssertTrue(authRepository.contains("language: appLanguageCode"), "Auth sign-in sync must persist the selected app language as account language.")
         XCTAssertTrue(authSessionRepository.contains("language: appLanguageCode"), "Auth session refresh must persist the selected app language as account language.")
         XCTAssertTrue(authRepository.contains("locale: Locale.current.identifier"), "Device info locale must remain device metadata, not account language.")

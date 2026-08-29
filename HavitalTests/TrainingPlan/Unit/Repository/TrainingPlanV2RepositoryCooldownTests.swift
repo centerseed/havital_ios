@@ -151,7 +151,11 @@ final class TrainingPlanV2RepositoryCooldownTests: XCTestCase {
         fakeClock = FakeV2Clock()
         mockDefaults = MockUserDefaults()
         fakeRemote = FakeTrainingPlanV2RemoteDataSource()
-        localDataSource = TrainingPlanV2LocalDataSource(defaults: mockDefaults, clock: fakeClock)
+        // owner-stamping（2026-08-29 外審）：無登入者時 save 直接不落地，
+        // 測試 host 未登入，seed 會靜默失敗——注入固定 uid。
+        localDataSource = TrainingPlanV2LocalDataSource(
+            defaults: mockDefaults, clock: fakeClock, currentUserID: { "test-user" }
+        )
         sut = TrainingPlanV2RepositoryImpl(
             remoteDataSource: fakeRemote,
             localDataSource: localDataSource

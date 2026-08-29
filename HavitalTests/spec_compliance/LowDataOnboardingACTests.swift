@@ -20,7 +20,9 @@ final class LowDataOnboardingACTests: XCTestCase {
 
     func test_ac_ld_04_05_06_heartRateOnboardingHasDefaultsAndSkip() throws {
         let source = try read("Havital/Views/Health/HeartRateZoneInfoView.swift")
-        XCTAssertTrue(source.contains("220 - userAgeFromLocalStorage"))
+        // 2.0 QA 波（57da2c24）：220−age 公式收斂到單一 owner
+        // App2OnboardingProjection.estimatedMaxHR，view 不再自算。
+        XCTAssertTrue(source.contains("App2OnboardingProjection.estimatedMaxHR(age: userAgeFromLocalStorage)"))
         XCTAssertTrue(source.contains("restingHeartRate = 60"))
         XCTAssertTrue(source.contains("onboarding.skip"))
         XCTAssertTrue(source.contains("navigate(to: .personalBest)"))

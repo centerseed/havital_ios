@@ -407,7 +407,11 @@ final class TrainingPlanV2RepositoryRegressionTests: XCTestCase {
         super.setUp()
         mockUserDefaults = MockUserDefaults()
         remoteDataSource = FailingTrainingPlanV2RemoteDataSource()
-        localDataSource = TrainingPlanV2LocalDataSource(defaults: mockUserDefaults)
+        // owner-stamping（2026-08-29 外審）：注入固定 uid，否則未登入的測試 host
+        // seed 快取會靜默失敗。
+        localDataSource = TrainingPlanV2LocalDataSource(
+            defaults: mockUserDefaults, currentUserID: { "test-user" }
+        )
         sut = TrainingPlanV2RepositoryImpl(
             remoteDataSource: remoteDataSource,
             localDataSource: localDataSource
