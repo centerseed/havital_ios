@@ -1,11 +1,13 @@
 ---
 type: SPEC
 id: SPEC-workout-upload-error-noise-filtering
-status: Draft
+status: Implemented
 layer: product
 ontology_entity: workout-upload-error-noise-filtering
+owns: Apple Health workout 上傳失敗的分類、對使用者呈現的失敗原因，以及失敗後的重試／放棄處置
 created: 2026-04-17
-updated: 2026-04-17
+updated: 2026-08-27
+tasks: T-0322
 ---
 
 # Feature Spec: Workout Upload Error Noise Filtering
@@ -24,9 +26,13 @@ updated: 2026-04-17
 - `WorkoutBackgroundManager` 的待上傳 workout 檢查錯誤分類
 - `AppleHealthWorkoutUploadService` 的 upload cancellation 分類與 log 去重
 - 針對真正錯誤保留原有上報能力
+- Apple Health workout 上傳失敗的分類（暫時性 vs 資料驗證失敗）、對使用者呈現的原因，
+  以及 `WorkoutUploadTracker` 的重試／放棄處置（2026-08-27 由 T-0322 併入）
 
 ## 明確不包含
 
+- 資料驗證的判準本身（哪些 workout 算有效）——這次不動
+- 批次上傳的 60 秒單筆逾時上限的取值
 - backend `WorkoutV2Service` validation 邏輯修改
 - HealthKit 背景任務排程策略重寫
 - 通用 logging framework 重構
@@ -63,6 +69,37 @@ Given 同一筆 workout 或同一輪 background check 觸發的是鎖屏 skip �
 When 錯誤穿過多層 manager / service，  
 Then 系統最多只能留下單一非 error 診斷訊息，不得出現多筆內容近似、只差層級的重複 Cloud Logging。
 
+### AC-WORKOUT-LOG-06: 只有資料驗證失敗才是永久失敗
+
+Given workout 上傳失敗，
+When 系統為這次失敗分類，
+Then 只有「重試不會改變結果」的資料驗證失敗（本機 `duration <= 0`、backend 回 400 bad request
+或 validation failed）才分類為 `permanent`；其餘一切失敗——含逾時、任務中斷、取消、5xx、429、
+無網路，以及任何未列舉的未知錯誤——一律分類為 `transient`。未知錯誤預設 `transient`，
+不得反過來預設 `permanent`。
+
+### AC-WORKOUT-LOG-07: 暫時性失敗不得被永久放棄
+
+Given 一筆 Apple Health workout 因暫時性原因上傳失敗，
+When 失敗次數累積，
+Then 系統不得對它設重試次數上限；每次失敗只以冷卻時間節流，冷卻時間從 30 分鐘起、
+每次失敗加倍、上限 6 小時。資料驗證失敗（`permanent`）維持最多 3 次、固定 30 分鐘冷卻，
+用完即停止自動上傳。取值理由見 `ADR-005-apple-health-upload-failure-retry-policy.md`。
+
+### AC-WORKOUT-LOG-08: 舊版失敗記錄不得繼承永久放棄
+
+Given 裝置上存在修復前寫下、沒有分類欄位的失敗記錄，
+When 系統讀取該記錄決定要不要重試，
+Then 必須視為 `transient`，讓先前被永久跳過的 workout 重新獲得上傳機會。
+
+### AC-WORKOUT-LOG-09: 失敗原因對使用者必須可辨識
+
+Given 上傳流程在不同環節失敗或跳過，
+When 錯誤訊息呈現給使用者（同步頁、重新上傳結果）或寫入失敗帳本，
+Then 每一種情境必須有各自可辨識的三語訊息，「無效的運動數據」只保留給資料驗證失敗；
+且「資料來源不是 Apple Health」與「本輪已達重試上限、未實際嘗試」不得寫入失敗帳本、
+不得上報為 prod error——它們是跳過，不是失敗。
+
 ## AC ID Index
 
 | AC ID | 對應需求 |
@@ -72,3 +109,25 @@ Then 系統最多只能留下單一非 error 診斷訊息，不得出現多筆�
 | AC-WORKOUT-LOG-03 | `-999` 不分類為 invalid workout data / ERROR |
 | AC-WORKOUT-LOG-04 | 非取消類網路與 API 錯誤維持上報 |
 | AC-WORKOUT-LOG-05 | 可恢復事件不重複上報 |
+| AC-WORKOUT-LOG-06 | 只有資料驗證失敗才是永久失敗 |
+| AC-WORKOUT-LOG-07 | 暫時性失敗不設次數上限，只用退避冷卻節流 |
+| AC-WORKOUT-LOG-08 | 舊版無分類記錄視為暫時性 |
+| AC-WORKOUT-LOG-09 | 失敗原因三語可辨識；跳過不進失敗帳本 |
+
+## 實作證據（2026-08-27）
+
+AC-01 ~ AC-05 於 2026-04 落地；AC-06 ~ AC-09 由 T-0322 落地，產品裁決記於該票 `expected_surface`。
+
+| AC | 實作 |
+|---|---|
+| AC-WORKOUT-LOG-01/02 | `Havital/Features/Workout/Domain/UseCases/WorkoutBackgroundManager.swift`（`isProtectedDataUnavailableError`、`reportPendingWorkoutCheckError`） |
+| AC-WORKOUT-LOG-03/04/05 | `Havital/Services/Integrations/AppleHealth/AppleHealthWorkoutUploadService.swift`（`classifyBatchUploadError`、`classifyDetailedUploadError`、`isExpectedUploadError`） |
+| AC-WORKOUT-LOG-06 | `AppleHealthWorkoutUploadService.classifyUploadFailureKind` |
+| AC-WORKOUT-LOG-07 | `Havital/Storage/WorkoutUploadTracker.swift`（`shouldRetryUpload(retryCount:kind:secondsSinceLastFailure:)`、`retryCooldownSeconds(retryCount:kind:)`） |
+| AC-WORKOUT-LOG-08 | `WorkoutUploadTracker.failureKind(from:)` |
+| AC-WORKOUT-LOG-09 | `WorkoutV2ServiceError.errorDescription`＋`Localizable.strings` 的 `workout_upload.error.*`；跳過分支在 `classifyBatchUploadError` |
+
+驗收：`HavitalTests/SpecCompliance/WorkoutUploadErrorNoiseFilteringACTests.swift`、
+`HavitalTests/SpecCompliance/WorkoutUploadFailureDispositionACTests.swift`。
+
+**已知文件債（先於本次改動）**：本份仍缺 `MAP-spec-governance` §2.2 要求的 11 節骨架。

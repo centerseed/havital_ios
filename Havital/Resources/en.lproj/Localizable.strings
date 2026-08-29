@@ -4890,3 +4890,13 @@
 "app2.plan_end.history_back" = "Back to the completion screen";
 "app2.plan_end.history_back_current_week" = "Back to this week";
 "app2.plan_end.history_week_empty" = "No plan was generated for this week.";
+
+/* T-0322 workout upload failure classification */
+"workout_upload.error.invalid_data" = "Invalid workout data";
+"workout_upload.error.data_source_not_apple_health" = "Upload skipped: your current data source is not Apple Health";
+"workout_upload.error.timed_out" = "Upload timed out; it will be retried automatically";
+"workout_upload.error.interrupted" = "Upload was interrupted; it will be retried automatically";
+"workout_upload.error.retry_limit_reached" = "This workout reached the retry limit and is no longer uploaded automatically";
+"workout_upload.error.no_heart_rate" = "Missing heart rate data";
+"workout_upload.error.failed_format" = "Upload failed: %@";
+"workout_upload.error.network_format" = "Network error: %@";

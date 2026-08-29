@@ -4887,3 +4887,13 @@
 "app2.plan_end.history_back" = "完了画面に戻る";
 "app2.plan_end.history_back_current_week" = "今週に戻る";
 "app2.plan_end.history_week_empty" = "この週のメニューは作成されていません。";
+
+/* T-0322 workout upload failure classification */
+"workout_upload.error.invalid_data" = "無効なワークアウトデータ";
+"workout_upload.error.data_source_not_apple_health" = "現在のデータソースがApple Healthではないため、アップロードをスキップしました";
+"workout_upload.error.timed_out" = "アップロードがタイムアウトしました。後で自動的に再試行します";
+"workout_upload.error.interrupted" = "アップロードが中断されました。後で自動的に再試行します";
+"workout_upload.error.retry_limit_reached" = "このワークアウトは再試行の上限に達したため、自動アップロードを停止しました";
+"workout_upload.error.no_heart_rate" = "心拍数データがありません";
+"workout_upload.error.failed_format" = "アップロードに失敗しました: %@";
+"workout_upload.error.network_format" = "ネットワークエラー: %@";

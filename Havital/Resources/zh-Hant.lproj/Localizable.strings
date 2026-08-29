@@ -4931,3 +4931,13 @@
 "app2.plan_end.history_back" = "回到計畫完成畫面";
 "app2.plan_end.history_back_current_week" = "回到本週";
 "app2.plan_end.history_week_empty" = "這一週沒有課表紀錄。";
+
+/* T-0322 workout upload failure classification */
+"workout_upload.error.invalid_data" = "無效的運動數據";
+"workout_upload.error.data_source_not_apple_health" = "目前資料來源不是 Apple Health，已跳過上傳";
+"workout_upload.error.timed_out" = "上傳逾時，稍後會自動重試";
+"workout_upload.error.interrupted" = "上傳被中斷，稍後會自動重試";
+"workout_upload.error.retry_limit_reached" = "這筆運動已達重試上限，暫時不再自動上傳";
+"workout_upload.error.no_heart_rate" = "缺少心率數據";
+"workout_upload.error.failed_format" = "上傳失敗: %@";
+"workout_upload.error.network_format" = "網路錯誤: %@";

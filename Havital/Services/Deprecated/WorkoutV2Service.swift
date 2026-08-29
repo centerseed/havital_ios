@@ -643,21 +643,38 @@ extension WorkoutV2Service {
 // MARK: - Error Handling
 
 enum WorkoutV2ServiceError: Error, LocalizedError {
+    /// 資料本身通不過驗證（例如持續時間為 0）——重試不會改變結果。
     case invalidWorkoutData
+    /// 目前資料來源不是 Apple Health，這一輪不該上傳；不是失敗。
+    case dataSourceNotAppleHealth
+    /// 批次上傳等待單筆結果逾時。
+    case uploadTimedOut
+    /// 上傳任務被中斷（背景中止、task group 無結果、service 已釋放）。
+    case uploadInterrupted
+    /// 這筆 workout 已達重試上限，本輪未實際嘗試上傳。
+    case retryLimitReached
     case noHeartRateData
     case uploadFailed(String)
     case networkError(Error)
-    
+
     var errorDescription: String? {
         switch self {
         case .invalidWorkoutData:
-            return "無效的運動數據"
+            return NSLocalizedString("workout_upload.error.invalid_data", comment: "")
+        case .dataSourceNotAppleHealth:
+            return NSLocalizedString("workout_upload.error.data_source_not_apple_health", comment: "")
+        case .uploadTimedOut:
+            return NSLocalizedString("workout_upload.error.timed_out", comment: "")
+        case .uploadInterrupted:
+            return NSLocalizedString("workout_upload.error.interrupted", comment: "")
+        case .retryLimitReached:
+            return NSLocalizedString("workout_upload.error.retry_limit_reached", comment: "")
         case .noHeartRateData:
-            return "缺少心率數據"
+            return NSLocalizedString("workout_upload.error.no_heart_rate", comment: "")
         case .uploadFailed(let message):
-            return "上傳失敗: \(message)"
+            return String(format: NSLocalizedString("workout_upload.error.failed_format", comment: ""), message)
         case .networkError(let error):
-            return "網路錯誤: \(error.localizedDescription)"
+            return String(format: NSLocalizedString("workout_upload.error.network_format", comment: ""), error.localizedDescription)
         }
     }
 }

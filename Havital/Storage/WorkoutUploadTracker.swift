@@ -6,6 +6,15 @@ enum APIVersion {
     case v2
 }
 
+/// 上傳失敗的處置分類。
+///
+/// `permanent` 只給「重試不會改變結果」的資料驗證失敗；其餘一律 `transient`，
+/// 因為放棄一筆 transient 失敗等於永久丟掉使用者的真實訓練紀錄（T-0322）。
+enum WorkoutUploadFailureKind: String {
+    case transient
+    case permanent
+}
+
 class WorkoutUploadTracker {
     static let shared = WorkoutUploadTracker()
     
@@ -14,10 +23,14 @@ class WorkoutUploadTracker {
     private let uploadedWorkoutsV2Key = "uploaded_workouts_v2"
     private let failedWorkoutsKey = "failed_workouts_v2"
 
-    // 最大重试次数：一个 workout 最多尝试上传 3 次
-    private let maxRetryAttempts = 3
-    // 重试冷却时间：失败后 30 分钟内不再重试
-    private let retryCooldownSeconds: TimeInterval = 30 * 60
+    // 資料驗證失敗（permanent）最多嘗試 3 次後停止；transient 失敗沒有次數上限。
+    static let maxRetryAttempts = 3
+    // 基礎冷卻時間：失敗後 30 分鐘內不再重試
+    static let baseRetryCooldownSeconds: TimeInterval = 30 * 60
+    // transient 失敗的冷卻上限：每次失敗加倍，最長 6 小時
+    static let maxRetryCooldownSeconds: TimeInterval = 6 * 60 * 60
+
+    private var maxRetryAttempts: Int { Self.maxRetryAttempts }
 
     private init() {
         CacheEventBus.shared.subscribe(forIdentifier: "WorkoutUploadTracker") { [weak self] reason in
@@ -291,7 +304,10 @@ class WorkoutUploadTracker {
     ///   - workout: 失敗的 workout
     ///   - reason: 失敗原因
     ///   - apiVersion: API 版本
-    func markWorkoutAsFailed(_ workout: HKWorkout, reason: String, apiVersion: APIVersion = .v2) {
+    func markWorkoutAsFailed(_ workout: HKWorkout,
+                             reason: String,
+                             kind: WorkoutUploadFailureKind = .transient,
+                             apiVersion: APIVersion = .v2) {
         let stableId = generateStableWorkoutId(workout)
         var failedWorkouts = getFailedWorkouts()
 
@@ -304,6 +320,7 @@ class WorkoutUploadTracker {
         // 更新失敗信息
         failureInfo = [
             "retryCount": retryCount,
+            "kind": kind.rawValue,
             "lastFailureTime": Date().timeIntervalSince1970,
             "lastFailureReason": reason,
             "firstFailureTime": failureInfo["firstFailureTime"] as? TimeInterval ?? Date().timeIntervalSince1970
@@ -327,35 +344,75 @@ class WorkoutUploadTracker {
     /// 檢查 workout 是否應該重試上傳
     /// - Parameter workout: 要檢查的 workout
     /// - Returns: true 表示應該重試，false 表示不應該重試
-    func shouldRetryUpload(_ workout: HKWorkout) -> Bool {
+    func shouldRetryUpload(_ workout: HKWorkout, now: Date = Date()) -> Bool {
         let stableId = generateStableWorkoutId(workout)
-        let failedWorkouts = getFailedWorkouts()
 
-        guard let failureInfo = failedWorkouts[stableId] as? [String: Any] else {
+        guard let failureInfo = failureRecord(for: workout) else {
             // 沒有失敗記錄，可以重試
             return true
         }
 
-        // 檢查重試次數
         let retryCount = failureInfo["retryCount"] as? Int ?? 0
-        if retryCount >= maxRetryAttempts {
-            print("⚠️ [WorkoutUploadTracker] Workout \(stableId) 已達最大重試次數 (\(retryCount)/\(maxRetryAttempts))，跳過上傳")
+        let kind = Self.failureKind(from: failureInfo)
+        let secondsSinceLastFailure = (failureInfo["lastFailureTime"] as? TimeInterval)
+            .map { now.timeIntervalSince1970 - $0 }
+
+        let allowed = Self.shouldRetryUpload(
+            retryCount: retryCount,
+            kind: kind,
+            secondsSinceLastFailure: secondsSinceLastFailure
+        )
+
+        if allowed {
+            print("✅ [WorkoutUploadTracker] Workout \(stableId) 可以重試上傳 (\(kind.rawValue)，第 \(retryCount + 1) 次)")
+        } else if kind == .permanent && retryCount >= maxRetryAttempts {
+            print("⚠️ [WorkoutUploadTracker] Workout \(stableId) 資料驗證失敗已達上限 (\(retryCount)/\(maxRetryAttempts))，停止上傳")
+        } else {
+            let cooldown = Self.retryCooldownSeconds(retryCount: retryCount, kind: kind)
+            let remainingMinutes = Int((cooldown - (secondsSinceLastFailure ?? 0)) / 60)
+            print("⚠️ [WorkoutUploadTracker] Workout \(stableId) 在冷卻期內，還需等待 \(remainingMinutes) 分鐘")
+        }
+
+        return allowed
+    }
+
+    /// 依失敗分類決定這一輪能不能重試。純函式，重試政策的判準只在這裡。
+    ///
+    /// - `permanent`：維持 3 次上限，用完就停（重試不會改變結果）。
+    /// - `transient`：沒有次數上限，只受冷卻時間節流——避免暫時性故障永久丟掉紀錄。
+    static func shouldRetryUpload(retryCount: Int,
+                                  kind: WorkoutUploadFailureKind,
+                                  secondsSinceLastFailure: TimeInterval?) -> Bool {
+        if kind == .permanent && retryCount >= maxRetryAttempts {
             return false
         }
 
-        // 檢查冷卻時間
-        if let lastFailureTime = failureInfo["lastFailureTime"] as? TimeInterval {
-            let timeSinceFailure = Date().timeIntervalSince1970 - lastFailureTime
-            if timeSinceFailure < retryCooldownSeconds {
-                let remainingMinutes = Int((retryCooldownSeconds - timeSinceFailure) / 60)
-                print("⚠️ [WorkoutUploadTracker] Workout \(stableId) 在冷卻期內，還需等待 \(remainingMinutes) 分鐘")
-                return false
-            }
-        }
+        guard let secondsSinceLastFailure else { return true }
+        return secondsSinceLastFailure >= retryCooldownSeconds(retryCount: retryCount, kind: kind)
+    }
 
-        // 可以重試
-        print("✅ [WorkoutUploadTracker] Workout \(stableId) 可以重試上傳 (嘗試 \(retryCount + 1)/\(maxRetryAttempts))")
-        return true
+    /// transient 失敗每次冷卻加倍（30 分鐘起跳、上限 6 小時）；permanent 維持固定 30 分鐘。
+    static func retryCooldownSeconds(retryCount: Int, kind: WorkoutUploadFailureKind) -> TimeInterval {
+        guard kind == .transient else { return baseRetryCooldownSeconds }
+        let exponent = min(max(retryCount - 1, 0), 16)
+        let backoff = baseRetryCooldownSeconds * pow(2, Double(exponent))
+        return min(backoff, maxRetryCooldownSeconds)
+    }
+
+    /// 舊版本寫下的失敗記錄沒有 kind 欄位。它們絕大多數是逾時／中斷，
+    /// 一律視為 transient，讓被舊邏輯永久放棄的紀錄重新有機會上傳。
+    static func failureKind(from failureInfo: [String: Any]) -> WorkoutUploadFailureKind {
+        guard let raw = failureInfo["kind"] as? String,
+              let kind = WorkoutUploadFailureKind(rawValue: raw) else {
+            return .transient
+        }
+        return kind
+    }
+
+    /// 讀取某筆 workout 目前的失敗記錄（沒有失敗過則為 nil）
+    func failureRecord(for workout: HKWorkout) -> [String: Any]? {
+        let stableId = generateStableWorkoutId(workout)
+        return getFailedWorkouts()[stableId] as? [String: Any]
     }
 
     /// 清除 workout 的失敗記錄（上傳成功後調用）
@@ -399,7 +456,7 @@ class WorkoutUploadTracker {
         let totalFailed = failedWorkouts.count
 
         let permanentlyFailed = failedWorkouts.values.compactMap { $0 as? [String: Any] }
-            .filter { ($0["retryCount"] as? Int ?? 0) >= maxRetryAttempts }
+            .filter { Self.failureKind(from: $0) == .permanent && ($0["retryCount"] as? Int ?? 0) >= maxRetryAttempts }
             .count
 
         return (totalFailed, permanentlyFailed)
