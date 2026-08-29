@@ -80,16 +80,30 @@ final class App2PeriodSummaryViewModel: ObservableObject, TaskManageable, App2Re
             }
         }
 
-        // 四條各自可缺席：`try?` 是刻意的 —— 少一條端點只是少那幾格，
-        // 不該讓整頁變空白。
-        async let statsTask = try? workoutDataSource.fetchWorkoutStats(days: 30, weeks: weeks)
-        async let workoutsTask = try? workoutDataSource.fetchRecentWorkouts(pageSize: Self.workoutPageSize)
-        async let vdotsTask = try? vdotDataSource.getVDOTs(limit: vdotLimit)
+        // 四條各自可缺席：**真失敗**只是少那幾格，不該讓整頁變空白；
+        // 取消（含 -999 取消錯誤）則整輪作廢——`optionalLoad` 把兩者分開記。
+        roundSawCancellation = false
+        let statsSource = workoutDataSource
+        let vdotSource = vdotDataSource
+        let weeksCount = weeks
+        let vdotCap = vdotLimit
+        async let statsTask = optionalLoad {
+            try await statsSource.fetchWorkoutStats(days: 30, weeks: weeksCount)
+        }
+        async let workoutsTask = optionalLoad {
+            try await statsSource.fetchRecentWorkouts(pageSize: Self.workoutPageSize)
+        }
+        async let vdotsTask = optionalLoad {
+            try await vdotSource.getVDOTs(limit: vdotCap)
+        }
         let reviews = await weeklySummaries()
 
         let stats = await statsTask
         let workouts = await workoutsTask
         let vdots = await vdotsTask
+
+        // 任何一條子載入吃到取消 → 不發布也不標載過（外審第七輪 E03）。
+        if roundSawCancellation { return }
 
         // 這一輪整批落空（換頁／下拉刷新被 SwiftUI 收掉時每一條 in-flight 請求都會
         // 回 -999，`AGENTS.md` 陷阱 2）→ 保留畫面上的舊資料，不把真資料換成一整頁的「–」。
@@ -126,6 +140,19 @@ final class App2PeriodSummaryViewModel: ObservableObject, TaskManageable, App2Re
             ? App2PlanEndStoryFixture.make(weeks: weeks)
             : nil
         #endif
+    }
+
+    /// 這一輪的子載入是否吃到取消（-999 取消錯誤不設 `Task.isCancelled`）。
+    private var roundSawCancellation = false
+
+    /// 真失敗折成 nil（少那幾格）；取消記旗標讓整輪作廢。
+    private func optionalLoad<T>(_ op: @escaping () async throws -> T) async -> T? {
+        do {
+            return try await op()
+        } catch {
+            if error.isCancellationError { roundSawCancellation = true }
+            return nil
+        }
     }
 
     /// VDOT 序列要涵蓋整期。一週 7 天，多抓一點以免起點落在窗外。

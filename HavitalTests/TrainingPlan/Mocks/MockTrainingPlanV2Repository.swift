@@ -59,6 +59,8 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     var weeklyPlanV2ToReturn: WeeklyPlanV2?
     var weeklySummaryV2ToReturn: WeeklySummaryV2?
     var errorToThrow: Error?
+    /// 只讓 fetchWeeklyPlan 丟錯（部分取消情境：plan status 成功、週課表被收掉）。
+    var fetchWeeklyPlanErrorToThrow: Error?
     var generateWeeklyPlanErrors: [Error] = []
     var applyAdjustmentItemsError: Error?
 
@@ -206,6 +208,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
 
     func fetchWeeklyPlan(planId: String) async throws -> WeeklyPlanV2 {
         fetchWeeklyPlanCallCount += 1
+        if let error = fetchWeeklyPlanErrorToThrow { throw error }
         if let error = errorToThrow { throw error }
         guard let plan = weeklyPlanV2ToReturn else {
             throw TrainingPlanV2Error.weeklyPlanNotFound(week: 0)

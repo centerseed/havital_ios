@@ -210,6 +210,98 @@ final class App2CancellationTests: XCTestCase {
         XCTAssertNil(vm.errorMessage, "取消不是失敗，不得報錯")
     }
 
+    // MARK: - 部分取消：主載成功、子載被取消 → 一樣不算載過（外審第七輪 D04/E03）
+
+    private func makePlanStatus(planId: String? = "p_1") -> PlanStatusV2Response {
+        PlanStatusV2Response(
+            currentWeek: 2, totalWeeks: 5, nextAction: "view_plan",
+            canGenerateNextWeek: false, currentWeekPlanId: planId,
+            previousWeekSummaryId: nil, targetType: "race_run",
+            methodologyId: "paceriz", nextWeekInfo: nil, metadata: nil
+        )
+    }
+
+    private final class CancelledHealthSource: HealthDailyDataSourceProtocol {
+        func fetchHealthDaily(limit: Int) async throws -> HealthDailyResponse {
+            throw URLError(.cancelled)
+        }
+    }
+
+    private final class CancelledVdotSource: VDOTDataSourceProtocol {
+        func getVDOTs(limit: Int) async throws -> VDOTResponse {
+            throw URLError(.cancelled)
+        }
+    }
+
+    func test_planVM_cancelledWeeklyFetchAfterStatusSuccess_doesNotMarkLoaded() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.planStatusToReturn = makePlanStatus()
+        repository.fetchWeeklyPlanErrorToThrow = URLError(.cancelled)
+        let vm = App2PlanViewModel(
+            planRepository: repository,
+            workoutRepository: MockWorkoutRepository(),
+            targetRepository: nil
+        )
+
+        await vm.revalidate()
+
+        XCTAssertFalse(vm.hasLoaded, "plan status 成功後被取消＝部分取消，不算載過")
+        XCTAssertNil(vm.lastLoadedAt)
+    }
+
+    func test_planOverviewVM_cancelledChildLoad_doesNotPublishNorMarkLoaded() async {
+        let planRepo = MockTrainingPlanV2Repository()
+        planRepo.planStatusToReturn = makePlanStatus()
+        let targetRepo = MockTargetRepository()
+        targetRepo.errorToThrow = URLError(.cancelled)
+        let vm = App2PlanOverviewViewModel(
+            planRepository: planRepo,
+            targetRepository: targetRepo,
+            userProfileRepository: nil,
+            readinessViewModel: nil,
+            weeklyVolumesLoader: { [] }
+        )
+
+        await vm.revalidate()
+
+        XCTAssertNil(vm.overview, "子載入被取消＝整輪作廢，不得發布殘缺 overview")
+        XCTAssertFalse(vm.hasLoaded)
+    }
+
+    func test_periodSummary_cancelledPartialLoad_doesNotPublishNorMarkLoaded() async {
+        let card = App2PlanEndCard(
+            kind: .race, raceName: "測試賽", raceDate: "2026-12-06",
+            distanceLabel: nil, totalWeeks: 2, targetTime: nil,
+            estimatedFinish: nil, actualFinish: nil, narrative: nil
+        )
+        let vm = App2PeriodSummaryViewModel(
+            card: card,
+            planRepository: MockTrainingPlanV2Repository(),
+            workoutDataSource: ImmediateStatsSource(),
+            vdotDataSource: CancelledVdotSource()
+        )
+
+        await vm.revalidate()
+
+        XCTAssertNil(vm.summary, "stats 成功、vdots 被取消＝部分取消，不得發布")
+        XCTAssertFalse(vm.hasLoaded)
+    }
+
+    func test_volumeDetail_cancelledHealthLoad_doesNotPublishNorMarkLoaded() async {
+        let vm = App2VolumeDetailViewModel(
+            insight: App2Insight(id: "volume", label: "訓練量", value: nil, direction: .unknown, verdict: nil),
+            narrative: nil,
+            workoutDataSource: ImmediateStatsSource(),
+            healthDataSource: CancelledHealthSource(),
+            profileRepository: nil
+        )
+
+        await vm.revalidate()
+
+        XCTAssertNil(vm.detail, "stats 成功、health 被取消＝部分取消，不得發布")
+        XCTAssertFalse(vm.hasLoaded)
+    }
+
     func test_homeVM_cancelledPlanStatusDoesNotMarkLoaded() async {
         let repository = MockTrainingPlanV2Repository()
         repository.errorToThrow = URLError(.cancelled)

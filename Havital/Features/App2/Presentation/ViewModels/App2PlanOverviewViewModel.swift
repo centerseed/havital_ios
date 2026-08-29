@@ -49,6 +49,9 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
 
     private(set) var hasLoaded = false
     private(set) var lastLoadedAt: Date?
+    /// 這一輪的子載入是否吃到取消（-999 取消錯誤不設 `Task.isCancelled`）。
+    /// 有＝整輪作廢：不發布、不標載過（外審第七輪 E03）。
+    private var roundSawCancellation = false
 
     nonisolated let taskRegistry = TaskRegistry()
 
@@ -122,6 +125,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
 
     func revalidate() async {
         isLoading = !hasLoaded
+        roundSawCancellation = false
         var finishedRound = false
         defer {
             isLoading = false
@@ -154,7 +158,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
 
         // planStatus 與各子載入都以 `try?`／可缺席語意收攏——取消也會被折成 nil。
         // 被取消的那一輪不得發布殘缺 overview（AGENTS.md 陷阱 5；2026-08-29 外審）。
-        if Task.isCancelled { return }
+        if Task.isCancelled || roundSawCancellation { return }
         finishedRound = true
 
         stagesUnbound = stageBundle.isUnbound
@@ -218,7 +222,9 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
                 methodologyName: overview.methodologyOverview?.name
             )
         } catch {
-            if !error.isCancellationError {
+            if error.isCancellationError {
+                roundSawCancellation = true
+            } else {
                 Logger.debug("[App2PlanOverviewVM] overview 取得失敗: \(error)")
             }
             return StageBundle()
@@ -234,7 +240,9 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         do {
             methodologies = try await planRepository.getMethodologies(targetType: targetType)
         } catch {
-            if !error.isCancellationError {
+            if error.isCancellationError {
+                roundSawCancellation = true
+            } else {
                 Logger.debug("[App2PlanOverviewVM] 方法論清單取得失敗: \(error)")
                 methodologyError = error.toDomainError().localizedDescription
             }
@@ -282,7 +290,9 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         do {
             _ = try await targetRepository.getTargets()
         } catch {
-            if !error.isCancellationError {
+            if error.isCancellationError {
+                roundSawCancellation = true
+            } else {
                 Logger.debug("[App2PlanOverviewVM] targets 取得失敗,改讀既有快取: \(error)")
             }
         }
@@ -303,7 +313,9 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
             let user = try await userProfileRepository.getUserProfile()
             return (user.preferWeekDays, user.preferWeekDaysLongrun?.first)
         } catch {
-            if !error.isCancellationError {
+            if error.isCancellationError {
+                roundSawCancellation = true
+            } else {
                 Logger.debug("[App2PlanOverviewVM] 訓練日偏好取得失敗: \(error)")
             }
             return (nil, nil)

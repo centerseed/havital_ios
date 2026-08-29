@@ -74,6 +74,9 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     private(set) var hasLoaded = false
     private(set) var lastLoadedAt: Date?
+    /// 這一輪是否真的完成（成功或真失敗）。取消（含子載入的 -999）會把它收回 false。
+    /// 放實例層是因為 `loadHistoryWeek` 也要能收回它（部分取消，外審第七輪 D04）。
+    private var finishedRound = false
 
     /// 最近一次讀到的 plan status —— 歷史週的週起點與週次上限都從它推。
     private var latestPlanStatus: PlanStatusV2Response?
@@ -176,7 +179,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         // 冷啟第一輪：先把上一次的週課表渲染出來，這一輪的網路變成背景刷新。
         if !hasLoaded { hydrateFromCache() }
         isLoading = !hasLoaded && week == nil
-        var finishedRound = false
+        finishedRound = false
         defer {
             isLoading = false
             // 成功或**真失敗**才算載過；取消不標——task 取消與 -999 取消錯誤
@@ -231,7 +234,9 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         } catch {
             // 取消不是失敗（`AGENTS.md` 陷阱 2）：下拉刷新的 task 被收掉時
             // in-flight 請求會回 -999，當成失敗會把真課表換成樣本。
-            guard !error.isCancellationError else { return }
+            // plan status 成功後才被取消（fetchWeeklyPlan 等後續）＝部分取消：
+            // 一樣不算載過，把先前樂觀設下的旗標收回（外審第七輪 D04）。
+            guard !error.isCancellationError else { finishedRound = false; return }
             finishedRound = true
             Logger.debug("[App2PlanVM] 週課表取得失敗,退樣本: \(error)")
             guard week == nil else { return }       // SWR：重驗失敗時保留舊資料
@@ -386,7 +391,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             )
             await applyHistory(plan: plan, planStatus: status, week: target)
         } catch {
-            guard !error.isCancellationError else { return }
+            guard !error.isCancellationError else { finishedRound = false; return }
             Logger.debug("[App2PlanVM] 歷史第 \(target) 週無課表: \(error)")
             week = nil
             dayDetails = [:]

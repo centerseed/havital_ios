@@ -125,11 +125,17 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
                 days: 30,
                 weeks: range.weeksParameter()
             )
-            // 訓練負荷與目標線各自可缺席：任一條掛掉只是少那一塊，不是整頁失敗。
-            let health = try? await healthDataSource.fetchHealthDaily(limit: Self.loadWindowDays)
+            // 訓練負荷與目標線各自可缺席：**真失敗**只是少那一塊；取消（含 -999
+            // 取消錯誤，Task.isCancelled 可能是 false）＝整輪作廢不發布（外審 E03）。
+            let health: HealthDailyResponse?
+            do {
+                health = try await healthDataSource.fetchHealthDaily(limit: Self.loadWindowDays)
+            } catch {
+                guard !error.isCancellationError else { return }
+                health = nil
+            }
             let targetKm = await targetWeeklyKm()
 
-            // `try?` 把取消折成 nil——被取消的那一輪不得發布（AGENTS.md 陷阱 5；外審 E03）。
             if Task.isCancelled { return }
 
             let bars = App2MetricDetailProjection.bars(stats.data.weeklySeries ?? [])
