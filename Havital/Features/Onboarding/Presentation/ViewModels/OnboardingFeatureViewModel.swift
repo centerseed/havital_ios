@@ -196,8 +196,11 @@ final class OnboardingFeatureViewModel: ObservableObject {
     }
 
     /// 目標配速
-    var targetPace: String {
-        let totalSeconds = targetHours * 3600 + targetMinutes * 60
+    var targetPace: String { targetPace(extraSeconds: 0) }
+
+    /// 含殘餘秒數的目標配速（App2 三欄時間輪；1.x 走上面的無秒版本）。
+    func targetPace(extraSeconds: Int) -> String {
+        let totalSeconds = targetHours * 3600 + targetMinutes * 60 + extraSeconds
         let distanceKm = Double(selectedDistance) ?? 42.195
         let paceSeconds = Int(Double(totalSeconds) / distanceKm)
         let paceMinutes = paceSeconds / 60
@@ -904,20 +907,23 @@ final class OnboardingFeatureViewModel: ObservableObject {
     }
 
     /// 建立或更新主要賽事目標
-    func createRaceTarget() async -> Bool {
+    /// `extraSeconds`：時／分之外的殘餘秒數（App2 onboarding 的三欄時間輪；
+    /// 1.x 只有時／分兩欄，預設 0 行為不變）。目標時間的持久化只有這一條路徑，
+    /// 秒不在這裡進位就會被丟掉（2026-08-29 外審 E03）。
+    func createRaceTarget(extraSeconds: Int = 0) async -> Bool {
         isLoading = true
         self.error = nil
 
         do {
-            if let selectedTargetId = selectedTargetKey, hasSelectedTargetBeenModified() {
+            if let selectedTargetId = selectedTargetKey, hasSelectedTargetBeenModified(extraSeconds: extraSeconds) {
                 // 更新已選擇的目標
                 let updatedTarget = Target(
                     id: selectedTargetId,
                     type: "race_run",
                     name: raceName.isEmpty ? NSLocalizedString("onboarding.my_training_goal", comment: "My Training Goal") : raceName,
                     distanceKm: Int(Double(selectedDistance) ?? 42.195),
-                    targetTime: targetHours * 3600 + targetMinutes * 60,
-                    targetPace: targetPace,
+                    targetTime: targetHours * 3600 + targetMinutes * 60 + extraSeconds,
+                    targetPace: targetPace(extraSeconds: extraSeconds),
                     raceDate: Int(raceDate.timeIntervalSince1970),
                     isMainRace: true,
                     trainingWeeks: trainingWeeks,
@@ -932,8 +938,8 @@ final class OnboardingFeatureViewModel: ObservableObject {
                     type: "race_run",
                     name: raceName.isEmpty ? NSLocalizedString("onboarding.my_training_goal", comment: "My Training Goal") : raceName,
                     distanceKm: Int(Double(selectedDistance) ?? 42.195),
-                    targetTime: targetHours * 3600 + targetMinutes * 60,
-                    targetPace: targetPace,
+                    targetTime: targetHours * 3600 + targetMinutes * 60 + extraSeconds,
+                    targetPace: targetPace(extraSeconds: extraSeconds),
                     raceDate: Int(raceDate.timeIntervalSince1970),
                     isMainRace: true,
                     trainingWeeks: trainingWeeks,
@@ -1205,7 +1211,7 @@ final class OnboardingFeatureViewModel: ObservableObject {
         )
     }
 
-    private func hasSelectedTargetBeenModified() -> Bool {
+    private func hasSelectedTargetBeenModified(extraSeconds: Int = 0) -> Bool {
         guard let selectedTargetId = selectedTargetKey else { return false }
         guard let selectedTarget = availableTargets.first(where: { $0.id == selectedTargetId }) else {
             // 找不到原始 target 無法比較，視為已修改以觸發 UPDATE 而非靜默跳過
@@ -1214,7 +1220,7 @@ final class OnboardingFeatureViewModel: ObservableObject {
 
         let nameChanged = raceName != selectedTarget.name
         let distanceChanged = Int(Double(selectedDistance) ?? 42.195) != selectedTarget.distanceKm
-        let timeChanged = (targetHours * 3600 + targetMinutes * 60) != selectedTarget.targetTime
+        let timeChanged = (targetHours * 3600 + targetMinutes * 60 + extraSeconds) != selectedTarget.targetTime
         let dateChanged = Int(raceDate.timeIntervalSince1970) != selectedTarget.raceDate
 
         return nameChanged || distanceChanged || timeChanged || dateChanged

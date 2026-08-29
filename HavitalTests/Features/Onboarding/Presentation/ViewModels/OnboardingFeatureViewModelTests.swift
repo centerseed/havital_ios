@@ -286,6 +286,40 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
         }
     }
 
+    /// App2 三欄時間輪的「秒」必須進到持久化的 targetTime（2026-08-29 外審 E03：
+    /// 之前只組時＋分，殘餘秒被丟掉）。
+    func testCreateRaceTarget_PersistsExtraSeconds() async {
+        sut.raceName = "秒數測試"
+        sut.raceDate = Date().addingTimeInterval(86400 * 60)
+        sut.selectedDistance = "21.0975"
+        sut.targetHours = 1
+        sut.targetMinutes = 59
+        sut.selectedTargetKey = nil
+
+        let result = await sut.createRaceTarget(extraSeconds: 30)
+
+        XCTAssertTrue(result)
+        XCTAssertEqual(mockTargetRepository.lastCreatedTarget?.targetTime, 1 * 3600 + 59 * 60 + 30)
+    }
+
+    /// 只改了秒數的既有目標也要觸發 UPDATE（timeChanged 的比較要含秒）。
+    func testCreateRaceTarget_SecondsOnlyChangeUpdatesExistingTarget() async {
+        let existing = Target(
+            id: "t1", type: "race_run", name: "既有賽事", distanceKm: 21,
+            targetTime: 1 * 3600 + 59 * 60, targetPace: "5:39",
+            raceDate: Int(Date().addingTimeInterval(86400 * 60).timeIntervalSince1970),
+            isMainRace: true, trainingWeeks: 8, raceId: nil
+        )
+        sut.availableTargets = [existing]
+        sut.selectTarget(existing)
+
+        let result = await sut.createRaceTarget(extraSeconds: 30)
+
+        XCTAssertTrue(result)
+        XCTAssertEqual(mockTargetRepository.updateTargetCallCount, 1)
+        XCTAssertEqual(mockTargetRepository.lastUpdatedTarget?.targetTime, 1 * 3600 + 59 * 60 + 30)
+    }
+
     // MARK: - Race Setup Tests
 
     func testClearSelectedRace_ReturnsToManualInputWhileKeepingAutofilledValues() {

@@ -203,16 +203,9 @@ final class App2OnboardingViewModel: ObservableObject {
         isBusy = true
         defer { isBusy = false }
 
-        // 秒併進分（既有 Target 只吃 targetTime 總秒數，`createRaceTarget` 由時＋分組出來，
-        // 這裡把秒補進去，避免第二條建立路徑）。
-        if raceTargetSeconds > 0 {
-            let total = flow.targetHours * 3600 + flow.targetMinutes * 60 + raceTargetSeconds
-            flow.targetHours = total / 3600
-            flow.targetMinutes = (total % 3600) / 60
-            raceTargetSeconds = total % 60
-        }
-
-        guard await flow.createRaceTarget() else {
+        // 秒直接交給既有的建立路徑（`createRaceTarget(extraSeconds:)`），不在這裡摺疊——
+        // 之前把秒折進時／分再留餘數，餘數在 targetTime 組裝時被丟掉（2026-08-29 外審 E03）。
+        guard await flow.createRaceTarget(extraSeconds: raceTargetSeconds) else {
             errorMessage = flow.error
             return
         }

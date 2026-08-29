@@ -133,14 +133,25 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
             // 月比要看到「上個月」，所以取回的筆數比清單顯示的多。
             // `/v2/workouts/stats` 只給滾動視窗（days）與 YTD，沒有日曆月的分桶，
             // 月量與月比在 client 端從同一批紀錄算，不新增端點。
-            let page = try? await workoutDataSource.fetchWorkoutsPage(
-                pageSize: Self.aggregationPageSize, cursor: nil
-            )
-            let rows = page?.workouts ?? []
-            nextCursor = page?.pagination.nextCursor
-            backendHasMore = page?.pagination.hasMore ?? false
-            if !rows.isEmpty { snapshots.save(rows, for: .recentWorkouts) }
-            apply(stats: stats, rows: rows)
+            do {
+                let page = try await workoutDataSource.fetchWorkoutsPage(
+                    pageSize: Self.aggregationPageSize, cursor: nil
+                )
+                nextCursor = page.pagination.nextCursor
+                backendHasMore = page.pagination.hasMore
+                if !page.workouts.isEmpty { snapshots.save(page.workouts, for: .recentWorkouts) }
+                apply(stats: stats, rows: page.workouts)
+            } catch {
+                // 清單失敗但 stats 成功：**保留既有清單**（SWR），只更新統計。
+                // 之前 `try?` 把失敗折成空清單再當 live 發布——畫面宣稱「沒有紀錄」，
+                // 其實是「沒取到」（2026-08-29 外審 D04/D07）。
+                guard !error.isCancellationError else { return }
+                Logger.debug("[App2RecordsVM] workouts page 取得失敗，保留既有清單: \(error)")
+                // 一筆舊資料都沒有就沒東西可保留 —— 交給外層的整體失敗路徑
+                //（stub ＋ offline 徽章），不畫一個假的空清單。
+                guard !rows.isEmpty else { throw error }
+                apply(stats: stats, rows: rows)
+            }
         } catch {
             // 取消不是失敗（`AGENTS.md` 陷阱 2）—— 下拉刷新的 task 被收掉時
             // in-flight 請求會回 -999。

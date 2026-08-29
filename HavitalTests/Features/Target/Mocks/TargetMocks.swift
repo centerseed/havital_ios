@@ -8,6 +8,8 @@ import Foundation
 
 // MARK: - MockTargetRepository
 class MockTargetRepository: TargetRepository {
+    var lastCreatedTarget: Target?
+    var lastUpdatedTarget: Target?
     var targetsToReturn: [Target] = []
     var forceRefreshTargetsToReturn: [Target]?
     var targetToReturn: Target?
@@ -47,12 +49,14 @@ class MockTargetRepository: TargetRepository {
     func createTarget(_ target: Target) async throws -> Target {
         createTargetCallCount += 1
         if let error = errorToThrow { throw error }
+        lastCreatedTarget = target
         return target
     }
     
     func updateTarget(id: String, target: Target) async throws -> Target {
         updateTargetCallCount += 1
         if let error = errorToThrow { throw error }
+        lastUpdatedTarget = target
         return target
     }
     

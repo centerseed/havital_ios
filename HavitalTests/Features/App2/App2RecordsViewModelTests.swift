@@ -73,7 +73,10 @@ final class App2RecordsViewModelTests: XCTestCase {
         var olderPages: [String: [WorkoutV2]] = [:]
         var nextCursorAfterFirstPage: String?
 
+        var pageError: Error?
+
         func fetchWorkoutsPage(pageSize: Int?, cursor: String?) async throws -> WorkoutListResponse {
+            if let pageError { throw pageError }
             let pageWorkouts = cursor.map { olderPages[$0] ?? [] } ?? workouts
             let next = cursor == nil ? nextCursorAfterFirstPage : nil
             return WorkoutListResponse(
@@ -401,6 +404,38 @@ final class App2RecordsViewModelTests: XCTestCase {
         await vm.loadMore()
         XCTAssertEqual(vm.items.count, 25)
         XCTAssertFalse(vm.canLoadMore)
+    }
+
+    /// 清單分頁失敗、stats 成功：**保留上一輪的清單**，不得發布空 live 清單
+    /// （2026-08-29 外審 D04/D07：「沒有紀錄」與「沒取到」是兩回事）。
+    func test_revalidate_pageFailureKeepsPreviousRows() async throws {
+        let source = FakeStatsSource()
+        source.workouts = [run(id: "w1", at: dayOfThisMonth(2), km: 5)]
+        let vm = makeViewModel(source)
+
+        await vm.loadIfNeeded()
+        XCTAssertEqual(vm.items.count, 1)
+
+        source.pageError = URLError(.timedOut)
+        await vm.forceRefresh()
+
+        XCTAssertEqual(vm.items.count, 1, "分頁失敗後既有清單必須保留")
+        XCTAssertEqual(vm.items.first?.id, "w1")
+        let records = try XCTUnwrap(vm.records)
+        XCTAssertFalse(records.origin.isStub, "已有真資料時不得退樣本")
+    }
+
+    /// 冷啟（沒有任何舊清單）就遇到分頁失敗：走整體失敗路徑退樣本＋offline 徽章，
+    /// 不畫一個看起來像「這個人沒跑過步」的空 live 清單。
+    func test_revalidate_pageFailureWithNoPriorRowsFallsBackToStub() async throws {
+        let source = FakeStatsSource()
+        source.pageError = URLError(.timedOut)
+        let vm = makeViewModel(source)
+
+        await vm.loadIfNeeded()
+
+        let records = try XCTUnwrap(vm.records)
+        XCTAssertTrue(records.origin.isStub)
     }
 
     func test_loadIfNeeded_withinStaleWindow_doesNotRefetch() async {
