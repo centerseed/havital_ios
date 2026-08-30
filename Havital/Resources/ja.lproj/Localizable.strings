@@ -4789,6 +4789,15 @@
 "app2.weekly_review.apply_to_next_week" = "%d 件を来週の計画に反映";
 "app2.weekly_review.apply_to_week" = "%1$d件を第%2$d週のプランに適用";
 "app2.weekly_review.applied" = "来週の計画に反映しました";
+"app2.weekly_review.generate_plan" = "第%d週のプランを作成";
+"app2.weekly_review.apply_and_generate_plan" = "%1$d件を適用して第%2$d週のプランを作成";
+"app2.weekly_review.generate_plan_without_applying" = "調整を適用せず第%d週のプランを作成";
+"app2.weekly_review.generating_plan" = "プランを作成中…";
+"app2.weekly_review.plan_generated" = "プランを作成しました";
+"app2.weekly_review.generate_plan_failed" = "プランを作成できませんでした";
+"app2.weekly_review.generate_plan_failed_body" = "うまくいきませんでした。もう一度お試しください。";
+"app2.weekly_review.continue_to_plan" = "次へ：来週の計画";
+"app2.weekly_review.continue_to_plan_week" = "次へ：第%d週の計画";
 "app2.weekly_review.not_generated_body" = "この週のレビューはまだ作成されていません。";
 "app2.weekly_review.history_not_generated_body" = "この週のレビューは作成されていません。";
 "app2.weekly_review.generate" = "週次レビューを作成";

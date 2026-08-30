@@ -2361,6 +2361,24 @@ extension L10n {
             static let applyToWeek = "app2.weekly_review.apply_to_week"
             static let applied = "app2.weekly_review.applied"
 
+            // 「產生目標週課表」——修復前這一頁沒有這個出口，訓練流程斷在這裡（P0）。
+            /// `產生第 %d 週課表`
+            static let generatePlan = "app2.weekly_review.generate_plan"
+            /// `套用 %1$d 項並產生第 %2$d 週課表`
+            static let applyAndGeneratePlan = "app2.weekly_review.apply_and_generate_plan"
+            /// 有建議項但一項都沒選：`不套用調整，直接產生第 %d 週課表`
+            static let generatePlanWithoutApplying = "app2.weekly_review.generate_plan_without_applying"
+            static let generatingPlan = "app2.weekly_review.generating_plan"
+            static let planGenerated = "app2.weekly_review.plan_generated"
+            /// 產生失敗的 alert 標題（目標週可能是本週也可能是下週，所以不共用
+            /// `app2.plan.generate_failed`——那句寫死了「本週」）。
+            static let generatePlanFailed = "app2.weekly_review.generate_plan_failed"
+            static let generatePlanFailedBody = "app2.weekly_review.generate_plan_failed_body"
+            /// 回顧分頁底部的前進入口。
+            static let continueToPlan = "app2.weekly_review.continue_to_plan"
+            /// 非本週：`下一步：規劃第 %d 週`
+            static let continueToPlanWeek = "app2.weekly_review.continue_to_plan_week"
+
             static let notGeneratedBody = "app2.weekly_review.not_generated_body"
             /// 歷史週唯讀回看且那一週沒有回顧（2026-08-27 走查裁決（q））。
             static let historyNotGeneratedBody = "app2.weekly_review.history_not_generated_body"

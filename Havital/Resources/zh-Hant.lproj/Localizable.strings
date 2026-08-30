@@ -4833,6 +4833,15 @@
 "app2.weekly_review.apply_to_next_week" = "套用 %d 項到下週課表";
 "app2.weekly_review.apply_to_week" = "套用 %1$d 項到第 %2$d 週課表";
 "app2.weekly_review.applied" = "已套用到下週課表";
+"app2.weekly_review.generate_plan" = "產生第 %d 週課表";
+"app2.weekly_review.apply_and_generate_plan" = "套用 %1$d 項並產生第 %2$d 週課表";
+"app2.weekly_review.generate_plan_without_applying" = "不套用調整，直接產生第 %d 週課表";
+"app2.weekly_review.generating_plan" = "課表產生中…";
+"app2.weekly_review.plan_generated" = "課表已產生";
+"app2.weekly_review.generate_plan_failed" = "產生課表失敗";
+"app2.weekly_review.generate_plan_failed_body" = "這次沒有產生成功，請再試一次。";
+"app2.weekly_review.continue_to_plan" = "下一步：規劃下週";
+"app2.weekly_review.continue_to_plan_week" = "下一步：規劃第 %d 週";
 "app2.weekly_review.not_generated_body" = "這一週的回顧還沒產生。";
 "app2.weekly_review.history_not_generated_body" = "這一週沒有產生過回顧。";
 "app2.weekly_review.generate" = "產生週回顧";

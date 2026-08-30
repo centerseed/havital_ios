@@ -1,0 +1,226 @@
+import XCTest
+@testable import paceriz_dev
+
+/// 「規劃下週」的產生入口判準（P0：修復前這一頁根本沒有產生課表的出口，
+/// 使用者走完週回顧就卡死）。
+///
+/// 這一組釘住的是 `App2WeeklyReviewViewModel.nextWeekAction` —— 什麼時候該出現
+/// 「產生第 N 週課表」、什麼時候只能「套用」、什麼時候一個出口都不給。判準全部
+/// 來自後端 `build_plan_status`（`domains/plan_week/service.py`）的既有欄位，
+/// 這裡不重寫一份週次推算；與課表頁的 `App2PlanViewModel
+/// .requiresWeeklyReviewBeforeGenerate` 讀的是同一組 `next_action` 事實。
+final class App2WeeklyReviewNextWeekActionTests: XCTestCase {
+
+    // MARK: - Helpers
+
+    private func status(
+        currentWeek: Int,
+        totalWeeks: Int = 22,
+        nextAction: String,
+        currentWeekPlanId: String? = nil,
+        nextWeekInfo: NextWeekInfoV2? = nil
+    ) -> PlanStatusV2Response {
+        PlanStatusV2Response(
+            currentWeek: currentWeek,
+            totalWeeks: totalWeeks,
+            nextAction: nextAction,
+            canGenerateNextWeek: nextWeekInfo != nil,
+            currentWeekPlanId: currentWeekPlanId,
+            previousWeekSummaryId: nil,
+            targetType: "race",
+            methodologyId: "paceriz",
+            nextWeekInfo: nextWeekInfo,
+            metadata: nil
+        )
+    }
+
+    private func nextWeek(
+        _ weekNumber: Int,
+        hasPlan: Bool = false,
+        requiresCurrentWeekSummary: Bool? = false
+    ) -> NextWeekInfoV2 {
+        NextWeekInfoV2(
+            weekNumber: weekNumber,
+            hasPlan: hasPlan,
+            canGenerate: !hasPlan,
+            requiresCurrentWeekSummary: requiresCurrentWeekSummary,
+            nextAction: nil
+        )
+    }
+
+    private func action(
+        reviewWeek: Int,
+        status: PlanStatusV2Response?,
+        hasSuggestions: Bool = true,
+        isReadOnly: Bool = false
+    ) -> App2WeeklyReviewViewModel.NextWeekAction {
+        App2WeeklyReviewViewModel.nextWeekAction(
+            reviewWeek: reviewWeek,
+            planStatus: status,
+            hasSuggestions: hasSuggestions,
+            isReadOnly: isReadOnly
+        )
+    }
+
+    // MARK: - 週日流程：回顧本週 → 產生下週
+
+    /// 週日流程是這次 P0 的主線：使用者回顧第 5 週，要能在同一頁產生第 6 週課表。
+    /// 後端只在使用者時區的週日給 `next_week_info`，所以它在就代表視窗開著。
+    func testSundayFlowGeneratesNextWeek() {
+        let result = action(
+            reviewWeek: 5,
+            status: status(
+                currentWeek: 5,
+                nextAction: "view_plan",
+                currentWeekPlanId: "ov_5",
+                nextWeekInfo: nextWeek(6)
+            )
+        )
+        XCTAssertEqual(result, .generate(week: 6))
+    }
+
+    /// 下週已經有課表了 —— `can_generate == false`。再產一次不是這顆鈕的語意，
+    /// 這時只留「套用」。
+    func testNextWeekAlreadyHasPlanFallsBackToApply() {
+        let result = action(
+            reviewWeek: 5,
+            status: status(
+                currentWeek: 5,
+                nextAction: "view_plan",
+                currentWeekPlanId: "ov_5",
+                nextWeekInfo: nextWeek(6, hasPlan: true)
+            )
+        )
+        XCTAssertEqual(result, .applyOnly)
+    }
+
+    /// 平日：後端不給 `next_week_info`（產生視窗未開）。**不得畫一顆按下去必然
+    /// 失敗的產生鈕**（同走查裁決（k）的精神、AC-TRAIN-HUB-06）。
+    func testGenerationWindowClosedFallsBackToApply() {
+        let result = action(
+            reviewWeek: 5,
+            status: status(
+                currentWeek: 5,
+                nextAction: "view_plan",
+                currentWeekPlanId: "ov_5",
+                nextWeekInfo: nil
+            )
+        )
+        XCTAssertEqual(result, .applyOnly)
+    }
+
+    // MARK: - 平日流程：回顧上週 → 產生本週
+
+    /// 平日 CTA 開的是**上週**回顧（`current_week − 1`），所以它的「規劃下週」
+    /// 分頁目標是**本週**。回顧補完後 `next_action` 從 `create_summary` 變
+    /// `create_plan`，本週課表就該能在這一頁直接產出來。
+    func testWeekdayFlowGeneratesCurrentWeek() {
+        let result = action(
+            reviewWeek: 4,
+            status: status(currentWeek: 5, nextAction: "create_plan", currentWeekPlanId: nil)
+        )
+        XCTAssertEqual(result, .generate(week: 5))
+    }
+
+    /// 上週回顧仍缺（`create_summary`）時本週課表產不出來 —— 後端會擋。
+    func testCurrentWeekBlockedByMissingSummaryFallsBackToApply() {
+        let result = action(
+            reviewWeek: 4,
+            status: status(currentWeek: 5, nextAction: "create_summary", currentWeekPlanId: nil)
+        )
+        XCTAssertEqual(result, .applyOnly)
+    }
+
+    /// 本週已經有課表了。
+    func testCurrentWeekAlreadyGeneratedFallsBackToApply() {
+        let result = action(
+            reviewWeek: 4,
+            status: status(currentWeek: 5, nextAction: "view_plan", currentWeekPlanId: "ov_5")
+        )
+        XCTAssertEqual(result, .applyOnly)
+    }
+
+    /// 計畫已走完 —— 沒有下一週可產。
+    func testTrainingCompletedFallsBackToApply() {
+        let result = action(
+            reviewWeek: 21,
+            status: status(currentWeek: 22, nextAction: "training_completed", currentWeekPlanId: nil)
+        )
+        XCTAssertEqual(result, .applyOnly)
+    }
+
+    // MARK: - 沒有出口的情形
+
+    /// 歷史週唯讀回看（走查裁決（q））：產生課表是寫入路徑，一個出口都不給。
+    /// 連建議項都不能套用 —— 過去那一週的建議套到下週是錯的時間軸。
+    func testReadOnlyHasNoAction() {
+        XCTAssertEqual(
+            action(
+                reviewWeek: 5,
+                status: status(
+                    currentWeek: 5,
+                    nextAction: "view_plan",
+                    currentWeekPlanId: "ov_5",
+                    nextWeekInfo: nextWeek(6)
+                ),
+                isReadOnly: true
+            ),
+            .none
+        )
+    }
+
+    /// 不能產生、又沒有建議項 —— 整條 footer 不出現，不畫空按鈕。
+    func testNoSuggestionsAndCannotGenerateHasNoAction() {
+        XCTAssertEqual(
+            action(
+                reviewWeek: 5,
+                status: status(
+                    currentWeek: 5,
+                    nextAction: "view_plan",
+                    currentWeekPlanId: "ov_5",
+                    nextWeekInfo: nil
+                ),
+                hasSuggestions: false
+            ),
+            .none
+        )
+    }
+
+    /// **沒有建議項但可以產生 —— 還是要給產生鈕。** 修復前的 footer 被
+    /// `!suggestions.isEmpty` 守著，後端沒給建議項時整頁零出口，這是本次 P0
+    /// 的第二個致死點。
+    func testNoSuggestionsStillGeneratesWhenWindowOpen() {
+        let result = action(
+            reviewWeek: 5,
+            status: status(
+                currentWeek: 5,
+                nextAction: "view_plan",
+                currentWeekPlanId: "ov_5",
+                nextWeekInfo: nextWeek(6)
+            ),
+            hasSuggestions: false
+        )
+        XCTAssertEqual(result, .generate(week: 6))
+    }
+
+    /// plan status 還沒回來：不知道能不能產生，就不宣稱能產生。
+    func testMissingPlanStatusFallsBackToApply() {
+        XCTAssertEqual(action(reviewWeek: 5, status: nil), .applyOnly)
+        XCTAssertEqual(action(reviewWeek: 5, status: nil, hasSuggestions: false), .none)
+    }
+
+    /// `next_week_info.week_number` 與這一頁的目標週對不上時不產生 —— 產錯週比
+    /// 不產更糟。
+    func testMismatchedNextWeekNumberFallsBackToApply() {
+        let result = action(
+            reviewWeek: 5,
+            status: status(
+                currentWeek: 5,
+                nextAction: "view_plan",
+                currentWeekPlanId: "ov_5",
+                nextWeekInfo: nextWeek(9)
+            )
+        )
+        XCTAssertEqual(result, .applyOnly)
+    }
+}

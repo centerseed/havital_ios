@@ -76,7 +76,9 @@ struct App2WeeklyReviewView: View {
         onClose: @escaping () -> Void,
         onApplied: (() -> Void)? = nil
     ) {
-        _viewModel = StateObject(wrappedValue: App2WeeklyReviewViewModel(weekOfPlan: weekOfPlan))
+        _viewModel = StateObject(
+            wrappedValue: App2WeeklyReviewViewModel(weekOfPlan: weekOfPlan, isReadOnly: isReadOnly)
+        )
         self.weekOfPlan = weekOfPlan
         self.isReadOnly = isReadOnly
         self.isCurrentWeek = isCurrentWeek
@@ -102,11 +104,10 @@ struct App2WeeklyReviewView: View {
 
             content
 
-            // 「套用到下週課表」只在規劃分頁出現 —— 回顧分頁沒有可套用的東西。
-            // 歷史週唯讀回看也沒有（裁決（q））。
-            if !isReadOnly, tab == .plan, let projection = viewModel.projection,
-               !projection.suggestions.isEmpty {
-                applyFooter
+            // 主 CTA 只在規劃分頁出現 —— 回顧分頁沒有可套用／可產生的東西。
+            // 形態由 `nextWeekAction` 決定（唯讀與「沒有出口」時整條不出現）。
+            if tab == .plan, viewModel.projection != nil {
+                planFooter
             }
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
@@ -149,6 +150,19 @@ struct App2WeeklyReviewView: View {
             Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
         } message: {
             Text(L10n.App2.WeeklyReview.upsellBody.localized)
+        }
+        // 產生課表失敗可重試（CTA 仍在，狀態沒有被改掉）。
+        .alert(
+            L10n.App2.WeeklyReview.generatePlanFailed.localized,
+            isPresented: Binding(
+                get: { viewModel.generateError != nil },
+                set: { if !$0 { viewModel.generateError = nil } }
+            ),
+            presenting: viewModel.generateError
+        ) { _ in
+            Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
+        } message: { message in
+            Text(message)
         }
     }
 
@@ -308,6 +322,9 @@ struct App2WeeklyReviewView: View {
                 .accessibilityIdentifier("App2_WeeklyReviewAnalysis")
             }
         }
+        // 回顧的最後一件事是「所以下週怎麼跑」——這裡不給出口，使用者就停在這裡。
+        continueToPlanButton
+            .padding(.top, 4)
     }
 
     private func storyCard(_ projection: App2WeeklyReviewProjection) -> some View {
@@ -600,31 +617,111 @@ struct App2WeeklyReviewView: View {
         }
     }
 
-    private var applyFooter: some View {
-        VStack(spacing: 0) {
-            primaryButton(
-                title: isCurrentWeek
-                    ? String(
-                        format: L10n.App2.WeeklyReview.applyToNextWeek.localized,
-                        viewModel.selectedCount
-                    )
-                    : String(
-                        format: L10n.App2.WeeklyReview.applyToWeek.localized,
-                        viewModel.selectedCount,
-                        weekOfPlan + 1
-                    ),
-                isBusy: viewModel.isApplying,
-                identifier: "App2_WeeklyReviewApply"
-            ) {
-                Task {
-                    if await viewModel.applySelected() { onApplied?() }
+    /// 規劃分頁的主 CTA。**修復前這裡只有「套用」**，於是回顧走完沒有任何地方能
+    /// 產生課表 —— 訓練流程在這一頁斷掉（P0）。
+    ///
+    /// 三態，由 `App2WeeklyReviewViewModel.nextWeekAction` 分流，不在 view 自己再判
+    /// 一次：能產生就產生（順帶把採納項送出去）、不能產生就只留套用、兩者都不成立
+    /// 時整條不出現（不畫一顆按下去必然失敗的鈕，同走查裁決（k）的精神）。
+    @ViewBuilder
+    private var planFooter: some View {
+        switch viewModel.nextWeekAction {
+        case .generate(let week):
+            footerContainer {
+                primaryButton(
+                    title: generateTitle(week: week),
+                    isBusy: viewModel.isGeneratingPlan || viewModel.isApplying,
+                    identifier: "App2_WeeklyReviewGeneratePlan"
+                ) {
+                    Task {
+                        if await viewModel.applyAndGenerate() { onApplied?() }
+                    }
                 }
             }
+        case .applyOnly:
+            footerContainer {
+                primaryButton(
+                    title: isCurrentWeek
+                        ? String(
+                            format: L10n.App2.WeeklyReview.applyToNextWeek.localized,
+                            viewModel.selectedCount
+                        )
+                        : String(
+                            format: L10n.App2.WeeklyReview.applyToWeek.localized,
+                            viewModel.selectedCount,
+                            weekOfPlan + 1
+                        ),
+                    isBusy: viewModel.isApplying,
+                    identifier: "App2_WeeklyReviewApply"
+                ) {
+                    Task {
+                        if await viewModel.applySelected() { onApplied?() }
+                    }
+                }
+            }
+        case .none:
+            EmptyView()
         }
-        .padding(.horizontal, App2Theme.pagePadding)
-        .padding(.top, 11)
-        .padding(.bottom, 24)
-        .background(App2Theme.pageBottom.ignoresSafeArea(edges: .bottom))
+    }
+
+    /// 產生鈕的文字。三句話對應三種語意（沿用 1.4 `generateButtonText` 的分法）：
+    /// 沒有建議項可選、選了 N 項要一起套用、有建議項但一項都沒選。
+    private func generateTitle(week: Int) -> String {
+        if viewModel.isGeneratingPlan {
+            return L10n.App2.WeeklyReview.generatingPlan.localized
+        }
+        let hasSuggestions = !(viewModel.projection?.suggestions.isEmpty ?? true)
+        if !hasSuggestions {
+            return String(format: L10n.App2.WeeklyReview.generatePlan.localized, week)
+        }
+        if viewModel.selectedCount > 0 {
+            return String(
+                format: L10n.App2.WeeklyReview.applyAndGeneratePlan.localized,
+                viewModel.selectedCount,
+                week
+            )
+        }
+        return String(format: L10n.App2.WeeklyReview.generatePlanWithoutApplying.localized, week)
+    }
+
+    private func footerContainer<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        VStack(spacing: 0) { content() }
+            .padding(.horizontal, App2Theme.pagePadding)
+            .padding(.top, 11)
+            .padding(.bottom, 24)
+            .background(App2Theme.pageBottom.ignoresSafeArea(edges: .bottom))
+    }
+
+    /// 回顧分頁底部的前進入口（使用者實機回報：看完回顧沒有下一步）。
+    ///
+    /// 頂部的分段切換器是「切分頁」，不是「下一步」—— 使用者捲到回顧最底下時它已經
+    /// 不在視野內。1.4 的同一頁一直有這顆（`v2.summary.continue_to_plan_button`），
+    /// App2 漏接。**只切分頁，不是寫入路徑**，所以唯讀回看也給。
+    private var continueToPlanButton: some View {
+        HStack(spacing: 7) {
+            Text(
+                isCurrentWeek
+                    ? L10n.App2.WeeklyReview.continueToPlan.localized
+                    : String(format: L10n.App2.WeeklyReview.continueToPlanWeek.localized, weekOfPlan + 1)
+            )
+            .font(.system(size: 16, weight: .heavy))
+            Image(systemName: "arrow.right")
+                .font(.system(size: 14, weight: .black))
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 15, style: .continuous)
+                .fill(App2Theme.accentBlue)
+        )
+        .shadow(color: App2Theme.accentBlue.opacity(0.6), radius: 11, x: 0, y: 10)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.2)) { tab = .plan }
+        }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("App2_WeeklyReviewContinueToPlan")
     }
 
     private func primaryButton(

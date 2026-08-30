@@ -4792,6 +4792,15 @@
 "app2.weekly_review.apply_to_next_week" = "Apply %d to next week";
 "app2.weekly_review.apply_to_week" = "Apply %1$d to week %2$d";
 "app2.weekly_review.applied" = "Applied to next week's plan";
+"app2.weekly_review.generate_plan" = "Generate week %d plan";
+"app2.weekly_review.apply_and_generate_plan" = "Apply %1$d and generate week %2$d plan";
+"app2.weekly_review.generate_plan_without_applying" = "Generate week %d plan without applying";
+"app2.weekly_review.generating_plan" = "Generating plan…";
+"app2.weekly_review.plan_generated" = "Plan generated";
+"app2.weekly_review.generate_plan_failed" = "Could not generate the plan";
+"app2.weekly_review.generate_plan_failed_body" = "That didn't go through. Please try again.";
+"app2.weekly_review.continue_to_plan" = "Next: plan next week";
+"app2.weekly_review.continue_to_plan_week" = "Next: plan week %d";
 "app2.weekly_review.not_generated_body" = "This week's review hasn't been generated yet.";
 "app2.weekly_review.history_not_generated_body" = "No review was generated for this week.";
 "app2.weekly_review.generate" = "Generate Weekly Review";
