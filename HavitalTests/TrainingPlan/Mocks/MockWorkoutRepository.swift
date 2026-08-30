@@ -14,6 +14,8 @@ class MockWorkoutRepository: WorkoutRepository {
     // MARK: - Test Data
 
     var workoutsToReturn: [WorkoutV2] = []
+    /// `getWorkoutDetail` / `refreshWorkoutDetail` 要回的那一份。nil ＝ 照舊丟 notFound。
+    var detailToReturn: WorkoutV2Detail?
     var errorToThrow: Error?
 
     // MARK: - Call Tracking
@@ -39,8 +41,15 @@ class MockWorkoutRepository: WorkoutRepository {
     }
 
     var workoutsDidRefresh: AnyPublisher<Void, Never> { Empty().eraseToAnyPublisher() }
-    /// Track B 背景刷新完成的回寫（F5）。這個 mock 不模擬背景刷新，所以恆空。
-    var workoutDetailDidRefresh: AnyPublisher<WorkoutV2Detail, Never> { Empty().eraseToAnyPublisher() }
+    /// Track B 背景刷新完成的回寫（F5）。**測試可以自己推一次**——
+    /// `emitDetailRefresh(_:)`。沒人推就等於恆空，既有使用這個 mock 的測試不受影響。
+    private let detailRefreshSubject = PassthroughSubject<WorkoutV2Detail, Never>()
+    var workoutDetailDidRefresh: AnyPublisher<WorkoutV2Detail, Never> {
+        detailRefreshSubject.eraseToAnyPublisher()
+    }
+
+    /// 從外面推一次 Track B 背景刷新（模擬 repository 把刷回來的那一份交出去）。
+    func emitDetailRefresh(_ detail: WorkoutV2Detail) { detailRefreshSubject.send(detail) }
     var workoutsPaginationDidUpdate: AnyPublisher<PaginationInfo, Never> { Empty().eraseToAnyPublisher() }
     func getCachedPagination() -> PaginationInfo? { nil }
 
@@ -176,15 +185,20 @@ class MockWorkoutRepository: WorkoutRepository {
         if let error = errorToThrow {
             throw error
         }
-        // Return a mock detail - in real tests, you'd configure this
-        throw DomainError.notFound("Mock not implemented")
+        guard let detailToReturn else {
+            throw DomainError.notFound("Mock not implemented")
+        }
+        return detailToReturn
     }
 
     func refreshWorkoutDetail(id: String) async throws -> WorkoutV2Detail {
         if let error = errorToThrow {
             throw error
         }
-        throw DomainError.notFound("Mock not implemented")
+        guard let detailToReturn else {
+            throw DomainError.notFound("Mock not implemented")
+        }
+        return detailToReturn
     }
 
     func clearWorkoutDetailCache(id: String) async {
