@@ -1,3 +1,4 @@
+import SwiftUI
 import XCTest
 @testable import paceriz_dev
 
@@ -106,6 +107,103 @@ final class App2WeeklyReviewGeneratingTests: XCTestCase {
                 isLoading: viewModel.isLoading
             )
         )
+    }
+
+    // MARK: - 真的畫出來了嗎（render 層，外審 E02／E11）
+
+    /// **這一支才是「動畫元件被畫出來」的證明。** 上面那幾支驗的是判準的值；判準對、
+    /// 但 view 的那一支接錯或被刪掉，它們照樣綠。所以這裡實際 host
+    /// `App2WeeklyReviewView`（走它自己的 `@StateObject` VM → DI 的 repository，
+    /// 不是測試自己捏的 VM），在請求還在飛的那一刻把畫面畫成點陣圖來看。
+    ///
+    /// RED 驗證（2026-08-31 實跑）：把 `content` 那一支換回裸 `ProgressView()`，
+    /// 中段主色像素從數千掉到 0，這支測試失敗；換回 `App2GeneratingView` 才綠。
+    func test_whileLoading_actuallyRendersTheGeneratingComponent() async throws {
+        repository.weeklySummaryV2ToReturn = Self.summary()
+        // view 內部自己 resolve repository，所以要從 DI 餵進去，不能只注入 VM。
+        DependencyContainer.shared.register(
+            repository as TrainingPlanV2Repository,
+            forProtocol: TrainingPlanV2Repository.self
+        )
+
+        // 讓 GET 停在半空中，畫面才會維持在等待態夠久給我們檢查。
+        let inFlight = expectation(description: "GET in flight")
+        repository.onGetWeeklySummary = {
+            inFlight.fulfill()
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+        }
+
+        let host = UIHostingController(
+            rootView: App2WeeklyReviewView(weekOfPlan: 1, isCurrentWeek: true, onClose: {})
+        )
+        // 掛進 window：離屏的 hosting controller 不保證會跑完整的 layout／draw。
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        window.rootViewController = host
+        window.makeKeyAndVisible()
+        host.view.layoutIfNeeded()
+
+        await fulfillment(of: [inFlight], timeout: 5)
+        // 讓 SwiftUI 把等待態那一幀 commit 出來。
+        for _ in 0..<10 {
+            RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+            host.view.layoutIfNeeded()
+        }
+
+        let blue = Self.accentBluePixelCount(in: Self.render(host))
+        XCTAssertGreaterThan(
+            blue, 500,
+            "生成中的內容區必須畫出 App2GeneratingView（跑鞋＋進度條，主色 #1890FF）；"
+                + "裸 ProgressView 是灰的，藍色像素只會有零星幾點。實測到 \(blue) 點"
+        )
+
+        window.isHidden = true
+    }
+
+    /// 把 host 的畫面真的畫成點陣圖（同 `App2RenderingTests` 的做法）。
+    private static func render(_ host: UIHostingController<some View>) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: host.view.bounds.size)
+        return renderer.image { _ in
+            host.view.drawHierarchy(in: host.view.bounds, afterScreenUpdates: true)
+        }
+    }
+
+    /// 畫面中段（動畫所在的區域）有多少點是 app2 主色 `#1890FF`。
+    ///
+    /// **為什麼用像素而不是 accessibility identifier**：在 unit test 的 hosting controller 上
+    /// SwiftUI 根本沒有建 accessibility 樹（實測收集到的 identifier 是空陣列，連頁首標題的
+    /// 都沒有），所以那條路查不到任何東西。主色是這個元件與裸 `ProgressView`（系統灰）
+    /// 之間看得出來的差別，而且它正是「動畫有沒有被畫出來」的直接證據。
+    private static func accentBluePixelCount(in image: UIImage) -> Int {
+        guard let cgImage = image.cgImage else { return 0 }
+        let width = cgImage.width
+        let height = cgImage.height
+        // 只看中段：頁首與分頁切換器不在範圍內，避免它們的顏色混進來。
+        let top = height / 3
+        let bottom = height * 2 / 3
+        var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        guard let context = CGContext(
+            data: &pixels,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: width * 4,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else { return 0 }
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        var count = 0
+        for y in top..<bottom {
+            for x in 0..<width {
+                let offset = (y * width + x) * 4
+                let red = Int(pixels[offset])
+                let green = Int(pixels[offset + 1])
+                let blue = Int(pixels[offset + 2])
+                // #1890FF 附近：藍很高、紅很低、綠居中。
+                if blue > 200, red < 90, green > 110, green < 190 { count += 1 }
+            }
+        }
+        return count
     }
 
     // MARK: - 文案
