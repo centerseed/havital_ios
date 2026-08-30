@@ -102,10 +102,16 @@ final class App2SettingsLabelTests: XCTestCase {
         )
     }
 
-    func test_compactStateLabel_activeIncludesPlanNameAndRenewingState() {
+    /// 膠囊**只寫狀態**（8/28 盤點 V27，裁決 h）：卡片標題就在它左邊寫著
+    /// 「Paceriz Premium」，膠囊再寫一次方案名會把整條 header 撐到換行。
+    /// 方案名改在卡片第二行「下次續訂 {日期} · {價格}/年」與方案頁上。
+    func test_compactStateLabel_activeIsStateOnlyWithoutPlanName() {
         let label = SubscriptionStatusEntity.compactStateLabel(for: status(.active, planType: "yearly"))
-        XCTAssertTrue(label.contains(NSLocalizedString("profile.subscription.plan.yearly", comment: "")), label)
-        XCTAssertTrue(label.contains(NSLocalizedString("app2.settings.subscription_active", comment: "")), label)
+        XCTAssertEqual(label, NSLocalizedString("app2.settings.subscription_active", comment: ""))
+        XCTAssertFalse(
+            label.contains(NSLocalizedString("profile.subscription.plan.yearly", comment: "")),
+            label
+        )
     }
 
     func test_compactStateLabel_nilStatusIsFreeNotEmpty() {

@@ -874,7 +874,7 @@ final class App2HomeProjectionTests: XCTestCase {
     func test_segments_intervalDay_listsWorkAndRecovery() throws {
         let segments = App2HomeViewModel.segments(day: try day(intervalDay))
         XCTAssertEqual(segments.count, 2)
-        XCTAssertEqual(segments.first?.detail, "6 × 200m @ 5:25")
+        XCTAssertEqual(segments.first?.detail, "6 × 200m · 5:25/km")
         XCTAssertTrue(segments.first?.isWork ?? false)
         XCTAssertFalse(segments.last?.isWork ?? true)
     }
@@ -901,9 +901,9 @@ final class App2HomeProjectionTests: XCTestCase {
         let segments = App2HomeViewModel.segments(day: try day(qualityDay))
         XCTAssertEqual(segments.count, 5)
         XCTAssertEqual(segments.map(\.isWork), [false, true, true, false, false])
-        XCTAssertEqual(segments[1].detail, "3.0 km @ 7:55")
-        XCTAssertEqual(segments[2].detail, "6 × 200m @ 5:25")
-        XCTAssertEqual(segments[4].detail, "1.0 km @ 7:55")
+        XCTAssertEqual(segments[1].detail, "3.0 km · 7:55/km")
+        XCTAssertEqual(segments[2].detail, "6 × 200m · 5:25/km")
+        XCTAssertEqual(segments[4].detail, "1.0 km · 7:55/km")
     }
 
     /// 回歸：**只有衝刺的 repeat 算「趟」**。`6 × 200m` 的課要畫 6 根橘柱，

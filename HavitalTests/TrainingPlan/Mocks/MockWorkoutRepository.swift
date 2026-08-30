@@ -39,6 +39,8 @@ class MockWorkoutRepository: WorkoutRepository {
     }
 
     var workoutsDidRefresh: AnyPublisher<Void, Never> { Empty().eraseToAnyPublisher() }
+    /// Track B 背景刷新完成的回寫（F5）。這個 mock 不模擬背景刷新，所以恆空。
+    var workoutDetailDidRefresh: AnyPublisher<WorkoutV2Detail, Never> { Empty().eraseToAnyPublisher() }
     var workoutsPaginationDidUpdate: AnyPublisher<PaginationInfo, Never> { Empty().eraseToAnyPublisher() }
     func getCachedPagination() -> PaginationInfo? { nil }
 

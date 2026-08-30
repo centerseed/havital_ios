@@ -263,9 +263,11 @@ final class App2WorkoutDetailProjectionTests: XCTestCase {
                 marathon: 5, threshold: 3, recovery: 12, interval: 0, anaerobic: 0, easy: 68
             )
         )
+        // chip 是「Z 編號 ＋ 區名」（8/28 盤點 D18，frame-02f）——只寫區名的話
+        // 用戶對不回自己設定頁那六條區間。
         XCTAssertEqual(
             App2WorkoutDetailProjection.dominantZoneLabel(zones),
-            NSLocalizedString("workout.detail.aerobic_zone", comment: "")
+            "Z2 " + NSLocalizedString("workout.detail.aerobic_zone", comment: "")
         )
     }
 

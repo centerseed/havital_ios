@@ -168,7 +168,7 @@ final class App2SessionDetailProjectionTests: XCTestCase {
 
         let sprint = try XCTUnwrap(rows.first { $0.repeatsLabel != nil })
         XCTAssertEqual(sprint.repeatsLabel, "× 4")
-        XCTAssertEqual(sprint.detail, "400m @ 4:50")
+        XCTAssertEqual(sprint.detail, "400m · 4:50/km")
         XCTAssertNotNil(sprint.note, "組間恢復掛在衝刺列的附註，不另開一列")
 
         XCTAssertFalse(rows[0].isWork, "熱身不是主課")
