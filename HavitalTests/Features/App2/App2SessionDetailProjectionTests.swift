@@ -462,6 +462,35 @@ final class App2SessionDetailProjectionTests: XCTestCase {
         XCTAssertNotNil(detail.paceBand)
     }
 
+    /// **間歇課有配速，「預計配速」卡就要出現**（8/28 盤點 F16）。
+    ///
+    /// 間歇的柱子照設計 frame-02 一根都不寫配速（細柱寫不下、暖身緩和不進標註列），
+    /// 於是舊判準「圖上有沒有 `paceLabel`」把整堂 4×400m @ 4:50 判成「沒有配速」，
+    /// 整張「預計配速」卡與 hero 的「配速變化 N 段」格一起消失（兩台實拍）。
+    /// 判準必須是資料面的 `hasPace`。
+    func test_detail_intervalDay_hasPaceData_evenWhenNoBarCarriesLabel() throws {
+        let detail = try XCTUnwrap(try detail(intervalOnlyDay))
+
+        XCTAssertTrue(
+            detail.structureBars.allSatisfy { $0.paceLabel == nil },
+            "frame-02 的間歇柱本來就不標配速——這是前提，不是缺陷"
+        )
+        XCTAssertNil(detail.paceBand, "多段課不畫配速帶")
+        XCTAssertTrue(detail.hasPaceData, "4×400m @ 4:50 是有配速的課，卡不得消失")
+    }
+
+    /// 反面：間歇課整天沒有任何配速就照舊不畫（修 F16 不得把裁決（j）翻掉）。
+    func test_detail_intervalDayWithoutAnyPace_hasNoPaceData() throws {
+        let json = """
+        { "day_index": 3, "day_target": "間歇", "reason": "速耐力",
+          "primary": { "run_type": "interval", "distance_km": 2.2,
+            "interval": { "repeats": 4, "work_distance_m": 400,
+                          "recovery_distance_m": 200 } } }
+        """
+        let detail = try XCTUnwrap(try detail(json))
+        XCTAssertFalse(detail.hasPaceData)
+    }
+
     // MARK: - 力量訓練（2026-08-27 晚走查裁決（d））
 
     /// 跑步日掛的 `supplementary[]` 肌力內容必須進投影 —— 裁決前整段被丟掉。

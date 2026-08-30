@@ -870,15 +870,23 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             width: Double,
             pace: String? = nil,
             noteLabel: String? = nil,
-            noteDetail: String? = nil
+            noteDetail: String? = nil,
+            // 這一段的處方有沒有配速（8/28 盤點 F16）。預設跟著 `pace` 走——寫在塊上的
+            // 一定有；寫不下的（間歇細柱、暖身／緩和矮塊）由呼叫端明講。
+            hasPace: Bool? = nil
         ) {
             bars.append(.init(
                 id: bars.count, kind: kind, height: height, widthWeight: width, paceLabel: pace,
-                noteLabel: noteLabel, noteDetail: noteDetail
+                noteLabel: noteLabel, noteDetail: noteDetail,
+                hasPace: hasPace ?? (pace != nil)
             ))
         }
 
-        if day.session?.warmup != nil { append(.warmup, height: 0.35, width: 1) }
+        // 暖身／緩和：塊上不標配速（矮塊寫不下，而且設計 frame-02 的標註列只列主課段），
+        // 但**這一段是有配速的**——那個事實要留下來，否則整堂間歇課會被判成「沒有配速」。
+        if let warmup = day.session?.warmup {
+            append(.warmup, height: 0.35, width: 1, hasPace: (warmup.pace ?? warmup.basePace) != nil)
+        }
 
         if case .run(let run) = day.session?.primary {
             let runSegments = App2PlanViewModel.effectiveSegments(run)
@@ -899,6 +907,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                     // 太多趟就不畫滿，畫面上那格只有幾十 pt 寬。
                     let drawn = min(repeats, 10)
                     let detail = segment.work.flatMap(effortLabel(effort:))
+                    // 衝刺趟的配速在標註列（`10 × 200m · 4:50/km`），細柱上寫不下；
+                    // 有 work 配速就記在 `hasPace` 上（8/28 盤點 F16）。
+                    let workHasPace = (segment.work?.pace ?? segment.work?.basePace) != nil
                     for index in 0..<drawn {
                         append(
                             .interval, height: 1.0, width: 1,
@@ -906,7 +917,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                             noteLabel: index == 0 ? L10n.App2.Home.structureNoteInterval.localized : nil,
                             noteDetail: index == 0
                                 ? detail.map { repeats > 1 ? "\(repeats) × \($0)" : $0 }
-                                : nil
+                                : nil,
+                            hasPace: workHasPace
                         )
                         if index < drawn - 1 { append(.support, height: 0.3, width: 0.6) }
                     }
@@ -924,7 +936,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             append(.steady, height: 0.6, width: 4)
         }
 
-        if day.session?.cooldown != nil { append(.warmup, height: 0.35, width: 1) }
+        if let cooldown = day.session?.cooldown {
+            append(.warmup, height: 0.35, width: 1, hasPace: (cooldown.pace ?? cooldown.basePace) != nil)
+        }
 
         return bars
     }

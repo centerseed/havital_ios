@@ -271,9 +271,12 @@ struct App2SessionDetail: Identifiable, Equatable {
     /// 輕鬆跑／恢復跑的 payload 常常整天沒有 `pace`（後端不開處方配速），
     /// 那時「預計配速」卡畫出來是一張沒有任何數字的圖 —— 整張卡不出現，
     /// 版面自然收攏。**不畫「—」、不補樣板字、不在 app 端推算配速。**
+    /// 判準是「這一天的處方有沒有配速」（`hasPace`），**不是「圖上寫了配速沒有」**
+    /// （`paceLabel`）——後者只有寬到寫得下的塊才有，間歇課整張圖一個都沒有
+    /// （8/28 盤點 F16）。
     var hasPaceData: Bool {
         if paceBand != nil { return true }
-        return structureBars.contains { $0.paceLabel != nil }
+        return structureBars.contains { $0.hasPace }
     }
 }
 
@@ -424,6 +427,14 @@ struct App2SessionStructureBar: Identifiable, Equatable {
     var noteLabel: String? = nil
     /// 段落標註列右側的量（`4.0 km · 7:17/km`）。
     var noteDetail: String? = nil
+    /// 這一段的處方**有配速**（8/28 盤點 F16）。
+    ///
+    /// 與 `paceLabel` 分開：`paceLabel` 是「寬到寫得下、所以寫在塊上」的那個字，只有寬塊有；
+    /// 這一欄講的是資料面「這一段有沒有配速可講」。間歇的衝刺趟與暖身／緩和都有配速，
+    /// 但照設計 frame-02 都不把配速寫在塊上（細柱寫不下，暖身／緩和不進標註列），
+    /// 於是整張圖沒有任何 `paceLabel` —— `hasPaceData` 因此把整堂間歇課判成「沒有配速」，
+    /// 「預計配速」卡與 hero 的「配速變化 N 段」格一起消失（8/28 全畫面盤點兩台實拍到）。
+    var hasPace: Bool = false
 
     var isWork: Bool { kind == .steady || kind == .interval }
 }
