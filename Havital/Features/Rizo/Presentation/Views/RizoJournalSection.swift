@@ -250,6 +250,7 @@ private final class _PreviewRizoRepo: RizoRepository {
 private final class _PreviewWorkoutRepo: WorkoutRepository {
     func updateSubjectiveInputs(id: String, presets: [String], note: String?) async throws {}
     var workoutsDidRefresh: AnyPublisher<Void, Never> { Empty().eraseToAnyPublisher() }
+    var workoutDetailDidRefresh: AnyPublisher<WorkoutV2Detail, Never> { Empty().eraseToAnyPublisher() }
     var workoutsPaginationDidUpdate: AnyPublisher<PaginationInfo, Never> { Empty().eraseToAnyPublisher() }
     var workoutsDidUpdateNotification: Notification.Name { .workoutsDidUpdate }
     func getCachedPagination() -> PaginationInfo? { nil }

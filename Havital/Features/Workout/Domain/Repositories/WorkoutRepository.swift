@@ -14,6 +14,13 @@ protocol WorkoutRepository {
 
     /// 分頁狀態更新訊號：任何一次伺服器抓頁（初次/刷新/背景/載入更多）都會帶出後端真實 has_more。
     /// ViewModel 訂閱後同步 hasMoreData，避免依賴本地猜測。
+    /// Track B 背景刷新完成、拿回一份**比畫面上那一份新**的訓練詳情（8/28 盤點 F5）。
+    ///
+    /// `getWorkoutDetail` 是 cache-first：24 小時內的快取直接回，同時丟一個背景刷新。
+    /// 沒有這條出口時，那次刷新只會寫進快取，畫面停在舊的那一份直到快取過期
+    /// ——重跑同一堂課、重新上傳、裁剪之後看到的都還是舊數字。
+    var workoutDetailDidRefresh: AnyPublisher<WorkoutV2Detail, Never> { get }
+
     var workoutsPaginationDidUpdate: AnyPublisher<PaginationInfo, Never> { get }
 
     /// 讀取緩存的分頁狀態（與列表緩存平行存放），供 Track A 立即取得正確 has_more。

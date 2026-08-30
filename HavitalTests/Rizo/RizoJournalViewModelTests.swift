@@ -340,6 +340,7 @@ private final class MockWorkoutRepoForJournal: WorkoutRepository {
 
     // MARK: Unused protocol surface (本測試只用 updateSubjectiveInputs)
     var workoutsDidRefresh: AnyPublisher<Void, Never> { Empty().eraseToAnyPublisher() }
+    var workoutDetailDidRefresh: AnyPublisher<WorkoutV2Detail, Never> { Empty().eraseToAnyPublisher() }
     var workoutsPaginationDidUpdate: AnyPublisher<PaginationInfo, Never> { Empty().eraseToAnyPublisher() }
     var workoutsDidUpdateNotification: Notification.Name { .workoutsDidUpdate }
     func getCachedPagination() -> PaginationInfo? { nil }

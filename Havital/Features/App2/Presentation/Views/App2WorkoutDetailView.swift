@@ -41,6 +41,8 @@ struct App2WorkoutDetailView: View {
     @State private var resultMessage: String?
     /// Rizo 教練分析預設截斷（設計 frame-02f 的「展開完整分析 ∨」）。
     @State private var isCoachAnalysisExpanded = false
+    /// 「分享成果」開的分享卡（8/28 盤點 F20，Android 早有這顆）。
+    @State private var shareRecapPayload: WorkoutRecapPayload?
 
     enum Panel: String, Identifiable {
         case vdotInclusion
@@ -99,6 +101,46 @@ struct App2WorkoutDetailView: View {
         .animation(.easeOut(duration: 0.22), value: activePanel)
     }
 
+    // MARK: - 分享成果（8/28 盤點 F20）
+
+    /// 底部「分享成果」——**與 Android 同一顆**（`App2WorkoutDetailScreen.ShareButton`），
+    /// iOS App2 詳情頁原本整顆缺席。
+    ///
+    /// **不造第二套分享**：開的是既有的 `WorkoutRecapView`（1.4 詳情頁分享選單裡的
+    /// 「分享訓練成果」同一張卡），內容與 canvas 也是既有的
+    /// `WorkoutRecapContent.make` ／ `ShareCardCanvasDataBuilder.build`。
+    private var shareButton: some View {
+        Text(L10n.Workout.shareCard.localized)
+            .font(.system(size: 16, weight: .black))
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 15)
+            .background(
+                RoundedRectangle(cornerRadius: App2Theme.listCardCornerRadius, style: .continuous)
+                    .fill(App2Theme.accentBlue)
+            )
+            .contentShape(Rectangle())
+            .onTapGesture {
+                // detail 的 timeSeries／routeData 疊回 list workout，canvas 才畫得出
+                // 配速曲線與路線（1.4 同一條 `mergeDetail`）。
+                let merged = viewModel.workoutDetail.map {
+                    WorkoutRecapPayload.mergeDetail($0, onto: viewModel.workout)
+                } ?? viewModel.workout
+                shareRecapPayload = WorkoutRecapPayload(
+                    content: WorkoutRecapContent.make(
+                        from: viewModel.workout,
+                        isPremium: SubscriptionStateManager.shared.hasPremiumAccess,
+                        aiAnalysisOverride: viewModel.workoutDetail?.aiSummary?.analysis,
+                        rpeOverride: viewModel.currentRPE,
+                        shareCardContentOverride: viewModel.workoutDetail?.shareCardContent
+                    ),
+                    canvasData: ShareCardCanvasDataBuilder.build(from: merged)
+                )
+            }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityIdentifier("App2_WorkoutDetailShare")
+    }
+
     @ViewBuilder
     private func panel(_ panel: Panel) -> some View {
         switch panel {
@@ -149,6 +191,7 @@ struct App2WorkoutDetailView: View {
                     section(L10n.App2.WorkoutDetail.recordSection.localized) {
                         recordActions(projection)
                     }
+                    shareButton
                 }
                 .padding(.horizontal, App2Theme.pagePadding)
                 .padding(.vertical, 14)
@@ -158,6 +201,13 @@ struct App2WorkoutDetailView: View {
         .task { await viewModel.loadWorkoutDetail() }
         .task { await profileViewModel.loadUserProfile() }
         .refreshable { await viewModel.refreshWorkoutDetail() }
+        .sheet(item: $shareRecapPayload) { payload in
+            WorkoutRecapView(
+                content: payload.content,
+                canvasData: payload.canvasData,
+                showConfetti: false
+            )
+        }
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
             case .treadmillCorrection:

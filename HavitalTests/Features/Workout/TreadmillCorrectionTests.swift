@@ -336,6 +336,58 @@ final class TreadmillCorrectionTests: XCTestCase {
         XCTAssertTrue(cachedDetail?.isTreadmillCorrected == true, "Cached detail should reflect the correction")
     }
 
+    // MARK: - 5. Track B 背景刷新回寫（8/28 盤點 F5）
+
+    /// `getWorkoutDetail` 命中快取時丟出的那次背景刷新，**要把刷回來的那一份交出去**。
+    ///
+    /// 這是 F5 的行為：沒有這條出口時，Track B 只把新的詳情寫進快取，畫面停在剛剛那份
+    /// 24 小時內的舊快取上——重跑同一堂課、重新上傳、裁剪之後看到的都還是舊數字，
+    /// 要等快取過期（最多一天）才會變。
+    func testGetWorkoutDetail_CacheHit_BackgroundRefreshPublishesFreshDetail() async throws {
+        let mockRemote = MockWorkoutRemoteDataSourceForCorrection()
+        let localDS = WorkoutLocalDataSource()
+        let sut = WorkoutRepositoryImpl(
+            remoteDataSource: mockRemote,
+            localDataSource: localDS
+        )
+
+        let id = "workout_track_b_test"
+        // 快取裡是舊的那一份（沒有 correction）。
+        localDS.saveWorkoutDetail(makeWorkoutV2Detail(id: id, correction: nil))
+        // 後端那一份已經被修正過。
+        mockRemote.detailToReturn = makeWorkoutV2Detail(
+            id: id,
+            correction: TreadmillCorrection(
+                type: "treadmill", source: "user_treadmill_correction",
+                actualDistanceM: 5000, avgInclinePercent: nil,
+                originalDistanceM: nil, originalAvgPaceSPerKm: nil, originalDynamicVdot: nil,
+                correctedAvgPaceSPerKm: nil, correctedDynamicVdot: nil,
+                notes: nil, appliedAt: nil
+            )
+        )
+
+        let published = expectation(description: "workoutDetailDidRefresh fires with the fresh detail")
+        var received: WorkoutV2Detail?
+        var cancellables = Set<AnyCancellable>()
+        sut.workoutDetailDidRefresh
+            .sink { detail in
+                received = detail
+                published.fulfill()
+            }
+            .store(in: &cancellables)
+
+        // 命中快取 → 立刻回舊的那一份，同時丟 Track B。
+        let cached = try await sut.getWorkoutDetail(id: id)
+        XCTAssertFalse(cached.isTreadmillCorrected, "Track A should return the stale cached detail")
+
+        await fulfillment(of: [published], timeout: 5)
+        XCTAssertEqual(received?.id, id)
+        XCTAssertTrue(
+            received?.isTreadmillCorrected == true,
+            "Track B must hand out the refreshed detail — writing it to the cache alone leaves the screen stale"
+        )
+    }
+
     // MARK: - Helpers
 
     private func makeDetail(correction: TreadmillCorrection?) -> WorkoutV2Detail {
@@ -392,10 +444,20 @@ final class TreadmillCorrectionTests: XCTestCase {
 
 // MARK: - Mock for Repository test
 
-/// Minimal subclass of WorkoutRemoteDataSource to override only applyTreadmillCorrection
+/// Minimal subclass of WorkoutRemoteDataSource — overrides only the two calls these tests drive
+/// (`applyTreadmillCorrection` 與 Track B 的 `fetchWorkoutDetail`)。
 private final class MockWorkoutRemoteDataSourceForCorrection: WorkoutRemoteDataSource {
     var correctionResultToReturn: WorkoutV2Detail?
     var correctionError: Error?
+    /// Track B 背景刷新會拿到的那一份（8/28 盤點 F5）。
+    var detailToReturn: WorkoutV2Detail?
+
+    override func fetchWorkoutDetail(id: String) async throws -> WorkoutV2Detail {
+        guard let detail = detailToReturn else {
+            throw DomainError.notFound("Mock detail not configured")
+        }
+        return detail
+    }
 
     override func applyTreadmillCorrection(
         id: String,

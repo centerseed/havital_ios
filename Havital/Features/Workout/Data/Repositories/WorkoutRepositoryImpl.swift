@@ -33,11 +33,17 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
     // MARK: - Background Refresh Publisher
 
     private let refreshSubject = PassthroughSubject<Void, Never>()
+    /// Track B 背景刷新拿回來的那一份訓練詳情（8/28 盤點 F5）。
+    private let detailRefreshSubject = PassthroughSubject<WorkoutV2Detail, Never>()
     var workoutsDidRefresh: AnyPublisher<Void, Never> {
         refreshSubject.eraseToAnyPublisher()
     }
 
     private let paginationSubject = PassthroughSubject<PaginationInfo, Never>()
+    var workoutDetailDidRefresh: AnyPublisher<WorkoutV2Detail, Never> {
+        detailRefreshSubject.eraseToAnyPublisher()
+    }
+
     var workoutsPaginationDidUpdate: AnyPublisher<PaginationInfo, Never> {
         paginationSubject.eraseToAnyPublisher()
     }
@@ -632,7 +638,15 @@ final class WorkoutRepositoryImpl: WorkoutRepository {
         await backgroundRefresh(
             taskName: "訓練詳情",
             fetch: { try await self.remoteDataSource.fetchWorkoutDetail(id: id) },
-            save: { detail in self.localDataSource.saveWorkoutDetail(detail) }
+            save: { detail in
+                self.localDataSource.saveWorkoutDetail(detail)
+                // 8/28 盤點 F5：Track B 原本只把新的詳情寫進快取就結束，畫面停在
+                // 剛剛那份 24 小時內的舊快取上 —— 使用者看到的是「重跑一次還是舊的」。
+                // 這裡把刷回來的那一份**交出去**；訂閱端（`WorkoutDetailViewModelV2`）
+                // 收到才回寫畫面。Repository 仍然是被動的：它只發自己這一份資料，
+                // 不碰 `CacheEventBus`（`.claude/rules/architecture.md` 的既有規則）。
+                self.detailRefreshSubject.send(detail)
+            }
         )
     }
 }

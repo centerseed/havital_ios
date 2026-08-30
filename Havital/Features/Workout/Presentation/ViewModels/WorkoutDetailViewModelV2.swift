@@ -86,6 +86,9 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
 
     let taskRegistry = TaskRegistry()
 
+    /// Combine 訂閱（Track B 回寫）。
+    private var cancellables = Set<AnyCancellable>()
+
     // MARK: - Initialization
 
     /// ✅ Clean Architecture: 建構子注入 Repository Protocol（不依賴 Singleton）
@@ -113,7 +116,30 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             self.achievementRepository = container.resolve()
         }
 
+        observeBackgroundDetailRefresh()
+
         Logger.debug("[WorkoutDetailViewModelV2] 初始化完成 - workout: \(workout.id)")
+    }
+
+    /// Track B 背景刷新完成 → **回寫畫面**（8/28 盤點 F5，2026-08-30 使用者裁決「要」）。
+    ///
+    /// `getWorkoutDetail` 是 cache-first：24 小時內的快取直接回，同時丟一個背景刷新。
+    /// 那次刷新原本只寫進快取，於是重跑同一堂課、重新上傳、裁剪之後，詳情頁上的數字
+    /// 要等快取過期（最多一天）才會變。
+    ///
+    /// **只在已經有畫面內容時回寫**：`state` 還在 loading／error 時由那條主路徑決定
+    /// 要顯示什麼，背景那一份不搶著把畫面切成 loaded（否則錯誤畫面會被默默蓋掉）。
+    /// 只認這一筆 workout 的詳情——同一個 repository 是 app 範圍的單例。
+    private func observeBackgroundDetailRefresh() {
+        repository.workoutDetailDidRefresh
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] detail in
+                guard let self, detail.id == self.workout.id, self.state.hasData else { return }
+                self.processTimeSeriesData(from: detail)
+                self.state = .loaded(detail)
+                Logger.debug("[WorkoutDetailViewModelV2] Track B 刷新回寫畫面 - \(detail.id)")
+            }
+            .store(in: &cancellables)
     }
 
     /// 便利初始化器（使用 DI Container 解析依賴）
