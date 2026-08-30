@@ -74,6 +74,40 @@ final class WorkoutDetailBackgroundRefreshTests: XCTestCase {
         XCTAssertTrue(viewModel.cadences.isEmpty, "新的一份沒有步頻 → 舊步頻不得留著")
     }
 
+    /// **主路徑還沒載完就回來的那一份不得被丟掉**（外審 D04／E03／E11）。
+    ///
+    /// repository 是一拿到快取就立刻丟 Track B，那一次刷新很可能比主路徑先回來。
+    /// 舊版的 observer 要求 `state.hasData`，於是那一份被靜靜丟掉——而且**不會有第二次
+    /// 事件**，畫面就停在剛剛那份 24 小時內的舊快取上，正是 F5 要修掉的症狀。
+    func testRefreshArrivingBeforeInitialLoadIsAppliedAfterwards() async {
+        let repository = MockWorkoutRepository()
+        repository.detailToReturn = Self.detail(
+            id: "workout-race",
+            heartRates: [150, 160, 170],
+            cadences: [180, 182, 184]
+        )
+
+        let viewModel = WorkoutDetailViewModelV2(
+            workout: Self.workout(id: "workout-race"),
+            repository: repository
+        )
+
+        // 主路徑都還沒開始，Track B 就回來了（後端那一份沒有步頻）。
+        repository.emitDetailRefresh(
+            Self.detail(id: "workout-race", heartRates: [90, 92, 94], cadences: nil)
+        )
+        await Self.settle()
+
+        await viewModel.loadWorkoutDetail()
+        await Self.settle()
+
+        XCTAssertEqual(
+            viewModel.heartRates.map(\.value), [90, 92, 94],
+            "載完之後要補上那一份背景刷新，不是留著舊快取"
+        )
+        XCTAssertTrue(viewModel.cadences.isEmpty, "補套用時同樣是整份換掉")
+    }
+
     /// 只認這一筆 workout 的刷新（repository 是 app 範圍的單例）。
     func testBackgroundRefreshForAnotherWorkoutIsIgnored() async {
         let repository = MockWorkoutRepository()

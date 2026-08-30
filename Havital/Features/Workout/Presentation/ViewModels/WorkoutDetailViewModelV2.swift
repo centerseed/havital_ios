@@ -92,6 +92,10 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     /// Combine 訂閱（Track B 回寫）。
     private var cancellables = Set<AnyCancellable>()
 
+    /// 主路徑還沒把 `state` 切成 `.loaded` 之前就收到的那一份 Track B 刷新。
+    /// 載完之後補套用（見 `observeBackgroundDetailRefresh`）。
+    private var pendingRefreshedDetail: WorkoutV2Detail?
+
     // MARK: - Initialization
 
     /// ✅ Clean Architecture: 建構子注入 Repository Protocol（不依賴 Singleton）
@@ -133,16 +137,42 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     /// **只在已經有畫面內容時回寫**：`state` 還在 loading／error 時由那條主路徑決定
     /// 要顯示什麼，背景那一份不搶著把畫面切成 loaded（否則錯誤畫面會被默默蓋掉）。
     /// 只認這一筆 workout 的詳情——同一個 repository 是 app 範圍的單例。
+    ///
+    /// **還沒有畫面內容的那一份要留著，不是丟掉**（外審 D04／E03／E11）：repository 是
+    /// 一拿到快取就立刻丟 Track B（`WorkoutRepositoryImpl.getWorkoutDetail`），那一次刷新
+    /// 很可能在主路徑把 `state` 切成 `.loaded` 之前就回來了。丟掉它＝畫面停在剛剛那份
+    /// 24 小時內的舊快取，而且**不會再有第二次事件**——那正是 F5 要修掉的症狀，只是換成
+    /// 時序造成的。存進 `pendingRefreshedDetail`，主路徑載完就套用。
     private func observeBackgroundDetailRefresh() {
         repository.workoutDetailDidRefresh
             .receive(on: DispatchQueue.main)
             .sink { [weak self] detail in
-                guard let self, detail.id == self.workout.id, self.state.hasData else { return }
+                guard let self, detail.id == self.workout.id else { return }
+                guard self.state.hasData else {
+                    self.pendingRefreshedDetail = detail
+                    Logger.debug("[WorkoutDetailViewModelV2] Track B 早於主路徑，先留著 - \(detail.id)")
+                    return
+                }
                 self.applyDerivedSeries(from: detail)
                 self.state = .loaded(detail)
                 Logger.debug("[WorkoutDetailViewModelV2] Track B 刷新回寫畫面 - \(detail.id)")
             }
             .store(in: &cancellables)
+    }
+
+    /// 主路徑進 `.loaded` 之後，把等在那裡的那一份背景刷新套上去。
+    ///
+    /// 兩份都是同一筆 workout 的詳情，而背景那一份是後端剛回的、比較新，所以它蓋上去是對的。
+    /// 沒有等待中的就什麼都不做。
+    private func applyPendingRefreshedDetailIfNeeded() {
+        guard let pending = pendingRefreshedDetail, pending.id == workout.id else {
+            pendingRefreshedDetail = nil
+            return
+        }
+        pendingRefreshedDetail = nil
+        applyDerivedSeries(from: pending)
+        state = .loaded(pending)
+        Logger.debug("[WorkoutDetailViewModelV2] 補套用主路徑之前收到的 Track B 刷新 - \(pending.id)")
     }
 
     /// 便利初始化器（使用 DI Container 解析依賴）
@@ -1041,6 +1071,10 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             // 更新狀態
             self.state = .loaded(response)
             await refreshPersonalBestMomentIfNeeded()
+            // 主路徑跑完之前收到的那一份 Track B 刷新在這裡補上（外審 D04）。
+            // 放在 PB 之後：PB 那一支的順序被 `AC-PBM-03` 釘住（`.loaded` 之後才認 PB），
+            // 而一般的背景回寫路徑本來也不重跑 PB，兩條保持一致。
+            self.applyPendingRefreshedDetailIfNeeded()
 
             Logger.firebase(
                 "運動詳情刷新成功",
@@ -1097,6 +1131,10 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             // 更新狀態
             self.state = .loaded(response)
             await refreshPersonalBestMomentIfNeeded()
+            // 主路徑跑完之前收到的那一份 Track B 刷新在這裡補上（外審 D04）。
+            // 放在 PB 之後：PB 那一支的順序被 `AC-PBM-03` 釘住（`.loaded` 之後才認 PB），
+            // 而一般的背景回寫路徑本來也不重跑 PB，兩條保持一致。
+            self.applyPendingRefreshedDetailIfNeeded()
 
             Logger.firebase(
                 "運動詳情載入成功",
