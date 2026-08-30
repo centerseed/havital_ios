@@ -4753,7 +4753,7 @@
 "app2.plan_overview.auto_adjust_note" = "計畫會依你每週的實際訓練與恢復狀況自動微調，你不用自己算。";
 "app2.plan_overview.no_plan_title" = "尚未建立訓練計畫";
 "app2.plan_overview.no_plan_body" = "設定一場目標賽事後，就會有完整的階段期程。";
-"app2.plan_overview.stages_unavailable" = "本週課表與目前的計畫概覽不同源，階段期程暫不顯示。";
+"app2.plan_overview.stages_unavailable" = "訓練計畫重新生成中，完成後會顯示新的階段期程與里程碑。";
 
 /* MARK: - App2 賽事管理（設計 frame-12／13／14） */
 "app2.races.title" = "賽事管理";
@@ -4825,6 +4825,9 @@
 "app2.weekly_review.capability" = "能力進展";
 "app2.weekly_review.next_week_title" = "下週規劃";
 "app2.weekly_review.suggestions_section" = "建議項目 · %d";
+"app2.weekly_review.discuss_section" = "和 Rizo 討論";
+"app2.weekly_review.discuss_hint" = "告訴 Rizo 你下週的狀況";
+"app2.weekly_review.discuss_error" = "傳不到 Rizo，再試一次。";
 "app2.weekly_review.no_suggestions" = "這週沒有需要調整的項目，照原課表跑就好。";
 "app2.weekly_review.accept" = "接受";
 "app2.weekly_review.skip" = "略過";

@@ -350,6 +350,10 @@ struct App2PlanOverviewView: View {
             .padding(.top, 18)
             .accessibilityIdentifier("App2_PlanOverviewStages")
         } else if viewModel.stagesUnbound {
+            // 不同源＝**計畫正在重新生成**（2026-08-30 使用者裁決，8/28 盤點 F1/F2）。
+            // 原本這一句是「階段期程暫不顯示」——那是在描述 client 的降級行為，
+            // 使用者讀不出「所以我該做什麼、什麼時候會好」。改成明示狀態；期程與里程碑
+            // 都等恢復同源才顯示（里程碑同樣是舊那份 overview 的內容，畫出來就是舊計畫）。
             App2InlineNotice(text: L10n.App2.PlanOverview.stagesUnavailable.localized)
                 .padding(.top, 18)
                 .accessibilityIdentifier("App2_PlanOverviewStagesUnbound")
@@ -467,7 +471,9 @@ struct App2PlanOverviewView: View {
     /// 空陣列＝整塊隱藏（沒有里程碑就不要擺一張空卡）。
     @ViewBuilder
     private func milestonesSection(_ overview: App2PlanOverview) -> some View {
-        if !overview.milestones.isEmpty {
+        // 不同源時整段不畫（F1/F2）：`milestones[]` 是舊那份 overview 的，
+        // 畫出來就是拿舊計畫的里程碑當成現在的。狀態由上面那條通知說明。
+        if !overview.milestones.isEmpty, !viewModel.stagesUnbound {
             VStack(alignment: .leading, spacing: 10) {
                 App2SectionCaption(text: L10n.App2.PlanOverview.milestonesSection.localized)
 

@@ -39,6 +39,18 @@ struct App2WeeklyReviewView: View {
 
     @State private var tab: Tab = .review
 
+    /// 「規劃下週」底部的 Rizo 輸入區（8/28 盤點 F15，Android 早有）。
+    ///
+    /// **不造第二套對話**：走既有的 `StateRizoChatViewModel`（App2 首頁那兩個 Rizo
+    /// 入口用的同一支）＋既有 Rizo API，scenario 與 Android
+    /// `TrainingPlanV2ViewModel.submitUserNlEdit` 同樣是 `weekly_situation` ——
+    /// 兩台把「我下週的狀況」送到後端的是同一條路。
+    @StateObject private var discussViewModel =
+        StateRizoChatViewModel(scenario: App2WeeklyReviewView.discussScenario)
+
+    /// 下週規劃的 Rizo 情境 key（後端既有值，與 Android 同一個）。
+    static let discussScenario = "weekly_situation"
+
     enum Tab: String, CaseIterable {
         case review
         case plan
@@ -403,6 +415,72 @@ struct App2WeeklyReviewView: View {
                     }
                 }
             }
+        }
+        // 建議清單只讓使用者對後端提的項目按接受／略過；**說出自己下週的狀況**沒有出口
+        // （8/28 盤點 F15：Android 這一頁底下一直有這一區，iOS 沒有）。
+        discussSection
+    }
+
+    // MARK: - 和 Rizo 討論（frame-19 底部；8/28 盤點 F15）
+
+    /// 下週規劃的自由輸入區。回覆就地顯示一則泡泡，不另開對話頁 ——
+    /// 這裡要的是「補一句我的狀況」，不是一場對話。
+    private var discussSection: some View {
+        section(L10n.App2.WeeklyReview.discussSection.localized) {
+            App2Card(padding: 15, spacing: 11) {
+                if let reply = discussViewModel.messages.last(where: { $0.role == .coach })?.text,
+                   !reply.isEmpty {
+                    Text(reply)
+                        .font(.system(size: 14, weight: .semibold))
+                        .lineSpacing(3)
+                        .foregroundStyle(App2Theme.inkSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                                .fill(App2Theme.accentBlue.opacity(0.08))
+                        )
+                        .accessibilityIdentifier("App2_WeeklyReviewDiscussReply")
+                }
+                HStack(spacing: 9) {
+                    TextField(
+                        L10n.App2.WeeklyReview.discussHint.localized,
+                        text: $discussViewModel.draft
+                    )
+                    .font(.app2Body)
+                    .disabled(discussViewModel.isReplying)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .background(Capsule().fill(App2Theme.insetBackground))
+                    .accessibilityIdentifier("App2_WeeklyReviewDiscussInput")
+
+                    let canSend = !discussViewModel.draft
+                        .trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        && !discussViewModel.isReplying
+                    Circle()
+                        .fill(canSend ? App2Theme.accentBlue : App2Theme.dotInactive)
+                        .frame(width: 34, height: 34)
+                        .overlay {
+                            if discussViewModel.isReplying {
+                                ProgressView().tint(.white)
+                            } else {
+                                Image(systemName: "arrow.up")
+                                    .font(.system(size: 14, weight: .black))
+                                    .foregroundStyle(.white)
+                            }
+                        }
+                        .contentShape(Circle())
+                        .onTapGesture {
+                            guard canSend else { return }
+                            let text = discussViewModel.draft
+                            Task { await discussViewModel.send(text) }
+                        }
+                        .accessibilityAddTraits(.isButton)
+                        .accessibilityIdentifier("App2_WeeklyReviewDiscussSend")
+                }
+            }
+            .accessibilityIdentifier("App2_WeeklyReviewDiscuss")
         }
     }
 

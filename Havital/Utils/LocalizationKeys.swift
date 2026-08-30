@@ -2349,6 +2349,9 @@ extension L10n {
             static let nextWeekTitle = "app2.weekly_review.next_week_title"
             /// `建議項目 · %d`
             static let suggestionsSection = "app2.weekly_review.suggestions_section"
+            static let discussSection = "app2.weekly_review.discuss_section"
+            static let discussHint = "app2.weekly_review.discuss_hint"
+            static let discussError = "app2.weekly_review.discuss_error"
             static let noSuggestions = "app2.weekly_review.no_suggestions"
             static let accept = "app2.weekly_review.accept"
             static let skip = "app2.weekly_review.skip"

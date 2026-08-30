@@ -4708,7 +4708,7 @@
 "app2.plan_overview.auto_adjust_note" = "プランは毎週の実際の練習と回復状況に合わせて自動で微調整されます。自分で計算する必要はありません。";
 "app2.plan_overview.no_plan_title" = "トレーニング計画がまだありません";
 "app2.plan_overview.no_plan_body" = "目標レースを設定すると、フェーズの全体像が表示されます。";
-"app2.plan_overview.stages_unavailable" = "今週のプランと現在の計画概要が一致しないため、フェーズを表示していません。";
+"app2.plan_overview.stages_unavailable" = "トレーニング計画を再生成しています。完了すると期分けとマイルストーンが表示されます。";
 
 /* MARK: - App2 レース管理（design frame-12/13/14） */
 "app2.races.title" = "レース管理";
@@ -4780,6 +4780,9 @@
 "app2.weekly_review.capability" = "能力の推移";
 "app2.weekly_review.next_week_title" = "来週のプラン";
 "app2.weekly_review.suggestions_section" = "提案項目 · %d";
+"app2.weekly_review.discuss_section" = "Rizo と相談";
+"app2.weekly_review.discuss_hint" = "来週の状況を Rizo に伝える";
+"app2.weekly_review.discuss_error" = "Rizo に届きませんでした。もう一度お試しください。";
 "app2.weekly_review.no_suggestions" = "今週は調整が必要な項目はありません。今の計画のまま走りましょう。";
 "app2.weekly_review.accept" = "採用";
 "app2.weekly_review.skip" = "見送る";
