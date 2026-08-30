@@ -211,9 +211,17 @@ struct App2WeeklyReviewView: View {
                 .padding(.horizontal, App2Theme.pagePadding)
                 .padding(.vertical, 14)
             }
-        } else if viewModel.isLoading {
+        } else if Self.showsGeneratingAnimation(
+            hasProjection: viewModel.projection != nil,
+            isLoading: viewModel.isLoading
+        ) {
             Spacer()
-            ProgressView()
+            App2GeneratingView(
+                // 文案取 1.4 既有的那三則（三語都在 `training.loading.*`），不另立一份。
+                messages: LoadingAnimationView.LoadingType.generateReview.messages,
+                // identifier 由元件掛在文案那個 `Text` 上——掛在這裡的外層容器查不到。
+                identifier: "App2_WeeklyReviewGenerating"
+            )
             Spacer()
         } else if viewModel.needsGeneration {
             generatePrompt
@@ -443,6 +451,19 @@ struct App2WeeklyReviewView: View {
         if Self.showsDiscussSection(isReadOnly: isReadOnly) {
             discussSection
         }
+    }
+
+    /// 內容區要不要畫「正在生成」的動畫（AC-TRAIN-HUB-11）。
+    ///
+    /// **判準沿用 VM 既有的 `isLoading`，不另立第二套「生成中」狀態。** 這一頁的等待態
+    /// 只有一種：`load()` 與 `generate()` 都是把 `isLoading` 翻真、直到 `projection`
+    /// 出現為止（`App2WeeklyReviewViewModel.load` / `.generate`）。Android 的
+    /// `SummaryUiState.Generating` 同樣同時涵蓋 GET 與 POST 兩條路——兩台對「在等後端給
+    /// 這一週的回顧」是同一個狀態，不是兩個。
+    ///
+    /// 抽成具名判準而不是就地寫條件，是為了讓「生成中 → 動畫在」這條綁定可以被測試釘住。
+    static func showsGeneratingAnimation(hasProjection: Bool, isLoading: Bool) -> Bool {
+        !hasProjection && isLoading
     }
 
     /// 歷史週唯讀回看有沒有 F15 討論區。

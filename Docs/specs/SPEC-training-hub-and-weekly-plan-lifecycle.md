@@ -70,6 +70,16 @@ Given 使用者位於規劃下週分頁，
 When footer 依後端 `next_action`、`current_week_plan_id`、`next_week_info` 以純函式 `nextWeekAction` 三態分流（可產生／只能套用建議／不顯示），  
 Then 「可產生」態必須提供產生課表 CTA，點擊後**先送採納（apply-items）再呼 `POST /v2/plan/weekly`**（順序不可反）；下週已有課表時 CTA 不得顯示。同一條判準同時涵蓋週日流程（目標＝下週）與平日流程（目標＝本週）。無建議項不得成為零出口（footer 不得被 `!suggestions.isEmpty` 之類條件整體隱藏）。
 
+### AC-TRAIN-HUB-11: 週回顧生成期間必須顯示生成中動畫與文案（2026-08-31 使用者裁決）
+
+Given 使用者在週回顧頁觸發生成、內容尚未回來，
+When 該頁還沒有可顯示的 `WeeklySummaryV2`（畫面處於載入／生成中），
+Then 系統必須在該頁的內容區顯示**生成中動畫＋輪播文案**（沿用 1.4 生成動畫的跑鞋彈跳、
+輪播文案與進度條語彙，文案取既有的 `training.loading.analyzing_training_data`／
+`evaluating_progress`／`preparing_review` 三語字串），不得只顯示通用 spinner。
+形態不要求恢復 1.4 的全螢幕蓋版；2.0 的等待態屬於該頁自己。生成失敗態不在本條範圍。
+iOS 與 Android 形態與文案一致。
+
 ### AC-TRAIN-HUB-07: 工具列與選單入口必須反映目前狀態
 
 Given 使用者位於訓練首頁，  
@@ -98,3 +108,4 @@ Then 系統必須顯示完成狀態與重新設定目標的入口，並把該入
 | AC-TRAIN-HUB-08 | 訓練完成後提供 re-onboarding 入口 |
 | AC-TRAIN-HUB-09 | 週回顧頁底部提供前進規劃下週的 CTA |
 | AC-TRAIN-HUB-10 | 規劃下週頁三態分流並可實際產生下週課表 |
+| AC-TRAIN-HUB-11 | 週回顧生成期間顯示生成中動畫與輪播文案 |

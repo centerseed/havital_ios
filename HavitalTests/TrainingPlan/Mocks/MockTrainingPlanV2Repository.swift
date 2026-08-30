@@ -66,6 +66,11 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     var generateWeeklyPlanErrors: [Error] = []
     var applyAdjustmentItemsError: Error?
 
+    /// 在對應方法回傳**之前**執行——讓測試可以觀察「請求還在飛」的那一刻的 UI 狀態
+    /// （例：生成中要顯示動畫，T-0341）。沒有它就只驗得到請求結束後的終態。
+    var onGenerateWeeklySummary: (() async -> Void)?
+    var onGetWeeklySummary: (() async -> Void)?
+
     // MARK: - Reset
 
     func reset() {
@@ -84,6 +89,8 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         refreshWeeklyPlanCallCount = 0
         deleteWeeklyPlanCallCount = 0
         generateWeeklySummaryCallCount = 0
+        onGenerateWeeklySummary = nil
+        onGetWeeklySummary = nil
         getWeeklySummaryCallCount = 0
         refreshWeeklySummaryCallCount = 0
         deleteWeeklySummaryCallCount = 0
@@ -265,6 +272,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
 
     func generateWeeklySummary(weekOfPlan: Int, forceUpdate: Bool?) async throws -> WeeklySummaryV2 {
         generateWeeklySummaryCallCount += 1
+        await onGenerateWeeklySummary?()
         if let error = errorToThrow { throw error }
         guard let summary = weeklySummaryV2ToReturn else {
             throw TrainingPlanV2Error.weeklySummaryGenerationFailed(week: weekOfPlan, reason: "No mock summary set")
@@ -279,6 +287,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
 
     func getWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2 {
         getWeeklySummaryCallCount += 1
+        await onGetWeeklySummary?()
         if let error = errorToThrow { throw error }
         guard let summary = weeklySummaryV2ToReturn else {
             throw TrainingPlanV2Error.weeklySummaryNotFound(week: weekOfPlan)

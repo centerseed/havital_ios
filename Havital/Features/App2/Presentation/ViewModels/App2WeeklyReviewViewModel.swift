@@ -74,7 +74,9 @@ final class App2WeeklyReviewViewModel: ObservableObject {
         self.coordinator = WeeklySummaryCoordinator(
             repository: resolved,
             currentSelectedWeek: { [weak self] in self?.weekOfPlan ?? 1 },
-            // 2.0 沒有那個全螢幕的載入動畫，載入態是這一頁自己的 `isLoading`。
+            // 2.0 沒有那個**全螢幕**的載入動畫層，載入／生成態是這一頁自己的 `isLoading`
+            // ——畫面上的生成動畫由 `App2WeeklyReviewView` 依它渲染（AC-TRAIN-HUB-11），
+            // 所以這個 closure 仍然是 no-op，不是「2.0 沒有生成動畫」。
             setLoadingAnimation: { _ in },
             shouldBlockByRizoQuota: { await Self.isRizoQuotaExhausted() },
             // 這一頁不持有 plan status，重新整理由首頁在關閉時做。
