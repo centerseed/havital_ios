@@ -157,6 +157,50 @@ final class WorkoutDetailBackgroundRefreshTests: XCTestCase {
         )
     }
 
+    /// **手動刷新之後才回來的 Track B 也是舊的，一樣不得蓋掉畫面**（外審第四輪 D04／E03／E11）。
+    ///
+    /// 上一支測的是「刷新還在飛的時候」回來那一份；這一支測「刷新結束之後」才回來的。
+    /// 兩者是同一件事：Track B 只由 `getWorkoutDetail` 的快取命中那條丟出去，所以手動刷新
+    /// 完成後還在飛的每一份都比強制回源那份早發出、也就更舊。差別只在 `state.hasData`
+    /// 這時已經是 true，於是它會繞過 `pendingRefreshedDetail` 被 observer 直接套用。
+    func testBackgroundRefreshArrivingAfterManualRefreshIsIgnored() async {
+        let repository = MockWorkoutRepository()
+        repository.detailToReturn = Self.detail(
+            id: "workout-late",
+            heartRates: [150, 160, 170],
+            cadences: [180, 182, 184]
+        )
+
+        let viewModel = WorkoutDetailViewModelV2(
+            workout: Self.workout(id: "workout-late"),
+            repository: repository
+        )
+        await viewModel.loadWorkoutDetail()
+        await Self.settle()
+
+        // 使用者下拉刷新，拿到強制回源的最新那一份。
+        repository.detailToReturn = Self.detail(
+            id: "workout-late",
+            heartRates: [200, 201, 202],
+            cadences: [190, 191, 192]
+        )
+        await viewModel.refreshWorkoutDetail()
+        await Self.settle()
+        XCTAssertEqual(viewModel.heartRates.map(\.value), [200, 201, 202], "前提：手動刷新那一份已在畫面上")
+
+        // 之後才回來的 Track B（更早發出的，所以是舊資料）。
+        repository.emitDetailRefresh(
+            Self.detail(id: "workout-late", heartRates: [60, 61, 62], cadences: nil)
+        )
+        await Self.settle()
+
+        XCTAssertEqual(
+            viewModel.heartRates.map(\.value), [200, 201, 202],
+            "手動刷新之後才回來的 Track B 是舊的，不得蓋掉畫面上的新資料"
+        )
+        XCTAssertEqual(viewModel.cadences.count, 3, "步頻同理不得被舊的那一份清空")
+    }
+
     /// 只認這一筆 workout 的刷新（repository 是 app 範圍的單例）。
     func testBackgroundRefreshForAnotherWorkoutIsIgnored() async {
         let repository = MockWorkoutRepository()

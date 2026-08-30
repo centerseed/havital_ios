@@ -96,6 +96,18 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     /// 載完之後補套用（見 `observeBackgroundDetailRefresh`）。
     private var pendingRefreshedDetail: WorkoutV2Detail?
 
+    /// 手動刷新成功之後，**這一頁不再接受任何 Track B 回寫**（外審第四輪 D04／E03／E11）。
+    ///
+    /// Track B 只由 `getWorkoutDetail` 的快取命中那條丟出去（`WorkoutRepositoryImpl:347`；
+    /// `refreshWorkoutDetail` 自己不發事件）。所以手動刷新完成之後還在飛的每一份 Track B，
+    /// 都是**更早**發出的、比強制回源那份舊——不管它在 loading 期間回來（存進
+    /// `pendingRefreshedDetail`）還是晚一步才回來（`state.hasData` 已是 true 而被 observer
+    /// 直接套用），套上去都是拿舊資料蓋掉使用者剛剛主動要來的新資料。
+    ///
+    /// 而且旗標不必再解除：`loadWorkoutDetail()` 在 `state.hasData` 時直接 return，
+    /// 這一頁不會再打一次 `getWorkoutDetail`，也就不會再有新的 Track B 要接。
+    private var ignoresBackgroundRefresh = false
+
     // MARK: - Initialization
 
     /// ✅ Clean Architecture: 建構子注入 Repository Protocol（不依賴 Singleton）
@@ -148,6 +160,11 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] detail in
                 guard let self, detail.id == self.workout.id else { return }
+                // 手動刷新已經拿到更新的那一份，之後回來的 Track B 一律是舊的（外審第四輪）。
+                guard !self.ignoresBackgroundRefresh else {
+                    Logger.debug("[WorkoutDetailViewModelV2] 手動刷新後的 Track B 一律忽略 - \(detail.id)")
+                    return
+                }
                 guard self.state.hasData else {
                     self.pendingRefreshedDetail = detail
                     Logger.debug("[WorkoutDetailViewModelV2] Track B 早於主路徑，先留著 - \(detail.id)")
@@ -188,7 +205,9 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     /// 使用者剛剛主動要來的新資料**。
     ///
     /// 所以這裡只清掉、不套用：畫面上已經是強制回源的最新那一份了。
+    /// 同時關掉之後的 Track B 回寫——晚一步才回來的那些一樣是舊的（見 `ignoresBackgroundRefresh`）。
     private func discardPendingRefreshedDetail() {
+        ignoresBackgroundRefresh = true
         guard pendingRefreshedDetail != nil else { return }
         pendingRefreshedDetail = nil
         Logger.debug("[WorkoutDetailViewModelV2] 手動刷新已取得更新的資料，丟棄等待中的 Track B 刷新")
