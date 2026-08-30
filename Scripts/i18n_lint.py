@@ -17,7 +17,7 @@
   python3 Scripts/i18n_lint.py --scan-all   # B 改為全庫掃描(報告用,不擋)
 退出碼: 0 = 通過; 1 = 有阻擋級問題。
 """
-import re, sys, os, subprocess
+import json, re, sys, os, subprocess
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)  # apps/ios/Havital
@@ -80,6 +80,29 @@ def check_strings():
             errors.append(f"[strings] missing file: {p}")
             return errors
         data[lang], dups[lang] = parse_strings(p)
+
+        # 「檔案裡有」不等於「App 裡讀得到」。上面是逐行 regex，對不上的行**默默跳過**；
+        # `.strings` 在 App 裡走 plist 剖析，一行壞掉後面整段就沒了。兩者的差就是會在
+        # 執行期消失的字串。2026-08-30 在 zh-Hant 抓到的正是這個：一行 mojibake 殘骸
+        # （`2000599d` 改 `app2.session.heat_adjusted` 留下的、沒有開頭引號的尾巴）讓
+        # `app2.session.effort_title` 到檔尾共 521 條在 App 裡不存在，而本 lint 全綠。
+        # 用 App 用的那個剖析器再讀一次就擋得住。plutil 不在（非 macOS）就跳過。
+        try:
+            parsed = subprocess.run(
+                ["plutil", "-convert", "json", "-o", "-", p],
+                capture_output=True, check=True,
+            ).stdout
+            visible = set(json.loads(parsed))
+        except (OSError, subprocess.CalledProcessError, ValueError):
+            visible = None
+        if visible is not None:
+            lost = sorted(set(data[lang]) - visible)
+            if lost:
+                errors.append(
+                    f"[unparsable] {lang} 有 {len(lost)} 條字串 plist 剖析不到"
+                    f"（App 執行期會消失）——通常是壞掉的一行讓它後面整段被吃掉。"
+                    f"第一條：'{lost[0]}'，最後一條：'{lost[-1]}'"
+                )
 
     all_keys = set().union(*[set(d) for d in data.values()])
 
