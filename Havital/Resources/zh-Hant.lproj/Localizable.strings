@@ -4567,9 +4567,8 @@
 "app2.achievements.personal_bests" = "個人最佳";
 "app2.achievements.badges" = "徽章收藏";
 "app2.achievements.see_more" = "看更多";
-"app2.achievements.set_display_title" = "設為顯示徽章";
-"app2.achievements.set_display_body" = "要把「%@」設為首頁與成就頁顯示的徽章嗎？";
 "app2.achievements.set_display_action" = "設為顯示";
+"app2.achievements.showcase_pill" = "首頁顯示中";
 "app2.settings.title" = "設定";
 "app2.settings.manage_subscription" = "管理訂閱";
 "app2.settings.next_renewal" = "下次續訂";

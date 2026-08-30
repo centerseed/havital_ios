@@ -2703,10 +2703,12 @@ extension L10n {
             /// 是單獨的詞，英文當前綴不成句，所以這裡是 format 而不是重複那個詞。
             static let remainingFormat = "app2.achievements.remaining_format"
             static let seeMore = "app2.achievements.see_more"
-            /// 換展示徽章的確認框（設計包沒定義，是補缺口；與 Android 對齊）。
-            static let setDisplayTitle = "app2.achievements.set_display_title"
-            static let setDisplayBody = "app2.achievements.set_display_body"
+            /// 徽章詳情頁的「設為顯示徽章」動作（8/28 盤點 F17）。
+            /// 原本的確認框標題／內文（`set_display_title` / `set_display_body`）
+            /// 隨那個框一起退場——動作搬進詳情頁後不再需要先問一次。
             static let setDisplayAction = "app2.achievements.set_display_action"
+            /// 這一顆已經是首頁顯示中的那顆（8/28 盤點 F17 的詳情頁狀態；與 Android 同名）。
+            static let showcasePill = "app2.achievements.showcase_pill"
         }
 
         enum Settings {

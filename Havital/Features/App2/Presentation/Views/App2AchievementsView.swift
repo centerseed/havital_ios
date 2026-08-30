@@ -22,8 +22,17 @@ struct App2AchievementsView: View {
     /// 由 `App2RootView` 持有。這一頁只是第二個版面，不是第二套成就系統。
     @ObservedObject var viewModel: PersonalAchievementsViewModel
 
-    /// 使用者點了收藏牆的某一顆、等待確認要不要設為展示徽章。
-    @State private var pendingDisplayBadge: AchievementBadge?
+    /// 點開的那一顆徽章（8/28 盤點 F17）。
+    ///
+    /// 點徽章原本直接彈「設為顯示徽章」確認框——**點徽章看不到徽章**：那一顆的故事、
+    /// 解鎖原因、進度全都沒有出口。入口改成詳情頁，設為顯示徽章的動作搬進那一頁
+    /// （裁決：「詳情頁內保留該動作」）。
+    ///
+    /// 詳情頁是 1.4 既有的 `AchievementDetailView`（hero 200pt 徽章圖、篇章 chip、
+    /// 狀態與解鎖日、故事與解鎖原因、未解鎖時的進度、已解鎖時的來源）——那一頁畫的
+    /// 就是這一顆徽章 payload 上有的每一欄，2.0 沒有第二份要畫。本票只把
+    /// 「設為顯示徽章」加進去（那一頁原本也沒有這個動作）。
+    @State private var detailBadge: AchievementBadge?
 
     /// 「看更多」開的那一組完整清單（8/28 盤點 F21）。nil ＝ 沒開。
     @State private var expandedTrack: AchievementTrack?
@@ -62,24 +71,12 @@ struct App2AchievementsView: View {
         .accessibilityIdentifier("App2_AchievementsView")
         .task { await viewModel.loadIfNeeded() }
         .refreshable { await viewModel.forceRefresh() }
-        .alert(
-            L10n.App2.Achievements.setDisplayTitle.localized,
-            isPresented: Binding(
-                get: { pendingDisplayBadge != nil },
-                set: { if !$0 { pendingDisplayBadge = nil } }
-            ),
-            presenting: pendingDisplayBadge
-        ) { badge in
-            Button(L10n.App2.Achievements.setDisplayAction.localized) {
-                viewModel.setPinnedBadge(badge.badgeId)
-            }
-            .accessibilityIdentifier("App2_AchievementsSetDisplayConfirm")
-            Button(NSLocalizedString("common.cancel", comment: ""), role: .cancel) {}
-        } message: { badge in
-            Text(String(
-                format: L10n.App2.Achievements.setDisplayBody.localized,
-                badge.nameKey.localizedOrFallback(default: badge.badgeId)
-            ))
+        .sheet(item: $detailBadge) { badge in
+            App2BadgeDetailSheet(
+                badge: badge,
+                isDisplayBadge: badge.badgeId == displayedBadgeId,
+                onSetDisplayBadge: { picked in viewModel.setPinnedBadge(picked.badgeId) }
+            )
         }
         // 一組徽章的完整清單（8/28 盤點 F21）。二層頁一律 fullScreenCover，
         // 與這個 app 的其他二層頁同一種呈現。
@@ -87,7 +84,7 @@ struct App2AchievementsView: View {
             App2BadgeTrackView(
                 track: track,
                 displayedBadgeId: displayedBadgeId,
-                onPick: { pendingDisplayBadge = $0 },
+                onSetDisplayBadge: { picked in viewModel.setPinnedBadge(picked.badgeId) },
                 onClose: { expandedTrack = nil }
             )
         }
@@ -353,7 +350,7 @@ struct App2AchievementsView: View {
         App2BadgeTile(
             badge: badge,
             isDisplayed: badge.badgeId == displayedBadgeId,
-            onPick: { pendingDisplayBadge = $0 }
+            onPick: { detailBadge = $0 }
         )
     }
 

@@ -4525,9 +4525,8 @@
 "app2.achievements.personal_bests" = "Personal bests";
 "app2.achievements.badges" = "Badge collection";
 "app2.achievements.see_more" = "See more";
-"app2.achievements.set_display_title" = "Set as Featured Badge";
-"app2.achievements.set_display_body" = "Show \"%@\" as your featured badge on the home and achievements screens?";
 "app2.achievements.set_display_action" = "Set as Featured";
+"app2.achievements.showcase_pill" = "Shown on Home";
 "app2.settings.title" = "Settings";
 "app2.settings.manage_subscription" = "Manage";
 "app2.settings.next_renewal" = "Next renewal";

@@ -101,8 +101,16 @@ struct App2BadgeTile: View {
 struct App2BadgeTrackView: View {
     let track: AchievementTrack
     let displayedBadgeId: String?
-    let onPick: (AchievementBadge) -> Void
+    /// 在詳情頁按下「設為顯示徽章」時回呼（8/28 盤點 F17）。
+    let onSetDisplayBadge: (AchievementBadge) -> Void
     let onClose: () -> Void
+
+    /// 這一頁點開的那一顆（8/28 盤點 F17）。
+    ///
+    /// **詳情頁由這一頁自己presenting**，不是把選中的徽章丟回成就頁去開：這一頁本身
+    /// 開在 `fullScreenCover` 裡，成就頁那一層的 `sheet` 被蓋住，按了不會有任何反應
+    /// （同 `App2SessionDetailView` 記錄過的巢狀 presentation 坑）。
+    @State private var detailBadge: AchievementBadge?
 
     private let columns = [
         GridItem(.adaptive(minimum: 66), spacing: 14)
@@ -137,7 +145,7 @@ struct App2BadgeTrackView: View {
                         App2BadgeTile(
                             badge: badge,
                             isDisplayed: badge.badgeId == displayedBadgeId,
-                            onPick: onPick
+                            onPick: { detailBadge = $0 }
                         )
                     }
                 }
@@ -147,5 +155,39 @@ struct App2BadgeTrackView: View {
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
         .accessibilityIdentifier("App2_BadgeTrackView")
+        .sheet(item: $detailBadge) { badge in
+            App2BadgeDetailSheet(
+                badge: badge,
+                isDisplayBadge: badge.badgeId == displayedBadgeId,
+                onSetDisplayBadge: onSetDisplayBadge
+            )
+        }
+    }
+}
+
+// MARK: - App2BadgeDetailSheet
+/// 點一顆徽章開出來的詳情頁（8/28 盤點 F17）。
+///
+/// **不是新做一頁。** 1.4 的 `AchievementDetailView` 畫的就是這一顆徽章 payload 上有的
+/// 每一欄（200pt hero 徽章圖、篇章 chip、狀態與解鎖日、故事與解鎖原因、未解鎖時的進度、
+/// 已解鎖時的來源），2.0 沒有第二份要畫；本票只把「設為顯示徽章」加進那一頁。
+///
+/// 這個 wrapper 只是把兩處（成就頁的收藏列、群組完整清單頁）的同一組參數收在一起，
+/// 免得同一段呼叫抄兩份。
+struct App2BadgeDetailSheet: View {
+    let badge: AchievementBadge
+    let isDisplayBadge: Bool
+    let onSetDisplayBadge: (AchievementBadge) -> Void
+
+    var body: some View {
+        AchievementDetailView(
+            badge: badge,
+            // 分享徽章卡是 1.4 成就頁自己那條路（`AchievementShareable` 由那一頁的
+            // ViewModel 組），2.0 這一頁沒有接，所以不給一顆假的分享鈕。
+            shareable: nil,
+            onShare: { _ in },
+            onSetDisplayBadge: onSetDisplayBadge,
+            isDisplayBadge: isDisplayBadge
+        )
     }
 }

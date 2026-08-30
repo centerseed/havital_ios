@@ -5,6 +5,15 @@ struct AchievementDetailView: View {
     let badge: AchievementBadge
     let shareable: AchievementShareable?
     let onShare: (AchievementShareable) -> Void
+    /// 「設為顯示徽章」（8/28 盤點 F17）。
+    ///
+    /// 這個動作原本只掛在 2.0 成就頁的 tile 上（點一顆已解鎖徽章 → 直接彈確認框），
+    /// 於是**點徽章看不到徽章**——那一顆的故事、解鎖原因、進度全都沒有出口。
+    /// 裁決是「詳情頁內保留該動作」：入口改成這一頁，動作搬進來。
+    /// nil ＝ 呼叫端不提供這個動作（1.4 成就頁的既有呼叫維持原樣）。
+    var onSetDisplayBadge: ((AchievementBadge) -> Void)?
+    /// 這一顆是不是目前顯示中的那顆——是的話按鈕換成一句狀態，不再給一顆按了沒作用的鈕。
+    var isDisplayBadge: Bool = false
 
     private var isUnlocked: Bool {
         badge.status == .unlocked
@@ -270,7 +279,35 @@ struct AchievementDetailView: View {
     // MARK: - Action buttons
 
     private var actionButtons: some View {
-        HStack(spacing: 10) {
+        VStack(spacing: 10) {
+            // 「設為顯示徽章」——只有已解鎖的才給（未解鎖沒有東西可顯示），
+            // 已經是顯示中的那顆改成一句狀態（8/28 盤點 F17）。
+            if let onSetDisplayBadge, isUnlocked {
+                if isDisplayBadge {
+                    Text(L10n.App2.Achievements.showcasePill.localized)
+                        .font(AppFont.chip())
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
+                        .foregroundColor(accent)
+                        .background(accent.opacity(0.12))
+                        .cornerRadius(12)
+                        .accessibilityIdentifier("AchievementDetail_IsDisplayBadge")
+                } else {
+                    Button {
+                        onSetDisplayBadge(badge)
+                        dismiss()
+                    } label: {
+                        Text(L10n.App2.Achievements.setDisplayAction.localized)
+                            .font(AppFont.chip())
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                            .foregroundColor(.white)
+                            .background(accent)
+                            .cornerRadius(12)
+                    }
+                    .accessibilityIdentifier("AchievementDetail_SetDisplayBadge")
+                }
+            }
             if let shareable {
                 Button {
                     onShare(shareable)

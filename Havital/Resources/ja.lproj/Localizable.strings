@@ -4522,9 +4522,8 @@
 "app2.achievements.personal_bests" = "自己ベスト";
 "app2.achievements.badges" = "バッジコレクション";
 "app2.achievements.see_more" = "もっと見る";
-"app2.achievements.set_display_title" = "表示するバッジに設定";
-"app2.achievements.set_display_body" = "「%@」をホームと実績画面に表示するバッジに設定しますか？";
 "app2.achievements.set_display_action" = "表示に設定";
+"app2.achievements.showcase_pill" = "ホームに表示中";
 "app2.settings.title" = "設定";
 "app2.settings.manage_subscription" = "管理";
 "app2.settings.next_renewal" = "次回更新";
