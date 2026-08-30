@@ -479,6 +479,34 @@ final class App2SessionDetailProjectionTests: XCTestCase {
         XCTAssertTrue(detail.hasPaceData, "4×400m @ 4:50 是有配速的課，卡不得消失")
     }
 
+    // MARK: - 熱適應卡的四個 level 都要有話可講
+
+    /// **接受的每一個 `heat_pressure_level` 都必須解得出真的句子**，不得把 key 原樣印給用戶。
+    ///
+    /// 投影接受 `mild`／`moderate`／`high`／`danger` 四個值，但 `climate.recommendation.mild`
+    /// 三語都不存在，於是輕熱那一天的熱適應卡上印的是
+    /// `climate.recommendation.mild` 這串 key（外審 E04／E11）。
+    func test_climate_everyAcceptedLevelResolvesToRealCopy() throws {
+        for level in ["mild", "moderate", "high", "danger"] {
+            let meta = ClimateMeta(
+                feelsLikeTempC: 33.0,
+                heatPressureLevel: level,
+                paceAdjustmentPct: 3.0,
+                reasonText: "backend says something",
+                longRunReductionPct: nil
+            )
+            let climate = try XCTUnwrap(App2SessionDetailProjection.climate(meta: meta), level)
+            XCTAssertFalse(
+                climate.reason.hasPrefix("climate."),
+                "missing localization: \(climate.reason)"
+            )
+            XCTAssertFalse(
+                climate.shortLevel.hasPrefix("climate."),
+                "missing localization: \(climate.shortLevel)"
+            )
+        }
+    }
+
     /// 反面：間歇課整天沒有任何配速就照舊不畫（修 F16 不得把裁決（j）翻掉）。
     func test_detail_intervalDayWithoutAnyPace_hasNoPaceData() throws {
         let json = """

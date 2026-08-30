@@ -271,6 +271,50 @@ final class App2WorkoutDetailProjectionTests: XCTestCase {
         )
     }
 
+    /// **Z5 是無氧區、Z6 是間歇區**，兩條路徑（payload 分佈／avgHR 退路）講的話必須一樣。
+    ///
+    /// 順序的權威是 domain 的 `HeartRateZone.Thresholds`（anaerobic 0.88–0.95 在
+    /// interval 0.95–1.0 之下），Android 的 `hrZoneNameResId` 也是這樣。上一版
+    /// `zoneKeysLowToHigh` 把 interval 擺 Z5、anaerobic 擺 Z6，而退路那份字典照 domain 排——
+    /// 同一個區間走哪條路徑就顯示成不同名字（外審 B05／C06／D02／F02）。
+    func test_dominantZone_zone5IsAnaerobicAndZone6IsInterval() {
+        let anaerobicDominant = V2ZoneDistribution(
+            from: ZoneDistribution(
+                marathon: 5, threshold: 10, recovery: 2, interval: 8, anaerobic: 70, easy: 5
+            )
+        )
+        XCTAssertEqual(
+            App2WorkoutDetailProjection.dominantZoneLabel(anaerobicDominant),
+            "Z5 " + NSLocalizedString("workout.detail.anaerobic_zone", comment: "")
+        )
+
+        let intervalDominant = V2ZoneDistribution(
+            from: ZoneDistribution(
+                marathon: 5, threshold: 10, recovery: 2, interval: 70, anaerobic: 8, easy: 5
+            )
+        )
+        XCTAssertEqual(
+            App2WorkoutDetailProjection.dominantZoneLabel(intervalDominant),
+            "Z6 " + NSLocalizedString("workout.detail.interval_zone", comment: "")
+        )
+    }
+
+    /// 退路（avgHR 對用戶區間表）與分佈路徑共用同一份對照，Z5／Z6 不得互相矛盾。
+    func test_fallbackZone_agreesWithDistributionOnZone5And6() {
+        // HRR：max 190 / rest 50 → 區間寬 140。Z5 anaerobic 0.88–0.95、Z6 interval ≥0.95。
+        let anaerobicHR = Int(50 + 140 * 0.90)   // 176
+        let intervalHR = Int(50 + 140 * 0.97)    // 185
+
+        XCTAssertEqual(
+            App2WorkoutDetailProjection.fallbackZoneLabel(avgHR: anaerobicHR, maxHR: 190, restingHR: 50),
+            "Z5 " + NSLocalizedString("workout.detail.anaerobic_zone", comment: "")
+        )
+        XCTAssertEqual(
+            App2WorkoutDetailProjection.fallbackZoneLabel(avgHR: intervalHR, maxHR: 190, restingHR: 50),
+            "Z6 " + NSLocalizedString("workout.detail.interval_zone", comment: "")
+        )
+    }
+
     /// 全零 ＝ 沒有分佈資料，不是「都在恢復區」——那顆 chip 不出現。
     func test_dominantZone_nilWhenAllZero() {
         let zones = V2ZoneDistribution(

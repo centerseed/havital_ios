@@ -69,16 +69,13 @@ struct App2BadgeTile: View {
         }
         .frame(width: 66)
         .contentShape(Rectangle())
-        // **補缺口**：設計包沒有替成就頁定義「換一顆展示徽章」的入口，
-        // 但 pin 這件事在 repo 裡早就有（`AchievementRepository.setPinnedBadgeId`
-        // ＋ 1.4 的 `BadgeShowcasePickerView`），Android 也有。這裡把入口補在
-        // 收藏牆的 tile 上：點已解鎖的徽章 → 確認 → 設為展示徽章。
-        // 未解鎖的不可點（點了也沒有東西可展示）。
-        .onTapGesture {
-            guard unlocked else { return }
-            onPick(badge)
-        }
-        .accessibilityAddTraits(unlocked ? [.isButton] : [])
+        // 點任何一顆徽章都開詳情頁（8/28 盤點 F17）。**鎖著的那顆也要能點**：
+        // 詳情頁對未解鎖／進行中的徽章要講「怎麼解鎖」，那句 criteria 文案不得只在
+        // 已解鎖時才出現（`SPEC-personal-achievements-tab` AC-PACH-NEW-03）。
+        // 「設為顯示徽章」那個動作留在詳情頁裡，而且只有已解鎖的那一顆才有——
+        // 可點性與那個動作是兩件事，上一版把它們綁在一起，鎖著的徽章就整顆點不動。
+        .onTapGesture { onPick(badge) }
+        .accessibilityAddTraits(.isButton)
     }
 }
 

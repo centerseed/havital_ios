@@ -364,14 +364,20 @@ extension App2WorkoutDetailProjection {
     }
 
     /// 六個心率區間，由低到高。**編號就是位置**（Z1…Z6），所以這一份順序同時是
-    /// 顯示字的來源與 Z 編號的來源，不會有第二份對照表跟它不一致。
+    /// 顯示字的來源與 Z 編號的來源。
+    ///
+    /// 順序的權威是 domain 的 `HeartRateZone.Thresholds`：**Z5 是 anaerobic、Z6 是
+    /// interval**（`HeartRateZone.swift` 的 `anaerobicLow 0.88` 在 `intervalLow 0.95`
+    /// 之下），Android 的 `hrZoneNameResId` 與 `ZoneDistributionEntity` 的欄位順序也是
+    /// 這樣。上一版這裡把 interval 擺 Z5、anaerobic 擺 Z6，而底下的 fallback 又照 domain
+    /// 排——同一個區間會因為走哪條路徑而顯示成不同名字（外審 B05／C06／D02／F02）。
     static let zoneKeysLowToHigh = [
         "workout.detail.recovery_zone",
         "workout.detail.aerobic_zone",
         "workout.detail.marathon_zone",
         "workout.detail.threshold_zone",
-        "workout.detail.interval_zone",
-        "workout.detail.anaerobic_zone"
+        "workout.detail.anaerobic_zone",
+        "workout.detail.interval_zone"
     ]
 
     /// 佔比最大的心率區間。全零／全 nil ＝ 沒有這顆 chip。
@@ -381,9 +387,10 @@ extension App2WorkoutDetailProjection {
     /// 前面加上它在 [zoneKeysLowToHigh] 的位置當 Z 編號（8/28 盤點 D18）。
     static func dominantZoneLabel(_ zones: V2ZoneDistribution?) -> String? {
         guard let zones else { return nil }
+        // 順序＝[zoneKeysLowToHigh] 的順序（Z1…Z6），兩份一起讀才對得起來。
         let shares: [Double?] = [
             zones.recovery, zones.easy, zones.marathon,
-            zones.threshold, zones.interval, zones.anaerobic
+            zones.threshold, zones.anaerobic, zones.interval
         ]
         let best = shares.enumerated()
             .compactMap { index, value -> (Int, Double)? in
@@ -406,15 +413,10 @@ extension App2WorkoutDetailProjection {
         guard let maxHR, let restingHR, maxHR > restingHR else { return nil }
         let zones = HeartRateZone.calculateZones(maxHR: maxHR, restingHR: restingHR)
         let zoneNumber = HeartRateZone.zoneFor(heartRate: Double(avgHR), in: zones)
-        let keys = [
-            1: "workout.detail.recovery_zone",
-            2: "workout.detail.aerobic_zone",
-            3: "workout.detail.marathon_zone",
-            4: "workout.detail.threshold_zone",
-            5: "workout.detail.anaerobic_zone",
-            6: "workout.detail.interval_zone"
-        ]
-        guard let key = keys[zoneNumber] else { return nil }
+        // 名字走與分佈路徑同一份 [zoneKeysLowToHigh]：這裡本來另有一份 1…6 的字典，
+        // 兩份對 Z5／Z6 講的話相反（外審 C06／F02）。
+        guard zoneNumber >= 1, zoneNumber <= zoneKeysLowToHigh.count else { return nil }
+        let key = zoneKeysLowToHigh[zoneNumber - 1]
         // Z 編號取用戶心率區間表上的那個編號（`HeartRateZone.zoneFor`）——這條路徑
         // 本來就是拿 avgHR 去對那張表，所以編號與設定頁看到的是同一個（8/28 盤點 D18）。
         return zoneChipLabel(number: zoneNumber, key: key)

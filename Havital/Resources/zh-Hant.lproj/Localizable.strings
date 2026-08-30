@@ -4194,6 +4194,7 @@
 "climate.recommendation.danger" = "強烈建議改到室內（跑步機／交叉訓練）或改期；若一定要戶外，請選最涼的清晨或入夜後，務必大幅放慢、縮短距離並隨時補水。";
 "climate.recommendation.high" = "建議在清晨或傍晚較涼時段進行，避開 11:00–15:00 高溫；長跑可縮短 20–30%%，或改到室內。";
 "climate.recommendation.moderate" = "避開 11:00–15:00 最熱時段，長跑改到清晨；訓練全程注意補水。";
+"climate.recommendation.mild" = "熱的影響還輕微，照原訂課表跑即可；記得補水，覺得比平常吃力就把配速放鬆一點。";
 "climate.recommendation.default" = "天氣偏熱，建議清晨或傍晚較舒適時段訓練，並記得補充水分。";
 "climate.recommendation_title" = "建議時段";
 "climate.danger_outdoor_pace_title" = "若仍戶外";

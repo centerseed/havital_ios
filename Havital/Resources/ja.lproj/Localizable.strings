@@ -4150,6 +4150,7 @@
 "climate.recommendation.danger" = "室内（トレッドミル／クロストレーニング）への変更か日程の延期を強く推奨します。屋外で行う場合は最も涼しい早朝か夜間を選び、大幅にペースを落とし、距離を短くし、こまめに水分補給してください。";
 "climate.recommendation.high" = "涼しい早朝か夕方に行い、11:00〜15:00は避けてください。ロング走は20〜30%%短縮するか、屋内に変更しましょう。";
 "climate.recommendation.moderate" = "最も暑い11:00〜15:00を避け、ロング走は早朝へ。トレーニング中はこまめに水分補給を。";
+"climate.recommendation.mild" = "暑さの影響はまだ軽微です。予定どおりのメニューで大丈夫。水分補給を忘れず、いつもよりきつく感じたらペースを少し緩めましょう。";
 "climate.recommendation.default" = "暑めです。涼しい早朝か夕方に行い、水分補給を忘れずに。";
 "climate.recommendation_title" = "おすすめの時間帯";
 "climate.danger_outdoor_pace_title" = "屋外なら";

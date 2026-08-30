@@ -52,7 +52,10 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
 
     // MARK: - Chart Properties (圖表相關屬性)
 
-    @Published var yAxisRange: (min: Double, max: Double) = (60, 180)
+    /// 沒有心率序列時的預設 Y 軸範圍。清空重建時要退回這個值，不能留上一份的範圍。
+    static let defaultHeartRateAxisRange: (min: Double, max: Double) = (60, 180)
+
+    @Published var yAxisRange: (min: Double, max: Double) = WorkoutDetailViewModelV2.defaultHeartRateAxisRange
 
     // MARK: - AC-IOS-ANALYTICS-P1-10: session-level dedup for workout_analysis_view
     @Published var hasTrackedAnalyticsView: Bool = false
@@ -135,7 +138,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] detail in
                 guard let self, detail.id == self.workout.id, self.state.hasData else { return }
-                self.processTimeSeriesData(from: detail)
+                self.applyDerivedSeries(from: detail)
                 self.state = .loaded(detail)
                 Logger.debug("[WorkoutDetailViewModelV2] Track B 刷新回寫畫面 - \(detail.id)")
             }
@@ -644,7 +647,40 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     }
     
     // MARK: - 時間序列數據處理
-    
+
+    /// 把一份 detail 的圖表資料**整份換掉**：先清空所有衍生序列，再處理，再重算心率 Y 軸。
+    ///
+    /// 為什麼要清空：`processTimeSeriesData` 只在對應欄位有值時才寫，缺席的欄位它不碰。
+    /// 少了前面這一步，新的一份 payload 沒有的序列會留著上一份的資料——畫面上就是一張
+    /// 已經不屬於這筆 workout 的圖。強制刷新那條路徑本來就先清，Track B 背景刷新回寫那條
+    /// 沒有，於是部分欄位缺席的刷新會留下舊圖（外審 D04／E03／E11）。三條進入
+    /// loaded 的路徑（初次載入／強制刷新／背景回寫）現在都走這一支。
+    private func applyDerivedSeries(from detail: WorkoutV2Detail) {
+        heartRates.removeAll()
+        paces.removeAll()
+        speeds.removeAll()
+        altitudes.removeAll()
+        cadences.removeAll()
+
+        stanceTimes.removeAll()
+        verticalRatios.removeAll()
+        groundContactTimes.removeAll()
+        verticalOscillations.removeAll()
+
+        processTimeSeriesData(from: detail)
+
+        // 心率 Y 軸跟著新的序列走；新的一份沒有心率就退回預設，不留上一份的範圍。
+        if heartRates.isEmpty {
+            yAxisRange = WorkoutDetailViewModelV2.defaultHeartRateAxisRange
+        } else {
+            let hrValues = heartRates.map { $0.value }
+            let minHR = hrValues.min() ?? 60
+            let maxHR = hrValues.max() ?? 180
+            let margin = (maxHR - minHR) * 0.1
+            yAxisRange = (max(minHR - margin, 50), min(maxHR + margin, 220))
+        }
+    }
+
     /// 處理時間序列數據，轉換成圖表格式
     private func processTimeSeriesData(from detail: WorkoutV2Detail) {
         // 基於實際 API 回應格式處理時間序列數據
@@ -999,30 +1035,8 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             // 檢查任務是否被取消
             try Task.checkCancellation()
 
-            // 清除舊的圖表數據
-            self.heartRates.removeAll()
-            self.paces.removeAll()
-            self.speeds.removeAll()
-            self.altitudes.removeAll()
-            self.cadences.removeAll()
-
-            // 清除步態分析數據
-            self.stanceTimes.removeAll()
-            self.verticalRatios.removeAll()
-            self.groundContactTimes.removeAll()
-            self.verticalOscillations.removeAll()
-
-            // 處理時間序列數據，轉換成圖表格式
-            self.processTimeSeriesData(from: response)
-
-            // 設置心率 Y 軸範圍
-            if !heartRates.isEmpty {
-                let hrValues = heartRates.map { $0.value }
-                let minHR = hrValues.min() ?? 60
-                let maxHR = hrValues.max() ?? 180
-                let margin = (maxHR - minHR) * 0.1
-                self.yAxisRange = (max(minHR - margin, 50), min(maxHR + margin, 220))
-            }
+            // 圖表資料整份換掉（清空 → 處理 → 重算 Y 軸），三條路徑同一支。
+            self.applyDerivedSeries(from: response)
 
             // 更新狀態
             self.state = .loaded(response)
@@ -1077,17 +1091,8 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             // 檢查任務是否被取消
             try Task.checkCancellation()
 
-            // 處理時間序列數據，轉換成圖表格式
-            self.processTimeSeriesData(from: response)
-
-            // 設置心率 Y 軸範圍
-            if !heartRates.isEmpty {
-                let hrValues = heartRates.map { $0.value }
-                let minHR = hrValues.min() ?? 60
-                let maxHR = hrValues.max() ?? 180
-                let margin = (maxHR - minHR) * 0.1
-                self.yAxisRange = (max(minHR - margin, 50), min(maxHR + margin, 220))
-            }
+            // 圖表資料整份換掉（清空 → 處理 → 重算 Y 軸），三條路徑同一支。
+            self.applyDerivedSeries(from: response)
 
             // 更新狀態
             self.state = .loaded(response)

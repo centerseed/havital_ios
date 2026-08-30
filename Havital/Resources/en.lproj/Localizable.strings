@@ -4153,6 +4153,7 @@
 "climate.recommendation.danger" = "Strongly consider moving indoors (treadmill / cross-training) or rescheduling. If you must go outside, pick the coolest early morning or after dark, slow down significantly, shorten the distance, and hydrate constantly.";
 "climate.recommendation.high" = "Train in the cooler early morning or evening and avoid 11:00–15:00. Shorten long runs by 20–30%%, or move them indoors.";
 "climate.recommendation.moderate" = "Avoid the hottest 11:00–15:00 window and move long runs to early morning. Hydrate throughout.";
+"climate.recommendation.mild" = "The heat is only mild — run the session as planned. Keep hydrating, and ease off the pace a little if it feels harder than usual.";
 "climate.recommendation.default" = "It's warm — train in the cooler early morning or evening and remember to hydrate.";
 "climate.recommendation_title" = "When to train";
 "climate.danger_outdoor_pace_title" = "If outdoors";
