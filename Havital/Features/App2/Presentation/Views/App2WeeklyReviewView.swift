@@ -418,8 +418,21 @@ struct App2WeeklyReviewView: View {
         }
         // 建議清單只讓使用者對後端提的項目按接受／略過；**說出自己下週的狀況**沒有出口
         // （8/28 盤點 F15：Android 這一頁底下一直有這一區，iOS 沒有）。
-        discussSection
+        //
+        // **歷史週唯讀回看不畫這一區**（裁決（q），外審第七輪 A06／B02）：它的送出會打
+        // `RizoRepository.streamChat`（`weekly_situation`），是一條寫入路徑。這一頁其他的
+        // 寫入出口（產生、套用、採納）本來就各自擋了 `isReadOnly`，F15 是本批新加的，
+        // 加的時候漏掉同一道閘。
+        if Self.showsDiscussSection(isReadOnly: isReadOnly) {
+            discussSection
+        }
     }
+
+    /// 歷史週唯讀回看有沒有 F15 討論區。
+    ///
+    /// 抽成具名判準而不是就地寫 `!isReadOnly`，是因為這條規則被漏掉過一次：唯讀是
+    /// 裁決（q）的產品承諾，而「有沒有漏掉某一個寫入出口」用眼睛看不出來，要有東西擋著。
+    static func showsDiscussSection(isReadOnly: Bool) -> Bool { !isReadOnly }
 
     // MARK: - 和 Rizo 討論（frame-19 底部；8/28 盤點 F15）
 

@@ -276,4 +276,54 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         XCTAssertFalse(App2WeeklyReviewViewModel.meansNotGeneratedYet(.noConnection))
         XCTAssertFalse(App2WeeklyReviewViewModel.meansNotGeneratedYet(.badRequest("something else")))
     }
+
+    // MARK: - 歷史週唯讀（裁決（q）；外審第七輪 A06／B02）
+
+    /// 唯讀回看不得有任何寫入出口。F15 討論區的送出會打
+    /// `RizoRepository.streamChat`（`weekly_situation`），所以歷史週整區不畫。
+    func test_showsDiscussSection_historicalWeekIsReadOnly() {
+        XCTAssertFalse(
+            App2WeeklyReviewView.showsDiscussSection(isReadOnly: true),
+            "歷史週是唯讀回看，不得留著會送出的 F15 討論區"
+        )
+        XCTAssertTrue(
+            App2WeeklyReviewView.showsDiscussSection(isReadOnly: false),
+            "現行週仍要能說出自己的狀況（F15 本來要補的就是這個）"
+        )
+    }
+
+    /// 光有判準不夠——畫面要真的用它。
+    ///
+    /// F15 這一區當初就是**無條件**被加進 `planTab` 的，其他寫入出口（產生／套用／採納）
+    /// 各自擋了 `isReadOnly`，只有它漏掉。判準對但沒接上去，使用者一樣送得出去，
+    /// 所以這裡直接盯著呼叫點。
+    func test_planTab_appliesReadOnlyGateToDiscussSection() throws {
+        let source = try Self.weeklyReviewViewSource()
+
+        XCTAssertTrue(
+            source.contains("if Self.showsDiscussSection(isReadOnly: isReadOnly) {"),
+            "`planTab` 必須經過唯讀判準才畫 F15 討論區"
+        )
+        XCTAssertFalse(
+            source.contains("\n        discussSection\n    }"),
+            "`discussSection` 不得再被無條件加進 `planTab`"
+        )
+    }
+
+    /// 從測試檔位置往上找 repo 根，不寫死絕對路徑（worktree 每次不同）。
+    private static func weeklyReviewViewSource() throws -> String {
+        var dir = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()   // App2
+            .deletingLastPathComponent()   // Features
+            .deletingLastPathComponent()   // HavitalTests
+        let relative = "Havital/Features/App2/Presentation/Views/App2WeeklyReviewView.swift"
+        for _ in 0..<4 {
+            let candidate = dir.appendingPathComponent(relative)
+            if FileManager.default.fileExists(atPath: candidate.path) {
+                return try String(contentsOf: candidate, encoding: .utf8)
+            }
+            dir = dir.deletingLastPathComponent()
+        }
+        throw XCTSkip("找不到 App2WeeklyReviewView.swift，跳過源碼層斷言")
+    }
 }
