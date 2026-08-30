@@ -5,7 +5,7 @@ status: Draft
 layer: product
 ontology_entity: training-hub-lifecycle
 created: 2026-04-15
-updated: 2026-04-15
+updated: 2026-08-31
 ---
 
 # Feature Spec: 訓練首頁與週課表生命週期
@@ -58,6 +58,18 @@ Given 使用者位於本週且 `nextWeekInfo.canGenerate == true` 且 `hasPlan =
 When 訓練首頁評估下週 CTA，  
 Then 系統才可顯示產生下週課表按鈕；不符合條件時不得顯示誤導性入口。
 
+### AC-TRAIN-HUB-09: 週回顧頁必須提供前進「規劃下週」的 CTA（2026-08-31 使用者裁決）
+
+Given 使用者位於週回顧（回顧本週）頁，  
+When 捲到頁面底部，  
+Then 系統必須顯示「下一步：規劃下週」CTA，點擊進入規劃下週分頁。
+
+### AC-TRAIN-HUB-10: 規劃下週頁必須能實際產生下週課表（2026-08-31 使用者裁決，P0）
+
+Given 使用者位於規劃下週分頁，  
+When footer 依後端 `next_action`、`current_week_plan_id`、`next_week_info` 以純函式 `nextWeekAction` 三態分流（可產生／只能套用建議／不顯示），  
+Then 「可產生」態必須提供產生課表 CTA，點擊後**先送採納（apply-items）再呼 `POST /v2/plan/weekly`**（順序不可反）；下週已有課表時 CTA 不得顯示。同一條判準同時涵蓋週日流程（目標＝下週）與平日流程（目標＝本週）。無建議項不得成為零出口（footer 不得被 `!suggestions.isEmpty` 之類條件整體隱藏）。
+
 ### AC-TRAIN-HUB-07: 工具列與選單入口必須反映目前狀態
 
 Given 使用者位於訓練首頁，  
@@ -84,3 +96,5 @@ Then 系統必須顯示完成狀態與重新設定目標的入口，並把該入
 | AC-TRAIN-HUB-06 | 僅在條件滿足時顯示產生下週課表入口 |
 | AC-TRAIN-HUB-07 | 工具列與選單入口反映目前狀態 |
 | AC-TRAIN-HUB-08 | 訓練完成後提供 re-onboarding 入口 |
+| AC-TRAIN-HUB-09 | 週回顧頁底部提供前進規劃下週的 CTA |
+| AC-TRAIN-HUB-10 | 規劃下週頁三態分流並可實際產生下週課表 |
