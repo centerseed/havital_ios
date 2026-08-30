@@ -32,6 +32,12 @@ struct App2WeeklyReviewProjection: Equatable {
     let stats: [Stat]
     /// 本週亮點（`weekly_highlights.highlights` ＋ `achievements`）。
     let highlights: [String]
+    /// 本週要注意的（`weekly_highlights.areas_for_improvement`）。
+    ///
+    /// 8/28 盤點 D7：這一組原本整段被丟掉，同一份 payload 在 Android 是四條、
+    /// iOS 只有三條。它與 `highlights` 分開，是因為它們是**相反的兩件事** ——
+    /// 一個是做到了什麼、一個是要注意什麼，混進同一顆星號 icon 底下就讀不出差別。
+    let improvements: [String]
     /// Rizo 觀察到的事實（`observations`）。
     let observations: [String]
     /// 訓練分析的逐項評語（配速／心率／距離／強度分配／能力進展）。
@@ -96,6 +102,7 @@ extension App2WeeklyReviewProjection {
                 ?? summary.trainingCompletion.evaluation.app2NonEmpty,
             stats: stats(summary.trainingCompletion),
             highlights: highlights(summary.weeklyHighlights),
+            improvements: improvements(summary.weeklyHighlights),
             observations: (summary.observations ?? []).compactMap(\.app2NonEmpty),
             analysisNotes: analysisNotes(summary),
             phaseLabel: phaseLabel(summary.planContext),
@@ -142,6 +149,11 @@ extension App2WeeklyReviewProjection {
     /// （新 PB／最長跑／課表達成）是設計期樣本，payload 沒有那個結構。
     static func highlights(_ highlights: WeeklyHighlightsV2) -> [String] {
         (highlights.highlights + highlights.achievements).compactMap(\.app2NonEmpty)
+    }
+
+    /// 本週要注意的（8/28 盤點 D7）。後端欄位是 `areas_for_improvement`。
+    static func improvements(_ highlights: WeeklyHighlightsV2) -> [String] {
+        highlights.areasForImprovement.compactMap(\.app2NonEmpty)
     }
 
     static func analysisNotes(_ summary: WeeklySummaryV2) -> [AnalysisNote] {

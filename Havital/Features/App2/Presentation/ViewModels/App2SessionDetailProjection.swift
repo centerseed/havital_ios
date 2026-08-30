@@ -102,7 +102,10 @@ enum App2SessionDetailProjection {
             reasonText: nil,
             segments: segments,
             strength: strength(day: day),
-            climate: climate(meta: day.climateMeta),
+            climate: climate(
+                meta: day.climateMeta,
+                adjustedSummary: climateAdjustedSummary(day: day, segments: segments)
+            ),
             showsFuelingNote: showsFuelingNote(dayType: dayType, durationMinutes: durationMinutes),
             isRunSession: isRun
         )
@@ -433,20 +436,58 @@ enum App2SessionDetailProjection {
     // MARK: - 熱適應
 
     /// 熱適應卡。`comfortable` 不說話（沿用 `ClimateDay+Display` 的規則與同一組 `climate.*` 文案）。
-    static func climate(meta: ClimateMeta?) -> App2SessionClimate? {
+    ///
+    /// 8/28 盤點 D3：說明句改走 app 自己的 `climate.recommendation.<level>`
+    /// （三語齊，1.4 熱適應頁的同一組），不再原樣印後端 `reason_text` —— 那一句是
+    /// 後端按請求語言生成的，實機上是英文坐在中文卡片裡。判準是結構化的
+    /// `heat_pressure_level`，不是拿字串猜語言。**`reason_text` 只剩「這一天有沒有熱調整」
+    /// 的存在性判定**（空字串＝後端沒有話說，整張卡不出現，與改動前同一條）。
+    static func climate(meta: ClimateMeta?, adjustedSummary: String? = nil) -> App2SessionClimate? {
         guard let meta else { return nil }
         let level = meta.heatPressureLevel.lowercased()
         guard ["mild", "moderate", "high", "danger"].contains(level) else { return nil }
-        let reason = meta.reasonText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !reason.isEmpty else { return nil }
+        guard !meta.reasonText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return nil
+        }
         return App2SessionClimate(
             shortLevel: NSLocalizedString("climate.short_level.\(level)", comment: ""),
             feelsLike: meta.feelsLikeTempC.map {
                 "\(NSLocalizedString("climate.temperature_title", comment: "")) \(String(format: "%.1f°C", $0))"
             },
-            reason: reason,
-            level: level
+            reason: NSLocalizedString("climate.recommendation.\(level)", comment: ""),
+            level: level,
+            adjustedSummary: adjustedSummary
         )
+    }
+
+    /// 「調整後」那一句裡的量摘要 —— `4×400m @ 5:09/km`（Android
+    /// `climateAdjustedTarget` 同一條）。
+    ///
+    /// 量取主課段（`isWork`）的距離半邊、趟數取同一段的 `repeats`；配速取
+    /// `climate_adjusted_pace`。三者缺一就沒有這一行 —— 不編一個調整後配速出來。
+    static func climateAdjustedSummary(
+        day: DayDetail,
+        segments: [App2SessionDetailSegment]
+    ) -> String? {
+        guard let raw = day.primaryRunActivity?.climateAdjustedPace,
+              let pace = nonEmpty(raw)
+        else { return nil }
+        let adjusted = App2SegmentFormat.paceWithUnit(pace)
+        let work = segments.first { $0.isWork } ?? segments.first
+        guard let amount = work?.detail?
+            .components(separatedBy: App2SegmentFormat.separator).first?
+            .trimmingCharacters(in: .whitespaces),
+            !amount.isEmpty
+        else {
+            return adjusted
+        }
+        // 趟數取同一段的 `repeatsLabel`（`× 4`）的數字半邊 —— 趟數怎麼判只有一份
+        // （`segments` 已經判好了），這裡不重讀 payload。
+        let reps = (work?.repeatsLabel).flatMap { label -> String? in
+            let digits = label.filter(\.isNumber)
+            return digits.isEmpty ? nil : "\(digits)×"
+        } ?? ""
+        return "\(reps)\(amount) @ \(adjusted)"
     }
 
     // MARK: - 目標區間（設計 frame-02d 的兩張並排卡）

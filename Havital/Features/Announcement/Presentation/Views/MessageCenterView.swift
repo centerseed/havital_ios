@@ -126,9 +126,41 @@ private struct AnnouncementCardView: View {
         )
     }
 
+    // MARK: - 相對時間
+
+    /// `4 個月 12 天前`／`3 天前`／`5 小時前`／`剛剛`（8/28 盤點 D28）。
+    ///
+    /// SwiftUI 的 `Text(date, style: .relative)` 走系統 locale 而不是 app 的語言設定，
+    /// 於是中文介面上印著 `4 mths, 10 days`；而且它與 Android 的算法不同，同一則公告
+    /// 兩台差了兩天。改成與 Android `relativeTime(epochMs)` **同一條算式**：
+    /// 經過時數 ÷ 24 得天數、天數 ÷ 30 得月數，月數為 0 才往下退到天／小時。
+    static func relativeTime(_ date: Date, now: Date = Date()) -> String {
+        let seconds = max(0, now.timeIntervalSince(date))
+        let hours = Int(seconds / 3600)
+        let days = hours / 24
+        let months = days / 30
+        if months >= 1 {
+            let remainingDays = days - months * 30
+            if remainingDays > 0 {
+                return String(
+                    format: NSLocalizedString("announcement.rel.months_days", comment: ""),
+                    months, remainingDays
+                )
+            }
+            return String(format: NSLocalizedString("announcement.rel.months", comment: ""), months)
+        }
+        if days >= 1 {
+            return String(format: NSLocalizedString("announcement.rel.days", comment: ""), days)
+        }
+        if hours >= 1 {
+            return String(format: NSLocalizedString("announcement.rel.hours", comment: ""), hours)
+        }
+        return NSLocalizedString("announcement.rel.just_now", comment: "")
+    }
+
     private var metaRow: some View {
         HStack(spacing: 6) {
-            Text(announcement.publishedAt, style: .relative)
+            Text(Self.relativeTime(announcement.publishedAt))
                 .font(AppFont.systemScaled(size: 13, weight: .medium))
                 .foregroundColor(.secondary)
 

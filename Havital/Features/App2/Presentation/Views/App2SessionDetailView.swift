@@ -732,6 +732,20 @@ struct App2SessionDetailView: View {
                     .lineSpacing(3)
                     .foregroundStyle(App2Theme.inkSecondary)
                     .fixedSize(horizontal: false, vertical: true)
+                // 「調整後配速」那一行（設計 frame-02d（c），8/28 盤點 D3：Android 早有）。
+                // **調整後的值只出現在這張卡**（2026-05 裁決）；沒有 `climate_adjusted_pace`
+                // 就整行不出現。
+                if let adjusted = climate.adjustedSummary {
+                    Text(String(
+                        format: NSLocalizedString("app2.session.heat_adjusted", comment: ""),
+                        adjusted
+                    ))
+                    .font(.system(size: 13, weight: .semibold))
+                    .lineSpacing(3)
+                    .foregroundStyle(App2Theme.inkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("App2_SessionDetailClimateAdjusted")
+                }
             }
         }
         .accessibilityIdentifier("App2_SessionDetailClimate")

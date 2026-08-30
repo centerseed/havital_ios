@@ -3445,6 +3445,11 @@
 "message_center.empty" = "No announcements";
 "message_center.title" = "Message Center";
 "message_center.full_text" = "Full text";
+"announcement.rel.months_days" = "%1$d mo %2$d d ago";
+"announcement.rel.months" = "%1$d mo ago";
+"announcement.rel.days" = "%1$d d ago";
+"announcement.rel.hours" = "%1$d h ago";
+"announcement.rel.just_now" = "Just now";
 "training.week_progress_format" = "%d / %d weeks";
 "training.phases_count" = "%d phases";
 "training.intensity.low_short" = "Low %d%%";
@@ -4346,6 +4351,7 @@
 "app2.home.cross_title" = "Feel like moving?";
 "app2.home.cross_body" = "Swimming, cycling or yoga — cross training doesn't count toward mileage";
 "app2.session.fueling_note" = "Fuel about every 45 minutes and carry roughly 500 ml of water.";
+"app2.session.heat_adjusted" = "Paces have been eased for today’s feels-like temperature: %@ (adjusted).";
 "app2.session.effort_title" = "Perceived effort";
 "app2.session.effort_score" = "%@ / 10";
 "app2.session.effort_chip_low" = "Easy";
@@ -4811,7 +4817,6 @@
 "app2.metric.volume_ctl" = "Fitness CTL";
 "app2.metric.volume_atl" = "Fatigue ATL";
 "app2.metric.volume_tsb" = "Form TSB";
-"app2.metric.volume_source" = "Source · workouts/stats · health_daily";
 "app2.metric.capability_hero_title" = "Current VDOT";
 "app2.metric.capability_compare" = "30 days ago";
 "app2.metric.capability_compare_format" = "%@ (%@)";
@@ -4822,10 +4827,10 @@
 "app2.metric.capability_how_title" = "Where this number comes from";
 "app2.metric.capability_row_anchor" = "Anchor source";
 "app2.metric.capability_row_decision" = "Anchor decision";
+"app2.metric.anchor_decision_weighted" = "High-weight anchor (personal best led)";
 "app2.metric.capability_row_evidence" = "Evidence";
 "app2.metric.capability_row_confidence" = "Confidence";
 "app2.metric.capability_evidence_count_format" = "n = %d";
-"app2.metric.capability_source" = "Source · workouts/vdots";
 "app2.metric.confidence_high" = "High";
 "app2.metric.confidence_medium" = "Medium";
 "app2.metric.confidence_low" = "Low";
@@ -4843,7 +4848,6 @@
 "app2.metric.recovery_trend_up" = "↑ Good";
 "app2.metric.recovery_trend_flat" = "→ Steady";
 "app2.metric.recovery_trend_down" = "↓ Low";
-"app2.metric.recovery_source" = "Source · workouts/health_daily";
 
 /* MARK: - App2 metric detail · aerobic / speed endurance (0–100 population position) */
 "app2.metric.level_hero_title" = "Population position (0–100)";
@@ -4853,7 +4857,6 @@
 "app2.metric.level_shortfall_title" = "Why it is not clear yet";
 "app2.metric.level_shortfall_aerobic" = "This score needs enough aerobic runs spread across different distances: when every run is the same length, a heart rate that climbs with distance looks the same as one that started high. The line above is what has accumulated so far; the score appears once that is filled in.";
 "app2.metric.level_shortfall_speed" = "This score needs enough sessions where the drop-off between reps is visible (intervals or repeats): steady-pace running cannot measure how much you fade over repeated near-maximal efforts. The line above is what has accumulated so far; the score appears once that is filled in.";
-"app2.metric.level_source" = "Source · state/today";
 
 /* MARK: - App2 plan-end state (design frame-00g / frame-00g2) */
 "app2.plan_end.chip_race" = "Race done";

@@ -349,7 +349,11 @@ struct RizoChatView: View {
 
     // MARK: - Shared Avatar
 
-    /// Rizo 漸層圓形頭像（藍→綠），中央白字「R」。最終可換 mascot 圖示。
+    /// Rizo 漸層圓形頭像（藍），中央白字「R」。最終可換 mascot 圖示。
+    ///
+    /// 2026-08-30（8/28 盤點 V2）：原本是藍→綠，於是同一個 Rizo sheet 裡 header 那顆
+    /// （`App2Avatar`，藍漸層）與訊息旁這顆（青綠）長得不一樣。R 頭像是同一個身分，
+    /// 一律藍圓；雙平台同色。
     private func rizoAvatar(size: CGFloat, fontSize: CGFloat) -> some View {
         Text("R")
             .font(.system(size: fontSize, weight: .bold))
@@ -357,7 +361,7 @@ struct RizoChatView: View {
             .frame(width: size, height: size)
             .background(
                 LinearGradient(
-                    colors: [PacerizColor.blue, PacerizColor.green],
+                    colors: [PacerizColor.blue, PacerizColor.blueDeep],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ),

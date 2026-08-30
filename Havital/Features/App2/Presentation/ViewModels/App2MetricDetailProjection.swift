@@ -155,14 +155,16 @@ enum App2MetricDetailProjection {
                 id: "anchor",
                 label: L10n.App2.Metric.capabilityRowAnchor.localized,
                 value: vdotSourceLabel(source, anchorDate: entry.anchorDate),
-                detail: source
+                // 右緣原本掛著原始識別字（`personal_best`）。弱化字級不會讓欄位名變成
+                // 產品文案 —— 它是給施工者看的，不該在使用者的畫面上（8/28 盤點 D11）。
+                detail: nil
             ))
         }
         if let decision = entry.anchorDecision {
             rows.append(App2MetricDiagnosticRow(
                 id: "decision",
                 label: L10n.App2.Metric.capabilityRowDecision.localized,
-                value: decision,
+                value: anchorDecisionLabel(decision),
                 detail: nil
             ))
         }
@@ -195,7 +197,20 @@ enum App2MetricDetailProjection {
         return rows
     }
 
-    /// `benchmark` → 「指標跑（8/2）」。沒有對應譯名的來源原樣顯示（右緣本來就掛 mono 原字）。
+    /// `weighted_16x` → 「高權重錨定（以個人最佳為主）」（8/28 盤點 D11）。
+    ///
+    /// **語意是權重，不是筆數**：PB／測驗錨點在配速能力估算裡的權重是一般訓練課的
+    /// 16 倍（backend `BENCHMARK_WEIGHT_BOOST = 16.0`），不是「取最近 16 筆」
+    /// ——2026-08-30 使用者裁決。認不得的值原樣顯示，同 `vdotSourceLabel`：
+    /// 猜一個譯名比露出識別字更糟。
+    static func anchorDecisionLabel(_ decision: String) -> String {
+        switch decision {
+        case "weighted_16x": return L10n.App2.Metric.anchorDecisionWeighted.localized
+        default:             return decision
+        }
+    }
+
+    /// `benchmark` → 「指標跑（8/2）」。沒有對應譯名的來源原樣顯示。
     static func vdotSourceLabel(_ source: String, anchorDate: String?) -> String {
         let name: String
         switch source {

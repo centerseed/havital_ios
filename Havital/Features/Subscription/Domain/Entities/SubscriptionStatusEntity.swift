@@ -250,8 +250,10 @@ extension SubscriptionStatusEntity {
         }
         switch status.status {
         case .active, .gracePeriod:
-            return "\(status.planDisplayName) · "
-                + NSLocalizedString("app2.settings.subscription_active", comment: "Renewing")
+            // 膠囊只寫狀態（「續訂中」），不重覆產品名（8/28 盤點 V27）：卡片標題就在
+            // 它左邊寫著「Paceriz Premium」，膠囊再寫一次會把整條 header 撐到換行，
+            // 而它要回答的問題只有「現在是什麼狀態」。方案名在卡片第二行與方案頁都有。
+            return NSLocalizedString("app2.settings.subscription_active", comment: "Renewing")
         case .trial:
             let trial = NSLocalizedString("profile.subscription.trial", comment: "Trial")
             guard let days = status.trialDaysRemaining else { return trial }

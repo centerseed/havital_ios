@@ -127,7 +127,8 @@ struct RizoHistoryDetailView: View {
             .foregroundColor(.white)
             .frame(width: size, height: size)
             .background(
-                LinearGradient(colors: [PacerizColor.blue, PacerizColor.green],
+                // R 頭像一律藍圓（8/28 盤點 V2），與 RizoChatView／App2Avatar 同一顆。
+                LinearGradient(colors: [PacerizColor.blue, PacerizColor.blueDeep],
                                startPoint: .topLeading, endPoint: .bottomTrailing),
                 in: Circle())
     }

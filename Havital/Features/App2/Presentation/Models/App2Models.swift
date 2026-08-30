@@ -164,6 +164,24 @@ extension App2Insight {
     var arrowGlyph: String { direction.arrowGlyph }
 }
 
+// MARK: - App2SegmentFormat
+/// 分段行「距離 · 配速」的寫法（8/28 盤點 V36）。
+///
+/// 兩台原本各寫各的：iOS `2.0 km @ 7:35`、Android `2.0 km · 7:35/km`。這個 app 的
+/// 所有「量 · 量」都是中點分隔（日卡的「課表 2.2 km · 12:17」、紀錄列、結構卡），
+/// 配速也一律帶單位——所以取 Android 那一種，iOS 對齊。
+///
+/// `/km` 是寫死的，與 Android `App2SessionDetail.join` 同一條：處方配速本身
+/// （`segment.pace`）就是後端以公里為單位給的字串，英制換算是另一件還沒做的事，
+/// 兩台都還沒做，這裡不單邊補一半。
+enum App2SegmentFormat {
+    static let separator = " · "
+
+    static func paceWithUnit(_ pace: String) -> String {
+        pace.hasSuffix("/km") ? pace : "\(pace)/km"
+    }
+}
+
 /// 今日課表卡（§3.1 倒數第 3 列；設計 dc.html「今日課表 · 輕鬆跑／節奏跑／長距離／
 /// 休息日卡片」四版，＝`screens/frame-02b-noninterval.png` 上半）。
 struct App2TodaySession: Equatable {
@@ -347,10 +365,20 @@ struct App2SessionClimate: Equatable {
     let shortLevel: String
     /// `體感 41.2°C`；溫度缺席時 nil。
     let feelsLike: String?
-    /// 後端 `reason_text`（已在地化）。
+    /// 生理說明句。
+    ///
+    /// 8/28 盤點 D3：原本直接印後端的 `reason_text`，而那一句是後端**照請求當下的
+    /// 語言**生成的，實機上是英文（`Mild heat stress: slow down by 2-3%…`）坐在一張
+    /// 中文卡片裡。改成 app 自己那組 `climate.recommendation.<level>`（三語齊、
+    /// 1.4 熱適應頁用的同一組），依結構化的 `heat_pressure_level` 取——不是拿字串猜語言。
     let reason: String
     /// `heat_pressure_level` 正規化值，決定卡片顏色。
     let level: String
+    /// 「系統已依今日體感溫度把配速目標放寬：4×400m @ 5:09/km（調整後）」那一行的量。
+    ///
+    /// nil ＝ 今天沒有 `climate_adjusted_pace`，整行不出現（Android 同一條）。
+    /// **調整後配速只出現在這張卡**（2026-05 裁決，2026-08-26 起 App2 全面適用）。
+    let adjustedSummary: String?
 }
 
 /// 今日課表卡的一行分段（設計 frame-00：左名稱、右值）。

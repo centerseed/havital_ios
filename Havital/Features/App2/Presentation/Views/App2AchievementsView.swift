@@ -25,6 +25,9 @@ struct App2AchievementsView: View {
     /// 使用者點了收藏牆的某一顆、等待確認要不要設為展示徽章。
     @State private var pendingDisplayBadge: AchievementBadge?
 
+    /// 「看更多」開的那一組完整清單（8/28 盤點 F21）。nil ＝ 沒開。
+    @State private var expandedTrack: AchievementTrack?
+
     private let pbColumns = [
         GridItem(.flexible(), spacing: 10),
         GridItem(.flexible(), spacing: 10)
@@ -78,6 +81,25 @@ struct App2AchievementsView: View {
                 badge.nameKey.localizedOrFallback(default: badge.badgeId)
             ))
         }
+        // 一組徽章的完整清單（8/28 盤點 F21）。二層頁一律 fullScreenCover，
+        // 與這個 app 的其他二層頁同一種呈現。
+        .fullScreenCover(item: $expandedTrack) { track in
+            App2BadgeTrackView(
+                track: track,
+                displayedBadgeId: displayedBadgeId,
+                onPick: { pendingDisplayBadge = $0 },
+                onClose: { expandedTrack = nil }
+            )
+        }
+    }
+
+    /// 群組圖用的代表徽章：這一組最新解鎖的那顆，都沒解鎖就取第一顆（8/28 盤點 V23）。
+    static func representativeBadge(_ badges: [AchievementBadge]) -> AchievementBadge? {
+        let unlocked = badges.filter { $0.status == .unlocked }
+        if let latest = unlocked.max(by: { ($0.unlockedAt ?? "") < ($1.unlockedAt ?? "") }) {
+            return latest
+        }
+        return badges.first
     }
 
     // MARK: - 最新解鎖 hero
@@ -264,23 +286,40 @@ struct App2AchievementsView: View {
 
         return VStack(alignment: .leading, spacing: 15) {
             HStack(spacing: 11) {
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(App2Theme.accentBlue.opacity(0.12))
-                    .frame(width: 40, height: 40)
-                    .overlay {
-                        Image(systemName: "rosette")
-                            .font(.system(size: 19, weight: .semibold))
-                            .foregroundStyle(App2Theme.accentBlueDeep)
+                // 群組的圖＝**這一組的代表徽章美術**（8/28 盤點 V23）。原本是通用的
+                // `rosette` 圓章，於是「訓練節奏」「里程碑」…每一組的圖都一模一樣，
+                // 群組標題成了唯一能分辨它們的東西。代表徽章＝這一組最新解鎖的那顆，
+                // 都沒解鎖就取第一顆（灰底問號，仍看得出是哪一組的美術）。
+                Group {
+                    if let representative = Self.representativeBadge(badges) {
+                        AchievementBadgeImage(
+                            assetName: AchievementBadgeArtwork.assetName(for: representative),
+                            status: representative.status,
+                            size: 40
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    } else {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(App2Theme.accentBlue.opacity(0.12))
+                            .frame(width: 40, height: 40)
                     }
+                }
+                .accessibilityIdentifier("App2_AchievementsTrackBadge_\(track.trackId)")
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text(track.titleKey.localizedOrFallback(default: track.trackId))
                             .font(.system(size: 17, weight: .black))
                             .foregroundStyle(App2Theme.inkPrimary)
                         Spacer(minLength: 6)
+                        // 8/28 盤點 F21：「看更多」原本是不可點的死字。橫向列一次只看得到
+                        // 四、五顆，而一組有十幾顆——這裡是唯一能看完一組的出口。
                         Text(L10n.App2.Achievements.seeMore.localized)
                             .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(App2Theme.accentBlueDeep)
+                            .contentShape(Rectangle())
+                            .onTapGesture { expandedTrack = track }
+                            .accessibilityAddTraits(.isButton)
+                            .accessibilityIdentifier("App2_AchievementsSeeMore_\(track.trackId)")
                     }
                     HStack(spacing: 9) {
                         App2ProgressBar(
@@ -310,70 +349,12 @@ struct App2AchievementsView: View {
         .app2CardSurface(cornerRadius: 20)
     }
 
-    /// 收藏牆的一格 —— **徽章美術用既有 asset**，與 hero 及 1.4 的收藏區同一支
-    /// （`AchievementBadgeImage`：已解鎖畫 art，未解鎖是灰底問號）。
-    /// 原本畫的是 2.0 自己的銅色圓章＋通用 `rosette` icon，等於在收藏牆另立一套
-    /// 徽章視覺，每一顆看起來都一樣 —— 2026-08-25 兩平台實走時的差異就是這個。
     private func badgeTile(_ badge: AchievementBadge) -> some View {
-        let unlocked = badge.status == .unlocked
-        let isDisplayed = badge.badgeId == displayedBadgeId
-        let tileSize: CGFloat = 60
-        return VStack(spacing: 7) {
-            ZStack(alignment: .bottomTrailing) {
-                AchievementBadgeImage(
-                    assetName: AchievementBadgeArtwork.assetName(for: badge),
-                    status: badge.status,
-                    size: tileSize
-                )
-                .clipShape(RoundedRectangle(cornerRadius: tileSize * 0.22, style: .continuous))
-                .shadow(
-                    color: App2Theme.shadowInk.opacity(unlocked ? 0.22 : 0.08),
-                    radius: unlocked ? 6 : 2,
-                    x: 0, y: unlocked ? 5 : 1
-                )
-                .overlay {
-                    // 目前展示中的那一顆給一圈藍框（未解鎖的不會有）。
-                    if isDisplayed {
-                        RoundedRectangle(cornerRadius: tileSize * 0.22, style: .continuous)
-                            .strokeBorder(App2Theme.accentBlue, lineWidth: 2.5)
-                    }
-                }
-                .accessibilityIdentifier("App2_AchievementsBadge_\(badge.badgeId)")
-
-                if unlocked {
-                    Circle()
-                        .fill(App2Theme.accentGreenBright)
-                        .frame(width: 20, height: 20)
-                        .overlay(Circle().strokeBorder(.white, lineWidth: 2.5))
-                        .overlay {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 9, weight: .black))
-                                .foregroundStyle(.white)
-                        }
-                        .offset(x: 1, y: 1)
-                }
-            }
-            Text(badge.nameKey.localizedOrFallback(default: badge.badgeId))
-                .font(.system(size: 13, weight: .heavy))
-                .multilineTextAlignment(.center)
-                .foregroundStyle(unlocked ? App2Theme.inkPrimary : App2Theme.inkMuted)
-                .lineLimit(2)
-            Text(badge.unlockedAt.map { String($0.prefix(10)) } ?? "— —")
-                .font(.app2Mono(9, weight: .semibold))
-                .foregroundStyle(App2Theme.inkFaint)
-        }
-        .frame(width: 66)
-        .contentShape(Rectangle())
-        // **補缺口**：設計包沒有替成就頁定義「換一顆展示徽章」的入口，
-        // 但 pin 這件事在 repo 裡早就有（`AchievementRepository.setPinnedBadgeId`
-        // ＋ 1.4 的 `BadgeShowcasePickerView`），Android 也有。這裡把入口補在
-        // 收藏牆的 tile 上：點已解鎖的徽章 → 確認 → 設為展示徽章。
-        // 未解鎖的不可點（點了也沒有東西可展示）。
-        .onTapGesture {
-            guard unlocked else { return }
-            pendingDisplayBadge = badge
-        }
-        .accessibilityAddTraits(unlocked ? [.isButton] : [])
+        App2BadgeTile(
+            badge: badge,
+            isDisplayed: badge.badgeId == displayedBadgeId,
+            onPick: { pendingDisplayBadge = $0 }
+        )
     }
 
     // MARK: - Helpers

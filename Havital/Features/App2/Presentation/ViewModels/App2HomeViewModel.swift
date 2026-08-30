@@ -938,7 +938,11 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         return String(format: L10n.App2.Home.strengthRow.localized, exercises)
     }
 
-    /// `400m @ 4:30`／`10 分鐘`。組不出來就回 nil（那一行不顯示）。
+    /// `400m · 4:30/km`／`10 分鐘`。組不出來就回 nil（那一行不顯示）。
+    ///
+    /// 8/28 盤點 V36：分隔號原本是 `@`、配速後面沒有單位（`400m @ 4:30`），與 Android
+    /// 的 `400m · 4:30/km` 不同 —— 同一堂課的同一行在兩台讀起來是兩種寫法。這個 app
+    /// 的所有「量 · 量」都是中點分隔（日卡、紀錄列、結構卡），配速也一律帶單位。
     static func effortLabel(effort: SegmentEffort) -> String? {
         var parts: [String] = []
         if let metres = effort.distanceM {
@@ -951,9 +955,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             parts.append(String(format: L10n.App2.Home.recoverySeconds.localized, seconds))
         }
         if let pace = effort.pace ?? effort.basePace {
-            parts.append("@ \(pace)")
+            parts.append(App2SegmentFormat.paceWithUnit(pace))
         }
-        return parts.isEmpty ? nil : parts.joined(separator: " ")
+        return parts.isEmpty ? nil : parts.joined(separator: App2SegmentFormat.separator)
     }
 
     static func effortLabel(segment: RunSegment) -> String? {
@@ -968,9 +972,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         // 配速裁決（2026-05 使用者裁決，2026-08-26 起 App2 全面適用）：
         // 分段列一律顯示處方配速；`climate_adjusted_pace` 只出現在熱適應卡。
         if let pace = segment.pace ?? segment.basePace {
-            parts.append("@ \(pace)")
+            parts.append(App2SegmentFormat.paceWithUnit(pace))
         }
-        return parts.isEmpty ? nil : parts.joined(separator: " ")
+        return parts.isEmpty ? nil : parts.joined(separator: App2SegmentFormat.separator)
     }
 
     /// `週二 · 8/25` —— 裝置當地日期，不是後端字串。

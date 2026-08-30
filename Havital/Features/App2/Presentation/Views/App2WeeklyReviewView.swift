@@ -251,16 +251,29 @@ struct App2WeeklyReviewView: View {
         if !projection.stats.isEmpty {
             section(L10n.App2.WeeklyReview.statsSection.localized) { statsGrid(projection.stats) }
         }
-        if !projection.highlights.isEmpty {
+        if !projection.highlights.isEmpty || !projection.improvements.isEmpty {
             section(L10n.App2.WeeklyReview.highlightsSection.localized) {
-                bulletCard(projection.highlights, symbol: "star.fill", tint: App2Theme.accentOrangeBright)
-                    .accessibilityIdentifier("App2_WeeklyReviewHighlights")
+                // 亮點與「要注意的」在**同一張卡**，但各自的圖示不同（8/28 盤點 D7）：
+                // 一個是做到了什麼（橘星），一個是要注意什麼（藍上升箭頭，同 Android）。
+                // 兩組都空才整段不出現。
+                bulletCard(
+                    projection.highlights.map {
+                        (text: $0, symbol: "star.fill", tint: App2Theme.accentOrangeBright)
+                    } + projection.improvements.map {
+                        (text: $0, symbol: "arrow.up.right", tint: App2Theme.accentBlueDeep)
+                    }
+                )
+                .accessibilityIdentifier("App2_WeeklyReviewHighlights")
             }
         }
         if !projection.observations.isEmpty {
             section(L10n.App2.WeeklyReview.observationsSection.localized) {
-                bulletCard(projection.observations, symbol: "eye.fill", tint: App2Theme.accentBlueDeep)
-                    .accessibilityIdentifier("App2_WeeklyReviewObservations")
+                bulletCard(
+                    projection.observations.map {
+                        (text: $0, symbol: "eye.fill", tint: App2Theme.accentBlueDeep)
+                    }
+                )
+                .accessibilityIdentifier("App2_WeeklyReviewObservations")
             }
         }
         if !projection.analysisNotes.isEmpty {
@@ -343,15 +356,17 @@ struct App2WeeklyReviewView: View {
         }
     }
 
-    private func bulletCard(_ lines: [String], symbol: String, tint: Color) -> some View {
+    /// 一張條列卡。**每一列自己帶圖示與顏色**（8/28 盤點 D7）：亮點與「要注意的」
+    /// 在同一張卡上，但它們是相反的兩件事，共用一顆星號就分不出來。
+    private func bulletCard(_ rows: [(text: String, symbol: String, tint: Color)]) -> some View {
         App2Card(padding: 15, spacing: 11) {
-            ForEach(Array(lines.enumerated()), id: \.offset) { _, line in
+            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                 HStack(alignment: .top, spacing: 9) {
-                    Image(systemName: symbol)
+                    Image(systemName: row.symbol)
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundStyle(tint)
+                        .foregroundStyle(row.tint)
                         .padding(.top, 3)
-                    Text(line)
+                    Text(row.text)
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(App2Theme.inkSecondary)
                         .lineSpacing(3)

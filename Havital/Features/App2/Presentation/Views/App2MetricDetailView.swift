@@ -41,8 +41,9 @@ private struct App2MetricDetailScaffold<Content: View>: View {
     let title: String
     let identifier: String
     let onClose: () -> Void
-    /// 頁尾來源行（`資料來源 · workouts/stats`）。
-    let source: String
+    // 頁尾原本有一行「資料來源 · workouts/stats」——那是**端點路徑**，不是產品文案
+    // （8/28 盤點 D11）。它對使用者沒有任何意義，寫成人話也只會是「資料來自你的跑步紀錄」
+    // 這種每一頁都成立的廢話，所以整行拿掉。四頁一致。
     @ViewBuilder let content: () -> Content
 
     var body: some View {
@@ -65,12 +66,6 @@ private struct App2MetricDetailScaffold<Content: View>: View {
             ScrollView {
                 VStack(spacing: 14) {
                     content()
-
-                    Text(source)
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(App2Theme.inkFaint)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.top, 2)
                 }
                 .padding(.horizontal, App2Theme.pagePadding)
                 .padding(.bottom, 28)
@@ -235,8 +230,7 @@ private struct App2VolumeDetailPage: View {
         App2MetricDetailScaffold(
             title: insight.label,
             identifier: "App2_MetricDetail_weekly_volume",
-            onClose: onClose,
-            source: L10n.App2.Metric.volumeSource.localized
+            onClose: onClose
         ) {
             App2MetricHeroCard(
                 hero: viewModel.detail?.value.hero
@@ -346,8 +340,7 @@ private struct App2CapabilityDetailPage: View {
         App2MetricDetailScaffold(
             title: insight.label,
             identifier: "App2_MetricDetail_capability_baseline",
-            onClose: onClose,
-            source: L10n.App2.Metric.capabilitySource.localized
+            onClose: onClose
         ) {
             App2MetricHeroCard(
                 hero: viewModel.detail?.value.hero
@@ -463,8 +456,7 @@ private struct App2LevelDetailPage: View {
         App2MetricDetailScaffold(
             title: insight.label,
             identifier: "App2_MetricDetail_\(kind.rawValue)",
-            onClose: onClose,
-            source: L10n.App2.Metric.levelSource.localized
+            onClose: onClose
         ) {
             App2MetricHeroCard(
                 hero: App2MetricDetailProjection.levelHero(insight: insight),
@@ -530,8 +522,7 @@ private struct App2RecoveryDetailPage: View {
         App2MetricDetailScaffold(
             title: insight.label,
             identifier: "App2_MetricDetail_recovery_index",
-            onClose: onClose,
-            source: L10n.App2.Metric.recoverySource.localized
+            onClose: onClose
         ) {
             App2MetricHeroCard(
                 hero: viewModel.detail?.value.hero

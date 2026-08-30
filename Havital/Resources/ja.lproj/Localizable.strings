@@ -3442,6 +3442,11 @@
 "message_center.empty" = "お知らせはありません";
 "message_center.title" = "メッセージセンター";
 "message_center.full_text" = "全文";
+"announcement.rel.months_days" = "%1$dヶ月%2$d日前";
+"announcement.rel.months" = "%1$dヶ月前";
+"announcement.rel.days" = "%1$d日前";
+"announcement.rel.hours" = "%1$d時間前";
+"announcement.rel.just_now" = "たった今";
 "training.week_progress_format" = "%d / %d 週";
 "training.phases_count" = "%d フェーズ";
 "training.intensity.low_short" = "低 %d%%";
@@ -4343,6 +4348,7 @@
 "app2.home.cross_title" = "少し動きたい？";
 "app2.home.cross_body" = "水泳・バイク・ヨガなどのクロストレーニングは走行距離に含みません";
 "app2.session.fueling_note" = "45 分ごとの補給と、500ml 程度の水の携帯をおすすめします。";
+"app2.session.heat_adjusted" = "今日の体感温度に合わせてペース目標を緩めました：%@（調整後）";
 "app2.session.effort_title" = "体感強度";
 "app2.session.effort_score" = "%@ / 10";
 "app2.session.effort_chip_low" = "低強度";
@@ -4808,7 +4814,6 @@
 "app2.metric.volume_ctl" = "体力 CTL";
 "app2.metric.volume_atl" = "疲労 ATL";
 "app2.metric.volume_tsb" = "調子 TSB";
-"app2.metric.volume_source" = "データ元 · workouts/stats · health_daily";
 "app2.metric.capability_hero_title" = "現在のVDOT";
 "app2.metric.capability_compare" = "30日前";
 "app2.metric.capability_compare_format" = "%@（%@）";
@@ -4819,10 +4824,10 @@
 "app2.metric.capability_how_title" = "この値の根拠";
 "app2.metric.capability_row_anchor" = "基準の出どころ";
 "app2.metric.capability_row_decision" = "基準の判定";
+"app2.metric.anchor_decision_weighted" = "高ウェイト基準（自己ベース優先）";
 "app2.metric.capability_row_evidence" = "データの充足度";
 "app2.metric.capability_row_confidence" = "信頼度";
 "app2.metric.capability_evidence_count_format" = "n = %d";
-"app2.metric.capability_source" = "データ元 · workouts/vdots";
 "app2.metric.confidence_high" = "高";
 "app2.metric.confidence_medium" = "中";
 "app2.metric.confidence_low" = "低";
@@ -4840,7 +4845,6 @@
 "app2.metric.recovery_trend_up" = "↑ 良好";
 "app2.metric.recovery_trend_flat" = "→ 横ばい";
 "app2.metric.recovery_trend_down" = "↓ 低下";
-"app2.metric.recovery_source" = "データ元 · workouts/health_daily";
 
 /* MARK: - App2 指標詳細 · 有酸素持久力／スピード持久力（0–100 母集団での位置） */
 "app2.metric.level_hero_title" = "母集団での位置（0–100）";
@@ -4850,7 +4854,6 @@
 "app2.metric.level_shortfall_title" = "まだ判定できない理由";
 "app2.metric.level_shortfall_aerobic" = "このスコアには、距離にばらつきのある有酸素ランが十分に必要です。毎回ほぼ同じ距離だと、心拍が距離とともに上がったのか最初から高かったのか区別できません。上の行が現在の蓄積で、それが揃えばスコアが出ます。";
 "app2.metric.level_shortfall_speed" = "このスコアには、各本のタイム低下が見える練習（インターバルやレペティション）が十分に必要です。一定ペースの走りだけでは「繰り返しでどれだけ落ちるか」を測れません。上の行が現在の蓄積で、それが揃えばスコアが出ます。";
-"app2.metric.level_source" = "データ元 · state/today";
 
 /* MARK: - App2 プラン終了状態（デザイン frame-00g／frame-00g2） */
 "app2.plan_end.chip_race" = "レース準備完了";

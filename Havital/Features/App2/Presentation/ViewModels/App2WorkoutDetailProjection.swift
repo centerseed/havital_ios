@@ -355,29 +355,44 @@ extension App2WorkoutDetailProjection {
         }
     }
 
+    /// hero chip 的區間字：**`Z2 有氧區`**（設計 frame-02f）。
+    ///
+    /// 8/28 盤點 D18：原本只印區間名（`有氧區`），看不出它落在第幾區——而「第幾區」
+    /// 正是設定頁那張心率區間表上的那個編號，兩處對不起來就沒人知道這一趟跑在哪。
+    static func zoneChipLabel(number: Int, key: String) -> String {
+        "Z\(number) \(NSLocalizedString(key, comment: ""))"
+    }
+
+    /// 六個心率區間，由低到高。**編號就是位置**（Z1…Z6），所以這一份順序同時是
+    /// 顯示字的來源與 Z 編號的來源，不會有第二份對照表跟它不一致。
+    static let zoneKeysLowToHigh = [
+        "workout.detail.recovery_zone",
+        "workout.detail.aerobic_zone",
+        "workout.detail.marathon_zone",
+        "workout.detail.threshold_zone",
+        "workout.detail.interval_zone",
+        "workout.detail.anaerobic_zone"
+    ]
+
     /// 佔比最大的心率區間。全零／全 nil ＝ 沒有這顆 chip。
     ///
     /// 區間名是既有的 Daniels 六段（`recovery`／`easy`／`marathon`／`threshold`／
-    /// `interval`／`anaerobic`），不是 Z1–Z5；顯示字用既有的
-    /// `workout.detail.*_zone`，不另造一組。
+    /// `interval`／`anaerobic`）；顯示字用既有的 `workout.detail.*_zone`，不另造一組，
+    /// 前面加上它在 [zoneKeysLowToHigh] 的位置當 Z 編號（8/28 盤點 D18）。
     static func dominantZoneLabel(_ zones: V2ZoneDistribution?) -> String? {
         guard let zones else { return nil }
-        let candidates: [(String, Double?)] = [
-            ("workout.detail.recovery_zone", zones.recovery),
-            ("workout.detail.aerobic_zone", zones.easy),
-            ("workout.detail.marathon_zone", zones.marathon),
-            ("workout.detail.threshold_zone", zones.threshold),
-            ("workout.detail.interval_zone", zones.interval),
-            ("workout.detail.anaerobic_zone", zones.anaerobic)
+        let shares: [Double?] = [
+            zones.recovery, zones.easy, zones.marathon,
+            zones.threshold, zones.interval, zones.anaerobic
         ]
-        let best = candidates
-            .compactMap { key, value -> (String, Double)? in
+        let best = shares.enumerated()
+            .compactMap { index, value -> (Int, Double)? in
                 guard let value, value > 0 else { return nil }
-                return (key, value)
+                return (index, value)
             }
             .max { $0.1 < $1.1 }
         guard let best else { return nil }
-        return NSLocalizedString(best.0, comment: "")
+        return zoneChipLabel(number: best.0 + 1, key: zoneKeysLowToHigh[best.0])
     }
 
     /// `hr_zone_distribution` 缺席（或全零）時的退路：拿這一趟的 avgHR 對用戶心率
@@ -400,7 +415,9 @@ extension App2WorkoutDetailProjection {
             6: "workout.detail.interval_zone"
         ]
         guard let key = keys[zoneNumber] else { return nil }
-        return NSLocalizedString(key, comment: "")
+        // Z 編號取用戶心率區間表上的那個編號（`HeartRateZone.zoneFor`）——這條路徑
+        // 本來就是拿 avgHR 去對那張表，所以編號與設定頁看到的是同一個（8/28 盤點 D18）。
+        return zoneChipLabel(number: zoneNumber, key: key)
     }
 
     /// 課表那一格。有課型／距離／配速就串起來，一項都沒有＝這天沒課表。

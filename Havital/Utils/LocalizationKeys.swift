@@ -2549,7 +2549,6 @@ extension L10n {
             static let volumeCtl = "app2.metric.volume_ctl"
             static let volumeAtl = "app2.metric.volume_atl"
             static let volumeTsb = "app2.metric.volume_tsb"
-            static let volumeSource = "app2.metric.volume_source"
 
             // §52 能力基準
             static let capabilityHeroTitle = "app2.metric.capability_hero_title"
@@ -2565,10 +2564,10 @@ extension L10n {
             static let capabilityHowTitle = "app2.metric.capability_how_title"
             static let capabilityRowAnchor = "app2.metric.capability_row_anchor"
             static let capabilityRowDecision = "app2.metric.capability_row_decision"
+            static let anchorDecisionWeighted = "app2.metric.anchor_decision_weighted"
             static let capabilityRowEvidence = "app2.metric.capability_row_evidence"
             static let capabilityRowConfidence = "app2.metric.capability_row_confidence"
             static let capabilityEvidenceCountFormat = "app2.metric.capability_evidence_count_format"
-            static let capabilitySource = "app2.metric.capability_source"
 
             static let confidenceHigh = "app2.metric.confidence_high"
             static let confidenceMedium = "app2.metric.confidence_medium"
@@ -2589,7 +2588,6 @@ extension L10n {
             static let recoveryTrendUp = "app2.metric.recovery_trend_up"
             static let recoveryTrendFlat = "app2.metric.recovery_trend_flat"
             static let recoveryTrendDown = "app2.metric.recovery_trend_down"
-            static let recoverySource = "app2.metric.recovery_source"
 
             // 母體位置兩格（有氧續航／速度耐力）—— 整頁只有首頁那一列，
             // 逐週對照序列還沒有 producer（SPEC-today-state §11-7）。
@@ -2602,7 +2600,6 @@ extension L10n {
             static let levelShortfallTitle = "app2.metric.level_shortfall_title"
             static let levelShortfallAerobic = "app2.metric.level_shortfall_aerobic"
             static let levelShortfallSpeed = "app2.metric.level_shortfall_speed"
-            static let levelSource = "app2.metric.level_source"
         }
 
         /// 計畫結束態（設計 frame-00g 首頁結束態／兩種語意，frame-00g2 整期總結

@@ -84,10 +84,18 @@ struct App2SettingsView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                header.padding(.bottom, 16)
+        // header 釘在捲動區**之外**（8/28 盤點 V7）。它原本是 `ScrollView` 的第一個子項，
+        // 於是捲起來之後整頁的卡片會從狀態列底下穿過去——時間與電量疊在訂閱卡上。
+        // 這一頁是二層頁，其餘二層頁（指標詳情、訓練詳情）本來就是「固定 header ＋
+        // 捲動內容」，設定頁是唯一的例外。
+        VStack(spacing: 0) {
+            header
+                .padding(.horizontal, App2Theme.pagePadding)
+                .padding(.top, 4)
+                .padding(.bottom, 16)
 
+            ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
                 if let sourced = viewModel.snapshot {
                     profileCard(sourced)
                     subscriptionSection(sourced)
@@ -105,8 +113,8 @@ struct App2SettingsView: View {
                 }
             }
             .padding(.horizontal, App2Theme.pagePadding)
-            .padding(.top, 4)
             .padding(.bottom, 40)
+            }
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
         .onAppear { viewModel.loadIfNeeded() }
