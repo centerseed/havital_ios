@@ -310,13 +310,41 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         )
     }
 
+    /// **哪一個入口才是「歷史週」**——唯讀只屬於訓練計劃頁的歷史瀏覽那一個。
+    ///
+    /// 外審第八輪要求首頁（`App2HomeView`）與「先完成上週回顧」CTA（`App2PlanView`）也傳
+    /// `isReadOnly: true`。**那會弄壞已裁決的行為**，所以沒有照做，理由釘在這裡：
+    ///
+    /// - 首頁那個入口拿的是**上週那一份還在生效的回顧**（週日則是本週）。它的
+    ///   `onApplied` 就是把建議套用到接下來的課表、然後刷新首頁——套用是預期行為，
+    ///   設成唯讀等於把它拔掉。
+    /// - `App2PlanView` 的「先完成上週回顧才產本週課表」CTA 是**使用者必須完成**的那一份
+    ///   （裁決（k）：`next_action == create_summary` 時先導週回顧）。設成唯讀就永遠完成不了，
+    ///   課表也就永遠產不出來。
+    /// - 真正的歷史回看只有訓練計劃頁的歷史模式，它**本來就**傳了 `isHistoryMode`。
+    func test_planView_passesReadOnlyOnlyForHistoryBrowsing() throws {
+        let planSource = try Self.source(at: "Havital/Features/App2/Presentation/Views/App2PlanView.swift")
+
+        XCTAssertTrue(
+            planSource.contains("isReadOnly: viewModel.isHistoryMode"),
+            "訓練計劃頁的歷史回看入口必須把 `isHistoryMode` 傳成唯讀（裁決（q））"
+        )
+        XCTAssertTrue(
+            planSource.contains("App2WeeklyReviewTarget(weekOfPlan: week, isCurrentWeek: false)"),
+            "「先完成上週回顧」CTA 是要完成的那一份，不得是唯讀，否則裁決（k）的流程走不完"
+        )
+    }
+
     /// 從測試檔位置往上找 repo 根，不寫死絕對路徑（worktree 每次不同）。
     private static func weeklyReviewViewSource() throws -> String {
+        try source(at: "Havital/Features/App2/Presentation/Views/App2WeeklyReviewView.swift")
+    }
+
+    private static func source(at relative: String) throws -> String {
         var dir = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()   // App2
             .deletingLastPathComponent()   // Features
             .deletingLastPathComponent()   // HavitalTests
-        let relative = "Havital/Features/App2/Presentation/Views/App2WeeklyReviewView.swift"
         for _ in 0..<4 {
             let candidate = dir.appendingPathComponent(relative)
             if FileManager.default.fileExists(atPath: candidate.path) {
@@ -324,6 +352,6 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
             }
             dir = dir.deletingLastPathComponent()
         }
-        throw XCTSkip("找不到 App2WeeklyReviewView.swift，跳過源碼層斷言")
+        throw XCTSkip("找不到 \(relative)，跳過源碼層斷言")
     }
 }
