@@ -108,6 +108,55 @@ final class WorkoutDetailBackgroundRefreshTests: XCTestCase {
         XCTAssertTrue(viewModel.cadences.isEmpty, "補套用時同樣是整份換掉")
     }
 
+    /// **手動刷新的結果不得被等待中的舊背景資料蓋掉**（外審第三輪 D04／E03／E11）。
+    ///
+    /// `performRefreshWorkoutDetail` 一開始就把 `state` 切成 `.loading`，於是那段期間回來的
+    /// Track B 會被 observer 收進 `pendingRefreshedDetail`。但手動刷新走的是
+    /// `refreshWorkoutDetail`（強制回源），它的回應**必定新於**那一份背景刷新——那是更早的
+    /// `getWorkoutDetail` 丟出去的。若照初次載入那樣無條件補套用，使用者下拉刷新拿到的新資料
+    /// 會在畫面上被舊的背景資料蓋回去。
+    func testPendingBackgroundRefreshDoesNotOverwriteNewerManualRefresh() async {
+        let repository = MockWorkoutRepository()
+        repository.detailToReturn = Self.detail(
+            id: "workout-manual",
+            heartRates: [150, 160, 170],
+            cadences: [180, 182, 184]
+        )
+
+        let viewModel = WorkoutDetailViewModelV2(
+            workout: Self.workout(id: "workout-manual"),
+            repository: repository
+        )
+        await viewModel.loadWorkoutDetail()
+        await Self.settle()
+        XCTAssertEqual(viewModel.heartRates.map(\.value), [150, 160, 170], "前提：初次載入那一份在畫面上")
+
+        // 手動刷新還在飛的時候，一份**更早發出**的 Track B 回來了（心率明顯是舊的低值）。
+        repository.onRefreshWorkoutDetail = { [weak repository] in
+            repository?.emitDetailRefresh(
+                Self.detail(id: "workout-manual", heartRates: [60, 61, 62], cadences: nil)
+            )
+        }
+        // 強制回源那一份才是最新的。
+        repository.detailToReturn = Self.detail(
+            id: "workout-manual",
+            heartRates: [200, 201, 202],
+            cadences: [190, 191, 192]
+        )
+
+        await viewModel.refreshWorkoutDetail()
+        await Self.settle()
+
+        XCTAssertEqual(
+            viewModel.heartRates.map(\.value), [200, 201, 202],
+            "手動刷新是強制回源、那一份最新；不得被 loading 期間收到的舊背景資料蓋掉"
+        )
+        XCTAssertEqual(
+            viewModel.cadences.count, 3,
+            "步頻同理留手動刷新那一份，不得被沒有步頻的舊背景資料清空"
+        )
+    }
+
     /// 只認這一筆 workout 的刷新（repository 是 app 範圍的單例）。
     func testBackgroundRefreshForAnotherWorkoutIsIgnored() async {
         let repository = MockWorkoutRepository()

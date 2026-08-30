@@ -160,10 +160,13 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             .store(in: &cancellables)
     }
 
-    /// 主路徑進 `.loaded` 之後，把等在那裡的那一份背景刷新套上去。
+    /// **初次載入**進 `.loaded` 之後，把等在那裡的那一份背景刷新套上去。
     ///
-    /// 兩份都是同一筆 workout 的詳情，而背景那一份是後端剛回的、比較新，所以它蓋上去是對的。
-    /// 沒有等待中的就什麼都不做。
+    /// 只有初次載入這條路徑可以套用。理由是誰比較新：Track B 是
+    /// `getWorkoutDetail` 拿到快取的那一刻才丟出去的，所以它一定晚於、也就新於
+    /// 初次載入那份 24 小時內的舊快取，蓋上去是對的。沒有等待中的就什麼都不做。
+    ///
+    /// **手動刷新不得走這一支**，見 `discardPendingRefreshedDetail`。
     private func applyPendingRefreshedDetailIfNeeded() {
         guard let pending = pendingRefreshedDetail, pending.id == workout.id else {
             pendingRefreshedDetail = nil
@@ -173,6 +176,22 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
         applyDerivedSeries(from: pending)
         state = .loaded(pending)
         Logger.debug("[WorkoutDetailViewModelV2] 補套用主路徑之前收到的 Track B 刷新 - \(pending.id)")
+    }
+
+    /// 手動刷新完成後，把等在那裡的那一份背景刷新**丟掉**（外審第三輪 D04／E03／E11）。
+    ///
+    /// 手動刷新走的是 `refreshWorkoutDetail`（強制回源），它的回應必定晚於、也就新於
+    /// 任何在它 loading 期間才被收下的 Track B——那一次背景刷新是**更早**的
+    /// `getWorkoutDetail` 丟出去的。`performRefreshWorkoutDetail` 一開始把 `state`
+    /// 切成 `.loading`，於是那段期間回來的 Track B 會被 observer 收進
+    /// `pendingRefreshedDetail`；若照初次載入那樣無條件補套用，就會**拿舊的背景資料蓋掉
+    /// 使用者剛剛主動要來的新資料**。
+    ///
+    /// 所以這裡只清掉、不套用：畫面上已經是強制回源的最新那一份了。
+    private func discardPendingRefreshedDetail() {
+        guard pendingRefreshedDetail != nil else { return }
+        pendingRefreshedDetail = nil
+        Logger.debug("[WorkoutDetailViewModelV2] 手動刷新已取得更新的資料，丟棄等待中的 Track B 刷新")
     }
 
     /// 便利初始化器（使用 DI Container 解析依賴）
@@ -1071,10 +1090,10 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             // 更新狀態
             self.state = .loaded(response)
             await refreshPersonalBestMomentIfNeeded()
-            // 主路徑跑完之前收到的那一份 Track B 刷新在這裡補上（外審 D04）。
-            // 放在 PB 之後：PB 那一支的順序被 `AC-PBM-03` 釘住（`.loaded` 之後才認 PB），
-            // 而一般的背景回寫路徑本來也不重跑 PB，兩條保持一致。
-            self.applyPendingRefreshedDetailIfNeeded()
+            // 手動刷新是強制回源，它這一份必定新於 loading 期間收到的 Track B
+            // （那是更早的 `getWorkoutDetail` 丟出去的）。所以這裡是**丟掉**、不是套用，
+            // 否則會拿舊的背景資料蓋掉使用者剛剛主動要來的新資料（外審第三輪 D04／E03／E11）。
+            self.discardPendingRefreshedDetail()
 
             Logger.firebase(
                 "運動詳情刷新成功",

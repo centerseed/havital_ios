@@ -50,6 +50,9 @@ class MockWorkoutRepository: WorkoutRepository {
 
     /// 從外面推一次 Track B 背景刷新（模擬 repository 把刷回來的那一份交出去）。
     func emitDetailRefresh(_ detail: WorkoutV2Detail) { detailRefreshSubject.send(detail) }
+
+    /// `refreshWorkoutDetail` 一進來就會呼叫的 hook（nil ＝ 不做任何事，既有測試不受影響）。
+    var onRefreshWorkoutDetail: (() -> Void)?
     var workoutsPaginationDidUpdate: AnyPublisher<PaginationInfo, Never> { Empty().eraseToAnyPublisher() }
     func getCachedPagination() -> PaginationInfo? { nil }
 
@@ -192,6 +195,14 @@ class MockWorkoutRepository: WorkoutRepository {
     }
 
     func refreshWorkoutDetail(id: String) async throws -> WorkoutV2Detail {
+        // 讓測試在這次強制刷新**還在飛的時候**插隊做事（例如推一次 Track B 背景刷新），
+        // 用來重現「手動刷新的 loading 期間收到背景事件」那個競態。
+        if let onRefreshWorkoutDetail {
+            onRefreshWorkoutDetail()
+            // observer 走 `receive(on: DispatchQueue.main)`，讓那一跳在回應之前先落地，
+            // 否則測不到「背景那份已經進了 pending」的狀態。
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
         if let error = errorToThrow {
             throw error
         }
