@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - App2RaceDatabaseView
 /// 2.0 賽事資料庫 —— 設計 **frame-14「賽事資料庫」**。
 ///
-/// **資料就是 1.x 那一條**（`RaceRepository` → `GET /v2/races`，精選母體）；
+/// **資料就是 1.x 那一條**（`RaceRepository` → `GET /v2/races`，精選清單）；
 /// 這裡只是 2.0 的版面：固定的搜尋列 ＋ 地區三段 ＋ 距離 chip，下面是結果清單。
 struct App2RaceDatabaseView: View {
 

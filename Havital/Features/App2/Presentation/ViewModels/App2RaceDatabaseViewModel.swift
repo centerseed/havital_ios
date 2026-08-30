@@ -8,7 +8,7 @@ import Foundation
 /// 這一層只有設計新增的篩選狀態：地區三段（全部／台灣／日本，1.x 的
 /// `RacePickerDataSource.selectedRegion` 沒有「全部」）、距離 chip、關鍵字。
 ///
-/// 精選範圍沿用 1.x：`curatedOnly = true`（與 onboarding 的賽事挑選同一份母體）。
+/// 精選範圍沿用 1.x：`curatedOnly = true`（與 onboarding 的賽事挑選同一份清單）。
 @MainActor
 final class App2RaceDatabaseViewModel: ObservableObject, TaskManageable {
 

@@ -201,6 +201,71 @@ final class WorkoutDetailBackgroundRefreshTests: XCTestCase {
         XCTAssertEqual(viewModel.cadences.count, 3, "步頻同理不得被舊的那一份清空")
     }
 
+    /// **抑制旗標的作用域是「一輪載入」，不是這一頁的一生**（外審第五輪 D04／E03／E11）。
+    ///
+    /// 手動刷新成功後會豎起 `ignoresBackgroundRefresh`，讓晚到的舊 Track B 不要蓋掉新資料。
+    /// 但載入失敗後的重試會再打一次 `getWorkoutDetail`、也就會再有一次**新的** Track B——
+    /// 旗標若不在新一輪載入時放下，那份新的背景刷新會被永久吃掉，F5 的症狀就回來了。
+    ///
+    /// 這一支要等冷卻：`loadWorkoutDetail`／`refreshWorkoutDetail` 各自帶 5 秒 cooldown
+    /// （`TaskManageable.executeTask`），同一個 TaskID 在冷卻內的第二次呼叫會被直接丟掉，
+    /// 而這個情境本來就需要「刷新一次 → 之後再載入一次」。
+    func testBackgroundRefreshResumesAfterFailedLoadRetry() async {
+        let repository = MockWorkoutRepository()
+        repository.detailToReturn = Self.detail(
+            id: "workout-retry",
+            heartRates: [150, 160, 170],
+            cadences: [180, 182, 184]
+        )
+
+        let viewModel = WorkoutDetailViewModelV2(
+            workout: Self.workout(id: "workout-retry"),
+            repository: repository
+        )
+        await viewModel.loadWorkoutDetail()
+        await Self.settle()
+
+        // 手動刷新成功 → 旗標豎起來。
+        repository.detailToReturn = Self.detail(
+            id: "workout-retry",
+            heartRates: [200, 201, 202],
+            cadences: [190, 191, 192]
+        )
+        await viewModel.refreshWorkoutDetail()
+        await Self.settle()
+
+        // 等兩個 TaskID 的 cooldown 過去（兩者都從上面那兩次呼叫開始算，所以等一次就好）。
+        try? await Task.sleep(nanoseconds: 5_300_000_000)
+
+        // 之後刷新失敗 → 進 error，畫面沒有資料了。
+        repository.errorToThrow = DomainError.notFound("boom")
+        await viewModel.refreshWorkoutDetail()
+        await Self.settle()
+        XCTAssertFalse(viewModel.state.hasData, "前提：刷新失敗後這一頁沒有資料")
+
+        // 使用者重試 → 這是**新的一輪載入**，旗標要放下。
+        repository.errorToThrow = nil
+        repository.detailToReturn = Self.detail(
+            id: "workout-retry",
+            heartRates: [111, 112, 113],
+            cadences: [120, 121, 122]
+        )
+        await viewModel.loadWorkoutDetail()
+        await Self.settle()
+        XCTAssertEqual(viewModel.heartRates.map(\.value), [111, 112, 113], "前提：重試載入成功")
+
+        // 這一輪的 Track B 是新的，必須回寫得進去。
+        repository.emitDetailRefresh(
+            Self.detail(id: "workout-retry", heartRates: [130, 131, 132], cadences: [140, 141, 142])
+        )
+        await Self.settle()
+
+        XCTAssertEqual(
+            viewModel.heartRates.map(\.value), [130, 131, 132],
+            "重試載入之後的 Track B 是新的一輪，不得被上一輪手動刷新豎起的旗標吃掉"
+        )
+    }
+
     /// 只認這一筆 workout 的刷新（repository 是 app 範圍的單例）。
     func testBackgroundRefreshForAnotherWorkoutIsIgnored() async {
         let repository = MockWorkoutRepository()

@@ -104,8 +104,10 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     /// `pendingRefreshedDetail`）還是晚一步才回來（`state.hasData` 已是 true 而被 observer
     /// 直接套用），套上去都是拿舊資料蓋掉使用者剛剛主動要來的新資料。
     ///
-    /// 而且旗標不必再解除：`loadWorkoutDetail()` 在 `state.hasData` 時直接 return，
-    /// 這一頁不會再打一次 `getWorkoutDetail`，也就不會再有新的 Track B 要接。
+    /// **旗標的作用域是「這一輪載入」，不是這一頁的一生**：`performLoadWorkoutDetail` 一開始
+    /// 就把它放下。載入失敗後重試走的正是那條路（`loadWorkoutDetail()` 只在 `state.hasData`
+    /// 時提早返回），那一輪會再打一次 `getWorkoutDetail`、也就會再有一次 Track B——旗標若
+    /// 留著不放，那份新的背景刷新會被永久吃掉（外審第五輪 D04／E03／E11）。
     private var ignoresBackgroundRefresh = false
 
     // MARK: - Initialization
@@ -1152,6 +1154,11 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
     @MainActor
     private func performLoadWorkoutDetail() async {
         state = .loading
+        // 新的一次載入＝新的一輪 Track B（`getWorkoutDetail` 命中快取就會再丟一次），
+        // 所以上一輪手動刷新豎起來的抑制旗標要在這裡放下（外審第五輪 D04／E03／E11）。
+        // 失敗後重試走的正是這條路：`loadWorkoutDetail()` 只在 `state.hasData` 時提早返回，
+        // 進了 error 之後重試會再打一次端點——旗標若不放下，那一輪的背景刷新會被永久吃掉。
+        ignoresBackgroundRefresh = false
 
         do {
             // 檢查任務是否被取消
