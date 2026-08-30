@@ -750,7 +750,7 @@ struct App2DataSourceStatus: Identifiable, Equatable {
 /// 有詳情頁的指標。
 ///
 /// 前三個各自有序列端點（stats／vdots／health_daily），所以圖與統計欄不吃首頁那一列的
-/// 狀態；後兩個（有氧續航／速度耐力）**整頁只有首頁那一列** —— 0–100 母體位置量尺的
+/// 狀態；後兩個（有氧續航／速度耐力）**整頁只有首頁那一列** —— 0–100 相對能力量尺的
 /// 逐週對照序列還沒有 producer（SPEC-today-state §11-7）。
 ///
 /// 2026-08-29 創辦人裁決：「只要有數據就要可以展開詳細畫面，資料不足也要可以在詳細畫面
@@ -765,14 +765,14 @@ enum App2MetricDetailKind: String, Identifiable, Equatable {
 
     var id: String { rawValue }
 
-    /// 0–100 母體位置量尺那兩格：沒有自己的序列端點，整頁內容都來自首頁那一列。
+    /// 0–100 相對能力量尺那兩格：沒有自己的序列端點，整頁內容都來自首頁那一列。
     var isPopulationLevel: Bool {
         self == .aerobicEndurance || self == .speedEndurance
     }
 
     /// 首頁那一列點不點得進來（同時決定畫不畫 chevron）。
     ///
-    /// 母體位置那兩格在 `not_computed` 時**不可點**：那代表連 envelope 都沒有，
+    /// 相對能力那兩格在 `not_computed` 時**不可點**：那代表連 envelope 都沒有，
     /// 而它們沒有第二個資料源 —— 開一頁只寫「尚未計算」就是一個按下去等於沒反應的入口。
     /// 其餘三頁各自有序列端點，狀態不影響入口。
     static func from(insight: App2Insight) -> App2MetricDetailKind? {
@@ -795,7 +795,7 @@ struct App2MetricHero: Equatable {
     let verdict: String?
     let direction: App2Insight.Direction
     /// 右側對照的標籤（`目標`／`30 天前`／`7 日基線`）。
-    /// **nil = 這一頁沒有對照這回事**（母體位置兩格的逐週序列還沒有 producer）
+    /// **nil = 這一頁沒有對照這回事**（相對能力兩格的逐週序列還沒有 producer）
     /// → 整格不畫；有標籤但值缺席才是畫「–」。
     let compareLabel: String?
     /// 右側對照的值；nil = 沒有這個量（畫「–」，不編數字）。

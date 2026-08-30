@@ -115,7 +115,7 @@ private struct App2MetricHeroCard: View {
                     .minimumScaleFactor(0.6)
                     .accessibilityIdentifier("App2_MetricHeroValue")
                 Spacer(minLength: 6)
-                // **標籤缺席＝這一頁沒有對照這回事**（母體位置兩格），整格不畫；
+                // **標籤缺席＝這一頁沒有對照這回事**（相對能力兩格），整格不畫；
                 // 有標籤但值缺席才是畫「–」（那是「有這個量、現在讀不到」）。
                 if let compareLabel = hero.compareLabel {
                     VStack(alignment: .trailing, spacing: 2) {
@@ -431,11 +431,11 @@ private struct App2CapabilityDetailPage: View {
     }
 }
 
-// MARK: - 母體位置兩格（有氧續航／速度耐力）
+// MARK: - 相對能力兩格（有氧續航／速度耐力）
 
 /// 有氧續航／速度耐力的詳情頁。
 ///
-/// **整頁沒有網路呼叫**：0–100 母體位置量尺的逐週對照序列還沒有 producer
+/// **整頁沒有網路呼叫**：0–100 相對能力量尺的逐週對照序列還沒有 producer
 /// （SPEC-today-state §11-7），所以這一頁能講的全部在首頁那一列裡 ——
 /// hero 用 `value_text`／`verdict`／`evidence`，加上一段固定的「這個指標量什麼」。
 /// `insufficient_data` 時多一塊把限制句展開成「還差什麼」（2026-08-29 裁決）。

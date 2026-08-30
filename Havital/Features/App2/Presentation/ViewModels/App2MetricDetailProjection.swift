@@ -284,9 +284,9 @@ enum App2MetricDetailProjection {
         ]
     }
 
-    // MARK: - 母體位置兩格（有氧續航／速度耐力）
+    // MARK: - 相對能力兩格（有氧續航／速度耐力）
 
-    /// 這兩頁的 hero **完全是首頁那一列**：大數字是 `value_text`（0–100 母體位置）、
+    /// 這兩頁的 hero **完全是首頁那一列**：大數字是 `value_text`（0–100 相對能力）、
     /// 判語 chip 是 `verdict`、敘事是 `evidence` 的限制句。
     ///
     /// 右側對照整格不畫：「計畫起點 vs 現在」的逐週序列還沒有 producer

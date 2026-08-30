@@ -4852,7 +4852,7 @@
 "app2.metric.recovery_trend_flat" = "→ Steady";
 "app2.metric.recovery_trend_down" = "↓ Low";
 
-/* MARK: - App2 metric detail · aerobic / speed endurance (0–100 population position) */
+/* MARK: - App2 metric detail · aerobic / speed endurance (0–100 relative ability score) */
 "app2.metric.level_hero_title" = "Relative ability (0–100)";
 "app2.metric.level_about_title" = "What this metric measures";
 "app2.metric.level_about_aerobic" = "Aerobic endurance measures how fast your heart rate climbs as the kilometres add up at the same pace — in other words, how well you hold together over distance. The 0–100 number is a relative ability score: higher is stronger, and 50 is mid-pack.";

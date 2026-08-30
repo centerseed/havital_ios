@@ -2592,9 +2592,9 @@ extension L10n {
             static let recoveryTrendFlat = "app2.metric.recovery_trend_flat"
             static let recoveryTrendDown = "app2.metric.recovery_trend_down"
 
-            // 母體位置兩格（有氧續航／速度耐力）—— 整頁只有首頁那一列，
+            // 相對能力兩格（有氧續航／速度耐力）—— 整頁只有首頁那一列，
             // 逐週對照序列還沒有 producer（SPEC-today-state §11-7）。
-            /// hero 標題：大數字是什麼量（`母體位置（0–100）`）。
+            /// hero 標題：大數字是什麼量（`相對能力（0–100）`）。
             static let levelHeroTitle = "app2.metric.level_hero_title"
             static let levelAboutTitle = "app2.metric.level_about_title"
             static let levelAboutAerobic = "app2.metric.level_about_aerobic"

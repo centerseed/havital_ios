@@ -318,7 +318,7 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         )
     }
 
-    /// 母體位置那兩格整頁只有首頁那一列，所以**有值或有限制句就可點**
+    /// 相對能力那兩格整頁只有首頁那一列，所以**有值或有限制句就可點**
     /// （2026-08-29 創辦人裁決取代 2026-08-26「無詳情稿不可點」）；
     /// `not_computed` 連 envelope 都沒有 → 仍不可點。
     func testLevelMetricsAreTappableUnlessNotComputed() {
@@ -346,7 +346,7 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         XCTAssertNil(App2MetricDetailKind.from(insight: insight("heat_sensitivity", value: "40")))
     }
 
-    // MARK: - 母體位置兩頁的 hero
+    // MARK: - 相對能力兩頁的 hero
 
     func testLevelHeroReusesInsightFieldsWhenGraded() {
         let row = insight("aerobic_endurance", value: "70",
