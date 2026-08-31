@@ -655,4 +655,61 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
         XCTAssertEqual(App2RaceDatabaseViewModel.Region.taiwan.apiValue, "tw")
         XCTAssertEqual(App2RaceDatabaseViewModel.Region.japan.apiValue, "jp")
     }
+
+    // MARK: - 目標變更事件（T-0350）
+
+    /// 缺陷原型（2026-08-31 用戶實機）：改主賽事名稱後總覽停留舊名——常駐 VM
+    /// 的 60 秒 SWR 門檻擋住跨頁寫入，總覽又漏訂 `.dataChanged(.targets)`。
+    /// 賽事管理寫入發的既有事件必須讓總覽 VM 立即重驗。
+    func testTargetsChangeEventTriggersImmediateRevalidate() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.planStatusToReturn = planStatus(planId: "e1289e60f251_5")
+        repository.overviewToReturn = overviewEntity(id: "e1289e60f251", methodologyName: "Paceriz 平衡訓練法")
+
+        final class Counter { var loads = 0 }
+        let counter = Counter()
+        // 最後建立的訂閱者持有 identifier（bus 以 identifier 取代舊 handler），
+        // 與 production 的單一常駐 VM 同構。
+        let viewModel = App2PlanOverviewViewModel(
+            planRepository: repository,
+            targetRepository: MockTargetRepository(),
+            userProfileRepository: MockUserProfileRepository(),
+            weeklyVolumesLoader: { counter.loads += 1; return [] }
+        )
+        await viewModel.revalidate()
+        XCTAssertEqual(counter.loads, 1)
+
+        CacheEventBus.shared.publish(.dataChanged(.targets))
+
+        // 事件 handler 是 hop 回 MainActor 的非同步 Task：輪詢等第二輪完成。
+        for _ in 0..<50 where counter.loads < 2 {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        XCTAssertGreaterThanOrEqual(counter.loads, 2, "targets 變更事件必須立即觸發總覽重驗")
+        XCTAssertNotNil(viewModel.lastLoadedAt)
+    }
+
+    /// 對照組：無關事件不觸發重驗。
+    func testUnrelatedEventDoesNotRevalidate() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.planStatusToReturn = planStatus(planId: "e1289e60f251_5")
+        repository.overviewToReturn = overviewEntity(id: "e1289e60f251", methodologyName: "Paceriz 平衡訓練法")
+
+        final class Counter { var loads = 0 }
+        let counter = Counter()
+        let viewModel = App2PlanOverviewViewModel(
+            planRepository: repository,
+            targetRepository: MockTargetRepository(),
+            userProfileRepository: MockUserProfileRepository(),
+            weeklyVolumesLoader: { counter.loads += 1; return [] }
+        )
+        await viewModel.revalidate()
+        XCTAssertEqual(counter.loads, 1)
+
+        CacheEventBus.shared.publish(.dataChanged(.workouts))
+        try? await Task.sleep(nanoseconds: 500_000_000)
+
+        XCTAssertEqual(counter.loads, 1, "無關事件不得觸發總覽重驗")
+        _ = viewModel  // 撐住生命週期到斷言完
+    }
 }
