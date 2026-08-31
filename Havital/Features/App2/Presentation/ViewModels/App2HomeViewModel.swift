@@ -24,6 +24,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     private var roundSawCancellation = false
     /// revalidate 的同輪互斥（見 revalidate 開頭的註解）。
     private var isRevalidating = false
+    /// 這一輪重驗的起點（判卡死用，見 revalidate 開頭）。
+    private var revalidateBegan: Date?
     @Published private(set) var goalCard: App2Sourced<App2GoalCard>?
     /// 計畫結束態（設計 frame-00g）。**有值時首頁的目標卡＋今日課表卡整段換掉**
     /// —— 那是同一塊版位的另一種內容，不是多一張卡。
@@ -206,8 +208,16 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     func revalidate() async {
         // 同一時間只跑一輪：兩輪並發會在 await 點交錯共用 `roundSawCancellation`
         // 與完成標記（外審第九輪 E08）。後進的直接跳過——SWR 下一次會再來。
-        guard !isRevalidating else { return }
+        if isRevalidating {
+            // 鎖是防重入，不是允許一輪卡住就永遠吞掉下拉刷新（T-0355，2026-08-31：
+            // 推播已到、18:47–19:07 App 對後端零請求，重開 app 才恢復）。超過門檻
+            // 視為前一輪卡死，讓位開新輪；卡死輪殘餘的 defer 只會提前放鎖，影響
+            // 背景 SWR 的重入時機，資料發布仍在 MainActor 上序列化。
+            guard let began = revalidateBegan,
+                  Date().timeIntervalSince(began) > App2RevalidatePolicy.stuckThreshold else { return }
+        }
         isRevalidating = true
+        revalidateBegan = Date()
         defer { isRevalidating = false }
 
         // 冷啟第一輪：先把上一次的快照渲染出來，這一輪的網路變成背景刷新。

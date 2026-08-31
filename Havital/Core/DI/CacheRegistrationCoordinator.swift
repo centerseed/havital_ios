@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 
 // MARK: - CacheRegistrationCoordinator
@@ -34,6 +35,7 @@ enum CacheRegistrationCoordinator {
     private static let userProfileLocalDS = UserProfileLocalDataSource()
 
     private static var hasRegistered = false
+    private static var cancellables = Set<AnyCancellable>()
 
     // MARK: - Entry point
 
@@ -100,6 +102,13 @@ enum CacheRegistrationCoordinator {
             }
             App2FileSnapshotStore.shared.invalidate(keys)
         }
+
+        // 5. workout 推播抵達 → 失效 workout 快取（T-0355）。推播＝後端資料已就緒，
+        // 沒這條時用戶收到推播、畫面停在舊清單，要重開 app 才更新（2026-08-31 實機）。
+        // domain 只發事實（Combine publisher），bus 的 publish 收在這個 composition root。
+        WorkoutBackgroundManager.shared.workoutPushReceived
+            .sink { CacheEventBus.shared.publish(.dataChanged(.workouts)) }
+            .store(in: &cancellables)
 
         Logger.debug("[CacheRegistrationCoordinator] All cache registrations complete")
     }

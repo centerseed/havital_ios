@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import HealthKit
 import UserNotifications
@@ -13,6 +14,12 @@ import UIKit
 // 3. 移除 Singleton 模式，改用依賴注入
 @available(*, deprecated, message: "Needs refactoring to UseCase pattern")
 class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
+
+    /// 後端 workout 處理完成推播抵達（前景顯示或點擊）。domain 層只發事實，
+    /// 轉成 CacheEventBus 失效在 CacheRegistrationCoordinator（T-0355）。
+    let workoutPushSubject = PassthroughSubject<Void, Never>()
+    var workoutPushReceived: AnyPublisher<Void, Never> { workoutPushSubject.eraseToAnyPublisher() }
+
     typealias FirebaseLogHandler = (_ message: String, _ level: LogLevel, _ labels: [String: String], _ jsonPayload: [String: Any]?) -> Void
 
     struct PendingWorkoutCheckErrorHandling {
@@ -933,6 +940,11 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
 extension WorkoutBackgroundManager: UNUserNotificationCenterDelegate {
     // 當應用在前台時也顯示通知
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        // 後端 workout 處理完成的推播＝資料已就緒的訊號。這裡只發事實（domain 層
+        // 不碰 CacheEventBus——architecture.md 的被動規則），失效由
+        // CacheRegistrationCoordinator 訂閱後轉發（T-0355：2026-08-31 用戶推播
+        // 已到、畫面停在舊清單，重開 app 才更新）。
+        emitWorkoutPushIfNeeded(notification.request.content.userInfo)
         // 正常顯示通知
         if #available(iOS 14.0, *) {
             completionHandler([.banner, .sound, .list])
@@ -941,8 +953,16 @@ extension WorkoutBackgroundManager: UNUserNotificationCenterDelegate {
         }
     }
     
+    /// 後端 `send_workout_processed_notification` 的 payload：`data.type == "workout_processed"`
+    ///（cloud/api_service/core/notification/notification_service.py）。
+    func emitWorkoutPushIfNeeded(_ userInfo: [AnyHashable: Any]) {
+        guard userInfo["type"] as? String == "workout_processed" else { return }
+        workoutPushSubject.send()
+    }
+
     // 處理通知的點擊事件
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+        emitWorkoutPushIfNeeded(response.notification.request.content.userInfo)
         // 處理同步相關通知
         if response.notification.request.identifier.hasPrefix("sync-training-data") ||
                     response.notification.request.identifier == "first-login-sync" {

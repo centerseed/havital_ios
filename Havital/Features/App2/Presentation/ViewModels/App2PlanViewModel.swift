@@ -79,6 +79,8 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     private var finishedRound = false
     /// revalidate 的同輪互斥：兩輪並發會在 await 點交錯共用取消旗標與完成標記。
     private var isRevalidating = false
+    /// 這一輪重驗的起點（判卡死用，見 revalidate 開頭）。
+    private var revalidateBegan: Date?
 
     /// 最近一次讀到的 plan status —— 歷史週的週起點與週次上限都從它推。
     private var latestPlanStatus: PlanStatusV2Response?
@@ -178,8 +180,16 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     }
 
     func revalidate() async {
-        guard !isRevalidating else { return }
+        if isRevalidating {
+            // 鎖是防重入，不是允許一輪卡住就永遠吞掉下拉刷新（T-0355，2026-08-31：
+            // 推播已到、18:47–19:07 App 對後端零請求，重開 app 才恢復）。超過門檻
+            // 視為前一輪卡死，讓位開新輪；卡死輪殘餘的 defer 只會提前放鎖，影響
+            // 背景 SWR 的重入時機，資料發布仍在 MainActor 上序列化。
+            guard let began = revalidateBegan,
+                  Date().timeIntervalSince(began) > App2RevalidatePolicy.stuckThreshold else { return }
+        }
         isRevalidating = true
+        revalidateBegan = Date()
         defer { isRevalidating = false }
 
         // 冷啟第一輪：先把上一次的週課表渲染出來，這一輪的網路變成背景刷新。

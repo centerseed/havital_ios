@@ -7,6 +7,12 @@ import SwiftUI
 /// 每次切換都閃 loading（2026-08-25 用戶在模擬器上點名）。
 /// 兩件事一起才治得好：**ViewModel 常駐在殼層**（下面 `App2RootView` 持有），
 /// 以及**重驗時不清空既有資料、不進 loading 態**（各 ViewModel 的 `hasLoaded`）。
+/// 重驗鎖的卡死門檻（T-0355）：一輪 revalidate 超過這個秒數沒歸還鎖，
+/// 下一次（含下拉刷新）不再被 `isRevalidating` 吞掉，直接開新輪。
+enum App2RevalidatePolicy {
+    static let stuckThreshold: TimeInterval = 30
+}
+
 @MainActor
 protocol App2Revalidating: AnyObject {
     var hasLoaded: Bool { get }
