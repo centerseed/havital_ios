@@ -516,4 +516,70 @@ final class App2RenderingTests: XCTestCase {
         )
         render(App2PlanView(viewModel: vm), name: "plan-last-week")
     }
+
+    // MARK: - 今日卡狀態 chip（T-0352 owner path）
+
+    /// 走真實 owner 佈線：view 呼叫的是 `viewModel.todayPillState(isRest:)`，
+    /// 完成訊號由 VM 從 `todayCompletedWorkout` 讀（與完成列同源）。
+    /// 這裡以同一條實例路徑斷言：VM 帶今天的完成紀錄 → chip 是「今天已跑」。
+    /// 缺陷原型（2026-08-31 用戶截圖）：舊佈線 chip 沒接完成訊號，
+    /// 與「今天已經跑完了」列同框矛盾。
+    func test_home_todayPill_reflectsCompletedRun_ownerPath() {
+        let vm = App2HomeViewModel()
+        vm.applyForTesting(
+            todayState: .session(session()),
+            todayCompletedWorkout: completedRun()
+        )
+        let pill = vm.todayPillState(isRest: false)
+        XCTAssertTrue(pill.showsCheck)
+        XCTAssertEqual(pill.textKey, L10n.App2.Home.todayDone)
+    }
+
+    /// 對照組：同一條 owner 佈線、沒有完成紀錄 → 維持「今天還沒跑」。
+    func test_home_todayPill_staysTodo_withoutCompletedRun() {
+        let vm = App2HomeViewModel()
+        vm.applyForTesting(todayState: .session(session()))
+        let pill = vm.todayPillState(isRest: false)
+        XCTAssertFalse(pill.showsCheck)
+        XCTAssertEqual(pill.textKey, L10n.App2.Home.todayTodo)
+    }
+
+    /// 休息日優先：即使今天有完成紀錄，休息日 chip 仍是「安排休息」。
+    func test_home_todayPill_restDay_winsOverCompletedRun() {
+        let vm = App2HomeViewModel()
+        vm.applyForTesting(
+            todayState: .session(session(title: DayType.rest.localizedName, intensity: nil, summary: nil)),
+            todayCompletedWorkout: completedRun()
+        )
+        let pill = vm.todayPillState(isRest: true)
+        XCTAssertTrue(pill.showsCheck)
+        XCTAssertEqual(pill.textKey, L10n.App2.Home.todayRest)
+    }
+
+    /// 完成態的整卡 render smoke（附件供人工複核）。
+    func test_home_completedRun_renders() {
+        let vm = App2HomeViewModel()
+        vm.applyForTesting(
+            goalCard: App2Sourced(goal(), origin: live),
+            trainingStatus: App2Sourced(status(), origin: live),
+            insights: App2Sourced(insights(count: 3), origin: stub),
+            todayState: .session(session()),
+            todayCompletedWorkout: completedRun()
+        )
+        render(App2HomeView(onOpenSettings: {}, viewModel: vm, achievementsViewModel: PersonalAchievementsViewModel()), name: "home-completed-run")
+    }
+
+    private func completedRun() -> WorkoutV2 {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return WorkoutV2(
+            id: "t0352-run", provider: "garmin", activityType: "running",
+            startTimeUtc: formatter.string(from: Date()), endTimeUtc: nil,
+            durationSeconds: 1800, distanceMeters: 5000,
+            distanceDisplay: nil, distanceUnit: nil, deviceName: nil,
+            basicMetrics: nil, advancedMetrics: nil, createdAt: nil,
+            schemaVersion: nil, storagePath: nil, dailyPlanSummary: nil,
+            aiSummary: nil, shareCardContent: nil
+        )
+    }
 }

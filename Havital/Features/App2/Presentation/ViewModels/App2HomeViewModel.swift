@@ -319,6 +319,11 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         let textKey: String
     }
 
+    /// Owner 佈線：view 只給 isRest，完成訊號由 VM 自己讀（與完成列同源）。
+    func todayPillState(isRest: Bool) -> TodayPillState {
+        Self.todayPillState(isRest: isRest, isDone: todayCompletedWorkout != nil)
+    }
+
     static func todayPillState(isRest: Bool, isDone: Bool) -> TodayPillState {
         if isRest { return TodayPillState(showsCheck: true, textKey: L10n.App2.Home.todayRest) }
         if isDone { return TodayPillState(showsCheck: true, textKey: L10n.App2.Home.todayDone) }
@@ -582,9 +587,11 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         todayState: App2TodaySessionState? = nil,
         weekReview: App2WeekReviewState? = nil,
         rizoOpeningLine: String? = nil,
-        planEnd: App2PlanEndCard? = nil
+        planEnd: App2PlanEndCard? = nil,
+        todayCompletedWorkout: WorkoutV2? = nil
     ) {
         self.planEnd = planEnd
+        self.todayCompletedWorkout = todayCompletedWorkout
         self.goalCard = goalCard
         self.trainingStatus = trainingStatus
         self.insights = insights

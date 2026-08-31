@@ -1113,10 +1113,7 @@ struct App2HomeView: View {
                     )
                 }
                 Spacer(minLength: 4)
-                todayStatusPill(
-                    isRest: session.isRest,
-                    isDone: viewModel.todayCompletedWorkout != nil
-                )
+                todayStatusPill(viewModel.todayPillState(isRest: session.isRest))
             }
 
             if session.isRest {
@@ -1305,9 +1302,8 @@ struct App2HomeView: View {
     /// 休息日是「安排休息」（綠勾）。完成訊號＝今天有一筆已完成紀錄
     /// （`todayCompletedWorkout`，與下方「今天已經跑完了」列同一個判準）——原本
     /// chip 沒接這個訊號，跑完當天會與完成列同框互相矛盾（2026-08-31 用戶截圖）。
-    /// 三態的決策抽在 [App2HomeViewModel.todayPillState]（純函式，單元測試鎖三態）。
-    private func todayStatusPill(isRest: Bool, isDone: Bool = false) -> some View {
-        let pill = App2HomeViewModel.todayPillState(isRest: isRest, isDone: isDone)
+    /// 三態的決策在 [App2HomeViewModel.todayPillState]（owner 佈線＋純函式，單元測試鎖三態）。
+    private func todayStatusPill(_ pill: App2HomeViewModel.TodayPillState) -> some View {
         let showsCheck = pill.showsCheck
         return HStack(spacing: 5) {
             if showsCheck {
