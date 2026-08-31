@@ -14,6 +14,8 @@ import HealthKit
 struct TrainingRecordView: View {
     @StateObject private var viewModel = TrainingRecordViewModel()
     @EnvironmentObject private var healthKitManager: HealthKitManager
+    /// 分組小計是這一頁自己現算的量，單位切換要當場重畫（T-0366）。
+    @ObservedObject private var unitManager = UnitManager.shared
     @State private var selectedWorkout: WorkoutV2?
     @State private var showingWorkoutDetail = false
     @State private var heartRateData: [(Date, Double)] = []
@@ -288,7 +290,7 @@ struct TrainingRecordView: View {
             Spacer()
             if group.totalKm > 0 {
                 Text(L10n.Record.Group.totalDistanceFormat.localized(
-                    with: UnitSystem.current.formatDistance(group.totalKm)
+                    with: unitManager.currentUnitSystem.formatDistance(group.totalKm)
                 ))
                     .font(AppFont.micro().monospacedDigit())
                     .foregroundColor(.secondary)

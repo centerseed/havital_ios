@@ -96,6 +96,10 @@ final class App2ImperialDistanceTests: XCTestCase {
         let original = manager.currentUnitSystem
         defer { manager.currentUnitSystem = original }
 
+        // `publish` 是 fire-and-forget，別條測試切換單位留下的事件會落進這裡
+        // （`resetForTesting` 的檔頭就在講這個 —— T-0176）。先排空再訂閱。
+        await CacheEventBus.shared.resetForTesting()
+
         let identifier = "App2ImperialDistanceTests.unitChange"
         var received = 0
         CacheEventBus.shared.subscribe(forIdentifier: identifier) { reason in
@@ -120,6 +124,36 @@ final class App2ImperialDistanceTests: XCTestCase {
         manager.currentUnitSystem = current
         await settle()
         XCTAssertEqual(received, 1, "值沒變不得觸發重投影")
+    }
+
+    /// 重投影出來的**字串本身**要換單位。
+    ///
+    /// 上一支證明「切換會發事件」、`App2RecordsViewModelTests`
+    /// `test_unitSystemChange_revalidatesSoProjectionsAreRebuilt` 證明「VM 收到會重跑一輪」，
+    /// 這一支補完最後一段：**重跑那一輪組出來的是新單位的字**。三段合起來才是
+    /// 「切換 → 重投影 → 畫面換單位」的完整鏈（外審第二輪 E03）。
+    ///
+    /// 這裡刻意**不傳** `unitSystem`，走呼叫端在正式路徑上用的那條預設
+    /// （`App2PlanViewModel.contentLine` 的 `?? .current`）。
+    func test_reprojectionAfterUnitChange_producesTheNewUnitString() async throws {
+        let manager = UnitManager.shared
+        let original = manager.currentUnitSystem
+        defer { manager.currentUnitSystem = original }
+
+        let primary = try day(easyRunDay).session?.primary
+
+        manager.currentUnitSystem = .metric
+        XCTAssertEqual(
+            App2PlanViewModel.contentLine(primary, totalDistanceKm: 8.0),
+            "8.0 km · 6:50/km"
+        )
+
+        manager.currentUnitSystem = .imperial
+        XCTAssertEqual(
+            App2PlanViewModel.contentLine(primary, totalDistanceKm: 8.0),
+            "5.0 mi · 11:00/mi",
+            "重投影要用切換後的單位，不是投影當時存下來的那一份"
+        )
     }
 
     /// 這個事件**不清任何快取**：資料沒變，變的是要用哪個單位畫。
@@ -190,9 +224,25 @@ final class App2ImperialDistanceTests: XCTestCase {
     }
 
     /// 分組小計（`record.group.total_distance_format` 的 `%@`）。
+    /// 兩頁的分組小計走同一支（App2 `App2RecordsView.groupHeader`、
+    /// 1.x `TrainingRecordView.groupHeader`），兩邊都觀察 `UnitManager` 當場重畫。
     func test_recordsGroupSubtotal_imperial() {
         XCTAssertEqual(UnitSystem.metric.formatDistance(42.3), "42.3 km")
         XCTAssertEqual(UnitSystem.imperial.formatDistance(42.3), "26.3 mi")
+    }
+
+    /// 1.x 紀錄頁的分組小計也要跟著切換（外審第二輪 B07）。
+    /// 它的量是 `WorkoutGroup.totalKm` 現算的，所以只要 View 有觀察就會重畫；
+    /// 這裡鎖住「同一個小計在兩種單位下是兩個不同的字」。
+    func test_legacyTrainingRecordGroupTotal_followsUnitSystem() {
+        let totalKm = 42.3
+        let metric = L10n.Record.Group.totalDistanceFormat
+            .localized(with: UnitSystem.metric.formatDistance(totalKm))
+        let imperial = L10n.Record.Group.totalDistanceFormat
+            .localized(with: UnitSystem.imperial.formatDistance(totalKm))
+        XCTAssertTrue(metric.contains("42.3 km"), metric)
+        XCTAssertTrue(imperial.contains("26.3 mi"), imperial)
+        XCTAssertNotEqual(metric, imperial)
     }
 
     func test_monthComparison_imperial_convertsTheDelta() {
