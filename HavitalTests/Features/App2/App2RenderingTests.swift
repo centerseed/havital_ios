@@ -521,18 +521,15 @@ final class App2RenderingTests: XCTestCase {
 
     /// 走真實 owner 佈線：view 呼叫的是 `viewModel.todayPillState(isRest:)`，
     /// 完成訊號由 VM 從 `todayCompletedWorkout` 讀（與完成列同源）。
-    /// 這裡以同一條實例路徑斷言：VM 帶今天的完成紀錄 → chip 是「今天已跑」。
-    /// 缺陷原型（2026-08-31 用戶截圖）：舊佈線 chip 沒接完成訊號，
-    /// 與「今天已經跑完了」列同框矛盾。
-    func test_home_todayPill_reflectsCompletedRun_ownerPath() {
+    /// VM 帶今天的完成紀錄 → chip 不顯示（完成資訊由完成列獨佔，
+    /// 2026-08-31 使用者裁決）。
+    func test_home_todayPill_hiddenWithCompletedRun_ownerPath() {
         let vm = App2HomeViewModel()
         vm.applyForTesting(
             todayState: .session(session()),
             todayCompletedWorkout: completedRun()
         )
-        let pill = vm.todayPillState(isRest: false)
-        XCTAssertTrue(pill.showsCheck)
-        XCTAssertEqual(pill.textKey, L10n.App2.Home.todayDone)
+        XCTAssertNil(vm.todayPillState(isRest: false))
     }
 
     /// 對照組：同一條 owner 佈線、沒有完成紀錄 → 維持「今天還沒跑」。
@@ -540,8 +537,8 @@ final class App2RenderingTests: XCTestCase {
         let vm = App2HomeViewModel()
         vm.applyForTesting(todayState: .session(session()))
         let pill = vm.todayPillState(isRest: false)
-        XCTAssertFalse(pill.showsCheck)
-        XCTAssertEqual(pill.textKey, L10n.App2.Home.todayTodo)
+        XCTAssertEqual(pill?.showsCheck, false)
+        XCTAssertEqual(pill?.textKey, L10n.App2.Home.todayTodo)
     }
 
     /// 休息日優先：即使今天有完成紀錄，休息日 chip 仍是「安排休息」。
@@ -552,8 +549,8 @@ final class App2RenderingTests: XCTestCase {
             todayCompletedWorkout: completedRun()
         )
         let pill = vm.todayPillState(isRest: true)
-        XCTAssertTrue(pill.showsCheck)
-        XCTAssertEqual(pill.textKey, L10n.App2.Home.todayRest)
+        XCTAssertEqual(pill?.showsCheck, true)
+        XCTAssertEqual(pill?.textKey, L10n.App2.Home.todayRest)
     }
 
     /// 完成態的整卡 render smoke（附件供人工複核）。
@@ -569,22 +566,22 @@ final class App2RenderingTests: XCTestCase {
         render(App2HomeView(onOpenSettings: {}, viewModel: vm, achievementsViewModel: PersonalAchievementsViewModel()), name: "home-completed-run")
     }
 
-    /// 渲染層回歸（外審 E08/E11）：**畫出來的 chip** 三態必須互異。owner 佈線
-    /// （`vm.todayPillState(isRest:)`）餵 `App2TodayStatusPill` 直接繪製成圖比對——
-    /// 舊佈線（完成訊號不接）下 done 態與 todo 態畫出同一張圖，此測試即紅。
+    /// 渲染層回歸（外審 E08/E11 的後繼）：畫出來的 chip 兩顯示態必須互異；
+    /// done 態不再有 chip（owner-path 測試斷言 nil），視覺比對只剩 todo/rest。
     func test_home_todayPill_renderedStates_differ() {
         let doneVM = App2HomeViewModel()
         doneVM.applyForTesting(todayState: .session(session()), todayCompletedWorkout: completedRun())
         let todoVM = App2HomeViewModel()
         todoVM.applyForTesting(todayState: .session(session()))
 
-        let done = render(App2TodayStatusPill(pill: doneVM.todayPillState(isRest: false)), name: "pill-done", height: 60)
-        let todo = render(App2TodayStatusPill(pill: todoVM.todayPillState(isRest: false)), name: "pill-todo", height: 60)
-        let rest = render(App2TodayStatusPill(pill: doneVM.todayPillState(isRest: true)), name: "pill-rest", height: 60)
-
-        XCTAssertNotEqual(done.pngData(), todo.pngData(), "跑完的 chip 與還沒跑的 chip 畫出來必須不同")
-        XCTAssertNotEqual(done.pngData(), rest.pngData(), "已跑與休息是不同 chip")
-        XCTAssertNotEqual(todo.pngData(), rest.pngData())
+        guard let todoPill = todoVM.todayPillState(isRest: false),
+              let restPill = doneVM.todayPillState(isRest: true) else {
+            XCTFail("todo 與 rest 態必須有 chip")
+            return
+        }
+        let todo = render(App2TodayStatusPill(pill: todoPill), name: "pill-todo", height: 60)
+        let rest = render(App2TodayStatusPill(pill: restPill), name: "pill-rest", height: 60)
+        XCTAssertNotEqual(todo.pngData(), rest.pngData(), "還沒跑與休息是不同 chip")
     }
 
     private func completedRun() -> WorkoutV2 {

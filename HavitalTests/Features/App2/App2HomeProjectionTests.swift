@@ -1050,24 +1050,22 @@ final class App2HomeProjectionTests: XCTestCase {
 
     // MARK: - 今日卡狀態 chip 三態（T-0352）
 
-    /// 缺陷原型（2026-08-31 用戶截圖）：跑完當天 chip 仍是「今天還沒跑」，
-    /// 與同卡「今天已經跑完了」列同框矛盾——完成訊號沒接。
-    func test_todayPill_doneRun_showsDoneNotTodo() {
-        let pill = App2HomeViewModel.todayPillState(isRest: false, isDone: true)
-        XCTAssertTrue(pill.showsCheck)
-        XCTAssertEqual(pill.textKey, L10n.App2.Home.todayDone)
+    /// 跑完當天 chip 不顯示——完成資訊由卡片完成列獨佔，chip 重複顯示是缺陷
+    /// （2026-08-31 使用者裁決，修正 T-0352 的「已跑」態）。
+    func test_todayPill_doneRun_hidesPill() {
+        XCTAssertNil(App2HomeViewModel.todayPillState(isRest: false, isDone: true))
     }
 
     func test_todayPill_notRunYet_staysTodo() {
         let pill = App2HomeViewModel.todayPillState(isRest: false, isDone: false)
-        XCTAssertFalse(pill.showsCheck)
-        XCTAssertEqual(pill.textKey, L10n.App2.Home.todayTodo)
+        XCTAssertEqual(pill?.showsCheck, false)
+        XCTAssertEqual(pill?.textKey, L10n.App2.Home.todayTodo)
     }
 
-    /// 休息日優先：休息日的自主訓練不把卡片語意改成「已跑」。
+    /// 休息日優先：休息日的自主訓練不把卡片語意改成「已跑」，chip 仍顯示休息。
     func test_todayPill_restDay_staysRest_evenWithARun() {
         let pill = App2HomeViewModel.todayPillState(isRest: true, isDone: true)
-        XCTAssertTrue(pill.showsCheck)
-        XCTAssertEqual(pill.textKey, L10n.App2.Home.todayRest)
+        XCTAssertEqual(pill?.showsCheck, true)
+        XCTAssertEqual(pill?.textKey, L10n.App2.Home.todayRest)
     }
 }

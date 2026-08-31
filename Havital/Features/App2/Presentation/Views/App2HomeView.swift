@@ -1113,7 +1113,9 @@ struct App2HomeView: View {
                     )
                 }
                 Spacer(minLength: 4)
-                todayStatusPill(viewModel.todayPillState(isRest: session.isRest))
+                if let pill = viewModel.todayPillState(isRest: session.isRest) {
+                    todayStatusPill(pill)
+                }
             }
 
             if session.isRest {

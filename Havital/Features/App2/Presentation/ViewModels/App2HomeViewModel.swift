@@ -320,13 +320,15 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     }
 
     /// Owner 佈線：view 只給 isRest，完成訊號由 VM 自己讀（與完成列同源）。
-    func todayPillState(isRest: Bool) -> TodayPillState {
+    func todayPillState(isRest: Bool) -> TodayPillState? {
         Self.todayPillState(isRest: isRest, isDone: todayCompletedWorkout != nil)
     }
 
-    static func todayPillState(isRest: Bool, isDone: Bool) -> TodayPillState {
+    /// 已完成回 nil：完成資訊由卡片完成列獨佔，chip 不重複顯示
+    /// （2026-08-31 使用者裁決，修正 T-0352 的「已跑」態）。
+    static func todayPillState(isRest: Bool, isDone: Bool) -> TodayPillState? {
         if isRest { return TodayPillState(showsCheck: true, textKey: L10n.App2.Home.todayRest) }
-        if isDone { return TodayPillState(showsCheck: true, textKey: L10n.App2.Home.todayDone) }
+        if isDone { return nil }
         return TodayPillState(showsCheck: false, textKey: L10n.App2.Home.todayTodo)
     }
 
