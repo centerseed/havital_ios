@@ -1113,7 +1113,10 @@ struct App2HomeView: View {
                     )
                 }
                 Spacer(minLength: 4)
-                todayStatusPill(isRest: session.isRest)
+                todayStatusPill(
+                    isRest: session.isRest,
+                    isDone: viewModel.todayCompletedWorkout != nil
+                )
             }
 
             if session.isRest {
@@ -1298,12 +1301,14 @@ struct App2HomeView: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
-    /// 狀態 chip：有課的日子是「今天還沒跑」（橘點），休息日是「安排休息」（綠勾）。
-    /// 完成與否目前沒有 producer（`/v2/state/today` 不帶當日完成旗標），
-    /// 有課的日子一律顯示未完成態。
-    private func todayStatusPill(isRest: Bool) -> some View {
-        HStack(spacing: 5) {
-            if isRest {
+    /// 狀態 chip：有課的日子是「今天還沒跑」（橘點）→ 跑完變「今天已跑」（綠勾），
+    /// 休息日是「安排休息」（綠勾）。完成訊號＝今天有一筆已完成紀錄
+    /// （`todayCompletedWorkout`，與下方「今天已經跑完了」列同一個判準）——原本
+    /// chip 沒接這個訊號，跑完當天會與完成列同框互相矛盾（2026-08-31 用戶截圖）。
+    private func todayStatusPill(isRest: Bool, isDone: Bool = false) -> some View {
+        let showsCheck = isRest || isDone
+        return HStack(spacing: 5) {
+            if showsCheck {
                 Image(systemName: "checkmark")
                     .font(.system(size: 11, weight: .black))
             } else {
@@ -1313,18 +1318,20 @@ struct App2HomeView: View {
             }
             Text(isRest
                  ? L10n.App2.Home.todayRest.localized
-                 : L10n.App2.Home.todayTodo.localized)
+                 : (isDone
+                    ? L10n.App2.Home.todayDone.localized
+                    : L10n.App2.Home.todayTodo.localized))
                 .font(.system(size: 13, weight: .heavy))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
                 .fixedSize(horizontal: true, vertical: false)
         }
-        .foregroundStyle(isRest ? App2Theme.accentGreen : App2Theme.accentOrangeText)
+        .foregroundStyle(showsCheck ? App2Theme.accentGreen : App2Theme.accentOrangeText)
         .padding(.horizontal, 10)
         .padding(.vertical, 4)
         .background(
             Capsule().fill(
-                (isRest ? App2Theme.accentGreenBright : App2Theme.accentOrangeSoft).opacity(0.16)
+                (showsCheck ? App2Theme.accentGreenBright : App2Theme.accentOrangeSoft).opacity(0.16)
             )
         )
     }
