@@ -569,6 +569,24 @@ final class App2RenderingTests: XCTestCase {
         render(App2HomeView(onOpenSettings: {}, viewModel: vm, achievementsViewModel: PersonalAchievementsViewModel()), name: "home-completed-run")
     }
 
+    /// 渲染層回歸（外審 E08/E11）：**畫出來的 chip** 三態必須互異。owner 佈線
+    /// （`vm.todayPillState(isRest:)`）餵 `App2TodayStatusPill` 直接繪製成圖比對——
+    /// 舊佈線（完成訊號不接）下 done 態與 todo 態畫出同一張圖，此測試即紅。
+    func test_home_todayPill_renderedStates_differ() {
+        let doneVM = App2HomeViewModel()
+        doneVM.applyForTesting(todayState: .session(session()), todayCompletedWorkout: completedRun())
+        let todoVM = App2HomeViewModel()
+        todoVM.applyForTesting(todayState: .session(session()))
+
+        let done = render(App2TodayStatusPill(pill: doneVM.todayPillState(isRest: false)), name: "pill-done", height: 60)
+        let todo = render(App2TodayStatusPill(pill: todoVM.todayPillState(isRest: false)), name: "pill-todo", height: 60)
+        let rest = render(App2TodayStatusPill(pill: doneVM.todayPillState(isRest: true)), name: "pill-rest", height: 60)
+
+        XCTAssertNotEqual(done.pngData(), todo.pngData(), "跑完的 chip 與還沒跑的 chip 畫出來必須不同")
+        XCTAssertNotEqual(done.pngData(), rest.pngData(), "已跑與休息是不同 chip")
+        XCTAssertNotEqual(todo.pngData(), rest.pngData())
+    }
+
     private func completedRun() -> WorkoutV2 {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]

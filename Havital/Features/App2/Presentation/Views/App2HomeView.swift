@@ -1302,32 +1302,10 @@ struct App2HomeView: View {
     /// 休息日是「安排休息」（綠勾）。完成訊號＝今天有一筆已完成紀錄
     /// （`todayCompletedWorkout`，與下方「今天已經跑完了」列同一個判準）——原本
     /// chip 沒接這個訊號，跑完當天會與完成列同框互相矛盾（2026-08-31 用戶截圖）。
-    /// 三態的決策在 [App2HomeViewModel.todayPillState]（owner 佈線＋純函式，單元測試鎖三態）。
+    /// 三態的決策在 [App2HomeViewModel.todayPillState]（owner 佈線＋純函式）；
+    /// 視覺本體抽成 [App2TodayStatusPill]，渲染層回歸測試直接畫它（T-0352）。
     private func todayStatusPill(_ pill: App2HomeViewModel.TodayPillState) -> some View {
-        let showsCheck = pill.showsCheck
-        return HStack(spacing: 5) {
-            if showsCheck {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 11, weight: .black))
-            } else {
-                Circle()
-                    .fill(App2Theme.accentOrangeBright)
-                    .frame(width: 6, height: 6)
-            }
-            Text(pill.textKey.localized)
-                .font(.system(size: 13, weight: .heavy))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .fixedSize(horizontal: true, vertical: false)
-        }
-        .foregroundStyle(showsCheck ? App2Theme.accentGreen : App2Theme.accentOrangeText)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 4)
-        .background(
-            Capsule().fill(
-                (showsCheck ? App2Theme.accentGreenBright : App2Theme.accentOrangeSoft).opacity(0.16)
-            )
-        )
+        App2TodayStatusPill(pill: pill)
     }
 
     // MARK: - 卡內 Rizo 對話帶（設計 frame-00：今日課表卡的最後一段，不是另一張卡）
@@ -1643,5 +1621,38 @@ struct App2RizoChatSheet: View {
             }
         }
         .accessibilityIdentifier("App2_RizoChatContext")
+    }
+}
+
+
+/// 今日卡狀態 chip（T-0352 抽成獨立 view，供渲染層回歸測試直接繪製）。
+struct App2TodayStatusPill: View {
+    let pill: App2HomeViewModel.TodayPillState
+
+    var body: some View {
+        HStack(spacing: 5) {
+            if pill.showsCheck {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .black))
+            } else {
+                Circle()
+                    .fill(App2Theme.accentOrangeBright)
+                    .frame(width: 6, height: 6)
+            }
+            Text(pill.textKey.localized)
+                .font(.system(size: 13, weight: .heavy))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .fixedSize(horizontal: true, vertical: false)
+        }
+        .foregroundStyle(pill.showsCheck ? App2Theme.accentGreen : App2Theme.accentOrangeText)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 4)
+        .background(
+            Capsule().fill(
+                (pill.showsCheck ? App2Theme.accentGreenBright : App2Theme.accentOrangeSoft)
+                    .opacity(0.16)
+            )
+        )
     }
 }
