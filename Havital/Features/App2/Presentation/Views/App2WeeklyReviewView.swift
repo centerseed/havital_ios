@@ -655,7 +655,12 @@ struct App2WeeklyReviewView: View {
                     identifier: "App2_WeeklyReviewGeneratePlan"
                 ) {
                     Task {
-                        if await viewModel.applyAndGenerate() { onApplied?() }
+                        // 產生成功＝這條流程走完了。停在回顧頁會讓人找不到新課表
+                        //（2026-08-31 使用者回報），所以刷完資料就退回進來的那一頁。
+                        if await viewModel.applyAndGenerate() {
+                            onApplied?()
+                            onClose()
+                        }
                     }
                 }
             }
