@@ -652,7 +652,8 @@ struct App2WorkoutDetailView: View {
                     caption: viewModel.maxHeartRateString,
                     points: viewModel.heartRates.map(\.value),
                     tint: App2Theme.appleHealthRed,
-                    isInverted: false
+                    isInverted: false,
+                    tickFormatter: { String(Int($0.rounded())) }
                 )
             }
             if viewModel.paces.count >= 2 {
@@ -663,7 +664,10 @@ struct App2WorkoutDetailView: View {
                     points: viewModel.paces.map(\.value),
                     tint: App2Theme.accentBlue,
                     // 配速小＝快，不反轉的話「變快」會畫成往下掉。
-                    isInverted: true
+                    isInverted: true,
+                    tickFormatter: { [unitSystem = unitManager.currentUnitSystem] in
+                        App2WorkoutDetailProjection.formatPace(secondsPerKm: $0, unitSystem: unitSystem)
+                    }
                 )
             }
         }
@@ -676,7 +680,8 @@ struct App2WorkoutDetailView: View {
         caption: String?,
         points: [Double],
         tint: Color,
-        isInverted: Bool
+        isInverted: Bool,
+        tickFormatter: @escaping (Double) -> String
     ) -> some View {
         VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 7) {
@@ -691,7 +696,13 @@ struct App2WorkoutDetailView: View {
                         .foregroundStyle(App2Theme.inkMuted)
                 }
             }
-            App2Sparkline(points: points, tint: tint, isInverted: isInverted)
+            App2Sparkline(
+                points: points,
+                tint: tint,
+                isInverted: isInverted,
+                tickFormatter: tickFormatter,
+                usesRobustBounds: true
+            )
         }
     }
 

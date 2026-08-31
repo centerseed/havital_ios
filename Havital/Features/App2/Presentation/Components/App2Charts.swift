@@ -603,22 +603,38 @@ struct App2Sparkline: View {
     /// true = 值越小畫越高（配速）。
     var isInverted: Bool = false
     var height: CGFloat = 72
+    /// 給了就在圖左畫三顆刻度（上/中/下，原始量綱；手繪家族的「圖外小字」慣例）。
+    var tickFormatter: ((Double) -> String)?
+    /// true = 域取 p5–p95、域外值夾到邊界。GPS 雜訊的瞬間慢點（暫停、失訊）
+    /// 走 min/max 會把真實配速帶壓成平線（T-0356）。
+    var usesRobustBounds: Bool = false
 
     var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            if let tickFormatter, let bounds = Self.bounds(points, robust: usesRobustBounds) {
+                yTicks(bounds, formatter: tickFormatter)
+            }
+            plot
+        }
+    }
+
+    private var plot: some View {
         GeometryReader { geo in
-            let normalized = Self.normalize(points, isInverted: isInverted)
-            if normalized.count >= 2 {
-                let line = Self.path(normalized, in: geo.size)
-                ZStack {
-                    Self.filled(normalized, in: geo.size)
-                        .fill(
-                            LinearGradient(
-                                colors: [tint.opacity(0.26), tint.opacity(0)],
-                                startPoint: .top,
-                                endPoint: .bottom
+            if let bounds = Self.bounds(points, robust: usesRobustBounds) {
+                let normalized = Self.normalize(points, isInverted: isInverted, bounds: bounds)
+                if normalized.count >= 2 {
+                    let line = Self.path(normalized, in: geo.size)
+                    ZStack {
+                        Self.filled(normalized, in: geo.size)
+                            .fill(
+                                LinearGradient(
+                                    colors: [tint.opacity(0.26), tint.opacity(0)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
                             )
-                        )
-                    line.stroke(tint, style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
+                        line.stroke(tint, style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round))
+                    }
                 }
             }
         }
@@ -634,13 +650,44 @@ struct App2Sparkline: View {
         .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
     }
 
-    /// 把原始值壓到 0…1（0 = 圖底、1 = 圖頂）。全部一樣高時回中線，不要除以零。
-    static func normalize(_ values: [Double], isInverted: Bool) -> [Double] {
-        guard let min = values.min(), let max = values.max() else { return [] }
-        let span = max - min
+    /// 三顆刻度貼原始量綱；inverted（配速）時上＝快（小值）、下＝慢（大值），
+    /// 與折線的視覺方向一致。
+    private func yTicks(_ bounds: (lower: Double, upper: Double), formatter: (Double) -> String) -> some View {
+        let top = isInverted ? bounds.lower : bounds.upper
+        let bottom = isInverted ? bounds.upper : bounds.lower
+        let mid = (bounds.lower + bounds.upper) / 2
+        return VStack(alignment: .trailing, spacing: 0) {
+            Text(formatter(top))
+            Spacer(minLength: 0)
+            Text(formatter(mid))
+            Spacer(minLength: 0)
+            Text(formatter(bottom))
+        }
+        .font(.app2Mono(9, weight: .semibold))
+        .foregroundStyle(App2Theme.inkFaint)
+        .frame(height: height)
+    }
+
+    /// robust＝p5–p95（樣本 ≥20 才有意義；不足退回 min/max）。
+    static func bounds(_ values: [Double], robust: Bool) -> (lower: Double, upper: Double)? {
+        guard let min = values.min(), let max = values.max() else { return nil }
+        if robust, values.count >= 20 {
+            let sorted = values.sorted()
+            let lower = sorted[Int(Double(sorted.count - 1) * 0.05)]
+            let upper = sorted[Int(Double(sorted.count - 1) * 0.95)]
+            if upper > lower { return (lower, upper) }
+        }
+        return (min, max)
+    }
+
+    /// 把原始值壓到 0…1（0 = 圖底、1 = 圖頂），域外值夾到邊界。
+    /// 全部一樣高時回中線，不要除以零。
+    static func normalize(_ values: [Double], isInverted: Bool, bounds: (lower: Double, upper: Double)) -> [Double] {
+        let span = bounds.upper - bounds.lower
         guard span > 0 else { return values.map { _ in 0.5 } }
         return values.map { value in
-            let ratio = (value - min) / span
+            let clamped = Swift.min(Swift.max(value, bounds.lower), bounds.upper)
+            let ratio = (clamped - bounds.lower) / span
             return isInverted ? 1 - ratio : ratio
         }
     }

@@ -597,4 +597,37 @@ final class App2RenderingTests: XCTestCase {
             aiSummary: nil, shareCardContent: nil
         )
     }
+
+    // MARK: - 運動詳情趨勢圖（T-0356）
+
+    /// 缺陷原型（2026-08-31 用戶截圖）：一根 GPS 慢點讓 min/max 域把配速壓成
+    /// 平線。robust 域畫出來必須與 naive 域不同（趨勢重新可見）。
+    func test_workoutTrend_paceOutlier_robustDomainChangesPicture() {
+        var pace = (0..<100).map { 330.0 + 30 * sin(Double($0) / 8) }
+        pace.append(1800)
+        let robust = render(
+            App2Sparkline(points: pace, tint: .blue, isInverted: true, usesRobustBounds: true),
+            name: "trend-pace-robust", height: 72
+        )
+        let naive = render(
+            App2Sparkline(points: pace, tint: .blue, isInverted: true, usesRobustBounds: false),
+            name: "trend-pace-naive", height: 72
+        )
+        XCTAssertNotEqual(robust.pngData(), naive.pngData(), "robust 域必須改變配速圖的形狀")
+    }
+
+    /// 刻度必須真的畫出來：帶 tickFormatter 的圖與不帶的圖不同。
+    func test_workoutTrend_ticksRendered() {
+        let pace = (0..<40).map { 330.0 + Double($0 % 5) * 12 }
+        let withTicks = render(
+            App2Sparkline(points: pace, tint: .blue, isInverted: true,
+                          tickFormatter: { String(Int($0)) }, usesRobustBounds: true),
+            name: "trend-ticks-on", height: 72
+        )
+        let withoutTicks = render(
+            App2Sparkline(points: pace, tint: .blue, isInverted: true, usesRobustBounds: true),
+            name: "trend-ticks-off", height: 72
+        )
+        XCTAssertNotEqual(withTicks.pngData(), withoutTicks.pngData(), "刻度必須實際渲染")
+    }
 }

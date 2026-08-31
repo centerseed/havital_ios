@@ -357,4 +357,45 @@ final class App2WorkoutDetailProjectionTests: XCTestCase {
             "58:24"
         )
     }
+
+    // MARK: - 趨勢圖域與正規化（T-0356）
+
+    /// 缺陷原型：GPS 雜訊的一根 30 min/km 慢點走 min/max 會把 5:30–6:30 的
+    /// 真實配速帶壓成平線。robust 域（p5–p95）必須貼住主體。
+    func test_sparklineBounds_robust_ignoresOutlier() {
+        var values = (0..<100).map { 330.0 + Double($0 % 7) * 10 }
+        values.append(1800)
+        let bounds = App2Sparkline.bounds(values, robust: true)
+        XCTAssertNotNil(bounds)
+        XCTAssertGreaterThanOrEqual(bounds!.lower, 330)
+        XCTAssertLessThanOrEqual(bounds!.upper, 400)
+    }
+
+    /// 樣本太少（<20）時百分位沒有意義，退回 min/max。
+    func test_sparklineBounds_smallSample_fallsBackToMinMax() {
+        let bounds = App2Sparkline.bounds([300, 400, 500], robust: true)
+        XCTAssertEqual(bounds?.lower, 300)
+        XCTAssertEqual(bounds?.upper, 500)
+    }
+
+    func test_sparklineBounds_nonRobust_isMinMax() {
+        var values = (0..<100).map { _ in 350.0 }
+        values.append(1800)
+        let bounds = App2Sparkline.bounds(values, robust: false)
+        XCTAssertEqual(bounds?.lower, 350)
+        XCTAssertEqual(bounds?.upper, 1800)
+    }
+
+    /// 域外值夾到邊界，不消失也不撐爆域；inverted（配速）小值畫最高。
+    func test_sparklineNormalize_clampsOutlierToEdge_inverted() {
+        let bounds = (lower: 330.0, upper: 390.0)
+        let normalized = App2Sparkline.normalize([330, 1800], isInverted: true, bounds: bounds)
+        XCTAssertEqual(normalized[0], 1.0)
+        XCTAssertEqual(normalized[1], 0.0)
+    }
+
+    func test_sparklineNormalize_flatSeries_staysMidline() {
+        let normalized = App2Sparkline.normalize([350, 350], isInverted: false, bounds: (350, 350))
+        XCTAssertEqual(normalized, [0.5, 0.5])
+    }
 }
