@@ -131,6 +131,23 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
 
         self.readinessViewModel = readinessViewModel ?? TrainingReadinessViewModel()
         self.weeklyVolumesLoader = weeklyVolumesLoader
+
+        // 目標變更（賽事管理寫入＝`.dataChanged(.targets)`、重設目標＝
+        // `.reonboardingCompleted`）會換掉這一頁的賽事名稱／日期／期程——
+        // 與 `App2PlanViewModel` 同一組事件、同一個理由（常駐 VM 的 60 秒
+        // SWR 門檻擋住跨頁寫入；2026-08-31 用戶實機回報改賽名後總覽仍是舊名）。
+        CacheEventBus.shared.subscribe(forIdentifier: "App2PlanOverviewViewModel.targets") { [weak self] reason in
+            switch reason {
+            case .reonboardingCompleted, .dataChanged(.targets):
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.lastLoadedAt = nil
+                    if self.hasLoaded { await self.revalidate() }
+                }
+            default:
+                break
+            }
+        }
     }
 
     /// 週跑量歷史。取消要記進 `roundSawCancellation`（外審第八輪 E03），
