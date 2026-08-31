@@ -624,6 +624,68 @@ final class App2CancellationTests: XCTestCase {
         XCTAssertEqual(received, 0, "非 workout_processed 推播不得觸發 workouts 失效")
     }
 
+    // `UNNotification`／`UNNotificationResponse` 無公開 initializer，delegate 方法
+    // 本體只做拆封；這裡測的 handle* 就是 delegate 的全部邏輯（外審第三輪 E03）。
+
+    func test_willPresentHandler_workoutProcessed_emitsOnceThenCompletes() {
+        let manager = WorkoutBackgroundManager.shared
+        var received = 0
+        let cancellable = manager.workoutPushReceived.sink { received += 1 }
+        defer { cancellable.cancel() }
+
+        var receivedAtCompletion = -1
+        var options: UNNotificationPresentationOptions?
+        manager.handleWillPresent(userInfo: ["type": "workout_processed"]) { opts in
+            receivedAtCompletion = received
+            options = opts
+        }
+
+        XCTAssertEqual(received, 1, "前景推播恰發一次失效事件")
+        XCTAssertEqual(receivedAtCompletion, 1, "失效事件必須在 completion 之前發出（先失效再顯示）")
+        XCTAssertEqual(options, [.banner, .sound, .list], "通知照常顯示，不因失效邏輯被吞")
+    }
+
+    func test_willPresentHandler_otherType_stillCompletesWithoutEmit() {
+        let manager = WorkoutBackgroundManager.shared
+        var received = 0
+        let cancellable = manager.workoutPushReceived.sink { received += 1 }
+        defer { cancellable.cancel() }
+
+        var completed = false
+        manager.handleWillPresent(userInfo: ["type": "weekly_review_ready"]) { _ in completed = true }
+
+        XCTAssertEqual(received, 0)
+        XCTAssertTrue(completed, "過濾掉的推播仍必須回 completion，否則系統不顯示通知")
+    }
+
+    func test_didReceiveHandler_workoutProcessed_emitsOnceThenCompletes() {
+        let manager = WorkoutBackgroundManager.shared
+        var received = 0
+        let cancellable = manager.workoutPushReceived.sink { received += 1 }
+        defer { cancellable.cancel() }
+
+        var receivedAtCompletion = -1
+        manager.handleDidReceive(userInfo: ["type": "workout_processed"]) {
+            receivedAtCompletion = received
+        }
+
+        XCTAssertEqual(received, 1, "點擊推播恰發一次失效事件")
+        XCTAssertEqual(receivedAtCompletion, 1, "失效事件必須在 completion 之前發出")
+    }
+
+    func test_didReceiveHandler_otherType_stillCompletesWithoutEmit() {
+        let manager = WorkoutBackgroundManager.shared
+        var received = 0
+        let cancellable = manager.workoutPushReceived.sink { received += 1 }
+        defer { cancellable.cancel() }
+
+        var completed = false
+        manager.handleDidReceive(userInfo: [:]) { completed = true }
+
+        XCTAssertEqual(received, 0)
+        XCTAssertTrue(completed, "點擊路徑無論型別都必須回 completion")
+    }
+
     // MARK: - 重驗鎖 owner path（T-0359 外審 E02/E05/D04）：
     // 真 VM＋可控卡住的載入，斷言網路輪數而不是純函式回傳值。
 
@@ -700,6 +762,45 @@ final class App2CancellationTests: XCTestCase {
         XCTAssertEqual(gate.entered, 2)
     }
 
+    func test_staleRoundCompletion_doesNotClearNewRoundLoadingState() async {
+        // 外審第三輪 D04：首載輪 A 卡死被接管後才完成，其收尾不得清掉
+        // 現任輪 B 的 isLoading——否則首載 spinner 消失、畫面停在空狀態。
+        let repository = MockTrainingPlanV2Repository()
+        let gate = LoaderGate()
+        let vm = App2PlanOverviewViewModel(
+            planRepository: repository,
+            targetRepository: MockTargetRepository(),
+            userProfileRepository: MockUserProfileRepository(),
+            weeklyVolumesLoader: {
+                await MainActor.run { gate.entered += 1 }
+                await withCheckedContinuation { gate.continuations.append($0) }
+                return []
+            }
+        )
+
+        let roundA = Task { await vm.revalidate() }
+        for _ in 0..<50 where gate.entered < 1 {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        XCTAssertTrue(vm.isLoading, "首載中")
+
+        vm.backdateRevalidateBeganForTesting(by: 31)
+        let roundB = Task { await vm.revalidate() }
+        for _ in 0..<50 where gate.entered < 2 {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        XCTAssertEqual(gate.entered, 2)
+
+        // 放行舊輪 A 讓它跑完收尾——現任輪 B 仍在載入，spinner 必須還在。
+        gate.releaseNext()
+        await roundA.value
+        XCTAssertTrue(vm.isLoading, "被接管的舊輪收尾不得清掉現任輪的 loading 態")
+
+        gate.releaseAll()
+        await roundB.value
+        XCTAssertFalse(vm.isLoading, "現任輪自己收尾")
+    }
+
     // MARK: - 推播 → coordinator → bus → 消費端 owner path（T-0359 外審 E03/E11）
 
     func test_workoutPush_chainReachesRecordsRefetch() async {
@@ -715,9 +816,9 @@ final class App2CancellationTests: XCTestCase {
 
         // 從推播 seam 出發走真實鏈路：emit → CacheRegistrationCoordinator 轉發
         // `.dataChanged(.workouts)` → Records VM 訂閱 → revalidate 重打網路。
-        // （`UNNotification`／`UNNotificationResponse` 無公開建構式，
-        // willPresent/didReceive 的 delegate 回呼無法在單元測試偽造；兩個回呼
-        // 都是一行轉呼 `emitWorkoutPushIfNeeded`，以 seam 為測試入口。）
+        // （`UNNotification`／`UNNotificationResponse` 無公開建構式，delegate
+        // 方法本體只做拆封；其邏輯由上面的 handleWillPresent/handleDidReceive
+        // 測試覆蓋，這裡從 seam 入口驗佈線。）
         WorkoutBackgroundManager.shared.emitWorkoutPushIfNeeded(["type": "workout_processed"])
 
         for _ in 0..<50 where source.statsCalls == callsBefore {

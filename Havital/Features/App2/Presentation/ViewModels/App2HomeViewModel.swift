@@ -264,6 +264,10 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         // 冷啟第一輪：先把上一次的快照渲染出來，這一輪的網路變成背景刷新。
         if !hasLoaded { await hydrateFromSnapshot() }
 
+        // 每個 await 恢復點都要重驗輪代號：被接管的舊輪恢復後不得再碰共用狀態
+        //（isLoading／roundSawCancellation 也算——外審第三輪 D04）。
+        guard revalidateGeneration == round else { return }
+
         // 只有「從未載過、也沒有快照可看」才出 loading ——
         // 重驗時畫面保留上一次的資料，不閃白。
         isLoading = !hasLoaded && trainingStatus == nil && todayState == nil && goalCard == nil
@@ -280,6 +284,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         async let completed: Void = loadTodayCompletedWorkout()
         _ = await (state, goal, today, review, completed)
 
+        // loading 態的收尾也只有現任輪能做——舊輪清掉新輪的 spinner 會讓首載
+        // 卡在空畫面（外審第三輪 D04）。
+        guard revalidateGeneration == round else { return }
         isLoading = false
         // 被取消的那一輪不算載過：子載入各自有取消 guard 不動畫面，這裡也不標
         // hasLoaded／lastLoadedAt，下次進頁的 SWR 會重試（2026-08-29 外審 D04/E03）。

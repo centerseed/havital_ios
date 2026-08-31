@@ -106,12 +106,15 @@ final class App2PeriodSummaryViewModel: ObservableObject, TaskManageable, App2Re
         isLoading = !hasLoaded
         var finishedRound = false
         defer {
-            isLoading = false
-            // 成功或**真失敗**才算載過；取消不標——task 取消與 -999 取消錯誤
-            // （提早 return，finishedRound 維持 false）都算取消（2026-08-29 外審 D04/E03）。
-            if finishedRound, !Task.isCancelled {
-                hasLoaded = true
-                lastLoadedAt = Date()
+            // 只有現任輪能收尾——被接管的舊輪連 isLoading 都不得清（外審第三輪 D04）。
+            if revalidateGeneration == round {
+                isLoading = false
+                // 成功或**真失敗**才算載過；取消不標——task 取消與 -999 取消錯誤
+                // （提早 return，finishedRound 維持 false）都算取消（2026-08-29 外審 D04/E03）。
+                if finishedRound, !Task.isCancelled {
+                    hasLoaded = true
+                    lastLoadedAt = Date()
+                }
             }
         }
 

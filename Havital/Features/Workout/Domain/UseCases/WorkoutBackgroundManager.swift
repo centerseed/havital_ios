@@ -938,13 +938,19 @@ class WorkoutBackgroundManager: NSObject, @preconcurrency TaskManageable {
 
 // MARK: - 通知中心代理實現
 extension WorkoutBackgroundManager: UNUserNotificationCenterDelegate {
-    // 當應用在前台時也顯示通知
+    // 當應用在前台時也顯示通知。`UNNotification` 無公開 initializer，delegate
+    // 方法只做拆封，邏輯（過濾＋completion）在下面的 handle* 進單元測試。
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        handleWillPresent(userInfo: notification.request.content.userInfo, completionHandler: completionHandler)
+    }
+
+    func handleWillPresent(userInfo: [AnyHashable: Any], completionHandler: (UNNotificationPresentationOptions) -> Void) {
         // 後端 workout 處理完成的推播＝資料已就緒的訊號。這裡只發事實（domain 層
         // 不碰 CacheEventBus——architecture.md 的被動規則），失效由
         // CacheRegistrationCoordinator 訂閱後轉發（T-0355：2026-08-31 用戶推播
-        // 已到、畫面停在舊清單，重開 app 才更新）。
-        emitWorkoutPushIfNeeded(notification.request.content.userInfo)
+        // 已到、畫面停在舊清單，重開 app 才更新）。先發事實再回 completion——
+        // 系統顯示通知前，失效事件已經在路上。
+        emitWorkoutPushIfNeeded(userInfo)
         // 正常顯示通知
         if #available(iOS 14.0, *) {
             completionHandler([.banner, .sound, .list])
@@ -952,7 +958,7 @@ extension WorkoutBackgroundManager: UNUserNotificationCenterDelegate {
             completionHandler([.alert, .sound])
         }
     }
-    
+
     /// 後端 `send_workout_processed_notification` 的 payload：`data.type == "workout_processed"`
     ///（cloud/api_service/core/notification/notification_service.py）。
     func emitWorkoutPushIfNeeded(_ userInfo: [AnyHashable: Any]) {
@@ -960,17 +966,13 @@ extension WorkoutBackgroundManager: UNUserNotificationCenterDelegate {
         workoutPushSubject.send()
     }
 
-    // 處理通知的點擊事件
+    // 處理通知的點擊事件（同上，`UNNotificationResponse` 無公開 initializer）。
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-        emitWorkoutPushIfNeeded(response.notification.request.content.userInfo)
-        // 處理同步相關通知
-        if response.notification.request.identifier.hasPrefix("sync-training-data") ||
-                    response.notification.request.identifier == "first-login-sync" {
-            // 處理同步相關通知的點擊
-            completionHandler()
-        } else {
-            // 這裡可以處理用戶點擊通知的邏輯，例如導航到訓練記錄頁面
-            completionHandler()
-        }
+        handleDidReceive(userInfo: response.notification.request.content.userInfo, completionHandler: completionHandler)
+    }
+
+    func handleDidReceive(userInfo: [AnyHashable: Any], completionHandler: () -> Void) {
+        emitWorkoutPushIfNeeded(userInfo)
+        completionHandler()
     }
 }

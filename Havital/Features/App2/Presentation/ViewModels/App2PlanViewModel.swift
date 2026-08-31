@@ -224,12 +224,15 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         isLoading = !hasLoaded && week == nil
         finishedRound = false
         defer {
-            isLoading = false
-            // 成功或**真失敗**才算載過；取消不標——task 取消與 -999 取消錯誤
-            // （提早 return，finishedRound 維持 false）都算取消（2026-08-29 外審 D04/E03）。
-            if finishedRound, !Task.isCancelled {
-                hasLoaded = true
-                lastLoadedAt = Date()
+            // 只有現任輪能收尾——被接管的舊輪連 isLoading 都不得清（外審第三輪 D04）。
+            if revalidateGeneration == round {
+                isLoading = false
+                // 成功或**真失敗**才算載過；取消不標——task 取消與 -999 取消錯誤
+                // （提早 return，finishedRound 維持 false）都算取消（2026-08-29 外審 D04/E03）。
+                if finishedRound, !Task.isCancelled {
+                    hasLoaded = true
+                    lastLoadedAt = Date()
+                }
             }
         }
 
@@ -242,6 +245,9 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             finishedRound = true
 
             await applyPlanEnd(planStatus: status)
+            // await 恢復點：被接管的舊輪不得再寫 week／dayDetails 等共用狀態
+            //（外審第三輪 D04）。
+            guard revalidateGeneration == round else { return }
             if let historyWeek {
                 // 歷史回看中（結束態或進行中都可以往回翻）：這一輪重驗的是
                 // **那一週**，不是本週。進行中不能回看是 8/27 實機走查抓到的缺陷
@@ -274,6 +280,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             // `fetchWeeklyPlan` ＝ 走網路並寫回 repository 快取（下一次冷啟就是它）。
             let plan = try await planRepository.fetchWeeklyPlan(planId: planId)
             let completed = await completedDistanceKmThisWeek()
+            guard revalidateGeneration == round else { return }
             apply(plan: plan, planStatus: status, completedKm: completed)
         } catch {
             // 取消不是失敗（`AGENTS.md` 陷阱 2）：下拉刷新的 task 被收掉時
@@ -281,6 +288,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             // plan status 成功後才被取消（fetchWeeklyPlan 等後續）＝部分取消：
             // 一樣不算載過，把先前樂觀設下的旗標收回（外審第七輪 D04）。
             guard !error.isCancellationError else { finishedRound = false; return }
+            guard revalidateGeneration == round else { return }
             finishedRound = true
             Logger.debug("[App2PlanVM] 週課表取得失敗,退樣本: \(error)")
             guard week == nil else { return }       // SWR：重驗失敗時保留舊資料
