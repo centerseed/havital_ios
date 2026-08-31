@@ -65,8 +65,121 @@ final class App2MetricDetailCacheTests: XCTestCase {
         }
     }
 
+    /// 可控時點的 stats 來源：每一發都掛在 continuation 上，測試自己決定誰先回。
+    /// 回應帶指紋（`total_distance_km` ＝ 該發要的 `weeks`），才驗得出「哪一發的
+    /// 回應落到哪一個 range key」。
+    private final class GatedStatsSource: WorkoutStatsDataSourceProtocol {
+        var requestedWeeks: [Int] = []
+        var continuations: [CheckedContinuation<Void, Never>] = []
+        private var released = 0
+
+        func fetchWorkoutStats(days: Int, weeks: Int?) async throws -> WorkoutStatsResponse {
+            let requested = weeks ?? 0
+            // 帳本只在 MainActor 上動，測試（也在 MainActor）讀到的順序才是確定的。
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                Task { @MainActor in
+                    self.requestedWeeks.append(requested)
+                    self.continuations.append(continuation)
+                }
+            }
+            return try Self.fixture(totalDistanceKm: Double(requested))
+        }
+
+        func releaseNext() {
+            guard released < continuations.count else { return }
+            continuations[released].resume()
+            released += 1
+        }
+
+        func releaseAll() {
+            while released < continuations.count { releaseNext() }
+        }
+
+        func fetchRecentWorkouts(pageSize: Int) async throws -> [WorkoutV2] { [] }
+
+        func fetchWorkoutsPage(pageSize: Int?, cursor: String?) async throws -> WorkoutListResponse {
+            WorkoutListResponse(
+                workouts: [],
+                pagination: PaginationInfo(
+                    nextCursor: nil, prevCursor: nil, hasMore: false, hasNewer: false,
+                    oldestId: nil, newestId: nil, totalItems: nil, pageSize: pageSize
+                )
+            )
+        }
+
+        static func fixture(totalDistanceKm: Double) throws -> WorkoutStatsResponse {
+            let json = """
+            { "data": { "total_workouts": 1, "total_distance_km": \(totalDistanceKm),
+                        "provider_distribution": {}, "activity_type_distribution": {},
+                        "period_days": 30 } }
+            """
+            return try JSONDecoder().decode(WorkoutStatsResponse.self, from: Data(json.utf8))
+        }
+    }
+
+    /// 同上，能力基準版（指紋是 `limit`，只需驗落到哪一個 key）。
+    private final class GatedVdotSource: VDOTDataSourceProtocol {
+        var requestedLimits: [Int] = []
+        var continuations: [CheckedContinuation<Void, Never>] = []
+        private var released = 0
+
+        func getVDOTs(limit: Int) async throws -> VDOTResponse {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                Task { @MainActor in
+                    self.requestedLimits.append(limit)
+                    self.continuations.append(continuation)
+                }
+            }
+            return try EmptyVdotSource.fixture()
+        }
+
+        func releaseNext() {
+            guard released < continuations.count else { return }
+            continuations[released].resume()
+            released += 1
+        }
+
+        func releaseAll() {
+            while released < continuations.count { releaseNext() }
+        }
+    }
+
+    private final class ThrowingStatsSource: WorkoutStatsDataSourceProtocol {
+        let error: Error
+
+        init(error: Error) { self.error = error }
+
+        func fetchWorkoutStats(days: Int, weeks: Int?) async throws -> WorkoutStatsResponse {
+            throw error
+        }
+
+        func fetchRecentWorkouts(pageSize: Int) async throws -> [WorkoutV2] { [] }
+
+        func fetchWorkoutsPage(pageSize: Int?, cursor: String?) async throws -> WorkoutListResponse {
+            WorkoutListResponse(
+                workouts: [],
+                pagination: PaginationInfo(
+                    nextCursor: nil, prevCursor: nil, hasMore: false, hasNewer: false,
+                    oldestId: nil, newestId: nil, totalItems: nil, pageSize: pageSize
+                )
+            )
+        }
+    }
+
     private func insight(_ id: String) -> App2Insight {
         App2Insight(id: id, label: id, value: nil, direction: .unknown, verdict: nil)
+    }
+
+    /// 等一個條件成立（最多 5 秒）。不用 expectation：這裡等的是 in-flight 的
+    /// 非同步輪，沒有可掛 fulfill 的回撥點。
+    private static func waitUntil(
+        timeout: TimeInterval = 5,
+        _ condition: () -> Bool
+    ) async {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !condition(), Date() < deadline {
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
     }
 
     // MARK: - 快取命中：init 立即出畫面、不打網路
@@ -168,6 +281,169 @@ final class App2MetricDetailCacheTests: XCTestCase {
         XCTAssertNil(cache.capability[.months6], "不得寫錯 range key")
     }
 
+    // MARK: - fresh / stale 邊界（外審 E02/E03）
+
+    func test_volumeVM_cacheHit_withinStaleWindow_doesNotRefetch() async throws {
+        let cache = App2MetricDetailCache()
+        cache.storeVolume(
+            App2MetricDetailCache.VolumePayload(
+                stats: try CountingStatsSource.statsFixture(), health: nil, targetKm: nil
+            ),
+            range: .weeks8,
+            // staleAfter 預設 60 秒，這一筆還新鮮。
+            loadedAt: Date(timeIntervalSinceNow: -10)
+        )
+        let source = CountingStatsSource()
+        let vm = App2VolumeDetailViewModel(
+            insight: insight("volume"), narrative: nil,
+            workoutDataSource: source, healthDataSource: EmptyHealthSource(),
+            profileRepository: nil, cache: cache
+        )
+
+        await vm.loadIfNeeded()
+
+        XCTAssertEqual(source.statsCalls, 0, "快取仍新鮮時 loadIfNeeded 不得背景重抓")
+        XCTAssertNotNil(vm.detail)
+        XCTAssertFalse(vm.isLoading)
+    }
+
+    func test_volumeVM_cacheHit_pastStaleWindow_revalidatesWithoutSpinner() async throws {
+        let cache = App2MetricDetailCache()
+        let staleAt = Date(timeIntervalSinceNow: -120)
+        cache.storeVolume(
+            App2MetricDetailCache.VolumePayload(
+                stats: try CountingStatsSource.statsFixture(), health: nil, targetKm: nil
+            ),
+            range: .weeks8,
+            loadedAt: staleAt
+        )
+        let source = GatedStatsSource()
+        let vm = App2VolumeDetailViewModel(
+            insight: insight("volume"), narrative: nil,
+            workoutDataSource: source, healthDataSource: EmptyHealthSource(),
+            profileRepository: nil, cache: cache
+        )
+
+        let load = Task { await vm.loadIfNeeded() }
+        await Self.waitUntil { source.requestedWeeks.count >= 1 }
+        XCTAssertEqual(source.requestedWeeks.first, 8, "過期必須背景重驗")
+        // SWR：重驗在跑，畫面仍是舊資料、不進 loading 態。
+        XCTAssertFalse(vm.isLoading, "背景重驗不得出全頁 spinner")
+        XCTAssertNotNil(vm.detail)
+
+        source.releaseAll()
+        await load.value
+
+        let refreshed = try XCTUnwrap(cache.volume[.weeks8])
+        XCTAssertGreaterThan(refreshed.loadedAt, staleAt, "重驗成功要把快取的時間戳往前推")
+    }
+
+    // MARK: - 首載中切 range 的競態（外審 D04 回歸）
+
+    func test_volumeVM_rangeSwitchDuringInitialLoad_discardsStaleResponse() async throws {
+        let cache = App2MetricDetailCache()
+        let source = GatedStatsSource()
+        let vm = App2VolumeDetailViewModel(
+            insight: insight("volume"), narrative: nil,
+            workoutDataSource: source, healthDataSource: EmptyHealthSource(),
+            profileRepository: nil, cache: cache
+        )
+
+        // 首載那一輪（view 的 `.task { loadIfNeeded() }`）卡在 stats 回應上。
+        let initialLoad = Task { await vm.revalidate() }
+        await Self.waitUntil { source.requestedWeeks.count >= 1 }
+        XCTAssertEqual(source.requestedWeeks, [8])
+
+        // 首載還在飛的時候切 range：新一輪打 26 週。
+        vm.select(range: .weeks26)
+        await Self.waitUntil { source.requestedWeeks.count >= 2 }
+        XCTAssertEqual(source.requestedWeeks, [8, 26])
+
+        // 只放行舊 range 的回應——缺陷原型會拿它去寫「當下的 range」＝ .weeks26 的 key。
+        source.releaseNext()
+        await initialLoad.value
+
+        XCTAssertNil(cache.volume[.weeks26], "舊 range 的回應不得寫進新 range 的 key")
+        XCTAssertNil(cache.volume[.weeks8], "被取代的那一輪整輪作廢，自己的 key 也不寫")
+        XCTAssertNil(vm.detail, "過時的一輪不得發布到畫面")
+        XCTAssertFalse(vm.hasLoaded, "被取代的一輪不算載過")
+        XCTAssertTrue(vm.isLoading, "舊輪收尾不得清掉現任輪的 spinner")
+
+        // 現任輪回來才是真的。
+        source.releaseAll()
+        await vm.rangeReloadTask?.value
+
+        XCTAssertEqual(
+            cache.volume[.weeks26]?.payload.stats.data.totalDistanceKm, 26,
+            "現任 range 的 key 存的必須是它自己那一發的回應"
+        )
+        XCTAssertNil(cache.volume[.weeks8])
+        XCTAssertTrue(vm.hasLoaded)
+        XCTAssertFalse(vm.isLoading)
+    }
+
+    func test_capabilityVM_rangeSwitchDuringInitialLoad_discardsStaleResponse() async throws {
+        let cache = App2MetricDetailCache()
+        let source = GatedVdotSource()
+        let vm = App2CapabilityDetailViewModel(
+            insight: insight("capability"), narrative: nil,
+            vdotDataSource: source, cache: cache
+        )
+
+        let initialLoad = Task { await vm.revalidate() }
+        await Self.waitUntil { source.requestedLimits.count >= 1 }
+        XCTAssertEqual(source.requestedLimits, [App2MetricRange.days60.vdotLimit])
+
+        vm.select(range: .months6)
+        await Self.waitUntil { source.requestedLimits.count >= 2 }
+
+        source.releaseNext()
+        await initialLoad.value
+
+        XCTAssertNil(cache.capability[.months6], "舊 range 的回應不得寫進新 range 的 key")
+        XCTAssertNil(cache.capability[.days60])
+        XCTAssertNil(vm.detail)
+
+        source.releaseAll()
+        await vm.rangeReloadTask?.value
+        XCTAssertNotNil(cache.capability[.months6])
+        XCTAssertNil(cache.capability[.days60])
+    }
+
+    // MARK: - 重驗失敗／取消不得污染快取（外審 E03）
+
+    func test_volumeVM_revalidateFailure_storesNothing_butCountsAsLoaded() async {
+        let cache = App2MetricDetailCache()
+        let vm = App2VolumeDetailViewModel(
+            insight: insight("volume"), narrative: nil,
+            workoutDataSource: ThrowingStatsSource(error: NSError(domain: "test", code: 1)),
+            healthDataSource: EmptyHealthSource(), profileRepository: nil, cache: cache
+        )
+
+        await vm.revalidate()
+
+        XCTAssertTrue(cache.volume.isEmpty, "真失敗不得寫快取")
+        XCTAssertNil(vm.detail)
+        XCTAssertFalse(vm.isLoading)
+        XCTAssertTrue(vm.hasLoaded, "真失敗算載過（下次進頁走 staleAfter，不是無限 spinner）")
+    }
+
+    func test_volumeVM_revalidateCancelled_storesNothing_andNotLoaded() async {
+        let cache = App2MetricDetailCache()
+        let vm = App2VolumeDetailViewModel(
+            insight: insight("volume"), narrative: nil,
+            workoutDataSource: ThrowingStatsSource(error: CancellationError()),
+            healthDataSource: EmptyHealthSource(), profileRepository: nil, cache: cache
+        )
+
+        await vm.revalidate()
+
+        XCTAssertTrue(cache.volume.isEmpty, "取消的一輪不得寫快取")
+        XCTAssertNil(vm.detail)
+        XCTAssertFalse(vm.hasLoaded, "取消不算載過")
+        XCTAssertNil(vm.lastLoadedAt)
+    }
+
     // MARK: - 失效
 
     func test_cache_removeAll_clearsEverything() throws {
@@ -184,6 +460,76 @@ final class App2MetricDetailCacheTests: XCTestCase {
         cache.removeAll()
 
         XCTAssertTrue(cache.volume.isEmpty)
+        XCTAssertTrue(cache.capability.isEmpty)
+        XCTAssertNil(cache.recovery)
+    }
+
+    // MARK: - 失效 owner path：真的穿過 CacheRegistrationCoordinator ＋ CacheEventBus
+    // （外審 E02：直接呼叫 removeAll() 證明不了佈線在不在）
+
+    override func tearDown() async throws {
+        // 下面兩條測試動的是 process-wide 的 `.shared`，收乾淨再走。
+        App2MetricDetailCache.shared.removeAll()
+        try await super.tearDown()
+    }
+
+    /// 把三格都塞滿，回傳 shared 快取。
+    private func fillSharedCache() throws -> App2MetricDetailCache {
+        let cache = App2MetricDetailCache.shared
+        cache.storeVolume(
+            App2MetricDetailCache.VolumePayload(
+                stats: try CountingStatsSource.statsFixture(), health: nil, targetKm: nil
+            ),
+            range: .weeks8
+        )
+        cache.storeCapability(try EmptyVdotSource.fixture(), range: .days60)
+        cache.storeRecovery(try EmptyHealthSource.fixture())
+        return cache
+    }
+
+    /// 佈線端顯式重建：`resetForTesting()` 之後 `registerAll()` 會重掛訂閱，
+    /// 不依賴 test host 先前的初始化順序或別條測試有沒有清過 bus。
+    private func rewireCacheRegistrations() async {
+        await CacheEventBus.shared.resetForTesting()
+        CacheRegistrationCoordinator.resetForTesting()
+        CacheRegistrationCoordinator.registerAll()
+    }
+
+    func test_workoutsDataChanged_throughBus_clearsCache_andNextEntryIsMiss() async throws {
+        await rewireCacheRegistrations()
+        let cache = try fillSharedCache()
+
+        CacheEventBus.shared.publish(.dataChanged(.workouts))
+
+        await Self.waitUntil { cache.volume.isEmpty && cache.capability.isEmpty && cache.recovery == nil }
+        XCTAssertTrue(cache.volume.isEmpty, "workouts 變更必須經 coordinator 清掉指標詳情快取")
+        XCTAssertTrue(cache.capability.isEmpty)
+        XCTAssertNil(cache.recovery)
+
+        // 失效之後下一次進頁＝ miss，真的重抓（不是只清了但畫面照舊）。
+        let source = CountingStatsSource()
+        let vm = App2VolumeDetailViewModel(
+            insight: insight("volume"), narrative: nil,
+            workoutDataSource: source, healthDataSource: EmptyHealthSource(),
+            profileRepository: nil, cache: cache
+        )
+        XCTAssertNil(vm.detail, "失效後新 VM 不得吃到舊快取")
+        XCTAssertTrue(vm.isLoading)
+
+        await vm.loadIfNeeded()
+        XCTAssertEqual(source.statsCalls, 1, "失效後下一次進頁必須真的重抓")
+        XCTAssertNotNil(cache.volume[.weeks8], "重抓成功回寫快取")
+    }
+
+    func test_userDataChanged_throughBus_clearsCache() async throws {
+        await rewireCacheRegistrations()
+        let cache = try fillSharedCache()
+
+        // 換帳號路徑（`.dataChanged(.user)`）：跨用戶的指標絕不能留在記憶體裡。
+        CacheEventBus.shared.publish(.dataChanged(.user))
+
+        await Self.waitUntil { cache.volume.isEmpty && cache.capability.isEmpty && cache.recovery == nil }
+        XCTAssertTrue(cache.volume.isEmpty, "user 變更必須經 coordinator 清掉指標詳情快取")
         XCTAssertTrue(cache.capability.isEmpty)
         XCTAssertNil(cache.recovery)
     }

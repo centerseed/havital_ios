@@ -269,7 +269,7 @@ private struct App2VolumeDetailPage: View {
             }
         }
         .task { await viewModel.loadIfNeeded() }
-        .onDisappear { viewModel.cancelRangeReload() }
+        .onDisappear { viewModel.cancelInFlightReload() }
     }
 
     private func loadCard(_ load: App2LoadBlock) -> some View {
@@ -393,7 +393,7 @@ private struct App2CapabilityDetailPage: View {
             }
         }
         .task { await viewModel.loadIfNeeded() }
-        .onDisappear { viewModel.cancelRangeReload() }
+        .onDisappear { viewModel.cancelInFlightReload() }
     }
 
     private func diagnosticsCard(_ rows: [App2MetricDiagnosticRow]) -> some View {
@@ -563,5 +563,6 @@ private struct App2RecoveryDetailPage: View {
             }
         }
         .task { await viewModel.loadIfNeeded() }
+        .onDisappear { viewModel.cancelInFlightReload() }
     }
 }

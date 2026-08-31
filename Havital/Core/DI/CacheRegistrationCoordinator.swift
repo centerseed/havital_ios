@@ -48,6 +48,10 @@ enum CacheRegistrationCoordinator {
             return
         }
         hasRegistered = true
+        // `register`／`subscribe(forIdentifier:)` 自己去重，但 Combine sink 不會：
+        // `resetForTesting()` 之後再跑一次會多掛一條，同一個事件被 publish 兩次。
+        // 重新佈線前先把上一輪的訂閱收掉，registerAll 才真的是冪等的。
+        cancellables.removeAll()
 
         // 1. Register LocalDataSource cacheables
         CacheEventBus.shared.register(subscriptionLocalDS)

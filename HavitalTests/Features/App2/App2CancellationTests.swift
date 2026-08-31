@@ -526,7 +526,7 @@ final class App2CancellationTests: XCTestCase {
     }
 
     func test_volumeVM_teardown_cancelsInflightRangeReload_andReleasesVM() async {
-        // 離開畫面（view onDisappear → cancelRangeReload）要取消 in-flight 的
+        // 離開畫面（view onDisappear → cancelInFlightReload）要取消 in-flight 的
         // range 重載；task 收掉後不得再抓著 VM（外審第十一輪 D04/E08）。
         let source = FirstHangsThenImmediateStatsSource()
         var vm: App2VolumeDetailViewModel? = App2VolumeDetailViewModel(
@@ -542,7 +542,7 @@ final class App2CancellationTests: XCTestCase {
         let reload = vm?.rangeReloadTask
         try? await Task.sleep(nanoseconds: 200_000_000)
 
-        vm?.cancelRangeReload()
+        vm?.cancelInFlightReload()
         vm = nil
         await reload?.value
 

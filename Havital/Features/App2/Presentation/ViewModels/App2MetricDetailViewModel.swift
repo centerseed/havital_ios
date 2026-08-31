@@ -116,6 +116,15 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
     /// 舊 range 的慢回應才不會蓋掉新 range 的畫面（外審第十輪 D04/E08）。
     private(set) var rangeReloadTask: Task<Void, Never>?
 
+    /// 這一輪重驗的代號。**首載那一輪由 view 的 `.task` 起，VM 手上沒有外層把手**
+    /// ——所以「哪一輪能寫」不能只靠取消：每輪開頭固定 `round` 與 `requestedRange`，
+    /// 回來時代號或當前 range 已變就整輪作廢，不 store 也不 publish
+    /// （2026-09-01 外審 D04：切 range 期間舊 range 的回應會被寫進新 range 的 key）。
+    private var revalidateGeneration = 0
+
+    /// 現任輪的 task（**含首載那一輪**）：切 range 或離場時取消它。
+    private(set) var revalidateRoundTask: Task<Void, Never>?
+
     func select(range newRange: App2MetricRange) {
         guard newRange != range else { return }
         range = newRange
@@ -123,27 +132,58 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         if let entry = cache.volume[newRange] {
             publish(entry.payload)
         }
+        // 舊 range 的 in-flight 輪（含首載）一律取消；就算它已經過了取消點，
+        // 下面 revalidate 的 generation／range 檢查也會擋掉它的寫入。
+        revalidateRoundTask?.cancel()
         rangeReloadTask?.cancel()
         rangeReloadTask = Task { [weak self] in await self?.revalidate() }
     }
 
-    /// 離開畫面時由 view 的 `onDisappear` 呼叫：取消 in-flight 的 range 重載，
+    /// 離開畫面時由 view 的 `onDisappear` 呼叫：取消 in-flight 的重驗輪（含首載），
     /// task 才不會抓著 VM 撐過畫面生命週期（外審第十一輪 D04）。
-    func cancelRangeReload() {
+    func cancelInFlightReload() {
+        revalidateRoundTask?.cancel()
+        revalidateRoundTask = nil
         rangeReloadTask?.cancel()
         rangeReloadTask = nil
     }
 
     func revalidate() async {
+        revalidateRoundTask?.cancel()
+        revalidateGeneration += 1
+        let round = revalidateGeneration
+        // range 在**發請求前**就定下來，之後只用這一份；用「當下的 range」寫快取
+        // 正是 D04 的缺陷本體。
+        let requestedRange = range
+        let roundTask = Task { [weak self] in
+            guard let self else { return }
+            await self.revalidateRound(round, range: requestedRange)
+        }
+        revalidateRoundTask = roundTask
+        // 呼叫端（view 的 `.task`）被取消時把取消轉發進本輪，取消語意不變。
+        await withTaskCancellationHandler {
+            await roundTask.value
+        } onCancel: {
+            roundTask.cancel()
+        }
+        if revalidateGeneration == round {
+            revalidateRoundTask = nil
+        }
+    }
+
+    private func revalidateRound(_ round: Int, range requestedRange: App2MetricRange) async {
         isLoading = !hasLoaded
         var finishedRound = false
         defer {
-            isLoading = false
-            // 成功或**真失敗**才算載過；取消不標——task 取消與 -999 取消錯誤
-            // （提早 return，finishedRound 維持 false）都算取消（2026-08-29 外審 D04/E03）。
-            if finishedRound, !Task.isCancelled {
-                hasLoaded = true
-                lastLoadedAt = Date()
+            // 只有現任輪能收尾——被取代的舊輪連 isLoading 都不得清（外審 D04）。
+            if revalidateGeneration == round {
+                isLoading = false
+                // 成功或**真失敗**才算載過；取消不標——task 取消與 -999 取消錯誤
+                // （提早 return，finishedRound 維持 false）都算取消（2026-08-29 外審 D04/E03）。
+                if finishedRound, !Task.isCancelled {
+                    hasLoaded = true
+                    lastLoadedAt = Date()
+                }
             }
         }
 
@@ -151,7 +191,7 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
             // 三個請求互相獨立，並行打（3 RTT → 1 RTT，T-0357）。
             async let statsAsync = workoutDataSource.fetchWorkoutStats(
                 days: 30,
-                weeks: range.weeksParameter()
+                weeks: requestedRange.weeksParameter()
             )
             async let healthAsync = fetchHealthOptional()
             async let targetAsync = targetWeeklyKm()
@@ -164,20 +204,29 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
             // 取消錯誤，Task.isCancelled 可能是 false）＝整輪作廢不發布（外審 E03）。
             if case .cancelled = healthOutcome { return }
             if Task.isCancelled { return }
+            guard isCurrentRound(round, requestedRange) else { return }
 
             let payload = App2MetricDetailCache.VolumePayload(
                 stats: stats,
                 health: healthOutcome.response,
                 targetKm: targetKm
             )
-            cache.storeVolume(payload, range: range)
+            cache.storeVolume(payload, range: requestedRange)
             publish(payload)
             finishedRound = true
         } catch {
             guard !error.isCancellationError else { return }
+            guard isCurrentRound(round, requestedRange) else { return }
             finishedRound = true
             Logger.debug("[App2VolumeDetailVM] stats 取得失敗: \(error)")
         }
+    }
+
+    /// 這一輪還算不算數：代號沒被新輪頂掉，且它打的 range 還是畫面上的 range。
+    /// 兩個條件都要——`select(range:)` 先改 `range` 再起新輪，兩者之間有一個
+    /// 窗口 generation 尚未遞增，只查代號會漏掉那一段。
+    private func isCurrentRound(_ round: Int, _ requestedRange: App2MetricRange) -> Bool {
+        revalidateGeneration == round && requestedRange == range
     }
 
     private enum HealthOutcome {
@@ -289,6 +338,13 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
     /// 同訓練量 VM：切 range 的重載 task 由 VM 持有，後選取消前選。
     private(set) var rangeReloadTask: Task<Void, Never>?
 
+    /// 同訓練量 VM 的 generation 護欄（2026-09-01 外審 D04）：首載那一輪由 view 的
+    /// `.task` 起，只有代號＋requestedRange 相符的回應才能寫快取與發布。
+    private var revalidateGeneration = 0
+
+    /// 現任輪的 task（含首載那一輪）。
+    private(set) var revalidateRoundTask: Task<Void, Never>?
+
     func select(range newRange: App2MetricRange) {
         guard newRange != range else { return }
         range = newRange
@@ -296,40 +352,73 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
         if let entry = cache.capability[newRange] {
             publish(entry.payload)
         }
+        revalidateRoundTask?.cancel()
         rangeReloadTask?.cancel()
         rangeReloadTask = Task { [weak self] in await self?.revalidate() }
     }
 
-    /// 同訓練量 VM：離開畫面時取消 in-flight 的 range 重載（外審第十一輪 D04）。
-    func cancelRangeReload() {
+    /// 同訓練量 VM：離開畫面時取消 in-flight 的重驗輪（含首載，外審第十一輪 D04）。
+    func cancelInFlightReload() {
+        revalidateRoundTask?.cancel()
+        revalidateRoundTask = nil
         rangeReloadTask?.cancel()
         rangeReloadTask = nil
     }
 
     func revalidate() async {
+        revalidateRoundTask?.cancel()
+        revalidateGeneration += 1
+        let round = revalidateGeneration
+        let requestedRange = range
+        let roundTask = Task { [weak self] in
+            guard let self else { return }
+            await self.revalidateRound(round, range: requestedRange)
+        }
+        revalidateRoundTask = roundTask
+        await withTaskCancellationHandler {
+            await roundTask.value
+        } onCancel: {
+            roundTask.cancel()
+        }
+        if revalidateGeneration == round {
+            revalidateRoundTask = nil
+        }
+    }
+
+    private func revalidateRound(_ round: Int, range requestedRange: App2MetricRange) async {
         isLoading = !hasLoaded
         var finishedRound = false
         defer {
-            isLoading = false
-            // 成功或**真失敗**才算載過；取消不標——task 取消與 -999 取消錯誤
-            // （提早 return，finishedRound 維持 false）都算取消（2026-08-29 外審 D04/E03）。
-            if finishedRound, !Task.isCancelled {
-                hasLoaded = true
-                lastLoadedAt = Date()
+            // 只有現任輪能收尾（外審 D04）。
+            if revalidateGeneration == round {
+                isLoading = false
+                // 成功或**真失敗**才算載過；取消不標——task 取消與 -999 取消錯誤
+                // （提早 return，finishedRound 維持 false）都算取消（2026-08-29 外審 D04/E03）。
+                if finishedRound, !Task.isCancelled {
+                    hasLoaded = true
+                    lastLoadedAt = Date()
+                }
             }
         }
 
         do {
-            let response = try await vdotDataSource.getVDOTs(limit: range.vdotLimit)
+            let response = try await vdotDataSource.getVDOTs(limit: requestedRange.vdotLimit)
             if Task.isCancelled { return }
-            cache.storeCapability(response, range: range)
+            guard isCurrentRound(round, requestedRange) else { return }
+            cache.storeCapability(response, range: requestedRange)
             publish(response)
             finishedRound = true
         } catch {
             guard !error.isCancellationError else { return }
+            guard isCurrentRound(round, requestedRange) else { return }
             finishedRound = true
             Logger.debug("[App2CapabilityDetailVM] vdots 取得失敗: \(error)")
         }
+    }
+
+    /// 同訓練量 VM：代號沒被頂掉，且打的 range 還是畫面上的 range。
+    private func isCurrentRound(_ round: Int, _ requestedRange: App2MetricRange) -> Bool {
+        revalidateGeneration == round && requestedRange == range
     }
 
     /// 投影是純函式：快取命中與網路回來走同一條，hero 吃當下的 insight（T-0357）。
@@ -448,27 +537,64 @@ final class App2RecoveryDetailViewModel: ObservableObject, TaskManageable, App2R
         cancelAllTasks()
     }
 
+    /// 恢復頁沒有 range tabs，但重驗輪一樣可能重疊（首載 ＋ 背景重驗）：
+    /// 同一條 generation 護欄，舊輪不得覆蓋新輪的畫面與快取（2026-09-01 外審 D04）。
+    private var revalidateGeneration = 0
+
+    /// 現任輪的 task（含首載那一輪）。
+    private(set) var revalidateRoundTask: Task<Void, Never>?
+
+    /// 離開畫面時取消 in-flight 的重驗輪。
+    func cancelInFlightReload() {
+        revalidateRoundTask?.cancel()
+        revalidateRoundTask = nil
+    }
+
     func revalidate() async {
+        revalidateRoundTask?.cancel()
+        revalidateGeneration += 1
+        let round = revalidateGeneration
+        let roundTask = Task { [weak self] in
+            guard let self else { return }
+            await self.revalidateRound(round)
+        }
+        revalidateRoundTask = roundTask
+        await withTaskCancellationHandler {
+            await roundTask.value
+        } onCancel: {
+            roundTask.cancel()
+        }
+        if revalidateGeneration == round {
+            revalidateRoundTask = nil
+        }
+    }
+
+    private func revalidateRound(_ round: Int) async {
         isLoading = !hasLoaded
         var finishedRound = false
         defer {
-            isLoading = false
-            // 成功或**真失敗**才算載過；取消不標——task 取消與 -999 取消錯誤
-            // （提早 return，finishedRound 維持 false）都算取消（2026-08-29 外審 D04/E03）。
-            if finishedRound, !Task.isCancelled {
-                hasLoaded = true
-                lastLoadedAt = Date()
+            // 只有現任輪能收尾（外審 D04）。
+            if revalidateGeneration == round {
+                isLoading = false
+                // 成功或**真失敗**才算載過；取消不標——task 取消與 -999 取消錯誤
+                // （提早 return，finishedRound 維持 false）都算取消（2026-08-29 外審 D04/E03）。
+                if finishedRound, !Task.isCancelled {
+                    hasLoaded = true
+                    lastLoadedAt = Date()
+                }
             }
         }
 
         do {
             let response = try await healthDataSource.fetchHealthDaily(limit: Self.windowDays)
             if Task.isCancelled { return }
+            guard revalidateGeneration == round else { return }
             cache.storeRecovery(response)
             publish(response)
             finishedRound = true
         } catch {
             guard !error.isCancellationError else { return }
+            guard revalidateGeneration == round else { return }
             finishedRound = true
             Logger.debug("[App2RecoveryDetailVM] health_daily 取得失敗: \(error)")
         }
