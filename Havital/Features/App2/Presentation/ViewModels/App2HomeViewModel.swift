@@ -309,6 +309,22 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         }
     }
 
+    /// 今日課表卡狀態 chip 的三態（T-0352）：休息日綠勾「安排休息」、已跑綠勾
+    /// 「今天已跑」、未跑橘點「今天還沒跑」。休息日優先——休息日的完成紀錄
+    /// （自主訓練）不把 chip 改成「已跑」，卡片語意仍是「今天安排休息」。
+    /// 抽成純函式是為了把「跑完仍顯示還沒跑」的矛盾鎖進單元測試
+    /// （2026-08-31 用戶截圖，chip 與完成列同框互相矛盾）。
+    struct TodayPillState: Equatable {
+        let showsCheck: Bool
+        let textKey: String
+    }
+
+    static func todayPillState(isRest: Bool, isDone: Bool) -> TodayPillState {
+        if isRest { return TodayPillState(showsCheck: true, textKey: L10n.App2.Home.todayRest) }
+        if isDone { return TodayPillState(showsCheck: true, textKey: L10n.App2.Home.todayDone) }
+        return TodayPillState(showsCheck: false, textKey: L10n.App2.Home.todayTodo)
+    }
+
     /// 這份快取的週課表是不是 plan status 指向的那一份。
     /// 對不上（跨週、或換了計畫）就不拿它當今天的課 —— 寧可等網路。
     static func isWeeklyPlan(_ plan: WeeklyPlanV2, boundTo status: PlanStatusV2Response) -> Bool {

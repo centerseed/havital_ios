@@ -1305,8 +1305,10 @@ struct App2HomeView: View {
     /// 休息日是「安排休息」（綠勾）。完成訊號＝今天有一筆已完成紀錄
     /// （`todayCompletedWorkout`，與下方「今天已經跑完了」列同一個判準）——原本
     /// chip 沒接這個訊號，跑完當天會與完成列同框互相矛盾（2026-08-31 用戶截圖）。
+    /// 三態的決策抽在 [App2HomeViewModel.todayPillState]（純函式，單元測試鎖三態）。
     private func todayStatusPill(isRest: Bool, isDone: Bool = false) -> some View {
-        let showsCheck = isRest || isDone
+        let pill = App2HomeViewModel.todayPillState(isRest: isRest, isDone: isDone)
+        let showsCheck = pill.showsCheck
         return HStack(spacing: 5) {
             if showsCheck {
                 Image(systemName: "checkmark")
@@ -1316,11 +1318,7 @@ struct App2HomeView: View {
                     .fill(App2Theme.accentOrangeBright)
                     .frame(width: 6, height: 6)
             }
-            Text(isRest
-                 ? L10n.App2.Home.todayRest.localized
-                 : (isDone
-                    ? L10n.App2.Home.todayDone.localized
-                    : L10n.App2.Home.todayTodo.localized))
+            Text(pill.textKey.localized)
                 .font(.system(size: 13, weight: .heavy))
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)

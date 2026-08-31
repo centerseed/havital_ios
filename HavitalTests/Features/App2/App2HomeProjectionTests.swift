@@ -1047,4 +1047,27 @@ final class App2HomeProjectionTests: XCTestCase {
         XCTAssertNil(App2HomeViewModel.stageName(stages: try stages(threeStagesJSON), currentWeek: 9))
         XCTAssertNil(App2HomeViewModel.stageName(stages: [], currentWeek: 1))
     }
+
+    // MARK: - 今日卡狀態 chip 三態（T-0352）
+
+    /// 缺陷原型（2026-08-31 用戶截圖）：跑完當天 chip 仍是「今天還沒跑」，
+    /// 與同卡「今天已經跑完了」列同框矛盾——完成訊號沒接。
+    func test_todayPill_doneRun_showsDoneNotTodo() {
+        let pill = App2HomeViewModel.todayPillState(isRest: false, isDone: true)
+        XCTAssertTrue(pill.showsCheck)
+        XCTAssertEqual(pill.textKey, L10n.App2.Home.todayDone)
+    }
+
+    func test_todayPill_notRunYet_staysTodo() {
+        let pill = App2HomeViewModel.todayPillState(isRest: false, isDone: false)
+        XCTAssertFalse(pill.showsCheck)
+        XCTAssertEqual(pill.textKey, L10n.App2.Home.todayTodo)
+    }
+
+    /// 休息日優先：休息日的自主訓練不把卡片語意改成「已跑」。
+    func test_todayPill_restDay_staysRest_evenWithARun() {
+        let pill = App2HomeViewModel.todayPillState(isRest: true, isDone: true)
+        XCTAssertTrue(pill.showsCheck)
+        XCTAssertEqual(pill.textKey, L10n.App2.Home.todayRest)
+    }
 }
