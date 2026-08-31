@@ -10,6 +10,7 @@
 //  這裡補的是 period summary 與 metric detail 兩條 optional-load 路徑的真實 task 取消。
 //
 
+import Combine
 import XCTest
 @testable import paceriz_dev
 
@@ -563,5 +564,60 @@ final class App2CancellationTests: XCTestCase {
         XCTAssertFalse(vm.hasLoaded, "plan status 被取消＝這一輪不算載過")
         XCTAssertNil(vm.lastLoadedAt)
         XCTAssertFalse(vm.isLoading)
+    }
+
+    // MARK: - 重驗鎖讓位（T-0355；缺陷原型：2026-08-31 prod log——推播已到、
+    // 18:47–19:07 App 對後端零請求，一輪卡死讓之後每次下拉都靜默 no-op）
+
+    func test_stuckRevalidate_pastThreshold_yieldsToNewRound() {
+        let began = Date(timeIntervalSinceNow: -(App2RevalidatePolicy.stuckThreshold + 1))
+        XCTAssertFalse(
+            App2RevalidatePolicy.shouldBlock(isRevalidating: true, began: began),
+            "前一輪卡超過門檻時必須讓位——下拉刷新要真正打出網路"
+        )
+    }
+
+    func test_stuckRevalidate_freshInFlightRound_stillBlocks() {
+        let began = Date(timeIntervalSinceNow: -5)
+        XCTAssertTrue(
+            App2RevalidatePolicy.shouldBlock(isRevalidating: true, began: began),
+            "門檻內的重入仍要被互斥擋掉（SWR 防抖不變）"
+        )
+    }
+
+    func test_stuckRevalidate_notRevalidating_runs() {
+        XCTAssertFalse(App2RevalidatePolicy.shouldBlock(isRevalidating: false, began: nil))
+    }
+
+    func test_stuckRevalidate_inFlightWithoutTimestamp_blocks() {
+        XCTAssertTrue(
+            App2RevalidatePolicy.shouldBlock(isRevalidating: true, began: nil),
+            "沒有起點時戳就無法判卡死，保守維持互斥"
+        )
+    }
+
+    // MARK: - 推播觸發失效（T-0355）
+
+    func test_workoutProcessedPush_emitsInvalidation() {
+        let manager = WorkoutBackgroundManager.shared
+        var received = 0
+        let cancellable = manager.workoutPushReceived.sink { received += 1 }
+        defer { cancellable.cancel() }
+
+        manager.emitWorkoutPushIfNeeded(["type": "workout_processed"])
+
+        XCTAssertEqual(received, 1, "workout_processed 推播必須發出失效事件")
+    }
+
+    func test_otherPushTypes_doNotEmitInvalidation() {
+        let manager = WorkoutBackgroundManager.shared
+        var received = 0
+        let cancellable = manager.workoutPushReceived.sink { received += 1 }
+        defer { cancellable.cancel() }
+
+        manager.emitWorkoutPushIfNeeded(["type": "weekly_review_ready"])
+        manager.emitWorkoutPushIfNeeded([:])
+
+        XCTAssertEqual(received, 0, "非 workout_processed 推播不得觸發 workouts 失效")
     }
 }

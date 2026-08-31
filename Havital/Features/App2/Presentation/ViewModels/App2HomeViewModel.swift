@@ -208,13 +208,12 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     func revalidate() async {
         // 同一時間只跑一輪：兩輪並發會在 await 點交錯共用 `roundSawCancellation`
         // 與完成標記（外審第九輪 E08）。後進的直接跳過——SWR 下一次會再來。
-        if isRevalidating {
-            // 鎖是防重入，不是允許一輪卡住就永遠吞掉下拉刷新（T-0355，2026-08-31：
-            // 推播已到、18:47–19:07 App 對後端零請求，重開 app 才恢復）。超過門檻
-            // 視為前一輪卡死，讓位開新輪；卡死輪殘餘的 defer 只會提前放鎖，影響
-            // 背景 SWR 的重入時機，資料發布仍在 MainActor 上序列化。
-            guard let began = revalidateBegan,
-                  Date().timeIntervalSince(began) > App2RevalidatePolicy.stuckThreshold else { return }
+        // 鎖是防重入，不是允許一輪卡住就永遠吞掉下拉刷新（T-0355，2026-08-31：
+        // 推播已到、18:47–19:07 App 對後端零請求，重開 app 才恢復）。超過門檻
+        // 視為前一輪卡死，讓位開新輪；卡死輪殘餘的 defer 只會提前放鎖，影響
+        // 背景 SWR 的重入時機，資料發布仍在 MainActor 上序列化。
+        if App2RevalidatePolicy.shouldBlock(isRevalidating: isRevalidating, began: revalidateBegan) {
+            return
         }
         isRevalidating = true
         revalidateBegan = Date()

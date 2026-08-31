@@ -11,6 +11,14 @@ import SwiftUI
 /// 下一次（含下拉刷新）不再被 `isRevalidating` 吞掉，直接開新輪。
 enum App2RevalidatePolicy {
     static let stuckThreshold: TimeInterval = 30
+
+    /// true ＝ 這一輪讓路（防重入）；false ＝ 執行——沒有 in-flight，或前一輪
+    /// 開始已超過門檻（視為卡死，讓位開新輪）。抽成純函式鎖進單元測試。
+    static func shouldBlock(isRevalidating: Bool, began: Date?, now: Date = Date()) -> Bool {
+        guard isRevalidating else { return false }
+        guard let began else { return true }
+        return now.timeIntervalSince(began) <= stuckThreshold
+    }
 }
 
 @MainActor
