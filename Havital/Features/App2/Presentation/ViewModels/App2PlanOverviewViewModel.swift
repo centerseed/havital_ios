@@ -58,6 +58,11 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     private func noteRoundCancellation() {
         if App2RevalidateRound.id == revalidateGeneration { roundSawCancellation = true }
     }
+    /// 被接管的舊輪（在輪內、代號非現任）。helper 在 await 後寫共用狀態前必查
+    /// ——不在任何輪內（id == 0，使用者動作路徑）不受限（外審第四輪 D04）。
+    private var isStaleRound: Bool {
+        App2RevalidateRound.id != 0 && App2RevalidateRound.id != revalidateGeneration
+    }
     /// revalidate 的同輪互斥：兩輪並發會在 await 點交錯共用取消旗標與完成標記。
     private var isRevalidating = false
     /// 這一輪重驗的起點（判卡死用，見 revalidate 開頭）。
@@ -263,6 +268,8 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         guard let planStatus else { return StageBundle() }
         do {
             let overview = try await planRepository.refreshOverview()
+            // 被接管的舊輪不得寫 overviewId／targetType（外審第四輪 D04）。
+            guard !isStaleRound else { return StageBundle() }
             // 更換方法論打在**目前這一份 overview** 上。
             //
             // **不同源時這個 id 仍然有效**：`isUnbound` 只代表本週課表比 overview 舊

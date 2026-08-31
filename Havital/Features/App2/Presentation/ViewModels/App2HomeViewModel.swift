@@ -28,6 +28,11 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     private func noteRoundCancellation() {
         if App2RevalidateRound.id == revalidateGeneration { roundSawCancellation = true }
     }
+    /// 被接管的舊輪（在輪內、代號非現任）。helper 在 await 後寫共用狀態前必查
+    /// ——不在任何輪內（id == 0，使用者動作路徑）不受限（外審第四輪 D04）。
+    private var isStaleRound: Bool {
+        App2RevalidateRound.id != 0 && App2RevalidateRound.id != revalidateGeneration
+    }
     /// revalidate 的同輪互斥（見 revalidate 開頭的註解）。
     private var isRevalidating = false
     /// 這一輪重驗的起點（判卡死用，見 revalidate 開頭）。
@@ -275,6 +280,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         roundSawCancellation = false
         // 全頁共用的一次 plan status。三張卡都從這一份取週數與本週課表 id。
         let planStatus = await fetchPlanStatus()
+        guard revalidateGeneration == round else { return }
 
         // 其餘區塊獨立：一條失敗不阻斷其他。
         async let state: Void = loadDailyState(planStatus: planStatus.value)
@@ -426,11 +432,14 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         do {
             // 落地由 `DailyStateRepositoryImpl` 在成功回應時做（存 DTO），
             // 這裡拿到的已經是 entity。
-            applyDailyState(card: try await dailyStateRepository.fetchTodayState(), planStatus: planStatus)
+            let card = try await dailyStateRepository.fetchTodayState()
+            guard !isStaleRound else { return }
+            applyDailyState(card: card, planStatus: planStatus)
         } catch {
             // 取消不是失敗（`AGENTS.md` 陷阱 2）。下拉刷新的 task 被 SwiftUI 收掉時
             // 每一條 in-flight 請求都會回 -999；當成失敗會把畫面上的真資料換成樣本。
             guard !error.isCancellationError else { noteRoundCancellation(); return }
+            guard !isStaleRound else { return }
             Logger.debug("[App2HomeVM] state/today 取得失敗,退樣本: \(error)")
             if trainingStatus == nil {
                 trainingStatus = App2Sourced(
@@ -503,9 +512,11 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             }
             do {
                 let plan = try await planRepository.fetchWeeklyPlan(planId: planId)
+                guard !isStaleRound else { return }
                 applyTodaySession(plan: plan)
             } catch {
                 guard !error.isCancellationError else { noteRoundCancellation(); return }
+                guard !isStaleRound else { return }
                 Logger.debug("[App2HomeVM] 今日課表取得失敗（plan_id=\(planId)）: \(error)")
                 todayState = .unavailable
             }
@@ -548,6 +559,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     private func loadTodayCompletedWorkout() async {
         do {
             let rows = try await workoutDataSource.fetchRecentWorkouts(pageSize: 10)
+            guard !isStaleRound else { return }
             snapshots.save(rows, for: .homeRecentWorkouts)
             todayCompletedWorkout = Self.todayWorkout(rows)
         } catch {
@@ -634,6 +646,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             guard !error.isCancellationError else { noteRoundCancellation(); return }
             Logger.debug("[App2HomeVM] 本週回顧查詢失敗,視為尚未產生: \(error)")
         }
+        guard !isStaleRound else { return }
         weekReview = Self.weekReviewState(planStatus: planStatus, isSunday: true, summaryId: summaryId)
     }
 
@@ -1118,12 +1131,12 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         let overview = await currentOverview(planStatus: planStatus)
         // 每個可取消子載 await 完就查旗標：取消＝整段停手，不得再組 plan-end 或
         // 目標卡（外審第十輪 D04/E03——子載記了旗標回 nil，呼叫端不能當「沒資料」繼續）。
-        guard !roundSawCancellation else { return }
+        guard !roundSawCancellation, !isStaleRound else { return }
 
         // **結束態的「當時預估」不是 `estimated`**（那是最新那一筆，講的是「現在」）。
         // 2026-08-27 裁決：要賽事日當天那一筆，取不到就整欄不畫。
         let estimatedAtRace = await raceDayEstimate(planStatus: planStatus, target: main)
-        guard !roundSawCancellation else { return }
+        guard !roundSawCancellation, !isStaleRound else { return }
 
         applyPlanEnd(
             planStatus: planStatus,

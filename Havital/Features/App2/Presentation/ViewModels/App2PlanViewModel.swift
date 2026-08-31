@@ -85,6 +85,11 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     private var revalidateGeneration = 0
     /// 現任輪的 task：接管時取消它，逼舊輪走取消路徑退出。
     private var revalidateRoundTask: Task<Void, Never>?
+    /// 被接管的舊輪（在輪內、代號非現任）。helper 在 await 後寫共用狀態前必查
+    /// ——不在任何輪內（id == 0，使用者動作路徑）不受限（外審第四輪 D04）。
+    private var isStaleRound: Bool {
+        App2RevalidateRound.id != 0 && App2RevalidateRound.id != revalidateGeneration
+    }
 
     /// 最近一次讀到的 plan status —— 歷史週的週起點與週次上限都從它推。
     private var latestPlanStatus: PlanStatusV2Response?
@@ -358,6 +363,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// **所以這一頁不為了判變體多打一次 `GET /v2/plan/overview`**。
     private func applyPlanEnd(planStatus: PlanStatusV2Response) async {
         let target = await targetRepository?.getMainTarget()
+        guard !isStaleRound else { return }
 
         #if DEBUG
         if let forced = App2DevSettings.shared.planEndOverride.resolve(
@@ -429,7 +435,9 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         historyWeek = target
         isHistoryWeekMissing = false
 
-        guard let status = latestPlanStatus, let overviewId = await resolveOverviewId() else {
+        let resolvedOverviewId = await resolveOverviewId()
+        guard !isStaleRound else { return }
+        guard let status = latestPlanStatus, let overviewId = resolvedOverviewId else {
             week = nil
             dayDetails = [:]
             isHistoryWeekMissing = true
@@ -441,9 +449,11 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 weekOfTraining: target,
                 overviewId: overviewId
             )
+            guard !isStaleRound else { return }
             await applyHistory(plan: plan, planStatus: status, week: target)
         } catch {
             guard !error.isCancellationError else { finishedRound = false; return }
+            guard !isStaleRound else { return }
             Logger.debug("[App2PlanVM] 歷史第 \(target) 週無課表: \(error)")
             week = nil
             dayDetails = [:]
@@ -459,7 +469,10 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             overviewId = cached
             return cached
         }
-        overviewId = try? await planRepository.getOverview().id
+        let fetched = try? await planRepository.getOverview().id
+        // 被接管的舊輪不寫快取，只回值（呼叫端會再以輪代號把整段丟棄）。
+        guard !isStaleRound else { return fetched }
+        overviewId = fetched
         return overviewId
     }
 
@@ -470,11 +483,13 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     private func applyHistory(plan: WeeklyPlanV2, planStatus: PlanStatusV2Response, week target: Int) async {
         isPlanGenerated = true
         let start = App2PlanEndProjection.historyWeekStart(week: target, planStatus: planStatus)
+        let completed = await completedDistanceKm(weekStart: start)
+        guard !isStaleRound else { return }
         week = App2Sourced(
             Self.planWeek(
                 plan: plan,
                 planStatus: planStatus,
-                completedKm: await completedDistanceKm(weekStart: start),
+                completedKm: completed,
                 todayIndex: 0,
                 weekStart: start
             ),
