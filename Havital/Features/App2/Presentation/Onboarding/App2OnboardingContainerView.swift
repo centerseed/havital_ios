@@ -11,10 +11,38 @@ struct App2OnboardingContainerView: View {
     @StateObject private var viewModel: App2OnboardingViewModel
     /// 從設定頁「重新設定目標賽事」進來時，完成後要把 cover 關掉。
     let onFinished: (() -> Void)?
+    /// **還沒提交就想離開**時把 cover 關掉（2026-08-31 用戶實機回報，T-0364）。
+    ///
+    /// re-onboarding 的第一頁（目標類型）是 `NavigationStack` 的**根頁**，沒有上一頁可退；
+    /// 而整條流程開在 `fullScreenCover`、`navigationBarHidden`，所以既沒有系統返回鍵、
+    /// 也沒有邊緣滑回。在補上這條之前，從訓練計劃按「重新設定計畫」之後**唯一的出口是
+    /// 把整條流程走完**——使用者的原話是「直接卡死」。
+    /// nil ＝ 呼叫端沒有提供出口（那一頁的返回鍵維持 disabled，與補這條之前相同）。
+    let onCancel: (() -> Void)?
 
-    init(isReonboarding: Bool, onFinished: (() -> Void)? = nil) {
+    init(
+        isReonboarding: Bool,
+        onFinished: (() -> Void)? = nil,
+        onCancel: (() -> Void)? = nil
+    ) {
         _viewModel = StateObject(wrappedValue: App2OnboardingViewModel(isReonboarding: isReonboarding))
         self.onFinished = onFinished
+        self.onCancel = onCancel
+    }
+
+    /// 目標類型頁返回鍵要做什麼。**同一頁在兩條流程裡的身分不同**，所以不是同一個動作：
+    ///
+    /// - 首次 onboarding：它是從開場頁推出來的第二頁 → 返回＝`pop()` 退回開場頁。
+    /// - re-onboarding：它是根頁 → 返回＝關掉整個 cover，回到進來的那一頁。
+    ///
+    /// 抽成純函式是為了讓「re-onboarding 的第一頁必須有出口」這條可以被單獨鎖住
+    /// （`App2OnboardingBackActionTests`）——它是這張票要防的退化。
+    static func goalTypeBackAction(
+        isReonboarding: Bool,
+        onCancel: (() -> Void)?,
+        pop: @escaping () -> Void
+    ) -> (() -> Void)? {
+        isReonboarding ? onCancel : pop
     }
 
     var body: some View {
@@ -47,7 +75,7 @@ struct App2OnboardingContainerView: View {
     @ViewBuilder
     private var root: some View {
         if viewModel.isReonboarding {
-            App2OnboardingGoalTypeView(viewModel: viewModel)
+            App2OnboardingGoalTypeView(viewModel: viewModel, onCancel: onCancel)
         } else {
             App2OnboardingWelcomeView(viewModel: viewModel)
         }
@@ -56,6 +84,8 @@ struct App2OnboardingContainerView: View {
     @ViewBuilder
     private func page(_ step: App2OnboardingViewModel.Step) -> some View {
         switch step {
+        // 被推出來的那一次（首次 onboarding）不帶 `onCancel`：那時它不是根頁，
+        // 返回就是退回開場頁。
         case .goalType:     App2OnboardingGoalTypeView(viewModel: viewModel)
         case .raceSetup:    App2OnboardingRaceSetupView(viewModel: viewModel)
         case .heartRate:    App2OnboardingHeartRateView(viewModel: viewModel)
@@ -274,6 +304,8 @@ struct App2OnboardingWelcomeView: View {
 
 struct App2OnboardingGoalTypeView: View {
     @ObservedObject var viewModel: App2OnboardingViewModel
+    /// re-onboarding 時這一頁是根頁，返回＝離開整條流程（見容器的 `onCancel`）。
+    var onCancel: (() -> Void)?
     @EnvironmentObject private var flow: OnboardingFeatureViewModel
 
     /// 設計 frame-31 的三張卡（文案與圖示是設計 SSOT；語意映射到既有 `target_type`）。
@@ -296,7 +328,11 @@ struct App2OnboardingGoalTypeView: View {
         App2OnboardingPage(
             segment: .goal,
             progressWithinSegment: viewModel.progress(for: .goalType),
-            onBack: viewModel.isReonboarding ? nil : { viewModel.pop() },
+            onBack: App2OnboardingContainerView.goalTypeBackAction(
+                isReonboarding: viewModel.isReonboarding,
+                onCancel: onCancel,
+                pop: { viewModel.pop() }
+            ),
             ctaTitle: L10n.App2.Onboarding.continueCta.localized,
             ctaEnabled: flow.selectedTargetTypeV2 != nil,
             ctaBusy: viewModel.isBusy,

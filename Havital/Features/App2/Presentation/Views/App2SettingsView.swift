@@ -163,7 +163,7 @@ struct App2SettingsView: View {
             ClimateSettingsView()
         case .reonboarding:
             // 「重設目標」走 2.0 版面的 onboarding，底下仍是 `OnboardingCoordinator`。
-            App2OnboardingContainerView(isReonboarding: true, onFinished: dismiss)
+            App2OnboardingContainerView(isReonboarding: true, onFinished: dismiss, onCancel: dismiss)
         #if DEBUG
         case .weeklyReviewDev:
             App2WeeklyReviewDevView(onClose: dismiss)

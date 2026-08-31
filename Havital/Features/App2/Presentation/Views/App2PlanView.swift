@@ -130,11 +130,16 @@ struct App2PlanView: View {
             )
         }
         .fullScreenCover(isPresented: $isShowingReonboarding) {
-            App2OnboardingContainerView(isReonboarding: true) {
-                isShowingReonboarding = false
-                // 重設完目標，這一頁要從結束態回到新計畫的第 1 週。
-                Task { await viewModel.forceRefresh() }
-            }
+            App2OnboardingContainerView(
+                isReonboarding: true,
+                onFinished: {
+                    isShowingReonboarding = false
+                    // 重設完目標，這一頁要從結束態回到新計畫的第 1 週。
+                    Task { await viewModel.forceRefresh() }
+                },
+                // 還沒提交就返回：只關掉，不重取（什麼都沒改）。
+                onCancel: { isShowingReonboarding = false }
+            )
         }
         // 產生失敗可重試（按鈕仍在，狀態沒有被改掉）。
         .alert(

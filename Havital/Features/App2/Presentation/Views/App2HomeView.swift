@@ -115,11 +115,16 @@ struct App2HomeView: View {
             }
         }
         .fullScreenCover(isPresented: $isShowingReonboarding) {
-            App2OnboardingContainerView(isReonboarding: true) {
-                isShowingReonboarding = false
-                // 重設完目標，首頁整組（結束態／目標卡／今日課表）都要換掉。
-                Task { await viewModel.forceRefresh() }
-            }
+            App2OnboardingContainerView(
+                isReonboarding: true,
+                onFinished: {
+                    isShowingReonboarding = false
+                    // 重設完目標，首頁整組（結束態／目標卡／今日課表）都要換掉。
+                    Task { await viewModel.forceRefresh() }
+                },
+                // 還沒提交就返回：只關掉，不重取（什麼都沒改）。
+                onCancel: { isShowingReonboarding = false }
+            )
         }
         .sheet(isPresented: $isShowingNotifications) {
             NavigationStack {

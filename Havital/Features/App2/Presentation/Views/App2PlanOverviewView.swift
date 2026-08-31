@@ -70,10 +70,15 @@ struct App2PlanOverviewView: View {
             })
         }
         .fullScreenCover(isPresented: $isShowingGoalSetup) {
-            App2OnboardingContainerView(isReonboarding: true) {
-                isShowingGoalSetup = false
-                Task { await viewModel.forceRefresh() }
-            }
+            App2OnboardingContainerView(
+                isReonboarding: true,
+                onFinished: {
+                    isShowingGoalSetup = false
+                    Task { await viewModel.forceRefresh() }
+                },
+                // 還沒提交就返回：只關掉，不重取（什麼都沒改）。
+                onCancel: { isShowingGoalSetup = false }
+            )
         }
         // 巢狀 sheet 在這個 repo 不進 accessibility tree（同 `App2SessionDetailView`
         // 的既有處置），所以子頁一律 fullScreenCover。
