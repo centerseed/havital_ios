@@ -292,7 +292,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             // in-flight 請求會回 -999，當成失敗會把真課表換成樣本。
             // plan status 成功後才被取消（fetchWeeklyPlan 等後續）＝部分取消：
             // 一樣不算載過，把先前樂觀設下的旗標收回（外審第七輪 D04）。
-            guard !error.isCancellationError else { finishedRound = false; return }
+            guard !error.isCancellationError else { if !isStaleRound { finishedRound = false }; return }
             guard revalidateGeneration == round else { return }
             finishedRound = true
             Logger.debug("[App2PlanVM] 週課表取得失敗,退樣本: \(error)")
@@ -452,7 +452,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             guard !isStaleRound else { return }
             await applyHistory(plan: plan, planStatus: status, week: target)
         } catch {
-            guard !error.isCancellationError else { finishedRound = false; return }
+            guard !error.isCancellationError else { if !isStaleRound { finishedRound = false }; return }
             guard !isStaleRound else { return }
             Logger.debug("[App2PlanVM] 歷史第 \(target) 週無課表: \(error)")
             week = nil

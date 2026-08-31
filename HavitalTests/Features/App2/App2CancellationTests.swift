@@ -11,6 +11,7 @@
 //
 
 import Combine
+import UserNotifications
 import XCTest
 @testable import paceriz_dev
 
