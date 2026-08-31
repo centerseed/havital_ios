@@ -393,6 +393,33 @@ final class App2RecordsViewModelTests: XCTestCase {
         XCTAssertFalse(oldLabel.contains(":"), "「N 天前」不帶時間：\(oldLabel)")
     }
 
+    // MARK: - 單位切換（T-0366 外審 B07／E03）
+
+    /// 切換公制／英制時這一頁要重投影一次，不能等 60 秒 SWR 視窗
+    /// —— 與 `workout_processed` 那條同一個理由、同一個處置。
+    ///
+    /// 觀察點是「有沒有再向資料來源要一次」：這一頁的量有些是 View 現算的、
+    /// 有些是投影時就組好的，唯一能證明整頁都換過的就是重跑一輪投影。
+    func test_unitSystemChange_revalidatesSoProjectionsAreRebuilt() async throws {
+        let source = FakeStatsSource()
+        source.workouts = [run(id: "a", at: dayOfThisMonth(4), km: 7)]
+        let vm = makeViewModel(source)
+        await vm.loadIfNeeded()
+        XCTAssertEqual(source.statsCallCount, 1)
+
+        let manager = UnitManager.shared
+        let original = manager.currentUnitSystem
+        defer { manager.currentUnitSystem = original }
+        manager.currentUnitSystem = original == .metric ? .imperial : .metric
+
+        // 事件的訂閱通知走 `Task { @MainActor }`，讓出一次執行緒讓它跑完。
+        for _ in 0..<50 where source.statsCallCount == 1 {
+            await Task.yield()
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+        XCTAssertEqual(source.statsCallCount, 2, "切換單位後要重投影一次")
+    }
+
     // MARK: - 載入與 SWR
 
     func test_load_mapsStatsAndMonthlyTotals() async throws {

@@ -178,6 +178,14 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                     self.lastLoadedAt = nil
                     if self.hasLoaded { await self.revalidate() }
                 }
+            // 單位切換（T-0366）：這一頁上的量是**投影時就格式化好的字串**，
+            // View 觀察 `UnitManager` 只會重畫同一份舊字。收到就重投影一次。
+            case .unitSystemChanged:
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.lastLoadedAt = nil
+                    if self.hasLoaded { await self.revalidate() }
+                }
             default:
                 break
             }

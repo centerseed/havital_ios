@@ -114,13 +114,18 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
 
         // workout_processed 推播（T-0359）與其他 workouts 失效：紀錄列表要立即
         // 換新，不能等 60 秒 SWR 視窗（清快取而不重驗＝畫面停留舊資料）。
+        // 單位切換（T-0366）：hero 與每一列的量是 View 現算的，但小計與清單仍要
+        // 走一次重投影才會全頁一致（同 `App2PlanViewModel` 的處置）。
         CacheEventBus.shared.subscribe(forIdentifier: "App2RecordsViewModel.workouts") { [weak self] reason in
-            if case .dataChanged(.workouts) = reason {
+            switch reason {
+            case .dataChanged(.workouts), .unitSystemChanged:
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     self.lastLoadedAt = nil
                     if self.hasLoaded { await self.revalidate() }
                 }
+            default:
+                break
             }
         }
     }

@@ -247,14 +247,14 @@ final class App2SessionDetailProjectionTests: XCTestCase {
         let unitSystem = UnitManager.shared.currentUnitSystem
 
         XCTAssertEqual(band.paceUnitLabel, unitSystem.paceSuffix, "單位跟著用戶設定，不寫死 /km")
-        XCTAssertEqual(band.paceLabel, App2SessionDetailProjection.paceLabel(410, unitSystem: unitSystem))
+        XCTAssertEqual(band.paceLabel, unitSystem.paceValue(secondsPerKm: 410))
         XCTAssertEqual(
             band.fastLabel,
-            App2SessionDetailProjection.paceLabel(410 - 15, unitSystem: unitSystem)
+            unitSystem.paceValue(secondsPerKm: 410 - 15)
         )
         XCTAssertEqual(
             band.slowLabel,
-            App2SessionDetailProjection.paceLabel(410 + 15, unitSystem: unitSystem)
+            unitSystem.paceValue(secondsPerKm: 410 + 15)
         )
     }
 
@@ -273,27 +273,27 @@ final class App2SessionDetailProjectionTests: XCTestCase {
 
         XCTAssertEqual(
             band.paceLabel,
-            App2SessionDetailProjection.paceLabel(410, unitSystem: unitSystem),
+            unitSystem.paceValue(secondsPerKm: 410),
             "處方配速仍標在帶上"
         )
-        XCTAssertEqual(band.fastLabel, App2SessionDetailProjection.paceLabel(400, unitSystem: unitSystem))
-        XCTAssertEqual(band.slowLabel, App2SessionDetailProjection.paceLabel(480, unitSystem: unitSystem))
+        XCTAssertEqual(band.fastLabel, unitSystem.paceValue(secondsPerKm: 400))
+        XCTAssertEqual(band.slowLabel, unitSystem.paceValue(secondsPerKm: 480))
     }
 
     /// 沒有 VDOT 就沒有「用戶的輕鬆區間」——退回處方 ±15 秒，不本機編一個區間。
     func test_paceBand_easyRunWithoutVDOT_fallsBackToPrescribedWindow() throws {
         let band = try XCTUnwrap(try detail(easyRunDay, vdot: 0)?.paceBand)
         let unitSystem = UnitManager.shared.currentUnitSystem
-        XCTAssertEqual(band.fastLabel, App2SessionDetailProjection.paceLabel(410 - 15, unitSystem: unitSystem))
-        XCTAssertEqual(band.slowLabel, App2SessionDetailProjection.paceLabel(410 + 15, unitSystem: unitSystem))
+        XCTAssertEqual(band.fastLabel, unitSystem.paceValue(secondsPerKm: 410 - 15))
+        XCTAssertEqual(band.slowLabel, unitSystem.paceValue(secondsPerKm: 410 + 15))
     }
 
     /// **只有輕鬆跑／恢復跑**適用裁決（n）。節奏跑有 VDOT 也維持處方窄窗。
     func test_paceBand_nonEasyDayType_keepsPrescribedWindow() throws {
         let band = try XCTUnwrap(try detail(tempoSteadyDay, vdot: 32)?.paceBand)
         let unitSystem = UnitManager.shared.currentUnitSystem
-        XCTAssertEqual(band.fastLabel, App2SessionDetailProjection.paceLabel(300 - 15, unitSystem: unitSystem))
-        XCTAssertEqual(band.slowLabel, App2SessionDetailProjection.paceLabel(300 + 15, unitSystem: unitSystem))
+        XCTAssertEqual(band.fastLabel, unitSystem.paceValue(secondsPerKm: 300 - 15))
+        XCTAssertEqual(band.slowLabel, unitSystem.paceValue(secondsPerKm: 300 + 15))
         XCTAssertNil(App2SessionDetailProjection.easyPaceTrainingType(.tempo))
     }
 
@@ -311,9 +311,9 @@ final class App2SessionDetailProjectionTests: XCTestCase {
             )?.paceBand
         )
         let unitSystem = UnitManager.shared.currentUnitSystem
-        XCTAssertEqual(band.paceLabel, App2SessionDetailProjection.paceLabel(410, unitSystem: unitSystem))
-        XCTAssertEqual(band.fastLabel, App2SessionDetailProjection.paceLabel(400, unitSystem: unitSystem))
-        XCTAssertEqual(band.slowLabel, App2SessionDetailProjection.paceLabel(480, unitSystem: unitSystem))
+        XCTAssertEqual(band.paceLabel, unitSystem.paceValue(secondsPerKm: 410))
+        XCTAssertEqual(band.fastLabel, unitSystem.paceValue(secondsPerKm: 400))
+        XCTAssertEqual(band.slowLabel, unitSystem.paceValue(secondsPerKm: 480))
         let expected = try XCTUnwrap(
             App2SessionDetailProjection.climateAllowanceLabel(
                 prescribedSecondsPerKm: 410, adjustmentPct: 5, unitSystem: unitSystem
@@ -337,7 +337,7 @@ final class App2SessionDetailProjectionTests: XCTestCase {
             )?.paceBand
         )
         let unitSystem = UnitManager.shared.currentUnitSystem
-        XCTAssertEqual(band.paceLabel, App2SessionDetailProjection.paceLabel(410, unitSystem: unitSystem))
+        XCTAssertEqual(band.paceLabel, unitSystem.paceValue(secondsPerKm: 410))
         XCTAssertNil(band.climateAllowanceLabel)
     }
 
@@ -370,9 +370,9 @@ final class App2SessionDetailProjectionTests: XCTestCase {
 
     /// 英制用戶看到的是英里配速 ＋ `/mi`，不是公里配速掛著 `/km`。
     func test_paceLabel_convertsForImperial() {
-        XCTAssertEqual(App2SessionDetailProjection.paceLabel(410, unitSystem: .metric), "6:50")
+        XCTAssertEqual(UnitSystem.metric.paceValue(secondsPerKm: 410), "6:50")
         // 410 × 1.60934 ≈ 659.8 秒／mi。
-        XCTAssertEqual(App2SessionDetailProjection.paceLabel(410, unitSystem: .imperial), "11:00")
+        XCTAssertEqual(UnitSystem.imperial.paceValue(secondsPerKm: 410), "11:00")
     }
 
     // MARK: - plannedSeconds（間歇課沒有 duration_minutes 時的推導）

@@ -84,6 +84,59 @@ final class App2ImperialDistanceTests: XCTestCase {
         XCTAssertEqual(UnitSystem.imperial.formatPaceString(nil), "--:--/mi")
     }
 
+    // MARK: - 切換當下要重投影（外審 B07／E03）
+
+    /// **`@Published` 救不了已經組好的字串**。課表日卡的「課表」行、詳情頁的配速帶、
+    /// 目標卡的賽距都是投影時就格式化好存進 model 的，View 再怎麼觀察 `UnitManager`
+    /// 也只是把同一份舊字重畫一次。所以切換要發 `unitSystemChanged`，VM 收到才重投影。
+    ///
+    /// **值沒真的變就不發**：登入時同步偏好會寫一次同樣的值，不該白白觸發一輪重投影。
+    func test_unitManagerPublishesUnitSystemChanged_onlyOnRealChange() async {
+        let manager = UnitManager.shared
+        let original = manager.currentUnitSystem
+        defer { manager.currentUnitSystem = original }
+
+        let identifier = "App2ImperialDistanceTests.unitChange"
+        var received = 0
+        CacheEventBus.shared.subscribe(forIdentifier: identifier) { reason in
+            if case .unitSystemChanged = reason { received += 1 }
+        }
+        defer { CacheEventBus.shared.unsubscribe(forIdentifier: identifier) }
+
+        // `publish` 的訂閱者通知走 `Task { @MainActor }`，要讓它跑完才看得到。
+        func settle() async {
+            for _ in 0..<50 {
+                await Task.yield()
+                try? await Task.sleep(nanoseconds: 5_000_000)
+            }
+        }
+
+        manager.currentUnitSystem = original == .metric ? .imperial : .metric
+        await settle()
+        XCTAssertEqual(received, 1)
+
+        // 同一個值再寫一次 —— 不得再發一次。
+        let current = manager.currentUnitSystem
+        manager.currentUnitSystem = current
+        await settle()
+        XCTAssertEqual(received, 1, "值沒變不得觸發重投影")
+    }
+
+    /// 這個事件**不清任何快取**：資料沒變，變的是要用哪個單位畫。
+    func test_unitSystemChanged_doesNotInvalidateCaches() {
+        final class Probe: Cacheable {
+            let cacheIdentifier = "App2ImperialDistanceTests.probe"
+            private(set) var cleared = false
+            func clearCache() { cleared = true }
+            func getCacheSize() -> Int { 0 }
+            func isExpired() -> Bool { false }
+        }
+        let probe = Probe()
+        CacheEventBus.shared.register(probe)
+        CacheEventBus.shared.invalidateCache(for: .unitSystemChanged)
+        XCTAssertFalse(probe.cleared, "單位切換不得順手清掉別人的快取")
+    }
+
     // MARK: - 缺陷 1／2：日卡「課表」那一行（Home ＋ Plan 共用）
 
     func test_contentLine_imperial_distanceAndPaceUseTheSameUnit() throws {

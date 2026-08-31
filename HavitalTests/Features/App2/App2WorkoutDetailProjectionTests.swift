@@ -216,12 +216,12 @@ final class App2WorkoutDetailProjectionTests: XCTestCase {
 
     func test_pace_imperialConvertsPerMile() {
         XCTAssertEqual(
-            App2WorkoutDetailProjection.formatPace(secondsPerKm: 291, unitSystem: .metric),
+            UnitSystem.metric.paceValue(secondsPerKm: 291),
             "4:51"
         )
         // 291 s/km × 1.60934 ≈ 468 s/mi = 7:48
         XCTAssertEqual(
-            App2WorkoutDetailProjection.formatPace(secondsPerKm: 291, unitSystem: .imperial),
+            UnitSystem.imperial.paceValue(secondsPerKm: 291),
             "7:48"
         )
     }

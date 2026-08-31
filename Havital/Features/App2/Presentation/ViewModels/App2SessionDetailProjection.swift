@@ -603,9 +603,9 @@ enum App2SessionDetailProjection {
         // 值本身不含單位，單位由 `paceUnitLabel` 交給圖表 —— 設計上那個字是分開排版的。
         let unitSystem = UnitManager.shared.currentUnitSystem
         return App2SessionPaceBand(
-            paceLabel: paceLabel(seconds, unitSystem: unitSystem),
-            fastLabel: paceLabel(fastSeconds, unitSystem: unitSystem),
-            slowLabel: paceLabel(slowSeconds, unitSystem: unitSystem),
+            paceLabel: unitSystem.paceValue(secondsPerKm: seconds),
+            fastLabel: unitSystem.paceValue(secondsPerKm: fastSeconds),
+            slowLabel: unitSystem.paceValue(secondsPerKm: slowSeconds),
             paceUnitLabel: unitSystem.paceSuffix,
             legendLabel: legend,
             climateAllowanceLabel: climateAllowanceLabel(
@@ -661,12 +661,6 @@ enum App2SessionDetailProjection {
 
     /// 快／慢邊界離處方配速多遠。
     static let boundaryToleranceSeconds: Double = 15
-
-    /// 秒／km → 用戶單位制的配速值（**不含**單位字，單位由 `paceUnitLabel` 給）。
-    /// 換算係數走 `UnitSystem`，與 `UnitManager.formatPace` 同一份，不另訂。
-    static func paceLabel(_ secondsPerKm: Double, unitSystem: UnitSystem) -> String {
-        unitSystem.paceValue(secondsPerKm: secondsPerKm)
-    }
 
     // MARK: - Formatting
 

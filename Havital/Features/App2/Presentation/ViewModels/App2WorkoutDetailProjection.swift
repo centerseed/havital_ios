@@ -197,7 +197,7 @@ extension App2WorkoutDetailProjection {
                 Metric(
                     key: "pace",
                     label: NSLocalizedString("performance.avg_pace", comment: "平均配速"),
-                    value: formatPace(secondsPerKm: paceSPerKm, unitSystem: unitSystem),
+                    value: unitSystem.paceValue(secondsPerKm: paceSPerKm),
                     unit: unitSystem.paceSuffix,
                     tone: .pace
                 )
@@ -477,11 +477,6 @@ extension App2WorkoutDetailProjection {
         TimeFormatting.formatTime(max(0, seconds ?? 0))
     }
 
-    static func formatPace(secondsPerKm: Double, unitSystem: UnitSystem) -> String {
-        let rounded = Int(unitSystem.convertedPaceSeconds(secondsPerKm).rounded())
-        return String(format: "%d:%02d", rounded / 60, rounded % 60)
-    }
-
     /// 趨勢圖（`App2Sparkline`）的 y 軸刻度量綱（T-0356）。
     enum TrendTickMetric {
         case heartRate
@@ -499,7 +494,7 @@ extension App2WorkoutDetailProjection {
         case .heartRate:
             return { String(Int($0.rounded())) }
         case .pace:
-            return { formatPace(secondsPerKm: $0, unitSystem: unitSystem) }
+            return { unitSystem.paceValue(secondsPerKm: $0) }
         }
     }
 }

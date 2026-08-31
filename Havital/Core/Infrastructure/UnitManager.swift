@@ -102,9 +102,17 @@ class UnitManager: ObservableObject {
     /// **寫入者只有這個類別**。
     static let defaultsKey = "unit_system_preference"
 
+    /// 切換時除了落地，還要發一次 `unitSystemChanged`。
+    ///
+    /// **`@Published` 只能讓觀察它的 View 重畫，救不了已經組好的字串**：課表日卡的
+    /// 「課表」那一行、詳情頁的配速帶、目標卡的賽距，都是投影時就格式化好存進 model 的。
+    /// 沒有這個事件，切換單位後那些字要等下一次資料更新才會變（T-0366 外審 B07／E03）。
+    /// 值沒真的變就不發（登入時同步偏好會走到這裡，不該白白觸發一輪重投影）。
     @Published var currentUnitSystem: UnitSystem {
         didSet {
             saveToDefaults()
+            guard oldValue != currentUnitSystem else { return }
+            CacheEventBus.shared.publish(.unitSystemChanged)
         }
     }
 

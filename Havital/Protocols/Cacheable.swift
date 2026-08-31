@@ -29,6 +29,10 @@ enum CacheInvalidationReason: Hashable {
     case onboardingCompleted      // 新用戶 Onboarding 完成，需清除舊緩存並強制刷新
     case reonboardingCompleted    // Re-onboarding 完成，通知 UI 關閉 sheet
     case weekChanged              // 跨週事件：App 從背景恢復時發現已跨週，需更新 selectedWeek
+    /// 公制／英制切換（T-0366）。**不清任何快取**——資料沒變，變的是要用哪個單位畫。
+    /// 存在的理由：課表日卡的「課表」行、詳情頁的配速帶、目標卡的賽距這些字串是
+    /// **投影時就組好存起來的**，View 再怎麼觀察 `UnitManager` 也不會重算它們。
+    case unitSystemChanged
 }
 
 // MARK: - 資料類型
