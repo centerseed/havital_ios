@@ -110,6 +110,21 @@ enum CacheRegistrationCoordinator {
             .sink { CacheEventBus.shared.publish(.dataChanged(.workouts)) }
             .store(in: &cancellables)
 
+        // 6. 指標詳情 session 快取（T-0357）。指標全部從 workouts／health 導出，
+        // 相關事件一律全清（session 級、重抓便宜，不做逐 key 精算）。
+        CacheEventBus.shared.subscribe(forIdentifier: "App2MetricDetailCache") { reason in
+            switch reason {
+            case .userLogout, .manualClear, .onboardingCompleted, .reonboardingCompleted,
+                 .dataChanged(.workouts), .dataChanged(.user), .dataChanged(.targets),
+                 .dataChanged(.healthData), .dataChanged(.hrv), .dataChanged(.vdot):
+                Task { @MainActor in
+                    App2MetricDetailCache.shared.removeAll()
+                }
+            default:
+                break
+            }
+        }
+
         Logger.debug("[CacheRegistrationCoordinator] All cache registrations complete")
     }
 

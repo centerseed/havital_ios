@@ -70,6 +70,7 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
     private let workoutDataSource: WorkoutStatsDataSourceProtocol
     private let healthDataSource: HealthDailyDataSourceProtocol
     private let profileRepository: UserProfileRepository?
+    private let cache: App2MetricDetailCache
 
     /// TSB 折線要看得出「疲勞累積」的形狀，60 天是設計 §51-6 x 軸跨度（6/23～本週）。
     private static let loadWindowDays = 60
@@ -79,12 +80,14 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         narrative: String?,
         workoutDataSource: WorkoutStatsDataSourceProtocol? = nil,
         healthDataSource: HealthDailyDataSourceProtocol? = nil,
-        profileRepository: UserProfileRepository? = nil
+        profileRepository: UserProfileRepository? = nil,
+        cache: App2MetricDetailCache = .shared
     ) {
         self.insight = insight
         self.narrative = narrative
         self.workoutDataSource = workoutDataSource ?? WorkoutRemoteDataSource()
         self.healthDataSource = healthDataSource ?? HealthDailyRemoteDataSource()
+        self.cache = cache
         if let profileRepository {
             self.profileRepository = profileRepository
         } else {
@@ -94,6 +97,14 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
             self.profileRepository = container.isRegistered(UserProfileRepository.self)
                 ? (container.resolve() as UserProfileRepository)
                 : nil
+        }
+        // VM 隨 push 重建：有 session 快取就先出畫面（SWR），過期與否交給
+        // loadIfNeeded 的 staleAfter 判斷（T-0357）。
+        if let entry = cache.volume[range] {
+            publish(entry.payload)
+            hasLoaded = true
+            lastLoadedAt = entry.loadedAt
+            isLoading = false
         }
     }
 
@@ -108,6 +119,10 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
     func select(range newRange: App2MetricRange) {
         guard newRange != range else { return }
         range = newRange
+        // 新 range 有快取先上畫面，revalidate 照跑（切 range 一律重驗）。
+        if let entry = cache.volume[newRange] {
+            publish(entry.payload)
+        }
         rangeReloadTask?.cancel()
         rangeReloadTask = Task { [weak self] in await self?.revalidate() }
     }
@@ -133,43 +148,73 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         }
 
         do {
-            let stats = try await workoutDataSource.fetchWorkoutStats(
+            // 三個請求互相獨立，並行打（3 RTT → 1 RTT，T-0357）。
+            async let statsAsync = workoutDataSource.fetchWorkoutStats(
                 days: 30,
                 weeks: range.weeksParameter()
             )
+            async let healthAsync = fetchHealthOptional()
+            async let targetAsync = targetWeeklyKm()
+
+            let stats = try await statsAsync
+            let healthOutcome = await healthAsync
+            let targetKm = await targetAsync
+
             // 訓練負荷與目標線各自可缺席：**真失敗**只是少那一塊；取消（含 -999
             // 取消錯誤，Task.isCancelled 可能是 false）＝整輪作廢不發布（外審 E03）。
-            let health: HealthDailyResponse?
-            do {
-                health = try await healthDataSource.fetchHealthDaily(limit: Self.loadWindowDays)
-            } catch {
-                guard !error.isCancellationError else { return }
-                health = nil
-            }
-            let targetKm = await targetWeeklyKm()
-
+            if case .cancelled = healthOutcome { return }
             if Task.isCancelled { return }
 
-            let bars = App2MetricDetailProjection.bars(stats.data.weeklySeries ?? [])
-            detail = App2Sourced(
-                App2VolumeDetail(
-                    hero: Self.hero(insight: insight, narrative: narrative, targetKm: targetKm),
-                    bars: bars,
-                    targetKm: targetKm,
-                    stats: App2MetricDetailProjection.volumeStats(
-                        bars: bars,
-                        ytdKm: stats.data.yearToDate?.distanceKm
-                    ),
-                    load: App2MetricDetailProjection.loadBlock(health?.healthData ?? [])
-                ),
-                origin: .live(endpoint: "GET /v2/workouts/stats + GET /v2/workouts/health_daily")
+            let payload = App2MetricDetailCache.VolumePayload(
+                stats: stats,
+                health: healthOutcome.response,
+                targetKm: targetKm
             )
+            cache.storeVolume(payload, range: range)
+            publish(payload)
             finishedRound = true
         } catch {
             guard !error.isCancellationError else { return }
             finishedRound = true
             Logger.debug("[App2VolumeDetailVM] stats 取得失敗: \(error)")
         }
+    }
+
+    private enum HealthOutcome {
+        case ok(HealthDailyResponse?)
+        case cancelled
+
+        var response: HealthDailyResponse? {
+            if case .ok(let response) = self { return response }
+            return nil
+        }
+    }
+
+    private func fetchHealthOptional() async -> HealthOutcome {
+        do {
+            return .ok(try await healthDataSource.fetchHealthDaily(limit: Self.loadWindowDays))
+        } catch {
+            return error.isCancellationError ? .cancelled : .ok(nil)
+        }
+    }
+
+    /// 投影是純函式：快取命中（init／切 range）與網路回來走同一條，hero 永遠吃
+    /// 當下的 insight，不會被快取凍住。
+    private func publish(_ payload: App2MetricDetailCache.VolumePayload) {
+        let bars = App2MetricDetailProjection.bars(payload.stats.data.weeklySeries ?? [])
+        detail = App2Sourced(
+            App2VolumeDetail(
+                hero: Self.hero(insight: insight, narrative: narrative, targetKm: payload.targetKm),
+                bars: bars,
+                targetKm: payload.targetKm,
+                stats: App2MetricDetailProjection.volumeStats(
+                    bars: bars,
+                    ytdKm: payload.stats.data.yearToDate?.distanceKm
+                ),
+                load: App2MetricDetailProjection.loadBlock(payload.health?.healthData ?? [])
+            ),
+            origin: .live(endpoint: "GET /v2/workouts/stats + GET /v2/workouts/health_daily")
+        )
     }
 
     /// 目標週跑量（`current_week_distance`）。讀不到就 nil —— 不畫目標線，也不編一個。
@@ -216,15 +261,25 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
     private let insight: App2Insight
     private let narrative: String?
     private let vdotDataSource: VDOTDataSourceProtocol
+    private let cache: App2MetricDetailCache
 
     init(
         insight: App2Insight,
         narrative: String?,
-        vdotDataSource: VDOTDataSourceProtocol? = nil
+        vdotDataSource: VDOTDataSourceProtocol? = nil,
+        cache: App2MetricDetailCache = .shared
     ) {
         self.insight = insight
         self.narrative = narrative
         self.vdotDataSource = vdotDataSource ?? VDOTService.shared
+        self.cache = cache
+        // 同訓練量 VM：session 快取先出畫面（T-0357）。
+        if let entry = cache.capability[range] {
+            publish(entry.payload)
+            hasLoaded = true
+            lastLoadedAt = entry.loadedAt
+            isLoading = false
+        }
     }
 
     deinit {
@@ -237,6 +292,10 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
     func select(range newRange: App2MetricRange) {
         guard newRange != range else { return }
         range = newRange
+        // 新 range 有快取先上畫面，revalidate 照跑（切 range 一律重驗）。
+        if let entry = cache.capability[newRange] {
+            publish(entry.payload)
+        }
         rangeReloadTask?.cancel()
         rangeReloadTask = Task { [weak self] in await self?.revalidate() }
     }
@@ -262,46 +321,53 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
 
         do {
             let response = try await vdotDataSource.getVDOTs(limit: range.vdotLimit)
-            let series = App2MetricDetailProjection.vdotSeries(response.vdots)
-            // `vdots` 一條序列同時裝「已經發生的」與「建計畫時生成的未來每日預估」
-            // （2026-08-27 晚走查裁決（f））。hero 的現值與「30 天前」**只吃歷史段**
-            // —— 之前取 `series.last` 等於把賽事日的預估值當成「目前跑力」顯示。
-            let today = App2MetricDetailProjection.today()
-            // 診斷欄的來源＝**不晚於今天**的最新一筆。未來預估點的診斷欄是空殼
-            // （`daily_count = 0`），拿它當 latest 會把「證據 n = 0」印給用戶
-            // （2026-08-29 D9 裁決；dev 實查 8/27 歷史筆 daily_count = 11）。
-            let latest = response.vdots
-                .filter { App2MetricDetailProjection.isoDate(epochSeconds: $0.datetime) <= today }
-                .max { $0.datetime < $1.datetime }
-                ?? response.vdots.max { $0.datetime < $1.datetime }
-            let split = App2MetricDetailProjection.splitProjected(series, today: today)
-            let previous = App2MetricDetailProjection.value(
-                in: split.history,
-                daysAgo: 30,
-                from: today
-            )
-
-            detail = App2Sourced(
-                App2CapabilityDetail(
-                    hero: Self.hero(
-                        insight: insight,
-                        narrative: narrative,
-                        current: split.history.last?.value,
-                        previous: previous
-                    ),
-                    series: series,
-                    projectedFromIndex: split.projectedFromIndex,
-                    anchorDate: latest?.anchorDate,
-                    diagnostics: App2MetricDetailProjection.diagnostics(latest: latest)
-                ),
-                origin: .live(endpoint: "GET /v2/workouts/vdots")
-            )
+            if Task.isCancelled { return }
+            cache.storeCapability(response, range: range)
+            publish(response)
             finishedRound = true
         } catch {
             guard !error.isCancellationError else { return }
             finishedRound = true
             Logger.debug("[App2CapabilityDetailVM] vdots 取得失敗: \(error)")
         }
+    }
+
+    /// 投影是純函式：快取命中與網路回來走同一條，hero 吃當下的 insight（T-0357）。
+    private func publish(_ response: VDOTResponse) {
+        let series = App2MetricDetailProjection.vdotSeries(response.vdots)
+        // `vdots` 一條序列同時裝「已經發生的」與「建計畫時生成的未來每日預估」
+        // （2026-08-27 晚走查裁決（f））。hero 的現值與「30 天前」**只吃歷史段**
+        // —— 之前取 `series.last` 等於把賽事日的預估值當成「目前跑力」顯示。
+        let today = App2MetricDetailProjection.today()
+        // 診斷欄的來源＝**不晚於今天**的最新一筆。未來預估點的診斷欄是空殼
+        // （`daily_count = 0`），拿它當 latest 會把「證據 n = 0」印給用戶
+        // （2026-08-29 D9 裁決；dev 實查 8/27 歷史筆 daily_count = 11）。
+        let latest = response.vdots
+            .filter { App2MetricDetailProjection.isoDate(epochSeconds: $0.datetime) <= today }
+            .max { $0.datetime < $1.datetime }
+            ?? response.vdots.max { $0.datetime < $1.datetime }
+        let split = App2MetricDetailProjection.splitProjected(series, today: today)
+        let previous = App2MetricDetailProjection.value(
+            in: split.history,
+            daysAgo: 30,
+            from: today
+        )
+
+        detail = App2Sourced(
+            App2CapabilityDetail(
+                hero: Self.hero(
+                    insight: insight,
+                    narrative: narrative,
+                    current: split.history.last?.value,
+                    previous: previous
+                ),
+                series: series,
+                projectedFromIndex: split.projectedFromIndex,
+                anchorDate: latest?.anchorDate,
+                diagnostics: App2MetricDetailProjection.diagnostics(latest: latest)
+            ),
+            origin: .live(endpoint: "GET /v2/workouts/vdots")
+        )
     }
 
     /// 右側對照＝「30 天前 / 39.0」。序列不到 30 天長就沒有這一格（畫「–」）。
@@ -357,15 +423,25 @@ final class App2RecoveryDetailViewModel: ObservableObject, TaskManageable, App2R
     private let insight: App2Insight
     private let narrative: String?
     private let healthDataSource: HealthDailyDataSourceProtocol
+    private let cache: App2MetricDetailCache
 
     init(
         insight: App2Insight,
         narrative: String?,
-        healthDataSource: HealthDailyDataSourceProtocol? = nil
+        healthDataSource: HealthDailyDataSourceProtocol? = nil,
+        cache: App2MetricDetailCache = .shared
     ) {
         self.insight = insight
         self.narrative = narrative
         self.healthDataSource = healthDataSource ?? HealthDailyRemoteDataSource()
+        self.cache = cache
+        // 同訓練量 VM：session 快取先出畫面（T-0357）。
+        if let entry = cache.recovery {
+            publish(entry.payload)
+            hasLoaded = true
+            lastLoadedAt = entry.loadedAt
+            isLoading = false
+        }
     }
 
     deinit {
@@ -387,25 +463,32 @@ final class App2RecoveryDetailViewModel: ObservableObject, TaskManageable, App2R
 
         do {
             let response = try await healthDataSource.fetchHealthDaily(limit: Self.windowDays)
-            let records = response.healthData
-            let hrv = App2MetricDetailProjection.healthSeries(records) { $0.hrvLastNightAvg }
-            let rhr = App2MetricDetailProjection.healthSeries(records) { $0.restingHeartRate.map(Double.init) }
-
-            detail = App2Sourced(
-                App2RecoveryDetail(
-                    hero: Self.hero(insight: insight, narrative: narrative),
-                    hrv: hrv,
-                    restingHR: rhr,
-                    stats: App2MetricDetailProjection.recoveryStats(hrv: hrv, restingHR: rhr)
-                ),
-                origin: .live(endpoint: "GET /v2/workouts/health_daily")
-            )
+            if Task.isCancelled { return }
+            cache.storeRecovery(response)
+            publish(response)
             finishedRound = true
         } catch {
             guard !error.isCancellationError else { return }
             finishedRound = true
             Logger.debug("[App2RecoveryDetailVM] health_daily 取得失敗: \(error)")
         }
+    }
+
+    /// 投影是純函式：快取命中與網路回來走同一條，hero 吃當下的 insight（T-0357）。
+    private func publish(_ response: HealthDailyResponse) {
+        let records = response.healthData
+        let hrv = App2MetricDetailProjection.healthSeries(records) { $0.hrvLastNightAvg }
+        let rhr = App2MetricDetailProjection.healthSeries(records) { $0.restingHeartRate.map(Double.init) }
+
+        detail = App2Sourced(
+            App2RecoveryDetail(
+                hero: Self.hero(insight: insight, narrative: narrative),
+                hrv: hrv,
+                restingHR: rhr,
+                stats: App2MetricDetailProjection.recoveryStats(hrv: hrv, restingHR: rhr)
+            ),
+            origin: .live(endpoint: "GET /v2/workouts/health_daily")
+        )
     }
 
     /// 「7 日基線」目前**沒有 producer**：恢復分數只有當下值，沒有序列端點
