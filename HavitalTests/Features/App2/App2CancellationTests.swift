@@ -630,7 +630,18 @@ final class App2CancellationTests: XCTestCase {
     private final class LoaderGate {
         var entered = 0
         var continuations: [CheckedContinuation<Void, Never>] = []
-        func release(_ index: Int) { continuations[index].resume() }
+        private var released = 0
+
+        func releaseNext() {
+            guard released < continuations.count else { return }
+            continuations[released].resume()
+            released += 1
+        }
+
+        /// 收尾保險：任何模式（含 body-swap RED）下都不留懸掛的輪。
+        func releaseAll() {
+            while released < continuations.count { releaseNext() }
+        }
     }
 
     func test_stuckRevalidate_ownerPath_takeoverAndLockOwnership() async {
@@ -669,13 +680,23 @@ final class App2CancellationTests: XCTestCase {
         XCTAssertEqual(gate.entered, 2, "卡死輪必須讓位，新輪要真正打出載入")
 
         // D04：卡死輪 A 結束時不得放掉輪 B 的鎖——第三次門檻內重入仍被擋。
-        gate.release(0)
+        // 第三輪包 Task＋短輪詢（不 await 到底），body-swap RED 模式下才不會
+        // 因為輪 C 真的開跑、卡在 gate 而讓整個測試懸掛。
+        gate.releaseNext()
         await roundA.value
-        await vm.revalidate()
+        let roundC = Task { await vm.revalidate() }
+        try? await Task.sleep(nanoseconds: 500_000_000)
         XCTAssertEqual(gate.entered, 2, "被接管的舊輪結束不得放掉新輪的鎖")
 
-        gate.release(1)
+        gate.releaseAll()
         await roundB.value
+        // body-swap RED 模式下輪 C 可能真的開跑：等它掛上 continuation 再放行，
+        // 任何模式都不留懸掛。
+        for _ in 0..<50 where gate.entered > gate.continuations.count {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        gate.releaseAll()
+        await roundC.value
         XCTAssertEqual(gate.entered, 2)
     }
 
