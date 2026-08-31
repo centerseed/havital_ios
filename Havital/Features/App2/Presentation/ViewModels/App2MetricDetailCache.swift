@@ -32,6 +32,14 @@ final class App2MetricDetailCache {
     private(set) var capability: [App2MetricRange: Entry<VDOTResponse>] = [:]
     private(set) var recovery: Entry<HealthDailyResponse>?
 
+    /// 失效世代：`removeAll()` 遞增一次。
+    ///
+    /// 沒有這個數字，「事件清空之前起飛、清空之後才回來」的那一輪會把**清空前的
+    /// 事實**重新填回已經清乾淨的快取——推播說資料變了，快取卻立刻長回舊的一份，
+    /// 而且會黏著給下一次進頁用（2026-09-01 外審第二輪 D04）。重驗輪在發請求前
+    /// 記下當時的世代，回來時對不上就不寫。
+    private(set) var invalidationEpoch = 0
+
     func storeVolume(_ payload: VolumePayload, range: App2MetricRange, loadedAt: Date = Date()) {
         volume[range] = Entry(payload: payload, loadedAt: loadedAt)
     }
@@ -48,5 +56,16 @@ final class App2MetricDetailCache {
         volume.removeAll()
         capability.removeAll()
         recovery = nil
+        invalidationEpoch += 1
+    }
+
+    /// 只有「這一輪起飛之後沒被清空過」才寫。世代對不上＝這份事實已經被事件
+    /// 宣告過時，寫回去只會讓下一次進頁又吃到它。
+    ///
+    /// **畫面照發**（呼叫端負責）：這一輪沒有接手的新輪，丟掉就是一片空白，而且
+    /// 沒有任何東西會再去抓。快取留空 ⇒ 下次進頁 miss 重抓，失效仍然生效。
+    func storeIfCurrent(epoch: Int, _ store: (App2MetricDetailCache) -> Void) {
+        guard invalidationEpoch == epoch else { return }
+        store(self)
     }
 }

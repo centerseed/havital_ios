@@ -410,6 +410,32 @@ final class App2MetricDetailCacheTests: XCTestCase {
         XCTAssertNil(cache.capability[.days60])
     }
 
+    func test_volumeVM_roundInvalidatedByTeardown_cannotClearCurrentSpinner() async {
+        // 取消（onDisappear）到「有沒有新輪接手」之間的邊界：被作廢的那一輪回來時
+        // 不得代替不存在的新輪收尾——否則畫面上的 spinner 會被清成一片空白
+        // （2026-09-01 外審第二輪 D04）。
+        let cache = App2MetricDetailCache()
+        let source = GatedStatsSource()
+        let vm = App2VolumeDetailViewModel(
+            insight: insight("volume"), narrative: nil,
+            workoutDataSource: source, healthDataSource: EmptyHealthSource(),
+            profileRepository: nil, cache: cache
+        )
+
+        let initialLoad = Task { await vm.revalidate() }
+        await Self.waitUntil { source.requestedWeeks.count >= 1 }
+        XCTAssertTrue(vm.isLoading)
+
+        vm.cancelInFlightReload()
+        source.releaseAll()
+        await initialLoad.value
+
+        XCTAssertTrue(vm.isLoading, "被作廢的輪不得清掉 loading 態")
+        XCTAssertFalse(vm.hasLoaded)
+        XCTAssertTrue(cache.volume.isEmpty, "被作廢的輪不得寫快取")
+        XCTAssertNil(vm.detail)
+    }
+
     // MARK: - 重驗失敗／取消不得污染快取（外審 E03）
 
     func test_volumeVM_revalidateFailure_storesNothing_butCountsAsLoaded() async {
@@ -519,6 +545,45 @@ final class App2MetricDetailCacheTests: XCTestCase {
         await vm.loadIfNeeded()
         XCTAssertEqual(source.statsCalls, 1, "失效後下一次進頁必須真的重抓")
         XCTAssertNotNil(cache.volume[.weeks8], "重抓成功回寫快取")
+    }
+
+    func test_busInvalidationDuringInflightRevalidate_doesNotRepopulateCache() async throws {
+        // 事件清空**之前**起飛、清空**之後**才回來的那一輪：畫面照發（沒有新輪接手，
+        // 丟掉就是空白），但**不得把清空前的事實寫回快取**——否則推播說資料變了、
+        // 快取立刻長回舊的一份，還黏著給下一次進頁（2026-09-01 外審第二輪 D04）。
+        await rewireCacheRegistrations()
+        let cache = App2MetricDetailCache.shared
+        let source = GatedStatsSource()
+        let vm = App2VolumeDetailViewModel(
+            insight: insight("volume"), narrative: nil,
+            workoutDataSource: source, healthDataSource: EmptyHealthSource(),
+            profileRepository: nil, cache: cache
+        )
+
+        let inflight = Task { await vm.revalidate() }
+        await Self.waitUntil { source.requestedWeeks.count >= 1 }
+
+        // 重驗還在飛的時候，推播／資料變更事件抵達並清空快取。
+        let epochBefore = cache.invalidationEpoch
+        CacheEventBus.shared.publish(.dataChanged(.workouts))
+        await Self.waitUntil { cache.invalidationEpoch > epochBefore }
+
+        source.releaseAll()
+        await inflight.value
+
+        XCTAssertTrue(cache.volume.isEmpty, "事件清空之後，過時的 in-flight 回應不得重新填回快取")
+        XCTAssertNotNil(vm.detail, "畫面照發：這一輪沒有接手的新輪，丟掉只會是一片空白")
+
+        // 快取留空 ⇒ 下一次進頁仍是 miss，會真的重抓。
+        let next = CountingStatsSource()
+        let nextVM = App2VolumeDetailViewModel(
+            insight: insight("volume"), narrative: nil,
+            workoutDataSource: next, healthDataSource: EmptyHealthSource(),
+            profileRepository: nil, cache: cache
+        )
+        XCTAssertNil(nextVM.detail)
+        await nextVM.loadIfNeeded()
+        XCTAssertEqual(next.statsCalls, 1)
     }
 
     func test_userDataChanged_throughBus_clearsCache() async throws {
