@@ -121,11 +121,36 @@ final class UserProfileRepositoryImplTests: XCTestCase {
         // Given
         let expectedTargets = UserProfileTestFixtures.testTargets
         mockTargetRemoteDataSource.targetsToReturn = expectedTargets
-        
+
         // When
         let result = try await repository.getTargets()
-        
+
         // Then
         XCTAssertEqual(result.count, expectedTargets.count)
+    }
+
+    // MARK: - getCachedUserProfile（T-0365）
+
+    /// 只讀本機，**過期的也照給**。呼叫端（計畫總覽的「進頁先畫快取」）要的是
+    /// 「上一次看到的那份」，新鮮度由它自己那一輪的重驗負責；若比照 `getUserProfile()`
+    /// 濾掉過期的，冷啟第一畫永遠是空的。
+    func testGetCachedUserProfile_ReturnsExpiredCacheWithoutFetching() {
+        mockLocalDataSource.userToReturn = UserProfileTestFixtures.testUser
+        mockLocalDataSource.isUserProfileExpiredValue = true
+        // 遠端整支炸掉：仍然回得出快取＝這條路真的沒有碰網路。
+        mockRemoteDataSource.errorToThrow = URLError(.notConnectedToInternet)
+
+        let cached = repository.getCachedUserProfile()
+
+        XCTAssertNotNil(cached, "過期不等於沒有；那仍是上一次真的看過的那份")
+        XCTAssertEqual(cached?.email, UserProfileTestFixtures.testUser.email)
+    }
+
+    /// 本機真的沒有＝nil，呼叫端據此維持首載 spinner。
+    func testGetCachedUserProfile_NilWhenNoLocalCache() {
+        mockLocalDataSource.userToReturn = nil
+        mockRemoteDataSource.errorToThrow = URLError(.notConnectedToInternet)
+
+        XCTAssertNil(repository.getCachedUserProfile())
     }
 }

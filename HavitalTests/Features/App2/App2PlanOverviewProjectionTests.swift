@@ -736,8 +736,14 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
 
         let targets = MockTargetRepository()
         targets.mainTargetToReturn = target(raceDate: Int(Date().timeIntervalSince1970) + 86_400 * 30)
+        let profiles = MockUserProfileRepository()
+        profiles.cachedUserToReturn = Self.cachedUser(preferWeekDays: [1, 3, 6], longRun: 6)
 
-        let viewModel = overviewViewModel(repository: repository, targetRepository: targets)
+        let viewModel = overviewViewModel(
+            repository: repository,
+            targetRepository: targets,
+            userProfileRepository: profiles
+        )
         let round = Task { await viewModel.revalidate() }
 
         // 輪詢等快取那一畫（不放行 gate）。
@@ -750,7 +756,9 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
         XCTAssertEqual(viewModel.overview?.value.currentWeek, 5)
         XCTAssertEqual(viewModel.overview?.value.raceName, "松本マラソン 2026")
         XCTAssertEqual(viewModel.overview?.value.rhythm.methodologyName, "Paceriz 平衡訓練法")
+        XCTAssertEqual(viewModel.overview?.value.rhythm.runDaysPerWeek, 3, "訓練節奏也要從快取的偏好畫出來")
         XCTAssertEqual(repository.refreshOverviewCallCount, 0, "快取那一畫不得打任何網路")
+        XCTAssertEqual(profiles.getUserProfileCallCount, 0, "快取那一畫不得走會 fetch 的那一支")
         XCTAssertNil(viewModel.lastLoadedAt, "快取只是先畫出來，不算這一輪載過")
 
         await gate.open()
@@ -787,6 +795,43 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
         XCTAssertFalse(viewModel.isLoading)
     }
 
+    /// **只有使用者偏好有快取**（課表／賽事三份都還沒落地，例如剛換過帳號只載過 `/user`）
+    /// 也要先畫 —— 那仍是「上一次看到的東西」，不該為了它再吃一趟往返的 spinner
+    /// （外審第一輪 B07）。
+    func testProfileOnlyCacheStillPaintsBeforeNetworkReturns() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.planStatusToReturn = planStatus(planId: "e1289e60f251_5")
+        repository.overviewToReturn = overviewEntity(id: "e1289e60f251", methodologyName: "Paceriz 平衡訓練法")
+        repository.simulatesEmptyLocalCache = true
+
+        let gate = AsyncGate()
+        repository.networkReadGate = { await gate.wait() }
+
+        let targets = MockTargetRepository()   // mainTargetToReturn 預設 nil
+        let profiles = MockUserProfileRepository()
+        profiles.cachedUserToReturn = Self.cachedUser(preferWeekDays: [2, 4, 6, 7], longRun: 7)
+
+        let viewModel = overviewViewModel(
+            repository: repository,
+            targetRepository: targets,
+            userProfileRepository: profiles
+        )
+        let round = Task { await viewModel.revalidate() }
+
+        for _ in 0..<50 where viewModel.overview == nil {
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+
+        XCTAssertNotNil(viewModel.overview, "偏好也是四個快取來源之一")
+        XCTAssertEqual(viewModel.overview?.value.rhythm.runDaysPerWeek, 4)
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertNil(viewModel.overview?.value.raceName, "賽事沒有快取就是沒有，不得編")
+        XCTAssertNil(viewModel.lastLoadedAt)
+
+        await gate.open()
+        await round.value
+    }
+
     /// 已經有畫面時（常駐 VM 的第二次以後）不得被快取那一份蓋回去 ——
     /// 快取只負責「什麼都沒有」的那一格。
     func testCachedPaintDoesNotOverwriteExistingContent() async {
@@ -802,6 +847,20 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
         repository.cachedPlanStatusToReturn = planStatus(currentWeek: 9, planId: "e1289e60f251_9")
         await viewModel.revalidate()
         XCTAssertEqual(viewModel.overview?.value.currentWeek, 5, "已經有畫面時不得被快取蓋掉")
+    }
+
+    /// 帶訓練日偏好的使用者（`prefer_week_days` / `prefer_week_days_longrun`）。
+    /// `User` 只有 `Decodable` 入口，所以照 payload 形狀組。
+    static func cachedUser(preferWeekDays: [Int], longRun: Int) -> User {
+        let json = """
+        {
+            "display_name": "Cached User",
+            "email": "cached@example.com",
+            "prefer_week_days": \(preferWeekDays),
+            "prefer_week_days_longrun": [\(longRun)]
+        }
+        """.data(using: .utf8)!
+        return try! JSONDecoder().decode(User.self, from: json)
     }
 
     /// 不同源判定只有一份：快取那一畫與重驗那一畫走同一支

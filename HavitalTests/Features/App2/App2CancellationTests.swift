@@ -189,10 +189,13 @@ final class App2CancellationTests: XCTestCase {
     func test_planOverviewVM_cancellationErrorDoesNotMarkLoaded() async {
         let repository = MockTrainingPlanV2Repository()
         repository.errorToThrow = URLError(.cancelled)
+        // 四個本機快取都是空的 —— 這條鎖的是「**這一輪自己的**殘缺結果不得發布」，
+        // 有快取時畫面上的東西是快取放的、不是這一輪放的（T-0365）。
+        repository.simulatesEmptyLocalCache = true
         let vm = App2PlanOverviewViewModel(
             planRepository: repository,
             targetRepository: MockTargetRepository(),
-            userProfileRepository: nil,
+            userProfileRepository: MockUserProfileRepository(),   // cachedUserToReturn 預設 nil
             readinessViewModel: nil,
             weeklyVolumesLoader: { [] }
         )
@@ -269,7 +272,7 @@ final class App2CancellationTests: XCTestCase {
         let vm = App2PlanOverviewViewModel(
             planRepository: planRepo,
             targetRepository: targetRepo,
-            userProfileRepository: nil,
+            userProfileRepository: MockUserProfileRepository(),   // cachedUserToReturn 預設 nil
             readinessViewModel: nil,
             weeklyVolumesLoader: { [] }
         )
@@ -290,7 +293,7 @@ final class App2CancellationTests: XCTestCase {
         let vm = App2PlanOverviewViewModel(
             planRepository: planRepo,
             targetRepository: targetRepo,
-            userProfileRepository: nil,
+            userProfileRepository: MockUserProfileRepository(),
             readinessViewModel: nil,
             weeklyVolumesLoader: { [] }
         )

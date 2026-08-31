@@ -311,8 +311,14 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         let cachedTarget = await targetRepository.getMainTarget()
         let cachedProfile = userProfileRepository.getCachedUserProfile()
 
-        // 三份都沒有＝這台裝置沒看過這一頁，沒有「上一次的畫面」可畫。
-        guard cachedStatus != nil || cachedOverview != nil || cachedTarget != nil else { return }
+        // **四份都沒有**＝這台裝置沒看過這一頁，沒有「上一次的畫面」可畫
+        //（外審第一輪 B07：`cachedProfile` 也是四個來源之一，漏掉它就會讓
+        //  「只有偏好有快取」那一格白白吃一趟往返的 spinner）。
+        guard cachedStatus != nil
+            || cachedOverview != nil
+            || cachedTarget != nil
+            || cachedProfile != nil
+        else { return }
         // await 之後才發布：被接管的舊輪不得覆蓋新輪，也不得覆蓋已經有的畫面。
         guard revalidateGeneration == round, overview == nil else { return }
 
