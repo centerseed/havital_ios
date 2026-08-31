@@ -56,6 +56,14 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     private var isRevalidating = false
     /// 這一輪重驗的起點（判卡死用，見 revalidate 開頭）。
     private var revalidateBegan: Date?
+    /// 鎖的輪次所有權：被接管的卡死輪回來時不得放掉新輪的鎖（T-0359 外審 D04）。
+    private var revalidateGeneration = 0
+
+    /// 測試 seam：把 in-flight 輪的起點回撥，模擬卡死超過門檻
+    /// （owner-path 測試不能真等 30 秒）。
+    func backdateRevalidateBeganForTesting(by interval: TimeInterval) {
+        revalidateBegan = Date(timeIntervalSinceNow: -interval)
+    }
 
     nonisolated let taskRegistry = TaskRegistry()
 
@@ -146,7 +154,12 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         }
         isRevalidating = true
         revalidateBegan = Date()
-        defer { isRevalidating = false }
+        revalidateGeneration += 1
+        let round = revalidateGeneration
+        defer {
+            // 只有仍持有鎖的那一輪才放鎖。
+            if revalidateGeneration == round { isRevalidating = false }
+        }
 
         isLoading = !hasLoaded
         roundSawCancellation = false

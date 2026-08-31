@@ -1,8 +1,9 @@
 ---
 type: SPEC
 id: SPEC-dual-track-cache-and-background-refresh
-status: Draft
+status: Implemented
 layer: architecture
+owns: repository 層「先回快取、背景刷新」的雙軌讀取語意，含顯式刷新與失效事件的行為承諾
 ontology_entity: dual-track-cache-strategy
 created: 2026-04-15
 updated: 2026-08-31
@@ -91,8 +92,11 @@ Then 系統必須發布 `.dataChanged(.workouts)`，讓首頁完成列、紀錄�
 
 ## 實作對齊說明
 
-- `DualTrackCacheHelper.execute`：適用單一物件型快取，支援 `isCacheExpired`
-- `DualTrackCacheHelper.executeForCollection`：適用集合型資料，空集合視為 cache miss
-- `DualTrackCacheHelper.forceRefresh`：明確定義 bypass cache 行為
-- `DualTrackCacheHelper.backgroundRefreshWithEvent`：提供 Track B 完成後的 UI 通知出口
+- AC-01/02/03/04：`DualTrackCacheHelper.execute`（`Havital/Core/Data/DualTrackCacheHelper.swift:47`），支援 `isCacheExpired`
+- AC-06：`DualTrackCacheHelper.executeForCollection`（同檔 :87），空集合視為 cache miss
+- AC-05：`DualTrackCacheHelper.forceRefresh`（同檔 :128）
+- AC-07：`CacheEventBus`（`Havital/Utils/CacheEventBus.swift:69` `publish`）
+- AC-08：`CacheEventBus` 的 `.userLogout`／`.dataChanged(.user)` 失效路徑
+- AC-09：`App2RevalidatePolicy.shouldBlock`（`Havital/Features/App2/Presentation/App2RootView.swift:12`），四個常駐 VM 的 `revalidate()` 開頭引用
+- AC-10：`WorkoutBackgroundManager.emitWorkoutPushIfNeeded`（`Havital/Features/Workout/Domain/UseCases/WorkoutBackgroundManager.swift:958`）→ `CacheRegistrationCoordinator`（`Havital/Core/DI/CacheRegistrationCoordinator.swift:109`）→ 首頁／紀錄 VM 訂閱端
 

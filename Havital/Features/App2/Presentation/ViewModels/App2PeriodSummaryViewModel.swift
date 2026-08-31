@@ -77,7 +77,12 @@ final class App2PeriodSummaryViewModel: ObservableObject, TaskManageable, App2Re
         }
         isRevalidating = true
         revalidateBegan = Date()
-        defer { isRevalidating = false }
+        revalidateGeneration += 1
+        let round = revalidateGeneration
+        defer {
+            // 只有仍持有鎖的那一輪才放鎖。
+            if revalidateGeneration == round { isRevalidating = false }
+        }
 
         isLoading = !hasLoaded
         var finishedRound = false
@@ -159,6 +164,8 @@ final class App2PeriodSummaryViewModel: ObservableObject, TaskManageable, App2Re
     private var isRevalidating = false
     /// 這一輪重驗的起點（判卡死用，見 revalidate 開頭）。
     private var revalidateBegan: Date?
+    /// 鎖的輪次所有權：被接管的卡死輪回來時不得放掉新輪的鎖（T-0359 外審 D04）。
+    private var revalidateGeneration = 0
 
     /// 真失敗折成 nil（少那幾格）；取消記旗標讓整輪作廢。
     private func optionalLoad<T>(_ op: @escaping () async throws -> T) async -> T? {

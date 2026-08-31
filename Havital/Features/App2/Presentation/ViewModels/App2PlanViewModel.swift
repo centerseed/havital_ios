@@ -81,6 +81,8 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     private var isRevalidating = false
     /// 這一輪重驗的起點（判卡死用，見 revalidate 開頭）。
     private var revalidateBegan: Date?
+    /// 鎖的輪次所有權：被接管的卡死輪回來時不得放掉新輪的鎖（T-0359 外審 D04）。
+    private var revalidateGeneration = 0
 
     /// 最近一次讀到的 plan status —— 歷史週的週起點與週次上限都從它推。
     private var latestPlanStatus: PlanStatusV2Response?
@@ -189,7 +191,12 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         }
         isRevalidating = true
         revalidateBegan = Date()
-        defer { isRevalidating = false }
+        revalidateGeneration += 1
+        let round = revalidateGeneration
+        defer {
+            // 只有仍持有鎖的那一輪才放鎖。
+            if revalidateGeneration == round { isRevalidating = false }
+        }
 
         // 冷啟第一輪：先把上一次的週課表渲染出來，這一輪的網路變成背景刷新。
         if !hasLoaded { hydrateFromCache() }

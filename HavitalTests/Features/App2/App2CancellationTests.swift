@@ -37,7 +37,10 @@ final class App2CancellationTests: XCTestCase {
     }
 
     private final class ImmediateStatsSource: WorkoutStatsDataSourceProtocol {
+        var statsCalls = 0
+
         func fetchWorkoutStats(days: Int, weeks: Int?) async throws -> WorkoutStatsResponse {
+            statsCalls += 1
             let json = """
             { "data": { "total_workouts": 0, "total_distance_km": 0.0,
                         "provider_distribution": {}, "activity_type_distribution": {},
@@ -619,5 +622,80 @@ final class App2CancellationTests: XCTestCase {
         manager.emitWorkoutPushIfNeeded([:])
 
         XCTAssertEqual(received, 0, "非 workout_processed 推播不得觸發 workouts 失效")
+    }
+
+    // MARK: - 重驗鎖 owner path（T-0359 外審 E02/E05/D04）：
+    // 真 VM＋可控卡住的載入，斷言網路輪數而不是純函式回傳值。
+
+    private final class LoaderGate {
+        var entered = 0
+        var continuations: [CheckedContinuation<Void, Never>] = []
+        func release(_ index: Int) { continuations[index].resume() }
+    }
+
+    func test_stuckRevalidate_ownerPath_takeoverAndLockOwnership() async {
+        let repository = MockTrainingPlanV2Repository()
+        let gate = LoaderGate()
+        let vm = App2PlanOverviewViewModel(
+            planRepository: repository,
+            targetRepository: MockTargetRepository(),
+            userProfileRepository: MockUserProfileRepository(),
+            weeklyVolumesLoader: {
+                await MainActor.run { gate.entered += 1 }
+                await withCheckedContinuation { gate.continuations.append($0) }
+                return []
+            }
+        )
+
+        // 輪 A 卡在載入中（鎖被持有）。
+        let roundA = Task { await vm.revalidate() }
+        for _ in 0..<50 where gate.entered < 1 {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        XCTAssertEqual(gate.entered, 1)
+
+        // 門檻內重入：被互斥擋掉，不打第二輪（缺陷原型的防抖行為保留）。
+        await vm.revalidate()
+        XCTAssertEqual(gate.entered, 1, "門檻內重入不得打出新輪")
+
+        // 卡超過門檻（seam 回撥起點）：下拉刷新必須真正接管開新輪。
+        // 缺陷原型（2026-08-31 prod log）：舊 `guard !isRevalidating` 在這裡
+        // 永遠 return，18:47–19:07 對後端零請求。
+        vm.backdateRevalidateBeganForTesting(by: 31)
+        let roundB = Task { await vm.revalidate() }
+        for _ in 0..<50 where gate.entered < 2 {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        XCTAssertEqual(gate.entered, 2, "卡死輪必須讓位，新輪要真正打出載入")
+
+        // D04：卡死輪 A 結束時不得放掉輪 B 的鎖——第三次門檻內重入仍被擋。
+        gate.release(0)
+        await roundA.value
+        await vm.revalidate()
+        XCTAssertEqual(gate.entered, 2, "被接管的舊輪結束不得放掉新輪的鎖")
+
+        gate.release(1)
+        await roundB.value
+        XCTAssertEqual(gate.entered, 2)
+    }
+
+    // MARK: - 推播 → coordinator → bus → 消費端 owner path（T-0359 外審 E03/E11）
+
+    func test_workoutPush_chainReachesRecordsRefetch() async {
+        let source = ImmediateStatsSource()
+        // 最後建立的 Records VM 持有 bus identifier（同 production 常駐實例語意）。
+        let vm = App2RecordsViewModel(workoutDataSource: source)
+        await vm.revalidate()
+        let callsBefore = source.statsCalls
+
+        // 從推播 seam 出發走真實鏈路：emit → CacheRegistrationCoordinator 轉發
+        // `.dataChanged(.workouts)` → Records VM 訂閱 → revalidate 重打網路。
+        WorkoutBackgroundManager.shared.emitWorkoutPushIfNeeded(["type": "workout_processed"])
+
+        for _ in 0..<50 where source.statsCalls == callsBefore {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        XCTAssertGreaterThan(source.statsCalls, callsBefore,
+                             "workout_processed 推播必須讓紀錄頁真正重打網路，不是只清快取")
     }
 }

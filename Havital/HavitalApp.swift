@@ -756,6 +756,12 @@ struct HavitalApp: App {
             return
         }
 
+        // delegate 對所有資料源都要裝：workout_processed 推播的前景顯示與點擊
+        // （willPresent/didReceive → workouts 失效）不只 Apple Health 用戶需要
+        // （T-0359 外審 B07：舊佈線只在 Apple Health 分支裝，Garmin/Strava 用戶
+        // 收推播不會觸發刷新）。
+        UNUserNotificationCenter.current().delegate = WorkoutBackgroundManager.shared
+
         do {
             let center = UNUserNotificationCenter.current()
             let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])

@@ -26,6 +26,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     private var isRevalidating = false
     /// 這一輪重驗的起點（判卡死用，見 revalidate 開頭）。
     private var revalidateBegan: Date?
+    /// 鎖的輪次所有權：被接管的卡死輪回來時不得放掉新輪的鎖（T-0359 外審 D04）。
+    private var revalidateGeneration = 0
     @Published private(set) var goalCard: App2Sourced<App2GoalCard>?
     /// 計畫結束態（設計 frame-00g）。**有值時首頁的目標卡＋今日課表卡整段換掉**
     /// —— 那是同一塊版位的另一種內容，不是多一張卡。
@@ -173,6 +175,14 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                     self.lastLoadedAt = nil
                     if self.hasLoaded { await self.revalidate() }
                 }
+            case .dataChanged(.workouts):
+                // workout_processed 推播（T-0359）與其他 workouts 失效：完成列
+                // （todayCompletedWorkout）要立即換新，不能等 60 秒 SWR 視窗。
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.lastLoadedAt = nil
+                    if self.hasLoaded { await self.revalidate() }
+                }
             default:
                 break
             }
@@ -217,7 +227,12 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         }
         isRevalidating = true
         revalidateBegan = Date()
-        defer { isRevalidating = false }
+        revalidateGeneration += 1
+        let round = revalidateGeneration
+        defer {
+            // 只有仍持有鎖的那一輪才放鎖。
+            if revalidateGeneration == round { isRevalidating = false }
+        }
 
         // 冷啟第一輪：先把上一次的快照渲染出來，這一輪的網路變成背景刷新。
         if !hasLoaded { await hydrateFromSnapshot() }
