@@ -31,6 +31,7 @@ private final class NilStatsUserProfileRepository: UserProfileRepository {
     var calculateStatisticsCallCount = 0
 
     func getUserProfile() async throws -> User { fatalError("Not used") }
+    func getCachedUserProfile() -> User? { nil }
     func refreshUserProfile() async throws -> User { fatalError("Not used") }
     func updateUserProfile(_ updates: [String: Any]) async throws -> User { fatalError("Not used") }
     func deleteAccount(userId: String) async throws { fatalError("Not used") }

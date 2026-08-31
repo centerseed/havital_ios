@@ -12,6 +12,13 @@ protocol UserProfileRepository {
     /// - Returns: User profile entity
     func getUserProfile() async throws -> User
 
+    /// 只讀本機快取，**不打網路**（T-0365）。沒有快取就是 nil。
+    ///
+    /// 與 `TrainingPlanV2Repository.getCachedPlanStatus()`／`getCachedOverview()`
+    /// 同一種出口：給「進頁先畫上一次的畫面」用，呼叫端不必為此付一趟往返。
+    /// `getUserProfile()` 是 cache-first 但快取過期或 miss 時會 fetch，所以不能拿它當這件事用。
+    func getCachedUserProfile() -> User?
+
     /// Force refresh user profile (skip cache)
     /// - Returns: Latest user profile from API
     func refreshUserProfile() async throws -> User

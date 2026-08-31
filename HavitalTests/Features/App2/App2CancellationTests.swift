@@ -260,6 +260,10 @@ final class App2CancellationTests: XCTestCase {
     func test_planOverviewVM_cancelledChildLoad_doesNotPublishNorMarkLoaded() async {
         let planRepo = MockTrainingPlanV2Repository()
         planRepo.planStatusToReturn = makePlanStatus()
+        // 本機快取是空的 —— 這條鎖的是「**這一輪自己的**殘缺結果不得發布」，
+        // 所以要把 T-0365 的快取那一畫排除在外，否則畫面上有東西是快取放的、
+        // 不是這一輪放的，斷言會指錯對象。有快取那一格由下面那支鎖。
+        planRepo.simulatesEmptyLocalCache = true
         let targetRepo = MockTargetRepository()
         targetRepo.errorToThrow = URLError(.cancelled)
         let vm = App2PlanOverviewViewModel(
@@ -274,6 +278,28 @@ final class App2CancellationTests: XCTestCase {
 
         XCTAssertNil(vm.overview, "子載入被取消＝整輪作廢，不得發布殘缺 overview")
         XCTAssertFalse(vm.hasLoaded)
+    }
+
+    /// 有快取時被取消：**快取那一畫留著**（那是上一次真的看過的畫面，取消只代表
+    /// 這一輪沒拿到新的），但這一輪仍然不算載過 —— 下一次進頁還要再試（T-0365）。
+    func test_planOverviewVM_cancelledChildLoad_keepsCachedPaintButDoesNotMarkLoaded() async {
+        let planRepo = MockTrainingPlanV2Repository()
+        planRepo.planStatusToReturn = makePlanStatus()
+        let targetRepo = MockTargetRepository()
+        targetRepo.errorToThrow = URLError(.cancelled)
+        let vm = App2PlanOverviewViewModel(
+            planRepository: planRepo,
+            targetRepository: targetRepo,
+            userProfileRepository: nil,
+            readinessViewModel: nil,
+            weeklyVolumesLoader: { [] }
+        )
+
+        await vm.revalidate()
+
+        XCTAssertNotNil(vm.overview, "快取那一畫不因這一輪被取消而收回")
+        XCTAssertFalse(vm.hasLoaded, "快取不算載過")
+        XCTAssertNil(vm.lastLoadedAt)
     }
 
     func test_periodSummary_cancelledPartialLoad_doesNotPublishNorMarkLoaded() async {

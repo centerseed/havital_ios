@@ -227,6 +227,9 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
             }
         }
 
+        // 進頁先畫上一次的畫面（T-0365）。只讀本機快取，一個請求都不發。
+        await primeFromCache(round: round)
+
         // 週次是這一頁的骨幹：沒有 plan status 就沒有「第 N / M 週」，也綁不了 overview。
         let planStatus: PlanStatusV2Response?
         do {
@@ -265,11 +268,81 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
                 preferWeekDays: preferences.days,
                 longRunWeekday: preferences.longRun
             ),
-            origin: .live(
-                endpoint: "GET /v2/plan/status + GET /v2/plan/overview + GET /user/targets"
-                    + " + GET /plan/readiness/{date} + GET /summary/weekly/all + GET /user"
-            )
+            origin: .live(endpoint: Self.liveEndpoints)
         )
+    }
+
+    /// 這一頁的資料來源。快取那一畫與重驗那一畫**是同一組端點**，只差取得的時間，
+    /// 所以共用同一個字串、同樣是 `.live`（`App2DataOrigin` 分的是真實 vs 樣本，
+    /// 不是新鮮 vs 陳舊）。
+    private static let liveEndpoints =
+        "GET /v2/plan/status + GET /v2/plan/overview + GET /user/targets"
+        + " + GET /plan/readiness/{date} + GET /summary/weekly/all + GET /user"
+
+    // MARK: - 進頁先畫快取（T-0365）
+
+    /// 畫面上什麼都沒有時，**先用本機快取畫一次**，再讓這一輪去重驗。
+    ///
+    /// 2026-08-31 使用者實機回報：「訓練計劃依舊沒有先顯示緩存，點進去轉了好幾秒」。
+    /// 成因是這一輪在拿到**全部**六個來源之前不發布任何東西，而它的第一步
+    /// （`getPlanStatus(forceRefresh: true)`）與 `refreshOverview()` 都刻意跳過快取——
+    /// 於是每次冷啟後第一次進頁都是一整頁 spinner，長度＝那趟往返。
+    ///
+    /// **這裡沒有新的快取。** 讀的全是既有的 cache-only 出口：
+    /// `TrainingPlanV2Repository.getCachedPlanStatus()`／`getCachedOverview()`
+    /// （`TrainingPlanV2LocalDataSource`，UserDefaults、跨啟動、蓋 uid 戳）、
+    /// `TargetRepository.getMainTarget()`（本來就只讀本機）、
+    /// `UserProfileRepository.getCachedUserProfile()`。**一個網路請求都不發**：
+    /// 快取沒有就什麼都不做，畫面維持既有的首載 spinner，行為與修前相同。
+    ///
+    /// 「先查既有的」（2026-09-01）：`App2MetricDetailCache`（T-0357）是**指標詳情**的
+    /// session 快取，存的是那三支 DTO、而且是為「每次進頁都是新 `@StateObject`」而生；
+    /// 這一頁的 VM 常駐在 `App2HomeView`，缺的不是 session 快取而是**冷啟第一畫**，
+    /// 而課表三支的落地早就在 repository 自己的 local data source（`App2SnapshotStore`
+    /// 檔頭記著這條收斂）。所以正確的做法是讀那一份，不是再造第三份。
+    ///
+    /// **不標載過**：`hasLoaded`／`lastLoadedAt` 仍只由本輪的權威 pass 設定——
+    /// 快取只是先畫出來，不是這一輪的結果；否則 60 秒 SWR 門檻會從「畫了快取」開始算。
+    private func primeFromCache(round: Int) async {
+        guard overview == nil else { return }
+
+        let cachedStatus = planRepository.getCachedPlanStatus()
+        let cachedOverview = planRepository.getCachedOverview()
+        let cachedTarget = await targetRepository.getMainTarget()
+        let cachedProfile = userProfileRepository.getCachedUserProfile()
+
+        // 三份都沒有＝這台裝置沒看過這一頁，沒有「上一次的畫面」可畫。
+        guard cachedStatus != nil || cachedOverview != nil || cachedTarget != nil else { return }
+        // await 之後才發布：被接管的舊輪不得覆蓋新輪，也不得覆蓋已經有的畫面。
+        guard revalidateGeneration == round, overview == nil else { return }
+
+        var bundle = StageBundle()
+        if let cachedStatus, let cachedOverview {
+            // 換方法論打在這一份 overview 上；重驗那一輪會用同一支覆寫。
+            overviewId = cachedOverview.id
+            targetType = cachedOverview.targetType
+            bundle = Self.stageBundle(overview: cachedOverview, planStatus: cachedStatus)
+        }
+
+        stagesUnbound = bundle.isUnbound
+        overview = App2Sourced(
+            Self.project(
+                planStatus: cachedStatus,
+                mainTarget: cachedTarget,
+                stages: bundle.stages,
+                milestones: bundle.milestones,
+                methodologyName: bundle.methodologyName,
+                // 完賽預估與近幾週跑量沒有 cache-only 出口（readiness 與
+                // `/summary/weekly/all` 都不落地），這兩格由本輪的權威 pass 補上。
+                estimatedFinish: nil,
+                weeklyVolumes: [],
+                preferWeekDays: cachedProfile?.preferWeekDays,
+                longRunWeekday: cachedProfile?.preferWeekDaysLongrun?.first
+            ),
+            origin: .live(endpoint: Self.liveEndpoints)
+        )
+        // 有東西可看了就把首載 spinner 收掉；重驗仍在背景跑。
+        isLoading = false
     }
 
     /// 期程 ＋ 訓練方法名 —— 兩者住在同一份 overview，一次取。
@@ -279,6 +352,32 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         var milestones: [MilestoneV2] = []
         var methodologyName: String?
         var isUnbound = false
+    }
+
+    /// overview ＋ plan status → 這一頁的期程／里程碑／方法名。**純函式，同源判定只有這一份**
+    /// —— 快取那一畫與重驗那一畫走同一支，不會各判各的（T-0365）。
+    ///
+    /// **不同源時方法論名仍然要帶出來。** 不同源擋掉的是「第 N 週落在哪一段」這種
+    /// 綁週次的東西（stages／milestones）；訓練方法不綁週次，它就是這份 overview
+    /// 現在用的方法，也正是「更換訓練方法」寫回去的那一份。之前一起清掉的後果：
+    /// 「更換訓練方法」列的值變空、sheet 裡目前那一項沒有勾（2026-08-28 走查 F10／D13-iOS）。
+    /// 呼叫端保留 `overviewId`／`targetType` 也是同一個理由（2026-08-27 模擬器實測）。
+    private static func stageBundle(
+        overview: PlanOverviewV2,
+        planStatus: PlanStatusV2Response
+    ) -> StageBundle {
+        guard App2HomeViewModel.isOverview(overview.id, boundTo: planStatus) else {
+            Logger.debug("[App2PlanOverviewVM] overview 與本週課表不同源,期程不顯示")
+            return StageBundle(
+                methodologyName: overview.methodologyOverview?.name,
+                isUnbound: true
+            )
+        }
+        return StageBundle(
+            stages: overview.trainingStages,
+            milestones: overview.milestones,
+            methodologyName: overview.methodologyOverview?.name
+        )
     }
 
     private func loadStages(planStatus: PlanStatusV2Response?) async -> StageBundle {
@@ -295,24 +394,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
             // 整列消失、換不回來（2026-08-27 模擬器實測）。
             overviewId = overview.id
             targetType = overview.targetType
-            guard App2HomeViewModel.isOverview(overview.id, boundTo: planStatus) else {
-                Logger.debug("[App2PlanOverviewVM] overview 與本週課表不同源,期程不顯示")
-                // **方法論名仍然要帶出來。** 不同源擋掉的是「第 N 週落在哪一段」
-                // 這種綁週次的東西（stages／milestones）；訓練方法不綁週次，它就是
-                // 這份 overview 現在用的方法，也正是「更換訓練方法」寫回去的那一份
-                // （上面 `overviewId` 在不同源時同樣保留，理由相同）。
-                // 之前一起清掉的後果：「更換訓練方法」列的值變空、sheet 裡目前那一項
-                // 沒有勾（2026-08-28 走查 F10／D13-iOS）。
-                return StageBundle(
-                    methodologyName: overview.methodologyOverview?.name,
-                    isUnbound: true
-                )
-            }
-            return StageBundle(
-                stages: overview.trainingStages,
-                milestones: overview.milestones,
-                methodologyName: overview.methodologyOverview?.name
-            )
+            return Self.stageBundle(overview: overview, planStatus: planStatus)
         } catch {
             if error.isCancellationError {
                 noteRoundCancellation()

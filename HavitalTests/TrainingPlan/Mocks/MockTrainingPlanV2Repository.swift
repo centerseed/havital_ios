@@ -126,6 +126,8 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
 
     func getPlanStatus(forceRefresh: Bool) async throws -> PlanStatusV2Response {
         getPlanStatusCallCount += 1
+        // 卡住「網路」那一步，讓測試能斷言在它回來之前畫面上就已經有東西（T-0365）。
+        if let gate = networkReadGate { await gate() }
         if let error = errorToThrow { throw error }
         guard let status = planStatusToReturn else {
             throw TrainingPlanV2Error.unknown("No mock plan status set")
@@ -344,12 +346,20 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     /// Lets a test simulate a stale local cache that differs from the fresh API response.
     var cachedPlanStatusToReturn: PlanStatusV2Response?
 
+    /// 這台裝置的本機快取是空的（冷啟第一次、或剛登入）。兩支 cache-only 出口回 nil。
+    var simulatesEmptyLocalCache = false
+
+    /// 讓測試把「網路」讀卡住（見 `getPlanStatus`）。
+    var networkReadGate: (() async -> Void)?
+
     func getCachedPlanStatus() -> PlanStatusV2Response? {
-        cachedPlanStatusToReturn ?? planStatusToReturn
+        if simulatesEmptyLocalCache { return nil }
+        return cachedPlanStatusToReturn ?? planStatusToReturn
     }
 
     func getCachedOverview() -> PlanOverviewV2? {
-        overviewToReturn
+        if simulatesEmptyLocalCache { return nil }
+        return overviewToReturn
     }
 
     func getCachedWeeklyPlan(week: Int) -> WeeklyPlanV2? {

@@ -58,6 +58,13 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
         return try await fetchAndCacheUserProfile()
     }
 
+    /// 只讀本機快取（T-0365）。**過期的也照給** —— 呼叫端要的是「上一次看到的那份」，
+    /// 新鮮度由它自己那一輪的重驗負責；這裡若比照 `getUserProfile()` 濾掉過期的，
+    /// 冷啟第一畫就永遠是空的。
+    func getCachedUserProfile() -> User? {
+        localDataSource.getUserProfile()
+    }
+
     func refreshUserProfile() async throws -> User {
         Logger.debug("[UserProfileRepo] Force refresh")
         return try await fetchAndCacheUserProfile()

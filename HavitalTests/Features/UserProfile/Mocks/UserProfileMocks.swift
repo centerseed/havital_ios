@@ -25,11 +25,19 @@ final class MockUserProfileRepository: UserProfileRepository {
     var updatePersonalBestCallCount = 0
     var detectPersonalBestUpdatesCallCount = 0
     var clearCacheCallCount = 0
+    /// 本機快取裡有沒有東西（T-0365）。`nil` ＝ 冷啟、還沒有任何快取。
+    var cachedUserToReturn: User?
+    var getCachedUserProfileCallCount = 0
 
     func getUserProfile() async throws -> User {
         getUserProfileCallCount += 1
         if let error = errorToThrow { throw error }
         return userToReturn
+    }
+
+    func getCachedUserProfile() -> User? {
+        getCachedUserProfileCallCount += 1
+        return cachedUserToReturn
     }
 
     func refreshUserProfile() async throws -> User {

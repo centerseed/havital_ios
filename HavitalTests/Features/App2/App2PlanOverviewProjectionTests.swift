@@ -195,12 +195,15 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
     }
 
     private func overviewViewModel(
-        repository: MockTrainingPlanV2Repository
+        repository: MockTrainingPlanV2Repository,
+        targetRepository: MockTargetRepository = MockTargetRepository(),
+        userProfileRepository: MockUserProfileRepository = MockUserProfileRepository()
     ) -> App2PlanOverviewViewModel {
         App2PlanOverviewViewModel(
             planRepository: repository,
-            targetRepository: MockTargetRepository(),
-            userProfileRepository: MockUserProfileRepository(),
+            targetRepository: targetRepository,
+            userProfileRepository: userProfileRepository,
+            readinessViewModel: OfflineReadinessViewModel(),
             weeklyVolumesLoader: { [] }
         )
     }
@@ -674,6 +677,7 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
             planRepository: repository,
             targetRepository: MockTargetRepository(),
             userProfileRepository: MockUserProfileRepository(),
+            readinessViewModel: OfflineReadinessViewModel(),
             weeklyVolumesLoader: { counter.loads += 1; return [] }
         )
         await viewModel.revalidate()
@@ -701,6 +705,7 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
             planRepository: repository,
             targetRepository: MockTargetRepository(),
             userProfileRepository: MockUserProfileRepository(),
+            readinessViewModel: OfflineReadinessViewModel(),
             weeklyVolumesLoader: { counter.loads += 1; return [] }
         )
         await viewModel.revalidate()
@@ -711,5 +716,151 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
 
         XCTAssertEqual(counter.loads, 1, "無關事件不得觸發總覽重驗")
         _ = viewModel  // 撐住生命週期到斷言完
+    }
+
+    // MARK: - 進頁先畫快取（T-0365）
+
+    /// 缺陷原型（2026-08-31 用戶實機）：「訓練計劃依舊沒有先顯示緩存，點進去轉了好幾秒」。
+    /// 這一輪在拿到全部六個來源之前不發布任何東西，而它的第一步是刻意跳過快取的
+    /// `getPlanStatus(forceRefresh: true)` —— 於是冷啟後第一次進頁是一整頁 spinner。
+    ///
+    /// 判準：**網路那一步還卡著的時候，畫面上就必須已經有本機快取那一份。**
+    func testColdEntryPaintsCachedOverviewBeforeNetworkReturns() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.planStatusToReturn = planStatus(currentWeek: 5, totalWeeks: 22, planId: "e1289e60f251_5")
+        repository.overviewToReturn = overviewEntity(id: "e1289e60f251", methodologyName: "Paceriz 平衡訓練法")
+
+        // 「網路」讀卡在這裡，直到測試放行。
+        let gate = AsyncGate()
+        repository.networkReadGate = { await gate.wait() }
+
+        let targets = MockTargetRepository()
+        targets.mainTargetToReturn = target(raceDate: Int(Date().timeIntervalSince1970) + 86_400 * 30)
+
+        let viewModel = overviewViewModel(repository: repository, targetRepository: targets)
+        let round = Task { await viewModel.revalidate() }
+
+        // 輪詢等快取那一畫（不放行 gate）。
+        for _ in 0..<50 where viewModel.overview == nil {
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+
+        XCTAssertNotNil(viewModel.overview, "快取有東西時，第一畫不得等網路")
+        XCTAssertFalse(viewModel.isLoading, "已經有東西可看就不該再壓著整頁 spinner")
+        XCTAssertEqual(viewModel.overview?.value.currentWeek, 5)
+        XCTAssertEqual(viewModel.overview?.value.raceName, "松本マラソン 2026")
+        XCTAssertEqual(viewModel.overview?.value.rhythm.methodologyName, "Paceriz 平衡訓練法")
+        XCTAssertEqual(repository.refreshOverviewCallCount, 0, "快取那一畫不得打任何網路")
+        XCTAssertNil(viewModel.lastLoadedAt, "快取只是先畫出來，不算這一輪載過")
+
+        await gate.open()
+        await round.value
+        XCTAssertNotNil(viewModel.lastLoadedAt, "重驗完成才算載過")
+        XCTAssertEqual(viewModel.overview?.value.currentWeek, 5)
+    }
+
+    /// 本機快取是空的（冷啟第一次、剛登入）＝ 沒有「上一次的畫面」可畫，
+    /// 行為必須與修前完全相同：維持首載 spinner，等重驗。
+    func testColdEntryWithoutCacheKeepsFirstLoadSpinner() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.planStatusToReturn = planStatus(planId: "e1289e60f251_5")
+        repository.overviewToReturn = overviewEntity(id: "e1289e60f251", methodologyName: "Paceriz 平衡訓練法")
+        repository.simulatesEmptyLocalCache = true
+
+        let gate = AsyncGate()
+        repository.networkReadGate = { await gate.wait() }
+
+        let viewModel = overviewViewModel(repository: repository)
+        let round = Task { await viewModel.revalidate() }
+
+        // 給快取那一步足夠的機會跑完（它是同步的本機讀）。
+        for _ in 0..<10 where viewModel.overview == nil {
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+
+        XCTAssertNil(viewModel.overview, "沒有快取就沒有東西可先畫")
+        XCTAssertTrue(viewModel.isLoading, "首載 spinner 維持原樣")
+
+        await gate.open()
+        await round.value
+        XCTAssertNotNil(viewModel.overview)
+        XCTAssertFalse(viewModel.isLoading)
+    }
+
+    /// 已經有畫面時（常駐 VM 的第二次以後）不得被快取那一份蓋回去 ——
+    /// 快取只負責「什麼都沒有」的那一格。
+    func testCachedPaintDoesNotOverwriteExistingContent() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.planStatusToReturn = planStatus(currentWeek: 5, planId: "e1289e60f251_5")
+        repository.overviewToReturn = overviewEntity(id: "e1289e60f251", methodologyName: "Paceriz 平衡訓練法")
+
+        let viewModel = overviewViewModel(repository: repository)
+        await viewModel.revalidate()
+        XCTAssertEqual(viewModel.overview?.value.currentWeek, 5)
+
+        // 第二輪：快取換成別的週次；重驗回來的仍是 5。中間不得閃成 9。
+        repository.cachedPlanStatusToReturn = planStatus(currentWeek: 9, planId: "e1289e60f251_9")
+        await viewModel.revalidate()
+        XCTAssertEqual(viewModel.overview?.value.currentWeek, 5, "已經有畫面時不得被快取蓋掉")
+    }
+
+    /// 不同源判定只有一份：快取那一畫與重驗那一畫走同一支
+    /// （`stageBundle`），期程一樣不顯示、方法名一樣要留著。
+    func testCachedPaintUsesTheSameBindingRule() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.planStatusToReturn = planStatus(planId: "ffffffffffff_5")
+        repository.overviewToReturn = overviewEntity(id: "e1289e60f251", methodologyName: "Paceriz 平衡訓練法")
+
+        let gate = AsyncGate()
+        repository.networkReadGate = { await gate.wait() }
+
+        let viewModel = overviewViewModel(repository: repository)
+        let round = Task { await viewModel.revalidate() }
+
+        for _ in 0..<50 where viewModel.overview == nil {
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+
+        XCTAssertTrue(viewModel.stagesUnbound, "不同源：期程整段不顯示")
+        XCTAssertEqual(viewModel.overview?.value.stages.count, 0)
+        XCTAssertEqual(
+            viewModel.overview?.value.rhythm.methodologyName,
+            "Paceriz 平衡訓練法",
+            "不同源仍要帶出方法名（8/28 走查 F10）"
+        )
+        XCTAssertEqual(viewModel.overviewId, "e1289e60f251", "更換訓練方法要打在這一份上")
+
+        await gate.open()
+        await round.value
+    }
+}
+
+// MARK: - 測試替身
+
+/// 單元測試不打真網路（T-0365）。
+///
+/// `App2PlanOverviewViewModel.loadEstimatedFinish()` 走 readiness VM 的
+/// `refreshData()`，預設實作會打 `GET /plan/readiness/{date}`；在全套件下那一趟會被
+/// 取消，於是整輪被判成取消、`lastLoadedAt` 留空 —— `testTargetsChangeEventTriggersImmediateRevalidate`
+/// 就是這樣間歇轉紅的（2026-09-01 實測，同一顆 commit 三次全套件裡紅兩次、單跑必綠）。
+private final class OfflineReadinessViewModel: TrainingReadinessViewModel {
+    override func refreshData() async {}
+}
+
+/// 一次性的閘門：`wait()` 卡住直到 `open()`。用來斷言「網路還沒回來之前畫面就有東西」。
+private actor AsyncGate {
+    private var isOpen = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func wait() async {
+        if isOpen { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func open() {
+        isOpen = true
+        let pending = waiters
+        waiters.removeAll()
+        pending.forEach { $0.resume() }
     }
 }
