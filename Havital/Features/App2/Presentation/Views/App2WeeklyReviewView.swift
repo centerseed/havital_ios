@@ -261,11 +261,11 @@ struct App2WeeklyReviewView: View {
             Image(systemName: "chart.line.uptrend.xyaxis")
                 .font(.system(size: 34, weight: .semibold))
                 .foregroundStyle(App2Theme.accentBlue)
-            Text(emptyStateBody(canGenerate: canGenerate))
+            Text(Self.emptyStateBody(isReadOnly: isReadOnly, canGenerate: canGenerate))
                 .font(.app2Body)
                 .foregroundStyle(App2Theme.inkTertiary)
                 .multilineTextAlignment(.center)
-            if !isReadOnly, canGenerate {
+            if Self.showsGenerateButton(isReadOnly: isReadOnly, canGenerate: canGenerate) {
                 primaryButton(
                     title: L10n.App2.WeeklyReview.generate.localized,
                     isBusy: viewModel.isLoading,
@@ -278,19 +278,34 @@ struct App2WeeklyReviewView: View {
             Spacer()
         }
         .accessibilityIdentifier(
-            canGenerate || isReadOnly
-                ? "App2_WeeklyReviewNotGenerated"
-                : "App2_WeeklyReviewWindowClosed"
+            Self.emptyStateIdentifier(isReadOnly: isReadOnly, canGenerate: canGenerate)
         )
     }
 
-    /// 空態那句話。唯讀 → 「這一週沒有產生過回顧」；視窗未開 → 「要等這一週跑完」；
-    /// 其餘 → 「還沒產生」（配一顆產生鈕）。
-    private func emptyStateBody(canGenerate: Bool) -> String {
+    // MARK: - 空態的三格（抽成具名判準才釘得住，同 `showsGeneratingAnimation`）
+    //
+    // 就地寫條件的話，「視窗未開時那顆鈕不見了」只有肉眼看得出來——這正是 T-0362
+    // 修的那種缺陷（畫面獻上一顆註定失敗的鈕，沒有任何東西擋著）。
+
+    /// 空態那句話。唯讀 →「這一週沒有產生過回顧」；視窗未開 →「要等這一週跑完」；
+    /// 其餘 →「還沒產生」（配一顆產生鈕）。三句都是既有字串，沒有新開。
+    static func emptyStateBody(isReadOnly: Bool, canGenerate: Bool) -> String {
         if isReadOnly { return L10n.App2.WeeklyReview.historyNotGeneratedBody.localized }
         return canGenerate
             ? L10n.App2.WeeklyReview.notGeneratedBody.localized
             : L10n.App2.WeeklyReview.generationWindowClosed.localized
+    }
+
+    /// 產生鈕在不在。唯讀不給（會產錯週）；視窗未開不給（必然 400）。
+    static func showsGenerateButton(isReadOnly: Bool, canGenerate: Bool) -> Bool {
+        !isReadOnly && canGenerate
+    }
+
+    /// 空態的 accessibility identifier —— Maestro flow 靠它分辨兩種空態。
+    static func emptyStateIdentifier(isReadOnly: Bool, canGenerate: Bool) -> String {
+        (isReadOnly || canGenerate)
+            ? "App2_WeeklyReviewNotGenerated"
+            : "App2_WeeklyReviewWindowClosed"
     }
 
     // MARK: - 回顧本週（frame-18）

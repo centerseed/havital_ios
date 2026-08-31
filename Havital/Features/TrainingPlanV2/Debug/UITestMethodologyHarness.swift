@@ -784,6 +784,13 @@ private final class UITestMethodologyTrainingPlanRepository: TrainingPlanV2Repos
         try await resolveWeeklySummary()
     }
 
+    /// 唯讀版本：harness 的 `resolveWeeklySummary()` 在「沒有」時丟
+    /// `weeklySummaryNotFound`，這裡照契約折成 nil（不生成）。
+    func fetchWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2? {
+        do { return try await resolveWeeklySummary() }
+        catch { if case .notFound = error.toDomainError() { return nil }; throw error }
+    }
+
     func refreshWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2 {
         try await resolveWeeklySummary()
     }

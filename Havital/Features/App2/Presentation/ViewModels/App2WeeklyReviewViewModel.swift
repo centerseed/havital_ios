@@ -105,12 +105,23 @@ final class App2WeeklyReviewViewModel: ObservableObject {
         await load()
     }
 
+    /// **plan status 先拿，再載回顧。**
+    ///
+    /// 順序不能反（T-0362）：`getWeeklySummary` 的 404 fallback 會直接 `POST`
+    /// （`TrainingPlanV2RepositoryImpl.fetchOrGenerateWeeklySummary`），所以
+    /// 「這一週現在能不能產生」必須在**發出那個請求之前**就知道。先載回顧再問 status
+    /// 的話，判準永遠晚一步——鈕是藏起來了，但請求早就送出去了。
     func load() async {
         isLoading = true
         errorMessage = nil
-        await coordinator.loadWeeklySummary(weekOfPlan: weekOfPlan)
-        applyState(afterGenerate: false)
         await refreshPlanStatus()
+        // 視窗未開（或歷史週唯讀）＝這一輪只讀不寫：沒有回顧就是沒有，
+        // 不在背後補一份，也不送註定 400 的請求。
+        await coordinator.loadWeeklySummary(
+            weekOfPlan: weekOfPlan,
+            allowGenerate: canGenerateReview
+        )
+        applyState(afterGenerate: false)
         isLoading = false
     }
 

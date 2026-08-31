@@ -151,13 +151,33 @@ final class WeeklySummaryCoordinator {
     // MARK: - Public Methods
 
     /// 載入週摘要
-    func loadWeeklySummary(weekOfPlan: Int) async {
-        Logger.debug("[WeeklySummaryCoordinator] 載入第 \(weekOfPlan) 週摘要...")
+    ///
+    /// - Parameter allowGenerate: 那一週沒有回顧時，可不可以順手產一份。
+    ///   `true`（預設，1.4 既有行為）走 `getWeeklySummary` 的 404 → POST fallback；
+    ///   `false` 走**唯讀**的 `fetchWeeklySummary`，沒有就是 `.empty`。
+    ///
+    ///   **會有這個開關是因為「讀」不該變成「寫」**（T-0362）：後端的產生視窗
+    ///   （`core/training_rules/plan_generation_window.py`）未開時，那個 fallback
+    ///   送出的是必然回 400 的請求；而歷史週唯讀回看時它會在使用者沒要求的情況下
+    ///   花掉一次 LLM 並寫進那一週。呼叫端知道視窗開不開，這裡不自己判。
+    func loadWeeklySummary(weekOfPlan: Int, allowGenerate: Bool = true) async {
+        Logger.debug("[WeeklySummaryCoordinator] 載入第 \(weekOfPlan) 週摘要（allowGenerate=\(allowGenerate)）...")
 
         lastRequestedSummaryWeek = weekOfPlan
         weeklySummary = .loading
 
         do {
+            guard allowGenerate else {
+                if let summary = try await repository.fetchWeeklySummary(weekOfPlan: weekOfPlan) {
+                    weeklySummary = .loaded(summary)
+                    initializeSelections(from: summary.nextWeekAdjustments.items)
+                    Logger.debug("[WeeklySummaryCoordinator] ✅ 週摘要載入成功（唯讀）: \(summary.id)")
+                } else {
+                    Logger.debug("[WeeklySummaryCoordinator] 第 \(weekOfPlan) 週還沒有回顧（唯讀，不生成）")
+                    weeklySummary = .empty
+                }
+                return
+            }
             let summary = try await repository.getWeeklySummary(weekOfPlan: weekOfPlan)
             weeklySummary = .loaded(summary)
             initializeSelections(from: summary.nextWeekAdjustments.items)

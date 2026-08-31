@@ -149,10 +149,29 @@ protocol TrainingPlanV2Repository {
     /// 獲取所有週摘要列表（批次，用於顯示週進度狀態）
     func getWeeklySummaries() async throws -> [WeeklySummaryItem]
 
-    /// 獲取週摘要（支援緩存）
+    /// 獲取週摘要（支援緩存）。
+    ///
+    /// ⚠️ **這一支不是唯讀的**：快取沒有且後端回 404 時，它會 fallback 到
+    /// `POST /v2/summary/weekly` 產一份出來（`TrainingPlanV2RepositoryImpl
+    /// .fetchOrGenerateWeeklySummary`）。要「只看有沒有」請用 `fetchWeeklySummary`。
     /// - Parameter weekOfPlan: 訓練週次
     /// - Returns: 週摘要實體
     func getWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2
+
+    /// **唯讀**取回週摘要：那一週沒有回顧就回 `nil`，**不生成**。
+    ///
+    /// 為什麼要有這一支（T-0362）：`getWeeklySummary` 的 404 fallback 讓「讀」
+    /// 變成「寫」。只想知道那一週有沒有回顧的路徑（週回顧頁的載入、整期總結逐週掃）
+    /// 因此會在使用者沒要求的情況下花掉一次 LLM，甚至送出後端必然拒絕的請求
+    /// （產生視窗未開 → 400 `weekly_summary_generation_window_denied`）。
+    ///
+    /// 這不是第二條路：同一支端點（`GET /v2/summary/weekly`）、同一份快取，
+    /// 只是不接那個 fallback。**Android 早就是這樣切的**
+    /// （`TrainingPlanV2Repository.fetchWeeklySummary` 回 nullable，
+    /// 生成是另一支 `generateWeeklySummary`），iOS 這邊補上同一組語意。
+    /// - Parameter weekOfPlan: 訓練週次
+    /// - Returns: 週摘要實體；那一週還沒有回顧時 `nil`
+    func fetchWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2?
 
     /// 強制刷新週摘要
     /// - Parameter weekOfPlan: 訓練週次

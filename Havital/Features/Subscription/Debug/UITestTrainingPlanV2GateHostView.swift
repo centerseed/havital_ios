@@ -166,6 +166,10 @@ private final class UITestTrainingPlanV2GateRepository: TrainingPlanV2Repository
         stubWeeklySummary(week: weekOfPlan)
     }
 
+    func fetchWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2? {
+        stubWeeklySummary(week: weekOfPlan)
+    }
+
     func refreshWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2 {
         stubWeeklySummary(week: weekOfPlan)
     }

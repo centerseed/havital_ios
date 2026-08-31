@@ -152,16 +152,20 @@ appId: com.havital.Havital.dev
     id: "App2_WeeklyReviewTab_plan"
 - takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/wr-11-plan-tab
 
-# --- 頁內「產生週回顧」：後端的生成視窗未開 → 要顯示在地化的一句話,不是紅字錯誤 ---
+# --- 頁內「產生週回顧」：後端的生成視窗未開 ---
+#
+# T-0362 改契約：**這一格不再有產生鈕**。
+# 舊版在這裡 tapOn「產生週回顧」再等 `App2_WeeklyReviewError`——那正是使用者
+# 2026-08-31 抱怨的形狀（「點進去還可以按產生,再說無法產生」）。後端平日只准產
+# `current_week − 1`（`core/training_rules/plan_generation_window.py:37`),所以那顆鈕
+# 必然 400。現在畫面直接說「這一週還不能產生回顧,要等這一週跑完。」,不給鈕。
 - tapOn:
     id: "App2_WeeklyReviewTab_review"
 - extendedWaitUntil:
     visible:
-      id: "App2_WeeklyReviewNotGenerated"
+      id: "App2_WeeklyReviewWindowClosed"
     timeout: 20000
-- tapOn: "產生週回顧"
-- extendedWaitUntil:
-    visible:
-      id: "App2_WeeklyReviewError"
-    timeout: 60000
+- assertVisible: "這一週還不能產生回顧，要等這一週跑完。"
+- assertNotVisible:
+    id: "App2_WeeklyReviewGenerate"
 - takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0306/wr-12-generate-window-closed

@@ -335,6 +335,33 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
         return try await fetchOrGenerateWeeklySummary(week: weekOfPlan)
     }
 
+    /// 唯讀版本（T-0362）：**404 就是 nil，不 fallback 到 POST**。
+    /// 快取與端點都與 `getWeeklySummary` 同一份，差別只在少接那個 fallback。
+    func fetchWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2? {
+        Logger.debug("[TrainingPlanV2Repo] fetchWeeklySummary (read-only) for week \(weekOfPlan)")
+
+        if let cached = localDataSource.getWeeklySummary(week: weekOfPlan),
+           !localDataSource.isWeeklySummaryExpired(week: weekOfPlan) {
+            Task.detached(priority: .background) { [weak self] in
+                await self?.refreshWeeklySummaryInBackground(week: weekOfPlan)
+            }
+            return cached
+        }
+
+        do {
+            let dto = try await remoteDataSource.getWeeklySummary(weekOfPlan: weekOfPlan)
+            let entity = WeeklySummaryV2Mapper.toEntity(from: dto)
+            localDataSource.saveWeeklySummary(entity, week: weekOfPlan)
+            return entity
+        } catch {
+            let domainError = error.toDomainError()
+            // 「那一週還沒有回顧」不是錯誤，也不是叫我們去生一份。
+            if case .notFound = domainError { return nil }
+            logErrorToCloud(module: "WeeklySummary", operation: "fetch", error: error, context: ["week": weekOfPlan])
+            throw domainError
+        }
+    }
+
     func refreshWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2 {
         Logger.debug("[TrainingPlanV2Repo] Force refresh weekly summary for week \(weekOfPlan)")
         return try await generateWeeklySummary(weekOfPlan: weekOfPlan, forceUpdate: true)

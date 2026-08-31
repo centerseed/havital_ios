@@ -687,6 +687,8 @@ private final class StartupStatusFailureButCachedPlanRepository: TrainingPlanV2R
         throw TrainingPlanV2Error.weeklySummaryNotFound(week: weekOfPlan)
     }
 
+    func fetchWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2? { nil }
+
     func refreshWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2 {
         throw TrainingPlanV2Error.weeklySummaryNotFound(week: weekOfPlan)
     }

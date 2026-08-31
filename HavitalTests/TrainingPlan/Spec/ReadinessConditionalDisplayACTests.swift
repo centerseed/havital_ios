@@ -218,6 +218,7 @@ private final class OverviewPublishingMockRepository: TrainingPlanV2Repository {
     func generateWeeklySummary(weekOfPlan: Int, forceUpdate: Bool?) async throws -> WeeklySummaryV2 { fatalError("stub") }
     func getWeeklySummaries() async throws -> [WeeklySummaryItem] { fatalError("stub") }
     func getWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2 { fatalError("stub") }
+    func fetchWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2? { fatalError("stub") }
     func refreshWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2 { fatalError("stub") }
     func deleteWeeklySummary(summaryId: String) async throws { fatalError("stub") }
     func getCachedPlanStatus() -> PlanStatusV2Response? { return nil }

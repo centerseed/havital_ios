@@ -225,7 +225,11 @@ final class App2PeriodSummaryViewModel: ObservableObject, TaskManageable, App2Re
         ) { group -> (rows: [WeeklySummaryV2], cancelled: Bool) in
             for week in 1...total {
                 group.addTask {
-                    do { return .success(try await repository.getWeeklySummary(weekOfPlan: week)) }
+                    // **唯讀**（T-0362）：這裡原本用 `getWeeklySummary`，而那一支的
+                    // 404 fallback 是 `POST` —— 逐週掃一整期，每一個「沒生成」的週
+                    // 都會在使用者只是打開整期總結時被補生成一份（LLM 寫入）。
+                    // 上面那句註解寫的「404 折 nil 是常態」正是這裡要的語意。
+                    do { return .success(try await repository.fetchWeeklySummary(weekOfPlan: week)) }
                     catch { return .failure(error) }
                 }
             }

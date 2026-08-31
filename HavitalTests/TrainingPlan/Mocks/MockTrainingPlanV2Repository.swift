@@ -295,9 +295,28 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         await onGetWeeklySummary?()
         if let error = weeklySummaryErrorToThrow ?? errorToThrow { throw error }
         guard let summary = weeklySummaryV2ToReturn else {
-            throw TrainingPlanV2Error.weeklySummaryNotFound(week: weekOfPlan)
+            // **正式 repository 在這一格是 404 → POST fallback**
+            // （`TrainingPlanV2RepositoryImpl.fetchOrGenerateWeeklySummary`）。
+            // mock 照抄那個形狀，否則「載入會不會偷偷生成」在測試裡永遠看不到。
+            generateWeeklySummaryCallCount += 1
+            await onGenerateWeeklySummary?()
+            // 丟 `DomainError` 而不是 `TrainingPlanV2Error`：通用的
+            // `Error.toDomainError()` 不認得後者，會折成 `.unknown`，
+            // 於是「還沒產生」在 VM 那邊會被誤讀成錯誤（假紅）。
+            throw DomainError.notFound("Weekly summary not found for week \(weekOfPlan)")
         }
         return summary
+    }
+
+    /// 唯讀版本（T-0362）：沒有就是 nil，**不碰生成計數**。
+    func fetchWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2? {
+        getWeeklySummaryCallCount += 1
+        await onGetWeeklySummary?()
+        if let error = weeklySummaryErrorToThrow ?? errorToThrow {
+            if case .notFound = error.toDomainError() { return nil }
+            throw error
+        }
+        return weeklySummaryV2ToReturn
     }
 
     func refreshWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2 {

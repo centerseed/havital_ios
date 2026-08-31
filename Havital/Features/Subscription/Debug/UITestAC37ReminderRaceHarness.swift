@@ -253,6 +253,10 @@ final class UITestAC37MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         makeStubWeeklySummary(week: weekOfPlan)
     }
 
+    func fetchWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2? {
+        makeStubWeeklySummary(week: weekOfPlan)
+    }
+
     func refreshWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2 {
         makeStubWeeklySummary(week: weekOfPlan)
     }

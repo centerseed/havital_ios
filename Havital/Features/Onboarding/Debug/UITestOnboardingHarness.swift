@@ -348,6 +348,10 @@ private final class UITestOnboardingTrainingPlanV2Repository: TrainingPlanV2Repo
         fatalError("Weekly summary is not expected in onboarding UI tests")
     }
 
+    func fetchWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2? {
+        fatalError("Weekly summary is not expected in onboarding UI tests")
+    }
+
     func refreshWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2 {
         fatalError("Weekly summary is not expected in onboarding UI tests")
     }

@@ -116,10 +116,15 @@ final class App2WeeklyReviewGeneratingTests: XCTestCase {
     /// （`core/training_rules/plan_generation_window.py:37`），所以那顆「產生週回顧」
     /// 是註定 400 的鈕。修復後 `canGenerateReview` 為 false，畫面改顯示「要等這一週跑完」。
     func test_weekdayCurrentWeekReview_hasNoGenerateButton() async {
-        // **回顧 404、plan status 正常**——那正是真實組合。用 per-method 的
-        // `weeklySummaryErrorToThrow`：全域的 `errorToThrow` 會連 `getPlanStatus`
-        // 一起丟，判準就永遠落在 status 為 nil 的 fail-open 分支上（假綠）。
-        repository.weeklySummaryErrorToThrow = DomainError.notFound("Weekly summary not found")
+        // **回顧 404、plan status 正常**——那正是真實組合。
+        // `weeklySummaryV2ToReturn = nil` 走的是 mock 裡**照抄正式 repository**
+        // 的那一格：`getWeeklySummary` 在 404 時 fallback 到 POST（計數 +1），
+        // `fetchWeeklySummary` 回 nil（不計數）。所以這一支同時驗得到
+        // 「載入有沒有偷偷送出生成請求」。
+        //
+        // 不用全域的 `errorToThrow`：那一格會連 `getPlanStatus` 也一起丟，
+        // 判準就永遠落在 status 為 nil 的 fail-open 分支上（假綠）。
+        repository.weeklySummaryV2ToReturn = nil
         // 2026-08-31 是週一（Asia/Taipei）——使用者實機那一天。
         repository.planStatusToReturn = Self.planStatus(
             currentWeek: 5,
@@ -134,11 +139,36 @@ final class App2WeeklyReviewGeneratingTests: XCTestCase {
             viewModel.canGenerateReview,
             "平日不能產本週回顧——畫面不得獻上一顆按下去必然 400 的鈕"
         )
+        // **E05**：正式 repository 的 `getWeeklySummary` 在 404 時會 fallback 到
+        // `POST`，所以「只是打開這一頁」就會送出那個註定 400 的請求。視窗未開時
+        // 載入必須走唯讀路徑。
+        XCTAssertEqual(
+            repository.generateWeeklySummaryCallCount, 0,
+            "視窗未開時，光是載入就不得在背後送出生成請求"
+        )
+    }
+
+    /// 對照組：視窗開著時，載入仍走既有的「404 → 產生」路徑（1.4 既有流程不變）。
+    /// 沒有這一支，上面那條唯讀斷言可能只是因為整條路都壞了才綠。
+    func test_windowOpen_loadStillUsesGenerateFallback() async {
+        repository.weeklySummaryV2ToReturn = nil
+        repository.planStatusToReturn = Self.planStatus(
+            currentWeek: 5,
+            serverTime: "2026-08-31T02:00:00Z"
+        )
+        let viewModel = App2WeeklyReviewViewModel(weekOfPlan: 4, repository: repository)
+
+        await viewModel.load()
+
+        XCTAssertEqual(
+            repository.generateWeeklySummaryCallCount, 1,
+            "視窗開著時載入沿用既有的 404 → 產生 fallback"
+        )
     }
 
     /// 同一天（週一）打開**上週**回顧就是後端允許的那一週 —— 鈕照給。
     func test_weekdayPreviousWeekReview_keepsGenerateButton() async {
-        repository.weeklySummaryErrorToThrow = DomainError.notFound("Weekly summary not found")
+        repository.weeklySummaryV2ToReturn = nil
         repository.planStatusToReturn = Self.planStatus(
             currentWeek: 5,
             serverTime: "2026-08-31T02:00:00Z"
@@ -153,7 +183,7 @@ final class App2WeeklyReviewGeneratingTests: XCTestCase {
 
     /// VM 自己也不送那個請求 —— 判準不只住在畫面上。
     func test_generate_whenWindowClosed_sendsNoRequest() async {
-        repository.weeklySummaryErrorToThrow = DomainError.notFound("Weekly summary not found")
+        repository.weeklySummaryV2ToReturn = nil
         repository.planStatusToReturn = Self.planStatus(
             currentWeek: 5,
             serverTime: "2026-08-31T02:00:00Z"
@@ -171,7 +201,7 @@ final class App2WeeklyReviewGeneratingTests: XCTestCase {
 
     /// 後端週日的 `server_time` → 本週回顧就是這一天要做的事，鈕在。
     func test_sundayCurrentWeekReview_keepsGenerateButton() async {
-        repository.weeklySummaryErrorToThrow = DomainError.notFound("Weekly summary not found")
+        repository.weeklySummaryV2ToReturn = nil
         // 2026-08-30 是週日（Asia/Taipei）。
         repository.planStatusToReturn = Self.planStatus(
             currentWeek: 5,
@@ -182,6 +212,49 @@ final class App2WeeklyReviewGeneratingTests: XCTestCase {
         await viewModel.load()
 
         XCTAssertTrue(viewModel.canGenerateReview)
+    }
+
+    // MARK: - 畫面層（E11：判準對、但 view 沒接上，上面那些照樣綠）
+
+    /// 三格空態的**畫面契約**：那句話、那顆鈕在不在、identifier 是哪一個。
+    /// 同 `showsGeneratingAnimation` 的做法——具名判準，view 直接用它。
+    func test_emptyState_contractForEachOfTheThreeCases() {
+        // 唯讀回看
+        XCTAssertEqual(
+            App2WeeklyReviewView.emptyStateBody(isReadOnly: true, canGenerate: false),
+            L10n.App2.WeeklyReview.historyNotGeneratedBody.localized
+        )
+        XCTAssertFalse(App2WeeklyReviewView.showsGenerateButton(isReadOnly: true, canGenerate: false))
+        XCTAssertEqual(
+            App2WeeklyReviewView.emptyStateIdentifier(isReadOnly: true, canGenerate: false),
+            "App2_WeeklyReviewNotGenerated"
+        )
+
+        // 可以產生
+        XCTAssertEqual(
+            App2WeeklyReviewView.emptyStateBody(isReadOnly: false, canGenerate: true),
+            L10n.App2.WeeklyReview.notGeneratedBody.localized
+        )
+        XCTAssertTrue(App2WeeklyReviewView.showsGenerateButton(isReadOnly: false, canGenerate: true))
+        XCTAssertEqual(
+            App2WeeklyReviewView.emptyStateIdentifier(isReadOnly: false, canGenerate: true),
+            "App2_WeeklyReviewNotGenerated"
+        )
+
+        // 產生視窗未開（T-0362）
+        XCTAssertEqual(
+            App2WeeklyReviewView.emptyStateBody(isReadOnly: false, canGenerate: false),
+            L10n.App2.WeeklyReview.generationWindowClosed.localized,
+            "視窗未開要說得出『什麼時候才能產生』"
+        )
+        XCTAssertFalse(
+            App2WeeklyReviewView.showsGenerateButton(isReadOnly: false, canGenerate: false),
+            "視窗未開不得畫產生鈕"
+        )
+        XCTAssertEqual(
+            App2WeeklyReviewView.emptyStateIdentifier(isReadOnly: false, canGenerate: false),
+            "App2_WeeklyReviewWindowClosed"
+        )
     }
 
     /// 週日與否**只看後端給的 `server_time` ＋ `user_timezone`**，不看裝置星期
