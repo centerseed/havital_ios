@@ -94,25 +94,29 @@ final class App2ImperialDistanceTests: XCTestCase {
     func test_unitManagerPublishesUnitSystemChanged_onlyOnRealChange() async {
         let manager = UnitManager.shared
         let original = manager.currentUnitSystem
-        defer { manager.currentUnitSystem = original }
-
-        // `publish` 是 fire-and-forget，別條測試切換單位留下的事件會落進這裡
-        // （`resetForTesting` 的檔頭就在講這個 —— T-0176）。先排空再訂閱。
-        await CacheEventBus.shared.resetForTesting()
-
         let identifier = "App2ImperialDistanceTests.unitChange"
-        var received = 0
-        CacheEventBus.shared.subscribe(forIdentifier: identifier) { reason in
-            if case .unitSystemChanged = reason { received += 1 }
+        defer {
+            // 先解訂閱再還原，否則還原本身那一次切換會被自己數進去。
+            CacheEventBus.shared.unsubscribe(forIdentifier: identifier)
+            manager.currentUnitSystem = original
         }
-        defer { CacheEventBus.shared.unsubscribe(forIdentifier: identifier) }
 
-        // `publish` 的訂閱者通知走 `Task { @MainActor }`，要讓它跑完才看得到。
+        // `publish` 的訂閱者通知走 `Task { @MainActor }`，是 fire-and-forget。
         func settle() async {
             for _ in 0..<50 {
                 await Task.yield()
                 try? await Task.sleep(nanoseconds: 5_000_000)
             }
+        }
+
+        // **先排空再訂閱**：別條測試留下的事件還在隊列上時會落進來（T-0176 同一個坑，
+        // 實測不排空會數到 2）。這裡刻意**不用** `resetForTesting()` —— 那支會把
+        // process-wide 的 bus 連 production 訂閱一起清光，後面的測試就少了接線。
+        await settle()
+
+        var received = 0
+        CacheEventBus.shared.subscribe(forIdentifier: identifier) { reason in
+            if case .unitSystemChanged = reason { received += 1 }
         }
 
         manager.currentUnitSystem = original == .metric ? .imperial : .metric
@@ -124,6 +128,11 @@ final class App2ImperialDistanceTests: XCTestCase {
         manager.currentUnitSystem = current
         await settle()
         XCTAssertEqual(received, 1, "值沒變不得觸發重投影")
+
+        // 離開前把自己發的事件排空，不留給下一條測試。
+        CacheEventBus.shared.unsubscribe(forIdentifier: identifier)
+        manager.currentUnitSystem = original
+        await settle()
     }
 
     /// 重投影出來的**字串本身**要換單位。
