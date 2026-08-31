@@ -703,6 +703,10 @@ final class App2CancellationTests: XCTestCase {
     // MARK: - 推播 → coordinator → bus → 消費端 owner path（T-0359 外審 E03/E11）
 
     func test_workoutPush_chainReachesRecordsRefetch() async {
+        // 鏈路的佈線端顯式建立，不依賴 test host 先前的初始化順序（外審 E05）；
+        // registerAll 冪等，app 已註冊時是 no-op。
+        CacheRegistrationCoordinator.registerAll()
+
         let source = ImmediateStatsSource()
         // 最後建立的 Records VM 持有 bus identifier（同 production 常駐實例語意）。
         let vm = App2RecordsViewModel(workoutDataSource: source)
@@ -711,12 +715,22 @@ final class App2CancellationTests: XCTestCase {
 
         // 從推播 seam 出發走真實鏈路：emit → CacheRegistrationCoordinator 轉發
         // `.dataChanged(.workouts)` → Records VM 訂閱 → revalidate 重打網路。
+        // （`UNNotification`／`UNNotificationResponse` 無公開建構式，
+        // willPresent/didReceive 的 delegate 回呼無法在單元測試偽造；兩個回呼
+        // 都是一行轉呼 `emitWorkoutPushIfNeeded`，以 seam 為測試入口。）
         WorkoutBackgroundManager.shared.emitWorkoutPushIfNeeded(["type": "workout_processed"])
 
         for _ in 0..<50 where source.statsCalls == callsBefore {
             try? await Task.sleep(nanoseconds: 100_000_000)
         }
-        XCTAssertGreaterThan(source.statsCalls, callsBefore,
-                             "workout_processed 推播必須讓紀錄頁真正重打網路，不是只清快取")
+        XCTAssertEqual(source.statsCalls, callsBefore + 1,
+                       "一次 workout_processed 推播＝恰好一次重打網路（不是只清快取，也不重複打）")
+
+        // 第二發推播（例如前景顯示＋點擊各觸發一次 emit）→ 再恰好一次。
+        WorkoutBackgroundManager.shared.emitWorkoutPushIfNeeded(["type": "workout_processed"])
+        for _ in 0..<50 where source.statsCalls == callsBefore + 1 {
+            try? await Task.sleep(nanoseconds: 100_000_000)
+        }
+        XCTAssertEqual(source.statsCalls, callsBefore + 2, "每次 emit 恰好一次重驗，順序不亂")
     }
 }

@@ -52,12 +52,20 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     /// 這一輪的子載入是否吃到取消（-999 取消錯誤不設 `Task.isCancelled`）。
     /// 有＝整輪作廢：不發布、不標載過（外審第七輪 E03）。
     private var roundSawCancellation = false
+
+    /// 只有現任輪的取消才記進共用旗標——被接管的舊輪不得污染新輪
+    /// （T-0359 外審第二輪 D04）。
+    private func noteRoundCancellation() {
+        if App2RevalidateRound.id == revalidateGeneration { roundSawCancellation = true }
+    }
     /// revalidate 的同輪互斥：兩輪並發會在 await 點交錯共用取消旗標與完成標記。
     private var isRevalidating = false
     /// 這一輪重驗的起點（判卡死用，見 revalidate 開頭）。
     private var revalidateBegan: Date?
     /// 鎖的輪次所有權：被接管的卡死輪回來時不得放掉新輪的鎖（T-0359 外審 D04）。
     private var revalidateGeneration = 0
+    /// 現任輪的 task：接管時取消它，逼舊輪走取消路徑退出。
+    private var revalidateRoundTask: Task<Void, Never>?
 
     /// 測試 seam：把 in-flight 輪的起點回撥，模擬卡死超過門檻
     /// （owner-path 測試不能真等 30 秒）。
@@ -130,7 +138,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
             return try await WeeklySummaryService.shared.fetchAllWeeklyVolumes(limit: 8)
         } catch {
             if error.isCancellationError {
-                roundSawCancellation = true
+                noteRoundCancellation()
             } else {
                 Logger.debug("[App2PlanOverviewVM] 週跑量歷史取得失敗: \(error)")
             }
@@ -152,14 +160,33 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         if App2RevalidatePolicy.shouldBlock(isRevalidating: isRevalidating, began: revalidateBegan) {
             return
         }
+        // 接管：真正取消被判卡死的舊輪——其取消 guard 會丟棄後續發布與狀態寫入，
+        // 舊輪不得再影響新輪（T-0359 外審第二輪 D04）。
+        revalidateRoundTask?.cancel()
         isRevalidating = true
         revalidateBegan = Date()
         revalidateGeneration += 1
         let round = revalidateGeneration
-        defer {
-            // 只有仍持有鎖的那一輪才放鎖。
-            if revalidateGeneration == round { isRevalidating = false }
+        let roundTask = Task { [weak self] in
+            guard let self else { return }
+            await App2RevalidateRound.$id.withValue(round) {
+                await self.revalidateRound(round)
+            }
         }
+        revalidateRoundTask = roundTask
+        // 呼叫端 task 被取消時把取消轉發進本輪（取消語意不變）。
+        await withTaskCancellationHandler {
+            await roundTask.value
+        } onCancel: {
+            roundTask.cancel()
+        }
+        if revalidateGeneration == round {
+            isRevalidating = false
+            revalidateRoundTask = nil
+        }
+    }
+
+    private func revalidateRound(_ round: Int) async {
 
         isLoading = !hasLoaded
         roundSawCancellation = false
@@ -195,7 +222,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
 
         // planStatus 與各子載入都以 `try?`／可缺席語意收攏——取消也會被折成 nil。
         // 被取消的那一輪不得發布殘缺 overview（AGENTS.md 陷阱 5；2026-08-29 外審）。
-        if Task.isCancelled || roundSawCancellation { return }
+        if Task.isCancelled || roundSawCancellation || revalidateGeneration != round { return }
         finishedRound = true
 
         stagesUnbound = stageBundle.isUnbound
@@ -260,7 +287,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
             )
         } catch {
             if error.isCancellationError {
-                roundSawCancellation = true
+                noteRoundCancellation()
             } else {
                 Logger.debug("[App2PlanOverviewVM] overview 取得失敗: \(error)")
             }
@@ -278,7 +305,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
             methodologies = try await planRepository.getMethodologies(targetType: targetType)
         } catch {
             if error.isCancellationError {
-                roundSawCancellation = true
+                noteRoundCancellation()
             } else {
                 Logger.debug("[App2PlanOverviewVM] 方法論清單取得失敗: \(error)")
                 methodologyError = error.toDomainError().localizedDescription
@@ -328,7 +355,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
             _ = try await targetRepository.getTargets()
         } catch {
             if error.isCancellationError {
-                roundSawCancellation = true
+                noteRoundCancellation()
             } else {
                 Logger.debug("[App2PlanOverviewVM] targets 取得失敗,改讀既有快取: \(error)")
             }
@@ -351,7 +378,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
             return (user.preferWeekDays, user.preferWeekDaysLongrun?.first)
         } catch {
             if error.isCancellationError {
-                roundSawCancellation = true
+                noteRoundCancellation()
             } else {
                 Logger.debug("[App2PlanOverviewVM] 訓練日偏好取得失敗: \(error)")
             }

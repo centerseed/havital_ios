@@ -22,12 +22,20 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 這一輪的子載入是否吃到取消（-999 取消錯誤不設 `Task.isCancelled`）。
     /// 有＝整輪不標載過，下次 SWR 重試（外審第八輪 D04/E03）。
     private var roundSawCancellation = false
+
+    /// 只有現任輪的取消才記進共用旗標——被接管的舊輪不得污染新輪
+    /// （T-0359 外審第二輪 D04）。
+    private func noteRoundCancellation() {
+        if App2RevalidateRound.id == revalidateGeneration { roundSawCancellation = true }
+    }
     /// revalidate 的同輪互斥（見 revalidate 開頭的註解）。
     private var isRevalidating = false
     /// 這一輪重驗的起點（判卡死用，見 revalidate 開頭）。
     private var revalidateBegan: Date?
     /// 鎖的輪次所有權：被接管的卡死輪回來時不得放掉新輪的鎖（T-0359 外審 D04）。
     private var revalidateGeneration = 0
+    /// 現任輪的 task：接管時取消它，逼舊輪走取消路徑退出。
+    private var revalidateRoundTask: Task<Void, Never>?
     @Published private(set) var goalCard: App2Sourced<App2GoalCard>?
     /// 計畫結束態（設計 frame-00g）。**有值時首頁的目標卡＋今日課表卡整段換掉**
     /// —— 那是同一塊版位的另一種內容，不是多一張卡。
@@ -225,14 +233,33 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         if App2RevalidatePolicy.shouldBlock(isRevalidating: isRevalidating, began: revalidateBegan) {
             return
         }
+        // 接管：真正取消被判卡死的舊輪——其取消 guard 會丟棄後續發布與狀態寫入，
+        // 舊輪不得再影響新輪（T-0359 外審第二輪 D04）。
+        revalidateRoundTask?.cancel()
         isRevalidating = true
         revalidateBegan = Date()
         revalidateGeneration += 1
         let round = revalidateGeneration
-        defer {
-            // 只有仍持有鎖的那一輪才放鎖。
-            if revalidateGeneration == round { isRevalidating = false }
+        let roundTask = Task { [weak self] in
+            guard let self else { return }
+            await App2RevalidateRound.$id.withValue(round) {
+                await self.revalidateRound(round)
+            }
         }
+        revalidateRoundTask = roundTask
+        // 呼叫端 task 被取消時把取消轉發進本輪（取消語意不變）。
+        await withTaskCancellationHandler {
+            await roundTask.value
+        } onCancel: {
+            roundTask.cancel()
+        }
+        if revalidateGeneration == round {
+            isRevalidating = false
+            revalidateRoundTask = nil
+        }
+    }
+
+    private func revalidateRound(_ round: Int) async {
 
         // 冷啟第一輪：先把上一次的快照渲染出來，這一輪的網路變成背景刷新。
         if !hasLoaded { await hydrateFromSnapshot() }
@@ -259,7 +286,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         // 取消有兩種形態：task 本身被取消，或 in-flight 請求回 -999 被折成
         // `.cancelled` outcome（`URLError(.cancelled)` 不會設 `Task.isCancelled`）——兩種都算。
         if case .cancelled = planStatus { return }
-        guard !Task.isCancelled, !roundSawCancellation else { return }
+        guard !Task.isCancelled, !roundSawCancellation, revalidateGeneration == round else { return }
         hasLoaded = true
         lastLoadedAt = Date()
     }
@@ -396,7 +423,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         } catch {
             // 取消不是失敗（`AGENTS.md` 陷阱 2）。下拉刷新的 task 被 SwiftUI 收掉時
             // 每一條 in-flight 請求都會回 -999；當成失敗會把畫面上的真資料換成樣本。
-            guard !error.isCancellationError else { roundSawCancellation = true; return }
+            guard !error.isCancellationError else { noteRoundCancellation(); return }
             Logger.debug("[App2HomeVM] state/today 取得失敗,退樣本: \(error)")
             if trainingStatus == nil {
                 trainingStatus = App2Sourced(
@@ -471,7 +498,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 let plan = try await planRepository.fetchWeeklyPlan(planId: planId)
                 applyTodaySession(plan: plan)
             } catch {
-                guard !error.isCancellationError else { roundSawCancellation = true; return }
+                guard !error.isCancellationError else { noteRoundCancellation(); return }
                 Logger.debug("[App2HomeVM] 今日課表取得失敗（plan_id=\(planId)）: \(error)")
                 todayState = .unavailable
             }
@@ -517,7 +544,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             snapshots.save(rows, for: .homeRecentWorkouts)
             todayCompletedWorkout = Self.todayWorkout(rows)
         } catch {
-            guard !error.isCancellationError else { roundSawCancellation = true; return }
+            guard !error.isCancellationError else { noteRoundCancellation(); return }
             Logger.debug("[App2HomeVM] 今日紀錄查詢失敗: \(error)")
         }
     }
@@ -597,7 +624,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         do {
             summaryId = try await planRepository.getWeeklySummary(weekOfPlan: planStatus.currentWeek).id
         } catch {
-            guard !error.isCancellationError else { roundSawCancellation = true; return }
+            guard !error.isCancellationError else { noteRoundCancellation(); return }
             Logger.debug("[App2HomeVM] 本週回顧查詢失敗,視為尚未產生: \(error)")
         }
         weekReview = Self.weekReviewState(planStatus: planStatus, isSunday: true, summaryId: summaryId)
@@ -1072,7 +1099,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             if error.isCancellationError {
                 // 被取消就整段停手：連 cache 路徑都不走，不組裝也不發布
                 // （外審第九輪 D04/E03——記了旗標卻繼續組裝＝取消後仍發布）。
-                roundSawCancellation = true
+                noteRoundCancellation()
                 return
             }
             Logger.debug("[App2HomeVM] targets 取得失敗,改讀既有快取: \(error)")
@@ -1161,7 +1188,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             return readiness.metrics?.raceFitness?.estimatedRaceTime
         } catch {
             if error.isCancellationError {
-                roundSawCancellation = true
+                noteRoundCancellation()
             } else {
                 Logger.debug("[App2HomeVM] 賽事日 readiness 取不到,結束態不畫預估欄: \(error)")
             }
@@ -1208,7 +1235,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             return try await planRepository.refreshOverview()
         } catch {
             if error.isCancellationError {
-                roundSawCancellation = true
+                noteRoundCancellation()
             } else {
                 Logger.debug("[App2HomeVM] overview 取得失敗: \(error)")
             }

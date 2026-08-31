@@ -21,6 +21,12 @@ enum App2RevalidatePolicy {
     }
 }
 
+/// 重驗輪的 task-local 代號（`async let` 子任務會繼承）。0 ＝ 不在任何輪內。
+/// 被接管的舊輪代號 ≠ 現任 generation，其共用狀態寫入以此被丟棄（T-0359 D04）。
+enum App2RevalidateRound {
+    @TaskLocal static var id: Int = 0
+}
+
 @MainActor
 protocol App2Revalidating: AnyObject {
     var hasLoaded: Bool { get }

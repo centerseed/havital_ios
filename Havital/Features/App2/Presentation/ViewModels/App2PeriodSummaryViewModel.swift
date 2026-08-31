@@ -75,14 +75,33 @@ final class App2PeriodSummaryViewModel: ObservableObject, TaskManageable, App2Re
         if App2RevalidatePolicy.shouldBlock(isRevalidating: isRevalidating, began: revalidateBegan) {
             return
         }
+        // 接管：真正取消被判卡死的舊輪——其取消 guard 會丟棄後續發布與狀態寫入，
+        // 舊輪不得再影響新輪（T-0359 外審第二輪 D04）。
+        revalidateRoundTask?.cancel()
         isRevalidating = true
         revalidateBegan = Date()
         revalidateGeneration += 1
         let round = revalidateGeneration
-        defer {
-            // 只有仍持有鎖的那一輪才放鎖。
-            if revalidateGeneration == round { isRevalidating = false }
+        let roundTask = Task { [weak self] in
+            guard let self else { return }
+            await App2RevalidateRound.$id.withValue(round) {
+                await self.revalidateRound(round)
+            }
         }
+        revalidateRoundTask = roundTask
+        // 呼叫端 task 被取消時把取消轉發進本輪（取消語意不變）。
+        await withTaskCancellationHandler {
+            await roundTask.value
+        } onCancel: {
+            roundTask.cancel()
+        }
+        if revalidateGeneration == round {
+            isRevalidating = false
+            revalidateRoundTask = nil
+        }
+    }
+
+    private func revalidateRound(_ round: Int) async {
 
         isLoading = !hasLoaded
         var finishedRound = false
@@ -127,7 +146,7 @@ final class App2PeriodSummaryViewModel: ObservableObject, TaskManageable, App2Re
 
         // `try?` 把取消也折成 nil——被取消的那一輪**不得發布任何結果**（AGENTS.md 陷阱 5；
         // 2026-08-29 外審 D04）：部分成功＋部分被取消會組出殘缺的 summary 蓋掉畫面。
-        if Task.isCancelled { return }
+        if Task.isCancelled || revalidateGeneration != round { return }
         // 首載整批落空（很可能是 -999 取消錯誤被折成 nil）→ 不發布也不標載過，
         // 下次進頁重試；有任何一條真的回了資料才算這一輪完成。
         if stats == nil, workouts == nil, vdots == nil, reviews.isEmpty { return }
@@ -160,19 +179,27 @@ final class App2PeriodSummaryViewModel: ObservableObject, TaskManageable, App2Re
 
     /// 這一輪的子載入是否吃到取消（-999 取消錯誤不設 `Task.isCancelled`）。
     private var roundSawCancellation = false
+
+    /// 只有現任輪的取消才記進共用旗標——被接管的舊輪不得污染新輪
+    /// （T-0359 外審第二輪 D04）。
+    private func noteRoundCancellation() {
+        if App2RevalidateRound.id == revalidateGeneration { roundSawCancellation = true }
+    }
     /// revalidate 的同輪互斥：兩輪並發會在 await 點交錯共用取消旗標與完成標記。
     private var isRevalidating = false
     /// 這一輪重驗的起點（判卡死用，見 revalidate 開頭）。
     private var revalidateBegan: Date?
     /// 鎖的輪次所有權：被接管的卡死輪回來時不得放掉新輪的鎖（T-0359 外審 D04）。
     private var revalidateGeneration = 0
+    /// 現任輪的 task：接管時取消它，逼舊輪走取消路徑退出。
+    private var revalidateRoundTask: Task<Void, Never>?
 
     /// 真失敗折成 nil（少那幾格）；取消記旗標讓整輪作廢。
     private func optionalLoad<T>(_ op: @escaping () async throws -> T) async -> T? {
         do {
             return try await op()
         } catch {
-            if error.isCancellationError { roundSawCancellation = true }
+            if error.isCancellationError { noteRoundCancellation() }
             return nil
         }
     }
@@ -212,7 +239,7 @@ final class App2PeriodSummaryViewModel: ObservableObject, TaskManageable, App2Re
             // 週次順序是身分（畫面上不列出來，但加總與平均要穩定可重現）。
             return (rows.sorted { $0.weekOfTraining < $1.weekOfTraining }, cancelled)
         }
-        if outcome.cancelled { roundSawCancellation = true }
+        if outcome.cancelled { noteRoundCancellation() }
         return outcome.rows
     }
 

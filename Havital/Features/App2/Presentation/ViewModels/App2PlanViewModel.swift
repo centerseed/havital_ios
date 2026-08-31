@@ -83,6 +83,8 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     private var revalidateBegan: Date?
     /// 鎖的輪次所有權：被接管的卡死輪回來時不得放掉新輪的鎖（T-0359 外審 D04）。
     private var revalidateGeneration = 0
+    /// 現任輪的 task：接管時取消它，逼舊輪走取消路徑退出。
+    private var revalidateRoundTask: Task<Void, Never>?
 
     /// 最近一次讀到的 plan status —— 歷史週的週起點與週次上限都從它推。
     private var latestPlanStatus: PlanStatusV2Response?
@@ -189,14 +191,33 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         if App2RevalidatePolicy.shouldBlock(isRevalidating: isRevalidating, began: revalidateBegan) {
             return
         }
+        // 接管：真正取消被判卡死的舊輪——其取消 guard 會丟棄後續發布與狀態寫入，
+        // 舊輪不得再影響新輪（T-0359 外審第二輪 D04）。
+        revalidateRoundTask?.cancel()
         isRevalidating = true
         revalidateBegan = Date()
         revalidateGeneration += 1
         let round = revalidateGeneration
-        defer {
-            // 只有仍持有鎖的那一輪才放鎖。
-            if revalidateGeneration == round { isRevalidating = false }
+        let roundTask = Task { [weak self] in
+            guard let self else { return }
+            await App2RevalidateRound.$id.withValue(round) {
+                await self.revalidateRound(round)
+            }
         }
+        revalidateRoundTask = roundTask
+        // 呼叫端 task 被取消時把取消轉發進本輪（取消語意不變）。
+        await withTaskCancellationHandler {
+            await roundTask.value
+        } onCancel: {
+            roundTask.cancel()
+        }
+        if revalidateGeneration == round {
+            isRevalidating = false
+            revalidateRoundTask = nil
+        }
+    }
+
+    private func revalidateRound(_ round: Int) async {
 
         // 冷啟第一輪：先把上一次的週課表渲染出來，這一輪的網路變成背景刷新。
         if !hasLoaded { hydrateFromCache() }
@@ -216,6 +237,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             // `forceRefresh` ＝ 這一輪一定走網路。SWR 的「先舊後新」由上面那一行
             // 的快取渲染負責，不是靠 repository 的 cooldown 決定要不要重驗。
             let status = try await planRepository.getPlanStatus(forceRefresh: true)
+            guard revalidateGeneration == round else { return }
             latestPlanStatus = status
             finishedRound = true
 
