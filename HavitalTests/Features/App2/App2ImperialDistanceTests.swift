@@ -383,4 +383,98 @@ final class App2ImperialDistanceTests: XCTestCase {
         // 12 × 0.621371 ＝ 7.456 → `7.5 mi`（不是 `%g` 的 `7.45645 mi`）。
         XCTAssertEqual(App2OnboardingFormat.distanceLabel(km: 12, unitSystem: .imperial), "7.5 mi")
     }
+
+    // MARK: - 外審第七輪 C06：1.x 的換算呼叫端也只認一份係數
+
+    /// 修這一輪之前，`WorkoutUtils`／`WorkoutV2`／`WorkoutV2RowView`／
+    /// `WorkoutDetailViewModelV2`／`BenchmarkCalibrationCard`／`WeeklyMileageChartView`／
+    /// `PlannedSessionDetailView` 各自寫著 `× 0.621371`／`× 1.60934`。
+    /// 版面規則（`%.2f`、`ft` fallback、`8'51"` 的撇號寫法）留在各自的呼叫端，
+    /// **換算本身全部轉呼叫 `UnitSystem`**。
+    ///
+    /// 這兩支 1.x formatter 沒有 `unitSystem` 參數（讀 `UnitManager.shared`），
+    /// 所以這裡走「切換 → 讀字」的正式路徑，與
+    /// `test_reprojectionAfterUnitChange_producesTheNewUnitString` 同一種寫法。
+    func test_legacyWorkoutFormatters_routeThroughUnitSystem() async {
+        let manager = UnitManager.shared
+        let original = manager.currentUnitSystem
+        defer { manager.currentUnitSystem = original }
+
+        // 切換會發 fire-and-forget 事件，離開前要排空，不留給下一條測試。
+        func drain() async {
+            for _ in 0..<50 {
+                await Task.yield()
+                try? await Task.sleep(nanoseconds: 5_000_000)
+            }
+        }
+
+        // 12.05 km ×0.621371 ＝ 7.4875 → `%.2f` ＝ `7.49 mi`。
+        // 3300 秒／10 km ＝ 330 秒/km ×1.60934 ＝ 531.08 → `8'51"/mi`。
+        let workout = WorkoutV2(
+            id: "t0366", provider: "garmin", activityType: "running",
+            startTimeUtc: nil, endTimeUtc: nil,
+            durationSeconds: 3_300, distanceMeters: 10_000,
+            distanceDisplay: nil, distanceUnit: nil, deviceName: nil,
+            basicMetrics: nil, advancedMetrics: nil, createdAt: nil,
+            schemaVersion: nil, storagePath: nil, dailyPlanSummary: nil,
+            aiSummary: nil, shareCardContent: nil
+        )
+
+        manager.currentUnitSystem = .metric
+        let metricDistance = WorkoutUtils.formatDistance(12_050)
+        let metricPace = WorkoutUtils.formatPace(durationInSeconds: 3_300, distanceInMeters: 10_000)
+        XCTAssertEqual(metricPace, "5'30\"/km")
+        XCTAssertEqual(workout.formattedPace, "5'30\"/km")
+
+        manager.currentUnitSystem = .imperial
+        XCTAssertEqual(WorkoutUtils.formatDistance(12_050), "7.49 mi")
+        XCTAssertEqual(
+            WorkoutUtils.formatPace(durationInSeconds: 3_300, distanceInMeters: 10_000),
+            "8'51\"/mi"
+        )
+        XCTAssertEqual(workout.formattedPace, "8'51\"/mi")
+        XCTAssertNotEqual(WorkoutUtils.formatDistance(12_050), metricDistance)
+
+        manager.currentUnitSystem = original
+        await drain()
+    }
+
+    // MARK: - 外審第七輪 D08：賽事資料庫
+
+    /// 結果列的距離是**非標準賽距才印的量**（標準賽距印名字），所以那一頁掛著時
+    /// 切換單位要換字。修法是 View 觀察 `UnitManager` 並顯式把單位傳進來；
+    /// 這一支鎖住「同一筆賽事在兩種單位下是兩個字」。
+    func test_raceDatabaseRowDistance_followsUnitSystem() throws {
+        let event = RaceEvent(
+            raceId: "t0366-race", name: "城市路跑", region: "taiwan",
+            eventDate: Date(timeIntervalSince1970: 1_800_000_000),
+            city: "台北", location: nil,
+            distances: [RaceDistance(distanceKm: 12, name: "12K")],
+            entryStatus: nil, isCurated: true, courseType: nil, tags: []
+        )
+        let picked = try XCTUnwrap(
+            App2RaceDatabaseViewModel.pickedDistance(event: event, filter: .all)
+        )
+        XCTAssertEqual(
+            App2OnboardingFormat.distanceLabel(km: picked.distanceKm, unitSystem: .metric),
+            "12 km"
+        )
+        XCTAssertEqual(
+            App2OnboardingFormat.distanceLabel(km: picked.distanceKm, unitSystem: .imperial),
+            "7.5 mi"
+        )
+    }
+
+    /// 距離 chip 的四個 `km` 全是標準賽距，所以兩種單位下都是**名字**。
+    /// 外審 D08 說 chip 會停在舊單位 —— chip 根本沒有量可停；把這條釘住，
+    /// 免得下次有人「順手」讓它變成 `26.2 mi`（違反 Contract 第 7 條）。
+    func test_raceDatabaseFilterChips_areNamesNotQuantities() {
+        for filter in App2RaceDatabaseViewModel.DistanceFilter.allCases {
+            XCTAssertEqual(
+                filter.title(unitSystem: .metric),
+                filter.title(unitSystem: .imperial),
+                "\(filter.rawValue) 是標準賽距，英制不得變成里程數字"
+            )
+        }
+    }
 }

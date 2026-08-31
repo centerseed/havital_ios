@@ -52,9 +52,15 @@ final class App2RaceDatabaseViewModel: ObservableObject, TaskManageable {
             }
         }
 
-        var title: String {
+        /// 單位由呼叫端傳入（View 從觀察中的 `UnitManager` 給），不吃
+        /// `UnitSystem.current` 的隱含預設 —— 那條不驅動重繪（外審第七輪 D08）。
+        ///
+        /// 四個 chip 的 `km` 全是**標準賽距**，所以兩種單位下印的都是名字
+        /// （5K／10K／半馬／全馬），不是量；這支仍然收單位，是為了讓相依關係
+        /// 顯式且可測，不必讓讀的人去追 `distanceLabel` 的容差表。
+        func title(unitSystem: UnitSystem) -> String {
             guard let km else { return L10n.App2.Races.filterAll.localized }
-            return App2OnboardingFormat.distanceLabel(km: km)
+            return App2OnboardingFormat.distanceLabel(km: km, unitSystem: unitSystem)
         }
     }
 

@@ -51,13 +51,7 @@ struct WorkoutV2RowView: View {
     /// via `paceUnitString` so font weight/color can differ.
     private var paceValueString: String {
         guard let secondsPerKm = workout.displayPaceSecondsPerKm else { return "--:--" }
-        let converted: Double
-        switch unitManager.currentUnitSystem {
-        case .metric: converted = secondsPerKm
-        case .imperial: converted = secondsPerKm * 1.60934
-        }
-        let rounded = Int(converted.rounded())
-        return String(format: "%d:%02d", rounded / 60, rounded % 60)
+        return unitManager.currentUnitSystem.paceValue(secondsPerKm: secondsPerKm)
     }
 
     private var paceUnitString: String {

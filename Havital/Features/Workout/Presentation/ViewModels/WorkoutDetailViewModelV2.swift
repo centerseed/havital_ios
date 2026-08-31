@@ -1315,7 +1315,7 @@ class WorkoutDetailViewModelV2: ObservableObject, TaskManageable {
             case .metric:
                 return String(format: "%.2f km", km)
             case .imperial:
-                return String(format: "%.2f mi", km * 0.621371)
+                return String(format: "%.2f mi", unit.convertedDistance(km))
             }
         } else {
             switch unit {

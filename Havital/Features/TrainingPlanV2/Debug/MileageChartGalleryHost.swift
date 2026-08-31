@@ -79,7 +79,9 @@ struct MileageChartGalleryHost: View {
                         week: week,
                         stageId: stage,
                         targetKm: targetKm,
-                        targetKmDisplay: imperial ? (targetKm * 0.621371 * 100).rounded() / 100 : nil,
+                        targetKmDisplay: imperial
+                            ? (UnitSystem.imperial.convertedDistance(targetKm) * 100).rounded() / 100
+                            : nil,
                         distanceUnit: imperial ? "mi" : nil,
                         isRecovery: false,
                         milestoneRef: nil,

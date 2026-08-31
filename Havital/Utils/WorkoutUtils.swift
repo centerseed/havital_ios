@@ -70,7 +70,9 @@ struct WorkoutUtils {
                     return String(format: NSLocalizedString("workout_format.distance_m", comment: ""), distance)
                 }
             case .imperial:
-                let miles = (distance / 1000) * 0.621371
+                // 係數只住 `UnitSystem`（T-0366）。這裡的門檻與 `ft` fallback 是這一頁
+                // 自己的版面規則，換算本身不得再寫一份。
+                let miles = unit.convertedDistance(distance / 1000)
                 if miles >= 0.1 {
                     return String(format: "%.2f mi", miles)
                 } else {
@@ -89,11 +91,7 @@ struct WorkoutUtils {
         let paceSecondsPerKm = (durationInSeconds / distanceInMeters) * 1000
         return MainActor.assumeIsolated {
             let unit = UnitManager.shared.currentUnitSystem
-            let converted: Double
-            switch unit {
-            case .metric: converted = paceSecondsPerKm
-            case .imperial: converted = paceSecondsPerKm * 1.60934
-            }
+            let converted = unit.convertedPaceSeconds(paceSecondsPerKm)
             let minutes = Int(converted) / 60
             let seconds = Int(converted) % 60
             return String(format: "%d'%02d\"/%@", minutes, seconds, unit.distanceSuffix)

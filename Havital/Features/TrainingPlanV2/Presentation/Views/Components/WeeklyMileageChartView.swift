@@ -10,7 +10,8 @@ import Charts
 // 單位處理（重要）：
 //   backend `convert_weekly_preview_to_imperial` 只轉 target_km → target_km_display，
 //   long_run.max_km / safety_ceiling_km / race_threshold_km 一律仍是 km。
-//   因此本 View 統一把「非 target」的公里值乘上 unitFactor，確保同一 y 軸只有一種單位。
+//   因此本 View 統一把「非 target」的公里值餵給 chartUnit.convertedDistance，
+//   確保同一 y 軸只有一種單位。**係數本身住 `UnitSystem`**（T-0366），這裡不留第二份。
 //
 // Additive 契約：safetyCeilingKm / raceThresholdKm / longRunKm 都是 optional，
 // 舊 response 解不到 → nil → 該線／該點不畫，圖其餘部分正常。
@@ -30,9 +31,10 @@ struct WeeklyMileageChartView: View {
         weeks.first?.distanceUnit ?? "km"
     }
 
-    /// km → 顯示單位的換算係數
-    private var unitFactor: Double {
-        unitLabel == "mi" ? 0.621371 : 1.0
+    /// y 軸的單位制。**跟著 backend 給的 `distanceUnit` 走**（不是 app 設定）——
+    /// `targetKmDisplay` 已經是那個單位換好的值，其餘欄位還是 km，兩者要對齊。
+    private var chartUnit: UnitSystem {
+        unitLabel == "mi" ? .imperial : .metric
     }
 
     /// 每週跑量（已是顯示單位）
@@ -42,7 +44,7 @@ struct WeeklyMileageChartView: View {
 
     /// 長跑距離（km → 顯示單位）；nil 的週跳過
     private func longRun(_ week: WeekPreview) -> Double? {
-        week.longRunKm.map { $0 * unitFactor }
+        week.longRunKm.map(chartUnit.convertedDistance)
     }
 
     /// 是否有任何一週帶長跑距離（舊資料全缺 → 不畫線也不列圖例）
@@ -51,11 +53,11 @@ struct WeeklyMileageChartView: View {
     }
 
     private var raceThreshold: Double? {
-        preview.raceThresholdKm.map { $0 * unitFactor }
+        preview.raceThresholdKm.map(chartUnit.convertedDistance)
     }
 
     private var safetyCeiling: Double? {
-        preview.safetyCeilingKm.map { $0 * unitFactor }
+        preview.safetyCeilingKm.map(chartUnit.convertedDistance)
     }
 
     /// 連續同 stageId 的週次合併成一個分期區段

@@ -1619,11 +1619,7 @@ extension WorkoutV2 {
         guard let pace = displayPaceSecondsPerKm else { return "-" }
         return MainActor.assumeIsolated {
             let unit = UnitManager.shared.currentUnitSystem
-            let converted: Double
-            switch unit {
-            case .metric: converted = pace
-            case .imperial: converted = pace * 1.60934
-            }
+            let converted = unit.convertedPaceSeconds(pace)
             let rounded = Int(converted.rounded())
             let minutes = rounded / 60
             let seconds = rounded % 60

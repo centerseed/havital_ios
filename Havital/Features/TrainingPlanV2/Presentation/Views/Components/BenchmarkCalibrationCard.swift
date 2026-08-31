@@ -36,9 +36,12 @@ struct BenchmarkCalibrationCard: View {
             // before/after 主角區（缺 calibration_preview → 整塊不顯示，卡片降級為成績+VDOT）
             if let pb = payload.paceBeforeSPerKm, let pa = payload.paceAfterSPerKm {
                 // 配速依使用者單位（公制 /km、英制 /mi）顯示；delta 也換算到對應單位。
+                // 換算是線性的，所以「每公里差幾秒」直接餵同一支即得「每英里差幾秒」；
+                // 係數只住 `UnitSystem`（T-0366）。
                 let unit = UnitManager.shared
-                let deltaPerUnit = unit.currentUnitSystem == .imperial ? 1.60934 : 1.0
-                let deltaSec = Int((Double(pb - pa) * deltaPerUnit).rounded())
+                let deltaSec = Int(
+                    unit.currentUnitSystem.convertedPaceSeconds(Double(pb - pa)).rounded()
+                )
                 contrastRow(
                     label: NSLocalizedString("benchmark.calib.pace_label", comment: ""),
                     before: unit.formatPace(secondsPerKm: Double(pb)),

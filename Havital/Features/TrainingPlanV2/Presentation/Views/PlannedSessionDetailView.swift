@@ -220,9 +220,8 @@ struct PlannedSessionDetailView: View {
 
     /// 將「秒/km」換算為使用者單位的 "mm:ss" 配速字串（不含後綴）。
     private func convertedPaceString(secondsPerKm: Int) -> String {
-        let converted = UnitManager.shared.currentUnitSystem == .imperial
-            ? Double(secondsPerKm) * 1.60934
-            : Double(secondsPerKm)
+        let converted = UnitManager.shared.currentUnitSystem
+            .convertedPaceSeconds(Double(secondsPerKm))
         return secondsToPaceString(Int(converted.rounded()))
     }
 

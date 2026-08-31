@@ -12,6 +12,13 @@ struct App2RaceDatabaseView: View {
 
     @StateObject private var viewModel: App2RaceDatabaseViewModel
 
+    /// 這一頁的距離字（非標準賽距的結果列）是 `UnitSystem.current` 現算的，而
+    /// `UnitSystem.current` 只讀 UserDefaults、**不驅動重繪**。掛著的時候切換單位
+    /// 就會停在舊單位（外審第七輪 D08）。沿用 `App2WorkoutDetailView`／
+    /// `TrainingRecordView` 的同一種處置：觀察 `UnitManager`，並把當前單位**顯式**
+    /// 傳進格式化函式，讓相依關係看得見。
+    @ObservedObject private var unitManager = UnitManager.shared
+
     init(
         onPick: @escaping (RaceEvent, App2RaceDatabaseViewModel.DistanceFilter) -> Void,
         onClose: @escaping () -> Void,
@@ -118,7 +125,7 @@ struct App2RaceDatabaseView: View {
             HStack(spacing: 8) {
                 ForEach(App2RaceDatabaseViewModel.DistanceFilter.allCases) { filter in
                     App2OnboardingChip(
-                        title: filter.title,
+                        title: filter.title(unitSystem: unitManager.currentUnitSystem),
                         isSelected: viewModel.distance == filter,
                         fillsWidth: false,
                         cornerRadius: 999,
@@ -218,7 +225,10 @@ struct App2RaceDatabaseView: View {
                         filter: viewModel.distance
                     ) {
                         App2Pill(
-                            text: App2OnboardingFormat.distanceLabel(km: distance.distanceKm),
+                            text: App2OnboardingFormat.distanceLabel(
+                                km: distance.distanceKm,
+                                unitSystem: unitManager.currentUnitSystem
+                            ),
                             foreground: App2Theme.accentBlueDeep,
                             background: App2Theme.accentBlue.opacity(0.1),
                             border: App2Theme.accentBlue.opacity(0.2)
