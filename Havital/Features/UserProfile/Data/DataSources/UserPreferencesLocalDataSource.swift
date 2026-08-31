@@ -27,7 +27,8 @@ protocol UserPreferencesLocalDataSourceProtocol: AnyObject {
     
     var languagePreference: String? { get set }
     var timezonePreference: String? { get set }
-    var unitSystemPreference: String? { get set }
+    /// 唯讀：寫入者只有 `UnitManager`（見實作的註解）。
+    var unitSystemPreference: String? { get }
     
     var currentVDOT: Double? { get set }
     var targetVDOT: Double? { get set }
@@ -64,7 +65,10 @@ final class UserPreferencesLocalDataSource: UserPreferencesLocalDataSourceProtoc
         static let photoURL = "user_photo_url"
         static let languagePreference = "language_preference"
         static let timezonePreference = "timezone_preference"
-        static let unitSystem = "unit_system_preference"
+        /// **與 `UnitManager.defaultsKey` 是同一個 key**，所以直接引用它而不是再抄一份
+        /// 字面值（T-0366：兩份字面值 ＝ 下一次改名時的分岔）。
+        /// 寫入者只有 `UnitManager`；這裡只讀與登出時清除。
+        static let unitSystem = UnitManager.defaultsKey
         static let currentVDOT = "current_vdot"
         static let targetVDOT = "target_vdot"
     }
@@ -240,9 +244,10 @@ final class UserPreferencesLocalDataSource: UserPreferencesLocalDataSourceProtoc
         set { defaults.set(newValue, forKey: Keys.timezonePreference) }
     }
 
+    /// **唯讀**（T-0366 外審第四輪 C06）：寫入者只有 `UnitManager`，它在寫入的同時
+    /// 會發 `unitSystemChanged` 讓畫面重投影。從這裡再寫一次會多一條繞過事件的路徑。
     var unitSystemPreference: String? {
         get { defaults.string(forKey: Keys.unitSystem) }
-        set { defaults.set(newValue, forKey: Keys.unitSystem) }
     }
 
     // MARK: - VDOT Data

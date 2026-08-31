@@ -327,22 +327,43 @@ struct App2SessionStrengthExercise: Identifiable, Equatable {
 ///   實測 `e1289e60f251_1`）。後端補上區間欄位後改讀那個欄位。
 ///
 /// 值一律**以秒／km 為準再換算成用戶單位**。
+/// 配速帶。
+///
+/// **存的是秒／公里的原始值，不是已格式化的字串**（2026-09-01，T-0366 外審第四輪 E03）。
+/// 這份 model 會被 `fullScreenCover` 的 item 捕捉住：換算若在投影時就做完，那張已經
+/// 開著的詳情頁在切換單位後永遠是舊單位——重投影換不掉已經遞進 modal 的那一份。
+/// 值與單位在畫的時候各自算，跟紀錄頁的 `App2WorkoutRow` 同一種形狀。
 struct App2SessionPaceBand: Equatable {
-    /// 帶上那顆白 pill 的處方配速（`6:50`）。**一律是原始處方配速** ——
+    /// 帶上那顆白 pill 的處方配速（秒／km）。**一律是原始處方配速** ——
     /// 溫度補償不改帶上的值，補償額度另外一句話講（2026-08-27 走查改版）。
-    let paceLabel: String
-    /// 上緣虛線（`6:35`）。
-    let fastLabel: String
-    /// 下緣虛線（`7:05`）。
-    let slowLabel: String
-    /// 上面三個值的單位（`/km`／`/mi`）。**值本身不含單位** —— 設計上那個字是分開排版的，
-    /// 而單位由用戶的 `UnitManager` 設定決定，不是寫死公制。
-    let paceUnitLabel: String
+    let paceSecondsPerKm: Double
+    /// 上緣虛線（秒／km）。
+    let fastSecondsPerKm: Double
+    /// 下緣虛線（秒／km）。
+    let slowSecondsPerKm: Double
     /// legend chip 的名稱（`輕鬆（穩定）`）——與長條圖的標註列同一支字串。
     let legendLabel: String
-    /// 溫度補償生效時的整句提示（`溫度補償 · 每公里可慢 26 秒`，已依單位制換算）。
-    /// 沒有補償就是 nil，整列不出現。
-    var climateAllowanceLabel: String? = nil
+    /// 溫度補償百分比。0 ＝ 沒有補償（那一列不出現）。
+    var climateAdjustmentPct: Double = 0
+
+    /// 值本身**不含單位** —— 設計上那個字是分開排版的。
+    func paceLabel(_ unit: UnitSystem) -> String { unit.paceValue(secondsPerKm: paceSecondsPerKm) }
+    func fastLabel(_ unit: UnitSystem) -> String { unit.paceValue(secondsPerKm: fastSecondsPerKm) }
+    func slowLabel(_ unit: UnitSystem) -> String { unit.paceValue(secondsPerKm: slowSecondsPerKm) }
+    func paceUnitLabel(_ unit: UnitSystem) -> String { unit.paceSuffix }
+
+    /// 「溫度補償 · 每公里可慢 N 秒」。N ＝ 補償後配速 − 處方配速，**依單位制換算**
+    /// （英制是每英里的秒數）。pct ≤ 0 或算出來不足 1 秒都回 nil（整列不出現）。
+    func climateAllowanceLabel(_ unit: UnitSystem) -> String? {
+        guard climateAdjustmentPct > 0 else { return nil }
+        let slackPerKm = paceSecondsPerKm * climateAdjustmentPct / 100
+        let slack = Int(unit.convertedPaceSeconds(slackPerKm).rounded())
+        guard slack >= 1 else { return nil }
+        let key = unit == .imperial
+            ? "app2.detail.pace_band_climate_slack_mi"
+            : "app2.detail.pace_band_climate_slack_km"
+        return String(format: NSLocalizedString(key, comment: ""), slack)
+    }
 }
 
 /// 訓練詳情的「訓練結構」一列（設計：序號 ＋ 名稱 ＋ 量／配速 ＋ 一句說明）。

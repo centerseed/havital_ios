@@ -206,7 +206,8 @@ final class UserPreferencesRepositoryImpl: UserPreferencesRepository {
         Logger.debug("[UserPreferencesRepo] Updating unit system: \(unitSystem.rawValue)")
 
         try await remoteDataSource.updatePreferences(language: nil, timezone: nil, unitSystem: unitSystem.rawValue)
-        localDataSource.unitSystemPreference = unitSystem.rawValue
+        // 落地由 `UnitManager` 負責（同一個 UserDefaults key），這裡不再寫第二次 ——
+        // 從旁邊寫進去會繞過 `unitSystemChanged`，畫面就不會重投影（T-0366）。
         await MainActor.run {
             UnitManager.shared.currentUnitSystem = unitSystem
         }
@@ -294,7 +295,7 @@ final class UserPreferencesRepositoryImpl: UserPreferencesRepository {
         // Sync unit system from API response
         if let unitSystemRaw = preferences.unitSystem,
            let unitSystem = UnitSystem(rawValue: unitSystemRaw) {
-            localDataSource.unitSystemPreference = unitSystemRaw
+            // 同上：落地與事件都由 `UnitManager` 一手包辦。
             await MainActor.run {
                 UnitManager.shared.currentUnitSystem = unitSystem
             }

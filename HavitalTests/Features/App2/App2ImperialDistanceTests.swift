@@ -150,6 +150,13 @@ final class App2ImperialDistanceTests: XCTestCase {
         defer { manager.currentUnitSystem = original }
 
         let primary = try day(easyRunDay).session?.primary
+        // 切換會發 fire-and-forget 事件，離開前要排空，不留給下一條測試。
+        func drain() async {
+            for _ in 0..<50 {
+                await Task.yield()
+                try? await Task.sleep(nanoseconds: 5_000_000)
+            }
+        }
 
         manager.currentUnitSystem = .metric
         XCTAssertEqual(
@@ -163,21 +170,33 @@ final class App2ImperialDistanceTests: XCTestCase {
             "5.0 mi · 11:00/mi",
             "重投影要用切換後的單位，不是投影當時存下來的那一份"
         )
+
+        manager.currentUnitSystem = original
+        await drain()
     }
 
-    /// 這個事件**不清任何快取**：資料沒變，變的是要用哪個單位畫。
-    func test_unitSystemChanged_doesNotInvalidateCaches() {
-        final class Probe: Cacheable {
-            let cacheIdentifier = "App2ImperialDistanceTests.probe"
-            private(set) var cleared = false
-            func clearCache() { cleared = true }
-            func getCacheSize() -> Int { 0 }
-            func isExpired() -> Bool { false }
-        }
-        let probe = Probe()
-        CacheEventBus.shared.register(probe)
-        CacheEventBus.shared.invalidateCache(for: .unitSystemChanged)
-        XCTAssertFalse(probe.cleared, "單位切換不得順手清掉別人的快取")
+    /// 已開著的詳情頁在切換單位後也要換 —— 它是 `fullScreenCover` 的 item，
+    /// 重投影換不掉已經遞進去的那一份，所以配速帶存的是**秒／公里原始值**，
+    /// 換算在畫的時候做（外審第四輪 E03）。
+    ///
+    /// 這裡直接對同一份 `band`（＝ modal 手上那一份）問兩種單位，
+    /// 等價於「切換當下那個 View 重畫」。
+    func test_mountedPaceBand_reformatsWithoutRebuildingTheModel() throws {
+        let band = try XCTUnwrap(
+            App2SessionDetailProjection.paceBand(
+                bars: App2HomeViewModel.structureBars(day: try day(easyRunDay)),
+                dayType: .easy,
+                vdot: nil,
+                climate: nil,
+                isClimateAdjustmentEnabled: false
+            )
+        )
+        XCTAssertEqual(band.paceSecondsPerKm, 410, accuracy: 0.001)
+        XCTAssertEqual(band.paceLabel(.metric), "6:50")
+        XCTAssertEqual(band.paceUnitLabel(.metric), "/km")
+        // 同一份 model、不重建，換個單位就是英里配速。
+        XCTAssertEqual(band.paceLabel(.imperial), "11:00")
+        XCTAssertEqual(band.paceUnitLabel(.imperial), "/mi")
     }
 
     // MARK: - 缺陷 1／2：日卡「課表」那一行（Home ＋ Plan 共用）

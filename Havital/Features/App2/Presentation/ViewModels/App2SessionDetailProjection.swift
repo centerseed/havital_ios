@@ -598,39 +598,16 @@ enum App2SessionDetailProjection {
         // 帶上的值**不換算** —— 補償只出現在下面那句「每公里可慢 N 秒」。
         let adjustmentPct = isClimateAdjustmentEnabled ? (climate?.paceAdjustmentPct ?? 0) : 0
 
-        // 配速一律換算成用戶的單位制。這幾格原本一律當公制、由圖表寫死 `/km` 補單位，
-        // 英制用戶看到的是「公里配速掛著 /km」（2026-08-26 架構收斂順修）。
-        // 值本身不含單位，單位由 `paceUnitLabel` 交給圖表 —— 設計上那個字是分開排版的。
-        let unitSystem = UnitManager.shared.currentUnitSystem
+        // **這裡不做單位換算**（2026-09-01，T-0366 外審第四輪 E03）：這份 model 會被
+        // `fullScreenCover` 的 item 捕捉住，投影時換算完，切換單位後那張已經開著的
+        // 詳情頁就永遠是舊單位。換算與單位字都在畫的時候做（`App2SessionPaceBand`）。
         return App2SessionPaceBand(
-            paceLabel: unitSystem.paceValue(secondsPerKm: seconds),
-            fastLabel: unitSystem.paceValue(secondsPerKm: fastSeconds),
-            slowLabel: unitSystem.paceValue(secondsPerKm: slowSeconds),
-            paceUnitLabel: unitSystem.paceSuffix,
+            paceSecondsPerKm: seconds,
+            fastSecondsPerKm: fastSeconds,
+            slowSecondsPerKm: slowSeconds,
             legendLabel: legend,
-            climateAllowanceLabel: climateAllowanceLabel(
-                prescribedSecondsPerKm: seconds,
-                adjustmentPct: adjustmentPct,
-                unitSystem: unitSystem
-            )
+            climateAdjustmentPct: adjustmentPct
         )
-    }
-
-    /// 「溫度補償 · 每公里可慢 N 秒」。N ＝ 補償後配速 − 處方配速，**依單位制換算**
-    /// （英制是每英里的秒數）。補償沒開、pct ≤ 0 或算出來不足 1 秒都回 nil（整列不出現）。
-    static func climateAllowanceLabel(
-        prescribedSecondsPerKm: Double,
-        adjustmentPct: Double,
-        unitSystem: UnitSystem
-    ) -> String? {
-        guard adjustmentPct > 0 else { return nil }
-        let slackPerKm = prescribedSecondsPerKm * adjustmentPct / 100
-        let slack = Int(unitSystem.convertedPaceSeconds(slackPerKm).rounded())
-        guard slack >= 1 else { return nil }
-        let key = unitSystem == .imperial
-            ? "app2.detail.pace_band_climate_slack_mi"
-            : "app2.detail.pace_band_climate_slack_km"
-        return String(format: NSLocalizedString(key, comment: ""), slack)
     }
 
     /// 輕鬆／恢復課的配速區間（秒／km），裁決（n）的帶寬來源。

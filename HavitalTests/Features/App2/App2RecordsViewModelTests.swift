@@ -418,6 +418,13 @@ final class App2RecordsViewModelTests: XCTestCase {
             try? await Task.sleep(nanoseconds: 10_000_000)
         }
         XCTAssertEqual(source.statsCallCount, 2, "切換單位後要重投影一次")
+
+        // 還原也會發一次 fire-and-forget 事件，排空後再離開，不留給下一條測試。
+        manager.currentUnitSystem = original
+        for _ in 0..<50 {
+            await Task.yield()
+            try? await Task.sleep(nanoseconds: 5_000_000)
+        }
     }
 
     // MARK: - 載入與 SWR

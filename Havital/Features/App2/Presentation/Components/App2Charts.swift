@@ -743,6 +743,11 @@ struct App2SessionPaceBandChart: View {
     /// 課型主色（帶與 legend 都用它）。
     let accent: Color
 
+    /// 換算在**畫的時候**做，所以這一格切換單位當場就換
+    /// —— 詳情頁是 `fullScreenCover` 的 item，重投影換不掉已經遞進去的那一份
+    /// （T-0366 外審第四輪 E03）。
+    @ObservedObject private var unitManager = UnitManager.shared
+
     private let plotHeight: CGFloat = 96
 
     var body: some View {
@@ -760,7 +765,7 @@ struct App2SessionPaceBandChart: View {
     /// 熱適應卡的完整說明（等級、體感溫度、建議時段）不受影響，仍在它自己那張卡。
     @ViewBuilder
     private var climateRow: some View {
-        if let allowance = band.climateAllowanceLabel {
+        if let allowance = band.climateAllowanceLabel(unitManager.currentUnitSystem) {
             HStack(spacing: 5) {
                 Image(systemName: "thermometer.sun.fill")
                     .font(.system(size: 11, weight: .bold))
@@ -781,11 +786,11 @@ struct App2SessionPaceBandChart: View {
     private var plot: some View {
         ZStack {
             VStack(spacing: 0) {
-                boundary(label: band.fastLabel, suffixKey: L10n.App2.Detail.paceBandFast.localized)
+                boundary(label: band.fastLabel(unitManager.currentUnitSystem), suffixKey: L10n.App2.Detail.paceBandFast.localized)
                 Spacer(minLength: 0)
                 centreBand
                 Spacer(minLength: 0)
-                boundary(label: band.slowLabel, suffixKey: L10n.App2.Detail.paceBandSlow.localized)
+                boundary(label: band.slowLabel(unitManager.currentUnitSystem), suffixKey: L10n.App2.Detail.paceBandSlow.localized)
             }
             .padding(.vertical, 10)
         }
@@ -825,7 +830,7 @@ struct App2SessionPaceBandChart: View {
         ZStack {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(accent.opacity(0.16))
-            Text(band.paceLabel + " " + band.paceUnitLabel)
+            Text(band.paceLabel(unitManager.currentUnitSystem) + " " + band.paceUnitLabel(unitManager.currentUnitSystem))
                 .font(.app2Mono(14, weight: .bold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 12)
