@@ -202,6 +202,90 @@ final class TrainingPlanV2RepositoryImplTests: XCTestCase {
         // Then
         XCTAssertEqual(spyLocal.clearAllCallCount, 1, "clearAll() must be called on local data source")
     }
+
+    // MARK: - fetchWeeklySummary（T-0362：唯讀契約）
+    //
+    // `getWeeklySummary` 在 404 時 fallback 到 `POST`
+    // （`fetchOrGenerateWeeklySummary`），所以「讀」會變成「寫」：週回顧頁光是打開
+    // 就送出生成請求，整期總結逐週掃還會把每個沒生成的週都補生成一份。
+    // `fetchWeeklySummary` 是那條路的唯讀版本。**這幾支直接打 `TrainingPlanV2RepositoryImpl`**
+    // ——上層 VM 測試用的是 mock repository，看不到這裡的具體行為（外審第二輪 E05）。
+
+    /// 後端 404 ⇒ 回 nil，且**一個生成請求都不送**。
+    func test_fetchWeeklySummary_remote404_returnsNilAndDoesNotGenerate() async throws {
+        spyLocal.cachedWeeklySummary = nil
+        spyRemote.weeklySummaryDTOToReturn = nil          // ⇒ getWeeklySummary 丟 HTTPError.notFound
+
+        let result = try await sut.fetchWeeklySummary(weekOfPlan: 5)
+
+        XCTAssertNil(result, "那一週沒有回顧就是 nil")
+        XCTAssertEqual(spyRemote.getWeeklySummaryCallCount, 1, "要真的打過 GET，否則這一輪什麼都沒驗到")
+        XCTAssertEqual(
+            spyRemote.generateWeeklySummaryCallCount, 0,
+            "唯讀路徑不得 fallback 到 POST —— 這正是 getWeeklySummary 會做的事"
+        )
+    }
+
+    /// 對照組：同一個 404，`getWeeklySummary` **會**生成。
+    /// 沒有這一支，上面那條斷言可能只是因為 spy 根本沒接上才綠。
+    func test_getWeeklySummary_remote404_stillFallsBackToGenerate() async throws {
+        spyLocal.cachedWeeklySummary = nil
+        spyRemote.weeklySummaryDTOToReturn = nil
+
+        _ = try? await sut.getWeeklySummary(weekOfPlan: 5)
+
+        XCTAssertEqual(spyRemote.getWeeklySummaryCallCount, 1)
+        XCTAssertEqual(
+            spyRemote.generateWeeklySummaryCallCount, 1,
+            "既有行為：getWeeklySummary 的 404 會 fallback 到 POST（本票沒有改它）"
+        )
+    }
+
+    /// 有回顧時照樣拿得到，而且會寫進本地快取。
+    func test_fetchWeeklySummary_remoteHit_returnsEntityAndCaches() async throws {
+        spyLocal.cachedWeeklySummary = nil
+        spyRemote.weeklySummaryDTOToReturn = try Self.summaryDTO(week: 3)
+
+        let result = try await sut.fetchWeeklySummary(weekOfPlan: 3)
+
+        XCTAssertNotNil(result)
+        XCTAssertEqual(spyRemote.generateWeeklySummaryCallCount, 0)
+        XCTAssertEqual(spyLocal.savedWeeklySummaryWeeks, [3], "取回的那一份要落快取")
+    }
+
+    /// 最小可解碼的週回顧 payload（形狀同 `App2HomeProjectionTests` 那一份）。
+    private static func summaryDTO(week: Int) throws -> WeeklySummaryV2DTO {
+        let json = """
+        {
+          "id": "ov_\(week)_summary", "week_of_training": \(week),
+          "training_completion": { "completed_km": 0, "planned_km": 0,
+            "completed_sessions": 0, "planned_sessions": 0, "percentage": 0,
+            "evaluation": "" },
+          "training_analysis": { "pace": null, "heart_rate": null, "distance": null,
+            "intensity_distribution": null },
+          "weekly_highlights": { "highlights": [], "achievements": null,
+            "areas_for_improvement": [] },
+          "next_week_adjustments": { "items": [], "summary": "",
+            "methodology_constraints_considered": false, "based_on_flags": [] },
+          "weekly_story": null, "observations": null,
+          "capability_progression": null, "plan_context": null
+        }
+        """
+        return try JSONDecoder().decode(WeeklySummaryV2DTO.self, from: Data(json.utf8))
+    }
+
+    /// 非 404 的錯誤仍然往上丟——不得被折成「這一週沒有回顧」。
+    func test_fetchWeeklySummary_serverError_throwsInsteadOfReturningNil() async {
+        spyLocal.cachedWeeklySummary = nil
+        spyRemote.weeklySummaryError = HTTPError.serverError(500, "boom")
+
+        do {
+            _ = try await sut.fetchWeeklySummary(weekOfPlan: 5)
+            XCTFail("500 不是『沒有回顧』，必須往上丟")
+        } catch {
+            XCTAssertEqual(spyRemote.generateWeeklySummaryCallCount, 0)
+        }
+    }
 }
 
 // MARK: - SpyTrainingPlanV2RemoteDataSource
@@ -216,6 +300,9 @@ private final class SpyTrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataS
     var overviewDTOToReturn: PlanOverviewV2DTO = .stubForRepo()
     var weeklyPlanDTOToReturn: WeeklyPlanV2DTO?
     var weeklyPlanError: Error?
+    /// 週回顧（T-0362：`fetchWeeklySummary` 的唯讀契約）。
+    var weeklySummaryDTOToReturn: WeeklySummaryV2DTO?
+    var weeklySummaryError: Error?
 
     // MARK: - Call Tracking
 
@@ -223,6 +310,8 @@ private final class SpyTrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataS
     private(set) var getOverviewCallCount = 0
     private(set) var generateWeeklyPlanCallCount = 0
     private(set) var getWeeklyPlanCallCount = 0
+    private(set) var getWeeklySummaryCallCount = 0
+    private(set) var generateWeeklySummaryCallCount = 0
 
     // MARK: - Protocol — Plan Status
 
@@ -301,11 +390,20 @@ private final class SpyTrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataS
     }
 
     func generateWeeklySummary(weekOfPlan: Int, forceUpdate: Bool?) async throws -> WeeklySummaryV2DTO {
-        fatalError("Unexpected: generateWeeklySummary()")
+        generateWeeklySummaryCallCount += 1
+        guard let dto = weeklySummaryDTOToReturn else {
+            throw HTTPError.serverError(500, "No mock weekly summary configured")
+        }
+        return dto
     }
 
     func getWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2DTO {
-        fatalError("Unexpected: getWeeklySummary()")
+        getWeeklySummaryCallCount += 1
+        if let error = weeklySummaryError { throw error }
+        guard let dto = weeklySummaryDTOToReturn else {
+            throw HTTPError.notFound("Weekly summary not found")
+        }
+        return dto
     }
 
     func applyAdjustmentItems(weekOfPlan: Int, appliedIndices: [Int]) async throws {
@@ -396,9 +494,16 @@ private final class SpyTrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSou
 
     // MARK: - Weekly Summary
 
-    func getWeeklySummary(week: Int) -> WeeklySummaryV2? { nil }
-    func saveWeeklySummary(_ summary: WeeklySummaryV2, week: Int) {}
-    func isWeeklySummaryExpired(week: Int) -> Bool { true }
+    /// 週回顧快取（T-0362：`fetchWeeklySummary` 的唯讀契約要驗到快取那一段）。
+    var cachedWeeklySummary: WeeklySummaryV2?
+    var weeklySummaryExpired = true
+    private(set) var savedWeeklySummaryWeeks: [Int] = []
+
+    func getWeeklySummary(week: Int) -> WeeklySummaryV2? { cachedWeeklySummary }
+    func saveWeeklySummary(_ summary: WeeklySummaryV2, week: Int) {
+        savedWeeklySummaryWeeks.append(week)
+    }
+    func isWeeklySummaryExpired(week: Int) -> Bool { weeklySummaryExpired }
     func clearWeeklySummary(week: Int) {}
     func clearAllWeeklySummaries() {}
 
