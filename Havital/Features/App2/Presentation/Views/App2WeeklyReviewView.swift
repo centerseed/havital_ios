@@ -248,21 +248,24 @@ struct App2WeeklyReviewView: View {
     /// 這一週還沒有回顧。**這不是錯誤畫面** —— 只是還沒按產生。
     ///
     /// 唯讀回看（歷史週）沒有產生鈕：那顆鈕產的是當週，對過去那一週按下去會產錯週。
+    ///
+    /// **產生視窗未開時也沒有鈕**（T-0362）：後端平日只准產上週回顧，週日才准產本週
+    /// （`plan_generation_window.py:37`）。修復前這裡照樣畫一顆註定 400 的鈕，
+    /// 按下去才改口說「還不能產生」。現在直接把「什麼時候才能產生」寫在空態上
+    /// ——同一句既有的三語文案（`app2.weekly_review.generation_window_closed`），
+    /// 不為這個態新開字串。
     private var generatePrompt: some View {
-        VStack(spacing: 14) {
+        let canGenerate = viewModel.canGenerateReview
+        return VStack(spacing: 14) {
             Spacer()
             Image(systemName: "chart.line.uptrend.xyaxis")
                 .font(.system(size: 34, weight: .semibold))
                 .foregroundStyle(App2Theme.accentBlue)
-            Text(
-                isReadOnly
-                    ? L10n.App2.WeeklyReview.historyNotGeneratedBody.localized
-                    : L10n.App2.WeeklyReview.notGeneratedBody.localized
-            )
-            .font(.app2Body)
-            .foregroundStyle(App2Theme.inkTertiary)
-            .multilineTextAlignment(.center)
-            if !isReadOnly {
+            Text(emptyStateBody(canGenerate: canGenerate))
+                .font(.app2Body)
+                .foregroundStyle(App2Theme.inkTertiary)
+                .multilineTextAlignment(.center)
+            if !isReadOnly, canGenerate {
                 primaryButton(
                     title: L10n.App2.WeeklyReview.generate.localized,
                     isBusy: viewModel.isLoading,
@@ -274,7 +277,20 @@ struct App2WeeklyReviewView: View {
             }
             Spacer()
         }
-        .accessibilityIdentifier("App2_WeeklyReviewNotGenerated")
+        .accessibilityIdentifier(
+            canGenerate || isReadOnly
+                ? "App2_WeeklyReviewNotGenerated"
+                : "App2_WeeklyReviewWindowClosed"
+        )
+    }
+
+    /// 空態那句話。唯讀 → 「這一週沒有產生過回顧」；視窗未開 → 「要等這一週跑完」；
+    /// 其餘 → 「還沒產生」（配一顆產生鈕）。
+    private func emptyStateBody(canGenerate: Bool) -> String {
+        if isReadOnly { return L10n.App2.WeeklyReview.historyNotGeneratedBody.localized }
+        return canGenerate
+            ? L10n.App2.WeeklyReview.notGeneratedBody.localized
+            : L10n.App2.WeeklyReview.generationWindowClosed.localized
     }
 
     // MARK: - 回顧本週（frame-18）

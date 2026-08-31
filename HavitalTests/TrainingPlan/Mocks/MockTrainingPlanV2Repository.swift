@@ -59,6 +59,10 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     var weeklyPlanV2ToReturn: WeeklyPlanV2?
     var weeklySummaryV2ToReturn: WeeklySummaryV2?
     var errorToThrow: Error?
+    /// 只讓 getWeeklySummary 丟錯（T-0362：回顧 404、但 plan status 正常回來——
+    /// 那正是「週一打開本週回顧」的真實組合。全域的 `errorToThrow` 會連
+    /// `getPlanStatus` 一起丟，判準就永遠落在 status 為 nil 的 fail-open 分支上）。
+    var weeklySummaryErrorToThrow: Error?
     /// 只讓 fetchWeeklyPlan 丟錯（部分取消情境：plan status 成功、週課表被收掉）。
     var fetchWeeklyPlanErrorToThrow: Error?
     /// 只讓 refreshOverview 丟錯（部分取消情境：plan status 成功、overview 被收掉）。
@@ -111,6 +115,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         lastUpdatedOverviewMethodologyId = nil
         lastUpdateWeeklyPlanRequest = nil
         errorToThrow = nil
+        weeklySummaryErrorToThrow = nil
         refreshOverviewErrorToThrow = nil
         refreshOverviewResults = []
         generateWeeklyPlanErrors = []
@@ -288,7 +293,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     func getWeeklySummary(weekOfPlan: Int) async throws -> WeeklySummaryV2 {
         getWeeklySummaryCallCount += 1
         await onGetWeeklySummary?()
-        if let error = errorToThrow { throw error }
+        if let error = weeklySummaryErrorToThrow ?? errorToThrow { throw error }
         guard let summary = weeklySummaryV2ToReturn else {
             throw TrainingPlanV2Error.weeklySummaryNotFound(week: weekOfPlan)
         }

@@ -109,6 +109,108 @@ final class App2WeeklyReviewGeneratingTests: XCTestCase {
         )
     }
 
+    // MARK: - 產生視窗未開就不給那顆鈕（T-0362）
+
+    /// **本次 P0 的端到端形狀**：週一（平日）打開**本週**回顧 → 後端 404「還沒產生」，
+    /// 但 `POST /v2/summary/weekly` 平日只准產 `current_week − 1`
+    /// （`core/training_rules/plan_generation_window.py:37`），所以那顆「產生週回顧」
+    /// 是註定 400 的鈕。修復後 `canGenerateReview` 為 false，畫面改顯示「要等這一週跑完」。
+    func test_weekdayCurrentWeekReview_hasNoGenerateButton() async {
+        // **回顧 404、plan status 正常**——那正是真實組合。用 per-method 的
+        // `weeklySummaryErrorToThrow`：全域的 `errorToThrow` 會連 `getPlanStatus`
+        // 一起丟，判準就永遠落在 status 為 nil 的 fail-open 分支上（假綠）。
+        repository.weeklySummaryErrorToThrow = DomainError.notFound("Weekly summary not found")
+        // 2026-08-31 是週一（Asia/Taipei）——使用者實機那一天。
+        repository.planStatusToReturn = Self.planStatus(
+            currentWeek: 5,
+            serverTime: "2026-08-31T02:00:00Z"
+        )
+        let viewModel = App2WeeklyReviewViewModel(weekOfPlan: 5, repository: repository)
+
+        await viewModel.load()
+
+        XCTAssertTrue(viewModel.needsGeneration, "404 仍是『還沒產生』的空態，不是錯誤畫面")
+        XCTAssertFalse(
+            viewModel.canGenerateReview,
+            "平日不能產本週回顧——畫面不得獻上一顆按下去必然 400 的鈕"
+        )
+    }
+
+    /// 同一天（週一）打開**上週**回顧就是後端允許的那一週 —— 鈕照給。
+    func test_weekdayPreviousWeekReview_keepsGenerateButton() async {
+        repository.weeklySummaryErrorToThrow = DomainError.notFound("Weekly summary not found")
+        repository.planStatusToReturn = Self.planStatus(
+            currentWeek: 5,
+            serverTime: "2026-08-31T02:00:00Z"
+        )
+        let viewModel = App2WeeklyReviewViewModel(weekOfPlan: 4, repository: repository)
+
+        await viewModel.load()
+
+        XCTAssertTrue(viewModel.needsGeneration)
+        XCTAssertTrue(viewModel.canGenerateReview, "平日的可產週次就是 current_week − 1")
+    }
+
+    /// VM 自己也不送那個請求 —— 判準不只住在畫面上。
+    func test_generate_whenWindowClosed_sendsNoRequest() async {
+        repository.weeklySummaryErrorToThrow = DomainError.notFound("Weekly summary not found")
+        repository.planStatusToReturn = Self.planStatus(
+            currentWeek: 5,
+            serverTime: "2026-08-31T02:00:00Z"
+        )
+        let viewModel = App2WeeklyReviewViewModel(weekOfPlan: 5, repository: repository)
+        await viewModel.load()
+
+        await viewModel.generate()
+
+        XCTAssertEqual(
+            repository.generateWeeklySummaryCallCount, 0,
+            "視窗未開時不得送出註定 400 的生成請求"
+        )
+    }
+
+    /// 後端週日的 `server_time` → 本週回顧就是這一天要做的事，鈕在。
+    func test_sundayCurrentWeekReview_keepsGenerateButton() async {
+        repository.weeklySummaryErrorToThrow = DomainError.notFound("Weekly summary not found")
+        // 2026-08-30 是週日（Asia/Taipei）。
+        repository.planStatusToReturn = Self.planStatus(
+            currentWeek: 5,
+            serverTime: "2026-08-30T02:00:00Z"
+        )
+        let viewModel = App2WeeklyReviewViewModel(weekOfPlan: 5, repository: repository)
+
+        await viewModel.load()
+
+        XCTAssertTrue(viewModel.canGenerateReview)
+    }
+
+    /// 週日與否**只看後端給的 `server_time` ＋ `user_timezone`**，不看裝置星期
+    /// （設計 §A.1／§A.5）。這裡的 `can_generate_next_week` 是 false（例如已是最後一週），
+    /// 所以判定完全落在 metadata 那條路上。
+    private static func planStatus(
+        currentWeek: Int,
+        serverTime: String
+    ) -> PlanStatusV2Response {
+        PlanStatusV2Response(
+            currentWeek: currentWeek,
+            totalWeeks: 22,
+            nextAction: "view_plan",
+            canGenerateNextWeek: false,
+            currentWeekPlanId: "ov_\(currentWeek)",
+            previousWeekSummaryId: nil,
+            targetType: "race",
+            methodologyId: "paceriz",
+            nextWeekInfo: nil,
+            metadata: PlanStatusV2Metadata(
+                trainingStartDate: nil,
+                currentWeekStartDate: nil,
+                currentWeekEndDate: nil,
+                userTimezone: "Asia/Taipei",
+                serverTime: serverTime
+            )
+        )
+    }
+
     // MARK: - 真的畫出來了嗎（render 層，外審 E02／E11）
 
     /// **這一支才是「動畫元件被畫出來」的證明。** 上面那幾支驗的是判準的值；判準對、

@@ -114,8 +114,73 @@ final class App2WeeklyReviewViewModel: ObservableObject {
         isLoading = false
     }
 
+    // MARK: - 產生視窗（T-0362：週一進本週回顧，按「產生」被後端 400）
+    //
+    // `POST /v2/summary/weekly` 有一道**週次窗口閘門**
+    // （`core/training_rules/plan_generation_window.py:37 allowed_week_for_kind`
+    // ＋ `:58 decide_week_generation`）：平日只准產 `current_week − 1`，週日才准產
+    // `current_week`。不符回 HTTP 400 `weekly_summary_generation_window_denied`。
+    //
+    // 課表頁 header 的回顧入口（走查裁決（q））帶的是**當前所選週**，進行中就是本週。
+    // 所以週一點進來看到的是本週回顧的未產生態——修復前照樣獻上「產生週回顧」鈕，
+    // 按下去必然 400，畫面才改口說「還不能產生」。使用者原話：
+    // 「還不能產生週回顧，卻可以在右上角顯示週回顧，點進去還可以按產生，
+    //   再說無法產生 -> 什麼鬼啊」（2026-08-31 實機）。
+    //
+    // **判準不看 device 星期**（設計 `DESIGN-app2-weekly-review-and-plan-end-inventory`
+    // §A.5：client 不算週界）：週日與否走既有的
+    // `App2HomeViewModel.isSundayInUserTimezone(_:)`——那是 §A.1 訂下的唯一咽喉點
+    // （`metadata.user_timezone` ＋ `server_time`），不在這裡開第二份週日判定。
+
+    /// 今天後端讓不讓產生第 `reviewWeek` 週的回顧。
+    ///
+    /// 逐格對上後端那支純函式（`allowed_week_for_kind(kind: "weekly_summary")`）：
+    ///
+    /// | 當天（使用者時區） | 允許的週次 |
+    /// |---|---|
+    /// | 平日、`current_week ≥ 2` | `current_week − 1` |
+    /// | 平日、`current_week ≤ 1` | 無（後端算出 `allowed_week = 0`，而週次 0 client 打不出去） |
+    /// | 週日 | `current_week`；catch-up 另放行 `current_week − 1` |
+    ///
+    /// **status 讀不到（nil）時回 true**。那時什麼都判不出來，擋掉按鈕會讓使用者
+    /// 在一個沒有任何出口的畫面上卡死——訓練流程核心一律 fail-open
+    /// （`LOCAL-DEVELOPMENT-HARNESS.md` §1.2 鐵則 7）。真的撞到 400 時仍有
+    /// `generationWindowClosed` 那句話接住，不會退回修復前那種無訊息的失敗。
+    nonisolated static func isGenerationWindowOpen(
+        reviewWeek: Int,
+        planStatus: PlanStatusV2Response?,
+        isSunday: Bool
+    ) -> Bool {
+        guard let current = planStatus?.currentWeek else { return true }
+        if isSunday {
+            // 本週；catch-up 再放行上週（後端 `allowed_sunday_previous_week_summary_catch_up`）。
+            return reviewWeek == current || (reviewWeek == current - 1 && reviewWeek >= 1)
+        }
+        return current >= 2 && reviewWeek == current - 1
+    }
+
+    /// 這一頁能不能按「產生回顧」。
+    ///
+    /// 唯讀回看永遠不能（那顆鈕產的是這一頁的 `weekOfPlan`，而歷史週不該被補寫）。
+    var canGenerateReview: Bool {
+        guard !isReadOnly else { return false }
+        guard let planStatus else { return true }
+        return Self.isGenerationWindowOpen(
+            reviewWeek: weekOfPlan,
+            planStatus: planStatus,
+            // 不另開第二份週日判定（鐵則 0）：§A.1 的咽喉點就是這一支。
+            isSunday: App2HomeViewModel.isSundayInUserTimezone(planStatus)
+        )
+    }
+
     /// 產生這一週的回顧（首頁 CTA 是「產生上週／本週回顧」時走這條）。
     func generate() async {
+        // 判準住在 VM，不只住在畫面：視窗未開時那顆鈕根本不畫，這裡是最後一道
+        // ——不送出一個註定 400 的 LLM 請求。
+        guard canGenerateReview else {
+            errorMessage = L10n.App2.WeeklyReview.generationWindowClosed.localized
+            return
+        }
         isLoading = true
         errorMessage = nil
         needsGeneration = false

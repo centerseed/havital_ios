@@ -223,4 +223,72 @@ final class App2WeeklyReviewNextWeekActionTests: XCTestCase {
         )
         XCTAssertEqual(result, .applyOnly)
     }
+
+    // MARK: - 回顧產生視窗（T-0362）
+    //
+    // 這一組釘住的是**另一顆 CTA**：不是「產生下週課表」（上面那些），是空態上的
+    // 「產生週回顧」。後端 `POST /v2/summary/weekly` 有週次窗口閘門
+    // （`core/training_rules/plan_generation_window.py:37 allowed_week_for_kind`
+    // ＋ `:58 decide_week_generation` 的週日 catch-up），下面每一格都對著它。
+
+    private func windowOpen(
+        reviewWeek: Int,
+        currentWeek: Int,
+        isSunday: Bool
+    ) -> Bool {
+        App2WeeklyReviewViewModel.isGenerationWindowOpen(
+            reviewWeek: reviewWeek,
+            planStatus: status(currentWeek: currentWeek, nextAction: "view_plan"),
+            isSunday: isSunday
+        )
+    }
+
+    /// **本次 P0 的形狀**：週一（平日）進本週回顧，後端只准產 `current_week − 1`
+    /// ——那顆「產生」鈕按下去必然回 400 `weekly_summary_generation_window_denied`。
+    func testWeekdayCannotGenerateCurrentWeekReview() {
+        XCTAssertFalse(windowOpen(reviewWeek: 5, currentWeek: 5, isSunday: false))
+    }
+
+    /// 平日的正常路徑：回顧上週（`current_week − 1`）是後端唯一允許的週次。
+    func testWeekdayCanGeneratePreviousWeekReview() {
+        XCTAssertTrue(windowOpen(reviewWeek: 4, currentWeek: 5, isSunday: false))
+    }
+
+    /// 平日、第 1 週：後端算出的 `allowed_week` 是 0，等於沒有可產的週。
+    func testWeekdayFirstWeekHasNoGeneratableReview() {
+        XCTAssertFalse(windowOpen(reviewWeek: 1, currentWeek: 1, isSunday: false))
+        XCTAssertFalse(windowOpen(reviewWeek: 0, currentWeek: 1, isSunday: false))
+    }
+
+    /// 週日：本週回顧就是這一天要做的事。
+    func testSundayCanGenerateCurrentWeekReview() {
+        XCTAssertTrue(windowOpen(reviewWeek: 5, currentWeek: 5, isSunday: true))
+        XCTAssertTrue(windowOpen(reviewWeek: 1, currentWeek: 1, isSunday: true))
+    }
+
+    /// 週日的 catch-up：上週那份沒做的也還能補
+    /// （後端 `allowed_sunday_previous_week_summary_catch_up`）。
+    func testSundayCatchUpAllowsPreviousWeekReview() {
+        XCTAssertTrue(windowOpen(reviewWeek: 4, currentWeek: 5, isSunday: true))
+        // 週次 0 不是可補的週。
+        XCTAssertFalse(windowOpen(reviewWeek: 0, currentWeek: 1, isSunday: true))
+    }
+
+    /// 更早的週（歷史）任何一天都不在視窗內。
+    func testOlderWeeksAreNeverInsideTheWindow() {
+        XCTAssertFalse(windowOpen(reviewWeek: 2, currentWeek: 5, isSunday: false))
+        XCTAssertFalse(windowOpen(reviewWeek: 2, currentWeek: 5, isSunday: true))
+    }
+
+    /// **status 讀不到時 fail-open**：什麼都判不出來時擋掉按鈕＝把使用者鎖在一個
+    /// 沒有出口的畫面（harness §1.2 鐵則 7）。真撞到 400 仍有既有那句話接住。
+    func testMissingPlanStatusKeepsGenerateAvailable() {
+        XCTAssertTrue(
+            App2WeeklyReviewViewModel.isGenerationWindowOpen(
+                reviewWeek: 5,
+                planStatus: nil,
+                isSunday: false
+            )
+        )
+    }
 }
