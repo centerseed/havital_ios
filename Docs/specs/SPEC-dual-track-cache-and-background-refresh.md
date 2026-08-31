@@ -5,7 +5,7 @@ status: Draft
 layer: architecture
 ontology_entity: dual-track-cache-strategy
 created: 2026-04-15
-updated: 2026-04-15
+updated: 2026-08-31
 ---
 
 # Feature Spec: Dual-Track Cache 與 Background Refresh
@@ -72,6 +72,22 @@ Then 系統必須透過 `CacheEventBus`、通知或等效機制發布明確事�
 Given 使用者登出、切帳號或完成會影響資料歸屬的重大流程，  
 When 上層發出清理指令，  
 Then repository 必須清除該使用者相關快取，避免新 session 看到前一位使用者資料。
+
+### AC-CACHE-09: 使用者顯式刷新不得被卡死的 in-flight 輪永久吞掉
+
+Given 某常駐 ViewModel 的重驗互斥鎖因一輪請求掛住而未釋放，
+When 使用者再次觸發顯式刷新（下拉），且前一輪開始已超過 30 秒（`App2RevalidatePolicy.stuckThreshold`），
+Then 新一輪必須接管執行並真正發出網路請求；30 秒內的重入仍由互斥鎖擋下（SWR 防抖）。
+
+（T-0355：舊行為 `guard !isRevalidating` 無限期吞掉下拉刷新，重開 app 才復原。）
+
+### AC-CACHE-10: workout 處理完成推播必須觸發 workouts 快取失效
+
+Given 使用者收到 `data.type == "workout_processed"` 推播（前景顯示或點擊進入皆算），
+When 推播抵達 app，
+Then 系統必須發布 `.dataChanged(.workouts)`，讓首頁完成列、紀錄頁等訂閱者立即失效重抓；使用者不需重開 app 或等待 SWR 視窗。
+
+（T-0355：佈線為 `WorkoutBackgroundManager.workoutPushReceived`（被動 publisher）→ `CacheRegistrationCoordinator` 訂閱後轉發至 bus。）
 
 ## 實作對齊說明
 
