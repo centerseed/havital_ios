@@ -690,11 +690,6 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     // `todayDayIndex` / `currentWeekStart` / `dateLabel` 已搬到 `App2WeekCalendar`
     // （Domain，層中立）—— `App2StubFixtures` 在 Data 層要用同一組換算。
 
-    static func plannedDistanceLabel(_ primary: PrimaryActivity?) -> String? {
-        guard case .run(let run) = primary, let km = run.distanceKm, km > 0 else { return nil }
-        return String(format: "%.1f km", km)
-    }
-
     /// 每日卡的敘述行 —— 後端 `day_target`（已在地化、三語由後端 `content_lang` 決定）。
     /// 空字串當成沒有，不畫空行。
     static func descriptionLine(_ day: DayDetail) -> String? {
@@ -783,21 +778,28 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 因為 `primary.distance_km` 在間歇課只算主課段（dev 實測 `2.2`＝4×400m 加組間
     /// 恢復），跟下面分段列的熱身 2.0 ＋ 衝刺 1.6 ＋ 緩和 1.0 加不起來
     /// （2026-08-26 使用者回報）。日層 `5.2` 才是那張卡在講的量。
-    static func contentLine(_ primary: PrimaryActivity?, totalDistanceKm: Double? = nil) -> String? {
+    ///
+    /// 距離與配速走**同一個** `unitSystem`（2026-09-01）：原本配速已接 `UnitManager`、
+    /// 距離卻寫死 `km`，英制用戶看到的是同一行裡「公里數字 · 每英里配速」。
+    static func contentLine(
+        _ primary: PrimaryActivity?,
+        totalDistanceKm: Double? = nil,
+        unitSystem: UnitSystem? = nil
+    ) -> String? {
         guard case .run(let run) = primary else { return nil }
+        // 預設值不能寫在參數上：default argument 在 nonisolated context 求值。
+        let unitSystem = unitSystem ?? .current
 
-        if let line = intervalContentLine(run) { return line }
+        if let line = intervalContentLine(run, unitSystem: unitSystem) { return line }
 
         var parts: [String] = []
         if let km = totalDistanceKm ?? run.distanceKm, km > 0 {
-            parts.append(String(format: "%.1f km", km))
+            parts.append(unitSystem.formatDistance(km))
         } else if let minutes = run.durationMinutes {
             parts.append("\(minutes) min")
         }
-        // 單位跟著用戶設定走（公制 `/km`／英制 `/mi`），走既有的 `UnitManager`，
-        // 不在這裡寫死 `/km`。
         if let pace = dayPace(run) {
-            parts.append(UnitManager.shared.formatPaceString(pace))
+            parts.append(unitSystem.formatPaceString(pace))
         }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
@@ -822,7 +824,11 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 組間恢復的段數是 `repeats - 1`（最後一趟跑完就進緩和）—— dev 實測
     /// 4×400m ＋ 200m 恢復的 `primary.distance_km` 是 `2.2`＝`1.6 + 3×0.2`，
     /// 與這個算法一致。組不出距離或時間就少那一欄，兩欄都組不出就整行不顯示。
-    static func intervalContentLine(_ run: RunActivity) -> String? {
+    static func intervalContentLine(
+        _ run: RunActivity,
+        unitSystem: UnitSystem? = nil
+    ) -> String? {
+        let unitSystem = unitSystem ?? .current
         guard let segment = effectiveSegments(run).first(where: { $0.segmentKind == .interval }),
               let repeats = segment.repeats, repeats > 0,
               let work = segment.work else { return nil }
@@ -831,7 +837,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         var parts: [String] = []
         if let workKm = effortDistanceKm(work) {
             let recoveryKm = segment.recovery.flatMap(effortDistanceKm) ?? 0
-            parts.append(String(format: "%.1f km", workKm * Double(repeats) + recoveryKm * recoveryCount))
+            parts.append(unitSystem.formatDistance(workKm * Double(repeats) + recoveryKm * recoveryCount))
         }
         if let workSeconds = effortSeconds(work) {
             let recoverySeconds = segment.recovery.flatMap(effortSeconds) ?? 0

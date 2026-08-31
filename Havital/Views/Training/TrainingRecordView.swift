@@ -287,7 +287,9 @@ struct TrainingRecordView: View {
             }
             Spacer()
             if group.totalKm > 0 {
-                Text(L10n.Record.Group.totalKmFormat.localized(with: group.totalKm))
+                Text(L10n.Record.Group.totalDistanceFormat.localized(
+                    with: UnitSystem.current.formatDistance(group.totalKm)
+                ))
                     .font(AppFont.micro().monospacedDigit())
                     .foregroundColor(.secondary)
             }

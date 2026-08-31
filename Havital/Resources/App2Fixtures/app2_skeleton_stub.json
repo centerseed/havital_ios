@@ -186,8 +186,8 @@
         "dayType": "easy",
         "dateLabel": "8/24",
         "tag": "輕鬆跑",
-        "distance": "11.0 km",
-        "pace": "5:12/km",
+        "distanceKm": 11.0,
+        "paceSecondsPerKm": 312,
         "duration": "57:12",
         "vdot": "63.8"
       },
@@ -196,8 +196,8 @@
         "dayType": "lsd",
         "dateLabel": "8/22",
         "tag": "長跑",
-        "distance": "22.4 km",
-        "pace": "4:58/km",
+        "distanceKm": 22.4,
+        "paceSecondsPerKm": 298,
         "duration": "1:51:15",
         "vdot": "64.2"
       },
@@ -206,8 +206,8 @@
         "dayType": "tempo",
         "dateLabel": "8/21",
         "tag": "節奏跑",
-        "distance": "12.0 km",
-        "pace": "4:12/km",
+        "distanceKm": 12.0,
+        "paceSecondsPerKm": 252,
         "duration": "50:24",
         "vdot": "65.1"
       },
@@ -216,8 +216,8 @@
         "dayType": "interval",
         "dateLabel": "8/19",
         "tag": "間歇",
-        "distance": "10.6 km",
-        "pace": "4:26/km",
+        "distanceKm": 10.6,
+        "paceSecondsPerKm": 266,
         "duration": "47:00",
         "vdot": "64.9"
       },
@@ -226,8 +226,8 @@
         "dayType": "easy",
         "dateLabel": "8/18",
         "tag": "輕鬆跑",
-        "distance": "8.4 km",
-        "pace": "5:20/km",
+        "distanceKm": 8.4,
+        "paceSecondsPerKm": 320,
         "duration": "44:48",
         "vdot": "63.5"
       }

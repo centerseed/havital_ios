@@ -8,7 +8,7 @@ import Foundation
 
 /// 清單上的一筆紀錄 ＝ 已格式化的卡片內容（`App2WorkoutRow`）＋ 分組／小計需要的原始量。
 ///
-/// `App2WorkoutRow` 只帶已格式化的字串（`8/22`、`12.4 km`），分組要的是 `Date`、
+/// `App2WorkoutRow` 帶的是卡片自己要畫的東西（`8/22`、距離、配速），分組要的是 `Date`、
 /// 小計要的是數值 —— 從字串反推是錯的方向，所以在這裡把原始量一起帶著走。
 struct App2RecordItem: Identifiable, Equatable {
     var id: String { row.id }
@@ -478,8 +478,8 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
             // `DayType`，不把識別字直接印出來，也不對顯示字做詞表比對。
             tag: dayType?.localizedName ?? workout.advancedMetrics?.trainingType,
             dayType: dayType,
-            distance: String(format: "%.1f km", distanceKm),
-            pace: workout.basicMetrics?.avgPaceSPerKm.map(Self.paceLabel(secondsPerKm:)),
+            distanceKm: distanceKm,
+            paceSecondsPerKm: workout.basicMetrics?.avgPaceSPerKm,
             duration: TimeFormatting.formatTime(workout.durationSeconds),
             vdot: workout.advancedMetrics?.dynamicVdot.map { String(format: "%.1f", $0) }
         )
@@ -495,9 +495,6 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
         return "\(month)/\(day)"
     }
 
-    /// 配速跟著用戶的單位制走（`/km`／`/mi`）。這裡原本寫死 `/km` 且不換算，
-    /// 英制用戶看到的是公里配速掛著 `/km`（2026-08-26 架構收斂順修）。
-    private static func paceLabel(secondsPerKm: Double) -> String {
-        UnitManager.shared.formatPace(secondsPerKm: secondsPerKm)
-    }
+    // 配速的單位換算 2026-09-01 起在 View（`UnitSystem.formatPace`）——
+    // 原本的 `paceLabel` 把值與單位黏成一個字串，View 只能靠字串比對再拆開。
 }

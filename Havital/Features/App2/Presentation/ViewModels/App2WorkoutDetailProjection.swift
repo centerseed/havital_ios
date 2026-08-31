@@ -198,7 +198,7 @@ extension App2WorkoutDetailProjection {
                     key: "pace",
                     label: NSLocalizedString("performance.avg_pace", comment: "平均配速"),
                     value: formatPace(secondsPerKm: paceSPerKm, unitSystem: unitSystem),
-                    unit: unitSystem == .metric ? "/km" : "/mi",
+                    unit: unitSystem.paceSuffix,
                     tone: .pace
                 )
             )
@@ -282,7 +282,10 @@ extension App2WorkoutDetailProjection {
                 ?? fallbackZoneLabel(avgHR: avgHR, maxHR: maxHR, restingHR: restingHR),
             personalBestLabel: personalBestLabel,
             metrics: metrics,
-            plannedSummary: plannedSummary(detail?.dailyPlanSummary ?? workout.dailyPlanSummary),
+            plannedSummary: plannedSummary(
+                detail?.dailyPlanSummary ?? workout.dailyPlanSummary,
+                unitSystem: unitSystem
+            ),
             actualSummary: actualSummary(durationS: durationS, avgHR: avgHR),
             coachAnalysis: (detail?.aiSummary ?? workout.aiSummary)?.analysis.app2NonEmpty,
             advancedMetrics: advancedMetrics,
@@ -423,17 +426,20 @@ extension App2WorkoutDetailProjection {
     }
 
     /// 課表那一格。有課型／距離／配速就串起來，一項都沒有＝這天沒課表。
-    static func plannedSummary(_ plan: DailyPlanSummary?) -> String? {
+    ///
+    /// 距離與配速都跟著 `unitSystem`（2026-09-01）：同一頁上方的實際距離／配速本來
+    /// 就換算了，這一行原本寫死 `km` 又直接印後端的每公里配速字串。
+    static func plannedSummary(_ plan: DailyPlanSummary?, unitSystem: UnitSystem) -> String? {
         guard let plan else { return nil }
         var parts: [String] = []
         if let raw = plan.trainingType, !raw.isEmpty {
             parts.append(DayType(rawValue: raw)?.localizedName ?? raw)
         }
         if let km = plan.distanceKm, km > 0 {
-            parts.append(String(format: "%.1f km", km))
+            parts.append(unitSystem.formatDistance(km))
         }
         if let pace = plan.pace?.app2NonEmpty {
-            parts.append(pace)
+            parts.append(unitSystem.formatPaceString(pace))
         }
         guard !parts.isEmpty else { return nil }
         return parts.joined(separator: " · ")
@@ -459,12 +465,12 @@ extension App2WorkoutDetailProjection {
     static func distanceMetric(meters: Double, unitSystem: UnitSystem) -> Metric {
         let km = meters / 1000
         let label = NSLocalizedString("workout.metrics.distance", comment: "距離")
-        switch unitSystem {
-        case .metric:
-            return Metric(key: "distance", label: label, value: String(format: "%.2f", km), unit: "km")
-        case .imperial:
-            return Metric(key: "distance", label: label, value: String(format: "%.2f", km * 0.621371), unit: "mi")
-        }
+        return Metric(
+            key: "distance",
+            label: label,
+            value: String(format: "%.2f", unitSystem.convertedDistance(km)),
+            unit: unitSystem.distanceSuffix
+        )
     }
 
     static func formatDuration(seconds: Int?) -> String {

@@ -3186,6 +3186,7 @@
 "achievements.progress.unit.week" = "weeks";
 "achievements.progress.unit.count" = "results";
 "achievements.progress.unit.km" = "km";
+"achievements.progress.unit.mi" = "mi";
 "achievements.badge.rhythm.first_active_week.name" = "First Active Week";
 "achievements.badge.rhythm.first_active_week.story" = "You left your first active training week in Paceriz.";
 "achievements.badge.rhythm.return_week.name" = "Return Week";
@@ -3580,7 +3581,7 @@
 "record.group.last_week" = "Last Week";
 "record.group.older" = "Older";
 "record.group.run_count_format" = "%d runs";
-"record.group.total_km_format" = "%.1f km total";
+"record.group.total_distance_format" = "%@ total";
 "record.group.month_group_format" = "%d/%d";
 "weekly_plan_feedback.desc.issue_prefix" = "Issues: ";
 
@@ -4683,7 +4684,7 @@
 "app2.plan_overview.weeks_until_race" = "%d weeks to go";
 "app2.plan_overview.current_you" = "You now";
 "app2.plan_overview.target" = "Target";
-"app2.plan_overview.weekly_volume" = "~%@ km / week";
+"app2.plan_overview.weekly_volume" = "~%@ / week";
 "app2.plan_overview.no_estimate" = "No finish estimate yet";
 "app2.plan_overview.progress_label" = "Plan progress";
 "app2.plan_overview.week_of_total" = "Week %1$d / %2$d";

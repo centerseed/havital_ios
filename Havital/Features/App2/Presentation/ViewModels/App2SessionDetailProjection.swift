@@ -665,8 +665,7 @@ enum App2SessionDetailProjection {
     /// 秒／km → 用戶單位制的配速值（**不含**單位字，單位由 `paceUnitLabel` 給）。
     /// 換算係數走 `UnitSystem`，與 `UnitManager.formatPace` 同一份，不另訂。
     static func paceLabel(_ secondsPerKm: Double, unitSystem: UnitSystem) -> String {
-        let total = max(Int(unitSystem.convertedPaceSeconds(secondsPerKm).rounded()), 0)
-        return String(format: "%d:%02d", total / 60, total % 60)
+        unitSystem.paceValue(secondsPerKm: secondsPerKm)
     }
 
     // MARK: - Formatting

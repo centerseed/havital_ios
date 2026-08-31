@@ -3183,6 +3183,7 @@
 "achievements.progress.unit.week" = "週";
 "achievements.progress.unit.count" = "件";
 "achievements.progress.unit.km" = "km";
+"achievements.progress.unit.mi" = "マイル";
 "achievements.badge.rhythm.first_active_week.name" = "最初のアクティブ週";
 "achievements.badge.rhythm.first_active_week.story" = "Paceriz に最初のアクティブなトレーニング週を残しました。";
 "achievements.badge.rhythm.return_week.name" = "リズム復帰";
@@ -3577,7 +3578,7 @@
 "record.group.last_week" = "先週";
 "record.group.older" = "以前";
 "record.group.run_count_format" = "%d回のラン";
-"record.group.total_km_format" = "合計 %.1f km";
+"record.group.total_distance_format" = "合計 %@";
 "record.group.month_group_format" = "%d年%d月";
 "weekly_plan_feedback.desc.issue_prefix" = "課題：";
 
@@ -4680,7 +4681,7 @@
 "app2.plan_overview.weeks_until_race" = "あと %d 週";
 "app2.plan_overview.current_you" = "今のあなた";
 "app2.plan_overview.target" = "目標";
-"app2.plan_overview.weekly_volume" = "約 %@ km / 週";
+"app2.plan_overview.weekly_volume" = "約 %@ / 週";
 "app2.plan_overview.no_estimate" = "完走予測はまだありません";
 "app2.plan_overview.progress_label" = "計画の進捗";
 "app2.plan_overview.week_of_total" = "第 %1$d / %2$d 週";

@@ -98,7 +98,7 @@ enum App2PlanEndProjection {
             // 這份計畫的目標賽事（那是別份計畫的東西）。
             raceName: isRace ? target?.name : nil,
             raceDate: isRace ? target.map { raceDateLabel($0) } : nil,
-            distanceLabel: isRace ? target.map { distanceLabel(km: $0.distanceKm) } : nil,
+            distanceLabel: isRace ? target.map { App2OnboardingFormat.distanceLabel(km: Double($0.distanceKm)) } : nil,
             totalWeeks: totalWeeks(planStatus: planStatus, overview: overview, target: target),
             targetTime: isRace ? targetTimeLabel(target) : nil,
             estimatedFinish: isRace ? estimatedFinish : nil,
@@ -351,17 +351,8 @@ enum App2PlanEndProjection {
         return formatter.string(from: Date(timeIntervalSince1970: TimeInterval(target.raceDate)))
     }
 
-    /// 距離標籤走既有的 `race_filter.*`（三語已齊，賽事清單頁與首頁目標卡在用同一組），
-    /// 不把 `distance_km` 這種識別量直接印上去。
-    static func distanceLabel(km: Int) -> String {
-        switch km {
-        case 42: return NSLocalizedString("race_filter.full_marathon", comment: "")
-        case 21: return NSLocalizedString("race_filter.half_marathon", comment: "")
-        case 10: return NSLocalizedString("race_filter.10k", comment: "")
-        case 5:  return NSLocalizedString("race_filter.5k", comment: "")
-        default: return "\(km) km"
-        }
-    }
+    // 距離標籤走 `App2OnboardingFormat.distanceLabel(km:)`（2026-09-01 收斂）——
+    // 這裡原本有一份 `Int` 版，容差更差、非標準賽距的 fallback 還寫死 `km`。
 
     /// 目標成績。未設成績（0）→ nil，那一欄不出現。
     static func targetTimeLabel(_ target: Target?) -> String? {

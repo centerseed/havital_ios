@@ -1279,7 +1279,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                     fromEpochSeconds: target.raceDate,
                     timezone: target.timezone
                 ),
-                distanceLabel: Self.distanceLabel(km: target.distanceKm),
+                distanceLabel: App2OnboardingFormat.distanceLabel(km: Double(target.distanceKm)),
                 stageLabel: stageLabel,
                 targetTime: target.targetTime > 0 ? TimeFormatting.formatTime(target.targetTime) : nil,
                 estimatedFinish: estimatedFinish,
@@ -1334,15 +1334,6 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         return formatter.string(from: Date(timeIntervalSince1970: TimeInterval(seconds)))
     }
 
-    /// 距離標籤走既有的 `race_filter.*`（三語已齊，賽事清單頁在用同一組），
-    /// 不把 `distance_km` 或 `type` 這種識別字直接印到畫面上。
-    private static func distanceLabel(km: Int) -> String {
-        switch km {
-        case 42: return NSLocalizedString("race_filter.full_marathon", comment: "")
-        case 21: return NSLocalizedString("race_filter.half_marathon", comment: "")
-        case 10: return NSLocalizedString("race_filter.10k", comment: "")
-        case 5:  return NSLocalizedString("race_filter.5k", comment: "")
-        default: return "\(km) km"
-        }
-    }
+    // 距離標籤走 `App2OnboardingFormat.distanceLabel(km:)`（2026-09-01 收斂）——
+    // 這裡原本有一份 `Int` 版，容差更差、非標準賽距的 fallback 還寫死 `km`。
 }

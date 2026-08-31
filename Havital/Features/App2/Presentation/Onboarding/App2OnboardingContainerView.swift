@@ -144,7 +144,17 @@ enum App2OnboardingFormat {
     /// （`5公里`／`半程馬拉松`）：設計 frame-32／35 的 chip 是短式，長式在 390pt 寬會折行。
     /// 兩組詞條都是既有的，這裡只是選對那一組，沒有新增。
     /// 賽事庫回來的距離會有 21.0 / 42.0 這種整數值，一併容差比對。
-    static func distanceLabel(km: Double) -> String {
+    /// 標準賽距以外的 fallback 跟著用戶單位制走（`12 km`／`7.5 mi`）——
+    /// 標準賽距是**名字**（全馬就是全馬），不換算。
+    ///
+    /// 2026-09-01 收斂：`App2HomeViewModel.distanceLabel(km:)` 與
+    /// `App2PlanEndProjection.distanceLabel(km:)` 原本各留一份 `Int` 版（容差更差、
+    /// fallback 一樣寫死 `km`），兩份都刪掉改叫這一支。
+    static func distanceLabel(
+        km: Double,
+        unitSystem: UnitSystem? = nil
+    ) -> String {
+        let unitSystem = unitSystem ?? .current
         // 容差 0.25：後端的 `distance_km` 常是整數（`42` 而不是 `42.195`），
         // 太緊的容差會讓完成頁的徽章印成「42 km」而不是「全馬」。
         func isNear(_ target: Double) -> Bool { abs(km - target) < 0.25 }
@@ -152,7 +162,12 @@ enum App2OnboardingFormat {
         if isNear(10)      { return NSLocalizedString("race_filter.10k", comment: "") }
         if isNear(21.0975) { return NSLocalizedString("race_filter.half_marathon", comment: "") }
         if isNear(42.195)  { return NSLocalizedString("race_filter.full_marathon", comment: "") }
-        return kmValue(km) + " km"
+        // 公制維持原樣（`42.195` 要看得出小數）；英制換算後取一位小數，
+        // 否則 `%g` 會把 12 km 印成 `7.45645 mi`。
+        let value = unitSystem == .metric
+            ? kmValue(km)
+            : String(format: "%.1f", unitSystem.convertedDistance(km))
+        return value + " " + unitSystem.distanceSuffix
     }
 
     /// `42.195` / `21.0975` 要看得出小數，`10` 不要變成 `10.0`。

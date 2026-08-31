@@ -329,7 +329,7 @@ final class App2WorkoutDetailProjectionTests: XCTestCase {
     // MARK: - 課表 vs 實際
 
     func test_plannedSummary_nilWhenNoPlanForThatDay() {
-        XCTAssertNil(App2WorkoutDetailProjection.plannedSummary(nil))
+        XCTAssertNil(App2WorkoutDetailProjection.plannedSummary(nil, unitSystem: .metric))
     }
 
     func test_plannedSummary_joinsAvailableParts() {
@@ -342,8 +342,26 @@ final class App2WorkoutDetailProjectionTests: XCTestCase {
             trainingDetails: nil
         )
         XCTAssertEqual(
-            App2WorkoutDetailProjection.plannedSummary(plan),
-            "\(DayType.easy.localizedName) · 8.0 km · 6:50"
+            App2WorkoutDetailProjection.plannedSummary(plan, unitSystem: .metric),
+            "\(DayType.easy.localizedName) · 8.0 km · 6:50/km"
+        )
+    }
+
+    /// T-0366：這一格修前是 `輕鬆跑 · 8.0 km · 6:50` —— 距離寫死公制，
+    /// 配速直接印後端的每公里字串（同一頁上方的實際距離／配速本來就換算了）。
+    /// `8.0 × 0.621371 → 5.0`；`410 × 1.60934 = 659.8` → 660 秒 ＝ `11:00`／mi。
+    func test_plannedSummary_imperial_convertsDistanceAndPace() {
+        let plan = DailyPlanSummary(
+            dayTarget: nil,
+            distanceKm: 8,
+            pace: "6:50",
+            trainingType: "easy",
+            heartRateRange: nil,
+            trainingDetails: nil
+        )
+        XCTAssertEqual(
+            App2WorkoutDetailProjection.plannedSummary(plan, unitSystem: .imperial),
+            "\(DayType.easy.localizedName) · 5.0 mi · 11:00/mi"
         )
     }
 

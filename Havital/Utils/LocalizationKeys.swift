@@ -937,7 +937,8 @@ enum GaitAnalysisChart {
             static let lastWeek = "record.group.last_week" // "上週"
             static let older = "record.group.older" // "更早"
             static let runCountFormat = "record.group.run_count_format" // "%d 次跑步"
-            static let totalKmFormat = "record.group.total_km_format" // "共 %.1f km"
+            /// 小計距離。單位由 `UnitManager` 決定，所以帶單位的整段字由呼叫端組好再填進 `%@`。
+            static let totalDistanceFormat = "record.group.total_distance_format" // "共 %@"
             static let monthGroupFormat = "record.group.month_group_format" // "%d年%d月"
         }
     }

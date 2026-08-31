@@ -20,6 +20,8 @@ struct App2SessionDetailView: View {
     @StateObject private var garminViewModel: GarminPushViewModel
     /// 沒連 Garmin 就沒有這顆鈕（不做死鈕）。
     @ObservedObject private var garminManager = GarminManager.shared
+    /// 單位制切換要當場重畫（同 `App2WorkoutDetailView` 的接法）。
+    @ObservedObject private var unitManager = UnitManager.shared
     /// 課型說明的完整版（怎麼跑／為什麼／訓練邏輯／週課表角色）。
     @State private var isShowingTypeInfo = false
     /// 傳到 Garmin 的二次確認。
@@ -181,8 +183,11 @@ struct App2SessionDetailView: View {
                 if let km = detail.distanceKm {
                     heroStat(
                         label: L10n.App2.Detail.distance.localized,
-                        value: App2NumberFormat.grouped(km, maximumFractionDigits: 1),
-                        unit: "km"
+                        value: App2NumberFormat.grouped(
+                            unitManager.currentUnitSystem.convertedDistance(km),
+                            maximumFractionDigits: 1
+                        ),
+                        unit: unitManager.currentUnitSystem.distanceSuffix
                     )
                     heroDivider
                 }
@@ -259,7 +264,11 @@ struct App2SessionDetailView: View {
     private var garminPushSummary: String {
         var parts: [String] = [detail.title, detail.dateTitle]
         if let km = detail.distanceKm {
-            parts.append(App2NumberFormat.grouped(km, maximumFractionDigits: 1) + " km")
+            let unit = unitManager.currentUnitSystem
+            parts.append(
+                App2NumberFormat.grouped(unit.convertedDistance(km), maximumFractionDigits: 1)
+                    + " " + unit.distanceSuffix
+            )
         }
         if let duration = detail.durationLabel {
             parts.append(duration)

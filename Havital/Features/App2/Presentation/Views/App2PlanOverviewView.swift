@@ -20,6 +20,9 @@ struct App2PlanOverviewView: View {
     let onClose: () -> Void
     @ObservedObject var viewModel: App2PlanOverviewViewModel
 
+    /// 單位制切換要當場重畫（同 `App2WorkoutDetailView` 的接法）。
+    @ObservedObject private var unitManager = UnitManager.shared
+
     /// 賽事管理（設計 frame-12）—— 唯一入口是「管理計畫 · 賽事管理」那一列。
     @State private var isShowingRaces = false
     /// 重設目標走 2.0 的 onboarding（與設定頁同一條路徑，不另寫一份）。
@@ -198,10 +201,13 @@ struct App2PlanOverviewView: View {
                 value: overview.currentEstimatedFinish,
                 // 沒有完賽預估時整格說「尚未有完賽預估」，不印一個假的時間。
                 emptyText: L10n.App2.PlanOverview.noEstimate.localized,
+                // 週跑量跟著單位制走：字串裡不再寫死 `km`，整段帶單位的量在這裡組好。
                 caption: overview.currentWeeklyKm.map {
-                    String(
+                    let unit = unitManager.currentUnitSystem
+                    return String(
                         format: L10n.App2.PlanOverview.weeklyVolume.localized,
-                        App2NumberFormat.grouped($0, maximumFractionDigits: 0)
+                        App2NumberFormat.grouped(unit.convertedDistance($0), maximumFractionDigits: 0)
+                            + " " + unit.distanceSuffix
                     )
                 },
                 highlighted: false

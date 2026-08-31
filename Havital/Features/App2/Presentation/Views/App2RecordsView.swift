@@ -12,6 +12,9 @@ struct App2RecordsView: View {
 
     @ObservedObject var viewModel: App2RecordsViewModel
 
+    /// 單位制切換要當場重畫這一頁（同 `App2WorkoutDetailView` 的接法）。
+    @ObservedObject private var unitManager = UnitManager.shared
+
     /// 右上日曆鈕開的是 1.x 既有的 `TrainingCalendarView`（`WeekOverviewCardV2`
     /// 也是以 sheet + NavigationView 開它）—— 不另做一份月曆。
     @State private var showTrainingCalendar = false
@@ -156,7 +159,9 @@ struct App2RecordsView: View {
                 .foregroundStyle(App2Theme.inkTertiary)
             Spacer(minLength: 8)
             if group.totalKm > 0 {
-                Text(L10n.Record.Group.totalKmFormat.localized(with: group.totalKm))
+                Text(L10n.Record.Group.totalDistanceFormat.localized(
+                    with: unitManager.currentUnitSystem.formatDistance(group.totalKm)
+                ))
                     .font(.app2Mono(11.5, weight: .bold))
                     .foregroundStyle(App2Theme.inkTertiary)
             }
@@ -170,6 +175,7 @@ struct App2RecordsView: View {
 
     private func heroCard(_ sourced: App2Sourced<App2Records>) -> some View {
         let records = sourced.value
+        let unit = unitManager.currentUnitSystem
         return App2AccentCard(strength: 0.14, padding: 18, spacing: 0) {
             HStack {
                 Spacer()
@@ -181,9 +187,9 @@ struct App2RecordsView: View {
                 totalsColumn(
                     title: L10n.App2.Records.monthSection.localized,
                     titleColor: App2Theme.accentBlueDeep,
-                    value: Self.grouped(records.monthDistanceKm),
-                    unit: "km",
-                    footnote: Self.monthComparison(records.monthDeltaKm)
+                    value: Self.grouped(unit.convertedDistance(records.monthDistanceKm)),
+                    unit: unit.distanceSuffix,
+                    footnote: Self.monthComparison(records.monthDeltaKm, unit: unit)
                         ?? String(format: L10n.App2.Records.runsCount.localized, records.monthWorkouts),
                     footnoteColor: records.monthDeltaKm.map(Self.deltaColor)
                 )
@@ -193,8 +199,8 @@ struct App2RecordsView: View {
                 totalsColumn(
                     title: L10n.App2.Records.ytdSection.localized,
                     titleColor: App2Theme.inkMuted,
-                    value: records.ytdDistanceKm.map { Self.grouped($0) } ?? "—",
-                    unit: "km",
+                    value: records.ytdDistanceKm.map { Self.grouped(unit.convertedDistance($0)) } ?? "—",
+                    unit: unit.distanceSuffix,
                     footnote: records.ytdWorkouts.map {
                         String(format: L10n.App2.Records.runsCount.localized, $0)
                     } ?? "—"
@@ -258,6 +264,7 @@ struct App2RecordsView: View {
     private func workoutCard(_ item: App2RecordItem) -> some View {
         let row = item.row
         let type = row.dayType
+        let unit = unitManager.currentUnitSystem
         return App2LeftStripCard(
             strip: type?.app2StripColor ?? App2Theme.accentBlue,
             padding: EdgeInsets(top: 14, leading: 15, bottom: 14, trailing: 15)
@@ -288,19 +295,19 @@ struct App2RecordsView: View {
 
             HStack(alignment: .bottom, spacing: 20) {
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Text(row.distance.replacingOccurrences(of: " km", with: ""))
+                    Text(Self.grouped(unit.convertedDistance(row.distanceKm)))
                         .font(.app2Mono(28, weight: .bold))
                         .foregroundStyle(App2Theme.inkPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.7)
-                    Text(verbatim: "km")
+                    Text(unit.distanceSuffix)
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(App2Theme.inkTertiary)
                 }
-                if let pace = row.pace {
+                if let seconds = row.paceSecondsPerKm {
                     metricColumn(
-                        value: pace.replacingOccurrences(of: "/km", with: ""),
-                        suffix: "/km",
+                        value: unit.paceValue(secondsPerKm: seconds),
+                        suffix: unit.paceSuffix,
                         caption: L10n.App2.Records.pace.localized
                     )
                 }
@@ -380,10 +387,10 @@ struct App2RecordsView: View {
     /// 設計 hero 左欄的「↑ 較上月 +18」。上月資料不齊時 VM 給 nil，這一列就不出現。
     ///
     /// 精度跟上方的本月跑量同一條規則 —— 否則同一欄會出現 `77.9 km` 配 `+78`。
-    static func monthComparison(_ deltaKm: Double?) -> String? {
+    static func monthComparison(_ deltaKm: Double?, unit: UnitSystem) -> String? {
         guard let deltaKm else { return nil }
         let arrow = deltaKm > 0 ? "↑" : (deltaKm < 0 ? "↓" : "→")
-        let magnitude = grouped(abs(deltaKm))
+        let magnitude = grouped(unit.convertedDistance(abs(deltaKm)))
         let signed = deltaKm > 0 ? "+\(magnitude)" : (deltaKm < 0 ? "-\(magnitude)" : magnitude)
         return "\(arrow) " + String(format: L10n.App2.Records.vsLastMonth.localized, signed)
     }
@@ -398,7 +405,8 @@ struct App2RecordsView: View {
     ///
     /// **保留一位小數**：跑量的真值就是 `72.6`，四捨五入成 `73` 會跟同一份資料在
     /// Android 上顯示的數字對不上（2026-08-25 兩平台實走）。整數值不帶 `.0`。
-    static func grouped(_ km: Double) -> String {
-        App2NumberFormat.grouped(km, maximumFractionDigits: 1)
+    /// 傳入的是**已換算**的值（`UnitSystem.convertedDistance`），這裡只管千分位。
+    static func grouped(_ value: Double) -> String {
+        App2NumberFormat.grouped(value, maximumFractionDigits: 1)
     }
 }

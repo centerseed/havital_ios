@@ -207,8 +207,10 @@ enum App2StubFixtures {
         let dateLabel: String
         let tag: String?
         let dayType: String?
-        let distance: String
-        let pace: String?
+        // 距離／配速是原始量（km、秒/km），跟 `WeeklyBarFixture.distanceKm` 同一種形狀。
+        // 樣本資料一樣要跟著用戶的單位制走，所以這裡不預先格式化成 `11.0 km`。
+        let distanceKm: Double
+        let paceSecondsPerKm: Double?
         let duration: String
         let vdot: String?
 
@@ -216,7 +218,8 @@ enum App2StubFixtures {
             App2WorkoutRow(
                 id: id, dateLabel: dateLabel, tag: tag,
                 dayType: dayType.flatMap { DayType(rawValue: $0) },
-                distance: distance, pace: pace, duration: duration, vdot: vdot
+                distanceKm: distanceKm, paceSecondsPerKm: paceSecondsPerKm,
+                duration: duration, vdot: vdot
             )
         }
     }

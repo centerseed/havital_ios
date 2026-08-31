@@ -14,6 +14,9 @@ import SwiftUI
 struct App2PlanView: View {
 
     @ObservedObject var viewModel: App2PlanViewModel
+
+    /// 單位制切換要當場重畫（同 `App2WorkoutDetailView` 的接法）。
+    @ObservedObject private var unitManager = UnitManager.shared
     /// 日卡點下去開的訓練詳情（設計 frame-02）。休息日不在 `dayDetails` 裡 → 點不開。
     @State private var detailSession: App2SessionDetail?
     /// 修改課表（與首頁「…」menu 同一個入口殼）。
@@ -420,6 +423,8 @@ struct App2PlanView: View {
         let completed = week.completedDistanceKm ?? 0
         let target = max(week.targetDistanceKm, 0.1)
         let ratio = min(completed / target, 1)
+        // 比例是無因次的，換算只影響畫出來的數字。
+        let unit = unitManager.currentUnitSystem
 
         return App2AccentCard(padding: 16, spacing: 0) {
             HStack {
@@ -433,10 +438,13 @@ struct App2PlanView: View {
 
             HStack(alignment: .firstTextBaseline) {
                 HStack(alignment: .firstTextBaseline, spacing: 0) {
-                    Text(week.completedDistanceKm.map { App2NumberFormat.grouped($0, maximumFractionDigits: 1) } ?? "0")
+                    Text(week.completedDistanceKm
+                        .map { App2NumberFormat.grouped(unit.convertedDistance($0), maximumFractionDigits: 1) } ?? "0")
                         .font(.app2Mono(28))
                         .foregroundStyle(App2Theme.inkPrimary)
-                    Text(verbatim: " / \(App2NumberFormat.grouped(week.targetDistanceKm, maximumFractionDigits: 1)) km")
+                    Text(verbatim: " / "
+                         + App2NumberFormat.grouped(unit.convertedDistance(week.targetDistanceKm), maximumFractionDigits: 1)
+                         + " " + unit.distanceSuffix)
                         .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(App2Theme.inkTertiary)
                 }

@@ -195,8 +195,8 @@ final class App2RecordsViewModelTests: XCTestCase {
                 dateLabel: "8/\(26 - daysBeforeNow)",
                 tag: type?.localizedName,
                 dayType: type,
-                distance: km.map { String(format: "%.1f km", $0) } ?? "—",
-                pace: nil,
+                distanceKm: km ?? 0,
+                paceSecondsPerKm: nil,
                 duration: "30:00",
                 vdot: nil
             ),
@@ -216,8 +216,8 @@ final class App2RecordsViewModelTests: XCTestCase {
                 dateLabel: "—",
                 tag: nil,
                 dayType: nil,
-                distance: km.map { String(format: "%.1f km", $0) } ?? "—",
-                pace: nil,
+                distanceKm: km ?? 0,
+                paceSecondsPerKm: nil,
                 duration: "30:00",
                 vdot: nil
             ),

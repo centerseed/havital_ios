@@ -3228,6 +3228,7 @@
 "achievements.progress.unit.week" = "週";
 "achievements.progress.unit.count" = "次";
 "achievements.progress.unit.km" = "公里";
+"achievements.progress.unit.mi" = "英里";
 "achievements.badge.rhythm.first_active_week.name" = "第一個活躍週";
 "achievements.badge.rhythm.first_active_week.story" = "你在 Paceriz 留下了第一個活躍訓練週。";
 "achievements.badge.rhythm.return_week.name" = "回到節奏";
@@ -3622,7 +3623,7 @@
 "record.group.last_week" = "上週";
 "record.group.older" = "更早";
 "record.group.run_count_format" = "%d 次跑步";
-"record.group.total_km_format" = "共 %.1f km";
+"record.group.total_distance_format" = "共 %@";
 "record.group.month_group_format" = "%d年%d月";
 "weekly_plan_feedback.desc.issue_prefix" = "問題：";
 
@@ -4724,7 +4725,7 @@
 "app2.plan_overview.weeks_until_race" = "還有 %d 週";
 "app2.plan_overview.current_you" = "現在的你";
 "app2.plan_overview.target" = "目標";
-"app2.plan_overview.weekly_volume" = "約 %@ km / 週";
+"app2.plan_overview.weekly_volume" = "約 %@ / 週";
 "app2.plan_overview.no_estimate" = "尚未有完賽預估";
 "app2.plan_overview.progress_label" = "計畫進度";
 "app2.plan_overview.week_of_total" = "第 %1$d / %2$d 週";

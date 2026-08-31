@@ -22,6 +22,9 @@ struct App2AchievementsView: View {
     /// 由 `App2RootView` 持有。這一頁只是第二個版面，不是第二套成就系統。
     @ObservedObject var viewModel: PersonalAchievementsViewModel
 
+    /// 距離類的目標進度要跟著單位制走，切換後當場重畫。
+    @ObservedObject private var unitManager = UnitManager.shared
+
     /// 點開的那一顆徽章（8/28 盤點 F17）。
     ///
     /// 點徽章原本直接彈「設為顯示徽章」確認框——**點徽章看不到徽章**：那一顆的故事、
@@ -184,13 +187,21 @@ struct App2AchievementsView: View {
 
             // 設計 frame-11 的量化列：`1,141.5 / 2,400 km · 還差 1,258.5 km`。
             // 單位取 badge 自己的 `unitKey`（沒有就不加單位，不假設是公里）。
+            //
+            // 後端的 `unit_key` 只有三種（`badge_projector._track_threshold_unit_key`）：
+            // `…unit.km`／`…unit.week`／`…unit.count`。**只有 km 那一種是距離**，
+            // 英制時數值換算＋單位字換成 `…unit.mi`；週數與次數照原樣，不換算。
             if let detail = track.nextBadge?.progress,
                let current = detail.current, let target = detail.target {
-                let unit = detail.unitKey?.localizedOrFallback(default: "") ?? ""
+                let converted = Self.convertProgress(
+                    current: current, target: target,
+                    unitKey: detail.unitKey, unitSystem: unitManager.currentUnitSystem
+                )
+                let unit = converted.unitKey?.localizedOrFallback(default: "") ?? ""
                 let suffix = unit.isEmpty ? "" : " \(unit)"
-                let remaining = max(0, target - current)
+                let remaining = max(0, converted.target - converted.current)
                 Text(
-                    verbatim: "\(Self.grouped(current)) / \(Self.grouped(target))\(suffix) · "
+                    verbatim: "\(Self.grouped(converted.current)) / \(Self.grouped(converted.target))\(suffix) · "
                         + String(
                             format: L10n.App2.Achievements.remainingFormat.localized,
                             "\(Self.grouped(remaining))\(suffix)"
@@ -411,5 +422,27 @@ struct App2AchievementsView: View {
     /// 讀者一眼看得出來是錯的。一律保留一位，整數自然不帶 `.0`。
     static func grouped(_ value: Double) -> String {
         App2NumberFormat.grouped(value, maximumFractionDigits: 1)
+    }
+
+    /// 後端的 `unit_key` 只有公里那一種是距離（`achievements.progress.unit.km`）。
+    /// 英制時把 current／target 一起換算並改用 `…unit.mi` 的字；
+    /// 週數（`…unit.week`）、次數（`…unit.count`）與缺席的 `unit_key` 原樣通過。
+    static let distanceUnitKey = "achievements.progress.unit.km"
+    static let imperialDistanceUnitKey = "achievements.progress.unit.mi"
+
+    static func convertProgress(
+        current: Double,
+        target: Double,
+        unitKey: String?,
+        unitSystem: UnitSystem
+    ) -> (current: Double, target: Double, unitKey: String?) {
+        guard unitKey == distanceUnitKey, unitSystem == .imperial else {
+            return (current, target, unitKey)
+        }
+        return (
+            unitSystem.convertedDistance(current),
+            unitSystem.convertedDistance(target),
+            imperialDistanceUnitKey
+        )
     }
 }

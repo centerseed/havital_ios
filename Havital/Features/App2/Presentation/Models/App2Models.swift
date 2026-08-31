@@ -589,10 +589,15 @@ struct App2WorkoutRow: Identifiable, Equatable {
     let tag: String?
     /// 結構化課型（同 `App2PlanDay.dayType`）：徽章與左緣色條的顏色由它決定。
     let dayType: DayType?
-    /// `12.4 km`
-    let distance: String
-    /// `4:42/km`
-    let pace: String?
+    /// 距離（**公里原始值**）。單位換算與格式化在 View（`UnitManager`），
+    /// 與同一頁的 `App2Records.monthDistanceKm`／`App2WeeklyBar.distanceKm` 同一種形狀。
+    ///
+    /// 2026-09-01 之前這裡是 `12.4 km` 這種**已格式化字串**，於是 View 只好
+    /// `replacingOccurrences(of: " km")` 把單位剪掉再自己貼一個 `km` 回去——
+    /// 英制時 VM 給的是 `mi`，剪不中、`km` 照貼，畫面上是 `8:51/mi/km`。
+    let distanceKm: Double
+    /// 平均配速（**秒／公里原始值**）。同上，換算在 View。
+    let paceSecondsPerKm: Double?
     /// `58:21`
     let duration: String
     /// `dynamic_vdot`
