@@ -144,6 +144,30 @@ final class App2MetricDetailCacheTests: XCTestCase {
         }
     }
 
+    /// 同上，恢復版。
+    private final class GatedHealthSource: HealthDailyDataSourceProtocol {
+        var calls = 0
+        var continuations: [CheckedContinuation<Void, Never>] = []
+        private var released = 0
+
+        func fetchHealthDaily(limit: Int) async throws -> HealthDailyResponse {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+                Task { @MainActor in
+                    self.calls += 1
+                    self.continuations.append(continuation)
+                }
+            }
+            return try EmptyHealthSource.fixture()
+        }
+
+        func releaseAll() {
+            while released < continuations.count {
+                continuations[released].resume()
+                released += 1
+            }
+        }
+    }
+
     private final class ThrowingStatsSource: WorkoutStatsDataSourceProtocol {
         let error: Error
 
@@ -410,6 +434,37 @@ final class App2MetricDetailCacheTests: XCTestCase {
         XCTAssertNil(cache.capability[.days60])
     }
 
+    func test_volumeVM_rangeSwitch_staleRoundCannotClearReplacementSpinner() async {
+        // 切 range 之後、接手那一輪還在飛的期間，舊輪回來不得把 spinner 收掉
+        // （外審第三輪 E03）。**機制的隔離驗證在下面的 teardown 那條**：`select`
+        // 一定會排一個接手輪，兩者誰先跑到 MainActor 不是測試能定的，所以這裡驗的是
+        // 可觀察的結果——舊輪收尾之後，畫面仍在等接手輪。
+        let cache = App2MetricDetailCache()
+        let source = GatedStatsSource()
+        let vm = App2VolumeDetailViewModel(
+            insight: insight("volume"), narrative: nil,
+            workoutDataSource: source, healthDataSource: EmptyHealthSource(),
+            profileRepository: nil, cache: cache
+        )
+
+        let initialLoad = Task { await vm.revalidate() }
+        await Self.waitUntil { source.requestedWeeks.count >= 1 }
+        vm.select(range: .weeks26)
+        await Self.waitUntil { source.requestedWeeks.count >= 2 }
+
+        // 只放行舊輪；接手輪仍卡在 gate 上。
+        source.releaseNext()
+        await initialLoad.value
+
+        XCTAssertTrue(vm.isLoading, "接手輪還在飛，舊輪收尾不得清掉 spinner")
+        XCTAssertFalse(vm.hasLoaded)
+        XCTAssertTrue(cache.volume.isEmpty)
+
+        source.releaseAll()
+        await vm.rangeReloadTask?.value
+        XCTAssertFalse(vm.isLoading, "接手輪自己收尾")
+    }
+
     func test_volumeVM_roundInvalidatedByTeardown_cannotClearCurrentSpinner() async {
         // 取消（onDisappear）到「有沒有新輪接手」之間的邊界：被作廢的那一輪回來時
         // 不得代替不存在的新輪收尾——否則畫面上的 spinner 會被清成一片空白
@@ -584,6 +639,54 @@ final class App2MetricDetailCacheTests: XCTestCase {
         XCTAssertNil(nextVM.detail)
         await nextVM.loadIfNeeded()
         XCTAssertEqual(next.statsCalls, 1)
+    }
+
+    func test_capabilityVM_busInvalidationDuringInflightRevalidate_doesNotRepopulate() async throws {
+        // 同 volume：能力基準這條路徑也走同一個失效世代（外審第三輪 E03）。
+        await rewireCacheRegistrations()
+        let cache = App2MetricDetailCache.shared
+        let source = GatedVdotSource()
+        let vm = App2CapabilityDetailViewModel(
+            insight: insight("capability"), narrative: nil,
+            vdotDataSource: source, cache: cache
+        )
+
+        let inflight = Task { await vm.revalidate() }
+        await Self.waitUntil { source.requestedLimits.count >= 1 }
+
+        let epochBefore = cache.invalidationEpoch
+        CacheEventBus.shared.publish(.dataChanged(.workouts))
+        await Self.waitUntil { cache.invalidationEpoch > epochBefore }
+
+        source.releaseAll()
+        await inflight.value
+
+        XCTAssertTrue(cache.capability.isEmpty, "事件清空之後的 in-flight 回應不得重新填回快取")
+        XCTAssertNotNil(vm.detail, "畫面照發")
+    }
+
+    func test_recoveryVM_busInvalidationDuringInflightRevalidate_doesNotRepopulate() async throws {
+        // 同上：恢復頁沒有 range tabs，但失效世代這條線一樣要在（外審第三輪 E03）。
+        await rewireCacheRegistrations()
+        let cache = App2MetricDetailCache.shared
+        let source = GatedHealthSource()
+        let vm = App2RecoveryDetailViewModel(
+            insight: insight("recovery"), narrative: nil,
+            healthDataSource: source, cache: cache
+        )
+
+        let inflight = Task { await vm.revalidate() }
+        await Self.waitUntil { source.calls >= 1 }
+
+        let epochBefore = cache.invalidationEpoch
+        CacheEventBus.shared.publish(.dataChanged(.workouts))
+        await Self.waitUntil { cache.invalidationEpoch > epochBefore }
+
+        source.releaseAll()
+        await inflight.value
+
+        XCTAssertNil(cache.recovery, "事件清空之後的 in-flight 回應不得重新填回快取")
+        XCTAssertNotNil(vm.detail, "畫面照發")
     }
 
     func test_userDataChanged_throughBus_clearsCache() async throws {
