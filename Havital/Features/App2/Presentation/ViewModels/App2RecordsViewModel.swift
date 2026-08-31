@@ -371,6 +371,10 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
     /// 既有的 `record.group.*`（`TrainingRecordView` 也用這一組），不開第二份字串。
     ///
     /// 用裝置當地日曆；月份桶的 key 正規化到「月初」再當 Dictionary key。
+    ///
+    /// **週界是週一起始**（`App2WeekCalendar.currentWeekStart`），不是
+    /// `dateInterval(of: .weekOfYear)` 的 locale 週界——zh-TW 的週首是週日，那條會把
+    /// 週日的紀錄歸進「本週稍早」，而課表頁與 backend 都算它是上週（同一天兩種答案）。
     static func groups(
         _ items: [App2RecordItem],
         now: Date = Date(),
@@ -384,10 +388,11 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
             }
         }
 
-        let thisWeek = calendar.dateInterval(of: .weekOfYear, for: now)
-        let lastWeek = thisWeek
-            .flatMap { calendar.date(byAdding: .weekOfYear, value: -1, to: $0.start) }
-            .flatMap { calendar.dateInterval(of: .weekOfYear, for: $0) }
+        let thisMonday = App2WeekCalendar.currentWeekStart(reference: now, calendar: calendar)
+        let thisWeek = calendar.date(byAdding: .day, value: 7, to: thisMonday)
+            .map { DateInterval(start: thisMonday, end: $0) }
+        let lastWeek = calendar.date(byAdding: .day, value: -7, to: thisMonday)
+            .map { DateInterval(start: $0, end: thisMonday) }
         let yesterday = calendar.date(byAdding: .day, value: -1, to: now)
 
         var order: [App2RecordBucket] = []

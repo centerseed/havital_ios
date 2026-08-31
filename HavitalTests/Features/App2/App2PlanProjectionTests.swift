@@ -87,6 +87,38 @@ final class App2PlanProjectionTests: XCTestCase {
         XCTAssertEqual(App2WeekCalendar.dateLabel(dayIndex: 7, weekStart: monday, calendar: calendar), "8/16")
     }
 
+    // MARK: - 本週已完成量的週界（2026-08-31 實機：13 km vs 正確的 8.46 km）
+
+    /// 週界是**週一**，不是 locale 週首。日曆刻意設成 `firstWeekday = 1`（週日，
+    /// zh-TW 與 en-US 都是這個值），舊實作的 `dateInterval(of: .weekOfYear)` 會把
+    /// 起點退到週日 8/30，於是週日那筆跑量被算進本週。
+    func test_completedThisWeekWindow_startsOnMondayNotLocaleWeekday() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Taipei")!
+        calendar.firstWeekday = 1                                     // 週日起始（zh-TW）
+        // 2026-08-31 是週一。
+        let monday = calendar.date(from: DateComponents(year: 2026, month: 8, day: 31, hour: 10))!
+
+        let window = App2PlanViewModel.completedThisWeekWindow(now: monday, calendar: calendar)
+
+        XCTAssertEqual(calendar.component(.weekday, from: window.start), 2, "起點必須是週一")
+        XCTAssertEqual(calendar.component(.day, from: window.start), 31)
+        XCTAssertEqual(window.end, monday)
+    }
+
+    /// 釘住實機那一筆：週日 2026-08-30 的跑步屬於**上週**，不得落進本週的查詢窗。
+    func test_completedThisWeekWindow_excludesSundayWorkoutOfPreviousWeek() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Taipei")!
+        calendar.firstWeekday = 1
+        let monday = calendar.date(from: DateComponents(year: 2026, month: 8, day: 31, hour: 10))!
+        let sundayRun = calendar.date(from: DateComponents(year: 2026, month: 8, day: 30, hour: 8))!
+
+        let window = App2PlanViewModel.completedThisWeekWindow(now: monday, calendar: calendar)
+
+        XCTAssertLessThan(sundayRun, window.start, "週日 8/30 的跑量是上週的，不計入本週")
+    }
+
     func test_planWeek_fillsDateLabelForEveryDay() throws {
         // 投影內部用 `Calendar.current`，所以週起點也用它建，避免跨時區飄一天。
         let calendar = Calendar.current

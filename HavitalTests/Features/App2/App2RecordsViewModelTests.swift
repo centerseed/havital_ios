@@ -208,6 +208,26 @@ final class App2RecordsViewModelTests: XCTestCase {
         )
     }
 
+    /// 週界測試要指定確切日期，不能用「幾天前」——那樣會跟著 `fixedNow` 走。
+    private func item(id: String, date: Date, km: Double?) -> App2RecordItem {
+        App2RecordItem(
+            row: App2WorkoutRow(
+                id: id,
+                dateLabel: "—",
+                tag: nil,
+                dayType: nil,
+                distance: km.map { String(format: "%.1f km", $0) } ?? "—",
+                pace: nil,
+                duration: "30:00",
+                vdot: nil
+            ),
+            date: date,
+            distanceKm: km,
+            whenLabel: "—",
+            workout: nil
+        )
+    }
+
     func test_groups_splitsTodayYesterdayThisWeekAndLastWeek() {
         let groups = App2RecordsViewModel.groups(
             [
@@ -228,6 +248,33 @@ final class App2RecordsViewModelTests: XCTestCase {
         XCTAssertEqual(groups[1].title, L10n.Record.Group.yesterday.localized)
         XCTAssertEqual(groups[2].title, L10n.Record.Group.earlierThisWeek.localized)
         XCTAssertEqual(groups[3].title, L10n.Record.Group.lastWeek.localized)
+    }
+
+    /// 週界跟課表頁與 backend 一樣是**週一**。日曆刻意設成 `firstWeekday = 1`
+    /// （週日，zh-TW 與 en-US 都是這個值）：舊的 `dateInterval(of: .weekOfYear)`
+    /// 會把週日 8/30 歸進「本週稍早」，而同一天課表頁說它是上週。
+    func test_groups_weekBoundaryIsMondayNotLocaleWeekday() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Asia/Taipei")!
+        calendar.firstWeekday = 1
+        // 2026-09-02 是週三 → 本週＝8/31（一）～9/6（日）；昨天＝9/1，不會吃到 8/31。
+        let wednesday = calendar.date(from: DateComponents(year: 2026, month: 9, day: 2, hour: 12))!
+        let sunday = calendar.date(from: DateComponents(year: 2026, month: 8, day: 30, hour: 8))!
+        let thisMonday = calendar.date(from: DateComponents(year: 2026, month: 8, day: 31, hour: 8))!
+
+        let groups = App2RecordsViewModel.groups(
+            [
+                item(id: "sunday", date: sunday, km: 5.01),
+                item(id: "monday", date: thisMonday, km: 8.46)
+            ],
+            now: wednesday,
+            calendar: calendar
+        )
+
+        let sundayGroup = groups.first { $0.items.contains { $0.id == "sunday" } }
+        let mondayGroup = groups.first { $0.items.contains { $0.id == "monday" } }
+        XCTAssertEqual(sundayGroup?.title, L10n.Record.Group.lastWeek.localized, "週日 8/30 屬於上週")
+        XCTAssertEqual(mondayGroup?.title, L10n.Record.Group.earlierThisWeek.localized)
     }
 
     /// 更早的紀錄按月分桶：同一個月一定落在同一組（月初當 key，已正規化）。

@@ -615,11 +615,22 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         )
     }
 
+    /// 本週已完成量的時間窗 —— 起點是**週一 00:00**，終點是此刻。
+    ///
+    /// 原本這裡是 `calendar.dateInterval(of: .weekOfYear, for: now)`，那條的週首隨
+    /// locale 變（zh-TW ＝ 週日），與 backend 的週一週界差一天：2026-08-31（週一）
+    /// 實機把週日 8/30 的 5.01 km 算進本週，13 km vs 正確的 8.46 km。
+    /// `App2WeekCalendar.currentWeekStart` 的 doc comment 早就寫明不要用 dateInterval。
+    static func completedThisWeekWindow(
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> (start: Date, end: Date) {
+        (App2WeekCalendar.currentWeekStart(reference: now, calendar: calendar), now)
+    }
+
     private func completedDistanceKmThisWeek() async -> Double? {
-        let calendar = Calendar.current
-        let now = Date()
-        guard let interval = calendar.dateInterval(of: .weekOfYear, for: now) else { return nil }
-        return await completedDistanceKm(from: interval.start, to: now)
+        let window = Self.completedThisWeekWindow()
+        return await completedDistanceKm(from: window.start, to: window.end)
     }
 
     /// 歷史週的已完成量 —— 範圍是**那一整週**（週一 00:00 到週日 23:59），
