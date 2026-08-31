@@ -617,11 +617,15 @@ final class App2RenderingTests: XCTestCase {
     }
 
     /// 刻度必須真的畫出來：帶 tickFormatter 的圖與不帶的圖不同。
+    /// formatter 用 trendCard 實際接的那一個（配速＝projection 的 formatPace）。
     func test_workoutTrend_ticksRendered() {
         let pace = (0..<40).map { 330.0 + Double($0 % 5) * 12 }
         let withTicks = render(
             App2Sparkline(points: pace, tint: .blue, isInverted: true,
-                          tickFormatter: { String(Int($0)) }, usesRobustBounds: true),
+                          tickFormatter: App2WorkoutDetailProjection.trendTickFormatter(
+                              for: .pace, unitSystem: .metric
+                          ),
+                          usesRobustBounds: true),
             name: "trend-ticks-on", height: 72
         )
         let withoutTicks = render(
@@ -629,5 +633,21 @@ final class App2RenderingTests: XCTestCase {
             name: "trend-ticks-off", height: 72
         )
         XCTAssertNotEqual(withTicks.pngData(), withoutTicks.pngData(), "刻度必須實際渲染")
+    }
+
+    /// percentile 退化（大量等值＋一根離群值）走 min/max fallback：
+    /// 夾邊值仍畫在邊界，畫面不得塌成平線。
+    func test_workoutTrend_degenerateDomain_stillDrawsOutlier() {
+        let degenerate = Array(repeating: 360.0, count: 100) + [1800.0]
+        let flat = Array(repeating: 360.0, count: 101)
+        let withOutlier = render(
+            App2Sparkline(points: degenerate, tint: .blue, isInverted: true, usesRobustBounds: true),
+            name: "trend-degenerate-outlier", height: 72
+        )
+        let flatOnly = render(
+            App2Sparkline(points: flat, tint: .blue, isInverted: true, usesRobustBounds: true),
+            name: "trend-degenerate-flat", height: 72
+        )
+        XCTAssertNotEqual(withOutlier.pngData(), flatOnly.pngData(), "退化域下離群值仍要畫出來")
     }
 }

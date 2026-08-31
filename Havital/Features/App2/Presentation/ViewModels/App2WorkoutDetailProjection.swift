@@ -475,6 +475,27 @@ extension App2WorkoutDetailProjection {
         let rounded = Int(unitSystem.convertedPaceSeconds(secondsPerKm).rounded())
         return String(format: "%d:%02d", rounded / 60, rounded % 60)
     }
+
+    /// 趨勢圖（`App2Sparkline`）的 y 軸刻度量綱（T-0356）。
+    enum TrendTickMetric {
+        case heartRate
+        case pace
+    }
+
+    /// 趨勢圖刻度的格式化函式。View 只負責接線，格式住在這裡，
+    /// 測試才拿得到 caller 實際用的那一個。心率是整數 bpm，
+    /// 配速沿用 `formatPace`（m:ss，隨 `unitSystem` 換算）。
+    static func trendTickFormatter(
+        for metric: TrendTickMetric,
+        unitSystem: UnitSystem
+    ) -> (Double) -> String {
+        switch metric {
+        case .heartRate:
+            return { String(Int($0.rounded())) }
+        case .pace:
+            return { formatPace(secondsPerKm: $0, unitSystem: unitSystem) }
+        }
+    }
 }
 
 extension String {

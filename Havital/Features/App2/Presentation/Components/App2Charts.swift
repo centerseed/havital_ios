@@ -610,17 +610,19 @@ struct App2Sparkline: View {
     var usesRobustBounds: Bool = false
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
-            if let tickFormatter, let bounds = Self.bounds(points, robust: usesRobustBounds) {
+        // 域一次 render 只算一次，刻度與折線共用：robust 會 sort，算兩次就排兩次（T-0356）。
+        let bounds = Self.bounds(points, robust: usesRobustBounds)
+        return HStack(alignment: .top, spacing: 8) {
+            if let tickFormatter, let bounds {
                 yTicks(bounds, formatter: tickFormatter)
             }
-            plot
+            plot(bounds)
         }
     }
 
-    private var plot: some View {
+    private func plot(_ bounds: (lower: Double, upper: Double)?) -> some View {
         GeometryReader { geo in
-            if let bounds = Self.bounds(points, robust: usesRobustBounds) {
+            if let bounds {
                 let normalized = Self.normalize(points, isInverted: isInverted, bounds: bounds)
                 if normalized.count >= 2 {
                     let line = Self.path(normalized, in: geo.size)
@@ -650,25 +652,33 @@ struct App2Sparkline: View {
         .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
     }
 
-    /// 三顆刻度貼原始量綱；inverted（配速）時上＝快（小值）、下＝慢（大值），
-    /// 與折線的視覺方向一致。
+    /// 圖外三顆小字，值來自 `tickValues`。
     private func yTicks(_ bounds: (lower: Double, upper: Double), formatter: (Double) -> String) -> some View {
-        let top = isInverted ? bounds.lower : bounds.upper
-        let bottom = isInverted ? bounds.upper : bounds.lower
-        let mid = (bounds.lower + bounds.upper) / 2
+        let values = Self.tickValues(bounds, isInverted: isInverted)
         return VStack(alignment: .trailing, spacing: 0) {
-            Text(formatter(top))
+            Text(formatter(values[0]))
             Spacer(minLength: 0)
-            Text(formatter(mid))
+            Text(formatter(values[1]))
             Spacer(minLength: 0)
-            Text(formatter(bottom))
+            Text(formatter(values[2]))
         }
         .font(.app2Mono(9, weight: .semibold))
         .foregroundStyle(App2Theme.inkFaint)
         .frame(height: height)
     }
 
-    /// robust＝p5–p95（樣本 ≥20 才有意義；不足退回 min/max）。
+    /// 刻度值，由上而下三顆、貼原始量綱。inverted（配速）時上＝快（小值）、
+    /// 下＝慢（大值），與折線的視覺方向一致。永遠回三個值。
+    static func tickValues(_ bounds: (lower: Double, upper: Double), isInverted: Bool) -> [Double] {
+        let mid = (bounds.lower + bounds.upper) / 2
+        return isInverted
+            ? [bounds.lower, mid, bounds.upper]
+            : [bounds.upper, mid, bounds.lower]
+    }
+
+    /// robust＝p5–p95。**兩個明文退回 min/max 的情況**（T-0356 決策）：
+    /// 樣本 <20 時取百分位沒有意義；p5 == p95（大量等值＋離群值）時域會塌成一點，
+    /// 折線畫不出來。兩者都退回 min/max，域外值仍由 `normalize` 夾到邊界。
     static func bounds(_ values: [Double], robust: Bool) -> (lower: Double, upper: Double)? {
         guard let min = values.min(), let max = values.max() else { return nil }
         if robust, values.count >= 20 {

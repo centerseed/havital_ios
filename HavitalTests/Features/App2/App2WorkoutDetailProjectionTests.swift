@@ -398,4 +398,85 @@ final class App2WorkoutDetailProjectionTests: XCTestCase {
         let normalized = App2Sparkline.normalize([350, 350], isInverted: false, bounds: (350, 350))
         XCTAssertEqual(normalized, [0.5, 0.5])
     }
+
+    /// 大量等值＋一根離群值：p5 == p95，域會塌成一點。決策明文退回 min/max。
+    func test_sparklineBounds_robust_percentileDegenerate_fallsBackToMinMax() {
+        let values = Array(repeating: 360.0, count: 100) + [1800.0]
+        let bounds = App2Sparkline.bounds(values, robust: true)
+        XCTAssertEqual(bounds?.lower, 360)
+        XCTAssertEqual(bounds?.upper, 1800)
+    }
+
+    /// 退化域下夾邊值仍畫在邊界（不消失）：inverted 時主體在頂、離群值在底。
+    func test_sparklineNormalize_degenerateDomain_stillDrawsBothEdges() {
+        let values = Array(repeating: 360.0, count: 100) + [1800.0]
+        let bounds = App2Sparkline.bounds(values, robust: true)!
+        let normalized = App2Sparkline.normalize(values, isInverted: true, bounds: bounds)
+        XCTAssertEqual(normalized.count, 101)
+        XCTAssertEqual(normalized.first, 1.0)
+        XCTAssertEqual(normalized.last, 0.0)
+    }
+
+    // MARK: - 三顆刻度的值與文字（T-0356）
+
+    /// 主體 305–395、一根 1800 離群值；p5/p95 落在等值塊上，不隨索引 ±1 漂移。
+    private func paceSeriesWithOutlier() -> [Double] {
+        Array(repeating: 305.0, count: 10)
+            + (0..<80).map { 306.0 + Double($0) }
+            + Array(repeating: 395.0, count: 11)
+            + [1800.0]
+    }
+
+    private func heartRateSeries() -> [Double] {
+        Array(repeating: 105.0, count: 10)
+            + (0..<80).map { 106.0 + Double($0) }
+            + Array(repeating: 195.0, count: 11)
+    }
+
+    func test_sparklineTickValues_alwaysThree_upperMidLower() {
+        let values = App2Sparkline.tickValues((lower: 300, upper: 400), isInverted: false)
+        XCTAssertEqual(values, [400, 350, 300])
+    }
+
+    /// inverted（配速）上＝快（小值）。
+    func test_sparklineTickValues_inverted_fastestOnTop() {
+        let values = App2Sparkline.tickValues((lower: 300, upper: 400), isInverted: true)
+        XCTAssertEqual(values, [300, 350, 400])
+        XCTAssertLessThan(values[0], values[2])
+    }
+
+    /// trendCard 心率那條的實際接線：三顆整數 bpm，大值在上。
+    func test_trendTicks_heartRate_threeIntegerLabels() {
+        let bounds = App2Sparkline.bounds(heartRateSeries(), robust: true)!
+        let formatter = App2WorkoutDetailProjection.trendTickFormatter(
+            for: .heartRate, unitSystem: .metric
+        )
+        let labels = App2Sparkline.tickValues(bounds, isInverted: false).map(formatter)
+        XCTAssertEqual(labels.count, 3)
+        XCTAssertEqual(labels, ["195", "150", "105"])
+    }
+
+    /// trendCard 配速那條的實際接線（公制）：離群值被 p5–p95 擋掉，
+    /// 刻度是既有 formatPace 的 m:ss，上＝快。
+    func test_trendTicks_pace_metric_threeLabels() {
+        let bounds = App2Sparkline.bounds(paceSeriesWithOutlier(), robust: true)!
+        XCTAssertEqual(bounds.lower, 305)
+        XCTAssertEqual(bounds.upper, 395)
+        let formatter = App2WorkoutDetailProjection.trendTickFormatter(
+            for: .pace, unitSystem: .metric
+        )
+        let labels = App2Sparkline.tickValues(bounds, isInverted: true).map(formatter)
+        XCTAssertEqual(labels.count, 3)
+        XCTAssertEqual(labels, ["5:05", "5:50", "6:35"])
+    }
+
+    /// 英制時刻度值要過 `convertedPaceSeconds`（305→8:11、350→9:23、395→10:36）。
+    func test_trendTicks_pace_imperial_convertsPerMile() {
+        let bounds = App2Sparkline.bounds(paceSeriesWithOutlier(), robust: true)!
+        let formatter = App2WorkoutDetailProjection.trendTickFormatter(
+            for: .pace, unitSystem: .imperial
+        )
+        let labels = App2Sparkline.tickValues(bounds, isInverted: true).map(formatter)
+        XCTAssertEqual(labels, ["8:11", "9:23", "10:36"])
+    }
 }

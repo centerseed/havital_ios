@@ -653,7 +653,10 @@ struct App2WorkoutDetailView: View {
                     points: viewModel.heartRates.map(\.value),
                     tint: App2Theme.appleHealthRed,
                     isInverted: false,
-                    tickFormatter: { String(Int($0.rounded())) }
+                    tickFormatter: App2WorkoutDetailProjection.trendTickFormatter(
+                        for: .heartRate,
+                        unitSystem: unitManager.currentUnitSystem
+                    )
                 )
             }
             if viewModel.paces.count >= 2 {
@@ -665,9 +668,10 @@ struct App2WorkoutDetailView: View {
                     tint: App2Theme.accentBlue,
                     // 配速小＝快，不反轉的話「變快」會畫成往下掉。
                     isInverted: true,
-                    tickFormatter: { [unitSystem = unitManager.currentUnitSystem] in
-                        App2WorkoutDetailProjection.formatPace(secondsPerKm: $0, unitSystem: unitSystem)
-                    }
+                    tickFormatter: App2WorkoutDetailProjection.trendTickFormatter(
+                        for: .pace,
+                        unitSystem: unitManager.currentUnitSystem
+                    )
                 )
             }
         }
