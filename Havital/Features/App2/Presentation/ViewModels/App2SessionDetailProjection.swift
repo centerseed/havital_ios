@@ -241,17 +241,40 @@ enum App2SessionDetailProjection {
 
     // MARK: - 訓練結構
 
+    /// 段落列要畫的內容。**換算在這裡做，不在投影的時候**（外審第八輪 E03）：
+    /// 單段課的主課列存的是原始 payload，其餘列的字與單位無關。
+    ///
+    /// 同一份 `segment`（＝ modal 手上那一份）問兩種單位就得到兩種字，
+    /// 不必重建 model —— 與 `App2SessionPaceBand.paceLabel(_:)` 同一種形狀。
+    static func segmentDetail(
+        _ segment: App2SessionDetailSegment,
+        unitSystem: UnitSystem
+    ) -> String? {
+        if let steadyPrimary = segment.steadyPrimary {
+            return App2PlanViewModel.contentLine(steadyPrimary, unitSystem: unitSystem)
+        }
+        return segment.fixedDetail
+    }
+
     /// 逐段列。順序照 payload：`warmup` → `primary.segments[]` → `cooldown`。
     /// 單段課（輕鬆跑／長跑）只有一列主課 —— 那也是結構，不是「沒有結構」。
     static func detailSegments(day: DayDetail) -> [App2SessionDetailSegment] {
         var rows: [App2SessionDetailSegment] = []
-        func append(_ name: String, detail: String?, repeats: String? = nil, note: String? = nil, isWork: Bool) {
-            guard detail != nil || note != nil else { return }
+        func append(
+            _ name: String,
+            detail: String? = nil,
+            steadyPrimary: PrimaryActivity? = nil,
+            repeats: String? = nil,
+            note: String? = nil,
+            isWork: Bool
+        ) {
+            guard detail != nil || steadyPrimary != nil || note != nil else { return }
             rows.append(.init(
                 id: rows.count,
                 index: rows.count + 1,
                 name: name,
-                detail: detail,
+                fixedDetail: detail,
+                steadyPrimary: steadyPrimary,
                 repeatsLabel: repeats,
                 note: note,
                 isWork: isWork
@@ -277,9 +300,19 @@ enum App2SessionDetailProjection {
                 // （dev 實測 `"lsd 6.0 km"` —— 識別字 ＋ 已經在同一列上的量），
                 // 印出來等於把 `run_type` 直接顯示給用戶。人話那一句是 `day_target`，
                 // 已經在上面的「本次訓練目標」卡。
+                //
+                // **存原始 payload，不存格式化字串**（外審第八輪 E03）：這一列的距離
+                // 與配速跟單位走，而詳情頁是 `fullScreenCover` 的 item，重投影換不掉
+                // 已經遞進去的那一份。
+                //
+                // 「這一列存不存在」與單位無關（`contentLine` 只在距離／時長／配速
+                // 三欄都缺席時回 nil），所以拿 `.metric` 問一次就夠，不必等到畫的時候。
+                let hasSteadyLine = App2PlanViewModel.contentLine(
+                    day.session?.primary, unitSystem: .metric
+                ) != nil
                 append(
                     L10n.App2.Home.segmentMain.localized,
-                    detail: App2PlanViewModel.contentLine(day.session?.primary),
+                    steadyPrimary: hasSteadyLine ? day.session?.primary : nil,
                     isWork: true
                 )
             }
@@ -474,7 +507,12 @@ enum App2SessionDetailProjection {
         else { return nil }
         let adjusted = App2SegmentFormat.paceWithUnit(pace)
         let work = segments.first { $0.isWork } ?? segments.first
-        guard let amount = work?.detail?
+        // **這一行整行是公制**：右半邊的 `adjusted` 走 `App2SegmentFormat.paceWithUnit`，
+        // 那是後端以公里給的處方配速字串，本票明確排除（票面「不在範圍」第 9 項）。
+        // 量的半邊若跟著 app 單位走，這一行就變成本票要消滅的「同一行兩種單位」
+        // （`5.0 mi @ 5:09/km`）。所以顯式傳 `.metric`，不吃當前設定。
+        // 間歇日走的 `effortLabel(effort:)` 本來就是公制，兩種課型因此一致。
+        guard let amount = work.flatMap({ segmentDetail($0, unitSystem: .metric) })?
             .components(separatedBy: App2SegmentFormat.separator).first?
             .trimmingCharacters(in: .whitespaces),
             !amount.isEmpty

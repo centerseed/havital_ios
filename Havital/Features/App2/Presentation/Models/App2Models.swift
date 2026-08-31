@@ -373,8 +373,17 @@ struct App2SessionDetailSegment: Identifiable, Equatable {
     let index: Int
     /// `熱身`／`節奏段`／`緩和`
     let name: String
-    /// `2.0 km · 6:50/km`
-    let detail: String?
+    /// `2.0 km · 6:50/km`。**這一欄與單位無關**：暖身／緩和／間歇段的分段量
+    /// 刻意維持公制（T-0366 票面「不在範圍」第 9 項與其連帶 —— 只換距離不換配速
+    /// 會讓那一行變成「同一行兩種單位」）。會跟單位走的是 `steadyPrimary`。
+    let fixedDetail: String?
+    /// 單段課（輕鬆跑／長跑）主課列的**原始 payload**，不是格式化字串。
+    ///
+    /// 那一列走 `App2PlanViewModel.contentLine`，距離與配速都跟單位走；而詳情頁是
+    /// `fullScreenCover` 的 **item**，切換單位觸發的重投影換不掉已經遞進去的那一份。
+    /// 所以跟 `App2SessionPaceBand` 一樣存原始值、換算在畫的時候做
+    /// （T-0366 外審第八輪 E03）。
+    let steadyPrimary: PrimaryActivity?
     /// `× 10`（間歇趟數）。
     let repeatsLabel: String?
     /// `組間休息：90 秒`／段落描述。

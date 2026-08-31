@@ -584,7 +584,9 @@ struct App2SessionDetailView: View {
                 Text(segment.name)
                     .font(.system(size: 15, weight: .heavy))
                     .foregroundStyle(App2Theme.inkPrimary)
-                if let value = segment.detail {
+                if let value = App2SessionDetailProjection.segmentDetail(
+                    segment, unitSystem: unitManager.currentUnitSystem
+                ) {
                     Text(value)
                         .font(.app2Mono(14, weight: .bold))
                         .lineLimit(1)

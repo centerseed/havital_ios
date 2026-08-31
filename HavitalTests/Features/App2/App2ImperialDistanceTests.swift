@@ -225,6 +225,43 @@ final class App2ImperialDistanceTests: XCTestCase {
         XCTAssertEqual(band.paceUnitLabel(.imperial), "/mi")
     }
 
+    /// 已開著的詳情頁裡，**單段課的主課列**也要換（外審第八輪 E03）。
+    ///
+    /// 那一列走 `contentLine`（距離＋配速都跟單位走），但它跟配速帶一樣被
+    /// `fullScreenCover` 的 item 抓在手上，重投影換不掉。所以段落列存原始 payload，
+    /// 換算在 `segmentDetail` 做 —— 這裡對**同一份** segment 問兩種單位。
+    ///
+    /// 同時鎖住暖身那一列**不跟著換**：分段量刻意維持公制（票面「不在範圍」），
+    /// 只換距離不換配速會讓那一行變成本票要消滅的「同一行兩種單位」。
+    func test_mountedSteadySegmentDetail_reformatsWithoutRebuildingTheModel() throws {
+        let segments = App2SessionDetailProjection.detailSegments(day: try day(easyRunDay))
+        let main = try XCTUnwrap(segments.first { $0.isWork })
+        XCTAssertNil(main.fixedDetail, "主課列不得存格式化字串，否則切換單位換不掉")
+        XCTAssertNotNil(main.steadyPrimary)
+
+        XCTAssertEqual(
+            App2SessionDetailProjection.segmentDetail(main, unitSystem: .metric),
+            "8.0 km · 6:50/km"
+        )
+        // 同一份 model、不重建，換個單位就是英里。
+        XCTAssertEqual(
+            App2SessionDetailProjection.segmentDetail(main, unitSystem: .imperial),
+            "5.0 mi · 11:00/mi"
+        )
+
+        // 熱身列（間歇那天才有）：與單位無關，兩邊同一個字。
+        let warmup = try XCTUnwrap(
+            App2SessionDetailProjection.detailSegments(day: try day(intervalOnlyDay))
+                .first { !$0.isWork }
+        )
+        XCTAssertNotNil(warmup.fixedDetail)
+        XCTAssertNil(warmup.steadyPrimary)
+        XCTAssertEqual(
+            App2SessionDetailProjection.segmentDetail(warmup, unitSystem: .metric),
+            App2SessionDetailProjection.segmentDetail(warmup, unitSystem: .imperial)
+        )
+    }
+
     // MARK: - 缺陷 1／2：日卡「課表」那一行（Home ＋ Plan 共用）
 
     func test_contentLine_imperial_distanceAndPaceUseTheSameUnit() throws {

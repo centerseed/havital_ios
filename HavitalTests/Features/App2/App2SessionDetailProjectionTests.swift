@@ -168,7 +168,10 @@ final class App2SessionDetailProjectionTests: XCTestCase {
 
         let sprint = try XCTUnwrap(rows.first { $0.repeatsLabel != nil })
         XCTAssertEqual(sprint.repeatsLabel, "× 4")
-        XCTAssertEqual(sprint.detail, "400m · 4:50/km")
+        XCTAssertEqual(
+            App2SessionDetailProjection.segmentDetail(sprint, unitSystem: .metric),
+            "400m · 4:50/km"
+        )
         XCTAssertNotNil(sprint.note, "組間恢復掛在衝刺列的附註，不另開一列")
 
         XCTAssertFalse(rows[0].isWork, "熱身不是主課")
@@ -184,8 +187,13 @@ final class App2SessionDetailProjectionTests: XCTestCase {
         XCTAssertEqual(rows.count, 3)
         XCTAssertNil(rows[0].note, "暖身列不掛逐日敘述")
         XCTAssertNil(rows[2].note, "緩和列不掛逐日敘述")
-        XCTAssertNotNil(rows[0].detail, "拿掉附註之後這一列還在（量與配速仍要顯示）")
-        XCTAssertNotNil(rows[2].detail)
+        XCTAssertNotNil(
+            App2SessionDetailProjection.segmentDetail(rows[0], unitSystem: .metric),
+            "拿掉附註之後這一列還在（量與配速仍要顯示）"
+        )
+        XCTAssertNotNil(
+            App2SessionDetailProjection.segmentDetail(rows[2], unitSystem: .metric)
+        )
     }
 
     /// 回歸（同上）：組間那一句不得重複「組間」。
@@ -234,8 +242,8 @@ final class App2SessionDetailProjectionTests: XCTestCase {
         XCTAssertEqual(rows.count, 1)
         XCTAssertTrue(rows[0].isWork)
         XCTAssertEqual(
-            rows[0].detail,
-            App2PlanViewModel.contentLine(entity.session?.primary)
+            App2SessionDetailProjection.segmentDetail(rows[0], unitSystem: .metric),
+            App2PlanViewModel.contentLine(entity.session?.primary, unitSystem: .metric)
         )
     }
 
@@ -450,7 +458,10 @@ final class App2SessionDetailProjectionTests: XCTestCase {
         XCTAssertNil(detail.paceBand, "沒有配速就沒有配速帶")
         XCTAssertTrue(detail.structureBars.allSatisfy { $0.paceLabel == nil })
         XCTAssertTrue(
-            detail.segments.allSatisfy { !($0.detail ?? "").contains("@") },
+            detail.segments.allSatisfy {
+                !(App2SessionDetailProjection.segmentDetail($0, unitSystem: .metric) ?? "")
+                    .contains("@")
+            },
             "分段列不得出現空的配速欄"
         )
         // 量還在：距離與時間不受影響。
