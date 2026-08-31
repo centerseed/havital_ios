@@ -175,6 +175,32 @@ final class App2ImperialDistanceTests: XCTestCase {
         await drain()
     }
 
+    /// 這個事件**不清任何快取**：資料沒變，變的是要用哪個單位畫。
+    ///
+    /// probe 用**固定** `cacheIdentifier`：`CacheEventBus.register` 以它去重
+    /// （`CacheEventBus.swift` 的 `cacheables.contains(where:)`），所以重跑不會讓
+    /// 那個 process-wide 陣列長大，而 probe 的 `clearCache()` 只翻自己的旗標、
+    /// 對別人零副作用 —— 沒有 unregister 也不會影響後面的測試
+    /// （外審第四輪 E07 顧慮的是這個，第五輪 E02 要的是這條回歸本身；兩者都成立）。
+    func test_unitSystemChanged_doesNotInvalidateCaches() {
+        final class InertProbe: Cacheable {
+            let cacheIdentifier = "App2ImperialDistanceTests.inertProbe"
+            var cleared = false
+            func clearCache() { cleared = true }
+            func getCacheSize() -> Int { 0 }
+            func isExpired() -> Bool { false }
+        }
+        let probe = InertProbe()
+        CacheEventBus.shared.register(probe)
+
+        CacheEventBus.shared.invalidateCache(for: .unitSystemChanged)
+        XCTAssertFalse(probe.cleared, "單位切換不得順手清掉別人的快取")
+
+        // 對照組：會清的事件真的會清，證明 probe 接得上、上面那條不是恆真。
+        CacheEventBus.shared.invalidateCache(for: .manualClear)
+        XCTAssertTrue(probe.cleared, "probe 沒接上的話上面那條就沒有意義")
+    }
+
     /// 已開著的詳情頁在切換單位後也要換 —— 它是 `fullScreenCover` 的 item，
     /// 重投影換不掉已經遞進去的那一份，所以配速帶存的是**秒／公里原始值**，
     /// 換算在畫的時候做（外審第四輪 E03）。
