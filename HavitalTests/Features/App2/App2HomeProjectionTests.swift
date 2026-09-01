@@ -603,16 +603,16 @@ final class App2HomeProjectionTests: XCTestCase {
         )
     }
 
-    /// 第 4 列：平日、`previous_week_summary_id != null` →「查看回顧」。
-    func test_weekReview_row4_weekdayWithSummaryOffersView() {
+    /// 第 4 列：平日、`previous_week_summary_id != null` → **不出卡**（2026-09-01 裁決：
+    /// 時機卡只為「該產生了」而存在，看既有回顧走課表頁換週）。
+    func test_weekReview_row4_weekdayWithSummaryHidesCard() {
         let status = planStatus(currentWeek: 5, planId: "ov_5",
                                 previousSummaryId: "ov_4_summary",
                                 serverTime: tokyoNoon(day: 26))
-        XCTAssertEqual(
+        XCTAssertNil(
             App2HomeViewModel.weekReviewState(
                 planStatus: status, isSunday: false, summaryId: status.previousWeekSummaryId
-            ),
-            .available(summaryId: "ov_4_summary", isCurrentWeek: false, targetWeek: 4)
+            )
         )
     }
 
@@ -636,8 +636,8 @@ final class App2HomeProjectionTests: XCTestCase {
         )
     }
 
-    /// 第 6 列：週日、本週回顧已完成 →「查看回顧」，週次仍是 `current_week`。
-    func test_weekReview_row6_sundayWithCurrentWeekSummary() {
+    /// 第 6 列：週日、本週回顧已完成 → **不出卡**（2026-09-01 裁決，同第 4 列）。
+    func test_weekReview_row6_sundayWithCurrentWeekSummaryHidesCard() {
         let status = planStatus(
             currentWeek: 4, planId: "ov_4", canGenerateNextWeek: true,
             serverTime: tokyoNoon(day: 30),
@@ -647,11 +647,10 @@ final class App2HomeProjectionTests: XCTestCase {
               "next_action": "create_plan_for_week_5" }
             """
         )
-        XCTAssertEqual(
+        XCTAssertNil(
             App2HomeViewModel.weekReviewState(
                 planStatus: status, isSunday: true, summaryId: "ov_4_summary"
-            ),
-            .available(summaryId: "ov_4_summary", isCurrentWeek: true, targetWeek: 4)
+            )
         )
     }
 

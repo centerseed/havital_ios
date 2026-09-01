@@ -875,16 +875,15 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// | `next_action == training_completed` | nil（進「計畫結束」狀態，§B） | — |
     /// | `current_week == 1` 且非週日 | nil（無可回顧週） | — |
     /// | 平日、`next_action == create_summary`（回顧擋著課表） | 產生上週回顧 | `current_week − 1` |
-    /// | 平日、回顧沒做但沒擋課表（`view_plan`） | **nil（不出卡）** | — |
-    /// | 平日、`previous_week_summary_id != null` | 查看回顧 | `current_week − 1` |
+    /// | 平日、其餘一切 | **nil（不出卡）** | — |
     /// | 週日、本週有課表、本週回顧未生成 | 產生本週回顧 | `current_week` |
-    /// | 週日、本週回顧已生成 | 查看回顧 | `current_week` |
+    /// | 週日、本週回顧已生成 | **nil（不出卡）** | — |
     ///
-    /// 平日的**產生型 CTA 只在 `create_summary` 時出現**（2026-08-28 使用者裁決：
-    /// 收回 8/25 的平日主動時機卡——不是產生回顧的時機就不出卡，與 1.4 的
-    /// 入口判準一致）。「查看回顧」不受此限：看既有回顧任何時候都合理。
+    /// 這張卡是**時機卡，只為「該產生了」而存在**（2026-09-01 使用者裁決：回顧已存在
+    /// 就不出卡——要看既有回顧去課表頁換週數看，首頁不做第二個入口；此裁決收回
+    /// 8/28「查看回顧不受此限」的例外）。
     ///
-    /// `summaryId` 有值＝目標週的回顧已存在 → 改成「查看回顧」。
+    /// `summaryId` 有值＝目標週的回顧已存在 → 整張卡收掉。
     static func weekReviewState(
         planStatus: PlanStatusV2Response,
         isSunday: Bool,
@@ -903,7 +902,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         let targetWeek = isSunday ? planStatus.currentWeek : planStatus.currentWeek - 1
 
         if let summaryId, !summaryId.isEmpty {
-            return .available(summaryId: summaryId, isCurrentWeek: isSunday, targetWeek: targetWeek)
+            return nil
         }
         // 平日的產生 CTA 只在後端擋課表時出現（2026-08-28 裁決，見上表）。
         guard isSunday || planStatus.nextAction == "create_summary" else { return nil }
