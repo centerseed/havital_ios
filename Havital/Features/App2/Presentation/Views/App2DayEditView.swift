@@ -1013,11 +1013,11 @@ struct App2DayEditView: View {
                         ? AnyShapeStyle(LinearGradient(
                             stops: [
                                 .init(color: App2Theme.accentViolet.opacity(0.09), location: 0),
-                                .init(color: .white, location: 0.78)
+                                .init(color: App2Theme.cardBackground, location: 0.78)
                             ],
                             startPoint: .topLeading, endPoint: .bottomTrailing
                         ))
-                        : AnyShapeStyle(Color.white)
+                        : AnyShapeStyle(App2Theme.cardBackground)
                 )
         )
         .overlay(
