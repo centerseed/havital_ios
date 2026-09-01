@@ -85,6 +85,10 @@ final class App2ThemeAppearanceTests: XCTestCase {
             ".init(color: Color.white",
             ".fill(Color.white)",
             ".fill(.white)",
+            ".fill(Color.white.opacity(0.45",
+            ".fill(Color.white.opacity(0.5",
+            "background: Color.white.opacity(0.5",
+            "background: Color.white.opacity(0.7",
             "option == selected ? Color.white",
             "isSelected ? Color.white : Color.clear",
         ]
@@ -94,7 +98,7 @@ final class App2ThemeAppearanceTests: XCTestCase {
             let text = try String(contentsOf: url, encoding: .utf8)
             for (index, line) in text.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
                 let s = String(line)
-                if s.contains(".opacity(") || s.contains("foregroundStyle") { continue }
+                if s.contains("foregroundStyle") { continue }
                 if forbidden.contains(where: { s.contains($0) }) {
                     hits.append("\(url.lastPathComponent):\(index + 1): \(s.trimmingCharacters(in: .whitespaces))")
                 }

@@ -226,7 +226,7 @@ struct App2RaceManagementView: View {
                     .padding(.vertical, 20)
                     .background(
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(Color.white.opacity(0.45))
+                            .fill(App2Theme.cardBackground)
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -361,7 +361,7 @@ struct App2RaceManagementView: View {
             subtitle: subtitle,
             tint: tint,
             border: border,
-            background: Color.white.opacity(0.5),
+            background: App2Theme.cardBackground,
             cornerRadius: subtitle == nil ? 16 : 22,
             verticalPadding: subtitle == nil ? 15 : 26,
             identifier: identifier,
@@ -378,7 +378,7 @@ struct App2RaceManagementView: View {
         systemImage: String,
         tint: Color,
         border: Color,
-        background: Color = Color.white.opacity(0.7),
+        background: Color = App2Theme.cardBackground,
         fillsWidth: Bool,
         identifier: String,
         action: @escaping () -> Void
