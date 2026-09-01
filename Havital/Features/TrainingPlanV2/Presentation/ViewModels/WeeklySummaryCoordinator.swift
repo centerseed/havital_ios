@@ -317,13 +317,28 @@ final class WeeklySummaryCoordinator {
     }
 
     /// 查看歷史週回顧（從 Toolbar Menu 觸發）
-    /// 用於查看已產生的歷史週回顧，不會重新產生
+    ///
+    /// **唯讀**：歷史週的回顧只讀存檔，任何路徑都不得觸發生成
+    /// （2026-09-01 使用者裁決：「然後歷史週回顧也不該重新產生啊」）。
+    ///
+    /// 這支的註解一直寫著「不會重新產生」，但它走的是 `getWeeklySummary`
+    /// ——那支在 404 時 fallback 到 `POST`（`fetchOrGenerateWeeklySummary`），
+    /// 所以「只是打開一份歷史回顧」會在使用者沒要求的情況下對過去那一週補生成一份。
+    /// 改走 T-0362 建立的唯讀 `fetchWeeklySummary`（同端點、同快取，只是不接
+    /// 那個 fallback），讓實作對上它自己宣稱的語意。
     func viewHistoricalSummary(week: Int) async {
-        Logger.debug("[WeeklySummaryCoordinator] 查看第 \(week) 週的歷史回顧...")
+        Logger.debug("[WeeklySummaryCoordinator] 查看第 \(week) 週的歷史回顧（唯讀）...")
 
         lastRequestedSummaryWeek = week
         do {
-            let summary = try await repository.getWeeklySummary(weekOfPlan: week)
+            guard let summary = try await repository.fetchWeeklySummary(weekOfPlan: week) else {
+                // 那一週沒有回顧就是沒有——不補生成，也不是錯誤。
+                Logger.debug("[WeeklySummaryCoordinator] 第 \(week) 週沒有歷史回顧（唯讀，不生成）")
+                self.weeklySummary = .empty
+                self.summaryFlowPhase = .showingSummary
+                self.summaryFlowActive = true
+                return
+            }
             self.weeklySummary = .loaded(summary)
             initializeSelections(from: summary.nextWeekAdjustments.items)
             self.summaryFlowPhase = .showingSummary

@@ -379,4 +379,44 @@ final class WeeklySummaryCoordinatorTests: XCTestCase {
         XCTAssertFalse(coordinator.summaryFlowActive,
                        "summaryFlowActive must remain false when gate fires")
     }
+
+    // MARK: - 歷史週回顧唯讀（T-0369，2026-09-01 使用者裁決）
+    //
+    // 使用者原話：「然後歷史週回顧也不該重新產生啊」。`viewHistoricalSummary` 的
+    // 註解一直寫著「不會重新產生」，但它走的是 `getWeeklySummary` —— 那支在 404
+    // 時 fallback 到 `POST`（`TrainingPlanV2RepositoryImpl
+    // .fetchOrGenerateWeeklySummary`），所以「打開一份歷史回顧」會替過去那一週
+    // 補生成。mock 的 `getWeeklySummary` 已照抄那個 fallback 形狀（T-0362），
+    // 所以這一條在測試裡看得見。
+
+    /// 那一週沒有回顧 → 空態，**零次生成**。
+    func test_viewHistoricalSummary_missingReview_doesNotGenerate() async {
+        mockRepository.weeklySummaryV2ToReturn = nil
+        mockRepository.weeklySummaryErrorToThrow = DomainError.notFound("no summary")
+        let coordinator = makeCoordinator()
+
+        await coordinator.viewHistoricalSummary(week: 2)
+
+        XCTAssertEqual(mockRepository.generateWeeklySummaryCallCount, 0,
+                       "歷史週唯讀：載入路徑不得送出任何生成請求")
+        guard case .empty = coordinator.weeklySummary else {
+            return XCTFail("那一週沒有回顧＝空態，不是錯誤、也不是補生成")
+        }
+        XCTAssertTrue(coordinator.summaryFlowActive,
+                      "空態也要開得起來——否則按下去毫無反應")
+    }
+
+    /// 有存檔就照常顯示，一樣零次生成。
+    func test_viewHistoricalSummary_existingReview_loadsWithoutGenerating() async {
+        mockRepository.weeklySummaryV2ToReturn = makeWeeklySummary(id: "summary-2", week: 2)
+        let coordinator = makeCoordinator()
+
+        await coordinator.viewHistoricalSummary(week: 2)
+
+        XCTAssertEqual(mockRepository.generateWeeklySummaryCallCount, 0)
+        guard case .loaded(let summary) = coordinator.weeklySummary else {
+            return XCTFail("歷史回顧存在時要載入")
+        }
+        XCTAssertEqual(summary.id, "summary-2")
+    }
 }

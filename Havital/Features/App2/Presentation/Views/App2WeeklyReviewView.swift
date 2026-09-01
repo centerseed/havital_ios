@@ -56,6 +56,45 @@ struct App2WeeklyReviewView: View {
         case plan
     }
 
+    // MARK: - 規劃分頁在不在（2026-09-01 使用者裁決）
+    //
+    // 使用者原話：「我看歷史的週回顧為什麼還會有下週規劃，到底在搞什麼東西啊」
+    // ——「不該啊」（同日裁決）。歷史週的回顧夾著一個「規劃第 N+1 週」分頁是錯的
+    // 時間軸：那一週早就過完了，它的建議套不到任何地方。
+    //
+    // 判準是**那個分頁規劃的那一週還沒過去**，不是「這一頁看的是不是本週」。
+    // 兩者不同，而且差別會傷到人：平日流程回顧的是**上週**（`isCurrentWeek == false`），
+    // 它的規劃分頁目標是**本週**——那正是 T-0341 補上的產生出口，拿掉會把訓練流程
+    // 重新弄斷。所以條件寫成 `reviewWeek + 1 >= current_week`。
+
+    /// 「規劃第 N+1 週」分頁在不在。
+    ///
+    /// - 歷史回看（裁決（q）的唯讀入口）一律不畫——那是使用者抱怨的那一格。
+    /// - 目標週已經過去（`reviewWeek + 1 < current_week`）也不畫。
+    /// - `planStatus` 讀不到時 fail-open（訓練流程核心一律 fail-open，
+    ///   `LOCAL-DEVELOPMENT-HARNESS.md` §1.2 鐵則 7）：那時判不出週次，
+    ///   收掉分頁會讓使用者連唯一的產生出口都沒有。
+    nonisolated static func showsPlanTab(
+        reviewWeek: Int,
+        planStatus: PlanStatusV2Response?,
+        isReadOnly: Bool
+    ) -> Bool {
+        guard !isReadOnly else { return false }
+        guard let current = planStatus?.currentWeek else { return true }
+        return reviewWeek + 1 >= current
+    }
+
+    private var showsPlanTab: Bool {
+        Self.showsPlanTab(
+            reviewWeek: weekOfPlan,
+            planStatus: viewModel.planStatus,
+            isReadOnly: isReadOnly
+        )
+    }
+
+    /// 實際要畫哪一個分頁。規劃分頁收掉時 `tab` 的殘值不得把畫面帶進一個不存在的分頁。
+    private var activeTab: Tab { showsPlanTab ? tab : .review }
+
     private func tabTitle(_ item: Tab) -> String {
         switch item {
         case .review:
@@ -98,15 +137,19 @@ struct App2WeeklyReviewView: View {
             .padding(.horizontal, App2Theme.pagePadding)
             .padding(.top, 6)
 
-            segmentedTabs
-                .padding(.horizontal, App2Theme.pagePadding)
-                .padding(.top, 12)
+            // 只剩回顧一個分頁時整個切換器不出現——一顆按不出第二頁的分頁鈕
+            // 比沒有更糟。
+            if showsPlanTab {
+                segmentedTabs
+                    .padding(.horizontal, App2Theme.pagePadding)
+                    .padding(.top, 12)
+            }
 
             content
 
             // 主 CTA 只在規劃分頁出現 —— 回顧分頁沒有可套用／可產生的東西。
             // 形態由 `nextWeekAction` 決定（唯讀與「沒有出口」時整條不出現）。
-            if tab == .plan, viewModel.projection != nil {
+            if activeTab == .plan, viewModel.projection != nil {
                 planFooter
             }
         }
@@ -203,7 +246,7 @@ struct App2WeeklyReviewView: View {
         if let projection = viewModel.projection {
             ScrollView {
                 VStack(spacing: 14) {
-                    switch tab {
+                    switch activeTab {
                     case .review: reviewTab(projection)
                     case .plan:   planTab(projection)
                     }
@@ -362,8 +405,11 @@ struct App2WeeklyReviewView: View {
             }
         }
         // 回顧的最後一件事是「所以下週怎麼跑」——這裡不給出口，使用者就停在這裡。
-        continueToPlanButton
-            .padding(.top, 4)
+        // 規劃分頁收掉時它也要跟著收：它唯一的作用是切到那一頁。
+        if showsPlanTab {
+            continueToPlanButton
+                .padding(.top, 4)
+        }
     }
 
     private func storyCard(_ projection: App2WeeklyReviewProjection) -> some View {

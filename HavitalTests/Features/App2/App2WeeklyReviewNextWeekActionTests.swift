@@ -291,4 +291,53 @@ final class App2WeeklyReviewNextWeekActionTests: XCTestCase {
             )
         )
     }
+
+    // MARK: - 「規劃下週」分頁在不在（T-0369，2026-09-01 使用者裁決）
+    //
+    // 使用者原話：「我看歷史的週回顧為什麼還會有下週規劃，到底在搞什麼東西啊」
+    // ——裁決：「不該啊」。修復前 `App2WeeklyReviewView` 無條件畫兩個分頁，
+    // 所以第 2 週的回顧上掛著一個「規劃第 3 週」，而使用者已經在第 10 週。
+
+    private func showsPlanTab(
+        reviewWeek: Int,
+        currentWeek: Int?,
+        isReadOnly: Bool = false
+    ) -> Bool {
+        App2WeeklyReviewView.showsPlanTab(
+            reviewWeek: reviewWeek,
+            planStatus: currentWeek.map { status(currentWeek: $0, nextAction: "view_plan") },
+            isReadOnly: isReadOnly
+        )
+    }
+
+    /// **本次缺陷的形狀**：歷史回看（課表頁 header 進來、`isReadOnly`）沒有規劃分頁。
+    func testHistoryReviewHasNoPlanTab() {
+        XCTAssertFalse(showsPlanTab(reviewWeek: 2, currentWeek: 10, isReadOnly: true))
+        XCTAssertFalse(showsPlanTab(reviewWeek: 8, currentWeek: 10, isReadOnly: true))
+        // 連「目標週剛好是本週」也不給——歷史回看是唯讀入口，沒有任何規劃出口。
+        XCTAssertFalse(showsPlanTab(reviewWeek: 9, currentWeek: 10, isReadOnly: true))
+    }
+
+    /// 目標週已經過去（`reviewWeek + 1 < current_week`）＝那一頁規劃不了任何東西。
+    func testPastTargetWeekHasNoPlanTab() {
+        XCTAssertFalse(showsPlanTab(reviewWeek: 2, currentWeek: 10))
+        XCTAssertFalse(showsPlanTab(reviewWeek: 8, currentWeek: 10))
+    }
+
+    /// **防退化**：平日流程回顧的是**上週**，它的規劃分頁目標是**本週**——
+    /// 那正是 T-0341 補上的產生出口。判準若寫成「非本週即歷史」會把它一起收掉，
+    /// 訓練流程重新斷在這一頁。
+    func testWeekdayFlowKeepsPlanTabForCurrentWeek() {
+        XCTAssertTrue(showsPlanTab(reviewWeek: 9, currentWeek: 10))
+    }
+
+    /// 週日流程：回顧本週、規劃下週。
+    func testSundayFlowKeepsPlanTab() {
+        XCTAssertTrue(showsPlanTab(reviewWeek: 10, currentWeek: 10))
+    }
+
+    /// `planStatus` 讀不到時 fail-open（harness §1.2 鐵則 7）：判不出週次就不收出口。
+    func testMissingPlanStatusKeepsPlanTab() {
+        XCTAssertTrue(showsPlanTab(reviewWeek: 3, currentWeek: nil))
+    }
 }

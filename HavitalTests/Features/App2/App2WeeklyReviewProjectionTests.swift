@@ -339,6 +339,56 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         )
     }
 
+    // MARK: - 歷史週不得出現「規劃下週」（T-0372，2026-09-01 使用者裁決）
+
+    /// 使用者原話：「我看歷史的週回顧為什麼還會有下週規劃，到底在搞什麼東西啊」
+    /// ——裁決：「不該啊」。三個表面都要跟著同一個判準收掉：分頁切換器、
+    /// 回顧分頁底部的「繼續 → 規劃第 N 週」，以及規劃分頁的主 CTA。
+    func test_weeklyReviewView_gatesEveryPlanSurfaceBehindShowsPlanTab() throws {
+        let source = try Self.weeklyReviewViewSource()
+
+        XCTAssertTrue(
+            source.contains("if showsPlanTab {\n                segmentedTabs"),
+            "只剩回顧一個分頁時，分頁切換器整組不得出現"
+        )
+        XCTAssertTrue(
+            source.contains("if showsPlanTab {\n            continueToPlanButton"),
+            "「繼續 → 規劃第 N 週」唯一的作用是切到規劃分頁，那一頁收掉它就要跟著收"
+        )
+        XCTAssertTrue(
+            source.contains("if activeTab == .plan, viewModel.projection != nil {"),
+            "主 CTA 要看 `activeTab`——`tab` 的殘值不得把畫面帶進一個不存在的分頁"
+        )
+        XCTAssertTrue(
+            source.contains("switch activeTab {"),
+            "內容區同上"
+        )
+    }
+
+    /// 首頁那支「本週回顧存在嗎」的探測必須唯讀（T-0372 C）。
+    ///
+    /// `getWeeklySummary` 在 404 時 fallback 到 `POST`
+    /// （`TrainingPlanV2RepositoryImpl.fetchOrGenerateWeeklySummary`），所以
+    /// **計畫最後一週的週日**（`next_week_info` 是 null 且
+    /// `next_action != create_summary`，兩個 early return 都接不住）光是打開首頁
+    /// 就會靜默生成一份本週回顧。
+    func test_homeViewModel_probesCurrentWeekReviewReadOnly() throws {
+        let source = try Self.source(
+            at: "Havital/Features/App2/Presentation/ViewModels/App2HomeViewModel.swift"
+        )
+
+        XCTAssertTrue(
+            source.contains(
+                "planRepository.fetchWeeklySummary(weekOfPlan: planStatus.currentWeek)?.id"
+            ),
+            "首頁的週回顧探測必須走唯讀路徑"
+        )
+        XCTAssertFalse(
+            source.contains("planRepository.getWeeklySummary("),
+            "首頁不得再走會在 404 時 POST 的那一支"
+        )
+    }
+
     /// 從測試檔位置往上找 repo 根，不寫死絕對路徑（worktree 每次不同）。
     private static func weeklyReviewViewSource() throws -> String {
         try source(at: "Havital/Features/App2/Presentation/Views/App2WeeklyReviewView.swift")

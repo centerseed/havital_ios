@@ -659,7 +659,14 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
         var summaryId: String?
         do {
-            summaryId = try await planRepository.getWeeklySummary(weekOfPlan: planStatus.currentWeek).id
+            // **唯讀探測。** 這裡問的是「本週回顧存在嗎、id 是多少」，不是「幫我產一份」。
+            // `getWeeklySummary` 在 404 時 fallback 到 `POST`
+            // （`TrainingPlanV2RepositoryImpl.fetchOrGenerateWeeklySummary`），
+            // 所以上面那兩個 early return 沒接住的那一格——**計畫最後一週的週日**
+            // （`next_week_info` 是 null 且 `next_action != create_summary`）——
+            // 光是首頁載入就會靜默生成一份本週回顧。走 T-0362 建立的唯讀路徑
+            // （同端點、同快取，只是不接那個 fallback）；沒有就是 nil。
+            summaryId = try await planRepository.fetchWeeklySummary(weekOfPlan: planStatus.currentWeek)?.id
         } catch {
             guard !error.isCancellationError else { noteRoundCancellation(); return }
             Logger.debug("[App2HomeVM] 本週回顧查詢失敗,視為尚未產生: \(error)")
