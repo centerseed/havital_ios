@@ -892,6 +892,23 @@ struct App2CapabilityDetail: Equatable {
     let diagnostics: [App2MetricDiagnosticRow]
 }
 
+/// §52 能力基準頁「完賽預估」的一列：距離名 ＋ 預估完賽時間。
+///
+/// **這一列屬於 readiness 流**（`race_fitness.finish_time_predictions`），與同頁
+/// hero／VDOT 歷史線的 decision-chain 流是兩條資料流（`AGENTS.md`「兩條資料流」）：
+/// 同頁並列，但**不互相佐證也不互相驗收** —— 投影錨與處方 `pace_vdot` 本來就是
+/// 兩個數字（`MAP-race-prediction.md:123-149`，T-0320），所以這裡的秒數不會等於
+/// 「拿頁面上那個 VDOT 去查表」的結果。
+struct App2FinishPrediction: Identifiable, Equatable {
+    /// 後端的距離 key（`five_k`／`ten_k`／`half_marathon`／`full_marathon`）。
+    let id: String
+    /// 賽事名（`5K`／`10K`／`半馬`／`全馬`），走既有的 `race_filter.*` 三語 key。
+    /// **不是量測值**，所以切公制／英制不換算。
+    let label: String
+    /// `H:MM:SS`，後端字串原樣。時間沒有單位換算。
+    let time: String
+}
+
 /// §52-4 的一列：名稱／值／右緣狀態。
 struct App2MetricDiagnosticRow: Identifiable, Equatable {
     let id: String

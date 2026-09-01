@@ -19,6 +19,9 @@ struct App2MetricDetailView: View {
     let insight: App2Insight
     /// 一句敘事（訓練量用 `mileage_progression`，其餘用該列的 `evidence`）。
     let narrative: String?
+    /// 四距離完賽預估（只有 §52 能力基準用得到）。**首頁那一輪的 readiness**，
+    /// 詳情頁不重新取（T-0376）。空陣列＝那一區不畫。
+    var finishPredictions: [App2FinishPrediction] = []
     let onClose: () -> Void
 
     var body: some View {
@@ -26,7 +29,12 @@ struct App2MetricDetailView: View {
         case .weeklyVolume:
             App2VolumeDetailPage(insight: insight, narrative: narrative, onClose: onClose)
         case .capabilityBaseline:
-            App2CapabilityDetailPage(insight: insight, narrative: narrative, onClose: onClose)
+            App2CapabilityDetailPage(
+                insight: insight,
+                narrative: narrative,
+                finishPredictions: finishPredictions,
+                onClose: onClose
+            )
         case .recoveryIndex:
             App2RecoveryDetailPage(insight: insight, narrative: narrative, onClose: onClose)
         case .aerobicEndurance, .speedEndurance:
@@ -322,13 +330,24 @@ private struct App2VolumeDetailPage: View {
 private struct App2CapabilityDetailPage: View {
     let insight: App2Insight
     let narrative: String?
+    /// readiness 流的四距離完賽預估（T-0376）。**不進 `App2CapabilityDetail`**：
+    /// 那個型別是這一頁 VM 從 decision-chain 流的 `/v2/workouts/vdots` 投影出來的，
+    /// 把另一條流的資料塞進去會讓「這個模型代表哪一條流」講不清楚
+    /// （`AGENTS.md`「兩條資料流」）。空陣列＝整區不畫。
+    let finishPredictions: [App2FinishPrediction]
     let onClose: () -> Void
 
     @StateObject private var viewModel: App2CapabilityDetailViewModel
 
-    init(insight: App2Insight, narrative: String?, onClose: @escaping () -> Void) {
+    init(
+        insight: App2Insight,
+        narrative: String?,
+        finishPredictions: [App2FinishPrediction],
+        onClose: @escaping () -> Void
+    ) {
         self.insight = insight
         self.narrative = narrative
+        self.finishPredictions = finishPredictions
         self.onClose = onClose
         _viewModel = StateObject(wrappedValue: App2CapabilityDetailViewModel(
             insight: insight,
@@ -384,16 +403,53 @@ private struct App2CapabilityDetailPage: View {
                         height: 118
                     )
                 }
-
-                if !detail.diagnostics.isEmpty {
-                    diagnosticsCard(detail.diagnostics)
-                }
             } else if viewModel.isLoading {
                 App2Card { ProgressView().frame(maxWidth: .infinity) }
+            }
+
+            // 完賽預估在圖與診斷列之間。**與上面那塊的載入狀態無關** —— 它來自
+            // 首頁那一輪的 readiness，VDOT 序列取不到不該把它一起藏掉。
+            if !finishPredictions.isEmpty {
+                finishPredictionsCard
+            }
+
+            if let detail = viewModel.detail?.value, !detail.diagnostics.isEmpty {
+                diagnosticsCard(detail.diagnostics)
             }
         }
         .task { await viewModel.loadIfNeeded() }
         .onDisappear { viewModel.cancelInFlightReload() }
+    }
+
+    /// 四距離完賽預估。列樣式與下面的診斷卡同一套（label 左、值右、細分隔線），
+    /// **不發明新設計語言**。
+    private var finishPredictionsCard: some View {
+        App2Card(spacing: 0) {
+            Text(L10n.App2.Metric.capabilityFinishTitle.localized)
+                .font(.system(size: 14, weight: .heavy))
+                .foregroundStyle(App2Theme.inkPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.bottom, 8)
+
+            ForEach(Array(finishPredictions.enumerated()), id: \.element.id) { index, row in
+                if index > 0 {
+                    Rectangle().fill(App2Theme.insetBorder).frame(height: 1)
+                }
+                HStack(spacing: 10) {
+                    Text(row.label)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(App2Theme.inkSubtle)
+                    Spacer(minLength: 6)
+                    Text(row.time)
+                        .font(.app2Mono(15, weight: .bold))
+                        .foregroundStyle(App2Theme.inkPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+                .padding(.vertical, 9)
+            }
+        }
+        .accessibilityIdentifier("App2_MetricFinishPredictions")
     }
 
     private func diagnosticsCard(_ rows: [App2MetricDiagnosticRow]) -> some View {

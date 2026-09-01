@@ -174,6 +174,34 @@ struct EnduranceMetric: Codable {
     }
 }
 
+/// 單一固定距離的完賽預估（`race_fitness.finish_time_predictions` 的一筆）。
+///
+/// 後端一次給滿 5K／10K／半馬／全馬四筆（producer
+/// `domains/readiness/v2/metrics/race_fitness.py:557-590`，距離表 `:84-89`），
+/// 投影不出來的距離**不會進 dict**，所以進得來就是有值。
+///
+/// **每一欄都是 optional**：這個型別是 `Codable`，任一必要欄位缺席會讓**整個
+/// readiness response** decode 失敗（2026-08-26 `resting_heart_rate` 宣告成 `Int?`
+/// 而後端給 `51.0`，整包 payload 炸掉、HRV/RHR/TSB 全壞的同一個形狀）。
+struct RaceFinishPrediction: Codable, Equatable {
+    /// 後端的英文標籤（`5K`／`10K`／`Half Marathon`／`Marathon`）。
+    /// **認得的 key 一律用 App 自己的三語標籤**，這一欄只在 key 認不得時當退路。
+    let distanceLabel: String?
+    let distanceKm: Double?
+    /// `H:MM:SS`（`race_fitness.py:1093-1098` `_format_time`）。
+    let estimatedTime: String?
+    let estimatedTimeSeconds: Int?
+    let status: String?
+
+    enum CodingKeys: String, CodingKey {
+        case distanceLabel = "distance_label"
+        case distanceKm = "distance_km"
+        case estimatedTime = "estimated_time"
+        case estimatedTimeSeconds = "estimated_time_seconds"
+        case status
+    }
+}
+
 /// Race fitness metric (比賽適能指標)
 struct RaceFitnessMetric: Codable {
     let score: Double
@@ -184,6 +212,12 @@ struct RaceFitnessMetric: Codable {
     let description: String?          // ✅ New: Metric description
     let trendData: TrendData?         // ✅ New: Trend chart data
     let estimatedRaceTime: String?    // ✅ New: Estimated race time (e.g., "2:01:32")
+    /// 固定距離的完賽預估（key = `five_k`／`ten_k`／`half_marathon`／`full_marathon`）。
+    ///
+    /// 與 `estimatedRaceTime` 不是同一件事：後者是**目標賽事那一個距離**的投影，
+    /// 這一份是四個固定距離的能力對照（T-0376／T-0375）。
+    /// **舊 readiness doc 沒有這個欄位 → nil**，不得因此 decode 失敗。
+    let finishTimePredictions: [String: RaceFinishPrediction]?
     let message: String?
     /// VDOT 來源："benchmark" 表示由指標跑校準，"training" 表示由訓練資料估算（可選，缺失時不顯示歸因標記）
     let vdotSource: String?
@@ -199,6 +233,7 @@ struct RaceFitnessMetric: Codable {
         case description
         case trendData = "trend_data"
         case estimatedRaceTime = "estimated_race_time"
+        case finishTimePredictions = "finish_time_predictions"
         case message
         case vdotSource = "vdot_source"
         case benchmarkDate = "benchmark_date"

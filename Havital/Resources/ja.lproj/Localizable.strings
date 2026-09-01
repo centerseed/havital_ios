@@ -4834,6 +4834,7 @@
 "app2.metric.capability_anchor_marker" = "基準点";
 "app2.metric.projected_legend" = "予測";
 "app2.metric.capability_anchor_format" = "%@（%@）";
+"app2.metric.capability_finish_title" = "完走タイム予測";
 "app2.metric.capability_how_title" = "この値の根拠";
 "app2.metric.capability_row_anchor" = "基準の出どころ";
 "app2.metric.capability_row_decision" = "基準の判定";

@@ -2583,6 +2583,8 @@ extension L10n {
             static let projectedLegend = "app2.metric.projected_legend"
             /// `指標跑（8/2）`
             static let capabilityAnchorFormat = "app2.metric.capability_anchor_format"
+            /// 四距離完賽預估卡的標題（T-0376）。距離標籤本身走既有的 `race_filter.*`。
+            static let capabilityFinishTitle = "app2.metric.capability_finish_title"
             static let capabilityHowTitle = "app2.metric.capability_how_title"
             static let capabilityRowAnchor = "app2.metric.capability_row_anchor"
             static let capabilityRowDecision = "app2.metric.capability_row_decision"

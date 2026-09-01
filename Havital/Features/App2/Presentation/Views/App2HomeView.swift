@@ -154,6 +154,9 @@ struct App2HomeView: View {
                     narrative: kind == .weeklyVolume
                         ? viewModel.trainingStatus?.value.mileageProgression
                         : insight.evidence,
+                    // 完賽預估同樣**用首頁那一輪已經載到的 readiness**（T-0376），
+                    // 詳情頁不為它多打一次網路。空陣列＝那一區不畫。
+                    finishPredictions: viewModel.finishPredictions,
                     onClose: { metricDetail = nil }
                 )
             }

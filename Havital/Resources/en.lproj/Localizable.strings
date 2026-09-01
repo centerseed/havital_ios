@@ -4837,6 +4837,7 @@
 "app2.metric.capability_anchor_marker" = "Anchor";
 "app2.metric.projected_legend" = "Projected";
 "app2.metric.capability_anchor_format" = "%@ (%@)";
+"app2.metric.capability_finish_title" = "Race time projections";
 "app2.metric.capability_how_title" = "Where this number comes from";
 "app2.metric.capability_row_anchor" = "Anchor source";
 "app2.metric.capability_row_decision" = "Anchor decision";

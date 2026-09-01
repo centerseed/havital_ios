@@ -50,6 +50,16 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     @Published private(set) var planEnd: App2PlanEndCard?
     @Published private(set) var trainingStatus: App2Sourced<App2TrainingStatus>?
     @Published private(set) var insights: App2Sourced<[App2Insight]>?
+    /// 四個固定距離的完賽預估（T-0376）。能力基準詳情頁（§52）用它。
+    ///
+    /// **住在首頁 VM 是因為資料在這裡就已經有了**：`loadGoalCard` 每一輪都會
+    /// `await readinessViewModel.loadData()`（cache-first ＋ 背景重驗，走既有的
+    /// `TrainingReadinessManager`），完賽預估與目標卡的「預估完賽」是**同一份
+    /// readiness response** 的兩個欄位。詳情頁沿 `insight`／`narrative` 同一條路
+    /// 拿走它，不新增請求、不新增快取、不新增失效訂閱。
+    ///
+    /// 空陣列 ＝ 這一份 readiness 沒有完賽預估 → 詳情頁整區不畫。
+    @Published private(set) var finishPredictions: [App2FinishPrediction] = []
     /// 今日課表卡。nil = 這一輪還沒載完；其餘四態見 `App2TodaySessionState`。
     @Published private(set) var todayState: App2TodaySessionState?
     /// 今日課表卡點下去要開的訓練詳情（設計 frame-02）。
@@ -1117,6 +1127,18 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     private func loadGoalCard(planStatus: PlanStatusV2Response?) async {
         await readinessViewModel.loadData()
         let estimated = readinessViewModel.estimatedRaceTime
+
+        // 能力基準詳情頁的完賽預估（T-0376）。**同一份 readiness response**，
+        // 與上面那個「預估完賽」是兩個欄位：`estimated_race_time` 是目標賽事那一個
+        // 距離，這一份是四個固定距離的能力對照。整段不新增請求。
+        //
+        // 目標卡的組裝可能因為沒有主要賽事而提早 return（下面的 `guard let main`），
+        // 但完賽預估**與有沒有目標賽事無關** —— 所以在那些 return 之前就先發布。
+        if !isStaleRound {
+            finishPredictions = App2MetricDetailProjection.finishPredictions(
+                from: readinessViewModel.raceFitnessMetric
+            )
+        }
 
         // `getMainTarget()` 只讀本機快取。1.x 的 tab 由別處先打過 `/user/targets`，
         // 2.0 的 App2RootView 沒有那條路徑，所以冷啟後快取是空的、卡片永遠退樣本。
