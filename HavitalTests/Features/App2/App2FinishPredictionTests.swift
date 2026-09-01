@@ -168,8 +168,17 @@ final class App2FinishPredictionTests: XCTestCase {
                        NSLocalizedString("race_filter.full_marathon", comment: ""))
 
         // 認得的 key 一律用在地化字串，不是 payload 的英文標籤。
-        XCTAssertNotEqual(byId["half_marathon"], "Half Marathon")
-        XCTAssertNotEqual(byId["full_marathon"], "Marathon")
+        // 不能直接比對 "Marathon"：en 的 `race_filter.full_marathon` 恰好也叫
+        // "Marathon"，那樣的斷言在英文測試環境恆紅。改塞哨兵標籤驗證。
+        let sentinel = try metric(
+            fullPayload.replacingOccurrences(of: "Marathon", with: "PAYLOAD_LABEL")
+        )
+        let sentinelRows = App2MetricDetailProjection.finishPredictions(from: sentinel)
+        XCTAssertEqual(sentinelRows.count, rows.count)
+        XCTAssertFalse(
+            sentinelRows.contains { $0.label.contains("PAYLOAD_LABEL") },
+            "標籤不得印 payload 的 distance_label"
+        )
     }
 
     /// 只有兩個距離投影得出來 → 兩列，順序仍是近的在前。

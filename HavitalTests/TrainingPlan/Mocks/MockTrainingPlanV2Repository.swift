@@ -238,6 +238,10 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         return plan
     }
 
+    // @MainActor：整期預抓開三條 lane 併發呼叫這一支；mock 是普通 class，
+    // 非隔離時三條 lane 同時 append/merge 會掉更新，預抓測試隨機缺週
+    //（actor hop 由 async witness 合法承接，正式 repository 不受影響）。
+    @MainActor
     func getWeeklyPlan(weekOfTraining: Int, overviewId: String) async throws -> WeeklyPlanV2 {
         getWeeklyPlanCallCount += 1
         lastRequestedWeeklyPlanWeekOfTraining = weekOfTraining
