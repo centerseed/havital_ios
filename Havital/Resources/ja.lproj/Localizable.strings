@@ -4256,6 +4256,10 @@
 "app2.settings.goal_section" = "目標レース";
 "app2.settings.reset_goal_race" = "目標レースを設定し直す";
 "app2.settings.system_section" = "システム";
+"app2.settings.appearance" = "外観";
+"app2.settings.appearance_system" = "システム設定に合わせる";
+"app2.settings.appearance_light" = "ライト";
+"app2.settings.appearance_dark" = "ダーク";
 "app2.settings.heat_adaptation_sub" = "気温に合わせてペースを微調整";
 "app2.settings.plans_title" = "プランと購読";
 "app2.settings.plan_free" = "無料";

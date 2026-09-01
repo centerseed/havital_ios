@@ -30,6 +30,7 @@ struct HavitalApp: App {
     @State private var featureFlagManager: FeatureFlagManager? = nil
     @State private var shouldRefreshForLanguage = false
     @State private var hasLaunched = false  // ✅ 追蹤是否已完成啟動
+    @ObservedObject private var appearanceStore = App2AppearanceStore.shared
     
     init() {
         // 1. 初始化 Firebase（必須最先執行，因為 Logger 依賴它，且 Auth.auth() 等服務需要它）
@@ -191,6 +192,7 @@ struct HavitalApp: App {
     
     var body: some Scene {
         WindowGroup {
+            Group {
             if isRunningTests && !shouldRenderRealUIInTests {
                 Text("Running Tests...")
             } else if shouldLaunchMethodologyUITestHarness {
@@ -304,6 +306,8 @@ struct HavitalApp: App {
                     handleDeepLink(url: url)
                 }
             }
+            }
+            .preferredColorScheme(appearanceStore.preference.colorScheme)
         }
         // 添加應用程式生命週期事件處理
         .onChange(of: UIApplication.shared.applicationState) { state in

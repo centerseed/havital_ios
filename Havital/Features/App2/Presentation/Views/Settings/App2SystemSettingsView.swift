@@ -18,6 +18,7 @@ struct App2SystemSettingsView: View {
 
     @ObservedObject private var languageManager = LanguageManager.shared
     @ObservedObject private var unitManager = UnitManager.shared
+    @ObservedObject private var appearanceStore = App2AppearanceStore.shared
 
     @State private var isShowingTimezone = false
     @State private var isChangingLanguage = false
@@ -32,6 +33,7 @@ struct App2SystemSettingsView: View {
         ) {
             VStack(alignment: .leading, spacing: 20) {
                 languageSection
+                appearanceSection
                 timezoneSection
                 unitSection
             }
@@ -117,6 +119,53 @@ struct App2SystemSettingsView: View {
             _ = await languageManager.performLanguageChangeWithRestart(to: language)
             isChangingLanguage = false
         }
+    }
+
+    // MARK: - 外觀
+
+    private var appearanceSection: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            App2SectionCaption(text: L10n.App2.Settings.appearance.localized)
+
+            App2GroupedList {
+                ForEach(Array(App2AppearancePreference.allCases.enumerated()), id: \.element) { index, option in
+                    appearanceRow(
+                        option,
+                        showsDivider: index < App2AppearancePreference.allCases.count - 1
+                    )
+                }
+            }
+        }
+    }
+
+    private func appearanceRow(_ option: App2AppearancePreference, showsDivider: Bool) -> some View {
+        let isSelected = appearanceStore.preference == option
+        return VStack(spacing: 0) {
+            HStack {
+                Text(option.displayName)
+                    .font(.system(size: 16, weight: isSelected ? .black : .semibold))
+                    .foregroundStyle(App2Theme.inkPrimary)
+                Spacer(minLength: 8)
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundStyle(App2Theme.accentBlue)
+                }
+            }
+            .padding(.horizontal, 15)
+            .padding(.vertical, 15)
+            .contentShape(Rectangle())
+            .onTapGesture { appearanceStore.preference = option }
+
+            if showsDivider {
+                Rectangle()
+                    .fill(App2Theme.insetBorder)
+                    .frame(height: 1)
+                    .padding(.horizontal, 15)
+            }
+        }
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("App2_SystemAppearance_\(option.rawValue)")
     }
 
     // MARK: - 時區

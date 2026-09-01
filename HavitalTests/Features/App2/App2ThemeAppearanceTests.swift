@@ -30,6 +30,13 @@ final class App2ThemeAppearanceTests: XCTestCase {
         XCTAssertEqual(hex(App2Theme.accentBlue, .light), hex(App2Theme.accentBlue, .dark))
     }
 
+    func testPreferenceColorSchemeMapping() {
+        XCTAssertNil(App2AppearancePreference.system.colorScheme)
+        XCTAssertEqual(App2AppearancePreference.light.colorScheme, .light)
+        XCTAssertEqual(App2AppearancePreference.dark.colorScheme, .dark)
+        XCTAssertEqual(App2AppearancePreference(rawValue: "nope") ?? .system, .system)
+    }
+
     func testDarkHeroStaysDesignedDark() {
         XCTAssertEqual(hex(App2Theme.sourceDarkTile, .dark), "0B0D10")
         XCTAssertEqual(hex(App2Theme.sourceDarkTile, .light), "0B0D10")

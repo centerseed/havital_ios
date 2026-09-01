@@ -35,6 +35,7 @@ struct App2SettingsView: View {
     let onClose: () -> Void
 
     @ObservedObject var viewModel: App2SettingsViewModel
+    @ObservedObject private var appearanceStore = App2AppearanceStore.shared
     @State private var destination: App2SettingsDestination?
     /// 登出前的二次確認（破壞性樣式）。
     @State private var isConfirmingLogout = false
@@ -516,6 +517,16 @@ struct App2SettingsView: View {
                 .onTapGesture { destination = .system }
                 .accessibilityAddTraits(.isButton)
                 .accessibilityIdentifier("App2_SettingsLanguageRow")
+
+                App2SettingsRow(
+                    systemImage: "circle.lefthalf.filled",
+                    title: L10n.App2.Settings.appearance.localized,
+                    value: appearanceStore.preference.displayName
+                )
+                .contentShape(Rectangle())
+                .onTapGesture { destination = .system }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier("App2_SettingsAppearanceRow")
 
                 App2SettingsRow(
                     systemImage: "clock",

@@ -4300,6 +4300,10 @@
 "app2.settings.goal_section" = "目標賽事";
 "app2.settings.reset_goal_race" = "重新設定目標賽事";
 "app2.settings.system_section" = "系統";
+"app2.settings.appearance" = "外觀";
+"app2.settings.appearance_system" = "跟隨系統";
+"app2.settings.appearance_light" = "淺色";
+"app2.settings.appearance_dark" = "深色";
 "app2.settings.heat_adaptation_sub" = "依氣溫微調課表配速";
 "app2.settings.plans_title" = "方案與訂閱";
 "app2.settings.plan_free" = "免費";

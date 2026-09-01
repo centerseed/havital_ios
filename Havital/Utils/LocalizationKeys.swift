@@ -2756,6 +2756,10 @@ extension L10n {
             static let resetGoalRace = "app2.settings.reset_goal_race"
             static let goalSection = "app2.settings.goal_section"
             static let systemSection = "app2.settings.system_section"
+            static let appearance = "app2.settings.appearance"
+            static let appearanceSystem = "app2.settings.appearance_system"
+            static let appearanceLight = "app2.settings.appearance_light"
+            static let appearanceDark = "app2.settings.appearance_dark"
             static let heatAdaptationSub = "app2.settings.heat_adaptation_sub"
 
             // MARK: 方案與訂閱（frame-22）

@@ -4259,6 +4259,10 @@
 "app2.settings.goal_section" = "Target race";
 "app2.settings.reset_goal_race" = "Set a new goal race";
 "app2.settings.system_section" = "System";
+"app2.settings.appearance" = "Appearance";
+"app2.settings.appearance_system" = "Match System";
+"app2.settings.appearance_light" = "Light";
+"app2.settings.appearance_dark" = "Dark";
 "app2.settings.heat_adaptation_sub" = "Fine-tune session paces for the temperature";
 "app2.settings.plans_title" = "Plans & subscription";
 "app2.settings.plan_free" = "Free";
