@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // MARK: - App2Theme
 /// Presentation Layer — 2.0 改版的卡片語彙。
@@ -13,11 +14,20 @@ import SwiftUI
 /// 品牌藍仍與 `PacerizTokens.color.brand.primary` 同值（#1890FF），不是第二個藍。
 enum App2Theme {
 
+    /// SPEC-app-appearance R3：dark 表面／文字對 1.x `color.dark`。
+    /// `UIColor` dynamic provider 讓既有呼叫點在系統外觀切換時自己換色。
+    private static func adaptive(light: String, dark: String, alpha: CGFloat = 1) -> Color {
+        Color(uiColor: UIColor { traits in
+            let hex = traits.userInterfaceStyle == .dark ? dark : light
+            return UIColor(Color(hex: hex)).withAlphaComponent(alpha)
+        })
+    }
+
     // MARK: - Surface
 
-    /// 頁面底：`linear-gradient(180deg,#f3f6fa 0%, #eef2f7 100%)`。
-    static let pageTop = Color(hex: "#F3F6FA")
-    static let pageBottom = Color(hex: "#EEF2F7")
+    /// 頁面底：light 設計包漸層；dark 兩端都是 1.x `#121212`。
+    static let pageTop = adaptive(light: "#F3F6FA", dark: "#121212")
+    static let pageBottom = adaptive(light: "#EEF2F7", dark: "#121212")
 
     static var pageGradient: LinearGradient {
         LinearGradient(colors: [pageTop, pageBottom], startPoint: .top, endPoint: .bottom)
@@ -26,14 +36,14 @@ enum App2Theme {
     /// 舊呼叫點的單色別名（載入態／空狀態底色）。
     static let pageBackground = pageTop
 
-    static let cardBackground = Color.white
-    /// `1px solid rgba(15,23,42,0.07)`
-    static let cardBorder = Color(hex: "#0F172A").opacity(0.07)
+    static let cardBackground = adaptive(light: "#FFFFFF", dark: "#1E1E1E")
+    /// `1px solid rgba(15,23,42,0.07)`；dark 同 alpha 的白。
+    static let cardBorder = adaptive(light: "#0F172A", dark: "#FFFFFF", alpha: 0.07)
 
-    /// 卡中卡：`#f5f7fa` / `#f7f9fc`，邊 `rgba(15,23,42,0.06)`。
-    static let insetBackground = Color(hex: "#F5F7FA")
-    static let insetBackgroundCool = Color(hex: "#F7F9FC")
-    static let insetBorder = Color(hex: "#0F172A").opacity(0.06)
+    /// 卡中卡：light 設計包；dark 1.x tertiary `#2C2C2E`。
+    static let insetBackground = adaptive(light: "#F5F7FA", dark: "#2C2C2E")
+    static let insetBackgroundCool = adaptive(light: "#F7F9FC", dark: "#2C2C2E")
+    static let insetBorder = adaptive(light: "#0F172A", dark: "#FFFFFF", alpha: 0.06)
 
     /// 強調卡（目標賽事／本週跑量／紀錄 hero／成就 hero）：
     /// `linear-gradient(150deg, rgba(24,144,255,0.12), rgba(24,144,255,0.02) 60%, #ffffff)`。
@@ -43,7 +53,7 @@ enum App2Theme {
             stops: [
                 .init(color: accentBlue.opacity(strength), location: 0),
                 .init(color: accentBlue.opacity(0.02), location: 0.6),
-                .init(color: .white, location: 1)
+                .init(color: cardBackground, location: 1)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -92,17 +102,17 @@ enum App2Theme {
     static let shadowHeroGreenColor = Color(hex: "#1E7A47").opacity(0.55)
 
     /// 舊呼叫點別名。
-    static let goalCardBackground = Color(hex: "#EAF2FE")
+    static let goalCardBackground = adaptive(light: "#EAF2FE", dark: "#2C2C2E")
 
     // MARK: - Ink
 
-    static let inkPrimary = Color(hex: "#10151C")      // 標題／大數字
-    static let inkSecondary = Color(hex: "#4A5561")    // 內文
-    static let inkTertiary = Color(hex: "#8A929C")     // 次要說明
-    static let inkMuted = Color(hex: "#94A0AD")        // section 小標
-    static let inkFaint = Color(hex: "#A2ABB6")        // evidence 級小字
-    static let inkSubtle = Color(hex: "#6B7581")       // 設定列右側值、賽事日期
-    static let chevron = Color(hex: "#C2CAD3")
+    static let inkPrimary = adaptive(light: "#10151C", dark: "#FFFFFF")
+    static let inkSecondary = adaptive(light: "#4A5561", dark: "#B3B3B3")
+    static let inkTertiary = adaptive(light: "#8A929C", dark: "#B3B3B3")
+    static let inkMuted = adaptive(light: "#94A0AD", dark: "#B3B3B3")
+    static let inkFaint = adaptive(light: "#A2ABB6", dark: "#B3B3B3")
+    static let inkSubtle = adaptive(light: "#6B7581", dark: "#B3B3B3")
+    static let chevron = adaptive(light: "#C2CAD3", dark: "#B3B3B3")
 
     // MARK: - Accent
 
@@ -133,7 +143,7 @@ enum App2Theme {
 
     /// 數據來源列的品牌底（設計 frame-21）。
     static let sourceDarkTile = Color(hex: "#0B0D10")
-    static let sourceLightTile = Color(hex: "#F0F3F7")
+    static let sourceLightTile = adaptive(light: "#F0F3F7", dark: "#2C2C2E")
     static let appleHealthRed = Color(hex: "#E5546C")
 
     /// 軌跡圖三色帶（§3.1a）。
@@ -143,27 +153,27 @@ enum App2Theme {
 
     /// stub 標記色（畫面上明示「這格還沒有後端」）。
     static let stubTint = Color(hex: "#9A7B00")
-    static let stubBackground = Color(hex: "#FFF6D9")
+    static let stubBackground = adaptive(light: "#FFF6D9", dark: "#2C2C2E")
 
     // MARK: - 邊線與中性填色（view 內不落 hex；2026-08-29 外審 C10）
 
     /// 比 `cardBorder`（0.07）再重一階的外框，選擇卡的常態邊線。
-    static let strokeStrong = Color(hex: "#0F172A").opacity(0.08)
+    static let strokeStrong = adaptive(light: "#0F172A", dark: "#FFFFFF", alpha: 0.08)
     /// 比 `insetBorder`（0.06）再淡一階，禁用態的框線。
-    static let strokeFaint = Color(hex: "#0F172A").opacity(0.05)
+    static let strokeFaint = adaptive(light: "#0F172A", dark: "#FFFFFF", alpha: 0.05)
     /// 分隔線／未選中膠囊底。
-    static let hairline = Color(hex: "#D9E0E8")
+    static let hairline = adaptive(light: "#D9E0E8", dark: "#FFFFFF", alpha: 0.12)
     /// 未選中 chip 的中性填色（＝頁面底色深端，同一個值不開第二個來源）。
     static let neutralFill = pageBottom
     /// radio 圈的未選中環。
-    static let radioRing = Color(hex: "#D0D7E0")
+    static let radioRing = adaptive(light: "#D0D7E0", dark: "#FFFFFF", alpha: 0.16)
     /// 禁用態填色（呼叫端自帶 opacity）。
-    static let disabledFill = Color(hex: "#E6EBF1")
+    static let disabledFill = adaptive(light: "#E6EBF1", dark: "#2C2C2E")
 
     // MARK: - Onboarding（frame-30~39 專屬色）
 
     /// 進度點的未到達態。
-    static let onbStepDim = Color(hex: "#B4BCC6")
+    static let onbStepDim = adaptive(light: "#B4BCC6", dark: "#B3B3B3")
     /// 深色 hero 上的提示字。
     static let onbHintOnDark = Color(hex: "#B4C2D2")
     /// 深綠成功文字（頂部 hero 淺底上）。
@@ -185,7 +195,7 @@ enum App2Theme {
 
     static let heroSkyLight = Color(hex: "#9FCCFF")
     static let heroTickDim = Color(hex: "#C2CCD8")
-    static let dotInactive = Color(hex: "#C8D3DF")
+    static let dotInactive = adaptive(light: "#C8D3DF", dark: "#B3B3B3")
 
     // MARK: - 編輯面（day edit／plan edit／edit components）
 
@@ -193,20 +203,20 @@ enum App2Theme {
     static let editAmber = Color(hex: "#EAB308")
     static let editAmberText = Color(hex: "#A16207")
     /// 控件的關閉態灰。
-    static let controlDim = Color(hex: "#8A97A6")
+    static let controlDim = adaptive(light: "#8A97A6", dark: "#B3B3B3")
     /// 柔性危險紅（移除課表這類次要破壞動作）。
     static let dangerSoft = Color(hex: "#DC7676")
     static let accentVioletLight = Color(hex: "#C084FC")
     static let chevronViolet = Color(hex: "#C9A6EC")
-    static let editBase = Color(hex: "#EEF3F8")
-    static let editStripe = Color(hex: "#EAEFF5")
-    static let editFilledChip = Color(hex: "#EEF1F6")
-    static let editDotDim = Color(hex: "#CBD3DD")
-    static let editFieldFill = Color(hex: "#F4F6FA")
+    static let editBase = adaptive(light: "#EEF3F8", dark: "#2C2C2E")
+    static let editStripe = adaptive(light: "#EAEFF5", dark: "#2C2C2E")
+    static let editFilledChip = adaptive(light: "#EEF1F6", dark: "#2C2C2E")
+    static let editDotDim = adaptive(light: "#CBD3DD", dark: "#B3B3B3")
+    static let editFieldFill = adaptive(light: "#F4F6FA", dark: "#2C2C2E")
 
     // MARK: - 圖表（App2Charts 專屬漸層端點）
 
-    static let chartSupport = Color(hex: "#CFD6DF")
+    static let chartSupport = adaptive(light: "#CFD6DF", dark: "#B3B3B3")
     static let chartGreenLight = Color(hex: "#5BE08A")
     static let chartOrangeLight = Color(hex: "#FB7A3C")
     static let chartOrangeDeep = Color(hex: "#E8500F")
