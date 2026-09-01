@@ -81,6 +81,24 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     /// nil ＝ 沿用既有行為（任何一週都回 `weeklyPlanV2ToReturn`），既有測試不受影響。
     var cachedWeeklyPlansByWeek: [Int: WeeklyPlanV2]?
 
+    // MARK: - 整期預抓（T-0378）
+
+    /// `getWeeklyPlan` 每一週各自回哪一份（預抓要驗「第 N 週落的是第 N 週的課表」）。
+    /// nil ＝ 沿用既有行為（都回 `weeklyPlanV2ToReturn`）。表裡沒有的週丟 `weeklyPlanNotFound`
+    /// ——那正是後端 404（那一週從沒生成過課表）。
+    var weeklyPlansByWeekToReturn: [Int: WeeklyPlanV2]?
+
+    /// 抓回來就寫進 `cachedWeeklyPlansByWeek`（真 repository 的 write-through 行為，
+    /// `TrainingPlanV2RepositoryImpl.fetchAndCacheWeeklyPlan`）。
+    /// 預設 false —— 既有測試自己擺快取，不受影響。
+    var simulatesWriteThroughCache = false
+
+    /// 這一週後端沒有課表（404）。
+    var weeklyPlanNotFoundWeeks: Set<Int> = []
+
+    /// 預抓實際問了哪幾週（順序保留，可看併發交錯）。
+    var requestedWeeklyPlanWeeks: [Int] = []
+
     // MARK: - Reset
 
     func reset() {
@@ -223,10 +241,23 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     func getWeeklyPlan(weekOfTraining: Int, overviewId: String) async throws -> WeeklyPlanV2 {
         getWeeklyPlanCallCount += 1
         lastRequestedWeeklyPlanWeekOfTraining = weekOfTraining
+        requestedWeeklyPlanWeeks.append(weekOfTraining)
         if let onGetWeeklyPlan { await onGetWeeklyPlan() }
         if let error = errorToThrow { throw error }
-        guard let plan = weeklyPlanV2ToReturn else {
+        if weeklyPlanNotFoundWeeks.contains(weekOfTraining) {
             throw TrainingPlanV2Error.weeklyPlanNotFound(week: weekOfTraining)
+        }
+        let resolved: WeeklyPlanV2?
+        if let weeklyPlansByWeekToReturn {
+            resolved = weeklyPlansByWeekToReturn[weekOfTraining]
+        } else {
+            resolved = weeklyPlanV2ToReturn
+        }
+        guard let plan = resolved else {
+            throw TrainingPlanV2Error.weeklyPlanNotFound(week: weekOfTraining)
+        }
+        if simulatesWriteThroughCache {
+            cachedWeeklyPlansByWeek = (cachedWeeklyPlansByWeek ?? [:]).merging([weekOfTraining: plan]) { _, new in new }
         }
         return plan
     }

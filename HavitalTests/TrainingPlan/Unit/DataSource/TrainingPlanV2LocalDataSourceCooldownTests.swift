@@ -241,3 +241,96 @@ final class TrainingPlanV2LocalDataSourceOwnerTests: XCTestCase {
         XCTAssertNotNil(sut.getPlanStatus(), "本輪寫入本身要留存")
     }
 }
+
+// MARK: - 週課表 TTL：已經走完的那一週不過期（T-0378）
+
+/// 2026-09-01 裁決：整期預抓把 `1…total_weeks` 全部填進快取；如果舊週每兩小時
+/// 就變 stale，回看又會退回「每切一次週等一趟網路」。
+/// 「現在第幾週」讀既有的 plan status 快取（`current_week`），**不另立時鐘**。
+final class TrainingPlanV2WeeklyPlanTTLTests: XCTestCase {
+
+    private var sut: TrainingPlanV2LocalDataSource!
+    private var defaults: MockUserDefaults!
+
+    /// `Keys.weeklyPlanPrefix` 是 private —— 這裡直接寫實際的 key，
+    /// 把時間戳倒推到 TTL（`TTL.weeklyPlan` ＝ 7200 秒）之外。
+    private func timestampKey(week: Int) -> String {
+        "training_plan_v2_weekly_\(week)_timestamp"
+    }
+
+    override func setUp() {
+        super.setUp()
+        defaults = MockUserDefaults()
+        sut = TrainingPlanV2LocalDataSource(defaults: defaults, currentUserID: { "userA" })
+    }
+
+    override func tearDown() {
+        defaults.clear()
+        sut = nil
+        defaults = nil
+        super.tearDown()
+    }
+
+    private func makeStatus(currentWeek: Int) -> PlanStatusV2Response {
+        PlanStatusV2Response(
+            currentWeek: currentWeek, totalWeeks: 17, nextAction: "view_plan",
+            canGenerateNextWeek: false, currentWeekPlanId: nil,
+            previousWeekSummaryId: nil, targetType: "maintenance",
+            methodologyId: "paceriz", nextWeekInfo: nil, metadata: nil
+        )
+    }
+
+    private func makePlan(week: Int) -> WeeklyPlanV2 {
+        WeeklyPlanV2(
+            planId: "overview-1_\(week)", weekOfTraining: week, id: "overview-1_\(week)",
+            purpose: "history", weekOfPlan: week, totalWeeks: 17, totalDistance: 42,
+            totalDistanceDisplay: nil, totalDistanceUnit: nil, totalDistanceReason: nil,
+            designReason: nil, mileageProgressionNote: nil, coachNote: nil, days: [],
+            intensityTotalMinutes: nil, currentVdot: nil, vdotSource: nil,
+            createdAt: Date(), updatedAt: Date(), trainingLoadAnalysis: nil,
+            personalizedRecommendations: nil, realTimeAdjustments: nil, apiVersion: "2.0"
+        )
+    }
+
+    /// 存下來、再把時間戳倒推三小時（TTL 是兩小時）。
+    private func saveStale(week: Int) {
+        sut.saveWeeklyPlan(makePlan(week: week), week: week)
+        defaults.set(Date().addingTimeInterval(-10_800), forKey: timestampKey(week: week))
+    }
+
+    /// **第 10 週的用戶，第 3 週的快取永遠不過期。**
+    func test_pastWeeks_neverExpire() {
+        sut.savePlanStatus(makeStatus(currentWeek: 10))
+        saveStale(week: 3)
+
+        XCTAssertFalse(
+            sut.isWeeklyPlanExpired(week: 3),
+            "已經走完的那一週是不會再變的歷史事實，TTL 到期不代表它腐爛"
+        )
+    }
+
+    /// **當週與未來週照 TTL 走。** 那幾週的課表還會被編輯／重生成，不得跟著豁免。
+    func test_currentAndFutureWeeks_stillExpire() {
+        sut.savePlanStatus(makeStatus(currentWeek: 10))
+        saveStale(week: 10)
+        saveStale(week: 11)
+
+        XCTAssertTrue(sut.isWeeklyPlanExpired(week: 10), "當週照 TTL 走")
+        XCTAssertTrue(sut.isWeeklyPlanExpired(week: 11), "未來週照 TTL 走")
+    }
+
+    /// 沒有 plan status（推不出「現在第幾週」）就退回純 TTL 判斷。
+    func test_withoutPlanStatus_fallsBackToTTL() {
+        saveStale(week: 3)
+
+        XCTAssertTrue(sut.isWeeklyPlanExpired(week: 3), "推不出現在第幾週時不得豁免")
+    }
+
+    /// 剛存下來的當週仍然新鮮（沒有把整條路徑改成「永遠不過期」）。
+    func test_freshCurrentWeek_isNotExpired() {
+        sut.savePlanStatus(makeStatus(currentWeek: 10))
+        sut.saveWeeklyPlan(makePlan(week: 10), week: 10)
+
+        XCTAssertFalse(sut.isWeeklyPlanExpired(week: 10))
+    }
+}

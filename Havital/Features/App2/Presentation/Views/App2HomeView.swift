@@ -722,9 +722,8 @@ struct App2HomeView: View {
     /// 有真序列端點時再依當時的設計重議，不留樣本圖佔位。
     /// headline ＋ 句尾的展開／收起連結（設計 frame-00c2，2026-08-26 裁決）。
     ///
-    /// **連結接在 headline 尾端、同一個段落**，不是獨立一行 —— 所以是 `Text`
-    /// 相加而不是 `HStack`：`HStack` 只能把它擺成同一列的另一個元件，
-    /// headline 換行時就散開了。`Text(Image(...))` 讓 chevron 跟著文字排版走。
+    /// **連結與 headline 永遠同一列**（2026-09-01 使用者裁決）：headline 可換行，
+    /// 連結釘在最後一行的行尾右緣。
     ///
     /// 沒有敘述可展開時（免費用戶 `narrative_text` 為 nil）只有 headline，
     /// 不掛連結也不吃點擊。
@@ -755,34 +754,21 @@ struct App2HomeView: View {
 
         Group {
             if canExpand {
-                // **連結釘在同一列最右緣**（2026-08-27 晚走查裁決（g））。
-                // 8/27 的單一 HStack 版有個坑：headline 一換行，連結欄位的寬度會被
-                // 整個高度保留，右側空出一大塊（2026-08-28 走查、英文長 headline 實測）。
-                // 所以改 `ViewThatFits`：裝得下就同列右緣；裝不下（headline 需換行）
-                // 就讓 headline 吃滿寬換行、連結自己一行靠右——右緣語意不變。
+                // **連結與標題永遠同一列**（2026-09-01 使用者裁決）。
+                // 修前是 `ViewThatFits`：headline 一長就掉進 VStack 分支，標題與
+                // 連結分成兩行——使用者看到的就是「看更多」自己一行。現在只有一個
+                // `HStack`：headline 吃滿剩餘寬度並自由換行，連結靠 `lastTextBaseline`
+                // 釘在**最後一行的行尾右緣**。連結那顆有 `.lineLimit(1).fixedSize()`，
+                // 所以它先拿走自己的固有寬度，headline 換行不會把它擠掉。
                 // 8/26 的 inline 相加版（`Text + Text`）做不到右對齊 —— 那是同一段
                 // 文字流，連結只會接在句尾。
-                ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .lastTextBaseline, spacing: 8) {
-                        headline
-                            .tracking(0.3)
-                            .lineLimit(1)
-                            .fixedSize(horizontal: true, vertical: false)
+                HStack(alignment: .lastTextBaseline, spacing: 8) {
+                    headline
+                        .tracking(0.3)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                        Spacer(minLength: 8)
-
-                        link
-                    }
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        headline
-                            .tracking(0.3)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                        link
-                            .frame(maxWidth: .infinity, alignment: .trailing)
-                    }
+                    link
                 }
                 .contentShape(Rectangle())
                 .onTapGesture {

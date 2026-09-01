@@ -114,6 +114,26 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     private var backfilledMonths: Set<Int> = []
     /// 最近一顆背景補史（只給測試等它跑完；正式路徑沒有人等它，那正是重點）。
     private var backfillTask: Task<Void, Never>?
+
+    // MARK: - 整期週課表預抓（T-0378，2026-09-01 裁決）
+    //
+    // 使用者原話：「切換週課表還是會有一到兩秒的lag」。T-0374 讓切週不再等 workout
+    // 補史，但**沒看過的那一週仍然要等 `GET /v2/plan/weekly/{overviewId}_{week}`**
+    // ——`prepaintHistoryWeek` 靠的是 repository 快取，快取沒有就只能空著等。
+    //
+    // 所以進課表頁時在背景把整期逐週填進同一份快取（`TrainingPlanV2LocalDataSource`），
+    // 之後每一次切週都是快取命中、零網路。**不擋首屏**（沒有人 await 它）、
+    // **404 容忍**（那一週從沒生成過課表，不是錯誤）、**一個 session 只跑一次**。
+
+    /// 這個 ViewModel 的生命週期內已經排過整期預抓。**不是第二份快取**：
+    /// 週課表的 SSOT 仍然是 repository 的 cache-first `getWeeklyPlan`，
+    /// 這裡只記「這一期已經排過預抓了」，避免每一輪 SWR 重驗都重排一次。
+    private var hasScheduledWeeklyPlanPrefetch = false
+    /// 最近一顆整期預抓（只給測試等它跑完；正式路徑沒有人等它）。
+    private var weeklyPlanPrefetchTask: Task<Void, Never>?
+    /// 併發上限（裁決：3）。整期 20 幾週一次全部丟出去會把連線佔滿，
+    /// 把首屏那幾筆真正要用的請求排到後面。
+    private static let weeklyPlanPrefetchLanes = 3
     /// 目前畫面上這一週的投影素材。補史回來、或收到新紀錄推播時，
     /// 用它重算已完成量並重新發布 `week`（`dayDetails` 與已完成量無關，不重建）。
     private var displayedWeek: DisplayedWeek?
@@ -307,6 +327,9 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             guard revalidateGeneration == round else { return }
             latestPlanStatus = status
             finishedRound = true
+
+            // 整期預抓（T-0378）：不 await —— 首屏與切週都不得等它。
+            schedulePrefetchAllWeeks(totalWeeks: status.totalWeeks)
 
             await applyPlanEnd(planStatus: status)
             // await 恢復點：被接管的舊輪不得再寫 week／dayDetails 等共用狀態
@@ -539,6 +562,50 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         overviewId = fetched
         return overviewId
     }
+
+    // MARK: - 整期預抓（T-0378）
+
+    /// 背景把 `1…totalWeeks` 逐週填進 repository 快取。**沒有人 await 它。**
+    ///
+    /// 走的是既有的 cache-first `getWeeklyPlan(weekOfTraining:overviewId:)` ——
+    /// 已經在快取裡的週不會產生任何往返，所以重跑的成本只有沒抓過的那幾週。
+    /// 失敗（含 404 ＝ 該週從沒生成過課表）就跳過那一週，不影響其他週。
+    private func schedulePrefetchAllWeeks(totalWeeks: Int) {
+        guard totalWeeks > 0, !hasScheduledWeeklyPlanPrefetch else { return }
+        hasScheduledWeeklyPlanPrefetch = true
+
+        weeklyPlanPrefetchTask = Task { @MainActor [weak self] in
+            guard let self else { return }
+            // overview id 是 `{overviewId}_{week}` 的前半 —— 快取有就用快取，
+            // 沒有才打一次 `GET /v2/plan/overview`（與歷史回看同一支，不新開路徑）。
+            guard let overviewId = await self.resolveOverviewId() else { return }
+            guard !Task.isCancelled else { return }
+
+            let lanes = min(Self.weeklyPlanPrefetchLanes, totalWeeks)
+            await withTaskGroup(of: Void.self) { group in
+                for lane in 0..<lanes {
+                    group.addTask { @MainActor [weak self] in
+                        var week = lane + 1
+                        while week <= totalWeeks, !Task.isCancelled {
+                            _ = try? await self?.planRepository.getWeeklyPlan(
+                                weekOfTraining: week,
+                                overviewId: overviewId
+                            )
+                            week += lanes
+                        }
+                    }
+                }
+            }
+            Logger.debug("[App2PlanVM] 整期課表預抓完成（\(totalWeeks) 週）")
+        }
+    }
+
+    #if DEBUG
+    /// 測試用：等整期預抓跑完（正式路徑沒有人等它 —— 那正是重點）。
+    func waitForWeeklyPlanPrefetchForTesting() async {
+        await weeklyPlanPrefetchTask?.value
+    }
+    #endif
 
     /// 切週的預畫 —— **同步、零 `await`、零網路**（T-0374）。
     ///

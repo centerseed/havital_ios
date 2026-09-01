@@ -470,7 +470,10 @@ struct App2SessionStructureChart: View {
 
     private var plot: some View {
         GeometryReader { geo in
-            let spacing: CGFloat = 3
+            // 色塊直接相連（2026-09-01 使用者裁決：「因為空間關係，不同配速的
+            // 色塊之間的間隔直接拿掉」）。間隔為 0 時每一塊都拿得到完整的
+            // `widthWeight` 比例寬，窄塊比較有機會標得下配速。
+            let spacing: CGFloat = 0
             let totalWeight = max(bars.reduce(0) { $0 + $1.widthWeight }, 0.001)
             let usable = max(geo.size.width - spacing * CGFloat(max(bars.count - 1, 0)), 1)
 

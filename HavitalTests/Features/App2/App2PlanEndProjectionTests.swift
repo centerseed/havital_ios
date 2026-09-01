@@ -926,6 +926,118 @@ final class App2PlanHistoryModeTests: XCTestCase {
         XCTAssertGreaterThan(workouts.ensureMonthLoadedCallCount, backfillsBefore)
         XCTAssertGreaterThan(workouts.getWorkoutsInDateRangeCallCount, readsBefore)
     }
+
+    // MARK: - 整期預抓（T-0378，2026-09-01 裁決）
+    //
+    // 使用者原話：「切換週課表還是會有一到兩秒的lag」。T-0374 之後切週不再等
+    // workout 補史，但**沒看過的那一週仍然要等 `GET /v2/plan/weekly/{overviewId}_{week}`**。
+    // 進課表頁時在背景把整期填進 repository 快取，之後每一次切週都是快取命中。
+
+    /// 冷啟一週快取都沒有時，進課表頁會把 `1…total_weeks` 全部填進快取。
+    private func makeViewModelForPrefetch(
+        totalWeeks: Int = 17,
+        notFoundWeeks: Set<Int> = []
+    ) -> (App2PlanViewModel, MockTrainingPlanV2Repository) {
+        let repository = MockTrainingPlanV2Repository()
+        repository.planStatusToReturn = planStatus(currentWeek: totalWeeks + 1, totalWeeks: totalWeeks)
+        repository.overviewToReturn = overview()
+        repository.cachedWeeklyPlansByWeek = [:]              // 冷啟：一週都沒有
+        repository.simulatesWriteThroughCache = true          // 抓回來就落快取（真 repo 的行為）
+        repository.weeklyPlanNotFoundWeeks = notFoundWeeks
+        repository.weeklyPlansByWeekToReturn = Dictionary(
+            uniqueKeysWithValues: (1...totalWeeks).map { ($0, weeklyPlan(week: $0)) }
+        )
+        let viewModel = App2PlanViewModel(
+            planRepository: repository,
+            workoutRepository: MockWorkoutRepository(),
+            targetRepository: nil
+        )
+        return (viewModel, repository)
+    }
+
+    /// **整期都預抓。** 進課表頁一次，`1…17` 全部進快取，每一週各一趟、不重複。
+    func test_prefetchFillsEveryWeekOfThePlan() async {
+        let (viewModel, repository) = makeViewModelForPrefetch()
+
+        await viewModel.revalidate()
+        await viewModel.waitForWeeklyPlanPrefetchForTesting()
+
+        XCTAssertEqual(
+            Set(repository.cachedWeeklyPlansByWeek?.keys.map { $0 } ?? []), Set(1...17),
+            "整期每一週都要落進 repository 快取"
+        )
+        XCTAssertEqual(
+            repository.requestedWeeklyPlanWeeks.sorted(), Array(1...17),
+            "每一週各問一次，不重不漏"
+        )
+        XCTAssertEqual(
+            repository.cachedWeeklyPlansByWeek?[9]?.weekOfTraining, 9,
+            "第 9 週的快取要是第 9 週的課表"
+        )
+    }
+
+    /// **預抓過的週切過去零網路等待。** `getWeeklyPlan` 掛住不返回的那一刻，
+    /// 畫面已經是目標週 —— 那一週在這次 session 從來沒被看過。
+    func test_prefetchedWeekPaintsWithoutWaitingForTheNetwork() async {
+        let (viewModel, repository) = makeViewModelForPrefetch()
+        await viewModel.revalidate()
+        await viewModel.waitForWeeklyPlanPrefetchForTesting()
+
+        await viewModel.enterHistoryMode()                     // 第 17 週
+        XCTAssertEqual(viewModel.historyWeek, 17)
+
+        // 第 16 週從沒被看過 —— 修前這裡要等一趟 GET 才會有內容。
+        let probe = WeekSnapshotProbe()
+        repository.onGetWeeklyPlan = { [weak viewModel] in
+            await MainActor.run { probe.week = viewModel?.week?.value }
+        }
+        await viewModel.goToHistoryWeek(offset: -1)
+
+        XCTAssertEqual(viewModel.historyWeek, 16)
+        XCTAssertNotNil(probe.week, "預抓過的週，抓取還沒回來就該有內容")
+        XCTAssertEqual(
+            probe.week?.weekLabel,
+            String(format: L10n.WeekSelector.weekNumber.localized, 16),
+            "預畫的必須是目標週"
+        )
+    }
+
+    /// **一個 session 只跑一次。** 下拉刷新／SWR 重驗不得把整期再抓一遍
+    /// ——快取已經有了，那是純浪費。
+    func test_prefetchRunsOnlyOncePerSession() async {
+        let (viewModel, repository) = makeViewModelForPrefetch()
+        await viewModel.revalidate()
+        await viewModel.waitForWeeklyPlanPrefetchForTesting()
+        let afterFirst = repository.getWeeklyPlanCallCount
+        XCTAssertEqual(afterFirst, 17)
+
+        await viewModel.revalidate()
+        await viewModel.waitForWeeklyPlanPrefetchForTesting()
+        await viewModel.revalidate()
+        await viewModel.waitForWeeklyPlanPrefetchForTesting()
+
+        XCTAssertEqual(
+            repository.getWeeklyPlanCallCount, afterFirst,
+            "整期預抓一個 session 只排一次"
+        )
+    }
+
+    /// **404 容忍。** 某幾週從沒生成過課表不是錯誤，其餘的週照樣預抓完。
+    func test_prefetchTolerates404AndKeepsGoing() async {
+        let (viewModel, repository) = makeViewModelForPrefetch(notFoundWeeks: [4, 11])
+
+        await viewModel.revalidate()
+        await viewModel.waitForWeeklyPlanPrefetchForTesting()
+
+        XCTAssertEqual(
+            repository.requestedWeeklyPlanWeeks.sorted(), Array(1...17),
+            "404 不得讓預抓停在那一週"
+        )
+        XCTAssertEqual(
+            Set(repository.cachedWeeklyPlansByWeek?.keys.map { $0 } ?? []),
+            Set(1...17).subtracting([4, 11])
+        )
+    }
 }
 
 /// 背景補史有沒有跑完（T-0374）。`@unchecked Sendable`：只在測試裡跨 actor 記一個旗標。

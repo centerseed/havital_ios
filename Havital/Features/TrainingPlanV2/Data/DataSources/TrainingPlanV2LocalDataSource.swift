@@ -281,7 +281,16 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
         }
     }
 
+    /// **已經走完的那一週不過期**（T-0378）：它是不會再變的歷史事實，TTL 到期
+    /// 不代表它腐爛。整期預抓下來的舊週如果每兩小時就變 stale，回看又會退回
+    /// 「每切一次週等一趟網路」。
+    ///
+    /// 「現在是第幾週」讀既有的 plan status 快取（`current_week`，與 UI 的週次骨幹
+    /// 同一個欄位），**不另立時鐘**。沒有 plan status 就退回純 TTL 判斷。
     func isWeeklyPlanExpired(week: Int) -> Bool {
+        if let currentWeek = getPlanStatus()?.currentWeek, week < currentWeek {
+            return false
+        }
         let key = Keys.weeklyPlanPrefix + "\(week)" + Keys.timestampSuffix
         guard let timestamp = defaults.object(forKey: key) as? Date else {
             return true
