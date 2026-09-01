@@ -329,7 +329,10 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             finishedRound = true
 
             // 整期預抓（T-0378）：不 await —— 首屏與切週都不得等它。
-            schedulePrefetchAllWeeks(totalWeeks: status.totalWeeks)
+            // 只抓到本週：V2 逐週生成，未來週的課表**根本還不存在**，抓了只會
+            // 產生一整排 404 並被 client 錯誤回報灌進 cloud logging
+            // （2026-09-01 使用者帳號被監控標成「反覆失敗」的那一波，14 筆）。
+            schedulePrefetchAllWeeks(upTo: min(status.currentWeek, status.totalWeeks))
 
             await applyPlanEnd(planStatus: status)
             // await 恢復點：被接管的舊輪不得再寫 week／dayDetails 等共用狀態
@@ -565,12 +568,12 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     // MARK: - 整期預抓（T-0378）
 
-    /// 背景把 `1…totalWeeks` 逐週填進 repository 快取。**沒有人 await 它。**
+    /// 背景把 `1…upTo`（本週為止）逐週填進 repository 快取。**沒有人 await 它。**
     ///
     /// 走的是既有的 cache-first `getWeeklyPlan(weekOfTraining:overviewId:)` ——
     /// 已經在快取裡的週不會產生任何往返，所以重跑的成本只有沒抓過的那幾週。
     /// 失敗（含 404 ＝ 該週從沒生成過課表）就跳過那一週，不影響其他週。
-    private func schedulePrefetchAllWeeks(totalWeeks: Int) {
+    private func schedulePrefetchAllWeeks(upTo totalWeeks: Int) {
         guard totalWeeks > 0, !hasScheduledWeeklyPlanPrefetch else { return }
         hasScheduledWeeklyPlanPrefetch = true
 

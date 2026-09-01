@@ -936,10 +936,11 @@ final class App2PlanHistoryModeTests: XCTestCase {
     /// 冷啟一週快取都沒有時，進課表頁會把 `1…total_weeks` 全部填進快取。
     private func makeViewModelForPrefetch(
         totalWeeks: Int = 17,
+        currentWeek: Int? = nil,
         notFoundWeeks: Set<Int> = []
     ) -> (App2PlanViewModel, MockTrainingPlanV2Repository) {
         let repository = MockTrainingPlanV2Repository()
-        repository.planStatusToReturn = planStatus(currentWeek: totalWeeks + 1, totalWeeks: totalWeeks)
+        repository.planStatusToReturn = planStatus(currentWeek: currentWeek ?? totalWeeks + 1, totalWeeks: totalWeeks)
         repository.overviewToReturn = overview()
         repository.cachedWeeklyPlansByWeek = [:]              // 冷啟：一週都沒有
         repository.simulatesWriteThroughCache = true          // 抓回來就落快取（真 repo 的行為）
@@ -973,6 +974,21 @@ final class App2PlanHistoryModeTests: XCTestCase {
         XCTAssertEqual(
             repository.cachedWeeklyPlansByWeek?[9]?.weekOfTraining, 9,
             "第 9 週的快取要是第 9 週的課表"
+        )
+    }
+
+    /// **未來週不抓。** V2 課表逐週生成，本週之後的週**根本還不存在**——抓了只會
+    /// 產生一整排 404 並被 client 錯誤回報灌進 cloud logging
+    /// （2026-09-01 使用者帳號被監控標成「反覆失敗」的那一波）。
+    func test_prefetchStopsAtTheCurrentWeek() async {
+        let (viewModel, repository) = makeViewModelForPrefetch(totalWeeks: 27, currentWeek: 10)
+
+        await viewModel.revalidate()
+        await viewModel.waitForWeeklyPlanPrefetchForTesting()
+
+        XCTAssertEqual(
+            repository.requestedWeeklyPlanWeeks.sorted(), Array(1...10),
+            "只抓到本週——未來週的課表還不存在，抓了只會製造 404 錯誤回報"
         )
     }
 
