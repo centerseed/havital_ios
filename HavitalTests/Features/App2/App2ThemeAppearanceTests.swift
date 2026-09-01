@@ -107,6 +107,38 @@ final class App2ThemeAppearanceTests: XCTestCase {
         XCTAssertTrue(hits.isEmpty, hits.joined(separator: "\n"))
     }
 
+    func testOneXHostsStayLight() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let app = try String(
+            contentsOf: root.appendingPathComponent("Havital/HavitalApp.swift"),
+            encoding: .utf8
+        )
+        XCTAssertFalse(app.contains("preferredColorScheme"))
+        let shell = try String(
+            contentsOf: root.appendingPathComponent(
+                "Havital/Features/App2/Presentation/App2RootView.swift"
+            ),
+            encoding: .utf8
+        )
+        XCTAssertTrue(shell.contains("preferredColorScheme(appearanceStore.preference.colorScheme)"))
+        let login = try String(
+            contentsOf: root.appendingPathComponent("Havital/Views/LoginView.swift"),
+            encoding: .utf8
+        )
+        XCTAssertTrue(login.contains(".preferredColorScheme(.light)"))
+        let calendar = try String(
+            contentsOf: root.appendingPathComponent(
+                "Havital/Views/Training/Components/TrainingCalendarView.swift"
+            ),
+            encoding: .utf8
+        )
+        XCTAssertTrue(calendar.contains(".preferredColorScheme(.light)"))
+    }
+
     private func hex(_ color: Color, _ style: UIUserInterfaceStyle) -> String {
         let resolved = UIColor(color).resolvedColor(
             with: UITraitCollection(userInterfaceStyle: style)

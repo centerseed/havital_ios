@@ -142,6 +142,7 @@ struct LoginView: View {
             }
         }
         .navigationViewStyle(StackNavigationViewStyle())
+        .preferredColorScheme(.light)
         .background(Color(UIColor { traitCollection in
             traitCollection.userInterfaceStyle == .dark ? UIColor(AppTheme.DarkMode.backgroundColor) : UIColor(AppTheme.shared.backgroundColor)
         }))

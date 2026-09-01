@@ -8,6 +8,7 @@ import SwiftUI
 /// `App2OnboardingViewModel` → `OnboardingFeatureViewModel` / `OnboardingCoordinator`。
 struct App2OnboardingContainerView: View {
 
+    @ObservedObject private var appearanceStore = App2AppearanceStore.shared
     @StateObject private var viewModel: App2OnboardingViewModel
     /// 從設定頁「重新設定目標賽事」進來時，完成後要把 cover 關掉。
     let onFinished: (() -> Void)?
@@ -70,6 +71,7 @@ struct App2OnboardingContainerView: View {
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
+        .preferredColorScheme(appearanceStore.preference.colorScheme)
     }
 
     @ViewBuilder

@@ -87,6 +87,7 @@ extension PersonalAchievementsViewModel: App2Revalidating {
 /// 1.x 發版線（`main`）不受影響 —— 本票不合回 main。
 struct App2RootView: View {
 
+    @ObservedObject private var appearanceStore = App2AppearanceStore.shared
     @Environment(\.scenePhase) private var scenePhase
 
     @State private var selection: App2Tab = .state
@@ -151,6 +152,7 @@ struct App2RootView: View {
             Task { await achievementsViewModel.loadIfNeeded() }
         }
         .accessibilityIdentifier("App2_RootView")
+        .preferredColorScheme(appearanceStore.preference.colorScheme)
     }
 
     /// tab item 的圖與字。identifier 掛在 `Label` 上 —— 系統 tab bar 會把它帶到

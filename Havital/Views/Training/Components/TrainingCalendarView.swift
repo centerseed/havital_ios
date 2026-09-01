@@ -414,6 +414,7 @@ struct TrainingCalendarView: View {
         .onChange(of: viewModel.workouts) { _ in
             processWorkoutsForDisplay()
         }
+        .preferredColorScheme(.light)
     }
 
     private var modePicker: some View {
