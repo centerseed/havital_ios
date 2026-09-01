@@ -120,25 +120,47 @@ struct App2WorkoutDetailView: View {
                     .fill(App2Theme.accentBlue)
             )
             .contentShape(Rectangle())
-            .onTapGesture {
-                // detail 的 timeSeries／routeData 疊回 list workout，canvas 才畫得出
-                // 配速曲線與路線（1.4 同一條 `mergeDetail`）。
-                let merged = viewModel.workoutDetail.map {
-                    WorkoutRecapPayload.mergeDetail($0, onto: viewModel.workout)
-                } ?? viewModel.workout
-                shareRecapPayload = WorkoutRecapPayload(
-                    content: WorkoutRecapContent.make(
-                        from: viewModel.workout,
-                        isPremium: SubscriptionStateManager.shared.hasPremiumAccess,
-                        aiAnalysisOverride: viewModel.workoutDetail?.aiSummary?.analysis,
-                        rpeOverride: viewModel.currentRPE,
-                        shareCardContentOverride: viewModel.workoutDetail?.shareCardContent
-                    ),
-                    canvasData: ShareCardCanvasDataBuilder.build(from: merged)
-                )
-            }
+            .onTapGesture { presentShareSheet() }
             .accessibilityAddTraits(.isButton)
             .accessibilityIdentifier("App2_WorkoutDetailShare")
+    }
+
+    /// 右上角分享——同一個動作的第二個入口，免捲到頁尾（2026-09-01 使用者要求）。
+    private var headerShareButton: some View {
+        RoundedRectangle(cornerRadius: 9, style: .continuous)
+            .fill(App2Theme.cardBackground)
+            .frame(width: 30, height: 30)
+            .overlay(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .stroke(App2Theme.cardBorder, lineWidth: 1)
+            )
+            .overlay(
+                Image(systemName: "square.and.arrow.up")
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundStyle(App2Theme.accentBlueDeep)
+            )
+            .contentShape(Rectangle())
+            .onTapGesture { presentShareSheet() }
+            .accessibilityAddTraits(.isButton)
+            .accessibilityIdentifier("App2_WorkoutDetailShareTop")
+    }
+
+    private func presentShareSheet() {
+        // detail 的 timeSeries／routeData 疊回 list workout，canvas 才畫得出
+        // 配速曲線與路線（1.4 同一條 `mergeDetail`）。
+        let merged = viewModel.workoutDetail.map {
+            WorkoutRecapPayload.mergeDetail($0, onto: viewModel.workout)
+        } ?? viewModel.workout
+        shareRecapPayload = WorkoutRecapPayload(
+            content: WorkoutRecapContent.make(
+                from: viewModel.workout,
+                isPremium: SubscriptionStateManager.shared.hasPremiumAccess,
+                aiAnalysisOverride: viewModel.workoutDetail?.aiSummary?.analysis,
+                rpeOverride: viewModel.currentRPE,
+                shareCardContentOverride: viewModel.workoutDetail?.shareCardContent
+            ),
+            canvasData: ShareCardCanvasDataBuilder.build(from: merged)
+        )
     }
 
     @ViewBuilder
@@ -157,7 +179,7 @@ struct App2WorkoutDetailView: View {
                 onBack: onClose,
                 backIdentifier: "App2_WorkoutDetailBack",
                 titleIdentifier: "App2_WorkoutDetailView"
-            ) { EmptyView() }
+            ) { headerShareButton }
             .padding(.horizontal, App2Theme.pagePadding)
             .padding(.top, 6)
 
