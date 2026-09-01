@@ -85,7 +85,7 @@ struct App2EditTopBar: View {
                     .padding(.vertical, 6)
                     .background(
                         RoundedRectangle(cornerRadius: 11, style: .continuous)
-                            .fill(Color.white)
+                            .fill(App2Theme.cardBackground)
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 11, style: .continuous)

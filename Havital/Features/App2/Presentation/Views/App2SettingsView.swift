@@ -340,7 +340,7 @@ struct App2SettingsView: View {
             .padding(.vertical, 11)
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(filled ? App2Theme.accentBlue : Color.white)
+                    .fill(filled ? App2Theme.accentBlue : App2Theme.cardBackground)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)

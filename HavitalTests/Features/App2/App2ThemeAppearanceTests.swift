@@ -37,6 +37,29 @@ final class App2ThemeAppearanceTests: XCTestCase {
         XCTAssertEqual(App2AppearancePreference(rawValue: "nope") ?? .system, .system)
     }
 
+    @MainActor
+    func testPreferencePersistsLocally() {
+        let store = App2AppearanceStore.shared
+        let previous = store.preference
+        store.preference = .dark
+        XCTAssertEqual(
+            UserDefaults.standard.string(forKey: App2AppearanceStore.defaultsKey),
+            "dark"
+        )
+        store.preference = .system
+        XCTAssertEqual(
+            UserDefaults.standard.string(forKey: App2AppearanceStore.defaultsKey),
+            "system"
+        )
+        store.preference = previous
+    }
+
+    func testDarkNeutralFillIsCardNotPage() {
+        XCTAssertEqual(hex(App2Theme.neutralFill, .dark), "1E1E1E")
+        XCTAssertEqual(hex(App2Theme.cardBackground, .dark), "1E1E1E")
+        XCTAssertEqual(hex(App2Theme.pageTop, .dark), "121212")
+    }
+
     func testDarkHeroStaysDesignedDark() {
         XCTAssertEqual(hex(App2Theme.sourceDarkTile, .dark), "0B0D10")
         XCTAssertEqual(hex(App2Theme.sourceDarkTile, .light), "0B0D10")

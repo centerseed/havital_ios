@@ -151,7 +151,7 @@ struct App2WheelSheetChrome<Content: View>: View {
             Spacer(minLength: 8)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white)
+        .background(App2Theme.cardBackground)
     }
 }
 

@@ -248,7 +248,7 @@ struct App2DayEditView: View {
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ))
-                            : AnyShapeStyle(Color.white)
+                            : AnyShapeStyle(App2Theme.cardBackground)
                     )
             )
             .overlay(
@@ -583,7 +583,7 @@ struct App2DayEditView: View {
                 Spacer(minLength: 4)
                 if editState.segments.count > 1 {
                     Circle()
-                        .fill(Color.white)
+                        .fill(App2Theme.cardBackground)
                         .frame(width: 28, height: 28)
                         .overlay(Circle().strokeBorder(App2Theme.cardBorder, lineWidth: 1))
                         .overlay {
@@ -735,7 +735,7 @@ struct App2DayEditView: View {
                             ))
                             .frame(width: geo.size.width * max(0, min(1, fraction)))
                         Circle()
-                            .fill(Color.white)
+                            .fill(App2Theme.cardBackground)
                             .frame(width: 16, height: 16)
                             .overlay(Circle().strokeBorder(App2Theme.accentViolet, lineWidth: 2.5))
                             .offset(x: geo.size.width * max(0, min(1, fraction)) - 8)
@@ -774,7 +774,7 @@ struct App2DayEditView: View {
                 .foregroundStyle(App2Theme.accentBlueDeep)
                 .padding(.horizontal, 9)
                 .padding(.vertical, 5)
-                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Color.white))
+                .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(App2Theme.cardBackground))
                 .overlay(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .strokeBorder(App2Theme.cardBorder, lineWidth: 1)
@@ -837,7 +837,7 @@ struct App2DayEditView: View {
             )
 
             Circle()
-                .fill(Color.white)
+                .fill(App2Theme.cardBackground)
                 .frame(width: 28, height: 28)
                 .overlay(Circle().strokeBorder(App2Theme.cardBorder, lineWidth: 1))
                 .overlay {
@@ -1074,7 +1074,7 @@ struct App2DayEditView: View {
                     .accessibilityIdentifier("App2_DayEditSupplementaryType")
                     Spacer(minLength: 4)
                     Circle()
-                        .fill(Color.white)
+                        .fill(App2Theme.cardBackground)
                         .frame(width: 28, height: 28)
                         .overlay(Circle().strokeBorder(App2Theme.cardBorder, lineWidth: 1))
                         .overlay {

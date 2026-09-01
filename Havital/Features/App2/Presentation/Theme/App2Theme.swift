@@ -163,8 +163,8 @@ enum App2Theme {
     static let strokeFaint = adaptive(light: "#0F172A", dark: "#FFFFFF", alpha: 0.05)
     /// 分隔線／未選中膠囊底。
     static let hairline = adaptive(light: "#D9E0E8", dark: "#FFFFFF", alpha: 0.12)
-    /// 未選中 chip 的中性填色（＝頁面底色深端，同一個值不開第二個來源）。
-    static let neutralFill = pageBottom
+    /// 未選中 chip 的中性填色。dark 用卡片底 `#1E1E1E`（R3），不是頁面底。
+    static let neutralFill = adaptive(light: "#EEF2F7", dark: "#1E1E1E")
     /// radio 圈的未選中環。
     static let radioRing = adaptive(light: "#D0D7E0", dark: "#FFFFFF", alpha: 0.16)
     /// 禁用態填色（呼叫端自帶 opacity）。
