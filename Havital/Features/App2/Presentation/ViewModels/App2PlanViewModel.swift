@@ -97,6 +97,36 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// **只在真的進歷史模式時才解**（正常路徑仍然不為了這一頁多打 overview）。
     private var overviewId: String?
 
+    // MARK: - 已完成量的補史（T-0374，2026-09-01 裁決）
+    //
+    // 「完成標記只讀本地快取先畫；快取沒有的才背景補抓，永不擋切週。」
+    // 修前這一段是同步的：每切一次週就 `await ensureMonthLoaded` 一到兩個月，
+    // 而近 45 天的月份**無條件**打一趟 `GET /v2/workouts?page_size=50`
+    //（`WorkoutRepositoryImpl:158-163`），更舊的月份最多 30 頁——而且沒有去重，
+    // 同兩週之間來回切十次就是十次重跑。那一週已經走完，是不會再變的歷史事實。
+
+    /// 這個 ViewModel 的生命週期內已經補過史的月份（`year * 100 + month`）。
+    /// **不是第二份 workout 快取**：真正的快取是 `WorkoutLocalDataSource`，
+    /// 這裡只記「這個月問過後端了」，避免同一趟往返重複付。
+    ///
+    /// 每一輪 `revalidate()` 開頭整份丟掉（下拉刷新與 60 秒 SWR 仍然一定重新補史），
+    /// 收到 `.dataChanged(.workouts)` 也丟掉並重算目前這一週。
+    private var backfilledMonths: Set<Int> = []
+    /// 最近一顆背景補史（只給測試等它跑完；正式路徑沒有人等它，那正是重點）。
+    private var backfillTask: Task<Void, Never>?
+    /// 目前畫面上這一週的投影素材。補史回來、或收到新紀錄推播時，
+    /// 用它重算已完成量並重新發布 `week`（`dayDetails` 與已完成量無關，不重建）。
+    private var displayedWeek: DisplayedWeek?
+
+    /// 現在畫的是哪一份週課表 —— 重算已完成量要的全部素材。
+    private struct DisplayedWeek {
+        /// nil ＝ 本週（走裝置日曆的「今天」）；有值 ＝ 歷史回看的第 N 週。
+        let historyWeek: Int?
+        let plan: WeeklyPlanV2
+        let planStatus: PlanStatusV2Response
+        let weekStart: Date
+    }
+
     // MARK: - 結束態 ／ 歷史回看的狀態判準
 
     /// 現在畫的是不是結束卡。歷史模式時結束卡讓位給週課表。
@@ -186,6 +216,20 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                     self.lastLoadedAt = nil
                     if self.hasLoaded { await self.revalidate() }
                 }
+            // 新紀錄進來了（推播／同步）——「已補過這個月」的判斷跟著作廢，
+            // 並就地重算目前這一週的已完成量（T-0374 裁決的失效條件）。
+            // 不整頁重驗：週課表 payload 與 workouts 無關，重驗只是多付一趟。
+            case .dataChanged(.workouts):
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.backfilledMonths.removeAll()
+                    // 歷史週：那一個月可能因為這筆新紀錄而需要重新補史。
+                    // 本週不重補——推播的來源本來就剛把本地列表刷過了，再問一次是白付。
+                    if let displayed = self.displayedWeek, displayed.historyWeek != nil {
+                        self.backfillCompletedDistance(weekStart: displayed.weekStart)
+                    }
+                    await self.recomputeCompletedDistance()
+                }
             default:
                 break
             }
@@ -231,6 +275,10 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     }
 
     private func revalidateRound(_ round: Int) async {
+
+        // 重驗＝一定重新問後端一次，補史的去重水位跟著整份丟掉（T-0374）。
+        // 去重只擋「切週來回翻」那種零新增資訊的重跑，不擋下拉刷新與 SWR。
+        backfilledMonths.removeAll()
 
         // 冷啟第一輪：先把上一次的週課表渲染出來，這一輪的網路變成背景刷新。
         if !hasLoaded { hydrateFromCache() }
@@ -411,6 +459,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         isHistoryWeekMissing = false
         week = nil
         dayDetails = [:]
+        displayedWeek = nil
     }
 
     /// 上一週／下一週（`offset` ＝ ±1）。夾在 `1…total_weeks` 內。
@@ -442,6 +491,10 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     private func loadHistoryWeek(_ target: Int) async {
         historyWeek = target
         isHistoryWeekMissing = false
+        // 切週的第一畫：**這一行之前不得有任何 `await`**（T-0374 裁決
+        // 「切週零同步網路請求」＋「切週瞬間 UI 必須切換」）。修前這裡只設
+        // `historyWeek`，`week` 保持舊值，所以週次標跳走、七張日卡停在上一週。
+        prepaintHistoryWeek(target)
 
         let resolvedOverviewId = await resolveOverviewId()
         guard !isStaleRound else { return }
@@ -484,20 +537,73 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         return overviewId
     }
 
+    /// 切週的預畫 —— **同步、零 `await`、零網路**（T-0374）。
+    ///
+    /// 週課表的 SSOT 是 repository 的快取（`getWeeklyPlan` 本來就 cache-first，
+    /// `TrainingPlanV2RepositoryImpl:202-215`），所以這裡讀的是同一份，
+    /// **不是這一頁自己再存一份週課表**。命中就立刻換掉跑量卡與七張日卡；
+    /// 沒命中就清空，讓週次標（會退到 `selectedWeekOfPlan`）與內容同步落到目標週的等待態。
+    ///
+    /// 已完成量留白：它是本地紀錄現算的，下面那一步（本地快取，零網路）馬上補上。
+    private func prepaintHistoryWeek(_ target: Int) {
+        guard let status = latestPlanStatus,
+              let cached = planRepository.getCachedWeeklyPlan(week: target) else {
+            week = nil
+            dayDetails = [:]
+            displayedWeek = nil
+            return
+        }
+        publishHistory(
+            plan: cached,
+            planStatus: status,
+            week: target,
+            weekStart: App2PlanEndProjection.historyWeekStart(week: target, planStatus: status),
+            completedKm: nil
+        )
+    }
+
     /// 歷史週的組裝。與本週走同一支 `planWeek`，只換兩個錨點：
     /// - `weekStart` ＝ **那一週**的週一（日卡日期要標那一週）。
     /// - `todayIndex: 0` ＝ 沒有任何一天是「今天」（`day_index` 是 1…7）——
     ///   已走完的那一週上不該掛「今天」膠囊。
+    ///
+    /// 已完成量**只讀本地快取**（T-0374）：那一週已經走完，是不會再變的歷史事實，
+    /// 不需要每次切週都同步問一次 API。快取涵蓋不到的月份丟給背景補史。
     private func applyHistory(plan: WeeklyPlanV2, planStatus: PlanStatusV2Response, week target: Int) async {
         isPlanGenerated = true
         let start = App2PlanEndProjection.historyWeekStart(week: target, planStatus: planStatus)
-        let completed = await completedDistanceKm(weekStart: start)
+        let completed = await completedDistanceKmFromCache(weekStart: start)
         guard !isStaleRound else { return }
+        publishHistory(
+            plan: plan,
+            planStatus: planStatus,
+            week: target,
+            weekStart: start,
+            completedKm: completed
+        )
+        backfillCompletedDistance(weekStart: start)
+    }
+
+    /// 歷史週的發布（預畫與正式投影共用一支，兩條路不得長出不同的畫面）。
+    private func publishHistory(
+        plan: WeeklyPlanV2,
+        planStatus: PlanStatusV2Response,
+        week target: Int,
+        weekStart start: Date,
+        completedKm: Double?
+    ) {
+        isPlanGenerated = true
+        displayedWeek = DisplayedWeek(
+            historyWeek: target,
+            plan: plan,
+            planStatus: planStatus,
+            weekStart: start
+        )
         week = App2Sourced(
             Self.planWeek(
                 plan: plan,
                 planStatus: planStatus,
-                completedKm: completed,
+                completedKm: completedKm,
                 todayIndex: 0,
                 weekStart: start
             ),
@@ -525,6 +631,12 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             origin: .live(endpoint: "GET /v2/plan/weekly/{plan_id} + GET /v2/workouts")
         )
         let weekStart = App2WeekCalendar.currentWeekStart()
+        displayedWeek = DisplayedWeek(
+            historyWeek: nil,
+            plan: plan,
+            planStatus: planStatus,
+            weekStart: weekStart
+        )
         dayDetails = Dictionary(
             uniqueKeysWithValues: plan.days.compactMap { day -> (Int, App2SessionDetail)? in
                 guard let detail = App2SessionDetailProjection.detail(
@@ -644,13 +756,17 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 歷史週的已完成量 —— 範圍是**那一整週**（週一 00:00 到週日 23:59），
     /// 不是「到今天為止」：那一週早就走完了，沒有「還沒到的日子」。
     ///
-    /// 本地 workout 快取只涵蓋最近抓過的頁，較早的週可能整週不在快取裡——
-    /// 先走訓練日曆同一支 `ensureMonthLoaded` 補史（已涵蓋／已到底時是 no-op），
-    /// 否則已完成量會因為「快取沒涵蓋」被讀成 0。
-    private func completedDistanceKm(weekStart: Date) async -> Double? {
+    /// **只讀本地快取，零網路**（T-0374）。本地 workout 快取只涵蓋最近抓過的頁，
+    /// 較早的週可能整週不在快取裡——那由 `backfillCompletedDistance` 在背景補，
+    /// 補到再回頭更新這一格。切週的路徑上不得有任何網路往返。
+    private func completedDistanceKmFromCache(weekStart: Date) async -> Double? {
         let calendar = Calendar.current
         guard let end = calendar.date(byAdding: .day, value: 7, to: weekStart) else { return nil }
-        // 一週最多橫跨兩個月（週一與週日各取一次，去重）。
+        return await completedDistanceKm(from: weekStart, to: end)
+    }
+
+    /// 一週最多橫跨兩個月（週一與週日各取一次，去重）。
+    static func monthsSpanned(byWeekStartingAt weekStart: Date, calendar: Calendar = .current) -> [(year: Int, month: Int)] {
         let sunday = calendar.date(byAdding: .day, value: 6, to: weekStart) ?? weekStart
         var months: [(year: Int, month: Int)] = []
         for anchor in [weekStart, sunday] {
@@ -659,11 +775,65 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                   !months.contains(where: { $0.year == year && $0.month == month }) else { continue }
             months.append((year, month))
         }
-        for entry in months {
-            await workoutRepository.ensureMonthLoaded(year: entry.year, month: entry.month)
-        }
-        return await completedDistanceKm(from: weekStart, to: end)
+        return months
     }
+
+    /// 背景補史（T-0374）——**永不擋切週**。
+    ///
+    /// 走的是訓練日曆同一支 `WorkoutRepository.ensureMonthLoaded`，沒有第二份快取。
+    /// 已經補過的月份直接跳過：那一週的紀錄是歷史事實，同一個 session 裡問第二次
+    /// 不會得到不一樣的答案（水位由 `revalidate()` 與 `.dataChanged(.workouts)` 清）。
+    /// 補完才回頭重算那一格。
+    ///
+    /// **水位先記再補**，而且這顆 task 不被後續切週取消：連按箭頭時，前一顆已經
+    /// 認領的月份不會被丟掉重來（取消會把水位洗成「補過了但其實沒補到」）。
+    /// 補完時使用者可能已經切走 —— `recomputeCompletedDistance` 認的是**當下**
+    /// 畫面上那一週，所以晚到的那一份只會讓現在這一格更準，不會蓋錯週。
+    private func backfillCompletedDistance(weekStart: Date) {
+        let pending = Self.monthsSpanned(byWeekStartingAt: weekStart)
+            .filter { !backfilledMonths.contains($0.year * 100 + $0.month) }
+        guard !pending.isEmpty else { return }
+        for entry in pending { backfilledMonths.insert(entry.year * 100 + entry.month) }
+
+        backfillTask = Task { [weak self] in
+            for entry in pending {
+                await self?.workoutRepository.ensureMonthLoaded(year: entry.year, month: entry.month)
+            }
+            await self?.recomputeCompletedDistance()
+        }
+    }
+
+    /// 用手上這一份投影素材重算已完成量並重新發布 `week`。
+    /// `dayDetails` 與已完成量無關，不重建。
+    private func recomputeCompletedDistance() async {
+        guard let displayed = displayedWeek else { return }
+        let completed: Double?
+        if displayed.historyWeek == nil {
+            completed = await completedDistanceKmThisWeek()
+        } else {
+            completed = await completedDistanceKmFromCache(weekStart: displayed.weekStart)
+        }
+        // 期間使用者切走了 → 這一份已經不是畫面上那一週，丟掉。
+        guard let current = displayedWeek,
+              current.historyWeek == displayed.historyWeek else { return }
+        week = App2Sourced(
+            Self.planWeek(
+                plan: current.plan,
+                planStatus: current.planStatus,
+                completedKm: completed,
+                todayIndex: current.historyWeek == nil ? nil : 0,
+                weekStart: current.weekStart
+            ),
+            origin: .live(endpoint: "GET /v2/plan/weekly/{plan_id} + GET /v2/workouts")
+        )
+    }
+
+    #if DEBUG
+    /// 測試用：等背景補史那一顆跑完（正式路徑沒有人等它 —— 那正是重點）。
+    func waitForCompletedDistanceBackfillForTesting() async {
+        await backfillTask?.value
+    }
+    #endif
 
     private func completedDistanceKm(from start: Date, to end: Date) async -> Double? {
         let workouts = await workoutRepository.getWorkoutsInDateRangeAsync(
