@@ -273,20 +273,14 @@ struct App2PlanView: View {
 
     /// 鉛筆左邊那一顆：點進**當前所選那一週**的週回顧。
     ///
-    /// 起因是裁決（q）記的那句「現在沒有任何地方能看之前的週回顧」——歷史週的回顧
-    /// 生成完就再也回不去了。
+    /// 2026-09-01 覆寫裁決（q）：當週不畫這顆鈕。歷史週點進去直接顯示已存的
+    /// V2 週回顧（唯讀、`GET /v2/summary/weekly`，不生成）。
     ///
     /// **不造第二條路**：開的是既有的 `App2WeeklyReviewView`（同首頁 CTA、同課表頁
-    /// 未產生態 CTA 那一頁），資料走既有的 `getWeeklySummary(weekOfPlan:)`
-    /// ＝ `GET /v2/summary/weekly`。
-    ///
-    /// **不先探測那一週有沒有回顧**：探測就得多打一次同一支端點，而那一頁本來就有
-    /// 「還沒產生」的正常態（`App2WeeklyReviewViewModel.meansNotGeneratedYet`：
-    /// 404 與產生視窗未開都不是錯誤）。歷史週進去是唯讀 —— 那一頁的「產生」走的是
-    /// `generateWeeklySummary()`，它產的是**當週**，對過去那一週按下去只會產錯週。
+    /// 未產生態 CTA 那一頁）。
     @ViewBuilder
     private var weeklyReviewButton: some View {
-        if let week = viewModel.selectedWeekOfPlan {
+        if viewModel.showsHeaderWeeklyReview, let week = viewModel.selectedWeekOfPlan {
             RoundedRectangle(cornerRadius: 9, style: .continuous)
                 .fill(App2Theme.cardBackground)
                 .frame(width: 30, height: 30)
@@ -303,8 +297,8 @@ struct App2PlanView: View {
                 .onTapGesture {
                     weeklyReviewWeek = App2WeeklyReviewTarget(
                         weekOfPlan: week,
-                        isReadOnly: viewModel.isHistoryMode,
-                        isCurrentWeek: !viewModel.isHistoryMode
+                        isReadOnly: true,
+                        isCurrentWeek: false
                     )
                 }
                 .accessibilityAddTraits(.isButton)

@@ -326,8 +326,12 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         let planSource = try Self.source(at: "Havital/Features/App2/Presentation/Views/App2PlanView.swift")
 
         XCTAssertTrue(
-            planSource.contains("isReadOnly: viewModel.isHistoryMode"),
-            "訓練計劃頁的歷史回看入口必須把 `isHistoryMode` 傳成唯讀（裁決（q））"
+            planSource.contains("if viewModel.showsHeaderWeeklyReview, let week = viewModel.selectedWeekOfPlan"),
+            "header 週回顧鈕只在歷史週出現（裁決（q）2026-09-01：當週不畫）"
+        )
+        XCTAssertTrue(
+            planSource.contains("isReadOnly: true"),
+            "歷史週入口必須唯讀，直接顯示已存 V2，不生成"
         )
         XCTAssertTrue(
             planSource.contains("App2WeeklyReviewTarget(weekOfPlan: week, isCurrentWeek: false)"),

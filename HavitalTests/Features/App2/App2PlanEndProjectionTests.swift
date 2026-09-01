@@ -606,11 +606,15 @@ final class App2PlanEndProjectionTests: XCTestCase {
 @MainActor
 final class App2PlanHistoryModeTests: XCTestCase {
 
-    private func planStatus(currentWeek: Int = 18, totalWeeks: Int = 17) -> PlanStatusV2Response {
+    private func planStatus(
+        currentWeek: Int = 18,
+        totalWeeks: Int = 17,
+        nextAction: String = "training_completed"
+    ) -> PlanStatusV2Response {
         PlanStatusV2Response(
             currentWeek: currentWeek,
             totalWeeks: totalWeeks,
-            nextAction: "training_completed",
+            nextAction: nextAction,
             canGenerateNextWeek: false,
             currentWeekPlanId: nil,
             previousWeekSummaryId: nil,
@@ -646,10 +650,11 @@ final class App2PlanHistoryModeTests: XCTestCase {
     }
 
     private func makeViewModel(
-        plan: WeeklyPlanV2?
+        plan: WeeklyPlanV2?,
+        status: PlanStatusV2Response? = nil
     ) -> (App2PlanViewModel, MockTrainingPlanV2Repository) {
         let repository = MockTrainingPlanV2Repository()
-        repository.planStatusToReturn = planStatus()
+        repository.planStatusToReturn = status ?? planStatus()
         repository.overviewToReturn = overview()
         repository.weeklyPlanV2ToReturn = plan
         let viewModel = App2PlanViewModel(
@@ -747,6 +752,27 @@ final class App2PlanHistoryModeTests: XCTestCase {
         XCTAssertFalse(viewModel.isHistoryMode)
         XCTAssertTrue(viewModel.showsPlanEnd)
         XCTAssertNil(viewModel.week)
+    }
+
+    /// 2026-09-01：當週不畫 header 週回顧鈕；歷史週才畫。
+    func test_headerWeeklyReview_hiddenOnCurrentWeekShownInHistory() async {
+        let (ended, _) = makeViewModel(plan: weeklyPlan(week: 17))
+        await ended.revalidate()
+        XCTAssertFalse(ended.showsHeaderWeeklyReview, "結束卡當週不畫週回顧鈕")
+
+        await ended.enterHistoryMode()
+        XCTAssertTrue(ended.showsHeaderWeeklyReview, "結束後歷史回看要能看該週 V2 回顧")
+
+        let (live, _) = makeViewModel(
+            plan: weeklyPlan(week: 9),
+            status: planStatus(currentWeek: 9, totalWeeks: 12, nextAction: "ready")
+        )
+        await live.revalidate()
+        XCTAssertFalse(live.showsHeaderWeeklyReview, "進行中當週不畫週回顧鈕")
+
+        await live.goToHistoryWeek(offset: -1)
+        XCTAssertEqual(live.historyWeek, 8)
+        XCTAssertTrue(live.showsHeaderWeeklyReview, "進行中往回翻才畫週回顧鈕")
     }
 }
 

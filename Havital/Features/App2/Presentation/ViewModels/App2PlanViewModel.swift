@@ -101,6 +101,9 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     /// 現在畫的是不是結束卡。歷史模式時結束卡讓位給週課表。
     var isHistoryMode: Bool { historyWeek != nil }
+    /// header 右上角週回顧鈕：只在歷史週出現（裁決（q）2026-09-01 覆寫）。
+    /// 當週不畫——產生走首頁時機卡與「先完成週回顧」CTA。
+    var showsHeaderWeeklyReview: Bool { isHistoryMode }
     var showsPlanEnd: Bool { planEnd != nil && historyWeek == nil }
     /// 歷史回看退出後會落在哪：結束畫面（結束態）或本週課表（進行中）。
     var showsPlanEndAfterExit: Bool { planEnd != nil }
