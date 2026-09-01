@@ -74,6 +74,12 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     /// （例：生成中要顯示動畫，T-0341）。沒有它就只驗得到請求結束後的終態。
     var onGenerateWeeklySummary: (() async -> Void)?
     var onGetWeeklySummary: (() async -> Void)?
+    /// 同上，給 `getWeeklyPlan`——課表頁切週要驗「抓取還在飛的時候畫面已經換週了」（T-0374）。
+    var onGetWeeklyPlan: (() async -> Void)?
+
+    /// 本機週課表快取（T-0374：切週的預畫走的就是它）。
+    /// nil ＝ 沿用既有行為（任何一週都回 `weeklyPlanV2ToReturn`），既有測試不受影響。
+    var cachedWeeklyPlansByWeek: [Int: WeeklyPlanV2]?
 
     // MARK: - Reset
 
@@ -217,6 +223,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     func getWeeklyPlan(weekOfTraining: Int, overviewId: String) async throws -> WeeklyPlanV2 {
         getWeeklyPlanCallCount += 1
         lastRequestedWeeklyPlanWeekOfTraining = weekOfTraining
+        if let onGetWeeklyPlan { await onGetWeeklyPlan() }
         if let error = errorToThrow { throw error }
         guard let plan = weeklyPlanV2ToReturn else {
             throw TrainingPlanV2Error.weeklyPlanNotFound(week: weekOfTraining)
@@ -363,7 +370,8 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     }
 
     func getCachedWeeklyPlan(week: Int) -> WeeklyPlanV2? {
-        weeklyPlanV2ToReturn
+        if let cachedWeeklyPlansByWeek { return cachedWeeklyPlansByWeek[week] }
+        return weeklyPlanV2ToReturn
     }
 
     func clearCache() async {

@@ -653,16 +653,33 @@ final class App2PlanHistoryModeTests: XCTestCase {
         plan: WeeklyPlanV2?,
         status: PlanStatusV2Response? = nil
     ) -> (App2PlanViewModel, MockTrainingPlanV2Repository) {
+        let (viewModel, repository, _) = makeViewModelWithWorkouts(plan: plan, status: status)
+        return (viewModel, repository)
+    }
+
+    /// 切週的成本在 workout 補史那一段（T-0374），所以要拿得到那個 mock。
+    private func makeViewModelWithWorkouts(
+        plan: WeeklyPlanV2?,
+        status: PlanStatusV2Response? = nil
+    ) -> (App2PlanViewModel, MockTrainingPlanV2Repository, MockWorkoutRepository) {
         let repository = MockTrainingPlanV2Repository()
         repository.planStatusToReturn = status ?? planStatus()
         repository.overviewToReturn = overview()
         repository.weeklyPlanV2ToReturn = plan
+        let workouts = MockWorkoutRepository()
         let viewModel = App2PlanViewModel(
             planRepository: repository,
-            workoutRepository: MockWorkoutRepository(),
+            workoutRepository: workouts,
             targetRepository: nil
         )
-        return (viewModel, repository)
+        return (viewModel, repository, workouts)
+    }
+
+    private static func waitUntil(timeout: TimeInterval = 5, _ condition: () -> Bool) async {
+        let deadline = Date().addingTimeInterval(timeout)
+        while !condition(), Date() < deadline {
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
     }
 
     /// 結束態預設不在歷史模式；進去之後從**最後一週**開始，且結束卡讓位給週課表。
@@ -773,6 +790,154 @@ final class App2PlanHistoryModeTests: XCTestCase {
         await live.goToHistoryWeek(offset: -1)
         XCTAssertEqual(live.historyWeek, 8)
         XCTAssertTrue(live.showsHeaderWeeklyReview, "進行中往回翻才畫週回顧鈕")
+    }
+
+    // MARK: - 切週的成本（T-0374，2026-09-01 裁決）
+    //
+    // 使用者原話：「載入一張課表不應該這麼慢」。修前每切一次週就同步
+    // `await ensureMonthLoaded` 一到兩個月，而近 45 天的月份無條件打一趟
+    // `GET /v2/workouts?page_size=50`（`WorkoutRepositoryImpl:158-163`），
+    // 而且沒有任何去重。這一段在 `week` 發布之前，所以按下箭頭就是在等網路。
+
+    /// **切週不得等補史。** gate 讓補史在切週返回之後才完成 —— 修前補史在
+    /// `applyHistory` 內被 `await`，這個旗標一定已經是 true。
+    func test_switchingWeekPublishesBeforeTheBackfillFinishes() async {
+        let (viewModel, _, workouts) = makeViewModelWithWorkouts(plan: weeklyPlan(week: 17))
+        let probe = BackfillProbe()
+        workouts.ensureMonthLoadedGate = {
+            try? await Task.sleep(nanoseconds: 300_000_000)
+            probe.finished = true
+        }
+        await viewModel.revalidate()
+
+        await viewModel.enterHistoryMode()
+
+        XCTAssertEqual(viewModel.historyWeek, 17)
+        XCTAssertNotNil(viewModel.week, "切週當下就要有那一週的課表")
+        XCTAssertFalse(probe.finished, "切週不得等 ensureMonthLoaded —— 那正是使用者感受到的 lag")
+
+        await viewModel.waitForCompletedDistanceBackfillForTesting()
+        XCTAssertTrue(probe.finished)
+    }
+
+    /// **同一個月在這個 session 裡只補一次。** 來回翻八次，零新增往返。
+    func test_revisitedMonthsAreBackfilledOnlyOnce() async {
+        let (viewModel, _, workouts) = makeViewModelWithWorkouts(plan: weeklyPlan(week: 17))
+        await viewModel.revalidate()
+
+        await viewModel.enterHistoryMode()                     // 第 17 週
+        await viewModel.waitForCompletedDistanceBackfillForTesting()
+        await viewModel.goToHistoryWeek(offset: -1)            // 第 16 週
+        await viewModel.waitForCompletedDistanceBackfillForTesting()
+
+        let baseline = workouts.ensureMonthLoadedCallCount
+        XCTAssertGreaterThan(baseline, 0, "第一次看某一週仍然要補史")
+
+        for _ in 0..<4 {
+            await viewModel.goToHistoryWeek(offset: 1)
+            await viewModel.waitForCompletedDistanceBackfillForTesting()
+            await viewModel.goToHistoryWeek(offset: -1)
+            await viewModel.waitForCompletedDistanceBackfillForTesting()
+        }
+
+        XCTAssertEqual(
+            workouts.ensureMonthLoadedCallCount, baseline,
+            "已經補過的月份不得每切一次週就重跑一次"
+        )
+    }
+
+    /// 去重只擋「來回翻」那種零新增資訊的重跑：**下拉刷新／SWR 重驗仍然重新補史**。
+    func test_revalidateDropsTheBackfilledMonths() async {
+        let (viewModel, _, workouts) = makeViewModelWithWorkouts(plan: weeklyPlan(week: 17))
+        await viewModel.revalidate()
+        await viewModel.enterHistoryMode()
+        await viewModel.waitForCompletedDistanceBackfillForTesting()
+        let afterFirst = workouts.ensureMonthLoadedCallCount
+        XCTAssertGreaterThan(afterFirst, 0)
+
+        await viewModel.revalidate()                            // 歷史模式下重驗的是那一週
+        await viewModel.waitForCompletedDistanceBackfillForTesting()
+
+        XCTAssertGreaterThan(
+            workouts.ensureMonthLoadedCallCount, afterFirst,
+            "重驗必須重新補史，去重水位不得吃掉下拉刷新"
+        )
+    }
+
+    /// **快取有那一週就立刻畫。** `getWeeklyPlan` 還在飛的時候，畫面上已經是目標週。
+    func test_switchingToACachedWeekPaintsBeforeTheFetchReturns() async {
+        let (viewModel, repository, _) = makeViewModelWithWorkouts(plan: weeklyPlan(week: 17))
+        repository.cachedWeeklyPlansByWeek = [17: weeklyPlan(week: 17), 16: weeklyPlan(week: 16)]
+        await viewModel.revalidate()
+        await viewModel.enterHistoryMode()
+
+        let probe = WeekSnapshotProbe()
+        repository.onGetWeeklyPlan = { [weak viewModel] in
+            await MainActor.run { probe.week = viewModel?.week?.value }
+        }
+        await viewModel.goToHistoryWeek(offset: -1)
+
+        XCTAssertNotNil(probe.week, "快取命中時，抓取還沒回來就該有內容")
+        XCTAssertEqual(
+            probe.week?.weekLabel,
+            String(format: L10n.WeekSelector.weekNumber.localized, 16),
+            "預畫的必須是目標週，不是上一週"
+        )
+    }
+
+    /// **沒有快取就清空，不得殘留上一週。** 修前 `loadHistoryWeek` 只設 `historyWeek`，
+    /// 週次標跳到目標週、七張日卡還是上一週的內容（`App2PlanView.weekLabelText`
+    /// 優先讀 `week`）。
+    func test_switchingToAnUncachedWeekClearsThePreviousWeek() async {
+        let (viewModel, repository, _) = makeViewModelWithWorkouts(plan: weeklyPlan(week: 17))
+        repository.cachedWeeklyPlansByWeek = [17: weeklyPlan(week: 17)]   // 第 16 週沒有快取
+        await viewModel.revalidate()
+        await viewModel.enterHistoryMode()
+        XCTAssertNotNil(viewModel.week)
+
+        let probe = WeekSnapshotProbe()
+        repository.onGetWeeklyPlan = { [weak viewModel] in
+            await MainActor.run { probe.week = viewModel?.week?.value }
+        }
+        repository.weeklyPlanV2ToReturn = weeklyPlan(week: 16)
+        await viewModel.goToHistoryWeek(offset: -1)
+
+        XCTAssertTrue(probe.observed, "測試沒有觀察到抓取中的狀態")
+        XCTAssertNil(probe.week, "抓取期間不得停在上一週的日卡上")
+        XCTAssertEqual(viewModel.historyWeek, 16)
+    }
+
+    /// 新紀錄推播：去重水位作廢並重算目前這一週的已完成量。
+    func test_workoutsChangedInvalidatesTheBackfillAndRecomputes() async {
+        let (viewModel, _, workouts) = makeViewModelWithWorkouts(plan: weeklyPlan(week: 17))
+        await viewModel.revalidate()
+        await viewModel.enterHistoryMode()
+        await viewModel.waitForCompletedDistanceBackfillForTesting()
+
+        let backfillsBefore = workouts.ensureMonthLoadedCallCount
+        let readsBefore = workouts.getWorkoutsInDateRangeCallCount
+
+        CacheEventBus.shared.publish(.dataChanged(.workouts))
+
+        await Self.waitUntil {
+            workouts.ensureMonthLoadedCallCount > backfillsBefore
+                && workouts.getWorkoutsInDateRangeCallCount > readsBefore
+        }
+        XCTAssertGreaterThan(workouts.ensureMonthLoadedCallCount, backfillsBefore)
+        XCTAssertGreaterThan(workouts.getWorkoutsInDateRangeCallCount, readsBefore)
+    }
+}
+
+/// 背景補史有沒有跑完（T-0374）。`@unchecked Sendable`：只在測試裡跨 actor 記一個旗標。
+private final class BackfillProbe: @unchecked Sendable {
+    var finished = false
+}
+
+/// `getWeeklyPlan` 還在飛的那一刻，畫面上是哪一週（T-0374）。
+private final class WeekSnapshotProbe: @unchecked Sendable {
+    var observed = false
+    var week: App2PlanWeek? {
+        didSet { observed = true }
     }
 }
 

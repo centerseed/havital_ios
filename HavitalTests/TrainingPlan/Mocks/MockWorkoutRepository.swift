@@ -34,6 +34,13 @@ class MockWorkoutRepository: WorkoutRepository {
     var clearCacheCallCount = 0
     var preloadDataCallCount = 0
 
+    /// 補史往返的次數 —— 課表頁切週卡頓的那一段（T-0374）。
+    var ensureMonthLoadedCallCount = 0
+    var ensureMonthLoadedLastParams: (year: Int, month: Int)?
+    /// 讓測試把補史掛在半空中：用來證明「切週沒有在等它」。
+    /// nil ＝ 立刻返回（既有測試不受影響）。
+    var ensureMonthLoadedGate: (() async -> Void)?
+
     // MARK: - WorkoutRepository Implementation
 
     var workoutsDidUpdateNotification: Notification.Name {
@@ -85,7 +92,11 @@ class MockWorkoutRepository: WorkoutRepository {
         return workoutsToReturn.sorted { $0.endDate > $1.endDate }.first
     }
 
-    func ensureMonthLoaded(year: Int, month: Int) async {}
+    func ensureMonthLoaded(year: Int, month: Int) async {
+        ensureMonthLoadedCallCount += 1
+        ensureMonthLoadedLastParams = (year, month)
+        if let ensureMonthLoadedGate { await ensureMonthLoadedGate() }
+    }
 
     // MARK: - Pagination Methods
 
@@ -266,6 +277,9 @@ class MockWorkoutRepository: WorkoutRepository {
         deleteWorkoutCallCount = 0
         clearCacheCallCount = 0
         preloadDataCallCount = 0
+        ensureMonthLoadedCallCount = 0
+        ensureMonthLoadedLastParams = nil
+        ensureMonthLoadedGate = nil
         applyTreadmillCorrectionCallCount = 0
         applyTreadmillCorrectionLastParams = nil
         treadmillCorrectionDetailToReturn = nil

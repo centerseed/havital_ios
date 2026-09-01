@@ -59,7 +59,9 @@ struct App2PlanView: View {
                     } else if viewModel.isHistoryWeekMissing {
                         historyEmptyCard
                     } else {
-                        ProgressView().frame(maxWidth: .infinity, minHeight: 200)
+                        // 切到一週還沒看過的課表：週次標已經是目標週，內容用骨架佔位
+                        // （T-0374 裁決「等資料的格子給輕量 placeholder，不上全頁 spinner」）。
+                        weekSkeleton
                     }
                 } else if let sourced = viewModel.week {
                     volumeCard(sourced)
@@ -358,6 +360,39 @@ struct App2PlanView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityIdentifier("App2_PlanEndHistoryEmpty")
+    }
+
+    /// 切到還沒看過的那一週時的等待態（T-0374）。
+    ///
+    /// 修前這裡是一顆 `ProgressView`——整個內容區被一顆轉圈取代，而週次標已經跳走，
+    /// 所以按下箭頭之後畫面「什麼都沒有了」。骨架維持跑量卡 ＋ 七張日卡的版面，
+    /// 換週看起來就是同一疊卡片在換內容。**不需要任何字串。**
+    private var weekSkeleton: some View {
+        VStack(spacing: 0) {
+            App2AccentCard(padding: 16, spacing: 12) {
+                skeletonBar(width: 96, height: 16)
+                skeletonBar(width: 150, height: 30)
+                skeletonBar(width: nil, height: 10)
+            }
+            .padding(.bottom, 14)
+
+            ForEach(0..<7, id: \.self) { _ in
+                App2Card(padding: 16, spacing: 10) {
+                    skeletonBar(width: 110, height: 14)
+                    skeletonBar(width: nil, height: 12)
+                }
+                .padding(.bottom, 11)
+            }
+        }
+        .accessibilityIdentifier("App2_PlanWeekSkeleton")
+        .accessibilityHidden(true)
+    }
+
+    private func skeletonBar(width: CGFloat?, height: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: height / 2, style: .continuous)
+            .fill(App2Theme.inkMuted.opacity(0.12))
+            .frame(width: width, height: height)
+            .frame(maxWidth: width == nil ? .infinity : nil, alignment: .leading)
     }
 
     /// 修改課表（設計裁決 2026-08-26：週次切換器同列右側的鉛筆 icon 鈕）。
