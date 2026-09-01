@@ -165,7 +165,7 @@ private struct App2MetricRangeTabs: View {
                     .padding(.vertical, 7)
                     .background(
                         RoundedRectangle(cornerRadius: 9, style: .continuous)
-                            .fill(option == selected ? Color.white : Color.clear)
+                            .fill(option == selected ? App2Theme.cardBackground : Color.clear)
                             .shadow(color: option == selected
                                     ? App2Theme.shadowInk.opacity(0.08) : .clear,
                                     radius: 3, x: 0, y: 2)

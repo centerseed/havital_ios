@@ -302,7 +302,7 @@ struct App2SessionDetailView: View {
             .frame(width: 60, height: 60)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.white)
+                    .fill(App2Theme.cardBackground)
             )
             .shadow(color: App2Theme.shadowInk.opacity(0.28), radius: 9, x: 0, y: 8)
             .contentShape(Rectangle())

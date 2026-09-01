@@ -647,7 +647,7 @@ struct App2DayEditView: View {
                     LinearGradient(
                         stops: [
                             .init(color: App2Theme.accentOrange.opacity(0.06), location: 0),
-                            .init(color: .white, location: 0.75)
+                            .init(color: App2Theme.cardBackground, location: 0.75)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing

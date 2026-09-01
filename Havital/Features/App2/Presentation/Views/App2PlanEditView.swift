@@ -211,7 +211,7 @@ struct App2PlanEditView: View {
                     LinearGradient(
                         stops: [
                             .init(color: App2Theme.editAmber.opacity(0.12), location: 0),
-                            .init(color: .white, location: 0.78)
+                            .init(color: App2Theme.cardBackground, location: 0.78)
                         ],
                         startPoint: .topLeading, endPoint: .bottomTrailing
                     )

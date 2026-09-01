@@ -563,7 +563,7 @@ struct App2HomeView: View {
             .padding(.vertical, 13)
             .background(
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(Color.white)
+                    .fill(App2Theme.cardBackground)
             )
             .contentShape(Rectangle())
             .onTapGesture { isShowingReonboarding = true }

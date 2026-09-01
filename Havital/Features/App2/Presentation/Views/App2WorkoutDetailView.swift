@@ -365,7 +365,7 @@ struct App2WorkoutDetailView: View {
                         stops: [
                             .init(color: accent.opacity(0.13), location: 0),
                             .init(color: accent.opacity(0.02), location: 0.6),
-                            .init(color: .white, location: 1)
+                            .init(color: App2Theme.cardBackground, location: 1)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing

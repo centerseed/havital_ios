@@ -65,6 +65,44 @@ final class App2ThemeAppearanceTests: XCTestCase {
         XCTAssertEqual(hex(App2Theme.sourceDarkTile, .light), "0B0D10")
     }
 
+    func testAccentCardGradientEndsAtCardBackground() {
+        XCTAssertEqual(hex(App2Theme.cardBackground, .dark), "1E1E1E")
+        XCTAssertEqual(hex(App2Theme.cardBackground, .light), "FFFFFF")
+        XCTAssertEqual(hex(App2Theme.neutralFill, .dark), hex(App2Theme.cardBackground, .dark))
+    }
+
+    func testApp2PresentationHasNoStaticWhiteCardFills() throws {
+        let app2 = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Havital/Features/App2")
+        let enumerator = FileManager.default.enumerator(at: app2, includingPropertiesForKeys: nil)
+        XCTAssertNotNil(enumerator)
+        let forbidden = [
+            ".init(color: .white",
+            ".init(color: Color.white",
+            ".fill(Color.white)",
+            ".fill(.white)",
+            "option == selected ? Color.white",
+            "isSelected ? Color.white : Color.clear",
+        ]
+        var hits: [String] = []
+        while let url = enumerator?.nextObject() as? URL {
+            guard url.pathExtension == "swift" else { continue }
+            let text = try String(contentsOf: url, encoding: .utf8)
+            for (index, line) in text.split(separator: "\n", omittingEmptySubsequences: false).enumerated() {
+                let s = String(line)
+                if s.contains(".opacity(") || s.contains("foregroundStyle") { continue }
+                if forbidden.contains(where: { s.contains($0) }) {
+                    hits.append("\(url.lastPathComponent):\(index + 1): \(s.trimmingCharacters(in: .whitespaces))")
+                }
+            }
+        }
+        XCTAssertTrue(hits.isEmpty, hits.joined(separator: "\n"))
+    }
+
     private func hex(_ color: Color, _ style: UIUserInterfaceStyle) -> String {
         let resolved = UIColor(color).resolvedColor(
             with: UITraitCollection(userInterfaceStyle: style)

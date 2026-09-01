@@ -98,7 +98,7 @@ struct App2RaceDatabaseView: View {
                     .padding(.vertical, 8)
                     .background(
                         RoundedRectangle(cornerRadius: 9, style: .continuous)
-                            .fill(isSelected ? Color.white : Color.clear)
+                            .fill(isSelected ? App2Theme.cardBackground : Color.clear)
                             .shadow(
                                 color: isSelected ? App2Theme.shadowInk.opacity(0.12) : .clear,
                                 radius: 3, x: 0, y: 2
