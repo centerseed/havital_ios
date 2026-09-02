@@ -132,7 +132,10 @@ struct ZoneDistributionChartView: View {
                 }
             }
         }
-        .padding(drawsContainer ? 16 : 0)
+        // padding 不跟著 drawsContainer 走：App2 那一端的卡面由呼叫端的 `app2CardSurface`
+        // 給，它只上底色與邊，不給內距——這裡收成 0 的話內容會貼齊卡緣（2026-09-02 實機
+        // 走查：整塊看起來像沒有卡）。步態圖 `GaitAnalysisChartView` 也是無條件 `.padding()`。
+        .padding(16)
         .background(drawsContainer ? Color(.secondarySystemGroupedBackground) : Color.clear)
         .cornerRadius(drawsContainer ? 12 : 0)
         .shadow(color: drawsContainer ? Color.black.opacity(0.1) : .clear, radius: 1, x: 0, y: 1)
