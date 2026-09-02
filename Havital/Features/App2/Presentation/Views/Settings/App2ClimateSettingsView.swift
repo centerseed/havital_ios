@@ -21,6 +21,10 @@ struct App2ClimateSettingsView: View {
 
     private static let adaptationLevels = ["unacclimated", "normal", "acclimated"]
 
+    /// 哪幾段該出現、狀態畫實測還是退回摘要、配速那一格印什麼、滑桿的界
+    /// ——判斷全在 `App2ClimateSettingsProjection`，這裡只負責畫。
+    private typealias Projection = App2ClimateSettingsProjection
+
     var body: some View {
         App2SettingsPageScaffold(
             title: climateLocalized("climate_settings.title"),
@@ -43,12 +47,13 @@ struct App2ClimateSettingsView: View {
                 }
 
                 if let profile = viewModel.profile {
-                    enableSection(profile)
-
-                    if viewModel.enabled {
-                        currentStatusSection(profile)
-                        controlsSection(profile)
-                        explanationSection(profile)
+                    ForEach(Projection.sections(enabled: viewModel.enabled), id: \.self) { section in
+                        switch section {
+                        case .enable: enableSection(profile)
+                        case .currentStatus: currentStatusSection(profile)
+                        case .controls: controlsSection(profile)
+                        case .explanation: explanationSection(profile)
+                        }
                     }
                 } else if viewModel.isLoading {
                     ProgressView()
@@ -105,7 +110,8 @@ struct App2ClimateSettingsView: View {
             App2SectionCaption(text: climateLocalized("climate_settings.current_status.section"))
 
             App2GroupedList {
-                if let status = profile.heatProfile.currentStatus {
+                if Projection.statusMode(currentStatus: profile.heatProfile.currentStatus) == .live,
+                   let status = profile.heatProfile.currentStatus {
                     statusRow(
                         climateLocalized("climate_settings.current_status.is_adjusted"),
                         status.isAdjusted
@@ -120,7 +126,10 @@ struct App2ClimateSettingsView: View {
                     }
                     statusRow(
                         climateLocalized("climate_settings.current_status.pace_adjustment"),
-                        paceText(status)
+                        Projection.paceText(
+                            status,
+                            adjustedLabel: climateLocalized("climate_settings.current_status.adjusted")
+                        )
                     )
                     if let longRunReductionPct = status.longRunReductionPct {
                         statusRow(
@@ -192,7 +201,11 @@ struct App2ClimateSettingsView: View {
                                 .foregroundStyle(App2Theme.inkPrimary)
                                 .accessibilityIdentifier("App2_ClimateSettingsThresholdValue")
                         }
-                        Slider(value: $viewModel.manualThreshold, in: 24...30, step: 0.5)
+                        Slider(
+                            value: $viewModel.manualThreshold,
+                            in: Projection.thresholdRange,
+                            step: Projection.thresholdStep
+                        )
                             .tint(App2Theme.accentBlue)
                             .accessibilityIdentifier("App2_ClimateSettingsThresholdSlider")
                         footnote(String(
@@ -333,11 +346,4 @@ struct App2ClimateSettingsView: View {
             .padding(.horizontal, 15)
     }
 
-    private func paceText(_ status: ClimateCurrentStatus) -> String {
-        guard status.isAdjusted else { return "0%" }
-        guard let pct = status.paceAdjustmentPct else {
-            return climateLocalized("climate_settings.current_status.adjusted")
-        }
-        return String(format: "%.1f%%", pct)
-    }
 }

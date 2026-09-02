@@ -175,6 +175,11 @@ tags:
 - assertVisible:
     id: "App2_ClimateSettingsEnabled"
 - takeScreenshot: t0392-01-climate-settings
+# 適應等級三選一（2.0 膠囊，不是 1.4 的 Picker）。只選不存，不動使用者資料。
+- tapOn:
+    id: "App2_ClimateSettingsAdaptation_acclimated"
+- assertVisible:
+    id: "App2_ClimateSettingsManualThreshold"
 - tapOn:
     id: "App2_ClimateSettingsClose"
 - extendedWaitUntil:

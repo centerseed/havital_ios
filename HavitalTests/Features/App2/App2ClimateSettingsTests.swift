@@ -49,6 +49,66 @@ final class App2ClimateSettingsTests: XCTestCase {
         XCTAssertFalse(viewModel.enabled, "失敗不得把使用者的編輯回捲")
     }
 
+    // MARK: - 頁面判斷（App2ClimateSettingsProjection）
+
+    func test_sections_disabledKeepsOnlyTheSwitch() {
+        XCTAssertEqual(App2ClimateSettingsProjection.sections(enabled: false), [.enable])
+        XCTAssertEqual(
+            App2ClimateSettingsProjection.sections(enabled: true),
+            [.enable, .currentStatus, .controls, .explanation],
+            "開著時四段齊；底下每一段講的都是「怎麼調整」"
+        )
+    }
+
+    func test_statusMode_fallsBackWhenNoObservation() {
+        XCTAssertEqual(
+            App2ClimateSettingsProjection.statusMode(currentStatus: nil),
+            .fallback,
+            "沒有當日觀測就退回「你的設定」摘要，不是畫一片空的實測"
+        )
+        XCTAssertEqual(
+            App2ClimateSettingsProjection.statusMode(currentStatus: makeStatus(isAdjusted: true, pct: 2.5)),
+            .live
+        )
+    }
+
+    func test_paceText_threeCases() {
+        XCTAssertEqual(
+            App2ClimateSettingsProjection.paceText(
+                makeStatus(isAdjusted: false, pct: nil), adjustedLabel: "已調整"
+            ),
+            "0%"
+        )
+        XCTAssertEqual(
+            App2ClimateSettingsProjection.paceText(
+                makeStatus(isAdjusted: true, pct: 2.5), adjustedLabel: "已調整"
+            ),
+            "2.5%"
+        )
+        XCTAssertEqual(
+            App2ClimateSettingsProjection.paceText(
+                makeStatus(isAdjusted: true, pct: nil), adjustedLabel: "已調整"
+            ),
+            "已調整",
+            "有調整但後端沒給百分比時不得印 0% —— 那會讓人以為沒調整"
+        )
+    }
+
+    func test_thresholdSliderBounds() {
+        XCTAssertEqual(App2ClimateSettingsProjection.thresholdRange, 24...30)
+        XCTAssertEqual(App2ClimateSettingsProjection.thresholdStep, 0.5)
+    }
+
+    private func makeStatus(isAdjusted: Bool, pct: Double?) -> ClimateCurrentStatus {
+        ClimateCurrentStatus(
+            isAdjusted: isAdjusted,
+            feelsLikeTempC: 29,
+            paceAdjustmentPct: pct,
+            longRunReductionPct: nil,
+            statusText: nil
+        )
+    }
+
     // MARK: - Fakes
 
     private final class FakeClimateRepository: ClimateSettingsRepository {
