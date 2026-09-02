@@ -290,6 +290,8 @@ final class App2HomeProjectionTests: XCTestCase {
             planStatus: goalPlanStatus(currentWeek: 10, totalWeeks: 27),
             stageLabel: nil,
             estimatedFinish: nil,
+            displayedCurrentWeek: nil,
+            displayedTotalWeeks: nil,
             origin: .live(endpoint: "test")
         ).value
 
@@ -297,18 +299,37 @@ final class App2HomeProjectionTests: XCTestCase {
         XCTAssertEqual(card.totalWeeks, 27, "plan status 是週數的唯一來源")
     }
 
-    /// plan status 還沒回來時該格留白 —— 不印 target 上那個看起來合理但錯的數字。
+    /// plan status 還沒回來、畫面上也還沒有任何一版時，該格留白
+    /// —— 不印 target 上那個看起來合理但錯的數字。
     func test_goalCard_withoutPlanStatus_leavesWeeksBlank() {
         let card = App2HomeViewModel.goalCard(
             target: goalTarget(trainingWeeks: 30),
             planStatus: nil,
             stageLabel: nil,
             estimatedFinish: nil,
+            displayedCurrentWeek: nil,
+            displayedTotalWeeks: nil,
             origin: .live(endpoint: "test")
         ).value
 
         XCTAssertNil(card.currentWeek)
         XCTAssertNil(card.totalWeeks, "寧可留白也不要印 target 的估算週數")
+    }
+
+    /// plan status 這一輪沒回來，但畫面上已經有一組週次 → 沿用，不洗成 `—`。
+    func test_goalCard_withoutPlanStatus_keepsAlreadyDisplayedWeeks() {
+        let card = App2HomeViewModel.goalCard(
+            target: goalTarget(trainingWeeks: 30),
+            planStatus: nil,
+            stageLabel: nil,
+            estimatedFinish: nil,
+            displayedCurrentWeek: 10,
+            displayedTotalWeeks: 27,
+            origin: .live(endpoint: "test")
+        ).value
+
+        XCTAssertEqual(card.currentWeek, 10)
+        XCTAssertEqual(card.totalWeeks, 27, "沿用的是畫面上那一組，不是 target 的估算")
     }
 
     func test_todaySession_unknownRunType_fallsBackToDayTarget() throws {

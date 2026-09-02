@@ -386,6 +386,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 planStatus: status,
                 stageLabel: nil,
                 estimatedFinish: nil,
+                // 冷啟預渲染：畫面上還沒有任何一版可沿用。
+                displayedCurrentWeek: nil,
+                displayedTotalWeeks: nil,
                 origin: .live(endpoint: "GET /user/targets + GET /v2/plan/status")
             )
         }
@@ -1130,20 +1133,57 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     // MARK: - §3.1 目標賽事卡
 
+    /// `getMainTarget()` 只讀本機快取。1.x 的 tab 由別處先打過 `/user/targets`，
+    /// 2.0 的 App2RootView 沒有那條路徑，所以冷啟後快取是空的、卡片永遠退樣本。
+    /// 走檔頭表列的既有出口 `getTargets()`（dual-track，會填快取），不新增第二條路。
+    ///
+    /// 回 `false` ＝ 這一輪被取消，呼叫端整段停手：連 cache 路徑都不走，不組裝也不發布
+    /// （外審第九輪 D04/E03——記了旗標卻繼續組裝＝取消後仍發布）。
+    private func fetchTargetsIntoCache() async -> Bool {
+        do {
+            _ = try await targetRepository.getTargets()
+        } catch {
+            if error.isCancellationError {
+                noteRoundCancellation()
+                return false
+            }
+            Logger.debug("[App2HomeVM] targets 取得失敗,改讀既有快取: \(error)")
+        }
+        return true
+    }
+
     private func loadGoalCard(planStatus: PlanStatusV2Response?) async {
         // 週次只要 plan status 就算得出來，但完賽預估要 readiness（重運算）、期別要
         // overview。整張卡一起等的話，週次會被拖到那兩支都回來才上畫面 —— 使用者看到的
         // 是「週次很久才出現，或進訓練計畫頁才有」（2026-09-02 實機回報）。
         // 所以先發一版只帶週次的，後面拿到什麼再覆蓋什麼。
-        if !isStaleRound, let cachedMain = await targetRepository.getMainTarget() {
-            goalCard = Self.goalCard(
-                target: cachedMain,
-                planStatus: planStatus,
-                // 這一版還不知道期別與預估：沿用畫面上已有的，沒有就留白。
-                stageLabel: goalCard?.value.stageLabel,
-                estimatedFinish: goalCard?.value.estimatedFinish,
-                origin: .live(endpoint: "GET /user/targets + GET /v2/plan/status")
-            )
+        //
+        // plan status 沒回來（失敗或被取消）就沒有可提前畫的東西：跳過這一段，
+        // 免得把畫面上已有的週次洗成 `—`（票面 Contract 2）。
+        var didFetchTargets = false
+        if planStatus != nil {
+            var early = await targetRepository.getMainTarget()
+            guard !roundSawCancellation, !isStaleRound else { return }
+            if early == nil {
+                // 冷啟後 2.0 沒有別的地方打過 `/user/targets`，本機快取是空的——
+                // 提前發布若只認快取，冷啟這條路仍舊要等 readiness 才有週次。
+                guard await fetchTargetsIntoCache() else { return }
+                didFetchTargets = true
+                early = await targetRepository.getMainTarget()
+                guard !roundSawCancellation, !isStaleRound else { return }
+            }
+            if let early {
+                goalCard = Self.goalCard(
+                    target: early,
+                    planStatus: planStatus,
+                    // 這一版還不知道期別與預估：沿用畫面上已有的，沒有就留白。
+                    stageLabel: goalCard?.value.stageLabel,
+                    estimatedFinish: goalCard?.value.estimatedFinish,
+                    displayedCurrentWeek: goalCard?.value.currentWeek,
+                    displayedTotalWeeks: goalCard?.value.totalWeeks,
+                    origin: .live(endpoint: "GET /user/targets + GET /v2/plan/status")
+                )
+            }
         }
 
         await readinessViewModel.loadData()
@@ -1161,19 +1201,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             )
         }
 
-        // `getMainTarget()` 只讀本機快取。1.x 的 tab 由別處先打過 `/user/targets`，
-        // 2.0 的 App2RootView 沒有那條路徑，所以冷啟後快取是空的、卡片永遠退樣本。
-        // 這裡先走檔頭表列的既有出口 `getTargets()`（dual-track，會填快取），不新增第二條路。
-        do {
-            _ = try await targetRepository.getTargets()
-        } catch {
-            if error.isCancellationError {
-                // 被取消就整段停手：連 cache 路徑都不走，不組裝也不發布
-                // （外審第九輪 D04/E03——記了旗標卻繼續組裝＝取消後仍發布）。
-                noteRoundCancellation()
-                return
-            }
-            Logger.debug("[App2HomeVM] targets 取得失敗,改讀既有快取: \(error)")
+        // 提前發布那一段若已經打過就不重打——同一個事實一輪只讀一次。
+        if !didFetchTargets {
+            guard await fetchTargetsIntoCache() else { return }
         }
 
         let main = await targetRepository.getMainTarget()
@@ -1217,6 +1247,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 }
             },
             estimatedFinish: estimated,
+            displayedCurrentWeek: goalCard?.value.currentWeek,
+            displayedTotalWeeks: goalCard?.value.totalWeeks,
             origin: .live(
                 endpoint: "GET /user/targets + GET /v2/plan/status + GET /plan/readiness"
                     + " + GET /v2/plan/overview"
@@ -1316,11 +1348,16 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     /// 目標賽事卡的組裝。網路回應與冷啟快照都走這一支（快照那條沒有期別與完賽預估，
     /// 兩個欄位傳 nil，這一輪網路回來再靜默補上）。
+    /// `displayedCurrentWeek` / `displayedTotalWeeks` ＝ 畫面上已經有的那一組。
+    /// plan status 這一輪沒回來（失敗或被取消）時沿用它們——一輪沒有新的週次可講，
+    /// 不代表要把已經在畫面上的那一組洗成 `—`（票面 Contract 2）。
     static func goalCard(
         target: Target,
         planStatus: PlanStatusV2Response?,
         stageLabel: String?,
         estimatedFinish: String?,
+        displayedCurrentWeek: Int?,
+        displayedTotalWeeks: Int?,
         origin: App2DataOrigin
     ) -> App2Sourced<App2GoalCard> {
         App2Sourced(
@@ -1334,12 +1371,13 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 stageLabel: stageLabel,
                 targetTime: target.targetTime > 0 ? TimeFormatting.formatTime(target.targetTime) : nil,
                 estimatedFinish: estimatedFinish,
-                currentWeek: planStatus?.currentWeek,
+                currentWeek: planStatus?.currentWeek ?? displayedCurrentWeek,
                 // **不退回 `target.trainingWeeks`。** 那是設定目標當下的估算，不是計畫
                 // 真正的長度：prod 上創辦人帳號的 target 寫 30 週，實際在跑的 overview
                 // `f30fed2f03ab` 是 27 週（2026-09-02 使用者回報「總週數是錯的」）。
-                // plan status 缺席時該格留白，不印一個看起來合理但錯的數字。
-                totalWeeks: planStatus?.totalWeeks
+                // plan status 缺席時退回畫面上已有的那一組（沒有就留白），
+                // 不印一個看起來合理但錯的數字。
+                totalWeeks: planStatus?.totalWeeks ?? displayedTotalWeeks
             ),
             origin: origin
         )

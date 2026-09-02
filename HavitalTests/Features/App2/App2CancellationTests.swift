@@ -423,6 +423,106 @@ final class App2CancellationTests: XCTestCase {
         }
     }
 
+    // MARK: - T-0387 目標卡週次的出現時機（owner path）
+    //
+    // 這幾個測試走 `revalidate()` 的實際載入順序，不是純投影——投影測試證明不了
+    // 「週次有沒有等 readiness」。共用的 VM harness（mock repository、makePlanStatus、
+    // makeCachedMainTarget）就住在這個檔案，不另外複製一份。
+
+    /// 冷啟：本機快取一開始是空的，`getTargets()` 回來之後才有主賽事。
+    private final class ColdCacheTargetRepository: MockTargetRepository {
+        private var didFetch = false
+        override func getTargets() async throws -> [Target] {
+            let targets = try await super.getTargets()
+            didFetch = true
+            return targets
+        }
+        override func getMainTarget() async -> Target? {
+            didFetch ? await super.getMainTarget() : nil
+        }
+    }
+
+    /// readiness 卡在這裡直到測試放行——用來驗「週次有沒有等它」。
+    private final class GatedReadinessViewModel: TrainingReadinessViewModel {
+        private var resume: CheckedContinuation<Void, Never>?
+        private var entered: CheckedContinuation<Void, Never>?
+
+        /// 等 `loadData()` 真的被呼叫到（避免用 sleep 猜時序）。
+        func waitUntilEntered() async {
+            await withCheckedContinuation { entered = $0 }
+        }
+
+        func release() {
+            resume?.resume()
+            resume = nil
+        }
+
+        override func loadData() async {
+            entered?.resume()
+            entered = nil
+            await withCheckedContinuation { resume = $0 }
+        }
+    }
+
+    func test_homeVM_coldTargetCache_publishesWeekBeforeReadinessReturns() async {
+        // 冷啟（快取空）時週次仍不得等 readiness。這是使用者回報的
+        // 「要等很久才會自己更新，或點進訓練計畫才會更新」（2026-09-02）。
+        let planRepo = MockTrainingPlanV2Repository()
+        planRepo.planStatusToReturn = makePlanStatus(planId: nil)
+        let targetRepo = ColdCacheTargetRepository()
+        targetRepo.mainTargetToReturn = makeCachedMainTarget()
+        targetRepo.targetsToReturn = [makeCachedMainTarget()]
+        let readiness = GatedReadinessViewModel()
+        let vm = App2HomeViewModel(
+            dailyStateRepository: nil,
+            targetRepository: targetRepo,
+            planRepository: planRepo,
+            readinessViewModel: readiness,
+            readinessService: nil,
+            workoutDataSource: ImmediateStatsSource(),
+            snapshots: SnapshotSpy()
+        )
+
+        async let round: Void = vm.revalidate()
+        await readiness.waitUntilEntered()
+
+        XCTAssertEqual(vm.goalCard?.value.currentWeek, 2, "readiness 還沒回來，週次就該在畫面上")
+        XCTAssertEqual(vm.goalCard?.value.totalWeeks, 5)
+
+        readiness.release()
+        await round
+
+        XCTAssertEqual(targetRepo.getTargetsCallCount, 1, "同一輪只准打一次 /user/targets")
+    }
+
+    func test_homeVM_cancelledPlanStatus_keepsDisplayedWeek() async {
+        // plan status 這一輪被取消（-999）＝沒有新的週次可畫；已經在畫面上的那一組
+        // 不得被洗成 `—`（票面 Contract 2）。
+        let planRepo = MockTrainingPlanV2Repository()
+        planRepo.planStatusToReturn = makePlanStatus(planId: nil)
+        let targetRepo = MockTargetRepository()
+        targetRepo.mainTargetToReturn = makeCachedMainTarget()
+        targetRepo.targetsToReturn = [makeCachedMainTarget()]
+        let vm = App2HomeViewModel(
+            dailyStateRepository: nil,
+            targetRepository: targetRepo,
+            planRepository: planRepo,
+            readinessViewModel: nil,
+            readinessService: nil,
+            workoutDataSource: ImmediateStatsSource(),
+            snapshots: SnapshotSpy()
+        )
+
+        await vm.revalidate()
+        XCTAssertEqual(vm.goalCard?.value.currentWeek, 2)
+
+        planRepo.errorToThrow = URLError(.cancelled)
+        await vm.revalidate()
+
+        XCTAssertEqual(vm.goalCard?.value.currentWeek, 2, "取消的那一輪不得把週次清掉")
+        XCTAssertEqual(vm.goalCard?.value.totalWeeks, 5)
+    }
+
     private func makeCachedMainTarget() -> Target {
         Target(
             id: "t1", type: "race_run", name: "快取賽事", distanceKm: 21,
