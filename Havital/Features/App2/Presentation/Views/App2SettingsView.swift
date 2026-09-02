@@ -18,6 +18,11 @@ enum App2SettingsDestination: String, Identifiable {
     #endif
 
     var id: String { rawValue }
+
+    /// 這一頁自帶 `NavigationStack` ＋ toolbar 返回鈕（1.4 既有頁，2.0 不重做一份）。
+    /// push 時不能連系統 navigation bar 一起藏，否則那顆鈕跟著消失、整頁退不出來
+    /// （2026-09-02 實機回報「熱適應點進去就沒有上一步按鈕」）。
+    var usesOwnNavigationChrome: Bool { self == .climate }
 }
 
 // MARK: - App2SettingsView
@@ -129,12 +134,21 @@ struct App2SettingsView: View {
         .navigationDestination(item: $destination) { destination in
             // `onClose` 仍是把 `destination` 設回 nil —— 綁定回 nil 即 pop，
             // 子頁的關閉語意不用重寫。
-            subpage(destination)
-                .toolbar(.hidden, for: .navigationBar)
+            if destination.usesOwnNavigationChrome {
+                subpage(destination)
+            } else {
+                subpage(destination)
+                    .toolbar(.hidden, for: .navigationBar)
+            }
         }
         .toolbar(.hidden, for: .navigationBar)
         // 隱藏 nav bar 會讓 UIKit 一併停掉邊緣滑回手勢；只把這一個堆疊的 delegate 接回來。
         .background(App2InteractivePopGesture().frame(width: 0, height: 0))
+        // 設定頁是 `fullScreenCover`，自己一個 hosting controller：`App2RootView` 掛的
+        // `preferredColorScheme` 只在 present 當下傳一次，present 之後改的偏好進不來
+        // ——切成淺色要退回首頁才生效（2026-09-02 實機回報）。這裡再宣告一次，
+        // 讀的是同一個 `App2AppearanceStore.shared`，不是第二份偏好。
+        .preferredColorScheme(appearanceStore.preference.colorScheme)
         .alert(
             NSLocalizedString("auth.logout_title", comment: "Log out"),
             isPresented: $isConfirmingLogout
