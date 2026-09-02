@@ -1197,6 +1197,10 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         //
         // 目標卡的組裝可能因為沒有主要賽事而提早 return（下面的 `guard let main`），
         // 但完賽預估**與有沒有目標賽事無關** —— 所以在那些 return 之前就先發布。
+        // readiness 自己會吞掉取消（`TrainingReadinessManager` catch 後直接 return），
+        // 所以 `roundSawCancellation` 不會被設——這一段之後每個 guard 都要自己查
+        // `Task.isCancelled`（外審 D04）。
+        guard !Task.isCancelled else { return }
         if !isStaleRound {
             finishPredictions = App2MetricDetailProjection.finishPredictions(
                 from: readinessViewModel.raceFitnessMetric
@@ -1214,12 +1218,12 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         let overview = await currentOverview(planStatus: planStatus)
         // 每個可取消子載 await 完就查旗標：取消＝整段停手，不得再組 plan-end 或
         // 目標卡（外審第十輪 D04/E03——子載記了旗標回 nil，呼叫端不能當「沒資料」繼續）。
-        guard !roundSawCancellation, !isStaleRound else { return }
+        guard !Task.isCancelled, !roundSawCancellation, !isStaleRound else { return }
 
         // **結束態的「當時預估」不是 `estimated`**（那是最新那一筆，講的是「現在」）。
         // 2026-08-27 裁決：要賽事日當天那一筆，取不到就整欄不畫。
         let estimatedAtRace = await raceDayEstimate(planStatus: planStatus, target: main)
-        guard !roundSawCancellation, !isStaleRound else { return }
+        guard !Task.isCancelled, !roundSawCancellation, !isStaleRound else { return }
 
         applyPlanEnd(
             planStatus: planStatus,

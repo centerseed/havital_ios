@@ -528,6 +528,44 @@ final class App2CancellationTests: XCTestCase {
         XCTAssertFalse(vm.hasLoaded)
     }
 
+    func test_homeVM_cancelledDuringReadiness_keepsEarlyCardUntouched() async {
+        // 早發已經把週次畫上去，接著在 readiness 那一段被取消。readiness 自己吞掉取消
+        // （`TrainingReadinessManager` catch 後 return），`roundSawCancellation` 不會被設，
+        // 所以之後每個 guard 都得自己查 `Task.isCancelled`——否則會用取消輪的資料
+        // 覆蓋掉畫面上那張卡（外審 D04）。
+        let planRepo = MockTrainingPlanV2Repository()
+        planRepo.planStatusToReturn = makePlanStatus(planId: nil)
+        let targetRepo = MockTargetRepository()
+        targetRepo.mainTargetToReturn = makeCachedMainTarget()
+        targetRepo.targetsToReturn = [makeCachedMainTarget()]
+        let readiness = GatedReadinessViewModel()
+        let vm = App2HomeViewModel(
+            dailyStateRepository: nil,
+            targetRepository: targetRepo,
+            planRepository: planRepo,
+            readinessViewModel: readiness,
+            readinessService: nil,
+            workoutDataSource: ImmediateStatsSource(),
+            snapshots: SnapshotSpy()
+        )
+
+        let round = Task { await vm.revalidate() }
+        await readiness.waitUntilEntered()
+        XCTAssertEqual(vm.goalCard?.value.currentWeek, 2, "早發應該已經把週次畫上去")
+
+        round.cancel()
+        readiness.release()
+        await round.value
+
+        XCTAssertEqual(
+            vm.goalCard?.origin,
+            .live(endpoint: "GET /user/targets + GET /v2/plan/status"),
+            "取消之後不得走完整組裝覆蓋（那一版的 origin 會多 readiness/overview）"
+        )
+        XCTAssertEqual(vm.goalCard?.value.currentWeek, 2)
+        XCTAssertFalse(vm.hasLoaded, "被取消的一輪不算載過")
+    }
+
     func test_homeVM_cancelledPlanStatus_keepsDisplayedWeek() async {
         // plan status 這一輪被取消（-999）＝沒有新的週次可畫；已經在畫面上的那一組
         // 不得被洗成 `—`（票面 Contract 2）。
