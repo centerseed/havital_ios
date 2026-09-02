@@ -89,6 +89,11 @@ struct App2SettingsView: View {
         // 於是捲起來之後整頁的卡片會從狀態列底下穿過去——時間與電量疊在訂閱卡上。
         // 這一頁是二層頁，其餘二層頁（指標詳情、訓練詳情）本來就是「固定 header ＋
         // 捲動內容」，設定頁是唯一的例外。
+        // **子頁走 push（T-0388 試點）**：`NavigationStack` ＋ `navigationDestination`，
+        // 這樣才有邊緣滑動返回。先前一律 `fullScreenCover` 的理由（巢狀 sheet 不進
+        // a11y tree）2026-09-02 在乾淨模擬器上證實不成立，而 cover 沒有返回手勢。
+        // 系統 navigation bar 全程隱藏：每一頁都有自己的 App2 header。
+        NavigationStack {
         VStack(spacing: 0) {
             header
                 .padding(.horizontal, App2Theme.pagePadding)
@@ -121,11 +126,13 @@ struct App2SettingsView: View {
         .onAppear { viewModel.loadIfNeeded() }
         // 訂閱卡第二行的價格要在地化字串，來源同「方案與訂閱」頁。
         .task { await paywallViewModel.loadOfferings() }
-        // 子頁一律 `fullScreenCover`：這一頁自己就開在 fullScreenCover 裡，
-        // 巢狀 sheet 不會進 accessibility tree（repo 既有坑）。
-        .fullScreenCover(item: $destination) { destination in
+        .navigationDestination(item: $destination) { destination in
+            // `onClose` 仍是把 `destination` 設回 nil —— 綁定回 nil 即 pop，
+            // 子頁的關閉語意不用重寫。
             subpage(destination)
+                .toolbar(.hidden, for: .navigationBar)
         }
+        .toolbar(.hidden, for: .navigationBar)
         .alert(
             NSLocalizedString("auth.logout_title", comment: "Log out"),
             isPresented: $isConfirmingLogout
@@ -138,6 +145,7 @@ struct App2SettingsView: View {
                 .accessibilityIdentifier("App2_SettingsLogoutCancel")
         } message: {
             Text(NSLocalizedString("auth.logout_confirm", comment: "Are you sure you want to log out?"))
+        }
         }
     }
 
