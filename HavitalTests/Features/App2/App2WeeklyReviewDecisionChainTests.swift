@@ -400,6 +400,29 @@ final class App2WeeklyReviewDecisionChainTests: XCTestCase {
         }
     }
 
+    // MARK: - 清單一條的 identifier 帶著狀態
+
+    /// 「按了接受之後那一條真的變了」在畫面上只有左側色條的差別——走查看得到、
+    /// 自動化看不到。identifier 帶狀態才有東西擋著（同 `emptyStateIdentifier`）。
+    func test_checklistItemIdentifier_carriesStatus() {
+        XCTAssertEqual(
+            App2WeeklyReviewView.checklistItemIdentifier(field: "weekly_km_pct", status: .proposed),
+            "App2_WeeklyReviewChecklistItem_weekly_km_pct_proposed"
+        )
+        XCTAssertEqual(
+            App2WeeklyReviewView.checklistItemIdentifier(field: "weekly_km_pct", status: .accepted),
+            "App2_WeeklyReviewChecklistItem_weekly_km_pct_accepted"
+        )
+        XCTAssertEqual(
+            App2WeeklyReviewView.checklistItemIdentifier(field: "pace_sec_per_km_delta", status: .declined),
+            "App2_WeeklyReviewChecklistItem_pace_sec_per_km_delta_declined"
+        )
+        XCTAssertEqual(
+            App2WeeklyReviewView.checklistItemIdentifier(field: "interval_reps", status: .adjusted),
+            "App2_WeeklyReviewChecklistItem_interval_reps_adjusted"
+        )
+    }
+
     // MARK: - Helpers
 
     private func makeViewModel(

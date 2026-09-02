@@ -1,0 +1,81 @@
+# T-0383 · 規劃下週分頁的 decision-chain 逐條清單（AC-TRAIN-HUB-12）實走。
+#
+# 這台模擬器上是**使用者本人手動 SSO 的創辦人 dev 帳號**：
+# `clearState: false`、不帶任何 `-ui_testing_*` 旗標、不跑 logout 子流程。
+# 清掉登入態就要他重登一次，而這一條路徑要的正是他真實帳號的真實資料。
+#
+# 前置（後端狀態，不是 app 操作）：目標週**還沒有課表**。有課表時
+# `plan status` 的 `current_week_plan_id` 非 null ⇒ `nextWeekAction` 不是
+# `.generate` ⇒ `run` 根本不會發，這一支必然停在既有（apply-items）路徑。
+#
+# **這一支不按「產生課表」**：那一步留給使用者自己走。
+appId: com.havital.Havital.dev
+tags:
+  - app2
+  - decision-chain
+---
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- extendedWaitUntil:
+    visible:
+      id: "App2_HomeView"
+    timeout: 60000
+
+# 首頁的週回顧時機卡 → 週回顧兩頁。
+- scrollUntilVisible:
+    element:
+      id: "App2_WeekReviewEntry"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0383/01-home-week-review-cta
+- tapOn:
+    id: "App2_WeekReviewEntry"
+- extendedWaitUntil:
+    visible:
+      id: "App2_WeeklyReviewView"
+    timeout: 60000
+
+# 規劃下週分頁。進頁即發 `POST /v2/decision-chain/week/{as_of}/run`（真 LLM）。
+- tapOn:
+    id: "App2_WeeklyReviewTab_plan"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0383/02-plan-tab-generating
+
+# 生成中動畫。**180 秒**：run 實測 45–130s，共用的 60s client timeout 會把
+# 一次正常的 run 判成失敗（本票把這一支放寬到 180s）。
+- extendedWaitUntil:
+    notVisible:
+      id: "App2_WeeklyReviewPlanGenerating"
+    timeout: 180000
+
+# 清單頂端的唯讀說明（意圖「追什麼／為什麼」，沒有按鈕）。
+- assertVisible:
+    id: "App2_WeeklyReviewIntentCard"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0383/03-checklist
+
+# 至少一條可答的項目。
+- assertVisible:
+    id: "App2_WeeklyReviewChecklistItem_.*_proposed"
+
+# 第一條：接受 → 那一條的 identifier 變成 `_accepted`。
+- tapOn:
+    id: "App2_WeeklyReviewChecklistAccept_.*"
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: "App2_WeeklyReviewChecklistItem_.*_accepted"
+    timeout: 30000
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0383/04-first-item-accepted
+
+# 第二條（有的話）：不要 → 變成 `_declined`。只有一條時整段跳過。
+- tapOn:
+    id: "App2_WeeklyReviewChecklistDecline_.*"
+    index: 1
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "App2_WeeklyReviewChecklistItem_.*_declined"
+    timeout: 30000
+    optional: true
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0383/05-second-item-declined

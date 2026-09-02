@@ -11,8 +11,16 @@ protocol HTTPClient {
     ///   - method: HTTP 方法
     ///   - body: 請求體數據
     ///   - customHeaders: 自定義 HTTP 標頭（可選）
+    ///   - timeout: 這一支請求的逾時秒數；`nil` ＝ 共用預設（`DefaultHTTPClient.defaultTimeoutInterval`）。
+    ///     只有真 LLM 那種本來就跑得比預設久的端點才給值，其餘一律留 `nil`。
     /// - Returns: 原始 JSON 數據
-    func request(path: String, method: HTTPMethod, body: Data?, customHeaders: [String: String]?) async throws -> Data
+    func request(
+        path: String,
+        method: HTTPMethod,
+        body: Data?,
+        customHeaders: [String: String]?,
+        timeout: TimeInterval?
+    ) async throws -> Data
 
     func stream(path: String, method: HTTPMethod, body: Data?, customHeaders: [String: String]?) async throws -> HTTPByteStreamResponse
 }
@@ -27,7 +35,12 @@ struct HTTPByteStreamResponse {
 extension HTTPClient {
     /// 向後相容的請求方法，不使用自定義 headers
     func request(path: String, method: HTTPMethod = .GET, body: Data? = nil) async throws -> Data {
-        return try await request(path: path, method: method, body: body, customHeaders: nil)
+        return try await request(path: path, method: method, body: body, customHeaders: nil, timeout: nil)
+    }
+
+    /// 向後相容：帶自定義 headers、走共用逾時
+    func request(path: String, method: HTTPMethod, body: Data?, customHeaders: [String: String]?) async throws -> Data {
+        return try await request(path: path, method: method, body: body, customHeaders: customHeaders, timeout: nil)
     }
 
     func stream(path: String, method: HTTPMethod, body: Data?, customHeaders: [String: String]?) async throws -> HTTPByteStreamResponse {
@@ -60,6 +73,16 @@ actor DefaultHTTPClient: HTTPClient {
     // temporarily empty after reset()) do not crash with a fatalError.
     private var authSessionRepository: AuthSessionRepository? {
         DependencyContainer.shared.tryResolve()
+    }
+
+    // MARK: - Timeout Configuration
+
+    /// 沒有特別指定時每一支請求的逾時秒數。
+    static let defaultTimeoutInterval: TimeInterval = 60
+
+    /// `nil` ＝ 用共用預設；給值的那一支只影響它自己。
+    static func resolvedTimeout(_ requested: TimeInterval?) -> TimeInterval {
+        requested ?? defaultTimeoutInterval
     }
 
     // MARK: - Retry Configuration
@@ -105,8 +128,14 @@ actor DefaultHTTPClient: HTTPClient {
         )
     }
     
-    func request(path: String, method: HTTPMethod, body: Data?, customHeaders: [String: String]?) async throws -> Data {
-        let request = try await buildRequest(path: path, method: method, body: body, customHeaders: customHeaders)
+    func request(
+        path: String,
+        method: HTTPMethod,
+        body: Data?,
+        customHeaders: [String: String]?,
+        timeout: TimeInterval?
+    ) async throws -> Data {
+        let request = try await buildRequest(path: path, method: method, body: body, customHeaders: customHeaders, timeout: timeout)
 
         // 🔍 記錄 API 調用來源和開始時間
         let source = APICallTracker.getCurrentSource()
@@ -165,7 +194,7 @@ actor DefaultHTTPClient: HTTPClient {
                         _ = try await authSessionRepository?.refreshIdToken()
 
                         // 用新 token 重建請求
-                        let retryRequest = try await buildRequest(path: path, method: method, body: body, customHeaders: customHeaders)
+                        let retryRequest = try await buildRequest(path: path, method: method, body: body, customHeaders: customHeaders, timeout: timeout)
                         let (retryData, retryResponse) = try await URLSession.shared.data(for: retryRequest)
 
                         guard let retryHttpResponse = retryResponse as? HTTPURLResponse else {
@@ -301,13 +330,19 @@ actor DefaultHTTPClient: HTTPClient {
     
     // MARK: - Private Methods
     
-    private func buildRequest(path: String, method: HTTPMethod, body: Data?, customHeaders: [String: String]?) async throws -> URLRequest {
+    private func buildRequest(
+        path: String,
+        method: HTTPMethod,
+        body: Data?,
+        customHeaders: [String: String]?,
+        timeout: TimeInterval? = nil
+    ) async throws -> URLRequest {
         let urlString = APIConfig.baseURL + path
         guard let url = URL(string: urlString) else {
             throw HTTPError.invalidURL(urlString)
         }
         
-        var request = URLRequest(url: url, timeoutInterval: 60)
+        var request = URLRequest(url: url, timeoutInterval: Self.resolvedTimeout(timeout))
         request.httpMethod = method.rawValue
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         

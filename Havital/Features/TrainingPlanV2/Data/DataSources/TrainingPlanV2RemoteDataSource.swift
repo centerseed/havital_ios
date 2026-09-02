@@ -441,6 +441,11 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
     // **這四支不進 `TrainingPlanV2LocalDataSource`**：清單上的答案是使用者剛按下去的
     // 事實，讀一份舊的等於把他的選擇丟掉。
 
+    /// 這一支自己的逾時。共用預設是 60s（`DefaultHTTPClient.defaultTimeoutInterval`），
+    /// 但這條路徑是真 LLM：dev 實測 43.7s，票面量到的範圍是 45–130s，60s 會把一次
+    /// **正常的** run 判成失敗、fail-open 回既有路徑。180s 只給這一支，其他端點不動。
+    static let decisionChainRunTimeout: TimeInterval = 180
+
     /// 跑這一週的決策鏈（真 LLM，數十秒；dev 2026-09-03 實測 43.7s）。
     /// API: POST /v2/decision-chain/week/{as_of}/run?week_of_training={N}
     ///
@@ -455,7 +460,8 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
             try await apiHelper.post(
                 DecisionChainWeekRunDTO.self,
                 path: path,
-                bodyDict: [:]
+                bodyDict: [:],
+                timeout: Self.decisionChainRunTimeout
             )
         }
     }

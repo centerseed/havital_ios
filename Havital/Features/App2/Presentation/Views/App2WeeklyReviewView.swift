@@ -731,7 +731,19 @@ struct App2WeeklyReviewView: View {
             .disabled(isReadOnly || isPending)
             .opacity((isReadOnly || isPending) ? 0.55 : 1)
         }
-        .accessibilityIdentifier("App2_WeeklyReviewChecklistItem_\(item.field)")
+        .accessibilityIdentifier(
+            Self.checklistItemIdentifier(field: item.field, status: item.status)
+        )
+    }
+
+    /// 清單一條的 accessibility identifier。**狀態寫進 id**，做法同
+    /// `emptyStateIdentifier`：「按了接受之後那一條真的變了」在畫面上只有顏色差別，
+    /// 走查看得到、自動化看不到——沒有東西擋著，回歸就只能靠肉眼。
+    static func checklistItemIdentifier(
+        field: String,
+        status: DecisionChainChecklistItem.Status
+    ) -> String {
+        "App2_WeeklyReviewChecklistItem_\(field)_\(status.rawValue)"
     }
 
     private func checklistChip(

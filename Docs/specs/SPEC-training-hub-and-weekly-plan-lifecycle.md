@@ -79,6 +79,7 @@ And Then 成功後必須讀 `GET /v2/decision-chain/week/{as_of}/checklist`，�
 And Then 清單頂端必須顯示 `GET /v2/decision-chain/intent/active` 的**唯讀說明**：`expression.pursuing`、`expression.rationale`；`expression.maintaining`／`abandoning` 非 null 才顯示該列；其後列 `hypotheses[]` 的 `intervention.description`／`prediction.description`。`data == null` 時不畫說明區。**這一區沒有任何動作按鈕**——接受與否只在清單上逐條做，app 不呼 `POST .../intent/{revision}/confirm`（意圖 lifecycle 由清單推導）。
 And Then 同一分頁**不得並列 apply-items 建議清單**；走 decision-chain 時產生課表 CTA 直接呼 `POST /v2/plan/weekly`，**不呼 apply-items**，且不得因清單還沒答完而停用。
 And Then 分頁底部的 Rizo 討論入口維持既有 `weekly_situation` 情境；Rizo 回覆結束後必須重讀 checklist（Rizo 記下的修正會以清單上新的一條回來）。
+And Then `run` 的 client 逾時必須容得下真 LLM 的一次生成（dev 實測 43.7s，量到的範圍 45–130s）：這一支單獨用 180 秒，不沿用其他端點的共用 60 秒——60 秒會把一次**正常的** run 判成逾時，使用者看到的是「決策鏈壞了」，其實只是還沒算完。
 And Given `run` 回 4xx／5xx／逾時，或 `GET .../checklist` 讀不到（404 或其他錯誤），
 Then 分頁必須回到 AC-TRAIN-HUB-10 的既有內容與路徑（apply-items → `POST /v2/plan/weekly`），不得擋產生（fail-open）。
 And 付費閘門與 Rizo 配額判準同 AC-PAYWALL-26：擋生成的條件同樣擋 `run`。
@@ -129,4 +130,4 @@ Then 系統必須顯示完成狀態與重新設定目標的入口，並把該入
 | AC-TRAIN-HUB-09 | 週回顧頁底部提供前進規劃下週的 CTA |
 | AC-TRAIN-HUB-10 | 規劃下週頁三態分流並可實際產生下週課表 |
 | AC-TRAIN-HUB-11 | 週回顧生成期間顯示生成中動畫與輪播文案 |
-| AC-TRAIN-HUB-12 | 規劃下週分頁走 decision-chain：run → 確認卡 → 建議項表態 → 產生 |
+| AC-TRAIN-HUB-12 | 規劃下週分頁走 decision-chain：run → 逐條清單表態 → 產生 |

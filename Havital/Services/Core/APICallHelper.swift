@@ -80,16 +80,25 @@ struct APICallHelper {
     ///   - path: API endpoint path
     ///   - method: HTTP method (defaults to GET)
     ///   - body: Request body data (optional)
+    ///   - timeout: 這一支請求的逾時秒數；`nil` ＝ 共用預設。只有本來就跑得比預設久的
+    ///     端點（真 LLM）才給值，不影響其他呼叫。
     /// - Returns: Parsed response of type T
     /// - Throws: Original error from lower layers
     func call<T: Codable>(
         _ type: T.Type,
         path: String,
         method: HTTPMethod = .GET,
-        body: Data? = nil
+        body: Data? = nil,
+        timeout: TimeInterval? = nil
     ) async throws -> T {
         do {
-            let rawData = try await httpClient.request(path: path, method: method, body: body)
+            let rawData = try await httpClient.request(
+                path: path,
+                method: method,
+                body: body,
+                customHeaders: nil,
+                timeout: timeout
+            )
             return try ResponseProcessor.extractData(type, from: rawData, using: parser)
         } catch {
             throw handleError(error, path: path, method: method)
@@ -220,10 +229,11 @@ extension APICallHelper {
     func post<T: Codable>(
         _ type: T.Type,
         path: String,
-        bodyDict: [String: Any]
+        bodyDict: [String: Any],
+        timeout: TimeInterval? = nil
     ) async throws -> T {
         let bodyData = try JSONSerialization.data(withJSONObject: bodyDict)
-        return try await call(type, path: path, method: .POST, body: bodyData)
+        return try await call(type, path: path, method: .POST, body: bodyData, timeout: timeout)
     }
 
     /// Make a PUT request with JSON body

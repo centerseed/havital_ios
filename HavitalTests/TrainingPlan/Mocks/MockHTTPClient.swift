@@ -21,11 +21,21 @@ final class MockHTTPClient: HTTPClient {
     /// Request history for verification
     private(set) var requestHistory: [(path: String, method: HTTPMethod, body: Data?)] = []
 
+    /// 每一支請求要求的逾時（`nil` ＝ 沒指定，走 `DefaultHTTPClient` 的共用預設）
+    private(set) var timeoutHistory: [(path: String, timeout: TimeInterval?)] = []
+
     // MARK: - HTTPClient Protocol
 
-    func request(path: String, method: HTTPMethod, body: Data?, customHeaders: [String: String]?) async throws -> Data {
+    func request(
+        path: String,
+        method: HTTPMethod,
+        body: Data?,
+        customHeaders: [String: String]?,
+        timeout: TimeInterval?
+    ) async throws -> Data {
         // Record request
         requestHistory.append((path, method, body))
+        timeoutHistory.append((path, timeout))
 
         // Build response key
         let key = "\(method.rawValue):\(path)"
@@ -70,6 +80,12 @@ final class MockHTTPClient: HTTPClient {
     func reset() {
         mockResponses.removeAll()
         requestHistory.removeAll()
+        timeoutHistory.removeAll()
+    }
+
+    /// 某一支請求要求的逾時（找不到就是沒發出去）
+    func requestedTimeout(forPathContaining fragment: String) -> TimeInterval?? {
+        timeoutHistory.first { $0.path.contains(fragment) }.map { $0.timeout }
     }
 
     /// Get the number of requests made
