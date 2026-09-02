@@ -69,19 +69,49 @@ print_header() {
     echo ""
 }
 
+# 測試跑在**專用模擬器**上，不借用使用者自己在用的那一台。
+#
+# `xcodebuild test` 每一輪都會重裝 app，被借用的那台就會掉登入狀態——2026-09-02
+# 使用者在模擬器登入後被連續洗掉兩次（「iOS 我登入，你不要在給我登出了」）。
+# 名稱可用 `PACERIZ_TEST_SIMULATOR` 覆寫；那台不存在就現建一台。
+TEST_SIMULATOR_NAME="${PACERIZ_TEST_SIMULATOR:-Paceriz Tests}"
+
+simulator_exists() {
+    xcrun simctl list devices available | grep -q "^[[:space:]]*$1 ("
+}
+
+create_test_simulator() {
+    local device_type runtime
+    device_type=$(xcrun simctl list devicetypes | grep -m1 "iPhone 17 Pro (" | grep -oE "com\.apple\.CoreSimulator\.SimDeviceType\.[^)]*")
+    [ -z "$device_type" ] && device_type=$(xcrun simctl list devicetypes | grep -m1 "iPhone" | grep -oE "com\.apple\.CoreSimulator\.SimDeviceType\.[^)]*")
+    runtime=$(xcrun simctl list runtimes | grep -oE "com\.apple\.CoreSimulator\.SimRuntime\.iOS-[0-9-]+" | tail -1)
+    [ -z "$device_type" ] || [ -z "$runtime" ] && return 1
+    xcrun simctl create "$TEST_SIMULATOR_NAME" "$device_type" "$runtime" >/dev/null 2>&1
+}
+
 detect_simulator() {
-    # Detect iPhone 17 first, fallback to others
+    if simulator_exists "$TEST_SIMULATOR_NAME"; then
+        echo "$TEST_SIMULATOR_NAME"
+        return
+    fi
+    if create_test_simulator && simulator_exists "$TEST_SIMULATOR_NAME"; then
+        echo "$TEST_SIMULATOR_NAME"
+        return
+    fi
+
+    # 建不出來才退回借用既有的一台（會清掉那台的 app 資料）。
+    echo -e "${YELLOW}⚠️  建不出測試專用模擬器「$TEST_SIMULATOR_NAME」，改用既有模擬器（那台的登入狀態會被清掉）${NC}" >&2
     local sim_name=$(xcrun simctl list devices available | grep "iPhone 17" | head -1 | sed 's/^[[:space:]]*//' | sed 's/ (.*//')
-    
+
     if [ -z "$sim_name" ]; then
         sim_name=$(xcrun simctl list devices available | grep "iPhone" | head -1 | sed 's/^[[:space:]]*//' | sed 's/ (.*//')
     fi
-    
+
     if [ -z "$sim_name" ]; then
         echo -e "${RED}❌ No suitable simulator found!${NC}"
         exit 1
     fi
-    
+
     echo "$sim_name"
 }
 
