@@ -5,7 +5,7 @@ status: Approved
 layer: product
 ontology_entity: training-hub-lifecycle
 created: 2026-04-15
-updated: 2026-08-31
+updated: 2026-09-02
 ---
 
 # Feature Spec: 訓練首頁與週課表生命週期
@@ -70,6 +70,20 @@ Given 使用者位於規劃下週分頁，
 When footer 依後端 `next_action`、`current_week_plan_id`、`next_week_info` 以純函式 `nextWeekAction` 三態分流（可產生／只能套用建議／不顯示），  
 Then 「可產生」態必須提供產生課表 CTA，點擊後**先送採納（apply-items）再呼 `POST /v2/plan/weekly`**（順序不可反）；下週已有課表時 CTA 不得顯示。同一條判準同時涵蓋週日流程（目標＝下週）與平日流程（目標＝本週）。無建議項不得成為零出口（footer 不得被 `!suggestions.isEmpty` 之類條件整體隱藏）。
 
+### AC-TRAIN-HUB-12: 規劃下週分頁必須走 decision-chain：run → 確認卡 → 建議項表態 → 產生（2026-09-02 使用者裁決）
+
+Given 使用者位於規劃下週分頁且 `nextWeekAction == .generate(week)`（歷史週／唯讀／`applyOnly`／`none` 態不適用），
+When 分頁載入，
+Then 系統必須呼叫 `POST /v2/decision-chain/week/{as_of}/run?week_of_training={week}`（`as_of` ＝ 使用者當地今天），與 `/v2/summary/weekly` 生成並行，期間分頁顯示生成中區塊（AC-TRAIN-HUB-11 同形態）；`generated` 與 `already_exists` 皆視為成功。
+And Then 成功後必須讀 `GET /v2/decision-chain/intent/active`：`lifecycle == proposed` 時顯示意圖確認卡，卡片三段（2026-09-02 使用者裁決）：一句「這一段追什麼」（`expression.pursuing`）、一列「接受後下週會這樣改」（`plan_changes[]`，逐行顯示，後端已翻成人話，app 不再解讀旋鈕）、一句「為什麼」（`expression.rationale`）；`expression.maintaining`／`abandoning` 非 null 才顯示該列；`hypotheses[]` 列在其後。只有「接受」與「先不要（必帶理由）」兩個動作（`POST .../intent/{revision}/confirm`），**不得有逾時預設接受**；`lifecycle == active` 時卡片唯讀顯示已接受；`data == null` 時不顯示卡。
+And Then 必須讀 `GET /v2/decision-chain/week/{as_of}/review`，以 `narrative.next_week`（可為 null）與 `recommendations[]` 取代 apply-items 建議清單（同一分頁不得並列兩份）；每則建議項提供接受／調整／維持原案，點擊即送 `POST .../week/{as_of}/stance`（`adjusted` 必帶 `adjusted_value`；409 視為已表態並重讀 review）；未點的維持未表態。
+And Then 有 `proposed` 卡時，產生課表 CTA 必須等卡答完（confirm 或 reject）才可點；點擊後直接呼 `POST /v2/plan/weekly`（decision-chain 路徑**不呼 apply-items**）。
+And Given `run` 回 4xx／5xx／逾時，或確認卡為 `null` 且 review 為 404，
+Then 分頁必須回到 AC-TRAIN-HUB-10 的既有內容與路徑（apply-items → `POST /v2/plan/weekly`），不得擋產生（fail-open）。
+And 付費閘門與 Rizo 配額判準同 AC-PAYWALL-26：擋生成的條件同樣擋 `run`。
+
+行為契約與端點形狀：root `docs/designs/DESIGN-app2-decision-chain-api.md` §3.9c／§4.1／§4.2；裁決：root `STATUS/decisions.md` 2026-09-02。
+
 ### AC-TRAIN-HUB-11: 週回顧生成期間必須顯示生成中動畫與文案（2026-08-31 使用者裁決）
 
 Given 使用者在週回顧頁觸發生成、內容尚未回來，
@@ -109,3 +123,4 @@ Then 系統必須顯示完成狀態與重新設定目標的入口，並把該入
 | AC-TRAIN-HUB-09 | 週回顧頁底部提供前進規劃下週的 CTA |
 | AC-TRAIN-HUB-10 | 規劃下週頁三態分流並可實際產生下週課表 |
 | AC-TRAIN-HUB-11 | 週回顧生成期間顯示生成中動畫與輪播文案 |
+| AC-TRAIN-HUB-12 | 規劃下週分頁走 decision-chain：run → 確認卡 → 建議項表態 → 產生 |
