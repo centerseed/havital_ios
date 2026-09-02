@@ -4803,6 +4803,17 @@
 "app2.weekly_review.generate_plan_failed_body" = "うまくいきませんでした。もう一度お試しください。";
 "app2.weekly_review.continue_to_plan" = "次へ：来週の計画";
 "app2.weekly_review.continue_to_plan_week" = "次へ：第%d週の計画";
+"app2.weekly_review.planning_section" = "来週の変更点 · %d";
+"app2.weekly_review.planning_empty" = "今回は調整する項目がありません。このまま計画を作成しましょう。";
+"app2.weekly_review.intent_section" = "この期間に狙うこと";
+"app2.weekly_review.intent_maintaining" = "維持すること";
+"app2.weekly_review.intent_abandoning" = "いったん見送ること";
+"app2.weekly_review.intent_rationale" = "理由";
+"app2.weekly_review.intent_hypotheses" = "Rizo の仮説";
+"app2.weekly_review.decline" = "見送る";
+"app2.weekly_review.adjust" = "調整する";
+"app2.weekly_review.adjust_sheet_title" = "この項目を調整";
+"app2.weekly_review.stance_failed" = "この回答を送れませんでした。もう一度お試しください。";
 "app2.weekly_review.not_generated_body" = "この週のレビューはまだ作成されていません。";
 "app2.weekly_review.history_not_generated_body" = "この週のレビューは作成されていません。";
 "app2.weekly_review.generate" = "週次レビューを作成";

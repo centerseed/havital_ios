@@ -45,6 +45,44 @@ final class App2WeeklyReviewViewModel: ObservableObject {
     /// 產生失敗的訊息（可重試）。
     @Published var generateError: String?
 
+    // MARK: - 規劃下週的 decision-chain 清單（AC-TRAIN-HUB-12）
+
+    /// 規劃分頁現在拿得出什麼。
+    ///
+    /// **`unavailable` 不是錯誤態**：它就是 AC-TRAIN-HUB-10 的既有分頁
+    /// （apply-items 建議清單 → `POST /v2/plan/weekly`）。訓練流程核心一律 fail-open，
+    /// decision-chain 讀不到不得擋住產生課表。
+    enum DecisionChainState: Equatable {
+        /// 還沒判（頁面剛開）。
+        case idle
+        /// `run` 在飛（真 LLM，數十秒）。
+        case running
+        /// 清單在手。`items` 可以是空陣列（那一輪一顆旋鈕都沒轉，設計 §4.1b 第 7 條）。
+        case ready(DecisionChainChecklist, DecisionChainIntentCard?)
+        /// 走既有路徑。
+        case unavailable
+    }
+
+    @Published private(set) var decisionChain: DecisionChainState = .idle
+    /// 這幾條的表態還在飛（擋重複點擊，也讓那一條畫得出忙碌態）。
+    @Published private(set) var pendingChecklistItemIds: Set<String> = []
+    /// 表態沒送出去的提示。
+    @Published var checklistError: String?
+
+    /// 這一頁走的是 decision-chain 清單嗎。**`applyAndGenerate()` 用它決定要不要送
+    /// apply-items**——兩份清單不得並列，也不得兩條路都送（鐵則 0）。
+    var usesDecisionChain: Bool {
+        if case .ready = decisionChain { return true }
+        return false
+    }
+
+    /// 只跑一次。`run` 是一次真 LLM，重新整理不該再燒一次。
+    private var didStartDecisionChain = false
+
+    /// `run → checklist → 說明卡` 那一條。**`load()` 刻意不等它**——不等才是「並行」。
+    /// 留成 property 是為了讓測試等得到它（`internal`，`@testable` 可見）。
+    private(set) var decisionChainTask: Task<Void, Never>?
+
     // MARK: - Dependencies
 
     private var coordinator: WeeklySummaryCoordinator!
@@ -55,11 +93,16 @@ final class App2WeeklyReviewViewModel: ObservableObject {
     /// 「產生目標週課表」走的是既有出口 `POST /v2/plan/weekly`，與課表頁同一支
     /// repository —— 不另開資料路徑。
     private let planRepository: TrainingPlanV2Repository
+    /// 下週規劃清單（AC-TRAIN-HUB-12）。同一顆 `TrainingPlanV2RepositoryImpl` 的窄協定，
+    /// 不是第二條資料路徑。**解不到就是 nil**——那時規劃分頁走 AC-TRAIN-HUB-10 的
+    /// 既有路徑（fail-open），不是壞掉。
+    private let decisionChainRepository: DecisionChainWeekRepository?
 
     init(
         weekOfPlan: Int,
         isReadOnly: Bool = false,
-        repository: TrainingPlanV2Repository? = nil
+        repository: TrainingPlanV2Repository? = nil,
+        decisionChainRepository: DecisionChainWeekRepository? = nil
     ) {
         self.weekOfPlan = weekOfPlan
         self.isReadOnly = isReadOnly
@@ -70,6 +113,7 @@ final class App2WeeklyReviewViewModel: ObservableObject {
         }
         let resolved: TrainingPlanV2Repository = repository ?? container.resolve()
         self.planRepository = resolved
+        self.decisionChainRepository = decisionChainRepository ?? container.tryResolve()
 
         self.coordinator = WeeklySummaryCoordinator(
             repository: resolved,
@@ -115,6 +159,10 @@ final class App2WeeklyReviewViewModel: ObservableObject {
         isLoading = true
         errorMessage = nil
         await refreshPlanStatus()
+        // decision-chain 的 `run` 也要跑數十秒的 LLM。**與週回顧生成並行**
+        // （AC-TRAIN-HUB-12）——串起來等於讓使用者等兩次。這裡只起頭不等它，
+        // 規劃分頁自己依 `decisionChain` 畫生成中／清單。
+        startDecisionChainIfNeeded()
         // 視窗未開（或歷史週唯讀）＝這一輪只讀不寫：沒有回顧就是沒有，
         // 不在背後補一份，也不送註定 400 的請求。
         await coordinator.loadWeeklySummary(
@@ -350,6 +398,177 @@ final class App2WeeklyReviewViewModel: ObservableObject {
         return fallback
     }
 
+    // MARK: - decision-chain：run → 清單 → 逐條表態（AC-TRAIN-HUB-12）
+
+    /// 規劃分頁要跑的是哪一天的決策鏈：**使用者當地的今天**。
+    ///
+    /// 時區權威與週日判定同一個咽喉點（`metadata.user_timezone` ＋ `metadata.server_time`，
+    /// `DESIGN-app2-weekly-review-and-plan-end-inventory` §A.1），**不看裝置時區**——
+    /// dev 帳號的時區是 `Asia/Tokyo`，用裝置日期會算出前一天，`run` 與 `checklist`
+    /// 就對不到同一份週 doc。時區名解不開才退回裝置日曆。
+    nonisolated static func asOfInUserTimezone(
+        _ status: PlanStatusV2Response?,
+        deviceNow: Date = Date(),
+        deviceCalendar: Calendar = .current
+    ) -> String {
+        if let calendar = App2WeekCalendar.calendar(inTimezone: status?.metadata?.userTimezone) {
+            let instant = App2WeekCalendar.parseISO8601(status?.metadata?.serverTime) ?? deviceNow
+            return App2WeekCalendar.isoDay(date: instant, calendar: calendar)
+        }
+        Logger.debug("[App2WeeklyReviewVM] plan status 缺 user_timezone，as_of 退回裝置日曆")
+        return App2WeekCalendar.isoDay(date: deviceNow, calendar: deviceCalendar)
+    }
+
+    /// 這一週的產生被付費閘門擋著嗎（AC-PAYWALL-26）。
+    ///
+    /// 抽成具名判準是因為它有兩個消費點：CTA（擋生成）與 `run`（AC-TRAIN-HUB-12
+    /// 明寫「擋生成的條件同樣擋 run」）。寫兩次遲早只改一邊。
+    static func isBlockedByPaywall(week: Int) -> Bool {
+        week >= 2
+            && SubscriptionStateManager.shared.isEnforcementEnabled
+            && !SubscriptionStateManager.shared.hasPremiumAccess
+    }
+
+    /// 規劃分頁的 decision-chain 起手。**只在 `.generate` 態跑**——歷史週、唯讀、
+    /// `applyOnly`、`none` 都不是「要規劃下一週」，對它們發 `run` 是寫錯週的帳本。
+    func startDecisionChainIfNeeded() {
+        guard !didStartDecisionChain else { return }
+        didStartDecisionChain = true
+
+        guard let decisionChainRepository else {
+            // 沒註冊（測試樁、UITest harness）＝這一頁走既有路徑，不是壞掉。
+            decisionChain = .unavailable
+            return
+        }
+        guard case .generate(let week) = nextWeekAction else {
+            decisionChain = .unavailable
+            return
+        }
+        // 付費閘門擋生成就同樣擋 `run`。**這裡只是不跑，不彈 upsell**——
+        // 進頁就彈等於把付費牆提前到使用者還沒要求產生課表之前。
+        guard !Self.isBlockedByPaywall(week: week) else {
+            decisionChain = .unavailable
+            return
+        }
+
+        let asOf = Self.asOfInUserTimezone(planStatus)
+        decisionChain = .running
+        decisionChainTask = Task { [weak self] in
+            await self?.runDecisionChain(asOf: asOf, week: week, repository: decisionChainRepository)
+        }
+    }
+
+    private func runDecisionChain(
+        asOf: String,
+        week: Int,
+        repository: DecisionChainWeekRepository
+    ) async {
+        do {
+            let run = try await repository.runDecisionChainWeek(asOf: asOf, weekOfTraining: week)
+            // `generated` 與 `already_exists` 都是成功（AC-TRAIN-HUB-12）。
+            Logger.debug("[App2WeeklyReviewVM] decision-chain run \(asOf) → \(run.status)")
+        } catch {
+            guard !error.isCancellationError else {
+                decisionChain = .idle
+                didStartDecisionChain = false
+                return
+            }
+            Logger.debug("[App2WeeklyReviewVM] decision-chain run 失敗，走既有路徑: \(error.toDomainError())")
+            decisionChain = .unavailable
+            return
+        }
+
+        let checklist: DecisionChainChecklist?
+        do {
+            checklist = try await repository.fetchDecisionChainChecklist(asOf: asOf)
+        } catch {
+            guard !error.isCancellationError else {
+                decisionChain = .idle
+                didStartDecisionChain = false
+                return
+            }
+            Logger.debug("[App2WeeklyReviewVM] 清單讀不到，走既有路徑: \(error.toDomainError())")
+            decisionChain = .unavailable
+            return
+        }
+        // 404（那一週沒 run 過）→ 沒有清單可畫 → 既有路徑。
+        guard let checklist else {
+            decisionChain = .unavailable
+            return
+        }
+
+        // 說明區讀不到不影響清單：清單才是使用者要按的東西。
+        let card = try? await repository.fetchDecisionChainIntentCard()
+        decisionChain = .ready(checklist, card)
+    }
+
+    /// 對清單上的一條表態。**送出去之前先樂觀更新、失敗就把那一條退回原狀**——
+    /// 後端寫入失敗時該條必須維持原狀，不得靜默當成 accepted（設計 §4.5a）。
+    func answer(
+        item: DecisionChainChecklistItem,
+        status: DecisionChainChecklistItem.Status,
+        adjustedValue: DecisionChainValue? = nil
+    ) async {
+        guard case .ready(let checklist, let card) = decisionChain,
+              let decisionChainRepository else { return }
+        guard !isReadOnly else { return }
+        guard !pendingChecklistItemIds.contains(item.itemId) else { return }
+
+        pendingChecklistItemIds.insert(item.itemId)
+        checklistError = nil
+        decisionChain = .ready(
+            Self.replacing(checklist, with: item.with(status: status, adjustedValue: adjustedValue)),
+            card
+        )
+
+        do {
+            let updated = try await decisionChainRepository.recordDecisionChainChecklistStance(
+                asOf: checklist.asOf,
+                itemId: item.itemId,
+                status: status,
+                adjustedValue: adjustedValue
+            )
+            // **UI 以回應為準**，不以本地那一份樂觀值為準。
+            if case .ready(let current, let currentCard) = decisionChain {
+                decisionChain = .ready(Self.replacing(current, with: updated), currentCard)
+            }
+        } catch {
+            if !error.isCancellationError {
+                Logger.error("[App2WeeklyReviewVM] 清單表態失敗 \(item.itemId): \(error.toDomainError())")
+                checklistError = L10n.App2.WeeklyReview.stanceFailed.localized
+            }
+            // 只退回這一條——整份回滾會把同時在飛的另一條也一起打掉。
+            if case .ready(let current, let currentCard) = decisionChain {
+                decisionChain = .ready(Self.replacing(current, with: item), currentCard)
+            }
+        }
+        pendingChecklistItemIds.remove(item.itemId)
+    }
+
+    /// Rizo 回覆之後重讀清單（AC-TRAIN-HUB-12）。Rizo 記下的修正會以清單上新的一條
+    /// 回來（`source == rizo`），使用者不再被要求第二次確認。
+    func refreshChecklistAfterRizo() async {
+        guard case .ready(let checklist, let card) = decisionChain,
+              let decisionChainRepository else { return }
+        guard let refreshed = try? await decisionChainRepository
+            .fetchDecisionChainChecklist(asOf: checklist.asOf) else { return }
+        decisionChain = .ready(refreshed, card)
+    }
+
+    /// 換掉清單上同一個 `item_id` 的那一條。找不到就原樣回傳（後端剛長出新的一條時
+    /// 不要把它塞進來——那一份要靠重讀）。
+    nonisolated static func replacing(
+        _ checklist: DecisionChainChecklist,
+        with item: DecisionChainChecklistItem
+    ) -> DecisionChainChecklist {
+        var updated = checklist
+        guard let index = updated.items.firstIndex(where: { $0.itemId == item.itemId }) else {
+            return checklist
+        }
+        updated.items[index] = item
+        return updated
+    }
+
     /// 主 CTA：先送採納項，再產生目標週課表。
     ///
     /// **順序不能反。** `apply-items` 決定的是下一次生成要吃哪些調整（休息週、跑量
@@ -363,18 +582,22 @@ final class App2WeeklyReviewViewModel: ObservableObject {
 
         // 付費閘門與 1.4 `generateWeeklyPlanDirectly` 同一條判準（AC-PAYWALL-26）：
         // 第 2 週起未訂閱不得產生。接成 no-op 就是靜默繞過付費閘門。
-        if week >= 2,
-           SubscriptionStateManager.shared.isEnforcementEnabled,
-           !SubscriptionStateManager.shared.hasPremiumAccess {
+        if Self.isBlockedByPaywall(week: week) {
             showsUpsell = true
             return false
         }
 
-        isApplying = true
-        let applied = await coordinator.applySelectedAdjustments(weekOfPlan: weekOfPlan)
-        isApplying = false
-        // 採納沒送成功就不要生成 —— 生出來的會是沒吃到使用者選擇的那一份。
-        guard applied else { return false }
+        // **decision-chain 路徑不呼 apply-items**（AC-TRAIN-HUB-12）：使用者的選擇
+        // 已經逐條落在清單上，後端產生課表時只吃 `accepted`／`adjusted`。再送一次
+        // apply-items 等於同一件事有兩份紀錄（鐵則 0），而且送的是這一頁根本沒畫的
+        // 那一份建議清單的勾選狀態。
+        if !usesDecisionChain {
+            isApplying = true
+            let applied = await coordinator.applySelectedAdjustments(weekOfPlan: weekOfPlan)
+            isApplying = false
+            // 採納沒送成功就不要生成 —— 生出來的會是沒吃到使用者選擇的那一份。
+            guard applied else { return false }
+        }
 
         isGeneratingPlan = true
         generateError = nil
@@ -466,5 +689,48 @@ final class App2WeeklyReviewViewModel: ObservableObject {
             return true
         }
         return false
+    }
+}
+
+// MARK: - App2DecisionChainAdjustRange
+/// 「調整」輪盤的可選值。
+///
+/// **這是暫定值，不是規格**（AC-TRAIN-HUB-12「未決」）：後端的清單條目只帶
+/// `current`／`proposed`，不帶那顆旋鈕的合法範圍，這條路徑上也不驗值域
+/// （`cloud/api_service/domains/decision_chain/checklist.py:62` `check_status_value`
+/// 只驗「`adjusted` 有沒有帶值」）。正解是後端把值域放進條目。
+///
+/// 在那之前用一條**與欄位無關**的規則：從這一條自己的兩個數推。用欄位名列一張
+/// 值域表等於在 app 這一層重寫一份旋鈕語意（設計 §4.1「app 不解讀旋鈕」），
+/// 而且後端改了值域這裡不會知道。
+enum App2DecisionChainAdjustRange {
+
+    /// 輪盤最多幾格。再多就轉不到底了，改放大步進。
+    static let maxOptionCount = 121
+
+    /// - Returns: 可選值（遞增）。這一條不是數值型就回空陣列——呼叫端不該開輪盤。
+    static func options(for item: DecisionChainChecklistItem) -> [Double] {
+        guard let proposed = item.proposed?.numericValue else { return [] }
+        // `current` 是 `null` 的條目（`interval_reps` 實測就是）沒有基準點，
+        // 拿 0 當基準會推出「趟數 -14」這種選項，所以退回用 `proposed` 自己。
+        let anchor = item.current?.numericValue ?? proposed
+        let reach = max(1, abs(proposed - anchor), (abs(proposed) / 2).rounded())
+        let low = min(anchor, proposed) - reach
+        let high = max(anchor, proposed) + reach
+        let step = max(1, ((high - low) / Double(maxOptionCount - 1)).rounded(.up))
+        return stride(from: low, through: high, by: step).map { $0 }
+    }
+
+    /// 輪盤開起來時停在哪：已經調整過就停在調整後的值，否則停在後端提的值。
+    static func initialValue(for item: DecisionChainChecklistItem) -> Double {
+        item.adjustedValue?.numericValue ?? item.proposed?.numericValue ?? 0
+    }
+
+    /// 輪盤上一格怎麼寫。整數條目不寫小數點。
+    static func label(for item: DecisionChainChecklistItem, value: Double) -> String {
+        if case .int = item.proposed {
+            return String(format: "%.0f", value)
+        }
+        return value == value.rounded() ? String(format: "%.0f", value) : String(format: "%.1f", value)
     }
 }

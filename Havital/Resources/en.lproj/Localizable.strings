@@ -4806,6 +4806,17 @@
 "app2.weekly_review.generate_plan_failed_body" = "That didn't go through. Please try again.";
 "app2.weekly_review.continue_to_plan" = "Next: plan next week";
 "app2.weekly_review.continue_to_plan_week" = "Next: plan week %d";
+"app2.weekly_review.planning_section" = "Changes for next week · %d";
+"app2.weekly_review.planning_empty" = "Nothing to change this round — just generate the plan.";
+"app2.weekly_review.intent_section" = "What this block is chasing";
+"app2.weekly_review.intent_maintaining" = "Keeping";
+"app2.weekly_review.intent_abandoning" = "Setting aside";
+"app2.weekly_review.intent_rationale" = "Why";
+"app2.weekly_review.intent_hypotheses" = "Rizo's hypothesis";
+"app2.weekly_review.decline" = "No thanks";
+"app2.weekly_review.adjust" = "Adjust";
+"app2.weekly_review.adjust_sheet_title" = "Adjust this item";
+"app2.weekly_review.stance_failed" = "That answer didn't go through. Try again.";
 "app2.weekly_review.not_generated_body" = "This week's review hasn't been generated yet.";
 "app2.weekly_review.history_not_generated_body" = "No review was generated for this week.";
 "app2.weekly_review.generate" = "Generate Weekly Review";

@@ -111,6 +111,28 @@ final class FakeTrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourcePr
     func completeStrengthSession(_ request: StrengthCompletionRequestDTO) async throws -> StrengthCompletionResponseDTO {
         fatalError("Unexpected call: completeStrengthSession")
     }
+
+    // MARK: - Decision chain（T-0383）：這一組測試不走清單，全部不預期被呼叫
+
+    func runDecisionChainWeek(asOf: String, weekOfTraining: Int) async throws -> DecisionChainWeekRunDTO {
+        fatalError("Unexpected call: runDecisionChainWeek")
+    }
+
+    func getDecisionChainChecklist(asOf: String) async throws -> DecisionChainChecklistDTO {
+        fatalError("Unexpected call: getDecisionChainChecklist")
+    }
+
+    func postDecisionChainChecklistStance(
+        asOf: String,
+        itemId: String,
+        body: DecisionChainChecklistStanceRequestDTO
+    ) async throws -> DecisionChainChecklistStanceResponseDTO {
+        fatalError("Unexpected call: postDecisionChainChecklistStance")
+    }
+
+    func getDecisionChainIntentCard() async throws -> DecisionChainIntentCardDTO {
+        fatalError("Unexpected call: getDecisionChainIntentCard")
+    }
 }
 
 // MARK: - PlanStatusV2Response Stub

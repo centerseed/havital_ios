@@ -4847,6 +4847,17 @@
 "app2.weekly_review.generate_plan_failed_body" = "這次沒有產生成功，請再試一次。";
 "app2.weekly_review.continue_to_plan" = "下一步：規劃下週";
 "app2.weekly_review.continue_to_plan_week" = "下一步：規劃第 %d 週";
+"app2.weekly_review.planning_section" = "下週要這樣改 · %d";
+"app2.weekly_review.planning_empty" = "這一輪沒有要調整的項目，直接產生課表就好。";
+"app2.weekly_review.intent_section" = "這一段在追什麼";
+"app2.weekly_review.intent_maintaining" = "維持";
+"app2.weekly_review.intent_abandoning" = "先放下";
+"app2.weekly_review.intent_rationale" = "為什麼";
+"app2.weekly_review.intent_hypotheses" = "Rizo 的假設";
+"app2.weekly_review.decline" = "不要";
+"app2.weekly_review.adjust" = "調整";
+"app2.weekly_review.adjust_sheet_title" = "調整這一條";
+"app2.weekly_review.stance_failed" = "這一條沒送出去，再試一次。";
 "app2.weekly_review.not_generated_body" = "這一週的回顧還沒產生。";
 "app2.weekly_review.history_not_generated_body" = "這一週沒有產生過回顧。";
 "app2.weekly_review.generate" = "產生週回顧";

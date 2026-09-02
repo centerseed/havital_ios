@@ -39,6 +39,9 @@ struct App2WeeklyReviewView: View {
 
     @State private var tab: Tab = .review
 
+    /// 正在調整值的那一條（`sheet(item:)` 要 `Identifiable`，清單條目本來就是）。
+    @State private var adjustingItem: DecisionChainChecklistItem?
+
     /// 「規劃下週」底部的 Rizo 輸入區（8/28 盤點 F15，Android 早有）。
     ///
     /// **不造第二套對話**：走既有的 `StateRizoChatViewModel`（App2 首頁那兩個 Rizo
@@ -206,6 +209,39 @@ struct App2WeeklyReviewView: View {
             Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
         } message: { message in
             Text(message)
+        }
+        // 清單上某一條沒送出去。那一條已經退回原狀（VM 做的），這裡只是說出來——
+        // 靜默失敗會讓使用者以為勾到了，而後端根本沒收到。
+        .alert(
+            L10n.App2.WeeklyReview.stanceFailed.localized,
+            isPresented: Binding(
+                get: { viewModel.checklistError != nil },
+                set: { if !$0 { viewModel.checklistError = nil } }
+            )
+        ) {
+            Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
+        }
+        // 「調整」的值走既有的單值輪盤 sheet（`App2ValueWheelSheet`，編輯課表同一支），
+        // 不為這一頁另做一顆數字輸入。
+        .sheet(item: $adjustingItem) { item in
+            App2ValueWheelSheet(
+                title: L10n.App2.WeeklyReview.adjustSheetTitle.localized,
+                options: App2DecisionChainAdjustRange.options(for: item),
+                label: { App2DecisionChainAdjustRange.label(for: item, value: $0) },
+                unit: nil,
+                initialValue: App2DecisionChainAdjustRange.initialValue(for: item)
+            ) { value in
+                Task {
+                    await viewModel.answer(
+                        item: item,
+                        status: .adjusted,
+                        // 整數條目要送回整數：後端收的是
+                        // `StrictInt | StrictFloat | StrictStr`，型別換了下游就換了意思。
+                        adjustedValue: DecisionChainValue.matchingKind(of: item.proposed, number: value)
+                    )
+                }
+            }
+            .presentationDetents([.height(360)])
         }
     }
 
@@ -493,8 +529,238 @@ struct App2WeeklyReviewView: View {
 
     // MARK: - 規劃下週（frame-19）
 
+    /// 規劃分頁。**兩條互斥的內容**（AC-TRAIN-HUB-12）：decision-chain 的逐條清單，
+    /// 或 AC-TRAIN-HUB-10 的既有 apply-items 建議清單。**同一分頁不並列兩份**
+    /// （`AGENTS.md` 鐵則 0），所以這裡是 switch 不是兩段疊加。
     @ViewBuilder
     private func planTab(_ projection: App2WeeklyReviewProjection) -> some View {
+        switch viewModel.decisionChain {
+        case .running:
+            // `run` 也是數十秒的 LLM——沿用 AC-TRAIN-HUB-11 的生成中形態，
+            // 不在這一頁另立第二種等待視覺。
+            App2GeneratingView(
+                messages: LoadingAnimationView.LoadingType.generateReview.messages,
+                identifier: "App2_WeeklyReviewPlanGenerating"
+            )
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 24)
+        case .ready(let checklist, let card):
+            decisionChainTab(checklist: checklist, card: card)
+        case .idle, .unavailable:
+            legacyPlanTab(projection)
+        }
+        // 建議清單只讓使用者對後端提的項目按接受／略過；**說出自己下週的狀況**沒有出口
+        // （8/28 盤點 F15：Android 這一頁底下一直有這一區，iOS 沒有）。
+        //
+        // **歷史週唯讀回看不畫這一區**（裁決（q），外審第七輪 A06／B02）：它的送出會打
+        // `RizoRepository.streamChat`（`weekly_situation`），是一條寫入路徑。這一頁其他的
+        // 寫入出口（產生、套用、採納）本來就各自擋了 `isReadOnly`，F15 是本批新加的，
+        // 加的時候漏掉同一道閘。
+        if Self.showsDiscussSection(isReadOnly: isReadOnly) {
+            discussSection
+        }
+    }
+
+    // MARK: - 規劃下週 · decision-chain 逐條清單（AC-TRAIN-HUB-12）
+
+    @ViewBuilder
+    private func decisionChainTab(
+        checklist: DecisionChainChecklist,
+        card: DecisionChainIntentCard?
+    ) -> some View {
+        if let card, card.hasContent {
+            intentExplainCard(card)
+        }
+        if checklist.items.isEmpty {
+            // 那一輪一顆旋鈕都沒轉：使用者沒有東西可勾，按「產生」就是答完
+            // （設計 §4.1b 第 7 條）。**這不是失敗態**，不退回既有清單。
+            App2Card(padding: 15, spacing: 6) {
+                Text(L10n.App2.WeeklyReview.planningEmpty.localized)
+                    .font(.app2Body)
+                    .foregroundStyle(App2Theme.inkTertiary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .accessibilityIdentifier("App2_WeeklyReviewPlanningEmpty")
+        } else {
+            section(
+                String(
+                    format: L10n.App2.WeeklyReview.planningSection.localized,
+                    checklist.items.count
+                )
+            ) {
+                VStack(spacing: 10) {
+                    ForEach(checklist.items) { item in
+                        checklistCard(item)
+                    }
+                }
+            }
+        }
+    }
+
+    /// 清單頂端的**唯讀說明**（設計 §4.1，2026-09-02 晚裁決）。
+    /// **這張卡上沒有任何動作**——接受與否逐條做在清單上，意圖的 lifecycle 由清單推導。
+    private func intentExplainCard(_ card: DecisionChainIntentCard) -> some View {
+        App2AccentCard(strength: 0.11, padding: 16, spacing: 11) {
+            HStack(spacing: 9) {
+                App2Avatar(initial: "R", size: 26, showsRing: false)
+                Text(L10n.App2.WeeklyReview.intentSection.localized)
+                    .font(.system(size: 15, weight: .black))
+                    .foregroundStyle(App2Theme.inkPrimary)
+                Spacer(minLength: 6)
+            }
+            if let pursuing = card.expression.pursuing {
+                Text(pursuing)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(App2Theme.inkSecondary)
+                    .lineSpacing(4)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            // `maintaining`／`abandoning` 是 null 就整列不畫（設計 §4.1 第 4 條）——
+            // 不畫「這一段沒有放棄的項目」那種列。
+            if let maintaining = card.expression.maintaining {
+                labelledLine(L10n.App2.WeeklyReview.intentMaintaining.localized, maintaining)
+            }
+            if let abandoning = card.expression.abandoning {
+                labelledLine(L10n.App2.WeeklyReview.intentAbandoning.localized, abandoning)
+            }
+            if let rationale = card.expression.rationale {
+                labelledLine(L10n.App2.WeeklyReview.intentRationale.localized, rationale)
+            }
+            if !card.hypotheses.isEmpty {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(L10n.App2.WeeklyReview.intentHypotheses.localized)
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundStyle(App2Theme.inkMuted)
+                    ForEach(card.hypotheses) { hypothesis in
+                        ForEach(
+                            [hypothesis.interventionDescription, hypothesis.predictionDescription]
+                                .compactMap { $0 },
+                            id: \.self
+                        ) { line in
+                            HStack(alignment: .top, spacing: 7) {
+                                Image(systemName: "circle.fill")
+                                    .font(.system(size: 5, weight: .bold))
+                                    .foregroundStyle(App2Theme.accentBlueDeep)
+                                    .padding(.top, 6)
+                                Text(line)
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundStyle(App2Theme.inkSecondary)
+                                    .lineSpacing(3)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Spacer(minLength: 0)
+                            }
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .accessibilityIdentifier("App2_WeeklyReviewIntentCard")
+    }
+
+    private func labelledLine(_ label: String, _ body: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.system(size: 12, weight: .heavy))
+                .foregroundStyle(App2Theme.inkMuted)
+            Text(body)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(App2Theme.inkSecondary)
+                .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// 清單上的一條。三個動作：接受／不要／調整。
+    ///
+    /// **「調整」只在數值型的條目出現**：`rest_ratio` 的 `1:1`、`recovery_kind` 的
+    /// `jog` 沒有輪盤可以轉，畫一顆按下去無值可送的鈕是死路。
+    private func checklistCard(_ item: DecisionChainChecklistItem) -> some View {
+        let isPending = viewModel.pendingChecklistItemIds.contains(item.itemId)
+        return App2LeftStripCard(
+            strip: checklistStripColor(item.status),
+            padding: EdgeInsets(top: 14, leading: 15, bottom: 14, trailing: 15)
+        ) {
+            // `title`／`reason` 是後端翻好的人話（設計 §4.1b 第 2 條），app 不重組。
+            Text(item.title)
+                .font(.system(size: 15, weight: .heavy))
+                .foregroundStyle(App2Theme.inkPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            if !item.reason.isEmpty {
+                Text(item.reason)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(App2Theme.inkTertiary)
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            HStack(spacing: 8) {
+                checklistChip(
+                    title: L10n.App2.WeeklyReview.accept.localized,
+                    isOn: item.status == .accepted,
+                    tint: App2Theme.accentGreen,
+                    identifier: "App2_WeeklyReviewChecklistAccept_\(item.field)"
+                ) {
+                    Task { await viewModel.answer(item: item, status: .accepted) }
+                }
+                checklistChip(
+                    title: L10n.App2.WeeklyReview.decline.localized,
+                    isOn: item.status == .declined,
+                    tint: App2Theme.inkTertiary,
+                    identifier: "App2_WeeklyReviewChecklistDecline_\(item.field)"
+                ) {
+                    Task { await viewModel.answer(item: item, status: .declined) }
+                }
+                if item.allowsAdjust {
+                    checklistChip(
+                        title: L10n.App2.WeeklyReview.adjust.localized,
+                        isOn: item.status == .adjusted,
+                        tint: App2Theme.accentBlue,
+                        identifier: "App2_WeeklyReviewChecklistAdjust_\(item.field)"
+                    ) {
+                        adjustingItem = item
+                    }
+                }
+                Spacer(minLength: 0)
+                if isPending {
+                    ProgressView().scaleEffect(0.7)
+                }
+            }
+            .padding(.top, 4)
+            // 唯讀回看不可表態（送出去是寫入路徑），忙碌時不接第二次點擊。
+            .disabled(isReadOnly || isPending)
+            .opacity((isReadOnly || isPending) ? 0.55 : 1)
+        }
+        .accessibilityIdentifier("App2_WeeklyReviewChecklistItem_\(item.field)")
+    }
+
+    private func checklistChip(
+        title: String,
+        isOn: Bool,
+        tint: Color,
+        identifier: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        choiceChip(title: title, isOn: isOn, tint: tint)
+            .contentShape(Rectangle())
+            .onTapGesture(perform: action)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityIdentifier(identifier)
+    }
+
+    private func checklistStripColor(_ status: DecisionChainChecklistItem.Status) -> Color {
+        switch status {
+        case .accepted: return App2Theme.accentGreen
+        case .adjusted: return App2Theme.accentBlue
+        case .declined: return App2Theme.inkTertiary
+        case .proposed: return App2Theme.accentOrangeBright
+        }
+    }
+
+    // MARK: - 規劃下週 · 既有路徑（AC-TRAIN-HUB-10，decision-chain 讀不到時的 fail-open）
+
+    @ViewBuilder
+    private func legacyPlanTab(_ projection: App2WeeklyReviewProjection) -> some View {
         verdictCard(projection)
         if projection.suggestions.isEmpty {
             App2Card(padding: 15, spacing: 6) {
@@ -517,16 +783,6 @@ struct App2WeeklyReviewView: View {
                     }
                 }
             }
-        }
-        // 建議清單只讓使用者對後端提的項目按接受／略過；**說出自己下週的狀況**沒有出口
-        // （8/28 盤點 F15：Android 這一頁底下一直有這一區，iOS 沒有）。
-        //
-        // **歷史週唯讀回看不畫這一區**（裁決（q），外審第七輪 A06／B02）：它的送出會打
-        // `RizoRepository.streamChat`（`weekly_situation`），是一條寫入路徑。這一頁其他的
-        // 寫入出口（產生、套用、採納）本來就各自擋了 `isReadOnly`，F15 是本批新加的，
-        // 加的時候漏掉同一道閘。
-        if Self.showsDiscussSection(isReadOnly: isReadOnly) {
-            discussSection
         }
     }
 
@@ -602,7 +858,13 @@ struct App2WeeklyReviewView: View {
                         .onTapGesture {
                             guard canSend else { return }
                             let text = discussViewModel.draft
-                            Task { await discussViewModel.send(text) }
+                            Task {
+                                await discussViewModel.send(text)
+                                // Rizo 記下的下週修正會以清單上新的一條回來
+                                // （`source == rizo`，AC-TRAIN-HUB-12）——**回覆完就重讀**，
+                                // 不要求使用者第二次確認，也不在這裡自己造那一條。
+                                await viewModel.refreshChecklistAfterRizo()
+                            }
                         }
                         .accessibilityAddTraits(.isButton)
                         .accessibilityIdentifier("App2_WeeklyReviewDiscussSend")
@@ -772,6 +1034,11 @@ struct App2WeeklyReviewView: View {
     private func generateTitle(week: Int) -> String {
         if viewModel.isGeneratingPlan {
             return L10n.App2.WeeklyReview.generatingPlan.localized
+        }
+        // decision-chain 路徑的答案在清單上逐條落地，這顆鈕不再帶「套用 N 項」
+        // ——它不送 apply-items，寫著套用幾項就是說謊。
+        if viewModel.usesDecisionChain {
+            return String(format: L10n.App2.WeeklyReview.generatePlan.localized, week)
         }
         let hasSuggestions = !(viewModel.projection?.suggestions.isEmpty ?? true)
         if !hasSuggestions {

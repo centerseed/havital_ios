@@ -33,6 +33,16 @@ protocol TrainingPlanV2RemoteDataSourceProtocol {
 
     // Strength Completion
     func completeStrengthSession(_ request: StrengthCompletionRequestDTO) async throws -> StrengthCompletionResponseDTO
+
+    // Decision chain — 下週規劃清單（T-0383／設計 §4.1／§4.1b）
+    func runDecisionChainWeek(asOf: String, weekOfTraining: Int) async throws -> DecisionChainWeekRunDTO
+    func getDecisionChainChecklist(asOf: String) async throws -> DecisionChainChecklistDTO
+    func postDecisionChainChecklistStance(
+        asOf: String,
+        itemId: String,
+        body: DecisionChainChecklistStanceRequestDTO
+    ) async throws -> DecisionChainChecklistStanceResponseDTO
+    func getDecisionChainIntentCard() async throws -> DecisionChainIntentCardDTO
 }
 
 // MARK: - TrainingPlanV2RemoteDataSource
@@ -423,5 +433,75 @@ final class TrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataSourceProtoc
         }
         Logger.info("[TrainingPlanV2RemoteDS] strength complete ok: \(response.progressUpdates.count) updates")
         return response
+    }
+
+    // MARK: - Decision chain：下週規劃清單 API
+    //
+    // 端點形狀 `docs/designs/DESIGN-app2-decision-chain-api.md` §4.1／§4.1b。
+    // **這四支不進 `TrainingPlanV2LocalDataSource`**：清單上的答案是使用者剛按下去的
+    // 事實，讀一份舊的等於把他的選擇丟掉。
+
+    /// 跑這一週的決策鏈（真 LLM，數十秒；dev 2026-09-03 實測 43.7s）。
+    /// API: POST /v2/decision-chain/week/{as_of}/run?week_of_training={N}
+    ///
+    /// 帶 `?lang=` 的理由與 `POST /v2/plan/weekly` 同一條（見 `withLangQuery`）：
+    /// 這一支會寫下 L0 用使用者語言寫的 `reason`／`rationale`，是內容生成路徑。
+    func runDecisionChainWeek(asOf: String, weekOfTraining: Int) async throws -> DecisionChainWeekRunDTO {
+        let path = await Self.withLangQuery(
+            "/v2/decision-chain/week/\(asOf)/run?week_of_training=\(weekOfTraining)"
+        )
+        Logger.debug("[TrainingPlanV2RemoteDS] POST \(path)")
+        return try await tracked("TrainingPlanV2RemoteDataSource: runDecisionChainWeek") {
+            try await apiHelper.post(
+                DecisionChainWeekRunDTO.self,
+                path: path,
+                bodyDict: [:]
+            )
+        }
+    }
+
+    /// API: GET /v2/decision-chain/week/{as_of}/checklist（那一週沒 run 過 → 404）
+    func getDecisionChainChecklist(asOf: String) async throws -> DecisionChainChecklistDTO {
+        Logger.debug("[TrainingPlanV2RemoteDS] GET /v2/decision-chain/week/\(asOf)/checklist")
+        return try await tracked("TrainingPlanV2RemoteDataSource: getDecisionChainChecklist") {
+            try await apiHelper.get(
+                DecisionChainChecklistDTO.self,
+                path: "/v2/decision-chain/week/\(asOf)/checklist"
+            )
+        }
+    }
+
+    /// API: POST /v2/decision-chain/week/{as_of}/checklist/{item_id}
+    ///
+    /// `item_id` 帶 `@`（`knob.weekly_km_pct@2026-09-03`），必須 percent-encode 才不會
+    /// 在 URL 的 path 段被當成分隔符。
+    func postDecisionChainChecklistStance(
+        asOf: String,
+        itemId: String,
+        body: DecisionChainChecklistStanceRequestDTO
+    ) async throws -> DecisionChainChecklistStanceResponseDTO {
+        let encodedItemId = itemId.addingPercentEncoding(
+            withAllowedCharacters: .urlPathAllowed
+        ) ?? itemId
+        let path = "/v2/decision-chain/week/\(asOf)/checklist/\(encodedItemId)"
+        Logger.debug("[TrainingPlanV2RemoteDS] POST \(path) status=\(body.status)")
+        return try await tracked("TrainingPlanV2RemoteDataSource: postDecisionChainChecklistStance") {
+            try await apiHelper.post(
+                DecisionChainChecklistStanceResponseDTO.self,
+                path: path,
+                body: body
+            )
+        }
+    }
+
+    /// API: GET /v2/decision-chain/intent/active（帳本上沒有意圖 → `data: null`）
+    func getDecisionChainIntentCard() async throws -> DecisionChainIntentCardDTO {
+        Logger.debug("[TrainingPlanV2RemoteDS] GET /v2/decision-chain/intent/active")
+        return try await tracked("TrainingPlanV2RemoteDataSource: getDecisionChainIntentCard") {
+            try await apiHelper.get(
+                DecisionChainIntentCardDTO.self,
+                path: "/v2/decision-chain/intent/active"
+            )
+        }
     }
 }

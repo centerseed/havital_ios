@@ -70,19 +70,25 @@ Given 使用者位於規劃下週分頁，
 When footer 依後端 `next_action`、`current_week_plan_id`、`next_week_info` 以純函式 `nextWeekAction` 三態分流（可產生／只能套用建議／不顯示），  
 Then 「可產生」態必須提供產生課表 CTA，點擊後**先送採納（apply-items）再呼 `POST /v2/plan/weekly`**（順序不可反）；下週已有課表時 CTA 不得顯示。同一條判準同時涵蓋週日流程（目標＝下週）與平日流程（目標＝本週）。無建議項不得成為零出口（footer 不得被 `!suggestions.isEmpty` 之類條件整體隱藏）。
 
-### AC-TRAIN-HUB-12: 規劃下週分頁必須走 decision-chain：run → 確認卡 → 建議項表態 → 產生（2026-09-02 使用者裁決）
+### AC-TRAIN-HUB-12: 規劃下週分頁必須走 decision-chain 的逐條清單：run → 逐條表態 → 產生（2026-09-02 使用者裁決）
 
 Given 使用者位於規劃下週分頁且 `nextWeekAction == .generate(week)`（歷史週／唯讀／`applyOnly`／`none` 態不適用），
 When 分頁載入，
-Then 系統必須呼叫 `POST /v2/decision-chain/week/{as_of}/run?week_of_training={week}`（`as_of` ＝ 使用者當地今天），與 `/v2/summary/weekly` 生成並行，期間分頁顯示生成中區塊（AC-TRAIN-HUB-11 同形態）；`generated` 與 `already_exists` 皆視為成功。
-And Then 成功後必須讀 `GET /v2/decision-chain/intent/active`：`lifecycle == proposed` 時顯示意圖確認卡，卡片三段（2026-09-02 使用者裁決）：一句「這一段追什麼」（`expression.pursuing`）、一列「接受後下週會這樣改」（`plan_changes[]`，逐行顯示，後端已翻成人話，app 不再解讀旋鈕）、一句「為什麼」（`expression.rationale`）；`expression.maintaining`／`abandoning` 非 null 才顯示該列；`hypotheses[]` 列在其後。只有「接受」與「先不要（必帶理由）」兩個動作（`POST .../intent/{revision}/confirm`），**不得有逾時預設接受**；`lifecycle == active` 時卡片唯讀顯示已接受；`data == null` 時不顯示卡。
-And Then 必須讀 `GET /v2/decision-chain/week/{as_of}/review`，以 `narrative.next_week`（可為 null）與 `recommendations[]` 取代 apply-items 建議清單（同一分頁不得並列兩份）；每則建議項提供接受／調整／維持原案，點擊即送 `POST .../week/{as_of}/stance`（`adjusted` 必帶 `adjusted_value`；409 視為已表態並重讀 review）；未點的維持未表態。
-And Then 有 `proposed` 卡時，產生課表 CTA 必須等卡答完（confirm 或 reject）才可點；點擊後直接呼 `POST /v2/plan/weekly`（decision-chain 路徑**不呼 apply-items**）。
-And Given `run` 回 4xx／5xx／逾時，或確認卡為 `null` 且 review 為 404，
+Then 系統必須呼叫 `POST /v2/decision-chain/week/{as_of}/run?week_of_training={week}`（`as_of` ＝ 使用者當地今天；時區權威是 `/v2/plan/status` 的 `metadata.user_timezone`，不看裝置時區），與 `/v2/summary/weekly` 生成並行，期間規劃分頁顯示生成中區塊（AC-TRAIN-HUB-11 同形態）；`generated` 與 `already_exists` 皆視為成功。
+And Then 成功後必須讀 `GET /v2/decision-chain/week/{as_of}/checklist`，把 `items[]` 畫成一張清單，每條顯示後端翻好的 `title` 與 `reason`（app 不重組也不解讀旋鈕），並提供**逐條**三個動作：接受（`accepted`）、不要（`declined`）、調整（`adjusted`）。「調整」只在該條的 `proposed` 是數值時提供，值由既有輪盤 sheet 選；離散代號（如 `rest_ratio`、`recovery_kind`）只有接受／不要。點下去即送 `POST /v2/decision-chain/week/{as_of}/checklist/{item_id}`，UI 以回應的 `item.status` 為準；送不出去時該條必須退回原狀並提示，不得靜默當成已接受。沒點的條目維持 `proposed` ＝不生效。`items[]` 為空是合法狀態，不得當成失敗。
+And Then 清單頂端必須顯示 `GET /v2/decision-chain/intent/active` 的**唯讀說明**：`expression.pursuing`、`expression.rationale`；`expression.maintaining`／`abandoning` 非 null 才顯示該列；其後列 `hypotheses[]` 的 `intervention.description`／`prediction.description`。`data == null` 時不畫說明區。**這一區沒有任何動作按鈕**——接受與否只在清單上逐條做，app 不呼 `POST .../intent/{revision}/confirm`（意圖 lifecycle 由清單推導）。
+And Then 同一分頁**不得並列 apply-items 建議清單**；走 decision-chain 時產生課表 CTA 直接呼 `POST /v2/plan/weekly`，**不呼 apply-items**，且不得因清單還沒答完而停用。
+And Then 分頁底部的 Rizo 討論入口維持既有 `weekly_situation` 情境；Rizo 回覆結束後必須重讀 checklist（Rizo 記下的修正會以清單上新的一條回來）。
+And Given `run` 回 4xx／5xx／逾時，或 `GET .../checklist` 讀不到（404 或其他錯誤），
 Then 分頁必須回到 AC-TRAIN-HUB-10 的既有內容與路徑（apply-items → `POST /v2/plan/weekly`），不得擋產生（fail-open）。
 And 付費閘門與 Rizo 配額判準同 AC-PAYWALL-26：擋生成的條件同樣擋 `run`。
 
-行為契約與端點形狀：root `docs/designs/DESIGN-app2-decision-chain-api.md` §3.9c／§4.1／§4.2；裁決：root `STATUS/decisions.md` 2026-09-02。
+**未決（2026-09-03）**：「調整」輪盤的可選值域沒有規格來源——`checklist` 的一條只帶 `current`／`proposed`，
+不帶那顆旋鈕的合法範圍，後端在這條路徑上也不驗值域（`cloud/api_service/domains/decision_chain/checklist.py:62`
+`check_status_value` 只驗「`adjusted` 有沒有帶值」）。目前 app 用一條**與欄位無關**的規則從該條自己的兩個數
+推出範圍（`App2DecisionChainAdjustRange`），屬暫定；正解是後端把值域放進清單條目，或使用者裁一組值域。
+
+行為契約與端點形狀：root `docs/designs/DESIGN-app2-decision-chain-api.md` §4.1／§4.1b；裁決：root `STATUS/decisions.md` 2026-09-02「三條基本能力」。
 
 ### AC-TRAIN-HUB-11: 週回顧生成期間必須顯示生成中動畫與文案（2026-08-31 使用者裁決）
 

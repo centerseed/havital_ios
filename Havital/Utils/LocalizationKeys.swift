@@ -2380,6 +2380,25 @@ extension L10n {
             /// 非本週：`下一步：規劃第 %d 週`
             static let continueToPlanWeek = "app2.weekly_review.continue_to_plan_week"
 
+            // 規劃下週走 decision-chain 的逐條清單（AC-TRAIN-HUB-12，2026-09-02 裁決）。
+            // `title`／`reason` 是後端翻好的人話，不在這裡開 key——這一組只有外框文字。
+            /// `下週要這樣改 · %d`
+            static let planningSection = "app2.weekly_review.planning_section"
+            /// 清單有 0 條：那一輪一顆旋鈕都沒轉，按產生就是答完（設計 §4.1b 第 7 條）。
+            static let planningEmpty = "app2.weekly_review.planning_empty"
+            /// 清單頂端唯讀說明（卡片上沒有動作，接受與否逐條做在清單上）。
+            static let intentSection = "app2.weekly_review.intent_section"
+            static let intentMaintaining = "app2.weekly_review.intent_maintaining"
+            static let intentAbandoning = "app2.weekly_review.intent_abandoning"
+            static let intentRationale = "app2.weekly_review.intent_rationale"
+            static let intentHypotheses = "app2.weekly_review.intent_hypotheses"
+            /// 逐條三個動作。「接受」沿用既有的 `accept`。
+            static let decline = "app2.weekly_review.decline"
+            static let adjust = "app2.weekly_review.adjust"
+            static let adjustSheetTitle = "app2.weekly_review.adjust_sheet_title"
+            /// 表態沒送出去（後端寫入失敗時該條維持原狀，不得靜默當成已接受）。
+            static let stanceFailed = "app2.weekly_review.stance_failed"
+
             static let notGeneratedBody = "app2.weekly_review.not_generated_body"
             /// 歷史週唯讀回看且那一週沒有回顧（2026-08-27 走查裁決（q））。
             static let historyNotGeneratedBody = "app2.weekly_review.history_not_generated_body"

@@ -620,6 +620,92 @@ extension TrainingPlanV2RepositoryImpl: StrengthCompletionRepository {
     }
 }
 
+// MARK: - DecisionChainWeekRepository
+/// 下週規劃清單（T-0383／設計 §4.1／§4.1b）。**不進 `localDataSource`**：
+/// 清單上的答案是使用者剛按下去的事實，SWR 快取讀到舊的一份就是把他的選擇丟掉。
+extension TrainingPlanV2RepositoryImpl: DecisionChainWeekRepository {
+
+    func runDecisionChainWeek(asOf: String, weekOfTraining: Int) async throws -> DecisionChainWeekRun {
+        do {
+            let dto = try await remoteDataSource.runDecisionChainWeek(
+                asOf: asOf,
+                weekOfTraining: weekOfTraining
+            )
+            return DecisionChainWeekMapper.toEntity(dto, asOf: asOf)
+        } catch {
+            // **不往 Cloud 記 error**：run 失敗是規劃分頁的 fail-open 路徑
+            // （AC-TRAIN-HUB-12），使用者照樣產得出課表，不是需要有人半夜起來看的事。
+            Logger.debug("[TrainingPlanV2Repo] decision-chain run 失敗（fail-open）: \(error.toDomainError())")
+            throw error.toDomainError()
+        }
+    }
+
+    func fetchDecisionChainChecklist(asOf: String) async throws -> DecisionChainChecklist? {
+        do {
+            let dto = try await remoteDataSource.getDecisionChainChecklist(asOf: asOf)
+            return DecisionChainWeekMapper.toEntity(dto, asOf: asOf)
+        } catch {
+            let domainError = error.toDomainError()
+            // 那一週還沒 run 過 → 404。**這不是錯誤**，是「沒有清單」。
+            if case .notFound = domainError { return nil }
+            throw domainError
+        }
+    }
+
+    func recordDecisionChainChecklistStance(
+        asOf: String,
+        itemId: String,
+        status: DecisionChainChecklistItem.Status,
+        adjustedValue: DecisionChainValue?
+    ) async throws -> DecisionChainChecklistItem {
+        do {
+            let response = try await remoteDataSource.postDecisionChainChecklistStance(
+                asOf: asOf,
+                itemId: itemId,
+                body: DecisionChainChecklistStanceRequestDTO(
+                    status: status.rawValue,
+                    adjustedValue: adjustedValue.map(DecisionChainValueDTO.init)
+                )
+            )
+            return DecisionChainWeekMapper.toEntity(response.item)
+        } catch {
+            // 表態沒寫進去是使用者看得到的事（那一條會退回原狀），值得記。
+            logErrorToCloud(
+                module: "DecisionChain",
+                operation: "checklistStance",
+                error: error,
+                context: ["as_of": asOf, "item_id": itemId, "status": status.rawValue]
+            )
+            throw error.toDomainError()
+        }
+    }
+
+    func fetchDecisionChainIntentCard() async throws -> DecisionChainIntentCard? {
+        do {
+            let dto = try await remoteDataSource.getDecisionChainIntentCard()
+            return DecisionChainWeekMapper.toEntity(dto)
+        } catch {
+            if Self.meansNoIntentCard(error) { return nil }
+            throw error.toDomainError()
+        }
+    }
+
+    /// 「這個人現在沒有意圖」長成兩種形狀，兩種都是 `nil` 不是錯誤：
+    ///
+    /// 1. HTTP 404；
+    /// 2. `{"success": true, "data": null}`（帳本上沒有 proposed 也沒有 active）——
+    ///    `ResponseProcessor.process` 對 `data == null` 丟的是
+    ///    `APIError.business(.notFound)`（`Havital/Services/Core/UnifiedAPIResponse.swift:269`），
+    ///    而**它的 `toDomainError()` 是 `.unknown` 不是 `.notFound`**，所以判準要看
+    ///    原始錯誤。這一條是實測出來的（`App2WeeklyReviewDecisionChainTests
+    ///    .test_nullIntentCardPayloadSurfacesAsBusinessNotFound`），不是推的。
+    static func meansNoIntentCard(_ error: Error) -> Bool {
+        if case APIError.business(.notFound) = error { return true }
+        if case .notFound = error.toDomainError() { return true }
+        return false
+    }
+}
+
 // MARK: - Dependency Injection
 extension DependencyContainer {
 
@@ -640,6 +726,7 @@ extension DependencyContainer {
         )
         register(repository as TrainingPlanV2Repository, forProtocol: TrainingPlanV2Repository.self)
         register(repository as StrengthCompletionRepository, forProtocol: StrengthCompletionRepository.self)
+        register(repository as DecisionChainWeekRepository, forProtocol: DecisionChainWeekRepository.self)
 
         Logger.debug("[DI] TrainingPlanV2 module dependencies registered")
     }

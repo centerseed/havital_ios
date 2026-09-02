@@ -50,6 +50,16 @@ enum App2WeekCalendar {
         return calendar
     }
 
+    /// 這個瞬間在這本日曆上是哪一天（`YYYY-MM-DD`）。
+    ///
+    /// decision-chain 的 `as_of` 是**使用者當地日期**（`AGENTS.md`：`YYYY-MM-DD`
+    /// 是用戶當地時間）。**呼叫端要自己決定 `calendar` 的時區**——與 `isSunday`
+    /// 同一個分工，這支只做算術。
+    static func isoDay(date: Date, calendar: Calendar) -> String {
+        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+    }
+
     /// ISO8601（帶不帶小數秒都吃）。後端的 `server_time` 帶小數秒、
     /// `current_week_start_date` 不帶，同一支要能解兩種。
     static func parseISO8601(_ value: String?) -> Date? {
