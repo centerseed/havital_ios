@@ -503,7 +503,8 @@ struct App2PlanView: View {
     }
 
     /// 設計是「已完成的量」按強度切三段，鋪在「週目標量」這條軌道上。
-    /// 強度比例用 `intensity_total_minutes`（週課表 payload 唯一的強度分布來源）。
+    /// 三段比例是**實跑**強度分鐘（與已完成量同一批 `/v2/workouts` 紀錄），
+    /// 不是課表目標 `intensity_total_minutes`。
     private func intensityBar(week: App2PlanWeek, ratio: Double) -> some View {
         let low = Double(week.intensityLowMinutes ?? 0)
         let medium = Double(week.intensityMediumMinutes ?? 0)

@@ -39,6 +39,7 @@ final class App2PlanProjectionTests: XCTestCase {
         return """
         { "purpose": "p", "week_of_training": \(weekOfTraining),
           "total_weeks": \(totalWeeks), "total_distance_km": 35.0,
+          "intensity_total_minutes": { "low": 296, "medium": 0, "high": 22 },
           "days": [\(days)] }
         """
     }
@@ -342,5 +343,29 @@ final class App2PlanProjectionTests: XCTestCase {
         )
         XCTAssertTrue(week.days.allSatisfy { $0.tag != "easy" })
         XCTAssertTrue(week.days.allSatisfy { $0.tag == DayType.easy.localizedName })
+    }
+
+    /// 實跑條的三段是實跑分鐘，不是課表目標。2026-09-02 用戶截圖：間歇週跑了
+    /// low 97 / medium 38.5 / high 9.25 分鐘，畫面卻拿目標 296/0/22 畫成「中等 0」。
+    func test_planWeek_intensityBarUsesCompletedMinutesNotPlanTargets() throws {
+        let plan = try plan(fullWeekJSON(weekOfTraining: 7, totalWeeks: 8))
+        let week = App2PlanViewModel.planWeek(
+            plan: plan,
+            planStatus: try status(),
+            completedKm: 22.9,
+            completedIntensity: App2IntensityMinutes(low: 97.2, medium: 38.5, high: 9.25),
+            todayIndex: 3
+        )
+        XCTAssertEqual(week.intensityLowMinutes, 97)
+        XCTAssertEqual(week.intensityMediumMinutes, 39)
+        XCTAssertEqual(week.intensityHighMinutes, 9)
+
+        // 沒有紀錄 → 三格都 nil，不得退回課表目標把空條畫出顏色。
+        let none = App2PlanViewModel.planWeek(
+            plan: plan, planStatus: try status(), completedKm: nil, todayIndex: 3
+        )
+        XCTAssertNil(none.intensityLowMinutes)
+        XCTAssertNil(none.intensityMediumMinutes)
+        XCTAssertNil(none.intensityHighMinutes)
     }
 }

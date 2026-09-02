@@ -369,9 +369,9 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
             // `fetchWeeklyPlan` ＝ 走網路並寫回 repository 快取（下一次冷啟就是它）。
             let plan = try await planRepository.fetchWeeklyPlan(planId: planId)
-            let completed = await completedDistanceKmThisWeek()
+            let completed = await completedThisWeek()
             guard revalidateGeneration == round else { return }
-            apply(plan: plan, planStatus: status, completedKm: completed)
+            apply(plan: plan, planStatus: status, completed: completed)
         } catch {
             // 取消不是失敗（`AGENTS.md` 陷阱 2）：下拉刷新的 task 被收掉時
             // in-flight 請求會回 -999，當成失敗會把真課表換成樣本。
@@ -631,7 +631,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             planStatus: status,
             week: target,
             weekStart: App2PlanEndProjection.historyWeekStart(week: target, planStatus: status),
-            completedKm: nil
+            completed: nil
         )
     }
 
@@ -645,14 +645,14 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     private func applyHistory(plan: WeeklyPlanV2, planStatus: PlanStatusV2Response, week target: Int) async {
         isPlanGenerated = true
         let start = App2PlanEndProjection.historyWeekStart(week: target, planStatus: planStatus)
-        let completed = await completedDistanceKmFromCache(weekStart: start)
+        let completed = await completedFromCache(weekStart: start)
         guard !isStaleRound else { return }
         publishHistory(
             plan: plan,
             planStatus: planStatus,
             week: target,
             weekStart: start,
-            completedKm: completed
+            completed: completed
         )
         backfillCompletedDistance(weekStart: start)
     }
@@ -663,7 +663,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         planStatus: PlanStatusV2Response,
         week target: Int,
         weekStart start: Date,
-        completedKm: Double?
+        completed: CompletedWeek?
     ) {
         isPlanGenerated = true
         displayedWeek = DisplayedWeek(
@@ -676,7 +676,8 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             Self.planWeek(
                 plan: plan,
                 planStatus: planStatus,
-                completedKm: completedKm,
+                completedKm: completed?.distanceKm,
+                completedIntensity: completed?.intensity,
                 todayIndex: 0,
                 weekStart: start
             ),
@@ -697,10 +698,15 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     }
 
     /// 週課表 ＋ 每日詳情的組裝。網路回應與冷啟快取都走這一支。
-    private func apply(plan: WeeklyPlanV2, planStatus: PlanStatusV2Response, completedKm: Double?) {
+    private func apply(plan: WeeklyPlanV2, planStatus: PlanStatusV2Response, completed: CompletedWeek?) {
         isPlanGenerated = true
         week = App2Sourced(
-            Self.planWeek(plan: plan, planStatus: planStatus, completedKm: completedKm),
+            Self.planWeek(
+                plan: plan,
+                planStatus: planStatus,
+                completedKm: completed?.distanceKm,
+                completedIntensity: completed?.intensity
+            ),
             origin: .live(endpoint: "GET /v2/plan/weekly/{plan_id} + GET /v2/workouts")
         )
         let weekStart = App2WeekCalendar.currentWeekStart()
@@ -731,7 +737,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         guard let status = planRepository.getCachedPlanStatus(),
               let plan = planRepository.getCachedWeeklyPlan(week: status.currentWeek),
               App2HomeViewModel.isWeeklyPlan(plan, boundTo: status) else { return }
-        apply(plan: plan, planStatus: status, completedKm: nil)
+        apply(plan: plan, planStatus: status, completed: nil)
     }
 
     #if DEBUG
@@ -752,6 +758,8 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         plan: WeeklyPlanV2,
         planStatus: PlanStatusV2Response,
         completedKm: Double?,
+        /// 與 `completedKm` 同一批紀錄的實跑強度分鐘；nil ＝ 本週沒有紀錄。
+        completedIntensity: App2IntensityMinutes? = nil,
         /// 測試可指定「今天」；nil = 用裝置日曆。
         todayIndex: Int? = nil,
         /// 測試可指定當週週一（日起點）；nil = 用裝置日曆推。
@@ -801,9 +809,10 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             totalWeeks: planStatus.totalWeeks ?? plan.totalWeeks,
             targetDistanceKm: plan.totalDistance,
             completedDistanceKm: completedKm,
-            intensityLowMinutes: plan.intensityTotalMinutes.map { Int($0.low.rounded()) },
-            intensityMediumMinutes: plan.intensityTotalMinutes.map { Int($0.medium.rounded()) },
-            intensityHighMinutes: plan.intensityTotalMinutes.map { Int($0.high.rounded()) },
+            // 實跑條的三段用實跑分鐘；課表目標 `intensity_total_minutes` 是另一個量，不進這條。
+            intensityLowMinutes: completedIntensity.map { Int($0.low.rounded()) },
+            intensityMediumMinutes: completedIntensity.map { Int($0.medium.rounded()) },
+            intensityHighMinutes: completedIntensity.map { Int($0.high.rounded()) },
             days: days
         )
     }
@@ -821,9 +830,9 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         (App2WeekCalendar.currentWeekStart(reference: now, calendar: calendar), now)
     }
 
-    private func completedDistanceKmThisWeek() async -> Double? {
+    private func completedThisWeek() async -> CompletedWeek? {
         let window = Self.completedThisWeekWindow()
-        return await completedDistanceKm(from: window.start, to: window.end)
+        return await completedWeek(from: window.start, to: window.end)
     }
 
     /// 歷史週的已完成量 —— 範圍是**那一整週**（週一 00:00 到週日 23:59），
@@ -832,10 +841,10 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// **只讀本地快取，零網路**（T-0374）。本地 workout 快取只涵蓋最近抓過的頁，
     /// 較早的週可能整週不在快取裡——那由 `backfillCompletedDistance` 在背景補，
     /// 補到再回頭更新這一格。切週的路徑上不得有任何網路往返。
-    private func completedDistanceKmFromCache(weekStart: Date) async -> Double? {
+    private func completedFromCache(weekStart: Date) async -> CompletedWeek? {
         let calendar = Calendar.current
         guard let end = calendar.date(byAdding: .day, value: 7, to: weekStart) else { return nil }
-        return await completedDistanceKm(from: weekStart, to: end)
+        return await completedWeek(from: weekStart, to: end)
     }
 
     /// 一週最多橫跨兩個月（週一與週日各取一次，去重）。
@@ -880,11 +889,11 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// `dayDetails` 與已完成量無關，不重建。
     private func recomputeCompletedDistance() async {
         guard let displayed = displayedWeek else { return }
-        let completed: Double?
+        let completed: CompletedWeek?
         if displayed.historyWeek == nil {
-            completed = await completedDistanceKmThisWeek()
+            completed = await completedThisWeek()
         } else {
-            completed = await completedDistanceKmFromCache(weekStart: displayed.weekStart)
+            completed = await completedFromCache(weekStart: displayed.weekStart)
         }
         // 期間使用者切走了 → 這一份已經不是畫面上那一週，丟掉。
         guard let current = displayedWeek,
@@ -893,7 +902,8 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             Self.planWeek(
                 plan: current.plan,
                 planStatus: current.planStatus,
-                completedKm: completed,
+                completedKm: completed?.distanceKm,
+                completedIntensity: completed?.intensity,
                 todayIndex: current.historyWeek == nil ? nil : 0,
                 weekStart: current.weekStart
             ),
@@ -908,17 +918,31 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     }
     #endif
 
-    private func completedDistanceKm(from start: Date, to end: Date) async -> Double? {
+    /// 一週的實跑量與實跑強度分鐘，同一批紀錄一次算完（兩者不得各抓各的）。
+    struct CompletedWeek {
+        let distanceKm: Double
+        let intensity: App2IntensityMinutes
+    }
+
+    private func completedWeek(from start: Date, to end: Date) async -> CompletedWeek? {
         let workouts = await workoutRepository.getWorkoutsInDateRangeAsync(
             startDate: start,
             endDate: end
         )
         guard !workouts.isEmpty else { return nil }
-        let meters = workouts
-            .filter { $0.activityType.lowercased().contains("run") }
-            .compactMap(\.distanceMeters)
-            .reduce(0, +)
-        return meters / 1000
+        let runs = workouts.filter { $0.activityType.lowercased().contains("run") }
+        let meters = runs.compactMap(\.distanceMeters).reduce(0, +)
+        var low = 0.0, medium = 0.0, high = 0.0
+        for run in runs {
+            guard let minutes = run.advancedMetrics?.intensityMinutes else { continue }
+            low += minutes.low ?? 0
+            medium += minutes.medium ?? 0
+            high += minutes.high ?? 0
+        }
+        return CompletedWeek(
+            distanceKm: meters / 1000,
+            intensity: App2IntensityMinutes(low: low, medium: medium, high: high)
+        )
     }
 
     // MARK: - Formatting
