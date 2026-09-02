@@ -262,6 +262,55 @@ final class App2HomeProjectionTests: XCTestCase {
 
     /// 未知的 `run_type` 不得把識別字印上畫面：`DayType` 對不到就退 `day_target`
     /// （後端已在地化的人話）。**不得退成「休息」** —— 那會把一堂未知的課說成休息日。
+    // MARK: - 目標賽事卡的週數（T-0387）
+
+    private func goalTarget(trainingWeeks: Int) -> Target {
+        Target(
+            id: "t1", type: "race_run", name: "渣打馬拉松", distanceKm: 21,
+            targetTime: 7200, targetPace: "5:41",
+            raceDate: Int(Date().addingTimeInterval(86400 * 30).timeIntervalSince1970),
+            isMainRace: true, trainingWeeks: trainingWeeks, raceId: nil
+        )
+    }
+
+    private func goalPlanStatus(currentWeek: Int, totalWeeks: Int) -> PlanStatusV2Response {
+        PlanStatusV2Response(
+            currentWeek: currentWeek, totalWeeks: totalWeeks, nextAction: "view_plan",
+            canGenerateNextWeek: false, currentWeekPlanId: "p_1",
+            previousWeekSummaryId: nil, targetType: "race_run",
+            methodologyId: "paceriz", nextWeekInfo: nil, metadata: nil
+        )
+    }
+
+    /// 總週數只認 plan status。target 上的 `training_weeks` 是設定目標當下的估算：
+    /// prod 上創辦人帳號 target 寫 30 週、實際 overview 是 27 週（2026-09-02 回報）。
+    func test_goalCard_totalWeeksComesFromPlanStatusNotTarget() {
+        let card = App2HomeViewModel.goalCard(
+            target: goalTarget(trainingWeeks: 30),
+            planStatus: goalPlanStatus(currentWeek: 10, totalWeeks: 27),
+            stageLabel: nil,
+            estimatedFinish: nil,
+            origin: .live(endpoint: "test")
+        ).value
+
+        XCTAssertEqual(card.currentWeek, 10)
+        XCTAssertEqual(card.totalWeeks, 27, "plan status 是週數的唯一來源")
+    }
+
+    /// plan status 還沒回來時該格留白 —— 不印 target 上那個看起來合理但錯的數字。
+    func test_goalCard_withoutPlanStatus_leavesWeeksBlank() {
+        let card = App2HomeViewModel.goalCard(
+            target: goalTarget(trainingWeeks: 30),
+            planStatus: nil,
+            stageLabel: nil,
+            estimatedFinish: nil,
+            origin: .live(endpoint: "test")
+        ).value
+
+        XCTAssertNil(card.currentWeek)
+        XCTAssertNil(card.totalWeeks, "寧可留白也不要印 target 的估算週數")
+    }
+
     func test_todaySession_unknownRunType_fallsBackToDayTarget() throws {
         let json = """
         { "day_index": 1, "day_target": "特殊課", "reason": "r", "category": "run",

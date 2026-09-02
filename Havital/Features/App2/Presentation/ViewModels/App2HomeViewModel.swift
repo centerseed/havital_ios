@@ -1131,6 +1131,21 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     // MARK: - §3.1 目標賽事卡
 
     private func loadGoalCard(planStatus: PlanStatusV2Response?) async {
+        // 週次只要 plan status 就算得出來，但完賽預估要 readiness（重運算）、期別要
+        // overview。整張卡一起等的話，週次會被拖到那兩支都回來才上畫面 —— 使用者看到的
+        // 是「週次很久才出現，或進訓練計畫頁才有」（2026-09-02 實機回報）。
+        // 所以先發一版只帶週次的，後面拿到什麼再覆蓋什麼。
+        if !isStaleRound, let cachedMain = await targetRepository.getMainTarget() {
+            goalCard = Self.goalCard(
+                target: cachedMain,
+                planStatus: planStatus,
+                // 這一版還不知道期別與預估：沿用畫面上已有的，沒有就留白。
+                stageLabel: goalCard?.value.stageLabel,
+                estimatedFinish: goalCard?.value.estimatedFinish,
+                origin: .live(endpoint: "GET /user/targets + GET /v2/plan/status")
+            )
+        }
+
         await readinessViewModel.loadData()
         let estimated = readinessViewModel.estimatedRaceTime
 
@@ -1320,8 +1335,11 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 targetTime: target.targetTime > 0 ? TimeFormatting.formatTime(target.targetTime) : nil,
                 estimatedFinish: estimatedFinish,
                 currentWeek: planStatus?.currentWeek,
+                // **不退回 `target.trainingWeeks`。** 那是設定目標當下的估算，不是計畫
+                // 真正的長度：prod 上創辦人帳號的 target 寫 30 週，實際在跑的 overview
+                // `f30fed2f03ab` 是 27 週（2026-09-02 使用者回報「總週數是錯的」）。
+                // plan status 缺席時該格留白，不印一個看起來合理但錯的數字。
                 totalWeeks: planStatus?.totalWeeks
-                    ?? (target.trainingWeeks > 0 ? target.trainingWeeks : nil)
             ),
             origin: origin
         )
