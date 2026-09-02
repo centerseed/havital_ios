@@ -495,6 +495,39 @@ final class App2CancellationTests: XCTestCase {
         XCTAssertEqual(targetRepo.getTargetsCallCount, 1, "同一輪只准打一次 /user/targets")
     }
 
+    func test_homeVM_taskCancelled_doesNotPublishEarlyGoalCard() async {
+        // 提前發布只讀本機快取，快取讀不會丟錯——外層 task 被取消時它照樣回值。
+        // `Task.isCancelled` 是這條路上唯一看得到取消的地方（外審 D04）。
+        // 用閘門把 plan status 停住，確定取消發生在提前發布之前，不靠時序運氣。
+        let gate = AsyncGate()
+        let planRepo = MockTrainingPlanV2Repository()
+        planRepo.planStatusToReturn = makePlanStatus(planId: nil)
+        planRepo.networkReadGate = { await gate.wait() }
+        // 用冷快取：`hydrateFromSnapshot` 的預渲染需要本機已有主賽事，這裡沒有，
+        // 所以畫面上出現的任何一張卡都只可能來自提前發布那一段。
+        let targetRepo = ColdCacheTargetRepository()
+        targetRepo.mainTargetToReturn = makeCachedMainTarget()
+        targetRepo.targetsToReturn = [makeCachedMainTarget()]
+        let vm = App2HomeViewModel(
+            dailyStateRepository: nil,
+            targetRepository: targetRepo,
+            planRepository: planRepo,
+            readinessViewModel: nil,
+            readinessService: nil,
+            workoutDataSource: ImmediateStatsSource(),
+            snapshots: SnapshotSpy()
+        )
+
+        let round = Task { await vm.revalidate() }
+        await gate.waitUntilEntered()
+        round.cancel()
+        await gate.open()
+        await round.value
+
+        XCTAssertNil(vm.goalCard, "被取消的那一輪不得發布目標卡")
+        XCTAssertFalse(vm.hasLoaded)
+    }
+
     func test_homeVM_cancelledPlanStatus_keepsDisplayedWeek() async {
         // plan status 這一輪被取消（-999）＝沒有新的週次可畫；已經在畫面上的那一組
         // 不得被洗成 `—`（票面 Contract 2）。

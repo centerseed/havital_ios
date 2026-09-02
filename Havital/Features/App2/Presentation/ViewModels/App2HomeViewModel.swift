@@ -1162,15 +1162,17 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         // 免得把畫面上已有的週次洗成 `—`（票面 Contract 2）。
         var didFetchTargets = false
         if planStatus != nil {
+            // 快取讀不會丟錯，所以外層 task 被取消時它照樣回值——`Task.isCancelled`
+            // 是這條路上唯一看得到取消的地方（外審 D04）。
             var early = await targetRepository.getMainTarget()
-            guard !roundSawCancellation, !isStaleRound else { return }
+            guard !Task.isCancelled, !roundSawCancellation, !isStaleRound else { return }
             if early == nil {
                 // 冷啟後 2.0 沒有別的地方打過 `/user/targets`，本機快取是空的——
                 // 提前發布若只認快取，冷啟這條路仍舊要等 readiness 才有週次。
                 guard await fetchTargetsIntoCache() else { return }
                 didFetchTargets = true
                 early = await targetRepository.getMainTarget()
-                guard !roundSawCancellation, !isStaleRound else { return }
+                guard !Task.isCancelled, !roundSawCancellation, !isStaleRound else { return }
             }
             if let early {
                 goalCard = Self.goalCard(

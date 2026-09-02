@@ -907,19 +907,4 @@ private final class OfflineReadinessViewModel: TrainingReadinessViewModel {
 }
 
 /// 一次性的閘門：`wait()` 卡住直到 `open()`。用來斷言「網路還沒回來之前畫面就有東西」。
-private actor AsyncGate {
-    private var isOpen = false
-    private var waiters: [CheckedContinuation<Void, Never>] = []
-
-    func wait() async {
-        if isOpen { return }
-        await withCheckedContinuation { waiters.append($0) }
-    }
-
-    func open() {
-        isOpen = true
-        let pending = waiters
-        waiters.removeAll()
-        pending.forEach { $0.resume() }
-    }
-}
+// `AsyncGate` 搬到 `App2AsyncGate.swift` 共用（App2HomeViewModel 的取消測試也要用）。
