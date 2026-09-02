@@ -7,7 +7,8 @@ tags:
 # 走正常啟動（模擬器已登入創辦人 dev 帳號），拿 dev 真資料。
 # `clearState: false`：這台模擬器是用戶本人在用，不得清 keychain 或資料。
 #
-# 子頁一律 `fullScreenCover`（不是 sheet）—— 巢狀 sheet 不進 accessibility tree。
+# 子頁走 push（`NavigationStack` ＋ `navigationDestination`，T-0388）。
+# 返回有兩條路：各頁自己的返回鈕，以及左緣滑動——兩條都在這支流程裡走過。
 
 - launchApp:
     clearState: false
@@ -152,6 +153,39 @@ tags:
 - takeScreenshot: wave5-09-delete-account
 - tapOn:
     id: "App2_DeleteAccountCancel"
+
+# T-0388 子頁改 push 之後，左緣滑動要能返回。隱藏 navigation bar 會讓 UIKit 停掉
+# `interactivePopGestureRecognizer`，`App2InteractivePopGesture` 把它接回來；
+# 這一段就是那條手勢的回歸證據（拿系統設定頁走一次）。
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsLanguageRow"
+    direction: DOWN
+- tapOn:
+    id: "App2_SettingsLanguageRow"
+- extendedWaitUntil:
+    visible:
+      id: "App2_SystemSettingsView"
+    timeout: 20000
+- swipe:
+    start: "2%, 50%"
+    end: "90%, 50%"
+    duration: 400
+- extendedWaitUntil:
+    visible:
+      id: "App2_SettingsView"
+    timeout: 20000
+- assertNotVisible:
+    id: "App2_SystemSettingsView"
+- takeScreenshot: t0388-01-settings-after-edge-swipe
+
+# 設定本身仍是 fullScreenCover（這一票不動），左緣滑動不該把它也關掉。
+- swipe:
+    start: "2%, 50%"
+    end: "90%, 50%"
+    duration: 400
+- assertVisible:
+    id: "App2_SettingsView"
 
 # 回到設定首頁時捲軸還停在底部，返回鍵在畫面外 → 先捲回頂端。
 - scrollUntilVisible:

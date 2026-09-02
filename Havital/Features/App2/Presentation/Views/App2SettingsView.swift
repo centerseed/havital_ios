@@ -133,6 +133,8 @@ struct App2SettingsView: View {
                 .toolbar(.hidden, for: .navigationBar)
         }
         .toolbar(.hidden, for: .navigationBar)
+        // 隱藏 nav bar 會讓 UIKit 一併停掉邊緣滑回手勢；只把這一個堆疊的 delegate 接回來。
+        .background(App2InteractivePopGesture().frame(width: 0, height: 0))
         .alert(
             NSLocalizedString("auth.logout_title", comment: "Log out"),
             isPresented: $isConfirmingLogout
