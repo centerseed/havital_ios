@@ -201,23 +201,15 @@ struct TrainingRecordView: View {
 
     private var groupedWorkouts: [WorkoutGroup] {
         let calendar = Calendar.current
-        let today = Date()
+        let today = calendar.startOfDay(for: Date())
 
-        // Determine week interval for "this week"
-        let thisWeekInterval = calendar.dateInterval(of: .weekOfYear, for: today)
-
-        // Previous week
-        let lastWeekStart: Date? = thisWeekInterval.flatMap {
-            calendar.date(byAdding: .weekOfYear, value: -1, to: $0.start)
-        }
-        let lastWeekInterval: DateInterval? = lastWeekStart.flatMap {
-            calendar.dateInterval(of: .weekOfYear, for: $0)
-        }
+        // 「上週」＝從 7 天前起算的滾動視窗（今天往回第 2～7 天），不是日曆週；
+        // 日曆週界會讓同一筆紀錄在週一凌晨從「本週稍早」跳成「上週」（2026-09-02 裁決）。
+        let lastWeekStart = calendar.date(byAdding: .day, value: -7, to: today)
 
         var groups: [WorkoutGroup] = []
         var todayItems: [WorkoutV2] = []
         var yesterdayItems: [WorkoutV2] = []
-        var earlierThisWeekItems: [WorkoutV2] = []
         var lastWeekItems: [WorkoutV2] = []
         var olderBuckets: [String: [WorkoutV2]] = [:]
         var olderOrder: [String] = []
@@ -228,10 +220,7 @@ struct TrainingRecordView: View {
                 todayItems.append(workout)
             } else if calendar.isDateInYesterday(date) {
                 yesterdayItems.append(workout)
-            } else if let interval = thisWeekInterval, interval.contains(date) {
-                // Same week but not today or yesterday
-                earlierThisWeekItems.append(workout)
-            } else if let interval = lastWeekInterval, interval.contains(date) {
+            } else if let lastWeekStart, date >= lastWeekStart, date < today {
                 lastWeekItems.append(workout)
             } else {
                 // Group by month string e.g. "2026年4月"
@@ -246,7 +235,6 @@ struct TrainingRecordView: View {
 
         if !todayItems.isEmpty { groups.append(WorkoutGroup(title: L10n.Record.Group.today.localized, workouts: todayItems)) }
         if !yesterdayItems.isEmpty { groups.append(WorkoutGroup(title: L10n.Record.Group.yesterday.localized, workouts: yesterdayItems)) }
-        if !earlierThisWeekItems.isEmpty { groups.append(WorkoutGroup(title: L10n.Record.Group.earlierThisWeek.localized, workouts: earlierThisWeekItems)) }
         if !lastWeekItems.isEmpty { groups.append(WorkoutGroup(title: L10n.Record.Group.lastWeek.localized, workouts: lastWeekItems)) }
         for key in olderOrder {
             if let items = olderBuckets[key], !items.isEmpty {

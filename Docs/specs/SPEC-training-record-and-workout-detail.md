@@ -5,7 +5,7 @@ status: Draft
 layer: product
 ontology_entity: training-record-detail
 created: 2026-04-15
-updated: 2026-04-15
+updated: 2026-09-02
 ---
 
 # Feature Spec: 訓練紀錄與單次訓練詳情
@@ -58,6 +58,12 @@ Given 使用者位於訓練紀錄頁，
 When 點擊右上角資訊按鈕，  
 Then 系統必須打開裝置資訊 sheet，作為資料來源與診斷的補充資訊入口。
 
+### AC-RECORD-08: 列表必須依「今天／昨天／上週／月份」分組
+
+Given 訓練紀錄列表已有資料，  
+When 系統排列這些紀錄，  
+Then 分組必須是「今天」「昨天」「上週」與各月份桶；**「上週」＝從 7 天前起算的滾動視窗**（今天往回第 2～7 天），不是日曆週，更早的紀錄落在 `YYYY年M月` 桶。不得存在「本週稍早」這個分組。
+
 ## AC ID Index
 
 本 spec 已採用穩定 AC-ID；以下索引作為派工、review 與測試引用入口。
@@ -71,3 +77,4 @@ Then 系統必須打開裝置資訊 sheet，作為資料來源與診斷的補充
 | AC-RECORD-05 | 無資料時顯示可理解 empty state |
 | AC-RECORD-06 | 載入失敗以非離頁方式提示 |
 | AC-RECORD-07 | 提供裝置資訊輔助入口 |
+| AC-RECORD-08 | 列表分組：今天／昨天／上週（滾動 7 天）／月份桶 |

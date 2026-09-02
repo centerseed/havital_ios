@@ -60,7 +60,7 @@ struct App2RecordFilter: Identifiable, Equatable {
 private enum App2RecordBucket: Hashable {
     case today
     case yesterday
-    case earlierThisWeek
+    /// 最近一週（不含今天／昨天）：從 7 天前起算的滾動視窗，不是日曆週。
     case lastWeek
     /// 更早：以「該月的月初」當鍵。**算出來的 `Date` 當 key 一定先正規化**
     /// （`AGENTS.md` 陷阱 1）。
@@ -372,14 +372,14 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
 
     // MARK: - 日期分組（設計 `g.group` / `g.count` / `g.sum`）
 
-    /// 今天／昨天／本週稍早／上週／各月份。分組標題與小計格式沿用 1.x 紀錄頁
+    /// 今天／昨天／上週／各月份。分組標題與小計格式沿用 1.x 紀錄頁
     /// 既有的 `record.group.*`（`TrainingRecordView` 也用這一組），不開第二份字串。
     ///
     /// 用裝置當地日曆；月份桶的 key 正規化到「月初」再當 Dictionary key。
     ///
-    /// **週界是週一起始**（`App2WeekCalendar.currentWeekStart`），不是
-    /// `dateInterval(of: .weekOfYear)` 的 locale 週界——zh-TW 的週首是週日，那條會把
-    /// 週日的紀錄歸進「本週稍早」，而課表頁與 backend 都算它是上週（同一天兩種答案）。
+    /// **「上週」是從 7 天前起算的滾動視窗，不是日曆週**（2026-09-02 裁決）：日曆週界
+    /// 讓同一筆紀錄在週一凌晨從「本週稍早」跳成「上週」，且週初時「本週稍早」幾乎總是空的。
+    /// 取消「本週稍早」後，今天／昨天以外、7 天內的紀錄一律歸「上週」。
     static func groups(
         _ items: [App2RecordItem],
         now: Date = Date(),
@@ -393,12 +393,10 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
             }
         }
 
-        let thisMonday = App2WeekCalendar.currentWeekStart(reference: now, calendar: calendar)
-        let thisWeek = calendar.date(byAdding: .day, value: 7, to: thisMonday)
-            .map { DateInterval(start: thisMonday, end: $0) }
-        let lastWeek = calendar.date(byAdding: .day, value: -7, to: thisMonday)
-            .map { DateInterval(start: $0, end: thisMonday) }
+        let today = calendar.startOfDay(for: now)
         let yesterday = calendar.date(byAdding: .day, value: -1, to: now)
+        // 7 天前的 00:00 —— 含當天，所以「上週」實際涵蓋今天往回第 2～7 天。
+        let lastWeekStart = calendar.date(byAdding: .day, value: -7, to: today)
 
         var order: [App2RecordBucket] = []
         var buckets: [App2RecordBucket: [App2RecordItem]] = [:]
@@ -410,9 +408,7 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
                     bucket = .today
                 } else if let yesterday, calendar.isDate(date, inSameDayAs: yesterday) {
                     bucket = .yesterday
-                } else if let thisWeek, thisWeek.contains(date) {
-                    bucket = .earlierThisWeek
-                } else if let lastWeek, lastWeek.contains(date) {
+                } else if let lastWeekStart, date >= lastWeekStart, date < today {
                     bucket = .lastWeek
                 } else {
                     bucket = .month(calendar.dateInterval(of: .month, for: date)?.start ?? date)
@@ -438,7 +434,6 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
         switch bucket {
         case .today:            return L10n.Record.Group.today.localized
         case .yesterday:        return L10n.Record.Group.yesterday.localized
-        case .earlierThisWeek:  return L10n.Record.Group.earlierThisWeek.localized
         case .lastWeek:         return L10n.Record.Group.lastWeek.localized
         case .undated:          return L10n.Record.Group.older.localized
         case .month(let start):

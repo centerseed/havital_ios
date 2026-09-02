@@ -217,11 +217,9 @@ struct DateFormatterHelper {
             from: calendar.startOfDay(for: date),
             to: calendar.startOfDay(for: Date())
         ).day ?? 0
-        if days < 7 {
+        // 超過三天就直接印日期：「5 天前 / 一週前」比 2026/08/28 更難定位（2026-09-02 裁決）。
+        if days <= 3 {
             return String(format: NSLocalizedString("date.days_ago", bundle: bundle, comment: "%d 天前"), days)
-        }
-        if days < 14 {
-            return NSLocalizedString("date.one_week_ago", bundle: bundle, comment: "一週前")
         }
 
         return formatDateTime(date)
