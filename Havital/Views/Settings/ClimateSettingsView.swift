@@ -1,10 +1,13 @@
+// 這一份的資料層（models／data source／repository／view model）與 `climateLocalized`
+// 是 2.0 `App2ClimateSettingsView` 也在用的同一份（T-0392）——所以不再是 `private`。
+// 檔案落點沒有變，1.4 的 `ClimateSettingsView` 仍是 `UserProfileView` 的入口。
 import SwiftUI
 
-private func climateLocalized(_ key: String) -> String {
+func climateLocalized(_ key: String) -> String {
     NSLocalizedString(key, comment: "")
 }
 
-private struct ClimateSettingsPayload: Codable {
+struct ClimateSettingsPayload: Codable {
     let enabled: Bool
     let adaptationLevel: String
     let manualStartThresholdC: Double?
@@ -24,7 +27,7 @@ private struct ClimateSettingsPayload: Codable {
     }
 }
 
-private struct ClimateAdapterDisclosure: Codable {
+struct ClimateAdapterDisclosure: Codable {
     let id: String
     let displayName: String
     let dataSource: String
@@ -40,7 +43,7 @@ private struct ClimateAdapterDisclosure: Codable {
     }
 }
 
-private struct ClimateUISummary: Codable {
+struct ClimateUISummary: Codable {
     let featureName: String
     let currentSettingLabel: String
     let adjustmentStartTempC: Double
@@ -58,7 +61,7 @@ private struct ClimateUISummary: Codable {
     }
 }
 
-private struct ClimateInterventionRule: Codable, Identifiable {
+struct ClimateInterventionRule: Codable, Identifiable {
     let level: String
     let temperatureRangeLabel: String
     let summaryText: String
@@ -78,7 +81,7 @@ private struct ClimateInterventionRule: Codable, Identifiable {
     }
 }
 
-private struct ClimateCurrentStatus: Codable {
+struct ClimateCurrentStatus: Codable {
     let isAdjusted: Bool
     let feelsLikeTempC: Double?
     let paceAdjustmentPct: Double?
@@ -94,7 +97,7 @@ private struct ClimateCurrentStatus: Codable {
     }
 }
 
-private struct ClimateHeatProfile: Codable {
+struct ClimateHeatProfile: Codable {
     let baseProfileName: String
     let uiSummary: ClimateUISummary
     let interventionRules: [ClimateInterventionRule]
@@ -108,7 +111,7 @@ private struct ClimateHeatProfile: Codable {
     }
 }
 
-private struct ClimateProfileResponse: Codable {
+struct ClimateProfileResponse: Codable {
     let uid: String
     let locale: String
     let adapter: ClimateAdapterDisclosure
@@ -124,7 +127,7 @@ private struct ClimateProfileResponse: Codable {
     }
 }
 
-private struct ClimateIndicators: Codable {
+struct ClimateIndicators: Codable {
     let hotTrainingHours14d: Double
     let hotWorkoutCount14d: Int
     let hotPaceAchievementRatePct: Double?
@@ -140,7 +143,7 @@ private struct ClimateIndicators: Codable {
     }
 }
 
-private struct ClimateAdaptationMetricsResponse: Codable {
+struct ClimateAdaptationMetricsResponse: Codable {
     let indicators: ClimateIndicators
     let recommendedAdaptationLevel: String
     let currentAdaptationLevel: String
@@ -156,17 +159,17 @@ private struct ClimateAdaptationMetricsResponse: Codable {
     }
 }
 
-private struct ClimateSettingsContext {
+struct ClimateSettingsContext {
     let profile: ClimateProfileResponse
     let metrics: ClimateAdaptationMetricsResponse
 }
 
-private protocol ClimateSettingsRepository {
+protocol ClimateSettingsRepository {
     func fetchSettingsContext() async throws -> ClimateSettingsContext
     func updateSettings(_ payload: ClimateSettingsPayload) async throws
 }
 
-private final class ClimateSettingsRemoteDataSource {
+final class ClimateSettingsRemoteDataSource {
     private let httpClient: HTTPClient
     private let parser: APIParser
     private let authSessionRepository: AuthSessionRepository
@@ -224,7 +227,7 @@ private final class ClimateSettingsRemoteDataSource {
     }
 }
 
-private final class ClimateSettingsRepositoryImpl: ClimateSettingsRepository {
+final class ClimateSettingsRepositoryImpl: ClimateSettingsRepository {
     private let remoteDataSource: ClimateSettingsRemoteDataSource
 
     init(remoteDataSource: ClimateSettingsRemoteDataSource = ClimateSettingsRemoteDataSource()) {
@@ -241,7 +244,7 @@ private final class ClimateSettingsRepositoryImpl: ClimateSettingsRepository {
 }
 
 @MainActor
-private final class ClimateSettingsViewModel: ObservableObject {
+final class ClimateSettingsViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var isSaving = false
     @Published var errorMessage: String?
