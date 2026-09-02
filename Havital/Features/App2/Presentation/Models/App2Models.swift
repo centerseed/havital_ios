@@ -544,6 +544,13 @@ enum App2WeekReviewState: Equatable {
 
 // MARK: - 課表（§3.3）
 
+/// 一週實跑的強度分鐘 low/medium/high —— `/v2/workouts` 每筆 `intensity_minutes` 的加總。
+struct App2IntensityMinutes: Equatable {
+    let low: Double
+    let medium: Double
+    let high: Double
+}
+
 struct App2PlanWeek: Equatable {
     /// 已在地化的週次（`第 7 週`）。
     let weekLabel: String
@@ -552,7 +559,9 @@ struct App2PlanWeek: Equatable {
     let targetDistanceKm: Double
     /// 已完成量（km），來自 `/v2/workouts`，不在週課表 payload 裡（§3.3 第 2 列）。
     let completedDistanceKm: Double?
-    /// 強度分鐘分布 low/medium/high。
+    /// **實跑**強度分鐘分布 low/medium/high，與 `completedDistanceKm` 同一批紀錄算出。
+    /// 不是課表目標 `intensity_total_minutes`：2026-09-02 用戶截圖的間歇週被畫成
+    /// 「中等 0」就是拿目標值畫實跑條造成的。nil ＝ 本週還沒有紀錄。
     let intensityLowMinutes: Int?
     let intensityMediumMinutes: Int?
     let intensityHighMinutes: Int?
