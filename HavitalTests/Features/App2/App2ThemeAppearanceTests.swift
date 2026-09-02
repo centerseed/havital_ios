@@ -14,15 +14,33 @@ final class App2ThemeAppearanceTests: XCTestCase {
         XCTAssertEqual(hex(App2Theme.insetBackground, .light), "F5F7FA")
     }
 
-    func testDarkMapsSurfaceAndInkTo1x() {
-        XCTAssertEqual(hex(App2Theme.pageTop, .dark), "121212")
-        XCTAssertEqual(hex(App2Theme.pageBottom, .dark), "121212")
-        XCTAssertEqual(hex(App2Theme.cardBackground, .dark), "1E1E1E")
-        XCTAssertEqual(hex(App2Theme.insetBackground, .dark), "2C2C2E")
+    /// AC-APPEAR-03：dark 有自己的一張表（T-0393），不再借 1.x `color.dark`。
+    func testDarkUsesApp2OwnSurfaceTable() {
+        XCTAssertEqual(hex(App2Theme.pageTop, .dark), "0B0B0D")
+        XCTAssertEqual(hex(App2Theme.pageBottom, .dark), "0B0B0D")
+        XCTAssertEqual(hex(App2Theme.cardBackground, .dark), "232329")
+        XCTAssertEqual(hex(App2Theme.insetBackground, .dark), "2E2E35")
         XCTAssertEqual(hex(App2Theme.inkPrimary, .dark), "FFFFFF")
-        XCTAssertEqual(hex(App2Theme.inkSecondary, .dark), "B3B3B3")
-        XCTAssertEqual(hex(App2Theme.inkMuted, .dark), "B3B3B3")
-        XCTAssertEqual(hex(App2Theme.inkSubtle, .dark), "B3B3B3")
+    }
+
+    /// AC-APPEAR-11：次墨五階在 dark 不得塌成同一個灰——1.x 借值時就是塌的，
+    /// light 下的層次整個消失（2026-09-02 使用者實機）。
+    func testDarkInkKeepsFiveDistinctSteps() {
+        let steps = [
+            hex(App2Theme.inkSecondary, .dark),
+            hex(App2Theme.inkSubtle, .dark),
+            hex(App2Theme.inkTertiary, .dark),
+            hex(App2Theme.inkMuted, .dark),
+            hex(App2Theme.inkFaint, .dark)
+        ]
+        XCTAssertEqual(steps, ["C8CDD3", "B0B6BD", "9AA1A9", "8A9199", "7C838B"])
+        XCTAssertEqual(Set(steps).count, 5, "五階必須互不相同")
+    }
+
+    /// R3：亮綠在 dark 壓暗一階（大面積鋪在近黑上會刺眼）。品牌藍不變，色相也不變。
+    func testDarkDimsBrightGreenOnly() {
+        XCTAssertEqual(hex(App2Theme.accentGreenBright, .light), "22C55E")
+        XCTAssertEqual(hex(App2Theme.accentGreenBright, .dark), "1E9E52")
     }
 
     func testDarkKeepsApp2BrandBlue() {
@@ -55,9 +73,9 @@ final class App2ThemeAppearanceTests: XCTestCase {
     }
 
     func testDarkNeutralFillIsCardNotPage() {
-        XCTAssertEqual(hex(App2Theme.neutralFill, .dark), "1E1E1E")
-        XCTAssertEqual(hex(App2Theme.cardBackground, .dark), "1E1E1E")
-        XCTAssertEqual(hex(App2Theme.pageTop, .dark), "121212")
+        XCTAssertEqual(hex(App2Theme.neutralFill, .dark), "232329")
+        XCTAssertEqual(hex(App2Theme.cardBackground, .dark), "232329")
+        XCTAssertEqual(hex(App2Theme.pageTop, .dark), "0B0B0D")
     }
 
     func testDarkHeroStaysDesignedDark() {
@@ -66,7 +84,7 @@ final class App2ThemeAppearanceTests: XCTestCase {
     }
 
     func testAccentCardGradientEndsAtCardBackground() {
-        XCTAssertEqual(hex(App2Theme.cardBackground, .dark), "1E1E1E")
+        XCTAssertEqual(hex(App2Theme.cardBackground, .dark), "232329")
         XCTAssertEqual(hex(App2Theme.cardBackground, .light), "FFFFFF")
         XCTAssertEqual(hex(App2Theme.neutralFill, .dark), hex(App2Theme.cardBackground, .dark))
     }

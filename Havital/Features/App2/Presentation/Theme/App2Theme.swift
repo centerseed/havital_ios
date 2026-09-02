@@ -23,11 +23,23 @@ enum App2Theme {
         })
     }
 
+    /// 兩個模式的 alpha 不同時用這一支（陰影：深色下要壓得比淺色重得多）。
+    private static func adaptive(
+        light: String, lightAlpha: CGFloat,
+        dark: String, darkAlpha: CGFloat
+    ) -> Color {
+        Color(uiColor: UIColor { traits in
+            let isDark = traits.userInterfaceStyle == .dark
+            return UIColor(Color(hex: isDark ? dark : light))
+                .withAlphaComponent(isDark ? darkAlpha : lightAlpha)
+        })
+    }
+
     // MARK: - Surface
 
     /// 頁面底：light 設計包漸層；dark 兩端都是 1.x `#121212`。
-    static let pageTop = adaptive(light: "#F3F6FA", dark: "#121212")
-    static let pageBottom = adaptive(light: "#EEF2F7", dark: "#121212")
+    static let pageTop = adaptive(light: "#F3F6FA", dark: "#0B0B0D")
+    static let pageBottom = adaptive(light: "#EEF2F7", dark: "#0B0B0D")
 
     static var pageGradient: LinearGradient {
         LinearGradient(colors: [pageTop, pageBottom], startPoint: .top, endPoint: .bottom)
@@ -36,23 +48,38 @@ enum App2Theme {
     /// 舊呼叫點的單色別名（載入態／空狀態底色）。
     static let pageBackground = pageTop
 
-    static let cardBackground = adaptive(light: "#FFFFFF", dark: "#1E1E1E")
+    static let cardBackground = adaptive(light: "#FFFFFF", dark: "#232329")
     /// `1px solid rgba(15,23,42,0.07)`；dark 同 alpha 的白。
-    static let cardBorder = adaptive(light: "#0F172A", dark: "#FFFFFF", alpha: 0.07)
+    static let cardBorder = adaptive(light: "#0F172A", lightAlpha: 0.07, dark: "#FFFFFF", darkAlpha: 0.14)
 
     /// 卡中卡：light 設計包；dark 1.x tertiary `#2C2C2E`。
-    static let insetBackground = adaptive(light: "#F5F7FA", dark: "#2C2C2E")
-    static let insetBackgroundCool = adaptive(light: "#F7F9FC", dark: "#2C2C2E")
+    static let insetBackground = adaptive(light: "#F5F7FA", dark: "#2E2E35")
+    static let insetBackgroundCool = adaptive(light: "#F7F9FC", dark: "#2E2E35")
     static let insetBorder = adaptive(light: "#0F172A", dark: "#FFFFFF", alpha: 0.06)
 
     /// 強調卡（目標賽事／本週跑量／紀錄 hero／成就 hero）：
     /// `linear-gradient(150deg, rgba(24,144,255,0.12), rgba(24,144,255,0.02) 60%, #ffffff)`。
     /// SwiftUI 沒有 CSS 的 150deg 語意，用等效的左上→右下對角。
     static func accentCardGradient(strength: Double = 0.12) -> LinearGradient {
+        // 深色下同一個 alpha 幾乎看不出來：藍疊在近黑上，整張卡與一般卡沒差別
+        // （2026-09-02 使用者回報「hero 藍色漸層很不明顯」）。深色把疊色加重約一倍，
+        // 中段也不收到 0.02，讓漸層在整張卡上都還讀得出來。
         LinearGradient(
             stops: [
-                .init(color: accentBlue.opacity(strength), location: 0),
-                .init(color: accentBlue.opacity(0.02), location: 0.6),
+                .init(
+                    color: adaptive(
+                        light: "#1890FF", lightAlpha: strength,
+                        dark: "#1890FF", darkAlpha: min(strength * 2.4, 0.42)
+                    ),
+                    location: 0
+                ),
+                .init(
+                    color: adaptive(
+                        light: "#1890FF", lightAlpha: 0.02,
+                        dark: "#1890FF", darkAlpha: 0.12
+                    ),
+                    location: 0.6
+                ),
                 .init(color: cardBackground, location: 1)
             ],
             startPoint: .topLeading,
@@ -107,11 +134,11 @@ enum App2Theme {
     // MARK: - Ink
 
     static let inkPrimary = adaptive(light: "#10151C", dark: "#FFFFFF")
-    static let inkSecondary = adaptive(light: "#4A5561", dark: "#B3B3B3")
-    static let inkTertiary = adaptive(light: "#8A929C", dark: "#B3B3B3")
-    static let inkMuted = adaptive(light: "#94A0AD", dark: "#B3B3B3")
-    static let inkFaint = adaptive(light: "#A2ABB6", dark: "#B3B3B3")
-    static let inkSubtle = adaptive(light: "#6B7581", dark: "#B3B3B3")
+    static let inkSecondary = adaptive(light: "#4A5561", dark: "#C8CDD3")
+    static let inkTertiary = adaptive(light: "#8A929C", dark: "#9AA1A9")
+    static let inkMuted = adaptive(light: "#94A0AD", dark: "#8A9199")
+    static let inkFaint = adaptive(light: "#A2ABB6", dark: "#7C838B")
+    static let inkSubtle = adaptive(light: "#6B7581", dark: "#B0B6BD")
     static let chevron = adaptive(light: "#C2CAD3", dark: "#B3B3B3")
 
     // MARK: - Accent
@@ -127,7 +154,9 @@ enum App2Theme {
     static let accentOrangeSoft = Color(hex: "#FF9D42")// 中強度
 
     static let accentGreen = Color(hex: "#16A34A")     // 實際值、已完成
-    static let accentGreenBright = Color(hex: "#22C55E")
+    /// 深色下壓暗一階：`#22C55E` 在近黑底上大面積鋪（詳情頁輕鬆跑 hero）會刺眼
+    /// （2026-09-02 使用者回報）。淺色維持設計包的值。
+    static let accentGreenBright = adaptive(light: "#22C55E", dark: "#1E9E52")
     static let accentGreenDot = Color(hex: "#2E9E5B")  // 已連接
 
     static let accentRed = Color(hex: "#EF5B6B")       // 高強度
@@ -164,7 +193,7 @@ enum App2Theme {
     /// 分隔線／未選中膠囊底。
     static let hairline = adaptive(light: "#D9E0E8", dark: "#FFFFFF", alpha: 0.12)
     /// 未選中 chip 的中性填色。dark 用卡片底 `#1E1E1E`（R3），不是頁面底。
-    static let neutralFill = adaptive(light: "#EEF2F7", dark: "#1E1E1E")
+    static let neutralFill = adaptive(light: "#EEF2F7", dark: "#232329")
     /// radio 圈的未選中環。
     static let radioRing = adaptive(light: "#D0D7E0", dark: "#FFFFFF", alpha: 0.16)
     /// 禁用態填色（呼叫端自帶 opacity）。
@@ -250,11 +279,11 @@ enum App2Theme {
 
     static let shadowInk = Color(hex: "#101828")
 
-    static let shadowTightColor = shadowInk.opacity(0.04)
+    static let shadowTightColor = adaptive(light: "#101828", lightAlpha: 0.04, dark: "#000000", darkAlpha: 0.35)
     static let shadowTightRadius: CGFloat = 1
     static let shadowTightY: CGFloat = 1
 
-    static let shadowSoftColor = shadowInk.opacity(0.16)
+    static let shadowSoftColor = adaptive(light: "#101828", lightAlpha: 0.16, dark: "#000000", darkAlpha: 0.5)
     static let shadowSoftRadius: CGFloat = 13
     static let shadowSoftY: CGFloat = 10
 
