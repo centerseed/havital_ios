@@ -640,25 +640,27 @@ struct App2WorkoutDetailView: View {
     ///
     /// 資料是 1.4 同一條路：`GET /v2/workouts/{id}` 的
     /// `advanced_metrics.hr_zone_distribution`／`pace_zone_distribution`，由這一頁本來就在用的
-    /// `WorkoutDetailViewModelV2` 持有。設計 checklist §24 第 8 點的「更多數據 · 區間分佈」
+    /// `WorkoutDetailViewModelV2` 持有。**取值是詳情優先、列表模型 fallback**
+    /// （`App2WorkoutDetailProjection.zoneDistributions`）：列表那一筆常常沒有
+    /// `advanced_metrics`，只讀列表會在詳情已經有資料時整塊不顯示。設計 checklist §24 第 8 點的「更多數據 · 區間分佈」
     /// 就是這一塊，位置在分圈之前。
     ///
     /// **兩組都缺席＝整塊不出現**（同（l）步態圖、（p）分圈的處置），只有一組時不畫切換。
-    private var hrZoneDistribution: V2ZoneDistribution? {
-        viewModel.workout.advancedMetrics?.hrZoneDistribution.map { V2ZoneDistribution(from: $0) }
-    }
-
-    private var paceZoneDistribution: V2ZoneDistribution? {
-        viewModel.workout.advancedMetrics?.paceZoneDistribution.map { V2ZoneDistribution(from: $0) }
+    private var zoneDistributions: (heartRate: V2ZoneDistribution?, pace: V2ZoneDistribution?) {
+        App2WorkoutDetailProjection.zoneDistributions(
+            detail: viewModel.workoutDetail,
+            workout: viewModel.workout
+        )
     }
 
     @ViewBuilder
     private var zoneDistributionCard: some View {
-        if hrZoneDistribution != nil || paceZoneDistribution != nil {
+        let zones = zoneDistributions
+        if zones.heartRate != nil || zones.pace != nil {
             // 標題字型與卡面交給 App2（同步態圖、分圈的處置），長條與百分比本體不動。
             ZoneDistributionChartView(
-                hrZones: hrZoneDistribution,
-                paceZones: paceZoneDistribution,
+                hrZones: zones.heartRate,
+                paceZones: zones.pace,
                 titleFont: .system(size: 15, weight: .black),
                 titleColor: App2Theme.inkPrimary,
                 drawsContainer: false,

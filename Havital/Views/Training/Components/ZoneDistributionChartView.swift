@@ -59,9 +59,17 @@ struct ZoneDistributionChartView: View {
 
     private var hasBoth: Bool { hrZones != nil && paceZones != nil }
 
-    /// 只有一組時就顯示那一組，不讓 picker 停在空的那一頁。
     private var effectiveTab: ZoneTab {
-        if hasBoth { return selectedTab }
+        Self.effectiveTab(selected: selectedTab, hrZones: hrZones, paceZones: paceZones)
+    }
+
+    /// 只有一組時就顯示那一組，不讓 picker 停在空的那一頁。
+    static func effectiveTab(
+        selected: ZoneTab,
+        hrZones: V2ZoneDistribution?,
+        paceZones: V2ZoneDistribution?
+    ) -> ZoneTab {
+        if hrZones != nil && paceZones != nil { return selected }
         return hrZones != nil ? .heartRate : .pace
     }
 
@@ -109,7 +117,7 @@ struct ZoneDistributionChartView: View {
             }
 
             VStack(spacing: 8) {
-                ForEach(rows(for: effectiveTab), id: \.title) { row in
+                ForEach(Self.rows(for: effectiveTab, hrZones: hrZones, paceZones: paceZones, palette: palette)) { row in
                     ZoneBarRow(
                         title: row.title,
                         percentage: row.percentage,
@@ -135,39 +143,47 @@ struct ZoneDistributionChartView: View {
         }
     }
 
-    private struct Row {
+    /// 一條長條。`key` 是穩定鍵（`recovery`…`interval`），給測試與 accessibility 用，不顯示。
+    struct Row: Identifiable, Equatable {
+        var id: String { key }
+        let key: String
         let title: String
         let percentage: Double
         let color: Color
     }
 
     /// 沒有值的區間不佔一列（1.4 既有行為）。
-    private func rows(for tab: ZoneTab) -> [Row] {
+    static func rows(
+        for tab: ZoneTab,
+        hrZones: V2ZoneDistribution?,
+        paceZones: V2ZoneDistribution?,
+        palette: Palette = .standard
+    ) -> [Row] {
         guard let zones = tab == .heartRate ? hrZones : paceZones else { return [] }
         let isHeartRate = tab == .heartRate
-        let specs: [(Double?, String, Color)] = [
-            (zones.recovery,
+        let specs: [(Double?, String, String, Color)] = [
+            (zones.recovery, "recovery",
              isHeartRate ? L10n.WorkoutDetail.recoveryZone.localized : L10n.WorkoutDetail.recoveryPace.localized,
              palette.recovery),
-            (zones.easy,
+            (zones.easy, "aerobic",
              isHeartRate ? L10n.WorkoutDetail.aerobicZone.localized : L10n.WorkoutDetail.easyPace.localized,
              palette.aerobic),
-            (zones.marathon,
+            (zones.marathon, "marathon",
              isHeartRate ? L10n.WorkoutDetail.marathonZone.localized : L10n.WorkoutDetail.marathonPace.localized,
              palette.marathon),
-            (zones.threshold,
+            (zones.threshold, "threshold",
              isHeartRate ? L10n.WorkoutDetail.thresholdZone.localized : L10n.WorkoutDetail.thresholdPace.localized,
              palette.threshold),
-            (zones.anaerobic,
+            (zones.anaerobic, "anaerobic",
              isHeartRate ? L10n.WorkoutDetail.anaerobicZone.localized : L10n.WorkoutDetail.anaerobicPace.localized,
              palette.anaerobic),
-            (zones.interval,
+            (zones.interval, "interval",
              isHeartRate ? L10n.WorkoutDetail.intervalZone.localized : L10n.WorkoutDetail.intervalPace.localized,
              palette.interval),
         ]
-        return specs.compactMap { value, title, color in
+        return specs.compactMap { value, key, title, color in
             guard let value else { return nil }
-            return Row(title: title, percentage: value, color: color)
+            return Row(key: key, title: title, percentage: value, color: color)
         }
     }
 }

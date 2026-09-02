@@ -486,6 +486,22 @@ extension App2WorkoutDetailProjection {
     /// 趨勢圖刻度的格式化函式。View 只負責接線，格式住在這裡，
     /// 測試才拿得到 caller 實際用的那一個。心率是整數 bpm，
     /// 配速沿用 `formatPace`（m:ss，隨 `unitSystem` 換算）。
+    /// 強度區間佔比的兩組（心率／配速）。
+    ///
+    /// **詳情優先、列表模型 fallback** —— 同一支 VM 的 RPE 取值就是這個優先序
+    /// （`WorkoutDetailViewModelV2.effectiveRPE`）。列表那一筆的 `advanced_metrics`
+    /// 常常是空的，詳情回來才有；只讀列表會在詳情明明有資料時整塊不顯示。
+    static func zoneDistributions(
+        detail: WorkoutV2Detail?,
+        workout: WorkoutV2
+    ) -> (heartRate: V2ZoneDistribution?, pace: V2ZoneDistribution?) {
+        let hr = detail?.advancedMetrics?.hrZoneDistribution
+            ?? workout.advancedMetrics?.hrZoneDistribution.map { V2ZoneDistribution(from: $0) }
+        let pace = detail?.advancedMetrics?.paceZoneDistribution
+            ?? workout.advancedMetrics?.paceZoneDistribution.map { V2ZoneDistribution(from: $0) }
+        return (hr, pace)
+    }
+
     static func trendTickFormatter(
         for metric: TrendTickMetric,
         unitSystem: UnitSystem
