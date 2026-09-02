@@ -4,17 +4,25 @@ import XCTest
 @MainActor
 final class LanguageManagerPreLoginTests: XCTestCase {
     private let languageKey = "app_language_preference"
+    private let userSelectedKey = "app_language_user_selected"
     private var originalLanguage: SupportedLanguage!
     private var originalLanguagePreference: String?
     private var originalAppleLanguages: [String]?
+    private var originalUserSelected: Bool?
 
     override func setUp() {
         super.setUp()
         originalLanguage = LanguageManager.shared.currentLanguage
         originalLanguagePreference = UserDefaults.standard.string(forKey: languageKey)
         originalAppleLanguages = UserDefaults.standard.stringArray(forKey: "AppleLanguages")
+        originalUserSelected = UserDefaults.standard.object(forKey: userSelectedKey) as? Bool
         UserDefaults.standard.removeObject(forKey: languageKey)
         UserDefaults.standard.removeObject(forKey: "AppleLanguages")
+        // 「使用者自己選的」這個旗標一定要一起清：`tearDown` 會呼叫
+        // `applyPreLoginLanguage` 復原語言，那條路徑會把它設成 true，於是它會殘留到
+        // 下一個測試。2026-09-02 換到乾淨的測試模擬器才發現——`explicitLanguage` 的
+        // 那條測試一直是靠這個殘留值變綠的。
+        UserDefaults.standard.removeObject(forKey: userSelectedKey)
     }
 
     override func tearDown() {
@@ -29,9 +37,15 @@ final class LanguageManagerPreLoginTests: XCTestCase {
         } else {
             UserDefaults.standard.removeObject(forKey: "AppleLanguages")
         }
+        if let originalUserSelected {
+            UserDefaults.standard.set(originalUserSelected, forKey: userSelectedKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: userSelectedKey)
+        }
         originalLanguage = nil
         originalLanguagePreference = nil
         originalAppleLanguages = nil
+        originalUserSelected = nil
         super.tearDown()
     }
 
@@ -171,9 +185,23 @@ final class LanguageManagerPreLoginTests: XCTestCase {
         XCTAssertEqual(UserDefaults.standard.stringArray(forKey: "AppleLanguages"), ["ja"])
     }
 
-    /// 套用過的語言即成為「已確認」，才不會被 `POST /auth/sync` 當成猜測值丟掉。
-    func test_applyFromBackend_marksLanguageAsExplicit() {
+    /// **從後端套回來的語言不算「使用者親手選的」**（`LanguageManager.markUserSelected`
+    /// 只有登入前的語言鈕與設定頁的語言切換會呼叫）。那個旗標的用途是「登入時要不要把
+    /// 本地語言推給後端」——後端自己給的值再推回去沒有意義，推錯了反而會蓋掉。
+    ///
+    /// 這條原本斷言相反（期望它標記成 explicit），靠同 class 其他測試 `tearDown` 留在
+    /// UserDefaults 的旗標假綠；2026-09-02 換到乾淨的測試模擬器才露出來。
+    func test_applyFromBackend_doesNotMarkLanguageAsUserSelected() {
         LanguageManager.shared.applyFromBackend(.english)
-        XCTAssertEqual(LanguageManager.shared.explicitLanguage, .english)
+
+        XCTAssertEqual(LanguageManager.shared.currentLanguage, .english)
+        XCTAssertNil(LanguageManager.shared.explicitLanguage)
+    }
+
+    /// 對照組：使用者親手選的那條路徑要標記。
+    func test_applyPreLoginLanguage_marksLanguageAsUserSelected() {
+        LanguageManager.shared.applyPreLoginLanguage(.japanese)
+
+        XCTAssertEqual(LanguageManager.shared.explicitLanguage, .japanese)
     }
 }
