@@ -154,6 +154,34 @@ tags:
 - tapOn:
     id: "App2_DeleteAccountCancel"
 
+# 熱適應（T-0392）。原本是 1.4 的 ClimateSettingsView，自帶系統 toolbar 的
+# 「關閉」「儲存」；改成 2.0 版面之後，返回鈕是 App2 header 那顆、儲存是底部單顆 CTA。
+# 這一段就是「這一頁確實換成 2.0 構造」的實走證據。
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsClimateRow"
+    direction: DOWN
+- tapOn:
+    id: "App2_SettingsClimateRow"
+- extendedWaitUntil:
+    visible:
+      id: "App2_ClimateSettingsView"
+    timeout: 20000
+# App2 header 的返回鈕 ＋ 底部單顆儲存 —— 1.4 那兩顆系統 toolbar 鈕不該再出現。
+- assertVisible:
+    id: "App2_ClimateSettingsClose"
+- assertVisible:
+    id: "App2_ClimateSettingsSave"
+- assertVisible:
+    id: "App2_ClimateSettingsEnabled"
+- takeScreenshot: t0392-01-climate-settings
+- tapOn:
+    id: "App2_ClimateSettingsClose"
+- extendedWaitUntil:
+    visible:
+      id: "App2_SettingsView"
+    timeout: 20000
+
 # T-0388 子頁改 push 之後，左緣滑動要能返回。隱藏 navigation bar 會讓 UIKit 停掉
 # `interactivePopGestureRecognizer`，`App2InteractivePopGesture` 把它接回來；
 # 這一段就是那條手勢的回歸證據（拿系統設定頁走一次）。
