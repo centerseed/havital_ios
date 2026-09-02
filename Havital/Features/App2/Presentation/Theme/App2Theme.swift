@@ -162,6 +162,15 @@ enum App2Theme {
     static let accentRed = Color(hex: "#EF5B6B")       // 高強度
     static let accentViolet = Color(hex: "#8B7BE8")    // 肌力／交叉訓練
 
+    /// 強度區間六色（Z1…Z6，由低到高）。編號就是心率區間設定頁那張表上的編號，
+    /// 語意與 Android `workoutZoneColor` 同一組：綠 → 藍 → 黃 → 橘 → 紫 → 紅。
+    static let zoneRecovery = Color(hex: "#4FC47E")
+    static let zoneAerobic = accentBlue
+    static let zoneMarathon = Color(hex: "#F0A93B")
+    static let zoneThreshold = accentOrangeBright
+    static let zoneAnaerobic = accentViolet
+    static let zoneInterval = accentRed
+
     /// 課表強度分段條的三段漸層（設計 frame-01 的 `linear-gradient(90deg,…)`）。
     static let intensityLowGradient = (from: Color(hex: "#4ADE80"), to: Color(hex: "#16A34A"))
     static let intensityMediumGradient = (from: Color(hex: "#FFB15E"), to: Color(hex: "#F97316"))

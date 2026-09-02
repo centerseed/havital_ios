@@ -4,8 +4,6 @@ import Charts
 struct WorkoutDetailViewV2: View {
     @StateObject private var viewModel: WorkoutDetailViewModelV2
     @Environment(\.dismiss) private var dismiss
-    @State private var showHRZoneInfo = false
-    @State private var selectedZoneTab: ZoneTab = .heartRate
     @State private var showShareSheet = false
     @State private var shareImage: UIImage?
     @State private var isGeneratingScreenshot = false
@@ -45,17 +43,6 @@ struct WorkoutDetailViewV2: View {
 
     // AC-IOS-ANALYTICS-P1-10: dedup state lifted to ViewModel (hasTrackedAnalyticsView)
 
-    enum ZoneTab: CaseIterable {
-        case heartRate, pace
-        
-        var title: String {
-            switch self {
-            case .heartRate: return L10n.Training.heartRateZone.localized
-            case .pace: return L10n.Training.paceZone.localized
-            }
-        }
-    }
-    
     init(
         workout: WorkoutV2,
         rizoRepository: RizoRepository? = nil,
@@ -117,14 +104,10 @@ struct WorkoutDetailViewV2: View {
                         }
 
                         // 區間分佈卡片（合併顯示）
-                        if let hrZones = viewModel.workout.advancedMetrics?.hrZoneDistribution,
-                           let paceZones = viewModel.workout.advancedMetrics?.paceZoneDistribution {
-                            combinedZoneDistributionCard(hrZones: convertToV2ZoneDistribution(hrZones), paceZones: convertToV2ZoneDistribution(paceZones))
-                        } else if let hrZones = viewModel.workout.advancedMetrics?.hrZoneDistribution {
-                            heartRateZoneCard(convertToV2ZoneDistribution(hrZones))
-                        } else if let paceZones = viewModel.workout.advancedMetrics?.paceZoneDistribution {
-                            paceZoneCard(convertToV2ZoneDistribution(paceZones))
-                        }
+                        ZoneDistributionChartView(
+                            hrZones: viewModel.workout.advancedMetrics?.hrZoneDistribution.map { convertToV2ZoneDistribution($0) },
+                            paceZones: viewModel.workout.advancedMetrics?.paceZoneDistribution.map { convertToV2ZoneDistribution($0) }
+                        )
 
                         // 圈速分析卡片 (在區間分佈後，數據來源前)
                         if let laps = viewModel.workoutDetail?.laps, !laps.isEmpty {
@@ -1077,183 +1060,6 @@ struct WorkoutDetailViewV2: View {
         .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
     }
 
-    // MARK: - 心率區間分佈卡片
-    
-    private func heartRateZoneCard(_ hrZones: V2ZoneDistribution) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text(L10n.WorkoutDetail.heartRateZones.localized)
-                    .font(AppFont.headline())
-                    .fontWeight(.semibold)
-                
-                Spacer()
-                
-                Button(action: { showHRZoneInfo.toggle() }) {
-                    Image(systemName: "info.circle")
-                        .foregroundColor(.blue)
-                }
-            }
-            
-            VStack(spacing: 8) {
-                if let recovery = hrZones.recovery {
-                    ZoneRow(title: L10n.WorkoutDetail.recoveryZone.localized, percentage: recovery, color: .green)
-                }
-                if let easy = hrZones.easy {
-                    ZoneRow(title: L10n.WorkoutDetail.aerobicZone.localized, percentage: easy, color: .blue)
-                }
-                if let marathon = hrZones.marathon {
-                    ZoneRow(title: L10n.WorkoutDetail.marathonZone.localized, percentage: marathon, color: .yellow)
-                }
-                if let threshold = hrZones.threshold {
-                    ZoneRow(title: L10n.WorkoutDetail.thresholdZone.localized, percentage: threshold, color: .orange)
-                }
-                if let anaerobic = hrZones.anaerobic {
-                    ZoneRow(title: L10n.WorkoutDetail.anaerobicZone.localized, percentage: anaerobic, color: .purple)
-                }
-                if let interval = hrZones.interval {
-                    ZoneRow(title: L10n.WorkoutDetail.intervalZone.localized, percentage: interval, color: .red)
-                }
-            }
-        }
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
-        .sheet(isPresented: $showHRZoneInfo) {
-            NavigationStack {
-                HeartRateZoneInfoView()
-            }
-        }
-    }
-
-    // MARK: - 配速區間分佈卡片
-    
-    private func paceZoneCard(_ paceZones: V2ZoneDistribution) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(L10n.WorkoutDetail.paceZones.localized)
-                .font(AppFont.headline())
-                .fontWeight(.semibold)
-            
-            VStack(spacing: 8) {
-                if let recovery = paceZones.recovery {
-                    ZoneRow(title: L10n.WorkoutDetail.recoveryPace.localized, percentage: recovery, color: .green)
-                }
-                if let easy = paceZones.easy {
-                    ZoneRow(title: L10n.WorkoutDetail.easyPace.localized, percentage: easy, color: .blue)
-                }
-                if let marathon = paceZones.marathon {
-                    ZoneRow(title: L10n.WorkoutDetail.marathonPace.localized, percentage: marathon, color: .yellow)
-                }
-                if let threshold = paceZones.threshold {
-                    ZoneRow(title: L10n.WorkoutDetail.thresholdPace.localized, percentage: threshold, color: .orange)
-                }
-                if let anaerobic = paceZones.anaerobic {
-                    ZoneRow(title: L10n.WorkoutDetail.anaerobicPace.localized, percentage: anaerobic, color: .purple)
-                }
-                if let interval = paceZones.interval {
-                    ZoneRow(title: L10n.WorkoutDetail.intervalPace.localized, percentage: interval, color: .red)
-                }
-            }
-        }
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
-    }
-
-    // MARK: - 合併區間分佈卡片
-    
-    private func combinedZoneDistributionCard(hrZones: V2ZoneDistribution, paceZones: V2ZoneDistribution) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text(L10n.WorkoutDetail.zoneDistribution.localized)
-                    .font(AppFont.headline())
-                    .fontWeight(.semibold)
-                
-                Spacer()
-                
-                if selectedZoneTab == .heartRate {
-                    Button(action: { showHRZoneInfo.toggle() }) {
-                        Image(systemName: "info.circle")
-                            .foregroundColor(.blue)
-                    }
-                }
-            }
-            
-            // 標籤選擇器
-            Picker(L10n.WorkoutDetail.zoneType.localized, selection: $selectedZoneTab) {
-                ForEach(ZoneTab.allCases, id: \.self) { tab in
-                    Text(tab.title).tag(tab)
-                }
-            }
-            .pickerStyle(SegmentedPickerStyle())
-            
-            // 動態內容
-            VStack(spacing: 8) {
-                if selectedZoneTab == .heartRate {
-                    zoneRows(for: hrZones, isHeartRate: true)
-                } else {
-                    zoneRows(for: paceZones, isHeartRate: false)
-                }
-            }
-        }
-        .padding()
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(12)
-        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
-        .sheet(isPresented: $showHRZoneInfo) {
-            NavigationStack {
-                HeartRateZoneInfoView()
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func zoneRows(for zones: V2ZoneDistribution, isHeartRate: Bool) -> some View {
-        if let recovery = zones.recovery {
-            ZoneRow(
-                title: isHeartRate ? L10n.WorkoutDetail.recoveryZone.localized : L10n.WorkoutDetail.recoveryPace.localized,
-                percentage: recovery,
-                color: .green
-            )
-        }
-        if let easy = zones.easy {
-            ZoneRow(
-                title: isHeartRate ? L10n.WorkoutDetail.aerobicZone.localized : L10n.WorkoutDetail.easyPace.localized,
-                percentage: easy,
-                color: .blue
-            )
-        }
-        if let marathon = zones.marathon {
-            ZoneRow(
-                title: isHeartRate ? L10n.WorkoutDetail.marathonZone.localized : L10n.WorkoutDetail.marathonPace.localized,
-                percentage: marathon,
-                color: .yellow
-            )
-        }
-        if let threshold = zones.threshold {
-            ZoneRow(
-                title: isHeartRate ? L10n.WorkoutDetail.thresholdZone.localized : L10n.WorkoutDetail.thresholdPace.localized,
-                percentage: threshold,
-                color: .orange
-            )
-        }
-        if let anaerobic = zones.anaerobic {
-            ZoneRow(
-                title: isHeartRate ? L10n.WorkoutDetail.anaerobicZone.localized : L10n.WorkoutDetail.anaerobicPace.localized,
-                percentage: anaerobic,
-                color: .purple
-            )
-        }
-        if let interval = zones.interval {
-            ZoneRow(
-                title: isHeartRate ? L10n.WorkoutDetail.intervalZone.localized : L10n.WorkoutDetail.intervalPace.localized,
-                percentage: interval,
-                color: .red
-            )
-        }
-    }
-    
     // MARK: - 載入和錯誤狀態
     
     private var loadingView: some View {
@@ -1385,14 +1191,10 @@ struct WorkoutDetailViewV2: View {
                     gaitAnalysisChartSection
                 }
                 
-                if let hrZones = viewModel.workout.advancedMetrics?.hrZoneDistribution,
-                   let paceZones = viewModel.workout.advancedMetrics?.paceZoneDistribution {
-                    combinedZoneDistributionCard(hrZones: convertToV2ZoneDistribution(hrZones), paceZones: convertToV2ZoneDistribution(paceZones))
-                } else if let hrZones = viewModel.workout.advancedMetrics?.hrZoneDistribution {
-                    heartRateZoneCard(convertToV2ZoneDistribution(hrZones))
-                } else if let paceZones = viewModel.workout.advancedMetrics?.paceZoneDistribution {
-                    paceZoneCard(convertToV2ZoneDistribution(paceZones))
-                }
+                ZoneDistributionChartView(
+                    hrZones: viewModel.workout.advancedMetrics?.hrZoneDistribution.map { convertToV2ZoneDistribution($0) },
+                    paceZones: viewModel.workout.advancedMetrics?.paceZoneDistribution.map { convertToV2ZoneDistribution($0) }
+                )
                 
                 if let laps = viewModel.workoutDetail?.laps, !laps.isEmpty {
                     LapAnalysisView(
@@ -1500,41 +1302,6 @@ struct DataItem: View {
     }
 }
 
-struct ZoneRow: View {
-    let title: String
-    let percentage: Double
-    let color: Color
-    
-    var body: some View {
-        HStack(spacing: 8) {
-            Text(title)
-                .font(AppFont.bodySmall())
-                .frame(minWidth: 60, maxWidth: 120, alignment: .leading)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-            
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Rectangle()
-                        .fill(Color.gray.opacity(0.2))
-                        .frame(height: 8)
-                        .cornerRadius(4)
-                    
-                    Rectangle()
-                        .fill(color)
-                        .frame(width: max(0, min(geometry.size.width, geometry.size.width * CGFloat(percentage / 100.0))), height: 8)
-                        .cornerRadius(4)
-                }
-            }
-            .frame(height: 8)
-            
-            Text(String(format: "%.1f%%", percentage))
-                .font(AppFont.caption())
-                .fontWeight(.medium)
-                .frame(width: 50, alignment: .trailing)
-        }
-    }
-}
 
 
 

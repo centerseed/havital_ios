@@ -209,6 +209,7 @@ struct App2WorkoutDetailView: View {
                             if hasGaitAnalysis { gaitAnalysisCard }
                         }
                     }
+                    zoneDistributionCard
                     lapAnalysisCard
                     section(L10n.App2.WorkoutDetail.recordSection.localized) {
                         recordActions(projection)
@@ -631,6 +632,47 @@ struct App2WorkoutDetailView: View {
         )
         .app2CardSurface(cornerRadius: 18)
         .accessibilityIdentifier("App2_WorkoutDetailGait")
+    }
+
+    // MARK: - 強度區間佔比（2026-09-02：補 1.4 既有的區間分佈）
+
+    /// **直接用 1.4 抽出來的 `ZoneDistributionChartView`，不做第二份區間圖。**
+    ///
+    /// 資料是 1.4 同一條路：`GET /v2/workouts/{id}` 的
+    /// `advanced_metrics.hr_zone_distribution`／`pace_zone_distribution`，由這一頁本來就在用的
+    /// `WorkoutDetailViewModelV2` 持有。設計 checklist §24 第 8 點的「更多數據 · 區間分佈」
+    /// 就是這一塊，位置在分圈之前。
+    ///
+    /// **兩組都缺席＝整塊不出現**（同（l）步態圖、（p）分圈的處置），只有一組時不畫切換。
+    private var hrZoneDistribution: V2ZoneDistribution? {
+        viewModel.workout.advancedMetrics?.hrZoneDistribution.map { V2ZoneDistribution(from: $0) }
+    }
+
+    private var paceZoneDistribution: V2ZoneDistribution? {
+        viewModel.workout.advancedMetrics?.paceZoneDistribution.map { V2ZoneDistribution(from: $0) }
+    }
+
+    @ViewBuilder
+    private var zoneDistributionCard: some View {
+        if hrZoneDistribution != nil || paceZoneDistribution != nil {
+            // 標題字型與卡面交給 App2（同步態圖、分圈的處置），長條與百分比本體不動。
+            ZoneDistributionChartView(
+                hrZones: hrZoneDistribution,
+                paceZones: paceZoneDistribution,
+                titleFont: .system(size: 15, weight: .black),
+                titleColor: App2Theme.inkPrimary,
+                drawsContainer: false,
+                labelFont: .system(size: 12, weight: .semibold),
+                labelColor: App2Theme.inkSecondary,
+                valueFont: .app2Mono(12, weight: .bold),
+                valueColor: App2Theme.inkPrimary,
+                trackColor: App2Theme.neutralFill,
+                palette: .app2,
+                barHeight: 9
+            )
+            .app2CardSurface(cornerRadius: 18)
+            .accessibilityIdentifier("App2_WorkoutDetailZones")
+        }
     }
 
     // MARK: - 分圈（2026-08-27（p）：補 1.4 既有的分圈列表）
@@ -1122,4 +1164,18 @@ struct App2ActionPanel<Content: View>: View {
         )
         .shadow(color: App2Theme.shadowInk.opacity(0.25), radius: 24, x: 0, y: -8)
     }
+}
+
+// MARK: - 區間色（2.0）
+
+private extension ZoneDistributionChartView.Palette {
+    /// 2.0 的六個區間色。色值本身在 `App2Theme`，這裡只做對位。
+    static let app2 = ZoneDistributionChartView.Palette(
+        recovery: App2Theme.zoneRecovery,
+        aerobic: App2Theme.zoneAerobic,
+        marathon: App2Theme.zoneMarathon,
+        threshold: App2Theme.zoneThreshold,
+        anaerobic: App2Theme.zoneAnaerobic,
+        interval: App2Theme.zoneInterval
+    )
 }
