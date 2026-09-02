@@ -18,11 +18,6 @@ enum App2SettingsDestination: String, Identifiable {
     #endif
 
     var id: String { rawValue }
-
-    /// 這一頁自帶 `NavigationStack` ＋ toolbar 返回鈕（1.4 既有頁，2.0 不重做一份）。
-    /// push 時不能連系統 navigation bar 一起藏，否則那顆鈕跟著消失、整頁退不出來
-    /// （2026-09-02 實機回報「熱適應點進去就沒有上一步按鈕」）。
-    var usesOwnNavigationChrome: Bool { self == .climate }
 }
 
 // MARK: - App2SettingsView
@@ -134,12 +129,8 @@ struct App2SettingsView: View {
         .navigationDestination(item: $destination) { destination in
             // `onClose` 仍是把 `destination` 設回 nil —— 綁定回 nil 即 pop，
             // 子頁的關閉語意不用重寫。
-            if destination.usesOwnNavigationChrome {
-                subpage(destination)
-            } else {
-                subpage(destination)
-                    .toolbar(.hidden, for: .navigationBar)
-            }
+            subpage(destination)
+                .toolbar(.hidden, for: .navigationBar)
         }
         .toolbar(.hidden, for: .navigationBar)
         // 隱藏 nav bar 會讓 UIKit 一併停掉邊緣滑回手勢；只把這一個堆疊的 delegate 接回來。
@@ -184,8 +175,7 @@ struct App2SettingsView: View {
         case .deleteAccount:
             App2DeleteAccountView(onClose: dismiss, viewModel: viewModel)
         case .climate:
-            // 1.4 既有頁，不在 2.0 重做一份。
-            ClimateSettingsView()
+            App2ClimateSettingsView(onClose: dismiss)
         case .reonboarding:
             // 「重設目標」走 2.0 版面的 onboarding，底下仍是 `OnboardingCoordinator`。
             App2OnboardingContainerView(isReonboarding: true, onFinished: dismiss, onCancel: dismiss)
