@@ -222,7 +222,8 @@ struct DateFormatterHelper {
             return String(format: NSLocalizedString("date.days_ago", bundle: bundle, comment: "%d 天前"), days)
         }
 
-        return formatDateTime(date)
+        // 只有日期，不帶 HH:mm（2026-09-02 裁決）。
+        return formatter(dateFormat: "yyyy/MM/dd").string(from: date)
     }
 
     /// Returns Calendar.current with the user's preferred timezone applied if set.
