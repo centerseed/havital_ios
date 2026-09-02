@@ -60,3 +60,7 @@ Package.resolved
 fastlane/.env.default
 fastlane/report.xml
 fastlane/README.md
+
+# 測試執行產物：`Scripts/test.sh` 每跑一次就重寫，被追蹤時每次 deliver 都會被
+# 「uncommitted change」擋下（2026-09-02 連擋三次）。
+test_output.log
