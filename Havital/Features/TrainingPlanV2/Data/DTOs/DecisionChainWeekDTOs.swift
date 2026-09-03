@@ -1,9 +1,12 @@
 import Foundation
 
 // MARK: - 值（`current` / `proposed` / `adjusted_value`）
-/// 後端這三欄是 `StrictInt | StrictFloat | StrictStr | null`
-/// （`cloud/api_service/api/v2/decision_chain.py:71`），所以 DTO 這一層照 JSON
-/// 的型別收，**不在解碼時就把它壓成一種**。
+/// 型別註記寫的是 `StrictInt | StrictFloat | StrictStr | null`
+/// （`cloud/api_service/api/v2/decision_chain.py:71`），但**實際會收到陣列**：
+/// Rizo 記下的條目（`source == "rizo"`）帶的是
+/// `{"field":"blocked_day_indices","proposed":[3]}`（dev 2026-09-03 實測）。
+/// 所以 DTO 這一層照 JSON 的型別收，**不在解碼時就把它壓成一種**，
+/// 也不對認不得的形狀丟錯——丟錯的代價是整張清單消失。
 struct DecisionChainValueDTO: Codable, Equatable {
     let value: DecisionChainValue
 
@@ -21,10 +24,13 @@ struct DecisionChainValueDTO: Codable, Equatable {
             value = .double(doubleValue)
         } else if let stringValue = try? container.decode(String.self) {
             value = .text(stringValue)
+        } else if let listValue = try? container.decode([DecisionChainValueDTO].self) {
+            // 陣列（`blocked_day_indices` 的 `[3]`）。內容不解讀，原樣收。
+            value = .list(listValue.map(\.value))
         } else {
             throw DecodingError.dataCorruptedError(
                 in: container,
-                debugDescription: "checklist value must be a number or a string"
+                debugDescription: "checklist value must be a number, a string, or an array"
             )
         }
     }
@@ -35,6 +41,7 @@ struct DecisionChainValueDTO: Codable, Equatable {
         case .int(let intValue):       try container.encode(intValue)
         case .double(let doubleValue): try container.encode(doubleValue)
         case .text(let stringValue):   try container.encode(stringValue)
+        case .list(let values):        try container.encode(values.map(DecisionChainValueDTO.init))
         }
     }
 }
@@ -58,11 +65,18 @@ struct DecisionChainChecklistItemDTO: Codable {
     }
 }
 
+/// **`items` 是必填**（不是 `?`）。全欄可選的 DTO 會被
+/// `ResponseProcessor.extractData` 的第四次嘗試（`parser.tryParse(T.self, from: rawData)`，
+/// `Havital/Services/Core/UnifiedAPIResponse.swift:319`）拿**外層信封**
+/// `{"success":…,"data":…}` 解成一份「每一欄都是 nil」的清單——真正的解碼失敗
+/// 於是變成一張空清單（畫面顯示「這一輪沒有要改的」），而不是 fail-open 回既有路徑。
+/// 2026-09-03 的 `blocked_day_indices: [3]` 就是這樣把使用者已經答過的條目吃掉的。
+/// `items` 必填 ⇒ 信封解不成 ⇒ 解碼失敗照實丟出去。
 struct DecisionChainChecklistDTO: Codable {
     let asOf: String?
     let intentRevision: String?
     let intentLifecycle: String?
-    let items: [DecisionChainChecklistItemDTO]?
+    let items: [DecisionChainChecklistItemDTO]
 
     enum CodingKeys: String, CodingKey {
         case asOf = "as_of"
@@ -148,7 +162,7 @@ enum DecisionChainWeekMapper {
             asOf: dto.asOf ?? asOf,
             intentRevision: dto.intentRevision,
             intentLifecycle: dto.intentLifecycle,
-            items: (dto.items ?? []).map(toEntity)
+            items: dto.items.map(toEntity)
         )
     }
 

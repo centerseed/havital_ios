@@ -76,6 +76,7 @@ Given 使用者位於規劃下週分頁且 `nextWeekAction == .generate(week)`�
 When 分頁載入，
 Then 系統必須呼叫 `POST /v2/decision-chain/week/{as_of}/run?week_of_training={week}`（`as_of` ＝ 使用者當地今天；時區權威是 `/v2/plan/status` 的 `metadata.user_timezone`，不看裝置時區），與 `/v2/summary/weekly` 生成並行，期間規劃分頁顯示生成中區塊（AC-TRAIN-HUB-11 同形態）；`generated` 與 `already_exists` 皆視為成功。
 And Then 成功後必須讀 `GET /v2/decision-chain/week/{as_of}/checklist`，把 `items[]` 畫成一張清單，每條顯示後端翻好的 `title` 與 `reason`（app 不重組也不解讀旋鈕），並提供**逐條**三個動作：接受（`accepted`）、不要（`declined`）、調整（`adjusted`）。「調整」只在該條的 `proposed` 是數值時提供，值由既有輪盤 sheet 選；離散代號（如 `rest_ratio`、`recovery_kind`）只有接受／不要。點下去即送 `POST /v2/decision-chain/week/{as_of}/checklist/{item_id}`，UI 以回應的 `item.status` 為準；送不出去時該條必須退回原狀並提示，不得靜默當成已接受。沒點的條目維持 `proposed` ＝不生效。`items[]` 為空是合法狀態，不得當成失敗。
+And Then 清單一條的 `current`／`proposed`／`adjusted_value` 可以是數、字串或陣列（例如 Rizo 記下「下週三不跑」那一條的 `proposed` 是 `[3]`）；app 一律照原樣收、照原樣送回去，**不解讀內容**，認不得的形狀不得讓整張清單消失。非數值的條目不提供「調整」。
 And Then 清單頂端必須顯示 `GET /v2/decision-chain/intent/active` 的**唯讀說明**：`expression.pursuing`、`expression.rationale`；`expression.maintaining`／`abandoning` 非 null 才顯示該列；其後列 `hypotheses[]` 的 `intervention.description`／`prediction.description`。`data == null` 時不畫說明區。**這一區沒有任何動作按鈕**——接受與否只在清單上逐條做，app 不呼 `POST .../intent/{revision}/confirm`（意圖 lifecycle 由清單推導）。
 And Then 同一分頁**不得並列 apply-items 建議清單**；走 decision-chain 時產生課表 CTA 直接呼 `POST /v2/plan/weekly`，**不呼 apply-items**，且不得因清單還沒答完而停用。
 And Then 分頁底部的 Rizo 討論入口維持既有 `weekly_situation` 情境；Rizo 回覆結束後必須重讀 checklist（Rizo 記下的修正會以清單上新的一條回來）。

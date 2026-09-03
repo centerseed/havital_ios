@@ -23,22 +23,27 @@ enum DecisionChainValue: Equatable {
     case int(Int)
     case double(Double)
     case text(String)
+    /// 陣列值。**實測有**（dev 2026-09-03，Rizo 記下「下週三不跑」後清單多一條
+    /// `rizo.blocked_day_indices` 的 `proposed: [3]`）；只收 Int／Double／String 會讓
+    /// **整張清單**解不開，使用者已經答過的條目一起消失。app 不解讀它的內容，
+    /// 照原樣收、照原樣送回去。
+    indirect case list([DecisionChainValue])
 
     /// 這一條可不可以「調整」。**判準是這一條自己的值是不是數**，不是欄位名字——
     /// 用欄位名列白名單等於在 app 這一層重寫一份旋鈕語意（設計 §4.1「app 不解讀旋鈕」）。
     var isNumeric: Bool {
         switch self {
         case .int, .double: return true
-        case .text:         return false
+        case .text, .list:  return false
         }
     }
 
-    /// 數值形態（`text` 回 nil）。輪盤只吃得下數。
+    /// 數值形態（`text`／`list` 回 nil）。輪盤只吃得下數。
     var numericValue: Double? {
         switch self {
         case .int(let value):    return Double(value)
         case .double(let value): return value
-        case .text:              return nil
+        case .text, .list:       return nil
         }
     }
 

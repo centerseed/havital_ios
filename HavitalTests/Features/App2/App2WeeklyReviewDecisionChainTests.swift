@@ -318,7 +318,10 @@ final class App2WeeklyReviewDecisionChainTests: XCTestCase {
         {"item_id":"knob.rest_ratio@2026-09-03","source":"intent_knob","field":"rest_ratio",
          "current":null,"proposed":"1:1","title":"C","reason":"D","status":"proposed"},
         {"item_id":"knob.interval_reps@2026-09-03","source":"intent_knob","field":"interval_reps",
-         "current":null,"proposed":14,"title":"E","reason":"F","status":"proposed"}]}}
+         "current":null,"proposed":14,"title":"E","reason":"F","status":"proposed"},
+        {"item_id":"rizo.blocked_day_indices@2026-09-03","source":"rizo","field":"blocked_day_indices",
+         "current":null,"proposed":[3],"title":"No running on Wednesday",
+         "reason":"I've noted that you cannot run next Wednesday.","status":"accepted"}]}}
         """.utf8)
 
         let dto = try ResponseProcessor.extractData(
@@ -329,7 +332,7 @@ final class App2WeeklyReviewDecisionChainTests: XCTestCase {
         let checklist = DecisionChainWeekMapper.toEntity(dto, asOf: "2026-09-03")
 
         XCTAssertEqual(checklist.intentLifecycle, "proposed")
-        XCTAssertEqual(checklist.items.count, 3)
+        XCTAssertEqual(checklist.items.count, 4)
         // `JSONDecoder` 分不出 `15.0` 與 `15`——整數值一律落 `.int`，
         // 送回去的 `adjusted_value` 因此不會平白多一個小數點。
         XCTAssertEqual(checklist.items[0].proposed, .int(15))
@@ -338,8 +341,58 @@ final class App2WeeklyReviewDecisionChainTests: XCTestCase {
         XCTAssertNil(checklist.items[1].current)
         // 整數要留成整數：`adjusted_value` 原樣送回去時 `14.0` 是換了型別。
         XCTAssertEqual(checklist.items[2].proposed, .int(14))
+        // Rizo 記下的那一條帶的是陣列（dev 2026-09-03 實測 `proposed: [3]`）。
+        // 只收數與字串的話這裡會丟 `dataCorrupted`，**整張清單**（含前面三條使用者
+        // 已經答過的）一起消失。
+        XCTAssertEqual(checklist.items[3].source, .rizo)
+        XCTAssertEqual(checklist.items[3].proposed, .list([.int(3)]))
+        XCTAssertEqual(checklist.items[3].status, .accepted)
         XCTAssertTrue(checklist.items[0].allowsAdjust)
         XCTAssertFalse(checklist.items[1].allowsAdjust)
+    }
+
+    /// 陣列值沒有輪盤可以轉：`allowsAdjust` 必須是 false，畫面上不給「調整」。
+    func test_listValueIsNotAdjustable() throws {
+        let raw = Data("""
+        {"success":true,"data":{"as_of":"2026-09-03","intent_revision":"intent/2026-09-03",
+        "intent_lifecycle":"active","items":[
+        {"item_id":"rizo.blocked_day_indices@2026-09-03","source":"rizo","field":"blocked_day_indices",
+         "current":null,"proposed":[3],"title":"T","reason":"R","status":"accepted"}]}}
+        """.utf8)
+
+        let checklist = DecisionChainWeekMapper.toEntity(
+            try ResponseProcessor.extractData(
+                DecisionChainChecklistDTO.self,
+                from: raw,
+                using: DefaultAPIParser.shared
+            ),
+            asOf: "2026-09-03"
+        )
+
+        let item = try XCTUnwrap(checklist.items.first)
+        XCTAssertFalse(item.allowsAdjust)
+        XCTAssertFalse(try XCTUnwrap(item.proposed).isNumeric)
+        XCTAssertNil(try XCTUnwrap(item.proposed).numericValue)
+    }
+
+    /// 解碼失敗必須**丟出來**（→ fail-open 回既有路徑），不得靜默變成一張空清單。
+    /// `DecisionChainChecklistDTO` 全欄可選時，`extractData` 的第四次嘗試會拿外層
+    /// 信封解成「每一欄都是 nil」的清單，使用者已經答過的條目就這樣消失。
+    func test_undecodableChecklistValueThrowsInsteadOfEmptyList() {
+        let raw = Data("""
+        {"success":true,"data":{"as_of":"2026-09-03","intent_revision":null,
+        "intent_lifecycle":"active","items":[
+        {"item_id":"x@2026-09-03","source":"rizo","field":"f",
+         "current":null,"proposed":{"unexpected":"object"},"title":"T","reason":"R","status":"proposed"}]}}
+        """.utf8)
+
+        XCTAssertThrowsError(
+            try ResponseProcessor.extractData(
+                DecisionChainChecklistDTO.self,
+                from: raw,
+                using: DefaultAPIParser.shared
+            )
+        )
     }
 
     func test_decodesRealDevIntentCardPayload() throws {
