@@ -382,6 +382,23 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         )
     }
 
+    /// 規劃分頁與主 CTA 不得整個掛在 `projection` 上（T-0405 外審 E03）：
+    /// 第 1 週的使用者被送進第 0 週的回顧，那一週永遠沒有 `projection`。
+    func test_weeklyReviewView_planSurfacesDoNotRequireAReview() throws {
+        let source = try Self.weeklyReviewViewSource()
+
+        XCTAssertTrue(
+            source.contains(
+                "if activeTab == .plan, viewModel.projection != nil || showsPlanTabWithoutReview {"
+            ),
+            "主 CTA 的閘門要放行「沒有回顧但產得出來」那一格"
+        )
+        XCTAssertTrue(
+            source.contains("} else if activeTab == .plan, showsPlanTabWithoutReview {"),
+            "內容區同樣要放行——只留 CTA 而不畫分頁等於一顆孤兒按鈕"
+        )
+    }
+
     // MARK: - 歷史週不得出現「規劃下週」（T-0372，2026-09-01 使用者裁決）
 
     /// 使用者原話：「我看歷史的週回顧為什麼還會有下週規劃，到底在搞什麼東西啊」
@@ -399,7 +416,7 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
             "「繼續 → 規劃第 N 週」唯一的作用是切到規劃分頁，那一頁收掉它就要跟著收"
         )
         XCTAssertTrue(
-            source.contains("if activeTab == .plan, viewModel.projection != nil {"),
+            source.contains("if activeTab == .plan, viewModel.projection != nil"),
             "主 CTA 要看 `activeTab`——`tab` 的殘值不得把畫面帶進一個不存在的分頁"
         )
         XCTAssertTrue(

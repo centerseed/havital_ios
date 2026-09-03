@@ -104,6 +104,37 @@ struct App2WeeklyReviewView: View {
     /// 實際要畫哪一個分頁。規劃分頁收掉時 `tab` 的殘值不得把畫面帶進一個不存在的分頁。
     private var activeTab: Tab { showsPlanTab ? tab : .review }
 
+    // MARK: - 沒有回顧內容時的規劃分頁（T-0405 外審 E03）
+    //
+    // 這一頁的內容區與主 CTA 原本整個掛在 `projection` 上——回顧載進來了才畫。
+    // 平日流程沒事（回顧的是已完成的上一週），**第 1 週的使用者會死在這裡**：
+    // `current_week == 1` 沒有上一週可回顧，課表頁的主鈕把他們送進第 0 週的回顧，
+    // 而第 0 週不存在、也不在產生視窗內（`isGenerationWindowOpen` 平日要 `current ≥ 2`），
+    // `projection` 永遠是 nil ⇒ 規劃分頁與產生 CTA 一個都不畫。T-0405 之前那顆鈕
+    // 是他們唯一的產生出口，掛掉就是零出口。
+    //
+    // 判準只看**這一頁能不能產生**，與回顧有沒有內容無關——同 AC-TRAIN-HUB-10
+    // 「無建議項不得成為零出口」的那條理由。
+
+    /// 沒有回顧內容時，規劃分頁與它的主 CTA 仍要畫嗎。
+    nonisolated static func showsPlanTabWithoutReview(
+        hasProjection: Bool,
+        showsPlanTab: Bool,
+        nextWeekAction: App2WeeklyReviewViewModel.NextWeekAction
+    ) -> Bool {
+        guard !hasProjection, showsPlanTab else { return false }
+        if case .generate = nextWeekAction { return true }
+        return false
+    }
+
+    private var showsPlanTabWithoutReview: Bool {
+        Self.showsPlanTabWithoutReview(
+            hasProjection: viewModel.projection != nil,
+            showsPlanTab: showsPlanTab,
+            nextWeekAction: viewModel.nextWeekAction
+        )
+    }
+
     private func tabTitle(_ item: Tab) -> String {
         switch item {
         case .review:
@@ -160,7 +191,7 @@ struct App2WeeklyReviewView: View {
 
             // 主 CTA 只在規劃分頁出現 —— 回顧分頁沒有可套用／可產生的東西。
             // 形態由 `nextWeekAction` 決定（唯讀與「沒有出口」時整條不出現）。
-            if activeTab == .plan, viewModel.projection != nil {
+            if activeTab == .plan, viewModel.projection != nil || showsPlanTabWithoutReview {
                 planFooter
             }
         }
@@ -285,19 +316,28 @@ struct App2WeeklyReviewView: View {
 
     // MARK: - 內容
 
+    /// 內容區的捲動殼。**只有一份**——有回顧與沒回顧兩條分支畫的是同一個容器，
+    /// 各寫一次遲早只改一邊。
+    private func contentScroll<Body: View>(@ViewBuilder _ body: () -> Body) -> some View {
+        ScrollView {
+            VStack(spacing: 14) { body() }
+                .padding(.horizontal, App2Theme.pagePadding)
+                .padding(.vertical, 14)
+        }
+    }
+
     @ViewBuilder
     private var content: some View {
         if let projection = viewModel.projection {
-            ScrollView {
-                VStack(spacing: 14) {
-                    switch activeTab {
-                    case .review: reviewTab(projection)
-                    case .plan:   planTab(projection)
-                    }
+            contentScroll {
+                switch activeTab {
+                case .review: reviewTab(projection)
+                case .plan:   planTab(projection)
                 }
-                .padding(.horizontal, App2Theme.pagePadding)
-                .padding(.vertical, 14)
             }
+        } else if activeTab == .plan, showsPlanTabWithoutReview {
+            // 回顧沒有內容，但這一週產得出來——規劃分頁照畫（見上方 E03 的說明）。
+            contentScroll { planTab(nil) }
         } else if Self.showsGeneratingAnimation(
             hasProjection: viewModel.projection != nil,
             isLoading: viewModel.isLoading
@@ -541,7 +581,7 @@ struct App2WeeklyReviewView: View {
     /// 或 AC-TRAIN-HUB-10 的既有 apply-items 建議清單。**同一分頁不並列兩份**
     /// （`AGENTS.md` 鐵則 0），所以這裡是 switch 不是兩段疊加。
     @ViewBuilder
-    private func planTab(_ projection: App2WeeklyReviewProjection) -> some View {
+    private func planTab(_ projection: App2WeeklyReviewProjection?) -> some View {
         switch viewModel.decisionChain {
         case .running:
             // `run` 也是數十秒的 LLM——沿用 AC-TRAIN-HUB-11 的生成中形態，
@@ -555,7 +595,13 @@ struct App2WeeklyReviewView: View {
         case .ready(let checklist, let card):
             decisionChainTab(checklist: checklist, card: card)
         case .idle, .unavailable:
-            legacyPlanTab(projection)
+            if let projection {
+                legacyPlanTab(projection)
+            } else {
+                // 沒有回顧就沒有 apply-items 建議可列——這與「這一輪沒有建議」是同一個
+                // 畫面，不是失敗態（AC-TRAIN-HUB-10：無建議項不得成為零出口）。
+                noSuggestionsCard
+            }
         }
         // 建議清單只讓使用者對後端提的項目按接受／略過；**說出自己下週的狀況**沒有出口
         // （8/28 盤點 F15：Android 這一頁底下一直有這一區，iOS 沒有）。
@@ -791,13 +837,7 @@ struct App2WeeklyReviewView: View {
     private func legacyPlanTab(_ projection: App2WeeklyReviewProjection) -> some View {
         verdictCard(projection)
         if projection.suggestions.isEmpty {
-            App2Card(padding: 15, spacing: 6) {
-                Text(L10n.App2.WeeklyReview.noSuggestions.localized)
-                    .font(.app2Body)
-                    .foregroundStyle(App2Theme.inkTertiary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .accessibilityIdentifier("App2_WeeklyReviewNoSuggestions")
+            noSuggestionsCard
         } else {
             section(
                 String(
@@ -812,6 +852,16 @@ struct App2WeeklyReviewView: View {
                 }
             }
         }
+    }
+
+    private var noSuggestionsCard: some View {
+        App2Card(padding: 15, spacing: 6) {
+            Text(L10n.App2.WeeklyReview.noSuggestions.localized)
+                .font(.app2Body)
+                .foregroundStyle(App2Theme.inkTertiary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityIdentifier("App2_WeeklyReviewNoSuggestions")
     }
 
     /// 內容區要不要畫「正在生成」的動畫（AC-TRAIN-HUB-11）。

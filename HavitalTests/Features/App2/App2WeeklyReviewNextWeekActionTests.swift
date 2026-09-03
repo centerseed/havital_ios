@@ -340,4 +340,77 @@ final class App2WeeklyReviewNextWeekActionTests: XCTestCase {
     func testMissingPlanStatusKeepsPlanTab() {
         XCTAssertTrue(showsPlanTab(reviewWeek: 3, currentWeek: nil))
     }
+
+    // MARK: - 第 1 週：沒有回顧內容也要產得出來（T-0405 外審 E03）
+    //
+    // `current_week == 1` 沒有上一週可回顧，課表頁的主鈕送進第 0 週的回顧。
+    // 第 0 週不存在、也不在產生視窗內，`projection` 永遠是 nil；規劃分頁與主 CTA
+    // 若掛在 `projection` 上，這些人一個產生出口都沒有——T-0405 之前那顆直接產生的鈕
+    // 正是他們唯一的出口，刪掉就是零出口。
+
+    /// 第 0 週的回顧仍然判得出「可以產生第 1 週」。
+    func testFirstWeekReviewStillGeneratesWeekOne() {
+        let result = action(
+            reviewWeek: 0,
+            status: status(currentWeek: 1, nextAction: "create_plan", currentWeekPlanId: nil),
+            hasSuggestions: false
+        )
+        XCTAssertEqual(result, .generate(week: 1))
+    }
+
+    /// 第 0 週的回顧產不出來（平日視窗要 `current ≥ 2`）——所以 `projection` 一定是 nil，
+    /// 這正是下一條要擋的情境。
+    func testWeekZeroReviewIsOutsideGenerationWindow() {
+        XCTAssertFalse(
+            App2WeeklyReviewViewModel.isGenerationWindowOpen(
+                reviewWeek: 0,
+                planStatus: status(currentWeek: 1, nextAction: "create_plan", currentWeekPlanId: nil),
+                isSunday: false
+            )
+        )
+    }
+
+    /// 沒有回顧內容 ＋ 可以產生 ⇒ 規劃分頁與主 CTA 照畫。
+    func testPlanTabSurvivesMissingReview() {
+        XCTAssertTrue(
+            App2WeeklyReviewView.showsPlanTabWithoutReview(
+                hasProjection: false,
+                showsPlanTab: true,
+                nextWeekAction: .generate(week: 1)
+            )
+        )
+    }
+
+    /// 產不出來時不畫——沒有回顧、也沒有出口的那一頁不該多出一顆按不動的鈕。
+    func testPlanTabWithoutReviewNeedsAGenerateAction() {
+        for action in [
+            App2WeeklyReviewViewModel.NextWeekAction.applyOnly,
+            .none
+        ] {
+            XCTAssertFalse(
+                App2WeeklyReviewView.showsPlanTabWithoutReview(
+                    hasProjection: false,
+                    showsPlanTab: true,
+                    nextWeekAction: action
+                ),
+                "\(action) 不是產生態"
+            )
+        }
+        XCTAssertFalse(
+            App2WeeklyReviewView.showsPlanTabWithoutReview(
+                hasProjection: false,
+                showsPlanTab: false,
+                nextWeekAction: .generate(week: 1)
+            ),
+            "規劃分頁本身被收掉（歷史週唯讀）時不得從這條路回來"
+        )
+        XCTAssertFalse(
+            App2WeeklyReviewView.showsPlanTabWithoutReview(
+                hasProjection: true,
+                showsPlanTab: true,
+                nextWeekAction: .generate(week: 1)
+            ),
+            "有回顧內容時走的是既有那條，不是這條"
+        )
+    }
 }
