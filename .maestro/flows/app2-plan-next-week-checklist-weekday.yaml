@@ -1,0 +1,151 @@
+# T-0383 · 平日版：走到底（含「產生課表」）的 decision-chain 逐條清單實走
+# （AC-TRAIN-HUB-12）。與 `app2-plan-next-week-checklist.yaml` 的差別有兩個：
+#
+# 1. **入口**。首頁的週回顧時機卡在平日、且上週回顧已存在時依 2026-09-01 裁決不出，
+#    所以先用 Developer → Weekly Review Dev Tools 的
+#    `Generate previous week (weekday)` 把卡逼出來。那個開關只改首頁卡怎麼畫，
+#    點下去仍然開真資料（`App2WeeklyReviewDevView:170`）。
+# 2. **走到底**。這一支按下「產生課表」，驗的是「清單上的答案有沒有進到課表」——
+#    Rizo 記下的「下週三不跑」被接受之後，生成出來的那一週週三必須沒有跑步。
+#
+# 這台模擬器上是**使用者本人手動 SSO 的創辦人 dev 帳號**：`clearState: false`、
+# 不帶任何 `-ui_testing_*` 旗標、不跑 logout 子流程。
+#
+# 前置（後端狀態，不是 app 操作）：目標週**還沒有課表**（`GET /v2/plan/status` 的
+# `current_week_plan_id == null`）。有課表時 `nextWeekAction` 不是 `.generate`，
+# `run` 不會發，這一支必然停在既有（apply-items）路徑。
+appId: com.havital.Havital.dev
+tags:
+  - app2
+  - decision-chain
+---
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- extendedWaitUntil:
+    visible:
+      id: "App2_HomeView"
+    timeout: 60000
+
+# --- 走查開關：把平日不出現的週回顧入口逼出來 ---
+- scrollUntilVisible:
+    element:
+      id: "App2_HomeMenu"
+    direction: UP
+    timeout: 8000
+- tapOn:
+    id: "App2_HomeMenu"
+- tapOn:
+    text: "Profile"
+    optional: true
+- tapOn:
+    text: "個人資料"
+    optional: true
+- assertVisible:
+    id: "App2_SettingsView"
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsWeeklyReviewDev"
+    direction: DOWN
+    timeout: 12000
+- tapOn:
+    id: "App2_SettingsWeeklyReviewDev"
+- tapOn:
+    id: "App2_DevWeekReviewOverride_generatePreviousWeek"
+- tapOn:
+    id: "App2_WeeklyReviewDevBack"
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsClose"
+    direction: UP
+    timeout: 12000
+- tapOn:
+    id: "App2_SettingsClose"
+- extendedWaitUntil:
+    visible:
+      id: "App2_HomeView"
+    timeout: 20000
+
+- scrollUntilVisible:
+    element:
+      id: "App2_WeekReviewEntry"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0383/w01-home-week-review-cta
+- tapOn:
+    id: "App2_WeekReviewEntry"
+- extendedWaitUntil:
+    visible:
+      id: "App2_WeeklyReviewView"
+    timeout: 60000
+
+# --- 規劃下週分頁：進頁即發 `POST …/run`（真 LLM） ---
+- tapOn:
+    id: "App2_WeeklyReviewTab_plan"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0383/w02-plan-tab-generating
+- extendedWaitUntil:
+    notVisible:
+      id: "App2_WeeklyReviewPlanGenerating"
+    timeout: 180000
+
+- assertVisible:
+    id: "App2_WeeklyReviewIntentCard"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0383/w03-checklist
+
+# L0 旋鈕條（有的話）：接受。**按的是 Accept 那一顆自己的 id**——容器沒有
+# `.accessibilityElement(children: .contain)` 時，SwiftUI 會把整條的 identifier
+# 套到所有子元素上，這三顆鈕的 id 一個都看不到（2026-09-03 修）。
+#
+# **optional**：那一輪 L0 一顆旋鈕都沒轉時 `items[]` 是空的，畫面正確地顯示
+# `App2_WeeklyReviewPlanningEmpty`（AC-TRAIN-HUB-12「空是合法狀態」）。這一支真正
+# 要釘的是下面 Rizo 那一條——它帶的是陣列值，才是 2026-09-03 那個缺陷的形狀。
+- tapOn:
+    id: "App2_WeeklyReviewChecklistAccept_.*"
+    index: 0
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "App2_WeeklyReviewChecklistItem_.*_accepted"
+    timeout: 30000
+    optional: true
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0383/w04-first-item-accepted
+
+# --- Rizo：一句話 → 清單上多一條 `blocked_day_indices` ---
+- scrollUntilVisible:
+    element:
+      id: "App2_WeeklyReviewDiscussInput"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "App2_WeeklyReviewDiscussInput"
+- inputText: "下週三有事不能跑"
+- tapOn:
+    id: "App2_WeeklyReviewDiscussSend"
+- extendedWaitUntil:
+    visible:
+      id: "App2_WeeklyReviewDiscussReply"
+    timeout: 180000
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0383/w05-rizo-reply
+
+# Rizo 記下的那一條回來就是清單上 accepted 的一條（`proposed: [3]`，陣列值）。
+- scrollUntilVisible:
+    element:
+      id: "App2_WeeklyReviewChecklistItem_blocked_day_indices_accepted"
+    direction: UP
+    timeout: 30000
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0383/w06-rizo-item-on-checklist
+
+# --- 產生課表：走完就退回首頁 ---
+- scrollUntilVisible:
+    element:
+      id: "App2_WeeklyReviewGeneratePlan"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "App2_WeeklyReviewGeneratePlan"
+- extendedWaitUntil:
+    visible:
+      id: "App2_HomeView"
+    timeout: 300000
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0383/w07-plan-generated

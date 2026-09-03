@@ -655,6 +655,9 @@ struct App2WeeklyReviewView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
+        // 同清單一條：容器自己是一個元素，否則這張卡的每一行文字都叫
+        // `App2_WeeklyReviewIntentCard`（實測 5 個）。
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("App2_WeeklyReviewIntentCard")
     }
 
@@ -731,6 +734,11 @@ struct App2WeeklyReviewView: View {
             .disabled(isReadOnly || isPending)
             .opacity((isReadOnly || isPending) ? 0.55 : 1)
         }
+        // **容器自己是一個元素，子元素保留各自的 id。** 沒有這一行，SwiftUI 會把容器的
+        // identifier 套到每一個子元素上（2026-09-03 實測：`maestro hierarchy` 8 個元素
+        // 全叫 `App2_WeeklyReviewChecklistItem_…`，Accept／Decline／Adjust 三顆的 id
+        // 一個都看不到），自動化按不到任何一顆按鈕。
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier(
             Self.checklistItemIdentifier(field: item.field, status: item.status)
         )
@@ -882,6 +890,9 @@ struct App2WeeklyReviewView: View {
                         .accessibilityIdentifier("App2_WeeklyReviewDiscussSend")
                 }
             }
+            // 同上：不加這一行，`DiscussInput`／`DiscussSend`／`DiscussReply` 的 id
+            // 會被容器的 `App2_WeeklyReviewDiscuss` 蓋掉。
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("App2_WeeklyReviewDiscuss")
         }
     }
