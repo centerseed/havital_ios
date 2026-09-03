@@ -4510,8 +4510,6 @@
 "app2.plan.title" = "プラン";
 "app2.plan.no_plan_body" = "今週のプランはまだ生成されていません。";
 "app2.plan.generate_week" = "今週のプランを作成";
-"app2.plan.generating_week" = "作成中…";
-"app2.plan.generate_failed" = "今週のプランを作成できませんでした";
 "app2.plan.complete_review_first" = "先に週次レビューを完了";
 "app2.plan.open_weekly_review" = "この週のレビューを見る";
 "app2.plan.volume_title" = "今週の走行距離";

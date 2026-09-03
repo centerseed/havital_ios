@@ -10,6 +10,9 @@ struct App2WeeklyReviewTarget: Identifiable, Equatable {
     /// 目標週是不是本週。非本週時分頁與套用鈕改用「第 N 週」措辭（dev QA D2：
     /// 對上週的回顧寫「回顧本週」）。預設 false——說錯週次比說錯「本週」輕。
     var isCurrentWeek: Bool = false
+    /// 開頁就停在「規劃下週」分頁（T-0405，2026-09-03 裁決）。課表頁的未產生態主鈕
+    /// 走這一格：使用者按的是「產生課表」，落點該是那條清單，不是回顧。
+    var startsOnPlanTab: Bool = false
     var id: Int { weekOfPlan }
 }
 
@@ -37,7 +40,10 @@ struct App2WeeklyReviewView: View {
     private let weekOfPlan: Int
     private let isCurrentWeek: Bool
 
-    @State private var tab: Tab = .review
+    /// 開頁停在哪個分頁。預設回顧；課表頁的未產生態主鈕帶 `startsOnPlanTab: true`
+    /// 直接落在規劃分頁（T-0405）。**規劃分頁被 `showsPlanTab` 收掉時
+    /// `activeTab` 會把畫面拉回回顧**，所以這個初值不會把人送進不存在的分頁。
+    @State private var tab: Tab
 
     /// 正在調整值的那一條（`sheet(item:)` 要 `Identifiable`，清單條目本來就是）。
     @State private var adjustingItem: DecisionChainChecklistItem?
@@ -115,12 +121,14 @@ struct App2WeeklyReviewView: View {
         weekOfPlan: Int,
         isReadOnly: Bool = false,
         isCurrentWeek: Bool = false,
+        startsOnPlanTab: Bool = false,
         onClose: @escaping () -> Void,
         onApplied: (() -> Void)? = nil
     ) {
         _viewModel = StateObject(
             wrappedValue: App2WeeklyReviewViewModel(weekOfPlan: weekOfPlan, isReadOnly: isReadOnly)
         )
+        _tab = State(initialValue: startsOnPlanTab ? .plan : .review)
         self.weekOfPlan = weekOfPlan
         self.isReadOnly = isReadOnly
         self.isCurrentWeek = isCurrentWeek

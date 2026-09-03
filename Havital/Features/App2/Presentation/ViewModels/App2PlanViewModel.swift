@@ -30,15 +30,17 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 那幾週顯示空態，其他週照走。
     @Published private(set) var isHistoryWeekMissing = false
 
-    // MARK: - 產生本週課表（2026-08-27 晚走查裁決（i））
+    // MARK: - 未產生態 CTA（2026-08-27 晚走查裁決（i）→ 2026-09-03 裁決 T-0405）
     //
-    // **裁決前是死循環**：首頁說「到『課表』頁產生」，課表頁的未產生態卻只有同一句
-    // 文字卡、沒有任何產生入口（1.4 有 `training.generate_weekly_plan` 那顆鈕，
-    // App2 漏接）。生成要數十秒，所以要有 loading 態並擋住重複點擊。
-
-    @Published private(set) var isGeneratingPlan = false
-    /// 產生失敗的訊息（可重試）。
-    @Published var generateError: String?
+    // **裁決（i）前是死循環**：首頁說「到『課表』頁產生」，課表頁的未產生態卻只有
+    // 同一句文字卡、沒有任何產生入口（1.4 有 `training.generate_weekly_plan` 那顆鈕，
+    // App2 漏接）。裁決（i）在這裡補了一顆直接打 `POST /v2/plan/weekly` 的鈕。
+    //
+    // **2026-09-03 又把那顆鈕的去處換掉**（`STATUS/decisions.md` 同日條、T-0405）：
+    // 平日且上週回顧已存在時，那條路是唯一的產生出口，而它完全不經 decision-chain
+    // 的 run／逐條清單——使用者在這條路上看不到、也答不了 L0 的調整。所以這一頁
+    // **不再自己產生課表**，只負責把人送進週回顧的「規劃下週」分頁；產生的唯一出口
+    // 是那一頁的 `App2WeeklyReviewViewModel.applyAndGenerate()`（鐵則 0：不留第二條）。
 
     // MARK: - 未產生態 CTA 分流（2026-08-27 晚走查裁決（k））
     //
@@ -58,13 +60,34 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         latestPlanStatus?.nextAction == Self.needsWeeklySummaryAction
     }
 
-    /// 要先完成的是**哪一週**的回顧。`create_summary` 只在 `current_week ≥ 2` 且
-    /// 上週回顧缺席時出現，所以目標一律是 `current_week − 1`
-    /// （與首頁週回顧 CTA 平日那三列同一個算法）。
-    var weeklyReviewTargetWeek: Int? {
-        guard requiresWeeklyReviewBeforeGenerate,
-              let current = latestPlanStatus?.currentWeek, current > 1 else { return nil }
-        return current - 1
+    /// 未產生態主鈕按下去要去哪（T-0405）。
+    enum GenerateCTADestination: Equatable {
+        /// 開第 `reviewWeek` 週的週回顧。`startsOnPlanTab` ＝ 開頁就停在「規劃下週」
+        /// 分頁（那一頁規劃的是 `reviewWeek + 1` 週，平日流程即本週）。
+        case weeklyReview(reviewWeek: Int, startsOnPlanTab: Bool)
+        /// plan status 還沒回來 —— 連第幾週都不知道，這顆鈕不動作。
+        case unavailable
+    }
+
+    /// 主鈕的去處。**兩個 `next_action` 都開週回顧，差別只在停在哪個分頁**：
+    ///
+    /// - `create_summary`（上週回顧還沒生成）：停在回顧分頁，先把回顧做出來
+    ///   （裁決（k）的既有行為，不變）。
+    /// - 其他未產生態（`create_plan`）：直接停在規劃分頁，走 run → 逐條清單 → 產生
+    ///   （AC-TRAIN-HUB-12，2026-09-03 裁決）。
+    ///
+    /// 回顧週一律 `current_week − 1`：週日流程的目標週是 `current_week`，平日流程是
+    /// `current_week − 1` 的回顧配上本週的規劃分頁——同一條式子涵蓋兩種，
+    /// 與 `App2WeeklyReviewViewModel.targetWeek`（`weekOfPlan + 1`）咬合。
+    /// `current_week == 1` 時沒有上一週可回顧，回顧週落在 0，規劃分頁規劃的是第 1 週
+    /// （`App2WeeklyReviewView.showsPlanTab` 的 `reviewWeek + 1 >= current` 允許它）；
+    /// 那一格不得退回直接產生，否則又是一條繞過清單的路。
+    var generateCTADestination: GenerateCTADestination {
+        guard let current = latestPlanStatus?.currentWeek else { return .unavailable }
+        return .weeklyReview(
+            reviewWeek: max(current - 1, 0),
+            startsOnPlanTab: !requiresWeeklyReviewBeforeGenerate
+        )
     }
 
     /// 現在畫的是**哪一週**。歷史模式＝那一週，否則＝本週。
@@ -390,55 +413,6 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 origin: .stub(pendingSection: App2StubFixtures.Section.offline)
             )
         }
-    }
-
-    /// 產生本週課表（`POST /v2/plan/weekly`，既有出口，不新開路徑）。
-    ///
-    /// 週次取 plan status 的 `current_week` —— 這一頁的週次骨幹本來就是它，
-    /// 不自己從日期推一個。沒有 plan status 就產不了（那時連第幾週都不知道）。
-    ///
-    /// 成功後**重跑 `revalidate()`**：`isPlanGenerated` 與日卡都由那一支決定，
-    /// 不在這裡自己把旗標翻真（翻了但課表沒下來，畫面會空著卻宣稱已產生）。
-    ///
-    /// **上週回顧沒做時這一支直接不動作**（裁決（k））：那時 CTA 畫的是「先完成週回顧」，
-    /// 呼叫這裡只會走進失敗重試的死路。
-    @discardableResult
-    func generateCurrentWeekPlan() async -> Bool {
-        guard !isGeneratingPlan else { return false }
-        guard !requiresWeeklyReviewBeforeGenerate else {
-            Logger.debug("[App2PlanVM] 上週回顧未完成 (next_action=create_summary)，不產生本週課表")
-            return false
-        }
-        guard let week = latestPlanStatus?.currentWeek else {
-            Logger.debug("[App2PlanVM] 沒有 plan status,產不了本週課表")
-            return false
-        }
-
-        isGeneratingPlan = true
-        generateError = nil
-        defer { isGeneratingPlan = false }
-
-        do {
-            _ = try await planRepository.generateWeeklyPlan(
-                weekOfTraining: week,
-                forceGenerate: nil,
-                promptVersion: nil,
-                methodology: nil
-            )
-        } catch {
-            guard !error.isCancellationError else { return false }
-            let domainError = error.toDomainError()
-            Logger.debug("[App2PlanVM] 產生本週課表失敗: \(domainError)")
-            generateError = domainError.localizedDescription
-            return false
-        }
-
-        // 課表下來了 —— 這一頁與首頁今日課表都要換成新的那一份。
-        await revalidate()
-        // 首頁的今日課表吃同一份週課表 —— 用既有的失效事件把它叫醒
-        // （同 `EditScheduleV2ViewModel` 存檔後的處置，不新開通知路徑）。
-        CacheEventBus.shared.publish(.dataChanged(.trainingPlanV2))
-        return isPlanGenerated
     }
 
     /// 結束態卡。與首頁走**同一支投影**（`App2PlanEndProjection.card`），

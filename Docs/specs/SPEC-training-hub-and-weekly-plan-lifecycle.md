@@ -5,7 +5,7 @@ status: Approved
 layer: product
 ontology_entity: training-hub-lifecycle
 created: 2026-04-15
-updated: 2026-09-02
+updated: 2026-09-03
 ---
 
 # Feature Spec: 訓練首頁與週課表生命週期
@@ -84,6 +84,17 @@ And Then `run` 的 client 逾時必須容得下真 LLM 的一次生成（dev 實
 And Given `run` 回 4xx／5xx／逾時，或 `GET .../checklist` 讀不到（404 或其他錯誤），
 Then 分頁必須回到 AC-TRAIN-HUB-10 的既有內容與路徑（apply-items → `POST /v2/plan/weekly`），不得擋產生（fail-open）。
 And 付費閘門與 Rizo 配額判準同 AC-PAYWALL-26：擋生成的條件同樣擋 `run`。
+
+And Then 這條路徑有**兩個入口**，走的是同一頁：首頁的週回顧入口，以及課表頁未產生態的主鈕
+（`App2PlanView` 的 `App2_PlanGenerateWeek`／`App2_PlanCompleteReviewFirst`）。課表頁那顆鈕**不自己產生課表**
+（2026-09-03 使用者裁決，T-0405）：按下去打開第 `current_week − 1` 週的週回顧（非唯讀），
+`next_action == create_summary` 時停在回顧分頁（先把缺的回顧做出來），其餘未產生態直接停在規劃分頁走這一條清單。
+`current_week == 1` 時沒有上一週可回顧，回顧週落在 0、規劃分頁規劃第 1 週，同樣不得退回直接產生。
+產生的唯一出口是規劃分頁的產生 CTA。
+
+And Then 週次的相對詞按使用者當地的星期定：**週一到週六，週回顧看的是上一週、週課表是當週**
+（所以規劃分頁規劃的是當週）；**週日產生的是這一週的週回顧與下一週的課表**。這是既有
+`nextWeekAction`／`isGenerationWindowOpen` 判準的白話版，不是新規則。
 
 **未決（2026-09-03）**：「調整」輪盤的可選值域沒有規格來源——`checklist` 的一條只帶 `current`／`proposed`，
 不帶那顆旋鈕的合法範圍，後端在這條路徑上也不驗值域（`cloud/api_service/domains/decision_chain/checklist.py:62`

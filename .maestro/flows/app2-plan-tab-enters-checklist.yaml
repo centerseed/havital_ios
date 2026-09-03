@@ -1,0 +1,90 @@
+# T-0405 · 課表頁的未產生態主鈕進入「規劃下週」清單（AC-TRAIN-HUB-12 第二個入口）。
+#
+# 與 `app2-plan-next-week-checklist-weekday.yaml` 的差別只有**入口**：那一支要靠
+# Developer → Weekly Review Dev Tools 的走查開關把首頁的週回顧卡逼出來；這一支不碰
+# 任何開關，直接走使用者平日真正會走的那條路——課表 tab → 未產生態主鈕。
+#
+# 修復前那顆鈕直接打 `POST /v2/plan/weekly`（`App2PlanViewModel.generateCurrentWeekPlan`，
+# 已刪），使用者在這條路上看不到也答不了逐條清單上的 L0 調整。
+#
+# 這一支到「按下產生課表」為止；清單本身的逐條表態、Rizo 那一條、生成後的落地
+# 由 T-0383 那一支釘。
+#
+# 這台模擬器上是**使用者本人手動 SSO 的創辦人 dev 帳號**：`clearState: false`、
+# 不帶任何 `-ui_testing_*` 旗標、不跑 logout 子流程。
+#
+# 前置（後端狀態，不是 app 操作）：`GET /v2/plan/status` 的
+# `current_week_plan_id == null` 且 `next_action == "create_plan"`。本週已有課表時
+# 這一頁畫的是課表本身，主鈕不存在。
+appId: com.havital.Havital.dev
+tags:
+  - app2
+  - decision-chain
+---
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- extendedWaitUntil:
+    visible:
+      id: "App2_HomeView"
+    timeout: 60000
+
+# --- 課表頁：未產生態 ---
+- tapOn:
+    id: "App2_Tab_Plan"
+- extendedWaitUntil:
+    visible:
+      id: "App2_PlanView"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "App2_PlanGenerateWeek"
+    timeout: 30000
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0405/p01-plan-tab-generate-cta
+
+# --- 主鈕：不再直接產生，開的是上一週回顧的「規劃下週」分頁 ---
+- tapOn:
+    id: "App2_PlanGenerateWeek"
+- extendedWaitUntil:
+    visible:
+      id: "App2_WeeklyReviewView"
+    timeout: 60000
+# 開頁就**已經**停在規劃分頁（`startsOnPlanTab`）——這一支自始至終不點分頁鈕，
+# 點了就驗不出「開頁停在哪」。分頁的選中態沒有 a11y trait，所以「停在規劃分頁」
+# 是由**只有規劃分頁才畫的元素**證明的：生成中區塊／意圖卡／產生 CTA。
+- assertVisible:
+    id: "App2_WeeklyReviewTab_plan"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0405/p02-lands-on-plan-tab
+
+# 規劃分頁進頁即發 `POST …/run`（真 LLM，dev 實測 45–130s）。**等的是意圖卡本身**，
+# 不是「生成中區塊消失」——run 失敗時那個區塊也會消失（AC-TRAIN-HUB-12 fail-open
+# 退回 apply-items 路徑），拿它當通過條件會把一次失敗判成綠燈。
+- extendedWaitUntil:
+    visible:
+      id: "App2_WeeklyReviewIntentCard"
+    timeout: 180000
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0405/p03-checklist
+
+# --- 產生出口：清單這一頁的 CTA（唯一一條） ---
+- scrollUntilVisible:
+    element:
+      id: "App2_WeeklyReviewGeneratePlan"
+    direction: DOWN
+    timeout: 20000
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0405/p04-generate-cta
+- tapOn:
+    id: "App2_WeeklyReviewGeneratePlan"
+# 從課表頁進來的，所以關掉回的是**課表頁**（不是首頁）——而且那一頁要看到剛產出的
+# 課表：未產生態的卡不見了（Contract 3）。
+- extendedWaitUntil:
+    visible:
+      id: "App2_PlanView"
+    timeout: 300000
+- extendedWaitUntil:
+    notVisible:
+      id: "App2_PlanEmptyState"
+    timeout: 60000
+- assertVisible:
+    id: "App2_PlanWeekLabel"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0405/p05-plan-generated

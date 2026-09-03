@@ -2371,8 +2371,7 @@ extension L10n {
             static let generatePlanWithoutApplying = "app2.weekly_review.generate_plan_without_applying"
             static let generatingPlan = "app2.weekly_review.generating_plan"
             static let planGenerated = "app2.weekly_review.plan_generated"
-            /// 產生失敗的 alert 標題（目標週可能是本週也可能是下週，所以不共用
-            /// `app2.plan.generate_failed`——那句寫死了「本週」）。
+            /// 產生失敗的 alert 標題。
             static let generatePlanFailed = "app2.weekly_review.generate_plan_failed"
             static let generatePlanFailedBody = "app2.weekly_review.generate_plan_failed_body"
             /// 回顧分頁底部的前進入口。
@@ -2426,8 +2425,6 @@ extension L10n {
             static let rest = "app2.plan.rest"
             /// 未產生態的產生入口（2026-08-27 晚走查裁決（i））。
             static let generateWeek = "app2.plan.generate_week"
-            static let generatingWeek = "app2.plan.generating_week"
-            static let generateFailed = "app2.plan.generate_failed"
             /// 上週回顧未完成時的 CTA（2026-08-27 晚走查裁決（k））。
             static let completeReviewFirst = "app2.plan.complete_review_first"
             /// header 的週回顧入口（2026-08-27 走查裁決（q））。

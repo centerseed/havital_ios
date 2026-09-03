@@ -4513,8 +4513,6 @@
 "app2.plan.title" = "Plan";
 "app2.plan.no_plan_body" = "This week's plan hasn't been generated yet.";
 "app2.plan.generate_week" = "Generate this week's plan";
-"app2.plan.generating_week" = "Generating…";
-"app2.plan.generate_failed" = "Could not generate this week's plan";
 "app2.plan.complete_review_first" = "Complete weekly review first";
 "app2.plan.open_weekly_review" = "View this week's review";
 "app2.plan.volume_title" = "This week's volume";

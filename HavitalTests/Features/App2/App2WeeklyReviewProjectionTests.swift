@@ -334,8 +334,51 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
             "歷史週入口必須唯讀，直接顯示已存 V2，不生成"
         )
         XCTAssertTrue(
-            planSource.contains("App2WeeklyReviewTarget(weekOfPlan: week, isCurrentWeek: false)"),
-            "「先完成上週回顧」CTA 是要完成的那一份，不得是唯讀，否則裁決（k）的流程走不完"
+            planSource.contains("startsOnPlanTab: startsOnPlanTab"),
+            "未產生態主鈕開的是要完成的那一份（非唯讀），且分頁由 VM 的去處決定（T-0405）"
+        )
+        XCTAssertFalse(
+            planSource.contains("isReadOnly: true, startsOnPlanTab"),
+            "唯讀回看不得帶著規劃分頁一起開"
+        )
+    }
+
+    // MARK: - 課表頁不得自己產生課表（T-0405，2026-09-03 使用者裁決）
+
+    /// 裁決：課表頁那顆鈕改成**進入**該週的「規劃下週」分頁（run → 清單 → 產生），
+    /// 不再直接產生。產生的唯一出口是週回顧頁的
+    /// `App2WeeklyReviewViewModel.applyAndGenerate()`——留第二條就是把使用者送回
+    /// 那條看不到 L0 調整的路（鐵則 0）。
+    func test_planPage_hasNoDirectWeeklyPlanGeneration() throws {
+        let planSource = try Self.source(at: "Havital/Features/App2/Presentation/Views/App2PlanView.swift")
+        let planViewModelSource = try Self.source(
+            at: "Havital/Features/App2/Presentation/ViewModels/App2PlanViewModel.swift"
+        )
+
+        for (name, source) in [("App2PlanView", planSource), ("App2PlanViewModel", planViewModelSource)] {
+            XCTAssertFalse(
+                source.contains("generateWeeklyPlan"),
+                "\(name) 不得有直接產生課表的路徑（T-0405）"
+            )
+            XCTAssertFalse(
+                source.contains("generateCurrentWeekPlan"),
+                "\(name) 的產生入口已刪除，殘留即第二條路徑"
+            )
+        }
+    }
+
+    /// 開頁停在哪個分頁由呼叫端帶（T-0405）：課表頁的未產生態主鈕帶 `true`，
+    /// 直接落在規劃分頁；其餘入口維持回顧分頁。
+    func test_weeklyReviewView_startsOnPlanTabWhenAsked() throws {
+        let source = try Self.weeklyReviewViewSource()
+
+        XCTAssertTrue(
+            source.contains("_tab = State(initialValue: startsOnPlanTab ? .plan : .review)"),
+            "開頁分頁的初值要由 `startsOnPlanTab` 決定"
+        )
+        XCTAssertTrue(
+            source.contains("private var activeTab: Tab { showsPlanTab ? tab : .review }"),
+            "規劃分頁被收掉時初值不得把畫面帶進不存在的分頁"
         )
     }
 

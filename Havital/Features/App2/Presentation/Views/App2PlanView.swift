@@ -91,6 +91,11 @@ struct App2PlanView: View {
                             generatePlanButton
                         }
                     }
+                    // 容器的 identifier 會被 SwiftUI 套到每一個子元素上，主鈕自己的
+                    // `App2_PlanGenerateWeek` 因此在 a11y 樹上一個都看不到
+                    // （2026-09-03 實測 `maestro hierarchy`：整張卡只剩兩個
+                    // `App2_PlanEmptyState`）。同 T-0383 對週回顧三個容器的處置。
+                    .accessibilityElement(children: .contain)
                     .accessibilityIdentifier("App2_PlanEmptyState")
                 }
             }
@@ -125,10 +130,12 @@ struct App2PlanView: View {
                 weekOfPlan: target.weekOfPlan,
                 isReadOnly: target.isReadOnly,
                 isCurrentWeek: target.isCurrentWeek,
+                startsOnPlanTab: target.startsOnPlanTab,
                 onClose: {
                     weeklyReviewWeek = nil
-                    // 回顧做完之後 `next_action` 會從 `create_summary` 變成 `create_plan`，
-                    // CTA 要跟著換回「產生本週課表」——所以關閉就重驗。
+                    // 回顧做完（或清單走完產出課表）之後 `next_action` 與
+                    // `current_week_plan_id` 都變了，這一頁的未產生態要跟著收——
+                    // 所以關閉就重驗。
                     Task { await viewModel.forceRefresh() }
                 },
                 onApplied: { Task { await viewModel.forceRefresh() } }
@@ -146,36 +153,23 @@ struct App2PlanView: View {
                 onCancel: { isShowingReonboarding = false }
             )
         }
-        // 產生失敗可重試（按鈕仍在，狀態沒有被改掉）。
-        .alert(
-            L10n.App2.Plan.generateFailed.localized,
-            isPresented: Binding(
-                get: { viewModel.generateError != nil },
-                set: { if !$0 { viewModel.generateError = nil } }
-            ),
-            presenting: viewModel.generateError
-        ) { _ in
-            Button(L10n.Common.done.localized, role: .cancel) {}
-        } message: { message in
-            Text(message)
-        }
     }
 
-    // MARK: - 產生本週課表（2026-08-27 晚走查裁決（i））
+    // MARK: - 未產生態主鈕（2026-08-27 晚走查裁決（i）／（k）→ 2026-09-03 裁決 T-0405）
 
-    /// 生成要數十秒，所以按下去就換成 loading 態並擋住重複點擊
-    /// （`isGeneratingPlan` 由 VM 持有，不是 view 自己的 `@State` ——
-    /// 換 tab 回來時 view 會重建，本機旗標會把 loading 態弄丟）。
+    /// 未產生態的主鈕。**這一頁不產生課表**（2026-09-03 裁決）：兩個 `next_action`
+    /// 都是開週回顧，差別只在停在哪個分頁——
     ///
-    /// 裁決（k）：後端說「先做上週回顧」（`next_action == create_summary`）時，
-    /// 這顆鈕換成「先完成週回顧」並導去週回顧頁 —— **不呼叫 generate**，
-    /// 那條路在這個狀態下只會走進失敗重試。
+    /// - `create_summary`：停在回顧分頁（裁決（k）的既有行為，「先完成週回顧」）。
+    /// - `create_plan`：直接停在「規劃下週」分頁，走 run → 逐條清單 → 產生
+    ///   （AC-TRAIN-HUB-12）。修復前這裡直接打 `POST /v2/plan/weekly`，
+    ///   使用者在這條路上完全看不到、也答不了 L0 的調整。
+    ///
+    /// 所以按下去只是換頁，不再有 loading 態與失敗重試——那兩件事現在住在
+    /// 週回顧頁的產生鈕（`App2WeeklyReviewViewModel.applyAndGenerate`）。
     private var generatePlanButton: some View {
         HStack(spacing: 8) {
-            if viewModel.isGeneratingPlan {
-                ProgressView().tint(.white)
-                Text(L10n.App2.Plan.generatingWeek.localized)
-            } else if viewModel.requiresWeeklyReviewBeforeGenerate {
+            if viewModel.requiresWeeklyReviewBeforeGenerate {
                 Image(systemName: "chart.line.uptrend.xyaxis")
                     .font(.system(size: 15, weight: .bold))
                 Text(L10n.App2.Plan.completeReviewFirst.localized)
@@ -191,18 +185,18 @@ struct App2PlanView: View {
         .padding(.vertical, 13)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(viewModel.isGeneratingPlan ? App2Theme.accentBlue.opacity(0.6) : App2Theme.accentBlue)
+                .fill(App2Theme.accentBlue)
         )
         .padding(.top, 6)
         .contentShape(Rectangle())
         .onTapGesture {
-            guard !viewModel.isGeneratingPlan else { return }
-            if let week = viewModel.weeklyReviewTargetWeek {
-                // 這條 CTA 的語意是「先完成上週回顧才產本週課表」——目標是上週。
-                weeklyReviewWeek = App2WeeklyReviewTarget(weekOfPlan: week, isCurrentWeek: false)
-                return
-            }
-            Task { await viewModel.generateCurrentWeekPlan() }
+            guard case .weeklyReview(let reviewWeek, let startsOnPlanTab) =
+                    viewModel.generateCTADestination else { return }
+            weeklyReviewWeek = App2WeeklyReviewTarget(
+                weekOfPlan: reviewWeek,
+                isCurrentWeek: false,
+                startsOnPlanTab: startsOnPlanTab
+            )
         }
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)

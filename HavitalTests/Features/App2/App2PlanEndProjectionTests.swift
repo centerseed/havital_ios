@@ -1100,14 +1100,20 @@ final class App2PlanEndStoryFixtureTests: XCTestCase {
     }
 }
 
-// MARK: - 產生本週課表（2026-08-27 晚走查裁決（i））
-/// 裁決前的死循環：首頁叫用戶「到課表頁產生」，課表頁的未產生態卻沒有任何入口。
+// MARK: - 未產生態主鈕的去處（裁決（i）／（k）→ T-0405，2026-09-03）
+/// 裁決（i）前的死循環：首頁叫用戶「到課表頁產生」，課表頁的未產生態卻沒有任何入口。
+/// 裁決（i）補的那顆鈕直接打 `POST /v2/plan/weekly`；2026-09-03 裁決把它的去處換成
+/// 週回顧的「規劃下週」分頁（AC-TRAIN-HUB-12），**這一頁不再自己產生課表**。
 @MainActor
 final class App2PlanGenerateWeekTests: XCTestCase {
 
-    private func planStatus(planId: String?, nextAction: String? = nil) -> PlanStatusV2Response {
+    private func planStatus(
+        planId: String?,
+        nextAction: String? = nil,
+        currentWeek: Int = 2
+    ) -> PlanStatusV2Response {
         PlanStatusV2Response(
-            currentWeek: 2,
+            currentWeek: currentWeek,
             totalWeeks: 6,
             nextAction: nextAction ?? (planId == nil ? "create_plan" : "view_plan"),
             canGenerateNextWeek: true,
@@ -1117,18 +1123,6 @@ final class App2PlanGenerateWeekTests: XCTestCase {
             methodologyId: "paceriz",
             nextWeekInfo: nil,
             metadata: nil
-        )
-    }
-
-    private func weeklyPlan() -> WeeklyPlanV2 {
-        WeeklyPlanV2(
-            planId: "e1289e60f251_2", weekOfTraining: 2, id: "e1289e60f251_2",
-            purpose: "base", weekOfPlan: 2, totalWeeks: 6, totalDistance: 30,
-            totalDistanceDisplay: nil, totalDistanceUnit: nil, totalDistanceReason: nil,
-            designReason: nil, mileageProgressionNote: nil, coachNote: nil, days: [],
-            intensityTotalMinutes: nil, currentVdot: nil, vdotSource: nil,
-            createdAt: Date(), updatedAt: Date(), trainingLoadAnalysis: nil,
-            personalizedRecommendations: nil, realTimeAdjustments: nil, apiVersion: "2.0"
         )
     }
 
@@ -1142,50 +1136,11 @@ final class App2PlanGenerateWeekTests: XCTestCase {
         )
     }
 
-    /// 未產生 → 按下去 → `isPlanGenerated` 翻真，且週次取自 plan status。
-    func test_generateCurrentWeekPlan_flipsIsPlanGenerated() async {
-        let repository = MockTrainingPlanV2Repository()
-        repository.planStatusToReturn = planStatus(planId: nil)
-        repository.weeklyPlanV2ToReturn = weeklyPlan()
-
-        let viewModel = makeViewModel(repository)
-        await viewModel.revalidate()
-        XCTAssertFalse(viewModel.isPlanGenerated, "本週沒有課表 → 未產生態")
-
-        // 產生成功之後後端就有本週課表了。
-        repository.planStatusToReturn = planStatus(planId: "e1289e60f251_2")
-        let ok = await viewModel.generateCurrentWeekPlan()
-
-        XCTAssertTrue(ok)
-        XCTAssertEqual(repository.generateWeeklyPlanCallCount, 1)
-        XCTAssertTrue(viewModel.isPlanGenerated)
-        XCTAssertFalse(viewModel.isGeneratingPlan)
-        XCTAssertNil(viewModel.generateError)
-        XCTAssertNotNil(viewModel.week)
-    }
-
-    /// 失敗可重試：狀態不變、錯誤訊息出得來、按鈕沒有被鎖住。
-    func test_generateCurrentWeekPlan_failureKeepsEmptyStateAndReportsError() async {
-        let repository = MockTrainingPlanV2Repository()
-        repository.planStatusToReturn = planStatus(planId: nil)
-
-        let viewModel = makeViewModel(repository)
-        await viewModel.revalidate()
-
-        repository.generateWeeklyPlanErrors = [TrainingPlanV2Error.unknown("boom")]
-        let ok = await viewModel.generateCurrentWeekPlan()
-
-        XCTAssertFalse(ok)
-        XCTAssertFalse(viewModel.isPlanGenerated)
-        XCTAssertFalse(viewModel.isGeneratingPlan, "失敗之後不得卡在 loading")
-        XCTAssertNotNil(viewModel.generateError)
-    }
-
-    // MARK: - CTA 依 next_action 分流（2026-08-27 晚走查裁決（k））
+    // MARK: - CTA 依 next_action 分流（裁決（k）＋ T-0405）
 
     /// `create_summary`（上週回顧未生成，`service.py:1242`）→ CTA 語意換成週回顧，
-    /// **且按下去不得呼叫 generate**（那條路在這個狀態下只會走進失敗重試）。
-    func test_needsWeeklySummary_routesToReviewAndSkipsGenerate() async {
+    /// 開的是**第 1 週的回顧分頁**：那份回顧還沒做，先做它。
+    func test_needsWeeklySummary_opensReviewTab() async {
         let repository = MockTrainingPlanV2Repository()
         repository.planStatusToReturn = planStatus(planId: nil, nextAction: "create_summary")
 
@@ -1194,31 +1149,60 @@ final class App2PlanGenerateWeekTests: XCTestCase {
 
         XCTAssertFalse(viewModel.isPlanGenerated, "本週沒有課表 → 未產生態")
         XCTAssertTrue(viewModel.requiresWeeklyReviewBeforeGenerate, "CTA 要換成「先完成週回顧」")
-        // 目標是上一週（current_week 2 → 第 1 週的回顧）。
-        XCTAssertEqual(viewModel.weeklyReviewTargetWeek, 1)
-
-        let ok = await viewModel.generateCurrentWeekPlan()
-        XCTAssertFalse(ok)
-        XCTAssertEqual(repository.generateWeeklyPlanCallCount, 0, "不得呼叫產生課表")
-        XCTAssertNil(viewModel.generateError, "沒送出請求就不該有失敗訊息")
+        XCTAssertEqual(
+            viewModel.generateCTADestination,
+            .weeklyReview(reviewWeek: 1, startsOnPlanTab: false),
+            "回顧還沒做 ⇒ 停在回顧分頁（裁決（k）的既有行為不變）"
+        )
+        XCTAssertEqual(repository.generateWeeklyPlanCallCount, 0, "這一頁不得產生課表")
     }
 
-    /// 其他未產生態（`create_plan`）維持原行為：CTA 是「產生本週課表」，按下去真的產。
-    func test_createPlanAction_keepsGenerateCTA() async {
+    /// `create_plan`（上週回顧已存在、本週還沒課表）→ **直接停在規劃分頁**
+    /// （T-0405）。修復前這一格直接打 `POST /v2/plan/weekly`，使用者看不到也答不了
+    /// 逐條清單上的 L0 調整。
+    func test_createPlanAction_opensPlanningTabOfPreviousWeekReview() async {
         let repository = MockTrainingPlanV2Repository()
         repository.planStatusToReturn = planStatus(planId: nil, nextAction: "create_plan")
-        repository.weeklyPlanV2ToReturn = weeklyPlan()
 
         let viewModel = makeViewModel(repository)
         await viewModel.revalidate()
 
+        XCTAssertFalse(viewModel.isPlanGenerated, "本週沒有課表 → 未產生態")
         XCTAssertFalse(viewModel.requiresWeeklyReviewBeforeGenerate)
-        XCTAssertNil(viewModel.weeklyReviewTargetWeek)
+        XCTAssertEqual(
+            viewModel.generateCTADestination,
+            .weeklyReview(reviewWeek: 1, startsOnPlanTab: true),
+            "第 1 週回顧的規劃分頁規劃的正是本週（第 2 週）"
+        )
+        XCTAssertEqual(repository.generateWeeklyPlanCallCount, 0, "這一頁不得產生課表")
+    }
 
-        repository.planStatusToReturn = planStatus(planId: "e1289e60f251_2")
-        let ok = await viewModel.generateCurrentWeekPlan()
-        XCTAssertTrue(ok)
-        XCTAssertEqual(repository.generateWeeklyPlanCallCount, 1)
+    /// `current_week == 1`：沒有上一週可回顧，回顧週落在 0，規劃分頁規劃第 1 週。
+    /// **不得退回直接產生**（Contract 4）——那又是一條繞過清單的路。
+    func test_firstWeek_stillOpensPlanningTab() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.planStatusToReturn = planStatus(
+            planId: nil, nextAction: "create_plan", currentWeek: 1
+        )
+
+        let viewModel = makeViewModel(repository)
+        await viewModel.revalidate()
+
+        XCTAssertEqual(
+            viewModel.generateCTADestination,
+            .weeklyReview(reviewWeek: 0, startsOnPlanTab: true)
+        )
+    }
+
+    /// plan status 還沒回來 ⇒ 連第幾週都不知道，這顆鈕不動作（不亂開週 0 的回顧）。
+    func test_withoutPlanStatus_destinationIsUnavailable() async {
+        // `planStatusToReturn` 不設 ⇒ mock 直接丟（同「讀不到 status」）。
+        let repository = MockTrainingPlanV2Repository()
+
+        let viewModel = makeViewModel(repository)
+        await viewModel.revalidate()
+
+        XCTAssertEqual(viewModel.generateCTADestination, .unavailable)
     }
 }
 
