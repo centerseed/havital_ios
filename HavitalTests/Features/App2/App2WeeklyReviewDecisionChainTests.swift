@@ -375,6 +375,56 @@ final class App2WeeklyReviewDecisionChainTests: XCTestCase {
         XCTAssertNil(try XCTUnwrap(item.proposed).numericValue)
     }
 
+    /// 休息週提案那一條的值是**布林**（`{"field":"is_manual_rest_week","current":false,
+    /// "proposed":true}`，後端 `domains/decision_chain/intent/overrides.py:171`）。
+    /// `JSONDecoder` 不會把 JSON `true` 當 `Int`——少一個 `.bool` case ⇒ 整張清單丟
+    /// `dataCorrupted Path: data.items[0].current` ⇒ fail-open 退回舊建議清單 ⇒
+    /// **使用者永遠看不到休息週提案**。布林也沒有輪盤可以轉：不給「調整」。
+    func test_decodesBoolRestWeekOverrideProposal() throws {
+        let raw = Data("""
+        {"success":true,"data":{"as_of":"2026-09-03","intent_revision":"intent/2026-09-03",
+        "intent_lifecycle":"proposed","items":[
+        {"item_id":"override.is_manual_rest_week@2026-09-03","source":"override_proposal",
+         "field":"is_manual_rest_week","current":false,"proposed":true,
+         "title":"Take a rest week","reason":"Three build weeks in a row.","status":"proposed"}]}}
+        """.utf8)
+
+        let checklist = DecisionChainWeekMapper.toEntity(
+            try ResponseProcessor.extractData(
+                DecisionChainChecklistDTO.self,
+                from: raw,
+                using: DefaultAPIParser.shared
+            ),
+            asOf: "2026-09-03"
+        )
+
+        let item = try XCTUnwrap(checklist.items.first)
+        XCTAssertEqual(checklist.items.count, 1)
+        XCTAssertEqual(item.source, .overrideProposal)
+        XCTAssertEqual(item.current, .bool(false))
+        XCTAssertEqual(item.proposed, .bool(true))
+        XCTAssertFalse(item.allowsAdjust)
+        XCTAssertFalse(try XCTUnwrap(item.proposed).isNumeric)
+        XCTAssertNil(try XCTUnwrap(item.proposed).numericValue)
+        XCTAssertTrue(App2DecisionChainAdjustRange.options(for: item).isEmpty)
+    }
+
+    /// 布林送回去仍是布林。`0`／`1` 不得被當成布林、`true` 不得被寫成 `1`——
+    /// 後端 `override_proposal` 的條目只收 `accepted`／`declined`
+    /// （`domains/decision_chain/checklist.py:81`），型別漂掉就對不上。
+    func test_boolValueRoundTripsWithoutChangingKind() throws {
+        let encoder = JSONEncoder()
+
+        for (json, expected) in [("false", DecisionChainValue.bool(false)),
+                                 ("true", DecisionChainValue.bool(true)),
+                                 ("0", DecisionChainValue.int(0)),
+                                 ("1", DecisionChainValue.int(1))] {
+            let dto = try JSONDecoder().decode(DecisionChainValueDTO.self, from: Data(json.utf8))
+            XCTAssertEqual(dto.value, expected, "\(json) 解成了 \(dto.value)")
+            XCTAssertEqual(String(data: try encoder.encode(dto), encoding: .utf8), json)
+        }
+    }
+
     /// 解碼失敗必須**丟出來**（→ fail-open 回既有路徑），不得靜默變成一張空清單。
     /// `DecisionChainChecklistDTO` 全欄可選時，`extractData` 的第四次嘗試會拿外層
     /// 信封解成「每一欄都是 nil」的清單，使用者已經答過的條目就這樣消失。

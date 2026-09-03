@@ -23,6 +23,12 @@ enum DecisionChainValue: Equatable {
     case int(Int)
     case double(Double)
     case text(String)
+    /// 布林值。**實測有**（dev 2026-09-03，休息週提案那一條是
+    /// `{"source":"override_proposal","field":"is_manual_rest_week","current":false,"proposed":true}`，
+    /// 後端 `domains/decision_chain/intent/overrides.py:171`）；`JSONDecoder` 不會把
+    /// JSON `true` 當 `Int`，只收 Int／Double／String／陣列會讓**整張清單**解不開，
+    /// 使用者永遠看不到休息週提案。
+    case bool(Bool)
     /// 陣列值。**實測有**（dev 2026-09-03，Rizo 記下「下週三不跑」後清單多一條
     /// `rizo.blocked_day_indices` 的 `proposed: [3]`）；只收 Int／Double／String 會讓
     /// **整張清單**解不開，使用者已經答過的條目一起消失。app 不解讀它的內容，
@@ -33,17 +39,18 @@ enum DecisionChainValue: Equatable {
     /// 用欄位名列白名單等於在 app 這一層重寫一份旋鈕語意（設計 §4.1「app 不解讀旋鈕」）。
     var isNumeric: Bool {
         switch self {
-        case .int, .double: return true
-        case .text, .list:  return false
+        case .int, .double:        return true
+        case .text, .bool, .list:  return false
         }
     }
 
-    /// 數值形態（`text`／`list` 回 nil）。輪盤只吃得下數。
+    /// 數值形態（`text`／`bool`／`list` 回 nil）。輪盤只吃得下數。
+    /// 布林沒有輪盤可以轉——「接受／不要」就是它的全部答案空間。
     var numericValue: Double? {
         switch self {
-        case .int(let value):    return Double(value)
-        case .double(let value): return value
-        case .text, .list:       return nil
+        case .int(let value):      return Double(value)
+        case .double(let value):   return value
+        case .text, .bool, .list:  return nil
         }
     }
 

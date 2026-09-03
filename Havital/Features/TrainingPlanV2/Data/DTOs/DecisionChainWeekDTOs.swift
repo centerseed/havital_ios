@@ -2,9 +2,12 @@ import Foundation
 
 // MARK: - 值（`current` / `proposed` / `adjusted_value`）
 /// 型別註記寫的是 `StrictInt | StrictFloat | StrictStr | null`
-/// （`cloud/api_service/api/v2/decision_chain.py:71`），但**實際會收到陣列**：
+/// （`cloud/api_service/api/v2/decision_chain.py:71`），但**實際會收到陣列與布林**：
 /// Rizo 記下的條目（`source == "rizo"`）帶的是
-/// `{"field":"blocked_day_indices","proposed":[3]}`（dev 2026-09-03 實測）。
+/// `{"field":"blocked_day_indices","proposed":[3]}`；休息週提案
+/// （`source == "override_proposal"`）帶的是
+/// `{"field":"is_manual_rest_week","current":false,"proposed":true}`
+/// （後端 `domains/decision_chain/intent/overrides.py:171`）——兩者都是 dev 2026-09-03 實測。
 /// 所以 DTO 這一層照 JSON 的型別收，**不在解碼時就把它壓成一種**，
 /// 也不對認不得的形狀丟錯——丟錯的代價是整張清單消失。
 struct DecisionChainValueDTO: Codable, Equatable {
@@ -14,11 +17,18 @@ struct DecisionChainValueDTO: Codable, Equatable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        // 先試整數：`JSONDecoder` 分不出 `15` 與 `15.0`（兩者都解得成 `Int`，實測見
+        // **布林要先試**。Foundation 的 `JSONDecoder` 不會把 JSON `true` 解成 `Int`
+        // （所以順序反過來其實也不會被 `Int` 吃掉），但依賴那個實作細節等於把
+        // 「休息週提案看不看得到」押在一個沒有寫下來的行為上——布林是比數更窄的型別，
+        // 就擺在最前面。
+        if let boolValue = try? container.decode(Bool.self) {
+            value = .bool(boolValue)
+        }
+        // 再試整數：`JSONDecoder` 分不出 `15` 與 `15.0`（兩者都解得成 `Int`，實測見
         // `App2WeeklyReviewDecisionChainTests.test_decodesRealDevChecklistPayload`），
         // 所以**整數值一律收成 `.int`**，帶小數的才是 `.double`。這樣送回去的
         // `adjusted_value` 不會平白多一個小數點；後端的 union 兩種都收。
-        if let intValue = try? container.decode(Int.self) {
+        else if let intValue = try? container.decode(Int.self) {
             value = .int(intValue)
         } else if let doubleValue = try? container.decode(Double.self) {
             value = .double(doubleValue)
@@ -30,7 +40,7 @@ struct DecisionChainValueDTO: Codable, Equatable {
         } else {
             throw DecodingError.dataCorruptedError(
                 in: container,
-                debugDescription: "checklist value must be a number, a string, or an array"
+                debugDescription: "checklist value must be a number, a string, a bool, or an array"
             )
         }
     }
@@ -41,6 +51,7 @@ struct DecisionChainValueDTO: Codable, Equatable {
         case .int(let intValue):       try container.encode(intValue)
         case .double(let doubleValue): try container.encode(doubleValue)
         case .text(let stringValue):   try container.encode(stringValue)
+        case .bool(let boolValue):     try container.encode(boolValue)
         case .list(let values):        try container.encode(values.map(DecisionChainValueDTO.init))
         }
     }
