@@ -90,6 +90,9 @@ final class App2WeeklyReviewViewModel: ObservableObject {
     private let weekOfPlan: Int
     /// 歷史週唯讀回看（走查裁決（q））。產生課表是寫入路徑，唯讀時一律不給出口。
     private let isReadOnly: Bool
+    /// 目標週是不是本週（＝週日流程）。決定「開頁要不要自己把回顧產出來」——見
+    /// `autoGeneratesOnLoad`。
+    private let isCurrentWeek: Bool
     /// 「產生目標週課表」走的是既有出口 `POST /v2/plan/weekly`，與課表頁同一支
     /// repository —— 不另開資料路徑。
     private let planRepository: TrainingPlanV2Repository
@@ -101,11 +104,13 @@ final class App2WeeklyReviewViewModel: ObservableObject {
     init(
         weekOfPlan: Int,
         isReadOnly: Bool = false,
+        isCurrentWeek: Bool = false,
         repository: TrainingPlanV2Repository? = nil,
         decisionChainRepository: DecisionChainWeekRepository? = nil
     ) {
         self.weekOfPlan = weekOfPlan
         self.isReadOnly = isReadOnly
+        self.isCurrentWeek = isCurrentWeek
 
         let container = DependencyContainer.shared
         if repository == nil, !container.isRegistered(TrainingPlanV2Repository.self) {
@@ -167,10 +172,26 @@ final class App2WeeklyReviewViewModel: ObservableObject {
         // 不在背後補一份，也不送註定 400 的請求。
         await coordinator.loadWeeklySummary(
             weekOfPlan: weekOfPlan,
-            allowGenerate: canGenerateReview
+            allowGenerate: autoGeneratesOnLoad
         )
         applyState(afterGenerate: false)
         isLoading = false
+    }
+
+    /// 開這一頁要不要順手把回顧產出來。
+    ///
+    /// 平日：要。回顧的是**已經過完的上一週**，使用者從首頁按的就是「產生上週回顧」，
+    /// 進來還要再按一次是多的（1.4 起就是這條路：`getWeeklySummary` 404 fallback 到 POST）。
+    ///
+    /// **週日不要**（T-0409）。那一週還在進行中，今天的課可能還沒跑——1.x 在產生前會先問
+    /// 「本週訓練是否皆已完成」（`GenerateNextWeekButton.swift:51`），2.0 把那一步弄丟了，
+    /// 而且丟得比看起來嚴重：不是少了一個確認框，是**一開頁就直接產了**，使用者連按都沒按。
+    /// 所以週日開頁只讀不寫，落在「還沒產生」的空態，由畫面上那顆鈕帶確認框走真正的產生。
+    /// 取消＝什麼都沒發生，鈕還在，不擋任何人。
+    ///
+    /// 視窗未開時本來就不產（T-0362），唯讀更不產。
+    var autoGeneratesOnLoad: Bool {
+        canGenerateReview && !isCurrentWeek
     }
 
     // MARK: - 產生視窗（T-0362：週一進本週回顧，按「產生」被後端 400）

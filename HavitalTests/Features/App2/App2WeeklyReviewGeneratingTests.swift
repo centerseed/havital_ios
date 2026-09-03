@@ -257,6 +257,112 @@ final class App2WeeklyReviewGeneratingTests: XCTestCase {
         )
     }
 
+    // MARK: - 週日產生本週回顧前先確認訓練都做完了（T-0409）
+
+    /// 週日流程（目標週＝本週）按產生鈕要先確認——1.x `GenerateNextWeekButton` 有這一步，
+    /// 2.0 漏掉了。理由是那一週還在進行中，回顧吃的是它的完整訓練資料。
+    func test_currentWeekReview_asksForCompletionConfirmFirst() {
+        XCTAssertTrue(
+            App2WeeklyReviewView.needsCompletionConfirm(isCurrentWeek: true, isReadOnly: false),
+            "週日產本週回顧前必須先問『本週訓練是否皆已完成』"
+        )
+    }
+
+    /// 平日流程回顧的是**上一週**，那一週已經過完——不問，直接產。
+    func test_previousWeekReview_generatesWithoutConfirm() {
+        XCTAssertFalse(
+            App2WeeklyReviewView.needsCompletionConfirm(isCurrentWeek: false, isReadOnly: false),
+            "回顧已經過完的那一週沒有『還沒完成』可確認，不得多攔一次"
+        )
+    }
+
+    /// 唯讀歷史週本來就沒有產生鈕；判準寫死成 false，免得日後接上別的入口時繞過去。
+    func test_readOnlyHistoryWeek_neverAsks() {
+        XCTAssertFalse(
+            App2WeeklyReviewView.needsCompletionConfirm(isCurrentWeek: true, isReadOnly: true)
+        )
+        XCTAssertFalse(
+            App2WeeklyReviewView.showsGenerateButton(isReadOnly: true, canGenerate: true),
+            "唯讀態根本不該有產生鈕——上一條斷言才不是空轉"
+        )
+    }
+
+    /// **這一支才是確認框有沒有用的證明。** 修之前週日開頁就直接 `POST` 了
+    /// （`load()` 把 `allowGenerate` 給成 `canGenerateReview`，視窗開著就 404 → 產生），
+    /// 所以那顆掛著確認框的鈕根本不會出現——使用者連按都沒按，回顧已經生好了。
+    /// 週日流程開頁必須只讀不寫，把畫面留在「還沒產生」的空態。
+    func test_currentWeekReview_doesNotGenerateOnLoad() async {
+        repository.weeklySummaryV2ToReturn = nil
+        // 2026-08-30 是週日（Asia/Taipei）——視窗開著，所以這一支驗的不是視窗閘門。
+        repository.planStatusToReturn = Self.planStatus(
+            currentWeek: 5,
+            serverTime: "2026-08-30T02:00:00Z"
+        )
+        let viewModel = App2WeeklyReviewViewModel(
+            weekOfPlan: 5, isCurrentWeek: true, repository: repository
+        )
+
+        await viewModel.load()
+
+        XCTAssertEqual(
+            repository.generateWeeklySummaryCallCount, 0,
+            "週日開頁不得自己把本週回顧產出來——那一步要等使用者確認訓練已完成"
+        )
+        XCTAssertTrue(viewModel.needsGeneration, "開頁停在『還沒產生』的空態")
+        XCTAssertTrue(viewModel.canGenerateReview, "鈕要在——確認框掛在它身上")
+        XCTAssertFalse(viewModel.autoGeneratesOnLoad)
+    }
+
+    /// 對照組：平日回顧的是已經過完的上一週，維持 1.4 起的「開頁就產」不變。
+    /// 沒有這一支，上面那條可能只是因為整條產生路徑都被關掉才綠。
+    func test_previousWeekReview_stillGeneratesOnLoad() async {
+        repository.weeklySummaryV2ToReturn = nil
+        repository.planStatusToReturn = Self.planStatus(
+            currentWeek: 5,
+            serverTime: "2026-08-31T02:00:00Z"
+        )
+        let viewModel = App2WeeklyReviewViewModel(
+            weekOfPlan: 4, isCurrentWeek: false, repository: repository
+        )
+
+        await viewModel.load()
+
+        XCTAssertTrue(viewModel.autoGeneratesOnLoad)
+        XCTAssertEqual(
+            repository.generateWeeklySummaryCallCount, 1,
+            "平日流程不變：開頁沿用既有的 404 → 產生 fallback"
+        )
+    }
+
+    /// 週日但視窗未開（例如已到最後一週的邊界）仍然不產——兩道判準是 AND，不是誰蓋過誰。
+    func test_currentWeekReview_windowClosed_staysReadOnly() async {
+        repository.weeklySummaryV2ToReturn = nil
+        repository.planStatusToReturn = Self.planStatus(
+            currentWeek: 5,
+            serverTime: "2026-08-31T02:00:00Z"
+        )
+        let viewModel = App2WeeklyReviewViewModel(
+            weekOfPlan: 5, isCurrentWeek: true, repository: repository
+        )
+
+        await viewModel.load()
+
+        XCTAssertFalse(viewModel.autoGeneratesOnLoad)
+        XCTAssertEqual(repository.generateWeeklySummaryCallCount, 0)
+    }
+
+    /// alert 用的是 1.x 那一組既有字串（三語都在），沒有為 2.0 新開一份。
+    func test_completionConfirmCopy_reusesTheExistingStrings() {
+        for key in [
+            L10n.Training.confirmTrainingCompletedTitle,
+            L10n.Training.confirmTrainingCompletedMessage,
+            L10n.Common.cancel,
+            L10n.Common.confirm
+        ] {
+            XCTAssertNotEqual(key.localized, key, "\(key) 沒有翻譯，alert 會顯示 key 本身")
+        }
+    }
+
     /// 週日與否**只看後端給的 `server_time` ＋ `user_timezone`**，不看裝置星期
     /// （設計 §A.1／§A.5）。這裡的 `can_generate_next_week` 是 false（例如已是最後一週），
     /// 所以判定完全落在 metadata 那條路上。

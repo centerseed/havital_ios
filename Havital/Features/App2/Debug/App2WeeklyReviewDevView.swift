@@ -98,9 +98,10 @@ final class App2DevSettings: ObservableObject {
 /// 落點沿用 repo 既有的 `Features/<Feature>/Debug/` 慣例
 /// （`Features/Subscription/Debug/IAPTestHarness.swift`），不另建第二種開發面板機制。
 ///
-/// 兩件事：
+/// 三件事：
 /// 1. **CTA 狀態走查** —— 強制首頁時機卡顯示 §A.5 的任一格。
-/// 2. **指定週次直接呼叫端點** —— `POST /v2/summary/weekly` 等。
+/// 2. **直接開週回顧頁** —— 指定 `week_of_plan` 與 `isCurrentWeek`（見 `openReviewSection`）。
+/// 3. **指定週次直接呼叫端點** —— `POST /v2/summary/weekly` 等。
 ///
 /// 第 2 項的實查結果（2026-08-26，dev 後端，創辦人 dev 帳號）：
 /// **平日生成是 server 端擋的，client 繞不過**。
@@ -117,6 +118,8 @@ struct App2WeeklyReviewDevView: View {
     @State private var week: Int = 1
     @State private var log: String = ""
     @State private var isBusy = false
+    /// 走查用：直接開週回顧頁（見 `openReviewSection`）。
+    @State private var reviewTarget: App2WeeklyReviewTarget?
 
     private let repository: TrainingPlanV2Repository
 
@@ -138,11 +141,85 @@ struct App2WeeklyReviewDevView: View {
         ) {
             VStack(alignment: .leading, spacing: 0) {
                 ctaSection
+                openReviewSection
                 generateSection
                 if !log.isEmpty { logSection }
             }
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
+        .fullScreenCover(item: $reviewTarget) { target in
+            App2WeeklyReviewView(
+                weekOfPlan: target.weekOfPlan,
+                isCurrentWeek: target.isCurrentWeek,
+                onClose: { reviewTarget = nil }
+            )
+        }
+    }
+
+    // MARK: - 直接開週回顧頁（走查週日流程用）
+    //
+    // 週日流程（`isCurrentWeek == true`）的**產生鈕**在平日的真實資料上是碰不到的：
+    // 首頁的 `generateCurrentWeek` override 開出來的是 `weekOfPlan == current_week`，
+    // 而後端平日只准產 `current_week − 1`（`plan_generation_window.py:37`），所以那一頁
+    // 落在「產生視窗未開」的空態，鈕根本不畫（T-0362）。於是 T-0409 的確認框——只在
+    // `isCurrentWeek == true` 才跳的那一個——一年只有星期天走查得到。
+    //
+    // 這兩顆鈕**不繞過任何判準**：視窗判斷、確認框判斷、產生請求都還是各自那條真路徑。
+    // 它們做的只有一件事——把頁面用「今天視窗開著的那一週」開起來（週次現查
+    // `/v2/plan/status`，不靠走查者去猜、也不靠 stepper 撥對），`isCurrentWeek` 則由
+    // 按的是哪一顆決定。於是產生鈕在、確認框的兩種形狀都走得到。
+    //
+    // **按確認會真的產生一份回顧**（那是真路徑）。只要驗確認框本身，按取消就好。
+
+    private var openReviewSection: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            App2SectionCaption(text: "Open weekly review page")
+                .padding(.top, 20)
+            App2Card(padding: 15, spacing: 12) {
+                devButton(
+                    "Open review — Sunday shape (isCurrentWeek = true)",
+                    id: "App2_DevOpenReviewSunday"
+                ) {
+                    await openAllowedWeekReview(isCurrentWeek: true)
+                }
+                devButton(
+                    "Open review — weekday shape (isCurrentWeek = false)",
+                    id: "App2_DevOpenReviewWeekday"
+                ) {
+                    await openAllowedWeekReview(isCurrentWeek: false)
+                }
+                Text("Opens the week today's generation window actually allows (read live from "
+                     + "/v2/plan/status). Nothing is bypassed — confirming the dialog really "
+                     + "generates a review.")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(App2Theme.inkFaint)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    /// 開「今天產得出來的那一週」的回顧頁。週次現查後端，不從畫面上的 stepper 拿——
+    /// 走查者撥錯一格就會落回「視窗未開」的空態，然後把那當成缺陷。
+    private func openAllowedWeekReview(isCurrentWeek: Bool) async {
+        isBusy = true
+        do {
+            let status = try await repository.getPlanStatus()
+            let isSunday = App2HomeViewModel.isSundayInUserTimezone(status)
+            let allowed = isSunday ? status.currentWeek : status.currentWeek - 1
+            guard allowed >= 1 else {
+                log = "open review\n❌ 今天沒有可產生的週次（current_week=\(status.currentWeek)）"
+                isBusy = false
+                return
+            }
+            log = "open review\n✅ week_of_plan=\(allowed) isCurrentWeek=\(isCurrentWeek) "
+                + "(current_week=\(status.currentWeek), sunday=\(isSunday))"
+            reviewTarget = App2WeeklyReviewTarget(
+                weekOfPlan: allowed, isCurrentWeek: isCurrentWeek
+            )
+        } catch {
+            log = "open review\n❌ \(error.toDomainError().localizedDescription)"
+        }
+        isBusy = false
     }
 
     // MARK: - CTA 狀態走查
@@ -208,6 +285,24 @@ struct App2WeeklyReviewDevView: View {
                         let summary = try await repository.getWeeklySummary(weekOfPlan: week)
                         return "exists id=\(summary.id) suggestions="
                             + "\(summary.nextWeekAdjustments.items.count)"
+                    }
+                }
+                // 把那一週的回顧刪掉，好把頁面推回「還沒產生」的空態——走查產生鈕
+                // （以及 T-0409 的確認框）需要那個態，而它在真實資料上通常已經被填掉了。
+                // 讀取用 `fetchWeeklySummary`：`getWeeklySummary` 404 時會 fallback 成 POST，
+                // 那會在「要刪掉它」的路徑上先生成一份出來。
+                devButton("DELETE /v2/summary/weekly", id: "App2_DevDelete") {
+                    await run("DELETE /v2/summary/weekly week_of_plan=\(week)") {
+                        guard let summary = try await repository.fetchWeeklySummary(
+                            weekOfPlan: week
+                        ) else {
+                            return "nothing to delete (week \(week) has no summary)"
+                        }
+                        try await repository.deleteWeeklySummary(summaryId: summary.id)
+                        // 本機還留著一份（`getWeeklySummary` 先讀 cache），不清掉的話
+                        // 下一次開那一頁還是會看到剛剛刪掉的那份回顧。
+                        await repository.clearWeeklySummaryCache(weekOfPlan: week)
+                        return "deleted id=\(summary.id) week=\(summary.weekOfTraining) (+cache cleared)"
                     }
                 }
                 devButton("GET /v2/plan/status", id: "App2_DevStatus") {

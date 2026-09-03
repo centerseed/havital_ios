@@ -70,6 +70,13 @@ Given 使用者位於規劃下週分頁，
 When footer 依後端 `next_action`、`current_week_plan_id`、`next_week_info` 以純函式 `nextWeekAction` 三態分流（可產生／只能套用建議／不顯示），  
 Then 「可產生」態必須提供產生課表 CTA，點擊後**先送採納（apply-items）再呼 `POST /v2/plan/weekly`**（順序不可反）；下週已有課表時 CTA 不得顯示。同一條判準同時涵蓋週日流程（目標＝下週）與平日流程（目標＝本週）。無建議項不得成為零出口（footer 不得被 `!suggestions.isEmpty` 之類條件整體隱藏）。
 
+And Then 週日流程（這一頁回顧的目標週就是本週）**不得一開頁就把回顧產出來**，要停在「還沒產生」的空態，
+由使用者按「產生回顧」，先跳一個確認框問「本週訓練是否皆已完成」，按確認才產、按取消什麼都不做
+（T-0409，2026-09-03 使用者裁決）。平日流程回顧的是已經過完的上一週，維持開頁就產、沒有確認框。
+文案沿用 1.x 既有的 `training.confirm_training_completed_title`／`_message` 與 `common.cancel`／`common.confirm`，
+不新開字串。驗法：`App2WeeklyReviewViewModel.autoGeneratesOnLoad` 在目標週＝本週時為 false（開頁不送生成請求），
+`App2WeeklyReviewView.needsCompletionConfirm(isCurrentWeek:isReadOnly:)` 只有「本週且非唯讀」為真。
+
 ### AC-TRAIN-HUB-12: 規劃下週分頁必須走 decision-chain 的逐條清單：run → 逐條表態 → 產生（2026-09-02 使用者裁決）
 
 Given 使用者位於規劃下週分頁且 `nextWeekAction == .generate(week)`（歷史週／唯讀／`applyOnly`／`none` 態不適用），

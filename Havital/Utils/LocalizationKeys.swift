@@ -525,7 +525,11 @@ enum GaitAnalysisChart {
         static let intensityLowShort = "training.intensity.low_short" // "Low %d%%"
         static let intensityMediumShort = "training.intensity.medium_short" // "Medium %d%%"
         static let intensityHighShort = "training.intensity.high_short" // "High %d%%"
-        
+
+        // 週日產生本週回顧前的確認（1.x `GenerateNextWeekButton` 既有字串，2.0 沿用，T-0409）
+        static let confirmTrainingCompletedTitle = "training.confirm_training_completed_title" // "確認訓練完成"
+        static let confirmTrainingCompletedMessage = "training.confirm_training_completed_message" // "請確認本週訓練是否皆已完成？…"
+
         // Loading Animation Messages
         enum LoadingAnimation {
             // Generate Plan Messages

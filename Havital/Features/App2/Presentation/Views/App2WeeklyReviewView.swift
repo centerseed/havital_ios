@@ -48,6 +48,9 @@ struct App2WeeklyReviewView: View {
     /// 正在調整值的那一條（`sheet(item:)` 要 `Identifiable`，清單條目本來就是）。
     @State private var adjustingItem: DecisionChainChecklistItem?
 
+    /// 週日流程按下「產生回顧」後、還沒確認「本週訓練是否皆已完成」的那一刻（T-0409）。
+    @State private var showsCompletionConfirm = false
+
     /// 「規劃下週」底部的 Rizo 輸入區（8/28 盤點 F15，Android 早有）。
     ///
     /// **不造第二套對話**：走既有的 `StateRizoChatViewModel`（App2 首頁那兩個 Rizo
@@ -157,7 +160,11 @@ struct App2WeeklyReviewView: View {
         onApplied: (() -> Void)? = nil
     ) {
         _viewModel = StateObject(
-            wrappedValue: App2WeeklyReviewViewModel(weekOfPlan: weekOfPlan, isReadOnly: isReadOnly)
+            wrappedValue: App2WeeklyReviewViewModel(
+                weekOfPlan: weekOfPlan,
+                isReadOnly: isReadOnly,
+                isCurrentWeek: isCurrentWeek
+            )
         )
         _tab = State(initialValue: startsOnPlanTab ? .plan : .review)
         self.weekOfPlan = weekOfPlan
@@ -398,15 +405,54 @@ struct App2WeeklyReviewView: View {
                     isBusy: viewModel.isLoading,
                     identifier: "App2_WeeklyReviewGenerate"
                 ) {
-                    Task { await viewModel.generate() }
+                    if Self.needsCompletionConfirm(isCurrentWeek: isCurrentWeek, isReadOnly: isReadOnly) {
+                        showsCompletionConfirm = true
+                    } else {
+                        Task { await viewModel.generate() }
+                    }
                 }
                 .padding(.horizontal, App2Theme.pagePadding)
             }
             Spacer()
         }
+        // 容器不宣告 `.contain` 的話，SwiftUI 會把容器的 identifier 蓋到每個子元素上，
+        // 於是產生鈕自己的 `App2_WeeklyReviewGenerate` 一個都查不到（2026-09-03 實測，
+        // 與規劃清單那三顆鈕同一個坑）。
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier(
             Self.emptyStateIdentifier(isReadOnly: isReadOnly, canGenerate: canGenerate)
         )
+        .alert(
+            L10n.Training.confirmTrainingCompletedTitle.localized,
+            isPresented: $showsCompletionConfirm
+        ) {
+            Button(L10n.Common.cancel.localized, role: .cancel) {}
+            Button(L10n.Common.confirm.localized) {
+                Task { await viewModel.generate() }
+            }
+        } message: {
+            Text(L10n.Training.confirmTrainingCompletedMessage.localized)
+        }
+    }
+
+    // MARK: - 週日產生本週回顧前先確認訓練都做完了（T-0409）
+    //
+    // 1.x 有這一步（`Views/Training/Components/GenerateNextWeekButton.swift:51`），
+    // 2.0 的產生鈕直接呼 `generate()` 把它漏掉了。理由不是禮貌問句：週日產的是**還在進行中
+    // 的這一週**，使用者可能今天的課還沒跑；回顧吃的是那一週的完整訓練資料，早一步產出來
+    // 的分析會少掉最後一天。字串沿用 1.x 那一組（三語都在），不新開。
+    //
+    // **另一半在 VM 的 `autoGeneratesOnLoad`**（2026-09-03 模擬器實測發現）：週日開這一頁
+    // 原本就會自己 `POST` 把回顧產掉，鈕連畫都沒畫出來過。只在鈕上掛確認框等於沒做。
+
+    /// 按「產生回顧」要不要先確認。**只有目標週＝本週**（週日流程）才問。
+    ///
+    /// 平日流程回顧的是**上一週**（`isCurrentWeek == false`）——那一週已經過完，
+    /// 沒有「還沒完成」可以確認，多跳一個 alert 只是多一次點擊。
+    /// 唯讀歷史週本來就沒有產生鈕（`showsGenerateButton`），這裡一併寫死成 false，
+    /// 免得將來有人給唯讀態接上別的產生入口時把這條判準繞過去。
+    nonisolated static func needsCompletionConfirm(isCurrentWeek: Bool, isReadOnly: Bool) -> Bool {
+        !isReadOnly && isCurrentWeek
     }
 
     // MARK: - 空態的三格（抽成具名判準才釘得住，同 `showsGeneratingAnimation`）

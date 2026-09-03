@@ -1,0 +1,85 @@
+# T-0409 · 週日流程按「產生回顧」前先確認「本週訓練是否皆已完成」（AC-TRAIN-HUB-10）。
+#
+# 驗的是**確認框存在且取消不產生**：按下產生鈕 → alert 出現 → 取消 → 畫面仍是未產生態，
+# 沒有進入生成中動畫。**不按確認** —— 那會真的送出一次 LLM 生成。
+#
+# 入口走 Developer → Weekly Review Dev Tools 的
+# `App2_DevOpenReviewSunday`：週日流程（`isCurrentWeek == true`）的產生鈕在平日的真實
+# 資料上碰不到（後端平日只准產 `current_week − 1`，本週那一頁落在「視窗未開」的空態，
+# 鈕不畫），所以那顆走查鈕用**今天視窗開著的那一週**把頁面以週日的形狀開起來。
+# 它不繞過任何判準：視窗、確認框、生成請求都還是各自那條真路徑。
+#
+# 這台模擬器上是**使用者本人手動 SSO 的創辦人 dev 帳號**：`clearState: false`、
+# 不帶任何 `-ui_testing_*` 旗標、不跑 logout 子流程。
+#
+# 前置（後端狀態，不是 app 操作）：今天可產生的那一週**還沒有回顧**
+# （有的話那一頁畫的是回顧內容，沒有產生鈕，這一支會停在第一個 assert）。
+appId: com.havital.Havital.dev
+tags:
+  - app2
+  - weekly-review
+---
+- launchApp:
+    stopApp: true
+    clearState: false
+
+- extendedWaitUntil:
+    visible:
+      id: "App2_HomeView"
+    timeout: 90000
+
+# --- 走查入口：Developer → Weekly Review Dev Tools ---
+- scrollUntilVisible:
+    element:
+      id: "App2_HomeMenu"
+    direction: UP
+    timeout: 8000
+- tapOn:
+    id: "App2_HomeMenu"
+- tapOn:
+    text: "Profile"
+    optional: true
+- tapOn:
+    text: "個人資料"
+    optional: true
+- assertVisible:
+    id: "App2_SettingsView"
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsWeeklyReviewDev"
+    direction: DOWN
+    timeout: 12000
+- tapOn:
+    id: "App2_SettingsWeeklyReviewDev"
+- assertVisible:
+    id: "App2_WeeklyReviewDevView"
+
+# --- 以週日的形狀開回顧頁（週次現查後端） ---
+- tapOn:
+    id: "App2_DevOpenReviewSunday"
+- extendedWaitUntil:
+    visible:
+      id: "App2_WeeklyReviewView"
+    timeout: 90000
+- extendedWaitUntil:
+    visible:
+      id: "App2_WeeklyReviewNotGenerated"
+    timeout: 90000
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0409/s01-not-generated
+
+# --- 按產生 → 確認框 ---
+- tapOn:
+    id: "App2_WeeklyReviewGenerate"
+# 這台模擬器的 app 語言是英文，所以比對的是 en 的那一組（同一批 key 的三語值）。
+- assertVisible: "Confirm Training Completion"
+- assertVisible: "Please confirm that you've completed all of this week's training.*"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0409/s02-confirm-alert
+
+# --- 取消 → 什麼都沒發生 ---
+- tapOn: "Cancel"
+- assertNotVisible: "Confirm Training Completion"
+- assertVisible:
+    id: "App2_WeeklyReviewNotGenerated"
+- assertNotVisible:
+    id: "App2_WeeklyReviewGenerating"
+- takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0409/s03-cancelled-still-not-generated
