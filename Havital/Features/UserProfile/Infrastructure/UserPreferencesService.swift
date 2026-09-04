@@ -118,6 +118,9 @@ struct UserPreferences: Codable {
     // API 返回的字段
     var language: String
     var timezone: String
+    /// 後端是否已為此用戶顯式設定過時區（T-0428 Contract 11）；欄位缺席視為 false。
+    /// `timezone` 本身即使未設定也會回預設值，不能用來判斷是否已初始化。
+    var timezoneIsSet: Bool
     var unitSystem: String?
     var supportedLanguages: [String]
     var languageNames: [String: String]
@@ -142,6 +145,7 @@ struct UserPreferences: Codable {
     enum CodingKeys: String, CodingKey {
         case language
         case timezone
+        case timezoneIsSet = "timezone_is_set"
         case unitSystem = "unit_system"
         case supportedLanguages = "supported_languages"
         case languageNames = "language_names"
@@ -153,6 +157,7 @@ struct UserPreferences: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         language = try container.decode(String.self, forKey: .language)
         timezone = try container.decode(String.self, forKey: .timezone)
+        timezoneIsSet = try container.decodeIfPresent(Bool.self, forKey: .timezoneIsSet) ?? false
         unitSystem = try container.decodeIfPresent(String.self, forKey: .unitSystem)
         supportedLanguages = try container.decode([String].self, forKey: .supportedLanguages)
         languageNames = try container.decode([String: String].self, forKey: .languageNames)
@@ -180,6 +185,7 @@ struct UserPreferences: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(language, forKey: .language)
         try container.encode(timezone, forKey: .timezone)
+        try container.encode(timezoneIsSet, forKey: .timezoneIsSet)
         try container.encodeIfPresent(unitSystem, forKey: .unitSystem)
         try container.encode(supportedLanguages, forKey: .supportedLanguages)
         try container.encode(languageNames, forKey: .languageNames)
@@ -190,6 +196,7 @@ struct UserPreferences: Codable {
     init(
         language: String,
         timezone: String,
+        timezoneIsSet: Bool = false,
         unitSystem: String? = nil,
         supportedLanguages: [String] = [],
         languageNames: [String: String] = [:],
@@ -211,6 +218,7 @@ struct UserPreferences: Codable {
     ) {
         self.language = language
         self.timezone = timezone
+        self.timezoneIsSet = timezoneIsSet
         self.unitSystem = unitSystem
         self.supportedLanguages = supportedLanguages
         self.languageNames = languageNames

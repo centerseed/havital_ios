@@ -42,6 +42,38 @@ final class UserPreferencesServiceTests: XCTestCase {
         XCTAssertGreaterThan(mockParser.parseCount, 0)
     }
 
+    func testGetPreferencesDecodesTimezoneIsSetTrue() async throws {
+        let response = UserPreferences(
+            language: "zh-TW",
+            timezone: "Asia/Taipei",
+            timezoneIsSet: true,
+            supportedLanguages: ["zh-TW"],
+            languageNames: ["zh-TW": "繁體中文"]
+        )
+        try mockHTTPClient.setJSONResponse(for: "/user/preferences", response: response)
+
+        let result = try await sut.getPreferences()
+
+        XCTAssertTrue(result.timezoneIsSet)
+    }
+
+    /// T-0428 尚未部署前，後端回應可能完全沒有 `timezone_is_set` 欄位；
+    /// iOS 端缺席一律視為 false，不能拿 `timezone` 本身（永遠有預設值）誤判成已初始化。
+    func testGetPreferencesDefaultsTimezoneIsSetToFalseWhenFieldMissing() async throws {
+        let json: [String: Any] = [
+            "language": "zh-TW",
+            "timezone": "Asia/Taipei",
+            "supported_languages": ["zh-TW"],
+            "language_names": ["zh-TW": "繁體中文"]
+        ]
+        let data = try JSONSerialization.data(withJSONObject: json)
+        mockHTTPClient.setResponse(for: "/user/preferences", data: data)
+
+        let result = try await sut.getPreferences()
+
+        XCTAssertFalse(result.timezoneIsSet)
+    }
+
     func testUpdatePreferencesSendsOnlyProvidedFields() async throws {
         try mockHTTPClient.setJSONResponse(for: "/user/preferences", method: .PUT, response: EmptyAPIResponse())
 

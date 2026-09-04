@@ -222,11 +222,12 @@ class UserPreferencesManager: ObservableObject, DataManageable {
     var timezonePreference: String? {
         get { preferences?.timezone }
         set {
-            if let timezone = newValue {
-                Task { @MainActor in
-                    try? await updatePreferences(language: nil, timezone: timezone)
-                }
-            }
+            // 只更新本地緩存，不隱式 PUT 到後端。
+            // 寫回後端的唯一路徑是 HavitalApp.checkAndInitializeTimezone()（T-0430）。
+            guard let timezone = newValue else { return }
+            var updated = getOrCreatePreferences()
+            updated.timezone = timezone
+            preferences = updated
         }
     }
 
@@ -647,18 +648,6 @@ class UserPreferencesManager: ObservableObject, DataManageable {
     func saveVDOTData(currentVDOT: Double, targetVDOT: Double) {
         UserDefaults.standard.set(currentVDOT, forKey: "current_vdot")
         UserDefaults.standard.set(targetVDOT, forKey: "target_vdot")
-    }
-
-    /// 檢查是否需要初始化時區設定
-    func needsTimezoneInitialization() -> Bool {
-        return timezonePreference == nil
-    }
-
-    /// 使用裝置時區初始化時區偏好
-    func initializeTimezoneFromDevice() {
-        let deviceTimezone = TimeZone.current.identifier
-        self.timezonePreference = deviceTimezone
-        Logger.firebase("時區已從裝置初始化: \(deviceTimezone)", level: .info)
     }
 
     /// 獲取裝置當前時區（IANA 格式）

@@ -999,7 +999,8 @@ struct HavitalApp: App {
         }
     }
 
-    /// 檢查並初始化時區設定
+    /// 檢查並初始化時區設定（T-0430：實際決策在 `TimezoneSyncCoordinator`，
+    /// 這裡只負責認證前置檢查與觸發）。
     private func checkAndInitializeTimezone() async {
         // 僅在用戶已認證時執行
         guard authViewModel.isAuthenticated else {
@@ -1007,38 +1008,7 @@ struct HavitalApp: App {
             return
         }
 
-        let userPreferenceManager = UserPreferencesManager.shared
-
-        // 檢查是否需要初始化時區
-        if userPreferenceManager.needsTimezoneInitialization() {
-            print("⏰ 開始自動偵測並初始化時區")
-
-            // 獲取裝置時區
-            let deviceTimezone = UserPreferencesManager.getDeviceTimezone()
-            print("⏰ 偵測到裝置時區: \(deviceTimezone)")
-
-            // 更新本地偏好
-            userPreferenceManager.timezonePreference = deviceTimezone
-
-            // ✅ 優化：使用 UserPreferencesManager 同步到後端
-            do {
-                try await UserPreferencesManager.shared.updatePreferences(timezone: deviceTimezone)
-                print("✅ 時區已自動初始化並同步到後端: \(deviceTimezone)")
-            } catch {
-                print("❌ 時區同步到後端失敗: \(error.localizedDescription)")
-                // 即使同步失敗，本地仍保留偵測到的時區
-            }
-        } else {
-            print("⏰ 時區已存在，無需初始化")
-
-            // ✅ 優化：使用 UserPreferencesManager 檢查本地時區與後端是否一致
-            if let preferences = await UserPreferencesManager.shared.getPreferences(),
-               let localTimezone = userPreferenceManager.timezonePreference,
-               localTimezone != preferences.timezone {
-                print("⚠️ 本地時區與後端不一致，同步後端時區")
-                userPreferenceManager.timezonePreference = preferences.timezone
-            }
-        }
+        await TimezoneSyncCoordinator().run()
     }
 }
 

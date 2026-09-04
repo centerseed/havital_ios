@@ -5,7 +5,7 @@ status: Draft
 layer: product
 ontology_entity: settings-feedback-management
 created: 2026-04-15
-updated: 2026-04-15
+updated: 2026-09-04
 ---
 
 # Feature Spec: 系統設定與 Feedback 管理
@@ -61,6 +61,12 @@ Then 系統必須支援附圖、隱藏 email 開關與可編輯聯絡信箱，�
 Given 使用者提交 feedback，  
 When 系統建立 payload，  
 Then 必須附帶 app version、device info 與使用者帳號資訊，讓後續追查不需要再次向使用者索取基本上下文。
+
+### AC-SETTINGS-08: 啟動時後端未設時區就寫裝置時區（T-0430）
+
+Given 使用者已登入，App 啟動，  
+When 向後端取得的偏好顯示時區尚未設定（`timezone_is_set == false`），  
+Then 系統必須把裝置時區 PUT 回後端；寫入失敗不得視為已完成，下次啟動要再嘗試，直到後端確認已設定為止。
 
 ## 明確不包含
 
