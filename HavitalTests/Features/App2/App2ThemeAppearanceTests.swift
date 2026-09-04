@@ -148,13 +148,15 @@ final class App2ThemeAppearanceTests: XCTestCase {
             encoding: .utf8
         )
         XCTAssertTrue(login.contains(".preferredColorScheme(.light)"))
+        // TrainingCalendarView（App2 紀錄頁日曆鈕的 sheet）2026-09-04 c904dd6f 起不再鎖 light，
+        // 跟系統外觀走（SPEC-app-appearance.md §8 例外）；這裡只斷言它沒有恢復強制 light。
         let calendar = try String(
             contentsOf: root.appendingPathComponent(
                 "Havital/Views/Training/Components/TrainingCalendarView.swift"
             ),
             encoding: .utf8
         )
-        XCTAssertTrue(calendar.contains(".preferredColorScheme(.light)"))
+        XCTAssertFalse(calendar.contains(".preferredColorScheme(.light)"))
     }
 
     private func hex(_ color: Color, _ style: UIUserInterfaceStyle) -> String {
