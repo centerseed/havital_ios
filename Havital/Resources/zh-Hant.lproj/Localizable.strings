@@ -4981,3 +4981,10 @@
 "workout_upload.error.no_heart_rate" = "缺少心率數據";
 "workout_upload.error.failed_format" = "上傳失敗: %@";
 "workout_upload.error.network_format" = "網路錯誤: %@";
+
+/* Garmin 歷史資料權限（T-0438） */
+"onboarding.garmin_history_hint" = "待會的 Garmin 授權頁請勾選「歷史資料」，我們才同步得到你過去兩週的訓練。";
+"garmin.history_prompt.title" = "少了歷史資料的授權";
+"garmin.history_prompt.body" = "Garmin 授權時沒有勾選「歷史資料」，所以過去兩週的訓練同步不進來。重新授權並勾選它，我們會自動幫你補上。";
+"garmin.history_prompt.cta" = "重新授權";
+"garmin.history_prompt.dismiss" = "稍後";

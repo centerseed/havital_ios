@@ -66,6 +66,12 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// **與卡片同一份 payload**，詳情頁不再打任何端點；休息日為 nil（不進詳情）。
     @Published private(set) var todayDetail: App2SessionDetail?
     @Published private(set) var weekReview: App2WeekReviewState?
+    /// 要不要畫「Garmin 缺歷史資料權限」提示卡（T-0438）。
+    ///
+    /// **只由後端的 `history_prompt_eligible` 決定**，App 不自己判——那個布林背後是三個條件
+    /// （權限確實 missing、連線 ≤7 天、沒成功拿過歷史），少判一個就是誤報。
+    /// 讀不到（網路失敗、舊版後端沒這欄位）維持 false，什麼都不畫。
+    @Published private(set) var showsGarminHistoryPrompt = false
     /// 今天已經跑完的那一筆紀錄（裝置當地日曆的今天）。有值時今日課表卡多一列
     /// 「看這次的訓練詳情」（設計 frame-15 的入口之一）。沒跑就是 nil。
     @Published private(set) var todayCompletedWorkout: WorkoutV2?
@@ -306,7 +312,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         async let today: Void = loadTodaySession(planStatus: planStatus)
         async let review: Void = loadWeekReview(planStatus: planStatus.value)
         async let completed: Void = loadTodayCompletedWorkout()
-        _ = await (state, goal, today, review, completed)
+        async let garminHistory: Void = loadGarminHistoryPrompt()
+        _ = await (state, goal, today, review, completed, garminHistory)
 
         // loading 態的收尾也只有現任輪能做——舊輪清掉新輪的 spinner 會讓首載
         // 卡在空畫面（外審第三輪 D04）。
@@ -606,6 +613,24 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     // 週日＝「產生本週回顧」，週一～六＝「產生上週回顧」，目標週的回顧已經在了
     // 就改成「查看回顧」。**「今天是不是週日」由後端的使用者時區決定**（§A.1），
     // 不看裝置星期。
+
+    /// 讀一次 `history_prompt_eligible`（T-0438 Contract 4）。
+    ///
+    /// 失敗一律當 false：這張卡叫使用者去重新授權 Garmin，寧可不出現，也不要對一個
+    /// 其實已經授權過的人出現（2026-09-05 裁決「提示不得誤報」）。
+    /// 只在資料來源是 Garmin 時才問——其他來源問了也只會拿到 not_connected。
+    private func loadGarminHistoryPrompt() async {
+        guard UserPreferencesManager.shared.dataSourcePreference == .garmin else {
+            showsGarminHistoryPrompt = false
+            return
+        }
+        do {
+            let status = try await GarminConnectionStatusService.shared.checkConnectionStatus()
+            showsGarminHistoryPrompt = status.shouldPromptForHistoryPermission
+        } catch {
+            showsGarminHistoryPrompt = false
+        }
+    }
 
     private func loadWeekReview(planStatus: PlanStatusV2Response?) async {
         guard let planStatus else { return }

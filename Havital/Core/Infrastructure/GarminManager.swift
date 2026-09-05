@@ -451,10 +451,20 @@ class GarminManager: NSObject, ObservableObject {
                         //    App 不得直接呼叫 raw /garmin/backfill（AC-GARMIN-BF-01/02）。
                         BackfillService.shared.ensureInitialGarminBackfill()
 
-                        // Assume history exists when backfill is triggered.
-                        // Refine if BackfillService ever returns an async result.
+                        // T-0438：hasHistory 以後端問到的權限為準，不再寫死 true。
+                        //
+                        // 原本這裡是 `hasHistory: true`，註解自己寫著 "Assume history exists"。
+                        // 2026-09-05 查證，近 7 天新連 Garmin 的用戶有 4/5 其實沒給歷史權限，
+                        // 也就是這個事件長期把「沒有歷史」記成「有」——分析上看不出這個漏斗在漏。
+                        //
+                        // 後端在連線完成時已經問過並落地（`SPEC-provider-connection-lifecycle` PCL-R7），
+                        // 所以這裡只是把它讀回來。讀不到就是 `unknown` → false：寧可低估，
+                        // 不要再記一次假的 true。
+                        let permissionGranted = await self.fetchGarminHistoricalPermissionGranted()
                         await MainActor.run {
-                            self.analyticsService.track(.onboardingGarminComplete(hasHistory: true))
+                            self.analyticsService.track(
+                                .onboardingGarminComplete(hasHistory: permissionGranted)
+                            )
                         }
                     } catch {
                         print("同步Garmin數據源設定到後端失敗: \(error.localizedDescription)")
@@ -467,6 +477,26 @@ class GarminManager: NSObject, ObservableObject {
         }
     }
     
+    /// 後端記到的歷史資料權限是不是 `granted`（T-0438）。
+    ///
+    /// 讀不到（網路失敗、舊版後端沒有這個欄位）一律回 `false`——這個值只餵 analytics，
+    /// 而 analytics 寧可低估也不要再記一次假的 true。**不拿它畫任何提示**：
+    /// 要不要提示是 `history_prompt_eligible` 的事，那條還多兩個條件。
+    private func fetchGarminHistoricalPermissionGranted() async -> Bool {
+        do {
+            let status = try await GarminConnectionStatusService.shared.checkConnectionStatus()
+            return status.hasHistoricalPermission
+        } catch {
+            // 英文：這是開發者 log，不是使用者文案（i18n gate 擋新增的寫死 CJK）。
+            Logger.firebase(
+                "Garmin historical permission read failed, hasHistory recorded as false: "
+                    + error.localizedDescription,
+                level: .info
+            )
+            return false
+        }
+    }
+
     /// 中斷 Garmin 連接
     /// - Parameter remote: 是否呼叫後端 API。預設 true；若已在其他地方成功解除綁定，可傳入 false 僅做本地狀態清理。
     func disconnect(remote: Bool = true) async {

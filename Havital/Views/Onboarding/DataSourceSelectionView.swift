@@ -67,6 +67,12 @@ struct DataSourceSelectionView: View {
                         description: L10n.Onboarding.garminDescription.localized
                     )
 
+                    // T-0438 Contract 3：**授權之前**就要講。Garmin 同意頁把「歷史資料」做成
+                    // 可以不勾的選項，沒勾的人連線會成功、日常同步也正常，只有過去兩週補不進來
+                    // ——2026-09-05 查證，近 7 天新連線的用戶 4/5 是這樣。事後才提示要他重跑一次
+                    // 授權，成本比先講一句高得多。
+                    garminHistoryHint
+
                     // Strava 卡已移除 — T-0238 Strava 下架。
                 }
             }
@@ -246,6 +252,23 @@ struct DataSourceSelectionView: View {
             "action": "appleHealthSelection",
             "result": "success"
         ])
+    }
+
+    /// 授權前的一行提醒（T-0438）。刻意放在 Garmin 卡**下面**而不是卡裡：
+    /// 它講的是待會那個 Garmin 頁面要做什麼，不是 Paceriz 這張卡的說明。
+    private var garminHistoryHint: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "exclamationmark.circle.fill")
+                .font(.system(size: 14))
+                .foregroundStyle(Color.orange)
+            Text(L10n.Onboarding.garminHistoryHint.localized)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 4)
+        .accessibilityIdentifier("DataSource_GarminHistoryHint")
     }
 
     private func handleGarminSelection() async {

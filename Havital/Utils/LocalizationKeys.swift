@@ -249,6 +249,14 @@ enum GaitAnalysisChart {
 }
     
     // MARK: - Onboarding
+    /// Garmin 歷史資料權限提示（T-0438）
+    enum Garmin {
+        static let historyPromptTitle = "garmin.history_prompt.title"
+        static let historyPromptBody = "garmin.history_prompt.body"
+        static let historyPromptCta = "garmin.history_prompt.cta"
+        static let historyPromptDismiss = "garmin.history_prompt.dismiss"
+    }
+
     enum Onboarding {
         static let welcome = "onboarding.welcome"
         static let setGoal = "onboarding.set_goal"
@@ -274,6 +282,8 @@ enum GaitAnalysisChart {
         // Garmin
         static let garminSubtitle = "onboarding.garmin_subtitle"
         static let garminDescription = "onboarding.garmin_description"
+        /// 授權**之前**的提醒：Garmin 同意頁的「歷史資料」是可以不勾的，沒勾就同步不到過去兩週（T-0438）。
+        static let garminHistoryHint = "onboarding.garmin_history_hint"
 
         // Strava
         static let stravaSubtitle = "onboarding.strava_subtitle"

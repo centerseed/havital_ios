@@ -37,6 +37,9 @@ struct App2HomeView: View {
     @State private var detailWorkout: WorkoutV2?
     /// 週回顧（設計 frame-18／19）。存的是要看第幾週。nil = 沒開。
     @State private var weeklyReviewWeek: App2WeeklyReviewTarget?
+    /// 「稍後」只收掉這一次進頁（T-0438）。刻意不落地：條件還在的話，下次進首頁該再問一次；
+    /// 連線滿 7 天後端自己就不再回 true，不需要 App 記一個會過期的旗標。
+    @State private var garminHistoryPromptDismissed = false
     /// 通知清單（首頁 v2 的鈴鐺）。
     ///
     /// **開的是既有的訊息中心** `MessageCenterView`（公告模組，AC-ANN-03），
@@ -79,6 +82,7 @@ struct App2HomeView: View {
                     todaySection
                 }
                 weeklyReviewRow
+                garminHistoryPromptCard
             }
             .padding(.horizontal, App2Theme.pagePadding)
             .padding(.top, 4)
@@ -1437,6 +1441,72 @@ struct App2HomeView: View {
                 )
             }
             .accessibilityAddTraits(.isButton)
+        }
+    }
+
+    // MARK: - Garmin 缺歷史資料權限（T-0438）
+
+    /// 只在後端說 `history_prompt_eligible == true` 時出現。
+    ///
+    /// 那個布林背後是三個條件（權限確實 `missing`、連線 ≤7 天、沒成功拿過歷史），
+    /// **App 不重判**——少判一個就會對已經授權過的人叫他再授權一次，那是 2026-09-05
+    /// 明令禁止的誤報。「稍後」只收掉這一次，下次進首頁若條件仍成立會再出現；
+    /// 連線滿 7 天後後端自己就不再回 true。
+    @ViewBuilder
+    private var garminHistoryPromptCard: some View {
+        if viewModel.showsGarminHistoryPrompt && !garminHistoryPromptDismissed {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color.orange)
+                    Text(L10n.Garmin.historyPromptTitle.localized)
+                        .font(.system(size: 15, weight: .heavy))
+                        .foregroundStyle(App2Theme.inkPrimary)
+                    Spacer(minLength: 0)
+                }
+                Text(L10n.Garmin.historyPromptBody.localized)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(App2Theme.inkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 10) {
+                    Button {
+                        Task { await GarminManager.shared.startConnection() }
+                    } label: {
+                        Text(L10n.Garmin.historyPromptCta.localized)
+                            .font(.system(size: 14, weight: .heavy))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 16)
+                            .frame(minHeight: 44)
+                            .background(
+                                Capsule().fill(App2Theme.accentBlue)
+                            )
+                    }
+                    .accessibilityIdentifier("App2_GarminHistoryPrompt_Reauthorize")
+
+                    Button {
+                        garminHistoryPromptDismissed = true
+                    } label: {
+                        Text(L10n.Garmin.historyPromptDismiss.localized)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(App2Theme.inkSecondary)
+                            .padding(.horizontal, 12)
+                            .frame(minHeight: 44)
+                    }
+                    .accessibilityIdentifier("App2_GarminHistoryPrompt_Later")
+                    Spacer(minLength: 0)
+                }
+            }
+            .padding(App2Theme.cardPadding)
+            .background(
+                RoundedRectangle(cornerRadius: App2Theme.cardCornerRadius, style: .continuous)
+                    .fill(App2Theme.cardBackground)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: App2Theme.cardCornerRadius, style: .continuous)
+                    .stroke(App2Theme.cardBorder, lineWidth: 1)
+            )
+            .accessibilityIdentifier("App2_GarminHistoryPrompt")
         }
     }
 

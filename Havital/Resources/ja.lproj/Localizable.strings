@@ -4937,3 +4937,10 @@
 "workout_upload.error.no_heart_rate" = "心拍数データがありません";
 "workout_upload.error.failed_format" = "アップロードに失敗しました: %@";
 "workout_upload.error.network_format" = "ネットワークエラー: %@";
+
+/* Garmin 歷史資料權限（T-0438） */
+"onboarding.garmin_history_hint" = "このあとのGarmin認証画面で「履歴データ」にチェックを入れてください。過去2週間のトレーニングを同期できます。";
+"garmin.history_prompt.title" = "履歴データが許可されていません";
+"garmin.history_prompt.body" = "Garmin認証時に「履歴データ」が選択されなかったため、過去2週間のトレーニングを同期できません。チェックを入れて再認証すると、自動的に取り込みます。";
+"garmin.history_prompt.cta" = "再認証する";
+"garmin.history_prompt.dismiss" = "あとで";
