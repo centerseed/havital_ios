@@ -72,6 +72,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// （權限確實 missing、連線 ≤7 天、沒成功拿過歷史），少判一個就是誤報。
     /// 讀不到（網路失敗、舊版後端沒這欄位）維持 false，什麼都不畫。
     @Published private(set) var showsGarminHistoryPrompt = false
+
+    private let garminStatusProvider: () async throws -> GarminConnectionStatusResponse
     /// 今天已經跑完的那一筆紀錄（裝置當地日曆的今天）。有值時今日課表卡多一列
     /// 「看這次的訓練詳情」（設計 frame-15 的入口之一）。沒跑就是 nil。
     @Published private(set) var todayCompletedWorkout: WorkoutV2?
@@ -112,10 +114,16 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         readinessViewModel: TrainingReadinessViewModel? = nil,
         readinessService: TrainingReadinessProviding? = nil,
         workoutDataSource: WorkoutStatsDataSourceProtocol? = nil,
-        snapshots: (any App2SnapshotStoring)? = nil
+        snapshots: (any App2SnapshotStoring)? = nil,
+        // T-0438：把「去問一次 Garmin 連線狀態」抽成可注入的閉包，讓提示的
+        // 顯示／收起兩條路都測得到（外審 E03）。production 走既有的 singleton。
+        garminStatusProvider: (() async throws -> GarminConnectionStatusResponse)? = nil
     ) {
         let container = DependencyContainer.shared
         self.snapshots = snapshots ?? App2FileSnapshotStore.shared
+        self.garminStatusProvider = garminStatusProvider ?? {
+            try await GarminConnectionStatusService.shared.checkConnectionStatus()
+        }
 
         if let planRepository {
             self.planRepository = planRepository
@@ -619,13 +627,22 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 失敗一律當 false：這張卡叫使用者去重新授權 Garmin，寧可不出現，也不要對一個
     /// 其實已經授權過的人出現（2026-09-05 裁決「提示不得誤報」）。
     /// 只在資料來源是 Garmin 時才問——其他來源問了也只會拿到 not_connected。
+    /// 重新問一次「現在要不要提示」。
+    ///
+    /// **重新授權回來一定要呼叫**（外審 D04）：OAuth 走的是 SFSafariViewController，
+    /// 回到 App 時沒有任何東西會重讀 `history_prompt_eligible`，卡片會在權限已經補上
+    /// 之後繼續掛著——那正是 PCL-R8 要防的誤報，只是換了個時間點發生。
+    func reloadGarminHistoryPrompt() async {
+        await loadGarminHistoryPrompt()
+    }
+
     private func loadGarminHistoryPrompt() async {
         guard UserPreferencesManager.shared.dataSourcePreference == .garmin else {
             showsGarminHistoryPrompt = false
             return
         }
         do {
-            let status = try await GarminConnectionStatusService.shared.checkConnectionStatus()
+            let status = try await garminStatusProvider()
             // 過期的那一輪不得動畫面（同 `loadTodayCompletedWorkout` 的判準）。
             guard !isStaleRound else { return }
             showsGarminHistoryPrompt = status.shouldPromptForHistoryPermission

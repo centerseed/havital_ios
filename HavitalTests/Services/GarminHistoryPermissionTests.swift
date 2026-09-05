@@ -196,3 +196,77 @@ final class GarminHistoryPermissionWiringTests: XCTestCase {
         )
     }
 }
+
+
+// MARK: - 重新授權之後卡片要收起來（外審 D04／E03）
+
+/// 這一組跑真的 view model，不是讀原始碼。
+///
+/// 釘的是 PCL-R8 在**時間軸另一端**的那一半：卡片顯示之後，使用者去補了授權回來，
+/// 它必須自己收起來。少了這一步，我們就是在對一個已經授權好的人繼續喊「請重新授權」。
+@MainActor
+final class GarminHistoryPromptReloadTests: XCTestCase {
+
+    private func response(eligible: Bool, permission: String) -> GarminConnectionStatusResponse {
+        let json = """
+        {"connected":true,"provider":"garmin","status":"active",
+         "connected_at":"2026-09-01T00:00:00+00:00",
+         "last_updated":"2026-09-05T00:00:00+00:00",
+         "message":"ok",
+         "historical_permission":"\(permission)",
+         "history_prompt_eligible":\(eligible)}
+        """
+        // swiftlint:disable:next force_try
+        return try! JSONDecoder().decode(
+            GarminConnectionStatusResponse.self, from: Data(json.utf8)
+        )
+    }
+
+    private func viewModel(
+        _ responses: [GarminConnectionStatusResponse]
+    ) -> App2HomeViewModel {
+        var queue = responses
+        return App2HomeViewModel(garminStatusProvider: {
+            queue.isEmpty ? responses[responses.count - 1] : queue.removeFirst()
+        })
+    }
+
+    func testPromptHidesAfterPermissionIsGranted() async {
+        UserPreferencesManager.shared.dataSourcePreference = .garmin
+        let vm = viewModel([
+            response(eligible: true, permission: "missing"),
+            response(eligible: false, permission: "granted"),
+        ])
+
+        await vm.reloadGarminHistoryPrompt()
+        XCTAssertTrue(vm.showsGarminHistoryPrompt, "缺權限時要提示")
+
+        // 使用者按了「重新授權」、補上權限、回到 App。
+        await vm.reloadGarminHistoryPrompt()
+        XCTAssertFalse(
+            vm.showsGarminHistoryPrompt,
+            "權限補上之後卡片必須收起來——否則就是對已授權的人繼續喊重新授權"
+        )
+    }
+
+    func testPromptStaysHiddenWhenBackendSaysNotEligible() async {
+        UserPreferencesManager.shared.dataSourcePreference = .garmin
+        let vm = viewModel([response(eligible: false, permission: "missing")])
+
+        await vm.reloadGarminHistoryPrompt()
+
+        XCTAssertFalse(
+            vm.showsGarminHistoryPrompt,
+            "權限 missing 只是三個條件之一，後端說 false 就不畫"
+        )
+    }
+
+    func testNonGarminSourceNeverPrompts() async {
+        UserPreferencesManager.shared.dataSourcePreference = .appleHealth
+        let vm = viewModel([response(eligible: true, permission: "missing")])
+
+        await vm.reloadGarminHistoryPrompt()
+
+        XCTAssertFalse(vm.showsGarminHistoryPrompt)
+    }
+}
