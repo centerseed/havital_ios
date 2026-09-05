@@ -628,6 +628,16 @@ struct App2WeeklyReviewView: View {
     /// （`AGENTS.md` 鐵則 0），所以這裡是 switch 不是兩段疊加。
     @ViewBuilder
     private func planTab(_ projection: App2WeeklyReviewProjection?) -> some View {
+        // 「和 Rizo 討論」在清單**上方**（2026-09-05 使用者裁決）：使用者要先講自己
+        // 下週的狀況，Rizo 記下的那幾條才會出現在清單上；輸入框在最底下時，那幾條
+        // 出現在它上方，看起來像是憑空多出來的。
+        //
+        // **歷史週唯讀回看不畫這一區**（裁決（q），外審第七輪 A06／B02）：它的送出會打
+        // `RizoRepository.streamChat`（`weekly_situation`），是一條寫入路徑。這一頁其他的
+        // 寫入出口（產生、套用、採納）本來就各自擋了 `isReadOnly`。
+        if Self.showsDiscussSection(isReadOnly: isReadOnly) {
+            discussSection
+        }
         switch viewModel.decisionChain {
         case .running:
             // `run` 也是數十秒的 LLM——沿用 AC-TRAIN-HUB-11 的生成中形態，
@@ -649,16 +659,6 @@ struct App2WeeklyReviewView: View {
                 noSuggestionsCard
             }
         }
-        // 建議清單只讓使用者對後端提的項目按接受／略過；**說出自己下週的狀況**沒有出口
-        // （8/28 盤點 F15：Android 這一頁底下一直有這一區，iOS 沒有）。
-        //
-        // **歷史週唯讀回看不畫這一區**（裁決（q），外審第七輪 A06／B02）：它的送出會打
-        // `RizoRepository.streamChat`（`weekly_situation`），是一條寫入路徑。這一頁其他的
-        // 寫入出口（產生、套用、採納）本來就各自擋了 `isReadOnly`，F15 是本批新加的，
-        // 加的時候漏掉同一道閘。
-        if Self.showsDiscussSection(isReadOnly: isReadOnly) {
-            discussSection
-        }
     }
 
     // MARK: - 規劃下週 · decision-chain 逐條清單（AC-TRAIN-HUB-12）
@@ -668,6 +668,27 @@ struct App2WeeklyReviewView: View {
         checklist: DecisionChainChecklist,
         card: DecisionChainIntentCard?
     ) -> some View {
+        // Rizo 記下的那幾條**自成一組，緊接在對話框下方**（所以排在意圖說明卡之前），
+        // 並標示來源（2026-09-05 使用者裁決）：兩種來源混在同一張清單裡，使用者答
+        // 「要／不要」的時候分不出這一條是系統提的還是自己剛剛跟 Rizo 講的。
+        let rizoItems = Self.rizoItems(checklist)
+        let intentItems = Self.intentItems(checklist)
+        if !rizoItems.isEmpty {
+            section(
+                String(
+                    format: L10n.App2.WeeklyReview.planningRizoSection.localized,
+                    rizoItems.count
+                )
+            ) {
+                VStack(spacing: 10) {
+                    ForEach(rizoItems) { item in
+                        checklistCard(item)
+                    }
+                }
+            }
+            .accessibilityIdentifier("App2_WeeklyReviewPlanningRizoGroup")
+        }
+        // 意圖那一組的說明卡（唯讀）緊貼著它自己的清單，不再蓋在 Rizo 那一組上面。
         if let card, card.hasContent {
             intentExplainCard(card)
         }
@@ -681,20 +702,33 @@ struct App2WeeklyReviewView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .accessibilityIdentifier("App2_WeeklyReviewPlanningEmpty")
-        } else {
+        } else if !intentItems.isEmpty {
             section(
                 String(
                     format: L10n.App2.WeeklyReview.planningSection.localized,
-                    checklist.items.count
+                    intentItems.count
                 )
             ) {
                 VStack(spacing: 10) {
-                    ForEach(checklist.items) { item in
+                    ForEach(intentItems) { item in
                         checklistCard(item)
                     }
                 }
             }
         }
+    }
+
+    /// Rizo 記下的那幾條（`source == .rizo`）。
+    ///
+    /// 抽成具名的分組而不是就地 filter：兩組**加起來一定等於整張清單**，
+    /// 新來源出現時不得整條消失（`source` 解不開時後端契約已經給 `.unknown`）。
+    static func rizoItems(_ checklist: DecisionChainChecklist) -> [DecisionChainChecklistItem] {
+        checklist.items.filter { $0.source == .rizo }
+    }
+
+    /// 其餘的（意圖旋鈕、系統的複寫提議，以及還認不得的來源）。
+    static func intentItems(_ checklist: DecisionChainChecklist) -> [DecisionChainChecklistItem] {
+        checklist.items.filter { $0.source != .rizo }
     }
 
     /// 清單頂端的**唯讀說明**（設計 §4.1，2026-09-02 晚裁決）。

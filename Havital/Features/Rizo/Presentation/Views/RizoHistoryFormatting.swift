@@ -41,10 +41,18 @@ enum RizoHistoryDateFormatter {
         return f
     }()
 
+    /// ISO 字串 → `Date`。解析失敗回 nil。
+    ///
+    /// 兩種格式（帶／不帶小數秒）都收——後端兩種都寫得出來，只認一種會讓
+    /// 「這一輪是什麼時候」在一半的資料上變成 nil。
+    static func date(_ iso8601: String?) -> Date? {
+        guard let s = iso8601 else { return nil }
+        return isoFractional.date(from: s) ?? isoPlain.date(from: s)
+    }
+
     /// ISO 字串 → 本地「中等日期 + 短時間」。解析失敗回 nil。
     static func medium(_ iso8601: String?) -> String? {
-        guard let s = iso8601 else { return nil }
-        guard let date = isoFractional.date(from: s) ?? isoPlain.date(from: s) else { return nil }
+        guard let date = date(iso8601) else { return nil }
         return display.string(from: date)
     }
 }

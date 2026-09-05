@@ -308,7 +308,15 @@ final class FakeRizoRepository: RizoRepository {
 
     func getPresets(scenario: String) async throws -> [RizoPreset] { [] }
 
-    func getHistory() async throws -> [RizoHistoryItem] { [] }
+    var historyToReturn: [RizoHistoryItem] = []
+    var historyErrorToThrow: Error?
+    private(set) var historyCallCount = 0
+
+    func getHistory() async throws -> [RizoHistoryItem] {
+        historyCallCount += 1
+        if let historyErrorToThrow { throw historyErrorToThrow }
+        return historyToReturn
+    }
 
     // MARK: confirmPlanChange（#3 測試用）
 

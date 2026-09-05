@@ -4247,12 +4247,8 @@
 "app2.home.rizo_topic_plan" = "今日のメニュー";
 "app2.home.rizo_opening" = "%@ どこから話しましょうか？";
 "app2.home.rizo_opening_prompt" = "どこから話しましょうか？";
-"app2.home.rizo_chip_advice_1" = "今日はどれくらい走ればいい？";
-"app2.home.rizo_chip_advice_2" = "インターバルを別の日に移せる？";
-"app2.home.rizo_chip_advice_3" = "回復できているかどう判断する？";
-"app2.home.rizo_chip_plan_1" = "ウォームアップはどうする？";
-"app2.home.rizo_chip_plan_2" = "ペースはどれくらい？";
-"app2.home.rizo_chip_plan_3" = "この練習の狙いは？";
+"app2.home.rizo_new_chat" = "新しい会話";
+"app2.home.rizo_history" = "履歴";
 "app2.settings.goal_section" = "目標レース";
 "app2.settings.reset_goal_race" = "目標レースを設定し直す";
 "app2.settings.system_section" = "システム";
@@ -4802,6 +4798,7 @@
 "app2.weekly_review.continue_to_plan" = "次へ：来週の計画";
 "app2.weekly_review.continue_to_plan_week" = "次へ：第%d週の計画";
 "app2.weekly_review.planning_section" = "来週の変更点 · %d";
+"app2.weekly_review.planning_rizo_section" = "Rizo からの提案 · %d";
 "app2.weekly_review.planning_empty" = "今回は調整する項目がありません。このまま計画を作成しましょう。";
 "app2.weekly_review.intent_section" = "この期間に狙うこと";
 "app2.weekly_review.intent_maintaining" = "維持すること";

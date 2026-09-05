@@ -1,0 +1,95 @@
+appId: com.havital.Havital.dev
+tags:
+  - app2
+---
+# T-0434 —— 2.0 首頁 Rizo sheet 的實走證據：
+# 開 → 聊 → 關 → 再開看得到剛剛聊的 → 新對話清空 → 歷史清單。
+#
+# `clearState: false`：這台模擬器的登入狀態不得清掉。
+
+- launchApp:
+    clearState: false
+    arguments:
+      "-skipHealthKitAuth": true
+
+- tapOn:
+    text: "知道了，不再顯示"
+    optional: true
+- tapOn:
+    text: "Got it, don't show again"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "App2_TrainingStatusCard"
+    timeout: 60000
+- takeScreenshot: t0434-01-home
+
+# 今日課表卡的 Rizo 入口 → frame-00d sheet
+- tapOn:
+    id: "App2_RizoEntry"
+- extendedWaitUntil:
+    visible:
+      id: "App2_RizoChatContext"
+    timeout: 30000
+# 三顆頭部鈕都在；寫死的追問 chips 不該再出現。
+- assertVisible:
+    id: "App2_RizoNewChat"
+- assertVisible:
+    id: "App2_RizoHistory"
+- assertVisible:
+    id: "App2_RizoChatClose"
+- assertNotVisible:
+    text: "熱身怎麼做？"
+- assertNotVisible:
+    text: "配速抓多少？"
+- takeScreenshot: t0434-02-sheet-opened
+
+# 聊一句
+- tapOn:
+    id: "rizo_chat_input"
+- inputText: "今天腿有點痠"
+- tapOn:
+    id: "rizo_chat_send"
+- extendedWaitUntil:
+    notVisible:
+      id: "rizo_chat_typing"
+    timeout: 120000
+- takeScreenshot: t0434-03-after-one-turn
+
+# 關掉再開 —— 剛剛那一段要還在
+- tapOn:
+    id: "App2_RizoChatClose"
+- extendedWaitUntil:
+    visible:
+      id: "App2_TrainingStatusCard"
+    timeout: 30000
+- tapOn:
+    id: "App2_RizoEntry"
+- extendedWaitUntil:
+    visible:
+      id: "App2_RizoChatContext"
+    timeout: 30000
+- assertVisible:
+    text: "今天腿有點痠"
+- takeScreenshot: t0434-04-reopened-shows-last-session
+
+# 新對話 —— 清空
+- tapOn:
+    id: "App2_RizoNewChat"
+- assertNotVisible:
+    text: "今天腿有點痠"
+- takeScreenshot: t0434-05-new-chat-cleared
+
+# 歷史清單
+- tapOn:
+    id: "App2_RizoHistory"
+- extendedWaitUntil:
+    visible:
+      id: "rizo_history_close"
+    timeout: 30000
+- takeScreenshot: t0434-06-history-list
+- tapOn:
+    id: "rizo_history_close"
+- tapOn:
+    id: "App2_RizoChatClose"

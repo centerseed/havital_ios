@@ -86,7 +86,8 @@ And Then 成功後必須讀 `GET /v2/decision-chain/week/{as_of}/checklist`，�
 And Then 清單一條的 `current`／`proposed`／`adjusted_value` 可以是數、字串、布林或陣列（例如 Rizo 記下「下週三不跑」那一條的 `proposed` 是 `[3]`，休息週提案那一條是 `current: false`／`proposed: true`）；app 一律照原樣收、照原樣送回去，**不解讀內容**，認不得的形狀不得讓整張清單消失。非數值的條目不提供「調整」。
 And Then 清單頂端必須顯示 `GET /v2/decision-chain/intent/active` 的**唯讀說明**：`expression.pursuing`、`expression.rationale`；`expression.maintaining`／`abandoning` 非 null 才顯示該列；其後列 `hypotheses[]` 的 `intervention.description`／`prediction.description`。`data == null` 時不畫說明區。**這一區沒有任何動作按鈕**——接受與否只在清單上逐條做，app 不呼 `POST .../intent/{revision}/confirm`（意圖 lifecycle 由清單推導）。
 And Then 同一分頁**不得並列 apply-items 建議清單**；走 decision-chain 時產生課表 CTA 直接呼 `POST /v2/plan/weekly`，**不呼 apply-items**，且不得因清單還沒答完而停用。
-And Then 分頁底部的 Rizo 討論入口維持既有 `weekly_situation` 情境；Rizo 回覆結束後必須重讀 checklist（Rizo 記下的修正會以清單上新的一條回來）。
+And Then 分頁的 Rizo 討論入口維持既有 `weekly_situation` 情境；Rizo 回覆結束後必須重讀 checklist（Rizo 記下的修正會以清單上新的一條回來）。**討論入口在清單上方**，而 **Rizo 記下的那幾條（`source == "rizo"`）自成一組、緊接在討論框下方，並標示來源「Rizo 提出」**，與意圖旋鈕那一組分開（2026-09-05 使用者裁決）——混在同一張清單裡，使用者答「要／不要」時分不出這一條是系統提的還是自己剛剛講的。兩組加起來必須等於整張清單：認不得的 `source` 落在意圖那一組，不得整條消失。
+驗法：`HavitalTests/Features/App2/App2PlanningWeekGroupingTests.swift`。
 And Then `run` 的 client 逾時必須容得下真 LLM 的一次生成（dev 實測 43.7s，量到的範圍 45–130s）：這一支單獨用 180 秒，不沿用其他端點的共用 60 秒——60 秒會把一次**正常的** run 判成逾時，使用者看到的是「決策鏈壞了」，其實只是還沒算完。
 And Given `run` 回 4xx／5xx／逾時，或 `GET .../checklist` 讀不到（404 或其他錯誤），
 Then 分頁必須回到 AC-TRAIN-HUB-10 的既有內容與路徑（apply-items → `POST /v2/plan/weekly`），不得擋產生（fail-open）。
@@ -109,6 +110,16 @@ And Then 週次的相對詞按使用者當地的星期定：**週一到週六，
 推出範圍（`App2DecisionChainAdjustRange`），屬暫定；正解是後端把值域放進清單條目，或使用者裁一組值域。
 
 行為契約與端點形狀：root `docs/designs/DESIGN-app2-decision-chain-api.md` §4.1／§4.1b；裁決：root `STATUS/decisions.md` 2026-09-02「三條基本能力」。
+
+### AC-TRAIN-HUB-13: 首頁 Rizo 對話 sheet 必須帶回當天那一段對話，並提供新對話與歷史入口（2026-09-05 使用者裁決）
+
+Given 使用者在 2.0 首頁點任一個 Rizo 入口開對話 sheet，
+When sheet 出現，
+Then 系統必須先讀 `GET /v2/agent/history`，取最新的一個 session；**該 session 的第一輪發生在使用者當地的今天**時，把那一段對話畫回來並沿用它的 `session_id` 續聊（不重送任何舊訊息，因此不重複扣額度、不重跑任何動作）。不是今天、讀不到歷史、或沒有可畫的輪次時，開空白對話並用本機組好的開場白起頭。
+（今日卡的產生時間目前不在 `/v2/state/today` 的回應裡；「同一個使用者當地日」是本條採用的判準——跨日即是新的一天、新的今日卡。）
+And Then sheet 頂部必須有「新對話」與「歷史」兩個入口（a11y id `App2_RizoNewChat`、`App2_RizoHistory`）。「新對話」清空對話並忘掉 `session_id`，下一句開新的 session；「歷史」開既有的 Rizo 歷史清單，從某一輪續聊走既有的 fork。
+And Then sheet **不得顯示寫死的追問 chips**：那三句每一輪回覆後都出現、與剛講的內容無關（2026-09-05 使用者裁決直接拿掉）。
+驗法：`HavitalTests/Features/Rizo/RizoSheetSessionRestoreTests.swift`。
 
 ### AC-TRAIN-HUB-11: 週回顧生成期間必須顯示生成中動畫與文案（2026-08-31 使用者裁決）
 
@@ -149,4 +160,5 @@ Then 系統必須顯示完成狀態與重新設定目標的入口，並把該入
 | AC-TRAIN-HUB-09 | 週回顧頁底部提供前進規劃下週的 CTA |
 | AC-TRAIN-HUB-10 | 規劃下週頁三態分流並可實際產生下週課表 |
 | AC-TRAIN-HUB-11 | 週回顧生成期間顯示生成中動畫與輪播文案 |
-| AC-TRAIN-HUB-12 | 規劃下週分頁走 decision-chain：run → 逐條清單表態 → 產生 |
+| AC-TRAIN-HUB-12 | 規劃下週分頁走 decision-chain：run → 逐條清單表態 → 產生；討論入口在清單上方，Rizo 條目自成一組 |
+| AC-TRAIN-HUB-13 | 首頁 Rizo sheet 帶回當天那一段對話，並有新對話／歷史入口，無寫死追問 chips |

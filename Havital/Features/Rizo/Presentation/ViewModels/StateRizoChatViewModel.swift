@@ -104,6 +104,69 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
         await exchange(userText: trimmed)
     }
 
+    /// 開 sheet 時把「今天那一段對話」帶回來（T-0434）。
+    ///
+    /// 使用者 2026-09-05：「今日卡片的 rizo，我聊完之後退出，還想再看剛剛聊什麼就
+    /// 看不到了。」以前 sheet 每次開都是全新的 `sessionId=nil`，關掉就沒了。
+    ///
+    /// 判準是**同一個使用者當地日**。票面寫的是「該 session 第一輪的時間 ≥ 今日卡的
+    /// 產生時間」，而 `/v2/state/today` 的回應沒有帶生成時間（`StateCardDTO` 沒有那一欄），
+    /// 所以走票面允許的那個 fallback：跨到新的一天就是新的卡片，開空白對話。
+    ///
+    /// 帶回來的是 history 上最新的那一個 session，續聊沿用它的 `sessionId`——同一段
+    /// 對話，不是把舊訊息重送一次，所以不重複扣額度也不重跑任何動作。
+    /// 讀不到歷史就當作沒有可帶回的（訓練流程 fail-open）；已經有訊息時是 no-op。
+    @discardableResult
+    func restoreTodaySession(
+        now: Date = Date(), calendar: Calendar = .current
+    ) async -> Bool {
+        guard messages.isEmpty else { return false }
+        let items: [RizoHistoryItem]
+        do {
+            items = try await repository.getHistory()
+        } catch is CancellationError {
+            return false
+        } catch {
+            return false
+        }
+        guard let latest = RizoConversationSummary.group(from: items).first,
+              let firstTurn = latest.turns.first,
+              let startedAt = RizoHistoryDateFormatter.date(firstTurn.ts),
+              calendar.isDate(startedAt, inSameDayAs: now)
+        else { return false }
+        let rendered = Self.messages(from: latest.turns)
+        guard !rendered.isEmpty else { return false }
+        scenario = latest.scenario.isEmpty ? scenario : latest.scenario
+        sessionId = latest.sessionId
+        messages = rendered
+        return true
+    }
+
+    /// 「新對話」：清空、忘掉 session、回到可以重新開場的狀態（T-0434）。
+    /// 送出下一句時 `sessionId` 是 nil，後端就會開一個新的 session。
+    func startNewConversation() {
+        cancelAllTasks()
+        sessionId = nil
+        pendingPlanChange = nil
+        isConfirmingPlanChange = false
+        isReplying = false
+        draft = ""
+        messages = []
+    }
+
+    /// 歷史輪次 → 畫面上的泡泡。`resumeFromHistory` 與 `restoreTodaySession`
+    /// 用同一份，兩邊各寫一次就會長出兩種渲染。
+    private static func messages(from turns: [RizoHistoryItem]) -> [Message] {
+        turns.flatMap { turn -> [Message] in
+            var rendered: [Message] = []
+            let user = turn.userInput.trimmingCharacters(in: .whitespacesAndNewlines)
+            let coach = turn.rizoResponse.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !user.isEmpty { rendered.append(Message(role: .user, text: user)) }
+            if !coach.isEmpty { rendered.append(Message(role: .coach, text: coach)) }
+            return rendered
+        }
+    }
+
     /// 把後端建立完成的 fork 載入目前聊天室。只切換到新的 session id，並用後端
     /// 回傳的 prefix 畫出上下文；不重新送出任何舊訊息，因此不重複扣額度或觸發動作。
     func resumeFromHistory(_ fork: RizoHistoryFork) {
@@ -114,14 +177,7 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
         isConfirmingPlanChange = false
         isReplying = false
         draft = ""
-        messages = fork.turns.flatMap { turn -> [Message] in
-            var rendered: [Message] = []
-            let user = turn.userInput.trimmingCharacters(in: .whitespacesAndNewlines)
-            let coach = turn.rizoResponse.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !user.isEmpty { rendered.append(Message(role: .user, text: user)) }
-            if !coach.isEmpty { rendered.append(Message(role: .coach, text: coach)) }
-            return rendered
-        }
+        messages = Self.messages(from: fork.turns)
     }
 
     // MARK: - Plan Change

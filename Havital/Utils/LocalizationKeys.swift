@@ -2117,18 +2117,15 @@ extension L10n {
             /// 2026-08-26 裁決把它接進 headline 句尾），不開第二份同義字串。
             static let statusRizoPlaceholder = "app2.home.status_rizo_placeholder"
 
-            /// Rizo 對話 sheet（frame-00d）：主題卡、開場白、建議問題 chips。
+            /// Rizo 對話 sheet（frame-00d）：主題卡、開場白、頭上兩顆鈕。
+            /// 寫死的追問 chips（`rizo_chip_*`）已於 T-0434 拿掉。
             static let rizoTopicLabel = "app2.home.rizo_topic_label"
             static let rizoTopicAdvice = "app2.home.rizo_topic_advice"
             static let rizoTopicPlan = "app2.home.rizo_topic_plan"
             static let rizoOpening = "app2.home.rizo_opening"
             static let rizoOpeningPrompt = "app2.home.rizo_opening_prompt"
-            static let rizoChipAdvice1 = "app2.home.rizo_chip_advice_1"
-            static let rizoChipAdvice2 = "app2.home.rizo_chip_advice_2"
-            static let rizoChipAdvice3 = "app2.home.rizo_chip_advice_3"
-            static let rizoChipPlan1 = "app2.home.rizo_chip_plan_1"
-            static let rizoChipPlan2 = "app2.home.rizo_chip_plan_2"
-            static let rizoChipPlan3 = "app2.home.rizo_chip_plan_3"
+            static let rizoNewChat = "app2.home.rizo_new_chat"
+            static let rizoHistory = "app2.home.rizo_history"
             /// 休息日卡（設計 dc.html「今日課表 · 休息日卡片」）。
             static let todayRest = "app2.home.today_rest"
             static let restTitle = "app2.home.rest_title"
@@ -2397,6 +2394,8 @@ extension L10n {
             // `title`／`reason` 是後端翻好的人話，不在這裡開 key——這一組只有外框文字。
             /// `下週要這樣改 · %d`
             static let planningSection = "app2.weekly_review.planning_section"
+            /// Rizo 記下的那幾條自成一組（T-0434，2026-09-05 裁決）。
+            static let planningRizoSection = "app2.weekly_review.planning_rizo_section"
             /// 清單有 0 條：那一輪一顆旋鈕都沒轉，按產生就是答完（設計 §4.1b 第 7 條）。
             static let planningEmpty = "app2.weekly_review.planning_empty"
             /// 清單頂端唯讀說明（卡片上沒有動作，接受與否逐條做在清單上）。

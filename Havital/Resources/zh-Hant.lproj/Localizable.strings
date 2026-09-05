@@ -4291,12 +4291,8 @@
 "app2.home.rizo_topic_plan" = "今日課表";
 "app2.home.rizo_opening" = "%@ 想從哪裡聊起？";
 "app2.home.rizo_opening_prompt" = "想從哪裡聊起？";
-"app2.home.rizo_chip_advice_1" = "那我今天要跑多少？";
-"app2.home.rizo_chip_advice_2" = "間歇可以改到別天嗎？";
-"app2.home.rizo_chip_advice_3" = "怎麼判斷恢復夠不夠？";
-"app2.home.rizo_chip_plan_1" = "熱身怎麼做？";
-"app2.home.rizo_chip_plan_2" = "配速抓多少？";
-"app2.home.rizo_chip_plan_3" = "這趟的重點是什麼？";
+"app2.home.rizo_new_chat" = "新對話";
+"app2.home.rizo_history" = "歷史";
 "app2.settings.goal_section" = "目標賽事";
 "app2.settings.reset_goal_race" = "重新設定目標賽事";
 "app2.settings.system_section" = "系統";
@@ -4846,6 +4842,7 @@
 "app2.weekly_review.continue_to_plan" = "下一步：規劃下週";
 "app2.weekly_review.continue_to_plan_week" = "下一步：規劃第 %d 週";
 "app2.weekly_review.planning_section" = "下週要這樣改 · %d";
+"app2.weekly_review.planning_rizo_section" = "Rizo 提出 · %d";
 "app2.weekly_review.planning_empty" = "這一輪沒有要調整的項目，直接產生課表就好。";
 "app2.weekly_review.intent_section" = "這一段在追什麼";
 "app2.weekly_review.intent_maintaining" = "維持";

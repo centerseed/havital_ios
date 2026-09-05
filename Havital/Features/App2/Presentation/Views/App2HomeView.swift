@@ -212,12 +212,7 @@ struct App2HomeView: View {
                 topic: L10n.App2.Home.rizoTopicAdvice.localized,
                 title: status.headline,
                 detail: status.narrative,
-                opening: Self.rizoOpening(from: status.narrative ?? status.headline),
-                quickReplies: [
-                    L10n.App2.Home.rizoChipAdvice1.localized,
-                    L10n.App2.Home.rizoChipAdvice2.localized,
-                    L10n.App2.Home.rizoChipAdvice3.localized
-                ]
+                opening: Self.rizoOpening(from: status.narrative ?? status.headline)
             )
         )
     }
@@ -229,12 +224,7 @@ struct App2HomeView: View {
                 topic: L10n.App2.Home.rizoTopicPlan.localized,
                 title: session.title,
                 detail: session.summary,
-                opening: Self.rizoOpening(from: viewModel.rizoOpeningLine),
-                quickReplies: [
-                    L10n.App2.Home.rizoChipPlan1.localized,
-                    L10n.App2.Home.rizoChipPlan2.localized,
-                    L10n.App2.Home.rizoChipPlan3.localized
-                ]
+                opening: Self.rizoOpening(from: viewModel.rizoOpeningLine)
             )
         )
     }
@@ -1356,12 +1346,7 @@ struct App2HomeView: View {
                         topic: L10n.App2.Home.rizoTopicPlan.localized,
                         title: L10n.App2.Home.todaySection.localized,
                         detail: nil,
-                        opening: Self.rizoOpening(from: viewModel.rizoOpeningLine),
-                        quickReplies: [
-                            L10n.App2.Home.rizoChipPlan1.localized,
-                            L10n.App2.Home.rizoChipPlan2.localized,
-                            L10n.App2.Home.rizoChipPlan3.localized
-                        ]
+                        opening: Self.rizoOpening(from: viewModel.rizoOpeningLine)
                     )
                 )
             }
@@ -1575,9 +1560,18 @@ struct App2HomeView: View {
 /// sheet 頭（R 頭像＋「Rizo · 你的 AI 跑步教練」＋關閉鈕）→ context 卡
 /// （「聊天主題 · 今日建議」或「· 今日課表」）→ 對話本體。
 ///
-/// **對話本體是既有的 `RizoChatView`**（泡泡、typing、建議問題 chips、改課表提案卡、
-/// 付費牆、歷史對話全都在裡面），只是關掉它自己的 header 與卡面，由 sheet 提供。
+/// **對話本體是既有的 `RizoChatView`**（泡泡、typing、改課表提案卡、付費牆全都在
+/// 裡面），只是關掉它自己的 header 與卡面，由 sheet 提供。
 /// 狀態與送出是既有的 `StateRizoChatViewModel` → 既有 Rizo API，沒有第二套對話狀態。
+///
+/// **寫死的追問 chips 已經拿掉**（T-0434）：那三句每一輪回覆後都出現、與剛剛講的
+/// 內容無關，使用者 2026-09-05 裁決直接拿掉。
+///
+/// **開起來預設是上次那一段**（T-0434）：使用者聊完退出、再開想看剛剛聊什麼，以前
+/// 看不到——sheet 每次都新建一個 `sessionId=nil` 的對話。現在先讀 history，同一個
+/// 使用者當地日的最新 session 帶回來並續聊；跨日就是新的一天、新的今日卡，開空白。
+/// 頭上兩顆鈕給另外兩條路：「新對話」清空重開，「歷史」推 1.x 既有的 `RizoHistoryView`
+/// 並用既有的 fork 續聊。
 struct App2RizoChatSheet: View {
 
     /// 這次對話的主題。`Identifiable` 是因為 `sheet(item:)` 要它——同時也讓
@@ -1590,7 +1584,6 @@ struct App2RizoChatSheet: View {
         let detail: String?
         /// 本機組好的開場白（不打 LLM）。
         let opening: String
-        let quickReplies: [String]
     }
 
     let context: Context
@@ -1599,6 +1592,11 @@ struct App2RizoChatSheet: View {
     /// sheet 被打開之後，不是首頁一出現就解。
     @StateObject private var viewModel: StateRizoChatViewModel
     @Environment(\.dismiss) private var dismiss
+    /// 歷史對話清單（1.x 既有畫面）。
+    @State private var isPresentingHistory = false
+    /// 只在 sheet 第一次出現時去讀 history —— `onAppear` 在 sheet 生命週期裡會不只
+    /// 觸發一次，重讀會把使用者剛打的字蓋掉。
+    @State private var hasRestored = false
 
     init(context: Context, scenario: String) {
         self.context = context
@@ -1622,7 +1620,6 @@ struct App2RizoChatSheet: View {
                     contextCard
                     RizoChatView(
                         viewModel: viewModel,
-                        quickReplies: context.quickReplies,
                         showsHeader: false,
                         showsSurface: false
                     )
@@ -1633,8 +1630,19 @@ struct App2RizoChatSheet: View {
             }
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
-        // 開場白在本機組（context 那兩句話畫面上已經有了），不多打一次 LLM。
-        .onAppear { viewModel.seedOpening(context.opening) }
+        // 先試著把今天那一段對話帶回來；帶不回來才用本機組好的開場白起頭
+        // （context 那兩句話畫面上已經有了，不多打一次 LLM）。
+        .task {
+            guard !hasRestored else { return }
+            hasRestored = true
+            if await viewModel.restoreTodaySession() { return }
+            viewModel.seedOpening(context.opening)
+        }
+        .sheet(isPresented: $isPresentingHistory) {
+            RizoHistoryView { fork in
+                viewModel.resumeFromHistory(fork)
+            }
+        }
     }
 
     private var header: some View {
@@ -1649,21 +1657,55 @@ struct App2RizoChatSheet: View {
                     .foregroundStyle(App2Theme.inkTertiary)
             }
             Spacer(minLength: 6)
-            Circle()
-                .fill(App2Theme.insetBackground)
-                .frame(width: 34, height: 34)
-                .overlay {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .black))
-                        .foregroundStyle(App2Theme.inkSubtle)
-                }
-                .contentShape(Rectangle())
-                .onTapGesture { dismiss() }
-                .accessibilityAddTraits(.isButton)
-                .accessibilityIdentifier("App2_RizoChatClose")
+            headerButton(
+                systemImage: "square.and.pencil",
+                label: L10n.App2.Home.rizoNewChat.localized,
+                identifier: "App2_RizoNewChat"
+            ) {
+                viewModel.startNewConversation()
+                viewModel.seedOpening(context.opening)
+            }
+            headerButton(
+                systemImage: "clock.arrow.circlepath",
+                label: L10n.App2.Home.rizoHistory.localized,
+                identifier: "App2_RizoHistory"
+            ) {
+                isPresentingHistory = true
+            }
+            headerButton(
+                systemImage: "xmark",
+                label: NSLocalizedString("common.close", comment: "Close"),
+                identifier: "App2_RizoChatClose"
+            ) {
+                dismiss()
+            }
         }
         .padding(.horizontal, App2Theme.pagePadding)
         .padding(.vertical, 12)
+    }
+
+    /// sheet 頭上的圓鈕。三顆（新對話／歷史／關閉）共用同一份 —— 三段各寫一次
+    /// 就會長出三種點擊區域，而關閉鈕的可點區域曾經就是這樣掉到 44pt 以下的。
+    private func headerButton(
+        systemImage: String,
+        label: String,
+        identifier: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Circle()
+            .fill(App2Theme.insetBackground)
+            .frame(width: 34, height: 34)
+            .overlay {
+                Image(systemName: systemImage)
+                    .font(.system(size: 13, weight: .black))
+                    .foregroundStyle(App2Theme.inkSubtle)
+            }
+            .frame(minWidth: 44, minHeight: 44)
+            .contentShape(Rectangle())
+            .onTapGesture(perform: action)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityLabel(label)
+            .accessibilityIdentifier(identifier)
     }
 
     private var contextCard: some View {

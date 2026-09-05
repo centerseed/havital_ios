@@ -4250,12 +4250,8 @@
 "app2.home.rizo_topic_plan" = "Today's workout";
 "app2.home.rizo_opening" = "%@ Where would you like to start?";
 "app2.home.rizo_opening_prompt" = "Where would you like to start?";
-"app2.home.rizo_chip_advice_1" = "So how far should I run today?";
-"app2.home.rizo_chip_advice_2" = "Can the intervals move to another day?";
-"app2.home.rizo_chip_advice_3" = "How do I tell if I have recovered enough?";
-"app2.home.rizo_chip_plan_1" = "How should I warm up?";
-"app2.home.rizo_chip_plan_2" = "What pace should I hold?";
-"app2.home.rizo_chip_plan_3" = "What is the point of this session?";
+"app2.home.rizo_new_chat" = "New chat";
+"app2.home.rizo_history" = "History";
 "app2.settings.goal_section" = "Target race";
 "app2.settings.reset_goal_race" = "Set a new goal race";
 "app2.settings.system_section" = "System";
@@ -4805,6 +4801,7 @@
 "app2.weekly_review.continue_to_plan" = "Next: plan next week";
 "app2.weekly_review.continue_to_plan_week" = "Next: plan week %d";
 "app2.weekly_review.planning_section" = "Changes for next week · %d";
+"app2.weekly_review.planning_rizo_section" = "Raised by Rizo · %d";
 "app2.weekly_review.planning_empty" = "Nothing to change this round — just generate the plan.";
 "app2.weekly_review.intent_section" = "What this block is chasing";
 "app2.weekly_review.intent_maintaining" = "Keeping";
