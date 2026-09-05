@@ -15,7 +15,12 @@ enum AnalyticsEvent {
     case onboardingGarminConnect(success: Bool)
 
     /// Fired when Garmin history sync / check completes.
-    case onboardingGarminComplete(hasHistory: Bool)
+    /// - Parameters:
+    ///   - hasHistory: **原定義不變**（`SPEC-ios-analytics-p0`：有沒有訓練資料）。
+    ///   - historyPermission: T-0438 新增，`granted` / `missing` / `unknown` —— Garmin 有沒有
+    ///     給我們讀歷史資料的授權。刻意**不覆載** `hasHistory`：那兩件事不一樣（有訓練資料
+    ///     ≠ 給了歷史權限），把新語意塞進舊參數會讓既有的漏斗定義在同一個欄位上前後不一致。
+    case onboardingGarminComplete(hasHistory: Bool, historyPermission: String)
 
     /// Fired when the user finishes selecting their training target.
     case onboardingTargetSet(targetType: String, raceId: String?, distanceKm: Double?)
@@ -252,8 +257,8 @@ extension AnalyticsEvent {
         case .onboardingGarminConnect(let success):
             return ["success": success]
 
-        case .onboardingGarminComplete(let hasHistory):
-            return ["has_history": hasHistory]
+        case .onboardingGarminComplete(let hasHistory, let historyPermission):
+            return ["has_history": hasHistory, "history_permission": historyPermission]
 
         case .onboardingTargetSet(let targetType, let raceId, let distanceKm):
             var params: [String: Any] = ["target_type": targetType]

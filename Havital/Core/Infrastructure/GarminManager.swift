@@ -451,19 +451,21 @@ class GarminManager: NSObject, ObservableObject {
                         //    App 不得直接呼叫 raw /garmin/backfill（AC-GARMIN-BF-01/02）。
                         BackfillService.shared.ensureInitialGarminBackfill()
 
-                        // T-0438：hasHistory 以後端問到的權限為準，不再寫死 true。
+                        // T-0438：多送一個 `history_permission`，**不動 `has_history` 的定義**。
                         //
-                        // 原本這裡是 `hasHistory: true`，註解自己寫著 "Assume history exists"。
-                        // 2026-09-05 查證，近 7 天新連 Garmin 的用戶有 4/5 其實沒給歷史權限，
-                        // 也就是這個事件長期把「沒有歷史」記成「有」——分析上看不出這個漏斗在漏。
+                        // 這兩件事不一樣：`has_history` 依 `SPEC-ios-analytics-p0` 是「有沒有
+                        // 訓練資料」，而歷史資料**權限**是 Garmin 授權頁那個可以不勾的選項。
+                        // 2026-09-05 查證，近 7 天新連 Garmin 的用戶 4/5 沒給那個權限——那是
+                        // 一個獨立的漏斗，塞進舊欄位只會讓既有定義前後不一致。
                         //
-                        // 後端在連線完成時已經問過並落地（`SPEC-provider-connection-lifecycle` PCL-R7），
-                        // 所以這裡只是把它讀回來。讀不到就是 `unknown` → false：寧可低估，
-                        // 不要再記一次假的 true。
-                        let permissionGranted = await self.fetchGarminHistoricalPermissionGranted()
+                        // 後端在連線完成時已經問過並落地（PCL-R7），這裡只是讀回來。
+                        let historyPermission = await self.fetchGarminHistoricalPermission()
                         await MainActor.run {
                             self.analyticsService.track(
-                                .onboardingGarminComplete(hasHistory: permissionGranted)
+                                .onboardingGarminComplete(
+                                    hasHistory: true,
+                                    historyPermission: historyPermission
+                                )
                             )
                         }
                     } catch {
@@ -477,15 +479,15 @@ class GarminManager: NSObject, ObservableObject {
         }
     }
     
-    /// 後端記到的歷史資料權限是不是 `granted`（T-0438）。
+    /// 後端記到的歷史資料權限（T-0438）：`granted` / `missing` / `unknown`。
     ///
-    /// 讀不到（網路失敗、舊版後端沒有這個欄位）一律回 `false`——這個值只餵 analytics，
-    /// 而 analytics 寧可低估也不要再記一次假的 true。**不拿它畫任何提示**：
-    /// 要不要提示是 `history_prompt_eligible` 的事，那條還多兩個條件。
-    private func fetchGarminHistoricalPermissionGranted() async -> Bool {
+    /// 讀不到（網路失敗、舊版後端沒有這個欄位）一律回 `unknown`——那正是「我們沒問到」，
+    /// 不是「沒有權限」。**不拿它畫任何提示**：要不要提示是 `history_prompt_eligible`
+    /// 的事，那條還多兩個條件。
+    private func fetchGarminHistoricalPermission() async -> String {
         do {
             let status = try await GarminConnectionStatusService.shared.checkConnectionStatus()
-            return status.hasHistoricalPermission
+            return status.historicalPermission ?? "unknown"
         } catch {
             // 英文：這是開發者 log，不是使用者文案（i18n gate 擋新增的寫死 CJK）。
             Logger.firebase(
@@ -493,7 +495,7 @@ class GarminManager: NSObject, ObservableObject {
                     + error.localizedDescription,
                 level: .info
             )
-            return false
+            return "unknown"
         }
     }
 

@@ -68,8 +68,7 @@ final class GarminHistoryPermissionTests: XCTestCase {
     }
 
     func testUnknownIsNotTreatedAsHavingPermission() throws {
-        // `unknown` ＝我們沒問到。把它當成有，就是這次要修的那個謊——
-        // 原本 `onboardingGarminComplete(hasHistory:)` 是寫死 `true` 的。
+        // `unknown` ＝我們沒問到，不是「沒有權限」。
         for value in ["unknown", "missing"] {
             let response = try decode(payload(extra: """
             , "historical_permission": "\(value)"
@@ -104,5 +103,99 @@ final class GarminHistoryPermissionTests: XCTestCase {
 
         XCTAssertFalse(response.hasHistoricalPermission)
         XCTAssertFalse(response.shouldPromptForHistoryPermission)
+    }
+}
+
+
+// MARK: - analytics 參數（T-0438）
+
+final class GarminHistoryPermissionAnalyticsTests: XCTestCase {
+
+    /// 新參數不覆載舊語意：`has_history` 仍是「有沒有訓練資料」，權限另開一個欄位。
+    func testGarminCompleteCarriesBothParameters() {
+        let event = AnalyticsEvent.onboardingGarminComplete(
+            hasHistory: true,
+            historyPermission: "missing"
+        )
+
+        XCTAssertEqual(event.name, "onboarding_garmin_complete")
+        XCTAssertEqual(event.parameters["has_history"] as? Bool, true)
+        XCTAssertEqual(event.parameters["history_permission"] as? String, "missing")
+    }
+
+    func testHistoryPermissionCarriesAllThreeValues() {
+        for value in ["granted", "missing", "unknown"] {
+            let event = AnalyticsEvent.onboardingGarminComplete(
+                hasHistory: true,
+                historyPermission: value
+            )
+            XCTAssertEqual(event.parameters["history_permission"] as? String, value)
+        }
+    }
+}
+
+
+// MARK: - 兩個拓撲事實（T-0438 外審第二輪）
+
+/// 這兩條讀原始碼文字，不跑 SwiftUI。
+///
+/// 它們釘的是「掛在哪一層」與「有沒有那道 guard」——兩個都不是行為分支，而是位置事實：
+/// 提醒掛錯容器會落在 `-ui_testing_show_intro` 才走得到的死畫面（2026-09-05 就發生過），
+/// 而 loader 少了取消 guard 會在被取消的那一輪把上一輪的 true 蓋掉。
+/// 要用行為測試問同一件事，得先把整個 onboarding 容器與 `GarminConnectionStatusService.shared`
+/// 的單例縫拆開，成本遠大於它擋住的那個回歸。
+final class GarminHistoryPermissionWiringTests: XCTestCase {
+
+    private func source(_ relativePath: String) throws -> String {
+        // #file = <repo>/HavitalTests/Services/GarminHistoryPermissionTests.swift
+        let root = URL(fileURLWithPath: #file)
+            .deletingLastPathComponent()   // Services
+            .deletingLastPathComponent()   // HavitalTests
+            .deletingLastPathComponent()   // repo root
+        return try String(contentsOf: root.appendingPathComponent(relativePath), encoding: .utf8)
+    }
+
+    func testHintLivesOnTheLiveApp2DeviceLinkPage() throws {
+        let live = try source(
+            "Havital/Features/App2/Presentation/Onboarding/App2OnboardingContainerView.swift"
+        )
+        XCTAssertTrue(
+            live.contains("App2_OnboardingGarminHistoryHint"),
+            "授權前提醒要掛在 2.0 的裝置頁——那是線上真正走到的 onboarding"
+        )
+        XCTAssertTrue(
+            live.contains("garminHistoryHint"),
+            "提醒用的是 onboarding.garmin_history_hint 這個 key"
+        )
+    }
+
+    func testHintIsNotOnTheDormantOneXPage() throws {
+        let dormant = try source("Havital/Views/Onboarding/DataSourceSelectionView.swift")
+        XCTAssertFalse(
+            dormant.contains("garminHistoryHint"),
+            "1.x 的 DataSourceSelectionView 只有 -ui_testing_show_intro 走得到，掛在那等於沒做"
+        )
+    }
+
+    func testHomeLoaderKeepsCancellationAndStaleGuards() throws {
+        let vm = try source(
+            "Havital/Features/App2/Presentation/ViewModels/App2HomeViewModel.swift"
+        )
+        let loader = try XCTUnwrap(
+            vm.range(of: "private func loadGarminHistoryPrompt").map { range -> String in
+                let tail = vm[range.lowerBound...]
+                let end = tail.range(of: "private func loadWeekReview")?.lowerBound
+                    ?? tail.endIndex
+                return String(tail[..<end])
+            }
+        )
+        XCTAssertTrue(
+            loader.contains("isCancellationError"),
+            "取消的那一輪不得把旗標寫成 false，否則會蓋掉上一輪算出來的 true"
+        )
+        XCTAssertTrue(
+            loader.contains("isStaleRound"),
+            "過期輪不得動畫面"
+        )
     }
 }

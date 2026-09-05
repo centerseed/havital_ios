@@ -92,7 +92,8 @@ Then 發送 `onboarding_garmin_complete` 事件。
 
 | Parameter | Type | Required | 說明 |
 |-----------|------|----------|------|
-| `has_history` | Bool | Yes | 是否有 Garmin 歷史訓練資料 |
+| `has_history` | Bool | Yes | 是否有 Garmin 歷史訓練資料（**定義不變**） |
+| `history_permission` | String | Yes | Garmin 有沒有給我們讀歷史資料的授權：`granted`／`missing`／`unknown`。讀不到後端的權限狀態時是 `unknown`，**不得當成 `missing`**。與 `has_history` 是兩件事——那個是「有沒有資料」，這個是「有沒有授權」；2026-09-05 查證近 7 天新連線的用戶 4/5 沒給這個授權（T-0438） |
 
 ### AC-IOS-ANALYTICS-05: onboarding_target_set
 
