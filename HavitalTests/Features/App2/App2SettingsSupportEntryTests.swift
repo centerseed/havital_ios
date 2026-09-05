@@ -1,3 +1,5 @@
+import SwiftUI
+import UIKit
 import XCTest
 @testable import paceriz_dev
 
@@ -29,3 +31,15 @@ final class App2SettingsSupportEntryTests: XCTestCase {
         XCTAssertNotEqual(rendered, App2SettingsSupportEntry.titleKey, "沒有翻譯，畫面會印出 key")
     }
 }
+
+// MARK: - 為什麼這裡沒有「把設定頁畫出來找 a11y id」那一條
+//
+// 試過了，量不到：`UIHostingController` ＋ 真 `UIWindow` ＋ layout ＋
+// `accessibilityElementCount()`／`accessibilityElement(at:)` 逐層走，回來是**空集合**
+// ——連設定頁本來就有的 `App2_SettingsLanguageRow`、`App2_SettingsClose` 都找不到。
+// SwiftUI 的 a11y element 不在這條路上建，硬寫一條會是「量不到任何東西也綠」的假斷言。
+//
+// 這一列**掛在畫面上**的證據因此走實走：`.maestro/flows/t0432-settings-feedback-entry.yaml`
+// 在真的模擬器上找 `App2_SettingsFeedbackEntry` 這一列、點下去、確認開的是 1.4 的
+// 回饋畫面（Threads／Facebook）。修前那棵樹沒有這一列，那支 flow 會紅。
+// 跑過的截圖在 `STATUS/evidence/T-0432/`。

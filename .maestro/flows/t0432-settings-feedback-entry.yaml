@@ -1,6 +1,8 @@
 appId: com.havital.Havital.dev
 tags:
   - app2
+env:
+  DEMO_REVIEWER_PASSCODE: ${DEMO_REVIEWER_PASSCODE}
 ---
 # T-0432 —— 2.0 設定頁的「聯絡 Paceriz／社群」列，點下去是 1.4 既有的回饋畫面
 # （Threads、Facebook、問題回報表單）。
@@ -11,6 +13,10 @@ tags:
     clearState: false
     arguments:
       "-skipHealthKitAuth": true
+
+# 測試專用模擬器沒有登入狀態；dev 的 reviewer demo 入口走的是正常登入 UI，
+# 不繞過登入，也不動任何人的 keychain。
+- runFlow: ../subflows/reviewer-demo-login.yaml
 
 - tapOn:
     text: "知道了，不再顯示"
@@ -23,6 +29,11 @@ tags:
     visible:
       id: "App2_TrainingStatusCard"
     timeout: 60000
+
+# dev demo 帳號的 Garmin 連線過期，首頁會蓋一張重新授權的 modal——先收掉它。
+- tapOn:
+    text: "Remind Later|稍後提醒|後で通知"
+    optional: true
 
 - tapOn:
     id: "App2_HomeMenu"
@@ -51,6 +62,8 @@ tags:
 # 1.4 的回饋畫面：聯絡管道兩條 ＋ 回報表單。
 - extendedWaitUntil:
     visible:
-      text: "Threads"
+      text: ".*Threads.*"
     timeout: 30000
+- assertVisible:
+    text: ".*Facebook.*"
 - takeScreenshot: t0432-02-feedback-report-view
