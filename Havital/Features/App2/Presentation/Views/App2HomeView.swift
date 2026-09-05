@@ -40,7 +40,6 @@ struct App2HomeView: View {
     /// 「稍後」只收掉這一次進頁（T-0438）。刻意不落地：條件還在的話，下次進首頁該再問一次；
     /// 連線滿 7 天後端自己就不再回 true，不需要 App 記一個會過期的旗標。
     @State private var garminHistoryPromptDismissed = false
-    @Environment(\.scenePhase) private var app2HomeScenePhase
     /// 通知清單（首頁 v2 的鈴鐺）。
     ///
     /// **開的是既有的訊息中心** `MessageCenterView`（公告模組，AC-ANN-03），
@@ -84,12 +83,6 @@ struct App2HomeView: View {
                 }
                 weeklyReviewRow
                 garminHistoryPromptCard
-                    // 從 Safari 回到 App 時再問一次。`startConnection()` 那條在使用者
-                    // 直接把 Safari 滑掉時不一定會走完，這一條是它的兜底。
-                    .onChange(of: app2HomeScenePhase) { _, phase in
-                        guard phase == .active else { return }
-                        Task { await viewModel.reloadGarminHistoryPrompt() }
-                    }
             }
             .padding(.horizontal, App2Theme.pagePadding)
             .padding(.top, 4)
@@ -1478,12 +1471,10 @@ struct App2HomeView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 HStack(spacing: 10) {
                     Button {
-                        Task {
-                            await GarminManager.shared.startConnection()
-                            // 回來一定要重讀（外審 D04）：OAuth 走 SFSafariViewController，
-                            // 沒有這一行，權限已經補上、卡片還會繼續掛著。
-                            await viewModel.reloadGarminHistoryPrompt()
-                        }
+                        // 只負責把授權頁推上來。**重讀不掛在這裡**——`startConnection()`
+                        // 推完 Safari 就返回，那一刻使用者連授權頁都還沒看到。真正走完是
+                        // `handleCallback(url:)`，view model 訂的是它發的 tick（外審 D04）。
+                        Task { await GarminManager.shared.startConnection() }
                     } label: {
                         Text(L10n.Garmin.historyPromptCta.localized)
                             .font(.system(size: 14, weight: .heavy))

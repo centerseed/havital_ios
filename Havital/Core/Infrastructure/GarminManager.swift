@@ -22,6 +22,13 @@ class GarminManager: NSObject, ObservableObject {
         }
     }
     @Published var reconnectionMessage: String? = nil
+
+    /// OAuth 真的走完了（T-0438）。
+    ///
+    /// `startConnection()` 只是把 Safari 推上來就返回，**它不是完成訊號**；真正走完是
+    /// `handleCallback(url:)` 收到後端回跳。想在「使用者補完授權」之後做事的畫面，
+    /// 要訂這一個，不要在 `startConnection()` 之後直接做——那時使用者連授權頁都還沒看到。
+    @Published private(set) var oauthCompletionTick: Int = 0
     
     // OAuth 2.0 PKCE 參數
     private var codeVerifier: String?
@@ -473,6 +480,10 @@ class GarminManager: NSObject, ObservableObject {
             analyticsService.track(.onboardingGarminConnect(success: false))
             await handleConnectionError(String(format: NSLocalizedString("connect.error.connection_failed_format", comment: "Provider connection failed"), "Garmin"))
         }
+
+        // 不論成功或失敗都發：訂閱端要的是「這一輪 OAuth 結束了，去重讀一次狀態」，
+        // 而不是我們在這裡替它判斷結果（T-0438）。
+        await MainActor.run { self.oauthCompletionTick += 1 }
     }
     
     /// 後端記到的歷史資料權限（T-0438）：`granted` / `missing` / `unknown`。

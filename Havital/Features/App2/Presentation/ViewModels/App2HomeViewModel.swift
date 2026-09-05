@@ -74,6 +74,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     @Published private(set) var showsGarminHistoryPrompt = false
 
     private let garminStatusProvider: () async throws -> GarminConnectionStatusResponse
+    private var garminOAuthCompletion: AnyCancellable?
     /// 今天已經跑完的那一筆紀錄（裝置當地日曆的今天）。有值時今日課表卡多一列
     /// 「看這次的訓練詳情」（設計 frame-15 的入口之一）。沒跑就是 nil。
     @Published private(set) var todayCompletedWorkout: WorkoutV2?
@@ -117,14 +118,16 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         snapshots: (any App2SnapshotStoring)? = nil,
         // T-0438：把「去問一次 Garmin 連線狀態」抽成可注入的閉包，讓提示的
         // 顯示／收起兩條路都測得到（外審 E03）。production 走既有的 singleton。
-        garminStatusProvider: (() async throws -> GarminConnectionStatusResponse)? = nil
+        garminStatusProvider: (() async throws -> GarminConnectionStatusResponse)? = nil,
+        // OAuth 走完的訊號。**不是 `startConnection()` 返回**——那只是把 Safari 推上來。
+        // 預設訂 `GarminManager` 的 tick，測試可以自己送一個 subject 進來。
+        garminOAuthCompleted: AnyPublisher<Int, Never>? = nil
     ) {
         let container = DependencyContainer.shared
         self.snapshots = snapshots ?? App2FileSnapshotStore.shared
         self.garminStatusProvider = garminStatusProvider ?? {
             try await GarminConnectionStatusService.shared.checkConnectionStatus()
         }
-
         if let planRepository {
             self.planRepository = planRepository
         } else {
@@ -230,6 +233,19 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 }
             default:
                 break
+            }
+        }
+
+        // 補完授權回來就重讀一次「還要不要提示」（PCL-R8 的收起那一端，外審 D04）。
+        // 掛在 init 結尾：sink 的 closure 捕獲 self，得等所有 stored property 都初始化完。
+        //
+        // 訂的是 OAuth **走完**的 tick，不是 `startConnection()` 返回——後者只是把 Safari
+        // 推上來，那一刻使用者連授權頁都還沒看到。
+        let garminCompletion = garminOAuthCompleted
+            ?? GarminManager.shared.$oauthCompletionTick.dropFirst().eraseToAnyPublisher()
+        self.garminOAuthCompletion = garminCompletion.sink { [weak self] _ in
+            Task { @MainActor [weak self] in
+                await self?.reloadGarminHistoryPrompt()
             }
         }
     }

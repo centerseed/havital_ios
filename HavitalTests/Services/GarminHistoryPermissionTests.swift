@@ -1,3 +1,4 @@
+import Combine
 import XCTest
 @testable import paceriz_dev
 
@@ -222,13 +223,18 @@ final class GarminHistoryPromptReloadTests: XCTestCase {
         )
     }
 
+    private let oauthCompleted = PassthroughSubject<Int, Never>()
+
     private func viewModel(
         _ responses: [GarminConnectionStatusResponse]
     ) -> App2HomeViewModel {
         var queue = responses
-        return App2HomeViewModel(garminStatusProvider: {
-            queue.isEmpty ? responses[responses.count - 1] : queue.removeFirst()
-        })
+        return App2HomeViewModel(
+            garminStatusProvider: {
+                queue.isEmpty ? responses[responses.count - 1] : queue.removeFirst()
+            },
+            garminOAuthCompleted: oauthCompleted.eraseToAnyPublisher()
+        )
     }
 
     func testPromptHidesAfterPermissionIsGranted() async {
@@ -268,5 +274,33 @@ final class GarminHistoryPromptReloadTests: XCTestCase {
         await vm.reloadGarminHistoryPrompt()
 
         XCTAssertFalse(vm.showsGarminHistoryPrompt)
+    }
+
+    /// **這一條釘的是 D04 本體**：不是「我自己再呼叫一次 reload」，而是 OAuth 真的走完
+    /// 那個訊號進來之後，卡片自己收起來。
+    ///
+    /// `startConnection()` 推完 Safari 就返回，所以完成訊號只能來自 `handleCallback(url:)`
+    /// 發的 tick。這裡用 subject 模擬那一刻。
+    func testPromptHidesWhenOAuthCompletionArrives() async {
+        UserPreferencesManager.shared.dataSourcePreference = .garmin
+        let vm = viewModel([
+            response(eligible: true, permission: "missing"),
+            response(eligible: false, permission: "granted"),
+        ])
+
+        await vm.reloadGarminHistoryPrompt()
+        XCTAssertTrue(vm.showsGarminHistoryPrompt)
+
+        // 使用者在 Safari 裡補完授權，後端回跳 → GarminManager 發 tick。
+        oauthCompleted.send(1)
+
+        // sink 起一個 Task，等它跑完。
+        for _ in 0..<50 where vm.showsGarminHistoryPrompt {
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+        XCTAssertFalse(
+            vm.showsGarminHistoryPrompt,
+            "OAuth 走完就該重讀並收起來——這是 PCL-R8 在收起那一端的落點"
+        )
     }
 }
