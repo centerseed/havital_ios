@@ -43,7 +43,7 @@ struct GarminConnectionStatusResponse: Codable {
     // 後端一律附這三個（`SPEC-provider-connection-lifecycle` §8a 契約邊界）。
     // 全部 optional：舊版後端沒有這些欄位，缺席時的語意是「不知道」＝不提示。
 
-    /// `granted` / `missing` / `unknown`。**事實**，analytics 的 hasHistory 用它。
+    /// `granted` / `missing` / `unknown`。**事實**，analytics 的 `history_permission` 用它。
     let historicalPermission: String?
     /// 最後一次向 Garmin 問權限的時間。
     let historicalPermissionCheckedAt: String?

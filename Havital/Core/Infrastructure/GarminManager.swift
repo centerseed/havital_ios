@@ -451,21 +451,17 @@ class GarminManager: NSObject, ObservableObject {
                         //    App 不得直接呼叫 raw /garmin/backfill（AC-GARMIN-BF-01/02）。
                         BackfillService.shared.ensureInitialGarminBackfill()
 
-                        // T-0438：多送一個 `history_permission`，**不動 `has_history` 的定義**。
+                        // T-0438：事件只帶 `history_permission`。
                         //
-                        // 這兩件事不一樣：`has_history` 依 `SPEC-ios-analytics-p0` 是「有沒有
-                        // 訓練資料」，而歷史資料**權限**是 Garmin 授權頁那個可以不勾的選項。
-                        // 2026-09-05 查證，近 7 天新連 Garmin 的用戶 4/5 沒給那個權限——那是
-                        // 一個獨立的漏斗，塞進舊欄位只會讓既有定義前後不一致。
-                        //
-                        // 後端在連線完成時已經問過並落地（PCL-R7），這裡只是讀回來。
+                        // 原本這裡是 `hasHistory: true` 寫死的，註解自己寫著 "Assume history
+                        // exists"——那個欄位從來沒有被正確實作過，恆為 true 只會讓漏斗看起來
+                        // 所有人都有歷史，所以 2026-09-05 裁決把它移除。真正要問的是 Garmin
+                        // 授權頁那個可以不勾的選項，由後端在連線完成時問到並落地（PCL-R7），
+                        // 這裡讀回來。
                         let historyPermission = await self.fetchGarminHistoricalPermission()
                         await MainActor.run {
                             self.analyticsService.track(
-                                .onboardingGarminComplete(
-                                    hasHistory: true,
-                                    historyPermission: historyPermission
-                                )
+                                .onboardingGarminComplete(historyPermission: historyPermission)
                             )
                         }
                     } catch {
@@ -491,7 +487,7 @@ class GarminManager: NSObject, ObservableObject {
         } catch {
             // 英文：這是開發者 log，不是使用者文案（i18n gate 擋新增的寫死 CJK）。
             Logger.firebase(
-                "Garmin historical permission read failed, hasHistory recorded as false: "
+                "Garmin historical permission read failed, recorded as unknown: "
                     + error.localizedDescription,
                 level: .info
             )

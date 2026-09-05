@@ -111,24 +111,21 @@ final class GarminHistoryPermissionTests: XCTestCase {
 
 final class GarminHistoryPermissionAnalyticsTests: XCTestCase {
 
-    /// 新參數不覆載舊語意：`has_history` 仍是「有沒有訓練資料」，權限另開一個欄位。
-    func testGarminCompleteCarriesBothParameters() {
-        let event = AnalyticsEvent.onboardingGarminComplete(
-            hasHistory: true,
-            historyPermission: "missing"
-        )
+    /// 事件只帶 `history_permission`；`has_history` 已於 T-0438 移除。
+    func testGarminCompleteCarriesOnlyHistoryPermission() {
+        let event = AnalyticsEvent.onboardingGarminComplete(historyPermission: "missing")
 
         XCTAssertEqual(event.name, "onboarding_garmin_complete")
-        XCTAssertEqual(event.parameters["has_history"] as? Bool, true)
         XCTAssertEqual(event.parameters["history_permission"] as? String, "missing")
+        XCTAssertNil(
+            event.parameters["has_history"],
+            "has_history 從來沒被正確實作過（呼叫點寫死 true），2026-09-05 移除"
+        )
     }
 
     func testHistoryPermissionCarriesAllThreeValues() {
         for value in ["granted", "missing", "unknown"] {
-            let event = AnalyticsEvent.onboardingGarminComplete(
-                hasHistory: true,
-                historyPermission: value
-            )
+            let event = AnalyticsEvent.onboardingGarminComplete(historyPermission: value)
             XCTAssertEqual(event.parameters["history_permission"] as? String, value)
         }
     }
