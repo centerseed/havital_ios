@@ -1,7 +1,6 @@
-・Fixed activity history shrinking after pull-to-refresh
-Pull-to-refresh no longer drops records you already loaded, and filtered tabs keep loading more.
-
-・Fixed missing history import on first Garmin connection
-History import after connecting Garmin is now handled entirely on the server, fixing cases where it previously failed.
-
-・Bug fixes
+Paceriz 2.0 — a complete redesign (public beta)
+・Every screen redesigned: Home, Plan, History, Achievements, Settings
+・Training status on Home: daily state, key metrics, and Rizo coach suggestions
+・Better plan experience: browse the weekly plan, review past weeks, edit sessions
+・Weekly review and race management folded into the new flow
+・Please report any issues or suggestions
