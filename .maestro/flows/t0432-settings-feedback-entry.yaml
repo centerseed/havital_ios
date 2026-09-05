@@ -1,0 +1,56 @@
+appId: com.havital.Havital.dev
+tags:
+  - app2
+---
+# T-0432 —— 2.0 設定頁的「聯絡 Paceriz／社群」列，點下去是 1.4 既有的回饋畫面
+# （Threads、Facebook、問題回報表單）。
+#
+# `clearState: false`：這台模擬器的登入狀態不得清掉。不送出任何回報。
+
+- launchApp:
+    clearState: false
+    arguments:
+      "-skipHealthKitAuth": true
+
+- tapOn:
+    text: "知道了，不再顯示"
+    optional: true
+- tapOn:
+    text: "Got it, don't show again"
+    optional: true
+
+- extendedWaitUntil:
+    visible:
+      id: "App2_TrainingStatusCard"
+    timeout: 60000
+
+- tapOn:
+    id: "App2_HomeMenu"
+- tapOn:
+    text: "個人資料"
+    optional: true
+- tapOn:
+    text: "Profile"
+    optional: true
+- tapOn:
+    text: "プロフィール"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "App2_SettingsView"
+    timeout: 30000
+
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsFeedbackEntry"
+    direction: DOWN
+- takeScreenshot: t0432-01-settings-feedback-row
+
+- tapOn:
+    id: "App2_SettingsFeedbackEntry"
+# 1.4 的回饋畫面：聯絡管道兩條 ＋ 回報表單。
+- extendedWaitUntil:
+    visible:
+      text: "Threads"
+    timeout: 30000
+- takeScreenshot: t0432-02-feedback-report-view

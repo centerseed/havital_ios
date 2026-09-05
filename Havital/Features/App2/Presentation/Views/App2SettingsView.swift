@@ -20,6 +20,28 @@ enum App2SettingsDestination: String, Identifiable {
     var id: String { rawValue }
 }
 
+// MARK: - App2SettingsSupportEntry
+/// 設定頁的「聯絡 Paceriz／社群」列（T-0432）。
+///
+/// 目的地是 **1.4 既有的 `FeedbackReportView`** —— Threads、Facebook 與問題回報表單
+/// 都在那一頁裡，2.0 不另做一份社群入口，也不複製連結。設計稿 frame-21 沒畫這一列，
+/// 以 T-0432 與 `STATUS/decisions.md` 2026-09-05 為準。
+///
+/// 列的三個事實（標題 key、a11y id、目的地）抽在這裡，讓「列還在、點下去去哪」
+/// 可以被單測鎖住，而不是只能靠走查。
+enum App2SettingsSupportEntry {
+    /// 這一列點下去開哪個畫面。
+    enum Destination: Equatable {
+        /// 1.4 的 `FeedbackReportView`（沿用 1.4 的 sheet 呈現）。
+        case feedbackReport
+    }
+
+    static let systemImage = "bubble.left.and.bubble.right"
+    static let titleKey = L10n.Feedback.settingsEntry
+    static let identifier = "App2_SettingsFeedbackEntry"
+    static let destination: Destination = .feedbackReport
+}
+
 // MARK: - App2SettingsView
 /// 2.0 設定頁 —— 設計 **frame-21「設定 · 首頁」**（語意見
 /// `DESIGN-app2-decision-chain-api.md` §3.9a）。
@@ -39,6 +61,9 @@ struct App2SettingsView: View {
     @State private var destination: App2SettingsDestination?
     /// 登出前的二次確認（破壞性樣式）。
     @State private var isConfirmingLogout = false
+    /// 「聯絡 Paceriz／社群」→ 1.4 的 `FeedbackReportView`。它自帶 `NavigationView`
+    /// 與自己的關閉鈕，1.4 也是用 sheet 開的，這裡沿用同一種呈現而不是推進導航堆疊。
+    @State private var isPresentingFeedback = false
 
     // MARK: - 訂閱卡的第二行（2026-08-27 晚走查裁決（h））
     //
@@ -152,6 +177,9 @@ struct App2SettingsView: View {
                 .accessibilityIdentifier("App2_SettingsLogoutCancel")
         } message: {
             Text(NSLocalizedString("auth.logout_confirm", comment: "Are you sure you want to log out?"))
+        }
+        .sheet(isPresented: $isPresentingFeedback) {
+            FeedbackReportView(userEmail: viewModel.snapshot?.value.accountEmail ?? "")
         }
         }
     }
@@ -567,13 +595,28 @@ struct App2SettingsView: View {
                 App2SettingsRow(
                     systemImage: "thermometer.sun",
                     title: L10n.Performance.heatAdaptation.localized,
-                    value: "",
-                    showsDivider: false
+                    value: ""
                 )
                 .contentShape(Rectangle())
                 .onTapGesture { destination = .climate }
                 .accessibilityAddTraits(.isButton)
                 .accessibilityIdentifier("App2_SettingsClimateRow")
+
+                // 「聯絡 Paceriz／社群」——1.4 有、2.0 一路到發表前都沒有的入口（T-0432）。
+                App2SettingsRow(
+                    systemImage: App2SettingsSupportEntry.systemImage,
+                    title: App2SettingsSupportEntry.titleKey.localized,
+                    value: "",
+                    showsDivider: false
+                )
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    switch App2SettingsSupportEntry.destination {
+                    case .feedbackReport: isPresentingFeedback = true
+                    }
+                }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityIdentifier(App2SettingsSupportEntry.identifier)
             }
         }
     }
