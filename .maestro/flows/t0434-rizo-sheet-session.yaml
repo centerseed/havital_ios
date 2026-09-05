@@ -1,6 +1,8 @@
 appId: com.havital.Havital.dev
 tags:
   - app2
+env:
+  DEMO_REVIEWER_PASSCODE: ${DEMO_REVIEWER_PASSCODE}
 ---
 # T-0434 —— 2.0 首頁 Rizo sheet 的實走證據：
 # 開 → 聊 → 關 → 再開看得到剛剛聊的 → 新對話清空 → 歷史清單。
@@ -11,6 +13,9 @@ tags:
     clearState: false
     arguments:
       "-skipHealthKitAuth": true
+
+# 測試專用模擬器沒有登入狀態；dev 的 reviewer demo 入口走的是正常登入 UI。
+- runFlow: ../subflows/reviewer-demo-login.yaml
 
 - tapOn:
     text: "知道了，不再顯示"
@@ -23,11 +28,23 @@ tags:
     visible:
       id: "App2_TrainingStatusCard"
     timeout: 60000
+# dev demo 帳號的 Garmin 連線過期時首頁會蓋一張重新授權 modal——先收掉。
+- tapOn:
+    text: "Remind Later|稍後提醒|後で通知"
+    optional: true
 - takeScreenshot: t0434-01-home
 
-# 今日課表卡的 Rizo 入口 → frame-00d sheet
+# 今日課表卡的 Rizo 入口 → frame-00d sheet（在摺線下，先捲到它）
+# 入口的容器 id（`App2_RizoEntry`）被今日課表卡的 a11y container 蓋住，
+# 從外面選不到；點它的標題字，那是使用者實際點的東西。
+- scrollUntilVisible:
+    element:
+      text: "Talk to Rizo|跟 Rizo 討論|Rizoに相談"
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
 - tapOn:
-    id: "App2_RizoEntry"
+    text: "Talk to Rizo|跟 Rizo 討論|Rizoに相談"
 - extendedWaitUntil:
     visible:
       id: "App2_RizoChatContext"
@@ -64,8 +81,16 @@ tags:
     visible:
       id: "App2_TrainingStatusCard"
     timeout: 30000
+# 入口的容器 id（`App2_RizoEntry`）被今日課表卡的 a11y container 蓋住，
+# 從外面選不到；點它的標題字，那是使用者實際點的東西。
+- scrollUntilVisible:
+    element:
+      text: "Talk to Rizo|跟 Rizo 討論|Rizoに相談"
+    direction: DOWN
+    timeout: 20000
+    centerElement: true
 - tapOn:
-    id: "App2_RizoEntry"
+    text: "Talk to Rizo|跟 Rizo 討論|Rizoに相談"
 - extendedWaitUntil:
     visible:
       id: "App2_RizoChatContext"
