@@ -815,6 +815,18 @@ struct App2OnboardingDeviceLinkView: View {
                 garminRow
                 appleHealthRow
 
+                // T-0438／PCL-R7a：**授權之前**就要講。Garmin 的同意頁把「歷史資料」做成
+                // 可以不勾的選項，沒勾的人連線會成功、日常同步也正常，只有過去兩週補不
+                // 進來——2026-09-05 查證，近 7 天新連線的用戶 4/5 是這樣，而且看不到任何
+                // 說明。已經連好的人不再顯示（PCL-R7a 的第二個驗法）。
+                if !garmin.isConnected {
+                    App2OnboardingNotice(
+                        systemImage: "exclamationmark.circle",
+                        text: L10n.Onboarding.garminHistoryHint.localized
+                    )
+                    .accessibilityIdentifier("App2_OnboardingGarminHistoryHint")
+                }
+
                 if garmin.isConnected {
                     syncNote
                 }

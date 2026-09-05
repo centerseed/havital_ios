@@ -626,8 +626,14 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         }
         do {
             let status = try await GarminConnectionStatusService.shared.checkConnectionStatus()
+            // 過期的那一輪不得動畫面（同 `loadTodayCompletedWorkout` 的判準）。
+            guard !isStaleRound else { return }
             showsGarminHistoryPrompt = status.shouldPromptForHistoryPermission
         } catch {
+            // **取消不是答案**：被取消的那一輪把旗標寫成 false，會把上一輪已經算出來的
+            // true 蓋掉，卡片就這樣消失了。取消只記一筆，畫面留給現任輪。
+            guard !error.isCancellationError else { noteRoundCancellation(); return }
+            guard !isStaleRound else { return }
             showsGarminHistoryPrompt = false
         }
     }
