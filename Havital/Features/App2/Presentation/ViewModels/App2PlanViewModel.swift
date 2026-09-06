@@ -176,7 +176,8 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     var isHistoryMode: Bool { historyWeek != nil }
     /// header 右上角週回顧鈕：只在歷史週出現（裁決（q）2026-09-01 覆寫）。
     /// 當週不畫——產生走首頁時機卡與「先完成週回顧」CTA。
-    var showsHeaderWeeklyReview: Bool { isHistoryMode }
+    /// **已產生的下一週也不畫**：那一週還沒發生，它的回顧不存在，按下去只會開一頁空的。
+    var showsHeaderWeeklyReview: Bool { isHistoryMode && !isViewingNextWeek }
     var showsPlanEnd: Bool { planEnd != nil && historyWeek == nil }
     /// 歷史回看退出後會落在哪：結束畫面（結束態）或本週課表（進行中）。
     var showsPlanEndAfterExit: Bool { planEnd != nil }
@@ -191,13 +192,46 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     var canGoPreviousHistoryWeek: Bool {
         ((historyWeek ?? latestPlanStatus?.currentWeek) ?? 1) > 1
     }
+
+    // MARK: - 已產生的下一週（2026-09-06 prod 缺陷）
+    //
+    // 週日在週回顧按下「產生下週課表」，後端已經把第 11 週寫進 `weekly_plans_v2`
+    // 並設成 `active_weekly_plan_id`；但週日在使用者時區仍屬第 10 週，
+    // `GET /v2/plan/status` 回的是 `current_week = 10`。往後翻的上限如果只認當週，
+    // **剛產好的那一週整個週日都不可達**，要等到週一才出現。
+    //
+    // 判準用後端已經給的那一格：`next_week_info.has_plan`
+    //（`domains/plan_week/service.py:1323-1351`）。它為真才多開一週，不改後端、
+    // 不新開端點，資料仍走既有的 `getWeeklyPlan(weekOfTraining:overviewId:)`。
+
+    /// 已經產生、可以往前翻過去看的那一週。沒有就 nil（往後翻的上限＝當週，原行為）。
+    var nextWeekWithPlan: Int? {
+        guard planEnd == nil,
+              let currentWeek = latestPlanStatus?.currentWeek,
+              let info = latestPlanStatus?.nextWeekInfo,
+              info.hasPlan,
+              info.weekNumber > currentWeek
+        else { return nil }
+        return info.weekNumber
+    }
+
+    /// 現在畫的是不是那一週。**它不是歷史**——只是還沒開始的下一週。
+    var isViewingNextWeek: Bool {
+        guard let historyWeek, let currentWeek = latestPlanStatus?.currentWeek else { return false }
+        return historyWeek > currentWeek
+    }
+
     var canGoNextHistoryWeek: Bool {
+        guard let current = historyWeek ?? latestPlanStatus?.currentWeek else { return false }
+        if planEnd == nil {
+            // 進行中往後翻的上限＝當週（回到當週就退回現行畫面），
+            // 下週課表已產生時多開那一週。
+            let cap = nextWeekWithPlan ?? latestPlanStatus?.currentWeek ?? historyTotalWeeks ?? current
+            return current < cap
+        }
+        // 結束態＝總週數，且只有進了歷史模式才翻得動。
         guard let historyWeek else { return false }
-        // 進行中往後翻的上限＝當週（回到當週就退回現行畫面）；結束態＝總週數。
-        let cap = planEnd == nil
-            ? (latestPlanStatus?.currentWeek ?? historyTotalWeeks ?? historyWeek)
-            : (historyTotalWeeks ?? historyWeek)
-        return historyWeek < cap
+        return historyWeek < (historyTotalWeeks ?? historyWeek)
     }
 
     nonisolated let taskRegistry = TaskRegistry()
@@ -257,6 +291,15 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             // 單位切換（T-0366）：這一頁上的量是**投影時就格式化好的字串**，
             // View 觀察 `UnitManager` 只會重畫同一份舊字。收到就重投影一次。
             case .unitSystemChanged:
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.lastLoadedAt = nil
+                    if self.hasLoaded { await self.revalidate() }
+                }
+            // 課表換了（產生下週課表／編輯課表／Rizo 改課表都發這一顆）。
+            // **plan status 也要重讀**：`next_week_info.has_plan` 是「下一週翻不翻得到」
+            // 的判準，不重讀的話週日剛產好的那一週要等冷啟才看得見（2026-09-06 prod）。
+            case .dataChanged(.trainingPlanV2):
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     self.lastLoadedAt = nil
@@ -471,13 +514,23 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 進行中的計畫往後翻回到當週＝退出歷史模式回到現行畫面。
     func goToHistoryWeek(offset: Int) async {
         guard let current = historyWeek ?? latestPlanStatus?.currentWeek else { return }
-        if planEnd == nil,
-           let currentWeek = latestPlanStatus?.currentWeek,
-           current + offset >= currentWeek {
-            guard historyWeek != nil else { return }
-            exitHistoryMode()
-            await revalidate()
-            return
+        let target = current + offset
+        if planEnd == nil, let currentWeek = latestPlanStatus?.currentWeek {
+            // 進行中往前的盡頭：已產生的下一週，沒有就是當週。
+            let forwardCap = nextWeekWithPlan ?? currentWeek
+            if target > forwardCap { return }
+            if target > currentWeek {
+                // 已經產生、但還沒開始的那一週。走的是與歷史回看同一支
+                // `getWeeklyPlan(weekOfTraining:overviewId:)`，不新開路徑。
+                await loadHistoryWeek(target)
+                return
+            }
+            if target == currentWeek {
+                guard historyWeek != nil else { return }
+                exitHistoryMode()
+                await revalidate()
+                return
+            }
         }
         guard let next = App2PlanEndProjection.clampHistoryWeek(
                   current + offset, totalWeeks: historyTotalWeeks

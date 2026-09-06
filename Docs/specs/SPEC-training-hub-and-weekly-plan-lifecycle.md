@@ -146,6 +146,22 @@ Given 訓練計畫已完成，
 When 使用者進入訓練首頁，  
 Then 系統必須顯示完成狀態與重新設定目標的入口，並把該入口導向 re-onboarding。
 
+### AC-TRAIN-HUB-14: 下週課表已產生時，課表頁必須能往前翻到那一週（2026-09-06 prod 缺陷）
+
+Given 後端的 plan status 回 `next_week_info.has_plan == true`（下週課表已經產生），
+When 使用者在課表頁看本週，
+Then 週次切換器的右箭頭必須可按，按下去顯示第 `current_week + 1` 週的週次標與日卡
+（走既有的 `GET /v2/plan/weekly/{overview_id}_{week}`，不新開端點）；在那一週按左箭頭回到本週，右箭頭停用。
+And Then 產生下週課表成功之後，課表頁必須重讀 plan status，右箭頭立刻可按，不必等冷啟。
+And Then `next_week_info` 缺席或 `has_plan == false` 時，右箭頭維持停用。
+
+週日是這條的實際場景：週日在使用者時區仍屬第 N 週，`current_week` 還是 N，
+但週回顧產出的是第 N+1 週；上限若只認當週，剛產好的那一週整個週日都看不到
+（2026-09-06 創辦人帳號 `f30fed2f03ab_11`）。
+**那一週目前唯讀**——編輯入口（`App2PlanEditGate`）沒有週次參數，開在下週會改到當週那一份。
+
+驗法：`HavitalTests/Features/App2/App2PlanNextWeekBrowsingTests.swift`。
+
 ## AC ID Index
 
 本 spec 已採用穩定 AC-ID；以下索引作為派工、review 與測試引用入口。
@@ -165,3 +181,4 @@ Then 系統必須顯示完成狀態與重新設定目標的入口，並把該入
 | AC-TRAIN-HUB-11 | 週回顧生成期間顯示生成中動畫與輪播文案 |
 | AC-TRAIN-HUB-12 | 規劃下週分頁走 decision-chain：run → 逐條清單表態 → 產生；討論入口在清單上方，Rizo 條目自成一組 |
 | AC-TRAIN-HUB-13 | 首頁 Rizo sheet 帶回當天那一段對話，並有新對話／歷史入口，無寫死追問 chips |
+| AC-TRAIN-HUB-14 | 下週課表已產生時課表頁可往前翻到那一週；產完即刻可翻 |
