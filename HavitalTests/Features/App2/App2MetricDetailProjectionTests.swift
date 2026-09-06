@@ -92,14 +92,12 @@ final class App2MetricDetailProjectionTests: XCTestCase {
     }
 
     func testLoadBlockTakesLatestDayValues() {
+        // 後端交來是新→舊；三欄取的是**日期最新**那一天，不是陣列第一筆。
         let records = [
             HealthRecord(date: "2026-08-26", atl: 56, ctl: 42, tsb: -14),
             HealthRecord(date: "2026-08-25", atl: 50, ctl: 41, tsb: -9)
         ]
         let block = App2MetricDetailProjection.loadBlock(records)
-        XCTAssertEqual(block?.series.count, 2)
-        // 序列轉成舊→新
-        XCTAssertEqual(block?.series.first?.date, "2026-08-25")
         XCTAssertEqual(block?.tsb, -14)
         XCTAssertEqual(block?.ctl, 42)
         XCTAssertEqual(block?.atl, 56)
@@ -492,5 +490,137 @@ final class App2MetricDetailProjectionTests: XCTestCase {
                 insight: insight("speed_endurance", graded: false), kind: .speedEndurance
             )
         )
+    }
+
+    // MARK: - §51-6 近 30 天負荷比（T-0618）
+
+    private func acwrDay(
+        _ day: String, raw: Double?, side: String = "sweet",
+        low: Double? = 0.8, high: Double? = 1.3
+    ) -> AthleteStateSeriesResponse.Day {
+        .init(
+            day: day,
+            deliveryStatus: raw == nil ? "insufficient_data" : "active",
+            envelope: .init(
+                index: 95.0,
+                levelIndex: nil,
+                channels: .init(acwr: .init(
+                    raw: raw, available: raw != nil, side: side,
+                    sweetLow: low, sweetHigh: high
+                ))
+            )
+        )
+    }
+
+    /// 線讀的是 `channels.acwr.raw`，不是 `index`：兩個是不同的量，
+    /// index 是 0–100 的「剛好程度」，比值才是使用者在圖上看的那條線。
+    func testAcwrBlockTakesTheRatioNotTheIndex() {
+        let response = AthleteStateSeriesResponse(
+            startDay: nil, endDay: nil,
+            series: ["load_index": [acwrDay("2026-09-05", raw: 1.38),
+                                    acwrDay("2026-09-06", raw: 1.71)]]
+        )
+        let block = App2MetricDetailProjection.acwrBlock(response)
+        XCTAssertEqual(block?.series.map(\.value), [1.38, 1.71])
+        XCTAssertEqual(block?.series.map(\.date), ["2026-09-05", "2026-09-06"])
+    }
+
+    /// 比值算不出來的那天沒有點 —— 不補鄰日的值（後端 §4.10.7 禁 LOCF）。
+    func testDaysWithoutARatioAreSkippedNotCarriedForward() {
+        let response = AthleteStateSeriesResponse(
+            startDay: nil, endDay: nil,
+            series: ["load_index": [
+                acwrDay("2026-09-04", raw: 1.2),
+                acwrDay("2026-09-05", raw: nil, side: "basis_too_low", low: nil, high: nil),
+                acwrDay("2026-09-06", raw: 1.4, side: "overload")
+            ]]
+        )
+        let block = App2MetricDetailProjection.acwrBlock(response)
+        XCTAssertEqual(block?.series.map(\.date), ["2026-09-04", "2026-09-06"])
+    }
+
+    /// 甜區上下界**由後端逐列帶**（依訓練期變），app 不寫死；取最新一天那一列。
+    func testTheSweetBandComesFromTheLatestRowNotAConstant() {
+        let response = AthleteStateSeriesResponse(
+            startDay: nil, endDay: nil,
+            series: ["load_index": [
+                acwrDay("2026-09-05", raw: 1.1, low: 0.8, high: 1.3),
+                acwrDay("2026-09-06", raw: 0.9, side: "sweet", low: 0.5, high: 1.0)
+            ]]
+        )
+        let block = App2MetricDetailProjection.acwrBlock(response)
+        XCTAssertEqual(block?.sweetLow, 0.5)
+        XCTAssertEqual(block?.sweetHigh, 1.0)
+    }
+
+    /// 一天都算不出比值 → nil（畫佔位句，不畫空圖）。
+    func testAcwrBlockIsNilWhenNoDayHasARatio() {
+        let response = AthleteStateSeriesResponse(
+            startDay: nil, endDay: nil,
+            series: ["load_index": [
+                acwrDay("2026-09-06", raw: nil, side: "basis_too_low", low: nil, high: nil)
+            ]]
+        )
+        XCTAssertNil(App2MetricDetailProjection.acwrBlock(response))
+        XCTAssertNil(App2MetricDetailProjection.acwrBlock(
+            AthleteStateSeriesResponse(startDay: nil, endDay: nil, series: [:])
+        ))
+    }
+
+    /// wire 形狀要被驗一次：`channels.acwr` 的 snake_case key 對不上時，
+    /// memberwise init 建的測試永遠看不出來（後端改欄名就全綠出貨）。
+    func testAcwrBlockDecodesTheRealWireShape() throws {
+        let json = """
+        {"uid":"u","maturity":"observable","start_day":"2026-09-05","end_day":"2026-09-06",
+         "series":{"load_index":[
+           {"day":"2026-09-05","delivery_status":"active",
+            "envelope":{"index":95.3,"channels":{
+              "tss":{"raw":80.0,"available":true},
+              "acwr":{"raw":1.39,"available":true,"side":"overload",
+                      "sweet_low":0.8,"sweet_high":1.3,"phase":"unknown"}}}},
+           {"day":"2026-09-06","delivery_status":"active",
+            "envelope":{"index":87.0,"channels":{
+              "acwr":{"raw":1.71,"available":true,"side":"overload",
+                      "sweet_low":0.8,"sweet_high":1.3,"phase":"unknown"}}}}]}}
+        """
+        let decoded = try JSONDecoder().decode(AthleteStateSeriesResponse.self,
+                                               from: Data(json.utf8))
+        let block = App2MetricDetailProjection.acwrBlock(decoded)
+
+        XCTAssertEqual(block?.series.map(\.value), [1.39, 1.71])
+        XCTAssertEqual(block?.sweetLow, 0.8)
+        XCTAssertEqual(block?.sweetHigh, 1.3)
+    }
+
+    /// 甜區帶只有兩端都在才畫 —— 只有一端等於編另一端。
+    func testTheSweetBandIsNotDrawnWithOnlyOneEdge() {
+        XCTAssertNil(App2MetricDetailProjection.sweetBand(
+            App2AcwrBlock(series: [], sweetLow: 0.8, sweetHigh: nil)
+        ))
+        XCTAssertNil(App2MetricDetailProjection.sweetBand(
+            App2AcwrBlock(series: [], sweetLow: nil, sweetHigh: 1.3)
+        ))
+        let band = App2MetricDetailProjection.sweetBand(
+            App2AcwrBlock(series: [], sweetLow: 0.8, sweetHigh: 1.3)
+        )
+        XCTAssertEqual(band?.lower, 0.8)
+        XCTAssertEqual(band?.upper, 1.3)
+    }
+
+    /// 區帶把 y 上下界撐開到看得見自己 —— 一個負荷比全在 1.4 以上的人，
+    /// 甜區若被裁掉，那張圖就只剩一條沒有參照的線。
+    func testTheBandWidensTheChartBoundsSoItStaysVisible() {
+        let points = [point("2026-09-05", 1.5), point("2026-09-06", 1.7)]
+        let plain = App2MetricLineChart.bounds(points)
+        let withBand = App2MetricLineChart.bounds(
+            points,
+            including: App2MetricLineChart.Band(
+                lower: 0.8, upper: 1.3, label: nil, tint: .green
+            )
+        )
+        XCTAssertNotNil(plain)
+        XCTAssertGreaterThan(plain!.lower, 0.8)
+        XCTAssertLessThan(withBand!.lower, 0.8)
+        XCTAssertGreaterThanOrEqual(withBand!.upper, 1.7)
     }
 }

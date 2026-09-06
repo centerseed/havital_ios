@@ -2595,7 +2595,6 @@ extension L10n {
 
             // §51 訓練量
             static let volumeHeroTitle = "app2.metric.volume_hero_title"
-            static let volumeTarget = "app2.metric.volume_target"
             /// 圖上目標線的標籤（`目標 30`）。
             static let volumeTargetLineFormat = "app2.metric.volume_target_line_format"
             /// `%d 週平均` —— 週數是**完整週的實際數量**，不寫死 8。
@@ -2603,7 +2602,10 @@ extension L10n {
             static let volumeYtd = "app2.metric.volume_ytd"
             static let volumePeak = "app2.metric.volume_peak"
             static let volumeLoadTitle = "app2.metric.volume_load_title"
-            static let volumeTsbBaseline = "app2.metric.volume_tsb_baseline"
+            /// 序列讀不到／不足兩天時的佔位句（負荷比線）。
+            static let volumeAcwrUnavailable = "app2.metric.volume_acwr_unavailable"
+            /// 甜區帶的小字（`甜區 %@–%@`）。**上下界由後端帶**，不寫死。
+            static let volumeAcwrSweetFormat = "app2.metric.volume_acwr_sweet_format"
             static let volumeCtl = "app2.metric.volume_ctl"
             static let volumeAtl = "app2.metric.volume_atl"
             static let volumeTsb = "app2.metric.volume_tsb"

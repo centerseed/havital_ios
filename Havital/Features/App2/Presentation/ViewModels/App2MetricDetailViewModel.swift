@@ -67,26 +67,33 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
 
     private let insight: App2Insight
     private let narrative: String?
+    /// 卡片的使用者當地業務日：30 天負荷比序列的窗右端（同 T-0617 兩格的作法）。
+    private let asof: String?
     private let workoutDataSource: WorkoutStatsDataSourceProtocol
     private let healthDataSource: HealthDailyDataSourceProtocol
+    private let seriesDataSource: AthleteStateSeriesDataSourceProtocol
     private let profileRepository: UserProfileRepository?
     private let cache: App2MetricDetailCache
 
-    /// TSB 折線要看得出「疲勞累積」的形狀，60 天是設計 §51-6 x 軸跨度（6/23～本週）。
+    /// CTL／ATL／TSB 三欄取最近一天，60 天是設計 §51-7 既有的取數窗。
     private static let loadWindowDays = 60
 
     init(
         insight: App2Insight,
         narrative: String?,
+        asof: String? = nil,
         workoutDataSource: WorkoutStatsDataSourceProtocol? = nil,
         healthDataSource: HealthDailyDataSourceProtocol? = nil,
+        seriesDataSource: AthleteStateSeriesDataSourceProtocol? = nil,
         profileRepository: UserProfileRepository? = nil,
         cache: App2MetricDetailCache = .shared
     ) {
         self.insight = insight
         self.narrative = narrative
+        self.asof = asof
         self.workoutDataSource = workoutDataSource ?? WorkoutRemoteDataSource()
         self.healthDataSource = healthDataSource ?? HealthDailyRemoteDataSource()
+        self.seriesDataSource = seriesDataSource ?? AthleteStateSeriesRemoteDataSource()
         self.cache = cache
         if let profileRepository {
             self.profileRepository = profileRepository
@@ -189,28 +196,33 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         }
 
         do {
-            // 三個請求互相獨立，並行打（3 RTT → 1 RTT，T-0357）。
+            // 四個請求互相獨立，並行打（4 RTT → 1 RTT，T-0357）。
             async let statsAsync = workoutDataSource.fetchWorkoutStats(
                 days: 30,
                 weeks: requestedRange.weeksParameter()
             )
             async let healthAsync = fetchHealthOptional()
+            async let seriesAsync = fetchSeriesOptional()
             async let targetAsync = targetWeeklyKm()
 
             let stats = try await statsAsync
             let healthOutcome = await healthAsync
+            let seriesOutcome = await seriesAsync
             let targetKm = await targetAsync
 
-            // 訓練負荷與目標線各自可缺席：**真失敗**只是少那一塊；取消（含 -999
-            // 取消錯誤，Task.isCancelled 可能是 false）＝整輪作廢不發布（外審 E03）。
+            // 負荷比線、CTL/ATL/TSB 三欄與目標線各自可缺席：**真失敗**只是少那一塊；
+            // 取消（含 -999 取消錯誤，Task.isCancelled 可能是 false）＝整輪作廢不發布
+            //（外審 E03）。
             if case .cancelled = healthOutcome { return }
+            if case .cancelled = seriesOutcome { return }
             if Task.isCancelled { return }
             guard isCurrentRound(round, requestedRange) else { return }
 
             let payload = App2MetricDetailCache.VolumePayload(
                 stats: stats,
                 health: healthOutcome.response,
-                targetKm: targetKm
+                targetKm: targetKm,
+                series: seriesOutcome.response
             )
             cache.storeIfCurrent(epoch: epoch) { $0.storeVolume(payload, range: requestedRange) }
             publish(payload)
@@ -258,22 +270,51 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         }
     }
 
+    private enum SeriesOutcome {
+        case ok(AthleteStateSeriesResponse?)
+        case cancelled
+
+        var response: AthleteStateSeriesResponse? {
+            if case .ok(let response) = self { return response }
+            return nil
+        }
+    }
+
+    /// 近 30 天負荷比序列。窗與有氧／速度兩頁同一支算（`App2LevelDetailViewModel.window`）
+    /// —— 三頁都是「卡片業務日往回 30 天」，不該有第二份日期算術。
+    private func fetchSeriesOptional() async -> SeriesOutcome {
+        let window = App2LevelDetailViewModel.window(asof: asof)
+        do {
+            return .ok(try await seriesDataSource.fetchMetricSeries(
+                startDay: window.start, endDay: window.end
+            ))
+        } catch {
+            if !error.isCancellationError {
+                Logger.debug("[App2VolumeDetailVM] metrics/series 取得失敗,不畫負荷比線: \(error)")
+            }
+            return error.isCancellationError ? .cancelled : .ok(nil)
+        }
+    }
+
     /// 投影是純函式：快取命中（init／切 range）與網路回來走同一條，hero 永遠吃
     /// 當下的 insight，不會被快取凍住。
     private func publish(_ payload: App2MetricDetailCache.VolumePayload) {
         let bars = App2MetricDetailProjection.bars(payload.stats.data.weeklySeries ?? [])
         detail = App2Sourced(
             App2VolumeDetail(
-                hero: Self.hero(insight: insight, narrative: narrative, targetKm: payload.targetKm),
+                hero: Self.hero(insight: insight, narrative: narrative),
                 bars: bars,
                 targetKm: payload.targetKm,
                 stats: App2MetricDetailProjection.volumeStats(
                     bars: bars,
                     ytdKm: payload.stats.data.yearToDate?.distanceKm
                 ),
-                load: App2MetricDetailProjection.loadBlock(payload.health?.healthData ?? [])
+                load: App2MetricDetailProjection.loadBlock(payload.health?.healthData ?? []),
+                acwr: payload.series.flatMap(App2MetricDetailProjection.acwrBlock)
             ),
-            origin: .live(endpoint: "GET /v2/workouts/stats + GET /v2/workouts/health_daily")
+            origin: .live(endpoint:
+                "GET /v2/workouts/stats + GET /v2/workouts/health_daily"
+                + " + GET /v2/athlete-state/metrics/series")
         )
     }
 
@@ -292,15 +333,27 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         }
     }
 
-    static func hero(insight: App2Insight, narrative: String?, targetKm: Double?) -> App2MetricHero {
-        App2MetricHero(
+    /// hero 的大數字是後端的負荷比（`value_text`），判語是後端的 `verdict`。
+    ///
+    /// **右側對照整格不畫**（T-0618）：大數字換成比值之後，「目標週跑量」不是它的
+    /// 對照量 —— 一個沒有單位的比值旁邊寫 `30 km` 只會讓人以為那是同一把尺。
+    /// 目標週跑量仍在下面的長條圖上（那裡它才是對照）。
+    ///
+    /// 上一完整週的公里數退到副標：那一句由後端組好（`change`），app 不重拼、
+    /// 也不從長條圖另算一份 —— 同一個量兩個來源遲早會有一份是舊的。
+    static func hero(insight: App2Insight, narrative: String?) -> App2MetricHero {
+        let lines = [insight.change, narrative].compactMap { line -> String? in
+            guard let line, !line.isEmpty else { return nil }
+            return line
+        }
+        return App2MetricHero(
             title: L10n.App2.Metric.volumeHeroTitle.localized,
             valueText: insight.value,
             verdict: insight.verdict,
             direction: insight.direction,
-            compareLabel: L10n.App2.Metric.volumeTarget.localized,
-            compareValue: targetKm.map { App2MetricDetailProjection.kmLabel($0) },
-            narrative: narrative
+            compareLabel: nil,
+            compareValue: nil,
+            narrative: lines.isEmpty ? nil : lines.joined(separator: "\n")
         )
     }
 }

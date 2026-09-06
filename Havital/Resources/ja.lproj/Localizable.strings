@@ -4830,14 +4830,14 @@
 "app2.metric.range_days60" = "直近60日";
 "app2.metric.range_months6" = "直近6か月";
 "app2.metric.range_all" = "すべて";
-"app2.metric.volume_hero_title" = "今週の走行距離";
-"app2.metric.volume_target" = "目標";
+"app2.metric.volume_hero_title" = "直近の負荷比";
 "app2.metric.volume_target_line_format" = "目標 %@";
 "app2.metric.volume_average_format" = "%d週平均";
 "app2.metric.volume_ytd" = "今年の累計";
 "app2.metric.volume_peak" = "最高週";
 "app2.metric.volume_load_title" = "トレーニング負荷・コンディション";
-"app2.metric.volume_tsb_baseline" = "TSB 0";
+"app2.metric.volume_acwr_unavailable" = "負荷比はまだ取得できません";
+"app2.metric.volume_acwr_sweet_format" = "適正域 %@–%@";
 "app2.metric.volume_ctl" = "体力 CTL";
 "app2.metric.volume_atl" = "疲労 ATL";
 "app2.metric.volume_tsb" = "調子 TSB";

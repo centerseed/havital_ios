@@ -914,19 +914,29 @@ struct App2VolumeDetail: Equatable {
     /// 目標線（用戶設定的目標週跑量）。nil = 不畫 dashed 線、右側對照也是「–」。
     let targetKm: Double?
     let stats: [App2MetricStat]
-    /// 訓練負荷（TSB）。**nil = 整塊隱藏**（dev 的 `tsb_metrics` 全 null，
-    /// 2026-08-26 裁決：資料缺席時不畫空圖，prod 有資料自然出現）。
+    /// 訓練負荷的 CTL／ATL／TSB 三欄。**nil = 那三欄不畫**（dev 的 `tsb_metrics`
+    /// 全 null，2026-08-26 裁決：資料缺席時不畫空圖，prod 有資料自然出現）。
     let load: App2LoadBlock?
+    /// 近 30 天急慢性負荷比（T-0618）。nil = 那張圖畫佔位句，不擋頁。
+    let acwr: App2AcwrBlock?
 }
 
-/// §51-6／§51-7 訓練負荷區塊。
+/// §51-7 訓練負荷的三欄現況。
 struct App2LoadBlock: Equatable {
-    /// TSB 日序列（舊→新）。
-    let series: [App2MetricPoint]
     /// 當日 CTL／ATL／TSB。
     let ctl: Double?
     let atl: Double?
     let tsb: Double?
+}
+
+/// §51-6 近 30 天急慢性負荷比（`load_index` envelope 的 `channels.acwr`）。
+struct App2AcwrBlock: Equatable {
+    /// 負荷比日序列（舊→新）。算不出比值的那天沒有點，不補鄰日的值。
+    let series: [App2MetricPoint]
+    /// 甜區上下界。**由後端逐列帶**（依訓練期變），app 不寫死；
+    /// 兩端缺任一就不畫帶子，不用預設值頂替。
+    let sweetLow: Double?
+    let sweetHigh: Double?
 }
 
 /// §52 能力基準詳情。

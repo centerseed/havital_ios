@@ -4833,14 +4833,14 @@
 "app2.metric.range_days60" = "60 days";
 "app2.metric.range_months6" = "6 months";
 "app2.metric.range_all" = "All";
-"app2.metric.volume_hero_title" = "This week's distance";
-"app2.metric.volume_target" = "Target";
+"app2.metric.volume_hero_title" = "Recent load ratio";
 "app2.metric.volume_target_line_format" = "Target %@";
 "app2.metric.volume_average_format" = "%d-week average";
 "app2.metric.volume_ytd" = "Year to date";
 "app2.metric.volume_peak" = "Peak week";
 "app2.metric.volume_load_title" = "Training load · Form";
-"app2.metric.volume_tsb_baseline" = "TSB 0";
+"app2.metric.volume_acwr_unavailable" = "Load ratio not available yet";
+"app2.metric.volume_acwr_sweet_format" = "Sweet spot %@–%@";
 "app2.metric.volume_ctl" = "Fitness CTL";
 "app2.metric.volume_atl" = "Fatigue ATL";
 "app2.metric.volume_tsb" = "Form TSB";

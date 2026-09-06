@@ -225,7 +225,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
             insight: insight("volume"),
             narrative: nil,
             workoutDataSource: source,
-            healthDataSource: EmptyHealthSource(),
+            healthDataSource: EmptyHealthSource(), seriesDataSource: App2EmptySeriesSource(),
             profileRepository: nil,
             cache: cache
         )
@@ -276,7 +276,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
             insight: insight("volume"),
             narrative: nil,
             workoutDataSource: CountingStatsSource(),
-            healthDataSource: EmptyHealthSource(),
+            healthDataSource: EmptyHealthSource(), seriesDataSource: App2EmptySeriesSource(),
             profileRepository: nil,
             cache: cache
         )
@@ -320,7 +320,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
         let source = CountingStatsSource()
         let vm = App2VolumeDetailViewModel(
             insight: insight("volume"), narrative: nil,
-            workoutDataSource: source, healthDataSource: EmptyHealthSource(),
+            workoutDataSource: source, healthDataSource: EmptyHealthSource(), seriesDataSource: App2EmptySeriesSource(),
             profileRepository: nil, cache: cache
         )
 
@@ -344,7 +344,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
         let source = GatedStatsSource()
         let vm = App2VolumeDetailViewModel(
             insight: insight("volume"), narrative: nil,
-            workoutDataSource: source, healthDataSource: EmptyHealthSource(),
+            workoutDataSource: source, healthDataSource: EmptyHealthSource(), seriesDataSource: App2EmptySeriesSource(),
             profileRepository: nil, cache: cache
         )
 
@@ -369,7 +369,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
         let source = GatedStatsSource()
         let vm = App2VolumeDetailViewModel(
             insight: insight("volume"), narrative: nil,
-            workoutDataSource: source, healthDataSource: EmptyHealthSource(),
+            workoutDataSource: source, healthDataSource: EmptyHealthSource(), seriesDataSource: App2EmptySeriesSource(),
             profileRepository: nil, cache: cache
         )
 
@@ -443,7 +443,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
         let source = GatedStatsSource()
         let vm = App2VolumeDetailViewModel(
             insight: insight("volume"), narrative: nil,
-            workoutDataSource: source, healthDataSource: EmptyHealthSource(),
+            workoutDataSource: source, healthDataSource: EmptyHealthSource(), seriesDataSource: App2EmptySeriesSource(),
             profileRepository: nil, cache: cache
         )
 
@@ -473,7 +473,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
         let source = GatedStatsSource()
         let vm = App2VolumeDetailViewModel(
             insight: insight("volume"), narrative: nil,
-            workoutDataSource: source, healthDataSource: EmptyHealthSource(),
+            workoutDataSource: source, healthDataSource: EmptyHealthSource(), seriesDataSource: App2EmptySeriesSource(),
             profileRepository: nil, cache: cache
         )
 
@@ -498,7 +498,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
         let vm = App2VolumeDetailViewModel(
             insight: insight("volume"), narrative: nil,
             workoutDataSource: ThrowingStatsSource(error: NSError(domain: "test", code: 1)),
-            healthDataSource: EmptyHealthSource(), profileRepository: nil, cache: cache
+            healthDataSource: EmptyHealthSource(), seriesDataSource: App2EmptySeriesSource(), profileRepository: nil, cache: cache
         )
 
         await vm.revalidate()
@@ -514,7 +514,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
         let vm = App2VolumeDetailViewModel(
             insight: insight("volume"), narrative: nil,
             workoutDataSource: ThrowingStatsSource(error: CancellationError()),
-            healthDataSource: EmptyHealthSource(), profileRepository: nil, cache: cache
+            healthDataSource: EmptyHealthSource(), seriesDataSource: App2EmptySeriesSource(), profileRepository: nil, cache: cache
         )
 
         await vm.revalidate()
@@ -591,7 +591,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
         let source = CountingStatsSource()
         let vm = App2VolumeDetailViewModel(
             insight: insight("volume"), narrative: nil,
-            workoutDataSource: source, healthDataSource: EmptyHealthSource(),
+            workoutDataSource: source, healthDataSource: EmptyHealthSource(), seriesDataSource: App2EmptySeriesSource(),
             profileRepository: nil, cache: cache
         )
         XCTAssertNil(vm.detail, "失效後新 VM 不得吃到舊快取")
@@ -611,7 +611,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
         let source = GatedStatsSource()
         let vm = App2VolumeDetailViewModel(
             insight: insight("volume"), narrative: nil,
-            workoutDataSource: source, healthDataSource: EmptyHealthSource(),
+            workoutDataSource: source, healthDataSource: EmptyHealthSource(), seriesDataSource: App2EmptySeriesSource(),
             profileRepository: nil, cache: cache
         )
 
@@ -633,7 +633,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
         let next = CountingStatsSource()
         let nextVM = App2VolumeDetailViewModel(
             insight: insight("volume"), narrative: nil,
-            workoutDataSource: next, healthDataSource: EmptyHealthSource(),
+            workoutDataSource: next, healthDataSource: EmptyHealthSource(), seriesDataSource: App2EmptySeriesSource(),
             profileRepository: nil, cache: cache
         )
         XCTAssertNil(nextVM.detail)

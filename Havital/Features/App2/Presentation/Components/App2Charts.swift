@@ -169,10 +169,23 @@ struct App2MetricLineChart: View {
         var projectedLegend: String?
     }
 
+    /// 一段水平的淡色區帶（§51-6 的負荷比甜區）。**上下界由呼叫端給**——
+    /// 它是後端逐列交付的量（依訓練期變），不是圖表的知識。
+    struct Band {
+        let lower: Double
+        let upper: Double
+        /// 帶子右上角的小字（`甜區 0.8–1.3`）。nil = 只畫帶子。
+        var label: String?
+        var tint: Color
+    }
+
     let series: [Series]
     /// 圖上的 x 標籤（3 顆：最舊／中間／最新）。由呼叫端給，因為「今晨」「本週」
     /// 這種字是頁面語境，不是圖表的知識。
     var xLabels: [String] = []
+    /// 第一條線量綱上的淡色區帶。**它會把 y 上下界撐開到看得見自己**：
+    /// 一個 ACWR 全在 1.4 以上的人，甜區若被裁掉，那張圖就只剩一條沒有參照的線。
+    var band: Band?
     /// 垂直 dashed 標記的日期（§52-3 的錨定線）。序列裡沒有這一天就不畫。
     var markerDate: String?
     /// 標記旁的註記（`指標跑錨定`）。
@@ -185,7 +198,7 @@ struct App2MetricLineChart: View {
     var body: some View {
         VStack(spacing: 6) {
             HStack(alignment: .top, spacing: 8) {
-                yAxis(series.first)
+                yAxis(series.first, overrideBounds: primaryBounds)
                 plot
                 // 兩條線各有自己的量綱（HRV 是 ms、RHR 是 bpm），所以**右邊要有
                 // 第二組刻度**——沒有它，紅線就是一條沒有單位的裝飾（設計 §53-2
@@ -203,13 +216,19 @@ struct App2MetricLineChart: View {
     // MARK: - 刻度
 
     /// 三顆刻度（最高／中間／最低）。每條線各有自己的量綱，所以刻度綁的是那條線。
+    /// 第一條線的上下界（含區帶）。其餘線各自算自己的，不吃區帶。
+    private var primaryBounds: (lower: Double, upper: Double)? {
+        Self.bounds(series.first?.points ?? [], including: band)
+    }
+
     @ViewBuilder
     private func yAxis(
         _ line: Series?,
         alignment: HorizontalAlignment = .trailing,
-        tint: Color? = nil
+        tint: Color? = nil,
+        overrideBounds: (lower: Double, upper: Double)? = nil
     ) -> some View {
-        if let bounds = Self.bounds(line?.points ?? []) {
+        if let bounds = overrideBounds ?? Self.bounds(line?.points ?? []) {
             VStack(alignment: alignment, spacing: 0) {
                 tick(bounds.upper, tint: tint)
                 Spacer(minLength: 0)
@@ -232,10 +251,12 @@ struct App2MetricLineChart: View {
     private var plot: some View {
         GeometryReader { geo in
             ZStack(alignment: .topLeading) {
+                bandLayer(in: geo.size)
+
                 // 基準線落在資料範圍外就不畫：畫在框外只會多一條看不到的線
                 // 與一顆飄在圖旁的標籤。
                 if let baselineValue,
-                   let bounds = Self.bounds(series.first?.points ?? []),
+                   let bounds = primaryBounds,
                    baselineValue >= bounds.lower, baselineValue <= bounds.upper {
                     let y = Self.y(baselineValue, in: bounds, height: geo.size.height)
                     App2DashedLine()
@@ -256,11 +277,14 @@ struct App2MetricLineChart: View {
                 ForEach(series) { line in
                     // 歷史段（實線）與預估段（虛線）共用**同一份 points 的座標系**：
                     // 各自用自己的陣列畫，x 間距與 y 上下界都會跑掉。
-                    Self.path(line.points, in: geo.size, range: Self.historyRange(line))
+                    let lineBounds = line.id == series.first?.id ? primaryBounds : nil
+                    Self.path(line.points, in: geo.size, range: Self.historyRange(line),
+                              bounds: lineBounds)
                         .stroke(line.tint,
                                 style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
                     if let projectedRange = Self.projectedRange(line) {
-                        Self.path(line.points, in: geo.size, range: projectedRange)
+                        Self.path(line.points, in: geo.size, range: projectedRange,
+                                  bounds: lineBounds)
                             .stroke(line.tint.opacity(0.55),
                                     style: StrokeStyle(lineWidth: 2.4, lineCap: .round,
                                                        lineJoin: .round, dash: [5, 4]))
@@ -280,6 +304,32 @@ struct App2MetricLineChart: View {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .strokeBorder(App2Theme.insetBorder, lineWidth: 1)
         )
+    }
+
+    /// 淡色區帶（§51-6 的負荷比甜區）：一塊填色 ＋ 右上角一顆小字。
+    ///
+    /// 上下界永遠在 `primaryBounds` 之內（`bounds(_:including:)` 已把它撐進去），
+    /// 所以這裡不必再裁 —— 裁掉的帶子就是一塊看不出邊界在哪的色塊。
+    @ViewBuilder
+    private func bandLayer(in size: CGSize) -> some View {
+        if let band, let bounds = primaryBounds, band.upper > band.lower {
+            let top = Self.y(band.upper, in: bounds, height: size.height)
+            let bottom = Self.y(band.lower, in: bounds, height: size.height)
+            ZStack(alignment: .topTrailing) {
+                Rectangle()
+                    .fill(band.tint.opacity(0.16))
+                    .frame(width: size.width, height: max(1, bottom - top))
+                    .offset(y: top)
+                if let label = band.label {
+                    Text(label)
+                        .font(.app2Mono(9, weight: .semibold))
+                        .foregroundStyle(band.tint.app2Darkened)
+                        .offset(x: -2, y: max(0, top - 11))
+                }
+            }
+            .frame(width: size.width, height: size.height, alignment: .topLeading)
+            .accessibilityIdentifier("App2_MetricChartBand")
+        }
     }
 
     /// §52-3 的錨定標記：一條垂直 dashed 線 ＋ 圖上註記。
@@ -367,8 +417,15 @@ struct App2MetricLineChart: View {
     // MARK: - 幾何（純函式）
 
     /// 一條線的上下界。全部一樣高時上下各撐 1，避免除以零把線畫到邊框上。
-    static func bounds(_ points: [App2MetricPoint]) -> (lower: Double, upper: Double)? {
-        guard let min = points.map(\.value).min(), let max = points.map(\.value).max() else { return nil }
+    ///
+    /// `band` 帶進來時上下界一定容得下整段區帶——區帶是這條線的參照，被裁掉
+    /// 就等於沒畫。
+    static func bounds(
+        _ points: [App2MetricPoint], including band: Band? = nil
+    ) -> (lower: Double, upper: Double)? {
+        var values = points.map(\.value)
+        if let band { values.append(contentsOf: [band.lower, band.upper]) }
+        guard let min = values.min(), let max = values.max() else { return nil }
         guard max > min else { return (min - 1, max + 1) }
         let padding = (max - min) * 0.12
         return (min - padding, max + padding)
@@ -382,9 +439,14 @@ struct App2MetricLineChart: View {
 
     /// 畫 `points[range]`，但 **x 間距與 y 上下界都用整條 `points` 算** ——
     /// 這樣實線段與虛線段接得起來。
-    static func path(_ points: [App2MetricPoint], in size: CGSize, range: ClosedRange<Int>? = nil) -> Path {
+    static func path(
+        _ points: [App2MetricPoint],
+        in size: CGSize,
+        range: ClosedRange<Int>? = nil,
+        bounds overrideBounds: (lower: Double, upper: Double)? = nil
+    ) -> Path {
         var path = Path()
-        guard points.count >= 2, let bounds = bounds(points) else { return path }
+        guard points.count >= 2, let bounds = overrideBounds ?? bounds(points) else { return path }
         let stepX = size.width / CGFloat(points.count - 1)
         let drawn = range ?? 0...(points.count - 1)
         guard drawn.lowerBound >= 0, drawn.upperBound < points.count,

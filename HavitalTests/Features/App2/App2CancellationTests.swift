@@ -84,7 +84,7 @@ final class App2CancellationTests: XCTestCase {
             insight: App2Insight(id: "volume", label: "訓練量", value: nil, direction: .unknown, verdict: nil),
             narrative: nil,
             workoutDataSource: ImmediateStatsSource(),
-            healthDataSource: HangingHealthSource(),
+            healthDataSource: HangingHealthSource(), seriesDataSource: App2EmptySeriesSource(),
             profileRepository: nil
         )
 
@@ -329,7 +329,7 @@ final class App2CancellationTests: XCTestCase {
             insight: App2Insight(id: "volume", label: "訓練量", value: nil, direction: .unknown, verdict: nil),
             narrative: nil,
             workoutDataSource: ImmediateStatsSource(),
-            healthDataSource: CancelledHealthSource(),
+            healthDataSource: CancelledHealthSource(), seriesDataSource: App2EmptySeriesSource(),
             profileRepository: nil
         )
 
@@ -706,7 +706,7 @@ final class App2CancellationTests: XCTestCase {
             insight: App2Insight(id: "volume", label: "訓練量", value: nil, direction: .unknown, verdict: nil),
             narrative: nil,
             workoutDataSource: source,
-            healthDataSource: FailingHealthSource(),
+            healthDataSource: FailingHealthSource(), seriesDataSource: App2EmptySeriesSource(),
             profileRepository: nil
         )
 
@@ -733,7 +733,7 @@ final class App2CancellationTests: XCTestCase {
             insight: App2Insight(id: "volume", label: "訓練量", value: nil, direction: .unknown, verdict: nil),
             narrative: nil,
             workoutDataSource: source,
-            healthDataSource: FailingHealthSource(),
+            healthDataSource: FailingHealthSource(), seriesDataSource: App2EmptySeriesSource(),
             profileRepository: nil
         )
         weak var weakVM = vm

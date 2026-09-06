@@ -81,24 +81,55 @@ enum App2MetricDetailProjection {
         ]
     }
 
-    /// §51-6／§51-7 訓練負荷。
+    /// §51-7 訓練負荷的三欄現況（CTL／ATL／TSB）。
     ///
-    /// **一天都沒有 `tsb_metrics` → nil（整塊不畫）。** dev 現況就是全 null；
-    /// 這時畫一張空圖跟三個「–」只是告訴用戶「這裡壞了」。
-    /// `records` 由後端交來時是新→舊，這裡轉成舊→新給折線圖。
+    /// **一天都沒有 `tsb_metrics` → nil（那三欄不畫）。** dev 現況就是全 null；
+    /// 這時畫三個「–」只是告訴用戶「這裡壞了」。
     static func loadBlock(_ records: [HealthRecord]) -> App2LoadBlock? {
-        let ordered = records.sorted { $0.date < $1.date }
-        let series = ordered.compactMap { record -> App2MetricPoint? in
-            guard let tsb = record.tsb else { return nil }
-            return App2MetricPoint(date: record.date, value: tsb)
+        let latest = records
+            .sorted { $0.date < $1.date }
+            .last { $0.tsb != nil || $0.ctl != nil || $0.atl != nil }
+        guard let latest else { return nil }
+        return App2LoadBlock(ctl: latest.ctl, atl: latest.atl, tsb: latest.tsb)
+    }
+
+    /// §51-6 近 30 天急慢性負荷比（`load_index` 的 `channels.acwr`，T-0618）。
+    ///
+    /// 比值算不出來的那天（CTL 低於門檻、缺 CTL/ATL）沒有點——後端 §4.10.7
+    /// 禁 LOCF，這裡也不補鄰日的值。一天都沒有 → nil，畫面畫佔位句。
+    ///
+    /// 甜區上下界取**最新一天**那一列帶的值：它依訓練期變，畫在圖上的那條帶子
+    /// 要對應使用者現在所處的期。app 端不寫死 0.8–1.3（SPEC-today-state §5.1）。
+    static func acwrBlock(_ response: AthleteStateSeriesResponse) -> App2AcwrBlock? {
+        let days = (response.series["load_index"] ?? []).sorted { $0.day < $1.day }
+        let series = days.compactMap { row -> App2MetricPoint? in
+            guard let value = row.envelope?.channels?.acwr?.raw else { return nil }
+            return App2MetricPoint(date: row.day, value: value)
         }
         guard !series.isEmpty else { return nil }
-        let latest = ordered.last { $0.tsb != nil || $0.ctl != nil || $0.atl != nil }
-        return App2LoadBlock(
+        let latestBand = days.last { $0.envelope?.channels?.acwr?.sweetLow != nil }?
+            .envelope?.channels?.acwr
+        return App2AcwrBlock(
             series: series,
-            ctl: latest?.ctl,
-            atl: latest?.atl,
-            tsb: latest?.tsb
+            sweetLow: latestBand?.sweetLow,
+            sweetHigh: latestBand?.sweetHigh
+        )
+    }
+
+    /// §51-6 甜區帶。**上下界兩端都在才畫** —— 只有一端等於編另一端。
+    static func sweetBand(_ acwr: App2AcwrBlock) -> App2MetricLineChart.Band? {
+        guard let low = acwr.sweetLow, let high = acwr.sweetHigh, high > low else {
+            return nil
+        }
+        return App2MetricLineChart.Band(
+            lower: low,
+            upper: high,
+            label: String(
+                format: L10n.App2.Metric.volumeAcwrSweetFormat.localized,
+                App2NumberFormat.grouped(low, maximumFractionDigits: 1),
+                App2NumberFormat.grouped(high, maximumFractionDigits: 1)
+            ),
+            tint: App2Theme.accentGreenDot
         )
     }
 

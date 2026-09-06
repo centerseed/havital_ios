@@ -26,6 +26,9 @@ final class App2MetricDetailCache {
         let stats: WorkoutStatsResponse
         let health: HealthDailyResponse?
         let targetKm: Double?
+        /// 近 30 天 athlete-state 序列（T-0618 的負荷比線）。讀不到就 nil，
+        /// 那一塊畫佔位句 —— 與 `health` 同一條規矩：可缺席，不擋整頁。
+        var series: AthleteStateSeriesResponse?
     }
 
     private(set) var volume: [App2MetricRange: Entry<VolumePayload>] = [:]

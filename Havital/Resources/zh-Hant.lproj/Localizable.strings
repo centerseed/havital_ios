@@ -4874,14 +4874,14 @@
 "app2.metric.range_days60" = "近 60 天";
 "app2.metric.range_months6" = "近 6 個月";
 "app2.metric.range_all" = "全部";
-"app2.metric.volume_hero_title" = "本週跑量";
-"app2.metric.volume_target" = "目標";
+"app2.metric.volume_hero_title" = "近期負荷比";
 "app2.metric.volume_target_line_format" = "目標 %@";
 "app2.metric.volume_average_format" = "%d 週平均";
 "app2.metric.volume_ytd" = "今年累計";
 "app2.metric.volume_peak" = "週高點";
 "app2.metric.volume_load_title" = "訓練負荷 · 狀態";
-"app2.metric.volume_tsb_baseline" = "TSB 0";
+"app2.metric.volume_acwr_unavailable" = "負荷比還讀不到";
+"app2.metric.volume_acwr_sweet_format" = "甜區 %@–%@";
 "app2.metric.volume_ctl" = "體能 CTL";
 "app2.metric.volume_atl" = "疲勞 ATL";
 "app2.metric.volume_tsb" = "狀態 TSB";

@@ -21,14 +21,17 @@ struct App2MetricDetailView: View {
     /// 四距離完賽預估（只有 §52 能力基準用得到）。**首頁那一輪的 readiness**，
     /// 詳情頁不重新取（T-0376）。空陣列＝那一區不畫。
     var finishPredictions: [App2FinishPrediction] = []
-    /// 卡片的使用者當地業務日。有氧續航／速度耐力的 30 天序列窗右端（T-0617）。
+    /// 卡片的使用者當地業務日。三頁 30 天序列窗的右端
+    ///（有氧續航／速度耐力的 index 線，T-0617；訓練量的負荷比線，T-0618）。
     var asof: String? = nil
     let onClose: () -> Void
 
     var body: some View {
         switch kind {
         case .weeklyVolume:
-            App2VolumeDetailPage(insight: insight, narrative: narrative, onClose: onClose)
+            App2VolumeDetailPage(
+                insight: insight, narrative: narrative, asof: asof, onClose: onClose
+            )
         case .capabilityBaseline:
             App2CapabilityDetailPage(
                 insight: insight,
@@ -225,13 +228,15 @@ private struct App2VolumeDetailPage: View {
 
     @StateObject private var viewModel: App2VolumeDetailViewModel
 
-    init(insight: App2Insight, narrative: String?, onClose: @escaping () -> Void) {
+    init(insight: App2Insight, narrative: String?, asof: String?,
+         onClose: @escaping () -> Void) {
         self.insight = insight
         self.narrative = narrative
         self.onClose = onClose
         _viewModel = StateObject(wrappedValue: App2VolumeDetailViewModel(
             insight: insight,
-            narrative: narrative
+            narrative: narrative,
+            asof: asof
         ))
     }
 
@@ -244,7 +249,7 @@ private struct App2VolumeDetailPage: View {
             App2MetricHeroCard(
                 hero: viewModel.detail?.value.hero
                     ?? App2VolumeDetailViewModel.hero(
-                        insight: insight, narrative: narrative, targetKm: nil
+                        insight: insight, narrative: narrative
                     ),
                 symbolName: insight.symbolName,
                 tint: App2Theme.accentOrange
@@ -269,9 +274,11 @@ private struct App2VolumeDetailPage: View {
                     App2MetricStatRow(stats: detail.stats)
                 }
 
-                // §51-6／§51-7：**資料缺席時整塊隱藏**（dev 的 `tsb_metrics` 全 null）。
-                if let load = detail.load {
-                    loadCard(load)
+                // §51-6／§51-7：**兩半都缺才整塊隱藏**。負荷比線與 CTL/ATL/TSB
+                // 三欄是兩條來源（`metrics/series` 與 `health_daily`），各自可缺席
+                // ——一條讀不到不該把另一條一起藏起來。
+                if detail.acwr != nil || detail.load != nil {
+                    loadCard(acwr: detail.acwr, load: detail.load)
                 }
             } else if viewModel.isLoading {
                 App2Card { ProgressView().frame(maxWidth: .infinity) }
@@ -281,42 +288,60 @@ private struct App2VolumeDetailPage: View {
         .onDisappear { viewModel.cancelInFlightReload() }
     }
 
-    private func loadCard(_ load: App2LoadBlock) -> some View {
+    /// §51-6 近 30 天負荷比線（＋淡色甜區帶）＋ §51-7 CTL／ATL／TSB 三欄。
+    ///
+    /// **甜區的上下界來自後端逐列交付的值**（`channels.acwr` 的 `sweet_low`／
+    /// `sweet_high`）：它依訓練期變，app 寫死 0.8–1.3 會在減量期畫錯帶子
+    /// （SPEC-today-state §5.1）。兩端缺任一就只畫線，不畫帶子。
+    @ViewBuilder
+    private func loadCard(acwr: App2AcwrBlock?, load: App2LoadBlock?) -> some View {
         App2Card(spacing: 12) {
             Text(L10n.App2.Metric.volumeLoadTitle.localized)
                 .font(.system(size: 14, weight: .heavy))
                 .foregroundStyle(App2Theme.inkPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            App2MetricLineChart(
-                series: [
-                    .init(id: "tsb", points: load.series, tint: App2Theme.accentBlueDeep)
-                ],
-                xLabels: Self.xLabels(load.series),
-                baselineValue: 0,
-                baselineLabel: L10n.App2.Metric.volumeTsbBaseline.localized,
-                height: 118
-            )
-
-            App2MetricStatRow(stats: [
-                App2MetricStat(
-                    id: "ctl",
-                    label: L10n.App2.Metric.volumeCtl.localized,
-                    value: load.ctl.map { App2NumberFormat.grouped($0) }
-                ),
-                App2MetricStat(
-                    id: "atl",
-                    label: L10n.App2.Metric.volumeAtl.localized,
-                    value: load.atl.map { App2NumberFormat.grouped($0) }
-                ),
-                App2MetricStat(
-                    id: "tsb",
-                    label: L10n.App2.Metric.volumeTsb.localized,
-                    value: load.tsb.map { App2MetricDetailProjection.signedLabel($0, fractionDigits: 0) }
+            // 兩點才畫得出線（`App2MetricLineChart.path` 與 `xLabels` 都要 >= 2）；
+            // 一個點畫出來是一張沒有線的空圖（T-0617 同一條）。
+            if let acwr, acwr.series.count >= 2 {
+                App2MetricLineChart(
+                    series: [
+                        .init(id: "acwr", points: acwr.series, tint: App2Theme.accentBlueDeep)
+                    ],
+                    xLabels: Self.xLabels(acwr.series),
+                    band: App2MetricDetailProjection.sweetBand(acwr),
+                    height: 118
                 )
-            ])
+            } else {
+                Text(L10n.App2.Metric.volumeAcwrUnavailable.localized)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(App2Theme.inkMuted)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if let load {
+                App2MetricStatRow(stats: [
+                    App2MetricStat(
+                        id: "ctl",
+                        label: L10n.App2.Metric.volumeCtl.localized,
+                        value: load.ctl.map { App2NumberFormat.grouped($0) }
+                    ),
+                    App2MetricStat(
+                        id: "atl",
+                        label: L10n.App2.Metric.volumeAtl.localized,
+                        value: load.atl.map { App2NumberFormat.grouped($0) }
+                    ),
+                    App2MetricStat(
+                        id: "tsb",
+                        label: L10n.App2.Metric.volumeTsb.localized,
+                        value: load.tsb.map { App2MetricDetailProjection.signedLabel($0, fractionDigits: 0) }
+                    )
+                ])
+            }
         }
         .accessibilityIdentifier("App2_MetricLoadCard")
     }
+
 
     /// 圖下三顆 x 標籤：最舊／中間／最新。
     static func xLabels(_ points: [App2MetricPoint]) -> [String] {
