@@ -4237,6 +4237,9 @@
 "app2.home.structure_note_interval" = "Intervals";
 "app2.home.plan_unavailable_body" = "Couldn't load today's session. Pull down to refresh and try again.";
 "app2.home.no_session_today_body" = "Nothing scheduled for today in this week's plan. Open Plan to see the full week.";
+"app2.home.needs_v2_setup_title" = "Your plan is still on the old version";
+"app2.home.needs_v2_setup_body" = "2.0 can't schedule sessions from an old-version plan. Set your goal again and 2.0 will build a new plan. All your past workouts stay where they are.";
+"app2.home.needs_v2_setup_cta" = "Set up your goal in 2.0";
 "app2.home.week_review_generate_current" = "Generate this week's review";
 "app2.home.week_review_generate_last" = "Generate last week's review";
 "app2.home.week_review_sub_current" = "This training week is wrapping up — let Rizo pull it together";

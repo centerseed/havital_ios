@@ -4278,6 +4278,9 @@
 "app2.home.structure_note_interval" = "間歇";
 "app2.home.plan_unavailable_body" = "今天的課表暫時讀不到，下拉重新整理再試一次。";
 "app2.home.no_session_today_body" = "本週課表裡今天沒有安排，到「課表」頁看整週。";
+"app2.home.needs_v2_setup_title" = "你的計畫還是舊版的";
+"app2.home.needs_v2_setup_body" = "2.0 排不了舊版計畫的課，重新設定一次目標就會用 2.0 產生新課表。過去的訓練紀錄都還在。";
+"app2.home.needs_v2_setup_cta" = "用 2.0 重新設定目標";
 "app2.home.week_review_generate_current" = "產生本週回顧";
 "app2.home.week_review_generate_last" = "產生上週回顧";
 "app2.home.week_review_sub_current" = "本週訓練告一段落，讓 Rizo 幫你整理";

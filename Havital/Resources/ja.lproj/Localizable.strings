@@ -4234,6 +4234,9 @@
 "app2.home.structure_note_interval" = "インターバル";
 "app2.home.plan_unavailable_body" = "今日のメニューを読み込めませんでした。下に引いて再読み込みしてください。";
 "app2.home.no_session_today_body" = "今週のプランに今日の予定はありません。「プラン」で週全体を確認できます。";
+"app2.home.needs_v2_setup_title" = "プランが旧バージョンのままです";
+"app2.home.needs_v2_setup_body" = "2.0 は旧バージョンのプランからメニューを組めません。目標を設定し直すと 2.0 が新しいプランを作ります。これまでの記録はそのまま残ります。";
+"app2.home.needs_v2_setup_cta" = "2.0 で目標を設定し直す";
 "app2.home.week_review_generate_current" = "今週のレビューを作成";
 "app2.home.week_review_generate_last" = "先週のレビューを作成";
 "app2.home.week_review_sub_current" = "今週のトレーニングが一区切り。Rizo がまとめます";
