@@ -1050,6 +1050,8 @@ struct App2HomeView: View {
                     // **讀不到 ≠ 尚未產生。** 說錯這句話的代價是用戶以為課表沒生成
                     // （2026-08-25 用戶截圖：首頁說沒有、課表頁一整週都在）。
                     todayEmptyContent(L10n.App2.Home.planUnavailableBody.localized)
+                case .needsV2Setup:
+                    todayNeedsV2SetupContent
                 case .none:
                     EmptyView()
                 }
@@ -1296,6 +1298,45 @@ struct App2HomeView: View {
             .lineSpacing(2)
             .foregroundStyle(App2Theme.inkSecondary)
             .fixedSize(horizontal: false, vertical: true)
+    }
+
+    /// V1 帳號的今日課那格（T-0449 / P-002 D4 裁決）。
+    ///
+    /// **版面沿今日課卡的空狀態**：小標 → 標題 → 一句說明 → 主按鈕。多出來的只有
+    /// 標題與按鈕兩列 —— 設計包沒有畫這一格，所以不發明新的裝飾層，也不刪版面
+    /// （卡片下半的 Rizo 對話帶照舊在，那是同一張卡的一部分）。
+    ///
+    /// 按鈕開的是**既有的** re-onboarding（設定頁「重設目標」、計畫結束態 CTA 同一個
+    /// `App2OnboardingContainerView(isReonboarding: true)`），不做第二套目標設定流程。
+    /// 走完由後端把 `training_version` 寫成 v2，`onFinished` 的 `forceRefresh()` 讓
+    /// 首頁整組換掉。
+    @ViewBuilder
+    private var todayNeedsV2SetupContent: some View {
+        Text(L10n.App2.Home.todaySection.localized)
+            .font(.system(size: 13, weight: .heavy))
+            .tracking(1.5)
+            .foregroundStyle(App2Theme.inkMuted)
+        Text(L10n.App2.Home.needsV2SetupTitle.localized)
+            .font(.system(size: 17, weight: .heavy))
+            .foregroundStyle(App2Theme.inkPrimary)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("App2_TodayNeedsV2Setup")
+        Text(L10n.App2.Home.needsV2SetupBody.localized)
+            .font(.system(size: 14, weight: .medium))
+            .lineSpacing(2)
+            .foregroundStyle(App2Theme.inkSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+        Button {
+            isShowingReonboarding = true
+        } label: {
+            Text(L10n.App2.Home.needsV2SetupCta.localized)
+                .font(.system(size: 14, weight: .heavy))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background(Capsule().fill(App2Theme.accentBlue))
+        }
+        .accessibilityIdentifier("App2_TodayNeedsV2Setup_Reonboard")
     }
 
     /// 狀態 chip：有課的日子是「今天還沒跑」（橘點）→ 跑完變「今天已跑」（綠勾），

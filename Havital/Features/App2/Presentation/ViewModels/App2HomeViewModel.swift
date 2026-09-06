@@ -105,6 +105,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     private let workoutDataSource: WorkoutStatsDataSourceProtocol
     /// 冷啟快照。只剩「今天跑完沒」那一頁 workouts —— 課表那幾支已收進 repository 快取。
     private let snapshots: any App2SnapshotStoring
+    /// 這個帳號的訓練版本。**只有 plan status 失敗那條路用它**（T-0449 的第二觸發源），
+    /// 走既有的 `TrainingVersionRouter`，App2 不另讀一次 profile 的 `training_version`。
+    private let versionRouter: TrainingVersionRouting
 
     // MARK: - Init
 
@@ -116,6 +119,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         readinessService: TrainingReadinessProviding? = nil,
         workoutDataSource: WorkoutStatsDataSourceProtocol? = nil,
         snapshots: (any App2SnapshotStoring)? = nil,
+        versionRouter: TrainingVersionRouting? = nil,
         // T-0438：把「去問一次 Garmin 連線狀態」抽成可注入的閉包，讓提示的
         // 顯示／收起兩條路都測得到（外審 E03）。production 走既有的 singleton。
         garminStatusProvider: (() async throws -> GarminConnectionStatusResponse)? = nil,
@@ -125,6 +129,17 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     ) {
         let container = DependencyContainer.shared
         self.snapshots = snapshots ?? App2FileSnapshotStore.shared
+        if let versionRouter {
+            self.versionRouter = versionRouter
+        } else {
+            if !container.isRegistered(TrainingVersionRouting.self) {
+                if !container.isRegistered(UserProfileRepository.self) {
+                    container.registerUserProfileModule()
+                }
+                container.registerTrainingVersionRouter()
+            }
+            self.versionRouter = container.resolve() as TrainingVersionRouting
+        }
         self.garminStatusProvider = garminStatusProvider ?? {
             try await GarminConnectionStatusService.shared.checkConnectionStatus()
         }
@@ -358,6 +373,10 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     enum PlanStatusOutcome {
         case loaded(PlanStatusV2Response)
         case failed
+        /// 這個帳號還在 1.x 訓練版本（V1）：2.0 沒有它的課表，去向是重新設定目標
+        /// （P-002 D4 裁決，2026-09-06）。**與 `.failed` 分開**——那是讀不到、可重試，
+        /// 這是後端明說沒有，重試永遠是同一個答案。
+        case needsV2Setup
         /// 這一輪被取消：不要動畫面上的既有資料。
         case cancelled
 
@@ -463,11 +482,64 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             return .loaded(status)
         } catch {
             // 取消不是失敗（`AGENTS.md` 陷阱 2）：下拉刷新的 task 被 SwiftUI 收掉時
-            // in-flight 請求會回 -999。
+            // in-flight 請求會回 -999。取消先擋掉，省一次 profile 讀。
             if error.isCancellationError { return .cancelled }
-            Logger.debug("[App2HomeVM] plan status 取得失敗: \(error)")
-            return .failed
+            // 第二個觸發源：profile 明說不是 v2。**讀不到不算**（`trainingVersionIfKnown`
+            // 回 nil），否則網路壞掉的 V2 用戶會被叫去重設一次目標。
+            let knownVersion = await versionRouter.trainingVersionIfKnown()
+            let outcome = Self.planStatusFailureOutcome(error: error, knownTrainingVersion: knownVersion)
+            if case .failed = outcome {
+                Logger.debug("[App2HomeVM] plan status 取得失敗: \(error)")
+            } else {
+                Logger.info("[App2HomeVM] plan status 判為 V1 帳號（training_version=\(knownVersion ?? "unknown")）")
+            }
+            return outcome
         }
+    }
+
+    /// 這個帳號在 2.0 沒有計畫的兩個 error code。後端 `/v2/plan/status` 用它們回 404
+    /// （`api/v2/training_plan.py` 的 `error_response(error_msg, 404)`）。
+    /// 同樣是 404 的 `user_not_found` **不在**這裡：那是帳號本身壞了，不是版本問題。
+    static let v1PlanAbsenceErrorCodes: Set<String> = ["training_plan_not_found", "no_active_training_plan"]
+
+    /// plan status 失敗要落到哪一種結果。**純函式**，讓「哪些失敗算 V1、哪些不算」鎖得住。
+    ///
+    /// - 404 且 body 的 `error` 是上面兩個 code 之一 → `.needsV2Setup`
+    /// - profile 明說不是 v2 → `.needsV2Setup`（任一成立即可）
+    /// - 其餘（別的 404、500、解析失敗、版本不知道）→ `.failed`，畫面照舊說「暫時讀不到」
+    static func planStatusFailureOutcome(
+        error: Error,
+        knownTrainingVersion: String?
+    ) -> PlanStatusOutcome {
+        if error.isCancellationError { return .cancelled }
+        if let code = notFoundErrorCode(from: error), v1PlanAbsenceErrorCodes.contains(code) {
+            return .needsV2Setup
+        }
+        if let version = knownTrainingVersion, version != "v2" { return .needsV2Setup }
+        return .failed
+    }
+
+    /// 404 回應 body 裡的 `error` 欄位。**不比對 UI 訊息字串**——比對的是後端
+    /// `{"success": false, "error": "<code>"}` 的那個欄位，訊息改字不會動到判斷。
+    /// 不是 404、body 不是那個形狀，都回 nil。
+    static func notFoundErrorCode(from error: Error) -> String? {
+        let body: String
+        switch error {
+        case let domain as DomainError:
+            guard case .notFound(let message) = domain else { return nil }
+            body = message
+        case let http as HTTPError:
+            guard case .notFound(let message) = http else { return nil }
+            body = message
+        default:
+            return nil
+        }
+        guard
+            let data = body.data(using: .utf8),
+            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let code = json["error"] as? String
+        else { return nil }
+        return code
     }
 
     // MARK: - §3.1a 訓練狀況卡 ＋ 指標膠囊列 ＋ Rizo 推話
@@ -555,6 +627,11 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             return  // 保留上一次的今日課表，不清成空狀態。
         case .failed:
             if todayState == nil { todayState = .unavailable }
+            return
+        case .needsV2Setup:
+            // 這是後端明說的事實（或 profile 明說的版本），不是讀取失敗——
+            // 所以不像 `.failed` 那樣只在空的時候才寫。
+            todayState = .needsV2Setup
             return
         case .loaded(let status):
             guard let planId = status.currentWeekPlanId else {

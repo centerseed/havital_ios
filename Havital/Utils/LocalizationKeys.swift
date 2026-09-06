@@ -2100,6 +2100,10 @@ extension L10n {
             static let planUnavailableBody = "app2.home.plan_unavailable_body"
             /// 本週課表在，但今天不在裡面。
             static let noSessionTodayBody = "app2.home.no_session_today_body"
+            /// V1 帳號在 2.0 首頁的去向（T-0449 / P-002 D4）：今日課那格換成重新設定目標入口。
+            static let needsV2SetupTitle = "app2.home.needs_v2_setup_title"
+            static let needsV2SetupBody = "app2.home.needs_v2_setup_body"
+            static let needsV2SetupCta = "app2.home.needs_v2_setup_cta"
             /// 週回顧 CTA 的四組文案（設計 dc.html:5112：週日＝本週、其餘＝上週）。
             static let weekReviewGenerateCurrent = "app2.home.week_review_generate_current"
             static let weekReviewGenerateLast = "app2.home.week_review_generate_last"

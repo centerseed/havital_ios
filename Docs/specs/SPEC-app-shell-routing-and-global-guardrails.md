@@ -5,7 +5,7 @@ status: Draft
 layer: architecture
 ontology_entity: app-shell-routing-guardrails
 created: 2026-04-15
-updated: 2026-04-15
+updated: 2026-09-06
 ---
 
 # Feature Spec: App Shell、Routing 與全域 Guardrail
@@ -63,6 +63,24 @@ Then 系統必須先顯示提醒 alert；只有在使用者點擊升級時，才
 Given 使用者剛完成 onboarding、重置 onboarding 或離開 re-onboarding，  
 When 入口狀態改變，  
 Then app shell 必須重新檢查訓練版本與主要路由，避免停留在舊的 V1/V2 或 onboarding 上下文。
+
+### AC-SHELL-08: V1 帳號在 2.0 不被送回 V1 畫面，首頁給它重新設定目標的入口
+
+2.0 的首頁對還在 V1 訓練版本的帳號，把今日課那一格換成「用 2.0 重新設定目標」——
+一句說明加一顆按鈕，按下去開的是既有的 re-onboarding（`App2OnboardingContainerView(isReonboarding: true)`，
+與設定頁「重設目標」同一條）。走完由後端把 `training_version` 寫成 v2，首頁自己刷新成 V2 課表。
+判斷 V1 有兩個來源，任一成立就算：`/v2/plan/status` 回 404 且 body 的 `error` 是
+`training_plan_not_found` 或 `no_active_training_plan`；或 profile 讀得到、而它的
+`training_version` 不是 `v2`。**profile 讀不到不算**——那是不知道，不是 V1。
+其他失敗（別的 404、500、連線失敗、被取消）照舊顯示「暫時讀不到」，不得說成要重新設定。
+
+驗法：`App2HomeViewModel.planStatusFailureOutcome(error:knownTrainingVersion:)` 對上面兩個
+error code 與「版本已知且非 v2」回 `.needsV2Setup`，對 `user_not_found`、500、非 JSON body、
+版本未知回 `.failed`；`App2HomeV1EntryTests` 另外從 view model 那一層驗
+`todayState == .needsV2Setup`（404 那條）與 `todayState == .unavailable`（V2 帳號 500 那條）。
+
+（2026-09-06 P-002 D4 使用者裁決：V1 用戶自助遷移，不做批次 migration、不回 V1 畫面。
+AC-SHELL-04 的版本路由只管 1.x 殼；2.0 這條分支的去向由本條規定。）
 
 ## 明確不包含
 

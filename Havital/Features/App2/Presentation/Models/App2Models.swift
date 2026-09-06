@@ -469,7 +469,7 @@ struct App2SessionStructureBar: Identifiable, Equatable {
     var isWork: Bool { kind == .steady || kind == .interval }
 }
 
-/// 今日課表卡的四種狀態。
+/// 今日課表卡的五種狀態。
 ///
 /// **「本週課表尚未產生」是一個斷言，不是預設值。** 只有 `/v2/plan/status` 明說
 /// `current_week_plan_id` 是 nil 才准講這句；讀取失敗、被取消、解析失敗一律走
@@ -484,6 +484,10 @@ enum App2TodaySessionState: Equatable {
     case noSessionToday
     /// 讀不到 —— 不得宣稱「尚未產生」。
     case unavailable
+    /// 這個帳號還在 1.x 訓練版本：2.0 這條路上沒有它的課表，去向是重新設定目標
+    /// （P-002 D4 裁決，2026-09-06）。**與 `.unavailable` 是兩件事**——那是讀不到，
+    /// 這是後端明說這個帳號在 2.0 沒有計畫，重試再多次也不會有。
+    case needsV2Setup
 }
 
 /// 週回顧 CTA 的狀態（設計 dc.html:5112 的 `reviewLabel`／`reviewSub`）。

@@ -8,10 +8,23 @@ import Foundation
 protocol TrainingVersionRouting {
     /// 獲取當前使用者的訓練計劃版本（"v1" 或 "v2"，錯誤時回 "v1"）
     func getTrainingVersion() async -> String
+    /// profile 明說的版本；**讀不到回 nil**（不退成 "v1"）。
+    ///
+    /// `getTrainingVersion()` 讀不到就當 v1，那是路由要的向下相容預設；
+    /// 但「要不要叫使用者重新設定目標」不能用那個預設 —— 網路壞掉的 V2 用戶
+    /// 會被叫去重設一次目標（T-0449）。要分辨「明說不是 v2」與「不知道」就用這支。
+    func trainingVersionIfKnown() async -> String?
     /// 檢查當前使用者是否為 V2 版本
     func isV2User() async -> Bool
     /// 檢查當前使用者是否為 V1 版本
     func isV1User() async -> Bool
+}
+
+// MARK: - 預設實作
+/// 既有的假 router（preview／測試替身）沿用 `getTrainingVersion()` 的答案；
+/// 它們本來就給定值，沒有「讀不到」這一態。
+extension TrainingVersionRouting {
+    func trainingVersionIfKnown() async -> String? { await getTrainingVersion() }
 }
 
 // MARK: - TrainingVersionRouter
@@ -44,14 +57,19 @@ final class TrainingVersionRouter: TrainingVersionRouting {
     /// - Returns: "v1" 或 "v2"
     /// - Note: 錯誤時預設返回 "v1" 以保持向下相容
     func getTrainingVersion() async -> String {
+        await trainingVersionIfKnown() ?? "v1"  // 讀不到預設 v1 以保持向下相容
+    }
+
+    /// profile 讀得到就回它明說的版本（沒填＝v1），讀不到回 nil。
+    func trainingVersionIfKnown() async -> String? {
         do {
             let user = try await userProfileRepository.getUserProfile()
             let version = user.trainingVersion ?? "v1"
             Logger.debug("[TrainingVersionRouter] User training version: \(version)")
             return version
         } catch {
-            Logger.error("[TrainingVersionRouter] Failed to get user profile, defaulting to v1: \(error)")
-            return "v1"  // 預設使用 v1 以保持向下相容
+            Logger.error("[TrainingVersionRouter] Failed to get user profile: \(error)")
+            return nil
         }
     }
 
