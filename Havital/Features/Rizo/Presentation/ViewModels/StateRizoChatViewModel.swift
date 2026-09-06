@@ -58,6 +58,12 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
     private let repository: RizoRepository
     private var sessionId: String?
 
+    /// 「這段對話換過幾次身分」。`restoreTodaySession` 在等 history 的那段時間裡，
+    /// 輸入列與「新對話」鈕都是可以按的（`@MainActor` 允許在 `await` 期間重入），
+    /// 所以它回來之後不能只看 `messages.isEmpty` —— 使用者在這中間送出的訊息或
+    /// 開的新對話，都必須贏過那份已經過期的還原。
+    private var conversationEpoch = 0
+
     // MARK: - Initialization
 
     /// - Parameters:
@@ -99,6 +105,7 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
     func send(_ text: String) async {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
+        conversationEpoch += 1
         messages.append(Message(role: .user, text: trimmed))
         draft = ""
         await exchange(userText: trimmed)
@@ -121,6 +128,7 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
         now: Date = Date(), calendar: Calendar = .current
     ) async -> Bool {
         guard messages.isEmpty else { return false }
+        let epoch = conversationEpoch
         let items: [RizoHistoryItem]
         do {
             items = try await repository.getHistory()
@@ -129,6 +137,9 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
         } catch {
             return false
         }
+        // 等 history 的期間使用者可能已經開口，或按了「新對話」。那兩件事都比這份
+        // 還原新，還原不得蓋掉它們。
+        guard epoch == conversationEpoch, messages.isEmpty else { return false }
         guard let latest = RizoConversationSummary.group(from: items).first,
               let firstTurn = latest.turns.first,
               let startedAt = RizoHistoryDateFormatter.date(firstTurn.ts),
@@ -136,7 +147,10 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
         else { return false }
         let rendered = Self.messages(from: latest.turns)
         guard !rendered.isEmpty else { return false }
-        scenario = latest.scenario.isEmpty ? scenario : latest.scenario
+        // **不改寫 scenario。** `GET /v2/agent/history` 不分 scenario 回全部輪次，
+        // 最新那一段可能來自別的入口（週回顧的 `weekly_situation`）。sheet 的 scenario
+        // 是入口自己的身分（`card.rizoScenario`），AC-TRAIN-HUB-13 只授權「畫回來並
+        // 沿用它的 session_id」，沒有授權讓歷史接管入口的身分。
         sessionId = latest.sessionId
         messages = rendered
         return true
@@ -146,6 +160,7 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
     /// 送出下一句時 `sessionId` 是 nil，後端就會開一個新的 session。
     func startNewConversation() {
         cancelAllTasks()
+        conversationEpoch += 1
         sessionId = nil
         pendingPlanChange = nil
         isConfirmingPlanChange = false
@@ -171,6 +186,7 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
     /// 回傳的 prefix 畫出上下文；不重新送出任何舊訊息，因此不重複扣額度或觸發動作。
     func resumeFromHistory(_ fork: RizoHistoryFork) {
         cancelAllTasks()
+        conversationEpoch += 1
         scenario = fork.scenario
         sessionId = fork.sessionId
         pendingPlanChange = nil

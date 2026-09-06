@@ -310,10 +310,15 @@ final class FakeRizoRepository: RizoRepository {
 
     var historyToReturn: [RizoHistoryItem] = []
     var historyErrorToThrow: Error?
+    /// 讓測試在 history 還沒回來的那段時間裡插進別的操作。
+    var historyDelayNanoseconds: UInt64 = 0
     private(set) var historyCallCount = 0
 
     func getHistory() async throws -> [RizoHistoryItem] {
         historyCallCount += 1
+        if historyDelayNanoseconds > 0 {
+            try? await Task.sleep(nanoseconds: historyDelayNanoseconds)
+        }
         if let historyErrorToThrow { throw historyErrorToThrow }
         return historyToReturn
     }

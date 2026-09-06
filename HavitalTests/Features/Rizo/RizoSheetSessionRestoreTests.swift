@@ -128,6 +128,79 @@ final class RizoSheetSessionRestoreTests: XCTestCase {
         XCTAssertEqual(fake.historyCallCount, 0)
     }
 
+    // MARK: - 還原還在等 history 的時候，使用者已經動作了
+
+    /// 真缺陷：`restoreTodaySession` 在 `await getHistory()` 之後直接覆寫
+    /// `messages`／`sessionId`，中間沒有再驗一次。sheet 的輸入列在 `.task` 跑的
+    /// 同時就能用（`@MainActor` 允許在 `await` 期間重入），所以使用者這段時間送出的
+    /// 訊息會被那份已經過期的還原蓋掉。
+    func test_aMessageSentWhileRestoringIsNotOverwritten() async {
+        let now = Date()
+        let fake = FakeRizoRepository(reply: reply("收到", session: "sess-new"))
+        fake.historyDelayNanoseconds = 200_000_000
+        fake.historyToReturn = [
+            turn(session: "sess-today", user: "舊的那一句", coach: "舊的回覆", at: now)
+        ]
+        let viewModel = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+
+        async let restored = viewModel.restoreTodaySession(now: now)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        await viewModel.send("我現在講的這句")
+        let didRestore = await restored
+
+        XCTAssertFalse(didRestore, "還原不得贏過使用者當下送出的訊息")
+        XCTAssertTrue(
+            viewModel.messages.contains { $0.text == "我現在講的這句" },
+            "使用者剛送出的訊息被還原蓋掉了：\(viewModel.messages.map(\.text))"
+        )
+        XCTAssertFalse(viewModel.messages.contains { $0.text == "舊的那一句" })
+    }
+
+    /// 同一件事的另一半：還原還在跑的時候按「新對話」。
+    func test_newConversationDuringRestoreWins() async {
+        let now = Date()
+        let fake = FakeRizoRepository(reply: reply("收到", session: "sess-new"))
+        fake.historyDelayNanoseconds = 200_000_000
+        fake.historyToReturn = [
+            turn(session: "sess-today", user: "舊的那一句", coach: "舊的回覆", at: now)
+        ]
+        let viewModel = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+
+        async let restored = viewModel.restoreTodaySession(now: now)
+        try? await Task.sleep(nanoseconds: 50_000_000)
+        viewModel.startNewConversation()
+        let didRestore = await restored
+
+        XCTAssertFalse(didRestore, "按了新對話之後不得再把舊的那一段畫回來")
+        XCTAssertTrue(viewModel.messages.isEmpty, "\(viewModel.messages.map(\.text))")
+
+        // 而且下一句是新的 session，不得接到被放棄的那一段上。
+        await viewModel.send("重新開始")
+        XCTAssertNil(fake.lastSessionId)
+    }
+
+    // MARK: - 入口的身分不被歷史接管
+
+    /// `GET /v2/agent/history` 不分 scenario 回全部輪次，最新那一段可能來自別的入口
+    /// （週回顧的 `weekly_situation`）。AC-TRAIN-HUB-13 只授權沿用它的 `session_id`，
+    /// 沒有授權讓歷史改寫這個 sheet 自己的 scenario。
+    func test_restoringDoesNotLetHistoryTakeOverTheTouchpointScenario() async {
+        let now = Date()
+        let fake = FakeRizoRepository(reply: reply("好的", session: "sess-today"))
+        fake.historyToReturn = [
+            turn(session: "sess-today", user: "上週狀況", coach: "了解",
+                 at: now, scenario: "weekly_situation")
+        ]
+        let viewModel = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+
+        let restored = await viewModel.restoreTodaySession(now: now)
+        XCTAssertTrue(restored)
+
+        await viewModel.send("那今天呢")
+        XCTAssertEqual(fake.lastScenario, "body_status", "入口的 scenario 被歷史蓋掉了")
+        XCTAssertEqual(fake.lastSessionId, "sess-today", "沒有沿用那一段的 session")
+    }
+
     // MARK: - 「新對話」
 
     func test_newConversationClearsMessagesAndForgetsTheSession() async {

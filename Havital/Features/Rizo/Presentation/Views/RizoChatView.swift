@@ -10,12 +10,9 @@ import SwiftUI
 //   - 教練泡泡：左、含小頭像、淺藍底、左上直角圓角
 //   - 用戶泡泡：右、藍底白字、右下直角圓角
 //   - typing indicator：三點脈動
-//   - quick-reply chips：橫向捲動 PRChip
 //   - input bar：圓角輸入框 + 圓形送出鈕（draft 空或回覆中時 disabled）
 struct RizoChatView: View {
     @ObservedObject var viewModel: StateRizoChatViewModel
-    /// 快速回應選項（空陣列則不顯示）。
-    var quickReplies: [String] = []
     /// 是否畫自己的 chat header。2.0 首頁的 Rizo sheet（設計 frame-00d）已經有
     /// sheet 自己的頭（R 頭像＋名稱＋關閉鈕），再畫一次會有兩排 Rizo。
     var showsHeader: Bool = true
@@ -38,10 +35,6 @@ struct RizoChatView: View {
 
             if viewModel.isReplying {
                 typingIndicator
-            }
-
-            if !quickReplies.isEmpty && !viewModel.isReplying {
-                quickReplyRow
             }
 
             if let pending = viewModel.pendingPlanChange, !viewModel.isReplying {
@@ -274,23 +267,6 @@ struct RizoChatView: View {
 
     // MARK: - Quick Replies
 
-    private var quickReplyRow: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(quickReplies, id: \.self) { reply in
-                    Button {
-                        Task { await viewModel.send(reply) }
-                    } label: {
-                        PRChip(text: reply, fg: PacerizColor.blue, bg: PacerizColor.blue12, fontSize: 12)
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.vertical, 2)
-        }
-        .accessibilityIdentifier("rizo_chat_quick_replies")
-    }
-
     // MARK: - Input Bar
 
     private var inputBar: some View {
@@ -416,8 +392,7 @@ private func _previewViewModel() -> StateRizoChatViewModel {
 #Preview("Rizo Chat") {
     ScrollView {
         RizoChatView(
-            viewModel: _previewViewModel(),
-            quickReplies: ["後半段比較喘", "還好，感覺不錯", "有點頭暈"]
+            viewModel: _previewViewModel()
         )
         .padding(16)
     }
