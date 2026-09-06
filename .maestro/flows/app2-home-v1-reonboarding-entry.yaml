@@ -1,0 +1,83 @@
+appId: com.havital.Havital.dev
+tags:
+  - app2
+---
+# T-0449 走查：V1 帳號在 2.0 首頁看得到「用 2.0 重新設定目標」，點下去開既有的 re-onboarding。
+#
+# 帳號：dev reviewer demo（`ZyIP5VxEapePp0P2erZx18WYGK92`）。走查前把它佈成 V1 形狀
+# （`training_version=v1`、`active_training_id` 指向只存在 legacy `plan_race_run_overview/`
+# 的 overview），走查後還原——步驟與還原指令記在 `STATUS/evidence/T-0449/README.md`。
+# 佈好之後 `GET /v2/plan/status` 回 404 `training_plan_not_found`，就是 prod 上 V1 帳號的形狀。
+#
+# 這台是 `Paceriz Tests`（測試專用、不登入），所以流程自己走 reviewer gate 登入；
+# 不 logout、不 clearState、不 erase。
+
+- launchApp:
+    stopApp: true
+    clearState: false
+    arguments:
+      "-ui_testing_reviewer_demo": true
+      "-skipHealthKitAuth": true
+      "-reviewerAccessPressDuration": "1.0"
+
+# 已登入就跳過；停在登入頁才走 reviewer gate（dev 收 UID 當 passcode）。
+# **不帶 `-ui_testing_onboarding`**：那個旗標會換掉 onboarding 的依賴，本票要看的是真的那一條。
+- runFlow:
+    when:
+      visible:
+        id: "Login_UITestReviewerAccessButton"
+    commands:
+      - tapOn:
+          id: "Login_UITestReviewerAccessButton"
+      - extendedWaitUntil:
+          visible:
+            id: "Login_ReviewerPasscodeField"
+          timeout: 8000
+      - tapOn:
+          id: "Login_ReviewerPasscodeField"
+      - inputText: "ZyIP5VxEapePp0P2erZx18WYGK92"
+      # SecureField 的 onSubmit 就是 activateReviewerDemo()，不必先收鍵盤。
+      - pressKey: Enter
+
+- tapOn:
+    text: "知道了，不再顯示|Got it|了解しました"
+    optional: true
+
+# demo 帳號的 Garmin 連線是刻意壞的（`error_requires_reauth`），開頁會蓋一張全域警示，
+# 與本票無關，收掉它才看得到今日課那格。
+- tapOn:
+    text: "稍後提醒|Remind Later|後で通知"
+    optional: true
+
+# 今日課那格＝重新設定目標的入口（不是「暫時讀不到」）。
+# 這一格在目標卡＋狀況卡＋指標列下面，首屏看不到，要捲下去。
+- extendedWaitUntil:
+    visible:
+      id: "App2_TrainingStatusCard"
+    timeout: 90000
+#
+# **用文字不用 id**：這一格的兩個 a11y identifier 掛在 `App2Card` 容器裡面，
+# 而容器自己有 `App2_TodaySessionCard`——SwiftUI 會把外層 identifier 往下蓋，
+# 所以 Maestro 找不到內層那兩個（`App2CardComponents.swift:66` 已經記過這個坑）。
+# 文字是這張卡的三語 L10n，反而是更強的證據。
+- scrollUntilVisible:
+    element:
+      text: "你的計畫還是舊版的|Your plan is still on the old version|プランが旧バージョンのままです"
+    direction: DOWN
+    speed: 20
+    visibilityPercentage: 40
+    waitToSettleTimeoutMs: 800
+    # 置中：不置中的話這一格會停在畫面最下緣，主按鈕落到 tab bar 底下，
+    # 點下去會變成切到「課表」分頁（實際踩過）。
+    centerElement: true
+    timeout: 45000
+- takeScreenshot: t0449-01-home-v1-entry
+
+# 按鈕開的是既有的 re-onboarding（根頁＝目標類型）。
+- tapOn:
+    text: "用 2.0 重新設定目標|Set up your goal in 2.0|2.0 で目標を設定し直す"
+- extendedWaitUntil:
+    visible:
+      id: "App2_OnboardingGoalType"
+    timeout: 30000
+- takeScreenshot: t0449-02-reonboarding-opened
