@@ -175,6 +175,13 @@ final class App2WeeklyReviewViewModel: ObservableObject {
             allowGenerate: autoGeneratesOnLoad
         )
         applyState(afterGenerate: false)
+        // 進頁抓的 status 說「回顧還沒產」（`create_summary`），而回顧剛在這一輪被讀進來
+        // ／產出來——後端此刻已經是 `create_plan`。不重抓，底部就只剩「套用」沒有「產生」，
+        // 使用者按幾次「已套用」課表都不會出現（2026-09-07 實機，fmC7）。
+        if projection != nil, planStatus?.nextAction == "create_summary" {
+            await refreshPlanStatus()
+            startDecisionChainIfNeeded()
+        }
         isLoading = false
     }
 
@@ -462,6 +469,8 @@ final class App2WeeklyReviewViewModel: ObservableObject {
             return
         }
         guard case .generate(let week) = nextWeekAction else {
+            // 還不能產生 ⇒ 這一輪沒起頭；status 之後變成可產生時要能再進來。
+            didStartDecisionChain = false
             decisionChain = .unavailable
             return
         }

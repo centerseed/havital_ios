@@ -60,6 +60,25 @@ final class App2WeeklyReviewDecisionChainTests: XCTestCase {
         XCTAssertEqual(card?.expression.pursuing, "這一段把重點放在有氧基礎。")
     }
 
+    /// 平日進上週回顧時 plan status 說 `create_summary`（回顧還沒產），這一頁在同一輪
+    /// 把回顧產出來之後後端已經走到 `create_plan`——status 不重抓，底部就只剩「套用」
+    /// 沒有「產生」，使用者按幾次「已套用」課表都不會出現（2026-09-07 fmC7 實機）。
+    func test_reviewGeneratedDuringLoad_refreshesStatusAndOffersGenerate() async {
+        let viewModel = makeViewModel(reviewWeek: 4, planStatus: statusAwaitingSummary(currentWeek: 5))
+        decisionChain.checklistToReturn = Self.checklist()
+        // 回顧一被讀進來，後端的 next_action 就從 create_summary 變成 create_plan。
+        let generatable = generatableStatus(currentWeek: 5)
+        repository.onGetWeeklySummary = { [repository] in repository?.planStatusToReturn = generatable }
+
+        await viewModel.load()
+        await viewModel.decisionChainTask?.value
+
+        XCTAssertNotNil(viewModel.projection, "回顧沒讀進來，後面的斷言是假綠")
+        XCTAssertEqual(viewModel.nextWeekAction, .generate(week: 5), "回顧產完之後必須給產生鈕，不是只剩套用")
+        XCTAssertEqual(decisionChain.runCalls.count, 1, "status 更新成可產生後 decision-chain 也要跑")
+        XCTAssertTrue(viewModel.usesDecisionChain)
+    }
+
     /// 「只能套用」態不是「要規劃下一週」——對它發 `run` 是往錯的週寫帳本。
     func test_applyOnlyState_doesNotRun() async {
         let status = PlanStatusV2Response(
@@ -561,6 +580,22 @@ final class App2WeeklyReviewDecisionChainTests: XCTestCase {
     ) -> DecisionChainChecklistItem? {
         guard case .ready(let checklist, _) = viewModel.decisionChain else { return nil }
         return checklist.items.first { $0.itemId == itemId }
+    }
+
+    /// 平日、本週還沒課表、上週回顧也還沒產 ⇒ 後端 `next_action = create_summary`。
+    private func statusAwaitingSummary(currentWeek: Int) -> PlanStatusV2Response {
+        PlanStatusV2Response(
+            currentWeek: currentWeek,
+            totalWeeks: 22,
+            nextAction: "create_summary",
+            canGenerateNextWeek: false,
+            currentWeekPlanId: nil,
+            previousWeekSummaryId: nil,
+            targetType: "race",
+            methodologyId: "paceriz",
+            nextWeekInfo: nil,
+            metadata: nil
+        )
     }
 
     /// 目標週 ＝ `currentWeek`（平日流程）且本週還沒課表 ⇒ `.generate(week: currentWeek)`。
