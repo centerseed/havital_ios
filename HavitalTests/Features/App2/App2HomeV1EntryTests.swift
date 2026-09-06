@@ -125,6 +125,28 @@ final class App2HomeV1EntryTests: XCTestCase {
         XCTAssertEqual(label(outcome), "failed")
     }
 
+    /// **profile 明說 v2 要壓過那兩個 404 code。** 後端的 `load_overview` 走 `strict=False`
+    /// （`domains/plan_overview/repository.py` 的 `get_overview`），Firestore 讀取例外被吞成
+    /// `None`，於是「讀取失敗」與「真的沒有 V2 計畫」回同一個 404 body。已經知道是 v2 的
+    /// 帳號還進重設入口，就是把一次讀取失敗說成「你的計畫沒了」，而且
+    /// `.needsV2Setup` 是無條件寫入，會蓋掉畫面上真的課表。
+    func test_planStatusFailure_v1CodeButProfileSaysV2_staysFailed() {
+        for code in ["training_plan_not_found", "no_active_training_plan"] {
+            let outcome = App2HomeViewModel.planStatusFailureOutcome(
+                error: notFound(code), knownTrainingVersion: "v2"
+            )
+            XCTAssertEqual(label(outcome), "failed", "code=\(code)")
+        }
+    }
+
+    /// profile 明說非 v2 時，不是那兩個 code 的失敗也給重設入口（版本本身就足夠）。
+    func test_planStatusFailure_profileSaysV1_withUnrelatedNotFound_isNeedsV2Setup() {
+        let outcome = App2HomeViewModel.planStatusFailureOutcome(
+            error: notFound("user_not_found"), knownTrainingVersion: "v1"
+        )
+        XCTAssertEqual(label(outcome), "needsV2Setup")
+    }
+
     // MARK: - error code 的取法
 
     func test_notFoundErrorCode_readsBodyField_notMessageText() {
@@ -228,6 +250,16 @@ final class App2HomeV1EntryTests: XCTestCase {
     /// V2 帳號的真網路失敗：仍然是「暫時讀不到」，不得被誤導成要重設目標。
     func test_homeVM_v2AccountServerError_staysUnavailable() async {
         let vm = makeViewModel(planError: DomainError.serverError(500, "boom"), version: "v2")
+
+        await vm.revalidate()
+
+        XCTAssertEqual(vm.todayState, .unavailable)
+    }
+
+    /// V2 帳號碰到那個 404（後端讀取失敗被吞成「沒有 overview」）：畫面照舊說讀不到，
+    /// **不得**把它的課表卡換成重設入口。
+    func test_homeVM_v2AccountGets404_staysUnavailable() async {
+        let vm = makeViewModel(planError: notFound("training_plan_not_found"), version: "v2")
 
         await vm.revalidate()
 

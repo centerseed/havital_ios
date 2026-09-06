@@ -1,14 +1,22 @@
 ---
 type: SPEC
 id: SPEC-app-shell-routing-and-global-guardrails
-status: Draft
+status: Approved
 layer: architecture
+owns: app 啟動後的入口路由（登入／onboarding／re-onboarding／訓練版本）與全域 guardrail 的呈現方式
 ontology_entity: app-shell-routing-guardrails
 created: 2026-04-15
 updated: 2026-09-06
+tasks: [T-0449]
 ---
 
 # Feature Spec: App Shell、Routing 與全域 Guardrail
+
+## 狀態
+
+`Approved`：語義已拍板，但本檔尚未逐條回推 `file:line`，所以不是 `Implemented`。
+2026-09-06 由 T-0449 升版（P-002 D4 使用者裁決要在這裡定「V1 帳號在 2.0 的去向」，
+而治理規定 `Draft` 不得被引用為系統事實）。
 
 ## 背景與動機
 
@@ -69,15 +77,22 @@ Then app shell 必須重新檢查訓練版本與主要路由，避免停留在�
 2.0 的首頁對還在 V1 訓練版本的帳號，把今日課那一格換成「用 2.0 重新設定目標」——
 一句說明加一顆按鈕，按下去開的是既有的 re-onboarding（`App2OnboardingContainerView(isReonboarding: true)`，
 與設定頁「重設目標」同一條）。走完由後端把 `training_version` 寫成 v2，首頁自己刷新成 V2 課表。
-判斷 V1 有兩個來源，任一成立就算：`/v2/plan/status` 回 404 且 body 的 `error` 是
-`training_plan_not_found` 或 `no_active_training_plan`；或 profile 讀得到、而它的
-`training_version` 不是 `v2`。**profile 讀不到不算**——那是不知道，不是 V1。
+判斷 V1 的順序是：**profile 讀得到而且是 `v2` 就不是 V1，到此為止**；否則
+`/v2/plan/status` 回 404 且 body 的 `error` 是 `training_plan_not_found` 或
+`no_active_training_plan`，或 profile 讀得到而它的 `training_version` 不是 `v2`，
+任一成立就算 V1。**profile 讀不到不算 V1**——那是不知道。
 其他失敗（別的 404、500、連線失敗、被取消）照舊顯示「暫時讀不到」，不得說成要重新設定。
 
-驗法：`App2HomeViewModel.planStatusFailureOutcome(error:knownTrainingVersion:)` 對上面兩個
-error code 與「版本已知且非 v2」回 `.needsV2Setup`，對 `user_not_found`、500、非 JSON body、
-版本未知回 `.failed`；`App2HomeV1EntryTests` 另外從 view model 那一層驗
-`todayState == .needsV2Setup`（404 那條）與 `todayState == .unavailable`（V2 帳號 500 那條）。
+`v2` 之所以壓過那兩個 error code：後端讀不到 overview 與「真的沒有 overview」回同一個
+404 body（`application/plan_status.py` 的 `load_overview` 走 `strict=False`），
+分不出來；已經知道是 v2 的帳號還被叫去重設目標，等於把一次讀取失敗說成「你的計畫沒了」。
+
+驗法：`App2HomeViewModel.planStatusFailureOutcome(error:knownTrainingVersion:)` 對那兩個
+error code（版本未知或非 v2 時）與「版本已知且非 v2」回 `.needsV2Setup`；對
+`user_not_found`、500、非 JSON body、版本未知、**以及那兩個 code 但版本已知是 v2** 回
+`.failed`。`App2HomeV1EntryTests` 另外從 view model 那一層驗
+`todayState == .needsV2Setup`（V1 帳號的 404）與 `todayState == .unavailable`
+（V2 帳號的 500 與 V2 帳號的同一個 404）。
 
 （2026-09-06 P-002 D4 使用者裁決：V1 用戶自助遷移，不做批次 migration、不回 V1 畫面。
 AC-SHELL-04 的版本路由只管 1.x 殼；2.0 這條分支的去向由本條規定。）

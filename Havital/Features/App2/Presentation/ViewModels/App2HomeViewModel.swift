@@ -504,18 +504,27 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     /// plan status 失敗要落到哪一種結果。**純函式**，讓「哪些失敗算 V1、哪些不算」鎖得住。
     ///
-    /// - 404 且 body 的 `error` 是上面兩個 code 之一 → `.needsV2Setup`
-    /// - profile 明說不是 v2 → `.needsV2Setup`（任一成立即可）
-    /// - 其餘（別的 404、500、解析失敗、版本不知道）→ `.failed`，畫面照舊說「暫時讀不到」
+    /// - profile 明說 v2 → 一律 `.failed`，**連那兩個 404 code 也是**
+    /// - 版本不知道、或明說不是 v2，且 404 body 的 `error` 是那兩個 code 之一 → `.needsV2Setup`
+    /// - 版本明說不是 v2（不論什麼失敗）→ `.needsV2Setup`
+    /// - 其餘 → `.failed`，畫面照舊說「暫時讀不到」
+    ///
+    /// **為什麼 v2 要壓過 404 code**：後端那個 code 不只在「真的沒有 V2 計畫」時出現。
+    /// `application/plan_status.py` 的 `load_overview` 走的是 `strict=False`
+    /// （`domains/plan_overview/repository.py` 的 `get_overview`），Firestore 讀取例外被
+    /// 吞掉回 `None`，於是**讀取失敗與真的沒有共用同一個 404 body**。已經知道這個帳號是 v2
+    /// 還把它送去重設目標，就是把讀取失敗變成「你的計畫沒了」——正是本票要避免的那件事。
     static func planStatusFailureOutcome(
         error: Error,
         knownTrainingVersion: String?
     ) -> PlanStatusOutcome {
         if error.isCancellationError { return .cancelled }
+        if knownTrainingVersion == "v2" { return .failed }
         if let code = notFoundErrorCode(from: error), v1PlanAbsenceErrorCodes.contains(code) {
             return .needsV2Setup
         }
-        if let version = knownTrainingVersion, version != "v2" { return .needsV2Setup }
+        // 版本讀得到、而且不是 v2 —— 不管是什麼失敗都給重設入口。
+        if knownTrainingVersion != nil { return .needsV2Setup }
         return .failed
     }
 

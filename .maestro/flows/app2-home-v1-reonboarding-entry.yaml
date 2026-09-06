@@ -6,7 +6,10 @@ tags:
 #
 # 帳號：dev reviewer demo（`ZyIP5VxEapePp0P2erZx18WYGK92`）。走查前把它佈成 V1 形狀
 # （`training_version=v1`、`active_training_id` 指向只存在 legacy `plan_race_run_overview/`
-# 的 overview），走查後還原——步驟與還原指令記在 `STATUS/evidence/T-0449/README.md`。
+# 的 overview），走查後還原——**佈置與還原指令在票面**
+# `STATUS/tasks/T-0449-app2-home-v1-user-reonboarding-entry-ios.md` 的
+# 「dev 上的 V1 帳號（含還原）」段（`STATUS/evidence/T-0449/` 只放截圖）。
+# 沒先佈置就跑，這支 flow 會停在 scrollUntilVisible 逾時。
 # 佈好之後 `GET /v2/plan/status` 回 404 `training_plan_not_found`，就是 prod 上 V1 帳號的形狀。
 #
 # 這台是 `Paceriz Tests`（測試專用、不登入），所以流程自己走 reviewer gate 登入；
