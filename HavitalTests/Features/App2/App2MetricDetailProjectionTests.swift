@@ -443,6 +443,31 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         XCTAssertEqual(points.map(\.value), [28.5, 61.0, 23.7])
     }
 
+    /// wire 形狀本身要被驗一次：四個 snake_case key 與巢狀 `series` 字典
+    /// 若對不上，memberwise init 建的測試永遠看不出來（後端改欄名時全綠出貨）。
+    func testLevelSeriesDecodesTheRealWireShape() throws {
+        let json = """
+        {"uid":"u","maturity":"observable","start_day":"2026-08-08","end_day":"2026-08-10",
+         "series":{"aerobic_endurance":[
+            {"day":"2026-08-08","item_id":"metric.aerobic_endurance","delivery_status":"active",
+             "envelope":{"index":28.5,"level_index":null}},
+            {"day":"2026-08-09","item_id":"metric.aerobic_endurance","delivery_status":"not_computed",
+             "envelope":null},
+            {"day":"2026-08-10","item_id":"metric.aerobic_endurance","delivery_status":"active",
+             "envelope":{"index":null,"level_index":61.0}}]}}
+        """
+        let decoded = try JSONDecoder().decode(AthleteStateSeriesResponse.self,
+                                               from: Data(json.utf8))
+
+        XCTAssertEqual(decoded.startDay, "2026-08-08")
+        XCTAssertEqual(decoded.endDay, "2026-08-10")
+        XCTAssertEqual(decoded.series["aerobic_endurance"]?.first?.deliveryStatus, "active")
+
+        let points = App2MetricDetailProjection.levelSeries(decoded, key: "aerobic_endurance")
+        XCTAssertEqual(points.map(\.date), ["2026-08-08", "2026-08-10"])
+        XCTAssertEqual(points.map(\.value), [28.5, 61.0])
+    }
+
     /// 該項不在回應裡（後端沒有這一列）→ 空陣列，頁面畫佔位、不擋。
     func testLevelSeriesIsEmptyWhenTheItemIsAbsent() {
         let response = AthleteStateSeriesResponse(

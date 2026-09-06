@@ -675,8 +675,6 @@ final class App2LevelDetailViewModel: ObservableObject, TaskManageable, App2Reva
 
     @Published private(set) var isLoading = true
     @Published private(set) var detail: App2Sourced<App2LevelDetail>?
-    /// 讀失敗（或該項一天都沒有列）→ 畫佔位那一塊，不擋頁面。
-    @Published private(set) var seriesUnavailable = false
     private(set) var hasLoaded = false
     private(set) var lastLoadedAt: Date?
 
@@ -755,7 +753,6 @@ final class App2LevelDetailViewModel: ObservableObject, TaskManageable, App2Reva
             if Task.isCancelled { return }
             guard revalidateGeneration == round else { return }
             let points = App2MetricDetailProjection.levelSeries(response, key: itemKey)
-            seriesUnavailable = points.isEmpty
             detail = App2Sourced(
                 App2LevelDetail(series: points),
                 origin: .live(endpoint: "GET /v2/athlete-state/metrics/series")
@@ -765,22 +762,21 @@ final class App2LevelDetailViewModel: ObservableObject, TaskManageable, App2Reva
             guard !error.isCancellationError else { return }
             guard revalidateGeneration == round else { return }
             finishedRound = true
-            // 讀不到序列**不擋頁**：hero、分級尺、依據句都不靠它。
-            seriesUnavailable = true
+            // 讀不到序列**不擋頁**：hero、分級尺、依據句都不靠它。畫面照
+            // `detail` 是不是有足夠的點決定畫線還是畫佔位句，不另立一個旗標
+            // ——同一件事兩份表示，遲早有一份是舊的。
             Logger.debug("[App2LevelDetailVM] metrics/series 取得失敗: \(error)")
         }
     }
 
     /// `asof − 29` … `asof`。卡片沒帶 `asof`（舊版後端）才退裝置當地日 ——
     /// 那是最後手段，跨時區會差一天。
+    ///
+    /// 日期算術用 `App2MetricDetailProjection` 既有的兩支（`today`／`dateString`），
+    /// 不在這裡再開一份 `DateFormatter`。
     static func window(asof: String?, days: Int = windowDays) -> (start: String, end: String) {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd"
-        let endDate = asof.flatMap { formatter.date(from: $0) } ?? Date()
-        let startDate = Calendar(identifier: .gregorian)
-            .date(byAdding: .day, value: -(days - 1), to: endDate) ?? endDate
-        return (formatter.string(from: startDate), formatter.string(from: endDate))
+        let end = asof ?? App2MetricDetailProjection.today()
+        let start = App2MetricDetailProjection.dateString(byAdding: -(days - 1), to: end) ?? end
+        return (start, end)
     }
 }

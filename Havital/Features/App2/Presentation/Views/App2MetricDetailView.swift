@@ -583,7 +583,10 @@ private struct App2LevelDetailPage: View {
                 .foregroundStyle(App2Theme.inkPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            if let points = viewModel.detail?.value.series, !points.isEmpty {
+            // 兩點才畫得出線（`App2MetricLineChart.path` 與 `xLabels` 都要 >= 2）。
+            // 一個點畫出來是一張沒有線也沒有 x 標籤的空圖 —— 那就是把缺口
+            // 偽裝成內容，寧可講「還讀不到」。
+            if let points = viewModel.detail?.value.series, points.count >= 2 {
                 App2MetricLineChart(
                     series: [.init(id: "level", points: points, tint: tint)],
                     xLabels: App2VolumeDetailPage.xLabels(points),

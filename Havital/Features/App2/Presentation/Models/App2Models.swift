@@ -834,7 +834,8 @@ enum App2MetricDetailKind: String, Identifiable, Equatable {
 
     var id: String { rawValue }
 
-    /// 0–100 相對能力量尺那兩格：沒有自己的序列端點，整頁內容都來自首頁那一列。
+    /// 0–100 相對能力量尺那兩格。詳情頁的大數字與判語來自首頁那一列，
+    /// 近 30 天的逐日線另外打 `GET /v2/athlete-state/metrics/series`（T-0617）。
     var isPopulationLevel: Bool {
         self == .aerobicEndurance || self == .speedEndurance
     }
@@ -842,7 +843,8 @@ enum App2MetricDetailKind: String, Identifiable, Equatable {
     /// 首頁那一列點不點得進來（同時決定畫不畫 chevron）。
     ///
     /// 相對能力那兩格在 `not_computed` 時**不可點**：那代表連 envelope 都沒有，
-    /// 而它們沒有第二個資料源 —— 開一頁只寫「尚未計算」就是一個按下去等於沒反應的入口。
+    /// hero 沒有值、沒有判語、也沒有依據句可講（30 天序列同一個來源，那時多半也是空的），
+    /// 開一頁只寫「尚未計算」就是一個按下去等於沒反應的入口。
     /// 其餘三頁各自有序列端點，狀態不影響入口。
     static func from(insight: App2Insight) -> App2MetricDetailKind? {
         guard let kind = App2MetricDetailKind(rawValue: insight.id) else { return nil }
