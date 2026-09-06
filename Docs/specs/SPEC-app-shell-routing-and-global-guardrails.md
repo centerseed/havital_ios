@@ -97,8 +97,9 @@ error code（版本未知或非 v2 時）與「版本已知且非 v2」回 `.nee
 `user_not_found`、500、非 JSON body、版本未知且不是那兩個 code、**以及那兩個 code 但版本
 已知是 v2** 回 `.failed`。`App2HomeV1EntryTests` 另外從 view model 那一層驗
 `todayState == .needsV2Setup`（V1 帳號的 404）、`todayState == .unavailable`
-（V2 帳號的 500 與 V2 帳號的同一個 404），以及「先 `.needsV2Setup`、下一輪判不出 V1 → 退回
-`.unavailable`」。
+（V2 帳號的 500 與 V2 帳號的同一個 404），以及「不黏住」那條的兩半：先 `.needsV2Setup`，下一輪
+**profile 讀得到而且是 `v2`** → 退回 `.unavailable`；下一輪**不是那兩個 code、版本也還是
+讀不到** → 退回 `.unavailable`。
 
 （2026-09-06 P-002 D4 使用者裁決：V1 用戶自助遷移，不做批次 migration、不回 V1 畫面。
 AC-SHELL-04 的版本路由只管 1.x 殼；2.0 這條分支的去向由本條規定。）

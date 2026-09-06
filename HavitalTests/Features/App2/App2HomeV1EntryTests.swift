@@ -318,6 +318,35 @@ final class App2HomeV1EntryTests: XCTestCase {
         XCTAssertEqual(vm.todayState, .unavailable, "版本否決掉 404 code 之後不得繼續掛著重設入口")
     }
 
+    /// 同一條「不黏住」規則的另一半前提：下一輪**不是那兩個 code、版本也還是讀不到**
+    /// ——判不出 V1，卡片一樣要退回「暫時讀不到」。
+    /// （AC-SHELL-08 規則句括號裡寫的就是這一格，所以它要有人鎖。）
+    func test_homeVM_needsV2Setup_isClearedWhenNextRoundCannotTellV1() async {
+        let planRepo = MockTrainingPlanV2Repository()
+        planRepo.errorToThrow = notFound("training_plan_not_found")
+        planRepo.simulatesEmptyLocalCache = true
+        let vm = App2HomeViewModel(
+            dailyStateRepository: ForbiddenDailyStateRepository(),
+            targetRepository: MockTargetRepository(),
+            planRepository: planRepo,
+            readinessViewModel: nil,
+            readinessService: nil,
+            workoutDataSource: EmptyStatsSource(),
+            snapshots: NoSnapshots(),
+            versionRouter: StubVersionRouter(version: nil),
+            garminStatusProvider: { throw DomainError.forbidden }
+        )
+
+        await vm.revalidate()
+        XCTAssertEqual(vm.todayState, .needsV2Setup, "第一輪只有 404 code，仍給入口")
+
+        // 版本維持讀不到，失敗換成不是那兩個 code 的 500。
+        planRepo.errorToThrow = DomainError.serverError(500, "boom")
+        await vm.revalidate()
+
+        XCTAssertEqual(vm.todayState, .unavailable, "判不出 V1 的那一輪不得繼續掛著重設入口")
+    }
+
     /// profile 明說 v1（連 plan status 都掛了）→ 一樣給重新設定入口。
     func test_homeVM_profileSaysV1_showsReonboardingState() async {
         let vm = makeViewModel(planError: DomainError.serverError(500, "boom"), version: "v1")
