@@ -128,6 +128,49 @@ final class RizoSheetSessionRestoreTests: XCTestCase {
         XCTAssertEqual(fake.historyCallCount, 0)
     }
 
+    // MARK: - 用完額度的那一段不還原
+
+    /// 後端對今日卡情境有每-session 20 輪的軟上限（`application/rizo.py`
+    /// 的 `_SESSION_SOFT_CAP`）：到了上限那一段只會回罐頭收尾、不進教練模型。
+    ///
+    /// 改動前 sheet 每次開都是新 session，這個上限碰不到；帶回當日 session 之後
+    /// 同一天共用同一份預算。已經用完的那一段**不還原**，否則使用者一開 sheet
+    /// 就卡在收尾語。
+    func test_aSessionThatHasUsedUpItsTurnBudgetIsNotRestored() async {
+        let now = Date()
+        let fake = FakeRizoRepository(reply: reply("好的", session: "sess-new"))
+        fake.historyToReturn = (1...20).map { index in
+            turn(session: "sess-today", user: "第 \(index) 句", coach: "回覆 \(index)",
+                 at: now.addingTimeInterval(Double(index)))
+        }
+        let viewModel = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+
+        let restored = await viewModel.restoreTodaySession(now: now)
+
+        XCTAssertFalse(restored, "已經用完 20 輪的那一段不該被帶回來")
+        XCTAssertTrue(viewModel.messages.isEmpty)
+
+        // 開的是新的一段，所以下一句不帶舊 session。
+        await viewModel.send("再問一件事")
+        XCTAssertNil(fake.lastSessionId)
+    }
+
+    /// 還沒用完就照常帶回來——上面那條不得把正常情況一起擋掉。
+    func test_aSessionWithBudgetLeftIsStillRestored() async {
+        let now = Date()
+        let fake = FakeRizoRepository(reply: reply("好的", session: "sess-today"))
+        fake.historyToReturn = (1...19).map { index in
+            turn(session: "sess-today", user: "第 \(index) 句", coach: "回覆 \(index)",
+                 at: now.addingTimeInterval(Double(index)))
+        }
+        let viewModel = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+
+        let restored = await viewModel.restoreTodaySession(now: now)
+        XCTAssertTrue(restored)
+        await viewModel.send("再問一件事")
+        XCTAssertEqual(fake.lastSessionId, "sess-today")
+    }
+
     // MARK: - 還原還在等 history 的時候，使用者已經動作了
 
     /// 真缺陷：`restoreTodaySession` 在 `await getHistory()` 之後直接覆寫

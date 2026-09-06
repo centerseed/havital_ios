@@ -5,7 +5,7 @@ status: Approved
 layer: product
 ontology_entity: training-hub-lifecycle
 created: 2026-04-15
-updated: 2026-09-03
+updated: 2026-09-06
 ---
 
 # Feature Spec: 訓練首頁與週課表生命週期
@@ -119,6 +119,8 @@ Then 系統必須先讀 `GET /v2/agent/history`，取最新的一個 session；*
 （今日卡的產生時間目前不在 `/v2/state/today` 的回應裡；「同一個使用者當地日」是本條採用的判準——跨日即是新的一天、新的今日卡。）
 And Then sheet 頂部必須有「新對話」與「歷史」兩個入口（a11y id `App2_RizoNewChat`、`App2_RizoHistory`）。「新對話」清空對話並忘掉 `session_id`，下一句開新的 session；「歷史」開既有的 Rizo 歷史清單，從某一輪續聊走既有的 fork。
 And Then sheet **不得顯示寫死的追問 chips**：那三句每一輪回覆後都出現、與剛講的內容無關（2026-09-05 使用者裁決直接拿掉）。
+And Then 還原**只沿用那一段的 `session_id`，不接管這個入口的 scenario**：`GET /v2/agent/history` 不分 scenario 回全部輪次，最新那一段可能來自週回顧；sheet 的 scenario 仍是入口自己的（`card.rizoScenario`）。
+And Then **已經用完後端每-session 輪數預算的那一段不還原**，改開新的一段。後端對今日卡情境有 20 輪的軟上限（`cloud/api_service/application/rizo.py` 的 `_SESSION_SOFT_CAP`），到了上限只會回罐頭收尾、不進教練模型；本條之前 sheet 每次開都是新 session，這個上限碰不到，帶回當日 session 之後同一天共用同一份預算——不擋掉用完的那一段，使用者一開 sheet 就卡在收尾語。輪數的 SSOT 在後端，app 端的門檻是保守下界。
 驗法：`HavitalTests/Features/Rizo/RizoSheetSessionRestoreTests.swift`。
 
 ### AC-TRAIN-HUB-11: 週回顧生成期間必須顯示生成中動畫與文案（2026-08-31 使用者裁決）

@@ -64,6 +64,17 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
     /// 開的新對話，都必須贏過那份已經過期的還原。
     private var conversationEpoch = 0
 
+    /// 後端對今日卡情境（`body_status`／`weekly_situation`）的每-session 軟上限
+    /// ——`cloud/api_service/application/rizo.py` 的 `_SESSION_SOFT_CAP`。到了那個
+    /// 輪數，那一段就只會回罐頭收尾，不再進教練模型。
+    ///
+    /// 改動前 sheet 每次開都是新的 session，這個上限實質上碰不到；帶回當日 session
+    /// 之後，同一天所有開啟共用同一份預算。所以**已經用完的那一段不還原**，
+    /// 開一段新的——使用者不會因為「帶回上次對話」而卡在收尾語。
+    ///
+    /// 數字的 SSOT 在後端，這裡是保守的下界：後端調小才需要跟著改，調大不影響正確性。
+    private static let sessionSoftCapTurns = 20
+
     // MARK: - Initialization
 
     /// - Parameters:
@@ -141,6 +152,7 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
         // 還原新，還原不得蓋掉它們。
         guard epoch == conversationEpoch, messages.isEmpty else { return false }
         guard let latest = RizoConversationSummary.group(from: items).first,
+              latest.turnCount < Self.sessionSoftCapTurns,
               let firstTurn = latest.turns.first,
               let startedAt = RizoHistoryDateFormatter.date(firstTurn.ts),
               calendar.isDate(startedAt, inSameDayAs: now)
