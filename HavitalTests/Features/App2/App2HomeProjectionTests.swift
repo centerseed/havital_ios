@@ -706,13 +706,14 @@ final class App2HomeProjectionTests: XCTestCase {
         )
     }
 
-    /// 第 6 列：週日、本週回顧已完成 → **不出卡**（2026-09-01 裁決，同第 4 列）。
-    func test_weekReview_row6_sundayWithCurrentWeekSummaryHidesCard() {
+    /// 第 6 列：週日、本週回顧已完成、**下週課表也已產生** → 不出卡
+    /// （2026-09-01 裁決：時機卡只為「該做的還沒做」而存在，這一格兩件都做完了）。
+    func test_weekReview_row6_sundayWithSummaryAndNextWeekPlanHidesCard() {
         let status = planStatus(
             currentWeek: 4, planId: "ov_4", canGenerateNextWeek: true,
             serverTime: tokyoNoon(day: 30),
             nextWeekInfoJSON: """
-            { "week_number": 5, "has_plan": false, "can_generate": true,
+            { "week_number": 5, "has_plan": true, "can_generate": false,
               "requires_current_week_summary": false,
               "next_action": "create_plan_for_week_5" }
             """
@@ -720,6 +721,96 @@ final class App2HomeProjectionTests: XCTestCase {
         XCTAssertNil(
             App2HomeViewModel.weekReviewState(
                 planStatus: status, isSunday: true, summaryId: "ov_4_summary"
+            )
+        )
+    }
+
+    /// 第 6b 列（2026-09-06 創辦人實機 P0）：週日、本週回顧已完成，但**下週課表還沒產**
+    /// → 卡要留著，狀態 `.available`。
+    ///
+    /// 現場 payload（prod，`current_week=10`／`f30fed2f03ab_10`）：回顧產出來了、
+    /// 下週課表沒有（生成失敗或被刪掉重來）。舊判準在「回顧已存在」就整張收卡，
+    /// 而「產生下週課表」那顆鈕只住在週回顧頁的規劃分頁——首頁收掉卡＝**唯一的入口沒了**，
+    /// 使用者原話「只要課表產生失敗，流程就卡死了」。
+    func test_weekReview_row6b_sundayWithSummaryButNoNextWeekPlanKeepsEntry() {
+        let status = planStatus(
+            currentWeek: 10, planId: "f30fed2f03ab_10", canGenerateNextWeek: true,
+            serverTime: tokyoNoon(day: 30),
+            nextWeekInfoJSON: """
+            { "week_number": 11, "has_plan": false, "can_generate": true,
+              "requires_current_week_summary": false,
+              "next_action": "create_plan_for_week_11" }
+            """
+        )
+        XCTAssertEqual(
+            App2HomeViewModel.weekReviewState(
+                planStatus: status, isSunday: true, summaryId: "f30fed2f03ab_10_summary"
+            ),
+            .available(
+                summaryId: "f30fed2f03ab_10_summary", isCurrentWeek: true, targetWeek: 10
+            )
+        )
+    }
+
+    /// 6b 的入口不得是死路：首頁放人進去的那一頁，規劃分頁與「產生下週課表」都要在。
+    /// 兩邊讀同一份 status，判準不一致＝換一種形狀的卡死。
+    func test_weekReview_row6b_entryLeadsToWorkingGenerateCTA() {
+        let status = planStatus(
+            currentWeek: 10, planId: "f30fed2f03ab_10", canGenerateNextWeek: true,
+            serverTime: tokyoNoon(day: 30),
+            nextWeekInfoJSON: """
+            { "week_number": 11, "has_plan": false, "can_generate": true,
+              "requires_current_week_summary": false,
+              "next_action": "create_plan_for_week_11" }
+            """
+        )
+        let state = App2HomeViewModel.weekReviewState(
+            planStatus: status, isSunday: true, summaryId: "f30fed2f03ab_10_summary"
+        )
+        XCTAssertEqual(state?.targetWeek, 10)
+        XCTAssertEqual(state?.isCurrentWeek, true)
+        XCTAssertTrue(
+            App2WeeklyReviewView.showsPlanTab(
+                reviewWeek: 10, planStatus: status, isReadOnly: false
+            )
+        )
+        XCTAssertEqual(
+            App2WeeklyReviewViewModel.nextWeekAction(
+                reviewWeek: 10, planStatus: status, hasSuggestions: false, isReadOnly: false
+            ),
+            .generate(week: 11)
+        )
+    }
+
+    /// 最後一週的週日：`next_week_info` 是 null（沒有下一週可產）→ 回顧已完成就收卡。
+    /// 6b 的例外只為「下週課表還沒產」而開，不是把 9/01 裁決整條收回。
+    func test_weekReview_lastWeekSundayWithSummaryStillHidesCard() {
+        let status = planStatus(
+            currentWeek: 6, planId: "ov_6", totalWeeks: 6,
+            canGenerateNextWeek: false, serverTime: tokyoNoon(day: 30)
+        )
+        XCTAssertNil(
+            App2HomeViewModel.weekReviewState(
+                planStatus: status, isSunday: true, summaryId: "ov_6_summary"
+            )
+        )
+    }
+
+    /// 平日不受 6b 影響：`next_week_info` 就算說下週沒課表，平日仍照 9/01 裁決收卡
+    /// （平日的「下週」不是這張卡的事，產生視窗也還沒開）。
+    func test_weekReview_weekdayWithSummaryHidesCardEvenWhenNextWeekPlanMissing() {
+        let status = planStatus(
+            currentWeek: 5, planId: "ov_5", previousSummaryId: "ov_4_summary",
+            serverTime: tokyoNoon(day: 26),
+            nextWeekInfoJSON: """
+            { "week_number": 6, "has_plan": false, "can_generate": true,
+              "requires_current_week_summary": false,
+              "next_action": "create_plan_for_week_6" }
+            """
+        )
+        XCTAssertNil(
+            App2HomeViewModel.weekReviewState(
+                planStatus: status, isSunday: false, summaryId: status.previousWeekSummaryId
             )
         )
     }

@@ -162,6 +162,25 @@ And Then `next_week_info` 缺席或 `has_plan == false` 時，右箭頭維持停
 
 驗法：`HavitalTests/Features/App2/App2PlanNextWeekBrowsingTests.swift`。
 
+### AC-TRAIN-HUB-15: 週日回顧已產生但下週課表未產時，首頁必須保留回顧入口（2026-09-06 prod P0）
+
+Given 使用者當地是週日、本週回顧已經產生（`summary` 存在），且 `next_week_info.has_plan == false`（等價地 `can_generate == true`），
+When 首頁評估週回顧時機卡，
+Then 卡必須留著，狀態是「查看回顧」（`App2WeekReviewState.available`，目標週＝`current_week`）；
+點進去到週回顧頁，該頁的「規劃下週」分頁必須能走到產生下週課表（判準同 AC-TRAIN-HUB-10 的 `nextWeekAction`）。
+And Then `next_week_info.has_plan == true`（下週課表已產）時卡照舊收掉，`next_week_info` 缺席（計畫最後一週的週日）也收掉；平日的判準完全不變。
+
+「產生下週課表」的唯一入口住在週回顧頁的規劃分頁，而週日的週回顧入口只有首頁這張卡。
+2026-09-01 裁決「回顧已存在就不出卡」的本意是不做第二個入口，但在「回顧產了、下週課表沒產」
+（生成失敗或被刪掉重來）這一格，它收掉的是**唯一**的入口：2026-09-06 創辦人實機
+（prod，`current_week=10`／`f30fed2f03ab_10`／`next_week_info.has_plan=false`）首頁既看不到回顧也看不到產生下週課表，
+使用者原話「只要課表產生失敗，流程就卡死了」。
+
+驗法：`HavitalTests/Features/App2/App2HomeProjectionTests.swift` 的
+`test_weekReview_row6b_sundayWithSummaryButNoNextWeekPlanKeepsEntry`、
+`test_weekReview_row6b_entryLeadsToWorkingGenerateCTA`、
+`test_weekReview_row6_sundayWithSummaryAndNextWeekPlanHidesCard`。
+
 ## AC ID Index
 
 本 spec 已採用穩定 AC-ID；以下索引作為派工、review 與測試引用入口。
@@ -182,3 +201,4 @@ And Then `next_week_info` 缺席或 `has_plan == false` 時，右箭頭維持停
 | AC-TRAIN-HUB-12 | 規劃下週分頁走 decision-chain：run → 逐條清單表態 → 產生；討論入口在清單上方，Rizo 條目自成一組 |
 | AC-TRAIN-HUB-13 | 首頁 Rizo sheet 帶回當天那一段對話，並有新對話／歷史入口，無寫死追問 chips |
 | AC-TRAIN-HUB-14 | 下週課表已產生時課表頁可往前翻到那一週；產完即刻可翻 |
+| AC-TRAIN-HUB-15 | 週日回顧已產但下週課表未產時，首頁保留回顧入口（通往產生下週課表的唯一路） |

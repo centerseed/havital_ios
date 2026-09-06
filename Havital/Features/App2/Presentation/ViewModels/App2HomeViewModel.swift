@@ -1042,13 +1042,21 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// | 平日、`next_action == create_summary`（回顧擋著課表） | 產生上週回顧 | `current_week − 1` |
     /// | 平日、其餘一切 | **nil（不出卡）** | — |
     /// | 週日、本週有課表、本週回顧未生成 | 產生本週回顧 | `current_week` |
-    /// | 週日、本週回顧已生成 | **nil（不出卡）** | — |
+    /// | 週日、本週回顧已生成、下週課表**也**已產生 | **nil（不出卡）** | — |
+    /// | 週日、本週回顧已生成、下週課表**還沒產** | 查看回顧（`.available`） | `current_week` |
     ///
-    /// 這張卡是**時機卡，只為「該產生了」而存在**（2026-09-01 使用者裁決：回顧已存在
+    /// 這張卡是**時機卡，只為「該做的還沒做」而存在**（2026-09-01 使用者裁決：回顧已存在
     /// 就不出卡——要看既有回顧去課表頁換週數看，首頁不做第二個入口；此裁決收回
     /// 8/28「查看回顧不受此限」的例外）。
     ///
-    /// `summaryId` 有值＝目標週的回顧已存在 → 整張卡收掉。
+    /// **例外：週日、回顧已產、下週課表還沒產**（2026-09-06 創辦人實機 P0）。
+    /// 「產生下週課表」那顆鈕只住在週回顧頁的「規劃下週」分頁
+    /// （`App2WeeklyReviewViewModel.nextWeekAction`），而週日的週回顧入口只有首頁這一張卡；
+    /// 回顧產完就收卡，等於課表生成失敗（或被刪掉重來）之後**沒有任何入口能再產一次**——
+    /// 使用者原話「只要課表產生失敗，流程就卡死了」。9/01 裁決講的是「不做第二個入口」，
+    /// 不是「把唯一的入口收掉」，所以這一格留卡。下週課表產出來之後照舊收卡。
+    ///
+    /// `summaryId` 有值＝目標週的回顧已存在 → 整張卡收掉（上述例外除外）。
     static func weekReviewState(
         planStatus: PlanStatusV2Response,
         isSunday: Bool,
@@ -1067,11 +1075,31 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         let targetWeek = isSunday ? planStatus.currentWeek : planStatus.currentWeek - 1
 
         if let summaryId, !summaryId.isEmpty {
-            return nil
+            // 回顧已存在 —— 預設收卡。唯一的例外是週日還缺下週課表：這張卡是那條
+            // 生成路徑的唯一入口，收掉就沒有出口了（見上面的說明）。
+            guard isSunday, nextWeekPlanIsMissing(planStatus) else { return nil }
+            return .available(
+                summaryId: summaryId, isCurrentWeek: true, targetWeek: targetWeek
+            )
         }
         // 平日的產生 CTA 只在後端擋課表時出現（2026-08-28 裁決，見上表）。
         guard isSunday || planStatus.nextAction == "create_summary" else { return nil }
         return .notGenerated(isCurrentWeek: isSunday, targetWeek: targetWeek)
+    }
+
+    /// 週日的「下週課表還沒產生」。
+    ///
+    /// 讀的欄位與週回顧頁那顆產生鈕同一批（`App2WeeklyReviewViewModel.nextWeekAction`
+    /// 的下週分支：`next_week_info` 在、週次是 `current_week + 1`、`can_generate`），
+    /// 兩邊才不會一個開一個關 —— 首頁放人進去、進去卻沒有鈕，只是換一種形狀的卡死。
+    ///
+    /// 後端的 `can_generate` 就是 `not has_plan`（`domains/plan_week/service.py:1330`），
+    /// 兩個都認：任一個說「還沒產」就算數。`next_week_info` 只在使用者時區的週日、
+    /// 且 `current_week < total_weeks` 時才有值，所以最後一週的週日落在 nil ＝ 收卡。
+    static func nextWeekPlanIsMissing(_ status: PlanStatusV2Response) -> Bool {
+        guard let info = status.nextWeekInfo,
+              info.weekNumber == status.currentWeek + 1 else { return false }
+        return !info.hasPlan || info.canGenerate
     }
 
     // MARK: - 今日課表卡的分段與結構
