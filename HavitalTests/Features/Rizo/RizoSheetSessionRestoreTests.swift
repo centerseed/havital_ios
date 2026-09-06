@@ -128,6 +128,42 @@ final class RizoSheetSessionRestoreTests: XCTestCase {
         XCTAssertEqual(fake.historyCallCount, 0)
     }
 
+    // MARK: - 計費 session 的口徑（2026-09-06 裁決）
+
+    /// 免費教練額度是月配額、以 `session_id` 去重
+    /// （`core/policies/rizo_quota.py` 的 `DEFAULT_RIZO_FREE_COACH_LIMIT`，
+    /// `rizo_quota_service.py` 同一個 session 第二次起不扣）。所以「還原沿用同一個
+    /// session」＝同一天的多次開啟只扣一次，「新對話」＝開新 session＝扣一次。
+    ///
+    /// 這一條鎖的是那個口徑本身：app 端看不到額度，但**送出時帶不帶舊 session_id**
+    /// 就是後端算不算第二次的唯一依據。裁決與代價記在
+    /// `STATUS/decisions.md` 2026-09-06「T-0434 免費額度口徑」。
+    func test_restoringReusesTheBillingSessionAndNewChatStartsAFreshOne() async {
+        let now = Date()
+        let fake = FakeRizoRepository(reply: reply("好的", session: "sess-today"))
+        fake.historyToReturn = [
+            turn(session: "sess-today", user: "早上聊的", coach: "早上回的", at: now)
+        ]
+        let viewModel = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+
+        // 第一次開：帶回今天那一段。
+        let restored = await viewModel.restoreTodaySession(now: now)
+        XCTAssertTrue(restored)
+        await viewModel.send("下午再問一句")
+        XCTAssertEqual(
+            fake.lastSessionId, "sess-today",
+            "還原之後送出必須帶回同一個 session——不帶就是新 session，後端會再扣一次"
+        )
+
+        // 按「新對話」：這一次才是新的計費 session。
+        viewModel.startNewConversation()
+        await viewModel.send("換個話題")
+        XCTAssertNil(
+            fake.lastSessionId,
+            "「新對話」必須開新 session（＝扣一次），否則使用者沒有脫離當日那一段的辦法"
+        )
+    }
+
     // MARK: - 用完額度的那一段不還原
 
     /// 後端對今日卡情境有每-session 20 輪的軟上限（`application/rizo.py`

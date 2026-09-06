@@ -121,6 +121,7 @@ And Then sheet 頂部必須有「新對話」與「歷史」兩個入口（a11y 
 And Then sheet **不得顯示寫死的追問 chips**：那三句每一輪回覆後都出現、與剛講的內容無關（2026-09-05 使用者裁決直接拿掉）。
 And Then 還原**只沿用那一段的 `session_id`，不接管這個入口的 scenario**：`GET /v2/agent/history` 不分 scenario 回全部輪次，最新那一段可能來自週回顧；sheet 的 scenario 仍是入口自己的（`card.rizoScenario`）。
 And Then **已經用完後端每-session 輪數預算的那一段不還原**，改開新的一段。後端對今日卡情境有 20 輪的軟上限（`cloud/api_service/application/rizo.py` 的 `_SESSION_SOFT_CAP`），到了上限只會回罐頭收尾、不進教練模型；本條之前 sheet 每次開都是新 session，這個上限碰不到，帶回當日 session 之後同一天共用同一份預算——不擋掉用完的那一段，使用者一開 sheet 就卡在收尾語。輪數的 SSOT 在後端，app 端的門檻是保守下界。
+And Then 還原沿用同一個 `session_id`，**因此不另扣免費教練額度**——那份額度是月配額、以 `session_id` 去重（`cloud/api_service/core/policies/rizo_quota.py` 的 `DEFAULT_RIZO_FREE_COACH_LIMIT`），所以同一天的多次開啟只扣一次；按「新對話」開新 session ＝扣一次。免費月上限因此是「有聊天的日子」而不是「對話段數」；模型呼叫的月上限不變（每段仍受 20 輪軟上限）。訂閱者不受額度影響。裁決與代價：`STATUS/decisions.md` 2026-09-06「T-0434 免費額度口徑」。
 驗法：`HavitalTests/Features/Rizo/RizoSheetSessionRestoreTests.swift`。
 
 ### AC-TRAIN-HUB-11: 週回顧生成期間必須顯示生成中動畫與文案（2026-08-31 使用者裁決）
