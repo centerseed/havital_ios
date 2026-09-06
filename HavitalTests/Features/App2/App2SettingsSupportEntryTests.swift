@@ -1,45 +1,89 @@
-import SwiftUI
-import UIKit
 import XCTest
 @testable import paceriz_dev
 
-/// 2.0 設定頁的「聯絡 Paceriz／社群」列（T-0432）。
+/// 2.0 設定頁的「聯絡 Paceriz／社群」列（T-0432、AC-SETTINGS-09）。
 ///
-/// 這一組鎖的是一個真缺陷：2.0 設定頁一路到發表前都沒有任何回饋或社群入口，
-/// 1.4 的入口（`FeedbackReportView` 裡的 Threads／Facebook）還在，但 2.0 走不到。
-/// 判準兩條 —— **列的 a11y id 還在**（走查與 Maestro 都靠它找列），
-/// **點下去的目的地仍是 1.4 那一頁**（不得有人另做第二份社群入口）。
+/// 修前缺陷：2.0 設定頁一路到發表前都沒有任何回饋或社群入口，1.4 的入口
+/// （`FeedbackReportView` 裡的 Threads／Facebook）還在，但 2.0 走不到。
 ///
-/// 三語覆蓋不在這裡重寫一份：`L10n.Feedback.settingsEntry` 是 `L10n` 常數，
-/// `LocalizationCoverageTests` 已經對每個 `L10n` 常數掃三語存在且非空。
+/// **判準是「那一列還掛在畫面上」**，不是「有一組常數」。所以這裡讀
+/// `App2SettingsView.swift` 的原始碼斷言接線——本 repo 既有的畫面層 AC 就是這樣鎖的
+/// （`MessageCenterViewExpansionTests`、`SpecCompliance/*ACTests`）。
+/// 把那一列從 view 刪掉、常數留著，下面每一條都會紅。
 final class App2SettingsSupportEntryTests: XCTestCase {
 
-    func test_supportEntry_identifierIsTheOneWalkthroughsLookFor() {
-        XCTAssertEqual(App2SettingsSupportEntry.identifier, "App2_SettingsFeedbackEntry")
+    private let projectRoot = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()   // App2
+        .deletingLastPathComponent()   // Features
+        .deletingLastPathComponent()   // HavitalTests
+        .deletingLastPathComponent()   // <repo root>
+
+    private func settingsViewSource() throws -> String {
+        try String(
+            contentsOf: projectRoot.appendingPathComponent(
+                "Havital/Features/App2/Presentation/Views/App2SettingsView.swift"
+            ),
+            encoding: .utf8
+        )
     }
 
-    /// 目的地是 1.4 既有的回饋畫面，不是 2.0 自己的新頁。
-    func test_supportEntry_destinationIsTheExistingFeedbackReport() {
-        XCTAssertEqual(App2SettingsSupportEntry.destination, .feedbackReport)
+    /// 系統段真的掛了這一列，而且掛的是走查與 Maestro 找的那個 id。
+    func test_settingsViewMountsTheFeedbackRowInTheSystemSection() throws {
+        let source = try settingsViewSource()
+
+        let systemSection = try XCTUnwrap(
+            source.range(of: "private var systemSection: some View {").map {
+                String(source[$0.lowerBound...])
+            },
+            "找不到系統段"
+        )
+        // 只看到下一段（帳戶段）為止——列掛在別段不算數。
+        let sectionBody = systemSection.components(
+            separatedBy: "private var accountSection: some View {"
+        ).first ?? systemSection
+
+        XCTAssertTrue(
+            sectionBody.contains(
+                ".accessibilityIdentifier(App2SettingsSupportEntry.identifier)"
+            ),
+            "系統段沒有掛聯絡／社群那一列的 a11y id"
+        )
+        XCTAssertTrue(
+            sectionBody.contains("title: App2SettingsSupportEntry.titleKey.localized"),
+            "那一列的標題沒有走 App2SettingsSupportEntry.titleKey"
+        )
+        XCTAssertTrue(
+            sectionBody.contains("systemImage: App2SettingsSupportEntry.systemImage"),
+            "那一列沒有用宣告的圖示"
+        )
+    }
+
+    /// 點下去開的是 1.4 既有的回饋畫面，不是 2.0 自己新做的一頁。
+    func test_theRowOpensTheExistingFeedbackReportView() throws {
+        let source = try settingsViewSource()
+
+        XCTAssertTrue(
+            source.contains(".onTapGesture { isPresentingFeedback = true }"),
+            "那一列點下去沒有觸發回饋畫面"
+        )
+        XCTAssertTrue(
+            source.contains(".sheet(isPresented: $isPresentingFeedback) {")
+                && source.contains("FeedbackReportView(userEmail:"),
+            "回饋畫面不是 1.4 既有的 FeedbackReportView"
+        )
+        // 不得在 2.0 自己重寫一份社群連結——那兩條只住在 FeedbackReportView 裡。
+        XCTAssertFalse(source.contains("threads.com"), "2.0 設定頁不得自己放 Threads 連結")
+        XCTAssertFalse(source.contains("facebook.com"), "2.0 設定頁不得自己放 Facebook 連結")
     }
 
     /// 標題走既有的 `feedback.*` 命名空間，且當下語言拿得到真正的字（不是 key）。
-    func test_supportEntry_titleUsesFeedbackKeyAndResolves() {
+    /// 三語覆蓋由 `LocalizationCoverageTests` 對每個 `L10n` 常數掃，不在這裡重寫一份。
+    func test_supportEntryTitleUsesFeedbackKeyAndResolves() {
+        XCTAssertEqual(App2SettingsSupportEntry.identifier, "App2_SettingsFeedbackEntry")
         XCTAssertEqual(App2SettingsSupportEntry.titleKey, "feedback.settings_entry")
+
         let rendered = App2SettingsSupportEntry.titleKey.localized
         XCTAssertFalse(rendered.isEmpty)
         XCTAssertNotEqual(rendered, App2SettingsSupportEntry.titleKey, "沒有翻譯，畫面會印出 key")
     }
 }
-
-// MARK: - 為什麼這裡沒有「把設定頁畫出來找 a11y id」那一條
-//
-// 試過了，量不到：`UIHostingController` ＋ 真 `UIWindow` ＋ layout ＋
-// `accessibilityElementCount()`／`accessibilityElement(at:)` 逐層走，回來是**空集合**
-// ——連設定頁本來就有的 `App2_SettingsLanguageRow`、`App2_SettingsClose` 都找不到。
-// SwiftUI 的 a11y element 不在這條路上建，硬寫一條會是「量不到任何東西也綠」的假斷言。
-//
-// 這一列**掛在畫面上**的證據因此走實走：`.maestro/flows/t0432-settings-feedback-entry.yaml`
-// 在真的模擬器上找 `App2_SettingsFeedbackEntry` 這一列、點下去、確認開的是 1.4 的
-// 回饋畫面（Threads／Facebook）。修前那棵樹沒有這一列，那支 flow 會紅。
-// 跑過的截圖在 `STATUS/evidence/T-0432/`。

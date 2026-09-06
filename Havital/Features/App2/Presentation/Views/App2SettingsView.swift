@@ -27,19 +27,12 @@ enum App2SettingsDestination: String, Identifiable {
 /// 都在那一頁裡，2.0 不另做一份社群入口，也不複製連結。設計稿 frame-21 沒畫這一列，
 /// 以 T-0432 與 `STATUS/decisions.md` 2026-09-05 為準。
 ///
-/// 列的三個事實（標題 key、a11y id、目的地）抽在這裡，讓「列還在、點下去去哪」
-/// 可以被單測鎖住，而不是只能靠走查。
+/// 標題 key、a11y id 與圖示抽在這裡，讓 view 與測試引用同一份；
+/// 「列還在、點下去去哪」由 `App2SettingsSupportEntryTests` 讀本檔的接線鎖住。
 enum App2SettingsSupportEntry {
-    /// 這一列點下去開哪個畫面。
-    enum Destination: Equatable {
-        /// 1.4 的 `FeedbackReportView`（沿用 1.4 的 sheet 呈現）。
-        case feedbackReport
-    }
-
     static let systemImage = "bubble.left.and.bubble.right"
     static let titleKey = L10n.Feedback.settingsEntry
     static let identifier = "App2_SettingsFeedbackEntry"
-    static let destination: Destination = .feedbackReport
 }
 
 // MARK: - App2SettingsView
@@ -610,11 +603,7 @@ struct App2SettingsView: View {
                     showsDivider: false
                 )
                 .contentShape(Rectangle())
-                .onTapGesture {
-                    switch App2SettingsSupportEntry.destination {
-                    case .feedbackReport: isPresentingFeedback = true
-                    }
-                }
+                .onTapGesture { isPresentingFeedback = true }
                 .accessibilityAddTraits(.isButton)
                 .accessibilityIdentifier(App2SettingsSupportEntry.identifier)
             }
