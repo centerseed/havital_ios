@@ -25,6 +25,19 @@ final class RizoSheetSessionRestoreTests: XCTestCase {
         )
     }
 
+    /// 今天的正午，不是「現在」。
+    ///
+    /// 這些案例用 `now.addingTimeInterval(-3600)` 造「同一天一小時前」的那一輪對話。
+    /// 拿真正的現在當 `now`，午夜到 01:00 之間那一小時前就落在**昨天**，
+    /// `restoreTodaySession` 照規格判成跨日不帶回，整批同日案例變紅——
+    /// 2026-09-07 00:0x 的 T-0618 交付閘門就是這樣被擋下來的。
+    /// 釘在正午之後，前後各推幾小時都還在同一天。
+    private var noon: Date {
+        Calendar.current.date(
+            bySettingHour: 12, minute: 0, second: 0, of: Date()
+        ) ?? Date()
+    }
+
     private func iso(_ date: Date) -> String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
@@ -44,7 +57,7 @@ final class RizoSheetSessionRestoreTests: XCTestCase {
     // MARK: - 同一天：帶回來，而且續聊的是同一個 session
 
     func test_todaysSessionIsRestoredAndContinuesInTheSameSession() async {
-        let now = Date()
+        let now = noon
         let fake = FakeRizoRepository(reply: reply("好的", session: "sess-today"))
         fake.historyToReturn = [
             turn(session: "sess-today", user: "今天腿很痠", coach: "那就先緩一下",
@@ -65,7 +78,7 @@ final class RizoSheetSessionRestoreTests: XCTestCase {
 
     /// 帶回來之後 `seedOpening` 不得再插一句開場白進去。
     func test_restoredConversationIsNotOverwrittenByTheLocalOpening() async {
-        let now = Date()
+        let now = noon
         let fake = FakeRizoRepository(reply: reply("好的", session: "sess-today"))
         fake.historyToReturn = [
             turn(session: "sess-today", user: "今天腿很痠", coach: "那就先緩一下", at: now)
@@ -81,7 +94,7 @@ final class RizoSheetSessionRestoreTests: XCTestCase {
     // MARK: - 跨日：不帶回（新的一天＝新的今日卡）
 
     func test_yesterdaysSessionIsNotRestored() async {
-        let now = Date()
+        let now = noon
         let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: now)!
         let fake = FakeRizoRepository(reply: reply("好的", session: "sess-old"))
         fake.historyToReturn = [
@@ -198,7 +211,7 @@ final class RizoSheetSessionRestoreTests: XCTestCase {
     /// 就是後端算不算第二次的唯一依據。裁決與代價記在
     /// `STATUS/decisions.md` 2026-09-06「T-0434 免費額度口徑」。
     func test_restoringReusesTheBillingSessionAndNewChatStartsAFreshOne() async {
-        let now = Date()
+        let now = noon
         let fake = FakeRizoRepository(reply: reply("好的", session: "sess-today"))
         fake.historyToReturn = [
             turn(session: "sess-today", user: "早上聊的", coach: "早上回的", at: now)
@@ -232,7 +245,7 @@ final class RizoSheetSessionRestoreTests: XCTestCase {
     /// 同一天共用同一份預算。已經用完的那一段**不還原**，否則使用者一開 sheet
     /// 就卡在收尾語。
     func test_aSessionThatHasUsedUpItsTurnBudgetIsNotRestored() async {
-        let now = Date()
+        let now = noon
         let fake = FakeRizoRepository(reply: reply("好的", session: "sess-new"))
         fake.historyToReturn = (1...20).map { index in
             turn(session: "sess-today", user: "第 \(index) 句", coach: "回覆 \(index)",
@@ -252,7 +265,7 @@ final class RizoSheetSessionRestoreTests: XCTestCase {
 
     /// 還沒用完就照常帶回來——上面那條不得把正常情況一起擋掉。
     func test_aSessionWithBudgetLeftIsStillRestored() async {
-        let now = Date()
+        let now = noon
         let fake = FakeRizoRepository(reply: reply("好的", session: "sess-today"))
         fake.historyToReturn = (1...19).map { index in
             turn(session: "sess-today", user: "第 \(index) 句", coach: "回覆 \(index)",
@@ -273,7 +286,7 @@ final class RizoSheetSessionRestoreTests: XCTestCase {
     /// 同時就能用（`@MainActor` 允許在 `await` 期間重入），所以使用者這段時間送出的
     /// 訊息會被那份已經過期的還原蓋掉。
     func test_aMessageSentWhileRestoringIsNotOverwritten() async {
-        let now = Date()
+        let now = noon
         let fake = FakeRizoRepository(reply: reply("收到", session: "sess-new"))
         fake.historyDelayNanoseconds = 200_000_000
         fake.historyToReturn = [
@@ -296,7 +309,7 @@ final class RizoSheetSessionRestoreTests: XCTestCase {
 
     /// 同一件事的另一半：還原還在跑的時候按「新對話」。
     func test_newConversationDuringRestoreWins() async {
-        let now = Date()
+        let now = noon
         let fake = FakeRizoRepository(reply: reply("收到", session: "sess-new"))
         fake.historyDelayNanoseconds = 200_000_000
         fake.historyToReturn = [
@@ -323,7 +336,7 @@ final class RizoSheetSessionRestoreTests: XCTestCase {
     /// （週回顧的 `weekly_situation`）。AC-TRAIN-HUB-13 只授權沿用它的 `session_id`，
     /// 沒有授權讓歷史改寫這個 sheet 自己的 scenario。
     func test_restoringDoesNotLetHistoryTakeOverTheTouchpointScenario() async {
-        let now = Date()
+        let now = noon
         let fake = FakeRizoRepository(reply: reply("好的", session: "sess-today"))
         fake.historyToReturn = [
             turn(session: "sess-today", user: "上週狀況", coach: "了解",
@@ -342,7 +355,7 @@ final class RizoSheetSessionRestoreTests: XCTestCase {
     // MARK: - 「新對話」
 
     func test_newConversationClearsMessagesAndForgetsTheSession() async {
-        let now = Date()
+        let now = noon
         let fake = FakeRizoRepository(reply: reply("好的", session: "sess-today"))
         fake.historyToReturn = [
             turn(session: "sess-today", user: "今天腿很痠", coach: "那就先緩一下", at: now)
