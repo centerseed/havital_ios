@@ -128,6 +128,65 @@ final class RizoSheetSessionRestoreTests: XCTestCase {
         XCTAssertEqual(fake.historyCallCount, 0)
     }
 
+    // MARK: - 回覆還在路上時按了「新對話」／「歷史」
+
+    /// 真缺陷：`startNewConversation()` 靠 `cancelAllTasks()` 停掉進行中的回覆，
+    /// 但這支 ViewModel 從來沒有 `trackTask`，`taskRegistry` 恆空——送出是
+    /// `RizoChatView` 裡沒註冊的 `Task { await viewModel.send(...) }`，取消不到。
+    /// header 三顆鈕在回覆進行中也沒有 disabled。所以回覆落地時 `.final` 會把
+    /// `sessionId` 設回舊 session：「新對話」看起來有反應，實際上又接回去了，
+    /// 連免費額度的脫離方式都跟著失效。
+    func test_aReplyLandingAfterNewChatDoesNotLeakIntoIt() async {
+        let fake = FakeRizoRepository(reply: reply("舊的回覆", session: "sess-old"))
+        fake.sendDelayNanoseconds = 300_000_000
+        let viewModel = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+
+        let inFlight = Task { await viewModel.send("舊的問題") }
+        try? await Task.sleep(nanoseconds: 80_000_000)
+        viewModel.startNewConversation()
+        await inFlight.value
+
+        XCTAssertTrue(
+            viewModel.messages.isEmpty,
+            "舊的那一輪落進了新對話：\(viewModel.messages.map(\.text))"
+        )
+        XCTAssertFalse(viewModel.isReplying)
+
+        // 而且 sessionId 沒有被那一輪設回去——下一句必須是新的 session。
+        await viewModel.send("新的問題")
+        XCTAssertNil(fake.lastSessionId, "「新對話」之後又接回舊 session 了")
+    }
+
+    /// 同一個洞的另一個入口：回覆還在路上時從「歷史」續聊。
+    func test_aReplyLandingAfterResumingFromHistoryDoesNotLeakIntoIt() async {
+        let fake = FakeRizoRepository(reply: reply("舊的回覆", session: "sess-old"))
+        fake.sendDelayNanoseconds = 300_000_000
+        let viewModel = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+
+        let inFlight = Task { await viewModel.send("舊的問題") }
+        try? await Task.sleep(nanoseconds: 80_000_000)
+        viewModel.resumeFromHistory(
+            RizoHistoryFork(
+                sessionId: "sess-forked",
+                scenario: "body_status",
+                turns: [
+                    RizoHistoryItem(
+                        sessionId: "sess-forked", scenario: "body_status",
+                        userInput: "分岔的那一句", rizoResponse: "分岔的回覆", ts: iso(Date())
+                    )
+                ]
+            )
+        )
+        await inFlight.value
+
+        XCTAssertEqual(
+            viewModel.messages.map(\.text), ["分岔的那一句", "分岔的回覆"],
+            "舊的那一輪落進了 fork 出來的對話"
+        )
+        await viewModel.send("接著問")
+        XCTAssertEqual(fake.lastSessionId, "sess-forked", "續聊接到的不是 fork 的 session")
+    }
+
     // MARK: - 計費 session 的口徑（2026-09-06 裁決）
 
     /// 免費教練額度是月配額、以 `session_id` 去重

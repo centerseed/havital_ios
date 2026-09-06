@@ -268,9 +268,19 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
     // MARK: - Private
 
     /// 與後端交換一回合：userText 為 nil 代表開場（送空字串）。
+    ///
+    /// **每一次寫回畫面都要先確認這一輪還屬於當下這段對話。**
+    /// `startNewConversation()` 呼叫的 `cancelAllTasks()` 取消不到這一輪——送出是
+    /// `RizoChatView` 裡沒有註冊進 `taskRegistry` 的 `Task { await viewModel.send(...) }`，
+    /// 而 header 那三顆鈕在回覆進行中仍可按。沒有這道檢查的話，回覆落地時
+    /// `.partial` 會把泡泡 append 進剛清空的對話、`.final` 會把 `sessionId` 設回舊
+    /// session——「新對話」看起來有反應，實際上又接回去了，連
+    /// `STATUS/decisions.md` 2026-09-06「T-0434 免費額度口徑」倚賴的脫離方式都會靜默失效。
     private func exchange(userText: String?) async {
+        let epoch = conversationEpoch
         isReplying = true
-        defer { isReplying = false }
+        // 已經不是這一段對話了就不要動它的 `isReplying`——那是新的一輪在用的。
+        defer { if epoch == conversationEpoch { isReplying = false } }
         var streamingMessageId: UUID?
         do {
             for try await update in repository.streamChat(
@@ -278,6 +288,7 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
                 message: userText ?? "",
                 sessionId: sessionId
             ) {
+                guard epoch == conversationEpoch else { return }
                 switch update {
                 case .partial(let text):
                     if let id = streamingMessageId, let index = messages.firstIndex(where: { $0.id == id }) {
@@ -300,6 +311,7 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
             // 取消為主動導航，不顯示錯誤（iOS 規範：取消事件不碰 UI 錯誤狀態）。
             return
         } catch {
+            guard epoch == conversationEpoch else { return }
             if let id = streamingMessageId { messages.removeAll { $0.id == id } }
             messages.append(Message(
                 role: .coach,
