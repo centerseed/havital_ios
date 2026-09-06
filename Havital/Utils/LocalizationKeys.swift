@@ -1423,6 +1423,9 @@ extension L10n {
         static let contactUsHint = "feedback.contact_us_hint"
         static let threads = "feedback.threads"
         static let facebook = "feedback.facebook"
+        /// 2.0 設定頁進這個畫面的那一列（T-0432）。1.4 的入口在課表頁 menu，
+        /// 2.0 沒有等價 menu，所以列住在設定頁。
+        static let settingsEntry = "feedback.settings_entry"
 
         enum FeedbackType {
             static let issue = "feedback.type.issue"

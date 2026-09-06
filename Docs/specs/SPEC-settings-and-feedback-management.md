@@ -68,6 +68,14 @@ Given 使用者已登入，App 啟動，
 When 向後端取得的偏好顯示時區尚未設定（`timezone_is_set == false`），  
 Then 系統必須把裝置時區 PUT 回後端；寫入失敗不得視為已完成，下次啟動要再嘗試，直到後端確認已設定為止。
 
+### AC-SETTINGS-09: 設定頁必須有聯絡／社群入口，導到回饋畫面（T-0432，2026-09-05 使用者裁決）
+
+Given 使用者在設定頁，
+When 瀏覽設定列表，
+Then 必須有一列「聯絡 Paceriz／社群」（a11y id `App2_SettingsFeedbackEntry`），點下去開既有的回饋畫面（`FeedbackReportView`：官方 Threads、Facebook 粉絲團與問題回報表單）。
+And Then 這一列**不另做一份社群入口**，連結沿用回饋畫面裡既有的那兩條；2.0 設計稿 frame-21 沒畫這一列，以本條與 `STATUS/decisions.md` 2026-09-05 為準。
+驗法：`HavitalTests/Features/App2/App2SettingsSupportEntryTests.swift`。
+
 ## 明確不包含
 
 - App Store 評分與外部客服流程

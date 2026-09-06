@@ -1728,6 +1728,7 @@
 "feedback.contact_us_hint" = "For immediate support, contact us through these channels";
 "feedback.threads" = "Official Threads Account";
 "feedback.facebook" = "Facebook Fan Page";
+"feedback.settings_entry" = "Contact Paceriz & Community";
 
 // MARK: - Contact
 "contact.paceriz" = "Contact Paceriz";

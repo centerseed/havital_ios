@@ -1727,6 +1727,7 @@
 "feedback.contact_us_hint" = "すぐにサポートが必要な場合は、以下のチャンネルでご連絡ください";
 "feedback.threads" = "公式 Threads アカウント";
 "feedback.facebook" = "Facebook ファンページ";
+"feedback.settings_entry" = "Paceriz へのお問い合わせ・コミュニティ";
 
 // MARK: - Contact
 "contact.paceriz" = "Pacerizに連絡";
