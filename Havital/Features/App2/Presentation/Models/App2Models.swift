@@ -96,6 +96,10 @@ struct App2Insight: Identifiable, Equatable {
     /// 後端給這一列的證據句（`參考資料有限`／`資料不足　僅 0 堂（需 6 堂）`）。
     /// 首頁那一排放不下，是**指標詳情頁 hero 的敘事**（checklist §52-1／§53-1）。
     let evidence: String?
+    /// 依據句（後端的 `basis`）：這個判定是拿什麼算出來的。
+    /// 首頁那一排放不下，**是指標詳情頁的內容**（SPEC-today-state §4.5）。
+    /// 目前只有有氧續航／速度耐力兩格有值；沒有就不畫那一塊。
+    let basis: String?
     /// 後端明說 `not_computed` —— 畫面要說出「尚未計算」，不是靜靜地灰掉。
     let isNotComputed: Bool
     /// 後端真的評出來了（`status == "graded"`）。
@@ -111,6 +115,7 @@ struct App2Insight: Identifiable, Equatable {
         verdict: String?,
         change: String? = nil,
         evidence: String? = nil,
+        basis: String? = nil,
         isNotComputed: Bool = false,
         isGraded: Bool = true,
         isPositive: Bool = false
@@ -122,6 +127,7 @@ struct App2Insight: Identifiable, Equatable {
         self.verdict = verdict
         self.change = change
         self.evidence = evidence
+        self.basis = basis
         self.isNotComputed = isNotComputed
         self.isGraded = isGraded
         self.isPositive = isPositive
@@ -879,6 +885,23 @@ struct App2MetricPoint: Equatable {
     /// x 軸落點的日期（`YYYY-MM-DD`，用戶當地日）。
     let date: String
     let value: Double
+}
+
+/// 有氧續航／速度耐力詳情頁的分級尺（SPEC-today-state §4.5／§5.1）。
+///
+/// 兩個切點是**後端的評級門檻**，不是這裡發明的刻度：`<= 35` 還在建立、
+/// `>= 65` 偏強，中間一般。`position` 是使用者所在位置；沒有數字時為 nil ——
+/// 尺照畫（那是固定的判準），指針不編。
+struct App2LevelScale: Equatable {
+    let position: Double?
+    let developingMax: Double
+    let strongMin: Double
+}
+
+/// 有氧續航／速度耐力詳情頁。首頁那一列 ＋ 近 30 天的 index 逐日線。
+struct App2LevelDetail: Equatable {
+    /// 近 30 天逐日 index（舊→新）。空陣列＝序列讀不到或一天都沒有 → 畫佔位，不擋頁。
+    let series: [App2MetricPoint]
 }
 
 /// §51 訓練量詳情。

@@ -31,6 +31,7 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         value: String? = nil,
         verdict: String? = nil,
         evidence: String? = nil,
+        basis: String? = nil,
         graded: Bool = true,
         notComputed: Bool = false
     ) -> App2Insight {
@@ -41,6 +42,7 @@ final class App2MetricDetailProjectionTests: XCTestCase {
             direction: .unknown,
             verdict: verdict,
             evidence: evidence,
+            basis: basis,
             isNotComputed: notComputed,
             isGraded: graded
         )
@@ -381,6 +383,74 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         XCTAssertNil(App2MetricDetailProjection.levelShortfall(
             insight: insight("aerobic_endurance", value: "70"), kind: .aerobicEndurance
         ))
+    }
+
+    // MARK: - T-0617 分級尺／依據句／30 天線
+
+    /// 尺的兩個切點是 SPEC-today-state §5.1 的 `35`／`65`，**逐字抄自 spec**：
+    /// 從實作 import 會讓這條 assert 恆真。
+    func testLevelScaleUsesTheSpecCutpointsAndMarksTheUser() {
+        let scale = App2MetricDetailProjection.levelScale(
+            insight: insight("aerobic_endurance", value: "24")
+        )
+
+        XCTAssertEqual(scale?.developingMax, 35)
+        XCTAssertEqual(scale?.strongMin, 65)
+        XCTAssertEqual(scale?.position, 24)
+    }
+
+    /// 沒有數字就沒有指針。整條尺照畫（那是固定的判準），但不得把位置編出來。
+    func testLevelScaleHasNoPositionWithoutAValue() {
+        let scale = App2MetricDetailProjection.levelScale(
+            insight: insight("speed_endurance", graded: false)
+        )
+        XCTAssertNil(scale?.position)
+    }
+
+    /// 依據句是後端組好的一句（`basis`），app 端不改寫也不自己拼。
+    func testLevelBasisComesStraightFromTheInsightRow() {
+        let row = insight("aerobic_endurance", value: "24",
+                          basis: "近 70 天算進 35 堂輕鬆跑")
+        XCTAssertEqual(App2MetricDetailProjection.levelBasis(insight: row),
+                       "近 70 天算進 35 堂輕鬆跑")
+        XCTAssertNil(App2MetricDetailProjection.levelBasis(
+            insight: insight("aerobic_endurance", value: "24")
+        ))
+    }
+
+    /// 30 天線取該項逐日 `index`，缺則 `level_index`；沒有 envelope 的那一天
+    /// （`not_computed`）**跳過**，不補前一天的值（那是 LOCF，後端明令禁止）。
+    func testLevelSeriesTakesIndexPerDayAndSkipsDaysWithoutARow() {
+        let response = AthleteStateSeriesResponse(
+            startDay: "2026-09-01",
+            endDay: "2026-09-04",
+            series: [
+                "aerobic_endurance": [
+                    .init(day: "2026-09-01", deliveryStatus: "active",
+                          envelope: .init(index: 28.5, levelIndex: nil)),
+                    .init(day: "2026-09-02", deliveryStatus: "not_computed", envelope: nil),
+                    .init(day: "2026-09-03", deliveryStatus: "active",
+                          envelope: .init(index: nil, levelIndex: 61.0)),
+                    .init(day: "2026-09-04", deliveryStatus: "active",
+                          envelope: .init(index: 23.7, levelIndex: 99.0))
+                ]
+            ]
+        )
+
+        let points = App2MetricDetailProjection.levelSeries(response, key: "aerobic_endurance")
+
+        XCTAssertEqual(points.map(\.date), ["2026-09-01", "2026-09-03", "2026-09-04"])
+        XCTAssertEqual(points.map(\.value), [28.5, 61.0, 23.7])
+    }
+
+    /// 該項不在回應裡（後端沒有這一列）→ 空陣列，頁面畫佔位、不擋。
+    func testLevelSeriesIsEmptyWhenTheItemIsAbsent() {
+        let response = AthleteStateSeriesResponse(
+            startDay: nil, endDay: nil, series: [:]
+        )
+        XCTAssertTrue(
+            App2MetricDetailProjection.levelSeries(response, key: "speed_endurance").isEmpty
+        )
     }
 
     /// 兩格量的不是同一件事，解釋不得共用同一句。

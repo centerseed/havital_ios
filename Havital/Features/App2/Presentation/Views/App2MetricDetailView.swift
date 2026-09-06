@@ -9,7 +9,6 @@ import SwiftUI
 ///
 /// **2026-08-29 創辦人裁決**：有氧續航／速度耐力只要不是 `not_computed` 就要能展開，
 /// 資料不足也要在詳情頁解釋 —— 取代 2026-08-26 那條「沒有詳情稿的指標不可點」。
-/// 那兩頁沒有自己的序列端點，整頁內容都是首頁那一列（見 `App2LevelDetailPage`）。
 ///
 /// 五頁同構：top bar（返回＋標題＋右緣「指標詳情」）→ hero 卡 →（範圍 tabs）→
 /// 圖 → 統計／診斷／解釋 → 頁尾來源行。
@@ -22,6 +21,8 @@ struct App2MetricDetailView: View {
     /// 四距離完賽預估（只有 §52 能力基準用得到）。**首頁那一輪的 readiness**，
     /// 詳情頁不重新取（T-0376）。空陣列＝那一區不畫。
     var finishPredictions: [App2FinishPrediction] = []
+    /// 卡片的使用者當地業務日。有氧續航／速度耐力的 30 天序列窗右端（T-0617）。
+    var asof: String? = nil
     let onClose: () -> Void
 
     var body: some View {
@@ -38,7 +39,7 @@ struct App2MetricDetailView: View {
         case .recoveryIndex:
             App2RecoveryDetailPage(insight: insight, narrative: narrative, onClose: onClose)
         case .aerobicEndurance, .speedEndurance:
-            App2LevelDetailPage(kind: kind, insight: insight, onClose: onClose)
+            App2LevelDetailPage(kind: kind, insight: insight, asof: asof, onClose: onClose)
         }
     }
 }
@@ -491,19 +492,31 @@ private struct App2CapabilityDetailPage: View {
 
 /// 有氧續航／速度耐力的詳情頁。
 ///
-/// **整頁沒有網路呼叫**：0–100 相對能力量尺的逐週對照序列還沒有 producer
-/// （SPEC-today-state §11-7），所以這一頁能講的全部在首頁那一列裡 ——
-/// hero 用 `value_text`／`verdict`／`evidence`，加上一段固定的「這個指標量什麼」。
-/// `insufficient_data` 時多一塊把限制句展開成「還差什麼」（2026-08-29 裁決）。
+/// hero 用首頁那一列的 `value_text`／`verdict`／`evidence`；其下三塊是 T-0617
+/// 補的「憑什麼」：**分級尺**（後端 §5.1 的 35／65 兩個切點與使用者位置）、
+/// **依據句**（後端的 `basis`，講這個判定拿什麼算的）、**近 30 天 index 線**
+/// （`GET /v2/athlete-state/metrics/series`，只有這一頁打）。
+/// `insufficient_data` 時再多一塊把限制句展開成「還差什麼」（2026-08-29 裁決）。
 ///
-/// **不畫圖也不畫統計三欄**：那兩者需要序列，編一個出來就是把缺口偽裝成內容。
+/// **線讀不到不擋頁**：那一塊畫一句佔位，其餘照常 —— 尺與依據句都不靠序列。
 private struct App2LevelDetailPage: View {
     let kind: App2MetricDetailKind
     let insight: App2Insight
     let onClose: () -> Void
 
-    /// 兩格各自的色（同其他頁的作法：色綁頁，不綁方向 —— 這兩格恆無方向，
-    /// 用 `insight.tint` 會讓整頁變灰）。
+    @StateObject private var viewModel: App2LevelDetailViewModel
+
+    init(kind: App2MetricDetailKind, insight: App2Insight, asof: String?,
+         onClose: @escaping () -> Void) {
+        self.kind = kind
+        self.insight = insight
+        self.onClose = onClose
+        _viewModel = StateObject(wrappedValue: App2LevelDetailViewModel(
+            itemKey: kind.rawValue, asof: asof
+        ))
+    }
+
+    /// 兩格各自的色（同其他頁的作法：色綁頁，不綁方向）。
     private var tint: Color {
         kind == .speedEndurance ? App2Theme.accentViolet : App2Theme.accentBlueDeep
     }
@@ -519,6 +532,27 @@ private struct App2LevelDetailPage: View {
                 symbolName: insight.symbolName,
                 tint: tint
             )
+
+            if let basis = App2MetricDetailProjection.levelBasis(insight: insight) {
+                explanationCard(
+                    title: L10n.App2.Metric.levelBasisTitle.localized,
+                    body: basis,
+                    identifier: "App2_MetricLevelBasis"
+                )
+            }
+
+            if let scale = App2MetricDetailProjection.levelScale(insight: insight) {
+                App2Card(spacing: 12) {
+                    Text(L10n.App2.Metric.levelScaleTitle.localized)
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundStyle(App2Theme.inkPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    App2LevelScaleBar(scale: scale, tint: tint)
+                }
+                .accessibilityIdentifier("App2_MetricLevelScale")
+            }
+
+            trendCard
 
             if let shortfall = App2MetricDetailProjection.levelShortfall(
                 insight: insight, kind: kind
@@ -536,6 +570,35 @@ private struct App2LevelDetailPage: View {
                 identifier: "App2_MetricLevelAbout"
             )
         }
+        .task { await viewModel.loadIfNeeded() }
+        .onDisappear { viewModel.cancelInFlightReload() }
+    }
+
+    /// 近 30 天 index 線。序列讀不到／一天都沒有 → 一句佔位，不畫空圖。
+    @ViewBuilder
+    private var trendCard: some View {
+        App2Card(spacing: 12) {
+            Text(L10n.App2.Metric.levelTrendTitle.localized)
+                .font(.system(size: 14, weight: .heavy))
+                .foregroundStyle(App2Theme.inkPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if let points = viewModel.detail?.value.series, !points.isEmpty {
+                App2MetricLineChart(
+                    series: [.init(id: "level", points: points, tint: tint)],
+                    xLabels: App2VolumeDetailPage.xLabels(points),
+                    height: 118
+                )
+            } else if viewModel.isLoading {
+                ProgressView().frame(maxWidth: .infinity)
+            } else {
+                Text(L10n.App2.Metric.levelTrendUnavailable.localized)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(App2Theme.inkMuted)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .accessibilityIdentifier("App2_MetricLevelTrend")
     }
 
     private func explanationCard(title: String, body: String, identifier: String) -> some View {
@@ -552,6 +615,80 @@ private struct App2LevelDetailPage: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityIdentifier(identifier)
+    }
+}
+
+// MARK: - App2LevelScaleBar
+/// 分級尺：三段（還在建立／一般／偏強）＋ 使用者位置（SPEC-today-state §4.5）。
+///
+/// 段的寬度就是 0–100 上的實際比例（35／30／35），**不平均分三份** —— 平均分
+/// 會讓 24 分看起來落在第一段中間，那是另一個數字。
+private struct App2LevelScaleBar: View {
+    let scale: App2LevelScale
+    let tint: Color
+
+    private var segments: [(label: String, span: Double, color: Color)] {
+        [
+            (L10n.App2.Metric.levelScaleDeveloping.localized,
+             scale.developingMax, App2Theme.accentOrange.opacity(0.28)),
+            (L10n.App2.Metric.levelScaleModerate.localized,
+             scale.strongMin - scale.developingMax, App2Theme.inkMuted.opacity(0.18)),
+            (L10n.App2.Metric.levelScaleStrong.localized,
+             100 - scale.strongMin, App2Theme.accentGreenDot.opacity(0.28))
+        ]
+    }
+
+    var body: some View {
+        VStack(spacing: 6) {
+            GeometryReader { geometry in
+                let width = geometry.size.width
+                ZStack(alignment: .leading) {
+                    HStack(spacing: 2) {
+                        ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                .fill(segment.color)
+                                .frame(width: max(0, width * segment.span / 100 - 2))
+                        }
+                    }
+                    if let position = scale.position {
+                        let clamped = min(max(position, 0), 100)
+                        Capsule()
+                            .fill(tint)
+                            .frame(width: 3, height: 22)
+                            .offset(x: width * clamped / 100 - 1.5)
+                            .accessibilityIdentifier("App2_MetricLevelScaleMarker")
+                    }
+                }
+                .frame(height: 22)
+            }
+            .frame(height: 22)
+
+            // 段名的寬度跟著段走（35／30／35），不是三等分 —— 標籤跟色塊對不上的話，
+            // 尺就是在指另一段。
+            GeometryReader { geometry in
+                HStack(spacing: 2) {
+                    ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                        Text(segment.label)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(App2Theme.inkMuted)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+                            .frame(width: max(0, geometry.size.width * segment.span / 100 - 2),
+                                   alignment: .leading)
+                    }
+                }
+            }
+            .frame(height: 14)
+
+            // 兩個切點的實際數字。段名是人話，數字是判準本身，兩者都要看得到。
+            HStack {
+                Text(App2NumberFormat.grouped(scale.developingMax))
+                Spacer(minLength: 4)
+                Text(App2NumberFormat.grouped(scale.strongMin))
+            }
+            .font(.app2Mono(11, weight: .semibold))
+            .foregroundStyle(App2Theme.inkFaint)
+        }
     }
 }
 

@@ -4886,6 +4886,14 @@
 "app2.metric.level_shortfall_aerobic" = "This score needs enough aerobic runs spread across different distances: when every run is the same length, a heart rate that climbs with distance looks the same as one that started high. The line above is what has accumulated so far; the score appears once that is filled in.";
 "app2.metric.level_shortfall_speed" = "This score needs enough sessions where the drop-off between reps is visible (intervals or repeats): steady-pace running cannot measure how much you fade over repeated near-maximal efforts. The line above is what has accumulated so far; the score appears once that is filled in.";
 
+"app2.metric.level_basis_title" = "Where this reading comes from";
+"app2.metric.level_scale_title" = "Where you sit";
+"app2.metric.level_scale_developing" = "Building";
+"app2.metric.level_scale_moderate" = "Mid-pack";
+"app2.metric.level_scale_strong" = "Strong";
+"app2.metric.level_trend_title" = "Last 30 days";
+"app2.metric.level_trend_unavailable" = "The daily scores for the last 30 days are not available right now — check back later.";
+
 /* MARK: - App2 plan-end state (design frame-00g / frame-00g2) */
 "app2.plan_end.chip_race" = "Race done";
 "app2.plan_end.chip_maintenance" = "Block done";

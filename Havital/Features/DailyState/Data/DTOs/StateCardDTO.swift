@@ -26,9 +26,12 @@ struct StateCardDTO: Codable {
     /// 這條就是 2.0 指標膠囊列要的東西——`/v2/athlete-state/metrics` 依規格只交
     /// envelope、不評級(ME-INV-05),所以綁那一條的畫面永遠是灰的。
     let insights: [InsightDTO]?
+    /// 卡片的使用者當地業務日（`YYYY-MM-DD`）。指標詳情頁的 30 天窗右端就是它——
+    /// 拿裝置日期代替會在跨時區時錯一天（`AGENTS.md`：`YYYY-MM-DD` 是用戶當地時間）。
+    let asof: String?
 
     enum CodingKeys: String, CodingKey {
-        case lens, source, headline, chips, action, divergence, access, insights
+        case lens, source, headline, chips, action, divergence, access, insights, asof
         case factType = "fact_type"
         case narrativeText = "narrative_text"
         case collapsedReason = "collapsed_reason"
@@ -89,9 +92,12 @@ struct StateCardDTO: Codable {
         let dot: String?
         /// `graded`／`not_computed`。
         let status: String?
+        /// 依據句：這個判定是拿什麼算出來的（SPEC-today-state §4.5，2026-09-06）。
+        /// 目前只有 `aerobic_endurance`／`speed_endurance` 有值。
+        let basis: String?
 
         enum CodingKeys: String, CodingKey {
-            case key, label, arrow, verdict, change, evidence, dot, status
+            case key, label, arrow, verdict, change, evidence, dot, status, basis
             case valueText = "value_text"
         }
     }

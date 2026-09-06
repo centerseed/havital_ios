@@ -21,7 +21,8 @@ enum StateCardMapper {
             isLocked: dto.access.locked,
             upsellReason: dto.access.upsell?.reason,
             benchmarkCalibration: benchmark(from: dto.benchmarkCalibration),
-            insights: (dto.insights ?? []).map(insight(from:))
+            insights: (dto.insights ?? []).map(insight(from:)),
+            asof: dto.asof
         )
     }
 
@@ -35,6 +36,7 @@ enum StateCardMapper {
             verdict: dto.verdict,
             change: dto.change,
             evidence: dto.evidence,
+            basis: dto.basis,
             dot: dto.dot,
             status: dto.status
         )

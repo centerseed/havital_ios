@@ -2660,6 +2660,16 @@ extension L10n {
             static let levelShortfallTitle = "app2.metric.level_shortfall_title"
             static let levelShortfallAerobic = "app2.metric.level_shortfall_aerobic"
             static let levelShortfallSpeed = "app2.metric.level_shortfall_speed"
+            /// 依據句那一塊（後端的 `basis`：這個判定拿什麼算的）。
+            static let levelBasisTitle = "app2.metric.level_basis_title"
+            /// 分級尺（SPEC-today-state §4.5：35 以下／35–65／65 以上）。
+            static let levelScaleTitle = "app2.metric.level_scale_title"
+            static let levelScaleDeveloping = "app2.metric.level_scale_developing"
+            static let levelScaleModerate = "app2.metric.level_scale_moderate"
+            static let levelScaleStrong = "app2.metric.level_scale_strong"
+            /// 近 30 天的 index 逐日線。
+            static let levelTrendTitle = "app2.metric.level_trend_title"
+            static let levelTrendUnavailable = "app2.metric.level_trend_unavailable"
         }
 
         /// 計畫結束態（設計 frame-00g 首頁結束態／兩種語意，frame-00g2 整期總結

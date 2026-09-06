@@ -365,6 +365,42 @@ enum App2MetricDetailProjection {
         )
     }
 
+    /// 分級尺的兩個切點（SPEC-today-state §5.1）。**這是後端的評級門檻**，
+    /// 不是畫面自己的刻度：同一個判準決定 hero 的判語與尺上的分段，兩者不得分歧。
+    /// 改門檻要先改 spec，這裡跟著改。
+    static let levelDevelopingMax: Double = 35
+    static let levelStrongMin: Double = 65
+
+    /// 尺 ＋ 使用者位置。`value_text` 是後端交的 0–100（純數字字串），拿不出數字
+    /// 就沒有指針 —— 尺照畫（判準是固定的），位置不編。
+    static func levelScale(insight: App2Insight) -> App2LevelScale? {
+        App2LevelScale(
+            position: insight.value.flatMap(Double.init),
+            developingMax: levelDevelopingMax,
+            strongMin: levelStrongMin
+        )
+    }
+
+    /// 依據句。後端組好的一句（`basis`），**照抄**：句裡每個數都出自 metric envelope
+    /// 的 `raw`／`limits.params`，在 app 端重拼會變成第二個算法。沒有就不畫那一塊。
+    static func levelBasis(insight: App2Insight) -> String? {
+        guard let basis = insight.basis, !basis.isEmpty else { return nil }
+        return basis
+    }
+
+    /// 近 30 天的 index 逐日線。逐日取 `index`，缺則 `level_index`（v1 的
+    /// `speed_endurance` 只有後者）。
+    ///
+    /// **沒有 envelope 的那一天直接跳過**：那天的答案是「算不出來」，用鄰日的值補
+    /// 就是 LOCF，後端在序列端點明令禁止（SPEC-athlete-state §4.10.7），畫面更不該
+    /// 自己補一個回去。
+    static func levelSeries(_ response: AthleteStateSeriesResponse, key: String) -> [App2MetricPoint] {
+        (response.series[key] ?? []).compactMap { row in
+            guard let value = row.envelope?.index ?? row.envelope?.levelIndex else { return nil }
+            return App2MetricPoint(date: row.day, value: value)
+        }
+    }
+
     /// 「這個指標量什麼」。兩格量的不是同一件事，各有自己的一段。
     static func levelAbout(_ kind: App2MetricDetailKind) -> String {
         switch kind {

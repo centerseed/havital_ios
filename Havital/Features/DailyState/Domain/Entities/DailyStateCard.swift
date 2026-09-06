@@ -24,6 +24,9 @@ struct DailyStateCard: Equatable {
     let benchmarkCalibration: SameDayBenchmarkCalibration?
     /// 已評級的指標列。空陣列 = 端點沒帶(舊版後端),不是「全部尚未計算」。
     let insights: [DailyStateInsight]
+    /// 卡片的使用者當地業務日(`YYYY-MM-DD`)。指標詳情頁的 30 天序列窗右端。
+    /// 舊版後端沒帶 → nil,那一頁退到裝置當地日。
+    var asof: String? = nil
 
     var hasChip: Bool { !chips.isEmpty }
 
@@ -54,6 +57,12 @@ struct DailyStateInsight: Equatable {
     let verdict: String?
     let change: String?
     let evidence: String?
+    /// 依據句:這個判定是拿什麼算出來的(`basis`,SPEC-today-state §4.5)。
+    ///
+    /// **後端組好的一句,app 端不改寫也不自己拼。** 句裡每個數都出自 metric envelope
+    /// 的 `raw`／`limits.params`;在 app 端重組會變成第二個算法。目前只有
+    /// `aerobic_endurance`／`speed_endurance` 有值,其餘格為 nil。
+    var basis: String? = nil
     /// 後端對這一列的正負判定（`positive`／`neutral`／`unknown`）。
     ///
     /// **這是評級層的結論，app 端不自己推。** 2.0 首頁只展開最值得看的幾列

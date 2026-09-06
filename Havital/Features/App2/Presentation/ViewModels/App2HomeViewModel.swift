@@ -50,6 +50,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     @Published private(set) var planEnd: App2PlanEndCard?
     @Published private(set) var trainingStatus: App2Sourced<App2TrainingStatus>?
     @Published private(set) var insights: App2Sourced<[App2Insight]>?
+    /// `GET /v2/state/today` 的 `asof`（使用者當地業務日）。指標詳情頁的序列窗右端。
+    @Published private(set) var stateAsof: String?
     /// 四個固定距離的完賽預估（T-0376）。能力基準詳情頁（§52）用它。
     ///
     /// **住在首頁 VM 是因為資料在這裡就已經有了**：`loadGoalCard` 每一輪都會
@@ -626,6 +628,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
         rizoOpeningLine = Self.rizoOpeningLine(card: card)
         rizoScenario = card.rizoScenario
+        // 指標詳情頁的 30 天窗右端。卡片的業務日是使用者當地日（後端算的），
+        // 裝置日期在跨時區時會差一天。
+        stateAsof = card.asof
     }
 
     // MARK: - §3.1 今日課表卡
@@ -954,6 +959,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 verdict: row.verdict,
                 change: row.change,
                 evidence: row.evidence,
+                basis: row.basis,
                 isNotComputed: row.isNotComputed,
                 isGraded: row.isGraded,
                 isPositive: row.dot == "positive"

@@ -660,3 +660,127 @@ final class App2RecoveryDetailViewModel: ObservableObject, TaskManageable, App2R
         )
     }
 }
+
+// MARK: - App2LevelDetailViewModel
+/// 有氧續航／速度耐力詳情頁的 30 天線（SPEC-today-state §4.5，T-0617）。
+///
+/// **只有這一頁打序列**：首頁不因為這條多任何查詢，卡片本身也不帶序列。
+/// 窗固定 30 天（先觀察 SQL 壓力再決定要不要放寬），右端是卡片的 `asof`
+/// ——使用者當地業務日，不是裝置日期。
+///
+/// 讀不到就是空序列：頁面畫佔位，hero／分級尺／依據句照常在。線是這一頁的補充，
+/// 不是它的前提。
+@MainActor
+final class App2LevelDetailViewModel: ObservableObject, TaskManageable, App2Revalidating {
+
+    @Published private(set) var isLoading = true
+    @Published private(set) var detail: App2Sourced<App2LevelDetail>?
+    /// 讀失敗（或該項一天都沒有列）→ 畫佔位那一塊，不擋頁面。
+    @Published private(set) var seriesUnavailable = false
+    private(set) var hasLoaded = false
+    private(set) var lastLoadedAt: Date?
+
+    nonisolated let taskRegistry = TaskRegistry()
+
+    /// 先固定 30 天（SPEC-today-state §4.5）。
+    static let windowDays = 30
+
+    private let itemKey: String
+    private let asof: String?
+    private let dataSource: AthleteStateSeriesDataSourceProtocol
+
+    init(
+        itemKey: String,
+        asof: String?,
+        dataSource: AthleteStateSeriesDataSourceProtocol? = nil
+    ) {
+        self.itemKey = itemKey
+        self.asof = asof
+        self.dataSource = dataSource ?? AthleteStateSeriesRemoteDataSource()
+    }
+
+    deinit {
+        cancelAllTasks()
+    }
+
+    private var revalidateGeneration = 0
+    private(set) var revalidateRoundTask: Task<Void, Never>?
+
+    func cancelInFlightReload() {
+        invalidateCurrentRound()
+    }
+
+    private func invalidateCurrentRound() {
+        revalidateRoundTask?.cancel()
+        revalidateRoundTask = nil
+        revalidateGeneration += 1
+    }
+
+    func revalidate() async {
+        invalidateCurrentRound()
+        let round = revalidateGeneration
+        let roundTask = Task { [weak self] in
+            guard let self else { return }
+            await self.revalidateRound(round)
+        }
+        revalidateRoundTask = roundTask
+        await withTaskCancellationHandler {
+            await roundTask.value
+        } onCancel: {
+            roundTask.cancel()
+        }
+        if revalidateGeneration == round {
+            revalidateRoundTask = nil
+        }
+    }
+
+    private func revalidateRound(_ round: Int) async {
+        isLoading = !hasLoaded
+        var finishedRound = false
+        defer {
+            if revalidateGeneration == round {
+                isLoading = false
+                if finishedRound, !Task.isCancelled {
+                    hasLoaded = true
+                    lastLoadedAt = Date()
+                }
+            }
+        }
+
+        let window = Self.window(asof: asof)
+        do {
+            let response = try await dataSource.fetchMetricSeries(
+                startDay: window.start, endDay: window.end
+            )
+            if Task.isCancelled { return }
+            guard revalidateGeneration == round else { return }
+            let points = App2MetricDetailProjection.levelSeries(response, key: itemKey)
+            seriesUnavailable = points.isEmpty
+            detail = App2Sourced(
+                App2LevelDetail(series: points),
+                origin: .live(endpoint: "GET /v2/athlete-state/metrics/series")
+            )
+            finishedRound = true
+        } catch {
+            guard !error.isCancellationError else { return }
+            guard revalidateGeneration == round else { return }
+            finishedRound = true
+            // 讀不到序列**不擋頁**：hero、分級尺、依據句都不靠它。
+            seriesUnavailable = true
+            Logger.debug("[App2LevelDetailVM] metrics/series 取得失敗: \(error)")
+        }
+    }
+
+    /// `asof − 29` … `asof`。卡片沒帶 `asof`（舊版後端）才退裝置當地日 ——
+    /// 那是最後手段，跨時區會差一天。
+    static func window(asof: String?, days: Int = windowDays) -> (start: String, end: String) {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        let endDate = asof.flatMap { formatter.date(from: $0) } ?? Date()
+        let startDate = Calendar(identifier: .gregorian)
+            .date(byAdding: .day, value: -(days - 1), to: endDate) ?? endDate
+        return (formatter.string(from: startDate), formatter.string(from: endDate))
+    }
+}

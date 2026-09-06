@@ -4927,6 +4927,14 @@
 "app2.metric.level_shortfall_aerobic" = "這個分數要有夠多、而且距離拉得夠開的有氧跑才算得出來：每次都跑差不多的距離，就分不出心率是隨里程上升還是一開始就那麼高。上面那一行是目前累積到的程度，補齊後這一格就會出現分數。";
 "app2.metric.level_shortfall_speed" = "這個分數要有夠多看得出每趟掉速的課（間歇或反覆跑）才算得出來：一路穩定配速的跑步量不出「反覆接近全力時掉多少」。上面那一行是目前累積到的程度，補齊後這一格就會出現分數。";
 
+"app2.metric.level_basis_title" = "這個判定怎麼來的";
+"app2.metric.level_scale_title" = "你在哪一段";
+"app2.metric.level_scale_developing" = "還在建立";
+"app2.metric.level_scale_moderate" = "一般";
+"app2.metric.level_scale_strong" = "偏強";
+"app2.metric.level_trend_title" = "近 30 天";
+"app2.metric.level_trend_unavailable" = "近 30 天的逐日分數還讀不到，稍後再看一次。";
+
 /* MARK: - App2 計畫結束態（設計 frame-00g／frame-00g2） */
 "app2.plan_end.chip_race" = "備賽完成";
 "app2.plan_end.chip_maintenance" = "訓練期完成";

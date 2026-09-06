@@ -11,7 +11,26 @@ final class StateCardMapperTests: XCTestCase {
                           rizoHandoff: nil),
             divergence: .init(present: false, flagText: nil, suggestedRizoScenario: nil),
             access: .init(isPaid: !locked, locked: locked, upsell: locked ? .init(reason: "unlock_full_read") : nil),
-            benchmarkCalibration: nil, insights: nil)
+            benchmarkCalibration: nil, insights: nil, asof: nil)
+    }
+
+    /// T-0617：`basis`（依據句）與 `asof`（卡片的使用者當地業務日）要一路decode 到 entity。
+    /// `asof` 是 30 天序列窗的右端；掉了它，詳情頁只能拿裝置日期猜。
+    func test_basis_and_asof_survive_the_wire() throws {
+        let json = """
+        {"lens":"pre","source":"llm","headline":"H","asof":"2026-09-06",
+         "access":{"is_paid":true,"locked":false},
+         "insights":[{"key":"aerobic_endurance","label":"有氧續航","value_text":"24",
+                      "arrow":"down","verdict":"還在建立","change":"30.8 → 23.7",
+                      "evidence":null,"basis":"近 70 天算進 35 堂輕鬆跑","dot":"caution",
+                      "status":"graded"}]}
+        """
+        let dto = try JSONDecoder().decode(StateCardDTO.self, from: Data(json.utf8))
+        let entity = StateCardMapper.toEntity(from: dto)
+
+        XCTAssertEqual(entity.asof, "2026-09-06")
+        XCTAssertEqual(entity.insights.first?.basis, "近 70 天算進 35 堂輕鬆跑")
+        XCTAssertEqual(entity.insights.first?.change, "30.8 → 23.7")
     }
 
     func test_maps_paid() {
@@ -50,7 +69,7 @@ final class StateCardMapperTests: XCTestCase {
                          collapsedReason: "Take it easy today - 34 km this week already",
                          chips: d.chips, causeChips: d.causeChips,
                          mileageProgression: d.mileageProgression, action: d.action,
-                         divergence: d.divergence, access: d.access, benchmarkCalibration: nil, insights: nil)
+                         divergence: d.divergence, access: d.access, benchmarkCalibration: nil, insights: nil, asof: nil)
         let e = StateCardMapper.toEntity(from: d)
         XCTAssertEqual(e.collapsedReason, "Take it easy today - 34 km this week already")
         XCTAssertEqual(e.displayHeadline, "Take it easy today - 34 km this week already")
