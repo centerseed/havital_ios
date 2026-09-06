@@ -465,8 +465,23 @@ struct App2SessionStructureBar: Identifiable, Equatable {
     /// 於是整張圖沒有任何 `paceLabel` —— `hasPaceData` 因此把整堂間歇課判成「沒有配速」，
     /// 「預計配速」卡與 hero 的「配速變化 N 段」格一起消失（8/28 全畫面盤點兩台實拍到）。
     var hasPace: Bool = false
+    /// 這一段處方的趟數。**只掛在該間歇段的第一根柱上**，其餘柱是 nil。
+    ///
+    /// 與「有幾根 `.interval` 柱」是兩件事：柱數有上限 10（那一格只有幾十 pt 寬，
+    /// 畫不下更多），趟數沒有。2026-09-06 創辦人第 11 週實機截圖：`11 × 200m`
+    /// 的課，圖的標題寫「趟數 × 10 趟」，同一張圖右下角卻是「11 × 200m · 4:25/km」。
+    var prescribedReps: Int? = nil
 
     var isWork: Bool { kind == .steady || kind == .interval }
+}
+
+extension Collection where Element == App2SessionStructureBar {
+    /// 「趟數 × N 趟」的 N —— **處方趟數**，不是畫出來的柱數。
+    /// 沒有處方趟數（舊資料／非間歇課）才退回柱數。0 ＝ 這堂課不寫趟數。
+    var prescribedIntervalReps: Int {
+        let prescribed = compactMap(\.prescribedReps).reduce(0, +)
+        return prescribed > 0 ? prescribed : filter { $0.kind == .interval }.count
+    }
 }
 
 /// 今日課表卡的五種狀態。

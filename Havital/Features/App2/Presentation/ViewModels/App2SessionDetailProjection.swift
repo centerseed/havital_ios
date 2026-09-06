@@ -71,8 +71,9 @@ enum App2SessionDetailProjection {
             dayIndex: day.dayIndex,
             dateString: date.map { dateKey($0, calendar: calendar) },
             dateTitle: dateTitle(date: date, dayIndex: day.dayIndex, weekStart: weekStart, calendar: calendar),
-            // 同 `App2HomeViewModel.todaySession`：對不到課型就退 `day_target`，不印識別字。
-            title: dayType?.localizedName ?? day.dayTarget,
+            // 同 `App2HomeViewModel.todaySession`：對不到課型就退 `day_target`，
+            // 再退中性的「訓練」；不印識別字，也不退「輕鬆跑」。
+            title: App2PlanViewModel.dayTypeLabel(dayType: dayType, dayTarget: day.dayTarget),
             dayType: dayType,
             kicker: kicker(day: day),
             distanceKm: (distanceKm ?? 0) > 0 ? distanceKm : nil,

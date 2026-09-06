@@ -813,8 +813,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 // 不再把後端的 `run_type` 識別字（`easy`／`lsd`）直接印到畫面上。
                 // 對不到課型就退 `day_target`（後端已在地化）。不退 `category` ——
                 // 那是 run／strength／cross／rest 四值 enum，rawValue 是識別字。
-                tag: dayType?.localizedName
-                    ?? (isRest ? L10n.App2.Plan.rest.localized : day.dayTarget),
+                tag: Self.dayTypeLabel(dayType: dayType, dayTarget: day.dayTarget),
                 dayType: dayType,
                 // 設計 frame-01 的「課表」行是「量 · 配速」（`4.0 km · 7:17/km`），
                 // 不是裸距離；與今日課表卡走同一支 `contentLine`，不另做一份格式。
@@ -1002,10 +1001,27 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// `run_type` → 既有的 `DayType`。肌力／交叉訓練沒有跑步課型，各自映到對應的 case。
     /// 交叉訓練有具體 `cross_type`（yoga／cycling…）就報那一項（2026-08-29 D20 裁決，
     /// 與 Android 同一條：課表寫了什麼就顯示什麼），認不得才退通稱。
+    ///
+    /// **認不得的 `run_type` 一律不得靜默變成輕鬆跑**
+    /// （`cloud/api_service/docs/01-specs/SPEC-training-session-types.md` §3.2；
+    /// 同 §3.1「renderer 不得改變 run type」）。認不得時：payload 帶得出間歇結構就是
+    /// 間歇課（結構是事實，不是推測），否則回 nil ——「推不出來」由呼叫端退成中性字。
+    /// 2026-09-06 創辦人第 11 週實機：後端把課型名寫進 `primary.run_type`
+    /// （`paceriz_interval`），畫面整堂變成「EASY RUN · Z2 輕鬆跑」，
+    /// 同一頁的「訓練結構」卻列著 11 × 200m。後端已改寫 canonical `interval`，
+    /// 這一條是 app 端不再重演的護欄。
     static func dayType(_ primary: PrimaryActivity?) -> DayType? {
         switch primary {
         case .run(let run):
-            return DayType(rawValue: run.runType.lowercased())
+            let raw = run.runType.lowercased()
+            if let known = DayType(rawValue: raw) { return known }
+            let hasIntervalStructure = effectiveSegments(run).contains { $0.segmentKind == .interval }
+            Logger.warn(
+                "unknown run_type '\(run.runType)' -> "
+                    + (hasIntervalStructure ? "interval (payload has interval structure)" : "unresolved (no structure)"),
+                tag: "App2PlanViewModel"
+            )
+            return hasIntervalStructure ? .interval : nil
         case .strength:
             return .strength
         case .cross(let cross):
@@ -1015,6 +1031,18 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         @unknown default:
             return nil
         }
+    }
+
+    /// 課型顯示字：課型 → 後端已在地化的 `day_target` → 中性的「訓練」。
+    ///
+    /// **最後那一段不得是任何具體課型。** 認不得的課型退成「輕鬆跑」等於替後端
+    /// 決定了這堂課是什麼（`SPEC-training-session-types` §3.1／§3.2）。
+    /// 也不退 `category`（run／strength／cross／rest 的 rawValue 是識別字，
+    /// 不是給人看的字）。
+    static func dayTypeLabel(dayType: DayType?, dayTarget: String) -> String {
+        if let dayType { return dayType.localizedName }
+        let target = dayTarget.trimmingCharacters(in: .whitespacesAndNewlines)
+        return target.isEmpty ? L10n.ActivityType.training.localized : target
     }
 
     /// 「課表」那一行的結構化內容（設計 frame-00 今日課表卡、frame-01 每日卡）。

@@ -1048,6 +1048,41 @@ final class App2HomeProjectionTests: XCTestCase {
         XCTAssertTrue(App2HomeViewModel.structureBars(day: try day(restDay)).isEmpty)
     }
 
+    // MARK: - 「趟數 × N 趟」＝處方趟數，不是畫出來的柱數
+
+    /// 2026-09-06 創辦人第 11 週實機截圖：`11 × 200m` 的間歇課，「預計配速」的標題
+    /// 寫成「趟數 × 10 趟」，右下角卻是「11 × 200m · 4:25/km」—— 同一張圖上兩個趟數。
+    /// 柱數上限 10 是畫面寬度的限制（幾十 pt 寬畫不下），**不是這堂課的趟數**。
+    func test_structureBars_elevenRepeats_labelIsPrescribedRepeatsNotDrawnBars() throws {
+        let json = """
+        { "day_index": 5, "day_target": "間歇", "reason": "速耐力",
+          "primary": { "run_type": "interval", "target_intensity": "high",
+                       "segments": [ { "kind": "interval", "repeats": 11,
+                                       "work": { "distance_m": 200, "pace": "4:25" },
+                                       "recovery": { "duration_seconds": 90 } } ] } }
+        """
+        let bars = App2HomeViewModel.structureBars(day: try day(json))
+
+        XCTAssertEqual(bars.filter { $0.kind == .interval }.count, 10, "畫面上最多十根柱")
+        XCTAssertEqual(bars.prescribedIntervalReps, 11, "標籤要寫處方的 11 趟")
+    }
+
+    /// 畫得滿的課：標籤與柱數本來就相同，這條鎖住修法沒有把一般情況改壞。
+    func test_structureBars_sixRepeats_labelMatchesDrawnBars() throws {
+        let bars = App2HomeViewModel.structureBars(day: try day(intervalDay))
+
+        XCTAssertEqual(bars.filter { $0.kind == .interval }.count, 6)
+        XCTAssertEqual(bars.prescribedIntervalReps, 6)
+    }
+
+    /// 沒有衝刺段的課不寫趟數（`0` ＝ 那一行整行不出現）。
+    func test_structureBars_easyRun_hasNoReps() throws {
+        XCTAssertEqual(
+            App2HomeViewModel.structureBars(day: try day(easyRunDay)).prescribedIntervalReps,
+            0
+        )
+    }
+
     // MARK: - Rizo 推話只用既有句子
 
     func test_rizoOpeningLine_prefersCollapsedReason() {

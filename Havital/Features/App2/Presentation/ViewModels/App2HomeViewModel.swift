@@ -922,11 +922,12 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         }()
         return App2TodaySession(
             dayLabel: dayLabel,
-            // 課型對不到（後端新增了 `run_type`）→ 退到 `day_target`（後端已在地化的人話）。
+            // 課型對不到（後端新增了 `run_type`）→ 退到 `day_target`（後端已在地化的人話），
+            // 再退中性的「訓練」。**不退「輕鬆跑」**（`SPEC-training-session-types` §3.2）。
             // **不退 `category`**：domain 的 `category` 是 run／strength／cross／rest 四值 enum，
             // 印它的 rawValue 等於把識別字放上畫面；也不退「休息」——那會把一堂未知的課
             // 說成休息日（2026-08-26 架構收斂時發現，DTO 時代退的是後端的自由字串）。
-            title: dayType?.localizedName ?? day.dayTarget,
+            title: App2PlanViewModel.dayTypeLabel(dayType: dayType, dayTarget: day.dayTarget),
             intensityLabel: App2PlanViewModel.intensityLabel(primary),
             summary: App2PlanViewModel.contentLine(primary, totalDistanceKm: day.distanceKm),
             segments: segments,
@@ -1157,12 +1158,15 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             noteDetail: String? = nil,
             // 這一段的處方有沒有配速（8/28 盤點 F16）。預設跟著 `pace` 走——寫在塊上的
             // 一定有；寫不下的（間歇細柱、暖身／緩和矮塊）由呼叫端明講。
-            hasPace: Bool? = nil
+            hasPace: Bool? = nil,
+            // 這一段處方的趟數（只掛第一根柱）。柱數有上限，趟數沒有。
+            prescribedReps: Int? = nil
         ) {
             bars.append(.init(
                 id: bars.count, kind: kind, height: height, widthWeight: width, paceLabel: pace,
                 noteLabel: noteLabel, noteDetail: noteDetail,
-                hasPace: hasPace ?? (pace != nil)
+                hasPace: hasPace ?? (pace != nil),
+                prescribedReps: prescribedReps
             ))
         }
 
@@ -1188,7 +1192,10 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             }
             for segment in runSegments {
                 if segment.segmentKind == .interval, let repeats = segment.repeats, repeats > 0 {
-                    // 太多趟就不畫滿，畫面上那格只有幾十 pt 寬。
+                    // 太多趟就**不畫滿**，畫面上那格只有幾十 pt 寬。
+                    // 這是畫幾根柱的上限，**不是這堂課的趟數** —— 趟數走
+                    // `prescribedReps`（2026-09-06 創辦人第 11 週實機截圖：
+                    // 11 × 200m 的課，圖的標題寫成「趟數 × 10 趟」）。
                     let drawn = min(repeats, 10)
                     let detail = segment.work.flatMap(effortLabel(effort:))
                     // 衝刺趟的配速在標註列（`10 × 200m · 4:50/km`），細柱上寫不下；
@@ -1202,7 +1209,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                             noteDetail: index == 0
                                 ? detail.map { repeats > 1 ? "\(repeats) × \($0)" : $0 }
                                 : nil,
-                            hasPace: workHasPace
+                            hasPace: workHasPace,
+                            // 趟數也只掛第一根柱：標籤要的是處方的 11，不是畫出來的 10。
+                            prescribedReps: index == 0 ? repeats : nil
                         )
                         if index < drawn - 1 { append(.support, height: 0.3, width: 0.6) }
                     }

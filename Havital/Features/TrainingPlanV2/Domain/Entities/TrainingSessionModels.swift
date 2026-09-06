@@ -513,12 +513,19 @@ extension DayDetail {
             return .combination
 
         default:
+            // 認不得的 `run_type` 一律留痕（`SPEC-training-session-types` §3.2：
+            // 未知值不得靜默變成 easy）。2026-09-06 創辦人第 11 週實機遇到
+            // `paceriz_interval` —— 有間歇結構時下面第一條就接住了。
+            Logger.warn("unknown run_type '\(activity.runType)' (V1 compat path)", tag: "TrainingSession")
             // 默認根據是否有間歇或分段來判斷
             if activity.interval != nil {
                 return .interval
             } else if activity.segments != nil {
                 return .progression
             } else {
+                // **這一支是非 optional 的 V1 相容值**（課表編輯器要靠它選 editor family），
+                // 沒有結構可推時給不出中性值。2.0 的顯示路徑不走這裡：
+                // `App2PlanViewModel.dayType` 認不得就回 nil，畫面退中性的「訓練」。
                 return .easy
             }
         }

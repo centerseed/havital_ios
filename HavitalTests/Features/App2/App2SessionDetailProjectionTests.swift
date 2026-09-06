@@ -620,4 +620,72 @@ final class App2SessionDetailProjectionTests: XCTestCase {
         XCTAssertFalse(App2SessionDetailProjection.showsFuelingNote(dayType: .easy, durationMinutes: 120))
         XCTAssertFalse(App2SessionDetailProjection.showsFuelingNote(dayType: .lsd, durationMinutes: nil))
     }
+
+    // MARK: - 未知 run_type 不得靜默變成輕鬆跑
+
+    /// 2026-09-06 創辦人第 11 週實機截圖：後端把課型名寫進 `primary.run_type`
+    /// （`paceriz_interval`），iOS 認不得就整堂畫成「EASY RUN · Z2 輕鬆跑」，
+    /// 但同一頁的「訓練結構」列的是 11 × 200m 間歇。
+    /// 後端 SPEC-training-session-types §57：未知值不得靜默變成 easy。
+    private var unknownIntervalDay: String {
+        """
+        { "day_index": 3, "day_target": "間歇", "reason": "速耐力", "distance_km": 8.0,
+          "warmup": { "distance_km": 2.0, "pace": "7:00" },
+          "cooldown": { "distance_km": 1.0, "pace": "7:00" },
+          "primary": { "run_type": "paceriz_interval", "distance_km": 2.2,
+            "target_intensity": "high",
+            "interval": { "repeats": 11, "work_distance_m": 200, "work_pace": "4:25",
+                          "recovery_distance_m": 200, "recovery_pace": "7:30" } } }
+        """
+    }
+
+    /// 認不得而且沒有間歇結構 —— 推不出課型，但也不准說它是輕鬆跑。
+    private var unknownPlainDay: String {
+        """
+        { "day_index": 3, "day_target": "", "reason": "", "distance_km": 8.0,
+          "primary": { "run_type": "something_new", "distance_km": 8.0, "pace": "6:30" } }
+        """
+    }
+
+    /// 帶 interval 結構的未知課型 → 當間歇課。
+    func test_dayType_unknownRunTypeWithIntervalStructure_isInterval() throws {
+        let primary = try day(unknownIntervalDay).session?.primary
+        XCTAssertEqual(App2PlanViewModel.dayType(primary), .interval)
+    }
+
+    /// hero 的結構詞不得是 EASY RUN。
+    func test_kicker_unknownRunTypeWithIntervalStructure_isNotEasyRun() throws {
+        let kicker = try XCTUnwrap(App2SessionDetailProjection.kicker(day: try day(unknownIntervalDay)))
+        XCTAssertTrue(kicker.hasPrefix("INTERVALS"), "拿到的是「\(kicker)」")
+        XCTAssertFalse(kicker.contains("EASY"))
+    }
+
+    /// 標題／強度都不得退成輕鬆跑。
+    func test_detail_unknownRunTypeWithIntervalStructure_isNotEasy() throws {
+        let detail = try XCTUnwrap(try detail(unknownIntervalDay))
+        XCTAssertEqual(detail.dayType, .interval)
+        XCTAssertNotEqual(detail.title, DayType.easy.localizedName)
+    }
+
+    /// 沒有結構可推 → 課型留白，畫面退中性的「訓練」，不是「輕鬆跑」。
+    func test_detail_unknownRunTypeWithoutStructure_fallsBackToNeutralLabel() throws {
+        let primary = try day(unknownPlainDay).session?.primary
+        XCTAssertNil(App2PlanViewModel.dayType(primary), "推不出來就是推不出來，不猜 easy")
+
+        let detail = try XCTUnwrap(try detail(unknownPlainDay))
+        XCTAssertNotEqual(detail.title, DayType.easy.localizedName)
+        XCTAssertEqual(detail.title, L10n.ActivityType.training.localized)
+        XCTAssertNil(App2SessionDetailProjection.structureWord(nil), "認不得就沒有結構詞")
+    }
+
+    /// 今日課表卡走同一條：未知課型不得寫成輕鬆跑。
+    func test_todaySession_unknownRunTypeWithIntervalStructure_isNotEasy() throws {
+        let session = try XCTUnwrap(App2HomeViewModel.todaySession(
+            days: [try day(unknownIntervalDay)],
+            todayIndex: 3,
+            dayLabel: "週三"
+        ))
+        XCTAssertEqual(session.dayType, .interval)
+        XCTAssertNotEqual(session.title, DayType.easy.localizedName)
+    }
 }

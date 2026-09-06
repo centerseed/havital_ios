@@ -443,7 +443,10 @@ struct App2SessionStructureChart: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // 沒有衝刺段的課（輕鬆跑／長跑）就不寫趟數。
-            let reps = bars.filter { $0.kind == .interval }.count
+            // **趟數是處方的趟數，不是畫出來的柱數**：柱數上限 10（那一格只有幾十 pt 寬），
+            // 用柱數會讓 11 趟的課在同一張圖上寫「趟數 × 10 趟」＋「11 × 200m · 4:25/km」
+            // （2026-09-06 創辦人第 11 週實機截圖）。
+            let reps = bars.prescribedIntervalReps
             if reps > 0 {
                 Text(String(format: L10n.App2.Home.structureReps.localized, reps))
                     .font(.system(size: 10, weight: .heavy))
