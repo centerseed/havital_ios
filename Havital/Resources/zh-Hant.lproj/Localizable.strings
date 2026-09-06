@@ -1801,6 +1801,7 @@
 "feedback.contact_us_hint" = "如需即時協助，歡迎透過以下管道聯絡我們";
 "feedback.threads" = "Threads 官方帳號";
 "feedback.facebook" = "Facebook 粉絲團";
+"feedback.settings_entry" = "聯絡 Paceriz／社群";
 
 // MARK: - Contact
 "contact.paceriz" = "聯絡 Paceriz";
