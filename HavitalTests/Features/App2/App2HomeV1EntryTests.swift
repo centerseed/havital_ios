@@ -286,9 +286,12 @@ final class App2HomeV1EntryTests: XCTestCase {
         XCTAssertEqual(vm.todayState, .unavailable)
     }
 
-    /// 誤判的重設入口不得黏住整個 session：下一輪判不出 V1（版本讀不到、失敗也不是那兩個
-    /// code）時，卡片要退回「暫時讀不到」，不能繼續叫使用者重設目標。
-    func test_homeVM_needsV2Setup_isClearedByALaterFailedRound() async {
+    /// 誤判的重設入口不得黏住整個 session。
+    ///
+    /// 走的是真正的恢復路徑：第一輪 profile 讀不到、只有 404 code，於是給入口；
+    /// 第二輪 profile 讀得到而且是 `v2`（後端仍回同一個 404），版本否決掉那個 code，
+    /// 卡片要退回「暫時讀不到」，不能繼續叫一個 V2 用戶重設目標。
+    func test_homeVM_needsV2Setup_isClearedOnceProfileSaysV2() async {
         let planRepo = MockTrainingPlanV2Repository()
         planRepo.errorToThrow = notFound("training_plan_not_found")
         planRepo.simulatesEmptyLocalCache = true
@@ -308,11 +311,11 @@ final class App2HomeV1EntryTests: XCTestCase {
         await vm.revalidate()
         XCTAssertEqual(vm.todayState, .needsV2Setup, "第一輪只有 404 code，仍給入口")
 
-        // 下一輪：後端不再回那個 code，版本還是讀不到 → 判不出 V1。
-        planRepo.errorToThrow = DomainError.serverError(500, "boom")
+        // 下一輪：後端回的還是同一個 404，但 profile 這次讀得到而且是 v2。
+        router.version = "v2"
         await vm.revalidate()
 
-        XCTAssertEqual(vm.todayState, .unavailable, "判不出 V1 的那一輪不得繼續掛著重設入口")
+        XCTAssertEqual(vm.todayState, .unavailable, "版本否決掉 404 code 之後不得繼續掛著重設入口")
     }
 
     /// profile 明說 v1（連 plan status 都掛了）→ 一樣給重新設定入口。
