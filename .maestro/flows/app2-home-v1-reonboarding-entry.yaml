@@ -59,10 +59,11 @@ tags:
       id: "App2_TrainingStatusCard"
     timeout: 90000
 #
-# **用文字不用 id**：這一格的兩個 a11y identifier 掛在 `App2Card` 容器裡面，
-# 而容器自己有 `App2_TodaySessionCard`——SwiftUI 會把外層 identifier 往下蓋，
-# 所以 Maestro 找不到內層那兩個（`App2CardComponents.swift:66` 已經記過這個坑）。
-# 文字是這張卡的三語 L10n，反而是更強的證據。
+# **用文字不用 id**：這一格的兩個 a11y identifier（`App2_TodayNeedsV2Setup`／
+# `App2_TodayNeedsV2Setup_Reonboard`）在 hierarchy dump 裡看得到，但 Maestro 一律判成
+# 「找不到可見的元素」——外層 `App2Card` 有 `App2_TodaySessionCard`，命中的是容器。
+# 2026-09-06 實測 `visibilityPercentage` 從 100 降到 30 都一樣。identifier 留在碼裡給
+# 其他用途，這支 flow 改斷言三語文字，那本來就是更貼近使用者看到什麼的證據。
 - scrollUntilVisible:
     element:
       text: "你的計畫還是舊版的|Your plan is still on the old version|プランが旧バージョンのままです"

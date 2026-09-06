@@ -60,7 +60,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     ///
     /// 空陣列 ＝ 這一份 readiness 沒有完賽預估 → 詳情頁整區不畫。
     @Published private(set) var finishPredictions: [App2FinishPrediction] = []
-    /// 今日課表卡。nil = 這一輪還沒載完；其餘四態見 `App2TodaySessionState`。
+    /// 今日課表卡。nil = 這一輪還沒載完；其餘五態見 `App2TodaySessionState`。
     @Published private(set) var todayState: App2TodaySessionState?
     /// 今日課表卡點下去要開的訓練詳情（設計 frame-02）。
     /// **與卡片同一份 payload**，詳情頁不再打任何端點；休息日為 nil（不進詳情）。
@@ -504,16 +504,23 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     /// plan status 失敗要落到哪一種結果。**純函式**，讓「哪些失敗算 V1、哪些不算」鎖得住。
     ///
-    /// - profile 明說 v2 → 一律 `.failed`，**連那兩個 404 code 也是**
-    /// - 版本不知道、或明說不是 v2，且 404 body 的 `error` 是那兩個 code 之一 → `.needsV2Setup`
-    /// - 版本明說不是 v2（不論什麼失敗）→ `.needsV2Setup`
-    /// - 其餘 → `.failed`，畫面照舊說「暫時讀不到」
+    /// 判斷順序（P-002 D4 是「兩個觸發源任一成立」，這裡只多一道否決）：
+    ///
+    /// 1. profile 明說 `v2` → 一律 `.failed`，**連那兩個 404 code 也否決掉**
+    /// 2. 404 body 的 `error` 是那兩個 code 之一 → `.needsV2Setup`
+    /// 3. 版本讀得到而且不是 `v2`（不論什麼失敗）→ `.needsV2Setup`
+    /// 4. 其餘 → `.failed`，畫面照舊說「暫時讀不到」
     ///
     /// **為什麼 v2 要壓過 404 code**：後端那個 code 不只在「真的沒有 V2 計畫」時出現。
     /// `application/plan_status.py` 的 `load_overview` 走的是 `strict=False`
     /// （`domains/plan_overview/repository.py` 的 `get_overview`），Firestore 讀取例外被
     /// 吞掉回 `None`，於是**讀取失敗與真的沒有共用同一個 404 body**。已經知道這個帳號是 v2
-    /// 還把它送去重設目標，就是把讀取失敗變成「你的計畫沒了」——正是本票要避免的那件事。
+    /// 還把它送去重設目標，就是把讀取失敗變成「你的計畫沒了」。
+    ///
+    /// **profile 讀不到時仍然認那兩個 code**（第 2 條）——那是使用者裁決的第一個觸發源，
+    /// 收掉它等於 V1 用戶只要 profile 讀失敗就回到空白首頁。代價是「V2 帳號 ＋ profile 讀不到
+    /// ＋ 後端 overview 讀取失敗」三件事同時發生時會誤判一輪；那一輪的錯誤卡**不會黏住**，
+    /// 見 `loadTodaySession` 的 `.failed` 分支。
     static func planStatusFailureOutcome(
         error: Error,
         knownTrainingVersion: String?
@@ -635,7 +642,11 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         case .cancelled:
             return  // 保留上一次的今日課表，不清成空狀態。
         case .failed:
-            if todayState == nil { todayState = .unavailable }
+            // 讀不到就不宣稱任何事。**唯一會被覆蓋的既有狀態是 `.needsV2Setup`**：
+            // 那張卡是「這個帳號還在 V1」的斷言，這一輪既然判不出 V1 就不該繼續掛著
+            // （外審第二輪 D02：誤判的重設入口不得黏住整個 session）。真課表、
+            // 「尚未產生」那些是別條路徑放的，不動。
+            if todayState == nil || todayState == .needsV2Setup { todayState = .unavailable }
             return
         case .needsV2Setup:
             // 這是後端明說的事實（或 profile 明說的版本），不是讀取失敗——

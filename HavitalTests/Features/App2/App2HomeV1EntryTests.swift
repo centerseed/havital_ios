@@ -139,6 +139,16 @@ final class App2HomeV1EntryTests: XCTestCase {
         }
     }
 
+    /// profile 讀不到時**仍然**認那兩個 code —— 那是使用者裁決的第一個觸發源，
+    /// 收掉它等於 V1 用戶只要 profile 讀失敗就回到空白首頁。
+    /// 誤判的代價由「不黏住」那條規則承擔（見 `test_homeVM_needsV2Setup_isClearedByALaterFailedRound`）。
+    func test_planStatusFailure_v1CodeWithUnknownVersion_isNeedsV2Setup() {
+        let outcome = App2HomeViewModel.planStatusFailureOutcome(
+            error: notFound("training_plan_not_found"), knownTrainingVersion: nil
+        )
+        XCTAssertEqual(label(outcome), "needsV2Setup")
+    }
+
     /// profile 明說非 v2 時，不是那兩個 code 的失敗也給重設入口（版本本身就足夠）。
     func test_planStatusFailure_profileSaysV1_withUnrelatedNotFound_isNeedsV2Setup() {
         let outcome = App2HomeViewModel.planStatusFailureOutcome(
@@ -172,6 +182,16 @@ final class App2HomeV1EntryTests: XCTestCase {
     }
 
     // MARK: - 佈線：view model 真的把它接到 todayState 上
+
+    /// 版本可以在測試中途換掉（模擬 profile 一輪讀不到、下一輪讀得到）。
+    private final class MutableStubVersionRouter: TrainingVersionRouting, @unchecked Sendable {
+        var version: String?
+        init(version: String?) { self.version = version }
+        func getTrainingVersion() async -> String { version ?? "v1" }
+        func trainingVersionIfKnown() async -> String? { version }
+        func isV2User() async -> Bool { version == "v2" }
+        func isV1User() async -> Bool { version != "v2" }
+    }
 
     private final class StubVersionRouter: TrainingVersionRouting {
         let version: String?
@@ -264,6 +284,35 @@ final class App2HomeV1EntryTests: XCTestCase {
         await vm.revalidate()
 
         XCTAssertEqual(vm.todayState, .unavailable)
+    }
+
+    /// 誤判的重設入口不得黏住整個 session：下一輪判不出 V1（版本讀不到、失敗也不是那兩個
+    /// code）時，卡片要退回「暫時讀不到」，不能繼續叫使用者重設目標。
+    func test_homeVM_needsV2Setup_isClearedByALaterFailedRound() async {
+        let planRepo = MockTrainingPlanV2Repository()
+        planRepo.errorToThrow = notFound("training_plan_not_found")
+        planRepo.simulatesEmptyLocalCache = true
+        let router = MutableStubVersionRouter(version: nil)
+        let vm = App2HomeViewModel(
+            dailyStateRepository: ForbiddenDailyStateRepository(),
+            targetRepository: MockTargetRepository(),
+            planRepository: planRepo,
+            readinessViewModel: nil,
+            readinessService: nil,
+            workoutDataSource: EmptyStatsSource(),
+            snapshots: NoSnapshots(),
+            versionRouter: router,
+            garminStatusProvider: { throw DomainError.forbidden }
+        )
+
+        await vm.revalidate()
+        XCTAssertEqual(vm.todayState, .needsV2Setup, "第一輪只有 404 code，仍給入口")
+
+        // 下一輪：後端不再回那個 code，版本還是讀不到 → 判不出 V1。
+        planRepo.errorToThrow = DomainError.serverError(500, "boom")
+        await vm.revalidate()
+
+        XCTAssertEqual(vm.todayState, .unavailable, "判不出 V1 的那一輪不得繼續掛著重設入口")
     }
 
     /// profile 明說 v1（連 plan status 都掛了）→ 一樣給重新設定入口。
