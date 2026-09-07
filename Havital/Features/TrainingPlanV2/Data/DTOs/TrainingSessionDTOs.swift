@@ -463,8 +463,10 @@ struct DayDetailDTO: Codable, Equatable {
         try container.encodeIfPresent(category, forKey: .category)
         try container.encodeIfPresent(climateMeta, forKey: .climateMeta)
         try container.encodeIfPresent(primary, forKey: .primary)
-        try container.encodeIfPresent(warmup, forKey: .warmup)
-        try container.encodeIfPresent(cooldown, forKey: .cooldown)
+        // Day-level warmup/cooldown are editable fields. An explicit null is the
+        // delete command for the backend merge; omitting the key is a no-op.
+        try container.encode(warmup, forKey: .warmup)
+        try container.encode(cooldown, forKey: .cooldown)
         try container.encodeIfPresent(supplementary, forKey: .supplementary)
     }
 

@@ -85,6 +85,77 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
         XCTAssertNil(runActivity.climateAdjustedPace)
     }
 
+    /// T-0640：關閉間歇跑的緩和跑時，day-level cooldown 必須以 JSON null 送出，
+    /// 否則後端 merge 會把原本的緩和跑保留下來。
+    func testSaveEdits_removingCooldownSendsExplicitNullAndPreservesInterval() async throws {
+        let repository = MockTrainingPlanV2Repository()
+        let weeklyPlan = makeIntervalPlanWithWarmupCooldown()
+        repository.weeklyPlanV2ToReturn = weeklyPlan
+
+        let viewModel = EditScheduleV2ViewModel(
+            weeklyPlan: weeklyPlan,
+            repository: repository
+        )
+        viewModel.editingDays[0].cooldown = nil
+
+        _ = try await viewModel.saveEdits()
+
+        let savedDay = try XCTUnwrap(repository.lastUpdateWeeklyPlanRequest?.days?.first)
+        XCTAssertNil(savedDay.cooldown)
+        XCTAssertNotNil(savedDay.warmup)
+
+        guard case .run(let runActivity) = savedDay.primary else {
+            return XCTFail("Expected interval run activity")
+        }
+        XCTAssertEqual(runActivity.runType, "interval")
+        XCTAssertEqual(runActivity.interval?.repeats, 6)
+        XCTAssertEqual(runActivity.interval?.workDistanceM, 200)
+        XCTAssertEqual(runActivity.interval?.recoveryDescription, "Rest 70 seconds")
+
+        let payload = try jsonObject(savedDay)
+        XCTAssertTrue(payload.keys.contains("cooldown"), "Removing cooldown must encode the key")
+        XCTAssertTrue(payload["cooldown"] is NSNull, "Removing cooldown must encode JSON null")
+    }
+
+    func testSaveEdits_existingCooldownStillSendsSegment() async throws {
+        let repository = MockTrainingPlanV2Repository()
+        let weeklyPlan = makeIntervalPlanWithWarmupCooldown()
+        repository.weeklyPlanV2ToReturn = weeklyPlan
+
+        let viewModel = EditScheduleV2ViewModel(
+            weeklyPlan: weeklyPlan,
+            repository: repository
+        )
+
+        _ = try await viewModel.saveEdits()
+
+        let savedDay = try XCTUnwrap(repository.lastUpdateWeeklyPlanRequest?.days?.first)
+        XCTAssertNotNil(savedDay.cooldown)
+        let payload = try jsonObject(savedDay)
+        XCTAssertTrue(payload["cooldown"] is [String: Any])
+    }
+
+    func testSaveEdits_removingWarmupSendsExplicitNull() async throws {
+        let repository = MockTrainingPlanV2Repository()
+        let weeklyPlan = makeIntervalPlanWithWarmupCooldown()
+        repository.weeklyPlanV2ToReturn = weeklyPlan
+
+        let viewModel = EditScheduleV2ViewModel(
+            weeklyPlan: weeklyPlan,
+            repository: repository
+        )
+        viewModel.editingDays[0].warmup = nil
+
+        _ = try await viewModel.saveEdits()
+
+        let savedDay = try XCTUnwrap(repository.lastUpdateWeeklyPlanRequest?.days?.first)
+        XCTAssertNil(savedDay.warmup)
+        XCTAssertNotNil(savedDay.cooldown)
+        let payload = try jsonObject(savedDay)
+        XCTAssertTrue(payload.keys.contains("warmup"), "Removing warmup must encode the key")
+        XCTAssertTrue(payload["warmup"] is NSNull, "Removing warmup must encode JSON null")
+    }
+
     func testSaveEdits_clearsClimateMetaWhenRunChangedToStrength() async throws {
         let repository = MockTrainingPlanV2Repository()
         let weeklyPlan = makeWeeklyPlan()
@@ -446,6 +517,107 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
             mileageProgressionNote: base.mileageProgressionNote,
             coachNote: base.coachNote,
             days: base.days + [day2],
+            intensityTotalMinutes: base.intensityTotalMinutes,
+            currentVdot: base.currentVdot,
+            vdotSource: base.vdotSource,
+            createdAt: base.createdAt,
+            updatedAt: base.updatedAt,
+            trainingLoadAnalysis: base.trainingLoadAnalysis,
+            personalizedRecommendations: base.personalizedRecommendations,
+            realTimeAdjustments: base.realTimeAdjustments,
+            apiVersion: base.apiVersion
+        )
+    }
+
+    private func makeIntervalPlanWithWarmupCooldown() -> WeeklyPlanV2 {
+        let base = makeWeeklyPlan()
+        let segment = RunSegment(
+            distanceKm: 1.29,
+            distanceM: nil,
+            distanceDisplay: 1.29,
+            distanceUnit: "km",
+            durationMinutes: nil,
+            durationSeconds: nil,
+            pace: "8:27",
+            basePace: nil,
+            climateAdjustedPace: nil,
+            climateMeta: nil,
+            heartRateRange: nil,
+            intensity: "easy",
+            description: "Easy segment",
+            kind: "steady",
+            repeats: nil,
+            work: nil,
+            recovery: nil
+        )
+        let interval = IntervalBlock(
+            repeats: 6,
+            workDistanceKm: 0.2,
+            workDistanceM: 200,
+            workDistanceDisplay: 0.2,
+            workDistanceUnit: "km",
+            workPaceUnit: "min_per_km",
+            workDurationMinutes: nil,
+            workPace: "5:50",
+            workDescription: "Fast 200m",
+            recoveryDistanceKm: nil,
+            recoveryDistanceM: nil,
+            recoveryDurationMinutes: nil,
+            recoveryPace: nil,
+            recoveryDescription: "Rest 70 seconds",
+            recoveryDurationSeconds: 70,
+            variant: "paceriz_interval:base_200m"
+        )
+        let runActivity = RunActivity(
+            runType: "interval",
+            distanceKm: 1.2,
+            distanceDisplay: 1.2,
+            distanceUnit: "km",
+            paceUnit: "min_per_km",
+            durationMinutes: nil,
+            durationSeconds: nil,
+            pace: "6:08",
+            basePace: nil,
+            climateAdjustedPace: nil,
+            heartRateRange: nil,
+            interval: interval,
+            segments: nil,
+            description: "Interval",
+            targetIntensity: "hard",
+            climateMeta: nil
+        )
+        let day = DayDetail(
+            dayIndex: 1,
+            dayTarget: "Interval",
+            reason: "Speed development",
+            tips: nil,
+            category: .run,
+            climateMeta: nil,
+            session: TrainingSession(
+                warmup: segment,
+                primary: .run(runActivity),
+                cooldown: segment,
+                supplementary: nil
+            ),
+            supplementary: nil
+        )
+
+        return WeeklyPlanV2(
+            planId: base.planId,
+            weekOfTraining: base.weekOfTraining,
+            id: base.id,
+            purpose: base.purpose,
+            weekOfPlan: base.weekOfPlan,
+            totalWeeks: base.totalWeeks,
+            totalDistance: base.totalDistance,
+            totalDistanceDisplay: base.totalDistanceDisplay,
+            totalDistanceUnit: base.totalDistanceUnit,
+            totalDistanceReason: base.totalDistanceReason,
+            designReason: base.designReason,
+            mileageProgressionNote: base.mileageProgressionNote,
+            coachNote: base.coachNote,
+            days: [day],
+            climate: base.climate,
             intensityTotalMinutes: base.intensityTotalMinutes,
             currentVdot: base.currentVdot,
             vdotSource: base.vdotSource,

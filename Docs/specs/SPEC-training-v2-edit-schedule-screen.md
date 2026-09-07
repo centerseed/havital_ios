@@ -5,7 +5,8 @@ status: Draft
 layer: product
 ontology_entity: training-plan-v2-edit-experience
 created: 2026-03-27
-updated: 2026-03-29
+updated: 2026-09-07
+owns: App2/1.4 課表編輯器對單日處方的編輯、保存與回讀行為
 ---
 
 # Feature Spec: 編輯 V2 課表——力量訓練支援
@@ -82,6 +83,14 @@ updated: 2026-03-29
 - **描述**：使用者在有未儲存變更的情況下嘗試離開編輯頁面時，系統提示確認是否放棄變更。
 - **Acceptance Criteria**：
   - Given 使用者有未儲存變更，When 嘗試返回，Then 系統顯示「放棄變更？」提示，選取放棄才離開
+
+#### R8. 間歇跑可移除／恢復暖身與緩和跑
+
+- **描述**：間歇跑編輯頁的暖身與緩和跑開關代表 day-level 處方欄位；關閉後儲存必須移除該段，重新開啟則恢復合法段落。
+- **Acceptance Criteria**：
+  - Given 間歇跑有緩和跑，When 使用者關閉緩和跑並儲存，Then PUT payload 的 day-level `cooldown` 為明確的 JSON `null`，重新讀回的課表不再有緩和跑
+  - Given 使用者只關閉緩和跑，When 儲存，Then 間歇跑的 work、recovery、repeats、暖身與其他未編輯欄位維持不變
+  - Given 緩和跑已關閉，When 使用者重新開啟並儲存，Then 合法的 cooldown 段落重新出現在課表
 
 ## 明確不包含
 
