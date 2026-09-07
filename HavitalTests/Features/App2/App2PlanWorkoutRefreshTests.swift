@@ -70,6 +70,21 @@ final class App2PlanWorkoutRefreshTests: XCTestCase {
         await waitUntil { workoutRepository.refreshWorkoutsCallCount == 1 }
 
         XCTAssertEqual(viewModel.week?.value.completedDistanceKm ?? -1, 3, accuracy: 0.001)
+
+        let freshWorkout = workout(id: "new", kilometers: 8)
+        workoutRepository.errorToThrow = nil
+        workoutRepository.onRefreshWorkouts = {
+            workoutRepository.workoutsToReturn = [freshWorkout]
+        }
+        await viewModel.revalidate()
+
+        await waitUntil {
+            workoutRepository.refreshWorkoutsCallCount == 2
+                && viewModel.week?.value.completedDistanceKm == 8
+        }
+
+        XCTAssertEqual(workoutRepository.refreshWorkoutsCallCount, 2)
+        XCTAssertEqual(viewModel.week?.value.completedDistanceKm ?? -1, 8, accuracy: 0.001)
     }
 
     private func planStatus() -> PlanStatusV2Response {

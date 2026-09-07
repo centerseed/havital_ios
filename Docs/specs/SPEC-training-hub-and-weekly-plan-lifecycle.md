@@ -3,9 +3,11 @@ type: SPEC
 id: SPEC-training-hub-and-weekly-plan-lifecycle
 status: Approved
 layer: product
+owns: 訓練首頁與課表頁的 plan 狀態、週課表呈現、週次瀏覽及訓練完成量更新行為
 ontology_entity: training-hub-lifecycle
 created: 2026-04-15
 updated: 2026-09-07
+tasks: [T-0639]
 ---
 
 # Feature Spec: 訓練首頁與週課表生命週期
@@ -187,7 +189,7 @@ Given 使用者已在課表頁，且系統收到新訓練紀錄已同步／處�
 When App 重新讀取既有 `GET /v2/workouts` 資料成功，
 Then 課表頁的實跑週量與完成比例必須在同一個 app session 重新計算並顯示最新值，
 不需要關閉重開 app，也不需要使用者手動下拉刷新。
-And Then 重新讀取失敗時必須保留目前已顯示的週量，等待下一次既有 refresh／變更事件重試；
+And Then 重新讀取失敗時必須保留目前已顯示的週量，並在下一次既有頁面 refresh／變更事件再次呼叫既有 refresh 後重試；
 實跑週量仍只來自既有 workout repository，不新增第二份快取或另一條資料來源。
 
 驗法：`HavitalTests/Features/App2/App2PlanWorkoutRefreshTests.swift`。

@@ -160,6 +160,9 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 目前畫面上這一週的投影素材。補史回來、或收到新紀錄推播時，
     /// 用它重算已完成量並重新發布 `week`（`dayDetails` 與已完成量無關，不重建）。
     private var displayedWeek: DisplayedWeek?
+    /// workouts 事件刷新失敗時，讓下一次既有的頁面重驗再走一次 remote refresh。
+    /// 成功前保持 true，避免短暫網路錯誤把畫面留在舊快取而沒有恢復出口。
+    private var workoutRefreshPending = false
 
     /// 現在畫的是哪一份週課表 —— 重算已完成量要的全部素材。
     private struct DisplayedWeek {
@@ -324,8 +327,10 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                     // 否則這一輪只會把舊快取重新投影一次，必須重開 app 才會看到新量。
                     do {
                         _ = try await self.workoutRepository.refreshWorkouts()
+                        self.workoutRefreshPending = false
                     } catch {
                         // 刷新失敗時保留目前畫面，等待下一個既有事件或手動刷新重試。
+                        self.workoutRefreshPending = true
                         Logger.debug("[App2PlanVM] 訓練紀錄變更後刷新失敗: \(error)")
                         return
                     }
@@ -405,6 +410,19 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             guard revalidateGeneration == round else { return }
             latestPlanStatus = status
             finishedRound = true
+
+            // 若前一次 workouts 事件刷新失敗，下一次既有的頁面重驗要先重試；
+            // 成功後才清掉 pending，失敗則讓它留著等待再下一次重驗。
+            if workoutRefreshPending, historyWeek == nil {
+                do {
+                    _ = try await workoutRepository.refreshWorkouts()
+                    guard revalidateGeneration == round else { return }
+                    workoutRefreshPending = false
+                } catch {
+                    guard !error.isCancellationError else { return }
+                    Logger.debug("[App2PlanVM] 頁面重驗時重試訓練紀錄刷新失敗: \(error)")
+                }
+            }
 
             // 整期預抓（T-0378）：不 await —— 首屏與切週都不得等它。
             // 只抓到本週：V2 逐週生成，未來週的課表**根本還不存在**，抓了只會
