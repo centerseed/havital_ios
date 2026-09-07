@@ -421,6 +421,9 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 } catch {
                     guard !error.isCancellationError else { return }
                     Logger.debug("[App2PlanVM] 頁面重驗時重試訓練紀錄刷新失敗: \(error)")
+                    // CacheEventBus 可能已先清掉 workout cache；不要把空資料
+                    // 再投影回既有畫面，保留目前週量並等待下一次重驗。
+                    return
                 }
             }
 
