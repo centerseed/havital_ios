@@ -313,9 +313,21 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                     guard let self else { return }
                     self.backfilledMonths.removeAll()
                     // 歷史週：那一個月可能因為這筆新紀錄而需要重新補史。
-                    // 本週不重補——推播的來源本來就剛把本地列表刷過了，再問一次是白付。
                     if let displayed = self.displayedWeek, displayed.historyWeek != nil {
                         self.backfillCompletedDistance(weekStart: displayed.weekStart)
+                        await self.recomputeCompletedDistance()
+                        return
+                    }
+
+                    // 本週的事件來源可能只完成了遠端上傳，尚未把最新紀錄寫進
+                    // repository 的本地列表。先走既有 refresh 咽喉點，再重算，
+                    // 否則這一輪只會把舊快取重新投影一次，必須重開 app 才會看到新量。
+                    do {
+                        _ = try await self.workoutRepository.refreshWorkouts()
+                    } catch {
+                        // 刷新失敗時保留目前畫面，等待下一個既有事件或手動刷新重試。
+                        Logger.debug("[App2PlanVM] 訓練紀錄變更後刷新失敗: \(error)")
+                        return
                     }
                     await self.recomputeCompletedDistance()
                 }

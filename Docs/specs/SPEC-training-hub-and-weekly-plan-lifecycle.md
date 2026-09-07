@@ -5,7 +5,7 @@ status: Approved
 layer: product
 ontology_entity: training-hub-lifecycle
 created: 2026-04-15
-updated: 2026-09-06
+updated: 2026-09-07
 ---
 
 # Feature Spec: 訓練首頁與週課表生命週期
@@ -181,6 +181,17 @@ And Then `next_week_info.has_plan == true`（下週課表已產）時卡照舊�
 `test_weekReview_row6b_entryLeadsToWorkingGenerateCTA`、
 `test_weekReview_row6_sundayWithSummaryAndNextWeekPlanHidesCard`。
 
+### AC-TRAIN-HUB-16: 訓練完成後課表頁週跑量必須在同一 session 更新
+
+Given 使用者已在課表頁，且系統收到新訓練紀錄已同步／處理完成的 workouts 變更事件，
+When App 重新讀取既有 `GET /v2/workouts` 資料成功，
+Then 課表頁的實跑週量與完成比例必須在同一個 app session 重新計算並顯示最新值，
+不需要關閉重開 app，也不需要使用者手動下拉刷新。
+And Then 重新讀取失敗時必須保留目前已顯示的週量，等待下一次既有 refresh／變更事件重試；
+實跑週量仍只來自既有 workout repository，不新增第二份快取或另一條資料來源。
+
+驗法：`HavitalTests/Features/App2/App2PlanWorkoutRefreshTests.swift`。
+
 ## AC ID Index
 
 本 spec 已採用穩定 AC-ID；以下索引作為派工、review 與測試引用入口。
@@ -202,3 +213,4 @@ And Then `next_week_info.has_plan == true`（下週課表已產）時卡照舊�
 | AC-TRAIN-HUB-13 | 首頁 Rizo sheet 帶回當天那一段對話，並有新對話／歷史入口，無寫死追問 chips |
 | AC-TRAIN-HUB-14 | 下週課表已產生時課表頁可往前翻到那一週；產完即刻可翻 |
 | AC-TRAIN-HUB-15 | 週日回顧已產但下週課表未產時，首頁保留回顧入口（通往產生下週課表的唯一路） |
+| AC-TRAIN-HUB-16 | 訓練完成事件後課表頁在同一 session 更新實跑週量 |

@@ -27,6 +27,8 @@ class MockWorkoutRepository: WorkoutRepository {
     var getWorkoutsCallCount = 0
     var getWorkoutsLastParams: (limit: Int?, offset: Int?)?
     var refreshWorkoutsCallCount = 0
+    /// `refreshWorkouts` 成功前讓測試把 mock 的本地資料換成遠端新值。
+    var onRefreshWorkouts: (() -> Void)?
     var getWorkoutCallCount = 0
     var syncWorkoutCallCount = 0
     var deleteWorkoutCallCount = 0
@@ -162,6 +164,7 @@ class MockWorkoutRepository: WorkoutRepository {
 
     func refreshWorkouts() async throws -> [WorkoutV2] {
         refreshWorkoutsCallCount += 1
+        onRefreshWorkouts?()
         if let error = errorToThrow {
             throw error
         }
@@ -272,6 +275,7 @@ class MockWorkoutRepository: WorkoutRepository {
         getAllWorkoutsCallCount = 0
         getWorkoutsCallCount = 0
         refreshWorkoutsCallCount = 0
+        onRefreshWorkouts = nil
         getWorkoutCallCount = 0
         syncWorkoutCallCount = 0
         deleteWorkoutCallCount = 0
