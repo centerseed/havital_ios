@@ -750,7 +750,8 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                     weekStart: start,
                     // 氣候的 UI 唯一入口（`climate[7]` 優先、缺席退 legacy `climate_meta`）。
                     // 配速帶的溫度補償要它（裁決（n））。
-                    climateDay: plan.climate(forDayIndex: day.dayIndex)
+                    climateDay: plan.climate(forDayIndex: day.dayIndex),
+                    planId: plan.effectivePlanId
                 ) else { return nil }
                 return (day.dayIndex, detail)
             }
@@ -781,7 +782,8 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 guard let detail = App2SessionDetailProjection.detail(
                     day: day,
                     weekStart: weekStart,
-                    climateDay: plan.climate(forDayIndex: day.dayIndex)
+                    climateDay: plan.climate(forDayIndex: day.dayIndex),
+                    planId: plan.effectivePlanId
                 ) else { return nil }
                 return (day.dayIndex, detail)
             }

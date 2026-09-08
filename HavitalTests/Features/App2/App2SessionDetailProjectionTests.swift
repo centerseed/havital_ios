@@ -15,6 +15,21 @@ import XCTest
 @MainActor
 final class App2SessionDetailProjectionTests: XCTestCase {
 
+    func testWatchPlanPreservesSelectedDayAndPrescription() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let source = try day(easyRunDay)
+        let projected = try XCTUnwrap(App2SessionDetailProjection.detail(
+            day: source, weekStart: weekStart, calendar: calendar,
+            vdot: 0, planId: "selected-week"
+        ))
+        let snapshot = try XCTUnwrap(projected.watchPlan)
+        XCTAssertEqual(snapshot.planId, "selected-week")
+        XCTAssertEqual(snapshot.date, projected.dateString)
+        XCTAssertEqual(snapshot.totalDistanceMeters, 8000)
+        XCTAssertEqual(snapshot.segments.first?.paceLowSecPerKm, 410)
+    }
+
     // MARK: - Helpers
 
     /// 真實 payload 形狀 → domain entity，走正式路徑上的同一支 mapper

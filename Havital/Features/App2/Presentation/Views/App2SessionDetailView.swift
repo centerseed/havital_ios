@@ -26,6 +26,10 @@ struct App2SessionDetailView: View {
     @State private var isShowingTypeInfo = false
     /// 傳到 Garmin 的二次確認。
     @State private var isConfirmingGarminPush = false
+    @State private var watchAvailability: WatchCompanionService.WatchAvailability = .unavailable
+    @State private var pendingWatchPlan: WatchPlanSnapshotDTO?
+    @State private var watchMessage = ""
+    @State private var showWatchAlert = false
 
     init(detail: App2SessionDetail, onClose: @escaping () -> Void) {
         self.detail = detail
@@ -73,6 +77,24 @@ struct App2SessionDetailView: View {
             }
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
+        .onAppear {
+            WatchCompanionService.shared.activate()
+            watchAvailability = WatchCompanionService.shared.sendAvailability
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .watchAvailabilityChanged)) { _ in
+            watchAvailability = WatchCompanionService.shared.sendAvailability
+            switch WatchCompanionService.resolvePendingSend(hasPending: pendingWatchPlan != nil, availability: watchAvailability) {
+            case .retry:
+                if let plan = pendingWatchPlan { sendWatchPlan(plan) }
+            case .fail(let availability):
+                pendingWatchPlan = nil
+                presentWatchMessage(availability == .appNotInstalled ? "training.detail.install_watch_app_message" : "training.detail.watch_send_failed_message")
+            case .noPending, .keepWaiting: break
+            }
+        }
+        .alert(NSLocalizedString("training.detail.watch_status_title", comment: ""), isPresented: $showWatchAlert) {
+            Button(NSLocalizedString("common.ok", comment: ""), role: .cancel) { }
+        } message: { Text(watchMessage) }
         // **`fullScreenCover` 不是 `sheet`。** 這一頁自己就開在 fullScreenCover 裡，
         // 巢狀 sheet 在這個 repo 不會進 accessibility tree，實測是「看完整說明」點下去
         // 沒反應（2026-08-26 QA）。同 `App2SettingsView` 子頁的既有處置。
@@ -170,6 +192,7 @@ struct App2SessionDetailView: View {
                 }
                 Spacer(minLength: 4)
                 garminButton
+                watchButton
             }
 
             Text(detail.title)
@@ -316,6 +339,51 @@ struct App2SessionDetailView: View {
             .accessibilityLabel(NSLocalizedString("training.detail.push_to_garmin", comment: ""))
             .accessibilityIdentifier("App2_SessionDetailGarminPush")
         }
+    }
+
+    @ViewBuilder
+    private var watchButton: some View {
+        if !garminManager.isConnected, detail.isRunSession, let plan = detail.watchPlan,
+           watchAvailability == .ready || watchAvailability == .appNotInstalled {
+            Button {
+                if watchAvailability == .appNotInstalled {
+                    presentWatchMessage("training.detail.install_watch_app_message")
+                } else { sendWatchPlan(plan) }
+            } label: {
+                VStack(spacing: 3) {
+                    Image(systemName: "applewatch").font(.system(size: 17, weight: .bold))
+                    Text(NSLocalizedString(watchAvailability == .appNotInstalled ? "training.detail.install_watch_app" : "training.detail.send_to_watch", comment: ""))
+                        .font(.system(size: 11, weight: .heavy)).multilineTextAlignment(.center)
+                }
+                .foregroundStyle(accent.app2Darkened)
+                .frame(width: 60, height: 60)
+                .background(RoundedRectangle(cornerRadius: 16).fill(App2Theme.cardBackground))
+            }
+            .accessibilityIdentifier("App2_SessionDetailWatchSend")
+        }
+    }
+
+    private func sendWatchPlan(_ plan: WatchPlanSnapshotDTO) {
+        switch WatchCompanionService.shared.sendTodayPlan(plan) {
+        case .sent:
+            pendingWatchPlan = nil
+            presentWatchMessage("training.detail.watch_sent_message")
+        case .notReady(.unavailable):
+            pendingWatchPlan = plan
+            WatchCompanionService.shared.activate()
+            presentWatchMessage("training.detail.watch_connecting_message")
+        case .notReady(.appNotInstalled):
+            pendingWatchPlan = nil
+            presentWatchMessage("training.detail.install_watch_app_message")
+        case .notReady, .encodingFailed:
+            pendingWatchPlan = nil
+            presentWatchMessage("training.detail.watch_send_failed_message")
+        }
+    }
+
+    private func presentWatchMessage(_ key: String) {
+        watchMessage = NSLocalizedString(key, comment: "")
+        showWatchAlert = true
     }
 
     // MARK: - 預計配速（設計 frame-02 的長條圖，每種課型都有）

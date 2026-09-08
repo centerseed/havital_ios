@@ -271,6 +271,8 @@ struct App2SessionDetail: Identifiable, Equatable {
     let showsFuelingNote: Bool
     /// 跑步課才有「傳到 Garmin」（後端 push 只收 run workout）。
     let isRunSession: Bool
+    /// Existing Watch payload projected from this exact planned day; never persisted here.
+    var watchPlan: WatchPlanSnapshotDTO? = nil
 
     /// 這一天有沒有**配速值**可講（2026-08-27 晚走查裁決（j））。
     ///

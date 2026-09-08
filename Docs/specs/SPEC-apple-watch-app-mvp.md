@@ -14,6 +14,13 @@ backlog_reason: "短期主推 Android（Marketing 2026-05-07 分析）；本規�
 
 # Feature Spec: Paceriz Apple Watch App 主線（MVP）
 
+## App 2.0 既有傳送入口修復（2026-09-08，已批准）
+
+本節只記錄使用者要求恢復的既有功能，不將本文件其餘 Draft MVP 範圍視為已批准。
+App 2.0 的跑步課表詳情沿用既有 Watch 傳送行為：Garmin 未連結、Watch 已配對且 App 已安裝時顯示「傳送到 Apple Watch」；未安裝時提供安裝指引，無配對 Watch 時不顯示。連線狀態變更後更新入口；傳送期間啟用尚未完成時沿用既有等待與重試處理。
+傳送使用所選課表當日的原始跑步處方、日期與有效課表 ID，透過既有 WatchPlanProjector／WatchCompanionService 傳送；不能從 UI 圖表重造處方，不能用今天替代所選日期，不新增後端欄位。首頁與課表頁入口均須保留此契約。
+驗收：App 2.0 可见入口並完成一次操作，Watch 端讀回同一課表；投影測試通過不等於 Watch 端已驗收。
+
 ## 背景與動機
 
 目前 95 位 MAU（佔 23.2%）使用 Apple Watch，但 Paceriz 沒有獨立 Watch App——Watch 數據透過 HealthKit 被動同步進 iOS App，跑者在跑步當下若要查看課表、目標配速、心率區間，必須掏出手機。這在戶外路跑場景嚴重影響體驗，也讓 Paceriz 在 Apple 生態系跑者社群相對於 Garmin Connect 顯得功能不完整。

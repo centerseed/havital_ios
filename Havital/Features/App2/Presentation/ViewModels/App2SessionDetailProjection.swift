@@ -32,7 +32,8 @@ enum App2SessionDetailProjection {
         calendar: Calendar = .current,
         climateDay: ClimateDay? = nil,
         vdot: Double? = nil,
-        isClimateAdjustmentEnabled: Bool? = nil
+        isClimateAdjustmentEnabled: Bool? = nil,
+        planId: String? = nil
     ) -> App2SessionDetail? {
         let primary = day.session?.primary
         let dayType = primary == nil ? DayType.rest : App2PlanViewModel.dayType(primary)
@@ -108,7 +109,10 @@ enum App2SessionDetailProjection {
                 adjustedSummary: climateAdjustedSummary(day: day, segments: segments)
             ),
             showsFuelingNote: showsFuelingNote(dayType: dayType, durationMinutes: durationMinutes),
-            isRunSession: isRun
+            isRunSession: isRun,
+            watchPlan: day.primaryRunActivity.flatMap { activity in
+                date.map { WatchPlanProjector.project(activity: activity, date: dateKey($0, calendar: calendar), planId: planId ?? "") }
+            }
         )
     }
 
