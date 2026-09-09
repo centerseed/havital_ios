@@ -49,10 +49,26 @@ struct App2MetricDetailView: View {
 
 // MARK: - App2MetricDetailScaffold
 /// 六頁同構的外殼（§51-1）：34×34 返回鈕 ＋ 標題 ＋ 右緣「指標詳情」。
+@MainActor
+private func metricReadFailure(hasPreviousResult: Bool, retry: @escaping () -> Void) -> some View {
+    App2Card(spacing: 10) {
+        Text((hasPreviousResult
+              ? L10n.App2.Metric.refreshFailedKeepingResult
+              : L10n.App2.Metric.readFailed).localized)
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(App2Theme.inkSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        Button(L10n.Common.retry.localized, action: retry)
+            .accessibilityIdentifier("App2_MetricReadRetry")
+    }
+    .accessibilityIdentifier("App2_MetricReadFailure")
+}
+
 private struct App2MetricDetailScaffold<Content: View>: View {
     let title: String
     let identifier: String
     let onClose: () -> Void
+    let onRefresh: () async -> Void
     // 頁尾原本有一行「資料來源 · workouts/stats」——那是**端點路徑**，不是產品文案
     // （8/28 盤點 D11）。它對使用者沒有任何意義，寫成人話也只會是「資料來自你的跑步紀錄」
     // 這種每一頁都成立的廢話，所以整行拿掉。四頁一致。
@@ -81,6 +97,12 @@ private struct App2MetricDetailScaffold<Content: View>: View {
                 }
                 .padding(.horizontal, App2Theme.pagePadding)
                 .padding(.bottom, 28)
+            }
+            .refreshable {
+                // SwiftUI can cancel its refresh task when the view updates. The VM
+                // owns the request lifetime; leaving the page still cancels its round.
+                let refresh = Task { await onRefresh() }
+                await refresh.value
             }
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
@@ -244,8 +266,14 @@ private struct App2VolumeDetailPage: View {
         App2MetricDetailScaffold(
             title: insight.label,
             identifier: "App2_MetricDetail_weekly_volume",
-            onClose: onClose
+            onClose: onClose,
+            onRefresh: { await viewModel.forceRefresh() }
         ) {
+            if viewModel.readFailed {
+                metricReadFailure(hasPreviousResult: viewModel.detail != nil) {
+                    Task { await viewModel.forceRefresh() }
+                }
+            }
             App2MetricHeroCard(
                 hero: viewModel.detail?.value.hero
                     ?? App2VolumeDetailViewModel.hero(
@@ -385,8 +413,14 @@ private struct App2CapabilityDetailPage: View {
         App2MetricDetailScaffold(
             title: insight.label,
             identifier: "App2_MetricDetail_capability_baseline",
-            onClose: onClose
+            onClose: onClose,
+            onRefresh: { await viewModel.forceRefresh() }
         ) {
+            if viewModel.readFailed {
+                metricReadFailure(hasPreviousResult: viewModel.detail != nil) {
+                    Task { await viewModel.forceRefresh() }
+                }
+            }
             App2MetricHeroCard(
                 hero: viewModel.detail?.value.hero
                     ?? App2CapabilityDetailViewModel.hero(
@@ -550,8 +584,14 @@ private struct App2LevelDetailPage: View {
         App2MetricDetailScaffold(
             title: insight.label,
             identifier: "App2_MetricDetail_\(kind.rawValue)",
-            onClose: onClose
+            onClose: onClose,
+            onRefresh: { await viewModel.forceRefresh() }
         ) {
+            if viewModel.readFailed {
+                metricReadFailure(hasPreviousResult: viewModel.detail != nil) {
+                    Task { await viewModel.forceRefresh() }
+                }
+            }
             App2MetricHeroCard(
                 hero: App2MetricDetailProjection.levelHero(insight: insight),
                 symbolName: insight.symbolName,
@@ -743,8 +783,14 @@ private struct App2RecoveryDetailPage: View {
         App2MetricDetailScaffold(
             title: insight.label,
             identifier: "App2_MetricDetail_recovery_index",
-            onClose: onClose
+            onClose: onClose,
+            onRefresh: { await viewModel.forceRefresh() }
         ) {
+            if viewModel.readFailed {
+                metricReadFailure(hasPreviousResult: viewModel.detail != nil) {
+                    Task { await viewModel.forceRefresh() }
+                }
+            }
             App2MetricHeroCard(
                 hero: viewModel.detail?.value.hero
                     ?? App2RecoveryDetailViewModel.hero(insight: insight, narrative: narrative),

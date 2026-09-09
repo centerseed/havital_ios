@@ -104,6 +104,45 @@ final class App2LevelDetailViewModelTests: XCTestCase {
         XCTAssertEqual(vm.detail?.value.series.map(\.date), ["2026-09-04", "2026-09-06"])
     }
 
+    func test_failedInitialReadDoesNotClaimASuccessfulRefreshTime() async {
+        let source = StubSeriesSource(response: response([]), error: URLError(.timedOut))
+        let vm = App2LevelDetailViewModel(itemKey: "aerobic_endurance",
+                                         asof: "2026-09-06", dataSource: source)
+        await vm.revalidate()
+        XCTAssertNil(vm.lastLoadedAt, "A transport failure is not a successful refresh")
+        XCTAssertTrue(vm.readFailed)
+    }
+
+    func test_failedRefreshKeepsThePreviousResultAndItsSuccessfulRefreshTime() async {
+        let source = StubSeriesSource(response: response([("2026-09-05", 28)]))
+        let vm = App2LevelDetailViewModel(itemKey: "aerobic_endurance",
+                                         asof: "2026-09-06", dataSource: source)
+        await vm.revalidate()
+        let successfulRead = vm.lastLoadedAt
+        XCTAssertNotNil(successfulRead)
+        source.error = URLError(.timedOut)
+        await vm.revalidate()
+        XCTAssertEqual(vm.detail?.value.series.map(\.date), ["2026-09-05"])
+        XCTAssertEqual(vm.detail?.value.series.map(\.value), [28])
+        XCTAssertTrue(vm.readFailed)
+        XCTAssertEqual(vm.lastLoadedAt, successfulRead,
+                       "Keeping an old value must not mark it as freshly read")
+    }
+
+    func test_successfulRetryClearsFailureAndPublishesFreshResult() async {
+        let source = StubSeriesSource(response: response([]), error: URLError(.timedOut))
+        let vm = App2LevelDetailViewModel(itemKey: "aerobic_endurance",
+                                         asof: "2026-09-06", dataSource: source)
+        await vm.revalidate()
+        XCTAssertTrue(vm.readFailed)
+        source.error = nil
+        source.response = response([("2026-09-06", 31)])
+        await vm.forceRefresh()
+        XCTAssertFalse(vm.readFailed)
+        XCTAssertNotNil(vm.lastLoadedAt)
+        XCTAssertEqual(vm.detail?.value.series.map(\.value), [31])
+    }
+
     // MARK: - 取消
 
     func test_aCancelledRoundPublishesNothing() async {
@@ -118,5 +157,7 @@ final class App2LevelDetailViewModelTests: XCTestCase {
         XCTAssertNil(vm.detail, "被取消的載入輪不得發布 detail")
         XCTAssertFalse(vm.isLoading, "取消後 spinner 要收掉")
         XCTAssertFalse(vm.hasLoaded, "取消不算載過")
+        XCTAssertFalse(vm.readFailed)
+        XCTAssertNil(vm.lastLoadedAt)
     }
 }

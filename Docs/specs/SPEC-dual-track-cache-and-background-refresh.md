@@ -6,7 +6,7 @@ layer: architecture
 owns: repository 層「先回快取、背景刷新」的雙軌讀取語意，含顯式刷新與失效事件的行為承諾
 ontology_entity: dual-track-cache-strategy
 created: 2026-04-15
-updated: 2026-08-31
+updated: 2026-09-09
 ---
 
 # Feature Spec: Dual-Track Cache 與 Background Refresh
@@ -89,6 +89,12 @@ When 推播抵達 app，
 Then 系統必須發布 `.dataChanged(.workouts)`，讓首頁完成列、紀錄頁等訂閱者立即失效重抓；使用者不需重開 app 或等待 SWR 視窗。
 
 （T-0355：佈線為 `WorkoutBackgroundManager.workoutPushReceived`（被動 publisher）→ `CacheRegistrationCoordinator` 訂閱後轉發至 bus。）
+
+### AC-CACHE-11: App2 指標讀取失敗保留結果，並可重試
+
+承接 backend `SPEC-athlete-state` §1.2.1 的已核定顯示規則。指標頁首次讀取失敗時，顯示「暫時讀取失敗」與重試操作，不冒充零資料。已有結果時保留原結果與圖表中的原日期，附非阻斷的失敗提示；失敗不推進成功載入時間。使用者可下拉刷新；讀取失敗時也可按提示內的重試。兩者都沿用同一條 force refresh，成功後清除提示，改顯示新結果。離開頁面或已被新一輪接管的請求不發布錯誤，也不改結果或成功時間；下拉手勢結束或畫面重繪不能中止仍在進行的刷新及重試。
+
+訓練量頁的來源可部分成功：例如週量讀取成功、健康資料或負荷比曲線失敗，成功來源照常顯示，失敗來源保留同範圍原有結果與原日期，提示部分資料未刷新。不把失敗轉成空值覆蓋原結果，也不把混合的新舊內容標成整頁剛成功刷新。原本無資料的來源仍為無資料，不補 0 或延長曲線。
 
 ## 實作對齊說明
 

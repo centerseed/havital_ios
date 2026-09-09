@@ -2582,6 +2582,8 @@ extension L10n {
         /// 首頁指標列點進去的三頁詳情。**只有訓練量／能力基準／恢復有稿**，
         /// 其餘指標不可點，所以這裡不放它們的字。
         enum Metric {
+            static let readFailed = "app2.metric.read_failed"
+            static let refreshFailedKeepingResult = "app2.metric.refresh_failed_keeping_result"
             /// top bar 右緣的「指標詳情」。
             static let pageSuffix = "app2.metric.page_suffix"
 

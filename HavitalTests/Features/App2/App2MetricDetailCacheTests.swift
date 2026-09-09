@@ -6,6 +6,45 @@ import XCTest
 @MainActor
 final class App2MetricDetailCacheTests: XCTestCase {
 
+    private final class FailingSeriesSource: AthleteStateSeriesDataSourceProtocol {
+        func fetchMetricSeries(startDay: String, endDay: String) async throws -> AthleteStateSeriesResponse {
+            throw URLError(.timedOut)
+        }
+    }
+
+    func test_volumePartialFailurePreservesStoredSourcesAndSuccessTime() async throws {
+        let cache = App2MetricDetailCache()
+        let oldRead = Date(timeIntervalSince1970: 100)
+        let series = AthleteStateSeriesResponse(startDay: nil, endDay: nil, series: [
+            "load_index": [.init(day: "2026-09-05", deliveryStatus: "active",
+                                 envelope: .init(index: nil, levelIndex: nil, channels: .init(
+                                    acwr: .init(raw: 1.15, available: true, side: "inside",
+                                                sweetLow: 0.8, sweetHigh: 1.3))))]
+        ])
+        cache.storeVolume(.init(stats: try CountingStatsSource.statsFixture(),
+                                health: try EmptyHealthSource.fixture(), targetKm: nil,
+                                series: series), range: .weeks8, loadedAt: oldRead)
+        let health = EmptyHealthSource()
+        health.error = URLError(.timedOut)
+        let vm = App2VolumeDetailViewModel(insight: insight("volume"), narrative: nil,
+                                           asof: "2026-09-06",
+                                           workoutDataSource: CountingStatsSource(),
+                                           healthDataSource: health,
+                                           seriesDataSource: FailingSeriesSource(),
+                                           profileRepository: nil, cache: cache)
+        await vm.revalidate()
+        XCTAssertTrue(vm.readFailed)
+        XCTAssertEqual(vm.lastLoadedAt, oldRead)
+        XCTAssertEqual(cache.volume[.weeks8]?.loadedAt, oldRead)
+        XCTAssertNotNil(cache.volume[.weeks8]?.payload.health)
+        XCTAssertEqual(cache.volume[.weeks8]?.payload.series?.series["load_index"]?.first?.day,
+                       "2026-09-05")
+        XCTAssertEqual(cache.volume[.weeks8]?.payload.series?.series["load_index"]?.first?.envelope?.channels?.acwr?.raw,
+                       1.15)
+        XCTAssertEqual(vm.detail?.value.acwr?.series.map(\.date), ["2026-09-05"])
+        XCTAssertEqual(vm.detail?.value.acwr?.series.map(\.value), [1.15])
+    }
+
     // MARK: - Stubs
 
     /// 被叫到就記錄——快取命中路徑不得打網路。
@@ -40,8 +79,10 @@ final class App2MetricDetailCacheTests: XCTestCase {
     }
 
     private final class EmptyHealthSource: HealthDailyDataSourceProtocol {
+        var error: Error?
         func fetchHealthDaily(limit: Int) async throws -> HealthDailyResponse {
-            try Self.fixture()
+            if let error { throw error }
+            return try Self.fixture()
         }
 
         static func fixture() throws -> HealthDailyResponse {

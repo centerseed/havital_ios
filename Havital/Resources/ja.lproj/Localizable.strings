@@ -4953,3 +4953,6 @@
 "garmin.history_prompt.body" = "Garmin認証時に「履歴データ」が選択されなかったため、過去2週間のトレーニングを同期できません。チェックを入れて再認証すると、自動的に取り込みます。";
 "garmin.history_prompt.cta" = "再認証する";
 "garmin.history_prompt.dismiss" = "あとで";
+
+"app2.metric.read_failed" = "データを読み込めませんでした。もう一度お試しください。";
+"app2.metric.refresh_failed_keeping_result" = "一部のデータを更新できませんでした。前回の結果を保持しています。元の日付はグラフで確認できます。";

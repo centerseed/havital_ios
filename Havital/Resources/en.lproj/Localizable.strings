@@ -4956,3 +4956,6 @@
 "garmin.history_prompt.body" = "“Historical Data” wasn’t ticked when you authorized Garmin, so your past two weeks of training can’t sync. Re-authorize with it ticked and we’ll bring it in automatically.";
 "garmin.history_prompt.cta" = "Re-authorize";
 "garmin.history_prompt.dismiss" = "Later";
+
+"app2.metric.read_failed" = "Could not load the data. Please try again.";
+"app2.metric.refresh_failed_keeping_result" = "Some data could not be refreshed. Previously loaded results are kept with their original chart dates.";

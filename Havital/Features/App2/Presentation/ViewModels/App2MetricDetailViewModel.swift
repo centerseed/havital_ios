@@ -58,6 +58,7 @@ enum App2MetricRange: String, Identifiable, CaseIterable {
 final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Revalidating {
 
     @Published private(set) var isLoading = true
+    @Published private(set) var readFailed = false
     @Published private(set) var detail: App2Sourced<App2VolumeDetail>?
     @Published private(set) var range: App2MetricRange = .weeks8
     private(set) var hasLoaded = false
@@ -182,6 +183,7 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         let epoch = cache.invalidationEpoch
         isLoading = !hasLoaded
         var finishedRound = false
+        var succeeded = false
         defer {
             // 只有現任輪能收尾——被取代的舊輪連 isLoading 都不得清（外審 D04）。
             if revalidateGeneration == round {
@@ -190,7 +192,7 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
                 // （提早 return，finishedRound 維持 false）都算取消（2026-08-29 外審 D04/E03）。
                 if finishedRound, !Task.isCancelled {
                     hasLoaded = true
-                    lastLoadedAt = Date()
+                    if succeeded { lastLoadedAt = Date() }
                 }
             }
         }
@@ -218,19 +220,27 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
             if Task.isCancelled { return }
             guard isCurrentRound(round, requestedRange) else { return }
 
+            let previous = cache.volume[requestedRange]
+            let partialFailure = healthOutcome.hasFailed || seriesOutcome.hasFailed
             let payload = App2MetricDetailCache.VolumePayload(
                 stats: stats,
-                health: healthOutcome.response,
+                health: healthOutcome.hasFailed ? previous?.payload.health : healthOutcome.response,
                 targetKm: targetKm,
-                series: seriesOutcome.response
+                series: seriesOutcome.hasFailed ? previous?.payload.series : seriesOutcome.response
             )
-            cache.storeIfCurrent(epoch: epoch) { $0.storeVolume(payload, range: requestedRange) }
+            cache.storeIfCurrent(epoch: epoch) {
+                $0.storeVolume(payload, range: requestedRange,
+                               loadedAt: partialFailure ? previous?.loadedAt ?? .distantPast : Date())
+            }
             publish(payload)
             finishedRound = true
+            succeeded = !partialFailure
+            readFailed = partialFailure
         } catch {
             guard !error.isCancellationError else { return }
             guard isCurrentRound(round, requestedRange) else { return }
             finishedRound = true
+            readFailed = true
             Logger.debug("[App2VolumeDetailVM] stats 取得失敗: \(error)")
         }
     }
@@ -255,6 +265,12 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
     private enum HealthOutcome {
         case ok(HealthDailyResponse?)
         case cancelled
+        case failed
+
+        var hasFailed: Bool {
+            if case .failed = self { return true }
+            return false
+        }
 
         var response: HealthDailyResponse? {
             if case .ok(let response) = self { return response }
@@ -266,13 +282,19 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         do {
             return .ok(try await healthDataSource.fetchHealthDaily(limit: Self.loadWindowDays))
         } catch {
-            return error.isCancellationError ? .cancelled : .ok(nil)
+            return error.isCancellationError ? .cancelled : .failed
         }
     }
 
     private enum SeriesOutcome {
         case ok(AthleteStateSeriesResponse?)
         case cancelled
+        case failed
+
+        var hasFailed: Bool {
+            if case .failed = self { return true }
+            return false
+        }
 
         var response: AthleteStateSeriesResponse? {
             if case .ok(let response) = self { return response }
@@ -292,7 +314,7 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
             if !error.isCancellationError {
                 Logger.debug("[App2VolumeDetailVM] metrics/series 取得失敗,不畫負荷比線: \(error)")
             }
-            return error.isCancellationError ? .cancelled : .ok(nil)
+            return error.isCancellationError ? .cancelled : .failed
         }
     }
 
@@ -364,6 +386,7 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
 final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App2Revalidating {
 
     @Published private(set) var isLoading = true
+    @Published private(set) var readFailed = false
     @Published private(set) var detail: App2Sourced<App2CapabilityDetail>?
     @Published private(set) var range: App2MetricRange = .days60
     private(set) var hasLoaded = false
@@ -452,6 +475,7 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
         let epoch = cache.invalidationEpoch
         isLoading = !hasLoaded
         var finishedRound = false
+        var succeeded = false
         defer {
             // 只有現任輪能收尾（外審 D04）。
             if revalidateGeneration == round {
@@ -460,7 +484,7 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
                 // （提早 return，finishedRound 維持 false）都算取消（2026-08-29 外審 D04/E03）。
                 if finishedRound, !Task.isCancelled {
                     hasLoaded = true
-                    lastLoadedAt = Date()
+                    if succeeded { lastLoadedAt = Date() }
                 }
             }
         }
@@ -472,10 +496,13 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
             cache.storeIfCurrent(epoch: epoch) { $0.storeCapability(response, range: requestedRange) }
             publish(response)
             finishedRound = true
+            succeeded = true
+            readFailed = false
         } catch {
             guard !error.isCancellationError else { return }
             guard isCurrentRound(round, requestedRange) else { return }
             finishedRound = true
+            readFailed = true
             Logger.debug("[App2CapabilityDetailVM] vdots 取得失敗: \(error)")
         }
     }
@@ -574,6 +601,7 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
 final class App2RecoveryDetailViewModel: ObservableObject, TaskManageable, App2Revalidating {
 
     @Published private(set) var isLoading = true
+    @Published private(set) var readFailed = false
     @Published private(set) var detail: App2Sourced<App2RecoveryDetail>?
     private(set) var hasLoaded = false
     private(set) var lastLoadedAt: Date?
@@ -653,6 +681,7 @@ final class App2RecoveryDetailViewModel: ObservableObject, TaskManageable, App2R
         let epoch = cache.invalidationEpoch
         isLoading = !hasLoaded
         var finishedRound = false
+        var succeeded = false
         defer {
             // 只有現任輪能收尾（外審 D04）。
             if revalidateGeneration == round {
@@ -661,7 +690,7 @@ final class App2RecoveryDetailViewModel: ObservableObject, TaskManageable, App2R
                 // （提早 return，finishedRound 維持 false）都算取消（2026-08-29 外審 D04/E03）。
                 if finishedRound, !Task.isCancelled {
                     hasLoaded = true
-                    lastLoadedAt = Date()
+                    if succeeded { lastLoadedAt = Date() }
                 }
             }
         }
@@ -673,10 +702,13 @@ final class App2RecoveryDetailViewModel: ObservableObject, TaskManageable, App2R
             cache.storeIfCurrent(epoch: epoch) { $0.storeRecovery(response) }
             publish(response)
             finishedRound = true
+            succeeded = true
+            readFailed = false
         } catch {
             guard !error.isCancellationError else { return }
             guard revalidateGeneration == round else { return }
             finishedRound = true
+            readFailed = true
             Logger.debug("[App2RecoveryDetailVM] health_daily 取得失敗: \(error)")
         }
     }
@@ -727,6 +759,7 @@ final class App2RecoveryDetailViewModel: ObservableObject, TaskManageable, App2R
 final class App2LevelDetailViewModel: ObservableObject, TaskManageable, App2Revalidating {
 
     @Published private(set) var isLoading = true
+    @Published private(set) var readFailed = false
     @Published private(set) var detail: App2Sourced<App2LevelDetail>?
     private(set) var hasLoaded = false
     private(set) var lastLoadedAt: Date?
@@ -788,12 +821,13 @@ final class App2LevelDetailViewModel: ObservableObject, TaskManageable, App2Reva
     private func revalidateRound(_ round: Int) async {
         isLoading = !hasLoaded
         var finishedRound = false
+        var succeeded = false
         defer {
             if revalidateGeneration == round {
                 isLoading = false
                 if finishedRound, !Task.isCancelled {
                     hasLoaded = true
-                    lastLoadedAt = Date()
+                    if succeeded { lastLoadedAt = Date() }
                 }
             }
         }
@@ -811,13 +845,14 @@ final class App2LevelDetailViewModel: ObservableObject, TaskManageable, App2Reva
                 origin: .live(endpoint: "GET /v2/athlete-state/metrics/series")
             )
             finishedRound = true
+            succeeded = true
+            readFailed = false
         } catch {
             guard !error.isCancellationError else { return }
             guard revalidateGeneration == round else { return }
             finishedRound = true
-            // 讀不到序列**不擋頁**：hero、分級尺、依據句都不靠它。畫面照
-            // `detail` 是不是有足夠的點決定畫線還是畫佔位句，不另立一個旗標
-            // ——同一件事兩份表示，遲早有一份是舊的。
+            readFailed = true
+            // 保留上次結果；失敗與空序列是兩種可觀察狀態。
             Logger.debug("[App2LevelDetailVM] metrics/series 取得失敗: \(error)")
         }
     }

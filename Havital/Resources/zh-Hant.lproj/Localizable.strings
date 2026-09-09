@@ -4997,3 +4997,6 @@
 "garmin.history_prompt.body" = "Garmin 授權時沒有勾選「歷史資料」，所以過去兩週的訓練同步不進來。重新授權並勾選它，我們會自動幫你補上。";
 "garmin.history_prompt.cta" = "重新授權";
 "garmin.history_prompt.dismiss" = "稍後";
+
+"app2.metric.read_failed" = "資料暫時讀取失敗，請重試。";
+"app2.metric.refresh_failed_keeping_result" = "部分資料暫時讀取失敗，目前保留上次載入的結果；資料日期請見圖表。";
