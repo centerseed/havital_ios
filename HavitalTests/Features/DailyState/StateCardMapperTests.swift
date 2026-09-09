@@ -33,6 +33,25 @@ final class StateCardMapperTests: XCTestCase {
         XCTAssertEqual(entity.insights.first?.change, "30.8 → 23.7")
     }
 
+    /// T-0650: GET /v2/state/today historical overlay must decode date, verdict, and no trend.
+    func test_historical_today_payload_decodes_original_date_without_trend() throws {
+        let json = """
+        {"lens":"pre","source":"llm","headline":"H","asof":"2026-08-23",
+         "access":{"is_paid":false,"locked":false},
+         "insights":[{"key":"aerobic_endurance","label":"有氧續航","value_text":"28",
+                      "arrow":null,"verdict":"歷史結果","change":null,
+                      "evidence":null,"basis":"結果日期：2026-08-20；近期未更新","dot":"unknown",
+                      "status":"graded"}]}
+        """
+        let dto = try JSONDecoder().decode(StateCardDTO.self, from: Data(json.utf8))
+        let entity = StateCardMapper.toEntity(from: dto)
+        XCTAssertEqual(entity.insights.first?.valueText, "28")
+        XCTAssertEqual(entity.insights.first?.verdict, "歷史結果")
+        XCTAssertEqual(entity.insights.first?.basis, "結果日期：2026-08-20；近期未更新")
+        XCTAssertEqual(entity.insights.first?.arrow, .unknown)
+        XCTAssertNil(entity.insights.first?.change)
+    }
+
     func test_maps_paid() {
         let e = StateCardMapper.toEntity(from: dto(narrative: "五段", chips: ["輕鬆跑紀律"], locked: false))
         XCTAssertEqual(e.lens, .pre)
