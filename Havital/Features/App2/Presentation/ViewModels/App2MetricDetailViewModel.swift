@@ -237,7 +237,7 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
             succeeded = !partialFailure
             readFailed = partialFailure
         } catch {
-            guard !error.isCancellationError else { return }
+            guard !error.isCancellationError, !Task.isCancelled else { return }
             guard isCurrentRound(round, requestedRange) else { return }
             finishedRound = true
             readFailed = true
@@ -499,7 +499,7 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
             succeeded = true
             readFailed = false
         } catch {
-            guard !error.isCancellationError else { return }
+            guard !error.isCancellationError, !Task.isCancelled else { return }
             guard isCurrentRound(round, requestedRange) else { return }
             finishedRound = true
             readFailed = true
@@ -705,7 +705,7 @@ final class App2RecoveryDetailViewModel: ObservableObject, TaskManageable, App2R
             succeeded = true
             readFailed = false
         } catch {
-            guard !error.isCancellationError else { return }
+            guard !error.isCancellationError, !Task.isCancelled else { return }
             guard revalidateGeneration == round else { return }
             finishedRound = true
             readFailed = true
@@ -848,7 +848,7 @@ final class App2LevelDetailViewModel: ObservableObject, TaskManageable, App2Reva
             succeeded = true
             readFailed = false
         } catch {
-            guard !error.isCancellationError else { return }
+            guard !error.isCancellationError, !Task.isCancelled else { return }
             guard revalidateGeneration == round else { return }
             finishedRound = true
             readFailed = true

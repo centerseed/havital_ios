@@ -231,6 +231,55 @@ final class App2MetricDetailCacheTests: XCTestCase {
         }
     }
 
+    /// Cancelled child that surfaces a transport error instead of CancellationError.
+    private final class TimeoutAfterCancelStatsSource: WorkoutStatsDataSourceProtocol {
+        var started = false
+
+        func fetchWorkoutStats(days: Int, weeks: Int?) async throws -> WorkoutStatsResponse {
+            started = true
+            while !Task.isCancelled {
+                try await Task.sleep(nanoseconds: 5_000_000)
+            }
+            throw URLError(.timedOut)
+        }
+
+        func fetchRecentWorkouts(pageSize: Int) async throws -> [WorkoutV2] { [] }
+
+        func fetchWorkoutsPage(pageSize: Int?, cursor: String?) async throws -> WorkoutListResponse {
+            WorkoutListResponse(
+                workouts: [],
+                pagination: PaginationInfo(
+                    nextCursor: nil, prevCursor: nil, hasMore: false, hasNewer: false,
+                    oldestId: nil, newestId: nil, totalItems: nil, pageSize: pageSize
+                )
+            )
+        }
+    }
+
+    private final class TimeoutAfterCancelVdotSource: VDOTDataSourceProtocol {
+        var started = false
+
+        func getVDOTs(limit: Int) async throws -> VDOTResponse {
+            started = true
+            while !Task.isCancelled {
+                try await Task.sleep(nanoseconds: 5_000_000)
+            }
+            throw URLError(.timedOut)
+        }
+    }
+
+    private final class TimeoutAfterCancelHealthSource: HealthDailyDataSourceProtocol {
+        var started = false
+
+        func fetchHealthDaily(limit: Int) async throws -> HealthDailyResponse {
+            started = true
+            while !Task.isCancelled {
+                try await Task.sleep(nanoseconds: 5_000_000)
+            }
+            throw URLError(.timedOut)
+        }
+    }
+
     private func insight(_ id: String) -> App2Insight {
         App2Insight(id: id, label: id, value: nil, direction: .unknown, verdict: nil)
     }
@@ -564,6 +613,55 @@ final class App2MetricDetailCacheTests: XCTestCase {
         XCTAssertNil(vm.detail)
         XCTAssertFalse(vm.hasLoaded, "取消不算載過")
         XCTAssertNil(vm.lastLoadedAt)
+    }
+
+    func test_volumeVM_cancelledRoundWithTransportError_doesNotSetReadFailed() async {
+        let cache = App2MetricDetailCache()
+        let source = TimeoutAfterCancelStatsSource()
+        let vm = App2VolumeDetailViewModel(
+            insight: insight("volume"), narrative: nil,
+            workoutDataSource: source, healthDataSource: EmptyHealthSource(),
+            seriesDataSource: App2EmptySeriesSource(), profileRepository: nil, cache: cache
+        )
+        let load = Task { await vm.revalidate() }
+        await Self.waitUntil { source.started }
+        vm.cancelInFlightReload()
+        await load.value
+        XCTAssertFalse(vm.readFailed)
+        XCTAssertFalse(vm.hasLoaded)
+        XCTAssertNil(vm.detail)
+    }
+
+    func test_capabilityVM_cancelledRoundWithTransportError_doesNotSetReadFailed() async {
+        let cache = App2MetricDetailCache()
+        let source = TimeoutAfterCancelVdotSource()
+        let vm = App2CapabilityDetailViewModel(
+            insight: insight("capability"), narrative: nil,
+            vdotDataSource: source, cache: cache
+        )
+        let load = Task { await vm.revalidate() }
+        await Self.waitUntil { source.started }
+        vm.cancelInFlightReload()
+        await load.value
+        XCTAssertFalse(vm.readFailed)
+        XCTAssertFalse(vm.hasLoaded)
+        XCTAssertNil(vm.detail)
+    }
+
+    func test_recoveryVM_cancelledRoundWithTransportError_doesNotSetReadFailed() async {
+        let cache = App2MetricDetailCache()
+        let source = TimeoutAfterCancelHealthSource()
+        let vm = App2RecoveryDetailViewModel(
+            insight: insight("recovery"), narrative: nil,
+            healthDataSource: source, cache: cache
+        )
+        let load = Task { await vm.revalidate() }
+        await Self.waitUntil { source.started }
+        vm.cancelInFlightReload()
+        await load.value
+        XCTAssertFalse(vm.readFailed)
+        XCTAssertFalse(vm.hasLoaded)
+        XCTAssertNil(vm.detail)
     }
 
     // MARK: - 失效
