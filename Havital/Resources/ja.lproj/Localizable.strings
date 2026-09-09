@@ -4955,4 +4955,4 @@
 "garmin.history_prompt.dismiss" = "あとで";
 
 "app2.metric.read_failed" = "データを読み込めませんでした。もう一度お試しください。";
-"app2.metric.refresh_failed_keeping_result" = "一部のデータを更新できませんでした。前回の結果を保持しています。元の日付はグラフで確認できます。";
+"app2.metric.refresh_failed_keeping_result" = "一部のデータを更新できませんでした。取得済みの結果を表示していますが、今回の更新は完了していません。";

@@ -4958,4 +4958,4 @@
 "garmin.history_prompt.dismiss" = "Later";
 
 "app2.metric.read_failed" = "Could not load the data. Please try again.";
-"app2.metric.refresh_failed_keeping_result" = "Some data could not be refreshed. Previously loaded results are kept with their original chart dates.";
+"app2.metric.refresh_failed_keeping_result" = "Some data could not be refreshed. Available results remain visible; this refresh is incomplete.";
