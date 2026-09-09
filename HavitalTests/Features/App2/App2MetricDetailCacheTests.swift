@@ -238,7 +238,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
         func fetchWorkoutStats(days: Int, weeks: Int?) async throws -> WorkoutStatsResponse {
             started = true
             while !Task.isCancelled {
-                try await Task.sleep(nanoseconds: 5_000_000)
+                do { try await Task.sleep(nanoseconds: 5_000_000) } catch { break }
             }
             throw URLError(.timedOut)
         }
@@ -262,7 +262,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
         func getVDOTs(limit: Int) async throws -> VDOTResponse {
             started = true
             while !Task.isCancelled {
-                try await Task.sleep(nanoseconds: 5_000_000)
+                do { try await Task.sleep(nanoseconds: 5_000_000) } catch { break }
             }
             throw URLError(.timedOut)
         }
@@ -274,7 +274,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
         func fetchHealthDaily(limit: Int) async throws -> HealthDailyResponse {
             started = true
             while !Task.isCancelled {
-                try await Task.sleep(nanoseconds: 5_000_000)
+                do { try await Task.sleep(nanoseconds: 5_000_000) } catch { break }
             }
             throw URLError(.timedOut)
         }

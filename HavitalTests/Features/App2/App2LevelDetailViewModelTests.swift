@@ -34,6 +34,18 @@ final class App2LevelDetailViewModelTests: XCTestCase {
         }
     }
 
+    private final class TimeoutAfterCancelSeriesSource: AthleteStateSeriesDataSourceProtocol {
+        var started = false
+
+        func fetchMetricSeries(startDay: String, endDay: String) async throws -> AthleteStateSeriesResponse {
+            started = true
+            while !Task.isCancelled {
+                do { try await Task.sleep(nanoseconds: 5_000_000) } catch { break }
+            }
+            throw URLError(.timedOut)
+        }
+    }
+
     private func response(_ days: [(String, Double?)]) -> AthleteStateSeriesResponse {
         AthleteStateSeriesResponse(
             startDay: nil, endDay: nil,
@@ -158,6 +170,24 @@ final class App2LevelDetailViewModelTests: XCTestCase {
         XCTAssertFalse(vm.isLoading, "取消後 spinner 要收掉")
         XCTAssertFalse(vm.hasLoaded, "取消不算載過")
         XCTAssertFalse(vm.readFailed)
+        XCTAssertNil(vm.lastLoadedAt)
+    }
+
+    func test_cancelledRoundWithTransportError_doesNotSetReadFailed() async {
+        let source = TimeoutAfterCancelSeriesSource()
+        let vm = App2LevelDetailViewModel(itemKey: "aerobic_endurance",
+                                          asof: "2026-09-06",
+                                          dataSource: source)
+        let load = Task { await vm.revalidate() }
+        let deadline = Date().addingTimeInterval(5)
+        while !source.started, Date() < deadline {
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+        vm.cancelInFlightReload()
+        await load.value
+        XCTAssertFalse(vm.readFailed)
+        XCTAssertFalse(vm.hasLoaded)
+        XCTAssertNil(vm.detail)
         XCTAssertNil(vm.lastLoadedAt)
     }
 }
