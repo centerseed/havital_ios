@@ -605,7 +605,7 @@ extension DayDetail {
                 distanceKm: interval.recoveryDistanceKm,
                 distanceM: interval.recoveryDistanceM.map { Double($0) },
                 timeMinutes: interval.recoveryDurationMinutes.map { Double($0) },
-                timeSeconds: nil,
+                timeSeconds: interval.recoveryDurationSeconds,
                 pace: interval.recoveryPace,
                 heartRateRange: nil
             )

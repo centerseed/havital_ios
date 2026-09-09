@@ -117,6 +117,48 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
         XCTAssertTrue(payload["cooldown"] is NSNull, "Removing cooldown must encode JSON null")
     }
 
+    /// Exercise the actual day editor, not a direct mutation of the week model.
+    func testDayEditor_removingCooldownPreservesSecondsOnlyStaticRecovery() async throws {
+        let repository = MockTrainingPlanV2Repository()
+        let viewModel = EditScheduleV2ViewModel(
+            weeklyPlan: makeIntervalPlanWithWarmupCooldown(), repository: repository
+        )
+        let originalDay = viewModel.editingDays[0]
+        let editor = TrainingDayEditState(from: originalDay)
+        XCTAssertTrue(editor.isRestInPlace)
+        XCTAssertEqual(editor.recoveryTimeMinutes * 60, 70, accuracy: 0.001)
+        editor.hasCooldown = false
+        viewModel.editingDays[0] = editor.toMutableTrainingDay(originalDay: originalDay)
+        _ = try await viewModel.saveEdits()
+        let day = try XCTUnwrap(repository.lastUpdateWeeklyPlanRequest?.days?.first)
+        guard case .run(let run) = day.primary else { return XCTFail("Expected interval") }
+        let interval = try XCTUnwrap(run.interval)
+        XCTAssertNil(day.cooldown)
+        XCTAssertNotNil(day.warmup)
+        XCTAssertEqual(interval.repeats, 6)
+        XCTAssertEqual(interval.workDistanceM, 200)
+        XCTAssertEqual(interval.recoveryDurationSeconds, 70)
+        XCTAssertNil(interval.recoveryDistanceKm)
+        XCTAssertNil(interval.recoveryDistanceM)
+        XCTAssertNil(interval.recoveryPace)
+        let payload = try jsonObject(day)
+        XCTAssertTrue(payload["cooldown"] is NSNull)
+    }
+
+    func testDayEditor_minutesOnlyStaticAndTimedJogKeepTheirRecoveryMode() {
+        for (km, expectedStatic) in [(nil as Double?, true), (0.2, false)] {
+            let viewModel = EditScheduleV2ViewModel(
+                weeklyPlan: makeIntervalPlanWithWarmupCooldown(
+                    recoverySeconds: nil, recoveryMinutes: 2, recoveryKm: km
+                ), repository: MockTrainingPlanV2Repository()
+            )
+            let editor = TrainingDayEditState(from: viewModel.editingDays[0])
+            XCTAssertEqual(editor.isRestInPlace, expectedStatic)
+            XCTAssertEqual(editor.recoveryTimeMinutes, 2)
+            if !expectedStatic { XCTAssertEqual(editor.recoveryDistance, 0.2) }
+        }
+    }
+
     func testSaveEdits_existingCooldownStillSendsSegment() async throws {
         let repository = MockTrainingPlanV2Repository()
         let weeklyPlan = makeIntervalPlanWithWarmupCooldown()
@@ -529,7 +571,7 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
         )
     }
 
-    private func makeIntervalPlanWithWarmupCooldown() -> WeeklyPlanV2 {
+    private func makeIntervalPlanWithWarmupCooldown(recoverySeconds: Int? = 70, recoveryMinutes: Int? = nil, recoveryKm: Double? = nil) -> WeeklyPlanV2 {
         let base = makeWeeklyPlan()
         let segment = RunSegment(
             distanceKm: 1.29,
@@ -560,12 +602,12 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
             workDurationMinutes: nil,
             workPace: "5:50",
             workDescription: "Fast 200m",
-            recoveryDistanceKm: nil,
+            recoveryDistanceKm: recoveryKm,
             recoveryDistanceM: nil,
-            recoveryDurationMinutes: nil,
-            recoveryPace: nil,
+            recoveryDurationMinutes: recoveryMinutes,
+            recoveryPace: recoveryKm == nil ? nil : "6:00",
             recoveryDescription: "Rest 70 seconds",
-            recoveryDurationSeconds: 70,
+            recoveryDurationSeconds: recoverySeconds,
             variant: "paceriz_interval:base_200m"
         )
         let runActivity = RunActivity(
