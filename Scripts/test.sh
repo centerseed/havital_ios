@@ -263,6 +263,9 @@ echo "   (Logs are being written to $LOG_FILE)"
 
 if [ "$VERBOSE" = true ]; then
     "${TEST_CMD[@]}" 2>&1 | tee "$LOG_FILE"
+    test_pipeline_status=("${PIPESTATUS[@]}")
+    EXIT_CODE=${test_pipeline_status[0]}
+    if [ "$EXIT_CODE" -eq 0 ]; then EXIT_CODE=${test_pipeline_status[1]}; fi
 else
     # Run silently-ish, just showing dots or simple progress
     "${TEST_CMD[@]}" > "$LOG_FILE" 2>&1 &
@@ -303,7 +306,7 @@ echo ""
 
 # Extract Summary Info
 TOTAL_TESTS=$(grep -o "Executed [0-9]* tests" "$LOG_FILE" | awk '{sum+=$2} END {print sum}' || echo "0")
-FAILED_TESTS=$(grep -o "with [0-9]* failures" "$LOG_FILE" | awk '{sum+=$2} END {print sum}' || echo "0")
+FAILED_TESTS=$(grep -oE "with [0-9]+ failures?" "$LOG_FILE" | awk '{sum+=$2} END {print sum}' || echo "0")
 # Unexpected failures usually part of the same line, just grabbing total failures is often enough, 
 # but let's try to get a clean count. The output format is usually:
 # Executed 3 tests, with 0 failures (0 unexpected) in 0.003 (0.004) seconds
@@ -313,6 +316,7 @@ ACTUAL_TEST_RUNS=$(grep "Executed [1-9][0-9]* tests" "$LOG_FILE" || true)
 
 if [ -z "$TOTAL_TESTS" ] || [ "$TOTAL_TESTS" = "0" ]; then TOTAL_TESTS=0; fi
 if [ -z "$FAILED_TESTS" ] || [ "$FAILED_TESTS" = "0" ]; then FAILED_TESTS=0; fi
+if [ "$FAILED_TESTS" -gt 0 ] && [ "$EXIT_CODE" -eq 0 ]; then EXIT_CODE=1; fi
 
 # 5b. 測試數量地板 (T-0176)
 #

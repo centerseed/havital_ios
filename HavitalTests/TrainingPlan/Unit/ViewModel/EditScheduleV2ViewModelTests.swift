@@ -120,8 +120,10 @@ final class EditScheduleV2ViewModelTests: XCTestCase {
     /// Exercise the actual day editor, not a direct mutation of the week model.
     func testDayEditor_removingCooldownPreservesSecondsOnlyStaticRecovery() async throws {
         let repository = MockTrainingPlanV2Repository()
+        let weeklyPlan = makeIntervalPlanWithWarmupCooldown()
+        repository.weeklyPlanV2ToReturn = weeklyPlan
         let viewModel = EditScheduleV2ViewModel(
-            weeklyPlan: makeIntervalPlanWithWarmupCooldown(), repository: repository
+            weeklyPlan: weeklyPlan, repository: repository
         )
         let originalDay = viewModel.editingDays[0]
         let editor = TrainingDayEditState(from: originalDay)
