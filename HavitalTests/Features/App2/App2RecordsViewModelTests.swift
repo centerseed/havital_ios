@@ -228,6 +228,8 @@ final class App2RecordsViewModelTests: XCTestCase {
         )
     }
 
+    /// `fixedNow` 是 8/26 週三，本週一是 8/24：前天（8/24）還在本週，不得標成「上週」，
+    /// 它歸 8 月桶；6 天前（8/20）才是上一個日曆週。月份桶排在「上週」之後。
     func test_groups_splitsTodayYesterdayAndLastWeek() {
         let groups = App2RecordsViewModel.groups(
             [
@@ -239,26 +241,32 @@ final class App2RecordsViewModelTests: XCTestCase {
             now: fixedNow
         )
 
-        XCTAssertEqual(groups.count, 3)
+        XCTAssertEqual(groups.count, 4)
         XCTAssertEqual(groups[0].items.map(\.id), ["today"])
         XCTAssertEqual(groups[1].items.map(\.id), ["yesterday"])
-        XCTAssertEqual(groups[2].items.map(\.id), ["twodays", "sixdays"])
+        XCTAssertEqual(groups[2].items.map(\.id), ["sixdays"])
+        XCTAssertEqual(groups[3].items.map(\.id), ["twodays"])
         XCTAssertEqual(groups[0].title, L10n.Record.Group.today.localized)
         XCTAssertEqual(groups[1].title, L10n.Record.Group.yesterday.localized)
         XCTAssertEqual(groups[2].title, L10n.Record.Group.lastWeek.localized)
+        XCTAssertEqual(
+            groups[3].title,
+            L10n.Record.Group.monthGroupFormat.localized(with: 2026, 8),
+            "本週非今天／昨天的紀錄歸月份桶，不叫「上週」"
+        )
     }
 
-    /// 「上週」是滾動 7 天，不看日曆週界，所以 locale 的週首（zh-TW 是週日）不影響分組：
-    /// 8/30（上一個日曆週的週日）與 8/31（本日曆週的週一）在 9/2 看都是「上週」。
-    func test_groups_lastWeekIsRollingSevenDaysNotCalendarWeek() {
+    /// 「上週」＝上一個日曆週，週界固定在週一，不隨 locale 週首（zh-TW 是週日）飄：
+    /// 在 9/2（週三）看，8/30（週日）是上週最後一天，8/31（週一）已經是本週。
+    func test_groups_lastWeekIsCalendarWeekStartingMonday() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Asia/Taipei")!
         calendar.firstWeekday = 1
         let wednesday = calendar.date(from: DateComponents(year: 2026, month: 9, day: 2, hour: 12))!
         let sunday = calendar.date(from: DateComponents(year: 2026, month: 8, day: 30, hour: 8))!
         let monday = calendar.date(from: DateComponents(year: 2026, month: 8, day: 31, hour: 8))!
-        // 8 天前，落在滾動視窗外 → 月份桶。
-        let older = calendar.date(from: DateComponents(year: 2026, month: 8, day: 25, hour: 8))!
+        // 上上週 → 月份桶。
+        let older = calendar.date(from: DateComponents(year: 2026, month: 8, day: 20, hour: 8))!
 
         let groups = App2RecordsViewModel.groups(
             [
@@ -273,13 +281,12 @@ final class App2RecordsViewModelTests: XCTestCase {
         let sundayGroup = groups.first { $0.items.contains { $0.id == "sunday" } }
         let mondayGroup = groups.first { $0.items.contains { $0.id == "monday" } }
         let olderGroup = groups.first { $0.items.contains { $0.id == "older" } }
+        let augustTitle = L10n.Record.Group.monthGroupFormat.localized(with: 2026, 8)
         XCTAssertEqual(sundayGroup?.title, L10n.Record.Group.lastWeek.localized)
-        XCTAssertEqual(mondayGroup?.title, L10n.Record.Group.lastWeek.localized)
-        XCTAssertEqual(
-            olderGroup?.title,
-            L10n.Record.Group.monthGroupFormat.localized(with: 2026, 8),
-            "8 天前超出滾動視窗，歸月份桶"
-        )
+        XCTAssertEqual(mondayGroup?.title, augustTitle, "本週一不是上週")
+        XCTAssertEqual(olderGroup?.title, augustTitle)
+        XCTAssertEqual(groups.map(\.title), [L10n.Record.Group.lastWeek.localized, augustTitle],
+                       "月份桶排在「上週」之後，同一個月不被切成兩段")
     }
 
     /// 更早的紀錄按月分桶：同一個月一定落在同一組（月初當 key，已正規化）。

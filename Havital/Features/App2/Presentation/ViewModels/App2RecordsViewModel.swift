@@ -60,7 +60,7 @@ struct App2RecordFilter: Identifiable, Equatable {
 private enum App2RecordBucket: Hashable {
     case today
     case yesterday
-    /// 最近一週（不含今天／昨天）：從 7 天前起算的滾動視窗，不是日曆週。
+    /// 上一個日曆週（週一起算），不含今天／昨天。
     case lastWeek
     /// 更早：以「該月的月初」當鍵。**算出來的 `Date` 當 key 一定先正規化**
     /// （`AGENTS.md` 陷阱 1）。
@@ -377,9 +377,10 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
     ///
     /// 用裝置當地日曆；月份桶的 key 正規化到「月初」再當 Dictionary key。
     ///
-    /// **「上週」是從 7 天前起算的滾動視窗，不是日曆週**（2026-09-02 裁決）：日曆週界
-    /// 讓同一筆紀錄在週一凌晨從「本週稍早」跳成「上週」，且週初時「本週稍早」幾乎總是空的。
-    /// 取消「本週稍早」後，今天／昨天以外、7 天內的紀錄一律歸「上週」。
+    /// **「上週」＝上一個日曆週（週一起算），不是滾動 7 天視窗**（2026-09-11 裁決）：
+    /// 滾動視窗會把本週的紀錄標成「上週」——今天週五時前天跑的課就落在那個桶。
+    /// 「本週稍早」不再單獨成桶（那個桶週初幾乎總是空的），本週非今天／昨天的紀錄
+    /// 歸入所屬月份桶；月份桶一律排在「上週」之後，同一個月不會被切成兩段。
     static func groups(
         _ items: [App2RecordItem],
         now: Date = Date(),
@@ -393,10 +394,9 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
             }
         }
 
-        let today = calendar.startOfDay(for: now)
         let yesterday = calendar.date(byAdding: .day, value: -1, to: now)
-        // 7 天前的 00:00 —— 含當天，所以「上週」實際涵蓋今天往回第 2～7 天。
-        let lastWeekStart = calendar.date(byAdding: .day, value: -7, to: today)
+        let thisWeekStart = App2WeekCalendar.currentWeekStart(reference: now, calendar: calendar)
+        let lastWeekStart = calendar.date(byAdding: .day, value: -7, to: thisWeekStart)
 
         var order: [App2RecordBucket] = []
         var buckets: [App2RecordBucket: [App2RecordItem]] = [:]
@@ -408,7 +408,7 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
                     bucket = .today
                 } else if let yesterday, calendar.isDate(date, inSameDayAs: yesterday) {
                     bucket = .yesterday
-                } else if let lastWeekStart, date >= lastWeekStart, date < today {
+                } else if let lastWeekStart, date >= lastWeekStart, date < thisWeekStart {
                     bucket = .lastWeek
                 } else {
                     bucket = .month(calendar.dateInterval(of: .month, for: date)?.start ?? date)
@@ -424,7 +424,23 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
             buckets[bucket]?.append(item)
         }
 
-        return order.compactMap { bucket in
+        // 「上週」永遠排在月份桶之前：本週稍早的紀錄落在當月桶，若照出現順序排，
+        // 當月會被「上週」從中間切成兩段。
+        func rank(_ bucket: App2RecordBucket) -> Int {
+            switch bucket {
+            case .today, .yesterday, .lastWeek: return 0
+            case .month:                        return 1
+            case .undated:                      return 2
+            }
+        }
+        let ordered = order.enumerated()
+            .sorted { lhs, rhs in
+                let (l, r) = (rank(lhs.element), rank(rhs.element))
+                return l == r ? lhs.offset < rhs.offset : l < r
+            }
+            .map(\.element)
+
+        return ordered.compactMap { bucket in
             guard let items = buckets[bucket], !items.isEmpty else { return nil }
             return App2RecordGroup(title: title(for: bucket, calendar: calendar), items: items)
         }

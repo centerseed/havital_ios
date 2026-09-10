@@ -6,7 +6,7 @@ import HealthKit
 // Changes from original:
 //   1. Replaced List with ScrollView + lazy VStack for full visual control
 //   2. Added horizontal-scroll filter chip row (全部 / 輕鬆跑 / 節奏跑 / 間歇 / 長距離)
-//   3. Added grouping logic by recency (今天 / 昨天 / 本週稍早 / 上週 / month-based older)
+//   3. Added grouping logic by recency (今天 / 昨天 / 上週 / month-based older)
 //   4. Group header shows count + total km
 //   5. WorkoutV2RowView receives planMatched derived here
 //   Unchanged: loadWorkouts / pagination flow, WorkoutDetailViewV2 routing
@@ -201,11 +201,11 @@ struct TrainingRecordView: View {
 
     private var groupedWorkouts: [WorkoutGroup] {
         let calendar = Calendar.current
-        let today = calendar.startOfDay(for: Date())
 
-        // 「上週」＝從 7 天前起算的滾動視窗（今天往回第 2～7 天），不是日曆週；
-        // 日曆週界會讓同一筆紀錄在週一凌晨從「本週稍早」跳成「上週」（2026-09-02 裁決）。
-        let lastWeekStart = calendar.date(byAdding: .day, value: -7, to: today)
+        // 「上週」＝上一個日曆週（週一起算）；滾動 7 天視窗會把本週的紀錄標成
+        // 「上週」（2026-09-11 裁決）。本週非今天／昨天的紀錄歸入所屬月份桶。
+        let thisWeekStart = App2WeekCalendar.currentWeekStart(reference: Date(), calendar: calendar)
+        let lastWeekStart = calendar.date(byAdding: .day, value: -7, to: thisWeekStart)
 
         var groups: [WorkoutGroup] = []
         var todayItems: [WorkoutV2] = []
@@ -220,7 +220,7 @@ struct TrainingRecordView: View {
                 todayItems.append(workout)
             } else if calendar.isDateInYesterday(date) {
                 yesterdayItems.append(workout)
-            } else if let lastWeekStart, date >= lastWeekStart, date < today {
+            } else if let lastWeekStart, date >= lastWeekStart, date < thisWeekStart {
                 lastWeekItems.append(workout)
             } else {
                 // Group by month string e.g. "2026年4月"
