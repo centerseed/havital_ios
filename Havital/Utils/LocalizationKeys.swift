@@ -694,7 +694,6 @@ enum GaitAnalysisChart {
         enum PaceZone {
             static let recovery = "training.pace_zone.recovery"
             static let easy = "training.pace_zone.easy"
-            static let tempo = "training.pace_zone.tempo"
             static let marathon = "training.pace_zone.marathon"
             static let threshold = "training.pace_zone.threshold"
             static let anaerobic = "training.pace_zone.anaerobic"
@@ -1574,8 +1573,6 @@ extension L10n {
             static let easyBenefit = "edit_schedule.pace_zone.easy.benefit" // "效益：建立有氧基礎、增強耐力、降低受傷風險"
 
             // Tempo
-            static let tempoDesc = "edit_schedule.pace_zone.tempo.description" // "乳酸閾值訓練，維持 20-30 分鐘，提升跑步經濟性"
-            static let tempoBenefit = "edit_schedule.pace_zone.tempo.benefit" // "效益：提升乳酸閾值、改善跑步經濟性、增強心肺功能"
 
             // Marathon
             static let marathonDesc = "edit_schedule.pace_zone.marathon.description" // "目標馬拉松比賽配速，長距離持續配速訓練"

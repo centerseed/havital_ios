@@ -582,8 +582,7 @@
 /* Daniels pace zones (帶配速等級代碼) */
 "training.pace_zone.recovery" = "恢復跑配速[R]";
 "training.pace_zone.easy" = "輕鬆跑配速[Easy]";
-"training.pace_zone.tempo" = "馬拉松配速[M]";
-"training.pace_zone.marathon" = "全程馬拉松配速[M]";
+"training.pace_zone.marathon" = "馬拉松配速[M]";
 "training.pace_zone.threshold" = "閾值跑配速[TH]";
 "training.pace_zone.anaerobic" = "無氧配速[AN]";
 "training.pace_zone.interval" = "間歇跑配速[I]";
@@ -2139,8 +2138,6 @@
 "edit_schedule.pace_zone.recovery.benefit" = "效益：促進肌肉恢復、減少疲勞累積";
 "edit_schedule.pace_zone.easy.description" = "日常訓練基礎配速，可以舒適對話，建立有氧基礎";
 "edit_schedule.pace_zone.easy.benefit" = "效益：建立有氧基礎、增強耐力、降低受傷風險";
-"edit_schedule.pace_zone.tempo.description" = "乳酸閾值訓練，維持 20-30 分鐘，提升跑步經濟性";
-"edit_schedule.pace_zone.tempo.benefit" = "效益：提升乳酸閾值、改善跑步經濟性、增強心肺功能";
 "edit_schedule.pace_zone.marathon.description" = "目標馬拉松比賽配速，長距離持續配速訓練";
 "edit_schedule.pace_zone.marathon.benefit" = "效益：適應馬拉松配速、提升長距離耐力、模擬比賽強度";
 "edit_schedule.pace_zone.threshold.description" = "高強度有氧訓練，提升最大攝氧量";

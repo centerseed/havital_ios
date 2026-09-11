@@ -203,13 +203,16 @@ struct TrainingRecordView: View {
         let calendar = Calendar.current
 
         // 「上週」＝上一個日曆週（週一起算）；滾動 7 天視窗會把本週的紀錄標成
-        // 「上週」（2026-09-11 裁決）。本週非今天／昨天的紀錄歸入所屬月份桶。
+        // 「上週」（2026-09-11 裁決）。本週非今天／昨天的那幾天自己一格「本週稍早」——
+        // 併進月份桶會讓它們排在「上週」下面，讀起來像消失了（同日使用者回報）。
         let thisWeekStart = App2WeekCalendar.currentWeekStart(reference: Date(), calendar: calendar)
         let lastWeekStart = calendar.date(byAdding: .day, value: -7, to: thisWeekStart)
+        let todayStart = calendar.startOfDay(for: Date())
 
         var groups: [WorkoutGroup] = []
         var todayItems: [WorkoutV2] = []
         var yesterdayItems: [WorkoutV2] = []
+        var earlierThisWeekItems: [WorkoutV2] = []
         var lastWeekItems: [WorkoutV2] = []
         var olderBuckets: [String: [WorkoutV2]] = [:]
         var olderOrder: [String] = []
@@ -220,6 +223,8 @@ struct TrainingRecordView: View {
                 todayItems.append(workout)
             } else if calendar.isDateInYesterday(date) {
                 yesterdayItems.append(workout)
+            } else if date >= thisWeekStart, date < todayStart {
+                earlierThisWeekItems.append(workout)
             } else if let lastWeekStart, date >= lastWeekStart, date < thisWeekStart {
                 lastWeekItems.append(workout)
             } else {
@@ -235,6 +240,9 @@ struct TrainingRecordView: View {
 
         if !todayItems.isEmpty { groups.append(WorkoutGroup(title: L10n.Record.Group.today.localized, workouts: todayItems)) }
         if !yesterdayItems.isEmpty { groups.append(WorkoutGroup(title: L10n.Record.Group.yesterday.localized, workouts: yesterdayItems)) }
+        if !earlierThisWeekItems.isEmpty {
+            groups.append(WorkoutGroup(title: L10n.Record.Group.earlierThisWeek.localized, workouts: earlierThisWeekItems))
+        }
         if !lastWeekItems.isEmpty { groups.append(WorkoutGroup(title: L10n.Record.Group.lastWeek.localized, workouts: lastWeekItems)) }
         for key in olderOrder {
             if let items = olderBuckets[key], !items.isEmpty {

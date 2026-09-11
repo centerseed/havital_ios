@@ -60,6 +60,12 @@ struct App2RecordFilter: Identifiable, Equatable {
 private enum App2RecordBucket: Hashable {
     case today
     case yesterday
+    /// 本週一起算、但不是今天也不是昨天的那幾天。
+    ///
+    /// **不得併進月份桶**（2026-09-11 使用者回報）：那會讓本週前幾天的紀錄排在
+    /// 「上週」下面，讀起來像消失了。2026-09-02 曾把這一格拿掉，當時「上週」是
+    /// 滾動七天視窗、順手吸收了它；上週改回日曆週之後前提就不成立。
+    case earlierThisWeek
     /// 上一個日曆週（週一起算），不含今天／昨天。
     case lastWeek
     /// 更早：以「該月的月初」當鍵。**算出來的 `Date` 當 key 一定先正規化**
@@ -392,7 +398,10 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
                     bucket = .today
                 } else if let yesterday, calendar.isDate(date, inSameDayAs: yesterday) {
                     bucket = .yesterday
-                } else if let lastWeekStart, date >= lastWeekStart, date < thisWeekStart {
+                } else if date >= thisWeekStart, date < calendar.startOfDay(for: now) {
+                    // 上界是今天零點：未來日期（資料異常）不得被說成本週稍早。
+                    bucket = .earlierThisWeek
+                } else if let lastWeekStart, date >= lastWeekStart {
                     bucket = .lastWeek
                 } else {
                     bucket = .month(calendar.dateInterval(of: .month, for: date)?.start ?? date)
@@ -408,13 +417,12 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
             buckets[bucket]?.append(item)
         }
 
-        // 「上週」永遠排在月份桶之前：本週稍早的紀錄落在當月桶，若照出現順序排，
-        // 當月會被「上週」從中間切成兩段。
+        // 相對分組永遠排在月份桶之前，否則當月會被「上週」從中間切成兩段。
         func rank(_ bucket: App2RecordBucket) -> Int {
             switch bucket {
-            case .today, .yesterday, .lastWeek: return 0
-            case .month:                        return 1
-            case .undated:                      return 2
+            case .today, .yesterday, .earlierThisWeek, .lastWeek: return 0
+            case .month:                                          return 1
+            case .undated:                                        return 2
             }
         }
         let ordered = order.enumerated()
@@ -434,6 +442,7 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
         switch bucket {
         case .today:            return L10n.Record.Group.today.localized
         case .yesterday:        return L10n.Record.Group.yesterday.localized
+        case .earlierThisWeek:  return L10n.Record.Group.earlierThisWeek.localized
         case .lastWeek:         return L10n.Record.Group.lastWeek.localized
         case .undated:          return L10n.Record.Group.older.localized
         case .month(let start):

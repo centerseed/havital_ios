@@ -593,7 +593,6 @@
 /* Daniels pace zones (with level codes) */
 "training.pace_zone.recovery" = "Recovery Pace [R]";
 "training.pace_zone.easy" = "Easy Pace [Easy]";
-"training.pace_zone.tempo" = "Marathon Pace [M]";
 "training.pace_zone.marathon" = "Marathon Pace [M]";
 "training.pace_zone.threshold" = "Threshold Pace [TH]";
 "training.pace_zone.anaerobic" = "Anaerobic Pace [AN]";
@@ -2156,8 +2155,6 @@
 "edit_schedule.pace_zone.recovery.benefit" = "Benefits: Promote muscle recovery, reduce fatigue accumulation";
 "edit_schedule.pace_zone.easy.description" = "Basic daily training pace, comfortable conversation pace, build aerobic base";
 "edit_schedule.pace_zone.easy.benefit" = "Benefits: Build aerobic base, enhance endurance, reduce injury risk";
-"edit_schedule.pace_zone.tempo.description" = "Lactate threshold training, maintain 20-30 minutes, improve running economy";
-"edit_schedule.pace_zone.tempo.benefit" = "Benefits: Improve lactate threshold, enhance running economy, strengthen cardiovascular function";
 "edit_schedule.pace_zone.marathon.description" = "Target marathon race pace, long-distance sustained pace training";
 "edit_schedule.pace_zone.marathon.benefit" = "Benefits: Adapt to marathon pace, improve long-distance endurance, simulate race intensity";
 "edit_schedule.pace_zone.threshold.description" = "High-intensity aerobic training, improve maximum oxygen uptake";

@@ -593,7 +593,6 @@
 /* Daniels pace zones (配速等級コード付き) */
 "training.pace_zone.recovery" = "リカバリーペース[R]";
 "training.pace_zone.easy" = "イージーペース[Easy]";
-"training.pace_zone.tempo" = "マラソンペース[M]";
 "training.pace_zone.marathon" = "マラソンペース[M]";
 "training.pace_zone.threshold" = "閾値ペース[TH]";
 "training.pace_zone.anaerobic" = "無酸素ペース[AN]";
@@ -2134,8 +2133,6 @@
 "edit_schedule.pace_zone.recovery.benefit" = "筋肉の回復を促進し、疲労の蓄積を軽減します";
 "edit_schedule.pace_zone.easy.description" = "日常トレーニングの基本ペースで、快適に会話できる速度で走り、有酸素基礎を構築します";
 "edit_schedule.pace_zone.easy.benefit" = "有酸素基礎を構築し、持久力を強化し、怪我のリスクを低減します";
-"edit_schedule.pace_zone.tempo.description" = "乳酸閾値トレーニングとして20〜30分維持し、ランニングエコノミーを向上させます";
-"edit_schedule.pace_zone.tempo.benefit" = "乳酸閾値を向上させ、ランニングエコノミーを改善し、心肺機能を強化します";
 "edit_schedule.pace_zone.marathon.description" = "目標マラソンレースペースでの長距離持続ペーストレーニングです";
 "edit_schedule.pace_zone.marathon.benefit" = "マラソンペースに適応し、長距離持久力を向上させ、レース強度をシミュレートします";
 "edit_schedule.pace_zone.threshold.description" = "高強度有酸素トレーニングで、最大酸素摂取量を向上させます";

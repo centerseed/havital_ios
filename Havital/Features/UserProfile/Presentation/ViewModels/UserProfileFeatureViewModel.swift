@@ -714,7 +714,6 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
         switch zone {
         case .recovery: return .blue
         case .easy: return .green
-        case .tempo: return .yellow
         case .marathon: return .orange
         case .threshold: return .orange
         case .anaerobic: return .purple
@@ -726,7 +725,6 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
         switch zone {
         case .recovery: return "recovery"
         case .easy: return "easy"
-        case .tempo: return "tempo"
         case .marathon: return "marathon"
         case .threshold: return "threshold"
         case .anaerobic: return "anaerobic"

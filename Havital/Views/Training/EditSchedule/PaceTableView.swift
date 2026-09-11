@@ -90,8 +90,6 @@ struct PaceTableView: View {
             return "recovery"
         case .easy:
             return "easy"
-        case .tempo:
-            return "tempo"
         case .marathon:
             return "marathon"
         case .threshold:
@@ -109,8 +107,6 @@ struct PaceTableView: View {
             return .blue
         case .easy:
             return .green
-        case .tempo:
-            return .yellow
         case .marathon:
             return .orange
         case .threshold:
@@ -128,8 +124,6 @@ struct PaceTableView: View {
             return L10n.EditSchedule.PaceZone.recoveryDesc.localized
         case .easy:
             return L10n.EditSchedule.PaceZone.easyDesc.localized
-        case .tempo:
-            return L10n.EditSchedule.PaceZone.tempoDesc.localized
         case .marathon:
             return L10n.EditSchedule.PaceZone.marathonDesc.localized
         case .threshold:
@@ -147,8 +141,6 @@ struct PaceTableView: View {
             return L10n.EditSchedule.PaceZone.recoveryBenefit.localized
         case .easy:
             return L10n.EditSchedule.PaceZone.easyBenefit.localized
-        case .tempo:
-            return L10n.EditSchedule.PaceZone.tempoBenefit.localized
         case .marathon:
             return L10n.EditSchedule.PaceZone.marathonBenefit.localized
         case .threshold:

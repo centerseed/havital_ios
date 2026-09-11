@@ -10,7 +10,6 @@ struct PaceCalculator {
     enum PaceZone: String, CaseIterable {
         case recovery = "恢復跑配速[R]"
         case easy = "輕鬆跑配速[Easy]"
-        case tempo = "節奏跑配速[T]"
         case marathon = "全程馬拉松配速[M]"
         case threshold = "閾值跑配速[TH]"
         case anaerobic = "無氧配速[AN]"
@@ -21,9 +20,12 @@ struct PaceCalculator {
             switch self {
             case .recovery:   return (0.52, 0.59)
             case .easy:       return (0.59, 0.74)
-            // T-0036: tempo 正名為「馬拉松配速」(Z3, 0.75–0.84 HRR / ~76%)，中強度持續跑，
-            // 與後端 tempo=0.80 對齊;閾值跑(LT2 ~0.83–0.88)獨立於下方。
-            case .tempo:      return (0.75, 0.84)
+            // Z3 中強度持續跑。**只有一格**：T-0036 把 `tempo` 正名成「馬拉松配速」
+            // 之後，它與 `marathon` 的百分比範圍一字不差（兩格都是 0.75–0.84），
+            // 配速表因此同時列出「馬拉松配速[M]」與「全程馬拉松配速[M]」、數字一樣
+            // （2026-09-11 使用者回報）。後端的 zone SSOT
+            // （`core/calculations/speed_zones.py:12`）只有 recovery／easy／marathon／
+            // threshold／anaerobic／interval 六格，沒有 tempo，所以留 marathon。
             case .marathon:   return (0.75, 0.84)
             case .threshold:  return (0.83, 0.88)
             case .anaerobic:  return (0.88, 0.95)
@@ -36,7 +38,6 @@ struct PaceCalculator {
             switch self {
             case .recovery:  return L10n.Training.PaceZone.recovery.localized
             case .easy:      return L10n.Training.PaceZone.easy.localized
-            case .tempo:     return L10n.Training.PaceZone.tempo.localized
             case .marathon:  return L10n.Training.PaceZone.marathon.localized
             case .threshold: return L10n.Training.PaceZone.threshold.localized
             case .anaerobic: return L10n.Training.PaceZone.anaerobic.localized
@@ -53,7 +54,6 @@ struct PaceCalculator {
             switch self {
             case .recovery:  return "E"
             case .easy:      return "E"
-            case .tempo:     return "M"
             case .marathon:  return "M"
             case .threshold: return "T"
             case .anaerobic: return "I"
@@ -217,8 +217,9 @@ struct PaceCalculator {
         case "easy", "easyrun", "easy_run", "lsd":
             return .easy
 
+        // 節奏跑走 M 區：後端沒有獨立的 tempo zone。
         case "tempo", "tempo_run":
-            return .tempo
+            return .marathon
 
         case "threshold", "threshold_run":
             return .threshold
@@ -237,8 +238,8 @@ struct PaceCalculator {
             return .marathon
 
         case "progression", "combination":
-            // 組合跑和漸進跑可能包含多個區間，返回節奏跑作為中等強度參考
-            return .tempo
+            // 組合跑和漸進跑可能包含多個區間，回中等強度的 M 區當參考
+            return .marathon
 
         default:
             return nil
@@ -291,7 +292,7 @@ extension DayType {
         case .easyRun, .easy, .lsd:
             return .easy
         case .tempo:
-            return .tempo
+            return .marathon
         case .threshold:
             return .threshold
         case .interval:
@@ -299,7 +300,7 @@ extension DayType {
         case .longRun:
             return .marathon
         case .progression, .combination:
-            return .tempo
+            return .marathon
         default:
             return nil
         }

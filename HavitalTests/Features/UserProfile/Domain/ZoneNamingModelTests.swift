@@ -14,8 +14,13 @@ import XCTest
 /// PaceCalculator, which is why it went red.
 ///
 /// 6-zone model, as shipped:
-///   recovery (0.52–0.59) / easy (0.59–0.74) / marathon ≡ tempo (Z3, 0.75–0.84) /
+///   recovery (0.52–0.59) / easy (0.59–0.74) / marathon (Z3, 0.75–0.84) /
 ///   threshold (Z4, 0.83–0.88) / anaerobic (0.88–0.95) / interval (0.95–1.0)
+///
+/// 2026-09-11：`PaceZone.tempo` 已刪除。它與 `marathon` 的百分比範圍一字不差，配速表
+/// 因此同時列出「馬拉松配速[M]」與「全程馬拉松配速[M]」、數字一樣（使用者回報）。
+/// zone 的 SSOT 是後端 `core/calculations/speed_zones.py:12` 的六格，沒有 tempo，
+/// 所以留 marathon；節奏跑（`tempo` run type）對映到 M 區。
 final class ZoneNamingModelTests: XCTestCase {
 
     // MARK: - HR Zones (HeartRateZone)
@@ -59,11 +64,24 @@ final class ZoneNamingModelTests: XCTestCase {
 
     // MARK: - Pace Zones (PaceCalculator)
 
-    func test_paceZone_tempo_isMarathonBand() {
-        // tempo mirrors the backend's medium band (0.75–0.84), i.e. the marathon band.
-        let (low, high) = PaceCalculator.PaceZone.tempo.percentageRange
-        XCTAssertEqual(low, 0.75, accuracy: 0.001, "tempo low must align to the backend's 0.75")
-        XCTAssertEqual(high, 0.84, accuracy: 0.001, "tempo high must align to the backend's 0.84")
+    /// 配速表**不得出現兩格同樣範圍**（2026-09-11 使用者回報）。這一條鎖的是
+    /// 「zone 集合沒有重複的百分比範圍」，不是某一格的值——加回任何一格別名都會紅。
+    func test_paceZones_haveNoDuplicateRanges() {
+        let ranges = PaceCalculator.PaceZone.allCases.map { $0.percentageRange }
+        let unique = Set(ranges.map { "\($0.0)-\($0.1)" })
+        XCTAssertEqual(
+            unique.count, ranges.count,
+            "有兩格以上的配速區間範圍完全相同：\(PaceCalculator.PaceZone.allCases.map { "\($0)=\($0.percentageRange)" })"
+        )
+    }
+
+    func test_paceZones_matchBackendZoneSet() {
+        // 後端 `core/calculations/speed_zones.py:12` 的 zone_order 加上 client 自己多的
+        // 一格 `anaerobic`（落在 I 與 R 之間，見 `PaceZone.danielsCode` 的註解）。
+        XCTAssertEqual(
+            PaceCalculator.PaceZone.allCases.map { String(describing: $0) },
+            ["recovery", "easy", "marathon", "threshold", "anaerobic", "interval"]
+        )
     }
 
     func test_paceZone_threshold_isThresholdBand() {
@@ -82,7 +100,6 @@ final class ZoneNamingModelTests: XCTestCase {
 
     func test_paceZone_threshold_fasterThan_marathon() {
         // The invariant that actually matters: threshold effort is faster than marathon effort.
-        // (Comparing tempo vs marathon would be vacuous — they are the same band by design.)
         let vdot = 45.0
         let threshold = PaceCalculator.getSuggestedPace(for: "threshold", vdot: vdot)!
         let marathon = PaceCalculator.getSuggestedPace(for: "marathon", vdot: vdot)!
