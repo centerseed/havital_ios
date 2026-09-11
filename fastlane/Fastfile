@@ -113,7 +113,8 @@ platform :ios do
       api_key: key, ipa: ipa,
       submit_for_review: true, automatic_release: false, force: true,
       run_precheck_before_submit: false,
-      skip_screenshots: true,            # 截圖不動
+      skip_screenshots: false,           # 推 fastlane/screenshots/<locale>/ 的截圖
+      overwrite_screenshots: true,       # 清掉 ASC 上舊版(含 iPad)的截圖,只留這次上傳的
       skip_metadata: false,              # 推 metadata,但只有 release_notes.txt 存在 → 只更新 release notes
       submission_information: { export_compliance_uses_encryption: false },
     )

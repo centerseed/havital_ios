@@ -10,13 +10,14 @@
 
 ## 每次發版（iOS = 自動直接上傳 + 送審）
 0. **只能從 main 發版**：feature branch 上的改動必須先過 `/judge ios <branch>` merge 回 main 才能出貨（root `scripts/hooks/merge_gate.py` 硬擋非 main 的 `fastlane ios release`）。
-1. **定版號**：Xcode 改 `MARKETING_VERSION`（目前 pbxproj = 1.4.11）。build 號**免手動**，lane 自動取 App Store/TestFlight 最大 build + 1。
+1. **定版號**：Xcode 改 `MARKETING_VERSION`（目前 pbxproj = 2.0.0）。build 號**免手動**，lane 自動取 App Store/TestFlight 最大 build + 1。
 2. **確認 release notes**（唯一要人工過的關）：填 `fastlane/metadata/{zh-Hant,ja,en-US}/release_notes.txt` 三語文案並確認。
+2a. **確認截圖**：`fastlane/screenshots/{zh-Hant,ja,en-US}/` 各放 6.9" (1320×2868) 的畫面。lane 帶 `overwrite_screenshots: true`——ASC 上該版本原有的截圖（含舊的 iPad）會被清掉，只留這批。要沿用 ASC 現有截圖就把 lane 的 `skip_screenshots` 改回 `true`。
 3. **出版**：
    ```bash
    cd apps/ios/Havital && fastlane ios release
    ```
-   → archive → 簽章 → 上傳 App Store → 推 release notes → **送審**（`automatic_release=false`）。過審後在 App Store Connect 手動 Release。
+   → archive → 簽章 → 上傳 App Store → 推 release notes ＋ 截圖 → **送審**（`automatic_release=false`）。過審後在 App Store Connect 手動 Release。
 
 ## 其他 lane
 - `fastlane ios build` — 只 build + 匯出 IPA 到 `build/ipa/`，開 Finder（想手動 Transporter 上傳時用）。
