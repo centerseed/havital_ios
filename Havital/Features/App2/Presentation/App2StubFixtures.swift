@@ -164,7 +164,6 @@ enum App2StubFixtures {
     private struct RecordsFixture: Codable {
         let monthDistanceKm: Double
         let monthWorkouts: Int
-        let monthDeltaKm: Double?
         let ytdYear: Int?
         let ytdDistanceKm: Double?
         let ytdWorkouts: Int?
@@ -172,7 +171,7 @@ enum App2StubFixtures {
         let recentWorkouts: [WorkoutRowFixture]
 
         static let empty = RecordsFixture(
-            monthDistanceKm: 0, monthWorkouts: 0, monthDeltaKm: nil,
+            monthDistanceKm: 0, monthWorkouts: 0,
             ytdYear: nil, ytdDistanceKm: nil, ytdWorkouts: nil,
             weeklySeries: [], recentWorkouts: []
         )
@@ -180,7 +179,7 @@ enum App2StubFixtures {
         var domain: App2Records {
             App2Records(
                 monthDistanceKm: monthDistanceKm, monthWorkouts: monthWorkouts,
-                monthDeltaKm: monthDeltaKm, ytdYear: ytdYear,
+                ytdYear: ytdYear,
                 ytdDistanceKm: ytdDistanceKm, ytdWorkouts: ytdWorkouts,
                 weeklySeries: weeklySeries.map(\.domain),
                 recentWorkouts: recentWorkouts.map(\.domain)

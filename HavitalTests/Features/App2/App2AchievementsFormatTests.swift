@@ -69,17 +69,4 @@ final class App2AchievementsFormatTests: XCTestCase {
         XCTAssertEqual(App2RecordsView.grouped(585.5), "585.5")
         XCTAssertEqual(App2RecordsView.grouped(1_284), "1,284")
     }
-
-    /// 「較上月」與上方的本月跑量同精度 —— 否則同一欄出現 `77.9 km` 配 `+78`。
-    func test_recordsMonthComparison_matchesTotalsPrecision() throws {
-        let up = try XCTUnwrap(App2RecordsView.monthComparison(77.9, unit: .metric))
-        XCTAssertTrue(up.contains("+77.9"), up)
-        XCTAssertTrue(up.hasPrefix("↑"), up)
-
-        let down = try XCTUnwrap(App2RecordsView.monthComparison(-12.4, unit: .metric))
-        XCTAssertTrue(down.contains("-12.4"), down)
-        XCTAssertTrue(down.hasPrefix("↓"), down)
-
-        XCTAssertNil(App2RecordsView.monthComparison(nil, unit: .metric))
-    }
 }

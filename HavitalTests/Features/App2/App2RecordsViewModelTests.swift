@@ -122,15 +122,15 @@ final class App2RecordsViewModelTests: XCTestCase {
 
     // MARK: - 月量與月比
 
-    func test_monthlyTotals_emptyHistory_isZeroWithNoDelta() {
+    func test_monthlyTotals_emptyHistory_isZero() {
         let totals = App2RecordsViewModel.monthlyTotals([])
         XCTAssertEqual(totals.distanceKm, 0)
         XCTAssertEqual(totals.workouts, 0)
-        // 一筆都沒有 ＝ 已經看完全部 → 上月也是 0，差為 0（不是「不知道」）。
-        XCTAssertEqual(totals.deltaKm, 0)
     }
 
-    func test_monthlyTotals_sumsThisMonthAndComparesToLastMonth() throws {
+    /// 只算本月：上個月的紀錄不進本月跑量（hero 只有「本月跑量」與次數，
+    /// 「較上月」那一列已於 2026-09-11 依使用者裁決移除）。
+    func test_monthlyTotals_sumsThisMonthOnly() throws {
         let calendar = Calendar.current
         let thisMonth = dayOfThisMonth(1)
         let lastMonth = try XCTUnwrap(calendar.date(byAdding: .month, value: -1, to: thisMonth))
@@ -142,7 +142,6 @@ final class App2RecordsViewModelTests: XCTestCase {
         ])
         XCTAssertEqual(totals.distanceKm, 18, accuracy: 0.001)
         XCTAssertEqual(totals.workouts, 2)
-        XCTAssertEqual(try XCTUnwrap(totals.deltaKm), 6, accuracy: 0.001)
     }
 
     /// 非跑步的活動不計入跑量。

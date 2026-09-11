@@ -1176,11 +1176,23 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 這時從處方分段推導 —— 主課段的 `work_pace`（4×400m 那天是 `4:50`）。
     /// 推不出來就回 nil（那一段不顯示），不拿熱調整值充數。
     static func dayPace(_ run: RunActivity) -> String? {
+        if paceSuppressedDayTypes.contains(run.runType.lowercased()) { return nil }
         if let pace = run.pace { return pace }
         return effectiveSegments(run)
             .first { $0.segmentKind == .interval }
             .flatMap { $0.work?.pace ?? $0.pace }
     }
+
+    /// 這些課型**不顯示配速**（2026-09-11 使用者裁決）。輕鬆跑與長距離輕鬆跑的處方
+    /// 本來就沒有單一配速——處方層只給配速帶（`shadow_prescription/session.py::_with_zones`
+    /// 明寫「規定一個確切的 easy 配速沒有意義」），舊資料流給的那個單值是區間慢端。
+    /// 判定走 `DayType` 的 rawValue，不另立第二份課型字串清單。
+    static let paceSuppressedDayTypes: Set<String> = [
+        DayType.easy.rawValue,
+        DayType.easyRun.rawValue,
+        DayType.lsd.rawValue,
+        DayType.longRun.rawValue,
+    ]
 
     /// 間歇日的「課表」行 ＝ **主課段（含組間恢復）總距離 ＋ 該段總時間**
     /// （2026-08-26 使用者裁決；設計 dc.html「今日課表 · 間歇」的 `1.6 km · 11:00`

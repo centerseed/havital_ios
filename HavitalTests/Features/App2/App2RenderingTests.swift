@@ -221,11 +221,13 @@ final class App2RenderingTests: XCTestCase {
     /// 單段輕鬆跑：卡片上有一列分段（「主課 9.0 km · 7:55/km」），
     /// 並且**仍然要有配速結構圖**（一整塊綠色穩定段，塊上標配速）交給訓練詳情頁。
     /// 2026-08-25 用戶裁決：結構圖不是間歇專屬。
+    /// 樣本是節奏跑：輕鬆跑與長距離輕鬆跑一律不顯示配速（2026-09-11 使用者裁決），
+    /// 拿 lsd 當樣本會讓這條「單段課要畫出配速塊」量到抑制而不是渲染。
     func test_home_singleSegmentSession_rendersPaceBlock() throws {
         let json = """
-        { "day_index": 2, "day_target": "長距離輕鬆跑", "reason": "有氧基礎",
-          "primary": { "run_type": "lsd", "distance_km": 9.0, "pace": "7:55",
-            "target_intensity": "low" } }
+        { "day_index": 2, "day_target": "節奏跑", "reason": "乳酸閾值",
+          "primary": { "run_type": "tempo", "distance_km": 9.0, "pace": "7:55",
+            "target_intensity": "medium" } }
         """
         let day = TrainingSessionMapper.toEntity(
             from: try JSONDecoder().decode(DayDetailDTO.self, from: Data(json.utf8))
@@ -248,7 +250,7 @@ final class App2RenderingTests: XCTestCase {
             rizoOpeningLine: "今天長跑訓練請按照計畫進行。"
         )
         render(App2HomeView(onOpenSettings: {}, viewModel: vm, achievementsViewModel: PersonalAchievementsViewModel()),
-               name: "today-card-easy-run", height: 1400)
+               name: "today-card-steady-run", height: 1400)
     }
 
     func test_weeklyVolumeChart_emptyAndAllZero_render() {

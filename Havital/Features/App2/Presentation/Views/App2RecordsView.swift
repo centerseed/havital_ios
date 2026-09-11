@@ -189,9 +189,8 @@ struct App2RecordsView: View {
                     titleColor: App2Theme.accentBlueDeep,
                     value: Self.grouped(unit.convertedDistance(records.monthDistanceKm)),
                     unit: unit.distanceSuffix,
-                    footnote: Self.monthComparison(records.monthDeltaKm, unit: unit)
-                        ?? String(format: L10n.App2.Records.runsCount.localized, records.monthWorkouts),
-                    footnoteColor: records.monthDeltaKm.map(Self.deltaColor)
+                    footnote: String(format: L10n.App2.Records.runsCount.localized, records.monthWorkouts),
+                    footnoteColor: nil
                 )
                 Rectangle()
                     .fill(App2Theme.shadowInk.opacity(0.1))
@@ -382,23 +381,6 @@ struct App2RecordsView: View {
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(App2Theme.inkMuted)
         }
-    }
-
-    /// 設計 hero 左欄的「↑ 較上月 +18」。上月資料不齊時 VM 給 nil，這一列就不出現。
-    ///
-    /// 精度跟上方的本月跑量同一條規則 —— 否則同一欄會出現 `77.9 km` 配 `+78`。
-    static func monthComparison(_ deltaKm: Double?, unit: UnitSystem) -> String? {
-        guard let deltaKm else { return nil }
-        let arrow = deltaKm > 0 ? "↑" : (deltaKm < 0 ? "↓" : "→")
-        let magnitude = grouped(unit.convertedDistance(abs(deltaKm)))
-        let signed = deltaKm > 0 ? "+\(magnitude)" : (deltaKm < 0 ? "-\(magnitude)" : magnitude)
-        return "\(arrow) " + String(format: L10n.App2.Records.vsLastMonth.localized, signed)
-    }
-
-    private static func deltaColor(_ deltaKm: Double) -> Color {
-        if deltaKm > 0 { return App2Theme.accentGreen }
-        if deltaKm < 0 { return App2Theme.accentOrangeText }
-        return App2Theme.inkTertiary
     }
 
     /// `1,284` 這種千分位（設計 hero 的今年累積）——走共用的 `App2NumberFormat`。

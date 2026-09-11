@@ -653,7 +653,7 @@ enum App2SessionDetailProjection {
         )
     }
 
-    /// 輕鬆／恢復課的配速區間（秒／km），裁決（n）的帶寬來源。
+    /// 恢復課的配速區間（秒／km），裁決（n）的帶寬來源。
     ///
     /// **與設定頁「配速區間」同一支** `PaceCalculator.getPaceRange(for:vdot:)`
     /// （`App2PaceZoneSettingsView.paceText(for:)` 也是它）——不在這裡另訂第二份區間。
@@ -669,13 +669,14 @@ enum App2SessionDetailProjection {
         return (fast: fast, slow: slow)
     }
 
-    /// 課型 → `PaceCalculator` 的訓練類型鍵。**只有輕鬆跑與恢復跑**適用裁決（n）；
+    /// 課型 → `PaceCalculator` 的訓練類型鍵。裁決（n）原本含輕鬆跑，
+    /// 但 2026-09-11 裁決「輕鬆跑／長距離輕鬆跑一律不顯示配速」之後那一支走不到了
+    /// （`paceBand` 的第一道 guard 就是塊上的配速字），所以只留**恢復跑**。
     /// 其餘課型（長跑、節奏、閾值…）維持處方窄窗，不在這裡擴充。
     static func easyPaceTrainingType(_ dayType: DayType?) -> String? {
         switch dayType {
-        case .easy, .easyRun:  return "easy"
-        case .recovery_run:    return "recovery"
-        default:               return nil
+        case .recovery_run: return "recovery"
+        default:            return nil
         }
     }
 

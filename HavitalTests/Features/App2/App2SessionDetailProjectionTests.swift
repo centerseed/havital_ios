@@ -94,6 +94,15 @@ final class App2SessionDetailProjectionTests: XCTestCase {
                    "description": "輕鬆跑" } }
     """
 
+    /// 單段恢復跑：裁決（n）的帶寬規則在 2026-09-11 之後只剩它適用
+    /// （輕鬆跑與長距離輕鬆跑一律不顯示配速）。`6:50` ＝ 410 秒／km。
+    private let recoveryRunDay = """
+    { "day_index": 5, "day_target": "恢復跑", "reason": "課後恢復", "distance_km": 5.0,
+      "primary": { "run_type": "recovery_run", "distance_km": 5.0, "pace": "6:50",
+                   "duration_minutes": 35, "target_intensity": "low",
+                   "description": "恢復跑" } }
+    """
+
     /// 單段節奏跑：同樣是一整塊 steady，但**不是**輕鬆／恢復課。`5:00` ＝ 300 秒／km。
     private let tempoSteadyDay = """
     { "day_index": 4, "day_target": "節奏跑", "reason": "乳酸閾值", "distance_km": 8.0,
@@ -265,53 +274,65 @@ final class App2SessionDetailProjectionTests: XCTestCase {
     // MARK: - 配速帶邊界（設計 frame-02c）
 
     /// 只有「整堂課就一段穩定跑」才有配速帶，邊界＝處方配速 ±15 秒。
+    ///
+    /// 樣本用節奏跑：輕鬆跑在 2026-09-11 之後不顯示配速，帶也跟著不存在
+    /// （由 `test_paceBand_easyRun_isAbsent` 鎖）。
     func test_paceBand_singleSteadyBar_bracketsPrescribedPace() throws {
-        let band = try XCTUnwrap(try detail(easyRunDay)?.paceBand)
+        let band = try XCTUnwrap(try detail(tempoSteadyDay)?.paceBand)
         let unitSystem = UnitManager.shared.currentUnitSystem
 
         XCTAssertEqual(band.paceUnitLabel(unitSystem), unitSystem.paceSuffix, "單位跟著用戶設定，不寫死 /km")
-        XCTAssertEqual(band.paceLabel(unitSystem), unitSystem.paceValue(secondsPerKm: 410))
+        XCTAssertEqual(band.paceLabel(unitSystem), unitSystem.paceValue(secondsPerKm: 300))
         XCTAssertEqual(
             band.fastLabel(unitSystem),
-            unitSystem.paceValue(secondsPerKm: 410 - 15)
+            unitSystem.paceValue(secondsPerKm: 300 - 15)
         )
         XCTAssertEqual(
             band.slowLabel(unitSystem),
-            unitSystem.paceValue(secondsPerKm: 410 + 15)
+            unitSystem.paceValue(secondsPerKm: 300 + 15)
         )
     }
 
-    // MARK: - 配速帶：輕鬆跑取用戶配速區間（2026-08-27 走查裁決（n））
+    /// 輕鬆跑與長距離輕鬆跑**沒有配速帶**——2026-09-11 裁決把配速整個拿掉，
+    /// `paceBand` 的第一道 guard（塊上的配速字）就先退出。
+    func test_paceBand_easyRun_isAbsent() throws {
+        XCTAssertNil(try detail(easyRunDay, vdot: 32)?.paceBand)
+    }
 
-    /// 輕鬆跑的帶寬改成**用戶自己的輕鬆配速區間**，不是處方 ±15 秒的窄窗。
-    ///
-    /// VDOT 32 的輕鬆區間是 `6:40`–`8:00`（`PaceCalculator.getPaceRange(for:"easy",…)`，
-    /// 與設定頁「配速區間」同一支），處方 `6:50` 落在區間內 —— pill 仍標處方配速。
-    func test_paceBand_easyRun_usesUserEasyPaceRange() throws {
-        let band = try XCTUnwrap(try detail(easyRunDay, vdot: 32)?.paceBand)
+    // MARK: - 配速帶：恢復跑取用戶配速區間（2026-08-27 走查裁決（n））
+
+    /// 恢復跑的帶寬是**用戶自己的恢復配速區間**，不是處方 ±15 秒的窄窗。
+    /// 裁決（n）原本也含輕鬆跑，2026-09-11 之後輕鬆跑整個不顯示配速，只剩這一種。
+    func test_paceBand_recoveryRun_usesUserPaceRange() throws {
+        let band = try XCTUnwrap(try detail(recoveryRunDay, vdot: 32)?.paceBand)
         let unitSystem = UnitManager.shared.currentUnitSystem
-        let range = try XCTUnwrap(PaceCalculator.getPaceRange(for: "easy", vdot: 32))
-        XCTAssertEqual(range.min, "6:40")
-        XCTAssertEqual(range.max, "8:00")
+        let range = try XCTUnwrap(PaceCalculator.getPaceRange(for: "recovery", vdot: 32))
+        // `getPaceRange` 的 `min` 是**快**端、`max` 是慢端（設定頁印成 `min - max`），
+        // 與 wire 上 `PaceRange` 的命名相反——`easyPaceRangeSeconds` 也是這樣讀。
+        let fast = try XCTUnwrap(PaceFormatterHelper.paceToSeconds(range.min))
+        let slow = try XCTUnwrap(PaceFormatterHelper.paceToSeconds(range.max))
 
         XCTAssertEqual(
             band.paceLabel(unitSystem),
             unitSystem.paceValue(secondsPerKm: 410),
             "處方配速仍標在帶上"
         )
-        XCTAssertEqual(band.fastLabel(unitSystem), unitSystem.paceValue(secondsPerKm: 400))
-        XCTAssertEqual(band.slowLabel(unitSystem), unitSystem.paceValue(secondsPerKm: 480))
+        // 帶寬來自區間，不是處方 ±15 秒——所以它一定比那個窄窗寬，
+        // 否則這條測試就量不出「走了哪一條分支」。
+        XCTAssertTrue(slow - fast > 30, "恢復區間 \(range.min)–\(range.max) 應寬於 ±15 秒窄窗")
+        XCTAssertEqual(band.fastLabel(unitSystem), unitSystem.paceValue(secondsPerKm: min(fast, 410)))
+        XCTAssertEqual(band.slowLabel(unitSystem), unitSystem.paceValue(secondsPerKm: max(slow, 410)))
     }
 
-    /// 沒有 VDOT 就沒有「用戶的輕鬆區間」——退回處方 ±15 秒，不本機編一個區間。
-    func test_paceBand_easyRunWithoutVDOT_fallsBackToPrescribedWindow() throws {
-        let band = try XCTUnwrap(try detail(easyRunDay, vdot: 0)?.paceBand)
+    /// 沒有 VDOT 就沒有「用戶的恢復區間」——退回處方 ±15 秒，不本機編一個區間。
+    func test_paceBand_recoveryRunWithoutVDOT_fallsBackToPrescribedWindow() throws {
+        let band = try XCTUnwrap(try detail(recoveryRunDay, vdot: 0)?.paceBand)
         let unitSystem = UnitManager.shared.currentUnitSystem
         XCTAssertEqual(band.fastLabel(unitSystem), unitSystem.paceValue(secondsPerKm: 410 - 15))
         XCTAssertEqual(band.slowLabel(unitSystem), unitSystem.paceValue(secondsPerKm: 410 + 15))
     }
 
-    /// **只有輕鬆跑／恢復跑**適用裁決（n）。節奏跑有 VDOT 也維持處方窄窗。
+    /// **只有恢復跑**適用裁決（n）。節奏跑有 VDOT 也維持處方窄窗。
     func test_paceBand_nonEasyDayType_keepsPrescribedWindow() throws {
         let band = try XCTUnwrap(try detail(tempoSteadyDay, vdot: 32)?.paceBand)
         let unitSystem = UnitManager.shared.currentUnitSystem
@@ -327,28 +348,28 @@ final class App2SessionDetailProjectionTests: XCTestCase {
     func test_paceBand_climateAdjustmentEnabled_keepsOriginalPaceAndShowsSlack() throws {
         let band = try XCTUnwrap(
             try detail(
-                easyRunDay,
+                tempoSteadyDay,
                 vdot: 32,
                 climateDay: climate(pct: 5),
                 isClimateAdjustmentEnabled: true
             )?.paceBand
         )
         let unitSystem = UnitManager.shared.currentUnitSystem
-        XCTAssertEqual(band.paceLabel(unitSystem), unitSystem.paceValue(secondsPerKm: 410))
-        XCTAssertEqual(band.fastLabel(unitSystem), unitSystem.paceValue(secondsPerKm: 400))
-        XCTAssertEqual(band.slowLabel(unitSystem), unitSystem.paceValue(secondsPerKm: 480))
+        XCTAssertEqual(band.paceLabel(unitSystem), unitSystem.paceValue(secondsPerKm: 300))
+        XCTAssertEqual(band.fastLabel(unitSystem), unitSystem.paceValue(secondsPerKm: 300 - 15))
+        XCTAssertEqual(band.slowLabel(unitSystem), unitSystem.paceValue(secondsPerKm: 300 + 15))
         // 補償句與帶上的值同一份 model 算出來（`App2SessionPaceBand`），
         // 不再由投影層先組好字串。
         let expected = try XCTUnwrap(
             App2SessionPaceBand(
-                paceSecondsPerKm: 410, fastSecondsPerKm: 400, slowSecondsPerKm: 480,
+                paceSecondsPerKm: 300, fastSecondsPerKm: 285, slowSecondsPerKm: 315,
                 legendLabel: "", climateAdjustmentPct: 5
             ).climateAllowanceLabel(unitSystem)
         )
         XCTAssertEqual(band.climateAllowanceLabel(unitSystem), expected)
-        // 410 × 5% ≈ 21 秒（公制）；句子要含換算後的秒數。
+        // 300 × 5% = 15 秒（公制）；句子要含換算後的秒數。
         if unitSystem == .metric {
-            XCTAssertTrue(expected.contains("21"), "實際句子：\(expected)")
+            XCTAssertTrue(expected.contains("15"), "實際句子：\(expected)")
         }
     }
 
@@ -356,14 +377,14 @@ final class App2SessionDetailProjectionTests: XCTestCase {
     func test_paceBand_climateAdjustmentDisabled_ignoresAdjustment() throws {
         let band = try XCTUnwrap(
             try detail(
-                easyRunDay,
+                tempoSteadyDay,
                 vdot: 32,
                 climateDay: climate(pct: 5),
                 isClimateAdjustmentEnabled: false
             )?.paceBand
         )
         let unitSystem = UnitManager.shared.currentUnitSystem
-        XCTAssertEqual(band.paceLabel(unitSystem), unitSystem.paceValue(secondsPerKm: 410))
+        XCTAssertEqual(band.paceLabel(unitSystem), unitSystem.paceValue(secondsPerKm: 300))
         XCTAssertNil(band.climateAllowanceLabel(UnitManager.shared.currentUnitSystem))
     }
 
@@ -371,7 +392,7 @@ final class App2SessionDetailProjectionTests: XCTestCase {
     func test_paceBand_comfortableDay_hasNoAdjustment() throws {
         let band = try XCTUnwrap(
             try detail(
-                easyRunDay,
+                tempoSteadyDay,
                 vdot: 32,
                 climateDay: climate(pct: 0),
                 isClimateAdjustmentEnabled: true
@@ -485,10 +506,18 @@ final class App2SessionDetailProjectionTests: XCTestCase {
     }
 
     /// 同一課型有配速時照常畫（不要為了修 A 把 B 也關掉）。
-    func test_detail_easyRunWithPace_keepsPaceFields() throws {
-        let detail = try XCTUnwrap(try detail(easyRunDay))
+    func test_detail_steadyRunWithPace_keepsPaceFields() throws {
+        let detail = try XCTUnwrap(try detail(tempoSteadyDay))
         XCTAssertTrue(detail.hasPaceData)
         XCTAssertNotNil(detail.paceBand)
+    }
+
+    /// 輕鬆跑：配速抑制之後「預計配速」卡與配速帶都不該出現（2026-09-11 裁決）。
+    /// payload 帶著 `pace` 也一樣——這一條要紅在「還在顯示」。
+    func test_detail_easyRun_hasNoPaceFields() throws {
+        let detail = try XCTUnwrap(try detail(easyRunDay))
+        XCTAssertFalse(detail.hasPaceData)
+        XCTAssertNil(detail.paceBand)
     }
 
     /// **間歇課有配速，「預計配速」卡就要出現**（8/28 盤點 F16）。

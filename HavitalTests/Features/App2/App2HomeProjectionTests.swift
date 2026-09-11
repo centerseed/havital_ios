@@ -102,6 +102,14 @@ final class App2HomeProjectionTests: XCTestCase {
                    "target_intensity": "low" } }
     """
 
+    /// 單段勻速課（**不是**輕鬆跑）。輕鬆跑與長距離輕鬆跑一律不顯示配速
+    /// （2026-09-11 使用者裁決），所以「單段課有配速」這一類保護要拿它當樣本。
+    private let steadyRunDay = """
+    { "day_index": 2, "day_target": "節奏跑", "reason": "乳酸閾值",
+      "primary": { "run_type": "tempo", "distance_km": 9.0, "pace": "7:55",
+                   "target_intensity": "medium" } }
+    """
+
     private let intervalDay = """
     { "day_index": 5, "day_target": "間歇", "reason": "速耐力",
       "primary": { "run_type": "interval", "target_intensity": "high",
@@ -193,11 +201,19 @@ final class App2HomeProjectionTests: XCTestCase {
         XCTAssertEqual(session?.dayLabel, "週三 · 8/26")
     }
 
-    func test_todaySession_easyRun_buildsDistanceAndPaceLine() throws {
+    func test_todaySession_steadyRun_buildsDistanceAndPaceLine() throws {
+        let session = App2HomeViewModel.todaySession(
+            days: [try day(steadyRunDay)], todayIndex: 2, dayLabel: "週二"
+        )
+        XCTAssertEqual(session?.summary, "9.0 km · 7:55/km")
+    }
+
+    /// 輕鬆跑的「課表」行只有距離（2026-09-11 裁決）。
+    func test_todaySession_easyRun_omitsPace() throws {
         let session = App2HomeViewModel.todaySession(
             days: [try day(easyRunDay)], todayIndex: 2, dayLabel: "週二"
         )
-        XCTAssertEqual(session?.summary, "9.0 km · 7:55/km")
+        XCTAssertEqual(session?.summary, "9.0 km")
         XCTAssertEqual(session?.intensityLabel, L10n.App2.Session.effortChipLow.localized)
     }
 
@@ -494,7 +510,7 @@ final class App2HomeProjectionTests: XCTestCase {
     /// 週課表讀得到今天的課 → 一定要是 `.session`。
     func test_todayState_planExists_isSessionNotNotGenerated() throws {
         let session = App2HomeViewModel.todaySession(
-            days: [try day(easyRunDay)], todayIndex: 2, dayLabel: "週二 · 8/25"
+            days: [try day(steadyRunDay)], todayIndex: 2, dayLabel: "週二 · 8/25"
         )
         let state = App2TodaySessionState.session(try XCTUnwrap(session))
         XCTAssertNotEqual(state, .notGenerated)
@@ -1042,7 +1058,7 @@ final class App2HomeProjectionTests: XCTestCase {
     /// 單段課也有一列分段（8/25 版設計的「全程勻速 8.0 km · 6:50」那一列）。
     /// 舊版把單列濾掉，是因為當時卡片沒有這一排分段列、只有右側的結構圖。
     func test_segments_singleSegmentDay_hasOneMainRow() throws {
-        let segments = App2HomeViewModel.segments(day: try day(easyRunDay))
+        let segments = App2HomeViewModel.segments(day: try day(steadyRunDay))
         XCTAssertEqual(segments.count, 1)
         XCTAssertTrue(segments.first?.isWork ?? false)
         XCTAssertEqual(segments.first?.detail, "9.0 km · 7:55/km")
@@ -1078,11 +1094,19 @@ final class App2HomeProjectionTests: XCTestCase {
 
     /// 單段輕鬆跑（沒有熱身緩和）也要畫得出配速結構：一整塊綠色穩定段，塊上標配速。
     /// 2026-08-25 用戶裁決：結構圖不是間歇專屬。
-    func test_structureBars_singleSegmentEasyRun_isOneSteadyBlockWithPace() throws {
-        let bars = App2HomeViewModel.structureBars(day: try day(easyRunDay))
+    func test_structureBars_singleSteadyRun_isOneSteadyBlockWithPace() throws {
+        let bars = App2HomeViewModel.structureBars(day: try day(steadyRunDay))
         XCTAssertEqual(bars.count, 1)
         XCTAssertEqual(bars.first?.kind, .steady)
         XCTAssertNotNil(bars.first?.paceLabel)
+    }
+
+    /// 輕鬆跑那一根柱子上沒有配速字（2026-09-11 裁決）——柱子本身照舊在。
+    func test_structureBars_singleSegmentEasyRun_carriesNoPaceLabel() throws {
+        let bars = App2HomeViewModel.structureBars(day: try day(easyRunDay))
+        XCTAssertEqual(bars.count, 1)
+        XCTAssertEqual(bars.first?.kind, .steady)
+        XCTAssertNil(bars.first?.paceLabel)
     }
 
     /// 沒有衝刺段的課（輕鬆跑＋熱身緩和）→ 一根橘柱都沒有，畫面也不寫趟數。

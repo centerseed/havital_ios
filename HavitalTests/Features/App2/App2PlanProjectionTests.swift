@@ -276,7 +276,27 @@ final class App2PlanProjectionTests: XCTestCase {
     /// 設計 frame-01 的課表行是「課表 4.0 km · 6:50/km」，不是裸距離。
     /// **一律顯示處方配速**（2026-05 使用者裁決，2026-08-26 起 App2 全面適用）：
     /// 課表行不得被 `climate_adjusted_pace` 蓋掉，熱調整值只出現在熱適應卡。
+    /// 樣本是節奏跑：輕鬆跑與長距離輕鬆跑一律不顯示配速（2026-09-11 使用者裁決，
+    /// 見 `test_planWeek_easyRunRowOmitsPace`），拿它當樣本會量不到「不用氣候值」這件事。
     func test_planWeek_plannedRowCarriesPrescribedPaceNotClimateAdjusted() throws {
+        let json = """
+        { "purpose": "p", "week_of_training": 1, "total_weeks": 6, "total_distance_km": 8,
+          "days": [ { "day_index": 2,
+                      "day_target": "節奏跑：維持乳酸閾值強度 4 km", "reason": "r",
+                      "primary": { "run_type": "tempo", "distance_km": 4.0,
+                                   "pace": "6:50", "climate_adjusted_pace": "7:17" } } ] }
+        """
+        let day = try XCTUnwrap(
+            App2PlanViewModel.planWeek(
+                plan: try plan(json), planStatus: try status(), completedKm: nil, todayIndex: 2
+            ).days.first
+        )
+        XCTAssertEqual(day.planned, "4.0 km · 6:50/km")
+        XCTAssertEqual(day.description, "節奏跑：維持乳酸閾值強度 4 km")
+    }
+
+    /// 課表頁的日卡：輕鬆跑那一行只有距離。
+    func test_planWeek_easyRunRowOmitsPace() throws {
         let json = """
         { "purpose": "p", "week_of_training": 1, "total_weeks": 6, "total_distance_km": 8,
           "days": [ { "day_index": 2,
@@ -289,8 +309,7 @@ final class App2PlanProjectionTests: XCTestCase {
                 plan: try plan(json), planStatus: try status(), completedKm: nil, todayIndex: 2
             ).days.first
         )
-        XCTAssertEqual(day.planned, "4.0 km · 6:50/km")
-        XCTAssertEqual(day.description, "輕鬆跑：保持舒適配速，專注於有氧建立 4 km")
+        XCTAssertEqual(day.planned, "4.0 km")
     }
 
     /// 休息日沒有課表行，敘述行（`休息與恢復`）就是那張卡唯一的內容。

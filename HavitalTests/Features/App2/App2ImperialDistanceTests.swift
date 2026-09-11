@@ -33,11 +33,30 @@ final class App2ImperialDistanceTests: XCTestCase {
 
     /// 單段輕鬆跑：8.0 km @ `6:50`／km。
     /// 英制：`8.0 × 0.621371 = 4.97` → `5.0 mi`；`410 × 1.60934 = 659.8` → 660 秒 ＝ `11:00`／mi。
+    /// 單段勻速課。**刻意不是輕鬆跑**：輕鬆跑與長距離輕鬆跑一律不顯示配速
+    /// （2026-09-11 使用者裁決，`App2PlanViewModel.paceSuppressedDayTypes`），
+    /// 拿它當單位換算的樣本會讓這幾條測試量到「配速被抑制」而不是「換算對不對」。
+    private let steadyRunDay = """
+    { "day_index": 2, "day_target": "節奏跑", "reason": "有氧維持", "distance_km": 8.0,
+      "primary": { "run_type": "tempo", "distance_km": 8.0, "pace": "6:50",
+                   "duration_minutes": 55, "target_intensity": "medium",
+                   "description": "節奏跑" } }
+    """
+
+    /// 輕鬆跑樣本 —— 用來鎖「不顯示配速」，payload 仍帶 `pace`（舊資料流會給）。
     private let easyRunDay = """
     { "day_index": 2, "day_target": "輕鬆跑", "reason": "有氧維持", "distance_km": 8.0,
       "primary": { "run_type": "easy", "distance_km": 8.0, "pace": "6:50",
                    "duration_minutes": 55, "target_intensity": "low",
                    "description": "輕鬆跑" } }
+    """
+
+    /// 長距離輕鬆跑樣本 —— 同上。
+    private let lsdDay = """
+    { "day_index": 6, "day_target": "長跑", "reason": "有氧基礎", "distance_km": 18.0,
+      "primary": { "run_type": "lsd", "distance_km": 18.0, "pace": "7:10",
+                   "duration_minutes": 130, "target_intensity": "low",
+                   "description": "長距離輕鬆跑" } }
     """
 
     /// 間歇：4 × 400m，組間 200m。主課段總量 ＝ 1.6 + 3×0.2 ＝ 2.2 km。
@@ -149,7 +168,7 @@ final class App2ImperialDistanceTests: XCTestCase {
         let original = manager.currentUnitSystem
         defer { manager.currentUnitSystem = original }
 
-        let primary = try day(easyRunDay).session?.primary
+        let primary = try day(steadyRunDay).session?.primary
         // 切換會發 fire-and-forget 事件，離開前要排空，不留給下一條測試。
         func drain() async {
             for _ in 0..<50 {
@@ -210,8 +229,8 @@ final class App2ImperialDistanceTests: XCTestCase {
     func test_mountedPaceBand_reformatsWithoutRebuildingTheModel() throws {
         let band = try XCTUnwrap(
             App2SessionDetailProjection.paceBand(
-                bars: App2HomeViewModel.structureBars(day: try day(easyRunDay)),
-                dayType: .easy,
+                bars: App2HomeViewModel.structureBars(day: try day(steadyRunDay)),
+                dayType: .tempo,
                 vdot: nil,
                 climate: nil,
                 isClimateAdjustmentEnabled: false
@@ -234,7 +253,7 @@ final class App2ImperialDistanceTests: XCTestCase {
     /// 同時鎖住暖身那一列**不跟著換**：分段量刻意維持公制（票面「不在範圍」），
     /// 只換距離不換配速會讓那一行變成本票要消滅的「同一行兩種單位」。
     func test_mountedSteadySegmentDetail_reformatsWithoutRebuildingTheModel() throws {
-        let segments = App2SessionDetailProjection.detailSegments(day: try day(easyRunDay))
+        let segments = App2SessionDetailProjection.detailSegments(day: try day(steadyRunDay))
         let main = try XCTUnwrap(segments.first { $0.isWork })
         XCTAssertNil(main.fixedDetail, "主課列不得存格式化字串，否則切換單位換不掉")
         XCTAssertNotNil(main.steadyPrimary)
@@ -265,7 +284,7 @@ final class App2ImperialDistanceTests: XCTestCase {
     // MARK: - 缺陷 1／2：日卡「課表」那一行（Home ＋ Plan 共用）
 
     func test_contentLine_imperial_distanceAndPaceUseTheSameUnit() throws {
-        let primary = try day(easyRunDay).session?.primary
+        let primary = try day(steadyRunDay).session?.primary
         XCTAssertEqual(
             App2PlanViewModel.contentLine(primary, totalDistanceKm: 8.0, unitSystem: .metric),
             "8.0 km · 6:50/km"
@@ -275,6 +294,45 @@ final class App2ImperialDistanceTests: XCTestCase {
             App2PlanViewModel.contentLine(primary, totalDistanceKm: 8.0, unitSystem: .imperial),
             "5.0 mi · 11:00/mi"
         )
+    }
+
+    /// 輕鬆跑／長距離輕鬆跑**不顯示配速**（2026-09-11 使用者裁決）：處方層只給
+    /// 配速帶，單一值沒有意義。payload 仍帶 `pace` 也不畫 —— 這一條要紅在
+    /// 「還在顯示」而不是「payload 剛好沒有」。
+    func test_contentLine_easyAndLongEasyRuns_showNoPace() throws {
+        let easy = try day(easyRunDay).session?.primary
+        XCTAssertEqual(App2PlanViewModel.contentLine(easy, totalDistanceKm: 8.0), "8.0 km")
+        XCTAssertNil(App2PlanViewModel.dayPace(try XCTUnwrap(runActivity(easy))))
+
+        let lsd = try day(lsdDay).session?.primary
+        XCTAssertEqual(App2PlanViewModel.contentLine(lsd, totalDistanceKm: 18.0), "18.0 km")
+        XCTAssertNil(App2PlanViewModel.dayPace(try XCTUnwrap(runActivity(lsd))))
+
+        // 對照組：勻速課照樣有配速，否則上面兩條可能只是整條 pipeline 壞了。
+        let steady = try day(steadyRunDay).session?.primary
+        XCTAssertEqual(
+            App2PlanViewModel.contentLine(steady, totalDistanceKm: 8.0),
+            "8.0 km · 6:50/km"
+        )
+    }
+
+    /// 配速帶跟著消失：`paceBand` 的第一道 guard 就是塊上的配速字
+    /// （`bar.paceLabel`），配速抑制之後輕鬆跑那一段沒有字，帶就不出現。
+    func test_paceBand_easyRun_isAbsentOncePaceIsSuppressed() throws {
+        XCTAssertNil(
+            App2SessionDetailProjection.paceBand(
+                bars: App2HomeViewModel.structureBars(day: try day(easyRunDay)),
+                dayType: .easy,
+                vdot: 45,
+                climate: nil,
+                isClimateAdjustmentEnabled: false
+            )
+        )
+    }
+
+    private func runActivity(_ primary: PrimaryActivity?) -> RunActivity? {
+        guard case .run(let run) = primary else { return nil }
+        return run
     }
 
     func test_intervalContentLine_imperial_convertsMainSetDistance() throws {
@@ -334,13 +392,6 @@ final class App2ImperialDistanceTests: XCTestCase {
         XCTAssertTrue(metric.contains("42.3 km"), metric)
         XCTAssertTrue(imperial.contains("26.3 mi"), imperial)
         XCTAssertNotEqual(metric, imperial)
-    }
-
-    func test_monthComparison_imperial_convertsTheDelta() {
-        XCTAssertEqual(App2RecordsView.monthComparison(18.0, unit: .metric)?.contains("+18"), true)
-        // 18 km ＝ 11.18 mi → `+11.2`。
-        XCTAssertEqual(App2RecordsView.monthComparison(18.0, unit: .imperial)?.contains("+11.2"), true)
-        XCTAssertNil(App2RecordsView.monthComparison(nil, unit: .imperial))
     }
 
     // MARK: - 缺陷 6：成就目標進度

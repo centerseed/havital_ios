@@ -215,7 +215,6 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
             App2Records(
                 monthDistanceKm: month.distanceKm,
                 monthWorkouts: month.workouts,
-                monthDeltaKm: month.deltaKm,
                 ytdYear: stats.data.yearToDate?.year,
                 ytdDistanceKm: stats.data.yearToDate?.distanceKm,
                 ytdWorkouts: stats.data.yearToDate?.workoutCount,
@@ -287,27 +286,19 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
 
     /// 清單顯示筆數。
     private static let listPageSize = 20
-    /// 為了算「較上月」而取回的筆數 —— 要涵蓋兩個完整日曆月。
+    /// 聚合（今年累積）取回的筆數。
     private static let aggregationPageSize = 100
 
     struct MonthlyTotals {
         let distanceKm: Double
         let workouts: Int
-        let deltaKm: Double?
     }
 
     /// 以裝置當地日曆切月。`start_time_utc` 是 UTC instant，換算成當地時間再分桶。
-    ///
-    /// `deltaKm` 只在**確定看得到整個上個月**時才給值：取回的最舊一筆比上月月初還早，
-    /// 或這次根本沒取滿（代表已經是全部）。否則回 nil —— 分不出「上月沒跑」與
-    /// 「上月的紀錄沒被取回來」，就不要畫那一列。
     static func monthlyTotals(_ workouts: [WorkoutV2], now: Date = Date()) -> MonthlyTotals {
         let calendar = Calendar.current
-        guard let thisMonth = calendar.dateInterval(of: .month, for: now),
-              let lastMonthAnchor = calendar.date(byAdding: .month, value: -1, to: thisMonth.start),
-              let lastMonth = calendar.dateInterval(of: .month, for: lastMonthAnchor)
-        else {
-            return MonthlyTotals(distanceKm: 0, workouts: 0, deltaKm: nil)
+        guard let thisMonth = calendar.dateInterval(of: .month, for: now) else {
+            return MonthlyTotals(distanceKm: 0, workouts: 0)
         }
 
         let runs: [(date: Date, km: Double)] = workouts.compactMap { workout in
@@ -317,17 +308,10 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
         }
 
         let thisMonthRuns = runs.filter { thisMonth.contains($0.date) }
-        let lastMonthKm = runs.filter { lastMonth.contains($0.date) }.reduce(0) { $0 + $1.km }
-        let thisMonthKm = thisMonthRuns.reduce(0) { $0 + $1.km }
-
-        let oldestFetched = runs.map(\.date).min()
-        let coversLastMonth = workouts.count < aggregationPageSize
-            || (oldestFetched.map { $0 < lastMonth.start } ?? false)
 
         return MonthlyTotals(
-            distanceKm: thisMonthKm,
-            workouts: thisMonthRuns.count,
-            deltaKm: coversLastMonth ? thisMonthKm - lastMonthKm : nil
+            distanceKm: thisMonthRuns.reduce(0) { $0 + $1.km },
+            workouts: thisMonthRuns.count
         )
     }
 

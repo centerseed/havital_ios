@@ -628,7 +628,6 @@ struct App2Records: Equatable {
     let monthWorkouts: Int
     /// 本月 − 上月（km）。上月不在已取回的紀錄範圍內時為 nil，該列就不顯示，
     /// 不把「沒取到」畫成「持平」。
-    let monthDeltaKm: Double?
     /// 今年累積（`year_to_date`，T-0304 落地）。
     let ytdYear: Int?
     let ytdDistanceKm: Double?
