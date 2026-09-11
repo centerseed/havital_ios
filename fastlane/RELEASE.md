@@ -17,7 +17,8 @@
    ```bash
    cd apps/ios/Havital && fastlane ios release
    ```
-   → archive → 簽章 → 上傳 App Store → 推 release notes ＋ 截圖 → **送審**（`automatic_release=false`）。過審後在 App Store Connect 手動 Release。
+   → archive → 簽章 → 上傳 App Store → 推 release notes ＋ 截圖 → **停在這裡，不送審**。
+4. **人工確認後自己送審**：到 App Store Connect 看過截圖／文案／build 才按 Submit for Review（2026-09-12 裁決：不讓 lane 自動送審）。過審後仍需手動按 Release（`automatic_release=false`）。
 
 ## 其他 lane
 - `fastlane ios build` — 只 build + 匯出 IPA 到 `build/ipa/`，開 Finder（想手動 Transporter 上傳時用）。

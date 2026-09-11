@@ -111,7 +111,7 @@ platform :ios do
     ipa = build_ipa(key)
     upload_to_app_store(
       api_key: key, ipa: ipa,
-      submit_for_review: true, automatic_release: false, force: true,
+      submit_for_review: false, automatic_release: false, force: true,
       run_precheck_before_submit: false,
       skip_screenshots: false,           # 推 fastlane/screenshots/<locale>/ 的截圖
       overwrite_screenshots: true,       # 清掉 ASC 上舊版(含 iPad)的截圖,只留這次上傳的
