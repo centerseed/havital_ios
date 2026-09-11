@@ -2568,9 +2568,9 @@ extension L10n {
             static let pace = "app2.records.pace"
             static let time = "app2.records.time"
             static let runsCount = "app2.records.runs_count"
-            /// hero 左欄（設計 frame-10：「本月跑量」＋「較上月 ±N」）。
+            /// hero 左欄（設計 frame-10 的「本月跑量」；「較上月 ±N」那一列已於
+            /// 2026-09-11 依使用者裁決移除）。
             static let monthSection = "app2.records.month_section"
-            static let vsLastMonth = "app2.records.vs_last_month"
             static let ytdSection = "app2.records.ytd_section"
             static let distance = "app2.records.distance"
             static let workouts = "app2.records.workouts"

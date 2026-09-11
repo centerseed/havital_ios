@@ -4717,7 +4717,6 @@
 
 // T-0306 獨立審查退回項修正
 "app2.records.month_section" = "本月跑量";
-"app2.records.vs_last_month" = "較上月 %@";
 "app2.achievements.remaining_format" = "還差 %@";
 "app2.settings.subscription_active" = "續訂中";
 

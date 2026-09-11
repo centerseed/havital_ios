@@ -4676,7 +4676,6 @@
 
 // T-0306 獨立審查退回項修正
 "app2.records.month_section" = "This Month";
-"app2.records.vs_last_month" = "vs. last month %@";
 "app2.achievements.remaining_format" = "%@ to go";
 "app2.settings.subscription_active" = "Renewing";
 

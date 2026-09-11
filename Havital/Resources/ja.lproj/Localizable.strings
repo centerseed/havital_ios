@@ -4673,7 +4673,6 @@
 
 // T-0306 獨立審查退回項修正
 "app2.records.month_section" = "今月の走行距離";
-"app2.records.vs_last_month" = "先月比 %@";
 "app2.achievements.remaining_format" = "残り %@";
 "app2.settings.subscription_active" = "更新中";
 
