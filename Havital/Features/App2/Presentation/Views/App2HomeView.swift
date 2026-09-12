@@ -997,7 +997,8 @@ struct App2HomeView: View {
     /// 英文一來就四格全被截成 `Aerobic…`／`Still buil…`／`On the st…`
     /// （2026-09-12 使用者 prod 截圖）。所以一行是**偏好**不是唯一版面：
     /// 名稱與判語帶 `fixedSize()` 交出真實固有寬度，`ViewThatFits` 量得出放不下，
-    /// 放不下就把判語降到名稱下一行，右邊那組數字不動。
+    /// 放不下就把判語降到名稱下一行；右邊那組的**縮放退路只在降級版保留**
+    /// （見 `insightRowTrailing` 的 `rigid`）。
     /// 中文照舊走第一個分支，跟修前完全一樣。
     private func insightRowContent(_ insight: App2Insight, isTappable: Bool) -> some View {
         ViewThatFits(in: .horizontal) {
@@ -1016,7 +1017,7 @@ struct App2HomeView: View {
                 insightRowVerdict(verdict, tint: insight.tint).fixedSize()
             }
             Spacer(minLength: 6)
-            insightRowTrailing(insight, isTappable: isTappable)
+            insightRowTrailing(insight, isTappable: isTappable, rigid: true)
         }
     }
 
@@ -1030,7 +1031,7 @@ struct App2HomeView: View {
                 }
             }
             Spacer(minLength: 6)
-            insightRowTrailing(insight, isTappable: isTappable)
+            insightRowTrailing(insight, isTappable: isTappable, rigid: false)
         }
     }
 
@@ -1055,14 +1056,23 @@ struct App2HomeView: View {
             .lineLimit(1)
     }
 
+    /// 右邊那組（對照數字 ＋ 箭頭 ＋ chevron）。
+    ///
+    /// `rigid` 只在**量測用**的一行版為 true：`ViewThatFits` 要判「這一列放不放得下」，
+    /// 數字那格就必須交出完整固有寬度，`minimumScaleFactor` 會讓它宣稱自己隨便都塞得下。
+    /// 降級版（`rigid: false`）反過來要保留縮放退路——`change` 是後端的自由字串
+    /// （`23 km vs 0 km last week` 這種），兩個分支都放不下時它得能縮，
+    /// 不然壓力會轉嫁給左邊的指標名與判語，又變成 `Aerobic…`／`Still buil…`。
     @ViewBuilder
-    private func insightRowTrailing(_ insight: App2Insight, isTappable: Bool) -> some View {
+    private func insightRowTrailing(_ insight: App2Insight, isTappable: Bool,
+                                    rigid: Bool) -> some View {
         if let trailing = Self.insightTrailingText(insight) {
             Text(trailing)
                 .font(.app2Mono(12, weight: .bold))
                 .foregroundStyle(App2Theme.inkFaint)
                 .lineLimit(1)
-                .fixedSize()
+                .minimumScaleFactor(rigid ? 1.0 : 0.7)
+                .fixedSize(horizontal: rigid, vertical: false)
         }
         Text(insight.arrowGlyph)
             .font(.app2Mono(15))
