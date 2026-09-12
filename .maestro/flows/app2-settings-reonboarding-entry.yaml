@@ -1,0 +1,77 @@
+appId: com.havital.Havital.dev
+tags:
+  - app2
+---
+# T-0670 走查：從「個人資料 → 重設目標」進 re-onboarding，要能一路推進到心率頁。
+#
+# 守的是這個退化：設定頁自己是一個 `NavigationStack`（T-0388 把子頁改成 push），
+# 若 re-onboarding 也走 push，`App2OnboardingContainerView` 的內層 `NavigationStack`
+# 就成了巢狀 —— 第一次 push（目標類型 → 目標賽事）看得到，第二次（目標賽事 → 心率）
+# 被吞掉。`viewModel.path` 已經是 `[raceSetup, heartRate]`，畫面卻停在目標賽事，
+# 使用者只看到「按繼續沒反應」，而每按一次都在後端多建一個 target。
+#
+# ⚠️ 這支**會寫入後端**：目標賽事頁的「繼續」就是 `POST /user/targets`，跑完之後登入中
+# 那個帳號的主賽事會變成「東京馬拉松／全馬／日期欄預設值」。跑在有人在用的帳號上之前
+# 先記下原本的賽事名稱、距離與日期，跑完自己改回去（首頁目標卡 → 目標賽事編輯）。
+# 沒有「只驗導航不寫入」的版本 —— 被測的行為正是「寫入成功之後要不要前進」。
+#
+# 只走到心率頁就停，不再按下去：再往下會真的重生課表（LLM、數分鐘）。
+# `clearState: false`：不得清資料或登出。
+
+- launchApp:
+    clearState: false
+    arguments:
+      "-skipHealthKitAuth": true
+- extendedWaitUntil:
+    visible:
+      id: "App2_GoalCard"
+    timeout: 90000
+- tapOn:
+    id: "App2_HomeMenu"
+- tapOn:
+    text: "個人資料"
+    optional: true
+- tapOn:
+    text: "Profile"
+    optional: true
+- tapOn:
+    text: "プロフィール"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "App2_SettingsView"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsResetGoalRace"
+    direction: DOWN
+- tapOn:
+    id: "App2_SettingsResetGoalRace"
+- extendedWaitUntil:
+    visible:
+      id: "App2_OnboardingGoalType"
+    timeout: 40000
+- tapOn:
+    id: "App2_OnboardingGoalOption_race_run"
+- tapOn:
+    id: "App2_OnboardingGoalTypeCta"
+- extendedWaitUntil:
+    visible:
+      id: "App2_OnboardingRaceSetup"
+    timeout: 60000
+
+# 自行填寫賽事名稱（賽事庫的卡片不碰：點下去會換掉名稱與距離）。
+- tapOn:
+    id: "App2_OnboardingRaceNameField"
+- inputText: 東京馬拉松
+- pressKey: Enter
+- tapOn:
+    id: "App2_OnboardingRaceSetupCta"
+
+# 這一行就是 T-0670：修好之前它會逾時，畫面停在目標賽事。
+- extendedWaitUntil:
+    visible:
+      id: "App2_OnboardingHeartRate"
+    timeout: 120000
+- assertVisible:
+    id: "App2_OnboardingHrBands"

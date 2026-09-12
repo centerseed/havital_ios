@@ -11,7 +11,6 @@ enum App2SettingsDestination: String, Identifiable {
     case system         // frame-28
     case deleteAccount  // frame-29
     case climate        // 高溫適應（1.4 既有頁）
-    case reonboarding   // 重設目標（既有 onboarding 流程）
     #if DEBUG
     case weeklyReviewDev  // 週回顧開發工具（DEBUG-only，Release build 沒有這一格）
     case planEndDev       // 計畫結束態開發工具（同上）
@@ -57,6 +56,11 @@ struct App2SettingsView: View {
     /// 「聯絡 Paceriz／社群」→ 1.4 的 `FeedbackReportView`。它自帶 `NavigationView`
     /// 與自己的關閉鈕，1.4 也是用 sheet 開的，這裡沿用同一種呈現而不是推進導航堆疊。
     @State private var isPresentingFeedback = false
+    /// 「重設目標」是唯一**不能**走 push 的子頁：`App2OnboardingContainerView` 自己帶一個
+    /// `NavigationStack`，推進設定頁這個堆疊就成了巢狀，內層只認第一次 push——
+    /// 目標賽事按繼續後 `path` 已是 `[raceSetup, heartRate]`，畫面卻停在原頁（T-0670）。
+    /// 其餘三個 re-onboarding 入口（首頁、課表、計畫總覽）本來就是 cover，這裡與它們一致。
+    @State private var isPresentingReonboarding = false
 
     // MARK: - 訂閱卡的第二行（2026-08-27 晚走查裁決（h））
     //
@@ -174,6 +178,14 @@ struct App2SettingsView: View {
         .sheet(isPresented: $isPresentingFeedback) {
             FeedbackReportView(userEmail: viewModel.snapshot?.value.accountEmail ?? "")
         }
+        .fullScreenCover(isPresented: $isPresentingReonboarding) {
+            // 「重設目標」走 2.0 版面的 onboarding，底下仍是 `OnboardingCoordinator`。
+            App2OnboardingContainerView(
+                isReonboarding: true,
+                onFinished: { isPresentingReonboarding = false },
+                onCancel: { isPresentingReonboarding = false }
+            )
+        }
         }
     }
 
@@ -197,9 +209,6 @@ struct App2SettingsView: View {
             App2DeleteAccountView(onClose: dismiss, viewModel: viewModel)
         case .climate:
             App2ClimateSettingsView(onClose: dismiss)
-        case .reonboarding:
-            // 「重設目標」走 2.0 版面的 onboarding，底下仍是 `OnboardingCoordinator`。
-            App2OnboardingContainerView(isReonboarding: true, onFinished: dismiss, onCancel: dismiss)
         #if DEBUG
         case .weeklyReviewDev:
             App2WeeklyReviewDevView(onClose: dismiss)
@@ -629,7 +638,7 @@ struct App2SettingsView: View {
                     value: ""
                 )
                 .contentShape(Rectangle())
-                .onTapGesture { destination = .reonboarding }
+                .onTapGesture { isPresentingReonboarding = true }
                 .accessibilityAddTraits(.isButton)
                 .accessibilityIdentifier("App2_SettingsResetGoalRace")
 
