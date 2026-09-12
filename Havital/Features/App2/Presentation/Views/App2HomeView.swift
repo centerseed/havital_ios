@@ -750,21 +750,40 @@ struct App2HomeView: View {
 
         Group {
             if canExpand {
-                // **連結與標題永遠同一列**（2026-09-01 使用者裁決）。
-                // 修前是 `ViewThatFits`：headline 一長就掉進 VStack 分支，標題與
-                // 連結分成兩行——使用者看到的就是「看更多」自己一行。現在只有一個
-                // `HStack`：headline 吃滿剩餘寬度並自由換行，連結靠 `lastTextBaseline`
-                // 釘在**最後一行的行尾右緣**。連結那顆有 `.lineLimit(1).fixedSize()`，
-                // 所以它先拿走自己的固有寬度，headline 換行不會把它擠掉。
-                // 8/26 的 inline 相加版（`Text + Text`）做不到右對齊 —— 那是同一段
-                // 文字流，連結只會接在句尾。
-                HStack(alignment: .lastTextBaseline, spacing: 8) {
-                    headline
-                        .tracking(0.3)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                // **連結與標題同一列是偏好，放不下才降級**（2026-09-01 使用者裁決
+                // 「同一列」＋2026-09-12 使用者裁決「最差就是在原本標題下一行放看更多」）。
+                //
+                // 一行版把連結的固有寬度（約 90pt）從 headline 手上拿走，headline
+                // 只剩約 190pt：英文 headline 是整句（`reason_guard` 放行到 16 個詞），
+                // 在那個寬度會斷成 5 行細長條（2026-09-12 使用者 prod 截圖）。
+                // 所以 headline 在第一個分支帶 `.fixedSize()` 交出單行固有寬度，
+                // `ViewThatFits` 就量得出「這句話配這個連結放不進一行」，放不下時
+                // 走第二個分支：headline 吃滿整個寬度自由換行，連結掉到下一行行尾。
+                //
+                // headline 不帶 fixedSize 是量不出來的——文字永遠能靠換行「放得下」，
+                // `ViewThatFits` 就永遠選第一個分支（8/26 的舊 ViewThatFits 版就是
+                // 這樣才恆選到 VStack 分支）。
+                ViewThatFits(in: .horizontal) {
+                    // 間距 4 不是美學選擇：中文 headline ＋ 連結的固有寬度合計只比
+                    // 可用寬度少個位數 pt，用設計稿的 8 會讓中文也掉到第二行
+                    // （2026-09-12 模擬器實測）。被選中時 `Spacer` 會把連結推到右緣，
+                    // 4 只是量測時的餘裕。
+                    HStack(alignment: .lastTextBaseline, spacing: 4) {
+                        headline
+                            .tracking(0.3)
+                            .lineLimit(1)
+                            .fixedSize()
+                        Spacer(minLength: 0)
+                        link
+                    }
 
-                    link
+                    VStack(alignment: .trailing, spacing: 6) {
+                        headline
+                            .tracking(0.3)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        link
+                    }
                 }
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -973,44 +992,89 @@ struct App2HomeView: View {
         insight.change ?? insight.value
     }
 
+    /// 一列指標的版面。**指標名與判語都是後端給的自由字串**，長度不受畫面控制
+    /// （`reason_guard` 只約束今日卡的 headline／direction，指標列沒有字數閘門），
+    /// 英文一來就四格全被截成 `Aerobic…`／`Still buil…`／`On the st…`
+    /// （2026-09-12 使用者 prod 截圖）。所以一行是**偏好**不是唯一版面：
+    /// 名稱與判語帶 `fixedSize()` 交出真實固有寬度，`ViewThatFits` 量得出放不下，
+    /// 放不下就把判語降到名稱下一行，右邊那組數字不動。
+    /// 中文照舊走第一個分支，跟修前完全一樣。
     private func insightRowContent(_ insight: App2Insight, isTappable: Bool) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: insight.symbolName)
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(insight.tint)
-                .frame(width: 20)
-            Text(insight.label)
-                .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(App2Theme.inkSubtle)
-                .lineLimit(1)
-            if let verdict = insight.verdict {
-                Text(verdict)
-                    .font(.system(size: 14, weight: .heavy))
-                    .foregroundStyle(insight.tint)
-                    .lineLimit(1)
-            }
-            Spacer(minLength: 6)
-            if let trailing = Self.insightTrailingText(insight) {
-                Text(trailing)
-                    .font(.app2Mono(12, weight: .bold))
-                    .foregroundStyle(App2Theme.inkFaint)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
-            }
-            Text(insight.arrowGlyph)
-                .font(.app2Mono(15))
-                .foregroundStyle(insight.tint)
-                .frame(width: 13)
-            // 可點的那三列才有 chevron —— 沒有詳情稿的指標不畫，
-            // 免得畫出一個按下去沒反應的入口。
-            if isTappable {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .black))
-                    .foregroundStyle(App2Theme.chevron)
-            }
+        ViewThatFits(in: .horizontal) {
+            insightRowOneLine(insight, isTappable: isTappable)
+            insightRowStacked(insight, isTappable: isTappable)
         }
         .padding(.vertical, 9)
         .padding(.horizontal, 2)
+    }
+
+    private func insightRowOneLine(_ insight: App2Insight, isTappable: Bool) -> some View {
+        HStack(spacing: 10) {
+            insightRowIcon(insight)
+            insightRowLabel(insight).fixedSize()
+            if let verdict = insight.verdict {
+                insightRowVerdict(verdict, tint: insight.tint).fixedSize()
+            }
+            Spacer(minLength: 6)
+            insightRowTrailing(insight, isTappable: isTappable)
+        }
+    }
+
+    private func insightRowStacked(_ insight: App2Insight, isTappable: Bool) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            insightRowIcon(insight)
+            VStack(alignment: .leading, spacing: 3) {
+                insightRowLabel(insight)
+                if let verdict = insight.verdict {
+                    insightRowVerdict(verdict, tint: insight.tint)
+                }
+            }
+            Spacer(minLength: 6)
+            insightRowTrailing(insight, isTappable: isTappable)
+        }
+    }
+
+    private func insightRowIcon(_ insight: App2Insight) -> some View {
+        Image(systemName: insight.symbolName)
+            .font(.system(size: 14, weight: .bold))
+            .foregroundStyle(insight.tint)
+            .frame(width: 20)
+    }
+
+    private func insightRowLabel(_ insight: App2Insight) -> some View {
+        Text(insight.label)
+            .font(.system(size: 14, weight: .bold))
+            .foregroundStyle(App2Theme.inkSubtle)
+            .lineLimit(1)
+    }
+
+    private func insightRowVerdict(_ verdict: String, tint: Color) -> some View {
+        Text(verdict)
+            .font(.system(size: 14, weight: .heavy))
+            .foregroundStyle(tint)
+            .lineLimit(1)
+    }
+
+    @ViewBuilder
+    private func insightRowTrailing(_ insight: App2Insight, isTappable: Bool) -> some View {
+        if let trailing = Self.insightTrailingText(insight) {
+            Text(trailing)
+                .font(.app2Mono(12, weight: .bold))
+                .foregroundStyle(App2Theme.inkFaint)
+                .lineLimit(1)
+                .fixedSize()
+        }
+        Text(insight.arrowGlyph)
+            .font(.app2Mono(15))
+            .foregroundStyle(insight.tint)
+            .frame(width: 13)
+        // 可點的那三列才有 chevron —— 沒有詳情稿的指標不畫，
+        // 免得畫出一個按下去沒反應的入口。
+        if isTappable {
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11, weight: .black))
+                .foregroundStyle(App2Theme.chevron)
+        }
     }
 
     // MARK: - §3.1 今日課表卡（設計 frame-00 下半，完整版）
