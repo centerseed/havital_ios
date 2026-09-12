@@ -718,8 +718,14 @@ struct App2HomeView: View {
     /// 有真序列端點時再依當時的設計重議，不留樣本圖佔位。
     /// headline ＋ 句尾的展開／收起連結（設計 frame-00c2，2026-08-26 裁決）。
     ///
-    /// **連結與 headline 永遠同一列**（2026-09-01 使用者裁決）：headline 可換行，
-    /// 連結釘在最後一行的行尾右緣。
+    /// **同一列是偏好，放不下才降級**（2026-09-12 使用者裁決，取代 2026-09-01
+    /// 的「永遠同一列」）：放得下就 headline ＋ 連結同一列；放不下時 headline
+    /// 吃滿整個卡寬自由換行，連結掉到下一行行尾右緣。
+    ///
+    /// 三語實測（2026-09-12，`STATUS/evidence/T-0666/`）：這張卡的可用寬度被
+    /// 300km 徽章吃掉一塊，**中文也放不下**，所以三語都走降級分支。修前中文是
+    /// headline 自己斷成兩行、連結釘在第二行行尾；現在是 headline 完整一行、
+    /// 連結自己一行。兩者都是兩行高。
     ///
     /// 沒有敘述可展開時（免費用戶 `narrative_text` 為 nil）只有 headline，
     /// 不掛連結也不吃點擊。
@@ -764,11 +770,10 @@ struct App2HomeView: View {
                 // `ViewThatFits` 就永遠選第一個分支（8/26 的舊 ViewThatFits 版就是
                 // 這樣才恆選到 VStack 分支）。
                 ViewThatFits(in: .horizontal) {
-                    // 間距 4 不是美學選擇：中文 headline ＋ 連結的固有寬度合計只比
-                    // 可用寬度少個位數 pt，用設計稿的 8 會讓中文也掉到第二行
-                    // （2026-09-12 模擬器實測）。被選中時 `Spacer` 會把連結推到右緣，
-                    // 4 只是量測時的餘裕。
-                    HStack(alignment: .lastTextBaseline, spacing: 4) {
+                    // 間距用設計稿的 8。先前寫成 4 並註明「不然中文也會掉到第二行」，
+                    // 但修後三語實測中文本來就放不下（見上方 docstring），
+                    // 那個理由不成立，不留沒有證據的魔術數字。
+                    HStack(alignment: .lastTextBaseline, spacing: 8) {
                         headline
                             .tracking(0.3)
                             .lineLimit(1)
