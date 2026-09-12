@@ -54,6 +54,12 @@ struct App2OnboardingContainerView: View {
                     page(step)
                         .navigationBarHidden(true)
                         .navigationBarBackButtonHidden(true)
+                        // `navigationDestination` 的目的地**不繼承** NavigationStack 外面注入的
+                        // environment object，所以這裡必須再注入一次：少了它，任何讀
+                        // `flow` 的頁（目標類型、目標賽事、近期成績、方法論、訓練日、跑量、
+                        // 完成頁——9 頁裡有 7 頁）一被推出來就 `EnvironmentObject.error()` 閃退。
+                        // 2026-09-12 實機重現：re-onboarding 選完目標類型按繼續即 crash。
+                        .environmentObject(viewModel.flow)
                 }
         }
         .environmentObject(viewModel.flow)
