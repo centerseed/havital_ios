@@ -6,8 +6,8 @@ layer: product
 owns: 訓練首頁與課表頁的 plan 狀態、週課表呈現、週次瀏覽及訓練完成量更新行為
 ontology_entity: training-hub-lifecycle
 created: 2026-04-15
-updated: 2026-09-07
-tasks: [T-0639]
+updated: 2026-09-17
+tasks: [T-0639, T-0726]
 ---
 
 # Feature Spec: 訓練首頁與週課表生命週期
@@ -194,6 +194,15 @@ And Then 重新讀取失敗時必須保留目前已顯示的週量，並在下�
 
 驗法：`HavitalTests/Features/App2/App2PlanWorkoutRefreshTests.swift`。
 
+### AC-TRAIN-HUB-17: 課表頁實跑週量只計跑步活動，iOS 與 Android 同一個數（2026-09-17 使用者裁決）
+
+Given 使用者本週同時有跑步與非跑步紀錄（例：running 5 km ＋ cycling 20 km ＋ 健走 3 km），
+When 開啟課表頁，
+Then 實跑週量與完成比例只計 `activity_type` 含 `run` 的紀錄距離（本例 5 km），騎車、健走、健行、肌力等非跑步活動不計入。
+And Then 同一帳號、同一週，iOS 與 Android 顯示同一個數字；本條同時約束兩個 App（Android 無獨立的課表頁 spec，以本條為準）。
+
+驗法：iOS `App2PlanViewModel.completedWeek`（`workouts.filter { $0.activityType.lowercased().contains("run") }`）；Android 見 T-0726 的單元測試（running 5 km ＋ cycling 20 km → 5 km，拿掉過濾必須紅）。
+
 ## AC ID Index
 
 本 spec 已採用穩定 AC-ID；以下索引作為派工、review 與測試引用入口。
@@ -216,3 +225,4 @@ And Then 重新讀取失敗時必須保留目前已顯示的週量，並在下�
 | AC-TRAIN-HUB-14 | 下週課表已產生時課表頁可往前翻到那一週；產完即刻可翻 |
 | AC-TRAIN-HUB-15 | 週日回顧已產但下週課表未產時，首頁保留回顧入口（通往產生下週課表的唯一路） |
 | AC-TRAIN-HUB-16 | 訓練完成事件後課表頁在同一 session 更新實跑週量 |
+| AC-TRAIN-HUB-17 | 課表頁實跑週量只計跑步活動，iOS 與 Android 同一個數 |
