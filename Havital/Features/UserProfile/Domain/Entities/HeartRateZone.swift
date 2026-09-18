@@ -72,23 +72,23 @@ struct HeartRateZone: Codable, Equatable, Identifiable {
 // MARK: - Zone Percentages
 /// Heart Rate Reserve (HRR) percentage ranges for each zone
 /// Based on Karvonen formula: Target HR = ((MaxHR - RestingHR) × %Intensity) + RestingHR
-/// Aligned with PaceCalculator.PaceZone percentage ranges
+/// SSOT: SPEC-hr-zones §5.2 (same table as backend `HR_ZONE_PERCENTAGES`)
 extension HeartRateZone {
     struct Percentages {
         // Zone 1: Recovery
-        static let recoveryLow: Double = 0.52
+        static let recoveryLow: Double = 0.45
         static let recoveryHigh: Double = 0.59
 
         // Zone 2: Easy
         static let easyLow: Double = 0.59
         static let easyHigh: Double = 0.74
 
-        // Zone 3: Marathon (~0.75–0.84 HRR band; the marathon / sustained-aerobic zone)
-        static let marathonLow: Double = 0.75
+        // Zone 3: Marathon (0.74–0.84 HRR band; the marathon / sustained-aerobic zone)
+        static let marathonLow: Double = 0.74
         static let marathonHigh: Double = 0.84
 
         // Zone 4: Threshold
-        static let thresholdLow: Double = 0.83
+        static let thresholdLow: Double = 0.84
         static let thresholdHigh: Double = 0.88
 
         // Zone 5: Anaerobic

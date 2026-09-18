@@ -13,9 +13,9 @@ import XCTest
 /// opposite (`tempo ≡ threshold`); that premise contradicted both the backend table above and
 /// PaceCalculator, which is why it went red.
 ///
-/// 6-zone model, as shipped:
-///   recovery (0.52–0.59) / easy (0.59–0.74) / marathon (Z3, 0.75–0.84) /
-///   threshold (Z4, 0.83–0.88) / anaerobic (0.88–0.95) / interval (0.95–1.0)
+/// 6-zone HRR model (SPEC-hr-zones §5.2):
+///   recovery (0.45–0.59) / easy (0.59–0.74) / marathon (Z3, 0.74–0.84) /
+///   threshold (Z4, 0.84–0.88) / anaerobic (0.88–0.95) / interval (0.95–1.0)
 ///
 /// 2026-09-11：`PaceZone.tempo` 已刪除。它與 `marathon` 的百分比範圍一字不差，配速表
 /// 因此同時列出「馬拉松配速[M]」與「全程馬拉松配速[M]」、數字一樣（使用者回報）。
@@ -24,6 +24,42 @@ import XCTest
 final class ZoneNamingModelTests: XCTestCase {
 
     // MARK: - HR Zones (HeartRateZone)
+
+    func test_sixZoneBounds_matchOwningSpec_andDoNotOverlap() {
+        let spec: [(String, Double, Double)] = [
+            ("recovery", 0.45, 0.59),
+            ("easy", 0.59, 0.74),
+            ("marathon", 0.74, 0.84),
+            ("threshold", 0.84, 0.88),
+            ("anaerobic", 0.88, 0.95),
+            ("interval", 0.95, 1.00),
+        ]
+        let actual: [(String, Double, Double)] = [
+            ("recovery", HeartRateZone.Percentages.recoveryLow, HeartRateZone.Percentages.recoveryHigh),
+            ("easy", HeartRateZone.Percentages.easyLow, HeartRateZone.Percentages.easyHigh),
+            ("marathon", HeartRateZone.Percentages.marathonLow, HeartRateZone.Percentages.marathonHigh),
+            ("threshold", HeartRateZone.Percentages.thresholdLow, HeartRateZone.Percentages.thresholdHigh),
+            ("anaerobic", HeartRateZone.Percentages.anaerobicLow, HeartRateZone.Percentages.anaerobicHigh),
+            ("interval", HeartRateZone.Percentages.intervalLow, HeartRateZone.Percentages.intervalHigh),
+        ]
+
+        XCTAssertEqual(actual.count, spec.count)
+        for (got, expected) in zip(actual, spec) {
+            XCTAssertEqual(got.0, expected.0)
+            XCTAssertEqual(got.1, expected.1, accuracy: 0.000_000_1, "\(expected.0) low")
+            XCTAssertEqual(got.2, expected.2, accuracy: 0.000_000_1, "\(expected.0) high")
+        }
+
+        for i in 0..<(actual.count - 1) {
+            let current = actual[i]
+            let next = actual[i + 1]
+            XCTAssertLessThanOrEqual(
+                current.2,
+                next.1,
+                "\(current.0) [\(current.1), \(current.2)] overlaps \(next.0) [\(next.1), \(next.2)]"
+            )
+        }
+    }
 
     func test_hrZone3_isMarathon_not_threshold() {
         let zones = HeartRateZone.calculateZones(maxHR: 180, restingHR: 60)
@@ -34,7 +70,7 @@ final class ZoneNamingModelTests: XCTestCase {
         // confused with is threshold (Z4).
         XCTAssertEqual(z3?.name, NSLocalizedString("hr_zone.marathon", comment: ""))
         XCTAssertNotEqual(z3?.name, NSLocalizedString("hr_zone.threshold", comment: ""),
-                          "Zone 3 (~0.75–0.84) is the marathon band, not threshold")
+                          "Zone 3 (0.74–0.84) is the marathon band, not threshold")
     }
 
     func test_hrZone3_marathonName_localizesToMarathonText() {
