@@ -23,14 +23,19 @@ struct RizoReply: Equatable {
     /// 改課表:此回合若教練提出待確認的課表變更，帶提案；否則 nil。
     let pendingPlanChange: PendingPlanChange?
 
-    /// pendingPlanChange 預設 nil → 既有建構處(無改課表)免改。
+    /// 這一輪是否真的寫進已生成的週課表。wire 省略＝false。SPEC-rizo-coach §4.2a。
+    let planChangeApplied: Bool
+
+    /// pendingPlanChange 預設 nil、planChangeApplied 預設 false → 既有建構處免改。
     init(reply: String, sessionId: String, quota: RizoQuota, safety: RizoSafety,
-         pendingPlanChange: PendingPlanChange? = nil) {
+         pendingPlanChange: PendingPlanChange? = nil,
+         planChangeApplied: Bool = false) {
         self.reply = reply
         self.sessionId = sessionId
         self.quota = quota
         self.safety = safety
         self.pendingPlanChange = pendingPlanChange
+        self.planChangeApplied = planChangeApplied
     }
 }
 

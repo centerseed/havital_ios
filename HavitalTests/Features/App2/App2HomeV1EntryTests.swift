@@ -318,6 +318,41 @@ final class App2HomeV1EntryTests: XCTestCase {
         XCTAssertEqual(vm.todayState, .unavailable, "版本否決掉 404 code 之後不得繼續掛著重設入口")
     }
 
+    /// AC-TRAIN-HUB-18：Rizo 改了課表發 `.dataChanged(.trainingPlanV2)` 後，首頁必須重驗。
+    func test_trainingPlanV2Changed_revalidatesIfLoaded() async {
+        let planRepo = MockTrainingPlanV2Repository()
+        planRepo.planStatusToReturn = PlanStatusV2Response(
+            currentWeek: 2, totalWeeks: 5, nextAction: "view_plan",
+            canGenerateNextWeek: false, currentWeekPlanId: "p_1",
+            previousWeekSummaryId: nil, targetType: "race_run",
+            methodologyId: "paceriz", nextWeekInfo: nil, metadata: nil
+        )
+        let vm = App2HomeViewModel(
+            dailyStateRepository: ForbiddenDailyStateRepository(),
+            targetRepository: MockTargetRepository(),
+            planRepository: planRepo,
+            readinessViewModel: nil,
+            readinessService: nil,
+            workoutDataSource: EmptyStatsSource(),
+            snapshots: NoSnapshots(),
+            garminStatusProvider: { throw DomainError.forbidden }
+        )
+
+        await vm.revalidate()
+        XCTAssertTrue(vm.hasLoaded, "先載過才談事件重驗")
+        let baseline = planRepo.getPlanStatusCallCount
+
+        CacheEventBus.shared.publish(.dataChanged(.trainingPlanV2))
+
+        await waitUntil(
+            message: "首頁收到 .trainingPlanV2 必須重驗（作廢 lastLoadedAt 後 revalidate）"
+        ) {
+            planRepo.getPlanStatusCallCount > baseline
+        }
+        XCTAssertGreaterThan(planRepo.getPlanStatusCallCount, baseline)
+        XCTAssertNotNil(vm.lastLoadedAt)
+    }
+
     /// 同一條「不黏住」規則的另一半前提：下一輪**不是那兩個 code、版本也還是讀不到**
     /// ——判不出 V1，卡片一樣要退回「暫時讀不到」。
     /// （AC-SHELL-08 規則句括號裡寫的就是這一格，所以它要有人鎖。）

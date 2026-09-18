@@ -373,6 +373,122 @@ final class RizoSheetSessionRestoreTests: XCTestCase {
         await viewModel.send("重新開始")
         XCTAssertNil(fake.lastSessionId)
     }
+
+    // MARK: - AC-TRAIN-HUB-13 And Then：還原時把 pending 提案按鈕一起畫回來
+
+    private func pending(_ id: String) -> PendingPlanChange {
+        PendingPlanChange(
+            proposalId: id, summary: "Day6: lsd 15km -> easy 12km",
+            safetyLevel: "none", requiresSubscription: false, diffDays: nil
+        )
+    }
+
+    /// 離開 Rizo 再回來，history 裡這個 session 還有提案 → 按鈕要在。
+    /// 驗法：AC-TRAIN-HUB-13（2026-09-18 增補）；後端契約 SPEC-rizo-coach §4.2a。
+    func test_restoringASessionWithPendingPlanChangeRestoresTheButtons() async {
+        let now = noon
+        let fake = FakeRizoRepository(reply: reply("好的", session: "sess-today"))
+        fake.historyToReturn = [
+            turn(session: "sess-today", user: "這週太累了", coach: "那我幫你把週六改輕鬆跑",
+                 at: now)
+        ]
+        fake.pendingPlanChangesToReturn = ["sess-today": pending("rpc_typed_5c6e0e4fdc3b2094c24f1df3")]
+        let viewModel = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+
+        let restored = await viewModel.restoreTodaySession(now: now)
+
+        XCTAssertTrue(restored)
+        XCTAssertEqual(
+            viewModel.pendingPlanChange?.proposalId,
+            "rpc_typed_5c6e0e4fdc3b2094c24f1df3",
+            "還原必須把 history.pending_plan_changes[sessionId] 畫回接受按鈕"
+        )
+    }
+
+    /// 別的 session 的提案不得落到今天這一段上。
+    func test_restoringDoesNotAdoptAnotherSessionsPendingPlanChange() async {
+        let now = noon
+        let fake = FakeRizoRepository(reply: reply("好的", session: "sess-today"))
+        fake.historyToReturn = [
+            turn(session: "sess-today", user: "今天腿很痠", coach: "那就先緩一下", at: now)
+        ]
+        fake.pendingPlanChangesToReturn = ["sess-other": pending("rpc_other")]
+        let viewModel = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+
+        _ = await viewModel.restoreTodaySession(now: now)
+
+        XCTAssertNil(viewModel.pendingPlanChange, "只能取 pending_plan_changes[latest.sessionId]")
+    }
+
+    /// 還原後按「接受」走既有 confirm，不是另開一條路。
+    func test_acceptAfterRestoreConfirmsTheRestoredProposal() async {
+        let now = noon
+        let fake = FakeRizoRepository(reply: reply("好的", session: "sess-today"))
+        fake.historyToReturn = [
+            turn(session: "sess-today", user: "改一下週六", coach: "幫你改成輕鬆跑", at: now)
+        ]
+        fake.pendingPlanChangesToReturn = ["sess-today": pending("rpc_restored")]
+        let viewModel = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+
+        _ = await viewModel.restoreTodaySession(now: now)
+        await viewModel.acceptPlanChange()
+
+        XCTAssertEqual(fake.confirmCallCount, 1)
+        XCTAssertEqual(fake.lastConfirmProposalId, "rpc_restored")
+        XCTAssertNil(viewModel.pendingPlanChange)
+    }
+
+    // MARK: - AC-TRAIN-HUB-18：只看 plan_change_applied，不讀回覆文字
+
+    func test_planChangeAppliedTruePublishesTrainingPlanV2() async {
+        let applied = RizoReply(
+            reply: "好，已經幫你改了",
+            sessionId: "sess-1",
+            quota: RizoQuota(
+                allowed: true, used: 1, limit: nil, remaining: nil,
+                resetsAt: nil, reserved: false
+            ),
+            safety: RizoSafety(dangerClass: "none", canned: false),
+            planChangeApplied: true
+        )
+        let fake = FakeRizoRepository(reply: applied)
+        let viewModel = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+
+        var published = 0
+        let subscriberId = "t0736-applied-\(UUID().uuidString)"
+        CacheEventBus.shared.subscribe(forIdentifier: subscriberId) { reason in
+            if case .dataChanged(.trainingPlanV2) = reason { published += 1 }
+        }
+        defer { CacheEventBus.shared.unsubscribe(forIdentifier: subscriberId) }
+
+        await viewModel.send("好，就這樣改")
+        await waitUntil(message: "data.plan_change_applied == true 必須發 .trainingPlanV2") {
+            published == 1
+        }
+
+        XCTAssertEqual(published, 1, "data.plan_change_applied == true 必須發 .trainingPlanV2")
+    }
+
+    func test_planChangeAppliedAbsentDoesNotPublish() async {
+        let fake = FakeRizoRepository(reply: reply("今天天氣不錯，輕鬆跑就好", session: "sess-1"))
+        let viewModel = StateRizoChatViewModel(scenario: "body_status", repository: fake)
+
+        var published = 0
+        let subscriberId = "t0736-absent-\(UUID().uuidString)"
+        CacheEventBus.shared.subscribe(forIdentifier: subscriberId) { reason in
+            if case .dataChanged(.trainingPlanV2) = reason { published += 1 }
+        }
+        defer { CacheEventBus.shared.unsubscribe(forIdentifier: subscriberId) }
+
+        await viewModel.send("今天腿很痠")
+        // publish 走 Task { @MainActor }，排空後才確定這一輪沒發。
+        await MainActor.run {}
+        await Task.yield()
+        await MainActor.run {}
+
+        XCTAssertEqual(published, 0, "沒有 plan_change_applied 的一輪不得發課表變更事件")
+        XCTAssertEqual(viewModel.messages.last?.text, "今天天氣不錯，輕鬆跑就好")
+    }
 }
 
 private extension StateRizoChatViewModel {

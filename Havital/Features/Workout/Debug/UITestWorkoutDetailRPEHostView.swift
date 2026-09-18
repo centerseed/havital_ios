@@ -208,7 +208,10 @@ private final class UITestWorkoutDetailRPERizoRepository: RizoRepository {
     }
 
     func getPresets(scenario: String) async throws -> [RizoPreset] { [] }
-    func getHistory() async throws -> [RizoHistoryItem] { [] }
+    func getHistory() async throws -> (
+        items: [RizoHistoryItem],
+        pendingPlanChanges: [String: PendingPlanChange]
+    ) { ([], [:]) }
 }
 
 struct UITestWorkoutDetailRPEHostView: View {

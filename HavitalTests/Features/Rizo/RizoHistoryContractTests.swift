@@ -37,4 +37,43 @@ final class RizoHistoryContractTests: XCTestCase {
         let dto = try JSONDecoder().decode(RizoHistoryResponseDTO.self, from: json)
         XCTAssertTrue(RizoMapper.toHistory(from: dto).isEmpty)
     }
+
+    /// SPEC-rizo-coach §4.2a：history data.pending_plan_changes 與聊天 pending_plan_change 同形。
+    func test_decodesPendingPlanChangesBySessionId() throws {
+        let json = """
+        { "items": [
+            { "session_id": "s1", "ts": "2026-09-18T07:58:39Z",
+              "scenario": "body_status", "user_input": "too tired",
+              "rizo_response": "I can ease Saturday." }
+          ],
+          "pending_plan_changes": {
+            "s1": {
+              "proposal_id": "rpc_typed_5c6e0e4fdc3b2094c24f1df3",
+              "summary": "Day6: lsd 15km -> easy 12km",
+              "safety_level": "none",
+              "requires_subscription": false
+            }
+          }
+        }
+        """.data(using: .utf8)!
+
+        let dto = try JSONDecoder().decode(RizoHistoryResponseDTO.self, from: json)
+        let pending = RizoMapper.toPendingPlanChanges(from: dto)
+
+        XCTAssertEqual(pending["s1"]?.proposalId, "rpc_typed_5c6e0e4fdc3b2094c24f1df3")
+        XCTAssertEqual(pending["s1"]?.summary, "Day6: lsd 15km -> easy 12km")
+        XCTAssertEqual(pending["s1"]?.requiresSubscription, Optional(false))
+        XCTAssertNil(pending["missing"])
+    }
+
+    func test_pendingPlanChangesAbsentMapsToEmpty() throws {
+        let json = """
+        { "items": [
+          { "session_id": "s1", "ts": "2026-07-01T10:00:00.000000+00:00",
+            "scenario": "body_status", "user_input": "", "rizo_response": "hi" }
+        ] }
+        """.data(using: .utf8)!
+        let dto = try JSONDecoder().decode(RizoHistoryResponseDTO.self, from: json)
+        XCTAssertTrue(RizoMapper.toPendingPlanChanges(from: dto).isEmpty)
+    }
 }

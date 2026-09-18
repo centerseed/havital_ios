@@ -309,18 +309,22 @@ final class FakeRizoRepository: RizoRepository {
     func getPresets(scenario: String) async throws -> [RizoPreset] { [] }
 
     var historyToReturn: [RizoHistoryItem] = []
+    var pendingPlanChangesToReturn: [String: PendingPlanChange] = [:]
     var historyErrorToThrow: Error?
     /// 讓測試在 history 還沒回來的那段時間裡插進別的操作。
     var historyDelayNanoseconds: UInt64 = 0
     private(set) var historyCallCount = 0
 
-    func getHistory() async throws -> [RizoHistoryItem] {
+    func getHistory() async throws -> (
+        items: [RizoHistoryItem],
+        pendingPlanChanges: [String: PendingPlanChange]
+    ) {
         historyCallCount += 1
         if historyDelayNanoseconds > 0 {
             try? await Task.sleep(nanoseconds: historyDelayNanoseconds)
         }
         if let historyErrorToThrow { throw historyErrorToThrow }
-        return historyToReturn
+        return (historyToReturn, pendingPlanChangesToReturn)
     }
 
     // MARK: confirmPlanChange（#3 測試用）
@@ -328,9 +332,11 @@ final class FakeRizoRepository: RizoRepository {
     var confirmResultToReturn: PlanChangeConfirmResult = PlanChangeConfirmResult(applied: true, status: "applied")
     var confirmErrorToThrow: Error?
     private(set) var confirmCallCount = 0
+    private(set) var lastConfirmProposalId: String?
 
     func confirmPlanChange(proposalId: String) async throws -> PlanChangeConfirmResult {
         confirmCallCount += 1
+        lastConfirmProposalId = proposalId
         if let confirmErrorToThrow { throw confirmErrorToThrow }
         return confirmResultToReturn
     }

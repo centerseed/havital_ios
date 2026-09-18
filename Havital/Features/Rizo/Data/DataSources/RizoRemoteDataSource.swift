@@ -198,7 +198,10 @@ final class RizoRemoteDataSource {
 
     /// 取得歷史對話清單。
     /// API: GET /v2/agent/history
-    func fetchHistory() async throws -> [RizoHistoryItem] {
+    func fetchHistory() async throws -> (
+        items: [RizoHistoryItem],
+        pendingPlanChanges: [String: PendingPlanChange]
+    ) {
         let path = "/v2/agent/history"
 
         Logger.debug("[RizoRemoteDataSource] fetchHistory")
@@ -207,7 +210,10 @@ final class RizoRemoteDataSource {
             try await httpClient.request(path: path, method: .GET, body: nil)
         }
         let dto = try ResponseProcessor.extractData(RizoHistoryResponseDTO.self, from: rawData, using: parser)
-        return RizoMapper.toHistory(from: dto)
+        return (
+            RizoMapper.toHistory(from: dto),
+            RizoMapper.toPendingPlanChanges(from: dto)
+        )
     }
 
     /// 以已擁有的歷史 session 某一回合為錨點建立新 session；不重播 LLM。

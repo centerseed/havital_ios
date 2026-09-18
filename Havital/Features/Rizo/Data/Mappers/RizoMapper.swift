@@ -14,7 +14,8 @@ struct RizoMapper {
             sessionId: dto.sessionId,
             quota: toQuota(from: dto.quota),
             safety: toSafety(from: dto.safety),
-            pendingPlanChange: dto.pendingPlanChange.map(toPendingPlanChange(from:))
+            pendingPlanChange: dto.pendingPlanChange.map(toPendingPlanChange(from:)),
+            planChangeApplied: dto.planChangeApplied == true
         )
     }
 
@@ -93,6 +94,13 @@ struct RizoMapper {
     /// 缺 session_id 的項目視為無效並過濾（無分組鍵）。
     static func toHistory(from dto: RizoHistoryResponseDTO) -> [RizoHistoryItem] {
         return dto.items.compactMap(toHistoryItem(from:))
+    }
+
+    /// session_id → 還沒處理的提案。省略或空 map 都是沒有待確認按鈕。
+    static func toPendingPlanChanges(
+        from dto: RizoHistoryResponseDTO
+    ) -> [String: PendingPlanChange] {
+        (dto.pendingPlanChanges ?? [:]).mapValues(toPendingPlanChange(from:))
     }
 
     static func toHistoryItem(from dto: RizoHistoryItemDTO) -> RizoHistoryItem? {

@@ -376,7 +376,10 @@ private final class _RizoChatPreviewRepo: RizoRepository {
         )
     }
     func getPresets(scenario: String) async throws -> [RizoPreset] { [] }
-    func getHistory() async throws -> [RizoHistoryItem] { [] }
+    func getHistory() async throws -> (
+        items: [RizoHistoryItem],
+        pendingPlanChanges: [String: PendingPlanChange]
+    ) { ([], [:]) }
     func confirmPlanChange(proposalId: String) async throws -> PlanChangeConfirmResult {
         PlanChangeConfirmResult(applied: true, status: "applied")
     }

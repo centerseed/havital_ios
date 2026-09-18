@@ -27,8 +27,8 @@ final class RizoHistoryViewModel: ObservableObject, TaskManageable {
     func load() async {
         state = .loading
         do {
-            let items = try await repository.getHistory()
-            let conversations = RizoConversationSummary.group(from: items)
+            let history = try await repository.getHistory()
+            let conversations = RizoConversationSummary.group(from: history.items)
             state = conversations.isEmpty ? .empty : .loaded(conversations)
         } catch is CancellationError {
             return

@@ -322,7 +322,10 @@ private final class MockRizoRepo: RizoRepository {
         return presetsToReturn
     }
 
-    func getHistory() async throws -> [RizoHistoryItem] { [] }
+    func getHistory() async throws -> (
+        items: [RizoHistoryItem],
+        pendingPlanChanges: [String: PendingPlanChange]
+    ) { ([], [:]) }
 }
 
 private final class MockWorkoutRepoForJournal: WorkoutRepository {
