@@ -141,8 +141,11 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
         guard messages.isEmpty else { return false }
         let epoch = conversationEpoch
         let items: [RizoHistoryItem]
+        let pendingBySession: [String: PendingPlanChange]
         do {
-            items = try await repository.getHistory()
+            let history = try await repository.getHistory()
+            items = history.items
+            pendingBySession = history.pendingPlanChanges
         } catch is CancellationError {
             return false
         } catch {
@@ -165,6 +168,7 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
         // 沿用它的 session_id」，沒有授權讓歷史接管入口的身分。
         sessionId = latest.sessionId
         messages = rendered
+        pendingPlanChange = pendingBySession[latest.sessionId]
         return true
     }
 
@@ -305,6 +309,9 @@ final class StateRizoChatViewModel: ObservableObject, TaskManageable {
                     } else { messages.append(Message(role: .coach, text: reply.reply)) }
                     sessionId = reply.sessionId
                     pendingPlanChange = reply.pendingPlanChange
+                    if reply.planChangeApplied {
+                        CacheEventBus.shared.publish(.dataChanged(.trainingPlanV2))
+                    }
                 }
             }
         } catch is CancellationError {

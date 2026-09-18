@@ -244,7 +244,10 @@ private final class _PreviewRizoRepo: RizoRepository {
         throw NSError(domain: "preview", code: 0)
     }
     func getPresets(scenario: String) async throws -> [RizoPreset] { [] }
-    func getHistory() async throws -> [RizoHistoryItem] { [] }
+    func getHistory() async throws -> (
+        items: [RizoHistoryItem],
+        pendingPlanChanges: [String: PendingPlanChange]
+    ) { ([], [:]) }
 }
 
 private final class _PreviewWorkoutRepo: WorkoutRepository {

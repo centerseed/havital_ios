@@ -248,6 +248,12 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                     self.lastLoadedAt = nil
                     if self.hasLoaded { await self.revalidate() }
                 }
+            case .dataChanged(.trainingPlanV2):
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.lastLoadedAt = nil
+                    if self.hasLoaded { await self.revalidate() }
+                }
             default:
                 break
             }

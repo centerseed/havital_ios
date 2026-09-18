@@ -124,7 +124,8 @@ And Then sheet **不得顯示寫死的追問 chips**：那三句每一輪回覆�
 And Then 還原**只沿用那一段的 `session_id`，不接管這個入口的 scenario**：`GET /v2/agent/history` 不分 scenario 回全部輪次，最新那一段可能來自週回顧；sheet 的 scenario 仍是入口自己的（`card.rizoScenario`）。
 And Then **已經用完後端每-session 輪數預算的那一段不還原**，改開新的一段。後端對今日卡情境有 20 輪的軟上限（`cloud/api_service/application/rizo.py` 的 `_SESSION_SOFT_CAP`），到了上限只會回罐頭收尾、不進教練模型；本條之前 sheet 每次開都是新 session，這個上限碰不到，帶回當日 session 之後同一天共用同一份預算——不擋掉用完的那一段，使用者一開 sheet 就卡在收尾語。輪數的 SSOT 在後端，app 端的門檻是保守下界。
 And Then 還原沿用同一個 `session_id`，**因此不另扣免費教練額度**——那份額度是月配額、以 `session_id` 去重（`cloud/api_service/core/policies/rizo_quota.py` 的 `DEFAULT_RIZO_FREE_COACH_LIMIT`），所以同一天的多次開啟只扣一次；按「新對話」開新 session ＝扣一次。免費月上限因此是「有聊天的日子」而不是「對話段數」；模型呼叫的月上限不變（每段仍受 20 輪軟上限）。訂閱者不受額度影響。裁決與代價：`STATUS/decisions.md` 2026-09-06「T-0434 免費額度口徑」。
-驗法：`HavitalTests/Features/Rizo/RizoSheetSessionRestoreTests.swift`。
+And Then 還原的那一段在 `GET /v2/agent/history` 的 `pending_plan_changes` 裡有提案時，「接受／繼續討論」按鈕要一起畫回來；按「接受」走既有的 `POST /v2/agent/plan-change/confirm`，結果與當初直接按一樣（2026-09-18 使用者裁決；後端契約見 `cloud/api_service/docs/01-specs/SPEC-rizo-coach.md` §4.2a）。本段同時約束 Android。
+驗法：`HavitalTests/Features/Rizo/RizoSheetSessionRestoreTests.swift`。另驗：產生提案 → 關掉 sheet → 重開，按鈕還在，按「接受」後課表改變。
 
 ### AC-TRAIN-HUB-11: 週回顧生成期間必須顯示生成中動畫與文案（2026-08-31 使用者裁決）
 
@@ -203,6 +204,16 @@ And Then 同一帳號、同一週，iOS 與 Android 顯示同一個數字；本�
 
 驗法：iOS `App2PlanViewModel.completedWeek`（`workouts.filter { $0.activityType.lowercased().contains("run") }`）；Android 見 T-0726 的單元測試（running 5 km ＋ cycling 20 km → 5 km，拿掉過濾必須紅）。
 
+### AC-TRAIN-HUB-18: Rizo 改了課表，首頁與課表頁在同一 session 更新（2026-09-18 使用者裁決）
+
+Given 使用者在 Rizo 對話裡讓課表改了——按「接受」且 confirm 回 `applied`，或在對話裡明確接受 pending 提案且聊天回覆 `data.plan_change_applied == true`（見 `cloud/api_service/docs/01-specs/SPEC-rizo-coach.md` §4.2a），
+When 使用者回到首頁或課表頁，
+Then 兩頁顯示改過之後的課表，不需要關閉重開 app，也不需要手動下拉刷新。
+And Then App 只看上面兩個結構化欄位，不得用回覆文字判斷課表有沒有改；沒有這兩個訊號的一輪不觸發重抓。confirm 回 `applied` 但屬於延後到下週套用的，重抓後本週課表不變，這是正確結果。
+And Then iOS 走既有的 `CacheEventBus` `.dataChanged(.trainingPlanV2)`，不另開第二條刷新路徑。課表頁已訂閱（`App2PlanViewModel.swift:305`）；首頁 `App2HomeViewModel` 目前沒有訂閱（只聽 targets／workouts／單位），必須訂閱同一個事件，作廢 `lastLoadedAt` 後重驗。本條同時約束 Android（無獨立的課表頁 spec，以本條為準）。
+
+驗法：對話中打字接受改本週的 pending 提案後，回首頁與課表頁都不重開就看到新課表；單元測試：回覆帶 `plan_change_applied: true` 時發出課表變更事件、不帶時不發；首頁收到事件會重驗。
+
 ## AC ID Index
 
 本 spec 已採用穩定 AC-ID；以下索引作為派工、review 與測試引用入口。
@@ -226,3 +237,4 @@ And Then 同一帳號、同一週，iOS 與 Android 顯示同一個數字；本�
 | AC-TRAIN-HUB-15 | 週日回顧已產但下週課表未產時，首頁保留回顧入口（通往產生下週課表的唯一路） |
 | AC-TRAIN-HUB-16 | 訓練完成事件後課表頁在同一 session 更新實跑週量 |
 | AC-TRAIN-HUB-17 | 課表頁實跑週量只計跑步活動，iOS 與 Android 同一個數 |
+| AC-TRAIN-HUB-18 | Rizo 改了課表後首頁與課表頁在同一 session 更新，只看結構化欄位 |

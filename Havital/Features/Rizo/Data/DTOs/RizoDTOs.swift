@@ -35,6 +35,9 @@ struct RizoChatResponseDTO: Codable {
     let safety: RizoSafetyDTO
     /// 改課表:有待確認的提案時才出現（舊版後端 / 非改課表輪為 nil）。
     let pendingPlanChange: PendingPlanChangeDTO?
+    /// 這一輪真的寫進已生成週課表時才出現 `true`；沒改就省略，不回 `false`。
+    /// SPEC-rizo-coach §4.2a。
+    let planChangeApplied: Bool?
 
     enum CodingKeys: String, CodingKey {
         case response
@@ -42,6 +45,7 @@ struct RizoChatResponseDTO: Codable {
         case quota
         case safety
         case pendingPlanChange = "pending_plan_change"
+        case planChangeApplied = "plan_change_applied"
     }
 }
 
@@ -168,6 +172,14 @@ struct RizoPresetDTO: Codable {
 /// GET /v2/agent/history 回應的 data 物件（本批先建骨架）。
 struct RizoHistoryResponseDTO: Codable {
     let items: [RizoHistoryItemDTO]
+    /// session_id → 該 session 還沒處理的提案；與聊天回覆 `pending_plan_change` 同形。
+    /// 沒有待處理提案時省略。SPEC-rizo-coach §4.2a。
+    let pendingPlanChanges: [String: PendingPlanChangeDTO]?
+
+    enum CodingKeys: String, CodingKey {
+        case items
+        case pendingPlanChanges = "pending_plan_changes"
+    }
 }
 
 // MARK: - RizoHistoryItemDTO

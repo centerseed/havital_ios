@@ -45,8 +45,11 @@ protocol RizoRepository {
 
     /// 取得歷史對話清單。
     /// 對應 GET /v2/agent/history。
-    /// - Returns: 歷史項目清單。
-    func getHistory() async throws -> [RizoHistoryItem]
+    /// - Returns: 攤平的 turns，以及 `pending_plan_changes`（session_id → 還沒處理的提案）。
+    func getHistory() async throws -> (
+        items: [RizoHistoryItem],
+        pendingPlanChanges: [String: PendingPlanChange]
+    )
 
     /// 以來源 session 的第 `throughTurnIndex` 回合（0-based，含該回合）建立新對話。
     func forkHistory(sourceSessionId: String, throughTurnIndex: Int) async throws -> RizoHistoryFork

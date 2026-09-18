@@ -70,7 +70,10 @@ final class RizoRepositoryImpl: RizoRepository {
         return try await remoteDataSource.fetchPresets(scenario: scenario)
     }
 
-    func getHistory() async throws -> [RizoHistoryItem] {
+    func getHistory() async throws -> (
+        items: [RizoHistoryItem],
+        pendingPlanChanges: [String: PendingPlanChange]
+    ) {
         return try await remoteDataSource.fetchHistory()
     }
 

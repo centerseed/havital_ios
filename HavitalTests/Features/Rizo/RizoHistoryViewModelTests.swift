@@ -17,9 +17,12 @@ private final class FakeRizoRepo: RizoRepository {
         throw RizoRepositoryError.dataSourceUnavailable
     }
     func getPresets(scenario: String) async throws -> [RizoPreset] { [] }
-    func getHistory() async throws -> [RizoHistoryItem] {
+    func getHistory() async throws -> (
+        items: [RizoHistoryItem],
+        pendingPlanChanges: [String: PendingPlanChange]
+    ) {
         if let error { throw error }
-        return items
+        return (items, [:])
     }
 }
 

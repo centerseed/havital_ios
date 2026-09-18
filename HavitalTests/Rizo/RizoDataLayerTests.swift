@@ -287,6 +287,32 @@ final class RizoDataLayerTests: XCTestCase {
         XCTAssertNil(reply.pendingPlanChange?.diffDays)
     }
 
+    /// SPEC-rizo-coach §4.2a：這一輪寫進已生成週才帶 plan_change_applied: true。
+    func testChatResponseMapsPlanChangeAppliedTrue() throws {
+        let json = """
+        {"response":"applied","session_id":"s1",
+         "quota":{"allowed":true,"used":1,"limit":null,"remaining":null,"resets_at":null,"reserved":false},
+         "safety":{"danger_class":"none","canned":false},
+         "plan_change_applied":true}
+        """
+        let dto = try JSONDecoder().decode(RizoChatResponseDTO.self, from: Data(json.utf8))
+        let reply = RizoMapper.toReply(from: dto)
+        XCTAssertEqual(dto.planChangeApplied, true)
+        XCTAssertTrue(reply.planChangeApplied)
+    }
+
+    func testChatResponseOmitsPlanChangeAppliedWhenAbsent() throws {
+        let json = """
+        {"response":"just chatting","session_id":"s1",
+         "quota":{"allowed":true,"used":1,"limit":null,"remaining":null,"resets_at":null,"reserved":false},
+         "safety":{"danger_class":"none","canned":false}}
+        """
+        let dto = try JSONDecoder().decode(RizoChatResponseDTO.self, from: Data(json.utf8))
+        let reply = RizoMapper.toReply(from: dto)
+        XCTAssertNil(dto.planChangeApplied)
+        XCTAssertFalse(reply.planChangeApplied)
+    }
+
     func testSSEDeltaResetAndFinalUsesAuthoritativeResponse() throws {
         let sse = """
         event: delta\r
