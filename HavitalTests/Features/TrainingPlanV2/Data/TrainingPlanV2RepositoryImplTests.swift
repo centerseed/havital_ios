@@ -152,6 +152,75 @@ final class TrainingPlanV2RepositoryImplTests: XCTestCase {
         }
     }
 
+    // MARK: - A.5 diagnostic reporting classification
+
+    func test_A5_designedEmptyStateCodes_doNotReport() {
+        let codes = [
+            "no_active_training_plan",
+            "training_plan_not_found",
+            "weekly_plan_not_found",
+            "weekly_summary_not_found",
+            "weekly_preview_not_found",
+            "weekly_adjustment_items_not_found"
+        ]
+
+        for code in codes {
+            XCTAssertFalse(
+                TrainingPlanV2RepositoryImpl.shouldReportCloudError(
+                    HTTPError.notFound(Self.errorEnvelope(code: code))
+                ),
+                "Designed empty state (code) must not be reported"
+            )
+        }
+    }
+
+    func test_A5_unknownOrCorruptedCodes_areReported() {
+        XCTAssertTrue(
+            TrainingPlanV2RepositoryImpl.shouldReportCloudError(
+                HTTPError.notFound(Self.errorEnvelope(code: "weekly_plan_corrupted"))
+            )
+        )
+        XCTAssertTrue(
+            TrainingPlanV2RepositoryImpl.shouldReportCloudError(
+                HTTPError.notFound("")
+            )
+        )
+    }
+
+    func test_A5_planAndStatusNotFound_preserveBackendCodeForCaller() async {
+        let code = "training_plan_not_found"
+        spyRemote.overviewError = HTTPError.notFound(Self.errorEnvelope(code: code))
+        spyRemote.planStatusError = HTTPError.notFound(Self.errorEnvelope(code: code))
+
+        do {
+            _ = try await sut.getOverview()
+            XCTFail("Overview 404 should remain a failure")
+        } catch let error as DomainError {
+            guard case .notFound(let message) = error else {
+                return XCTFail("Expected DomainError.notFound, got \(error)")
+            }
+            XCTAssertTrue(message.contains(code))
+        } catch {
+            XCTFail("Expected DomainError, got \(error)")
+        }
+
+        do {
+            _ = try await sut.getPlanStatus(forceRefresh: true)
+            XCTFail("Plan status 404 should remain a failure")
+        } catch let error as DomainError {
+            guard case .notFound(let message) = error else {
+                return XCTFail("Expected DomainError.notFound, got \(error)")
+            }
+            XCTAssertTrue(message.contains(code))
+        } catch {
+            XCTFail("Expected DomainError, got \(error)")
+        }
+    }
+
+    private static func errorEnvelope(code: String) -> String {
+        "{\"success\":false,\"error\":\"\(code)\"}"
+    }
+
     // MARK: - generateWeeklyPlan Tests
 
     func test_generateWeeklyPlan_success_savesAndInvalidatesCache() async throws {
@@ -297,7 +366,9 @@ private final class SpyTrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataS
     // MARK: - Return Values
 
     var planStatusToReturn: PlanStatusV2Response = PlanStatusV2Response.stubForRepo()
+    var planStatusError: Error?
     var overviewDTOToReturn: PlanOverviewV2DTO = .stubForRepo()
+    var overviewError: Error?
     var weeklyPlanDTOToReturn: WeeklyPlanV2DTO?
     var weeklyPlanError: Error?
     /// 週回顧（T-0362：`fetchWeeklySummary` 的唯讀契約）。
@@ -317,6 +388,7 @@ private final class SpyTrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataS
 
     func getPlanStatus() async throws -> PlanStatusV2Response {
         getPlanStatusCallCount += 1
+        if let error = planStatusError { throw error }
         return planStatusToReturn
     }
 
@@ -342,6 +414,7 @@ private final class SpyTrainingPlanV2RemoteDataSource: TrainingPlanV2RemoteDataS
 
     func getOverview() async throws -> PlanOverviewV2DTO {
         getOverviewCallCount += 1
+        if let error = overviewError { throw error }
         return overviewDTOToReturn
     }
 

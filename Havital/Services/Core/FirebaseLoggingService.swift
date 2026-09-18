@@ -53,6 +53,7 @@ actor FirebaseLoggingService {
             let appVersion: String
             let buildNumber: String
             let bundleId: String
+            let platform: String
         }
         
         enum CodingKeys: String, CodingKey {
@@ -100,7 +101,8 @@ actor FirebaseLoggingService {
                 osVersion: "\(device.systemName) \(device.systemVersion)",
                 appVersion: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown",
                 buildNumber: Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "Unknown",
-                bundleId: Bundle.main.bundleIdentifier ?? "Unknown"
+                bundleId: Bundle.main.bundleIdentifier ?? "Unknown",
+                platform: "ios"
             )
         }
     }

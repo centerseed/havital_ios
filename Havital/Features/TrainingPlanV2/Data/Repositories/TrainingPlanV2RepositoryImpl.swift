@@ -8,6 +8,15 @@ import Combine
 /// - Track B: Background refresh (keep data fresh)
 final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
 
+    private static let designedEmptyStateErrorCodes: Set<String> = [
+        "no_active_training_plan",
+        "training_plan_not_found",
+        "weekly_plan_not_found",
+        "weekly_summary_not_found",
+        "weekly_preview_not_found",
+        "weekly_adjustment_items_not_found"
+    ]
+
     // MARK: - Dependencies
 
     private let remoteDataSource: TrainingPlanV2RemoteDataSourceProtocol
@@ -440,6 +449,41 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
 
     // MARK: - Private Helpers
 
+    static func shouldReportCloudError(_ error: Error) -> Bool {
+        guard let code = Self.notFoundErrorCode(from: error) else { return true }
+        return !Self.designedEmptyStateErrorCodes.contains(code)
+    }
+
+    private static func notFoundErrorCode(from error: Error) -> String? {
+        let message: String
+
+        switch error {
+        case let error as HTTPError:
+            guard case .notFound(let body) = error else { return nil }
+            message = body
+        case let error as DomainError:
+            guard case .notFound(let body) = error else { return nil }
+            message = body
+        default:
+            return nil
+        }
+
+        guard let data = message.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data),
+              let envelope = object as? [String: Any] else {
+            return nil
+        }
+
+        if let code = envelope["error"] as? String {
+            return code
+        }
+        if let detail = envelope["detail"] as? [String: Any],
+           let code = detail["error"] as? String {
+            return code
+        }
+        return nil
+    }
+
     private func logErrorToCloud(
         module: String,
         operation: String,
@@ -447,6 +491,11 @@ final class TrainingPlanV2RepositoryImpl: TrainingPlanV2Repository {
         context: [String: Any] = [:]
     ) {
         guard !error.isCancellationError else { return }
+        // 碼在不上報清單裡才跳過；取不到碼、認不得的碼一律上報。後端日後新增而沒人
+        // 分類的碼必須出現在監控裡，不能安靜消失。擋在這裡而不是各個呼叫點，是因為
+        // 這個檔案有 11 個上報站（週回顧 :369、週預覽 :613 都是設計內空狀態），
+        // 逐點包 if 會漏。
+        guard Self.shouldReportCloudError(error) else { return }
 
         var payload: [String: Any] = [
             "error_type": String(describing: type(of: error)),
