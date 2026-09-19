@@ -36,6 +36,34 @@ final class PersonalAchievementsViewModelTests: XCTestCase {
         XCTAssertEqual(sut.state, .error("boom"))
     }
 
+    func testCancelledRequestThroughRealRepositoryDoesNotEnterErrorState() async throws {
+        let httpClient = MockHTTPClient()
+        httpClient.setError(for: "/v2/achievements/summary", error: HTTPError.cancelled)
+        let repository = AchievementRepositoryImpl(dataSource: AchievementRemoteDataSource(httpClient: httpClient))
+        let sut = PersonalAchievementsViewModel(repository: repository, analyticsService: MockAchievementAnalyticsService())
+
+        sut.load(forceRefresh: true)
+        try await Task.sleep(nanoseconds: 100_000_000)
+
+        XCTAssertEqual(httpClient.callCount(for: "/v2/achievements/summary"), 1)
+        if case .error = sut.state {
+            XCTFail("取消的載入不得讓成就頁進入錯誤狀態，實際 state=\(sut.state)")
+        }
+    }
+
+    func testRepositoryRethrowsCancellationUnwrapped() async {
+        let httpClient = MockHTTPClient()
+        httpClient.setError(for: "/v2/achievements/summary", error: HTTPError.cancelled)
+        let repository = AchievementRepositoryImpl(dataSource: AchievementRemoteDataSource(httpClient: httpClient))
+
+        do {
+            _ = try await repository.fetchSummary(forceRefresh: true)
+            XCTFail("expected cancellation")
+        } catch {
+            XCTAssertTrue(error.isCancellationError, "取消必須原樣往上拋，實際 \(error)")
+        }
+    }
+
     func testBackfillAckHidesBanner() async throws {
         let repository = MockAchievementRepository(summary: .fixture(unlockedCount: 2, showBackfill: true))
         let sut = PersonalAchievementsViewModel(repository: repository, analyticsService: MockAchievementAnalyticsService())

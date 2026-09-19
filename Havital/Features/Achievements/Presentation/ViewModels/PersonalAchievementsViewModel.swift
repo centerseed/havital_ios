@@ -109,11 +109,8 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
                         "load success state=\(summary.hasVisibleContent ? "loaded" : "empty") catalog=\(summary.catalogVersion) groups=\(summary.badgeGroups.count) unlocked=\(summary.storySummary.unlockedCount)/\(summary.storySummary.totalCount)"
                     )
                 }
-            } catch let urlError as URLError where urlError.code == .cancelled {
-                Self.diagnostic("load cancelled via URLError.cancelled", level: .debug)
-                return
-            } catch HTTPError.cancelled {
-                Self.diagnostic("load cancelled via HTTPError.cancelled", level: .debug)
+            } catch where error.isCancellationError {
+                Self.diagnostic("load cancelled: \(error)", level: .debug)
                 return
             } catch {
                 await MainActor.run {

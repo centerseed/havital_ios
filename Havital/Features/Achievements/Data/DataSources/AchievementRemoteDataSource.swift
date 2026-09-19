@@ -28,6 +28,9 @@ final class AchievementRemoteDataSource {
             rawData = try await tracked("AchievementRemoteDataSource: fetchSummary") {
                 try await httpClient.request(path: Endpoint.summary, method: .GET)
             }
+        } catch where error.isCancellationError {
+            Self.diagnostic("fetchSummary cancelled path=\(Endpoint.summary)", level: .debug)
+            throw error
         } catch {
             Self.diagnostic("fetchSummary request failed path=\(Endpoint.summary) error=\(Self.describe(error))", level: .error)
             Self.cloudFailure(

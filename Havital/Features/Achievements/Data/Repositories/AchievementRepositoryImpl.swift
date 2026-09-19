@@ -27,6 +27,8 @@ final class AchievementRepositoryImpl: AchievementRepository {
             let summary = AchievementMapper.toDomain(dto)
             cachedSummary = summary
             return summary
+        } catch where error.isCancellationError {
+            throw error
         } catch {
             Logger.error("[AchievementRepository] fetchSummary failed: \(error.localizedDescription)")
             throw AchievementError.fetchFailed(error.localizedDescription)
