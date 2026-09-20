@@ -35,8 +35,13 @@ Merge to local `main` requires these commands, recorded on the task with `exit 0
 ## 指令
 
 ```bash
+# 一律走 wrapper，不要直接呼叫 xcodebuild：它會把 derivedData、clang module cache 與 SPM
+# clone 都指到共用的 /tmp/havital-xcodebuild（`Scripts/run_xcodebuild.sh:13-16`，
+# 沒帶 -derivedDataPath 時於 :34-36 自動補上）。自己指一個新的 -derivedDataPath 等於
+# 從零重編，一次多佔數 GB——2026-09-20 就這樣白燒了 1.9G，而共用那份已有 5.6G 快取可吃。
+# 真的需要隔離時只改 XCODEBUILD_WORK_HOME，不要硬寫路徑；自己造的暫存產物自己刪。
 # 優先 booted simulator；UDID 別寫死
-xcodebuild build -project Havital.xcodeproj -scheme Havital \
+./Scripts/run_xcodebuild.sh build -project Havital.xcodeproj -scheme Havital \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro'
 maestro test .maestro/flows/<flow>.yaml    # 禁 --no-window
 ```
