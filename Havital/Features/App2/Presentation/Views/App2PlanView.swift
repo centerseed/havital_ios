@@ -516,6 +516,10 @@ struct App2PlanView: View {
                 rationaleEntry
             }
         }
+        // 沒有 `.contain` 的話，容器的 identifier 會蓋到每一個子元素上，
+        // 底下的 `App2_PlanRationaleEntry` 在 a11y 樹上一個都看不到
+        // （同 `App2_PlanEmptyState` 那一段的實測，見上面 :97-101）。
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("App2_PlanSummaryCard")
     }
 
@@ -781,6 +785,7 @@ struct App2PlanRationaleSheet: View {
             }
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("App2_PlanRationaleSheet")
     }
 
