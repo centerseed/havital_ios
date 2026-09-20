@@ -79,6 +79,29 @@ Given build 需要提供 Apple reviewer 測試帳號，
 When reviewer 需要進入 demo session，  
 Then 入口必須遵循 `SPEC-demo-reviewer-access-gate` 的受控流程，不得在 `LoginView` 預設顯示公開 Demo Login CTA。
 
+### AC-AUTH-09: 問不到 onboarding 狀態時不得落進 onboarding
+
+> 本條寫的是 T-0749 修好之後的行為，目前尚未落地。
+
+Given 使用者已登入，而 app 向後端確認 onboarding 狀態的那一次讀取失敗（連線失敗、逾時、5xx 都算），
+When `ContentView` 決定入口畫面，
+Then 本地已知這個帳號完成過 onboarding 時（快取的 `AuthUser`，或 `UserDefaults` 的
+`hasCompletedOnboarding`），照本地已知進入主 app shell；本地不知道時必須顯示可重試的讀不到畫面，
+**不得顯示 onboarding**。
+
+- **為什麼**：onboarding 走完會用新的 overview 蓋掉使用者進行中的計畫。2026-09-18 Android 端
+  因為同一類誤判，一位雙平台使用者的 24 週計畫在第 8 週被換成新的第 1 週，iOS 那台同時失效
+  （T-0749）。iOS 目前擋得住「老用戶碰到一次失敗」，擋不住「重裝或清資料後又讀不到」。
+- **現況與缺口**：`AuthenticationViewModel.swift:135-163` 已經是 cache-first，同檔 `:303-306`
+  失敗時只記 `error`、不覆寫旗標——這兩段都對。缺的是最後一格：本地沒有旗標時
+  `isResolvingOnboardingStatus` 轉 false，畫面就落到 `ContentView.swift:118` 的 onboarding。
+- **不要誤用既有的重試畫面**：`Views/Components/AppLoadingView.swift:40-75` 那顆重試按鈕綁的是
+  `AppStateManager.currentState`，不是這裡的 auth 讀取失敗，不能直接當成本條的出口。
+- **Android 對應**：`docs/specs/SPEC-android-app.md` 的 AC-AND-94a。兩端由使用者 2026-09-20
+  一起裁決。
+- **怎麼驗**：清掉 app 資料後登入一次、關掉 app、斷網冷啟，不得出現 onboarding；本地有旗標時
+  斷網冷啟仍進主畫面。
+
 ## 技術約束（給 Architect 參考）
 
 - 入口路由以 `ContentView` 的狀態判斷為準
