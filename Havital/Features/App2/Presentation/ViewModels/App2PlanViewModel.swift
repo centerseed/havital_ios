@@ -30,6 +30,11 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 那幾週顯示空態，其他週照走。
     @Published private(set) var isHistoryWeekMissing = false
 
+    /// 剛產生、但這一頁還不知道「當週是第幾週」的那一週（AC-TRAIN-HUB-19）。
+    /// 從首頁產生課表時這一頁可能連載都還沒載過，那時分不出它是當週還是下一週，
+    /// 先記著，由載到 plan status 的那一輪用掉。
+    private var pendingGeneratedWeek: Int?
+
     // MARK: - 未產生態 CTA（2026-08-27 晚走查裁決（i）→ 2026-09-03 裁決 T-0405）
     //
     // **裁決（i）前是死循環**：首頁說「到『課表』頁產生」，課表頁的未產生態卻只有
@@ -411,6 +416,16 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             latestPlanStatus = status
             finishedRound = true
 
+            // 剛產生的那一週在等這一輪告訴它「當週是第幾週」（AC-TRAIN-HUB-19）。
+            // 比當週後面＝週日產的下一週，交給下面既有的歷史回看分支畫；
+            // 等於當週＝平日產的當週，這一輪本來就會畫它。
+            if let pendingGeneratedWeek {
+                self.pendingGeneratedWeek = nil
+                if pendingGeneratedWeek > status.currentWeek {
+                    historyWeek = pendingGeneratedWeek
+                }
+            }
+
             // 若前一次 workouts 事件刷新失敗，下一次既有的頁面重驗要先重試；
             // 成功後才清掉 pending，失敗則讓它留著等待再下一次重驗。
             if workoutRefreshPending, historyWeek == nil {
@@ -530,6 +545,29 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             historyTotalWeeks ?? 0, totalWeeks: historyTotalWeeks
         ) else { return }
         await loadHistoryWeek(target)
+    }
+
+    /// 產生課表成功之後，這一頁要停在**剛產生的那一週**（AC-TRAIN-HUB-19）。
+    ///
+    /// 週日產的是第 `current_week + 1` 週——走的是既有的 `loadHistoryWeek(_:)`，
+    /// 與右箭頭翻過去看那一週是同一條路（AC-TRAIN-HUB-14），不新開端點也不新開狀態。
+    /// 平日產的是當週，本來就是這一頁的預設畫面，只要把殘留的回看狀態收掉。
+    ///
+    /// plan status 還沒回來時記進 `pendingGeneratedWeek` 由下一輪用掉：
+    /// 從首頁產生時這一頁可能還沒載過，那時 `currentWeek` 是 nil，分不出是哪一格。
+    func showGeneratedWeek(_ week: Int) async {
+        guard let currentWeek = latestPlanStatus?.currentWeek else {
+            pendingGeneratedWeek = week
+            return
+        }
+        pendingGeneratedWeek = nil
+        if week > currentWeek {
+            await loadHistoryWeek(week)
+            return
+        }
+        guard historyWeek != nil else { return }
+        exitHistoryMode()
+        await revalidate()
     }
 
     /// 回到計畫完成畫面。**要有這條返程**，否則按下「瀏覽歷史課表」之後就回不去了。

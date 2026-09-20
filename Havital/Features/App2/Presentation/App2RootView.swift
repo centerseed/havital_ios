@@ -105,6 +105,12 @@ struct App2RootView: View {
         TabView(selection: $selection) {
             App2HomeView(
                 onOpenSettings: { isShowingSettings = true },
+                // 課表產出來了 —— 這條流程的終點是那一週的課表，所以把人送過去
+                //（AC-TRAIN-HUB-19）。分頁選取只有這裡寫得到，週回顧頁只回報產了第幾週。
+                onPlanGenerated: { week in
+                    selection = .plan
+                    Task { await planViewModel.showGeneratedWeek(week) }
+                },
                 viewModel: homeViewModel,
                 // 訓練狀況卡的徽章＝成就頁那一顆，所以共用同一個 ViewModel。
                 achievementsViewModel: achievementsViewModel

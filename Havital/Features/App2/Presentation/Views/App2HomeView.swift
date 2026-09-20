@@ -10,6 +10,9 @@ struct App2HomeView: View {
 
     /// 設定入口 —— 首頁是右上角的 LV 六角徽章（其他頁是頭像）。
     let onOpenSettings: () -> Void
+    /// 週回顧頁產出課表之後，把使用者送到課表分頁的那一週（AC-TRAIN-HUB-19）。
+    /// 分頁選取在 `App2RootView`，首頁只是把訊號轉出去。
+    var onPlanGenerated: (Int) -> Void = { _ in }
     /// 由 `App2RootView` 持有 —— 切 tab 不重建、不重打 API（見 `App2Revalidating`）。
     @ObservedObject var viewModel: App2HomeViewModel
     /// 訓練狀況卡左側那顆徽章的來源 —— **與成就 tab 同一個 ViewModel**
@@ -176,7 +179,8 @@ struct App2HomeView: View {
                 isCurrentWeek: target.isCurrentWeek,
                 onClose: { weeklyReviewWeek = nil },
                 // 建議套用到下週課表之後，首頁的今日課表卡與週次要跟著換。
-                onApplied: { Task { await viewModel.forceRefresh() } }
+                onApplied: { Task { await viewModel.forceRefresh() } },
+                onPlanGenerated: onPlanGenerated
             )
         }
         .fullScreenCover(item: $detailWorkout) { workout in

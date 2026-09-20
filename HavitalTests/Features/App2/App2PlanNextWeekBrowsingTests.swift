@@ -200,4 +200,79 @@ final class App2PlanNextWeekBrowsingTests: XCTestCase {
         await Self.waitUntil { viewModel.canGoNextHistoryWeek }
         XCTAssertTrue(viewModel.canGoNextHistoryWeek, "產完下週，右箭頭立刻可按")
     }
+
+    // MARK: - 產完之後這一頁要停在剛產生的那一週（AC-TRAIN-HUB-19）
+
+    /// 週日流程：產的是第 11 週 → 這一頁直接畫第 11 週，不是還停在第 10 週。
+    /// 修前使用者退回課表分頁看到的是本週，以為課表沒產出來（2026-09-20 回報）。
+    func test_generatedWeekLandsOnPlanTabForTheSundayFlow() async {
+        let (viewModel, repository) = makeViewModel(nextWeekHasPlan: true)
+        await viewModel.revalidate()
+        XCTAssertEqual(viewModel.selectedWeekOfPlan, 10, "起點是本週")
+
+        await viewModel.showGeneratedWeek(11)
+
+        XCTAssertEqual(viewModel.selectedWeekOfPlan, 11)
+        XCTAssertEqual(viewModel.historyWeek, 11)
+        XCTAssertEqual(repository.lastRequestedWeeklyPlanWeekOfTraining, 11)
+        XCTAssertEqual(viewModel.week?.value.weekLabel.contains("11"), true, "畫的是剛產生的那一份")
+    }
+
+    /// 平日流程：產的就是當週 → 維持現行畫面，不得被推進回看模式。
+    func test_generatedWeekLandsOnPlanTabForTheWeekdayFlow() async {
+        let (viewModel, _) = makeViewModel(nextWeekHasPlan: false)
+        await viewModel.revalidate()
+
+        await viewModel.showGeneratedWeek(10)
+
+        XCTAssertNil(viewModel.historyWeek, "當週不是回看")
+        XCTAssertFalse(viewModel.isHistoryMode)
+        XCTAssertEqual(viewModel.selectedWeekOfPlan, 10)
+    }
+
+    /// 剛好在回看第 9 週時產出當週課表 → 收掉回看，回到當週的現行畫面。
+    func test_generatedCurrentWeekLeavesHistoryMode() async {
+        let (viewModel, _) = makeViewModel(nextWeekHasPlan: false)
+        await viewModel.revalidate()
+        await viewModel.goToHistoryWeek(offset: -1)
+        XCTAssertEqual(viewModel.historyWeek, 9)
+
+        await viewModel.showGeneratedWeek(10)
+
+        XCTAssertNil(viewModel.historyWeek)
+        XCTAssertEqual(viewModel.selectedWeekOfPlan, 10)
+    }
+
+    /// **從首頁產生**：這一頁可能連載都還沒載過，`current_week` 未知，
+    /// 那時分不出第 11 週是不是當週。要記著，等 plan status 回來的那一輪用掉——
+    /// 丟掉它等於使用者被送到課表分頁卻還是看到這週。
+    func test_generatedWeekIsHonouredWhenPlanStatusArrivesLater() async {
+        let (viewModel, _) = makeViewModel(nextWeekHasPlan: true)
+        XCTAssertFalse(viewModel.hasLoaded, "還沒載過，currentWeek 未知")
+
+        await viewModel.showGeneratedWeek(11)
+        XCTAssertNil(viewModel.historyWeek, "還不知道當週是第幾週，先不動畫面")
+
+        await viewModel.revalidate()
+
+        XCTAssertEqual(viewModel.historyWeek, 11)
+        XCTAssertEqual(viewModel.selectedWeekOfPlan, 11)
+        // 不斷言 `lastRequestedWeeklyPlanWeekOfTraining`：冷啟那一輪還會在背景預抓
+        // 第 1…10 週（`schedulePrefetchAllWeeks`，不 await），最後一筆請求是誰不固定。
+        // 要驗的是畫面上是哪一週。
+        XCTAssertEqual(viewModel.week?.value.weekLabel.contains("11"), true)
+    }
+
+    /// 落到那一週之後，既有的週次切換照常帶得走（AC-TRAIN-HUB-19 第三句）。
+    func test_userCanStillLeaveTheGeneratedWeek() async {
+        let (viewModel, _) = makeViewModel(nextWeekHasPlan: true)
+        await viewModel.revalidate()
+        await viewModel.showGeneratedWeek(11)
+        XCTAssertEqual(viewModel.historyWeek, 11)
+
+        await viewModel.goToHistoryWeek(offset: -1)
+
+        XCTAssertNil(viewModel.historyWeek, "回到本週＝退出回看模式")
+        XCTAssertEqual(viewModel.selectedWeekOfPlan, 10)
+    }
 }

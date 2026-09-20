@@ -6,8 +6,8 @@ layer: product
 owns: 訓練首頁與課表頁的 plan 狀態、週課表呈現、週次瀏覽及訓練完成量更新行為
 ontology_entity: training-hub-lifecycle
 created: 2026-04-15
-updated: 2026-09-17
-tasks: [T-0639, T-0726]
+updated: 2026-09-20
+tasks: [T-0639, T-0726, T-0750]
 ---
 
 # Feature Spec: 訓練首頁與週課表生命週期
@@ -157,6 +157,8 @@ Then 週次切換器的右箭頭必須可按，按下去顯示第 `current_week 
 （走既有的 `GET /v2/plan/weekly/{overview_id}_{week}`，不新開端點）；在那一週按左箭頭回到本週，右箭頭停用。
 And Then 產生下週課表成功之後，課表頁必須重讀 plan status，右箭頭立刻可按，不必等冷啟。
 And Then `next_week_info` 缺席或 `has_plan == false` 時，右箭頭維持停用。
+And Then 本條同時約束 Android（Android 無獨立的課表頁 spec，以本條為準）：選週上限與右箭頭的可按性
+都要吃 `next_week_info.has_plan`，不得把上限寫死成當週。
 
 週日是這條的實際場景：週日在使用者時區仍屬第 N 週，`current_week` 還是 N，
 但週回顧產出的是第 N+1 週；上限若只認當週，剛產好的那一週整個週日都看不到
@@ -214,6 +216,27 @@ And Then iOS 走既有的 `CacheEventBus` `.dataChanged(.trainingPlanV2)`，不�
 
 驗法：對話中打字接受改本週的 pending 提案後，回首頁與課表頁都不重開就看到新課表；單元測試：回覆帶 `plan_change_applied: true` 時發出課表變更事件、不帶時不發；首頁收到事件會重驗。
 
+### AC-TRAIN-HUB-19: 產生課表成功後必須把使用者帶到課表分頁的那一週（2026-09-20 使用者裁決）
+
+Given 使用者在週回顧頁的規劃分頁按下產生課表 CTA（AC-TRAIN-HUB-10／AC-TRAIN-HUB-12 的那一顆），且後端回成功，
+When 產生完成，
+Then 系統必須關掉週回顧頁、切到課表分頁，而課表分頁顯示的是**剛產生的那一週**——
+週日流程＝第 `current_week + 1` 週，平日流程（產的是當週）＝當週。
+And Then 落到那一週之後，使用者仍可用既有的週次切換離開；離開後的 plan status 刷新不得把畫面拉回那一週
+（iOS 的 `historyWeek`、Android 的 `isUserPickedWeek`，兩邊都是既有機制，不新增第二套選週狀態）。
+And Then 產生失敗、付費閘門、額度不足這三條既有分支不適用本條：不關頁、不切分頁，CTA 留著可重試。
+And Then 本條同時約束兩個 App。
+
+產生課表是一整條流程的終點，而這條流程唯一的產物就是那一週的課表。2026-08-31 的裁決只處理到
+「不要停在回顧頁」（見 AC-TRAIN-HUB-09／10），沒有人決定退回去之後該看哪一週：使用者退回首頁、
+自己點到課表分頁，看到的仍是這週，於是以為課表沒產出來。2026-09-20 使用者原話：
+「我想要的是用戶產生完課表後直接跳到『課表』分頁且顯示下週最新產生的課表，這樣用戶才不會覺得產生課表失敗」。
+
+驗法：iOS `HavitalTests/Features/App2/App2PlanNextWeekBrowsingTests.swift` 的
+`test_generatedWeekLandsOnPlanTab*`；Android
+`features/trainingplan/src/test/kotlin/com/havital/paceriz/features/trainingplan/presentation/viewmodel/TrainingPlanV2ViewModelTest.kt`
+的 `WKSW-13`～`WKSW-17`。
+
 ## AC ID Index
 
 本 spec 已採用穩定 AC-ID；以下索引作為派工、review 與測試引用入口。
@@ -238,3 +261,4 @@ And Then iOS 走既有的 `CacheEventBus` `.dataChanged(.trainingPlanV2)`，不�
 | AC-TRAIN-HUB-16 | 訓練完成事件後課表頁在同一 session 更新實跑週量 |
 | AC-TRAIN-HUB-17 | 課表頁實跑週量只計跑步活動，iOS 與 Android 同一個數 |
 | AC-TRAIN-HUB-18 | Rizo 改了課表後首頁與課表頁在同一 session 更新，只看結構化欄位 |
+| AC-TRAIN-HUB-19 | 產生課表成功後關閉回顧頁、切到課表分頁，並顯示剛產生的那一週 |
