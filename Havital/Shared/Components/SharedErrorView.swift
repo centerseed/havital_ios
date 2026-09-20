@@ -11,16 +11,24 @@ struct SharedErrorView: View {
     var title: String?
     var showIcon: Bool = true
 
+    /// 這個畫面沒有別的出口時，即使 `error.isRetryable == false` 也要給重試按鈕。
+    /// 預設 false，維持既有呼叫端行為不變。
+    /// （AC-AUTH-09：確認不到 onboarding 狀態的畫面必須永遠可重試，否則 404／401
+    /// 會把使用者留在一個按不動的死畫面。）
+    var forceRetryEnabled: Bool = false
+
     // MARK: - Initialization
     init(
         error: DomainError,
         title: String? = nil,
         showIcon: Bool = true,
+        forceRetryEnabled: Bool = false,
         retryAction: (() -> Void)? = nil
     ) {
         self.error = error
         self.title = title
         self.showIcon = showIcon
+        self.forceRetryEnabled = forceRetryEnabled
         self.retryAction = retryAction
     }
 
@@ -47,8 +55,8 @@ struct SharedErrorView: View {
                     .padding(.horizontal, 4)
             }
 
-            // 重試按鈕（如果錯誤可重試）
-            if let retryAction = retryAction, error.isRetryable {
+            // 重試按鈕（錯誤可重試，或呼叫端指明這個畫面沒有別的出口）
+            if let retryAction = retryAction, error.isRetryable || forceRetryEnabled {
                 Button(action: retryAction) {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.clockwise")
@@ -137,12 +145,14 @@ extension SharedErrorView {
         error: Error,
         title: String? = nil,
         showIcon: Bool = true,
+        forceRetryEnabled: Bool = false,
         retryAction: (() -> Void)? = nil
     ) {
         self.init(
             error: error.toDomainError(),
             title: title,
             showIcon: showIcon,
+            forceRetryEnabled: forceRetryEnabled,
             retryAction: retryAction
         )
     }

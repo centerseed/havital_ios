@@ -45,6 +45,7 @@
 
 // MARK: - Authentication
 "auth.welcome" = "歡迎使用 Paceriz";
+"auth.onboarding_status_unavailable.title" = "目前無法確認你的帳號設定進度";
 "auth.login_title" = "登入";
 "auth.logout_title" = "登出";
 "auth.login_subtitle" = "登入以同步您的訓練資料";

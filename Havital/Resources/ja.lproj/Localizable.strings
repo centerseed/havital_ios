@@ -45,6 +45,7 @@
 
 // MARK: - Authentication
 "auth.welcome" = "Pacerizへようこそ";
+"auth.onboarding_status_unavailable.title" = "現在、アカウントの設定状況を確認できません";
 "auth.login_title" = "ログイン";
 "auth.logout_title" = "ログアウト";
 "auth.login_subtitle" = "トレーニングデータを同期するにはサインインしてください";

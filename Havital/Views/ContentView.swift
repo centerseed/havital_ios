@@ -113,6 +113,37 @@ struct ContentView: View {
                         )
                     }
             }
+            // AC-AUTH-09：本地從來不知道這個帳號有沒有完成過 onboarding（重裝／清資料），
+            // 而這一輪向後端確認又失敗了。此時落進 onboarding，使用者重設目標會蓋掉
+            // 進行中的訓練計畫（T-0749），所以停在可重試的讀不到畫面。
+            else if authViewModel.onboardingStatusUnavailable
+                        && !authViewModel.hasCompletedOnboarding
+                        && !authViewModel.isReonboardingMode {
+                SharedErrorView(
+                    error: authViewModel.error ?? .noConnection,
+                    title: NSLocalizedString(
+                        "auth.onboarding_status_unavailable.title",
+                        comment: "Shown when the app cannot confirm the account's onboarding status"
+                    ),
+                    forceRetryEnabled: true
+                ) {
+                    authViewModel.retryOnboardingStatusResolution()
+                }
+                .onAppear {
+                    Logger.firebase("顯示 onboarding 狀態讀不到畫面",
+                        level: .warn,
+                        labels: [
+                            "module": "ContentView",
+                            "action": "show_onboarding_status_unavailable",
+                            "user_id": authViewModel.currentUser?.uid ?? "unknown"
+                        ],
+                        jsonPayload: [
+                            "is_authenticated": authViewModel.isAuthenticated,
+                            "has_completed_onboarding": authViewModel.hasCompletedOnboarding
+                        ]
+                    )
+                }
+            }
             // 如果用戶未完成引導，顯示引導畫面
             else if !authViewModel.hasCompletedOnboarding && !authViewModel.isReonboardingMode {
                 // 首次使用，顯示完整 onboarding 流程。

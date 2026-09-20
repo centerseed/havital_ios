@@ -45,6 +45,7 @@
 
 // MARK: - Authentication
 "auth.welcome" = "Welcome to Paceriz";
+"auth.onboarding_status_unavailable.title" = "We can't check your account setup right now";
 "auth.login_title" = "Log In";
 "auth.logout_title" = "Log Out";
 "auth.login_subtitle" = "Sign in to sync your training data";

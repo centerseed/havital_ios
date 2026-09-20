@@ -36,6 +36,11 @@ final class AuthenticationViewModel: ObservableObject {
     /// right after login (when cached hasCompletedOnboarding is still false).
     @Published var isResolvingOnboardingStatus: Bool = false
 
+    /// AC-AUTH-09: true 代表「這台裝置從來不知道這個帳號有沒有完成過 onboarding，
+    /// 而這一輪向後端確認又失敗了」。ContentView 看到它就停在可重試的讀不到畫面——
+    /// 這種情況下進 onboarding，新建立的目標會蓋掉進行中的訓練計畫（T-0749）。
+    @Published var onboardingStatusUnavailable: Bool = false
+
     /// Loading state for auth operations
     @Published var isLoading: Bool = false
 
@@ -71,10 +76,14 @@ final class AuthenticationViewModel: ObservableObject {
     // MARK: - Initialization
 
     /// Main initializer with dependency injection
-    private init(
+    ///
+    /// - Parameter observesFirebaseAuthState: 預設 true（正式路徑）。單元測試傳 false，
+    ///   避免 Firebase 的 auth state listener 非同步回呼跟測試的斷言互搶狀態。
+    init(
         authRepository: AuthRepository,
         authSessionRepository: AuthSessionRepository,
-        onboardingRepository: OnboardingRepository
+        onboardingRepository: OnboardingRepository,
+        observesFirebaseAuthState: Bool = true
     ) {
         self.authRepository = authRepository
         self.authSessionRepository = authSessionRepository
@@ -86,7 +95,9 @@ final class AuthenticationViewModel: ObservableObject {
         initializeAuthState()
 
         // Listen to Firebase Auth state changes
-        setupAuthStateListener()
+        if observesFirebaseAuthState {
+            setupAuthStateListener()
+        }
 
         // Listen to Version Gate 426 broadcasts (AC-VG-03)
         NotificationCenter.default.publisher(for: .paceriZForceUpdateRequired)
@@ -152,14 +163,46 @@ final class AuthenticationViewModel: ObservableObject {
 
         // Cold start should reconcile cached/demo session state with backend as early as possible.
         Task { @MainActor [weak self] in
-            guard let self = self else { return }
-            await self.fetchCurrentUserData()
-            if let user = self.currentUser {
-                self.hasCompletedOnboarding = user.hasCompletedOnboarding
-                UserDefaults.standard.set(user.hasCompletedOnboarding, forKey: "hasCompletedOnboarding")
-                Logger.debug("[AuthViewModel] Refreshed initial onboarding status: \(user.hasCompletedOnboarding)")
-            }
-            self.isResolvingOnboardingStatus = false
+            await self?.resolveOnboardingStatus()
+        }
+    }
+
+    /// 向後端確認這個帳號的 onboarding 狀態，並決定入口落點。
+    ///
+    /// AC-AUTH-09：確認不到的時候，落點取決於「本地知不知道」——
+    /// 本地知道就沿用本地已知（cache-first，維持原行為）；本地從來不知道才進讀不到畫面。
+    /// 兩者都不得落進 onboarding，因為重設目標會蓋掉進行中的訓練計畫（T-0749）。
+    func resolveOnboardingStatus() async {
+        // 這一行要在問後端之前算。用 object(forKey:) 而不是 bool(forKey:)：
+        // `bool` 對「沒設定過」與「設定成 false」都回 false，
+        // 那正是「後端說沒完成」與「問不到」被混為一談的根源。
+        let knewLocally = authSessionRepository.getCurrentUser() != nil
+            || UserDefaults.standard.object(forKey: "hasCompletedOnboarding") != nil
+
+        let confirmed = await fetchCurrentUserData()
+
+        if let user = currentUser {
+            hasCompletedOnboarding = user.hasCompletedOnboarding
+            UserDefaults.standard.set(user.hasCompletedOnboarding, forKey: "hasCompletedOnboarding")
+            Logger.debug("[AuthViewModel] Refreshed initial onboarding status: \(user.hasCompletedOnboarding)")
+        }
+
+        onboardingStatusUnavailable = !confirmed && !knewLocally && currentUser == nil
+
+        if onboardingStatusUnavailable {
+            Logger.warn("[AuthViewModel] AC-AUTH-09: 問不到 onboarding 狀態且本地無紀錄，停在讀不到畫面，不進 onboarding")
+        }
+
+        isResolvingOnboardingStatus = false
+    }
+
+    /// 讀不到畫面的重試按鈕：重跑同一次確認。
+    func retryOnboardingStatusResolution() {
+        onboardingStatusUnavailable = false
+        isResolvingOnboardingStatus = true
+
+        Task { @MainActor [weak self] in
+            await self?.resolveOnboardingStatus()
         }
     }
 
@@ -280,10 +323,14 @@ final class AuthenticationViewModel: ObservableObject {
     // MARK: - User Data Management
 
     /// Fetch current user data from backend
-    func fetchCurrentUserData() async {
+    /// - Returns: true 代表這一次真的從後端拿到使用者資料。false 代表沒拿到
+    ///   （失敗，或因為已有另一次抓取進行中而跳過）——呼叫端不得把 false 解讀成
+    ///   「後端說這個帳號沒完成 onboarding」。
+    @discardableResult
+    func fetchCurrentUserData() async -> Bool {
         guard !isFetchingUserData else {
             Logger.debug("[AuthViewModel] fetchCurrentUserData already in progress, skipping")
-            return
+            return false
         }
 
         isFetchingUserData = true
@@ -299,10 +346,12 @@ final class AuthenticationViewModel: ObservableObject {
             currentUser = user
 
             Logger.debug("[AuthViewModel] User data fetched successfully: \(user.uid)")
+            return true
 
         } catch {
             Logger.error("[AuthViewModel] Failed to fetch user data: \(error.localizedDescription)")
             self.error = error.toDomainError()
+            return false
         }
     }
 
