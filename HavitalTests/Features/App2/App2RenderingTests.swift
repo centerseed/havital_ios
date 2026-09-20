@@ -91,14 +91,15 @@ final class App2RenderingTests: XCTestCase {
         target: Double = 30,
         completed: Double? = 0,
         weekLabel: String = "第 1 週",
-        totalWeeks: Int? = 18
+        totalWeeks: Int? = 18,
+        rationale: App2PlanRationale? = nil
     ) -> App2PlanWeek {
         App2PlanWeek(
             weekLabel: weekLabel, totalWeeks: totalWeeks, targetDistanceKm: target,
             completedDistanceKm: completed,
             intensityLowMinutes: nil, intensityMediumMinutes: nil, intensityHighMinutes: nil,
             days: days,
-            rationale: nil
+            rationale: rationale
         )
     }
 
@@ -652,5 +653,57 @@ final class App2RenderingTests: XCTestCase {
             name: "trend-degenerate-flat", height: 72
         )
         XCTAssertNotEqual(withOutlier.pngData(), flatOnly.pngData(), "退化域下離群值仍要畫出來")
+    }
+
+    // MARK: - 「這週為什麼這樣排」（AC-TRAIN-HUB-20）
+
+    /// 用 dev 第 3 週的真句子畫一次。判準是「畫得出來、四段都在」——像素不斷言。
+    /// 句子取自 2026-09-20 的
+    /// `users/Cv5ADE73tiZMpEyD80Yh1BAqYch2/weekly_plans_v2/2fe71d91112e_3`
+    /// （`mileage_progression_note` 那一週是 null，這裡補上 `_2` 的那一句，
+    /// 四段同時在場才看得出版面）。
+    func test_planRationaleSheet_renders() throws {
+        let rationale = try XCTUnwrap(
+            App2PlanRationale(
+                coachNote: "本週維持 34.3 公里的總跑量，目標在維持既有基礎，"
+                    + "目前重點在於保持一週 1 天的休息與執行週一及週六的重點課，以穩定狀態為主。",
+                purpose: "本週實際安排 34.3 公里。",
+                mileageProgressionNote: "直近で最も多かった週は約 48 km でしたが、今週は約 26 km です。"
+                    + "一気に増やすより少しずつ積み上げる方が故障しにくく、回復に合わせて今後増やしていきます。",
+                designReasons: [
+                    "基礎期安排 6 天跑步，總量約 34.3 公里。",
+                    "本週保留 1 個重課刺激，其餘跑日用輕鬆跑承接跑量。"
+                ]
+            )
+        )
+        render(
+            App2PlanRationaleSheet(rationale: rationale, weekLabel: "第 3 週", onClose: {}),
+            name: "plan-rationale-sheet"
+        )
+    }
+
+    /// 入口那一列長在週跑量卡底下；四段全空的那一週不該有這一列。
+    func test_planTab_rationaleEntry_onlyWhenThereIsSomethingToSay() throws {
+        let days = (1...3).map { planDay($0, type: .easy, planned: "10.0 km", isToday: $0 == 1) }
+        let rationale = try XCTUnwrap(
+            App2PlanRationale(
+                coachNote: "本週維持 34.3 公里的總跑量，以穩定狀態為主。",
+                purpose: "本週實際安排 34.3 公里。",
+                mileageProgressionNote: nil,
+                designReasons: ["基礎期安排 6 天跑步，總量約 34.3 公里。"]
+            )
+        )
+
+        let withEntry = App2PlanViewModel()
+        withEntry.applyForTesting(
+            week: App2Sourced(planWeek(days: days, rationale: rationale), origin: live)
+        )
+        let shown = render(App2PlanView(viewModel: withEntry), name: "plan-rationale-entry")
+
+        let without = App2PlanViewModel()
+        without.applyForTesting(week: App2Sourced(planWeek(days: days), origin: live))
+        let hidden = render(App2PlanView(viewModel: without), name: "plan-rationale-entry-absent")
+
+        XCTAssertNotEqual(shown.pngData(), hidden.pngData(), "四段全空時入口不該出現")
     }
 }
