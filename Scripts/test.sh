@@ -305,8 +305,13 @@ DURATION=$((END_TIME - START_TIME))
 echo ""
 
 # Extract Summary Info
-TOTAL_TESTS=$(grep -o "Executed [0-9]* tests" "$LOG_FILE" | awk '{sum+=$2} END {print sum}' || echo "0")
-FAILED_TESTS=$(grep -oE "with [0-9]+ failures?" "$LOG_FILE" | awk '{sum+=$2} END {print sum}' || echo "0")
+# 取最後一次出現，不是加總。xcodebuild 對同一份結果會印好幾次
+# （每個 test class 一次，外加 bundle 與 "All tests" 兩個彙總），加總等於把每條測試重複計算——
+# 實測一次只跑 2 條的 class，log 裡有 3 行 `Executed 2 tests`，加總得 6。
+# 這個數字被當成「測試數量地板」在用，3 倍膨脹會讓任何人讀錯，也讓地板差值失去意義。
+# 最後一行是 "All tests" 的總計，那才是這一次實際跑了幾條。
+TOTAL_TESTS=$(grep -o "Executed [0-9]* tests" "$LOG_FILE" | tail -1 | awk '{print $2}' || echo "0")
+FAILED_TESTS=$(grep -oE "with [0-9]+ failures?" "$LOG_FILE" | tail -1 | awk '{print $2}' || echo "0")
 # Unexpected failures usually part of the same line, just grabbing total failures is often enough, 
 # but let's try to get a clean count. The output format is usually:
 # Executed 3 tests, with 0 failures (0 unexpected) in 0.003 (0.004) seconds
