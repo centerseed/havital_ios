@@ -138,7 +138,12 @@ struct App2PlanView: View {
                     // 所以關閉就重驗。
                     Task { await viewModel.forceRefresh() }
                 },
-                onApplied: { Task { await viewModel.forceRefresh() } }
+                onApplied: { Task { await viewModel.forceRefresh() } },
+                // 從這一頁產生的一樣要落在剛產生的那一週（AC-TRAIN-HUB-19）：
+                // 這一頁的未產生態主鈕在週日開的是下一週，產完停在這週就是空的。
+                onPlanGenerated: { week in
+                    Task { await viewModel.showGeneratedWeek(week) }
+                }
             )
         }
         .fullScreenCover(isPresented: $isShowingReonboarding) {

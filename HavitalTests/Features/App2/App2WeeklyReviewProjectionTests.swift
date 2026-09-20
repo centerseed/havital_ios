@@ -382,6 +382,47 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         )
     }
 
+    // MARK: - 產完課表要把人送到課表分頁的那一週（AC-TRAIN-HUB-19，2026-09-20 使用者裁決）
+
+    /// 產生成功之後這一頁只負責說出「產了第幾週」，去哪裡由殼層決定。
+    /// 修前這裡只有 `onApplied?()` + `onClose()`，沒有人決定退回去之後要看哪一週。
+    func test_weeklyReviewView_reportsTheGeneratedWeekOnSuccess() throws {
+        let source = try Self.weeklyReviewViewSource()
+
+        XCTAssertTrue(
+            source.contains("var onPlanGenerated: ((Int) -> Void)?"),
+            "產生成功要帶著週次交出去，這一頁不自己決定導航"
+        )
+        XCTAssertTrue(
+            source.contains("onPlanGenerated?(week)"),
+            "`applyAndGenerate()` 成功分支要發出那一週"
+        )
+    }
+
+    /// 殼層是唯一寫得到分頁選取的地方：產完切到課表分頁，並讓它停在那一週。
+    func test_rootView_landsOnThePlanTabForTheGeneratedWeek() throws {
+        let rootSource = try Self.source(at: "Havital/Features/App2/Presentation/App2RootView.swift")
+
+        XCTAssertTrue(
+            rootSource.contains("selection = .plan"),
+            "產完要切到課表分頁（修前 `selection` 沒有任何外部寫入口）"
+        )
+        XCTAssertTrue(
+            rootSource.contains("planViewModel.showGeneratedWeek(week)"),
+            "切過去之後要停在剛產生的那一週，不是停在本週"
+        )
+    }
+
+    /// 課表頁自己的那個入口（未產生態主鈕）走同一條，不另寫一套。
+    func test_planView_alsoLandsOnTheGeneratedWeek() throws {
+        let planSource = try Self.source(at: "Havital/Features/App2/Presentation/Views/App2PlanView.swift")
+
+        XCTAssertTrue(
+            planSource.contains("viewModel.showGeneratedWeek(week)"),
+            "從課表頁產生的一樣要落在那一週（週日開的是下一週）"
+        )
+    }
+
     /// 規劃分頁與主 CTA 不得整個掛在 `projection` 上（T-0405 外審 E03）：
     /// 第 1 週的使用者被送進第 0 週的回顧，那一週永遠沒有 `projection`。
     func test_weeklyReviewView_planSurfacesDoNotRequireAReview() throws {

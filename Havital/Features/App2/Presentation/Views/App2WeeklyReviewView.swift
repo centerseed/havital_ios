@@ -28,6 +28,9 @@ struct App2WeeklyReviewView: View {
     let onClose: () -> Void
     /// 套用建議後通知呼叫端刷新（下週課表換了，首頁的卡要跟著換）。
     var onApplied: (() -> Void)?
+    /// 課表**產出來了**，帶的是剛產生的那一週。呼叫端據此把使用者送到課表分頁的
+    /// 那一週（AC-TRAIN-HUB-19）——這一頁只知道產了第幾週，去哪裡不是它的決定。
+    var onPlanGenerated: ((Int) -> Void)?
     /// 歷史週的唯讀回看（2026-08-27 走查裁決（q）：課表頁 header 的週回顧入口）。
     ///
     /// 唯讀時收掉兩個寫入動作：
@@ -157,7 +160,8 @@ struct App2WeeklyReviewView: View {
         isCurrentWeek: Bool = false,
         startsOnPlanTab: Bool = false,
         onClose: @escaping () -> Void,
-        onApplied: (() -> Void)? = nil
+        onApplied: (() -> Void)? = nil,
+        onPlanGenerated: ((Int) -> Void)? = nil
     ) {
         _viewModel = StateObject(
             wrappedValue: App2WeeklyReviewViewModel(
@@ -172,6 +176,7 @@ struct App2WeeklyReviewView: View {
         self.isCurrentWeek = isCurrentWeek
         self.onClose = onClose
         self.onApplied = onApplied
+        self.onPlanGenerated = onPlanGenerated
     }
 
     var body: some View {
@@ -1155,11 +1160,15 @@ struct App2WeeklyReviewView: View {
                     identifier: "App2_WeeklyReviewGeneratePlan"
                 ) {
                     Task {
-                        // 產生成功＝這條流程走完了。停在回顧頁會讓人找不到新課表
-                        //（2026-08-31 使用者回報），所以刷完資料就退回進來的那一頁。
+                        // 產生成功＝這條流程走完了，而它唯一的產物就是第 `week` 週的課表。
+                        // 關掉這一頁還不夠：2026-08-31 只處理到「不要停在回顧頁」，
+                        // 退回去之後看到的仍是這週，使用者以為產生失敗（2026-09-20 回報）。
+                        // 所以把「產了第幾週」交出去，由殼層送到課表分頁的那一週
+                        //（AC-TRAIN-HUB-19）。
                         if await viewModel.applyAndGenerate() {
                             onApplied?()
                             onClose()
+                            onPlanGenerated?(week)
                         }
                     }
                 }
