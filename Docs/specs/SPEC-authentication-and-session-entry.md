@@ -92,14 +92,14 @@ Then 本地已知這個帳號完成過 onboarding 時（快取的 `AuthUser`，�
 - **為什麼**：onboarding 走完會用新的 overview 蓋掉使用者進行中的計畫。2026-09-18 Android 端
   因為同一類誤判，一位雙平台使用者的 24 週計畫在第 8 週被換成新的第 1 週，iOS 那台同時失效
   （T-0749）。iOS 目前擋得住「老用戶碰到一次失敗」，擋不住「重裝或清資料後又讀不到」。
-- **現況**：判斷在 `AuthenticationViewModel.swift:175-197` 的 `resolveOnboardingStatus()`。
+- **現況**：判斷在 `AuthenticationViewModel.swift:178-200` 的 `resolveOnboardingStatus()`。
   它在問後端**之前**先算「本地知不知道」，且用 `UserDefaults.object(forKey:)` 而不是
   `bool(forKey:)`——`bool` 對「沒設定過」與「設定成 false」都回 false，把「問不到」跟
   「後端說沒完成」壓成同一個值，那正是本條要分開的兩件事。
-  `fetchCurrentUserData()`（同檔 `:330-356`）回傳 `Bool`，明確報出這一次有沒有真的拿到資料；
-  失敗時只記 `error`、不覆寫 `hasCompletedOnboarding`（同檔 `:351-354`）。
+  `fetchCurrentUserData()`（同檔 `:333-359`）回傳 `Bool`，明確報出這一次有沒有真的拿到資料；
+  失敗時只記 `error`、不覆寫 `hasCompletedOnboarding`（同檔 `:354-357`）。
   畫面分流在 `ContentView.swift:116-145`，onboarding 那一格退到 `:146`。
-  重試入口是 `retryOnboardingStatusResolution()`（`AuthenticationViewModel.swift:200-207`）。
+  重試入口是 `retryOnboardingStatusResolution()`（`AuthenticationViewModel.swift:203-210`）。
 - **不要誤用既有的重試畫面**：`Views/Components/AppLoadingView.swift:40-75` 那顆重試按鈕綁的是
   `AppStateManager.currentState`，不是這裡的 auth 讀取失敗，不能直接當成本條的出口。
   本條用的是 `Shared/Components/SharedErrorView.swift`，並加了 opt-in 的 `forceRetryEnabled`：

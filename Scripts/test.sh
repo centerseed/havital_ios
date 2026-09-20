@@ -311,7 +311,10 @@ echo ""
 # 這個數字被當成「測試數量地板」在用，3 倍膨脹會讓任何人讀錯，也讓地板差值失去意義。
 # 最後一行是 "All tests" 的總計，那才是這一次實際跑了幾條。
 TOTAL_TESTS=$(grep -o "Executed [0-9]* tests" "$LOG_FILE" | tail -1 | awk '{print $2}' || echo "0")
-FAILED_TESTS=$(grep -oE "with [0-9]+ failures?" "$LOG_FILE" | tail -1 | awk '{print $2}' || echo "0")
+# 失敗數相反，要加總：它只拿來跟 0 比（見下方 EXIT_CODE 那行），重複計數不會讀錯，
+# 但漏看會讓「xcodebuild 回 0 卻有測試失敗」那道網失效——失敗的 class 不是最後一行就抓不到，
+# 而含 skipped 的總計行（"with 38 tests skipped and 0 failures"）根本不 match 這個 pattern。
+FAILED_TESTS=$(grep -oE "with [0-9]+ failures?" "$LOG_FILE" | awk '{sum+=$2} END {print sum+0}' || echo "0")
 # Unexpected failures usually part of the same line, just grabbing total failures is often enough, 
 # but let's try to get a clean count. The output format is usually:
 # Executed 3 tests, with 0 failures (0 unexpected) in 0.003 (0.004) seconds
