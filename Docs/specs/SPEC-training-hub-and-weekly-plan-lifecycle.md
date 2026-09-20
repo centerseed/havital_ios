@@ -233,7 +233,9 @@ And Then 本條同時約束兩個 App。
 「我想要的是用戶產生完課表後直接跳到『課表』分頁且顯示下週最新產生的課表，這樣用戶才不會覺得產生課表失敗」。
 
 驗法：iOS `HavitalTests/Features/App2/App2PlanNextWeekBrowsingTests.swift` 的
-`test_generatedWeekLandsOnPlanTab*`；Android `app/src/test/java/com/havital/paceriz/app2/plan/App2NextWeekBrowsingTest.kt`。
+`test_generatedWeekLandsOnPlanTab*`；Android
+`features/trainingplan/src/test/kotlin/com/havital/paceriz/features/trainingplan/presentation/viewmodel/TrainingPlanV2ViewModelTest.kt`
+的 `WKSW-13`～`WKSW-17`。
 
 ## AC ID Index
 
