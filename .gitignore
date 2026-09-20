@@ -45,6 +45,17 @@ Package.resolved
 # Maestro runtime cache
 .maestro/.last_failed_flows.txt
 .maestro/**/*.png
+
+# 跑出來的東西不進 repo。2026-07-20 的 0e69e4cd 把 566M 的 maestro 錄影夾在一個
+# onboarding commit 裡帶進來，之後每個 worktree 都多背一份 566M；測試與建置 log 同理。
+# 只擋 repo 根目錄與 .maestro/ ——`STATUS/`、`Docs/` 底下的截圖、錄影與 log 是票面
+# 驗收證據，`artifacts/review/` 是送審交付物，兩者都要留得住。
+/*.log
+/*.mp4
+/*.mov
+.maestro/**/*.mp4
+.maestro/**/*.mov
+.maestro/recordings/
 .maestro/screenshots/
 
 # Python bytecode
