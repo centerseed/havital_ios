@@ -2446,6 +2446,13 @@ extension L10n {
             static let completeReviewFirst = "app2.plan.complete_review_first"
             /// header 的週回顧入口（2026-08-27 走查裁決（q））。
             static let openWeeklyReview = "app2.plan.open_weekly_review"
+            /// 週跑量卡底部的「為什麼這樣安排」入口與它打開的 sheet（AC-TRAIN-HUB-20）。
+            static let rationaleEntry = "app2.plan.rationale_entry"
+            static let rationaleTitle = "app2.plan.rationale_title"
+            static let rationaleCoachNote = "app2.plan.rationale_coach_note"
+            static let rationalePurpose = "app2.plan.rationale_purpose"
+            static let rationaleProgression = "app2.plan.rationale_progression"
+            static let rationaleDesignReason = "app2.plan.rationale_design_reason"
         }
 
         /// 訓練計畫總覽（設計 frame-20）。

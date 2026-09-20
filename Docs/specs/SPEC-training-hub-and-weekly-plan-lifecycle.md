@@ -7,7 +7,7 @@ owns: 訓練首頁與課表頁的 plan 狀態、週課表呈現、週次瀏覽�
 ontology_entity: training-hub-lifecycle
 created: 2026-04-15
 updated: 2026-09-20
-tasks: [T-0639, T-0726, T-0750]
+tasks: [T-0639, T-0726, T-0750, T-0754]
 ---
 
 # Feature Spec: 訓練首頁與週課表生命週期
@@ -237,6 +237,33 @@ And Then 本條同時約束兩個 App。
 `features/trainingplan/src/test/kotlin/com/havital/paceriz/features/trainingplan/presentation/viewmodel/TrainingPlanV2ViewModelTest.kt`
 的 `WKSW-13`～`WKSW-17`。
 
+### AC-TRAIN-HUB-20: 課表頁必須能看到「這週為什麼這樣排」（2026-09-20 使用者裁決）
+
+Given 課表頁正在顯示某一週（當週或往前往後翻到的任何一週），且那一週的課表帶有
+教練的話、本週目標、跑量漸進敘事、安排理由這四段其中至少一段，
+When 使用者看課表頁，
+Then 週跑量卡上必須有一個入口，按下去打開一張 bottom sheet，把那一週有的幾段依序顯示：
+教練的話 → 本週目標 → 跑量怎麼變 → 安排理由（條列）。
+And Then 句子原樣呈現——這四段是後端按使用者語言生成的敘事，App 不改寫、不截斷、不自行合併。
+And Then 四段都沒有內容時入口不出現，不給一個打開是空白的 sheet。
+And Then 顯示的一律是**當下這一頁正在看的那一週**的理由；翻週之後看到的是新那一週的。
+And Then 本條同時約束兩個 App（Android 無獨立的課表頁 spec，以本條為準）。
+
+1.4 有這組內容（`Havital/Features/TrainingPlanV2/Presentation/Views/Components/WeekOverviewCardV2.swift`
+的 `WeekTargetDetailViewV2`），2.0 重畫課表頁時沒有接回來：後端一直在寫
+（`cloud/api_service/domains/plan_week/plan_pipeline/l5_response_builder.py:245-246` 落
+`design_reason` 與 `coach_note`），`WeeklyPlanV2` 也一直解得出來，但 `Havital/Features/App2/`
+底下沒有任何畫面讀 `coachNote`／`purpose`／`designReason`／`mileageProgressionNote`。
+使用者 2026-09-20 原話：「現在課表的 coach note 和訓練目標 app 沒地方顯示出來，你在課表分頁
+找個合適的地方 bottom sheet 來顯示為什麼這週課表這樣設計（1.4 版有）」。
+
+`total_distance_reason` 不收進這張 sheet：dev 實測它常與 `purpose` 是同一句
+（2026-09-20 讀 `users/Cv5ADE73tiZMpEyD80Yh1BAqYch2/weekly_plans_v2/2fe71d91112e_3`，
+兩者都是「本週實際安排 34.3 公里。」），1.4 的同一張詳情頁也沒有它。
+
+驗法：iOS `HavitalTests/Features/App2/App2PlanRationaleTests.swift`；
+畫面上的入口是 `App2_PlanRationaleEntry`，sheet 是 `App2_PlanRationaleSheet`。
+
 ## AC ID Index
 
 本 spec 已採用穩定 AC-ID；以下索引作為派工、review 與測試引用入口。
@@ -262,3 +289,4 @@ And Then 本條同時約束兩個 App。
 | AC-TRAIN-HUB-17 | 課表頁實跑週量只計跑步活動，iOS 與 Android 同一個數 |
 | AC-TRAIN-HUB-18 | Rizo 改了課表後首頁與課表頁在同一 session 更新，只看結構化欄位 |
 | AC-TRAIN-HUB-19 | 產生課表成功後關閉回顧頁、切到課表分頁，並顯示剛產生的那一週 |
+| AC-TRAIN-HUB-20 | 課表頁週跑量卡提供「這週為什麼這樣排」bottom sheet（教練的話／本週目標／跑量漸進／安排理由） |

@@ -4513,6 +4513,12 @@
 "app2.plan.generate_week" = "Generate this week's plan";
 "app2.plan.complete_review_first" = "Complete weekly review first";
 "app2.plan.open_weekly_review" = "View this week's review";
+"app2.plan.rationale_entry" = "Why this week looks like this";
+"app2.plan.rationale_title" = "Why this week looks like this";
+"app2.plan.rationale_coach_note" = "From your coach";
+"app2.plan.rationale_purpose" = "This week's goal";
+"app2.plan.rationale_progression" = "How your mileage is changing";
+"app2.plan.rationale_design_reason" = "Why it's arranged this way";
 "app2.plan.volume_title" = "This week's volume";
 "app2.plan.today" = "Today";
 "app2.records.title" = "Training log";

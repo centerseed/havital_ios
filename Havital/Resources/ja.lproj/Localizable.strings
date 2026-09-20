@@ -4510,6 +4510,12 @@
 "app2.plan.generate_week" = "今週のプランを作成";
 "app2.plan.complete_review_first" = "先に週次レビューを完了";
 "app2.plan.open_weekly_review" = "この週のレビューを見る";
+"app2.plan.rationale_entry" = "今週の組み立て理由";
+"app2.plan.rationale_title" = "今週はなぜこの構成か";
+"app2.plan.rationale_coach_note" = "コーチから";
+"app2.plan.rationale_purpose" = "今週の目標";
+"app2.plan.rationale_progression" = "走行距離の推移";
+"app2.plan.rationale_design_reason" = "この構成にした理由";
 "app2.plan.volume_title" = "今週の走行距離";
 "app2.plan.today" = "今日";
 "app2.records.title" = "トレーニング記録";

@@ -4554,6 +4554,12 @@
 "app2.plan.generate_week" = "產生本週課表";
 "app2.plan.complete_review_first" = "先完成週回顧";
 "app2.plan.open_weekly_review" = "查看這一週的回顧";
+"app2.plan.rationale_entry" = "為什麼這樣安排";
+"app2.plan.rationale_title" = "這週為什麼這樣排";
+"app2.plan.rationale_coach_note" = "教練的話";
+"app2.plan.rationale_purpose" = "本週目標";
+"app2.plan.rationale_progression" = "跑量怎麼變";
+"app2.plan.rationale_design_reason" = "安排理由";
 "app2.plan.volume_title" = "本週跑量";
 "app2.plan.today" = "今日";
 "app2.records.title" = "訓練紀錄";

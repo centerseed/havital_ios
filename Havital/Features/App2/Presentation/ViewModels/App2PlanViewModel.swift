@@ -912,7 +912,13 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             intensityLowMinutes: completedIntensity.map { Int($0.low.rounded()) },
             intensityMediumMinutes: completedIntensity.map { Int($0.medium.rounded()) },
             intensityHighMinutes: completedIntensity.map { Int($0.high.rounded()) },
-            days: days
+            days: days,
+            rationale: App2PlanRationale(
+                coachNote: plan.coachNote,
+                purpose: plan.purpose,
+                mileageProgressionNote: plan.mileageProgressionNote,
+                designReasons: plan.designReason
+            )
         )
     }
 

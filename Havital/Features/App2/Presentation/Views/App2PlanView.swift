@@ -27,6 +27,9 @@ struct App2PlanView: View {
     /// 「先完成週回顧」開的那一頁（裁決（k））。**與首頁週回顧 CTA 同一條入口**
     /// （`App2HomeView` 的 `weeklyReviewWeek`），不是課表頁專屬的第二條路。
     @State private var weeklyReviewWeek: App2WeeklyReviewTarget?
+    /// 「為什麼這樣安排」bottom sheet（AC-TRAIN-HUB-20）。內容一律現讀
+    /// `viewModel.week`，不複製一份到 state —— 換週時 sheet 開著也不會顯示上一週的理由。
+    @State private var isShowingRationale = false
 
     var body: some View {
         ScrollView {
@@ -157,6 +160,17 @@ struct App2PlanView: View {
                 // 還沒提交就返回：只關掉，不重取（什麼都沒改）。
                 onCancel: { isShowingReonboarding = false }
             )
+        }
+        .sheet(isPresented: $isShowingRationale) {
+            if let rationale = viewModel.week?.value.rationale {
+                App2PlanRationaleSheet(
+                    rationale: rationale,
+                    weekLabel: weekLabelText,
+                    onClose: { isShowingRationale = false }
+                )
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+            }
         }
     }
 
@@ -497,8 +511,34 @@ struct App2PlanView: View {
                 intensityLegend(L10n.App2.Plan.intensityHigh.localized, color: App2Theme.accentRed)
             }
             .padding(.top, 10)
+
+            if week.rationale != nil {
+                rationaleEntry
+            }
         }
         .accessibilityIdentifier("App2_PlanSummaryCard")
+    }
+
+    /// 「為什麼這樣安排」入口（AC-TRAIN-HUB-20）。掛在週跑量卡底下，因為這一整張卡
+    /// 講的就是這一週的量與強度，理由是它的註腳；掛在日卡上會變成七份重複入口。
+    private var rationaleEntry: some View {
+        Button {
+            isShowingRationale = true
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "lightbulb.fill")
+                    .font(.system(size: 12, weight: .bold))
+                Text(L10n.App2.Plan.rationaleEntry.localized)
+                    .font(.system(size: 14, weight: .bold))
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .bold))
+            }
+            .foregroundStyle(App2Theme.accentBlueDeep)
+            .padding(.top, 12)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("App2_PlanRationaleEntry")
     }
 
     /// 設計是「已完成的量」按強度切三段，鋪在「週目標量」這條軌道上。
@@ -641,5 +681,140 @@ struct App2PlanView: View {
                 .font(.app2Mono(14, weight: valueWeight))
                 .foregroundStyle(valueColor)
         }
+    }
+}
+
+// MARK: - App2PlanRationaleSheet
+/// 「這週為什麼這樣排」bottom sheet（AC-TRAIN-HUB-20）。
+///
+/// 1.4 有同一組內容（`WeekTargetDetailViewV2`，push 進導覽堆疊），2.0 把課表頁整個重畫時
+/// 沒有接回來——後端一直有給，只是沒有任何畫面讀它。這裡沿用 app2 的卡片語彙重畫，
+/// 不重用 `WeekTargetDetailViewV2`：那支綁 `PacerizColor`／`AppFont` 與導覽列 toolbar，
+/// 放進 app2 的 sheet 會是另一套視覺。
+///
+/// 四段的順序照 1.4：教練的話當開場，接著本週目標、跑量怎麼變、安排理由。
+/// 句子一律原樣印出——它們是後端按使用者語言生成的敘事（`l5_response_builder.py:245-246`），
+/// App 不改寫也不截斷。
+struct App2PlanRationaleSheet: View {
+    let rationale: App2PlanRationale
+    let weekLabel: String
+    let onClose: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(L10n.App2.Plan.rationaleTitle.localized)
+                        .font(.system(size: 18, weight: .black))
+                        .foregroundStyle(App2Theme.inkPrimary)
+                    Text(weekLabel)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(App2Theme.inkTertiary)
+                }
+                Spacer()
+                Button(action: onClose) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(App2Theme.inkTertiary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("App2_PlanRationaleClose")
+            }
+            .padding(.horizontal, App2Theme.pagePadding)
+            .padding(.top, 20)
+            .padding(.bottom, 14)
+
+            ScrollView {
+                VStack(spacing: 12) {
+                    if let coachNote = rationale.coachNote {
+                        section(
+                            icon: "quote.bubble.fill",
+                            tint: App2Theme.accentBlueDeep,
+                            title: L10n.App2.Plan.rationaleCoachNote.localized,
+                            identifier: "App2_PlanRationaleCoachNote"
+                        ) {
+                            paragraph(coachNote)
+                        }
+                    }
+                    if let purpose = rationale.purpose {
+                        section(
+                            icon: "target",
+                            tint: App2Theme.accentGreen,
+                            title: L10n.App2.Plan.rationalePurpose.localized,
+                            identifier: "App2_PlanRationalePurpose"
+                        ) {
+                            paragraph(purpose)
+                        }
+                    }
+                    if let progression = rationale.mileageProgressionNote {
+                        section(
+                            icon: "chart.line.uptrend.xyaxis",
+                            tint: App2Theme.accentBlue,
+                            title: L10n.App2.Plan.rationaleProgression.localized,
+                            identifier: "App2_PlanRationaleProgression"
+                        ) {
+                            paragraph(progression)
+                        }
+                    }
+                    if !rationale.designReasons.isEmpty {
+                        section(
+                            icon: "lightbulb.fill",
+                            tint: App2Theme.accentOrangeText,
+                            title: L10n.App2.Plan.rationaleDesignReason.localized,
+                            identifier: "App2_PlanRationaleDesignReason"
+                        ) {
+                            VStack(alignment: .leading, spacing: 10) {
+                                ForEach(Array(rationale.designReasons.enumerated()), id: \.offset) { index, reason in
+                                    HStack(alignment: .top, spacing: 8) {
+                                        Text(verbatim: "\(index + 1).")
+                                            .font(.system(size: 15, weight: .heavy))
+                                            .foregroundStyle(App2Theme.accentOrangeText)
+                                        paragraph(reason)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, App2Theme.pagePadding)
+                .padding(.bottom, 28)
+            }
+        }
+        .background(App2Theme.pageGradient.ignoresSafeArea())
+        .accessibilityIdentifier("App2_PlanRationaleSheet")
+    }
+
+    private func section<Content: View>(
+        icon: String,
+        tint: Color,
+        title: String,
+        identifier: String,
+        // `App2Card` 把 content 存成屬性 → 這裡必須是 escaping。
+        @ViewBuilder content: @escaping () -> Content
+    ) -> some View {
+        App2Card(padding: 14, spacing: 10) {
+            HStack(spacing: 7) {
+                Image(systemName: icon)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(tint)
+                Text(title)
+                    .font(.system(size: 14, weight: .heavy))
+                    .tracking(0.4)
+                    .foregroundStyle(tint)
+            }
+            content()
+        }
+        // 容器的 identifier 會被 SwiftUI 套到每個子元素上（同 `App2_PlanEmptyState` 的處置）。
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(identifier)
+    }
+
+    private func paragraph(_ text: String) -> some View {
+        Text(text)
+            .font(.app2Body)
+            .lineSpacing(3)
+            .foregroundStyle(App2Theme.inkSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

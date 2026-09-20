@@ -97,7 +97,8 @@ final class App2RenderingTests: XCTestCase {
             weekLabel: weekLabel, totalWeeks: totalWeeks, targetDistanceKm: target,
             completedDistanceKm: completed,
             intensityLowMinutes: nil, intensityMediumMinutes: nil, intensityHighMinutes: nil,
-            days: days
+            days: days,
+            rationale: nil
         )
     }
 

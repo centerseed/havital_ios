@@ -131,7 +131,9 @@ enum App2StubFixtures {
                 intensityLowMinutes: intensityLowMinutes,
                 intensityMediumMinutes: intensityMediumMinutes,
                 intensityHighMinutes: intensityHighMinutes,
-                days: days.map(\.domain)
+                days: days.map(\.domain),
+                // stub 沒有敘事欄位 —— 骨架態本來就不該冒出「為什麼這樣安排」。
+                rationale: nil
             )
         }
     }

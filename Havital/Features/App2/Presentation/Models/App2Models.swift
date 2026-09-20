@@ -593,6 +593,40 @@ struct App2PlanWeek: Equatable {
     let intensityMediumMinutes: Int?
     let intensityHighMinutes: Int?
     let days: [App2PlanDay]
+    /// 這一週為什麼被排成這樣（AC-TRAIN-HUB-20）。四段全空時為 nil，入口就不出現。
+    let rationale: App2PlanRationale?
+}
+
+/// 週課表 payload 裡「為什麼這樣安排」的四段敘事，原樣呈現。
+///
+/// 後端已在地化（`users/{uid}/weekly_plans_v2/{plan_id}` 的 `coach_note` /
+/// `purpose` / `mileage_progression_note` / `design_reason`），App 不重組句子。
+/// `total_distance_reason` 刻意不收：dev 實測它與 `purpose` 常常是同一句
+/// （2026-09-20 讀 `2fe71d91112e_3`：兩者都是「本週實際安排 34.3 公里。」），
+/// 1.4 的同一張詳情頁也沒有它。
+struct App2PlanRationale: Equatable {
+    let coachNote: String?
+    let purpose: String?
+    let mileageProgressionNote: String?
+    let designReasons: [String]
+
+    /// 四段都沒有內容 → 沒有東西可講，別給一個打開是空白的入口。
+    init?(coachNote: String?, purpose: String?, mileageProgressionNote: String?, designReasons: [String]?) {
+        func cleaned(_ value: String?) -> String? {
+            guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !trimmed.isEmpty else { return nil }
+            return trimmed
+        }
+        let reasons = (designReasons ?? []).compactMap(cleaned)
+        let note = cleaned(coachNote)
+        let goal = cleaned(purpose)
+        let progression = cleaned(mileageProgressionNote)
+        if note == nil, goal == nil, progression == nil, reasons.isEmpty { return nil }
+        self.coachNote = note
+        self.purpose = goal
+        self.mileageProgressionNote = progression
+        self.designReasons = reasons
+    }
 }
 
 struct App2PlanDay: Identifiable, Equatable {
