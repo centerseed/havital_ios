@@ -58,7 +58,7 @@ final class AuthenticationViewModelColdStartTests: XCTestCase {
             authRepository: mockAuthRepository,
             authSessionRepository: mockAuthSessionRepository,
             onboardingRepository: mockOnboardingRepository,
-            observesFirebaseAuthState: false
+            observesAuthEvents: false
         )
     }
 

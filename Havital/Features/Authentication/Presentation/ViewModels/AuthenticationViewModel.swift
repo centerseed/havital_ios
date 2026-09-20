@@ -77,13 +77,16 @@ final class AuthenticationViewModel: ObservableObject {
 
     /// Main initializer with dependency injection
     ///
-    /// - Parameter observesFirebaseAuthState: 預設 true（正式路徑）。單元測試傳 false，
+    /// - Parameter observesAuthEvents: 預設 true（正式路徑）。單元測試傳 false，
     ///   避免 Firebase 的 auth state listener 非同步回呼跟測試的斷言互搶狀態。
+    ///   名字講的是「所有 auth 事件」而不只 Firebase：`setupAuthStateListener()` 除了
+    ///   Firebase listener，還註冊 `.dataChanged(.user)`／`.reonboardingCompleted`／
+    ///   `.userLogout` 三個 CacheEventBus 訂閱，傳 false 會一併關掉。
     init(
         authRepository: AuthRepository,
         authSessionRepository: AuthSessionRepository,
         onboardingRepository: OnboardingRepository,
-        observesFirebaseAuthState: Bool = true
+        observesAuthEvents: Bool = true
     ) {
         self.authRepository = authRepository
         self.authSessionRepository = authSessionRepository
@@ -95,7 +98,7 @@ final class AuthenticationViewModel: ObservableObject {
         initializeAuthState()
 
         // Listen to Firebase Auth state changes
-        if observesFirebaseAuthState {
+        if observesAuthEvents {
             setupAuthStateListener()
         }
 
