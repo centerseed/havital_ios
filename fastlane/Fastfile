@@ -102,6 +102,23 @@ platform :ios do
     upload_to_testflight(api_key: key, ipa: ipa, skip_waiting_for_build_processing: true)
   end
 
+  desc "只上傳截圖(iPhone 6.9\" / iPad 13\" / Apple Watch),不動 binary 與 metadata"
+  desc "overwrite_screenshots:清掉 ASC 上該版本的舊截圖,只留 fastlane/screenshots/ 這一份。"
+  lane :screenshots do
+    key = asc_key
+    upload_to_app_store(
+      api_key: key,
+      app_identifier: APP_ID,
+      skip_binary_upload: true,
+      skip_metadata: true,
+      skip_screenshots: false,
+      overwrite_screenshots: true,
+      submit_for_review: false,
+      force: true,
+      run_precheck_before_submit: false,
+    )
+  end
+
   desc "【iOS 正式發版】build → 直接上傳 App Store + 送審(automatic_release=false,過審後手動 release)"
   desc "release notes 取自 fastlane/metadata/<locale>/release_notes.txt(唯一要人工確認的文案關)。"
   lane :release do
@@ -117,6 +134,21 @@ platform :ios do
       overwrite_screenshots: true,       # 清掉 ASC 上舊版(含 iPad)的截圖,只留這次上傳的
       skip_metadata: false,              # 推 metadata,但只有 release_notes.txt 存在 → 只更新 release notes
       submission_information: { export_compliance_uses_encryption: false },
+    )
+  end
+
+  desc "只推 metadata(名稱/副標/關鍵字/描述/release notes),不動 binary 與截圖"
+  lane :metadata do
+    key = asc_key
+    upload_to_app_store(
+      api_key: key,
+      app_identifier: APP_ID,
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      skip_metadata: false,
+      submit_for_review: false,
+      force: true,
+      run_precheck_before_submit: false,
     )
   end
 end

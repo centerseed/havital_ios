@@ -1,0 +1,80 @@
+appId: com.havital.Havital.dev
+env:
+  SHOT: /Users/wubaizong/havital/STATUS/evidence/founder-multiweek-dev/w
+---
+# 創辦人 dev 帳號（使用者本人 SSO）：不 launchApp、不 clearState、不 logout。
+# App 由 simctl 帶 -api_base_url 指到本機凍結時鐘的 backend 後再跑本流程。
+- tapOn:
+    text: "知道了，不再顯示|Got it|わかりました"
+    optional: true
+- tapOn:
+    point: "9%,9%"
+    optional: true
+- tapOn:
+    id: "App2_Tab_State"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "App2_HomeView"
+    timeout: 90000
+- takeScreenshot: ${SHOT}-01-home
+- scrollUntilVisible:
+    element:
+      id: "App2_WeekReviewEntry"
+    direction: DOWN
+    timeout: 20000
+- tapOn:
+    id: "App2_WeekReviewEntry"
+- extendedWaitUntil:
+    visible:
+      id: "App2_WeeklyReviewView"
+    timeout: 60000
+- tapOn:
+    id: "App2_WeeklyReviewTab_review"
+    optional: true
+- takeScreenshot: ${SHOT}-02-review-tab
+- tapOn:
+    id: "App2_WeeklyReviewGenerate"
+    optional: true
+- tapOn:
+    text: "Confirm|確認|確認する"
+    optional: true
+- extendedWaitUntil:
+    notVisible:
+      id: "App2_WeeklyReviewGenerating"
+    timeout: 240000
+- takeScreenshot: ${SHOT}-03-review-generated
+- scroll
+- takeScreenshot: ${SHOT}-03b-review-scrolled
+- tapOn:
+    id: "App2_WeeklyReviewTab_plan"
+- extendedWaitUntil:
+    notVisible:
+      id: "App2_WeeklyReviewPlanGenerating"
+    timeout: 240000
+- takeScreenshot: ${SHOT}-04-plan-tab
+- tapOn:
+    id: "App2_WeeklyReviewChecklistAccept_.*"
+    index: 0
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "App2_WeeklyReviewChecklistItem_.*_accepted"
+    timeout: 30000
+    optional: true
+- takeScreenshot: ${SHOT}-05-checklist-answered
+- tapOn:
+    id: "App2_WeeklyReviewGeneratePlan"
+    optional: true
+- tapOn:
+    text: "Confirm|確認|確認する"
+    optional: true
+- extendedWaitUntil:
+    notVisible:
+      id: "App2_WeeklyReviewPlanGenerating"
+    timeout: 300000
+- takeScreenshot: ${SHOT}-06-after-generate
+- tapOn:
+    id: "App2_WeeklyReviewContinueToPlan"
+    optional: true
+- takeScreenshot: ${SHOT}-07-plan

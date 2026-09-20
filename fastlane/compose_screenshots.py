@@ -25,15 +25,19 @@ FONT_DIR = os.path.join(ROOT, "fonts")
 
 W, H = 1320, 2868
 SIDE = 76
-DEVICE_W = 1040
-DEVICE_TOP = 528
+DEVICE_W = 1000
+DEVICE_TOP = 560
 BEZEL = 13
-HEAD_TOP = 138
+HEAD_TOP = 185
 
-# App2Theme.shadowHeroGradient
-GRAD = [(0.00, (11, 95, 176)), (0.58, (18, 58, 114)), (1.00, (11, 13, 22))]
+# 背景取 App2Theme hero gradient 的色相，但把最亮的一段放在 0.38——
+# 也就是機身上半部的高度。原本最亮在頂端、最暗在底部，機身的深色邊框
+# 直接糊進同樣深的背景，機身輪廓看不出來。
+GRAD = [(0.00, (8, 22, 48)), (0.38, (13, 68, 138)), (1.00, (6, 14, 32))]
+GLOW = (120, 180, 255)
+ACCENT = (10, 132, 255)
 HEAD_COLOR = (255, 255, 255)
-SUB_COLOR = (159, 184, 210)
+SUB_COLOR = (198, 219, 240)
 
 # 標題／副標。第一個 \n 之後是第二行；副標一行。
 COPY = {
@@ -47,10 +51,20 @@ COPY = {
         "ja": ("目標レースへ向けて\n組まれた一週間", "レース日から逆算した七日間のプラン"),
         "en-US": ("Every week built\naround your race", "Planned backwards from race day"),
     },
+    "05_session": {
+        "zh-Hant": ("每一堂課\n都說得出為什麼", "配速區間、訓練結構、熱天調整、傳到 Garmin"),
+        "ja": ("一本一本の練習に\n理由がある", "ペース域・構成・暑さ補正・Garmin へ送信"),
+        "en-US": ("Every session\nexplains itself", "Pace zones, structure, heat adjustment, Garmin sync"),
+    },
+    "06_workout": {
+        "zh-Hant": ("每一趟跑完\n都有教練讀給你聽", "自動同步 Garmin，配速、心率、訓練負荷"),
+        "ja": ("走り終わるたびに\nコーチが読み解く", "Garmin と自動同期／ペース・心拍・トレーニング負荷"),
+        "en-US": ("Every run,\nread by your coach", "Auto-synced from Garmin — pace, HR, training load"),
+    },
     "03_records": {
-        "zh-Hant": ("跑過的每一步\n都累積得見", "自動同步 Garmin、Strava、Apple 健康"),
-        "ja": ("走った一歩ずつが\n積み上がっていく", "Garmin・Strava・ヘルスケアと自動同期"),
-        "en-US": ("Every run\nadds up", "Auto-syncs Garmin, Strava and Apple Health"),
+        "zh-Hant": ("跑過的每一步\n都累積得見", "自動同步 Garmin 與 Apple 健康"),
+        "ja": ("走った一歩ずつが\n積み上がっていく", "Garmin・ヘルスケアと自動同期"),
+        "en-US": ("Every run\nadds up", "Auto-syncs Garmin and Apple Health"),
     },
     "04_achievements": {
         "zh-Hant": ("進步\n看得見", "能力變化、里程碑與個人紀錄"),
@@ -113,7 +127,26 @@ def background():
                 k = (t - t0) / (t1 - t0)
                 px[0, y] = tuple(round(c0[j] + (c1[j] - c0[j]) * k) for j in range(3))
                 break
-    return grad.resize((W, H))
+    canvas = grad.resize((W, H))
+    # 機身後方的光暈：給畫面一個焦點，也把機身邊框從背景裡分出來。
+    canvas.paste(*_radial(W / 2, DEVICE_TOP + 220, 920, GLOW, 66))
+    return canvas
+
+
+def _radial(cx, cy, r, color, peak):
+    """回傳 (色層, 遮罩)，中心最亮往外衰減。在 1/6 尺寸上畫再放大，省時間。"""
+    k = 6
+    small = Image.new("L", (W // k, H // k), 0)
+    d = ImageDraw.Draw(small)
+    steps = 28
+    for i in range(steps, 0, -1):
+        rr = r / k * i / steps
+        d.ellipse(
+            [cx / k - rr, cy / k - rr, cx / k + rr, cy / k + rr],
+            fill=round(peak * (1 - i / steps) ** 2),
+        )
+    mask = small.filter(ImageFilter.GaussianBlur(10)).resize((W, H), Image.BICUBIC)
+    return Image.new("RGB", (W, H), color), (0, 0), mask
 
 
 def fit_font(candidates, text, size, max_w):
@@ -134,12 +167,17 @@ def compose(raw_path, locale, screen):
     head_font = fit_font(FONT_CANDIDATES[locale], head, 86, W - SIDE * 2)
     sub_font = load_font(SUB_CANDIDATES[locale], 38)
 
+    # 標題上方的品牌色短橫，把整個版面的頂端錨住。
+    draw.rounded_rectangle(
+        [W / 2 - 46, HEAD_TOP - 52, W / 2 + 46, HEAD_TOP - 47], 3, fill=ACCENT
+    )
+
     y = HEAD_TOP
-    line_h = round(head_font.size * 1.26)
+    line_h = round(head_font.size * 1.18)
     for line in head.split("\n"):
         draw.text((W / 2, y), line, font=head_font, fill=HEAD_COLOR, anchor="ma")
         y += line_h
-    draw.text((W / 2, y + 18), sub, font=sub_font, fill=SUB_COLOR, anchor="ma")
+    draw.text((W / 2, y + 34), sub, font=sub_font, fill=SUB_COLOR, anchor="ma")
 
     shot = Image.open(raw_path).convert("RGB")
     dev_h = round(shot.height * DEVICE_W / shot.width)
@@ -147,7 +185,9 @@ def compose(raw_path, locale, screen):
     if DEVICE_TOP + dev_h > H:
         raise SystemExit(f"{raw_path}: 機身 {dev_h}px 放不進畫布，原始圖比例不對？")
 
-    radius = 58
+    # 螢幕圓角＝裝置寬度的 14.2%（iPhone 螢幕圓角 55.8pt / 393pt 寬）。
+    # 先前寫死 58px，在 1040px 寬的機身上只有實際的四成，機身就變成一張方卡。
+    radius = round(DEVICE_W * 0.1423)
     mask = Image.new("L", (DEVICE_W, dev_h), 0)
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, DEVICE_W - 1, dev_h - 1], radius, fill=255)
 
@@ -167,7 +207,7 @@ def compose(raw_path, locale, screen):
     # 機身邊框：不畫成純黑，留一圈亮邊當金屬反光，否則機身會糊進深色背景。
     draw = ImageDraw.Draw(canvas)
     draw.rounded_rectangle(bez, radius + BEZEL, fill=(22, 26, 34, 255))
-    draw.rounded_rectangle(bez, radius + BEZEL, outline=(255, 255, 255, 64), width=3)
+    draw.rounded_rectangle(bez, radius + BEZEL, outline=(255, 255, 255, 58), width=2)
     canvas.paste(shot, (left, DEVICE_TOP), mask)
     return canvas.convert("RGB")
 
