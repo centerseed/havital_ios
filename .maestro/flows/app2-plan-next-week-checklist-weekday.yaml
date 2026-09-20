@@ -136,7 +136,12 @@ tags:
     timeout: 30000
 - takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0383/w06-rizo-item-on-checklist
 
-# --- 產生課表：走完就退回首頁 ---
+# --- 產生課表：走完直接落在課表分頁的那一週 ---
+#
+# 這裡**不按任何鍵**（AC-TRAIN-HUB-19，T-0750）：產生成功之後回顧頁自己關掉、分頁自己
+# 切到課表，而且停在剛產生的那一週。先前這一段等的是 `App2_HomeView`、註解寫「走完就退回
+# 首頁」——那是 2026-08-31 只處理到「不要停在回顧頁」的舊落點，與 AC-TRAIN-HUB-19 矛盾，
+# 留著等於守著已經被改掉的行為。斷言比照 `app2-plan-tab-enters-checklist.yaml`。
 - scrollUntilVisible:
     element:
       id: "App2_WeeklyReviewGeneratePlan"
@@ -146,6 +151,12 @@ tags:
     id: "App2_WeeklyReviewGeneratePlan"
 - extendedWaitUntil:
     visible:
-      id: "App2_HomeView"
+      id: "App2_PlanView"
     timeout: 300000
+- extendedWaitUntil:
+    notVisible:
+      id: "App2_PlanEmptyState"
+    timeout: 60000
+- assertVisible:
+    id: "App2_PlanWeekLabel"
 - takeScreenshot: /Users/wubaizong/havital/STATUS/evidence/T-0383/w07-plan-generated
