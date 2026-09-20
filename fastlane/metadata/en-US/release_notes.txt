@@ -1,6 +1,4 @@
-Paceriz 2.0 — a complete redesign
-・Every screen redesigned: Home, Plan, History, Achievements, Settings
-・Home now shows your daily training state, five capability metrics, and Rizo's coaching notes
-・Before next week's plan is generated, review the "Plan Next Week" checklist and decide each adjustment
-・Browse the full week, revisit past weeks, and edit sessions directly in Plan
-・Weekly review and race management are built into the new flow
+• After you generate next week's plan, the Plan tab opens straight to that week
+• Fixed a case where opening the app asked you to set your goal again and overwrote your active plan
+• Rizo's proposal buttons are restored when you reopen an older chat, and Home and Plan update right away after Rizo edits your week
+Other fixes and improvements.
