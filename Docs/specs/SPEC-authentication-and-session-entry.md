@@ -106,6 +106,12 @@ Then 本地已知這個帳號完成過 onboarding 時（快取的 `AuthUser`，�
   這個畫面沒有別的出口，`isRetryable == false` 的錯誤（404／401）不能把使用者留在按不動的死畫面。
 - **未涵蓋**：後端回 401（token 過期）但 Firebase 本機 session 仍有效時，本條會把人留在讀不到
   畫面重試；Android 的 AC-AND-94a 在同樣情況把人導去重新登入。兩端要不要一致尚未裁決。
+- **未涵蓋（之二）**：`fetchCurrentUserData()` 的 in-flight guard（同檔 `:334-337`）在「已有另一次
+  抓取進行中」時也回 `false`，而 `:185` 把這個 `false` 直接當成「沒確認到」。冷啟動有三個觸發點
+  （`:169` init 的 Task、`:231` Firebase listener、`:278` CacheEventBus 訂閱），若 listener 那趟先
+  進入 fetch，網路正常的新用戶也會算出 `onboardingStatusUnavailable == true`，停在讀不到畫面要按一次
+  重試。`:169` 的 Task 先於 listener 註冊，所以機率低，且按重試即可自救——因此暫不修。要修的話是讓
+  `fetchCurrentUserData()` 區分「失敗」與「被 guard 跳過」。
 - **Android 對應**：`docs/specs/SPEC-android-app.md` 的 AC-AND-94a。兩端由使用者 2026-09-20
   一起裁決。
 - **怎麼驗**：清掉 app 資料後登入一次、關掉 app、斷網冷啟，不得出現 onboarding；本地有旗標時
