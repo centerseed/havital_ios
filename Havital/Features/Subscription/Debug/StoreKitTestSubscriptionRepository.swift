@@ -136,7 +136,8 @@ final class StoreKitTestSubscriptionRepository: SubscriptionRepository {
                     status: .active,
                     expiresAt: transaction.expirationDate?.timeIntervalSince1970,
                     planType: "premium",
-                    billingIssue: false
+                    billingIssue: false,
+                    store: "APP_STORE"
                 )
                 cachedStatus = optimisticStatus
                 await SubscriptionStateManager.shared.update(optimisticStatus)
@@ -159,7 +160,8 @@ final class StoreKitTestSubscriptionRepository: SubscriptionRepository {
                         status: .active,
                         expiresAt: Date().addingTimeInterval(30 * 86400).timeIntervalSince1970,
                         planType: "premium",
-                        billingIssue: false
+                        billingIssue: false,
+                        store: "APP_STORE"
                     )
                     cachedStatus = syntheticStatus
                     await SubscriptionStateManager.shared.update(syntheticStatus)
@@ -231,7 +233,8 @@ final class StoreKitTestSubscriptionRepository: SubscriptionRepository {
                 status: .active,
                 expiresAt: bestExpiration?.timeIntervalSince1970,
                 planType: "premium",
-                billingIssue: false
+                billingIssue: false,
+                store: "APP_STORE"
             )
         }
 
@@ -294,7 +297,8 @@ final class StoreKitTestSubscriptionRepository: SubscriptionRepository {
             status: .active,
             expiresAt: Date().addingTimeInterval(30 * 86400).timeIntervalSince1970,
             planType: "premium",
-            billingIssue: false
+            billingIssue: false,
+            store: "APP_STORE"
         )
         cachedStatus = syntheticStatus
         await SubscriptionStateManager.shared.update(syntheticStatus)

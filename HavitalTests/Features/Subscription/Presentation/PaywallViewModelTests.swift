@@ -278,6 +278,38 @@ final class PaywallViewModelTests: XCTestCase {
         XCTAssertEqual(analyticsService.trackedEvents.count, 0)
     }
 
+    func testPurchase_WhenActiveWithNilStore_DoesNotCallRepositoryPurchase() async {
+        repository.purchaseResult = .success
+        SubscriptionStateManager.shared.update(
+            SubscriptionStatusEntity(status: .active, store: nil)
+        )
+
+        await sut.purchase(
+            request: SubscriptionPurchaseRequest(
+                offeringId: "default",
+                packageId: "$rc_monthly",
+                offerType: nil,
+                offerIdentifier: nil
+            )
+        )
+
+        XCTAssertEqual(repository.purchaseCallCount, 0)
+        XCTAssertEqual(sut.purchaseState, .idle)
+        XCTAssertEqual(analyticsService.trackedEvents.count, 0)
+    }
+
+    func testRedeemOfferCode_WhenActiveOnPlayStore_DoesNotCallRepository() async {
+        repository.redeemResult = .success
+        SubscriptionStateManager.shared.update(
+            SubscriptionStatusEntity(status: .active, store: "PLAY_STORE")
+        )
+
+        await sut.redeemOfferCode()
+
+        XCTAssertEqual(repository.redeemOfferCodeCallCount, 0)
+        XCTAssertEqual(sut.purchaseState, .idle)
+    }
+
     func testPurchase_WhenAlreadyOptimisticallyUnlocked_DoesNotForceBackendRefresh() async {
         repository.purchaseResult = .success
         SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active, store: "APP_STORE"))

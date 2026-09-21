@@ -295,13 +295,11 @@ struct App2SettingsView: View {
                         filled: false,
                         identifier: "App2_SettingsManageSubscription"
                     ) {
-                        if let subscriptionStatus, subscriptionStatus.isSubscribedOnOtherStore {
-                            otherStoreMessage = subscriptionStatus.otherStoreManagementMessage
-                            return
+                        OtherStoreManagement.run(status: subscriptionStatus, message: $otherStoreMessage) {
+                            guard let url = URL(string: "https://apps.apple.com/account/subscriptions")
+                            else { return }
+                            UIApplication.shared.open(url)
                         }
-                        guard let url = URL(string: "https://apps.apple.com/account/subscriptions")
-                        else { return }
-                        UIApplication.shared.open(url)
                     }
                     subscriptionButton(
                         title: L10n.App2.Settings.viewPlans.localized,
@@ -322,13 +320,11 @@ struct App2SettingsView: View {
                     .padding(.top, 13)
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        if let subscriptionStatus, subscriptionStatus.isSubscribedOnOtherStore {
-                            otherStoreMessage = subscriptionStatus.otherStoreManagementMessage
-                            return
-                        }
-                        Task {
-                            let result = await redemptionCoordinator.redeem(entryPoint: .profile)
-                            redemptionMessage = App2OfferRedemptionMessage.text(for: result)
+                        OtherStoreManagement.run(status: subscriptionStatus, message: $otherStoreMessage) {
+                            Task {
+                                let result = await redemptionCoordinator.redeem(entryPoint: .profile)
+                                redemptionMessage = App2OfferRedemptionMessage.text(for: result)
+                            }
                         }
                     }
                     .accessibilityAddTraits(.isButton)
@@ -346,17 +342,7 @@ struct App2SettingsView: View {
         } message: {
             Text(redemptionMessage ?? "")
         }
-        .alert(
-            "",
-            isPresented: Binding(
-                get: { otherStoreMessage != nil },
-                set: { if !$0 { otherStoreMessage = nil } }
-            )
-        ) {
-            Button(NSLocalizedString("common.ok", comment: "OK")) { otherStoreMessage = nil }
-        } message: {
-            Text(otherStoreMessage ?? "")
-        }
+        .otherStoreManagementAlert(message: $otherStoreMessage)
     }
 
     /// `下次續訂 2026-09-15 · NT$1,790/年`。日期粗體等寬（設計稿），價格接在中點後。

@@ -212,17 +212,7 @@ struct UserProfileView: View {
         } message: {
             Text(offerRedemptionMessage ?? "")
         }
-        .alert(
-            "",
-            isPresented: Binding(
-                get: { otherStoreMessage != nil },
-                set: { if !$0 { otherStoreMessage = nil } }
-            )
-        ) {
-            Button(NSLocalizedString("common.ok", comment: "OK")) { otherStoreMessage = nil }
-        } message: {
-            Text(otherStoreMessage ?? "")
-        }
+        .otherStoreManagementAlert(message: $otherStoreMessage)
         #if DEBUG
         .sheet(isPresented: $showIAPTestConsole) {
             IAPTestConsoleView()
@@ -464,11 +454,12 @@ struct UserProfileView: View {
             subscriptionPrimaryAction
 
             Button {
-                if let status = subscriptionState.currentStatus, status.isSubscribedOnOtherStore {
-                    otherStoreMessage = status.otherStoreManagementMessage
-                    return
+                OtherStoreManagement.run(
+                    status: subscriptionState.currentStatus,
+                    message: $otherStoreMessage
+                ) {
+                    redeemOfferCode(from: .profile)
                 }
-                redeemOfferCode(from: .profile)
             } label: {
                 Label(
                     NSLocalizedString("profile.subscription.redeem_offer_code", comment: "Redeem Offer Code"),
@@ -617,12 +608,13 @@ struct UserProfileView: View {
     }
 
     private func openAppleSubscriptionsOrShowOtherStoreNotice() {
-        if let status = subscriptionState.currentStatus, status.isSubscribedOnOtherStore {
-            otherStoreMessage = status.otherStoreManagementMessage
-            return
-        }
-        if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
-            UIApplication.shared.open(url)
+        OtherStoreManagement.run(
+            status: subscriptionState.currentStatus,
+            message: $otherStoreMessage
+        ) {
+            if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+                UIApplication.shared.open(url)
+            }
         }
     }
 

@@ -169,7 +169,8 @@ final class IAPTestHarness: ObservableObject {
                 status: .active,
                 expiresAt: Date().addingTimeInterval(30 * 86400).timeIntervalSince1970,
                 planType: "premium",
-                billingIssue: false
+                billingIssue: false,
+                store: "APP_STORE"
             )
         case .trialActive:
             entity = SubscriptionStatusEntity(

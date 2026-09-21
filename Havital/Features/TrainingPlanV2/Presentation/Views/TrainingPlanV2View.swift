@@ -249,13 +249,13 @@ struct TrainingPlanV2View: View {
                     // billing grace period before access is cut off.
                     if subscriptionState.currentStatus?.billingIssue == true {
                         BillingIssueBanner {
-                            if let status = subscriptionState.currentStatus,
-                               status.isSubscribedOnOtherStore {
-                                otherStoreMessage = status.otherStoreManagementMessage
-                                return
-                            }
-                            if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
-                                openURL(url)
+                            OtherStoreManagement.run(
+                                status: subscriptionState.currentStatus,
+                                message: $otherStoreMessage
+                            ) {
+                                if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+                                    openURL(url)
+                                }
                             }
                         }
                         .transition(.opacity)
@@ -569,17 +569,7 @@ struct TrainingPlanV2View: View {
                     UserProfileView(isShowing: $showUserProfile)
                 }
             }
-            .alert(
-                "",
-                isPresented: Binding(
-                    get: { otherStoreMessage != nil },
-                    set: { if !$0 { otherStoreMessage = nil } }
-                )
-            ) {
-                Button(NSLocalizedString("common.ok", comment: "OK")) { otherStoreMessage = nil }
-            } message: {
-                Text(otherStoreMessage ?? "")
-            }
+            .otherStoreManagementAlert(message: $otherStoreMessage)
             .onChange(of: authViewModel.isReonboardingMode) { newValue in
                 if newValue {
                     showUserProfile = false

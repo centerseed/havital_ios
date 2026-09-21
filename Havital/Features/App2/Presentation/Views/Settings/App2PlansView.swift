@@ -66,17 +66,7 @@ struct App2PlansView: View {
         } message: {
             Text(redemptionMessage ?? "")
         }
-        .alert(
-            "",
-            isPresented: Binding(
-                get: { otherStoreMessage != nil },
-                set: { if !$0 { otherStoreMessage = nil } }
-            )
-        ) {
-            Button(NSLocalizedString("common.ok", comment: "OK")) { otherStoreMessage = nil }
-        } message: {
-            Text(otherStoreMessage ?? "")
-        }
+        .otherStoreManagementAlert(message: $otherStoreMessage)
     }
 
     // MARK: - 兩張方案卡
@@ -234,13 +224,11 @@ struct App2PlansView: View {
 
     private var redeemCard: some View {
         Button {
-            if let status, status.isSubscribedOnOtherStore {
-                otherStoreMessage = status.otherStoreManagementMessage
-                return
-            }
-            Task {
-                let result = await redemptionCoordinator.redeem(entryPoint: .profile)
-                redemptionMessage = App2OfferRedemptionMessage.text(for: result)
+            OtherStoreManagement.run(status: status, message: $otherStoreMessage) {
+                Task {
+                    let result = await redemptionCoordinator.redeem(entryPoint: .profile)
+                    redemptionMessage = App2OfferRedemptionMessage.text(for: result)
+                }
             }
         } label: {
             HStack(spacing: 10) {
@@ -338,12 +326,10 @@ struct App2PlansView: View {
     }
 
     private func handleCancelSubscription() {
-        if let status, status.isSubscribedOnOtherStore {
-            otherStoreMessage = status.otherStoreManagementMessage
-            return
+        OtherStoreManagement.run(status: status, message: $otherStoreMessage) {
+            guard let url = URL(string: "https://apps.apple.com/account/subscriptions") else { return }
+            UIApplication.shared.open(url)
         }
-        guard let url = URL(string: "https://apps.apple.com/account/subscriptions") else { return }
-        UIApplication.shared.open(url)
     }
 }
 

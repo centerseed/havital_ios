@@ -11,6 +11,10 @@ final class OfferRedemptionCoordinator {
     func redeem(entryPoint: OfferEntryPoint) async -> PurchaseResultEntity {
         Logger.debug("[OfferRedemptionCoordinator] redeem from \(entryPoint.rawValue)")
 
+        if SubscriptionStateManager.shared.currentStatus?.isSubscribedOnOtherStore == true {
+            return .cancelled
+        }
+
         do {
             return try await subscriptionRepository.redeemOfferCode()
         } catch {
