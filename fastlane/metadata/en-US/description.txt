@@ -28,6 +28,6 @@ Sync your training from Garmin Connect or Apple Health, choosing one data source
 Your next starting line is out there. Start preparing this week.
 
 Paceriz subscription
-Eligible new users get a 30-day free trial. After the trial, your chosen plan is billed automatically. Cancel at least 24 hours before the trial or current subscription period ends to avoid renewal. Manage or cancel your subscription in your Apple Account subscription settings.
+New users get 14 days of full access for free. After that, a subscription is required to keep using Paceriz, billed at your chosen plan's price. Subscriptions renew automatically; cancel at least 24 hours before the current period ends to avoid renewal. Manage or cancel your subscription in your Apple Account subscription settings.
 
 Terms of Use (EULA): https://www.apple.com/legal/internet-services/itunes/dev/stdeula/
