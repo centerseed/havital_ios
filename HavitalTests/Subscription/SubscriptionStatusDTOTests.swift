@@ -80,6 +80,7 @@ final class SubscriptionStatusDTOTests: XCTestCase {
         XCTAssertNil(dto.isEarlyBird)
         XCTAssertNil(dto.hasOverride)
         XCTAssertNil(dto.inIntroTrial)
+        XCTAssertNil(dto.store)
     }
 
     func testDecodeRizoUsageWithoutRemainingOrResetsAt() throws {
@@ -118,5 +119,29 @@ final class SubscriptionStatusDTOTests: XCTestCase {
 
         let dto = try decoder.decode(SubscriptionStatusDTO.self, from: json)
         XCTAssertNil(dto.eligibility)
+    }
+
+    func testDecodeStore() throws {
+        let json = """
+        {
+            "status": "subscribed",
+            "store": "APP_STORE"
+        }
+        """.data(using: .utf8)!
+
+        let dto = try decoder.decode(SubscriptionStatusDTO.self, from: json)
+        XCTAssertEqual(dto.store, "APP_STORE")
+    }
+
+    func testDecodeNullStoreIsNil() throws {
+        let json = """
+        {
+            "status": "subscribed",
+            "store": null
+        }
+        """.data(using: .utf8)!
+
+        let dto = try decoder.decode(SubscriptionStatusDTO.self, from: json)
+        XCTAssertNil(dto.store)
     }
 }

@@ -220,4 +220,23 @@ final class SubscriptionMapperTests: XCTestCase {
 
         XCTAssertFalse(entity.canOfferPacerizEb1)
     }
+
+    func testToEntity_mapsStore() {
+        let dto = SubscriptionStatusDTO(
+            status: "subscribed",
+            store: "PLAY_STORE"
+        )
+
+        let entity = SubscriptionMapper.toEntity(from: dto)
+
+        XCTAssertEqual(entity.store, "PLAY_STORE")
+    }
+
+    func testToEntity_missingStoreIsNil() {
+        let dto = SubscriptionStatusDTO(status: "subscribed")
+
+        let entity = SubscriptionMapper.toEntity(from: dto)
+
+        XCTAssertNil(entity.store)
+    }
 }

@@ -111,7 +111,7 @@ final class PaywallViewModelTests: XCTestCase {
     }
 
     func testShouldShowRestoreButton_WhenStatusIsActive_ReturnsFalse() {
-        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active))
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active, store: "APP_STORE"))
 
         XCTAssertFalse(sut.shouldShowRestoreButton)
     }
@@ -258,9 +258,29 @@ final class PaywallViewModelTests: XCTestCase {
         }
     }
 
+    func testPurchase_WhenActiveOnPlayStore_DoesNotCallRepositoryPurchase() async {
+        repository.purchaseResult = .success
+        SubscriptionStateManager.shared.update(
+            SubscriptionStatusEntity(status: .active, store: "PLAY_STORE")
+        )
+
+        await sut.purchase(
+            request: SubscriptionPurchaseRequest(
+                offeringId: "default",
+                packageId: "$rc_monthly",
+                offerType: nil,
+                offerIdentifier: nil
+            )
+        )
+
+        XCTAssertEqual(repository.purchaseCallCount, 0)
+        XCTAssertEqual(sut.purchaseState, .idle)
+        XCTAssertEqual(analyticsService.trackedEvents.count, 0)
+    }
+
     func testPurchase_WhenAlreadyOptimisticallyUnlocked_DoesNotForceBackendRefresh() async {
         repository.purchaseResult = .success
-        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active))
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active, store: "APP_STORE"))
 
         await sut.purchase(offeringId: "default", packageId: "$rc_monthly")
 
@@ -561,7 +581,7 @@ final class PaywallViewModelTests: XCTestCase {
         repository.isEarlyBirdOfferingResult = true
         repository.currentOfferingIdentifierResult = "early_bird"
         repository.purchaseResult = .success
-        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active))
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active, store: "APP_STORE"))
 
         await sut.loadOfferings()
 
@@ -631,7 +651,7 @@ final class PaywallViewModelTests: XCTestCase {
     /// Verifies: yearly packageId → lastPurchasedPlanName is set to the yearly plan key.
     func testPurchase_Yearly_SetsLastPurchasedPlanName_Yearly() async {
         repository.purchaseResult = .success
-        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active))
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active, store: "APP_STORE"))
 
         await sut.purchase(
             request: SubscriptionPurchaseRequest(
@@ -653,7 +673,7 @@ final class PaywallViewModelTests: XCTestCase {
     /// Bug 1: monthly packageId → lastPurchasedPlanName is set to the monthly plan key.
     func testPurchase_Monthly_SetsLastPurchasedPlanName_Monthly() async {
         repository.purchaseResult = .success
-        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active))
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active, store: "APP_STORE"))
 
         await sut.purchase(
             request: SubscriptionPurchaseRequest(
@@ -675,7 +695,7 @@ final class PaywallViewModelTests: XCTestCase {
     /// Bug 1: yearly offeringId (annual keyword) → inferred as yearly even if packageId is generic.
     func testPurchase_AnnualKeywordInOfferingId_SetsLastPurchasedPlanName_Yearly() async {
         repository.purchaseResult = .success
-        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active))
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active, store: "APP_STORE"))
 
         await sut.purchase(
             request: SubscriptionPurchaseRequest(

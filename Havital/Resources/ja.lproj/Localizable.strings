@@ -290,6 +290,12 @@
 "profile.subscription.trial_ends" = "トライアル終了日";
 "profile.subscription.trial_remaining_days" = "残り%d日";
 "profile.subscription.trial_purchased_note" = "登録済み。トライアル終了後に有効化されます";
+"subscription.other_store.message.app_store" = "ご利用中のサブスクリプションは App Store で購入されています。変更または解約は App Store で行ってください。";
+"subscription.other_store.message.play_store" = "ご利用中のサブスクリプションは Google Play で購入されています。変更または解約は Google Play で行ってください。";
+"subscription.other_store.message.unnamed" = "ご利用中のサブスクリプションは別のストアで購入されています。変更または解約は購入したストアで行ってください。";
+"subscription.store.app_store" = "App Store";
+"subscription.store.play_store" = "Google Play";
+"subscription.store.other" = "その他のストア";
 
 // MARK: - Data Sources
 "datasource.title" = "データソース";
@@ -4271,6 +4277,7 @@
 "app2.settings.plan_current_badge" = "現在のプラン";
 "app2.settings.current_subscription" = "現在の購読";
 "app2.settings.plan_row" = "プラン";
+"app2.settings.payment_method" = "支払い方法";
 "app2.settings.cancel_subscription" = "購読を解約";
 "app2.settings.target_weekly_distance" = "週間目標距離";
 "app2.settings.data_source_intro" = "連携すると、Rizo がバックグラウンドで走行記録を同期し、メニューを自動で調整します。";

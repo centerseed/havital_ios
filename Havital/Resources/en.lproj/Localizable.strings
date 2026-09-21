@@ -290,6 +290,12 @@
 "profile.subscription.trial_ends" = "Trial ends";
 "profile.subscription.trial_remaining_days" = "%d days remaining";
 "profile.subscription.trial_purchased_note" = "Subscribed — activates after trial ends";
+"subscription.other_store.message.app_store" = "Your subscription was purchased on the App Store. Please go to the App Store to change or cancel it.";
+"subscription.other_store.message.play_store" = "Your subscription was purchased on Google Play. Please go to Google Play to change or cancel it.";
+"subscription.other_store.message.unnamed" = "Your subscription was purchased on another store. Please go to that store to change or cancel it.";
+"subscription.store.app_store" = "App Store";
+"subscription.store.play_store" = "Google Play";
+"subscription.store.other" = "Other store";
 
 // MARK: - Data Sources
 "datasource.title" = "Data Sources";
@@ -4274,6 +4280,7 @@
 "app2.settings.plan_current_badge" = "Current plan";
 "app2.settings.current_subscription" = "Current subscription";
 "app2.settings.plan_row" = "Plan";
+"app2.settings.payment_method" = "Payment method";
 "app2.settings.cancel_subscription" = "Cancel subscription";
 "app2.settings.target_weekly_distance" = "Target weekly distance";
 "app2.settings.data_source_intro" = "Once connected, Rizo syncs your runs in the background and keeps your plan calibrated.";

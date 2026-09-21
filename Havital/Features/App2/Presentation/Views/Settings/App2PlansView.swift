@@ -9,7 +9,7 @@ import SwiftUI
 /// 取消訂閱導到 Apple 的訂閱管理頁。這一頁只是第二個版面。
 ///
 /// 設計與現況的差距（不硬造）：
-/// - 設計的「付款方式 Apple ID」：後端 `SubscriptionStatusEntity` 沒有這個欄位 → 不擺這一列。
+/// - 付款方式列顯示後端 `store`（SPEC-cross-store-subscription §3）；空就不擺。
 /// - 設計的「兌換優惠碼」是頁內輸入框；Apple 的兌換只能開系統 sheet
 ///   （`SKPaymentQueue.presentCodeRedemptionSheet`），所以這裡是一顆鈕。
 struct App2PlansView: View {
@@ -20,6 +20,7 @@ struct App2PlansView: View {
     @StateObject private var paywallViewModel = PaywallViewModel(trigger: .settingsTier)
     @State private var paywallTrigger: PaywallTrigger?
     @State private var redemptionMessage: String?
+    @State private var otherStoreMessage: String?
     private let redemptionCoordinator = OfferRedemptionCoordinator()
 
     private var status: SubscriptionStatusEntity? { subscriptionState.currentStatus }
@@ -42,7 +43,7 @@ struct App2PlansView: View {
             ctaAction: { paywallTrigger = primaryCtaTrigger },
             secondaryTitle: showsCancel ? L10n.App2.Settings.cancelSubscription.localized : nil,
             secondaryIdentifier: "App2_PlansCancel",
-            secondaryAction: showsCancel ? { openAppleSubscriptions() } : nil
+            secondaryAction: showsCancel ? { handleCancelSubscription() } : nil
         ) {
             VStack(alignment: .leading, spacing: 14) {
                 planComparison
@@ -64,6 +65,17 @@ struct App2PlansView: View {
             Button(NSLocalizedString("common.ok", comment: "OK")) { redemptionMessage = nil }
         } message: {
             Text(redemptionMessage ?? "")
+        }
+        .alert(
+            "",
+            isPresented: Binding(
+                get: { otherStoreMessage != nil },
+                set: { if !$0 { otherStoreMessage = nil } }
+            )
+        ) {
+            Button(NSLocalizedString("common.ok", comment: "OK")) { otherStoreMessage = nil }
+        } message: {
+            Text(otherStoreMessage ?? "")
         }
     }
 
@@ -191,6 +203,13 @@ struct App2PlansView: View {
                 value: planDisplayName
             )
 
+            if let storeName = status?.paymentStoreDisplayName {
+                valueRow(
+                    title: L10n.App2.Settings.paymentMethod.localized,
+                    value: storeName
+                )
+            }
+
             if let expiryTitle, let expiryValue {
                 valueRow(title: expiryTitle, value: expiryValue, monospaced: true)
             }
@@ -215,6 +234,10 @@ struct App2PlansView: View {
 
     private var redeemCard: some View {
         Button {
+            if let status, status.isSubscribedOnOtherStore {
+                otherStoreMessage = status.otherStoreManagementMessage
+                return
+            }
             Task {
                 let result = await redemptionCoordinator.redeem(entryPoint: .profile)
                 redemptionMessage = App2OfferRedemptionMessage.text(for: result)
@@ -314,7 +337,11 @@ struct App2PlansView: View {
         return status.status == .active || status.status == .gracePeriod
     }
 
-    private func openAppleSubscriptions() {
+    private func handleCancelSubscription() {
+        if let status, status.isSubscribedOnOtherStore {
+            otherStoreMessage = status.otherStoreManagementMessage
+            return
+        }
         guard let url = URL(string: "https://apps.apple.com/account/subscriptions") else { return }
         UIApplication.shared.open(url)
     }

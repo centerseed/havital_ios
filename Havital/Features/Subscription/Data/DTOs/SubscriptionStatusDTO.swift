@@ -49,6 +49,9 @@ struct SubscriptionStatusDTO: Codable {
     /// 跨 app 購買資格（後端 API 層 compose）。舊後端不回此欄位 → nil（向後相容）。
     let eligibility: EligibilityDTO?
 
+    /// 這筆訂閱從哪個商店買的（RevenueCat webhook `store`）。舊後端不回 → nil。
+    let store: String?
+
     // MARK: - Initialization
 
     /// 顯式 init（所有新欄位預設 nil，讓既有 call site 不需修改）
@@ -68,7 +71,8 @@ struct SubscriptionStatusDTO: Codable {
         iapGraceUntil: String? = nil,
         inGracePeriod: Bool? = nil,
         graceRemainingDays: Int? = nil,
-        eligibility: EligibilityDTO? = nil
+        eligibility: EligibilityDTO? = nil,
+        store: String? = nil
     ) {
         self.status = status
         self.expiresAt = expiresAt
@@ -86,6 +90,7 @@ struct SubscriptionStatusDTO: Codable {
         self.inGracePeriod = inGracePeriod
         self.graceRemainingDays = graceRemainingDays
         self.eligibility = eligibility
+        self.store = store
     }
 
     // MARK: - CodingKeys
@@ -107,6 +112,7 @@ struct SubscriptionStatusDTO: Codable {
         case inGracePeriod = "in_grace_period"
         case graceRemainingDays = "grace_remaining_days"
         case eligibility
+        case store
     }
 }
 

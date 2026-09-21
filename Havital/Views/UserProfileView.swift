@@ -55,6 +55,7 @@ struct UserProfileView: View {
     @State private var showPaceZoneDetail = false
     @State private var paywallTrigger: PaywallTrigger?
     @State private var offerRedemptionMessage: String?
+    @State private var otherStoreMessage: String?
     private let offerRedemptionCoordinator = OfferRedemptionCoordinator()
 
     private var appVersion: String {
@@ -211,6 +212,17 @@ struct UserProfileView: View {
         } message: {
             Text(offerRedemptionMessage ?? "")
         }
+        .alert(
+            "",
+            isPresented: Binding(
+                get: { otherStoreMessage != nil },
+                set: { if !$0 { otherStoreMessage = nil } }
+            )
+        ) {
+            Button(NSLocalizedString("common.ok", comment: "OK")) { otherStoreMessage = nil }
+        } message: {
+            Text(otherStoreMessage ?? "")
+        }
         #if DEBUG
         .sheet(isPresented: $showIAPTestConsole) {
             IAPTestConsoleView()
@@ -329,9 +341,7 @@ struct UserProfileView: View {
             } else if isPremiumActive, !isInTrial {
                 // Subscribed → Manage CTA (AC-PAYWALL-36)
                 Button {
-                    if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
-                        UIApplication.shared.open(url)
-                    }
+                    openAppleSubscriptionsOrShowOtherStoreNotice()
                 } label: {
                     Text(NSLocalizedString("settings.subscription.tier.manage_cta", comment: "Manage Subscription"))
                         .font(.subheadline)
@@ -454,6 +464,10 @@ struct UserProfileView: View {
             subscriptionPrimaryAction
 
             Button {
+                if let status = subscriptionState.currentStatus, status.isSubscribedOnOtherStore {
+                    otherStoreMessage = status.otherStoreManagementMessage
+                    return
+                }
                 redeemOfferCode(from: .profile)
             } label: {
                 Label(
@@ -467,9 +481,7 @@ struct UserProfileView: View {
             // 次要按鈕：管理訂閱（跳轉 Apple）
             if shouldShowManageSubscription {
                 Button {
-                    if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
-                        UIApplication.shared.open(url)
-                    }
+                    openAppleSubscriptionsOrShowOtherStoreNotice()
                 } label: {
                     Label(NSLocalizedString("profile.subscription.manage", comment: "Manage Subscription"), systemImage: "gear")
                         .foregroundColor(.secondary)
@@ -523,9 +535,7 @@ struct UserProfileView: View {
         case .gracePeriod:
             // 管理訂閱（帳務問題，主按鈕導向 Apple）
             Button {
-                if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
-                    UIApplication.shared.open(url)
-                }
+                openAppleSubscriptionsOrShowOtherStoreNotice()
             } label: {
                 Label(NSLocalizedString("profile.subscription.manage", comment: "Manage Subscription"), systemImage: "gear")
                     .foregroundColor(.orange)
@@ -604,6 +614,16 @@ struct UserProfileView: View {
 
     private func subscriptionPlanName(for status: SubscriptionStatusEntity) -> String {
         status.planDisplayName
+    }
+
+    private func openAppleSubscriptionsOrShowOtherStoreNotice() {
+        if let status = subscriptionState.currentStatus, status.isSubscribedOnOtherStore {
+            otherStoreMessage = status.otherStoreManagementMessage
+            return
+        }
+        if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+            UIApplication.shared.open(url)
+        }
     }
 
     private func redeemOfferCode(from entryPoint: OfferEntryPoint) {

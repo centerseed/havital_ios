@@ -71,6 +71,7 @@ struct App2SettingsView: View {
     @ObservedObject private var subscriptionState = SubscriptionStateManager.shared
     /// 訂閱卡「兌換優惠碼」（設計稿）的兌換流程 —— 與方案頁同一條。
     @State private var redemptionMessage: String?
+    @State private var otherStoreMessage: String?
     private let redemptionCoordinator = OfferRedemptionCoordinator()
     @StateObject private var paywallViewModel = PaywallViewModel(trigger: .settingsTier)
 
@@ -294,6 +295,10 @@ struct App2SettingsView: View {
                         filled: false,
                         identifier: "App2_SettingsManageSubscription"
                     ) {
+                        if let subscriptionStatus, subscriptionStatus.isSubscribedOnOtherStore {
+                            otherStoreMessage = subscriptionStatus.otherStoreManagementMessage
+                            return
+                        }
                         guard let url = URL(string: "https://apps.apple.com/account/subscriptions")
                         else { return }
                         UIApplication.shared.open(url)
@@ -317,6 +322,10 @@ struct App2SettingsView: View {
                     .padding(.top, 13)
                     .contentShape(Rectangle())
                     .onTapGesture {
+                        if let subscriptionStatus, subscriptionStatus.isSubscribedOnOtherStore {
+                            otherStoreMessage = subscriptionStatus.otherStoreManagementMessage
+                            return
+                        }
                         Task {
                             let result = await redemptionCoordinator.redeem(entryPoint: .profile)
                             redemptionMessage = App2OfferRedemptionMessage.text(for: result)
@@ -336,6 +345,17 @@ struct App2SettingsView: View {
             Button(NSLocalizedString("common.ok", comment: "OK")) { redemptionMessage = nil }
         } message: {
             Text(redemptionMessage ?? "")
+        }
+        .alert(
+            "",
+            isPresented: Binding(
+                get: { otherStoreMessage != nil },
+                set: { if !$0 { otherStoreMessage = nil } }
+            )
+        ) {
+            Button(NSLocalizedString("common.ok", comment: "OK")) { otherStoreMessage = nil }
+        } message: {
+            Text(otherStoreMessage ?? "")
         }
     }
 

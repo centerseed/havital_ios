@@ -136,6 +136,9 @@ final class PaywallViewModel: ObservableObject, TaskManageable {
     }
 
     func purchase(request: SubscriptionPurchaseRequest) async {
+        if SubscriptionStateManager.shared.currentStatus?.isSubscribedOnOtherStore == true {
+            return
+        }
         let purchaseContext = "\(request.offeringId.lowercased()) \(request.packageId.lowercased())"
         let planType = purchaseContext.contains("yearly") || purchaseContext.contains("annual")
             ? "yearly"

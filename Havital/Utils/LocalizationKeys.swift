@@ -2829,6 +2829,7 @@ extension L10n {
             static let planCurrentBadge = "app2.settings.plan_current_badge"
             static let currentSubscription = "app2.settings.current_subscription"
             static let planRow = "app2.settings.plan_row"
+            static let paymentMethod = "app2.settings.payment_method"
             static let cancelSubscription = "app2.settings.cancel_subscription"
 
             // MARK: 訓練設定（frame-23）

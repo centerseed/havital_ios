@@ -290,6 +290,12 @@
 "profile.subscription.trial_ends" = "試用到期日";
 "profile.subscription.trial_remaining_days" = "剩餘 %d 天";
 "profile.subscription.trial_purchased_note" = "已訂閱，試用結束後自動生效";
+"subscription.other_store.message.app_store" = "你的訂閱是在 App Store 購買的，請到 App Store 變更或取消。";
+"subscription.other_store.message.play_store" = "你的訂閱是在 Google Play 購買的，請到 Google Play 變更或取消。";
+"subscription.other_store.message.unnamed" = "你的訂閱是在其他商店購買的，請到原購買商店變更或取消。";
+"subscription.store.app_store" = "App Store";
+"subscription.store.play_store" = "Google Play";
+"subscription.store.other" = "其他商店";
 
 // MARK: - Data Sources
 "datasource.title" = "資料來源";
@@ -4315,6 +4321,7 @@
 "app2.settings.plan_current_badge" = "目前方案";
 "app2.settings.current_subscription" = "目前訂閱";
 "app2.settings.plan_row" = "方案";
+"app2.settings.payment_method" = "付款方式";
 "app2.settings.cancel_subscription" = "取消訂閱";
 "app2.settings.target_weekly_distance" = "目標週跑量";
 "app2.settings.data_source_intro" = "連接後 Rizo 會在背景同步你的跑步紀錄，自動校準課表。";

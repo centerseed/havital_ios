@@ -58,6 +58,9 @@ struct SubscriptionStatusEntity {
     /// 有 active Starter 買斷 → 有資格買 Paceriz 早鳥 eb1。預設 false（舊後端不回此欄位時安全）。
     let canOfferPacerizEb1: Bool
 
+    /// 這筆訂閱從哪個商店買的。後端 `store` 原樣帶上；nil 表示後端沒給。
+    let store: String?
+
     // MARK: - Initialization
 
     init(
@@ -76,7 +79,8 @@ struct SubscriptionStatusEntity {
         iapGraceUntil: TimeInterval? = nil,
         inGracePeriod: Bool = false,
         graceRemainingDays: Int? = nil,
-        canOfferPacerizEb1: Bool = false
+        canOfferPacerizEb1: Bool = false,
+        store: String? = nil
     ) {
         self.status = status
         self.expiresAt = expiresAt
@@ -94,6 +98,7 @@ struct SubscriptionStatusEntity {
         self.inGracePeriod = inGracePeriod
         self.graceRemainingDays = graceRemainingDays
         self.canOfferPacerizEb1 = canOfferPacerizEb1
+        self.store = store
     }
 }
 
@@ -116,6 +121,7 @@ extension SubscriptionStatusEntity: Equatable {
             && lhs.inGracePeriod == rhs.inGracePeriod
             && lhs.graceRemainingDays == rhs.graceRemainingDays
             && lhs.canOfferPacerizEb1 == rhs.canOfferPacerizEb1
+            && lhs.store == rhs.store
     }
 }
 
@@ -145,6 +151,51 @@ extension SubscriptionStatusEntity {
         }
         guard expiresAt != nil else { return nil }
         return daysRemaining
+    }
+
+    /// SPEC-cross-store-subscription §2：還有付費期剩餘，且不是本平台 App Store。
+    /// nil / 空字串 / PROMOTIONAL / PLAY_STORE 等都算別的商店；trial / expired / none 不算。
+    var isSubscribedOnOtherStore: Bool {
+        switch status {
+        case .active, .gracePeriod, .cancelled:
+            return store != "APP_STORE"
+        case .trial, .expired, .none:
+            return false
+        }
+    }
+
+    /// SPEC-cross-store-subscription §3：別商店訂閱者的管理／取消／兌換說明。
+    var otherStoreManagementMessage: String {
+        switch store {
+        case "APP_STORE":
+            return NSLocalizedString(
+                "subscription.other_store.message.app_store",
+                comment: "Subscription was purchased on the App Store"
+            )
+        case "PLAY_STORE":
+            return NSLocalizedString(
+                "subscription.other_store.message.play_store",
+                comment: "Subscription was purchased on Google Play"
+            )
+        default:
+            return NSLocalizedString(
+                "subscription.other_store.message.unnamed",
+                comment: "Subscription was purchased on another store"
+            )
+        }
+    }
+
+    /// 付款方式列顯示的商店名。store 空就不顯示這一列。
+    var paymentStoreDisplayName: String? {
+        guard let store, !store.isEmpty else { return nil }
+        switch store {
+        case "APP_STORE":
+            return NSLocalizedString("subscription.store.app_store", comment: "App Store")
+        case "PLAY_STORE":
+            return NSLocalizedString("subscription.store.play_store", comment: "Google Play")
+        default:
+            return NSLocalizedString("subscription.store.other", comment: "Other store")
+        }
     }
 }
 

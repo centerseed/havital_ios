@@ -51,10 +51,17 @@ struct PaywallView: View {
         _viewModel = StateObject(wrappedValue: PaywallViewModel(trigger: trigger, subSource: subSource))
     }
 
+    private var isSubscribedOnOtherStore: Bool {
+        subscriptionState.currentStatus?.isSubscribedOnOtherStore == true
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 0) {
+                    if isSubscribedOnOtherStore {
+                        otherStoreNotice
+                    } else {
                     // 1. Hero
                     heroSection
                         .padding(.top, 12)
@@ -114,6 +121,7 @@ struct PaywallView: View {
                     .foregroundColor(.secondary)
                     .accessibilityIdentifier("Paywall_RestoreButton")
                     .padding(.bottom, 24)
+                    }
                 }
             }
             .background(Color(.systemGroupedBackground).ignoresSafeArea())
@@ -126,7 +134,10 @@ struct PaywallView: View {
                         .accessibilityIdentifier("Paywall_CloseButton")
                 }
             }
-            .task { await viewModel.loadOfferings() }
+            .task {
+                guard !isSubscribedOnOtherStore else { return }
+                await viewModel.loadOfferings()
+            }
             .onAppear { viewModel.trackPaywallView() }
             .onChange(of: viewModel.purchaseState) { _, newState in
                 if case .success = newState {
@@ -167,6 +178,19 @@ struct PaywallView: View {
                     .ignoresSafeArea()
             }
         }
+    }
+
+    // MARK: - Other-store notice (SPEC-cross-store-subscription §3)
+
+    private var otherStoreNotice: some View {
+        Text(subscriptionState.currentStatus?.otherStoreManagementMessage ?? "")
+            .font(AppFont.body())
+            .foregroundColor(.secondary)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 24)
+            .padding(.top, 48)
+            .frame(maxWidth: .infinity)
+            .accessibilityIdentifier("Paywall_OtherStoreNotice")
     }
 
     // MARK: - Purchase Success Overlay

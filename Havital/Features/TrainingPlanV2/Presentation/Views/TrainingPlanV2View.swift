@@ -30,6 +30,7 @@ struct TrainingPlanV2View: View {
     // paywall is presented cleanly — exactly like the working free-tier-banner entry point.
     @State private var pendingInterruptPaywall: PaywallTrigger?
     // AC-PAYWALL-35: observe subscription state for free tier banner visibility
+    @State private var otherStoreMessage: String?
     @StateObject private var subscriptionState = SubscriptionStateManager.shared
     @StateObject private var userProfileViewModel = UserProfileFeatureViewModel()
     @StateObject private var announcementViewModel = AnnouncementViewModel(
@@ -248,6 +249,11 @@ struct TrainingPlanV2View: View {
                     // billing grace period before access is cut off.
                     if subscriptionState.currentStatus?.billingIssue == true {
                         BillingIssueBanner {
+                            if let status = subscriptionState.currentStatus,
+                               status.isSubscribedOnOtherStore {
+                                otherStoreMessage = status.otherStoreManagementMessage
+                                return
+                            }
                             if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
                                 openURL(url)
                             }
@@ -562,6 +568,17 @@ struct TrainingPlanV2View: View {
                 NavigationView {
                     UserProfileView(isShowing: $showUserProfile)
                 }
+            }
+            .alert(
+                "",
+                isPresented: Binding(
+                    get: { otherStoreMessage != nil },
+                    set: { if !$0 { otherStoreMessage = nil } }
+                )
+            ) {
+                Button(NSLocalizedString("common.ok", comment: "OK")) { otherStoreMessage = nil }
+            } message: {
+                Text(otherStoreMessage ?? "")
             }
             .onChange(of: authViewModel.isReonboardingMode) { newValue in
                 if newValue {
