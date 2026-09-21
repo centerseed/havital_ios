@@ -4,6 +4,17 @@ import XCTest
 
 @MainActor
 final class OtherStoreManagementTests: XCTestCase {
+    func testStoreActions_AfterLogoutReset_AreDisabledUntilStatusReadsBack() {
+        SubscriptionStateManager.shared.update(SubscriptionStatusEntity(status: .active, store: "APP_STORE"))
+
+        SubscriptionStateManager.shared.applyLogoutReset()
+
+        XCTAssertNil(SubscriptionStateManager.shared.currentStatus)
+        XCTAssertFalse(
+            OtherStoreManagement.isStoreActionEnabled(status: SubscriptionStateManager.shared.currentStatus)
+        )
+    }
+
     func testRun_WhenActiveOnOtherStore_SetsMessageAndSkipsAction() {
         let status = SubscriptionStatusEntity(status: .active, store: "PLAY_STORE")
         var message: String?

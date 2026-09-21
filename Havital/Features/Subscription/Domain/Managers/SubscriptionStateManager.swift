@@ -19,13 +19,8 @@ final class SubscriptionStateManager: ObservableObject {
 
     /// Reset subscription state on logout.
     /// Called by CacheRegistrationCoordinator when CacheEventBus fires .userLogout.
+    /// 回到「還沒讀回」（nil）而不是 `.none`：下一個帳號的狀態讀回前，管理／兌換不可點。
     func applyLogoutReset() {
-        update(SubscriptionStatusEntity(status: .none))
-        clearDowngrade()
-    }
-
-    /// 模擬「還沒從後端讀回」：`currentStatus == nil`。
-    func resetToUnloaded() {
         currentStatus = nil
         recentDowngrade = nil
     }

@@ -14,7 +14,7 @@ final class OfferRedemptionCoordinatorTests: XCTestCase {
     }
 
     func testRedeem_WhenStatusIsNil_DoesNotCallRepository() async {
-        SubscriptionStateManager.shared.resetToUnloaded()
+        SubscriptionStateManager.shared.applyLogoutReset()
         let repository = MockOfferRedemptionSubscriptionRepository()
         repository.result = .success
         let sut = OfferRedemptionCoordinator(subscriptionRepository: repository)
