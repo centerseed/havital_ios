@@ -468,6 +468,7 @@ struct UserProfileView: View {
                 .foregroundColor(.secondary)
             }
             .accessibilityIdentifier("Subscription_RedeemOfferCodeButton")
+            .otherStoreManagementDisabledUntilReady()
 
             // 次要按鈕：管理訂閱（跳轉 Apple）
             if shouldShowManageSubscription {
@@ -478,6 +479,7 @@ struct UserProfileView: View {
                         .foregroundColor(.secondary)
                 }
                 .accessibilityIdentifier("Subscription_ManageButton")
+                .otherStoreManagementDisabledUntilReady()
             }
         } header: {
             Text(NSLocalizedString("profile.subscription.section_title", comment: "Subscription"))

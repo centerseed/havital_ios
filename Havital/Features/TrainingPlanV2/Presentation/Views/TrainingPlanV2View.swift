@@ -258,6 +258,7 @@ struct TrainingPlanV2View: View {
                                 }
                             }
                         }
+                        .otherStoreManagementDisabledUntilReady()
                         .transition(.opacity)
                     }
 

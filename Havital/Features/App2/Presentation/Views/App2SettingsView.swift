@@ -301,6 +301,7 @@ struct App2SettingsView: View {
                             UIApplication.shared.open(url)
                         }
                     }
+                    .otherStoreManagementDisabledUntilReady()
                     subscriptionButton(
                         title: L10n.App2.Settings.viewPlans.localized,
                         filled: true,
@@ -329,6 +330,7 @@ struct App2SettingsView: View {
                     }
                     .accessibilityAddTraits(.isButton)
                     .accessibilityIdentifier("App2_SettingsRedeemCode")
+                    .otherStoreManagementDisabledUntilReady()
             }
         }
         .alert(

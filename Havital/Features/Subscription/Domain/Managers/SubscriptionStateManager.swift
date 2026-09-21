@@ -24,6 +24,12 @@ final class SubscriptionStateManager: ObservableObject {
         clearDowngrade()
     }
 
+    /// 模擬「還沒從後端讀回」：`currentStatus == nil`。
+    func resetToUnloaded() {
+        currentStatus = nil
+        recentDowngrade = nil
+    }
+
     /// 後端是否開啟訂閱執行（false = 軟上線期間，不顯示 paywall）
     var isEnforcementEnabled: Bool {
         currentStatus?.enforcementEnabled ?? false

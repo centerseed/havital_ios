@@ -13,6 +13,22 @@ final class OfferRedemptionCoordinatorTests: XCTestCase {
         super.tearDown()
     }
 
+    func testRedeem_WhenStatusIsNil_DoesNotCallRepository() async {
+        SubscriptionStateManager.shared.resetToUnloaded()
+        let repository = MockOfferRedemptionSubscriptionRepository()
+        repository.result = .success
+        let sut = OfferRedemptionCoordinator(subscriptionRepository: repository)
+
+        let result = await sut.redeem(entryPoint: .paywall)
+
+        XCTAssertEqual(repository.redeemOfferCodeCallCount, 0)
+        if case .cancelled = result {
+            XCTAssertTrue(true)
+        } else {
+            XCTFail("Expected cancelled, got \(result)")
+        }
+    }
+
     func testRedeem_WhenActiveOnOtherStore_DoesNotCallRepository() async {
         SubscriptionStateManager.shared.update(
             SubscriptionStatusEntity(status: .active, store: "PLAY_STORE")

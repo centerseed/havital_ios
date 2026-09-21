@@ -32,7 +32,7 @@ final class OtherStoreManagementTests: XCTestCase {
         XCTAssertNil(message)
     }
 
-    func testRun_WhenStatusIsNil_RunsAction() {
+    func testRun_WhenStatusIsNil_DoesNotRunAction() {
         var message: String?
         let binding = Binding(get: { message }, set: { message = $0 })
         var ran = false
@@ -41,7 +41,19 @@ final class OtherStoreManagementTests: XCTestCase {
             ran = true
         }
 
-        XCTAssertTrue(ran)
+        XCTAssertFalse(ran)
         XCTAssertNil(message)
+    }
+
+    func testIsStoreActionEnabled_WhenStatusIsNil_IsFalse() {
+        XCTAssertFalse(OtherStoreManagement.isStoreActionEnabled(status: nil))
+    }
+
+    func testIsStoreActionEnabled_WhenStatusLoaded_IsTrue() {
+        XCTAssertTrue(
+            OtherStoreManagement.isStoreActionEnabled(
+                status: SubscriptionStatusEntity(status: .none)
+            )
+        )
     }
 }

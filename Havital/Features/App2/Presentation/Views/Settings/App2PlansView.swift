@@ -251,6 +251,7 @@ struct App2PlansView: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("App2_PlansRedeem")
+        .otherStoreManagementDisabledUntilReady()
     }
 
     // MARK: - 狀態推導（與 1.4 設定頁同一組判定）
