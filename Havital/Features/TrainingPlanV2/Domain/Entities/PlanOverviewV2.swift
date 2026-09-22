@@ -96,6 +96,10 @@ struct PlanOverviewV2: Codable, Equatable {
     /// Backend error message when regenerationStatus == "failed".
     let regenerationErrorMessage: String?
 
+    /// 該計畫實際已生成的週號（昇冪）。來自 `GET /v2/plan/overview` 的 `generated_weeks`。
+    /// nil ＝ 舊後端或離線快取沒帶這個欄位。
+    let generatedWeeks: [Int]?
+
     init(
         id: String,
         targetId: String?,
@@ -122,7 +126,8 @@ struct PlanOverviewV2: Codable, Equatable {
         milestoneBasis: String?,
         regenerationStatus: String? = nil,
         regenerationReason: String? = nil,
-        regenerationErrorMessage: String? = nil
+        regenerationErrorMessage: String? = nil,
+        generatedWeeks: [Int]? = nil
     ) {
         self.id = id
         self.targetId = targetId
@@ -150,6 +155,7 @@ struct PlanOverviewV2: Codable, Equatable {
         self.regenerationStatus = regenerationStatus
         self.regenerationReason = regenerationReason
         self.regenerationErrorMessage = regenerationErrorMessage
+        self.generatedWeeks = generatedWeeks
     }
 
     // MARK: - Computed Properties

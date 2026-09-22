@@ -625,7 +625,7 @@ final class App2PlanHistoryModeTests: XCTestCase {
         )
     }
 
-    private func overview(id: String = "overview-1") -> PlanOverviewV2 {
+    private func overview(id: String = "overview-1", generatedWeeks: [Int]? = nil) -> PlanOverviewV2 {
         PlanOverviewV2(
             id: id, targetId: nil, targetType: "maintenance", targetDescription: nil,
             methodologyId: "paceriz", totalWeeks: 17, startFromStage: "base",
@@ -633,7 +633,8 @@ final class App2PlanHistoryModeTests: XCTestCase {
             targetPace: nil, targetTime: nil, isMainRace: nil, targetName: nil,
             methodologyOverview: nil, targetEvaluate: nil, approachSummary: nil,
             trainingStages: [], milestones: [], createdAt: Date(),
-            methodologyVersion: nil, milestoneBasis: nil
+            methodologyVersion: nil, milestoneBasis: nil,
+            generatedWeeks: generatedWeeks
         )
     }
 
@@ -937,11 +938,12 @@ final class App2PlanHistoryModeTests: XCTestCase {
     private func makeViewModelForPrefetch(
         totalWeeks: Int = 17,
         currentWeek: Int? = nil,
-        notFoundWeeks: Set<Int> = []
+        notFoundWeeks: Set<Int> = [],
+        generatedWeeks: [Int]? = nil
     ) -> (App2PlanViewModel, MockTrainingPlanV2Repository) {
         let repository = MockTrainingPlanV2Repository()
         repository.planStatusToReturn = planStatus(currentWeek: currentWeek ?? totalWeeks + 1, totalWeeks: totalWeeks)
-        repository.overviewToReturn = overview()
+        repository.overviewToReturn = overview(generatedWeeks: generatedWeeks)
         repository.cachedWeeklyPlansByWeek = [:]              // 冷啟：一週都沒有
         repository.simulatesWriteThroughCache = true          // 抓回來就落快取（真 repo 的行為）
         repository.weeklyPlanNotFoundWeeks = notFoundWeeks
@@ -1053,6 +1055,49 @@ final class App2PlanHistoryModeTests: XCTestCase {
             Set(repository.cachedWeeklyPlansByWeek?.keys.map { $0 } ?? []),
             Set(1...17).subtracting([4, 11])
         )
+    }
+
+    /// **有 generated_weeks 就只打那幾週。** currentWeek=10 時舊行為會打 1…10。
+    func test_prefetchUsesGeneratedWeeks() async {
+        let (viewModel, repository) = makeViewModelForPrefetch(
+            totalWeeks: 16,
+            currentWeek: 10,
+            generatedWeeks: [1, 2, 3, 7]
+        )
+
+        await viewModel.revalidate()
+        await viewModel.waitForWeeklyPlanPrefetchForTesting()
+
+        XCTAssertEqual(repository.requestedWeeklyPlanWeeks.sorted(), [1, 2, 3, 7])
+        XCTAssertEqual(repository.getWeeklyPlanCallCount, 4)
+    }
+
+    /// 欄位缺席（nil）退回 `1…min(currentWeek, totalWeeks)`，不得因此不預抓。
+    func test_prefetchWithoutGeneratedWeeksFallsBackToCurrentWeekRange() async {
+        let (viewModel, repository) = makeViewModelForPrefetch(
+            totalWeeks: 27,
+            currentWeek: 10,
+            generatedWeeks: nil
+        )
+
+        await viewModel.revalidate()
+        await viewModel.waitForWeeklyPlanPrefetchForTesting()
+
+        XCTAssertEqual(repository.requestedWeeklyPlanWeeks.sorted(), Array(1...10))
+    }
+
+    /// 已生成、但比日曆當週更後面的週（仍在 total_weeks 內）要打；超出 total_weeks 的不打。
+    func test_prefetchKeepsGeneratedWeeksInsideTotalWeeks() async {
+        let (viewModel, repository) = makeViewModelForPrefetch(
+            totalWeeks: 12,
+            currentWeek: 10,
+            generatedWeeks: [1, 2, 11, 30]
+        )
+
+        await viewModel.revalidate()
+        await viewModel.waitForWeeklyPlanPrefetchForTesting()
+
+        XCTAssertEqual(repository.requestedWeeklyPlanWeeks.sorted(), [1, 2, 11])
     }
 }
 

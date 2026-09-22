@@ -137,4 +137,26 @@ final class PlanOverviewV2DecodingTests: XCTestCase {
         XCTAssertNil(dto.milestones)
         XCTAssertNil(dto.createdAt)
     }
+
+    // MARK: - generated_weeks（T-0748）
+
+    func test_decode_generatedWeeks_whenPresent() throws {
+        let json = """
+        {"id":"overview_001","target_type":"race_run","total_weeks":16,"generated_weeks":[1,2,3,7]}
+        """.data(using: .utf8)!
+        let dto = try JSONDecoder().decode(PlanOverviewV2DTO.self, from: json)
+
+        XCTAssertEqual(dto.generatedWeeks, [1, 2, 3, 7])
+        XCTAssertEqual(PlanOverviewV2Mapper.toEntity(from: dto).generatedWeeks, [1, 2, 3, 7])
+    }
+
+    func test_decode_generatedWeeks_whenAbsent() throws {
+        let json = """
+        {"id":"overview_001","target_type":"race_run","total_weeks":16}
+        """.data(using: .utf8)!
+        let dto = try JSONDecoder().decode(PlanOverviewV2DTO.self, from: json)
+
+        XCTAssertNil(dto.generatedWeeks)
+        XCTAssertNil(PlanOverviewV2Mapper.toEntity(from: dto).generatedWeeks)
+    }
 }

@@ -37,7 +37,8 @@ enum PlanOverviewV2Mapper {
             milestoneBasis: dto.milestoneBasis,
             regenerationStatus: dto.regenerationStatus,
             regenerationReason: dto.regenerationReason,
-            regenerationErrorMessage: dto.regenerationErrorMessage
+            regenerationErrorMessage: dto.regenerationErrorMessage,
+            generatedWeeks: dto.generatedWeeks
         )
     }
 
@@ -73,7 +74,8 @@ enum PlanOverviewV2Mapper {
             milestoneBasis: entity.milestoneBasis,
             regenerationStatus: entity.regenerationStatus,
             regenerationReason: entity.regenerationReason,
-            regenerationErrorMessage: entity.regenerationErrorMessage
+            regenerationErrorMessage: entity.regenerationErrorMessage,
+            generatedWeeks: entity.generatedWeeks
         )
     }
 

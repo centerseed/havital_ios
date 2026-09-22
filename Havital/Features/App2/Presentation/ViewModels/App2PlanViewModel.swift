@@ -442,11 +442,13 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 }
             }
 
-            // 整期預抓（T-0378）：不 await —— 首屏與切週都不得等它。
-            // 只抓到本週：V2 逐週生成，未來週的課表**根本還不存在**，抓了只會
-            // 產生一整排 404 並被 client 錯誤回報灌進 cloud logging
-            // （2026-09-01 使用者帳號被監控標成「反覆失敗」的那一波，14 筆）。
-            schedulePrefetchAllWeeks(upTo: min(status.currentWeek, status.totalWeeks))
+            // 整期預抓（T-0378／T-0748）：不 await —— 首屏與切週都不得等它。
+            // 範圍是 overview 的 generatedWeeks（仍限在 totalWeeks 內）；
+            // 欄位缺席才退回 1…min(currentWeek, totalWeeks)。
+            schedulePrefetchAllWeeks(
+                fallbackThrough: min(status.currentWeek, status.totalWeeks),
+                totalWeeks: status.totalWeeks
+            )
 
             await applyPlanEnd(planStatus: status)
             // await 恢復點：被接管的舊輪不得再寫 week／dayDetails 等共用狀態
@@ -666,12 +668,15 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
     // MARK: - 整期預抓（T-0378）
 
-    /// 背景把 `1…upTo`（本週為止）逐週填進 repository 快取。**沒有人 await 它。**
+    /// 背景把該預抓的週填進 repository 快取。**沒有人 await 它。**
     ///
     /// 走的是既有的 cache-first `getWeeklyPlan(weekOfTraining:overviewId:)` ——
     /// 已經在快取裡的週不會產生任何往返，所以重跑的成本只有沒抓過的那幾週。
     /// 失敗（含 404 ＝ 該週從沒生成過課表）就跳過那一週，不影響其他週。
-    private func schedulePrefetchAllWeeks(upTo totalWeeks: Int) {
+    ///
+    /// `generatedWeeks == nil`（舊後端、離線快取沒這欄）才用 `1…fallbackThrough`。
+    /// 空陣列是「一週都還沒生成」，不退回那條範圍。
+    private func schedulePrefetchAllWeeks(fallbackThrough: Int, totalWeeks: Int) {
         guard totalWeeks > 0, !hasScheduledWeeklyPlanPrefetch else { return }
         hasScheduledWeeklyPlanPrefetch = true
 
@@ -682,23 +687,46 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             guard let overviewId = await self.resolveOverviewId() else { return }
             guard !Task.isCancelled else { return }
 
-            let lanes = min(Self.weeklyPlanPrefetchLanes, totalWeeks)
+            let weeks = Self.weeksToPrefetch(
+                generatedWeeks: self.planRepository.getCachedOverview()?.generatedWeeks,
+                fallbackThrough: fallbackThrough,
+                totalWeeks: totalWeeks
+            )
+            guard !weeks.isEmpty else { return }
+
+            let lanes = min(Self.weeklyPlanPrefetchLanes, weeks.count)
             await withTaskGroup(of: Void.self) { group in
                 for lane in 0..<lanes {
                     group.addTask { @MainActor [weak self] in
-                        var week = lane + 1
-                        while week <= totalWeeks, !Task.isCancelled {
+                        var index = lane
+                        while index < weeks.count, !Task.isCancelled {
                             _ = try? await self?.planRepository.getWeeklyPlan(
-                                weekOfTraining: week,
+                                weekOfTraining: weeks[index],
                                 overviewId: overviewId
                             )
-                            week += lanes
+                            index += lanes
                         }
                     }
                 }
             }
-            Logger.debug("[App2PlanVM] 整期課表預抓完成（\(totalWeeks) 週）")
+            Logger.debug("[App2PlanVM] 整期課表預抓完成（\(weeks.count) 週）")
         }
+    }
+
+    /// 預抓週號。有 `generatedWeeks` 就用它，並且只留 `1…totalWeeks`；沒有才退回 `1…fallbackThrough`。
+    private static func weeksToPrefetch(
+        generatedWeeks: [Int]?,
+        fallbackThrough: Int,
+        totalWeeks: Int
+    ) -> [Int] {
+        if let generatedWeeks {
+            var seen = Set<Int>()
+            return generatedWeeks.filter { week in
+                week >= 1 && week <= totalWeeks && seen.insert(week).inserted
+            }
+        }
+        guard fallbackThrough >= 1 else { return [] }
+        return Array(1...fallbackThrough)
     }
 
     #if DEBUG

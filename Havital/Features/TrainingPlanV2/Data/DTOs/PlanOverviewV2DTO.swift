@@ -48,6 +48,9 @@ struct PlanOverviewV2DTO: Codable {
     let regenerationReason: String?
     let regenerationErrorMessage: String?
 
+    /// `GET /v2/plan/overview` 的 `generated_weeks`。缺席＝nil，不是空陣列。
+    let generatedWeeks: [Int]?
+
     // MARK: - CodingKeys
 
     enum CodingKeys: String, CodingKey {
@@ -77,6 +80,7 @@ struct PlanOverviewV2DTO: Codable {
         case regenerationStatus = "regeneration_status"
         case regenerationReason = "regeneration_reason"
         case regenerationErrorMessage = "regeneration_error_message"
+        case generatedWeeks = "generated_weeks"
     }
 
     init(
@@ -105,7 +109,8 @@ struct PlanOverviewV2DTO: Codable {
         milestoneBasis: String?,
         regenerationStatus: String? = nil,
         regenerationReason: String? = nil,
-        regenerationErrorMessage: String? = nil
+        regenerationErrorMessage: String? = nil,
+        generatedWeeks: [Int]? = nil
     ) {
         self.id = id
         self.targetId = targetId
@@ -133,6 +138,7 @@ struct PlanOverviewV2DTO: Codable {
         self.regenerationStatus = regenerationStatus
         self.regenerationReason = regenerationReason
         self.regenerationErrorMessage = regenerationErrorMessage
+        self.generatedWeeks = generatedWeeks
     }
 
     init(from decoder: Decoder) throws {
@@ -163,6 +169,7 @@ struct PlanOverviewV2DTO: Codable {
         regenerationStatus = try container.decodeIfPresent(String.self, forKey: .regenerationStatus)
         regenerationReason = try container.decodeIfPresent(String.self, forKey: .regenerationReason)
         regenerationErrorMessage = try container.decodeIfPresent(String.self, forKey: .regenerationErrorMessage)
+        generatedWeeks = try container.decodeIfPresent([Int].self, forKey: .generatedWeeks)
 
         if let createdAtString = try? container.decodeIfPresent(String.self, forKey: .createdAt) {
             createdAt = createdAtString

@@ -6,8 +6,8 @@ layer: product
 owns: 訓練首頁與課表頁的 plan 狀態、週課表呈現、週次瀏覽及訓練完成量更新行為
 ontology_entity: training-hub-lifecycle
 created: 2026-04-15
-updated: 2026-09-20
-tasks: [T-0639, T-0726, T-0750, T-0754]
+updated: 2026-09-22
+tasks: [T-0639, T-0726, T-0748, T-0750, T-0754]
 ---
 
 # Feature Spec: 訓練首頁與週課表生命週期
@@ -264,6 +264,12 @@ And Then 本條同時約束兩個 App（Android 無獨立的課表頁 spec，以
 驗法：iOS `HavitalTests/Features/App2/App2PlanRationaleTests.swift`；
 畫面上的入口是 `App2_PlanRationaleEntry`，sheet 是 `App2_PlanRationaleSheet`。
 
+### AC-TRAIN-HUB-21: 整期預抓只打已經生成的週（2026-09-22，T-0748）
+
+進課表頁時，整期預抓只打 `GET /v2/plan/overview` 回的 `generated_weeks` 裡、而且落在 `total_weeks` 以內的那些週；這個欄位拿不到就退回打 `1…min(current_week, total_weeks)`。沒生成的週不打。
+
+驗法：`generated_weeks = [1, 2, 3, 7]`、`current_week = 10` 時預抓只打這 4 週；欄位缺席時預抓 `1…min(current_week, total_weeks)`。見 `App2PlanHistoryModeTests` 的 `test_prefetchUsesGeneratedWeeks`、`test_prefetchWithoutGeneratedWeeksFallsBackToCurrentWeekRange`，以及 `PlanOverviewV2DecodingTests` 的帶欄／不帶欄解碼。
+
 ## AC ID Index
 
 本 spec 已採用穩定 AC-ID；以下索引作為派工、review 與測試引用入口。
@@ -290,3 +296,4 @@ And Then 本條同時約束兩個 App（Android 無獨立的課表頁 spec，以
 | AC-TRAIN-HUB-18 | Rizo 改了課表後首頁與課表頁在同一 session 更新，只看結構化欄位 |
 | AC-TRAIN-HUB-19 | 產生課表成功後關閉回顧頁、切到課表分頁，並顯示剛產生的那一週 |
 | AC-TRAIN-HUB-20 | 課表頁週跑量卡提供「這週為什麼這樣排」bottom sheet（教練的話／本週目標／跑量漸進／安排理由） |
+| AC-TRAIN-HUB-21 | 整期預抓只打 overview 的 `generated_weeks`；欄位缺席退回 `1…min(current_week, total_weeks)` |
