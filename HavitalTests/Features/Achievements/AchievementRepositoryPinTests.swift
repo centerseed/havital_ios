@@ -67,3 +67,34 @@ final class AchievementRepositoryPinTests: XCTestCase {
         XCTAssertEqual(observed.first, "SEED-BADGE")
     }
 }
+
+final class AchievementRepositoryFetchErrorTests: XCTestCase {
+    private func makeSUT(error: Error) -> AchievementRepositoryImpl {
+        let client = MockHTTPClient()
+        client.setError(for: "/v2/achievements/summary", error: error)
+        return AchievementRepositoryImpl(dataSource: AchievementRemoteDataSource(httpClient: client))
+    }
+
+    // 逾時要保留成可判定的網路瞬斷，ViewModel 才會記 warn 而不是 ERROR（誤觸 P0 哨兵）。
+    func test_fetchSummary_timeout_staysTransientNetworkError() async {
+        let sut = makeSUT(error: URLError(.timedOut))
+        do {
+            _ = try await sut.fetchSummary(forceRefresh: true)
+            XCTFail("expected throw")
+        } catch {
+            XCTAssertTrue(error.isTransientNetworkError, "got \(type(of: error)): \(error)")
+        }
+    }
+
+    func test_fetchSummary_nonTransientError_mapsToFetchFailed() async {
+        let sut = makeSUT(error: HTTPError.notFound("gone"))
+        do {
+            _ = try await sut.fetchSummary(forceRefresh: true)
+            XCTFail("expected throw")
+        } catch {
+            guard case AchievementError.fetchFailed = error else {
+                return XCTFail("got \(type(of: error)): \(error)")
+            }
+        }
+    }
+}
