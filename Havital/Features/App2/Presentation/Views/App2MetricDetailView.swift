@@ -319,7 +319,8 @@ private struct App2VolumeDetailPage: View {
                         currentWeekTint: App2Theme.accentOrange,
                         showsValueLabels: detail.bars.count <= 10,
                         allowsReadout: true,
-                        readoutID: "weekly-volume"
+                        readoutID: "weekly-volume",
+                        readoutRevision: viewModel.range.rawValue
                     )
                     App2MetricStatRow(stats: detail.stats)
                 }
@@ -369,7 +370,8 @@ private struct App2VolumeDetailPage: View {
                     bands: App2MetricDetailProjection.sweetBand(acwr).map { [$0] } ?? [],
                     allowsReadout: true,
                     height: 118,
-                    readoutID: "volume-acwr"
+                    readoutID: "volume-acwr",
+                    readoutRevision: viewModel.range.rawValue
                 )
             } else {
                 Text(L10n.App2.Metric.volumeAcwrUnavailable.localized)
@@ -390,11 +392,12 @@ private struct App2VolumeDetailPage: View {
                     ],
                     xLabels: Self.xLabels(tsbSeries),
                     bands: App2MetricDetailProjection.tsbBands(),
-                    baselineValues: [-7, 0, 1],
-                    showsBandLegend: true,
-                    allowsReadout: true,
-                    height: 118,
-                    readoutID: "volume-tsb"
+                        baselineValues: [-7, 0, 1],
+                        showsBandLegend: true,
+                        allowsReadout: true,
+                        height: 118,
+                        readoutID: "volume-tsb",
+                        readoutRevision: viewModel.range.rawValue
                 )
                 .accessibilityIdentifier("App2_MetricTsbChart")
             }
@@ -513,7 +516,8 @@ private struct App2CapabilityDetailPage: View {
                         markerLabel: L10n.App2.Metric.capabilityAnchorMarker.localized,
                         allowsReadout: true,
                         height: 118,
-                        readoutID: "capability-vdot"
+                        readoutID: "capability-vdot",
+                        readoutRevision: viewModel.range.rawValue
                     )
                 }
             } else if viewModel.isLoading {

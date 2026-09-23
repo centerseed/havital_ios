@@ -3,6 +3,22 @@ import SwiftUI
 struct App2ChartReadoutSelection: Equatable {
     let chartID: String
     let index: Int
+
+    static func afterContentChange<Series: Equatable>(
+        _ selection: App2ChartReadoutSelection?,
+        chartID: String,
+        from previous: App2ChartReadoutRevision<Series>,
+        to current: App2ChartReadoutRevision<Series>
+    ) -> App2ChartReadoutSelection? {
+        guard previous != current, let selection else { return selection }
+        guard previous.range != current.range || selection.chartID == chartID else { return selection }
+        return nil
+    }
+}
+
+struct App2ChartReadoutRevision<Series: Equatable>: Equatable {
+    let range: String?
+    let series: Series
 }
 
 struct App2ChartReadoutFrame: Equatable {
@@ -78,6 +94,8 @@ struct App2WeeklyVolumeChart: View {
     var showsValueLabels: Bool = true
     /// 只在指標詳情頁開啟。紀錄頁與週回顧沿用預設關閉。
     var allowsReadout: Bool = false
+    /// 範圍變化即使尚未收到新序列，也要讓既有讀數失效。
+    var readoutRevision: String? = nil
 
     private let readoutID: String
     @Environment(\.app2ChartReadoutSelection) private var chartReadoutSelection
@@ -93,7 +111,8 @@ struct App2WeeklyVolumeChart: View {
         currentWeekTint: Color = App2Theme.accentBlue,
         showsValueLabels: Bool = true,
         allowsReadout: Bool = false,
-        readoutID: String = "weekly-volume"
+        readoutID: String = "weekly-volume",
+        readoutRevision: String? = nil
     ) {
         self.bars = bars
         self.barHeight = barHeight
@@ -102,6 +121,7 @@ struct App2WeeklyVolumeChart: View {
         self.showsValueLabels = showsValueLabels
         self.allowsReadout = allowsReadout
         self.readoutID = readoutID
+        self.readoutRevision = readoutRevision
     }
 
     private var selectedIndex: Int? {
@@ -122,54 +142,64 @@ struct App2WeeklyVolumeChart: View {
     private var peak: Double { max(max(bars.map(\.distanceKm).max() ?? 0, targetKm ?? 0), 1) }
 
     var body: some View {
-        if bars.isEmpty {
-            Text(L10n.App2.Common.noData.localized)
-                .font(.app2Caption)
-                .foregroundStyle(App2Theme.inkTertiary)
-                .frame(maxWidth: .infinity, minHeight: 70)
-        } else {
-            VStack(spacing: 5) {
-                if allowsReadout, let selectedIndex, bars.indices.contains(selectedIndex) {
-                    let bar = bars[selectedIndex]
-                    HStack(spacing: 6) {
-                        Text(bar.shortLabel)
-                        Text("\(App2NumberFormat.grouped(bar.distanceKm, maximumFractionDigits: 1)) km")
-                            .fontWeight(.heavy)
+        Group {
+            if bars.isEmpty {
+                Text(L10n.App2.Common.noData.localized)
+                    .font(.app2Caption)
+                    .foregroundStyle(App2Theme.inkTertiary)
+                    .frame(maxWidth: .infinity, minHeight: 70)
+            } else {
+                VStack(spacing: 5) {
+                    if allowsReadout, let selectedIndex, bars.indices.contains(selectedIndex) {
+                        let bar = bars[selectedIndex]
+                        HStack(spacing: 6) {
+                            Text(bar.shortLabel)
+                            Text("\(App2NumberFormat.grouped(bar.distanceKm, maximumFractionDigits: 1)) km")
+                                .fontWeight(.heavy)
+                        }
+                        .font(.app2Mono(10, weight: .semibold))
+                        .foregroundStyle(App2Theme.inkPrimary)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(App2Theme.cardBackground, in: RoundedRectangle(cornerRadius: 8))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(App2Theme.insetBorder, lineWidth: 1))
+                        .accessibilityIdentifier("App2_WeeklyVolumeChartReadout")
                     }
-                    .font(.app2Mono(10, weight: .semibold))
-                    .foregroundStyle(App2Theme.inkPrimary)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 5)
-                    .background(App2Theme.cardBackground, in: RoundedRectangle(cornerRadius: 8))
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(App2Theme.insetBorder, lineWidth: 1))
-                    .accessibilityIdentifier("App2_WeeklyVolumeChartReadout")
-                }
 
-                barPlot
-                xLabelRow
-            }
-            .coordinateSpace(name: "weeklyVolumeChart")
-            .simultaneousGesture(
-                SpatialTapGesture().onEnded { tap in
-                    if selectedIndex != nil && !plotRect.contains(tap.location) {
-                        setSelectedIndex(nil)
+                    barPlot
+                    xLabelRow
+                }
+                .coordinateSpace(name: "weeklyVolumeChart")
+                .simultaneousGesture(
+                    SpatialTapGesture().onEnded { tap in
+                        if selectedIndex != nil && !plotRect.contains(tap.location) {
+                            setSelectedIndex(nil)
+                        }
+                    }
+                )
+                .accessibilityIdentifier("App2_WeeklyVolumeChart")
+                .background {
+                    GeometryReader { geo in
+                        Color.clear.preference(
+                            key: App2ChartReadoutFramePreferenceKey.self,
+                            value: allowsReadout
+                                ? [App2ChartReadoutFrame(
+                                    chartID: readoutID,
+                                    frame: geo.frame(in: .named(App2ChartReadoutCoordinateSpace.name))
+                                )]
+                                : []
+                        )
                     }
                 }
-            )
-            .accessibilityIdentifier("App2_WeeklyVolumeChart")
-            .background {
-                GeometryReader { geo in
-                    Color.clear.preference(
-                        key: App2ChartReadoutFramePreferenceKey.self,
-                        value: allowsReadout
-                            ? [App2ChartReadoutFrame(
-                                chartID: readoutID,
-                                frame: geo.frame(in: .named(App2ChartReadoutCoordinateSpace.name))
-                            )]
-                            : []
-                    )
-                }
             }
+        }
+        .onChange(of: App2ChartReadoutRevision(range: readoutRevision, series: bars)) { previous, current in
+            chartReadoutSelection.wrappedValue = App2ChartReadoutSelection.afterContentChange(
+                chartReadoutSelection.wrappedValue,
+                chartID: readoutID,
+                from: previous,
+                to: current
+            )
         }
     }
 
@@ -426,6 +456,8 @@ struct App2MetricLineChart: View {
     var height: CGFloat = 132
     /// 只有指標詳情頁啟用圖上讀數。
     var allowsReadout: Bool = false
+    /// 範圍變化即使尚未收到新序列，也要讓既有讀數失效。
+    var readoutRevision: String? = nil
     /// 渲染測試或已知錨點可指定初始選中索引；一般呼叫點保持 nil。
     var initiallySelectedIndex: Int? = nil
     /// TSB 色帶圖例；ACWR 不顯示 band legend。
@@ -449,7 +481,8 @@ struct App2MetricLineChart: View {
         allowsReadout: Bool = false,
         initiallySelectedIndex: Int? = nil,
         height: CGFloat = 132,
-        readoutID: String = "metric-line"
+        readoutID: String = "metric-line",
+        readoutRevision: String? = nil
     ) {
         self.series = series
         self.xLabels = xLabels
@@ -462,6 +495,7 @@ struct App2MetricLineChart: View {
         self.initiallySelectedIndex = initiallySelectedIndex
         self.showsBandLegend = showsBandLegend
         self.readoutID = readoutID
+        self.readoutRevision = readoutRevision
     }
 
     private var selectedIndex: Int? {
@@ -523,6 +557,15 @@ struct App2MetricLineChart: View {
                let initiallySelectedIndex {
                 setSelectedIndex(initiallySelectedIndex)
             }
+        }
+        .onChange(of: App2ChartReadoutRevision(range: readoutRevision, series: series.map(\.points))) {
+            previous, current in
+            chartReadoutSelection.wrappedValue = App2ChartReadoutSelection.afterContentChange(
+                chartReadoutSelection.wrappedValue,
+                chartID: readoutID,
+                from: previous,
+                to: current
+            )
         }
     }
 

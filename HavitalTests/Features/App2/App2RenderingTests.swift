@@ -778,4 +778,137 @@ final class App2RenderingTests: XCTestCase {
             height: 520
         )
     }
+
+    func testChartReadoutClearsWhenRangeReplacesTheSeries() {
+        let weeklyState = App2ChartRangeSwitchState(
+            weeklyRange: .weeks8,
+            capabilityRange: .days60,
+            weeklyBars: (0..<8).map(Self.weeklyBar),
+            vdotPoints: []
+        )
+        weeklyState.selection = App2ChartReadoutSelection(chartID: "weekly-volume", index: 7)
+        let weeklyHost = UIHostingController(rootView: App2WeeklyChartRangeSwitchProbe(state: weeklyState))
+        let weeklyWindow = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 240))
+        weeklyWindow.rootViewController = weeklyHost
+        weeklyWindow.makeKeyAndVisible()
+        weeklyHost.view.layoutIfNeeded()
+
+        weeklyState.weeklyRange = .weeks26
+        settle(weeklyHost)
+
+        XCTAssertNil(weeklyState.selection, "Switching from 8 to 26 weeks must dismiss the selected bar readout")
+
+        weeklyState.selection = App2ChartReadoutSelection(chartID: "weekly-volume", index: 7)
+        weeklyState.weeklyBars = (0..<26).map(Self.weeklyBar)
+        settle(weeklyHost)
+        XCTAssertNil(weeklyState.selection, "Replacing the weekly series must dismiss its selected bar readout")
+        weeklyWindow.isHidden = true
+
+        let vdotState = App2ChartRangeSwitchState(
+            weeklyRange: .weeks8,
+            capabilityRange: .days60,
+            weeklyBars: [],
+            vdotPoints: (0..<60).map(Self.vdotPoint)
+        )
+        vdotState.selection = App2ChartReadoutSelection(chartID: "capability-vdot", index: 59)
+        let vdotHost = UIHostingController(rootView: App2VDOTChartRangeSwitchProbe(state: vdotState))
+        let vdotWindow = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 240))
+        vdotWindow.rootViewController = vdotHost
+        vdotWindow.makeKeyAndVisible()
+        vdotHost.view.layoutIfNeeded()
+
+        vdotState.capabilityRange = .months6
+        settle(vdotHost)
+
+        XCTAssertNil(vdotState.selection, "Switching from 60 days to 6 months must dismiss the selected VDOT readout")
+
+        vdotState.selection = App2ChartReadoutSelection(chartID: "capability-vdot", index: 59)
+        vdotState.vdotPoints = (0..<185).map(Self.vdotPoint)
+        settle(vdotHost)
+        XCTAssertNil(vdotState.selection, "Replacing the VDOT series must dismiss its selected readout")
+        vdotWindow.isHidden = true
+    }
+
+    private static func weeklyBar(_ index: Int) -> App2WeeklyBar {
+        App2WeeklyBar(
+            weekStart: "2026-01-\(String(format: "%02d", index + 1))",
+            distanceKm: Double(index + 1),
+            isCurrentWeek: index == 7,
+            shortLabel: "W\(index + 1)"
+        )
+    }
+
+    private static func vdotPoint(_ index: Int) -> App2MetricPoint {
+        App2MetricPoint(
+            date: String(format: "2026-%02d-%02d", index / 28 + 1, index % 28 + 1),
+            value: 45 + Double(index)
+        )
+    }
+
+    private func settle<V: View>(_ host: UIHostingController<V>) {
+        for _ in 0..<4 {
+            RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+            host.view.setNeedsLayout()
+            host.view.layoutIfNeeded()
+        }
+    }
+}
+
+@MainActor
+private final class App2ChartRangeSwitchState: ObservableObject {
+    @Published var selection: App2ChartReadoutSelection?
+    @Published var weeklyRange: App2MetricRange
+    @Published var capabilityRange: App2MetricRange
+    @Published var weeklyBars: [App2WeeklyBar]
+    @Published var vdotPoints: [App2MetricPoint]
+
+    init(
+        weeklyRange: App2MetricRange,
+        capabilityRange: App2MetricRange,
+        weeklyBars: [App2WeeklyBar],
+        vdotPoints: [App2MetricPoint]
+    ) {
+        self.weeklyRange = weeklyRange
+        self.capabilityRange = capabilityRange
+        self.weeklyBars = weeklyBars
+        self.vdotPoints = vdotPoints
+    }
+}
+
+private struct App2WeeklyChartRangeSwitchProbe: View {
+    @ObservedObject var state: App2ChartRangeSwitchState
+
+    var body: some View {
+        App2WeeklyVolumeChart(
+            bars: state.weeklyBars,
+            barHeight: 118,
+            allowsReadout: true,
+            readoutID: "weekly-volume",
+            readoutRevision: state.weeklyRange.rawValue
+        )
+        .environment(\.app2ChartReadoutSelection, selectionBinding)
+    }
+
+    private var selectionBinding: Binding<App2ChartReadoutSelection?> {
+        Binding(get: { state.selection }, set: { state.selection = $0 })
+    }
+}
+
+private struct App2VDOTChartRangeSwitchProbe: View {
+    @ObservedObject var state: App2ChartRangeSwitchState
+
+    var body: some View {
+        App2MetricLineChart(
+            series: [.init(id: "vdot", points: state.vdotPoints, tint: .purple, readoutLabel: "VDOT")],
+            allowsReadout: true,
+            height: 118,
+            readoutID: "capability-vdot",
+            readoutRevision: state.capabilityRange.rawValue
+        )
+        .environment(\.app2ChartReadoutSelection, selectionBinding)
+    }
+
+    private var selectionBinding: Binding<App2ChartReadoutSelection?> {
+        Binding(get: { state.selection }, set: { state.selection = $0 })
+    }
 }
