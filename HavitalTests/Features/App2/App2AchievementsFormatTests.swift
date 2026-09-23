@@ -72,26 +72,55 @@ final class App2AchievementsFormatTests: XCTestCase {
 
     // MARK: - PB 詳情資料
 
-    func test_pbDistanceKey_mapsTheFourCardLabelsToPersonalBestV2Keys() {
-        XCTAssertEqual(App2AchievementsView.pbDistanceKey(for: "42K"), "42")
-        XCTAssertEqual(App2AchievementsView.pbDistanceKey(for: "21K"), "21")
-        XCTAssertEqual(App2AchievementsView.pbDistanceKey(for: "10K"), "10")
-        XCTAssertEqual(App2AchievementsView.pbDistanceKey(for: "5K"), "5")
-        XCTAssertNil(App2AchievementsView.pbDistanceKey(for: "3K"))
-    }
+    func test_pbCardTapUsesRaceRunDistanceKeyAndPreservesBackendOrder() throws {
+        let defaults = UserDefaults.standard
+        let profileCacheKey = "user_profile_cache_v3"
+        let profileTimestampKey = "user_profile_cache_v3_timestamp"
+        let previousProfile = defaults.object(forKey: profileCacheKey)
+        let previousTimestamp = defaults.object(forKey: profileTimestampKey)
+        defer {
+            if let previousProfile {
+                defaults.set(previousProfile, forKey: profileCacheKey)
+            } else {
+                defaults.removeObject(forKey: profileCacheKey)
+            }
+            if let previousTimestamp {
+                defaults.set(previousTimestamp, forKey: profileTimestampKey)
+            } else {
+                defaults.removeObject(forKey: profileTimestampKey)
+            }
+        }
 
-    func test_pbTopThree_areOrderedByFastestCompleteTime() {
-        let records = [
-            pb("slower", seconds: 1_700),
-            pb("fastest", seconds: 1_400),
-            pb("fourth", seconds: 1_900),
-            pb("second", seconds: 1_500)
+        let fiveKRecords = [
+            pb("backend-rank-1", seconds: 1_600),
+            pb("backend-rank-2", seconds: 1_400),
+            pb("backend-rank-3", seconds: 1_500),
+            pb("backend-rank-4", seconds: 1_300)
         ]
+        let twentyOneKRecords = [pb("wrong-distance", seconds: 5_000)]
+        let profilePayload: [String: Any] = [
+            "personal_best_v2": [
+                "race_run": [
+                    "5": try JSONSerialization.jsonObject(with: JSONEncoder().encode(fiveKRecords)),
+                    "21": try JSONSerialization.jsonObject(with: JSONEncoder().encode(twentyOneKRecords))
+                ]
+            ]
+        ]
+        let profileData = try JSONSerialization.data(withJSONObject: profilePayload)
+        let cachedUser = try JSONDecoder().decode(User.self, from: profileData)
+        UserProfileLocalDataSource().saveUserProfile(cachedUser)
 
-        let topThree = App2AchievementsView.topThreePersonalBestRecords(records)
+        let view = App2AchievementsView(viewModel: PersonalAchievementsViewModel())
+        let detailItem = view.openPBDetail(for: AchievementPBRecord(
+            distance: "5",
+            displayDistance: "5K",
+            time: "26:40",
+            achievedAt: "2026-09-23",
+            isRecent: false
+        ))
 
-        XCTAssertEqual(topThree.map(\.workoutId), ["fastest", "second", "slower"])
-        XCTAssertEqual(topThree.map(\.completeTime), [1_400, 1_500, 1_700])
+        XCTAssertEqual(detailItem?.distance.rawValue, "5")
+        XCTAssertEqual(detailItem?.records, fiveKRecords)
     }
 
     private func pb(_ workoutId: String, seconds: Int) -> PersonalBestRecordV2 {

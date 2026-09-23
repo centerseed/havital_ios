@@ -708,6 +708,23 @@ final class App2RenderingTests: XCTestCase {
     }
 
     func test_t0776_tsbReadoutAndPersonalBestDetail_render() {
+        let acwrPoints = [
+            App2MetricPoint(date: "2026-09-02", value: 0.9),
+            App2MetricPoint(date: "2026-09-16", value: 1.3),
+            App2MetricPoint(date: "2026-09-30", value: 1.8)
+        ]
+        let acwrChart = App2MetricLineChart(
+            series: [
+                .init(id: "acwr", points: acwrPoints, tint: App2Theme.accentBlueDeep, readoutLabel: "ACWR")
+            ],
+            xLabels: ["9/2", "9/16", "9/30"],
+            bands: [.init(lower: 0.8, upper: 1.3, label: "0.8–1.3", tint: .green)],
+            allowsReadout: true,
+            initiallySelectedIndex: 2,
+            height: 118
+        )
+        render(acwrChart, name: "t0776-acwr-readout", height: 210)
+
         let tsbPoints = [
             App2MetricPoint(date: "2026-09-28", value: -10),
             App2MetricPoint(date: "2026-09-29", value: nil),
