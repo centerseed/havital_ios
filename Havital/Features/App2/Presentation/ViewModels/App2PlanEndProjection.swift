@@ -338,7 +338,8 @@ enum App2PlanEndProjection {
     /// VDOT 增量 ＝ 終點 − 起點。序列少於兩點就沒有「變化」可講 → nil。
     static func vdotDelta(_ series: [App2MetricPoint]) -> Double? {
         guard series.count >= 2, let first = series.first, let last = series.last else { return nil }
-        return last.value - first.value
+        guard let start = first.value, let end = last.value else { return nil }
+        return end - start
     }
 
     // MARK: - 格式（與首頁目標卡同一組規則）

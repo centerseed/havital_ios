@@ -93,6 +93,47 @@ enum App2MetricDetailProjection {
         return App2LoadBlock(ctl: latest.ctl, atl: latest.atl, tsb: latest.tsb)
     }
 
+    /// §51-6 近 30 個日曆日的 TSB（舊→新）。日期仍在序列上，TSB nil 時保留為斷線點。
+    static func tsbSeries(_ records: [HealthRecord], asof: String?) -> [App2MetricPoint] {
+        let end = asof ?? today()
+        guard let start = dateString(byAdding: -29, to: end) else { return [] }
+        return records
+            .filter { $0.date >= start && $0.date <= end }
+            .sorted { $0.date < $1.date }
+            .map { App2MetricPoint(date: $0.date, value: $0.tsb) }
+    }
+
+    /// §51-6 TSB 色帶。無限端由圖表裁到可見 y 範圍，分界固定在 -7 與 +1。
+    static func tsbBands() -> [App2MetricLineChart.Band] {
+        [
+            App2MetricLineChart.Band(
+                lower: nil,
+                upper: -7,
+                tint: .red,
+                legendLabel: L10n.MyAchievement.fatigue.localized
+            ),
+            App2MetricLineChart.Band(
+                lower: -7,
+                upper: 1,
+                tint: .green,
+                legendLabel: L10n.MyAchievement.balanced.localized
+            ),
+            App2MetricLineChart.Band(
+                lower: 1,
+                upper: nil,
+                tint: .blue,
+                legendLabel: L10n.MyAchievement.optimal.localized
+            )
+        ]
+    }
+
+    /// < -7 疲勞累積、-7…+1 平衡、> +1 新鮮。
+    static func tsbBandLabel(for value: Double) -> String {
+        if value < -7 { return L10n.MyAchievement.fatigue.localized }
+        if value <= 1 { return L10n.MyAchievement.balanced.localized }
+        return L10n.MyAchievement.optimal.localized
+    }
+
     /// §51-6 近 30 天急慢性負荷比（`load_index` 的 `channels.acwr`，T-0618）。
     ///
     /// 比值算不出來的那天（CTL 低於門檻、缺 CTL/ATL）沒有點——後端 §4.10.7
@@ -173,7 +214,7 @@ enum App2MetricDetailProjection {
         guard let cutoff = dateString(byAdding: -days, to: today),
               let oldest = series.first?.date,
               oldest <= cutoff else { return nil }
-        return series.last { $0.date <= cutoff }?.value
+        return series.last { $0.date <= cutoff && $0.value != nil }?.value ?? nil
     }
 
     /// §52-4「這個值怎麼來的」。**資料驅動**：欄位沒有就整列不出現，不畫一排「–」。
@@ -317,13 +358,13 @@ enum App2MetricDetailProjection {
 
     // MARK: - §53 恢復
 
-    /// HRV／靜息心率日序列（舊→新）。缺值那一天**不進序列**（折線跳過，不補 0）。
+    /// HRV／靜息心率日序列（舊→新）。缺值留在序列中，讓兩條線共用同一條日期軸。
     static func healthSeries(
         _ records: [HealthRecord],
         value: (HealthRecord) -> Double?
     ) -> [App2MetricPoint] {
         records
-            .compactMap { record in value(record).map { App2MetricPoint(date: record.date, value: $0) } }
+            .map { App2MetricPoint(date: $0.date, value: value($0)) }
             .sorted { $0.date < $1.date }
     }
 
@@ -333,11 +374,11 @@ enum App2MetricDetailProjection {
     /// 兩邊各至少 3 天有值才判（穿戴裝置常有整天缺值），否則回 nil → 畫「–」。
     /// 門檻 ±3%：低於它的差在 HRV 的日間變異裡沒有意義，一律算持平。
     static func hrvTrend(_ series: [App2MetricPoint]) -> App2RecoveryTrend? {
-        let recent = Array(series.suffix(7))
-        let previous = Array(series.dropLast(7).suffix(7))
+        let recent = series.suffix(7).compactMap(\.value)
+        let previous = series.dropLast(7).suffix(7).compactMap(\.value)
         guard recent.count >= 3, previous.count >= 3 else { return nil }
-        let recentMean = recent.reduce(0) { $0 + $1.value } / Double(recent.count)
-        let previousMean = previous.reduce(0) { $0 + $1.value } / Double(previous.count)
+        let recentMean = recent.reduce(0, +) / Double(recent.count)
+        let previousMean = previous.reduce(0, +) / Double(previous.count)
         guard previousMean > 0 else { return nil }
         let ratio = (recentMean - previousMean) / previousMean
         if ratio > 0.03 { return .up }
@@ -351,12 +392,12 @@ enum App2MetricDetailProjection {
             App2MetricStat(
                 id: "hrv",
                 label: L10n.App2.Metric.recoveryStatHrv.localized,
-                value: hrv.last.map { String(format: "%.0f ms", $0.value) }
+                value: hrv.compactMap(\.value).last.map { String(format: "%.0f ms", $0) }
             ),
             App2MetricStat(
                 id: "rhr",
                 label: L10n.App2.Metric.recoveryStatRhr.localized,
-                value: restingHR.last.map { String(format: "%.0f bpm", $0.value) }
+                value: restingHR.compactMap(\.value).last.map { String(format: "%.0f bpm", $0) }
             ),
             App2MetricStat(
                 id: "trend",

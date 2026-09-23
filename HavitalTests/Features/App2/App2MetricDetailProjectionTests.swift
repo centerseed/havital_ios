@@ -103,6 +103,118 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         XCTAssertEqual(block?.atl, 56)
     }
 
+    func testHealthSeriesKeepsSharedDatesWhenEachMetricHasAMissingDay() {
+        let records = [
+            HealthRecord(date: "2026-09-01", hrvLastNightAvg: 48, restingHeartRate: nil),
+            HealthRecord(date: "2026-09-02", hrvLastNightAvg: nil, restingHeartRate: 52)
+        ]
+
+        let hrv = App2MetricDetailProjection.healthSeries(records) { $0.hrvLastNightAvg }
+        let restingHeartRate = App2MetricDetailProjection.healthSeries(records) {
+            $0.restingHeartRate.map(Double.init)
+        }
+
+        XCTAssertEqual(hrv.map(\.date), ["2026-09-01", "2026-09-02"])
+        XCTAssertEqual(restingHeartRate.map(\.date), hrv.map(\.date))
+        XCTAssertNotNil(hrv.first { $0.date == "2026-09-02" }, "HRV's missing day must stay on the shared x axis")
+        XCTAssertNotNil(restingHeartRate.first { $0.date == "2026-09-01" }, "RHR's missing day must stay on the shared x axis")
+    }
+
+    func testTsbSeriesUsesThirtyCalendarDaysAndKeepsMissingValues() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: 0))
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = calendar.timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
+        let end = try XCTUnwrap(formatter.date(from: "2026-09-30"))
+        let records = try (0..<35).map { offset -> HealthRecord in
+            let date = try XCTUnwrap(calendar.date(byAdding: .day, value: offset - 34, to: end))
+            return HealthRecord(
+                date: formatter.string(from: date),
+                tsb: offset == 20 ? nil : Double(offset)
+            )
+        }.reversed()
+
+        let series = App2MetricDetailProjection.tsbSeries(Array(records), asof: "2026-09-30")
+
+        XCTAssertEqual(series.count, 30)
+        XCTAssertEqual(series.first?.date, "2026-09-01")
+        XCTAssertEqual(series.last?.date, "2026-09-30")
+        XCTAssertNil(series[15].value, "A missing TSB day stays on the x axis as a gap")
+        XCTAssertEqual(series.last?.value, 34)
+    }
+
+    func testTsbBandBoundariesMatchTheDesign() {
+        XCTAssertEqual(App2MetricDetailProjection.tsbBandLabel(for: -7.01), L10n.MyAchievement.fatigue.localized)
+        XCTAssertEqual(App2MetricDetailProjection.tsbBandLabel(for: -7), L10n.MyAchievement.balanced.localized)
+        XCTAssertEqual(App2MetricDetailProjection.tsbBandLabel(for: 1), L10n.MyAchievement.balanced.localized)
+        XCTAssertEqual(App2MetricDetailProjection.tsbBandLabel(for: 1.01), L10n.MyAchievement.optimal.localized)
+
+        let bands = App2MetricDetailProjection.tsbBands()
+        XCTAssertEqual(bands.count, 3)
+        XCTAssertNil(bands[0].lower)
+        XCTAssertEqual(bands[0].upper, -7)
+        XCTAssertEqual(bands[1].lower, -7)
+        XCTAssertEqual(bands[1].upper, 1)
+        XCTAssertEqual(bands[2].lower, 1)
+        XCTAssertNil(bands[2].upper)
+    }
+
+    func testTsbBoundsKeepAllThreeThresholdsVisibleWhenValuesAreBelowMinusSeven() {
+        let points = [point("2026-09-30", -10)]
+        let bounds = App2MetricLineChart.bounds(
+            points,
+            including: App2MetricDetailProjection.tsbBands(),
+            referenceValues: [-7, 0, 1]
+        )
+
+        XCTAssertNotNil(bounds)
+        XCTAssertLessThan(bounds!.lower, -10)
+        XCTAssertGreaterThan(bounds!.upper, 1)
+        for threshold in [-7.0, 0, 1] {
+            XCTAssertGreaterThanOrEqual(threshold, bounds!.lower)
+            XCTAssertLessThanOrEqual(threshold, bounds!.upper)
+        }
+    }
+
+    func testMetricReadoutSelectionSkipsMissingPointsAndIsOffByDefault() {
+        let forecast = App2MetricLineChart.Series(
+            id: "vdot",
+            points: [
+                point("2026-09-01", 38),
+                App2MetricPoint(date: "2026-09-02", value: nil),
+                point("2026-09-03", 39),
+                point("2026-09-04", 40)
+            ],
+            tint: .purple,
+            projectedFromIndex: 2,
+            projectedLegend: "Projected"
+        )
+
+        XCTAssertEqual(
+            App2MetricLineChart.nearestSelectableIndex(atFraction: 0.5, series: [forecast]),
+            2
+        )
+        XCTAssertEqual(App2MetricLineChart.projectedRange(forecast), 1...3)
+        XCTAssertNil(App2MetricLineChart.nearestSelectableIndex(
+            atFraction: 0.5,
+            series: [.init(id: "empty", points: [
+                App2MetricPoint(date: "2026-09-01", value: nil),
+                App2MetricPoint(date: "2026-09-02", value: nil)
+            ], tint: .blue)]
+        ))
+        XCTAssertFalse(App2MetricLineChart(series: []).allowsReadout)
+        XCTAssertFalse(App2WeeklyVolumeChart(bars: []).allowsReadout)
+    }
+
+    func testWeeklyReadoutSelectsNearestBarCenterAcrossSpacing() {
+        XCTAssertEqual(App2WeeklyVolumeChart.nearestBarIndex(atX: 41, slotWidth: 40, spacing: 6, count: 4), 0)
+        XCTAssertEqual(App2WeeklyVolumeChart.nearestBarIndex(atX: 46, slotWidth: 40, spacing: 6, count: 4), 1)
+        XCTAssertEqual(App2WeeklyVolumeChart.nearestBarIndex(atX: 184, slotWidth: 40, spacing: 6, count: 4), 3)
+    }
+
     // MARK: - §52 30 天前
 
     func testValueDaysAgoNeedsLongEnoughSeries() {
@@ -614,9 +726,9 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         let plain = App2MetricLineChart.bounds(points)
         let withBand = App2MetricLineChart.bounds(
             points,
-            including: App2MetricLineChart.Band(
+            including: [App2MetricLineChart.Band(
                 lower: 0.8, upper: 1.3, label: nil, tint: .green
-            )
+            )]
         )
         XCTAssertNotNil(plain)
         XCTAssertGreaterThan(plain!.lower, 0.8)

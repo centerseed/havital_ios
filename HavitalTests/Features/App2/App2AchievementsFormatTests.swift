@@ -69,4 +69,38 @@ final class App2AchievementsFormatTests: XCTestCase {
         XCTAssertEqual(App2RecordsView.grouped(585.5), "585.5")
         XCTAssertEqual(App2RecordsView.grouped(1_284), "1,284")
     }
+
+    // MARK: - PB 詳情資料
+
+    func test_pbDistanceKey_mapsTheFourCardLabelsToPersonalBestV2Keys() {
+        XCTAssertEqual(App2AchievementsView.pbDistanceKey(for: "42K"), "42")
+        XCTAssertEqual(App2AchievementsView.pbDistanceKey(for: "21K"), "21")
+        XCTAssertEqual(App2AchievementsView.pbDistanceKey(for: "10K"), "10")
+        XCTAssertEqual(App2AchievementsView.pbDistanceKey(for: "5K"), "5")
+        XCTAssertNil(App2AchievementsView.pbDistanceKey(for: "3K"))
+    }
+
+    func test_pbTopThree_areOrderedByFastestCompleteTime() {
+        let records = [
+            pb("slower", seconds: 1_700),
+            pb("fastest", seconds: 1_400),
+            pb("fourth", seconds: 1_900),
+            pb("second", seconds: 1_500)
+        ]
+
+        let topThree = App2AchievementsView.topThreePersonalBestRecords(records)
+
+        XCTAssertEqual(topThree.map(\.workoutId), ["fastest", "second", "slower"])
+        XCTAssertEqual(topThree.map(\.completeTime), [1_400, 1_500, 1_700])
+    }
+
+    private func pb(_ workoutId: String, seconds: Int) -> PersonalBestRecordV2 {
+        PersonalBestRecordV2(
+            completeTime: seconds,
+            pace: "5:00",
+            recordedAt: "2026-09-23T00:00:00Z",
+            workoutDate: "2026-09-23",
+            workoutId: workoutId
+        )
+    }
 }

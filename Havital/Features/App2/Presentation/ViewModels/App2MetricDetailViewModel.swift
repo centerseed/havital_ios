@@ -332,7 +332,10 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
                     ytdKm: payload.stats.data.yearToDate?.distanceKm
                 ),
                 load: App2MetricDetailProjection.loadBlock(payload.health?.healthData ?? []),
-                acwr: payload.series.flatMap(App2MetricDetailProjection.acwrBlock)
+                acwr: payload.series.flatMap(App2MetricDetailProjection.acwrBlock),
+                tsbSeries: App2MetricDetailProjection.tsbSeries(
+                    payload.health?.healthData ?? [], asof: asof
+                )
             ),
             origin: .live(endpoint:
                 "GET /v2/workouts/stats + GET /v2/workouts/health_daily"

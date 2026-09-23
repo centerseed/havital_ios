@@ -37,6 +37,13 @@ struct App2AchievementsView: View {
     /// 「設為顯示徽章」加進去（那一頁原本也沒有這個動作）。
     @State private var detailBadge: AchievementBadge?
 
+    /// The PB detail sheet reuses the existing 1.4 view.
+    @State private var selectedPBDetailItem: PersonalBestDetailItem?
+
+    private var cachedUser: User? {
+        UserProfileLocalDataSource().getUserProfile()
+    }
+
     /// 「看更多」開的那一組完整清單（8/28 盤點 F21）。nil ＝ 沒開。
     @State private var expandedTrack: AchievementTrack?
 
@@ -232,26 +239,66 @@ struct App2AchievementsView: View {
 
             LazyVGrid(columns: pbColumns, spacing: 10) {
                 ForEach(records, id: \.distance) { record in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(record.displayDistance)
-                            .font(.system(size: 15, weight: .black))
-                            .tracking(0.5)
-                            .foregroundStyle(App2Theme.inkMuted)
-                        Text(record.time)
-                            .font(.app2Mono(21, weight: .bold))
-                            .foregroundStyle(App2Theme.accentBlueDeep)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.6)
+                    Button {
+                        openPBDetail(for: record)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(record.displayDistance)
+                                .font(.system(size: 15, weight: .black))
+                                .tracking(0.5)
+                                .foregroundStyle(App2Theme.inkMuted)
+                            Text(record.time)
+                                .font(.app2Mono(21, weight: .bold))
+                                .foregroundStyle(App2Theme.accentBlueDeep)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.6)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 13)
+                        .app2CardSurface(cornerRadius: 15)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 13)
-                    .app2CardSurface(cornerRadius: 15)
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("App2_AchievementsPBTile_\(record.distance)")
                 }
+            }
+            .sheet(item: $selectedPBDetailItem) { item in
+                PersonalBestDetailView(distance: item.distance, records: item.records)
             }
             .padding(.bottom, 22)
             .accessibilityIdentifier("App2_AchievementsPBGrid")
         }
+    }
+
+    /// Match the four card labels to the exact `race_run` distance keys.
+    static func pbDistanceKey(for displayDistance: String) -> String? {
+        switch displayDistance {
+        case "42K": return "42"
+        case "21K": return "21"
+        case "10K": return "10"
+        case "5K": return "5"
+        default: return nil
+        }
+    }
+
+    /// The detail sheet takes its first three records; give it the fastest three in order.
+    static func topThreePersonalBestRecords(_ records: [PersonalBestRecordV2]) -> [PersonalBestRecordV2] {
+        records.sorted {
+            if $0.completeTime == $1.completeTime {
+                return $0.workoutDate < $1.workoutDate
+            }
+            return $0.completeTime < $1.completeTime
+        }.prefix(3).map { $0 }
+    }
+
+    private func openPBDetail(for record: AchievementPBRecord) {
+        guard let key = Self.pbDistanceKey(for: record.displayDistance),
+              let distance = RaceDistanceV2(rawValue: key) else { return }
+        let records = cachedUser?.personalBestV2?["race_run"]?[key] ?? []
+        selectedPBDetailItem = PersonalBestDetailItem(
+            distance: distance,
+            records: Self.topThreePersonalBestRecords(records)
+        )
     }
 
     // MARK: - 徽章收藏（每條主線一張卡）

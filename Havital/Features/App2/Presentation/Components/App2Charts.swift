@@ -28,6 +28,31 @@ struct App2WeeklyVolumeChart: View {
     var currentWeekTint: Color = App2Theme.accentBlue
     /// 柱頂的數字。週數多的時候（近 26 週）擠不下，呼叫端關掉。
     var showsValueLabels: Bool = true
+    /// 只在指標詳情頁開啟。紀錄頁與週回顧沿用預設關閉。
+    var allowsReadout: Bool = false
+
+    @State private var selectedIndex: Int?
+    @State private var gestureStarted = false
+    @State private var gestureStartSelection: Int?
+    @State private var gestureMoved = false
+    @State private var plotRect: CGRect = .zero
+
+    init(
+        bars: [App2WeeklyBar],
+        barHeight: CGFloat = 40,
+        targetKm: Double? = nil,
+        currentWeekTint: Color = App2Theme.accentBlue,
+        showsValueLabels: Bool = true,
+        allowsReadout: Bool = false
+    ) {
+        self.bars = bars
+        self.barHeight = barHeight
+        self.targetKm = targetKm
+        self.currentWeekTint = currentWeekTint
+        self.showsValueLabels = showsValueLabels
+        self.allowsReadout = allowsReadout
+        _selectedIndex = State(initialValue: nil)
+    }
 
     /// 柱高的分母：把目標線也算進去，否則目標高於所有柱子時線會畫到圖外。
     private var peak: Double { max(max(bars.map(\.distanceKm).max() ?? 0, targetKm ?? 0), 1) }
@@ -40,37 +65,144 @@ struct App2WeeklyVolumeChart: View {
                 .frame(maxWidth: .infinity, minHeight: 70)
         } else {
             VStack(spacing: 5) {
-                ZStack(alignment: .bottom) {
-                    HStack(alignment: .bottom, spacing: bars.count > 10 ? 2 : 6) {
-                        ForEach(bars) { bar in
-                            VStack(spacing: 4) {
-                                Spacer(minLength: 0)
-                                if showsValueLabels {
-                                    Text(bar.distanceKm > 0 ? String(format: "%.0f", bar.distanceKm) : "0")
-                                        .font(.app2Mono(9))
-                                        .foregroundStyle(bar.isCurrentWeek
-                                                         ? currentWeekTint.app2Darkened
-                                                         : App2Theme.inkTertiary)
-                                }
-                                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                                    .fill(bar.isCurrentWeek
-                                          ? currentWeekTint
-                                          : App2Theme.accentBlue.opacity(0.32))
-                                    // 最矮 3pt：全 0 的一週仍要看得到基線，不能整排消失。
-                                    .frame(height: max(3, barHeight * bar.distanceKm / peak))
-                            }
-                            .frame(maxWidth: .infinity)
-                        }
+                if allowsReadout, let selectedIndex, bars.indices.contains(selectedIndex) {
+                    let bar = bars[selectedIndex]
+                    HStack(spacing: 6) {
+                        Text(bar.shortLabel)
+                        Text("\(App2NumberFormat.grouped(bar.distanceKm, maximumFractionDigits: 1)) km")
+                            .fontWeight(.heavy)
                     }
-                    .frame(height: barHeight + 14)
-
-                    targetLine
+                    .font(.app2Mono(10, weight: .semibold))
+                    .foregroundStyle(App2Theme.inkPrimary)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 5)
+                    .background(App2Theme.cardBackground, in: RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(App2Theme.insetBorder, lineWidth: 1))
+                    .accessibilityIdentifier("App2_WeeklyVolumeChartReadout")
                 }
 
+                barPlot
                 xLabelRow
             }
+            .coordinateSpace(name: "weeklyVolumeChart")
+            .simultaneousGesture(
+                SpatialTapGesture().onEnded { tap in
+                    if selectedIndex != nil && !plotRect.contains(tap.location) {
+                        selectedIndex = nil
+                    }
+                }
+            )
             .accessibilityIdentifier("App2_WeeklyVolumeChart")
         }
+    }
+
+    private var barPlot: some View {
+        GeometryReader { geo in
+            let spacing: CGFloat = bars.count > 10 ? 2 : 6
+            let usableWidth = max(0, geo.size.width - spacing * CGFloat(max(bars.count - 1, 0)))
+            let slotWidth = bars.isEmpty ? 0 : usableWidth / CGFloat(bars.count)
+            ZStack(alignment: .bottomLeading) {
+                HStack(alignment: .bottom, spacing: spacing) {
+                    ForEach(bars) { bar in
+                        VStack(spacing: 4) {
+                            Spacer(minLength: 0)
+                            if showsValueLabels {
+                                Text(bar.distanceKm > 0 ? String(format: "%.0f", bar.distanceKm) : "0")
+                                    .font(.app2Mono(9))
+                                    .foregroundStyle(bar.isCurrentWeek
+                                                     ? currentWeekTint.app2Darkened
+                                                     : App2Theme.inkTertiary)
+                            }
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                .fill(bar.isCurrentWeek
+                                      ? currentWeekTint
+                                      : App2Theme.accentBlue.opacity(0.32))
+                                // 最矮 3pt：全 0 的一週仍要看得到基線，不能整排消失。
+                                .frame(height: max(3, barHeight * bar.distanceKm / peak))
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+                .frame(height: barHeight + 14)
+
+                targetLine
+
+                if allowsReadout, let selectedIndex, bars.indices.contains(selectedIndex) {
+                    let bar = bars[selectedIndex]
+                    let x = slotWidth * (CGFloat(selectedIndex) + 0.5)
+                        + spacing * CGFloat(selectedIndex)
+                    let barTop = geo.size.height - max(3, barHeight * bar.distanceKm / peak)
+                    Path { path in
+                        path.move(to: CGPoint(x: x, y: 0))
+                        path.addLine(to: CGPoint(x: x, y: geo.size.height))
+                    }
+                    .stroke(App2Theme.accentBlueDeep.opacity(0.45), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                    Circle()
+                        .fill(currentWeekTint)
+                        .frame(width: 8, height: 8)
+                        .position(x: x, y: barTop)
+                }
+
+                if allowsReadout {
+                Color.clear
+                    .contentShape(Rectangle())
+                    .gesture(readoutGesture(slotWidth: slotWidth, spacing: spacing))
+                }
+            }
+            .onAppear { plotRect = geo.frame(in: .named("weeklyVolumeChart")) }
+            .onChange(of: geo.frame(in: .named("weeklyVolumeChart"))) { _, frame in
+                plotRect = frame
+            }
+        }
+        .frame(height: barHeight + 14)
+    }
+
+    static func nearestBarIndex(
+        atX x: CGFloat,
+        slotWidth: CGFloat,
+        spacing: CGFloat,
+        count: Int
+    ) -> Int? {
+        guard count > 0, slotWidth > 0 else { return nil }
+        return (0..<count).min { lhs, rhs in
+            let lhsCenter = slotWidth * (CGFloat(lhs) + 0.5) + spacing * CGFloat(lhs)
+            let rhsCenter = slotWidth * (CGFloat(rhs) + 0.5) + spacing * CGFloat(rhs)
+            return abs(lhsCenter - x) < abs(rhsCenter - x)
+        }
+    }
+
+    private func readoutGesture(slotWidth: CGFloat, spacing: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { gesture in
+                guard allowsReadout, let index = Self.nearestBarIndex(
+                    atX: gesture.location.x,
+                    slotWidth: slotWidth,
+                    spacing: spacing,
+                    count: bars.count
+                ) else { return }
+                if !gestureStarted {
+                    gestureStarted = true
+                    gestureStartSelection = selectedIndex
+                }
+                if abs(gesture.translation.width) > 6 || abs(gesture.translation.height) > 6 {
+                    gestureMoved = true
+                }
+                selectedIndex = index
+            }
+            .onEnded { gesture in
+                guard let index = Self.nearestBarIndex(
+                    atX: gesture.location.x,
+                    slotWidth: slotWidth,
+                    spacing: spacing,
+                    count: bars.count
+                ) else { return }
+                if !gestureMoved && gestureStartSelection == index {
+                    selectedIndex = nil
+                }
+                gestureStarted = false
+                gestureStartSelection = nil
+                gestureMoved = false
+            }
     }
 
     /// x 軸標籤列。
@@ -167,36 +299,97 @@ struct App2MetricLineChart: View {
         var projectedFromIndex: Int?
         /// 虛線段的圖例字（`預估`）。
         var projectedLegend: String?
+        /// 讀數框標籤；未提供時使用圖例字或序列 id。
+        var readoutLabel: String?
+        /// 讀數框單位（例如 `ms`、`bpm`）。比率與指數不填。
+        var unit: String?
     }
 
     /// 一段水平的淡色區帶（§51-6 的負荷比甜區）。**上下界由呼叫端給**——
     /// 它是後端逐列交付的量（依訓練期變），不是圖表的知識。
     struct Band {
-        let lower: Double
-        let upper: Double
+        /// nil 代表延伸到目前圖表可見範圍的邊緣。
+        let lower: Double?
+        let upper: Double?
         /// 帶子右上角的小字（`甜區 0.8–1.3`）。nil = 只畫帶子。
         var label: String?
         var tint: Color
+        /// 圖例上的帶子意義；ACWR 甜區只用圖內標籤。
+        var legendLabel: String?
+
+        init(
+            lower: Double?,
+            upper: Double?,
+            label: String? = nil,
+            tint: Color,
+            legendLabel: String? = nil
+        ) {
+            self.lower = lower
+            self.upper = upper
+            self.label = label
+            self.tint = tint
+            self.legendLabel = legendLabel
+        }
     }
 
     let series: [Series]
     /// 圖上的 x 標籤（3 顆：最舊／中間／最新）。由呼叫端給，因為「今晨」「本週」
     /// 這種字是頁面語境，不是圖表的知識。
     var xLabels: [String] = []
-    /// 第一條線量綱上的淡色區帶。**它會把 y 上下界撐開到看得見自己**：
+    /// 淡色區帶。有限邊界會把 y 範圍撐開；nil 邊界延伸到可見範圍邊緣。
+    /// **它會把 y 上下界撐開到看得見自己**：
     /// 一個 ACWR 全在 1.4 以上的人，甜區若被裁掉，那張圖就只剩一條沒有參照的線。
-    var band: Band?
+    var bands: [Band] = []
     /// 垂直 dashed 標記的日期（§52-3 的錨定線）。序列裡沒有這一天就不畫。
     var markerDate: String?
     /// 標記旁的註記（`指標跑錨定`）。
     var markerLabel: String?
-    /// 水平 dashed 基準線的值（§51-6 的「TSB 0」），用第一條線的量綱。
-    var baselineValue: Double?
-    var baselineLabel: String?
+    /// 水平 dashed 基準線的值；圖表依這些值擴大範圍，保證參考線可見。
+    var baselineValues: [Double] = []
     var height: CGFloat = 132
+    /// 只有指標詳情頁啟用圖上讀數。
+    var allowsReadout: Bool = false
+    /// 渲染測試或已知錨點可指定初始選中索引；一般呼叫點保持 nil。
+    var initiallySelectedIndex: Int? = nil
+    /// TSB 色帶圖例；ACWR 不顯示 band legend。
+    var showsBandLegend: Bool = false
+
+    @State private var selectedIndex: Int?
+    @State private var gestureStarted = false
+    @State private var gestureStartSelection: Int?
+    @State private var gestureMoved = false
+    @State private var plotRect: CGRect = .zero
+
+    init(
+        series: [Series],
+        xLabels: [String] = [],
+        bands: [Band] = [],
+        markerDate: String? = nil,
+        markerLabel: String? = nil,
+        baselineValues: [Double] = [],
+        showsBandLegend: Bool = false,
+        allowsReadout: Bool = false,
+        initiallySelectedIndex: Int? = nil,
+        height: CGFloat = 132
+    ) {
+        self.series = series
+        self.xLabels = xLabels
+        self.bands = bands
+        self.markerDate = markerDate
+        self.markerLabel = markerLabel
+        self.baselineValues = baselineValues
+        self.height = height
+        self.allowsReadout = allowsReadout
+        self.initiallySelectedIndex = initiallySelectedIndex
+        self.showsBandLegend = showsBandLegend
+        _selectedIndex = State(initialValue: allowsReadout ? initiallySelectedIndex : nil)
+    }
 
     var body: some View {
         VStack(spacing: 6) {
+            if allowsReadout, let selectedIndex, readoutDate(at: selectedIndex) != nil {
+                readout(for: selectedIndex)
+            }
             HStack(alignment: .top, spacing: 8) {
                 yAxis(series.first, overrideBounds: primaryBounds)
                 plot
@@ -210,6 +403,14 @@ struct App2MetricLineChart: View {
             xAxis
             legendRow
         }
+        .coordinateSpace(name: "metricChart")
+        .simultaneousGesture(
+            SpatialTapGesture().onEnded { tap in
+                if selectedIndex != nil && !plotRect.contains(tap.location) {
+                    selectedIndex = nil
+                }
+            }
+        )
         .accessibilityIdentifier("App2_MetricLineChart")
     }
 
@@ -218,7 +419,7 @@ struct App2MetricLineChart: View {
     /// 三顆刻度（最高／中間／最低）。每條線各有自己的量綱，所以刻度綁的是那條線。
     /// 第一條線的上下界（含區帶）。其餘線各自算自己的，不吃區帶。
     private var primaryBounds: (lower: Double, upper: Double)? {
-        Self.bounds(series.first?.points ?? [], including: band)
+        Self.bounds(series.first?.points ?? [], including: bands, referenceValues: baselineValues)
     }
 
     @ViewBuilder
@@ -253,22 +454,14 @@ struct App2MetricLineChart: View {
             ZStack(alignment: .topLeading) {
                 bandLayer(in: geo.size)
 
-                // 基準線落在資料範圍外就不畫：畫在框外只會多一條看不到的線
-                // 與一顆飄在圖旁的標籤。
-                if let baselineValue,
-                   let bounds = primaryBounds,
-                   baselineValue >= bounds.lower, baselineValue <= bounds.upper {
-                    let y = Self.y(baselineValue, in: bounds, height: geo.size.height)
-                    App2DashedLine()
-                        .stroke(App2Theme.shadowInk.opacity(0.28),
-                                style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                        .frame(width: geo.size.width, height: 1)
-                        .offset(y: y)
-                    if let baselineLabel {
-                        Text(baselineLabel)
-                            .font(.app2Mono(9, weight: .semibold))
-                            .foregroundStyle(App2Theme.inkFaint)
-                            .offset(x: 2, y: y - 12)
+                if let bounds = primaryBounds {
+                    ForEach(baselineValues, id: \.self) { value in
+                        let y = Self.y(value, in: bounds, height: geo.size.height)
+                        App2DashedLine()
+                            .stroke(App2Theme.shadowInk.opacity(0.35),
+                                    style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                            .frame(width: geo.size.width, height: 1)
+                            .offset(y: y)
                     }
                 }
 
@@ -289,7 +482,21 @@ struct App2MetricLineChart: View {
                                     style: StrokeStyle(lineWidth: 2.4, lineCap: .round,
                                                        lineJoin: .round, dash: [5, 4]))
                     }
+
+                    pointMarks(for: line, in: geo.size, bounds: lineBounds)
                 }
+
+                selectionLayer(in: geo.size)
+
+                if allowsReadout {
+                    Color.clear
+                        .contentShape(Rectangle())
+                        .gesture(readoutGesture(width: geo.size.width))
+                }
+            }
+            .onAppear { plotRect = geo.frame(in: .named("metricChart")) }
+            .onChange(of: geo.frame(in: .named("metricChart"))) { _, frame in
+                plotRect = frame
             }
         }
         .frame(height: height)
@@ -312,15 +519,24 @@ struct App2MetricLineChart: View {
     /// 所以這裡不必再裁 —— 裁掉的帶子就是一塊看不出邊界在哪的色塊。
     @ViewBuilder
     private func bandLayer(in size: CGSize) -> some View {
-        if let band, let bounds = primaryBounds, band.upper > band.lower {
-            let top = Self.y(band.upper, in: bounds, height: size.height)
-            let bottom = Self.y(band.lower, in: bounds, height: size.height)
+        if let bounds = primaryBounds {
             ZStack(alignment: .topTrailing) {
-                Rectangle()
-                    .fill(band.tint.opacity(0.16))
-                    .frame(width: size.width, height: max(1, bottom - top))
-                    .offset(y: top)
-                if let label = band.label {
+                ForEach(Array(bands.enumerated()), id: \.offset) { _, band in
+                    let lower = max(bounds.lower, band.lower ?? bounds.lower)
+                    let upper = min(bounds.upper, band.upper ?? bounds.upper)
+                    if upper > lower {
+                        let top = Self.y(upper, in: bounds, height: size.height)
+                        let bottom = Self.y(lower, in: bounds, height: size.height)
+                        Rectangle()
+                            .fill(band.tint.opacity(0.10))
+                            .frame(width: size.width, height: max(1, bottom - top))
+                            .offset(y: top)
+                    }
+                }
+                if let band = bands.first(where: { $0.label != nil }),
+                   let label = band.label,
+                   let upper = band.upper {
+                    let top = Self.y(upper, in: bounds, height: size.height)
                     Text(label)
                         .font(.app2Mono(9, weight: .semibold))
                         .foregroundStyle(band.tint.app2Darkened)
@@ -328,8 +544,155 @@ struct App2MetricLineChart: View {
                 }
             }
             .frame(width: size.width, height: size.height, alignment: .topLeading)
-            .accessibilityIdentifier("App2_MetricChartBand")
+            .accessibilityIdentifier("App2_MetricChartBands")
         }
+    }
+
+    @ViewBuilder
+    private func pointMarks(for line: Series, in size: CGSize, bounds overrideBounds: (lower: Double, upper: Double)?) -> some View {
+        if let bounds = overrideBounds ?? Self.bounds(line.points) {
+            ForEach(line.points.indices, id: \.self) { index in
+                if let value = line.points[index].value {
+                    Circle()
+                        .fill(line.tint)
+                        .frame(width: 4, height: 4)
+                        .position(
+                            x: Self.x(at: index, count: line.points.count, width: size.width),
+                            y: Self.y(value, in: bounds, height: size.height)
+                        )
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func selectionLayer(in size: CGSize) -> some View {
+        if allowsReadout,
+           let selectedIndex,
+           let axis = series.first?.points,
+           axis.indices.contains(selectedIndex) {
+            let x = Self.x(at: selectedIndex, count: axis.count, width: size.width)
+            Path { path in
+                path.move(to: CGPoint(x: x, y: 0))
+                path.addLine(to: CGPoint(x: x, y: size.height))
+            }
+            .stroke(App2Theme.accentBlueDeep.opacity(0.45), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+
+            ForEach(series) { line in
+                if line.points.indices.contains(selectedIndex),
+                   let value = line.points[selectedIndex].value,
+                   let bounds = line.id == series.first?.id ? primaryBounds : Self.bounds(line.points) {
+                    Circle()
+                        .fill(line.tint)
+                        .frame(width: 8, height: 8)
+                        .overlay(Circle().stroke(.white, lineWidth: 1.5))
+                        .position(
+                            x: x,
+                            y: Self.y(value, in: bounds, height: size.height)
+                        )
+                }
+            }
+        }
+    }
+
+    private func readout(for index: Int) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            if let date = readoutDate(at: index) {
+                Text(date)
+                    .font(.app2Mono(10, weight: .bold))
+                    .foregroundStyle(App2Theme.inkPrimary)
+            }
+            HStack(spacing: 10) {
+                ForEach(Array(series.enumerated()), id: \.element.id) { entry in
+                    let line = entry.element
+                    let point = line.points.indices.contains(index) ? line.points[index] : nil
+                    HStack(spacing: 4) {
+                        Circle().fill(line.tint).frame(width: 6, height: 6)
+                        Text(line.readoutLabel ?? line.id)
+                            .foregroundStyle(App2Theme.inkSecondary)
+                        if let value = point?.value {
+                            Text(App2NumberFormat.grouped(value, maximumFractionDigits: 1)
+                                 + (line.unit.map { " \($0)" } ?? ""))
+                                .foregroundStyle(App2Theme.inkPrimary)
+                        } else {
+                            Text("—")
+                                .foregroundStyle(App2Theme.inkTertiary)
+                        }
+                    }
+                    .font(.app2Mono(10, weight: .semibold))
+                }
+            }
+            if let projected = series.first(where: { line in
+                line.points.indices.contains(index)
+                    && line.points[index].value != nil
+                    && line.projectedFromIndex.map { index >= $0 } == true
+                    && line.projectedLegend != nil
+            }), let label = projected.projectedLegend {
+                Text(label)
+                    .font(.system(size: 9, weight: .heavy))
+                    .foregroundStyle(projected.tint.app2Darkened)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(projected.tint.opacity(0.12)))
+            }
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
+        .background(App2Theme.cardBackground, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(App2Theme.insetBorder, lineWidth: 1))
+        .frame(maxWidth: .infinity, alignment: .center)
+        .accessibilityIdentifier("App2_MetricChartReadout")
+    }
+
+    private func readoutDate(at index: Int) -> String? {
+        guard let points = series.first?.points, points.indices.contains(index) else { return nil }
+        return points[index].date
+    }
+
+    private func readoutGesture(width: CGFloat) -> some Gesture {
+        DragGesture(minimumDistance: 0)
+            .onChanged { gesture in
+                guard allowsReadout,
+                      let index = Self.nearestSelectableIndex(
+                        atFraction: gesture.location.x / max(width, 1), series: series
+                      ) else { return }
+                if !gestureStarted {
+                    gestureStarted = true
+                    gestureStartSelection = selectedIndex
+                }
+                if abs(gesture.translation.width) > 6 || abs(gesture.translation.height) > 6 {
+                    gestureMoved = true
+                }
+                selectedIndex = index
+            }
+            .onEnded { gesture in
+                guard let index = Self.nearestSelectableIndex(
+                    atFraction: gesture.location.x / max(width, 1), series: series
+                ) else { return }
+                if !gestureMoved && gestureStartSelection == index {
+                    selectedIndex = nil
+                }
+                gestureStarted = false
+                gestureStartSelection = nil
+                gestureMoved = false
+            }
+    }
+
+    static func nearestSelectableIndex(atFraction fraction: CGFloat, series: [Series]) -> Int? {
+        guard let axis = series.first?.points, !axis.isEmpty else { return nil }
+        let position = min(max(fraction, 0), 1) * CGFloat(max(axis.count - 1, 0))
+        return axis.indices
+            .filter { index in
+                series.contains { line in
+                    line.points.indices.contains(index) && line.points[index].value != nil
+                }
+            }
+            .min { abs(CGFloat($0) - position) < abs(CGFloat($1) - position) }
+    }
+
+    private static func x(at index: Int, count: Int, width: CGFloat) -> CGFloat {
+        guard count > 1 else { return width / 2 }
+        return width * CGFloat(index) / CGFloat(count - 1)
     }
 
     /// §52-3 的錨定標記：一條垂直 dashed 線 ＋ 圖上註記。
@@ -381,8 +744,9 @@ struct App2MetricLineChart: View {
         let items = series.filter { $0.legend != nil }
         // 有虛線段就一定要有「預估」chip —— 一條沒有標示的虛線讀不出它是什麼。
         let projected = series.first { $0.projectedLegend != nil && Self.projectedRange($0) != nil }
-        if !items.isEmpty || projected != nil {
-            HStack(spacing: 10) {
+        let bandItems = showsBandLegend ? bands.filter { $0.legendLabel != nil } : []
+        if !items.isEmpty || projected != nil || !bandItems.isEmpty {
+            HStack(spacing: 8) {
                 ForEach(items) { line in
                     HStack(spacing: 5) {
                         Circle().fill(line.tint).frame(width: 7, height: 7)
@@ -409,6 +773,18 @@ struct App2MetricLineChart: View {
                     .background(Capsule().fill(projected.tint.opacity(0.10)))
                     .accessibilityIdentifier("App2_MetricChartProjectedLegend")
                 }
+                ForEach(Array(bandItems.enumerated()), id: \.offset) { entry in
+                    let band = entry.element
+                    HStack(spacing: 4) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(band.tint.opacity(0.3))
+                            .frame(width: 9, height: 9)
+                        Text(band.legendLabel ?? "")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundStyle(App2Theme.inkSecondary)
+                    }
+                    .accessibilityIdentifier("App2_MetricChartBandLegend_\(entry.offset)")
+                }
                 Spacer(minLength: 0)
             }
         }
@@ -418,13 +794,15 @@ struct App2MetricLineChart: View {
 
     /// 一條線的上下界。全部一樣高時上下各撐 1，避免除以零把線畫到邊框上。
     ///
-    /// `band` 帶進來時上下界一定容得下整段區帶——區帶是這條線的參照，被裁掉
-    /// 就等於沒畫。
+    /// 有限區帶端點與基準值會把座標範圍撐開，無限端由 bandLayer 裁到圖框邊緣。
     static func bounds(
-        _ points: [App2MetricPoint], including band: Band? = nil
+        _ points: [App2MetricPoint],
+        including bands: [Band] = [],
+        referenceValues: [Double] = []
     ) -> (lower: Double, upper: Double)? {
-        var values = points.map(\.value)
-        if let band { values.append(contentsOf: [band.lower, band.upper]) }
+        var values = points.compactMap(\.value)
+        values.append(contentsOf: bands.flatMap { [$0.lower, $0.upper].compactMap { $0 } })
+        values.append(contentsOf: referenceValues)
         guard let min = values.min(), let max = values.max() else { return nil }
         guard max > min else { return (min - 1, max + 1) }
         let padding = (max - min) * 0.12
@@ -451,10 +829,16 @@ struct App2MetricLineChart: View {
         let drawn = range ?? 0...(points.count - 1)
         guard drawn.lowerBound >= 0, drawn.upperBound < points.count,
               drawn.count >= 2 else { return path }
+        var isDrawing = false
         for index in drawn {
+            guard let value = points[index].value else {
+                isDrawing = false
+                continue
+            }
             let position = CGPoint(x: CGFloat(index) * stepX,
-                                   y: y(points[index].value, in: bounds, height: size.height))
-            if index == drawn.lowerBound { path.move(to: position) } else { path.addLine(to: position) }
+                                   y: y(value, in: bounds, height: size.height))
+            if isDrawing { path.addLine(to: position) } else { path.move(to: position) }
+            isDrawing = true
         }
         return path
     }

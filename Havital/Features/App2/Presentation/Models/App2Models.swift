@@ -921,7 +921,8 @@ struct App2MetricStat: Identifiable, Equatable {
 struct App2MetricPoint: Equatable {
     /// x 軸落點的日期（`YYYY-MM-DD`，用戶當地日）。
     let date: String
-    let value: Double
+    /// nil = 這一天沒有值；仍保留在共用日期軸上，繪線在此斷開。
+    let value: Double?
 }
 
 /// 有氧續航／速度耐力詳情頁的分級尺（SPEC-today-state §4.5／§5.1）。
@@ -954,6 +955,8 @@ struct App2VolumeDetail: Equatable {
     let load: App2LoadBlock?
     /// 近 30 天急慢性負荷比（T-0618）。nil = 那張圖畫佔位句，不擋頁。
     let acwr: App2AcwrBlock?
+    /// 近 30 天 TSB（舊→新）。nil 值留在序列中形成斷線；全空時不畫圖。
+    let tsbSeries: [App2MetricPoint]
 }
 
 /// §51-7 訓練負荷的三欄現況。

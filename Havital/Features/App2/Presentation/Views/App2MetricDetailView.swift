@@ -297,7 +297,8 @@ private struct App2VolumeDetailPage: View {
                         targetKm: detail.targetKm,
                         // §51-4：本週那根是橘的（首頁的迷你版是藍的）。
                         currentWeekTint: App2Theme.accentOrange,
-                        showsValueLabels: detail.bars.count <= 10
+                        showsValueLabels: detail.bars.count <= 10,
+                        allowsReadout: true
                     )
                     App2MetricStatRow(stats: detail.stats)
                 }
@@ -305,8 +306,8 @@ private struct App2VolumeDetailPage: View {
                 // §51-6／§51-7：**兩半都缺才整塊隱藏**。負荷比線與 CTL/ATL/TSB
                 // 三欄是兩條來源（`metrics/series` 與 `health_daily`），各自可缺席
                 // ——一條讀不到不該把另一條一起藏起來。
-                if detail.acwr != nil || detail.load != nil {
-                    loadCard(acwr: detail.acwr, load: detail.load)
+                if detail.acwr != nil || detail.load != nil || detail.tsbSeries.contains(where: { $0.value != nil }) {
+                    loadCard(acwr: detail.acwr, load: detail.load, tsbSeries: detail.tsbSeries)
                 }
             } else if viewModel.isLoading {
                 App2Card { ProgressView().frame(maxWidth: .infinity) }
@@ -322,7 +323,11 @@ private struct App2VolumeDetailPage: View {
     /// `sweet_high`）：它依訓練期變，app 寫死 0.8–1.3 會在減量期畫錯帶子
     /// （SPEC-today-state §5.1）。兩端缺任一就只畫線，不畫帶子。
     @ViewBuilder
-    private func loadCard(acwr: App2AcwrBlock?, load: App2LoadBlock?) -> some View {
+    private func loadCard(
+        acwr: App2AcwrBlock?,
+        load: App2LoadBlock?,
+        tsbSeries: [App2MetricPoint]
+    ) -> some View {
         App2Card(spacing: 12) {
             Text(L10n.App2.Metric.volumeLoadTitle.localized)
                 .font(.system(size: 14, weight: .heavy))
@@ -334,10 +339,14 @@ private struct App2VolumeDetailPage: View {
             if let acwr, acwr.series.count >= 2 {
                 App2MetricLineChart(
                     series: [
-                        .init(id: "acwr", points: acwr.series, tint: App2Theme.accentBlueDeep)
+                        .init(
+                            id: "acwr", points: acwr.series, tint: App2Theme.accentBlueDeep,
+                            readoutLabel: "ACWR"
+                        )
                     ],
                     xLabels: Self.xLabels(acwr.series),
-                    band: App2MetricDetailProjection.sweetBand(acwr),
+                    bands: App2MetricDetailProjection.sweetBand(acwr).map { [$0] } ?? [],
+                    allowsReadout: true,
                     height: 118
                 )
             } else {
@@ -345,6 +354,26 @@ private struct App2VolumeDetailPage: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(App2Theme.inkMuted)
                     .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if tsbSeries.contains(where: { $0.value != nil }) {
+                App2MetricLineChart(
+                    series: [
+                        .init(
+                            id: "tsb",
+                            points: tsbSeries,
+                            tint: .green,
+                            readoutLabel: L10n.App2.Metric.volumeTsb.localized
+                        )
+                    ],
+                    xLabels: Self.xLabels(tsbSeries),
+                    bands: App2MetricDetailProjection.tsbBands(),
+                    baselineValues: [-7, 0, 1],
+                    showsBandLegend: true,
+                    allowsReadout: true,
+                    height: 118
+                )
+                .accessibilityIdentifier("App2_MetricTsbChart")
             }
 
             if let load {
@@ -452,12 +481,14 @@ private struct App2CapabilityDetailPage: View {
                                 points: detail.series,
                                 tint: App2Theme.accentViolet,
                                 projectedFromIndex: detail.projectedFromIndex,
-                                projectedLegend: L10n.App2.Metric.projectedLegend.localized
+                                projectedLegend: L10n.App2.Metric.projectedLegend.localized,
+                                readoutLabel: "VDOT"
                             )
                         ],
                         xLabels: App2VolumeDetailPage.xLabels(detail.series),
                         markerDate: detail.anchorDate,
                         markerLabel: L10n.App2.Metric.capabilityAnchorMarker.localized,
+                        allowsReadout: true,
                         height: 118
                     )
                 }
@@ -651,8 +682,9 @@ private struct App2LevelDetailPage: View {
             // 偽裝成內容，寧可講「還讀不到」。
             if let points = viewModel.detail?.value.series, points.count >= 2 {
                 App2MetricLineChart(
-                    series: [.init(id: "level", points: points, tint: tint)],
+                    series: [.init(id: "level", points: points, tint: tint, readoutLabel: insight.label)],
                     xLabels: App2VolumeDetailPage.xLabels(points),
+                    allowsReadout: true,
                     height: 118
                 )
             } else if viewModel.isLoading {
@@ -808,16 +840,21 @@ private struct App2RecoveryDetailPage: View {
                                 id: "hrv",
                                 points: detail.hrv,
                                 tint: App2Theme.accentGreenDot,
-                                legend: L10n.App2.Metric.recoveryHrv.localized
+                                legend: L10n.App2.Metric.recoveryHrv.localized,
+                                readoutLabel: L10n.App2.Metric.recoveryHrv.localized,
+                                unit: "ms"
                             ),
                             .init(
                                 id: "rhr",
                                 points: detail.restingHR,
                                 tint: App2Theme.appleHealthRed,
-                                legend: L10n.App2.Metric.recoveryRhr.localized
+                                legend: L10n.App2.Metric.recoveryRhr.localized,
+                                readoutLabel: L10n.App2.Metric.recoveryRhr.localized,
+                                unit: "bpm"
                             )
                         ],
                         xLabels: App2VolumeDetailPage.xLabels(detail.hrv),
+                        allowsReadout: true,
                         height: 118
                     )
 

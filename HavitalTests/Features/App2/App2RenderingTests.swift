@@ -706,4 +706,45 @@ final class App2RenderingTests: XCTestCase {
 
         XCTAssertNotEqual(shown.pngData(), hidden.pngData(), "四段全空時入口不該出現")
     }
+
+    func test_t0776_tsbReadoutAndPersonalBestDetail_render() {
+        let tsbPoints = [
+            App2MetricPoint(date: "2026-09-28", value: -10),
+            App2MetricPoint(date: "2026-09-29", value: nil),
+            App2MetricPoint(date: "2026-09-30", value: -6)
+        ]
+        let tsbChart = App2MetricLineChart(
+            series: [
+                .init(id: "tsb", points: tsbPoints, tint: .green, readoutLabel: "TSB")
+            ],
+            xLabels: ["9/28", "9/29", "9/30"],
+            bands: App2MetricDetailProjection.tsbBands(),
+            baselineValues: [-7, 0, 1],
+            showsBandLegend: true,
+            allowsReadout: true,
+            initiallySelectedIndex: 0,
+            height: 118
+        )
+        render(tsbChart, name: "t0776-tsb-readout", height: 210)
+
+        let records = [
+            PersonalBestRecordV2(
+                completeTime: 1_200, pace: "4:00", recordedAt: "2026-09-23T00:00:00Z",
+                workoutDate: "2026-09-23", workoutId: "pb-1"
+            ),
+            PersonalBestRecordV2(
+                completeTime: 1_260, pace: "4:12", recordedAt: "2026-09-22T00:00:00Z",
+                workoutDate: "2026-09-22", workoutId: "pb-2"
+            ),
+            PersonalBestRecordV2(
+                completeTime: 1_320, pace: "4:24", recordedAt: "2026-09-21T00:00:00Z",
+                workoutDate: "2026-09-21", workoutId: "pb-3"
+            )
+        ]
+        render(
+            PersonalBestDetailView(distance: .fiveK, records: records),
+            name: "t0776-pb-top-three",
+            height: 520
+        )
+    }
 }
