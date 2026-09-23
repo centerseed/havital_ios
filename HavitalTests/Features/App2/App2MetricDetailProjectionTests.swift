@@ -147,10 +147,12 @@ final class App2MetricDetailProjectionTests: XCTestCase {
     }
 
     func testTsbBandBoundariesMatchTheDesign() {
-        XCTAssertEqual(App2MetricDetailProjection.tsbBandLabel(for: -7.01), L10n.MyAchievement.fatigue.localized)
-        XCTAssertEqual(App2MetricDetailProjection.tsbBandLabel(for: -7), L10n.MyAchievement.balanced.localized)
-        XCTAssertEqual(App2MetricDetailProjection.tsbBandLabel(for: 1), L10n.MyAchievement.balanced.localized)
-        XCTAssertEqual(App2MetricDetailProjection.tsbBandLabel(for: 1.01), L10n.MyAchievement.optimal.localized)
+        let labels = ["myachievement.text_3", "myachievement.text_4", "myachievement.text_5"]
+            .map { NSLocalizedString($0, comment: "") }
+        XCTAssertEqual(App2MetricDetailProjection.tsbBandLabel(for: -7.01), labels[0])
+        XCTAssertEqual(App2MetricDetailProjection.tsbBandLabel(for: -7), labels[1])
+        XCTAssertEqual(App2MetricDetailProjection.tsbBandLabel(for: 1), labels[1])
+        XCTAssertEqual(App2MetricDetailProjection.tsbBandLabel(for: 1.01), labels[2])
 
         let bands = App2MetricDetailProjection.tsbBands()
         XCTAssertEqual(bands.count, 3)
@@ -160,6 +162,19 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         XCTAssertEqual(bands[1].upper, 1)
         XCTAssertEqual(bands[2].lower, 1)
         XCTAssertNil(bands[2].upper)
+    }
+
+    @MainActor
+    func testTsbBandLabelsUseJapaneseOneFourLegendStrings() {
+        let previousLanguage = LanguageManager.shared.currentLanguage.rawValue
+        Bundle.setLanguage("ja")
+        defer { Bundle.setLanguage(previousLanguage) }
+
+        XCTAssertEqual(
+            App2MetricDetailProjection.tsbBands().map(\.legendLabel),
+            ["疲労蓄積", "バランス状態", "最適状態"]
+        )
+        XCTAssertEqual(App2MetricDetailProjection.tsbBandLabel(for: -8), "疲労蓄積")
     }
 
     func testTsbBoundsKeepAllThreeThresholdsVisibleWhenValuesAreBelowMinusSeven() {
@@ -207,6 +222,35 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         ))
         XCTAssertFalse(App2MetricLineChart(series: []).allowsReadout)
         XCTAssertFalse(App2WeeklyVolumeChart(bars: []).allowsReadout)
+    }
+
+    func testTapOutsideInteractiveChartsClearsSelectedReadout() {
+        let selected = App2ChartReadoutSelection(chartID: "volume-acwr", index: 4)
+        let chartFrames = [
+            App2ChartReadoutFrame(chartID: "volume-acwr", frame: CGRect(x: 16, y: 80, width: 358, height: 190)),
+            App2ChartReadoutFrame(chartID: "volume-tsb", frame: CGRect(x: 16, y: 290, width: 358, height: 210))
+        ]
+
+        let selectionAfterChartTap = App2ChartReadoutDismissal.selection(
+            afterTapAt: CGPoint(x: 180, y: 120),
+            current: selected,
+            chartFrames: chartFrames
+        )
+        XCTAssertEqual(selectionAfterChartTap, selected, "A tap inside the selected chart keeps its readout")
+
+        let selectionAfterOtherChartTap = App2ChartReadoutDismissal.selection(
+            afterTapAt: CGPoint(x: 180, y: 380),
+            current: selected,
+            chartFrames: chartFrames
+        )
+        XCTAssertNil(selectionAfterOtherChartTap, "A different chart is outside the selected chart")
+
+        let selectionAfterOutsideTap = App2ChartReadoutDismissal.selection(
+            afterTapAt: CGPoint(x: 180, y: 540),
+            current: selected,
+            chartFrames: chartFrames
+        )
+        XCTAssertNil(selectionAfterOutsideTap, "A tap on another card or page whitespace dismisses the readout")
     }
 
     func testWeeklyReadoutSelectsNearestBarCenterAcrossSpacing() {

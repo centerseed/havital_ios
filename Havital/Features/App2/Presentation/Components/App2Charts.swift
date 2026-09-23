@@ -1,5 +1,53 @@
 import SwiftUI
 
+struct App2ChartReadoutSelection: Equatable {
+    let chartID: String
+    let index: Int
+}
+
+struct App2ChartReadoutFrame: Equatable {
+    let chartID: String
+    let frame: CGRect
+}
+
+enum App2ChartReadoutDismissal {
+    static func selection(
+        afterTapAt location: CGPoint,
+        current selection: App2ChartReadoutSelection?,
+        chartFrames: [App2ChartReadoutFrame]
+    ) -> App2ChartReadoutSelection? {
+        guard let selection,
+              let selectedChartFrame = chartFrames.first(where: { $0.chartID == selection.chartID }),
+              selectedChartFrame.frame.contains(location) else {
+            return nil
+        }
+        return selection
+    }
+}
+
+private enum App2ChartReadoutSelectionKey: EnvironmentKey {
+    static let defaultValue: Binding<App2ChartReadoutSelection?> = .constant(nil)
+}
+
+extension EnvironmentValues {
+    var app2ChartReadoutSelection: Binding<App2ChartReadoutSelection?> {
+        get { self[App2ChartReadoutSelectionKey.self] }
+        set { self[App2ChartReadoutSelectionKey.self] = newValue }
+    }
+}
+
+enum App2ChartReadoutFramePreferenceKey: PreferenceKey {
+    static let defaultValue: [App2ChartReadoutFrame] = []
+
+    static func reduce(value: inout [App2ChartReadoutFrame], nextValue: () -> [App2ChartReadoutFrame]) {
+        value.append(contentsOf: nextValue())
+    }
+}
+
+enum App2ChartReadoutCoordinateSpace {
+    static let name = "App2MetricDetailContent"
+}
+
 // MARK: - App2WeeklyVolumeChart
 /// 近 8 週跑量長條圖（§3.6 第 3 列；設計 frame-10 的 hero 卡下半）。
 ///
@@ -31,7 +79,8 @@ struct App2WeeklyVolumeChart: View {
     /// 只在指標詳情頁開啟。紀錄頁與週回顧沿用預設關閉。
     var allowsReadout: Bool = false
 
-    @State private var selectedIndex: Int?
+    private let readoutID: String
+    @Environment(\.app2ChartReadoutSelection) private var chartReadoutSelection
     @State private var gestureStarted = false
     @State private var gestureStartSelection: Int?
     @State private var gestureMoved = false
@@ -43,7 +92,8 @@ struct App2WeeklyVolumeChart: View {
         targetKm: Double? = nil,
         currentWeekTint: Color = App2Theme.accentBlue,
         showsValueLabels: Bool = true,
-        allowsReadout: Bool = false
+        allowsReadout: Bool = false,
+        readoutID: String = "weekly-volume"
     ) {
         self.bars = bars
         self.barHeight = barHeight
@@ -51,7 +101,21 @@ struct App2WeeklyVolumeChart: View {
         self.currentWeekTint = currentWeekTint
         self.showsValueLabels = showsValueLabels
         self.allowsReadout = allowsReadout
-        _selectedIndex = State(initialValue: nil)
+        self.readoutID = readoutID
+    }
+
+    private var selectedIndex: Int? {
+        guard let selection = chartReadoutSelection.wrappedValue,
+              selection.chartID == readoutID else { return nil }
+        return selection.index
+    }
+
+    private func setSelectedIndex(_ index: Int?) {
+        if let index {
+            chartReadoutSelection.wrappedValue = .init(chartID: readoutID, index: index)
+        } else if chartReadoutSelection.wrappedValue?.chartID == readoutID {
+            chartReadoutSelection.wrappedValue = nil
+        }
     }
 
     /// 柱高的分母：把目標線也算進去，否則目標高於所有柱子時線會畫到圖外。
@@ -88,11 +152,24 @@ struct App2WeeklyVolumeChart: View {
             .simultaneousGesture(
                 SpatialTapGesture().onEnded { tap in
                     if selectedIndex != nil && !plotRect.contains(tap.location) {
-                        selectedIndex = nil
+                        setSelectedIndex(nil)
                     }
                 }
             )
             .accessibilityIdentifier("App2_WeeklyVolumeChart")
+            .background {
+                GeometryReader { geo in
+                    Color.clear.preference(
+                        key: App2ChartReadoutFramePreferenceKey.self,
+                        value: allowsReadout
+                            ? [App2ChartReadoutFrame(
+                                chartID: readoutID,
+                                frame: geo.frame(in: .named(App2ChartReadoutCoordinateSpace.name))
+                            )]
+                            : []
+                    )
+                }
+            }
         }
     }
 
@@ -187,7 +264,7 @@ struct App2WeeklyVolumeChart: View {
                 if abs(gesture.translation.width) > 6 || abs(gesture.translation.height) > 6 {
                     gestureMoved = true
                 }
-                selectedIndex = index
+                setSelectedIndex(index)
             }
             .onEnded { gesture in
                 guard let index = Self.nearestBarIndex(
@@ -197,7 +274,7 @@ struct App2WeeklyVolumeChart: View {
                     count: bars.count
                 ) else { return }
                 if !gestureMoved && gestureStartSelection == index {
-                    selectedIndex = nil
+                    setSelectedIndex(nil)
                 }
                 gestureStarted = false
                 gestureStartSelection = nil
@@ -354,7 +431,8 @@ struct App2MetricLineChart: View {
     /// TSB 色帶圖例；ACWR 不顯示 band legend。
     var showsBandLegend: Bool = false
 
-    @State private var selectedIndex: Int?
+    private let readoutID: String
+    @Environment(\.app2ChartReadoutSelection) private var chartReadoutSelection
     @State private var gestureStarted = false
     @State private var gestureStartSelection: Int?
     @State private var gestureMoved = false
@@ -370,7 +448,8 @@ struct App2MetricLineChart: View {
         showsBandLegend: Bool = false,
         allowsReadout: Bool = false,
         initiallySelectedIndex: Int? = nil,
-        height: CGFloat = 132
+        height: CGFloat = 132,
+        readoutID: String = "metric-line"
     ) {
         self.series = series
         self.xLabels = xLabels
@@ -382,7 +461,21 @@ struct App2MetricLineChart: View {
         self.allowsReadout = allowsReadout
         self.initiallySelectedIndex = initiallySelectedIndex
         self.showsBandLegend = showsBandLegend
-        _selectedIndex = State(initialValue: allowsReadout ? initiallySelectedIndex : nil)
+        self.readoutID = readoutID
+    }
+
+    private var selectedIndex: Int? {
+        guard let selection = chartReadoutSelection.wrappedValue,
+              selection.chartID == readoutID else { return nil }
+        return selection.index
+    }
+
+    private func setSelectedIndex(_ index: Int?) {
+        if let index {
+            chartReadoutSelection.wrappedValue = .init(chartID: readoutID, index: index)
+        } else if chartReadoutSelection.wrappedValue?.chartID == readoutID {
+            chartReadoutSelection.wrappedValue = nil
+        }
     }
 
     var body: some View {
@@ -407,11 +500,30 @@ struct App2MetricLineChart: View {
         .simultaneousGesture(
             SpatialTapGesture().onEnded { tap in
                 if selectedIndex != nil && !plotRect.contains(tap.location) {
-                    selectedIndex = nil
+                    setSelectedIndex(nil)
                 }
             }
         )
         .accessibilityIdentifier("App2_MetricLineChart")
+        .background {
+            GeometryReader { geo in
+                Color.clear.preference(
+                    key: App2ChartReadoutFramePreferenceKey.self,
+                    value: allowsReadout
+                        ? [App2ChartReadoutFrame(
+                            chartID: readoutID,
+                            frame: geo.frame(in: .named(App2ChartReadoutCoordinateSpace.name))
+                        )]
+                        : []
+                )
+            }
+        }
+        .onAppear {
+            if allowsReadout, chartReadoutSelection.wrappedValue == nil,
+               let initiallySelectedIndex {
+                setSelectedIndex(initiallySelectedIndex)
+            }
+        }
     }
 
     // MARK: - 刻度
@@ -663,14 +775,14 @@ struct App2MetricLineChart: View {
                 if abs(gesture.translation.width) > 6 || abs(gesture.translation.height) > 6 {
                     gestureMoved = true
                 }
-                selectedIndex = index
+                setSelectedIndex(index)
             }
             .onEnded { gesture in
                 guard let index = Self.nearestSelectableIndex(
                     atFraction: gesture.location.x / max(width, 1), series: series
                 ) else { return }
                 if !gestureMoved && gestureStartSelection == index {
-                    selectedIndex = nil
+                    setSelectedIndex(nil)
                 }
                 gestureStarted = false
                 gestureStartSelection = nil

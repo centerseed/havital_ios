@@ -20,6 +20,16 @@ import Foundation
 /// 3. **`tsb_metrics` 全 null → 整塊隱藏**（2026-08-26 裁決）：不畫空圖，
 ///    prod 有資料自然出現。
 enum App2MetricDetailProjection {
+    private static let tsbLegendLocalizationKeys = [
+        "myachievement.text_3",
+        "myachievement.text_4",
+        "myachievement.text_5"
+    ]
+
+    private static var tsbLegendLabels: [String] {
+        tsbLegendLocalizationKeys.map(\.localized)
+    }
+
 
     /// 值缺席時畫的字。**不是 0、也不是空白** —— 要看得出「這個量現在沒有」。
     static let placeholder = "–"
@@ -105,33 +115,35 @@ enum App2MetricDetailProjection {
 
     /// §51-6 TSB 色帶。無限端由圖表裁到可見 y 範圍，分界固定在 -7 與 +1。
     static func tsbBands() -> [App2MetricLineChart.Band] {
-        [
+        let labels = tsbLegendLabels
+        return [
             App2MetricLineChart.Band(
                 lower: nil,
                 upper: -7,
                 tint: .red,
-                legendLabel: L10n.MyAchievement.fatigue.localized
+                legendLabel: labels[0]
             ),
             App2MetricLineChart.Band(
                 lower: -7,
                 upper: 1,
                 tint: .green,
-                legendLabel: L10n.MyAchievement.balanced.localized
+                legendLabel: labels[1]
             ),
             App2MetricLineChart.Band(
                 lower: 1,
                 upper: nil,
                 tint: .blue,
-                legendLabel: L10n.MyAchievement.optimal.localized
+                legendLabel: labels[2]
             )
         ]
     }
 
     /// < -7 疲勞累積、-7…+1 平衡、> +1 新鮮。
     static func tsbBandLabel(for value: Double) -> String {
-        if value < -7 { return L10n.MyAchievement.fatigue.localized }
-        if value <= 1 { return L10n.MyAchievement.balanced.localized }
-        return L10n.MyAchievement.optimal.localized
+        let labels = tsbLegendLabels
+        if value < -7 { return labels[0] }
+        if value <= 1 { return labels[1] }
+        return labels[2]
     }
 
     /// §51-6 近 30 天急慢性負荷比（`load_index` 的 `channels.acwr`，T-0618）。

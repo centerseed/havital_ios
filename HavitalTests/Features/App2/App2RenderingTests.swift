@@ -723,7 +723,14 @@ final class App2RenderingTests: XCTestCase {
             initiallySelectedIndex: 2,
             height: 118
         )
-        render(acwrChart, name: "t0776-acwr-readout", height: 210)
+        render(
+            acwrChart.environment(
+                \.app2ChartReadoutSelection,
+                .constant(App2ChartReadoutSelection(chartID: "metric-line", index: 2))
+            ),
+            name: "t0776-acwr-readout",
+            height: 210
+        )
 
         let tsbPoints = [
             App2MetricPoint(date: "2026-09-28", value: -10),
@@ -742,7 +749,14 @@ final class App2RenderingTests: XCTestCase {
             initiallySelectedIndex: 0,
             height: 118
         )
-        render(tsbChart, name: "t0776-tsb-readout", height: 210)
+        render(
+            tsbChart.environment(
+                \.app2ChartReadoutSelection,
+                .constant(App2ChartReadoutSelection(chartID: "metric-line", index: 0))
+            ),
+            name: "t0776-tsb-readout",
+            height: 210
+        )
 
         let records = [
             PersonalBestRecordV2(

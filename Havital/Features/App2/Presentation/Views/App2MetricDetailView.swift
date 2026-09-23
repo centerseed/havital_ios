@@ -69,6 +69,8 @@ private struct App2MetricDetailScaffold<Content: View>: View {
     let identifier: String
     let onClose: () -> Void
     let onRefresh: () async -> Void
+    @State private var chartReadoutSelection: App2ChartReadoutSelection?
+    @State private var chartFrames: [App2ChartReadoutFrame] = []
     // 頁尾原本有一行「資料來源 · workouts/stats」——那是**端點路徑**，不是產品文案
     // （8/28 盤點 D11）。它對使用者沒有任何意義，寫成人話也只會是「資料來自你的跑步紀錄」
     // 這種每一頁都成立的廢話，所以整行拿掉。四頁一致。
@@ -91,18 +93,36 @@ private struct App2MetricDetailScaffold<Content: View>: View {
             .padding(.top, 6)
             .padding(.bottom, 14)
 
-            ScrollView {
-                VStack(spacing: 14) {
-                    content()
+            GeometryReader { scrollArea in
+                ScrollView {
+                    VStack(spacing: 14) {
+                        content()
+                    }
+                    .padding(.horizontal, App2Theme.pagePadding)
+                    .padding(.bottom, 28)
+                    .frame(minHeight: scrollArea.size.height, alignment: .top)
+                    .coordinateSpace(name: App2ChartReadoutCoordinateSpace.name)
+                    .onPreferenceChange(App2ChartReadoutFramePreferenceKey.self) {
+                        chartFrames = $0
+                    }
+                    .contentShape(Rectangle())
+                    .simultaneousGesture(
+                        SpatialTapGesture().onEnded { tap in
+                            chartReadoutSelection = App2ChartReadoutDismissal.selection(
+                                afterTapAt: tap.location,
+                                current: chartReadoutSelection,
+                                chartFrames: chartFrames
+                            )
+                        }
+                    )
                 }
-                .padding(.horizontal, App2Theme.pagePadding)
-                .padding(.bottom, 28)
-            }
-            .refreshable {
-                // SwiftUI can cancel its refresh task when the view updates. The VM
-                // owns the request lifetime; leaving the page still cancels its round.
-                let refresh = Task { await onRefresh() }
-                await refresh.value
+                .refreshable {
+                    // SwiftUI can cancel its refresh task when the view updates. The VM
+                    // owns the request lifetime; leaving the page still cancels its round.
+                    let refresh = Task { await onRefresh() }
+                    await refresh.value
+                }
+                .environment(\.app2ChartReadoutSelection, $chartReadoutSelection)
             }
         }
         .background(App2Theme.pageGradient.ignoresSafeArea())
@@ -298,7 +318,8 @@ private struct App2VolumeDetailPage: View {
                         // §51-4：本週那根是橘的（首頁的迷你版是藍的）。
                         currentWeekTint: App2Theme.accentOrange,
                         showsValueLabels: detail.bars.count <= 10,
-                        allowsReadout: true
+                        allowsReadout: true,
+                        readoutID: "weekly-volume"
                     )
                     App2MetricStatRow(stats: detail.stats)
                 }
@@ -347,7 +368,8 @@ private struct App2VolumeDetailPage: View {
                     xLabels: Self.xLabels(acwr.series),
                     bands: App2MetricDetailProjection.sweetBand(acwr).map { [$0] } ?? [],
                     allowsReadout: true,
-                    height: 118
+                    height: 118,
+                    readoutID: "volume-acwr"
                 )
             } else {
                 Text(L10n.App2.Metric.volumeAcwrUnavailable.localized)
@@ -371,7 +393,8 @@ private struct App2VolumeDetailPage: View {
                     baselineValues: [-7, 0, 1],
                     showsBandLegend: true,
                     allowsReadout: true,
-                    height: 118
+                    height: 118,
+                    readoutID: "volume-tsb"
                 )
                 .accessibilityIdentifier("App2_MetricTsbChart")
             }
@@ -489,7 +512,8 @@ private struct App2CapabilityDetailPage: View {
                         markerDate: detail.anchorDate,
                         markerLabel: L10n.App2.Metric.capabilityAnchorMarker.localized,
                         allowsReadout: true,
-                        height: 118
+                        height: 118,
+                        readoutID: "capability-vdot"
                     )
                 }
             } else if viewModel.isLoading {
@@ -685,7 +709,8 @@ private struct App2LevelDetailPage: View {
                     series: [.init(id: "level", points: points, tint: tint, readoutLabel: insight.label)],
                     xLabels: App2VolumeDetailPage.xLabels(points),
                     allowsReadout: true,
-                    height: 118
+                    height: 118,
+                    readoutID: "level-trend"
                 )
             } else if viewModel.isLoading {
                 ProgressView().frame(maxWidth: .infinity)
@@ -855,7 +880,8 @@ private struct App2RecoveryDetailPage: View {
                         ],
                         xLabels: App2VolumeDetailPage.xLabels(detail.hrv),
                         allowsReadout: true,
-                        height: 118
+                        height: 118,
+                        readoutID: "recovery-chart"
                     )
 
                     App2MetricStatRow(stats: detail.stats)
