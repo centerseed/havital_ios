@@ -21,51 +21,22 @@ struct AthleteStateSeriesResponse: Codable {
 
     struct Day: Codable {
         let day: String
+        var itemId: String? = nil
+        var asOf: String? = nil
+        var estimatorVersion: String? = nil
         let deliveryStatus: String?
         let envelope: Envelope?
 
         enum CodingKeys: String, CodingKey {
             case day, envelope
+            case itemId = "item_id"
+            case asOf = "as_of"
+            case estimatorVersion = "estimator_version"
             case deliveryStatus = "delivery_status"
         }
 
-        /// 這一頁吃兩種量：0–100 的位置量尺（有氧續航／速度耐力），以及訓練量頁
-        /// 要的急慢性負荷比（`channels.acwr`）。envelope 其餘欄（confidence／
-        /// limits／raw）是評級層與監控的東西，畫線不需要，也不該在 app 端重新解讀。
-        struct Envelope: Codable {
-            let index: Double?
-            let levelIndex: Double?
-            /// `var` ＋ 預設值，好讓 memberwise init 對只在意 index 的呼叫端
-            /// （有氧／速度那兩頁的測試）不必逐一填 nil。
-            var channels: Channels? = nil
-
-            enum CodingKeys: String, CodingKey {
-                case index, channels
-                case levelIndex = "level_index"
-            }
-
-            struct Channels: Codable {
-                let acwr: Acwr?
-            }
-
-            /// `load_index` 的負荷比通道（`SPEC-load-index` §5.1）。
-            ///
-            /// **甜區上下界由後端逐列帶**，app 不寫死：它依訓練期變
-            /// （減量期是 0.5–1.0，不是 0.8–1.3），寫死的那一份會在減量期
-            /// 把帶子畫在錯的地方。
-            struct Acwr: Codable {
-                let raw: Double?
-                let available: Bool?
-                let side: String?
-                let sweetLow: Double?
-                let sweetHigh: Double?
-
-                enum CodingKeys: String, CodingKey {
-                    case raw, available, side
-                    case sweetLow = "sweet_low"
-                    case sweetHigh = "sweet_high"
-                }
-            }
-        }
+        /// 指標序列 envelope。圖表消費 index 與 `channels.acwr`；完賽預估另讀
+        /// `channels` 的 race_projection raw 秒數與 status。
+        typealias Envelope = AthleteStateMetricEnvelope
     }
 }

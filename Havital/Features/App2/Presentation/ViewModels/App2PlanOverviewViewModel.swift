@@ -6,7 +6,7 @@ import Foundation
 /// **不是第二份計畫總覽邏輯。** 1.x 已經有 `TrainingOverviewV2View` ＋ `PhaseRoadmapView`
 /// 在畫同一份 `training_stages`，但那是 1.x 的視覺與導航樹；2.0 只換版面，資料仍走
 /// 同一組既有出口（`TrainingPlanV2RemoteDataSource` / `TargetRepository` /
-/// `UserProfileRepository` / readiness），沒有新的 HTTP 路徑。
+/// `UserProfileRepository`），完賽預估讀 athlete_state metrics。
 ///
 /// **週次／期別／賽事一律同源。** 週次來自 `GET /v2/plan/status`，期程來自它
 /// `current_week_plan_id` 前綴所綁定的那一份 overview（`GET /v2/plan/overview` 拿回來
@@ -18,7 +18,7 @@ import Foundation
 /// | 畫面欄位 | 來源 |
 /// |---|---|
 /// | 目標賽事名／日期／距離／目標成績 | `TargetRepository`（`GET /user/targets`） |
-/// | 「現在的你」完賽預估 | `TrainingReadinessViewModel.estimatedRaceTime`（`GET /plan/readiness/{date}`） |
+/// | 「現在的你」完賽預估 | `state.race_projection` 目標距離 channel（`GET /v2/athlete-state/metrics`） |
 /// | 「約 N km / 週」 | `WeeklySummaryService.fetchAllWeeklyVolumes`（`GET /summary/weekly/all`） |
 /// | 每週跑步天數／長跑日 | `UserProfileRepository` 的 `prefer_week_days` / `prefer_week_days_longrun` |
 /// | 訓練方法名 | overview 的 `methodology_overview.name`（後端已在地化） |
@@ -86,7 +86,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     private let planRepository: TrainingPlanV2Repository
     private let targetRepository: TargetRepository
     private let userProfileRepository: UserProfileRepository
-    private let readinessViewModel: TrainingReadinessViewModel
+    private let metricsDataSource: AthleteStateMetricsDataSourceProtocol
     /// 近幾週的實際週跑量。既有出口是 `WeeklySummaryService`（singleton），
     /// 包成 closure 讓測試塞值 —— 不新增第二條 HTTP 路徑。
     private let weeklyVolumesLoader: (() async -> [WeeklySummaryItem])?
@@ -97,7 +97,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         planRepository: TrainingPlanV2Repository? = nil,
         targetRepository: TargetRepository? = nil,
         userProfileRepository: UserProfileRepository? = nil,
-        readinessViewModel: TrainingReadinessViewModel? = nil,
+        metricsDataSource: AthleteStateMetricsDataSourceProtocol? = nil,
         weeklyVolumesLoader: (() async -> [WeeklySummaryItem])? = nil
     ) {
         let container = DependencyContainer.shared
@@ -129,7 +129,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
             self.userProfileRepository = container.resolve() as UserProfileRepository
         }
 
-        self.readinessViewModel = readinessViewModel ?? TrainingReadinessViewModel()
+        self.metricsDataSource = metricsDataSource ?? AthleteStateMetricsRemoteDataSource()
         self.weeklyVolumesLoader = weeklyVolumesLoader
 
         // 目標變更（賽事管理寫入＝`.dataChanged(.targets)`、重設目標＝
@@ -250,12 +250,17 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
 
         async let stagesTask = loadStages(planStatus: planStatus)
         async let mainTargetTask = loadMainTarget()
-        async let estimateTask = loadEstimatedFinish()
+        async let raceProjectionTask = loadRaceProjection()
         async let weeklyTask = loadWeeklyVolumes()
         async let rhythmTask = loadRhythmPreferences()
 
-        let (stageBundle, mainTarget, estimate, weeklyItems, preferences) =
-            await (stagesTask, mainTargetTask, estimateTask, weeklyTask, rhythmTask)
+        let (stageBundle, mainTarget, raceProjection, weeklyItems, preferences) =
+            await (stagesTask, mainTargetTask, raceProjectionTask, weeklyTask, rhythmTask)
+        let estimate = App2MetricDetailProjection.estimatedFinish(
+            deliveryStatus: raceProjection?.deliveryStatus,
+            envelope: raceProjection?.envelope,
+            targetDistanceKm: mainTarget.map { Double($0.distanceKm) }
+        )
 
         // planStatus 與各子載入都以 `try?`／可缺席語意收攏——取消也會被折成 nil。
         // 被取消的那一輪不得發布殘缺 overview（AGENTS.md 陷阱 5；2026-08-29 外審）。
@@ -285,7 +290,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     /// 不是新鮮 vs 陳舊）。
     private static let liveEndpoints =
         "GET /v2/plan/status + GET /v2/plan/overview + GET /user/targets"
-        + " + GET /plan/readiness/{date} + GET /summary/weekly/all + GET /user"
+        + " + GET /v2/athlete-state/metrics + GET /summary/weekly/all + GET /user"
 
     // MARK: - 進頁先畫快取（T-0365）
 
@@ -346,7 +351,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
                 stages: bundle.stages,
                 milestones: bundle.milestones,
                 methodologyName: bundle.methodologyName,
-                // 完賽預估與近幾週跑量沒有 cache-only 出口（readiness 與
+                // 完賽預估與近幾週跑量沒有 cache-only 出口（metrics 與
                 // `/summary/weekly/all` 都不落地），這兩格由本輪的權威 pass 補上。
                 estimatedFinish: nil,
                 weeklyVolumes: [],
@@ -487,13 +492,18 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         return await targetRepository.getMainTarget()
     }
 
-    private func loadEstimatedFinish() async -> String? {
-        // `loadData()` 是 cache-first：讀到舊快取就立刻返回、背景刷新落在投影
-        // 組完**之後**——換了主賽事再進這一頁，「現在的你」永遠是上一場的預估
-        // （2026-08-27 使用者實機回報：換半馬後預估沒跟著換）。這一頁要的是
-        // 當下的預估，直接向 API 取。
-        await readinessViewModel.refreshData()
-        return readinessViewModel.estimatedRaceTime
+    private func loadRaceProjection() async -> AthleteStateRaceProjectionItem? {
+        do {
+            let response = try await metricsDataSource.fetchMetrics()
+            return response.metrics.raceProjection
+        } catch {
+            if error.isCancellationError {
+                noteRoundCancellation()
+            } else {
+                Logger.debug("[App2PlanOverviewVM] race_projection metrics 取得失敗,完賽預估不顯示: \(error)")
+            }
+            return nil
+        }
     }
 
     private func loadRhythmPreferences() async -> (days: [Int]?, longRun: Int?) {

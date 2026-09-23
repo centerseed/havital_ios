@@ -43,11 +43,10 @@ struct App2PlanEndCard: Equatable {
     let totalWeeks: Int?
     /// `2:34:00`。目標未設成績就是 nil。
     let targetTime: String?
-    /// 當時的完賽預估（readiness 流的 `race_fitness.estimated_race_time`）。
+    /// 當時的完賽預估（賽事日 `state.race_projection` row 的目標距離 channel）。
     ///
     /// **標的是「當時的預估」語意**：計畫已經走完，這個量講的是這段備賽把預估推到哪，
-    /// 不是「現在你能跑幾分」。它與 decision-chain 的指標分屬兩條流
-    /// （`AGENTS.md`「兩條資料流」），畫面上要標來源，不得與 decision-chain 互相佐證。
+    /// 不是「現在你能跑幾分」。只讀賽事日期那一天的 row，不以今天的 row 代替。
     let estimatedFinish: String?
     /// 賽事實際完賽成績 —— **目前恆為 nil**（無綁定機制，見檔頭）。
     let actualFinish: String?

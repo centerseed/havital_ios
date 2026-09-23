@@ -53,14 +53,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// `GET /v2/state/today` 的 `asof`（使用者當地業務日）。指標詳情頁的序列窗右端。
     @Published private(set) var stateAsof: String?
     /// 四個固定距離的完賽預估（T-0376）。能力基準詳情頁（§52）用它。
-    ///
-    /// **住在首頁 VM 是因為資料在這裡就已經有了**：`loadGoalCard` 每一輪都會
-    /// `await readinessViewModel.loadData()`（cache-first ＋ 背景重驗，走既有的
-    /// `TrainingReadinessManager`），完賽預估與目標卡的「預估完賽」是**同一份
-    /// readiness response** 的兩個欄位。詳情頁沿 `insight`／`narrative` 同一條路
-    /// 拿走它，不新增請求、不新增快取、不新增失效訂閱。
-    ///
-    /// 空陣列 ＝ 這一份 readiness 沒有完賽預估 → 詳情頁整區不畫。
+    /// 與首頁目標卡共用本輪 `GET /v2/athlete-state/metrics` 的 race_projection。
+    /// 空陣列＝列非 active 或所有 channel 都未 computed，詳情頁整區不畫。
     @Published private(set) var finishPredictions: [App2FinishPrediction] = []
     /// 今日課表卡。nil = 這一輪還沒載完；其餘五態見 `App2TodaySessionState`。
     @Published private(set) var todayState: App2TodaySessionState?
@@ -99,10 +93,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 全部走它，App2 不再自己持有 `TrainingPlanV2RemoteDataSource`，冷啟先渲染的那一份
     /// 也是它的快取，不另存一份 App2 專屬快照。
     private let planRepository: TrainingPlanV2Repository
-    private let readinessViewModel: TrainingReadinessViewModel
-    /// 結束態的「當時預估」要**指定日期**那一筆（賽事日），`TrainingReadinessViewModel`
-    /// 只交最新的那一筆，所以直接走它底下的同一支既有服務，不新增第二條路徑。
-    private let readinessService: TrainingReadinessProviding
+    private let metricsDataSource: AthleteStateMetricsDataSourceProtocol
+    private let seriesDataSource: AthleteStateSeriesDataSourceProtocol
     /// 紀錄頁用的同一支 `GET /v2/workouts`，不另開端點。
     private let workoutDataSource: WorkoutStatsDataSourceProtocol
     /// 冷啟快照。只剩「今天跑完沒」那一頁 workouts —— 課表那幾支已收進 repository 快取。
@@ -117,8 +109,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         dailyStateRepository: DailyStateRepository? = nil,
         targetRepository: TargetRepository? = nil,
         planRepository: TrainingPlanV2Repository? = nil,
-        readinessViewModel: TrainingReadinessViewModel? = nil,
-        readinessService: TrainingReadinessProviding? = nil,
+        metricsDataSource: AthleteStateMetricsDataSourceProtocol? = nil,
+        seriesDataSource: AthleteStateSeriesDataSourceProtocol? = nil,
         workoutDataSource: WorkoutStatsDataSourceProtocol? = nil,
         snapshots: (any App2SnapshotStoring)? = nil,
         versionRouter: TrainingVersionRouting? = nil,
@@ -172,8 +164,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             self.targetRepository = container.resolve() as TargetRepository
         }
 
-        self.readinessViewModel = readinessViewModel ?? TrainingReadinessViewModel()
-        self.readinessService = readinessService ?? TrainingReadinessService.shared
+        self.metricsDataSource = metricsDataSource ?? AthleteStateMetricsRemoteDataSource()
+        self.seriesDataSource = seriesDataSource ?? AthleteStateSeriesRemoteDataSource()
         self.workoutDataSource = workoutDataSource ?? WorkoutRemoteDataSource()
 
         #if DEBUG
@@ -1364,7 +1356,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     }
 
     private func loadGoalCard(planStatus: PlanStatusV2Response?) async {
-        // 週次只要 plan status 就算得出來，但完賽預估要 readiness（重運算）、期別要
+        // 週次只要 plan status 就算得出來，但完賽預估要 athlete_state metrics、期別要
         // overview。整張卡一起等的話，週次會被拖到那兩支都回來才上畫面 —— 使用者看到的
         // 是「週次很久才出現，或進訓練計畫頁才有」（2026-09-02 實機回報）。
         // 所以先發一版只帶週次的，後面拿到什麼再覆蓋什麼。
@@ -1379,7 +1371,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             guard !Task.isCancelled, !roundSawCancellation, !isStaleRound else { return }
             if early == nil {
                 // 冷啟後 2.0 沒有別的地方打過 `/user/targets`，本機快取是空的——
-                // 提前發布若只認快取，冷啟這條路仍舊要等 readiness 才有週次。
+                // 提前發布若只認快取，冷啟這條路仍舊要等 targets 才有週次。
                 guard await fetchTargetsIntoCache() else { return }
                 didFetchTargets = true
                 early = await targetRepository.getMainTarget()
@@ -1389,9 +1381,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 goalCard = Self.goalCard(
                     target: early,
                     planStatus: planStatus,
-                    // 這一版還不知道期別與預估：沿用畫面上已有的，沒有就留白。
+                    // 還沒拿到 race_projection：先留白，避免把前一目標的距離預估沿用過來。
                     stageLabel: goalCard?.value.stageLabel,
-                    estimatedFinish: goalCard?.value.estimatedFinish,
+                    estimatedFinish: nil,
                     displayedCurrentWeek: goalCard?.value.currentWeek,
                     displayedTotalWeeks: goalCard?.value.totalWeeks,
                     origin: .live(endpoint: "GET /user/targets + GET /v2/plan/status")
@@ -1399,22 +1391,17 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             }
         }
 
-        await readinessViewModel.loadData()
-        let estimated = readinessViewModel.estimatedRaceTime
+        let raceProjection = await loadRaceProjection()
 
-        // 能力基準詳情頁的完賽預估（T-0376）。**同一份 readiness response**，
-        // 與上面那個「預估完賽」是兩個欄位：`estimated_race_time` 是目標賽事那一個
-        // 距離，這一份是四個固定距離的能力對照。整段不新增請求。
+        // 能力基準詳情頁的四距離預估與首頁目標距離都投影自這一份
+        // `GET /v2/athlete-state/metrics` 回應。
         //
         // 目標卡的組裝可能因為沒有主要賽事而提早 return（下面的 `guard let main`），
         // 但完賽預估**與有沒有目標賽事無關** —— 所以在那些 return 之前就先發布。
-        // readiness 自己會吞掉取消（`TrainingReadinessManager` catch 後直接 return），
-        // 所以 `roundSawCancellation` 不會被設——這一段之後每個 guard 都要自己查
-        // `Task.isCancelled`（外審 D04）。
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled, !roundSawCancellation, !isStaleRound else { return }
         if !isStaleRound {
             finishPredictions = App2MetricDetailProjection.finishPredictions(
-                from: readinessViewModel.raceFitnessMetric
+                from: raceProjection
             )
         }
 
@@ -1430,6 +1417,12 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         // 每個可取消子載 await 完就查旗標：取消＝整段停手，不得再組 plan-end 或
         // 目標卡（外審第十輪 D04/E03——子載記了旗標回 nil，呼叫端不能當「沒資料」繼續）。
         guard !Task.isCancelled, !roundSawCancellation, !isStaleRound else { return }
+
+        let estimated = App2MetricDetailProjection.estimatedFinish(
+            deliveryStatus: raceProjection?.deliveryStatus,
+            envelope: raceProjection?.envelope,
+            targetDistanceKm: main.map { Double($0.distanceKm) }
+        )
 
         // **結束態的「當時預估」不是 `estimated`**（那是最新那一筆，講的是「現在」）。
         // 2026-08-27 裁決：要賽事日當天那一筆，取不到就整欄不畫。
@@ -1467,21 +1460,29 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             displayedCurrentWeek: goalCard?.value.currentWeek,
             displayedTotalWeeks: goalCard?.value.totalWeeks,
             origin: .live(
-                endpoint: "GET /user/targets + GET /v2/plan/status + GET /plan/readiness"
+                endpoint: "GET /user/targets + GET /v2/plan/status + GET /v2/athlete-state/metrics"
                     + " + GET /v2/plan/overview"
             )
         )
     }
 
+    private func loadRaceProjection() async -> AthleteStateRaceProjectionItem? {
+        do {
+            let response = try await metricsDataSource.fetchMetrics()
+            return response.metrics.raceProjection
+        } catch {
+            if error.isCancellationError {
+                noteRoundCancellation()
+            } else {
+                Logger.debug("[App2HomeVM] race_projection metrics 取得失敗,完賽預估不顯示: \(error)")
+            }
+            return nil
+        }
+    }
+
     /// 結束態 hero 右欄那個「當時預估」（2026-08-27 裁決）。
     ///
-    /// **打的是賽事日那一天的 readiness**（`GET /plan/readiness/{race_date}`，
-    /// 後端 `api/v1/training_plan.py:803`；該端點的 docstring 明寫
-    /// "Readiness is date-specific: never substitute a different date"）。
-    ///
-    /// 為什麼不能用 `readinessViewModel.estimatedRaceTime`：那是**最新**那一筆，
-    /// 講的是「你現在能跑幾分」。計畫已經走完，畫面上那一格要講的是「這段備賽把
-    /// 預估推到哪」——拿今天的值冒充當時的值，數字會隨著賽後掉練一路往回走。
+    /// 從 `GET /v2/athlete-state/metrics/series` 取賽事當地日期的 row，保留歷史日期語意。
     ///
     /// **取不到就回 nil**（整欄不畫）：寧可少一格，也不要標一個別的日子的預估。
     /// 只有 race 語意的結束態才打這一條 —— maintenance 沒有賽事日，也不提成績。
@@ -1504,13 +1505,19 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             // 賽事日期以**賽事時區**換算成當地日字串 —— 與卡片上印的那個日期同一支，
             // 不另算一份（`YYYY-MM-DD` 是當地日，不是 UTC）。
             let raceDate = App2PlanEndProjection.raceDateLabel(target)
-            let readiness = try await readinessService.getReadiness(date: raceDate, forceCalculate: false)
-            return readiness.metrics?.raceFitness?.estimatedRaceTime
+            guard !App2PlanEndProjection.isRaceDateFuture(raceDate, target: target) else { return nil }
+            let series = try await seriesDataSource.fetchMetricSeries(startDay: raceDate, endDay: raceDate)
+            let row = series.series["race_projection"]?.first { $0.day == raceDate }
+            return App2MetricDetailProjection.estimatedFinish(
+                deliveryStatus: row?.deliveryStatus,
+                envelope: row?.envelope,
+                targetDistanceKm: Double(target.distanceKm)
+            )
         } catch {
             if error.isCancellationError {
                 noteRoundCancellation()
             } else {
-                Logger.debug("[App2HomeVM] 賽事日 readiness 取不到,結束態不畫預估欄: \(error)")
+                Logger.debug("[App2HomeVM] 賽事日 race_projection 取不到,結束態不畫預估欄: \(error)")
             }
             return nil
         }

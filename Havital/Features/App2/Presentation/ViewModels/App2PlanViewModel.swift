@@ -523,7 +523,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             overview: nil,
             target: target,
             // 課表 tab 的結束態卡不畫完賽預估（frame-00g2（c）沒有那一格），
-            // 所以這一頁不為它多打一次 readiness。
+            // 所以這一頁不為它多打一趟 athlete_state metrics/series。
             estimatedFinish: nil
         ) {
             planEnd = forced

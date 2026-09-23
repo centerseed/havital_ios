@@ -61,6 +61,13 @@ final class App2PlanEndProjectionTests: XCTestCase {
         )
     }
 
+    func test_raceDateFutureCheckUsesTheTargetTimezoneAndAllowsToday() throws {
+        let now = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-09-23T10:00:00Z"))
+
+        XCTAssertFalse(App2PlanEndProjection.isRaceDateFuture("2026-09-23", target: target(), now: now))
+        XCTAssertTrue(App2PlanEndProjection.isRaceDateFuture("2026-09-24", target: target(), now: now))
+    }
+
     private func bar(_ weekStart: String, _ km: Double) -> WorkoutStatsWeeklyEntry {
         WorkoutStatsWeeklyEntry(
             weekStart: weekStart,

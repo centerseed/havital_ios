@@ -196,7 +196,7 @@ final class App2CancellationTests: XCTestCase {
             planRepository: repository,
             targetRepository: MockTargetRepository(),
             userProfileRepository: MockUserProfileRepository(),   // cachedUserToReturn 預設 nil
-            readinessViewModel: nil,
+            metricsDataSource: App2EmptyAthleteStateMetricsDataSource(),
             weeklyVolumesLoader: { [] }
         )
 
@@ -273,7 +273,7 @@ final class App2CancellationTests: XCTestCase {
             planRepository: planRepo,
             targetRepository: targetRepo,
             userProfileRepository: MockUserProfileRepository(),   // cachedUserToReturn 預設 nil
-            readinessViewModel: nil,
+            metricsDataSource: App2EmptyAthleteStateMetricsDataSource(),
             weeklyVolumesLoader: { [] }
         )
 
@@ -294,7 +294,7 @@ final class App2CancellationTests: XCTestCase {
             planRepository: planRepo,
             targetRepository: targetRepo,
             userProfileRepository: MockUserProfileRepository(),
-            readinessViewModel: nil,
+            metricsDataSource: App2EmptyAthleteStateMetricsDataSource(),
             weeklyVolumesLoader: { [] }
         )
 
@@ -376,8 +376,8 @@ final class App2CancellationTests: XCTestCase {
             dailyStateRepository: nil,
             targetRepository: targetRepo,
             planRepository: planRepo,
-            readinessViewModel: nil,
-            readinessService: nil,
+            metricsDataSource: App2EmptyAthleteStateMetricsDataSource(),
+            seriesDataSource: App2EmptyAthleteStateSeriesDataSource(),
             workoutDataSource: ImmediateStatsSource(),
             snapshots: SnapshotSpy()
         )
@@ -388,7 +388,7 @@ final class App2CancellationTests: XCTestCase {
         XCTAssertNil(vm.lastLoadedAt)
         // 冷啟 hydrate 的預渲染是設計內的 SWR「先舊後新」，卡片可以在；
         // 但它必須停留在 hydrate 版（origin 只有 targets+status 兩端點），
-        // 不得被這一輪被取消的組裝覆蓋（組裝版 origin 會多 readiness/overview）。
+        // 不得被這一輪被取消的組裝覆蓋（組裝版 origin 會多 metrics/overview）。
         XCTAssertEqual(
             vm.goalCard?.origin,
             .live(endpoint: "GET /user/targets + GET /v2/plan/status"),
@@ -404,8 +404,8 @@ final class App2CancellationTests: XCTestCase {
             dailyStateRepository: nil,
             targetRepository: MockTargetRepository(),
             planRepository: planRepo,
-            readinessViewModel: nil,
-            readinessService: nil,
+            metricsDataSource: App2EmptyAthleteStateMetricsDataSource(),
+            seriesDataSource: App2EmptyAthleteStateSeriesDataSource(),
             workoutDataSource: ImmediateStatsSource(),
             snapshots: SnapshotSpy()
         )
@@ -417,16 +417,25 @@ final class App2CancellationTests: XCTestCase {
         XCTAssertEqual(planRepo.getPlanStatusCallCount, 1, "後進的那一輪要直接跳過")
     }
 
-    private final class CancelledReadinessService: TrainingReadinessProviding {
-        func getReadiness(date: String, forceCalculate: Bool) async throws -> TrainingReadinessResponse {
+    private final class CancelledAthleteStateSeriesDataSource: AthleteStateSeriesDataSourceProtocol {
+        func fetchMetricSeries(startDay: String, endDay: String) async throws -> AthleteStateSeriesResponse {
             throw URLError(.cancelled)
+        }
+    }
+
+    private final class CountingAthleteStateSeriesDataSource: AthleteStateSeriesDataSourceProtocol {
+        private(set) var fetchCount = 0
+
+        func fetchMetricSeries(startDay: String, endDay: String) async throws -> AthleteStateSeriesResponse {
+            fetchCount += 1
+            return AthleteStateSeriesResponse(startDay: startDay, endDay: endDay, series: [:])
         }
     }
 
     // MARK: - T-0387 目標卡週次的出現時機（owner path）
     //
     // 這幾個測試走 `revalidate()` 的實際載入順序，不是純投影——投影測試證明不了
-    // 「週次有沒有等 readiness」。共用的 VM harness（mock repository、makePlanStatus、
+    // 「週次有沒有等 metrics」。共用的 VM harness（mock repository、makePlanStatus、
     // makeCachedMainTarget）就住在這個檔案，不另外複製一份。
 
     /// 冷啟：本機快取一開始是空的，`getTargets()` 回來之後才有主賽事。
@@ -442,12 +451,12 @@ final class App2CancellationTests: XCTestCase {
         }
     }
 
-    /// readiness 卡在這裡直到測試放行——用來驗「週次有沒有等它」。
-    private final class GatedReadinessViewModel: TrainingReadinessViewModel {
+    /// metrics request 卡在這裡直到測試放行——用來驗「週次有沒有等它」。
+    private final class GatedAthleteStateMetricsDataSource: AthleteStateMetricsDataSourceProtocol {
         private var resume: CheckedContinuation<Void, Never>?
         private var entered: CheckedContinuation<Void, Never>?
 
-        /// 等 `loadData()` 真的被呼叫到（避免用 sleep 猜時序）。
+        /// 等 `fetchMetrics()` 真的被呼叫到（避免用 sleep 猜時序）。
         func waitUntilEntered() async {
             await withCheckedContinuation { entered = $0 }
         }
@@ -457,39 +466,41 @@ final class App2CancellationTests: XCTestCase {
             resume = nil
         }
 
-        override func loadData() async {
+        func fetchMetrics() async throws -> AthleteStateMetricsResponse {
             entered?.resume()
             entered = nil
             await withCheckedContinuation { resume = $0 }
+            if Task.isCancelled { throw URLError(.cancelled) }
+            return AthleteStateMetricsResponse(metrics: .init(raceProjection: nil))
         }
     }
 
-    func test_homeVM_coldTargetCache_publishesWeekBeforeReadinessReturns() async {
-        // 冷啟（快取空）時週次仍不得等 readiness。這是使用者回報的
+    func test_homeVM_coldTargetCache_publishesWeekBeforeMetricsReturns() async {
+        // 冷啟（快取空）時週次仍不得等 metrics。這是使用者回報的
         // 「要等很久才會自己更新，或點進訓練計畫才會更新」（2026-09-02）。
         let planRepo = MockTrainingPlanV2Repository()
         planRepo.planStatusToReturn = makePlanStatus(planId: nil)
         let targetRepo = ColdCacheTargetRepository()
         targetRepo.mainTargetToReturn = makeCachedMainTarget()
         targetRepo.targetsToReturn = [makeCachedMainTarget()]
-        let readiness = GatedReadinessViewModel()
+        let metrics = GatedAthleteStateMetricsDataSource()
         let vm = App2HomeViewModel(
             dailyStateRepository: nil,
             targetRepository: targetRepo,
             planRepository: planRepo,
-            readinessViewModel: readiness,
-            readinessService: nil,
+            metricsDataSource: metrics,
+            seriesDataSource: App2EmptyAthleteStateSeriesDataSource(),
             workoutDataSource: ImmediateStatsSource(),
             snapshots: SnapshotSpy()
         )
 
         async let round: Void = vm.revalidate()
-        await readiness.waitUntilEntered()
+        await metrics.waitUntilEntered()
 
-        XCTAssertEqual(vm.goalCard?.value.currentWeek, 2, "readiness 還沒回來，週次就該在畫面上")
+        XCTAssertEqual(vm.goalCard?.value.currentWeek, 2, "metrics 還沒回來，週次就該在畫面上")
         XCTAssertEqual(vm.goalCard?.value.totalWeeks, 5)
 
-        readiness.release()
+        metrics.release()
         await round
 
         XCTAssertEqual(targetRepo.getTargetsCallCount, 1, "同一輪只准打一次 /user/targets")
@@ -512,8 +523,8 @@ final class App2CancellationTests: XCTestCase {
             dailyStateRepository: nil,
             targetRepository: targetRepo,
             planRepository: planRepo,
-            readinessViewModel: nil,
-            readinessService: nil,
+            metricsDataSource: App2EmptyAthleteStateMetricsDataSource(),
+            seriesDataSource: App2EmptyAthleteStateSeriesDataSource(),
             workoutDataSource: ImmediateStatsSource(),
             snapshots: SnapshotSpy()
         )
@@ -528,39 +539,36 @@ final class App2CancellationTests: XCTestCase {
         XCTAssertFalse(vm.hasLoaded)
     }
 
-    func test_homeVM_cancelledDuringReadiness_keepsEarlyCardUntouched() async {
-        // 早發已經把週次畫上去，接著在 readiness 那一段被取消。readiness 自己吞掉取消
-        // （`TrainingReadinessManager` catch 後 return），`roundSawCancellation` 不會被設，
-        // 所以之後每個 guard 都得自己查 `Task.isCancelled`——否則會用取消輪的資料
-        // 覆蓋掉畫面上那張卡（外審 D04）。
+    func test_homeVM_cancelledDuringMetrics_keepsEarlyCardUntouched() async {
+        // 早發已經把週次畫上去，接著 race_projection metrics request 被取消。
         let planRepo = MockTrainingPlanV2Repository()
         planRepo.planStatusToReturn = makePlanStatus(planId: nil)
         let targetRepo = MockTargetRepository()
         targetRepo.mainTargetToReturn = makeCachedMainTarget()
         targetRepo.targetsToReturn = [makeCachedMainTarget()]
-        let readiness = GatedReadinessViewModel()
+        let metrics = GatedAthleteStateMetricsDataSource()
         let vm = App2HomeViewModel(
             dailyStateRepository: nil,
             targetRepository: targetRepo,
             planRepository: planRepo,
-            readinessViewModel: readiness,
-            readinessService: nil,
+            metricsDataSource: metrics,
+            seriesDataSource: App2EmptyAthleteStateSeriesDataSource(),
             workoutDataSource: ImmediateStatsSource(),
             snapshots: SnapshotSpy()
         )
 
         let round = Task { await vm.revalidate() }
-        await readiness.waitUntilEntered()
+        await metrics.waitUntilEntered()
         XCTAssertEqual(vm.goalCard?.value.currentWeek, 2, "早發應該已經把週次畫上去")
 
         round.cancel()
-        readiness.release()
+        metrics.release()
         await round.value
 
         XCTAssertEqual(
             vm.goalCard?.origin,
             .live(endpoint: "GET /user/targets + GET /v2/plan/status"),
-            "取消之後不得走完整組裝覆蓋（那一版的 origin 會多 readiness/overview）"
+            "取消之後不得走完整組裝覆蓋（那一版的 origin 會多 metrics/overview）"
         )
         XCTAssertEqual(vm.goalCard?.value.currentWeek, 2)
         XCTAssertFalse(vm.hasLoaded, "被取消的一輪不算載過")
@@ -578,8 +586,8 @@ final class App2CancellationTests: XCTestCase {
             dailyStateRepository: nil,
             targetRepository: targetRepo,
             planRepository: planRepo,
-            readinessViewModel: nil,
-            readinessService: nil,
+            metricsDataSource: App2EmptyAthleteStateMetricsDataSource(),
+            seriesDataSource: App2EmptyAthleteStateSeriesDataSource(),
             workoutDataSource: ImmediateStatsSource(),
             snapshots: SnapshotSpy()
         )
@@ -594,11 +602,11 @@ final class App2CancellationTests: XCTestCase {
         XCTAssertEqual(vm.goalCard?.value.totalWeeks, 5)
     }
 
-    private func makeCachedMainTarget() -> Target {
+    private func makeCachedMainTarget(raceDateOffsetDays: Int = 30) -> Target {
         Target(
             id: "t1", type: "race_run", name: "快取賽事", distanceKm: 21,
             targetTime: 7200, targetPace: "5:41",
-            raceDate: Int(Date().addingTimeInterval(86400 * 30).timeIntervalSince1970),
+            raceDate: Int(Date().addingTimeInterval(86400 * Double(raceDateOffsetDays)).timeIntervalSince1970),
             isMainRace: true, trainingWeeks: 5, raceId: nil
         )
     }
@@ -615,8 +623,8 @@ final class App2CancellationTests: XCTestCase {
             dailyStateRepository: nil,
             targetRepository: targetRepo,
             planRepository: planRepo,
-            readinessViewModel: nil,
-            readinessService: nil,
+            metricsDataSource: App2EmptyAthleteStateMetricsDataSource(),
+            seriesDataSource: App2EmptyAthleteStateSeriesDataSource(),
             workoutDataSource: ImmediateStatsSource(),
             snapshots: SnapshotSpy()
         )
@@ -633,28 +641,72 @@ final class App2CancellationTests: XCTestCase {
         )
     }
 
-    func test_homeVM_cancelledRaceDayReadiness_doesNotAssemblePlanEnd() async {
-        // 結束態（training_completed × race）要打賽事日 readiness；那一發被取消
+    func test_homeVM_cancelledRaceDayProjectionSeries_doesNotAssemblePlanEnd() async {
+        // 結束態（training_completed × race）要打賽事日 metrics/series；那一發被取消
         // 就整段停手，不得帶著 nil 預估組結束態卡（外審第十輪 E03）。
         let planRepo = MockTrainingPlanV2Repository()
         planRepo.planStatusToReturn = makePlanStatus(planId: nil, nextAction: "training_completed")
         let targetRepo = MockTargetRepository()
-        targetRepo.mainTargetToReturn = makeCachedMainTarget()
+        targetRepo.mainTargetToReturn = makeCachedMainTarget(raceDateOffsetDays: -1)
         let vm = App2HomeViewModel(
             dailyStateRepository: nil,
             targetRepository: targetRepo,
             planRepository: planRepo,
-            readinessViewModel: nil,
-            readinessService: CancelledReadinessService(),
+            metricsDataSource: App2EmptyAthleteStateMetricsDataSource(),
+            seriesDataSource: CancelledAthleteStateSeriesDataSource(),
             workoutDataSource: ImmediateStatsSource(),
             snapshots: SnapshotSpy()
         )
 
         await vm.revalidate()
 
-        XCTAssertFalse(vm.hasLoaded, "賽事日 readiness 被取消＝部分取消，不算載過")
+        XCTAssertFalse(vm.hasLoaded, "賽事日 race_projection series 被取消＝部分取消，不算載過")
         XCTAssertNil(vm.lastLoadedAt)
         XCTAssertNil(vm.planEnd, "取消的輪不得組結束態卡")
+    }
+
+    func test_homeVM_futureRaceDateDoesNotFetchSeriesOrShowHistoricalEstimate() async {
+        let planRepo = MockTrainingPlanV2Repository()
+        planRepo.planStatusToReturn = makePlanStatus(planId: nil, nextAction: "training_completed")
+        let targetRepo = MockTargetRepository()
+        targetRepo.mainTargetToReturn = makeCachedMainTarget(raceDateOffsetDays: 30)
+        let seriesDataSource = CountingAthleteStateSeriesDataSource()
+        let vm = App2HomeViewModel(
+            dailyStateRepository: nil,
+            targetRepository: targetRepo,
+            planRepository: planRepo,
+            metricsDataSource: App2EmptyAthleteStateMetricsDataSource(),
+            seriesDataSource: seriesDataSource,
+            workoutDataSource: ImmediateStatsSource(),
+            snapshots: SnapshotSpy()
+        )
+
+        await vm.revalidate()
+
+        XCTAssertEqual(seriesDataSource.fetchCount, 0, "未來賽事日不查 series")
+        XCTAssertNil(vm.planEnd?.estimatedFinish, "不得用今天的值代替賽事日 row")
+    }
+
+    func test_homeVM_missingRaceDayRowDoesNotFallbackToTodaysProjection() async {
+        let planRepo = MockTrainingPlanV2Repository()
+        planRepo.planStatusToReturn = makePlanStatus(planId: nil, nextAction: "training_completed")
+        let targetRepo = MockTargetRepository()
+        targetRepo.mainTargetToReturn = makeCachedMainTarget(raceDateOffsetDays: -1)
+        let seriesDataSource = CountingAthleteStateSeriesDataSource()
+        let vm = App2HomeViewModel(
+            dailyStateRepository: nil,
+            targetRepository: targetRepo,
+            planRepository: planRepo,
+            metricsDataSource: App2StaticAthleteStateMetricsDataSource(),
+            seriesDataSource: seriesDataSource,
+            workoutDataSource: ImmediateStatsSource(),
+            snapshots: SnapshotSpy()
+        )
+
+        await vm.revalidate()
+
+        XCTAssertEqual(seriesDataSource.fetchCount, 1, "歷史預估只讀賽事日的一日序列")
+        XCTAssertNil(vm.planEnd?.estimatedFinish, "當天 row 缺席時不得退回 metrics 今日值")
     }
 
     // MARK: - 指標詳情：快速切 range，後選要取消前選（外審第十輪 D04/E08）
@@ -757,8 +809,8 @@ final class App2CancellationTests: XCTestCase {
             dailyStateRepository: nil,
             targetRepository: MockTargetRepository(),
             planRepository: repository,
-            readinessViewModel: nil,
-            readinessService: nil,
+            metricsDataSource: App2EmptyAthleteStateMetricsDataSource(),
+            seriesDataSource: App2EmptyAthleteStateSeriesDataSource(),
             workoutDataSource: ImmediateStatsSource(),
             snapshots: SnapshotSpy()
         )

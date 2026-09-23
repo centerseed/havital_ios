@@ -203,7 +203,7 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
             planRepository: repository,
             targetRepository: targetRepository,
             userProfileRepository: userProfileRepository,
-            readinessViewModel: OfflineReadinessViewModel(),
+            metricsDataSource: App2EmptyAthleteStateMetricsDataSource(),
             weeklyVolumesLoader: { [] }
         )
     }
@@ -677,7 +677,7 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
             planRepository: repository,
             targetRepository: MockTargetRepository(),
             userProfileRepository: MockUserProfileRepository(),
-            readinessViewModel: OfflineReadinessViewModel(),
+            metricsDataSource: App2EmptyAthleteStateMetricsDataSource(),
             weeklyVolumesLoader: { counter.loads += 1; return [] }
         )
         await viewModel.revalidate()
@@ -705,7 +705,7 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
             planRepository: repository,
             targetRepository: MockTargetRepository(),
             userProfileRepository: MockUserProfileRepository(),
-            readinessViewModel: OfflineReadinessViewModel(),
+            metricsDataSource: App2EmptyAthleteStateMetricsDataSource(),
             weeklyVolumesLoader: { counter.loads += 1; return [] }
         )
         await viewModel.revalidate()
@@ -895,16 +895,6 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
 }
 
 // MARK: - 測試替身
-
-/// 單元測試不打真網路（T-0365）。
-///
-/// `App2PlanOverviewViewModel.loadEstimatedFinish()` 走 readiness VM 的
-/// `refreshData()`，預設實作會打 `GET /plan/readiness/{date}`；在全套件下那一趟會被
-/// 取消，於是整輪被判成取消、`lastLoadedAt` 留空 —— `testTargetsChangeEventTriggersImmediateRevalidate`
-/// 就是這樣間歇轉紅的（2026-09-01 實測，同一顆 commit 三次全套件裡紅兩次、單跑必綠）。
-private final class OfflineReadinessViewModel: TrainingReadinessViewModel {
-    override func refreshData() async {}
-}
 
 /// 一次性的閘門：`wait()` 卡住直到 `open()`。用來斷言「網路還沒回來之前畫面就有東西」。
 // `AsyncGate` 搬到 `App2AsyncGate.swift` 共用（App2HomeViewModel 的取消測試也要用）。

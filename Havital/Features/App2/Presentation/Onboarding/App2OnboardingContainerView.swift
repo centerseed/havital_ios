@@ -1586,8 +1586,8 @@ struct App2OnboardingCompletionView: View {
         return parts.joined(separator: " · ")
     }
 
-    /// 「現在的你」只在 readiness 真的有預估時才出現；沒有就只顯示目標欄，
-    /// **不本機推一個完賽預估頂替**（那是 readiness 擁有的語意）。
+    /// 「現在的你」只在 race_projection 有 active/computed 預估時才出現；沒有就只顯示目標欄，
+    /// **不本機推一個完賽預估頂替**。
     private func comparison(_ overview: PlanOverviewV2) -> some View {
         HStack(spacing: 10) {
             if let now = viewModel.currentEstimatedFinish {

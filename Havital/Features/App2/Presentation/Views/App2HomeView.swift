@@ -161,7 +161,7 @@ struct App2HomeView: View {
                     narrative: kind == .weeklyVolume
                         ? viewModel.trainingStatus?.value.mileageProgression
                         : insight.evidence,
-                    // 完賽預估同樣**用首頁那一輪已經載到的 readiness**（T-0376），
+                    // 完賽預估同樣用首頁那一輪已載到的 athlete_state race_projection（T-0376），
                     // 詳情頁不為它多打一次網路。空陣列＝那一區不畫。
                     finishPredictions: viewModel.finishPredictions,
                     // 有氧續航／速度耐力的 30 天序列窗右端＝卡片的業務日（T-0617）。

@@ -70,7 +70,7 @@ final class App2OnboardingViewModel: ObservableObject {
     /// 是否真的有同步紀錄推得的平均（沒有就不顯示來源徽章，也不謊稱來自 Garmin）。
     var hasSyncedMileage: Bool { flow.historicalWeeklyAverage != nil }
 
-    /// frame-39「現在的你」——走既有的 readiness 出口，沒有就整欄不顯示。
+    /// frame-39「現在的你」——讀今日 athlete_state race_projection，沒有就整欄不顯示。
     @Published var currentEstimatedFinish: String?
 
     // MARK: - UI 狀態
@@ -81,7 +81,7 @@ final class App2OnboardingViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private var vdotTask: Task<Void, Never>?
-    private let readinessViewModel = TrainingReadinessViewModel()
+    private let metricsDataSource: AthleteStateMetricsDataSourceProtocol
 
     // MARK: - 非賽事分支的訓練週數
     //
@@ -96,10 +96,14 @@ final class App2OnboardingViewModel: ObservableObject {
 
     // MARK: - Init
 
-    init(isReonboarding: Bool) {
+    init(
+        isReonboarding: Bool,
+        metricsDataSource: AthleteStateMetricsDataSourceProtocol? = nil
+    ) {
         self.isReonboarding = isReonboarding
         self.flow = DependencyContainer.shared.makeOnboardingFeatureViewModel()
         self.profile = UserProfileFeatureViewModel()
+        self.metricsDataSource = metricsDataSource ?? AthleteStateMetricsRemoteDataSource()
     }
 
     // MARK: - 導航衍生值
@@ -474,12 +478,25 @@ final class App2OnboardingViewModel: ObservableObject {
 
     var overview: PlanOverviewV2? { coordinator.trainingPlanOverviewV2 }
 
-    /// 「現在的你」走既有的 readiness 出口（`GET /plan/readiness` 的
-    /// `race_fitness.estimated_race_time`，與首頁目標卡同一個值）。
-    /// 全新帳號通常還沒有這個值 —— 那一欄就整格不顯示，**不本機推一個預估頂替**。
+    /// 「現在的你」只讀今日 `state.race_projection` 的目標距離 channel。
+    /// 全新帳號通常還沒有 computed 值 —— 那一欄就整格不顯示，**不本機推一個預估頂替**。
     private func loadCurrentFitnessEstimate() async {
-        await readinessViewModel.loadData()
-        currentEstimatedFinish = readinessViewModel.estimatedRaceTime
+        do {
+            let response = try await metricsDataSource.fetchMetrics()
+            let distanceKm = isRaceBranch
+                ? coordinator.targetDistance
+                : coordinator.intendedRaceDistanceKm.map { Double($0) }
+            let estimate = App2MetricDetailProjection.estimatedFinish(
+                deliveryStatus: response.metrics.raceProjection?.deliveryStatus,
+                envelope: response.metrics.raceProjection?.envelope,
+                targetDistanceKm: distanceKm
+            )
+            guard !Task.isCancelled else { return }
+            currentEstimatedFinish = estimate
+        } catch {
+            guard !error.isCancellationError, !Task.isCancelled else { return }
+            currentEstimatedFinish = nil
+        }
     }
 
     /// 設計 frame-39 CTA：產生第一週課表 → 進首頁。

@@ -61,7 +61,7 @@ enum App2PlanEndProjection {
     ///
     /// - `overview`：語意分岔的來源。讀不到 → `.maintenance`（保守：不提賽事成績）。
     /// - `target`：race 變體的賽名／賽日／距離／目標成績。maintenance 不用它。
-    /// - `estimatedFinish`：readiness 流的完賽預估（**當時的預估**語意，見型別註解）。
+    /// - `estimatedFinish`：賽事日 race_projection row 的完賽預估（**當時的預估**語意）。
     static func card(
         planStatus: PlanStatusV2Response?,
         overview: PlanOverviewV2?,
@@ -349,6 +349,16 @@ enum App2PlanEndProjection {
         formatter.dateFormat = "yyyy-MM-dd"
         formatter.timeZone = TimeZone(identifier: target.timezone) ?? .current
         return formatter.string(from: Date(timeIntervalSince1970: TimeInterval(target.raceDate)))
+    }
+
+    /// Compare a target's local race day against today's date in the same race timezone.
+    static func isRaceDateFuture(_ raceDate: String, target: Target, now: Date = Date()) -> Bool {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = TimeZone(identifier: target.timezone) ?? .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return raceDate > formatter.string(from: now)
     }
 
     // 距離標籤走 `App2OnboardingFormat.distanceLabel(km:)`（2026-09-01 收斂）——

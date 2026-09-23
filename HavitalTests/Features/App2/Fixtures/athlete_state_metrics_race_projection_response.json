@@ -1,0 +1,81 @@
+{
+ "success": true,
+ "data": {
+  "uid": "rINTByL8TyRnYywJSVSBa6sHnZM2",
+  "maturity": "observable",
+  "metrics": {
+   "race_projection": {
+    "item_id": "state.race_projection",
+    "as_of": "2026-09-23",
+    "estimator_version": "race_projection_capability_center_v1",
+    "delivery_status": "active",
+    "envelope": {
+     "metric_id": "state.race_projection",
+     "delivery_status": "active",
+     "center": {
+      "value": 64.2609,
+      "unit": "vdot"
+     },
+     "parameter_set_id": "race_projection/20260817-allout",
+     "confidence": null,
+     "channels": {
+      "5k": {
+       "raw": {
+        "projected_seconds": 964,
+        "interval_seconds": null,
+        "status": "computed"
+       },
+       "limits": [
+        {
+         "code": "interval_not_calibrated",
+         "params": {
+          "unit": "none"
+         },
+         "direction": "unknown",
+         "user_actionable": false,
+         "auto_correctable": false,
+         "impact": null
+        }
+       ]
+      },
+      "10k": {
+       "raw": {
+        "projected_seconds": 2001,
+        "interval_seconds": [
+         1925,
+         2424
+        ],
+        "status": "computed"
+       },
+       "limits": []
+      },
+      "half_marathon": {
+       "raw": {
+        "projected_seconds": 4702,
+        "interval_seconds": [
+         4296,
+         5031
+        ],
+        "status": "computed"
+       },
+       "limits": []
+      },
+      "full_marathon": {
+       "raw": {
+        "projected_seconds": 9608,
+        "interval_seconds": [
+         9047,
+         10549
+        ],
+        "status": "computed"
+       },
+       "limits": []
+      }
+     },
+     "limits": []
+    }
+   },
+   "_note": "other registered items (capability_baseline, aerobic_endurance, ...) omitted"
+  }
+ }
+}

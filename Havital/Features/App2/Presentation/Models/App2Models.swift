@@ -50,7 +50,7 @@ struct App2GoalCard: Equatable {
     let stageLabel: String?
     /// `2:34:00`。nil = 目標未設成績。
     let targetTime: String?
-    /// `2:41:30`，來自 readiness 的 `race_fitness.estimated_race_time`。
+    /// 目標距離在 `state.race_projection` 對應 channel 的完賽時間；無 active/computed 值時為 nil。
     let estimatedFinish: String?
     let currentWeek: Int?
     let totalWeeks: Int?
@@ -719,8 +719,8 @@ struct App2PlanOverview: Equatable {
     let distanceLabel: String?
     /// `還有 N 週`。
     let weeksUntilRace: Int?
-    /// 「現在的你」——`GET /plan/readiness/{date}` 的 `race_fitness.estimated_race_time`。
-    /// 這個帳號還沒有這個量時是 nil，畫面說「尚未有預估」，不本機推一個。
+    /// 「現在的你」——`GET /v2/athlete-state/metrics` 的 race_projection 目標距離 channel。
+    /// 這個帳號還沒有 active/computed 值時是 nil，畫面說「尚未有預估」，不本機推一個。
     let currentEstimatedFinish: String?
     /// 「約 N km / 週」——近 4 週實際週跑量平均（`GET /summary/weekly/all`）。
     let currentWeeklyKm: Double?
@@ -992,18 +992,15 @@ struct App2CapabilityDetail: Equatable {
 
 /// §52 能力基準頁「完賽預估」的一列：距離名 ＋ 預估完賽時間。
 ///
-/// **這一列屬於 readiness 流**（`race_fitness.finish_time_predictions`），與同頁
-/// hero／VDOT 歷史線的 decision-chain 流是兩條資料流（`AGENTS.md`「兩條資料流」）：
-/// 同頁並列，但**不互相佐證也不互相驗收** —— 投影錨與處方 `pace_vdot` 本來就是
-/// 兩個數字（`MAP-race-prediction.md:123-149`，T-0320），所以這裡的秒數不會等於
-/// 「拿頁面上那個 VDOT 去查表」的結果。
+/// 四距離 channel 來自 athlete_state `race_projection`。同頁能力基準 hero 與這些
+/// channel 都屬於 athlete_state 資料流；秒數直接顯示後端投影，不由畫面上的 VDOT 重算。
 struct App2FinishPrediction: Identifiable, Equatable {
-    /// 後端的距離 key（`five_k`／`ten_k`／`half_marathon`／`full_marathon`）。
+    /// 後端的 channel key（`5k`／`10k`／`half_marathon`／`full_marathon`）。
     let id: String
     /// 賽事名（`5K`／`10K`／`半馬`／`全馬`），走既有的 `race_filter.*` 三語 key。
     /// **不是量測值**，所以切公制／英制不換算。
     let label: String
-    /// `H:MM:SS`，後端字串原樣。時間沒有單位換算。
+    /// 從 `projected_seconds` 格式化的完賽時間。時間沒有單位換算。
     let time: String
 }
 

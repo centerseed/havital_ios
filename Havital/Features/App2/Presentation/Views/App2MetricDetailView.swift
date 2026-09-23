@@ -18,7 +18,7 @@ struct App2MetricDetailView: View {
     let insight: App2Insight
     /// 一句敘事（訓練量用 `mileage_progression`，其餘用該列的 `evidence`）。
     let narrative: String?
-    /// 四距離完賽預估（只有 §52 能力基準用得到）。**首頁那一輪的 readiness**，
+    /// 四距離完賽預估（只有 §52 能力基準用得到）。首頁那一輪的 race_projection，
     /// 詳情頁不重新取（T-0376）。空陣列＝那一區不畫。
     var finishPredictions: [App2FinishPrediction] = []
     /// 卡片的使用者當地業務日。三頁 30 天序列窗的右端
@@ -384,10 +384,8 @@ private struct App2VolumeDetailPage: View {
 private struct App2CapabilityDetailPage: View {
     let insight: App2Insight
     let narrative: String?
-    /// readiness 流的四距離完賽預估（T-0376）。**不進 `App2CapabilityDetail`**：
-    /// 那個型別是這一頁 VM 從 decision-chain 流的 `/v2/workouts/vdots` 投影出來的，
-    /// 把另一條流的資料塞進去會讓「這個模型代表哪一條流」講不清楚
-    /// （`AGENTS.md`「兩條資料流」）。空陣列＝整區不畫。
+    /// athlete_state `race_projection` 的四距離完賽預估（T-0376）。獨立於 VDOT 序列的
+    /// 載入狀態；每個 channel 依自己的 delivery/status 決定是否顯示。空陣列＝整區不畫。
     let finishPredictions: [App2FinishPrediction]
     let onClose: () -> Void
 
@@ -468,7 +466,7 @@ private struct App2CapabilityDetailPage: View {
             }
 
             // 完賽預估在圖與診斷列之間。**與上面那塊的載入狀態無關** —— 它來自
-            // 首頁那一輪的 readiness，VDOT 序列取不到不該把它一起藏掉。
+            // 首頁那一輪的 race_projection，VDOT 序列取不到不該把它一起藏掉。
             if !finishPredictions.isEmpty {
                 finishPredictionsCard
             }

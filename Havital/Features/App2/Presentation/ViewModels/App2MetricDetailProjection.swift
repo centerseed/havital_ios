@@ -228,65 +228,55 @@ enum App2MetricDetailProjection {
         return rows
     }
 
-    /// 四個固定距離的完賽預估列（T-0376；Android 對應 T-0375）。
-    ///
-    /// 資料源是 **readiness 流**的 `race_fitness.finish_time_predictions`，
-    /// 由首頁那一輪已經載過的同一份 readiness 傳進來（見 `App2HomeViewModel`）——
-    /// 這一頁不為它多打一次網路。
-    ///
-    /// 三條規則：
-    /// 1. **排序依 `distance_km` 由小到大**。Swift 的 `[String: T]` 沒有順序，
-    ///    靠 dict 迭代排必然每次都不一樣。`distance_km` 缺席時退回該 key 的已知距離；
-    ///    連 key 都認不得就排到最後。
-    /// 2. **標籤走既有的 `race_filter.*` 三語 key**（`5K`／`10K`／`半馬`／`全馬`）。
-    ///    賽事名不是量測值，切英制不換算。**認不得的 key 才退回 payload 的
-    ///    `distance_label`** —— 猜一個譯名比原樣顯示更糟（同 `vdotSourceLabel`）。
-    /// 3. **沒有 `estimated_time` 的那一筆整列丟掉**，回空陣列＝呼叫端整區不畫。
-    ///    不畫一排「–」（同 §51-7 `tsb_metrics` 全 null 整塊隱藏的 2026-08-26 裁決）。
-    static func finishPredictions(from metric: RaceFitnessMetric?) -> [App2FinishPrediction] {
-        guard let predictions = metric?.finishTimePredictions, !predictions.isEmpty else { return [] }
+    /// 四個固定距離的完賽預估列；只投影 active/computed 的 race_projection channels。
+    static func finishPredictions(from item: AthleteStateRaceProjectionItem?) -> [App2FinishPrediction] {
+        guard let item else { return [] }
 
-        return predictions
-            .compactMap { entry -> (order: Double, row: App2FinishPrediction)? in
-                let key = entry.key
-                let prediction = entry.value
-                guard let time = prediction.estimatedTime, !time.isEmpty else { return nil }
-                return (
-                    order: prediction.distanceKm ?? knownDistanceKm(key) ?? .greatestFiniteMagnitude,
-                    row: App2FinishPrediction(
-                        id: key,
-                        label: finishDistanceLabel(key, fallback: prediction.distanceLabel),
-                        time: time
-                    )
-                )
+        return namedRaceDistances.compactMap { distance in
+            guard let seconds = AthleteStateRaceProjectionPresenter.projectedSeconds(
+                deliveryStatus: item.deliveryStatus,
+                envelope: item.envelope,
+                channelKey: distance.key
+            ) else {
+                return nil
             }
-            // 同距離（理論上不會有）時用 key 定序，讓輸出對同一份 payload 永遠一樣。
-            .sorted { ($0.order, $0.row.id) < ($1.order, $1.row.id) }
-            .map(\.row)
-    }
-
-    /// 後端 `STANDARD_RACE_DISTANCES` 的四個 key（`race_fitness.py:84-89`）。
-    /// `distance_km` 缺席時才用得到。
-    private static func knownDistanceKm(_ key: String) -> Double? {
-        switch key {
-        case "five_k":         return 5.0
-        case "ten_k":          return 10.0
-        case "half_marathon":  return 21.0975
-        case "full_marathon":  return 42.195
-        default:               return nil
+            return App2FinishPrediction(
+                id: distance.key,
+                label: NSLocalizedString(distance.labelKey, comment: distance.comment),
+                time: AthleteStateRaceProjectionPresenter.formattedTime(seconds: seconds)
+            )
         }
     }
 
-    /// 賽事名。走既有的 `race_filter.*`（onboarding 已經在用同一組，
-    /// `App2OnboardingContainerView.swift`），不新造距離字串。
-    private static func finishDistanceLabel(_ key: String, fallback: String?) -> String {
-        switch key {
-        case "five_k":        return NSLocalizedString("race_filter.5k", comment: "5K")
-        case "ten_k":         return NSLocalizedString("race_filter.10k", comment: "10K")
-        case "half_marathon": return NSLocalizedString("race_filter.half_marathon", comment: "半馬")
-        case "full_marathon": return NSLocalizedString("race_filter.full_marathon", comment: "全馬")
-        default:              return fallback ?? key
-        }
+    private struct NamedRaceDistance {
+        let key: String
+        let labelKey: String
+        let comment: String
+    }
+
+    /// 固定四距離列表；km 容差與 channel key 映射集中在 athlete-state presenter。
+    private static let namedRaceDistances = [
+        NamedRaceDistance(key: "5k", labelKey: "race_filter.5k", comment: "5K"),
+        NamedRaceDistance(key: "10k", labelKey: "race_filter.10k", comment: "10K"),
+        NamedRaceDistance(key: "half_marathon", labelKey: "race_filter.half_marathon", comment: "半馬"),
+        NamedRaceDistance(key: "full_marathon", labelKey: "race_filter.full_marathon", comment: "全馬")
+    ]
+
+    /// Target distance to backend channel; the backend rule is copied once in the shared presenter.
+    static func raceProjectionChannelKey(distanceKm: Double?) -> String? {
+        AthleteStateRaceProjectionPresenter.channelKey(distanceKm: distanceKm)
+    }
+
+    static func estimatedFinish(
+        deliveryStatus: String?,
+        envelope: AthleteStateMetricEnvelope?,
+        targetDistanceKm: Double?
+    ) -> String? {
+        AthleteStateRaceProjectionPresenter.formattedTime(
+            deliveryStatus: deliveryStatus,
+            envelope: envelope,
+            distanceKm: targetDistanceKm
+        )
     }
 
     /// `weighted_16x` → 「高權重錨定（以個人最佳為主）」（8/28 盤點 D11）。

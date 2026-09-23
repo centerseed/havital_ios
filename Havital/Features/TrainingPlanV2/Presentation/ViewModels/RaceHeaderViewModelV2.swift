@@ -6,11 +6,12 @@ import SwiftUI
 // MARK: - RaceHeaderViewModelV2
 /// Composite ViewModel for the Race Header (B2).
 /// Aggregates data from WeeklyPlanLoader (planOverview) and
-/// TrainingReadinessViewModel (readiness score, estimated time, week delta).
+/// TrainingReadinessViewModel (readiness score and week delta), plus today's athlete-state race projection.
 ///
 /// Depends on:
 ///   - WeeklyPlanLoader  (plan overview, race date, target time)
 ///   - TrainingReadinessViewModel  (overallScore, raceFitnessMetric, trendData)
+///   - AthleteStateMetricsDataSourceProtocol (distance-specific finish projection)
 ///
 /// All published properties are nil-safe; missing data hides the corresponding
 /// sub-section rather than crashing.
@@ -25,7 +26,7 @@ final class RaceHeaderViewModelV2: ObservableObject {
     /// Race / event name from planOverview.targetName
     @Published private(set) var raceTitle: String?
 
-    /// Estimated finish time string from raceFitnessMetric.estimatedRaceTime (e.g. "2:01:32")
+    /// Estimated finish time from today's active/computed athlete-state channel.
     @Published private(set) var estimatedFinish: String?
 
     /// Target finish time formatted from planOverview.targetTime (seconds) or targetPace
@@ -54,15 +55,30 @@ final class RaceHeaderViewModelV2: ObservableObject {
 
     private let loader: WeeklyPlanLoader
     private let readinessVM: TrainingReadinessViewModel
+    private let metricsDataSource: AthleteStateMetricsDataSourceProtocol
+    private var raceProjection: AthleteStateRaceProjectionItem?
+    private var raceProjectionTask: Task<Void, Never>?
     private var cancellables = Set<AnyCancellable>()
 
     // MARK: - Init
 
-    init(loader: WeeklyPlanLoader, readinessVM: TrainingReadinessViewModel) {
+    init(
+        loader: WeeklyPlanLoader,
+        readinessVM: TrainingReadinessViewModel,
+        metricsDataSource: AthleteStateMetricsDataSourceProtocol = AthleteStateMetricsRemoteDataSource()
+    ) {
         self.loader = loader
         self.readinessVM = readinessVM
+        self.metricsDataSource = metricsDataSource
         setupObservers()
         refresh()
+        raceProjectionTask = Task { [weak self] in
+            await self?.loadRaceProjection()
+        }
+    }
+
+    deinit {
+        raceProjectionTask?.cancel()
     }
 
     // MARK: - Observation
@@ -96,8 +112,11 @@ final class RaceHeaderViewModelV2: ObservableObject {
         // -- race title --
         raceTitle = overview?.targetName
 
-        // -- estimated finish (from readiness) --
-        estimatedFinish = readinessVM.estimatedRaceTime
+        // -- estimated finish (from today's athlete-state race_projection) --
+        estimatedFinish = AthleteStateRaceProjectionPresenter.formattedTime(
+            item: raceProjection,
+            distanceKm: overview?.distanceKm
+        )
 
         // -- target finish (from planOverview.targetTime in seconds) --
         if let seconds = overview?.targetTime, seconds > 0 {
@@ -124,6 +143,20 @@ final class RaceHeaderViewModelV2: ObservableObject {
 
         // -- week delta --
         weekDeltaDisplay = computeWeekDeltaDisplay()
+    }
+
+    private func loadRaceProjection() async {
+        do {
+            let response = try await metricsDataSource.fetchMetrics()
+            guard !Task.isCancelled else { return }
+            raceProjection = response.metrics.raceProjection
+            refresh()
+        } catch {
+            guard !error.isCancellationError, !Task.isCancelled else { return }
+            Logger.debug("[RaceHeaderViewModelV2] race_projection metrics failed; finish estimate hidden: \(error)")
+            raceProjection = nil
+            refresh()
+        }
     }
 
     // MARK: - Gap Calculation
