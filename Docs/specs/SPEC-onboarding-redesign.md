@@ -1,11 +1,13 @@
 ---
 type: SPEC
 id: SPEC-onboarding-redesign
-status: Implemented
+status: Partial
 layer: product
+owns: iOS onboarding 流程（開場到完成頁）的步驟、跨步驟狀態，以及產生課表失敗／被訂閱閘擋下時的呈現
+tasks: T-0789
 ontology_entity: TBD
 created: 2026-04-15
-updated: 2026-04-24
+updated: 2026-09-24
 decisions_closed: 2026-04-15
 ---
 
