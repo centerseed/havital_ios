@@ -40,6 +40,13 @@ struct App2SessionDetailView: View {
     }
 
     private var accent: Color { detail.dayType?.app2StripColor ?? App2Theme.accentBlue }
+    @Environment(\.colorScheme) private var colorScheme
+
+    /// 傳送方塊（Garmin／Watch）的圖示＋字色。light 照設計 frame-02 用加深課型色壓白底；
+    /// dark 方塊底換成 `cardBackground`（#232329），加深色在深底上讀不出來，改用課型主色本身。
+    private var sendButtonForeground: Color {
+        colorScheme == .dark ? accent : accent.app2Darkened
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -321,7 +328,7 @@ struct App2SessionDetailView: View {
             }
             // 設計 frame-02：**白底、圓角 16 的近正方形方塊**，圖示在上、
             // 兩行文字在下，icon 與文字同色＝該課型主色。不是圓形、不是純文字鈕。
-            .foregroundStyle(accent.app2Darkened)
+            .foregroundStyle(sendButtonForeground)
             .frame(width: 60, height: 60)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
@@ -355,7 +362,7 @@ struct App2SessionDetailView: View {
                     Text(NSLocalizedString(watchAvailability == .appNotInstalled ? "training.detail.install_watch_app" : "training.detail.send_to_watch", comment: ""))
                         .font(.system(size: 11, weight: .heavy)).multilineTextAlignment(.center)
                 }
-                .foregroundStyle(accent.app2Darkened)
+                .foregroundStyle(sendButtonForeground)
                 .frame(width: 60, height: 60)
                 .background(RoundedRectangle(cornerRadius: 16).fill(App2Theme.cardBackground))
             }

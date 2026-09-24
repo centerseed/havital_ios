@@ -16,8 +16,12 @@ final class App2RenderingTests: XCTestCase {
     // MARK: - Render helper
 
     @discardableResult
-    private func render<V: View>(_ view: V, name: String, height: CGFloat = 844) -> UIImage {
+    private func render<V: View>(
+        _ view: V, name: String, height: CGFloat = 844,
+        style: UIUserInterfaceStyle = .unspecified
+    ) -> UIImage {
         let host = UIHostingController(rootView: view)
+        host.overrideUserInterfaceStyle = style
         host.view.frame = CGRect(x: 0, y: 0, width: 390, height: height)
         host.view.backgroundColor = .systemBackground
         host.view.setNeedsLayout()
@@ -253,6 +257,31 @@ final class App2RenderingTests: XCTestCase {
         )
         render(App2HomeView(onOpenSettings: {}, viewModel: vm, achievementsViewModel: PersonalAchievementsViewModel()),
                name: "today-card-steady-run", height: 1400)
+    }
+
+    /// 課表詳情 hero 右上的「傳到 Garmin」方塊在 light／dark 都畫得出來。
+    /// dark 下方塊底是 `cardBackground`（#232329），字色若沿用 light 的加深課型色，
+    /// 深底配深字讀不出來（2026-09-24 使用者回報）——這裡留兩種外觀的畫面供複核。
+    func test_sessionDetail_garminSendButton_rendersInLightAndDark() {
+        let garmin = GarminManager.shared
+        let wasConnected = garmin.isConnected
+        garmin.isConnected = true
+        defer { garmin.isConnected = wasConnected }
+
+        for (dayType, title) in [(DayType.easyRun, "輕鬆跑"), (.interval, "間歇跑")] {
+            let detail = App2SessionDetail(
+                dayIndex: 2, dateString: "2026-09-24", dateTitle: "星期四 · 9/24",
+                title: title, dayType: dayType, kicker: "Z2",
+                distanceKm: 8.0, durationLabel: "48 分", durationMinutes: 48, phaseCount: 1,
+                structureBars: [], paceBand: nil, goalText: nil, reasonText: nil,
+                segments: [], strength: nil, climate: nil, showsFuelingNote: false,
+                isRunSession: true
+            )
+            for (style, suffix) in [(UIUserInterfaceStyle.light, "light"), (.dark, "dark")] {
+                render(App2SessionDetailView(detail: detail) {},
+                       name: "session-detail-send-\(dayType.rawValue)-\(suffix)", height: 420, style: style)
+            }
+        }
     }
 
     func test_weeklyVolumeChart_emptyAndAllZero_render() {
