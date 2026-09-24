@@ -28,6 +28,9 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
     private(set) var lastLoadedAt: Date?
     /// 背景時收到資料變更事件、還沒重抓。為 true 時 `loadIfNeeded` 無視 60 秒門檻重驗。
     private(set) var isRevalidationPending = false
+    /// 背景事件的序號。只有「在最後一個事件之後才送出」的請求成功，才清掉待重驗；
+    /// 事件前就已在途的那次請求回來不算數（外審 D04）。
+    private var backgroundEventGeneration = 0
 
     nonisolated let taskRegistry = TaskRegistry()
 
@@ -71,6 +74,7 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
     private func handleDataChanged(_ source: String) async {
         guard isAppActive() else {
             Self.diagnostic("event dataChanged.\(source) while not active → revalidate on foreground")
+            backgroundEventGeneration += 1
             isRevalidationPending = true
             return
         }
@@ -108,10 +112,11 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
     private func performLoad(forceRefresh: Bool) async {
         await executeTask(id: TaskID("achievements_load"), cooldownSeconds: forceRefresh ? 0 : 1) { [weak self] in
             guard let self else { return }
-            await MainActor.run {
+            let generation = await MainActor.run { () -> Int in
                 if self.summary == nil {
                     self.state = .loading
                 }
+                return self.backgroundEventGeneration
             }
 
             do {
@@ -121,7 +126,9 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
                     self.state = summary.hasVisibleContent ? .loaded : .empty
                     self.hasLoaded = true
                     self.lastLoadedAt = Date()
-                    self.isRevalidationPending = false
+                    if self.backgroundEventGeneration == generation {
+                        self.isRevalidationPending = false
+                    }
                     Self.diagnostic(
                         "load success state=\(summary.hasVisibleContent ? "loaded" : "empty") catalog=\(summary.catalogVersion) groups=\(summary.badgeGroups.count) unlocked=\(summary.storySummary.unlockedCount)/\(summary.storySummary.totalCount)"
                     )

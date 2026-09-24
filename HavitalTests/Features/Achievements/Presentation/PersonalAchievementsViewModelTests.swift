@@ -93,6 +93,35 @@ final class PersonalAchievementsViewModelTests: XCTestCase {
         XCTAssertEqual(repository.fetchCount, 2)
     }
 
+    /// 事件落在一次早已送出的請求途中：那次請求回來不得把「待重驗」清掉，
+    /// 回前景仍要有一次事件之後才送出的請求（外審 D04）。
+    func testBackgroundEventDuringInFlightFetchStillRevalidatesOnActive() async throws {
+        await CacheEventBus.shared.resetForTesting()
+        let gate = AsyncGate()
+        let repository = MockAchievementRepository(summary: .fixture(unlockedCount: 2), firstFetchGate: gate)
+        let appState = AppActiveStub(isActive: true)
+        let sut = PersonalAchievementsViewModel(
+            repository: repository,
+            analyticsService: MockAchievementAnalyticsService(),
+            isAppActive: { appState.isActive }
+        )
+        sut.load()
+        await gate.waitUntilEntered()
+
+        appState.isActive = false
+        CacheEventBus.shared.publish(.dataChanged(.workouts))
+        try await Task.sleep(nanoseconds: 200_000_000)
+        XCTAssertTrue(sut.isRevalidationPending)
+
+        appState.isActive = true
+        await gate.open()
+        try await Task.sleep(nanoseconds: 200_000_000)
+        await sut.loadIfNeeded()
+
+        XCTAssertGreaterThanOrEqual(repository.fetchCount, 2, "事件之後必須有一次新送出的請求")
+        XCTAssertFalse(sut.isRevalidationPending)
+    }
+
     func testWorkoutEventInForegroundFetchesImmediately() async throws {
         await CacheEventBus.shared.resetForTesting()
         let repository = MockAchievementRepository(summary: .fixture(unlockedCount: 2))
@@ -200,17 +229,24 @@ private final class MockAchievementRepository: AchievementRepository {
     private let pinnedSubject = CurrentValueSubject<String?, Never>(nil)
     var pinnedBadgeIdDidChange: AnyPublisher<String?, Never> { pinnedSubject.eraseToAnyPublisher() }
 
-    init(summary: AchievementSummary) {
+    private let firstFetchGate: AsyncGate?
+
+    init(summary: AchievementSummary, firstFetchGate: AsyncGate? = nil) {
         self.summaryResult = .success(summary)
         self.cachedSummary = summary
+        self.firstFetchGate = firstFetchGate
     }
 
     init(error: Error) {
         self.summaryResult = .failure(error)
+        self.firstFetchGate = nil
     }
 
     func fetchSummary(forceRefresh: Bool) async throws -> AchievementSummary {
         fetchCount += 1
+        if fetchCount == 1, let firstFetchGate {
+            await firstFetchGate.wait()
+        }
         return try summaryResult.get()
     }
 
