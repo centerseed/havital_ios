@@ -138,6 +138,20 @@ Paceriz 的 onboarding 流程目前有 14 個步驟，存在以下核心問題�
   - Given 後台賽事 API 不可用或回傳空列表，When 用戶進入賽事設定頁面，Then 不顯示「從賽事資料庫選擇」入口，直接顯示手動輸入表單（graceful degradation）。
   - Given 用戶選擇了距離後的賽事，When 進入完賽時間設定，Then 顯示該距離的常見完賽時間參考（與現有功能一致）。
 
+#### P0-11：產生課表失敗時照實呈現，需要訂閱時直接給付費畫面
+
+- **情境**：onboarding 最後按「產生課表」時，後端建立課表（`POST /v2/plan/overview`）可能失敗。最常見的是免費期（註冊日起 14 天）已過、又沒訂閱的用戶，後端回 403 `subscription_required`。這時用戶還沒完成 onboarding，進不了設定頁，全域彈窗佇列也還不會顯示付費畫面——如果 onboarding 自己不給，他就沒有任何地方能買。
+- **規則**：
+  1. 產生課表失敗時，App 不得在手機上自己拼一份課表當成功。停在原本那一頁，顯示錯誤並可重試，不進完成頁。
+  2. 失敗原因是「需要訂閱」時，直接在這一頁打開付費畫面。用戶買成功或開始試用後，自動再產生一次課表；用戶關掉付費畫面，就留在這一頁，按鈕可以再按。
+  3. 能進完成頁，就一定已經有後端建好的真課表；完成頁不再有「發現是假課表就重建」的補救。
+- **Acceptance Criteria**：
+  - AC-ONB-17a：Given 免費期已過、沒訂閱的帳號，When 在 onboarding 按「產生課表」，Then 出現付費畫面，不會進完成頁。
+  - AC-ONB-17b：Given 付費畫面開著，When 用戶完成購買或開始試用，Then 自動再產生一次課表，成功後進完成頁，完成頁顯示的是後端回來的課表。
+  - AC-ONB-17c：Given 付費畫面開著，When 用戶直接關掉，Then 留在原頁，沒有課表、沒有進完成頁，再按一次會再問後端。
+  - AC-ONB-17d：Given 產生課表因網路或其他錯誤失敗，When 請求結束，Then 原頁顯示錯誤與重試，不進完成頁，也不出現付費畫面。
+  - 驗法：單元測試用假 repository 讓建立課表丟出「需要訂閱」與一般錯誤，斷言 onboarding 狀態分別是「要顯示付費畫面」與「顯示錯誤」，兩者都沒有推進到完成頁、也沒有產生 `local_preview_` 開頭的課表。
+
 ### Should Have (P1)
 
 #### P1-1: 進度指示器
@@ -199,7 +213,7 @@ Paceriz 的 onboarding 流程目前有 14 個步驟，存在以下核心問題�
 ## Spec 相容性
 
 - 本 spec 是 onboarding 流程的唯一 SSOT（Single Source of Truth）。
-- 與 `SPEC-iap-paywall-pricing-and-trial-protection.md` 無衝突（IAP paywall 在 onboarding 完成後觸發）。
+- 與 `SPEC-iap-paywall-pricing-and-trial-protection.md` 無衝突（IAP paywall 一般在 onboarding 完成後觸發；唯一例外是 P0-11：產生課表被訂閱閘擋下時，onboarding 自己打開付費畫面）。
 - 與 `SPEC-subscription-management-and-status-ui.md` 無衝突（訂閱管理在主 app 內，非 onboarding 範圍）。
 - Race Selection 在本 spec 定義產品邊界；詳細列表、篩選、fallback 與回填規則由 `SPEC-onboarding-race-selection.md` 補充。
 
@@ -289,6 +303,10 @@ Paceriz 的 onboarding 流程目前有 14 個步驟，存在以下核心問題�
 | AC-ONB-15a | P2-1 PB 輸入控制不超過頁面 40% |
 | AC-ONB-15b | P2-1 PB 輸入能在 5 秒內完成 |
 | AC-ONB-16 | P2-2 步驟間過場動畫流暢且不超過 350ms |
+| AC-ONB-17a | P0-11 需要訂閱時出現付費畫面，不進完成頁 |
+| AC-ONB-17b | P0-11 購買／開始試用後自動重新產生真課表 |
+| AC-ONB-17c | P0-11 關掉付費畫面留在原頁、可再按 |
+| AC-ONB-17d | P0-11 其他錯誤顯示錯誤與重試，不造假課表 |
 
 ---
 
