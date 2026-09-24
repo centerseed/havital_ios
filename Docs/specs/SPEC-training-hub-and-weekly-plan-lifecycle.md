@@ -270,6 +270,20 @@ And Then 本條同時約束兩個 App（Android 無獨立的課表頁 spec，以
 
 驗法：`generated_weeks = [1, 2, 3, 7]`、`current_week = 10` 時預抓只打這 4 週；欄位缺席時預抓 `1…min(current_week, total_weeks)`。見 `App2PlanHistoryModeTests` 的 `test_prefetchUsesGeneratedWeeks`、`test_prefetchWithoutGeneratedWeeksFallsBackToCurrentWeekRange`，以及 `PlanOverviewV2DecodingTests` 的帶欄／不帶欄解碼。
 
+### AC-TRAIN-HUB-22: 被付費閘擋下時，2.0 一律給「看得到方案」的提示，不得顯示成載入失敗（2026-09-24 使用者裁決，T-0789）
+
+情境：免費期已過、沒訂閱的使用者，在 2.0 碰到要訂閱的功能——週回顧（`POST /v2/summary/weekly`）、產生第 2 週起的課表、改方法論（`/v2/plan/overview` 更新）。後端對這些請求回 403 `subscription_required`。
+
+Given 付費閘擋著（後端訂閱狀態 `enforcement_enabled` 為真，且沒有訂閱、試用或寬限）
+When 使用者打開週回顧頁
+Then 這一頁只讀、不自動產生回顧（不送 `POST /v2/summary/weekly`）；讀不到回顧時顯示付費提示，不是「還沒產生」，也不是「載入失敗」。
+When 任何上述功能的請求仍然收到 403（例如 App 端的訂閱狀態還沒更新）
+Then 顯示同一個付費提示，不顯示「載入失敗」或後端原始錯誤字串。
+And 付費提示是一個對話框，有「查看方案」與「好」兩顆按鈕；按「查看方案」後，對話框關閉，接著打開付費畫面（PaywallView）。按「好」只關閉，留在原頁。
+驗法：`App2WeeklyReviewPaywallTests`（付費閘擋著時 `load()` 不送產生、跳付費提示、無錯誤字串）、`App2PlanOverviewProjectionTests`（改方法論 403 → 付費提示）；dev 以 demo 帳號加入 `iap_test_uids` 實走週回顧 → 付費提示 → 查看方案 → PaywallView。
+
+註：`SPEC-paywall-rewrite`（Draft）描述的是 1.x 的 inline upsell 卡片；2.0 的這幾頁沒有卡片版位，以本條的對話框＋「查看方案」為準。
+
 ## AC ID Index
 
 本 spec 已採用穩定 AC-ID；以下索引作為派工、review 與測試引用入口。
@@ -297,3 +311,4 @@ And Then 本條同時約束兩個 App（Android 無獨立的課表頁 spec，以
 | AC-TRAIN-HUB-19 | 產生課表成功後關閉回顧頁、切到課表分頁，並顯示剛產生的那一週 |
 | AC-TRAIN-HUB-20 | 課表頁週跑量卡提供「這週為什麼這樣排」bottom sheet（教練的話／本週目標／跑量漸進／安排理由） |
 | AC-TRAIN-HUB-21 | 整期預抓只打 overview 的 `generated_weeks`；欄位缺席退回 `1…min(current_week, total_weeks)` |
+| AC-TRAIN-HUB-22 | 2.0 被付費閘擋下一律給付費提示（含「查看方案」→ PaywallView），週回顧不自動產生、不顯示載入失敗 |
