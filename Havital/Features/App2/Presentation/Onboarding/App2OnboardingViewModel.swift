@@ -48,7 +48,7 @@ final class App2OnboardingViewModel: ObservableObject {
     /// 既有的個人檔案 ViewModel —— 心率與資料來源走它（與 1.x 同一支）。
     let profile: UserProfileFeatureViewModel
 
-    private let coordinator = OnboardingCoordinator.shared
+    private let coordinator: OnboardingCoordinator
 
     // MARK: - 導航
 
@@ -79,6 +79,7 @@ final class App2OnboardingViewModel: ObservableObject {
     @Published var isGeneratingPlan = false
     @Published var isStartingFirstWeek = false
     @Published var errorMessage: String?
+    @Published var isShowingOnboardingPaywall = false
 
     private var vdotTask: Task<Void, Never>?
     private let metricsDataSource: AthleteStateMetricsDataSourceProtocol
@@ -98,10 +99,13 @@ final class App2OnboardingViewModel: ObservableObject {
 
     init(
         isReonboarding: Bool,
-        metricsDataSource: AthleteStateMetricsDataSourceProtocol? = nil
+        metricsDataSource: AthleteStateMetricsDataSourceProtocol? = nil,
+        flow: OnboardingFeatureViewModel? = nil,
+        coordinator: OnboardingCoordinator = .shared
     ) {
         self.isReonboarding = isReonboarding
-        self.flow = DependencyContainer.shared.makeOnboardingFeatureViewModel()
+        self.coordinator = coordinator
+        self.flow = flow ?? DependencyContainer.shared.makeOnboardingFeatureViewModel()
         self.profile = UserProfileFeatureViewModel()
         self.metricsDataSource = metricsDataSource ?? AthleteStateMetricsRemoteDataSource()
     }
@@ -439,7 +443,8 @@ final class App2OnboardingViewModel: ObservableObject {
     }
 
     /// 設計 frame-38：CTA 產生 overview，然後進完成頁。
-    func generatePlan() async {
+    func generatePlan(retryAfterPaywallDismissal: Bool = false) async {
+        errorMessage = nil
         guard let targetType = flow.selectedTargetTypeV2 else {
             errorMessage = NSLocalizedString("onboarding.race_target_required", comment: "")
             return
@@ -465,13 +470,26 @@ final class App2OnboardingViewModel: ObservableObject {
         )
 
         guard let overview else {
-            errorMessage = flow.error
+            if flow.isPaywallNeeded {
+                if retryAfterPaywallDismissal {
+                    errorMessage = NSLocalizedString("onboarding.payment_confirmation_pending", comment: "")
+                } else {
+                    isShowingOnboardingPaywall = true
+                }
+            } else {
+                errorMessage = flow.error
+            }
             return
         }
 
         coordinator.trainingPlanOverviewV2 = overview
         await loadCurrentFitnessEstimate()
         push(.completion)
+    }
+
+    func onboardingPaywallDidDismiss(hasPremiumAccess: Bool) async {
+        guard hasPremiumAccess else { return }
+        await generatePlan(retryAfterPaywallDismissal: true)
     }
 
     // MARK: - frame-39 完成

@@ -4966,3 +4966,4 @@
 
 "app2.metric.read_failed" = "データを読み込めませんでした。もう一度お試しください。";
 "app2.metric.refresh_failed_keeping_result" = "一部のデータを更新できませんでした。取得済みの結果を表示していますが、今回の更新は完了していません。";
+"onboarding.payment_confirmation_pending" = "お支払いを確認中です。しばらくしてからもう一度タップしてください。";

@@ -11,6 +11,10 @@ import SwiftUI
 struct TrainingDaysSetupView: View {
     @EnvironmentObject private var viewModel: OnboardingFeatureViewModel
     @ObservedObject private var coordinator = OnboardingCoordinator.shared
+    @State private var isShowingOnboardingPaywall = false
+    @State private var paywallRetryTargetType: TargetTypeV2?
+    @State private var paywallRetryStartFromStage: String?
+    @State private var isRetryingAfterPaywallDismissal = false
 
     let isBeginner: Bool
     private let recommendedMinTrainingDays = 2
@@ -166,6 +170,12 @@ struct TrainingDaysSetupView: View {
         .fullScreenCover(isPresented: $viewModel.isLoading) {
             LoadingAnimationView(messages: previewLoadingMessages, totalDuration: previewLoadingDuration)
         }
+        .sheet(
+            isPresented: $isShowingOnboardingPaywall,
+            onDismiss: handleOnboardingPaywallDismiss
+        ) {
+            PaywallView(trigger: .onboardingPlanCreate)
+        }
         .task {
             viewModel.isBeginner = isBeginner
             await viewModel.loadTrainingDayPreferences()
@@ -308,6 +318,31 @@ struct TrainingDaysSetupView: View {
             coordinator.navigate(to: .trainingOverview)
         } else {
             Logger.error("[TrainingDaysSetupView] V2: Failed to create overview")
+            if viewModel.isPaywallNeeded {
+                if isRetryingAfterPaywallDismissal {
+                    viewModel.error = NSLocalizedString("onboarding.payment_confirmation_pending", comment: "")
+                } else {
+                    paywallRetryTargetType = targetType
+                    paywallRetryStartFromStage = startFromStage
+                    isShowingOnboardingPaywall = true
+                }
+            }
+        }
+    }
+
+    private func handleOnboardingPaywallDismiss() {
+        let hasPremiumAccess = SubscriptionStateManager.shared.hasPremiumAccess
+        guard let targetType = paywallRetryTargetType else { return }
+
+        let startFromStage = paywallRetryStartFromStage
+        paywallRetryTargetType = nil
+        paywallRetryStartFromStage = nil
+        guard hasPremiumAccess else { return }
+
+        isRetryingAfterPaywallDismissal = true
+        Task {
+            await createAndNavigateWithOverview(targetType: targetType, startFromStage: startFromStage)
+            isRetryingAfterPaywallDismissal = false
         }
     }
 

@@ -4969,3 +4969,4 @@
 
 "app2.metric.read_failed" = "Could not load the data. Please try again.";
 "app2.metric.refresh_failed_keeping_result" = "Some data could not be refreshed. Available results remain visible; this refresh is incomplete.";
+"onboarding.payment_confirmation_pending" = "Payment confirmation is in progress. Please wait, then tap again.";

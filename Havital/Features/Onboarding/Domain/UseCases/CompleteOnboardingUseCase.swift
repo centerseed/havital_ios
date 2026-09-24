@@ -61,12 +61,11 @@ final class CompleteOnboardingUseCase {
         /// Available training days per week (V2)
         let availableDays: Int?
 
-        /// Preview overview ID from onboarding UI.
-        /// Local fallback previews use `local_preview_*` and need a real overview before weekly generation.
+        /// Existing backend overview ID, if one was already created during onboarding.
         let previewOverviewId: String?
 
         /// Intended race distance in km for maintenance/beginner flows where the user picked a target race distance upfront.
-        /// Used when the UseCase has to rebuild a real overview (preview was `local_preview_*`).
+        /// Used when the UseCase has to create an overview because no ID was supplied.
         let intendedRaceDistanceKm: Int?
 
         /// Check if this is a V2 flow
@@ -162,7 +161,7 @@ final class CompleteOnboardingUseCase {
             throw OnboardingError.weeklyPlanCreationFailed("Missing targetTypeId for V2 flow")
         }
 
-        let needsRealOverview = input.previewOverviewId?.hasPrefix("local_preview_") ?? true
+        let needsRealOverview = input.previewOverviewId == nil
         let overview: PlanOverviewV2
 
         if needsRealOverview {

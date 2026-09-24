@@ -245,6 +245,26 @@ final class CompleteOnboardingUseCaseTests: XCTestCase {
         XCTAssertEqual(output.wasReonboarding, true)
     }
 
+    func test_execute_v2ReusesBackendOverviewWhenOverviewIdIsPresent() async throws {
+        mockV2Repository.overviewToReturn = makeOverview(id: "backend-overview")
+        mockV2Repository.weeklyPlanV2ToReturn = makeWeeklyPlanV2()
+
+        _ = try await sut.execute(input: makeV2Input(previewOverviewId: "backend-overview"))
+
+        XCTAssertEqual(mockV2Repository.getOverviewCallCount, 1)
+        XCTAssertEqual(mockV2Repository.createOverviewForRaceCallCount, 0)
+    }
+
+    func test_execute_v2CreatesOverviewWhenOverviewIdIsNil() async throws {
+        mockV2Repository.overviewToReturn = makeOverview(id: "backend-overview")
+        mockV2Repository.weeklyPlanV2ToReturn = makeWeeklyPlanV2()
+
+        _ = try await sut.execute(input: makeV2Input(previewOverviewId: nil))
+
+        XCTAssertEqual(mockV2Repository.getOverviewCallCount, 0)
+        XCTAssertEqual(mockV2Repository.createOverviewForRaceCallCount, 1)
+    }
+
     func test_execute_v2RacePlanExpanderFailure_retriesWithFallbackStage() async throws {
         // Given
         mockV2Repository.overviewToReturn = makeOverview(startFromStage: "build")

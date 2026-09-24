@@ -12,6 +12,8 @@ enum PaywallSource: String {
     case weeklyReview = "weekly_review"
     /// User triggered target race creation.
     case targetRaceCreate = "target_race_create"
+    /// User tried to generate the onboarding training plan.
+    case onboardingPlanCreate = "onboarding_plan_create"
     /// User tapped upgrade/subscription in Settings.
     case settingsUpgrade = "settings_upgrade"
     /// Expired subscriber re-subscribing. Requires sub_source (original feature trigger).
@@ -38,6 +40,7 @@ enum PaywallTrigger: Hashable, Identifiable {
     case weeklyPlanRegenerate                       // 重新生成 / 調整 Week 2+ 課表
     case weeklyReview                               // 週回顧 inline card CTA
     case targetRaceCreate                           // 建立目標賽事 inline card CTA
+    case onboardingPlanCreate                       // onboarding 課表建立被訂閱閘擋下
     case settingsUpgrade                            // Settings 升級按鈕
     case freeTierBanner                             // Free tier banner on training plan home (AC-PAYWALL-35)
     case settingsTier                               // Settings subscription tier CTA (AC-PAYWALL-36)
@@ -51,6 +54,7 @@ enum PaywallTrigger: Hashable, Identifiable {
         case .weeklyPlanRegenerate: return .weeklyPlanRegenerate
         case .weeklyReview:         return .weeklyReview
         case .targetRaceCreate:     return .targetRaceCreate
+        case .onboardingPlanCreate: return .onboardingPlanCreate
         case .settingsUpgrade:      return .settingsUpgrade
         case .resubscribe:          return .resubscribe
         case .changePlan:           return .changePlan

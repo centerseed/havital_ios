@@ -5010,3 +5010,4 @@
 
 "app2.metric.read_failed" = "資料暫時讀取失敗，請重試。";
 "app2.metric.refresh_failed_keeping_result" = "部分資料暫時讀取失敗，可用結果仍會顯示；本次未完成全部更新。";
+"onboarding.payment_confirmation_pending" = "付款確認中，請稍候再按一次";

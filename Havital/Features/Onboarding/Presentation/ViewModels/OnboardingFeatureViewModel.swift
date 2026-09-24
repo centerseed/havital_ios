@@ -103,6 +103,7 @@ final class OnboardingFeatureViewModel: ObservableObject {
 
     @Published var trainingOverview: TrainingPlanOverview?
     @Published var trainingOverviewV2: PlanOverviewV2?
+    @Published var isPaywallNeeded = false
 
     // MARK: - UI State
 
@@ -492,6 +493,8 @@ final class OnboardingFeatureViewModel: ObservableObject {
     ) async -> PlanOverviewV2? {
         isLoading = true
         error = nil
+        isPaywallNeeded = false
+        trainingOverviewV2 = nil
 
         let resolvedMethodologyId = methodologyId ?? selectedMethodology?.id
 
@@ -535,8 +538,19 @@ final class OnboardingFeatureViewModel: ObservableObject {
             Logger.info("[OnboardingFeatureVM] ✅ V2 plan overview created: \(overview.id) for targetType: \(targetType.id)")
             isLoading = false
             return overview
-        } catch {
-            Logger.error("[OnboardingFeatureVM] ❌ Failed to create V2 overview: \(error.localizedDescription)")
+        } catch let createError {
+            Logger.error("[OnboardingFeatureVM] ❌ Failed to create V2 overview: \(createError.localizedDescription)")
+            trainingOverviewV2 = nil
+
+            let domainError = createError.toDomainError()
+            switch domainError {
+            case .subscriptionRequired, .trialExpired, .forbidden:
+                isPaywallNeeded = true
+                isLoading = false
+                return nil
+            default:
+                break
+            }
 
             // Recovery path:
             // Some backend deployments may have succeeded in creating the overview
@@ -549,19 +563,11 @@ final class OnboardingFeatureViewModel: ObservableObject {
                 isLoading = false
                 return recoveredOverview
             } catch {
-                let previewOverview = await buildLocalPreviewOverview(
-                    targetType: targetType,
-                    trainingWeeks: trainingWeeks,
-                    targetId: targetId,
-                    startFromStage: startFromStage,
-                    methodologyId: resolvedMethodologyId,
-                    intendedRaceDistanceKm: intendedRaceDistanceKm
-                )
-
-                self.trainingOverviewV2 = previewOverview
-                Logger.warn("[OnboardingFeatureVM] ⚠️ Recovery via GET /v2/plan/overview failed. Falling back to local preview overview: \(previewOverview.id)")
+                self.trainingOverviewV2 = nil
+                self.error = domainError.userFriendlyMessage
+                Logger.error("[OnboardingFeatureVM] ❌ Recovery via GET /v2/plan/overview failed: \(error.localizedDescription)")
                 isLoading = false
-                return previewOverview
+                return nil
             }
         }
     }
@@ -1133,82 +1139,6 @@ final class OnboardingFeatureViewModel: ObservableObject {
         }
 
         throw lastError ?? DomainError.unknown("Failed to recover plan overview")
-    }
-
-    private func buildLocalPreviewOverview(
-        targetType: TargetTypeV2,
-        trainingWeeks: Int?,
-        targetId: String?,
-        startFromStage: String?,
-        methodologyId: String?,
-        intendedRaceDistanceKm: Int?
-    ) async -> PlanOverviewV2 {
-        let resolvedMethodology = selectedMethodology
-            ?? availableMethodologies.first(where: { $0.id == methodologyId })
-            ?? availableMethodologies.first(where: { $0.id == targetType.defaultMethodology })
-
-        let methodologyOverview = resolvedMethodology.map {
-            MethodologyOverviewV2(
-                name: $0.name,
-                philosophy: $0.description,
-                intensityStyle: "balanced",
-                intensityDescription: $0.description
-            )
-        }
-
-        var resolvedTargetName: String?
-        var resolvedRaceDate: Int?
-        var resolvedDistanceKm: Double?
-        var resolvedTargetPace: String?
-        var resolvedTargetTime: Int?
-        var resolvedTotalWeeks = trainingWeeks ?? 0
-
-        if targetType.isRaceRunTarget, let targetId {
-            if let target = try? await targetRepository.getTarget(id: targetId) {
-                resolvedTargetName = target.name
-                resolvedRaceDate = target.raceDate
-                resolvedDistanceKm = Double(target.distanceKm)
-                resolvedTargetPace = target.targetPace
-                resolvedTargetTime = target.targetTime
-                if resolvedTotalWeeks <= 0 {
-                    resolvedTotalWeeks = target.trainingWeeks
-                }
-            }
-        }
-
-        if resolvedTotalWeeks <= 0 {
-            resolvedTotalWeeks = max(trainingWeeks ?? 0, 1)
-        }
-
-        if resolvedDistanceKm == nil, let intendedRaceDistanceKm {
-            resolvedDistanceKm = Double(intendedRaceDistanceKm)
-        }
-
-        return PlanOverviewV2(
-            id: "local_preview_\(UUID().uuidString)",
-            targetId: targetId,
-            targetType: targetType.id,
-            targetDescription: targetType.isRaceRunTarget ? nil : targetType.description,
-            methodologyId: methodologyId ?? resolvedMethodology?.id ?? targetType.defaultMethodology,
-            totalWeeks: resolvedTotalWeeks,
-            startFromStage: startFromStage,
-            raceDate: resolvedRaceDate,
-            distanceKm: resolvedDistanceKm,
-            distanceKmDisplay: nil,
-            distanceUnit: nil,
-            targetPace: resolvedTargetPace,
-            targetTime: resolvedTargetTime,
-            isMainRace: targetType.isRaceRunTarget ? true : nil,
-            targetName: resolvedTargetName,
-            methodologyOverview: methodologyOverview,
-            targetEvaluate: nil,
-            approachSummary: nil,
-            trainingStages: [],
-            milestones: [],
-            createdAt: Date(),
-            methodologyVersion: nil,
-            milestoneBasis: nil
-        )
     }
 
     private func hasSelectedTargetBeenModified(extraSeconds: Int = 0) -> Bool {

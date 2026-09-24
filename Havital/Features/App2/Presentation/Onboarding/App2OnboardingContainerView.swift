@@ -77,6 +77,17 @@ struct App2OnboardingContainerView: View {
         } message: {
             Text(viewModel.errorMessage ?? "")
         }
+        .sheet(
+            isPresented: $viewModel.isShowingOnboardingPaywall,
+            onDismiss: {
+                let hasPremiumAccess = SubscriptionStateManager.shared.hasPremiumAccess
+                Task {
+                    await viewModel.onboardingPaywallDidDismiss(hasPremiumAccess: hasPremiumAccess)
+                }
+            }
+        ) {
+            PaywallView(trigger: .onboardingPlanCreate)
+        }
         .preferredColorScheme(appearanceStore.preference.colorScheme)
     }
 

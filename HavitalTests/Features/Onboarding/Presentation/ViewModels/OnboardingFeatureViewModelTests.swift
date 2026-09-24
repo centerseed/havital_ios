@@ -590,6 +590,78 @@ final class OnboardingFeatureViewModelTests: XCTestCase {
         XCTAssertNil(sut.error)
     }
 
+    func testCreatePlanOverviewV2_SubscriptionRequired_DoesNotRecoverOrCreateLocalOverview() async throws {
+        mockTrainingPlanV2Repository.errorToThrow = DomainError.subscriptionRequired
+        mockTrainingPlanV2Repository.refreshOverviewErrorToThrow = DomainError.notFound("no active overview")
+        sut.trainingOverviewV2 = try Self.loadV2OverviewFixture()
+
+        let result = await sut.createPlanOverviewV2(
+            targetType: TargetTypeV2(
+                id: "beginner",
+                name: "Beginner",
+                description: "Start running",
+                defaultMethodology: "paceriz",
+                availableMethodologies: ["paceriz"]
+            ),
+            trainingWeeks: 8,
+            targetId: nil
+        )
+
+        XCTAssertNil(result)
+        XCTAssertNil(sut.trainingOverviewV2, "A failed create must clear any previously cached overview")
+        XCTAssertTrue(sut.isPaywallNeeded)
+        XCTAssertEqual(mockTrainingPlanV2Repository.refreshOverviewCallCount, 0)
+        XCTAssertEqual(mockTrainingPlanV2Repository.getOverviewCallCount, 0)
+    }
+
+    func testCreatePlanOverviewV2_OtherFailureAndRecoveryFailure_ReturnsNilAndSurfacesError() async {
+        mockTrainingPlanV2Repository.errorToThrow = DomainError.networkFailure("create failed")
+        mockTrainingPlanV2Repository.refreshOverviewErrorToThrow = DomainError.notFound("no active overview")
+        sut.trainingOverviewV2 = PlanOverviewV2(
+            id: "previous-overview",
+            targetId: nil,
+            targetType: "beginner",
+            targetDescription: nil,
+            methodologyId: "paceriz",
+            totalWeeks: 8,
+            startFromStage: nil,
+            raceDate: nil,
+            distanceKm: nil,
+            distanceKmDisplay: nil,
+            distanceUnit: nil,
+            targetPace: nil,
+            targetTime: nil,
+            isMainRace: nil,
+            targetName: nil,
+            methodologyOverview: nil,
+            targetEvaluate: nil,
+            approachSummary: nil,
+            trainingStages: [],
+            milestones: [],
+            createdAt: Date(),
+            methodologyVersion: nil,
+            milestoneBasis: nil
+        )
+
+        let result = await sut.createPlanOverviewV2(
+            targetType: TargetTypeV2(
+                id: "beginner",
+                name: "Beginner",
+                description: "Start running",
+                defaultMethodology: "paceriz",
+                availableMethodologies: ["paceriz"]
+            ),
+            trainingWeeks: 8,
+            targetId: nil
+        )
+
+        XCTAssertNil(result)
+        XCTAssertNotNil(sut.error)
+        XCTAssertFalse(sut.isPaywallNeeded)
+        XCTAssertNil(sut.trainingOverviewV2, "A failed recovery must not leave an earlier overview visible")
+        XCTAssertEqual(mockTrainingPlanV2Repository.getOverviewCallCount, 0)
+    }
+
     func testLoadTrainingOverview_V1User_CallsV1RepoNotV2() async {
         // Given
         mockVersionRouter.isV2Result = false
