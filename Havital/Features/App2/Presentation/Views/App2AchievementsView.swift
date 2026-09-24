@@ -70,7 +70,7 @@ struct App2AchievementsView: View {
                     personalBests(summary)
                     badgeCollection(summary)
                 } else {
-                    ProgressView().frame(maxWidth: .infinity, minHeight: 220)
+                    summaryPlaceholder
                 }
             }
             .padding(.horizontal, App2Theme.pagePadding)
@@ -97,6 +97,38 @@ struct App2AchievementsView: View {
                 onSetDisplayBadge: { picked in viewModel.setPinnedBadge(picked.badgeId) },
                 onClose: { expandedTrack = nil }
             )
+        }
+    }
+
+    enum Placeholder: Equatable {
+        case loading
+        case loadFailed
+    }
+
+    /// 還沒有 `summary` 時畫什麼：首載失敗要給錯誤與重試，不是一直轉圈（AC-PACH-06D）。
+    /// 已有 `summary` 時重驗失敗不走這裡，畫面保留舊內容。
+    static func placeholder(summary: AchievementSummary?, state: PersonalAchievementsViewModel.ViewState) -> Placeholder {
+        if summary == nil, case .error = state { return .loadFailed }
+        return .loading
+    }
+
+    @ViewBuilder
+    private var summaryPlaceholder: some View {
+        switch Self.placeholder(summary: viewModel.summary, state: viewModel.state) {
+        case .loading:
+            ProgressView().frame(maxWidth: .infinity, minHeight: 220)
+        case .loadFailed:
+            App2Card(spacing: 10) {
+                Text(L10n.Achievements.Error.loadFailed.localized)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(App2Theme.inkSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Button(L10n.Common.retry.localized) {
+                    Task { await viewModel.forceRefresh() }
+                }
+                .accessibilityIdentifier("App2_AchievementsRetry")
+            }
+            .accessibilityIdentifier("App2_AchievementsLoadFailed")
         }
     }
 

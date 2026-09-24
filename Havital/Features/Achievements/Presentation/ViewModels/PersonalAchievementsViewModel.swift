@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 
 @MainActor
 final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
@@ -25,16 +26,20 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
     /// 「重驗還是首載」；1.x 不讀這兩個值，行為不變。
     private(set) var hasLoaded = false
     private(set) var lastLoadedAt: Date?
+    /// 背景時收到資料變更事件、還沒重抓。為 true 時 `loadIfNeeded` 無視 60 秒門檻重驗。
+    private(set) var isRevalidationPending = false
 
     nonisolated let taskRegistry = TaskRegistry()
 
     private let repository: AchievementRepository
     private let analyticsService: AnalyticsService
+    private let isAppActive: @MainActor () -> Bool
     private var hasTrackedTabOpen = false
 
     init(
         repository: AchievementRepository? = nil,
-        analyticsService: AnalyticsService? = nil
+        analyticsService: AnalyticsService? = nil,
+        isAppActive: @escaping @MainActor () -> Bool = { UIApplication.shared.applicationState == .active }
     ) {
         let container = DependencyContainer.shared
         if let repository {
@@ -46,6 +51,7 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
             self.repository = container.resolve() as AchievementRepository
         }
         self.analyticsService = analyticsService ?? (container.resolve() as AnalyticsService)
+        self.isAppActive = isAppActive
         self.pinnedBadgeId = self.repository.getPinnedBadgeId()
         subscribeToEvents()
     }
@@ -53,13 +59,23 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
     /// 訓練同步 / 課表變更後成就可能解鎖 → 自動強制刷新（使用者無感）。
     private func subscribeToEvents() {
         CacheEventBus.shared.subscribe(for: .dataChanged(.workouts)) { [weak self] in
-            Self.diagnostic("event dataChanged.workouts → forceRefresh")
-            await self?.performLoad(forceRefresh: true)
+            await self?.handleDataChanged("workouts")
         }
         CacheEventBus.shared.subscribe(for: .dataChanged(.trainingPlanV2)) { [weak self] in
-            Self.diagnostic("event dataChanged.trainingPlanV2 → forceRefresh")
-            await self?.performLoad(forceRefresh: true)
+            await self?.handleDataChanged("trainingPlanV2")
         }
+    }
+
+    /// App 不在前景時不發請求（AC-PACH-06B）：背景喚醒只有幾秒，請求常在送出前就被凍結，
+    /// 下次喚醒當場以逾時結束（T-0788）。只記下待重驗，回前景由 `loadIfNeeded` 接手。
+    private func handleDataChanged(_ source: String) async {
+        guard isAppActive() else {
+            Self.diagnostic("event dataChanged.\(source) while not active → revalidate on foreground")
+            isRevalidationPending = true
+            return
+        }
+        Self.diagnostic("event dataChanged.\(source) → forceRefresh")
+        await performLoad(forceRefresh: true)
     }
 
     deinit {
@@ -105,6 +121,7 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
                     self.state = summary.hasVisibleContent ? .loaded : .empty
                     self.hasLoaded = true
                     self.lastLoadedAt = Date()
+                    self.isRevalidationPending = false
                     Self.diagnostic(
                         "load success state=\(summary.hasVisibleContent ? "loaded" : "empty") catalog=\(summary.catalogVersion) groups=\(summary.badgeGroups.count) unlocked=\(summary.storySummary.unlockedCount)/\(summary.storySummary.totalCount)"
                     )
@@ -248,10 +265,14 @@ final class PersonalAchievementsViewModel: ObservableObject, TaskManageable {
         Logger.log(output, level: level)
     }
 
+    /// 瞬時網路錯誤（逾時 / 連線中斷）降為 .warn，避免用戶端網路抖動淹沒真正的 .error。
+    /// UI 仍維持 .error 狀態，讓使用者可下拉重試（AC-PACH-06C）。
+    static func errorReportLevel(for error: Error) -> LogLevel {
+        error.isTransientNetworkError ? .warn : .error
+    }
+
     private static func cloudFailure(_ error: Error) {
-        // 瞬時網路錯誤（逾時 / 連線中斷）降為 .warn，避免用戶端網路抖動淹沒真正的 .error。
-        // UI 仍維持 .error 狀態，讓使用者可下拉重試。
-        let level: LogLevel = error.isTransientNetworkError ? .warn : .error
+        let level = errorReportLevel(for: error)
 
         Logger.firebase(
             "Achievements screen entered error state",

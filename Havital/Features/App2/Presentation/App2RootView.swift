@@ -31,15 +31,20 @@ enum App2RevalidateRound {
 protocol App2Revalidating: AnyObject {
     var hasLoaded: Bool { get }
     var lastLoadedAt: Date? { get }
+    /// 有一筆資料變更還沒重抓（例如背景時收到事件，AC-PACH-06B）。為 true 時
+    /// `loadIfNeeded` 不看 60 秒門檻，直接重驗。沒有這種來源的 ViewModel 預設 false。
+    var isRevalidationPending: Bool { get }
     /// 向後端重取一次。已經有資料時**不清畫面、不進 loading**。
     func revalidate() async
 }
 
 extension App2Revalidating {
+    var isRevalidationPending: Bool { false }
+
     /// 第一次進頁 → 正常載入（會出 loading）。
-    /// 之後再進來 → 只有超過 `staleAfter` 才在背景重驗，畫面保留舊資料。
+    /// 之後再進來 → 只有超過 `staleAfter`、或有待重驗的變更，才在背景重驗，畫面保留舊資料。
     func loadIfNeeded(staleAfter: TimeInterval = 60) async {
-        guard hasLoaded else {
+        guard hasLoaded, !isRevalidationPending else {
             await revalidate()
             return
         }

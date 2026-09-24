@@ -64,6 +64,91 @@ final class PersonalAchievementsViewModelTests: XCTestCase {
         }
     }
 
+    // MARK: - AC-PACH-06B：背景收到事件不重抓、回前景才重驗
+
+    func testWorkoutEventInBackgroundDefersFetchUntilActive() async throws {
+        await CacheEventBus.shared.resetForTesting()
+        let repository = MockAchievementRepository(summary: .fixture(unlockedCount: 2))
+        let appState = AppActiveStub(isActive: true)
+        let sut = PersonalAchievementsViewModel(
+            repository: repository,
+            analyticsService: MockAchievementAnalyticsService(),
+            isAppActive: { appState.isActive }
+        )
+        await sut.loadIfNeeded()
+        XCTAssertEqual(repository.fetchCount, 1)
+
+        appState.isActive = false
+        CacheEventBus.shared.publish(.dataChanged(.workouts))
+        try await Task.sleep(nanoseconds: 200_000_000)
+        XCTAssertEqual(repository.fetchCount, 1, "背景收到訓練事件不得發請求")
+
+        // 回前景：距上次載入不到 60 秒，仍要重驗一次。
+        appState.isActive = true
+        await sut.loadIfNeeded()
+        XCTAssertEqual(repository.fetchCount, 2, "回前景必須無視 60 秒門檻重驗")
+
+        // 標記用過就清掉：再進一次不重抓。
+        await sut.loadIfNeeded()
+        XCTAssertEqual(repository.fetchCount, 2)
+    }
+
+    func testWorkoutEventInForegroundFetchesImmediately() async throws {
+        await CacheEventBus.shared.resetForTesting()
+        let repository = MockAchievementRepository(summary: .fixture(unlockedCount: 2))
+        let sut = PersonalAchievementsViewModel(
+            repository: repository,
+            analyticsService: MockAchievementAnalyticsService(),
+            isAppActive: { true }
+        )
+        await sut.loadIfNeeded()
+        XCTAssertEqual(repository.fetchCount, 1)
+
+        CacheEventBus.shared.publish(.dataChanged(.workouts))
+        try await Task.sleep(nanoseconds: 200_000_000)
+        XCTAssertEqual(repository.fetchCount, 2, "前景收到訓練事件照舊立刻重抓")
+        withExtendedLifetime(sut) {}
+    }
+
+    // MARK: - AC-PACH-06C：瞬時網路錯誤記 warn
+
+    func testTimeoutThroughRealRepositoryIsReportedAsWarning() async throws {
+        let httpClient = MockHTTPClient()
+        httpClient.setError(for: "/v2/achievements/summary", error: URLError(.timedOut))
+        let repository = AchievementRepositoryImpl(dataSource: AchievementRemoteDataSource(httpClient: httpClient))
+
+        do {
+            _ = try await repository.fetchSummary(forceRefresh: true)
+            XCTFail("expected timeout")
+        } catch {
+            XCTAssertEqual(PersonalAchievementsViewModel.errorReportLevel(for: error), .warn)
+        }
+        XCTAssertEqual(
+            PersonalAchievementsViewModel.errorReportLevel(for: AchievementError.fetchFailed("decode")),
+            .error
+        )
+    }
+
+    // MARK: - AC-PACH-06D：2.0 首載失敗顯示錯誤與重試
+
+    func testFirstLoadFailureWithoutSummaryShowsRetry() async throws {
+        let repository = MockAchievementRepository(error: AchievementError.fetchFailed("boom"))
+        let sut = PersonalAchievementsViewModel(
+            repository: repository,
+            analyticsService: MockAchievementAnalyticsService(),
+            isAppActive: { true }
+        )
+        XCTAssertEqual(App2AchievementsView.placeholder(summary: sut.summary, state: sut.state), .loading)
+
+        await sut.loadIfNeeded()
+
+        XCTAssertNil(sut.summary)
+        XCTAssertEqual(App2AchievementsView.placeholder(summary: sut.summary, state: sut.state), .loadFailed)
+
+        await sut.forceRefresh()
+        XCTAssertEqual(repository.fetchCount, 2, "重試走既有 forceRefresh，再抓一次")
+    }
+
     func testBackfillAckHidesBanner() async throws {
         let repository = MockAchievementRepository(summary: .fixture(unlockedCount: 2, showBackfill: true))
         let sut = PersonalAchievementsViewModel(repository: repository, analyticsService: MockAchievementAnalyticsService())
@@ -109,6 +194,7 @@ final class PersonalAchievementsViewModelTests: XCTestCase {
 private final class MockAchievementRepository: AchievementRepository {
     private let summaryResult: Result<AchievementSummary, Error>
     private(set) var didAckBackfill = false
+    private(set) var fetchCount = 0
     private(set) var cachedSummary: AchievementSummary?
 
     private let pinnedSubject = CurrentValueSubject<String?, Never>(nil)
@@ -124,7 +210,8 @@ private final class MockAchievementRepository: AchievementRepository {
     }
 
     func fetchSummary(forceRefresh: Bool) async throws -> AchievementSummary {
-        try summaryResult.get()
+        fetchCount += 1
+        return try summaryResult.get()
     }
 
     func markFeedbackSeen(feedbackId: String) async throws {}
@@ -143,6 +230,11 @@ private final class MockAchievementRepository: AchievementRepository {
     func findBadge(byId badgeId: String) -> AchievementBadge? {
         cachedSummary?.badgeGroups.flatMap { $0.badges }.first { $0.badgeId == badgeId }
     }
+}
+
+private final class AppActiveStub {
+    var isActive: Bool
+    init(isActive: Bool) { self.isActive = isActive }
 }
 
 private final class MockAchievementAnalyticsService: AnalyticsService {
