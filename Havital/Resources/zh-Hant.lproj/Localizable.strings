@@ -2899,6 +2899,9 @@
 "paywall.inline.cta.start_trial" = "開始 30 天免費試用";
 "paywall.inline.cta.unlock" = "解鎖完整功能";
 "paywall.inline.cta.restore" = "已訂閱？恢復購買";
+"paywall.inline.cta.view_plans" = "查看方案";
+"paywall.inline.methodology.title" = "更換訓練方法是 Premium 功能";
+"paywall.inline.methodology.body" = "訂閱後即可切換建立課表時使用的訓練方法。";
 
 "profile.subscription.redeem_offer_code" = "兌換優惠碼";
 "profile.subscription.redeem_alert_title" = "優惠碼";

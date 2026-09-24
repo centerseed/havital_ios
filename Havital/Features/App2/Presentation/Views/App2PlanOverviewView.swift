@@ -29,6 +29,7 @@ struct App2PlanOverviewView: View {
     @State private var isShowingGoalSetup = false
     /// 更換訓練方法的清單 sheet（2026-08-27 晚走查裁決（e））。
     @State private var isShowingMethodologies = false
+    @State private var pendingUpsellPaywallTrigger: PaywallTrigger?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -92,7 +93,8 @@ struct App2PlanOverviewView: View {
                 isBusy: viewModel.isChangingMethodology,
                 onSelect: { methodology in
                     Task {
-                        if await viewModel.changeMethodology(to: methodology.id) {
+                        let changed = await viewModel.changeMethodology(to: methodology.id)
+                        if changed || viewModel.showsUpsell {
                             isShowingMethodologies = false
                         }
                     }
@@ -111,6 +113,24 @@ struct App2PlanOverviewView: View {
             Button(L10n.Common.done.localized, role: .cancel) {}
         } message: { message in
             Text(message)
+        }
+        .alert(
+            NSLocalizedString("paywall.inline.methodology.title", comment: "Changing your training method is a Premium feature"),
+            isPresented: $viewModel.showsUpsell
+        ) {
+            Button(NSLocalizedString("paywall.inline.cta.view_plans", comment: "View Plans")) {
+                pendingUpsellPaywallTrigger = .apiGated
+            }
+            Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
+        } message: {
+            Text(NSLocalizedString("paywall.inline.methodology.body", comment: "Subscribe to change your training method"))
+        }
+        .onChange(of: viewModel.showsUpsell) { _, isPresented in
+            guard !isPresented, let trigger = pendingUpsellPaywallTrigger else { return }
+            pendingUpsellPaywallTrigger = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                _ = InterruptCoordinator.shared.enqueue(.paywall(trigger))
+            }
         }
     }
 

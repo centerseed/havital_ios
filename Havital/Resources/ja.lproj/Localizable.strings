@@ -2871,6 +2871,9 @@
 "paywall.inline.cta.start_trial" = "30日間の無料体験を開始";
 "paywall.inline.cta.unlock" = "すべての機能を解除";
 "paywall.inline.cta.restore" = "登録済み？復元する";
+"paywall.inline.cta.view_plans" = "プランを見る";
+"paywall.inline.methodology.title" = "トレーニング方法の変更はPremium機能です";
+"paywall.inline.methodology.body" = "サブスクに登録すると、プラン作成に使うトレーニング方法を変更できます。";
 
 "profile.subscription.redeem_offer_code" = "オファーコードを利用";
 "profile.subscription.redeem_alert_title" = "オファーコード";

@@ -252,6 +252,24 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
         XCTAssertEqual(viewModel.overview?.value.rhythm.methodologyName, "Paceriz 平衡訓練法")
     }
 
+    func testChangeMethodologySubscriptionRequiredShowsUpsellWithoutMethodologyError() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.planStatusToReturn = planStatus(planId: "e1289e60f251_5")
+        repository.overviewToReturn = overviewEntity(id: "e1289e60f251", methodologyName: "Paceriz 平衡訓練法")
+
+        let viewModel = overviewViewModel(repository: repository)
+        await viewModel.revalidate()
+
+        repository.errorToThrow = DomainError.subscriptionRequired
+        let result = await viewModel.changeMethodology(to: "polarized")
+
+        XCTAssertFalse(result)
+        XCTAssertTrue(viewModel.showsUpsell)
+        XCTAssertNil(viewModel.methodologyError)
+        XCTAssertFalse(viewModel.didChangeMethodology)
+        XCTAssertEqual(viewModel.overview?.value.rhythm.methodologyName, "Paceriz 平衡訓練法")
+    }
+
     /// **不同源不擋更換**：`isUnbound` 只代表本週課表比 overview 舊
     /// （換過方法論之後必然如此）。曾經在這裡把 id 清掉，結果是換完那一刻
     /// 「更換訓練方法」整列消失、換不回來（2026-08-27 模擬器實測）。

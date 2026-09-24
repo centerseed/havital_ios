@@ -42,6 +42,8 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     @Published private(set) var didChangeMethodology = false
     /// 換失敗的訊息。**失敗不改變現值**（畫面上的方法名仍是舊的）。
     @Published var methodologyError: String?
+    /// 方法論更新被訂閱閘門擋下。
+    @Published var showsUpsell = false
 
     /// 更換方法論要打在哪一份 overview 上。取不到就沒有這一列。
     private(set) var overviewId: String?
@@ -453,6 +455,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         isChangingMethodology = true
         didChangeMethodology = false
         methodologyError = nil
+        showsUpsell = false
         defer { isChangingMethodology = false }
 
         do {
@@ -464,6 +467,13 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         } catch {
             let domainError = error.toDomainError()
             Logger.debug("[App2PlanOverviewVM] 更換方法論失敗: \(domainError)")
+            switch domainError {
+            case .subscriptionRequired, .trialExpired, .forbidden:
+                showsUpsell = true
+                return false
+            default:
+                break
+            }
             methodologyError = domainError.localizedDescription
             return false
         }

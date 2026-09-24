@@ -2874,6 +2874,9 @@
 "paywall.inline.cta.start_trial" = "Start 30-day free trial";
 "paywall.inline.cta.unlock" = "Unlock full access";
 "paywall.inline.cta.restore" = "Already subscribed? Restore";
+"paywall.inline.cta.view_plans" = "View Plans";
+"paywall.inline.methodology.title" = "Changing your training method is a Premium feature";
+"paywall.inline.methodology.body" = "Subscribe to change the method used to build your training plan.";
 
 "profile.subscription.redeem_offer_code" = "Redeem Offer Code";
 "profile.subscription.redeem_alert_title" = "Offer Code";

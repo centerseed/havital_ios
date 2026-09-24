@@ -25,6 +25,7 @@ struct App2WeeklyReviewTarget: Identifiable, Equatable {
 struct App2WeeklyReviewView: View {
 
     @StateObject private var viewModel: App2WeeklyReviewViewModel
+    @State private var pendingUpsellPaywallTrigger: PaywallTrigger?
     let onClose: () -> Void
     /// 套用建議後通知呼叫端刷新（下週課表換了，首頁的卡要跟著換）。
     var onApplied: (() -> Void)?
@@ -244,9 +245,19 @@ struct App2WeeklyReviewView: View {
             L10n.App2.WeeklyReview.upsellTitle.localized,
             isPresented: $viewModel.showsUpsell
         ) {
+            Button(NSLocalizedString("paywall.inline.cta.view_plans", comment: "View Plans")) {
+                pendingUpsellPaywallTrigger = viewModel.upsellPaywallTrigger
+            }
             Button(NSLocalizedString("common.ok", comment: "OK"), role: .cancel) { }
         } message: {
             Text(L10n.App2.WeeklyReview.upsellBody.localized)
+        }
+        .onChange(of: viewModel.showsUpsell) { _, isPresented in
+            guard !isPresented, let trigger = pendingUpsellPaywallTrigger else { return }
+            pendingUpsellPaywallTrigger = nil
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                _ = InterruptCoordinator.shared.enqueue(.paywall(trigger))
+            }
         }
         // 產生課表失敗可重試（CTA 仍在，狀態沒有被改掉）。
         .alert(

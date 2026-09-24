@@ -27,6 +27,8 @@ final class App2WeeklyReviewViewModel: ObservableObject {
     @Published private(set) var needsGeneration = false
     /// 週回顧被付費閘門擋下（AC-PAYWALL-23）。
     @Published var showsUpsell = false
+    /// 這次 upsell 對應的 paywall 來源；由 alert 的「查看方案」按鈕消費。
+    @Published private(set) var upsellPaywallTrigger: PaywallTrigger?
     /// Rizo 額度耗盡。
     @Published var showsQuotaExceeded = false
     /// 採納成功後的提示。
@@ -35,6 +37,7 @@ final class App2WeeklyReviewViewModel: ObservableObject {
     /// 使用者目前的採納勾選（index → 要不要採納）。**index 是後端的
     /// `applied_indices`**，所以直接用 coordinator 的那一份，不另存一份。
     var selections: [Int: Bool] { coordinator.adjustmentSelections }
+    var weeklySummaryState: ViewState<WeeklySummaryV2> { coordinator.weeklySummary }
 
     // MARK: - 產生目標週課表（P0：「規劃下週」原本沒有這個出口）
 
@@ -135,7 +138,7 @@ final class App2WeeklyReviewViewModel: ObservableObject {
             },
             resolvePaywallTrigger: { Self.resolvePaywallTrigger() },
             onSuccessToast: { [weak self] message in self?.toast = message },
-            onPaywallTriggered: { [weak self] _ in self?.showsUpsell = true },
+            onPaywallTriggered: { [weak self] _ in self?.presentUpsell(trigger: .weeklyReview) },
             onRizoQuotaExceeded: { [weak self] in self?.showsQuotaExceeded = true },
             onNetworkError: { [weak self] error in
                 // 一樣不把 server body 印到畫面上（見 `applyState`）。
@@ -143,7 +146,7 @@ final class App2WeeklyReviewViewModel: ObservableObject {
                 self?.errorMessage = L10n.App2.Common.loadFailed.localized
             },
             isEnforcementEnabled: { SubscriptionStateManager.shared.isEnforcementEnabled },
-            onWeeklyReviewInlineUpsellNeeded: { [weak self] in self?.showsUpsell = true }
+            onWeeklyReviewInlineUpsellNeeded: { [weak self] in self?.presentUpsell(trigger: .weeklyReview) }
         )
     }
 
@@ -163,7 +166,11 @@ final class App2WeeklyReviewViewModel: ObservableObject {
     func load() async {
         isLoading = true
         errorMessage = nil
+        showsUpsell = false
+        upsellPaywallTrigger = nil
         await refreshPlanStatus()
+        let subscriptionGateClosed = SubscriptionStateManager.shared.isEnforcementEnabled
+            && !SubscriptionStateManager.shared.hasPremiumAccess
         // decision-chain 的 `run` 也要跑數十秒的 LLM。**與週回顧生成並行**
         // （AC-TRAIN-HUB-12）——串起來等於讓使用者等兩次。這裡只起頭不等它，
         // 規劃分頁自己依 `decisionChain` 畫生成中／清單。
@@ -172,9 +179,12 @@ final class App2WeeklyReviewViewModel: ObservableObject {
         // 不在背後補一份，也不送註定 400 的請求。
         await coordinator.loadWeeklySummary(
             weekOfPlan: weekOfPlan,
-            allowGenerate: autoGeneratesOnLoad
+            allowGenerate: autoGeneratesOnLoad && !subscriptionGateClosed
         )
         applyState(afterGenerate: false)
+        if subscriptionGateClosed, case .empty = coordinator.weeklySummary {
+            presentUpsell(trigger: .weeklyReview)
+        }
         // 進頁抓的 status 說「回顧還沒產」（`create_summary`），而回顧剛在這一輪被讀進來
         // ／產出來——後端此刻已經是 `create_plan`。不重抓，底部就只剩「套用」沒有「產生」，
         // 使用者按幾次「已套用」課表都不會出現（2026-09-07 實機，fmC7）。
@@ -270,6 +280,8 @@ final class App2WeeklyReviewViewModel: ObservableObject {
         }
         isLoading = true
         errorMessage = nil
+        showsUpsell = false
+        upsellPaywallTrigger = nil
         needsGeneration = false
         await coordinator.generateWeeklySummary()
         applyState(afterGenerate: true)
@@ -305,7 +317,7 @@ final class App2WeeklyReviewViewModel: ObservableObject {
             // **「還沒產生」不是「讀取失敗」。** 說錯這句話的代價是使用者以為壞了，
             // 而其實只是按鈕還沒按。
             projection = nil
-            needsGeneration = true
+            needsGeneration = !showsUpsell
         case .error(let error):
             projection = nil
             // **「這一週還沒有回顧」不是錯誤。** 後端對還沒產生的週回 404
@@ -613,7 +625,7 @@ final class App2WeeklyReviewViewModel: ObservableObject {
         // 付費閘門與 1.4 `generateWeeklyPlanDirectly` 同一條判準（AC-PAYWALL-26）：
         // 第 2 週起未訂閱不得產生。接成 no-op 就是靜默繞過付費閘門。
         if Self.isBlockedByPaywall(week: week) {
-            showsUpsell = true
+            presentUpsell(trigger: .weeklyPlanWeek2)
             return false
         }
 
@@ -646,7 +658,7 @@ final class App2WeeklyReviewViewModel: ObservableObject {
             Logger.error("[App2WeeklyReviewVM] 產生第 \(week) 週課表失敗: \(domainError)")
             switch domainError {
             case .subscriptionRequired, .trialExpired, .forbidden:
-                showsUpsell = true
+                presentUpsell(trigger: .weeklyPlanWeek2)
             case .rizoQuotaExceeded:
                 showsQuotaExceeded = true
             default:
@@ -702,6 +714,13 @@ final class App2WeeklyReviewViewModel: ObservableObject {
         case .cancelled: return .resubscribe
         default:         return .apiGated
         }
+    }
+
+    private func presentUpsell(trigger: PaywallTrigger) {
+        upsellPaywallTrigger = trigger
+        showsUpsell = true
+        needsGeneration = false
+        errorMessage = nil
     }
 
     private static func shouldSuppressError(

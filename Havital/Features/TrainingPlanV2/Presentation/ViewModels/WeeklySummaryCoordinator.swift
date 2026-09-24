@@ -184,6 +184,14 @@ final class WeeklySummaryCoordinator {
             Logger.debug("[WeeklySummaryCoordinator] ✅ 週摘要載入成功: \(summary.id)")
         } catch {
             let domainError = error.toDomainError()
+            switch domainError {
+            case .subscriptionRequired, .trialExpired, .forbidden:
+                weeklySummary = .empty
+                onWeeklyReviewInlineUpsellNeeded?()
+                return
+            default:
+                break
+            }
             if shouldSuppressError(domainError, "週摘要載入", { [weak self] in self?.weeklySummary = .empty }) { return }
             Logger.error("[WeeklySummaryCoordinator] ❌ 週摘要載入失敗: \(domainError.localizedDescription)")
             weeklySummary = .error(domainError)
