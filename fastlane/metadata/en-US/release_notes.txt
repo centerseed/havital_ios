@@ -1,4 +1,3 @@
-• After you generate next week's plan, the Plan tab opens straight to that week
-• Fixed a case where opening the app asked you to set your goal again and overwrote your active plan
-• Rizo's proposal buttons are restored when you reopen an older chat, and Home and Plan update right away after Rizo edits your week
+• New "Why this week looks like this" on the Plan tab — tap to see the reasoning behind your week
+• Tap fitness charts to see each day's values, plus a new fatigue balance (TSB) chart and personal best details
 Other fixes and improvements.
