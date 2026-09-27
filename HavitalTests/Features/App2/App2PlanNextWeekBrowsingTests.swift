@@ -311,6 +311,41 @@ final class App2PlanNextWeekBrowsingTests: XCTestCase {
         XCTAssertEqual(viewModel.week?.value.targetDistanceKm, 44)
     }
 
+    func test_planChangedBeforeFirstLoadClearsNextWeekCacheWithoutRevalidating() async {
+        let (viewModel, repository) = makeViewModel(nextWeekHasPlan: true)
+        repository.simulatesCacheFirstReads = true
+        repository.cachedWeeklyPlansByWeek = [11: weeklyPlan(week: 11, totalDistance: 56)]
+        repository.weeklyPlansByWeekToReturn = [10: weeklyPlan(week: 10), 11: weeklyPlan(week: 11, totalDistance: 44)]
+        XCTAssertFalse(viewModel.hasLoaded)
+
+        CacheEventBus.shared.publish(.dataChanged(.trainingPlanV2))
+
+        await Self.waitUntil { repository.clearedWeeklyPlanCacheWeeks.contains(11) }
+        XCTAssertEqual(repository.getPlanStatusCallCount, 0, "尚未載入時不應重驗")
+
+        await viewModel.revalidate()
+        await viewModel.goToHistoryWeek(offset: 1)
+
+        XCTAssertEqual(viewModel.historyWeek, 11)
+        XCTAssertEqual(viewModel.week?.value.targetDistanceKm, 44)
+    }
+
+    func test_notFoundRefreshClearsPrepaintedHistoryWeek() async {
+        let (viewModel, repository) = makeViewModel(nextWeekHasPlan: true)
+        repository.simulatesCacheFirstReads = true
+        repository.cachedWeeklyPlansByWeek = [11: weeklyPlan(week: 11, totalDistance: 56)]
+        repository.weeklyPlansByWeekToReturn = [10: weeklyPlan(week: 10), 11: weeklyPlan(week: 11, totalDistance: 44)]
+        await viewModel.revalidate()
+        await viewModel.goToHistoryWeek(offset: 1)
+        XCTAssertEqual(viewModel.week?.value.targetDistanceKm, 56)
+
+        repository.refreshWeeklyPlanErrorToThrow = DomainError.notFound("Weekly plan not found")
+        await viewModel.revalidate()
+
+        XCTAssertNil(viewModel.week)
+        XCTAssertTrue(viewModel.isHistoryWeekMissing)
+    }
+
     func test_revalidateOnTheNextWeekKeepsPrepaintedPlanWhenRefreshFails() async {
         let (viewModel, repository) = makeViewModel(nextWeekHasPlan: true)
         repository.simulatesCacheFirstReads = true

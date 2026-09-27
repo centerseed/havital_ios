@@ -311,14 +311,17 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     self.lastLoadedAt = nil
+                    // The event can arrive before this screen's first load. Invalidate
+                    // repository copies now so later cache-first week browsing sees the
+                    // updated plan even though this screen does not revalidate yet.
+                    if let currentWeek = self.latestPlanStatus?.currentWeek
+                        ?? self.planRepository.getCachedPlanStatus()?.currentWeek {
+                        await self.planRepository.clearWeeklyPlanCache(weekOfTraining: currentWeek)
+                        await self.planRepository.clearWeeklyPlanCache(weekOfTraining: currentWeek + 1)
+                    } else {
+                        await self.planRepository.clearWeeklyPlanCache(weekOfTraining: nil)
+                    }
                     if self.hasLoaded {
-                        // Rizo may replace the current or already-generated next week.
-                        // Invalidate only those two repository entries so arrow browsing
-                        // cannot repaint a stale next-week copy.
-                        if let currentWeek = self.latestPlanStatus?.currentWeek {
-                            await self.planRepository.clearWeeklyPlanCache(weekOfTraining: currentWeek)
-                            await self.planRepository.clearWeeklyPlanCache(weekOfTraining: currentWeek + 1)
-                        }
                         await self.revalidate()
                     }
                 }
@@ -664,6 +667,11 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             Logger.debug("[App2PlanVM] 歷史第 \(target) 週無課表: \(error)")
             if let planError = error as? TrainingPlanV2Error,
                case .weeklyPlanNotFound = planError {
+                week = nil
+                dayDetails = [:]
+                isHistoryWeekMissing = true
+            } else if let domainError = error as? DomainError,
+                      case .notFound = domainError {
                 week = nil
                 dayDetails = [:]
                 isHistoryWeekMissing = true
