@@ -53,10 +53,10 @@ final class App2PlanNextWeekBrowsingTests: XCTestCase {
         )
     }
 
-    private func weeklyPlan(week: Int) -> WeeklyPlanV2 {
+    private func weeklyPlan(week: Int, totalDistance: Double = 42) -> WeeklyPlanV2 {
         WeeklyPlanV2(
             planId: "overview-1_\(week)", weekOfTraining: week, id: "overview-1_\(week)",
-            purpose: "week \(week)", weekOfPlan: week, totalWeeks: 16, totalDistance: 42,
+            purpose: "week \(week)", weekOfPlan: week, totalWeeks: 16, totalDistance: totalDistance,
             totalDistanceDisplay: nil, totalDistanceUnit: nil, totalDistanceReason: nil,
             designReason: nil, mileageProgressionNote: nil, coachNote: nil, days: [],
             intensityTotalMinutes: nil, currentVdot: nil, vdotSource: nil,
@@ -274,5 +274,58 @@ final class App2PlanNextWeekBrowsingTests: XCTestCase {
 
         XCTAssertNil(viewModel.historyWeek, "回到本週＝退出回看模式")
         XCTAssertEqual(viewModel.selectedWeekOfPlan, 10)
+    }
+
+    func test_pullToRefreshOnTheNextWeekShowsTheServerCopy() async {
+        let (viewModel, repository) = makeViewModel(nextWeekHasPlan: true)
+        let cachedPlan = weeklyPlan(week: 11, totalDistance: 56)
+        let serverPlan = weeklyPlan(week: 11, totalDistance: 44)
+        repository.simulatesCacheFirstReads = true
+        repository.cachedWeeklyPlansByWeek = [11: cachedPlan]
+        repository.weeklyPlansByWeekToReturn = [10: weeklyPlan(week: 10), 11: serverPlan]
+
+        await viewModel.revalidate()
+        await viewModel.goToHistoryWeek(offset: 1)
+        XCTAssertEqual(viewModel.week?.value.targetDistanceKm, 56)
+
+        let refreshCount = repository.refreshWeeklyPlanCallCount
+        await viewModel.revalidate()
+
+        XCTAssertEqual(viewModel.week?.value.targetDistanceKm, 44)
+        XCTAssertGreaterThan(repository.refreshWeeklyPlanCallCount, refreshCount)
+        XCTAssertEqual(repository.lastRefreshedWeeklyPlanWeekOfTraining, 11)
+    }
+
+    func test_planChangedWhileOnCurrentWeekThenNextWeekShowsTheServerCopy() async {
+        let (viewModel, repository) = makeViewModel(nextWeekHasPlan: true)
+        repository.simulatesCacheFirstReads = true
+        repository.cachedWeeklyPlansByWeek = [11: weeklyPlan(week: 11, totalDistance: 56)]
+        repository.weeklyPlansByWeekToReturn = [10: weeklyPlan(week: 10), 11: weeklyPlan(week: 11, totalDistance: 44)]
+        await viewModel.revalidate()
+
+        CacheEventBus.shared.publish(.dataChanged(.trainingPlanV2))
+        await Self.waitUntil { repository.clearedWeeklyPlanCacheWeeks.contains(11) }
+        XCTAssertTrue(repository.clearedWeeklyPlanCacheWeeks.contains(10))
+        await viewModel.goToHistoryWeek(offset: 1)
+
+        XCTAssertEqual(viewModel.week?.value.targetDistanceKm, 44)
+    }
+
+    func test_revalidateOnTheNextWeekKeepsPrepaintedPlanWhenRefreshFails() async {
+        let (viewModel, repository) = makeViewModel(nextWeekHasPlan: true)
+        repository.simulatesCacheFirstReads = true
+        repository.cachedWeeklyPlansByWeek = [11: weeklyPlan(week: 11, totalDistance: 56)]
+        repository.weeklyPlansByWeekToReturn = [10: weeklyPlan(week: 10), 11: weeklyPlan(week: 11, totalDistance: 44)]
+        await viewModel.revalidate()
+        await viewModel.goToHistoryWeek(offset: 1)
+        XCTAssertEqual(viewModel.week?.value.targetDistanceKm, 56)
+
+        let refreshCount = repository.refreshWeeklyPlanCallCount
+        repository.refreshWeeklyPlanErrorToThrow = NSError(domain: "test", code: 500)
+        await viewModel.revalidate()
+
+        XCTAssertGreaterThan(repository.refreshWeeklyPlanCallCount, refreshCount)
+        XCTAssertEqual(viewModel.week?.value.targetDistanceKm, 56)
+        XCTAssertFalse(viewModel.isHistoryWeekMissing)
     }
 }

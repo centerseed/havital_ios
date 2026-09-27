@@ -311,7 +311,16 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     self.lastLoadedAt = nil
-                    if self.hasLoaded { await self.revalidate() }
+                    if self.hasLoaded {
+                        // Rizo may replace the current or already-generated next week.
+                        // Invalidate only those two repository entries so arrow browsing
+                        // cannot repaint a stale next-week copy.
+                        if let currentWeek = self.latestPlanStatus?.currentWeek {
+                            await self.planRepository.clearWeeklyPlanCache(weekOfTraining: currentWeek)
+                            await self.planRepository.clearWeeklyPlanCache(weekOfTraining: currentWeek + 1)
+                        }
+                        await self.revalidate()
+                    }
                 }
             // 新紀錄進來了（推播／同步）——「已補過這個月」的判斷跟著作廢，
             // 並就地重算目前這一週的已完成量（T-0374 裁決的失效條件）。
@@ -458,7 +467,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 // 歷史回看中（結束態或進行中都可以往回翻）：這一輪重驗的是
                 // **那一週**，不是本週。進行中不能回看是 8/27 實機走查抓到的缺陷
                 // ——第 9 週的用戶按左箭頭永遠沒反應。
-                await loadHistoryWeek(historyWeek)
+                await loadHistoryWeek(historyWeek, forceRefresh: true)
                 return
             }
             if planEnd != nil {
@@ -617,7 +626,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 走既有的 `getWeeklyPlan(weekOfTraining:overviewId:)`（快取優先，miss 才打
     /// `GET /v2/plan/weekly/{overviewId}_{week}`）。**404 ＝ 該週從沒生成過課表**，
     /// 那不是錯誤：這一週顯示空態，週次切換照常，其他週照走。
-    private func loadHistoryWeek(_ target: Int) async {
+    private func loadHistoryWeek(_ target: Int, forceRefresh: Bool = false) async {
         historyWeek = target
         isHistoryWeekMissing = false
         // 切週的第一畫：**這一行之前不得有任何 `await`**（T-0374 裁決
@@ -635,19 +644,34 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         }
 
         do {
-            let plan = try await planRepository.getWeeklyPlan(
-                weekOfTraining: target,
-                overviewId: overviewId
-            )
+            let plan: WeeklyPlanV2
+            if forceRefresh {
+                plan = try await planRepository.refreshWeeklyPlan(
+                    weekOfTraining: target,
+                    overviewId: overviewId
+                )
+            } else {
+                plan = try await planRepository.getWeeklyPlan(
+                    weekOfTraining: target,
+                    overviewId: overviewId
+                )
+            }
             guard !isStaleRound else { return }
             await applyHistory(plan: plan, planStatus: status, week: target)
         } catch {
             guard !error.isCancellationError else { if !isStaleRound { finishedRound = false }; return }
             guard !isStaleRound else { return }
             Logger.debug("[App2PlanVM] 歷史第 \(target) 週無課表: \(error)")
-            week = nil
-            dayDetails = [:]
-            isHistoryWeekMissing = true
+            if let planError = error as? TrainingPlanV2Error,
+               case .weeklyPlanNotFound = planError {
+                week = nil
+                dayDetails = [:]
+                isHistoryWeekMissing = true
+            } else if week == nil {
+                // A failed forced refresh keeps the prepainted copy when one exists.
+                dayDetails = [:]
+                isHistoryWeekMissing = true
+            }
         }
     }
 

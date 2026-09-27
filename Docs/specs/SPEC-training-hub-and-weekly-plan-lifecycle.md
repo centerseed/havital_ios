@@ -214,7 +214,7 @@ Then 兩頁顯示改過之後的課表，不需要關閉重開 app，也不需�
 And Then App 只看上面兩個結構化欄位，不得用回覆文字判斷課表有沒有改；沒有這兩個訊號的一輪不觸發重抓。confirm 回 `applied` 但屬於延後到下週套用的，重抓後本週課表不變，這是正確結果。
 And Then iOS 走既有的 `CacheEventBus` `.dataChanged(.trainingPlanV2)`，不另開第二條刷新路徑。課表頁已訂閱（`App2PlanViewModel.swift:305`）；首頁 `App2HomeViewModel` 目前沒有訂閱（只聽 targets／workouts／單位），必須訂閱同一個事件，作廢 `lastLoadedAt` 後重驗。本條同時約束 Android（無獨立的課表頁 spec，以本條為準）。
 
-驗法：對話中打字接受改本週的 pending 提案後，回首頁與課表頁都不重開就看到新課表；單元測試：回覆帶 `plan_change_applied: true` 時發出課表變更事件、不帶時不發；首頁收到事件會重驗。
+驗法：對話中打字接受改本週的 pending 提案後，回首頁與課表頁都不重開就看到新課表；單元測試：回覆帶 `plan_change_applied: true` 時發出課表變更事件、不帶時不發；首頁收到事件會重驗。停在下週時接受 Rizo 改課表或下拉刷新，下週顯示後端最新的那一份；在本週接受後再翻到下週，也是最新的那一份。
 
 ### AC-TRAIN-HUB-19: 產生課表成功後必須把使用者帶到課表分頁的那一週（2026-09-20 使用者裁決）
 

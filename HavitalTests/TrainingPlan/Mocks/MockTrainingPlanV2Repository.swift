@@ -40,6 +40,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     var clearOverviewCacheCallCount = 0
     var lastRequestedWeeklyPlanWeekOfTraining: Int?
     var lastRefreshedWeeklyPlanWeekOfTraining: Int?
+    var clearedWeeklyPlanCacheWeeks: [Int?] = []
     var lastCreateOverviewForRaceTargetId: String?
     var lastCreateOverviewForRaceStartFromStage: String?
     var lastCreateOverviewForRaceMethodologyId: String?
@@ -93,6 +94,13 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     /// 預設 false —— 既有測試自己擺快取，不受影響。
     var simulatesWriteThroughCache = false
 
+    /// Mirror the production repository's cache-first `getWeeklyPlan` behavior.
+    /// Defaults off so existing tests keep their historical mock semantics.
+    var simulatesCacheFirstReads = false
+
+    /// Scoped refresh error for tests that need plan status to keep succeeding.
+    var refreshWeeklyPlanErrorToThrow: Error?
+
     /// 這一週後端沒有課表（404）。
     var weeklyPlanNotFoundWeeks: Set<Int> = []
 
@@ -131,6 +139,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         clearOverviewCacheCallCount = 0
         lastRequestedWeeklyPlanWeekOfTraining = nil
         lastRefreshedWeeklyPlanWeekOfTraining = nil
+        clearedWeeklyPlanCacheWeeks = []
         lastCreateOverviewForRaceTargetId = nil
         lastCreateOverviewForRaceStartFromStage = nil
         lastCreateOverviewForRaceMethodologyId = nil
@@ -139,6 +148,7 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         lastUpdatedOverviewMethodologyId = nil
         lastUpdateWeeklyPlanRequest = nil
         errorToThrow = nil
+        refreshWeeklyPlanErrorToThrow = nil
         weeklySummaryErrorToThrow = nil
         refreshOverviewErrorToThrow = nil
         refreshOverviewResults = []
@@ -248,6 +258,9 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
         requestedWeeklyPlanWeeks.append(weekOfTraining)
         if let onGetWeeklyPlan { await onGetWeeklyPlan() }
         if let error = errorToThrow { throw error }
+        if simulatesCacheFirstReads, let cached = cachedWeeklyPlansByWeek?[weekOfTraining] {
+            return cached
+        }
         if weeklyPlanNotFoundWeeks.contains(weekOfTraining) {
             throw TrainingPlanV2Error.weeklyPlanNotFound(week: weekOfTraining)
         }
@@ -289,9 +302,21 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     func refreshWeeklyPlan(weekOfTraining: Int, overviewId: String) async throws -> WeeklyPlanV2 {
         refreshWeeklyPlanCallCount += 1
         lastRefreshedWeeklyPlanWeekOfTraining = weekOfTraining
+        if let error = refreshWeeklyPlanErrorToThrow { throw error }
         if let error = errorToThrow { throw error }
-        guard let plan = weeklyPlanV2ToReturn else {
+        let plan: WeeklyPlanV2
+        if let weeklyPlansByWeekToReturn {
+            guard let resolved = weeklyPlansByWeekToReturn[weekOfTraining] else {
+                throw TrainingPlanV2Error.weeklyPlanNotFound(week: weekOfTraining)
+            }
+            plan = resolved
+        } else if let weeklyPlanV2ToReturn {
+            plan = weeklyPlanV2ToReturn
+        } else {
             throw TrainingPlanV2Error.weeklyPlanNotFound(week: weekOfTraining)
+        }
+        if simulatesCacheFirstReads {
+            cachedWeeklyPlansByWeek = (cachedWeeklyPlansByWeek ?? [:]).merging([weekOfTraining: plan]) { _, new in new }
         }
         return plan
     }
@@ -416,7 +441,14 @@ final class MockTrainingPlanV2Repository: TrainingPlanV2Repository {
     func clearOverviewCache() async {
         clearOverviewCacheCallCount += 1
     }
-    func clearWeeklyPlanCache(weekOfTraining: Int?) async {}
+    func clearWeeklyPlanCache(weekOfTraining: Int?) async {
+        clearedWeeklyPlanCacheWeeks.append(weekOfTraining)
+        if let weekOfTraining {
+            cachedWeeklyPlansByWeek?.removeValue(forKey: weekOfTraining)
+        } else {
+            cachedWeeklyPlansByWeek?.removeAll()
+        }
+    }
     func clearWeeklySummaryCache(weekOfPlan: Int?) async {}
     func preloadData() async {}
 }
