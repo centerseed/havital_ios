@@ -733,3 +733,74 @@ final class App2SessionDetailProjectionTests: XCTestCase {
         XCTAssertNotEqual(session.title, DayType.easy.localizedName)
     }
 }
+
+// MARK: - AC-TRAIN-HUB-23：組間那一列依 recovery_type 寫出怎麼休息
+
+extension App2SessionDetailProjectionTests {
+
+    private func recoveryTypeDay(_ recovery: String) throws -> DayDetail {
+        let json = """
+        { "day_index": 2, "day_target": "間歇跑", "reason": "速耐力", "distance_km": 8.0,
+          "primary": { "run_type": "interval", "distance_km": 4.8, "pace": "4:35",
+            "interval": { "repeats": 6, "work_distance_m": 800, "work_pace": "4:35", \(recovery) } } }
+        """
+        return TrainingSessionMapper.toEntity(
+            from: try JSONDecoder().decode(DayDetailDTO.self, from: Data(json.utf8))
+        )
+    }
+
+    private func homeRecoveryRow(_ day: DayDetail) throws -> String? {
+        let rows = App2HomeViewModel.segments(day: day)
+        return try XCTUnwrap(rows.first { $0.name == L10n.App2.Home.segmentRecovery.localized }).detail
+    }
+
+    private func sprintNote(_ day: DayDetail) throws -> String? {
+        let rows = App2SessionDetailProjection.detailSegments(day: day)
+        return try XCTUnwrap(rows.first { $0.repeatsLabel != nil }).note
+    }
+
+    func test_recoveryType_decodedFromPrimaryInterval() throws {
+        let day = try recoveryTypeDay(#""recovery_type": "static", "recovery_duration_seconds": 180"#)
+        guard case .run(let run) = day.session?.primary else { return XCTFail("應為跑步課") }
+        XCTAssertEqual(run.interval?.recoveryType, "static")
+    }
+
+    func test_recoveryType_static_showsStandingRestOnHomeAndDetail() throws {
+        let day = try recoveryTypeDay(#""recovery_type": "static", "recovery_duration_seconds": 180"#)
+        let label = String(
+            format: L10n.App2.Home.recoveryStatic.localized,
+            String(format: L10n.App2.Home.recoveryAmountSeconds.localized, 180)
+        )
+        XCTAssertEqual(try homeRecoveryRow(day), label)
+        XCTAssertEqual(try sprintNote(day), String(format: L10n.App2.Detail.recoveryNoteTyped.localized, label))
+    }
+
+    func test_recoveryType_jogByDistance_showsJogWithPace() throws {
+        let day = try recoveryTypeDay(#""recovery_type": "jog", "recovery_distance_m": 200, "recovery_pace": "7:35""#)
+        let label = String(format: L10n.App2.Home.recoveryJog.localized, "200m")
+            + App2SegmentFormat.separator + App2SegmentFormat.paceWithUnit("7:35")
+        XCTAssertEqual(try homeRecoveryRow(day), label)
+        XCTAssertEqual(try sprintNote(day), String(format: L10n.App2.Detail.recoveryNoteTyped.localized, label))
+    }
+
+    func test_recoveryType_walkJogByMinutes_keepsMinutes() throws {
+        let day = try recoveryTypeDay(#""recovery_type": "walk_jog", "recovery_duration_minutes": 2"#)
+        let label = String(
+            format: L10n.App2.Home.recoveryWalkJog.localized,
+            String(format: L10n.App2.Home.minutes.localized, 2)
+        )
+        XCTAssertEqual(try homeRecoveryRow(day), label)
+    }
+
+    func test_recoveryType_missing_keepsPreviousText() throws {
+        let day = try recoveryTypeDay(#""recovery_duration_seconds": 180"#)
+        XCTAssertEqual(try homeRecoveryRow(day), String(format: L10n.App2.Home.recoverySeconds.localized, 180))
+        XCTAssertEqual(
+            try sprintNote(day),
+            String(
+                format: L10n.App2.Detail.recoveryNote.localized,
+                String(format: NSLocalizedString("training.recovery.amount_seconds", comment: ""), 180)
+            )
+        )
+    }
+}

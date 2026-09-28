@@ -4395,6 +4395,10 @@
 "app2.home.week_review_sub" = "看看這一週跑成什麼樣";
 "app2.home.rizo_sub" = "你的 AI 跑步教練";
 "app2.home.recovery_seconds" = "組間 %d 秒";
+"app2.home.recovery_static" = "原地休息 %@";
+"app2.home.recovery_jog" = "慢跑 %@";
+"app2.home.recovery_walk_jog" = "走跑 %@";
+"app2.home.recovery_amount_seconds" = "%d 秒";
 "app2.home.no_goal_title" = "尚未設定目標賽事";
 "app2.home.no_goal_body" = "設定一場目標賽事後，這裡會顯示目標成績、預估完賽與訓練週次。";
 "app2.home.no_plan_body" = "本週課表尚未產生，到「課表」頁產生後這裡就會顯示今天的訓練。";
@@ -4505,6 +4509,7 @@
 "app2.detail.goal" = "本次訓練目標";
 "app2.detail.structure" = "訓練結構";
 "app2.detail.recovery_note" = "組間休息：%@";
+"app2.detail.recovery_note_typed" = "組間%@";
 "app2.detail.recovery_metres" = "慢跑 %d m";
 "app2.detail.strength_section" = "力量訓練";
 "app2.detail.strength_sets_reps" = "%1$d 組 × %2$@ 下";

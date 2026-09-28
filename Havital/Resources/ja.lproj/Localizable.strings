@@ -4351,6 +4351,10 @@
 "app2.home.week_review_sub" = "今週の走りを振り返る";
 "app2.home.rizo_sub" = "あなたの AI ランニングコーチ";
 "app2.home.recovery_seconds" = "レスト %d 秒";
+"app2.home.recovery_static" = "その場で休憩 %@";
+"app2.home.recovery_jog" = "ジョグ %@";
+"app2.home.recovery_walk_jog" = "ウォーク＆ジョグ %@";
+"app2.home.recovery_amount_seconds" = "%d 秒";
 "app2.home.no_goal_title" = "目標レース未設定";
 "app2.home.no_goal_body" = "目標レースを設定すると、目標タイム・予測タイム・トレーニング週がここに表示されます。";
 "app2.home.no_plan_body" = "今週のプランはまだ生成されていません。プランタブで生成すると、今日のメニューがここに表示されます。";
@@ -4461,6 +4465,7 @@
 "app2.detail.goal" = "今回の目的";
 "app2.detail.structure" = "トレーニング構成";
 "app2.detail.recovery_note" = "レスト：%@";
+"app2.detail.recovery_note_typed" = "レスト：%@";
 "app2.detail.recovery_metres" = "つなぎジョグ %d m";
 "app2.detail.strength_section" = "筋力トレーニング";
 "app2.detail.strength_sets_reps" = "%1$d セット × %2$@ 回";

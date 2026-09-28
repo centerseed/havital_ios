@@ -2076,6 +2076,12 @@ extension L10n {
             static let weekReviewSub = "app2.home.week_review_sub"
             static let rizoSub = "app2.home.rizo_sub"
             static let recoverySeconds = "app2.home.recovery_seconds"
+            /// 組間恢復的方式＋量（`原地休息 %@`／`慢跑 %@`／`走跑 %@`），依 `recovery_type`。
+            static let recoveryStatic = "app2.home.recovery_static"
+            static let recoveryJog = "app2.home.recovery_jog"
+            static let recoveryWalkJog = "app2.home.recovery_walk_jog"
+            /// `%d 秒`（純數量，給上面三句套）。
+            static let recoveryAmountSeconds = "app2.home.recovery_amount_seconds"
             static let noGoalTitle = "app2.home.no_goal_title"
             static let noGoalBody = "app2.home.no_goal_body"
             static let noPlanBody = "app2.home.no_plan_body"
@@ -2264,6 +2270,8 @@ extension L10n {
             static let goal = "app2.detail.goal"
             static let structure = "app2.detail.structure"
             static let recoveryNote = "app2.detail.recovery_note"
+            /// 已知恢復方式時的組間句（`組間%@` → 「組間原地休息 180 秒」）。
+            static let recoveryNoteTyped = "app2.detail.recovery_note_typed"
             /// 組間慢跑的距離量（純數量，不帶「組間」前綴 —— 前綴在
             /// `recovery_note` 那一句上，見 `App2SessionDetailProjection.recoveryNote`）。
             static let recoveryMetres = "app2.detail.recovery_metres"

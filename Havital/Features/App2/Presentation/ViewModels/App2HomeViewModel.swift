@@ -1146,7 +1146,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                                repeats > 1 ? "\(repeats) × \(detail)" : detail, isWork: true)
                     }
                     append(L10n.App2.Home.segmentRecovery.localized,
-                           segment.recovery.flatMap(effortLabel(effort:)), isWork: false)
+                           segment.recovery.flatMap { typedRecoveryLabel($0) ?? effortLabel(effort: $0) },
+                           isWork: false)
                 } else {
                     append(L10n.App2.Home.segmentMain.localized,
                            effortLabel(segment: segment), isWork: true)
@@ -1298,6 +1299,35 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             parts.append(App2SegmentFormat.paceWithUnit(pace))
         }
         return parts.isEmpty ? nil : parts.joined(separator: App2SegmentFormat.separator)
+    }
+
+    /// 組間恢復寫出怎麼休息（AC-TRAIN-HUB-23）：`原地休息 180 秒`／`慢跑 200m · 7:35/km`。
+    /// 沒帶或不認得 `recovery_type` 回 nil，呼叫端維持原本寫法，不從其他欄位猜。
+    static func typedRecoveryLabel(_ recovery: SegmentEffort) -> String? {
+        let key: String
+        switch recovery.recoveryType {
+        case "static": key = L10n.App2.Home.recoveryStatic
+        case "jog": key = L10n.App2.Home.recoveryJog
+        case "walk_jog": key = L10n.App2.Home.recoveryWalkJog
+        default: return nil
+        }
+        let amount: String
+        if let seconds = recovery.durationSeconds {
+            amount = String(format: L10n.App2.Home.recoveryAmountSeconds.localized, seconds)
+        } else if let minutes = recovery.durationMinutes {
+            amount = String(format: L10n.App2.Home.minutes.localized, minutes)
+        } else if let metres = recovery.distanceM {
+            amount = "\(metres)m"
+        } else if let km = recovery.distanceKm, km > 0 {
+            amount = String(format: "%.1f km", km)
+        } else {
+            amount = ""
+        }
+        var label = String(format: key.localized, amount).trimmingCharacters(in: .whitespaces)
+        if let pace = recovery.pace ?? recovery.basePace {
+            label += App2SegmentFormat.separator + App2SegmentFormat.paceWithUnit(pace)
+        }
+        return label
     }
 
     static func effortLabel(segment: RunSegment) -> String? {

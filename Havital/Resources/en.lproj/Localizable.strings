@@ -4354,6 +4354,10 @@
 "app2.home.week_review_sub" = "See how the week went";
 "app2.home.rizo_sub" = "Your AI running coach";
 "app2.home.recovery_seconds" = "%d s rest";
+"app2.home.recovery_static" = "Standing rest %@";
+"app2.home.recovery_jog" = "Jog %@";
+"app2.home.recovery_walk_jog" = "Walk-jog %@";
+"app2.home.recovery_amount_seconds" = "%d s";
 "app2.home.no_goal_title" = "No target race yet";
 "app2.home.no_goal_body" = "Set a target race and this card will show your goal time, projected finish and training week.";
 "app2.home.no_plan_body" = "This week's plan hasn't been generated yet. Generate it on the Plan tab and today's session will show up here.";
@@ -4464,6 +4468,7 @@
 "app2.detail.goal" = "Goal of this session";
 "app2.detail.structure" = "Session structure";
 "app2.detail.recovery_note" = "Recovery: %@";
+"app2.detail.recovery_note_typed" = "Between reps: %@";
 "app2.detail.recovery_metres" = "%d m jog";
 "app2.detail.strength_section" = "Strength";
 "app2.detail.strength_sets_reps" = "%1$d sets × %2$@ reps";

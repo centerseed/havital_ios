@@ -156,7 +156,8 @@ enum TrainingSessionMapper {
             recoveryPace: dto.recoveryPace,
             recoveryDescription: dto.recoveryDescription,
             recoveryDurationSeconds: dto.recoveryDurationSeconds,
-            variant: dto.variant
+            variant: dto.variant,
+            recoveryType: dto.recoveryType
         )
     }
 
@@ -177,7 +178,8 @@ enum TrainingSessionMapper {
             recoveryPace: entity.recoveryPace,
             recoveryDescription: entity.recoveryDescription,
             recoveryDurationSeconds: entity.recoveryDurationSeconds,
-            variant: entity.variant
+            variant: entity.variant,
+            recoveryType: entity.recoveryType
         )
     }
 

@@ -270,13 +270,18 @@ fileprivate struct UITestMethodologyContext {
             resolvedSummary != nil ? .summary : nil,
         ].compactMap { $0 }
 
-        let initialScreen = env["UITEST_METHODOLOGY_SCREEN"]
+        let requestedScreen: UITestMethodologyScreen? = env["UITEST_METHODOLOGY_SCREEN"]
             .flatMap(UITestMethodologyScreen.init(rawValue:))
             .flatMap { availableScreens.contains($0) ? $0 : nil }
-            ?? primaryRecord?.defaultScreen
-            ?? overviewRecord?.defaultScreen
-            ?? weeklyRecord?.defaultScreen
-            ?? summaryRecord?.defaultScreen
+        let recordScreens: [UITestMethodologyScreen?] = [
+            primaryRecord?.defaultScreen,
+            overviewRecord?.defaultScreen,
+            weeklyRecord?.defaultScreen,
+            summaryRecord?.defaultScreen,
+        ]
+        let recordScreen: UITestMethodologyScreen? = recordScreens.compactMap { $0 }.first
+        let initialScreen: UITestMethodologyScreen = requestedScreen
+            ?? recordScreen
             ?? availableScreens.first
             ?? .weekly
 

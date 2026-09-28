@@ -373,6 +373,10 @@ enum App2SessionDetailProjection {
     /// 在用的 `training.recovery.amount_*`，不另立第二份數量格式。
     static func recoveryNote(_ recovery: SegmentEffort?) -> String? {
         guard let recovery else { return nil }
+        // 帶了恢復方式就寫出怎麼休息（AC-TRAIN-HUB-23），與首頁同一個 helper。
+        if let label = App2HomeViewModel.typedRecoveryLabel(recovery) {
+            return String(format: L10n.App2.Detail.recoveryNoteTyped.localized, label)
+        }
         let value: String?
         if let seconds = recovery.durationSeconds {
             value = String(

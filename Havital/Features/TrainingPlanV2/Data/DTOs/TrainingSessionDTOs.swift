@@ -126,6 +126,8 @@ struct IntervalBlockDTO: Codable, Equatable {
     var recoveryDescription: String?
     var recoveryDurationSeconds: Int?
     var variant: String?
+    /// "static" | "jog" | "walk_jog"；存 String，未知值不讓整份週課表解碼失敗。
+    var recoveryType: String? = nil
 
     enum CodingKeys: String, CodingKey {
         case repeats
@@ -144,6 +146,7 @@ struct IntervalBlockDTO: Codable, Equatable {
         case recoveryDescription = "recovery_description"
         case recoveryDurationSeconds = "recovery_duration_seconds"
         case variant
+        case recoveryType = "recovery_type"
     }
 
     /// 自定義編碼器 — recovery 欄位用 encode（nil → null），work 欄位用 encodeIfPresent（nil → 省略）
@@ -168,6 +171,7 @@ struct IntervalBlockDTO: Codable, Equatable {
         try container.encodeIfPresent(recoveryDescription, forKey: .recoveryDescription)
         try container.encode(recoveryDurationSeconds, forKey: .recoveryDurationSeconds)
         try container.encodeIfPresent(variant, forKey: .variant)
+        try container.encodeIfPresent(recoveryType, forKey: .recoveryType)
     }
 }
 

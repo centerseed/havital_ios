@@ -1236,7 +1236,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 basePace: nil,
                 paceZone: nil,
                 targetHrr: nil,
-                recoveryType: nil
+                recoveryType: interval.recoveryType
             )
         )]
     }

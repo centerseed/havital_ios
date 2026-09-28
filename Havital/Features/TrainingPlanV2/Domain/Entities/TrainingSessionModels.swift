@@ -131,6 +131,8 @@ struct IntervalBlock: Codable, Equatable {
     let recoveryDescription: String?
     let recoveryDurationSeconds: Int?
     let variant: String?
+    /// "static" | "jog" | "walk_jog"。
+    var recoveryType: String? = nil
 }
 
 // MARK: - RunActivity (跑步活動)
