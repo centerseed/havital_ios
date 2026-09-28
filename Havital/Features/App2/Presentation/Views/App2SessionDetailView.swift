@@ -714,7 +714,9 @@ struct App2SessionDetailView: View {
     }
 
     private var estimatedRangeLabel: String? {
-        App2SessionDetailProjection.estimatedRangeLabel(durationMinutes: detail.durationMinutes)
+        App2SessionDetailProjection.estimatedRangeLabel(
+            durationMinutes: detail.durationMinutes, dayType: detail.dayType
+        )
     }
 
     private var targetZoneSection: some View {
@@ -734,7 +736,7 @@ struct App2SessionDetailView: View {
                     targetZoneCard(
                         label: L10n.App2.Detail.estimatedTime.localized,
                         unit: App2SessionDetailProjection.estimatedRangeUnit(
-                            durationMinutes: detail.durationMinutes
+                            durationMinutes: detail.durationMinutes, dayType: detail.dayType
                         ),
                         value: range,
                         suffix: nil,

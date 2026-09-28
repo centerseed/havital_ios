@@ -175,6 +175,16 @@ final class App2SessionDetailProjectionTests: XCTestCase {
     // MARK: - 休息日不進詳情
 
     /// 設計沒有休息日的詳情版式；點下去只會看到一頁空卡。
+    func test_estimatedRange_easyRunsWidenTowardSlowerOnly() {
+        XCTAssertEqual(App2SessionDetailProjection.estimatedRangeLabel(durationMinutes: 50, dayType: .easy), "50-55")
+        XCTAssertEqual(App2SessionDetailProjection.estimatedRangeLabel(durationMinutes: 120, dayType: .lsd), "2:00-2:12")
+        XCTAssertEqual(App2SessionDetailProjection.estimatedRangeLabel(durationMinutes: 20, dayType: .easyRun), "20-22")
+        XCTAssertEqual(App2SessionDetailProjection.estimatedRangeLabel(durationMinutes: 26, dayType: .interval), "24-28")
+        XCTAssertEqual(App2SessionDetailProjection.estimatedRangeLabel(durationMinutes: 26), "24-28")
+        XCTAssertNil(App2SessionDetailProjection.estimatedRangeUnit(durationMinutes: 55, dayType: .easy))
+        XCTAssertNotNil(App2SessionDetailProjection.estimatedRangeUnit(durationMinutes: 50, dayType: .easy))
+    }
+
     func test_detail_restDay_returnsNil() throws {
         XCTAssertNil(try detail(restDay))
     }
