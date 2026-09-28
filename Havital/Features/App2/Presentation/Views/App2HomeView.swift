@@ -1455,7 +1455,7 @@ struct App2HomeView: View {
             }
 
             rizoInputRow(
-                placeholder: L10n.App2.Home.rizoInputPlaceholder.localized,
+                placeholder: viewModel.rizoInputPlaceholderKey.localized,
                 showsAvatar: false,
                 identifier: "App2_RizoInput"
             )

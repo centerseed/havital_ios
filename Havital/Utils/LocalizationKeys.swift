@@ -2120,6 +2120,8 @@ extension L10n {
             /// 內嵌 Rizo 卡。
             static let rizoCoachTitle = "app2.home.rizo_coach_title"
             static let rizoInputPlaceholder = "app2.home.rizo_input_placeholder"
+            /// 已跑／休息日／沒課時用對話頁同一句（AC-TRAIN-HUB-25），不另寫第三句。
+            static let rizoInputPlaceholderToday = "rizo.chat.inputPlaceholder"
             /// 訓練狀況卡展開態的 Rizo 佔位字。
             ///
             /// 收合／展開連結的字（`看更多`／`收起`）走既有的

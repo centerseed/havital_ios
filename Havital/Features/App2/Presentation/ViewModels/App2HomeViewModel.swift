@@ -459,6 +459,19 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         Self.todayPillState(isRest: isRest, isDone: todayCompletedWorkout != nil)
     }
 
+    /// 首頁 Rizo 輸入框提示句（AC-TRAIN-HUB-25）：只有「今天有跑步課、還沒跑」才寫出發前那一句。
+    /// 「已跑」與完成列同源（`todayCompletedWorkout`）。
+    var rizoInputPlaceholderKey: String {
+        Self.rizoInputPlaceholderKey(todayState: todayState, isDone: todayCompletedWorkout != nil)
+    }
+
+    static func rizoInputPlaceholderKey(todayState: App2TodaySessionState?, isDone: Bool) -> String {
+        if case .session(let session) = todayState, !session.isRest, !isDone {
+            return L10n.App2.Home.rizoInputPlaceholder
+        }
+        return L10n.App2.Home.rizoInputPlaceholderToday
+    }
+
     /// 已完成回 nil：完成資訊由卡片完成列獨佔，chip 不重複顯示
     /// （2026-08-31 使用者裁決，修正 T-0352 的「已跑」態）。
     static func todayPillState(isRest: Bool, isDone: Bool) -> TodayPillState? {

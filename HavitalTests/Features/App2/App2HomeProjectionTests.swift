@@ -1287,4 +1287,40 @@ final class App2HomeProjectionTests: XCTestCase {
         XCTAssertEqual(pill?.showsCheck, true)
         XCTAssertEqual(pill?.textKey, L10n.App2.Home.todayRest)
     }
+
+    // MARK: - Rizo 輸入框提示句（AC-TRAIN-HUB-25）
+
+    private func todaySession(dayType: DayType) -> App2TodaySessionState {
+        var session = App2TodaySession(
+            dayLabel: "週一 · 9/28", title: "輕鬆跑", intensityLabel: nil, summary: nil,
+            segments: [], structureBars: [], strengthLabel: nil
+        )
+        session.dayType = dayType
+        return .session(session)
+    }
+
+    func test_rizoPlaceholder_runNotDoneYet_isPreRun() {
+        XCTAssertEqual(
+            App2HomeViewModel.rizoInputPlaceholderKey(todayState: todaySession(dayType: .easy), isDone: false),
+            L10n.App2.Home.rizoInputPlaceholder
+        )
+    }
+
+    func test_rizoPlaceholder_ranToday_isHowTodayFelt() {
+        XCTAssertEqual(
+            App2HomeViewModel.rizoInputPlaceholderKey(todayState: todaySession(dayType: .easy), isDone: true),
+            L10n.App2.Home.rizoInputPlaceholderToday
+        )
+    }
+
+    func test_rizoPlaceholder_restDayOrNoSession_isHowTodayFelt() {
+        XCTAssertEqual(
+            App2HomeViewModel.rizoInputPlaceholderKey(todayState: todaySession(dayType: .rest), isDone: false),
+            L10n.App2.Home.rizoInputPlaceholderToday
+        )
+        XCTAssertEqual(
+            App2HomeViewModel.rizoInputPlaceholderKey(todayState: .noSessionToday, isDone: false),
+            L10n.App2.Home.rizoInputPlaceholderToday
+        )
+    }
 }
