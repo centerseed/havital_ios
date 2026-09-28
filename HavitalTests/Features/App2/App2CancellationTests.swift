@@ -85,7 +85,7 @@ final class App2CancellationTests: XCTestCase {
             narrative: nil,
             workoutDataSource: ImmediateStatsSource(),
             healthDataSource: HangingHealthSource(), seriesDataSource: App2EmptySeriesSource(),
-            profileRepository: nil
+            planRepository: nil
         )
 
         let load = Task { await vm.revalidate() }
@@ -330,7 +330,7 @@ final class App2CancellationTests: XCTestCase {
             narrative: nil,
             workoutDataSource: ImmediateStatsSource(),
             healthDataSource: CancelledHealthSource(), seriesDataSource: App2EmptySeriesSource(),
-            profileRepository: nil
+            planRepository: nil
         )
 
         await vm.revalidate()
@@ -759,7 +759,7 @@ final class App2CancellationTests: XCTestCase {
             narrative: nil,
             workoutDataSource: source,
             healthDataSource: FailingHealthSource(), seriesDataSource: App2EmptySeriesSource(),
-            profileRepository: nil
+            planRepository: nil
         )
 
         vm.select(range: .weeks26)
@@ -786,7 +786,7 @@ final class App2CancellationTests: XCTestCase {
             narrative: nil,
             workoutDataSource: source,
             healthDataSource: FailingHealthSource(), seriesDataSource: App2EmptySeriesSource(),
-            profileRepository: nil
+            planRepository: nil
         )
         weak var weakVM = vm
 

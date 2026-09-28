@@ -73,7 +73,7 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
     private let workoutDataSource: WorkoutStatsDataSourceProtocol
     private let healthDataSource: HealthDailyDataSourceProtocol
     private let seriesDataSource: AthleteStateSeriesDataSourceProtocol
-    private let profileRepository: UserProfileRepository?
+    private let planRepository: TrainingPlanV2Repository?
     private let cache: App2MetricDetailCache
 
     /// CTL／ATL／TSB 三欄取最近一天，60 天是設計 §51-7 既有的取數窗。
@@ -86,7 +86,7 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         workoutDataSource: WorkoutStatsDataSourceProtocol? = nil,
         healthDataSource: HealthDailyDataSourceProtocol? = nil,
         seriesDataSource: AthleteStateSeriesDataSourceProtocol? = nil,
-        profileRepository: UserProfileRepository? = nil,
+        planRepository: TrainingPlanV2Repository? = nil,
         cache: App2MetricDetailCache = .shared
     ) {
         self.insight = insight
@@ -96,14 +96,14 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         self.healthDataSource = healthDataSource ?? HealthDailyRemoteDataSource()
         self.seriesDataSource = seriesDataSource ?? AthleteStateSeriesRemoteDataSource()
         self.cache = cache
-        if let profileRepository {
-            self.profileRepository = profileRepository
+        if let planRepository {
+            self.planRepository = planRepository
         } else {
             let container = DependencyContainer.shared
-            // 目標週跑量住在 profile（`current_week_distance`，＝訓練設定那顆旋鈕）。
-            // 沒註冊就不強行註冊——那時只是少一條目標線，不該讓整頁掛掉。
-            self.profileRepository = container.isRegistered(UserProfileRepository.self)
-                ? (container.resolve() as UserProfileRepository)
+            // 課表是目標線的唯一真相。沒註冊就不強行註冊——那時只是少一條目標線，
+            // 不該讓整頁掛掉。
+            self.planRepository = container.isRegistered(TrainingPlanV2Repository.self)
+                ? (container.resolve() as TrainingPlanV2Repository)
                 : nil
         }
         // VM 隨 push 重建：有 session 快取就先出畫面（SWR），過期與否交給
@@ -343,16 +343,19 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         )
     }
 
-    /// 目標週跑量（`current_week_distance`）。讀不到就 nil —— 不畫目標線，也不編一個。
+    /// 目標週跑量來自本週課表，與課表頁的週目標共用同一份 plan。
+    /// 沒有本週課表就 nil —— 不畫目標線，也不退回 profile 值。
     private func targetWeeklyKm() async -> Double? {
-        guard let profileRepository else { return nil }
+        guard let planRepository else { return nil }
         do {
-            let user = try await profileRepository.getUserProfile()
-            guard let km = user.currentWeekDistance, km > 0 else { return nil }
-            return Double(km)
+            let status = try await planRepository.getPlanStatus(forceRefresh: true)
+            guard let planId = status.currentWeekPlanId else { return nil }
+            let plan = try await planRepository.fetchWeeklyPlan(planId: planId)
+            guard plan.totalDistance > 0 else { return nil }
+            return plan.totalDistance
         } catch {
             if !error.isCancellationError {
-                Logger.debug("[App2VolumeDetailVM] profile 取得失敗,不畫目標線: \(error)")
+                Logger.debug("[App2VolumeDetailVM] 本週課表取得失敗,不畫目標線: \(error)")
             }
             return nil
         }

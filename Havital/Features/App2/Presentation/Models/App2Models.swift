@@ -947,7 +947,7 @@ struct App2VolumeDetail: Equatable {
     let hero: App2MetricHero
     /// 週跑量柱狀圖（舊→新，含本週）。
     let bars: [App2WeeklyBar]
-    /// 目標線（用戶設定的目標週跑量）。nil = 不畫 dashed 線、右側對照也是「–」。
+    /// 目標線（本週課表的目標週跑量）。nil = 沒有本週課表，不畫 dashed 線。
     let targetKm: Double?
     let stats: [App2MetricStat]
     /// 訓練負荷的 CTL／ATL／TSB 三欄。**nil = 那三欄不畫**（dev 的 `tsb_metrics`

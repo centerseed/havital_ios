@@ -96,7 +96,8 @@ final class App2VolumeDetailAcwrTests: XCTestCase {
     private func makeVM(
         insight: App2Insight? = nil,
         narrative: String? = nil,
-        series: RecordingSeriesSource
+        series: RecordingSeriesSource,
+        planRepository: TrainingPlanV2Repository? = nil
     ) -> App2VolumeDetailViewModel {
         App2VolumeDetailViewModel(
             insight: insight ?? volumeInsight(),
@@ -105,9 +106,88 @@ final class App2VolumeDetailAcwrTests: XCTestCase {
             workoutDataSource: StatsSource(),
             healthDataSource: EmptyHealthSource(),
             seriesDataSource: series,
-            profileRepository: nil,
+            planRepository: planRepository,
             cache: App2MetricDetailCache()
         )
+    }
+
+    private func user(currentWeekDistance: Int) -> User {
+        let json = """
+        {"current_week_distance": \(currentWeekDistance)}
+        """
+        return try! JSONDecoder().decode(User.self, from: Data(json.utf8))
+    }
+
+    private func planStatus(currentWeekPlanId: String?) -> PlanStatusV2Response {
+        PlanStatusV2Response(
+            currentWeek: 3,
+            totalWeeks: 12,
+            nextAction: currentWeekPlanId == nil ? "create_plan" : "view_plan",
+            canGenerateNextWeek: false,
+            currentWeekPlanId: currentWeekPlanId,
+            previousWeekSummaryId: nil,
+            targetType: "race_run",
+            methodologyId: "paceriz",
+            nextWeekInfo: nil,
+            metadata: nil
+        )
+    }
+
+    private func weeklyPlan(totalDistance: Double) -> WeeklyPlanV2 {
+        WeeklyPlanV2(
+            planId: "plan-3", weekOfTraining: 3, id: "plan-3", purpose: "build",
+            weekOfPlan: 3, totalWeeks: 12, totalDistance: totalDistance,
+            totalDistanceDisplay: nil, totalDistanceUnit: nil, totalDistanceReason: nil,
+            designReason: nil, mileageProgressionNote: nil, coachNote: nil, days: [],
+            intensityTotalMinutes: nil, currentVdot: nil, vdotSource: nil,
+            createdAt: nil, updatedAt: nil, trainingLoadAnalysis: nil,
+            personalizedRecommendations: nil, realTimeAdjustments: nil, apiVersion: "2.0"
+        )
+    }
+
+    // MARK: - Weekly target
+
+    func test_weeklyTargetUsesCurrentPlanInsteadOfProfileDistance() async {
+        let planRepository = MockTrainingPlanV2Repository()
+        planRepository.planStatusToReturn = planStatus(currentWeekPlanId: "plan-3")
+        planRepository.weeklyPlanV2ToReturn = weeklyPlan(totalDistance: 56)
+        let profileRepository = MockUserProfileRepository()
+        profileRepository.userToReturn = user(currentWeekDistance: 40)
+        DependencyContainer.shared.replace(
+            profileRepository as UserProfileRepository,
+            for: UserProfileRepository.self
+        )
+        let vm = makeVM(
+            series: RecordingSeriesSource(response: acwrResponse([])),
+            planRepository: planRepository
+        )
+
+        await vm.revalidate()
+
+        XCTAssertEqual(vm.detail?.value.targetKm, 56)
+        XCTAssertEqual(profileRepository.getUserProfileCallCount, 0)
+        XCTAssertEqual(planRepository.fetchWeeklyPlanCallCount, 1)
+    }
+
+    func test_weeklyTargetIsNilWhenCurrentPlanDoesNotExist() async {
+        let planRepository = MockTrainingPlanV2Repository()
+        planRepository.planStatusToReturn = planStatus(currentWeekPlanId: nil)
+        let profileRepository = MockUserProfileRepository()
+        profileRepository.userToReturn = user(currentWeekDistance: 40)
+        DependencyContainer.shared.replace(
+            profileRepository as UserProfileRepository,
+            for: UserProfileRepository.self
+        )
+        let vm = makeVM(
+            series: RecordingSeriesSource(response: acwrResponse([])),
+            planRepository: planRepository
+        )
+
+        await vm.revalidate()
+
+        XCTAssertNil(vm.detail?.value.targetKm)
+        XCTAssertEqual(profileRepository.getUserProfileCallCount, 0)
+        XCTAssertEqual(planRepository.fetchWeeklyPlanCallCount, 0)
     }
 
     // MARK: - hero
