@@ -13,11 +13,11 @@ updated: 2026-04-23
 
 ### 已讀文件（附具體發現）
 
-- `apps/ios/Havital/Docs/specs/SPEC-global-interrupt-queue-and-presentation-priority.md` — 發現：已明確定義 `AC-INT-01 ~ AC-INT-12`，可直接進 executable TD；優先級已定死為 `session/auth > paywall > announcement > data source reminder > other nudge`。
-- `apps/ios/Havital/Docs/specs/SPEC-app-shell-routing-and-global-guardrails.md` — 發現：`ContentView` 已被定義為 app shell 與全域 guardrail 的主要宿主；route-level blocker 與主 app guardrail 已是既有概念。
-- `apps/ios/Havital/Docs/specs/SPEC-onboarding-delayed-data-source-binding.md` — 發現：`data_source = unbound` 後的主提醒目前產品規格已要求沿用 `ContentView` 路徑，且頻率固定為每 3 天最多一次。
-- `apps/ios/Havital/Docs/specs/SPEC-subscription-management-and-status-ui.md` — 發現：expired / trial reminder 與 paywall 已是正式產品面的一部分，未來必然屬於 interrupt queue 範圍，不是單純某個 feature 的 local sheet。
-- `apps/ios/Havital/Docs/specs/SPEC-profile-and-data-integration-management.md` — 發現：`UserProfileView` 是資料來源管理與 paywall 入口之一，但它本身是 settings surface，不應被誤收成 queue host。
+- `docs/specs/SPEC-global-interrupt-queue-and-presentation-priority.md` — 發現：已明確定義 `AC-INT-01 ~ AC-INT-12`，可直接進 executable TD；優先級已定死為 `session/auth > paywall > announcement > data source reminder > other nudge`。
+- `docs/specs/SPEC-app-shell-routing-and-global-guardrails.md` — 發現：`ContentView` 已被定義為 app shell 與全域 guardrail 的主要宿主；route-level blocker 與主 app guardrail 已是既有概念。
+- `docs/specs/SPEC-onboarding-delayed-data-source-binding.md` — 發現：`data_source = unbound` 後的主提醒目前產品規格已要求沿用 `ContentView` 路徑，且頻率固定為每 3 天最多一次。
+- `docs/specs/SPEC-subscription-management-and-status-ui.md` — 發現：expired / trial reminder 與 paywall 已是正式產品面的一部分，未來必然屬於 interrupt queue 範圍，不是單純某個 feature 的 local sheet。
+- `docs/specs/SPEC-profile-and-data-integration-management.md` — 發現：`UserProfileView` 是資料來源管理與 paywall 入口之一，但它本身是 settings surface，不應被誤收成 queue host。
 - `apps/ios/Havital/Docs/designs/TD-version-gate-announcements.md` — 發現：公告系統是以 `AnnouncementViewModel` 管 message center + popup queue，且本來就和 app shell / version gate 同一脈絡。
 - `apps/ios/Havital/Havital/Features/Announcement/Presentation/ViewModels/AnnouncementViewModel.swift` — 發現：目前公告已有自己的 `popupQueue`、`currentPopup`、`presentNextPopup()`，並透過 `Notification.Name.announcementPopupDidPresent / announcementPopupQueueDidDrain` 跟其他提醒做脆弱協調。
 - `apps/ios/Havital/Havital/Core/Presentation/ViewModels/AppViewModel.swift` — 發現：`showDataSourceNotBoundAlert`、`isAnnouncementPopupVisible`、`hasPendingDataSourceNotBoundAlert` 現在都塞在 `AppViewModel`，代表資料來源提醒已經在和公告做 ad hoc queue，但不是通用機制。
