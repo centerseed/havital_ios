@@ -289,36 +289,6 @@ final class App2MetricDetailProjectionTests: XCTestCase {
 
     // MARK: - §52-4 診斷列
 
-    func testDiagnosticsAreDataDriven() {
-        let entry = VDOTEntry(
-            datetime: 1_787_702_400,
-            dynamicVdot: 38.7,
-            paceVdot: 38.7,
-            vdotSource: "personal_best",
-            anchorDate: "2026-08-25",
-            anchorDecision: "weighted_16x",
-            confidence: "high",
-            dailyCount: 10
-        )
-        let rows = App2MetricDetailProjection.diagnostics(latest: entry)
-        // 「錨定決策」整列拿掉：用戶讀不懂，也不影響判讀
-        XCTAssertEqual(rows.map(\.id), ["anchor", "evidence", "confidence"])
-        XCTAssertEqual(rows.map(\.label), [
-            L10n.App2.Metric.capabilityRowAnchor.localized,
-            L10n.App2.Metric.capabilityRowEvidence.localized,
-            L10n.App2.Metric.capabilityRowConfidence.localized
-        ])
-        // 參考課數只講堂數，不出現百分比或 n =
-        XCTAssertEqual(rows[1].value, String(format: L10n.App2.Metric.capabilityEvidenceCountFormat.localized, 10))
-        XCTAssertFalse(rows[1].value.contains("%"))
-        XCTAssertFalse(rows[1].value.contains("n ="))
-
-        // 一個欄位都沒有 → 一列都不出現（不畫一排「–」）
-        let bare = VDOTEntry(datetime: 1_787_702_400, dynamicVdot: 38.7)
-        XCTAssertTrue(App2MetricDetailProjection.diagnostics(latest: bare).isEmpty)
-        XCTAssertTrue(App2MetricDetailProjection.diagnostics(latest: nil).isEmpty)
-    }
-
     // MARK: - §53-3 七日趨勢
 
     func testHrvTrendNeedsThreeDaysEachSide() {
@@ -564,8 +534,8 @@ final class App2MetricDetailProjectionTests: XCTestCase {
     /// 兩格量的不是同一件事，解釋不得共用同一句。
     func testLevelCopyIsPerMetric() {
         XCTAssertNotEqual(
-            App2MetricDetailProjection.levelAbout(.aerobicEndurance),
-            App2MetricDetailProjection.levelAbout(.speedEndurance)
+            App2MetricDetailProjection.aboutText(.aerobicEndurance, thresholds: (0.8, 1.3)),
+            App2MetricDetailProjection.aboutText(.speedEndurance, thresholds: (0.8, 1.3))
         )
         XCTAssertNotEqual(
             App2MetricDetailProjection.levelShortfall(
@@ -681,41 +651,6 @@ final class App2MetricDetailProjectionTests: XCTestCase {
     }
 
     // MARK: - 指標詳情可讀性（§51–53）
-
-    func testWeightedTrainingSourceNeverShowsTheRawCode() {
-        let label = App2MetricDetailProjection.vdotSourceLabel("weighted_training", anchorDate: "2026-05-08")
-        XCTAssertFalse(label.contains("weighted_training"))
-        // 綜合推算不是某一天的成績，不帶括號日期
-        XCTAssertEqual(label, L10n.App2.Metric.vdotSourceWeightedTraining.localized)
-    }
-
-    func testDatedSourcesKeepTheirDate() {
-        let pb = App2MetricDetailProjection.vdotSourceLabel("personal_best", anchorDate: "2026-08-02")
-        XCTAssertTrue(pb.contains("8/2"))
-        let bm = App2MetricDetailProjection.vdotSourceLabel("benchmark", anchorDate: "2026-08-02")
-        XCTAssertTrue(bm.contains("8/2"))
-        // 認不得的來源不知道日期指什麼，一律不帶
-        XCTAssertEqual(
-            App2MetricDetailProjection.vdotSourceLabel("mystery", anchorDate: "2026-08-02"),
-            L10n.App2.Metric.vdotSourceGeneric.localized)
-    }
-
-    func testUnknownSourceCodeFallsBackToGenericLabel() {
-        let label = App2MetricDetailProjection.vdotSourceLabel("some_future_code", anchorDate: nil)
-        XCTAssertEqual(label, L10n.App2.Metric.vdotSourceGeneric.localized)
-        XCTAssertFalse(label.contains("some_future_code"))
-    }
-
-    func testEvidenceRowIgnoresCompletenessPercentage() {
-        let entry = VDOTEntry(
-            datetime: 1_787_702_400, dynamicVdot: 38.7, paceVdot: 38.7,
-            dailyCount: 22, evidenceCompleteness: 0.5
-        )
-        let rows = App2MetricDetailProjection.diagnostics(latest: entry)
-        let evidence = rows.first { $0.id == "evidence" }
-        XCTAssertEqual(evidence?.value, String(format: L10n.App2.Metric.capabilityEvidenceCountFormat.localized, 22))
-        XCTAssertNil(evidence?.detail)
-    }
 
     func testSignedLabelNeverShowsNegativeZero() {
         XCTAssertEqual(App2MetricDetailProjection.signedLabel(-0.3, fractionDigits: 0), "0")
@@ -922,5 +857,54 @@ final class App2MetricDetailProjectionTests: XCTestCase {
     func testRecoveryLegendNamesTheUnits() {
         XCTAssertTrue(L10n.App2.Metric.recoveryHrvLegend.localized.contains("ms"))
         XCTAssertTrue(L10n.App2.Metric.recoveryRhrLegend.localized.contains("bpm"))
+    }
+
+    // MARK: - 統一版型（五頁：hero／趨勢圖／這個指標量什麼／怎麼算出來的／專屬區塊）
+
+    func testAboutTextIsDefinedForAllFivePagesAndDiffersPerPage() {
+        let t = (low: 0.8, high: 1.3)
+        let kinds: [App2MetricDetailKind] = [.capabilityBaseline, .aerobicEndurance, .speedEndurance,
+                                             .recoveryIndex, .weeklyVolume]
+        let texts = kinds.map { App2MetricDetailProjection.aboutText($0, thresholds: t) }
+        XCTAssertFalse(texts.contains(""))
+        XCTAssertEqual(Set(texts).count, 5, "五頁各有自己的一段，不共用")
+        XCTAssertEqual(App2MetricDetailProjection.aboutText(.aerobicEndurance, thresholds: t),
+                       L10n.App2.Metric.levelAboutAerobic.localized)
+        XCTAssertEqual(App2MetricDetailProjection.aboutText(.speedEndurance, thresholds: t),
+                       L10n.App2.Metric.levelAboutSpeed.localized)
+    }
+
+    func testVolumeAboutUsesTheBackendThresholdsAndSixWeeks() {
+        let text = App2MetricDetailProjection.aboutText(.weeklyVolume, thresholds: (low: 0.7, high: 1.2))
+        XCTAssertTrue(text.contains("0.7"))
+        XCTAssertTrue(text.contains("1.2"))
+        XCTAssertFalse(text.contains("1.3"), "門檻讀後端，不寫死")
+        XCTAssertFalse(text.contains("前四週"))
+    }
+
+    func testLoadRatioCopyNoLongerSaysFourWeeks() {
+        for text in [L10n.App2.Metric.volumeAcwrCaption.localized, L10n.App2.Metric.acwrInfoFormula.localized] {
+            XCTAssertFalse(text.contains("前四週"), text)
+            XCTAssertFalse(text.contains("四週"), text)
+            XCTAssertTrue(text.contains("6"), text)
+        }
+    }
+
+    func testHowTextIsStaticForThreePagesAndTheBackendBasisForTheLevelPages() {
+        XCTAssertEqual(App2MetricDetailProjection.howText(.capabilityBaseline, insight: insight("capability_baseline")),
+                       L10n.App2.Metric.howCapability.localized)
+        XCTAssertEqual(App2MetricDetailProjection.howText(.recoveryIndex, insight: insight("recovery_index")),
+                       L10n.App2.Metric.howRecovery.localized)
+        XCTAssertEqual(App2MetricDetailProjection.howText(.weeklyVolume, insight: insight("weekly_volume")),
+                       L10n.App2.Metric.howVolume.localized)
+        let aerobic = insight("aerobic_endurance", basis: "根據近 70 天 12 堂輕鬆跑…")
+        XCTAssertEqual(App2MetricDetailProjection.howText(.aerobicEndurance, insight: aerobic), "根據近 70 天 12 堂輕鬆跑…")
+        XCTAssertEqual(App2MetricDetailProjection.howText(.speedEndurance, insight: insight("speed_endurance", basis: "x")), "x")
+        XCTAssertNil(App2MetricDetailProjection.howText(.aerobicEndurance, insight: insight("aerobic_endurance")),
+                     "後端沒給依據句就沒有這一段，app 不自己編")
+    }
+
+    func testHowCardStartsCollapsed() {
+        XCTAssertFalse(App2MetricDetailProjection.howCardStartsExpanded)
     }
 }

@@ -203,40 +203,6 @@ enum App2MetricDetailProjection {
         return String(format: L10n.App2.Metric.heroTrendFormat.localized, change)
     }
 
-    /// §52-4「這個值怎麼來的」。**資料驅動**：欄位沒有就整列不出現，不畫一排「–」。
-    static func diagnostics(latest entry: VDOTEntry?) -> [App2MetricDiagnosticRow] {
-        guard let entry else { return [] }
-        var rows: [App2MetricDiagnosticRow] = []
-
-        if let source = entry.vdotSource {
-            rows.append(App2MetricDiagnosticRow(
-                id: "anchor",
-                label: L10n.App2.Metric.capabilityRowAnchor.localized,
-                value: vdotSourceLabel(source, anchorDate: entry.anchorDate),
-                // 右緣原本掛著原始識別字（`personal_best`）。弱化字級不會讓欄位名變成
-                // 產品文案 —— 它是給施工者看的，不該在使用者的畫面上（8/28 盤點 D11）。
-                detail: nil
-            ))
-        }
-        if let count = entry.dailyCount {
-            rows.append(App2MetricDiagnosticRow(
-                id: "evidence",
-                label: L10n.App2.Metric.capabilityRowEvidence.localized,
-                value: String(format: L10n.App2.Metric.capabilityEvidenceCountFormat.localized, count),
-                detail: nil
-            ))
-        }
-        if let confidence = entry.confidence {
-            rows.append(App2MetricDiagnosticRow(
-                id: "confidence",
-                label: L10n.App2.Metric.capabilityRowConfidence.localized,
-                value: confidenceLabel(confidence),
-                detail: nil
-            ))
-        }
-        return rows
-    }
-
     /// 四個固定距離的完賽預估列；只投影 active/computed 的 race_projection channels。
     static func finishPredictions(from item: AthleteStateRaceProjectionItem?) -> [App2FinishPrediction] {
         guard let item else { return [] }
@@ -286,32 +252,6 @@ enum App2MetricDetailProjection {
             envelope: envelope,
             distanceKm: targetDistanceKm
         )
-    }
-
-    /// `benchmark` → 「指標跑（8/2）」。**不認得的原始代碼絕不顯示**：
-    /// `weighted_training` 是「近期訓練綜合推算」，其餘未知代碼一律「訓練推算」。
-    static func vdotSourceLabel(_ source: String, anchorDate: String?) -> String {
-        let name: String
-        switch source {
-        case "benchmark":     name = L10n.App2.Metric.vdotSourceBenchmark.localized
-        case "personal_best": name = L10n.App2.Metric.vdotSourcePersonalBest.localized
-        case "estimated":     name = L10n.App2.Metric.vdotSourceEstimated.localized
-        // 綜合推算不是某一天的成績；認不得的來源不知道日期指什麼 —— 兩者都不帶日期。
-        case "weighted_training": return L10n.App2.Metric.vdotSourceWeightedTraining.localized
-        default:              return L10n.App2.Metric.vdotSourceGeneric.localized
-        }
-        guard let anchorDate else { return name }
-        return String(format: L10n.App2.Metric.capabilityAnchorFormat.localized,
-                      name, App2DateLabel.short(isoDate: anchorDate))
-    }
-
-    static func confidenceLabel(_ confidence: String) -> String {
-        switch confidence {
-        case "high":   return L10n.App2.Metric.confidenceHigh.localized
-        case "medium": return L10n.App2.Metric.confidenceMedium.localized
-        case "low":    return L10n.App2.Metric.confidenceLow.localized
-        default:       return confidence
-        }
     }
 
     // MARK: - §53 恢復
@@ -442,13 +382,39 @@ enum App2MetricDetailProjection {
         }
     }
 
-    /// 「這個指標量什麼」。兩格量的不是同一件事，各有自己的一段。
-    static func levelAbout(_ kind: App2MetricDetailKind) -> String {
+    /// 「這個指標量什麼」：五頁各一段白話（統一版型第 3 塊）。
+    /// 訓練量那段帶合適範圍門檻——讀後端 `channels.acwr` 的 sweet_low／sweet_high，不寫死。
+    static func aboutText(_ kind: App2MetricDetailKind, thresholds: (low: Double, high: Double)) -> String {
         switch kind {
-        case .speedEndurance: return L10n.App2.Metric.levelAboutSpeed.localized
-        default:              return L10n.App2.Metric.levelAboutAerobic.localized
+        case .capabilityBaseline:
+            return L10n.App2.Metric.aboutCapability.localized
+        case .aerobicEndurance:
+            return L10n.App2.Metric.levelAboutAerobic.localized
+        case .speedEndurance:
+            return L10n.App2.Metric.levelAboutSpeed.localized
+        case .recoveryIndex:
+            return L10n.App2.Metric.aboutRecovery.localized
+        case .weeklyVolume:
+            return String(
+                format: L10n.App2.Metric.aboutVolumeFormat.localized,
+                App2NumberFormat.grouped(thresholds.low, maximumFractionDigits: 1),
+                App2NumberFormat.grouped(thresholds.high, maximumFractionDigits: 1)
+            )
         }
     }
+
+    /// 「怎麼算出來的」（統一版型第 4 塊，預設收合）。能力基準／恢復／訓練量是 app 端寫死的一句；
+    /// 有氧／速度是後端 `basis`（帶實際堂數），照抄，後端沒給就沒有這一段。
+    static func howText(_ kind: App2MetricDetailKind, insight: App2Insight) -> String? {
+        switch kind {
+        case .capabilityBaseline: return L10n.App2.Metric.howCapability.localized
+        case .recoveryIndex: return L10n.App2.Metric.howRecovery.localized
+        case .weeklyVolume: return L10n.App2.Metric.howVolume.localized
+        case .aerobicEndurance, .speedEndurance: return levelBasis(insight: insight)
+        }
+    }
+
+    static let howCardStartsExpanded = false
 
     /// `insufficient_data` 時把 `evidence` 的限制句**展開成解釋**：這個分數要什麼樣的課
     /// 才算得出來、補齊之後會怎樣。hero 的敘事已經在講「現在累積到哪」，這一段講的是

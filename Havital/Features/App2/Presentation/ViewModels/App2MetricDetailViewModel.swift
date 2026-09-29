@@ -523,9 +523,7 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
         // （2026-08-27 晚走查裁決（f））。診斷欄只吃歷史段；hero 的現值是首頁那一列的
         // `value_text`、「30 天前」讀 decision-chain 序列，兩者都不碰這條序列的未來預估。
         let today = App2MetricDetailProjection.today()
-        // 診斷欄的來源＝**不晚於今天**的最新一筆。未來預估點的診斷欄是空殼
-        // （`daily_count = 0`），拿它當 latest 會把「證據 n = 0」印給用戶
-        // （2026-08-29 D9 裁決；dev 實查 8/27 歷史筆 daily_count = 11）。
+        // 圖上起算點標記取**不晚於今天**的最新一筆的錨定日（未來預估點是空殼）。
         let latest = response.vdots
             .filter { App2MetricDetailProjection.isoDate(epochSeconds: $0.datetime) <= today }
             .max { $0.datetime < $1.datetime }
@@ -542,8 +540,7 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
                 ),
                 series: series,
                 projectedFromIndex: split.projectedFromIndex,
-                anchorDate: latest?.anchorDate,
-                diagnostics: App2MetricDetailProjection.diagnostics(latest: latest)
+                anchorDate: latest?.anchorDate
             ),
             origin: .live(endpoint: "GET /v2/workouts/vdots")
         )

@@ -2631,6 +2631,16 @@ extension L10n {
             static let acwrInfoWarningFormat = "app2.metric.acwr_info_warning_format"
             /// 詳情頁 hero 的「近 7 天趨勢 %@」（`%@` ＝ 首頁那一列的 `change`）。
             static let heroTrendFormat = "app2.metric.hero_trend_format"
+            /// 統一版型：「這個指標量什麼」（能力基準／恢復／訓練量；有氧與速度沿用 levelAbout*）。
+            static let aboutCapability = "app2.metric.about_capability"
+            static let aboutRecovery = "app2.metric.about_recovery"
+            /// `%1$@`＝合適範圍下界、`%2$@`＝上界（後端門檻）。
+            static let aboutVolumeFormat = "app2.metric.about_volume_format"
+            /// 統一版型：「怎麼算出來的」（預設收合）。有氧與速度顯示後端 `basis`，不在這裡。
+            static let howTitle = "app2.metric.how_title"
+            static let howCapability = "app2.metric.how_capability"
+            static let howRecovery = "app2.metric.how_recovery"
+            static let howVolume = "app2.metric.how_volume"
             /// 甜區帶的小字（`甜區 %@–%@`）。**上下界由後端帶**，不寫死。
             /// 負荷比圖卡標題（`最近一週 ÷ 前四週平均`）。
             static let volumeAcwrTitle = "app2.metric.volume_acwr_title"
@@ -2644,25 +2654,9 @@ extension L10n {
             static let capabilityAnchorMarker = "app2.metric.capability_anchor_marker"
             /// 圖上虛線段（未來預估）的圖例（2026-08-27 晚走查裁決（f））。
             static let projectedLegend = "app2.metric.projected_legend"
-            /// `指標跑（8/2）`
-            static let capabilityAnchorFormat = "app2.metric.capability_anchor_format"
             /// 四距離完賽預估卡的標題（T-0376）。距離標籤本身走既有的 `race_filter.*`。
             static let capabilityFinishTitle = "app2.metric.capability_finish_title"
-            static let capabilityHowTitle = "app2.metric.capability_how_title"
-            static let capabilityRowAnchor = "app2.metric.capability_row_anchor"
-            static let capabilityRowEvidence = "app2.metric.capability_row_evidence"
-            static let capabilityRowConfidence = "app2.metric.capability_row_confidence"
-            static let capabilityEvidenceCountFormat = "app2.metric.capability_evidence_count_format"
 
-            static let confidenceHigh = "app2.metric.confidence_high"
-            static let confidenceMedium = "app2.metric.confidence_medium"
-            static let confidenceLow = "app2.metric.confidence_low"
-            static let vdotSourceBenchmark = "app2.metric.vdot_source_benchmark"
-            static let vdotSourcePersonalBest = "app2.metric.vdot_source_personal_best"
-            static let vdotSourceEstimated = "app2.metric.vdot_source_estimated"
-            static let vdotSourceWeightedTraining = "app2.metric.vdot_source_weighted_training"
-            /// 不認得的來源代碼一律顯示這句，絕不露原始代碼。
-            static let vdotSourceGeneric = "app2.metric.vdot_source_generic"
 
             // §53 恢復
             static let recoveryHeroTitle = "app2.metric.recovery_hero_title"
@@ -2696,8 +2690,6 @@ extension L10n {
             static let levelShortfallTitle = "app2.metric.level_shortfall_title"
             static let levelShortfallAerobic = "app2.metric.level_shortfall_aerobic"
             static let levelShortfallSpeed = "app2.metric.level_shortfall_speed"
-            /// 依據句那一塊（後端的 `basis`：這個判定拿什麼算的）。
-            static let levelBasisTitle = "app2.metric.level_basis_title"
             /// 分級尺（SPEC-today-state §4.5：35 以下／35–65／65 以上）。
             static let levelScaleTitle = "app2.metric.level_scale_title"
             static let levelScaleDeveloping = "app2.metric.level_scale_developing"

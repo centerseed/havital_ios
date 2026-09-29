@@ -1012,8 +1012,6 @@ struct App2CapabilityDetail: Equatable {
     let projectedFromIndex: Int?
     /// 錨定日（圖上的垂直 dashed 標記）。序列裡沒有這一天就不畫。
     let anchorDate: String?
-    /// §52-4「這個值怎麼來的」。**資料驅動**：組不出來的列不出現。
-    let diagnostics: [App2MetricDiagnosticRow]
 }
 
 /// §52 能力基準頁「完賽預估」的一列：距離名 ＋ 預估完賽時間。
@@ -1028,15 +1026,6 @@ struct App2FinishPrediction: Identifiable, Equatable {
     let label: String
     /// 從 `projected_seconds` 格式化的完賽時間。時間沒有單位換算。
     let time: String
-}
-
-/// §52-4 的一列：名稱／值／右緣狀態。
-struct App2MetricDiagnosticRow: Identifiable, Equatable {
-    let id: String
-    let label: String
-    let value: String
-    /// 右緣的狀態小字（`benchmark`／`n = 9`／`未觸發`）。nil = 這一列沒有。
-    let detail: String?
 }
 
 /// §53 恢復詳情。

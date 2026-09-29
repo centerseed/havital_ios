@@ -310,6 +310,27 @@ private struct App2VolumeDetailPage: View {
                 tint: App2Theme.accentOrange
             )
 
+            // 統一版型（使用者 2026-09-29）：hero → 趨勢圖 → 這個指標量什麼 → 怎麼算出來的（收合）→ 專屬區塊。
+            if let detail = viewModel.detail?.value {
+                loadCard(acwr: detail.acwr)
+            } else if viewModel.isLoading {
+                App2Card { ProgressView().frame(maxWidth: .infinity) }
+            }
+
+            App2ExplanationCard(
+                title: L10n.App2.Metric.levelAboutTitle.localized,
+                text: App2MetricDetailProjection.aboutText(
+                    .weeklyVolume,
+                    thresholds: viewModel.detail?.value.acwr.map(App2MetricDetailProjection.acwrThresholds)
+                        ?? (0.8, 1.3)
+                ),
+                identifier: "App2_MetricAbout"
+            )
+            if let how = App2MetricDetailProjection.howText(.weeklyVolume, insight: insight) {
+                App2HowComputedCard(text: how)
+            }
+
+            // 專屬區塊：週跑量柱狀圖（切換 tabs 控制它）＋統計三欄。
             App2MetricRangeTabs(
                 options: App2MetricRange.volume,
                 selected: viewModel.range,
@@ -331,13 +352,6 @@ private struct App2VolumeDetailPage: View {
                     )
                     App2MetricStatRow(stats: detail.stats)
                 }
-
-                // §51-6／§51-7：**兩半都缺才整塊隱藏**。負荷比線與 CTL/ATL/TSB
-                // 三欄是兩條來源（`metrics/series` 與 `health_daily`），各自可缺席
-                // ——一條讀不到不該把另一條一起藏起來。
-                loadCard(acwr: detail.acwr)
-            } else if viewModel.isLoading {
-                App2Card { ProgressView().frame(maxWidth: .infinity) }
             }
         }
         .task { await viewModel.loadIfNeeded() }
@@ -570,22 +584,26 @@ private struct App2CapabilityDetailPage: View {
                 App2Card { ProgressView().frame(maxWidth: .infinity) }
             }
 
-            // 完賽預估在圖與診斷列之間。**與上面那塊的載入狀態無關** —— 它來自
+            App2ExplanationCard(
+                title: L10n.App2.Metric.levelAboutTitle.localized,
+                text: App2MetricDetailProjection.aboutText(.capabilityBaseline, thresholds: (0.8, 1.3)),
+                identifier: "App2_MetricAbout"
+            )
+            if let how = App2MetricDetailProjection.howText(.capabilityBaseline, insight: insight) {
+                App2HowComputedCard(text: how)
+            }
+
+            // 專屬區塊放最後：完賽預估。**與趨勢圖的載入狀態無關** —— 它來自
             // 首頁那一輪的 race_projection，VDOT 序列取不到不該把它一起藏掉。
             if !finishPredictions.isEmpty {
                 finishPredictionsCard
-            }
-
-            if let detail = viewModel.detail?.value, !detail.diagnostics.isEmpty {
-                diagnosticsCard(detail.diagnostics)
             }
         }
         .task { await viewModel.loadIfNeeded() }
         .onDisappear { viewModel.cancelInFlightReload() }
     }
 
-    /// 四距離完賽預估。列樣式與下面的診斷卡同一套（label 左、值右、細分隔線），
-    /// **不發明新設計語言**。
+    /// 四距離完賽預估（label 左、值右、細分隔線）。
     private var finishPredictionsCard: some View {
         App2Card(spacing: 0) {
             Text(L10n.App2.Metric.capabilityFinishTitle.localized)
@@ -613,40 +631,6 @@ private struct App2CapabilityDetailPage: View {
             }
         }
         .accessibilityIdentifier("App2_MetricFinishPredictions")
-    }
-
-    private func diagnosticsCard(_ rows: [App2MetricDiagnosticRow]) -> some View {
-        App2Card(spacing: 0) {
-            Text(L10n.App2.Metric.capabilityHowTitle.localized)
-                .font(.system(size: 14, weight: .heavy))
-                .foregroundStyle(App2Theme.inkPrimary)
-                .padding(.bottom, 8)
-
-            ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
-                if index > 0 {
-                    Rectangle().fill(App2Theme.insetBorder).frame(height: 1)
-                }
-                HStack(spacing: 10) {
-                    Text(row.label)
-                        .font(.system(size: 13, weight: .bold))
-                        .foregroundStyle(App2Theme.inkSubtle)
-                    Spacer(minLength: 6)
-                    Text(row.value)
-                        .font(.system(size: 13, weight: .heavy))
-                        .foregroundStyle(App2Theme.inkPrimary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                    if let detail = row.detail {
-                        Text(detail)
-                            .font(.app2Mono(11, weight: .semibold))
-                            .foregroundStyle(App2Theme.inkFaint)
-                            .lineLimit(1)
-                    }
-                }
-                .padding(.vertical, 9)
-            }
-        }
-        .accessibilityIdentifier("App2_MetricDiagnostics")
     }
 }
 
@@ -701,18 +685,26 @@ private struct App2LevelDetailPage: View {
                 tint: tint
             )
 
-            // 先讀懂在量什麼，再看判定依據。
-            explanationCard(
+            // 統一版型：hero → 趨勢圖 → 這個指標量什麼 → 怎麼算出來的（收合）→ 專屬區塊。
+            trendCard
+
+            App2ExplanationCard(
                 title: L10n.App2.Metric.levelAboutTitle.localized,
-                body: App2MetricDetailProjection.levelAbout(kind),
+                text: App2MetricDetailProjection.aboutText(kind, thresholds: (0.8, 1.3)),
                 identifier: "App2_MetricLevelAbout"
             )
 
-            if let basis = App2MetricDetailProjection.levelBasis(insight: insight) {
-                explanationCard(
-                    title: L10n.App2.Metric.levelBasisTitle.localized,
-                    body: basis,
-                    identifier: "App2_MetricLevelBasis"
+            if let how = App2MetricDetailProjection.howText(kind, insight: insight) {
+                App2HowComputedCard(text: how)
+            }
+
+            if let shortfall = App2MetricDetailProjection.levelShortfall(
+                insight: insight, kind: kind
+            ) {
+                App2ExplanationCard(
+                    title: L10n.App2.Metric.levelShortfallTitle.localized,
+                    text: shortfall,
+                    identifier: "App2_MetricLevelShortfall"
                 )
             }
 
@@ -725,18 +717,6 @@ private struct App2LevelDetailPage: View {
                     App2LevelScaleBar(scale: scale, tint: tint)
                 }
                 .accessibilityIdentifier("App2_MetricLevelScale")
-            }
-
-            trendCard
-
-            if let shortfall = App2MetricDetailProjection.levelShortfall(
-                insight: insight, kind: kind
-            ) {
-                explanationCard(
-                    title: L10n.App2.Metric.levelShortfallTitle.localized,
-                    body: shortfall,
-                    identifier: "App2_MetricLevelShortfall"
-                )
             }
         }
         .task { await viewModel.loadIfNeeded() }
@@ -752,14 +732,22 @@ private struct App2LevelDetailPage: View {
             readoutID: "level-trend"
         )
     }
+}
 
-    private func explanationCard(title: String, body: String, identifier: String) -> some View {
+// MARK: - App2ExplanationCard／App2HowComputedCard
+/// 「這個指標量什麼」等一段白話的卡。五頁共用。
+private struct App2ExplanationCard: View {
+    let title: String
+    let text: String
+    let identifier: String
+
+    var body: some View {
         App2Card(spacing: 8) {
             Text(title)
                 .font(.system(size: 14, weight: .heavy))
                 .foregroundStyle(App2Theme.inkPrimary)
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Text(body)
+            Text(text)
                 .font(.system(size: 13, weight: .semibold))
                 .lineSpacing(3)
                 .foregroundStyle(App2Theme.inkSecondary)
@@ -767,6 +755,44 @@ private struct App2LevelDetailPage: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityIdentifier(identifier)
+    }
+}
+
+/// 「怎麼算出來的」：**預設收合**，點標題展開。五頁共用。
+private struct App2HowComputedCard: View {
+    let text: String
+    @State private var expanded = App2MetricDetailProjection.howCardStartsExpanded
+
+    var body: some View {
+        App2Card(spacing: 8) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() }
+            } label: {
+                HStack {
+                    Text(L10n.App2.Metric.howTitle.localized)
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundStyle(App2Theme.inkPrimary)
+                    Spacer(minLength: 4)
+                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(App2Theme.inkMuted)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("App2_MetricHowToggle")
+
+            if expanded {
+                Text(text)
+                    .font(.system(size: 13, weight: .semibold))
+                    .lineSpacing(3)
+                    .foregroundStyle(App2Theme.inkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityIdentifier("App2_MetricHowText")
+            }
+        }
+        .accessibilityIdentifier("App2_MetricHow")
     }
 }
 
@@ -962,6 +988,16 @@ private struct App2RecoveryDetailPage: View {
             // 柱色是那天的判語分帶，Y 軸固定 0–100。
             scoreBarsCard
 
+            App2ExplanationCard(
+                title: L10n.App2.Metric.levelAboutTitle.localized,
+                text: App2MetricDetailProjection.aboutText(.recoveryIndex, thresholds: (0.8, 1.3)),
+                identifier: "App2_MetricAbout"
+            )
+            if let how = App2MetricDetailProjection.howText(.recoveryIndex, insight: insight) {
+                App2HowComputedCard(text: how)
+            }
+
+            // 專屬區塊：HRV 與靜息心率合併圖＋統計欄。
             if let detail = viewModel.detail?.value {
                 App2Card(spacing: 12) {
                     Text(L10n.App2.Metric.recoveryChartTitle.localized)

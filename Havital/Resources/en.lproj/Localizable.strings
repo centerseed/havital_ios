@@ -4862,19 +4862,7 @@
 "app2.metric.capability_chart_title" = "VDOT history";
 "app2.metric.capability_anchor_marker" = "Start point";
 "app2.metric.projected_legend" = "Projected";
-"app2.metric.capability_anchor_format" = "%@ (%@)";
 "app2.metric.capability_finish_title" = "Race time projections";
-"app2.metric.capability_how_title" = "Where this number comes from";
-"app2.metric.capability_row_anchor" = "Based on";
-"app2.metric.capability_row_evidence" = "Runs used";
-"app2.metric.capability_row_confidence" = "Reliability";
-"app2.metric.capability_evidence_count_format" = "%d runs";
-"app2.metric.confidence_high" = "High";
-"app2.metric.confidence_medium" = "Medium";
-"app2.metric.confidence_low" = "Low";
-"app2.metric.vdot_source_benchmark" = "Benchmark run";
-"app2.metric.vdot_source_personal_best" = "Personal best";
-"app2.metric.vdot_source_estimated" = "Estimated";
 "app2.metric.recovery_hero_title" = "Recovery";
 "app2.metric.recovery_chart_title" = "HRV and resting HR";
 "app2.metric.recovery_hrv" = "HRV";
@@ -4894,7 +4882,6 @@
 "app2.metric.level_shortfall_aerobic" = "This score needs enough aerobic runs spread across different distances: when every run is the same length, a heart rate that climbs with distance looks the same as one that started high. The line above is what has accumulated so far; the score appears once that is filled in.";
 "app2.metric.level_shortfall_speed" = "This score needs enough sessions where the drop-off between reps is visible (intervals or repeats): steady-pace running cannot measure how much you fade over repeated near-maximal efforts. The line above is what has accumulated so far; the score appears once that is filled in.";
 
-"app2.metric.level_basis_title" = "Where this reading comes from";
 "app2.metric.level_scale_title" = "Where you sit";
 "app2.metric.level_scale_developing" = "Building";
 "app2.metric.level_scale_moderate" = "Mid-pack";
@@ -4968,16 +4955,14 @@
 "app2.metric.read_failed" = "Could not load the data. Please try again.";
 "app2.metric.refresh_failed_keeping_result" = "Some data could not be refreshed. Available results remain visible; this refresh is incomplete.";
 "app2.metric.volume_acwr_title" = "Recent load ratio";
-"app2.metric.vdot_source_weighted_training" = "Recent training estimate";
-"app2.metric.vdot_source_generic" = "Training estimate";
 "app2.metric.level_hero_title_aerobic" = "Aerobic endurance score";
 "app2.metric.level_hero_title_speed" = "Speed endurance score";
-"app2.metric.volume_acwr_caption" = "Last 7 days ÷ prior 4-week average";
+"app2.metric.volume_acwr_caption" = "Last 7 days ÷ last 6 weeks average";
 "app2.metric.current_zone_format" = "Now: %@";
 "app2.metric.acwr_zone_light" = "Light";
 "app2.metric.acwr_zone_ok" = "Good";
 "app2.metric.acwr_zone_heavy" = "Too much";
-"app2.metric.acwr_info_formula" = "Load ratio = your training load over the last week ÷ your average over the four weeks before. It shows whether this week was more or less than your usual.";
+"app2.metric.acwr_info_formula" = "Load ratio = your training load over the last 7 days ÷ your average over the last 6 weeks. It shows whether this week was more or less than your usual.";
 "app2.metric.acwr_info_light" = "Less than usual. Fine for recovery or a down week; if it stays light, fitness may stall.";
 "app2.metric.acwr_info_ok" = "You are building up while staying within what your body can absorb. The ideal zone.";
 "app2.metric.acwr_info_heavy" = "Much more than usual. Your body cannot adapt that fast, so fatigue and injury risk go up.";
@@ -4989,4 +4974,11 @@
 "app2.metric.recovery_score_title" = "Recovery score · last 30 days";
 "app2.metric.recovery_hrv_legend" = "HRV (ms)";
 "app2.metric.recovery_rhr_legend" = "Resting HR (bpm)";
+"app2.metric.about_capability" = "Your current running ability (VDOT): roughly how fast you can run each distance at your present fitness. Your training paces and finish predictions are all calculated from this number.";
+"app2.metric.about_recovery" = "How well recovered your body is today compared with your own usual state. 100 means every signal is within your normal range; the lower it goes, the more signals are off.";
+"app2.metric.about_volume_format" = "Your training load over the last 7 days compared with the average of the last 6 weeks. %1$@–%2$@ is the good range; staying above %2$@ means you are adding load too fast.";
+"app2.metric.how_title" = "How it is calculated";
+"app2.metric.how_capability" = "Worked out from the ability estimated in each of your recent runs; more recent and more reliable runs count for more.";
+"app2.metric.how_recovery" = "Compares today’s HRV, resting heart rate, perceived effort and training performance with your own baseline from the past two weeks; at least two kinds of data are needed to give a score.";
+"app2.metric.how_volume" = "Each run is turned into a training load from its duration and heart-rate intensity, then the last 7 days are compared with the average of the last 6 weeks.";
 "onboarding.payment_confirmation_pending" = "Payment confirmation is in progress. Please wait, then tap again.";
