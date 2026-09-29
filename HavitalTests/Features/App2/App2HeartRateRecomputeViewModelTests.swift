@@ -9,6 +9,9 @@ final class App2HeartRateRecomputeViewModelTests: XCTestCase {
         var startOutcome: Result<HeartRateRecomputeOutcome, Error> = .success(.nothingToRecompute(message: "none"))
         var statuses: [HeartRateRecomputeStatus] = []
         var reminder: HeartRateWatchReminder?
+        var autoUpdate: HeartRateWatchAutoUpdate?
+        private(set) var dismissCalls = 0
+        var dismissError: Error?
         var reminderError: Error?
         private(set) var startedDays: [HeartRateRecomputeDays] = []
         private(set) var statusCalls = 0
@@ -24,9 +27,14 @@ final class App2HeartRateRecomputeViewModelTests: XCTestCase {
             return statuses.count > 1 ? statuses.removeFirst() : statuses[0]
         }
 
-        func watchReminder() async throws -> HeartRateWatchReminder? {
+        func watchCheck() async throws -> HeartRateWatchCheck {
             if let reminderError { throw reminderError }
-            return reminder
+            return HeartRateWatchCheck(reminder: reminder, autoUpdate: autoUpdate)
+        }
+
+        func dismissWatchReminder() async throws {
+            dismissCalls += 1
+            if let dismissError { throw dismissError }
         }
     }
 
@@ -172,7 +180,7 @@ final class App2HeartRateRecomputeViewModelTests: XCTestCase {
         let repo = FakeRepo()
         repo.reminder = HeartRateWatchReminder(watchMaxHr: 180, profileMaxHr: 197, deviationPct: 8.6, since: "2026-09-01", latestWorkoutDay: "2026-09-17", watchRestingHr: 50)
         let vm = makeVM(repo)
-        await vm.loadReminder()
+        await vm.loadWatchCheck()
         XCTAssertEqual(vm.reminder?.watchMaxHr, 180)
     }
 
@@ -180,8 +188,37 @@ final class App2HeartRateRecomputeViewModelTests: XCTestCase {
         let repo = FakeRepo()
         repo.reminderError = HTTPError.timeout
         let vm = makeVM(repo)
-        await vm.loadReminder()
+        await vm.loadWatchCheck()
         XCTAssertNil(vm.reminder)
+    }
+
+    func test_autoUpdateNoteIsLoadedAndKeptApartFromTheReminder() async {
+        let repo = FakeRepo()
+        repo.autoUpdate = HeartRateWatchAutoUpdate(localDate: "2026-09-20", maxHr: 193, previousMaxHr: 197, deviationSince: "2026-09-01")
+        let vm = makeVM(repo)
+        await vm.loadWatchCheck()
+        XCTAssertEqual(vm.autoUpdate?.maxHr, 193)
+        XCTAssertNil(vm.reminder)
+    }
+
+    func test_dismissHidesTheReminderAtOnceAndTellsTheBackend() async {
+        let repo = FakeRepo()
+        repo.reminder = HeartRateWatchReminder(watchMaxHr: 180, profileMaxHr: 197, deviationPct: 8.6, since: "2026-09-01", latestWorkoutDay: "2026-09-17", watchRestingHr: 50)
+        let vm = makeVM(repo)
+        await vm.loadWatchCheck()
+        await vm.dismissReminder()
+        XCTAssertNil(vm.reminder)
+        XCTAssertEqual(repo.dismissCalls, 1)
+    }
+
+    func test_dismissFailureKeepsTheReminderSoItComesBackHonestly() async {
+        let repo = FakeRepo()
+        repo.dismissError = HTTPError.timeout
+        repo.reminder = HeartRateWatchReminder(watchMaxHr: 180, profileMaxHr: 197, deviationPct: 8.6, since: "2026-09-01", latestWorkoutDay: "2026-09-17", watchRestingHr: 50)
+        let vm = makeVM(repo)
+        await vm.loadWatchCheck()
+        await vm.dismissReminder()
+        XCTAssertNotNil(vm.reminder)
     }
 
     // MARK: - 自動更新開關

@@ -25,8 +25,14 @@ final class HeartRateRecomputeRepositoryImpl: HeartRateRecomputeRepository {
         let message: String?
     }
 
-    private struct ReminderPayload: Decodable {
+    private struct WatchCheckPayload: Decodable {
         let reminder: HeartRateWatchReminder?
+        let autoUpdate: HeartRateWatchAutoUpdate?
+
+        enum CodingKeys: String, CodingKey {
+            case reminder
+            case autoUpdate = "auto_update"
+        }
     }
 
     private struct Envelope<T: Decodable>: Decodable {
@@ -61,11 +67,18 @@ final class HeartRateRecomputeRepositoryImpl: HeartRateRecomputeRepository {
         return HeartRateRecomputeStatus(job: payload.job, message: payload.message)
     }
 
-    func watchReminder() async throws -> HeartRateWatchReminder? {
-        let raw = try await tracked("HeartRateRecomputeRepository: watchReminder") {
+    func watchCheck() async throws -> HeartRateWatchCheck {
+        let raw = try await tracked("HeartRateRecomputeRepository: watchCheck") {
             try await httpClient.request(path: "/user/heart-rate/watch-check", method: .GET)
         }
-        return try decode(ReminderPayload.self, from: raw).reminder
+        let payload = try decode(WatchCheckPayload.self, from: raw)
+        return HeartRateWatchCheck(reminder: payload.reminder, autoUpdate: payload.autoUpdate)
+    }
+
+    func dismissWatchReminder() async throws {
+        _ = try await tracked("HeartRateRecomputeRepository: dismissWatchReminder") {
+            try await httpClient.request(path: "/user/heart-rate/watch-check/dismiss", method: .POST, body: nil)
+        }
     }
 
     private static func outcome(from payload: StartPayload) throws -> HeartRateRecomputeOutcome {

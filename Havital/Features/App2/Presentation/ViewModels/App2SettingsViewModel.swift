@@ -52,6 +52,7 @@ final class App2SettingsViewModel: ObservableObject {
     var currentDataSource: DataSourceType { profile.currentDataSource }
 
     var maxHeartRate: Int? { profile.userData?.maxHr }
+    var maxHeartRateSource: HeartRateParameterSource { profile.userData?.maxHrSource ?? .systemDefault }
     var restingHeartRate: Int? { profile.userData?.relaxingHr }
     var currentVDOT: Double { profile.currentVDOT }
 

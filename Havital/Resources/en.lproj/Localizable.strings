@@ -4999,3 +4999,9 @@
 "app2.hr_recompute.auto_footer" = "When on, the system may update your max heart rate if your measured peaks stay above it or your watch's max heart rate keeps differing. When off, it never changes it by itself.";
 "app2.hr_recompute.reminder_text" = "Your watch's max heart rate is %1$d, %3$.1f%% away from your setting of %2$d. Update it?";
 "app2.hr_recompute.reminder_action" = "Update to %d";
+"app2.hr_source.user_set" = "Set by you in Paceriz";
+"app2.hr_source.watch" = "Set automatically by your watch";
+"app2.hr_source.observed" = "Estimated from your runs";
+"app2.hr_source.system_default" = "System default";
+"app2.hr_recompute.auto_update_note" = "Watch auto-updated it to %2$d on %1$@";
+"app2.hr_recompute.reminder_dismiss" = "Not now";

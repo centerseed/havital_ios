@@ -122,3 +122,51 @@ struct HeartRateWatchReminder: Codable, Equatable {
         case watchRestingHr = "watch_resting_hr"
     }
 }
+
+/// 手錶自動更新最大心率之後，設定頁要寫的那一行（`SPEC-hr-zones` HZ-INV-18）。
+/// `localDate` 是後端依使用者時區算好的 `YYYY-MM-DD`，App 不再換算。
+struct HeartRateWatchAutoUpdate: Codable, Equatable {
+    let localDate: String
+    let maxHr: Int
+    let previousMaxHr: Int?
+    let deviationSince: String?
+
+    enum CodingKeys: String, CodingKey {
+        case localDate = "local_date"
+        case maxHr = "max_hr"
+        case previousMaxHr = "previous_max_hr"
+        case deviationSince = "deviation_since"
+    }
+}
+
+/// `GET /user/heart-rate/watch-check`：提醒（可能沒有）＋手錶自動更新說明（可能沒有）。
+struct HeartRateWatchCheck: Equatable {
+    let reminder: HeartRateWatchReminder?
+    let autoUpdate: HeartRateWatchAutoUpdate?
+}
+
+/// 最大心率的來源（`SPEC-hr-zones` HZ-INV-02）。不認得的值一律當系統預設，不 crash。
+enum HeartRateParameterSource: String, Codable, Equatable {
+    case userSet = "user_set"
+    case watch
+    case observed
+    case systemDefault = "system_default"
+
+    init(raw: String?) {
+        switch raw {
+        case "user_set": self = .userSet
+        case "watch": self = .watch
+        case "observed": self = .observed
+        default: self = .systemDefault
+        }
+    }
+
+    var localizationKey: String {
+        switch self {
+        case .userSet: return "app2.hr_source.user_set"
+        case .watch: return "app2.hr_source.watch"
+        case .observed: return "app2.hr_source.observed"
+        case .systemDefault: return "app2.hr_source.system_default"
+        }
+    }
+}

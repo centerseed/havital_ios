@@ -120,17 +120,56 @@ final class HeartRateRecomputeRepositoryTests: XCTestCase {
         XCTAssertNil(status.job)
     }
 
-    func test_watchCheckDecodesReminderOrNil() async throws {
+    func test_watchCheckDecodesReminderAndAutoUpdateNote() async throws {
         let client = FakeHTTPClient()
-        client.response = .success(json(#"{"success":true,"data":{"reminder":{"watch_max_hr":180,"profile_max_hr":197,"deviation_pct":8.6,"since":"2026-09-01","latest_workout_day":"2026-09-17","watch_resting_hr":50}}}"#))
-        let reminder = try await makeRepo(client).watchReminder()
-        XCTAssertEqual(reminder?.watchMaxHr, 180)
-        XCTAssertEqual(reminder?.profileMaxHr, 197)
-        XCTAssertEqual(reminder?.deviationPct, 8.6)
+        client.response = .success(json(#"{"success":true,"data":{"reminder":{"watch_max_hr":180,"profile_max_hr":197,"deviation_pct":8.6,"since":"2026-09-01","latest_workout_day":"2026-09-17","watch_resting_hr":50},"auto_update":{"local_date":"2026-09-20","max_hr":193,"previous_max_hr":197,"deviation_since":"2026-09-01"}}}"#))
+        let check = try await makeRepo(client).watchCheck()
+        XCTAssertEqual(check.reminder?.watchMaxHr, 180)
+        XCTAssertEqual(check.reminder?.deviationPct, 8.6)
+        XCTAssertEqual(check.autoUpdate?.localDate, "2026-09-20")
+        XCTAssertEqual(check.autoUpdate?.maxHr, 193)
+        XCTAssertEqual(check.autoUpdate?.previousMaxHr, 197)
         XCTAssertEqual(client.requests.first?.path, "/user/heart-rate/watch-check")
+        XCTAssertEqual(client.requests.first?.method, .GET)
 
+        client.response = .success(json(#"{"success":true,"data":{"reminder":null,"auto_update":null}}"#))
+        let none = try await makeRepo(client).watchCheck()
+        XCTAssertNil(none.reminder)
+        XCTAssertNil(none.autoUpdate)
+    }
+
+    func test_watchCheckFromOlderBackendWithoutAutoUpdateStillDecodes() async throws {
+        let client = FakeHTTPClient()
         client.response = .success(json(#"{"success":true,"data":{"reminder":null}}"#))
-        let none = try await makeRepo(client).watchReminder()
-        XCTAssertNil(none)
+        let check = try await makeRepo(client).watchCheck()
+        XCTAssertNil(check.autoUpdate)
+    }
+
+    func test_dismissPostsToTheDismissPath() async throws {
+        let client = FakeHTTPClient()
+        client.response = .success(json(#"{"success":true,"data":{"dismissed":true}}"#))
+        try await makeRepo(client).dismissWatchReminder()
+        XCTAssertEqual(client.requests.first?.path, "/user/heart-rate/watch-check/dismiss")
+        XCTAssertEqual(client.requests.first?.method, .POST)
+    }
+
+    // MARK: - 最大心率來源文字（SPEC-hr-zones §5.7、HZ-INV-02）
+
+    func test_sourceParsesTheFourValuesAndTreatsUnknownAsSystemDefault() {
+        XCTAssertEqual(HeartRateParameterSource(raw: "user_set"), .userSet)
+        XCTAssertEqual(HeartRateParameterSource(raw: "watch"), .watch)
+        XCTAssertEqual(HeartRateParameterSource(raw: "observed"), .observed)
+        XCTAssertEqual(HeartRateParameterSource(raw: "system_default"), .systemDefault)
+        XCTAssertEqual(HeartRateParameterSource(raw: "something_new"), .systemDefault)
+        XCTAssertEqual(HeartRateParameterSource(raw: nil), .systemDefault)
+    }
+
+    func test_userProfileDecodesMaxHrSourceAndToleratesUnknownValue() throws {
+        let watch = try JSONDecoder().decode(User.self, from: json(#"{"max_hr":193,"max_hr_source":"watch"}"#))
+        XCTAssertEqual(watch.maxHrSource, .watch)
+        let unknown = try JSONDecoder().decode(User.self, from: json(#"{"max_hr":193,"max_hr_source":"zzz"}"#))
+        XCTAssertEqual(unknown.maxHrSource, .systemDefault)
+        let absent = try JSONDecoder().decode(User.self, from: json(#"{"max_hr":193}"#))
+        XCTAssertEqual(absent.maxHrSource, .systemDefault)
     }
 }

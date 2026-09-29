@@ -4996,3 +4996,9 @@
 "app2.hr_recompute.auto_footer" = "オンにすると、実測の最大心拍が設定を長く上回る場合や、時計の最大心拍数が長く異なる場合に、システムが最大心拍数を自動更新できます。オフなら自動では変更しません。";
 "app2.hr_recompute.reminder_text" = "時計の最大心拍数は %1$d で、設定の %2$d と %3$.1f%% 違います。更新しますか？";
 "app2.hr_recompute.reminder_action" = "%d に更新";
+"app2.hr_source.user_set" = "Paceriz で設定";
+"app2.hr_source.watch" = "時計が自動設定";
+"app2.hr_source.observed" = "ランニング記録から推定";
+"app2.hr_source.system_default" = "システム既定";
+"app2.hr_recompute.auto_update_note" = "時計が %1$@ に %2$d へ自動更新しました";
+"app2.hr_recompute.reminder_dismiss" = "今はしない";

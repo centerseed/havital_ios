@@ -70,6 +70,7 @@ struct App2HeartRateZoneSettingsView: View {
                     range: 120...220,
                     identifier: "App2_HeartRateZoneMax"
                 )
+                sourceLine
                 stepperCard(
                     title: L10n.App2.Onboarding.hrResting.localized,
                     value: $restingHR,
@@ -79,6 +80,7 @@ struct App2HeartRateZoneSettingsView: View {
 
                 bandsSection
 
+                if let note = recompute.autoUpdate { autoUpdateNoteCard(note) }
                 if let reminder = recompute.reminder { reminderCard(reminder) }
                 autoUpdateCard
                 recomputeSection
@@ -86,7 +88,7 @@ struct App2HeartRateZoneSettingsView: View {
         }
         .onAppear(perform: loadInitialIfNeeded)
         .task {
-            await recompute.loadReminder()
+            await recompute.loadWatchCheck()
             await recompute.refresh()
         }
         .confirmationDialog(
@@ -243,8 +245,43 @@ struct App2HeartRateZoneSettingsView: View {
             }
             .disabled(isSaving)
             .accessibilityIdentifier("App2_HeartRateZoneReminderUpdate")
+            Button {
+                Task { await recompute.dismissReminder() }
+            } label: {
+                Text(NSLocalizedString("app2.hr_recompute.reminder_dismiss", comment: ""))
+                    .font(.system(size: 14, weight: .semibold))
+            }
+            .accessibilityIdentifier("App2_HeartRateZoneReminderDismiss")
         }
         .accessibilityIdentifier("App2_HeartRateZoneReminder")
+    }
+
+    /// 最大心率的來源（`SPEC-hr-zones` HZ-INV-02）。設定頁只讀，存檔後來源由後端重寫。
+    private var sourceLine: some View {
+        Text(NSLocalizedString(viewModel.maxHeartRateSource.localizationKey, comment: ""))
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(App2Theme.inkMuted)
+            .accessibilityIdentifier("App2_HeartRateZoneMaxSource")
+    }
+
+    /// 手錶自動更新後的說明＋同一條重算入口（HZ-INV-18）；更新本身不會重算。
+    private func autoUpdateNoteCard(_ note: HeartRateWatchAutoUpdate) -> some View {
+        App2Card(spacing: 10) {
+            Text(String(format: NSLocalizedString("app2.hr_recompute.auto_update_note", comment: ""), note.localDate, note.maxHr))
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(App2Theme.inkPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("App2_HeartRateZoneAutoUpdateNote")
+            Button {
+                closeAfterPrompt = false
+                recompute.isPromptPresented = true
+            } label: {
+                Text(NSLocalizedString("app2.hr_recompute.entry_title", comment: ""))
+                    .font(.system(size: 14, weight: .heavy))
+            }
+            .disabled(!recompute.canStart)
+            .accessibilityIdentifier("App2_HeartRateZoneAutoUpdateRecompute")
+        }
     }
 
     private var autoUpdateCard: some View {
@@ -354,7 +391,7 @@ struct App2HeartRateZoneSettingsView: View {
                 return
             }
             // 存永遠先成功；「有沒有變」只看後端。變了就問一次要不要重算，沒變照舊收頁。
-            await recompute.loadReminder()
+            await recompute.loadWatchCheck()
             if changed {
                 closeAfterPrompt = true
                 recompute.offerAfterSave(changed: true)
