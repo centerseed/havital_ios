@@ -9,6 +9,12 @@ enum HeartRateRecomputeDays: Int, CaseIterable, Equatable {
     case sixty = 60
 }
 
+/// 重算範圍選單的一列：三個範圍，加上明確可見的「不重算」（只存心率、不開工作）。
+enum HeartRateRecomputeChoice: Hashable {
+    case days(HeartRateRecomputeDays)
+    case skip
+}
+
 /// `PUT /user` 回應的 `heart_rate` 區塊。「有沒有變」只看後端，App 不自己比存前存後。
 struct HeartRateChangeReport: Equatable {
     let changed: Bool

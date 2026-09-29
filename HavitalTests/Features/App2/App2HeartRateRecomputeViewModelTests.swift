@@ -71,6 +71,31 @@ final class App2HeartRateRecomputeViewModelTests: XCTestCase {
         XCTAssertTrue(repo.startedDays.isEmpty)
     }
 
+    func test_promptListsTheThreeRangesThenAVisibleSkipChoice() {
+        XCTAssertEqual(
+            App2HeartRateRecomputeViewModel.promptChoices,
+            [.days(.fourteen), .days(.thirty), .days(.sixty), .skip]
+        )
+    }
+
+    func test_choosingTheSkipChoiceSavesOnlyAndStartsNothing() async {
+        let repo = FakeRepo()
+        let vm = makeVM(repo)
+        vm.offerAfterSave(changed: true)
+        await vm.choose(.skip)
+        XCTAssertFalse(vm.isPromptPresented)
+        XCTAssertTrue(repo.startedDays.isEmpty)
+        XCTAssertEqual(vm.phase, .idle)
+    }
+
+    func test_choosingARangeChoiceStartsThatRange() async {
+        let repo = FakeRepo()
+        let vm = makeVM(repo)
+        vm.offerAfterSave(changed: true)
+        await vm.choose(.days(.thirty))
+        XCTAssertEqual(repo.startedDays, [.thirty])
+    }
+
     // MARK: - 進度與結果
 
     func test_queuedJobIsPolledToCompletionAndDownstreamCachesAreToldOnce() async {

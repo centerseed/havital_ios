@@ -172,4 +172,13 @@ final class HeartRateRecomputeRepositoryTests: XCTestCase {
         let absent = try JSONDecoder().decode(User.self, from: json(#"{"max_hr":193}"#))
         XCTAssertEqual(absent.maxHrSource, .systemDefault)
     }
+
+    func test_userProfileDecodesRelaxingHrSourceOnlyWhenTheBackendSendsIt() throws {
+        let present = try JSONDecoder().decode(User.self, from: json(#"{"relaxing_hr":50,"relaxing_hr_source":"user_set"}"#))
+        XCTAssertEqual(present.relaxingHrSource, .userSet)
+        let unknown = try JSONDecoder().decode(User.self, from: json(#"{"relaxing_hr":50,"relaxing_hr_source":"zzz"}"#))
+        XCTAssertEqual(unknown.relaxingHrSource, .systemDefault)
+        let absent = try JSONDecoder().decode(User.self, from: json(#"{"relaxing_hr":50}"#))
+        XCTAssertNil(absent.relaxingHrSource)
+    }
 }

@@ -72,6 +72,18 @@ final class App2HeartRateRecomputeViewModel: ObservableObject {
         isPromptPresented = true
     }
 
+    /// 範圍選單的順序：14／30／60 天，最後是明確的「不重算」（iPhone 的 cancel 角色按鈕看不到）。
+    static let promptChoices: [HeartRateRecomputeChoice] = [
+        .days(.fourteen), .days(.thirty), .days(.sixty), .skip
+    ]
+
+    func choose(_ choice: HeartRateRecomputeChoice) async {
+        switch choice {
+        case .days(let days): await choose(days)
+        case .skip: await choose(nil)
+        }
+    }
+
     /// 使用者在範圍選擇裡按了哪一個；`nil`＝不重算。
     func choose(_ days: HeartRateRecomputeDays?) async {
         isPromptPresented = false
