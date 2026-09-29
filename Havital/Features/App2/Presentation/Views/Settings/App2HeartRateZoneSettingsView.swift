@@ -68,14 +68,17 @@ struct App2HeartRateZoneSettingsView: View {
                     title: L10n.App2.Onboarding.hrMax.localized,
                     value: $maxHR,
                     range: 120...220,
-                    identifier: "App2_HeartRateZoneMax"
+                    identifier: "App2_HeartRateZoneMax",
+                    source: viewModel.maxHeartRateSource,
+                    sourceIdentifier: "App2_HeartRateZoneMaxSource"
                 )
-                sourceLine
                 stepperCard(
                     title: L10n.App2.Onboarding.hrResting.localized,
                     value: $restingHR,
                     range: 30...120,
-                    identifier: "App2_HeartRateZoneResting"
+                    identifier: "App2_HeartRateZoneResting",
+                    source: viewModel.restingHeartRateSource,
+                    sourceIdentifier: "App2_HeartRateZoneRestingSource"
                 )
 
                 bandsSection
@@ -96,18 +99,23 @@ struct App2HeartRateZoneSettingsView: View {
             isPresented: $recompute.isPromptPresented,
             titleVisibility: .visible
         ) {
-            ForEach(HeartRateRecomputeDays.allCases, id: \.rawValue) { days in
-                Button(Self.title(for: days)) {
-                    closeAfterPrompt = false
-                    Task { await recompute.choose(days) }
-                }
-            }
-            Button(NSLocalizedString("app2.hr_recompute.no_recompute", comment: ""), role: .cancel) {
-                let shouldClose = closeAfterPrompt
-                closeAfterPrompt = false
-                Task {
-                    await recompute.choose(nil)
-                    if shouldClose { onClose() }
+            ForEach(App2HeartRateRecomputeViewModel.promptChoices, id: \.self) { choice in
+                switch choice {
+                case .days(let days):
+                    Button(Self.title(for: days)) {
+                        closeAfterPrompt = false
+                        Task { await recompute.choose(days) }
+                    }
+                case .skip:
+                    // 不設 `.cancel` 角色：iPhone 的 confirmationDialog 會把 cancel 藏起來。
+                    Button(NSLocalizedString("app2.hr_recompute.no_recompute", comment: "")) {
+                        let shouldClose = closeAfterPrompt
+                        closeAfterPrompt = false
+                        Task {
+                            await recompute.choose(.skip)
+                            if shouldClose { onClose() }
+                        }
+                    }
                 }
             }
         } message: {
@@ -132,7 +140,9 @@ struct App2HeartRateZoneSettingsView: View {
         title: String,
         value: Binding<Int>,
         range: ClosedRange<Int>,
-        identifier: String
+        identifier: String,
+        source: HeartRateParameterSource?,
+        sourceIdentifier: String
     ) -> some View {
         App2Card(spacing: 4) {
             HStack(alignment: .center) {
@@ -147,6 +157,12 @@ struct App2HeartRateZoneSettingsView: View {
                         Text(L10n.App2.Onboarding.hrBpm.localized)
                             .font(.system(size: 13, weight: .bold))
                             .foregroundStyle(App2Theme.inkMuted)
+                    }
+                    if let source {
+                        Text(NSLocalizedString(source.localizationKey, comment: ""))
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(App2Theme.inkMuted)
+                            .accessibilityIdentifier(sourceIdentifier)
                     }
                 }
                 Spacer(minLength: 8)
@@ -254,14 +270,6 @@ struct App2HeartRateZoneSettingsView: View {
             .accessibilityIdentifier("App2_HeartRateZoneReminderDismiss")
         }
         .accessibilityIdentifier("App2_HeartRateZoneReminder")
-    }
-
-    /// 最大心率的來源（`SPEC-hr-zones` HZ-INV-02）。設定頁只讀，存檔後來源由後端重寫。
-    private var sourceLine: some View {
-        Text(NSLocalizedString(viewModel.maxHeartRateSource.localizationKey, comment: ""))
-            .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(App2Theme.inkMuted)
-            .accessibilityIdentifier("App2_HeartRateZoneMaxSource")
     }
 
     /// 手錶自動更新後的說明＋同一條重算入口（HZ-INV-18）；更新本身不會重算。

@@ -12,7 +12,8 @@ date: 2026-09-29
 行為與數字的來源是 root `docs/specs/SPEC-heart-rate-and-training-readiness-surfaces.md` 的 AC-HR-07～13，後端規則在
 `cloud/api_service/docs/01-specs/decision-chain/0-inputs/raw/SPEC-hr-zones.md` §5.5、§5.7、§5.8。本檔只寫 iOS 2.0 設定頁（`App2HeartRateZoneSettingsView`）看得到的做法，不重講規則。
 
-1. **存完問一次（AC-HR-07）**：存下心率後，只看後端 `PUT /user` 回應的 `heart_rate.changed`；為真才跳選單「不重算／最近 14／30／60 天」，預設「不重算」，說明寫「更早的課維持原值」。值沒變就照舊收頁。App 不自己比存前存後。onboarding 的心率步驟不走這一頁，不問。
+1. **存完問一次（AC-HR-07）**：存下心率後，只看後端 `PUT /user` 回應的 `heart_rate.changed`；為真才跳選單，選項由上到下是「最近 14 天／最近 30 天／最近 60 天／不重算」，「不重算」是一顆看得見的一般按鈕（不用 cancel 角色——iPhone 的 confirmationDialog 會把 cancel 藏起來），選了只存心率、不開工作；說明寫「更早的課維持原值」。
+   驗法：`test_promptListsTheThreeRangesThenAVisibleSkipChoice`、`test_choosingTheSkipChoiceSavesOnlyAndStartsNothing`。值沒變就照舊收頁。App 不自己比存前存後。onboarding 的心率步驟不走這一頁，不問。
    驗法：後端回 `changed: true` 出現選單；回 `false` 或沒有 `heart_rate` 區塊不出現（`HeartRateRecomputeRepositoryTests`、`App2HeartRateRecomputeViewModelTests::test_promptOnlyWhenBackendSaysChanged`）。
 2. **進度與結果（AC-HR-08）**：選了範圍就 `POST /user/heart-rate/recompute`，之後輪詢 `GET` 到結束；顯示進度條與後端 `message`（排隊中／重算中 n/N／完成：重算 x、跳過 y、失敗 z、失敗）。失敗顯示「重試」；進行中選單按鈕停用，後端回 409 就接上進行中的那一個，不開第二個。「這段時間沒有可重算的課」直接顯示後端那句，不輪詢。API 失敗照實顯示，不拼假資料。
    驗法：`test_queuedJobIsPolledToCompletion…`、`test_failedJobIsShownAsFailedAndCanBeRetried`、`test_alreadyRunningAdopts…`、`test_cannotStartWhileAJobIsActive`。
@@ -24,8 +25,8 @@ date: 2026-09-29
    驗法：`test_dismissHidesTheReminderAtOnceAndTellsTheBackend`、`test_dismissFailureKeepsTheReminderSoItComesBackHonestly`、`test_dismissPostsToTheDismissPath`。
 7. **手錶自動更新後的說明與重算入口（HZ-INV-18）**：`watch-check` 回 `auto_update` 時，設定頁多一張卡寫「手錶於 YYYY-MM-DD 自動更新為 193」（日期是後端依使用者時區算好的，App 原樣顯示），卡片裡有「用目前的心率重算過去的跑力」按鈕，開的是第 1 條同一個 14／30／60 天選單與第 2 條同一套進度，不另做一套。自動更新本身不會重算，也不跳選單。使用者自己改過最大心率後後端不再回 `auto_update`，卡片消失。
    驗法：`test_autoUpdateNoteIsLoadedAndKeptApartFromTheReminder`、`test_watchCheckDecodesReminderAndAutoUpdateNote`。
-8. **最大心率的來源文字（HZ-INV-02）**：最大心率卡下方一行小字，依 `GET /user` 的 `max_hr_source`：`user_set`「你在 Paceriz 設定」、`watch`「手錶自動設定」、`observed`「由跑步紀錄推算」、`system_default`「系統預設」（en：Set by you in Paceriz／Set automatically by your watch／Estimated from your runs／System default；ja：Paceriz で設定／時計が自動設定／ランニング記録から推定／システム既定）。沒有這個欄位或值不認得一律顯示「系統預設」，不 crash。
-   驗法：`test_sourceParsesTheFourValuesAndTreatsUnknownAsSystemDefault`、`test_userProfileDecodesMaxHrSourceAndToleratesUnknownValue`。
+8. **最大心率的來源文字（HZ-INV-02）**：來源小字放在各自數字卡「內」、數字下方（不是兩張卡之間），最大心率卡依 `GET /user` 的 `max_hr_source`：`user_set`「你在 Paceriz 設定」、`watch`「手錶自動設定」、`observed`「由跑步紀錄推算」、`system_default`「系統預設」（en：Set by you in Paceriz／Set automatically by your watch／Estimated from your runs／System default；ja：Paceriz で設定／時計が自動設定／ランニング記録から推定／システム既定）。最大心率沒有這個欄位或值不認得一律顯示「系統預設」，不 crash。安靜心率卡同樣在數字下方顯示 `relaxing_hr_source`，但後端沒送這欄就不顯示（不猜）。
+   驗法：`test_sourceParsesTheFourValuesAndTreatsUnknownAsSystemDefault`、`test_userProfileDecodesMaxHrSourceAndToleratesUnknownValue`、`test_userProfileDecodesRelaxingHrSourceOnlyWhenTheBackendSendsIt`。
 
 ## 還沒做
 - Rizo／能力中心「你改了心率所以數字變了」那一句：後端文案已備，iOS 尚未渲染。

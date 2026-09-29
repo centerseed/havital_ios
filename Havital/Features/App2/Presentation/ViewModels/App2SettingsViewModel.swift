@@ -54,6 +54,7 @@ final class App2SettingsViewModel: ObservableObject {
     var maxHeartRate: Int? { profile.userData?.maxHr }
     var maxHeartRateSource: HeartRateParameterSource { profile.userData?.maxHrSource ?? .systemDefault }
     var restingHeartRate: Int? { profile.userData?.relaxingHr }
+    var restingHeartRateSource: HeartRateParameterSource? { profile.userData?.relaxingHrSource }
     var currentVDOT: Double { profile.currentVDOT }
 
     /// 訓練日（1=一 … 7=日），與 `EditTrainingDaysView` 同一套編碼。
