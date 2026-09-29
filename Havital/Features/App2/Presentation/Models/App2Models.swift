@@ -925,6 +925,40 @@ struct App2MetricPoint: Equatable {
     let date: String
     /// nil = 這一天沒有值；仍保留在共用日期軸上，繪線在此斷開。
     let value: Double?
+    /// 那一天 envelope 的判語分帶（恢復指數才有）；其他序列為 nil。
+    var band: String? = nil
+}
+
+/// 恢復分數柱狀圖的一天（近 30 個日曆日，沒有 envelope 的天 `value` 為 nil，不畫柱子）。
+struct App2RecoveryBar: Equatable, Identifiable {
+    let date: String
+    let value: Double?
+    let band: App2RecoveryBand?
+    let isToday: Bool
+    var id: String { date }
+}
+
+/// 恢復判語三分帶。**不是分數門檻**：後端依觸發的通道數決定
+/// （`domains/athlete_state/metrics/recovery_index.py`）。
+enum App2RecoveryBand: Equatable {
+    case normal, attention, overtrainingRisk
+
+    init?(wire: String?) {
+        switch wire {
+        case "normal": self = .normal
+        case "attention": self = .attention
+        case "overtraining_risk": self = .overtrainingRisk
+        default: return nil
+        }
+    }
+
+    var label: String {
+        switch self {
+        case .normal: return L10n.App2.Metric.recoveryBandNormal.localized
+        case .attention: return L10n.App2.Metric.recoveryBandAttention.localized
+        case .overtrainingRisk: return L10n.App2.Metric.recoveryBandRisk.localized
+        }
+    }
 }
 
 /// 有氧續航／速度耐力詳情頁的分級尺（SPEC-today-state §4.5／§5.1）。

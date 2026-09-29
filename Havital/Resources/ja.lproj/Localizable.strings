@@ -4980,4 +4980,10 @@
 "app2.metric.acwr_info_heavy" = "いつもよりかなり多く、体が適応しきれません。疲労とケガのリスクが上がります。";
 "app2.metric.acwr_info_warning_format" = "%@ を超える状態が続くのは、負荷を増やしすぎのサインです。量を減らして休み、体を追いつかせましょう。";
 "app2.metric.hero_trend_format" = "直近7日のトレンド %@";
+"app2.metric.recovery_band_normal" = "正常";
+"app2.metric.recovery_band_attention" = "要注意";
+"app2.metric.recovery_band_risk" = "オーバートレーニングの恐れ";
+"app2.metric.recovery_score_title" = "回復スコア・直近30日";
+"app2.metric.recovery_hrv_legend" = "HRV（ms）";
+"app2.metric.recovery_rhr_legend" = "安静時心拍（bpm）";
 "onboarding.payment_confirmation_pending" = "お支払いを確認中です。しばらくしてからもう一度タップしてください。";

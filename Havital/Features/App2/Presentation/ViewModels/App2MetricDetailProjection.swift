@@ -420,7 +420,25 @@ enum App2MetricDetailProjection {
     static func levelSeries(_ response: AthleteStateSeriesResponse, key: String) -> [App2MetricPoint] {
         (response.series[key] ?? []).compactMap { row in
             guard let value = row.envelope?.index ?? row.envelope?.levelIndex else { return nil }
-            return App2MetricPoint(date: row.day, value: value)
+            return App2MetricPoint(date: row.day, value: value, band: row.envelope?.band)
+        }
+    }
+
+    /// 恢復分數柱狀圖：`asof−29 … asof` 共 30 個日曆日，每天一格；沒有 envelope 的天
+    /// `value` 為 nil（留空，不補值）。最後一格（asof）標為今天。
+    static func recoveryBars(_ points: [App2MetricPoint], asof: String?) -> [App2RecoveryBar] {
+        let window = App2LevelDetailViewModel.window(asof: asof)
+        let byDate = Dictionary(points.map { ($0.date, $0) }, uniquingKeysWith: { _, latest in latest })
+        return (0..<App2LevelDetailViewModel.windowDays).compactMap { offset in
+            let back = App2LevelDetailViewModel.windowDays - 1 - offset
+            guard let date = dateString(byAdding: -back, to: window.end) else { return nil }
+            let point = byDate[date]
+            return App2RecoveryBar(
+                date: date,
+                value: point?.value,
+                band: App2RecoveryBand(wire: point?.band),
+                isToday: date == window.end
+            )
         }
     }
 

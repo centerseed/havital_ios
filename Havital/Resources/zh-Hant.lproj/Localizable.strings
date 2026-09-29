@@ -5024,4 +5024,10 @@
 "app2.metric.acwr_info_heavy" = "比平常多練太多，身體來不及適應，疲勞與受傷風險會上升。";
 "app2.metric.acwr_info_warning_format" = "連續高於 %@ 代表加量太快。遇到這種情況，先減量、多休息，讓身體追上進度。";
 "app2.metric.hero_trend_format" = "近 7 天趨勢 %@";
+"app2.metric.recovery_band_normal" = "正常";
+"app2.metric.recovery_band_attention" = "留意";
+"app2.metric.recovery_band_risk" = "過度訓練風險";
+"app2.metric.recovery_score_title" = "恢復分數 · 近 30 天";
+"app2.metric.recovery_hrv_legend" = "HRV（ms）";
+"app2.metric.recovery_rhr_legend" = "靜息心率（bpm）";
 "onboarding.payment_confirmation_pending" = "付款確認中，請稍候再按一次";

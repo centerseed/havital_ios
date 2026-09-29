@@ -779,7 +779,6 @@ private struct App2ScoreTrendCard: View {
     let tint: Color
     let readoutLabel: String
     let readoutID: String
-    var fixedBounds: ClosedRange<Double>? = nil
 
     var body: some View {
         App2Card(spacing: 12) {
@@ -795,7 +794,6 @@ private struct App2ScoreTrendCard: View {
                 App2MetricLineChart(
                     series: [.init(id: "level", points: points, tint: tint, readoutLabel: readoutLabel)],
                     xLabels: App2VolumeDetailPage.xLabels(points),
-                    fixedBounds: fixedBounds,
                     allowsReadout: true,
                     height: 118,
                     readoutID: readoutID
@@ -901,6 +899,7 @@ private struct App2RecoveryDetailPage: View {
     init(insight: App2Insight, narrative: String?, asof: String?, onClose: @escaping () -> Void) {
         self.insight = insight
         self.narrative = narrative
+        self.asof = asof
         self.onClose = onClose
         _viewModel = StateObject(wrappedValue: App2RecoveryDetailViewModel(
             insight: insight,
@@ -909,6 +908,32 @@ private struct App2RecoveryDetailPage: View {
         _scoreTrend = StateObject(wrappedValue: App2LevelDetailViewModel(
             itemKey: "recovery_index", asof: asof
         ))
+    }
+
+    private let asof: String?
+
+    /// 恢復分數逐日柱狀圖卡。序列讀不到／一天都沒有 → 一句佔位，不畫空圖。
+    private var scoreBarsCard: some View {
+        let bars = App2MetricDetailProjection.recoveryBars(
+            scoreTrend.detail?.value.series ?? [], asof: asof
+        )
+        return App2Card(spacing: 12) {
+            Text(L10n.App2.Metric.recoveryScoreTitle.localized)
+                .font(.system(size: 14, weight: .heavy))
+                .foregroundStyle(App2Theme.inkPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            if bars.contains(where: { $0.value != nil }) {
+                App2RecoveryScoreBars(bars: bars)
+            } else if scoreTrend.isLoading {
+                ProgressView().frame(maxWidth: .infinity)
+            } else {
+                Text(L10n.App2.Metric.levelTrendUnavailable.localized)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(App2Theme.inkMuted)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .accessibilityIdentifier("App2_MetricRecoveryScore")
     }
 
     var body: some View {
@@ -933,15 +958,9 @@ private struct App2RecoveryDetailPage: View {
                 tint: App2Theme.accentGreenDot
             )
 
-            // 恢復分數近 30 天線（使用者 2026-09-29 裁決；checklist §53-5），Y 軸固定 0–100。
-            App2ScoreTrendCard(
-                points: scoreTrend.detail?.value.series,
-                isLoading: scoreTrend.isLoading,
-                tint: App2Theme.accentGreenDot,
-                readoutLabel: insight.label,
-                readoutID: "recovery-score-trend",
-                fixedBounds: App2MetricDetailProjection.scoreAxisRange
-            )
+            // 恢復分數近 30 天逐日柱狀圖（使用者 2026-09-29 裁決；checklist §53-5）：
+            // 柱色是那天的判語分帶，Y 軸固定 0–100。
+            scoreBarsCard
 
             if let detail = viewModel.detail?.value {
                 App2Card(spacing: 12) {
@@ -949,43 +968,31 @@ private struct App2RecoveryDetailPage: View {
                         .font(.system(size: 14, weight: .heavy))
                         .foregroundStyle(App2Theme.inkPrimary)
 
-                    // 兩條線量綱不同（ms／bpm），拆成上下兩張各用自己的 Y 軸。
-                    if detail.hrv.contains(where: { $0.value != nil }) {
-                        App2MetricLineChart(
-                            series: [
-                                .init(
-                                    id: "hrv",
-                                    points: detail.hrv,
-                                    tint: App2Theme.accentGreenDot,
-                                    legend: L10n.App2.Metric.recoveryHrv.localized,
-                                    readoutLabel: L10n.App2.Metric.recoveryHrv.localized,
-                                    unit: "ms"
-                                )
-                            ],
-                            xLabels: App2VolumeDetailPage.xLabels(detail.hrv),
-                            allowsReadout: true,
-                            height: 96,
-                            readoutID: "recovery-hrv"
-                        )
-                    }
-                    if detail.restingHR.contains(where: { $0.value != nil }) {
-                        App2MetricLineChart(
-                            series: [
-                                .init(
-                                    id: "rhr",
-                                    points: detail.restingHR,
-                                    tint: App2Theme.appleHealthRed,
-                                    legend: L10n.App2.Metric.recoveryRhr.localized,
-                                    readoutLabel: L10n.App2.Metric.recoveryRhr.localized,
-                                    unit: "bpm"
-                                )
-                            ],
-                            xLabels: App2VolumeDetailPage.xLabels(detail.restingHR),
-                            allowsReadout: true,
-                            height: 96,
-                            readoutID: "recovery-rhr"
-                        )
-                    }
+                    // 兩條線量綱不同：左軸 HRV（ms）、右軸靜息心率（bpm），刻度各用自己那條線的顏色。
+                    App2MetricLineChart(
+                        series: [
+                            .init(
+                                id: "hrv",
+                                points: detail.hrv,
+                                tint: App2Theme.accentGreenDot,
+                                legend: L10n.App2.Metric.recoveryHrvLegend.localized,
+                                readoutLabel: L10n.App2.Metric.recoveryHrv.localized,
+                                unit: "ms"
+                            ),
+                            .init(
+                                id: "rhr",
+                                points: detail.restingHR,
+                                tint: App2Theme.appleHealthRed,
+                                legend: L10n.App2.Metric.recoveryRhrLegend.localized,
+                                readoutLabel: L10n.App2.Metric.recoveryRhr.localized,
+                                unit: "bpm"
+                            )
+                        ],
+                        xLabels: App2VolumeDetailPage.xLabels(detail.hrv),
+                        allowsReadout: true,
+                        height: 118,
+                        readoutID: "recovery-chart"
+                    )
 
                     App2MetricStatRow(stats: detail.stats)
                 }

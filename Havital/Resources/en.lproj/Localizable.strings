@@ -4983,4 +4983,10 @@
 "app2.metric.acwr_info_heavy" = "Much more than usual. Your body cannot adapt that fast, so fatigue and injury risk go up.";
 "app2.metric.acwr_info_warning_format" = "Staying above %@ for several days means you are adding load too fast. Cut back and rest so your body can catch up.";
 "app2.metric.hero_trend_format" = "7-day trend %@";
+"app2.metric.recovery_band_normal" = "Normal";
+"app2.metric.recovery_band_attention" = "Worth watching";
+"app2.metric.recovery_band_risk" = "Overtraining risk";
+"app2.metric.recovery_score_title" = "Recovery score · last 30 days";
+"app2.metric.recovery_hrv_legend" = "HRV (ms)";
+"app2.metric.recovery_rhr_legend" = "Resting HR (bpm)";
 "onboarding.payment_confirmation_pending" = "Payment confirmation is in progress. Please wait, then tap again.";

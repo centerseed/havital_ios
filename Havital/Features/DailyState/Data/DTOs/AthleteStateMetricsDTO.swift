@@ -37,9 +37,11 @@ struct AthleteStateMetricEnvelope: Codable {
     var channels: Channels? = nil
     /// 能力基準（`capability_baseline`）的中心值；其他指標沒有。
     var center: Center? = nil
+    /// 恢復指數的判語分帶（`normal`／`attention`／`overtraining_risk`），其他指標沒有。
+    var band: String? = nil
 
     enum CodingKeys: String, CodingKey {
-        case index, channels, center
+        case index, channels, center, band
         case levelIndex = "level_index"
     }
 

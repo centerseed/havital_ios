@@ -366,6 +366,177 @@ struct App2WeeklyVolumeChart: View {
     }
 }
 
+// MARK: - App2RecoveryScoreBars
+/// 恢復分數近 30 天逐日柱狀圖（checklist §53-5）：每天一根柱子（Y 軸固定 0–100），
+/// 柱色是**那天的判語分帶**（正常綠／留意黃／過度訓練風險紅），不是分數門檻，所以不畫水平線。
+/// 沒有 envelope 的天留空；今天那根不透明、其他天淡一點。點柱子出讀數框。
+struct App2RecoveryScoreBars: View {
+    let bars: [App2RecoveryBar]
+    var height: CGFloat = 118
+    var readoutID: String = "recovery-score"
+
+    @Environment(\.app2ChartReadoutSelection) private var chartReadoutSelection
+
+    static let caution = Color(hex: "#F2B01E")
+
+    static func tint(for band: App2RecoveryBand?) -> Color {
+        switch band {
+        case .normal: return App2Theme.accentGreenDot
+        case .attention: return caution
+        case .overtrainingRisk: return App2Theme.appleHealthRed
+        case nil: return App2Theme.inkMuted
+        }
+    }
+
+    private var selectedIndex: Int? {
+        guard let selection = chartReadoutSelection.wrappedValue,
+              selection.chartID == readoutID else { return nil }
+        return selection.index
+    }
+
+    private func select(_ index: Int?) {
+        if let index {
+            chartReadoutSelection.wrappedValue = .init(chartID: readoutID, index: index)
+        } else if chartReadoutSelection.wrappedValue?.chartID == readoutID {
+            chartReadoutSelection.wrappedValue = nil
+        }
+    }
+
+    private let spacing: CGFloat = 2
+    private static let axisRange = App2MetricDetailProjection.scoreAxisRange
+    private static let axisTicks: [Double] = [
+        axisRange.upperBound, (axisRange.upperBound + axisRange.lowerBound) / 2, axisRange.lowerBound
+    ]
+
+    var body: some View {
+        VStack(spacing: 6) {
+            if let selectedIndex, bars.indices.contains(selectedIndex), let value = bars[selectedIndex].value {
+                let bar = bars[selectedIndex]
+                HStack(spacing: 6) {
+                    Text(App2DateLabel.short(isoDate: bar.date))
+                    Text(App2NumberFormat.grouped(value, maximumFractionDigits: 1)).fontWeight(.heavy)
+                    if let band = bar.band {
+                        Circle().fill(Self.tint(for: band)).frame(width: 6, height: 6)
+                        Text(band.label)
+                    }
+                }
+                .font(.app2Mono(10, weight: .semibold))
+                .foregroundStyle(App2Theme.inkPrimary)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 5)
+                .background(App2Theme.cardBackground, in: RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(App2Theme.insetBorder, lineWidth: 1))
+                .accessibilityIdentifier("App2_RecoveryScoreReadout")
+            }
+
+            HStack(alignment: .top, spacing: 8) {
+                VStack(alignment: .trailing, spacing: 0) {
+                    ForEach(Self.axisTicks, id: \.self) { value in
+                        Text(App2NumberFormat.grouped(value))
+                            .font(.app2Mono(9, weight: .semibold))
+                            .foregroundStyle(App2Theme.inkFaint)
+                        if value > Self.axisRange.lowerBound { Spacer(minLength: 0) }
+                    }
+                }
+                .frame(height: height)
+                .padding(.vertical, 8)
+                plot
+            }
+
+            xLabels
+            legend
+        }
+        .background {
+            GeometryReader { geo in
+                Color.clear.preference(
+                    key: App2ChartReadoutFramePreferenceKey.self,
+                    value: [App2ChartReadoutFrame(
+                        chartID: readoutID,
+                        frame: geo.frame(in: .named(App2ChartReadoutCoordinateSpace.name))
+                    )]
+                )
+            }
+        }
+        .accessibilityIdentifier("App2_RecoveryScoreBars")
+    }
+
+    private var plot: some View {
+        GeometryReader { geo in
+            let count = max(bars.count, 1)
+            let slot = (geo.size.width - spacing * CGFloat(count - 1)) / CGFloat(count)
+            ZStack(alignment: .bottomLeading) {
+                HStack(alignment: .bottom, spacing: spacing) {
+                    ForEach(bars) { bar in
+                        ZStack(alignment: .bottom) {
+                            Color.clear
+                            if let value = bar.value {
+                                RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                    .fill(Self.tint(for: bar.band).opacity(bar.isToday ? 1 : 0.55))
+                                    .frame(height: max(2, geo.size.height
+                                        * (min(max(value, Self.axisRange.lowerBound), Self.axisRange.upperBound)
+                                           - Self.axisRange.lowerBound)
+                                        / (Self.axisRange.upperBound - Self.axisRange.lowerBound)))
+                            }
+                        }
+                        .frame(width: max(slot, 1))
+                    }
+                }
+                Color.clear
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0).onChanged { gesture in
+                            let raw = Int(gesture.location.x / max(slot + spacing, 1))
+                            let index = min(max(raw, 0), bars.count - 1)
+                            select(bars.indices.contains(index) && bars[index].value != nil ? index : nil)
+                        }
+                    )
+            }
+        }
+        .frame(height: height)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(App2Theme.insetBackgroundCool)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .strokeBorder(App2Theme.insetBorder, lineWidth: 1)
+        )
+    }
+
+    @ViewBuilder
+    private var xLabels: some View {
+        if bars.count >= 2, let first = bars.first, let last = bars.last {
+            let middle = bars[bars.count / 2]
+            HStack {
+                Text(App2DateLabel.short(isoDate: first.date))
+                Spacer(minLength: 4)
+                Text(App2DateLabel.short(isoDate: middle.date))
+                Spacer(minLength: 4)
+                Text(App2DateLabel.short(isoDate: last.date))
+            }
+            .font(.app2Mono(9, weight: .semibold))
+            .foregroundStyle(App2Theme.inkFaint)
+        }
+    }
+
+    private var legend: some View {
+        HStack(spacing: 10) {
+            ForEach([App2RecoveryBand.normal, .attention, .overtrainingRisk], id: \.label) { band in
+                HStack(spacing: 4) {
+                    RoundedRectangle(cornerRadius: 2).fill(Self.tint(for: band)).frame(width: 9, height: 9)
+                    Text(band.label)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(App2Theme.inkSecondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+    }
+}
+
 // MARK: - App2DashedLine
 /// 一條水平線（`Divider` 畫不出虛線）。目標線、基準線共用。
 struct App2DashedLine: Shape {
@@ -460,8 +631,6 @@ struct App2MetricLineChart: View {
     /// 指定 y 軸刻度值（依標示優先序）。nil ＝預設的最高／中間／最低三顆。
     /// 空間不夠的刻度會讓位給排在前面的（見 `visibleTickValues`）。
     var yTickValues: [Double]? = nil
-    /// 固定的 Y 軸範圍（分數 0–100）。nil ＝ 貼著資料縮放。
-    var fixedBounds: ClosedRange<Double>? = nil
     var height: CGFloat = 132
     /// 只有指標詳情頁啟用圖上讀數。
     var allowsReadout: Bool = false
@@ -487,7 +656,6 @@ struct App2MetricLineChart: View {
         markerLabel: String? = nil,
         baselineValues: [Double] = [],
         yTickValues: [Double]? = nil,
-        fixedBounds: ClosedRange<Double>? = nil,
         showsBandLegend: Bool = false,
         allowsReadout: Bool = false,
         initiallySelectedIndex: Int? = nil,
@@ -502,7 +670,6 @@ struct App2MetricLineChart: View {
         self.markerLabel = markerLabel
         self.baselineValues = baselineValues
         self.yTickValues = yTickValues
-        self.fixedBounds = fixedBounds
         self.height = height
         self.allowsReadout = allowsReadout
         self.initiallySelectedIndex = initiallySelectedIndex
@@ -531,7 +698,7 @@ struct App2MetricLineChart: View {
                 readout(for: selectedIndex)
             }
             HStack(alignment: .top, spacing: 8) {
-                yAxis(series.first, overrideBounds: primaryBounds)
+                yAxis(series.first, tint: Self.axisTints(for: series).left, overrideBounds: primaryBounds)
                 plot
                 // 兩條線各有自己的量綱（HRV 是 ms、RHR 是 bpm），所以**右邊要有
                 // 第二組刻度**——沒有它，紅線就是一條沒有單位的裝飾（設計 §53-2
@@ -587,8 +754,7 @@ struct App2MetricLineChart: View {
     /// 三顆刻度（最高／中間／最低）。每條線各有自己的量綱，所以刻度綁的是那條線。
     /// 第一條線的上下界（含區帶）。其餘線各自算自己的，不吃區帶。
     private var primaryBounds: (lower: Double, upper: Double)? {
-        Self.bounds(series.first?.points ?? [], including: bands, referenceValues: baselineValues,
-                    fixed: fixedBounds)
+        Self.bounds(series.first?.points ?? [], including: bands, referenceValues: baselineValues)
     }
 
     @ViewBuilder
@@ -635,6 +801,12 @@ struct App2MetricLineChart: View {
             }
         }
         return kept
+    }
+
+    /// 雙線圖的兩組刻度各用自己那條線的顏色（左軸第一條、右軸第二條）；單線圖不染色。
+    static func axisTints(for series: [Series]) -> (left: Color?, right: Color?) {
+        guard series.count > 1 else { return (nil, nil) }
+        return (series[0].tint, series[1].tint)
     }
 
     private func tick(_ value: Double, tint: Color?) -> some View {
@@ -997,10 +1169,8 @@ struct App2MetricLineChart: View {
     static func bounds(
         _ points: [App2MetricPoint],
         including bands: [Band] = [],
-        referenceValues: [Double] = [],
-        fixed: ClosedRange<Double>? = nil
+        referenceValues: [Double] = []
     ) -> (lower: Double, upper: Double)? {
-        if let fixed { return (fixed.lowerBound, fixed.upperBound) }
         var values = points.compactMap(\.value)
         values.append(contentsOf: bands.flatMap { [$0.lower, $0.upper].compactMap { $0 } })
         values.append(contentsOf: referenceValues)

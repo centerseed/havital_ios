@@ -1,4 +1,5 @@
 import XCTest
+import SwiftUI
 @testable import paceriz_dev
 
 /// 指標第二層（checklist §51–53）的現算欄。
@@ -852,15 +853,74 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         XCTAssertEqual(points.map(\.value), [81.5, 64.0])
     }
 
-    func testFixedBoundsPinTheScoreAxisToZeroThroughHundred() {
-        let points = [point("2026-09-04", 55), point("2026-09-05", 61)]
-        let free = App2MetricLineChart.bounds(points)
-        XCTAssertNotNil(free)
-        XCTAssertGreaterThan(free!.lower, 0, "沒指定時 Y 軸貼著資料")
-
-        let fixed = App2MetricLineChart.bounds(points, fixed: 0...100)
-        XCTAssertEqual(fixed?.lower, 0)
-        XCTAssertEqual(fixed?.upper, 100)
+    func testScoreAxisIsZeroThroughHundred() {
         XCTAssertEqual(App2MetricDetailProjection.scoreAxisRange, 0...100)
+    }
+
+    // MARK: - 恢復分數逐日柱狀圖（使用者 2026-09-29 二次裁決）
+
+    func testLevelSeriesCarriesTheEnvelopeBand() throws {
+        let json = """
+        {"uid":"u","series":{"recovery_index":[
+            {"day":"2026-09-04","delivery_status":"active","envelope":{"index":90.0,"band":"normal"}},
+            {"day":"2026-09-05","delivery_status":"active","envelope":{"index":50.0,"band":"attention"}},
+            {"day":"2026-09-06","delivery_status":"active","envelope":{"index":20.0,"band":"overtraining_risk"}}],
+          "aerobic_endurance":[
+            {"day":"2026-09-06","delivery_status":"active","envelope":{"index":61.0}}]}}
+        """
+        let decoded = try JSONDecoder().decode(AthleteStateSeriesResponse.self, from: Data(json.utf8))
+        let recovery = App2MetricDetailProjection.levelSeries(decoded, key: "recovery_index")
+        XCTAssertEqual(recovery.map(\.band), ["normal", "attention", "overtraining_risk"])
+        XCTAssertEqual(recovery.map(\.value), [90, 50, 20])
+        let aerobic = App2MetricDetailProjection.levelSeries(decoded, key: "aerobic_endurance")
+        XCTAssertEqual(aerobic.map(\.band), [nil], "有氧／速度頁不帶 band，行為不變")
+        XCTAssertEqual(aerobic.map(\.value), [61])
+    }
+
+    func testRecoveryBandMapsTheThreeWireValuesToTheJudgmentWords() {
+        XCTAssertEqual(App2RecoveryBand(wire: "normal")?.label, L10n.App2.Metric.recoveryBandNormal.localized)
+        XCTAssertEqual(App2RecoveryBand(wire: "attention")?.label, L10n.App2.Metric.recoveryBandAttention.localized)
+        XCTAssertEqual(App2RecoveryBand(wire: "overtraining_risk")?.label, L10n.App2.Metric.recoveryBandRisk.localized)
+        XCTAssertNil(App2RecoveryBand(wire: "something_new"))
+        XCTAssertNil(App2RecoveryBand(wire: nil))
+        XCTAssertEqual(
+            Set([L10n.App2.Metric.recoveryBandNormal, L10n.App2.Metric.recoveryBandAttention,
+                 L10n.App2.Metric.recoveryBandRisk].map { $0.localized }).count, 3)
+    }
+
+    func testRecoveryBarsCoverThirtyDaysLeaveMissingDaysEmptyAndMarkToday() {
+        let points = [
+            App2MetricPoint(date: "2026-09-06", value: 80, band: "normal"),
+            App2MetricPoint(date: "2026-09-04", value: 40, band: "attention"),
+            App2MetricPoint(date: "2026-09-07", value: 15, band: "overtraining_risk")
+        ].sorted { $0.date < $1.date }
+        let bars = App2MetricDetailProjection.recoveryBars(points, asof: "2026-09-07")
+
+        XCTAssertEqual(bars.count, 30)
+        XCTAssertEqual(bars.first?.date, "2026-08-09")
+        XCTAssertEqual(bars.last?.date, "2026-09-07")
+        XCTAssertEqual(bars.filter(\.isToday).map(\.date), ["2026-09-07"])
+        XCTAssertEqual(bars.compactMap(\.value), [40, 80, 15])
+        let gap = bars.first { $0.date == "2026-09-05" }
+        XCTAssertNil(gap?.value, "沒有 envelope 的那天留空，不補值")
+        XCTAssertNil(gap?.band)
+        XCTAssertEqual(bars.last?.band, .overtrainingRisk)
+        XCTAssertEqual(bars.first { $0.date == "2026-09-04" }?.band, .attention)
+    }
+
+    func testDualAxisTintsFollowEachLineOnlyWhenThereAreTwo() {
+        let hrv = App2MetricLineChart.Series(id: "hrv", points: [], tint: .green)
+        let rhr = App2MetricLineChart.Series(id: "rhr", points: [], tint: .red)
+        let two = App2MetricLineChart.axisTints(for: [hrv, rhr])
+        XCTAssertEqual(two.left, Color.green)
+        XCTAssertEqual(two.right, Color.red)
+        let one = App2MetricLineChart.axisTints(for: [hrv])
+        XCTAssertNil(one.left)
+        XCTAssertNil(one.right)
+    }
+
+    func testRecoveryLegendNamesTheUnits() {
+        XCTAssertTrue(L10n.App2.Metric.recoveryHrvLegend.localized.contains("ms"))
+        XCTAssertTrue(L10n.App2.Metric.recoveryRhrLegend.localized.contains("bpm"))
     }
 }

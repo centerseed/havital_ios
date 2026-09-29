@@ -758,7 +758,7 @@ final class App2LevelDetailViewModel: ObservableObject, TaskManageable, App2Reva
     nonisolated let taskRegistry = TaskRegistry()
 
     /// 先固定 30 天（SPEC-today-state §4.5）。
-    static let windowDays = 30
+    nonisolated static let windowDays = 30
 
     private let itemKey: String
     private let asof: String?
@@ -853,7 +853,7 @@ final class App2LevelDetailViewModel: ObservableObject, TaskManageable, App2Reva
     ///
     /// 日期算術用 `App2MetricDetailProjection` 既有的兩支（`today`／`dateString`），
     /// 不在這裡再開一份 `DateFormatter`。
-    static func window(asof: String?, days: Int = windowDays) -> (start: String, end: String) {
+    nonisolated static func window(asof: String?, days: Int = windowDays) -> (start: String, end: String) {
         let end = asof ?? App2MetricDetailProjection.today()
         let start = App2MetricDetailProjection.dateString(byAdding: -(days - 1), to: end) ?? end
         return (start, end)

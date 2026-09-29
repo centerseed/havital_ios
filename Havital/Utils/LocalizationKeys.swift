@@ -2675,6 +2675,14 @@ extension L10n {
             static let recoveryTrendUp = "app2.metric.recovery_trend_up"
             static let recoveryTrendFlat = "app2.metric.recovery_trend_flat"
             static let recoveryTrendDown = "app2.metric.recovery_trend_down"
+            /// 恢復分數柱色的三個判語（與首頁恢復判語同一組詞；分帶由後端決定，不是分數門檻）。
+            static let recoveryBandNormal = "app2.metric.recovery_band_normal"
+            static let recoveryBandAttention = "app2.metric.recovery_band_attention"
+            static let recoveryBandRisk = "app2.metric.recovery_band_risk"
+            static let recoveryScoreTitle = "app2.metric.recovery_score_title"
+            /// HRV／靜息心率雙軸圖的圖例（帶單位）。
+            static let recoveryHrvLegend = "app2.metric.recovery_hrv_legend"
+            static let recoveryRhrLegend = "app2.metric.recovery_rhr_legend"
 
             // 相對能力兩格（有氧續航／速度耐力）—— 整頁只有首頁那一列，
             // 逐週對照序列還沒有 producer（SPEC-today-state §11-7）。
