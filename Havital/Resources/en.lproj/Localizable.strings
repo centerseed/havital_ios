@@ -4978,3 +4978,20 @@
 "app2.metric.read_failed" = "Could not load the data. Please try again.";
 "app2.metric.refresh_failed_keeping_result" = "Some data could not be refreshed. Available results remain visible; this refresh is incomplete.";
 "onboarding.payment_confirmation_pending" = "Payment confirmation is in progress. Please wait, then tap again.";
+
+// MARK: - App2 心率重算（SPEC-hr-zones §5.5／§5.7／§5.8）
+"app2.hr_recompute.prompt_title" = "Recompute past VDOT with the new heart rate?";
+"app2.hr_recompute.prompt_message" = "Pick a range: single-workout VDOT in that period is recalculated with the new heart rate. Older workouts keep their values.";
+"app2.hr_recompute.no_recompute" = "Don't recompute";
+"app2.hr_recompute.days_14" = "Last 14 days";
+"app2.hr_recompute.days_30" = "Last 30 days";
+"app2.hr_recompute.days_60" = "Last 60 days";
+"app2.hr_recompute.entry_title" = "Recompute past VDOT with current heart rate";
+"app2.hr_recompute.entry_footer" = "Past single-workout VDOT is recalculated with your current heart rate; older workouts keep their values. Weekly plans and reviews already generated are not rewritten.";
+"app2.hr_recompute.starting" = "Queuing recompute…";
+"app2.hr_recompute.queued" = "Queued";
+"app2.hr_recompute.retry" = "Retry";
+"app2.hr_recompute.auto_title" = "Auto-update max heart rate";
+"app2.hr_recompute.auto_footer" = "When on, the system may update your max heart rate if your measured peaks stay above it or your watch's max heart rate keeps differing. When off, it never changes it by itself.";
+"app2.hr_recompute.reminder_text" = "Your watch's max heart rate is %1$d, %3$.1f%% away from your setting of %2$d. Update it?";
+"app2.hr_recompute.reminder_action" = "Update to %d";

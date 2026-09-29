@@ -3,7 +3,9 @@ import Foundation
 // MARK: - UserProfileRemoteDataSource Protocol
 protocol UserProfileRemoteDataSourceProtocol {
     func getUserProfile() async throws -> User
-    func updateUserProfile(_ updates: [String: Any]) async throws
+    /// 回傳後端對心率有沒有變的回答（`SPEC-hr-zones` §5.5 規則 1）；呼叫端不需要時丟掉即可。
+    @discardableResult
+    func updateUserProfile(_ updates: [String: Any]) async throws -> HeartRateChangeReport
     func updateDataSource(_ dataSource: String) async throws
     func updatePersonalBest(_ performanceData: [String: Any]) async throws
     func deleteUser(userId: String) async throws
@@ -49,15 +51,17 @@ final class UserProfileRemoteDataSource: UserProfileRemoteDataSourceProtocol {
 
     /// Update user profile data
     /// - Parameter updates: Dictionary of fields to update
-    func updateUserProfile(_ updates: [String: Any]) async throws {
+    @discardableResult
+    func updateUserProfile(_ updates: [String: Any]) async throws -> HeartRateChangeReport {
         Logger.debug("[UserProfileRemoteDS] Updating user profile")
 
         let body = try JSONSerialization.data(withJSONObject: updates)
 
         do {
-            _ = try await tracked("UserProfileRemoteDataSource: updateUserProfile") {
+            let raw = try await tracked("UserProfileRemoteDataSource: updateUserProfile") {
                 try await httpClient.request(path: "/user", method: .PUT, body: body)
             }
+            return HeartRateChangeReport.parse(from: raw)
         } catch let apiError as APIError where apiError.isCancelled {
             throw SystemError.taskCancelled
         }
@@ -69,7 +73,7 @@ final class UserProfileRemoteDataSource: UserProfileRemoteDataSourceProtocol {
         Logger.debug("[UserProfileRemoteDS] Updating data source: \(dataSource)")
 
         let updates: [String: Any] = ["data_source": dataSource]
-        try await updateUserProfile(updates)
+        _ = try await updateUserProfile(updates)
     }
 
     /// Update personal best data

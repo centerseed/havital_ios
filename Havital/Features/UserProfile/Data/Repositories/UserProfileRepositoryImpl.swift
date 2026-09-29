@@ -71,13 +71,19 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
     }
 
     func updateUserProfile(_ updates: [String: Any]) async throws -> User {
+        try await updateUserProfileReportingHeartRate(updates).user
+    }
+
+    private func updateUserProfileReportingHeartRate(
+        _ updates: [String: Any]
+    ) async throws -> (user: User, heartRate: HeartRateChangeReport) {
         Logger.debug("[UserProfileRepo] Updating profile with \(updates.count) fields")
 
-        try await remoteDataSource.updateUserProfile(updates)
+        let report = try await remoteDataSource.updateUserProfile(updates)
 
         // Invalidate cache and fetch fresh data
         localDataSource.clearUserProfile()
-        return try await fetchAndCacheUserProfile()
+        return (try await fetchAndCacheUserProfile(), report)
     }
 
     func deleteAccount(userId: String) async throws {
@@ -130,7 +136,7 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
         return zones
     }
 
-    func updateHeartRateZones(maxHR: Int, restingHR: Int) async throws -> [HeartRateZone] {
+    func updateHeartRateZones(maxHR: Int, restingHR: Int) async throws -> HeartRateUpdateResult {
         Logger.debug("[UserProfileRepo] Updating HR zones (max: \(maxHR), resting: \(restingHR))")
 
         // Update user profile with new HR values.
@@ -144,13 +150,13 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
             "max_hr": maxHR,
             "relaxing_hr": restingHR
         ]
-        _ = try await updateUserProfile(updates)
+        let (_, report) = try await updateUserProfileReportingHeartRate(updates)
 
         // Calculate and cache new zones using new HeartRateZone entity
         let zones = HeartRateZone.calculateZones(maxHR: maxHR, restingHR: restingHR)
         localDataSource.saveHeartRateZones(zones)
 
-        return zones
+        return HeartRateUpdateResult(zones: zones, changed: report.changed)
     }
 
     func syncHeartRateData(from user: User) async {
@@ -435,6 +441,12 @@ extension DependencyContainer {
             targetRemoteDataSource: resolve() as TargetRemoteDataSourceProtocol
         )
         register(userRepo as UserProfileRepository, forProtocol: UserProfileRepository.self)
+
+        let hrRecomputeRepo = HeartRateRecomputeRepositoryImpl(
+            httpClient: resolve(),
+            parser: resolve()
+        )
+        register(hrRecomputeRepo as HeartRateRecomputeRepository, forProtocol: HeartRateRecomputeRepository.self)
 
         let prefsRepo = UserPreferencesRepositoryImpl(
             remoteDataSource: resolve() as UserPreferencesRemoteDataSourceProtocol,

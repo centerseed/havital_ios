@@ -442,7 +442,8 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
     /// - Parameters:
     ///   - maxHR: Maximum heart rate
     ///   - restingHR: Resting heart rate
-    func updateHeartRateZones(maxHR: Int, restingHR: Int) async -> Bool {
+    /// - Returns: 成功時是後端回報「心率有沒有變」；失敗（含取消）回 nil。
+    func updateHeartRateZones(maxHR: Int, restingHR: Int) async -> Bool? {
         Logger.debug("[UserProfileVM] Updating HR zones (max: \(maxHR), resting: \(restingHR))")
 
         do {
@@ -450,16 +451,16 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
             let output = try await updateHeartRateZonesUseCase.execute(input: input)
 
             heartRateZones = output.zones
-            return true
+            return output.heartRateChanged
 
         } catch {
             // Ignore cancellation errors
             if isTaskCancelled(error) {
                 Logger.debug("[UserProfileVM] HR zones update task cancelled, ignoring")
-                return false
+                return nil
             }
             Logger.error("[UserProfileVM] Failed to update HR zones: \(error)")
-            return false
+            return nil
         }
     }
 

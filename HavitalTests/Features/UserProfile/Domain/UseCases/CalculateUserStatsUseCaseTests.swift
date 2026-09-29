@@ -37,7 +37,7 @@ private final class NilStatsUserProfileRepository: UserProfileRepository {
     func deleteAccount(userId: String) async throws { fatalError("Not used") }
     func updateDataSource(_ dataSource: String) async throws { fatalError("Not used") }
     func getHeartRateZones() async throws -> [HeartRateZone] { fatalError("Not used") }
-    func updateHeartRateZones(maxHR: Int, restingHR: Int) async throws -> [HeartRateZone] { fatalError("Not used") }
+    func updateHeartRateZones(maxHR: Int, restingHR: Int) async throws -> HeartRateUpdateResult { fatalError("Not used") }
     func syncHeartRateData(from user: User) async { fatalError("Not used") }
     func getTargets() async throws -> [Target] { fatalError("Not used") }
     func createTarget(_ target: Target) async throws { fatalError("Not used") }

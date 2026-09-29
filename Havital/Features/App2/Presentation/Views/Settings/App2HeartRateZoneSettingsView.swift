@@ -18,6 +18,21 @@ struct App2HeartRateZoneSettingsView: View {
     @State private var isSaving = false
     @State private var didLoadInitial = false
     @State private var errorMessage: String?
+    /// 這次進頁後真的存過、且後端說心率有變：範圍選「不重算」時直接收頁。
+    @State private var closeAfterPrompt = false
+    @StateObject private var recompute: App2HeartRateRecomputeViewModel
+
+    init(onClose: @escaping () -> Void, viewModel: App2SettingsViewModel) {
+        self.onClose = onClose
+        self.viewModel = viewModel
+        _recompute = StateObject(
+            wrappedValue: App2HeartRateRecomputeViewModel(
+                repository: DependencyContainer.shared.resolve() as HeartRateRecomputeRepository,
+                autoUpdateMaxHR: viewModel.autoUpdateMaxHeartRate,
+                updateProfile: { await viewModel.profile.updateUserProfile($0) }
+            )
+        )
+    }
 
     /// 設計 frame-26／33 的五條色帶。
     private static let bandColors: [Color] = [
@@ -63,9 +78,39 @@ struct App2HeartRateZoneSettingsView: View {
                 )
 
                 bandsSection
+
+                if let reminder = recompute.reminder { reminderCard(reminder) }
+                autoUpdateCard
+                recomputeSection
             }
         }
         .onAppear(perform: loadInitialIfNeeded)
+        .task {
+            await recompute.loadReminder()
+            await recompute.refresh()
+        }
+        .confirmationDialog(
+            NSLocalizedString("app2.hr_recompute.prompt_title", comment: ""),
+            isPresented: $recompute.isPromptPresented,
+            titleVisibility: .visible
+        ) {
+            ForEach(HeartRateRecomputeDays.allCases, id: \.rawValue) { days in
+                Button(Self.title(for: days)) {
+                    closeAfterPrompt = false
+                    Task { await recompute.choose(days) }
+                }
+            }
+            Button(NSLocalizedString("app2.hr_recompute.no_recompute", comment: ""), role: .cancel) {
+                let shouldClose = closeAfterPrompt
+                closeAfterPrompt = false
+                Task {
+                    await recompute.choose(nil)
+                    if shouldClose { onClose() }
+                }
+            }
+        } message: {
+            Text(NSLocalizedString("app2.hr_recompute.prompt_message", comment: ""))
+        }
         .alert(
             NSLocalizedString("error.unknown", comment: ""),
             isPresented: Binding(
@@ -170,6 +215,125 @@ struct App2HeartRateZoneSettingsView: View {
         }
     }
 
+    // MARK: - 手錶偏差提醒／自動更新／重算
+
+    private static func title(for days: HeartRateRecomputeDays) -> String {
+        switch days {
+        case .fourteen: return NSLocalizedString("app2.hr_recompute.days_14", comment: "")
+        case .thirty: return NSLocalizedString("app2.hr_recompute.days_30", comment: "")
+        case .sixty: return NSLocalizedString("app2.hr_recompute.days_60", comment: "")
+        }
+    }
+
+    private func reminderCard(_ reminder: HeartRateWatchReminder) -> some View {
+        App2Card(spacing: 10) {
+            Text(String(
+                format: NSLocalizedString("app2.hr_recompute.reminder_text", comment: ""),
+                reminder.watchMaxHr, reminder.profileMaxHr, reminder.deviationPct
+            ))
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundStyle(App2Theme.inkPrimary)
+            .fixedSize(horizontal: false, vertical: true)
+            Button {
+                maxHR = min(220, max(120, reminder.watchMaxHr))
+                save()
+            } label: {
+                Text(String(format: NSLocalizedString("app2.hr_recompute.reminder_action", comment: ""), reminder.watchMaxHr))
+                    .font(.system(size: 14, weight: .heavy))
+            }
+            .disabled(isSaving)
+            .accessibilityIdentifier("App2_HeartRateZoneReminderUpdate")
+        }
+        .accessibilityIdentifier("App2_HeartRateZoneReminder")
+    }
+
+    private var autoUpdateCard: some View {
+        App2Card(spacing: 6) {
+            Toggle(
+                NSLocalizedString("app2.hr_recompute.auto_title", comment: ""),
+                isOn: Binding(
+                    get: { recompute.autoUpdateMaxHR },
+                    set: { value in Task { await recompute.setAutoUpdate(value) } }
+                )
+            )
+            .font(.system(size: 15, weight: .heavy))
+            .accessibilityIdentifier("App2_HeartRateZoneAutoUpdate")
+            Text(NSLocalizedString("app2.hr_recompute.auto_footer", comment: ""))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(App2Theme.inkMuted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private var recomputeSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Button {
+                closeAfterPrompt = false
+                recompute.isPromptPresented = true
+            } label: {
+                Text(NSLocalizedString("app2.hr_recompute.entry_title", comment: ""))
+                    .font(.system(size: 15, weight: .heavy))
+            }
+            .disabled(!recompute.canStart)
+            .accessibilityIdentifier("App2_HeartRateZoneRecompute")
+
+            Text(NSLocalizedString("app2.hr_recompute.entry_footer", comment: ""))
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(App2Theme.inkMuted)
+                .fixedSize(horizontal: false, vertical: true)
+
+            recomputeStatus
+        }
+    }
+
+    @ViewBuilder
+    private var recomputeStatus: some View {
+        switch recompute.phase {
+        case .idle:
+            EmptyView()
+        case .starting:
+            statusLine(NSLocalizedString("app2.hr_recompute.starting", comment: ""))
+        case .notice(let text):
+            statusLine(text)
+        case .job(let job, let message):
+            VStack(alignment: .leading, spacing: 8) {
+                if job.isActive, job.total > 0 {
+                    ProgressView(value: Double(job.done), total: Double(job.total))
+                }
+                statusLine(message ?? fallbackText(for: job))
+                if job.status == .failed {
+                    retryButton
+                }
+            }
+        case .failed(let text):
+            VStack(alignment: .leading, spacing: 8) {
+                statusLine(text)
+                retryButton
+            }
+        }
+    }
+
+    private var retryButton: some View {
+        Button(NSLocalizedString("app2.hr_recompute.retry", comment: "")) {
+            closeAfterPrompt = false
+            recompute.isPromptPresented = true
+        }
+        .font(.system(size: 14, weight: .heavy))
+        .accessibilityIdentifier("App2_HeartRateZoneRecomputeRetry")
+    }
+
+    private func statusLine(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 13, weight: .bold))
+            .foregroundStyle(App2Theme.inkSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("App2_HeartRateZoneRecomputeStatus")
+    }
+
+    private func fallbackText(for job: HeartRateRecomputeJob) -> String {
+        job.status == .queued ? NSLocalizedString("app2.hr_recompute.queued", comment: "") : "\(job.done)/\(job.total)"
+    }
+
     // MARK: - 狀態
 
     private func loadInitialIfNeeded() {
@@ -183,12 +347,19 @@ struct App2HeartRateZoneSettingsView: View {
         guard !isSaving, isValid else { return }
         isSaving = true
         Task {
-            let ok = await viewModel.saveHeartRate(maxHR: maxHR, restingHR: restingHR)
+            let changed = await viewModel.saveHeartRate(maxHR: maxHR, restingHR: restingHR)
             isSaving = false
-            if ok {
-                onClose()
-            } else {
+            guard let changed else {
                 errorMessage = NSLocalizedString("error.unknown", comment: "")
+                return
+            }
+            // 存永遠先成功；「有沒有變」只看後端。變了就問一次要不要重算，沒變照舊收頁。
+            await recompute.loadReminder()
+            if changed {
+                closeAfterPrompt = true
+                recompute.offerAfterSave(changed: true)
+            } else {
+                onClose()
             }
         }
     }
