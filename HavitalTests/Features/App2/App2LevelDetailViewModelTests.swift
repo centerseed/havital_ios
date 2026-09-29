@@ -89,6 +89,24 @@ final class App2LevelDetailViewModelTests: XCTestCase {
         XCTAssertFalse(vm.isLoading)
     }
 
+    /// 恢復頁的近 30 天分數線沿用同一支 VM（`recovery_index`），不另寫第二份讀法。
+    func test_recoveryIndexReadsThroughTheSameViewModel() async {
+        let payload = AthleteStateSeriesResponse(
+            startDay: nil, endDay: nil,
+            series: ["recovery_index": [
+                .init(day: "2026-09-05", deliveryStatus: "active", envelope: .init(index: 72, levelIndex: nil)),
+                .init(day: "2026-09-06", deliveryStatus: "active", envelope: .init(index: 65, levelIndex: nil))
+            ]]
+        )
+        let source = StubSeriesSource(response: payload)
+        let vm = App2LevelDetailViewModel(itemKey: "recovery_index", asof: "2026-09-06", dataSource: source)
+        await vm.revalidate()
+
+        XCTAssertEqual(source.requested?.start, "2026-08-08")
+        XCTAssertEqual(source.requested?.end, "2026-09-06")
+        XCTAssertEqual(vm.detail?.value.series.map(\.value), [72, 65])
+    }
+
     // MARK: - 讀不到不擋頁
 
     func test_aFailedReadLeavesNoSeriesButStillCountsAsLoaded() async {

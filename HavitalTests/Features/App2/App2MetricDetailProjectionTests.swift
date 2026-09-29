@@ -835,4 +835,32 @@ final class App2MetricDetailProjectionTests: XCTestCase {
     func testAcwrAxisTicksAreOnlyTheTwoBoundaries() {
         XCTAssertEqual(App2MetricDetailProjection.acwrAxisTicks(acwr(low: 0.7, high: 1.2)), [1.2, 0.7])
     }
+
+    // MARK: - 恢復分數近 30 天線（使用者 2026-09-29 裁決）
+
+    func testRecoveryIndexSeriesUsesIndexPerDayAndSkipsDaysWithoutAnEnvelope() throws {
+        let json = """
+        {"uid":"u","start_day":"2026-09-04","end_day":"2026-09-06",
+         "series":{"recovery_index":[
+            {"day":"2026-09-04","delivery_status":"active","envelope":{"index":81.5}},
+            {"day":"2026-09-05","delivery_status":"not_computed","envelope":null},
+            {"day":"2026-09-06","delivery_status":"active","envelope":{"index":64.0}}]}}
+        """
+        let decoded = try JSONDecoder().decode(AthleteStateSeriesResponse.self, from: Data(json.utf8))
+        let points = App2MetricDetailProjection.levelSeries(decoded, key: "recovery_index")
+        XCTAssertEqual(points.map(\.date), ["2026-09-04", "2026-09-06"], "沒有 envelope 的那天跳過，不補值")
+        XCTAssertEqual(points.map(\.value), [81.5, 64.0])
+    }
+
+    func testFixedBoundsPinTheScoreAxisToZeroThroughHundred() {
+        let points = [point("2026-09-04", 55), point("2026-09-05", 61)]
+        let free = App2MetricLineChart.bounds(points)
+        XCTAssertNotNil(free)
+        XCTAssertGreaterThan(free!.lower, 0, "沒指定時 Y 軸貼著資料")
+
+        let fixed = App2MetricLineChart.bounds(points, fixed: 0...100)
+        XCTAssertEqual(fixed?.lower, 0)
+        XCTAssertEqual(fixed?.upper, 100)
+        XCTAssertEqual(App2MetricDetailProjection.scoreAxisRange, 0...100)
+    }
 }

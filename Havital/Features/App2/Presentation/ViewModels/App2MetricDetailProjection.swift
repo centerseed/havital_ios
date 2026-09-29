@@ -20,6 +20,9 @@ import Foundation
 /// 3. **`tsb_metrics` 全 null → 整塊隱藏**（2026-08-26 裁決）：不畫空圖，
 ///    prod 有資料自然出現。
 enum App2MetricDetailProjection {
+    /// 0–100 分數線（恢復）的 Y 軸範圍：固定，不貼著資料縮放。
+    static let scoreAxisRange: ClosedRange<Double> = 0...100
+
     /// 值缺席時畫的字。**不是 0、也不是空白** —— 要看得出「這個量現在沒有」。
     static let placeholder = "–"
 

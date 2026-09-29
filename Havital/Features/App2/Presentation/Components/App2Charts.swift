@@ -460,6 +460,8 @@ struct App2MetricLineChart: View {
     /// 指定 y 軸刻度值（依標示優先序）。nil ＝預設的最高／中間／最低三顆。
     /// 空間不夠的刻度會讓位給排在前面的（見 `visibleTickValues`）。
     var yTickValues: [Double]? = nil
+    /// 固定的 Y 軸範圍（分數 0–100）。nil ＝ 貼著資料縮放。
+    var fixedBounds: ClosedRange<Double>? = nil
     var height: CGFloat = 132
     /// 只有指標詳情頁啟用圖上讀數。
     var allowsReadout: Bool = false
@@ -485,6 +487,7 @@ struct App2MetricLineChart: View {
         markerLabel: String? = nil,
         baselineValues: [Double] = [],
         yTickValues: [Double]? = nil,
+        fixedBounds: ClosedRange<Double>? = nil,
         showsBandLegend: Bool = false,
         allowsReadout: Bool = false,
         initiallySelectedIndex: Int? = nil,
@@ -499,6 +502,7 @@ struct App2MetricLineChart: View {
         self.markerLabel = markerLabel
         self.baselineValues = baselineValues
         self.yTickValues = yTickValues
+        self.fixedBounds = fixedBounds
         self.height = height
         self.allowsReadout = allowsReadout
         self.initiallySelectedIndex = initiallySelectedIndex
@@ -583,7 +587,8 @@ struct App2MetricLineChart: View {
     /// 三顆刻度（最高／中間／最低）。每條線各有自己的量綱，所以刻度綁的是那條線。
     /// 第一條線的上下界（含區帶）。其餘線各自算自己的，不吃區帶。
     private var primaryBounds: (lower: Double, upper: Double)? {
-        Self.bounds(series.first?.points ?? [], including: bands, referenceValues: baselineValues)
+        Self.bounds(series.first?.points ?? [], including: bands, referenceValues: baselineValues,
+                    fixed: fixedBounds)
     }
 
     @ViewBuilder
@@ -992,8 +997,10 @@ struct App2MetricLineChart: View {
     static func bounds(
         _ points: [App2MetricPoint],
         including bands: [Band] = [],
-        referenceValues: [Double] = []
+        referenceValues: [Double] = [],
+        fixed: ClosedRange<Double>? = nil
     ) -> (lower: Double, upper: Double)? {
+        if let fixed { return (fixed.lowerBound, fixed.upperBound) }
         var values = points.compactMap(\.value)
         values.append(contentsOf: bands.flatMap { [$0.lower, $0.upper].compactMap { $0 } })
         values.append(contentsOf: referenceValues)

@@ -41,7 +41,7 @@ struct App2MetricDetailView: View {
                 onClose: onClose
             )
         case .recoveryIndex:
-            App2RecoveryDetailPage(insight: insight, narrative: narrative, onClose: onClose)
+            App2RecoveryDetailPage(insight: insight, narrative: narrative, asof: asof, onClose: onClose)
         case .aerobicEndurance, .speedEndurance:
             App2LevelDetailPage(kind: kind, insight: insight, asof: asof, onClose: onClose)
         }
@@ -743,36 +743,14 @@ private struct App2LevelDetailPage: View {
         .onDisappear { viewModel.cancelInFlightReload() }
     }
 
-    /// 近 30 天 index 線。序列讀不到／一天都沒有 → 一句佔位，不畫空圖。
-    @ViewBuilder
     private var trendCard: some View {
-        App2Card(spacing: 12) {
-            Text(L10n.App2.Metric.levelTrendTitle.localized)
-                .font(.system(size: 14, weight: .heavy))
-                .foregroundStyle(App2Theme.inkPrimary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            // 兩點才畫得出線（`App2MetricLineChart.path` 與 `xLabels` 都要 >= 2）。
-            // 一個點畫出來是一張沒有線也沒有 x 標籤的空圖 —— 那就是把缺口
-            // 偽裝成內容，寧可講「還讀不到」。
-            if let points = viewModel.detail?.value.series, points.count >= 2 {
-                App2MetricLineChart(
-                    series: [.init(id: "level", points: points, tint: tint, readoutLabel: insight.label)],
-                    xLabels: App2VolumeDetailPage.xLabels(points),
-                    allowsReadout: true,
-                    height: 118,
-                    readoutID: "level-trend"
-                )
-            } else if viewModel.isLoading {
-                ProgressView().frame(maxWidth: .infinity)
-            } else {
-                Text(L10n.App2.Metric.levelTrendUnavailable.localized)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(App2Theme.inkMuted)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .accessibilityIdentifier("App2_MetricLevelTrend")
+        App2ScoreTrendCard(
+            points: viewModel.detail?.value.series,
+            isLoading: viewModel.isLoading,
+            tint: tint,
+            readoutLabel: insight.label,
+            readoutID: "level-trend"
+        )
     }
 
     private func explanationCard(title: String, body: String, identifier: String) -> some View {
@@ -789,6 +767,49 @@ private struct App2LevelDetailPage: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityIdentifier(identifier)
+    }
+}
+
+// MARK: - App2ScoreTrendCard
+/// 近 30 天逐日分數線：有氧續航、速度耐力、恢復三頁共用（都讀 `metrics/series`
+/// 經 `App2LevelDetailViewModel`）。序列讀不到／不足兩點 → 一句佔位，不畫空圖。
+private struct App2ScoreTrendCard: View {
+    let points: [App2MetricPoint]?
+    let isLoading: Bool
+    let tint: Color
+    let readoutLabel: String
+    let readoutID: String
+    var fixedBounds: ClosedRange<Double>? = nil
+
+    var body: some View {
+        App2Card(spacing: 12) {
+            Text(L10n.App2.Metric.levelTrendTitle.localized)
+                .font(.system(size: 14, weight: .heavy))
+                .foregroundStyle(App2Theme.inkPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            // 兩點才畫得出線（`App2MetricLineChart.path` 與 `xLabels` 都要 >= 2）。
+            // 一個點畫出來是一張沒有線也沒有 x 標籤的空圖 —— 那就是把缺口
+            // 偽裝成內容，寧可講「還讀不到」。
+            if let points, points.count >= 2 {
+                App2MetricLineChart(
+                    series: [.init(id: "level", points: points, tint: tint, readoutLabel: readoutLabel)],
+                    xLabels: App2VolumeDetailPage.xLabels(points),
+                    fixedBounds: fixedBounds,
+                    allowsReadout: true,
+                    height: 118,
+                    readoutID: readoutID
+                )
+            } else if isLoading {
+                ProgressView().frame(maxWidth: .infinity)
+            } else {
+                Text(L10n.App2.Metric.levelTrendUnavailable.localized)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(App2Theme.inkMuted)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .accessibilityIdentifier("App2_MetricLevelTrend")
     }
 }
 
@@ -874,14 +895,19 @@ private struct App2RecoveryDetailPage: View {
     let onClose: () -> Void
 
     @StateObject private var viewModel: App2RecoveryDetailViewModel
+    /// 近 30 天恢復分數線：沿用有氧續航／速度耐力那一支 VM（`recovery_index`），不另寫第二份讀法。
+    @StateObject private var scoreTrend: App2LevelDetailViewModel
 
-    init(insight: App2Insight, narrative: String?, onClose: @escaping () -> Void) {
+    init(insight: App2Insight, narrative: String?, asof: String?, onClose: @escaping () -> Void) {
         self.insight = insight
         self.narrative = narrative
         self.onClose = onClose
         _viewModel = StateObject(wrappedValue: App2RecoveryDetailViewModel(
             insight: insight,
             narrative: narrative
+        ))
+        _scoreTrend = StateObject(wrappedValue: App2LevelDetailViewModel(
+            itemKey: "recovery_index", asof: asof
         ))
     }
 
@@ -890,7 +916,10 @@ private struct App2RecoveryDetailPage: View {
             title: insight.label,
             identifier: "App2_MetricDetail_recovery_index",
             onClose: onClose,
-            onRefresh: { await viewModel.forceRefresh() }
+            onRefresh: {
+                await viewModel.forceRefresh()
+                await scoreTrend.forceRefresh()
+            }
         ) {
             if viewModel.readFailed {
                 metricReadFailure(hasPreviousResult: viewModel.detail != nil) {
@@ -902,6 +931,16 @@ private struct App2RecoveryDetailPage: View {
                     ?? App2RecoveryDetailViewModel.hero(insight: insight, narrative: narrative),
                 symbolName: insight.symbolName,
                 tint: App2Theme.accentGreenDot
+            )
+
+            // 恢復分數近 30 天線（使用者 2026-09-29 裁決；checklist §53-5），Y 軸固定 0–100。
+            App2ScoreTrendCard(
+                points: scoreTrend.detail?.value.series,
+                isLoading: scoreTrend.isLoading,
+                tint: App2Theme.accentGreenDot,
+                readoutLabel: insight.label,
+                readoutID: "recovery-score-trend",
+                fixedBounds: App2MetricDetailProjection.scoreAxisRange
             )
 
             if let detail = viewModel.detail?.value {
@@ -954,7 +993,14 @@ private struct App2RecoveryDetailPage: View {
                 App2Card { ProgressView().frame(maxWidth: .infinity) }
             }
         }
-        .task { await viewModel.loadIfNeeded() }
-        .onDisappear { viewModel.cancelInFlightReload() }
+        .task {
+            async let detail: Void = viewModel.loadIfNeeded()
+            async let trend: Void = scoreTrend.loadIfNeeded()
+            _ = await (detail, trend)
+        }
+        .onDisappear {
+            viewModel.cancelInFlightReload()
+            scoreTrend.cancelInFlightReload()
+        }
     }
 }
