@@ -180,14 +180,19 @@ final class App2SettingsViewModel: ObservableObject {
     /// 心率區間 —— 走既有的 `UpdateHeartRateZonesUseCase`。
     /// 它底下的 repository 已經把 `max_hr`／`relaxing_hr` 寫進 profile
     /// 並重算快取區間，所以這裡**不再另外 PATCH 一次**，只重讀 profile 讓摘要跟上。
-    func saveHeartRate(maxHR: Int, restingHR: Int) async -> Bool {
-        let ok = await profile.updateHeartRateZones(maxHR: maxHR, restingHR: restingHR)
-        if ok {
+    ///
+    /// - Returns: 存成功時是後端回報的「心率有沒有變」；失敗回 nil。
+    func saveHeartRate(maxHR: Int, restingHR: Int) async -> Bool? {
+        let changed = await profile.updateHeartRateZones(maxHR: maxHR, restingHR: restingHR)
+        if changed != nil {
             await profile.loadUserProfile(forceRefresh: true)
             rebuildSnapshot()
         }
-        return ok
+        return changed
     }
+
+    /// 「自動更新最大心率」目前的值：只有明確開過才是 true（沒設過在 UI 顯示為關）。
+    var autoUpdateMaxHeartRate: Bool { profile.userData?.autoUpdateMaxHr == true }
 
     func deleteAccount() async throws {
         try await profile.deleteAccount()

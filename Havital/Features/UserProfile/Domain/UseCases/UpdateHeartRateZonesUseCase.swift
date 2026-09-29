@@ -27,6 +27,8 @@ struct UpdateHeartRateZonesUseCase {
     // MARK: - Output
     struct Output {
         let zones: [HeartRateZone]
+        /// 後端回報這次心率真的有變（決定要不要問重算，`SPEC-hr-zones` §5.5 規則 1）。
+        let heartRateChanged: Bool
     }
 
     // MARK: - Execute
@@ -47,10 +49,10 @@ struct UpdateHeartRateZonesUseCase {
         }
 
         do {
-            let zones = try await repository.updateHeartRateZones(maxHR: input.maxHR, restingHR: input.restingHR)
+            let result = try await repository.updateHeartRateZones(maxHR: input.maxHR, restingHR: input.restingHR)
 
-            Logger.debug("[UpdateHeartRateZonesUseCase] Success: \(zones.count) zones calculated")
-            return Output(zones: zones)
+            Logger.debug("[UpdateHeartRateZonesUseCase] Success: \(result.zones.count) zones calculated")
+            return Output(zones: result.zones, heartRateChanged: result.changed)
 
         } catch {
             Logger.error("[UpdateHeartRateZonesUseCase] Failed: \(error.localizedDescription)")

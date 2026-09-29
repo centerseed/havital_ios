@@ -5023,3 +5023,20 @@
 "app2.metric.how_volume" = "每堂課依時間長短和心率強度算出訓練負荷，再比較最近 7 天和最近 6 週的平均。";
 "onboarding.payment_confirmation_pending" = "付款確認中，請稍候再按一次";
 "app2.metric.about_volume_thresholds_unavailable" = "上方會顯示近期負荷比；合適範圍目前還讀不到。";
+
+// MARK: - App2 心率重算（SPEC-hr-zones §5.5／§5.7／§5.8）
+"app2.hr_recompute.prompt_title" = "要不要用新的心率重算過去的跑力？";
+"app2.hr_recompute.prompt_message" = "選一段範圍，那段時間的單堂跑力會用新的心率重新計算；更早的課維持原值。";
+"app2.hr_recompute.no_recompute" = "不重算";
+"app2.hr_recompute.days_14" = "最近 14 天";
+"app2.hr_recompute.days_30" = "最近 30 天";
+"app2.hr_recompute.days_60" = "最近 60 天";
+"app2.hr_recompute.entry_title" = "用目前的心率重算過去的跑力";
+"app2.hr_recompute.entry_footer" = "過去的單堂跑力會用目前的心率重新計算；更早的課維持原值。已產生的週課表與週回顧不會被改寫。";
+"app2.hr_recompute.starting" = "正在排入重算…";
+"app2.hr_recompute.queued" = "排隊中";
+"app2.hr_recompute.retry" = "重試";
+"app2.hr_recompute.auto_title" = "自動更新最大心率";
+"app2.hr_recompute.auto_footer" = "開啟後，系統可在你的實測心率長期高於設定、或手錶上的最大心率長期不同時，自動更新最大心率。關閉則系統不會自己改。";
+"app2.hr_recompute.reminder_text" = "你的手錶最大心率是 %1$d，和設定的 %2$d 差了 %3$.1f%%，要不要更新？";
+"app2.hr_recompute.reminder_action" = "更新為 %d";

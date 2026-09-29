@@ -70,10 +70,11 @@ final class MockUserProfileRepository: UserProfileRepository {
         return heartRateZonesToReturn
     }
 
-    func updateHeartRateZones(maxHR: Int, restingHR: Int) async throws -> [HeartRateZone] {
+    var heartRateChangedToReturn = false
+    func updateHeartRateZones(maxHR: Int, restingHR: Int) async throws -> HeartRateUpdateResult {
         updateHeartRateZonesCallCount += 1
         if let error = errorToThrow { throw error }
-        return heartRateZonesToReturn
+        return HeartRateUpdateResult(zones: heartRateZonesToReturn, changed: heartRateChangedToReturn)
     }
 
     func syncHeartRateData(from user: User) async {
@@ -242,8 +243,9 @@ final class MockUserProfileRemoteDataSource: UserProfileRemoteDataSourceProtocol
         return userToReturn
     }
 
-    func updateUserProfile(_ updates: [String: Any]) async throws {
+    func updateUserProfile(_ updates: [String: Any]) async throws -> HeartRateChangeReport {
         if let error = errorToThrow { throw error }
+        return .unchanged
     }
 
     func updateDataSource(_ dataSource: String) async throws {

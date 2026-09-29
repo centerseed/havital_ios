@@ -4979,3 +4979,20 @@
 "app2.metric.how_volume" = "各ランの時間と心拍の強度からトレーニング負荷を出し、直近 7 日間と直近 6 週間の平均を比べます。";
 "onboarding.payment_confirmation_pending" = "お支払いを確認中です。しばらくしてからもう一度タップしてください。";
 "app2.metric.about_volume_thresholds_unavailable" = "直近の負荷比は上に表示されています。適正範囲はまだ取得できません。";
+
+// MARK: - App2 心率重算（SPEC-hr-zones §5.5／§5.7／§5.8）
+"app2.hr_recompute.prompt_title" = "新しい心拍数で過去のVDOTを再計算しますか？";
+"app2.hr_recompute.prompt_message" = "範囲を選ぶと、その期間の1回ごとのVDOTを新しい心拍数で再計算します。それ以前のランは元の値のままです。";
+"app2.hr_recompute.no_recompute" = "再計算しない";
+"app2.hr_recompute.days_14" = "直近14日";
+"app2.hr_recompute.days_30" = "直近30日";
+"app2.hr_recompute.days_60" = "直近60日";
+"app2.hr_recompute.entry_title" = "現在の心拍数で過去のVDOTを再計算";
+"app2.hr_recompute.entry_footer" = "過去の1回ごとのVDOTを現在の心拍数で再計算します。それ以前のランは元の値のままです。生成済みの週間プランと振り返りは書き換えません。";
+"app2.hr_recompute.starting" = "再計算を受け付け中…";
+"app2.hr_recompute.queued" = "待機中";
+"app2.hr_recompute.retry" = "再試行";
+"app2.hr_recompute.auto_title" = "最大心拍数を自動更新";
+"app2.hr_recompute.auto_footer" = "オンにすると、実測の最大心拍が設定を長く上回る場合や、時計の最大心拍数が長く異なる場合に、システムが最大心拍数を自動更新できます。オフなら自動では変更しません。";
+"app2.hr_recompute.reminder_text" = "時計の最大心拍数は %1$d で、設定の %2$d と %3$.1f%% 違います。更新しますか？";
+"app2.hr_recompute.reminder_action" = "%d に更新";
