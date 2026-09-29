@@ -36,6 +36,7 @@ struct App2MetricDetailView: View {
             App2CapabilityDetailPage(
                 insight: insight,
                 narrative: narrative,
+                asof: asof,
                 finishPredictions: finishPredictions,
                 onClose: onClose
             )
@@ -181,6 +182,13 @@ private struct App2MetricHeroCard: View {
                 }
             }
 
+            if let trend = hero.trendText {
+                Text(trend)
+                    .font(.system(size: 12, weight: .heavy))
+                    .foregroundStyle(App2Theme.inkTertiary)
+                    .accessibilityIdentifier("App2_MetricHeroTrend")
+            }
+
             if let narrative = hero.narrative, !narrative.isEmpty {
                 Text(narrative)
                     .font(.system(size: 13, weight: .semibold))
@@ -267,7 +275,7 @@ private struct App2VolumeDetailPage: View {
     let onClose: () -> Void
 
     @StateObject private var viewModel: App2VolumeDetailViewModel
-    @State private var showsTsbInfo = false
+    @State private var showsAcwrInfo = false
 
     init(insight: App2Insight, narrative: String?, asof: String?,
          onClose: @escaping () -> Void) {
@@ -296,7 +304,7 @@ private struct App2VolumeDetailPage: View {
             App2MetricHeroCard(
                 hero: viewModel.detail?.value.hero
                     ?? App2VolumeDetailViewModel.hero(
-                        insight: insight, narrative: narrative, bars: []
+                        insight: insight, narrative: narrative
                     ),
                 symbolName: insight.symbolName,
                 tint: App2Theme.accentOrange
@@ -327,9 +335,7 @@ private struct App2VolumeDetailPage: View {
                 // §51-6／§51-7：**兩半都缺才整塊隱藏**。負荷比線與 CTL/ATL/TSB
                 // 三欄是兩條來源（`metrics/series` 與 `health_daily`），各自可缺席
                 // ——一條讀不到不該把另一條一起藏起來。
-                if detail.acwr != nil || detail.load != nil || detail.tsbSeries.contains(where: { $0.value != nil }) {
-                    loadCard(acwr: detail.acwr, load: detail.load, tsbSeries: detail.tsbSeries)
-                }
+                loadCard(acwr: detail.acwr)
             } else if viewModel.isLoading {
                 App2Card { ProgressView().frame(maxWidth: .infinity) }
             }
@@ -338,106 +344,75 @@ private struct App2VolumeDetailPage: View {
         .onDisappear { viewModel.cancelInFlightReload() }
     }
 
-    /// §51-6 近 30 天負荷比線（＋淡色甜區帶）＋ TSB「疲勞與狀態」圖。
+    /// §51-6 近期負荷比圖（2026-09-29：只留這一張，畫法同 1.4 的 TSB 圖）。
     ///
-    /// **甜區的上下界來自後端逐列交付的值**（`channels.acwr` 的 `sweet_low`／
-    /// `sweet_high`）：它依訓練期變，app 寫死 0.8–1.3 會在減量期畫錯帶子
-    /// （SPEC-today-state §5.1）。兩端缺任一就只畫線，不畫帶子。
-    ///
-    /// 負荷比數字（hero 讓出來的 `insight.value`）在圖卡標題列。TSB 只講所在區間
-    /// （「目前：平衡狀態」），**不顯示 CTL／ATL／TSB 數字**，同 1.4。
+    /// 三色背景帶偏輕／合適／過量，**門檻讀後端逐列交付的 `sweet_low`／`sweet_high`**
+    /// （依訓練期變；缺才退 0.8／1.3，SPEC-today-state §5.1）；Y 軸只標兩條分界；
+    /// 圖例附門檻；圖下一句「目前：合適」；點圖讀數框仍是當日負荷比數字。
+    /// TSB 圖與 CTL／ATL 三欄已移除：TSB 與負荷比是同一組 CTL／ATL 的兩種讀法，
+    /// 固定 −7 門檻對低 CTL 的人會誤判。
     @ViewBuilder
-    private func loadCard(
-        acwr: App2AcwrBlock?,
-        load: App2LoadBlock?,
-        tsbSeries: [App2MetricPoint]
-    ) -> some View {
+    private func loadCard(acwr: App2AcwrBlock?) -> some View {
         App2Card(spacing: 12) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
+            HStack(spacing: 6) {
                 Text(L10n.App2.Metric.volumeAcwrTitle.localized)
                     .font(.system(size: 14, weight: .heavy))
                     .foregroundStyle(App2Theme.inkPrimary)
-                Spacer(minLength: 4)
-                if let ratio = insight.value {
-                    Text(ratio)
-                        .font(.app2Mono(16, weight: .bold))
-                        .foregroundStyle(App2Theme.inkPrimary)
-                        .accessibilityIdentifier("App2_MetricAcwrValue")
+                Button {
+                    showsAcwrInfo = true
+                } label: {
+                    Image(systemName: "info.circle")
+                        .foregroundStyle(App2Theme.inkMuted)
                 }
+                .accessibilityIdentifier("App2_MetricAcwrInfo")
+                Spacer(minLength: 0)
             }
+            .sheet(isPresented: $showsAcwrInfo) {
+                App2AcwrInfoSheet(
+                    thresholds: acwr.map(App2MetricDetailProjection.acwrThresholds) ?? (0.8, 1.3)
+                )
+            }
+
+            Text(L10n.App2.Metric.volumeAcwrCaption.localized)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(App2Theme.inkMuted)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             // 兩點才畫得出線（`App2MetricLineChart.path` 與 `xLabels` 都要 >= 2）；
             // 一個點畫出來是一張沒有線的空圖（T-0617 同一條）。
             if let acwr, acwr.series.count >= 2 {
+                let thresholds = App2MetricDetailProjection.acwrThresholds(acwr)
                 App2MetricLineChart(
                     series: [
                         .init(
                             id: "acwr", points: acwr.series, tint: App2Theme.accentBlueDeep,
-                            readoutLabel: "ACWR"
+                            readoutLabel: L10n.App2.Metric.volumeAcwrTitle.localized
                         )
                     ],
                     xLabels: Self.xLabels(acwr.series),
-                    bands: App2MetricDetailProjection.sweetBand(acwr).map { [$0] } ?? [],
+                    bands: App2MetricDetailProjection.acwrBands(acwr),
+                    baselineValues: [thresholds.low, thresholds.high],
+                    yTickValues: App2MetricDetailProjection.acwrAxisTicks(acwr),
+                    showsBandLegend: true,
                     allowsReadout: true,
                     height: 118,
                     readoutID: "volume-acwr",
                     readoutRevision: viewModel.range.rawValue
                 )
+                .accessibilityIdentifier("App2_MetricAcwrChart")
+
+                if let zone = App2MetricDetailProjection.acwrCurrentZone(acwr) {
+                    Text(zone)
+                        .font(.system(size: 13, weight: .heavy))
+                        .foregroundStyle(App2Theme.inkPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .accessibilityIdentifier("App2_MetricAcwrZone")
+                }
             } else {
                 Text(L10n.App2.Metric.volumeAcwrUnavailable.localized)
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(App2Theme.inkMuted)
                     .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            if tsbSeries.contains(where: { $0.value != nil }) {
-                Rectangle().fill(App2Theme.insetBorder).frame(height: 1)
-
-                HStack(spacing: 6) {
-                    Text(L10n.App2.Metric.volumeTsbTitle.localized)
-                        .font(.system(size: 14, weight: .heavy))
-                        .foregroundStyle(App2Theme.inkPrimary)
-                    Button {
-                        showsTsbInfo = true
-                    } label: {
-                        Image(systemName: "info.circle")
-                            .foregroundStyle(App2Theme.inkMuted)
-                    }
-                    .accessibilityIdentifier("App2_MetricTsbInfo")
-                    Spacer(minLength: 0)
-                }
-                .sheet(isPresented: $showsTsbInfo) {
-                    TrainingLoadDetailExplanationView()
-                }
-
-                App2MetricLineChart(
-                    series: [
-                        .init(
-                            id: "tsb",
-                            points: tsbSeries,
-                            tint: .green,
-                            readoutLabel: L10n.App2.Metric.volumeTsb.localized
-                        )
-                    ],
-                    xLabels: Self.xLabels(tsbSeries),
-                    bands: App2MetricDetailProjection.tsbBands(),
-                    baselineValues: [-7, 0, 1],
-                    yTickValues: App2MetricDetailProjection.tsbAxisTicks,
-                    showsBandLegend: true,
-                    allowsReadout: true,
-                    height: 118,
-                    readoutID: "volume-tsb",
-                    readoutRevision: viewModel.range.rawValue
-                )
-                .accessibilityIdentifier("App2_MetricTsbChart")
-
-                if let zone = App2MetricDetailProjection.tsbCurrentZone(load) {
-                    Text(zone)
-                        .font(.system(size: 13, weight: .heavy))
-                        .foregroundStyle(App2Theme.inkPrimary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .accessibilityIdentifier("App2_MetricTsbZone")
-                }
             }
         }
         .accessibilityIdentifier("App2_MetricLoadCard")
@@ -448,6 +423,58 @@ private struct App2VolumeDetailPage: View {
         guard points.count >= 2 else { return [] }
         return [points[0], points[points.count / 2], points[points.count - 1]]
             .map { App2DateLabel.short(isoDate: $0.date) }
+    }
+}
+
+// MARK: - App2AcwrInfoSheet
+/// 「近期負荷比」ⓘ 說明。呈現方式同 1.4 的 `TrainingLoadDetailExplanationView`
+///（標題＋白話段落＋三段區間列），但內容是負荷比；1.4 那份是 CTL／TSB 的說明，不改它。
+private struct App2AcwrInfoSheet: View {
+    let thresholds: (low: Double, high: Double)
+    @Environment(\.dismiss) private var dismiss
+
+    private var low: String { App2NumberFormat.grouped(thresholds.low, maximumFractionDigits: 1) }
+    private var high: String { App2NumberFormat.grouped(thresholds.high, maximumFractionDigits: 1) }
+
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text(L10n.App2.Metric.volumeAcwrTitle.localized)
+                        .font(.system(size: 24, weight: .heavy))
+                    Text(L10n.App2.Metric.acwrInfoFormula.localized)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                    Divider()
+                    zoneRow(.blue, L10n.App2.Metric.acwrZoneLight.localized, "< \(low)",
+                            L10n.App2.Metric.acwrInfoLight.localized)
+                    zoneRow(.green, L10n.App2.Metric.acwrZoneOk.localized, "\(low)–\(high)",
+                            L10n.App2.Metric.acwrInfoOk.localized)
+                    zoneRow(.red, L10n.App2.Metric.acwrZoneHeavy.localized, "> \(high)",
+                            L10n.App2.Metric.acwrInfoHeavy.localized)
+                    Divider()
+                    Text(String(format: L10n.App2.Metric.acwrInfoWarningFormat.localized, high))
+                        .font(.system(size: 15, weight: .semibold))
+                }
+                .padding(20)
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(L10n.Common.done.localized) { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func zoneRow(_ tint: Color, _ name: String, _ range: String, _ meaning: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Circle().fill(tint.opacity(0.6)).frame(width: 12, height: 12).padding(.top, 5)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("\(name)  \(range)").font(.system(size: 16, weight: .heavy))
+                Text(meaning).font(.system(size: 14, weight: .semibold)).foregroundStyle(.secondary)
+            }
+        }
     }
 }
 
@@ -466,6 +493,7 @@ private struct App2CapabilityDetailPage: View {
     init(
         insight: App2Insight,
         narrative: String?,
+        asof: String?,
         finishPredictions: [App2FinishPrediction],
         onClose: @escaping () -> Void
     ) {
@@ -475,7 +503,8 @@ private struct App2CapabilityDetailPage: View {
         self.onClose = onClose
         _viewModel = StateObject(wrappedValue: App2CapabilityDetailViewModel(
             insight: insight,
-            narrative: narrative
+            narrative: narrative,
+            asof: asof
         ))
     }
 

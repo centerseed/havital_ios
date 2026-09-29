@@ -20,17 +20,6 @@ import Foundation
 /// 3. **`tsb_metrics` 全 null → 整塊隱藏**（2026-08-26 裁決）：不畫空圖，
 ///    prod 有資料自然出現。
 enum App2MetricDetailProjection {
-    private static let tsbLegendLocalizationKeys = [
-        "myachievement.text_3",
-        "myachievement.text_4",
-        "myachievement.text_5"
-    ]
-
-    private static var tsbLegendLabels: [String] {
-        tsbLegendLocalizationKeys.map(\.localized)
-    }
-
-
     /// 值缺席時畫的字。**不是 0、也不是空白** —— 要看得出「這個量現在沒有」。
     static let placeholder = "–"
 
@@ -64,11 +53,6 @@ enum App2MetricDetailProjection {
         return weeks.reduce(0) { $0 + $1.distanceKm } / Double(weeks.count)
     }
 
-    /// 上一個完整週的跑量（hero 大數字）。沒有完整週 → nil。
-    static func lastWeekKm(_ bars: [App2WeeklyBar]) -> Double? {
-        completedWeeks(bars).last?.distanceKm
-    }
-
     /// 完整週的週高點。
     static func peakKm(_ bars: [App2WeeklyBar]) -> Double? {
         completedWeeks(bars).map(\.distanceKm).max()
@@ -96,74 +80,6 @@ enum App2MetricDetailProjection {
         ]
     }
 
-    /// §51-7 訓練負荷的三欄現況（CTL／ATL／TSB）。
-    ///
-    /// **一天都沒有 `tsb_metrics` → nil（那三欄不畫）。** dev 現況就是全 null；
-    /// 這時畫三個「–」只是告訴用戶「這裡壞了」。
-    static func loadBlock(_ records: [HealthRecord]) -> App2LoadBlock? {
-        let latest = records
-            .sorted { $0.date < $1.date }
-            .last { $0.tsb != nil || $0.ctl != nil || $0.atl != nil }
-        guard let latest else { return nil }
-        return App2LoadBlock(ctl: latest.ctl, atl: latest.atl, tsb: latest.tsb)
-    }
-
-    /// TSB 圖下的一句「目前：平衡狀態」。**只講所在區間，不露 CTL／ATL／TSB 數字**
-    /// （數字容易被讀成 0–100 的分數，已有用戶誤會）。TSB 缺席 → nil，那一句不畫。
-    static func tsbCurrentZone(_ load: App2LoadBlock?) -> String? {
-        guard let tsb = load?.tsb else { return nil }
-        return String(format: L10n.App2.Metric.tsbCurrentFormat.localized, tsbBandLabel(for: tsb))
-    }
-
-    /// TSB 圖 Y 軸只標三條分界（+1、0、-7），依標示優先序排列（空間不夠時後面的讓位）。
-    static let tsbAxisTicks: [Double] = [1, 0, -7]
-
-    /// §51-6 近 30 個日曆日的 TSB（舊→新）。日期仍在序列上，TSB nil 時保留為斷線點。
-    static func tsbSeries(_ records: [HealthRecord], asof: String?) -> [App2MetricPoint] {
-        let end = asof ?? today()
-        guard let start = dateString(byAdding: -29, to: end) else { return [] }
-        return records
-            .filter { $0.date >= start && $0.date <= end }
-            .sorted { $0.date < $1.date }
-            .map { App2MetricPoint(date: $0.date, value: $0.tsb) }
-    }
-
-    /// §51-6 TSB 色帶。無限端由圖表裁到可見 y 範圍，分界固定在 -7 與 +1。
-    static func tsbBands() -> [App2MetricLineChart.Band] {
-        let labels = tsbLegendLabels
-        return [
-            App2MetricLineChart.Band(
-                lower: nil,
-                upper: -7,
-                tint: .red,
-                legendLabel: labels[0],
-                legendDetail: "< −7"
-            ),
-            App2MetricLineChart.Band(
-                lower: -7,
-                upper: 1,
-                tint: .green,
-                legendLabel: labels[1],
-                legendDetail: "−7 ~ +1"
-            ),
-            App2MetricLineChart.Band(
-                lower: 1,
-                upper: nil,
-                tint: .blue,
-                legendLabel: labels[2],
-                legendDetail: "> +1"
-            )
-        ]
-    }
-
-    /// < -7 疲勞累積、-7…+1 平衡、> +1 新鮮。
-    static func tsbBandLabel(for value: Double) -> String {
-        let labels = tsbLegendLabels
-        if value < -7 { return labels[0] }
-        if value <= 1 { return labels[1] }
-        return labels[2]
-    }
-
     /// §51-6 近 30 天急慢性負荷比（`load_index` 的 `channels.acwr`，T-0618）。
     ///
     /// 比值算不出來的那天（CTL 低於門檻、缺 CTL/ATL）沒有點——後端 §4.10.7
@@ -187,21 +103,55 @@ enum App2MetricDetailProjection {
         )
     }
 
-    /// §51-6 甜區帶。**上下界兩端都在才畫** —— 只有一端等於編另一端。
-    static func sweetBand(_ acwr: App2AcwrBlock) -> App2MetricLineChart.Band? {
-        guard let low = acwr.sweetLow, let high = acwr.sweetHigh, high > low else {
-            return nil
+    /// 後端的合適範圍門檻；兩端都在且 high > low 才用，否則兩端都退回 0.8／1.3。
+    static func acwrThresholds(_ acwr: App2AcwrBlock) -> (low: Double, high: Double) {
+        if let low = acwr.sweetLow, let high = acwr.sweetHigh, high > low {
+            return (low, high)
         }
-        return App2MetricLineChart.Band(
-            lower: low,
-            upper: high,
-            label: String(
-                format: L10n.App2.Metric.volumeAcwrSweetFormat.localized,
-                App2NumberFormat.grouped(low, maximumFractionDigits: 1),
-                App2NumberFormat.grouped(high, maximumFractionDigits: 1)
+        return (0.8, 1.3)
+    }
+
+    /// 負荷比圖的三色背景帶（畫法同 1.4 的 TSB 圖）：偏輕（藍）／合適（綠）／過量（紅）。
+    static func acwrBands(_ acwr: App2AcwrBlock) -> [App2MetricLineChart.Band] {
+        let t = acwrThresholds(acwr)
+        let low = App2NumberFormat.grouped(t.low, maximumFractionDigits: 1)
+        let high = App2NumberFormat.grouped(t.high, maximumFractionDigits: 1)
+        return [
+            App2MetricLineChart.Band(
+                lower: nil, upper: t.low, tint: .blue,
+                legendLabel: L10n.App2.Metric.acwrZoneLight.localized, legendDetail: "< \(low)"
             ),
-            tint: App2Theme.accentGreenDot
+            App2MetricLineChart.Band(
+                lower: t.low, upper: t.high, tint: .green,
+                legendLabel: L10n.App2.Metric.acwrZoneOk.localized, legendDetail: "\(low)–\(high)"
+            ),
+            App2MetricLineChart.Band(
+                lower: t.high, upper: nil, tint: .red,
+                legendLabel: L10n.App2.Metric.acwrZoneHeavy.localized, legendDetail: "> \(high)"
+            )
+        ]
+    }
+
+    /// < low 偏輕、low…high 合適（含兩端）、> high 過量。
+    static func acwrZoneLabel(for value: Double, thresholds: (low: Double, high: Double)) -> String {
+        if value < thresholds.low { return L10n.App2.Metric.acwrZoneLight.localized }
+        if value <= thresholds.high { return L10n.App2.Metric.acwrZoneOk.localized }
+        return L10n.App2.Metric.acwrZoneHeavy.localized
+    }
+
+    /// 圖下一句「目前：合適」，依序列最近一個有值的點。一點都沒有 → nil。
+    static func acwrCurrentZone(_ acwr: App2AcwrBlock) -> String? {
+        guard let latest = acwr.series.last(where: { $0.value != nil })?.value else { return nil }
+        return String(
+            format: L10n.App2.Metric.currentZoneFormat.localized,
+            acwrZoneLabel(for: latest, thresholds: acwrThresholds(acwr))
         )
+    }
+
+    /// Y 軸只標兩條分界（高的先）。
+    static func acwrAxisTicks(_ acwr: App2AcwrBlock) -> [Double] {
+        let t = acwrThresholds(acwr)
+        return [t.high, t.low]
     }
 
     // MARK: - §52 能力基準
@@ -236,15 +186,18 @@ enum App2MetricDetailProjection {
         return (Array(series[..<index]), index)
     }
 
-    /// 「30 天前」那一格：序列裡**不晚於 30 天前**的最後一筆。
-    ///
-    /// 序列還不到 30 天長（新帳號）→ nil，畫「–」。不拿最舊那一筆冒充「30 天前」：
-    /// 那會把「這個月沒變」講成「這個月掉了 2.0」。
-    static func value(in series: [App2MetricPoint], daysAgo days: Int, from today: String) -> Double? {
-        guard let cutoff = dateString(byAdding: -days, to: today),
-              let oldest = series.first?.date,
-              oldest <= cutoff else { return nil }
-        return series.last { $0.date <= cutoff && $0.value != nil }?.value ?? nil
+    /// 「30 天前」那一格：decision-chain 序列（`capability_baseline`）在**那一天**的
+    /// `center.value`。沒有那天的點、或那天沒有 center → nil（不拿鄰日補，同後端禁 LOCF）。
+    static func baselineValue(_ response: AthleteStateSeriesResponse, on day: String) -> Double? {
+        (response.series["capability_baseline"] ?? [])
+            .first { $0.day == day }?
+            .envelope?.center?.value
+    }
+
+    /// 詳情頁 hero 的「近 7 天趨勢 97.5 → 80.2」：用首頁那一列同一條 `change`，不在 app 重算。
+    static func trendLine(change: String?) -> String? {
+        guard let change, !change.isEmpty else { return nil }
+        return String(format: L10n.App2.Metric.heroTrendFormat.localized, change)
     }
 
     /// §52-4「這個值怎麼來的」。**資料驅動**：欄位沒有就整列不出現，不畫一排「–」。
@@ -340,8 +293,9 @@ enum App2MetricDetailProjection {
         case "benchmark":     name = L10n.App2.Metric.vdotSourceBenchmark.localized
         case "personal_best": name = L10n.App2.Metric.vdotSourcePersonalBest.localized
         case "estimated":     name = L10n.App2.Metric.vdotSourceEstimated.localized
-        case "weighted_training": name = L10n.App2.Metric.vdotSourceWeightedTraining.localized
-        default:              name = L10n.App2.Metric.vdotSourceGeneric.localized
+        // 綜合推算不是某一天的成績；認不得的來源不知道日期指什麼 —— 兩者都不帶日期。
+        case "weighted_training": return L10n.App2.Metric.vdotSourceWeightedTraining.localized
+        default:              return L10n.App2.Metric.vdotSourceGeneric.localized
         }
         guard let anchorDate else { return name }
         return String(format: L10n.App2.Metric.capabilityAnchorFormat.localized,
@@ -426,7 +380,8 @@ enum App2MetricDetailProjection {
             direction: insight.direction,
             compareLabel: nil,
             compareValue: nil,
-            narrative: insight.evidence
+            narrative: insight.evidence,
+            trendText: trendLine(change: insight.change)
         )
     }
 

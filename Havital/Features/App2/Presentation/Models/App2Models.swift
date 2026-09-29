@@ -908,6 +908,8 @@ struct App2MetricHero: Equatable {
     let compareValue: String?
     /// 一句敘事。組不出來就 nil，那一行不出現。
     let narrative: String?
+    /// 「近 7 天趨勢 97.5 → 80.2」。首頁那一列的 `change`，標了名字；訓練量頁沒有（nil）。
+    var trendText: String? = nil
 }
 
 /// 統計三欄的一格（§51-5／§53-3）。值缺席就是 nil → 畫「–」。
@@ -950,21 +952,8 @@ struct App2VolumeDetail: Equatable {
     /// 目標線（本週課表的目標週跑量）。nil = 沒有本週課表，不畫 dashed 線。
     let targetKm: Double?
     let stats: [App2MetricStat]
-    /// 訓練負荷的 CTL／ATL／TSB 三欄。**nil = 那三欄不畫**（dev 的 `tsb_metrics`
-    /// 全 null，2026-08-26 裁決：資料缺席時不畫空圖，prod 有資料自然出現）。
-    let load: App2LoadBlock?
     /// 近 30 天急慢性負荷比（T-0618）。nil = 那張圖畫佔位句，不擋頁。
     let acwr: App2AcwrBlock?
-    /// 近 30 天 TSB（舊→新）。nil 值留在序列中形成斷線；全空時不畫圖。
-    let tsbSeries: [App2MetricPoint]
-}
-
-/// §51-7 訓練負荷的三欄現況。
-struct App2LoadBlock: Equatable {
-    /// 當日 CTL／ATL／TSB。
-    let ctl: Double?
-    let atl: Double?
-    let tsb: Double?
 }
 
 /// §51-6 近 30 天急慢性負荷比（`load_index` envelope 的 `channels.acwr`）。

@@ -2617,15 +2617,23 @@ extension L10n {
             static let volumePeak = "app2.metric.volume_peak"
             /// 序列讀不到／不足兩天時的佔位句（負荷比線）。
             static let volumeAcwrUnavailable = "app2.metric.volume_acwr_unavailable"
+            static let volumeAcwrCaption = "app2.metric.volume_acwr_caption"
+            /// 圖下一句「目前：合適」。
+            static let currentZoneFormat = "app2.metric.current_zone_format"
+            static let acwrZoneLight = "app2.metric.acwr_zone_light"
+            static let acwrZoneOk = "app2.metric.acwr_zone_ok"
+            static let acwrZoneHeavy = "app2.metric.acwr_zone_heavy"
+            /// 負荷比 ⓘ 說明 sheet（新內容；1.4 的 CTL／TSB 說明不動）。
+            static let acwrInfoFormula = "app2.metric.acwr_info_formula"
+            static let acwrInfoLight = "app2.metric.acwr_info_light"
+            static let acwrInfoOk = "app2.metric.acwr_info_ok"
+            static let acwrInfoHeavy = "app2.metric.acwr_info_heavy"
+            static let acwrInfoWarningFormat = "app2.metric.acwr_info_warning_format"
+            /// 詳情頁 hero 的「近 7 天趨勢 %@」（`%@` ＝ 首頁那一列的 `change`）。
+            static let heroTrendFormat = "app2.metric.hero_trend_format"
             /// 甜區帶的小字（`甜區 %@–%@`）。**上下界由後端帶**，不寫死。
             /// 負荷比圖卡標題（`最近一週 ÷ 前四週平均`）。
             static let volumeAcwrTitle = "app2.metric.volume_acwr_title"
-            /// TSB 小標題（`疲勞與狀態`）。
-            static let volumeTsbTitle = "app2.metric.volume_tsb_title"
-            /// TSB 圖下一句「目前：平衡狀態」（只講區間，不露數字）。
-            static let tsbCurrentFormat = "app2.metric.tsb_current_format"
-            static let volumeAcwrSweetFormat = "app2.metric.volume_acwr_sweet_format"
-            static let volumeTsb = "app2.metric.volume_tsb"
 
             // §52 能力基準
             static let capabilityHeroTitle = "app2.metric.capability_hero_title"

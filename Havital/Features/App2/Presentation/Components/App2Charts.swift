@@ -633,9 +633,7 @@ struct App2MetricLineChart: View {
     }
 
     private func tick(_ value: Double, tint: Color?) -> some View {
-        let text = value > 0 && yTickValues != nil
-            ? "+" + App2NumberFormat.grouped(value, maximumFractionDigits: 1)
-            : App2NumberFormat.grouped(value, maximumFractionDigits: 1)
+        let text = App2NumberFormat.grouped(value, maximumFractionDigits: 1)
         return Text(text)
             .font(.app2Mono(9, weight: .semibold))
             .foregroundStyle(tint ?? App2Theme.inkFaint)

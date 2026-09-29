@@ -4850,14 +4850,12 @@
 "app2.metric.range_days60" = "60 days";
 "app2.metric.range_months6" = "6 months";
 "app2.metric.range_all" = "All";
-"app2.metric.volume_hero_title" = "Last week";
+"app2.metric.volume_hero_title" = "Recent load ratio";
 "app2.metric.volume_target_line_format" = "Target %@";
 "app2.metric.volume_average_format" = "%d-week average";
 "app2.metric.volume_ytd" = "Year to date";
 "app2.metric.volume_peak" = "Peak week";
 "app2.metric.volume_acwr_unavailable" = "Load ratio not available yet";
-"app2.metric.volume_acwr_sweet_format" = "Good range %@–%@";
-"app2.metric.volume_tsb" = "Form";
 "app2.metric.capability_hero_title" = "Current VDOT";
 "app2.metric.capability_compare" = "30 days ago";
 "app2.metric.capability_compare_format" = "%@ (%@)";
@@ -4883,7 +4881,7 @@
 "app2.metric.recovery_rhr" = "Resting HR";
 "app2.metric.recovery_stat_hrv" = "HRV today";
 "app2.metric.recovery_stat_rhr" = "Resting HR";
-"app2.metric.recovery_stat_trend" = "7-day trend";
+"app2.metric.recovery_stat_trend" = "HRV 7-day trend";
 "app2.metric.recovery_trend_up" = "↑ Good";
 "app2.metric.recovery_trend_flat" = "→ Steady";
 "app2.metric.recovery_trend_down" = "↓ Low";
@@ -4969,11 +4967,20 @@
 
 "app2.metric.read_failed" = "Could not load the data. Please try again.";
 "app2.metric.refresh_failed_keeping_result" = "Some data could not be refreshed. Available results remain visible; this refresh is incomplete.";
-"app2.metric.volume_acwr_title" = "Last 7 days ÷ prior 4-week average";
-"app2.metric.volume_tsb_title" = "Fatigue & form";
-"app2.metric.tsb_current_format" = "Now: %@";
+"app2.metric.volume_acwr_title" = "Recent load ratio";
 "app2.metric.vdot_source_weighted_training" = "Recent training estimate";
 "app2.metric.vdot_source_generic" = "Training estimate";
 "app2.metric.level_hero_title_aerobic" = "Aerobic endurance score";
 "app2.metric.level_hero_title_speed" = "Speed endurance score";
+"app2.metric.volume_acwr_caption" = "Last 7 days ÷ prior 4-week average";
+"app2.metric.current_zone_format" = "Now: %@";
+"app2.metric.acwr_zone_light" = "Light";
+"app2.metric.acwr_zone_ok" = "Good";
+"app2.metric.acwr_zone_heavy" = "Too much";
+"app2.metric.acwr_info_formula" = "Load ratio = your training load over the last week ÷ your average over the four weeks before. It shows whether this week was more or less than your usual.";
+"app2.metric.acwr_info_light" = "Less than usual. Fine for recovery or a down week; if it stays light, fitness may stall.";
+"app2.metric.acwr_info_ok" = "You are building up while staying within what your body can absorb. The ideal zone.";
+"app2.metric.acwr_info_heavy" = "Much more than usual. Your body cannot adapt that fast, so fatigue and injury risk go up.";
+"app2.metric.acwr_info_warning_format" = "Staying above %@ for several days means you are adding load too fast. Cut back and rest so your body can catch up.";
+"app2.metric.hero_trend_format" = "7-day trend %@";
 "onboarding.payment_confirmation_pending" = "Payment confirmation is in progress. Please wait, then tap again.";

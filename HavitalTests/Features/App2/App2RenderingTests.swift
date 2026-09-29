@@ -736,7 +736,7 @@ final class App2RenderingTests: XCTestCase {
         XCTAssertNotEqual(shown.pngData(), hidden.pngData(), "四段全空時入口不該出現")
     }
 
-    func test_t0776_tsbReadoutAndPersonalBestDetail_render() {
+    func test_t0776_acwrZonesReadoutAndPersonalBestDetail_render() {
         let acwrPoints = [
             App2MetricPoint(date: "2026-09-02", value: 0.9),
             App2MetricPoint(date: "2026-09-16", value: 1.3),
@@ -761,30 +761,27 @@ final class App2RenderingTests: XCTestCase {
             height: 210
         )
 
-        let tsbPoints = [
-            App2MetricPoint(date: "2026-09-28", value: -10),
-            App2MetricPoint(date: "2026-09-29", value: nil),
-            App2MetricPoint(date: "2026-09-30", value: -6)
-        ]
-        let tsbChart = App2MetricLineChart(
+        let block = App2AcwrBlock(series: acwrPoints, sweetLow: 0.8, sweetHigh: 1.3)
+        let zonesChart = App2MetricLineChart(
             series: [
-                .init(id: "tsb", points: tsbPoints, tint: .green, readoutLabel: "TSB")
+                .init(id: "acwr", points: acwrPoints, tint: App2Theme.accentBlueDeep, readoutLabel: "ACWR")
             ],
-            xLabels: ["9/28", "9/29", "9/30"],
-            bands: App2MetricDetailProjection.tsbBands(),
-            baselineValues: [-7, 0, 1],
+            xLabels: ["9/2", "9/16", "9/30"],
+            bands: App2MetricDetailProjection.acwrBands(block),
+            baselineValues: [0.8, 1.3],
+            yTickValues: App2MetricDetailProjection.acwrAxisTicks(block),
             showsBandLegend: true,
             allowsReadout: true,
             initiallySelectedIndex: 0,
             height: 118
         )
         render(
-            tsbChart.environment(
+            zonesChart.environment(
                 \.app2ChartReadoutSelection,
                 .constant(App2ChartReadoutSelection(chartID: "metric-line", index: 0))
             ),
-            name: "t0776-tsb-readout",
-            height: 210
+            name: "t0776-acwr-zones",
+            height: 240
         )
 
         let records = [

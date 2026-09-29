@@ -76,7 +76,7 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
     private let planRepository: TrainingPlanV2Repository?
     private let cache: App2MetricDetailCache
 
-    /// CTL／ATL／TSB 三欄取最近一天，60 天是設計 §51-7 既有的取數窗。
+    /// health_daily 取數窗。
     private static let loadWindowDays = 60
 
     init(
@@ -324,18 +324,14 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         let bars = App2MetricDetailProjection.bars(payload.stats.data.weeklySeries ?? [])
         detail = App2Sourced(
             App2VolumeDetail(
-                hero: Self.hero(insight: insight, narrative: narrative, bars: bars),
+                hero: Self.hero(insight: insight, narrative: narrative),
                 bars: bars,
                 targetKm: payload.targetKm,
                 stats: App2MetricDetailProjection.volumeStats(
                     bars: bars,
                     ytdKm: payload.stats.data.yearToDate?.distanceKm
                 ),
-                load: App2MetricDetailProjection.loadBlock(payload.health?.healthData ?? []),
-                acwr: payload.series.flatMap(App2MetricDetailProjection.acwrBlock),
-                tsbSeries: App2MetricDetailProjection.tsbSeries(
-                    payload.health?.healthData ?? [], asof: asof
-                )
+                acwr: payload.series.flatMap(App2MetricDetailProjection.acwrBlock)
             ),
             origin: .live(endpoint:
                 "GET /v2/workouts/stats + GET /v2/workouts/health_daily"
@@ -361,19 +357,19 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         }
     }
 
-    /// hero 大數字是**上一個完整週的公里數**（`bars` 的最後一根完整週），判語 chip 仍是後端的
-    /// `verdict`。負荷比（`insight.value`）降到下面負荷比圖卡的標題列 —— 讀者先看到的是
-    /// 自己跑了多少，不是一個沒有單位的比值。沒有完整週 → 畫「–」，不拿比值頂替。
+    /// hero 大數字是後端的負荷比（`value_text`，最近一週 ÷ 前四週平均），判語是後端的
+    /// `verdict`；上一完整週公里數已在下面的柱狀圖上（2026-09-29 使用者裁決撤回「上週 km」hero）。
     ///
-    /// 右側對照整格不畫（T-0618）；敘事仍是後端組好的 `change` ＋ 課表敘事，app 不重拼。
-    static func hero(insight: App2Insight, narrative: String?, bars: [App2WeeklyBar]) -> App2MetricHero {
+    /// **右側對照整格不畫**（T-0618）：比值旁邊擺公里數會被讀成同一把尺。
+    /// 副標是後端組好的 `change`（上一完整週公里數）＋課表敘事，app 不重拼、不另算。
+    static func hero(insight: App2Insight, narrative: String?) -> App2MetricHero {
         let lines = [insight.change, narrative].compactMap { line -> String? in
             guard let line, !line.isEmpty else { return nil }
             return line
         }
         return App2MetricHero(
             title: L10n.App2.Metric.volumeHeroTitle.localized,
-            valueText: App2MetricDetailProjection.lastWeekKm(bars).map { App2MetricDetailProjection.kmLabel($0) },
+            valueText: insight.value,
             verdict: insight.verdict,
             direction: insight.direction,
             compareLabel: nil,
@@ -400,17 +396,26 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
     private let insight: App2Insight
     private let narrative: String?
     private let vdotDataSource: VDOTDataSourceProtocol
+    private let seriesDataSource: AthleteStateSeriesDataSourceProtocol
+    private let asof: String?
     private let cache: App2MetricDetailCache
+    /// 30 天前那天的能力基準（decision-chain 序列的 `center.value`）。nil ＝ 還沒讀到或那天沒有點。
+    private var baseline30DaysAgo: Double?
+    private var lastPublishedResponse: VDOTResponse?
 
     init(
         insight: App2Insight,
         narrative: String?,
+        asof: String? = nil,
         vdotDataSource: VDOTDataSourceProtocol? = nil,
+        seriesDataSource: AthleteStateSeriesDataSourceProtocol? = nil,
         cache: App2MetricDetailCache = .shared
     ) {
         self.insight = insight
         self.narrative = narrative
+        self.asof = asof
         self.vdotDataSource = vdotDataSource ?? VDOTService.shared
+        self.seriesDataSource = seriesDataSource ?? AthleteStateSeriesRemoteDataSource()
         self.cache = cache
         // 同訓練量 VM：session 快取先出畫面（T-0357）。
         if let entry = cache.capability[range] {
@@ -498,6 +503,7 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
             guard isCurrentRound(round, requestedRange) else { return }
             cache.storeIfCurrent(epoch: epoch) { $0.storeCapability(response, range: requestedRange) }
             publish(response)
+            await refreshBaseline(round, requestedRange)
             finishedRound = true
             succeeded = true
             readFailed = false
@@ -515,6 +521,25 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
         revalidateGeneration == round && requestedRange == range
     }
 
+    /// 「30 天前」讀 decision-chain 序列（`metrics/series` 的 `capability_baseline`）那一天的點，
+    /// 不再用 `/v2/workouts/vdots`（那是 readiness 流）。讀不到只是少那一格，不擋頁。
+    private func refreshBaseline(_ round: Int, _ requestedRange: App2MetricRange) async {
+        let end = asof ?? App2MetricDetailProjection.today()
+        guard let day = App2MetricDetailProjection.dateString(byAdding: -30, to: end) else { return }
+        do {
+            let response = try await seriesDataSource.fetchMetricSeries(startDay: day, endDay: day)
+            if Task.isCancelled { return }
+            guard isCurrentRound(round, requestedRange) else { return }
+            baseline30DaysAgo = App2MetricDetailProjection.baselineValue(response, on: day)
+        } catch {
+            if !error.isCancellationError {
+                Logger.debug("[App2CapabilityDetailVM] capability_baseline 序列取得失敗,不畫 30 天前: \(error)")
+            }
+            return
+        }
+        if let lastPublishedResponse { publish(lastPublishedResponse) }
+    }
+
     /// 同步作廢現任輪：取消它，並**當場**遞增代號。
     /// 只在新輪開跑時才遞增擋不住空窗期——`select(range:)` 取消舊輪到新輪真的
     /// 執行之間，舊輪的 defer 仍會通過代號檢查、清掉現任輪的 loading 態
@@ -527,10 +552,11 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
 
     /// 投影是純函式：快取命中與網路回來走同一條，hero 吃當下的 insight（T-0357）。
     private func publish(_ response: VDOTResponse) {
+        lastPublishedResponse = response
         let series = App2MetricDetailProjection.vdotSeries(response.vdots)
         // `vdots` 一條序列同時裝「已經發生的」與「建計畫時生成的未來每日預估」
-        // （2026-08-27 晚走查裁決（f））。hero 的現值與「30 天前」**只吃歷史段**
-        // —— 之前取 `series.last` 等於把賽事日的預估值當成「目前跑力」顯示。
+        // （2026-08-27 晚走查裁決（f））。診斷欄只吃歷史段；hero 的現值是首頁那一列的
+        // `value_text`、「30 天前」讀 decision-chain 序列，兩者都不碰這條序列的未來預估。
         let today = App2MetricDetailProjection.today()
         // 診斷欄的來源＝**不晚於今天**的最新一筆。未來預估點的診斷欄是空殼
         // （`daily_count = 0`），拿它當 latest 會把「證據 n = 0」印給用戶
@@ -540,19 +566,14 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
             .max { $0.datetime < $1.datetime }
             ?? response.vdots.max { $0.datetime < $1.datetime }
         let split = App2MetricDetailProjection.splitProjected(series, today: today)
-        let previous = App2MetricDetailProjection.value(
-            in: split.history,
-            daysAgo: 30,
-            from: today
-        )
 
         detail = App2Sourced(
             App2CapabilityDetail(
                 hero: Self.hero(
                     insight: insight,
                     narrative: narrative,
-                    current: split.history.last?.value,
-                    previous: previous
+                    current: insight.value.flatMap(Double.init),
+                    previous: baseline30DaysAgo
                 ),
                 series: series,
                 projectedFromIndex: split.projectedFromIndex,
@@ -590,7 +611,8 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
             direction: insight.direction,
             compareLabel: L10n.App2.Metric.capabilityCompare.localized,
             compareValue: compare,
-            narrative: narrative
+            narrative: narrative,
+            trendText: App2MetricDetailProjection.trendLine(change: insight.change)
         )
     }
 }
@@ -744,7 +766,8 @@ final class App2RecoveryDetailViewModel: ObservableObject, TaskManageable, App2R
             direction: insight.direction,
             compareLabel: nil,
             compareValue: nil,
-            narrative: narrative
+            narrative: narrative,
+            trendText: App2MetricDetailProjection.trendLine(change: insight.change)
         )
     }
 }

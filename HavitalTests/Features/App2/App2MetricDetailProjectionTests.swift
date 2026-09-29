@@ -5,8 +5,8 @@ import XCTest
 ///
 /// 鎖住的是四件會被「順手改」壞掉的事：
 /// 1. 8 週平均與週高點**不含本週**（半週不能參與平均）；
-/// 2. `tsb_metrics` 全 null → 整塊 nil（不畫空圖）；
-/// 3. 「30 天前」序列不夠長就沒有值（不拿最舊那一筆冒充）；
+/// 2. 負荷比圖的三區門檻讀後端、缺才用 0.8／1.3；
+/// 3. 「30 天前」只讀 decision-chain 序列那一天的點（沒有就沒有）；
 /// 4. 7 日趨勢判語兩邊各要 3 天才判，門檻 ±3%。
 final class App2MetricDetailProjectionTests: XCTestCase {
 
@@ -32,6 +32,7 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         verdict: String? = nil,
         evidence: String? = nil,
         basis: String? = nil,
+        change: String? = nil,
         graded: Bool = true,
         notComputed: Bool = false
     ) -> App2Insight {
@@ -41,6 +42,7 @@ final class App2MetricDetailProjectionTests: XCTestCase {
             value: value,
             direction: .unknown,
             verdict: verdict,
+            change: change,
             evidence: evidence,
             basis: basis,
             isNotComputed: notComputed,
@@ -82,27 +84,6 @@ final class App2MetricDetailProjectionTests: XCTestCase {
 
     // MARK: - §51-6 TSB
 
-    func testLoadBlockIsNilWhenAllTsbMissing() {
-        // dev 現況：`tsb_metrics` 全 null。
-        let records = [
-            HealthRecord(date: "2026-08-25", hrvLastNightAvg: 81, restingHeartRate: 48),
-            HealthRecord(date: "2026-08-26", hrvLastNightAvg: 47, restingHeartRate: 51)
-        ]
-        XCTAssertNil(App2MetricDetailProjection.loadBlock(records))
-    }
-
-    func testLoadBlockTakesLatestDayValues() {
-        // 後端交來是新→舊；三欄取的是**日期最新**那一天，不是陣列第一筆。
-        let records = [
-            HealthRecord(date: "2026-08-26", atl: 56, ctl: 42, tsb: -14),
-            HealthRecord(date: "2026-08-25", atl: 50, ctl: 41, tsb: -9)
-        ]
-        let block = App2MetricDetailProjection.loadBlock(records)
-        XCTAssertEqual(block?.tsb, -14)
-        XCTAssertEqual(block?.ctl, 42)
-        XCTAssertEqual(block?.atl, 56)
-    }
-
     func testHealthSeriesKeepsSharedDatesWhenEachMetricHasAMissingDay() {
         let records = [
             HealthRecord(date: "2026-09-01", hrvLastNightAvg: 48, restingHeartRate: nil),
@@ -118,80 +99,6 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         XCTAssertEqual(restingHeartRate.map(\.date), hrv.map(\.date))
         XCTAssertNotNil(hrv.first { $0.date == "2026-09-02" }, "HRV's missing day must stay on the shared x axis")
         XCTAssertNotNil(restingHeartRate.first { $0.date == "2026-09-01" }, "RHR's missing day must stay on the shared x axis")
-    }
-
-    func testTsbSeriesUsesThirtyCalendarDaysAndKeepsMissingValues() throws {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: 0))
-        let formatter = DateFormatter()
-        formatter.calendar = calendar
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = calendar.timeZone
-        formatter.dateFormat = "yyyy-MM-dd"
-        let end = try XCTUnwrap(formatter.date(from: "2026-09-30"))
-        let records = try (0..<35).map { offset -> HealthRecord in
-            let date = try XCTUnwrap(calendar.date(byAdding: .day, value: offset - 34, to: end))
-            return HealthRecord(
-                date: formatter.string(from: date),
-                tsb: offset == 20 ? nil : Double(offset)
-            )
-        }.reversed()
-
-        let series = App2MetricDetailProjection.tsbSeries(Array(records), asof: "2026-09-30")
-
-        XCTAssertEqual(series.count, 30)
-        XCTAssertEqual(series.first?.date, "2026-09-01")
-        XCTAssertEqual(series.last?.date, "2026-09-30")
-        XCTAssertNil(series[15].value, "A missing TSB day stays on the x axis as a gap")
-        XCTAssertEqual(series.last?.value, 34)
-    }
-
-    func testTsbBandBoundariesMatchTheDesign() {
-        let labels = ["myachievement.text_3", "myachievement.text_4", "myachievement.text_5"]
-            .map { NSLocalizedString($0, comment: "") }
-        XCTAssertEqual(App2MetricDetailProjection.tsbBandLabel(for: -7.01), labels[0])
-        XCTAssertEqual(App2MetricDetailProjection.tsbBandLabel(for: -7), labels[1])
-        XCTAssertEqual(App2MetricDetailProjection.tsbBandLabel(for: 1), labels[1])
-        XCTAssertEqual(App2MetricDetailProjection.tsbBandLabel(for: 1.01), labels[2])
-
-        let bands = App2MetricDetailProjection.tsbBands()
-        XCTAssertEqual(bands.count, 3)
-        XCTAssertNil(bands[0].lower)
-        XCTAssertEqual(bands[0].upper, -7)
-        XCTAssertEqual(bands[1].lower, -7)
-        XCTAssertEqual(bands[1].upper, 1)
-        XCTAssertEqual(bands[2].lower, 1)
-        XCTAssertNil(bands[2].upper)
-    }
-
-    @MainActor
-    func testTsbBandLabelsUseJapaneseOneFourLegendStrings() {
-        let previousLanguage = LanguageManager.shared.currentLanguage.rawValue
-        Bundle.setLanguage("ja")
-        defer { Bundle.setLanguage(previousLanguage) }
-
-        XCTAssertEqual(
-            App2MetricDetailProjection.tsbBands().map(\.legendLabel),
-            ["疲労蓄積", "バランス状態", "最適状態"]
-        )
-        XCTAssertEqual(App2MetricDetailProjection.tsbBandLabel(for: -8), "疲労蓄積")
-    }
-
-    func testTsbBoundsKeepAllThreeThresholdsVisibleWhenValuesAreBelowMinusSeven() {
-        let points = [point("2026-09-30", -10)]
-        let bounds = App2MetricLineChart.bounds(
-            points,
-            including: App2MetricDetailProjection.tsbBands(),
-            referenceValues: [-7, 0, 1]
-        )
-
-        XCTAssertNotNil(bounds)
-        XCTAssertLessThan(bounds!.lower, -10)
-        XCTAssertGreaterThan(bounds!.upper, 1)
-        for threshold in [-7.0, 0, 1] {
-            XCTAssertGreaterThanOrEqual(threshold, bounds!.lower)
-            XCTAssertLessThanOrEqual(threshold, bounds!.upper)
-        }
     }
 
     func testMetricReadoutSelectionSkipsMissingPointsAndIsOffByDefault() {
@@ -228,7 +135,7 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         let selected = App2ChartReadoutSelection(chartID: "volume-acwr", index: 4)
         let chartFrames = [
             App2ChartReadoutFrame(chartID: "volume-acwr", frame: CGRect(x: 16, y: 80, width: 358, height: 190)),
-            App2ChartReadoutFrame(chartID: "volume-tsb", frame: CGRect(x: 16, y: 290, width: 358, height: 210))
+            App2ChartReadoutFrame(chartID: "volume-acwr-2", frame: CGRect(x: 16, y: 290, width: 358, height: 210))
         ]
 
         let selectionAfterChartTap = App2ChartReadoutDismissal.selection(
@@ -259,23 +166,41 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         XCTAssertEqual(App2WeeklyVolumeChart.nearestBarIndex(atX: 184, slotWidth: 40, spacing: 6, count: 4), 3)
     }
 
-    // MARK: - §52 30 天前
+    // MARK: - §52 30 天前（decision-chain 序列）
 
-    func testValueDaysAgoNeedsLongEnoughSeries() {
-        let short = [point("2026-08-20", 38.5), point("2026-08-26", 38.7)]
-        XCTAssertNil(App2MetricDetailProjection.value(in: short, daysAgo: 30, from: "2026-08-26"))
-
-        let long = [
-            point("2026-07-01", 39.0),
-            point("2026-07-27", 39.2),
-            point("2026-08-20", 38.5),
-            point("2026-08-26", 38.7)
-        ]
+    func testBaselineValueReadsCenterValueOnThatExactDay() throws {
+        let json = """
+        {"uid":"u","start_day":"2026-08-30","end_day":"2026-08-30",
+         "series":{"capability_baseline":[
+           {"day":"2026-08-30","item_id":"capability_baseline","delivery_status":"active",
+            "envelope":{"center":{"value":39.0,"unit":"vdot"},"confidence":"high"}}]}}
+        """
+        let decoded = try JSONDecoder().decode(AthleteStateSeriesResponse.self, from: Data(json.utf8))
         XCTAssertEqual(
-            App2MetricDetailProjection.value(in: long, daysAgo: 30, from: "2026-08-26") ?? 0,
-            39.2,
-            accuracy: 0.001
+            App2MetricDetailProjection.baselineValue(decoded, on: "2026-08-30") ?? 0, 39.0, accuracy: 0.001)
+        XCTAssertNil(App2MetricDetailProjection.baselineValue(decoded, on: "2026-08-31"), "沒有那天的點就是沒有，不用鄰日補")
+    }
+
+    func testBaselineValueIsNilWhenTheDayHasNoCenter() throws {
+        let json = """
+        {"uid":"u","series":{"capability_baseline":[
+           {"day":"2026-08-30","delivery_status":"not_computed","envelope":null},
+           {"day":"2026-08-31","delivery_status":"active","envelope":{"center":null}}]}}
+        """
+        let decoded = try JSONDecoder().decode(AthleteStateSeriesResponse.self, from: Data(json.utf8))
+        XCTAssertNil(App2MetricDetailProjection.baselineValue(decoded, on: "2026-08-30"))
+        XCTAssertNil(App2MetricDetailProjection.baselineValue(decoded, on: "2026-08-31"))
+    }
+
+    @MainActor
+    func testCapabilityHeroCompareUsesCurrentMinusThirtyDaysAgo() {
+        let hero = App2CapabilityDetailViewModel.hero(
+            insight: insight("capability_baseline", value: "38.7"),
+            narrative: nil, current: 38.7, previous: 39.0
         )
+        XCTAssertEqual(hero.compareValue, String(
+            format: L10n.App2.Metric.capabilityCompareFormat.localized, "39.0",
+            App2MetricDetailProjection.signedLabel(38.7 - 39.0)))
     }
 
     // MARK: - §52 未來預估段（2026-08-27 晚走查裁決（f））
@@ -306,7 +231,7 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         XCTAssertNil(split.projectedFromIndex)
     }
 
-    /// hero 的「目前跑力」與「30 天前」**只吃歷史段**。
+    /// 圖與診斷欄的「目前」**只吃歷史段**。
     /// 之前取 `series.last` ＝ 顯示賽事日的預估值（bug）。
     func testHeroAndThirtyDaysAgoIgnoreFutureEstimates() {
         let series = [
@@ -318,11 +243,6 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         let split = App2MetricDetailProjection.splitProjected(series, today: "2026-08-27")
 
         XCTAssertEqual(split.history.last?.value ?? 0, 38.6, accuracy: 0.001)
-        XCTAssertEqual(
-            App2MetricDetailProjection.value(in: split.history, daysAgo: 30, from: "2026-08-27") ?? 0,
-            38.2,
-            accuracy: 0.001
-        )
     }
 
     /// 圖表兩段共用整條序列的座標系：實線 `0...start-1`、虛線含交界點。
@@ -703,20 +623,6 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         XCTAssertEqual(block?.series.map(\.date), ["2026-09-04", "2026-09-06"])
     }
 
-    /// 甜區上下界**由後端逐列帶**（依訓練期變），app 不寫死；取最新一天那一列。
-    func testTheSweetBandComesFromTheLatestRowNotAConstant() {
-        let response = AthleteStateSeriesResponse(
-            startDay: nil, endDay: nil,
-            series: ["load_index": [
-                acwrDay("2026-09-05", raw: 1.1, low: 0.8, high: 1.3),
-                acwrDay("2026-09-06", raw: 0.9, side: "sweet", low: 0.5, high: 1.0)
-            ]]
-        )
-        let block = App2MetricDetailProjection.acwrBlock(response)
-        XCTAssertEqual(block?.sweetLow, 0.5)
-        XCTAssertEqual(block?.sweetHigh, 1.0)
-    }
-
     /// 一天都算不出比值 → nil（畫佔位句，不畫空圖）。
     func testAcwrBlockIsNilWhenNoDayHasARatio() {
         let response = AthleteStateSeriesResponse(
@@ -756,21 +662,6 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         XCTAssertEqual(block?.sweetHigh, 1.3)
     }
 
-    /// 甜區帶只有兩端都在才畫 —— 只有一端等於編另一端。
-    func testTheSweetBandIsNotDrawnWithOnlyOneEdge() {
-        XCTAssertNil(App2MetricDetailProjection.sweetBand(
-            App2AcwrBlock(series: [], sweetLow: 0.8, sweetHigh: nil)
-        ))
-        XCTAssertNil(App2MetricDetailProjection.sweetBand(
-            App2AcwrBlock(series: [], sweetLow: nil, sweetHigh: 1.3)
-        ))
-        let band = App2MetricDetailProjection.sweetBand(
-            App2AcwrBlock(series: [], sweetLow: 0.8, sweetHigh: 1.3)
-        )
-        XCTAssertEqual(band?.lower, 0.8)
-        XCTAssertEqual(band?.upper, 1.3)
-    }
-
     /// 區帶把 y 上下界撐開到看得見自己 —— 一個負荷比全在 1.4 以上的人，
     /// 甜區若被裁掉，那張圖就只剩一條沒有參照的線。
     func testTheBandWidensTheChartBoundsSoItStaysVisible() {
@@ -793,7 +684,19 @@ final class App2MetricDetailProjectionTests: XCTestCase {
     func testWeightedTrainingSourceNeverShowsTheRawCode() {
         let label = App2MetricDetailProjection.vdotSourceLabel("weighted_training", anchorDate: "2026-05-08")
         XCTAssertFalse(label.contains("weighted_training"))
-        XCTAssertTrue(label.contains(L10n.App2.Metric.vdotSourceWeightedTraining.localized))
+        // 綜合推算不是某一天的成績，不帶括號日期
+        XCTAssertEqual(label, L10n.App2.Metric.vdotSourceWeightedTraining.localized)
+    }
+
+    func testDatedSourcesKeepTheirDate() {
+        let pb = App2MetricDetailProjection.vdotSourceLabel("personal_best", anchorDate: "2026-08-02")
+        XCTAssertTrue(pb.contains("8/2"))
+        let bm = App2MetricDetailProjection.vdotSourceLabel("benchmark", anchorDate: "2026-08-02")
+        XCTAssertTrue(bm.contains("8/2"))
+        // 認不得的來源不知道日期指什麼，一律不帶
+        XCTAssertEqual(
+            App2MetricDetailProjection.vdotSourceLabel("mystery", anchorDate: "2026-08-02"),
+            L10n.App2.Metric.vdotSourceGeneric.localized)
     }
 
     func testUnknownSourceCodeFallsBackToGenericLabel() {
@@ -813,58 +716,11 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         XCTAssertNil(evidence?.detail)
     }
 
-    func testLastWeekKmIsTheLastCompletedWeek() {
-        let bars = [bar("2026-09-07", 31), bar("2026-09-14", 40), bar("2026-09-21", 12, current: true)]
-        XCTAssertEqual(App2MetricDetailProjection.lastWeekKm(bars), 40)
-        XCTAssertNil(App2MetricDetailProjection.lastWeekKm([bar("2026-09-21", 12, current: true)]))
-        XCTAssertNil(App2MetricDetailProjection.lastWeekKm([]))
-    }
-
-    @MainActor
-    func testVolumeHeroShowsLastWeekKmAndKeepsVerdict() {
-        let row = insight("weekly_volume", value: "0.9", verdict: "steady")
-        let bars = [bar("2026-09-14", 40), bar("2026-09-21", 12, current: true)]
-        let hero = App2VolumeDetailViewModel.hero(insight: row, narrative: nil, bars: bars)
-        XCTAssertEqual(hero.title, L10n.App2.Metric.volumeHeroTitle.localized)
-        XCTAssertEqual(hero.valueText, App2MetricDetailProjection.kmLabel(40))
-        XCTAssertEqual(hero.verdict, "steady")
-        XCTAssertNil(hero.compareLabel)
-
-        let empty = App2VolumeDetailViewModel.hero(insight: row, narrative: nil, bars: [])
-        XCTAssertNil(empty.valueText, "沒有上週資料就畫佔位，不拿負荷比 0.9 頂替")
-    }
-
     func testSignedLabelNeverShowsNegativeZero() {
         XCTAssertEqual(App2MetricDetailProjection.signedLabel(-0.3, fractionDigits: 0), "0")
         XCTAssertEqual(App2MetricDetailProjection.signedLabel(-0.04), "0.0")
         XCTAssertEqual(App2MetricDetailProjection.signedLabel(0.4, fractionDigits: 0), "0")
         XCTAssertEqual(App2MetricDetailProjection.signedLabel(-12.4, fractionDigits: 0), "−12")
-    }
-
-    func testTsbCurrentZoneIsTextOnlyWithNoNumbers() {
-        let balanced = App2MetricDetailProjection.tsbCurrentZone(App2LoadBlock(ctl: 41.2, atl: 40.9, tsb: -0.3))
-        XCTAssertEqual(balanced, String(
-            format: L10n.App2.Metric.tsbCurrentFormat.localized,
-            App2MetricDetailProjection.tsbBandLabel(for: -0.3)
-        ))
-        XCTAssertFalse(balanced?.contains { $0.isNumber } ?? true, "只講區間，不露 CTL／ATL／TSB 數字")
-
-        let tired = App2MetricDetailProjection.tsbCurrentZone(App2LoadBlock(ctl: 1, atl: 2, tsb: -12))
-        XCTAssertTrue(tired?.hasSuffix(App2MetricDetailProjection.tsbBandLabel(for: -12)) == true)
-        let optimal = App2MetricDetailProjection.tsbCurrentZone(App2LoadBlock(ctl: 1, atl: 2, tsb: 3))
-        XCTAssertTrue(optimal?.hasSuffix(App2MetricDetailProjection.tsbBandLabel(for: 3)) == true)
-
-        XCTAssertNil(App2MetricDetailProjection.tsbCurrentZone(App2LoadBlock(ctl: 5, atl: 5, tsb: nil)))
-        XCTAssertNil(App2MetricDetailProjection.tsbCurrentZone(nil))
-    }
-
-    func testTsbAxisTicksAreTheThreeThresholds() {
-        XCTAssertEqual(App2MetricDetailProjection.tsbAxisTicks, [1, 0, -7])
-    }
-
-    func testTsbBandsCarryThresholdText() {
-        let details = App2MetricDetailProjection.tsbBands().map(\.legendDetail)
-        XCTAssertEqual(details, ["< −7", "−7 ~ +1", "> +1"])
     }
 
     func testAxisTicksDropALabelThatWouldOverlapAHigherPriorityOne() {
@@ -896,5 +752,87 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         XCTAssertEqual(speed.title, L10n.App2.Metric.levelHeroTitleSpeed.localized)
         XCTAssertNotEqual(aerobic.title, speed.title)
         XCTAssertFalse(aerobic.title.contains("0–100"))
+    }
+
+    // MARK: - 詳情頁 hero 的近 7 天趨勢
+
+    func testTrendLineUsesTheSameChangeStringAsTheHomeRow() {
+        XCTAssertEqual(
+            App2MetricDetailProjection.trendLine(change: "97.5 → 80.2"),
+            String(format: L10n.App2.Metric.heroTrendFormat.localized, "97.5 → 80.2"))
+        XCTAssertNil(App2MetricDetailProjection.trendLine(change: nil))
+        XCTAssertNil(App2MetricDetailProjection.trendLine(change: ""))
+    }
+
+    @MainActor
+    func testFourHeroesCarryTheTrendAndVolumeDoesNot() {
+        let row = insight("x", value: "80.2", change: "97.5 → 80.2")
+        let expected = App2MetricDetailProjection.trendLine(change: "97.5 → 80.2")
+        XCTAssertEqual(App2MetricDetailProjection.levelHero(insight: row, kind: .aerobicEndurance).trendText, expected)
+        XCTAssertEqual(App2MetricDetailProjection.levelHero(insight: row, kind: .speedEndurance).trendText, expected)
+        XCTAssertEqual(App2RecoveryDetailViewModel.hero(insight: row, narrative: nil).trendText, expected)
+        XCTAssertEqual(App2CapabilityDetailViewModel.hero(
+            insight: row, narrative: nil, current: 80.2, previous: nil).trendText, expected)
+        // 訓練量的 change 是「上週 27 km」敘事句，不是起訖趨勢
+        XCTAssertNil(App2VolumeDetailViewModel.hero(insight: row, narrative: nil).trendText)
+    }
+
+    func testRecoveryTrendStatIsNamedHrvTrend() {
+        let stats = App2MetricDetailProjection.recoveryStats(hrv: [], restingHR: [])
+        XCTAssertEqual(stats[2].label, L10n.App2.Metric.recoveryStatTrend.localized)
+        XCTAssertTrue(stats[2].label.contains("HRV"))
+    }
+
+    // MARK: - 近期負荷比圖（1.4 TSB 圖畫法，門檻讀後端）
+
+    private func acwr(low: Double? = 0.8, high: Double? = 1.3, values: [Double?] = [1.0, 0.9]) -> App2AcwrBlock {
+        App2AcwrBlock(
+            series: values.enumerated().map { App2MetricPoint(date: "2026-09-2\($0.offset)", value: $0.element) },
+            sweetLow: low, sweetHigh: high
+        )
+    }
+
+    func testAcwrThresholdsPreferBackendBoundsElseDefaults() {
+        let backend = App2MetricDetailProjection.acwrThresholds(acwr(low: 0.7, high: 1.2))
+        XCTAssertEqual(backend.low, 0.7)
+        XCTAssertEqual(backend.high, 1.2)
+        for block in [acwr(low: nil, high: nil), acwr(low: 0.7, high: nil), acwr(low: 1.3, high: 0.8)] {
+            let fallback = App2MetricDetailProjection.acwrThresholds(block)
+            XCTAssertEqual(fallback.low, 0.8)
+            XCTAssertEqual(fallback.high, 1.3)
+        }
+    }
+
+    func testAcwrBandsAreThreeZonesWithThresholdText() {
+        let bands = App2MetricDetailProjection.acwrBands(acwr())
+        XCTAssertEqual(bands.count, 3)
+        XCTAssertNil(bands[0].lower); XCTAssertEqual(bands[0].upper, 0.8)
+        XCTAssertEqual(bands[1].lower, 0.8); XCTAssertEqual(bands[1].upper, 1.3)
+        XCTAssertEqual(bands[2].lower, 1.3); XCTAssertNil(bands[2].upper)
+        XCTAssertEqual(bands.map(\.legendLabel), [
+            L10n.App2.Metric.acwrZoneLight.localized,
+            L10n.App2.Metric.acwrZoneOk.localized,
+            L10n.App2.Metric.acwrZoneHeavy.localized
+        ])
+        XCTAssertEqual(bands.map(\.legendDetail), ["< 0.8", "0.8–1.3", "> 1.3"])
+    }
+
+    func testAcwrZoneBoundaries() {
+        let t = (low: 0.8, high: 1.3)
+        XCTAssertEqual(App2MetricDetailProjection.acwrZoneLabel(for: 0.79, thresholds: t), L10n.App2.Metric.acwrZoneLight.localized)
+        XCTAssertEqual(App2MetricDetailProjection.acwrZoneLabel(for: 0.8, thresholds: t), L10n.App2.Metric.acwrZoneOk.localized)
+        XCTAssertEqual(App2MetricDetailProjection.acwrZoneLabel(for: 1.3, thresholds: t), L10n.App2.Metric.acwrZoneOk.localized)
+        XCTAssertEqual(App2MetricDetailProjection.acwrZoneLabel(for: 1.31, thresholds: t), L10n.App2.Metric.acwrZoneHeavy.localized)
+    }
+
+    func testAcwrCurrentZoneUsesTheLatestPointWithAValue() {
+        let zone = App2MetricDetailProjection.acwrCurrentZone(acwr(values: [1.5, 1.0, nil]))
+        XCTAssertEqual(zone, String(format: L10n.App2.Metric.currentZoneFormat.localized,
+                                    L10n.App2.Metric.acwrZoneOk.localized))
+        XCTAssertNil(App2MetricDetailProjection.acwrCurrentZone(acwr(values: [nil, nil])))
+    }
+
+    func testAcwrAxisTicksAreOnlyTheTwoBoundaries() {
+        XCTAssertEqual(App2MetricDetailProjection.acwrAxisTicks(acwr(low: 0.7, high: 1.2)), [1.2, 0.7])
     }
 }

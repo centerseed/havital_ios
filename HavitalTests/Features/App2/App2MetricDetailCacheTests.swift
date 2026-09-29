@@ -280,8 +280,8 @@ final class App2MetricDetailCacheTests: XCTestCase {
         }
     }
 
-    private func insight(_ id: String) -> App2Insight {
-        App2Insight(id: id, label: id, value: nil, direction: .unknown, verdict: nil)
+    private func insight(_ id: String, value: String? = nil) -> App2Insight {
+        App2Insight(id: id, label: id, value: value, direction: .unknown, verdict: nil)
     }
 
     /// 等一個條件成立（最多 5 秒）。不用 expectation：這裡等的是 in-flight 的
@@ -326,6 +326,37 @@ final class App2MetricDetailCacheTests: XCTestCase {
         XCTAssertEqual(source.statsCalls, 0, "init 的快取命中路徑不得打網路")
     }
 
+    private final class BaselineSeriesSource: AthleteStateSeriesDataSourceProtocol {
+        var requested: [(String, String)] = []
+        func fetchMetricSeries(startDay: String, endDay: String) async throws -> AthleteStateSeriesResponse {
+            requested.append((startDay, endDay))
+            let json = """
+            {"series":{"capability_baseline":[{"day":"\(startDay)","delivery_status":"active",
+             "envelope":{"center":{"value":39.0,"unit":"vdot"}}}]}}
+            """
+            return try JSONDecoder().decode(AthleteStateSeriesResponse.self, from: Data(json.utf8))
+        }
+    }
+
+    func test_capabilityVM_compareUsesSeriesPointThirtyDaysBeforeAsof() async {
+        let series = BaselineSeriesSource()
+        let vm = App2CapabilityDetailViewModel(
+            insight: insight("capability", value: "38.7"),
+            narrative: nil,
+            asof: "2026-09-29",
+            vdotDataSource: EmptyVdotSource(),
+            seriesDataSource: series,
+            cache: App2MetricDetailCache()
+        )
+        await vm.revalidate()
+
+        XCTAssertEqual(series.requested.map(\.0), ["2026-08-30"])
+        XCTAssertEqual(series.requested.map(\.1), ["2026-08-30"], "只要那一天的點")
+        XCTAssertEqual(vm.detail?.value.hero.compareValue, String(
+            format: L10n.App2.Metric.capabilityCompareFormat.localized, "39.0",
+            App2MetricDetailProjection.signedLabel(38.7 - 39.0)))
+    }
+
     func test_capabilityVM_cacheHit_paintsImmediately() throws {
         let cache = App2MetricDetailCache()
         cache.storeCapability(try EmptyVdotSource.fixture(), range: .days60)
@@ -334,6 +365,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
             insight: insight("capability"),
             narrative: nil,
             vdotDataSource: EmptyVdotSource(),
+            seriesDataSource: App2EmptySeriesSource(),
             cache: cache
         )
 
@@ -386,6 +418,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
             insight: insight("capability"),
             narrative: nil,
             vdotDataSource: EmptyVdotSource(),
+            seriesDataSource: App2EmptySeriesSource(),
             cache: cache
         )
 
@@ -501,7 +534,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
         let source = GatedVdotSource()
         let vm = App2CapabilityDetailViewModel(
             insight: insight("capability"), narrative: nil,
-            vdotDataSource: source, cache: cache
+            vdotDataSource: source, seriesDataSource: App2EmptySeriesSource(), cache: cache
         )
 
         let initialLoad = Task { await vm.revalidate() }
@@ -637,7 +670,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
         let source = TimeoutAfterCancelVdotSource()
         let vm = App2CapabilityDetailViewModel(
             insight: insight("capability"), narrative: nil,
-            vdotDataSource: source, cache: cache
+            vdotDataSource: source, seriesDataSource: App2EmptySeriesSource(), cache: cache
         )
         let load = Task { await vm.revalidate() }
         await Self.waitUntil { source.started }
@@ -787,7 +820,7 @@ final class App2MetricDetailCacheTests: XCTestCase {
         let source = GatedVdotSource()
         let vm = App2CapabilityDetailViewModel(
             insight: insight("capability"), narrative: nil,
-            vdotDataSource: source, cache: cache
+            vdotDataSource: source, seriesDataSource: App2EmptySeriesSource(), cache: cache
         )
 
         let inflight = Task { await vm.revalidate() }

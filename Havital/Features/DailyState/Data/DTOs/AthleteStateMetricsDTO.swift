@@ -35,10 +35,17 @@ struct AthleteStateMetricEnvelope: Codable {
     let index: Double?
     let levelIndex: Double?
     var channels: Channels? = nil
+    /// 能力基準（`capability_baseline`）的中心值；其他指標沒有。
+    var center: Center? = nil
 
     enum CodingKeys: String, CodingKey {
-        case index, channels
+        case index, channels, center
         case levelIndex = "level_index"
+    }
+
+    struct Center: Codable {
+        let value: Double?
+        let unit: String?
     }
 
     struct Channels: Codable {
