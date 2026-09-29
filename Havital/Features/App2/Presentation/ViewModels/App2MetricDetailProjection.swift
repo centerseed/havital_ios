@@ -64,6 +64,11 @@ enum App2MetricDetailProjection {
         return weeks.reduce(0) { $0 + $1.distanceKm } / Double(weeks.count)
     }
 
+    /// 上一個完整週的跑量（hero 大數字）。沒有完整週 → nil。
+    static func lastWeekKm(_ bars: [App2WeeklyBar]) -> Double? {
+        completedWeeks(bars).last?.distanceKm
+    }
+
     /// 完整週的週高點。
     static func peakKm(_ bars: [App2WeeklyBar]) -> Double? {
         completedWeeks(bars).map(\.distanceKm).max()
@@ -103,6 +108,16 @@ enum App2MetricDetailProjection {
         return App2LoadBlock(ctl: latest.ctl, atl: latest.atl, tsb: latest.tsb)
     }
 
+    /// TSB 圖下的一句「目前：平衡狀態」。**只講所在區間，不露 CTL／ATL／TSB 數字**
+    /// （數字容易被讀成 0–100 的分數，已有用戶誤會）。TSB 缺席 → nil，那一句不畫。
+    static func tsbCurrentZone(_ load: App2LoadBlock?) -> String? {
+        guard let tsb = load?.tsb else { return nil }
+        return String(format: L10n.App2.Metric.tsbCurrentFormat.localized, tsbBandLabel(for: tsb))
+    }
+
+    /// TSB 圖 Y 軸只標三條分界（+1、0、-7），依標示優先序排列（空間不夠時後面的讓位）。
+    static let tsbAxisTicks: [Double] = [1, 0, -7]
+
     /// §51-6 近 30 個日曆日的 TSB（舊→新）。日期仍在序列上，TSB nil 時保留為斷線點。
     static func tsbSeries(_ records: [HealthRecord], asof: String?) -> [App2MetricPoint] {
         let end = asof ?? today()
@@ -121,19 +136,22 @@ enum App2MetricDetailProjection {
                 lower: nil,
                 upper: -7,
                 tint: .red,
-                legendLabel: labels[0]
+                legendLabel: labels[0],
+                legendDetail: "< −7"
             ),
             App2MetricLineChart.Band(
                 lower: -7,
                 upper: 1,
                 tint: .green,
-                legendLabel: labels[1]
+                legendLabel: labels[1],
+                legendDetail: "−7 ~ +1"
             ),
             App2MetricLineChart.Band(
                 lower: 1,
                 upper: nil,
                 tint: .blue,
-                legendLabel: labels[2]
+                legendLabel: labels[2],
+                legendDetail: "> +1"
             )
         ]
     }
@@ -244,25 +262,7 @@ enum App2MetricDetailProjection {
                 detail: nil
             ))
         }
-        if let decision = entry.anchorDecision {
-            rows.append(App2MetricDiagnosticRow(
-                id: "decision",
-                label: L10n.App2.Metric.capabilityRowDecision.localized,
-                value: anchorDecisionLabel(decision),
-                detail: nil
-            ))
-        }
-        if let completeness = entry.evidenceCompleteness {
-            rows.append(App2MetricDiagnosticRow(
-                id: "evidence",
-                label: L10n.App2.Metric.capabilityRowEvidence.localized,
-                value: String(format: "%.1f%%", completeness * 100),
-                detail: entry.dailyCount.map {
-                    String(format: L10n.App2.Metric.capabilityEvidenceCountFormat.localized, $0)
-                }
-            ))
-        } else if let count = entry.dailyCount {
-            // 完整度沒給、但天數有 —— 只講知道的那一件（`n = 9`），不換算成百分比。
+        if let count = entry.dailyCount {
             rows.append(App2MetricDiagnosticRow(
                 id: "evidence",
                 label: L10n.App2.Metric.capabilityRowEvidence.localized,
@@ -332,27 +332,16 @@ enum App2MetricDetailProjection {
         )
     }
 
-    /// `weighted_16x` → 「高權重錨定（以個人最佳為主）」（8/28 盤點 D11）。
-    ///
-    /// **語意是權重，不是筆數**：PB／測驗錨點在配速能力估算裡的權重是一般訓練課的
-    /// 16 倍（backend `BENCHMARK_WEIGHT_BOOST = 16.0`），不是「取最近 16 筆」
-    /// ——2026-08-30 使用者裁決。認不得的值原樣顯示，同 `vdotSourceLabel`：
-    /// 猜一個譯名比露出識別字更糟。
-    static func anchorDecisionLabel(_ decision: String) -> String {
-        switch decision {
-        case "weighted_16x": return L10n.App2.Metric.anchorDecisionWeighted.localized
-        default:             return decision
-        }
-    }
-
-    /// `benchmark` → 「指標跑（8/2）」。沒有對應譯名的來源原樣顯示。
+    /// `benchmark` → 「指標跑（8/2）」。**不認得的原始代碼絕不顯示**：
+    /// `weighted_training` 是「近期訓練綜合推算」，其餘未知代碼一律「訓練推算」。
     static func vdotSourceLabel(_ source: String, anchorDate: String?) -> String {
         let name: String
         switch source {
         case "benchmark":     name = L10n.App2.Metric.vdotSourceBenchmark.localized
         case "personal_best": name = L10n.App2.Metric.vdotSourcePersonalBest.localized
         case "estimated":     name = L10n.App2.Metric.vdotSourceEstimated.localized
-        default:              name = source
+        case "weighted_training": name = L10n.App2.Metric.vdotSourceWeightedTraining.localized
+        default:              name = L10n.App2.Metric.vdotSourceGeneric.localized
         }
         guard let anchorDate else { return name }
         return String(format: L10n.App2.Metric.capabilityAnchorFormat.localized,
@@ -426,10 +415,12 @@ enum App2MetricDetailProjection {
     ///
     /// 右側對照整格不畫：「計畫起點 vs 現在」的逐週序列還沒有 producer
     /// （SPEC-today-state §11-7），掛一個永遠是「–」的標籤只是把缺口偽裝成欄位。
-    /// 兩格共用同一個 hero 標題（大數字是同一種量），所以這裡不吃 `kind`。
-    static func levelHero(insight: App2Insight) -> App2MetricHero {
+    /// 標題寫該指標名＋「分數」，所以吃 `kind`。
+    static func levelHero(insight: App2Insight, kind: App2MetricDetailKind) -> App2MetricHero {
         App2MetricHero(
-            title: L10n.App2.Metric.levelHeroTitle.localized,
+            title: kind == .speedEndurance
+                ? L10n.App2.Metric.levelHeroTitleSpeed.localized
+                : L10n.App2.Metric.levelHeroTitleAerobic.localized,
             valueText: insight.value,
             verdict: insight.verdict,
             direction: insight.direction,
@@ -506,9 +497,10 @@ enum App2MetricDetailProjection {
     /// `−0.3`／`+1.2`。差為 0 → `0.0`（不加號）。
     static func signedLabel(_ delta: Double, fractionDigits: Int = 1) -> String {
         let text = String(format: "%.\(fractionDigits)f", abs(delta))
+        // 四捨五入後是 0 的（-0.3 取整數）一律不帶號，不顯示 -0。
+        if Double(text) == 0 { return text }
         if delta > 0 { return "+\(text)" }
-        if delta < 0 { return "−\(text)" }
-        return text
+        return "−\(text)"
     }
 
     /// UTC epoch 秒 → 用戶當地日 `YYYY-MM-DD`。

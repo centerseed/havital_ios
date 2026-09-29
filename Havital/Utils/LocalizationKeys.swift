@@ -2598,8 +2598,6 @@ extension L10n {
         enum Metric {
             static let readFailed = "app2.metric.read_failed"
             static let refreshFailedKeepingResult = "app2.metric.refresh_failed_keeping_result"
-            /// top bar 右緣的「指標詳情」。
-            static let pageSuffix = "app2.metric.page_suffix"
 
             // 範圍 tabs
             static let rangeWeeks8 = "app2.metric.range_weeks8"
@@ -2617,13 +2615,16 @@ extension L10n {
             static let volumeAverageFormat = "app2.metric.volume_average_format"
             static let volumeYtd = "app2.metric.volume_ytd"
             static let volumePeak = "app2.metric.volume_peak"
-            static let volumeLoadTitle = "app2.metric.volume_load_title"
             /// 序列讀不到／不足兩天時的佔位句（負荷比線）。
             static let volumeAcwrUnavailable = "app2.metric.volume_acwr_unavailable"
             /// 甜區帶的小字（`甜區 %@–%@`）。**上下界由後端帶**，不寫死。
+            /// 負荷比圖卡標題（`最近一週 ÷ 前四週平均`）。
+            static let volumeAcwrTitle = "app2.metric.volume_acwr_title"
+            /// TSB 小標題（`疲勞與狀態`）。
+            static let volumeTsbTitle = "app2.metric.volume_tsb_title"
+            /// TSB 圖下一句「目前：平衡狀態」（只講區間，不露數字）。
+            static let tsbCurrentFormat = "app2.metric.tsb_current_format"
             static let volumeAcwrSweetFormat = "app2.metric.volume_acwr_sweet_format"
-            static let volumeCtl = "app2.metric.volume_ctl"
-            static let volumeAtl = "app2.metric.volume_atl"
             static let volumeTsb = "app2.metric.volume_tsb"
 
             // §52 能力基準
@@ -2641,8 +2642,6 @@ extension L10n {
             static let capabilityFinishTitle = "app2.metric.capability_finish_title"
             static let capabilityHowTitle = "app2.metric.capability_how_title"
             static let capabilityRowAnchor = "app2.metric.capability_row_anchor"
-            static let capabilityRowDecision = "app2.metric.capability_row_decision"
-            static let anchorDecisionWeighted = "app2.metric.anchor_decision_weighted"
             static let capabilityRowEvidence = "app2.metric.capability_row_evidence"
             static let capabilityRowConfidence = "app2.metric.capability_row_confidence"
             static let capabilityEvidenceCountFormat = "app2.metric.capability_evidence_count_format"
@@ -2653,10 +2652,12 @@ extension L10n {
             static let vdotSourceBenchmark = "app2.metric.vdot_source_benchmark"
             static let vdotSourcePersonalBest = "app2.metric.vdot_source_personal_best"
             static let vdotSourceEstimated = "app2.metric.vdot_source_estimated"
+            static let vdotSourceWeightedTraining = "app2.metric.vdot_source_weighted_training"
+            /// 不認得的來源代碼一律顯示這句，絕不露原始代碼。
+            static let vdotSourceGeneric = "app2.metric.vdot_source_generic"
 
             // §53 恢復
             static let recoveryHeroTitle = "app2.metric.recovery_hero_title"
-            static let recoveryBaseline = "app2.metric.recovery_baseline"
             static let recoveryChartTitle = "app2.metric.recovery_chart_title"
             static let recoveryHrv = "app2.metric.recovery_hrv"
             static let recoveryRhr = "app2.metric.recovery_rhr"
@@ -2669,8 +2670,9 @@ extension L10n {
 
             // 相對能力兩格（有氧續航／速度耐力）—— 整頁只有首頁那一列，
             // 逐週對照序列還沒有 producer（SPEC-today-state §11-7）。
-            /// hero 標題：大數字是什麼量（`相對能力（0–100）`）。
-            static let levelHeroTitle = "app2.metric.level_hero_title"
+            /// hero 標題：指標名＋「分數」（`有氧續航分數`）。
+            static let levelHeroTitleAerobic = "app2.metric.level_hero_title_aerobic"
+            static let levelHeroTitleSpeed = "app2.metric.level_hero_title_speed"
             static let levelAboutTitle = "app2.metric.level_about_title"
             static let levelAboutAerobic = "app2.metric.level_about_aerobic"
             static let levelAboutSpeed = "app2.metric.level_about_speed"

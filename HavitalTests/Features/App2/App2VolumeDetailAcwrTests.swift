@@ -192,10 +192,15 @@ final class App2VolumeDetailAcwrTests: XCTestCase {
 
     // MARK: - hero
 
-    /// hero 的大數字是後端交的負荷比，判語是後端交的判語 —— 詳情頁不重新評級。
-    func test_heroShowsTheRatioAndVerdictFromTheCardRow() {
-        let hero = App2VolumeDetailViewModel.hero(insight: volumeInsight(), narrative: nil)
-        XCTAssertEqual(hero.valueText, "1.7")
+    /// hero 大數字是上一完整週的公里數（負荷比降到圖卡標題列），判語仍是後端交的 —— 詳情頁不重新評級。
+    func test_heroShowsLastWeekKmAndTheVerdictFromTheCardRow() {
+        let bars = [
+            App2WeeklyBar(weekStart: "2026-09-14", distanceKm: 27, isCurrentWeek: false, shortLabel: "9/14"),
+            App2WeeklyBar(weekStart: "2026-09-21", distanceKm: 5, isCurrentWeek: true, shortLabel: "9/21")
+        ]
+        let hero = App2VolumeDetailViewModel.hero(insight: volumeInsight(), narrative: nil, bars: bars)
+        XCTAssertEqual(hero.valueText, "27 km")
+        XCTAssertNotEqual(hero.valueText, "1.7", "負荷比不再是 hero 大數字")
         XCTAssertEqual(hero.verdict, "負荷偏高，近一週比近一個月多 71%，留意")
     }
 
@@ -203,14 +208,14 @@ final class App2VolumeDetailAcwrTests: XCTestCase {
     /// **不從長條圖另算一份**：同一個量兩個來源，遲早有一份是舊的。
     func test_theLastCompletedWeekMovesIntoTheSubtitle() {
         let hero = App2VolumeDetailViewModel.hero(
-            insight: volumeInsight(), narrative: "本月跑量比上月多 8%"
+            insight: volumeInsight(), narrative: "本月跑量比上月多 8%", bars: []
         )
         XCTAssertEqual(hero.narrative, "上週 27 km\n本月跑量比上月多 8%")
     }
 
     /// 大數字換成比值之後，「目標週跑量」不是它的對照量 —— 右側對照整格不畫。
     func test_theTargetIsNoLongerCompadedAgainstTheRatio() {
-        let hero = App2VolumeDetailViewModel.hero(insight: volumeInsight(), narrative: nil)
+        let hero = App2VolumeDetailViewModel.hero(insight: volumeInsight(), narrative: nil, bars: [])
         XCTAssertNil(hero.compareLabel)
         XCTAssertNil(hero.compareValue)
     }
@@ -219,7 +224,7 @@ final class App2VolumeDetailAcwrTests: XCTestCase {
     func test_noSubtitleWhenTheBackendGaveNeitherLine() {
         let hero = App2VolumeDetailViewModel.hero(
             insight: volumeInsight(value: nil, verdict: "尚未計算", change: nil),
-            narrative: nil
+            narrative: nil, bars: []
         )
         XCTAssertNil(hero.narrative)
     }

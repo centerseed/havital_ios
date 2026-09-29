@@ -4844,39 +4844,33 @@
 "app2.weekly_review.upsell_body" = "Upgrade to Paceriz Pro to generate weekly reviews and next-week suggestions.";
 
 /* MARK: - App2 metric drill-down (checklist §51–53) */
-"app2.metric.page_suffix" = "Metric detail";
 "app2.metric.range_weeks8" = "8 weeks";
 "app2.metric.range_weeks26" = "26 weeks";
 "app2.metric.range_year" = "This year";
 "app2.metric.range_days60" = "60 days";
 "app2.metric.range_months6" = "6 months";
 "app2.metric.range_all" = "All";
-"app2.metric.volume_hero_title" = "Recent load ratio";
+"app2.metric.volume_hero_title" = "Last week";
 "app2.metric.volume_target_line_format" = "Target %@";
 "app2.metric.volume_average_format" = "%d-week average";
 "app2.metric.volume_ytd" = "Year to date";
 "app2.metric.volume_peak" = "Peak week";
-"app2.metric.volume_load_title" = "Training load · Form";
 "app2.metric.volume_acwr_unavailable" = "Load ratio not available yet";
-"app2.metric.volume_acwr_sweet_format" = "Sweet spot %@–%@";
-"app2.metric.volume_ctl" = "Fitness CTL";
-"app2.metric.volume_atl" = "Fatigue ATL";
-"app2.metric.volume_tsb" = "Form TSB";
+"app2.metric.volume_acwr_sweet_format" = "Good range %@–%@";
+"app2.metric.volume_tsb" = "Form";
 "app2.metric.capability_hero_title" = "Current VDOT";
 "app2.metric.capability_compare" = "30 days ago";
 "app2.metric.capability_compare_format" = "%@ (%@)";
 "app2.metric.capability_chart_title" = "VDOT history";
-"app2.metric.capability_anchor_marker" = "Anchor";
+"app2.metric.capability_anchor_marker" = "Start point";
 "app2.metric.projected_legend" = "Projected";
 "app2.metric.capability_anchor_format" = "%@ (%@)";
 "app2.metric.capability_finish_title" = "Race time projections";
 "app2.metric.capability_how_title" = "Where this number comes from";
-"app2.metric.capability_row_anchor" = "Anchor source";
-"app2.metric.capability_row_decision" = "Anchor decision";
-"app2.metric.anchor_decision_weighted" = "High-weight anchor (personal best led)";
-"app2.metric.capability_row_evidence" = "Evidence";
-"app2.metric.capability_row_confidence" = "Confidence";
-"app2.metric.capability_evidence_count_format" = "n = %d";
+"app2.metric.capability_row_anchor" = "Based on";
+"app2.metric.capability_row_evidence" = "Runs used";
+"app2.metric.capability_row_confidence" = "Reliability";
+"app2.metric.capability_evidence_count_format" = "%d runs";
 "app2.metric.confidence_high" = "High";
 "app2.metric.confidence_medium" = "Medium";
 "app2.metric.confidence_low" = "Low";
@@ -4884,10 +4878,9 @@
 "app2.metric.vdot_source_personal_best" = "Personal best";
 "app2.metric.vdot_source_estimated" = "Estimated";
 "app2.metric.recovery_hero_title" = "Recovery";
-"app2.metric.recovery_baseline" = "7-day baseline";
-"app2.metric.recovery_chart_title" = "HRV × resting HR";
+"app2.metric.recovery_chart_title" = "HRV and resting HR";
 "app2.metric.recovery_hrv" = "HRV";
-"app2.metric.recovery_rhr" = "RHR";
+"app2.metric.recovery_rhr" = "Resting HR";
 "app2.metric.recovery_stat_hrv" = "HRV today";
 "app2.metric.recovery_stat_rhr" = "Resting HR";
 "app2.metric.recovery_stat_trend" = "7-day trend";
@@ -4896,7 +4889,6 @@
 "app2.metric.recovery_trend_down" = "↓ Low";
 
 /* MARK: - App2 metric detail · aerobic / speed endurance (0–100 relative ability score) */
-"app2.metric.level_hero_title" = "Relative ability (0–100)";
 "app2.metric.level_about_title" = "What this metric measures";
 "app2.metric.level_about_aerobic" = "Aerobic endurance measures how fast your heart rate climbs as the kilometres add up at the same pace — in other words, how well you hold together over distance. The 0–100 number is a relative ability score: higher is stronger, and 50 is mid-pack.";
 "app2.metric.level_about_speed" = "Speed endurance measures how much you fade over repeated near-maximal efforts, not how fast you can run. The 0–100 number is a relative ability score: higher is stronger, and 50 is mid-pack.";
@@ -4977,4 +4969,11 @@
 
 "app2.metric.read_failed" = "Could not load the data. Please try again.";
 "app2.metric.refresh_failed_keeping_result" = "Some data could not be refreshed. Available results remain visible; this refresh is incomplete.";
+"app2.metric.volume_acwr_title" = "Last 7 days ÷ prior 4-week average";
+"app2.metric.volume_tsb_title" = "Fatigue & form";
+"app2.metric.tsb_current_format" = "Now: %@";
+"app2.metric.vdot_source_weighted_training" = "Recent training estimate";
+"app2.metric.vdot_source_generic" = "Training estimate";
+"app2.metric.level_hero_title_aerobic" = "Aerobic endurance score";
+"app2.metric.level_hero_title_speed" = "Speed endurance score";
 "onboarding.payment_confirmation_pending" = "Payment confirmation is in progress. Please wait, then tap again.";

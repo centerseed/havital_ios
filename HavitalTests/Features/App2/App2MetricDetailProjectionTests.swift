@@ -380,9 +380,17 @@ final class App2MetricDetailProjectionTests: XCTestCase {
             dailyCount: 10
         )
         let rows = App2MetricDetailProjection.diagnostics(latest: entry)
-        XCTAssertEqual(rows.map(\.id), ["anchor", "decision", "evidence", "confidence"])
-        // `evidence_completeness` 缺席 → 只講知道的那一件（n = 10），不換算百分比
-        XCTAssertFalse(rows[2].value.contains("%"))
+        // 「錨定決策」整列拿掉：用戶讀不懂，也不影響判讀
+        XCTAssertEqual(rows.map(\.id), ["anchor", "evidence", "confidence"])
+        XCTAssertEqual(rows.map(\.label), [
+            L10n.App2.Metric.capabilityRowAnchor.localized,
+            L10n.App2.Metric.capabilityRowEvidence.localized,
+            L10n.App2.Metric.capabilityRowConfidence.localized
+        ])
+        // 參考課數只講堂數，不出現百分比或 n =
+        XCTAssertEqual(rows[1].value, String(format: L10n.App2.Metric.capabilityEvidenceCountFormat.localized, 10))
+        XCTAssertFalse(rows[1].value.contains("%"))
+        XCTAssertFalse(rows[1].value.contains("n ="))
 
         // 一個欄位都沒有 → 一列都不出現（不畫一排「–」）
         let bare = VDOTEntry(datetime: 1_787_702_400, dynamicVdot: 38.7)
@@ -507,7 +515,7 @@ final class App2MetricDetailProjectionTests: XCTestCase {
     func testLevelHeroReusesInsightFieldsWhenGraded() {
         let row = insight("aerobic_endurance", value: "70",
                           verdict: "strong", evidence: "limited")
-        let hero = App2MetricDetailProjection.levelHero(insight: row)
+        let hero = App2MetricDetailProjection.levelHero(insight: row, kind: .aerobicEndurance)
 
         XCTAssertEqual(hero.valueText, "70")
         XCTAssertEqual(hero.verdict, "strong")
@@ -521,7 +529,7 @@ final class App2MetricDetailProjectionTests: XCTestCase {
     func testLevelHeroHasNoNumberWhenInsufficient() {
         let row = insight("speed_endurance", verdict: "unclear",
                           evidence: "only 0 of 6", graded: false)
-        let hero = App2MetricDetailProjection.levelHero(insight: row)
+        let hero = App2MetricDetailProjection.levelHero(insight: row, kind: .speedEndurance)
 
         // 值缺席 → 畫面畫 `placeholder`，不編數字。
         XCTAssertNil(hero.valueText)
@@ -778,5 +786,115 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         XCTAssertGreaterThan(plain!.lower, 0.8)
         XCTAssertLessThan(withBand!.lower, 0.8)
         XCTAssertGreaterThanOrEqual(withBand!.upper, 1.7)
+    }
+
+    // MARK: - 指標詳情可讀性（§51–53）
+
+    func testWeightedTrainingSourceNeverShowsTheRawCode() {
+        let label = App2MetricDetailProjection.vdotSourceLabel("weighted_training", anchorDate: "2026-05-08")
+        XCTAssertFalse(label.contains("weighted_training"))
+        XCTAssertTrue(label.contains(L10n.App2.Metric.vdotSourceWeightedTraining.localized))
+    }
+
+    func testUnknownSourceCodeFallsBackToGenericLabel() {
+        let label = App2MetricDetailProjection.vdotSourceLabel("some_future_code", anchorDate: nil)
+        XCTAssertEqual(label, L10n.App2.Metric.vdotSourceGeneric.localized)
+        XCTAssertFalse(label.contains("some_future_code"))
+    }
+
+    func testEvidenceRowIgnoresCompletenessPercentage() {
+        let entry = VDOTEntry(
+            datetime: 1_787_702_400, dynamicVdot: 38.7, paceVdot: 38.7,
+            dailyCount: 22, evidenceCompleteness: 0.5
+        )
+        let rows = App2MetricDetailProjection.diagnostics(latest: entry)
+        let evidence = rows.first { $0.id == "evidence" }
+        XCTAssertEqual(evidence?.value, String(format: L10n.App2.Metric.capabilityEvidenceCountFormat.localized, 22))
+        XCTAssertNil(evidence?.detail)
+    }
+
+    func testLastWeekKmIsTheLastCompletedWeek() {
+        let bars = [bar("2026-09-07", 31), bar("2026-09-14", 40), bar("2026-09-21", 12, current: true)]
+        XCTAssertEqual(App2MetricDetailProjection.lastWeekKm(bars), 40)
+        XCTAssertNil(App2MetricDetailProjection.lastWeekKm([bar("2026-09-21", 12, current: true)]))
+        XCTAssertNil(App2MetricDetailProjection.lastWeekKm([]))
+    }
+
+    @MainActor
+    func testVolumeHeroShowsLastWeekKmAndKeepsVerdict() {
+        let row = insight("weekly_volume", value: "0.9", verdict: "steady")
+        let bars = [bar("2026-09-14", 40), bar("2026-09-21", 12, current: true)]
+        let hero = App2VolumeDetailViewModel.hero(insight: row, narrative: nil, bars: bars)
+        XCTAssertEqual(hero.title, L10n.App2.Metric.volumeHeroTitle.localized)
+        XCTAssertEqual(hero.valueText, App2MetricDetailProjection.kmLabel(40))
+        XCTAssertEqual(hero.verdict, "steady")
+        XCTAssertNil(hero.compareLabel)
+
+        let empty = App2VolumeDetailViewModel.hero(insight: row, narrative: nil, bars: [])
+        XCTAssertNil(empty.valueText, "沒有上週資料就畫佔位，不拿負荷比 0.9 頂替")
+    }
+
+    func testSignedLabelNeverShowsNegativeZero() {
+        XCTAssertEqual(App2MetricDetailProjection.signedLabel(-0.3, fractionDigits: 0), "0")
+        XCTAssertEqual(App2MetricDetailProjection.signedLabel(-0.04), "0.0")
+        XCTAssertEqual(App2MetricDetailProjection.signedLabel(0.4, fractionDigits: 0), "0")
+        XCTAssertEqual(App2MetricDetailProjection.signedLabel(-12.4, fractionDigits: 0), "−12")
+    }
+
+    func testTsbCurrentZoneIsTextOnlyWithNoNumbers() {
+        let balanced = App2MetricDetailProjection.tsbCurrentZone(App2LoadBlock(ctl: 41.2, atl: 40.9, tsb: -0.3))
+        XCTAssertEqual(balanced, String(
+            format: L10n.App2.Metric.tsbCurrentFormat.localized,
+            App2MetricDetailProjection.tsbBandLabel(for: -0.3)
+        ))
+        XCTAssertFalse(balanced?.contains { $0.isNumber } ?? true, "只講區間，不露 CTL／ATL／TSB 數字")
+
+        let tired = App2MetricDetailProjection.tsbCurrentZone(App2LoadBlock(ctl: 1, atl: 2, tsb: -12))
+        XCTAssertTrue(tired?.hasSuffix(App2MetricDetailProjection.tsbBandLabel(for: -12)) == true)
+        let optimal = App2MetricDetailProjection.tsbCurrentZone(App2LoadBlock(ctl: 1, atl: 2, tsb: 3))
+        XCTAssertTrue(optimal?.hasSuffix(App2MetricDetailProjection.tsbBandLabel(for: 3)) == true)
+
+        XCTAssertNil(App2MetricDetailProjection.tsbCurrentZone(App2LoadBlock(ctl: 5, atl: 5, tsb: nil)))
+        XCTAssertNil(App2MetricDetailProjection.tsbCurrentZone(nil))
+    }
+
+    func testTsbAxisTicksAreTheThreeThresholds() {
+        XCTAssertEqual(App2MetricDetailProjection.tsbAxisTicks, [1, 0, -7])
+    }
+
+    func testTsbBandsCarryThresholdText() {
+        let details = App2MetricDetailProjection.tsbBands().map(\.legendDetail)
+        XCTAssertEqual(details, ["< −7", "−7 ~ +1", "> +1"])
+    }
+
+    func testAxisTicksDropALabelThatWouldOverlapAHigherPriorityOne() {
+        // range −15…5 over 118pt：0 與 +1 只差約 6pt，0 讓位
+        let kept = App2MetricLineChart.visibleTickValues(
+            [1, -7, 0], bounds: (lower: -15, upper: 5), height: 118, minGap: 11
+        )
+        XCTAssertEqual(kept, [1, -7])
+        // 範圍窄（−8…2）時三顆都留
+        let roomy = App2MetricLineChart.visibleTickValues(
+            [1, -7, 0], bounds: (lower: -8, upper: 2), height: 118, minGap: 11
+        )
+        XCTAssertEqual(roomy, [1, -7, 0])
+    }
+
+    @MainActor
+    func testRecoveryHeroDrawsNoBaselineCellWithoutAValue() {
+        let hero = App2RecoveryDetailViewModel.hero(insight: insight("recovery_index", value: "61"), narrative: nil)
+        XCTAssertNil(hero.compareLabel)
+        XCTAssertNil(hero.compareValue)
+    }
+
+    func testLevelHeroTitleNamesTheMetric() {
+        let aerobic = App2MetricDetailProjection.levelHero(
+            insight: insight("aerobic_endurance", value: "70"), kind: .aerobicEndurance)
+        let speed = App2MetricDetailProjection.levelHero(
+            insight: insight("speed_endurance", value: "70"), kind: .speedEndurance)
+        XCTAssertEqual(aerobic.title, L10n.App2.Metric.levelHeroTitleAerobic.localized)
+        XCTAssertEqual(speed.title, L10n.App2.Metric.levelHeroTitleSpeed.localized)
+        XCTAssertNotEqual(aerobic.title, speed.title)
+        XCTAssertFalse(aerobic.title.contains("0–100"))
     }
 }

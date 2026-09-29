@@ -4885,39 +4885,33 @@
 "app2.weekly_review.upsell_body" = "升級 Paceriz Pro 才能產生每週的訓練回顧與下週建議。";
 
 /* MARK: - App2 指標第二層（checklist §51–53） */
-"app2.metric.page_suffix" = "指標詳情";
 "app2.metric.range_weeks8" = "近 8 週";
 "app2.metric.range_weeks26" = "近 26 週";
 "app2.metric.range_year" = "今年";
 "app2.metric.range_days60" = "近 60 天";
 "app2.metric.range_months6" = "近 6 個月";
 "app2.metric.range_all" = "全部";
-"app2.metric.volume_hero_title" = "近期負荷比";
+"app2.metric.volume_hero_title" = "上週跑量";
 "app2.metric.volume_target_line_format" = "目標 %@";
 "app2.metric.volume_average_format" = "%d 週平均";
 "app2.metric.volume_ytd" = "今年累計";
 "app2.metric.volume_peak" = "週高點";
-"app2.metric.volume_load_title" = "訓練負荷 · 狀態";
 "app2.metric.volume_acwr_unavailable" = "負荷比還讀不到";
-"app2.metric.volume_acwr_sweet_format" = "甜區 %@–%@";
-"app2.metric.volume_ctl" = "體能 CTL";
-"app2.metric.volume_atl" = "疲勞 ATL";
-"app2.metric.volume_tsb" = "狀態 TSB";
+"app2.metric.volume_acwr_sweet_format" = "合適範圍 %@–%@";
+"app2.metric.volume_tsb" = "狀態";
 "app2.metric.capability_hero_title" = "目前跑力 VDOT";
 "app2.metric.capability_compare" = "30 天前";
 "app2.metric.capability_compare_format" = "%@（%@）";
 "app2.metric.capability_chart_title" = "VDOT 歷史";
-"app2.metric.capability_anchor_marker" = "錨定";
+"app2.metric.capability_anchor_marker" = "起算點";
 "app2.metric.projected_legend" = "預估";
 "app2.metric.capability_anchor_format" = "%@（%@）";
 "app2.metric.capability_finish_title" = "完賽預估";
 "app2.metric.capability_how_title" = "這個值怎麼來的";
-"app2.metric.capability_row_anchor" = "錨定來源";
-"app2.metric.capability_row_decision" = "錨定決策";
-"app2.metric.anchor_decision_weighted" = "高權重錨定（以個人最佳為主）";
-"app2.metric.capability_row_evidence" = "證據完整度";
-"app2.metric.capability_row_confidence" = "信心";
-"app2.metric.capability_evidence_count_format" = "n = %d";
+"app2.metric.capability_row_anchor" = "依據";
+"app2.metric.capability_row_evidence" = "參考課數";
+"app2.metric.capability_row_confidence" = "可信度";
+"app2.metric.capability_evidence_count_format" = "%d 堂";
 "app2.metric.confidence_high" = "高";
 "app2.metric.confidence_medium" = "中";
 "app2.metric.confidence_low" = "低";
@@ -4925,10 +4919,9 @@
 "app2.metric.vdot_source_personal_best" = "個人最佳";
 "app2.metric.vdot_source_estimated" = "推估";
 "app2.metric.recovery_hero_title" = "恢復狀態";
-"app2.metric.recovery_baseline" = "7 日基線";
-"app2.metric.recovery_chart_title" = "HRV × 靜息心率";
+"app2.metric.recovery_chart_title" = "HRV 與靜息心率";
 "app2.metric.recovery_hrv" = "HRV";
-"app2.metric.recovery_rhr" = "RHR";
+"app2.metric.recovery_rhr" = "靜息心率";
 "app2.metric.recovery_stat_hrv" = "今晨 HRV";
 "app2.metric.recovery_stat_rhr" = "靜息心率";
 "app2.metric.recovery_stat_trend" = "7 日趨勢";
@@ -4937,7 +4930,6 @@
 "app2.metric.recovery_trend_down" = "↓ 偏低";
 
 /* MARK: - App2 指標詳情 · 有氧續航／速度耐力（0–100 相對能力分數） */
-"app2.metric.level_hero_title" = "相對能力（0–100）";
 "app2.metric.level_about_title" = "這個指標量什麼";
 "app2.metric.level_about_aerobic" = "有氧續航量的是同樣配速下，心率隨著里程累積上升得多快——也就是長距離撐不撐得住。0–100 是相對能力分數，越高越強，50 是中段。";
 "app2.metric.level_about_speed" = "速度耐力量的是反覆接近全力時掉速多少，不是你最快能跑多快。0–100 是相對能力分數，越高越強，50 是中段。";
@@ -5018,4 +5010,11 @@
 
 "app2.metric.read_failed" = "資料暫時讀取失敗，請重試。";
 "app2.metric.refresh_failed_keeping_result" = "部分資料暫時讀取失敗，可用結果仍會顯示；本次未完成全部更新。";
+"app2.metric.volume_acwr_title" = "最近一週 ÷ 前四週平均";
+"app2.metric.volume_tsb_title" = "疲勞與狀態";
+"app2.metric.tsb_current_format" = "目前：%@";
+"app2.metric.vdot_source_weighted_training" = "近期訓練綜合推算";
+"app2.metric.vdot_source_generic" = "訓練推算";
+"app2.metric.level_hero_title_aerobic" = "有氧續航分數";
+"app2.metric.level_hero_title_speed" = "速度耐力分數";
 "onboarding.payment_confirmation_pending" = "付款確認中，請稍候再按一次";

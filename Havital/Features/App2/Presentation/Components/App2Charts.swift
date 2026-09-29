@@ -423,19 +423,23 @@ struct App2MetricLineChart: View {
         var tint: Color
         /// 圖例上的帶子意義；ACWR 甜區只用圖內標籤。
         var legendLabel: String?
+        /// 圖例上接在名稱後的門檻文字（`< −7`）。
+        var legendDetail: String?
 
         init(
             lower: Double?,
             upper: Double?,
             label: String? = nil,
             tint: Color,
-            legendLabel: String? = nil
+            legendLabel: String? = nil,
+            legendDetail: String? = nil
         ) {
             self.lower = lower
             self.upper = upper
             self.label = label
             self.tint = tint
             self.legendLabel = legendLabel
+            self.legendDetail = legendDetail
         }
     }
 
@@ -453,6 +457,9 @@ struct App2MetricLineChart: View {
     var markerLabel: String?
     /// 水平 dashed 基準線的值；圖表依這些值擴大範圍，保證參考線可見。
     var baselineValues: [Double] = []
+    /// 指定 y 軸刻度值（依標示優先序）。nil ＝預設的最高／中間／最低三顆。
+    /// 空間不夠的刻度會讓位給排在前面的（見 `visibleTickValues`）。
+    var yTickValues: [Double]? = nil
     var height: CGFloat = 132
     /// 只有指標詳情頁啟用圖上讀數。
     var allowsReadout: Bool = false
@@ -477,6 +484,7 @@ struct App2MetricLineChart: View {
         markerDate: String? = nil,
         markerLabel: String? = nil,
         baselineValues: [Double] = [],
+        yTickValues: [Double]? = nil,
         showsBandLegend: Bool = false,
         allowsReadout: Bool = false,
         initiallySelectedIndex: Int? = nil,
@@ -490,6 +498,7 @@ struct App2MetricLineChart: View {
         self.markerDate = markerDate
         self.markerLabel = markerLabel
         self.baselineValues = baselineValues
+        self.yTickValues = yTickValues
         self.height = height
         self.allowsReadout = allowsReadout
         self.initiallySelectedIndex = initiallySelectedIndex
@@ -584,7 +593,17 @@ struct App2MetricLineChart: View {
         tint: Color? = nil,
         overrideBounds: (lower: Double, upper: Double)? = nil
     ) -> some View {
-        if let bounds = overrideBounds ?? Self.bounds(line?.points ?? []) {
+        if let bounds = overrideBounds ?? Self.bounds(line?.points ?? []), let ticks = yTickValues {
+            ZStack(alignment: .topTrailing) {
+                ForEach(Self.visibleTickValues(ticks, bounds: bounds, height: height, minGap: 11), id: \.self) { value in
+                    tick(value, tint: tint)
+                        .position(x: 12, y: Self.y(value, in: bounds, height: height))
+                }
+            }
+            .frame(width: 24, height: height)
+            // 與繪圖區的上下 8pt padding 對齊，刻度才落在對應的分界線上。
+            .padding(.vertical, 8)
+        } else if let bounds = overrideBounds ?? Self.bounds(line?.points ?? []) {
             VStack(alignment: alignment, spacing: 0) {
                 tick(bounds.upper, tint: tint)
                 Spacer(minLength: 0)
@@ -596,8 +615,28 @@ struct App2MetricLineChart: View {
         }
     }
 
+    /// 依優先序（陣列順序）挑出彼此至少相隔 `minGap` pt 的刻度；擠在一起的後者讓位。
+    static func visibleTickValues(
+        _ values: [Double],
+        bounds: (lower: Double, upper: Double),
+        height: CGFloat,
+        minGap: CGFloat
+    ) -> [Double] {
+        var kept: [Double] = []
+        for value in values where value >= bounds.lower && value <= bounds.upper {
+            let y = Self.y(value, in: bounds, height: height)
+            if kept.allSatisfy({ abs(Self.y($0, in: bounds, height: height) - y) >= minGap }) {
+                kept.append(value)
+            }
+        }
+        return kept
+    }
+
     private func tick(_ value: Double, tint: Color?) -> some View {
-        Text(App2NumberFormat.grouped(value, maximumFractionDigits: 1))
+        let text = value > 0 && yTickValues != nil
+            ? "+" + App2NumberFormat.grouped(value, maximumFractionDigits: 1)
+            : App2NumberFormat.grouped(value, maximumFractionDigits: 1)
+        return Text(text)
             .font(.app2Mono(9, weight: .semibold))
             .foregroundStyle(tint ?? App2Theme.inkFaint)
     }
@@ -934,9 +973,11 @@ struct App2MetricLineChart: View {
                         RoundedRectangle(cornerRadius: 2)
                             .fill(band.tint.opacity(0.3))
                             .frame(width: 9, height: 9)
-                        Text(band.legendLabel ?? "")
+                        Text([band.legendLabel, band.legendDetail].compactMap { $0 }.joined(separator: " "))
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundStyle(App2Theme.inkSecondary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                     }
                     .accessibilityIdentifier("App2_MetricChartBandLegend_\(entry.offset)")
                 }

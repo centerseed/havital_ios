@@ -324,7 +324,7 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         let bars = App2MetricDetailProjection.bars(payload.stats.data.weeklySeries ?? [])
         detail = App2Sourced(
             App2VolumeDetail(
-                hero: Self.hero(insight: insight, narrative: narrative),
+                hero: Self.hero(insight: insight, narrative: narrative, bars: bars),
                 bars: bars,
                 targetKm: payload.targetKm,
                 stats: App2MetricDetailProjection.volumeStats(
@@ -361,22 +361,19 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         }
     }
 
-    /// hero 的大數字是後端的負荷比（`value_text`），判語是後端的 `verdict`。
+    /// hero 大數字是**上一個完整週的公里數**（`bars` 的最後一根完整週），判語 chip 仍是後端的
+    /// `verdict`。負荷比（`insight.value`）降到下面負荷比圖卡的標題列 —— 讀者先看到的是
+    /// 自己跑了多少，不是一個沒有單位的比值。沒有完整週 → 畫「–」，不拿比值頂替。
     ///
-    /// **右側對照整格不畫**（T-0618）：大數字換成比值之後，「目標週跑量」不是它的
-    /// 對照量 —— 一個沒有單位的比值旁邊寫 `30 km` 只會讓人以為那是同一把尺。
-    /// 目標週跑量仍在下面的長條圖上（那裡它才是對照）。
-    ///
-    /// 上一完整週的公里數退到副標：那一句由後端組好（`change`），app 不重拼、
-    /// 也不從長條圖另算一份 —— 同一個量兩個來源遲早會有一份是舊的。
-    static func hero(insight: App2Insight, narrative: String?) -> App2MetricHero {
+    /// 右側對照整格不畫（T-0618）；敘事仍是後端組好的 `change` ＋ 課表敘事，app 不重拼。
+    static func hero(insight: App2Insight, narrative: String?, bars: [App2WeeklyBar]) -> App2MetricHero {
         let lines = [insight.change, narrative].compactMap { line -> String? in
             guard let line, !line.isEmpty else { return nil }
             return line
         }
         return App2MetricHero(
             title: L10n.App2.Metric.volumeHeroTitle.localized,
-            valueText: insight.value,
+            valueText: App2MetricDetailProjection.lastWeekKm(bars).map { App2MetricDetailProjection.kmLabel($0) },
             verdict: insight.verdict,
             direction: insight.direction,
             compareLabel: nil,
@@ -738,14 +735,14 @@ final class App2RecoveryDetailViewModel: ObservableObject, TaskManageable, App2R
 
     /// 「7 日基線」目前**沒有 producer**：恢復分數只有當下值，沒有序列端點
     /// （`DESIGN-app2-metric-drilldown-data-inventory.md` 總表已記為缺口）。
-    /// 所以這一格恆為 nil → 畫「–」。**不拿 HRV 基線冒充分數基線**（量綱都不同）。
+    /// 所以整格不畫（不畫一個「–」）。**不拿 HRV 基線冒充分數基線**（量綱都不同）。
     static func hero(insight: App2Insight, narrative: String?) -> App2MetricHero {
         App2MetricHero(
             title: L10n.App2.Metric.recoveryHeroTitle.localized,
             valueText: insight.value,
             verdict: insight.verdict,
             direction: insight.direction,
-            compareLabel: L10n.App2.Metric.recoveryBaseline.localized,
+            compareLabel: nil,
             compareValue: nil,
             narrative: narrative
         )
