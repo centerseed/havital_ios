@@ -296,6 +296,20 @@ private struct App2VolumeDetailPage: View {
             onClose: onClose,
             onRefresh: { await viewModel.forceRefresh() }
         ) {
+            ForEach(Array(App2MetricDetailProjection.volumeSectionOrder.enumerated()), id: \.offset) { _, section in
+                volumeSection(section)
+            }
+        }
+        .task { await viewModel.loadIfNeeded() }
+        .onDisappear { viewModel.cancelInFlightReload() }
+    }
+
+    /// 訓練量頁的一個區塊。順序由 `App2MetricDetailProjection.volumeSectionOrder` 決定
+    ///（hero → 週里程卡 → 負荷比圖 → 這個指標量什麼 → 怎麼算出來的）。
+    @ViewBuilder
+    private func volumeSection(_ section: App2MetricDetailProjection.VolumeSection) -> some View {
+        switch section {
+        case .hero:
             if viewModel.readFailed {
                 metricReadFailure(hasPreviousResult: viewModel.detail != nil) {
                     Task { await viewModel.forceRefresh() }
@@ -303,40 +317,23 @@ private struct App2VolumeDetailPage: View {
             }
             App2MetricHeroCard(
                 hero: viewModel.detail?.value.hero
-                    ?? App2VolumeDetailViewModel.hero(
-                        insight: insight, narrative: narrative
-                    ),
+                    ?? App2VolumeDetailViewModel.hero(insight: insight, narrative: narrative),
                 symbolName: insight.symbolName,
                 tint: App2Theme.accentOrange
             )
-
-            // 統一版型（使用者 2026-09-29）：hero → 趨勢圖 → 這個指標量什麼 → 怎麼算出來的（收合）→ 專屬區塊。
+        case .loadRatio:
             if let detail = viewModel.detail?.value {
                 loadCard(acwr: detail.acwr)
             } else if viewModel.isLoading {
                 App2Card { ProgressView().frame(maxWidth: .infinity) }
             }
-
-            App2ExplanationCard(
-                title: L10n.App2.Metric.levelAboutTitle.localized,
-                text: App2MetricDetailProjection.aboutText(
-                    .weeklyVolume,
-                    thresholds: viewModel.detail?.value.acwr.map(App2MetricDetailProjection.acwrThresholds)
-                        ?? (0.8, 1.3)
-                ),
-                identifier: "App2_MetricAbout"
-            )
-            if let how = App2MetricDetailProjection.howText(.weeklyVolume, insight: insight) {
-                App2HowComputedCard(text: how)
-            }
-
-            // 專屬區塊：週跑量柱狀圖（切換 tabs 控制它）＋統計三欄。
+        case .weeklyMileage:
+            // 週里程卡：切換 tabs 控制週跑量柱；統計三欄在同一張卡。
             App2MetricRangeTabs(
                 options: App2MetricRange.volume,
                 selected: viewModel.range,
                 onSelect: viewModel.select(range:)
             )
-
             if let detail = viewModel.detail?.value {
                 App2Card(spacing: 12) {
                     App2WeeklyVolumeChart(
@@ -353,9 +350,21 @@ private struct App2VolumeDetailPage: View {
                     App2MetricStatRow(stats: detail.stats)
                 }
             }
+        case .about:
+            App2ExplanationCard(
+                title: L10n.App2.Metric.levelAboutTitle.localized,
+                text: App2MetricDetailProjection.aboutText(
+                    .weeklyVolume,
+                    thresholds: viewModel.detail?.value.acwr.map(App2MetricDetailProjection.acwrThresholds)
+                        ?? (0.8, 1.3)
+                ),
+                identifier: "App2_MetricAbout"
+            )
+        case .how:
+            if let how = App2MetricDetailProjection.howText(.weeklyVolume, insight: insight) {
+                App2HowComputedCard(text: how)
+            }
         }
-        .task { await viewModel.loadIfNeeded() }
-        .onDisappear { viewModel.cancelInFlightReload() }
     }
 
     /// §51-6 近期負荷比圖（2026-09-29：只留這一張，畫法同 1.4 的 TSB 圖）。

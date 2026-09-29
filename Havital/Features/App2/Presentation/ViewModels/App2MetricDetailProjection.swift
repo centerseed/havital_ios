@@ -421,6 +421,14 @@ enum App2MetricDetailProjection {
 
     static let howCardStartsExpanded = false
 
+    /// 訓練量頁的區塊順序：統一版型的例外——專屬的週里程卡提前到 hero 正下方（週里程最直觀、會顯示本週目標）
+    ///（使用者 2026-09-29 裁決）。頁面照這個陣列由上到下畫。
+    enum VolumeSection: Equatable {
+        case hero, loadRatio, weeklyMileage, about, how
+    }
+
+    static let volumeSectionOrder: [VolumeSection] = [.hero, .weeklyMileage, .loadRatio, .about, .how]
+
     /// `insufficient_data` 時把 `evidence` 的限制句**展開成解釋**：這個分數要什麼樣的課
     /// 才算得出來、補齊之後會怎樣。hero 的敘事已經在講「現在累積到哪」，這一段講的是
     /// 「還差什麼」，兩段不重複同一句。

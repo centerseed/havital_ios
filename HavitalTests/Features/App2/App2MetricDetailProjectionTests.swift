@@ -931,4 +931,13 @@ final class App2MetricDetailProjectionTests: XCTestCase {
             .speedEndurance, insight: insight("speed_endurance", value: "60", basis: "B")), "B",
             "已評級時只有 basis，不接不足說明")
     }
+
+    // MARK: - 訓練量頁的區塊順序（統一版型的例外，使用者 2026-09-29）
+
+    func testVolumePageMovesTheWeeklyMileageCardRightBelowTheHero() {
+        XCTAssertEqual(
+            App2MetricDetailProjection.volumeSectionOrder,
+            [.hero, .weeklyMileage, .loadRatio, .about, .how]
+        )
+    }
 }
