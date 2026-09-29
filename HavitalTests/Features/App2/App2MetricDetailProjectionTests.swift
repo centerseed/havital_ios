@@ -908,6 +908,16 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         XCTAssertFalse(App2MetricDetailProjection.howCardStartsExpanded)
     }
 
+    func testRecoveryHowTextUsesProducerBaselineWindows() {
+        let text = App2MetricDetailProjection.howText(
+            .recoveryIndex,
+            insight: insight("recovery_index")
+        )!
+        XCTAssertTrue(text.contains("28"), text)
+        XCTAssertTrue(text.contains("90"), text)
+        XCTAssertFalse(text.contains("兩週"), text)
+    }
+
     // MARK: - 「為什麼還看不準」併進「怎麼算出來的」
 
     func testInsufficientExplanationJoinsTheBasisInsideTheSameHowText() {

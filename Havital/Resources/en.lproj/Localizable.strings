@@ -4978,6 +4978,6 @@
 "app2.metric.about_volume_format" = "Your training load over the last 7 days compared with the average of the last 6 weeks. %1$@–%2$@ is the good range; staying above %2$@ means you are adding load too fast.";
 "app2.metric.how_title" = "How it is calculated";
 "app2.metric.how_capability" = "Worked out from the ability estimated in each of your recent runs; more recent and more reliable runs count for more.";
-"app2.metric.how_recovery" = "Compares today’s HRV, resting heart rate, perceived effort and training performance with your own baseline from the past two weeks; at least two kinds of data are needed to give a score.";
+"app2.metric.how_recovery" = "Compares today’s HRV and resting heart rate with your own 28-day baseline, and perceived effort and training performance with your own 90-day same-workout-type baseline; at least two kinds of data are needed to give a score.";
 "app2.metric.how_volume" = "Each run is turned into a training load from its duration and heart-rate intensity, then the last 7 days are compared with the average of the last 6 weeks.";
 "onboarding.payment_confirmation_pending" = "Payment confirmation is in progress. Please wait, then tap again.";
