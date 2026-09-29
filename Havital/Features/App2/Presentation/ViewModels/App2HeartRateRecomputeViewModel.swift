@@ -23,6 +23,7 @@ final class App2HeartRateRecomputeViewModel: ObservableObject {
     @Published private(set) var phase: Phase = .idle
     @Published var isPromptPresented = false
     @Published private(set) var reminder: HeartRateWatchReminder?
+    @Published private(set) var autoUpdate: HeartRateWatchAutoUpdate?
     @Published private(set) var autoUpdateMaxHR: Bool
     @Published var errorMessage: String?
 
@@ -119,8 +120,20 @@ final class App2HeartRateRecomputeViewModel: ObservableObject {
 
     // MARK: - 手錶偏差提醒
 
-    func loadReminder() async {
-        reminder = try? await repository.watchReminder()
+    func loadWatchCheck() async {
+        let check = try? await repository.watchCheck()
+        reminder = check?.reminder
+        autoUpdate = check?.autoUpdate
+    }
+
+    /// 「先不用」：後端記下來才收起卡片；失敗就留著，不假裝已忽略。
+    func dismissReminder() async {
+        do {
+            try await repository.dismissWatchReminder()
+            reminder = nil
+        } catch {
+            errorMessage = NSLocalizedString("error.unknown", comment: "")
+        }
     }
 
     // MARK: - 自動更新最大心率

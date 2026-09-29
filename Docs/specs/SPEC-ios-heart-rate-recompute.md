@@ -18,9 +18,14 @@ date: 2026-09-29
    驗法：`test_queuedJobIsPolledToCompletion…`、`test_failedJobIsShownAsFailedAndCanBeRetried`、`test_alreadyRunningAdopts…`、`test_cannotStartWhileAJobIsActive`。
 3. **存永遠先成功、頁面有重算入口（AC-HR-09）**：選不重算、關掉或失敗，新心率照樣生效；頁面另有「用目前的心率重算過去的跑力」，走同一組選項。進頁時若後端有進行中的工作就接上，跑完很久的舊結果不顯示。
 4. **完成後各處同一個新值（AC-HR-10）**：只有「完成」才發既有的 `.dataChanged(.vdot)`／`.dataChanged(.workouts)` 快取失效事件（指標詳情快取與首頁已訂閱）；失敗不發。已產生的課表與回顧 App 不動。
-5. **自動更新最大心率開關（AC-HR-11）**：一個開關，切換即 `PUT /user {auto_update_max_hr}`，不出現重算選單；失敗回滾並顯示錯誤。顯示 `auto_update_max_hr == true`（沒設過顯示為關）。
+5. **自動更新最大心率開關（AC-HR-11）**：一個開關，切換即 `PUT /user {auto_update_max_hr}`，不出現重算選單；失敗回滾並顯示錯誤。顯示 `auto_update_max_hr == true`（沒設過顯示為關；後端沒設過就是關，2026-09-29 裁決）。
 6. **手錶偏差提醒（AC-HR-12、13）**：進頁 `GET /user/heart-rate/watch-check`，有 `reminder` 才顯示「你的手錶最大心率是 X，和設定的 Y 差了 Z%，要不要更新？」，按鈕把最大心率改成手錶值並走一般儲存（於是同樣進第 1 條）；沒有就什麼都不顯示，讀不到也不顯示。Apple Watch／無 Garmin 資料的使用者後端不會回提醒。
+   提醒旁多一個「先不用」：按下呼叫 `POST /user/heart-rate/watch-check/dismiss`，後端記下後兩週內不再出現、兩週後偏差還在就再提醒一次（HZ-INV-19）。呼叫失敗卡片留著，不假裝已忽略。
+   驗法：`test_dismissHidesTheReminderAtOnceAndTellsTheBackend`、`test_dismissFailureKeepsTheReminderSoItComesBackHonestly`、`test_dismissPostsToTheDismissPath`。
+7. **手錶自動更新後的說明與重算入口（HZ-INV-18）**：`watch-check` 回 `auto_update` 時，設定頁多一張卡寫「手錶於 YYYY-MM-DD 自動更新為 193」（日期是後端依使用者時區算好的，App 原樣顯示），卡片裡有「用目前的心率重算過去的跑力」按鈕，開的是第 1 條同一個 14／30／60 天選單與第 2 條同一套進度，不另做一套。自動更新本身不會重算，也不跳選單。使用者自己改過最大心率後後端不再回 `auto_update`，卡片消失。
+   驗法：`test_autoUpdateNoteIsLoadedAndKeptApartFromTheReminder`、`test_watchCheckDecodesReminderAndAutoUpdateNote`。
+8. **最大心率的來源文字（HZ-INV-02）**：最大心率卡下方一行小字，依 `GET /user` 的 `max_hr_source`：`user_set`「你在 Paceriz 設定」、`watch`「手錶自動設定」、`observed`「由跑步紀錄推算」、`system_default`「系統預設」（en：Set by you in Paceriz／Set automatically by your watch／Estimated from your runs／System default；ja：Paceriz で設定／時計が自動設定／ランニング記録から推定／システム既定）。沒有這個欄位或值不認得一律顯示「系統預設」，不 crash。
+   驗法：`test_sourceParsesTheFourValuesAndTreatsUnknownAsSystemDefault`、`test_userProfileDecodesMaxHrSourceAndToleratesUnknownValue`。
 
 ## 還沒做
-- 模擬器手動走查沒做（`iPhone 17 Pro` 是使用者登入中的機器，不能跑測試或清狀態）；UI 只有編譯與 ViewModel／Repository 單元測試證據。
 - Rizo／能力中心「你改了心率所以數字變了」那一句：後端文案已備，iOS 尚未渲染。

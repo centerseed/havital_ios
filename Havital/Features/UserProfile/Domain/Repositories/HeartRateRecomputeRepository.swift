@@ -10,6 +10,9 @@ protocol HeartRateRecomputeRepository {
     /// 最近一次重算工作（進度與結果）；從沒跑過 `job` 為 nil。
     func latestStatus() async throws -> HeartRateRecomputeStatus
 
-    /// 手錶最大心率偏差提醒；沒有就 nil。
-    func watchReminder() async throws -> HeartRateWatchReminder?
+    /// 手錶最大心率偏差提醒＋手錶自動更新說明。
+    func watchCheck() async throws -> HeartRateWatchCheck
+
+    /// 使用者按「先不用」：後端兩週內不再提醒。
+    func dismissWatchReminder() async throws
 }

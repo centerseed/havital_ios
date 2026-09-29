@@ -32,6 +32,9 @@ struct User: Codable {
     /// 「自動更新最大心率」（SPEC-hr-zones HZ-INV-16）；後端沒設過就沒有這欄。
     let autoUpdateMaxHr: Bool?
 
+    /// 最大心率的來源（SPEC-hr-zones HZ-INV-02）；沒有或不認得＝系統預設。
+    let maxHrSource: HeartRateParameterSource
+
     // 自定義解碼方法處理可能的型別轉換
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -93,6 +96,7 @@ struct User: Codable {
         // 熱適應開關
         climateAdjustmentEnabled = try container.decodeIfPresent(Bool.self, forKey: .climateAdjustmentEnabled)
         autoUpdateMaxHr = try container.decodeIfPresent(Bool.self, forKey: .autoUpdateMaxHr)
+        maxHrSource = HeartRateParameterSource(raw: try? container.decodeIfPresent(String.self, forKey: .maxHrSource))
     }
     
     enum CodingKeys: String, CodingKey {
@@ -117,6 +121,7 @@ struct User: Codable {
         case lastRatingPromptDate = "last_rating_prompt_date"
         case climateAdjustmentEnabled = "climate_adjustment_enabled"
         case autoUpdateMaxHr = "auto_update_max_hr"
+        case maxHrSource = "max_hr_source"
     }
 }
 
