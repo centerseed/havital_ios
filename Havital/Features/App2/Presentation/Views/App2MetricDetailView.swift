@@ -698,16 +698,6 @@ private struct App2LevelDetailPage: View {
                 App2HowComputedCard(text: how)
             }
 
-            if let shortfall = App2MetricDetailProjection.levelShortfall(
-                insight: insight, kind: kind
-            ) {
-                App2ExplanationCard(
-                    title: L10n.App2.Metric.levelShortfallTitle.localized,
-                    text: shortfall,
-                    identifier: "App2_MetricLevelShortfall"
-                )
-            }
-
             if let scale = App2MetricDetailProjection.levelScale(insight: insight) {
                 App2Card(spacing: 12) {
                     Text(L10n.App2.Metric.levelScaleTitle.localized)

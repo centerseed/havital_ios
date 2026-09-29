@@ -2686,8 +2686,6 @@ extension L10n {
             static let levelAboutTitle = "app2.metric.level_about_title"
             static let levelAboutAerobic = "app2.metric.level_about_aerobic"
             static let levelAboutSpeed = "app2.metric.level_about_speed"
-            /// `insufficient_data` 才出現的那一塊：把限制句展開成「還差什麼」。
-            static let levelShortfallTitle = "app2.metric.level_shortfall_title"
             static let levelShortfallAerobic = "app2.metric.level_shortfall_aerobic"
             static let levelShortfallSpeed = "app2.metric.level_shortfall_speed"
             /// 分級尺（SPEC-today-state §4.5：35 以下／35–65／65 以上）。

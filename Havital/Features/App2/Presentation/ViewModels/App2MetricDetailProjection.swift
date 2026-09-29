@@ -404,13 +404,18 @@ enum App2MetricDetailProjection {
     }
 
     /// 「怎麼算出來的」（統一版型第 4 塊，預設收合）。能力基準／恢復／訓練量是 app 端寫死的一句；
-    /// 有氧／速度是後端 `basis`（帶實際堂數），照抄，後端沒給就沒有這一段。
+    /// 有氧／速度是後端 `basis`（帶實際堂數），照抄，後端沒給就沒有 basis 那一句。
+    /// 資料不足時，「還差什麼」的說明（`levelShortfall`）接在 basis 之後、同一張卡同一個收合狀態；
+    /// basis 沒有但說明有，這張卡仍出現（只放說明）。
     static func howText(_ kind: App2MetricDetailKind, insight: App2Insight) -> String? {
         switch kind {
         case .capabilityBaseline: return L10n.App2.Metric.howCapability.localized
         case .recoveryIndex: return L10n.App2.Metric.howRecovery.localized
         case .weeklyVolume: return L10n.App2.Metric.howVolume.localized
-        case .aerobicEndurance, .speedEndurance: return levelBasis(insight: insight)
+        case .aerobicEndurance, .speedEndurance:
+            let parts = [levelBasis(insight: insight), levelShortfall(insight: insight, kind: kind)]
+                .compactMap { $0 }
+            return parts.isEmpty ? nil : parts.joined(separator: "\n\n")
         }
     }
 

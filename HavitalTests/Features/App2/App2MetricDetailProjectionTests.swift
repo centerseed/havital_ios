@@ -907,4 +907,28 @@ final class App2MetricDetailProjectionTests: XCTestCase {
     func testHowCardStartsCollapsed() {
         XCTAssertFalse(App2MetricDetailProjection.howCardStartsExpanded)
     }
+
+    // MARK: - 「為什麼還看不準」併進「怎麼算出來的」
+
+    func testInsufficientExplanationJoinsTheBasisInsideTheSameHowText() {
+        let row = insight("aerobic_endurance", basis: "根據近 70 天 3 堂輕鬆跑…", graded: false)
+        let shortfall = App2MetricDetailProjection.levelShortfall(insight: row, kind: .aerobicEndurance)
+        XCTAssertNotNil(shortfall)
+        XCTAssertEqual(App2MetricDetailProjection.howText(.aerobicEndurance, insight: row),
+                       "根據近 70 天 3 堂輕鬆跑…\n\n" + shortfall!)
+    }
+
+    func testInsufficientExplanationAloneStillMakesTheHowCard() {
+        let row = insight("speed_endurance", graded: false)
+        XCTAssertEqual(App2MetricDetailProjection.howText(.speedEndurance, insight: row),
+                       App2MetricDetailProjection.levelShortfall(insight: row, kind: .speedEndurance))
+    }
+
+    func testGradedLevelPageWithoutBasisHasNoHowCard() {
+        XCTAssertNil(App2MetricDetailProjection.howText(
+            .speedEndurance, insight: insight("speed_endurance", value: "60")))
+        XCTAssertEqual(App2MetricDetailProjection.howText(
+            .speedEndurance, insight: insight("speed_endurance", value: "60", basis: "B")), "B",
+            "已評級時只有 basis，不接不足說明")
+    }
 }
