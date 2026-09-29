@@ -63,8 +63,8 @@ final class App2CancellationTests: XCTestCase {
         }
     }
 
-    private final class HangingHealthSource: HealthDailyDataSourceProtocol {
-        func fetchHealthDaily(limit: Int) async throws -> HealthDailyResponse {
+    private final class HangingSeriesSource: AthleteStateSeriesDataSourceProtocol {
+        func fetchMetricSeries(startDay: String, endDay: String) async throws -> AthleteStateSeriesResponse {
             try await Task.sleep(nanoseconds: 60 * 1_000_000_000)
             throw CancellationError()
         }
@@ -77,14 +77,14 @@ final class App2CancellationTests: XCTestCase {
         }
     }
 
-    // MARK: - 訓練量詳情：stats 成功、health 被取消 → 不發布
+    // MARK: - 訓練量詳情：stats 成功、series 被取消 → 不發布
 
     func test_volumeDetail_cancelledLoadDoesNotPublish() async {
         let vm = App2VolumeDetailViewModel(
             insight: App2Insight(id: "volume", label: "訓練量", value: nil, direction: .unknown, verdict: nil),
             narrative: nil,
             workoutDataSource: ImmediateStatsSource(),
-            healthDataSource: HangingHealthSource(), seriesDataSource: App2EmptySeriesSource(),
+            seriesDataSource: HangingSeriesSource(),
             planRepository: nil
         )
 
@@ -232,12 +232,6 @@ final class App2CancellationTests: XCTestCase {
         )
     }
 
-    private final class CancelledHealthSource: HealthDailyDataSourceProtocol {
-        func fetchHealthDaily(limit: Int) async throws -> HealthDailyResponse {
-            throw URLError(.cancelled)
-        }
-    }
-
     private final class CancelledVdotSource: VDOTDataSourceProtocol {
         func getVDOTs(limit: Int) async throws -> VDOTResponse {
             throw URLError(.cancelled)
@@ -324,18 +318,18 @@ final class App2CancellationTests: XCTestCase {
         XCTAssertFalse(vm.hasLoaded)
     }
 
-    func test_volumeDetail_cancelledHealthLoad_doesNotPublishNorMarkLoaded() async {
+    func test_volumeDetail_cancelledSeriesLoad_doesNotPublishNorMarkLoaded() async {
         let vm = App2VolumeDetailViewModel(
             insight: App2Insight(id: "volume", label: "訓練量", value: nil, direction: .unknown, verdict: nil),
             narrative: nil,
             workoutDataSource: ImmediateStatsSource(),
-            healthDataSource: CancelledHealthSource(), seriesDataSource: App2EmptySeriesSource(),
+            seriesDataSource: CancelledAthleteStateSeriesDataSource(),
             planRepository: nil
         )
 
         await vm.revalidate()
 
-        XCTAssertNil(vm.detail, "stats 成功、health 被取消＝部分取消，不得發布")
+        XCTAssertNil(vm.detail, "stats 成功、series 被取消＝部分取消，不得發布")
         XCTAssertFalse(vm.hasLoaded)
     }
 
@@ -746,8 +740,8 @@ final class App2CancellationTests: XCTestCase {
         }
     }
 
-    private final class FailingHealthSource: HealthDailyDataSourceProtocol {
-        func fetchHealthDaily(limit: Int) async throws -> HealthDailyResponse {
+    private final class FailingSeriesSource: AthleteStateSeriesDataSourceProtocol {
+        func fetchMetricSeries(startDay: String, endDay: String) async throws -> AthleteStateSeriesResponse {
             throw NSError(domain: "test", code: 1)
         }
     }
@@ -758,7 +752,7 @@ final class App2CancellationTests: XCTestCase {
             insight: App2Insight(id: "volume", label: "訓練量", value: nil, direction: .unknown, verdict: nil),
             narrative: nil,
             workoutDataSource: source,
-            healthDataSource: FailingHealthSource(), seriesDataSource: App2EmptySeriesSource(),
+            seriesDataSource: FailingSeriesSource(),
             planRepository: nil
         )
 
@@ -785,7 +779,7 @@ final class App2CancellationTests: XCTestCase {
             insight: App2Insight(id: "volume", label: "訓練量", value: nil, direction: .unknown, verdict: nil),
             narrative: nil,
             workoutDataSource: source,
-            healthDataSource: FailingHealthSource(), seriesDataSource: App2EmptySeriesSource(),
+            seriesDataSource: FailingSeriesSource(),
             planRepository: nil
         )
         weak var weakVM = vm

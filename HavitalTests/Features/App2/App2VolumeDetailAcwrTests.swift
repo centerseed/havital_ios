@@ -42,15 +42,6 @@ final class App2VolumeDetailAcwrTests: XCTestCase {
         }
     }
 
-    private final class EmptyHealthSource: HealthDailyDataSourceProtocol {
-        func fetchHealthDaily(limit: Int) async throws -> HealthDailyResponse {
-            try JSONDecoder().decode(
-                HealthDailyResponse.self,
-                from: Data(#"{ "health_data": [], "count": 0, "limit": 28 }"#.utf8)
-            )
-        }
-    }
-
     private final class RecordingSeriesSource: AthleteStateSeriesDataSourceProtocol {
         var response: AthleteStateSeriesResponse
         var error: Error?
@@ -104,7 +95,6 @@ final class App2VolumeDetailAcwrTests: XCTestCase {
             narrative: narrative,
             asof: "2026-09-06",
             workoutDataSource: StatsSource(),
-            healthDataSource: EmptyHealthSource(),
             seriesDataSource: series,
             planRepository: planRepository,
             cache: App2MetricDetailCache()

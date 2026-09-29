@@ -71,20 +71,15 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
     /// 卡片的使用者當地業務日：30 天負荷比序列的窗右端（同 T-0617 兩格的作法）。
     private let asof: String?
     private let workoutDataSource: WorkoutStatsDataSourceProtocol
-    private let healthDataSource: HealthDailyDataSourceProtocol
     private let seriesDataSource: AthleteStateSeriesDataSourceProtocol
     private let planRepository: TrainingPlanV2Repository?
     private let cache: App2MetricDetailCache
-
-    /// health_daily 取數窗。
-    private static let loadWindowDays = 60
 
     init(
         insight: App2Insight,
         narrative: String?,
         asof: String? = nil,
         workoutDataSource: WorkoutStatsDataSourceProtocol? = nil,
-        healthDataSource: HealthDailyDataSourceProtocol? = nil,
         seriesDataSource: AthleteStateSeriesDataSourceProtocol? = nil,
         planRepository: TrainingPlanV2Repository? = nil,
         cache: App2MetricDetailCache = .shared
@@ -93,7 +88,6 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         self.narrative = narrative
         self.asof = asof
         self.workoutDataSource = workoutDataSource ?? WorkoutRemoteDataSource()
-        self.healthDataSource = healthDataSource ?? HealthDailyRemoteDataSource()
         self.seriesDataSource = seriesDataSource ?? AthleteStateSeriesRemoteDataSource()
         self.cache = cache
         if let planRepository {
@@ -198,33 +192,29 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         }
 
         do {
-            // 四個請求互相獨立，並行打（4 RTT → 1 RTT，T-0357）。
+            // 三個請求互相獨立，並行打（T-0357）。
             async let statsAsync = workoutDataSource.fetchWorkoutStats(
                 days: 30,
                 weeks: requestedRange.weeksParameter()
             )
-            async let healthAsync = fetchHealthOptional()
             async let seriesAsync = fetchSeriesOptional()
             async let targetAsync = targetWeeklyKm()
 
             let stats = try await statsAsync
-            let healthOutcome = await healthAsync
             let seriesOutcome = await seriesAsync
             let targetKm = await targetAsync
 
-            // 負荷比線、CTL/ATL/TSB 三欄與目標線各自可缺席：**真失敗**只是少那一塊；
+            // 負荷比線與目標線各自可缺席：**真失敗**只是少那一塊；
             // 取消（含 -999 取消錯誤，Task.isCancelled 可能是 false）＝整輪作廢不發布
             //（外審 E03）。
-            if case .cancelled = healthOutcome { return }
             if case .cancelled = seriesOutcome { return }
             if Task.isCancelled { return }
             guard isCurrentRound(round, requestedRange) else { return }
 
             let previous = cache.volume[requestedRange]
-            let partialFailure = healthOutcome.hasFailed || seriesOutcome.hasFailed
+            let partialFailure = seriesOutcome.hasFailed
             let payload = App2MetricDetailCache.VolumePayload(
                 stats: stats,
-                health: healthOutcome.hasFailed ? previous?.payload.health : healthOutcome.response,
                 targetKm: targetKm,
                 series: seriesOutcome.hasFailed ? previous?.payload.series : seriesOutcome.response
             )
@@ -260,30 +250,6 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
         revalidateRoundTask?.cancel()
         revalidateRoundTask = nil
         revalidateGeneration += 1
-    }
-
-    private enum HealthOutcome {
-        case ok(HealthDailyResponse?)
-        case cancelled
-        case failed
-
-        var hasFailed: Bool {
-            if case .failed = self { return true }
-            return false
-        }
-
-        var response: HealthDailyResponse? {
-            if case .ok(let response) = self { return response }
-            return nil
-        }
-    }
-
-    private func fetchHealthOptional() async -> HealthOutcome {
-        do {
-            return .ok(try await healthDataSource.fetchHealthDaily(limit: Self.loadWindowDays))
-        } catch {
-            return error.isCancellationError ? .cancelled : .failed
-        }
     }
 
     private enum SeriesOutcome {
@@ -334,8 +300,7 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
                 acwr: payload.series.flatMap(App2MetricDetailProjection.acwrBlock)
             ),
             origin: .live(endpoint:
-                "GET /v2/workouts/stats + GET /v2/workouts/health_daily"
-                + " + GET /v2/athlete-state/metrics/series")
+                "GET /v2/workouts/stats + GET /v2/athlete-state/metrics/series")
         )
     }
 
