@@ -8,6 +8,13 @@ import SwiftUI
 /// 語意／端點對照仍是 `DESIGN-app2-decision-chain-api.md` §3.1／§3.1a／§3.2。
 struct App2HomeView: View {
 
+    @MainActor
+    static func retryHomeHeartRateUpdate(
+        using recompute: App2HeartRateRecomputeViewModel
+    ) async {
+        await recompute.retryLastError()
+    }
+
     /// 設定入口 —— 首頁是右上角的 LV 六角徽章（其他頁是頭像）。
     let onOpenSettings: () -> Void
     /// 週回顧頁產出課表之後，把使用者送到課表分頁的那一週（AC-TRAIN-HUB-19）。
@@ -313,7 +320,7 @@ struct App2HomeView: View {
 
     private var retryLastErrorButton: some View {
         Button(NSLocalizedString("app2.hr_recompute.retry", comment: "")) {
-            Task { await heartRateRecompute.retryLastError() }
+            Task { await Self.retryHomeHeartRateUpdate(using: heartRateRecompute) }
         }
         .font(.system(size: 14, weight: .semibold))
         .accessibilityIdentifier("App2_HomeHeartRateUpdateRetry")

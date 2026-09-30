@@ -10,6 +10,14 @@ import SwiftUI
 ///   讀回來的也是同一組，所以存完重進來看到的是新值）。
 struct App2HeartRateZoneSettingsView: View {
 
+    @MainActor
+    static func applySettingsSaveResult(
+        _ changed: Bool,
+        recompute: App2HeartRateRecomputeViewModel
+    ) -> Bool {
+        recompute.applyBackendSaveResult(changed)
+    }
+
     let onClose: () -> Void
     @ObservedObject var viewModel: App2SettingsViewModel
 
@@ -400,12 +408,11 @@ struct App2HeartRateZoneSettingsView: View {
             }
             // 存永遠先成功；「有沒有變」只看後端。變了就問一次要不要重算，沒變照舊收頁。
             await recompute.loadWatchCheck()
-            if changed {
-                closeAfterPrompt = true
-                recompute.offerAfterSave(changed: true)
-            } else {
+            guard Self.applySettingsSaveResult(changed, recompute: recompute) else {
                 onClose()
+                return
             }
+            closeAfterPrompt = true
         }
     }
 }
