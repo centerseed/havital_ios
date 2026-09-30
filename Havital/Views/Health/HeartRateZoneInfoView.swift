@@ -7,6 +7,14 @@ enum HeartRateViewMode {
 }
 
 struct HeartRateZoneInfoView: View {
+
+    @MainActor
+    static func applyProfileSaveResult(
+        _ changed: Bool,
+        recompute: App2HeartRateRecomputeViewModel
+    ) -> Bool {
+        recompute.applyBackendSaveResult(changed)
+    }
     @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel = UserProfileFeatureViewModel()
     @State private var maxHeartRate: Int = 190
@@ -497,7 +505,7 @@ struct HeartRateZoneInfoView: View {
                 // Profile 模式：存檔成功後只依後端 changed 決定是否詢問重算。
                 closeAfterRecomputePrompt = true
                 await recompute.loadWatchCheck()
-                guard recompute.applyBackendSaveResult(changed) else {
+                guard Self.applyProfileSaveResult(changed, recompute: recompute) else {
                     dismiss()
                     return
                 }

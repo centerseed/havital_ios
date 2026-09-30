@@ -73,7 +73,8 @@ final class App2HeartRateRecomputeViewModelTests: XCTestCase {
 
     func test_unchangedBackendSaveDoesNotPresentPrompt() {
         let vm = makeVM(FakeRepo())
-        XCTAssertFalse(vm.applyBackendSaveResult(false))
+        XCTAssertFalse(App2HeartRateZoneSettingsView.applySettingsSaveResult(false, recompute: vm))
+        XCTAssertFalse(HeartRateZoneInfoView.applyProfileSaveResult(false, recompute: vm))
         XCTAssertFalse(vm.isPromptPresented)
     }
 
@@ -226,7 +227,7 @@ final class App2HeartRateRecomputeViewModelTests: XCTestCase {
 
         XCTAssertFalse(vm.isPromptPresented)
         XCTAssertEqual(vm.errorMessage, NSLocalizedString("error.unknown", comment: ""))
-        await vm.retryLastError()
+        await App2HomeView.retryHomeHeartRateUpdate(using: vm)
         XCTAssertEqual(attempts, 2)
         XCTAssertTrue(vm.isPromptPresented)
         XCTAssertNil(vm.errorMessage)
@@ -235,7 +236,9 @@ final class App2HeartRateRecomputeViewModelTests: XCTestCase {
     func test_backendSaveResultChangedOffersPromptForProfileSavePath() {
         let vm = makeVM(FakeRepo())
 
-        XCTAssertTrue(vm.applyBackendSaveResult(true))
+        XCTAssertTrue(App2HeartRateZoneSettingsView.applySettingsSaveResult(true, recompute: vm))
+        vm.isPromptPresented = false
+        XCTAssertTrue(HeartRateZoneInfoView.applyProfileSaveResult(true, recompute: vm))
         XCTAssertTrue(vm.isPromptPresented)
     }
 
