@@ -501,7 +501,7 @@ struct HeartRateZoneInfoView: View {
                 }
                 closeAfterRecomputePrompt = true
                 await recompute.loadWatchCheck()
-                recompute.offerAfterSave(changed: changed)
+                _ = recompute.applyBackendSaveResult(changed)
             }
 
         } catch {

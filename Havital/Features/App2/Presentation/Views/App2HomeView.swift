@@ -285,7 +285,7 @@ struct App2HomeView: View {
         if let errorMessage = heartRateRecompute.errorMessage {
             App2Card(spacing: 8) {
                 statusLine(errorMessage)
-                retryButton
+                retryLastErrorButton
             }
         }
 
@@ -307,18 +307,26 @@ struct App2HomeView: View {
                 }
                 statusLine(message ?? fallbackText(for: job))
                 if job.status == .failed {
-                    retryButton
+                    recomputeRangeRetryButton
                 }
             }
         case .failed(let text):
             App2Card(spacing: 8) {
                 statusLine(text)
-                retryButton
+                recomputeRangeRetryButton
             }
         }
     }
 
-    private var retryButton: some View {
+    private var retryLastErrorButton: some View {
+        Button(NSLocalizedString("app2.hr_recompute.retry", comment: "")) {
+            Task { await heartRateRecompute.retryLastError() }
+        }
+        .font(.system(size: 14, weight: .semibold))
+        .accessibilityIdentifier("App2_HomeHeartRateUpdateRetry")
+    }
+
+    private var recomputeRangeRetryButton: some View {
         Button(NSLocalizedString("app2.hr_recompute.retry", comment: "")) {
             heartRateRecompute.isPromptPresented = true
         }
