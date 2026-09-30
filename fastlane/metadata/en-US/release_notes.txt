@@ -1,3 +1,3 @@
-• New "Why this week looks like this" on the Plan tab — tap to see the reasoning behind your week
-• Tap fitness charts to see each day's values, plus a new fatigue balance (TSB) chart and personal best details
+• Redesigned metric detail pages: the takeaway comes first, with the trend chart, explanation and calculation method on one page
+• After changing your max heart rate, you can recalculate your VDOT; we'll also let you know when your watch's heart rate differs a lot from your settings
 Other fixes and improvements.
