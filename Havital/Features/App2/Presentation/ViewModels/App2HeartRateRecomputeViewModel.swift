@@ -32,6 +32,7 @@ final class App2HeartRateRecomputeViewModel: ObservableObject {
     private let updateWatchMaxHR: ((Int) async -> Bool?)?
     private let onFinished: () -> Void
     private let pollSleep: () async -> Void
+    private var retryAction: (() async -> Void)?
 
     init(
         repository: HeartRateRecomputeRepository,
@@ -75,9 +76,19 @@ final class App2HeartRateRecomputeViewModel: ObservableObject {
         isPromptPresented = true
     }
 
+    /// 共用說明頁與首頁的後端 `heart_rate.changed` 決策；`false` 只代表存檔成功但不用重算。
+    @discardableResult
+    func applyBackendSaveResult(_ changed: Bool) -> Bool {
+        errorMessage = nil
+        retryAction = nil
+        offerAfterSave(changed: changed)
+        return changed
+    }
+
     /// 首頁提醒的「更新」直接沿用 profile repository 的 PUT；回傳值仍只採用後端
     /// `heart_rate.changed`，不由 App 自己比較數字。
     func applyWatchMaxHR(_ maxHR: Int) async {
+        retryAction = { [weak self] in await self?.applyWatchMaxHR(maxHR) }
         guard let updateWatchMaxHR else {
             errorMessage = NSLocalizedString("error.unknown", comment: "")
             return
@@ -87,7 +98,13 @@ final class App2HeartRateRecomputeViewModel: ObservableObject {
             return
         }
         await loadWatchCheck()
-        offerAfterSave(changed: changed)
+        _ = applyBackendSaveResult(changed)
+    }
+
+    /// PUT／忽略提醒失敗時重試原請求；不會把錯誤狀態誤當成可重算的範圍選擇。
+    func retryLastError() async {
+        guard let retryAction else { return }
+        await retryAction()
     }
 
     /// 範圍選單的順序：14／30／60 天，最後是明確的「不重算」（iPhone 的 cancel 角色按鈕看不到）。
@@ -106,6 +123,8 @@ final class App2HeartRateRecomputeViewModel: ObservableObject {
     func choose(_ days: HeartRateRecomputeDays?) async {
         isPromptPresented = false
         guard let days, canStart else { return }
+        errorMessage = nil
+        retryAction = nil
         phase = .starting
         do {
             switch try await repository.startRecompute(days: days) {
@@ -168,9 +187,12 @@ final class App2HeartRateRecomputeViewModel: ObservableObject {
 
     /// 「先不用」：後端記下來才收起卡片；失敗就留著，不假裝已忽略。
     func dismissReminder() async {
+        retryAction = { [weak self] in await self?.dismissReminder() }
         do {
             try await repository.dismissWatchReminder()
             reminder = nil
+            errorMessage = nil
+            retryAction = nil
         } catch {
             errorMessage = NSLocalizedString("error.unknown", comment: "")
         }

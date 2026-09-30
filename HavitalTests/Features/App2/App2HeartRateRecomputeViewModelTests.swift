@@ -73,7 +73,7 @@ final class App2HeartRateRecomputeViewModelTests: XCTestCase {
 
     func test_unchangedBackendSaveDoesNotPresentPrompt() {
         let vm = makeVM(FakeRepo())
-        vm.offerAfterSave(changed: false)
+        XCTAssertFalse(vm.applyBackendSaveResult(false))
         XCTAssertFalse(vm.isPromptPresented)
     }
 
@@ -202,12 +202,27 @@ final class App2HeartRateRecomputeViewModelTests: XCTestCase {
     }
 
     func test_homeReminderUpdateFailureLeavesAnObservableError() async {
-        let vm = makeVM(FakeRepo(), updateWatchMaxHR: { _ in nil })
+        var attempts = 0
+        let vm = makeVM(FakeRepo(), updateWatchMaxHR: { _ in
+            attempts += 1
+            return attempts == 1 ? nil : true
+        })
 
         await vm.applyWatchMaxHR(180)
 
         XCTAssertFalse(vm.isPromptPresented)
         XCTAssertEqual(vm.errorMessage, NSLocalizedString("error.unknown", comment: ""))
+        await vm.retryLastError()
+        XCTAssertEqual(attempts, 2)
+        XCTAssertTrue(vm.isPromptPresented)
+        XCTAssertNil(vm.errorMessage)
+    }
+
+    func test_backendSaveResultChangedOffersPromptForProfileSavePath() {
+        let vm = makeVM(FakeRepo())
+
+        XCTAssertTrue(vm.applyBackendSaveResult(true))
+        XCTAssertTrue(vm.isPromptPresented)
     }
 
     func test_pollFailureStopsPollingAndIsReported() async {
