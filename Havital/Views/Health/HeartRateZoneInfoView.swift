@@ -140,6 +140,7 @@ struct HeartRateZoneInfoView: View {
                     zoneSpectrumBar
                     zoneList
                     saveButton
+                    recomputeStatus
                 }
             }
             .padding(.vertical, 16)
@@ -475,15 +476,13 @@ struct HeartRateZoneInfoView: View {
         viewModel.updateHeartRateData(maxHR: maxHeartRate, restingHR: restingHeartRate)
 
         do {
-            let userData = [
-                "max_hr": maxHeartRate,
-                "relaxing_hr": restingHeartRate
-            ] as [String : Any]
-
-            let didUpdate = await viewModel.updateUserProfile(userData)
+            let changed = await viewModel.updateHeartRateZones(
+                maxHR: maxHeartRate,
+                restingHR: restingHeartRate
+            )
 
             isSaving = false
-            guard didUpdate else {
+            guard let changed else {
                 alertMessage = NSLocalizedString("hr_zone.save_failed_generic", comment: "Save failed")
                 showingAlert = true
                 return
@@ -496,9 +495,13 @@ struct HeartRateZoneInfoView: View {
                 onboardingCoordinator.navigate(to: .personalBest)
             } else {
                 // Profile 模式：存檔成功後仍要讓使用者選擇是否重算過去跑力。
+                guard changed else {
+                    dismiss()
+                    return
+                }
                 closeAfterRecomputePrompt = true
                 await recompute.loadWatchCheck()
-                recompute.offerAfterSave(changed: true)
+                recompute.offerAfterSave(changed: changed)
             }
 
         } catch {
@@ -506,6 +509,44 @@ struct HeartRateZoneInfoView: View {
             alertMessage = String(format: NSLocalizedString("hr_zone.save_failed", comment: "Save failed"), error.localizedDescription)
             showingAlert = true
         }
+    }
+
+    @ViewBuilder
+    private var recomputeStatus: some View {
+        switch recompute.phase {
+        case .idle:
+            EmptyView()
+        case .starting:
+            recomputeStatusLine(NSLocalizedString("app2.hr_recompute.starting", comment: ""))
+        case .notice(let text):
+            recomputeStatusLine(text)
+        case .job(let job, let message):
+            VStack(alignment: .leading, spacing: 8) {
+                if job.isActive, job.total > 0 {
+                    ProgressView(value: Double(job.done), total: Double(job.total))
+                }
+                recomputeStatusLine(message ?? (job.status == .queued
+                    ? NSLocalizedString("app2.hr_recompute.queued", comment: "")
+                    : "\(job.done)/\(job.total)"))
+            }
+        case .failed(let text):
+            VStack(alignment: .leading, spacing: 8) {
+                recomputeStatusLine(text)
+                Button(NSLocalizedString("app2.hr_recompute.retry", comment: "")) {
+                    recompute.isPromptPresented = true
+                }
+                .font(.system(size: 14, weight: .semibold))
+                .accessibilityIdentifier("HeartRateZoneRecomputeRetry")
+            }
+        }
+    }
+
+    private func recomputeStatusLine(_ text: String) -> some View {
+        Text(text)
+            .font(.footnote.weight(.semibold))
+            .foregroundColor(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("HeartRateZoneRecomputeStatus")
     }
 
     private func zoneColor(for zone: Int) -> Color {

@@ -29,6 +29,7 @@ final class App2HeartRateRecomputeViewModel: ObservableObject {
 
     private let repository: HeartRateRecomputeRepository
     private let updateProfile: ([String: Any]) async -> Bool
+    private let updateWatchMaxHR: ((Int) async -> Bool?)?
     private let onFinished: () -> Void
     private let pollSleep: () async -> Void
 
@@ -36,12 +37,14 @@ final class App2HeartRateRecomputeViewModel: ObservableObject {
         repository: HeartRateRecomputeRepository,
         autoUpdateMaxHR: Bool,
         updateProfile: @escaping ([String: Any]) async -> Bool,
+        updateWatchMaxHR: ((Int) async -> Bool?)? = nil,
         onFinished: @escaping () -> Void = App2HeartRateRecomputeViewModel.publishDownstreamRefresh,
         pollSleep: @escaping () async -> Void = { try? await Task.sleep(nanoseconds: 3_000_000_000) }
     ) {
         self.repository = repository
         self.autoUpdateMaxHR = autoUpdateMaxHR
         self.updateProfile = updateProfile
+        self.updateWatchMaxHR = updateWatchMaxHR
         self.onFinished = onFinished
         self.pollSleep = pollSleep
     }
@@ -70,6 +73,21 @@ final class App2HeartRateRecomputeViewModel: ObservableObject {
     func offerAfterSave(changed: Bool) {
         guard changed else { return }
         isPromptPresented = true
+    }
+
+    /// 首頁提醒的「更新」直接沿用 profile repository 的 PUT；回傳值仍只採用後端
+    /// `heart_rate.changed`，不由 App 自己比較數字。
+    func applyWatchMaxHR(_ maxHR: Int) async {
+        guard let updateWatchMaxHR else {
+            errorMessage = NSLocalizedString("error.unknown", comment: "")
+            return
+        }
+        guard let changed = await updateWatchMaxHR(maxHR) else {
+            errorMessage = NSLocalizedString("error.unknown", comment: "")
+            return
+        }
+        await loadWatchCheck()
+        offerAfterSave(changed: changed)
     }
 
     /// 範圍選單的順序：14／30／60 天，最後是明確的「不重算」（iPhone 的 cancel 角色按鈕看不到）。

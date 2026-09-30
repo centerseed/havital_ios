@@ -56,7 +56,21 @@ struct App2HomeView: View {
     @StateObject private var heartRateRecompute = App2HeartRateRecomputeViewModel(
         repository: DependencyContainer.shared.resolve() as HeartRateRecomputeRepository,
         autoUpdateMaxHR: false,
-        updateProfile: { _ in false }
+        updateProfile: { _ in false },
+        updateWatchMaxHR: { newMaxHR in
+            do {
+                let profileRepository = DependencyContainer.shared.resolve() as UserProfileRepository
+                let profile = try await profileRepository.getUserProfile()
+                guard let restingHR = profile.relaxingHr else { return nil }
+                let result = try await profileRepository.updateHeartRateZones(
+                    maxHR: newMaxHR,
+                    restingHR: restingHR
+                )
+                return result.changed
+            } catch {
+                return nil
+            }
+        }
     )
     /// 編輯週課表（「…」選單的「修改課表」，設計 frame-03～09）。
     @State private var isShowingPlanEdit = false
@@ -109,6 +123,26 @@ struct App2HomeView: View {
             await viewModel.loadIfNeeded()
             await heartRateRecompute.loadWatchCheck()
             await heartRateRecompute.refresh()
+        }
+        .confirmationDialog(
+            NSLocalizedString("app2.hr_recompute.prompt_title", comment: ""),
+            isPresented: $heartRateRecompute.isPromptPresented,
+            titleVisibility: .visible
+        ) {
+            ForEach(App2HeartRateRecomputeViewModel.promptChoices, id: \.self) { choice in
+                switch choice {
+                case .days(let days):
+                    Button(Self.heartRateRecomputeTitle(for: days)) {
+                        Task { await heartRateRecompute.choose(days) }
+                    }
+                case .skip:
+                    Button(NSLocalizedString("app2.hr_recompute.no_recompute", comment: "")) {
+                        Task { await heartRateRecompute.choose(.skip) }
+                    }
+                }
+            }
+        } message: {
+            Text(NSLocalizedString("app2.hr_recompute.prompt_message", comment: ""))
         }
         // 下拉刷新＝強制重驗（跳過 60 秒門檻）。不清畫面、不進 loading。
         .refreshable { await viewModel.forceRefresh() }
@@ -226,11 +260,12 @@ struct App2HomeView: View {
                 .foregroundStyle(App2Theme.inkPrimary)
                 .fixedSize(horizontal: false, vertical: true)
                 Button {
-                    onOpenSettings()
+                    Task { await heartRateRecompute.applyWatchMaxHR(reminder.watchMaxHr) }
                 } label: {
                     Text(String(format: NSLocalizedString("app2.hr_recompute.reminder_action", comment: ""), reminder.watchMaxHr))
                         .font(.system(size: 14, weight: .heavy))
                 }
+                .disabled(!heartRateRecompute.canStart)
                 .accessibilityIdentifier("App2_HomeHeartRateReminderUpdate")
                 Button {
                     Task { await heartRateRecompute.dismissReminder() }
@@ -241,6 +276,14 @@ struct App2HomeView: View {
                 .accessibilityIdentifier("App2_HomeHeartRateReminderDismiss")
             }
             .accessibilityIdentifier("App2_HomeHeartRateReminder")
+        }
+    }
+
+    private static func heartRateRecomputeTitle(for days: HeartRateRecomputeDays) -> String {
+        switch days {
+        case .fourteen: return NSLocalizedString("app2.hr_recompute.days_14", comment: "")
+        case .thirty: return NSLocalizedString("app2.hr_recompute.days_30", comment: "")
+        case .sixty: return NSLocalizedString("app2.hr_recompute.days_60", comment: "")
         }
     }
 
