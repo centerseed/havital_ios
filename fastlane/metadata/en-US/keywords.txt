@@ -1,1 +1,1 @@
-running,marathon,half marathon,training plan,coach,pace,heart rate,garmin,5k,10k,jogging
+marathon,half marathon,pace,intervals,long run,tempo,sub4,5k,10k,recovery,personal record
