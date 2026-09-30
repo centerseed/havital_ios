@@ -494,14 +494,13 @@ struct HeartRateZoneInfoView: View {
                 // Onboarding 模式：檢查是否需要顯示 backfill 提示並導航
                 onboardingCoordinator.navigate(to: .personalBest)
             } else {
-                // Profile 模式：存檔成功後仍要讓使用者選擇是否重算過去跑力。
-                guard changed else {
+                // Profile 模式：存檔成功後只依後端 changed 決定是否詢問重算。
+                closeAfterRecomputePrompt = true
+                await recompute.loadWatchCheck()
+                guard recompute.applyBackendSaveResult(changed) else {
                     dismiss()
                     return
                 }
-                closeAfterRecomputePrompt = true
-                await recompute.loadWatchCheck()
-                _ = recompute.applyBackendSaveResult(changed)
             }
 
         } catch {

@@ -58,18 +58,11 @@ struct App2HomeView: View {
         autoUpdateMaxHR: false,
         updateProfile: { _ in false },
         updateWatchMaxHR: { newMaxHR in
-            do {
-                let profileRepository = DependencyContainer.shared.resolve() as UserProfileRepository
-                let profile = try await profileRepository.getUserProfile()
-                guard let restingHR = profile.relaxingHr else { return nil }
-                let result = try await profileRepository.updateHeartRateZones(
-                    maxHR: newMaxHR,
-                    restingHR: restingHR
-                )
-                return result.changed
-            } catch {
-                return nil
-            }
+            let profileRepository = DependencyContainer.shared.resolve() as UserProfileRepository
+            return await App2HeartRateRecomputeViewModel.updateWatchMaxHR(
+                using: profileRepository,
+                maxHR: newMaxHR
+            )
         }
     )
     /// 編輯週課表（「…」選單的「修改課表」，設計 frame-03～09）。
