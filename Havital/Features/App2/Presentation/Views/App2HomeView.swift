@@ -52,6 +52,12 @@ struct App2HomeView: View {
     @StateObject private var announcementViewModel = AnnouncementViewModel(
         repository: DependencyContainer.shared.resolve()
     )
+    /// 首頁也要呈現手錶心率偏差提醒；更新動作沿用設定頁，避免首頁另寫一條 profile write path。
+    @StateObject private var heartRateRecompute = App2HeartRateRecomputeViewModel(
+        repository: DependencyContainer.shared.resolve() as HeartRateRecomputeRepository,
+        autoUpdateMaxHR: false,
+        updateProfile: { _ in false }
+    )
     /// 編輯週課表（「…」選單的「修改課表」，設計 frame-03～09）。
     @State private var isShowingPlanEdit = false
     /// 指標第二層（checklist §51–53）。nil = 沒開。
@@ -86,6 +92,7 @@ struct App2HomeView: View {
                 }
                 weeklyReviewRow
                 garminHistoryPromptCard
+                heartRateReminderCard
             }
             .padding(.horizontal, App2Theme.pagePadding)
             .padding(.top, 4)
@@ -100,6 +107,8 @@ struct App2HomeView: View {
             // `loadIfNeeded` 有 SWR 門檻，成就 tab 進過就不會再打一次。
             Task { await achievementsViewModel.loadIfNeeded() }
             await viewModel.loadIfNeeded()
+            await heartRateRecompute.loadWatchCheck()
+            await heartRateRecompute.refresh()
         }
         // 下拉刷新＝強制重驗（跳過 60 秒門檻）。不清畫面、不進 loading。
         .refreshable { await viewModel.forceRefresh() }
@@ -202,6 +211,36 @@ struct App2HomeView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.hidden)
             .presentationCornerRadius(26)
+        }
+    }
+
+    @ViewBuilder
+    private var heartRateReminderCard: some View {
+        if let reminder = heartRateRecompute.reminder {
+            App2Card(spacing: 10) {
+                Text(String(
+                    format: NSLocalizedString("app2.hr_recompute.reminder_text", comment: ""),
+                    reminder.watchMaxHr, reminder.profileMaxHr, reminder.deviationPct
+                ))
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(App2Theme.inkPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                Button {
+                    onOpenSettings()
+                } label: {
+                    Text(String(format: NSLocalizedString("app2.hr_recompute.reminder_action", comment: ""), reminder.watchMaxHr))
+                        .font(.system(size: 14, weight: .heavy))
+                }
+                .accessibilityIdentifier("App2_HomeHeartRateReminderUpdate")
+                Button {
+                    Task { await heartRateRecompute.dismissReminder() }
+                } label: {
+                    Text(NSLocalizedString("app2.hr_recompute.reminder_dismiss", comment: ""))
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                .accessibilityIdentifier("App2_HomeHeartRateReminderDismiss")
+            }
+            .accessibilityIdentifier("App2_HomeHeartRateReminder")
         }
     }
 

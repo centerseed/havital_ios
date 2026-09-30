@@ -17,6 +17,12 @@ struct HeartRateZoneInfoView: View {
     @State private var isSaving = false
     @State private var navigateToPersonalBest = false
     @State private var navigateToBackfillPrompt = false
+    @State private var closeAfterRecomputePrompt = false
+    @StateObject private var recompute = App2HeartRateRecomputeViewModel(
+        repository: DependencyContainer.shared.resolve() as HeartRateRecomputeRepository,
+        autoUpdateMaxHR: false,
+        updateProfile: { _ in false }
+    )
 
     /// 心率區間從目前的最大/靜息心率即時計算 — picker 一變動，下方區間就跟著更新。
     private var zones: [HeartRateZone] {
@@ -79,7 +85,45 @@ struct HeartRateZoneInfoView: View {
             }
             .task {
                 await loadZoneData()
+                if !isOnboardingMode {
+                    await recompute.loadWatchCheck()
+                    await recompute.refresh()
+                }
             }
+            .confirmationDialog(
+                NSLocalizedString("app2.hr_recompute.prompt_title", comment: ""),
+                isPresented: $recompute.isPromptPresented,
+                titleVisibility: .visible
+            ) {
+                ForEach(App2HeartRateRecomputeViewModel.promptChoices, id: \.self) { choice in
+                    switch choice {
+                    case .days(let days):
+                        Button(Self.recomputeTitle(for: days)) {
+                            closeAfterRecomputePrompt = false
+                            Task { await recompute.choose(days) }
+                        }
+                    case .skip:
+                        Button(NSLocalizedString("app2.hr_recompute.no_recompute", comment: "")) {
+                            let shouldClose = closeAfterRecomputePrompt
+                            closeAfterRecomputePrompt = false
+                            Task {
+                                await recompute.choose(.skip)
+                                if shouldClose { dismiss() }
+                            }
+                        }
+                    }
+                }
+            } message: {
+                Text(NSLocalizedString("app2.hr_recompute.prompt_message", comment: ""))
+            }
+    }
+
+    private static func recomputeTitle(for days: HeartRateRecomputeDays) -> String {
+        switch days {
+        case .fourteen: return NSLocalizedString("app2.hr_recompute.days_14", comment: "")
+        case .thirty: return NSLocalizedString("app2.hr_recompute.days_30", comment: "")
+        case .sixty: return NSLocalizedString("app2.hr_recompute.days_60", comment: "")
+        }
     }
 
     // MARK: - View Components
@@ -451,8 +495,10 @@ struct HeartRateZoneInfoView: View {
                 // Onboarding 模式：檢查是否需要顯示 backfill 提示並導航
                 onboardingCoordinator.navigate(to: .personalBest)
             } else {
-                // Profile 模式：存檔成功，關閉 sheet 回到個人資料
-                dismiss()
+                // Profile 模式：存檔成功後仍要讓使用者選擇是否重算過去跑力。
+                closeAfterRecomputePrompt = true
+                await recompute.loadWatchCheck()
+                recompute.offerAfterSave(changed: true)
             }
 
         } catch {
