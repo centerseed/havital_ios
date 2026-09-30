@@ -44,11 +44,18 @@ final class App2HeartRateRecomputeViewModelTests: XCTestCase {
         HeartRateRecomputeJob(jobId: "j1", status: status, days: 14, total: total, done: done, recomputed: recomputed, skipped: skipped, failed: failed, failedWorkoutIds: [], error: nil)
     }
 
-    private func makeVM(_ repo: FakeRepo, autoUpdate: Bool = false, updater: @escaping ([String: Any]) async -> Bool = { _ in true }, completed: @escaping () -> Void = {}) -> App2HeartRateRecomputeViewModel {
+    private func makeVM(
+        _ repo: FakeRepo,
+        autoUpdate: Bool = false,
+        updater: @escaping ([String: Any]) async -> Bool = { _ in true },
+        updateWatchMaxHR: ((Int) async -> Bool?)? = nil,
+        completed: @escaping () -> Void = {}
+    ) -> App2HeartRateRecomputeViewModel {
         App2HeartRateRecomputeViewModel(
             repository: repo,
             autoUpdateMaxHR: autoUpdate,
             updateProfile: updater,
+            updateWatchMaxHR: updateWatchMaxHR,
             onFinished: completed,
             pollSleep: { }
         )
@@ -62,6 +69,12 @@ final class App2HeartRateRecomputeViewModelTests: XCTestCase {
         XCTAssertFalse(vm.isPromptPresented)
         vm.offerAfterSave(changed: true)
         XCTAssertTrue(vm.isPromptPresented)
+    }
+
+    func test_unchangedBackendSaveDoesNotPresentPrompt() {
+        let vm = makeVM(FakeRepo())
+        vm.offerAfterSave(changed: false)
+        XCTAssertFalse(vm.isPromptPresented)
     }
 
     func test_choosingNoRecomputeStartsNothing() async {
@@ -163,6 +176,20 @@ final class App2HeartRateRecomputeViewModelTests: XCTestCase {
         await vm.choose(.fourteen)
         guard case .failed = vm.phase else { return XCTFail("phase \(vm.phase)") }
         XCTAssertTrue(vm.canStart)
+    }
+
+    func test_homeReminderUpdateUsesBackendChangedAndOffersRecompute() async {
+        let repo = FakeRepo()
+        var sentMaxHR: Int?
+        let vm = makeVM(repo, updateWatchMaxHR: { maxHR in
+            sentMaxHR = maxHR
+            return true
+        })
+
+        await vm.applyWatchMaxHR(180)
+
+        XCTAssertEqual(sentMaxHR, 180)
+        XCTAssertTrue(vm.isPromptPresented)
     }
 
     func test_pollFailureStopsPollingAndIsReported() async {
