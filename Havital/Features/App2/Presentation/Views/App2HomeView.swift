@@ -107,6 +107,7 @@ struct App2HomeView: View {
                 weeklyReviewRow
                 garminHistoryPromptCard
                 heartRateReminderCard
+                heartRateRecomputeStatus
             }
             .padding(.horizontal, App2Theme.pagePadding)
             .padding(.top, 4)
@@ -277,6 +278,66 @@ struct App2HomeView: View {
             }
             .accessibilityIdentifier("App2_HomeHeartRateReminder")
         }
+    }
+
+    @ViewBuilder
+    private var heartRateRecomputeStatus: some View {
+        if let errorMessage = heartRateRecompute.errorMessage {
+            App2Card(spacing: 8) {
+                statusLine(errorMessage)
+                retryButton
+            }
+        }
+
+        switch heartRateRecompute.phase {
+        case .idle:
+            EmptyView()
+        case .starting:
+            App2Card(spacing: 8) {
+                statusLine(NSLocalizedString("app2.hr_recompute.starting", comment: ""))
+            }
+        case .notice(let text):
+            App2Card(spacing: 8) {
+                statusLine(text)
+            }
+        case .job(let job, let message):
+            App2Card(spacing: 8) {
+                if job.isActive, job.total > 0 {
+                    ProgressView(value: Double(job.done), total: Double(job.total))
+                }
+                statusLine(message ?? fallbackText(for: job))
+                if job.status == .failed {
+                    retryButton
+                }
+            }
+        case .failed(let text):
+            App2Card(spacing: 8) {
+                statusLine(text)
+                retryButton
+            }
+        }
+    }
+
+    private var retryButton: some View {
+        Button(NSLocalizedString("app2.hr_recompute.retry", comment: "")) {
+            heartRateRecompute.isPromptPresented = true
+        }
+        .font(.system(size: 14, weight: .semibold))
+        .accessibilityIdentifier("App2_HomeHeartRateRecomputeRetry")
+    }
+
+    private func statusLine(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(App2Theme.inkSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .accessibilityIdentifier("App2_HomeHeartRateRecomputeStatus")
+    }
+
+    private func fallbackText(for job: HeartRateRecomputeJob) -> String {
+        job.status == .queued
+            ? NSLocalizedString("app2.hr_recompute.queued", comment: "")
+            : "\(job.done)/\(job.total)"
     }
 
     private static func heartRateRecomputeTitle(for days: HeartRateRecomputeDays) -> String {

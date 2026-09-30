@@ -192,6 +192,24 @@ final class App2HeartRateRecomputeViewModelTests: XCTestCase {
         XCTAssertTrue(vm.isPromptPresented)
     }
 
+    func test_homeReminderUpdateWithUnchangedBackendDoesNotPresentPrompt() async {
+        let vm = makeVM(FakeRepo(), updateWatchMaxHR: { _ in false })
+
+        await vm.applyWatchMaxHR(180)
+
+        XCTAssertFalse(vm.isPromptPresented)
+        XCTAssertNil(vm.errorMessage)
+    }
+
+    func test_homeReminderUpdateFailureLeavesAnObservableError() async {
+        let vm = makeVM(FakeRepo(), updateWatchMaxHR: { _ in nil })
+
+        await vm.applyWatchMaxHR(180)
+
+        XCTAssertFalse(vm.isPromptPresented)
+        XCTAssertEqual(vm.errorMessage, NSLocalizedString("error.unknown", comment: ""))
+    }
+
     func test_pollFailureStopsPollingAndIsReported() async {
         let repo = FakeRepo()
         repo.startOutcome = .success(.queued(job: job(.queued), message: "queued"))
