@@ -4996,7 +4996,7 @@
 "app2.hr_recompute.queued" = "Queued";
 "app2.hr_recompute.retry" = "Retry";
 "app2.hr_recompute.auto_title" = "Auto-update max heart rate";
-"app2.hr_recompute.auto_footer" = "When on, the system may update your max heart rate if your measured peaks stay above it or your watch's max heart rate keeps differing. When off, it never changes it by itself.";
+"app2.hr_recompute.auto_footer" = "When on, your max heart rate updates automatically if your runs repeatedly peak above it, or if your Garmin watch's max heart rate has differed from it for more than two weeks. When off, it never changes by itself.";
 "app2.hr_recompute.reminder_text" = "Your watch's max heart rate is %1$d, %3$.1f%% away from your setting of %2$d. Update it?";
 "app2.hr_recompute.reminder_action" = "Update to %d";
 "app2.hr_source.user_set" = "Set by you in Paceriz";

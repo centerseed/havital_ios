@@ -4993,7 +4993,7 @@
 "app2.hr_recompute.queued" = "待機中";
 "app2.hr_recompute.retry" = "再試行";
 "app2.hr_recompute.auto_title" = "最大心拍数を自動更新";
-"app2.hr_recompute.auto_footer" = "オンにすると、実測の最大心拍が設定を長く上回る場合や、時計の最大心拍数が長く異なる場合に、システムが最大心拍数を自動更新できます。オフなら自動では変更しません。";
+"app2.hr_recompute.auto_footer" = "オンにすると、ランニングの実測心拍が何度も設定を上回った場合や、Garmin の時計の最大心拍数が設定と 2 週間を超えて異なる場合に、最大心拍数を自動更新します。オフなら自動では変更しません。";
 "app2.hr_recompute.reminder_text" = "時計の最大心拍数は %1$d で、設定の %2$d と %3$.1f%% 違います。更新しますか？";
 "app2.hr_recompute.reminder_action" = "%d に更新";
 "app2.hr_source.user_set" = "Paceriz で設定";

@@ -5037,7 +5037,7 @@
 "app2.hr_recompute.queued" = "排隊中";
 "app2.hr_recompute.retry" = "重試";
 "app2.hr_recompute.auto_title" = "自動更新最大心率";
-"app2.hr_recompute.auto_footer" = "開啟後，系統可在你的實測心率長期高於設定、或手錶上的最大心率長期不同時，自動更新最大心率。關閉則系統不會自己改。";
+"app2.hr_recompute.auto_footer" = "開啟後，跑步實測心率多次高於設定，或 Garmin 手錶上的最大心率與設定不同超過兩週，系統會自動更新最大心率。關閉則系統不會自己改。";
 "app2.hr_recompute.reminder_text" = "你的手錶最大心率是 %1$d，和設定的 %2$d 差了 %3$.1f%%，要不要更新？";
 "app2.hr_recompute.reminder_action" = "更新為 %d";
 "app2.hr_source.user_set" = "你在 Paceriz 設定";
