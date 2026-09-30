@@ -528,6 +528,9 @@ struct HeartRateZoneInfoView: View {
                 recomputeStatusLine(message ?? (job.status == .queued
                     ? NSLocalizedString("app2.hr_recompute.queued", comment: "")
                     : "\(job.done)/\(job.total)"))
+                if job.status == .failed {
+                    recomputeRetryButton
+                }
             }
         case .failed(let text):
             VStack(alignment: .leading, spacing: 8) {
@@ -539,6 +542,14 @@ struct HeartRateZoneInfoView: View {
                 .accessibilityIdentifier("HeartRateZoneRecomputeRetry")
             }
         }
+    }
+
+    private var recomputeRetryButton: some View {
+        Button(NSLocalizedString("app2.hr_recompute.retry", comment: "")) {
+            recompute.isPromptPresented = true
+        }
+        .font(.system(size: 14, weight: .semibold))
+        .accessibilityIdentifier("HeartRateZoneRecomputeRetry")
     }
 
     private func recomputeStatusLine(_ text: String) -> some View {
