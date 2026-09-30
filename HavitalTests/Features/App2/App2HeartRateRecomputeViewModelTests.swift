@@ -15,6 +15,7 @@ final class App2HeartRateRecomputeViewModelTests: XCTestCase {
         var reminderError: Error?
         private(set) var startedDays: [HeartRateRecomputeDays] = []
         private(set) var statusCalls = 0
+        var statusError: Error?
 
         func startRecompute(days: HeartRateRecomputeDays) async throws -> HeartRateRecomputeOutcome {
             startedDays.append(days)
@@ -23,6 +24,7 @@ final class App2HeartRateRecomputeViewModelTests: XCTestCase {
 
         func latestStatus() async throws -> HeartRateRecomputeStatus {
             statusCalls += 1
+            if let statusError { throw statusError }
             if statuses.isEmpty { return HeartRateRecomputeStatus(job: nil, message: nil) }
             return statuses.count > 1 ? statuses.removeFirst() : statuses[0]
         }
@@ -161,6 +163,19 @@ final class App2HeartRateRecomputeViewModelTests: XCTestCase {
         await vm.choose(.fourteen)
         guard case .failed = vm.phase else { return XCTFail("phase \(vm.phase)") }
         XCTAssertTrue(vm.canStart)
+    }
+
+    func test_pollFailureStopsPollingAndIsReported() async {
+        let repo = FakeRepo()
+        repo.startOutcome = .success(.queued(job: job(.queued), message: "queued"))
+        repo.statusError = HTTPError.timeout
+        let vm = makeVM(repo)
+
+        await vm.choose(.fourteen)
+
+        guard case .failed = vm.phase else { return XCTFail("phase \(vm.phase)") }
+        XCTAssertTrue(vm.canStart)
+        XCTAssertEqual(repo.statusCalls, 1)
     }
 
     func test_noHeartRateParametersIsANotice() async {

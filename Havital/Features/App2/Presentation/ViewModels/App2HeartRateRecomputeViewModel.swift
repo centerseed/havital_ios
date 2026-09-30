@@ -124,9 +124,19 @@ final class App2HeartRateRecomputeViewModel: ObservableObject {
         while case .job(let job, _) = phase, job.isActive {
             await pollSleep()
             if Task.isCancelled { return }
-            guard let status = try? await repository.latestStatus(), let latest = status.job else { continue }
-            phase = .job(latest, message: status.message)
-            if latest.status == .completed { onFinished() }
+            do {
+                let status = try await repository.latestStatus()
+                guard let latest = status.job else {
+                    phase = .failed(NSLocalizedString("error.unknown", comment: ""))
+                    return
+                }
+                phase = .job(latest, message: status.message)
+                if latest.status == .completed { onFinished() }
+            } catch {
+                if Task.isCancelled { return }
+                phase = .failed(NSLocalizedString("error.unknown", comment: ""))
+                return
+            }
         }
     }
 
