@@ -2636,6 +2636,7 @@ extension L10n {
             static let aboutRecovery = "app2.metric.about_recovery"
             /// `%1$@`＝合適範圍下界、`%2$@`＝上界（後端門檻）。
             static let aboutVolumeFormat = "app2.metric.about_volume_format"
+            static let aboutVolumeThresholdsUnavailable = "app2.metric.about_volume_thresholds_unavailable"
             /// 統一版型：「怎麼算出來的」（預設收合）。有氧與速度顯示後端 `basis`，不在這裡。
             static let howTitle = "app2.metric.how_title"
             static let howCapability = "app2.metric.how_capability"

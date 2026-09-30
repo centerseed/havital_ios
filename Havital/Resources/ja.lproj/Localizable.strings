@@ -4978,3 +4978,4 @@
 "app2.metric.how_recovery" = "今日の HRV と安静時心拍をあなた自身の過去 28 日間の基準と、主観的な負荷感とトレーニング成績を評価日前 90 日間の同じ種類のトレーニングの基準と比べます。スコアが出るには 2 種類以上のデータが必要です。";
 "app2.metric.how_volume" = "各ランの時間と心拍の強度からトレーニング負荷を出し、直近 7 日間と直近 6 週間の平均を比べます。";
 "onboarding.payment_confirmation_pending" = "お支払いを確認中です。しばらくしてからもう一度タップしてください。";
+"app2.metric.about_volume_thresholds_unavailable" = "直近の負荷比は上に表示されています。適正範囲はまだ取得できません。";

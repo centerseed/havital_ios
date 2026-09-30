@@ -97,8 +97,7 @@ enum App2MetricDetailProjection {
             return App2MetricPoint(date: row.day, value: value)
         }
         guard !series.isEmpty else { return nil }
-        let latestBand = days.last { $0.envelope?.channels?.acwr?.sweetLow != nil }?
-            .envelope?.channels?.acwr
+        let latestBand = days.last?.envelope?.channels?.acwr
         return App2AcwrBlock(
             series: series,
             sweetLow: latestBand?.sweetLow,
@@ -106,17 +105,17 @@ enum App2MetricDetailProjection {
         )
     }
 
-    /// 後端的合適範圍門檻；兩端都在且 high > low 才用，否則兩端都退回 0.8／1.3。
-    static func acwrThresholds(_ acwr: App2AcwrBlock) -> (low: Double, high: Double) {
+    /// SPEC-load-index §5.1：只使用完整有效的後端門檻，不補預設值或前日門檻。
+    static func acwrThresholds(_ acwr: App2AcwrBlock) -> (low: Double, high: Double)? {
         if let low = acwr.sweetLow, let high = acwr.sweetHigh, high > low {
             return (low, high)
         }
-        return (0.8, 1.3)
+        return nil
     }
 
     /// 負荷比圖的三色背景帶（畫法同 1.4 的 TSB 圖）：偏輕（藍）／合適（綠）／過量（紅）。
     static func acwrBands(_ acwr: App2AcwrBlock) -> [App2MetricLineChart.Band] {
-        let t = acwrThresholds(acwr)
+        guard let t = acwrThresholds(acwr) else { return [] }
         let low = App2NumberFormat.grouped(t.low, maximumFractionDigits: 1)
         let high = App2NumberFormat.grouped(t.high, maximumFractionDigits: 1)
         return [
@@ -144,16 +143,17 @@ enum App2MetricDetailProjection {
 
     /// 圖下一句「目前：合適」，依序列最近一個有值的點。一點都沒有 → nil。
     static func acwrCurrentZone(_ acwr: App2AcwrBlock) -> String? {
-        guard let latest = acwr.series.last(where: { $0.value != nil })?.value else { return nil }
+        guard let thresholds = acwrThresholds(acwr),
+              let latest = acwr.series.last(where: { $0.value != nil })?.value else { return nil }
         return String(
             format: L10n.App2.Metric.currentZoneFormat.localized,
-            acwrZoneLabel(for: latest, thresholds: acwrThresholds(acwr))
+            acwrZoneLabel(for: latest, thresholds: thresholds)
         )
     }
 
     /// Y 軸只標兩條分界（高的先）。
     static func acwrAxisTicks(_ acwr: App2AcwrBlock) -> [Double] {
-        let t = acwrThresholds(acwr)
+        guard let t = acwrThresholds(acwr) else { return [] }
         return [t.high, t.low]
     }
 
@@ -384,7 +384,7 @@ enum App2MetricDetailProjection {
 
     /// 「這個指標量什麼」：五頁各一段白話（統一版型第 3 塊）。
     /// 訓練量那段帶合適範圍門檻——讀後端 `channels.acwr` 的 sweet_low／sweet_high，不寫死。
-    static func aboutText(_ kind: App2MetricDetailKind, thresholds: (low: Double, high: Double)) -> String {
+    static func aboutText(_ kind: App2MetricDetailKind, thresholds: (low: Double, high: Double)?) -> String {
         switch kind {
         case .capabilityBaseline:
             return L10n.App2.Metric.aboutCapability.localized
@@ -395,6 +395,9 @@ enum App2MetricDetailProjection {
         case .recoveryIndex:
             return L10n.App2.Metric.aboutRecovery.localized
         case .weeklyVolume:
+            guard let thresholds else {
+                return L10n.App2.Metric.aboutVolumeThresholdsUnavailable.localized
+            }
             return String(
                 format: L10n.App2.Metric.aboutVolumeFormat.localized,
                 App2NumberFormat.grouped(thresholds.low, maximumFractionDigits: 1),

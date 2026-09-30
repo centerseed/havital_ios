@@ -728,15 +728,34 @@ final class App2MetricDetailProjectionTests: XCTestCase {
         )
     }
 
-    func testAcwrThresholdsPreferBackendBoundsElseDefaults() {
+    func testAcwrThresholdsRequireCompleteBackendBounds() {
+        XCTAssertEqual(
+            App2MetricDetailProjection.aboutText(.weeklyVolume, thresholds: nil),
+            L10n.App2.Metric.aboutVolumeThresholdsUnavailable.localized
+        )
         let backend = App2MetricDetailProjection.acwrThresholds(acwr(low: 0.7, high: 1.2))
-        XCTAssertEqual(backend.low, 0.7)
-        XCTAssertEqual(backend.high, 1.2)
+        XCTAssertEqual(backend?.low, 0.7)
+        XCTAssertEqual(backend?.high, 1.2)
         for block in [acwr(low: nil, high: nil), acwr(low: 0.7, high: nil), acwr(low: 1.3, high: 0.8)] {
-            let fallback = App2MetricDetailProjection.acwrThresholds(block)
-            XCTAssertEqual(fallback.low, 0.8)
-            XCTAssertEqual(fallback.high, 1.3)
+            XCTAssertNil(App2MetricDetailProjection.acwrThresholds(block))
+            XCTAssertTrue(App2MetricDetailProjection.acwrBands(block).isEmpty)
+            XCTAssertTrue(App2MetricDetailProjection.acwrAxisTicks(block).isEmpty)
+            XCTAssertNil(App2MetricDetailProjection.acwrCurrentZone(block))
         }
+    }
+
+    func testLatestDayWithoutSweetSpotDoesNotBorrowPreviousBounds() {
+        let response = AthleteStateSeriesResponse(
+            startDay: nil, endDay: nil,
+            series: ["load_index": [
+                acwrDay("2026-09-05", raw: 1.2, low: 0.7, high: 1.2),
+                acwrDay("2026-09-06", raw: 1.4, side: "unknown", low: nil, high: nil)
+            ]]
+        )
+        let block = App2MetricDetailProjection.acwrBlock(response)
+        XCTAssertEqual(block?.series.map(\.value), [1.2, 1.4])
+        XCTAssertNil(block?.sweetLow)
+        XCTAssertNil(block?.sweetHigh)
     }
 
     func testAcwrBandsAreThreeZonesWithThresholdText() {

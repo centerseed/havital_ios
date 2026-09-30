@@ -355,8 +355,7 @@ private struct App2VolumeDetailPage: View {
                 title: L10n.App2.Metric.levelAboutTitle.localized,
                 text: App2MetricDetailProjection.aboutText(
                     .weeklyVolume,
-                    thresholds: viewModel.detail?.value.acwr.map(App2MetricDetailProjection.acwrThresholds)
-                        ?? (0.8, 1.3)
+                    thresholds: viewModel.detail?.value.acwr.flatMap(App2MetricDetailProjection.acwrThresholds)
                 ),
                 identifier: "App2_MetricAbout"
             )
@@ -370,30 +369,31 @@ private struct App2VolumeDetailPage: View {
     /// §51-6 近期負荷比圖（2026-09-29：只留這一張，畫法同 1.4 的 TSB 圖）。
     ///
     /// 三色背景帶偏輕／合適／過量，**門檻讀後端逐列交付的 `sweet_low`／`sweet_high`**
-    /// （依訓練期變；缺才退 0.8／1.3，SPEC-today-state §5.1）；Y 軸只標兩條分界；
+    /// （依訓練期變；缺值不補門檻，SPEC-load-index §5.1）；Y 軸只標兩條分界；
     /// 圖例附門檻；圖下一句「目前：合適」；點圖讀數框仍是當日負荷比數字。
     /// TSB 圖與 CTL／ATL 三欄已移除：TSB 與負荷比是同一組 CTL／ATL 的兩種讀法，
     /// 固定 −7 門檻對低 CTL 的人會誤判。
     @ViewBuilder
     private func loadCard(acwr: App2AcwrBlock?) -> some View {
+        let thresholds = acwr.flatMap(App2MetricDetailProjection.acwrThresholds)
         App2Card(spacing: 12) {
             HStack(spacing: 6) {
                 Text(L10n.App2.Metric.volumeAcwrTitle.localized)
                     .font(.system(size: 14, weight: .heavy))
                     .foregroundStyle(App2Theme.inkPrimary)
-                Button {
-                    showsAcwrInfo = true
-                } label: {
-                    Image(systemName: "info.circle")
-                        .foregroundStyle(App2Theme.inkMuted)
+                if let thresholds {
+                    Button {
+                        showsAcwrInfo = true
+                    } label: {
+                        Image(systemName: "info.circle")
+                            .foregroundStyle(App2Theme.inkMuted)
+                    }
+                    .accessibilityIdentifier("App2_MetricAcwrInfo")
+                    .sheet(isPresented: $showsAcwrInfo) {
+                        App2AcwrInfoSheet(thresholds: thresholds)
+                    }
                 }
-                .accessibilityIdentifier("App2_MetricAcwrInfo")
                 Spacer(minLength: 0)
-            }
-            .sheet(isPresented: $showsAcwrInfo) {
-                App2AcwrInfoSheet(
-                    thresholds: acwr.map(App2MetricDetailProjection.acwrThresholds) ?? (0.8, 1.3)
-                )
             }
 
             Text(L10n.App2.Metric.volumeAcwrCaption.localized)
@@ -404,7 +404,6 @@ private struct App2VolumeDetailPage: View {
             // 兩點才畫得出線（`App2MetricLineChart.path` 與 `xLabels` 都要 >= 2）；
             // 一個點畫出來是一張沒有線的空圖（T-0617 同一條）。
             if let acwr, acwr.series.count >= 2 {
-                let thresholds = App2MetricDetailProjection.acwrThresholds(acwr)
                 App2MetricLineChart(
                     series: [
                         .init(
@@ -414,9 +413,9 @@ private struct App2VolumeDetailPage: View {
                     ],
                     xLabels: Self.xLabels(acwr.series),
                     bands: App2MetricDetailProjection.acwrBands(acwr),
-                    baselineValues: [thresholds.low, thresholds.high],
+                    baselineValues: App2MetricDetailProjection.acwrAxisTicks(acwr),
                     yTickValues: App2MetricDetailProjection.acwrAxisTicks(acwr),
-                    showsBandLegend: true,
+                    showsBandLegend: thresholds != nil,
                     allowsReadout: true,
                     height: 118,
                     readoutID: "volume-acwr",

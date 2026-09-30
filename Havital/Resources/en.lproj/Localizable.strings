@@ -4981,3 +4981,4 @@
 "app2.metric.how_recovery" = "Compares today’s HRV and resting heart rate with your own 28-day baseline, and perceived effort and training performance with your own 90-day same-workout-type baseline; at least two kinds of data are needed to give a score.";
 "app2.metric.how_volume" = "Each run is turned into a training load from its duration and heart-rate intensity, then the last 7 days are compared with the average of the last 6 weeks.";
 "onboarding.payment_confirmation_pending" = "Payment confirmation is in progress. Please wait, then tap again.";
+"app2.metric.about_volume_thresholds_unavailable" = "Your recent load ratio is shown above; its good range is not available yet.";
