@@ -112,6 +112,21 @@ final class App2HeartRateRecomputeViewModel: ObservableObject {
         .days(.fourteen), .days(.thirty), .days(.sixty), .skip
     ]
 
+    /// 首頁與測試共用的 profile PUT；是否變更只採用後端回傳的 `changed`。
+    static func updateWatchMaxHR(using profileRepository: UserProfileRepository, maxHR: Int) async -> Bool? {
+        do {
+            let profile = try await profileRepository.getUserProfile()
+            guard let restingHR = profile.relaxingHr else { return nil }
+            let result = try await profileRepository.updateHeartRateZones(
+                maxHR: maxHR,
+                restingHR: restingHR
+            )
+            return result.changed
+        } catch {
+            return nil
+        }
+    }
+
     func choose(_ choice: HeartRateRecomputeChoice) async {
         switch choice {
         case .days(let days): await choose(days)

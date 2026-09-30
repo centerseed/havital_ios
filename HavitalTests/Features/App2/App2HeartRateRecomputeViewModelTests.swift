@@ -192,6 +192,20 @@ final class App2HeartRateRecomputeViewModelTests: XCTestCase {
         XCTAssertTrue(vm.isPromptPresented)
     }
 
+    func test_homeReminderUpdateUsesTheProfilePUTAndBackendChanged() async {
+        let profileRepository = MockUserProfileRepository()
+        profileRepository.heartRateChangedToReturn = true
+
+        let changed = await App2HeartRateRecomputeViewModel.updateWatchMaxHR(
+            using: profileRepository,
+            maxHR: 180
+        )
+
+        XCTAssertEqual(profileRepository.getUserProfileCallCount, 1)
+        XCTAssertEqual(profileRepository.updateHeartRateZonesCallCount, 1)
+        XCTAssertTrue(changed == true)
+    }
+
     func test_homeReminderUpdateWithUnchangedBackendDoesNotPresentPrompt() async {
         let vm = makeVM(FakeRepo(), updateWatchMaxHR: { _ in false })
 
