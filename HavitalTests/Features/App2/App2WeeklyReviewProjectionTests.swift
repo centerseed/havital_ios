@@ -37,9 +37,10 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         observations: [String]? = nil,
         planContext: PlanContextSummary? = nil,
         items: [AdjustmentItemV2] = [],
-        story: WeeklyStory? = nil
+        story: WeeklyStory? = nil,
+        decisionChain: DecisionChainWeeklySummary? = nil
     ) -> WeeklySummaryV2 {
-        WeeklySummaryV2(
+        var result = WeeklySummaryV2(
             id: "summary-1",
             uid: "user-1",
             weeklyPlanId: "plan-1",
@@ -86,6 +87,80 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
             observations: observations,
             weeklyStory: story
         )
+        result.decisionChain = decisionChain
+        return result
+    }
+
+    func test_decisionChain_projection_keeps_weeklyStory_and_exposes_four_blocks() {
+        let chain = DecisionChainWeeklySummary(
+            focus: DecisionChainFocus(
+                kind: "adjudication",
+                metric: "capability_baseline",
+                direction: "improving",
+                startDay: "2026-09-06",
+                endDay: "2026-09-20",
+                hypothesisId: "hyp.state.capability_baseline@2026-09-06",
+                intervention: "維持每週 25.5 公里訓練量",
+                verdict: "supported",
+                reason: nil
+            ),
+            narrative: DecisionChainNarrative(
+                headline: "能力基線正在變好",
+                retrospect: "這週的觀察支持能力基線往上。",
+                nextWeek: "下週維持目前方向。"
+            ),
+            execution: DecisionChainExecution(
+                completedKm: 40.3,
+                plannedKm: 41.5,
+                runCount: 6,
+                qualityCount: 1
+            )
+        )
+
+        let projection = App2WeeklyReviewProjection.make(
+            summary(
+                story: WeeklyStory(text: "舊版故事仍在", thread: "thread", callback: nil),
+                decisionChain: chain
+            )
+        )
+
+        XCTAssertEqual(projection.storyBody, "舊版故事仍在")
+        XCTAssertEqual(projection.decisionChain?.focus?.metric, "capability_baseline")
+        XCTAssertEqual(projection.decisionChain?.narrative?.headline, "能力基線正在變好")
+        XCTAssertEqual(projection.decisionChain?.execution?.qualityCount, 1)
+    }
+
+    func test_decisionChain_series_points_use_display_value_not_decision_index() {
+        let response = AthleteStateSeriesResponse(
+            startDay: "2026-08-01",
+            endDay: "2026-09-20",
+            series: [
+                "capability_baseline": [
+                    AthleteStateSeriesResponse.Day(
+                        day: "2026-09-06",
+                        itemId: "r1",
+                        asOf: "2026-09-06",
+                        estimatorVersion: "v1",
+                        displayValue: 38.4,
+                        deliveryStatus: "delivered",
+                        envelope: AthleteStateMetricEnvelope(
+                            index: 0.42,
+                            levelIndex: nil,
+                            channels: nil,
+                            center: .init(value: 38.4, unit: "VDOT"),
+                            band: nil
+                        )
+                    )
+                ]
+            ]
+        )
+
+        let points = App2WeeklyReviewProjection.decisionChainPoints(
+            metric: "capability_baseline",
+            response: response
+        )
+
+        XCTAssertEqual(points.map(\.value), [38.4])
     }
 
     // MARK: - 建議項：index 即身分

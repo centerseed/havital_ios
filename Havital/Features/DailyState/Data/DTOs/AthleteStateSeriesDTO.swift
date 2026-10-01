@@ -24,6 +24,7 @@ struct AthleteStateSeriesResponse: Codable {
         var itemId: String? = nil
         var asOf: String? = nil
         var estimatorVersion: String? = nil
+        var displayValue: Double? = nil
         let deliveryStatus: String?
         let envelope: Envelope?
 
@@ -32,6 +33,7 @@ struct AthleteStateSeriesResponse: Codable {
             case itemId = "item_id"
             case asOf = "as_of"
             case estimatorVersion = "estimator_version"
+            case displayValue = "display_value"
             case deliveryStatus = "delivery_status"
         }
 

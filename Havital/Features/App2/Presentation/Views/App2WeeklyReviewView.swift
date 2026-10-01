@@ -16,6 +16,54 @@ struct App2WeeklyReviewTarget: Identifiable, Equatable {
     var id: Int { weekOfPlan }
 }
 
+/// 週回顧焦點的 8 週折線。輸入已是 metrics/series 的 display value，這裡只負責 render。
+private struct App2DecisionChainLineChart: View {
+    let points: [App2DecisionChainPoint]
+    let anchorDays: Set<String>
+
+    var body: some View {
+        Canvas { context, size in
+            guard !points.isEmpty else { return }
+            let values = points.map { $0.value }
+            let minimum = values.min() ?? 0
+            let maximum = values.max() ?? 1
+            let span = max(maximum - minimum, 1)
+            let horizontalStep = points.count > 1
+                ? size.width / CGFloat(points.count - 1)
+                : size.width / 2
+
+            func point(_ index: Int, _ value: Double) -> CGPoint {
+                let x = points.count > 1
+                    ? CGFloat(index) * horizontalStep
+                    : size.width / 2
+                let y = size.height - CGFloat((value - minimum) / span) * (size.height - 12) - 6
+                return CGPoint(x: x, y: y)
+            }
+
+            var line = Path()
+            for (index, item) in points.enumerated() {
+                let position = point(index, item.value)
+                if index == 0 { line.move(to: position) }
+                else { line.addLine(to: position) }
+            }
+            context.stroke(
+                line,
+                with: .color(App2Theme.accentBlue),
+                style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round)
+            )
+
+            for (index, item) in points.enumerated() where anchorDays.contains(item.day) {
+                let position = point(index, item.value)
+                let circle = Path(ellipseIn: CGRect(x: position.x - 5, y: position.y - 5, width: 10, height: 10))
+                context.fill(circle, with: .color(App2Theme.accentOrangeBright))
+                context.stroke(circle, with: .color(.white), lineWidth: 2)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityHidden(true)
+    }
+}
+
 // MARK: - App2WeeklyReviewView
 /// 2.0 週回顧 —— 設計 **frame-18「回顧本週」** / **frame-19「規劃下週」**
 /// （dc.html 同名畫面）。兩個分頁共用同一份 `WeeklySummaryV2`，切分頁不重打端點。
@@ -51,6 +99,8 @@ struct App2WeeklyReviewView: View {
 
     /// 正在調整值的那一條（`sheet(item:)` 要 `Identifiable`，清單條目本來就是）。
     @State private var adjustingItem: DecisionChainChecklistItem?
+    /// decision-chain 週回顧把散文放在首屏以下；點開才看完整文字。
+    @State private var showsReviewDetails = false
 
     /// 週日流程按下「產生回顧」後、還沒確認「本週訓練是否皆已完成」的那一刻（T-0409）。
     @State private var showsCompletionConfirm = false
@@ -501,15 +551,181 @@ struct App2WeeklyReviewView: View {
 
     @ViewBuilder
     private func reviewTab(_ projection: App2WeeklyReviewProjection) -> some View {
-        storyCard(projection)
+        if let decisionChain = projection.decisionChain {
+            decisionChainHero(projection, decisionChain: decisionChain)
+            if let execution = decisionChain.execution {
+                section(L10n.App2.WeeklyReview.decisionExecution.localized) {
+                    decisionExecutionGrid(execution)
+                }
+            }
+            reviewDetailsToggle
+            if showsReviewDetails {
+                decisionChainNarrativeDetails(decisionChain)
+                legacyReviewDetails(projection)
+            }
+        } else {
+            storyCard(projection)
+            legacyReviewDetails(projection)
+        }
+        // 回顧的最後一件事是「所以下週怎麼跑」——這裡不給出口，使用者就停在這裡。
+        // 規劃分頁收掉時它也要跟著收：它唯一的作用是切到那一頁。
+        if showsPlanTab {
+            continueToPlanButton
+                .padding(.top, 4)
+        }
+    }
+
+    @ViewBuilder
+    private func decisionChainHero(
+        _ projection: App2WeeklyReviewProjection,
+        decisionChain: DecisionChainWeeklySummary
+    ) -> some View {
+        storyCard(projection, headline: decisionChain.narrative?.headline)
+        if let focus = decisionChain.focus,
+           let series = viewModel.decisionChainSeries {
+            let points = App2WeeklyReviewProjection.decisionChainPoints(
+                metric: focus.metric,
+                response: series
+            )
+            if !points.isEmpty {
+                focusChartCard(focus: focus, points: points)
+                if focus.kind == "adjudication" || focus.kind == "open_hypothesis" {
+                    l2Card(focus: focus, points: points)
+                }
+            }
+        }
+    }
+
+    private func focusChartCard(
+        focus: DecisionChainFocus,
+        points: [App2DecisionChainPoint]
+    ) -> some View {
+        App2Card(padding: 15, spacing: 10) {
+            Text(String(format: L10n.App2.WeeklyReview.decisionFocus.localized, metricLabel(focus.metric)))
+                .font(.system(size: 15, weight: .heavy))
+                .foregroundStyle(App2Theme.inkPrimary)
+                .lineLimit(2)
+            App2DecisionChainLineChart(
+                points: points,
+                anchorDays: Set([focus.startDay, focus.endDay])
+            )
+            .frame(height: 128)
+            .accessibilityIdentifier("App2_WeeklyReviewFocusChart")
+        }
+        .accessibilityIdentifier("App2_WeeklyReviewFocus")
+    }
+
+    @ViewBuilder
+    private func l2Card(
+        focus: DecisionChainFocus,
+        points: [App2DecisionChainPoint]
+    ) -> some View {
+        let before = App2WeeklyReviewProjection.decisionChainValue(on: focus.startDay, points: points)
+        let afterPoint = focus.kind == "open_hypothesis"
+            ? App2WeeklyReviewProjection.decisionChainLatestValue(through: focus.endDay, points: points)
+            : App2WeeklyReviewProjection.decisionChainValue(on: focus.endDay, points: points).map {
+                App2DecisionChainPoint(day: focus.endDay, value: $0)
+            }
+        App2Card(padding: 15, spacing: 9) {
+            Text(L10n.App2.WeeklyReview.decisionL2Title.localized)
+                .font(.system(size: 15, weight: .heavy))
+                .foregroundStyle(App2Theme.inkPrimary)
+            if let intervention = focus.intervention?.app2NonEmpty {
+                labeledValue(L10n.App2.WeeklyReview.decisionIntervention.localized, intervention)
+            }
+            labeledValue(L10n.App2.WeeklyReview.decisionDirection.localized, directionLabel(focus.direction))
+            HStack(spacing: 10) {
+                if let before { valueTile(L10n.App2.WeeklyReview.decisionBefore.localized, before) }
+                if let afterPoint { valueTile(L10n.App2.WeeklyReview.decisionAfter.localized, afterPoint.value) }
+            }
+            if let verdict = focus.verdict?.app2NonEmpty {
+                labeledValue(L10n.App2.WeeklyReview.decisionVerdict.localized, verdictLabel(verdict))
+            }
+            if let reason = focus.reason?.app2NonEmpty {
+                labeledValue(L10n.App2.WeeklyReview.decisionReason.localized, reasonLabel(reason))
+            }
+            if focus.kind == "open_hypothesis" {
+                labeledValue(
+                    L10n.App2.WeeklyReview.decisionWaitUntil.localized,
+                    focus.endDay
+                )
+            }
+        }
+        .accessibilityIdentifier("App2_WeeklyReviewL2Card")
+    }
+
+    private func decisionExecutionGrid(_ execution: DecisionChainExecution) -> some View {
+        statsGrid([
+            execution.completedKm.map {
+                App2WeeklyReviewProjection.Stat(
+                    key: "decision_completed_km",
+                    label: NSLocalizedString("workout.metrics.distance", comment: "距離"),
+                    value: String(format: "%.1f", $0), unit: "km",
+                    footnote: execution.plannedKm.map { String(format: "planned %.1f km", $0) }
+                )
+            },
+            execution.runCount.map {
+                App2WeeklyReviewProjection.Stat(
+                    key: "decision_runs",
+                    label: L10n.App2.WeeklyReview.sessions.localized,
+                    value: "\($0)", unit: nil, footnote: nil
+                )
+            },
+            execution.qualityCount.map {
+                App2WeeklyReviewProjection.Stat(
+                    key: "decision_quality",
+                    label: L10n.App2.WeeklyReview.decisionQuality.localized,
+                    value: "\($0)", unit: nil, footnote: nil
+                )
+            }
+        ].compactMap { $0 })
+        .accessibilityIdentifier("App2_WeeklyReviewExecution")
+    }
+
+    private var reviewDetailsToggle: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) { showsReviewDetails.toggle() }
+        } label: {
+            Label(
+                showsReviewDetails
+                    ? L10n.App2.WeeklyReview.decisionShowLess.localized
+                    : L10n.App2.WeeklyReview.decisionShowMore.localized,
+                systemImage: showsReviewDetails ? "chevron.up" : "chevron.down"
+            )
+            .font(.system(size: 14, weight: .heavy))
+            .foregroundStyle(App2Theme.accentBlue)
+            .frame(maxWidth: .infinity)
+        }
+        .accessibilityIdentifier("App2_WeeklyReviewDetailsToggle")
+    }
+
+    @ViewBuilder
+    private func decisionChainNarrativeDetails(_ decisionChain: DecisionChainWeeklySummary) -> some View {
+        if let narrative = decisionChain.narrative {
+            section(L10n.App2.WeeklyReview.decisionRetrospect.localized) {
+                Text(narrative.retrospect)
+                    .font(.app2Body)
+                    .foregroundStyle(App2Theme.inkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("App2_WeeklyReviewRetrospect")
+            }
+            section(L10n.App2.WeeklyReview.nextWeekTitle.localized) {
+                Text(narrative.nextWeek)
+                    .font(.app2Body)
+                    .foregroundStyle(App2Theme.inkSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("App2_WeeklyReviewNextWeekNarrative")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func legacyReviewDetails(_ projection: App2WeeklyReviewProjection) -> some View {
         if !projection.stats.isEmpty {
             section(L10n.App2.WeeklyReview.statsSection.localized) { statsGrid(projection.stats) }
         }
         if !projection.highlights.isEmpty || !projection.improvements.isEmpty {
             section(L10n.App2.WeeklyReview.highlightsSection.localized) {
-                // 亮點與「要注意的」在**同一張卡**，但各自的圖示不同（8/28 盤點 D7）：
-                // 一個是做到了什麼（橘星），一個是要注意什麼（藍上升箭頭，同 Android）。
-                // 兩組都空才整段不出現。
                 bulletCard(
                     projection.highlights.map {
                         (text: $0, symbol: "star.fill", tint: App2Theme.accentOrangeBright)
@@ -550,22 +766,82 @@ struct App2WeeklyReviewView: View {
                 .accessibilityIdentifier("App2_WeeklyReviewAnalysis")
             }
         }
-        // 回顧的最後一件事是「所以下週怎麼跑」——這裡不給出口，使用者就停在這裡。
-        // 規劃分頁收掉時它也要跟著收：它唯一的作用是切到那一頁。
-        if showsPlanTab {
-            continueToPlanButton
-                .padding(.top, 4)
+    }
+
+    private func labeledValue(_ label: String, _ value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(label)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(App2Theme.inkMuted)
+            Text(value)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(App2Theme.inkSecondary)
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func valueTile(_ label: String, _ value: Double) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(App2Theme.inkMuted)
+            Text(String(format: "%.1f", value))
+                .font(.app2Mono(20))
+                .foregroundStyle(App2Theme.inkPrimary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .app2CardSurface(cornerRadius: 12)
+    }
+
+    private func metricLabel(_ metric: String) -> String {
+        switch metric {
+        case "capability_baseline": return L10n.App2.WeeklyReview.metricCapability.localized
+        case "aerobic_endurance": return L10n.App2.WeeklyReview.metricAerobic.localized
+        case "speed_endurance": return L10n.App2.WeeklyReview.metricSpeed.localized
+        case "recovery_index": return L10n.App2.WeeklyReview.metricRecovery.localized
+        default: return metric
         }
     }
 
-    private func storyCard(_ projection: App2WeeklyReviewProjection) -> some View {
+    private func directionLabel(_ direction: String) -> String {
+        switch direction {
+        case "improving": return L10n.App2.WeeklyReview.directionImproving.localized
+        case "not_worsening": return L10n.App2.WeeklyReview.directionNotWorsening.localized
+        case "worsening": return L10n.App2.WeeklyReview.directionWorsening.localized
+        default: return direction
+        }
+    }
+
+    private func verdictLabel(_ verdict: String) -> String {
+        switch verdict {
+        case "supported": return L10n.App2.WeeklyReview.verdictSupported.localized
+        case "refuted": return L10n.App2.WeeklyReview.verdictRefuted.localized
+        case "indeterminate": return L10n.App2.WeeklyReview.verdictIndeterminate.localized
+        default: return verdict
+        }
+    }
+
+    private func reasonLabel(_ reason: String) -> String {
+        switch reason {
+        case "confounded": return L10n.App2.WeeklyReview.reasonConfounded.localized
+        case "not_prescribed": return L10n.App2.WeeklyReview.reasonNotPrescribed.localized
+        default: return reason
+        }
+    }
+
+    private func storyCard(
+        _ projection: App2WeeklyReviewProjection,
+        headline: String? = nil
+    ) -> some View {
         App2AccentCard(strength: 0.12, padding: App2Theme.heroPadding, spacing: 9) {
             Text(projection.weekKicker)
                 .font(.system(size: 13, weight: .heavy))
                 .tracking(1.2)
                 .foregroundStyle(App2Theme.accentBlueDeep)
-            if let body = projection.storyBody {
-                Text(body)
+            if let text = (headline?.app2NonEmpty ?? projection.storyBody?.app2NonEmpty) {
+                Text(text)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(App2Theme.inkSecondary)
                     .lineSpacing(4)

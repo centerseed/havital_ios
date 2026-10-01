@@ -52,6 +52,19 @@ final class WeeklySummaryV2DTODecodeTests: XCTestCase {
         XCTAssertEqual(dto.weeklyStory?.thread, "consistency")
     }
 
+    func test_decision_chain_block_decodes_without_numbers_in_focus() throws {
+        let withDecisionChain = minimal.replacingOccurrences(
+            of: "}",
+            with: ",\"decision_chain\":{\"focus\":{\"kind\":\"metric\",\"metric\":\"speed_endurance\",\"direction\":\"improving\",\"start_day\":\"2026-08-24\",\"end_day\":\"2026-09-20\"},\"narrative\":{\"headline\":\"Speed is moving\",\"retrospect\":\"The week held together.\",\"next_week\":\"Keep the direction.\"},\"execution\":{\"completed_km\":40.3,\"planned_km\":41.5,\"run_count\":6,\"quality_count\":1}}}",
+            range: minimal.range(of: "}", options: .backwards)
+        )
+
+        let dto = try decode(withDecisionChain)
+        XCTAssertEqual(dto.decisionChain?.focus?.metric, "speed_endurance")
+        XCTAssertEqual(dto.decisionChain?.narrative?.headline, "Speed is moving")
+        XCTAssertEqual(dto.decisionChain?.execution?.qualityCount, 1)
+    }
+
     /// `weekly_highlights` 的三個陣列缺席或給 null 時當空陣列，**不得讓整頁掛掉**。
     ///
     /// 後端現行契約三個都會給（`data_models/weekly_summary_v2.py:462`），但

@@ -12,7 +12,7 @@ enum WeeklySummaryV2Mapper {
     /// - Parameter dto: API 響應的 DTO
     /// - Returns: Domain Layer 業務實體
     static func toEntity(from dto: WeeklySummaryV2DTO) -> WeeklySummaryV2 {
-        return WeeklySummaryV2(
+        var entity = WeeklySummaryV2(
             id: dto.id,
             uid: dto.uid ?? "",
             weeklyPlanId: dto.weeklyPlanId ?? "",
@@ -35,6 +35,8 @@ enum WeeklySummaryV2Mapper {
             observations: dto.observations,
             weeklyStory: dto.weeklyStory.map { toWeeklyStory(from: $0) }
         )
+        entity.decisionChain = dto.decisionChain.map { toDecisionChain(from: $0) }
+        return entity
     }
 
     // MARK: - Nested Conversions (DTO → Entity)
@@ -51,6 +53,39 @@ enum WeeklySummaryV2Mapper {
             weeksRemaining: dto.weeksRemaining,
             currentStageDescription: dto.currentStageDescription,
             upcomingMilestone: dto.upcomingMilestone.map { toMilestoneRef(from: $0) }
+        )
+    }
+
+    private static func toDecisionChain(from dto: DecisionChainWeeklySummaryDTO) -> DecisionChainWeeklySummary {
+        DecisionChainWeeklySummary(
+            focus: dto.focus.map { focus in
+                DecisionChainFocus(
+                    kind: focus.kind,
+                    metric: focus.metric,
+                    direction: focus.direction,
+                    startDay: focus.startDay,
+                    endDay: focus.endDay,
+                    hypothesisId: focus.hypothesisId,
+                    intervention: focus.intervention,
+                    verdict: focus.verdict,
+                    reason: focus.reason
+                )
+            },
+            narrative: dto.narrative.map { narrative in
+                DecisionChainNarrative(
+                    headline: narrative.headline,
+                    retrospect: narrative.retrospect,
+                    nextWeek: narrative.nextWeek
+                )
+            },
+            execution: dto.execution.map { execution in
+                DecisionChainExecution(
+                    completedKm: execution.completedKm,
+                    plannedKm: execution.plannedKm,
+                    runCount: execution.runCount,
+                    qualityCount: execution.qualityCount
+                )
+            }
         )
     }
 

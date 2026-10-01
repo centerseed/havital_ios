@@ -18,6 +18,13 @@ import Foundation
 ///   只給「與第 N 週相比」的單一差值）。
 /// - 建議項的「調整」（三態）：後端 `apply-items` 是二元的 `applied_indices`，
 ///   沒有 per-item 的調整值。
+struct App2DecisionChainPoint: Equatable, Identifiable {
+    let day: String
+    let value: Double
+
+    var id: String { day }
+}
+
 struct App2WeeklyReviewProjection: Equatable {
 
     // MARK: - 回顧本週（frame-18）
@@ -42,6 +49,8 @@ struct App2WeeklyReviewProjection: Equatable {
     let observations: [String]
     /// 訓練分析的逐項評語（配速／心率／距離／強度分配／能力進展）。
     let analysisNotes: [AnalysisNote]
+    /// 新週有 decision-chain 時才有；舊週保持 nil，沿用既有畫面。
+    let decisionChain: DecisionChainWeeklySummary?
 
     // MARK: - 規劃下週（frame-19）
 
@@ -105,6 +114,7 @@ extension App2WeeklyReviewProjection {
             improvements: improvements(summary.weeklyHighlights),
             observations: (summary.observations ?? []).compactMap(\.app2NonEmpty),
             analysisNotes: analysisNotes(summary),
+            decisionChain: summary.decisionChain,
             phaseLabel: phaseLabel(summary.planContext),
             nextWeekSummary: summary.nextWeekAdjustments.summary.app2NonEmpty,
             suggestions: suggestions(summary.nextWeekAdjustments.items)
@@ -213,5 +223,33 @@ extension App2WeeklyReviewProjection {
                 defaultApply: item.apply
             )
         }
+    }
+
+    /// 圖與 L2 卡共用同一個 display value；不在 client 端把 decision index 當顯示值。
+    static func decisionChainPoints(
+        metric: String,
+        response: AthleteStateSeriesResponse
+    ) -> [App2DecisionChainPoint] {
+        (response.series[metric] ?? [])
+            .compactMap { day in
+                guard let value = day.displayValue else { return nil }
+                return App2DecisionChainPoint(day: day.day, value: value)
+            }
+            .sorted { $0.day < $1.day }
+    }
+
+    static func decisionChainValue(
+        on day: String,
+        points: [App2DecisionChainPoint]
+    ) -> Double? {
+        points.first(where: { $0.day == day })?.value
+    }
+
+    /// open_hypothesis 的右值是回顧日最後一個已讀到的序列值；判斷日尚未到，不讀未來。
+    static func decisionChainLatestValue(
+        through day: String,
+        points: [App2DecisionChainPoint]
+    ) -> App2DecisionChainPoint? {
+        points.last(where: { $0.day <= day })
     }
 }

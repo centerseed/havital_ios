@@ -29,6 +29,7 @@ struct WeeklySummaryV2DTO: Codable {
     let promptAuditId: String?
     let observations: [String]?
     let weeklyStory: WeeklyStoryDTO?
+    let decisionChain: DecisionChainWeeklySummaryDTO?
 
     // MARK: - CodingKeys
 
@@ -53,6 +54,7 @@ struct WeeklySummaryV2DTO: Codable {
         case promptAuditId = "prompt_audit_id"
         case observations
         case weeklyStory = "weekly_story"
+        case decisionChain = "decision_chain"
     }
 }
 
@@ -682,6 +684,57 @@ struct WeeklyStoryDTO: Codable {
     let text: String?
     let thread: String?
     let callback: String?
+}
+
+struct DecisionChainFocusDTO: Codable {
+    let kind: String
+    let metric: String
+    let direction: String
+    let startDay: String
+    let endDay: String
+    let hypothesisId: String?
+    let intervention: String?
+    let verdict: String?
+    let reason: String?
+
+    enum CodingKeys: String, CodingKey {
+        case kind, metric, direction
+        case startDay = "start_day"
+        case endDay = "end_day"
+        case hypothesisId = "hypothesis_id"
+        case intervention, verdict, reason
+    }
+}
+
+struct DecisionChainNarrativeDTO: Codable {
+    let headline: String
+    let retrospect: String
+    let nextWeek: String
+
+    enum CodingKeys: String, CodingKey {
+        case headline, retrospect
+        case nextWeek = "next_week"
+    }
+}
+
+struct DecisionChainExecutionDTO: Codable {
+    let completedKm: Double?
+    let plannedKm: Double?
+    let runCount: Int?
+    let qualityCount: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case completedKm = "completed_km"
+        case plannedKm = "planned_km"
+        case runCount = "run_count"
+        case qualityCount = "quality_count"
+    }
+}
+
+struct DecisionChainWeeklySummaryDTO: Codable {
+    let focus: DecisionChainFocusDTO?
+    let narrative: DecisionChainNarrativeDTO?
+    let execution: DecisionChainExecutionDTO?
 }
 
 // MARK: - API Response Wrapper

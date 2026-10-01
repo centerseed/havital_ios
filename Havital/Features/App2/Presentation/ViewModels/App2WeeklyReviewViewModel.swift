@@ -25,6 +25,8 @@ final class App2WeeklyReviewViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
     /// 這一週還沒有回顧 —— 畫面顯示「產生回顧」而不是空白。
     @Published private(set) var needsGeneration = false
+    /// 焦點圖／L2 卡共用的現讀序列；沒有 decision-chain focus 時保持 nil。
+    @Published private(set) var decisionChainSeries: AthleteStateSeriesResponse?
     /// 週回顧被付費閘門擋下（AC-PAYWALL-23）。
     @Published var showsUpsell = false
     /// 這次 upsell 對應的 paywall 來源；由 alert 的「查看方案」按鈕消費。
@@ -103,13 +105,16 @@ final class App2WeeklyReviewViewModel: ObservableObject {
     /// 不是第二條資料路徑。**解不到就是 nil**——那時規劃分頁走 AC-TRAIN-HUB-10 的
     /// 既有路徑（fail-open），不是壞掉。
     private let decisionChainRepository: DecisionChainWeekRepository?
+    /// 沿用既有 `/v2/athlete-state/metrics/series` read path，不在週回顧另造資料源。
+    private let seriesDataSource: AthleteStateSeriesDataSourceProtocol
 
     init(
         weekOfPlan: Int,
         isReadOnly: Bool = false,
         isCurrentWeek: Bool = false,
         repository: TrainingPlanV2Repository? = nil,
-        decisionChainRepository: DecisionChainWeekRepository? = nil
+        decisionChainRepository: DecisionChainWeekRepository? = nil,
+        seriesDataSource: AthleteStateSeriesDataSourceProtocol? = nil
     ) {
         self.weekOfPlan = weekOfPlan
         self.isReadOnly = isReadOnly
@@ -122,6 +127,7 @@ final class App2WeeklyReviewViewModel: ObservableObject {
         let resolved: TrainingPlanV2Repository = repository ?? container.resolve()
         self.planRepository = resolved
         self.decisionChainRepository = decisionChainRepository ?? container.tryResolve()
+        self.seriesDataSource = seriesDataSource ?? AthleteStateSeriesRemoteDataSource()
 
         self.coordinator = WeeklySummaryCoordinator(
             repository: resolved,
@@ -182,6 +188,7 @@ final class App2WeeklyReviewViewModel: ObservableObject {
             allowGenerate: autoGeneratesOnLoad && !subscriptionGateClosed
         )
         applyState(afterGenerate: false)
+        await loadDecisionChainSeries()
         if subscriptionGateClosed, case .empty = coordinator.weeklySummary {
             presentUpsell(trigger: .weeklyReview)
         }
@@ -285,6 +292,7 @@ final class App2WeeklyReviewViewModel: ObservableObject {
         needsGeneration = false
         await coordinator.generateWeeklySummary()
         applyState(afterGenerate: true)
+        await loadDecisionChainSeries()
         // 回顧剛生成 ⇒ 後端的 `has_current_summary` 翻真、`next_action` 從
         // `create_summary` 變 `create_plan`。不重取的話「產生下週課表」的判準會
         // 讀到產生前那一份，CTA 停在上一個狀態。
@@ -339,6 +347,38 @@ final class App2WeeklyReviewViewModel: ObservableObject {
         case .loading:
             break
         }
+    }
+
+    private func loadDecisionChainSeries() async {
+        guard let focus = projection?.decisionChain?.focus else {
+            decisionChainSeries = nil
+            return
+        }
+        guard let chartStart = Self.shiftedDay(focus.startDay, by: -49) else {
+            Logger.debug("[App2WeeklyReviewVM] 焦點日期無法組成 8 週序列窗，圖與 L2 數值不畫")
+            decisionChainSeries = nil
+            return
+        }
+        do {
+            decisionChainSeries = try await seriesDataSource.fetchMetricSeries(
+                startDay: chartStart,
+                endDay: focus.endDay
+            )
+        } catch {
+            guard !error.isCancellationError else { return }
+            Logger.debug("[App2WeeklyReviewVM] decision-chain 序列取得失敗，焦點圖與 L2 數值不畫: \(error.toDomainError())")
+            decisionChainSeries = nil
+        }
+    }
+
+    private static func shiftedDay(_ day: String, by days: Int) -> String? {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        guard let date = formatter.date(from: day) else { return nil }
+        return formatter.string(from: Calendar(identifier: .gregorian).date(byAdding: .day, value: days, to: date) ?? date)
     }
 
     // MARK: - 建議項採納（frame-19）

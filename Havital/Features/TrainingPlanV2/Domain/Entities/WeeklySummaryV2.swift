@@ -73,6 +73,9 @@ struct WeeklySummaryV2: Codable, Equatable {
     /// 週故事化敘事（LLM 生成，三欄：本週主線、連貫主軸、行動鉤）
     let weeklyStory: WeeklyStory?
 
+    /// decision-chain 週回顧首屏資料；舊週沒有這欄時保持 nil，走既有畫面。
+    var decisionChain: DecisionChainWeeklySummary? = nil
+
     // MARK: - CodingKeys
 
     enum CodingKeys: String, CodingKey {
@@ -96,6 +99,7 @@ struct WeeklySummaryV2: Codable, Equatable {
         case promptAuditId = "prompt_audit_id"
         case observations
         case weeklyStory = "weekly_story"
+        case decisionChain = "decision_chain"
     }
 }
 
@@ -640,6 +644,60 @@ struct WeeklyStory: Codable, Equatable {
     let text: String?
     let thread: String?
     let callback: String?
+}
+
+// MARK: - Decision-chain weekly review
+
+/// §4.2a 的 focus 只帶判斷材料，不帶任何數值；數值由 App 讀 metrics/series 現算。
+struct DecisionChainFocus: Codable, Equatable {
+    let kind: String
+    let metric: String
+    let direction: String
+    let startDay: String
+    let endDay: String
+    let hypothesisId: String?
+    let intervention: String?
+    let verdict: String?
+    let reason: String?
+
+    enum CodingKeys: String, CodingKey {
+        case kind, metric, direction
+        case startDay = "start_day"
+        case endDay = "end_day"
+        case hypothesisId = "hypothesis_id"
+        case intervention, verdict, reason
+    }
+}
+
+struct DecisionChainNarrative: Codable, Equatable {
+    let headline: String
+    let retrospect: String
+    let nextWeek: String
+
+    enum CodingKeys: String, CodingKey {
+        case headline, retrospect
+        case nextWeek = "next_week"
+    }
+}
+
+struct DecisionChainExecution: Codable, Equatable {
+    let completedKm: Double?
+    let plannedKm: Double?
+    let runCount: Int?
+    let qualityCount: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case completedKm = "completed_km"
+        case plannedKm = "planned_km"
+        case runCount = "run_count"
+        case qualityCount = "quality_count"
+    }
+}
+
+struct DecisionChainWeeklySummary: Codable, Equatable {
+    let focus: DecisionChainFocus?
+    let narrative: DecisionChainNarrative?
+    let execution: DecisionChainExecution?
 }
 
 // CustomizationRecommendation 已移除（2026-04-05）
