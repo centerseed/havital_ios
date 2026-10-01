@@ -663,10 +663,10 @@ struct App2WeeklyReviewView: View {
                 labeledValue(L10n.App2.WeeklyReview.decisionReason.localized, reasonLabel(reason))
             }
             if focus.kind == "open_hypothesis" {
-                labeledValue(
-                    L10n.App2.WeeklyReview.decisionWaitUntil.localized,
-                    Self.decisionWaitUntilText(focus.endDay)
+                Text(
+                    Self.decisionWaitUntilRowText(focus.endDay)
                 )
+                .font(.system(size: 12, weight: .bold))
             }
         }
         .accessibilityIdentifier("App2_WeeklyReviewL2Card")
@@ -859,6 +859,10 @@ struct App2WeeklyReviewView: View {
 
     static func decisionWaitUntilText(_ day: String) -> String {
         String(format: L10n.App2.WeeklyReview.decisionWaitUntil.localized, day)
+    }
+
+    static func decisionWaitUntilRowText(_ day: String) -> String {
+        decisionWaitUntilText(day)
     }
 
     static func plannedKmFootnoteText(_ km: Double) -> String {

@@ -119,7 +119,8 @@ extension App2WeeklyReviewProjection {
             decisionChain: summary.decisionChain,
             reviewDay: reviewDay(
                 localWeekEndExclusive: summary.localWeekEndExclusive,
-                inputAsOf: summary.inputAsOf
+                inputAsOf: summary.inputAsOf,
+                decisionChainAsOf: summary.decisionChain == nil ? nil : summary.inputAsOf
             ),
             phaseLabel: phaseLabel(summary.planContext),
             nextWeekSummary: summary.nextWeekAdjustments.summary.app2NonEmpty,
@@ -129,8 +130,12 @@ extension App2WeeklyReviewProjection {
 
     static func reviewDay(
         localWeekEndExclusive: String?,
-        inputAsOf: String?
+        inputAsOf: String?,
+        decisionChainAsOf: String? = nil
     ) -> String? {
+        if let decisionChainAsOf {
+            return decisionChainAsOf.split(separator: "T").first.map(String.init)
+        }
         let candidate = localWeekEndExclusive ?? inputAsOf
         guard let day = candidate?.split(separator: "T").first.map(String.init),
               let parsed = Calendar(identifier: .gregorian).date(from: DateComponents(

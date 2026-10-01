@@ -178,6 +178,31 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         )
     }
 
+    func test_decisionChain_reviewDay_usesInputAsOf_notWeekEndMinusOne() {
+        let chain = DecisionChainWeeklySummary(
+            focus: DecisionChainFocus(
+                kind: "open_hypothesis",
+                metric: "capability_baseline",
+                direction: "improving",
+                startDay: "2026-09-06",
+                endDay: "2026-09-28",
+                hypothesisId: "h1",
+                intervention: nil,
+                verdict: nil,
+                reason: nil
+            ),
+            narrative: nil,
+            execution: nil
+        )
+        var fixture = summary(decisionChain: chain)
+        fixture.localWeekEndExclusive = "2026-09-21T00:00:00Z"
+        fixture.inputAsOf = "2026-09-22T00:00:00Z"
+
+        let projection = App2WeeklyReviewProjection.make(fixture)
+
+        XCTAssertEqual(projection.reviewDay, "2026-09-22")
+    }
+
     func test_decisionChain_display_helpers_translate_reasons_and_format_dates() {
         for reason in [
             "confounded", "not_prescribed", "not_executed", "declined_by_user",
@@ -188,10 +213,10 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
             )
         }
         XCTAssertFalse(
-            App2WeeklyReviewView.decisionWaitUntilText("2026-10-04").contains("%@")
+            App2WeeklyReviewView.decisionWaitUntilRowText("2026-10-04").contains("%@")
         )
         XCTAssertTrue(
-            App2WeeklyReviewView.decisionWaitUntilText("2026-10-04").contains("2026-10-04")
+            App2WeeklyReviewView.decisionWaitUntilRowText("2026-10-04").contains("2026-10-04")
         )
     }
 
