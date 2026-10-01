@@ -9,8 +9,8 @@ date: 2026-09-29
 
 # iOS 心率設定頁：重算與提醒
 
-行為與數字的來源是 root `docs/specs/SPEC-heart-rate-and-training-readiness-surfaces.md` 的 AC-HR-07～13，後端規則在
-`cloud/api_service/docs/01-specs/decision-chain/0-inputs/raw/SPEC-hr-zones.md` §5.5、§5.7、§5.8。本檔只寫 iOS 2.0 設定頁（`App2HeartRateZoneSettingsView`）看得到的做法，不重講規則。
+行為與數字的來源是已提交的 root `docs/specs/SPEC-heart-rate-and-training-readiness-surfaces.md` AC-HR-07～13、AC-HR-15；後端計算規則在已提交的
+`cloud/api_service/docs/01-specs/decision-chain/0-inputs/raw/SPEC-hr-zones.md` §5.5、§5.7、§5.8。HZ-INV-02 只管計算來源，App 缺少來源時顯示「未記錄來源」由 root AC-HR-15 與本檔共同定義。本檔只寫 iOS 2.0 設定頁（`App2HeartRateZoneSettingsView`）看得到的做法，不重講規則。
 
 1. **存完問一次（AC-HR-07）**：存下心率後，只看後端 `PUT /user` 回應的 `heart_rate.changed`；為真才跳選單，選項由上到下是「最近 14 天／最近 30 天／最近 60 天／不重算」，「不重算」是一顆看得見的一般按鈕（不用 cancel 角色——iPhone 的 confirmationDialog 會把 cancel 藏起來），選了只存心率、不開工作；說明寫「更早的課維持原值」。
    驗法：`test_promptListsTheThreeRangesThenAVisibleSkipChoice`、`test_choosingTheSkipChoiceSavesOnlyAndStartsNothing`。值沒變就照舊收頁。App 不自己比存前存後。onboarding 的心率步驟不走這一頁，不問。
@@ -25,7 +25,7 @@ date: 2026-09-29
    驗法：`test_dismissHidesTheReminderAtOnceAndTellsTheBackend`、`test_dismissFailureKeepsTheReminderSoItComesBackHonestly`、`test_dismissPostsToTheDismissPath`。
 7. **手錶自動更新後的說明與重算入口（HZ-INV-18）**：`watch-check` 回 `auto_update` 時，設定頁多一張卡寫「手錶於 YYYY-MM-DD 自動更新為 193」（日期是後端依使用者時區算好的，App 原樣顯示），卡片裡有「用目前的心率重算過去的跑力」按鈕，開的是第 1 條同一個 14／30／60 天選單與第 2 條同一套進度，不另做一套。自動更新本身不會重算，也不跳選單。使用者自己改過最大心率後後端不再回 `auto_update`，卡片消失。
    驗法：`test_autoUpdateNoteIsLoadedAndKeptApartFromTheReminder`、`test_watchCheckDecodesReminderAndAutoUpdateNote`。
-8. **最大心率的來源文字（HZ-INV-02）**：來源小字放在各自數字卡「內」、數字下方（不是兩張卡之間），最大心率卡依 `GET /user` 的 `max_hr_source`：`user_set`「你在 Paceriz 設定」、`watch`「手錶自動設定」、`observed`「由跑步紀錄推算」、只有後端明確回 `system_default` 才顯示「系統預設」（en：Set by you in Paceriz／Set automatically by your watch／Estimated from your runs／System default；ja：Paceriz で設定／時計が自動設定／ランニング記録から推定／システム既定）。最大心率沒有這個欄位或值不認得時顯示「未記錄來源」，不猜成系統預設、不 crash，也不回寫舊資料。安靜心率卡同樣在數字下方顯示 `relaxing_hr_source`；後端沒送或不認得這欄就顯示「未記錄來源」。
+8. **最大心率的來源文字（root AC-HR-15、HZ-INV-02）**：來源小字放在各自數字卡「內」、數字下方（不是兩張卡之間），最大心率卡依 `GET /user` 的 `max_hr_source`：`user_set`「你在 Paceriz 設定」、`watch`「手錶自動設定」、`observed`「由跑步紀錄推算」、只有後端明確回 `system_default` 才顯示「系統預設」（en：Set by you in Paceriz／Set automatically by your watch／Estimated from your runs／System default；ja：Paceriz で設定／時計が自動設定／ランニング記録から推定／システム既定）。最大心率沒有這個欄位或值不認得時顯示「未記錄來源」，不猜成系統預設、不 crash，也不回寫舊資料。安靜心率卡同樣在數字下方顯示 `relaxing_hr_source`；後端沒送或不認得這欄就顯示「未記錄來源」。
    驗法：`test_sourceParsesTheFourValuesAndTreatsMissingOrUnknownAsUnrecorded`、`test_userProfileDecodesMissingMaxHrSourceAsUnrecorded`、`test_userProfileDecodesRelaxingHrSourceOnlyWhenTheBackendSendsIt`。
 
 ## 還沒做
