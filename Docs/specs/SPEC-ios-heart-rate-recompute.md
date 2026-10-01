@@ -11,6 +11,7 @@ date: 2026-09-29
 
 行為與數字的來源是已提交的 root `docs/specs/SPEC-heart-rate-and-training-readiness-surfaces.md` AC-HR-07～13、AC-HR-15；後端計算規則在已提交的
 `cloud/api_service/docs/01-specs/decision-chain/0-inputs/raw/SPEC-hr-zones.md` §5.5、§5.7、§5.8。HZ-INV-02 只管計算來源，App 缺少來源時顯示「未記錄來源」由 root AC-HR-15 與本檔共同定義。本檔只寫 iOS 2.0 設定頁（`App2HeartRateZoneSettingsView`）看得到的做法，不重講規則。
+本條裁決的具名記錄見 root `STATUS/decisions.md` 的 2026-10-01 T-0843 條目。
 
 1. **存完問一次（AC-HR-07）**：存下心率後，只看後端 `PUT /user` 回應的 `heart_rate.changed`；為真才跳選單，選項由上到下是「最近 14 天／最近 30 天／最近 60 天／不重算」，「不重算」是一顆看得見的一般按鈕（不用 cancel 角色——iPhone 的 confirmationDialog 會把 cancel 藏起來），選了只存心率、不開工作；說明寫「更早的課維持原值」。
    驗法：`test_promptListsTheThreeRangesThenAVisibleSkipChoice`、`test_choosingTheSkipChoiceSavesOnlyAndStartsNothing`。值沒變就照舊收頁。App 不自己比存前存後。onboarding 的心率步驟不走這一頁，不問。
