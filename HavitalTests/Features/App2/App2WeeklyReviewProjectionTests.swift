@@ -163,6 +163,58 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         XCTAssertEqual(points.map(\.value), [38.4])
     }
 
+    func test_openHypothesis_afterValue_uses_exact_reviewDay_andNotLaterPoint() {
+        let points = [
+            App2DecisionChainPoint(day: "2026-09-20", value: 38.4),
+            App2DecisionChainPoint(day: "2026-09-25", value: 42.1)
+        ]
+
+        XCTAssertEqual(
+            App2WeeklyReviewProjection.decisionChainValue(on: "2026-09-20", points: points),
+            38.4
+        )
+        XCTAssertNil(
+            App2WeeklyReviewProjection.decisionChainValue(on: "2026-09-21", points: points)
+        )
+    }
+
+    func test_decisionChain_display_helpers_translate_reasons_and_format_dates() {
+        for reason in [
+            "confounded", "not_prescribed", "not_executed", "declined_by_user",
+            "insufficient_signal", "not_discriminating"
+        ] {
+            XCTAssertNotEqual(
+                App2WeeklyReviewView.localizedDecisionReason(reason), reason
+            )
+        }
+        XCTAssertFalse(
+            App2WeeklyReviewView.decisionWaitUntilText("2026-10-04").contains("%@")
+        )
+        XCTAssertTrue(
+            App2WeeklyReviewView.decisionWaitUntilText("2026-10-04").contains("2026-10-04")
+        )
+    }
+
+    func test_decisionChain_seriesWindow_isEightWeeksEndingOnReviewDay() {
+        let window = App2WeeklyReviewViewModel.decisionChainSeriesWindow(
+            focus: DecisionChainFocus(
+                kind: "open_hypothesis",
+                metric: "capability_baseline",
+                direction: "improving",
+                startDay: "2026-09-06",
+                endDay: "2026-10-04",
+                hypothesisId: "h1",
+                intervention: nil,
+                verdict: nil,
+                reason: nil
+            ),
+            reviewDay: "2026-09-20"
+        )
+
+        XCTAssertEqual(window?.startDay, "2026-07-26")
+        XCTAssertEqual(window?.endDay, "2026-09-20")
+    }
+
     // MARK: - 建議項：index 即身分
 
     /// **不要重排、不要過濾。** index 就是 `applied_indices` 送出去的值。

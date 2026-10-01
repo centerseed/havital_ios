@@ -27,6 +27,8 @@ final class App2WeeklyReviewViewModel: ObservableObject {
     @Published private(set) var needsGeneration = false
     /// 焦點圖／L2 卡共用的現讀序列；沒有 decision-chain focus 時保持 nil。
     @Published private(set) var decisionChainSeries: AthleteStateSeriesResponse?
+    private var decisionChainSeriesTask: Task<Void, Never>?
+    private var decisionChainSeriesRequestID = UUID()
     /// 週回顧被付費閘門擋下（AC-PAYWALL-23）。
     @Published var showsUpsell = false
     /// 這次 upsell 對應的 paywall 來源；由 alert 的「查看方案」按鈕消費。
@@ -350,28 +352,51 @@ final class App2WeeklyReviewViewModel: ObservableObject {
     }
 
     private func loadDecisionChainSeries() async {
+        decisionChainSeriesTask?.cancel()
+        let requestID = UUID()
+        decisionChainSeriesRequestID = requestID
+        decisionChainSeriesTask = Task { [weak self] in
+            await self?.fetchDecisionChainSeries(requestID: requestID)
+        }
+        await decisionChainSeriesTask?.value
+    }
+
+    private func fetchDecisionChainSeries(requestID: UUID) async {
         guard let focus = projection?.decisionChain?.focus else {
             decisionChainSeries = nil
             return
         }
-        guard let chartStart = Self.shiftedDay(focus.startDay, by: -49) else {
-            Logger.debug("[App2WeeklyReviewVM] 焦點日期無法組成 8 週序列窗，圖與 L2 數值不畫")
+        guard let reviewDay = projection?.reviewDay ?? (focus.kind == "open_hypothesis" ? nil : focus.endDay),
+              let window = Self.decisionChainSeriesWindow(focus: focus, reviewDay: reviewDay)
+        else {
+            Logger.debug("[App2WeeklyReviewVM] 焦點回顧日無法組成 8 週序列窗，圖與 L2 數值不畫")
             decisionChainSeries = nil
             return
         }
         do {
-            decisionChainSeries = try await seriesDataSource.fetchMetricSeries(
-                startDay: chartStart,
-                endDay: focus.endDay
+            let response = try await seriesDataSource.fetchMetricSeries(
+                startDay: window.startDay,
+                endDay: window.endDay
             )
+            guard !Task.isCancelled, requestID == decisionChainSeriesRequestID else { return }
+            decisionChainSeries = response
         } catch {
             guard !error.isCancellationError else { return }
+            guard requestID == decisionChainSeriesRequestID else { return }
             Logger.debug("[App2WeeklyReviewVM] decision-chain 序列取得失敗，焦點圖與 L2 數值不畫: \(error.toDomainError())")
             decisionChainSeries = nil
         }
     }
 
-    private static func shiftedDay(_ day: String, by days: Int) -> String? {
+    nonisolated static func decisionChainSeriesWindow(
+        focus: DecisionChainFocus,
+        reviewDay: String
+    ) -> (startDay: String, endDay: String)? {
+        guard let chartStart = shiftedDay(reviewDay, by: -56) else { return nil }
+        return (chartStart, reviewDay)
+    }
+
+    private nonisolated static func shiftedDay(_ day: String, by days: Int) -> String? {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "en_US_POSIX")

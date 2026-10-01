@@ -581,24 +581,34 @@ struct App2WeeklyReviewView: View {
         decisionChain: DecisionChainWeeklySummary
     ) -> some View {
         storyCard(projection, headline: decisionChain.narrative?.headline)
-        if let focus = decisionChain.focus,
-           let series = viewModel.decisionChainSeries {
-            let points = App2WeeklyReviewProjection.decisionChainPoints(
-                metric: focus.metric,
-                response: series
-            )
+        if let focus = decisionChain.focus {
+            let points = viewModel.decisionChainSeries.map {
+                App2WeeklyReviewProjection.decisionChainPoints(
+                    metric: focus.metric,
+                    response: $0
+                )
+            } ?? []
             if !points.isEmpty {
-                focusChartCard(focus: focus, points: points)
-                if focus.kind == "adjudication" || focus.kind == "open_hypothesis" {
-                    l2Card(focus: focus, points: points)
-                }
+                focusChartCard(
+                    focus: focus,
+                    points: points,
+                    reviewDay: viewModel.projection?.reviewDay
+                )
+            }
+            if focus.kind == "adjudication" || focus.kind == "open_hypothesis" {
+                l2Card(
+                    focus: focus,
+                    points: points,
+                    reviewDay: viewModel.projection?.reviewDay
+                )
             }
         }
     }
 
     private func focusChartCard(
         focus: DecisionChainFocus,
-        points: [App2DecisionChainPoint]
+        points: [App2DecisionChainPoint],
+        reviewDay: String?
     ) -> some View {
         App2Card(padding: 15, spacing: 10) {
             Text(String(format: L10n.App2.WeeklyReview.decisionFocus.localized, metricLabel(focus.metric)))
@@ -607,7 +617,10 @@ struct App2WeeklyReviewView: View {
                 .lineLimit(2)
             App2DecisionChainLineChart(
                 points: points,
-                anchorDays: Set([focus.startDay, focus.endDay])
+                anchorDays: Set(
+                    [focus.startDay, focus.kind == "open_hypothesis" ? reviewDay : focus.endDay]
+                        .compactMap { $0 }
+                )
             )
             .frame(height: 128)
             .accessibilityIdentifier("App2_WeeklyReviewFocusChart")
@@ -618,11 +631,16 @@ struct App2WeeklyReviewView: View {
     @ViewBuilder
     private func l2Card(
         focus: DecisionChainFocus,
-        points: [App2DecisionChainPoint]
+        points: [App2DecisionChainPoint],
+        reviewDay: String?
     ) -> some View {
         let before = App2WeeklyReviewProjection.decisionChainValue(on: focus.startDay, points: points)
         let afterPoint = focus.kind == "open_hypothesis"
-            ? App2WeeklyReviewProjection.decisionChainLatestValue(through: focus.endDay, points: points)
+            ? reviewDay.flatMap { day in
+                App2WeeklyReviewProjection.decisionChainValue(on: day, points: points).map { value in
+                    App2DecisionChainPoint(day: day, value: value)
+                }
+            }
             : App2WeeklyReviewProjection.decisionChainValue(on: focus.endDay, points: points).map {
                 App2DecisionChainPoint(day: focus.endDay, value: $0)
             }
@@ -647,7 +665,7 @@ struct App2WeeklyReviewView: View {
             if focus.kind == "open_hypothesis" {
                 labeledValue(
                     L10n.App2.WeeklyReview.decisionWaitUntil.localized,
-                    focus.endDay
+                    Self.decisionWaitUntilText(focus.endDay)
                 )
             }
         }
@@ -661,7 +679,7 @@ struct App2WeeklyReviewView: View {
                     key: "decision_completed_km",
                     label: NSLocalizedString("workout.metrics.distance", comment: "距離"),
                     value: String(format: "%.1f", $0), unit: "km",
-                    footnote: execution.plannedKm.map { String(format: "planned %.1f km", $0) }
+                    footnote: execution.plannedKm.map(Self.plannedKmFootnoteText)
                 )
             },
             execution.runCount.map {
@@ -823,12 +841,28 @@ struct App2WeeklyReviewView: View {
         }
     }
 
-    private func reasonLabel(_ reason: String) -> String {
+    static func localizedDecisionReason(_ reason: String) -> String {
         switch reason {
         case "confounded": return L10n.App2.WeeklyReview.reasonConfounded.localized
         case "not_prescribed": return L10n.App2.WeeklyReview.reasonNotPrescribed.localized
-        default: return reason
+        case "not_executed": return L10n.App2.WeeklyReview.reasonNotExecuted.localized
+        case "declined_by_user": return L10n.App2.WeeklyReview.reasonDeclinedByUser.localized
+        case "insufficient_signal": return L10n.App2.WeeklyReview.reasonInsufficientSignal.localized
+        case "not_discriminating": return L10n.App2.WeeklyReview.reasonNotDiscriminating.localized
+        default: return L10n.App2.WeeklyReview.reasonGeneric.localized
         }
+    }
+
+    private func reasonLabel(_ reason: String) -> String {
+        Self.localizedDecisionReason(reason)
+    }
+
+    static func decisionWaitUntilText(_ day: String) -> String {
+        String(format: L10n.App2.WeeklyReview.decisionWaitUntil.localized, day)
+    }
+
+    static func plannedKmFootnoteText(_ km: Double) -> String {
+        String(format: L10n.App2.WeeklyReview.plannedKmFootnote.localized, km)
     }
 
     private func storyCard(

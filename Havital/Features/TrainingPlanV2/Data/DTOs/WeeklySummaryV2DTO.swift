@@ -30,6 +30,8 @@ struct WeeklySummaryV2DTO: Codable {
     let observations: [String]?
     let weeklyStory: WeeklyStoryDTO?
     let decisionChain: DecisionChainWeeklySummaryDTO?
+    let localWeekEndExclusive: String?
+    let inputAsOf: String?
 
     // MARK: - CodingKeys
 
@@ -55,6 +57,8 @@ struct WeeklySummaryV2DTO: Codable {
         case observations
         case weeklyStory = "weekly_story"
         case decisionChain = "decision_chain"
+        case localWeekEndExclusive = "local_week_end_exclusive"
+        case inputAsOf = "input_as_of"
     }
 }
 

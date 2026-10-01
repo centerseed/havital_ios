@@ -51,6 +51,8 @@ struct App2WeeklyReviewProjection: Equatable {
     let analysisNotes: [AnalysisNote]
     /// 新週有 decision-chain 時才有；舊週保持 nil，沿用既有畫面。
     let decisionChain: DecisionChainWeeklySummary?
+    /// 回顧日由既有週摘要日期上下文投影；沒有就不猜，圖與現讀值可不上屏。
+    let reviewDay: String?
 
     // MARK: - 規劃下週（frame-19）
 
@@ -115,10 +117,39 @@ extension App2WeeklyReviewProjection {
             observations: (summary.observations ?? []).compactMap(\.app2NonEmpty),
             analysisNotes: analysisNotes(summary),
             decisionChain: summary.decisionChain,
+            reviewDay: reviewDay(
+                localWeekEndExclusive: summary.localWeekEndExclusive,
+                inputAsOf: summary.inputAsOf
+            ),
             phaseLabel: phaseLabel(summary.planContext),
             nextWeekSummary: summary.nextWeekAdjustments.summary.app2NonEmpty,
             suggestions: suggestions(summary.nextWeekAdjustments.items)
         )
+    }
+
+    static func reviewDay(
+        localWeekEndExclusive: String?,
+        inputAsOf: String?
+    ) -> String? {
+        let candidate = localWeekEndExclusive ?? inputAsOf
+        guard let day = candidate?.split(separator: "T").first.map(String.init),
+              let parsed = Calendar(identifier: .gregorian).date(from: DateComponents(
+                calendar: Calendar(identifier: .gregorian),
+                timeZone: TimeZone(secondsFromGMT: 0),
+                year: Int(day.prefix(4)),
+                month: Int(day.dropFirst(5).prefix(2)),
+                day: Int(day.suffix(2))
+              )),
+              let review = Calendar(identifier: .gregorian).date(byAdding: .day, value: -1, to: parsed)
+        else {
+            return nil
+        }
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: review)
     }
 
     /// 本週成績。設計有四格（總距離／總時間／跑次／總爬升），payload 只給得出兩個

@@ -2397,6 +2397,11 @@ extension L10n {
             static let verdictIndeterminate = "app2.weekly_review.verdict_indeterminate"
             static let reasonConfounded = "app2.weekly_review.reason_confounded"
             static let reasonNotPrescribed = "app2.weekly_review.reason_not_prescribed"
+            static let reasonNotExecuted = "app2.weekly_review.reason_not_executed"
+            static let reasonDeclinedByUser = "app2.weekly_review.reason_declined_by_user"
+            static let reasonInsufficientSignal = "app2.weekly_review.reason_insufficient_signal"
+            static let reasonNotDiscriminating = "app2.weekly_review.reason_not_discriminating"
+            static let reasonGeneric = "app2.weekly_review.reason_generic"
 
             static let nextWeekTitle = "app2.weekly_review.next_week_title"
             /// `建議項目 · %d`

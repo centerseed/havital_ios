@@ -75,6 +75,9 @@ struct WeeklySummaryV2: Codable, Equatable {
 
     /// decision-chain 週回顧首屏資料；舊週沒有這欄時保持 nil，走既有畫面。
     var decisionChain: DecisionChainWeeklySummary? = nil
+    /// 週回顧現讀序列的日期上下文；舊 payload 沒有時保持 nil。
+    var localWeekEndExclusive: String? = nil
+    var inputAsOf: String? = nil
 
     // MARK: - CodingKeys
 
@@ -100,6 +103,8 @@ struct WeeklySummaryV2: Codable, Equatable {
         case observations
         case weeklyStory = "weekly_story"
         case decisionChain = "decision_chain"
+        case localWeekEndExclusive = "local_week_end_exclusive"
+        case inputAsOf = "input_as_of"
     }
 }
 

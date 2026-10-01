@@ -5073,3 +5073,8 @@
 "app2.weekly_review.verdict_indeterminate" = "還判不出來";
 "app2.weekly_review.reason_confounded" = "這段期間有其他因素干擾，需要延長觀察。";
 "app2.weekly_review.reason_not_prescribed" = "這段沒有做出預定刺激，現在還不能判斷。";
+"app2.weekly_review.reason_not_executed" = "課表排了，但這段期間看不出持續訓練。";
+"app2.weekly_review.reason_declined_by_user" = "你在週回顧拒絕了這個建議，所以沒有實際嘗試。";
+"app2.weekly_review.reason_insufficient_signal" = "這段觀察期間量不到這個指標。";
+"app2.weekly_review.reason_not_discriminating" = "兩端都有量到，但變化太小，還分不出差異。";
+"app2.weekly_review.reason_generic" = "這一輪還說不清楚原因。";

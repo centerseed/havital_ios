@@ -5029,3 +5029,8 @@
 "app2.weekly_review.verdict_indeterminate" = "まだ判断できない";
 "app2.weekly_review.reason_confounded" = "ほかの要因が影響しているため、もう少し観察が必要です。";
 "app2.weekly_review.reason_not_prescribed" = "予定した刺激を実施していないため、まだ判断できません。";
+"app2.weekly_review.reason_not_executed" = "練習は予定されていましたが、この期間に継続した実行が見られません。";
+"app2.weekly_review.reason_declined_by_user" = "週の振り返りでこの提案を断ったため、実施していません。";
+"app2.weekly_review.reason_insufficient_signal" = "観察期間内にこの指標を測定できませんでした。";
+"app2.weekly_review.reason_not_discriminating" = "両端とも測れましたが、変化が小さく差を判別できません。";
+"app2.weekly_review.reason_generic" = "今回は理由がはっきりしません。";

@@ -33,7 +33,9 @@ enum WeeklySummaryV2Mapper {
             finalTrainingReview: dto.finalTrainingReview.map { toFinalTrainingReview(from: $0) },
             promptAuditId: dto.promptAuditId,
             observations: dto.observations,
-            weeklyStory: dto.weeklyStory.map { toWeeklyStory(from: $0) }
+            weeklyStory: dto.weeklyStory.map { toWeeklyStory(from: $0) },
+            localWeekEndExclusive: dto.localWeekEndExclusive,
+            inputAsOf: dto.inputAsOf
         )
         entity.decisionChain = dto.decisionChain.map { toDecisionChain(from: $0) }
         return entity

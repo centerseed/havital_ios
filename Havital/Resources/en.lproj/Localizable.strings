@@ -5032,3 +5032,8 @@
 "app2.weekly_review.verdict_indeterminate" = "Still unclear";
 "app2.weekly_review.reason_confounded" = "Other factors affected this period, so observation needs to continue.";
 "app2.weekly_review.reason_not_prescribed" = "The planned stimulus was not delivered, so this cannot be judged yet.";
+"app2.weekly_review.reason_not_executed" = "The session was planned, but sustained training does not show up in this period.";
+"app2.weekly_review.reason_declined_by_user" = "You declined this suggestion in the week review, so it was not tried.";
+"app2.weekly_review.reason_insufficient_signal" = "This metric could not be measured during the observation period.";
+"app2.weekly_review.reason_not_discriminating" = "Both ends were measured, but the change is too small to tell them apart.";
+"app2.weekly_review.reason_generic" = "The reason is not clear this round.";
