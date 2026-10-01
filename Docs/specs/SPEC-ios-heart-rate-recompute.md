@@ -25,8 +25,8 @@ date: 2026-09-29
    驗法：`test_dismissHidesTheReminderAtOnceAndTellsTheBackend`、`test_dismissFailureKeepsTheReminderSoItComesBackHonestly`、`test_dismissPostsToTheDismissPath`。
 7. **手錶自動更新後的說明與重算入口（HZ-INV-18）**：`watch-check` 回 `auto_update` 時，設定頁多一張卡寫「手錶於 YYYY-MM-DD 自動更新為 193」（日期是後端依使用者時區算好的，App 原樣顯示），卡片裡有「用目前的心率重算過去的跑力」按鈕，開的是第 1 條同一個 14／30／60 天選單與第 2 條同一套進度，不另做一套。自動更新本身不會重算，也不跳選單。使用者自己改過最大心率後後端不再回 `auto_update`，卡片消失。
    驗法：`test_autoUpdateNoteIsLoadedAndKeptApartFromTheReminder`、`test_watchCheckDecodesReminderAndAutoUpdateNote`。
-8. **最大心率的來源文字（HZ-INV-02）**：來源小字放在各自數字卡「內」、數字下方（不是兩張卡之間），最大心率卡依 `GET /user` 的 `max_hr_source`：`user_set`「你在 Paceriz 設定」、`watch`「手錶自動設定」、`observed`「由跑步紀錄推算」、`system_default`「系統預設」（en：Set by you in Paceriz／Set automatically by your watch／Estimated from your runs／System default；ja：Paceriz で設定／時計が自動設定／ランニング記録から推定／システム既定）。最大心率沒有這個欄位或值不認得一律顯示「系統預設」，不 crash。安靜心率卡同樣在數字下方顯示 `relaxing_hr_source`，但後端沒送這欄就不顯示（不猜）。
-   驗法：`test_sourceParsesTheFourValuesAndTreatsUnknownAsSystemDefault`、`test_userProfileDecodesMaxHrSourceAndToleratesUnknownValue`、`test_userProfileDecodesRelaxingHrSourceOnlyWhenTheBackendSendsIt`。
+8. **最大心率的來源文字（HZ-INV-02）**：來源小字放在各自數字卡「內」、數字下方（不是兩張卡之間），最大心率卡依 `GET /user` 的 `max_hr_source`：`user_set`「你在 Paceriz 設定」、`watch`「手錶自動設定」、`observed`「由跑步紀錄推算」、只有後端明確回 `system_default` 才顯示「系統預設」（en：Set by you in Paceriz／Set automatically by your watch／Estimated from your runs／System default；ja：Paceriz で設定／時計が自動設定／ランニング記録から推定／システム既定）。最大心率沒有這個欄位或值不認得時顯示「未記錄來源」，不猜成系統預設、不 crash，也不回寫舊資料。安靜心率卡同樣在數字下方顯示 `relaxing_hr_source`；後端沒送或不認得這欄就顯示「未記錄來源」。
+   驗法：`test_sourceParsesTheFourValuesAndTreatsMissingOrUnknownAsUnrecorded`、`test_userProfileDecodesMissingMaxHrSourceAsUnrecorded`、`test_userProfileDecodesRelaxingHrSourceOnlyWhenTheBackendSendsIt`。
 
 ## 還沒做
 - Rizo／能力中心「你改了心率所以數字變了」那一句：後端文案已備，iOS 尚未渲染。

@@ -32,11 +32,11 @@ struct User: Codable {
     /// 「自動更新最大心率」（SPEC-hr-zones HZ-INV-16）；後端沒設過就沒有這欄。
     let autoUpdateMaxHr: Bool?
 
-    /// 最大心率的來源（SPEC-hr-zones HZ-INV-02）；沒有或不認得＝系統預設。
+    /// 最大心率的來源（SPEC-hr-zones HZ-INV-02）；沒有或不認得＝未記錄來源。
     let maxHrSource: HeartRateParameterSource
 
-    /// 安靜心率的來源；後端沒送這欄就是 nil（畫面不顯示，不猜）。
-    let relaxingHrSource: HeartRateParameterSource?
+    /// 安靜心率的來源；後端沒送或不認得就是未記錄來源。
+    let relaxingHrSource: HeartRateParameterSource
 
     // 自定義解碼方法處理可能的型別轉換
     init(from decoder: Decoder) throws {
@@ -99,12 +99,8 @@ struct User: Codable {
         // 熱適應開關
         climateAdjustmentEnabled = try container.decodeIfPresent(Bool.self, forKey: .climateAdjustmentEnabled)
         autoUpdateMaxHr = try container.decodeIfPresent(Bool.self, forKey: .autoUpdateMaxHr)
-        maxHrSource = HeartRateParameterSource(raw: try? container.decodeIfPresent(String.self, forKey: .maxHrSource))
-        if let raw = try? container.decodeIfPresent(String.self, forKey: .relaxingHrSource) {
-            relaxingHrSource = HeartRateParameterSource(raw: raw)
-        } else {
-            relaxingHrSource = nil
-        }
+        maxHrSource = HeartRateParameterSource(raw: (try? container.decode(String.self, forKey: .maxHrSource)) ?? nil)
+        relaxingHrSource = HeartRateParameterSource(raw: (try? container.decode(String.self, forKey: .relaxingHrSource)) ?? nil)
     }
     
     enum CodingKeys: String, CodingKey {

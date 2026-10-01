@@ -149,7 +149,7 @@ struct App2HeartRateZoneSettingsView: View {
         value: Binding<Int>,
         range: ClosedRange<Int>,
         identifier: String,
-        source: HeartRateParameterSource?,
+        source: HeartRateParameterSource,
         sourceIdentifier: String
     ) -> some View {
         App2Card(spacing: 4) {
@@ -166,12 +166,10 @@ struct App2HeartRateZoneSettingsView: View {
                             .font(.system(size: 13, weight: .bold))
                             .foregroundStyle(App2Theme.inkMuted)
                     }
-                    if let source {
-                        Text(NSLocalizedString(source.localizationKey, comment: ""))
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(App2Theme.inkMuted)
-                            .accessibilityIdentifier(sourceIdentifier)
-                    }
+                    Text(NSLocalizedString(source.localizationKey, comment: ""))
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(App2Theme.inkMuted)
+                        .accessibilityIdentifier(sourceIdentifier)
                 }
                 Spacer(minLength: 8)
                 // 形狀走共用的 `App2StepperButton`（`App2EditComponents`）——這一頁只是

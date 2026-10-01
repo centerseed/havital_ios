@@ -155,30 +155,30 @@ final class HeartRateRecomputeRepositoryTests: XCTestCase {
 
     // MARK: - 最大心率來源文字（SPEC-hr-zones §5.7、HZ-INV-02）
 
-    func test_sourceParsesTheFourValuesAndTreatsUnknownAsSystemDefault() {
+    func test_sourceParsesTheFourValuesAndTreatsMissingOrUnknownAsUnrecorded() {
         XCTAssertEqual(HeartRateParameterSource(raw: "user_set"), .userSet)
         XCTAssertEqual(HeartRateParameterSource(raw: "watch"), .watch)
         XCTAssertEqual(HeartRateParameterSource(raw: "observed"), .observed)
         XCTAssertEqual(HeartRateParameterSource(raw: "system_default"), .systemDefault)
-        XCTAssertEqual(HeartRateParameterSource(raw: "something_new"), .systemDefault)
-        XCTAssertEqual(HeartRateParameterSource(raw: nil), .systemDefault)
+        XCTAssertEqual(HeartRateParameterSource(raw: "something_new"), .unrecorded)
+        XCTAssertEqual(HeartRateParameterSource(raw: nil), .unrecorded)
     }
 
-    func test_userProfileDecodesMaxHrSourceAndToleratesUnknownValue() throws {
+    func test_userProfileDecodesMissingMaxHrSourceAsUnrecorded() throws {
         let watch = try JSONDecoder().decode(User.self, from: json(#"{"max_hr":193,"max_hr_source":"watch"}"#))
         XCTAssertEqual(watch.maxHrSource, .watch)
         let unknown = try JSONDecoder().decode(User.self, from: json(#"{"max_hr":193,"max_hr_source":"zzz"}"#))
-        XCTAssertEqual(unknown.maxHrSource, .systemDefault)
+        XCTAssertEqual(unknown.maxHrSource, .unrecorded)
         let absent = try JSONDecoder().decode(User.self, from: json(#"{"max_hr":193}"#))
-        XCTAssertEqual(absent.maxHrSource, .systemDefault)
+        XCTAssertEqual(absent.maxHrSource, .unrecorded)
     }
 
     func test_userProfileDecodesRelaxingHrSourceOnlyWhenTheBackendSendsIt() throws {
         let present = try JSONDecoder().decode(User.self, from: json(#"{"relaxing_hr":50,"relaxing_hr_source":"user_set"}"#))
         XCTAssertEqual(present.relaxingHrSource, .userSet)
         let unknown = try JSONDecoder().decode(User.self, from: json(#"{"relaxing_hr":50,"relaxing_hr_source":"zzz"}"#))
-        XCTAssertEqual(unknown.relaxingHrSource, .systemDefault)
+        XCTAssertEqual(unknown.relaxingHrSource, .unrecorded)
         let absent = try JSONDecoder().decode(User.self, from: json(#"{"relaxing_hr":50}"#))
-        XCTAssertNil(absent.relaxingHrSource)
+        XCTAssertEqual(absent.relaxingHrSource, .unrecorded)
     }
 }

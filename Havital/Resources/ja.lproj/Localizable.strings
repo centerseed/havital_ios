@@ -5000,5 +5000,6 @@
 "app2.hr_source.watch" = "時計が自動設定";
 "app2.hr_source.observed" = "ランニング記録から推定";
 "app2.hr_source.system_default" = "システム既定";
+"app2.hr_source.unrecorded" = "ソース未記録";
 "app2.hr_recompute.auto_update_note" = "時計が %1$@ に %2$d へ自動更新しました";
 "app2.hr_recompute.reminder_dismiss" = "今はしない";

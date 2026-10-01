@@ -5003,5 +5003,6 @@
 "app2.hr_source.watch" = "Set automatically by your watch";
 "app2.hr_source.observed" = "Estimated from your runs";
 "app2.hr_source.system_default" = "System default";
+"app2.hr_source.unrecorded" = "Source not recorded";
 "app2.hr_recompute.auto_update_note" = "Watch auto-updated it to %2$d on %1$@";
 "app2.hr_recompute.reminder_dismiss" = "Not now";

@@ -5044,5 +5044,6 @@
 "app2.hr_source.watch" = "手錶自動設定";
 "app2.hr_source.observed" = "由跑步紀錄推算";
 "app2.hr_source.system_default" = "系統預設";
+"app2.hr_source.unrecorded" = "未記錄來源";
 "app2.hr_recompute.auto_update_note" = "手錶於 %1$@ 自動更新為 %2$d";
 "app2.hr_recompute.reminder_dismiss" = "先不用";

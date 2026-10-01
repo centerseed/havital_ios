@@ -151,19 +151,21 @@ struct HeartRateWatchCheck: Equatable {
     let autoUpdate: HeartRateWatchAutoUpdate?
 }
 
-/// 最大心率的來源（`SPEC-hr-zones` HZ-INV-02）。不認得的值一律當系統預設，不 crash。
+/// 最大心率的來源（`SPEC-hr-zones` HZ-INV-02）。缺少或不認得的來源保持未記錄，不猜成系統預設。
 enum HeartRateParameterSource: String, Codable, Equatable {
     case userSet = "user_set"
     case watch
     case observed
     case systemDefault = "system_default"
+    case unrecorded
 
     init(raw: String?) {
         switch raw {
         case "user_set": self = .userSet
         case "watch": self = .watch
         case "observed": self = .observed
-        default: self = .systemDefault
+        case "system_default": self = .systemDefault
+        default: self = .unrecorded
         }
     }
 
@@ -173,6 +175,7 @@ enum HeartRateParameterSource: String, Codable, Equatable {
         case .watch: return "app2.hr_source.watch"
         case .observed: return "app2.hr_source.observed"
         case .systemDefault: return "app2.hr_source.system_default"
+        case .unrecorded: return "app2.hr_source.unrecorded"
         }
     }
 }
