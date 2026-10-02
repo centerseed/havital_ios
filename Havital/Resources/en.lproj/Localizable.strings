@@ -5031,7 +5031,7 @@
 "app2.weekly_review.verdict_supported" = "Supported";
 "app2.weekly_review.verdict_refuted" = "Not supported";
 "app2.weekly_review.verdict_indeterminate" = "Still unclear";
-"app2.weekly_review.reason_confounded" = "Other factors affected this period. Review the observation conditions before deciding what to do next.";
+"app2.weekly_review.reason_confounded" = "Other factors affected this period. Record the interference and extend the observation before making the next decision.";
 "app2.weekly_review.reason_not_prescribed" = "The planned stimulus was not scheduled, so check the plan.";
 "app2.weekly_review.reason_not_executed" = "The session was planned but not executed; schedule the work again rather than only waiting.";
 "app2.weekly_review.reason_declined_by_user" = "You declined this suggestion; ask why before considering a different plan, and do not re-push the same suggestion.";

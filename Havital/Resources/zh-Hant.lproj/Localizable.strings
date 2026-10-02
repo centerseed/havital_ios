@@ -5072,7 +5072,7 @@
 "app2.weekly_review.verdict_supported" = "支持";
 "app2.weekly_review.verdict_refuted" = "不支持";
 "app2.weekly_review.verdict_indeterminate" = "還判不出來";
-"app2.weekly_review.reason_confounded" = "這段期間有其他因素干擾，請檢討觀察條件再決定下一步。";
+"app2.weekly_review.reason_confounded" = "這段期間有其他因素干擾，請記錄這項干擾並延長觀察。";
 "app2.weekly_review.reason_not_prescribed" = "這段沒有排出預定刺激，請檢查排課。";
 "app2.weekly_review.reason_not_executed" = "課表排了但沒有做到，請重新安排，不要只繼續等待。";
 "app2.weekly_review.reason_declined_by_user" = "你在週回顧拒絕了這個建議，請先詢問原因，不要重推同一個建議。";

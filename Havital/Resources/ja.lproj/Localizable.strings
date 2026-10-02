@@ -5028,7 +5028,7 @@
 "app2.weekly_review.verdict_supported" = "支持";
 "app2.weekly_review.verdict_refuted" = "支持されず";
 "app2.weekly_review.verdict_indeterminate" = "まだ判断できない";
-"app2.weekly_review.reason_confounded" = "ほかの要因が影響したため、観察条件を見直してから次の判断をします。";
+"app2.weekly_review.reason_confounded" = "ほかの要因が影響したため、その干渉を記録し、観察を延長してから次の判断をします。";
 "app2.weekly_review.reason_not_prescribed" = "予定した刺激が計画されていないため、計画を確認します。";
 "app2.weekly_review.reason_not_executed" = "練習は予定されていましたが実施されていません。待つだけでなく、もう一度計画します。";
 "app2.weekly_review.reason_declined_by_user" = "この提案を断ったため、理由を確認し、同じ提案を再提示しません。";

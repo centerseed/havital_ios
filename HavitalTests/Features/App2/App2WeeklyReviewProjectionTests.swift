@@ -254,7 +254,7 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
 
     func test_decisionChain_reason_copy_includes_next_step_and_confounded_interference() {
         let expectedFragments: [String: [String]] = [
-            "confounded": ["干擾", "檢討"],
+            "confounded": ["干擾", "延長觀察"],
             "not_prescribed": ["檢查排課"],
             "not_executed": ["重新安排", "不要只繼續等待"],
             "declined_by_user": ["詢問原因", "不要重推"],
@@ -270,6 +270,9 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         }
         XCTAssertFalse(
             App2WeeklyReviewView.localizedDecisionReason("not_executed").contains("還要等的原因")
+        )
+        XCTAssertFalse(
+            App2WeeklyReviewView.localizedDecisionReason("confounded").contains("檢討觀察條件")
         )
     }
 
