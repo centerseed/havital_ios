@@ -59,6 +59,10 @@ final class App2PeriodSummaryViewModel: ObservableObject, TaskManageable, App2Re
         }
         self.workoutDataSource = workoutDataSource ?? WorkoutRemoteDataSource()
         self.vdotDataSource = vdotDataSource ?? VDOTService.shared
+        CacheEventBus.shared.subscribe(forIdentifier: "App2PeriodSummaryViewModel") { [weak self] reason in
+            guard case .dataChanged(.vdot) = reason else { return }
+            Task { [weak self] in await self?.revalidate() }
+        }
     }
 
     deinit {

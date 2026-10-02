@@ -46,6 +46,7 @@ struct HeartRateRecomputeJob: Codable, Equatable {
     enum Status: String, Codable, Equatable {
         case queued
         case running
+        case updating
         case completed
         case failed
     }
@@ -61,7 +62,7 @@ struct HeartRateRecomputeJob: Codable, Equatable {
     let failedWorkoutIds: [String]
     let error: String?
 
-    var isActive: Bool { status == .queued || status == .running }
+    var isActive: Bool { status == .queued || status == .running || status == .updating }
 
     enum CodingKeys: String, CodingKey {
         case jobId = "job_id"

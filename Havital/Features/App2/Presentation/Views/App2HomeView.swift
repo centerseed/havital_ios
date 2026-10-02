@@ -343,9 +343,14 @@ struct App2HomeView: View {
     }
 
     private func fallbackText(for job: HeartRateRecomputeJob) -> String {
-        job.status == .queued
-            ? NSLocalizedString("app2.hr_recompute.queued", comment: "")
-            : "\(job.done)/\(job.total)"
+        switch job.status {
+        case .queued:
+            return NSLocalizedString("app2.hr_recompute.queued", comment: "")
+        case .updating:
+            return NSLocalizedString("app2.hr_recompute.updating", comment: "")
+        default:
+            return "\(job.done)/\(job.total)"
+        }
     }
 
     private static func heartRateRecomputeTitle(for days: HeartRateRecomputeDays) -> String {

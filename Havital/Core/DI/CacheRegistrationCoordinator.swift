@@ -73,6 +73,17 @@ enum CacheRegistrationCoordinator {
             }
         }
 
+        // HR recompute completion means the in-memory VDOT value must be pulled again now;
+        // clearing only the disk cache leaves pace zones and session projections stale until
+        // the next app launch.
+        CacheEventBus.shared.subscribe(forIdentifier: "VDOTManager.refreshAfterRecompute") { reason in
+            if case .dataChanged(.vdot) = reason {
+                Task { @MainActor in
+                    _ = await VDOTManager.shared.refreshData()
+                }
+            }
+        }
+
         // 4. 2.0 冷啟快照（`App2FileSnapshotStore`）的失效。
         //
         // **刻意不註冊成 `Cacheable`。** `invalidateAllCaches()` 會被

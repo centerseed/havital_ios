@@ -532,9 +532,7 @@ struct HeartRateZoneInfoView: View {
                 if job.isActive, job.total > 0 {
                     ProgressView(value: Double(job.done), total: Double(job.total))
                 }
-                recomputeStatusLine(message ?? (job.status == .queued
-                    ? NSLocalizedString("app2.hr_recompute.queued", comment: "")
-                    : "\(job.done)/\(job.total)"))
+                recomputeStatusLine(message ?? fallbackRecomputeText(for: job))
                 if job.status == .failed {
                     recomputeRetryButton
                 }
@@ -548,6 +546,17 @@ struct HeartRateZoneInfoView: View {
                 .font(.system(size: 14, weight: .semibold))
                 .accessibilityIdentifier("HeartRateZoneRecomputeRetry")
             }
+        }
+    }
+
+    private func fallbackRecomputeText(for job: HeartRateRecomputeJob) -> String {
+        switch job.status {
+        case .queued:
+            return NSLocalizedString("app2.hr_recompute.queued", comment: "")
+        case .updating:
+            return NSLocalizedString("app2.hr_recompute.updating", comment: "")
+        default:
+            return "\(job.done)/\(job.total)"
         }
     }
 

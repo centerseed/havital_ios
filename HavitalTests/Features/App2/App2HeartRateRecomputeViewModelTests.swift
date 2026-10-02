@@ -133,6 +133,24 @@ final class App2HeartRateRecomputeViewModelTests: XCTestCase {
         XCTAssertFalse(vm.isActive)
     }
 
+    func test_updatingJobStaysActiveUntilCapabilityRefreshCompletes() async {
+        let repo = FakeRepo()
+        repo.startOutcome = .success(.queued(job: job(.queued), message: "queued"))
+        repo.statuses = [
+            HeartRateRecomputeStatus(job: job(.updating, done: 10), message: "能力值更新中"),
+            HeartRateRecomputeStatus(job: job(.completed, done: 10, recomputed: 10), message: "done"),
+        ]
+        var finished = 0
+        let vm = makeVM(repo, completed: { finished += 1 })
+
+        await vm.choose(.fourteen)
+
+        guard case .job(let finalJob, _) = vm.phase else { return XCTFail("phase \(vm.phase)") }
+        XCTAssertEqual(finalJob.status, .completed)
+        XCTAssertEqual(finished, 1)
+        XCTAssertFalse(vm.isActive)
+    }
+
     func test_failedJobIsShownAsFailedAndCanBeRetried() async {
         let repo = FakeRepo()
         repo.startOutcome = .success(.queued(job: job(.queued), message: nil))

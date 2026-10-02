@@ -5035,6 +5035,7 @@
 "app2.hr_recompute.entry_footer" = "過去的單堂跑力會用目前的心率重新計算；更早的課維持原值。已產生的週課表與週回顧不會被改寫。";
 "app2.hr_recompute.starting" = "正在排入重算…";
 "app2.hr_recompute.queued" = "排隊中";
+"app2.hr_recompute.updating" = "能力值更新中…";
 "app2.hr_recompute.retry" = "重試";
 "app2.hr_recompute.auto_title" = "自動更新最大心率";
 "app2.hr_recompute.auto_footer" = "開啟後，跑步實測心率多次高於設定，或 Garmin 手錶上的最大心率與設定不同超過兩週，系統會自動更新最大心率。關閉則系統不會自己改。";

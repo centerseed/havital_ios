@@ -224,9 +224,9 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                     self.lastLoadedAt = nil
                     if self.hasLoaded { await self.revalidate() }
                 }
-            case .dataChanged(.workouts):
+            case .dataChanged(.workouts), .dataChanged(.vdot):
                 // workout_processed 推播（T-0359）與其他 workouts 失效：完成列
-                // （todayCompletedWorkout）要立即換新，不能等 60 秒 SWR 視窗。
+                // （todayCompletedWorkout）與能力基準／完賽預估要立即換新，不能等 60 秒 SWR 視窗。
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     self.lastLoadedAt = nil

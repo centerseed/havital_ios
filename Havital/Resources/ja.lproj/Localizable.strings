@@ -4991,6 +4991,7 @@
 "app2.hr_recompute.entry_footer" = "過去の1回ごとのVDOTを現在の心拍数で再計算します。それ以前のランは元の値のままです。生成済みの週間プランと振り返りは書き換えません。";
 "app2.hr_recompute.starting" = "再計算を受け付け中…";
 "app2.hr_recompute.queued" = "待機中";
+"app2.hr_recompute.updating" = "能力ベースラインを更新中…";
 "app2.hr_recompute.retry" = "再試行";
 "app2.hr_recompute.auto_title" = "最大心拍数を自動更新";
 "app2.hr_recompute.auto_footer" = "オンにすると、ランニングの実測心拍が何度も設定を上回った場合や、Garmin の時計の最大心拍数が設定と 2 週間を超えて異なる場合に、最大心拍数を自動更新します。オフなら自動では変更しません。";

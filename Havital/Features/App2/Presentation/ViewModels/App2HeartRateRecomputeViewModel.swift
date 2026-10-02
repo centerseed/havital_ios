@@ -50,8 +50,8 @@ final class App2HeartRateRecomputeViewModel: ObservableObject {
         self.pollSleep = pollSleep
     }
 
-    /// 重算完成後，能力中心／配速表／完賽預估讀到新的能力值：走既有的快取失效事件
-    /// （`CacheRegistrationCoordinator` 已把 `.workouts`、`.vdot` 接到指標詳情快取，首頁訂 `.workouts`）。
+    /// 重算完成後，能力基準／配速表／完賽預估讀到新的能力值：走既有的快取失效事件，
+    /// 由各 consumer 重新抓自己的 SQL-backed endpoint。
     nonisolated static func publishDownstreamRefresh() {
         Task { @MainActor in
             CacheEventBus.shared.publish(.dataChanged(.vdot))

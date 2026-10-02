@@ -108,6 +108,10 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
             lastLoadedAt = entry.loadedAt
             isLoading = false
         }
+        CacheEventBus.shared.subscribe(forIdentifier: "App2VolumeDetailViewModel") { [weak self] reason in
+            guard case .dataChanged(.vdot) = reason else { return }
+            Task { [weak self] in await self?.revalidate() }
+        }
     }
 
     deinit {
@@ -389,6 +393,10 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
             lastLoadedAt = entry.loadedAt
             isLoading = false
         }
+        CacheEventBus.shared.subscribe(forIdentifier: "App2CapabilityDetailViewModel") { [weak self] reason in
+            guard case .dataChanged(.vdot) = reason else { return }
+            Task { [weak self] in await self?.revalidate() }
+        }
     }
 
     deinit {
@@ -620,6 +628,10 @@ final class App2RecoveryDetailViewModel: ObservableObject, TaskManageable, App2R
             lastLoadedAt = entry.loadedAt
             isLoading = false
         }
+        CacheEventBus.shared.subscribe(forIdentifier: "App2RecoveryDetailViewModel") { [weak self] reason in
+            guard case .dataChanged(.vdot) = reason else { return }
+            Task { [weak self] in await self?.revalidate() }
+        }
     }
 
     deinit {
@@ -769,6 +781,10 @@ final class App2LevelDetailViewModel: ObservableObject, TaskManageable, App2Reva
         self.itemKey = itemKey
         self.asof = asof
         self.dataSource = dataSource ?? AthleteStateSeriesRemoteDataSource()
+        CacheEventBus.shared.subscribe(forIdentifier: "App2LevelDetailViewModel") { [weak self] reason in
+            guard case .dataChanged(.vdot) = reason else { return }
+            Task { [weak self] in await self?.revalidate() }
+        }
     }
 
     deinit {
