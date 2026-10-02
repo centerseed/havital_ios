@@ -310,6 +310,7 @@ struct App2PlanEditView: View {
             to: &editViewModel.editingDays[index],
             vdot: editViewModel.currentVDOT ?? PaceCalculator.defaultVDOT
         )
+        editViewModel.editingDays[index].invalidateVisibleDailyDistanceAfterPrescriptionChange()
         markChanged()
     }
 
@@ -727,6 +728,7 @@ struct App2PlanEditDayCard: View {
                 guard var details = day.trainingDetails else { return }
                 details.distanceKm = newValue
                 day.trainingDetails = details
+                day.invalidateVisibleDailyDistanceAfterPrescriptionChange()
                 onChanged()
             }
         }

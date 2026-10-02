@@ -91,13 +91,21 @@ final class App2RenderingTests: XCTestCase {
     private let stub = App2DataOrigin.stub(pendingSection: "§7-16")
 
     func test_editTopBar_narrowWidth_rendersForSupportedLocales() {
-        for language in ["zh-Hant", "en-US", "ja-JP"] {
+        let originalLanguage = LanguageManager.shared.currentLanguage.rawValue
+        defer { Bundle.setLanguage(originalLanguage) }
+        for language in ["zh-Hant", "en", "ja"] {
+            Bundle.setLanguage(language)
+            let expectedPaceTableLabel = L10n.App2.PlanEdit.paceTable.localized
             let bar = App2EditTopBar(
                 title: "編輯課表", onCancel: {}, onPaceTable: {},
                 onSave: {}, identifierPrefix: "narrow-\(language)-"
             )
-            render(bar.environment(\.locale, Locale(identifier: language)),
-                   name: "edit-topbar-\(language)", width: 320, height: 56)
+            let image = render(bar.environment(\.locale, Locale(identifier: language)),
+                               name: "edit-topbar-\(language)", width: 320, height: 56)
+            XCTAssertEqual(App2EditTopBar.paceTableTextLineLimit, 1)
+            XCTAssertTrue(App2EditTopBar.paceTableTextFixedHorizontally)
+            XCTAssertFalse(expectedPaceTableLabel.isEmpty)
+            XCTAssertGreaterThanOrEqual(image.size.width, 320)
         }
     }
 

@@ -410,6 +410,34 @@ final class App2PlanProjectionTests: XCTestCase {
         XCTAssertEqual(App2PlanEditView.distanceKm(of: day), 9.0, accuracy: 0.001)
     }
 
+    func test_planEdit_reconstructsMetreOnlyPrimarySegmentsWithAndWithoutWrappers() throws {
+        let plainJSON = #"{"day_index":2,"day_target":"Interval","reason":"r","category":"run","primary":{"run_type":"interval","segments":[{"distance_m":4000},{"distance_m":2000}]}}"#
+        let wrappedJSON = #"{"day_index":2,"day_target":"Interval","reason":"r","category":"run","warmup":{"distance_km":1.0},"cooldown":{"distance_km":0.5},"primary":{"run_type":"interval","segments":[{"distance_m":4000},{"distance_m":2000}]}}"#
+        let plainDTO = try JSONDecoder().decode(DayDetailDTO.self, from: Data(plainJSON.utf8))
+        let wrappedDTO = try JSONDecoder().decode(DayDetailDTO.self, from: Data(wrappedJSON.utf8))
+        let plain = MutableTrainingDay(from: TrainingSessionMapper.toEntity(from: plainDTO))
+        let wrapped = MutableTrainingDay(from: TrainingSessionMapper.toEntity(from: wrappedDTO))
+
+        XCTAssertEqual(App2PlanEditView.distanceKm(of: plain), 6.0, accuracy: 0.001)
+        XCTAssertEqual(App2PlanEditView.distanceKm(of: wrapped), 7.5, accuracy: 0.001)
+    }
+
+    func test_planEdit_prescriptionMutationInvalidatesBackendDailyTotal() throws {
+        let json = #"{"day_index":6,"day_target":"Easy","reason":"r","category":"run","distance_km":19.5,"primary":{"run_type":"easy","distance_km":16.5}}"#
+        let dto = try JSONDecoder().decode(DayDetailDTO.self, from: Data(json.utf8))
+        var day = MutableTrainingDay(from: TrainingSessionMapper.toEntity(from: dto))
+        XCTAssertEqual(App2PlanEditView.distanceKm(of: day), 19.5, accuracy: 0.001)
+
+        day.trainingDetails?.distanceKm = 17.5
+        day.invalidateVisibleDailyDistanceAfterPrescriptionChange()
+        XCTAssertEqual(App2PlanEditView.distanceKm(of: day), 17.5, accuracy: 0.001)
+
+        day.visibleDailyDistanceKm = 19.5
+        day.trainingType = DayType.rest.rawValue
+        day.invalidateVisibleDailyDistanceAfterPrescriptionChange()
+        XCTAssertEqual(App2PlanEditView.distanceKm(of: day), 0, accuracy: 0.001)
+    }
+
     func test_lsd_uses_the_canonical_training_type_i18n_name() {
         XCTAssertEqual(
             DayType.lsd.localizedName,

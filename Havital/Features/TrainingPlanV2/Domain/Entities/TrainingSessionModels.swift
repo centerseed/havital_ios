@@ -635,6 +635,7 @@ extension DayDetail {
             let progressionSegments = segments.map { segment in
                 ProgressionSegment(
                     distanceKm: segment.distanceKm,
+                    distanceM: segment.distanceM.map(Double.init),
                     pace: segment.effectivePace,
                     description: segment.description,
                     heartRateRange: segment.heartRateRange.map {

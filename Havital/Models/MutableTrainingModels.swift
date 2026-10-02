@@ -198,9 +198,16 @@ struct MutableTrainingDay: Identifiable, Equatable {
             return wrappers + Double(repeats) * workKm + Double(max(repeats - 1, 0)) * recoveryKm
         }
         if let segments = details.segments {
-            return wrappers + segments.compactMap(\.distanceKm).reduce(0, +)
+            let primaryKm = segments.map {
+                $0.distanceKm ?? $0.distanceM.map { $0 / 1000 } ?? 0
+            }.reduce(0, +)
+            return wrappers + (primaryKm > 0 ? primaryKm : (details.totalDistanceKm ?? 0))
         }
         return wrappers + (details.totalDistanceKm ?? details.distanceKm ?? 0)
+    }
+
+    mutating func invalidateVisibleDailyDistanceAfterPrescriptionChange() {
+        visibleDailyDistanceKm = nil
     }
 
     /// 內容是否相同 —— **刻意忽略 `dayIndex` / `originalDayIndex`**。
@@ -350,6 +357,7 @@ struct MutableTrainingDetails: Equatable {
 struct MutableProgressionSegment: Identifiable, Equatable {
     let id = UUID()
     var distanceKm: Double?
+    var distanceM: Double?
     var pace: String?
     var description: String?
     var heartRateRange: HeartRateRange?
@@ -357,14 +365,16 @@ struct MutableProgressionSegment: Identifiable, Equatable {
     /// 從 ProgressionSegment 初始化
     init(from segment: ProgressionSegment) {
         self.distanceKm = segment.distanceKm
+        self.distanceM = segment.distanceM
         self.pace = segment.pace
         self.description = segment.description
         self.heartRateRange = segment.heartRateRange
     }
 
     /// 預設初始化（新增分段時使用）
-    init(distanceKm: Double? = 2.0, pace: String? = "5:30", description: String? = NSLocalizedString("training.segment.new_default", comment: "")) {
+    init(distanceKm: Double? = 2.0, distanceM: Double? = nil, pace: String? = "5:30", description: String? = NSLocalizedString("training.segment.new_default", comment: "")) {
         self.distanceKm = distanceKm
+        self.distanceM = distanceM
         self.pace = pace
         self.description = description
         self.heartRateRange = nil
@@ -374,6 +384,7 @@ struct MutableProgressionSegment: Identifiable, Equatable {
     func toProgressionSegment() -> ProgressionSegment {
         return ProgressionSegment(
             distanceKm: distanceKm,
+            distanceM: distanceM,
             pace: pace,
             description: description,
             heartRateRange: heartRateRange
@@ -444,6 +455,7 @@ struct MutableWorkoutSegment: Equatable {
     static func == (lhs: MutableWorkoutSegment, rhs: MutableWorkoutSegment) -> Bool {
         return lhs.description == rhs.description &&
                lhs.distanceKm == rhs.distanceKm &&
+               lhs.distanceM == rhs.distanceM &&
                lhs.distanceM == rhs.distanceM &&
                lhs.pace == rhs.pace
     }

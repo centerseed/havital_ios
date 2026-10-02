@@ -838,12 +838,22 @@ struct WorkoutSegment: Codable, Equatable {
 
 struct ProgressionSegment: Codable, Equatable {
     let distanceKm: Double?  // 改為可選，提高靈活性
+    let distanceM: Double?
     let pace: String?        // 改為可選，提高靈活性
     let description: String?
     let heartRateRange: HeartRateRange?  // 新增心率區間支援
+
+    init(distanceKm: Double?, distanceM: Double? = nil, pace: String?, description: String?, heartRateRange: HeartRateRange?) {
+        self.distanceKm = distanceKm
+        self.distanceM = distanceM
+        self.pace = pace
+        self.description = description
+        self.heartRateRange = heartRateRange
+    }
     
     enum CodingKeys: String, CodingKey {
         case distanceKm = "distance_km"
+        case distanceM = "distance_m"
         case pace
         case description
         case heartRateRange = "heart_rate_range"
