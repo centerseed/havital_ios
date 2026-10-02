@@ -20,29 +20,41 @@ struct App2WeeklyReviewTarget: Identifiable, Equatable {
 private struct App2DecisionChainLineChart: View {
     let points: [App2DecisionChainPoint]
     let anchorDays: Set<String>
+    let focus: DecisionChainFocus
+    let reviewDay: String?
 
     var body: some View {
         Canvas { context, size in
-            guard !points.isEmpty else { return }
-            let values = points.map { $0.value }
+            let seriesStartDay = points.first?.day ?? focus.startDay
+            let drawablePoints = points.filter {
+                App2WeeklyReviewView.decisionChainChartXFraction(
+                    day: $0.day,
+                    seriesStartDay: seriesStartDay,
+                    focus: focus,
+                    reviewDay: reviewDay
+                ) != nil
+            }
+            guard !drawablePoints.isEmpty else { return }
+            let values = drawablePoints.map { $0.value }
             let minimum = values.min() ?? 0
             let maximum = values.max() ?? 1
             let span = max(maximum - minimum, 1)
-            let horizontalStep = points.count > 1
-                ? size.width / CGFloat(points.count - 1)
-                : size.width / 2
 
-            func point(_ index: Int, _ value: Double) -> CGPoint {
-                let x = points.count > 1
-                    ? CGFloat(index) * horizontalStep
-                    : size.width / 2
-                let y = size.height - CGFloat((value - minimum) / span) * (size.height - 12) - 6
+            func position(for item: App2DecisionChainPoint) -> CGPoint? {
+                guard let fraction = App2WeeklyReviewView.decisionChainChartXFraction(
+                    day: item.day,
+                    seriesStartDay: seriesStartDay,
+                    focus: focus,
+                    reviewDay: reviewDay
+                ) else { return nil }
+                let x = size.width * fraction
+                let y = size.height - CGFloat((item.value - minimum) / span) * (size.height - 12) - 6
                 return CGPoint(x: x, y: y)
             }
 
             var line = Path()
-            for (index, item) in points.enumerated() {
-                let position = point(index, item.value)
+            for (index, item) in drawablePoints.enumerated() {
+                guard let position = position(for: item) else { continue }
                 if index == 0 { line.move(to: position) }
                 else { line.addLine(to: position) }
             }
@@ -52,11 +64,29 @@ private struct App2DecisionChainLineChart: View {
                 style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round)
             )
 
-            for (index, item) in points.enumerated() where anchorDays.contains(item.day) {
-                let position = point(index, item.value)
+            for item in drawablePoints where anchorDays.contains(item.day) {
+                guard let position = position(for: item) else { continue }
                 let circle = Path(ellipseIn: CGRect(x: position.x - 5, y: position.y - 5, width: 10, height: 10))
                 context.fill(circle, with: .color(App2Theme.accentOrangeBright))
                 context.stroke(circle, with: .color(.white), lineWidth: 2)
+            }
+
+            if focus.kind == "metric" {
+                for item in App2WeeklyReviewView.decisionChainGraphValuePoints(
+                    focus: focus,
+                    reviewDay: reviewDay,
+                    points: drawablePoints
+                ) {
+                    guard let position = position(for: item) else { continue }
+                    let value = Text(App2WeeklyReviewView.decisionChainGraphValueLabel(item.value))
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(App2Theme.inkPrimary)
+                    context.draw(
+                        value,
+                        at: CGPoint(x: position.x, y: max(8, position.y - 14)),
+                        anchor: .center
+                    )
+                }
             }
         }
         .frame(maxWidth: .infinity)
@@ -595,7 +625,7 @@ struct App2WeeklyReviewView: View {
                     reviewDay: viewModel.projection?.reviewDay
                 )
             }
-            if focus.kind == "adjudication" || focus.kind == "open_hypothesis" {
+            if Self.decisionChainShowsL2(for: focus) {
                 l2Card(
                     focus: focus,
                     points: points,
@@ -610,17 +640,21 @@ struct App2WeeklyReviewView: View {
         points: [App2DecisionChainPoint],
         reviewDay: String?
     ) -> some View {
-        App2Card(padding: 15, spacing: 10) {
+        let chartPoints = Self.decisionChainChartPoints(
+            focus: focus,
+            reviewDay: reviewDay,
+            points: points
+        )
+        return App2Card(padding: 15, spacing: 10) {
             Text(String(format: L10n.App2.WeeklyReview.decisionFocus.localized, metricLabel(focus.metric)))
                 .font(.system(size: 15, weight: .heavy))
                 .foregroundStyle(App2Theme.inkPrimary)
                 .lineLimit(2)
             App2DecisionChainLineChart(
-                points: points,
-                anchorDays: Set(
-                    [focus.startDay, focus.kind == "open_hypothesis" ? reviewDay : focus.endDay]
-                        .compactMap { $0 }
-                )
+                points: chartPoints,
+                anchorDays: Self.decisionChainAnchorDays(focus: focus, reviewDay: reviewDay),
+                focus: focus,
+                reviewDay: reviewDay
             )
             .frame(height: 128)
             .accessibilityIdentifier("App2_WeeklyReviewFocusChart")
@@ -813,14 +847,96 @@ struct App2WeeklyReviewView: View {
         .app2CardSurface(cornerRadius: 12)
     }
 
-    private func metricLabel(_ metric: String) -> String {
+    static func decisionChainShowsL2(for focus: DecisionChainFocus) -> Bool {
+        focus.kind == "adjudication" || focus.kind == "open_hypothesis"
+    }
+
+    static func decisionChainAnchorDays(
+        focus: DecisionChainFocus,
+        reviewDay: String?
+    ) -> Set<String> {
+        switch focus.kind {
+        case "adjudication":
+            return [focus.startDay, focus.endDay]
+        case "open_hypothesis":
+            return Set([focus.startDay, reviewDay].compactMap { $0 })
+        case "metric":
+            return Set([focus.startDay, reviewDay ?? focus.endDay])
+        default:
+            return []
+        }
+    }
+
+    static func decisionChainChartEndDay(
+        focus: DecisionChainFocus,
+        reviewDay: String?
+    ) -> String? {
+        focus.kind == "open_hypothesis" ? focus.endDay : reviewDay ?? focus.endDay
+    }
+
+    static func decisionChainChartXFraction(
+        day: String,
+        seriesStartDay: String?,
+        focus: DecisionChainFocus,
+        reviewDay: String?
+    ) -> CGFloat? {
+        func date(_ value: String) -> Date? {
+            let parts = value.split(separator: "-").compactMap { Int($0) }
+            guard parts.count == 3 else { return nil }
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
+            return calendar.date(
+                from: DateComponents(year: parts[0], month: parts[1], day: parts[2])
+            )
+        }
+
+        guard
+            let start = date(seriesStartDay ?? focus.startDay),
+            let endDay = decisionChainChartEndDay(focus: focus, reviewDay: reviewDay),
+            let end = date(endDay),
+            let point = date(day)
+        else { return nil }
+        let span = end.timeIntervalSince(start)
+        guard span > 0 else { return nil }
+        let fraction = point.timeIntervalSince(start) / span
+        return CGFloat(Swift.max(0, Swift.min(1, fraction)))
+    }
+
+    static func decisionChainGraphValuePoints(
+        focus: DecisionChainFocus,
+        reviewDay: String?,
+        points: [App2DecisionChainPoint]
+    ) -> [App2DecisionChainPoint] {
+        guard focus.kind == "metric" else { return [] }
+        let anchorDays = decisionChainAnchorDays(focus: focus, reviewDay: reviewDay)
+        return points.filter { anchorDays.contains($0.day) }.sorted { $0.day < $1.day }
+    }
+
+    static func decisionChainChartPoints(
+        focus: DecisionChainFocus,
+        reviewDay: String?,
+        points: [App2DecisionChainPoint]
+    ) -> [App2DecisionChainPoint] {
+        guard focus.kind == "open_hypothesis", let reviewDay else { return points }
+        return points.filter { $0.day <= reviewDay }
+    }
+
+    static func decisionChainGraphValueLabel(_ value: Double) -> String {
+        String(format: "%.1f", value)
+    }
+
+    static func localizedMetricLabel(_ metric: String) -> String {
         switch metric {
         case "capability_baseline": return L10n.App2.WeeklyReview.metricCapability.localized
         case "aerobic_endurance": return L10n.App2.WeeklyReview.metricAerobic.localized
         case "speed_endurance": return L10n.App2.WeeklyReview.metricSpeed.localized
         case "recovery_index": return L10n.App2.WeeklyReview.metricRecovery.localized
-        default: return metric
+        default: return L10n.App2.WeeklyReview.metricGeneric.localized
         }
+    }
+
+    private func metricLabel(_ metric: String) -> String {
+        Self.localizedMetricLabel(metric)
     }
 
     private func directionLabel(_ direction: String) -> String {

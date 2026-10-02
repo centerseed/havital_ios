@@ -2389,6 +2389,7 @@ extension L10n {
             static let metricAerobic = "app2.weekly_review.metric_aerobic"
             static let metricSpeed = "app2.weekly_review.metric_speed"
             static let metricRecovery = "app2.weekly_review.metric_recovery"
+            static let metricGeneric = "app2.weekly_review.metric_generic"
             static let directionImproving = "app2.weekly_review.direction_improving"
             static let directionNotWorsening = "app2.weekly_review.direction_not_worsening"
             static let directionWorsening = "app2.weekly_review.direction_worsening"

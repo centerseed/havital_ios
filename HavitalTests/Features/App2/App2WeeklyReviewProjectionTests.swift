@@ -10,6 +10,11 @@ import XCTest
 /// 3. 「這一週還沒有回顧」（404／產生視窗未開）不是錯誤狀態。
 final class App2WeeklyReviewProjectionTests: XCTestCase {
 
+    override func setUp() {
+        super.setUp()
+        AppLanguagePin.traditionalChinese()
+    }
+
     // MARK: - Helpers
 
     private func adjustment(
@@ -245,6 +250,114 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         XCTAssertTrue(
             App2WeeklyReviewView.decisionWaitUntilRowText("2026-10-04").contains("2026-10-04")
         )
+    }
+
+    func test_decisionChain_reason_copy_includes_next_step_and_confounded_interference() {
+        let expectedFragments: [String: [String]] = [
+            "confounded": ["干擾", "檢討"],
+            "not_prescribed": ["檢查排課"],
+            "not_executed": ["重新安排", "不要只繼續等待"],
+            "declined_by_user": ["詢問原因", "不要重推"],
+            "insufficient_signal": ["補資料", "修正觀察安排"],
+            "not_discriminating": ["檢討觀察量與判準"],
+        ]
+
+        for (reason, fragments) in expectedFragments {
+            let copy = App2WeeklyReviewView.localizedDecisionReason(reason)
+            for fragment in fragments {
+                XCTAssertTrue(copy.contains(fragment), "\(reason) must include \(fragment): \(copy)")
+            }
+        }
+        XCTAssertFalse(
+            App2WeeklyReviewView.localizedDecisionReason("not_executed").contains("還要等的原因")
+        )
+    }
+
+    func test_metricFocus_marks_startAndReviewValues_onChart_withoutL2Card() {
+        let focus = DecisionChainFocus(
+            kind: "metric",
+            metric: "capability_baseline",
+            direction: "improving",
+            startDay: "2026-09-06",
+            endDay: "2026-09-20",
+            hypothesisId: nil,
+            intervention: nil,
+            verdict: nil,
+            reason: nil
+        )
+        let points = [
+            App2DecisionChainPoint(day: "2026-09-06", value: 38.4),
+            App2DecisionChainPoint(day: "2026-09-13", value: 39.1),
+            App2DecisionChainPoint(day: "2026-09-20", value: 40.2),
+        ]
+
+        XCTAssertFalse(App2WeeklyReviewView.decisionChainShowsL2(for: focus))
+        XCTAssertEqual(
+            App2WeeklyReviewView.decisionChainAnchorDays(focus: focus, reviewDay: "2026-09-20"),
+            Set(["2026-09-06", "2026-09-20"])
+        )
+        XCTAssertEqual(
+            App2WeeklyReviewView.decisionChainGraphValuePoints(
+                focus: focus,
+                reviewDay: "2026-09-20",
+                points: points
+            ).map { App2WeeklyReviewView.decisionChainGraphValueLabel($0.value) },
+            ["38.4", "40.2"]
+        )
+    }
+
+    func test_openHypothesis_chartLeavesReviewDayToEndDay_asBlankDateSpan() {
+        let focus = DecisionChainFocus(
+            kind: "open_hypothesis",
+            metric: "capability_baseline",
+            direction: "improving",
+            startDay: "2026-09-06",
+            endDay: "2026-09-28",
+            hypothesisId: "h1",
+            intervention: nil,
+            verdict: nil,
+            reason: nil
+        )
+
+        XCTAssertEqual(
+            App2WeeklyReviewView.decisionChainChartEndDay(focus: focus, reviewDay: "2026-09-20"),
+            "2026-09-28"
+        )
+        XCTAssertEqual(
+            App2WeeklyReviewView.decisionChainChartPoints(
+                focus: focus,
+                reviewDay: "2026-09-20",
+                points: [
+                    App2DecisionChainPoint(day: "2026-09-20", value: 38.4),
+                    App2DecisionChainPoint(day: "2026-09-25", value: 42.1),
+                ]
+            ).map(\.day),
+            ["2026-09-20"]
+        )
+        let reviewFraction = App2WeeklyReviewView.decisionChainChartXFraction(
+            day: "2026-09-20",
+            seriesStartDay: "2026-08-01",
+            focus: focus,
+            reviewDay: "2026-09-20"
+        )
+        XCTAssertNotNil(reviewFraction)
+        XCTAssertLessThan(reviewFraction ?? 1, 1)
+        XCTAssertEqual(
+            App2WeeklyReviewView.decisionChainChartXFraction(
+                day: "2026-09-28",
+                seriesStartDay: "2026-08-01",
+                focus: focus,
+                reviewDay: "2026-09-20"
+            ),
+            1
+        )
+    }
+
+    func test_unknownMetricLabel_usesLocalizedGenericName_withoutRawKey() {
+        let label = App2WeeklyReviewView.localizedMetricLabel("hr_drift")
+
+        XCTAssertEqual(label, "這個指標")
+        XCTAssertNotEqual(label, "hr_drift")
     }
 
     func test_decisionChain_seriesWindow_isEightWeeksEndingOnReviewDay() {
