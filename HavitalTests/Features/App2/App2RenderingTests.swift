@@ -17,12 +17,12 @@ final class App2RenderingTests: XCTestCase {
 
     @discardableResult
     private func render<V: View>(
-        _ view: V, name: String, width: CGFloat = 390, height: CGFloat = 844,
+        _ view: V, name: String, height: CGFloat = 844,
         style: UIUserInterfaceStyle = .unspecified
     ) -> UIImage {
         let host = UIHostingController(rootView: view)
         host.overrideUserInterfaceStyle = style
-        host.view.frame = CGRect(x: 0, y: 0, width: width, height: height)
+        host.view.frame = CGRect(x: 0, y: 0, width: 390, height: height)
         host.view.backgroundColor = .systemBackground
         host.view.setNeedsLayout()
         host.view.layoutIfNeeded()
@@ -89,28 +89,6 @@ final class App2RenderingTests: XCTestCase {
 
     private let live = App2DataOrigin.live(endpoint: "test")
     private let stub = App2DataOrigin.stub(pendingSection: "§7-16")
-
-    func test_editTopBar_narrowWidth_rendersForSupportedLocales() {
-        let originalLanguage = LanguageManager.shared.currentLanguage.rawValue
-        defer { Bundle.setLanguage(originalLanguage) }
-        var renderedLabels: Set<String> = []
-        for language in ["zh-Hant", "en", "ja"] {
-            Bundle.setLanguage(language)
-            let expectedPaceTableLabel = L10n.App2.PlanEdit.paceTable.localized
-            renderedLabels.insert(expectedPaceTableLabel)
-            let bar = App2EditTopBar(
-                title: L10n.EditSchedule.title.localized,
-                onCancel: {}, onPaceTable: {}, onSave: {},
-                identifierPrefix: "narrow-\(language)-"
-            )
-            _ = render(bar.environment(\.locale, Locale(identifier: language)),
-                       name: "edit-topbar-\(language)", width: 320, height: 56)
-            XCTAssertFalse(expectedPaceTableLabel.isEmpty)
-            XCTAssertEqual(App2EditTopBar.paceTableTextLineLimit, 1)
-            XCTAssertTrue(App2EditTopBar.paceTableTextFixedHorizontally)
-        }
-        XCTAssertEqual(renderedLabels.count, 3)
-    }
 
     private func planWeek(
         days: [App2PlanDay],

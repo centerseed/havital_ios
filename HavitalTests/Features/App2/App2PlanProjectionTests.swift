@@ -443,9 +443,11 @@ final class App2PlanProjectionTests: XCTestCase {
             from: Data(#"{"purpose":"p","week_of_training":1,"total_weeks":1,"total_distance_km":19.5,"days":[{"day_index":6,"day_target":"Easy","reason":"r","category":"run","distance_km":19.5,"primary":{"run_type":"easy","distance_km":16.5}}]}"#.utf8)
         )), repository: MockTrainingPlanV2Repository()).debug_buildDayDetailDTO(from: day).distanceKm)
 
-        ScheduleTypeDefaults.apply(.rest, to: &day, vdot: PaceCalculator.defaultVDOT)
-        XCTAssertEqual(App2PlanEditView.distanceKm(of: day), 0, accuracy: 0.001)
-        XCTAssertNil(day.visibleDailyDistanceKm)
+        var runToRestDay = MutableTrainingDay(from: TrainingSessionMapper.toEntity(from: dto))
+        XCTAssertEqual(runToRestDay.visibleDailyDistanceKm, 19.5)
+        ScheduleTypeDefaults.apply(.rest, to: &runToRestDay, vdot: PaceCalculator.defaultVDOT)
+        XCTAssertEqual(App2PlanEditView.distanceKm(of: runToRestDay), 0, accuracy: 0.001)
+        XCTAssertNil(runToRestDay.visibleDailyDistanceKm)
     }
 
     func test_lsd_uses_the_canonical_training_type_i18n_name() {
@@ -458,11 +460,6 @@ final class App2PlanProjectionTests: XCTestCase {
             PlannedSessionDetailView.WorkoutMeta.chipLabel(for: .lsd),
             DayType.lsd.localizedName
         )
-    }
-
-    func test_edit_top_bar_pace_table_label_stays_single_line() {
-        XCTAssertEqual(App2EditTopBar.paceTableTextLineLimit, 1)
-        XCTAssertTrue(App2EditTopBar.paceTableTextFixedHorizontally)
     }
 
     func test_planEdit_userEditInvalidatesBackendDailyTotalAndRecalculatesWeek() throws {

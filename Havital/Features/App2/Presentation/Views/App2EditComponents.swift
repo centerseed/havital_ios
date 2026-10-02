@@ -43,9 +43,6 @@ struct App2EditStripeBackground: View {
 /// 左「取消」藍字 ／ 中標題 17/900 ／ 右「配速表」白鈕（可省）＋「儲存」藍實心鈕。
 /// 肌力日與休息日沒有配速，所以 `onPaceTable` 傳 nil 時整顆不出現（設計 §16／§17）。
 struct App2EditTopBar: View {
-    static let paceTableTextLineLimit = 1
-    static let paceTableTextFixedHorizontally = true
-
     let title: String
     let onCancel: () -> Void
     var onPaceTable: (() -> Void)?
@@ -82,12 +79,8 @@ struct App2EditTopBar: View {
                             .font(.system(size: 12, weight: .bold))
                         Text(L10n.App2.PlanEdit.paceTable.localized)
                             .font(.system(size: 13, weight: .heavy))
-                            .lineLimit(Self.paceTableTextLineLimit)
-                            .minimumScaleFactor(0.72)
-                            .fixedSize(horizontal: Self.paceTableTextFixedHorizontally, vertical: false)
                     }
                     .foregroundStyle(App2Theme.accentBlueDeep)
-                    .layoutPriority(1)
                     .padding(.horizontal, 9)
                     .padding(.vertical, 6)
                     .background(
@@ -101,7 +94,6 @@ struct App2EditTopBar: View {
                     .contentShape(Rectangle())
                     .onTapGesture(perform: onPaceTable)
                     .accessibilityAddTraits(.isButton)
-                    .accessibilityLabel(L10n.App2.PlanEdit.paceTable.localized)
                     .accessibilityIdentifier("\(identifierPrefix)PaceTable")
                 }
 
