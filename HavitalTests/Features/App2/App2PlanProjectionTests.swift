@@ -427,15 +427,25 @@ final class App2PlanProjectionTests: XCTestCase {
         let dto = try JSONDecoder().decode(DayDetailDTO.self, from: Data(json.utf8))
         var day = MutableTrainingDay(from: TrainingSessionMapper.toEntity(from: dto))
         XCTAssertEqual(App2PlanEditView.distanceKm(of: day), 19.5, accuracy: 0.001)
+        let restDTO = try JSONDecoder().decode(
+            DayDetailDTO.self,
+            from: Data(#"{"day_index":1,"day_target":"Rest","reason":"r","category":"rest"}"#.utf8)
+        )
+        let unchangedOrder = [day, MutableTrainingDay(from: TrainingSessionMapper.toEntity(from: restDTO))]
+        let reordered = Array(unchangedOrder.reversed())
+        XCTAssertEqual(reordered.reduce(0) { $0 + App2PlanEditView.distanceKm(of: $1) }, 19.5, accuracy: 0.001)
+        XCTAssertEqual(day.visibleDailyDistanceKm, 19.5, "Reordering unchanged days preserves the backend daily total")
 
-        day.trainingDetails?.distanceKm = 17.5
-        day.invalidateVisibleDailyDistanceAfterPrescriptionChange()
+        day.updatePrimaryDistanceKm(17.5)
         XCTAssertEqual(App2PlanEditView.distanceKm(of: day), 17.5, accuracy: 0.001)
+        XCTAssertNil(EditScheduleV2ViewModel(weeklyPlan: WeeklyPlanV2Mapper.toEntity(from: try JSONDecoder().decode(
+            WeeklyPlanV2DTO.self,
+            from: Data(#"{"purpose":"p","week_of_training":1,"total_weeks":1,"total_distance_km":19.5,"days":[{"day_index":6,"day_target":"Easy","reason":"r","category":"run","distance_km":19.5,"primary":{"run_type":"easy","distance_km":16.5}}]}"#.utf8)
+        )), repository: MockTrainingPlanV2Repository()).debug_buildDayDetailDTO(from: day).distanceKm)
 
-        day.visibleDailyDistanceKm = 19.5
-        day.trainingType = DayType.rest.rawValue
-        day.invalidateVisibleDailyDistanceAfterPrescriptionChange()
+        ScheduleTypeDefaults.apply(.rest, to: &day, vdot: PaceCalculator.defaultVDOT)
         XCTAssertEqual(App2PlanEditView.distanceKm(of: day), 0, accuracy: 0.001)
+        XCTAssertNil(day.visibleDailyDistanceKm)
     }
 
     func test_lsd_uses_the_canonical_training_type_i18n_name() {

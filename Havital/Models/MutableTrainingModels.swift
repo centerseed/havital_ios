@@ -210,6 +210,13 @@ struct MutableTrainingDay: Identifiable, Equatable {
         visibleDailyDistanceKm = nil
     }
 
+    mutating func updatePrimaryDistanceKm(_ distanceKm: Double) {
+        guard var details = trainingDetails else { return }
+        details.distanceKm = distanceKm
+        trainingDetails = details
+        invalidateVisibleDailyDistanceAfterPrescriptionChange()
+    }
+
     /// 內容是否相同 —— **刻意忽略 `dayIndex` / `originalDayIndex`**。
     ///
     /// `dayIndex` 是「這天排在週幾」的**位置**，不是課表**內容**。互換日期時 `dayIndex`

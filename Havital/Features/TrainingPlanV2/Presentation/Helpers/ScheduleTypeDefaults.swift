@@ -68,6 +68,7 @@ enum ScheduleTypeDefaults {
     /// 把 `newType` 的預設處方套進 `day`。呼叫端負責標記「有未儲存的變更」。
     static func apply(_ newType: DayType, to day: inout MutableTrainingDay, vdot: Double) {
         day.trainingType = newType.rawValue
+        day.invalidateVisibleDailyDistanceAfterPrescriptionChange()
 
         switch newType {
         case .rest:

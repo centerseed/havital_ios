@@ -1,0 +1,104 @@
+appId: com.havital.Havital.dev
+env:
+  TARGET_LANGUAGE: ${TARGET_LANGUAGE}
+  LANGUAGE_TAG: ${LANGUAGE_TAG}
+  PACE_TABLE_LABEL: ${PACE_TABLE_LABEL}
+  PACE_TABLE_TITLE: ${PACE_TABLE_TITLE}
+---
+# T-0860: prove the pace-table action is visible and opens in each app language.
+# The only persisted preference touched is the selected app language; teardown restores zh-Hant.
+- launchApp:
+    clearState: false
+    arguments:
+      "-skipHealthKitAuth": true
+- tapOn:
+    text: "知道了，不再顯示|Don't show again|次回から表示しない"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "App2_TrainingStatusCard"
+    timeout: 90000
+
+# Select the target language through the existing App2 settings flow.
+- tapOn:
+    id: "App2_HomeMenu"
+- tapOn:
+    text: "個人資料|Profile|プロフィール"
+- extendedWaitUntil:
+    visible:
+      id: "App2_SettingsView"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsLanguageRow"
+    direction: DOWN
+- tapOn:
+    id: "App2_SettingsLanguageRow"
+- extendedWaitUntil:
+    visible:
+      id: "App2_SystemSettingsView"
+    timeout: 20000
+- tapOn:
+    id: "App2_SystemLanguage_${TARGET_LANGUAGE}"
+- launchApp:
+    clearState: false
+    arguments:
+      "-skipHealthKitAuth": true
+- extendedWaitUntil:
+    visible:
+      id: "App2_TrainingStatusCard"
+    timeout: 90000
+
+# Open the weekly-plan editor and verify the localized control itself.
+- tapOn:
+    id: "App2_HomeMenu"
+- tapOn:
+    text: "修改課表|Edit plan|プランを編集"
+- extendedWaitUntil:
+    visible:
+      id: "App2_PlanEditSummary"
+    timeout: 40000
+- assertVisible: ${PACE_TABLE_LABEL}
+- takeScreenshot: ${LANGUAGE_TAG}-01-editor
+- tapOn: ${PACE_TABLE_LABEL}
+- assertVisible: ${PACE_TABLE_TITLE}
+- takeScreenshot: ${LANGUAGE_TAG}-02-pace-table-open
+
+# Dismiss without saving any plan edits.
+- swipe:
+    start: "50%, 20%"
+    end: "50%, 90%"
+- tapOn:
+    id: "App2_PlanEditCancel"
+    optional: true
+- tapOn:
+    text: "放棄變更|Discard changes|変更を破棄"
+    optional: true
+
+# Restore the baseline app language for the next run / other workers.
+- tapOn:
+    id: "App2_HomeMenu"
+    optional: true
+- tapOn:
+    text: "個人資料|Profile|プロフィール"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "App2_SettingsView"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsLanguageRow"
+    direction: DOWN
+- tapOn:
+    id: "App2_SettingsLanguageRow"
+- tapOn:
+    id: "App2_SystemLanguage_zh-Hant"
+- launchApp:
+    clearState: false
+    arguments:
+      "-skipHealthKitAuth": true
+- extendedWaitUntil:
+    visible:
+      id: "App2_TrainingStatusCard"
+    timeout: 90000
