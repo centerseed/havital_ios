@@ -165,7 +165,7 @@ final class OnboardingFeatureViewModel: ObservableObject {
     @Published var selectedRaceDistance: RaceDistance? = nil
 
     /// 選擇的地區
-    @Published var selectedRegion: String = "tw"
+    @Published var selectedRegion: String = RacePickerDefaults.currentRegion
 
     // MARK: - Computed Properties (Race Setup)
 

@@ -32,7 +32,7 @@ final class TargetEditRacePickerViewModel: ObservableObject, RacePickerDataSourc
 
     @Published var raceEvents: [RaceEvent] = []
     @Published var isLoadingRaces: Bool = false
-    @Published var selectedRegion: String = "tw"
+    @Published var selectedRegion: String = RacePickerDefaults.currentRegion
     @Published var isRaceAPIAvailable: Bool = true
 
     // MARK: - Preselection

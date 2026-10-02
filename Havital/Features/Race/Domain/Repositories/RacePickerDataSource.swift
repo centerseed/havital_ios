@@ -12,6 +12,25 @@
 
 import Foundation
 
+enum RacePickerDefaults {
+    static func defaultRegion(timeZoneIdentifier: String?, localeIdentifier: String?) -> String {
+        let timeZone = timeZoneIdentifier ?? ""
+        let locale = (localeIdentifier ?? "").replacingOccurrences(of: "_", with: "-").lowercased()
+        if timeZone == "Asia/Tokyo" || locale == "ja" || locale.hasPrefix("ja-") {
+            return "jp"
+        }
+        return "tw"
+    }
+
+    @MainActor
+    static var currentRegion: String {
+        defaultRegion(
+            timeZoneIdentifier: UserPreferencesManager.shared.timezonePreference ?? TimeZone.current.identifier,
+            localeIdentifier: LanguageManager.shared.currentLanguage.apiCode
+        )
+    }
+}
+
 // MARK: - RacePickerDataSource
 
 /// Abstraction layer that decouples RaceEventListView from

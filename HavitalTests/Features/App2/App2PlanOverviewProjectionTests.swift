@@ -556,6 +556,17 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
         XCTAssertEqual(App2RaceManagementViewModel.countdownDays(epochSeconds: past, now: now), -3)
     }
 
+    func testOnboardingRecommendationUsesLocalDateDifferenceForWeekBucket() {
+        let formatter = ISO8601DateFormatter()
+        let now = formatter.date(from: "2026-10-02T15:30:00Z")!
+        let nextDay = formatter.date(from: "2026-10-04T00:00:00Z")!
+        let sevenDays = formatter.date(from: "2026-10-09T00:00:00Z")!
+        let tokyo = TimeZone(identifier: "Asia/Tokyo")!
+
+        XCTAssertEqual(App2OnboardingFormat.weeksFromNow(to: nextDay, now: now, timeZone: tokyo), 1)
+        XCTAssertEqual(App2OnboardingFormat.weeksFromNow(to: sevenDays, now: now, timeZone: tokyo), 1)
+    }
+
     /// 目標成績是 0（沒設）就不顯示那一欄。
     func testNoGoalTimeWhenTargetTimeIsZero() {
         let cards = App2RaceManagementViewModel.cards(

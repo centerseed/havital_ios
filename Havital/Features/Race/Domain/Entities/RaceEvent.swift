@@ -20,7 +20,9 @@ struct RaceEvent: Identifiable, Equatable {
 
     /// 距離賽事天數
     var daysUntilEvent: Int {
-        Calendar.current.dateComponents([.day], from: Date(), to: eventDate).day ?? 0
+        let identifier = UserPreferencesManager.shared.timezonePreference ?? TimeZone.current.identifier
+        let timeZone = TimeZone(identifier: identifier) ?? .current
+        return TrainingDateUtils.calculateDaysRemaining(raceDate: eventDate, timezone: timeZone)
     }
 
     /// 是否時間不足（< 4 週）

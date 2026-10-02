@@ -81,4 +81,42 @@ final class RaceMapperTests: XCTestCase {
 
         XCTAssertEqual(entities.map(\.raceId), ["valid"])
     }
+
+    func testRaceCountdownUsesUserLocalDatesAcrossTokyoAndTaipei() {
+        let now = ISO8601DateFormatter().date(from: "2026-10-02T15:30:00Z")!
+        let raceDate = ISO8601DateFormatter().date(from: "2026-10-03T00:00:00Z")!
+
+        XCTAssertEqual(
+            TrainingDateUtils.calculateDaysBetween(
+                raceDate: raceDate,
+                now: now,
+                timezone: TimeZone(identifier: "Asia/Tokyo")!
+            ),
+            0
+        )
+        XCTAssertEqual(
+            TrainingDateUtils.calculateDaysBetween(
+                raceDate: raceDate,
+                now: now,
+                timezone: TimeZone(identifier: "Asia/Taipei")!
+            ),
+            1
+        )
+    }
+
+    func testRaceCountdownHandlesNextDayAndSevenDays() {
+        let now = ISO8601DateFormatter().date(from: "2026-10-02T15:30:00Z")!
+        let nextDay = ISO8601DateFormatter().date(from: "2026-10-04T00:00:00Z")!
+        let sevenDays = ISO8601DateFormatter().date(from: "2026-10-10T00:00:00Z")!
+        let tokyo = TimeZone(identifier: "Asia/Tokyo")!
+
+        XCTAssertEqual(TrainingDateUtils.calculateDaysBetween(raceDate: nextDay, now: now, timezone: tokyo), 1)
+        XCTAssertEqual(TrainingDateUtils.calculateDaysBetween(raceDate: sevenDays, now: now, timezone: tokyo), 7)
+    }
+
+    func testRacePickerDefaultRegionFollowsTimezoneOrJapaneseLocale() {
+        XCTAssertEqual(RacePickerDefaults.defaultRegion(timeZoneIdentifier: "Asia/Tokyo", localeIdentifier: "en-US"), "jp")
+        XCTAssertEqual(RacePickerDefaults.defaultRegion(timeZoneIdentifier: "America/Los_Angeles", localeIdentifier: "ja-JP"), "jp")
+        XCTAssertEqual(RacePickerDefaults.defaultRegion(timeZoneIdentifier: "America/Los_Angeles", localeIdentifier: "en-US"), "tw")
+    }
 }
