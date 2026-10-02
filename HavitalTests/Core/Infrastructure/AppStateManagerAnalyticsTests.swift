@@ -96,7 +96,6 @@ final class AppStateManagerAnalyticsTests: XCTestCase {
     func testInitializeApp_authenticatedLanguageSyncUsesOwnerPathAndRetriesAfterFailure() async throws {
         enum TestError: Error { case unavailable }
 
-        authSessionRepository.isAuthenticatedValue = true
         let httpClient = AppStateLanguageHTTPClient(responses: [
             .failure(TestError.unavailable),
             .success(Data(#"{"data":{"language":"ja-JP"}}"#.utf8)),
@@ -111,6 +110,13 @@ final class AppStateManagerAnalyticsTests: XCTestCase {
             userProfileRepository: userProfileRepository,
             languageManager: languageManager
         )
+
+        // The unauthenticated launch does not sync; the authenticated transition does.
+        await sut.initializeApp()
+        XCTAssertTrue(sut.currentState.isReady)
+        XCTAssertEqual(httpClient.requests.count, 0)
+
+        authSessionRepository.isAuthenticatedValue = true
 
         // First authenticated opening is fail-open: App initialization reaches ready.
         await sut.initializeApp()

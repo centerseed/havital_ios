@@ -10,18 +10,21 @@ final class UserPreferencesRepositoryImpl: UserPreferencesRepository {
     private let localDataSource: UserPreferencesLocalDataSourceProtocol
     private let heartRateZonesManager: HeartRateZonesManager
     private let authSessionRepository: AuthSessionRepository
+    private let languageManager: LanguageManager
 
     // MARK: - Initialization
     init(
         remoteDataSource: UserPreferencesRemoteDataSourceProtocol = UserPreferencesRemoteDataSource(),
         localDataSource: UserPreferencesLocalDataSourceProtocol = UserPreferencesLocalDataSource(),
         heartRateZonesManager: HeartRateZonesManager = .shared,
-        authSessionRepository: AuthSessionRepository? = nil
+        authSessionRepository: AuthSessionRepository? = nil,
+        languageManager: LanguageManager = .shared
     ) {
         self.remoteDataSource = remoteDataSource
         self.localDataSource = localDataSource
         self.heartRateZonesManager = heartRateZonesManager
         self.authSessionRepository = authSessionRepository ?? DependencyContainer.shared.resolve()
+        self.languageManager = languageManager
     }
 
     // MARK: - Preferences Access
@@ -62,9 +65,9 @@ final class UserPreferencesRepositoryImpl: UserPreferencesRepository {
                     NSLocalizedDescriptionKey: "Unsupported language: \(language)"
                 ])
             }
-            let syncSucceeded = await LanguageManager.shared.changeLanguageWithBackendSync(to: supportedLanguage)
+            let syncSucceeded = await languageManager.changeLanguageWithBackendSync(to: supportedLanguage)
             guard syncSucceeded else {
-                let syncError = await LanguageManager.shared.lastSyncError
+                let syncError = await languageManager.lastSyncError
                 throw NSError(domain: "UserPreferencesRepository", code: 502, userInfo: [
                     NSLocalizedDescriptionKey: syncError ?? "Language sync failed"
                 ])
@@ -239,9 +242,9 @@ final class UserPreferencesRepositoryImpl: UserPreferencesRepository {
     func updateLanguagePreference(_ language: SupportedLanguage) async {
         Logger.debug("[UserPreferencesRepo] Updating language: \(language.rawValue)")
 
-        let syncSucceeded = await LanguageManager.shared.changeLanguageWithBackendSync(to: language)
+        let syncSucceeded = await languageManager.changeLanguageWithBackendSync(to: language)
         guard syncSucceeded else {
-            let syncError = await LanguageManager.shared.lastSyncError
+            let syncError = await languageManager.lastSyncError
             Logger.error("[UserPreferencesRepo] Failed to update language: \(syncError ?? "unknown error")")
             return
         }

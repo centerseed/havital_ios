@@ -253,7 +253,7 @@ class AppStateManager: ObservableObject {
     /// 讀 `/user/preferences` 後，比對 backend 與 App 實際渲染語言；相同不寫，
     /// 不同只把 App 語言寫回 backend。失敗只記錄、不阻擋啟動，下次開啟再試。
     private func syncAppLanguagePreference() async {
-        let appLanguage = LanguageManager.shared.currentLanguage.apiCode
+        let appLanguage = languageManager.currentLanguage.apiCode
         var backendLanguage: String?
         do {
             let backend = try await tracked("AppStateManager: syncAppLanguagePreference") {

@@ -1,21 +1,71 @@
 import XCTest
 @testable import paceriz_dev
 
+private actor RepositoryLanguageHTTPClient: HTTPClient {
+    struct Request {
+        let path: String
+        let method: HTTPMethod
+        let body: Data?
+    }
+
+    private(set) var requests: [Request] = []
+
+    func request(
+        path: String,
+        method: HTTPMethod,
+        body: Data?,
+        customHeaders: [String: String]?,
+        timeout: TimeInterval?
+    ) async throws -> Data {
+        requests.append(Request(path: path, method: method, body: body))
+        return Data(#"{"success":true}"#.utf8)
+    }
+
+    func stream(
+        path: String,
+        method: HTTPMethod,
+        body: Data?,
+        customHeaders: [String: String]?
+    ) async throws -> HTTPByteStreamResponse {
+        let data = try await request(
+            path: path,
+            method: method,
+            body: body,
+            customHeaders: customHeaders,
+            timeout: nil
+        )
+        return HTTPByteStreamResponse(
+            contentType: "application/json",
+            bytes: AsyncThrowingStream { continuation in
+                data.forEach { continuation.yield($0) }
+                continuation.finish()
+            }
+        )
+    }
+}
+
+@MainActor
 final class UserPreferencesRepositoryImplTests: XCTestCase {
     
     var repository: UserPreferencesRepositoryImpl!
     var mockRemoteDataSource: MockUserPreferencesRemoteDataSource!
     var mockLocalDataSource: MockUserPreferencesLocalDataSource!
+    private var languageHTTPClient: RepositoryLanguageHTTPClient!
+    private var languageManager: LanguageManager!
     
     override func setUp() {
         super.setUp()
         mockRemoteDataSource = MockUserPreferencesRemoteDataSource()
         mockLocalDataSource = MockUserPreferencesLocalDataSource()
+        languageHTTPClient = RepositoryLanguageHTTPClient()
+        languageManager = LanguageManager(httpClient: languageHTTPClient)
+        languageManager.applyPreLoginLanguage(.english)
         
         repository = UserPreferencesRepositoryImpl(
             remoteDataSource: mockRemoteDataSource,
             localDataSource: mockLocalDataSource,
-            heartRateZonesManager: .shared // Singleton, but we'll focus on datasource interactions
+            heartRateZonesManager: .shared,
+            languageManager: languageManager
         )
     }
     
@@ -23,6 +73,8 @@ final class UserPreferencesRepositoryImplTests: XCTestCase {
         repository = nil
         mockRemoteDataSource = nil
         mockLocalDataSource = nil
+        languageHTTPClient = nil
+        languageManager = nil
         super.tearDown()
     }
     
@@ -107,5 +159,19 @@ final class UserPreferencesRepositoryImplTests: XCTestCase {
         
         // Then
         XCTAssertEqual(mockLocalDataSource.languagePreference, lang.rawValue)
+    }
+
+    func testUpdatePreferences_LanguageUsesInjectedOwnerTransport() async throws {
+        mockRemoteDataSource.preferencesToReturn = UserProfileTestFixtures.testPreferences
+
+        try await repository.updatePreferences(language: SupportedLanguage.japanese.apiCode, timezone: nil)
+
+        let requests = await languageHTTPClient.requests
+        XCTAssertEqual(requests.count, 1)
+        XCTAssertEqual(requests.first?.path, "/user/preferences")
+        XCTAssertEqual(requests.first?.method, .PUT)
+        let body = try XCTUnwrap(requests.first?.body)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: String])
+        XCTAssertEqual(json["language"], SupportedLanguage.japanese.apiCode)
     }
 }
