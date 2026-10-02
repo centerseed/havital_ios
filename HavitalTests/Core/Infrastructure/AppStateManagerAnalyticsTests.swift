@@ -6,6 +6,7 @@ final class AppStateManagerAnalyticsTests: XCTestCase {
 
     private var authSessionRepository: MockAuthSessionRepository!
     private var workoutRepository: MockWorkoutRepository!
+    private var userProfileRepository: MockUserProfileRepository!
     private var subscriptionRepository: MockSubscriptionRepositoryForAppState!
     private var analyticsService: MockAnalyticsService!
     private var sut: AppStateManager!
@@ -18,6 +19,7 @@ final class AppStateManagerAnalyticsTests: XCTestCase {
         authSessionRepository = MockAuthSessionRepository()
         authSessionRepository.isAuthenticatedValue = false
         workoutRepository = MockWorkoutRepository()
+        userProfileRepository = MockUserProfileRepository()
         subscriptionRepository = MockSubscriptionRepositoryForAppState()
         analyticsService = MockAnalyticsService()
 
@@ -46,6 +48,7 @@ final class AppStateManagerAnalyticsTests: XCTestCase {
         subscriptionRepository = nil
         workoutRepository = nil
         authSessionRepository = nil
+        userProfileRepository = nil
 
         UserDefaults.standard.removeObject(forKey: "analytics_first_install_date")
         UserDefaults.standard.removeObject(forKey: "analytics_session_count_today")
@@ -87,6 +90,84 @@ final class AppStateManagerAnalyticsTests: XCTestCase {
 
         XCTAssertTrue(
             analyticsService.userProperties.contains(where: { $0.name == "target_type" && $0.value == "race_run" })
+        )
+    }
+
+    func testInitializeApp_authenticatedLanguageSyncUsesOwnerPathAndRetriesAfterFailure() async throws {
+        enum TestError: Error { case unavailable }
+
+        authSessionRepository.isAuthenticatedValue = true
+        let httpClient = AppStateLanguageHTTPClient(responses: [
+            .failure(TestError.unavailable),
+            .success(Data(#"{"data":{"language":"ja-JP"}}"#.utf8)),
+            .success(Data(#"{"success":true}"#.utf8)),
+        ])
+        let languageManager = LanguageManager(httpClient: httpClient)
+        languageManager.applyPreLoginLanguage(.traditionalChinese)
+        sut = AppStateManager(
+            authSessionRepository: authSessionRepository,
+            workoutRepository: workoutRepository,
+            subscriptionRepository: subscriptionRepository,
+            userProfileRepository: userProfileRepository,
+            languageManager: languageManager
+        )
+
+        // First authenticated opening is fail-open: App initialization reaches ready.
+        await sut.initializeApp()
+        XCTAssertTrue(sut.currentState.isReady)
+        XCTAssertEqual(languageManager.currentLanguage, .traditionalChinese)
+
+        // A later opening retries the failed GET, then writes the rendered App language.
+        await sut.initializeApp()
+        let requests = await httpClient.requests
+        XCTAssertEqual(requests.map(\.method), [.GET, .GET, .PUT])
+        XCTAssertEqual(
+            try JSONSerialization.jsonObject(with: try XCTUnwrap(requests[2].body)) as? [String: String],
+            ["language": "zh-TW"]
+        )
+        XCTAssertEqual(languageManager.currentLanguage, .traditionalChinese)
+    }
+}
+
+@MainActor
+private final class AppStateLanguageHTTPClient: HTTPClient {
+    struct Request {
+        let method: HTTPMethod
+        let body: Data?
+    }
+
+    private var responses: [Result<Data, Error>]
+    private(set) var requests: [Request] = []
+
+    init(responses: [Result<Data, Error>]) {
+        self.responses = responses
+    }
+
+    func request(
+        path: String,
+        method: HTTPMethod,
+        body: Data?,
+        customHeaders: [String: String]?,
+        timeout: TimeInterval?
+    ) async throws -> Data {
+        requests.append(Request(method: method, body: body))
+        guard !responses.isEmpty else { return Data(#"{"success":true}"#.utf8) }
+        return try responses.removeFirst().get()
+    }
+
+    func stream(
+        path: String,
+        method: HTTPMethod,
+        body: Data?,
+        customHeaders: [String: String]?
+    ) async throws -> HTTPByteStreamResponse {
+        let data = try await request(path: path, method: method, body: body, customHeaders: customHeaders, timeout: nil)
+        return HTTPByteStreamResponse(
+            contentType: "application/json",
+            bytes: AsyncThrowingStream { continuation in
+                data.forEach { continuation.yield($0) }
+                continuation.finish()
+            }
         )
     }
 }

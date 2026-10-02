@@ -61,6 +61,8 @@ class AppStateManager: ObservableObject {
     // Clean Architecture: Use AuthSessionRepository instead of AuthenticationService
     private let authSessionRepository: AuthSessionRepository
     private let workoutRepository: WorkoutRepository
+    private let userProfileRepository: UserProfileRepository?
+    private let languageManager: LanguageManager
     private var healthDataUploadManager: HealthDataUploadManagerV2?
 
     // Injected subscription repository (set by testable init; nil in production singleton).
@@ -82,6 +84,8 @@ class AppStateManager: ObservableObject {
         // Initialize repositories via DI
         self.authSessionRepository = DependencyContainer.shared.resolve()
         self.workoutRepository = DependencyContainer.shared.resolve()
+        self.userProfileRepository = nil
+        self.languageManager = .shared
         print("🏁 AppStateManager: 已初始化")
         setupSubscriptionStatusSync()
     }
@@ -92,10 +96,14 @@ class AppStateManager: ObservableObject {
     init(
         authSessionRepository: AuthSessionRepository,
         workoutRepository: WorkoutRepository,
-        subscriptionRepository: SubscriptionRepository
+        subscriptionRepository: SubscriptionRepository,
+        userProfileRepository: UserProfileRepository? = nil,
+        languageManager: LanguageManager = .shared
     ) {
         self.authSessionRepository = authSessionRepository
         self.workoutRepository = workoutRepository
+        self.userProfileRepository = userProfileRepository
+        self.languageManager = languageManager
         self._injectedSubscriptionRepository = subscriptionRepository
         print("🏁 AppStateManager: 已初始化（測試用注入）")
         setupSubscriptionStatusSync()
@@ -249,10 +257,10 @@ class AppStateManager: ObservableObject {
         var backendLanguage: String?
         do {
             let backend = try await tracked("AppStateManager: syncAppLanguagePreference") {
-                try await LanguageManager.shared.backendLanguagePreference()
+                try await languageManager.backendLanguagePreference()
             }
             backendLanguage = backend?.apiCode
-            try await LanguageManager.shared.syncAppLanguageToBackendIfNeeded(
+            try await languageManager.syncAppLanguageToBackendIfNeeded(
                 backendLanguage: backend
             )
         } catch {
@@ -288,7 +296,7 @@ class AppStateManager: ObservableObject {
 
             // Use UserProfileRepository cache-first（雙軌）：有有效快取就秒回 + 背景刷新，
             // 冷啟動不再每次都卡網路往返。快取過期/缺失時才打 API（與原行為一致）。
-            let repo: UserProfileRepository = DependencyContainer.shared.resolve()
+            let repo: UserProfileRepository = userProfileRepository ?? DependencyContainer.shared.resolve()
             let user = try await tracked("AppStateManager: loadUserData") {
                 try await repo.getUserProfile()
             }
