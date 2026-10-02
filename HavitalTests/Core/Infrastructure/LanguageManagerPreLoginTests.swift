@@ -186,7 +186,7 @@ final class LanguageManagerPreLoginTests: XCTestCase {
 
     // MARK: - 後端語言偏好的回程（backend → 本地）
     //
-    // 後端是語言的 SSOT，但只有「讀得到、且真的寫進本地」整條鏈子才成立。
+    // App 顯示語言是 authority；backend 回程只用來比較，不能反向改本地顯示。
     // 這一段鎖的是唯一會**靜默**失敗的兩處：回應形狀（包不包 `data` envelope）、
     // 以及語言碼（後端給 `zh-TW`，`SupportedLanguage` 的 raw value 是 lproj 名 `zh-Hant`）。
 
@@ -277,6 +277,33 @@ final class LanguageManagerPreLoginTests: XCTestCase {
         XCTAssertEqual(manager.currentLanguage, .traditionalChinese)
     }
 
+    func test_startupLanguageSync_failureIsFailOpenAndNextOpeningRetries() async throws {
+        enum TestError: Error { case unavailable }
+
+        let httpClient = RecordingLanguageHTTPClient(responses: [
+            .failure(TestError.unavailable),
+            .success(Data(#"{"data":{"language":"ja-JP"}}"#.utf8)),
+            .success(Data(#"{"success":true}"#.utf8)),
+        ])
+        let manager = LanguageManager(httpClient: httpClient)
+        manager.applyPreLoginLanguage(.traditionalChinese)
+
+        do {
+            _ = try await manager.backendLanguagePreference()
+            XCTFail("The first opening should observe the simulated GET failure")
+        } catch {
+            // Startup caller logs and continues; it does not replace the App language.
+        }
+        XCTAssertEqual(manager.currentLanguage, .traditionalChinese)
+
+        let backendLanguage = try await manager.backendLanguagePreference()
+        try await manager.syncAppLanguageToBackendIfNeeded(backendLanguage: backendLanguage)
+
+        let requests = await httpClient.requests
+        XCTAssertEqual(requests.map(\.method), [.GET, .GET, .PUT])
+        XCTAssertEqual(manager.currentLanguage, .traditionalChinese)
+    }
+
     func test_inAppLanguageChange_putsBeforeApplyingRenderedLanguage() async throws {
         let httpClient = RecordingLanguageHTTPClient(responses: [
             .success(Data(#"{"success":true}"#.utf8)),
@@ -306,30 +333,13 @@ final class LanguageManagerPreLoginTests: XCTestCase {
         XCTAssertEqual(requests.map(\.method), [.GET])
     }
 
-    /// 讀到值之後真的要寫進本地：`app_language_preference` 換掉、`AppleLanguages` 換掉、
-    /// `currentLanguage` 換掉。少任何一項，下次冷啟就又是舊語言。
-    func test_applyFromBackend_writesLocalPreferenceWhenBackendDiffers() {
+    /// Backend 回傳的語言只供比較，不會改變 App 目前實際渲染的語言。
+    func test_backendLanguageReadDoesNotChangeRenderedLanguage() {
         LanguageManager.shared.applyPreLoginLanguage(.traditionalChinese)
-        XCTAssertEqual(UserDefaults.standard.string(forKey: languageKey), "zh-Hant")
 
-        LanguageManager.shared.applyFromBackend(.japanese)
-
-        XCTAssertEqual(LanguageManager.shared.currentLanguage, .japanese)
-        XCTAssertEqual(UserDefaults.standard.string(forKey: languageKey), "ja")
-        XCTAssertEqual(UserDefaults.standard.stringArray(forKey: "AppleLanguages"), ["ja"])
-    }
-
-    /// **從後端套回來的語言不算「使用者親手選的」**（`LanguageManager.markUserSelected`
-    /// 只有登入前的語言鈕與設定頁的語言切換會呼叫）。那個旗標的用途是「登入時要不要把
-    /// 本地語言推給後端」——後端自己給的值再推回去沒有意義，推錯了反而會蓋掉。
-    ///
-    /// 這條原本斷言相反（期望它標記成 explicit），靠同 class 其他測試 `tearDown` 留在
-    /// UserDefaults 的旗標假綠；2026-09-02 換到乾淨的測試模擬器才露出來。
-    func test_applyFromBackend_doesNotMarkLanguageAsUserSelected() {
-        LanguageManager.shared.applyFromBackend(.english)
-
-        XCTAssertEqual(LanguageManager.shared.currentLanguage, .english)
-        XCTAssertNil(LanguageManager.shared.explicitLanguage)
+        XCTAssertEqual(LanguageManager.parseLanguage(fromPreferencesResponse: preferencesResponse(#"{"data":{"language":"en-US"}}"#)), .english)
+        XCTAssertEqual(LanguageManager.shared.currentLanguage, .traditionalChinese)
+        XCTAssertEqual(LanguageManager.shared.explicitLanguage, .traditionalChinese)
     }
 
     /// 對照組：使用者親手選的那條路徑要標記。

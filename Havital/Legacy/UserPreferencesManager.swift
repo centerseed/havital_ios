@@ -212,9 +212,7 @@ class UserPreferencesManager: ObservableObject, DataManageable {
         }
         set {
             Task { @MainActor in
-                try? await updatePreferences(language: newValue.rawValue, timezone: nil)
-                // Sync with LanguageManager
-                LanguageManager.shared.applyFromBackend(newValue)
+                _ = await LanguageManager.shared.changeLanguageWithBackendSync(to: newValue)
             }
         }
     }

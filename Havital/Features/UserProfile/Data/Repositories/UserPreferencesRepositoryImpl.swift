@@ -55,14 +55,24 @@ final class UserPreferencesRepositoryImpl: UserPreferencesRepository {
     func updatePreferences(language: String?, timezone: String?) async throws {
         Logger.debug("[UserPreferencesRepo] Updating preferences")
 
-        try await remoteDataSource.updatePreferences(language: language, timezone: timezone, unitSystem: nil)
-
-        // Update local language manager if language changed
-        if let language = language,
-           let supportedLanguage = SupportedLanguage(rawValue: language) {
-            await MainActor.run {
-                LanguageManager.shared.applyFromBackend(supportedLanguage)
+        if let language {
+            guard let supportedLanguage = SupportedLanguage(languageTag: language)
+                ?? SupportedLanguage(rawValue: language) else {
+                throw NSError(domain: "UserPreferencesRepository", code: 400, userInfo: [
+                    NSLocalizedDescriptionKey: "Unsupported language: \(language)"
+                ])
             }
+            let syncSucceeded = await LanguageManager.shared.changeLanguageWithBackendSync(to: supportedLanguage)
+            guard syncSucceeded else {
+                let syncError = await LanguageManager.shared.lastSyncError
+                throw NSError(domain: "UserPreferencesRepository", code: 502, userInfo: [
+                    NSLocalizedDescriptionKey: syncError ?? "Language sync failed"
+                ])
+            }
+        }
+
+        if timezone != nil {
+            try await remoteDataSource.updatePreferences(language: nil, timezone: timezone, unitSystem: nil)
         }
 
         // Update local timezone if changed
@@ -229,15 +239,15 @@ final class UserPreferencesRepositoryImpl: UserPreferencesRepository {
     func updateLanguagePreference(_ language: SupportedLanguage) async {
         Logger.debug("[UserPreferencesRepo] Updating language: \(language.rawValue)")
 
-        do {
-            try await remoteDataSource.updateLanguage(language.rawValue)
-            localDataSource.languagePreference = language.rawValue
-            await MainActor.run {
-                LanguageManager.shared.applyFromBackend(language)
-            }
-        } catch {
-            Logger.error("[UserPreferencesRepo] Failed to update language: \(error)")
+        let syncSucceeded = await LanguageManager.shared.changeLanguageWithBackendSync(to: language)
+        guard syncSucceeded else {
+            let syncError = await LanguageManager.shared.lastSyncError
+            Logger.error("[UserPreferencesRepo] Failed to update language: \(syncError ?? "unknown error")")
+            return
         }
+
+        localDataSource.languagePreference = language.rawValue
+        localDataSource.clearPreferencesCache()
     }
 
     // MARK: - Timezone

@@ -431,6 +431,22 @@ final class LocalizationCoverageTests: XCTestCase {
         XCTAssertTrue(authSessionRepository.contains("locale: Locale.current.identifier"), "Session refresh device locale must remain device metadata, not account language.")
     }
 
+    func test_authenticated_login_reenters_language_sync_without_launch_guard() throws {
+        let app = try String(
+            contentsOf: try projectRoot.appendingPathComponent("Havital/HavitalApp.swift"),
+            encoding: .utf8
+        )
+
+        XCTAssertTrue(
+            app.contains("guard isAuthenticated else { return }"),
+            "Successful authentication must re-enter the existing initialization owner even when the first launch was unauthenticated."
+        )
+        XCTAssertFalse(
+            app.contains("guard isAuthenticated, hasLaunched else { return }"),
+            "Language synchronization after login must not depend on the active-scene launch marker."
+        )
+    }
+
     func test_performance_data_page_keeps_personal_best_section() throws {
         // commit 61a9931: PB deliberately moved to the Achievements tab (PersonalAchievementsView).
         // MyAchievementView no longer contains PersonalBestCardView.

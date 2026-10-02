@@ -275,7 +275,7 @@ struct HavitalApp: App {
 
                                 // App 啟動時若先進入未登入畫面，登入成功後仍要重新走同一條
                                 // user-data 初始化路徑，讓 App 顯示語言與 backend 完成 compare/write。
-                                guard isAuthenticated, hasLaunched else { return }
+                                guard isAuthenticated else { return }
                                 Task {
                                     await appViewModel.initializeApp()
                                 }

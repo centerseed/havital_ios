@@ -72,7 +72,7 @@ class LanguageManager: ObservableObject {
     }
 
     /// 記下「這是使用者親手選的」。只有這兩條路徑會呼叫：登入前的語言鈕、
-    /// 設定頁的語言切換。`applyFromBackend` **不呼叫**。
+    /// 設定頁與登入前語言切換才會標記；啟動比較不會改本地顯示語言。
     private func markUserSelected() {
         UserDefaults.standard.set(true, forKey: Self.userSelectedLanguageKey)
     }
@@ -81,24 +81,29 @@ class LanguageManager: ObservableObject {
 
     /// 唯一的語言切換入口。先同步後端，成功後套用本地並 restart。
     /// 失敗則回滾本地語言並透過 `lastSyncError` 通知 UI。
-    func changeLanguageWithBackendSync(to newLanguage: SupportedLanguage) async {
+    @discardableResult
+    func changeLanguageWithBackendSync(to newLanguage: SupportedLanguage) async -> Bool {
         let previousLanguage = currentLanguage
-        guard newLanguage != previousLanguage else { return }
+        guard newLanguage != previousLanguage else { return true }
+
+        lastSyncError = nil
 
         do {
             try await syncLanguageToBackend(newLanguage.apiCode)
-            // 後端成功 → 套用本地
+            // 使用者的 App 內選擇成功寫入後，才套用本地顯示語言。
             applyLocalLanguage(newLanguage)
             markUserSelected()
             Logger.firebase("Language changed and synced: \(newLanguage.apiCode)", level: .info)
+            return true
         } catch {
             if error.isCancellationError {
                 Logger.debug("語言同步任務被取消，忽略錯誤")
-                return
+                return false
             }
-            // 後端失敗 → 回滾，發布錯誤讓 UI 顯示
+            // 後端失敗 → 保留目前顯示語言，發布錯誤讓 UI 顯示。
             Logger.firebase("Failed to sync language with backend: \(error.localizedDescription)", level: .error)
             lastSyncError = error.localizedDescription
+            return false
         }
     }
 
@@ -147,7 +152,7 @@ class LanguageManager: ObservableObject {
 
     /// `GET /user/preferences` 的回應 → 語言。
     ///
-    /// 抽成純函式的理由：整條「後端是語言 SSOT」的鏈子上，唯一會**靜默**失敗的
+    /// 抽成純函式的理由：App 以實際渲染語言為準，讀取 backend 只用來比較，唯一會**靜默**失敗的
     /// 就是這裡——回應包了一層 `data`、或語言碼是 `zh-TW` 而不是 lproj 名 `zh-Hant`，
     /// 兩者都只會 return nil，然後看起來就像「後端沒設語言」。純函式才驗得到。
     ///
@@ -177,14 +182,6 @@ class LanguageManager: ObservableObject {
             return nil
         }
         return language
-    }
-
-    // MARK: - Apply from External Source
-
-    /// 後端已確認的語言套用到本地（供 Repository / Legacy Manager 呼叫）。
-    /// 不觸碰後端，僅更新本地狀態。
-    func applyFromBackend(_ language: SupportedLanguage) {
-        applyLocalLanguage(language)
     }
 
     // MARK: - Private Helpers

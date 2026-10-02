@@ -5,7 +5,7 @@ import SwiftUI
 ///
 /// 三條寫入全部落在既有出口，沒有第二份：
 /// - 語言 → `LanguageManager.performLanguageChangeWithRestart`（先 PUT `/user/preferences`
-///   成功才套用本地並重啟；後端是語言 SSOT）。
+///   成功才套用本地並重啟；App 顯示語言是 authority，backend 只保存同步結果）。
 /// - 時區 → `UserProfileFeatureViewModel.updateTimezone`（`UserPreferencesRepository`）。
 /// - 距離單位 → `UserProfileFeatureViewModel.updateUnitSystem` ＋ `UnitManager`。
 ///
