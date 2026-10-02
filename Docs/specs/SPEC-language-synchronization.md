@@ -1,11 +1,12 @@
 ---
 type: SPEC
 id: SPEC-ios-language-synchronization
-status: Draft
+status: Approved
 layer: product
 owns: iOS App 顯示語言與 backend language preference 的同步方向與失敗行為。
 created: 2026-10-02
 updated: 2026-10-02
+approved_by: 2026-10-02 user decision; T-0858
 ---
 
 # iOS language synchronization

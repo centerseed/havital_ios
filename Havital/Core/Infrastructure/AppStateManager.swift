@@ -245,16 +245,29 @@ class AppStateManager: ObservableObject {
     /// 讀 `/user/preferences` 後，比對 backend 與 App 實際渲染語言；相同不寫，
     /// 不同只把 App 語言寫回 backend。失敗只記錄、不阻擋啟動，下次開啟再試。
     private func syncAppLanguagePreference() async {
+        let appLanguage = LanguageManager.shared.currentLanguage.apiCode
+        var backendLanguage: String?
         do {
-            let backendLanguage = try await tracked("AppStateManager: syncAppLanguagePreference") {
+            let backend = try await tracked("AppStateManager: syncAppLanguagePreference") {
                 try await LanguageManager.shared.backendLanguagePreference()
             }
+            backendLanguage = backend?.apiCode
             try await LanguageManager.shared.syncAppLanguageToBackendIfNeeded(
-                backendLanguage: backendLanguage
+                backendLanguage: backend
             )
         } catch {
             guard !error.isCancellationError else { return }
-            Logger.debug("[AppStateManager] App 語言同步失敗，維持本地語言並下次重試: \(error)")
+            Logger.firebase("App 語言同步失敗，維持本地語言並下次重試", level: .error, labels: [
+                "module": "AppStateManager",
+                "action": "language_sync_failed",
+                "operation": "GET /user/preferences; conditional PUT /user/preferences"
+            ], jsonPayload: [
+                "operation": "GET /user/preferences; conditional PUT /user/preferences",
+                "app_language": appLanguage,
+                "backend_language": backendLanguage ?? "unavailable",
+                "error_type": String(reflecting: type(of: error)),
+                "error": error.localizedDescription
+            ])
         }
     }
 

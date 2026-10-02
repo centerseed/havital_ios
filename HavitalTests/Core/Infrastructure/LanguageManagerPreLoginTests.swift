@@ -1,6 +1,55 @@
 import XCTest
 @testable import paceriz_dev
 
+private actor RecordingLanguageHTTPClient: HTTPClient {
+    struct Request {
+        let path: String
+        let method: HTTPMethod
+        let body: Data?
+    }
+
+    private var responses: [Result<Data, Error>]
+    private(set) var requests: [Request] = []
+
+    init(responses: [Result<Data, Error>]) {
+        self.responses = responses
+    }
+
+    func request(
+        path: String,
+        method: HTTPMethod,
+        body: Data?,
+        customHeaders: [String: String]?,
+        timeout: TimeInterval?
+    ) async throws -> Data {
+        requests.append(Request(path: path, method: method, body: body))
+        guard !responses.isEmpty else { return Data(#"{"success":true}"#.utf8) }
+        return try responses.removeFirst().get()
+    }
+
+    func stream(
+        path: String,
+        method: HTTPMethod,
+        body: Data?,
+        customHeaders: [String: String]?
+    ) async throws -> HTTPByteStreamResponse {
+        let data = try await request(
+            path: path,
+            method: method,
+            body: body,
+            customHeaders: customHeaders,
+            timeout: nil
+        )
+        return HTTPByteStreamResponse(
+            contentType: "application/json",
+            bytes: AsyncThrowingStream { continuation in
+                data.forEach { continuation.yield($0) }
+                continuation.finish()
+            }
+        )
+    }
+}
+
 @MainActor
 final class LanguageManagerPreLoginTests: XCTestCase {
     private let languageKey = "app_language_preference"
@@ -189,6 +238,72 @@ final class LanguageManagerPreLoginTests: XCTestCase {
                 backendLanguage: .traditionalChinese
             )
         )
+    }
+
+    func test_startupLanguageSync_performsGetAndPutWhenRenderedLanguageDiffers() async throws {
+        let httpClient = RecordingLanguageHTTPClient(responses: [
+            .success(Data(#"{"data":{"language":"ja-JP"}}"#.utf8)),
+            .success(Data(#"{"success":true}"#.utf8)),
+        ])
+        let manager = LanguageManager(httpClient: httpClient)
+        manager.applyPreLoginLanguage(.traditionalChinese)
+
+        let backendLanguage = try await manager.backendLanguagePreference()
+        try await manager.syncAppLanguageToBackendIfNeeded(backendLanguage: backendLanguage)
+
+        let requests = await httpClient.requests
+        XCTAssertEqual(requests.map(\.method), [.GET, .PUT])
+        XCTAssertEqual(requests.map(\.path), ["/user/preferences", "/user/preferences"])
+        XCTAssertEqual(
+            try JSONSerialization.jsonObject(with: try XCTUnwrap(requests[1].body))
+                as? [String: String],
+            ["language": "zh-TW"]
+        )
+        XCTAssertEqual(manager.currentLanguage, .traditionalChinese)
+    }
+
+    func test_startupLanguageSync_performsNoPutWhenBackendMatches() async throws {
+        let httpClient = RecordingLanguageHTTPClient(responses: [
+            .success(Data(#"{"data":{"language":"zh-TW"}}"#.utf8)),
+        ])
+        let manager = LanguageManager(httpClient: httpClient)
+        manager.applyPreLoginLanguage(.traditionalChinese)
+
+        let backendLanguage = try await manager.backendLanguagePreference()
+        try await manager.syncAppLanguageToBackendIfNeeded(backendLanguage: backendLanguage)
+
+        let requests = await httpClient.requests
+        XCTAssertEqual(requests.map(\.method), [.GET])
+        XCTAssertEqual(manager.currentLanguage, .traditionalChinese)
+    }
+
+    func test_inAppLanguageChange_putsBeforeApplyingRenderedLanguage() async throws {
+        let httpClient = RecordingLanguageHTTPClient(responses: [
+            .success(Data(#"{"success":true}"#.utf8)),
+        ])
+        let manager = LanguageManager(httpClient: httpClient)
+        manager.applyPreLoginLanguage(.traditionalChinese)
+
+        await manager.changeLanguageWithBackendSync(to: .japanese)
+
+        let requests = await httpClient.requests
+        XCTAssertEqual(requests.map(\.method), [.PUT])
+        XCTAssertEqual(manager.currentLanguage, .japanese)
+        XCTAssertNil(manager.lastSyncError)
+    }
+
+    func test_backendLanguageNeverChangesRenderedLanguage() async throws {
+        let httpClient = RecordingLanguageHTTPClient(responses: [
+            .success(Data(#"{"data":{"language":"ja-JP"}}"#.utf8)),
+        ])
+        let manager = LanguageManager(httpClient: httpClient)
+        manager.applyPreLoginLanguage(.traditionalChinese)
+
+        _ = try await manager.backendLanguagePreference()
+
+        XCTAssertEqual(manager.currentLanguage, .traditionalChinese)
+        let requests = await httpClient.requests
+        XCTAssertEqual(requests.map(\.method), [.GET])
     }
 
     /// 讀到值之後真的要寫進本地：`app_language_preference` 換掉、`AppleLanguages` 換掉、

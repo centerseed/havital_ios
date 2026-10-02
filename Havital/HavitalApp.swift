@@ -272,6 +272,13 @@ struct HavitalApp: App {
                             }
                             .onChange(of: authViewModel.isAuthenticated) { isAuthenticated in
                                 WatchCompanionService.shared.pushAuth(loggedIn: isAuthenticated)
+
+                                // App 啟動時若先進入未登入畫面，登入成功後仍要重新走同一條
+                                // user-data 初始化路徑，讓 App 顯示語言與 backend 完成 compare/write。
+                                guard isAuthenticated, hasLaunched else { return }
+                                Task {
+                                    await appViewModel.initializeApp()
+                                }
                             }
                     } else {
                         // Firebase 和 FeatureFlagManager 初始化中

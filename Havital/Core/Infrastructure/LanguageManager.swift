@@ -19,6 +19,7 @@ class LanguageManager: ObservableObject {
     @Published var lastSyncError: String?
 
     @Published private(set) var currentLanguage: SupportedLanguage
+    private let httpClient: any HTTPClient
 
     /// **使用者在這個 app 裡親手選過**的語言，`nil` ＝ 沒選過（不論本地現在顯示什麼）。
     ///
@@ -36,7 +37,8 @@ class LanguageManager: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    private init() {
+    init(httpClient: any HTTPClient = DefaultHTTPClient.shared) {
+        self.httpClient = httpClient
         // Load saved language preference or use system default
         if let savedLanguage = UserDefaults.standard.string(forKey: Self.languageKey),
            let language = SupportedLanguage(rawValue: savedLanguage) {
@@ -111,7 +113,6 @@ class LanguageManager: ObservableObject {
     /// 兩者相同時什麼都不做——省下的不只是一次 `UserDefaults` 寫入，還有
     /// `LanguageDidChange` 通知造成的整棵 view tree 重建（冷啟時每次都放一次煙火）。
     func backendLanguagePreference() async throws -> SupportedLanguage? {
-        let httpClient = DefaultHTTPClient.shared
         let data = try await httpClient.request(
             path: "/user/preferences",
             method: .GET
@@ -223,7 +224,6 @@ class LanguageManager: ObservableObject {
         let body = ["language": languageCode]
         let bodyData = try JSONSerialization.data(withJSONObject: body)
 
-        let httpClient = DefaultHTTPClient.shared
         _ = try await APICallTracker.$currentSource.withValue("LanguageManager: syncLanguageToBackend") {
             try await httpClient.request(path: "/user/preferences", method: .PUT, body: bodyData)
         }
