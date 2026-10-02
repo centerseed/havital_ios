@@ -120,7 +120,7 @@ extension App2WeeklyReviewProjection {
             reviewDay: reviewDay(
                 localWeekEndExclusive: summary.localWeekEndExclusive,
                 inputAsOf: summary.inputAsOf,
-                decisionChainAsOf: summary.decisionChain == nil ? nil : summary.inputAsOf
+                decisionChainAsOf: summary.decisionChain?.asOf
             ),
             phaseLabel: phaseLabel(summary.planContext),
             nextWeekSummary: summary.nextWeekAdjustments.summary.app2NonEmpty,

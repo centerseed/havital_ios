@@ -700,9 +700,22 @@ struct DecisionChainExecution: Codable, Equatable {
 }
 
 struct DecisionChainWeeklySummary: Codable, Equatable {
+    let asOf: String?
     let focus: DecisionChainFocus?
     let narrative: DecisionChainNarrative?
     let execution: DecisionChainExecution?
+
+    init(
+        asOf: String? = nil,
+        focus: DecisionChainFocus?,
+        narrative: DecisionChainNarrative?,
+        execution: DecisionChainExecution?
+    ) {
+        self.asOf = asOf
+        self.focus = focus
+        self.narrative = narrative
+        self.execution = execution
+    }
 }
 
 // CustomizationRecommendation 已移除（2026-04-05）

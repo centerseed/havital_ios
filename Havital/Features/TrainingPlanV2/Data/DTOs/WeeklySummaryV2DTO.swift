@@ -736,9 +736,15 @@ struct DecisionChainExecutionDTO: Codable {
 }
 
 struct DecisionChainWeeklySummaryDTO: Codable {
+    let asOf: String?
     let focus: DecisionChainFocusDTO?
     let narrative: DecisionChainNarrativeDTO?
     let execution: DecisionChainExecutionDTO?
+
+    enum CodingKeys: String, CodingKey {
+        case asOf = "as_of"
+        case focus, narrative, execution
+    }
 }
 
 // MARK: - API Response Wrapper

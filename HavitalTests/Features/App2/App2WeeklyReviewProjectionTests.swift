@@ -178,8 +178,9 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         )
     }
 
-    func test_decisionChain_reviewDay_usesInputAsOf_notWeekEndMinusOne() {
+    func test_decisionChain_reviewDay_usesRoundLocalAsOf_acrossTaipeiUtcBoundary() {
         let chain = DecisionChainWeeklySummary(
+            asOf: "2026-09-21",
             focus: DecisionChainFocus(
                 kind: "open_hypothesis",
                 metric: "capability_baseline",
@@ -196,11 +197,37 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         )
         var fixture = summary(decisionChain: chain)
         fixture.localWeekEndExclusive = "2026-09-21T00:00:00Z"
+        fixture.inputAsOf = "2026-09-20T16:30:00Z"
+
+        let projection = App2WeeklyReviewProjection.make(fixture)
+
+        XCTAssertEqual(projection.reviewDay, "2026-09-21")
+    }
+
+    func test_decisionChain_reviewDay_usesOlderRoundAsOf_notRereadGenerationDay() {
+        let chain = DecisionChainWeeklySummary(
+            asOf: "2026-09-20",
+            focus: DecisionChainFocus(
+                kind: "metric",
+                metric: "capability_baseline",
+                direction: "improving",
+                startDay: "2026-08-23",
+                endDay: "2026-09-20",
+                hypothesisId: nil,
+                intervention: nil,
+                verdict: nil,
+                reason: nil
+            ),
+            narrative: nil,
+            execution: nil
+        )
+        var fixture = summary(decisionChain: chain)
+        fixture.localWeekEndExclusive = "2026-09-21T00:00:00Z"
         fixture.inputAsOf = "2026-09-22T00:00:00Z"
 
         let projection = App2WeeklyReviewProjection.make(fixture)
 
-        XCTAssertEqual(projection.reviewDay, "2026-09-22")
+        XCTAssertEqual(projection.reviewDay, "2026-09-20")
     }
 
     func test_decisionChain_display_helpers_translate_reasons_and_format_dates() {

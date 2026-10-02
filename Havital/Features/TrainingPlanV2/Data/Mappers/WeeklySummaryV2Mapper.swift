@@ -60,6 +60,7 @@ enum WeeklySummaryV2Mapper {
 
     private static func toDecisionChain(from dto: DecisionChainWeeklySummaryDTO) -> DecisionChainWeeklySummary {
         DecisionChainWeeklySummary(
+            asOf: dto.asOf,
             focus: dto.focus.map { focus in
                 DecisionChainFocus(
                     kind: focus.kind,
