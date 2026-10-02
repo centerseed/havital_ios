@@ -268,7 +268,12 @@ final class App2OnboardingViewModel: ObservableObject {
 
         profile.updateHeartRateData(maxHR: maxHeartRate, restingHR: restingHeartRate)
         let updates = heartRateDefaults.updates(maxHR: maxHeartRate, restingHR: restingHeartRate)
-        let didUpdate = updates.isEmpty || await profile.updateUserProfile(updates)
+        let didUpdate: Bool
+        if updates.isEmpty {
+            didUpdate = true
+        } else {
+            didUpdate = await profile.updateUserProfile(updates)
+        }
         guard didUpdate else {
             errorMessage = NSLocalizedString("hr_zone.save_failed_generic", comment: "")
             return
