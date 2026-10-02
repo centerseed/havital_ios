@@ -102,6 +102,27 @@ final class App2MetricDetailCacheTests: XCTestCase {
         }
     }
 
+    private final class SequencedVdotSource: VDOTDataSourceProtocol {
+        private(set) var calls = 0
+        private let responses: [VDOTResponse]
+
+        init(values: [Double]) throws {
+            self.responses = try values.map { value in
+                let json = """
+                { "need_updated_hr_range": false,
+                  "vdots": [{ "datetime": 1790899200, "dynamic_vdot": \(value),
+                               "pace_vdot": \(value), "live_vdot": null, "weight_vdot": null }] }
+                """
+                return try JSONDecoder().decode(VDOTResponse.self, from: Data(json.utf8))
+            }
+        }
+
+        func getVDOTs(limit: Int) async throws -> VDOTResponse {
+            defer { calls += 1 }
+            return responses[min(calls, responses.count - 1)]
+        }
+    }
+
     /// 可控時點的 stats 來源：每一發都掛在 continuation 上，測試自己決定誰先回。
     /// 回應帶指紋（`total_distance_km` ＝ 該發要的 `weeks`），才驗得出「哪一發的
     /// 回應落到哪一個 range key」。
@@ -830,6 +851,27 @@ final class App2MetricDetailCacheTests: XCTestCase {
 
         XCTAssertTrue(cache.capability.isEmpty, "事件清空之後的 in-flight 回應不得重新填回快取")
         XCTAssertNotNil(vm.detail, "畫面照發")
+    }
+
+    func test_openCapabilityPage_completedEventKeepsHeroAndChartOnTheSameFreshValue() async throws {
+        let source = try SequencedVdotSource(values: [38.7, 40.2])
+        let vm = App2CapabilityDetailViewModel(
+            insight: insight("capability", value: "38.7"),
+            narrative: nil,
+            vdotDataSource: source,
+            seriesDataSource: App2EmptySeriesSource(),
+            cache: App2MetricDetailCache()
+        )
+
+        await vm.revalidate()
+        XCTAssertEqual(vm.detail?.value.hero.valueText, "38.7")
+
+        CacheEventBus.shared.publish(.dataChanged(.vdot))
+        await Self.waitUntil { source.calls >= 2 && vm.detail?.value.hero.valueText == "40.2" }
+
+        let detail = try XCTUnwrap(vm.detail?.value)
+        XCTAssertEqual(detail.hero.valueText, "40.2")
+        XCTAssertEqual(detail.series.last?.value, 40.2)
     }
 
     func test_recoveryVM_busInvalidationDuringInflightRevalidate_doesNotRepopulate() async throws {

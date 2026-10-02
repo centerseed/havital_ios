@@ -543,7 +543,7 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
                 hero: Self.hero(
                     insight: insight,
                     narrative: narrative,
-                    current: insight.value.flatMap(Double.init),
+                    current: latest?.resolvedPaceVdot,
                     previous: baseline30DaysAgo
                 ),
                 series: series,
@@ -576,7 +576,7 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
         }
         return App2MetricHero(
             title: L10n.App2.Metric.capabilityHeroTitle.localized,
-            valueText: insight.value,
+            valueText: current.map { String(format: "%.1f", $0) } ?? insight.value,
             verdict: insight.verdict,
             direction: insight.direction,
             compareLabel: L10n.App2.Metric.capabilityCompare.localized,
