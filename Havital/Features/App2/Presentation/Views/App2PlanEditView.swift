@@ -150,25 +150,7 @@ struct App2PlanEditView: View {
     /// ＋組間，或各分段相加）。日層總量存在時直接採用；缺失時才把可見暖身／緩和與
     /// 結構段落相加，避免把 backend 已包含的段落算第二次。
     static func distanceKm(of day: MutableTrainingDay) -> Double {
-        guard day.type.isRunningActivity else { return 0 }
-        guard let details = day.trainingDetails else {
-            return (day.warmup?.distanceKm ?? 0) + (day.cooldown?.distanceKm ?? 0)
-        }
-
-        if let explicit = details.totalDistanceKm ?? details.distanceKm {
-            return explicit
-        }
-        var total = (day.warmup?.distanceKm ?? 0) + (day.cooldown?.distanceKm ?? 0)
-        if let repeats = details.repeats, let work = details.work {
-            let workKm = work.distanceKm ?? work.distanceM.map { $0 / 1000 } ?? 0
-            let recoveryKm = details.recovery?.distanceKm
-                ?? details.recovery?.distanceM.map { $0 / 1000 }
-                ?? 0
-            total += Double(repeats) * workKm + Double(max(repeats - 1, 0)) * recoveryKm
-        } else if let segments = details.segments {
-            total += segments.compactMap(\.distanceKm).reduce(0, +)
-        }
-        return total
+        day.visibleDailyDistanceKm ?? day.reconstructedVisibleDistanceKm
     }
 
     // MARK: - 強度日相鄰提醒（條件顯示）

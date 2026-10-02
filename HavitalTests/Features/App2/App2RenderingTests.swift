@@ -17,12 +17,12 @@ final class App2RenderingTests: XCTestCase {
 
     @discardableResult
     private func render<V: View>(
-        _ view: V, name: String, height: CGFloat = 844,
+        _ view: V, name: String, width: CGFloat = 390, height: CGFloat = 844,
         style: UIUserInterfaceStyle = .unspecified
     ) -> UIImage {
         let host = UIHostingController(rootView: view)
         host.overrideUserInterfaceStyle = style
-        host.view.frame = CGRect(x: 0, y: 0, width: 390, height: height)
+        host.view.frame = CGRect(x: 0, y: 0, width: width, height: height)
         host.view.backgroundColor = .systemBackground
         host.view.setNeedsLayout()
         host.view.layoutIfNeeded()
@@ -89,6 +89,17 @@ final class App2RenderingTests: XCTestCase {
 
     private let live = App2DataOrigin.live(endpoint: "test")
     private let stub = App2DataOrigin.stub(pendingSection: "§7-16")
+
+    func test_editTopBar_narrowWidth_rendersForSupportedLocales() {
+        for language in ["zh-Hant", "en-US", "ja-JP"] {
+            let bar = App2EditTopBar(
+                title: "編輯課表", onCancel: {}, onPaceTable: {},
+                onSave: {}, identifierPrefix: "narrow-\(language)-"
+            )
+            render(bar.environment(\.locale, Locale(identifier: language)),
+                   name: "edit-topbar-\(language)", width: 320, height: 56)
+        }
+    }
 
     private func planWeek(
         days: [App2PlanDay],

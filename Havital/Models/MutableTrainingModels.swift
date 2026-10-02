@@ -115,6 +115,8 @@ struct MutableTrainingDay: Identifiable, Equatable {
     var tips: String?
     var trainingType: String
     var trainingDetails: MutableTrainingDetails?
+    /// Backend day-level distance is the visible daily total, not primary distance.
+    var visibleDailyDistanceKm: Double? = nil
     var warmup: RunSegment?
     var cooldown: RunSegment?
     var strengthExercises: [Exercise]?
@@ -144,6 +146,7 @@ struct MutableTrainingDay: Identifiable, Equatable {
         self.reason = day.reason
         self.tips = day.tips
         self.trainingType = day.type.rawValue
+        self.visibleDailyDistanceKm = day.distanceKm
         // 使用 DayDetail 的 V1 兼容層 trainingDetails computed property
         self.trainingDetails = day.trainingDetails.map { MutableTrainingDetails(from: $0) }
         self.warmup = day.session?.warmup
@@ -185,6 +188,21 @@ struct MutableTrainingDay: Identifiable, Equatable {
         type != .rest
     }
 
+    var reconstructedVisibleDistanceKm: Double {
+        guard type.isRunningActivity else { return 0 }
+        let wrappers = (warmup?.distanceKm ?? 0) + (cooldown?.distanceKm ?? 0)
+        guard let details = trainingDetails else { return wrappers }
+        if let repeats = details.repeats, let work = details.work {
+            let workKm = work.distanceKm ?? work.distanceM.map { $0 / 1000 } ?? 0
+            let recoveryKm = details.recovery?.distanceKm ?? details.recovery?.distanceM.map { $0 / 1000 } ?? 0
+            return wrappers + Double(repeats) * workKm + Double(max(repeats - 1, 0)) * recoveryKm
+        }
+        if let segments = details.segments {
+            return wrappers + segments.compactMap(\.distanceKm).reduce(0, +)
+        }
+        return wrappers + (details.totalDistanceKm ?? details.distanceKm ?? 0)
+    }
+
     /// 內容是否相同 —— **刻意忽略 `dayIndex` / `originalDayIndex`**。
     ///
     /// `dayIndex` 是「這天排在週幾」的**位置**，不是課表**內容**。互換日期時 `dayIndex`
@@ -205,6 +223,7 @@ struct MutableTrainingDay: Identifiable, Equatable {
         return lhs.dayIndex == rhs.dayIndex &&
                lhs.dayTarget == rhs.dayTarget &&
                lhs.trainingType == rhs.trainingType &&
+               lhs.visibleDailyDistanceKm == rhs.visibleDailyDistanceKm &&
                lhs.trainingDetails == rhs.trainingDetails &&
                lhs.isTrail == rhs.isTrail &&
                lhs.warmup == rhs.warmup &&

@@ -83,6 +83,7 @@ struct App2EditTopBar: View {
                         Text(L10n.App2.PlanEdit.paceTable.localized)
                             .font(.system(size: 13, weight: .heavy))
                             .lineLimit(Self.paceTableTextLineLimit)
+                            .minimumScaleFactor(0.72)
                             .fixedSize(horizontal: Self.paceTableTextFixedHorizontally, vertical: false)
                     }
                     .foregroundStyle(App2Theme.accentBlueDeep)
@@ -100,6 +101,7 @@ struct App2EditTopBar: View {
                     .contentShape(Rectangle())
                     .onTapGesture(perform: onPaceTable)
                     .accessibilityAddTraits(.isButton)
+                    .accessibilityLabel(L10n.App2.PlanEdit.paceTable.localized)
                     .accessibilityIdentifier("\(identifierPrefix)PaceTable")
                 }
 

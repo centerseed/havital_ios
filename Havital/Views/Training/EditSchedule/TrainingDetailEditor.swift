@@ -156,6 +156,8 @@ final class TrainingDayEditState: ObservableObject {
         result.dayIndex = dayIndex
         result.dayTarget = dayTarget
         result.trainingType = trainingType
+        // An edit invalidates the backend's prior daily-total snapshot.
+        result.visibleDailyDistanceKm = nil
 
         // 根據訓練類型建立 trainingDetails（走 scheduleEditorFamily，禁止 default 漏型別）
         switch type.scheduleEditorFamily {
