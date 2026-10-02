@@ -387,4 +387,103 @@ final class App2PlanProjectionTests: XCTestCase {
         XCTAssertNil(none.intensityMediumMinutes)
         XCTAssertNil(none.intensityHighMinutes)
     }
+
+    func test_planEdit_usesBackendDailyTotalThroughDTOMapperWithoutChangingPrimaryDistance() throws {
+        let json = #"{"day_index":6,"day_target":"LSD","reason":"r","category":"run","distance_km":19.5,"warmup":{"distance_km":2.0},"cooldown":{"distance_km":1.0},"primary":{"run_type":"lsd","distance_km":16.5,"pace":"6:30"}}"#
+        let dto = try JSONDecoder().decode(DayDetailDTO.self, from: Data(json.utf8))
+        let entity = TrainingSessionMapper.toEntity(from: dto)
+        let day = MutableTrainingDay(from: entity)
+
+        XCTAssertEqual(entity.distanceKm, 19.5)
+        XCTAssertEqual(entity.primaryRunActivity?.distanceKm, 16.5)
+        XCTAssertEqual(App2PlanEditView.distanceKm(of: day), 19.5, accuracy: 0.001)
+        XCTAssertEqual([day].reduce(0) { $0 + App2PlanEditView.distanceKm(of: $1) }, 19.5, accuracy: 0.001)
+    }
+
+    func test_planEdit_legacyPrimaryDistanceWithWrappersReconstructsVisibleDailyTotal() throws {
+        let json = #"{"day_index":6,"day_target":"Interval","reason":"r","category":"run","warmup":{"distance_km":2.0},"cooldown":{"distance_km":1.0},"primary":{"run_type":"interval","distance_km":6.0}}"#
+        let dto = try JSONDecoder().decode(DayDetailDTO.self, from: Data(json.utf8))
+        let day = MutableTrainingDay(from: TrainingSessionMapper.toEntity(from: dto))
+
+        XCTAssertNil(day.visibleDailyDistanceKm)
+        XCTAssertEqual(day.trainingDetails?.distanceKm, 6.0)
+        XCTAssertEqual(App2PlanEditView.distanceKm(of: day), 9.0, accuracy: 0.001)
+    }
+
+    func test_planEdit_reconstructsMetreOnlyPrimarySegmentsWithAndWithoutWrappers() throws {
+        let plainJSON = #"{"day_index":2,"day_target":"Interval","reason":"r","category":"run","primary":{"run_type":"interval","segments":[{"distance_m":4000},{"distance_m":2000}]}}"#
+        let wrappedJSON = #"{"day_index":2,"day_target":"Interval","reason":"r","category":"run","warmup":{"distance_km":1.0},"cooldown":{"distance_km":0.5},"primary":{"run_type":"interval","segments":[{"distance_m":4000},{"distance_m":2000}]}}"#
+        let plainDTO = try JSONDecoder().decode(DayDetailDTO.self, from: Data(plainJSON.utf8))
+        let wrappedDTO = try JSONDecoder().decode(DayDetailDTO.self, from: Data(wrappedJSON.utf8))
+        let plain = MutableTrainingDay(from: TrainingSessionMapper.toEntity(from: plainDTO))
+        let wrapped = MutableTrainingDay(from: TrainingSessionMapper.toEntity(from: wrappedDTO))
+
+        XCTAssertEqual(App2PlanEditView.distanceKm(of: plain), 6.0, accuracy: 0.001)
+        XCTAssertEqual(App2PlanEditView.distanceKm(of: wrapped), 7.5, accuracy: 0.001)
+    }
+
+    func test_planEdit_prescriptionMutationInvalidatesBackendDailyTotal() throws {
+        let json = #"{"day_index":6,"day_target":"Easy","reason":"r","category":"run","distance_km":19.5,"primary":{"run_type":"easy","distance_km":16.5}}"#
+        let dto = try JSONDecoder().decode(DayDetailDTO.self, from: Data(json.utf8))
+        var day = MutableTrainingDay(from: TrainingSessionMapper.toEntity(from: dto))
+        XCTAssertEqual(App2PlanEditView.distanceKm(of: day), 19.5, accuracy: 0.001)
+        let restDTO = try JSONDecoder().decode(
+            DayDetailDTO.self,
+            from: Data(#"{"day_index":1,"day_target":"Rest","reason":"r","category":"rest"}"#.utf8)
+        )
+        let unchangedOrder = [day, MutableTrainingDay(from: TrainingSessionMapper.toEntity(from: restDTO))]
+        let reordered = Array(unchangedOrder.reversed())
+        XCTAssertEqual(reordered.reduce(0) { $0 + App2PlanEditView.distanceKm(of: $1) }, 19.5, accuracy: 0.001)
+        XCTAssertEqual(day.visibleDailyDistanceKm, 19.5, "Reordering unchanged days preserves the backend daily total")
+
+        day.updatePrimaryDistanceKm(17.5)
+        XCTAssertEqual(App2PlanEditView.distanceKm(of: day), 17.5, accuracy: 0.001)
+        XCTAssertNil(EditScheduleV2ViewModel(weeklyPlan: WeeklyPlanV2Mapper.toEntity(from: try JSONDecoder().decode(
+            WeeklyPlanV2DTO.self,
+            from: Data(#"{"purpose":"p","week_of_training":1,"total_weeks":1,"total_distance_km":19.5,"days":[{"day_index":6,"day_target":"Easy","reason":"r","category":"run","distance_km":19.5,"primary":{"run_type":"easy","distance_km":16.5}}]}"#.utf8)
+        )), repository: MockTrainingPlanV2Repository()).debug_buildDayDetailDTO(from: day).distanceKm)
+
+        var runToRestDay = MutableTrainingDay(from: TrainingSessionMapper.toEntity(from: dto))
+        XCTAssertEqual(runToRestDay.visibleDailyDistanceKm, 19.5)
+        ScheduleTypeDefaults.apply(.rest, to: &runToRestDay, vdot: PaceCalculator.defaultVDOT)
+        XCTAssertEqual(App2PlanEditView.distanceKm(of: runToRestDay), 0, accuracy: 0.001)
+        XCTAssertNil(runToRestDay.visibleDailyDistanceKm)
+    }
+
+    func test_lsd_uses_the_canonical_training_type_i18n_name() {
+        XCTAssertEqual(
+            DayType.lsd.localizedName,
+            NSLocalizedString("training.type.lsd", comment: "")
+        )
+        XCTAssertNotEqual(DayType.lsd.localizedName, "LONG · Z2-Z3")
+        XCTAssertEqual(
+            PlannedSessionDetailView.WorkoutMeta.chipLabel(for: .lsd),
+            DayType.lsd.localizedName
+        )
+    }
+
+    func test_planEdit_userEditInvalidatesBackendDailyTotalAndRecalculatesWeek() throws {
+        let json = #"{"day_index":6,"day_target":"Fartlek","reason":"r","category":"run","distance_km":19.5,"warmup":{"distance_km":2.0},"cooldown":{"distance_km":1.0},"primary":{"run_type":"fartlek","segments":[{"distance_km":16.5,"pace":"6:30"}]}}"#
+        let dto = try JSONDecoder().decode(DayDetailDTO.self, from: Data(json.utf8))
+        let mappedDay = MutableTrainingDay(from: TrainingSessionMapper.toEntity(from: dto))
+        let state = TrainingDayEditState(from: mappedDay)
+        state.segments[0].distance = 17.5
+        let edited = state.toMutableTrainingDay(originalDay: mappedDay)
+
+        XCTAssertNil(edited.visibleDailyDistanceKm)
+        XCTAssertEqual(App2PlanEditView.distanceKm(of: edited), 20.5, accuracy: 0.001)
+        XCTAssertEqual([edited].reduce(0) { $0 + App2PlanEditView.distanceKm(of: $1) }, 20.5, accuracy: 0.001)
+
+        let weeklyPlan = WeeklyPlanV2Mapper.toEntity(from: try JSONDecoder().decode(
+            WeeklyPlanV2DTO.self,
+            from: Data(#"{"purpose":"p","week_of_training":1,"total_weeks":1,"total_distance_km":19.5,"days":[{"day_index":6,"day_target":"Fartlek","reason":"r","category":"run","distance_km":19.5,"warmup":{"distance_km":2.0},"cooldown":{"distance_km":1.0},"primary":{"run_type":"fartlek","segments":[{"distance_km":16.5,"pace":"6:30"}]}}]}"#.utf8)
+        ))
+        let saveVM = EditScheduleV2ViewModel(weeklyPlan: weeklyPlan, repository: MockTrainingPlanV2Repository())
+        let savedDTO = saveVM.debug_buildDayDetailDTO(from: edited)
+        XCTAssertNil(savedDTO.distanceKm, "Edited DTO must not submit stale backend daily total")
+        XCTAssertEqual(savedDTO.warmup?.distanceKm, 2.0)
+        XCTAssertEqual(savedDTO.cooldown?.distanceKm, 1.0)
+        guard case .run(let savedPrimary) = savedDTO.primary else { return XCTFail("Expected run primary") }
+        XCTAssertEqual(savedPrimary.segments?.first?.distanceKm, 17.5)
+    }
 }

@@ -18,11 +18,12 @@ final class LanguageManagerPreLoginTests: XCTestCase {
         originalUserSelected = UserDefaults.standard.object(forKey: userSelectedKey) as? Bool
         UserDefaults.standard.removeObject(forKey: languageKey)
         UserDefaults.standard.removeObject(forKey: "AppleLanguages")
-        // 「使用者自己選的」這個旗標一定要一起清：`tearDown` 會呼叫
-        // `applyPreLoginLanguage` 復原語言，那條路徑會把它設成 true，於是它會殘留到
-        // 下一個測試。2026-09-02 換到乾淨的測試模擬器才發現——`explicitLanguage` 的
-        // 那條測試一直是靠這個殘留值變綠的。
-        UserDefaults.standard.removeObject(forKey: userSelectedKey)
+        // 「使用者自己選的」這個旗標一定要在每個測試前明確設成 false：`tearDown`
+        // 會呼叫 `applyPreLoginLanguage` 復原語言，那條路徑會把它設成 true；而 F30F
+        // 的測試程序可能仍提供模擬器殘留／registered default，單純 remove 後
+        // `bool(forKey:)` 仍可能讀到 true。這裡只隔離測試 fixture，不改 production code。
+        UserDefaults.standard.set(false, forKey: userSelectedKey)
+        UserDefaults.standard.synchronize()
     }
 
     override func tearDown() {

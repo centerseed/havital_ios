@@ -68,6 +68,7 @@ enum ScheduleTypeDefaults {
     /// 把 `newType` 的預設處方套進 `day`。呼叫端負責標記「有未儲存的變更」。
     static func apply(_ newType: DayType, to day: inout MutableTrainingDay, vdot: Double) {
         day.trainingType = newType.rawValue
+        day.invalidateVisibleDailyDistanceAfterPrescriptionChange()
 
         switch newType {
         case .rest:
@@ -115,7 +116,7 @@ enum ScheduleTypeDefaults {
             day.cooldown = wc.cooldown
 
         case .lsd:
-            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.lsd", comment: "")
+            day.dayTarget = L10n.Training.TrainingType.lsd.localized
             let pace = PaceCalculator.getSuggestedPace(for: "easy", vdot: vdot) ?? "6:00"
             day.trainingDetails = MutableTrainingDetails(distanceKm: 20.0, pace: pace)
             day.warmup = nil
