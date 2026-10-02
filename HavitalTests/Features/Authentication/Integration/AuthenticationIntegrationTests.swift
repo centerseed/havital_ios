@@ -16,47 +16,38 @@ final class AuthenticationIntegrationTests: XCTestCase {
     var loginViewModel: LoginViewModel!
     var authCoordinatorViewModel: AuthCoordinatorViewModel!
 
-    // MARK: - Real Dependencies (Integration Test)
+    // MARK: - Isolated Test Dependencies
 
-    var authRepository: AuthRepositoryImpl!
-    var authSessionRepository: AuthSessionRepositoryImpl!
-    var onboardingRepository: OnboardingRepositoryImpl!
+    private var testDefaults: UserDefaults!
+    private var testDefaultsSuiteName: String!
+    private var authRepository: IsolatedAuthRepository!
+    private var authSessionRepository: IsolatedAuthSessionRepository!
+    private var onboardingRepository: IsolatedOnboardingRepository!
 
     // MARK: - Setup & Teardown
 
     override func setUp() async throws {
         try await super.setUp()
 
-        // Use real dependencies for integration testing
-        // Note: This requires network access to backend API
-
-        // DataSources
-        let firebaseAuth = FirebaseAuthDataSource()
-        let googleSignIn = GoogleSignInDataSource()
-        let appleSignIn = AppleSignInDataSource()
-        let backendAuth = BackendAuthDataSource()
-        let authCache = UserDefaultsAuthCache()
-
-        // Repositories
-        authSessionRepository = AuthSessionRepositoryImpl(
-            firebaseAuth: firebaseAuth,
-            backendAuth: backendAuth,
+        // Keep the demo login HTTP request real, but isolate all auth/session state.
+        let suiteName = "com.havital.HavitalTests.auth.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            throw AuthenticationError.backendSyncFailed("Could not create test UserDefaults suite")
+        }
+        testDefaultsSuiteName = suiteName
+        testDefaults = defaults
+        let authCache = UserDefaultsAuthCache(userDefaults: defaults)
+        authSessionRepository = IsolatedAuthSessionRepository(
+            defaults: defaults,
             authCache: authCache
         )
-
-        authRepository = AuthRepositoryImpl(
-            firebaseAuth: firebaseAuth,
-            googleSignIn: googleSignIn,
-            appleSignIn: appleSignIn,
-            backendAuth: backendAuth,
-            authCache: authCache,
+        authRepository = IsolatedAuthRepository(
+            backendAuth: BackendAuthDataSource(),
+            authSessionRepository: authSessionRepository,
+            authCache: authCache
+        )
+        onboardingRepository = IsolatedOnboardingRepository(
             authSessionRepository: authSessionRepository
-        )
-
-        onboardingRepository = OnboardingRepositoryImpl(
-            firebaseAuth: firebaseAuth,
-            backendAuth: backendAuth,
-            authCache: authCache
         )
 
         // ViewModels with real repositories
@@ -72,14 +63,19 @@ final class AuthenticationIntegrationTests: XCTestCase {
     }
 
     override func tearDown() async throws {
-        // Clean up any authenticated state
-        try? await authRepository.signOut()
+        // The test double records and clears isolated state; it never reaches Firebase Auth.
+        try await authRepository.signOut()
 
         loginViewModel = nil
         authCoordinatorViewModel = nil
         authRepository = nil
         authSessionRepository = nil
         onboardingRepository = nil
+        if let testDefaults {
+            testDefaults.removePersistentDomain(forName: testDefaultsSuiteName)
+        }
+        testDefaultsSuiteName = nil
+        testDefaults = nil
 
         try await super.tearDown()
     }
@@ -207,6 +203,7 @@ final class AuthenticationIntegrationTests: XCTestCase {
         XCTAssertEqual(authCoordinatorViewModel.authState, .unauthenticated)
         XCTAssertFalse(authCoordinatorViewModel.isAuthenticated)
         XCTAssertNil(authCoordinatorViewModel.currentUser)
+        XCTAssertEqual(authRepository.signOutCallCount, 1)
 
         print("✅ Sign out completed successfully")
     }
@@ -340,4 +337,149 @@ final class AuthenticationIntegrationTests: XCTestCase {
             print("⚠️ Unexpected state after concurrent logins: \(loginViewModel.state)")
         }
     }
+}
+
+private final class IsolatedAuthRepository: AuthRepository {
+    private let backendAuth: BackendAuthDataSource
+    private let authSessionRepository: IsolatedAuthSessionRepository
+    private let authCache: UserDefaultsAuthCache
+    private(set) var signOutCallCount = 0
+
+    init(
+        backendAuth: BackendAuthDataSource,
+        authSessionRepository: IsolatedAuthSessionRepository,
+        authCache: UserDefaultsAuthCache
+    ) {
+        self.backendAuth = backendAuth
+        self.authSessionRepository = authSessionRepository
+        self.authCache = authCache
+    }
+
+    func demoLogin(reviewerPasscode: String) async throws -> AuthUser {
+        let demoUser = try await backendAuth.demoLogin(reviewerPasscode: reviewerPasscode)
+        let user = AuthUser(
+            uid: demoUser.uid,
+            email: demoUser.email,
+            displayName: demoUser.displayName,
+            isAuthenticated: true,
+            hasCompletedOnboarding: true,
+            onboardingMode: .none
+        )
+        authCache.saveUser(user)
+        authSessionRepository.setDemoToken(demoUser.idToken)
+        authSessionRepository.setDemoUser(user)
+        return user
+    }
+
+    func signOut() async throws {
+        signOutCallCount += 1
+        authSessionRepository.clearCache()
+    }
+
+    func signInWithGoogle() async throws -> AuthUser {
+        throw AuthenticationError.backendSyncFailed("Isolated auth double does not support Google sign-in")
+    }
+
+    func signInWithApple() async throws -> AuthUser {
+        throw AuthenticationError.backendSyncFailed("Isolated auth double does not support Apple sign-in")
+    }
+
+    func signInWithApple(credential: AppleAuthCredential) async throws -> AuthUser {
+        throw AuthenticationError.backendSyncFailed("Isolated auth double does not support Apple sign-in")
+    }
+
+    func signInWithEmail(email: String, password: String) async throws -> AuthUser {
+        throw AuthenticationError.backendSyncFailed("Isolated auth double does not support email sign-in")
+    }
+}
+
+private final class IsolatedAuthSessionRepository: AuthSessionRepository {
+    private enum Keys {
+        static let demoToken = "auth.demo_id_token"
+        static let demoUser = "auth.demo_user"
+    }
+
+    private let defaults: UserDefaults
+    private let authCache: UserDefaultsAuthCache
+
+    init(defaults: UserDefaults, authCache: UserDefaultsAuthCache) {
+        self.defaults = defaults
+        self.authCache = authCache
+    }
+
+    func getCurrentUser() -> AuthUser? {
+        if let cachedUser = authCache.getCurrentUser() {
+            return cachedUser
+        }
+
+        guard let data = defaults.data(forKey: Keys.demoUser),
+              let persistedUser = try? JSONDecoder().decode(AuthUser.self, from: data) else {
+            return nil
+        }
+        authCache.saveUser(persistedUser)
+        return persistedUser
+    }
+
+    func fetchCurrentUser() async throws -> AuthUser {
+        guard let user = getCurrentUser() else {
+            throw AuthenticationError.userNotFound
+        }
+        return user
+    }
+
+    func isAuthenticated() -> Bool {
+        defaults.string(forKey: Keys.demoToken) != nil && getCurrentUser() != nil
+    }
+
+    func getIdToken() async throws -> String {
+        guard let token = defaults.string(forKey: Keys.demoToken) else {
+            throw AuthenticationError.tokenExpired
+        }
+        return token
+    }
+
+    func refreshIdToken() async throws -> String {
+        try await getIdToken()
+    }
+
+    func clearCache() {
+        authCache.clearCache()
+        defaults.removeObject(forKey: Keys.demoToken)
+        defaults.removeObject(forKey: Keys.demoUser)
+    }
+
+    func setDemoToken(_ token: String?) {
+        if let token {
+            defaults.set(token, forKey: Keys.demoToken)
+        } else {
+            defaults.removeObject(forKey: Keys.demoToken)
+        }
+    }
+
+    func setDemoUser(_ user: AuthUser?) {
+        guard let user, let data = try? JSONEncoder().encode(user) else {
+            defaults.removeObject(forKey: Keys.demoUser)
+            return
+        }
+        defaults.set(data, forKey: Keys.demoUser)
+    }
+}
+
+private final class IsolatedOnboardingRepository: OnboardingRepository {
+    private let authSessionRepository: IsolatedAuthSessionRepository
+
+    init(authSessionRepository: IsolatedAuthSessionRepository) {
+        self.authSessionRepository = authSessionRepository
+    }
+
+    func getOnboardingStatus() async throws -> OnboardingMode {
+        guard let user = authSessionRepository.getCurrentUser() else {
+            throw AuthenticationError.userNotFound
+        }
+        return user.onboardingMode
+    }
+
+    func completeOnboarding() async throws {}
+    func startReonboarding() async throws {}
+    func resetOnboarding() async throws {}
 }

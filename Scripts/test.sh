@@ -99,20 +99,8 @@ detect_simulator() {
         return
     fi
 
-    # 建不出來才退回借用既有的一台（會清掉那台的 app 資料）。
-    echo -e "${YELLOW}⚠️  建不出測試專用模擬器「$TEST_SIMULATOR_NAME」，改用既有模擬器（那台的登入狀態會被清掉）${NC}" >&2
-    local sim_name=$(xcrun simctl list devices available | grep "iPhone 17" | head -1 | sed 's/^[[:space:]]*//' | sed 's/ (.*//')
-
-    if [ -z "$sim_name" ]; then
-        sim_name=$(xcrun simctl list devices available | grep "iPhone" | head -1 | sed 's/^[[:space:]]*//' | sed 's/ (.*//')
-    fi
-
-    if [ -z "$sim_name" ]; then
-        echo -e "${RED}❌ No suitable simulator found!${NC}"
-        exit 1
-    fi
-
-    echo "$sim_name"
+    echo -e "${RED}❌ No dedicated simulator named \"$TEST_SIMULATOR_NAME\" is available, and it could not be created.${NC}" >&2
+    return 1
 }
 
 # ================================
@@ -157,7 +145,9 @@ done
 print_header "🚀 Havital Test Runner: $TYPE"
 
 # 1. Environment Setup
-SIMULATOR_NAME=$(detect_simulator)
+if ! SIMULATOR_NAME=$(detect_simulator); then
+    exit 1
+fi
 echo "📱 Simulator: $SIMULATOR_NAME"
 echo "🎯 Scheme:    $SCHEME"
 echo ""
