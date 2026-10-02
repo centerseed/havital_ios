@@ -115,7 +115,7 @@ enum ScheduleTypeDefaults {
             day.cooldown = wc.cooldown
 
         case .lsd:
-            day.dayTarget = NSLocalizedString("schedule_editor.daytarget.lsd", comment: "")
+            day.dayTarget = L10n.Training.TrainingType.lsd.localized
             let pace = PaceCalculator.getSuggestedPace(for: "easy", vdot: vdot) ?? "6:00"
             day.trainingDetails = MutableTrainingDetails(distanceKm: 20.0, pace: pace)
             day.warmup = nil

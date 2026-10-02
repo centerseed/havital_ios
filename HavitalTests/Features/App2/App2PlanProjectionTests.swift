@@ -387,4 +387,46 @@ final class App2PlanProjectionTests: XCTestCase {
         XCTAssertNil(none.intensityMediumMinutes)
         XCTAssertNil(none.intensityHighMinutes)
     }
+
+    func test_planEdit_visibleDailyTotalDoesNotDoubleCountWarmupAndCooldown() {
+        let details = MutableTrainingDetails(
+            distanceKm: 19.5,
+            totalDistanceKm: 19.5,
+            pace: "6:30"
+        )
+        let segment = RunSegment(
+            distanceKm: 1.0, distanceM: nil, distanceDisplay: nil, distanceUnit: nil,
+            durationMinutes: nil, durationSeconds: nil, pace: "7:00", basePace: nil,
+            climateAdjustedPace: nil, climateMeta: nil, heartRateRange: nil,
+            intensity: "easy", description: nil, kind: nil, repeats: nil,
+            work: nil, recovery: nil
+        )
+        let day = MutableTrainingDay(
+            dayIndex: "5",
+            dayTarget: "LSD",
+            trainingType: DayType.lsd.rawValue,
+            trainingDetails: details,
+            warmup: segment,
+            cooldown: segment
+        )
+
+        XCTAssertEqual(App2PlanEditView.distanceKm(of: day), 19.5, accuracy: 0.001)
+    }
+
+    func test_lsd_uses_the_canonical_training_type_i18n_name() {
+        XCTAssertEqual(
+            DayType.lsd.localizedName,
+            NSLocalizedString("training.type.lsd", comment: "")
+        )
+        XCTAssertNotEqual(DayType.lsd.localizedName, "LONG · Z2-Z3")
+        XCTAssertEqual(
+            PlannedSessionDetailView.WorkoutMeta.chipLabel(for: .lsd),
+            DayType.lsd.localizedName
+        )
+    }
+
+    func test_edit_top_bar_pace_table_label_stays_single_line() {
+        XCTAssertEqual(App2EditTopBar.paceTableTextLineLimit, 1)
+        XCTAssertTrue(App2EditTopBar.paceTableTextFixedHorizontally)
+    }
 }

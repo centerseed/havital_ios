@@ -470,7 +470,7 @@ struct SimplifiedDailyCardV2: View {
                 Button(L10n.EditSchedule.combinationRun.localized) { updateTrainingType(.combination) }
             }
             Section(header: Text(NSLocalizedString("edit_schedule.category_long", comment: "長距離訓練"))) {
-                Button(L10n.EditSchedule.longEasyRun.localized) { updateTrainingType(.lsd) }
+                Button(DayType.lsd.localizedName) { updateTrainingType(.lsd) }
                 Button(L10n.EditSchedule.longDistanceRun.localized) { updateTrainingType(.longRun) }
                 Button(DayType.progression.localizedName) { updateTrainingType(.progression) }
                 Button(DayType.fastFinish.localizedName) { updateTrainingType(.fastFinish) }

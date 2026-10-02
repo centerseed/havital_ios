@@ -137,26 +137,28 @@ struct App2PlanEditView: View {
         .accessibilityIdentifier("App2_PlanEditSummary")
     }
 
-    /// 編輯後的週跑量。**用編輯中的天現算**，不是後端那個 `total_distance_km`——
-    /// 那是打開編輯器之前的值，改完不會跟著動。
+    /// 編輯後的週跑量。日層的 `distance_km`／`total_distance_km` 已是
+    /// backend 的 app-visible 日總量（含 warmup、primary、cooldown），不可再加段落。
+    /// 只有日層總量缺失時，才從可見段落重算。
     private var editedDistanceKm: Double {
         editViewModel.editingDays.reduce(0) { $0 + Self.distanceKm(of: $1) }
     }
 
     /// 一天的跑量。
     ///
-    /// **間歇與分段課沒有 `distance_km`**，量藏在結構裡（趟數 × 衝刺距離 ＋ 組間，
-    /// 或各分段相加）。只讀 `distance_km` 的話，把休息日換成 6×400m 之後週跑量
-    /// 會紋風不動 —— 那正是這張卡要回答的問題。暖身／緩和在 `trainingDetails`
-    /// 之外，一律另外加。
+    /// **間歇與分段課可能沒有日層 `distance_km`**，量藏在結構裡（趟數 × 衝刺距離
+    /// ＋組間，或各分段相加）。日層總量存在時直接採用；缺失時才把可見暖身／緩和與
+    /// 結構段落相加，避免把 backend 已包含的段落算第二次。
     static func distanceKm(of day: MutableTrainingDay) -> Double {
         guard day.type.isRunningActivity else { return 0 }
-        var total = (day.warmup?.distanceKm ?? 0) + (day.cooldown?.distanceKm ?? 0)
-        guard let details = day.trainingDetails else { return total }
+        guard let details = day.trainingDetails else {
+            return (day.warmup?.distanceKm ?? 0) + (day.cooldown?.distanceKm ?? 0)
+        }
 
         if let explicit = details.totalDistanceKm ?? details.distanceKm {
-            return total + explicit
+            return explicit
         }
+        var total = (day.warmup?.distanceKm ?? 0) + (day.cooldown?.distanceKm ?? 0)
         if let repeats = details.repeats, let work = details.work {
             let workKm = work.distanceKm ?? work.distanceM.map { $0 / 1000 } ?? 0
             let recoveryKm = details.recovery?.distanceKm

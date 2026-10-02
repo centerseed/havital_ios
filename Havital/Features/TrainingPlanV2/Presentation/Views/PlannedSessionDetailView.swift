@@ -115,7 +115,7 @@ struct PlannedSessionDetailView: View {
 
     // MARK: - Workout Type Metadata
 
-    private enum WorkoutMeta {
+    enum WorkoutMeta {
         static func accentColor(for type: DayType) -> Color {
             switch type {
             case .easyRun, .easy, .recovery_run:
@@ -145,7 +145,8 @@ struct PlannedSessionDetailView: View {
             switch type {
             case .easy, .easyRun:   return ("EASY · Z2",             NSLocalizedString("training.type.easy", comment: ""))
             case .recovery_run:     return ("EASY · Z2",             NSLocalizedString("training.type.recovery", comment: ""))
-            case .lsd, .longRun:    return ("LONG · Z2-Z3",          NSLocalizedString("training.type.lsd", comment: ""))
+            case .lsd:              return (L10n.Training.TrainingType.lsd.localized, L10n.Training.TrainingType.lsd.localized)
+            case .longRun:          return ("LONG · Z2-Z3",          NSLocalizedString("training.type.long_run", comment: ""))
             case .interval:         return ("INTERVAL · Z4",         NSLocalizedString("training.type.interval", comment: ""))
             case .tempo:            return ("TEMPO · Z3-Z4",         NSLocalizedString("training.type.tempo", comment: ""))
             case .threshold:        return ("THRESHOLD · Z4",        NSLocalizedString("training.type.threshold", comment: ""))
