@@ -408,7 +408,7 @@ final class LocalizationCoverageTests: XCTestCase {
         XCTAssertTrue(loginView.contains("applyPreLoginLanguage"), "Login language changes must apply locally before backend sync.")
     }
 
-    func test_auth_sync_sends_selected_app_language_as_account_preference() throws {
+    func test_auth_sync_uses_app_display_language_as_authority() throws {
         let syncRequest = try String(
             contentsOf: try projectRoot.appendingPathComponent("Havital/Features/Authentication/Data/DTOs/UserSyncRequest.swift"),
             encoding: .utf8
@@ -423,12 +423,10 @@ final class LocalizationCoverageTests: XCTestCase {
         )
 
         XCTAssertTrue(syncRequest.contains("let language: String?"), "Auth sync request must carry an explicit account language preference.")
-        // 2.0 QA 波（57da2c24 語言 clobber 修復）：只送使用者「明確選過」的語言
-        // （explicitLanguage），沒選過送 nil——不得拿裝置預設覆寫帳號語言。
-        XCTAssertTrue(authRepository.contains("LanguageManager.shared.explicitLanguage?.apiCode"), "Auth sign-in sync must send only an explicitly selected app language.")
-        XCTAssertTrue(authSessionRepository.contains("LanguageManager.shared.explicitLanguage?.apiCode"), "Auth session refresh must send only an explicitly selected app language.")
-        XCTAssertTrue(authRepository.contains("language: appLanguageCode"), "Auth sign-in sync must persist the selected app language as account language.")
-        XCTAssertTrue(authSessionRepository.contains("language: appLanguageCode"), "Auth session refresh must persist the selected app language as account language.")
+        XCTAssertFalse(authRepository.contains("explicitLanguage"), "Auth sign-in sync must not use a stale explicit-language flag.")
+        XCTAssertFalse(authSessionRepository.contains("explicitLanguage"), "Auth session refresh must not use a stale explicit-language flag.")
+        XCTAssertTrue(authRepository.contains("language: nil"), "Auth sign-in sync must compare then write the App display language.")
+        XCTAssertTrue(authSessionRepository.contains("language: nil"), "Auth session refresh must compare then write the App display language.")
         XCTAssertTrue(authRepository.contains("locale: Locale.current.identifier"), "Device info locale must remain device metadata, not account language.")
         XCTAssertTrue(authSessionRepository.contains("locale: Locale.current.identifier"), "Session refresh device locale must remain device metadata, not account language.")
     }

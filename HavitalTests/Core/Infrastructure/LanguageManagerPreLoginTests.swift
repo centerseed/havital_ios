@@ -173,6 +173,24 @@ final class LanguageManagerPreLoginTests: XCTestCase {
         XCTAssertNil(LanguageManager.parseLanguage(fromPreferencesResponse: Data("not json".utf8)))
     }
 
+    func test_appLanguageSyncDecision_writesWhenBackendDiffers() {
+        XCTAssertTrue(
+            LanguageManager.shouldSyncAppLanguage(
+                appLanguage: .traditionalChinese,
+                backendLanguage: .japanese
+            )
+        )
+    }
+
+    func test_appLanguageSyncDecision_doesNotWriteWhenBackendMatches() {
+        XCTAssertFalse(
+            LanguageManager.shouldSyncAppLanguage(
+                appLanguage: .traditionalChinese,
+                backendLanguage: .traditionalChinese
+            )
+        )
+    }
+
     /// 讀到值之後真的要寫進本地：`app_language_preference` 換掉、`AppleLanguages` 換掉、
     /// `currentLanguage` 換掉。少任何一項，下次冷啟就又是舊語言。
     func test_applyFromBackend_writesLocalPreferenceWhenBackendDiffers() {

@@ -22,13 +22,8 @@ class LanguageManager: ObservableObject {
 
     /// **使用者在這個 app 裡親手選過**的語言，`nil` ＝ 沒選過（不論本地現在顯示什麼）。
     ///
-    /// **後端是語言的 SSOT**，所以只有這一種值可以被送去 `POST /auth/sync` 覆寫後端。
-    /// 裝置猜測值不行（`resolveFromSystem()`），**從後端套回來的值也不行** ——
-    /// 後者會讓「上一次被寫壞的 en-US」在下一次冷啟變成權威，外部改成 zh-TW 之後
-    /// app 一啟動又蓋回 en（2026-08-26 dev 實測）。
-    ///
-    /// 沒選過就不帶 `language`，後端保留自己的值，隨後
-    /// `AppStateManager.applyBackendLanguagePreference()` 把它套回本地。
+    /// 使用者在這個 app 裡親手選過的語言，供設定頁與登入前 UI 辨識。
+    /// 啟動同步不讀這個旗標；啟動時一律以實際渲染中的 `currentLanguage` 為準。
     var explicitLanguage: SupportedLanguage? {
         guard UserDefaults.standard.bool(forKey: Self.userSelectedLanguageKey),
               let saved = UserDefaults.standard.string(forKey: Self.languageKey) else { return nil }
@@ -105,10 +100,9 @@ class LanguageManager: ObservableObject {
         }
     }
 
-    /// Fetch user preferences from backend and apply language locally
+    /// Fetch user preferences for callers that need the response; backend never changes App UI.
     func fetchUserPreferences() async throws {
-        guard let language = try await backendLanguagePreference() else { return }
-        applyFromBackend(language)
+        _ = try await backendLanguagePreference()
     }
 
     /// 只讀後端的語言偏好，**不套用**。
@@ -123,6 +117,31 @@ class LanguageManager: ObservableObject {
             method: .GET
         )
         return Self.parseLanguage(fromPreferencesResponse: data)
+    }
+
+    /// App 顯示語言是啟動同步的 authority：backend 不同才寫回，符合時不產生 write。
+    static func shouldSyncAppLanguage(
+        appLanguage: SupportedLanguage,
+        backendLanguage: SupportedLanguage?
+    ) -> Bool {
+        guard let backendLanguage else { return false }
+        return appLanguage != backendLanguage
+    }
+
+    /// 將目前 App 實際渲染的語言寫回 backend；失敗交給啟動 caller fail-open。
+    func syncAppLanguageToBackendIfNeeded(
+        backendLanguage: SupportedLanguage?
+    ) async throws {
+        guard Self.shouldSyncAppLanguage(
+            appLanguage: currentLanguage,
+            backendLanguage: backendLanguage
+        ) else {
+            Logger.debug("[LanguageManager] App language matches backend; no write")
+            return
+        }
+        let appLanguage = currentLanguage
+        Logger.debug("[LanguageManager] Syncing App language to backend: \(backendLanguage?.rawValue ?? "nil") → \(appLanguage.rawValue)")
+        try await syncLanguageToBackend(appLanguage.apiCode)
     }
 
     /// `GET /user/preferences` 的回應 → 語言。

@@ -240,35 +240,21 @@ class AppStateManager: ObservableObject {
         print("✅ AppStateManager: 認證檢查完成 - 已認證: \(isUserAuthenticated)")
     }
     
-    /// 把後端的語言偏好套回本地。
+    /// 以 App 實際渲染語言為準，必要時把它同步回 backend。
     ///
-    /// 走 `LanguageManager.backendLanguagePreference()` 讀值、`applyFromBackend()` 套用——
-    /// 不另寫一份 `/user/preferences` 的讀取。
-    ///
-    /// **比較後才套。** 相同時什麼都不做；不同時一定要套進本地
-    /// （`app_language_preference` ＋ `AppleLanguages` ＋ bundle ＋ `LanguageDidChange`），
-    /// 否則「後端是語言的 SSOT」只是一句話：使用者在別台裝置設過的語言永遠回不來。
-    /// 兩邊的值都寫進 log，因為這條鏈子唯一的失敗樣態是**靜默**（讀不到 language 欄位
-    /// 就跟「後端沒設」長得一模一樣）。
-    private func applyBackendLanguagePreference() async {
+    /// 讀 `/user/preferences` 後，比對 backend 與 App 實際渲染語言；相同不寫，
+    /// 不同只把 App 語言寫回 backend。失敗只記錄、不阻擋啟動，下次開啟再試。
+    private func syncAppLanguagePreference() async {
         do {
-            let backendLanguage = try await tracked("AppStateManager: applyBackendLanguagePreference") {
+            let backendLanguage = try await tracked("AppStateManager: syncAppLanguagePreference") {
                 try await LanguageManager.shared.backendLanguagePreference()
             }
-            guard let backendLanguage else {
-                Logger.debug("[AppStateManager] 後端沒有可用的語言偏好，維持本地語言")
-                return
-            }
-            let localLanguage = LanguageManager.shared.currentLanguage
-            guard backendLanguage != localLanguage else {
-                Logger.debug("[AppStateManager] 語言偏好一致（\(localLanguage.rawValue)），不重複套用")
-                return
-            }
-            Logger.debug("[AppStateManager] 套用後端語言偏好: \(localLanguage.rawValue) → \(backendLanguage.rawValue)")
-            LanguageManager.shared.applyFromBackend(backendLanguage)
+            try await LanguageManager.shared.syncAppLanguageToBackendIfNeeded(
+                backendLanguage: backendLanguage
+            )
         } catch {
             guard !error.isCancellationError else { return }
-            Logger.debug("[AppStateManager] 後端語言偏好套用失敗，維持本地語言: \(error)")
+            Logger.debug("[AppStateManager] App 語言同步失敗，維持本地語言並下次重試: \(error)")
         }
     }
 
@@ -300,11 +286,8 @@ class AppStateManager: ObservableObject {
             // 同步用戶偏好設定（包括數據源）
             UserService.shared.syncUserPreferences(with: user)
 
-            // **後端是語言的 SSOT。** 登入後把 `/user/preferences` 的 language 套回本地
-            // ——沒有這一步，首啟時依系統語言猜出來的值會一直贏過使用者在別台裝置上
-            // 設過的語言（2026-08-25：後端 zh-TW、app 顯示英文）。失敗不擋初始化：
-            // 語言不對是體驗問題，不是啟動不了。
-            await applyBackendLanguagePreference()
+            // App 實際渲染語言是 authority；登入後只在不同時寫回 backend，失敗不擋初始化。
+            await syncAppLanguagePreference()
 
             // 使用同步後的數據源設定
             userDataSource = UserPreferencesManager.shared.dataSourcePreference
