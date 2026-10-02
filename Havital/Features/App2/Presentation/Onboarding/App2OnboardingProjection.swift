@@ -14,6 +14,55 @@ import Foundation
 /// | 週跑量容量的權威解析 | 後端 `resolve_weekly_volume_capacity`（`MAP-mileage-baseline.md` §2） | 只做**生成前的預覽**，見下 |
 enum App2OnboardingProjection {
 
+    // MARK: - 心率預設值
+
+    /// 進入心率頁時的逐欄解析結果。後端有值就沿用；缺值才估算。
+    /// 保存時用同一份結果決定哪些欄位真的需要送回，避免估算值蓋掉後端既有值。
+    struct HeartRateDefaults: Equatable {
+        let maxHR: Int
+        let restingHR: Int
+        let maxHRIsEstimated: Bool
+        let restingHRIsEstimated: Bool
+
+        private let backendMaxHR: Int?
+        private let backendRestingHR: Int?
+
+        func updates(maxHR: Int, restingHR: Int) -> [String: Any] {
+            var updates: [String: Any] = [:]
+            if backendMaxHR == nil || maxHR != self.maxHR {
+                updates["max_hr"] = maxHR
+            }
+            if backendRestingHR == nil || restingHR != self.restingHR {
+                updates["relaxing_hr"] = restingHR
+            }
+            return updates
+        }
+
+        fileprivate init(backendMaxHR: Int?, backendRestingHR: Int?, age: Int) {
+            let normalizedMaxHR = Self.validValue(backendMaxHR)
+            let normalizedRestingHR = Self.validValue(backendRestingHR)
+            self.backendMaxHR = normalizedMaxHR
+            self.backendRestingHR = normalizedRestingHR
+            self.maxHR = normalizedMaxHR ?? App2OnboardingProjection.estimatedMaxHR(age: age)
+            self.restingHR = normalizedRestingHR ?? 60
+            self.maxHRIsEstimated = normalizedMaxHR == nil
+            self.restingHRIsEstimated = normalizedRestingHR == nil
+        }
+
+        private static func validValue(_ value: Int?) -> Int? {
+            guard let value, value > 0 else { return nil }
+            return value
+        }
+    }
+
+    static func heartRateDefaults(
+        backendMaxHR: Int?,
+        backendRestingHR: Int?,
+        age: Int
+    ) -> HeartRateDefaults {
+        HeartRateDefaults(backendMaxHR: backendMaxHR, backendRestingHR: backendRestingHR, age: age)
+    }
+
     // MARK: - 心率區間色帶（呈現層合併，不是第二套分區）
 
     /// 設計 frame-33 的五條色帶。`upperBpm` 是該區間的心率上限（bpm）。

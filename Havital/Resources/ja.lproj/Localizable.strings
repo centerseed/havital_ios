@@ -1180,6 +1180,7 @@
 "hr_zone.max_heart_rate_display" = "最大心拍数";
 "hr_zone.resting_heart_rate_display" = "安静時心拍数";
 "hr_zone.default_values_hint" = "現在は推定値を使用しています。心拍計デバイスの接続または体力テスト後に更新すると、より精度の高いトレーニング提案が得られます";
+"hr_zone.estimated_value" = "推定値";
 "hr_zone.how_to_max_hr" = "時計のアプリで最高心拍数の記録を確認しましょう。記録がなければ「220 − 年齢」で概算できます。";
 "hr_zone.how_to_resting_hr" = "時計のアプリに表示されていることが多いです。時計がなければ、朝起きてベッドから出る前に1分間脈拍を測ってください。";
 "hr_zone.accuracy_note" = "この2つの数値が正確なほど、トレーニング強度と体力の評価があなた自身に近づきます。";

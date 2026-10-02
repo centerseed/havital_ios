@@ -1181,6 +1181,7 @@
 "hr_zone.max_heart_rate_display" = "Max Heart Rate";
 "hr_zone.resting_heart_rate_display" = "Resting Heart Rate";
 "hr_zone.default_values_hint" = "Using estimated values for now. Update after connecting a heart rate device or fitness test for more accurate training recommendations";
+"hr_zone.estimated_value" = "Estimated";
 "hr_zone.how_to_max_hr" = "Open your watch app and look for your highest recorded heart rate. No records? Estimate it with 220 − your age.";
 "hr_zone.how_to_resting_hr" = "Your watch app usually shows this directly. No watch? Take your pulse for one minute right after waking, before getting out of bed.";
 "hr_zone.accuracy_note" = "The more accurate these two numbers are, the closer our training intensity and fitness estimates will be to the real you.";

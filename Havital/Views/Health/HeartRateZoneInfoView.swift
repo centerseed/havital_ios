@@ -19,6 +19,8 @@ struct HeartRateZoneInfoView: View {
     @StateObject private var viewModel = UserProfileFeatureViewModel()
     @State private var maxHeartRate: Int = 190
     @State private var restingHeartRate: Int = 60
+    @State private var maxHeartRateIsEstimated = false
+    @State private var restingHeartRateIsEstimated = false
     @State private var isLoading = true
     @State private var showingAlert = false
     @State private var alertMessage = ""
@@ -216,7 +218,8 @@ struct HeartRateZoneInfoView: View {
                 accent: .red,
                 title: NSLocalizedString("hr_zone.max_hr", comment: "Max HR"),
                 value: $maxHeartRate,
-                range: 100...250
+                range: 100...250,
+                isEstimated: maxHeartRateIsEstimated
             )
 
             hrEditCard(
@@ -224,14 +227,15 @@ struct HeartRateZoneInfoView: View {
                 accent: .indigo,
                 title: NSLocalizedString("hr_zone.resting_hr", comment: "Resting HR"),
                 value: $restingHeartRate,
-                range: 30...120
+                range: 30...120,
+                isEstimated: restingHeartRateIsEstimated
             )
         }
         .padding(.horizontal)
     }
 
     @ViewBuilder
-    private func hrEditCard(iconName: String, accent: Color, title: String, value: Binding<Int>, range: ClosedRange<Int>) -> some View {
+    private func hrEditCard(iconName: String, accent: Color, title: String, value: Binding<Int>, range: ClosedRange<Int>, isEstimated: Bool) -> some View {
         VStack(spacing: 14) {
             HStack(spacing: 6) {
                 Image(systemName: iconName)
@@ -252,6 +256,12 @@ struct HeartRateZoneInfoView: View {
                     .animation(.snappy(duration: 0.15), value: value.wrappedValue)
                 Text("bpm")
                     .font(AppFont.caption())
+                    .foregroundColor(.secondary)
+            }
+
+            if isEstimated {
+                Text(NSLocalizedString("hr_zone.estimated_value", comment: "Estimated value"))
+                    .font(AppFont.captionSmall())
                     .foregroundColor(.secondary)
             }
 
@@ -433,6 +443,9 @@ struct HeartRateZoneInfoView: View {
     private func loadZoneData() async {
         isLoading = true
 
+        // The legacy bridge may have a stale local zone cache. Load the profile from GET /user
+        // first; the page's displayed values must not come from UserDefaults.
+        await viewModel.refreshUserProfile()
         await HeartRateZonesBridge.shared.ensureHeartRateZonesAvailable()
         loadCurrentValues()
 
@@ -440,22 +453,26 @@ struct HeartRateZoneInfoView: View {
     }
 
     private func loadCurrentValues() {
-        if let maxHR = viewModel.maxHeartRate {
-            // 用戶已手動設定過心率，直接使用儲存值
+        if let maxHR = viewModel.currentUser?.maxHr {
             maxHeartRate = maxHR
+            maxHeartRateIsEstimated = false
         } else if isOnboardingMode {
             // Onboarding 首次進入且無心率記錄：使用基於年齡的預設值（220 - 年齡）。
             // 規則本體收斂在 App2OnboardingProjection.estimatedMaxHR —— 2.0 的心率頁用同一條。
             maxHeartRate = App2OnboardingProjection.estimatedMaxHR(age: userAgeFromLocalStorage)
+            maxHeartRateIsEstimated = true
         } else {
             maxHeartRate = 190
+            maxHeartRateIsEstimated = true
         }
 
-        if let restingHR = viewModel.restingHeartRate {
+        if let restingHR = viewModel.currentUser?.relaxingHr {
             restingHeartRate = restingHR
+            restingHeartRateIsEstimated = false
         } else {
             // 靜息心率預設 60 bpm（常見健康成人靜息心率）
             restingHeartRate = 60
+            restingHeartRateIsEstimated = true
         }
     }
 

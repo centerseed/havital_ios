@@ -708,14 +708,20 @@ struct App2OnboardingHeartRateView: View {
                 HStack(spacing: 12) {
                     wheelCard(
                         title: L10n.App2.Onboarding.hrMax.localized,
-                        hint: L10n.App2.Onboarding.hrMaxHint.localized,
+                        hint: heartRateHint(
+                            L10n.App2.Onboarding.hrMaxHint.localized,
+                            isEstimated: viewModel.maxHeartRateIsEstimated
+                        ),
                         range: 120...220,
                         value: $viewModel.maxHeartRate,
                         identifier: "App2_OnboardingHrMaxWheel"
                     )
                     wheelCard(
                         title: L10n.App2.Onboarding.hrResting.localized,
-                        hint: L10n.App2.Onboarding.hrRestingHint.localized,
+                        hint: heartRateHint(
+                            L10n.App2.Onboarding.hrRestingHint.localized,
+                            isEstimated: viewModel.restingHeartRateIsEstimated
+                        ),
                         range: 30...120,
                         value: $viewModel.restingHeartRate,
                         identifier: "App2_OnboardingHrRestingWheel"
@@ -725,6 +731,11 @@ struct App2OnboardingHeartRateView: View {
                 bands
             }
         }
+    }
+
+    private func heartRateHint(_ hint: String, isEstimated: Bool) -> String {
+        guard isEstimated else { return hint }
+        return "\(hint) · \(NSLocalizedString("hr_zone.estimated_value", comment: "Estimated value"))"
     }
 
     private func wheelCard(

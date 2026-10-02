@@ -60,6 +60,13 @@ final class App2OnboardingViewModel: ObservableObject {
 
     @Published var maxHeartRate: Int = 190
     @Published var restingHeartRate: Int = 60
+    @Published private(set) var maxHeartRateIsEstimated = false
+    @Published private(set) var restingHeartRateIsEstimated = false
+    private var heartRateDefaults = App2OnboardingProjection.heartRateDefaults(
+        backendMaxHR: nil,
+        backendRestingHR: nil,
+        age: 30
+    )
 
     /// frame-35「一年內／一年前」。
     @Published var resultIsWithinYear: Bool = true
@@ -144,7 +151,7 @@ final class App2OnboardingViewModel: ObservableObject {
 
     func loadInitial() async {
         await flow.loadTargetTypes()
-        loadHeartRateDefaults()
+        await loadHeartRateDefaults()
         async let pbs: Void = flow.loadPersonalBests()
         async let days: Void = flow.loadTrainingDayPreferences()
         async let races: Void = flow.loadCuratedRaces()
@@ -229,14 +236,20 @@ final class App2OnboardingViewModel: ObservableObject {
 
     // MARK: - frame-33 心率
 
-    private func loadHeartRateDefaults() {
-        if let stored = profile.maxHeartRate {
-            maxHeartRate = stored
-        } else {
-            let age = UserDefaults.standard.object(forKey: "age") as? Int ?? 30
-            maxHeartRate = App2OnboardingProjection.estimatedMaxHR(age: age)
-        }
-        restingHeartRate = profile.restingHeartRate ?? 60
+    private func loadHeartRateDefaults() async {
+        // 心率是後端的 user fact；本機 preferences 只在同步完成後作快取，不是這頁的來源。
+        await profile.refreshUserProfile()
+        let age = UserDefaults.standard.object(forKey: "age") as? Int ?? 30
+        let defaults = App2OnboardingProjection.heartRateDefaults(
+            backendMaxHR: profile.currentUser?.maxHr,
+            backendRestingHR: profile.currentUser?.relaxingHr,
+            age: age
+        )
+        heartRateDefaults = defaults
+        maxHeartRate = defaults.maxHR
+        restingHeartRate = defaults.restingHR
+        maxHeartRateIsEstimated = defaults.maxHRIsEstimated
+        restingHeartRateIsEstimated = defaults.restingHRIsEstimated
     }
 
     var heartRateBands: [App2OnboardingProjection.HeartRateBand] {
@@ -254,10 +267,8 @@ final class App2OnboardingViewModel: ObservableObject {
         defer { isBusy = false }
 
         profile.updateHeartRateData(maxHR: maxHeartRate, restingHR: restingHeartRate)
-        let didUpdate = await profile.updateUserProfile([
-            "max_hr": maxHeartRate,
-            "relaxing_hr": restingHeartRate
-        ])
+        let updates = heartRateDefaults.updates(maxHR: maxHeartRate, restingHR: restingHeartRate)
+        let didUpdate = updates.isEmpty || await profile.updateUserProfile(updates)
         guard didUpdate else {
             errorMessage = NSLocalizedString("hr_zone.save_failed_generic", comment: "")
             return

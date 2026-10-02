@@ -52,8 +52,10 @@ final class App2SettingsViewModel: ObservableObject {
     var currentDataSource: DataSourceType { profile.currentDataSource }
 
     var maxHeartRate: Int? { profile.userData?.maxHr }
+    var maxHeartRateIsEstimated: Bool { profile.userData?.maxHr == nil }
     var maxHeartRateSource: HeartRateParameterSource { profile.userData?.maxHrSource ?? .unrecorded }
     var restingHeartRate: Int? { profile.userData?.relaxingHr }
+    var restingHeartRateIsEstimated: Bool { profile.userData?.relaxingHr == nil }
     var restingHeartRateSource: HeartRateParameterSource { profile.userData?.relaxingHrSource ?? .unrecorded }
     var currentVDOT: Double { profile.currentVDOT }
 
@@ -98,7 +100,8 @@ final class App2SettingsViewModel: ObservableObject {
         rebuildSnapshot()
         Task { [weak self] in
             guard let self else { return }
-            await self.profile.loadUserProfile()
+            // 心率設定頁的初始值必須來自新鮮 GET /user，不接受本機 cache-first 值。
+            await self.profile.loadUserProfile(forceRefresh: true)
             await self.profile.loadHeartRateZones()
             self.profile.loadVDOT()
             self.rebuildSnapshot()

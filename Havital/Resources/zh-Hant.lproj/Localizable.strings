@@ -1189,6 +1189,7 @@
 "hr_zone.max_heart_rate_display" = "最大心率";
 "hr_zone.resting_heart_rate_display" = "安靜心率";
 "hr_zone.default_values_hint" = "目前使用預設值，日後連接心率裝置或進行體能測試後再更新，可獲得更精準的訓練建議";
+"hr_zone.estimated_value" = "估算值";
 "hr_zone.how_to_max_hr" = "打開手錶的 App 看你的最高心率紀錄；沒有紀錄就用「220 − 年齡」粗估。";
 "hr_zone.how_to_resting_hr" = "手錶的 App 通常直接顯示；沒戴手錶就早上剛醒、還沒下床時量 1 分鐘脈搏。";
 "hr_zone.accuracy_note" = "這兩個數字越準，我們算出來的訓練強度和體能評估就越貼近你本人。";

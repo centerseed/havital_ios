@@ -78,7 +78,8 @@ struct App2HeartRateZoneSettingsView: View {
                     range: 120...220,
                     identifier: "App2_HeartRateZoneMax",
                     source: viewModel.maxHeartRateSource,
-                    sourceIdentifier: "App2_HeartRateZoneMaxSource"
+                    sourceIdentifier: "App2_HeartRateZoneMaxSource",
+                    isEstimated: viewModel.maxHeartRateIsEstimated
                 )
                 stepperCard(
                     title: L10n.App2.Onboarding.hrResting.localized,
@@ -86,7 +87,8 @@ struct App2HeartRateZoneSettingsView: View {
                     range: 30...120,
                     identifier: "App2_HeartRateZoneResting",
                     source: viewModel.restingHeartRateSource,
-                    sourceIdentifier: "App2_HeartRateZoneRestingSource"
+                    sourceIdentifier: "App2_HeartRateZoneRestingSource",
+                    isEstimated: viewModel.restingHeartRateIsEstimated
                 )
 
                 bandsSection
@@ -99,6 +101,9 @@ struct App2HeartRateZoneSettingsView: View {
         }
         .onAppear(perform: loadInitialIfNeeded)
         .task {
+            // This page must not render its 190/60 placeholders before the fresh profile read.
+            await viewModel.profile.loadUserProfile(forceRefresh: true)
+            loadInitialIfNeeded()
             await recompute.loadWatchCheck()
             await recompute.refresh()
         }
@@ -150,7 +155,8 @@ struct App2HeartRateZoneSettingsView: View {
         range: ClosedRange<Int>,
         identifier: String,
         source: HeartRateParameterSource,
-        sourceIdentifier: String
+        sourceIdentifier: String,
+        isEstimated: Bool
     ) -> some View {
         App2Card(spacing: 4) {
             HStack(alignment: .center) {
@@ -170,6 +176,11 @@ struct App2HeartRateZoneSettingsView: View {
                         .font(.system(size: 12, weight: .semibold))
                         .foregroundStyle(App2Theme.inkMuted)
                         .accessibilityIdentifier(sourceIdentifier)
+                    if isEstimated {
+                        Text(NSLocalizedString("hr_zone.estimated_value", comment: "Estimated value"))
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundStyle(App2Theme.inkMuted)
+                    }
                 }
                 Spacer(minLength: 8)
                 // 形狀走共用的 `App2StepperButton`（`App2EditComponents`）——這一頁只是
@@ -389,6 +400,7 @@ struct App2HeartRateZoneSettingsView: View {
 
     private func loadInitialIfNeeded() {
         guard !didLoadInitial else { return }
+        guard viewModel.profile.userData != nil else { return }
         didLoadInitial = true
         if let value = viewModel.maxHeartRate, value > 0 { maxHR = value }
         if let value = viewModel.restingHeartRate, value > 0 { restingHR = value }
