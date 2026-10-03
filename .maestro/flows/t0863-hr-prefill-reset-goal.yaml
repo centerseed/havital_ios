@@ -1,0 +1,85 @@
+appId: com.havital.Havital.dev
+tags:
+  - regression
+  - heart-rate
+---
+# T-0863 dev readback: start at the signed-in home, enter reset-goal, choose a
+# non-race goal (so this check does not create or replace a target), and stop
+# after saving the unchanged backend heart-rate values.
+- launchApp:
+    clearState: false
+    arguments:
+      "-skipHealthKitAuth": true
+      "-ui_testing_reviewer_demo": true
+
+# Resume safely if the previous app session was left on the workout-share sheet.
+- runFlow:
+    when:
+      visible:
+        text: "Share This Achievement"
+    commands:
+      - tapOn:
+          id: "xmark"
+
+- runFlow:
+    when:
+      visible:
+        id: "Login_UITestReviewerAccessButton"
+    commands:
+      - tapOn:
+          id: "Login_UITestReviewerAccessButton"
+      - extendedWaitUntil:
+          visible:
+            id: "Login_ReviewerPasscodeField"
+          timeout: 10000
+      - tapOn:
+          id: "Login_ReviewerPasscodeField"
+      - inputText: ${DEV_UID}
+      - tapOn:
+          id: "Login_ReviewerActivateButton"
+
+- extendedWaitUntil:
+    visible:
+      id: "App2_GoalCard"
+    timeout: 90000
+
+- tapOn:
+    id: "App2_HomeMenu"
+- tapOn:
+    text: "個人資料|Profile|プロフィール"
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: "App2_SettingsView"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "App2_SettingsResetGoalRace"
+    direction: DOWN
+- tapOn:
+    id: "App2_SettingsResetGoalRace"
+
+- extendedWaitUntil:
+    visible:
+      id: "App2_OnboardingGoalType"
+    timeout: 40000
+- tapOn:
+    id: "App2_OnboardingGoalOption_beginner"
+- tapOn:
+    id: "App2_OnboardingGoalTypeCta"
+
+- extendedWaitUntil:
+    visible:
+      id: "App2_OnboardingHeartRate"
+    timeout: 60000
+- assertVisible:
+    id: "App2_OnboardingHrMaxWheel"
+- assertVisible:
+    text: "190"
+- takeScreenshot: t0863-hr-prefill-max-190
+- tapOn:
+    id: "App2_OnboardingHeartRateCta"
+- extendedWaitUntil:
+    visible:
+      id: "App2_OnboardingDeviceLink"
+    timeout: 30000
