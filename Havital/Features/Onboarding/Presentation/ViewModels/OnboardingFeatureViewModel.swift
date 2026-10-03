@@ -951,7 +951,7 @@ final class OnboardingFeatureViewModel: ObservableObject {
                     trainingWeeks: trainingWeeks,
                     raceId: selectedRaceEvent?.raceId
                 )
-                let createdTarget = try await targetRepository.createTarget(target)
+                let createdTarget = try await targetRepository.createTarget(target).target
                 selectedTargetKey = createdTarget.id
                 Logger.debug("[OnboardingFeatureVM] 新目標創建成功: \(createdTarget.name), id: \(createdTarget.id)")
             } else {

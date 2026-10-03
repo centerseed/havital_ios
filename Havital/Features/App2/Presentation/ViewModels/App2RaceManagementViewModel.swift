@@ -69,9 +69,12 @@ final class App2RaceManagementViewModel: ObservableObject, TaskManageable {
 
     @Published private(set) var isLoading = true
     @Published private(set) var isSaving = false
+    @Published private(set) var pendingPromotionID: String?
     @Published private(set) var mainRace: App2RaceCard?
     @Published private(set) var supportingRaces: [App2RaceCard] = []
     @Published var errorMessage: String?
+    @Published private(set) var successMessage: String?
+    @Published private(set) var didPromoteMainRace = false
 
     private(set) var hasLoaded = false
 
@@ -170,10 +173,13 @@ final class App2RaceManagementViewModel: ObservableObject, TaskManageable {
         let target = Self.target(from: form)
         do {
             if let id = form.targetId {
-                _ = try await targetRepository.updateTarget(id: id, target: target)
+                let result = try await targetRepository.updateTarget(id: id, target: target)
+                successMessage = result.message
             } else {
-                _ = try await targetRepository.createTarget(target)
+                let result = try await targetRepository.createTarget(target)
+                successMessage = result.message
             }
+            didPromoteMainRace = form.makeMain
             await reloadAfterWrite()
             return true
         } catch {
@@ -184,16 +190,36 @@ final class App2RaceManagementViewModel: ObservableObject, TaskManageable {
         }
     }
 
+    /// 先記錄使用者的升主意圖；UI 顯示確認後，只有 confirm 才會呼叫 API。
+    func requestSetAsMainConfirmation(_ id: String) {
+        guard !isSaving, targetsById[id] != nil else { return }
+        pendingPromotionID = id
+    }
+
+    func cancelSetAsMainConfirmation() {
+        pendingPromotionID = nil
+    }
+
+    func confirmPendingSetAsMain() async {
+        guard let id = pendingPromotionID else { return }
+        pendingPromotionID = nil
+        await setAsMain(id)
+    }
+
     /// 把一場支援賽事設為主要。舊的主要賽事由後端自動降級（見檔頭）。
     func setAsMain(_ id: String) async {
         guard let existing = targetsById[id] else { return }
         isSaving = true
+        successMessage = nil
+        didPromoteMainRace = false
         defer { isSaving = false }
         do {
-            _ = try await targetRepository.updateTarget(
+            let result = try await targetRepository.updateTarget(
                 id: id,
                 target: Self.promotedToMain(existing)
             )
+            successMessage = result.message
+            didPromoteMainRace = true
             await reloadAfterWrite()
         } catch {
             guard !error.isCancellationError else { return }

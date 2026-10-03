@@ -5040,3 +5040,17 @@
 "app2.weekly_review.reason_insufficient_signal" = "There is not enough signal yet. Add data or fix the observation plan.";
 "app2.weekly_review.reason_not_discriminating" = "Both ends were measured, but the change is too small to tell apart; review the measure and the decision threshold.";
 "app2.weekly_review.reason_generic" = "The reason is not clear this round.";
+
+"app2.plan_overview.generate_week" = "Generate this week's plan";
+
+"app2.races.promote_confirm_title" = "Change main race?";
+
+"app2.races.promote_confirm_body" = "Your plan will be rearranged for %@. This week’s and future weekly plans will be replaced.";
+
+"app2.races.promote_confirm_action" = "Set as main";
+
+"app2.races.promote_success_title" = "Main race updated";
+
+"app2.races.promote_success_body" = "Continue to your training plan to review the new schedule and generate this week’s plan.";
+
+"app2.races.promote_success_action" = "Open training plan";

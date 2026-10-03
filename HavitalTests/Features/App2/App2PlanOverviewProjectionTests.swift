@@ -18,6 +18,50 @@ import XCTest
 @MainActor
 final class App2PlanOverviewProjectionTests: XCTestCase {
 
+    func testRegenerationCopyOnlyAppearsForActiveBackendStatuses() {
+        XCTAssertTrue(App2PlanOverviewViewModel.isRegenerating(status: "queued"))
+        XCTAssertTrue(App2PlanOverviewViewModel.isRegenerating(status: "running"))
+        XCTAssertFalse(App2PlanOverviewViewModel.isRegenerating(status: "completed"))
+        XCTAssertFalse(App2PlanOverviewViewModel.isRegenerating(status: "failed"))
+        XCTAssertFalse(App2PlanOverviewViewModel.isRegenerating(status: nil))
+    }
+
+    func testCompletedOverviewCanShowStagesBeforeCurrentWeekPlanExists() {
+        XCTAssertTrue(App2PlanOverviewViewModel.shouldDisplayOverview(
+            regenerationStatus: "completed"
+        ))
+        XCTAssertTrue(App2PlanOverviewViewModel.shouldDisplayOverview(regenerationStatus: "failed"))
+        XCTAssertFalse(App2PlanOverviewViewModel.shouldDisplayOverview(
+            regenerationStatus: "running"
+        ))
+    }
+
+    func testCompletedOverviewWithoutCurrentWeekPlanShowsGenerationNextStep() {
+        XCTAssertTrue(App2PlanOverviewViewModel.canGenerateCurrentWeekPlan(
+            isRegenerating: false,
+            currentWeekPlanId: nil
+        ))
+        XCTAssertFalse(App2PlanOverviewViewModel.canGenerateCurrentWeekPlan(
+            isRegenerating: true,
+            currentWeekPlanId: nil
+        ))
+        XCTAssertFalse(App2PlanOverviewViewModel.canGenerateCurrentWeekPlan(
+            isRegenerating: false,
+            currentWeekPlanId: "plan-1"
+        ))
+    }
+
+    func testWeekZeroReviewUsesRelativeTitleInsteadOfAbsoluteWeekNumber() {
+        XCTAssertFalse(App2WeeklyReviewView.usesAbsoluteWeekLabel(
+            isCurrentWeek: false,
+            weekOfPlan: 0
+        ))
+        XCTAssertTrue(App2WeeklyReviewView.usesAbsoluteWeekLabel(
+            isCurrentWeek: false,
+            weekOfPlan: 1
+        ))
+    }
+
     // MARK: - Fixtures
 
     private func planStatus(
@@ -270,10 +314,10 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
         XCTAssertEqual(viewModel.overview?.value.rhythm.methodologyName, "Paceriz 平衡訓練法")
     }
 
-    /// **不同源不擋更換**：`isUnbound` 只代表本週課表比 overview 舊
-    /// （換過方法論之後必然如此）。曾經在這裡把 id 清掉，結果是換完那一刻
+    /// 已完成總覽與目前週課表 id 不同時，仍照常顯示總覽；更換方法論也繼續使用
+    /// 該總覽 id。曾經在這裡把 id 清掉，結果是換完那一刻
     /// 「更換訓練方法」整列消失、換不回來（2026-08-27 模擬器實測）。
-    func testUnboundOverviewStillAllowsMethodologyChange() async {
+    func testCompletedOverviewWithDifferentWeekIdStillAllowsMethodologyChange() async {
         let repository = MockTrainingPlanV2Repository()
         repository.planStatusToReturn = planStatus(planId: "other_plan_5")
         repository.overviewToReturn = overviewEntity(id: "e1289e60f251", methodologyName: "Paceriz 平衡訓練法")
@@ -281,7 +325,7 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
         let viewModel = overviewViewModel(repository: repository)
         await viewModel.revalidate()
 
-        XCTAssertTrue(viewModel.stagesUnbound, "期程不顯示")
+        XCTAssertFalse(viewModel.stagesUnbound, "非進行中狀態不能把不同 id 推斷成重產中")
         XCTAssertEqual(viewModel.overviewId, "e1289e60f251", "但入口仍在")
 
         let ok = await viewModel.changeMethodology(to: "polarized")
@@ -915,9 +959,8 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
         return try! JSONDecoder().decode(User.self, from: json)
     }
 
-    /// 不同源判定只有一份：快取那一畫與重驗那一畫走同一支
-    /// （`stageBundle`），期程一樣不顯示、方法名一樣要留著。
-    func testCachedPaintUsesTheSameBindingRule() async {
+    /// 快取畫面與重驗畫面都依後端 regeneration_status 判斷；終態下不同 id 不阻擋總覽。
+    func testCachedPaintDoesNotTreatDifferentWeekIdAsRegeneration() async {
         let repository = MockTrainingPlanV2Repository()
         repository.planStatusToReturn = planStatus(planId: "ffffffffffff_5")
         repository.overviewToReturn = overviewEntity(id: "e1289e60f251", methodologyName: "Paceriz 平衡訓練法")
@@ -932,7 +975,7 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
             try? await Task.sleep(nanoseconds: 20_000_000)
         }
 
-        XCTAssertTrue(viewModel.stagesUnbound, "不同源：期程整段不顯示")
+        XCTAssertFalse(viewModel.stagesUnbound, "completed 的不同 id 仍顯示總覽，不顯示重產提示")
         XCTAssertEqual(viewModel.overview?.value.stages.count, 0)
         XCTAssertEqual(
             viewModel.overview?.value.rhythm.methodologyName,

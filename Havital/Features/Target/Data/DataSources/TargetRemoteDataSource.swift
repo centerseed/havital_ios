@@ -4,8 +4,8 @@ import Foundation
 protocol TargetRemoteDataSourceProtocol {
     func getTargets() async throws -> [Target]
     func getTarget(id: String) async throws -> Target
-    func createTarget(_ target: Target) async throws -> Target
-    func updateTarget(id: String, target: Target) async throws -> Target
+    func createTarget(_ target: Target) async throws -> TargetMutationResult
+    func updateTarget(id: String, target: Target) async throws -> TargetMutationResult
     func deleteTarget(id: String) async throws
 }
 
@@ -53,18 +53,28 @@ final class TargetRemoteDataSource: TargetRemoteDataSourceProtocol {
     // MARK: - Write Operations
 
     /// Create new target via API
-    func createTarget(_ target: Target) async throws -> Target {
+    func createTarget(_ target: Target) async throws -> TargetMutationResult {
         Logger.debug("[TargetRemoteDS] Creating target: \(target.name)")
         return try await tracked("TargetRemoteDataSource: createTarget") {
-            try await apiHelper.post(Target.self, path: "/user/targets", body: target)
+            let response: TargetMutationResponseDTO = try await apiHelper.post(
+                TargetMutationResponseDTO.self,
+                path: "/user/targets",
+                body: target
+            )
+            return TargetMutationResult(target: response.target, message: response.message)
         }
     }
 
     /// Update target via API
-    func updateTarget(id: String, target: Target) async throws -> Target {
+    func updateTarget(id: String, target: Target) async throws -> TargetMutationResult {
         Logger.debug("[TargetRemoteDS] Updating target: \(id)")
         return try await tracked("TargetRemoteDataSource: updateTarget") {
-            try await apiHelper.put(Target.self, path: "/user/targets/\(id)", body: target)
+            let response: TargetMutationResponseDTO = try await apiHelper.put(
+                TargetMutationResponseDTO.self,
+                path: "/user/targets/\(id)",
+                body: target
+            )
+            return TargetMutationResult(target: response.target, message: response.message)
         }
     }
 
@@ -74,5 +84,18 @@ final class TargetRemoteDataSource: TargetRemoteDataSourceProtocol {
         try await tracked("TargetRemoteDataSource: deleteTarget") {
             try await apiHelper.delete(path: "/user/targets/\(id)")
         }
+    }
+}
+
+/// Target write responses keep the target fields at the root and add a localized advisory message.
+struct TargetMutationResponseDTO: Codable {
+    let target: Target
+    let message: String?
+
+    private enum CodingKeys: String, CodingKey { case target, message }
+
+    init(from decoder: Decoder) throws {
+        target = try Target(from: decoder)
+        message = try decoder.container(keyedBy: CodingKeys.self).decodeIfPresent(String.self, forKey: .message)
     }
 }

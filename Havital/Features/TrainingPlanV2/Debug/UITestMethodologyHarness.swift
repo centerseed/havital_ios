@@ -865,15 +865,15 @@ private final class UITestMethodologyTargetRepository: TargetRepository {
         targets.filter { !$0.isMainRace }
     }
 
-    func createTarget(_ target: Target) async throws -> Target {
+    func createTarget(_ target: Target) async throws -> TargetMutationResult {
         targets.append(target)
-        return target
+        return TargetMutationResult(target: target, message: nil)
     }
 
-    func updateTarget(id: String, target: Target) async throws -> Target {
+    func updateTarget(id: String, target: Target) async throws -> TargetMutationResult {
         targets.removeAll(where: { $0.id == id })
         targets.append(target)
-        return target
+        return TargetMutationResult(target: target, message: nil)
     }
 
     func deleteTarget(id: String) async throws {

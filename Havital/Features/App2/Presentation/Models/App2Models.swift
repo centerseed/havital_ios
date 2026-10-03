@@ -728,6 +728,7 @@ struct App2PlanOverview: Equatable {
     let targetTime: String?
     let currentWeek: Int?
     let totalWeeks: Int?
+    var canGenerateCurrentWeekPlan: Bool = false
     /// 當前所在階段名（`建立耐力期`）。落不進任何一段就沒有。
     let currentStageName: String?
     let stages: [App2PlanStage]

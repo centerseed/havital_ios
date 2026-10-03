@@ -323,7 +323,7 @@ class EditTargetViewModel: ObservableObject {
             )
             
             // 更新目標賽事 (using TargetRepository)
-            let updatedTarget = try await targetRepository.updateTarget(id: targetId, target: target)
+            let updatedTarget = try await targetRepository.updateTarget(id: targetId, target: target).target
             
             // 檢查是否有重要變更（距離、完賽時間、訓練週數、或賽事日期跨週）
             let currentTargetTime = targetHours * 3600 + targetMinutes * 60

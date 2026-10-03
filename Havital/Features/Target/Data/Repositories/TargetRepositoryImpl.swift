@@ -57,10 +57,11 @@ final class TargetRepositoryImpl: TargetRepository {
     // MARK: - Write Operations
 
     /// Create new target
-    func createTarget(_ target: Target) async throws -> Target {
+    func createTarget(_ target: Target) async throws -> TargetMutationResult {
         Logger.debug("[TargetRepo] Creating target: \(target.name)")
 
-        let createdTarget = try await remoteDataSource.createTarget(target)
+        let result = try await remoteDataSource.createTarget(target)
+        let createdTarget = result.target
 
         // Update local cache
         localDataSource.saveTarget(createdTarget)
@@ -69,14 +70,15 @@ final class TargetRepositoryImpl: TargetRepository {
         // Post notification for backward compatibility
         await notifyTargetUpdated()
 
-        return createdTarget
+        return result
     }
 
     /// Update existing target
-    func updateTarget(id: String, target: Target) async throws -> Target {
+    func updateTarget(id: String, target: Target) async throws -> TargetMutationResult {
         Logger.debug("[TargetRepo] Updating target: \(id)")
 
-        let updatedTarget = try await remoteDataSource.updateTarget(id: id, target: target)
+        let result = try await remoteDataSource.updateTarget(id: id, target: target)
+        let updatedTarget = result.target
 
         // Update local cache
         localDataSource.saveTarget(updatedTarget)
@@ -85,7 +87,7 @@ final class TargetRepositoryImpl: TargetRepository {
         // Post notification for backward compatibility
         await notifyTargetUpdated()
 
-        return updatedTarget
+        return result
     }
 
     /// Delete target

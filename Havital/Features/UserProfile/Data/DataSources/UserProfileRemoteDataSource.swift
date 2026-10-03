@@ -133,9 +133,10 @@ final class UserProfileRemoteDataSource: UserProfileRemoteDataSourceProtocol {
         let body = try JSONEncoder().encode(target)
 
         do {
-            _ = try await tracked("UserProfileRemoteDataSource: createTarget") {
+            let rawData = try await tracked("UserProfileRemoteDataSource: createTarget") {
                 try await httpClient.request(path: "/user/targets", method: .POST, body: body)
             }
+            _ = try ResponseProcessor.extractData(TargetMutationResponseDTO.self, from: rawData, using: parser)
         } catch let apiError as APIError where apiError.isCancelled {
             throw SystemError.taskCancelled
         }

@@ -18,7 +18,18 @@ import SwiftUI
 struct App2PlanOverviewView: View {
 
     let onClose: () -> Void
+    let onOpenPlan: () -> Void
     @ObservedObject var viewModel: App2PlanOverviewViewModel
+
+    init(
+        onClose: @escaping () -> Void,
+        onOpenPlan: @escaping () -> Void = {},
+        viewModel: App2PlanOverviewViewModel
+    ) {
+        self.onClose = onClose
+        self.onOpenPlan = onOpenPlan
+        self.viewModel = viewModel
+    }
 
     /// 單位制切換要當場重畫（同 `App2WorkoutDetailView` 的接法）。
     @ObservedObject private var unitManager = UnitManager.shared
@@ -52,6 +63,22 @@ struct App2PlanOverviewView: View {
                         heroCard(sourced.value)
                         stagesSection(sourced.value)
                         milestonesSection(sourced.value)
+                        if sourced.value.canGenerateCurrentWeekPlan {
+                            Button(action: onOpenPlan) {
+                                HStack {
+                                    Image(systemName: "calendar.badge.plus")
+                                    Text(NSLocalizedString("app2.plan_overview.generate_week", comment: ""))
+                                    Spacer()
+                                    Image(systemName: "arrow.right")
+                                }
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(16)
+                                .background(App2Theme.accentBlueDeep, in: RoundedRectangle(cornerRadius: 16))
+                            }
+                            .accessibilityIdentifier("App2_PlanOverviewGenerateWeek")
+                            .padding(.top, 18)
+                        }
                         rhythmSection(sourced.value.rhythm)
                         manageSection
                         autoAdjustNote
@@ -67,11 +94,17 @@ struct App2PlanOverviewView: View {
         .task { await viewModel.loadIfNeeded() }
         .refreshable { await viewModel.forceRefresh() }
         .fullScreenCover(isPresented: $isShowingRaces) {
-            App2RaceManagementView(onClose: {
-                isShowingRaces = false
-                // 改過賽事之後，這一頁的目標賽事與週數要重取。
-                Task { await viewModel.forceRefresh() }
-            })
+            App2RaceManagementView(
+                onClose: {
+                    isShowingRaces = false
+                    // 改過賽事之後，這一頁的目標賽事與週數要重取。
+                    Task { await viewModel.forceRefresh() }
+                },
+                onPromotionComplete: {
+                    isShowingRaces = false
+                    onOpenPlan()
+                }
+            )
         }
         .fullScreenCover(isPresented: $isShowingGoalSetup) {
             App2OnboardingContainerView(
@@ -380,11 +413,7 @@ struct App2PlanOverviewView: View {
             }
             .padding(.top, 18)
             .accessibilityIdentifier("App2_PlanOverviewStages")
-        } else if viewModel.stagesUnbound {
-            // 不同源＝**計畫正在重新生成**（2026-08-30 使用者裁決，8/28 盤點 F1/F2）。
-            // 原本這一句是「階段期程暫不顯示」——那是在描述 client 的降級行為，
-            // 使用者讀不出「所以我該做什麼、什麼時候會好」。改成明示狀態；期程與里程碑
-            // 都等恢復同源才顯示（里程碑同樣是舊那份 overview 的內容，畫出來就是舊計畫）。
+        } else if viewModel.isRegenerating {
             App2InlineNotice(text: L10n.App2.PlanOverview.stagesUnavailable.localized)
                 .padding(.top, 18)
                 .accessibilityIdentifier("App2_PlanOverviewStagesUnbound")

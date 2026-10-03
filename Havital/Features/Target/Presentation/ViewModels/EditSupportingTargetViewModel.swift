@@ -43,7 +43,7 @@ class EditSupportingTargetViewModel: BaseSupportingTargetViewModel {
             let target = createTargetObject(id: targetId)
 
             // 更新賽事於雲端 (Clean Architecture: ViewModel → Repository)
-            let updated = try await targetRepository.updateTarget(id: targetId, target: target)
+            let updated = try await targetRepository.updateTarget(id: targetId, target: target).target
             // 同步本地儲存並通知更新
             TargetStorage.shared.saveTarget(updated)
             NotificationCenter.default.post(name: .supportingTargetUpdated, object: nil)

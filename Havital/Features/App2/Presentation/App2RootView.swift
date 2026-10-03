@@ -116,6 +116,7 @@ struct App2RootView: View {
                     selection = .plan
                     Task { await planViewModel.showGeneratedWeek(week) }
                 },
+                onOpenPlan: { selection = .plan },
                 viewModel: homeViewModel,
                 // 訓練狀況卡的徽章＝成就頁那一顆，所以共用同一個 ViewModel。
                 achievementsViewModel: achievementsViewModel

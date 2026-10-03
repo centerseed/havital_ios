@@ -3,6 +3,11 @@ import Foundation
 // MARK: - Target Repository Protocol
 /// Defines target data access interface
 /// Domain Layer - only defines interface, no implementation details
+struct TargetMutationResult {
+    let target: Target
+    let message: String?
+}
+
 protocol TargetRepository {
 
     // MARK: - Read Operations
@@ -30,14 +35,14 @@ protocol TargetRepository {
     /// Create new race target
     /// - Parameter target: Target to create
     /// - Returns: Created target with ID
-    func createTarget(_ target: Target) async throws -> Target
+    func createTarget(_ target: Target) async throws -> TargetMutationResult
 
     /// Update existing target
     /// - Parameters:
     ///   - id: Target ID to update
     ///   - target: Updated target data
     /// - Returns: Updated target
-    func updateTarget(id: String, target: Target) async throws -> Target
+    func updateTarget(id: String, target: Target) async throws -> TargetMutationResult
 
     /// Delete target
     /// - Parameter id: Target ID to delete

@@ -5037,3 +5037,17 @@
 "app2.weekly_review.reason_insufficient_signal" = "まだ判断に必要な情報が足りません。データを追加するか、観察計画を修正します。";
 "app2.weekly_review.reason_not_discriminating" = "両端とも測れましたが、変化が小さく差を判別できません。観察量と判定基準を見直します。";
 "app2.weekly_review.reason_generic" = "今回は理由がはっきりしません。";
+
+"app2.plan_overview.generate_week" = "今週のプランを作成";
+
+"app2.races.promote_confirm_title" = "メインレースを変更しますか？";
+
+"app2.races.promote_confirm_body" = "%@ に合わせてトレーニング計画を組み直し、今週と今後の週次プランを作り直します。";
+
+"app2.races.promote_confirm_action" = "メインにする";
+
+"app2.races.promote_success_title" = "メインレースを更新しました";
+
+"app2.races.promote_success_body" = "トレーニング計画で新しい日程を確認し、今週のプランを作成してください。";
+
+"app2.races.promote_success_action" = "トレーニング計画へ";

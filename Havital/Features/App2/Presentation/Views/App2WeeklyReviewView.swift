@@ -222,16 +222,20 @@ struct App2WeeklyReviewView: View {
         )
     }
 
+    static func usesAbsoluteWeekLabel(isCurrentWeek: Bool, weekOfPlan: Int) -> Bool {
+        !isCurrentWeek && weekOfPlan >= 1
+    }
+
     private func tabTitle(_ item: Tab) -> String {
         switch item {
         case .review:
-            return isCurrentWeek
-                ? L10n.App2.WeeklyReview.tabReview.localized
-                : String(format: L10n.App2.WeeklyReview.tabReviewWeek.localized, weekOfPlan)
+            return Self.usesAbsoluteWeekLabel(isCurrentWeek: isCurrentWeek, weekOfPlan: weekOfPlan)
+                ? String(format: L10n.App2.WeeklyReview.tabReviewWeek.localized, weekOfPlan)
+                : L10n.App2.WeeklyReview.tabReview.localized
         case .plan:
-            return isCurrentWeek
-                ? L10n.App2.WeeklyReview.tabPlan.localized
-                : String(format: L10n.App2.WeeklyReview.tabPlanWeek.localized, weekOfPlan + 1)
+            return Self.usesAbsoluteWeekLabel(isCurrentWeek: isCurrentWeek, weekOfPlan: weekOfPlan + 1)
+                ? String(format: L10n.App2.WeeklyReview.tabPlanWeek.localized, weekOfPlan + 1)
+                : L10n.App2.WeeklyReview.tabPlan.localized
         }
     }
 

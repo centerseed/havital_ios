@@ -126,7 +126,7 @@ final class TargetRepositoryImplTests: XCTestCase {
         let result = try await sut.createTarget(newTarget)
         
         // Then
-        XCTAssertEqual(result.id, newTarget.id)
+        XCTAssertEqual(result.target.id, newTarget.id)
         XCTAssertEqual(mockRemoteDS.createTargetCallCount, 1)
         XCTAssertEqual(mockLocalDS.saveTargetCallCount, 1)
     }
@@ -140,7 +140,7 @@ final class TargetRepositoryImplTests: XCTestCase {
         let result = try await sut.updateTarget(id: existingTarget.id, target: existingTarget)
         
         // Then
-        XCTAssertEqual(result.id, existingTarget.id)
+        XCTAssertEqual(result.target.id, existingTarget.id)
         XCTAssertEqual(mockRemoteDS.updateTargetCallCount, 1)
         XCTAssertEqual(mockLocalDS.saveTargetCallCount, 1)
     }

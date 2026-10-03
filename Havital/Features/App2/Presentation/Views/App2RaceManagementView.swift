@@ -9,15 +9,23 @@ import SwiftUI
 struct App2RaceManagementView: View {
 
     let onClose: () -> Void
+    let onPromotionComplete: () -> Void
     @StateObject private var viewModel: App2RaceManagementViewModel
 
     /// nil = 沒有開表單；有值 = frame-13 的 sheet（新增或編輯都是同一張）。
     @State private var editingForm: App2RaceForm?
     /// 二次確認：刪除是不可逆的，設計的垃圾桶按一下就沒了太危險。
     @State private var pendingDeletion: App2RaceCard?
+    @State private var pendingPromotion: App2RaceCard?
+    @State private var successAlertMessage: String?
 
-    init(onClose: @escaping () -> Void, viewModel: App2RaceManagementViewModel? = nil) {
+    init(
+        onClose: @escaping () -> Void,
+        onPromotionComplete: @escaping () -> Void = {},
+        viewModel: App2RaceManagementViewModel? = nil
+    ) {
         self.onClose = onClose
+        self.onPromotionComplete = onPromotionComplete
         _viewModel = StateObject(wrappedValue: viewModel ?? App2RaceManagementViewModel())
     }
 
@@ -68,6 +76,50 @@ struct App2RaceManagementView: View {
                 },
                 onClose: { editingForm = nil }
             )
+        }
+        .confirmationDialog(
+            NSLocalizedString("app2.races.promote_confirm_title", comment: ""),
+            isPresented: Binding(
+                get: { pendingPromotion != nil },
+                set: { if !$0 { pendingPromotion = nil; viewModel.cancelSetAsMainConfirmation() } }
+            ),
+            titleVisibility: .visible
+        ) {
+            if let race = pendingPromotion {
+                Button(NSLocalizedString("app2.races.promote_confirm_action", comment: "")) {
+                    Task { await viewModel.confirmPendingSetAsMain() }
+                }
+                .accessibilityIdentifier("App2_RacesPromoteConfirm")
+                Button(NSLocalizedString("common.cancel", comment: ""), role: .cancel) {}
+                    .accessibilityIdentifier("App2_RacesPromoteCancel")
+            }
+        } message: {
+            if let race = pendingPromotion {
+                Text(String(format: NSLocalizedString("app2.races.promote_confirm_body", comment: ""), race.name))
+            }
+        }
+        .alert(
+            NSLocalizedString("app2.races.promote_success_title", comment: ""),
+            isPresented: Binding(
+                get: { successAlertMessage != nil },
+                set: { if !$0 { successAlertMessage = nil } }
+            )
+        ) {
+            Button(NSLocalizedString("app2.races.promote_success_action", comment: "")) {
+                successAlertMessage = nil
+                onPromotionComplete()
+            }
+            .accessibilityIdentifier("App2_RacesPromoteSuccessContinue")
+        } message: {
+            Text(successAlertMessage ?? "")
+        }
+        .onChange(of: viewModel.didPromoteMainRace) { _, didPromote in
+            guard didPromote else { return }
+            if let message = viewModel.successMessage?.trimmingCharacters(in: .whitespacesAndNewlines), !message.isEmpty {
+                successAlertMessage = message
+            } else {
+                onPromotionComplete()
+            }
         }
         .alert(
             L10n.App2.Races.deleteConfirmTitle.localized,
@@ -292,9 +344,12 @@ struct App2RaceManagementView: View {
                         border: App2Theme.accentBlue.opacity(0.22),
                         background: App2Theme.accentBlue.opacity(0.1),
                         fillsWidth: true,
-                        identifier: "App2_RacesSetMain_\(race.id)"
+                        identifier: "App2_RacesSetMain_\(race.id)",
+                        isDisabled: viewModel.isSaving,
+                        showsProgress: viewModel.isSaving
                     ) {
-                        Task { await viewModel.setAsMain(race.id) }
+                        pendingPromotion = race
+                        viewModel.requestSetAsMainConfirmation(race.id)
                     }
                 } else {
                     Spacer(minLength: 0)
@@ -385,11 +440,17 @@ struct App2RaceManagementView: View {
         background: Color = App2Theme.cardBackground,
         fillsWidth: Bool,
         identifier: String,
+        isDisabled: Bool = false,
+        showsProgress: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         HStack(spacing: 6) {
-            Image(systemName: systemImage)
-                .font(.system(size: 13, weight: .heavy))
+            if showsProgress {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: systemImage)
+                    .font(.system(size: 13, weight: .heavy))
+            }
             Text(title)
                 .font(.system(size: 14, weight: .heavy))
         }
@@ -403,7 +464,9 @@ struct App2RaceManagementView: View {
                 .strokeBorder(border, lineWidth: 1)
         )
         .contentShape(Rectangle())
-        .onTapGesture(perform: action)
+        .onTapGesture { if !isDisabled { action() } }
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.65 : 1)
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(title)

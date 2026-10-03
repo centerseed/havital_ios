@@ -134,7 +134,7 @@ final class TargetToOverviewIntegrationTests: IntegrationTestBase {
             let savedTarget = try await targetRepository.updateTarget(id: mainTarget.id, target: updatedTarget)
             print("   ✅ Target 已更新:")
             print("      - 原距離: \(mainTarget.distanceKm) km")
-            print("      - 新距離: \(savedTarget.distanceKm) km")
+            print("      - 新距離: \(savedTarget.target.distanceKm) km")
 
             // ===== Step 3: 透過 TrainingPlanViewModel 更新 Overview（Clean Architecture）=====
             print("\n📍 Step 3: 透過 Clean Architecture 更新 TrainingPlanOverview")

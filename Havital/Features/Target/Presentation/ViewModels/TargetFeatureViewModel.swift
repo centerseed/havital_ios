@@ -203,7 +203,7 @@ class TargetFeatureViewModel: ObservableObject, @preconcurrency TaskManageable {
                 Task { @MainActor in self.isLoading = false }
             }
 
-            let createdTarget = try await self.repository.createTarget(target)
+            let createdTarget = try await self.repository.createTarget(target).target
 
             // Reload targets to update state
             await self.loadTargets()
@@ -232,7 +232,7 @@ class TargetFeatureViewModel: ObservableObject, @preconcurrency TaskManageable {
                 Task { @MainActor in self.isLoading = false }
             }
 
-            let updatedTarget = try await self.repository.updateTarget(id: id, target: target)
+            let updatedTarget = try await self.repository.updateTarget(id: id, target: target).target
 
             // Reload targets to update state
             await self.loadTargets()

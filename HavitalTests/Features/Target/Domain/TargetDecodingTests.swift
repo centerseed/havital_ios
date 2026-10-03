@@ -66,4 +66,27 @@ final class TargetDecodingTests: XCTestCase {
         XCTAssertEqual(targets.map(\.id), ["main_half", "support_full"])
         XCTAssertEqual(targets[1].distanceKm, 42)
     }
+    func testTargetMutationResponseDecodesTopLevelLocalizedMessageAndTarget() throws {
+        let json = """
+        {
+            "id": "main_race",
+            "type": "race_run",
+            "name": "Nagano Marathon",
+            "distance_km": 42.195,
+            "target_time": 14400,
+            "target_pace": "5:41",
+            "race_date": 1786060800,
+            "is_main_race": true,
+            "training_weeks": 40,
+            "timezone": "Asia/Tokyo",
+            "message": "Consider using maintenance training first."
+        }
+        """.data(using: .utf8)!
+
+        let response = try JSONDecoder().decode(TargetMutationResponseDTO.self, from: json)
+
+        XCTAssertEqual(response.target.id, "main_race")
+        XCTAssertEqual(response.message, "Consider using maintenance training first.")
+    }
+
 }

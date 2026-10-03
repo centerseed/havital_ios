@@ -16,6 +16,7 @@ class MockTargetRepository: TargetRepository {
     var mainTargetToReturn: Target?
     var supportingTargetsToReturn: [Target] = []
     var errorToThrow: Error?
+    var mutationMessageToReturn: String?
     
     var getTargetsCallCount = 0
     var getTargetCallCount = 0
@@ -46,18 +47,18 @@ class MockTargetRepository: TargetRepository {
         return supportingTargetsToReturn
     }
     
-    func createTarget(_ target: Target) async throws -> Target {
+    func createTarget(_ target: Target) async throws -> TargetMutationResult {
         createTargetCallCount += 1
         if let error = errorToThrow { throw error }
         lastCreatedTarget = target
-        return target
+        return TargetMutationResult(target: target, message: mutationMessageToReturn)
     }
     
-    func updateTarget(id: String, target: Target) async throws -> Target {
+    func updateTarget(id: String, target: Target) async throws -> TargetMutationResult {
         updateTargetCallCount += 1
         if let error = errorToThrow { throw error }
         lastUpdatedTarget = target
-        return target
+        return TargetMutationResult(target: target, message: mutationMessageToReturn)
     }
     
     func deleteTarget(id: String) async throws {
@@ -83,6 +84,7 @@ class MockTargetRepository: TargetRepository {
 // MARK: - MockTargetRemoteDataSource
 class MockTargetRemoteDataSource: TargetRemoteDataSourceProtocol {
     var targetsToReturn: [Target] = []
+    var mutationMessageToReturn: String?
     var targetToReturn: Target?
     var errorToThrow: Error?
     
@@ -105,16 +107,16 @@ class MockTargetRemoteDataSource: TargetRemoteDataSourceProtocol {
         throw NSError(domain: "Mock", code: 404, userInfo: [NSLocalizedDescriptionKey: "Target not found"])
     }
     
-    func createTarget(_ target: Target) async throws -> Target {
+    func createTarget(_ target: Target) async throws -> TargetMutationResult {
         createTargetCallCount += 1
         if let error = errorToThrow { throw error }
-        return target
+        return TargetMutationResult(target: target, message: mutationMessageToReturn)
     }
     
-    func updateTarget(id: String, target: Target) async throws -> Target {
+    func updateTarget(id: String, target: Target) async throws -> TargetMutationResult {
         updateTargetCallCount += 1
         if let error = errorToThrow { throw error }
-        return target
+        return TargetMutationResult(target: target, message: mutationMessageToReturn)
     }
     
     func deleteTarget(id: String) async throws {

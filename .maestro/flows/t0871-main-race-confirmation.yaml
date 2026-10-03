@@ -1,0 +1,70 @@
+appId: com.havital.Havital.dev
+tags:
+  - app2
+  - critical
+---
+# T-0871: 使用現有的 dev 登入 session，將一場支援賽事設為主賽事並驗證計畫頁下一步。
+# 不清資料、不登出、不走 reviewer demo login。
+- launchApp:
+    clearState: false
+    arguments:
+      "-skipHealthKitAuth": true
+
+- extendedWaitUntil:
+    visible:
+      id: "App2_GoalCard"
+    timeout: 60000
+- tapOn:
+    id: "App2_GoalCard"
+- extendedWaitUntil:
+    visible:
+      id: "App2_PlanOverviewHero"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "App2_PlanOverviewManageRaces"
+    direction: DOWN
+- tapOn:
+    id: "App2_PlanOverviewManageRaces"
+- extendedWaitUntil:
+    visible:
+      id: "App2_RaceManagementView"
+    timeout: 30000
+
+- scrollUntilVisible:
+    element:
+      text: "Set as main|設為主要|メインにする"
+    direction: DOWN
+- tapOn:
+    text: "Set as main|設為主要|メインにする"
+- assertVisible:
+    id: "App2_RacesPromoteConfirm"
+- assertVisible:
+    text: 'Change main race|變更主要賽事？|メインレースを変更しますか？'
+- takeScreenshot: t0871-main-race-confirmation
+
+- tapOn:
+    id: "App2_RacesPromoteConfirm"
+- takeScreenshot: t0871-main-race-loading
+
+# 遠期賽事會先顯示 API 的在地化建議，再由按鈕前往計畫頁；一般賽事直接導向。
+- runFlow:
+    when:
+      visible:
+        id: "App2_RacesPromoteSuccessContinue"
+    commands:
+      - takeScreenshot: t0871-main-race-backend-message
+      - tapOn:
+          id: "App2_RacesPromoteSuccessContinue"
+
+- extendedWaitUntil:
+    visible:
+      id: "App2_PlanOverviewHero"
+    timeout: 120000
+- assertVisible:
+    id: "App2_PlanOverviewStages"
+- assertVisible:
+    id: "App2_PlanOverviewGenerateWeek"
+- assertNotVisible:
+    text: "being regenerated|重新生成中|再生成しています"
+- takeScreenshot: t0871-main-race-plan-overview

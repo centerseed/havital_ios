@@ -32,6 +32,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     /// overview 拿到了但與本週課表不同源 —— 期程整段不顯示，畫面上要說明原因。
     /// 讀取失敗不算（那時不宣稱「不同源」，只是沒有期程）。
     @Published private(set) var stagesUnbound = false
+    @Published private(set) var isRegenerating = false
 
     // MARK: - 更換訓練方法（2026-08-27 晚走查裁決（e））
 
@@ -270,6 +271,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         finishedRound = true
 
         stagesUnbound = stageBundle.isUnbound
+        isRegenerating = stageBundle.isRegenerating
 
         overview = App2Sourced(
             Self.project(
@@ -278,6 +280,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
                 stages: stageBundle.stages,
                 milestones: stageBundle.milestones,
                 methodologyName: stageBundle.methodologyName,
+                isRegenerating: stageBundle.isRegenerating,
                 estimatedFinish: estimate,
                 weeklyVolumes: weeklyItems,
                 preferWeekDays: preferences.days,
@@ -346,6 +349,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         }
 
         stagesUnbound = bundle.isUnbound
+        isRegenerating = bundle.isRegenerating
         overview = App2Sourced(
             Self.project(
                 planStatus: cachedStatus,
@@ -353,6 +357,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
                 stages: bundle.stages,
                 milestones: bundle.milestones,
                 methodologyName: bundle.methodologyName,
+                isRegenerating: bundle.isRegenerating,
                 // 完賽預估與近幾週跑量沒有 cache-only 出口（metrics 與
                 // `/summary/weekly/all` 都不落地），這兩格由本輪的權威 pass 補上。
                 estimatedFinish: nil,
@@ -367,38 +372,57 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
     }
 
     /// 期程 ＋ 訓練方法名 —— 兩者住在同一份 overview，一次取。
-    private struct StageBundle {
+    struct StageBundle {
         var stages: [TrainingStageV2] = []
         /// 里程碑與期程同住一份 overview，同一次取，不另打端點。
         var milestones: [MilestoneV2] = []
         var methodologyName: String?
         var isUnbound = false
+        var isRegenerating = false
     }
 
-    /// overview ＋ plan status → 這一頁的期程／里程碑／方法名。**純函式，同源判定只有這一份**
-    /// —— 快取那一畫與重驗那一畫走同一支，不會各判各的（T-0365）。
+    /// overview ＋ plan status → 這一頁的期程／里程碑／方法名。只有後端明示總覽仍在重產時
+    /// 暫時不顯示期程；課表 id 與總覽 id 的差異不再被當成重產狀態（T-0871）。
     ///
-    /// **不同源時方法論名仍然要帶出來。** 不同源擋掉的是「第 N 週落在哪一段」這種
-    /// 綁週次的東西（stages／milestones）；訓練方法不綁週次，它就是這份 overview
-    /// 現在用的方法，也正是「更換訓練方法」寫回去的那一份。之前一起清掉的後果：
-    /// 「更換訓練方法」列的值變空、sheet 裡目前那一項沒有勾（2026-08-28 走查 F10／D13-iOS）。
-    /// 呼叫端保留 `overviewId`／`targetType` 也是同一個理由（2026-08-27 模擬器實測）。
-    private static func stageBundle(
+    /// 方法論名不綁週次，仍照常帶出來。只有 queued／running 狀態會暫時隱藏期程與里程碑。
+    static func stageBundle(
         overview: PlanOverviewV2,
         planStatus: PlanStatusV2Response
     ) -> StageBundle {
-        guard App2HomeViewModel.isOverview(overview.id, boundTo: planStatus) else {
-            Logger.debug("[App2PlanOverviewVM] overview 與本週課表不同源,期程不顯示")
+        let isRegenerating = Self.isRegenerating(status: overview.regenerationStatus)
+        guard Self.shouldDisplayOverview(
+            regenerationStatus: overview.regenerationStatus
+        ) else {
+            Logger.debug("[App2PlanOverviewVM] overview regeneration active or belongs to another plan")
             return StageBundle(
                 methodologyName: overview.methodologyOverview?.name,
-                isUnbound: true
+                isUnbound: true,
+                isRegenerating: isRegenerating
             )
         }
         return StageBundle(
             stages: overview.trainingStages,
             milestones: overview.milestones,
-            methodologyName: overview.methodologyOverview?.name
+            methodologyName: overview.methodologyOverview?.name,
+            isRegenerating: isRegenerating
         )
+    }
+
+    static func isRegenerating(status: String?) -> Bool {
+        status == "queued" || status == "running"
+    }
+
+    static func shouldDisplayOverview(
+        regenerationStatus: String?
+    ) -> Bool {
+        !isRegenerating(status: regenerationStatus)
+    }
+
+    static func canGenerateCurrentWeekPlan(
+        isRegenerating: Bool,
+        currentWeekPlanId: String?
+    ) -> Bool {
+        !isRegenerating && currentWeekPlanId == nil
     }
 
     private func loadStages(planStatus: PlanStatusV2Response?) async -> StageBundle {
@@ -556,6 +580,7 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         stages: [TrainingStageV2],
         milestones: [MilestoneV2] = [],
         methodologyName: String?,
+        isRegenerating: Bool = false,
         estimatedFinish: String?,
         weeklyVolumes: [WeeklySummaryItem],
         preferWeekDays: [Int]?,
@@ -587,6 +612,10 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
             },
             currentWeek: currentWeek,
             totalWeeks: totalWeeks,
+            canGenerateCurrentWeekPlan: Self.canGenerateCurrentWeekPlan(
+                isRegenerating: isRegenerating,
+                currentWeekPlanId: planStatus?.currentWeekPlanId
+            ),
             currentStageName: projectedStages.first(where: { $0.state == .active })?.name,
             stages: projectedStages,
             milestones: Self.milestones(milestones),

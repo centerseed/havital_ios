@@ -5081,3 +5081,17 @@
 "app2.weekly_review.reason_insufficient_signal" = "目前訊號還不夠，請補資料或修正觀察安排。";
 "app2.weekly_review.reason_not_discriminating" = "兩端都有量到，但變化太小，請檢討觀察量與判準。";
 "app2.weekly_review.reason_generic" = "這一輪還說不清楚原因。";
+
+"app2.plan_overview.generate_week" = "產生本週課表";
+
+"app2.races.promote_confirm_title" = "變更主要賽事？";
+
+"app2.races.promote_confirm_body" = "計畫會依「%@」重新安排；目前與之後的週課表會作廢並重新產生。";
+
+"app2.races.promote_confirm_action" = "設為主賽事";
+
+"app2.races.promote_success_title" = "主賽事已更新";
+
+"app2.races.promote_success_body" = "點下方前往訓練計畫，查看新期程並產生本週課表。";
+
+"app2.races.promote_success_action" = "前往訓練計畫";
