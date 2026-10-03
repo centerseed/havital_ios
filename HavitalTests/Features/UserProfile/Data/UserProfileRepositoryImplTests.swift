@@ -113,6 +113,23 @@ final class UserProfileRepositoryImplTests: XCTestCase {
         XCTAssertEqual(mockRemoteDataSource.updateUserProfileLastParams?["max_hr"] as? Int, 190)
         XCTAssertNil(mockRemoteDataSource.updateUserProfileLastParams?["relaxing_hr"])
     }
+
+    func testPartialHeartRateUpdateCachesZonesFromBackendReadbackForOmittedField() async throws {
+        var backendUser = UserProfileTestFixtures.testUser
+        backendUser.maxHr = 200
+        backendUser.relaxingHr = 70
+        mockRemoteDataSource.userAfterUpdate = backendUser
+
+        let result = try await repository.updateHeartRateZones(
+            maxHR: 200,
+            restingHR: 60,
+            updates: ["max_hr": 200]
+        )
+
+        let expected = HeartRateZone.calculateZones(maxHR: 200, restingHR: 70)
+        XCTAssertEqual(result.zones, expected)
+        XCTAssertEqual(mockLocalDataSource.heartRateZonesToReturn, expected)
+    }
     
     func testGetHeartRateZones_CacheMiss_CalculatesFromProfile() async throws {
         // Given

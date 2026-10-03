@@ -78,6 +78,51 @@ final class UserProfileFeatureViewModelTests: XCTestCase {
         XCTAssertEqual(mockUserRepository.updateHeartRateZonesLastUpdates?["max_hr"] as? Int, 190)
         XCTAssertNil(mockUserRepository.updateHeartRateZonesLastUpdates?["relaxing_hr"])
     }
+
+    func testSettingsHeartRateDefaultsPreferFreshBackendOverConflictingCache() async {
+        var backend = UserProfileTestFixtures.testUser
+        backend.maxHr = 190
+        backend.relaxingHr = 62
+        var cached = backend
+        cached.maxHr = 185
+        cached.relaxingHr = 60
+        mockUserRepository.userToReturn = backend
+        mockUserRepository.cachedUserToReturn = cached
+
+        let settings = App2SettingsViewModel(profile: viewModel)
+        let defaults = await settings.loadHeartRateDefaults(age: 35)
+
+        XCTAssertEqual(defaults?.maxHR, 190)
+        XCTAssertEqual(defaults?.restingHR, 62)
+        XCTAssertEqual(mockUserRepository.refreshUserProfileCallCount, 1)
+    }
+
+    func testSettingsHeartRateDefaultsStayUnresolvedWhenFreshReadFails() async {
+        mockUserRepository.errorToThrow = NSError(domain: "profile", code: 1)
+        let settings = App2SettingsViewModel(profile: viewModel)
+
+        let defaults = await settings.loadHeartRateDefaults(age: 35)
+
+        XCTAssertNil(defaults)
+        XCTAssertEqual(mockUserRepository.refreshUserProfileCallCount, 1)
+        XCTAssertEqual(mockUserRepository.updateHeartRateZonesCallCount, 0)
+    }
+
+    func testSettingsHeartRateSaveSendsOnlyEditedFieldAndPreservesBackendChangedFalse() async {
+        mockUserRepository.heartRateChangedToReturn = false
+        let settings = App2SettingsViewModel(profile: viewModel)
+
+        let changed = await settings.saveHeartRate(
+            maxHR: 195,
+            restingHR: 62,
+            updates: ["max_hr": 195]
+        )
+
+        XCTAssertEqual(changed, false)
+        XCTAssertEqual(mockUserRepository.updateHeartRateZonesLastUpdates?.count, 1)
+        XCTAssertEqual(mockUserRepository.updateHeartRateZonesLastUpdates?["max_hr"] as? Int, 195)
+        XCTAssertNil(mockUserRepository.updateHeartRateZonesLastUpdates?["relaxing_hr"])
+    }
     
     // MARK: - Initialization Tests
     

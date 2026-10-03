@@ -407,14 +407,14 @@ struct App2HeartRateZoneSettingsView: View {
 
     // MARK: - 狀態
 
-    private func resolveFreshProfile() {
-        guard case .loaded(let user) = viewModel.profile.profileState else {
+    private func resolveFreshProfile() async {
+        let age = UserDefaults.standard.object(forKey: "age") as? Int ?? 30
+        guard let defaults = await viewModel.loadHeartRateDefaults(age: age) else {
             profileLoadFailed = true
             return
         }
-        let age = UserDefaults.standard.object(forKey: "age") as? Int ?? 30
-        maxHR = user.maxHr ?? App2OnboardingProjection.estimatedMaxHR(age: age)
-        restingHR = user.relaxingHr ?? 60
+        maxHR = defaults.maxHR
+        restingHR = defaults.restingHR
         originalMaxHR = maxHR
         originalRestingHR = restingHR
         didLoadInitial = true
@@ -425,8 +425,7 @@ struct App2HeartRateZoneSettingsView: View {
     private func loadInitialIfNeeded() async {
         guard !profileResolved else { return }
         profileLoadFailed = false
-        await viewModel.profile.loadUserProfile(forceRefresh: true)
-        resolveFreshProfile()
+        await resolveFreshProfile()
     }
 
     private func save() {

@@ -152,10 +152,13 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
         // 的 `_hr_parameter(profile, "max_hr")` 都是這一組），而 `PUT /user` 是整包
         // merge —— 送 `max_heart_rate` 只會在文件旁邊多一個沒人讀的欄位，讀回來還是
         // 舊的 `max_hr`，UI 於是永遠顯示存檔前的值（2026-08-26 QA）。
-        let (_, report) = try await updateUserProfileReportingHeartRate(updates)
+        let (updatedUser, report) = try await updateUserProfileReportingHeartRate(updates)
 
-        // Calculate and cache new zones using new HeartRateZone entity
-        let zones = HeartRateZone.calculateZones(maxHR: maxHR, restingHR: restingHR)
+        // Use backend readback so an omitted field changed elsewhere is not cached from
+        // this page's stale baseline after the partial update.
+        let resolvedMaxHR = updatedUser.maxHr ?? maxHR
+        let resolvedRestingHR = updatedUser.relaxingHr ?? restingHR
+        let zones = HeartRateZone.calculateZones(maxHR: resolvedMaxHR, restingHR: resolvedRestingHR)
         localDataSource.saveHeartRateZones(zones)
 
         return HeartRateUpdateResult(zones: zones, changed: report.changed)

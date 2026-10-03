@@ -196,6 +196,17 @@ final class App2SettingsViewModel: ObservableObject {
         return changed
     }
 
+    /// Resolve settings defaults from a fresh backend profile rather than a local cache.
+    /// A failed read returns nil so the caller can keep saving disabled and offer retry.
+    func loadHeartRateDefaults(age: Int) async -> (maxHR: Int, restingHR: Int)? {
+        await profile.loadUserProfile(forceRefresh: true)
+        guard case .loaded(let user) = profile.profileState else { return nil }
+        return (
+            user.maxHr ?? App2OnboardingProjection.estimatedMaxHR(age: age),
+            user.relaxingHr ?? 60
+        )
+    }
+
     /// 「自動更新最大心率」目前的值：只有明確開過才是 true（沒設過在 UI 顯示為關）。
     var autoUpdateMaxHeartRate: Bool { profile.userData?.autoUpdateMaxHr == true }
 

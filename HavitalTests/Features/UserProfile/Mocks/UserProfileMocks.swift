@@ -245,6 +245,7 @@ final class MockUserProfileRemoteDataSource: UserProfileRemoteDataSourceProtocol
     var errorToThrow: Error?
     var heartRateReportToReturn: HeartRateChangeReport = .unchanged
     var updateUserProfileLastParams: [String: Any]?
+    var userAfterUpdate: User?
 
     func getUserProfile() async throws -> User {
         if let error = errorToThrow { throw error }
@@ -254,6 +255,7 @@ final class MockUserProfileRemoteDataSource: UserProfileRemoteDataSourceProtocol
     func updateUserProfile(_ updates: [String: Any]) async throws -> HeartRateChangeReport {
         if let error = errorToThrow { throw error }
         updateUserProfileLastParams = updates
+        if let userAfterUpdate { self.userToReturn = userAfterUpdate }
         return heartRateReportToReturn
     }
 
