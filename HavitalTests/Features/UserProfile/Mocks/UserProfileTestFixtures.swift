@@ -2,6 +2,11 @@ import Foundation
 @testable import paceriz_dev
 
 struct UserProfileTestFixtures {
+
+    static func user(maxHR: Int, restingHR: Int) -> User {
+        let data = "{\"max_hr\":\(maxHR),\"relaxing_hr\":\(restingHR)}".data(using: .utf8)!
+        return try! JSONDecoder().decode(User.self, from: data)
+    }
     
     static var testUser: User {
         let json = """

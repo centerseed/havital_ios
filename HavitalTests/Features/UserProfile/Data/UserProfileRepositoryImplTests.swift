@@ -115,9 +115,7 @@ final class UserProfileRepositoryImplTests: XCTestCase {
     }
 
     func testPartialHeartRateUpdateCachesZonesFromBackendReadbackForOmittedField() async throws {
-        var backendUser = UserProfileTestFixtures.testUser
-        backendUser.maxHr = 200
-        backendUser.relaxingHr = 70
+        let backendUser = UserProfileTestFixtures.user(maxHR: 200, restingHR: 70)
         mockRemoteDataSource.userAfterUpdate = backendUser
 
         let result = try await repository.updateHeartRateZones(

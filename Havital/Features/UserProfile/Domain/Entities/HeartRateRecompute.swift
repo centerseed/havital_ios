@@ -40,6 +40,8 @@ struct HeartRateChangeReport: Equatable {
 struct HeartRateUpdateResult {
     let zones: [HeartRateZone]
     let changed: Bool
+    /// Complete profile returned by the backend after applying the update.
+    let profile: User
 }
 
 struct HeartRateRecomputeJob: Codable, Equatable {

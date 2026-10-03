@@ -276,7 +276,6 @@ final class App2OnboardingViewModel: ObservableObject {
         isBusy = true
         defer { isBusy = false }
 
-        profile.updateHeartRateData(maxHR: maxHeartRate, restingHR: restingHeartRate)
         let updates = heartRateDefaults.updates(maxHR: maxHeartRate, restingHR: restingHeartRate, allowInitialEstimates: true)
         let didUpdate: Bool
         if updates.isEmpty {
@@ -288,6 +287,7 @@ final class App2OnboardingViewModel: ObservableObject {
             errorMessage = NSLocalizedString("hr_zone.save_failed_generic", comment: "")
             return
         }
+        if let user = profile.userData { profile.updateHeartRateData(from: user) }
         HeartRateProfileRefreshNotifier.notifySaved(isOnboardingMode: true)
         push(.deviceLink)
     }

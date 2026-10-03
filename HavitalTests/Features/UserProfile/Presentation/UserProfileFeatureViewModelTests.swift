@@ -80,14 +80,8 @@ final class UserProfileFeatureViewModelTests: XCTestCase {
     }
 
     func testSettingsHeartRateDefaultsPreferFreshBackendOverConflictingCache() async {
-        var backend = UserProfileTestFixtures.testUser
-        backend.maxHr = 190
-        backend.relaxingHr = 62
-        var cached = backend
-        cached.maxHr = 185
-        cached.relaxingHr = 60
-        mockUserRepository.userToReturn = backend
-        mockUserRepository.cachedUserToReturn = cached
+        mockUserRepository.userToReturn = UserProfileTestFixtures.user(maxHR: 190, restingHR: 62)
+        mockUserRepository.cachedUserToReturn = UserProfileTestFixtures.user(maxHR: 185, restingHR: 60)
 
         let settings = App2SettingsViewModel(profile: viewModel)
         let defaults = await settings.loadHeartRateDefaults(age: 35)
@@ -95,6 +89,20 @@ final class UserProfileFeatureViewModelTests: XCTestCase {
         XCTAssertEqual(defaults?.maxHR, 190)
         XCTAssertEqual(defaults?.restingHR, 62)
         XCTAssertEqual(mockUserRepository.refreshUserProfileCallCount, 1)
+    }
+
+    func testHeartRateUpdateSynchronizesPreferencesFromBackendReadback() async {
+        mockUserRepository.userToReturn = UserProfileTestFixtures.user(maxHR: 195, restingHR: 70)
+
+        _ = await viewModel.updateHeartRateZones(
+            maxHR: 195,
+            restingHR: 60,
+            updates: ["max_hr": 195]
+        )
+
+        XCTAssertEqual(mockPrefsRepository.maxHeartRate, 195)
+        XCTAssertEqual(mockPrefsRepository.restingHeartRate, 70)
+        XCTAssertEqual(mockPrefsRepository.updateHeartRateDataCallCount, 1)
     }
 
     func testSettingsHeartRateDefaultsStayUnresolvedWhenFreshReadFails() async {

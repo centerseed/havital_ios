@@ -174,9 +174,6 @@ struct HRRHeartRateZoneEditorView: View {
         
         isLoading = true
         
-        // 更新本地數據
-        viewModel.updateHeartRateData(maxHR: maxHR, restingHR: restingHR)
-        
         // 發送到後端 API (using ViewModel → Repository)
         Task {
             let userData = [
@@ -189,6 +186,7 @@ struct HRRHeartRateZoneEditorView: View {
             await MainActor.run {
                 isLoading = false
                 if success {
+                    if let user = viewModel.userData { viewModel.updateHeartRateData(from: user) }
                     dismiss()
                 } else {
                     alertMessage = NSLocalizedString("hr_zone.save_failed_generic", comment: "Failed to save heart rate zones")

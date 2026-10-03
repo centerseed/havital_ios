@@ -80,7 +80,11 @@ final class MockUserProfileRepository: UserProfileRepository {
         updateHeartRateZonesCallCount += 1
         updateHeartRateZonesLastUpdates = updates
         if let error = errorToThrow { throw error }
-        return HeartRateUpdateResult(zones: heartRateZonesToReturn, changed: heartRateChangedToReturn)
+        return HeartRateUpdateResult(
+            zones: heartRateZonesToReturn,
+            changed: heartRateChangedToReturn,
+            profile: userToReturn
+        )
     }
 
     func syncHeartRateData(from user: User) async {

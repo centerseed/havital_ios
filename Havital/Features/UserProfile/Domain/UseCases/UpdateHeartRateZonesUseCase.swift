@@ -31,6 +31,7 @@ struct UpdateHeartRateZonesUseCase {
         let zones: [HeartRateZone]
         /// 後端回報這次心率真的有變（決定要不要問重算，`SPEC-hr-zones` §5.5 規則 1）。
         let heartRateChanged: Bool
+        let profile: User
     }
 
     // MARK: - Execute
@@ -59,7 +60,7 @@ struct UpdateHeartRateZonesUseCase {
             }
 
             Logger.debug("[UpdateHeartRateZonesUseCase] Success: \(result.zones.count) zones calculated")
-            return Output(zones: result.zones, heartRateChanged: result.changed)
+            return Output(zones: result.zones, heartRateChanged: result.changed, profile: result.profile)
 
         } catch {
             Logger.error("[UpdateHeartRateZonesUseCase] Failed: \(error.localizedDescription)")

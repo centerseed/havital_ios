@@ -131,8 +131,9 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
         preferencesRepository.restingHeartRate
     }
 
-    /// Update heart rate data
-    func updateHeartRateData(maxHR: Int, restingHR: Int) {
+    /// Update the legacy preference cache only from a profile returned by the backend.
+    func updateHeartRateData(from profile: User) {
+        guard let maxHR = profile.maxHr, let restingHR = profile.relaxingHr else { return }
         preferencesRepository.updateHeartRateData(maxHR: maxHR, restingHR: restingHR)
     }
 
@@ -455,6 +456,7 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
             let output = try await updateHeartRateZonesUseCase.execute(input: input)
 
             heartRateZones = output.zones
+            updateHeartRateData(from: output.profile)
             return output.heartRateChanged
 
         } catch {

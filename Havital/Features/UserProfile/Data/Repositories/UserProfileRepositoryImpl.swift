@@ -161,7 +161,7 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
         let zones = HeartRateZone.calculateZones(maxHR: resolvedMaxHR, restingHR: resolvedRestingHR)
         localDataSource.saveHeartRateZones(zones)
 
-        return HeartRateUpdateResult(zones: zones, changed: report.changed)
+        return HeartRateUpdateResult(zones: zones, changed: report.changed, profile: updatedUser)
     }
 
     func syncHeartRateData(from user: User) async {
