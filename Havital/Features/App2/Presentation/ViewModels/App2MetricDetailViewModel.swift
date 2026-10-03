@@ -543,7 +543,7 @@ final class App2CapabilityDetailViewModel: ObservableObject, TaskManageable, App
                 hero: Self.hero(
                     insight: insight,
                     narrative: narrative,
-                    current: latest?.resolvedPaceVdot,
+                    current: latest?.resolvedPaceVdot ?? insight.value.flatMap(Double.init),
                     previous: baseline30DaysAgo
                 ),
                 series: series,

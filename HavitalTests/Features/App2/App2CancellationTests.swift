@@ -469,6 +469,69 @@ final class App2CancellationTests: XCTestCase {
         }
     }
 
+    private final class RecomputeRefreshDailyStateRepository: DailyStateRepository {
+        private(set) var fetchCount = 0
+        private var blockNext = false
+        private var entered: CheckedContinuation<Void, Never>?
+        private var release: CheckedContinuation<Void, Never>?
+
+        func blockNextFetch() { blockNext = true }
+
+        func waitUntilBlocked() async {
+            await withCheckedContinuation { entered = $0 }
+        }
+
+        func releaseBlockedFetch() {
+            release?.resume()
+            release = nil
+        }
+
+        func fetchTodayState() async throws -> DailyStateCard {
+            fetchCount += 1
+            let call = fetchCount
+            if blockNext {
+                blockNext = false
+                await withCheckedContinuation { continuation in
+                    entered?.resume()
+                    entered = nil
+                    release = continuation
+                }
+            }
+            let value = call >= 3 ? "重算後" : "重算前"
+            return DailyStateCard(
+                lens: .pre, source: "test", headline: value, factType: nil,
+                narrativeText: nil, collapsedReason: nil, chips: [], causeChips: [],
+                mileageProgression: nil, actionLine: nil, rizoScenario: nil,
+                divergenceFlagText: nil, isPaid: false, isLocked: false,
+                upsellReason: nil, benchmarkCalibration: nil,
+                insights: [DailyStateInsight(
+                    key: "capability_baseline", label: "能力基準", valueText: value,
+                    arrow: .flat, verdict: nil, change: nil, evidence: nil, status: "graded"
+                )],
+                asof: "2026-10-03"
+            )
+        }
+
+        func cachedTodayState() -> DailyStateCard? { nil }
+        func applyBenchmark(_ calibration: SameDayBenchmarkCalibration) async throws -> Int? { nil }
+        func scheduleNextBenchmark(_ calibration: SameDayBenchmarkCalibration, weeksAhead: Int) async throws -> Int? { nil }
+    }
+
+    private final class SequencedHomeMetricsDataSource: AthleteStateMetricsDataSourceProtocol {
+        private(set) var fetchCount = 0
+
+        func fetchMetrics() async throws -> AthleteStateMetricsResponse {
+            fetchCount += 1
+            let seconds = fetchCount >= 3 ? 1_200 : 1_500
+            let json = """
+            {"metrics":{"race_projection":{"item_id":"state.race_projection",
+             "as_of":"2026-10-03","estimator_version":"test","delivery_status":"active",
+             "envelope":{"channels":{"5k":{"raw":{"projected_seconds":\(seconds),"status":"computed"}}}}}}}
+            """
+            return try JSONDecoder().decode(AthleteStateMetricsResponse.self, from: Data(json.utf8))
+        }
+    }
+
     func test_homeVM_coldTargetCache_publishesWeekBeforeMetricsReturns() async {
         // 冷啟（快取空）時週次仍不得等 metrics。這是使用者回報的
         // 「要等很久才會自己更新，或點進訓練計畫才會更新」（2026-09-02）。
@@ -498,6 +561,49 @@ final class App2CancellationTests: XCTestCase {
         await round
 
         XCTAssertEqual(targetRepo.getTargetsCallCount, 1, "同一輪只准打一次 /user/targets")
+    }
+
+    func test_homeVM_vdotCompletionDuringActiveRefreshRunsFollowupAndPublishesFreshRowsAndEstimates() async {
+        let state = RecomputeRefreshDailyStateRepository()
+        let metrics = SequencedHomeMetricsDataSource()
+        let planRepo = MockTrainingPlanV2Repository()
+        planRepo.planStatusToReturn = makePlanStatus(planId: nil)
+        let targetRepo = MockTargetRepository()
+        targetRepo.mainTargetToReturn = makeCachedMainTarget()
+        targetRepo.targetsToReturn = [makeCachedMainTarget()]
+        let vm = App2HomeViewModel(
+            dailyStateRepository: state,
+            targetRepository: targetRepo,
+            planRepository: planRepo,
+            metricsDataSource: metrics,
+            seriesDataSource: App2EmptyAthleteStateSeriesDataSource(),
+            workoutDataSource: ImmediateStatsSource(),
+            snapshots: SnapshotSpy()
+        )
+
+        await vm.revalidate()
+        XCTAssertEqual(vm.insights?.value.first?.value, "重算前")
+        XCTAssertEqual(vm.finishPredictions.first?.time, "0:25:00")
+
+        state.blockNextFetch()
+        let activeRefresh = Task { await vm.revalidate() }
+        await state.waitUntilBlocked()
+
+        CacheEventBus.shared.publish(.dataChanged(.vdot))
+        await waitUntil(message: "首頁應先處理完成事件、作廢舊快取時間") {
+            vm.lastLoadedAt == nil
+        }
+
+        state.releaseBlockedFetch()
+        await activeRefresh.value
+        await waitUntil(message: "完成事件必須在既有首頁刷新結束後再抓一次") {
+            state.fetchCount >= 3 && metrics.fetchCount >= 3
+                && vm.insights?.value.first?.value == "重算後"
+                && vm.finishPredictions.first?.time == "0:20:00"
+        }
+
+        XCTAssertEqual(vm.insights?.value.first?.value, "重算後")
+        XCTAssertEqual(vm.finishPredictions.first?.time, "0:20:00")
     }
 
     func test_homeVM_taskCancelled_doesNotPublishEarlyGoalCard() async {

@@ -41,6 +41,8 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
     private var revalidateGeneration = 0
     /// 現任輪的 task：接管時取消它，逼舊輪走取消路徑退出。
     private var revalidateRoundTask: Task<Void, Never>?
+    /// 讀取中收到完成事件時保留一次失效；現任輪結束後再沿同一路徑重抓。
+    private var revalidationRequestedDuringActiveRound = false
     @Published private(set) var goalCard: App2Sourced<App2GoalCard>?
     /// 計畫結束態（設計 frame-00g）。**有值時首頁的目標卡＋今日課表卡整段換掉**
     /// —— 那是同一塊版位的另一種內容，不是多一張卡。
@@ -230,7 +232,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     self.lastLoadedAt = nil
-                    if self.hasLoaded { await self.revalidate() }
+                    if self.hasLoaded || self.isRevalidating { await self.revalidate() }
                 }
             // 單位切換（T-0366）：這一頁上的量是**投影時就格式化好的字串**，
             // View 觀察 `UnitManager` 只會重畫同一份舊字。收到就重投影一次。
@@ -299,6 +301,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         // 視為前一輪卡死，讓位開新輪；卡死輪殘餘的 defer 只會提前放鎖，影響
         // 背景 SWR 的重入時機，資料發布仍在 MainActor 上序列化。
         if App2RevalidatePolicy.shouldBlock(isRevalidating: isRevalidating, began: revalidateBegan) {
+            revalidationRequestedDuringActiveRound = true
             return
         }
         // 接管：真正取消被判卡死的舊輪——其取消 guard 會丟棄後續發布與狀態寫入，
@@ -324,6 +327,12 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         if revalidateGeneration == round {
             isRevalidating = false
             revalidateRoundTask = nil
+            if revalidationRequestedDuringActiveRound {
+                revalidationRequestedDuringActiveRound = false
+                Task { @MainActor [weak self] in
+                    await self?.revalidate()
+                }
+            }
         }
     }
 
