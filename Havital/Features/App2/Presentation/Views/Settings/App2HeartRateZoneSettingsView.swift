@@ -111,8 +111,7 @@ struct App2HeartRateZoneSettingsView: View {
         }
         .task {
             // This page must not render its 190/60 placeholders before the fresh profile read.
-            await viewModel.profile.loadUserProfile(forceRefresh: true)
-            resolveFreshProfile()
+            await loadInitialIfNeeded()
             await recompute.loadWatchCheck()
             await recompute.refresh()
         }
