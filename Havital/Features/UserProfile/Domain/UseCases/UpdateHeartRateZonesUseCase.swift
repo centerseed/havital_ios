@@ -17,10 +17,12 @@ struct UpdateHeartRateZonesUseCase {
     struct Input {
         let maxHR: Int
         let restingHR: Int
+        let updates: [String: Any]?
 
-        init(maxHR: Int, restingHR: Int) {
+        init(maxHR: Int, restingHR: Int, updates: [String: Any]? = nil) {
             self.maxHR = maxHR
             self.restingHR = restingHR
+            self.updates = updates
         }
     }
 
@@ -49,7 +51,12 @@ struct UpdateHeartRateZonesUseCase {
         }
 
         do {
-            let result = try await repository.updateHeartRateZones(maxHR: input.maxHR, restingHR: input.restingHR)
+            let result: HeartRateUpdateResult
+            if let updates = input.updates {
+                result = try await repository.updateHeartRateZones(maxHR: input.maxHR, restingHR: input.restingHR, updates: updates)
+            } else {
+                result = try await repository.updateHeartRateZones(maxHR: input.maxHR, restingHR: input.restingHR)
+            }
 
             Logger.debug("[UpdateHeartRateZonesUseCase] Success: \(result.zones.count) zones calculated")
             return Output(zones: result.zones, heartRateChanged: result.changed)

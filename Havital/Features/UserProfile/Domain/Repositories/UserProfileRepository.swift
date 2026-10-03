@@ -50,6 +50,7 @@ protocol UserProfileRepository {
     ///   - restingHR: Resting heart rate
     /// - Returns: Recalculated zones ＋ 後端說這次心率有沒有變（App 不自己比）
     func updateHeartRateZones(maxHR: Int, restingHR: Int) async throws -> HeartRateUpdateResult
+    func updateHeartRateZones(maxHR: Int, restingHR: Int, updates: [String: Any]) async throws -> HeartRateUpdateResult
 
     /// Sync heart rate data from User model to local storage
     /// - Parameter user: User model containing HR data

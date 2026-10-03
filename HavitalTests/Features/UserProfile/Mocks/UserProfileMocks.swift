@@ -18,6 +18,7 @@ final class MockUserProfileRepository: UserProfileRepository {
     var updateDataSourceLastParams: String?
     var getHeartRateZonesCallCount = 0
     var updateHeartRateZonesCallCount = 0
+    var updateHeartRateZonesLastUpdates: [String: Any]?
     var syncHeartRateDataCallCount = 0
     var getTargetsCallCount = 0
     var createTargetCallCount = 0
@@ -72,7 +73,12 @@ final class MockUserProfileRepository: UserProfileRepository {
 
     var heartRateChangedToReturn = false
     func updateHeartRateZones(maxHR: Int, restingHR: Int) async throws -> HeartRateUpdateResult {
+        try await updateHeartRateZones(maxHR: maxHR, restingHR: restingHR, updates: ["max_hr": maxHR, "relaxing_hr": restingHR])
+    }
+
+    func updateHeartRateZones(maxHR: Int, restingHR: Int, updates: [String: Any]) async throws -> HeartRateUpdateResult {
         updateHeartRateZonesCallCount += 1
+        updateHeartRateZonesLastUpdates = updates
         if let error = errorToThrow { throw error }
         return HeartRateUpdateResult(zones: heartRateZonesToReturn, changed: heartRateChangedToReturn)
     }
@@ -237,6 +243,8 @@ final class MockUserPreferencesRepository: UserPreferencesRepository {
 final class MockUserProfileRemoteDataSource: UserProfileRemoteDataSourceProtocol {
     var userToReturn: User = UserProfileTestFixtures.testUser
     var errorToThrow: Error?
+    var heartRateReportToReturn: HeartRateChangeReport = .unchanged
+    var updateUserProfileLastParams: [String: Any]?
 
     func getUserProfile() async throws -> User {
         if let error = errorToThrow { throw error }
@@ -245,7 +253,8 @@ final class MockUserProfileRemoteDataSource: UserProfileRemoteDataSourceProtocol
 
     func updateUserProfile(_ updates: [String: Any]) async throws -> HeartRateChangeReport {
         if let error = errorToThrow { throw error }
-        return .unchanged
+        updateUserProfileLastParams = updates
+        return heartRateReportToReturn
     }
 
     func updateDataSource(_ dataSource: String) async throws {

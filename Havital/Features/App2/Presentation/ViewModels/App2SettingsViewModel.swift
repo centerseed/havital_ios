@@ -188,13 +188,12 @@ final class App2SettingsViewModel: ObservableObject {
     ///
     /// - Returns: 存成功時是後端回報的「心率有沒有變」；失敗回 nil。
     func saveHeartRate(maxHR: Int, restingHR: Int, updates: [String: Any]) async -> Bool? {
-        let oldMaxHR = profile.userData?.maxHr
-        let oldRestingHR = profile.userData?.relaxingHr
-        guard await profile.updateUserProfile(updates) else { return nil }
-        await profile.loadHeartRateZones()
-        rebuildSnapshot()
-        return (updates["max_hr"] as? Int).map { $0 != oldMaxHR } == true
-            || (updates["relaxing_hr"] as? Int).map { $0 != oldRestingHR } == true
+        let changed = await profile.updateHeartRateZones(maxHR: maxHR, restingHR: restingHR, updates: updates)
+        if changed != nil {
+            await profile.loadUserProfile(forceRefresh: true)
+            rebuildSnapshot()
+        }
+        return changed
     }
 
     /// 「自動更新最大心率」目前的值：只有明確開過才是 true（沒設過在 UI 顯示為關）。

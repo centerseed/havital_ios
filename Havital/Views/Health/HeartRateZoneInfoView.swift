@@ -486,7 +486,7 @@ struct HeartRateZoneInfoView: View {
             maxHeartRate = App2OnboardingProjection.estimatedMaxHR(age: userAgeFromLocalStorage)
             maxHeartRateIsEstimated = true
         } else {
-            maxHeartRate = 190
+            maxHeartRate = App2OnboardingProjection.estimatedMaxHR(age: userAgeFromLocalStorage)
             maxHeartRateIsEstimated = true
         }
 
@@ -536,12 +536,8 @@ struct HeartRateZoneInfoView: View {
                 if isOnboardingMode { onboardingCoordinator.navigate(to: .personalBest) } else { dismiss() }
                 return
             }
-            let saved = await viewModel.updateUserProfile(updates)
-            let changed = saved ? (
-                (updates["max_hr"] as? Int).map { $0 != originalBackendMaxHR } == true
-                || (updates["relaxing_hr"] as? Int).map { $0 != originalBackendRestingHR } == true
-            ) : nil
-            if saved { viewModel.updateHeartRateData(maxHR: maxHeartRate, restingHR: restingHeartRate) }
+            let changed = await viewModel.updateHeartRateZones(maxHR: maxHeartRate, restingHR: restingHeartRate, updates: updates)
+            if changed != nil { viewModel.updateHeartRateData(maxHR: maxHeartRate, restingHR: restingHeartRate) }
 
             isSaving = false
             guard let changed else {

@@ -444,10 +444,14 @@ class UserProfileFeatureViewModel: ObservableObject, @preconcurrency TaskManagea
     ///   - restingHR: Resting heart rate
     /// - Returns: 成功時是後端回報「心率有沒有變」；失敗（含取消）回 nil。
     func updateHeartRateZones(maxHR: Int, restingHR: Int) async -> Bool? {
+        await updateHeartRateZones(maxHR: maxHR, restingHR: restingHR, updates: nil)
+    }
+
+    func updateHeartRateZones(maxHR: Int, restingHR: Int, updates: [String: Any]?) async -> Bool? {
         Logger.debug("[UserProfileVM] Updating HR zones (max: \(maxHR), resting: \(restingHR))")
 
         do {
-            let input = UpdateHeartRateZonesUseCase.Input(maxHR: maxHR, restingHR: restingHR)
+            let input = UpdateHeartRateZonesUseCase.Input(maxHR: maxHR, restingHR: restingHR, updates: updates)
             let output = try await updateHeartRateZonesUseCase.execute(input: input)
 
             heartRateZones = output.zones

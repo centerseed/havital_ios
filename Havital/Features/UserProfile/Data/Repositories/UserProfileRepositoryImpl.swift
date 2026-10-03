@@ -137,6 +137,12 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
     }
 
     func updateHeartRateZones(maxHR: Int, restingHR: Int) async throws -> HeartRateUpdateResult {
+        try await updateHeartRateZones(maxHR: maxHR, restingHR: restingHR, updates: [
+            "max_hr": maxHR, "relaxing_hr": restingHR
+        ])
+    }
+
+    func updateHeartRateZones(maxHR: Int, restingHR: Int, updates: [String: Any]) async throws -> HeartRateUpdateResult {
         Logger.debug("[UserProfileRepo] Updating HR zones (max: \(maxHR), resting: \(restingHR))")
 
         // Update user profile with new HR values.
@@ -146,10 +152,6 @@ final class UserProfileRepositoryImpl: UserProfileRepository {
         // 的 `_hr_parameter(profile, "max_hr")` 都是這一組），而 `PUT /user` 是整包
         // merge —— 送 `max_heart_rate` 只會在文件旁邊多一個沒人讀的欄位，讀回來還是
         // 舊的 `max_hr`，UI 於是永遠顯示存檔前的值（2026-08-26 QA）。
-        let updates: [String: Any] = [
-            "max_hr": maxHR,
-            "relaxing_hr": restingHR
-        ]
         let (_, report) = try await updateUserProfileReportingHeartRate(updates)
 
         // Calculate and cache new zones using new HeartRateZone entity

@@ -63,6 +63,21 @@ final class UserProfileFeatureViewModelTests: XCTestCase {
         mockAuthService = nil
         super.tearDown()
     }
+
+    func testPartialHeartRateUpdatePreservesBackendChangedReportAndPayload() async {
+        mockUserRepository.heartRateChangedToReturn = false
+
+        let changed = await viewModel.updateHeartRateZones(
+            maxHR: 190,
+            restingHR: 60,
+            updates: ["max_hr": 190]
+        )
+
+        XCTAssertEqual(changed, false)
+        XCTAssertEqual(mockUserRepository.updateHeartRateZonesLastUpdates?.count, 1)
+        XCTAssertEqual(mockUserRepository.updateHeartRateZonesLastUpdates?["max_hr"] as? Int, 190)
+        XCTAssertNil(mockUserRepository.updateHeartRateZonesLastUpdates?["relaxing_hr"])
+    }
     
     // MARK: - Initialization Tests
     
