@@ -133,9 +133,25 @@ final class RaceMapperTests: XCTestCase {
         let losAngeles = TimeZone(identifier: "America/Los_Angeles")!
 
         XCTAssertEqual(
-            TrainingDateUtils.calculateDaysRemaining(
+            TrainingDateUtils.calculateCatalogDaysRemaining(
                 raceDate: entity.eventDate,
                 timezone: losAngeles,
+                now: now
+            ),
+            1
+        )
+    }
+
+    func testTimestampCountdownKeepsTokyoLocalMidnightDate() {
+        let now = ISO8601DateFormatter().date(from: "2026-10-02T15:30:00Z")!
+        let targetAtTokyoMidnight = Int(
+            ISO8601DateFormatter().date(from: "2026-10-03T15:00:00Z")!.timeIntervalSince1970
+        )
+
+        XCTAssertEqual(
+            TrainingDateUtils.calculateDaysRemaining(
+                raceDate: targetAtTokyoMidnight,
+                timezone: "Asia/Tokyo",
                 now: now
             ),
             1

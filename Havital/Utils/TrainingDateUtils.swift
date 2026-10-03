@@ -1,15 +1,15 @@
 import Foundation
 
 struct TrainingDateUtils {
-    /// 計算賽事日期距今天數
+    /// 計算 timestamp 日期距今天數；timestamp 的日期取用戶時區。
     /// - Parameters:
     ///   - raceDate: 賽事日期的時間戳（秒）
     ///   - timezone: 賽事時區（選填，預設使用當前時區）
     /// - Returns: 剩餘天數
-    static func calculateDaysRemaining(raceDate: Int, timezone: String? = nil) -> Int {
+    static func calculateDaysRemaining(raceDate: Int, timezone: String? = nil, now: Date = Date()) -> Int {
         let raceDay = Date(timeIntervalSince1970: TimeInterval(raceDate))
         let timeZone = timezone.flatMap(TimeZone.init(identifier:)) ?? Self.calendar.timeZone
-        return max(calculateDaysBetween(raceDate: raceDay, now: Date(), timezone: timeZone), 0)
+        return max(calculateDaysBetween(raceDate: raceDay, now: now, timezone: timeZone), 0)
     }
 
     /// 以同一個用戶當地日曆比較兩個日期；不以 UTC 秒數除以 86400。
@@ -17,27 +17,38 @@ struct TrainingDateUtils {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timezone
         let today = calendar.startOfDay(for: now)
-        // The catalog stores YYYY-MM-DD as UTC midnight. Recover those UTC
-        // date components before placing the date in the user's calendar;
-        // converting UTC midnight directly would move the date backward in
-        // western timezones.
+        let raceStartDay = calendar.startOfDay(for: raceDate)
+        return calendar.dateComponents([.day], from: today, to: raceStartDay).day ?? 0
+    }
+
+    /// 非負倒數版本，供 timestamp target card 使用。
+    static func calculateDaysRemaining(raceDate: Date, timezone: TimeZone, now: Date = Date()) -> Int {
+        max(calculateDaysBetween(raceDate: raceDate, now: now, timezone: timezone), 0)
+    }
+
+    /// 非負倒數版本，供 API `YYYY-MM-DD` 賽事 catalog 使用。
+    /// Catalog date 以 UTC midnight 傳輸，先取 UTC 日期元件再放入用戶日曆，
+    /// 避免西半球把日期往前移一天。
+    static func calculateCatalogDaysRemaining(raceDate: Date, timezone: TimeZone, now: Date = Date()) -> Int {
+        max(calculateCatalogDaysBetween(raceDate: raceDate, now: now, timezone: timezone), 0)
+    }
+
+    /// 推薦卡保留「幾週後」文案，但週數先由同一個 catalog 日期 projection 推導。
+    static func calculateCatalogWeeksRemaining(raceDate: Date, timezone: TimeZone, now: Date = Date()) -> Int {
+        let days = calculateCatalogDaysBetween(raceDate: raceDate, now: now, timezone: timezone)
+        guard days > 0 else { return 0 }
+        return (days + 6) / 7
+    }
+
+    private static func calculateCatalogDaysBetween(raceDate: Date, now: Date, timezone: TimeZone) -> Int {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timezone
+        let today = calendar.startOfDay(for: now)
         var utcCalendar = Calendar(identifier: .gregorian)
         utcCalendar.timeZone = TimeZone(secondsFromGMT: 0)!
         let raceComponents = utcCalendar.dateComponents([.year, .month, .day], from: raceDate)
         guard let raceStartDay = calendar.date(from: raceComponents) else { return 0 }
         return calendar.dateComponents([.day], from: today, to: raceStartDay).day ?? 0
-    }
-
-    /// 非負倒數版本，供賽事選擇卡使用。
-    static func calculateDaysRemaining(raceDate: Date, timezone: TimeZone, now: Date = Date()) -> Int {
-        max(calculateDaysBetween(raceDate: raceDate, now: now, timezone: timezone), 0)
-    }
-
-    /// 推薦卡保留「幾週後」文案，但週數先由同一個當地日期差推導。
-    static func calculateWeeksRemaining(raceDate: Date, timezone: TimeZone, now: Date = Date()) -> Int {
-        let days = calculateDaysBetween(raceDate: raceDate, now: now, timezone: timezone)
-        guard days > 0 else { return 0 }
-        return (days + 6) / 7
     }
     
     private static var calendar: Calendar {

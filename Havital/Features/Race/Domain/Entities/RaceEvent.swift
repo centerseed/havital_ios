@@ -22,7 +22,7 @@ struct RaceEvent: Identifiable, Equatable {
     var daysUntilEvent: Int {
         let identifier = UserPreferencesManager.shared.timezonePreference ?? TimeZone.current.identifier
         let timeZone = TimeZone(identifier: identifier) ?? .current
-        return TrainingDateUtils.calculateDaysRemaining(raceDate: eventDate, timezone: timeZone)
+        return TrainingDateUtils.calculateCatalogDaysRemaining(raceDate: eventDate, timezone: timeZone)
     }
 
     /// 是否時間不足（< 4 週）
