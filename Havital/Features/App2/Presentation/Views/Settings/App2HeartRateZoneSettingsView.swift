@@ -25,6 +25,10 @@ struct App2HeartRateZoneSettingsView: View {
     @State private var restingHR: Int = 60
     @State private var isSaving = false
     @State private var didLoadInitial = false
+    @State private var profileResolved = false
+    @State private var profileLoadFailed = false
+    @State private var originalMaxHR: Int?
+    @State private var originalRestingHR: Int?
     @State private var errorMessage: String?
     /// 這次進頁後真的存過、且後端說心率有變：範圍選「不重算」時直接收頁。
     @State private var closeAfterPrompt = false
@@ -61,12 +65,18 @@ struct App2HeartRateZoneSettingsView: View {
             backIdentifier: "App2_HeartRateZoneClose",
             titleIdentifier: "App2_HeartRateZoneView",
             ctaTitle: NSLocalizedString("common.save", comment: "Save"),
-            ctaEnabled: isValid,
+            ctaEnabled: profileResolved && isValid,
             ctaBusy: isSaving,
             ctaIdentifier: "App2_HeartRateZoneSave",
             ctaAction: { save() }
         ) {
             VStack(alignment: .leading, spacing: 18) {
+                if profileLoadFailed {
+                    Button(NSLocalizedString("common.retry", comment: "Retry")) {
+                        Task { await loadInitialIfNeeded() }
+                    }
+                    .accessibilityIdentifier("App2_HeartRateZoneRetry")
+                }
                 Text(L10n.App2.Onboarding.hrSubtitle.localized)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(App2Theme.inkSecondary)
@@ -99,11 +109,10 @@ struct App2HeartRateZoneSettingsView: View {
                 recomputeSection
             }
         }
-        .onAppear(perform: loadInitialIfNeeded)
         .task {
             // This page must not render its 190/60 placeholders before the fresh profile read.
             await viewModel.profile.loadUserProfile(forceRefresh: true)
-            loadInitialIfNeeded()
+            resolveFreshProfile()
             await recompute.loadWatchCheck()
             await recompute.refresh()
         }
@@ -398,19 +407,37 @@ struct App2HeartRateZoneSettingsView: View {
 
     // MARK: - 狀態
 
-    private func loadInitialIfNeeded() {
-        guard !didLoadInitial else { return }
-        guard viewModel.profile.userData != nil else { return }
+    private func resolveFreshProfile() {
+        guard case .loaded(let user) = viewModel.profile.profileState else {
+            profileLoadFailed = true
+            return
+        }
+        let age = UserDefaults.standard.object(forKey: "age") as? Int ?? 30
+        maxHR = user.maxHr ?? App2OnboardingProjection.estimatedMaxHR(age: age)
+        restingHR = user.relaxingHr ?? 60
+        originalMaxHR = maxHR
+        originalRestingHR = restingHR
         didLoadInitial = true
-        if let value = viewModel.maxHeartRate, value > 0 { maxHR = value }
-        if let value = viewModel.restingHeartRate, value > 0 { restingHR = value }
+        profileResolved = true
+        profileLoadFailed = false
+    }
+
+    private func loadInitialIfNeeded() async {
+        guard !profileResolved else { return }
+        profileLoadFailed = false
+        await viewModel.profile.loadUserProfile(forceRefresh: true)
+        resolveFreshProfile()
     }
 
     private func save() {
-        guard !isSaving, isValid else { return }
+        guard !isSaving, profileResolved, isValid else { return }
         isSaving = true
         Task {
-            let changed = await viewModel.saveHeartRate(maxHR: maxHR, restingHR: restingHR)
+            var updates: [String: Any] = [:]
+            if originalMaxHR != maxHR { updates["max_hr"] = maxHR }
+            if originalRestingHR != restingHR { updates["relaxing_hr"] = restingHR }
+            if updates.isEmpty { isSaving = false; onClose(); return }
+            let changed = await viewModel.saveHeartRate(maxHR: maxHR, restingHR: restingHR, updates: updates)
             isSaving = false
             guard let changed else {
                 errorMessage = NSLocalizedString("error.unknown", comment: "")

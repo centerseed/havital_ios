@@ -73,9 +73,23 @@ final class App2OnboardingProjectionTests: XCTestCase {
         XCTAssertEqual(defaults.restingHR, 60)
         XCTAssertFalse(defaults.restingHRIsEstimated)
 
-        let updates = defaults.updates(maxHR: 185, restingHR: 60)
-        XCTAssertEqual(updates["max_hr"] as? Int, 185)
-        XCTAssertNil(updates["relaxing_hr"])
+        XCTAssertTrue(defaults.updates(maxHR: 185, restingHR: 60).isEmpty)
+        XCTAssertEqual(defaults.updates(maxHR: 186, restingHR: 60)["max_hr"] as? Int, 186)
+        XCTAssertNil(defaults.updates(maxHR: 185, restingHR: 61)["max_hr"])
+        XCTAssertEqual(defaults.updates(maxHR: 185, restingHR: 61)["relaxing_hr"] as? Int, 61)
+    }
+
+    func test_heartRateDefaults_initialEstimatesAreAllowedOnlyWhenBothFieldsMissing() {
+        let empty = App2OnboardingProjection.heartRateDefaults(
+            backendMaxHR: nil, backendRestingHR: nil, age: 35
+        )
+        XCTAssertEqual(empty.updates(maxHR: 185, restingHR: 60, allowInitialEstimates: true)["max_hr"] as? Int, 185)
+        XCTAssertEqual(empty.updates(maxHR: 185, restingHR: 60, allowInitialEstimates: true)["relaxing_hr"] as? Int, 60)
+
+        let partial = App2OnboardingProjection.heartRateDefaults(
+            backendMaxHR: 190, backendRestingHR: nil, age: 35
+        )
+        XCTAssertTrue(partial.updates(maxHR: 190, restingHR: 60, allowInitialEstimates: true).isEmpty)
     }
 
     func test_estimatedMaxHR_is220MinusAgeWithFloor() {

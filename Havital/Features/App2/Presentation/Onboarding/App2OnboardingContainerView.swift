@@ -694,11 +694,18 @@ struct App2OnboardingHeartRateView: View {
             progressWithinSegment: viewModel.progress(for: .heartRate),
             onBack: { viewModel.pop() },
             ctaTitle: L10n.App2.Onboarding.continueCta.localized,
+            ctaEnabled: viewModel.heartRateDefaultsResolved,
             ctaBusy: viewModel.isBusy,
             ctaIdentifier: "App2_OnboardingHeartRateCta",
             ctaAction: { Task { await viewModel.confirmHeartRate() } }
         ) {
             VStack(alignment: .leading, spacing: 20) {
+                if viewModel.heartRateDefaultsFailed {
+                    Button(NSLocalizedString("common.retry", comment: "Retry")) {
+                        Task { await viewModel.loadHeartRateDefaults() }
+                    }
+                    .accessibilityIdentifier("App2_OnboardingHeartRateRetry")
+                }
                 App2OnboardingTitleBlock(
                     title: L10n.App2.Onboarding.hrTitle.localized,
                     subtitle: L10n.App2.Onboarding.hrSubtitle.localized,

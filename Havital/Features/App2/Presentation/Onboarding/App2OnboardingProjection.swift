@@ -27,12 +27,13 @@ enum App2OnboardingProjection {
         private let backendMaxHR: Int?
         private let backendRestingHR: Int?
 
-        func updates(maxHR: Int, restingHR: Int) -> [String: Any] {
+        func updates(maxHR: Int, restingHR: Int, allowInitialEstimates: Bool = false) -> [String: Any] {
             var updates: [String: Any] = [:]
-            if backendMaxHR == nil || maxHR != self.maxHR {
+            let bothBackendValuesMissing = backendMaxHR == nil && backendRestingHR == nil
+            if maxHR != self.maxHR || (allowInitialEstimates && bothBackendValuesMissing) {
                 updates["max_hr"] = maxHR
             }
-            if backendRestingHR == nil || restingHR != self.restingHR {
+            if restingHR != self.restingHR || (allowInitialEstimates && bothBackendValuesMissing) {
                 updates["relaxing_hr"] = restingHR
             }
             return updates

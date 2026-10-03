@@ -7,6 +7,8 @@ final class App2OnboardingViewModelTests: XCTestCase {
     private var coordinator: OnboardingCoordinator!
     private var userProfileRepository: MockUserProfileRepository!
     private var trainingPlanV2Repository: MockTrainingPlanV2Repository!
+    private var profilePreferencesRepository: MockUserPreferencesRepository!
+    private var authService: MockAuthenticationService!
 
     override func setUp() async throws {
         try await super.setUp()
@@ -14,7 +16,22 @@ final class App2OnboardingViewModelTests: XCTestCase {
         coordinator = OnboardingCoordinator.shared
         coordinator.reset()
         userProfileRepository = MockUserProfileRepository()
+        profilePreferencesRepository = MockUserPreferencesRepository()
+        authService = MockAuthenticationService()
         trainingPlanV2Repository = MockTrainingPlanV2Repository()
+        let profile = UserProfileFeatureViewModel(
+            getUserProfileUseCase: GetUserProfileUseCase(repository: userProfileRepository),
+            updateUserProfileUseCase: UpdateUserProfileUseCase(repository: userProfileRepository),
+            getHeartRateZonesUseCase: GetHeartRateZonesUseCase(repository: userProfileRepository),
+            updateHeartRateZonesUseCase: UpdateHeartRateZonesUseCase(repository: userProfileRepository),
+            getUserTargetsUseCase: GetUserTargetsUseCase(repository: userProfileRepository),
+            createTargetUseCase: CreateTargetUseCase(repository: userProfileRepository),
+            syncUserPreferencesUseCase: SyncUserPreferencesUseCase(preferencesRepository: profilePreferencesRepository),
+            calculateUserStatsUseCase: CalculateUserStatsUseCase(repository: userProfileRepository),
+            preferencesRepository: profilePreferencesRepository,
+            userRepository: userProfileRepository,
+            authService: authService
+        )
         let flow = OnboardingFeatureViewModel(
             userProfileRepository: userProfileRepository,
             targetRepository: MockTargetRepository(),
@@ -28,6 +45,7 @@ final class App2OnboardingViewModelTests: XCTestCase {
             isReonboarding: false,
             metricsDataSource: App2EmptyAthleteStateMetricsDataSource(),
             flow: flow,
+            profile: profile,
             coordinator: coordinator
         )
         sut.flow.selectedTargetTypeV2 = TargetTypeV2(
@@ -40,6 +58,29 @@ final class App2OnboardingViewModelTests: XCTestCase {
         coordinator.selectedTargetTypeId = "beginner"
         coordinator.trainingWeeks = 8
         coordinator.selectedMethodologyId = "paceriz"
+    }
+
+    func testHeartRateDefaultsUseFreshBackendProfileInsteadOfLocalPreferences() async {
+        profilePreferencesRepository.updateHeartRateData(maxHR: 185, restingHR: 58)
+        userProfileRepository.userToReturn = UserProfileTestFixtures.testUser
+
+        await sut.loadHeartRateDefaults()
+
+        XCTAssertEqual(sut.maxHeartRate, 190)
+        XCTAssertEqual(sut.restingHeartRate, 60)
+        XCTAssertTrue(sut.heartRateDefaultsResolved)
+        XCTAssertFalse(sut.heartRateDefaultsFailed)
+    }
+
+    func testHeartRateDefaultsReadFailureBlocksContinueAndDoesNotWriteEstimate() async {
+        userProfileRepository.errorToThrow = DomainError.networkFailure("profile read failed")
+        await sut.loadHeartRateDefaults()
+
+        XCTAssertFalse(sut.heartRateDefaultsResolved)
+        XCTAssertTrue(sut.heartRateDefaultsFailed)
+        await sut.confirmHeartRate()
+
+        XCTAssertEqual(userProfileRepository.updateUserProfileCallCount, 0)
     }
 
     override func tearDown() async throws {

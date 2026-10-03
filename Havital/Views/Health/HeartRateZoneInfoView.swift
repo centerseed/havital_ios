@@ -22,6 +22,11 @@ struct HeartRateZoneInfoView: View {
     @State private var maxHeartRateIsEstimated = false
     @State private var restingHeartRateIsEstimated = false
     @State private var isLoading = true
+    @State private var profileReadFailed = false
+    @State private var originalBackendMaxHR: Int?
+    @State private var originalBackendRestingHR: Int?
+    @State private var initialMaxHR = 190
+    @State private var initialRestingHR = 60
     @State private var showingAlert = false
     @State private var alertMessage = ""
     @State private var isSaving = false
@@ -141,6 +146,14 @@ struct HeartRateZoneInfoView: View {
     private var contentView: some View {
         ScrollView {
             VStack(spacing: 16) {
+                if profileReadFailed {
+                    Text(NSLocalizedString("error.unknown", comment: ""))
+                        .foregroundColor(.red)
+                    Button(NSLocalizedString("common.retry", comment: "Retry")) {
+                        Task { await loadZoneData() }
+                    }
+                    .accessibilityIdentifier("HeartRateZone_ProfileRetry")
+                }
                 descriptionText
                 heartRateEditCards
 
@@ -382,7 +395,7 @@ struct HeartRateZoneInfoView: View {
             .background(Color.accentColor)
             .cornerRadius(14)
         }
-        .disabled(isSaving)
+        .disabled(isSaving || isLoading || profileReadFailed)
         .padding(.horizontal)
     }
 
@@ -404,6 +417,7 @@ struct HeartRateZoneInfoView: View {
                         Text(NSLocalizedString("onboarding.skip", comment: "Skip"))
                             .foregroundColor(.secondary)
                     }
+                    .disabled(isLoading || profileReadFailed)
 
                     // 下一步按鈕
                     Button(action: {
@@ -415,7 +429,7 @@ struct HeartRateZoneInfoView: View {
                             Text(NSLocalizedString("onboarding.next", comment: "Next"))
                         }
                     }
-                    .disabled(isSaving)
+                    .disabled(isSaving || isLoading || profileReadFailed)
                     .accessibilityIdentifier("HeartRateZone_ContinueButton")
                 }
             }
@@ -446,8 +460,18 @@ struct HeartRateZoneInfoView: View {
         // The legacy bridge may have a stale local zone cache. Load the profile from GET /user
         // first; the page's displayed values must not come from UserDefaults.
         await viewModel.refreshUserProfile()
+        guard case .loaded(let user) = viewModel.profileState else {
+            profileReadFailed = true
+            isLoading = false
+            return
+        }
+        originalBackendMaxHR = user.maxHr
+        originalBackendRestingHR = user.relaxingHr
         await HeartRateZonesBridge.shared.ensureHeartRateZonesAvailable()
         loadCurrentValues()
+        initialMaxHR = maxHeartRate
+        initialRestingHR = restingHeartRate
+        profileReadFailed = false
 
         isLoading = false
     }
@@ -478,6 +502,7 @@ struct HeartRateZoneInfoView: View {
 
     @MainActor
     private func saveHeartRateZones() async {
+        guard !isLoading, !profileReadFailed else { return }
         if maxHeartRate <= restingHeartRate {
             alertMessage = NSLocalizedString("hr_zone.max_greater_than_resting", comment: "Max greater than resting")
             showingAlert = true
@@ -498,13 +523,25 @@ struct HeartRateZoneInfoView: View {
 
         isSaving = true
 
-        viewModel.updateHeartRateData(maxHR: maxHeartRate, restingHR: restingHeartRate)
-
         do {
-            let changed = await viewModel.updateHeartRateZones(
-                maxHR: maxHeartRate,
-                restingHR: restingHeartRate
-            )
+            var updates: [String: Any] = [:]
+            if maxHeartRate != initialMaxHR { updates["max_hr"] = maxHeartRate }
+            if restingHeartRate != initialRestingHR { updates["relaxing_hr"] = restingHeartRate }
+            if isOnboardingMode, originalBackendMaxHR == nil, originalBackendRestingHR == nil {
+                updates["max_hr"] = maxHeartRate
+                updates["relaxing_hr"] = restingHeartRate
+            }
+            if updates.isEmpty {
+                isSaving = false
+                if isOnboardingMode { onboardingCoordinator.navigate(to: .personalBest) } else { dismiss() }
+                return
+            }
+            let saved = await viewModel.updateUserProfile(updates)
+            let changed = saved ? (
+                (updates["max_hr"] as? Int).map { $0 != originalBackendMaxHR } == true
+                || (updates["relaxing_hr"] as? Int).map { $0 != originalBackendRestingHR } == true
+            ) : nil
+            if saved { viewModel.updateHeartRateData(maxHR: maxHeartRate, restingHR: restingHeartRate) }
 
             isSaving = false
             guard let changed else {
