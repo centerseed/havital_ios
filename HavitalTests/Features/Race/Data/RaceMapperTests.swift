@@ -114,6 +114,34 @@ final class RaceMapperTests: XCTestCase {
         XCTAssertEqual(TrainingDateUtils.calculateDaysBetween(raceDate: sevenDays, now: now, timezone: tokyo), 7)
     }
 
+    func testRaceCountdownPreservesCatalogDateInWesternTimezone() {
+        let dto = RaceDTO(
+            raceId: "la-race",
+            name: "Los Angeles Race",
+            region: "us",
+            eventDate: "2026-10-03",
+            city: "Los Angeles",
+            location: nil,
+            distances: [],
+            entryStatus: nil,
+            isCurated: true,
+            courseType: nil,
+            tags: nil
+        )
+        let entity = RaceMapper.toEntity(from: dto)!
+        let now = ISO8601DateFormatter().date(from: "2026-10-02T19:00:00Z")!
+        let losAngeles = TimeZone(identifier: "America/Los_Angeles")!
+
+        XCTAssertEqual(
+            TrainingDateUtils.calculateDaysRemaining(
+                raceDate: entity.eventDate,
+                timezone: losAngeles,
+                now: now
+            ),
+            1
+        )
+    }
+
     func testRacePickerDefaultRegionFollowsTimezoneOrJapaneseLocale() {
         XCTAssertEqual(RacePickerDefaults.defaultRegion(timeZoneIdentifier: "Asia/Tokyo", localeIdentifier: "en-US"), "jp")
         XCTAssertEqual(RacePickerDefaults.defaultRegion(timeZoneIdentifier: "America/Los_Angeles", localeIdentifier: "ja-JP"), "jp")

@@ -17,7 +17,14 @@ struct TrainingDateUtils {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timezone
         let today = calendar.startOfDay(for: now)
-        let raceStartDay = calendar.startOfDay(for: raceDate)
+        // The catalog stores YYYY-MM-DD as UTC midnight. Recover those UTC
+        // date components before placing the date in the user's calendar;
+        // converting UTC midnight directly would move the date backward in
+        // western timezones.
+        var utcCalendar = Calendar(identifier: .gregorian)
+        utcCalendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let raceComponents = utcCalendar.dateComponents([.year, .month, .day], from: raceDate)
+        guard let raceStartDay = calendar.date(from: raceComponents) else { return 0 }
         return calendar.dateComponents([.day], from: today, to: raceStartDay).day ?? 0
     }
 

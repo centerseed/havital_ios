@@ -151,9 +151,7 @@ enum App2OnboardingFormat {
     }
 
     static func weeksFromNow(to date: Date, now: Date, timeZone: TimeZone) -> Int {
-        let days = TrainingDateUtils.calculateDaysBetween(raceDate: date, now: now, timezone: timeZone)
-        guard days > 0 else { return 0 }
-        return (days + 6) / 7
+        TrainingDateUtils.calculateWeeksRemaining(raceDate: date, timezone: timeZone, now: now)
     }
 
     /// 秒 → `H:MM:SS`／`MM:SS`。
