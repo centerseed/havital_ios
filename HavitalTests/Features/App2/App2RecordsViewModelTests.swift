@@ -106,7 +106,13 @@ final class App2RecordsViewModelTests: XCTestCase {
         return calendar.date(from: components) ?? Date()
     }
 
-    private func run(id: String, at date: Date, km: Double, type: String = "running") -> WorkoutV2 {
+    private func run(
+        id: String,
+        at date: Date,
+        km: Double,
+        type: String = "running",
+        vdot: Double? = nil
+    ) -> WorkoutV2 {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
         return WorkoutV2(
@@ -114,10 +120,53 @@ final class App2RecordsViewModelTests: XCTestCase {
             startTimeUtc: formatter.string(from: date), endTimeUtc: nil,
             durationSeconds: 3000, distanceMeters: km * 1000,
             distanceDisplay: nil, distanceUnit: nil, deviceName: nil,
-            basicMetrics: nil, advancedMetrics: nil, createdAt: nil,
+            basicMetrics: nil, advancedMetrics: AdvancedMetrics(dynamicVdot: vdot), createdAt: nil,
             schemaVersion: nil, storagePath: nil, dailyPlanSummary: nil,
             aiSummary: nil, shareCardContent: nil
         )
+    }
+
+    private final class CompletionRaceStatsSource: WorkoutStatsDataSourceProtocol {
+        private(set) var pageCallCount = 0
+        var workoutsByCall: [[WorkoutV2]]
+        var suspendedPageCall: Int?
+        private var suspendedPageIsWaiting = false
+        private var releaseSuspendedCall: CheckedContinuation<Void, Never>?
+
+        init(workoutsByCall: [[WorkoutV2]]) { self.workoutsByCall = workoutsByCall }
+
+        func fetchWorkoutStats(days: Int, weeks: Int?) async throws -> WorkoutStatsResponse {
+            try JSONDecoder().decode(WorkoutStatsResponse.self, from: Data(FakeStatsSource().statsJSON.utf8))
+        }
+
+        func fetchRecentWorkouts(pageSize: Int) async throws -> [WorkoutV2] { workoutsByCall.last ?? [] }
+
+        func fetchWorkoutsPage(pageSize: Int?, cursor: String?) async throws -> WorkoutListResponse {
+            pageCallCount += 1
+            let call = pageCallCount
+            if call == suspendedPageCall {
+                await withCheckedContinuation {
+                    releaseSuspendedCall = $0
+                    suspendedPageIsWaiting = true
+                }
+            }
+            let workouts = workoutsByCall[min(call - 1, workoutsByCall.count - 1)]
+            return WorkoutListResponse(
+                workouts: workouts,
+                pagination: PaginationInfo(nextCursor: nil, prevCursor: nil, hasMore: false,
+                                           hasNewer: false, oldestId: nil, newestId: nil,
+                                           totalItems: nil, pageSize: pageSize)
+            )
+        }
+
+        func waitForSuspendedPage() async {
+            for _ in 0..<1_000 where !suspendedPageIsWaiting {
+                await Task.yield()
+                try? await Task.sleep(nanoseconds: 1_000_000)
+            }
+        }
+
+        func releasePage() { releaseSuspendedCall?.resume(); releaseSuspendedCall = nil }
     }
 
     // MARK: - 月量與月比
@@ -459,6 +508,63 @@ final class App2RecordsViewModelTests: XCTestCase {
         XCTAssertFalse(records.origin.isStub)
         XCTAssertTrue(vm.hasLoaded)
         XCTAssertFalse(vm.isLoading)
+    }
+
+    func test_completionDuringFirstLoadStartsFreshRecordsRead() async throws {
+        let source = CompletionRaceStatsSource(workoutsByCall: [
+            [run(id: "run", at: Date(), km: 5, vdot: 38)],
+            [run(id: "run", at: Date(), km: 5, vdot: 40)]
+        ])
+        source.suspendedPageCall = 1
+        let snapshots = InMemorySnapshotStore()
+        let vm = makeViewModel(source, snapshots: snapshots)
+        let initialLoad = Task { await vm.loadIfNeeded() }
+        await source.waitForSuspendedPage()
+
+        CacheEventBus.shared.publish(.dataChanged(.workouts))
+        for _ in 0..<100 where source.pageCallCount < 2 {
+            await Task.yield()
+            try? await Task.sleep(nanoseconds: 5_000_000)
+        }
+        XCTAssertGreaterThanOrEqual(source.pageCallCount, 2, "完成事件在首載期間也必須排一輪新讀取")
+
+        source.releasePage()
+        await initialLoad.value
+        for _ in 0..<100 where vm.items.first?.row.vdot != "40.0" {
+            await Task.yield()
+            try? await Task.sleep(nanoseconds: 5_000_000)
+        }
+        XCTAssertEqual(vm.items.first?.row.vdot, "40.0")
+        let snapshot = snapshots.load([WorkoutV2].self, for: .recentWorkouts)
+        XCTAssertEqual(snapshot?.value.first?.advancedMetrics?.dynamicVdot, 40)
+    }
+
+    func test_completionRefreshWinsWhenOlderRecordsRequestReturnsLast() async throws {
+        let source = CompletionRaceStatsSource(workoutsByCall: [
+            [run(id: "run", at: Date(), km: 5, vdot: 38)],
+            [run(id: "run", at: Date(), km: 5, vdot: 39)],
+            [run(id: "run", at: Date(), km: 5, vdot: 40)]
+        ])
+        let snapshots = InMemorySnapshotStore()
+        let vm = makeViewModel(source, snapshots: snapshots)
+        await vm.loadIfNeeded()
+        XCTAssertEqual(vm.items.first?.row.vdot, "38.0")
+
+        source.suspendedPageCall = 2
+        let oldRefresh = Task { await vm.revalidate() }
+        await source.waitForSuspendedPage()
+        CacheEventBus.shared.publish(.dataChanged(.workouts))
+
+        for _ in 0..<100 where vm.items.first?.row.vdot != "40.0" {
+            await Task.yield()
+            try? await Task.sleep(nanoseconds: 5_000_000)
+        }
+        XCTAssertEqual(vm.items.first?.row.vdot, "40.0", "完成後の読み取りを画面へ反映する")
+
+        source.releasePage()
+        await oldRefresh.value
+        XCTAssertEqual(vm.items.first?.row.vdot, "40.0", "古い応答で完了後のVDOTを上書きしない")
+        XCTAssertEqual(snapshots.load([WorkoutV2].self, for: .recentWorkouts)?.value.first?.advancedMetrics?.dynamicVdot, 40)
     }
 
     // MARK: - 往更舊分頁（捲到底載入）

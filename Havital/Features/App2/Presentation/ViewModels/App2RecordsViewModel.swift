@@ -104,6 +104,8 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
     private var nextCursor: String?
     private var backendHasMore = false
     private var visibleCount = App2RecordsViewModel.listPageSize
+    private var revalidationGeneration = 0
+    private var isRevalidating = false
 
     nonisolated let taskRegistry = TaskRegistry()
 
@@ -128,7 +130,7 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
                 Task { @MainActor [weak self] in
                     guard let self else { return }
                     self.lastLoadedAt = nil
-                    if self.hasLoaded { await self.revalidate() }
+                    if self.hasLoaded || self.isRevalidating { await self.revalidate() }
                 }
             default:
                 break
@@ -141,15 +143,25 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
     }
 
     func revalidate() async {
+        revalidationGeneration += 1
+        let generation = revalidationGeneration
+        isRevalidating = true
+        defer {
+            if generation == revalidationGeneration { isRevalidating = false }
+        }
+
         // 冷啟第一輪：先把上一次的清單與統計渲染出來，這一輪的網路變成背景刷新。
         if !hasLoaded { hydrateFromSnapshot() }
         isLoading = !hasLoaded && records == nil
         // 被取消的那一輪**不算載過**：只收 spinner，不標 hasLoaded／lastLoadedAt，
         // 下次進頁的 SWR 會重試（2026-08-29 外審 E03）。
-        defer { isLoading = false }
+        defer {
+            if generation == revalidationGeneration { isLoading = false }
+        }
 
         do {
             let stats = try await workoutDataSource.fetchWorkoutStats(days: 30, weeks: 8)
+            guard generation == revalidationGeneration else { return }
             // 月比要看到「上個月」，所以取回的筆數比清單顯示的多。
             // `/v2/workouts/stats` 只給滾動視窗（days）與 YTD，沒有日曆月的分桶，
             // 月量與月比在 client 端從同一批紀錄算，不新增端點。
@@ -157,6 +169,7 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
                 let page = try await workoutDataSource.fetchWorkoutsPage(
                     pageSize: Self.aggregationPageSize, cursor: nil
                 )
+                guard generation == revalidationGeneration else { return }
                 // 兩支都收齊才落快照——stats 先落、page 中途被收掉會留下
                 // 半新半舊的快照組（外審 E03）。
                 snapshots.save(stats, for: .workoutStats)
@@ -165,6 +178,7 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
                 backendHasMore = page.pagination.hasMore
                 apply(stats: stats, rows: page.workouts)
             } catch {
+                guard generation == revalidationGeneration else { return }
                 // 清單失敗但 stats 成功：**保留既有清單**（SWR），只更新統計。
                 // 之前 `try?` 把失敗折成空清單再當 live 發布——畫面宣稱「沒有紀錄」，
                 // 其實是「沒取到」（2026-08-29 外審 D04/D07）。
@@ -179,6 +193,7 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
             hasLoaded = true
             lastLoadedAt = Date()
         } catch {
+            guard generation == revalidationGeneration else { return }
             // 取消不是失敗（`AGENTS.md` 陷阱 2）—— 下拉刷新的 task 被收掉時
             // in-flight 請求會回 -999。
             guard !error.isCancellationError else { return }

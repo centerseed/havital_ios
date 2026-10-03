@@ -19,8 +19,8 @@ date: 2026-09-29
 2. **進度與結果（AC-HR-08）**：選了範圍就 `POST /user/heart-rate/recompute`，之後輪詢 `GET` 到結束；顯示進度條與後端 `message`（排隊中／重算中 n/N／能力值更新中／完成：重算 x、跳過 y、失敗 z、失敗）。後端只有在 series refresh 寫完並讀回能力基準確認後才回完成；失敗顯示「重試」；進行中選單按鈕停用，後端回 409 就接上進行中的那一個，不開第二個。「這段時間沒有可重算的課」直接顯示後端那句，不輪詢。API 失敗照實顯示，不拼假資料。
    驗法：`test_queuedJobIsPolledToCompletion…`、`test_failedJobIsShownAsFailedAndCanBeRetried`、`test_alreadyRunningAdopts…`、`test_cannotStartWhileAJobIsActive`。
 3. **存永遠先成功、頁面有重算入口（AC-HR-09）**：選不重算、關掉或失敗，新心率照樣生效；頁面另有「用目前的心率重算過去的跑力」，走同一組選項。進頁時若後端有進行中的工作就接上，跑完很久的舊結果不顯示。
-4. **完成後各處同一個新值（AC-HR-10）**：只有「完成」才發既有的 `.dataChanged(.vdot)`／`.dataChanged(.workouts)` 快取失效事件；VDOTManager 會重抓，首頁、能力基準／指標詳情、完賽預估與訓練紀錄會各自重抓。若首頁原本就在刷新，完成事件不能被略過；原刷新結束後還要再抓一次，讓首頁能力列與完賽預估顯示事件後的新資料。失敗不發事件；已產生的課表與回顧 App 不動。
-   驗法：能力基準頁在空 VDOT 歷史時仍以首頁值和 30 天前基準算出一致的比較；完成事件在首頁請求飛行中抵達時，放行舊請求後再抓新列與完賽預估（`test_capabilityVM_compareUsesSeriesPointThirtyDaysBeforeAsof`、`test_homeVM_vdotCompletionDuringActiveRefreshRunsFollowupAndPublishesFreshRowsAndEstimates`）。
+4. **完成後各處同一個新值（AC-HR-10）**：只有「完成」才發既有的 `.dataChanged(.vdot)`／`.dataChanged(.workouts)` 快取失效事件；VDOTManager 會重抓，首頁、能力基準／指標詳情、完賽預估與訓練紀錄會各自重抓。若首頁或訓練紀錄原本就在刷新，完成事件不能被略過；原請求回來後要再抓一次，且事件前開始的舊回應不得覆蓋新列或寫回快照。失敗不發事件；已產生的課表與回顧 App 不動。
+   驗法：能力基準頁在空 VDOT 歷史時仍以首頁值和 30 天前基準算出一致的比較；完成事件在首頁請求飛行中抵達時，放行舊請求後再抓新列與完賽預估；紀錄頁首載與刷新期間收到完成事件時皆保留新 VDOT（`test_capabilityVM_compareUsesSeriesPointThirtyDaysBeforeAsof`、`test_homeVM_vdotCompletionDuringActiveRefreshRunsFollowupAndPublishesFreshRowsAndEstimates`、`test_completionDuringFirstLoadStartsFreshRecordsRead`、`test_completionRefreshWinsWhenOlderRecordsRequestReturnsLast`）。
 5. **自動更新最大心率開關（AC-HR-11）**：一個開關，切換即 `PUT /user {auto_update_max_hr}`，不出現重算選單；失敗回滾並顯示錯誤。顯示 `auto_update_max_hr == true`（沒設過顯示為關；後端沒設過就是關，2026-09-29 裁決）。
 6. **手錶偏差提醒（AC-HR-12、13）**：進頁 `GET /user/heart-rate/watch-check`，有 `reminder` 才顯示「你的手錶最大心率是 X，和設定的 Y 差了 Z%，要不要更新？」，按鈕把最大心率改成手錶值並走一般儲存（於是同樣進第 1 條）；沒有就什麼都不顯示，讀不到也不顯示。Apple Watch／無 Garmin 資料的使用者後端不會回提醒。
    提醒旁多一個「先不用」：按下呼叫 `POST /user/heart-rate/watch-check/dismiss`，後端記下後兩週內不再出現、兩週後偏差還在就再提醒一次（HZ-INV-19）。呼叫失敗卡片留著，不假裝已忽略。
