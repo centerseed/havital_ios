@@ -30,6 +30,53 @@ final class App2RaceManagementViewModelTests: XCTestCase {
         XCTAssertTrue(repository.lastUpdatedTarget?.isMainRace == true)
     }
 
+    func testPromotionRemainsBusyAndRejectsDuplicateWriteUntilResponse() async {
+        let repository = MockTargetRepository()
+        repository.targetsToReturn = [target(id: "main", main: true), target(id: "support", main: false)]
+        repository.updateTargetDelayNanoseconds = 250_000_000
+        let viewModel = App2RaceManagementViewModel(targetRepository: repository)
+        await viewModel.loadIfNeeded()
+
+        let mutation = Task { await viewModel.setAsMain("support") }
+        while repository.updateTargetCallCount == 0 { await Task.yield() }
+        XCTAssertTrue(viewModel.isSaving)
+
+        await viewModel.setAsMain("support")
+        XCTAssertEqual(repository.updateTargetCallCount, 1)
+
+        await mutation.value
+        XCTAssertFalse(viewModel.isSaving)
+    }
+
+    func testDismissingConfirmationDoesNotLeaveAConfirmableWrite() async {
+        let repository = MockTargetRepository()
+        repository.targetsToReturn = [target(id: "main", main: true), target(id: "support", main: false)]
+        let viewModel = App2RaceManagementViewModel(targetRepository: repository)
+        await viewModel.loadIfNeeded()
+        viewModel.requestSetAsMainConfirmation("support")
+
+        viewModel.cancelSetAsMainConfirmation()
+        await viewModel.confirmPendingSetAsMain()
+
+        XCTAssertNil(viewModel.pendingPromotionID)
+        XCTAssertEqual(repository.updateTargetCallCount, 0)
+    }
+
+    func testConfirmedIDIsConsumedBeforeDialogDismissalCallback() async {
+        let repository = MockTargetRepository()
+        repository.targetsToReturn = [target(id: "main", main: true), target(id: "support", main: false)]
+        let viewModel = App2RaceManagementViewModel(targetRepository: repository)
+        await viewModel.loadIfNeeded()
+        viewModel.requestSetAsMainConfirmation("support")
+
+        let confirmedID = viewModel.takePendingSetAsMainConfirmation()
+        viewModel.cancelSetAsMainConfirmation()
+
+        XCTAssertEqual(confirmedID, "support")
+        if let confirmedID { await viewModel.setAsMain(confirmedID) }
+        XCTAssertEqual(repository.updateTargetCallCount, 1)
+    }
+
     func testPromotionKeepsBackendAdvisoryForTheSuccessDialog() async {
         let repository = MockTargetRepository()
         repository.targetsToReturn = [target(id: "main", main: true), target(id: "support", main: false)]

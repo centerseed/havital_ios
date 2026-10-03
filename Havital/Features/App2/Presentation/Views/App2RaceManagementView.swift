@@ -81,16 +81,29 @@ struct App2RaceManagementView: View {
             NSLocalizedString("app2.races.promote_confirm_title", comment: ""),
             isPresented: Binding(
                 get: { pendingPromotion != nil },
-                set: { if !$0 { pendingPromotion = nil; viewModel.cancelSetAsMainConfirmation() } }
+                set: {
+                    if !$0 {
+                        pendingPromotion = nil
+                        if viewModel.pendingPromotionID != nil {
+                            viewModel.cancelSetAsMainConfirmation()
+                        }
+                    }
+                }
             ),
             titleVisibility: .visible
         ) {
             if let race = pendingPromotion {
                 Button(NSLocalizedString("app2.races.promote_confirm_action", comment: "")) {
-                    Task { await viewModel.confirmPendingSetAsMain() }
+                    let confirmedID = viewModel.takePendingSetAsMainConfirmation()
+                    pendingPromotion = nil
+                    guard let confirmedID else { return }
+                    Task { await viewModel.setAsMain(confirmedID) }
                 }
                 .accessibilityIdentifier("App2_RacesPromoteConfirm")
-                Button(NSLocalizedString("common.cancel", comment: ""), role: .cancel) {}
+                Button(NSLocalizedString("common.cancel", comment: ""), role: .cancel) {
+                    pendingPromotion = nil
+                    viewModel.cancelSetAsMainConfirmation()
+                }
                     .accessibilityIdentifier("App2_RacesPromoteCancel")
             }
         } message: {
@@ -346,7 +359,8 @@ struct App2RaceManagementView: View {
                         fillsWidth: true,
                         identifier: "App2_RacesSetMain_\(race.id)",
                         isDisabled: viewModel.isSaving,
-                        showsProgress: viewModel.isSaving
+                        showsProgress: viewModel.isSaving,
+                        progressIdentifier: "App2_RacesPromotionLoading"
                     ) {
                         pendingPromotion = race
                         viewModel.requestSetAsMainConfirmation(race.id)
@@ -442,11 +456,13 @@ struct App2RaceManagementView: View {
         identifier: String,
         isDisabled: Bool = false,
         showsProgress: Bool = false,
+        progressIdentifier: String? = nil,
         action: @escaping () -> Void
     ) -> some View {
         HStack(spacing: 6) {
             if showsProgress {
-                ProgressView().controlSize(.small)
+                ProgressView()
+                    .controlSize(.small)
             } else {
                 Image(systemName: systemImage)
                     .font(.system(size: 13, weight: .heavy))
@@ -470,7 +486,7 @@ struct App2RaceManagementView: View {
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(title)
-        .accessibilityIdentifier(identifier)
+        .accessibilityIdentifier(showsProgress ? (progressIdentifier ?? identifier) : identifier)
     }
 
     private func iconButton(

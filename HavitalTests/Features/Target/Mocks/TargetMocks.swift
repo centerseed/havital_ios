@@ -17,6 +17,7 @@ class MockTargetRepository: TargetRepository {
     var supportingTargetsToReturn: [Target] = []
     var errorToThrow: Error?
     var mutationMessageToReturn: String?
+    var updateTargetDelayNanoseconds: UInt64 = 0
     
     var getTargetsCallCount = 0
     var getTargetCallCount = 0
@@ -56,6 +57,9 @@ class MockTargetRepository: TargetRepository {
     
     func updateTarget(id: String, target: Target) async throws -> TargetMutationResult {
         updateTargetCallCount += 1
+        if updateTargetDelayNanoseconds > 0 {
+            try await Task.sleep(nanoseconds: updateTargetDelayNanoseconds)
+        }
         if let error = errorToThrow { throw error }
         lastUpdatedTarget = target
         return TargetMutationResult(target: target, message: mutationMessageToReturn)

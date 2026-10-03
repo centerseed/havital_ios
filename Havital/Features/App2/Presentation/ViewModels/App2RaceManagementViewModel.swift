@@ -200,15 +200,20 @@ final class App2RaceManagementViewModel: ObservableObject, TaskManageable {
         pendingPromotionID = nil
     }
 
+    /// Synchronously consumes the confirmed ID before the confirmation UI dismisses.
+    func takePendingSetAsMainConfirmation() -> String? {
+        defer { pendingPromotionID = nil }
+        return pendingPromotionID
+    }
+
     func confirmPendingSetAsMain() async {
-        guard let id = pendingPromotionID else { return }
-        pendingPromotionID = nil
+        guard let id = takePendingSetAsMainConfirmation() else { return }
         await setAsMain(id)
     }
 
     /// 把一場支援賽事設為主要。舊的主要賽事由後端自動降級（見檔頭）。
     func setAsMain(_ id: String) async {
-        guard let existing = targetsById[id] else { return }
+        guard !isSaving, let existing = targetsById[id] else { return }
         isSaving = true
         successMessage = nil
         didPromoteMainRace = false

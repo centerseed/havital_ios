@@ -23,6 +23,11 @@ struct UnifiedAPIResponse<T: Codable>: Codable {
     }
 }
 
+struct APIResultWithMessage<T: Codable> {
+    let data: T
+    let message: String?
+}
+
 /// 簡化的 API 回應（向後兼容現有的 APIResponse）
 struct APIResponse<T: Codable>: Codable {
     let success: Bool

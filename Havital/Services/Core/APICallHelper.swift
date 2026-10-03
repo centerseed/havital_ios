@@ -105,6 +105,30 @@ struct APICallHelper {
         }
     }
 
+    /// Parse the ordinary data result while retaining a response-level advisory message.
+    /// Callers opt in only where that message is part of the feature contract.
+    func callWithMessage<T: Codable>(
+        _ type: T.Type,
+        path: String,
+        method: HTTPMethod,
+        body: Data? = nil
+    ) async throws -> APIResultWithMessage<T> {
+        do {
+            let rawData = try await httpClient.request(
+                path: path,
+                method: method,
+                body: body,
+                customHeaders: nil,
+                timeout: nil
+            )
+            let envelope = parser.tryParse(UnifiedAPIResponse<T>.self, from: rawData)
+            let data = try ResponseProcessor.extractData(type, from: rawData, using: parser)
+            return APIResultWithMessage(data: data, message: envelope?.data == nil ? nil : envelope?.message)
+        } catch {
+            throw handleError(error, path: path, method: method)
+        }
+    }
+
     /// Make an API call without expecting a response body
     ///
     /// Use this for DELETE, PUT, or POST operations that don't return data.
@@ -209,6 +233,22 @@ struct APICallHelper {
 // MARK: - Convenience Extensions
 
 extension APICallHelper {
+
+    func postWithMessage<T: Codable, B: Encodable>(
+        _ type: T.Type,
+        path: String,
+        body: B
+    ) async throws -> APIResultWithMessage<T> {
+        try await callWithMessage(type, path: path, method: .POST, body: JSONEncoder().encode(body))
+    }
+
+    func putWithMessage<T: Codable, B: Encodable>(
+        _ type: T.Type,
+        path: String,
+        body: B
+    ) async throws -> APIResultWithMessage<T> {
+        try await callWithMessage(type, path: path, method: .PUT, body: JSONEncoder().encode(body))
+    }
 
     /// Make a GET request
     func get<T: Codable>(_ type: T.Type, path: String) async throws -> T {

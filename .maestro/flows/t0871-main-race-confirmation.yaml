@@ -45,9 +45,13 @@ tags:
 
 - tapOn:
     id: "App2_RacesPromoteConfirm"
+- extendedWaitUntil:
+    visible:
+      id: "App2_RacesPromotionLoading"
+    timeout: 15000
 - takeScreenshot: t0871-main-race-loading
 
-# 遠期賽事會先顯示 API 的在地化建議，再由按鈕前往計畫頁；一般賽事直接導向。
+# 遠期賽事先顯示 API 的在地化建議；確認或關閉建議後回到已刷新的計畫總覽。
 - runFlow:
     when:
       visible:

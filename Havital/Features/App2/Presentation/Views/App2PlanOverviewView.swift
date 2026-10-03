@@ -102,7 +102,7 @@ struct App2PlanOverviewView: View {
                 },
                 onPromotionComplete: {
                     isShowingRaces = false
-                    onOpenPlan()
+                    Task { await viewModel.forceRefresh() }
                 }
             )
         }

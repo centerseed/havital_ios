@@ -66,27 +66,36 @@ final class TargetDecodingTests: XCTestCase {
         XCTAssertEqual(targets.map(\.id), ["main_half", "support_full"])
         XCTAssertEqual(targets[1].distanceKm, 42)
     }
-    func testTargetMutationResponseDecodesTopLevelLocalizedMessageAndTarget() throws {
+    func testCreateTargetPreservesBackendEnvelopeAdvisoryThroughRemoteDataSource() async throws {
         let json = """
         {
-            "id": "main_race",
-            "type": "race_run",
-            "name": "Nagano Marathon",
-            "distance_km": 42.195,
-            "target_time": 14400,
-            "target_pace": "5:41",
-            "race_date": 1786060800,
-            "is_main_race": true,
-            "training_weeks": 40,
-            "timezone": "Asia/Tokyo",
+            "success": true,
+            "data": {"id":"main_race","type":"race_run","name":"Nagano Marathon","distance_km":42.195,"target_time":14400,"target_pace":"5:41","race_date":1786060800,"is_main_race":true,"training_weeks":40,"timezone":"Asia/Tokyo"},
             "message": "Consider using maintenance training first."
         }
         """.data(using: .utf8)!
+        let http = MockHTTPClient()
+        http.setResponse(for: "/user/targets", method: .POST, data: json)
+        let result = try await TargetRemoteDataSource(httpClient: http).createTarget(
+            Target(type: "race_run", name: "Nagano Marathon", distanceKm: 42, targetTime: 14_400, targetPace: "5:41", raceDate: 1_786_060_800, isMainRace: true, trainingWeeks: 40, timezone: "Asia/Tokyo")
+        )
 
-        let response = try JSONDecoder().decode(TargetMutationResponseDTO.self, from: json)
+        XCTAssertEqual(result.target.id, "main_race")
+        XCTAssertEqual(result.message, "Consider using maintenance training first.")
+    }
 
-        XCTAssertEqual(response.target.id, "main_race")
-        XCTAssertEqual(response.message, "Consider using maintenance training first.")
+    func testUpdateTargetEnvelopeWithoutAdvisoryHasNoMessage() async throws {
+        let json = """
+        {"success":true,"data":{"id":"main_race","type":"race_run","name":"Nagano Marathon","distance_km":42,"target_time":14400,"target_pace":"5:41","race_date":1786060800,"is_main_race":true,"training_weeks":40,"timezone":"Asia/Tokyo"}}
+        """.data(using: .utf8)!
+        let http = MockHTTPClient()
+        http.setResponse(for: "/user/targets/main_race", method: .PUT, data: json)
+        let result = try await TargetRemoteDataSource(httpClient: http).updateTarget(
+            id: "main_race",
+            target: Target(id: "main_race", type: "race_run", name: "Nagano Marathon", distanceKm: 42, targetTime: 14_400, targetPace: "5:41", raceDate: 1_786_060_800, isMainRace: true, trainingWeeks: 40, timezone: "Asia/Tokyo")
+        )
+
+        XCTAssertNil(result.message)
     }
 
 }
