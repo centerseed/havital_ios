@@ -4797,7 +4797,7 @@
 "app2.weekly_review.stats_section" = "This week's numbers";
 "app2.weekly_review.sessions" = "Runs";
 "app2.weekly_review.completion_rate" = "Plan Completion";
-"app2.weekly_review.planned_km_footnote" = "planned %.1f km";
+"app2.weekly_review.planned_km_footnote" = "Plan %.1f km";
 "app2.weekly_review.highlights_section" = "Highlights";
 "app2.weekly_review.observations_section" = "What Rizo Observed";
 "app2.weekly_review.analysis_section" = "Training Analysis";
