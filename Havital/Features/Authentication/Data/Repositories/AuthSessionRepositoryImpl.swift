@@ -16,7 +16,6 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
     private static let legacyMigrationSyncedKey = "hasCompletedOnboarding_migrationSynced"
 
     /// Persist demo auth across app relaunches during reviewer/UI test flows.
-    private static let demoTokenKey = "auth.demo_id_token"
     private static let demoUserKey = "auth.demo_user"
 
     // MARK: - Dependencies
@@ -24,18 +23,20 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
     private let firebaseAuth: FirebaseAuthDataSource
     private let backendAuth: BackendAuthDataSource
     private let authCache: AuthCache
+    private let demoTokens: DemoTokenStore
 
     // MARK: - Initialization
 
     init(
         firebaseAuth: FirebaseAuthDataSource,
         backendAuth: BackendAuthDataSource,
-        authCache: AuthCache
+        authCache: AuthCache,
+        demoTokens: DemoTokenStore = DemoTokenStore()
     ) {
         self.firebaseAuth = firebaseAuth
         self.backendAuth = backendAuth
         self.authCache = authCache
-        self.demoToken = UserDefaults.standard.string(forKey: Self.demoTokenKey)
+        self.demoTokens = demoTokens
     }
 
     // MARK: - Session State Operations
@@ -64,7 +65,8 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
             // Step 0: Check if we're in demo mode (has demo token)
             Logger.debug("[AuthSession] 🎯 fetchCurrentUser called. SessionRepo ID: \(ObjectIdentifier(self)). DemoToken: \(demoToken != nil ? "set" : "nil")")
 
-            if let demoToken {
+            // body 的 id_token 要用續期後的 token：冷啟動時存著的那張可能早已過期。
+            if demoToken != nil, let demoToken = await demoTokens.currentToken() {
                 guard let cachedUser = authCache.getCurrentUser() ?? getPersistedDemoUser() else {
                     Logger.error("[AuthSession] ❌ Demo mode: no cached user found. SessionRepo ID: \(ObjectIdentifier(self))")
                     throw AuthenticationError.userNotFound
@@ -212,7 +214,7 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
     /// Firebase SDK handles automatic refresh internally
     func getIdToken() async throws -> String {
         // Prioritize Demo Token if set
-        if let demoToken = demoToken {
+        if let demoToken = await demoTokens.currentToken() {
             Logger.debug("[AuthSession] 🎯 Using demo token (length: \(demoToken.count))")
             return demoToken
         }
@@ -235,6 +237,16 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
     /// Force refresh Firebase ID Token
     /// Explicitly requests new token from Firebase
     func refreshIdToken() async throws -> String {
+        if demoToken != nil {
+            do {
+                let token = try await demoTokens.forceRefresh()
+                Logger.debug("[AuthSession] 🎯 Demo token refreshed")
+                return token
+            } catch {
+                Logger.error("[AuthSession] Failed to refresh demo token: \(error.localizedDescription)")
+                throw AuthenticationError.tokenExpired
+            }
+        }
         do {
             let token = try await firebaseAuth.refreshIdToken()
             Logger.debug("[AuthSession] ID Token refreshed successfully")
@@ -258,16 +270,16 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
 
     // MARK: - Demo Support
 
-    private var demoToken: String?
+    private var demoToken: String? { demoTokens.idToken }
 
     func setDemoToken(_ token: String?) {
-        self.demoToken = token
-        if let token {
-            UserDefaults.standard.set(token, forKey: Self.demoTokenKey)
-        } else {
-            UserDefaults.standard.removeObject(forKey: Self.demoTokenKey)
-        }
+        demoTokens.set(idToken: token)
         Logger.debug("[AuthSession] 🎯 Demo token set in SessionRepo ID: \(ObjectIdentifier(self)). Token: \(token != nil ? "set" : "cleared")")
+    }
+
+    func setDemoSession(idToken: String, refreshToken: String?, expiresIn: TimeInterval?) {
+        demoTokens.set(idToken: idToken, refreshToken: refreshToken, expiresIn: expiresIn)
+        Logger.debug("[AuthSession] 🎯 Demo session set (refreshable: \(refreshToken?.isEmpty == false))")
     }
 
     func setDemoUser(_ user: AuthUser?) {

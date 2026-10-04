@@ -549,6 +549,29 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
         XCTAssertEqual(cards[2].countdownDays, 72)
     }
 
+    /// 已結束的比賽不能設為主要賽事；今天的比賽與未來的比賽可以，已是主要的不用再設（T-0877）。
+    func testOnlyUpcomingSupportRacesCanBecomeMain() {
+        let now = Date()
+        func epoch(_ days: Int) -> Int {
+            Int(now.addingTimeInterval(Double(days) * 86_400).timeIntervalSince1970)
+        }
+        let cards = App2RaceManagementViewModel.cards(
+            from: [
+                target(id: "m", name: "主賽", raceDate: epoch(60), isMain: true),
+                target(id: "past", name: "已結束", raceDate: epoch(-30), isMain: false),
+                target(id: "today", name: "今天", raceDate: epoch(0), isMain: false),
+                target(id: "future", name: "未來", raceDate: epoch(20), isMain: false)
+            ],
+            now: now
+        )
+        let byId = Dictionary(uniqueKeysWithValues: cards.map { ($0.id, $0) })
+
+        XCTAssertFalse(byId["past"]!.canBecomeMain)
+        XCTAssertTrue(byId["today"]!.canBecomeMain)
+        XCTAssertTrue(byId["future"]!.canBecomeMain)
+        XCTAssertFalse(byId["m"]!.canBecomeMain)
+    }
+
     /// 已過期的賽事倒數是負數 —— 畫面據此改說「已結束」，不印負天數。
     func testCountdownIsNegativeForPastRace() {
         let now = Date()

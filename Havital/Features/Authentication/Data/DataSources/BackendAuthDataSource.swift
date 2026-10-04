@@ -219,7 +219,9 @@ final class BackendAuthDataSource {
                 uid: response.data.user.uid,
                 email: response.data.user.email,
                 displayName: response.data.user.displayName,
-                idToken: response.data.idToken
+                idToken: response.data.idToken,
+                refreshToken: response.data.refreshToken,
+                expiresIn: TimeInterval(response.data.expiresIn)
             )
         } catch let error as HTTPError {
             switch error {
@@ -248,6 +250,8 @@ struct DemoUserDTO {
     let email: String
     let displayName: String
     let idToken: String
+    let refreshToken: String
+    let expiresIn: TimeInterval?
 }
 
 private struct ReviewerDemoLoginRequest: Encodable {
