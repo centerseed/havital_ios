@@ -5059,11 +5059,11 @@
 "app2.weekly_review.decision_verdict" = "結果";
 "app2.weekly_review.decision_reason" = "原因";
 "app2.weekly_review.decision_wait_until" = "判斷日：%@";
-"app2.weekly_review.decision_execution" = "本週三個數";
-"app2.weekly_review.decision_quality" = "品質課堂";
+"app2.weekly_review.decision_execution" = "本週成績";
+"app2.weekly_review.decision_quality" = "高品質訓練";
 "app2.weekly_review.decision_retrospect" = "本週回顧";
-"app2.weekly_review.decision_show_more" = "展開文字";
-"app2.weekly_review.decision_show_less" = "收合文字";
+"app2.weekly_review.decision_show_more" = "展開更多";
+"app2.weekly_review.decision_show_less" = "收合詳細";
 "app2.weekly_review.metric_capability" = "能力基線";
 "app2.weekly_review.metric_aerobic" = "有氧耐力";
 "app2.weekly_review.metric_speed" = "速度耐力";

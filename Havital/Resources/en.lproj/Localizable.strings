@@ -4794,7 +4794,7 @@
 "app2.weekly_review.tab_review_week" = "Week %d Review";
 "app2.weekly_review.tab_plan_week" = "Week %d Plan";
 "app2.weekly_review.week_kicker" = "Week %d";
-"app2.weekly_review.stats_section" = "This Week's Numbers";
+"app2.weekly_review.stats_section" = "This week's numbers";
 "app2.weekly_review.sessions" = "Runs";
 "app2.weekly_review.completion_rate" = "Plan Completion";
 "app2.weekly_review.planned_km_footnote" = "planned %.1f km";
@@ -5019,7 +5019,7 @@
 "app2.weekly_review.decision_reason" = "Why";
 "app2.weekly_review.decision_wait_until" = "Review on %@";
 "app2.weekly_review.decision_execution" = "This week's numbers";
-"app2.weekly_review.decision_quality" = "Quality sessions";
+"app2.weekly_review.decision_quality" = "Quality runs";
 "app2.weekly_review.decision_retrospect" = "This week's story";
 "app2.weekly_review.decision_show_more" = "Show more";
 "app2.weekly_review.decision_show_less" = "Show less";

@@ -4791,7 +4791,7 @@
 "app2.weekly_review.tab_review_week" = "第%d週の振り返り";
 "app2.weekly_review.tab_plan_week" = "第%d週の計画";
 "app2.weekly_review.week_kicker" = "第 %d 週";
-"app2.weekly_review.stats_section" = "今週の記録";
+"app2.weekly_review.stats_section" = "今週の成績";
 "app2.weekly_review.sessions" = "ラン回数";
 "app2.weekly_review.completion_rate" = "計画達成率";
 "app2.weekly_review.planned_km_footnote" = "計画 %.1f km";
@@ -5015,11 +5015,11 @@
 "app2.weekly_review.decision_verdict" = "結果";
 "app2.weekly_review.decision_reason" = "理由";
 "app2.weekly_review.decision_wait_until" = "判定日：%@";
-"app2.weekly_review.decision_execution" = "今週の数字";
+"app2.weekly_review.decision_execution" = "今週の成績";
 "app2.weekly_review.decision_quality" = "質の高い練習";
 "app2.weekly_review.decision_retrospect" = "今週の振り返り";
-"app2.weekly_review.decision_show_more" = "詳しく見る";
-"app2.weekly_review.decision_show_less" = "閉じる";
+"app2.weekly_review.decision_show_more" = "詳細を表示";
+"app2.weekly_review.decision_show_less" = "詳細を閉じる";
 "app2.weekly_review.metric_capability" = "能力ベースライン";
 "app2.weekly_review.metric_aerobic" = "有酸素持久力";
 "app2.weekly_review.metric_speed" = "スピード持久力";

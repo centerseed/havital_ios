@@ -59,7 +59,9 @@ private struct App2DecisionChainLineChart: View {
                     focus: focus,
                     reviewDay: reviewDay
                 ) else { return nil }
-                let x = size.width * fraction
+                let plotLeading: CGFloat = 6
+                let plotTrailing = max(plotLeading, size.width - 6)
+                let x = plotLeading + (plotTrailing - plotLeading) * fraction
                 let y = plotBottom - CGFloat((item.value - minimum) / span) * (plotHeight - 10) - 5
                 return CGPoint(x: x, y: y)
             }
@@ -717,7 +719,7 @@ struct App2WeeklyReviewView: View {
         points: [App2DecisionChainPoint],
         reviewDay: String?
     ) -> some View {
-        let before = App2WeeklyReviewProjection.decisionChainValue(on: focus.startDay, points: points)
+        let beforePoint = points.first { $0.day == focus.startDay }
         let afterPoint = focus.kind == "open_hypothesis"
             ? reviewDay.flatMap { day in
                 App2WeeklyReviewProjection.decisionChainValue(on: day, points: points).map { value in
@@ -739,8 +741,20 @@ struct App2WeeklyReviewView: View {
                 expectedDirectionText(focus)
             )
             HStack(spacing: 10) {
-                if let before { valueTile(L10n.App2.WeeklyReview.decisionBefore.localized, before) }
-                if let afterPoint { valueTile(L10n.App2.WeeklyReview.decisionAfter.localized, afterPoint.value) }
+                if let beforePoint {
+                    valueTile(
+                        L10n.App2.WeeklyReview.decisionBefore.localized,
+                        beforePoint.value,
+                        date: beforePoint.day
+                    )
+                }
+                if let afterPoint {
+                    valueTile(
+                        L10n.App2.WeeklyReview.decisionAfter.localized,
+                        afterPoint.value,
+                        date: afterPoint.day
+                    )
+                }
             }
             if let verdict = focus.verdict?.app2NonEmpty {
                 labeledValue(L10n.App2.WeeklyReview.decisionVerdict.localized, verdictLabel(verdict))
@@ -919,7 +933,7 @@ struct App2WeeklyReviewView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func valueTile(_ label: String, _ value: Double) -> some View {
+    private func valueTile(_ label: String, _ value: Double, date: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(label)
                 .font(.system(size: 11, weight: .bold))
@@ -927,6 +941,9 @@ struct App2WeeklyReviewView: View {
             Text(String(format: "%.1f", value))
                 .font(.app2Mono(18))
                 .foregroundStyle(App2Theme.inkPrimary)
+            Text(App2DateLabel.short(isoDate: date))
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(App2Theme.inkTertiary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(8)
