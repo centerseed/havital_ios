@@ -816,6 +816,8 @@ struct App2RaceCard: Identifiable, Equatable {
     /// `2:34:00`；目標未設成績就是 nil。
     let goalTime: String?
     let isMain: Bool
+    /// 已結束的比賽不能設為主要賽事（SPEC-user-race-goals §4.3），畫面不給「設為主要」。
+    var canBecomeMain: Bool { !isMain && countdownDays >= 0 }
 }
 
 // MARK: - 設定（§3.9a）
