@@ -370,7 +370,11 @@ final class AuthRepositoryImpl: AuthRepository {
 
             // Step 2: Store demo token in AuthSessionRepository
             // This is crucial for subsequent API calls to use the demo token
-            authSessionRepository.setDemoToken(demoResponse.idToken)
+            authSessionRepository.setDemoSession(
+                idToken: demoResponse.idToken,
+                refreshToken: demoResponse.refreshToken,
+                expiresIn: demoResponse.expiresIn
+            )
             Logger.debug("[AuthRepository] 🎯 Demo token stored. SessionRepo ID: \(ObjectIdentifier(authSessionRepository as AnyObject))")
 
             // Step 3: Create AuthUser from demo response

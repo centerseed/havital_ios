@@ -53,7 +53,16 @@ protocol AuthSessionRepository {
     /// - Parameter token: Valid backend ID token
     func setDemoToken(_ token: String?)
 
+    /// Demo 登入拿到的 token 連同 refresh token 與有效秒數一起存，讓 session 能自己續期
+    func setDemoSession(idToken: String, refreshToken: String?, expiresIn: TimeInterval?)
+
     /// Persist Demo User for reviewer/UI test flows that have no Firebase session
     /// - Parameter user: Authenticated demo user returned by backend
     func setDemoUser(_ user: AuthUser?)
+}
+
+extension AuthSessionRepository {
+    func setDemoSession(idToken: String, refreshToken: String?, expiresIn: TimeInterval?) {
+        setDemoToken(idToken)
+    }
 }
