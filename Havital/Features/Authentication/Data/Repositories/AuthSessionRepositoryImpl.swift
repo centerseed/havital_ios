@@ -72,7 +72,8 @@ final class AuthSessionRepositoryImpl: AuthSessionRepository {
             // Step 0: Check if we're in demo mode (has demo token)
             Logger.debug("[AuthSession] 🎯 fetchCurrentUser called. SessionRepo ID: \(ObjectIdentifier(self)). DemoToken: \(demoToken != nil ? "set" : "nil")")
 
-            if let demoToken {
+            // body 的 id_token 要用續期後的 token：冷啟動時存著的那張可能早已過期。
+            if demoToken != nil, let demoToken = await demoTokens.currentToken() {
                 guard let cachedUser = authCache.getCurrentUser() ?? getPersistedDemoUser() else {
                     Logger.error("[AuthSession] ❌ Demo mode: no cached user found. SessionRepo ID: \(ObjectIdentifier(self))")
                     throw AuthenticationError.userNotFound

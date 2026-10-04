@@ -115,6 +115,67 @@ final class DemoTokenStoreTests: XCTestCase {
         XCTAssertEqual(token, "id-1")
     }
 
+    /// 續期還沒回來就登出：晚到的結果不得把已清掉的 session 寫回去，也不得交回舊 token。
+    func testLateRefreshAfterClearIsDiscarded() async {
+        let gate = RefreshGate()
+        let store = makeStore { _ in
+            await gate.wait()
+            return DemoTokenStore.RefreshedToken(idToken: "id-2", refreshToken: "rt-2", expiresIn: 3600)
+        }
+        store.set(idToken: "id-1", refreshToken: "rt-1", expiresIn: 3600)
+        clock = clock.addingTimeInterval(3600)
+
+        let pending = Task { await store.currentToken() }
+        await gate.waitUntilEntered()
+        store.set(idToken: nil)
+        await gate.open()
+
+        let token = await pending.value
+        XCTAssertNil(token)
+        XCTAssertNil(store.idToken)
+        XCTAssertNil(makeStore().idToken)
+    }
+
+    /// 續期途中換成另一個 session：晚到的結果不得覆蓋新 session。
+    func testLateRefreshAfterReplacementKeepsNewSession() async {
+        let gate = RefreshGate()
+        let store = makeStore { _ in
+            await gate.wait()
+            return DemoTokenStore.RefreshedToken(idToken: "id-2", refreshToken: "rt-2", expiresIn: 3600)
+        }
+        store.set(idToken: "id-1", refreshToken: "rt-1", expiresIn: 3600)
+        clock = clock.addingTimeInterval(3600)
+
+        let pending = Task { await store.currentToken() }
+        await gate.waitUntilEntered()
+        store.set(idToken: "other-session", refreshToken: "rt-other", expiresIn: 3600)
+        await gate.open()
+
+        let token = await pending.value
+        XCTAssertEqual(token, "other-session")
+        XCTAssertEqual(store.idToken, "other-session")
+    }
+
+    func testForceRefreshAfterClearThrows() async {
+        let gate = RefreshGate()
+        let store = makeStore { _ in
+            await gate.wait()
+            return DemoTokenStore.RefreshedToken(idToken: "id-2", refreshToken: "rt-2", expiresIn: 3600)
+        }
+        store.set(idToken: "id-1", refreshToken: "rt-1", expiresIn: 3600)
+
+        let pending = Task { try await store.forceRefresh() }
+        await gate.waitUntilEntered()
+        store.set(idToken: nil)
+        await gate.open()
+
+        do {
+            _ = try await pending.value
+            XCTFail("expected forceRefresh to fail after the session was cleared")
+        } catch {}
+        XCTAssertNil(store.idToken)
+    }
+
     func testClearingRemovesTokenAndRefreshState() async {
         let store = makeStore()
         store.set(idToken: "id-1", refreshToken: "rt-1", expiresIn: 3600)
@@ -127,5 +188,32 @@ final class DemoTokenStoreTests: XCTestCase {
             _ = try await makeStore().forceRefresh()
             XCTFail("expected no refresh token after clearing")
         } catch {}
+    }
+}
+
+/// 讓 refresher 停在半路，測「續期途中登出／換 session」。
+private actor RefreshGate {
+    private var isOpen = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+    private var entered = false
+    private var enteredWaiters: [CheckedContinuation<Void, Never>] = []
+
+    func wait() async {
+        entered = true
+        enteredWaiters.forEach { $0.resume() }
+        enteredWaiters.removeAll()
+        if isOpen { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func waitUntilEntered() async {
+        if entered { return }
+        await withCheckedContinuation { enteredWaiters.append($0) }
+    }
+
+    func open() {
+        isOpen = true
+        waiters.forEach { $0.resume() }
+        waiters.removeAll()
     }
 }

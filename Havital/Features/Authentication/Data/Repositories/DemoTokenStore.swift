@@ -17,6 +17,8 @@ final class DemoTokenStore {
 
     enum RefreshError: Error {
         case noRefreshToken
+        /// 續期途中 session 被清除或換掉：結果作廢，不能寫回已登出／別人的 session。
+        case sessionChanged
     }
 
     private enum Keys {
@@ -33,6 +35,7 @@ final class DemoTokenStore {
     private let refresher: Refresher
     private let lock = NSLock()
     private var inFlight: Task<RefreshedToken, Error>?
+    private var generation = 0
 
     init(
         defaults: UserDefaults = .standard,
@@ -51,6 +54,7 @@ final class DemoTokenStore {
     func set(idToken: String?, refreshToken: String? = nil, expiresIn: TimeInterval? = nil) {
         lock.lock()
         defer { lock.unlock() }
+        generation += 1
         inFlight?.cancel()
         inFlight = nil
         guard let idToken else {
@@ -72,14 +76,15 @@ final class DemoTokenStore {
         }
     }
 
-    /// 目前可用的 token；快到期就先換。換失敗時交回舊的，由後端的 401 → `forceRefresh` 再試一次。
+    /// 目前可用的 token；快到期就先換。換失敗時交回目前存的 token（途中被清除就是 nil）。
     func currentToken() async -> String? {
         guard let token = idToken else { return nil }
         guard needsRefresh else { return token }
-        return (try? await refresh().idToken) ?? token
+        if let refreshed = try? await refresh() { return refreshed.idToken }
+        return idToken
     }
 
-    /// 後端回 401 時呼叫：不看到期時間，直接用 refresh token 換。
+    /// 後端回 401 時呼叫：不看到期時間，直接用 refresh token 換；換不到就丟錯，呼叫端照舊回報未授權。
     func forceRefresh() async throws -> String {
         try await refresh().idToken
     }
@@ -99,6 +104,7 @@ final class DemoTokenStore {
     private func refresh() async throws -> RefreshedToken {
         let task: Task<RefreshedToken, Error>
         lock.lock()
+        let startedGeneration = generation
         if let existing = inFlight {
             task = existing
         } else {
@@ -115,15 +121,17 @@ final class DemoTokenStore {
         do {
             let refreshed = try await task.value
             lock.lock()
-            if inFlight == task {
-                inFlight = nil
-                defaults.set(refreshed.idToken, forKey: Keys.idToken)
-                defaults.set(refreshed.refreshToken, forKey: Keys.refreshToken)
-                defaults.set(
-                    now().addingTimeInterval(refreshed.expiresIn).timeIntervalSince1970,
-                    forKey: Keys.expiresAt
-                )
+            guard generation == startedGeneration else {
+                lock.unlock()
+                throw RefreshError.sessionChanged
             }
+            if inFlight == task { inFlight = nil }
+            defaults.set(refreshed.idToken, forKey: Keys.idToken)
+            defaults.set(refreshed.refreshToken, forKey: Keys.refreshToken)
+            defaults.set(
+                now().addingTimeInterval(refreshed.expiresIn).timeIntervalSince1970,
+                forKey: Keys.expiresAt
+            )
             lock.unlock()
             return refreshed
         } catch {
