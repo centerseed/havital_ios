@@ -29,7 +29,8 @@ private struct App2DecisionChainLineChart: View {
                 .filter { $0.value.isFinite }
                 .sorted { $0.day < $1.day }
             let seriesStartDay = App2WeeklyReviewView.decisionChainChartStartDay(
-                points: candidatePoints
+                focus: focus,
+                reviewDay: reviewDay
             ) ?? focus.startDay
             let chartEndDay = App2WeeklyReviewView.decisionChainChartEndDay(
                 focus: focus,
@@ -78,6 +79,14 @@ private struct App2DecisionChainLineChart: View {
                 style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round)
             )
 
+            // A one-point window has no segment for Canvas to stroke. Keep the
+            // measured point visible without inventing a second measurement.
+            if drawablePoints.count == 1, let point = drawablePoints.first,
+               let position = position(for: point) {
+                let circle = Path(ellipseIn: CGRect(x: position.x - 4, y: position.y - 4, width: 8, height: 8))
+                context.fill(circle, with: .color(App2Theme.accentBlue))
+            }
+
             for item in drawablePoints where anchorDays.contains(item.day) {
                 guard let position = position(for: item) else { continue }
                 let circle = Path(ellipseIn: CGRect(x: position.x - 5, y: position.y - 5, width: 10, height: 10))
@@ -91,7 +100,8 @@ private struct App2DecisionChainLineChart: View {
             for (index, item) in anchorItems.enumerated() {
                 guard let point = position(for: item) else { continue }
                 let label = Text(
-                    App2WeeklyReviewView.decisionChainGraphValueLabel(item.value)
+                    "\(App2DateLabel.short(isoDate: item.day)) · "
+                        + App2WeeklyReviewView.decisionChainGraphValueLabel(item.value)
                 )
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(App2Theme.inkPrimary)
@@ -111,14 +121,20 @@ private struct App2DecisionChainLineChart: View {
             }
 
             if let chartEndDay {
-                let startLabel = Text(App2DateLabel.short(isoDate: seriesStartDay))
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(App2Theme.inkMuted)
-                let endLabel = Text(App2DateLabel.short(isoDate: chartEndDay))
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(App2Theme.inkMuted)
-                context.draw(startLabel, at: CGPoint(x: 0, y: size.height - 5), anchor: .leading)
-                context.draw(endLabel, at: CGPoint(x: size.width, y: size.height - 5), anchor: .trailing)
+                let startHasAnchor = anchorItems.contains { $0.day == seriesStartDay }
+                let endHasAnchor = anchorItems.contains { $0.day == chartEndDay }
+                if !startHasAnchor {
+                    let startLabel = Text(App2DateLabel.short(isoDate: seriesStartDay))
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(App2Theme.inkMuted)
+                    context.draw(startLabel, at: CGPoint(x: 0, y: size.height - 5), anchor: .leading)
+                }
+                if !endHasAnchor {
+                    let endLabel = Text(App2DateLabel.short(isoDate: chartEndDay))
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(App2Theme.inkMuted)
+                    context.draw(endLabel, at: CGPoint(x: size.width, y: size.height - 5), anchor: .trailing)
+                }
             }
         }
         .frame(maxWidth: .infinity)
@@ -707,7 +723,7 @@ struct App2WeeklyReviewView: View {
                 focus: focus,
                 reviewDay: reviewDay
             )
-            .frame(height: 124)
+            .frame(height: 96)
             .accessibilityIdentifier("App2_WeeklyReviewFocusChart")
         }
         .accessibilityIdentifier("App2_WeeklyReviewFocus")
@@ -731,42 +747,42 @@ struct App2WeeklyReviewView: View {
             }
         App2Card(padding: 13, spacing: 5) {
             Text(L10n.App2.WeeklyReview.decisionL2Title.localized)
-                .font(.system(size: 15, weight: .heavy))
+                .font(.system(size: 14, weight: .heavy))
                 .foregroundStyle(App2Theme.inkPrimary)
             if let intervention = focus.intervention?.app2NonEmpty {
-                labeledValue(L10n.App2.WeeklyReview.decisionIntervention.localized, intervention)
+                inlineLabeledValue(L10n.App2.WeeklyReview.decisionIntervention.localized, intervention)
             }
-            labeledValue(
+            inlineLabeledValue(
                 L10n.App2.WeeklyReview.decisionDirection.localized,
                 expectedDirectionText(focus)
             )
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 if let beforePoint {
-                    valueTile(
+                    valueLine(
                         L10n.App2.WeeklyReview.decisionBefore.localized,
-                        beforePoint.value,
+                        point: beforePoint,
                         date: beforePoint.day
                     )
                 }
                 if let afterPoint {
-                    valueTile(
+                    valueLine(
                         L10n.App2.WeeklyReview.decisionAfter.localized,
-                        afterPoint.value,
+                        point: afterPoint,
                         date: afterPoint.day
                     )
                 }
             }
             if let verdict = focus.verdict?.app2NonEmpty {
-                labeledValue(L10n.App2.WeeklyReview.decisionVerdict.localized, verdictLabel(verdict))
+                inlineLabeledValue(L10n.App2.WeeklyReview.decisionVerdict.localized, verdictLabel(verdict))
             }
             if let reason = focus.reason?.app2NonEmpty {
-                labeledValue(L10n.App2.WeeklyReview.decisionReason.localized, reasonLabel(reason))
+                inlineLabeledValue(L10n.App2.WeeklyReview.decisionReason.localized, reasonLabel(reason))
             }
             if focus.kind == "open_hypothesis" {
                 Text(
                     Self.decisionWaitUntilRowText(focus.endDay)
                 )
-                .font(.system(size: 12, weight: .bold))
+                .font(.system(size: 11, weight: .bold))
             }
         }
         .accessibilityIdentifier("App2_WeeklyReviewL2Card")
@@ -799,34 +815,7 @@ struct App2WeeklyReviewView: View {
         ].compactMap { $0 }
         return HStack(alignment: .top, spacing: 8) {
             ForEach(stats) { stat in
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(stat.label)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(App2Theme.inkMuted)
-                        .fixedSize(horizontal: false, vertical: true)
-                    HStack(alignment: .firstTextBaseline, spacing: 2) {
-                        Text(stat.value)
-                            .font(.app2Mono(19))
-                            .foregroundStyle(App2Theme.inkPrimary)
-                        if let unit = stat.unit {
-                            Text(unit)
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundStyle(App2Theme.inkMuted)
-                        }
-                    }
-                    .lineLimit(1)
-                    if let footnote = stat.footnote {
-                        Text(footnote)
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(App2Theme.inkTertiary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                .frame(maxWidth: .infinity, minHeight: 76, alignment: .topLeading)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 10)
-                .app2CardSurface(cornerRadius: 13)
-                .accessibilityIdentifier("App2_WeeklyReviewStat_\(stat.key)")
+                statCell(stat, style: .compact)
             }
         }
         .accessibilityIdentifier("App2_WeeklyReviewExecution")
@@ -918,35 +907,46 @@ struct App2WeeklyReviewView: View {
         }
     }
 
-    private func labeledValue(_ label: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
+    private func inlineLabeledValue(_ label: String, _ value: String) -> some View {
+        (
             Text(label)
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(App2Theme.inkMuted)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(value)
+            + Text(" ")
+            + Text(value)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(App2Theme.inkSecondary)
-                .lineSpacing(1)
-                .fixedSize(horizontal: false, vertical: true)
-        }
+        )
+        .lineSpacing(1)
+        .fixedSize(horizontal: false, vertical: true)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func valueTile(_ label: String, _ value: Double, date: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
+    private func valueLine(
+        _ label: String,
+        point: App2DecisionChainPoint,
+        date: String
+    ) -> some View {
+        (
             Text(label)
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(App2Theme.inkMuted)
-            Text(String(format: "%.1f", value))
-                .font(.app2Mono(18))
+            + Text(" ")
+            + Text(App2WeeklyReviewView.decisionChainGraphValueLabel(point.value))
+                .font(.app2Mono(14))
                 .foregroundStyle(App2Theme.inkPrimary)
-            Text(App2DateLabel.short(isoDate: date))
+            + (point.unit.map { Text(" \($0)") } ?? Text(""))
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(App2Theme.inkSecondary)
+            + Text(" · \(App2DateLabel.short(isoDate: date))")
                 .font(.system(size: 10, weight: .semibold))
                 .foregroundStyle(App2Theme.inkTertiary)
-        }
+        )
+        .lineLimit(1)
+        .minimumScaleFactor(0.72)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(8)
+        .padding(.vertical, 7)
+        .padding(.horizontal, 8)
         .app2CardSurface(cornerRadius: 12)
     }
 
@@ -1000,6 +1000,9 @@ struct App2WeeklyReviewView: View {
             let point = date(day)
         else { return nil }
         let span = end.timeIntervalSince(start)
+        if span == 0 {
+            return point == start ? 0.5 : nil
+        }
         guard span > 0 else { return nil }
         let fraction = point.timeIntervalSince(start) / span
         return CGFloat(Swift.max(0, Swift.min(1, fraction)))
@@ -1029,8 +1032,15 @@ struct App2WeeklyReviewView: View {
         return points.filter { $0.day <= endDay }
     }
 
-    static func decisionChainChartStartDay(points: [App2DecisionChainPoint]) -> String? {
-        points.map(\.day).min()
+    static func decisionChainChartStartDay(
+        focus: DecisionChainFocus,
+        reviewDay: String?
+    ) -> String? {
+        let effectiveReviewDay = reviewDay ?? focus.endDay
+        return App2WeeklyReviewViewModel.decisionChainSeriesWindow(
+            focus: focus,
+            reviewDay: effectiveReviewDay
+        )?.startDay
     }
 
     static func decisionChainGraphValueLabel(_ value: Double) -> String {
@@ -1133,41 +1143,74 @@ struct App2WeeklyReviewView: View {
     }
 
     private func statsGrid(_ stats: [App2WeeklyReviewProjection.Stat]) -> some View {
-        HStack(alignment: .top, spacing: 8) {
+        LazyVGrid(
+            columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)],
+            spacing: 10
+        ) {
             ForEach(stats) { stat in
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(stat.label)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(App2Theme.inkMuted)
-                        .fixedSize(horizontal: false, vertical: true)
-                    HStack(alignment: .firstTextBaseline, spacing: 2) {
-                        Text(stat.value)
-                            .font(.app2Mono(19))
-                            .foregroundStyle(App2Theme.inkPrimary)
-                        if let unit = stat.unit {
-                            Text(unit)
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundStyle(App2Theme.inkMuted)
-                        }
-                    }
-                    .lineLimit(1)
-                    // footnote 自成一行：跟數值擠同一行時（`planned 15.6 km`）
-                    // 在窄格寬裡也要保留完成／計畫的對照。
-                    if let footnote = stat.footnote {
-                        Text(footnote)
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(App2Theme.inkTertiary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                .frame(maxWidth: .infinity, minHeight: 76, alignment: .topLeading)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 10)
-                .app2CardSurface(cornerRadius: 13)
-                .accessibilityIdentifier("App2_WeeklyReviewStat_\(stat.key)")
+                statCell(stat, style: .legacy)
             }
         }
         .accessibilityIdentifier("App2_WeeklyReviewStats")
+    }
+
+    private enum StatCellStyle: Equatable {
+        case legacy
+        case compact
+    }
+
+    @ViewBuilder
+    private func statCell(
+        _ stat: App2WeeklyReviewProjection.Stat,
+        style: StatCellStyle
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            if style == .compact {
+                Text(stat.label)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundStyle(App2Theme.inkMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text(stat.label)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(App2Theme.inkMuted)
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(stat.value)
+                    .font(.app2Mono(style == .legacy ? 22 : 19))
+                    .foregroundStyle(App2Theme.inkPrimary)
+                if let unit = stat.unit {
+                    Text(unit)
+                        .font(.system(size: style == .legacy ? 12 : 11, weight: .bold))
+                        .foregroundStyle(App2Theme.inkMuted)
+                }
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(style == .legacy ? 0.7 : 1)
+            if let footnote = stat.footnote {
+                if style == .compact {
+                    Text(footnote)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(App2Theme.inkTertiary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text(footnote)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(App2Theme.inkTertiary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+            }
+        }
+        .frame(
+            maxWidth: .infinity,
+            minHeight: style == .compact ? 76 : nil,
+            alignment: .topLeading
+        )
+        .padding(.horizontal, style == .compact ? 10 : 14)
+        .padding(.vertical, style == .compact ? 10 : 13)
+        .app2CardSurface(cornerRadius: style == .compact ? 13 : 15)
+        .accessibilityIdentifier("App2_WeeklyReviewStat_\(stat.key)")
     }
 
     /// 一張條列卡。**每一列自己帶圖示與顏色**（8/28 盤點 D7）：亮點與「要注意的」

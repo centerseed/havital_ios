@@ -392,8 +392,9 @@ final class App2WeeklyReviewViewModel: ObservableObject {
         focus: DecisionChainFocus,
         reviewDay: String
     ) -> (startDay: String, endDay: String)? {
-        guard let chartStart = shiftedDay(reviewDay, by: -56) else { return nil }
-        return (chartStart, reviewDay)
+        let chartEndDay = focus.kind == "open_hypothesis" ? focus.endDay : reviewDay
+        guard let chartStart = shiftedDay(chartEndDay, by: -56) else { return nil }
+        return (chartStart, chartEndDay)
     }
 
     private nonisolated static func shiftedDay(_ day: String, by days: Int) -> String? {

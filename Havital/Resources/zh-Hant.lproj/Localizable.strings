@@ -5069,6 +5069,9 @@
 "app2.weekly_review.metric_speed" = "速度耐力";
 "app2.weekly_review.metric_recovery" = "恢復指數";
 "app2.weekly_review.metric_generic" = "這個指標";
+"app2.weekly_review.unit_index_points" = "點";
+"app2.weekly_review.unit_z_score" = "標準差";
+"app2.weekly_review.unit_burden" = "負荷";
 "app2.weekly_review.direction_improving" = "上升";
 "app2.weekly_review.direction_not_worsening" = "維持不變";
 "app2.weekly_review.direction_worsening" = "下降";

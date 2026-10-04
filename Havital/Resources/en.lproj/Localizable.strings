@@ -5028,6 +5028,9 @@
 "app2.weekly_review.metric_speed" = "Speed endurance";
 "app2.weekly_review.metric_recovery" = "Recovery index";
 "app2.weekly_review.metric_generic" = "This metric";
+"app2.weekly_review.unit_index_points" = "pts";
+"app2.weekly_review.unit_z_score" = "SD";
+"app2.weekly_review.unit_burden" = "load";
 "app2.weekly_review.direction_improving" = "rise";
 "app2.weekly_review.direction_not_worsening" = "stay steady";
 "app2.weekly_review.direction_worsening" = "fall";

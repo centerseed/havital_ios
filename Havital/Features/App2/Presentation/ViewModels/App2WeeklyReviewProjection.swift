@@ -290,16 +290,19 @@ extension App2WeeklyReviewProjection {
             .sorted { $0.day < $1.day }
     }
 
-    /// Only units that are meaningful to a person belong in the chart title.
-    /// Index/scoring codes are scale metadata, and an unknown code is not a
-    /// user-facing unit; both stay hidden instead of leaking the API token.
+    /// Only registered units that are meaningful to a person belong in the
+    /// chart title. Unknown codes stay hidden instead of leaking API tokens.
     static func decisionChainDisplayUnit(_ rawUnit: String?) -> String? {
         guard let unit = rawUnit?.app2NonEmpty?.lowercased() else { return nil }
         switch unit {
         case "vdot": return "VDOT"
+        case "index_points": return L10n.App2.WeeklyReview.unitIndexPoints.localized
+        case "z_score": return L10n.App2.WeeklyReview.unitZScore.localized
+        case "burden": return L10n.App2.WeeklyReview.unitBurden.localized
         case "km": return "km"
         case "mi": return "mi"
         case "m": return "m"
+        case "minutes", "minute", "min": return L10n.App2.Detail.minutesUnit.localized
         case "bpm": return "bpm"
         case "%", "percent": return "%"
         default: return nil

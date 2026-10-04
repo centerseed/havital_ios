@@ -5025,6 +5025,9 @@
 "app2.weekly_review.metric_speed" = "スピード持久力";
 "app2.weekly_review.metric_recovery" = "回復指数";
 "app2.weekly_review.metric_generic" = "この指標";
+"app2.weekly_review.unit_index_points" = "pt";
+"app2.weekly_review.unit_z_score" = "SD";
+"app2.weekly_review.unit_burden" = "負荷";
 "app2.weekly_review.direction_improving" = "上がる";
 "app2.weekly_review.direction_not_worsening" = "変わらない";
 "app2.weekly_review.direction_worsening" = "下がる";

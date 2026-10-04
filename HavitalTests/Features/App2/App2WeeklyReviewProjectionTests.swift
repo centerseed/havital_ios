@@ -167,7 +167,18 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
 
         XCTAssertEqual(points.map(\.value), [38.4])
         XCTAssertEqual(points.first?.unit, "VDOT")
-        XCTAssertNil(App2WeeklyReviewProjection.decisionChainDisplayUnit("index_points"))
+        XCTAssertEqual(
+            App2WeeklyReviewProjection.decisionChainDisplayUnit("index_points"),
+            "點"
+        )
+        XCTAssertEqual(
+            App2WeeklyReviewProjection.decisionChainDisplayUnit("z_score"),
+            "標準差"
+        )
+        XCTAssertEqual(
+            App2WeeklyReviewProjection.decisionChainDisplayUnit("burden"),
+            "負荷"
+        )
         XCTAssertNil(App2WeeklyReviewProjection.decisionChainDisplayUnit("unknown_unit"))
         XCTAssertEqual(App2WeeklyReviewProjection.decisionChainDisplayUnit("vdot"), "VDOT")
     }
@@ -366,15 +377,48 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         )
     }
 
-    func test_chartStartDay_usesFirstMeasuredPoint_notSeriesWindowStart() {
-        let points = [
-            App2DecisionChainPoint(day: "2026-08-10", value: 38.4),
-            App2DecisionChainPoint(day: "2026-08-17", value: 39.1),
-        ]
+    func test_chartStartDay_usesFixedEightWeekWindow_notFirstMeasuredPoint() {
+        let focus = DecisionChainFocus(
+            kind: "metric",
+            metric: "capability_baseline",
+            direction: "improving",
+            startDay: "2026-09-06",
+            endDay: "2026-09-20",
+            hypothesisId: nil,
+            intervention: nil,
+            verdict: nil,
+            reason: nil
+        )
+        XCTAssertEqual(
+            App2WeeklyReviewView.decisionChainChartStartDay(
+                focus: focus,
+                reviewDay: "2026-09-20"
+            ),
+            "2026-07-26"
+        )
+    }
+
+    func test_chartCoordinate_keepsSingleDateMeasurementVisible() {
+        let focus = DecisionChainFocus(
+            kind: "adjudication",
+            metric: "capability_baseline",
+            direction: "improving",
+            startDay: "2026-09-20",
+            endDay: "2026-09-20",
+            hypothesisId: nil,
+            intervention: nil,
+            verdict: "supported",
+            reason: nil
+        )
 
         XCTAssertEqual(
-            App2WeeklyReviewView.decisionChainChartStartDay(points: points),
-            "2026-08-10"
+            App2WeeklyReviewView.decisionChainChartXFraction(
+                day: "2026-09-20",
+                seriesStartDay: "2026-09-20",
+                focus: focus,
+                reviewDay: "2026-09-20"
+            ),
+            0.5
         )
     }
 
@@ -411,7 +455,7 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         XCTAssertNotEqual(label, "hr_drift")
     }
 
-    func test_decisionChain_seriesWindow_isEightWeeksEndingOnReviewDay() {
+    func test_decisionChain_seriesWindow_isEightWeeksEndingOnJudgementDayForOpenHypothesis() {
         let window = App2WeeklyReviewViewModel.decisionChainSeriesWindow(
             focus: DecisionChainFocus(
                 kind: "open_hypothesis",
@@ -427,8 +471,8 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
             reviewDay: "2026-09-20"
         )
 
-        XCTAssertEqual(window?.startDay, "2026-07-26")
-        XCTAssertEqual(window?.endDay, "2026-09-20")
+        XCTAssertEqual(window?.startDay, "2026-08-09")
+        XCTAssertEqual(window?.endDay, "2026-10-04")
     }
 
     // MARK: - 建議項：index 即身分
