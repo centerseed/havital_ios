@@ -97,6 +97,27 @@ private struct App2DecisionChainLineChart: View {
             let anchorItems = drawablePoints
                 .filter { anchorDays.contains($0.day) }
                 .sorted { $0.day < $1.day }
+            var labelYs = anchorItems.map { item in
+                guard let point = position(for: item) else { return plotTop + 6 }
+                return point.y - 18 >= plotTop
+                    ? point.y - 18
+                    : min(plotBottom - 6, point.y + 18)
+            }
+            if anchorItems.count > 1 {
+                for index in 1..<anchorItems.count {
+                    guard
+                        let previousPoint = position(for: anchorItems[index - 1]),
+                        let currentPoint = position(for: anchorItems[index]),
+                        abs(currentPoint.x - previousPoint.x) < 150,
+                        abs(labelYs[index] - labelYs[index - 1]) < 24
+                    else { continue }
+                    let shiftedDown = min(plotBottom - 6, labelYs[index - 1] + 30)
+                    let shiftedUp = max(plotTop + 6, labelYs[index - 1] - 30)
+                    labelYs[index] = abs(shiftedDown - labelYs[index - 1]) >= 24
+                        ? shiftedDown
+                        : shiftedUp
+                }
+            }
             for (index, item) in anchorItems.enumerated() {
                 guard let point = position(for: item) else { continue }
                 let label = Text(
@@ -107,14 +128,11 @@ private struct App2DecisionChainLineChart: View {
                     .foregroundStyle(App2Theme.inkPrimary)
                 let isFirst = index == 0
                 let isLast = index == anchorItems.count - 1
-                let labelY = point.y - 18 >= plotTop
-                    ? point.y - 18
-                    : min(plotBottom - 6, point.y + 18)
                 context.draw(
                     label,
                     at: CGPoint(
                         x: isFirst ? point.x + 7 : isLast ? point.x - 7 : point.x,
-                        y: labelY
+                        y: labelYs[index]
                     ),
                     anchor: isFirst ? .leading : isLast ? .trailing : .center
                 )

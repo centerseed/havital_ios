@@ -5023,7 +5023,7 @@
 "app2.weekly_review.decision_retrospect" = "This week's story";
 "app2.weekly_review.decision_show_more" = "Show more";
 "app2.weekly_review.decision_show_less" = "Show less";
-"app2.weekly_review.metric_capability" = "Capability baseline";
+"app2.weekly_review.metric_capability" = "Capability";
 "app2.weekly_review.metric_aerobic" = "Aerobic endurance";
 "app2.weekly_review.metric_speed" = "Speed endurance";
 "app2.weekly_review.metric_recovery" = "Recovery index";

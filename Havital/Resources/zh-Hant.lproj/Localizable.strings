@@ -5064,7 +5064,7 @@
 "app2.weekly_review.decision_retrospect" = "本週回顧";
 "app2.weekly_review.decision_show_more" = "展開更多";
 "app2.weekly_review.decision_show_less" = "收合詳細";
-"app2.weekly_review.metric_capability" = "能力基線";
+"app2.weekly_review.metric_capability" = "能力基準";
 "app2.weekly_review.metric_aerobic" = "有氧耐力";
 "app2.weekly_review.metric_speed" = "速度耐力";
 "app2.weekly_review.metric_recovery" = "恢復指數";

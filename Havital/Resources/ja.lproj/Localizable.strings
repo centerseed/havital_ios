@@ -5020,7 +5020,7 @@
 "app2.weekly_review.decision_retrospect" = "今週の振り返り";
 "app2.weekly_review.decision_show_more" = "詳細を表示";
 "app2.weekly_review.decision_show_less" = "詳細を閉じる";
-"app2.weekly_review.metric_capability" = "能力ベースライン";
+"app2.weekly_review.metric_capability" = "能力ベース";
 "app2.weekly_review.metric_aerobic" = "有酸素持久力";
 "app2.weekly_review.metric_speed" = "スピード持久力";
 "app2.weekly_review.metric_recovery" = "回復指数";
