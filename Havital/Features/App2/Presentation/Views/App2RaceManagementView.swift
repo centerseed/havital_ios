@@ -284,16 +284,20 @@ struct App2RaceManagementView: View {
             }
 
             HStack(spacing: 8) {
-                actionButton(
-                    title: L10n.App2.Races.setAsMain.localized,
-                    systemImage: "star",
-                    tint: App2Theme.accentBlueDeep,
-                    border: App2Theme.accentBlue.opacity(0.22),
-                    background: App2Theme.accentBlue.opacity(0.1),
-                    fillsWidth: true,
-                    identifier: "App2_RacesSetMain_\(race.id)"
-                ) {
-                    Task { await viewModel.setAsMain(race.id) }
+                if race.canBecomeMain {
+                    actionButton(
+                        title: L10n.App2.Races.setAsMain.localized,
+                        systemImage: "star",
+                        tint: App2Theme.accentBlueDeep,
+                        border: App2Theme.accentBlue.opacity(0.22),
+                        background: App2Theme.accentBlue.opacity(0.1),
+                        fillsWidth: true,
+                        identifier: "App2_RacesSetMain_\(race.id)"
+                    ) {
+                        Task { await viewModel.setAsMain(race.id) }
+                    }
+                } else {
+                    Spacer(minLength: 0)
                 }
                 iconButton(
                     systemImage: "pencil",
