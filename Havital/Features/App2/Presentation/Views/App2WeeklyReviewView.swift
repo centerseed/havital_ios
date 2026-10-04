@@ -754,14 +754,15 @@ struct App2WeeklyReviewView: View {
         reviewDay: String?
     ) -> some View {
         let beforePoint = points.first { $0.day == focus.startDay }
+        let displayUnit = beforePoint?.unit ?? points.compactMap(\.unit).first
         let afterPoint = focus.kind == "open_hypothesis"
             ? reviewDay.flatMap { day in
                 App2WeeklyReviewProjection.decisionChainValue(on: day, points: points).map { value in
-                    App2DecisionChainPoint(day: day, value: value)
+                    App2DecisionChainPoint(day: day, value: value, unit: displayUnit)
                 }
             }
             : App2WeeklyReviewProjection.decisionChainValue(on: focus.endDay, points: points).map {
-                App2DecisionChainPoint(day: focus.endDay, value: $0)
+                App2DecisionChainPoint(day: focus.endDay, value: $0, unit: displayUnit)
             }
         App2Card(padding: 13, spacing: 5) {
             Text(L10n.App2.WeeklyReview.decisionL2Title.localized)
