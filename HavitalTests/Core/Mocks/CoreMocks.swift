@@ -19,6 +19,7 @@ class MockAppStateManager: AppStateManagerProtocol {
     
     // Call counts
     var initializeAppCallCount = 0
+    var syncLanguagePreferenceAfterAuthenticationCallCount = 0
     var reinitializeCallCount = 0
     var handleDataSourceChangeCallCount = 0
     var hasPermissionCallCount = 0
@@ -28,6 +29,10 @@ class MockAppStateManager: AppStateManagerProtocol {
     
     func initializeApp() async {
         initializeAppCallCount += 1
+    }
+
+    func syncLanguagePreferenceAfterAuthentication() async {
+        syncLanguagePreferenceAfterAuthenticationCallCount += 1
     }
     
     func reinitialize() async {
@@ -44,4 +49,3 @@ class MockAppStateManager: AppStateManagerProtocol {
         return hasPermissionResult
     }
 }
-

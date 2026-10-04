@@ -103,6 +103,11 @@ class AppViewModel: ObservableObject, @preconcurrency TaskManageable {
 
         print("✅ AppViewModel: 初始化委託完成")
     }
+
+    /// 登入成功後只委託語言 compare/write，不重跑 user data 與服務初始化。
+    func syncLanguagePreferenceAfterAuthentication() async {
+        await appStateManager.syncLanguagePreferenceAfterAuthentication()
+    }
     
     /// 註冊所有快取管理器到快取事件總線
     private func registerCacheManagers() {

@@ -54,6 +54,13 @@ final class AppViewModelTests: XCTestCase {
         // Then
         XCTAssertEqual(mockAppStateManager.initializeAppCallCount, 1)
     }
+
+    func testSyncLanguagePreferenceAfterAuthentication_DelegatesWithoutReinitializing() async {
+        await sut.syncLanguagePreferenceAfterAuthentication()
+
+        XCTAssertEqual(mockAppStateManager.syncLanguagePreferenceAfterAuthenticationCallCount, 1)
+        XCTAssertEqual(mockAppStateManager.initializeAppCallCount, 0)
+    }
     
     func testOnAppBecameActive_ReadyState_RefreshesWorkouts() async {
         // Given

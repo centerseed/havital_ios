@@ -183,6 +183,12 @@ class AppStateManager: ObservableObject {
             ])
         }
     }
+
+    /// 登入成功後只同步 App 實際渲染語言，不重跑整套 App 初始化流程。
+    func syncLanguagePreferenceAfterAuthentication() async {
+        guard authSessionRepository.isAuthenticated() else { return }
+        await syncAppLanguagePreference()
+    }
     
     /// 重新初始化（用於錯誤恢復）
     func reinitialize() async {

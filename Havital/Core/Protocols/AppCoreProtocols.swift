@@ -18,6 +18,7 @@ protocol AppStateManagerProtocol: ObservableObject {
     var initializationProgress: Double { get }
     
     func initializeApp() async
+    func syncLanguagePreferenceAfterAuthentication() async
     func reinitialize() async
     func handleDataSourceChange(to newDataSource: DataSourceType) async
     func hasPermission(for feature: String) -> Bool
@@ -25,4 +26,3 @@ protocol AppStateManagerProtocol: ObservableObject {
 
 // Ensure AppStateManager conforms to the protocol
 extension AppStateManager: AppStateManagerProtocol {}
-

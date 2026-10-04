@@ -273,11 +273,10 @@ struct HavitalApp: App {
                             .onChange(of: authViewModel.isAuthenticated) { isAuthenticated in
                                 WatchCompanionService.shared.pushAuth(loggedIn: isAuthenticated)
 
-                                // App 啟動時若先進入未登入畫面，登入成功後仍要重新走同一條
-                                // user-data 初始化路徑，讓 App 顯示語言與 backend 完成 compare/write。
+                                // App 啟動時若先進入未登入畫面，登入成功後只走語言 compare/write。
                                 guard isAuthenticated else { return }
                                 Task {
-                                    await appViewModel.initializeApp()
+                                    await appViewModel.syncLanguagePreferenceAfterAuthentication()
                                 }
                             }
                     } else {
