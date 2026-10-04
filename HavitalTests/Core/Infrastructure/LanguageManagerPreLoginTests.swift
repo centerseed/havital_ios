@@ -319,6 +319,59 @@ final class LanguageManagerPreLoginTests: XCTestCase {
         XCTAssertNil(manager.lastSyncError)
     }
 
+    func test_inAppLanguageChange_putFailureKeepsRenderedLanguageAndPublishesError() async throws {
+        enum TestError: Error { case unavailable }
+
+        let httpClient = RecordingLanguageHTTPClient(responses: [
+            .failure(TestError.unavailable),
+        ])
+        let manager = LanguageManager(httpClient: httpClient)
+        manager.applyPreLoginLanguage(.traditionalChinese)
+
+        let changed = await manager.changeLanguageWithBackendSync(to: .japanese)
+
+        XCTAssertFalse(changed)
+        let requests = await httpClient.requests
+        XCTAssertEqual(requests.map(\.method), [.PUT])
+        XCTAssertEqual(manager.currentLanguage, .traditionalChinese)
+        XCTAssertEqual(UserDefaults.standard.stringArray(forKey: "AppleLanguages"), [SupportedLanguage.traditionalChinese.rawValue])
+        XCTAssertNotNil(manager.lastSyncError)
+    }
+
+    func test_startupLanguageSync_putFailureIsFailOpenAndNextOpeningRetriesPut() async throws {
+        enum TestError: Error { case unavailable }
+
+        let httpClient = RecordingLanguageHTTPClient(responses: [
+            .success(Data(#"{"data":{"language":"ja-JP"}}"#.utf8)),
+            .failure(TestError.unavailable),
+            .success(Data(#"{"data":{"language":"ja-JP"}}"#.utf8)),
+            .success(Data(#"{"success":true}"#.utf8)),
+        ])
+        let manager = LanguageManager(httpClient: httpClient)
+        manager.applyPreLoginLanguage(.traditionalChinese)
+
+        let firstBackendLanguage = try await manager.backendLanguagePreference()
+        do {
+            try await manager.syncAppLanguageToBackendIfNeeded(backendLanguage: firstBackendLanguage)
+            XCTFail("The first opening should observe the simulated PUT failure")
+        } catch {
+            // Startup caller logs and continues; the rendered language stays.
+        }
+        XCTAssertEqual(manager.currentLanguage, .traditionalChinese)
+
+        let secondBackendLanguage = try await manager.backendLanguagePreference()
+        try await manager.syncAppLanguageToBackendIfNeeded(backendLanguage: secondBackendLanguage)
+
+        let requests = await httpClient.requests
+        XCTAssertEqual(requests.map(\.method), [.GET, .PUT, .GET, .PUT])
+        XCTAssertEqual(
+            try JSONSerialization.jsonObject(with: try XCTUnwrap(requests[3].body))
+                as? [String: String],
+            ["language": "zh-TW"]
+        )
+        XCTAssertEqual(manager.currentLanguage, .traditionalChinese)
+    }
+
     func test_backendLanguageNeverChangesRenderedLanguage() async throws {
         let httpClient = RecordingLanguageHTTPClient(responses: [
             .success(Data(#"{"data":{"language":"ja-JP"}}"#.utf8)),

@@ -133,6 +133,43 @@ final class AppStateManagerAnalyticsTests: XCTestCase {
         )
         XCTAssertEqual(languageManager.currentLanguage, .traditionalChinese)
     }
+
+    func testInitializeApp_authenticatedLanguagePutFailureReachesReadyAndRetriesPut() async throws {
+        enum TestError: Error { case unavailable }
+
+        let httpClient = AppStateLanguageHTTPClient(responses: [
+            .success(Data(#"{"data":{"language":"ja-JP"}}"#.utf8)),
+            .failure(TestError.unavailable),
+            .success(Data(#"{"data":{"language":"ja-JP"}}"#.utf8)),
+            .success(Data(#"{"success":true}"#.utf8)),
+        ])
+        let languageManager = LanguageManager(httpClient: httpClient)
+        languageManager.applyPreLoginLanguage(.traditionalChinese)
+        authSessionRepository.isAuthenticatedValue = true
+        sut = AppStateManager(
+            authSessionRepository: authSessionRepository,
+            workoutRepository: workoutRepository,
+            subscriptionRepository: subscriptionRepository,
+            userProfileRepository: userProfileRepository,
+            languageManager: languageManager
+        )
+
+        // The failed PUT is fail-open: App initialization still reaches ready.
+        await sut.initializeApp()
+        XCTAssertTrue(sut.currentState.isReady)
+        XCTAssertEqual(languageManager.currentLanguage, .traditionalChinese)
+
+        // The next opening compares again and retries the write.
+        await sut.initializeApp()
+        XCTAssertTrue(sut.currentState.isReady)
+        let requests = await httpClient.requests
+        XCTAssertEqual(requests.map(\.method), [.GET, .PUT, .GET, .PUT])
+        XCTAssertEqual(
+            try JSONSerialization.jsonObject(with: try XCTUnwrap(requests[3].body)) as? [String: String],
+            ["language": "zh-TW"]
+        )
+        XCTAssertEqual(languageManager.currentLanguage, .traditionalChinese)
+    }
 }
 
 @MainActor
