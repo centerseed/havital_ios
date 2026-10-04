@@ -2377,6 +2377,7 @@ extension L10n {
             static let decisionAfter = "app2.weekly_review.decision_after"
             static let decisionIntervention = "app2.weekly_review.decision_intervention"
             static let decisionDirection = "app2.weekly_review.decision_direction"
+            static let decisionDirectionValue = "app2.weekly_review.decision_direction_value"
             static let decisionVerdict = "app2.weekly_review.decision_verdict"
             static let decisionReason = "app2.weekly_review.decision_reason"
             static let decisionWaitUntil = "app2.weekly_review.decision_wait_until"

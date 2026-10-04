@@ -166,6 +166,10 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         )
 
         XCTAssertEqual(points.map(\.value), [38.4])
+        XCTAssertEqual(points.first?.unit, "VDOT")
+        XCTAssertNil(App2WeeklyReviewProjection.decisionChainDisplayUnit("index_points"))
+        XCTAssertNil(App2WeeklyReviewProjection.decisionChainDisplayUnit("unknown_unit"))
+        XCTAssertEqual(App2WeeklyReviewProjection.decisionChainDisplayUnit("vdot"), "VDOT")
     }
 
     func test_openHypothesis_afterValue_uses_exact_reviewDay_andNotLaterPoint() {
@@ -255,11 +259,11 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
     func test_decisionChain_reason_copy_includes_next_step_and_confounded_interference() {
         let expectedFragments: [String: [String]] = [
             "confounded": ["干擾", "延長觀察"],
-            "not_prescribed": ["檢查排課"],
-            "not_executed": ["重新安排", "不要只繼續等待"],
-            "declined_by_user": ["詢問原因", "不要重推"],
-            "insufficient_signal": ["補資料", "修正觀察安排"],
-            "not_discriminating": ["檢討觀察量與判準"],
+            "not_prescribed": ["沒有排出預定的訓練刺激", "無法比較"],
+            "not_executed": ["沒有完成", "不能判斷"],
+            "declined_by_user": ["沒有被採用", "沒有足夠材料"],
+            "insufficient_signal": ["資料還不夠多", "不能確定"],
+            "not_discriminating": ["變化太小", "不能分辨"],
         ]
 
         for (reason, fragments) in expectedFragments {
@@ -270,6 +274,12 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         }
         XCTAssertFalse(
             App2WeeklyReviewView.localizedDecisionReason("not_executed").contains("還要等的原因")
+        )
+        XCTAssertFalse(
+            App2WeeklyReviewView.localizedDecisionReason("insufficient_signal").contains("補資料")
+        )
+        XCTAssertFalse(
+            App2WeeklyReviewView.localizedDecisionReason("insufficient_signal").contains("修正觀察安排")
         )
         XCTAssertFalse(
             App2WeeklyReviewView.localizedDecisionReason("confounded").contains("檢討觀察條件")
@@ -353,6 +363,44 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
                 reviewDay: "2026-09-20"
             ),
             1
+        )
+    }
+
+    func test_chartStartDay_usesFirstMeasuredPoint_notSeriesWindowStart() {
+        let points = [
+            App2DecisionChainPoint(day: "2026-08-10", value: 38.4),
+            App2DecisionChainPoint(day: "2026-08-17", value: 39.1),
+        ]
+
+        XCTAssertEqual(
+            App2WeeklyReviewView.decisionChainChartStartDay(points: points),
+            "2026-08-10"
+        )
+    }
+
+    func test_adjudication_chartDropsPointsAfterJudgementDay() {
+        let focus = DecisionChainFocus(
+            kind: "adjudication",
+            metric: "capability_baseline",
+            direction: "improving",
+            startDay: "2026-09-06",
+            endDay: "2026-09-20",
+            hypothesisId: nil,
+            intervention: nil,
+            verdict: "supported",
+            reason: nil
+        )
+
+        XCTAssertEqual(
+            App2WeeklyReviewView.decisionChainChartPoints(
+                focus: focus,
+                reviewDay: "2026-09-20",
+                points: [
+                    App2DecisionChainPoint(day: "2026-09-20", value: 40.1),
+                    App2DecisionChainPoint(day: "2026-09-27", value: 42.0),
+                ]
+            ).map(\.day),
+            ["2026-09-20"]
         )
     }
 

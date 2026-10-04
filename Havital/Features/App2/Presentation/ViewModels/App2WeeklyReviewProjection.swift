@@ -21,8 +21,15 @@ import Foundation
 struct App2DecisionChainPoint: Equatable, Identifiable {
     let day: String
     let value: Double
+    let unit: String?
 
     var id: String { day }
+
+    init(day: String, value: Double, unit: String? = nil) {
+        self.day = day
+        self.value = value
+        self.unit = unit
+    }
 }
 
 struct App2WeeklyReviewProjection: Equatable {
@@ -268,10 +275,35 @@ extension App2WeeklyReviewProjection {
     ) -> [App2DecisionChainPoint] {
         (response.series[metric] ?? [])
             .compactMap { day in
-                guard let value = day.displayValue else { return nil }
-                return App2DecisionChainPoint(day: day.day, value: value)
+                // The series contract uses an absent envelope for a day with no
+                // usable measurement. Do not let its display placeholder define
+                // the chart's x-axis or become a fake point.
+                guard let value = day.displayValue, value.isFinite, day.envelope != nil else {
+                    return nil
+                }
+                return App2DecisionChainPoint(
+                    day: day.day,
+                    value: value,
+                    unit: decisionChainDisplayUnit(day.envelope?.center?.unit)
+                )
             }
             .sorted { $0.day < $1.day }
+    }
+
+    /// Only units that are meaningful to a person belong in the chart title.
+    /// Index/scoring codes are scale metadata, and an unknown code is not a
+    /// user-facing unit; both stay hidden instead of leaking the API token.
+    static func decisionChainDisplayUnit(_ rawUnit: String?) -> String? {
+        guard let unit = rawUnit?.app2NonEmpty?.lowercased() else { return nil }
+        switch unit {
+        case "vdot": return "VDOT"
+        case "km": return "km"
+        case "mi": return "mi"
+        case "m": return "m"
+        case "bpm": return "bpm"
+        case "%", "percent": return "%"
+        default: return nil
+        }
     }
 
     static func decisionChainValue(
