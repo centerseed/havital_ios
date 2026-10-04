@@ -26,6 +26,55 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
         XCTAssertFalse(App2PlanOverviewViewModel.isRegenerating(status: nil))
     }
 
+    /// 換完主賽事回到總覽時後端常還在重產：畫面要自己等到完成再換上新總覽，
+    /// 不能停在舊期程或一直顯示「重新產生中」（AC-TRAIN-HUB-26，2026-10-04 F30F 實測）。
+    func testPollingWhileRegeneratingSwapsInCompletedOverview() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.simulatesEmptyLocalCache = true
+        repository.planStatusToReturn = PlanStatusV2Response(
+            currentWeek: 1, totalWeeks: 25, nextAction: "view_plan",
+            canGenerateNextWeek: false, currentWeekPlanId: nil,
+            previousWeekSummaryId: nil, targetType: "race_run",
+            methodologyId: "paceriz", nextWeekInfo: nil, metadata: nil
+        )
+        repository.refreshOverviewResults = [
+            overviewEntity(id: "o1", methodologyName: "paceriz", regenerationStatus: "running"),
+            overviewEntity(id: "o1", methodologyName: "paceriz", regenerationStatus: "running"),
+            overviewEntity(id: "o1", methodologyName: "paceriz", regenerationStatus: "completed"),
+        ]
+        let vm = overviewViewModel(repository: repository)
+
+        await vm.revalidate()
+        XCTAssertTrue(vm.isRegenerating)
+
+        await vm.pollWhileRegenerating(intervalNanoseconds: 1_000_000, maxAttempts: 10)
+
+        XCTAssertFalse(vm.isRegenerating)
+        XCTAssertFalse(vm.stagesUnbound)
+        XCTAssertEqual(repository.refreshOverviewCallCount, 3)
+    }
+
+    func testPollingStopsAfterMaxAttemptsWhenRegenerationNeverFinishes() async {
+        let repository = MockTrainingPlanV2Repository()
+        repository.simulatesEmptyLocalCache = true
+        repository.planStatusToReturn = PlanStatusV2Response(
+            currentWeek: 1, totalWeeks: 25, nextAction: "view_plan",
+            canGenerateNextWeek: false, currentWeekPlanId: nil,
+            previousWeekSummaryId: nil, targetType: "race_run",
+            methodologyId: "paceriz", nextWeekInfo: nil, metadata: nil
+        )
+        repository.overviewToReturn = overviewEntity(
+            id: "o1", methodologyName: "paceriz", regenerationStatus: "running"
+        )
+        let vm = overviewViewModel(repository: repository)
+
+        await vm.revalidate()
+        await vm.pollWhileRegenerating(intervalNanoseconds: 1_000_000, maxAttempts: 3)
+
+        XCTAssertTrue(vm.isRegenerating)
+        XCTAssertEqual(repository.refreshOverviewCallCount, 4)
+    }
+
     func testCompletedOverviewCanShowStagesBeforeCurrentWeekPlanExists() {
         XCTAssertTrue(App2PlanOverviewViewModel.shouldDisplayOverview(
             regenerationStatus: "completed"
@@ -205,7 +254,11 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
 
     // MARK: - 更換訓練方法（2026-08-27 晚走查裁決（e））
 
-    private func overviewEntity(id: String, methodologyName: String) -> PlanOverviewV2 {
+    private func overviewEntity(
+        id: String,
+        methodologyName: String,
+        regenerationStatus: String? = nil
+    ) -> PlanOverviewV2 {
         PlanOverviewV2(
             id: id,
             targetId: "t1",
@@ -234,7 +287,8 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
             milestones: [],
             createdAt: nil,
             methodologyVersion: nil,
-            milestoneBasis: nil
+            milestoneBasis: nil,
+            regenerationStatus: regenerationStatus
         )
     }
 

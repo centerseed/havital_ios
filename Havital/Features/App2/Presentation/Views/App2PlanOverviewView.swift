@@ -93,6 +93,7 @@ struct App2PlanOverviewView: View {
         .background(App2Theme.pageGradient.ignoresSafeArea())
         .task { await viewModel.loadIfNeeded() }
         .refreshable { await viewModel.forceRefresh() }
+        .task(id: viewModel.isRegenerating) { await viewModel.pollWhileRegenerating() }
         .fullScreenCover(isPresented: $isShowingRaces) {
             App2RaceManagementView(
                 onClose: {

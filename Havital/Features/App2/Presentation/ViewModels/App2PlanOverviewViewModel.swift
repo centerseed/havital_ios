@@ -219,6 +219,20 @@ final class App2PlanOverviewViewModel: ObservableObject, TaskManageable, App2Rev
         }
     }
 
+    /// 後端仍在重產總覽時定期重抓，完成後畫面換成新總覽（AC-TRAIN-HUB-26）。
+    func pollWhileRegenerating(
+        intervalNanoseconds: UInt64 = 3_000_000_000,
+        maxAttempts: Int = 40
+    ) async {
+        var attempts = 0
+        while isRegenerating, attempts < maxAttempts, !Task.isCancelled {
+            try? await Task.sleep(nanoseconds: intervalNanoseconds)
+            if Task.isCancelled { return }
+            await revalidate()
+            attempts += 1
+        }
+    }
+
     private func revalidateRound(_ round: Int) async {
 
         isLoading = !hasLoaded
