@@ -50,6 +50,11 @@ tags:
       id: "App2_RacesPromotionLoading"
     timeout: 15000
 - takeScreenshot: t0871-main-race-loading
+# 等寫入回應回來（loading 消失）才判斷有沒有建議框，否則晚到的建議框會擋住後面的總覽等待。
+- extendedWaitUntil:
+    notVisible:
+      id: "App2_RacesPromotionLoading"
+    timeout: 120000
 
 # 遠期賽事先顯示 API 的在地化建議；確認或關閉建議後回到已刷新的計畫總覽。
 - runFlow:
