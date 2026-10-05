@@ -35,7 +35,7 @@ final class WeeklyPlanV2DecodingTests: XCTestCase {
         XCTAssertEqual(dto.purpose, "Build aerobic base with progressive mileage increase")
         XCTAssertEqual(dto.weekOfPlan, 3)
         XCTAssertEqual(dto.totalWeeks, 16)
-        XCTAssertEqual(dto.totalDistance, 45.0, accuracy: 0.01)
+        XCTAssertEqual(dto.totalDistance ?? -1, 45.0, accuracy: 0.01)
         XCTAssertNil(dto.totalDistanceDisplay)
         XCTAssertNil(dto.totalDistanceUnit)
         XCTAssertNotNil(dto.totalDistanceReason)
@@ -118,7 +118,7 @@ final class WeeklyPlanV2DecodingTests: XCTestCase {
     func test_decode_peakWeek_intervalBlock() throws {
         let dto = try decodeWeeklyPlan(from: "paceriz_42k_peak_week")
 
-        XCTAssertEqual(dto.totalDistance, 70.0, accuracy: 0.01)
+        XCTAssertEqual(dto.totalDistance ?? -1, 70.0, accuracy: 0.01)
         XCTAssertEqual(dto.weekOfTraining, 12)
 
         // Day 2: interval session
@@ -209,7 +209,7 @@ final class WeeklyPlanV2DecodingTests: XCTestCase {
         let dto = try decodeWeeklyPlan(from: "minimal_rest_day_only")
 
         XCTAssertEqual(dto.purpose, "Complete rest week")
-        XCTAssertEqual(dto.totalDistance, 0.0, accuracy: 0.01)
+        XCTAssertEqual(dto.totalDistance ?? -1, 0.0, accuracy: 0.01)
         XCTAssertEqual(dto.days.count, 7)
         XCTAssertNil(dto.planId)
         XCTAssertNil(dto.overviewId)
@@ -228,7 +228,7 @@ final class WeeklyPlanV2DecodingTests: XCTestCase {
     func test_decode_missingOptionalFields_succeeds() throws {
         let dto = try decodeWeeklyPlan(from: "missing_optional_fields")
 
-        XCTAssertEqual(dto.totalDistance, 25.0, accuracy: 0.01)
+        XCTAssertEqual(dto.totalDistance ?? -1, 25.0, accuracy: 0.01)
         XCTAssertNil(dto.planId)
         XCTAssertNil(dto.designReason)
         XCTAssertNil(dto.totalDistanceReason)

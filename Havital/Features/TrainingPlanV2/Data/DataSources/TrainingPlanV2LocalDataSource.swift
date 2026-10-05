@@ -259,7 +259,10 @@ final class TrainingPlanV2LocalDataSource: TrainingPlanV2LocalDataSourceProtocol
         }
 
         do {
-            return try decoder.decode(WeeklyPlanV2.self, from: data)
+            let cachedPlan = try decoder.decode(WeeklyPlanV2.self, from: data)
+            // 舊快取可能把 top-level total_distance_km 寫進 totalDistance；
+            // 讀回一律重做日層投影，讓歷史切週與新 API 回應走同一條路。
+            return WeeklyPlanV2Mapper.projectTotalDistance(for: cachedPlan)
         } catch {
             Logger.trace("[TrainingPlanV2LocalDS] Failed to decode weekly plan for week \(week), clearing cache")
             clearWeeklyPlan(week: week)

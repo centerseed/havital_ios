@@ -479,8 +479,11 @@ struct App2PlanView: View {
     private func volumeCard(_ sourced: App2Sourced<App2PlanWeek>) -> some View {
         let week = sourced.value
         let completed = week.completedDistanceKm ?? 0
-        let target = max(week.targetDistanceKm, 0.1)
-        let ratio = min(completed / target, 1)
+        let ratio: Double = if let targetDistanceKm = week.targetDistanceKm, targetDistanceKm > 0 {
+            min(completed / targetDistanceKm, 1)
+        } else {
+            0
+        }
         // 比例是無因次的，換算只影響畫出來的數字。
         let unit = unitManager.currentUnitSystem
 
@@ -500,19 +503,23 @@ struct App2PlanView: View {
                         .map { App2NumberFormat.grouped(unit.convertedDistance($0), maximumFractionDigits: 1) } ?? "0")
                         .font(.app2Mono(28))
                         .foregroundStyle(App2Theme.inkPrimary)
-                    Text(verbatim: " / "
-                         + App2NumberFormat.grouped(unit.convertedDistance(week.targetDistanceKm), maximumFractionDigits: 1)
-                         + " " + unit.distanceSuffix)
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(App2Theme.inkTertiary)
+                    if let targetDistanceKm = week.targetDistanceKm {
+                        Text(verbatim: " / "
+                             + App2NumberFormat.grouped(unit.convertedDistance(targetDistanceKm), maximumFractionDigits: 1)
+                             + " " + unit.distanceSuffix)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(App2Theme.inkTertiary)
+                    }
                 }
                 Spacer()
-                Text(verbatim: "\(Int((ratio * 100).rounded()))%")
-                    .font(.system(size: 14, weight: .heavy))
-                    .foregroundStyle(App2Theme.accentBlueDeep)
-                    .padding(.horizontal, 11)
-                    .padding(.vertical, 4)
-                    .background(Capsule().fill(App2Theme.accentBlue.opacity(0.1)))
+                if week.targetDistanceKm != nil {
+                    Text(verbatim: "\(Int((ratio * 100).rounded()))%")
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundStyle(App2Theme.accentBlueDeep)
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(App2Theme.accentBlue.opacity(0.1)))
+                }
             }
             .padding(.top, 3)
 

@@ -28,8 +28,8 @@ struct WeeklyPlanV2: Codable, Equatable {
     /// 總訓練週數
     let totalWeeks: Int?
 
-    /// 週跑量（公里）
-    let totalDistance: Double
+    /// 週跑量（公里）。只要任一跑步日缺少日層距離，週量就是未知。
+    let totalDistance: Double?
 
     /// 週跑量顯示值（英制用戶為英里數值，公制用戶為 nil）
     let totalDistanceDisplay: Double?

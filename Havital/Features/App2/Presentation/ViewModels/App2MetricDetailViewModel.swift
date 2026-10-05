@@ -316,8 +316,8 @@ final class App2VolumeDetailViewModel: ObservableObject, TaskManageable, App2Rev
             let status = try await planRepository.getPlanStatus(forceRefresh: true)
             guard let planId = status.currentWeekPlanId else { return nil }
             let plan = try await planRepository.fetchWeeklyPlan(planId: planId)
-            guard plan.totalDistance > 0 else { return nil }
-            return plan.totalDistance
+            guard let totalDistance = plan.totalDistance, totalDistance > 0 else { return nil }
+            return totalDistance
         } catch {
             if !error.isCancellationError {
                 Logger.debug("[App2VolumeDetailVM] 本週課表取得失敗,不畫目標線: \(error)")

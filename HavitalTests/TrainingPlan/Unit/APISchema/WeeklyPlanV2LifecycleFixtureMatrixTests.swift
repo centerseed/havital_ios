@@ -45,7 +45,9 @@ final class WeeklyPlanV2LifecycleFixtureMatrixTests: XCTestCase {
 
     private func assertRenderSafeWeeklyPlan(_ plan: WeeklyPlanV2, fixtureName: String) {
         XCTAssertFalse(plan.purpose.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, fixtureName)
-        XCTAssertGreaterThanOrEqual(plan.totalDistance, 0, fixtureName)
+        if let totalDistance = plan.totalDistance {
+            XCTAssertGreaterThanOrEqual(totalDistance, 0, fixtureName)
+        }
         if !partialFixtureNames.contains(fixtureName) {
             XCTAssertEqual(plan.days.count, 7, fixtureName)
             XCTAssertEqual(plan.days.map(\.dayIndex).sorted(), Array(1...7), fixtureName)

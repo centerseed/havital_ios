@@ -596,7 +596,7 @@ private struct FixtureRecord {
             totalWeeks: totalWeeks,
             startFromStage: stageId,
             raceDate: nil,
-            distanceKm: dto.totalDistance,
+            distanceKm: dto.totalDistance ?? 0,
             distanceKmDisplay: dto.totalDistanceDisplay,
             distanceUnit: dto.totalDistanceUnit,
             targetPace: nil,
@@ -615,8 +615,8 @@ private struct FixtureRecord {
                     weekEnd: totalWeeks,
                     trainingFocus: dto.purpose,
                     targetWeeklyKmRange: TargetWeeklyKmRangeV2(
-                        low: max(dto.totalDistance - 5, 1),
-                        high: dto.totalDistance + 5
+                        low: max((dto.totalDistance ?? 0) - 5, 1),
+                        high: (dto.totalDistance ?? 0) + 5
                     ),
                     targetWeeklyKmRangeDisplay: nil,
                     intensityRatio: nil,

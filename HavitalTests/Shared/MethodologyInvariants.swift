@@ -279,7 +279,7 @@ enum MethodologyInvariants {
         let longRunDays = plan.days.filter { primaryRunType($0) == "long_run" || primaryRunType($0) == "lsd" }
         for day in longRunDays {
             guard case let .run(activity)? = day.session?.primary, let dist = activity.distanceKm else { continue }
-            if total > 0 && dist / total > 0.30 {
+            if let total, total > 0 && dist / total > 0.30 {
                 v.append(.init(ruleId: "INV-03.hansons.long_run_30pct",
                                message: "Hansons long run \(dist)km > 30% of week total \(total)km"))
             }

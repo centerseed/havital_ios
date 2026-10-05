@@ -333,4 +333,31 @@ final class TrainingPlanV2WeeklyPlanTTLTests: XCTestCase {
 
         XCTAssertFalse(sut.isWeeklyPlanExpired(week: 10))
     }
+
+    func test_getWeeklyPlan_reprojectsSerializedLegacyTotalDistance() {
+        let stalePlan = WeeklyPlanV2(
+            planId: "overview-1_3", weekOfTraining: 3, id: "overview-1_3",
+            purpose: "history", weekOfPlan: 3, totalWeeks: 17, totalDistance: 99,
+            totalDistanceDisplay: nil, totalDistanceUnit: nil, totalDistanceReason: nil,
+            designReason: nil, mileageProgressionNote: nil, coachNote: nil,
+            days: [
+                DayDetail(dayIndex: 1, dayTarget: "easy", reason: "aerobic", distanceKm: 5,
+                          tips: nil, category: .run, climateMeta: nil, session: nil, supplementary: nil),
+                DayDetail(dayIndex: 2, dayTarget: "rest", reason: "recovery", distanceKm: 0,
+                          tips: nil, category: .rest, climateMeta: nil, session: nil, supplementary: nil),
+                DayDetail(dayIndex: 3, dayTarget: "long", reason: "endurance", distanceKm: 12,
+                          tips: nil, category: .run, climateMeta: nil, session: nil, supplementary: nil)
+            ],
+            intensityTotalMinutes: nil, currentVdot: nil, vdotSource: nil,
+            createdAt: nil, updatedAt: nil, trainingLoadAnalysis: nil,
+            personalizedRecommendations: nil, realTimeAdjustments: nil, apiVersion: "2.0"
+        )
+
+        sut.saveWeeklyPlan(stalePlan, week: 3)
+
+        let retrieved = sut.getWeeklyPlan(week: 3)
+
+        XCTAssertEqual(retrieved?.totalDistance ?? -1, 17, accuracy: 0.001)
+        XCTAssertNotEqual(retrieved?.totalDistance, stalePlan.totalDistance)
+    }
 }

@@ -6,6 +6,47 @@ import Foundation
 /// ✅ 完整兼容 V1 WeeklyPlan 結構
 enum WeeklyPlanV2Mapper {
 
+    /// 將課表的日層距離投影成顯示用週量。
+    ///
+    /// 休息日或其他非跑步日沒有距離時代表 0；跑步日只要缺日層距離，
+    /// 就不能把已知日量的部分加總冒充完整週量。
+    static func projectTotalDistance(for plan: WeeklyPlanV2) -> WeeklyPlanV2 {
+        let hasUnknownRunDistance = plan.days.contains { day in
+            let isRunDay = day.category == .run || day.primaryRunActivity != nil
+            return isRunDay && day.distanceKm == nil
+        }
+        let totalDistance = hasUnknownRunDistance
+            ? nil
+            : plan.days.compactMap(\.distanceKm).reduce(0, +)
+
+        return WeeklyPlanV2(
+            planId: plan.planId,
+            weekOfTraining: plan.weekOfTraining,
+            id: plan.id,
+            purpose: plan.purpose,
+            weekOfPlan: plan.weekOfPlan,
+            totalWeeks: plan.totalWeeks,
+            totalDistance: totalDistance,
+            totalDistanceDisplay: plan.totalDistanceDisplay,
+            totalDistanceUnit: plan.totalDistanceUnit,
+            totalDistanceReason: plan.totalDistanceReason,
+            designReason: plan.designReason,
+            mileageProgressionNote: plan.mileageProgressionNote,
+            coachNote: plan.coachNote,
+            days: plan.days,
+            climate: plan.climate,
+            intensityTotalMinutes: plan.intensityTotalMinutes,
+            currentVdot: plan.currentVdot,
+            vdotSource: plan.vdotSource,
+            createdAt: plan.createdAt,
+            updatedAt: plan.updatedAt,
+            trainingLoadAnalysis: plan.trainingLoadAnalysis,
+            personalizedRecommendations: plan.personalizedRecommendations,
+            realTimeAdjustments: plan.realTimeAdjustments,
+            apiVersion: plan.apiVersion
+        )
+    }
+
     // MARK: - DTO → Entity
 
     /// 將 WeeklyPlanV2DTO 轉換為 WeeklyPlanV2 Entity
@@ -18,26 +59,23 @@ enum WeeklyPlanV2Mapper {
             ?? dto.overviewId.map { "\($0)_\(dto.weekOfTraining ?? dto.weekOfPlan ?? 0)" }
             ?? UUID().uuidString
 
-        // The API's day-level distance is the visible course total
-        // (warmup + primary + cooldown). A missing day value is unknown and
-        // must not fall back to primary.distance_km or the declared top-level total.
-        let dayDistanceTotal = dto.days.compactMap(\.distanceKm).reduce(0, +)
-
-        return WeeklyPlanV2(
+        let days = dto.days.map { TrainingSessionMapper.toEntity(from: $0) }
+        let plan = WeeklyPlanV2(
             planId: dto.planId ?? resolvedId,
             weekOfTraining: dto.weekOfTraining,
             id: resolvedId,
             purpose: dto.purpose,
             weekOfPlan: dto.weekOfPlan,
             totalWeeks: dto.totalWeeks,
-            totalDistance: dayDistanceTotal,
+            // 顯示用週量稍後由同一份日層投影計算；不讀 top-level total_distance_km。
+            totalDistance: nil,
             totalDistanceDisplay: dto.totalDistanceDisplay,
             totalDistanceUnit: dto.totalDistanceUnit,
             totalDistanceReason: dto.totalDistanceReason,
             designReason: dto.designReason,
             mileageProgressionNote: dto.mileageProgressionNote,
             coachNote: dto.coachNote,
-            days: dto.days.map { TrainingSessionMapper.toEntity(from: $0) },  // V2.1+ 使用 TrainingSessionMapper
+            days: days,  // V2.1+ 使用 TrainingSessionMapper
             climate: dto.climate.map { $0.map { TrainingSessionMapper.toEntity(from: $0) } },
             intensityTotalMinutes: dto.intensityTotalMinutes,  // 直接使用 V1 的 IntensityTotalMinutes
             currentVdot: dto.currentVdot ?? dto.vdot,
@@ -49,6 +87,7 @@ enum WeeklyPlanV2Mapper {
             realTimeAdjustments: dto.realTimeAdjustments,
             apiVersion: dto.apiVersion
         )
+        return projectTotalDistance(for: plan)
     }
 
     // MARK: - Entity → DTO

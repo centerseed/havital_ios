@@ -31,8 +31,8 @@ struct WeeklyPlanV2DTO: Codable {
     /// 總訓練週數
     let totalWeeks: Int?
 
-    /// 週跑量（公里）
-    let totalDistance: Double
+    /// 後端宣告的週跑量（公里）。顯示端不使用它，週量由 days 的日層距離投影。
+    let totalDistance: Double?
 
     /// 週跑量顯示值（英制用戶為英里數值，公制用戶為 nil）
     let totalDistanceDisplay: Double?

@@ -582,8 +582,8 @@ struct App2PlanWeek: Equatable {
     /// 已在地化的週次（`第 7 週`）。
     let weekLabel: String
     let totalWeeks: Int?
-    /// 週目標量（km）。
-    let targetDistanceKm: Double
+    /// 週目標量（km）。跑步日缺少日層距離時為未知，畫面不顯示目標數字。
+    let targetDistanceKm: Double?
     /// 已完成量（km），來自 `/v2/workouts`，不在週課表 payload 裡（§3.3 第 2 列）。
     let completedDistanceKm: Double?
     /// **實跑**強度分鐘分布 low/medium/high，與 `completedDistanceKm` 同一批紀錄算出。

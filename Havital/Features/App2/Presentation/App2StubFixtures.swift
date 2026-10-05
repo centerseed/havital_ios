@@ -111,7 +111,7 @@ enum App2StubFixtures {
     private struct PlanWeekFixture: Codable {
         let weekLabel: String
         let totalWeeks: Int?
-        let targetDistanceKm: Double
+        let targetDistanceKm: Double?
         let completedDistanceKm: Double?
         let intensityLowMinutes: Int?
         let intensityMediumMinutes: Int?

@@ -55,7 +55,7 @@ final class WeeklyPlanV2MapperTests: XCTestCase {
         XCTAssertEqual(entity.weekOfTraining, 3)
         XCTAssertEqual(entity.weekOfPlan, 3)
         XCTAssertEqual(entity.totalWeeks, 16)
-        XCTAssertEqual(entity.totalDistance, 45.5, accuracy: 0.01)
+        XCTAssertEqual(entity.totalDistance ?? -1, 45.5, accuracy: 0.01)
         XCTAssertEqual(entity.designReason?.count, 2)
         XCTAssertEqual(entity.apiVersion, "2.0")
     }
@@ -118,7 +118,7 @@ final class WeeklyPlanV2MapperTests: XCTestCase {
         XCTAssertEqual(day3.session?.cooldown?.distanceKm, 1.5)
     }
 
-    func test_mapper_usesDayDistanceForDailyAndWeeklyMileage() throws {
+    func test_mapper_completeDailyDistances_sumToWeeklyMileage() throws {
         let entity = try decodeAndMap(json: """
         {
           "purpose": "interval week",
@@ -135,6 +135,43 @@ final class WeeklyPlanV2MapperTests: XCTestCase {
             },
             {
               "day_index": 2,
+              "day_target": "rest",
+              "reason": "recovery",
+              "distance_km": 0.0,
+              "category": "rest"
+            },
+            {
+              "day_index": 3,
+              "day_target": "easy",
+              "reason": "aerobic",
+              "distance_km": 2.0,
+              "primary": {"run_type": "easy", "distance_km": 2.0}
+            }
+          ]
+        }
+        """)
+
+        XCTAssertEqual(entity.days[0].distanceKm ?? -1.0, 6.0, accuracy: 0.001)
+        XCTAssertEqual(entity.days[1].distanceKm ?? -1.0, 0.0, accuracy: 0.001)
+        XCTAssertEqual(entity.days[2].distanceKm ?? -1.0, 2.0, accuracy: 0.001)
+        XCTAssertEqual(entity.totalDistance ?? -1.0, 8.0, accuracy: 0.001)
+    }
+
+    func test_mapper_runDayMissingDailyDistance_makesWeeklyMileageUnknown() throws {
+        let entity = try decodeAndMap(json: """
+        {
+          "purpose": "incomplete interval week",
+          "total_distance_km": 99.0,
+          "days": [
+            {
+              "day_index": 1,
+              "day_target": "interval",
+              "reason": "quality",
+              "distance_km": 6.0,
+              "primary": {"run_type": "interval", "distance_km": 2.84}
+            },
+            {
+              "day_index": 2,
               "day_target": "easy",
               "reason": "aerobic",
               "distance_km": 2.0,
@@ -144,14 +181,43 @@ final class WeeklyPlanV2MapperTests: XCTestCase {
               "day_index": 3,
               "day_target": "missing",
               "reason": "missing day distance",
+              "category": "run",
               "primary": {"run_type": "easy", "distance_km": 8.0}
             }
           ]
         }
         """)
 
-        XCTAssertEqual(entity.days[0].distanceKm ?? -1.0, 6.0, accuracy: 0.001)
-        XCTAssertEqual(entity.totalDistance, 8.0, accuracy: 0.001)
+        XCTAssertNil(entity.days[2].distanceKm)
+        XCTAssertNil(entity.totalDistance, "部分日量不得冒充完整週量或退回 top-level total_distance_km")
+    }
+
+    func test_mapper_restDayZero_isKnownWeeklyMileageInput() throws {
+        let entity = try decodeAndMap(json: """
+        {
+          "purpose": "rest week",
+          "total_distance_km": 99.0,
+          "days": [
+            {
+              "day_index": 1,
+              "day_target": "rest",
+              "reason": "recovery",
+              "distance_km": 0.0,
+              "category": "rest"
+            },
+            {
+              "day_index": 2,
+              "day_target": "easy",
+              "reason": "aerobic",
+              "distance_km": 5.0,
+              "primary": {"run_type": "easy", "distance_km": 5.0}
+            }
+          ]
+        }
+        """)
+
+        XCTAssertEqual(entity.days[0].distanceKm, 0.0)
+        XCTAssertEqual(entity.totalDistance ?? -1.0, 5.0, accuracy: 0.001)
     }
 
     // MARK: - Exercise Reps Conversion

@@ -40,8 +40,8 @@ struct WeekOverviewCardV2: View {
     }
 
     private var weekProgress: Double {
-        guard plan.totalDistance > 0 else { return 0 }
-        return min(viewModel.loader.currentWeekDistance / plan.totalDistance, 1.0)
+        guard let totalDistance = plan.totalDistance, totalDistance > 0 else { return 0 }
+        return min(viewModel.loader.currentWeekDistance / totalDistance, 1.0)
     }
 
     // 展示徽章是否為「最近 1 天內解鎖」→ 決定是否顯示 NEW chip
@@ -135,21 +135,23 @@ struct WeekOverviewCardV2: View {
                             .font(.system(size: 32, weight: .bold, design: .rounded))
                             .foregroundColor(.primary)
 
-                        Text("/ \(String(format: "%.0f", unitManager.convertedDistance(plan.totalDistance))) \(unitManager.currentUnitSystem.distanceSuffix)")
-                            .font(AppFont.label())
-                            .foregroundColor(.secondary)
+                        if let totalDistance = plan.totalDistance {
+                            Text("/ \(String(format: "%.0f", unitManager.convertedDistance(totalDistance))) \(unitManager.currentUnitSystem.distanceSuffix)")
+                                .font(AppFont.label())
+                                .foregroundColor(.secondary)
+                        }
 
                         Spacer()
 
-                        let pct = plan.totalDistance > 0
-                            ? Int(min(viewModel.loader.currentWeekDistance / plan.totalDistance * 100, 100))
-                            : 0
-                        PRChip(
-                            text: "\(pct)%",
-                            fg: PacerizColor.blueDeep,
-                            bg: PacerizColor.blue12,
-                            fontSize: 13
-                        )
+                        if let totalDistance = plan.totalDistance, totalDistance > 0 {
+                            let pct = Int(min(viewModel.loader.currentWeekDistance / totalDistance * 100, 100))
+                            PRChip(
+                                text: "\(pct)%",
+                                fg: PacerizColor.blueDeep,
+                                bg: PacerizColor.blue12,
+                                fontSize: 13
+                            )
+                        }
                     }
 
                     // Progress bar with intensity-coloured fill: filled portion = mileage

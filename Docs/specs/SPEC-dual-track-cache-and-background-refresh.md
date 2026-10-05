@@ -6,7 +6,7 @@ layer: architecture
 owns: repository 層「先回快取、背景刷新」的雙軌讀取語意，含顯式刷新與失效事件的行為承諾
 ontology_entity: dual-track-cache-strategy
 created: 2026-04-15
-updated: 2026-09-09
+updated: 2026-10-06
 ---
 
 # Feature Spec: Dual-Track Cache 與 Background Refresh
@@ -102,6 +102,16 @@ When 課表頁讀取週課表的 API 失敗，且目前沒有可保留的舊課�
 Then 課表頁必須顯示讀取失敗與重試，不顯示範例週次、日期、公里數或每日課表；已有舊課表時保留舊課表，沿用 SWR。
 
 驗法：`App2PlanWorkoutRefreshTests.test_weeklyPlanFailureWithoutExistingWeekLeavesNilAndMarksFailure` 驗證 API 丟錯時 `week == nil` 且狀態為失敗；同檔的既有 refresh 失敗測試驗證有舊資料時保留原課表。
+
+### AC-CACHE-13: 課表頁週量在 API 與快取讀回都只看日層距離
+
+Given 課表頁正在顯示一週課表，
+When 系統計算週量或從本地讀回這週課表，
+Then 週量必須把課表 `days` 的日層 `distance_km` 加總；休息日的距離是已知 0，不能改用跑步段的 `primary.distance_km` 或後端頂層 `total_distance_km`。
+And Then 只要任何跑步日沒有日層距離，週量就是未知，畫面不顯示週量目標數字與完成比例，但其他課表內容仍照常顯示；每日卡片也必須使用同一個日層距離。
+And Then 舊快取讀回時必須重新套用同一份投影，所以修規則前寫入的快取不需要使用者清除就會與新 API 回應一致。
+
+驗法：`WeeklyPlanV2MapperTests` 的完整日量加總、跑步日缺日量、休息日 0 測試，以及 `TrainingPlanV2WeeklyPlanTTLTests.test_getWeeklyPlan_reprojectsSerializedLegacyTotalDistance`。
 
 ## 實作對齊說明
 
