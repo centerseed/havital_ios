@@ -18,6 +18,11 @@ enum WeeklyPlanV2Mapper {
             ?? dto.overviewId.map { "\($0)_\(dto.weekOfTraining ?? dto.weekOfPlan ?? 0)" }
             ?? UUID().uuidString
 
+        // The API's day-level distance is the visible course total
+        // (warmup + primary + cooldown). A missing day value is unknown and
+        // must not fall back to primary.distance_km or the declared top-level total.
+        let dayDistanceTotal = dto.days.compactMap(\.distanceKm).reduce(0, +)
+
         return WeeklyPlanV2(
             planId: dto.planId ?? resolvedId,
             weekOfTraining: dto.weekOfTraining,
@@ -25,7 +30,7 @@ enum WeeklyPlanV2Mapper {
             purpose: dto.purpose,
             weekOfPlan: dto.weekOfPlan,
             totalWeeks: dto.totalWeeks,
-            totalDistance: dto.totalDistance,
+            totalDistance: dayDistanceTotal,
             totalDistanceDisplay: dto.totalDistanceDisplay,
             totalDistanceUnit: dto.totalDistanceUnit,
             totalDistanceReason: dto.totalDistanceReason,

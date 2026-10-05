@@ -32,7 +32,7 @@ final class App2PlanProjectionTests: XCTestCase {
     private func fullWeekJSON(weekOfTraining: Int, totalWeeks: Int) -> String {
         let days = (1...7).map { index in
             """
-            { "day_index": \(index), "day_target": "第 \(index) 天", "reason": "r",
+            { "day_index": \(index), "day_target": "第 \(index) 天", "reason": "r", "distance_km": 5.0,
               "primary": { "run_type": "easy", "distance_km": 5.0 } }
             """
         }.joined(separator: ",")
