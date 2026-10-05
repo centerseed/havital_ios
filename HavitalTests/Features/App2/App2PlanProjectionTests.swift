@@ -31,14 +31,24 @@ final class App2PlanProjectionTests: XCTestCase {
     /// 七天：一～日，全部有 primary。
     private func fullWeekJSON(weekOfTraining: Int, totalWeeks: Int) -> String {
         let days = (1...7).map { index in
-            """
+            if index == 3 {
+                return """
+                { "day_index": 3, "day_target": "間歇", "reason": "r", "distance_km": 5.2,
+                  "warmup": { "distance_km": 2.0, "pace": "7:00" },
+                  "cooldown": { "distance_km": 1.0, "pace": "7:00" },
+                  "primary": { "run_type": "interval", "distance_km": 2.2,
+                    "interval": { "repeats": 4, "work_distance_m": 400, "work_pace": "4:50",
+                                   "recovery_distance_m": 200, "recovery_pace": "7:30" } } }
+                """
+            }
+            return """
             { "day_index": \(index), "day_target": "第 \(index) 天", "reason": "r", "distance_km": 5.0,
-              "primary": { "run_type": "easy", "distance_km": 5.0 } }
+              "primary": { "run_type": "easy", "distance_km": 4.0 } }
             """
         }.joined(separator: ",")
         return """
         { "purpose": "p", "week_of_training": \(weekOfTraining),
-          "total_weeks": \(totalWeeks), "total_distance_km": 35.0,
+          "total_weeks": \(totalWeeks), "total_distance_km": 999.0,
           "intensity_total_minutes": { "low": 296, "medium": 0, "high": 22 },
           "days": [\(days)] }
         """
@@ -133,6 +143,23 @@ final class App2PlanProjectionTests: XCTestCase {
         )
         XCTAssertEqual(week.days.map(\.dateLabel).first, "8/10")
         XCTAssertFalse(week.days.contains { $0.dateLabel.isEmpty })
+    }
+
+    func test_planWeek_usesDailyDistanceForCardsAndWeeklyTotal() throws {
+        let source = try plan(fullWeekJSON(weekOfTraining: 7, totalWeeks: 8))
+        let week = App2PlanViewModel.planWeek(
+            plan: source, planStatus: try status(), completedKm: nil, todayIndex: 3
+        )
+
+        XCTAssertEqual(week.days[0].planned, "5.0 km")
+        XCTAssertEqual(week.days[2].planned?.hasPrefix("5.2 km"), true)
+        XCTAssertEqual(week.targetDistanceKm ?? -1, 35.2, accuracy: 0.001)
+        XCTAssertEqual(
+            source.days.compactMap(\.distanceKm).reduce(0, +),
+            week.targetDistanceKm ?? -1,
+            accuracy: 0.001,
+            "每日顯示來源的總和必須等於週量"
+        )
     }
 
     func test_todayDayIndex_matchesCalendarWeekdayWithMondayFirst() {
@@ -238,7 +265,7 @@ final class App2PlanProjectionTests: XCTestCase {
             plan: weekPlan, planStatus: planStatus, completedKm: 35, todayIndex: 1
         )
         XCTAssertEqual(full.completedDistanceKm, 35)
-        XCTAssertEqual(full.targetDistanceKm, 35)
+        XCTAssertEqual(full.targetDistanceKm ?? -1, 35.2, accuracy: 0.001)
 
         // 尚未取得 workouts → nil，畫面顯示 0 而不是假裝已完成。
         let unknown = App2PlanViewModel.planWeek(
@@ -268,7 +295,8 @@ final class App2PlanProjectionTests: XCTestCase {
             plan: try plan(json), planStatus: try status(), completedKm: nil, todayIndex: 2
         )
         XCTAssertEqual(week.days.first?.temp, "29°C")
-        XCTAssertEqual(week.days.first?.planned, "8.0 km")
+        XCTAssertEqual(week.days.first?.planned, L10n.EditSchedule.unknown.localized)
+        XCTAssertNil(week.targetDistanceKm)
     }
 
     // MARK: - 日卡內容（設計 frame-01：課表行 ＝ 量 · 配速；敘述行 ＝ day_target）
@@ -281,7 +309,7 @@ final class App2PlanProjectionTests: XCTestCase {
     func test_planWeek_plannedRowCarriesPrescribedPaceNotClimateAdjusted() throws {
         let json = """
         { "purpose": "p", "week_of_training": 1, "total_weeks": 6, "total_distance_km": 8,
-          "days": [ { "day_index": 2,
+          "days": [ { "day_index": 2, "distance_km": 4.0,
                       "day_target": "節奏跑：維持乳酸閾值強度 4 km", "reason": "r",
                       "primary": { "run_type": "tempo", "distance_km": 4.0,
                                    "pace": "6:50", "climate_adjusted_pace": "7:17" } } ] }
@@ -299,7 +327,7 @@ final class App2PlanProjectionTests: XCTestCase {
     func test_planWeek_easyRunRowOmitsPace() throws {
         let json = """
         { "purpose": "p", "week_of_training": 1, "total_weeks": 6, "total_distance_km": 8,
-          "days": [ { "day_index": 2,
+          "days": [ { "day_index": 2, "distance_km": 4.0,
                       "day_target": "輕鬆跑：保持舒適配速，專注於有氧建立 4 km", "reason": "r",
                       "primary": { "run_type": "easy", "distance_km": 4.0,
                                    "pace": "6:50", "climate_adjusted_pace": "7:17" } } ] }
@@ -361,7 +389,9 @@ final class App2PlanProjectionTests: XCTestCase {
             planStatus: try status(), completedKm: nil, todayIndex: 1
         )
         XCTAssertTrue(week.days.allSatisfy { $0.tag != "easy" })
-        XCTAssertTrue(week.days.allSatisfy { $0.tag == DayType.easy.localizedName })
+        XCTAssertTrue(week.days.enumerated().allSatisfy { index, day in
+            index == 2 ? day.tag == DayType.interval.localizedName : day.tag == DayType.easy.localizedName
+        })
     }
 
     /// 實跑條的三段是實跑分鐘，不是課表目標。2026-09-02 用戶截圖：間歇週跑了

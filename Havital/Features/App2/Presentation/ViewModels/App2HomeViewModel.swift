@@ -938,7 +938,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             // 說成休息日（2026-08-26 架構收斂時發現，DTO 時代退的是後端的自由字串）。
             title: App2PlanViewModel.dayTypeLabel(dayType: dayType, dayTarget: day.dayTarget),
             intensityLabel: App2PlanViewModel.intensityLabel(primary),
-            summary: App2PlanViewModel.contentLine(primary, totalDistanceKm: day.distanceKm),
+            summary: App2PlanViewModel.dailyTotalContentLine(primary, distanceKm: day.distanceKm),
             segments: segments,
             structureBars: Self.structureBars(day: day),
             strengthLabel: Self.strengthLabel(day: day),
@@ -1141,7 +1141,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             if runSegments.isEmpty {
                 // 單段課（輕鬆跑／長跑）也有結構，只是只有一段主課。
                 append(L10n.App2.Home.segmentMain.localized,
-                       App2PlanViewModel.contentLine(day.session?.primary), isWork: true)
+                       App2PlanViewModel.mainSetContentLine(day.session?.primary), isWork: true)
             }
             for segment in runSegments {
                 if segment.segmentKind == .interval {
@@ -1226,7 +1226,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
                     .steady, height: 0.6, width: 4,
                     pace: App2PlanViewModel.dayPace(run),
                     noteLabel: L10n.App2.Home.structureNoteSteady.localized,
-                    noteDetail: App2PlanViewModel.contentLine(day.session?.primary)
+                    noteDetail: App2PlanViewModel.mainSetContentLine(day.session?.primary)
                 )
             }
             for segment in runSegments {

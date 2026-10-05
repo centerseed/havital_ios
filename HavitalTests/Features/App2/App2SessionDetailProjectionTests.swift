@@ -277,7 +277,7 @@ final class App2SessionDetailProjectionTests: XCTestCase {
         XCTAssertTrue(rows[0].isWork)
         XCTAssertEqual(
             App2SessionDetailProjection.segmentDetail(rows[0], unitSystem: .metric),
-            App2PlanViewModel.contentLine(entity.session?.primary, unitSystem: .metric)
+            App2PlanViewModel.mainSetContentLine(entity.session?.primary, unitSystem: .metric)
         )
     }
 

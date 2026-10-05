@@ -256,7 +256,7 @@ enum App2SessionDetailProjection {
         unitSystem: UnitSystem
     ) -> String? {
         if let steadyPrimary = segment.steadyPrimary {
-            return App2PlanViewModel.contentLine(steadyPrimary, unitSystem: unitSystem)
+            return App2PlanViewModel.mainSetContentLine(steadyPrimary, unitSystem: unitSystem)
         }
         return segment.fixedDetail
     }
@@ -312,7 +312,7 @@ enum App2SessionDetailProjection {
                 //
                 // 「這一列存不存在」與單位無關（`contentLine` 只在距離／時長／配速
                 // 三欄都缺席時回 nil），所以拿 `.metric` 問一次就夠，不必等到畫的時候。
-                let hasSteadyLine = App2PlanViewModel.contentLine(
+                let hasSteadyLine = App2PlanViewModel.mainSetContentLine(
                     day.session?.primary, unitSystem: .metric
                 ) != nil
                 append(

@@ -266,7 +266,7 @@ struct TimelineItemViewV2: View {
                                                 .textCase(.uppercase)
                                                 .frame(width: 40, alignment: .leading)
 
-                                            let plannedDistStr = day.distanceKm.map { String(format: "%.1f \(UnitManager.shared.currentUnitSystem.distanceSuffix)", UnitManager.shared.convertedDistance($0)) } ?? ""
+                                            let plannedDistStr = day.distanceKm.map { String(format: "%.1f \(UnitManager.shared.currentUnitSystem.distanceSuffix)", UnitManager.shared.convertedDistance($0)) } ?? L10n.EditSchedule.unknown.localized
                                             // 輕鬆跑：拿掉時間，課表只顯示距離（時間對輕鬆跑無意義，依配速/體感跑）。
                                             let isEasyType = day.type == .easyRun || day.type == .easy || day.type == .recovery_run
                                             let plannedDurStr = isEasyType ? "" : formatPlannedDuration(minutes: run.durationMinutes, seconds: run.durationSeconds)

@@ -162,7 +162,7 @@ final class App2ImperialDistanceTests: XCTestCase {
     /// 「切換 → 重投影 → 畫面換單位」的完整鏈（外審第二輪 E03）。
     ///
     /// 這裡刻意**不傳** `unitSystem`，走呼叫端在正式路徑上用的那條預設
-    /// （`App2PlanViewModel.contentLine` 的 `?? .current`）。
+    /// （每日總量 API 的 `?? .current`）。
     func test_reprojectionAfterUnitChange_producesTheNewUnitString() async throws {
         let manager = UnitManager.shared
         let original = manager.currentUnitSystem
@@ -179,13 +179,13 @@ final class App2ImperialDistanceTests: XCTestCase {
 
         manager.currentUnitSystem = .metric
         XCTAssertEqual(
-            App2PlanViewModel.contentLine(primary, totalDistanceKm: 8.0),
+            App2PlanViewModel.dailyTotalContentLine(primary, distanceKm: 8.0),
             "8.0 km · 6:50/km"
         )
 
         manager.currentUnitSystem = .imperial
         XCTAssertEqual(
-            App2PlanViewModel.contentLine(primary, totalDistanceKm: 8.0),
+            App2PlanViewModel.dailyTotalContentLine(primary, distanceKm: 8.0),
             "5.0 mi · 11:00/mi",
             "重投影要用切換後的單位，不是投影當時存下來的那一份"
         )
@@ -283,15 +283,15 @@ final class App2ImperialDistanceTests: XCTestCase {
 
     // MARK: - 缺陷 1／2：日卡「課表」那一行（Home ＋ Plan 共用）
 
-    func test_contentLine_imperial_distanceAndPaceUseTheSameUnit() throws {
+    func test_dailyTotalContentLine_imperial_distanceAndPaceUseTheSameUnit() throws {
         let primary = try day(steadyRunDay).session?.primary
         XCTAssertEqual(
-            App2PlanViewModel.contentLine(primary, totalDistanceKm: 8.0, unitSystem: .metric),
+            App2PlanViewModel.dailyTotalContentLine(primary, distanceKm: 8.0, unitSystem: .metric),
             "8.0 km · 6:50/km"
         )
         // 修前這一行是 `8.0 km · 11:00/mi` —— 距離寫死公制、配速已換算。
         XCTAssertEqual(
-            App2PlanViewModel.contentLine(primary, totalDistanceKm: 8.0, unitSystem: .imperial),
+            App2PlanViewModel.dailyTotalContentLine(primary, distanceKm: 8.0, unitSystem: .imperial),
             "5.0 mi · 11:00/mi"
         )
     }
@@ -299,19 +299,19 @@ final class App2ImperialDistanceTests: XCTestCase {
     /// 輕鬆跑／長距離輕鬆跑**不顯示配速**（2026-09-11 使用者裁決）：處方層只給
     /// 配速帶，單一值沒有意義。payload 仍帶 `pace` 也不畫 —— 這一條要紅在
     /// 「還在顯示」而不是「payload 剛好沒有」。
-    func test_contentLine_easyAndLongEasyRuns_showNoPace() throws {
+    func test_dailyTotalContentLine_easyAndLongEasyRuns_showNoPace() throws {
         let easy = try day(easyRunDay).session?.primary
-        XCTAssertEqual(App2PlanViewModel.contentLine(easy, totalDistanceKm: 8.0), "8.0 km")
+        XCTAssertEqual(App2PlanViewModel.dailyTotalContentLine(easy, distanceKm: 8.0), "8.0 km")
         XCTAssertNil(App2PlanViewModel.dayPace(try XCTUnwrap(runActivity(easy))))
 
         let lsd = try day(lsdDay).session?.primary
-        XCTAssertEqual(App2PlanViewModel.contentLine(lsd, totalDistanceKm: 18.0), "18.0 km")
+        XCTAssertEqual(App2PlanViewModel.dailyTotalContentLine(lsd, distanceKm: 18.0), "18.0 km")
         XCTAssertNil(App2PlanViewModel.dayPace(try XCTUnwrap(runActivity(lsd))))
 
         // 對照組：勻速課照樣有配速，否則上面兩條可能只是整條 pipeline 壞了。
         let steady = try day(steadyRunDay).session?.primary
         XCTAssertEqual(
-            App2PlanViewModel.contentLine(steady, totalDistanceKm: 8.0),
+            App2PlanViewModel.dailyTotalContentLine(steady, distanceKm: 8.0),
             "8.0 km · 6:50/km"
         )
     }
@@ -338,11 +338,11 @@ final class App2ImperialDistanceTests: XCTestCase {
     func test_intervalContentLine_imperial_convertsMainSetDistance() throws {
         let primary = try day(intervalOnlyDay).session?.primary
         XCTAssertEqual(
-            App2PlanViewModel.contentLine(primary, unitSystem: .metric)?.hasPrefix("2.2 km"),
+            App2PlanViewModel.mainSetContentLine(primary, unitSystem: .metric)?.hasPrefix("2.2 km"),
             true
         )
         XCTAssertEqual(
-            App2PlanViewModel.contentLine(primary, unitSystem: .imperial)?.hasPrefix("1.4 mi"),
+            App2PlanViewModel.mainSetContentLine(primary, unitSystem: .imperial)?.hasPrefix("1.4 mi"),
             true
         )
     }

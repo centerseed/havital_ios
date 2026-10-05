@@ -103,15 +103,13 @@ Then 課表頁必須顯示讀取失敗與重試，不顯示範例週次、日期
 
 驗法：`App2PlanWorkoutRefreshTests.test_weeklyPlanFailureWithoutExistingWeekLeavesNilAndMarksFailure` 驗證 API 丟錯時 `week == nil` 且狀態為失敗；同檔的既有 refresh 失敗測試驗證有舊資料時保留原課表。
 
-### AC-CACHE-13: 課表頁週量在 API 與快取讀回都只看日層距離
+### AC-CACHE-13: 課表頁顯示的週跑量與每日公里都含暖身緩和
 
-Given 課表頁正在顯示一週課表，
-When 系統計算週量或從本地讀回這週課表，
-Then 週量必須把課表 `days` 的日層 `distance_km` 加總；休息日的距離是已知 0，不能改用跑步段的 `primary.distance_km` 或後端頂層 `total_distance_km`。
-And Then 只要任何跑步日沒有日層距離，週量就是未知，畫面不顯示週量目標數字與完成比例，但其他課表內容仍照常顯示；每日卡片也必須使用同一個日層距離。
-And Then 舊快取讀回時必須重新套用同一份投影，所以修規則前寫入的快取不需要使用者清除就會與新 API 回應一致。
+使用者在課表頁看一週課表時，每天卡片上的公里數就是後端 `days[].distance_km` 的當天總距離，包含暖身與緩和；課表頁顯示的週跑量就是這些每日公里的加總，休息日算 0。兩個地方說的是同一個量，不能改用間歇主課段的 `primary.distance_km` 或後端頂層 `total_distance_km`。
 
-驗法：`WeeklyPlanV2MapperTests` 的完整日量加總、跑步日缺日量、休息日 0 測試，以及 `TrainingPlanV2WeeklyPlanTTLTests.test_getWeeklyPlan_reprojectsSerializedLegacyTotalDistance`。
+如果某個跑步日沒有 `days[].distance_km`，App 不猜它的公里數：該日與整週的公里數都顯示未知，但其他課表內容仍照常顯示。從本地快取讀回課表時也套用同一份規則，所以舊快取不需要使用者清除，就會和新 API 回應一致。
+
+驗法：`App2PlanProjectionTests` 驗證 DTO 經 mapper 後的每日卡、間歇日 5.2／2.2 與每日加總；`App2HomeProjectionTests` 驗證首頁今日卡；`WeeklyPlanV2LocalDataSourceCooldownTests` 驗證快取讀回後仍是未知；`WeeklyPlanV2MapperTests` 驗證完整日量、缺日量與休息日 0。
 
 ## 實作對齊說明
 

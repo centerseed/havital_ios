@@ -247,6 +247,7 @@ final class TrainingPlanV2LocalDataSourceOwnerTests: XCTestCase {
 /// 2026-09-01 裁決：整期預抓把 `1…total_weeks` 全部填進快取；如果舊週每兩小時
 /// 就變 stale，回看又會退回「每切一次週等一趟網路」。
 /// 「現在第幾週」讀既有的 plan status 快取（`current_week`），**不另立時鐘**。
+@MainActor
 final class TrainingPlanV2WeeklyPlanTTLTests: XCTestCase {
 
     private var sut: TrainingPlanV2LocalDataSource!
@@ -359,5 +360,37 @@ final class TrainingPlanV2WeeklyPlanTTLTests: XCTestCase {
 
         XCTAssertEqual(retrieved?.totalDistance ?? -1, 17, accuracy: 0.001)
         XCTAssertNotEqual(retrieved?.totalDistance, stalePlan.totalDistance)
+    }
+
+    func test_getWeeklyPlan_missingRunningDayDistance_staysUnknownThroughPlanProjection() throws {
+        let runningDayJSON = """
+        { "day_index": 1, "day_target": "輕鬆跑", "reason": "aerobic",
+          "primary": { "run_type": "easy", "distance_km": 8.0 } }
+        """
+        let runningDay = TrainingSessionMapper.toEntity(
+            from: try JSONDecoder().decode(
+                DayDetailDTO.self, from: Data(runningDayJSON.utf8)
+            )
+        )
+        let stalePlan = WeeklyPlanV2(
+            planId: "overview-1_3", weekOfTraining: 3, id: "overview-1_3",
+            purpose: "history", weekOfPlan: 3, totalWeeks: 17, totalDistance: 99,
+            totalDistanceDisplay: nil, totalDistanceUnit: nil, totalDistanceReason: nil,
+            designReason: nil, mileageProgressionNote: nil, coachNote: nil,
+            days: [runningDay], intensityTotalMinutes: nil, currentVdot: nil,
+            vdotSource: nil, createdAt: nil, updatedAt: nil, trainingLoadAnalysis: nil,
+            personalizedRecommendations: nil, realTimeAdjustments: nil, apiVersion: "2.0"
+        )
+
+        sut.saveWeeklyPlan(stalePlan, week: 3)
+
+        let retrieved = try XCTUnwrap(sut.getWeeklyPlan(week: 3))
+        XCTAssertNil(retrieved.totalDistance)
+
+        let projected = App2PlanViewModel.planWeek(
+            plan: retrieved, planStatus: makeStatus(currentWeek: 3), completedKm: nil, todayIndex: 1
+        )
+        XCTAssertNil(projected.targetDistanceKm)
+        XCTAssertEqual(projected.days.first?.planned, L10n.EditSchedule.unknown.localized)
     }
 }

@@ -97,7 +97,7 @@ final class App2HomeProjectionTests: XCTestCase {
     """
 
     private let easyRunDay = """
-    { "day_index": 2, "day_target": "輕鬆跑", "reason": "有氧維持",
+    { "day_index": 2, "day_target": "輕鬆跑", "reason": "有氧維持", "distance_km": 9.0,
       "primary": { "run_type": "easy", "distance_km": 9.0, "pace": "7:55",
                    "target_intensity": "low" } }
     """
@@ -105,7 +105,7 @@ final class App2HomeProjectionTests: XCTestCase {
     /// 單段勻速課（**不是**輕鬆跑）。輕鬆跑與長距離輕鬆跑一律不顯示配速
     /// （2026-09-11 使用者裁決），所以「單段課有配速」這一類保護要拿它當樣本。
     private let steadyRunDay = """
-    { "day_index": 2, "day_target": "節奏跑", "reason": "乳酸閾值",
+    { "day_index": 2, "day_target": "節奏跑", "reason": "乳酸閾值", "distance_km": 9.0,
       "primary": { "run_type": "tempo", "distance_km": 9.0, "pace": "7:55",
                    "target_intensity": "medium" } }
     """
@@ -113,6 +113,16 @@ final class App2HomeProjectionTests: XCTestCase {
     private let intervalDay = """
     { "day_index": 5, "day_target": "間歇", "reason": "速耐力",
       "primary": { "run_type": "interval", "target_intensity": "high",
+                   "segments": [ { "kind": "interval", "repeats": 6,
+                                   "work": { "distance_m": 200, "pace": "5:25" },
+                                   "recovery": { "duration_seconds": 90 } } ] } }
+    """
+
+    private let intervalDailyTotalDay = """
+    { "day_index": 5, "day_target": "間歇", "reason": "速耐力", "distance_km": 5.2,
+      "warmup": { "distance_km": 2.0, "pace": "7:00" },
+      "cooldown": { "distance_km": 1.0, "pace": "7:00" },
+      "primary": { "run_type": "interval", "distance_km": 2.2, "target_intensity": "high",
                    "segments": [ { "kind": "interval", "repeats": 6,
                                    "work": { "distance_m": 200, "pace": "5:25" },
                                    "recovery": { "duration_seconds": 90 } } ] } }
@@ -219,11 +229,10 @@ final class App2HomeProjectionTests: XCTestCase {
 
     func test_todaySession_interval_buildsStructuredLine() throws {
         let session = App2HomeViewModel.todaySession(
-            days: [try day(intervalDay)], todayIndex: 5, dayLabel: "週五"
+            days: [try day(intervalDailyTotalDay)], todayIndex: 5, dayLabel: "週五"
         )
-        // 2026-08-26 裁決：間歇日的「課表」行＝主課段（含組間恢復）總距離 ＋ 該段總時間。
-        // 6 × 200m @ 5:25 ＝ 1.2 km、6×65s ＋ 5×90s 組間 ＝ 840 秒。
-        XCTAssertEqual(session?.summary, "1.2 km · 14:00")
+        // 每日卡顯示含暖身緩和的日層總量；主課段小計另由詳情／結構列顯示。
+        XCTAssertEqual(session?.summary?.hasPrefix("5.2 km"), true)
         XCTAssertEqual(session?.intensityLabel, L10n.App2.Session.effortChipHigh.localized)
     }
 
@@ -242,7 +251,7 @@ final class App2HomeProjectionTests: XCTestCase {
     /// 這顆 chip 每張今日卡都要有）。退法是 `DayType` 對照，不是對顯示字比對。
     func test_todaySession_missingIntensity_fallsBackToDayType() throws {
         let json = """
-        { "day_index": 1, "day_target": "輕鬆跑", "reason": "r",
+        { "day_index": 1, "day_target": "輕鬆跑", "reason": "r", "distance_km": 5.0,
           "primary": { "run_type": "easy", "distance_km": 5.0 } }
         """
         let session = App2HomeViewModel.todaySession(
@@ -252,7 +261,7 @@ final class App2HomeProjectionTests: XCTestCase {
         XCTAssertEqual(session?.summary, "5.0 km")
     }
 
-    /// 沒有距離但有時間 → 用時間；兩者都沒有 → 那一行不顯示。
+    /// 跑步日缺日層距離時顯示未知，不退回 primary 距離或時長。
     func test_todaySession_durationOnly_andNeither() throws {
         let durationOnly = """
         { "day_index": 1, "day_target": "輕鬆跑", "reason": "r",
@@ -262,17 +271,18 @@ final class App2HomeProjectionTests: XCTestCase {
             App2HomeViewModel.todaySession(
                 days: [try day(durationOnly)], todayIndex: 1, dayLabel: "週一"
             )?.summary,
-            "40 min"
+            L10n.EditSchedule.unknown.localized
         )
 
         let neither = """
         { "day_index": 1, "day_target": "輕鬆跑", "reason": "r",
           "primary": { "run_type": "easy" } }
         """
-        XCTAssertNil(
+        XCTAssertEqual(
             App2HomeViewModel.todaySession(
                 days: [try day(neither)], todayIndex: 1, dayLabel: "週一"
-            )?.summary
+            )?.summary,
+            L10n.EditSchedule.unknown.localized
         )
     }
 
@@ -1121,7 +1131,7 @@ final class App2HomeProjectionTests: XCTestCase {
         XCTAssertEqual(notes.first?.kind, .steady)
         XCTAssertEqual(
             notes.first?.noteDetail,
-            App2PlanViewModel.contentLine(detail.session?.primary),
+            App2PlanViewModel.mainSetContentLine(detail.session?.primary),
             "標註列的量必須與卡片「課表」那一行同一支字串，不得另組一份"
         )
     }

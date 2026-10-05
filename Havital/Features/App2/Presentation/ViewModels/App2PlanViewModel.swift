@@ -962,8 +962,8 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 tag: Self.dayTypeLabel(dayType: dayType, dayTarget: day.dayTarget),
                 dayType: dayType,
                 // 設計 frame-01 的「課表」行是「量 · 配速」（`4.0 km · 7:17/km`），
-                // 不是裸距離；與今日課表卡走同一支 `contentLine`，不另做一份格式。
-                planned: Self.contentLine(primary, totalDistanceKm: day.distanceKm),
+                // 不是裸距離；與今日課表卡走同一支每日總量 formatter，不另做一份格式。
+                planned: Self.dailyTotalContentLine(primary, distanceKm: day.distanceKm),
                 description: Self.descriptionLine(day),
                 // 實際值要按日期對齊 workouts；骨架階段僅在週總量層合併（見 completedKm）。
                 actual: nil,
@@ -1254,28 +1254,43 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
         )]
     }
 
-    /// 兩者都拿不到 → nil（畫面就不顯示這一行，不用 placeholder 充數）。
-    ///
-    /// `totalDistanceKm` ＝ 這一天的總量（payload 的日層 `distance_km`）。給了就用它，
-    /// 因為 `primary.distance_km` 在間歇課只算主課段（dev 實測 `2.2`＝4×400m 加組間
-    /// 恢復），跟下面分段列的熱身 2.0 ＋ 衝刺 1.6 ＋ 緩和 1.0 加不起來
-    /// （2026-08-26 使用者回報）。日層 `5.2` 才是那張卡在講的量。
-    ///
-    /// 距離與配速走**同一個** `unitSystem`（2026-09-01）：原本配速已接 `UnitManager`、
-    /// 距離卻寫死 `km`，英制用戶看到的是同一行裡「公里數字 · 每英里配速」。
-    static func contentLine(
+    /// 課表頁與首頁每日卡的整日總量。距離只來自 `days[].distance_km`；
+    /// 間歇日的 `primary.distance_km` 只是主課段小計，不能替代日層距離。
+    /// 缺值時顯示未知，不得退回 `primary.distance_km` 或時長。
+    /// 距離與配速走同一個 `unitSystem`，避免同一行混用公里與英里。
+    static func dailyTotalContentLine(
         _ primary: PrimaryActivity?,
-        totalDistanceKm: Double? = nil,
+        distanceKm: Double?,
         unitSystem: UnitSystem? = nil
     ) -> String? {
         guard case .run(let run) = primary else { return nil }
-        // 預設值不能寫在參數上：default argument 在 nonisolated context 求值。
+        let unitSystem = unitSystem ?? .current
+
+        var parts: [String] = []
+        if let km = distanceKm {
+            parts.append(unitSystem.formatDistance(km))
+        } else {
+            parts.append(L10n.EditSchedule.unknown.localized)
+        }
+        if let pace = dayPace(run) {
+            parts.append(unitSystem.formatPaceString(pace))
+        }
+        return parts.joined(separator: " · ")
+    }
+
+    /// 主課段／訓練詳情的內容。間歇日只顯示主課段小計；這條 API 不代表整日總量。
+    /// 主課段的距離、時長與配速都沒有時回 nil，讓詳情 consumer 不產生空列。
+    static func mainSetContentLine(
+        _ primary: PrimaryActivity?,
+        unitSystem: UnitSystem? = nil
+    ) -> String? {
+        guard case .run(let run) = primary else { return nil }
         let unitSystem = unitSystem ?? .current
 
         if let line = intervalContentLine(run, unitSystem: unitSystem) { return line }
 
         var parts: [String] = []
-        if let km = totalDistanceKm ?? run.distanceKm, km > 0 {
+        if let km = run.distanceKm, km > 0 {
             parts.append(unitSystem.formatDistance(km))
         } else if let minutes = run.durationMinutes {
             parts.append("\(minutes) min")
