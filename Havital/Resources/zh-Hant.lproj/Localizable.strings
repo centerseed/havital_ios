@@ -5086,7 +5086,7 @@
 
 "app2.races.promote_confirm_title" = "變更主要賽事？";
 
-"app2.races.promote_confirm_body" = "計畫會依「%@」重新安排；目前與之後的週課表會作廢並重新產生。";
+"app2.races.promote_confirm_body" = "計畫會依「%@」重新安排週數與階段；本週已產生的課表照舊保留，之後的週依新賽事產生。";
 
 "app2.races.promote_confirm_action" = "設為主賽事";
 

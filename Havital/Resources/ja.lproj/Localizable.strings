@@ -5042,7 +5042,7 @@
 
 "app2.races.promote_confirm_title" = "メインレースを変更しますか？";
 
-"app2.races.promote_confirm_body" = "%@ に合わせてトレーニング計画を組み直し、今週と今後の週次プランを作り直します。";
+"app2.races.promote_confirm_body" = "%@ に合わせて計画を組み直します。今週の週次プランはそのまま残り、来週以降は新しいレースに合わせて作成します。";
 
 "app2.races.promote_confirm_action" = "メインにする";
 

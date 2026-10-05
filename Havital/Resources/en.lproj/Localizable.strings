@@ -5045,7 +5045,7 @@
 
 "app2.races.promote_confirm_title" = "Change main race?";
 
-"app2.races.promote_confirm_body" = "Your plan will be rearranged for %@. This week’s and future weekly plans will be replaced.";
+"app2.races.promote_confirm_body" = "Your plan will be rearranged for %@. This week’s plan stays as it is; the following weeks will be planned for the new race.";
 
 "app2.races.promote_confirm_action" = "Set as main";
 
