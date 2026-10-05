@@ -100,11 +100,16 @@ final class App2PlanOverviewProjectionTests: XCTestCase {
         ))
     }
 
-    func testWeekZeroReviewUsesRelativeTitleInsteadOfAbsoluteWeekNumber() {
+    func testWeekZeroHasNoReviewTabOrAbsoluteWeekLabel() {
+        XCTAssertFalse(App2WeeklyReviewView.showsReviewTab(weekOfPlan: 0))
         XCTAssertFalse(App2WeeklyReviewView.usesAbsoluteWeekLabel(
             isCurrentWeek: false,
             weekOfPlan: 0
         ))
+    }
+
+    func testWeekOneKeepsReviewTabAndAbsoluteWeekLabel() {
+        XCTAssertTrue(App2WeeklyReviewView.showsReviewTab(weekOfPlan: 1))
         XCTAssertTrue(App2WeeklyReviewView.usesAbsoluteWeekLabel(
             isCurrentWeek: false,
             weekOfPlan: 1

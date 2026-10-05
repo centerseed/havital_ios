@@ -180,6 +180,11 @@ struct App2WeeklyReviewView: View {
         return reviewWeek + 1 >= current
     }
 
+    /// 第 1 週沒有上一週可回顧，所以 week 0 只建立規劃分頁。
+    nonisolated static func showsReviewTab(weekOfPlan: Int) -> Bool {
+        weekOfPlan >= 1
+    }
+
     private var showsPlanTab: Bool {
         Self.showsPlanTab(
             reviewWeek: weekOfPlan,
@@ -189,7 +194,10 @@ struct App2WeeklyReviewView: View {
     }
 
     /// 實際要畫哪一個分頁。規劃分頁收掉時 `tab` 的殘值不得把畫面帶進一個不存在的分頁。
-    private var activeTab: Tab { showsPlanTab ? tab : .review }
+    private var activeTab: Tab {
+        guard Self.showsReviewTab(weekOfPlan: weekOfPlan) else { return .plan }
+        return showsPlanTab ? tab : .review
+    }
 
     // MARK: - 沒有回顧內容時的規劃分頁（T-0405 外審 E03）
     //
@@ -255,7 +263,7 @@ struct App2WeeklyReviewView: View {
                 isCurrentWeek: isCurrentWeek
             )
         )
-        _tab = State(initialValue: startsOnPlanTab ? .plan : .review)
+        _tab = State(initialValue: startsOnPlanTab || weekOfPlan == 0 ? .plan : .review)
         self.weekOfPlan = weekOfPlan
         self.isReadOnly = isReadOnly
         self.isCurrentWeek = isCurrentWeek
@@ -278,7 +286,7 @@ struct App2WeeklyReviewView: View {
 
             // 只剩回顧一個分頁時整個切換器不出現——一顆按不出第二頁的分頁鈕
             // 比沒有更糟。
-            if showsPlanTab {
+            if showsPlanTab && Self.showsReviewTab(weekOfPlan: weekOfPlan) {
                 segmentedTabs
                     .padding(.horizontal, App2Theme.pagePadding)
                     .padding(.top, 12)
@@ -395,7 +403,9 @@ struct App2WeeklyReviewView: View {
 
     private var segmentedTabs: some View {
         HStack(spacing: 4) {
-            ForEach(Tab.allCases, id: \.rawValue) { item in
+            ForEach(Tab.allCases.filter { item in
+                item == .plan || Self.showsReviewTab(weekOfPlan: weekOfPlan)
+            }, id: \.rawValue) { item in
                 Text(tabTitle(item))
                     .font(.system(size: 14, weight: .heavy))
                     .foregroundStyle(tab == item ? App2Theme.inkPrimary : App2Theme.inkTertiary)

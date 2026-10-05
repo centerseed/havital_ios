@@ -663,16 +663,17 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
     }
 
     /// 開頁停在哪個分頁由呼叫端帶（T-0405）：課表頁的未產生態主鈕帶 `true`，
-    /// 直接落在規劃分頁；其餘入口維持回顧分頁。
+    /// 直接落在規劃分頁；第 1 週沒有回顧時也直接落在規劃分頁。
     func test_weeklyReviewView_startsOnPlanTabWhenAsked() throws {
         let source = try Self.weeklyReviewViewSource()
 
         XCTAssertTrue(
-            source.contains("_tab = State(initialValue: startsOnPlanTab ? .plan : .review)"),
+            source.contains("_tab = State(initialValue: startsOnPlanTab || weekOfPlan == 0 ? .plan : .review)"),
             "開頁分頁的初值要由 `startsOnPlanTab` 決定"
         )
         XCTAssertTrue(
-            source.contains("private var activeTab: Tab { showsPlanTab ? tab : .review }"),
+            source.contains("guard Self.showsReviewTab(weekOfPlan: weekOfPlan) else { return .plan }") &&
+            source.contains("return showsPlanTab ? tab : .review"),
             "規劃分頁被收掉時初值不得把畫面帶進不存在的分頁"
         )
     }
@@ -744,7 +745,9 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         let source = try Self.weeklyReviewViewSource()
 
         XCTAssertTrue(
-            source.contains("if showsPlanTab {\n                segmentedTabs"),
+            source.contains(
+                "if showsPlanTab && Self.showsReviewTab(weekOfPlan: weekOfPlan) {\n                segmentedTabs"
+            ),
             "只剩回顧一個分頁時，分頁切換器整組不得出現"
         )
         XCTAssertTrue(
