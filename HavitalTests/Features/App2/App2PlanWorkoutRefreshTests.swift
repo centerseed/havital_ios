@@ -109,13 +109,57 @@ final class App2PlanWorkoutRefreshTests: XCTestCase {
         XCTAssertEqual(viewModel.loadState, .failed)
     }
 
-    private func planStatus() -> PlanStatusV2Response {
+    func test_weeklyPlanNotGeneratedLeavesNilAndMarksNotGenerated() async {
+        let planRepository = MockTrainingPlanV2Repository()
+        planRepository.planStatusToReturn = planStatus(
+            nextAction: "create_plan",
+            currentWeekPlanId: nil
+        )
+
+        let viewModel = App2PlanViewModel(
+            planRepository: planRepository,
+            workoutRepository: MockWorkoutRepository(),
+            targetRepository: nil
+        )
+
+        await viewModel.revalidate()
+
+        XCTAssertNil(viewModel.week)
+        XCTAssertFalse(viewModel.isPlanGenerated)
+        XCTAssertEqual(viewModel.loadState, .notGenerated)
+    }
+
+    func test_weeklyPlanFailureWithExistingWeekKeepsSWRData() async {
+        let planRepository = MockTrainingPlanV2Repository()
+        planRepository.planStatusToReturn = planStatus()
+        planRepository.weeklyPlanV2ToReturn = weeklyPlan()
+
+        let viewModel = App2PlanViewModel(
+            planRepository: planRepository,
+            workoutRepository: MockWorkoutRepository(),
+            targetRepository: nil
+        )
+
+        await viewModel.revalidate()
+        let distanceBeforeFailure = viewModel.week?.value.targetDistanceKm
+        planRepository.fetchWeeklyPlanErrorToThrow = TestError.refreshFailed
+
+        await viewModel.revalidate()
+
+        XCTAssertEqual(viewModel.week?.value.targetDistanceKm, distanceBeforeFailure)
+        XCTAssertEqual(viewModel.loadState, .loaded)
+    }
+
+    private func planStatus(
+        nextAction: String = "view_plan",
+        currentWeekPlanId: String? = "plan-1"
+    ) -> PlanStatusV2Response {
         PlanStatusV2Response(
             currentWeek: 1,
             totalWeeks: 4,
-            nextAction: "view_plan",
+            nextAction: nextAction,
             canGenerateNextWeek: false,
-            currentWeekPlanId: "plan-1",
+            currentWeekPlanId: currentWeekPlanId,
             previousWeekSummaryId: nil,
             targetType: "race_run",
             methodologyId: "paceriz",
