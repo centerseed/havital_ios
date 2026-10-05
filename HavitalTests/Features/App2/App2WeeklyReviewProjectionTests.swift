@@ -330,6 +330,15 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         )
     }
 
+    func test_decisionChainExpandedDetails_doNotRepeatExecutionStats() {
+        XCTAssertFalse(
+            App2WeeklyReviewView.showsLegacyStatsInExpandedDetails(hasDecisionChain: true)
+        )
+        XCTAssertTrue(
+            App2WeeklyReviewView.showsLegacyStatsInExpandedDetails(hasDecisionChain: false)
+        )
+    }
+
     func test_openHypothesis_chartLeavesReviewDayToEndDay_asBlankDateSpan() {
         let focus = DecisionChainFocus(
             kind: "open_hypothesis",

@@ -671,7 +671,12 @@ struct App2WeeklyReviewView: View {
             reviewDetailsToggle
             if showsReviewDetails {
                 decisionChainNarrativeDetails(decisionChain)
-                legacyReviewDetails(projection)
+                legacyReviewDetails(
+                    projection,
+                    includeStats: Self.showsLegacyStatsInExpandedDetails(
+                        hasDecisionChain: projection.decisionChain != nil
+                    )
+                )
             }
         } else {
             storyCard(projection)
@@ -878,8 +883,11 @@ struct App2WeeklyReviewView: View {
     }
 
     @ViewBuilder
-    private func legacyReviewDetails(_ projection: App2WeeklyReviewProjection) -> some View {
-        if !projection.stats.isEmpty {
+    private func legacyReviewDetails(
+        _ projection: App2WeeklyReviewProjection,
+        includeStats: Bool = true
+    ) -> some View {
+        if includeStats && !projection.stats.isEmpty {
             section(L10n.App2.WeeklyReview.statsSection.localized) { statsGrid(projection.stats) }
         }
         if !projection.highlights.isEmpty || !projection.improvements.isEmpty {
@@ -971,6 +979,10 @@ struct App2WeeklyReviewView: View {
 
     static func decisionChainShowsL2(for focus: DecisionChainFocus) -> Bool {
         focus.kind == "adjudication" || focus.kind == "open_hypothesis"
+    }
+
+    static func showsLegacyStatsInExpandedDetails(hasDecisionChain: Bool) -> Bool {
+        !hasDecisionChain
     }
 
     static func decisionChainAnchorDays(
