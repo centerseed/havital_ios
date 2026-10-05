@@ -42,8 +42,9 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
     // MARK: - New Architecture Dependencies
     private let httpClient: HTTPClient
     private let parser: APIParser
+    private let injectedUserProfileRepository: UserProfileRepository?
     private var userProfileRepository: UserProfileRepository {
-        DependencyContainer.shared.resolve()
+        injectedUserProfileRepository ?? DependencyContainer.shared.resolve()
     }
     private var authSessionRepository: AuthSessionRepository {
         DependencyContainer.shared.resolve()
@@ -51,11 +52,19 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
     private var authRepository: AuthRepository {
         DependencyContainer.shared.resolve()
     }
-    private init(httpClient: HTTPClient = DefaultHTTPClient.shared,
-                 parser: APIParser = DefaultAPIParser.shared) {
+    init(httpClient: HTTPClient = DefaultHTTPClient.shared,
+         parser: APIParser = DefaultAPIParser.shared,
+         userProfileRepository: UserProfileRepository? = nil,
+         observeAuthState: Bool = true) {
         self.httpClient = httpClient
         self.parser = parser
+        self.injectedUserProfileRepository = userProfileRepository
         super.init()
+
+        guard observeAuthState else {
+            self.hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+            return
+        }
 
         // 🔒 檢測首次安裝並清除孤立的 Firebase session（必須在 listener 之前）
         Self.checkAndClearOrphanedSessionIfNeeded()
@@ -735,7 +744,7 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
                     switch httpError {
                     case .unauthorized, .forbidden:
                         Logger.firebase(
-                            "認證錯誤 - 重置認證狀態並登出 Firebase",
+                            "API authorization error - preserve Firebase session for retryable UI error",
                             level: .warn,
                             labels: [
                                 "module": "AuthenticationService",
@@ -743,22 +752,10 @@ class AuthenticationService: NSObject, ObservableObject, TaskManageable, Authent
                                 "user_id": self.user?.uid ?? "unknown"
                             ],
                             jsonPayload: [
-                                "error_type": String(describing: httpError)
+                                "error_type": String(describing: httpError),
+                                "preserves_authentication": true
                             ]
                         )
-
-                        // 清除 Firebase session（同步）
-                        do {
-                            try Auth.auth().signOut()
-                            print("✅ 已登出 Firebase（因為 API 認證失敗）")
-                        } catch {
-                            print("⚠️ Firebase 登出失敗: \(error.localizedDescription)")
-                        }
-
-                        await MainActor.run {
-                            self.appUser = nil
-                            self.isAuthenticated = false
-                        }
                     default:
                         // 其他 HTTP 錯誤（網路、伺服器錯誤等）不重置認證
                         break
