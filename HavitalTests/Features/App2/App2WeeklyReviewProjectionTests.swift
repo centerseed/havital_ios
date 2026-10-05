@@ -455,7 +455,7 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
         XCTAssertNotEqual(label, "hr_drift")
     }
 
-    func test_decisionChain_seriesWindow_isEightWeeksEndingOnJudgementDayForOpenHypothesis() {
+    func test_decisionChain_seriesWindow_anchorsEightWeekHistoryOnReviewDayForOpenHypothesis() {
         let window = App2WeeklyReviewViewModel.decisionChainSeriesWindow(
             focus: DecisionChainFocus(
                 kind: "open_hypothesis",
@@ -471,7 +471,7 @@ final class App2WeeklyReviewProjectionTests: XCTestCase {
             reviewDay: "2026-09-20"
         )
 
-        XCTAssertEqual(window?.startDay, "2026-08-09")
+        XCTAssertEqual(window?.startDay, "2026-07-26")
         XCTAssertEqual(window?.endDay, "2026-10-04")
     }
 
