@@ -8,10 +8,18 @@ import Foundation
 @MainActor
 final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidating {
 
+    enum LoadState: Equatable {
+        case loading
+        case notGenerated
+        case loaded
+        case failed
+    }
+
     @Published private(set) var isLoading = true
     @Published private(set) var week: App2Sourced<App2PlanWeek>?
+    @Published private(set) var loadState: LoadState = .loading
     /// 後端明說本週還沒有課表（`current_week_plan_id == nil`）。
-    /// 讀取失敗不算 —— 那時 `week` 保持舊值或退樣本，這個旗標維持 true。
+    /// 讀取失敗不算 —— 那時 `week` 保持舊值，這個旗標維持 true。
     @Published private(set) var isPlanGenerated = true
     /// 計畫結束態（設計 frame-00g2（c））。**有值時這一頁不再顯示第 N/M 週**
     /// —— 計畫已經走完，週次切換器與日卡整段換成結束態卡。
@@ -405,6 +413,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
 
         // 冷啟第一輪：先把上一次的週課表渲染出來，這一輪的網路變成背景刷新。
         if !hasLoaded { hydrateFromCache() }
+        if !isHistoryMode, week == nil { loadState = .loading }
         isLoading = !hasLoaded && week == nil
         finishedRound = false
         defer {
@@ -480,6 +489,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 week = nil
                 dayDetails = [:]
                 isPlanGenerated = true
+                loadState = .loaded
                 return
             }
             isHistoryWeekMissing = false
@@ -491,6 +501,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
                 Logger.debug("[App2PlanVM] 本週尚無課表 (next_action=\(status.nextAction))")
                 week = nil
                 isPlanGenerated = false
+                loadState = .notGenerated
                 return
             }
             isPlanGenerated = true
@@ -508,15 +519,15 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
             guard !error.isCancellationError else { if !isStaleRound { finishedRound = false }; return }
             guard revalidateGeneration == round else { return }
             finishedRound = true
-            Logger.debug("[App2PlanVM] 週課表取得失敗,退樣本: \(error)")
-            guard week == nil else { return }       // SWR：重驗失敗時保留舊資料
-            // 歷史回看不退樣本 —— 使用者要看的是**那一週真的排了什麼**，
-            // 拿一份假課表頂上去比空著更糟。
+            Logger.debug("[App2PlanVM] 週課表取得失敗,照實顯示失敗: \(error)")
+            guard week == nil else {
+                loadState = .loaded
+                return
+            }       // SWR：重驗失敗時保留舊資料
+            // 歷史回看也不補資料 —— 使用者要看的是**那一週真的排了什麼**，
+            // 空著比拿一份假課表頂上去更誠實。
             guard !isHistoryMode else { return }
-            week = App2Sourced(
-                App2StubFixtures.planWeek,
-                origin: .stub(pendingSection: App2StubFixtures.Section.offline)
-            )
+            loadState = .failed
         }
     }
 
@@ -859,6 +870,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 週課表 ＋ 每日詳情的組裝。網路回應與冷啟快取都走這一支。
     private func apply(plan: WeeklyPlanV2, planStatus: PlanStatusV2Response, completed: CompletedWeek?) {
         isPlanGenerated = true
+        loadState = .loaded
         week = App2Sourced(
             Self.planWeek(
                 plan: plan,
@@ -904,6 +916,7 @@ final class App2PlanViewModel: ObservableObject, TaskManageable, App2Revalidatin
     /// 測試／預覽用：直接填入本週課表，不打網路。
     func applyForTesting(week: App2Sourced<App2PlanWeek>?) {
         self.week = week
+        self.loadState = week == nil ? .failed : .loaded
         isLoading = false
         hasLoaded = true
         lastLoadedAt = Date()

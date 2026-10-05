@@ -96,6 +96,13 @@ Then 系統必須發布 `.dataChanged(.workouts)`，讓首頁完成列、紀錄�
 
 訓練量頁的來源可部分成功：例如週量讀取成功、健康資料或負荷比曲線失敗，成功來源照常顯示，失敗來源保留同範圍原有結果與原日期，提示部分資料未刷新。不把失敗轉成空值覆蓋原結果，也不把混合的新舊內容標成整頁剛成功刷新。原本無資料的來源仍為無資料，不補 0 或延長曲線。
 
+### AC-CACHE-12: App2 課表讀取失敗顯示失敗，不顯示範例資料
+
+When 課表頁讀取週課表的 API 失敗，且目前沒有可保留的舊課表，
+Then 課表頁必須顯示讀取失敗與重試，不顯示範例週次、日期、公里數或每日課表；已有舊課表時保留舊課表，沿用 SWR。
+
+驗法：`App2PlanWorkoutRefreshTests.test_weeklyPlanFailureWithoutExistingWeekLeavesNilAndMarksFailure` 驗證 API 丟錯時 `week == nil` 且狀態為失敗；同檔的既有 refresh 失敗測試驗證有舊資料時保留原課表。
+
 ## 實作對齊說明
 
 - AC-01/02/03/04：`DualTrackCacheHelper.execute`（`Havital/Core/Data/DualTrackCacheHelper.swift:47`），支援 `isCacheExpired`
@@ -105,4 +112,3 @@ Then 系統必須發布 `.dataChanged(.workouts)`，讓首頁完成列、紀錄�
 - AC-08：`CacheEventBus` 的 `.userLogout`／`.dataChanged(.user)` 失效路徑
 - AC-09：`App2RevalidatePolicy.shouldBlock`（`Havital/Features/App2/Presentation/App2RootView.swift:12`），四個常駐 VM 的 `revalidate()` 開頭引用
 - AC-10：`WorkoutBackgroundManager.emitWorkoutPushIfNeeded`（`Havital/Features/Workout/Domain/UseCases/WorkoutBackgroundManager.swift:958`）→ `CacheRegistrationCoordinator`（`Havital/Core/DI/CacheRegistrationCoordinator.swift:109`）→ 首頁／紀錄 VM 訂閱端
-

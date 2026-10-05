@@ -91,6 +91,24 @@ final class App2PlanWorkoutRefreshTests: XCTestCase {
         XCTAssertEqual(viewModel.week?.value.completedDistanceKm ?? -1, 8, accuracy: 0.001)
     }
 
+    func test_weeklyPlanFailureWithoutExistingWeekLeavesNilAndMarksFailure() async {
+        let planRepository = MockTrainingPlanV2Repository()
+        planRepository.planStatusToReturn = planStatus()
+        planRepository.cachedWeeklyPlansByWeek = [:]
+        planRepository.fetchWeeklyPlanErrorToThrow = TestError.refreshFailed
+
+        let viewModel = App2PlanViewModel(
+            planRepository: planRepository,
+            workoutRepository: MockWorkoutRepository(),
+            targetRepository: nil
+        )
+
+        await viewModel.revalidate()
+
+        XCTAssertNil(viewModel.week)
+        XCTAssertEqual(viewModel.loadState, .failed)
+    }
+
     private func planStatus() -> PlanStatusV2Response {
         PlanStatusV2Response(
             currentWeek: 1,

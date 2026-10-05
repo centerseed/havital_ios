@@ -602,24 +602,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
             // 每一條 in-flight 請求都會回 -999；當成失敗會把畫面上的真資料換成樣本。
             guard !error.isCancellationError else { noteRoundCancellation(); return }
             guard !isStaleRound else { return }
-            Logger.debug("[App2HomeVM] state/today 取得失敗,退樣本: \(error)")
-            if trainingStatus == nil {
-                trainingStatus = App2Sourced(
-                    // **樣本只填敘事，週數一律用真的。** 樣本檔已經不帶週數欄位，
-                    // 這裡再明寫一次來源，避免日後有人把週數塞回樣本。
-                    Self.offlineTrainingStatus(
-                        currentWeek: planStatus?.currentWeek,
-                        totalWeeks: planStatus?.totalWeeks
-                    ),
-                    origin: .stub(pendingSection: App2StubFixtures.Section.offline)
-                )
-            }
-            if insights == nil {
-                insights = App2Sourced(
-                    App2StubFixtures.insights,
-                    origin: .stub(pendingSection: App2StubFixtures.Section.offline)
-                )
-            }
+            Logger.debug("[App2HomeVM] state/today 取得失敗,照實保留失敗狀態: \(error)")
         }
     }
 
@@ -919,7 +902,7 @@ final class App2HomeViewModel: ObservableObject, TaskManageable, App2Revalidatin
         )
     }
 
-    /// `state/today` 掛掉時的訓練狀況卡：敘事退樣本，**週數仍然是真的**。
+    /// 測試用的離線訓練狀況 fixture；`state/today` 失敗時不在產品路徑使用。
     static func offlineTrainingStatus(currentWeek: Int?, totalWeeks: Int?) -> App2TrainingStatus {
         let stub = App2StubFixtures.trainingStatus
         return App2TrainingStatus(

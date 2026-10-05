@@ -72,7 +72,9 @@ struct App2PlanView: View {
                     ForEach(sourced.value.days) { day in
                         dayCard(day).padding(.bottom, 11)
                     }
-                } else if viewModel.isLoading {
+                } else if viewModel.loadState == .failed {
+                    planLoadFailedCard
+                } else if viewModel.isLoading || viewModel.loadState == .loading {
                     ProgressView().frame(maxWidth: .infinity, minHeight: 200)
                 } else {
                     // 首頁那句叫人「到課表頁產生」——在這一頁自己身上是繞圈，
@@ -373,6 +375,20 @@ struct App2PlanView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .accessibilityIdentifier("App2_PlanEndHistoryEmpty")
+    }
+
+    private var planLoadFailedCard: some View {
+        App2Card(spacing: 10) {
+            Text(L10n.App2.Common.loadFailed.localized)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(App2Theme.inkSecondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Button(L10n.App2.Common.retry.localized) {
+                Task { await viewModel.forceRefresh() }
+            }
+            .accessibilityIdentifier("App2_PlanLoadRetry")
+        }
+        .accessibilityIdentifier("App2_PlanLoadFailed")
     }
 
     /// 切到還沒看過的那一週時的等待態（T-0374）。

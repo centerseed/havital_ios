@@ -184,8 +184,8 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
                 // 其實是「沒取到」（2026-08-29 外審 D04/D07）。
                 guard !error.isCancellationError else { return }
                 Logger.debug("[App2RecordsVM] workouts page 取得失敗，保留既有清單: \(error)")
-                // 一筆舊資料都沒有就沒東西可保留 —— 交給外層的整體失敗路徑
-                //（stub ＋ offline 徽章），不畫一個假的空清單。
+                // 一筆舊資料都沒有就沒東西可保留 —— 交給外層的整體失敗路徑，
+                // 不畫一個假的空清單。
                 guard !rows.isEmpty else { throw error }
                 snapshots.save(stats, for: .workoutStats)
                 apply(stats: stats, rows: rows)
@@ -197,24 +197,11 @@ final class App2RecordsViewModel: ObservableObject, TaskManageable, App2Revalida
             // 取消不是失敗（`AGENTS.md` 陷阱 2）—— 下拉刷新的 task 被收掉時
             // in-flight 請求會回 -999。
             guard !error.isCancellationError else { return }
-            Logger.debug("[App2RecordsVM] stats 取得失敗,退樣本: \(error)")
+            Logger.debug("[App2RecordsVM] stats 取得失敗,照實保留失敗狀態: \(error)")
             // 真失敗（非取消）仍算「這一輪回過話」——標記已載，SWR 窗內不重打。
             hasLoaded = true
             lastLoadedAt = Date()
             guard records == nil else { return }    // SWR：重驗失敗時保留舊資料
-            let stub = App2StubFixtures.records
-            // 樣本沒有時間戳 → date/distanceKm 為 nil，全部落在「更早」那一組、
-            // 不參與小計。畫面上同時掛 stub 徽章，不會被誤讀成真資料。
-            apply(items: stub.recentWorkouts.map {
-                App2RecordItem(
-                    row: $0,
-                    date: nil,
-                    distanceKm: nil,
-                    whenLabel: $0.dateLabel,
-                    workout: nil
-                )
-            })
-            records = App2Sourced(stub, origin: .stub(pendingSection: App2StubFixtures.Section.offline))
         }
     }
 

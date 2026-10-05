@@ -14,8 +14,8 @@ final class App2RecordsViewModelTests: XCTestCase {
     /// 記憶體版的冷啟快照。
     ///
     /// **測試一定要注入它。** 不注入就會落到 `App2FileSnapshotStore.shared`，
-    /// 那支讀的是這台裝置／模擬器上這個帳號真正的落地檔 —— 於是「首載失敗要退樣本」
-    /// 這種斷言會因為機器上剛好有快照而變成綠燈假象（2026-08-26 實際踩到）。
+    /// 那支讀的是這台裝置／模擬器上這個帳號真正的落地檔 —— 於是首載失敗的空態
+    /// 斷言會因為機器上剛好有快照而變成綠燈假象。
     private final class InMemorySnapshotStore: App2SnapshotStoring {
         private var storage: [App2SnapshotKey: Data] = [:]
 
@@ -626,17 +626,17 @@ final class App2RecordsViewModelTests: XCTestCase {
         XCTAssertFalse(records.origin.isStub, "已有真資料時不得退樣本")
     }
 
-    /// 冷啟（沒有任何舊清單）就遇到分頁失敗：走整體失敗路徑退樣本＋offline 徽章，
-    /// 不畫一個看起來像「這個人沒跑過步」的空 live 清單。
-    func test_revalidate_pageFailureWithNoPriorRowsFallsBackToStub() async throws {
+    /// 冷啟（沒有任何舊清單）就遇到分頁失敗：保持空資料，不冒充樣本。
+    func test_revalidate_pageFailureWithNoPriorRowsKeepsRecordsNil() async {
         let source = FakeStatsSource()
         source.pageError = URLError(.timedOut)
         let vm = makeViewModel(source)
 
         await vm.loadIfNeeded()
 
-        let records = try XCTUnwrap(vm.records)
-        XCTAssertTrue(records.origin.isStub)
+        XCTAssertNil(vm.records)
+        XCTAssertTrue(vm.items.isEmpty)
+        XCTAssertFalse(vm.isLoading)
     }
 
     func test_loadIfNeeded_withinStaleWindow_doesNotRefetch() async {
@@ -716,15 +716,15 @@ final class App2RecordsViewModelTests: XCTestCase {
         XCTAssertFalse(vm.isLoading)
     }
 
-    /// 從沒載成功過就失敗 → 退樣本並掛徽章。
-    func test_firstLoadFailure_fallsBackToStub() async {
+    /// 從沒載成功過就失敗 → 保持空資料，不把錯誤冒充成樣本。
+    func test_firstLoadFailure_keepsRecordsNil() async {
         let source = FakeStatsSource()
         source.statsError = URLError(.notConnectedToInternet)
         let vm = makeViewModel(source)
 
         await vm.loadIfNeeded()
 
-        XCTAssertTrue(vm.records?.origin.isStub ?? false)
+        XCTAssertNil(vm.records)
         XCTAssertFalse(vm.isLoading)
     }
 
